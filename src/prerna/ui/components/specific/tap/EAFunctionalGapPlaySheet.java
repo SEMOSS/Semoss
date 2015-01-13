@@ -32,28 +32,31 @@ public class EAFunctionalGapPlaySheet extends GridPlaySheet {
 	private final String getEHRBLUQuery = "SELECT DISTINCT ?blu WHERE {{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}{?system <http://semoss.org/ontologies/Relation/Provide> ?blu}} BINDINGS ?system {(<http://health.mil/ontologies/Concept/System/AHLTA>)(<http://health.mil/ontologies/Concept/System/CHCS>)(<http://health.mil/ontologies/Concept/System/CIS-Essentris>)}";
 	private final String getDHMSMDataQuery = "SELECT DISTINCT ?data WHERE {{?dhmsm <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DHMSM>}{?capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>}{?task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>}{?needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}{?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?capability}{?capability <http://semoss.org/ontologies/Relation/Consists> ?task}{?task ?needs ?data}}";
 	private final String getDHMSMBLUQuery = "SELECT DISTINCT ?blu WHERE {{?dhmsm <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DHMSM>}{?capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>}{?task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>}{?needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}{?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?capability}{?capability <http://semoss.org/ontologies/Relation/Consists> ?task}{?task ?needs ?blu}}";
-	private final String getFGDataQuery = "SELECT DISTINCT ?activity ?data WHERE {{?activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>}{?fError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FError>}{?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}{?activity <http://semoss.org/ontologies/Relation/Assigned> ?fError}{?fError <http://semoss.org/ontologies/Relation/Needs> ?data}}";
-	private final String getFGBLUQuery = "SELECT DISTINCT ?activity ?blu WHERE {{?activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>}{?fError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FError>}{?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}{?activity <http://semoss.org/ontologies/Relation/Assigned> ?fError}{?fError <http://semoss.org/ontologies/Relation/Needs> ?blu}}";
+	private final String getfgDataMapQuery = "SELECT DISTINCT ?activity ?data WHERE {{?activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>}{?fError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FError>}{?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}{?activity <http://semoss.org/ontologies/Relation/Assigned> ?fError}{?fError <http://semoss.org/ontologies/Relation/Needs> ?data}}";
+	private final String getfgBLUMapQuery = "SELECT DISTINCT ?activity ?blu WHERE {{?activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>}{?fError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FError>}{?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}{?activity <http://semoss.org/ontologies/Relation/Assigned> ?fError}{?fError <http://semoss.org/ontologies/Relation/Needs> ?blu}}";
 	private final String getActivityDataWeightQuery = "SELECT DISTINCT ?activity ?activityWeight WHERE {{?dhmsm <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DHMSM>}{?capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>}{?businessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>}{?activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>}{?activity <http://semoss.org/ontologies/Relation/Contains/Dataweight> ?activityWeight}{?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?capability}{?capability <http://semoss.org/ontologies/Relation/Supports> ?businessProcess}{?businessProcess <http://semoss.org/ontologies/Relation/Consists> ?activity}}";
 	private final String getActivityBLUWeightQuery = "SELECT DISTINCT ?activity ?activityWeight WHERE {{?dhmsm <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DHMSM>}{?capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>}{?businessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>}{?activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>}{?activity <http://semoss.org/ontologies/Relation/Contains/BLUweight> ?activityWeight}{?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?capability}{?capability <http://semoss.org/ontologies/Relation/Supports> ?businessProcess}{?businessProcess <http://semoss.org/ontologies/Relation/Consists> ?activity}}";
 	private final String getActivityDataQuery = "SELECT DISTINCT ?activity ?data ?dataWeight WHERE {{?dhmsm <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DHMSM>}{?capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>}{?businessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>}{?activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>}{?needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}{?needs <http://semoss.org/ontologies/Relation/Contains/weight> ?dataWeight}{?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?capability}{?capability <http://semoss.org/ontologies/Relation/Supports> ?businessProcess}{?businessProcess <http://semoss.org/ontologies/Relation/Consists> ?activity}{?activity ?needs ?data}}";
 	private final String getActivityBLUQuery = "SELECT DISTINCT ?activity ?blu ?bluWeight WHERE {{?dhmsm <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DHMSM>}{?capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>}{?businessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>}{?activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>}{?needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}{?needs <http://semoss.org/ontologies/Relation/Contains/weight> ?bluWeight}{?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?capability}{?capability <http://semoss.org/ontologies/Relation/Supports> ?businessProcess}{?businessProcess <http://semoss.org/ontologies/Relation/Consists> ?activity}{?activity ?needs ?blu}}";
 	private final String getBusinessProcessQuery = "SELECT DISTINCT ?businessProcess ?activity ?activityWeight WHERE {{?dhmsm <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DHMSM>}{?capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>}{?businessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>}{?consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>}{?consists <http://semoss.org/ontologies/Relation/Contains/weight> ?activityWeight}{?activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>}{?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?capability}{?capability <http://semoss.org/ontologies/Relation/Supports> ?businessProcess}{?businessProcess ?consists ?activity}}";
 	private final String getFCCQuery = "SELECT DISTINCT ?BusinessProcess ?FCC ?weight WHERE { {?FCC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC>;}{?PartOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/PartOf> ;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?PartOf <http://semoss.org/ontologies/Relation/Contains/PercentBilled> ?weight}{?FCC ?PartOf ?BusinessProcess ;} }";
+	private final String getBPCategory = "SELECT DISTINCT ?businessProcess ?ProcessCategory WHERE {{?dhmsm <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DHMSM>}{?capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>}{?businessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>}{?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?capability}{?capability <http://semoss.org/ontologies/Relation/Supports> ?businessProcess}{?businessProcess <http://semoss.org/ontologies/Relation/Contains/ProcessCategory> ?ProcessCategory}}";
 	
 	private ArrayList<String> ehrData;
 	private ArrayList<String> ehrBLU;
 	private ArrayList<String> dhmsmData;
 	private ArrayList<String> dhmsmBLU;
-	private HashMap<String, ArrayList<String>> fgData;
-	private HashMap<String, ArrayList<String>> fgBLU;
+	private HashMap<String, ArrayList<String>> fgDataMap;
+	private HashMap<String, ArrayList<String>> fgBLUMap;
 	private HashMap<String, String> activityDataWeight;
 	private HashMap<String, String> activityBLUWeight;
 	private HashMap<String, ArrayList<String[]>> activityDataMap;
 	private HashMap<String, ArrayList<String[]>> activityBLUMap;
-	private HashMap<String, ArrayList<String[]>> bpActivities;
+	private HashMap<String, ArrayList<String[]>> bpActivityMap;
 	private HashMap<String, ArrayList<String[]>> bpFCCs;
 	private HashMap<String, Double> fccCosts;
+	
+	HashMap<String, Double> efficiencyPercent = new HashMap<String, Double>();
 	
 	@Override
 	public void createData() {
@@ -61,13 +64,13 @@ public class EAFunctionalGapPlaySheet extends GridPlaySheet {
 		ehrBLU = getStringList(getEHRBLUQuery);
 		dhmsmData = getStringList(getDHMSMDataQuery);
 		dhmsmBLU = getStringList(getDHMSMBLUQuery);
-		fgData = getStringListMap(getFGDataQuery);
-		fgBLU = getStringListMap(getFGBLUQuery);
+		fgDataMap = getStringListMap(getfgDataMapQuery);
+		fgBLUMap = getStringListMap(getfgBLUMapQuery);
 		activityDataWeight = getActivityWeightMap(getActivityDataWeightQuery);
 		activityBLUWeight = getActivityWeightMap(getActivityBLUWeightQuery);
 		activityDataMap = getActivityMap(getActivityDataQuery);
 		activityBLUMap = getActivityMap(getActivityBLUQuery);
-		bpActivities = getActivityMap(getBusinessProcessQuery);
+		bpActivityMap = getActivityMap(getBusinessProcessQuery);
 		bpFCCs = getActivityMap(getFCCQuery);
 		fccCosts = fillFCCCostHash();
 	}
@@ -75,29 +78,57 @@ public class EAFunctionalGapPlaySheet extends GridPlaySheet {
 	@Override
 	public void runAnalytics() {
 		list = new ArrayList<Object[]>();
-		if (query.equals("Activity")) {
-			names = new String[2];
-			names[0] = "Activity";
-			names[1] = "delta Efficiency";
-		} else if (query.equals("Business Process")) {
-			names = new String[4];
-			names[0] = "Business Process";
-			names[1] = "delta Efficiency";
-			names[2] = "BP Cost";
-			names[3] = "Efficiency Savings";
+		if (query != null) {
+			if (query.equals("SamData")) {
+				names = new String[3];
+				names[0] = "Activity";
+				names[1] = "Data Object";
+				names[2] = "Adjusted Data Weight";
+			}
+			if (query.equals("SamBLU")) {
+				names = new String[3];
+				names[0] = "Activity";
+				names[1] = "BLU";
+				names[2] = "Adjusted BLU Weight";
+			}
+			if (query.equals("Activity")) {
+				names = new String[2];
+				names[0] = "Activity";
+				names[1] = "delta Efficiency";
+			} else if (query.equals("Business Process")) {
+				names = new String[4];
+				names[0] = "Business Process";
+				names[1] = "delta Efficiency";
+				names[2] = "BP Cost";
+				names[3] = "Efficiency Savings";
+			}
 		}
 		HashMap<String, Double> activityEfficiency = new HashMap<String, Double>();
 		HashMap<String, Double> bpCosts = new HashMap<String, Double>();
+		HashMap<String, HashMap<String, Double>> samDataMap = new HashMap<String, HashMap<String, Double>>();
+		HashMap<String, HashMap<String, Double>> samBLUMap = new HashMap<String, HashMap<String, Double>>();
 		
 		for (String activity : activityDataWeight.keySet()) {
 			Double dataEfficiency = 0.0;
-			dataEfficiency = getEffiencyScore(activityDataMap.get(activity), ehrData, fgData.get(activity), dhmsmData);
+			dataEfficiency = getEffiencyScore("data", activityDataMap.get(activity), ehrData, fgDataMap.get(activity), dhmsmData);
+			if (query.equals("SamData")) {
+				if (activityDataMap.get(activity) != null) {
+					samDataMap.put(activity, getSamMap("data", activityDataMap.get(activity), ehrData, fgDataMap.get(activity), dhmsmData));
+				}
+			}
 			dataEfficiency *= Double.parseDouble(activityDataWeight.get(activity));
 			activityEfficiency.put(activity, dataEfficiency);
 		}
 		for (String activity : activityBLUWeight.keySet()) {
 			Double bluEfficiency = 0.0;
-			bluEfficiency = getEffiencyScore(activityBLUMap.get(activity), ehrBLU, fgBLU.get(activity), dhmsmBLU);
+			bluEfficiency = getEffiencyScore("blu", activityBLUMap.get(activity), ehrBLU, fgBLUMap.get(activity), dhmsmBLU);
+			if (activityBLUMap.get(activity) != null) {
+				if (query.equals("SamBLU")) {
+					if (activityBLUMap.get(activity) != null) {
+						samBLUMap.put(activity, getSamMap("blu", activityBLUMap.get(activity), ehrBLU, fgBLUMap.get(activity), dhmsmBLU));
+					}
+				}
+			}
 			bluEfficiency *= Double.parseDouble(activityBLUWeight.get(activity));
 			if (activityEfficiency.containsKey(activity)) {
 				Double dataEfficiency = activityEfficiency.get(activity);
@@ -106,6 +137,24 @@ public class EAFunctionalGapPlaySheet extends GridPlaySheet {
 				activityEfficiency.put(activity, bluEfficiency);
 			}
 		}
+		if (query.equals("SamData")) {
+			for (String activity : samDataMap.keySet()) {
+				for (String data : samDataMap.get(activity).keySet()) {
+					Object[] temp = { activity, data, samDataMap.get(activity).get(data) };
+					list.add(temp);
+				}
+			}
+		}
+		
+		if (query.equals("SamBLU")) {
+			for (String activity : samBLUMap.keySet()) {
+				for (String blu : samBLUMap.get(activity).keySet()) {
+					Object[] temp = { activity, blu, samBLUMap.get(activity).get(blu) };
+					list.add(temp);
+				}
+			}
+		}
+		
 		if (query.equals("Activity")) {
 			for (String activity : activityEfficiency.keySet()) {
 				Object[] temp = { activity, activityEfficiency.get(activity) };
@@ -113,7 +162,7 @@ public class EAFunctionalGapPlaySheet extends GridPlaySheet {
 			}
 		}
 		
-		else if (query.equals("Business Process")) {
+		else if (query.contains("Schedule") || query.equals("Business Process")) {
 			for (String bp : bpFCCs.keySet()) {
 				Double bpCost = 0.0;
 				for (String[] bpFCC : bpFCCs.get(bp)) {
@@ -124,9 +173,10 @@ public class EAFunctionalGapPlaySheet extends GridPlaySheet {
 				bpCosts.put(bp, bpCost);
 			}
 			
-			for (String businessProcess : bpActivities.keySet()) {
+			for (String businessProcess : bpActivityMap.keySet()) {
 				Double bpEfficiency = 0.0;
-				for (String[] bpActivity : bpActivities.get(businessProcess)) {
+				
+				for (String[] bpActivity : bpActivityMap.get(businessProcess)) {
 					if (activityEfficiency.keySet().contains(bpActivity[0])) {
 						bpEfficiency += (Double.parseDouble(bpActivity[1]) * activityEfficiency.get(bpActivity[0]));
 					}
@@ -135,9 +185,54 @@ public class EAFunctionalGapPlaySheet extends GridPlaySheet {
 				if (bpCosts.containsKey(businessProcess))
 					bpCost = bpCosts.get(businessProcess);
 				Object[] temp = { businessProcess, bpEfficiency, bpCost, bpEfficiency * bpCost };
+				efficiencyPercent.put(businessProcess, bpEfficiency);
 				list.add(temp);
 			}
 		}
+	}
+	
+	public HashMap<String, Double> getSamMap(String type, ArrayList<String[]> objectList, ArrayList<String> ehrList, ArrayList<String> fgList,
+			ArrayList<String> dhmsmList) {
+		HashMap<String, Double> finalMap = new HashMap<String, Double>();
+		double adjustedWeight = 0.0;
+		if (objectList != null) {
+			int size = objectList.size();
+			for (int i = 0; i < objectList.size(); i++) {
+				String[] data = objectList.get(i);
+				boolean dataRemoved = false;
+				if (ehrList.contains(data[0])) {
+					objectList.remove(i);
+					i--;
+					dataRemoved = true;
+				}
+				if ((!dataRemoved) && fgList != null) {
+					if (fgList.contains(data[0])) {
+						objectList.remove(i);
+						i--;
+						dataRemoved = true;
+					}
+				}
+				if (!dataRemoved) {
+					if (!dhmsmList.contains(data[0])) {
+						objectList.remove(i);
+						i--;
+						dataRemoved = true;
+					}
+				}
+				if (!dataRemoved) {
+					if (size < 4 && type.equals("blu")) {
+						adjustedWeight = (Double.parseDouble(data[1]) * .25);
+					} else if (size < 3 && type.equals("data")) {
+						adjustedWeight = (Double.parseDouble(data[1]) / 3);
+						// }
+					} else {
+						adjustedWeight = Double.parseDouble(data[1]);
+					}
+				}
+				finalMap.put(data[0], adjustedWeight);
+			}
+		}
+		return finalMap;
 	}
 	
 	public ArrayList<String> getStringList(String query) {
@@ -199,9 +294,11 @@ public class EAFunctionalGapPlaySheet extends GridPlaySheet {
 		return finalMap;
 	}
 	
-	public double getEffiencyScore(ArrayList<String[]> objectList, ArrayList<String> ehrList, ArrayList<String> fgList, ArrayList<String> dhmsmList) {
+	public double getEffiencyScore(String type, ArrayList<String[]> objectList, ArrayList<String> ehrList, ArrayList<String> fgList,
+			ArrayList<String> dhmsmList) {
 		double unweightedEfficiency = 0.0;
 		if (objectList != null) {
+			int size = objectList.size();
 			for (int i = 0; i < objectList.size(); i++) {
 				String[] data = objectList.get(i);
 				boolean dataRemoved = false;
@@ -225,7 +322,14 @@ public class EAFunctionalGapPlaySheet extends GridPlaySheet {
 					}
 				}
 				if (!dataRemoved) {
-					unweightedEfficiency += Double.parseDouble(data[1]);
+					if (size < 4 && type.equals("blu")) {
+						unweightedEfficiency += (Double.parseDouble(data[1]) * .25);
+					} else if (size < 3 && type.equals("data")) {
+						unweightedEfficiency += (Double.parseDouble(data[1]) / 3);
+						// }
+					} else {
+						unweightedEfficiency += Double.parseDouble(data[1]);
+					}
 				}
 			}
 		}
@@ -239,7 +343,7 @@ public class EAFunctionalGapPlaySheet extends GridPlaySheet {
 	private HashMap<String, Double> fillFCCCostHash() {
 		HashMap<String, Double> fccCost = new HashMap<String, Double>();
 		String siteEngineName = "TAP_Site_Data";
-		String fccQuery = "SELECT DISTINCT ?FCC (SUM(?TotalCost) AS ?Cost) WHERE {{?FCC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC>} {?FCCMTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC-MTF>}{?FCCMTF <http://semoss.org/ontologies/Relation/Contains/TotalCost> ?TotalCost }{?FCC <http://semoss.org/ontologies/Relation/Has> ?FCCMTF}} GROUP BY ?FCC";
+		String fccQuery = "SELECT DISTINCT ?FCC (SUM(?TotalCost) AS ?Cost) WHERE {{?FCC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC>} {?FCCMTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC-MTF>}{?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>}{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>}{?YearQuarter <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>}{?Year <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?FCCMTF <http://semoss.org/ontologies/Relation/Contains/TotalCost> ?TotalCost }{?FCC <http://semoss.org/ontologies/Relation/Has> ?FCCMTF}{?FCCMTF <http://semoss.org/ontologies/Relation/Occurs_At> ?MTF}{?DCSite <http://semoss.org/ontologies/Relation/Includes> ?MTF}{?Wave <http://semoss.org/ontologies/Relation/Contains> ?DCSite}{?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?YearQuarter}{?YearQuarter <http://semoss.org/ontologies/Relation/has> ?Year}} GROUP BY ?FCC";
 		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp(siteEngineName);
 		SesameJenaSelectWrapper siteWrapper = new SesameJenaSelectWrapper();
 		if (siteEngine == null) {
