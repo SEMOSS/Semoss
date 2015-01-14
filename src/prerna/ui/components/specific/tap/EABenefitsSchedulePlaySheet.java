@@ -24,6 +24,9 @@ public class EABenefitsSchedulePlaySheet extends GridPlaySheet {
 	private HashMap<String, HashMap<String, Double>> yearFCCCost;
 	private HashMap<String, HashMap<String, Double>> mtfFCCCost;
 	private HashMap<String, String> mtfYear;
+	HashMap<String, Double> effectPercentMap;
+	HashMap<String, Double> efficiencyPercentMap;
+	HashMap<String, Double> productivityPercentMap;
 	
 	@Override
 	public void createData() {
@@ -80,9 +83,9 @@ public class EABenefitsSchedulePlaySheet extends GridPlaySheet {
 			names[19] = "FY25 Total Savings";
 		}
 		
-		HashMap<String, Double> effectPercentMap = new HashMap<String, Double>();
-		HashMap<String, Double> efficiencyPercentMap = new HashMap<String, Double>();
-		HashMap<String, Double> productivityPercentMap = new HashMap<String, Double>();
+		effectPercentMap = new HashMap<String, Double>();
+		efficiencyPercentMap = new HashMap<String, Double>();
+		productivityPercentMap = new HashMap<String, Double>();
 		HashMap<String, HashMap<String, Double>> effectSavingsMap = new HashMap<String, HashMap<String, Double>>();
 		HashMap<String, HashMap<String, Double>> efficiencySavingsMap = new HashMap<String, HashMap<String, Double>>();
 		HashMap<String, HashMap<String, Double>> productivitySavingsMap = new HashMap<String, HashMap<String, Double>>();

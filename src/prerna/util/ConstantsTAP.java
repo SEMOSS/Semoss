@@ -23,8 +23,8 @@ public final class ConstantsTAP {
 	private ConstantsTAP() {
 		
 	}
-
-	//Source Select Report Queries
+	
+	// Source Select Report Queries
 	public static final String RFP_NAME_FIELD = "RFPNameField";
 	
 	public static final String FUNCTIONAL_AREA_CHECKBOX_1 = "HSDCheckBox";
@@ -32,12 +32,12 @@ public final class ConstantsTAP {
 	public static final String FUNCTIONAL_AREA_CHECKBOX_3 = "FHPCheckBox";
 	public static final String FUNCTIONAL_AREA_CHECKBOX_4 = "DHMSMCheckBox";
 	public static final String SOURCE_SELECT_PANEL = "sourceSelectPanel";
-	public static final String SOURCE_SELECT_REPORT_QUERY="SOURCE_SELECT_REPORT_QUERY";
-	public static final String SOURCE_SELECT_REPORT_QUERY_HSD="SOURCE_SELECT_REPORT_QUERY_HSD";
-	public static final String SOURCE_SELECT_REPORT_QUERY_HSS="SOURCE_SELECT_REPORT_QUERY_HSS";
-	public static final String SOURCE_SELECT_REPORT_QUERY_FHP="SOURCE_SELECT_REPORT_QUERY_FHP";
-	public static final String SOURCE_SELECT_REPORT_QUERY_DHMSM="SOURCE_SELECT_REPORT_QUERY_DHMSM";
-	public static final String SOURCE_SELECT_REPORT_NAME="SOURCE_SELECT_REPORT_NAME";
+	public static final String SOURCE_SELECT_REPORT_QUERY = "SOURCE_SELECT_REPORT_QUERY";
+	public static final String SOURCE_SELECT_REPORT_QUERY_HSD = "SOURCE_SELECT_REPORT_QUERY_HSD";
+	public static final String SOURCE_SELECT_REPORT_QUERY_HSS = "SOURCE_SELECT_REPORT_QUERY_HSS";
+	public static final String SOURCE_SELECT_REPORT_QUERY_FHP = "SOURCE_SELECT_REPORT_QUERY_FHP";
+	public static final String SOURCE_SELECT_REPORT_QUERY_DHMSM = "SOURCE_SELECT_REPORT_QUERY_DHMSM";
+	public static final String SOURCE_SELECT_REPORT_NAME = "SOURCE_SELECT_REPORT_NAME";
 	public static final String SOURCE_SELECT_REPORT_TASK_EFFECT_QUERY = "SOURCE_SELECT_REPORT_TASK_EFFECT_QUERY";
 	
 	public static final String DHMSM_ACCESS_INTEGRATED_BUTTON = "integratedAccessButton";
@@ -55,20 +55,20 @@ public final class ConstantsTAP {
 	public static final String SYS_DECOM_OPT_RESOURCE_TEXT_FIELD = "sysDecomOptimizationResourceTextField";
 	public static final String SYS_DECOM_OPT_TIME_TEXT_FIELD = "sysDecomOptimizationTimeTextField";
 	
-	//Analysis of Vendors' Response to RFP
-	public static final String VENDOR_BV_TV_QUERY="VENDOR_BV_TV_QUERY";
-	public static final String VENDOR_CUSTOM_COST_QUERY="VENDOR_CUSTOM_COST_QUERY";
-	public static final String VENDOR_HWSW_COST_QUERY="VENDOR_HWSW_COST_QUERY";
+	// Analysis of Vendors' Response to RFP
+	public static final String VENDOR_BV_TV_QUERY = "VENDOR_BV_TV_QUERY";
+	public static final String VENDOR_CUSTOM_COST_QUERY = "VENDOR_CUSTOM_COST_QUERY";
+	public static final String VENDOR_HWSW_COST_QUERY = "VENDOR_HWSW_COST_QUERY";
 	
 	public static final String VENDOR_FULFILL_LEVEL_1 = "VENDOR_FULFILL_LEVEL_SUPPORTS_OUT_OF_BOX";
 	public static final String VENDOR_FULFILL_LEVEL_2 = "VENDOR_FULFILL_LEVEL_SUPPORTS_WITH_CONFIGURATION";
 	public static final String VENDOR_FULFILL_LEVEL_3 = "VENDOR_FULFILL_LEVEL_SUPPORTS_WITH_CUSTOMIZATION";
 	public static final String VENDOR_FULFILL_LEVEL_4 = "VENDOR_FULFILL_LEVEL_DOES_NOT_SUPPORT";
 	
-	public static final String VENDOR_HEAT_MAP_HTML="VENDOR_HEAT_MAP_HTML";
-	public static final String VENDOR_HEAT_MAP_REQUIREMENTS_QUERY="VENDOR_HEAT_MAP_REQUIREMENTS_QUERY";
+	public static final String VENDOR_HEAT_MAP_HTML = "VENDOR_HEAT_MAP_HTML";
+	public static final String VENDOR_HEAT_MAP_REQUIREMENTS_QUERY = "VENDOR_HEAT_MAP_REQUIREMENTS_QUERY";
 	
-	//Fact Sheet Constants
+	// Fact Sheet Constants
 	public static final String SYSTEM_SW_QUERY = "SYSTEM_SW_QUERY";
 	public static final String SYSTEM_HW_QUERY = "SYSTEM_HW_QUERY";
 	public static final String SYSTEM_MATURITY_QUERY = "SYSTEM_MATURITY_QUERY";
@@ -85,24 +85,24 @@ public final class ConstantsTAP {
 	public static final String UNIQUE_BUSINESS_LOGIC_QUERY = "UNIQUE_BUSINESS_LOGIC_QUERY";
 	public static final String SYSTEM_DESCRIPTION_QUERY = "SYSTEM_DESCRIPTION_QUERY";
 	public static final String SYSTEM_NAME_QUERY = "SYSTEM_NAME_QUERY";
-	public static final String SYSTEM_HIGHLIGHTS_QUERY = "SYSTEM_HIGHLIGHTS_QUERY";	
+	public static final String SYSTEM_HIGHLIGHTS_QUERY = "SYSTEM_HIGHLIGHTS_QUERY";
 	public static final String USER_TYPES_QUERY = "USER_TYPES_QUERY";
 	public static final String USER_INTERFACES_QUERY = "USER_INTERFACES_QUERY";
 	public static final String BUSINESS_PROCESS_QUERY = "BUSINESS_PROCESS_QUERY";
 	public static final String PPI_QUERY = "PPI_QUERY";
 	public static final String CAPABILITIES_SUPPORTED_QUERY = "CAPABILITIES_SUPPORTED_QUERY";
-		
-	//Tasker Generation Constants
-	public static final String TASKER_GENERATION_SYSTEM_COMBO_BOX="TaskerGenerationSyscomboBox";
+	
+	// Tasker Generation Constants
+	public static final String TASKER_GENERATION_SYSTEM_COMBO_BOX = "TaskerGenerationSyscomboBox";
 	public static final String ACTIVITY_QUERY = "ACTIVITY_QUERY";
 	public static final String BLU_QUERY = "BLU_QUERY";
 	public static final String DATA_QUERY = "DATA_QUERY";
 	public static final String TERROR_QUERY = "TERROR_QUERY";
 	
-	//Capability Fact Sheet Generation Constants
-	public static final String CAPABILITY_FACT_SHEET_CAP_COMBO_BOX="capabilityFactSheetCapComboBox";
+	// Capability Fact Sheet Generation Constants
+	public static final String CAPABILITY_FACT_SHEET_CAP_COMBO_BOX = "capabilityFactSheetCapComboBox";
 	
-	//Capability Fact Sheet Constants
+	// Capability Fact Sheet Constants
 	public static final String CAPABILITY_GROUP_QUERY = "CAPABILITY_GROUP_QUERY";
 	public static final String MISSION_OUTCOME_QUERY = "MISSION_OUTCOME_QUERY";
 	public static final String CONOPS_SOURCE_QUERY = "CONOPS_SOURCE_QUERY";
@@ -113,9 +113,9 @@ public final class ConstantsTAP {
 	public static final String TR_COUNT_QUERY = "TR_COUNT_QUERY";
 	public static final String TS_COUNT_QUERY = "TS_COUNT_QUERY";
 	public static final String DATA_COUNT_QUERY = "DATA_COUNT_QUERY";
-	public static final String BLU_COUNT_QUERY = "BLU_COUNT_QUERY";	
-	public static final String SYSTEM_COUNT_QUERY = "SYSTEM_COUNT_QUERY";	
-	public static final String FUNCTIONAL_GAP_COUNT_QUERY = "FUNCTIONAL_GAP_COUNT_QUERY";	
+	public static final String BLU_COUNT_QUERY = "BLU_COUNT_QUERY";
+	public static final String SYSTEM_COUNT_QUERY = "SYSTEM_COUNT_QUERY";
+	public static final String FUNCTIONAL_GAP_COUNT_QUERY = "FUNCTIONAL_GAP_COUNT_QUERY";
 	public static final String PARTICIPANT_QUERY = "PARTICIPANT_QUERY";
 	public static final String DATE_GENERATED_QUERY = "DATE_GENERATED_QUERY";
 	public static final String CAPABILITY_SIM_QUERY = "CAPABILITY_SIM_QUERY";
@@ -139,25 +139,29 @@ public final class ConstantsTAP {
 	public static final String CAP_CONSUME_SYSTEM_PROVIDE_MISSING_DATA_QUERY = "CAP_CONSUME_SYSTEM_PROVIDE_MISSING_DATA_QUERY";
 	public static final String CAP_PROVIDE_SYSTEM_PROVIDE_MISSING_DATA_COUNT_QUERY = "CAP_PROVIDE_SYSTEM_PROVIDE_MISSING_DATA_COUNT_QUERY";
 	public static final String CAP_CONSUME_SYSTEM_PROVIDE_MISSING_DATA_COUNT_QUERY = "CAP_CONSUME_SYSTEM_PROVIDE_MISSING_DATA_COUNT_QUERY";
-
-	//Update Active Systems Constants
+	
+	// Update Active Systems Constants
 	public static final String GET_ALL_SYSTEMS_QUERY = "GET_ALL_SYSTEMS_QUERY";
 	public static final String GET_DECOMMISSIONED_SYSTEMS_QUERY = "GET_ALL_DECOMMISSIONED_SYSTEMS_QUERY";
 	
-	//TAP Service Aggregation to Core
+	// TAP Service Aggregation to Core
 	public static final String TAP_SERVICES_AGGREGATION_BUTTON = "btnAggregateTapServicesIntoTapCore";
 	public static final String TAP_SERVICES_AGGREGATION_SERVICE_COMBO_BOX = "selectTapServicesComboBox";
 	public static final String TAP_SERVICES_AGGREGATION_CORE_COMBO_BOX = "selectTapCoreForAggregationComboBox";
 	
-	//Create Future Interface DB
+	// Create Future Interface DB
 	public static final String HR_CORE_FUTURE_INTERFACE_DATABASE_CORE_COMBO_BOX = "selectHRCoreForFutureInterfaceDBComboBox";
 	public static final String TAP_FUTURE_INTERFACE_DATABASE_COMBO_BOX = "selectFutureInterfaceComboBox";
 	public static final String TAP_FUTURE_COST_INTERFACE_DATABASE_COMBO_BOX = "selectFutureCostInterfaceComboBox";
 	public static final String TAP_FUTURE_INTERFACE_DATABASE_BUTTON = "btnCreateFutureInterfaceDatabase";
 	
-	//Central System Sys-BP Sys-Activity Aggregation Thresholds
+	// Central System Sys-BP Sys-Activity Aggregation Thresholds
 	public static final String DATA_OBJECT_THRESHOLD_VALUE_TEXT_BOX = "dataObjectThresholdValueTextField";
 	public static final String BLU_THRESHOLD_VALUE_TEXT_BOX = "bluThresholdValueTextField";
-	//Relationship Insert Constants
+	// Relationship Insert Constants
 	public static final String LOGIC_TYPE = "relInferLogicTypeComboBox";
+	
+	// EA Properties to HR_Core
+	public static final String TAP_EA_PROPERTY_CREATOR_BUTTON = "addEAPropertyButton";
+	
 }
