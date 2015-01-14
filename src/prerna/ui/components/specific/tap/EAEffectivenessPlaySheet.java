@@ -140,12 +140,16 @@ public class EAEffectivenessPlaySheet extends GridPlaySheet {
 				String[] tempKey = { activity, fg };
 				Double[] tempVal = { fd, id };
 				activityFGFDID.put(tempKey, tempVal);
-				// System.out.println(fgProps.get("Manual_Work-Paper_Documentation_Required")[0]);
-				// If null pointer exception is thrown, a functional gap is missing its properties
+				// try {
 				String[] tempValue = { g.toString(), fgProps.get(fg)[0], fgActivityCount.get(fg), fgProps.get(fg)[1], fgProps.get(fg)[2],
 						activityDataWeight.get(activity), activityBLUWeight.get(activity), helper.fgDataSum.toString(), helper.fgBLUSum.toString(),
 						helper.activityDataSum.toString(), helper.activityBLUSum.toString() };
 				activityFGDelta.put(tempKey, tempValue);
+				// } catch (NullPointerException e) {
+				// e.printStackTrace();
+				// Utility.showError("FError properties are missing. Please make sure all FErrors have Frequency, Dataweight, and BLUweight.");
+				// throw new Exception();
+				// }
 			}
 		}
 		for (String[] activityFG : activityFGDelta.keySet()) {
