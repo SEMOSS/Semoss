@@ -269,11 +269,12 @@
             var selectedValue = labelElement.options[labelElement.selectedIndex].value;
             if(selectedValue === "") {
                 sortElement.disabled = true;
+				sortElement.value = "";
             } else {
                 sortElement.disabled = false;
+				sortElement.value = "Ascending";
+				sort(sortElement.value);
             }
-
-            sortElement.value = "";
         };
     </script>
 </body>
