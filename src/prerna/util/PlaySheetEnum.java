@@ -44,8 +44,9 @@ public enum PlaySheetEnum {
 	Circle_Pack("Circle Pack","prerna.ui.components.playsheets.CirclePackPlaySheet", "CirclePackPlaySheet Hint: SELECT ?level1 ?level2 ... ?size WHERE{ ... }"),
 	Parallel_Sets("Parallel Sets","prerna.ui.components.playsheets.ParallelSetsPlaySheet", "ParallelSetsPlaySheet Hint: SELECT ?axis1 ?axis2 ?axis3 WHERE{ ... }"),
 	Dendrogram("Dendrogram","prerna.ui.components.playsheets.DendrogramPlaySheet", "DendrogramPlaySheet Hint: SELECT ?level1 ?level2 ?level3 WHERE{ ... }"),
-	ComparisonColChart("ComparisonColChart","prerna.ui.components.playsheets.ComparisonColumnChartPlaySheet", "ComparisonColumnChartPlaySheet Hint: SELECT ?x1 ?y1 ?x2 ?y2 ?seriesName WHERE{ ... }");
-
+	ComparisonColChart("ComparisonColChart","prerna.ui.components.playsheets.ComparisonColumnChartPlaySheet", "ComparisonColumnChartPlaySheet Hint: SELECT ?x1 ?y1 ?x2 ?y2 ?seriesName WHERE{ ... }"),
+	LineChart("Line Chart", "prerna.ui.components.playsheets.LineChartPlaySheet", "LineChartPlaySheet Hint: SELECT ?xAxis ?series1 (OPTIONAL) ?series2 ?series3 ... (where all series values are numbers) WHERE { ... }");
+	
 	private final String sheetName;
 	private final String sheetClass;
 	private final String sheetHint;
