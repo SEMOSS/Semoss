@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+    @import url(css/c3.css);
+    #chartContainer {
+        position: absolute;
+        top: 80px;
+        bottom: 0;
+        left: 0;
+        right: 0;
+    }
+    .align-element-right label {
+        display: inline-block;
+        width: 150px;
+    }
+
+    .align-element-right select {
+        width: 150px;
+    }
+    .align-element-left label {
+        float: left;
+    }
+    .align-element-left select {
+        float: left;
+    }
+</style>
+
+<body>
+    <!--<div class="align-element-left" align="left">
+        <label> Change Viz Type: </label>
+        <select onchange="changeViz(value)" align="right">
+            <option value=""> Select Chart Type </option>
+            <option value="LineChart"> Line Chart </option>
+            <option value="BarChart"> Bar Chart </option>
+            <option value="PieChart"> Pie Chart </option>
+            <option value="DonutChart"> Donut Chart </option>
+            <option value="SplineChart"> Spline Chart </option>
+            <option value="AreaChart"> Area Chart </option>
+            <option value="AreaSplineChart"> Area Spline Chart </option>
+            <option value="ScatterPlot"> Scatter Plot </option>
+        </select>
+    </div>-->
+
+    <div class="align-element-right" align="right">
+        <label> Sort By: </label>
+        <select id="sortLabels" onchange="toggleSortOrder()">
+            <option value=""> Select Sort Label </option>
+        </select>
+    </div>
+
+    <div class="align-element-right" align="right">
+        <label> Sort Type: </label>
+        <select id="sortOrders" onchange="sort(value)" disabled=true;>
+            <option value=""> Select Sort Type </option>
+            <option value="Ascending"> Ascending </option>
+            <option value="Descending"> Descending </option>
+        </select>
+    </div>
+
+    <script type="text/javascript" src="lib/d3.v3_new.js"></script>
+    <script type="text/javascript" src="lib/c3.min.js"></script>
+    <script type="text/javascript" src="lib/underscore.js"></script>
+    <div id="chartContainer">
+        <div id="chart"></div>
+    </div>
+
+    <script>
+        var margin = {
+                    top: 0,
+                    right: 40,
+                    bottom: 20,
+                    left: 40
+                },
+            container = {
+                width: 0,
+                height: 0
+            },
+            data,
+            chart,
+            dataStream = [],
+            xCord,
+            yCord = [],
+            graphType,
+            sort;
+
+        function start(dataString){
+            data = JSON.parse(dataString);
+            dataStream = [];
+            yCord = [];
+            for (var i=0; i < data.dataSeries.length; i++) {
+                data.dataSeries[i].xAxis = shortenValueFilter(data.dataSeries[i].uriString);
+            }
+
+            graphType = data.type;
+            dataStream = data.dataSeries;
+
+            for (var j=1; j < data.names.length; j++) {
+                yCord.push(data.names[j]);
+            }
+            xCord = 'xAxis';
+
+            var populateLabelDropDown = function() {
+                var labelsObj = _.clone(dataStream[0]);
+                delete labelsObj.uriString;
+
+                var labels = Object.keys(labelsObj);
+                labels.sort();
+
+                var sortLabel = document.getElementById("sortLabels");
+
+                for(var i=0; i < labels.length; i++){
+                    var option = document.createElement("option");
+                    option.text = labels[i];
+                    sortLabel.add(option);
+                }
+            };
+
+            populateLabelDropDown();
+
+            containerSize('#chartContainer', container, margin);
+
+            update(dataStream, xCord, yCord, graphType);
+
+            d3.select(window).on("resize", resize);
+
+            function update(dataStream, xCord, yCord, graphType) {
+                chart = c3.generate({
+                    bindto: '#chart',
+                    data: {
+                        json: dataStream,
+                        keys: {
+                            x: xCord,
+                            value: yCord
+                        },
+                        type: graphType
+                    },
+                    axis: {
+                        x: {
+                            type: 'category'
+                        }
+                    },
+                    size: {
+                        width: container.width,
+                        height: container.height
+                    },
+                    legend: {
+                        position: 'bottom'
+                    },
+                    line: {
+                        connectNull: true
+                    }
+                });
+            }
+
+            function shortenValueFilter(str) {
+                //convert to string
+                str = String(str);
+                var returnStr = "",
+                        shortStr = "",
+                        myRe;
+                if (str.indexOf('"') === 0) {
+                    shortStr = str.substring(1, str.length);
+                    returnStr = shortStr.substring(0, shortStr.indexOf('"'));
+                    return returnStr;
+                }
+                if (str.indexOf('http://') !== -1) {
+                    myRe = new RegExp("([^/]*)$");
+                    returnStr = myRe.exec(str);
+                    return returnStr[0];
+                }
+
+                return str;
+            };
+
+            function resize() {
+                containerSize('#chartContainer', container, margin);
+                chart.resize({
+                    height: container.height,
+                    width: container.width
+                });
+            }
+
+            function containerSize(containerClass, containerObj, marginObj) {
+                containerObj.width = parseInt(d3.select(containerClass).style('width'));
+                containerObj.height = parseInt(d3.select(containerClass).style('height'));
+
+                containerObj.width = containerObj.width - marginObj.left - marginObj.right;
+                containerObj.height = containerObj.height - marginObj.top - marginObj.bottom;
+            }
+
+            sort = function(sortType) {
+                if(sortType === "Ascending") {
+                    sortAscending();
+                } else if (sortType === "Descending") {
+                    sortDescending();
+                }
+            };
+
+            var sortAscending = function() {
+                var sortLabelElement = document.getElementById("sortLabels");
+                var sortBySelected = sortLabelElement.options[sortLabelElement.selectedIndex].value;
+
+                dataStream.sort(function(item1, item2) {
+                    if(item1[sortBySelected] > item2[sortBySelected]) {
+                        return 1;
+                    }
+
+                    if(item1[sortBySelected] < item2[sortBySelected]) {
+                        return -1;
+                    }
+
+                    return 0;
+                });
+
+                update(dataStream, xCord, yCord, graphType);
+            };
+
+            var sortDescending = function() {
+                var sortLabelElement = document.getElementById("sortLabels");
+                var sortBySelected = sortLabelElement.options[sortLabelElement.selectedIndex].value;
+
+                dataStream.sort(function(item1, item2) {
+                    if(item1[sortBySelected] > item2[sortBySelected]) {
+                        return -1;
+                    }
+
+                    if(item1[sortBySelected] < item2[sortBySelected]) {
+                        return 1;
+                    }
+
+                    return 0;
+                });
+
+                update(dataStream, xCord, yCord, graphType);
+            };
+        }
+
+        var changeViz = function(value) {
+            if(value === "LineChart") {
+                graphType = "line";
+                chart.transform('line');
+            } else if (value === "BarChart") {
+                graphType = "bar";
+                chart.transform('bar');
+            } else if (value === "PieChart") {
+                graphType = "pie";
+                chart.transform('pie');
+            } else if (value === "DonutChart") {
+                graphType = "donut";
+                chart.transform('donut');
+            } else if (value === "SplineChart") {
+                graphType = "spline";
+                chart.transform('spline');
+            } else if (value === "AreaChart") {
+                graphType = "area";
+                chart.transform('area');
+            } else if (value === "AreaSplineChart") {
+                graphType = "area-spline";
+                chart.transform('area-spline');
+            } else if (value === "ScatterPlot") {
+                graphType = "scatter";
+                chart.transform('scatter');
+            }
+        };
+
+        var toggleSortOrder = function() {
+            var labelElement = document.getElementById("sortLabels");
+            var sortElement = document.getElementById("sortOrders");
+            var selectedValue = labelElement.options[labelElement.selectedIndex].value;
+            if(selectedValue === "") {
+                sortElement.disabled = true;
+            } else {
+                sortElement.disabled = false;
+            }
+
+            sortElement.value = "";
+        };
+    </script>
+</body>
