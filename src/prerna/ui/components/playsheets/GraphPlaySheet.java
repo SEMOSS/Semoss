@@ -329,7 +329,8 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
     public void overlayView(){
 		try
 		{
-//			semossGraph.rc.commit();
+//			semossGraph.rc.commit();\
+			getForest();
 			createForest();
 			
 			//add to overall modelstore
@@ -1277,6 +1278,8 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 			gdm.setUndo(true);
 			gdm.undoData();
 			gdm.fillStoresFromModel();
+			gdm.rcStore.remove(gdm.rcStore.size()-1);
+			gdm.modelStore.remove(gdm.modelStore.size()-1);
 		}
 	}
 	
