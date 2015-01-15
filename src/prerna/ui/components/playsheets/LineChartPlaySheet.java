@@ -20,6 +20,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Hashtable;
 
+import org.openrdf.model.Literal;
+
+import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -30,39 +33,40 @@ public class LineChartPlaySheet extends BrowserPlaySheet{
 		super();
 		this.setPreferredSize(new Dimension(800,600));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/linechart.html";
+		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/c3linechart.html";
 	}	
 	
 	public Hashtable<String, Object> processQueryData()
-	{		
-		ArrayList< ArrayList<Hashtable<String, Object>>> dataObj = new ArrayList< ArrayList<Hashtable<String, Object>>>();
+	{
+		ArrayList<Hashtable<String, Object>> dataObj = new ArrayList<Hashtable<String, Object>>();
 		
-		for(int i = 0; i < names.length; i = i + 2) {
-			ArrayList<Hashtable<String,Object>> seriesArray = new ArrayList<Hashtable<String,Object>>();
-			Hashtable<String, Object> seriesHash = new Hashtable<String, Object>();
-			ArrayList<Hashtable<String,Object>> dataArray = new ArrayList<Hashtable<String,Object>>();
+		for(int i = 0; i < list.size(); i++) {
+			Object[] elemValues = list.get(i);
 			
-			for(int j = 0; j < list.size(); j++) {
-				Object[] elemValues = list.get(j);			
-				
-				Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
-				elementHash.put("x", elemValues[i]);
-				elementHash.put("y", elemValues[i+1]);
-				dataArray.add(elementHash);
+			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
+			elementHash.put("xAxis",  "");
+			elementHash.put("uriString",  elemValues[0].toString());
+			for(int j = 1; j < elemValues.length; j++){
+				elementHash.put(names[j], elemValues[j]);
 			}
-			seriesHash.put("xName", names[i]);
-			seriesHash.put("yName", names[i+1]);
-			seriesHash.put("dataPoints", dataArray);
-			seriesArray.add(seriesHash);
-			dataObj.add(seriesArray);
+			dataObj.add(elementHash);
 		}
-				
+		
 		Hashtable<String, Object> lineChartHash = new Hashtable<String, Object>();
 		lineChartHash.put("names", names);
-		lineChartHash.put("type", "line");
 		lineChartHash.put("dataSeries", dataObj);
+		lineChartHash.put("type", "line");
 		
 		return lineChartHash;
+	}
+	
+	@Override
+	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+		Object var = sjss.getRawVar(varName);
+			if( var != null && var instanceof Literal) {
+				var = sjss.getVar(varName);
+			} 
+		return var;
 	}
 }
 
