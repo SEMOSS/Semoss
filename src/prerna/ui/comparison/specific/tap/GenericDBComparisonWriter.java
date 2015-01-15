@@ -15,7 +15,9 @@
  *******************************************************************************/
 package prerna.ui.comparison.specific.tap;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
@@ -28,8 +30,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class GenericDBComparisonWriter
-{
+public class GenericDBComparisonWriter {
 	// Instance level queries
 	final String getConceptsAndInstanceCountQuery = "SELECT DISTINCT ?concept (COUNT(DISTINCT ?instance) AS ?count) WHERE { FILTER(?concept != <http://semoss.org/ontologies/Concept>) {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?instance <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?concept} } GROUP BY ?concept";
 	final String getInstanceAndPropCountQuery = "SELECT DISTINCT ?nodeType ?source (COUNT(DISTINCT ?entity) AS ?entityCount) WHERE { FILTER(?nodeType != <http://semoss.org/ontologies/Concept>){?nodeType <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?source <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?nodeType} {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?source ?entity ?prop } } GROUP BY ?nodeType ?source";
@@ -58,8 +59,7 @@ public class GenericDBComparisonWriter
 	
 	private String sheetName = "";
 	
-	public GenericDBComparisonWriter(IEngine newDB, IEngine oldDB, IEngine newMetaDB, IEngine oldMetaDB) throws EngineException
-	{
+	public GenericDBComparisonWriter(IEngine newDB, IEngine oldDB, IEngine newMetaDB, IEngine oldMetaDB) throws EngineException {
 		comparer = new GenericDBComparer(newDB, oldDB, newMetaDB, oldMetaDB);
 		wb = new XSSFWorkbook();
 		
@@ -67,8 +67,7 @@ public class GenericDBComparisonWriter
 		this.oldDBName = oldDB.getEngineName();
 	}
 	
-	public void runAllInstanceTests()
-	{
+	public void runAllInstanceTests() {
 		sheetName = "InstanceCount";
 		wb.createSheet(sheetName);
 		writeToExcel(sheetName, comparer.compareConceptCount(getConceptsAndInstanceCountQuery, false), "Concept", newDBName + " Count", oldDBName
@@ -105,8 +104,7 @@ public class GenericDBComparisonWriter
 		System.out.println("All Instance Tests Finished");
 	}
 	
-	public void runAllMetaTests()
-	{
+	public void runAllMetaTests() {
 		sheetName = "MetaConceptCount";
 		wb.createSheet(sheetName);
 		writeToExcel(sheetName, comparer.compareMetaSingleCount(getMetaConceptCountQuery), newDBName + " Count", oldDBName + " Count");
@@ -142,24 +140,20 @@ public class GenericDBComparisonWriter
 		System.out.println("All Metamodel Tests Finished");
 	}
 	
-	public void writeToExcel(String sheetInUse, ArrayList<Object[]> result, String... colNames)
-	{
+	public void writeToExcel(String sheetInUse, ArrayList<Object[]> result, String... colNames) {
 		XSSFSheet sheet = wb.getSheet(sheetInUse);
 		XSSFRow selectedRow = sheet.createRow(0);
 		XSSFCell selectedCell;
-		for (int i = 0; i < colNames.length; i++)
-		{
+		for (int i = 0; i < colNames.length; i++) {
 			selectedCell = selectedRow.createCell(i);
 			selectedCell.setCellValue(colNames[i]);
 		}
 		
 		int rowNum = 1;
 		
-		for (Object[] row : result)
-		{
+		for (Object[] row : result) {
 			selectedRow = sheet.createRow(rowNum);
-			for (int i = 0; i < row.length; i++)
-			{
+			for (int i = 0; i < row.length; i++) {
 				selectedCell = selectedRow.createCell(i);
 				selectedCell.setCellValue(row[i].toString());
 			}
@@ -167,12 +161,13 @@ public class GenericDBComparisonWriter
 		}
 	}
 	
-	public void writeWB()
-	{
+	public void writeWB() {
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		Date date = new Date();
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd HH-mm-ss");
 		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Comparisons"
 				+ System.getProperty("file.separator");
-		String resultName = newDBName + "~" + oldDBName + "~DBComparisonResults.xlsx";
+		String resultName = newDBName + "~" + oldDBName + dateFormat.format(date) + "~DBComparisonResults.xlsx";
 		Utility.writeWorkbook(wb, workingDir + folder + resultName);
 	}
 }
