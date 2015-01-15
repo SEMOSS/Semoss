@@ -81,7 +81,7 @@ public class GraphDataModel {
 	Model jenaModel = null;
 	Model curModel = null;
 	public int modelCounter = 0;
-	Vector <Model> modelStore = new Vector<Model>();
+	public Vector <Model> modelStore = new Vector<Model>();
 	String containsRelation;
 	public Vector <RepositoryConnection> rcStore = new Vector<RepositoryConnection>();
 	public PropertySpecData predData = new PropertySpecData();
@@ -139,6 +139,7 @@ public class GraphDataModel {
 	//this function requires the rc to be completely full
 	//it will use the rc to create edge and node properties
 	//and then nodes and edges
+	boolean test = true;
 	public void fillStoresFromModel(){
 		if(rc!=null){
 			if(containsRelation == null)
