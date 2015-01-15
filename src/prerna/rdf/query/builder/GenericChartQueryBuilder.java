@@ -24,13 +24,13 @@ import org.apache.log4j.Logger;
 import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.rdf.query.util.SEMOSSQueryHelper;
 
-public class BarChartQueryBuilder extends AbstractQueryBuilder {
-	static final Logger logger = LogManager.getLogger(BarChartQueryBuilder.class.getName());
+public class GenericChartQueryBuilder extends AbstractQueryBuilder {
+	static final Logger logger = LogManager.getLogger(GenericChartQueryBuilder.class.getName());
 	String labelColName;
 	ArrayList<String> valueColNames;
 	ArrayList<String> valueMathFunctions;
 	
-	public BarChartQueryBuilder (String labelColName, ArrayList<String> valueColNames, ArrayList<String> valueMathFunctions, ArrayList<Hashtable<String, String>> parameters, SEMOSSQuery baseQuery) {
+	public GenericChartQueryBuilder (String labelColName, ArrayList<String> valueColNames, ArrayList<String> valueMathFunctions, ArrayList<Hashtable<String, String>> parameters, SEMOSSQuery baseQuery) {
 		super(parameters, baseQuery);
 		this.labelColName = labelColName;
 		this.valueColNames = valueColNames;
