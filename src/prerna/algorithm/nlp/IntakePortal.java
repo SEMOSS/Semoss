@@ -115,7 +115,7 @@ public class IntakePortal {
 		out.close();
 		
 	}
-	public static double[][] DBRecSimScore(ArrayList<String> A, ArrayList<String> B) {
+	public static double[][] DBRecSimScore(List<String> A, List<String> B) {
 		double[][] retScores = new double[A.size()][B.size()];
 		for(int a=0;a<A.size();a++) {
 			for(int b=0;b<B.size();b++) {
