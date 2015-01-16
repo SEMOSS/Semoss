@@ -16,6 +16,7 @@
 //http://stackoverflow.com/questions/6112419/handling-the-tab-character-in-java
 //http://stackoverflow.com/questions/10250617/java-apache-poi-can-i-get-clean-text-from-ms-word-doc-files
 package prerna.poi.main;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -37,48 +38,13 @@ import org.jsoup.nodes.Element;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 
-class TextExtractor { 
+public final class TextExtractor { 
 
-	private OutputStream outputstream;
-	private ParseContext context;
-	private Detector detector;
-	private Parser parser;
-	private Metadata metadata;
-	private String extractedText;
-
-	public TextExtractor() {
-		context = new ParseContext();
-		detector = new DefaultDetector();
-		parser = new AutoDetectParser(detector);
-		context.set(Parser.class, parser);
-		outputstream = new ByteArrayOutputStream();
-		metadata = new Metadata();
+	private TextExtractor() {
+		
 	}
-
-	public void process(String filename) throws IOException, SAXException, TikaException {
-		URL url;
-		File file = new File(filename);
-		if (file.exists() && file.isFile()) {
-			url = file.toURI().toURL();
-		} else {
-			url = new URL(filename);
-		}
-		InputStream input = TikaInputStream.get(url, metadata);
-		ContentHandler handler = new BodyContentHandler(outputstream);
-		parser.parse(input, handler, metadata, context); 
-		input.close();
-	}
-
-	public String getString() throws IOException {
-		//Get the text into a String object
-		extractedText = outputstream.toString();
-		extractedText = extractedText.replace("\n", " ").replace("\r", " "); //MUST COME BACK
-		outputstream.close();
-		return extractedText;
-	}
-
-	public String WebsiteTextExtractor(String docin) throws IOException {
-
+	
+	public static String websiteTextExtractor(String docin) throws IOException {
 		final String url = docin;
 		boolean knownwebsite = false;
 		org.jsoup.nodes.Document doc = Jsoup.connect(url).get();
@@ -101,26 +67,32 @@ class TextExtractor {
 		return extractedtext;
 	}
 
-	public String WorddocTextExtractor(String docin) throws IOException, SAXException, TikaException {
-		TextExtractor textExtractor = new TextExtractor();
-		textExtractor.process(docin);
-		String extractedText = textExtractor.getString();
+	public static String fileTextExtractor(String filename) throws IOException, SAXException, TikaException {
+		Metadata metadata = new Metadata();
+		ParseContext context = new ParseContext();
+		Detector detector = new DefaultDetector();
+		Parser parser = new AutoDetectParser(detector);
+		context.set(Parser.class, parser);
+
+		URL url;
+		File file = new File(filename);
+		if(file.exists() && file.isFile()) {
+			url = file.toURI().toURL();
+		} else {
+			url = new URL(filename);
+		}
+		
+		InputStream input = TikaInputStream.get(url, metadata);
+		OutputStream outputstream = new ByteArrayOutputStream();
+		
+		ContentHandler handler = new BodyContentHandler(outputstream);
+		parser.parse(input, handler, metadata, context); 
+		input.close();
+		
+		String extractedText = outputstream.toString();
+		outputstream.close();
+		
+		extractedText = extractedText.replace("\n+|\r+", " ");
 		return extractedText;
 	}
-
-	public String TextDocExtractor(String docin) throws IOException, SAXException, TikaException {
-		TextExtractor textExtractor = new TextExtractor();
-		textExtractor.process(docin);
-		String extractedText = textExtractor.getString();
-		return extractedText;
-	}
-
-	public String MasterResumeExtractor(String docin) throws IOException, SAXException, TikaException {
-		TextExtractor textExtractor = new TextExtractor();
-		textExtractor.process(docin);
-		String extractedText = textExtractor.getString();
-		return extractedText;
-
-	}
-
 }
