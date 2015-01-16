@@ -20,37 +20,37 @@ import java.util.Collections;
 import java.util.Comparator;
 
 public final class ArrayListUtilityMethods {
-	
+
 	private ArrayListUtilityMethods() {
-		
+
 	}
-	
+
 	public static Object[] getColumnFromList(ArrayList<Object[]> list, int colToGet) {
 		if(list == null || list.isEmpty()) {
 			return null;
 		}
-		
+
 		int numRows = list.size();
 		Object[] retList = new Object[numRows];
-		
+
 		int i;
 		for(i = 0; i < numRows; i++) {
 			Object[] oldRow = list.get(i);
 			retList[i] = oldRow[colToGet];
 		}
-		
+
 		return retList;
 	}
-	
+
 	public static ArrayList<Object[]> removeColumnFromList(ArrayList<Object[]> list, int colToRemove) {
 		if(list == null || list.isEmpty()) {
 			return null;
 		}
-		
+
 		int numRows = list.size();
 		int numCols = list.get(0).length;
 		ArrayList<Object[]> retList = new ArrayList<Object[]>(numRows);
-		
+
 		int i;
 		int j;
 		for(i = 0; i < numRows; i++) {
@@ -65,10 +65,10 @@ public final class ArrayListUtilityMethods {
 			}
 			retList.add(newRow);
 		}
-		
+
 		return retList;
 	}
-	
+
 	/**
 	 * Returns a specific range of rows from the original list passed in
 	 * @param list			The main list you plan on taking a section from
@@ -82,30 +82,30 @@ public final class ArrayListUtilityMethods {
 		}
 		int size = list.size();
 		if(startRow < 0) {
-			throw new IllegalArgumentException("startRow must be larger than 0");
+			throw new IllegalArgumentException("startRow, " + startRow + ", must be larger than 0");
 		} 
 		if(startRow > size) {
-			throw new IllegalArgumentException("startRow is larger than the size of the list");
+			throw new IllegalArgumentException("startRow, " + startRow + " is larger than the size of the list, " + size);
 		}
 		if(endRow < 0) {
-			throw new IllegalArgumentException("endRow must be larger than 0");
+			throw new IllegalArgumentException("endRow, " + endRow +", must be larger than 0");
 		}
 		if(endRow > size) {
-			throw new IllegalArgumentException("endRow is larger than the size of the list");
+			throw new IllegalArgumentException("endRow, " + endRow + ", is larger than the size of the list, " + size);
 		}
 		if(endRow <= startRow) {	
-			throw new IllegalArgumentException("startRow is larger than or equal to endRow");
+			throw new IllegalArgumentException("startRow, " + startRow +", is larger than or equal to endRow, " + endRow);
 		}
-		
+
 		ArrayList<Object[]> retList = new ArrayList<Object[]>(endRow-startRow);
 		int i = startRow;
 		for(; i < endRow; i++) {
 			retList.add(list.get(i));
 		}
-		
+
 		return retList;
 	}
-	
+
 	public static ArrayList<Object[]> filterList(ArrayList<Object[]> list, boolean[] include) {
 		int size = 0;
 		for(boolean val : include) {
@@ -113,7 +113,7 @@ public final class ArrayListUtilityMethods {
 				size++;
 			}
 		}
-		
+
 		ArrayList<Object[]> newList = new ArrayList<Object[]>();
 		for(Object[] row : list) {
 			Object[] newRow = new Object[size];
@@ -128,8 +128,8 @@ public final class ArrayListUtilityMethods {
 		}
 		return newList;
 	}
-	
-	
+
+
 	public static ArrayList<Object[]> orderQuery(ArrayList<Object[]> queryResults){
 		ArrayList<Object[]> sortedQuery = new ArrayList<Object[]>();
 		ArrayList<String> sortingList = new ArrayList<String>();
@@ -140,19 +140,19 @@ public final class ArrayListUtilityMethods {
 			}
 			sortingList.add(objectContents);
 		}
-		
+
 		Collections.sort(sortingList, new Comparator<String>(){
 			public int compare(String s1, String s2){
 				return s1.compareTo(s2);
 			}
 		});
-		
+
 		for(String s : sortingList){
 			String[] data = s.split("\\+\\+\\+");
 			sortedQuery.add((Object[]) data);
 		}
-		
+
 		return sortedQuery;
 	}
-	
+
 }
