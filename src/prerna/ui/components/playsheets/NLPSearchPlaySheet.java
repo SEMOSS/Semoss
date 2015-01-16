@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -40,11 +41,11 @@ public class NLPSearchPlaySheet extends GridPlaySheet{
 		
 		NLPSearchMasterDB searchAlgo = new NLPSearchMasterDB();
 		searchAlgo.setMasterDBName(this.engine.getEngineName());	
-		ArrayList<Hashtable<String, Object>> hashArray = searchAlgo.findRelatedQuestions(query);
+		List<Hashtable<String, Object>> hashArray = searchAlgo.findRelatedQuestions(query);
 		flattenHash(hashArray);
 	}
 	
-	private void flattenHash(ArrayList<Hashtable<String, Object>> hashArray){
+	private void flattenHash(List<Hashtable<String, Object>> hashArray){
 		//TODO write this method that stores headers and list
 		//assuming every hash has the same keys
 		//get the first hash to know what keys we are working with (these are going to be our headers)

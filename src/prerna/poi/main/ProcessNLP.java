@@ -30,6 +30,7 @@ import org.apache.log4j.Logger;
 import org.apache.tika.exception.TikaException;
 import org.xml.sax.SAXException;
 
+import prerna.algorithm.nlp.PartOfSpeechHelper;
 import prerna.error.NLPException;
 import prerna.util.DIHelper;
 import edu.stanford.nlp.ling.CoreAnnotations.LemmaAnnotation;
@@ -75,10 +76,8 @@ public class ProcessNLP {
 			processFile(files[i]);
 		}
 
-		trimTriples();
 		createOccuranceCount();
 		lemmatize();
-		normalizeCase();
 		return triples;
 	}
 
@@ -105,7 +104,7 @@ public class ProcessNLP {
 				Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash = new Hashtable<GrammaticalRelation, Vector<TypedDependency>>();
 				Hashtable<String, String> negHash = new Hashtable<String, String>();
 				// fill the hashtable between the grammatical part of speech to the words in the sentence
-				setHash(tdl, nodeHash);
+				PartOfSpeechHelper.setTypeDependencyHash(tdl, nodeHash);
 				generateTriples(sentence, file.substring(file.lastIndexOf(File.separator)+1), taggedWords, negHash, nodeHash);
 			}
 		}
@@ -227,30 +226,6 @@ public class ProcessNLP {
 		return true;
 	}
 
-	/**
-	 * Generate a key-value mapping between the grammatical relation to the word from the sentence
-	 * @param tdl			The type dependency list for every word in the sentence
-	 * @param nodeHash		The Hashtable to put the key-value mapping from the type dependency list
-	 */
-	public void setHash(List<TypedDependency> tdl, Hashtable <GrammaticalRelation, Vector<TypedDependency>> nodeHash)
-	{
-		int i = 0;
-		int size = tdl.size();
-		for(; i < size; i++)
-		{
-			TypedDependency one = tdl.get(i);
-			Vector<TypedDependency> baseVector = new Vector<TypedDependency>();
-			GrammaticalRelation rel = one.reln();
-
-			//if this type of relation already exists
-			if(nodeHash.containsKey(rel)) {
-				baseVector = nodeHash.get(rel);
-			}
-			baseVector.addElement(one);
-			nodeHash.put(rel, baseVector);
-		}
-	}
-
 	public void generateTriples(String sentence, String documentName, List<TaggedWord> taggedWords, Hashtable<String, String> negHash, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
 	{
 		createNegations(negHash, nodeHash);
@@ -292,6 +267,16 @@ public class ProcessNLP {
 		}
 	}
 
+	/**
+	 * 
+	 * @param sentence
+	 * @param documentName
+	 * @param taggedWords
+	 * @param negHash
+	 * @param nodeHash
+	 * @param subjR
+	 * @param objR
+	 */
 	public void findTriples(
 			String sentence,
 			String documentName,
@@ -307,23 +292,27 @@ public class ProcessNLP {
 
 		if(dobjV != null && subjV != null)
 		{
-			for(int dobjIndex = 0;dobjIndex < dobjV.size();dobjIndex++)
+			int i = 0;
+			int dobjVSize = dobjV.size();
+			for(; i < dobjVSize; i++)
 			{
-				TreeGraphNode obj = dobjV.get(dobjIndex).dep();
-				TreeGraphNode pred = dobjV.get(dobjIndex).gov();
+				TreeGraphNode obj = dobjV.get(i).dep();
+				TreeGraphNode pred = dobjV.get(i).gov();
 				String predicate = pred.value(); // Note: value doesn't return the number, while toString does
 				 
 				String preposition = null;
-				if (dobjV.get(dobjIndex).toString().contains("prep")) {
-					obj = findPrepObject(dobjV, subjV, nodeHash, EnglishGrammaticalRelations.PREPOSITIONAL_MODIFIER, EnglishGrammaticalRelations.PREPOSITIONAL_OBJECT);
-					preposition = dobjV.get(dobjIndex).dep().toString();
+				if (dobjV.get(i).toString().contains("prep")) {
+					obj = PartOfSpeechHelper.findPrepObject(dobjV, subjV, nodeHash, EnglishGrammaticalRelations.PREPOSITIONAL_MODIFIER, EnglishGrammaticalRelations.PREPOSITIONAL_OBJECT);
+					preposition = dobjV.get(i).dep().toString();
 				}
 				
 				// now find the subject
-				for(int subjIndex = 0;subjIndex < subjV.size();subjIndex++)
+				int j = 0;
+				int subjVSize = subjV.size();
+				for(; j < subjVSize; j++)
 				{
-					TreeGraphNode subj = subjV.get(subjIndex).dep();
-					TreeGraphNode dep2 = subjV.get(subjIndex).gov();
+					TreeGraphNode subj = subjV.get(j).dep();
+					TreeGraphNode dep2 = subjV.get(j).gov();
 					// Test to make sure both words have the same governor -> i.e. they are connected in the sentence
 					if((dep2.toString()).equalsIgnoreCase(pred.toString()))
 					{
@@ -337,26 +326,26 @@ public class ProcessNLP {
 						
 						//CORE TRIPLES FOUND
 						TripleWrapper tripleContainer = new TripleWrapper();
-						tripleContainer.setObj1(subj.value());
-						tripleContainer.setPred(pred.value());
-						tripleContainer.setObj2(obj.value());
+						tripleContainer.setObj1(formatString(subj.value(), false, true));
+						tripleContainer.setPred(formatString(pred.value(), false, true));
+						tripleContainer.setObj2(formatString(obj.value(), false, true));
 
 						//FINDING EXTENSION OF SUBJECT****
 						// find if complemented
 						// need to do this only if the subj is not a noun
 						// final subject
-						TreeGraphNode altPredicate = findCompObject(dep2, nodeHash);
+						TreeGraphNode altPredicate = PartOfSpeechHelper.findCompObject(dep2, nodeHash);
 						if(!subj.label().tag().contains("NN") && ( nodeHash.containsKey(EnglishGrammaticalRelations.CLAUSAL_COMPLEMENT) || nodeHash.containsKey(EnglishGrammaticalRelations.XCLAUSAL_COMPLEMENT)))
 						{
-							subj = findComplementNoun(subj, dep2, nodeHash, EnglishGrammaticalRelations.CLAUSAL_COMPLEMENT);
+							subj = PartOfSpeechHelper.findComplementNoun(subj, dep2, nodeHash, EnglishGrammaticalRelations.CLAUSAL_COMPLEMENT);
 							if(!subj.label().tag().contains("NN")){
-								subj = findCompSubject(dep2, nodeHash);
+								subj = PartOfSpeechHelper.findCompSubject(dep2, nodeHash);
 							}
 						}		
 
-						String finalSubject = getFullNoun(subj);
-						String finalObject = getFullNoun(obj);
-						finalObject = finalObject + findPrepNounForPredicate(pred, nodeHash);
+						String finalSubject = PartOfSpeechHelper.getFullNoun(subj);
+						String finalObject = PartOfSpeechHelper.getFullNoun(obj);
+						finalObject = finalObject + PartOfSpeechHelper.findPrepNounForPredicate(pred, nodeHash);
 
 						//FINDING EXTENSION OF PREDICATE****
 						// find the negators for the predicates next
@@ -374,9 +363,9 @@ public class ProcessNLP {
 						if(finalObject.indexOf(predicate) < 0 && predicate.indexOf(finalObject) < 0) {
 							LOGGER.info("VERB Triple: 	" + finalSubject + "<<>>" + predicate + "<<>>" + finalObject);
 						}
-						tripleContainer.setObj1Expanded(finalSubject.toString());// part of future SetTriple
-						tripleContainer.setPredExpanded(predicate.toString());
-						tripleContainer.setObj2Expanded(finalObject.toString());
+						tripleContainer.setObj1Expanded(formatString(finalSubject.toString(), true, false));// part of future SetTriple
+						tripleContainer.setPredExpanded(formatString(predicate.toString(), true, false));
+						tripleContainer.setObj2Expanded(formatString(finalObject.toString(), true, false));
 						tripleContainer.setDocName(documentName);
 						tripleContainer.setSentence(sentence);
 						
@@ -387,258 +376,27 @@ public class ProcessNLP {
 		}
 	}
 
-	private TreeGraphNode findPrepObject(Vector<TypedDependency> dobjV, Vector<TypedDependency> subjV, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash, GrammaticalRelation subjR, GrammaticalRelation objR) {
-			// based on the subjects and objects now find the predicates
-			dobjV = nodeHash.get(objR);
-			subjV = nodeHash.get(subjR);
-			
-			if (dobjV != null && subjV != null) {
-				for (int dobjIndex = 0; dobjIndex < dobjV.size(); dobjIndex++) {
-					TreeGraphNode pobj = dobjV.get(dobjIndex).dep();
-					TreeGraphNode prep = dobjV.get(dobjIndex).gov();
-					
-					// now find the subject
-					for (int subjIndex = 0; subjIndex < subjV.size(); subjIndex++) {
-						TreeGraphNode prep2 = subjV.get(subjIndex).dep();
-						if ((prep2 + "").equalsIgnoreCase(prep + "")) // this is the comparison to determine if there is a chain
-							return pobj;
-					}
-				}
-			}
-			return null;
+	/**
+	 * Format the string before putting it in the TripleWrapper.  If the input is empty or null, the return is "NA".
+	 * @param s			The String to format
+	 * @param clean		Boolean if you want to clean the String by replacing unwanted characters
+	 * @param toLower	Boolean if you want to make the String lowercase
+	 * @return			The cleaned up version of the String
+	 */
+	private String formatString(String s, boolean clean, boolean toLower) {
+		if(s == null || s.isEmpty()) {
+			return "NA";
 		}
-
+		String retString = s;
+		if(clean) {
+			retString = s.replace("'", ",").replace("`", ",");
+		}
+		if(toLower) {
+			retString = retString.toLowerCase();
+		}
+		return retString;
+	}
 	
-	// finds the expanded object
-	public TreeGraphNode findCompObject(TreeGraphNode subj, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
-	{
-		TreeGraphNode retNode = subj;
-		Vector <TypedDependency> compVector = nodeHash.get(EnglishGrammaticalRelations.XCLAUSAL_COMPLEMENT);
-		boolean subjFound = false;
-		if(compVector != null)
-		{
-			for(int cInd = 0;cInd < compVector.size()&& !subjFound;cInd++)
-			{
-				TypedDependency td = compVector.elementAt(cInd);
-				if(td.dep() == retNode)
-				{
-					retNode = td.gov();
-					subjFound = true;
-				}
-			}
-		}
-
-		compVector = nodeHash.get(EnglishGrammaticalRelations.CLAUSAL_COMPLEMENT);
-		if(compVector != null)
-		{
-			subjFound = false;
-
-			for(int cInd = 0;cInd < compVector.size()&& !subjFound;cInd++)
-			{
-				TypedDependency td = compVector.elementAt(cInd);
-				if(td.dep() == retNode)
-				{
-					retNode = td.gov();
-					subjFound = true;
-				}
-			}
-		}
-		return retNode;
-	}
-
-	// find expanded subject
-	public TreeGraphNode findCompSubject(TreeGraphNode subj, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
-	{
-		TreeGraphNode retNode = subj;
-		Vector <TypedDependency> compVector = nodeHash.get(EnglishGrammaticalRelations.XCLAUSAL_COMPLEMENT);
-		boolean subjFound = false;
-		if(compVector != null)
-		{
-			for(int cInd = 0;cInd < compVector.size()&& !subjFound;cInd++)
-			{
-				TypedDependency td = compVector.elementAt(cInd);
-				if(td.dep() == retNode)
-				{
-					retNode = td.gov();
-					subjFound = true;
-				}
-			}
-			compVector = nodeHash.get(EnglishGrammaticalRelations.CLAUSAL_COMPLEMENT);
-			subjFound = false;
-			if(compVector !=null)
-			{
-				for(int cInd = 0;cInd < compVector.size()&& !subjFound;cInd++)
-				{
-					TypedDependency td = compVector.elementAt(cInd);
-					if(td.dep() == retNode)
-					{
-						retNode = td.gov();
-						subjFound = true;
-					}
-				}
-				compVector = nodeHash.get(EnglishGrammaticalRelations.NOMINAL_SUBJECT);
-				subjFound = false;
-				if(compVector != null){
-					for(int cInd = 0;cInd < compVector.size()&& !subjFound;cInd++)
-					{
-						TypedDependency td = compVector.elementAt(cInd);
-						if(td.gov() == retNode)
-						{
-							retNode = td.dep();
-							subjFound = true;
-						}
-					}
-				}
-
-				return retNode;
-			}
-		}
-		return retNode;
-	}
-
-	//sometimes the DAMN complement is recursive
-	public TreeGraphNode findComplementNoun(TreeGraphNode subj, TreeGraphNode dep2, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash, GrammaticalRelation relation) {
-
-		TreeGraphNode retNode = subj;
-		// find all the complements
-		// find the one where the dep is the same as dep passed through
-		// now find a nsubj based on that new gov
-		// start with CComplement
-		Vector <TypedDependency> compVector = nodeHash.get(relation);
-		if(compVector != null)
-		{
-			for(int cInd = 0;cInd < compVector.size();cInd++)
-			{
-				TypedDependency td = compVector.elementAt(cInd);
-				TreeGraphNode dep = td.dep();
-				TreeGraphNode gov = td.gov();
-				if(dep == dep2)
-				{
-					// now find the nsubj
-					Vector <TypedDependency> subjVector = nodeHash.get(EnglishGrammaticalRelations.NOMINAL_SUBJECT);
-					for(int subIndex = 0;subIndex < subjVector.size();subIndex++)
-					{
-						TypedDependency subTd = subjVector.elementAt(subIndex);
-						if(subTd.gov() == gov)
-							retNode = subTd.dep();
-					}
-				}
-			}
-			return retNode;
-		}
-		return retNode;
-	}
-
-	public String getFullNoun(TreeGraphNode node)
-	{
-		String finalObject = "";
-		boolean npFound = false;
-		TreeGraphNode parentSearcher = node;
-		while(!npFound)
-		{
-			if(!parentSearcher.label().toString().startsWith("NP"))
-			{
-				if(parentSearcher.parent() instanceof TreeGraphNode)
-					parentSearcher = (TreeGraphNode)parentSearcher.parent();
-				else
-				{
-					npFound = true;
-					parentSearcher = null;
-				}
-			}
-			else 
-			{
-				npFound = true;
-				List<LabeledWord> lw = parentSearcher.labeledYield();
-				// if this is not a noun then I need find the actual proper noun
-				// and it may be because there is a CCOMP or XCOMP with this label
-				// or there is an amod with this label
-				for(int labIndex = 0; labIndex < lw.size();labIndex++)
-				{
-					finalObject = finalObject + lw.get(labIndex).word();
-					if(labIndex != lw.size() - 1) {
-						finalObject += " ";
-					}
-				}
-			}
-		}
-		return finalObject;
-	}
-
-	public String findPrepNoun(TreeGraphNode noun, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
-	{
-		// given the preperator
-		// complete the string
-		String retString = noun.value();
-
-		if(!nodeHash.containsKey(EnglishGrammaticalRelations.PREPOSITIONAL_MODIFIER))
-			return retString;
-		Vector <TypedDependency> prepVector = nodeHash.get(EnglishGrammaticalRelations.PREPOSITIONAL_MODIFIER);
-		//prepVector.addAll(nodeHash.get(EnglishGrammaticalRelations.NOUN_COMPOUND_MODIFIER));
-		for(int prepIndex = 0;prepIndex < prepVector.size();prepIndex++)
-		{
-			TypedDependency tdl = prepVector.elementAt(prepIndex);
-			TreeGraphNode gov = tdl.gov();
-			TreeGraphNode dep = tdl.dep();
-			if(noun == gov )
-			{
-				String fullNoun = getFullNoun(dep);
-				if(fullNoun.equalsIgnoreCase(dep.value()))
-					retString = retString + " " + tdl.reln().getSpecific() + " " + fullNoun + findPrepNoun(dep, nodeHash);
-				else
-					retString = retString + " " + tdl.reln().getSpecific() + " " + fullNoun + findPrepNoun(dep, nodeHash).replace(dep.value(), "");
-			}
-		}
-		return retString;
-	}
-
-	public String findPrepNounForPredicate(TreeGraphNode noun, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
-	{
-		// given the preperator
-		// complete the string
-		String retString = "";
-
-		if(!nodeHash.containsKey(EnglishGrammaticalRelations.PREPOSITIONAL_MODIFIER))
-			return retString;
-		Vector <TypedDependency> prepVector = nodeHash.get(EnglishGrammaticalRelations.PREPOSITIONAL_MODIFIER);
-		for(int prepIndex = 0;prepIndex < prepVector.size();prepIndex++)
-		{
-			TypedDependency tdl = prepVector.elementAt(prepIndex);
-			TreeGraphNode gov = tdl.gov();
-			TreeGraphNode dep = tdl.dep();
-			if(noun == gov )
-			{				 
-				String fullNoun = getFullNoun(dep);
-				if(fullNoun.equalsIgnoreCase(dep.value()))
-					retString = retString + " " + tdl.reln().getSpecific() + " " + fullNoun + findPrepNoun(dep, nodeHash);
-				else
-					retString = retString + " " + tdl.reln().getSpecific() + " " + fullNoun;
-			}
-		}
-		return retString;
-	}
-
-	//TODO: Should create new method cleanUpTriples
-	private void trimTriples() {
-		int i = 0;
-		int numTriples = triples.size();
-		for(; i < numTriples; i++) {
-			//set the expanded to NA if given no value
-			if(triples.get(i).getObj1Expanded().equals("")){
-				triples.get(i).setObj1Expanded("NA");
-			}
-			if(triples.get(i).getPredExpanded().equals("")){
-				triples.get(i).setPredExpanded("NA");
-			}
-			if(triples.get(i).getObj2Expanded().equals("")){
-				triples.get(i).setObj2Expanded("NA");
-			}
-			triples.get(i).setObj1Expanded(triples.get(i).getObj1Expanded().toString().replace("'", ",").replace("`", ","));
-			triples.get(i).setPredExpanded(triples.get(i).getPredExpanded().toString().replace("'", ",").replace("`", ","));
-			triples.get(i).setObj2Expanded(triples.get(i).getObj2Expanded().toString().replace("'", ",").replace("`", ","));
-		}
-	}
-
 	private void createOccuranceCount() {
 		Hashtable<String, Integer> termCounts = new Hashtable<String, Integer>();
 		int i = 0;
@@ -663,6 +421,7 @@ public class ProcessNLP {
 		}
 	}
 
+	//TODO: figure out how to put this in find triples
 	public void lemmatize() {
 		StanfordCoreNLP pipeline = new StanfordCoreNLP();
 		
@@ -681,16 +440,4 @@ public class ProcessNLP {
 			}
 		}
 	}
-
-	//TODO: Should be added in trim triples to create new method cleanUpTriples
-	private void normalizeCase() {
-		int i = 0;
-		int size = triples.size();
-		for(; i < size; i++){
-			triples.get(i).setObj1(triples.get(i).getObj1().toLowerCase());
-			triples.get(i).setPred(triples.get(i).getPred().toLowerCase());
-			triples.get(i).setObj2(triples.get(i).getObj2().toLowerCase());
-		}
-	}
-
 }
