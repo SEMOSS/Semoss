@@ -1274,6 +1274,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		logger.info("Creating the base Graph");
 		gdm.fillStoresFromModel();
 		
+		//empty incremental stores indicate no new data is available, which means the traversal is invalid. this will set the traversal back one step and remove the invalid traversal from rc and model stores.
 		if(gdm.getIncrementalVertStore() != null && gdm.getIncrementalEdgeStore() != null && gdm.getIncrementalVertStore().isEmpty() && gdm.getIncrementalEdgeStore().isEmpty()) {
 			gdm.setUndo(true);
 			gdm.undoData();
