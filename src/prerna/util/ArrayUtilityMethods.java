@@ -20,11 +20,11 @@ import java.util.Arrays;
 public final class ArrayUtilityMethods {
 
 	private static final String ERROR = "The data array either is null or does not contain any data.";
-	
+
 	private ArrayUtilityMethods() {
-		
+
 	}
-	
+
 	public static int calculateIndexOfArray(final String[] arr, final String value) {
 		if(arr == null) {
 			throw new NullPointerException(ERROR);
@@ -43,7 +43,7 @@ public final class ArrayUtilityMethods {
 		if(arr == null) {
 			throw new NullPointerException(ERROR);
 		}
-		
+
 		int size = arr.length;
 		int index;
 		for(index = 0; index < size; index++) {
@@ -53,7 +53,7 @@ public final class ArrayUtilityMethods {
 		}
 		return false;
 	}
-	
+
 	public static boolean arrayContainsValue(final String[] arr, final String value) {
 		if(arr == null) {
 			throw new NullPointerException(ERROR);
@@ -67,18 +67,18 @@ public final class ArrayUtilityMethods {
 		}
 		return false;
 	}
-	
+
 	public static boolean arrayContainsValue(final double[] arr, final double value) {
-		
+
 		if(arr == null) {
 			throw new NullPointerException(ERROR);
 		}
-		
+
 		int size = arr.length;
 		if(size == 0) {
 			return false; //empty array
 		}
-		
+
 		int index;
 		for(index = 0; index < size; index++) {
 			if(arr[index] == value) {
@@ -87,12 +87,12 @@ public final class ArrayUtilityMethods {
 		}
 		return false;
 	}
-	
+
 	public static boolean arrayContainsValue(final Double[] arr, final Double value) {
 		if(arr == null) {
 			throw new NullPointerException(ERROR);
 		}
-		
+
 		int size = arr.length;
 		int index;
 		for(index = 0; index < size; index++) {
@@ -102,18 +102,18 @@ public final class ArrayUtilityMethods {
 		}
 		return false;
 	}
-	
+
 	public static boolean arrayContainsValue(final int[] arr, final int value) {
-		
+
 		if(arr == null) {
 			throw new NullPointerException(ERROR);
 		}
-		
+
 		int size = arr.length;
 		if(size == 0) {
 			return false; //empty array
 		}
-		
+
 		int index;
 		for(index = 0; index < size; index++) {
 			if(arr[index] == value) {
@@ -128,7 +128,7 @@ public final class ArrayUtilityMethods {
 			throw new NullPointerException(ERROR);
 		}
 		int[] minDiff = new int[]{Integer.MAX_VALUE};
-		
+
 		int i;
 		int size = arr.length;
 		for(i = 0; i < size; i++) {
@@ -142,10 +142,10 @@ public final class ArrayUtilityMethods {
 				}
 			}
 		}
-		
+
 		return minDiff;
 	}
-	
+
 	public static int[] findAllClosestNonNullIndex(Double[] arr, int index) {
 		if(removeAllNulls(arr).length == 0) {
 			throw new NullPointerException(ERROR);
@@ -166,7 +166,7 @@ public final class ArrayUtilityMethods {
 				}
 			}
 		}
-		
+
 		return minIndex;
 	}
 
@@ -183,7 +183,7 @@ public final class ArrayUtilityMethods {
 		}
 		return lastNonNullValue;
 	}
-	
+
 	public static Object[] trimEmptyValues(final Object[] arr) {
 		int lastNonNullValue = determineLastNonNullValue(arr);
 		if(lastNonNullValue == -1) {
@@ -196,7 +196,7 @@ public final class ArrayUtilityMethods {
 		int positionInOriginalArr;
 		int positionInNewArr;
 		int originalLength = positionInOriginalArr = positionInNewArr = arr.length;
-		
+
 		Object[] dummyArr = arr.clone();
 		while (positionInOriginalArr > 0) {
 			Object value = dummyArr[--positionInOriginalArr];
@@ -206,7 +206,7 @@ public final class ArrayUtilityMethods {
 		}
 		return Arrays.copyOfRange(dummyArr, positionInNewArr, originalLength);
 	}
-	
+
 	public static double[] removeAllZeroValues(final double[] arr) {
 		int positionInOriginalArr;
 		int positionInNewArr;
@@ -219,7 +219,7 @@ public final class ArrayUtilityMethods {
 		}
 		return Arrays.copyOfRange(arr, positionInNewArr, originalLength);
 	}
-	
+
 	public static int[] removeAllZeroValues(final int[] arr) {
 		int positionInOriginalArr;
 		int positionInNewArr;
@@ -238,10 +238,10 @@ public final class ArrayUtilityMethods {
 		while(newSize-- > 0 && arr[newSize] != 0) {};
 		double[] retArr = new double[newSize+1];
 		System.arraycopy(arr, 0, retArr, 0, newSize+1);
-		
+
 		return retArr;
 	}
-	
+
 	public static int[] removeAllTrailingZeroValues(final int[] arr) {
 		int newSize = arr.length;
 		// check to make sure there are trailing zeros to remove
@@ -252,20 +252,20 @@ public final class ArrayUtilityMethods {
 		if(removeAllZeroValues(arr.clone()).length == 0) {
 			return new int[]{};
 		}
-		
+
 		while(newSize - 1 > 0 && arr[newSize - 1] == 0) {
 			newSize--;
 		};
 		int[] retArr = new int[newSize];
 		System.arraycopy(arr, 0, retArr, 0, newSize);
-		
+
 		return retArr;
 	}
-	
+
 	public static Object[] resizeArray(final Object[] arr, final int factor) {
 		return Arrays.copyOf(arr, arr.length*2); 
 	}
-	
+
 	public static int[] resizeArray(final int[] arr, int factor) {
 		int i;
 		int size = arr.length;
@@ -275,7 +275,7 @@ public final class ArrayUtilityMethods {
 		}
 		return retArr; 
 	}
-	
+
 	public static double[] resizeArray(final double[] arr, int factor) {
 		int i;
 		int size = arr.length;
@@ -285,7 +285,7 @@ public final class ArrayUtilityMethods {
 		}
 		return retArr; 
 	}
-	
+
 	public static int[] convertObjArrToIntArr(final Object[] arr) {
 		int size = arr.length;
 		int[] retArr = new int[size];
@@ -302,7 +302,7 @@ public final class ArrayUtilityMethods {
 		}
 		return retArr;
 	}
-	
+
 	public static double[] convertObjArrToDoubleArr(final Object[] arr) {
 		int size = arr.length;
 		double[] retArr = new double[size];
@@ -319,7 +319,7 @@ public final class ArrayUtilityMethods {
 		}
 		return retArr;
 	}
-	
+
 	public static Double[] convertObjArrToDoubleWrapperArr(final Object[] arr) {
 		int size = arr.length;
 		Double[] retArr = new Double[size];
@@ -338,18 +338,18 @@ public final class ArrayUtilityMethods {
 		}
 		return retArr;
 	}
-	
+
 	public static Double[] sortDoubleWrapperArr(Double[] arr) {
 		int size = arr.length;
 		int index;
 
 		double tempVal;
-		
+
 		boolean flag = true;
 		while(flag) {
 			flag = false;
 			for(index = 0; index < size - 1; index++) {
-				
+
 				if(arr[index] == null) {
 					// do nothing, want null's to appear in the beginning
 				} else if(arr[index+1] == null) {
@@ -361,15 +361,15 @@ public final class ArrayUtilityMethods {
 					tempVal = arr[index+1];
 					arr[index+1] = arr[index];
 					arr[index] = tempVal;
-					
+
 					flag = true;
 				}
 			}
 		}
-		
+
 		return arr;
 	}
-	
+
 	public static String[] convertObjArrToStringArr(final Object[] arr) {
 		int size = arr.length;
 		String[] retArr = new String[size];
@@ -384,7 +384,7 @@ public final class ArrayUtilityMethods {
 		}
 		return retArr;
 	}
-	
+
 	public static String[] convertDoubleArrToStringArr(final double[] arr) {
 		int size = arr.length;
 		String[] retArr = new String[size];
@@ -395,7 +395,7 @@ public final class ArrayUtilityMethods {
 		}
 		return retArr;
 	}
-	
+
 	public static String[] convertDoubleWrapperArrToStringArr(final Double[] arr) {
 		int size = arr.length;
 		String[] retArr = new String[size];
@@ -408,63 +408,63 @@ public final class ArrayUtilityMethods {
 		}
 		return retArr;
 	}
-	
+
 	public static String[] getUniqueArray(final String[] arr) {
-        int size = arr.length;
-        String[] temp = new String[size];
+		int size = arr.length;
+		String[] temp = new String[size];
 
 		int counter = 0;
-        int index;
-        for (index = 0; index < size; index++) {
-            if(!arrayContainsValue(temp, arr[index])) {
-                temp[counter++] = arr[index];
-            }
-        }
-        String[] uniqueArray = new String[counter];
-        System.arraycopy(temp, 0, uniqueArray, 0, uniqueArray.length);
- 
-        return uniqueArray;
-    }
-	
+		int index;
+		for (index = 0; index < size; index++) {
+			if(!arrayContainsValue(temp, arr[index])) {
+				temp[counter++] = arr[index];
+			}
+		}
+		String[] uniqueArray = new String[counter];
+		System.arraycopy(temp, 0, uniqueArray, 0, uniqueArray.length);
+
+		return uniqueArray;
+	}
+
 	public static Double[] getUniqueArrayIgnoringNull(final Double[] arr) {
-        int size = arr.length;
-        Double[] temp = new Double[size];
+		int size = arr.length;
+		Double[] temp = new Double[size];
 
 		int counter = 0;
-        int index;
-        for (index = 0; index < size; index++) {
-            if(arr[index] != null && !arrayContainsValue(temp, arr[index])) {
-                temp[counter++] = arr[index];
-            }
-        }
-        Double[] uniqueArray = new Double[counter];
-        System.arraycopy(temp, 0, uniqueArray, 0, uniqueArray.length);
- 
-        return uniqueArray;
-    }
-	
+		int index;
+		for (index = 0; index < size; index++) {
+			if(arr[index] != null && !arrayContainsValue(temp, arr[index])) {
+				temp[counter++] = arr[index];
+			}
+		}
+		Double[] uniqueArray = new Double[counter];
+		System.arraycopy(temp, 0, uniqueArray, 0, uniqueArray.length);
+
+		return uniqueArray;
+	}
+
 	public static double[] getUniqueArray(final double[] arr) {
-        int size = arr.length;
-        double[] temp = new double[size];
+		int size = arr.length;
+		double[] temp = new double[size];
 
 		int counter = 0;
-        int index;
-        for (index = 0; index < size; index++) {
-            if(!arrayContainsValue(temp, arr[index])) {
-                temp[counter++] = arr[index];
-            }
-        }
-        double[] uniqueArray = new double[counter];
-        System.arraycopy(temp, 0, uniqueArray, 0, uniqueArray.length);
- 
-        return uniqueArray;
-    }
-	
+		int index;
+		for (index = 0; index < size; index++) {
+			if(!arrayContainsValue(temp, arr[index])) {
+				temp[counter++] = arr[index];
+			}
+		}
+		double[] uniqueArray = new double[counter];
+		System.arraycopy(temp, 0, uniqueArray, 0, uniqueArray.length);
+
+		return uniqueArray;
+	}
+
 	public static String[] removeNameFromList(String[] name, int colToRemove) {
 		if(name == null || name.length == 0) {
 			return null;
 		}
-		
+
 		int numCols = name.length;
 
 		String[] retNames = new String[numCols - 1];
@@ -476,7 +476,7 @@ public final class ArrayUtilityMethods {
 				counter++;
 			}
 		}
-		
+
 		return retNames;
 	}
 
@@ -507,7 +507,7 @@ public final class ArrayUtilityMethods {
 		if(endRow <= startRow) {	
 			throw new IllegalArgumentException("startRow, " + startRow +", is larger than or equal to endRow, " + endRow);
 		}
-		
+
 		String[][] retDataMatrix = new String[endRow-startRow][];
 		int i = startRow;
 		int counter = 0;
@@ -515,10 +515,10 @@ public final class ArrayUtilityMethods {
 			retDataMatrix[counter] = dataMatrix[i];
 			counter++;
 		}
-		
+
 		return retDataMatrix;
 	}
-	
+
 	/**
 	 * Returns a specific range of rows from the original list passed in
 	 * @param dataMatrix			The main dataMatrix you plan on taking a section from
@@ -531,10 +531,10 @@ public final class ArrayUtilityMethods {
 		}
 		int size = dataMatrix.length;
 		int removeSize = positionsToRemove.length;
-		
+
 		// sort array of values to remove for efficient logic
 		Arrays.sort(positionsToRemove);
-		
+
 		String[][] retDataMatrix = new String[size-removeSize][];
 		int i = 0;
 		int counter = 0;
@@ -547,10 +547,10 @@ public final class ArrayUtilityMethods {
 				counter++;
 			}
 		}
-		
+
 		return retDataMatrix;
 	}
-	
+
 	public static int[] removeIndexOfArray(int[] arr, int indexToRemove) {
 		int size = arr.length;
 		int[] retArr = new int[size-1];
@@ -563,24 +563,24 @@ public final class ArrayUtilityMethods {
 				counter++;
 			}
 		}
-		
+
 		return retArr;
 	}
-	
+
 	public static Object[] getColumnFromList(Object[][] list, int colToGet) {
 		if(list == null || list.length == 0) {
 			return null;
 		}
-		
+
 		int numRows = list.length;
 		Object[] retList = new Object[numRows];
-		
+
 		int i;
 		for(i = 0; i < numRows; i++) {
 			Object[] oldRow = list[i];
 			retList[i] = oldRow[colToGet];
 		}
-		
+
 		return retList;
 	}
 }

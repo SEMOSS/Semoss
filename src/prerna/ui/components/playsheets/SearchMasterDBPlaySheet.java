@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 
 import prerna.algorithm.impl.SearchMasterDB;
 import prerna.om.SEMOSSEdge;
@@ -43,7 +44,7 @@ public class SearchMasterDBPlaySheet extends GridPlaySheet{
 		SearchMasterDB searchAlgo = new SearchMasterDB();
 //		searchAlgo.setMasterDBName(this.engine.getEngineName());
 		
-		ArrayList<Hashtable<String, Object>> hashArray = new ArrayList<Hashtable<String, Object>>();
+		List<Hashtable<String, Object>> hashArray = new ArrayList<Hashtable<String, Object>>();
 		if(query.contains("1")){
 			createMetamodelSubgraphData();
 			searchAlgo.setKeywordAndEdgeList(vertStore, edgeStore, true);
@@ -64,7 +65,7 @@ public class SearchMasterDBPlaySheet extends GridPlaySheet{
 		}
 	}
 
-	private void flattenHash(ArrayList<Hashtable<String, Object>> hashArray){
+	private void flattenHash(List<Hashtable<String, Object>> hashArray){
 		//TODO write this method that stores headers and list
 		//assuming every hash has the same keys
 		//get the first hash to know what keys we are working with (these are going to be our headers)

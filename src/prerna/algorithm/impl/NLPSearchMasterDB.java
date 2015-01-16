@@ -17,6 +17,7 @@ package prerna.algorithm.impl;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -52,13 +53,12 @@ public class NLPSearchMasterDB {
 		this.masterEngine = (BigDataEngine)DIHelper.getInstance().getLocalProp(masterDBName);
 	}
 	
-	public ArrayList<Hashtable<String,Object>> findRelatedQuestions(String nlpQuestion) {
-		
+	public List<Hashtable<String,Object>> findRelatedQuestions(String nlpQuestion) {
 		QuestionNLP qp = new QuestionNLP();
-		ArrayList<String[]> relationshipList = qp.Question_Analyzer(nlpQuestion);
-		ArrayList<String> vertList = new ArrayList<String>();
-		ArrayList<String> edgeInList = new ArrayList<String>();
-		ArrayList<String> edgeOutList = new ArrayList<String>();
+		List<String[]> relationshipList = qp.Question_Analyzer(nlpQuestion);
+		List<String> vertList = new ArrayList<String>();
+		List<String> edgeInList = new ArrayList<String>();
+		List<String> edgeOutList = new ArrayList<String>();
 
 		for(String [] relationship : relationshipList) {
 			String subj = relationship[0];
@@ -74,7 +74,7 @@ public class NLPSearchMasterDB {
 			logger.info("NLP found relationship between " + subj + " AND "+obj);
 		}
 		
-		ArrayList<String> nodeList = qp.Question_Analyzer2(nlpQuestion);
+		List<String> nodeList = qp.Question_Analyzer2(nlpQuestion);
 		for(String node : nodeList) {
 			Utility.cleanString(node,true);
 			if(!vertList.contains(node))
@@ -90,7 +90,7 @@ public class NLPSearchMasterDB {
 			return new ArrayList<Hashtable<String,Object>>();
 		}
 		
-		ArrayList<String> mcsForKeywords = getMCsForKeywords(vertList);
+		List<String> mcsForKeywords = getMCsForKeywords(vertList);
 		
 		SearchMasterDB searchAlgo = new SearchMasterDB();
 		searchAlgo.setKeywordAndEdgeList(vertList, edgeOutList, edgeInList);
@@ -103,8 +103,8 @@ public class NLPSearchMasterDB {
 	 * @param keywordList
 	 * @return
 	 */
-	private ArrayList<String> getMCsForKeywords(ArrayList<String> keywordList) {
-		ArrayList<String> masterConceptsList = new ArrayList<String>(keywordList.size());
+	private List<String> getMCsForKeywords(List<String> keywordList) {
+		List<String> masterConceptsList = new ArrayList<String>(keywordList.size());
 		for(int i=0;i<keywordList.size();i++)
 			masterConceptsList.add("");
 		//if all the keywords have a master concept, then link them	
@@ -134,8 +134,8 @@ public class NLPSearchMasterDB {
 		return masterConceptsList;
 	}
 	
-	private ArrayList<String> deepCopy(ArrayList<String> list) {
-		ArrayList<String> copy = new ArrayList<String>();
+	private List<String> deepCopy(List<String> list) {
+		List<String> copy = new ArrayList<String>();
 		for(String entry : list) {
 			copy.add(entry);
 		}
