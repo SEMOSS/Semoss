@@ -39,6 +39,7 @@ public enum PlaySheetEnum {
 	DatasetSimilarity("Similarity", "prerna.ui.components.playsheets.DatasetSimilarityPlaySheet", "DatasetSimilarityPlaySheet Hint: SELECT ?instance ?prop1... ?propN WHERE{ ... }"),
 	DatasetSimilarityColumnChart("Similarity Column Chart", "prerna.ui.components.playsheets.DatasetSimilairtyColumnChartPlaySheet", "DatasetSimilairtyColumnChartPlaySheet Hint: SELECT ?instance ?prop1... ?propN WHERE{ ... }"),
 	Sankey_Diagram("Sankey Diagram","prerna.ui.components.playsheets.SankeyPlaySheet", "SankeyPlaySheet Hint: SELECT ?source ?target ?value ?target2 ?value2 ?target3 ?value3...etc  Note: ?target is the source for ?target2 and ?target2 is the source for ?target3...etc WHERE{ ... }"),
+	World_Map("World Map","prerna.ui.components.playsheets.OCONUSMapPlaySheet", "OCONUSMapPlaySheet Hint: SELECT ?label ?latitude ?longitude WHERE{ ... }"),
 	World_Heat_Map("World Heat Map","prerna.ui.components.playsheets.WorldHeatMapPlaySheet", "WorldHeatMapPlaySheet Hint: SELECT ?country ?numericHeatValue WHERE{ ... }"),
 	US_Heat_Map("US Heat Map","prerna.ui.components.playsheets.USHeatMapPlaySheet", "USHeatMapPlaySheet Hint: SELECT ?state ?numericHeatValue WHERE{ ... }"),
 	Circle_Pack("Circle Pack","prerna.ui.components.playsheets.CirclePackPlaySheet", "CirclePackPlaySheet Hint: SELECT ?level1 ?level2 ... ?size WHERE{ ... }"),
