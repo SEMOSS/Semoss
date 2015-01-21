@@ -157,9 +157,7 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		super.createData();
 	}
 	
-	public void callIt()
-	{
-		Gson gson = new Gson();
+	public ArrayList prepareOrderedVars(){
 		ArrayList args = new ArrayList();
 		Enumeration enumKey = paramDataHash.keys();
 		
@@ -182,6 +180,13 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 			args.add(enumKey.nextElement());
 			count++;
 		}
+		return args;
+	}
+	
+	public void callIt()
+	{
+		Gson gson = new Gson();
+		ArrayList args = prepareOrderedVars();
 		Hashtable testHash = new Hashtable();
 //		testHash.put("Deployment_(Theater/Garrison)", 0.90);
 //		browser.executeScript("dataBuilder('" + gson.toJson(args) + "', '" + gson.toJson(testHash) + "');");
@@ -193,7 +198,7 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		System.out.println(availCatString);
 		browser.executeJavaScript(availCatString);
 		
-		enumKey = allHash.keys();
+		Enumeration enumKey = allHash.keys();
 		while (enumKey.hasMoreElements())
 		{
 			String key = (String) enumKey.nextElement();
