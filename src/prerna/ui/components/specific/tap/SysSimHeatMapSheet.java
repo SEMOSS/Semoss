@@ -242,9 +242,9 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		Hashtable testHash = new Hashtable();
 		ArrayList<Hashtable<String, Hashtable<String, Double>>> list = calculateHash(args, testHash);
 		Hashtable specdataHash = new Hashtable();
-		for(Hashtable hash : list){
-			specdataHash.putAll(hash);
-		}
+//		for(Hashtable hash : list){ //Browser crashes on TAP Core when sending all of the data... for now just going to add one array (max of 20,000 cells)
+			specdataHash.putAll(list.get(0));
+//		}
 		dataHash = new Hashtable();
 		dataHash.put("dataSeries", specdataHash);
 		dataHash.put("xAxisTitle", "System1");
@@ -255,8 +255,8 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		if (dataHash != null)
 			returnHash.put("specificData", dataHash);
 
-		returnHash.put("data", new String[3]);
-		returnHash.put("headers", new String[3]);
+		returnHash.put("data", new String[]{"1","2","3"});
+		returnHash.put("headers", new String[]{"1","2","3"});
 
 //		Gson gson = new Gson();
 //		logger.info("Converted " + gson.toJson(dataHash));
