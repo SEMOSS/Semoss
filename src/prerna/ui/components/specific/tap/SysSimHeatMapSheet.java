@@ -26,6 +26,7 @@ import javax.swing.event.InternalFrameEvent;
 
 import org.apache.log4j.Logger;
 
+import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.main.listener.specific.tap.SimilarityBarChartBrowserFunction;
 import prerna.ui.main.listener.specific.tap.SysSimHealthGridListener;
@@ -87,9 +88,10 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 			}
 		}
 		SimilarityFunctions sdf = new SimilarityFunctions();
-		addPanel();
+		if(this.pane!=null)
+			addPanel();
 		// this would be create the data
-		Hashtable dataHash = new Hashtable();
+		Hashtable dataBLUCompleteHash = new Hashtable();
 //		Hashtable overallHash;
 		//get list of systems first
 		updateProgressBar("10%...Getting all systems for evaluation", 10);
@@ -105,7 +107,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		String bluQuery = "SELECT DISTINCT ?System ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System <http://semoss.org/ontologies/Relation/Provide> ?BLU }{?System ?UsedBy ?SystemUser}}";
 		bluQuery = addBindings(bluQuery);
 		Hashtable<String, Hashtable<String,Double>> dataBLUHash = sdf.getDataBLUDataSet(this.engine.getEngineName(), dataQuery, bluQuery, SimilarityFunctions.VALUE);
-		dataHash = processHashForCharting(dataBLUHash);
+		dataBLUCompleteHash = processHashForCharting(dataBLUHash);
 		
 		String theaterQuery = "SELECT DISTINCT ?System ?Theater WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?System <http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> ?Theater}{?System ?UsedBy ?SystemUser}}";
 		theaterQuery = addBindings(theaterQuery);
@@ -162,8 +164,8 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 			paramDataHash.put("Activities_Supported", actHash);
 			allQueriesAreEmpty = false;
 		}
-		if (dataHash != null && !dataHash.isEmpty()) {
-			paramDataHash.put("Data_and_Business_Logic_Supported", dataHash);
+		if (dataBLUCompleteHash != null && !dataBLUCompleteHash.isEmpty()) {
+			paramDataHash.put("Data_and_Business_Logic_Supported", dataBLUCompleteHash);
 			allQueriesAreEmpty = false;
 		}
 		if (theaterHash != null && !theaterHash.isEmpty()) {
@@ -215,7 +217,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 					Object[] values = list.get(i);
 					String system = "";
 					for (Object systemResult : values) {
-						system = "(<http://health.mil/ontologies/Concept/System/" + systemResult.toString() + ">)";
+						system = "(<" + systemResult.toString() + ">)";
 					}
 					systemURIs = systemURIs + system;
 				}
@@ -227,6 +229,40 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		}
 		
 		return sysSimQuery;		
+	}
+	
+	@Override
+	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+		return sjss.getRawVar(varName);
+	}
+
+	@Override
+	public Object getData() {
+		ArrayList args = prepareOrderedVars();
+		Hashtable testHash = new Hashtable();
+		ArrayList<Hashtable<String, Hashtable<String, Double>>> list = calculateHash(args, testHash);
+		Hashtable specdataHash = new Hashtable();
+		for(Hashtable hash : list){
+			specdataHash.putAll(hash);
+		}
+		dataHash = new Hashtable();
+		dataHash.put("dataSeries", specdataHash);
+		dataHash.put("xAxisTitle", "System1");
+		dataHash.put("yAxisTitle", "System2");
+		dataHash.put("value", "Score");
+		dataHash.put("sysDup", true);
+		Hashtable returnHash = (Hashtable) super.getData();
+		if (dataHash != null)
+			returnHash.put("specificData", dataHash);
+
+		returnHash.put("data", new String[3]);
+		returnHash.put("headers", new String[3]);
+
+//		Gson gson = new Gson();
+//		logger.info("Converted " + gson.toJson(dataHash));
+//		logger.info("Converted gson");
+		
+		return returnHash;
 	}
 
 }
