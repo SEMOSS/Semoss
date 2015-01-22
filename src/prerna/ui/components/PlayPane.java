@@ -268,6 +268,9 @@ public class PlayPane extends JFrame {
 	// Source of Record Property Insert
 	public CustomButton btnSORInsert;
 	
+	// Components on the Machine Learning Panel
+	public JButton btnRLGridExample, btnRLGamblingExample;
+	
 	// Components on settings panel
 	public JCheckBox propertyCheck, sudowlCheck, searchCheck, highQualityExportCheck;
 	
@@ -4437,6 +4440,62 @@ public class PlayPane extends JFrame {
 		gbc_compareDBButton.gridy = 4;
 		dbComparisonTopPanel.add(compareDBButton, gbc_compareDBButton);
 		Style.registerTargetClassName(compareDBButton, ".standardButton");
+		// Machine Learning tab
+		JPanel machineLearningPanel = new JPanel();
+		machineLearningPanel.setBackground(SystemColor.control);
+		
+		rightView.addTab("Machine Learning", null, machineLearningPanel, null);
+		GridBagLayout gbl_machineLearningPanel = new GridBagLayout();
+		gbl_machineLearningPanel.columnWidths = new int[] { 15, 0, 0 };
+		gbl_machineLearningPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		gbl_machineLearningPanel.columnWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
+		gbl_machineLearningPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
+		machineLearningPanel.setLayout(gbl_machineLearningPanel);
+		
+		JPanel rlPanel = new JPanel();
+		rlPanel.setBackground(SystemColor.control);
+		GridBagConstraints gbc_rlPanel = new GridBagConstraints();
+		gbc_rlPanel.gridx = 0;
+		gbc_rlPanel.gridy = 0;
+		machineLearningPanel.add(rlPanel, gbc_rlPanel);
+		
+		GridBagLayout gbl_rlPanel = new GridBagLayout();
+		gbl_rlPanel.columnWidths = new int[] { 15, 0, 0 };
+		gbl_rlPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		gbl_rlPanel.columnWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
+		gbl_rlPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
+		rlPanel.setLayout(gbl_rlPanel);
+		
+		JLabel lblReinforcementLearningExamples = new JLabel("Reinforcement Learning Examples");
+		lblReinforcementLearningExamples.setFont(new Font("Tahoma", Font.BOLD, 12));
+		GridBagConstraints gbc_lblReinforcementLearningExamples = new GridBagConstraints();
+		gbc_lblReinforcementLearningExamples.insets = new Insets(15, 0, 10, 0);
+		gbc_lblReinforcementLearningExamples.gridx = 1;
+		gbc_lblReinforcementLearningExamples.gridy = 0;
+		rlPanel.add(lblReinforcementLearningExamples, gbc_lblReinforcementLearningExamples);
+		
+		btnRLGridExample = new CustomButton("Run Grid Example");
+		btnRLGridExample.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_btnRLGridExample = new GridBagConstraints();
+		gbc_btnRLGridExample.anchor = GridBagConstraints.NORTHWEST;
+		gbc_btnRLGridExample.gridwidth = 4;
+		gbc_btnRLGridExample.insets = new Insets(10, 10, 0, 5);
+		gbc_btnRLGridExample.gridx = 1;
+		gbc_btnRLGridExample.gridy = 1;
+		rlPanel.add(btnRLGridExample, gbc_btnRLGridExample);
+		Style.registerTargetClassName(btnRLGridExample, ".standardButton");
+
+		btnRLGamblingExample = new CustomButton("Run Gamble Example");
+		btnRLGamblingExample.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_btnRLGamblingExample = new GridBagConstraints();
+		gbc_btnRLGamblingExample.anchor = GridBagConstraints.NORTHWEST;
+		gbc_btnRLGamblingExample.gridwidth = 4;
+		gbc_btnRLGamblingExample.insets = new Insets(10, 10, 10, 5);
+		gbc_btnRLGamblingExample.gridx = 1;
+		gbc_btnRLGamblingExample.gridy = 2;
+		rlPanel.add(btnRLGamblingExample, gbc_btnRLGamblingExample);
+		Style.registerTargetClassName(btnRLGamblingExample, ".standardButton");
+		
 		
 		// Settings tab
 		JPanel settingsPanel = new JPanel();
