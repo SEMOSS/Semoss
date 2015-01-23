@@ -50,6 +50,10 @@ public abstract class AbstractNumericalMethods {
 	}
 	
 	public double calculateAdjustmentFactor(int index1, int index2, int numBins) {
+		if(numBins == 1) {
+			return 1;
+		}
+		
 		return 1 - (double) Math.pow((double) Math.abs(index1 - index2) / (numBins-1), 2.0); 
 	}
 }

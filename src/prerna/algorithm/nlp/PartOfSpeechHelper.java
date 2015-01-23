@@ -1,19 +1,84 @@
 package prerna.algorithm.nlp;
 
+import java.io.StringReader;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
+import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.ling.LabeledWord;
+import edu.stanford.nlp.ling.TaggedWord;
+import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
+import edu.stanford.nlp.process.CoreLabelTokenFactory;
+import edu.stanford.nlp.process.PTBTokenizer;
+import edu.stanford.nlp.process.TokenizerFactory;
 import edu.stanford.nlp.trees.EnglishGrammaticalRelations;
 import edu.stanford.nlp.trees.GrammaticalRelation;
+import edu.stanford.nlp.trees.GrammaticalStructure;
+import edu.stanford.nlp.trees.GrammaticalStructureFactory;
+import edu.stanford.nlp.trees.PennTreebankLanguagePack;
+import edu.stanford.nlp.trees.Tree;
 import edu.stanford.nlp.trees.TreeGraphNode;
+import edu.stanford.nlp.trees.TreebankLanguagePack;
 import edu.stanford.nlp.trees.TypedDependency;
 
 public final class PartOfSpeechHelper {
 
+	private static final Logger LOGGER = LogManager.getLogger(PartOfSpeechHelper.class.getName());
+	
 	private PartOfSpeechHelper() {
 
+	}
+	
+	/**
+	 * Create a list of the type dependencies for each word in an inputed sentence
+	 * @param sentence		The sentence to generate the typed dependencies list
+	 * @param tdl			The object to add the typed dependency list too
+	 * @param taggedWords	The list to add all the Parts of Speech (POS) for each word in the sentence
+	 * @return				Returns a boolean if the sentence was parsable
+	 */
+	public static boolean createDepList(LexicalizedParser lp, String sentence, List<TypedDependency> tdl, List<TaggedWord> taggedWords)
+	{
+		// Performs a Penn-Treebank Style Tokenization 
+		/* Basics of how this tokenization works (from http://www.cis.upenn.edu/~treebank/tokenization.html)
+		 * Most punctuation is split from adjoining words
+		 * Double quotes (") are changed to doubled single forward- and backward- quotes (`` and '')
+		 * Verb contractions and the Anglo-Saxon genitive of nouns are split into their component morphemes, and each morpheme is tagged separately
+		 * 		Examples:
+		 * 		children's --> children 's
+		 * 		parents' --> parents '
+		 * 		won't --> wo n't
+		 * 		gonna --> gon na
+		 * 		I'm --> I 'm
+		 * This tokenization allows us to analyze each component separately, so (for example) "I" can be in the subject Noun Phrase while "'m" is the head of the main verb phrase
+		 * There are some subtleties for hyphens vs. dashes, elipsis dots (...) and so on, but these often depend on the particular corpus or application of the tagged data.
+		 * In parsed corpora, bracket-like characters are converted to special 3-letter sequences, to avoid confusion with parse brackets. Some POS taggers, such as Adwait Ratnaparkhi's MXPOST, require this form for their input
+		 * 		In other words, these tokens in POS files: ( ) [ ] { } become, in parsed files: -LRB- -RRB- -RSB- -RSB- -LCB- -RCB- (The acronyms stand for (Left|Right) (Round|Square|Curly) Bracket.)
+		 */
+		TokenizerFactory<CoreLabel> tokenizerFactory = PTBTokenizer.factory(new CoreLabelTokenFactory(), "");
+		// Generate a list of all the words in the sentence
+		List<CoreLabel> rawWords = tokenizerFactory.getTokenizer(new StringReader(sentence)).tokenize();
+		// Generate a treebank that annotates the dependency structure of the sentence
+		Tree treeBank = lp.parseTree(rawWords);
+
+		// Give each word its Parts of Speech (POS)
+		try {
+			taggedWords.addAll(treeBank.taggedYield());
+		} catch(NullPointerException e) {
+			LOGGER.info("The following sentence failed to be loadede:  " + sentence);
+			return false;
+		}
+		// Store the dependency relations between nodes in a tree
+		TreebankLanguagePack tlp = new PennTreebankLanguagePack();
+		GrammaticalStructureFactory gsf = tlp.grammaticalStructureFactory();
+		GrammaticalStructure gs = gsf.newGrammaticalStructure(treeBank);
+
+		// Get a list of typed dependencies, including control dependencies, by collapsing them and distributing relations across coordination
+		tdl.addAll(gs.typedDependenciesCCprocessed());
+		return true;
 	}
 	
 	/**
@@ -40,6 +105,28 @@ public final class PartOfSpeechHelper {
 		}
 	}
 
+	/**
+	 * Store negation modifiers in Hashtable to use when creating triples
+	 * @param negHash		The Hashtable to add the negation modifiers to
+	 * @param nodeHash		The Hashtable containing the type dependencies
+	 */
+	public static void createNegations(Hashtable<String, String> negHash, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
+	{
+		Vector <TypedDependency> negVector = nodeHash.get(EnglishGrammaticalRelations.NEGATION_MODIFIER);
+		if(negVector != null)
+		{
+			// run through each of these to see if I find any negation
+			int i = 0;
+			int size = negVector.size();
+			for(;i < size; i++)
+			{
+				TypedDependency neg = negVector.elementAt(i);
+				String gov = neg.gov().toString();
+				negHash.put(gov, gov);
+			}
+		}
+	}
+	
 	/**
 	 * 
 	 * @param dobjV

@@ -37,8 +37,6 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm implements 
 	private int[] totalClusterAssignment;
 	private ArrayList<ArrayList<Hashtable<String, Integer>>> totalClusterCategoricalMatrix;
 	private ArrayList<ArrayList<Hashtable<String, Integer>>> totalClusterNumberBinMatrix;
-	private int straglers;
-	
 	
 	protected int partitionIndex;
 	public void setParitionIndex(int partitionIndex) {
@@ -64,11 +62,7 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm implements 
 			combineResults();
 			
 			numInstancesInCluster = updateArray(numInstancesInCluster, totalNumInstancesInCluster);
-			if(partitionIndex == 0) {
-				System.arraycopy(clusterAssignment, 0, totalClusterAssignment, partitionIndex, numInstances + straglers);
-			} else {
-				System.arraycopy(clusterAssignment, 0, totalClusterAssignment, partitionIndex, numInstances);
-			}
+			System.arraycopy(clusterAssignment, 0, totalClusterAssignment, partitionIndex, numInstances);
 			
 			LOGGER.info("Notifying...");
 			processingQueue.remove(partitionIndex);
@@ -267,13 +261,5 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm implements 
 	
 	public boolean getRemoveEmptyClusters() {
 		return removeEmptyClusters;
-	}
-	
-	public void setStraglers(int straglers) {
-		this.straglers = straglers;
-	}
-	
-	public int getStraglers() {
-		return straglers;
 	}
 }
