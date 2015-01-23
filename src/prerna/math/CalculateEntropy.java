@@ -44,9 +44,8 @@ public class CalculateEntropy {
 	public double calculateEntropyDensity() {
 		Object[] arr = countHash.values().toArray();
 		int[] countArr = ArrayUtilityMethods.convertObjArrToIntArr(arr);
-		entropy = StatisticsUtilityMethods.calculateEntropy(countArr);
+		entropyDensity = StatisticsUtilityMethods.calculateEntropyDensity(countArr);
 		
-		entropyDensity = entropy / numUniqueValues *-1;
 		return entropyDensity;
 	}
 	

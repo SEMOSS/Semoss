@@ -28,6 +28,7 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.impl.AlgorithmDataFormatting;
 import prerna.math.BarChart;
 import prerna.math.CalculateEntropy;
+import prerna.math.SimilarityWeighting;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
@@ -60,6 +61,10 @@ public class ClusteringDataProcessor {
 	private double[] categoricalWeights; // has length the same as category prop names
 	// list the weights associated with each numerical property used to calculate the numerical similarity score
 	private double[] numericalWeights; // has length the same as numerical prop names
+	// the entropy values for the categorical properties
+	private double[] categoricalEntropy; // has length the same as category prop names 
+	// the entropy values for the numerical properties
+	private double[] numericalEntropy; // has length the same as numerical prop names
 
 	//indexing used for visualization
 	private int[] totalNumericalPropIndices;
@@ -257,39 +262,28 @@ public class ClusteringDataProcessor {
 	private void calculateCategoricalWeights() {
 		if(categoricalMatrix != null)
 		{
-			int i = 0;
 			int size = categoricalMatrix[0].length;
-
 			if(size == 1) {
 				categoricalWeights = new double[]{1};
 				return;
 			}
+			categoricalEntropy = new double[size];
 
-			double[] entropyArr = new double[size];
-
+			int i = 0;
 			for(; i < size; i++) {
 				CalculateEntropy getEntropy = new CalculateEntropy();
 				getEntropy.setDataArr(ArrayUtilityMethods.getColumnFromList(categoricalMatrix, i));
 				getEntropy.addDataToCountHash();
-				entropyArr[i] = getEntropy.calculateEntropyDensity();
+				categoricalEntropy[i] = getEntropy.calculateEntropyDensity();
 			}
 
-			categoricalWeights = new double[size];
-			double totalEntropy = StatisticsUtilityMethods.getSum(entropyArr);
-			i = 0;
-			for(; i < size; i++) {
-				if(totalEntropy == 0) {
-					categoricalWeights[i] = 0;
-				} else {
-					categoricalWeights[i] = entropyArr[i] / totalEntropy;
-				}
-			}
+			categoricalWeights = SimilarityWeighting.generateWeighting(categoricalEntropy);
 
 			// output category and weight to console
-//			i = 0;
-//			for(; i < categoricalWeights.length; i++) {
-//				LOGGER.info("Category " + categoryPropNames[i] + " has weight " + categoricalWeights[i]);
-//			}
+			//			i = 0;
+			//			for(; i < categoricalWeights.length; i++) {
+			//				LOGGER.info("Category " + categoryPropNames[i] + " has weight " + categoricalWeights[i]);
+			//			}
 		}
 	}
 
@@ -297,26 +291,24 @@ public class ClusteringDataProcessor {
 	 * Generate weights for categorical similarity matrix
 	 */
 	private void calculateNumericalWeights() {
-		ArrayList<Hashtable<String, Integer>> trackPropOccurance = getNumericalPropOccurance();
-		double[] entropyArr = calculateEntropy(trackPropOccurance);
-		int numWeights = entropyArr.length;
-		numericalWeights = new double[numWeights];
 
-		double totalEntropy = 0;
-		for(int i = 0; i < numWeights; i++) {
-			totalEntropy += entropyArr[i];
-		}
+		if(numericalMatrix != null) {
+			calculateNumericalEntropyAndGenerateNumericalBinMatrix();
+			int numWeights = numericalEntropy.length;
+			numericalWeights = new double[numWeights];
 
-		int counter = 0;
-		for(int i = 0; i < numWeights; i++) {
-			if(totalEntropy == 0) {
-				numericalWeights[counter] = 0.0;
-			} else {
-				numericalWeights[counter] = (entropyArr[i] / totalEntropy);
+			double totalEntropy = StatisticsUtilityMethods.getSum(numericalEntropy);
+
+			int counter = 0;
+			for(int i = 0; i < numWeights; i++) {
+				if(totalEntropy == 0) {
+					numericalWeights[counter] = 0.0;
+				} else {
+					numericalWeights[counter] = (numericalEntropy[i] / totalEntropy);
+				}
+				counter++;
 			}
-			counter++;
 		}
-
 		// output category and weight to console
 		//		for(int i = 0; i < numericalWeights.length; i++) {
 		//			LOGGER.info("NumericalProp " + numericalPropNames[i] + " has weight " + numericalWeights[i]);
@@ -327,43 +319,38 @@ public class ClusteringDataProcessor {
 	 * Generate occurrence of instance numerical properties to calculate entropy
 	 * @return	A list containing a hashtable that stores all the different instances of a given property
 	 */
-	private ArrayList<Hashtable<String, Integer>> getNumericalPropOccurance() {
-		ArrayList<Hashtable<String, Integer>> trackPropOccuranceArr = new ArrayList<Hashtable<String, Integer>>();
-
-		if(numericalMatrix != null)
-		{
-			int numRows = masterTable.size();
-			int numCols = numericalPropNames.length;
-			numericalBinMatrix = new String[numRows][numCols];
-
-			AlgorithmDataFormatting formatter = new AlgorithmDataFormatting();
-			Object[][] data = formatter.convertColumnValuesToRows(numericalMatrix);
-			int size = data.length;
-			numericalBinOrderingMatrix = new String[size][];
-			for(int i = 0; i < size; i++) {
-				Object[] propColumn = data[i];
-				trackPropOccuranceArr.add(new Hashtable<String, Integer>());
-				// if no instances contain a value for the property, skip it
-				if(ArrayUtilityMethods.removeAllNulls(propColumn).length == 0) {
-					generateNumericalBinMatrix(i, new String[numRows]);
-					continue;
-				}
-				Double[] dataRow = ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(propColumn);
-				BarChart chart = new BarChart(dataRow);
-				numericalBinOrderingMatrix[i] = chart.getNumericalBinOrder();
-				generateNumericalBinMatrix(i, chart.getAssignmentForEachObject());
-				Hashtable<String, Integer> colInformationHash = trackPropOccuranceArr.get(i);
-				Hashtable<String, Object>[] bins = chart.getRetHashForJSON();
-				int j;
-				for(j = 0; j < bins.length; j++) {
-					String range = (String) bins[j].get("x");
-					Integer count = (int) bins[j].get("y");
-					colInformationHash.put(range, count);
+	private void calculateNumericalEntropyAndGenerateNumericalBinMatrix() {
+		int numRows = masterTable.size();
+		int numCols = numericalPropNames.length;
+		numericalBinMatrix = new String[numRows][numCols];
+		numericalEntropy = new double[numCols];
+		AlgorithmDataFormatting formatter = new AlgorithmDataFormatting();
+		Object[][] data = formatter.convertColumnValuesToRows(numericalMatrix);
+		int size = data.length;
+		numericalBinOrderingMatrix = new String[size][];
+		for(int i = 0; i < size; i++) {
+			Object[] propColumn = data[i];
+			// if no instances contain a value for the property, skip it
+			if(ArrayUtilityMethods.removeAllNulls(propColumn).length == 0) {
+				generateNumericalBinMatrix(i, new String[numRows]);
+				continue;
+			}
+			Double[] dataRow = ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(propColumn);
+			BarChart chart = new BarChart(dataRow);
+			numericalBinOrderingMatrix[i] = chart.getNumericalBinOrder();
+			generateNumericalBinMatrix(i, chart.getAssignmentForEachObject());
+			Hashtable<String, Object>[] bins = chart.getRetHashForJSON();
+			double entropy = 0;
+			int j;
+			int uniqueValues = bins.length;
+			for(j = 0; j < uniqueValues; j++) {
+				int count = (int) bins[j].get("y");
+				if(count != 0) {
+					entropy += ( (double) count / numRows) * StatisticsUtilityMethods.logBase2((double) count / numRows);
 				}
 			}
+			numericalEntropy[i] = entropy / uniqueValues;
 		}
-
-		return trackPropOccuranceArr;
 	}
 
 	private void generateNumericalBinMatrix(int col, String[] values) {
@@ -377,49 +364,6 @@ public class ClusteringDataProcessor {
 				numericalBinMatrix[i][col] = values[i];
 			}
 		}
-	}
-
-	/**
-	 * Generate entropy array for each category to create weights
-	 * @param trackPropOccurance	A list containing a hashtable that stores all the different instances of a given property
-	 * @return						A list containing the entropy for each categorical property
-	 */
-	private double[] calculateEntropy(ArrayList<Hashtable<String, Integer>> trackPropOccurance) {
-		int numWeights = trackPropOccurance.size();
-		double[] entropyArr = new double[numWeights];
-		int i;
-		for(i = 0; i < numWeights; i++) {
-			Hashtable<String, Integer> columnInformation = trackPropOccurance.get(i);
-			ArrayList<Integer> columnPropInstanceCountArr = new ArrayList<Integer>();
-
-			int totalCountOfPropInstances = 0;
-			int unqiueCountOfPropInstances = 0;
-			for(String columnProp : columnInformation.keySet()) {
-				if(columnInformation.get(columnProp) > 0) {
-					columnPropInstanceCountArr.add(columnInformation.get(columnProp));
-					totalCountOfPropInstances += columnInformation.get(columnProp);
-					unqiueCountOfPropInstances++;
-				}
-			}
-
-			//if all values missing for property, entropy is 0
-			if(columnPropInstanceCountArr.size() <= 1) {
-				continue;
-			}
-
-			double sumProb = 0;
-			int columnPropInstanceSize = columnPropInstanceCountArr.size();
-			for(int j = 0; j < columnPropInstanceSize; j++) {
-				Integer propCount = columnPropInstanceCountArr.get(j);
-				Double probability = (double) ( 1.0 * propCount / totalCountOfPropInstances);
-				sumProb += probability * StatisticsUtilityMethods.logBase2(probability);
-			}
-
-			Double entropy = sumProb / unqiueCountOfPropInstances;
-			entropyArr[i] = entropy;
-		}
-
-		return entropyArr;
 	}
 
 	public int[] getTotalNumericalPropIndices() {
@@ -453,5 +397,21 @@ public class ClusteringDataProcessor {
 
 	public double[] getNumericalWeights() {
 		return numericalWeights;
+	}
+	
+	public double[] getCategoricalEntropy() {
+		return categoricalEntropy;
+	}
+
+	public void setCategoricalEntropy(double[] categoricalEntropy) {
+		this.categoricalEntropy = categoricalEntropy;
+	}
+
+	public double[] getNumericalEntropy() {
+		return numericalEntropy;
+	}
+
+	public void setNumericalEntropy(double[] numericalEntropy) {
+		this.numericalEntropy = numericalEntropy;
 	}
 }

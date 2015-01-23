@@ -675,7 +675,8 @@ public final class StatisticsUtilityMethods {
 		for(index = 0; index < values.length; index++) {
 			double val = values[index];
 			if(val != 0) {
-				entropy += val / sum * logBase2(val / sum);
+				double prob = val / sum;
+				entropy += prob * logBase2(prob);
 			}
 		}
 		
@@ -689,11 +690,20 @@ public final class StatisticsUtilityMethods {
 			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
 		}
 
+		// if only one value, then entropy is 0
+		if(values.length == 1) {
+			return 0;
+		}
+		if(ArrayUtilityMethods.removeAllZeroValues(values).length == 1) {
+			return 0;
+		}
+
 		int uniqueVals = values.length;
+
 		double entropy = calculateEntropy(values);
-		entropy *= 1.0/uniqueVals;
+		double entropyDensity = entropy / uniqueVals;
 		
-		return entropy;
+		return entropyDensity;
 	}
 	
 	/**

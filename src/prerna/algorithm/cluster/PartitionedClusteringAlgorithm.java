@@ -22,15 +22,20 @@ public class PartitionedClusteringAlgorithm extends ClusteringAlgorithm {
 
 	private int partitionSize;
 	private int straglers;
+	private double[] numericalEntropyArr;
+	private double[] categoricalEntropyArr;
 
+	private Queue<Integer> processingQueue;
+	private int numProcessors;
+	
 	public PartitionedClusteringAlgorithm(ArrayList<Object[]> masterTable, String[] varNames) {
 		super(masterTable, varNames);
 	}
 
-	private Queue<Integer> processingQueue;
-	private int numProcessors;
-
 	public void generateBaseClusterInformation(int maximumNumberOfClusters) {
+		numericalEntropyArr = cdp.getNumericalEntropy();
+		categoricalEntropyArr = cdp.getCategoricalEntropy();
+		
 		cnm = new ClusteringNumericalMethods(instanceNumberBinMatrix, instanceCategoryMatrix, instanceNumberBinOrderingMatrix);
 		cnm.setCategoricalWeights(categoricalWeights);
 		cnm.setNumericalWeights(numericalWeights);
@@ -39,7 +44,6 @@ public class PartitionedClusteringAlgorithm extends ClusteringAlgorithm {
 		masterOrderedOriginalClusterAssingment = orderedOriginalClusterAssignment.clone();
 
 		numProcessors = Runtime.getRuntime().availableProcessors();
-		System.out.println("Num Processors available: " + numProcessors);
 	}
 
 	public void generateInitialClusters() {
@@ -75,11 +79,7 @@ public class PartitionedClusteringAlgorithm extends ClusteringAlgorithm {
 			clusterAssignment[position] = i;
 			orderedOriginalClusterAssignment[i] = position;
 		}
-	}
-
-	@Override
-	public boolean execute() {
-		success = true;
+		
 		int numRows = 0;
 		int numCols = 0;
 		if(instanceNumberBinMatrix != null) {
@@ -91,6 +91,11 @@ public class PartitionedClusteringAlgorithm extends ClusteringAlgorithm {
 			numCols += instanceCategoryMatrix[0].length;
 		}
 		calculatePartitionSize(numRows, numCols);
+	}
+
+	@Override
+	public boolean execute() {
+		success = true;
 
 		double[] categoricalWeights = cdp.getCategoricalWeights();
 		double[] numericalWeights = cdp.getNumericalWeights();
@@ -110,12 +115,12 @@ public class PartitionedClusteringAlgorithm extends ClusteringAlgorithm {
 				((ClusteringAlgorithm) partitionedAlg).setTotalClusterCategoricalMatrix(clusterCategoryMatrix);
 				((ClusteringAlgorithm) partitionedAlg).setTotalClusterNumberBinMatrix(clusterNumberBinMatrix);
 				
-				int numInstances = partitionSize;
-				int val = i+partitionSize;
-				if(i == 0) {
-					val += straglers;
-					numInstances += straglers;
-					((ClusteringAlgorithm) partitionedAlg).setStraglers(straglers);
+				int partitionNumInstances = partitionSize;
+				int val = i + partitionSize;
+				// determine if last portion will not split evenly and add to last partition
+				if(val != numInstances && val + partitionSize > numInstances && (val + partitionSize)%numInstances != 0) {
+					val = numInstances;
+					partitionNumInstances = numInstances - i;
 				}
 				
 				partitionedAlg.setVarNames(varNames);
@@ -125,13 +130,12 @@ public class PartitionedClusteringAlgorithm extends ClusteringAlgorithm {
 				partitionedAlg.setNumericalPropNames(numericalPropNames);
 				partitionedAlg.setNumericalPropIndices(numericalPropIndices);
 				partitionedAlg.setCategoricalPropIndices(categoryPropIndices);
-				partitionedAlg.setNumInstances(numInstances);
+				partitionedAlg.setNumInstances(partitionNumInstances);
 				partitionedAlg.setNumClusters(numClusters);
 				partitionedAlg.setRecreateStartingClusterValues(false);
 				((ClusteringAlgorithm) partitionedAlg).setRemoveEmptyClusters(false);
 				((ClusteringAlgorithm) partitionedAlg).setParitionIndex(i);
 				((ClusteringAlgorithm) partitionedAlg).setProcessingQueue(processingQueue);
-				((ClusteringAlgorithm) partitionedAlg).setParitionIndex(i);
 				
 				String[][] partitonedNumberBinMatrix = null;
 				String[][] partitonedCategoryMatrix = null;
@@ -169,11 +173,7 @@ public class PartitionedClusteringAlgorithm extends ClusteringAlgorithm {
 				Thread t = new Thread((ClusteringAlgorithm) partitionedAlg);
 				threads.add(t);
 				t.start();
-				//	success = partitionedAlg.getSuccess();
-				//	if(success == false) {
-				//		return success;
-				//	}
-
+				// TODO: how to determine if error occured in separate thread?
 			}
 		}
 		for(Thread t : threads) {
@@ -191,9 +191,33 @@ public class PartitionedClusteringAlgorithm extends ClusteringAlgorithm {
 
 	private void calculatePartitionSize(int numRows, int numCols) {
 		int numPartitions = (int) Math.ceil((double) numRows*numCols/40_000);
+
+		boolean lowEntropy = false;
+		int i = 0;
+		if(categoricalEntropyArr != null) {
+			int size = categoricalEntropyArr.length;
+			for(; i < size; i++) {
+				if(categoricalEntropyArr[i] < 0.2) {
+					lowEntropy = true;
+					numPartitions = (int) Math.ceil((double) numRows*numCols/5_700);
+					break;
+				}
+			}
+		}
+		if(!lowEntropy) {
+			i = 0;
+			if(numericalEntropyArr != null) {
+				int size = numericalEntropyArr.length;
+				for(; i < size; i++) {
+					if(numericalEntropyArr[i] < 0.2) {
+						lowEntropy = true;
+						numPartitions = (int) Math.ceil((double) numRows*numCols/5_700);
+						break;
+					}
+				}
+			}
+		}
 		partitionSize = (int) Math.ceil((double) numRows/numPartitions);
-		// if not all data is divided evenly, add those instances to first run
-		straglers = (numPartitions*partitionSize) % numRows;
 	}
 
 	private void copyHash(final ArrayList<ArrayList<Hashtable<String, Integer>>> original, ArrayList<ArrayList<Hashtable<String, Integer>>> copyToHash) {

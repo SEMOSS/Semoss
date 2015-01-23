@@ -17,7 +17,6 @@ package prerna.poi.main;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
@@ -37,22 +36,13 @@ import edu.stanford.nlp.ling.CoreAnnotations.LemmaAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.TokensAnnotation;
 import edu.stanford.nlp.ling.CoreLabel;
-import edu.stanford.nlp.ling.LabeledWord;
 import edu.stanford.nlp.ling.TaggedWord;
 import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
-import edu.stanford.nlp.process.CoreLabelTokenFactory;
-import edu.stanford.nlp.process.PTBTokenizer;
-import edu.stanford.nlp.process.TokenizerFactory;
 import edu.stanford.nlp.trees.EnglishGrammaticalRelations;
 import edu.stanford.nlp.trees.GrammaticalRelation;
-import edu.stanford.nlp.trees.GrammaticalStructure;
-import edu.stanford.nlp.trees.GrammaticalStructureFactory;
-import edu.stanford.nlp.trees.PennTreebankLanguagePack;
-import edu.stanford.nlp.trees.Tree;
 import edu.stanford.nlp.trees.TreeGraphNode;
-import edu.stanford.nlp.trees.TreebankLanguagePack;
 import edu.stanford.nlp.trees.TypedDependency;
 import edu.stanford.nlp.util.CoreMap;
 
@@ -98,7 +88,7 @@ public class ProcessNLP {
 			List<TypedDependency> tdl = new ArrayList<TypedDependency>();
 			List<TaggedWord> taggedWords = new ArrayList<TaggedWord>();
 
-			boolean sentenceParsable = createDepList(sentence, tdl, taggedWords); //create dependencies
+			boolean sentenceParsable = PartOfSpeechHelper.createDepList(lp, sentence, tdl, taggedWords); //create dependencies
 			if(sentenceParsable)
 			{
 				Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash = new Hashtable<GrammaticalRelation, Vector<TypedDependency>>();
@@ -178,57 +168,9 @@ public class ProcessNLP {
 		scan.close();
 	}
 	
-	/**
-	 * Create a list of the type dependencies for each word in an inputed sentence
-	 * @param sentence		The sentence to generate the typed dependencies list
-	 * @param tdl			The object to add the typed dependency list too
-	 * @param taggedWords	The list to add all the Parts of Speech (POS) for each word in the sentence
-	 * @return				Returns a boolean if the sentence was parsable
-	 */
-	public boolean createDepList(String sentence, List<TypedDependency> tdl, List<TaggedWord> taggedWords)
-	{
-		// Performs a Penn-Treebank Style Tokenization 
-		/* Basics of how this tokenization works (from http://www.cis.upenn.edu/~treebank/tokenization.html)
-		 * Most punctuation is split from adjoining words
-		 * Double quotes (") are changed to doubled single forward- and backward- quotes (`` and '')
-		 * Verb contractions and the Anglo-Saxon genitive of nouns are split into their component morphemes, and each morpheme is tagged separately
-		 * 		Examples:
-		 * 		children's --> children 's
-		 * 		parents' --> parents '
-		 * 		won't --> wo n't
-		 * 		gonna --> gon na
-		 * 		I'm --> I 'm
-		 * This tokenization allows us to analyze each component separately, so (for example) "I" can be in the subject Noun Phrase while "'m" is the head of the main verb phrase
-		 * There are some subtleties for hyphens vs. dashes, elipsis dots (...) and so on, but these often depend on the particular corpus or application of the tagged data.
-		 * In parsed corpora, bracket-like characters are converted to special 3-letter sequences, to avoid confusion with parse brackets. Some POS taggers, such as Adwait Ratnaparkhi's MXPOST, require this form for their input
-		 * 		In other words, these tokens in POS files: ( ) [ ] { } become, in parsed files: -LRB- -RRB- -RSB- -RSB- -LCB- -RCB- (The acronyms stand for (Left|Right) (Round|Square|Curly) Bracket.)
-		 */
-		TokenizerFactory<CoreLabel> tokenizerFactory = PTBTokenizer.factory(new CoreLabelTokenFactory(), "");
-		// Generate a list of all the words in the sentence
-		List<CoreLabel> rawWords = tokenizerFactory.getTokenizer(new StringReader(sentence)).tokenize();
-		// Generate a treebank that annotates the dependency structure of the sentence
-		Tree treeBank = lp.parseTree(rawWords);
-
-		// Give each word its Parts of Speech (POS)
-		try {
-			taggedWords.addAll(treeBank.taggedYield());
-		} catch(NullPointerException e) {
-			LOGGER.info("The following sentence failed to be loadede:  " + sentence);
-			return false;
-		}
-		// Store the dependency relations between nodes in a tree
-		TreebankLanguagePack tlp = new PennTreebankLanguagePack();
-		GrammaticalStructureFactory gsf = tlp.grammaticalStructureFactory();
-		GrammaticalStructure gs = gsf.newGrammaticalStructure(treeBank);
-
-		// Get a list of typed dependencies, including control dependencies, by collapsing them and distributing relations across coordination
-		tdl.addAll(gs.typedDependenciesCCprocessed());
-		return true;
-	}
-
 	public void generateTriples(String sentence, String documentName, List<TaggedWord> taggedWords, Hashtable<String, String> negHash, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
 	{
-		createNegations(negHash, nodeHash);
+		PartOfSpeechHelper.createNegations(negHash, nodeHash);
 		// I ate the sandwich. -> I, ate, sandwich (“the” is included in expanded object.)
 		findTriples(sentence, documentName, taggedWords, negHash, nodeHash, EnglishGrammaticalRelations.NOMINAL_SUBJECT, EnglishGrammaticalRelations.DIRECT_OBJECT);
 		// The man has been killed by the police. -> man, killed, police (Requires Collapsed Dependencies)
@@ -243,28 +185,6 @@ public class ProcessNLP {
 		findTriples(sentence, documentName, taggedWords, negHash, nodeHash, EnglishGrammaticalRelations.NOMINAL_SUBJECT, EnglishGrammaticalRelations.ADJECTIVAL_COMPLEMENT);
 		// I will sit on the chair. -> I, sit, on (without our code)
 		findTriples(sentence, documentName, taggedWords, negHash, nodeHash, EnglishGrammaticalRelations.NOMINAL_SUBJECT, EnglishGrammaticalRelations.PREPOSITIONAL_MODIFIER);
-	}
-
-	/**
-	 * Store negation modifiers in Hashtable to use when creating triples
-	 * @param negHash		The Hashtable to add the negation modifiers to
-	 * @param nodeHash		The Hashtable containing the type dependencies
-	 */
-	public void createNegations(Hashtable<String, String> negHash, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
-	{
-		Vector <TypedDependency> negVector = nodeHash.get(EnglishGrammaticalRelations.NEGATION_MODIFIER);
-		if(negVector != null)
-		{
-			// run through each of these to see if I find any negation
-			int i = 0;
-			int size = negVector.size();
-			for(;i < size; i++)
-			{
-				TypedDependency neg = negVector.elementAt(i);
-				String gov = neg.gov().toString();
-				negHash.put(gov, gov);
-			}
-		}
 	}
 
 	/**
