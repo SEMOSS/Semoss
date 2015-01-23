@@ -188,32 +188,10 @@ public class BarChart {
 	}
 	
 	private Hashtable<String, Object>[] calculateNumericBins(double[] numValues, double[] unsortedValues) {
-		NumberFormat formatter = null;
 		int numOccurances = numValues.length;
 		double min = numValues[0];
 		double max = numValues[numOccurances -1];
-		double range = Math.abs(max - min);
-		if(range <= 1 & min > .01) {
-			formatter = new DecimalFormat("#.00");
-		} else if(range <= 1) {
-			String pattern = "#.";
-			String text = Double.toString(Math.abs(range));
-			int integerPlaces = text.indexOf('.');
-			int decimalPlaces = text.length() - integerPlaces - 1;
-			for(int i = 0; i < decimalPlaces + 1; i++) {
-				pattern = pattern.concat("0");
-			}
-			pattern = pattern.concat("E0");
-			formatter = new DecimalFormat(pattern);
-		} else {
-			String pattern = "0.";
-			int decimalPlaces = (int) Math.round(Math.log10(range)) + 1;
-			for(int i = 0; i < decimalPlaces; i++) {
-				pattern = pattern.concat("0");
-			}
-			pattern = pattern.concat("E0");
-			formatter = new DecimalFormat(pattern);
-		}
+		NumberFormat formatter = determineFormatter(max, min);
 		
 		double skewness = StatisticsUtilityMethods.getSkewness(numValues, true);
 		int numUniqueValues = ArrayUtilityMethods.getUniqueArray(numValues).length;
@@ -347,32 +325,9 @@ public class BarChart {
 	}
 	
 	private Hashtable<String, Object>[] calculateNumericBins(Double[] numValues, Double[] unsortedValues) {
-		NumberFormat formatter = null;
 		Double min = StatisticsUtilityMethods.getMinimumValueIgnoringNull(numValues);
 		Double max = StatisticsUtilityMethods.getMaximumValueIgnoringNull(numValues);
-		//TODO: figure out what to do when entire values array is null
-		double range = Math.abs(max - min);
-		if(range <= 1 & min > .01) {
-			formatter = new DecimalFormat("#.00");
-		} else if(range <= 1) {
-			String pattern = "#.";
-			String text = Double.toString(Math.abs(range));
-			int integerPlaces = text.indexOf('.');
-			int decimalPlaces = text.length() - integerPlaces - 1;
-			for(int i = 0; i < decimalPlaces + 1; i++) {
-				pattern = pattern.concat("0");
-			}
-			pattern = pattern.concat("E0");
-			formatter = new DecimalFormat(pattern);
-		} else {
-			String pattern = "0.";
-			int decimalPlaces = (int) Math.round(Math.log10(range)) + 1;
-			for(int i = 0; i < decimalPlaces; i++) {
-				pattern = pattern.concat("0");
-			}
-			pattern = pattern.concat("E0");
-			formatter = new DecimalFormat(pattern);
-		}
+		NumberFormat formatter = determineFormatter(max, min);
 		
 		Double skewness = StatisticsUtilityMethods.getSkewnessIgnoringNull(numValues, true);
 		int numUniqueValues = ArrayUtilityMethods.getUniqueArrayIgnoringNull(numValues).length;
@@ -417,7 +372,6 @@ public class BarChart {
 		
 		Double min = StatisticsUtilityMethods.getMinimumValueIgnoringNull(logValues);
 		Double max = StatisticsUtilityMethods.getMaximumValueIgnoringNull(logValues);
-		//TODO: checks for when min/max are null/the same value
 		double range = max - min;
 		double binSize = Math.log10(1+max)/Math.pow(numOccurances, (double) 1/3);
 		int numBins = (int) Math.ceil(range/binSize);
@@ -429,7 +383,6 @@ public class BarChart {
 		int numOccurances = numValues.length;
 		Double min = StatisticsUtilityMethods.getMinimumValueIgnoringNull(numValues);
 		Double max = StatisticsUtilityMethods.getMaximumValueIgnoringNull(numValues);
-		//TODO: checks for when min/max are null/the same value
 		double range = max - min;
 		double iqr = StatisticsUtilityMethods.quartileIgnoringNull(numValues, 75, true) - StatisticsUtilityMethods.quartileIgnoringNull(numValues, 25, true);
 		if(iqr == 0) {
@@ -514,7 +467,34 @@ public class BarChart {
 		
 		return retBins;
 	}
+	
+	public NumberFormat determineFormatter(Double max, Double min) {
+		NumberFormat formatter = null;
 		
+		double range = Math.abs(max - min);
+		if(range <= 1 & min > .01) {
+			formatter = new DecimalFormat("#.00");
+		} else if(range <= 1) {
+			String pattern = "#.";
+			String text = Double.toString(Math.abs(range));
+			int integerPlaces = text.indexOf('.');
+			int decimalPlaces = text.length() - integerPlaces - 1;
+			for(int i = 0; i < decimalPlaces + 1; i++) {
+				pattern = pattern.concat("0");
+			}
+			formatter = new DecimalFormat(pattern);
+		} else {
+			String pattern = "0.";
+			int decimalPlaces = (int) Math.round(Math.log10(range)) + 1;
+			for(int i = 0; i < decimalPlaces; i++) {
+				pattern = pattern.concat("#");
+			}
+			formatter = new DecimalFormat(pattern);
+		}
+		
+		return formatter;
+	}
+	
 	
 	public Hashtable<String, Object>[] getRetHashForJSON() {
 		return retHashForJSON;

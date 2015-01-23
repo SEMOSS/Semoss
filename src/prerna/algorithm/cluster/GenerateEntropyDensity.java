@@ -61,6 +61,7 @@ public class GenerateEntropyDensity {
 			Object[] objDataRow = data[i];
 			Hashtable<String, Object>[] binData = null;
 			if(isCategorical[i]) {
+				//TODO: shouldn't create chart data, should use CalculateEntropy.java class
 				String[] dataRow = ArrayUtilityMethods.convertObjArrToStringArr(objDataRow);
 				BarChart chart = new BarChart(dataRow);
 				binData = chart.getRetHashForJSON();
