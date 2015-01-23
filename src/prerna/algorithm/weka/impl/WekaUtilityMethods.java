@@ -60,7 +60,11 @@ public final class WekaUtilityMethods {
 						nominalValues[i].add(dataElement.toString());
 						numNominal++;
 					} else {
-						numericValues[i][j] = (double) dataElement;
+						try {
+							numericValues[i][j] = (double) dataElement;
+						} catch(ClassCastException ex) {
+							numericValues[i][j] = Double.parseDouble(dataElement.toString());
+						}
 						numNumeric++;
 					}
 				}
@@ -119,7 +123,7 @@ public final class WekaUtilityMethods {
 						if(isCategorical[j]) {
 							dataEntry.setValue(j, valAttr.toString());
 						} else {
-							dataEntry.setValue(j, (double) valAttr);
+							dataEntry.setValue(j, numericValues[j][i]); // take the numeric values to prevent re-casting
 						}
 					}
 				}
