@@ -133,10 +133,11 @@ public class ComparisonColumnChartPlaySheet extends ColumnChartPlaySheet{
 			}
 		}
 		
+		//store all properties associated with the chart. Only looking at the first row as they should all be the same
 		Hashtable<String, Object> columnChartHash = new Hashtable<String, Object>();
 		if (names.length > 4 && list.size()>0){
 			for( int i = 5; i < names.length; i++) {
-				String value = list.get(0)[i].toString();
+				Object value = list.get(0)[i];
 				columnChartHash.put(names[i], value);
 			}
 		}
