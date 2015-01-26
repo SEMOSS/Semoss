@@ -56,8 +56,8 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 	private final String CAPABILITY_BLU_QUERY = "SELECT DISTINCT ?Capability ?BLU WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;} {?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Capability ?Consists ?Task} {?Needs1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;} {?Task ?Needs1 ?BLU.} }";
 	private final String SYSTEM_DATA_QUERY = "SELECT DISTINCT ?System ?Data WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?provide <http://semoss.org/ontologies/Relation/Contains/CRM> ?CRM;}{?System ?provide ?Data .} } BINDINGS ?CRM {('C')('M')}";
 	private final String SYSTEM_BLU_QUERY = "SELECT DISTINCT ?System ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System ?provide ?BLU.} }";
-	private final String DELETE_NEW_RELATIONS_QUERY = "SELECT ?System ?relation ?o ?allInferredRelationships WHERE { {?relation <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?relation <http://semoss.org/ontologies/Relation/Contains/Calculated> 'yes'} MINUS {?relation <http://semoss.org/ontologies/Relation/Contains/Reported> 'yes' } {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System ?relation ?BP} {?relation ?allInferredRelationships ?o}}";
-	private final String DELETE_NEW_PROPERTIES_QUERY = "SELECT ?relation ?pred ?Calculated WHERE {BIND(<http://semoss.org/ontologies/Relation/Contains/Calculated> AS ?pred) {?relation <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?relation <http://semoss.org/ontologies/Relation/Contains/Reported> ?Reported}  {?relation <http://semoss.org/ontologies/Relation/Contains/Calculated> ?Calculated} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System ?relation ?o}} ";
+	private final String DELETE_NEW_RELATIONS_QUERY = "SELECT ?System ?relation ?o ?allInferredRelationships WHERE { {?relation <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?relation <http://semoss.org/ontologies/Relation/Contains/Calculated> 'Yes'} MINUS {?relation <http://semoss.org/ontologies/Relation/Contains/Reported> 'Yes' } {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System ?relation ?BP} {?relation ?allInferredRelationships ?o}}";
+	private final String DELETE_NEW_PROPERTIES_QUERY = "SELECT ?relation ?pred ?Calculated WHERE {BIND(<http://semoss.org/ontologies/Relation/Contains/Calculated> AS ?pred) {?relation <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?relation <http://semoss.org/ontologies/Relation/Contains/Reported> ?Reported}  {?relation <http://semoss.org/ontologies/Relation/Contains/Calculated> ?Calculated} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System ?relation ?o}}";
 	
 	public String getErrorMessage() {
 		return this.errorMessage;
@@ -73,6 +73,18 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 		String[] vars;
 		
+		sjsw = Utility.processQuery(coreDB, DELETE_NEW_PROPERTIES_QUERY);
+		vars = sjsw.getVariables();
+		while(sjsw.hasNext())
+		{	
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String rel = sjss.getRawVar(vars[0]).toString();
+			String pred = sjss.getRawVar(vars[1]).toString();
+			String calc = sjss.getVar(vars[2]).toString();
+			
+			addToDeleteHash(new Object[]{rel, pred, calc});
+		}
+		
 		sjsw = Utility.processQuery(coreDB, DELETE_NEW_RELATIONS_QUERY);
 		vars = sjsw.getVariables();
 		while(sjsw.hasNext())
@@ -85,19 +97,7 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 			
 			addToDeleteHash(new Object[]{sys, rel, obj});
 			addToDeleteHash(new Object[]{rel, inf, obj});
-		}
-		
-		sjsw = Utility.processQuery(coreDB, DELETE_NEW_PROPERTIES_QUERY);
-		vars = sjsw.getVariables();
-		while(sjsw.hasNext())
-		{	
-			SesameJenaSelectStatement sjss = sjsw.next();
-			String rel = sjss.getRawVar(vars[0]).toString();
-			String pred = sjss.getRawVar(vars[1]).toString();
-			String calc = sjss.getRawVar(vars[2]).toString();
-			
-			addToDeleteHash(new Object[]{rel, pred, calc});
-		}
+		}	
 		
 		deleteData(coreDB, removeDataHash);
 	}
@@ -281,7 +281,7 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 		String pred = hrCoreBaseURI + "Supports";
 		pred = pred + "/" + getTextAfterFinalDelimeter(sys, "/") +":" + getTextAfterFinalDelimeter(bp, "/");
 		addToDataHash(new Object[]{sys, pred, bp});
-		addToDataHash(new Object[]{pred, semossPropertyBaseURI + "Calculated", "yes"});
+		addToDataHash(new Object[]{pred, semossPropertyBaseURI + "Calculated", "Yes"});
 		//logger.info("*****Prop URI: " + pred + ", predURI: " + semossPropertyBaseURI + "Calculated" + ", value: " + "yes");
 		addToAllRelationships(pred);					
 		LOGGER.info("System: " + sys + ", BP: " + bp + ", Pred: " + pred);
