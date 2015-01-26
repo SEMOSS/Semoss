@@ -1221,6 +1221,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		Hashtable returnHash = (Hashtable) super.getData();
 		if(overlay){
 			returnHash.put("nodes", gdm.getIncrementalVertStore());
+			returnHash.put("nodeProperties", gdm.getIncrementalVertPropStore());
 			returnHash.put("edges", gdm.getIncrementalEdgeStore().values());
 		}
 		else {
@@ -1275,7 +1276,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		gdm.fillStoresFromModel();
 		
 		//empty incremental stores indicate no new data is available, which means the traversal is invalid. this will set the traversal back one step and remove the invalid traversal from rc and model stores.
-		if(gdm.getIncrementalVertStore() != null && gdm.getIncrementalEdgeStore() != null && gdm.getIncrementalVertStore().isEmpty() && gdm.getIncrementalEdgeStore().isEmpty()) {
+		if(gdm.getIncrementalVertStore() != null && gdm.getIncrementalEdgeStore() != null && gdm.getIncrementalVertStore().isEmpty() && gdm.getIncrementalEdgeStore().isEmpty() && gdm.getIncrementalVertPropStore() != null && gdm.getIncrementalVertPropStore().isEmpty() ) {
 			gdm.setUndo(true);
 			gdm.undoData();
 			gdm.fillStoresFromModel();
