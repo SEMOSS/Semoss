@@ -182,8 +182,9 @@ public class EABenefitsSchedulePlaySheet extends GridPlaySheet {
 						}
 					}
 					Integer year = Integer.parseInt(mtfYear.get(mtf));
+					totalCost *= 1.014;
 					for (int i = 2016; (year - i) < 9; i--) {
-						temp[year - i] = totalCost * Math.pow(1.03, (year - i + 1));// ***inflation
+						temp[year - i] = totalCost * Math.pow(1.03, (year - i + 3)); // ***inflation
 					}
 					list.add(temp);
 				}
