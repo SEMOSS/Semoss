@@ -95,6 +95,7 @@ public class GraphDataModel {
 
 	//these are used for keeping track of only what was added or subtracted and will only be populated when overlay is true
 	Hashtable<String, SEMOSSVertex> incrementalVertStore = null;
+	Hashtable<String, SEMOSSVertex> incrementalVertPropStore = null;
 	Hashtable<String, SEMOSSEdge> incrementalEdgeStore = null;
 	
 	public GraphDataModel(){
@@ -108,6 +109,7 @@ public class GraphDataModel {
 		curModel = null;
 		curRC = null;
 		incrementalVertStore = new Hashtable<String, SEMOSSVertex>();
+		incrementalVertPropStore = new Hashtable<String, SEMOSSVertex>();
 		incrementalEdgeStore = new Hashtable<String, SEMOSSEdge>();
 		
 		logger.info("Creating the new model");
@@ -479,19 +481,25 @@ public class GraphDataModel {
 	}
 	
 	private void storeVert(SEMOSSVertex vert){
-		vertStore.put(vert.getProperty(Constants.URI) + "", vert);
-		if(method == CREATION_METHOD.OVERLAY && incrementalVertStore != null)
-			incrementalVertStore.put(vert.getProperty(Constants.URI) + "", vert);
+		if(method == CREATION_METHOD.OVERLAY && incrementalVertStore != null){
+			if(!vertStore.containsKey(vert.getProperty(Constants.URI) + "")){
+				incrementalVertStore.put(vert.getProperty(Constants.URI) + "", vert);
+			}
+			else{
+				incrementalVertPropStore.put(vert.getProperty(Constants.URI) + "", vert);
+			}
+		}
 		else if(method == CREATION_METHOD.UNDO && incrementalVertStore != null)
 			incrementalVertStore.remove(vert.getProperty(Constants.URI) + "");
+		vertStore.put(vert.getProperty(Constants.URI) + "", vert);
 	}
 
 	private void storeEdge(SEMOSSEdge edge){
-		edgeStore.put(edge.getProperty(Constants.URI) + "", edge);
-		if(method == CREATION_METHOD.OVERLAY && incrementalEdgeStore != null)
+		if(method == CREATION_METHOD.OVERLAY && incrementalEdgeStore != null && !edgeStore.containsKey(edge.getProperty(Constants.URI) + ""))
 			incrementalEdgeStore.put(edge.getProperty(Constants.URI) + "", edge);
 		if(method == CREATION_METHOD.UNDO && incrementalEdgeStore != null)
 			incrementalEdgeStore.remove(edge.getProperty(Constants.URI) + "");
+		edgeStore.put(edge.getProperty(Constants.URI) + "", edge);
 	}
 			
 	/**
@@ -621,6 +629,7 @@ public class GraphDataModel {
         modelCounter++;
 
 		incrementalVertStore.clear();
+		incrementalVertPropStore.clear();
 		incrementalEdgeStore.clear();
 	}
 	
@@ -923,6 +932,10 @@ public class GraphDataModel {
 
 	public Hashtable<String, SEMOSSVertex> getIncrementalVertStore(){
 		return this.incrementalVertStore;
+	}
+
+	public Hashtable<String, SEMOSSVertex> getIncrementalVertPropStore(){
+		return this.incrementalVertPropStore;
 	}
 
 	public Hashtable<String, SEMOSSEdge> getIncrementalEdgeStore(){
