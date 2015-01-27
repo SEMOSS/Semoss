@@ -19,6 +19,7 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.SystemColor;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -27,6 +28,7 @@ import java.util.Vector;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -40,6 +42,7 @@ import prerna.ui.main.listener.specific.tap.AdvParamListener;
 import prerna.ui.main.listener.specific.tap.OptFunctionRadioBtnListener;
 import prerna.ui.main.listener.specific.tap.SysOptBtnListener;
 import prerna.ui.main.listener.specific.tap.UpdateDataBLUListListener;
+import prerna.ui.swing.custom.CustomButton;
 import prerna.ui.swing.custom.ToggleButton;
 import aurelienribon.ui.css.Style;
 
@@ -47,56 +50,57 @@ import aurelienribon.ui.css.Style;
  * This is the playsheet used exclusively for TAP service optimization.
  */
 @SuppressWarnings("serial")
-public class SysOptPlaySheet extends SerOptPlaySheet{
-
+public class SysOptPlaySheet extends SerOptPlaySheet {
+	
 	public JCheckBox includeRegionalizationCheckbox;
 	public JCheckBox garrTheaterCheckbox;
 	
-	//toggles to show the system Functionality and Capability Functionality panels
+	// toggles to show the system Functionality and Capability Functionality panels
 	public JToggleButton showSystemSelectBtn, showSystemCapSelectBtn, showSystemModDecomBtn;
-	//panel that holds the system,data,blu and capability selectors if needed
+	// panel that holds the system,data,blu and capability selectors if needed
 	public JPanel systemDataBLUSelectPanel;
 	public JPanel systemModDecomSelectPanel;
-	//individual components of the panel
+	// individual components of the panel
 	public DHMSMSystemSelectPanel systemSelectPanel;
 	public DHMSMCapabilitySelectPanel capabilitySelectPanel;
 	public DHMSMDataBLUSelectPanel dataBLUSelectPanel;
 	public DHMSMManualSystemSelectPanel systemModernizePanel, systemDecomissionPanel;
-		
-	//toggle to show the data/blu panel (dataBLUSelectPanel) within the systemDataBLUSelectPanel
+	
+	// toggle to show the data/blu panel (dataBLUSelectPanel) within the systemDataBLUSelectPanel
 	public JToggleButton updateDataBLUPanelButton;
-
-	 //overall analysis tab
+	
+	// overall analysis tab
 	public JRadioButton rdbtnIRR;
 	public JLabel solutionLbl, irrLbl, annualBudgetLbl, timeTransitionLbl;
-	public BrowserGraphPanel replacementHeatMap, clusterHeatMap;
-	public JPanel currentFuncPanel, futureFuncPanel, replacementHeatMapPanel, clusterHeatMapPanel;
+	public BrowserGraphPanel replacementHeatMap, clusterHeatMap, geoSpatialMap;
+	public JPanel currentFuncPanel, futureFuncPanel, replacementHeatMapPanel, clusterHeatMapPanel, sysCapOptionsPanel, sysCapDisplayPanel,
+			geoSpatialOptionsPanel, geoSpatialDisplayPanel;
+	public static JComboBox<String> capComboBox, sysComboBox, geoCapComboBox;
+	public static JButton createSysCapButton, createGeoSpatialMapButton;
 	
 	/**
 	 * Constructor for SysOptPlaySheet.
 	 */
-	public SysOptPlaySheet()
-	{
+	public SysOptPlaySheet() {
 		super();
 	}
-	public String[] makeListFromQuery(String type, String query)
-	{
+	
+	public String[] makeListFromQuery(String type, String query) {
 		EntityFiller filler = new EntityFiller();
 		filler.engineName = engine.getEngineName();
 		filler.type = "Capability";
 		filler.setExternalQuery(query);
 		filler.run();
 		Vector<String> names = filler.nameVector;
-		String[] listArray=new String[names.size()];
-		for (int i = 0;i<names.size();i++)
-		{
-			listArray[i]=(String) names.get(i);
+		String[] listArray = new String[names.size()];
+		for (int i = 0; i < names.size(); i++) {
+			listArray[i] = (String) names.get(i);
 		}
 		return listArray;
 	}
+	
 	@Override
-	public void createAdvParamPanels()
-	{
+	public void createAdvParamPanels() {
 		super.createAdvParamPanels();
 		
 		includeRegionalizationCheckbox = new JCheckBox("Include Regionalization");
@@ -114,7 +118,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_garrTheaterCheckbox.gridx = 2;
 		gbc_garrTheaterCheckbox.gridy = 5;
 		advParamPanel.add(garrTheaterCheckbox, gbc_garrTheaterCheckbox);
-				
+		
 		systemDataBLUSelectPanel = new JPanel();
 		systemDataBLUSelectPanel.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
 		systemDataBLUSelectPanel.setVisible(false);
@@ -127,10 +131,10 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		ctlPanel.add(systemDataBLUSelectPanel, gbc_systemDataBLUSelectPanel);
 		
 		GridBagLayout gbl_systemDataBLUSelectPanel = new GridBagLayout();
-		gbl_systemDataBLUSelectPanel.columnWidths = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0};
-		gbl_systemDataBLUSelectPanel.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0};
-		gbl_systemDataBLUSelectPanel.columnWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
-		gbl_systemDataBLUSelectPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+		gbl_systemDataBLUSelectPanel.columnWidths = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		gbl_systemDataBLUSelectPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0 };
+		gbl_systemDataBLUSelectPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
+		gbl_systemDataBLUSelectPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		systemDataBLUSelectPanel.setLayout(gbl_systemDataBLUSelectPanel);
 		
 		systemSelectPanel = new DHMSMSystemSelectPanel();
@@ -153,7 +157,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		
 		updateDataBLUPanelButton = new ToggleButton("View Data/BLU");
 		updateDataBLUPanelButton.setFont(new Font("Tahoma", Font.BOLD, 11));
-		Style.registerTargetClassName(updateDataBLUPanelButton,  ".toggleButton");
+		Style.registerTargetClassName(updateDataBLUPanelButton, ".toggleButton");
 		
 		GridBagConstraints gbc_updateDataBLUPanelButton = new GridBagConstraints();
 		gbc_updateDataBLUPanelButton.anchor = GridBagConstraints.WEST;
@@ -171,8 +175,8 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_dataBLUSelectPanel.gridy = 0;
 		systemDataBLUSelectPanel.add(dataBLUSelectPanel, gbc_dataBLUSelectPanel);
 		dataBLUSelectPanel.addElements(systemSelectPanel);
-
-		//instantiate systemModDecomSelectPanel, systemModernizePanel, systemDecomissionPanel
+		
+		// instantiate systemModDecomSelectPanel, systemModernizePanel, systemDecomissionPanel
 		systemModDecomSelectPanel = new JPanel();
 		systemModDecomSelectPanel.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
 		systemModDecomSelectPanel.setVisible(false);
@@ -185,10 +189,10 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		ctlPanel.add(systemModDecomSelectPanel, gbc_systemModDecomSelectPanel);
 		
 		GridBagLayout gbl_systemModDecomSelectPanel = new GridBagLayout();
-		gbl_systemModDecomSelectPanel.columnWidths = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0};
-		gbl_systemModDecomSelectPanel.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0};
-		gbl_systemModDecomSelectPanel.columnWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
-		gbl_systemModDecomSelectPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+		gbl_systemModDecomSelectPanel.columnWidths = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		gbl_systemModDecomSelectPanel.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0 };
+		gbl_systemModDecomSelectPanel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
+		gbl_systemModDecomSelectPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		systemModDecomSelectPanel.setLayout(gbl_systemModDecomSelectPanel);
 		
 		systemModernizePanel = new DHMSMManualSystemSelectPanel();
@@ -209,38 +213,38 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_systemDecomissionPanel.gridy = 0;
 		systemModDecomSelectPanel.add(systemDecomissionPanel, gbc_systemDecomissionPanel);
 		systemDecomissionPanel.setHeader("Select Systems that MUST be decommissioned:");
-		systemDecomissionPanel.addElements();		
+		systemDecomissionPanel.addElements();
 		
 		final JComponent contentPane = (JComponent) this.getContentPane();
-		contentPane.addMouseListener(new MouseAdapter() {  
-
-			@Override  
-			public void mouseClicked(MouseEvent e) {  
-				maybeShowPopup(e);  
-			}  
-
-			@Override  
-			public void mousePressed(MouseEvent e) {  
-				maybeShowPopup(e);  
-			}  
-
-			@Override  
-			public void mouseReleased(MouseEvent e) {  
-				maybeShowPopup(e);  
-			}  
-
-			private void maybeShowPopup(MouseEvent e) {  
+		contentPane.addMouseListener(new MouseAdapter() {
+			
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				maybeShowPopup(e);
+			}
+			
+			@Override
+			public void mousePressed(MouseEvent e) {
+				maybeShowPopup(e);
+			}
+			
+			@Override
+			public void mouseReleased(MouseEvent e) {
+				maybeShowPopup(e);
+			}
+			
+			private void maybeShowPopup(MouseEvent e) {
 				if (e.isPopupTrigger()) {
-				}  
-			}  
+				}
+			}
 		});
-
+		
 	}
+	
 	@Override
-	public void createAdvParamPanelsToggles()
-	{
+	public void createAdvParamPanelsToggles() {
 		super.createAdvParamPanelsToggles();
-
+		
 		GridBagConstraints gbc_showParamBtn = new GridBagConstraints();
 		gbc_showParamBtn.anchor = GridBagConstraints.NORTHWEST;
 		gbc_showParamBtn.gridwidth = 2;
@@ -252,7 +256,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		showSystemSelectBtn = new ToggleButton("Select System Functionality");
 		showSystemSelectBtn.setName("showSystemSelectBtn");
 		showSystemSelectBtn.setFont(new Font("Tahoma", Font.BOLD, 11));
-		Style.registerTargetClassName(showSystemSelectBtn,  ".toggleButton");
+		Style.registerTargetClassName(showSystemSelectBtn, ".toggleButton");
 		
 		GridBagConstraints gbc_showSystemSelectBtn = new GridBagConstraints();
 		gbc_showSystemSelectBtn.anchor = GridBagConstraints.NORTHWEST;
@@ -265,7 +269,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		showSystemCapSelectBtn = new ToggleButton("Select Capability Functionality");
 		showSystemCapSelectBtn.setName("showSystemCapSelectBtn");
 		showSystemCapSelectBtn.setFont(new Font("Tahoma", Font.BOLD, 11));
-		Style.registerTargetClassName(showSystemCapSelectBtn,  ".toggleButton");
+		Style.registerTargetClassName(showSystemCapSelectBtn, ".toggleButton");
 		
 		GridBagConstraints gbc_showSystemCapSelectBtn = new GridBagConstraints();
 		gbc_showSystemCapSelectBtn.anchor = GridBagConstraints.NORTHWEST;
@@ -278,7 +282,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		showSystemModDecomBtn = new ToggleButton("Manually Set Systems");
 		showSystemModDecomBtn.setName("showSystemModDecomBtn");
 		showSystemModDecomBtn.setFont(new Font("Tahoma", Font.BOLD, 11));
-		Style.registerTargetClassName(showSystemModDecomBtn,  ".toggleButton");
+		Style.registerTargetClassName(showSystemModDecomBtn, ".toggleButton");
 		
 		GridBagConstraints gbc_showSystemModDecomBtn = new GridBagConstraints();
 		gbc_showSystemModDecomBtn.anchor = GridBagConstraints.NORTHWEST;
@@ -288,48 +292,49 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_showSystemModDecomBtn.gridy = 5;
 		ctlPanel.add(showSystemModDecomBtn, gbc_showSystemModDecomBtn);
 	}
+	
 	@Override
-	public void createAdvParamPanelsToggleListeners()
-	{
+	public void createAdvParamPanelsToggleListeners() {
 		AdvParamListener saLis = new AdvParamListener();
 		saLis.setPlaySheet(this);
-		saLis.setParamButtons(showParamBtn,showSystemSelectBtn,showSystemCapSelectBtn,showSystemModDecomBtn);
+		saLis.setParamButtons(showParamBtn, showSystemSelectBtn, showSystemCapSelectBtn, showSystemModDecomBtn);
 		showParamBtn.addActionListener(saLis);
 		showSystemSelectBtn.addActionListener(saLis);
 		showSystemCapSelectBtn.addActionListener(saLis);
 		showSystemModDecomBtn.addActionListener(saLis);
 		
 		ActionListener viewDataBLUPanelListener = new ActionListener() {
-		      public void actionPerformed(ActionEvent e) {
-		  		//if the updateDataBLUPanelButton is unselected by user, hide the panel
-		  		if(!updateDataBLUPanelButton.isSelected()) {
-		  			dataBLUSelectPanel.setVisible(false);
-		  			dataBLUSelectPanel.clearList();
-		  		}
-		  		//otherwise, if the updateDataBLUPanelButton is selected or the user clicks to update the list
-		  		else {
-		  			dataBLUSelectPanel.setVisible(true);
-		  			if(showSystemSelectBtn.isSelected())
-		  				dataBLUSelectPanel.setFromSystem(true);
-		  			else
-		  				dataBLUSelectPanel.setFromSystem(false);
-		  		}
-		      }
-		    };
+			public void actionPerformed(ActionEvent e) {
+				// if the updateDataBLUPanelButton is unselected by user, hide the panel
+				if (!updateDataBLUPanelButton.isSelected()) {
+					dataBLUSelectPanel.setVisible(false);
+					dataBLUSelectPanel.clearList();
+				}
+				// otherwise, if the updateDataBLUPanelButton is selected or the user clicks to update the list
+				else {
+					dataBLUSelectPanel.setVisible(true);
+					if (showSystemSelectBtn.isSelected())
+						dataBLUSelectPanel.setFromSystem(true);
+					else
+						dataBLUSelectPanel.setFromSystem(false);
+				}
+			}
+		};
 		updateDataBLUPanelButton.addActionListener(viewDataBLUPanelListener);
 		
 		UpdateDataBLUListListener updateDataBLUListener = new UpdateDataBLUListListener();
 		updateDataBLUListener.setEngine(engine);
 		updateDataBLUListener.setUpDHMSMHelper();
-		updateDataBLUListener.setComponents(systemSelectPanel,capabilitySelectPanel,dataBLUSelectPanel,showSystemSelectBtn);
-		updateDataBLUListener.setUpdateButtons(dataBLUSelectPanel.updateProvideDataBLUButton,dataBLUSelectPanel.updateConsumeDataBLUButton,dataBLUSelectPanel.updateComplementDataBLUButton);
+		updateDataBLUListener.setComponents(systemSelectPanel, capabilitySelectPanel, dataBLUSelectPanel, showSystemSelectBtn);
+		updateDataBLUListener.setUpdateButtons(dataBLUSelectPanel.updateProvideDataBLUButton, dataBLUSelectPanel.updateConsumeDataBLUButton,
+				dataBLUSelectPanel.updateComplementDataBLUButton);
 		dataBLUSelectPanel.updateProvideDataBLUButton.addActionListener(updateDataBLUListener);
 		dataBLUSelectPanel.updateConsumeDataBLUButton.addActionListener(updateDataBLUListener);
 		dataBLUSelectPanel.updateComplementDataBLUButton.addActionListener(updateDataBLUListener);
 	}
+	
 	@Override
-	public void createSpecificParamComponents()
-	{
+	public void createSpecificParamComponents() {
 		lblSoaSustainmentCost.setText("Annual Maint Exposed Data (%)");
 		maxBudgetField.setText("500");
 		
@@ -350,7 +355,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_hourlyRateField.gridx = 1;
 		gbc_hourlyRateField.gridy = 3;
 		ctlPanel.add(hourlyRateField, gbc_hourlyRateField);
-
+		
 		JLabel lblHourlyRate = new JLabel("Hourly Build Cost Rate ($)");
 		lblHourlyRate.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblHourlyRate = new GridBagConstraints();
@@ -360,46 +365,44 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_lblHourlyRate.gridx = 2;
 		gbc_lblHourlyRate.gridy = 3;
 		ctlPanel.add(lblHourlyRate, gbc_lblHourlyRate);
-
+		
 	}
-
-	public void addOptimizationBtnListener(JButton btnRunOptimization)
-	{
+	
+	public void addOptimizationBtnListener(JButton btnRunOptimization) {
 		SysOptBtnListener obl = new SysOptBtnListener();
 		obl.setOptPlaySheet(this);
 		btnRunOptimization.addActionListener(obl);
 	}
 	
 	@Override
-	public void createSpecificDisplayComponents()
-	{
+	public void createSpecificDisplayComponents() {
 		GridBagConstraints gbc_panel = new GridBagConstraints();
 		gbc_panel.insets = new Insets(0, 0, 0, 5);
 		gbc_panel.fill = GridBagConstraints.BOTH;
 		gbc_panel.gridx = 0;
 		gbc_panel.gridy = 2;
-		chartPanel.add(tab3,  gbc_panel);
+		chartPanel.add(tab3, gbc_panel);
 		
 		GridBagConstraints gbc_panel2 = new GridBagConstraints();
 		gbc_panel2.insets = new Insets(0, 0, 0, 5);
 		gbc_panel2.fill = GridBagConstraints.BOTH;
 		gbc_panel2.gridx = 1;
 		gbc_panel2.gridy = 2;
-		chartPanel.add(tab4,  gbc_panel2);
-
+		chartPanel.add(tab4, gbc_panel2);
+		
 		GridBagConstraints gbc_panel3 = new GridBagConstraints();
 		gbc_panel3.insets = new Insets(0, 0, 0, 5);
 		gbc_panel3.fill = GridBagConstraints.BOTH;
 		gbc_panel3.gridx = 0;
 		gbc_panel3.gridy = 3;
-		chartPanel.add(tab5,  gbc_panel3);
-
+		chartPanel.add(tab5, gbc_panel3);
+		
 		GridBagConstraints gbc_panel4 = new GridBagConstraints();
 		gbc_panel4.insets = new Insets(0, 0, 0, 5);
 		gbc_panel4.fill = GridBagConstraints.BOTH;
 		gbc_panel4.gridx = 1;
 		gbc_panel4.gridy = 3;
-		chartPanel.add(tab6,  gbc_panel4);
+		chartPanel.add(tab6, gbc_panel4);
 		
 		solutionLbl = new JLabel("");
 		solutionLbl.setFont(new Font("Tahoma", Font.BOLD, 12));
@@ -431,7 +434,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_lblTimeSpentTransitioning.gridx = 0;
 		gbc_lblTimeSpentTransitioning.gridy = 2;
 		panel_1.add(lblTimeSpentTransitioning, gbc_lblTimeSpentTransitioning);
-
+		
 		timeTransitionLbl = new JLabel("");
 		GridBagConstraints gbc_timeTransitionLbl = new GridBagConstraints();
 		gbc_timeTransitionLbl.anchor = GridBagConstraints.WEST;
@@ -457,41 +460,41 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		specificSysAlysPanel = new JPanel();
 		tabbedPane.addTab("System Analysis", null, specificSysAlysPanel, null);
 		GridBagLayout gbl_specificSysAlysPanel = new GridBagLayout();
-		gbl_specificSysAlysPanel.columnWidths = new int[]{0, 0};
-		gbl_specificSysAlysPanel.rowHeights = new int[]{0, 0};
-		gbl_specificSysAlysPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gbl_specificSysAlysPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_specificSysAlysPanel.columnWidths = new int[] { 0, 0 };
+		gbl_specificSysAlysPanel.rowHeights = new int[] { 0, 0 };
+		gbl_specificSysAlysPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
+		gbl_specificSysAlysPanel.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
 		specificSysAlysPanel.setLayout(gbl_specificSysAlysPanel);
 		
 		currentFuncPanel = new JPanel();
 		tabbedPane.addTab("As-Is Functionality", null, currentFuncPanel, null);
 		GridBagLayout gbl_specificFuncAlysPanel = new GridBagLayout();
-		gbl_specificFuncAlysPanel.columnWidths = new int[]{0, 0};
-		gbl_specificFuncAlysPanel.rowHeights = new int[]{0, 0};
-		gbl_specificFuncAlysPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gbl_specificFuncAlysPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_specificFuncAlysPanel.columnWidths = new int[] { 0, 0 };
+		gbl_specificFuncAlysPanel.rowHeights = new int[] { 0, 0 };
+		gbl_specificFuncAlysPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
+		gbl_specificFuncAlysPanel.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
 		currentFuncPanel.setLayout(gbl_specificFuncAlysPanel);
 		
 		futureFuncPanel = new JPanel();
 		tabbedPane.addTab("Future Functionality", null, futureFuncPanel, null);
 		GridBagLayout gbl_futureFuncPanel = new GridBagLayout();
-		gbl_futureFuncPanel.columnWidths = new int[]{0, 0};
-		gbl_futureFuncPanel.rowHeights = new int[]{0, 0};
-		gbl_futureFuncPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gbl_futureFuncPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_futureFuncPanel.columnWidths = new int[] { 0, 0 };
+		gbl_futureFuncPanel.rowHeights = new int[] { 0, 0 };
+		gbl_futureFuncPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
+		gbl_futureFuncPanel.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
 		currentFuncPanel.setLayout(gbl_futureFuncPanel);
-
+		
 		replacementHeatMapPanel = new JPanel();
 		tabbedPane.addTab("Replacement Heat Map", null, replacementHeatMapPanel, null);
 		GridBagLayout gbl_replacementHeatMapPanel = new GridBagLayout();
-		gbl_replacementHeatMapPanel.columnWidths = new int[]{0, 0};
-		gbl_replacementHeatMapPanel.rowHeights = new int[]{0, 0};
-		gbl_replacementHeatMapPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gbl_replacementHeatMapPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_replacementHeatMapPanel.columnWidths = new int[] { 0, 0 };
+		gbl_replacementHeatMapPanel.rowHeights = new int[] { 0, 0 };
+		gbl_replacementHeatMapPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
+		gbl_replacementHeatMapPanel.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
 		replacementHeatMapPanel.setLayout(gbl_replacementHeatMapPanel);
-
+		
 		replacementHeatMap = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/heatmap.html");
-			
+		
 		GridBagConstraints gbc_replacementHeatMap = new GridBagConstraints();
 		gbc_replacementHeatMap.insets = new Insets(0, 0, 0, 5);
 		gbc_replacementHeatMap.fill = GridBagConstraints.BOTH;
@@ -502,30 +505,170 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		clusterHeatMapPanel = new JPanel();
 		tabbedPane.addTab("Cluster Heat Map", null, clusterHeatMapPanel, null);
 		GridBagLayout gbl_clusterHeatMapPanel = new GridBagLayout();
-		gbl_clusterHeatMapPanel.columnWidths = new int[]{0, 0};
-		gbl_clusterHeatMapPanel.rowHeights = new int[]{0, 0};
-		gbl_clusterHeatMapPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gbl_clusterHeatMapPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_clusterHeatMapPanel.columnWidths = new int[] { 0, 0, 10 };
+		gbl_clusterHeatMapPanel.rowHeights = new int[] { 0, 0, 10 };
+		gbl_clusterHeatMapPanel.columnWeights = new double[] { Double.MIN_VALUE, Double.MIN_VALUE, 1.0 };
+		gbl_clusterHeatMapPanel.rowWeights = new double[] { Double.MIN_VALUE, Double.MIN_VALUE, 1.0 };
 		clusterHeatMapPanel.setLayout(gbl_clusterHeatMapPanel);
-
+		
 		clusterHeatMap = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/clusterheatmap.html");
-			
+		
 		GridBagConstraints gbc_clusterHeatMap = new GridBagConstraints();
 		gbc_clusterHeatMap.insets = new Insets(0, 0, 0, 5);
 		gbc_clusterHeatMap.fill = GridBagConstraints.BOTH;
 		gbc_clusterHeatMap.gridx = 0;
 		gbc_clusterHeatMap.gridy = 0;
 		clusterHeatMapPanel.add(clusterHeatMap, gbc_clusterHeatMap);
+		
+		JPanel sysCapPanel = new JPanel();
+		tabbedPane.addTab("Capability System Comparison", null, sysCapPanel, null);
+		GridBagLayout gbl_sysCapPanel = new GridBagLayout();
+		gbl_sysCapPanel.columnWidths = new int[] { 0, 0, 10 };
+		gbl_sysCapPanel.rowHeights = new int[] { 0, 0, 10 };
+		gbl_sysCapPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
+		gbl_sysCapPanel.rowWeights = new double[] { 0.0, 1.0, Double.MIN_VALUE };
+		sysCapPanel.setLayout(gbl_sysCapPanel);
+		
+		sysCapOptionsPanel = new JPanel();
+		sysCapOptionsPanel.setBackground(SystemColor.control);
+		GridBagConstraints gbc_sysCapOptionsPanel = new GridBagConstraints();
+		gbc_sysCapOptionsPanel.anchor = GridBagConstraints.NORTH;
+		gbc_sysCapOptionsPanel.gridwidth = 1;
+		gbc_sysCapOptionsPanel.insets = new Insets(0, 0, 5, 5);
+		gbc_sysCapOptionsPanel.gridx = 0;
+		gbc_sysCapOptionsPanel.gridy = 0;
+		sysCapPanel.add(sysCapOptionsPanel, gbc_sysCapOptionsPanel);
+		
+		sysCapDisplayPanel = new JPanel();
+		sysCapDisplayPanel.setBackground(SystemColor.control);
+		GridBagConstraints gbc_sysCapDisplayPanel = new GridBagConstraints();
+		gbc_sysCapDisplayPanel.anchor = GridBagConstraints.SOUTH;
+		gbc_sysCapDisplayPanel.gridwidth = 1;
+		gbc_sysCapDisplayPanel.insets = new Insets(0, 0, 5, 5);
+		gbc_sysCapDisplayPanel.gridx = 0;
+		gbc_sysCapDisplayPanel.fill = GridBagConstraints.BOTH;
+		gbc_sysCapDisplayPanel.gridy = 1;
+		sysCapPanel.add(sysCapDisplayPanel, gbc_sysCapDisplayPanel);
+		
+		JLabel capLabel = new JLabel("Capability:");
+		GridBagConstraints gbc_capLabel = new GridBagConstraints();
+		gbc_capLabel.anchor = GridBagConstraints.WEST;
+		gbc_capLabel.insets = new Insets(0, 0, 5, 5);
+		gbc_capLabel.gridx = 0;
+		gbc_capLabel.gridy = 0;
+		sysCapOptionsPanel.add(capLabel, gbc_capLabel);
+		
+		capComboBox = new JComboBox<String>();
+		GridBagConstraints gbc_capComboBox = new GridBagConstraints();
+		gbc_capComboBox.gridwidth = 2;
+		gbc_capComboBox.insets = new Insets(0, 0, 5, 5);
+		gbc_capComboBox.fill = GridBagConstraints.HORIZONTAL;
+		gbc_capComboBox.gridx = 1;
+		gbc_capComboBox.gridy = 0;
+		sysCapOptionsPanel.add(capComboBox, gbc_capComboBox);
+		
+		JLabel sysLabel = new JLabel("System:");
+		GridBagConstraints gbc_sysLabel = new GridBagConstraints();
+		gbc_sysLabel.anchor = GridBagConstraints.WEST;
+		gbc_sysLabel.insets = new Insets(0, 0, 5, 5);
+		gbc_sysLabel.gridx = 0;
+		gbc_sysLabel.gridy = 1;
+		sysCapOptionsPanel.add(sysLabel, gbc_sysLabel);
+		
+		sysComboBox = new JComboBox<String>();
+		GridBagConstraints gbc_sysComboBox = new GridBagConstraints();
+		gbc_sysComboBox.gridwidth = 2;
+		gbc_sysComboBox.insets = new Insets(0, 0, 5, 5);
+		gbc_sysComboBox.fill = GridBagConstraints.HORIZONTAL;
+		gbc_sysComboBox.gridx = 1;
+		gbc_sysComboBox.gridy = 1;
+		sysCapOptionsPanel.add(sysComboBox, gbc_sysComboBox);
+		
+		createSysCapButton = new CustomButton("Create");
+		createSysCapButton.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_createSysCapButton = new GridBagConstraints();
+		gbc_createSysCapButton.anchor = GridBagConstraints.WEST;
+		gbc_createSysCapButton.insets = new Insets(0, 0, 5, 5);
+		gbc_createSysCapButton.gridx = 0;
+		gbc_createSysCapButton.gridy = 2;
+		sysCapOptionsPanel.add(createSysCapButton, gbc_createSysCapButton);
+		Style.registerTargetClassName(createSysCapButton, ".standardButton");
+		
+		JLabel noteLabel = new JLabel("* notifies systems that are inferred to be related to said capability");
+		GridBagConstraints gbc_noteLabel = new GridBagConstraints();
+		gbc_noteLabel.anchor = GridBagConstraints.SOUTH;
+		gbc_noteLabel.insets = new Insets(0, 0, 5, 5);
+		gbc_noteLabel.gridx = 0;
+		gbc_noteLabel.gridy = 0;
+		sysCapOptionsPanel.add(noteLabel, gbc_noteLabel);
+		
+		JPanel geoSpatialPanel = new JPanel();
+		tabbedPane.addTab("GeoSpatial Map", null, geoSpatialPanel, null);
+		GridBagLayout gbl_geoSpatialPanel = new GridBagLayout();
+		gbl_geoSpatialPanel.columnWidths = new int[] { 0, 0 };
+		gbl_geoSpatialPanel.rowHeights = new int[] { 0, 0 };
+		gbl_geoSpatialPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
+		gbl_geoSpatialPanel.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
+		geoSpatialPanel.setLayout(gbl_geoSpatialPanel);
+		
+		geoSpatialMap = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/clusterheatmap.html"); // TODO: change
+		
+		GridBagConstraints gbc_geoSpatialPanel = new GridBagConstraints();
+		gbc_geoSpatialPanel.insets = new Insets(0, 0, 0, 5);
+		gbc_geoSpatialPanel.fill = GridBagConstraints.BOTH;
+		gbc_geoSpatialPanel.gridx = 0;
+		gbc_geoSpatialPanel.gridy = 0;
+		geoSpatialPanel.add(geoSpatialMap, gbc_geoSpatialPanel);
+		
+		geoSpatialOptionsPanel = new JPanel();
+		geoSpatialOptionsPanel.setBackground(SystemColor.control);
+		GridBagConstraints gbc_geoSpatialOptionsPanel = new GridBagConstraints();
+		gbc_geoSpatialOptionsPanel.anchor = GridBagConstraints.NORTH;
+		gbc_geoSpatialOptionsPanel.gridwidth = 1;
+		gbc_geoSpatialOptionsPanel.insets = new Insets(0, 0, 5, 5);
+		gbc_geoSpatialOptionsPanel.gridx = 0;
+		gbc_geoSpatialOptionsPanel.gridy = 0;
+		geoSpatialPanel.add(geoSpatialOptionsPanel, gbc_geoSpatialOptionsPanel);
+		
+		geoSpatialDisplayPanel = new JPanel();
+		geoSpatialDisplayPanel.setBackground(SystemColor.control);
+		GridBagConstraints gbc_geoSpatialDisplayPanel = new GridBagConstraints();
+		gbc_geoSpatialDisplayPanel.anchor = GridBagConstraints.SOUTH;
+		gbc_geoSpatialDisplayPanel.gridwidth = 1;
+		gbc_geoSpatialDisplayPanel.insets = new Insets(0, 0, 5, 5);
+		gbc_geoSpatialDisplayPanel.gridx = 0;
+		gbc_geoSpatialDisplayPanel.fill = GridBagConstraints.BOTH;
+		gbc_geoSpatialDisplayPanel.gridy = 1;
+		geoSpatialPanel.add(geoSpatialDisplayPanel, gbc_geoSpatialDisplayPanel);
+		
+		geoSpatialPanel.add(capLabel, gbc_capLabel);
+		
+		geoCapComboBox = new JComboBox<String>();
+		GridBagConstraints gbc_geoCapComboBox = new GridBagConstraints();
+		gbc_geoCapComboBox.gridwidth = 2;
+		gbc_geoCapComboBox.insets = new Insets(0, 0, 5, 5);
+		gbc_geoCapComboBox.fill = GridBagConstraints.HORIZONTAL;
+		gbc_geoCapComboBox.gridx = 1;
+		gbc_geoCapComboBox.gridy = 0;
+		geoSpatialPanel.add(geoCapComboBox, gbc_geoCapComboBox);
+		
+		createGeoSpatialMapButton = new CustomButton("Create");
+		createGeoSpatialMapButton.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_createGeoSpatialMapButton = new GridBagConstraints();
+		gbc_createGeoSpatialMapButton.anchor = GridBagConstraints.WEST;
+		gbc_createGeoSpatialMapButton.insets = new Insets(0, 0, 5, 5);
+		gbc_createGeoSpatialMapButton.gridx = 0;
+		gbc_createGeoSpatialMapButton.gridy = 2;
+		geoSpatialPanel.add(createGeoSpatialMapButton, gbc_createSysCapButton);
+		Style.registerTargetClassName(createGeoSpatialMapButton, ".standardButton");
 	}
 	
 	/**
-	 * Creates the user interface of the playsheet.
-	 * Calls functions to create param panel and tabbed display panel
-	 * Stitches the param and display panels together.
+	 * Creates the user interface of the playsheet. Calls functions to create param panel and tabbed display panel Stitches
+	 * the param and display panels together.
 	 */
-	public void createOptimizationTypeComponents()
-	{
-
+	public void createOptimizationTypeComponents() {
+		
 		rdbtnProfit = new JRadioButton("Savings");
 		rdbtnProfit.setName("rdbtnProfit");
 		rdbtnProfit.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -537,7 +680,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_rdbtnProfit.gridx = 1;
 		gbc_rdbtnProfit.gridy = 4;
 		ctlPanel.add(rdbtnProfit, gbc_rdbtnProfit);
-
+		
 		rdbtnROI = new JRadioButton("ROI");
 		rdbtnROI.setName("rdbtnROI");
 		rdbtnROI.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -557,12 +700,12 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 		gbc_rdbtnIRR.gridx = 5;
 		gbc_rdbtnIRR.gridy = 4;
 		ctlPanel.add(rdbtnIRR, gbc_rdbtnIRR);
-
+		
 		OptFunctionRadioBtnListener opl = new OptFunctionRadioBtnListener();
 		rdbtnROI.addActionListener(opl);
 		rdbtnProfit.addActionListener(opl);
 		rdbtnIRR.addActionListener(opl);
-		opl.setSerOptRadioBtn(rdbtnProfit, rdbtnROI,rdbtnIRR);
+		opl.setSerOptRadioBtn(rdbtnProfit, rdbtnROI, rdbtnIRR);
 	}
 	
 	@Override
@@ -585,11 +728,10 @@ public class SysOptPlaySheet extends SerOptPlaySheet{
 	/**
 	 * Sets N/A or $0 for values in optimizations. Allows for different TAP algorithms to be run as empty functions.
 	 */
-	public void clearLabels()
-	{
-//		solutionLbl.setText("N/A");
+	public void clearLabels() {
+		// solutionLbl.setText("N/A");
 		bkevenLbl.setText("N/A");
-        savingLbl.setText("$0");
+		savingLbl.setText("$0");
 		roiLbl.setText("N/A");
 		irrLbl.setText("N/A");
 		annualBudgetLbl.setText("$0");
