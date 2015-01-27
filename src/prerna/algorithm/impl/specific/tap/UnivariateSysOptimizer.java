@@ -683,7 +683,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 		SysOptPlaySheet.capComboBox.addActionListener(new ActionListener() {
 			
 			public void actionPerformed(ActionEvent e) {
-				String capSystemQuery = "SELECT ?Capability ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>} {?System ?Supports ?Capability}{?Supports <http://semoss.org/ontologies/Relation/Contains/Calculated> \"yes\"}}";
+				String capSystemQuery = "SELECT ?Capability ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>} {?System ?Supports ?Capability}{?Supports <http://semoss.org/ontologies/Relation/Contains/Calculated> \"Yes\"}}";
 				HashMap<String, TreeSet<String>> capSystemMap = new HashMap<String, TreeSet<String>>();
 				capSystemMap = QueryProcessor.getStringSetMap(capSystemQuery, "HR_Core");
 				SysOptPlaySheet.sysComboBox.removeAllItems();
@@ -710,7 +710,6 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 		
 	}
 	
-	// TODO: display methods for two new panels
 	public void displaySysCapComparison() {
 		ArrayList<Object[]> list = new ArrayList<Object[]>();
 		HashMap<String, TreeSet<String>> capSystemMap = new HashMap<String, TreeSet<String>>();
@@ -718,10 +717,16 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 		HashMap<String, ArrayList<String>> bluSystemMap = new HashMap<String, ArrayList<String>>();
 		TreeSet<String> systemSet = new TreeSet<String>();
 		
-		String capSystemQuery = "SELECT ?Capability ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>} {?System ?Supports ?Capability}{?Supports <http://semoss.org/ontologies/Relation/Contains/Calculated> \"yes\"}}";
+		String capSystemQuery = "SELECT ?Capability ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>} {?System ?Supports ?Capability}{?Supports <http://semoss.org/ontologies/Relation/Contains/Calculated> \"Yes\"}}";
 		capSystemMap = QueryProcessor.getStringSetMap(capSystemQuery, "HR_Core");
 		
-		int selectSysIndex = resFunc.sysList.indexOf(system);
+		int selectSysIndex = -1;
+		if (system.contains("*")) {
+			selectSysIndex = resFunc.sysList.indexOf(system.substring(0, system.indexOf("*")));
+		} else {
+			selectSysIndex = resFunc.sysList.indexOf(system);
+		}
+		
 		for (int dataInd = 0; dataInd < resFunc.dataList.size(); dataInd++) {
 			String tempData = resFunc.dataList.get(dataInd);
 			if (resFunc.systemDataMatrix[selectSysIndex][dataInd] == 1) {
@@ -729,6 +734,10 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 			}
 			for (int sysInd = 0; sysInd < resFunc.sysList.size(); sysInd++) {
 				String tempSystem = resFunc.sysList.get(sysInd);
+				if (sysOpt.systemIsModernized[sysInd] == 0 && capSystemMap.get(capability) != null
+						&& capSystemMap.get(capability).contains(tempSystem)) {
+					capSystemMap.get(capability).remove(tempSystem);
+				}
 				if (sysOpt.systemIsModernized[sysInd] > 0 && resFunc.systemDataMatrix[sysInd][dataInd] == 1
 						&& resFunc.systemDataMatrix[selectSysIndex][dataInd] == 1 && resFunc.systemCapability[sysInd].equalsIgnoreCase(capability)) {
 					dataSystemMap.get(tempData).add(tempSystem);
@@ -736,7 +745,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 						systemSet.add(tempSystem);
 					}
 				} else if (sysOpt.systemIsModernized[sysInd] > 0 && resFunc.systemDataMatrix[sysInd][dataInd] == 1
-						& resFunc.systemDataMatrix[selectSysIndex][dataInd] == 1 && capSystemMap.get(capability) != null
+						&& resFunc.systemDataMatrix[selectSysIndex][dataInd] == 1 && capSystemMap.get(capability) != null
 						&& capSystemMap.get(capability).contains(tempSystem)) {
 					dataSystemMap.get(tempData).add(tempSystem);
 				}
@@ -745,7 +754,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 		for (int bluInd = 0; bluInd < resFunc.bluList.size(); bluInd++) {
 			for (int sysInd = 0; sysInd < resFunc.sysList.size(); sysInd++) {
 				String tempBLU = resFunc.bluList.get(bluInd);
-				if (!bluSystemMap.containsKey(tempBLU) & resFunc.systemBLUMatrix[selectSysIndex][bluInd] == 1) {
+				if (!bluSystemMap.containsKey(tempBLU) && resFunc.systemBLUMatrix[selectSysIndex][bluInd] == 1) {
 					bluSystemMap.put(tempBLU, new ArrayList<String>());
 				}
 				String tempSystem = resFunc.sysList.get(sysInd);
@@ -784,6 +793,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 			colNames[colIndex + 3] = columnSystem;
 			colIndex++;
 		}
+		
 		for (String tempData : dataSystemMap.keySet()) {
 			Object[] newRow = new Object[size];
 			newRow[0] = tempData;
@@ -834,55 +844,12 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 			newRow[2] = numSystems;
 			list.add(newRow);
 		}
-		// for (int dataInd = 0; dataInd < resFunc.dataList.size(); dataInd++) {
-		// Object[] newRow = new Object[size];
-		// newRow[0] = resFunc.dataList.get(dataInd);
-		// newRow[1] = "Data";
-		// colIndex = 0;
-		// int numSystems = 0;
-		// for (int sysInd = 0; sysInd < resFunc.sysList.size(); sysInd++) {
-		// if (sysOpt.systemIsModernized[sysInd] > 0 & resFunc.systemDataMatrix[sysInd][dataInd] == 1
-		// & resFunc.systemDataMatrix[selectSysIndex][dataInd] == 1) {
-		// newRow[colIndex + 3] = "X";
-		// numSystems++;
-		// colIndex++;
-		// }
-		//
-		// }
-		// newRow[2] = numSystems;
-		// provideDataBLUSysCap[dataInd] = numSystems;
-		// list.add(newRow);
-		// }
-		// for (int bluInd = 0; bluInd < resFunc.bluList.size(); bluInd++) {
-		// Object[] newRow = new Object[size];
-		// newRow[0] = resFunc.bluList.get(bluInd);
-		// newRow[1] = "BLU";
-		// colIndex = 0;
-		// int numSystems = 0;
-		// for (int sysInd = 0; sysInd < resFunc.sysList.size(); sysInd++) {
-		// if (sysOpt.systemIsModernized[sysInd] > 0 & resFunc.systemBLUMatrix[sysInd][bluInd] == 1
-		// & resFunc.systemBLUMatrix[selectSysIndex][bluInd] == 1) {
-		// commonSystem[sysInd] = true;
-		// newRow[colIndex + 3] = "X";
-		// numSystems++;
-		// colIndex++;
-		// }
-		// }
-		// newRow[2] = numSystems;
-		// provideDataBLUSysCap[dataList.size() + bluInd] = numSystems;
-		// list.add(newRow);
-		// }
-		// colIndex = 0;
-		// for (int i = 0; i < resFunc.sysList.size(); i++) {
-		// if (commonSystem[i]) {
-		// colNames[colIndex + 3] = resFunc.sysList.get(i);
-		// colIndex++;
-		// }
-		// }
+		
 		displayListOnTab(colNames, list, ((SysOptPlaySheet) playSheet).sysCapDisplayPanel, true);
 	}
 	
 	public void displayGeoSpatialMap() {
+		// TODO: write method
 		
 	}
 	
