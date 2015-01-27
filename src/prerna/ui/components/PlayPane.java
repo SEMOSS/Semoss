@@ -3175,7 +3175,7 @@ public class PlayPane extends JFrame {
 		JPanel eaPropertyPanel = new JPanel();
 		eaPropertyPanel.setBackground(SystemColor.control);
 		GridBagConstraints gbc_eaPropertyPanel = new GridBagConstraints();
-		gbc_eaPropertyPanel.anchor = GridBagConstraints.EAST;
+		gbc_eaPropertyPanel.anchor = GridBagConstraints.WEST;
 		gbc_eaPropertyPanel.gridwidth = 6;
 		gbc_eaPropertyPanel.insets = new Insets(0, 0, 5, 5);
 		gbc_eaPropertyPanel.gridx = 0;
