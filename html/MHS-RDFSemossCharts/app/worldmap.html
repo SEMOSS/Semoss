@@ -48,7 +48,7 @@
 	</head>
 	<body>
 		<script type="text/javascript">
-						
+			
 			//Width and height
 			var w = 1500;
 			var h = 1000;
@@ -80,7 +80,7 @@
 				+ ")scale(" + d3.event.scale + ")");
 			}	
 
-//				start(dataString);					
+				//start(dataString);					
 				function start(dataString) {  
 					var jsonData = jQuery.parseJSON(dataString);
 					var data = jsonData.dataSeries  
@@ -159,6 +159,8 @@
 							   return projection([d.lon, d.lat])[1];
 						   })
 						   .attr("r", function(d) {
+						   		if (d.size == undefined) 
+						   			return 3;
 								return Math.sqrt(parseInt(d.size) * 0.00004);
 						   })
 						   .style("fill", "#780000")
