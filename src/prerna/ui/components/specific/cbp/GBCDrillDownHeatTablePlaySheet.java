@@ -61,6 +61,9 @@ public class GBCDrillDownHeatTablePlaySheet extends BrowserPlaySheet{
 	final String row1Name = "Functions";
 	final String row2Name = "Process Categories";
 	final String row3Name = "Lights-on IT";
+	final String customerServiceLightsOnIT = "/Customer_Service_Lights-On_IT";
+	final String customerServiceColKey = "customer_service";
+	final String lightsOnItKey = "lights-on_it";
 	final String clientValueKey = "clientValueKey";
 	final String peerValueKey = "peerValueKey";
 	final String rowKey = "rowKey";
@@ -135,8 +138,12 @@ public class GBCDrillDownHeatTablePlaySheet extends BrowserPlaySheet{
 			Double finalPeerVal = (peerVal) * denVal;
 			
 			String rowName = "";
-			if(cellName.toLowerCase().contains("lights-on_it")){
+			if(cellName.toLowerCase().contains(this.lightsOnItKey)){
 				rowName = this.row3Name;
+				if(colHeader.toLowerCase().contains(this.customerServiceColKey)){
+					//set cell name
+					cellName = cellName.substring(0, cellName.lastIndexOf("/"))+this.customerServiceLightsOnIT;
+				}
 			}
 			else {
 				rowName = this.row2Name;
