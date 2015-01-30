@@ -55,12 +55,14 @@ public class InputPanelPlaySheet extends JInternalFrame implements IPlaySheet{
 	
 	//param panel components
 	protected JLabel titleLbl;
+	protected String titleText = "Optimization Input Parameters:";
 	public JProgressBar progressBar;
 	
 	//display
 	public JTabbedPane tabbedPane;
 	
 	//display overall analysis components
+	protected String overallAnalysisTitle = "Overall Analysis";
 	public JPanel overallAlysPanel;
 	public JPanel panel_1, chartPanel;
 	public JTextArea consoleArea = new JTextArea();
@@ -109,7 +111,7 @@ public class InputPanelPlaySheet extends JInternalFrame implements IPlaySheet{
 		gbl_ctlPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
 		ctlPanel.setLayout(gbl_ctlPanel);
 
-		titleLbl = new JLabel("Optimization Input Parameters:");
+		titleLbl = new JLabel(titleText);
 		titleLbl.setFont(new Font("Tahoma", Font.BOLD, 12));
 		GridBagConstraints gbc_titleLbl = new GridBagConstraints();
 		gbc_titleLbl.gridwidth = 7;
@@ -155,7 +157,7 @@ public class InputPanelPlaySheet extends JInternalFrame implements IPlaySheet{
 		overallAlysPanel = new JPanel();
 		JScrollPane jsPane = new JScrollPane(overallAlysPanel);
 		overallAlysPanel.setBackground(Color.WHITE);
-		tabbedPane.addTab("Overall Analysis", null, jsPane, null);
+		tabbedPane.addTab(overallAnalysisTitle, null, jsPane, null);
 		GridBagLayout gbl_overallAlysPanel = new GridBagLayout();
 		gbl_overallAlysPanel.columnWidths = new int[]{0, 0, 0};
 		gbl_overallAlysPanel.rowHeights = new int[]{0, 0, 0};
