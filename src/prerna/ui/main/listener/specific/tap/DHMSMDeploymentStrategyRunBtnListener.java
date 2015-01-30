@@ -82,42 +82,7 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 				Utility.showError("Cannot read fields. Please check the Console tab for more information");
 				return;
 			}
-			
-			
-			for(int i=0;i<regionsList.size();i++) {
-				String region = regionsList.get(i);
-				List<String> wavesInRegion = regionWaveHash.get(region);
-				// calculate distance in number of quarters
-				int distanceInQuarters = Math.abs(beginQuarter - endQuarter);
-				if(distanceInQuarters == 0) {
-					distanceInQuarters += 4 * (endYear - beginYear);
-				} else {
-					distanceInQuarters += 4 * (endYear - (beginYear+1)); // +1 for when less than a year different, but in two different FYs
-				}
-				double numQuartersPerWave = distanceInQuarters/wavesInRegion.size();
-
-				double currQuarter = beginQuarter;
-				int currYear = beginYear;
-				for(String wave : waveOrder) {
-					if(wavesInRegion.contains(wave)) {
-						String[] date = new String[2];
-						date[0] = "Q" + ((int) Math.ceil(currQuarter)) + "FY20" + currYear;
-						if(numQuartersPerWave > 4) {
-							int yearsPassed = (int) Math.floor(numQuartersPerWave / 4);
-							double quartersPassed = numQuartersPerWave % 4;
-							currYear += yearsPassed;
-							currQuarter += quartersPassed;
-						} else if(currQuarter + numQuartersPerWave > 4) {
-							currQuarter = ((currQuarter + numQuartersPerWave) - 4);
-							currYear += 1;
-						} else {
-							currQuarter += numQuartersPerWave;
-						}
-						date[1] = "Q" + ((int) Math.ceil(currQuarter)) + "FY20" + currYear;
-						waveStartEndHash.put(wave, date);
-					}
-				}
-			}
+			//TODO: add logic for wave start/end dates
 		} else {
 			//pull from region list
 			//check if region textfields are valid
@@ -179,14 +144,23 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		DHMSMIntegrationSavingsPerFiscalYearProcessor processor = new DHMSMIntegrationSavingsPerFiscalYearProcessor();
 		processor.runSupportQueries();
 		processor.runMainQuery("");
-		processor.setWaveStartEndDate(waveStartEndHash);
+		if(!waveStartEndHash.isEmpty()) {
+			processor.setWaveStartEndDate(waveStartEndHash);
+		}
 		processor.generateSavingsData();
-		
 		processor.processSystemData();
 		ArrayList<Object[]> systemList = processor.getSystemOutputList();	
 		String[] sysNames = processor.getSysNames();
 		displayListOnTab(sysNames, systemList, ps.overallAlysPanel);
 		
+		//TODO: figure out why what obj is being changed causing me to run twice to make sure numbers match
+		processor = new DHMSMIntegrationSavingsPerFiscalYearProcessor();
+		processor.runSupportQueries();
+		processor.runMainQuery("");
+		if(!waveStartEndHash.isEmpty()) {
+			processor.setWaveStartEndDate(waveStartEndHash);
+		}
+		processor.generateSavingsData();
 		processor.processSiteData();
 		ArrayList<Object[]> siteList = processor.getSiteOutputList();	
 		String[] siteNames = processor.getSiteNames();
