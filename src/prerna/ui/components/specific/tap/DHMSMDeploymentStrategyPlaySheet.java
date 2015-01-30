@@ -54,27 +54,30 @@ import aurelienribon.ui.css.Style;
 public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	private static final Logger LOGGER = LogManager.getLogger(DHMSMDeploymentStrategyPlaySheet.class.getName());
 
-	//param panel components
-	//begin/end deployment fields
+	//components for single begin/end date of deployment
 	private JPanel timePanel;
-	private JTextField beginQuarterField, beginYearField;
-	private JTextField endQuarterField, endYearField;
-	private int defaultBeginQ, defaultBeginY, defaultEndQ, defaultEndY;
+	//begin/end quarter/year fields with user entries for deployment
+	private JTextField qBeginField, yBeginField, qEndField, yEndField;
+	//default begin/end quarter/year for deployment.
+	private int qBeginDefault, yBeginDefault, qEndDefault, yEndDefault;
 
-	//toggle to select specific region times
+	//toggle to select specific region begin/end dates
 	private JToggleButton selectRegionTimesButton;
 
 	//list of regions
 	private ArrayList<String> regionsList;
+	//waves in each region and their order
 	private Hashtable<String, List<String>> regionWaveHash;
 	private ArrayList<String> waveOrder;
+	//start and end of each wave
 	private HashMap<String, String[]> waveStartEndDate;
+	
+	//components for specific region begin/end dates
 	private JPanel regionTimePanel;
-	private Hashtable<String,JTextField> beginQuarterFieldRegionList, beginYearFieldRegionList;
-	private Hashtable<String,JTextField> endQuarterFieldRegionList, endYearFieldRegionList;
-
-	private Hashtable<String,Integer> defaultBeginQHash, defaultBeginYHash;
-	private Hashtable<String,Integer> defaultEndQHash, defaultEndYHash;
+	//hashtables holding the begin/end quarters/years fields with user entries for each region.
+	private Hashtable<String,JTextField> qBeginFieldHash, yBeginFieldHash, qEndFieldHash, yEndFieldHash;
+	//hashtables with default begin/end quarters/years for each region.
+	private Hashtable<String,Integer> qBeginDefaultHash, yBeginDefaultHash, qEndDefaultHash, yEndDefaultHash;
 
 	//button to restore defaults
 	private JButton restoreDefaultsButton;
@@ -159,18 +162,18 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		gbc_lblbeginQuarter.gridy = 1;
 		timePanel.add(lblbeginQuarter, gbc_lblbeginQuarter);
 
-		beginQuarterField = new JTextField();
-		beginQuarterField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		beginQuarterField.setText("1");
-		beginQuarterField.setColumns(1);
-		beginQuarterField.setName("Deployment begins quarter");
+		qBeginField = new JTextField();
+		qBeginField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		qBeginField.setText("1");
+		qBeginField.setColumns(1);
+		qBeginField.setName("Deployment begins quarter");
 
 		GridBagConstraints gbc_beginQuarterField = new GridBagConstraints();
 		gbc_beginQuarterField.anchor = GridBagConstraints.WEST;
 		gbc_beginQuarterField.insets = new Insets(0, 0, 5, 10);
 		gbc_beginQuarterField.gridx = 3;
 		gbc_beginQuarterField.gridy = 1;
-		timePanel.add(beginQuarterField, gbc_beginQuarterField);
+		timePanel.add(qBeginField, gbc_beginQuarterField);
 
 		JLabel lblBeginYear = new JLabel("FY 20");
 		lblBeginYear.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -181,18 +184,18 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		gbc_lblBeginYear.gridy = 1;
 		timePanel.add(lblBeginYear, gbc_lblBeginYear);
 
-		beginYearField = new JTextField();
-		beginYearField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		beginYearField.setText("15");
-		beginYearField.setColumns(2);
-		beginYearField.setName("Deployment begins year");
+		yBeginField = new JTextField();
+		yBeginField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		yBeginField.setText("15");
+		yBeginField.setColumns(2);
+		yBeginField.setName("Deployment begins year");
 
 		GridBagConstraints gbc_beginYearField = new GridBagConstraints();
 		gbc_beginYearField.anchor = GridBagConstraints.WEST;
 		gbc_beginYearField.insets = new Insets(0, 0, 5, 10);
 		gbc_beginYearField.gridx = 5;
 		gbc_beginYearField.gridy = 1;
-		timePanel.add(beginYearField, gbc_beginYearField);
+		timePanel.add(yBeginField, gbc_beginYearField);
 
 		//end deployment
 		JLabel lblDeployment2 = new JLabel("Deployment");
@@ -222,18 +225,18 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		gbc_lblEndQuarter.gridy = 2;
 		timePanel.add(lblEndQuarter, gbc_lblEndQuarter);
 
-		endQuarterField = new JTextField();
-		endQuarterField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		endQuarterField.setText("1");
-		endQuarterField.setColumns(1);
-		endQuarterField.setName("Deployment ends quarter");
+		qEndField = new JTextField();
+		qEndField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		qEndField.setText("1");
+		qEndField.setColumns(1);
+		qEndField.setName("Deployment ends quarter");
 
 		GridBagConstraints gbc_endQuarterField = new GridBagConstraints();
 		gbc_endQuarterField.anchor = GridBagConstraints.WEST;
 		gbc_endQuarterField.insets = new Insets(0, 0, 5, 10);
 		gbc_endQuarterField.gridx = 3;
 		gbc_endQuarterField.gridy = 2;
-		timePanel.add(endQuarterField, gbc_endQuarterField);		
+		timePanel.add(qEndField, gbc_endQuarterField);		
 
 		JLabel lblEndYear = new JLabel("FY 20");
 		lblEndYear.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -244,18 +247,18 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		gbc_lblEndYear.gridy = 2;
 		timePanel.add(lblEndYear, gbc_lblEndYear);
 
-		endYearField = new JTextField();
-		endYearField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		endYearField.setText("21");
-		endYearField.setColumns(2);
-		endYearField.setName("Deployment ends year");
+		yEndField = new JTextField();
+		yEndField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		yEndField.setText("21");
+		yEndField.setColumns(2);
+		yEndField.setName("Deployment ends year");
 
 		GridBagConstraints gbc_endYearField = new GridBagConstraints();
 		gbc_endYearField.anchor = GridBagConstraints.WEST;
 		gbc_endYearField.insets = new Insets(0, 0, 5, 10);
 		gbc_endYearField.gridx = 5;
 		gbc_endYearField.gridy = 2;
-		timePanel.add(endYearField, gbc_endYearField);
+		timePanel.add(yEndField, gbc_endYearField);
 
 		selectRegionTimesButton = new ToggleButton("Set deployment times by region");
 		selectRegionTimesButton.setName("selectRegionTimesButton");
@@ -277,10 +280,10 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		selectRegionTimesButton.addActionListener(setRegLis);
 		
 		//select by region panel
-		beginQuarterFieldRegionList = new Hashtable<String,JTextField>();
-		beginYearFieldRegionList = new Hashtable<String,JTextField>();
-		endQuarterFieldRegionList = new Hashtable<String,JTextField>();
-		endYearFieldRegionList = new Hashtable<String,JTextField>();
+		qBeginFieldHash = new Hashtable<String,JTextField>();
+		yBeginFieldHash = new Hashtable<String,JTextField>();
+		qEndFieldHash = new Hashtable<String,JTextField>();
+		yEndFieldHash = new Hashtable<String,JTextField>();
 
 		//add in the regions labels and fields to the region panel
 		for(String region : regionsList) {
@@ -288,7 +291,6 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		}
 		
 		setDefaults();
-		
 		
 		//restore defaults
 		restoreDefaultsButton = new CustomButton("Restore defaults");
@@ -348,17 +350,17 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	public void showSelectRegionTimesPanel(Boolean show) {
 		if(show) {
 			regionTimePanel.setVisible(true);
-			beginQuarterField.setEnabled(false);
-			beginYearField.setEnabled(false);
-			endQuarterField.setEnabled(false);
-			endYearField.setEnabled(false);
+			qBeginField.setEnabled(false);
+			yBeginField.setEnabled(false);
+			qEndField.setEnabled(false);
+			yEndField.setEnabled(false);
 
 		}else {
 			regionTimePanel.setVisible(false);
-			beginQuarterField.setEnabled(true);
-			beginYearField.setEnabled(true);
-			endQuarterField.setEnabled(true);
-			endYearField.setEnabled(true);
+			qBeginField.setEnabled(true);
+			yBeginField.setEnabled(true);
+			qEndField.setEnabled(true);
+			yEndField.setEnabled(true);
 		}
 	}
 
@@ -369,10 +371,10 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	 */
 	private void queryRegions() {
 		regionsList = new ArrayList<String>();
-		defaultBeginQHash = new Hashtable<String,Integer>();
-		defaultBeginYHash = new Hashtable<String,Integer>();
-		defaultEndQHash = new Hashtable<String,Integer>();
-		defaultEndYHash = new Hashtable<String,Integer>();	
+		qBeginDefaultHash = new Hashtable<String,Integer>();
+		yBeginDefaultHash = new Hashtable<String,Integer>();
+		qEndDefaultHash = new Hashtable<String,Integer>();
+		yEndDefaultHash = new Hashtable<String,Integer>();	
 		
 		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 		//query is written to pull wave so that i can determine in what order the regions are deployed in
@@ -405,29 +407,29 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 					int endY = Integer.parseInt((String) sjss.getVar(names[5]));
 	
 					//if current begin val is earlier than what is saved, save current
-					if(defaultBeginQHash.containsKey(region) && defaultBeginYHash.containsKey(region)) {
-						int earlyBeginQ = defaultBeginQHash.get(region);
-						int earlyBeginY = defaultBeginYHash.get(region);
+					if(qBeginDefaultHash.containsKey(region) && yBeginDefaultHash.containsKey(region)) {
+						int earlyBeginQ = qBeginDefaultHash.get(region);
+						int earlyBeginY = yBeginDefaultHash.get(region);
 						if(compareTo(earlyBeginQ,earlyBeginY,beginQ,beginY)<0) {
-							defaultBeginQHash.put(region,beginQ);
-							defaultBeginYHash.put(region,beginY);
+							qBeginDefaultHash.put(region,beginQ);
+							yBeginDefaultHash.put(region,beginY);
 						}
 					} else{
-						defaultBeginQHash.put(region,beginQ);
-						defaultBeginYHash.put(region,beginY);
+						qBeginDefaultHash.put(region,beginQ);
+						yBeginDefaultHash.put(region,beginY);
 					}
 					
 					//if current end val is later than what is saved, save current
-					if(defaultEndQHash.containsKey(region) && defaultEndYHash.containsKey(region)) {
-						int lateEndQ = defaultEndQHash.get(region);
-						int lateEndY = defaultEndYHash.get(region);
+					if(qEndDefaultHash.containsKey(region) && yEndDefaultHash.containsKey(region)) {
+						int lateEndQ = qEndDefaultHash.get(region);
+						int lateEndY = yEndDefaultHash.get(region);
 						if(compareTo(lateEndQ,lateEndY,endQ,endY)>0) {
-							defaultEndQHash.put(region,endQ);
-							defaultEndYHash.put(region,endY);
+							qEndDefaultHash.put(region,endQ);
+							yEndDefaultHash.put(region,endY);
 						}
 					} else{
-						defaultEndQHash.put(region,endQ);
-						defaultEndYHash.put(region,endY);
+						qEndDefaultHash.put(region,endQ);
+						yEndDefaultHash.put(region,endY);
 					}
 				}catch(Exception e) {
 					LOGGER.error("Could not add region "+region+" wave "+waveString);
@@ -436,8 +438,8 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 
 		for(String region : regionWaveHash.keySet()) {
 			//if(!region.toUpperCase().equals("IOC")) {
-			int beginQuarter =defaultBeginQHash.get(region);
-			int beginYear =defaultBeginYHash.get(region);
+			int beginQuarter =qBeginDefaultHash.get(region);
+			int beginYear =yBeginDefaultHash.get(region);
 			if(regionsList.size()==0)
 				regionsList.add(region);
 			else {
@@ -445,8 +447,8 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 				Boolean added = false;
 				while(i<regionsList.size()) {
 					String regionI = regionsList.get(i);
-					int iBeginQuarter =defaultBeginQHash.get(regionI);
-					int iBeginYear =defaultBeginYHash.get(regionI);
+					int iBeginQuarter =qBeginDefaultHash.get(regionI);
+					int iBeginYear =yBeginDefaultHash.get(regionI);
 					//if the region to be added begins before the one at index i, add it
 					if(!added&&compareTo(beginQuarter,beginYear,iBeginQuarter,iBeginYear)>=1) {
 						regionsList.add(i,region);
@@ -460,23 +462,23 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 			}
 		}
 		
-		defaultBeginQ = defaultBeginQHash.get(regionsList.get(0));
-		defaultBeginY = defaultBeginYHash.get(regionsList.get(0));
-		defaultEndQ = defaultEndQHash.get(regionsList.get(0));
-		defaultEndY = defaultEndYHash.get(regionsList.get(0));
+		qBeginDefault = qBeginDefaultHash.get(regionsList.get(0));
+		yBeginDefault = yBeginDefaultHash.get(regionsList.get(0));
+		qEndDefault = qEndDefaultHash.get(regionsList.get(0));
+		yEndDefault = yEndDefaultHash.get(regionsList.get(0));
 		
 		for(String region : regionsList) {
-				int beginQ = defaultBeginQHash.get(region);
-				int beginY = defaultBeginYHash.get(region);
-				int endQ = defaultEndQHash.get(region);
-				int endY = defaultEndYHash.get(region);
-				if(compareTo(defaultBeginQ,defaultBeginY,beginQ,beginY)<0) {
-					defaultBeginQ = beginQ;
-					defaultBeginY = beginY;
+				int beginQ = qBeginDefaultHash.get(region);
+				int beginY = yBeginDefaultHash.get(region);
+				int endQ = qEndDefaultHash.get(region);
+				int endY = yEndDefaultHash.get(region);
+				if(compareTo(qBeginDefault,yBeginDefault,beginQ,beginY)<0) {
+					qBeginDefault = beginQ;
+					yBeginDefault = beginY;
 				}
-				if(compareTo(defaultEndQ,defaultEndY,endQ,endY)>0) {
-					defaultEndQ = endQ;
-					defaultEndY = endY;
+				if(compareTo(qEndDefault,yEndDefault,endQ,endY)>0) {
+					qEndDefault = endQ;
+					yEndDefault = endY;
 				}
 		}
 		
@@ -511,7 +513,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	}
 	
 	private void addRegion(String region) {
-		int y = beginQuarterFieldRegionList.size();
+		int y = qBeginFieldHash.size();
 
 		JLabel lblRegion = new JLabel("Region "+region);
 		lblRegion.setFont(new Font("Tahoma", Font.BOLD, 12));
@@ -625,28 +627,28 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		gbc_endYearField.gridy = y+1;
 		regionTimePanel.add(endYearField, gbc_endYearField);
 
-		beginQuarterFieldRegionList.put(region,beginQuarterField);
-		beginYearFieldRegionList.put(region,beginYearField);
-		endQuarterFieldRegionList.put(region,endQuarterField);
-		endYearFieldRegionList.put(region,endYearField);
+		qBeginFieldHash.put(region,beginQuarterField);
+		yBeginFieldHash.put(region,beginYearField);
+		qEndFieldHash.put(region,endQuarterField);
+		yEndFieldHash.put(region,endYearField);
 
 	}
 
 	public void setDefaults() {
-		beginQuarterField.setText("" + defaultBeginQ);
-		beginYearField.setText(("" + defaultBeginY).substring(2));
-		endQuarterField.setText("" + defaultEndQ);
-		endYearField.setText(("" + defaultEndY).substring(2));
+		qBeginField.setText("" + qBeginDefault);
+		yBeginField.setText(("" + yBeginDefault).substring(2));
+		qEndField.setText("" + qEndDefault);
+		yEndField.setText(("" + yEndDefault).substring(2));
 		
 		for(String region : regionsList) {
-			String beginQ = "" + defaultBeginQHash.get(region);
-			String beginY = "" + defaultBeginYHash.get(region);
-			String endQ = "" + defaultEndQHash.get(region);
-			String endY = "" + defaultEndYHash.get(region);
-			beginQuarterFieldRegionList.get(region).setText(beginQ);
-			endQuarterFieldRegionList.get(region).setText(endQ);
-			beginYearFieldRegionList.get(region).setText(beginY.substring(2));
-			endYearFieldRegionList.get(region).setText(endY.substring(2));
+			String beginQ = "" + qBeginDefaultHash.get(region);
+			String beginY = "" + yBeginDefaultHash.get(region);
+			String endQ = "" + qEndDefaultHash.get(region);
+			String endY = "" + yEndDefaultHash.get(region);
+			qBeginFieldHash.get(region).setText(beginQ);
+			qEndFieldHash.get(region).setText(endQ);
+			yBeginFieldHash.get(region).setText(beginY.substring(2));
+			yEndFieldHash.get(region).setText(endY.substring(2));
 	
 		}
 	}
@@ -655,39 +657,52 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		return selectRegionTimesButton;
 	}
 
-	public JTextField getBeginQuarterField() {
-		return beginQuarterField;
+	public JTextField getQBeginField() {
+		return qBeginField;
 	}
 
-	public JTextField getBeginYearField() {
-		return beginYearField;
+	public JTextField getYBeginField() {
+		return yBeginField;
 	}
 
-	public JTextField getEndQuarterField() {
-		return endQuarterField;
+	public JTextField getQEndField() {
+		return qEndField;
 	}
 
-	public JTextField getEndYearField() {
-		return endYearField;
+	public JTextField getYEndField() {
+		return yEndField;
 	}
 
 	public ArrayList<String> getRegionsList() {
 		return regionsList;
 	}
 
-	public Hashtable<String,JTextField> getBeginQuarterFieldRegionList() {
-		return beginQuarterFieldRegionList;
+	public Hashtable<String,JTextField> getQBeginFieldHash() {
+		return qBeginFieldHash;
 	}
 
-	public Hashtable<String,JTextField> getBeginYearFieldRegionList() {
-		return beginYearFieldRegionList;
+	public Hashtable<String,JTextField> getYBeginFieldHash() {
+		return yBeginFieldHash;
 	}
 
-	public Hashtable<String,JTextField> getEndQuarterFieldRegionList() {
-		return endQuarterFieldRegionList;
+	public Hashtable<String,JTextField> getQEndFieldHash() {
+		return qEndFieldHash;
 	}
 
-	public Hashtable<String,JTextField> getEndYearFieldRegionList() {
-		return endYearFieldRegionList;
+	public Hashtable<String,JTextField> getYEndFieldHash() {
+		return yEndFieldHash;
+	}
+
+	public Hashtable<String,Integer> getQBeginDefaultHash() {
+		return qBeginDefaultHash;
+	}
+	public Hashtable<String,Integer> getYBeginDefaultHash() {
+		return yBeginDefaultHash;
+	}
+	public Hashtable<String,Integer> getQEndDefaultHash() {
+		return qEndDefaultHash;
+	}
+	public Hashtable<String,Integer> getYEndDefaultHash() {
+		return yEndDefaultHash;
 	}
 }
