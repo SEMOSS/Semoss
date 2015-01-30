@@ -52,6 +52,7 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 
 	private Hashtable<String, List<String>> regionWaveHash;
 	private ArrayList<String> waveOrder;
+	private HashMap<String, String[]> waveStartEndDate;
 
 	/**
 	 * Method actionPerformed.
@@ -282,4 +283,11 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		return waveOrder;
 	}
 
+	public void setWaveStartEndDate(HashMap<String, String[]> waveStartEndDate) {
+		this.waveStartEndDate = waveStartEndDate;
+	}
+
+	public HashMap<String, String[]> setWaveStartEndDate() {
+		return waveStartEndDate;
+	}
 }
