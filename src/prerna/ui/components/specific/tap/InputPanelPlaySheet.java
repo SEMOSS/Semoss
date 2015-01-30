@@ -54,6 +54,7 @@ public class InputPanelPlaySheet extends JInternalFrame implements IPlaySheet{
 	public JComponent pane = null;
 	
 	//param panel components
+	protected JLabel titleLbl;
 	public JProgressBar progressBar;
 	
 	//display
@@ -108,7 +109,7 @@ public class InputPanelPlaySheet extends JInternalFrame implements IPlaySheet{
 		gbl_ctlPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
 		ctlPanel.setLayout(gbl_ctlPanel);
 
-		JLabel titleLbl = new JLabel("Optimization Input Parameters:");
+		titleLbl = new JLabel("Optimization Input Parameters:");
 		titleLbl.setFont(new Font("Tahoma", Font.BOLD, 12));
 		GridBagConstraints gbc_titleLbl = new GridBagConstraints();
 		gbc_titleLbl.gridwidth = 7;
@@ -179,7 +180,7 @@ public class InputPanelPlaySheet extends JInternalFrame implements IPlaySheet{
 		panel_1.setLayout(gbl_panel_1);
 
 		JPanel consolePanel = new JPanel();
-		tabbedPane.addTab("Optimization Console", null, consolePanel, null);
+		tabbedPane.addTab("Console", null, consolePanel, null);
 		GridBagLayout gbl_consolePanel = new GridBagLayout();
 		gbl_consolePanel.columnWidths = new int[]{0, 0};
 		gbl_consolePanel.rowHeights = new int[]{0, 0};
