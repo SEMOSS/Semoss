@@ -110,7 +110,11 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 				List<String> wavesInRegion = regionWaveHash.get(region);
 				// calculate distance in number of quarters
 				int distanceInQuarters = Math.abs(beginQuarter - endQuarter);
-				distanceInQuarters += 4 * (endYear - (beginYear+1)); // +1 for when less than a year different, but in two different FYs
+				if(distanceInQuarters == 0) {
+					distanceInQuarters += 4 * (endYear - beginYear);
+				} else {
+					distanceInQuarters += 4 * (endYear - (beginYear+1)); // +1 for when less than a year different, but in two different FYs
+				}
 				double numQuartersPerWave = distanceInQuarters/wavesInRegion.size();
 
 				double currQuarter = beginQuarter;
@@ -118,7 +122,7 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 				for(String wave : waveOrder) {
 					if(wavesInRegion.contains(wave)) {
 						String[] date = new String[2];
-						date[0] = "Q" + ((int) Math.ceil(currQuarter)) + "FY" + currYear;
+						date[0] = "Q" + ((int) Math.ceil(currQuarter)) + "FY20" + currYear;
 						if(numQuartersPerWave > 4) {
 							int yearsPassed = (int) Math.floor(numQuartersPerWave / 4);
 							double quartersPassed = numQuartersPerWave % 4;
@@ -130,7 +134,7 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 						} else {
 							currQuarter += numQuartersPerWave;
 						}
-						date[1] = "Q" + ((int) Math.ceil(currQuarter)) + "FY" + currYear;
+						date[1] = "Q" + ((int) Math.ceil(currQuarter)) + "FY20" + currYear;
 						waveStartEndHash.put(wave, date);
 					}
 				}
