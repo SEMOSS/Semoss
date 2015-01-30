@@ -54,14 +54,36 @@ public final class DHMSMDeploymentHelper {
 	
 	public static final String GET_HP_SYSTEM_LIST = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob }  } BINDINGS ?Prob {('High')('Question')}";
 	
+	public static final String GET_SITE_LOCATION_QUERY = "SELECT DISTINCT ?dcSite ?lat ?long WHERE { {?dcSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?dcSite <http://semoss.org/ontologies/Relation/Contains/LAT> ?lat }  {?dcSite <http://semoss.org/ontologies/Relation/Contains/LONG> ?long } }";
+	
 	private DHMSMDeploymentHelper() {
 		
+	}
+	
+	public static HashMap<String, HashMap<String, Double>> getSiteLocation(IEngine engine) {
+		HashMap<String, HashMap<String, Double>> retHash = new HashMap<String, HashMap<String, Double>>();
+		
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, GET_SITE_LOCATION_QUERY);
+		String[] names = sjsw.getVariables();
+		while(sjsw.hasNext()) {
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String site = sjss.getVar(names[0]).toString();
+			Double lat = (double) sjss.getVar(names[1]);
+			Double lon = (double) sjss.getVar(names[2]);
+			
+			HashMap<String, Double> innerHash = new HashMap<String, Double>();
+			innerHash.put("Long", lon);
+			innerHash.put("Lat", lat);
+			retHash.put(site, innerHash);
+		}
+		
+		return retHash;
 	}
 	
 	public static Set<String> getHPSysList(IEngine engine) {
 		Set<String> sysList = new HashSet<String>();
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SYS_IN_WAVES_QUERY);
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, GET_HP_SYSTEM_LIST);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
 			sysList.add(sjsw.next().getVar(names[0]).toString());
