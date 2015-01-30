@@ -70,15 +70,15 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 
 		if(!selectRegionTimesButton.isSelected()) {
 			//pull from begin / end and fill the regions accordingly
-			int beginQuarter = getInteger(ps.getBeginQuarterField(), ps.getBeginQuarterField().getName());
-			int beginYear = getInteger(ps.getBeginYearField(), ps.getBeginYearField().getName());
-			int endQuarter = getInteger(ps.getEndQuarterField(), ps.getEndQuarterField().getName());
-			int endYear = getInteger(ps.getEndYearField(), ps.getEndYearField().getName());
+			int beginQuarter = getInteger(ps.getQBeginField(), ps.getQBeginField().getName());
+			int beginYear = getInteger(ps.getYBeginField(), ps.getYBeginField().getName());
+			int endQuarter = getInteger(ps.getQEndField(), ps.getQEndField().getName());
+			int endYear = getInteger(ps.getYEndField(), ps.getYEndField().getName());
 			if(beginQuarter<0 || beginYear<0 || endQuarter<0 || endYear<0) {
 				Utility.showError("Cannot read fields. Please check the Console tab for more information");
 				return;
 			}
-			if(!validQuarter(beginQuarter, ps.getBeginQuarterField().getName()) || !validQuarter(endQuarter, ps.getEndQuarterField().getName()) || !validYear(beginYear, ps.getBeginYearField().getName())  || !validYear(endYear, ps.getEndYearField().getName()) ) {
+			if(!validQuarter(beginQuarter, ps.getQBeginField().getName()) || !validQuarter(endQuarter, ps.getQEndField().getName()) || !validYear(beginYear, ps.getYBeginField().getName())  || !validYear(endYear, ps.getYEndField().getName()) ) {
 				Utility.showError("Cannot read fields. Please check the Console tab for more information");
 				return;
 			}
@@ -87,10 +87,10 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 			//pull from region list
 			//check if region textfields are valid
 			//add them to list of regions
-			Hashtable<String,JTextField> beginQuarterFieldRegionList = ps.getBeginQuarterFieldRegionList();
-			Hashtable<String,JTextField> beginYearFieldRegionList = ps.getBeginYearFieldRegionList();
-			Hashtable<String,JTextField> endQuarterFieldRegionList = ps.getEndQuarterFieldRegionList();
-			Hashtable<String,JTextField> endYearFieldRegionList = ps.getEndYearFieldRegionList();
+			Hashtable<String,JTextField> beginQuarterFieldRegionList = ps.getQBeginFieldHash();
+			Hashtable<String,JTextField> beginYearFieldRegionList = ps.getYBeginFieldHash();
+			Hashtable<String,JTextField> endQuarterFieldRegionList = ps.getQEndFieldHash();
+			Hashtable<String,JTextField> endYearFieldRegionList = ps.getYEndFieldHash();
 
 			for(int i=0;i<regionsList.size();i++) {
 				String region = regionsList.get(i);
