@@ -36,9 +36,9 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 
 	private static final Logger LOGGER = LogManager.getLogger(DHMSMIntegrationSavingsPerFiscalYearProcessor.class.getName());
 
-	private final String masterQuery = "TAP_Site_Data&HR_Core&SELECT DISTINCT ?Wave ?HostSiteAndFloater ?System WHERE { {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSiteAndFloater} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSiteAndFloater} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } UNION { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?Wave} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?System} } } &SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> }{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}}BINDINGS ?Probability {('High') ('Question')}&false&false";
-	private String masterQueryForSingleSystem = "TAP_Site_Data&HR_Core&SELECT DISTINCT ?Wave ?HostSiteAndFloater ?System WHERE { BIND(@SYSTEM@ AS ?System) {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSiteAndFloater} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSiteAndFloater} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } UNION { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?Wave} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?System} } } &SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> }{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}}BINDINGS ?Probability {('High') ('Question')}&false&false";
-	private String masterQueryForListOfSystems = "TAP_Site_Data&HR_Core&SELECT DISTINCT ?Wave ?HostSiteAndFloater ?System WHERE { {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSiteAndFloater} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSiteAndFloater} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } UNION { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?Wave} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?System} } } BINDINGS ?System {@BINDINGS@} &SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> }{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}}BINDINGS ?Probability {('High') ('Question')}&false&false";
+	private final String masterQuery = "TAP_Site_Data&HR_Core&SELECT DISTINCT ?Wave ?HostSiteAndFloater ?System WHERE { {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSiteAndFloater} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSiteAndFloater} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } UNION { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?Wave} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?System} } } &SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} }BINDINGS ?Probability {('High') ('Question')}&false&false";
+	private String masterQueryForSingleSystem = "TAP_Site_Data&HR_Core&SELECT DISTINCT ?Wave ?HostSiteAndFloater ?System WHERE { BIND(@SYSTEM@ AS ?System) {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSiteAndFloater} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSiteAndFloater} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } UNION { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?Wave} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?System} } } &SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}}BINDINGS ?Probability {('High') ('Question')}&false&false";
+	private String masterQueryForListOfSystems = "TAP_Site_Data&HR_Core&SELECT DISTINCT ?Wave ?HostSiteAndFloater ?System WHERE { {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSiteAndFloater} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSiteAndFloater} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } UNION { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?Wave} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?System} } } BINDINGS ?System {@BINDINGS@} &SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}}BINDINGS ?Probability {('High') ('Question')}&false&false";
 	
 	private final String TAP_PORTFOLIO = "TAP_Portfolio";
 	private final String TAP_SITE = "TAP_Site_Data";
@@ -59,10 +59,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 	private HashMap<String, String> lastWaveForSitesAndFloatersInMultipleWavesHash;
 	private HashMap<String, String> lastWaveForEachSystem;
 	private HashMap<String, HashMap<String, ArrayList<String>>> masterHash;
-	private HashMap<String, double[]> savingsData = new HashMap<String, double[]>();
 	
-	
-	private HashMap<String, HashMap<Integer, Boolean>> missingDataMap = new HashMap<String, HashMap<Integer, Boolean>>();
 	private Set<String> centrallyLocatedSys = new HashSet<String>();
 	private HashMap<String, Double> locallyDeployedSavingsHash = new HashMap<String, Double>();
 	private final double percentRealized = .18;
@@ -70,17 +67,27 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 	private ArrayList<Object[]> list;
 	private String[] names;
 
-	public ArrayList<Object[]> getList() {
-		return list;
-	}
-
-	public String[] getNames() {
-		return names;
-	}
-
-	public void processData() {
-		Integer minYear = 3000; // arbitrarily large year
-		Integer maxYear = 0;
+	private HashMap<String, double[]> savingsDataBySystem = new HashMap<String, double[]>();
+	private HashMap<String, double[]> savingsDataBySite = new HashMap<String, double[]>();
+	private HashMap<String, HashMap<Integer, Boolean>> missingDataMapBySystem = new HashMap<String, HashMap<Integer, Boolean>>();
+	private HashMap<String, HashMap<Integer, Boolean>> missingDataMapBySite = new HashMap<String, HashMap<Integer, Boolean>>();
+	private HashMap<String, Double> sysSavings = new HashMap<String, Double>();;
+	
+	int numColumns;
+	int minYear;
+	int maxYear;
+	double[] inflationArr;
+	boolean[] missingDataYear;
+	
+	public void generateSavingsData() {
+		savingsDataBySystem = new HashMap<String, double[]>();
+		savingsDataBySite = new HashMap<String, double[]>();
+		missingDataMapBySystem = new HashMap<String, HashMap<Integer, Boolean>>();
+		missingDataMapBySite = new HashMap<String, HashMap<Integer, Boolean>>();
+		sysSavings = new HashMap<String, Double>();;
+		
+		minYear = 3000; // arbitrarily large year
+		maxYear = 0;
 		for(String wave : waveStartEndDate.keySet()) {
 			String[] startDate = waveStartEndDate.get(wave);
 			String startTime[] = startDate[0].split("FY");
@@ -95,8 +102,9 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 				minYear = startYearAsNum;
 			}
 		}
-		int numColumns = maxYear - minYear + 2; // costs gains are typically realized a year after, except for centrally distributed systems
-		double[] inflationArr = new double[numColumns+1];
+		numColumns = maxYear - minYear + 2; // costs gains are typically realized a year after, except for centrally distributed systems
+		inflationArr = new double[numColumns+1];
+		
 		int i;
 		for(i = 0; i < numColumns+1; i++) {
 			if(i <= 1) {
@@ -106,9 +114,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 				inflationArr[i] = Math.pow(1.03, i-1);
 			}
 		}
-		HashMap<String, Double> sysSavings = new HashMap<String, Double>();
 		
-		boolean[] missingDataYear = new boolean[numColumns];
+		missingDataYear = new boolean[numColumns];
 		for(String wave : waveStartEndDate.keySet()) {
 			String[] startDate = waveStartEndDate.get(wave);
 			String endTime[] = startDate[1].split("FY");
@@ -141,9 +148,10 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 						ArrayList<String> systems = sites.get(site);
 						systemsToAddList.removeAll(systems);
 						sysList.addAll(systems);
-						double[] yearlySavings = new double[numColumns];
+						double[] yearlySiteSavings = new double[numColumns];
 						int counter = 0;
 						for(String system : systems) {
+							double[] yearlySystemSavings = new double[numColumns];
 							boolean takePercentage = true;
 							// dataMissing is a flag that is used to determine if a system at a site that should have savings has $0 in savings
 							// this is denoted in the report by an asterisk next to that figure
@@ -194,12 +202,23 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 								}
 								if(dataMissing){
 									HashMap<Integer, Boolean> innerMap;
-									if(missingDataMap.containsKey(site)) {
-										innerMap = missingDataMap.get(site);
+									if(missingDataMapBySite.containsKey(site)) {
+										innerMap = missingDataMapBySite.get(site);
 										innerMap.put(index,  dataMissing);
 									} else {
 										innerMap = new HashMap<Integer, Boolean>();
-										missingDataMap.put(site, innerMap);
+										missingDataMapBySite.put(site, innerMap);
+										innerMap.put(index, dataMissing);
+									}
+								}
+								if(dataMissing){
+									HashMap<Integer, Boolean> innerMap;
+									if(missingDataMapBySystem.containsKey(system)) {
+										innerMap = missingDataMapBySystem.get(system);
+										innerMap.put(index,  dataMissing);
+									} else {
+										innerMap = new HashMap<Integer, Boolean>();
+										missingDataMapBySystem.put(system, innerMap);
 										innerMap.put(index, dataMissing);
 									}
 								}
@@ -207,46 +226,81 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 								// The logic to determine if a system is centrally located is performed earleir and stored in a relationship, which we access directly
 								// Centrally located systems only realize their savings after TOC
 								if(centrallyLocatedSys.contains(system)) {
-									yearlySavings[yearlySavings.length - 1] += savings * inflationArr[yearlySavings.length - index];
+									yearlySystemSavings[yearlySystemSavings.length - 1] += savings * inflationArr[yearlySystemSavings.length - index];
+									yearlySiteSavings[yearlySiteSavings.length - 1] += savings * inflationArr[yearlySiteSavings.length - index];
+
 									break;
 								} else {
 									double inflatedSavings = savings * inflationArr[index+1];
 									if(takePercentage) {
 										double realizedSavings = inflatedSavings * percentRealized;
 										
-										yearlySavings[index] += realizedSavings;
-										
+										yearlySystemSavings[index] += realizedSavings;
+										yearlySiteSavings[index] += realizedSavings;
+
 										if(index == outputYear) {
 											if(locallyDeployedSavingsHash.containsKey(system)) {
 												double currentDelayedSavings = locallyDeployedSavingsHash.get(system);
-												currentDelayedSavings += inflatedSavings * (1 - percentRealized) * inflationArr[yearlySavings.length - index];
+												currentDelayedSavings += inflatedSavings * (1 - percentRealized) * inflationArr[yearlySystemSavings.length - index];
 												locallyDeployedSavingsHash.put(system, currentDelayedSavings);
 											} else {
-												locallyDeployedSavingsHash.put(system, inflatedSavings * (1 - percentRealized) * inflationArr[yearlySavings.length - index]);
+												locallyDeployedSavingsHash.put(system, inflatedSavings * (1 - percentRealized) * inflationArr[yearlySystemSavings.length - index]);
 											}
 										}
 									} else {
-										yearlySavings[index] += inflatedSavings;
+										yearlySystemSavings[index] += inflatedSavings;
+										yearlySiteSavings[index] += inflatedSavings;
 									}
 								}
 							}
+							if(savingsDataBySystem.containsKey(system)) {
+								double[] currSavings = savingsDataBySystem.get(system);
+								for(int index = 0; index < currSavings.length; index++) {
+									currSavings[index] += yearlySystemSavings[index];
+								}
+								savingsDataBySystem.put(system, currSavings);
+							} else {
+								savingsDataBySystem.put(system, yearlySystemSavings);
+							}
 						}
 	
-						if(savingsData.containsKey(site)) {
-							double[] currSavings = savingsData.get(site);
+						if(savingsDataBySite.containsKey(site)) {
+							double[] currSavings = savingsDataBySite.get(site);
 							for(int index = 0; index < currSavings.length; index++) {
-								currSavings[index] += yearlySavings[index];
+								currSavings[index] += yearlySiteSavings[index];
 							}
-							savingsData.put(site, currSavings);
+							savingsDataBySite.put(site, currSavings);
 						} else {
-							savingsData.put(site, yearlySavings);
+							savingsDataBySite.put(site, yearlySiteSavings);
 						}
 					}
 				}
-
 			}
 		}
 		
+//		double siteSavings = 0;
+//		for(String site : savingsDataBySite.keySet()) {
+//			double[] x = savingsDataBySite.get(site);
+//			for(int j = 0; j < x.length; j++) {
+//				siteSavings += x[j];
+//			}
+//		}
+//		System.out.println(siteSavings);
+//		double sysSavings = 0;
+//		for(String site : savingsDataBySystem.keySet()) {
+//			double[] x = savingsDataBySystem.get(site);
+//			for(int j = 0; j < x.length; j++) {
+//				sysSavings += x[j];
+//			}
+//		}
+//		System.out.println(sysSavings);
+
+	}
+	
+	
+	public void processData() {
+		generateSavingsData();
+
 		list = new ArrayList<Object[]>();
 		int numCols = numColumns+2;
 		DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
@@ -271,8 +325,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			names[index] = "Total";
 		}
 		// calculate site data
-		for(String site : savingsData.keySet()) {
-			double[] values = savingsData.get(site);
+		for(String site : savingsDataBySite.keySet()) {
+			double[] values = savingsDataBySite.get(site);
 			Object[] row = new Object[numCols];
 			double totalRow = 0;
 			row[0] = site;
@@ -280,9 +334,9 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			boolean missing = false;
 			for(index = 0; index < numCols - 2; index++) {
 				double value = values[index];
-				if(missingDataMap.containsKey(site)) {
+				if(missingDataMapBySite.containsKey(site)) {
 					missing = true;
-					HashMap<Integer, Boolean> innerMap = missingDataMap.get(site);
+					HashMap<Integer, Boolean> innerMap = missingDataMapBySite.get(site);
 					if(innerMap.containsKey(index)){
 						if(value == 0) {
 							row[index + 1] = "No Cost Data";
@@ -309,10 +363,12 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			list.add(row);
 		}
 		
+		boolean missingData = false;
 		// add in information for systems in deployment strategy but have waves not included
-		double otherSiteCost = 0;
+		double totalOtherSiteCost = 0;
 		Object[] otherSiteRow = new Object[numCols];
 		otherSiteRow[0] = "Other Sites Not In Waves";
+		int i;
 		for(i = 1; i < numCols - 2; i++) {
 			otherSiteRow[i] = formatter.format(0);
 		}
@@ -322,14 +378,25 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 				if(costs != null) {
 					int numSites = numSitesForSysHash.get(system);
 					int numSitesNotIncluded = numSitesNotInWaveForSysHash.get(system);
-					otherSiteCost += costs[costs.length - 1] * numSitesNotIncluded/numSites  * inflationArr[inflationArr.length - 1];
+					double otherSiteCost = costs[costs.length - 1] * numSitesNotIncluded/numSites  * inflationArr[inflationArr.length - costs.length];
+					if(sysSavings.containsKey(system)) {
+						double currSiteSavings = sysSavings.get(system);
+						currSiteSavings += otherSiteCost * percentRealized;
+						sysSavings.put(system, currSiteSavings);
+					} 
+					totalOtherSiteCost += otherSiteCost;
+				} else {
+					missingData = true;
 				}
 			}
 		}
-		otherSiteRow[numCols - 2] = formatter.format(otherSiteCost * percentRealized);
-		otherSiteRow[numCols - 1] = formatter.format(otherSiteCost * percentRealized);
-
-		
+		otherSiteRow[numCols - 2] = formatter.format(totalOtherSiteCost * percentRealized);
+		otherSiteRow[numCols - 1] = formatter.format(totalOtherSiteCost * percentRealized);
+		if(missingData) {
+			otherSiteRow[numCols - 2] += "*";
+			otherSiteRow[numCols - 1] += "*";
+		}
+		missingData = false;
 		double systemsNotIncludedCost = 0;
 		Object[] systemsNotIncludedRow = new Object[numCols];
 		systemsNotIncludedRow[0] = "Systems Not At Host Sites";
@@ -338,13 +405,18 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		}
 		for(String system : systemsToAddList) {
 			Double[] costs = sysSustainmentInfoHash.get(system);
-			if(costs != null) {
+			if(costs != null && costs[costs.length-1] != 0) {
 				systemsNotIncludedCost += costs[costs.length - 1] * inflationArr[inflationArr.length - costs.length];
+			} else {
+				missingData = true;
 			}
 		}
 		systemsNotIncludedRow[numCols - 2] = formatter.format(systemsNotIncludedCost * percentRealized);
 		systemsNotIncludedRow[numCols - 1] = formatter.format(systemsNotIncludedCost * percentRealized);
-
+		if(missingData) {
+			systemsNotIncludedRow[numCols - 2] += "*";
+			systemsNotIncludedRow[numCols - 1] += "*";
+		}
 		//add fixed cost and column totals
 		Object[] row = new Object[numCols];
 		row[0] = "Total";
@@ -352,7 +424,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		int index;
 		for(index = 0; index < numCols - 2; index++) {
 			if(index == numCols - 3) {
-				totalCol[index] += otherSiteCost * percentRealized;
+				totalCol[index] += totalOtherSiteCost * percentRealized;
 				totalCol[index] += systemsNotIncludedCost * percentRealized;
 			}
 			combinedTotal += totalCol[index];
@@ -386,10 +458,10 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 				for(index = outputYear; index < numCols - 2; index++) {
 					double inflatedSavings = savings * inflationArr[index-position+1];
 					yearlySavings[index] += inflatedSavings - currSiteSavings;
-					if(index == yearlySavings.length - 1) {
-						yearlySavings[index] -= otherSiteCost * percentRealized;
-						yearlySavings[index] -= systemsNotIncludedCost * percentRealized;
-					}
+//					if(index == yearlySavings.length - 1) {
+//						yearlySavings[index] -= totalOtherSiteCost * (1 - percentRealized);
+//						yearlySavings[index] -= systemsNotIncludedCost * (1 - percentRealized);
+//					}
 				}
 			}
 		}
@@ -405,6 +477,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 				for(String sys : locallyDeployedSavingsHash.keySet()) {
 					fixedAmount += locallyDeployedSavingsHash.get(sys);
 				}
+				fixedAmount += totalOtherSiteCost * (1-percentRealized);
+				fixedAmount += systemsNotIncludedCost * (1-percentRealized);
 			}
 			
 			sustainmentRow[index] = formatter.format(fixedAmount);
@@ -435,215 +509,11 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		list.add(systemsNotIncludedRow);
 		list.add(row);
 	}
-
-	public void runSupportQueries() {
-		this.tapPortfolio = (IEngine) DIHelper.getInstance().getLocalProp(TAP_PORTFOLIO);
-		this.tapSite = (IEngine) DIHelper.getInstance().getLocalProp(TAP_SITE);
-		this.hrCore = (IEngine) DIHelper.getInstance().getLocalProp(HR_CORE);
-
-		sysSustainmentInfoHash = DHMSMDeploymentHelper.getSysSustainmentBudget(tapPortfolio);
-		
-		HashMap<String, HashMap<String, Double>> sysSiteSupportCostHash = DHMSMDeploymentHelper.getSysSiteSupportCost(tapPortfolio);
-		HashMap<String, HashMap<String, Double>> sysFloaterCostHash = DHMSMDeploymentHelper.getSysFloaterCost(tapPortfolio);
-		sysSiteSupportAndFloaterCostHash = addAllCostInfo(sysSiteSupportCostHash, sysFloaterCostHash);
-		
-		numSitesForSysHash = DHMSMDeploymentHelper.getNumSitesSysDeployedAt(tapSite);
-		
-		ArrayList<String> waveOrder = DHMSMDeploymentHelper.getWaveOrder(tapSite);
-		HashMap<String, List<String>> sitesInMultipleWavesHash = DHMSMDeploymentHelper.getSitesAndMultipleWaves(tapSite);
-		lastWaveForSitesAndFloatersInMultipleWavesHash = DHMSMDeploymentHelper.determineLastWaveForInput(waveOrder, sitesInMultipleWavesHash);
-		
-		HashMap<String, List<String>> floaterWaveList = DHMSMDeploymentHelper.getFloatersAndWaves(tapSite);
-		lastWaveForSitesAndFloatersInMultipleWavesHash.putAll(DHMSMDeploymentHelper.determineLastWaveForInput(waveOrder, floaterWaveList));
-		
-		waveStartEndDate = DHMSMDeploymentHelper.getWaveStartAndEndDate(tapSite);
-		
-		lastWaveForEachSystem = DHMSMDeploymentHelper.getLastWaveForEachSystem(tapSite, waveOrder);
-		
-		centrallyLocatedSys = DHMSMDeploymentHelper.getCentrallyDeployedSystems(hrCore);
-		
-		numSitesNotInWaveForSysHash = new HashMap<String, Integer>();
-		DHMSMDeploymentGapAnalysis gap = new DHMSMDeploymentGapAnalysis();
-		gap.createData();
-		ArrayList<Object[]> gapList = gap.getList();
-		int size = gapList.size();
-		int i = 0;
-		for(; i < size; i++) {
-			Object[] row = gapList.get(i);
-			String sys = row[1].toString();
-			if(numSitesNotInWaveForSysHash.containsKey(sys)) {
-				int count = numSitesNotInWaveForSysHash.get(sys);
-				numSitesNotInWaveForSysHash.put(sys, count+1);
-			} else {
-				numSitesNotInWaveForSysHash.put(sys, 1);
-			}
-		}
-	}
 	
 	//This method does the same thing as the above Process Data, but swaps the systems for the sites, getting a total per-site
 	public void processSystemData(){
-		Integer minYear = 3000; // arbitrarily large year
-		Integer maxYear = 0;
-		for(String wave : waveStartEndDate.keySet()) {
-			String[] startDate = waveStartEndDate.get(wave);
-			String startTime[] = startDate[0].split("FY");
-			String endTime[] = startDate[1].split("FY");
-			String startYear = startTime[1];
-			String endYear = endTime[1];
-			int startYearAsNum = Integer.parseInt(startYear);
-			int endYearAsNum = Integer.parseInt(endYear);
-			if(endYearAsNum > maxYear) {
-				maxYear = endYearAsNum;
-			} else if(startYearAsNum < minYear) {
-				minYear = startYearAsNum;
-			}
-		}
-		int numColumns = maxYear - minYear + 2; // costs gains are realized a year after
-		double[] inflationArr = new double[numColumns+1];
-		int i;
-		for(i = 0; i < numColumns+1; i++) {
-			if(i <= 1) {
-				inflationArr[i] = 1;
-			} else {
-				// only add inflation for years we don't have O&M budget info for
-				inflationArr[i] = Math.pow(1.03, i-1);
-			}
-		}
-		HashMap<String, Double> sysSavings = new HashMap<String, Double>();
-		
-		boolean[] missingDataYear = new boolean[numColumns];
-		for(String wave : waveStartEndDate.keySet()) {
-			String[] startDate = waveStartEndDate.get(wave);
-			String endTime[] = startDate[1].split("FY");
-			String endYear = endTime[1];
+		generateSavingsData();
 
-			int sustainmentIndex = 0;
-			switch(endYear) {
-				case "2017" : sustainmentIndex = 2; break;
-				case "2018" : sustainmentIndex = 3; break;
-				default : sustainmentIndex = 4;
-			}
-
-			int outputYear = Integer.parseInt(endYear) - minYear + 1;
-
-			HashMap<String, ArrayList<String>> sites = masterHash.get(wave);
-			if(sites != null) {
-				for(String site : sites.keySet()) {
-					boolean addSite = false;
-					if(!lastWaveForSitesAndFloatersInMultipleWavesHash.containsKey(site)) {
-						addSite = true;
-					} else {
-						String lastWave = lastWaveForSitesAndFloatersInMultipleWavesHash.get(site); 
-						if(lastWave.equals(wave)) {
-							addSite = true;
-						} else {
-							addSite = false;
-						}
-					}
-					if(addSite) {
-						ArrayList<String> systems = sites.get(site);
-						systemsToAddList.removeAll(systems);
-						sysList.addAll(systems);
-						int counter = 0;
-						for(String system : systems) {
-							double[] yearlySavings = new double[numColumns];
-							boolean dataMissing = false;
-							boolean takePercentage = true;
-							for(int index = outputYear; index < numColumns; index++) {
-								double savings = 0.0;
-								if(sysSiteSupportAndFloaterCostHash.containsKey(system)) {
-									//local deployment calculated by subtracting budget from curr system savings
-									takePercentage = false;
-									
-									// if we have cost information at the site lvl
-									HashMap<String, Double> siteSupportCostForSystem = sysSiteSupportAndFloaterCostHash.get(system);
-									if(siteSupportCostForSystem.containsKey(site)) {
-										savings += siteSupportCostForSystem.get(site);										
-									} else {
-										savings += 0;
-										dataMissing = true;
-										missingDataYear[index] = true;
-									}
-									// store amount saved each individual time a system is decommissioned
-									if(index == numColumns - 1) {
-										if(sysSavings.containsKey(system)) {
-											double currSiteSavings = sysSavings.get(system);
-											currSiteSavings += savings * inflationArr[index+1];
-											sysSavings.put(system, currSiteSavings);
-										} else {
-											sysSavings.put(system, savings * inflationArr[index+1]);
-										}
-									}
-								} else {
-									// if we do not have cost information at the site lvl
-									Double[] costs = sysSustainmentInfoHash.get(system);
-									// assume cost for a specific site is total cost / num sites
-									double numSites = numSitesForSysHash.get(system);
-									if(costs != null){
-										if(costs[sustainmentIndex + counter] == null || costs[sustainmentIndex + counter] == 0){
-											dataMissing = true;
-											missingDataYear[index] = true;
-										} else {
-											savings += costs[sustainmentIndex + counter] / numSites;
-										}
-									}
-								}
-								
-								if(sustainmentIndex+counter < 4) {
-									counter++;
-								}
-								if(dataMissing){
-									HashMap<Integer, Boolean> innerMap;
-									if(missingDataMap.containsKey(system)) {
-										innerMap = missingDataMap.get(system);
-										innerMap.put(index,  dataMissing);
-									} else {
-										innerMap = new HashMap<Integer, Boolean>();
-										missingDataMap.put(system, innerMap);
-										innerMap.put(index, dataMissing);
-									}
-								}
-								if(centrallyLocatedSys.contains(system)) {
-									yearlySavings[yearlySavings.length - 1] += savings * inflationArr[yearlySavings.length - index];
-									break;
-								} else {
-									double inflatedSavings = savings * inflationArr[index+1];
-									if(takePercentage) {
-										double realizedSavings = inflatedSavings * percentRealized;
-										
-										yearlySavings[index] += realizedSavings;
-										
-										if(index == outputYear) {
-											if(locallyDeployedSavingsHash.containsKey(system)) {
-												double currentDelayedSavings = locallyDeployedSavingsHash.get(system);
-												currentDelayedSavings += inflatedSavings * (1 - percentRealized) * inflationArr[yearlySavings.length - index];
-												locallyDeployedSavingsHash.put(system, currentDelayedSavings);
-											} else {
-												locallyDeployedSavingsHash.put(system, inflatedSavings * (1 - percentRealized) * inflationArr[yearlySavings.length - index]);
-											}
-										}
-									} else {
-										yearlySavings[index] += inflatedSavings;
-									}
-								}
-							}
-							
-							if(savingsData.containsKey(system)) {
-								double[] currSavings = savingsData.get(system);
-								for(int index = 0; index < currSavings.length; index++) {
-									currSavings[index] += yearlySavings[index];
-								}
-								savingsData.put(system, currSavings);
-							} else {
-								savingsData.put(system, yearlySavings);
-							}
-						}
-					}
-				}
-			}
-			
-		}
-		
 		list = new ArrayList<Object[]>();
 		int numCols = numColumns+2;
 		DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
@@ -667,20 +537,29 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			names[index] = "Total";
 		}
 		
-		for(String system : savingsData.keySet()) {
-			double[] values = savingsData.get(system);
+		for(String system : savingsDataBySystem.keySet()) {
+			double[] values = savingsDataBySystem.get(system);
 			// add in information for systems in deployment strategy but have waves not included
-//			double otherSiteCost = 0;
-//			if(numSitesNotInWaveForSysHash.containsKey(system)) {
-//				if(sysList.contains(system)) {
-//					Double[] costs = sysSustainmentInfoHash.get(system);
-//					if(costs != null) {
-//						int numSites = numSitesForSysHash.get(system);
-//						int numSitesNotIncluded = numSitesNotInWaveForSysHash.get(system);
-//						otherSiteCost += costs[costs.length - 1] * numSitesNotIncluded/numSites  * inflationArr[inflationArr.length - 1];
-//					}
-//				}
-//			}
+			if(numSitesNotInWaveForSysHash.containsKey(system)) {
+				if(sysList.contains(system)) {
+					Double[] costs = sysSustainmentInfoHash.get(system);
+					if(costs != null) {
+						int numSites = numSitesForSysHash.get(system);
+						int numSitesNotIncluded = numSitesNotInWaveForSysHash.get(system);
+						double additionalSavings = costs[costs.length - 1] * numSitesNotIncluded/numSites * inflationArr[inflationArr.length - costs.length];
+						values[values.length - 1] += additionalSavings;
+//						values[values.length - 1] += additionalSavings * percentRealized;
+						if(sysSavings.containsKey(system)) {
+							double currSiteSavings = sysSavings.get(system);
+							currSiteSavings += additionalSavings;
+							sysSavings.put(system, currSiteSavings);
+						}
+//						} else {
+//							sysSavings.put(system, additionalSavings * percentRealized);
+//						}
+					}
+				}
+			}
 
 			Object[] row = new Object[numCols];
 			double totalRow = 0;
@@ -695,9 +574,9 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 						value += fixedCost;
 					} else {
 						Double[] costArr = sysSustainmentInfoHash.get(system);
-						Double currSiteSavings = sysSavings.get(system);
+						Double currSysSavings = sysSavings.get(system);
 						
-						if(currSiteSavings != null) {
+						if(currSysSavings != null) {
 							int position = costArr.length - 1;
 							boolean loop = true;
 							while(loop) {
@@ -710,16 +589,13 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 							double savings = costArr[position]; 
 							double inflatedSavings = savings * inflationArr[index-position+1];
 	
-							value += inflatedSavings - currSiteSavings;
+							value += inflatedSavings - currSysSavings;
 						}
 					}
-					
-					//include values not listed
-//					value += otherSiteCost;
 				}
-				if(missingDataMap.containsKey(system)){
+				if(missingDataMapBySystem.containsKey(system)){
 					missing = true;
-					HashMap<Integer, Boolean> innerMap = missingDataMap.get(system);
+					HashMap<Integer, Boolean> innerMap = missingDataMapBySystem.get(system);
 					if(innerMap.containsKey(index)){
 						if(value == 0) {
 							row[index + 1] = "No Cost Data";
@@ -748,6 +624,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		}
 		
 		// add in systems not in deployment strategy to be decommissioned at FOC
+		int i;
 		for(String system : systemsToAddList) {
 			Object[] row = new Object[numCols];
 			row[0] = system;
@@ -796,6 +673,50 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		list.add(row);
 	}
 
+	public void runSupportQueries() {
+		this.tapPortfolio = (IEngine) DIHelper.getInstance().getLocalProp(TAP_PORTFOLIO);
+		this.tapSite = (IEngine) DIHelper.getInstance().getLocalProp(TAP_SITE);
+		this.hrCore = (IEngine) DIHelper.getInstance().getLocalProp(HR_CORE);
+
+		sysSustainmentInfoHash = DHMSMDeploymentHelper.getSysSustainmentBudget(tapPortfolio);
+		
+		HashMap<String, HashMap<String, Double>> sysSiteSupportCostHash = DHMSMDeploymentHelper.getSysSiteSupportCost(tapPortfolio);
+		HashMap<String, HashMap<String, Double>> sysFloaterCostHash = DHMSMDeploymentHelper.getSysFloaterCost(tapPortfolio);
+		sysSiteSupportAndFloaterCostHash = addAllCostInfo(sysSiteSupportCostHash, sysFloaterCostHash);
+		
+		numSitesForSysHash = DHMSMDeploymentHelper.getNumSitesSysDeployedAt(tapSite);
+		
+		ArrayList<String> waveOrder = DHMSMDeploymentHelper.getWaveOrder(tapSite);
+		HashMap<String, List<String>> sitesInMultipleWavesHash = DHMSMDeploymentHelper.getSitesAndMultipleWaves(tapSite);
+		lastWaveForSitesAndFloatersInMultipleWavesHash = DHMSMDeploymentHelper.determineLastWaveForInput(waveOrder, sitesInMultipleWavesHash);
+		
+		HashMap<String, List<String>> floaterWaveList = DHMSMDeploymentHelper.getFloatersAndWaves(tapSite);
+		lastWaveForSitesAndFloatersInMultipleWavesHash.putAll(DHMSMDeploymentHelper.determineLastWaveForInput(waveOrder, floaterWaveList));
+		
+		waveStartEndDate = DHMSMDeploymentHelper.getWaveStartAndEndDate(tapSite);
+		
+		lastWaveForEachSystem = DHMSMDeploymentHelper.getLastWaveForEachSystem(tapSite, waveOrder);
+		
+		centrallyLocatedSys = DHMSMDeploymentHelper.getCentrallyDeployedSystems(hrCore);
+		
+		numSitesNotInWaveForSysHash = new HashMap<String, Integer>();
+		DHMSMDeploymentGapAnalysis gap = new DHMSMDeploymentGapAnalysis();
+		gap.createData();
+		ArrayList<Object[]> gapList = gap.getList();
+		int size = gapList.size();
+		int i = 0;
+		for(; i < size; i++) {
+			Object[] row = gapList.get(i);
+			String sys = row[1].toString();
+			if(numSitesNotInWaveForSysHash.containsKey(sys)) {
+				int count = numSitesNotInWaveForSysHash.get(sys);
+				numSitesNotInWaveForSysHash.put(sys, count+1);
+			} else {
+				numSitesNotInWaveForSysHash.put(sys, 1);
+			}
+		}
+	}
+	
 	private HashMap<String, HashMap<String, Double>> addAllCostInfo(HashMap<String, HashMap<String, Double>> sysSiteSupportCostHash, HashMap<String, HashMap<String, Double>> sysFloaterCostHash) {
 		HashMap<String, HashMap<String, Double>> retHash = new HashMap<String, HashMap<String, Double>>();
 		retHash.putAll(sysSiteSupportCostHash);
@@ -879,6 +800,22 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 				}
 			} 
 		}
+	}
+	
+	public HashMap<String, String[]> getWaveStartEndDate() {
+		return waveStartEndDate;
+	}
+
+	public void setWaveStartEndDate(HashMap<String, String[]> waveStartEndDate) {
+		this.waveStartEndDate = waveStartEndDate;
+	}
+	
+	public ArrayList<Object[]> getList() {
+		return list;
+	}
+
+	public String[] getNames() {
+		return names;
 	}
 
 }
