@@ -277,24 +277,6 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 				}
 			}
 		}
-		
-//		double siteSavings = 0;
-//		for(String site : savingsDataBySite.keySet()) {
-//			double[] x = savingsDataBySite.get(site);
-//			for(int j = 0; j < x.length; j++) {
-//				siteSavings += x[j];
-//			}
-//		}
-//		System.out.println(siteSavings);
-//		double sysSavings = 0;
-//		for(String site : savingsDataBySystem.keySet()) {
-//			double[] x = savingsDataBySystem.get(site);
-//			for(int j = 0; j < x.length; j++) {
-//				sysSavings += x[j];
-//			}
-//		}
-//		System.out.println(sysSavings);
-
 	}
 	
 	
@@ -372,6 +354,10 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		for(i = 1; i < numCols - 2; i++) {
 			otherSiteRow[i] = formatter.format(0);
 		}
+		
+		// used to not double count the cost for sites/systems not included
+		double otherSitesNotIncludedForSysSupportAndFloaterCost = 0;
+		
 		for(String system : numSitesNotInWaveForSysHash.keySet()) {
 			if(sysList.contains(system)) {
 				Double[] costs = sysSustainmentInfoHash.get(system);
@@ -383,6 +369,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 						double currSiteSavings = sysSavings.get(system);
 						currSiteSavings += otherSiteCost * percentRealized;
 						sysSavings.put(system, currSiteSavings);
+						otherSitesNotIncludedForSysSupportAndFloaterCost += otherSiteCost;
 					} 
 					totalOtherSiteCost += otherSiteCost;
 				} else {
@@ -397,7 +384,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			otherSiteRow[numCols - 1] += "*";
 		}
 		missingData = false;
-		double systemsNotIncludedCost = 0;
+		double totalSystemsNotIncludedCost = 0;
 		Object[] systemsNotIncludedRow = new Object[numCols];
 		systemsNotIncludedRow[0] = "Systems Not At Host Sites";
 		for(i = 1; i < numCols - 2; i++) {
@@ -406,13 +393,14 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		for(String system : systemsToAddList) {
 			Double[] costs = sysSustainmentInfoHash.get(system);
 			if(costs != null && costs[costs.length-1] != 0) {
-				systemsNotIncludedCost += costs[costs.length - 1] * inflationArr[inflationArr.length - costs.length];
+				double systemNotIncludedCost = costs[costs.length - 1] * inflationArr[inflationArr.length - costs.length];
+				totalSystemsNotIncludedCost += systemNotIncludedCost;
 			} else {
 				missingData = true;
 			}
 		}
-		systemsNotIncludedRow[numCols - 2] = formatter.format(systemsNotIncludedCost * percentRealized);
-		systemsNotIncludedRow[numCols - 1] = formatter.format(systemsNotIncludedCost * percentRealized);
+		systemsNotIncludedRow[numCols - 2] = formatter.format(totalSystemsNotIncludedCost * percentRealized);
+		systemsNotIncludedRow[numCols - 1] = formatter.format(totalSystemsNotIncludedCost * percentRealized);
 		if(missingData) {
 			systemsNotIncludedRow[numCols - 2] += "*";
 			systemsNotIncludedRow[numCols - 1] += "*";
@@ -425,7 +413,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		for(index = 0; index < numCols - 2; index++) {
 			if(index == numCols - 3) {
 				totalCol[index] += totalOtherSiteCost * percentRealized;
-				totalCol[index] += systemsNotIncludedCost * percentRealized;
+				totalCol[index] += totalSystemsNotIncludedCost * percentRealized;
 			}
 			combinedTotal += totalCol[index];
 		}
@@ -458,13 +446,11 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 				for(index = outputYear; index < numCols - 2; index++) {
 					double inflatedSavings = savings * inflationArr[index-position+1];
 					yearlySavings[index] += inflatedSavings - currSiteSavings;
-//					if(index == yearlySavings.length - 1) {
-//						yearlySavings[index] -= totalOtherSiteCost * (1 - percentRealized);
-//						yearlySavings[index] -= systemsNotIncludedCost * (1 - percentRealized);
-//					}
 				}
 			}
 		}
+		// subtract the other sites not included cost
+		yearlySavings[yearlySavings.length - 1] -= otherSitesNotIncludedForSysSupportAndFloaterCost * (1 - percentRealized);
 		
 		sustainmentRow[0] = "Fixed_Sustainment_Cost";
 		double totalSustainment = 0;
@@ -478,7 +464,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 					fixedAmount += locallyDeployedSavingsHash.get(sys);
 				}
 				fixedAmount += totalOtherSiteCost * (1-percentRealized);
-				fixedAmount += systemsNotIncludedCost * (1-percentRealized);
+				fixedAmount += totalSystemsNotIncludedCost * (1-percentRealized);
 			}
 			
 			sustainmentRow[index] = formatter.format(fixedAmount);
@@ -550,9 +536,9 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 						values[values.length - 1] += additionalSavings;
 //						values[values.length - 1] += additionalSavings * percentRealized;
 						if(sysSavings.containsKey(system)) {
-							double currSiteSavings = sysSavings.get(system);
-							currSiteSavings += additionalSavings;
-							sysSavings.put(system, currSiteSavings);
+							double currSysSavings = sysSavings.get(system);
+							currSysSavings += additionalSavings;
+							sysSavings.put(system, currSysSavings);
 						}
 //						} else {
 //							sysSavings.put(system, additionalSavings * percentRealized);
