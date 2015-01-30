@@ -376,7 +376,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		
 		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 		//query is written to pull wave so that i can determine in what order the regions are deployed in
-		String regionQuery = "SELECT DISTINCT ?Region ?Wave ?BeginQ ?BeginY ?EndQ ?EndY WHERE {{?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>}{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?BeginYQ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>} {?EndYQ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>}{?BeginQ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Quarter>}{?BeginY <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?EndQ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Quarter>}{?EndY <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?Region <http://semoss.org/ontologies/Relation/Deploys> ?Wave}{?Wave <http://semoss.org/ontologies/Relation/BeginsOn> ?BeginYQ}{?BeginYQ ?rel1 ?BeginY}{?BeginYQ ?rel2 ?BeginQ}{?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?EndYQ}{?EndYQ ?rel3 ?EndY}{?EndYQ ?rel4 ?EndQ}}";
+		String regionQuery = "SELECT DISTINCT ?Region ?Wave ?BeginQ ?BeginY ?EndQ ?EndY WHERE {{?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>}{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?BeginYQ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>} {?EndYQ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>}{?BeginQ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Quarter>}{?BeginY <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?EndQ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Quarter>}{?EndY <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?Region <http://semoss.org/ontologies/Relation/Deploys> ?Wave}{?Wave <http://semoss.org/ontologies/Relation/BeginsOn> ?BeginYQ}{?BeginYQ  <http://semoss.org/ontologies/Relation/has> ?BeginY}{?BeginYQ  <http://semoss.org/ontologies/Relation/has> ?BeginQ}{?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?EndYQ}{?EndYQ  <http://semoss.org/ontologies/Relation/has> ?EndY}{?EndYQ  <http://semoss.org/ontologies/Relation/has> ?EndQ}}";
 		SesameJenaSelectWrapper wrapper = Utility.processQuery(siteEngine,regionQuery);
 
 
@@ -435,7 +435,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 			}
 
 		for(String region : regionWaveHash.keySet()) {
-			if(!region.toUpperCase().equals("IOC")) {
+			//if(!region.toUpperCase().equals("IOC")) {
 			int beginQuarter =defaultBeginQHash.get(region);
 			int beginYear =defaultBeginYHash.get(region);
 			if(regionsList.size()==0)
@@ -458,7 +458,6 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 					regionsList.add(region);
 				}
 			}
-			}
 		}
 		
 		defaultBeginQ = defaultBeginQHash.get(regionsList.get(0));
@@ -467,7 +466,6 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		defaultEndY = defaultEndYHash.get(regionsList.get(0));
 		
 		for(String region : regionsList) {
-			if(!region.toUpperCase().equals("IOC")) {
 				int beginQ = defaultBeginQHash.get(region);
 				int beginY = defaultBeginYHash.get(region);
 				int endQ = defaultEndQHash.get(region);
@@ -480,9 +478,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 					defaultEndQ = endQ;
 					defaultEndY = endY;
 				}
-			}
 		}
-		//private int defaultBeginQ, defaultBeginY, defaultEndQ, defaultEndY;
 		
 		waveOrder = DHMSMDeploymentHelper.getWaveOrder(siteEngine);
 		waveStartEndDate = DHMSMDeploymentHelper.getWaveStartAndEndDate(siteEngine);
