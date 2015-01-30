@@ -15,12 +15,17 @@
  *******************************************************************************/
 package prerna.ui.main.listener.specific.tap;
 
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 
+import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JToggleButton;
@@ -28,13 +33,15 @@ import javax.swing.JToggleButton;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.specific.tap.DHMSMDeploymentStrategyPlaySheet;
+import prerna.ui.components.specific.tap.DHMSMIntegrationSavingsPerFiscalYearProcessor;
 import prerna.util.Utility;
 
 /**
  */
 public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
-	
+
 	private static final Logger LOGGER = LogManager.getLogger(DHMSMDeploymentStrategyRunBtnListener.class.getName());
 
 	private static final String YEAR_ERROR = "field is not an integer between 00 and 99, inclusive.";
@@ -42,8 +49,9 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 	private static final String NON_INT_ERROR = "field contains a non-integer value.";
 	private DHMSMDeploymentStrategyPlaySheet ps;
 	private JTextArea consoleArea;
-	
+
 	private Hashtable<String, List<String>> regionWaveHash;
+	private ArrayList<String> waveOrder;
 
 	/**
 	 * Method actionPerformed.
@@ -52,10 +60,9 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
 		LOGGER.info("Run Deployment Strategy Button Pushed");
-		
-		Hashtable<String, String> regionBeginHash = new Hashtable<String, String>();
-		Hashtable<String, String> regionEndHash = new Hashtable<String, String>();
-		
+
+		HashMap<String, String[]> waveStartEndHash = new HashMap<String, String[]>();
+
 		consoleArea = ps.consoleArea;
 		JToggleButton selectRegionTimesButton = ps.getSelectRegionTimesButton();
 		if(!selectRegionTimesButton.isSelected()) {
@@ -72,9 +79,9 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 				Utility.showError("Cannot read fields. Please check the Console tab for more information");
 				return;
 			}
-				
+
 			//do processing to fill the regionBegin and regionEndHash appropriately.
-			
+
 		}else {
 			//pull from region list
 			//check if region textfields are valid
@@ -86,6 +93,8 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 			ArrayList<JTextField> endYearFieldRegionList = ps.getEndYearFieldRegionList();
 
 			for(int i=0;i<regionsList.size();i++) {
+				String region = regionsList.get(i);
+
 				int beginQuarter = getInteger(beginQuarterFieldRegionList.get(i), beginQuarterFieldRegionList.get(i).getName());
 				int beginYear = getInteger(beginYearFieldRegionList.get(i), beginYearFieldRegionList.get(i).getName());
 				int endQuarter = getInteger(endQuarterFieldRegionList.get(i), endQuarterFieldRegionList.get(i).getName());
@@ -98,29 +107,66 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 					Utility.showError("Cannot read fields. Please check the Console tab for more information");
 					return;
 				}
-				if(beginYear>=10)
-					regionBeginHash.put(regionsList.get(i), "Q"+beginQuarter+"FY"+beginYear);
-				else
-					regionBeginHash.put(regionsList.get(i), "Q"+beginQuarter+"FY0"+beginYear);
-				
-				if(endYear>=10)
-					regionEndHash.put(regionsList.get(i), "Q"+endQuarter+"FY"+endYear);
-				else
-					regionEndHash.put(regionsList.get(i), "Q"+endQuarter+"FY0"+endYear);
+
+				List<String> wavesInRegion = regionWaveHash.get(region);
+				// calculate distance in number of quarters
+				int distanceInQuarters = Math.abs(beginQuarter - endQuarter);
+				distanceInQuarters += 4 * (endYear - (beginYear+1)); // +1 for when less than a year different, but in two different FYs
+				double numQuartersPerWave = distanceInQuarters/wavesInRegion.size();
+
+				double currQuarter = beginQuarter;
+				int currYear = beginYear;
+				for(String wave : waveOrder) {
+					if(wavesInRegion.contains(wave)) {
+						String[] date = new String[2];
+						date[0] = "Q" + ((int) Math.ceil(currQuarter)) + "FY" + currYear;
+						if(numQuartersPerWave > 4) {
+							int yearsPassed = (int) Math.floor(numQuartersPerWave / 4);
+							double quartersPassed = numQuartersPerWave % 4;
+							currYear += yearsPassed;
+							currQuarter += quartersPassed;
+						} else if(currQuarter + numQuartersPerWave > 4) {
+							currQuarter = ((currQuarter + numQuartersPerWave) - 4);
+							currYear += 1;
+						} else {
+							currQuarter += numQuartersPerWave;
+						}
+						date[1] = "Q" + ((int) Math.ceil(currQuarter)) + "FY" + currYear;
+						waveStartEndHash.put(wave, date);
+					}
+				}
 			}
 		}
+
+		DHMSMIntegrationSavingsPerFiscalYearProcessor processor = new DHMSMIntegrationSavingsPerFiscalYearProcessor();
+		processor.runSupportQueries();
+		processor.runMainQuery("");
+		processor.setWaveStartEndDate(waveStartEndHash);
+		processor.generateSavingsData();
 		
-		
-		
-		//now have a filled region begin and end hash. run maher's code here
-		for(String region : regionBeginHash.keySet()) {
-			System.out.println("Region "+region);
-			System.out.println("Begins "+regionBeginHash.get(region));
-			System.out.println("Ends "+regionEndHash.get(region));
-		}
-			
+		processor.processSystemData();
+		ArrayList<Object[]> systemList = processor.getList();	
+		String[] sysNames = processor.getNames();
+		displayListOnTab(sysNames, systemList, ps.overallAlysPanel);
 	}
-		
+
+	public void displayListOnTab(String[] colNames,ArrayList <Object []> list, JPanel panel) {
+		GridScrollPane pane = new GridScrollPane(colNames, list);
+		panel.removeAll();
+		GridBagLayout gridBagLayout = new GridBagLayout();
+		gridBagLayout.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gridBagLayout.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		panel.setLayout(gridBagLayout);
+		GridBagConstraints gbc_panel_1_1 = new GridBagConstraints();
+		gbc_panel_1_1.insets = new Insets(0, 0, 5, 5);
+		gbc_panel_1_1.fill = GridBagConstraints.BOTH;
+		gbc_panel_1_1.gridx = 0;
+		gbc_panel_1_1.gridy = 0;
+		panel.add(pane, gbc_panel_1_1);
+		panel.repaint();
+	}
+
+
 	/**
 	 * Method setPlaySheet.
 	 * @param sheet DHMSMDeploymentStrategyPlaySheet
@@ -128,9 +174,8 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 	public void setPlaySheet(DHMSMDeploymentStrategyPlaySheet ps)
 	{
 		this.ps = ps;
-
 	}
-	
+
 	/**
 	 * Gets the integer in a textfield.
 	 * if it does not contain an integer, throws an error.
@@ -148,7 +193,7 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 			return -1;
 		}
 	}
-	
+
 	/**
 	 * Determines if the quarter is valid, between 1 and 4 inclusive
 	 * @param quarter
@@ -163,7 +208,7 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		}
 		return true;
 	}
-	
+
 	/**
 	 * Determines if the year is valid, between 0 and 99 inclusive
 	 * @param year
@@ -178,13 +223,21 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		}
 		return true;
 	}
-	
+
 	public Hashtable<String, List<String>> getRegionWaveHash() {
 		return regionWaveHash;
 	}
 
 	public void setRegionWaveHash(Hashtable<String, List<String>> regionWaveHash) {
 		this.regionWaveHash = regionWaveHash;
+	}
+
+	public void setWaveOrder(ArrayList<String> waveOrder) {
+		this.waveOrder = waveOrder;
+	}
+
+	public ArrayList<String> getWaveOrder() {
+		return waveOrder;
 	}
 
 }

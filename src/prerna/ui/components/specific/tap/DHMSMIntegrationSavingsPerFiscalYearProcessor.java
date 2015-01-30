@@ -280,9 +280,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 	}
 	
 	
-	public void processData() {
-		generateSavingsData();
-
+	public void processSiteData() {
 		list = new ArrayList<Object[]>();
 		int numCols = numColumns+2;
 		DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();

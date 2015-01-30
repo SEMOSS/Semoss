@@ -33,6 +33,7 @@ public class DHMSMIntegrationSavingsBySystemFromWorksheetPerYearPlaySheet extend
 			reader.read();
 			ArrayList<String> systems = reader.getSystems();
 			processor.runMainQueryFromWorksheetList(systems);
+			processor.generateSavingsData();
 			processor.processSystemData();
 			list = processor.getList();
 			names = processor.getNames();
