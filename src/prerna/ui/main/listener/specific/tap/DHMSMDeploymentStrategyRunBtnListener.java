@@ -65,6 +65,8 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 
 		consoleArea = ps.consoleArea;
 		JToggleButton selectRegionTimesButton = ps.getSelectRegionTimesButton();
+		ArrayList<String> regionsList = ps.getRegionsList();
+
 		if(!selectRegionTimesButton.isSelected()) {
 			//pull from begin / end and fill the regions accordingly
 			int beginQuarter = getInteger(ps.getBeginQuarterField(), ps.getBeginQuarterField().getName());
@@ -79,14 +81,46 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 				Utility.showError("Cannot read fields. Please check the Console tab for more information");
 				return;
 			}
+			
+			
+			for(int i=0;i<regionsList.size();i++) {
+				String region = regionsList.get(i);
+				List<String> wavesInRegion = regionWaveHash.get(region);
+				// calculate distance in number of quarters
+				int distanceInQuarters = Math.abs(beginQuarter - endQuarter);
+				if(distanceInQuarters == 0) {
+					distanceInQuarters += 4 * (endYear - beginYear);
+				} else {
+					distanceInQuarters += 4 * (endYear - (beginYear+1)); // +1 for when less than a year different, but in two different FYs
+				}
+				double numQuartersPerWave = distanceInQuarters/wavesInRegion.size();
 
-			//do processing to fill the regionBegin and regionEndHash appropriately.
-
-		}else {
+				double currQuarter = beginQuarter;
+				int currYear = beginYear;
+				for(String wave : waveOrder) {
+					if(wavesInRegion.contains(wave)) {
+						String[] date = new String[2];
+						date[0] = "Q" + ((int) Math.ceil(currQuarter)) + "FY20" + currYear;
+						if(numQuartersPerWave > 4) {
+							int yearsPassed = (int) Math.floor(numQuartersPerWave / 4);
+							double quartersPassed = numQuartersPerWave % 4;
+							currYear += yearsPassed;
+							currQuarter += quartersPassed;
+						} else if(currQuarter + numQuartersPerWave > 4) {
+							currQuarter = ((currQuarter + numQuartersPerWave) - 4);
+							currYear += 1;
+						} else {
+							currQuarter += numQuartersPerWave;
+						}
+						date[1] = "Q" + ((int) Math.ceil(currQuarter)) + "FY20" + currYear;
+						waveStartEndHash.put(wave, date);
+					}
+				}
+			}
+		} else {
 			//pull from region list
 			//check if region textfields are valid
 			//add them to list of regions
-			ArrayList<String> regionsList = ps.getRegionsList();
 			Hashtable<String,JTextField> beginQuarterFieldRegionList = ps.getBeginQuarterFieldRegionList();
 			Hashtable<String,JTextField> beginYearFieldRegionList = ps.getBeginYearFieldRegionList();
 			Hashtable<String,JTextField> endQuarterFieldRegionList = ps.getEndQuarterFieldRegionList();
@@ -151,6 +185,11 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		ArrayList<Object[]> systemList = processor.getSystemOutputList();	
 		String[] sysNames = processor.getSysNames();
 		displayListOnTab(sysNames, systemList, ps.overallAlysPanel);
+		
+		processor.processSiteData();
+		ArrayList<Object[]> siteList = processor.getSiteOutputList();	
+		String[] siteNames = processor.getSiteNames();
+		displayListOnTab(siteNames, siteList, ps.siteAnalysisPanel);
 	}
 
 	public void displayListOnTab(String[] colNames,ArrayList <Object []> list, JPanel panel) {
