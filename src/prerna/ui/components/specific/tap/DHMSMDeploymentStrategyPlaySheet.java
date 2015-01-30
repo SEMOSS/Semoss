@@ -20,6 +20,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 
@@ -67,6 +68,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	private ArrayList<String> regionsList;
 	private Hashtable<String, List<String>> regionWaveHash;
 	private ArrayList<String> waveOrder;
+	private HashMap<String, String[]> waveStartEndDate;
 	private JPanel regionTimePanel;
 	private Hashtable<String,JTextField> beginQuarterFieldRegionList, beginYearFieldRegionList;
 	private Hashtable<String,JTextField> endQuarterFieldRegionList, endYearFieldRegionList;
@@ -325,6 +327,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		DHMSMDeploymentStrategyRunBtnListener runList = new DHMSMDeploymentStrategyRunBtnListener();
 		runList.setRegionWaveHash(regionWaveHash);
 		runList.setWaveOrder(waveOrder);
+		runList.setWaveStartEndDate(waveStartEndDate);
 		runList.setPlaySheet(this);
 		runButton.addActionListener(runList);
 	}
@@ -482,6 +485,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		//private int defaultBeginQ, defaultBeginY, defaultEndQ, defaultEndY;
 		
 		waveOrder = DHMSMDeploymentHelper.getWaveOrder(siteEngine);
+		waveStartEndDate = DHMSMDeploymentHelper.getWaveStartAndEndDate(siteEngine);
 	}
 
 	/**
