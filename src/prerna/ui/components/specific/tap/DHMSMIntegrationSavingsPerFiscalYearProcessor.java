@@ -64,9 +64,11 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 	private HashMap<String, Double> locallyDeployedSavingsHash = new HashMap<String, Double>();
 	private final double percentRealized = .18;
 	
-	private ArrayList<Object[]> list;
-	private String[] names;
-
+	private ArrayList<Object[]> systemOutputList;
+	private String[] sysNames;
+	private ArrayList<Object[]> siteOutputList;
+	private String[] siteNames;
+	
 	private HashMap<String, double[]> savingsDataBySystem = new HashMap<String, double[]>();
 	private HashMap<String, double[]> savingsDataBySite = new HashMap<String, double[]>();
 	private HashMap<String, HashMap<Integer, Boolean>> missingDataMapBySystem = new HashMap<String, HashMap<Integer, Boolean>>();
@@ -281,7 +283,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 	
 	
 	public void processSiteData() {
-		list = new ArrayList<Object[]>();
+		siteOutputList = new ArrayList<Object[]>();
 		int numCols = numColumns+2;
 		DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
 		symbols.setGroupingSeparator(',');
@@ -289,20 +291,20 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		double[] totalCol = new double[numCols-2];
 		
 		// create system column
-		if(list.isEmpty()) {
-			names = new String[numCols];
+		if(siteOutputList.isEmpty()) {
+			siteNames = new String[numCols];
 			int fy = minYear; // pass min year to start table
 			int index;
 			for(index = 0; index < numCols - 1; index++) {
 				if(index == 0) {
-					names[0] = "HostSite/Floater";
+					siteNames[0] = "HostSite/Floater";
 				}
 				String fyString = "" + fy;
 				fyString = "FY" + fyString.substring(2,4);
-				names[index+1] = fyString;
+				siteNames[index+1] = fyString;
 				fy++;				
 			}
-			names[index] = "Total";
+			siteNames[index] = "Total";
 		}
 		// calculate site data
 		for(String site : savingsDataBySite.keySet()) {
@@ -340,7 +342,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			if(missing) {
 				row[index+1] += "*";
 			}
-			list.add(row);
+			siteOutputList.add(row);
 		}
 		
 		boolean missingData = false;
@@ -488,37 +490,35 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			row[numCols - 1] += "*";
 		}
 		
-		list.add(sustainmentRow);
-		list.add(otherSiteRow);
-		list.add(systemsNotIncludedRow);
-		list.add(row);
+		siteOutputList.add(sustainmentRow);
+		siteOutputList.add(otherSiteRow);
+		siteOutputList.add(systemsNotIncludedRow);
+		siteOutputList.add(row);
 	}
 	
 	//This method does the same thing as the above Process Data, but swaps the systems for the sites, getting a total per-site
 	public void processSystemData(){
-		generateSavingsData();
-
-		list = new ArrayList<Object[]>();
+		systemOutputList = new ArrayList<Object[]>();
 		int numCols = numColumns+2;
 		DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
 		symbols.setGroupingSeparator(',');
 		NumberFormat formatter = new DecimalFormat("'$' ###,##0.00", symbols);
 		double[] totalCol = new double[numCols-2];
 		
-		if(list.isEmpty()) {
-			names = new String[numCols];
+		if(systemOutputList.isEmpty()) {
+			sysNames = new String[numCols];
 			int fy = minYear; // pass min year to start table
 			int index;
 			for(index = 0; index < numCols - 1; index++) {
 				if(index == 0) {
-					names[0] = "System";
+					sysNames[0] = "System";
 				}
 				String fyString = "" + fy;
 				fyString = "FY" + fyString.substring(2,4);
-				names[index+1] = fyString;
+				sysNames[index+1] = fyString;
 				fy++;				
 			}
-			names[index] = "Total";
+			sysNames[index] = "Total";
 		}
 		
 		for(String system : savingsDataBySystem.keySet()) {
@@ -604,7 +604,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			if(missing) {
 				row[index+1] += "*";
 			}
-			list.add(row);
+			systemOutputList.add(row);
 		}
 		
 		// add in systems not in deployment strategy to be decommissioned at FOC
@@ -628,7 +628,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 				row[row.length - 1] = formatter.format(inflatedSavings); 
 				totalCol[totalCol.length - 1] += inflatedSavings;
 			}
-			list.add(row);
+			systemOutputList.add(row);
 		}
 		
 		//add fixed cost and column totals
@@ -654,7 +654,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			row[numCols - 1] += "*";
 		}
 
-		list.add(row);
+		systemOutputList.add(row);
 	}
 
 	public void runSupportQueries() {
@@ -793,13 +793,46 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 	public void setWaveStartEndDate(HashMap<String, String[]> waveStartEndDate) {
 		this.waveStartEndDate = waveStartEndDate;
 	}
+
+
+	public ArrayList<Object[]> getSystemOutputList() {
+		return systemOutputList;
+	}
+
+
+	public void setSystemOutputList(ArrayList<Object[]> systemOutputList) {
+		this.systemOutputList = systemOutputList;
+	}
+
+
+	public String[] getSysNames() {
+		return sysNames;
+	}
+
+
+	public void setSysNames(String[] sysNames) {
+		this.sysNames = sysNames;
+	}
+
+
+	public ArrayList<Object[]> getSiteOutputList() {
+		return siteOutputList;
+	}
+
+
+	public void setSiteOutputList(ArrayList<Object[]> siteOutputList) {
+		this.siteOutputList = siteOutputList;
+	}
+
+
+	public String[] getSiteNames() {
+		return siteNames;
+	}
+
+
+	public void setSiteNames(String[] siteNames) {
+		this.siteNames = siteNames;
+	}
 	
-	public ArrayList<Object[]> getList() {
-		return list;
-	}
-
-	public String[] getNames() {
-		return names;
-	}
-
+	
 }
