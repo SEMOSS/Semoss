@@ -64,6 +64,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	//list of regions
 	private ArrayList<String> regionsList;
 	private Hashtable<String, List<String>> regionWaveHash;
+	private ArrayList<String> waveOrder;
 	private JPanel regionTimePanel;
 	private ArrayList<JTextField> beginQuarterFieldRegionList, beginYearFieldRegionList;
 	private ArrayList<JTextField> endQuarterFieldRegionList, endYearFieldRegionList;
@@ -286,6 +287,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 
 		DHMSMDeploymentStrategyRunBtnListener runList = new DHMSMDeploymentStrategyRunBtnListener();
 		runList.setRegionWaveHash(regionWaveHash);
+		runList.setWaveOrder(waveOrder);
 		runList.setPlaySheet(this);
 		runButton.addActionListener(runList);
 	}
@@ -359,6 +361,8 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 			}
 			iteration++;
 		}
+		
+		waveOrder = DHMSMDeploymentHelper.getWaveOrder(siteEngine);
 	}
 
 	private void addRegion(String region) {
