@@ -33,7 +33,8 @@ public class DHMSMIntegrationSavingsBySiteFromWorksheetPerYearPlaySheet extends 
 			reader.read();
 			ArrayList<String> systems = reader.getSystems();
 			processor.runMainQueryFromWorksheetList(systems);
-			processor.processData();
+			processor.generateSavingsData();
+			processor.processSiteData();
 			list = processor.getList();
 			names = processor.getNames();
 		} catch (FileReaderException e) {
