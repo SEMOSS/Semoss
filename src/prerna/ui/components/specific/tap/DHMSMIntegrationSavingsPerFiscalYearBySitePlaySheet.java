@@ -30,8 +30,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySitePlaySheet extends GridPla
 		}
 		processor.generateSavingsData();
 		processor.processSiteData();
-		list = processor.getList();
-		names = processor.getNames();
+		list = processor.getSiteOutputList();
+		names = processor.getSiteNames();
 	}
 	
 }

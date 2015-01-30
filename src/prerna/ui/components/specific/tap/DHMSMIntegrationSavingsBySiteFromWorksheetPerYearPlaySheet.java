@@ -35,8 +35,8 @@ public class DHMSMIntegrationSavingsBySiteFromWorksheetPerYearPlaySheet extends 
 			processor.runMainQueryFromWorksheetList(systems);
 			processor.generateSavingsData();
 			processor.processSiteData();
-			list = processor.getList();
-			names = processor.getNames();
+			list = processor.getSiteOutputList();
+			names = processor.getSiteNames();
 		} catch (FileReaderException e) {
 			Utility.showError(e.getMessage());
 			e.printStackTrace();

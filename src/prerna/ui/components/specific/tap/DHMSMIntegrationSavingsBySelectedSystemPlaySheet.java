@@ -29,7 +29,7 @@ public class DHMSMIntegrationSavingsBySelectedSystemPlaySheet extends GridPlaySh
 		}
 		processor.generateSavingsData();
 		processor.processSystemData();
-		list = processor.getList();
-		names = processor.getNames();
+		list = processor.getSystemOutputList();
+		names = processor.getSysNames();
 	}
 }

@@ -35,8 +35,8 @@ public class DHMSMIntegrationSavingsBySystemFromWorksheetPerYearPlaySheet extend
 			processor.runMainQueryFromWorksheetList(systems);
 			processor.generateSavingsData();
 			processor.processSystemData();
-			list = processor.getList();
-			names = processor.getNames();
+			list = processor.getSystemOutputList();
+			names = processor.getSysNames();
 		} catch (FileReaderException e) {
 			Utility.showError(e.getMessage());
 			e.printStackTrace();

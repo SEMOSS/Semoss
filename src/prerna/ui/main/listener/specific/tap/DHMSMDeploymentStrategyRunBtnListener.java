@@ -145,8 +145,8 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		processor.generateSavingsData();
 		
 		processor.processSystemData();
-		ArrayList<Object[]> systemList = processor.getList();	
-		String[] sysNames = processor.getNames();
+		ArrayList<Object[]> systemList = processor.getSystemOutputList();	
+		String[] sysNames = processor.getSysNames();
 		displayListOnTab(sysNames, systemList, ps.overallAlysPanel);
 	}
 
