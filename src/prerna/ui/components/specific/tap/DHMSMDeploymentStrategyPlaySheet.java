@@ -79,7 +79,15 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	
 	//button to run algorithm
 	private JButton runButton;
+	
+	//display tabs
+	public JPanel siteAnalysisPanel = new JPanel();
 
+	public DHMSMDeploymentStrategyPlaySheet(){
+		super();
+		overallAnalysisTitle = "System Analysis";
+		titleText = "Set Deployment Time Frame";
+	}
 
 	/**
 	 * Sets up the Param panel at the top of the split pane
@@ -93,8 +101,6 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		}
 
 		super.createGenericParamPanel();
-
-		titleLbl.setText("Set Deployment Time Frame");
 
 		timePanel = new JPanel();
 		GridBagConstraints gbc_timePanel = new GridBagConstraints();
@@ -321,6 +327,19 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		runList.setWaveOrder(waveOrder);
 		runList.setPlaySheet(this);
 		runButton.addActionListener(runList);
+	}
+	
+	@Override
+	public void createGenericDisplayPanel() {
+		super.createGenericDisplayPanel();
+		siteAnalysisPanel = new JPanel();
+		tabbedPane.insertTab("Site Analysis", null, siteAnalysisPanel, null,1);
+		GridBagLayout gbl_siteAnalysisPanel = new GridBagLayout();
+		gbl_siteAnalysisPanel.columnWidths = new int[]{0, 0};
+		gbl_siteAnalysisPanel.rowHeights = new int[]{0, 0};
+		gbl_siteAnalysisPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_siteAnalysisPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		siteAnalysisPanel.setLayout(gbl_siteAnalysisPanel);
 	}
 
 	public void showSelectRegionTimesPanel(Boolean show) {
