@@ -87,23 +87,22 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 			//check if region textfields are valid
 			//add them to list of regions
 			ArrayList<String> regionsList = ps.getRegionsList();
-			ArrayList<JTextField> beginQuarterFieldRegionList = ps.getBeginQuarterFieldRegionList();
-			ArrayList<JTextField> beginYearFieldRegionList = ps.getBeginYearFieldRegionList();
-			ArrayList<JTextField> endQuarterFieldRegionList = ps.getEndQuarterFieldRegionList();
-			ArrayList<JTextField> endYearFieldRegionList = ps.getEndYearFieldRegionList();
+			Hashtable<String,JTextField> beginQuarterFieldRegionList = ps.getBeginQuarterFieldRegionList();
+			Hashtable<String,JTextField> beginYearFieldRegionList = ps.getBeginYearFieldRegionList();
+			Hashtable<String,JTextField> endQuarterFieldRegionList = ps.getEndQuarterFieldRegionList();
+			Hashtable<String,JTextField> endYearFieldRegionList = ps.getEndYearFieldRegionList();
 
 			for(int i=0;i<regionsList.size();i++) {
 				String region = regionsList.get(i);
-
-				int beginQuarter = getInteger(beginQuarterFieldRegionList.get(i), beginQuarterFieldRegionList.get(i).getName());
-				int beginYear = getInteger(beginYearFieldRegionList.get(i), beginYearFieldRegionList.get(i).getName());
-				int endQuarter = getInteger(endQuarterFieldRegionList.get(i), endQuarterFieldRegionList.get(i).getName());
-				int endYear = getInteger(endYearFieldRegionList.get(i), endYearFieldRegionList.get(i).getName());
+				int beginQuarter = getInteger(beginQuarterFieldRegionList.get(region), beginQuarterFieldRegionList.get(region).getName());
+				int beginYear = getInteger(beginYearFieldRegionList.get(region), beginYearFieldRegionList.get(region).getName());
+				int endQuarter = getInteger(endQuarterFieldRegionList.get(region), endQuarterFieldRegionList.get(region).getName());
+				int endYear = getInteger(endYearFieldRegionList.get(region), endYearFieldRegionList.get(region).getName());
 				if(beginQuarter<0 || beginYear<0 || endQuarter<0 || endYear<0) {
 					Utility.showError("Cannot read fields. Please check the Console tab for more information");
 					return;
 				}
-				if(!validQuarter(beginQuarter, beginQuarterFieldRegionList.get(i).getName()) || !validQuarter(endQuarter, endQuarterFieldRegionList.get(i).getName()) || !validYear(beginYear, endQuarterFieldRegionList.get(i).getName())  || !validYear(endYear, endYearFieldRegionList.get(i).getName()) ) {
+				if(!validQuarter(beginQuarter, beginQuarterFieldRegionList.get(region).getName()) || !validQuarter(endQuarter, endQuarterFieldRegionList.get(region).getName()) || !validYear(beginYear, endQuarterFieldRegionList.get(region).getName())  || !validYear(endYear, endYearFieldRegionList.get(region).getName()) ) {
 					Utility.showError("Cannot read fields. Please check the Console tab for more information");
 					return;
 				}
