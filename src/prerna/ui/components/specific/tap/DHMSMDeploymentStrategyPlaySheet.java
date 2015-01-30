@@ -36,6 +36,7 @@ import org.apache.log4j.Logger;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.ui.main.listener.specific.tap.DHMSMDeploymentStrategyRestoreDefaultsListener;
 import prerna.ui.main.listener.specific.tap.DHMSMDeploymentStrategyRunBtnListener;
 import prerna.ui.main.listener.specific.tap.DHMSMDeploymentStrategySetRegionListener;
 import prerna.ui.swing.custom.CustomButton;
@@ -57,6 +58,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	private JPanel timePanel;
 	private JTextField beginQuarterField, beginYearField;
 	private JTextField endQuarterField, endYearField;
+	private int defaultBeginQ, defaultBeginY, defaultEndQ, defaultEndY;
 
 	//toggle to select specific region times
 	private JToggleButton selectRegionTimesButton;
@@ -66,9 +68,15 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	private Hashtable<String, List<String>> regionWaveHash;
 	private ArrayList<String> waveOrder;
 	private JPanel regionTimePanel;
-	private ArrayList<JTextField> beginQuarterFieldRegionList, beginYearFieldRegionList;
-	private ArrayList<JTextField> endQuarterFieldRegionList, endYearFieldRegionList;
+	private Hashtable<String,JTextField> beginQuarterFieldRegionList, beginYearFieldRegionList;
+	private Hashtable<String,JTextField> endQuarterFieldRegionList, endYearFieldRegionList;
 
+	private Hashtable<String,Integer> defaultBeginQHash, defaultBeginYHash;
+	private Hashtable<String,Integer> defaultEndQHash, defaultEndYHash;
+
+	//button to restore defaults
+	private JButton restoreDefaultsButton;
+	
 	//button to run algorithm
 	private JButton runButton;
 
@@ -259,18 +267,41 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		DHMSMDeploymentStrategySetRegionListener setRegLis = new DHMSMDeploymentStrategySetRegionListener();
 		setRegLis.setPlaySheet(this);
 		selectRegionTimesButton.addActionListener(setRegLis);
-
+		
 		//select by region panel
-		beginQuarterFieldRegionList = new ArrayList<JTextField>();
-		beginYearFieldRegionList = new ArrayList<JTextField>();
-		endQuarterFieldRegionList = new ArrayList<JTextField>();
-		endYearFieldRegionList = new ArrayList<JTextField>();
+		beginQuarterFieldRegionList = new Hashtable<String,JTextField>();
+		beginYearFieldRegionList = new Hashtable<String,JTextField>();
+		endQuarterFieldRegionList = new Hashtable<String,JTextField>();
+		endYearFieldRegionList = new Hashtable<String,JTextField>();
 
 		//add in the regions labels and fields to the region panel
 		for(String region : regionsList) {
 			addRegion(region);
 		}
+		
+		setDefaults();
+		
+		
+		//restore defaults
+		restoreDefaultsButton = new CustomButton("Restore defaults");
+		restoreDefaultsButton.setName("restoreDefaultsButton");
+		restoreDefaultsButton.setFont(new Font("Tahoma", Font.BOLD, 11));
+		Style.registerTargetClassName(restoreDefaultsButton,  ".toggleButton");
 
+		GridBagConstraints gbc_restoreDefaultsButton = new GridBagConstraints();
+		gbc_restoreDefaultsButton.anchor = GridBagConstraints.NORTH;
+		gbc_restoreDefaultsButton.gridwidth = 6;
+		gbc_restoreDefaultsButton.fill = GridBagConstraints.HORIZONTAL;
+		gbc_restoreDefaultsButton.insets = new Insets(0, 0, 5, 5);
+		gbc_restoreDefaultsButton.gridx = 0;
+		gbc_restoreDefaultsButton.gridy = 4;
+		timePanel.add(restoreDefaultsButton, gbc_restoreDefaultsButton);
+
+		//listener to show region panel
+		DHMSMDeploymentStrategyRestoreDefaultsListener restoreDefaultsLis = new DHMSMDeploymentStrategyRestoreDefaultsListener();
+		restoreDefaultsLis.setPlaySheet(this);
+		restoreDefaultsButton.addActionListener(restoreDefaultsLis);
+		
 		runButton = new CustomButton("Create deployment strategy");
 		runButton.setName("runButton");
 		runButton.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -282,7 +313,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		gbc_runButton.fill = GridBagConstraints.HORIZONTAL;
 		gbc_runButton.insets = new Insets(20, 0, 5, 5);
 		gbc_runButton.gridx = 0;
-		gbc_runButton.gridy = 4;
+		gbc_runButton.gridy = 5;
 		timePanel.add(runButton, gbc_runButton);
 
 		DHMSMDeploymentStrategyRunBtnListener runList = new DHMSMDeploymentStrategyRunBtnListener();
@@ -316,55 +347,150 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	 */
 	private void queryRegions() {
 		regionsList = new ArrayList<String>();
+		defaultBeginQHash = new Hashtable<String,Integer>();
+		defaultBeginYHash = new Hashtable<String,Integer>();
+		defaultEndQHash = new Hashtable<String,Integer>();
+		defaultEndYHash = new Hashtable<String,Integer>();	
+		
 		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 		//query is written to pull wave so that i can determine in what order the regions are deployed in
-		String regionQuery = "SELECT DISTINCT ?Region ?Wave WHERE {{?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>}{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Region <http://semoss.org/ontologies/Relation/Deploys> ?Wave}}";
+		String regionQuery = "SELECT DISTINCT ?Region ?Wave ?BeginQ ?BeginY ?EndQ ?EndY WHERE {{?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>}{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?BeginYQ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>} {?EndYQ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>}{?BeginQ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Quarter>}{?BeginY <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?EndQ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Quarter>}{?EndY <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?Region <http://semoss.org/ontologies/Relation/Deploys> ?Wave}{?Wave <http://semoss.org/ontologies/Relation/BeginsOn> ?BeginYQ}{?BeginYQ ?rel1 ?BeginY}{?BeginYQ ?rel2 ?BeginQ}{?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?EndYQ}{?EndYQ ?rel3 ?EndY}{?EndYQ ?rel4 ?EndQ}}";
 		SesameJenaSelectWrapper wrapper = Utility.processQuery(siteEngine,regionQuery);
 
-		Hashtable<Integer, String> waveRegionHash = new Hashtable<Integer, String>();
+
 		regionWaveHash = new Hashtable<String, List<String>>();
 		String[] names = wrapper.getVariables();
-		try {
+
 			while(wrapper.hasNext())
 			{
 				SesameJenaSelectStatement sjss = wrapper.next();
 				String region = (String) sjss.getVar(names[0]);
-				String wave = (String) sjss.getVar(names[1]);
+				String waveString = (String) sjss.getVar(names[1]);
 
 				List<String> waveValues;
 				if(regionWaveHash.containsKey(region)) {
 					waveValues = regionWaveHash.get(region);
-					waveValues.add(wave);
+					waveValues.add(waveString);
 				} else {
 					waveValues = new ArrayList<String>();
-					waveValues.add(wave);
+					waveValues.add(waveString);
 					regionWaveHash.put(region, waveValues);
 				}
 				try{
-					int waveInt = Integer.parseInt(wave);
-					waveRegionHash.put(waveInt, region);
+					int beginQ = Integer.parseInt((String) sjss.getVar(names[2]));
+					int beginY = Integer.parseInt((String) sjss.getVar(names[3]));
+					int endQ = Integer.parseInt((String) sjss.getVar(names[4]));
+					int endY = Integer.parseInt((String) sjss.getVar(names[5]));
+	
+					//if current begin val is earlier than what is saved, save current
+					if(defaultBeginQHash.containsKey(region) && defaultBeginYHash.containsKey(region)) {
+						int earlyBeginQ = defaultBeginQHash.get(region);
+						int earlyBeginY = defaultBeginYHash.get(region);
+						if(compareTo(earlyBeginQ,earlyBeginY,beginQ,beginY)<0) {
+							defaultBeginQHash.put(region,beginQ);
+							defaultBeginYHash.put(region,beginY);
+						}
+					} else{
+						defaultBeginQHash.put(region,beginQ);
+						defaultBeginYHash.put(region,beginY);
+					}
+					
+					//if current end val is later than what is saved, save current
+					if(defaultEndQHash.containsKey(region) && defaultEndYHash.containsKey(region)) {
+						int lateEndQ = defaultEndQHash.get(region);
+						int lateEndY = defaultEndYHash.get(region);
+						if(compareTo(lateEndQ,lateEndY,endQ,endY)>0) {
+							defaultEndQHash.put(region,endQ);
+							defaultEndYHash.put(region,endY);
+						}
+					} else{
+						defaultEndQHash.put(region,endQ);
+						defaultEndYHash.put(region,endY);
+					}
 				}catch(Exception e) {
-					LOGGER.error("Could not add wave "+wave+" because it is not an integer");
+					LOGGER.error("Could not add region "+region+" wave "+waveString);
 				}
 			}
-		} catch (RuntimeException e) {
-			LOGGER.fatal(e);
-		}
-		int iteration = 0;
-		int countFound = 0;
-		while(countFound<waveRegionHash.size()) {
-			if(waveRegionHash.containsKey(iteration)) {
-				String region = waveRegionHash.get(iteration);
-				if(!regionsList.contains(region))
+
+		for(String region : regionWaveHash.keySet()) {
+			if(!region.toUpperCase().equals("IOC")) {
+			int beginQuarter =defaultBeginQHash.get(region);
+			int beginYear =defaultBeginYHash.get(region);
+			if(regionsList.size()==0)
+				regionsList.add(region);
+			else {
+				int i=0;
+				Boolean added = false;
+				while(i<regionsList.size()) {
+					String regionI = regionsList.get(i);
+					int iBeginQuarter =defaultBeginQHash.get(regionI);
+					int iBeginYear =defaultBeginYHash.get(regionI);
+					//if the region to be added begins before the one at index i, add it
+					if(!added&&compareTo(beginQuarter,beginYear,iBeginQuarter,iBeginYear)>=1) {
+						regionsList.add(i,region);
+						added = true;
+					}
+					i++;
+				}
+				if(!added) {
 					regionsList.add(region);
-				countFound++;
+				}
 			}
-			iteration++;
+			}
 		}
+		
+		defaultBeginQ = defaultBeginQHash.get(regionsList.get(0));
+		defaultBeginY = defaultBeginYHash.get(regionsList.get(0));
+		defaultEndQ = defaultEndQHash.get(regionsList.get(0));
+		defaultEndY = defaultEndYHash.get(regionsList.get(0));
+		
+		for(String region : regionsList) {
+			if(!region.toUpperCase().equals("IOC")) {
+				int beginQ = defaultBeginQHash.get(region);
+				int beginY = defaultBeginYHash.get(region);
+				int endQ = defaultEndQHash.get(region);
+				int endY = defaultEndYHash.get(region);
+				if(compareTo(defaultBeginQ,defaultBeginY,beginQ,beginY)<0) {
+					defaultBeginQ = beginQ;
+					defaultBeginY = beginY;
+				}
+				if(compareTo(defaultEndQ,defaultEndY,endQ,endY)>0) {
+					defaultEndQ = endQ;
+					defaultEndY = endY;
+				}
+			}
+		}
+		//private int defaultBeginQ, defaultBeginY, defaultEndQ, defaultEndY;
 		
 		waveOrder = DHMSMDeploymentHelper.getWaveOrder(siteEngine);
 	}
 
+	/**
+	 * compares two dates to see which comes earlier.
+	 * if the first date is before, returns 1
+	 * if the same date, returns 0
+	 * if the first date is after, returns -1
+	 * @param firstQ
+	 * @param firstY
+	 * @param secondQ
+	 * @param secondY
+	 * @return
+	 */
+	private int compareTo(int firstQ, int firstY, int secondQ, int secondY) {
+		if(firstY<secondY) {
+			return 1;
+		} else if(firstY==secondY){
+			if(firstQ<secondQ) {
+				return 1;
+			}else if(firstQ==secondQ) {
+				return 0;
+			}else if(firstQ > secondY) {
+				return -1;
+			}
+		}
+		return -1;
+	}
+	
 	private void addRegion(String region) {
 		int y = beginQuarterFieldRegionList.size();
 
@@ -397,7 +523,6 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 
 		JTextField beginQuarterField = new JTextField();
 		beginQuarterField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		beginQuarterField.setText("1");
 		beginQuarterField.setColumns(1);
 		beginQuarterField.setName(region+" begins quarter");
 
@@ -419,7 +544,6 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 
 		JTextField beginYearField = new JTextField();
 		beginYearField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		beginYearField.setText("15");
 		beginYearField.setColumns(2);
 		beginYearField.setName(region+" begins year");
 
@@ -451,7 +575,6 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 
 		JTextField endQuarterField = new JTextField();
 		endQuarterField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		endQuarterField.setText("1");
 		endQuarterField.setColumns(1);
 		endQuarterField.setName(region+" ends quarter");
 
@@ -473,7 +596,6 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 
 		JTextField endYearField = new JTextField();
 		endYearField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		endYearField.setText("21");
 		endYearField.setColumns(2);
 		endYearField.setName(region+" ends year");
 
@@ -484,13 +606,32 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		gbc_endYearField.gridy = y+1;
 		regionTimePanel.add(endYearField, gbc_endYearField);
 
-		beginQuarterFieldRegionList.add(beginQuarterField);
-		beginYearFieldRegionList.add(beginYearField);
-		endQuarterFieldRegionList.add(endQuarterField);
-		endYearFieldRegionList.add(endYearField);
+		beginQuarterFieldRegionList.put(region,beginQuarterField);
+		beginYearFieldRegionList.put(region,beginYearField);
+		endQuarterFieldRegionList.put(region,endQuarterField);
+		endYearFieldRegionList.put(region,endYearField);
 
 	}
 
+	public void setDefaults() {
+		beginQuarterField.setText("" + defaultBeginQ);
+		beginYearField.setText(("" + defaultBeginY).substring(2));
+		endQuarterField.setText("" + defaultEndQ);
+		endYearField.setText(("" + defaultEndY).substring(2));
+		
+		for(String region : regionsList) {
+			String beginQ = "" + defaultBeginQHash.get(region);
+			String beginY = "" + defaultBeginYHash.get(region);
+			String endQ = "" + defaultEndQHash.get(region);
+			String endY = "" + defaultEndYHash.get(region);
+			beginQuarterFieldRegionList.get(region).setText(beginQ);
+			endQuarterFieldRegionList.get(region).setText(endQ);
+			beginYearFieldRegionList.get(region).setText(beginY.substring(2));
+			endYearFieldRegionList.get(region).setText(endY.substring(2));
+	
+		}
+	}
+	
 	public JToggleButton getSelectRegionTimesButton() {
 		return selectRegionTimesButton;
 	}
@@ -515,19 +656,19 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		return regionsList;
 	}
 
-	public ArrayList<JTextField> getBeginQuarterFieldRegionList() {
+	public Hashtable<String,JTextField> getBeginQuarterFieldRegionList() {
 		return beginQuarterFieldRegionList;
 	}
 
-	public ArrayList<JTextField> getBeginYearFieldRegionList() {
+	public Hashtable<String,JTextField> getBeginYearFieldRegionList() {
 		return beginYearFieldRegionList;
 	}
 
-	public ArrayList<JTextField> getEndQuarterFieldRegionList() {
+	public Hashtable<String,JTextField> getEndQuarterFieldRegionList() {
 		return endQuarterFieldRegionList;
 	}
 
-	public ArrayList<JTextField> getEndYearFieldRegionList() {
+	public Hashtable<String,JTextField> getEndYearFieldRegionList() {
 		return endYearFieldRegionList;
 	}
 }
