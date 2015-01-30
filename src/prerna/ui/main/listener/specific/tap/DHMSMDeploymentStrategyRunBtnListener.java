@@ -19,6 +19,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
@@ -42,6 +43,8 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 	private DHMSMDeploymentStrategyPlaySheet ps;
 	private JTextArea consoleArea;
 	
+	private Hashtable<String, List<String>> regionWaveHash;
+
 	/**
 	 * Method actionPerformed.
 	 * @param arg0 ActionEvent
@@ -104,9 +107,10 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 					regionEndHash.put(regionsList.get(i), "Q"+endQuarter+"FY"+endYear);
 				else
 					regionEndHash.put(regionsList.get(i), "Q"+endQuarter+"FY0"+endYear);
-
 			}
 		}
+		
+		
 		
 		//now have a filled region begin and end hash. run maher's code here
 		for(String region : regionBeginHash.keySet()) {
@@ -173,6 +177,14 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 			return false;
 		}
 		return true;
+	}
+	
+	public Hashtable<String, List<String>> getRegionWaveHash() {
+		return regionWaveHash;
+	}
+
+	public void setRegionWaveHash(Hashtable<String, List<String>> regionWaveHash) {
+		this.regionWaveHash = regionWaveHash;
 	}
 
 }
