@@ -69,6 +69,12 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		ArrayList<String> regionsList = ps.getRegionsList();
 
 		if(!selectRegionTimesButton.isSelected()) {
+			//grab the original values for deployment schedule
+			int oBeginQuarter = ps.getqBeginDefault();
+			int oBeginYear = ps.getyBeginDefault() - 2000;
+			int oEndQuarter = ps.getqEndDefault();
+			int oEndYear = ps.getyEndDefault() - 2000;
+
 			//pull from begin / end and fill the regions accordingly
 			int beginQuarter = getInteger(ps.getQBeginField(), ps.getQBeginField().getName());
 			int beginYear = getInteger(ps.getYBeginField(), ps.getYBeginField().getName());
@@ -82,8 +88,95 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 				Utility.showError("Cannot read fields. Please check the Console tab for more information");
 				return;
 			}
-			//TODO: add logic for wave start/end dates
+
+			// if no change to deployment values, run default schedule
+			if(oBeginQuarter == beginQuarter && oBeginYear == beginYear && oEndQuarter == endQuarter && oEndYear == endYear) {
+				LOGGER.info("Using original deployment schedule");
+			} else {
+				// calculate the ratio between old and new deployment schedule
+				int originalDistance = 0;
+				if(oBeginYear != oEndYear) {
+					originalDistance = (Math.abs(oBeginYear - oEndYear)*4) - Math.abs(oBeginQuarter - oEndQuarter);
+				} else {
+					originalDistance = Math.abs(oBeginQuarter - oEndQuarter);
+				}
+
+				int newDistance = 0;
+				if(beginYear != endYear) {
+					newDistance = (Math.abs(beginYear - endYear)*4) - Math.abs(beginQuarter - endQuarter);
+				} else {
+					newDistance = Math.abs(beginQuarter - endQuarter);
+				}
+
+				double deploymentChange = newDistance/originalDistance;
+
+				// start/end date do not change IOC date
+				waveStartEndHash.put("IOC", waveStartEndDate.get("IOC"));
+
+				// add in rest of calculations based on date
+				double currMonth = beginQuarter*3;
+				int currYear = beginYear;
+				for(int i=1;i<regionsList.size();i++) {
+					String region = regionsList.get(i);
+					List<String> wavesInRegion = regionWaveHash.get(region);
+
+					for(String wave : waveOrder) {
+						if(wavesInRegion.contains(wave)) {
+							String[] date = new String[2];
+							date[0] = "Q" + ((int) Math.ceil(currMonth/3)) + "FY20" + currYear;
+
+							String[] waveInfo = waveStartEndDate.get(wave);
+							String startDate = waveInfo[0];
+							String[] startQ_FY = startDate.split("FY");
+							String startQ = startQ_FY[0].substring(1);
+							String startFY = startQ_FY[1];
+
+							String endDate = waveInfo[1];
+							String[] endQ_FY = endDate.split("FY");
+							String endQ = endQ_FY[0].substring(1);
+							String endFY = endQ_FY[1];
+
+							int waveBeginQuarter = Integer.parseInt(startQ);
+							int waveBeginYear = Integer.parseInt(startFY);
+							int waveEndQuarter = Integer.parseInt(endQ);
+							int waveEndYear = Integer.parseInt(endFY);
+
+							int distanceInQuarters = 0;
+							if(waveBeginYear != waveEndYear) {
+								distanceInQuarters = (Math.abs(waveBeginYear - waveEndYear)*4) - Math.abs(waveBeginQuarter - waveEndQuarter);
+							} else {
+								distanceInQuarters = Math.abs(waveBeginQuarter - waveEndQuarter);
+							}
+							int distanceInMonth = distanceInQuarters*3;
+
+							double alteredDistanceInMonth = distanceInMonth * deploymentChange;
+							if(alteredDistanceInMonth > 12) {
+								int yearsPassed = (int) Math.floor(alteredDistanceInMonth / 12);
+								double monthPassed = alteredDistanceInMonth % 12;
+								currYear += yearsPassed;
+								if(currMonth + monthPassed > 12) {
+									currMonth = ((currMonth + monthPassed) - 12);
+									currYear += 1;
+								}
+							} else if(currMonth + alteredDistanceInMonth > 12) {
+								currMonth = ((currMonth + alteredDistanceInMonth) - 12);
+								currYear += 1;
+							} else {
+								currMonth += alteredDistanceInMonth;
+							}
+							date[1] = "Q" + ((int) Math.ceil(currMonth/3)) + "FY20" + currYear;
+							waveStartEndHash.put(wave, date);
+						}
+					}
+				}
+			}
 		} else {
+			//grab the original values for the deployment schedule
+			Hashtable<String, Integer> oBeginQuarterFieldRegionList = ps.getqBeginDefaultHash();
+			Hashtable<String, Integer> oBeginYearFieldRegionList = ps.getyBeginDefaultHash();
+			Hashtable<String, Integer> oEndQuarterFieldRegionList = ps.getqEndDefaultHash();
+			Hashtable<String, Integer> oEndYearFieldRegionList = ps.getyEndDefaultHash();
+			
 			//pull from region list
 			//check if region textfields are valid
 			//add them to list of regions
@@ -91,13 +184,21 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 			Hashtable<String,JTextField> beginYearFieldRegionList = ps.getYBeginFieldHash();
 			Hashtable<String,JTextField> endQuarterFieldRegionList = ps.getQEndFieldHash();
 			Hashtable<String,JTextField> endYearFieldRegionList = ps.getYEndFieldHash();
-
-			for(int i=0;i<regionsList.size();i++) {
+			
+			//if no changes to schedule, run default values
+			boolean noChange = true;
+			for(int i = 0; i < regionsList.size(); i++) {
 				String region = regionsList.get(i);
+				int oBeginQuarter = oBeginQuarterFieldRegionList.get(region);
+				int oBeginYear = oBeginYearFieldRegionList.get(region) - 2000;
+				int oEndQuarter = oEndQuarterFieldRegionList.get(region);
+				int oEndYear = oEndYearFieldRegionList.get(region) - 2000;
+				
 				int beginQuarter = getInteger(beginQuarterFieldRegionList.get(region), beginQuarterFieldRegionList.get(region).getName());
 				int beginYear = getInteger(beginYearFieldRegionList.get(region), beginYearFieldRegionList.get(region).getName());
 				int endQuarter = getInteger(endQuarterFieldRegionList.get(region), endQuarterFieldRegionList.get(region).getName());
 				int endYear = getInteger(endYearFieldRegionList.get(region), endYearFieldRegionList.get(region).getName());
+				
 				if(beginQuarter<0 || beginYear<0 || endQuarter<0 || endYear<0) {
 					Utility.showError("Cannot read fields. Please check the Console tab for more information");
 					return;
@@ -106,36 +207,66 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 					Utility.showError("Cannot read fields. Please check the Console tab for more information");
 					return;
 				}
-
-				List<String> wavesInRegion = regionWaveHash.get(region);
-				// calculate distance in number of quarters
-				int distanceInQuarters = Math.abs(beginQuarter - endQuarter);
-				if(distanceInQuarters == 0) {
-					distanceInQuarters += 4 * (endYear - beginYear);
+				
+				if(oBeginQuarter == beginQuarter && oBeginYear == beginYear && oEndQuarter == endQuarter && oEndYear == endYear) {
+					// do nothing
 				} else {
-					distanceInQuarters += 4 * (endYear - (beginYear+1)); // +1 for when less than a year different, but in two different FYs
+					noChange = false;
+					break;
 				}
-				double numQuartersPerWave = distanceInQuarters/wavesInRegion.size();
-
-				double currQuarter = beginQuarter;
-				int currYear = beginYear;
-				for(String wave : waveOrder) {
-					if(wavesInRegion.contains(wave)) {
-						String[] date = new String[2];
-						date[0] = "Q" + ((int) Math.ceil(currQuarter)) + "FY20" + currYear;
-						if(numQuartersPerWave > 4) {
-							int yearsPassed = (int) Math.floor(numQuartersPerWave / 4);
-							double quartersPassed = numQuartersPerWave % 4;
-							currYear += yearsPassed;
-							currQuarter += quartersPassed;
-						} else if(currQuarter + numQuartersPerWave > 4) {
-							currQuarter = ((currQuarter + numQuartersPerWave) - 4);
-							currYear += 1;
-						} else {
-							currQuarter += numQuartersPerWave;
+			}
+			
+			if(noChange) {
+				LOGGER.info("Using original deployment schedule");
+			} else {
+				for(int i=0;i<regionsList.size();i++) {
+					String region = regionsList.get(i);
+					int beginQuarter = getInteger(beginQuarterFieldRegionList.get(region), beginQuarterFieldRegionList.get(region).getName());
+					int beginYear = getInteger(beginYearFieldRegionList.get(region), beginYearFieldRegionList.get(region).getName());
+					int endQuarter = getInteger(endQuarterFieldRegionList.get(region), endQuarterFieldRegionList.get(region).getName());
+					int endYear = getInteger(endYearFieldRegionList.get(region), endYearFieldRegionList.get(region).getName());
+					if(beginQuarter<0 || beginYear<0 || endQuarter<0 || endYear<0) {
+						Utility.showError("Cannot read fields. Please check the Console tab for more information");
+						return;
+					}
+					if(!validQuarter(beginQuarter, beginQuarterFieldRegionList.get(region).getName()) || !validQuarter(endQuarter, endQuarterFieldRegionList.get(region).getName()) || !validYear(beginYear, endQuarterFieldRegionList.get(region).getName())  || !validYear(endYear, endYearFieldRegionList.get(region).getName()) ) {
+						Utility.showError("Cannot read fields. Please check the Console tab for more information");
+						return;
+					}
+	
+					List<String> wavesInRegion = regionWaveHash.get(region);
+					// calculate distance in number of quarters
+					int distanceInQuarters = 0;
+					if(beginYear != endYear) {
+						distanceInQuarters = (Math.abs(endYear - beginYear)*4) - Math.abs(beginQuarter - endQuarter);
+					} else {
+						distanceInQuarters = Math.abs(beginQuarter - endQuarter);
+					}
+					double numQuartersPerWave = distanceInQuarters/wavesInRegion.size();
+	
+					double currQuarter = beginQuarter;
+					int currYear = beginYear;
+					for(String wave : waveOrder) {
+						if(wavesInRegion.contains(wave)) {
+							String[] date = new String[2];
+							date[0] = "Q" + ((int) Math.ceil(currQuarter)) + "FY20" + currYear;
+							if(numQuartersPerWave > 4) {
+								int yearsPassed = (int) Math.floor(numQuartersPerWave / 4);
+								double quartersPassed = numQuartersPerWave % 4;
+								currYear += yearsPassed;
+								if(currQuarter + quartersPassed > 4) {
+									currQuarter = ((currQuarter + quartersPassed) - 4);
+									currYear += 1;
+								}
+							} else if(currQuarter + numQuartersPerWave > 4) {
+								currQuarter = ((currQuarter + numQuartersPerWave) - 4);
+								currYear += 1;
+							} else {
+								currQuarter += numQuartersPerWave;
+							}
+							date[1] = "Q" + ((int) Math.ceil(currQuarter)) + "FY20" + currYear;
+							waveStartEndHash.put(wave, date);
 						}
-						date[1] = "Q" + ((int) Math.ceil(currQuarter)) + "FY20" + currYear;
-						waveStartEndHash.put(wave, date);
 					}
 				}
 			}
@@ -152,7 +283,7 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		ArrayList<Object[]> systemList = processor.getSystemOutputList();	
 		String[] sysNames = processor.getSysNames();
 		displayListOnTab(sysNames, systemList, ps.overallAlysPanel);
-		
+
 		//TODO: figure out why what obj is being changed causing me to run twice to make sure numbers match
 		processor = new DHMSMIntegrationSavingsPerFiscalYearProcessor();
 		processor.runSupportQueries();
@@ -165,6 +296,12 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		ArrayList<Object[]> siteList = processor.getSiteOutputList();	
 		String[] siteNames = processor.getSiteNames();
 		displayListOnTab(siteNames, siteList, ps.siteAnalysisPanel);
+
+		//print out waveinfo
+		//		for(String s : waveStartEndHash.keySet()) {
+		//			String[] x = waveStartEndHash.get(s);
+		//			System.out.println(s + " : " + x[0] + ", " + x[1]);
+		//		}
 	}
 
 	public void displayListOnTab(String[] colNames,ArrayList <Object []> list, JPanel panel) {

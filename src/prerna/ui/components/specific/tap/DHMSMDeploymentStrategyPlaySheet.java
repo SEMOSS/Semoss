@@ -652,7 +652,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	
 		}
 	}
-	
+
 	public JToggleButton getSelectRegionTimesButton() {
 		return selectRegionTimesButton;
 	}
@@ -705,4 +705,69 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	public Hashtable<String,Integer> getYEndDefaultHash() {
 		return yEndDefaultHash;
 	}
+
+	public int getqBeginDefault() {
+		return qBeginDefault;
+	}
+
+	public void setqBeginDefault(int qBeginDefault) {
+		this.qBeginDefault = qBeginDefault;
+	}
+
+	public int getyBeginDefault() {
+		return yBeginDefault;
+	}
+
+	public void setyBeginDefault(int yBeginDefault) {
+		this.yBeginDefault = yBeginDefault;
+	}
+
+	public int getqEndDefault() {
+		return qEndDefault;
+	}
+
+	public void setqEndDefault(int qEndDefault) {
+		this.qEndDefault = qEndDefault;
+	}
+
+	public int getyEndDefault() {
+		return yEndDefault;
+	}
+
+	public void setyEndDefault(int yEndDefault) {
+		this.yEndDefault = yEndDefault;
+	}
+	
+	public Hashtable<String, Integer> getqBeginDefaultHash() {
+		return qBeginDefaultHash;
+	}
+
+	public void setqBeginDefaultHash(Hashtable<String, Integer> qBeginDefaultHash) {
+		this.qBeginDefaultHash = qBeginDefaultHash;
+	}
+
+	public Hashtable<String, Integer> getyBeginDefaultHash() {
+		return yBeginDefaultHash;
+	}
+
+	public void setyBeginDefaultHash(Hashtable<String, Integer> yBeginDefaultHash) {
+		this.yBeginDefaultHash = yBeginDefaultHash;
+	}
+
+	public Hashtable<String, Integer> getqEndDefaultHash() {
+		return qEndDefaultHash;
+	}
+
+	public void setqEndDefaultHash(Hashtable<String, Integer> qEndDefaultHash) {
+		this.qEndDefaultHash = qEndDefaultHash;
+	}
+
+	public Hashtable<String, Integer> getyEndDefaultHash() {
+		return yEndDefaultHash;
+	}
+
+	public void setyEndDefaultHash(Hashtable<String, Integer> yEndDefaultHash) {
+		this.yEndDefaultHash = yEndDefaultHash;
+	}
+
 }
