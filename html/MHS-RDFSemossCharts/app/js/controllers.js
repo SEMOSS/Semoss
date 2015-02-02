@@ -2368,8 +2368,7 @@ function SingleChartCtrl($scope, $http) {
         }else if (graphOptions.chartType == 'column'){
             return {
                 formatter: function(){
-                    var yVal = this.y.toString().substring(0,6); 
-                    return '<b>' + "Count" + '</b>: ' + yVal;
+					return '<b>' + "Count" + '</b>: ' + this.y.toString();
                 }
             };
         }else if (graphOptions.chartType == 'bubble'){
