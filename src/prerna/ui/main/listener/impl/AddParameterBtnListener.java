@@ -43,7 +43,7 @@ public class AddParameterBtnListener extends AbstractListener {
 		String parameter = (String) addParameterComboBox.getSelectedItem();
 		
 		//adds the sparql for parameters
-		questionSparql.setText(currentQuery+" BIND(<@"+ parameter + "-http://semoss.org/ontologies/" + parameter + "@> AS ?" + parameter + ") ");
+		questionSparql.setText(currentQuery+" BIND(<@"+ parameter + "-http://semoss.org/ontologies/Concept/" + parameter + "@> AS ?" + parameter + ") ");
 	}
 	
 	/**
