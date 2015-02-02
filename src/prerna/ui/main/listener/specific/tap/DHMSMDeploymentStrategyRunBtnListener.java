@@ -97,7 +97,7 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 			} else {
 				int distanceInQuarters = 0;
 				if(beginYear != endYear) {
-					if(beginYear == beginYear + 1) {
+					if(beginQuarter > endQuarter) {
 						distanceInQuarters = (Math.abs(beginYear - endYear)*4) - Math.abs(beginQuarter - endQuarter);
 					} else {
 						distanceInQuarters = (Math.abs(beginYear - endYear)*4) + Math.abs(beginQuarter - endQuarter);
@@ -209,14 +209,15 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 					// calculate distance in number of quarters
 					int distanceInQuarters = 0;
 					if(beginYear != endYear) {
-						if(beginYear == beginYear + 1) {
-							distanceInQuarters = (Math.abs(endYear - beginYear)*4) - Math.abs(beginQuarter - endQuarter);
+						if(beginQuarter > endQuarter) {
+							distanceInQuarters = (Math.abs(beginYear - endYear)*4) - Math.abs(beginQuarter - endQuarter);
 						} else {
-							distanceInQuarters = (Math.abs(endYear - beginYear)*4) + Math.abs(beginQuarter - endQuarter);
+							distanceInQuarters = (Math.abs(beginYear - endYear)*4) + Math.abs(beginQuarter - endQuarter);
 						}
 					} else {
 						distanceInQuarters = Math.abs(beginQuarter - endQuarter);
 					}
+					
 					double numQuartersPerWave = (double) distanceInQuarters/wavesInRegion.size();
 	
 					double currQuarter = beginQuarter;
