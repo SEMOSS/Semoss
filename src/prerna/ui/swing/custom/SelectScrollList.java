@@ -19,6 +19,7 @@ import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.Vector;
 
 import javax.swing.JButton;
@@ -50,6 +51,17 @@ public class SelectScrollList  extends JButton {
 		list = new JList();
 	}
 	
+	public void resetList(Vector<String> listSet) {
+		String[] listArray = new String[listSet.size()];
+		int count = 0;
+		for(String element : listSet) {
+			listArray[count] = element;
+			count++;
+		}
+		list = new JList(listArray);
+
+		pane.setViewportView(list);
+	}
 	public void setVisible(boolean visible)
 	{
 		list.setVisible(visible);
@@ -104,6 +116,16 @@ public class SelectScrollList  extends JButton {
 	public void selectAll()
 	{
 		list.setSelectionInterval(0,list.getModel().getSize()-1);
+	}
+	public void deSelectValues(Vector<String> listToDeselect) {
+		ListModel model = list.getModel();
+		for (int i = 0; i < model.getSize(); i++)
+		{
+			String value = (String)model.getElementAt(i);
+			//if the unselect list doesnt contain the value, then it should be selected
+			if(listToDeselect.contains(value))
+				list.removeSelectionInterval(i, i);
+		}
 	}
 	public void setSelectedValues(Vector<String> listToSelect) {
 	    list.clearSelection();

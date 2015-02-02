@@ -15,6 +15,7 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -37,9 +38,11 @@ import org.apache.log4j.Logger;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.main.listener.specific.tap.DHMSMDeploymentStrategyRestoreDefaultsListener;
 import prerna.ui.main.listener.specific.tap.DHMSMDeploymentStrategyRunBtnListener;
 import prerna.ui.main.listener.specific.tap.DHMSMDeploymentStrategySetRegionListener;
+import prerna.ui.main.listener.specific.tap.DHMSMDeploymentStrategySysBarChartListener;
 import prerna.ui.swing.custom.CustomButton;
 import prerna.ui.swing.custom.ToggleButton;
 import prerna.util.DIHelper;
@@ -65,7 +68,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	private JToggleButton selectRegionTimesButton;
 
 	//list of regions
-	private ArrayList<String> regionsList;
+	private ArrayList<String> regionOrder;
 	//waves in each region and their order
 	private Hashtable<String, List<String>> regionWaveHash;
 	private ArrayList<String> waveOrder;
@@ -87,11 +90,26 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	
 	//display tabs
 	public JPanel siteAnalysisPanel = new JPanel();
+	
+	//system savings bar chart panel
+	public JPanel sysBarChartPanel = new JPanel();
+	public DHMSMHighSystemSelectPanel systemSelectBarChartPanel;
+	public JButton runSysBarChartBtn;
+	public BrowserGraphPanel sysSavingsChart;
 
+	//system savings by year
+	private String[] sysSavingsHeaders;
+	private ArrayList<Object[]> systemYearlySavings;
+	
+	private IEngine coreEngine;
+	
 	public DHMSMDeploymentStrategyPlaySheet(){
 		super();
 		overallAnalysisTitle = "System Analysis";
 		titleText = "Set Deployment Time Frame";
+
+		coreEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+
 	}
 
 	/**
@@ -101,7 +119,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	{
 		queryRegions();
 
-		if(regionsList.isEmpty()) {
+		if(regionOrder.isEmpty()) {
 			Utility.showError("Cannot find regions in TAP Site");
 		}
 
@@ -135,16 +153,16 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		regionTimePanel.setLayout(gbl_regionTimePanel);
 
 		// begin deployment
-		JLabel lblDeployment1 = new JLabel("Deployment");
-		lblDeployment1.setFont(new Font("Tahoma", Font.BOLD, 12));
+		JLabel lblDeployment1 = new JLabel("Deployment of West");
+		lblDeployment1.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblDeployment1 = new GridBagConstraints();
 		gbc_lblDeployment1.anchor = GridBagConstraints.WEST;
-		gbc_lblDeployment1.insets = new Insets(0, 0, 5, 10);
+		gbc_lblDeployment1.insets = new Insets(0, 0, 5, 0);
 		gbc_lblDeployment1.gridx = 0;
 		gbc_lblDeployment1.gridy = 1;
 		timePanel.add(lblDeployment1, gbc_lblDeployment1);
 
-		JLabel lblBeginDeployment = new JLabel("Begins in ");
+		JLabel lblBeginDeployment = new JLabel("begins in ");
 		lblBeginDeployment.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblBeginDeployment = new GridBagConstraints();
 		gbc_lblBeginDeployment.anchor = GridBagConstraints.WEST;
@@ -198,16 +216,16 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		timePanel.add(yBeginField, gbc_beginYearField);
 
 		//end deployment
-		JLabel lblDeployment2 = new JLabel("Deployment");
-		lblDeployment2.setFont(new Font("Tahoma", Font.BOLD, 12));
+		JLabel lblDeployment2 = new JLabel("Deployment of Pacific ");
+		lblDeployment2.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblDeployment2 = new GridBagConstraints();
 		gbc_lblDeployment2.anchor = GridBagConstraints.WEST;
-		gbc_lblDeployment2.insets = new Insets(0, 0, 5, 10);
+		gbc_lblDeployment2.insets = new Insets(0, 0, 5, 0);
 		gbc_lblDeployment2.gridx = 0;
 		gbc_lblDeployment2.gridy = 2;
 		timePanel.add(lblDeployment2, gbc_lblDeployment2);
 
-		JLabel lblEndDeployment = new JLabel("Ends in ");
+		JLabel lblEndDeployment = new JLabel("ends in ");
 		lblEndDeployment.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblEndDeployment = new GridBagConstraints();
 		gbc_lblEndDeployment.anchor = GridBagConstraints.WEST;
@@ -286,7 +304,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		yEndFieldHash = new Hashtable<String,JTextField>();
 
 		//add in the regions labels and fields to the region panel
-		for(String region : regionsList) {
+		for(String region : regionOrder) {
 			addRegion(region);
 		}
 		
@@ -337,6 +355,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	@Override
 	public void createGenericDisplayPanel() {
 		super.createGenericDisplayPanel();
+		
 		siteAnalysisPanel = new JPanel();
 		tabbedPane.insertTab("Site Analysis", null, siteAnalysisPanel, null,1);
 		GridBagLayout gbl_siteAnalysisPanel = new GridBagLayout();
@@ -345,6 +364,64 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		gbl_siteAnalysisPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
 		gbl_siteAnalysisPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
 		siteAnalysisPanel.setLayout(gbl_siteAnalysisPanel);
+		
+		//panel with bar chart of savings for selected systems
+		sysBarChartPanel = new JPanel();
+		tabbedPane.insertTab("System Bar Chart", null, sysBarChartPanel, null,2);
+		GridBagLayout gbl_sysBarChartPanel = new GridBagLayout();
+		gbl_sysBarChartPanel.columnWidths = new int[]{0, 0};
+		gbl_sysBarChartPanel.rowHeights = new int[]{0, 0};
+		gbl_sysBarChartPanel.columnWeights = new double[]{0.25,1.0, Double.MIN_VALUE};
+		gbl_sysBarChartPanel.rowWeights = new double[]{0.5, 1.0, Double.MIN_VALUE};
+		sysBarChartPanel.setLayout(gbl_sysBarChartPanel);
+		
+		//selecct the systems
+		systemSelectBarChartPanel = new DHMSMHighSystemSelectPanel(null);
+		systemSelectBarChartPanel.engine = coreEngine;
+		systemSelectBarChartPanel.setVisible(false);
+		systemSelectBarChartPanel.setHeader("Select systems to include:");
+		systemSelectBarChartPanel.addElements();
+		
+		GridBagConstraints gbc_systemSelectBarChartPanel = new GridBagConstraints();
+		gbc_systemSelectBarChartPanel.insets = new Insets(10, 10, 0, 10);
+		gbc_systemSelectBarChartPanel.anchor = GridBagConstraints.WEST;
+		gbc_systemSelectBarChartPanel.fill = GridBagConstraints.BOTH;
+		gbc_systemSelectBarChartPanel.gridx = 0;
+		gbc_systemSelectBarChartPanel.gridy = 0;
+		sysBarChartPanel.add(systemSelectBarChartPanel, gbc_systemSelectBarChartPanel);
+
+		runSysBarChartBtn = new CustomButton("Show savings for selected");
+		runSysBarChartBtn.setName("runSysBarChartBtn");
+		runSysBarChartBtn.setFont(new Font("Tahoma", Font.BOLD, 11));
+		runSysBarChartBtn.setVisible(false);
+		Style.registerTargetClassName(runSysBarChartBtn,  ".createBtn");
+
+		GridBagConstraints gbc_runSysBarChartBtn = new GridBagConstraints();
+		gbc_runSysBarChartBtn.insets = new Insets(10, 10, 10, 10);
+		gbc_runSysBarChartBtn.anchor = GridBagConstraints.NORTHWEST;
+		gbc_runSysBarChartBtn.gridx = 0;
+		gbc_runSysBarChartBtn.gridy = 1;
+		sysBarChartPanel.add(runSysBarChartBtn, gbc_runSysBarChartBtn);
+		
+		DHMSMDeploymentStrategySysBarChartListener sysBarChartList = new DHMSMDeploymentStrategySysBarChartListener();
+		sysBarChartList.setPlaySheet(this);
+		runSysBarChartBtn.addActionListener(sysBarChartList);
+		
+		//charts for first tab
+		sysSavingsChart = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/singlechart.html");
+		sysSavingsChart.setPreferredSize(new Dimension(1000, 800));
+		sysSavingsChart.setMinimumSize(new Dimension(1000, 800));
+		sysSavingsChart.setVisible(false);
+
+		GridBagConstraints gbc_sysSavingsChart = new GridBagConstraints();
+		gbc_sysSavingsChart.anchor = GridBagConstraints.EAST;
+		gbc_sysSavingsChart.fill = GridBagConstraints.BOTH;
+		gbc_sysSavingsChart.insets = new Insets(0, 0, 5, 5);
+		gbc_sysSavingsChart.gridheight = 2;
+		gbc_sysSavingsChart.gridx = 1;
+		gbc_sysSavingsChart.gridy = 0;
+		sysBarChartPanel.add(sysSavingsChart, gbc_sysSavingsChart);
+		
 	}
 
 	public void showSelectRegionTimesPanel(Boolean show) {
@@ -370,146 +447,23 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	 * filters out IOC.
 	 */
 	private void queryRegions() {
-		regionsList = new ArrayList<String>();
-		qBeginDefaultHash = new Hashtable<String,Integer>();
-		yBeginDefaultHash = new Hashtable<String,Integer>();
-		qEndDefaultHash = new Hashtable<String,Integer>();
-		yEndDefaultHash = new Hashtable<String,Integer>();	
+		regionOrder = DHMSMDeploymentHelper.getRegionOrder(engine, true);
+		regionWaveHash = DHMSMDeploymentHelper.getWavesInRegion(engine);
+		waveOrder = DHMSMDeploymentHelper.getWaveOrder(engine);
+		waveStartEndDate = DHMSMDeploymentHelper.getWaveStartAndEndDate(engine);
 		
-		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
-		//query is written to pull wave so that i can determine in what order the regions are deployed in
-		String regionQuery = "SELECT DISTINCT ?Region ?Wave ?BeginQ ?BeginY ?EndQ ?EndY WHERE {{?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>}{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?BeginYQ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>} {?EndYQ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>}{?BeginQ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Quarter>}{?BeginY <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?EndQ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Quarter>}{?EndY <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?Region <http://semoss.org/ontologies/Relation/Deploys> ?Wave}{?Wave <http://semoss.org/ontologies/Relation/BeginsOn> ?BeginYQ}{?BeginYQ  <http://semoss.org/ontologies/Relation/has> ?BeginY}{?BeginYQ  <http://semoss.org/ontologies/Relation/has> ?BeginQ}{?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?EndYQ}{?EndYQ  <http://semoss.org/ontologies/Relation/has> ?EndY}{?EndYQ  <http://semoss.org/ontologies/Relation/has> ?EndQ}}";
-		SesameJenaSelectWrapper wrapper = Utility.processQuery(siteEngine,regionQuery);
+		Hashtable<String,Hashtable<String,Integer>> regionStartEndDate = DHMSMDeploymentHelper.getRegionStartAndEndDate(engine,regionWaveHash,waveStartEndDate);
+		qBeginDefaultHash = regionStartEndDate.get(DHMSMDeploymentHelper.REGION_START_Q_KEY);
+		yBeginDefaultHash = regionStartEndDate.get(DHMSMDeploymentHelper.REGION_START_Y_KEY);
+		qEndDefaultHash = regionStartEndDate.get(DHMSMDeploymentHelper.REGION_END_Q_KEY);
+		yEndDefaultHash = regionStartEndDate.get(DHMSMDeploymentHelper.REGION_END_Y_KEY);
 
-
-		regionWaveHash = new Hashtable<String, List<String>>();
-		String[] names = wrapper.getVariables();
-
-			while(wrapper.hasNext())
-			{
-				SesameJenaSelectStatement sjss = wrapper.next();
-				String region = (String) sjss.getVar(names[0]);
-				String waveString = (String) sjss.getVar(names[1]);
-
-				List<String> waveValues;
-				if(regionWaveHash.containsKey(region)) {
-					waveValues = regionWaveHash.get(region);
-					waveValues.add(waveString);
-				} else {
-					waveValues = new ArrayList<String>();
-					waveValues.add(waveString);
-					regionWaveHash.put(region, waveValues);
-				}
-				try{
-					int beginQ = Integer.parseInt((String) sjss.getVar(names[2]));
-					int beginY = Integer.parseInt((String) sjss.getVar(names[3]));
-					int endQ = Integer.parseInt((String) sjss.getVar(names[4]));
-					int endY = Integer.parseInt((String) sjss.getVar(names[5]));
+		//leaving out IOC in our deployment scheduling so getting the second region
+		qBeginDefault = qBeginDefaultHash.get(regionOrder.get(1));
+		yBeginDefault = yBeginDefaultHash.get(regionOrder.get(1));
+		qEndDefault = qEndDefaultHash.get(regionOrder.get(regionOrder.size()-1));
+		yEndDefault = yEndDefaultHash.get(regionOrder.get(regionOrder.size()-1));
 	
-					//if current begin val is earlier than what is saved, save current
-					if(qBeginDefaultHash.containsKey(region) && yBeginDefaultHash.containsKey(region)) {
-						int earlyBeginQ = qBeginDefaultHash.get(region);
-						int earlyBeginY = yBeginDefaultHash.get(region);
-						if(compareTo(earlyBeginQ,earlyBeginY,beginQ,beginY)<0) {
-							qBeginDefaultHash.put(region,beginQ);
-							yBeginDefaultHash.put(region,beginY);
-						}
-					} else{
-						qBeginDefaultHash.put(region,beginQ);
-						yBeginDefaultHash.put(region,beginY);
-					}
-					
-					//if current end val is later than what is saved, save current
-					if(qEndDefaultHash.containsKey(region) && yEndDefaultHash.containsKey(region)) {
-						int lateEndQ = qEndDefaultHash.get(region);
-						int lateEndY = yEndDefaultHash.get(region);
-						if(compareTo(lateEndQ,lateEndY,endQ,endY)>0) {
-							qEndDefaultHash.put(region,endQ);
-							yEndDefaultHash.put(region,endY);
-						}
-					} else{
-						qEndDefaultHash.put(region,endQ);
-						yEndDefaultHash.put(region,endY);
-					}
-				}catch(Exception e) {
-					LOGGER.error("Could not add region "+region+" wave "+waveString);
-				}
-			}
-
-		for(String region : regionWaveHash.keySet()) {
-			//if(!region.toUpperCase().equals("IOC")) {
-			int beginQuarter =qBeginDefaultHash.get(region);
-			int beginYear =yBeginDefaultHash.get(region);
-			if(regionsList.size()==0)
-				regionsList.add(region);
-			else {
-				int i=0;
-				Boolean added = false;
-				while(i<regionsList.size()) {
-					String regionI = regionsList.get(i);
-					int iBeginQuarter =qBeginDefaultHash.get(regionI);
-					int iBeginYear =yBeginDefaultHash.get(regionI);
-					//if the region to be added begins before the one at index i, add it
-					if(!added&&compareTo(beginQuarter,beginYear,iBeginQuarter,iBeginYear)>=1) {
-						regionsList.add(i,region);
-						added = true;
-					}
-					i++;
-				}
-				if(!added) {
-					regionsList.add(region);
-				}
-			}
-		}
-		
-		qBeginDefault = qBeginDefaultHash.get(regionsList.get(0));
-		yBeginDefault = yBeginDefaultHash.get(regionsList.get(0));
-		qEndDefault = qEndDefaultHash.get(regionsList.get(0));
-		yEndDefault = yEndDefaultHash.get(regionsList.get(0));
-		
-		for(String region : regionsList) {
-				int beginQ = qBeginDefaultHash.get(region);
-				int beginY = yBeginDefaultHash.get(region);
-				int endQ = qEndDefaultHash.get(region);
-				int endY = yEndDefaultHash.get(region);
-				if(compareTo(qBeginDefault,yBeginDefault,beginQ,beginY)<0) {
-					qBeginDefault = beginQ;
-					yBeginDefault = beginY;
-				}
-				if(compareTo(qEndDefault,yEndDefault,endQ,endY)>0) {
-					qEndDefault = endQ;
-					yEndDefault = endY;
-				}
-		}
-		
-		waveOrder = DHMSMDeploymentHelper.getWaveOrder(siteEngine);
-		waveStartEndDate = DHMSMDeploymentHelper.getWaveStartAndEndDate(siteEngine);
-	}
-
-	/**
-	 * compares two dates to see which comes earlier.
-	 * if the first date is before, returns 1
-	 * if the same date, returns 0
-	 * if the first date is after, returns -1
-	 * @param firstQ
-	 * @param firstY
-	 * @param secondQ
-	 * @param secondY
-	 * @return
-	 */
-	private int compareTo(int firstQ, int firstY, int secondQ, int secondY) {
-		if(firstY<secondY) {
-			return 1;
-		} else if(firstY==secondY){
-			if(firstQ<secondQ) {
-				return 1;
-			}else if(firstQ==secondQ) {
-				return 0;
-			}else if(firstQ > secondY) {
-				return -1;
-			}
-		}
-		return -1;
 	}
 	
 	private void addRegion(String region) {
@@ -636,19 +590,19 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 
 	public void setDefaults() {
 		qBeginField.setText("" + qBeginDefault);
-		yBeginField.setText(("" + yBeginDefault).substring(2));
+		yBeginField.setText("" + yBeginDefault);
 		qEndField.setText("" + qEndDefault);
-		yEndField.setText(("" + yEndDefault).substring(2));
+		yEndField.setText("" + yEndDefault);
 		
-		for(String region : regionsList) {
+		for(String region : regionOrder) {
 			String beginQ = "" + qBeginDefaultHash.get(region);
 			String beginY = "" + yBeginDefaultHash.get(region);
 			String endQ = "" + qEndDefaultHash.get(region);
 			String endY = "" + yEndDefaultHash.get(region);
 			qBeginFieldHash.get(region).setText(beginQ);
 			qEndFieldHash.get(region).setText(endQ);
-			yBeginFieldHash.get(region).setText(beginY.substring(2));
-			yEndFieldHash.get(region).setText(endY.substring(2));
+			yBeginFieldHash.get(region).setText(beginY);
+			yEndFieldHash.get(region).setText(endY);
 	
 		}
 	}
@@ -674,7 +628,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	}
 
 	public ArrayList<String> getRegionsList() {
-		return regionsList;
+		return regionOrder;
 	}
 
 	public Hashtable<String,JTextField> getQBeginFieldHash() {
@@ -770,4 +724,17 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		this.yEndDefaultHash = yEndDefaultHash;
 	}
 
+	
+	public void setSystemYearlySavings(ArrayList<Object[]> systemYearlySavings) {
+		this.systemYearlySavings = systemYearlySavings;
+	}
+	public ArrayList<Object[]> getSystemYearlySavings() {
+		return systemYearlySavings;
+	}
+	public void setSysSavingsHeaders(String[] sysSavingsHeaders) {
+		this.sysSavingsHeaders = sysSavingsHeaders;
+	}
+	public String[] getSysSavingsHeaders() {
+		return sysSavingsHeaders;
+	}
 }

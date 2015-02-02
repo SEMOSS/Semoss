@@ -21,9 +21,11 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Vector;
 
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
@@ -337,6 +339,19 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 			String[] x = waveStartEndHash.get(s);
 			System.out.println(s + " : " + x[0] + ", " + x[1]);
 		}
+		
+		ps.setSystemYearlySavings(systemList);
+		ps.setSysSavingsHeaders(sysNames);
+		
+		//sort the list for drop down
+		Vector sysVector = new Vector(processor.getSystemList());
+		Collections.sort(sysVector);
+		sysVector.remove("Total");
+		sysVector.add(0,"Total");
+		ps.systemSelectBarChartPanel.sysSelectDropDown.resetList(sysVector);
+		ps.systemSelectBarChartPanel.setVisible(true);
+		ps.sysSavingsChart.setVisible(true);
+		ps.runSysBarChartBtn.setVisible(true);
 	}
 
 	public void displayListOnTab(String[] colNames,ArrayList <Object []> list, JPanel panel) {

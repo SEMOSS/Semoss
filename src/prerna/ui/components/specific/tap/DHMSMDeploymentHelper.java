@@ -18,12 +18,15 @@ package prerna.ui.components.specific.tap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Set;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.ui.components.BooleanProcessor;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public final class DHMSMDeploymentHelper {
@@ -37,10 +40,12 @@ public final class DHMSMDeploymentHelper {
 	
 	public static final String SYS_COUNT_AT_SITES = "SELECT ?System (COUNT(?HostSite) AS ?NumSites) WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSite} } GROUP BY ?System";
 	
-//	public static final String REGION_START_DATE = "SELECT DISTINCT ?Region ?Date WHERE {{?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>}{?Date <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>} {?Region <http://semoss.org/ontologies/Relation/BeginsOn> ?Date} }";
-//	public static final String REGION_ORDER_QUERY = "SELECT DISTINCT ?Region1 ?Region2 WHERE {{?Region1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>} {?Region2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>} {?Region1 <http://semoss.org/ontologies/Relation/Preceeds> ?Region2}}";
-//	public static final String FIRST_REGION_QUERY = "SELECT DISTINCT ?Region1 WHERE { {?Region1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>} MINUS{ {?Region2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>} {?Region2 <http://semoss.org/ontologies/Relation/Preceeds> ?Region1}}  }";
+	public static final String REGION_ORDER_QUERY = "SELECT DISTINCT ?Region1 ?Region2 WHERE {{?Region1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>} {?Region2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>} {?Region1 <http://semoss.org/ontologies/Relation/Precedes> ?Region2}}";
+	public static final String FIRST_REGION_QUERY = "SELECT DISTINCT ?Region1 WHERE { {?Region1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>} MINUS{ {?Region2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>} {?Region2 <http://semoss.org/ontologies/Relation/Precedes> ?Region1}}  }";
+	public static final String CONTAIN_IOC_QUERY = "ASK WHERE {BIND(<http://semoss.org/ontologies/Concept/Region/IOC> AS ?IOC)}";
 
+	public static final String WAVES_IN_REGION_QUERY = "SELECT DISTINCT ?Region ?Wave WHERE {{?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>}{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>}{?Region <http://semoss.org/ontologies/Relation/Deploys> ?Wave}}";
+	
 	public static final String WAVE_ORDER_QUERY = "SELECT DISTINCT ?Wave1 ?Wave2 WHERE {{?Wave1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave1 <http://semoss.org/ontologies/Relation/Precedes> ?Wave2}} ";
 	public static final String FIRST_WAVE_QUERY = "SELECT DISTINCT ?Wave1 WHERE { {?Wave1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} MINUS{ {?Wave2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave2 <http://semoss.org/ontologies/Relation/Precedes> ?Wave1}} }";
 	public static final String WAVE_START_END_DATE = "SELECT DISTINCT ?Wave ?StartDate ?EndDate WHERE { {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?StartDate <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>} {?Wave <http://semoss.org/ontologies/Relation/BeginsOn> ?StartDate} {?EndDate <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>} {?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?EndDate} }";
@@ -55,6 +60,11 @@ public final class DHMSMDeploymentHelper {
 	public static final String GET_HP_SYSTEM_LIST = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob }  } BINDINGS ?Prob {('High')('Question')}";
 	
 	public static final String GET_SITE_LOCATION_QUERY = "SELECT DISTINCT ?dcSite ?lat ?long WHERE { {?dcSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?dcSite <http://semoss.org/ontologies/Relation/Contains/LAT> ?lat }  {?dcSite <http://semoss.org/ontologies/Relation/Contains/LONG> ?long } }";
+	
+	public static final String REGION_START_Q_KEY = "REGION_START_Q";
+	public static final String REGION_START_Y_KEY = "REGION_START_Y";
+	public static final String REGION_END_Q_KEY = "REGION_END_Q";
+	public static final String REGION_END_Y_KEY = "REGION_END_Y";
 	
 	private DHMSMDeploymentHelper() {
 		
@@ -199,6 +209,54 @@ public final class DHMSMDeploymentHelper {
 		return retHash;
 	}
 	
+	public static Hashtable<String,Hashtable<String,Integer>> getRegionStartAndEndDate(IEngine siteEngine,Hashtable<String, List<String>> regionWaveHash,HashMap<String, String[]> waveStartEndDate) {
+		Hashtable<String,Hashtable<String,Integer>> regionStartEndDate = new Hashtable<String,Hashtable<String,Integer>>();
+		
+		Hashtable<String,Integer> regionStartQ = new Hashtable<String,Integer>();
+		Hashtable<String,Integer> regionStartY = new Hashtable<String,Integer>();
+		Hashtable<String,Integer> regionEndQ = new Hashtable<String,Integer>();
+		Hashtable<String,Integer> regionEndY = new Hashtable<String,Integer>();
+		
+		for(String region : regionWaveHash.keySet()) {
+			List<String> waves = regionWaveHash.get(region);
+			if(!waves.isEmpty()) {
+				String[] maxStartEnd = waveStartEndDate.get(waves.get(0));
+				int earlyStartQ = Integer.parseInt(maxStartEnd[0].substring(1,2));
+				int earlyStartY = Integer.parseInt(maxStartEnd[0].substring(6));
+				int lateEndQ = Integer.parseInt(maxStartEnd[1].substring(1,2));
+				int lateEndY = Integer.parseInt(maxStartEnd[1].substring(6));
+				
+				for(String wave : waves) {
+					String[] startEnd = waveStartEndDate.get(wave);
+					int startQ = Integer.parseInt(startEnd[0].substring(1,2));
+					int startY = Integer.parseInt(startEnd[0].substring(6));
+					int endQ = Integer.parseInt(startEnd[1].substring(1,2));
+					int endY = Integer.parseInt(startEnd[1].substring(6));
+					
+					if(compareTo(earlyStartQ,earlyStartY,startQ,startY)<0) {
+						earlyStartQ = startQ;
+						earlyStartY = startY;
+					}
+					if(compareTo(lateEndQ,lateEndY,endQ,endY)>0) {
+						lateEndQ = endQ;
+						lateEndY = endY;
+					}
+				}
+				regionStartQ.put(region,earlyStartQ);
+				regionStartY.put(region,earlyStartY);
+				regionEndQ.put(region,lateEndQ);
+				regionEndY.put(region,lateEndY);
+			}
+		}
+
+		regionStartEndDate.put(REGION_START_Q_KEY,regionStartQ);
+		regionStartEndDate.put(REGION_START_Y_KEY,regionStartY);
+		regionStartEndDate.put(REGION_END_Q_KEY,regionEndQ);
+		regionStartEndDate.put(REGION_END_Y_KEY,regionEndY);
+		
+		return regionStartEndDate;
+	}
+	
 	public static HashMap<String, String[]> getWaveStartAndEndDate(IEngine engine) {
 		HashMap<String, String[]> retHash = new HashMap<String, String[]>();
 		
@@ -254,34 +312,46 @@ public final class DHMSMDeploymentHelper {
 		return retHash;
 	}
 	
-	
-//	public static ArrayList<String> getRegionOrder(IEngine engine) {
-//		//get first region and wave
-//		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, FIRST_REGION_QUERY);
-//		String[] names = sjsw.getVariables();
-//		String firstRegion = sjsw.next().getVar(names[0]).toString();
-//		
-//		sjsw = Utility.processQuery(engine, REGION_ORDER_QUERY);
-//		names = sjsw.getVariables();
-//		HashMap<String, String> regionHash = new HashMap<String, String>();
-//		int counter = 0;
-//		while(sjsw.hasNext()) {
-//			SesameJenaSelectStatement sjss = sjsw.next();
-//			String region1 = sjss.getVar(names[0]).toString();
-//			String region2 = sjss.getVar(names[1]).toString();
-//			regionHash.put(region1, region2);
-//			counter++;
-//		}
-//		String nextRegion = firstRegion;
-//		ArrayList<String> regionOrder = new ArrayList<String>();
-//		regionOrder.add(nextRegion);
-//		for(int i = 0; i < counter; i++) {
-//			nextRegion = regionHash.get(nextRegion);
-//			regionOrder.add(nextRegion);
-//		}
-//		
-//		return regionOrder;
-//	}
+	/**
+	 * Returns the order of the regions.
+	 * Includes IOC if it exists
+	 * @param engine
+	 * @param includeIOC
+	 * @return
+	 */
+	public static ArrayList<String> getRegionOrder(IEngine engine,Boolean includeIOC) {
+
+		ArrayList<String> regionOrder = new ArrayList<String>();
+		if(includeIOC) {
+			BooleanProcessor proc = new BooleanProcessor();
+			proc.setQuery(CONTAIN_IOC_QUERY);
+			if(proc.processQuery());
+				regionOrder.add("IOC");
+		}
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, FIRST_REGION_QUERY);
+		String[] names = sjsw.getVariables();
+		String firstRegion = sjsw.next().getVar(names[0]).toString();
+		
+		sjsw = Utility.processQuery(engine, REGION_ORDER_QUERY);
+		names = sjsw.getVariables();
+		HashMap<String, String> regionHash = new HashMap<String, String>();
+		int counter = 0;
+		while(sjsw.hasNext()) {
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String region1 = sjss.getVar(names[0]).toString();
+			String region2 = sjss.getVar(names[1]).toString();
+			regionHash.put(region1, region2);
+			counter++;
+		}
+		String nextRegion = firstRegion;
+		regionOrder.add(nextRegion);
+		for(int i = 0; i < counter; i++) {
+			nextRegion = regionHash.get(nextRegion);
+			regionOrder.add(nextRegion);
+		}
+		
+		return regionOrder;
+	}
 	
 	public static ArrayList<String> getWaveOrder(IEngine engine) {
 		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, FIRST_WAVE_QUERY);
@@ -311,6 +381,31 @@ public final class DHMSMDeploymentHelper {
 		return waveOrder;
 	}
 	
+	public static Hashtable<String, List<String>> getWavesInRegion(IEngine engine) {
+		
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine,WAVES_IN_REGION_QUERY);
+		String[] names = sjsw.getVariables();
+
+		Hashtable<String, List<String>> regionWaveHash = new Hashtable<String, List<String>>();
+		
+		while(sjsw.hasNext())
+		{
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String region = sjss.getVar(names[0]).toString();
+			String wave = sjss.getVar(names[1]).toString();
+
+			List<String> waveValues;
+			if(regionWaveHash.containsKey(region)) {
+				waveValues = regionWaveHash.get(region);
+				waveValues.add(wave);
+			} else {
+				waveValues = new ArrayList<String>();
+				waveValues.add(wave);
+				regionWaveHash.put(region, waveValues);
+			}
+		}
+		return regionWaveHash;
+	}
 	
 //	public static HashMap<String, String> getRegionStartDate(IEngine engine) {
 //		HashMap<String, String> retHash = new HashMap<String, String>();
@@ -412,6 +507,31 @@ public final class DHMSMDeploymentHelper {
 			retSet.add(sys);
 		}
 		return retSet;
+	}
+	/**
+	 * compares two dates to see which comes earlier.
+	 * if the first date is before, returns 1
+	 * if the same date, returns 0
+	 * if the first date is after, returns -1
+	 * @param firstQ
+	 * @param firstY
+	 * @param secondQ
+	 * @param secondY
+	 * @return
+	 */
+	private static int compareTo(int firstQ, int firstY, int secondQ, int secondY) {
+		if(firstY<secondY) {
+			return 1;
+		} else if(firstY==secondY){
+			if(firstQ<secondQ) {
+				return 1;
+			}else if(firstQ==secondQ) {
+				return 0;
+			}else if(firstQ > secondY) {
+				return -1;
+			}
+		}
+		return -1;
 	}
 
 }
