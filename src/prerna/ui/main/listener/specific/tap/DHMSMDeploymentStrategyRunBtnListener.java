@@ -279,7 +279,7 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 					} else {
 						distanceInQuarters = Math.abs(beginQuarter - endQuarter);
 					}
-					double numQuartersPerWave = distanceInQuarters/wavesInRegion.size();
+					double numQuartersPerWave = (double) distanceInQuarters/wavesInRegion.size();
 	
 					double currQuarter = beginQuarter;
 					int currYear = beginYear;
