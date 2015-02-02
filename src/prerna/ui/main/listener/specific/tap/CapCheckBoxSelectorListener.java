@@ -15,12 +15,11 @@
  *******************************************************************************/
 package prerna.ui.main.listener.specific.tap;
 
-import java.awt.event.ActionEvent;
 import java.util.Vector;
 
 import javax.swing.JCheckBox;
-import javax.swing.JComponent;
 
+import prerna.rdf.engine.api.IEngine;
 import prerna.ui.swing.custom.SelectScrollList;
 /**
  * Determines which functional areas the user wants to incorporate in RFP report
@@ -31,34 +30,27 @@ public class CapCheckBoxSelectorListener extends CheckBoxSelectorListener {
 	JCheckBox dhmsmCapCheckBox, hsdCapCheckBox, hssCapCheckBox, fhpCapCheckBox;
 	Vector<String> dhmsmCapList, hsdCapList, hssCapList, fhpCapList;
 
-	/**
-	 * Determines if the user has selected HSD, HSS, FHP check box's in MHS TAP to include functional areas to include in RFP report
-	 * Will populate sourceSelectPanel to show all capabilities for the functional area's selected
-	 * @param e ActionEvent
-	 */
+	
+	public CapCheckBoxSelectorListener(IEngine engine,SelectScrollList scrollList,JCheckBox allElemCheckBox,JCheckBox dhmsmCapCheckBox,JCheckBox hsdCapCheckBox,JCheckBox hssCapCheckBox,JCheckBox fhpCapCheckBox) {
+		
+		super(engine,scrollList,"Capability",allElemCheckBox);
+		this.dhmsmCapCheckBox = dhmsmCapCheckBox;
+		this.hsdCapCheckBox = hsdCapCheckBox;
+		this.hssCapCheckBox = hssCapCheckBox;
+		this.fhpCapCheckBox = fhpCapCheckBox;
+		createCheckboxList();
+	}
+			
 	@Override
-	public void actionPerformed(ActionEvent e) {
-		if(((JCheckBox)e.getSource()).getName().equals(allElemCheckBox.getName()))
-		{
-			if(allElemCheckBox.isSelected())
-			{
-				dhmsmCapCheckBox.setSelected(false);
-				hsdCapCheckBox.setSelected(false);
-				hssCapCheckBox.setSelected(false);
-				fhpCapCheckBox.setSelected(false);
-				scrollList.selectAll();
-			}
-			else
-			{
-				dhmsmCapCheckBox.setSelected(false);
-				hsdCapCheckBox.setSelected(false);
-				hssCapCheckBox.setSelected(false);
-				fhpCapCheckBox.setSelected(false);
-				scrollList.list.clearSelection();
-			}
-			return;
-		}
-		allElemCheckBox.setSelected(false);
+	protected void unselectAllCheckBoxes() {
+		dhmsmCapCheckBox.setSelected(false);
+		hsdCapCheckBox.setSelected(false);
+		hssCapCheckBox.setSelected(false);
+		fhpCapCheckBox.setSelected(false);
+	}
+
+	@Override
+	protected Vector<String> createSelectedList() {
 		Vector<String> capabilities = new Vector<String>();
 		if(dhmsmCapCheckBox.isSelected())
 			capabilities.addAll(dhmsmCapList);
@@ -68,38 +60,14 @@ public class CapCheckBoxSelectorListener extends CheckBoxSelectorListener {
 			capabilities.addAll(hssCapList);
 		if(fhpCapCheckBox.isSelected())
 			capabilities.addAll(fhpCapList);
-
-		scrollList.setSelectedValues(capabilities);
-
+		return capabilities;
 	}
-	public void setScrollList(SelectScrollList scrollList)
-	{
-		this.scrollList = scrollList;
-		this.type = "Capability";
-	}
-	public void setCheckBox(JCheckBox allElemCheckBox, JCheckBox dhmsmCapCheckBox,JCheckBox hsdCapCheckBox,JCheckBox hssCapCheckBox,JCheckBox fhpCapCheckBox)
-	{
-		this.allElemCheckBox = allElemCheckBox;
-		this.dhmsmCapCheckBox = dhmsmCapCheckBox;
-		this.hsdCapCheckBox = hsdCapCheckBox;
-		this.hssCapCheckBox = hssCapCheckBox;
-		this.fhpCapCheckBox = fhpCapCheckBox;
 
-		getQueryResults();
-	}
-	public void getQueryResults()
+	public void createCheckboxList()
 	{
 		hsdCapList = getList("Select DISTINCT ?entity WHERE {{?CapabilityFunctionalArea <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityFunctionalArea>;}{?Utilizes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Utilizes>;}{?CapabilityGroup <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityGroup>;}{?CapabilityFunctionalArea ?Utilizes ?CapabilityGroup;}{?ConsistsOfCapability <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?CapabilityGroup ?ConsistsOfCapability ?entity;}} BINDINGS ?CapabilityFunctionalArea {(<http://health.mil/ontologies/Concept/CapabilityFunctionalArea/HSD>)}");
 		hssCapList = getList("Select DISTINCT ?entity WHERE {{?CapabilityFunctionalArea <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityFunctionalArea>;}{?Utilizes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Utilizes>;}{?CapabilityGroup <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityGroup>;}{?CapabilityFunctionalArea ?Utilizes ?CapabilityGroup;}{?ConsistsOfCapability <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?CapabilityGroup ?ConsistsOfCapability ?entity;}} BINDINGS ?CapabilityFunctionalArea {(<http://health.mil/ontologies/Concept/CapabilityFunctionalArea/HSS>)}");
 		fhpCapList = getList("Select DISTINCT ?entity WHERE {{?CapabilityFunctionalArea <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityFunctionalArea>;}{?Utilizes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Utilizes>;}{?CapabilityGroup <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityGroup>;}{?CapabilityFunctionalArea ?Utilizes ?CapabilityGroup;}{?ConsistsOfCapability <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?CapabilityGroup ?ConsistsOfCapability ?entity;}} BINDINGS ?CapabilityFunctionalArea {(<http://health.mil/ontologies/Concept/CapabilityFunctionalArea/FHP>)}");
 		dhmsmCapList = getList("Select DISTINCT ?entity WHERE {{?DHMSM <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DHMSM>;}{?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?DHMSM ?TaggedBy ?entity;}}");
-	}
-	/**
-	 * Override method from AbstractListener
-	 * @param view JComponent
-	 */
-	@Override
-	public void setView(JComponent view) {
-
 	}
 }

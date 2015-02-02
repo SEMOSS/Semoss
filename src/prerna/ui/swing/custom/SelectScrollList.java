@@ -19,7 +19,6 @@ import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.Vector;
 
 import javax.swing.JButton;
@@ -75,19 +74,6 @@ public class SelectScrollList  extends JButton {
 	{
 		list.setSelectionMode(mode);
 	}
-	/**
-	 * Adds button with specified views, size, and horizontal/vertical scrollbars to the popup menu.
-	 * @param listArray String[]		List of elements to add.
-	 */
-	public void setupButton(String[] listArray)
-	{
-		list = new JList(listArray);
-
-		pane.setViewportView(list);
-		pane.getVerticalScrollBar().setUI(new NewScrollBarUI());
-		pane.getHorizontalScrollBar().setUI(new NewHoriScrollBarUI());
-		pane.setPreferredSize(new Dimension((this.getPreferredSize()).width, 300));
-	}
 	
 	/**
 	 * Adds button with specified views, size, and horizontal/vertical scrollbars to the popup menu. 
@@ -97,12 +83,21 @@ public class SelectScrollList  extends JButton {
 	 */
 	public void setupButton(String[] listArray, int width, int height)
 	{
+		setupButton(listArray);
+		pane.setPreferredSize(new Dimension(width, height));
+	
+	}
+	/**
+	 * Adds button to the popup menu. 
+	 * @param listArray String[]		List of elements to add.
+	 */
+	public void setupButton(String[] listArray)
+	{
 		list = new JList(listArray);
 	
 		pane.setViewportView(list);
 		pane.getVerticalScrollBar().setUI(new NewScrollBarUI());
 		pane.getHorizontalScrollBar().setUI(new NewHoriScrollBarUI());
-		pane.setPreferredSize(new Dimension(width, height));
 	
 	}
 	/**

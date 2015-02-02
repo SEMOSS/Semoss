@@ -22,46 +22,40 @@ import javax.swing.JCheckBox;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.swing.custom.SelectScrollList;
 
-public class HighSystemCheckBoxSelectorListener extends CheckBoxSelectorListener {
-
-	JCheckBox ehrCoreCheckBox;
-	Vector<String> ehrCoreSysList;
-
+public class SystemMHSEHRCheckBoxSelectorListener extends SystemCheckBoxSelectorListener {
+	protected JCheckBox mhsSpecificCheckBox, ehrCoreCheckBox;
+	protected Vector<String> mhsSpecificSysList, ehrCoreSysList;
 	
-	public HighSystemCheckBoxSelectorListener(IEngine engine, SelectScrollList scrollList,JCheckBox allElemCheckBox,JCheckBox ehrCoreCheckBox) {
-		super(engine, scrollList,"ActiveSystem",allElemCheckBox);
+	public SystemMHSEHRCheckBoxSelectorListener(IEngine engine,SelectScrollList scrollList,JCheckBox allElemCheckBox,JCheckBox recdSysCheckBox,JCheckBox intDHMSMSysCheckBox,JCheckBox notIntDHMSMSysCheckBox,JCheckBox theaterSysCheckBox,JCheckBox garrisonSysCheckBox,JCheckBox lowProbCheckBox,JCheckBox highProbCheckBox,JCheckBox mhsSpecificCheckBox,JCheckBox ehrCoreCheckBox) {
+		
+		super(engine,scrollList, allElemCheckBox, recdSysCheckBox, intDHMSMSysCheckBox, notIntDHMSMSysCheckBox, theaterSysCheckBox, garrisonSysCheckBox, lowProbCheckBox, highProbCheckBox);
+		this.mhsSpecificCheckBox = mhsSpecificCheckBox;
 		this.ehrCoreCheckBox = ehrCoreCheckBox;
 		createCheckboxList();
 	}
-
-	/**
-	 * Selects all the elements in the scroll list except total
-	 */
-	@Override
-	public void selectAllElements() {
-		scrollList.selectAll();
-		Vector<String> totalVect = new Vector<String>();
-		totalVect.add("Total");
-		scrollList.deSelectValues(totalVect);
-		
-	}
-
+	
 	@Override
 	protected void unselectAllCheckBoxes() {
+		super.unselectAllCheckBoxes();
+		mhsSpecificCheckBox.setSelected(false);
 		ehrCoreCheckBox.setSelected(false);
 	}
 	
 	@Override
 	protected Vector<String> createSelectedList() {
+		Vector<String> systemsToSelect = super.createSelectedList();
+		if(mhsSpecificCheckBox.isSelected())
+			systemsToSelect=createOrUnion(mhsSpecificSysList,systemsToSelect);
 		if(ehrCoreCheckBox.isSelected())
-			return ehrCoreSysList;
-		else
-			return new Vector<String>();
+			systemsToSelect=createOrUnion(ehrCoreSysList,systemsToSelect);
+		return systemsToSelect;
 	}
 	
 	@Override
 	protected void createCheckboxList()
 	{
+		super.createCheckboxList();
+		mhsSpecificSysList = getList("SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/MHS_Specific> 'Y'}}");
 		ehrCoreSysList = getList("SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/EHR_Core> 'Y'}}");
 	}
 
