@@ -120,10 +120,7 @@ public class DHMSMDataSelectPanel extends JPanel {
 		dataSelectDropDown.setupButton(dataArray,100,120); 
 		dataSelectDropDown.setVisible(true);
 
-		DataCheckBoxSelectorListener dataCheckBoxListener = new DataCheckBoxSelectorListener();
-		dataCheckBoxListener.setEngine(engine);
-		dataCheckBoxListener.setScrollList(dataSelectDropDown);
-		dataCheckBoxListener.setCheckBox(allDataCheck,hsdCheck,hssCheck, fhpCheck,dhmsmCheck);
+		DataCheckBoxSelectorListener dataCheckBoxListener = new DataCheckBoxSelectorListener(engine, dataSelectDropDown,allDataCheck,hsdCheck,hssCheck, fhpCheck,dhmsmCheck);
 		allDataCheck.addActionListener(dataCheckBoxListener);
 		hsdCheck.addActionListener(dataCheckBoxListener);
 		hssCheck.addActionListener(dataCheckBoxListener);
