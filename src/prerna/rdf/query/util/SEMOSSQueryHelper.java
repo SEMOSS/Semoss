@@ -437,6 +437,9 @@ public abstract class SEMOSSQueryHelper {
 		else if (returnModifier.equals("min")){
 			mod = SEMOSSQueryHelper.createReturnModifier(selected, SPARQLAbstractReturnModifier.MIN);
 		}
+		else if (returnModifier.equals("sum")){
+			mod = SEMOSSQueryHelper.createReturnModifier(selected, SPARQLAbstractReturnModifier.SUM);
+		}
 		SEMOSSQueryHelper.addSingleReturnVarToQuery(varName, mod, semossQuery);
 	}
 }
