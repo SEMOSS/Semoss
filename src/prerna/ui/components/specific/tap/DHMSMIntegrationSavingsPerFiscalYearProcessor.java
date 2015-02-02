@@ -105,6 +105,10 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			}
 		}
 		numColumns = maxYear - minYear + 2; // costs gains are typically realized a year after, except for centrally distributed systems
+		if(numColumns < 4) {
+			numColumns = 4;
+		}
+
 		inflationArr = new double[numColumns+1];
 		
 		int i;
