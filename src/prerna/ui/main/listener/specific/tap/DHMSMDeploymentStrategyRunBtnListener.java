@@ -94,12 +94,12 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 				LOGGER.info("Using original deployment schedule");
 			} else {
 				// calculate the ratio between old and new deployment schedule
-				int originalDistance = 0;
-				if(oBeginYear != oEndYear) {
-					originalDistance = (Math.abs(oBeginYear - oEndYear)*4) - Math.abs(oBeginQuarter - oEndQuarter);
-				} else {
-					originalDistance = Math.abs(oBeginQuarter - oEndQuarter);
-				}
+//				int originalDistance = 0;
+//				if(oBeginYear != oEndYear) {
+//					originalDistance = (Math.abs(oBeginYear - oEndYear)*4) - Math.abs(oBeginQuarter - oEndQuarter);
+//				} else {
+//					originalDistance = Math.abs(oBeginQuarter - oEndQuarter);
+//				}
 
 				int newDistance = 0;
 				if(beginYear != endYear) {
@@ -107,14 +107,12 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 				} else {
 					newDistance = Math.abs(beginQuarter - endQuarter);
 				}
-
-				double deploymentChange = newDistance/originalDistance;
-
-				// start/end date do not change IOC date
+				
 				waveStartEndHash.put("IOC", waveStartEndDate.get("IOC"));
-
-				// add in rest of calculations based on date
-				double currMonth = beginQuarter*3;
+				
+				double numQuartersPerWave = (double) newDistance / (waveOrder.size()-1);
+				
+				double currQuarter = beginQuarter;
 				int currYear = beginYear;
 				for(int i=1;i<regionsList.size();i++) {
 					String region = regionsList.get(i);
@@ -123,52 +121,89 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 					for(String wave : waveOrder) {
 						if(wavesInRegion.contains(wave)) {
 							String[] date = new String[2];
-							date[0] = "Q" + ((int) Math.ceil(currMonth/3)) + "FY20" + currYear;
+							date[0] = "Q" + ((int) Math.ceil(currQuarter)) + "FY20" + currYear;
 
-							String[] waveInfo = waveStartEndDate.get(wave);
-							String startDate = waveInfo[0];
-							String[] startQ_FY = startDate.split("FY");
-							String startQ = startQ_FY[0].substring(1);
-							String startFY = startQ_FY[1];
-
-							String endDate = waveInfo[1];
-							String[] endQ_FY = endDate.split("FY");
-							String endQ = endQ_FY[0].substring(1);
-							String endFY = endQ_FY[1];
-
-							int waveBeginQuarter = Integer.parseInt(startQ);
-							int waveBeginYear = Integer.parseInt(startFY);
-							int waveEndQuarter = Integer.parseInt(endQ);
-							int waveEndYear = Integer.parseInt(endFY);
-
-							int distanceInQuarters = 0;
-							if(waveBeginYear != waveEndYear) {
-								distanceInQuarters = (Math.abs(waveBeginYear - waveEndYear)*4) - Math.abs(waveBeginQuarter - waveEndQuarter);
-							} else {
-								distanceInQuarters = Math.abs(waveBeginQuarter - waveEndQuarter);
-							}
-							int distanceInMonth = distanceInQuarters*3;
-
-							double alteredDistanceInMonth = distanceInMonth * deploymentChange;
-							if(alteredDistanceInMonth > 12) {
-								int yearsPassed = (int) Math.floor(alteredDistanceInMonth / 12);
-								double monthPassed = alteredDistanceInMonth % 12;
+							if(numQuartersPerWave > 4) {
+								int yearsPassed = (int) Math.floor(numQuartersPerWave / 4);
+								double quartersPassed = numQuartersPerWave % 4;
 								currYear += yearsPassed;
-								if(currMonth + monthPassed > 12) {
-									currMonth = ((currMonth + monthPassed) - 12);
+								if(currQuarter + quartersPassed > 12) {
+									currQuarter = ((currQuarter + quartersPassed) - 4);
 									currYear += 1;
 								}
-							} else if(currMonth + alteredDistanceInMonth > 12) {
-								currMonth = ((currMonth + alteredDistanceInMonth) - 12);
+							} else if(currQuarter + numQuartersPerWave > 4) {
+								currQuarter = ((currQuarter + numQuartersPerWave) - 4);
 								currYear += 1;
 							} else {
-								currMonth += alteredDistanceInMonth;
+								currQuarter += numQuartersPerWave;
 							}
-							date[1] = "Q" + ((int) Math.ceil(currMonth/3)) + "FY20" + currYear;
+							date[1] = "Q" + ((int) Math.ceil(currQuarter)) + "FY20" + currYear;
 							waveStartEndHash.put(wave, date);
 						}
 					}
 				}
+				
+//				double deploymentChange = (double) newDistance/originalDistance;
+//
+//				// start/end date do not change IOC date
+//				waveStartEndHash.put("IOC", waveStartEndDate.get("IOC"));
+//
+//				// add in rest of calculations based on date
+//				double currQuarter = beginQuarter;
+//				int currYear = beginYear;
+//				for(int i=1;i<regionsList.size();i++) {
+//					String region = regionsList.get(i);
+//					List<String> wavesInRegion = regionWaveHash.get(region);
+//
+//					for(String wave : waveOrder) {
+//						if(wavesInRegion.contains(wave)) {
+//							String[] date = new String[2];
+//							date[0] = "Q" + ((int) Math.ceil(currQuarter)) + "FY20" + currYear;
+//
+//							String[] waveInfo = waveStartEndDate.get(wave);
+//							String startDate = waveInfo[0];
+//							String[] startQ_FY = startDate.split("FY");
+//							String startQ = startQ_FY[0].substring(1);
+//							String startFY = startQ_FY[1];
+//
+//							String endDate = waveInfo[1];
+//							String[] endQ_FY = endDate.split("FY");
+//							String endQ = endQ_FY[0].substring(1);
+//							String endFY = endQ_FY[1];
+//
+//							int waveBeginQuarter = Integer.parseInt(startQ);
+//							int waveBeginYear = Integer.parseInt(startFY);
+//							int waveEndQuarter = Integer.parseInt(endQ);
+//							int waveEndYear = Integer.parseInt(endFY);
+//
+//							int distanceInQuarters = 0;
+//							if(waveBeginYear != waveEndYear) {
+//								distanceInQuarters = (Math.abs(waveBeginYear - waveEndYear)*4) - Math.abs(waveBeginQuarter - waveEndQuarter);
+//							} else {
+//								distanceInQuarters = Math.abs(waveBeginQuarter - waveEndQuarter);
+//							}
+//
+//							double alteredDistanceInQuarters = Math.ceil(distanceInQuarters * deploymentChange);
+//							if(alteredDistanceInQuarters > 4) {
+//								int yearsPassed = (int) Math.floor(alteredDistanceInQuarters / 4);
+//								double quartersPassed = alteredDistanceInQuarters % 4;
+//								currYear += yearsPassed;
+//								if(currQuarter + quartersPassed > 12) {
+//									currQuarter = ((currQuarter + quartersPassed) - 4);
+//									currYear += 1;
+//								}
+//							} else if(currQuarter + alteredDistanceInQuarters > 4) {
+//								currQuarter = ((currQuarter + alteredDistanceInQuarters) - 4);
+//								currYear += 1;
+//							} else {
+//								currQuarter += alteredDistanceInQuarters;
+//							}
+//							currQuarter = Math.ceil(currQuarter);
+//							date[1] = "Q" + ((int) currQuarter) + "FY20" + currYear;
+//							waveStartEndHash.put(wave, date);
+//						}
+//					}
+//				}
 			}
 		} else {
 			//grab the original values for the deployment schedule
@@ -298,10 +333,10 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		displayListOnTab(siteNames, siteList, ps.siteAnalysisPanel);
 
 		//print out waveinfo
-		//		for(String s : waveStartEndHash.keySet()) {
-		//			String[] x = waveStartEndHash.get(s);
-		//			System.out.println(s + " : " + x[0] + ", " + x[1]);
-		//		}
+		for(String s : waveOrder) {
+			String[] x = waveStartEndHash.get(s);
+			System.out.println(s + " : " + x[0] + ", " + x[1]);
+		}
 	}
 
 	public void displayListOnTab(String[] colNames,ArrayList <Object []> list, JPanel panel) {
