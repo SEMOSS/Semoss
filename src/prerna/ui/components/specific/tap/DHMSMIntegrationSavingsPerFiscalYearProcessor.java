@@ -448,7 +448,11 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 				double savings = costArr[position]; 
 				
 				for(index = outputYear; index < numCols - 2; index++) {
-					double inflatedSavings = savings * inflationArr[index-position+1];
+					double inflatedSavings = savings;
+					// add inflation to savings if appropriate
+					if(index - position + 1 > 1) {
+						inflatedSavings *= inflationArr[index-position+1];
+					}
 					yearlySavings[index] += inflatedSavings - currSiteSavings;
 				}
 			}
