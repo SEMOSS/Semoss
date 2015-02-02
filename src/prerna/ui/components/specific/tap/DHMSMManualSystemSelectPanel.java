@@ -19,7 +19,7 @@ import java.awt.GridBagConstraints;
 
 import javax.swing.JCheckBox;
 
-import prerna.ui.main.listener.specific.tap.SystemCheckBoxSelectorListener;
+import prerna.ui.main.listener.specific.tap.SystemMHSEHRCheckBoxSelectorListener;
 
 @SuppressWarnings("serial")
 public class DHMSMManualSystemSelectPanel extends DHMSMSystemSelectPanel {
@@ -47,10 +47,7 @@ public class DHMSMManualSystemSelectPanel extends DHMSMSystemSelectPanel {
 	
 	@Override
 	protected void addListener() {
-		SystemCheckBoxSelectorListener sysCheckBoxListener = new SystemCheckBoxSelectorListener();
-		sysCheckBoxListener.setEngine(engine);
-		sysCheckBoxListener.setScrollList(sysSelectDropDown);
-		sysCheckBoxListener.setCheckBox(allSysCheckBox,recdSysCheckBox, intDHMSMSysCheckBox,notIntDHMSMSysCheckBox,theaterSysCheckBox,garrisonSysCheckBox,lowProbCheckBox, highProbCheckBox,mhsSpecificCheckBox,ehrCoreCheckBox);
+		SystemMHSEHRCheckBoxSelectorListener sysCheckBoxListener = new SystemMHSEHRCheckBoxSelectorListener(engine, sysSelectDropDown,allSysCheckBox,recdSysCheckBox, intDHMSMSysCheckBox,notIntDHMSMSysCheckBox,theaterSysCheckBox,garrisonSysCheckBox,lowProbCheckBox, highProbCheckBox,mhsSpecificCheckBox,ehrCoreCheckBox);
 		allSysCheckBox.addActionListener(sysCheckBoxListener);
 		recdSysCheckBox.addActionListener(sysCheckBoxListener);
 		intDHMSMSysCheckBox.addActionListener(sysCheckBoxListener);
