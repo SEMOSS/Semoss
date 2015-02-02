@@ -344,7 +344,7 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		ps.setSysSavingsHeaders(sysNames);
 		
 		//sort the list for drop down
-		Vector sysVector = new Vector(processor.getSystemList());
+		Vector sysVector = new Vector(processor.getAllSystems());
 		Collections.sort(sysVector);
 		sysVector.remove("Total");
 		sysVector.add(0,"Total");

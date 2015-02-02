@@ -119,10 +119,7 @@ public class DHMSMCapabilitySelectPanel extends JPanel {
 		String[] capArray = makeListFromQuery("Capability","SELECT DISTINCT ?entity WHERE {{?CapabilityTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityTag>;}{?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/Capability> ;}{?CapabilityTag ?TaggedBy ?entity}}");
 		capSelectDropDown.setupButton(capArray,40,120); //need to give list of all systems
 		
-		CapCheckBoxSelectorListener capCheckBoxListener = new CapCheckBoxSelectorListener();
-		capCheckBoxListener.setEngine(engine);
-		capCheckBoxListener.setScrollList(capSelectDropDown);
-		capCheckBoxListener.setCheckBox(allCapButton,dhmsmCapButton, hsdCapButton,hssCapButton, fhpCapButton);
+		CapCheckBoxSelectorListener capCheckBoxListener = new CapCheckBoxSelectorListener(engine,capSelectDropDown,allCapButton,dhmsmCapButton, hsdCapButton,hssCapButton, fhpCapButton);
 		allCapButton.addActionListener(capCheckBoxListener);
 		dhmsmCapButton.addActionListener(capCheckBoxListener);
 		hsdCapButton.addActionListener(capCheckBoxListener);

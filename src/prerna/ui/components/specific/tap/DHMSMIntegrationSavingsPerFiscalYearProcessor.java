@@ -842,8 +842,15 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		this.siteNames = siteNames;
 	}
 	
-	public Set<String> getSystemList() {
-		 return sysList;
+	public Set<String> getAllSystems() {
+		Set<String> allSysList = new HashSet<String>();
+		for(String sys : sysList) {
+			allSysList.add(sys);
+		}
+		for(String sys : systemsToAddList) {
+			allSysList.add(sys);
+		}
+		 return allSysList;
 	}
 	
 	

@@ -51,7 +51,7 @@ public class DHMSMHighSystemSelectPanel extends JPanel {
 		gbl_systemSelectPanel.columnWidths = new int[]{0, 0, 0, 0,};
 		gbl_systemSelectPanel.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0};
 		gbl_systemSelectPanel.columnWeights = new double[]{0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
-		gbl_systemSelectPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+		gbl_systemSelectPanel.rowWeights = new double[]{0.0, 0.0, 1.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
 		this.setLayout(gbl_systemSelectPanel);
 
 		JLabel lblSystemSelectHeader = new JLabel(header);
@@ -68,6 +68,7 @@ public class DHMSMHighSystemSelectPanel extends JPanel {
 		sysSelectDropDown.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 		GridBagConstraints gbc_sysSelectDropDown = new GridBagConstraints();
 		gbc_sysSelectDropDown.gridwidth = 5;
+		gbc_sysSelectDropDown.anchor = GridBagConstraints.WEST;
 		gbc_sysSelectDropDown.insets = new Insets(0, 0, 0, 5);
 		gbc_sysSelectDropDown.fill = GridBagConstraints.BOTH;
 		gbc_sysSelectDropDown.gridx = 0;
@@ -76,9 +77,8 @@ public class DHMSMHighSystemSelectPanel extends JPanel {
 		
 		addCheckBoxes();
 
-		//String[] sysArray = new String[0];
 		String[] sysArray = new String[]{"Error: no systems"};
-		sysSelectDropDown.setupButton(sysArray,40,200); //need to give list of all systems
+		sysSelectDropDown.setupButton(sysArray);
 		
 		addListener();
 
@@ -101,10 +101,7 @@ public class DHMSMHighSystemSelectPanel extends JPanel {
 		this.add(ehrCoreCheckBox, gbc_recdSysButton);
 	}
 	protected void addListener() {
-		HighSystemCheckBoxSelectorListener sysCheckBoxListener = new HighSystemCheckBoxSelectorListener();
-		sysCheckBoxListener.setEngine(engine);
-		sysCheckBoxListener.setScrollList(sysSelectDropDown);
-		sysCheckBoxListener.setCheckBox(allSysCheckBox,ehrCoreCheckBox);
+		HighSystemCheckBoxSelectorListener sysCheckBoxListener = new HighSystemCheckBoxSelectorListener(engine, sysSelectDropDown,allSysCheckBox,ehrCoreCheckBox);
 		allSysCheckBox.addActionListener(sysCheckBoxListener);
 		ehrCoreCheckBox.addActionListener(sysCheckBoxListener);
 	}

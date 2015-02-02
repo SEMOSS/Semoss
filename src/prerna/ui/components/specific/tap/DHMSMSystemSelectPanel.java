@@ -29,7 +29,7 @@ import javax.swing.ListSelectionModel;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.helpers.EntityFiller;
-import prerna.ui.main.listener.specific.tap.CheckBoxSelectorListener;
+import prerna.ui.main.listener.specific.tap.SystemCheckBoxSelectorListener;
 import prerna.ui.swing.custom.SelectScrollList;
 import prerna.util.DIHelper;
 
@@ -152,10 +152,7 @@ public class DHMSMSystemSelectPanel extends JPanel {
 		this.add(garrisonSysCheckBox, gbc_garrisonSysButton);
 	}
 	protected void addListener() {
-		CheckBoxSelectorListener sysCheckBoxListener = new CheckBoxSelectorListener();
-		sysCheckBoxListener.setEngine(engine);
-		sysCheckBoxListener.setScrollList(sysSelectDropDown);
-		sysCheckBoxListener.setCheckBox(allSysCheckBox,recdSysCheckBox, intDHMSMSysCheckBox,notIntDHMSMSysCheckBox,theaterSysCheckBox,garrisonSysCheckBox,lowProbCheckBox, highProbCheckBox);
+		SystemCheckBoxSelectorListener sysCheckBoxListener = new SystemCheckBoxSelectorListener(engine, sysSelectDropDown,allSysCheckBox,recdSysCheckBox, intDHMSMSysCheckBox,notIntDHMSMSysCheckBox,theaterSysCheckBox,garrisonSysCheckBox,lowProbCheckBox, highProbCheckBox);
 		allSysCheckBox.addActionListener(sysCheckBoxListener);
 		recdSysCheckBox.addActionListener(sysCheckBoxListener);
 		intDHMSMSysCheckBox.addActionListener(sysCheckBoxListener);
