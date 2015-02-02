@@ -834,5 +834,9 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		this.siteNames = siteNames;
 	}
 	
+	public Set<String> getSystemList() {
+		 return sysList;
+	}
+	
 	
 }
