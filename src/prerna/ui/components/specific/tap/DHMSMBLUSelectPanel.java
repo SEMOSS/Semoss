@@ -119,10 +119,7 @@ public class DHMSMBLUSelectPanel extends JPanel {
 		dataSelectDropDown.setupButton(dataArray,250,120); 
 		dataSelectDropDown.setVisible(true);
 
-		BLUCheckBoxSelectorListener dataCheckBoxListener = new BLUCheckBoxSelectorListener();
-		dataCheckBoxListener.setEngine(engine);
-		dataCheckBoxListener.setScrollList(dataSelectDropDown);
-		dataCheckBoxListener.setCheckBox(allDataCheck,hsdCheck,hssCheck, fhpCheck,dhmsmCheck);
+		BLUCheckBoxSelectorListener dataCheckBoxListener = new BLUCheckBoxSelectorListener(engine,dataSelectDropDown,allDataCheck,hsdCheck,hssCheck, fhpCheck,dhmsmCheck);
 		allDataCheck.addActionListener(dataCheckBoxListener);
 		hsdCheck.addActionListener(dataCheckBoxListener);
 		hssCheck.addActionListener(dataCheckBoxListener);

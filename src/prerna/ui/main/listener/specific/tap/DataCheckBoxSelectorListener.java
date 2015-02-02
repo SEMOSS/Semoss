@@ -15,16 +15,11 @@
  *******************************************************************************/
 package prerna.ui.main.listener.specific.tap;
 
-import java.awt.event.ActionEvent;
-import java.util.ArrayList;
 import java.util.Vector;
 
 import javax.swing.JCheckBox;
-import javax.swing.JComponent;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.ui.helpers.EntityFiller;
-import prerna.ui.main.listener.impl.AbstractListener;
 import prerna.ui.swing.custom.SelectScrollList;
 
 /**
@@ -32,43 +27,31 @@ import prerna.ui.swing.custom.SelectScrollList;
  * Used to determine if user wants to include HSD, HSS, or FHP functional areas in RFP report
  * Will populate sourceSelectPanel with all capabilities included in functional areas
  */
-public class DataCheckBoxSelectorListener extends AbstractListener {
-	String type;
-	IEngine engine;
-	SelectScrollList scrollList;
-	JCheckBox allElemCheckBox;
+public class DataCheckBoxSelectorListener extends CheckBoxSelectorListener {
+	
 	JCheckBox hsdCheck, hssCheck, fhpCheck, dhmsmCheck;
-	ArrayList<String> hsdCheckList, hssCheckList, fhpCheckList, dhmsmCheckList;
+	Vector<String> hsdCheckList, hssCheckList, fhpCheckList, dhmsmCheckList;
 
-	/**
-	 * Determines if the user has selected HSD, HSS, FHP check box's in MHS TAP to include functional areas to include in RFP report
-	 * Will populate sourceSelectPanel to show all capabilities for the functional area's selected
-	 * @param e ActionEvent
-	 */
+	public DataCheckBoxSelectorListener (IEngine engine,SelectScrollList scrollList,JCheckBox allElemCheckBox,JCheckBox hsdCheck,JCheckBox hssCheck,JCheckBox fhpCheck,JCheckBox dhmsmCheck) {
+		super(engine,scrollList,"DataObject",allElemCheckBox);
+		this.allElemCheckBox = allElemCheckBox;
+		this.hsdCheck = hsdCheck;
+		this.hssCheck = hssCheck;
+		this.fhpCheck = fhpCheck;
+		this.dhmsmCheck = dhmsmCheck;
+		createCheckboxList();
+	}
+
 	@Override
-	public void actionPerformed(ActionEvent e) {
-		if(((JCheckBox)e.getSource()).getName().equals(allElemCheckBox.getName()))
-		{
-			if(allElemCheckBox.isSelected())
-			{
-				hsdCheck.setSelected(false);
-				hssCheck.setSelected(false);
-				fhpCheck.setSelected(false);
-				dhmsmCheck.setSelected(false);
-				scrollList.selectAll();
-			}
-			else
-			{
-				hsdCheck.setSelected(false);
-				hssCheck.setSelected(false);
-				fhpCheck.setSelected(false);
-				dhmsmCheck.setSelected(false);
-				scrollList.list.clearSelection();
-			}
-			return;
-		}
-		allElemCheckBox.setSelected(false);
+	protected void unselectAllCheckBoxes() {
+		hsdCheck.setSelected(false);
+		hssCheck.setSelected(false);
+		fhpCheck.setSelected(false);
+		dhmsmCheck.setSelected(false);
+	}
 
+	@Override
+	protected Vector<String> createSelectedList() {
 		Vector<String> dataObjects = new Vector<String>();
 		if(hsdCheck.isSelected())
 			dataObjects.addAll(hsdCheckList);
@@ -78,73 +61,15 @@ public class DataCheckBoxSelectorListener extends AbstractListener {
 			dataObjects.addAll(fhpCheckList);
 		if(dhmsmCheck.isSelected())
 			dataObjects.addAll(dhmsmCheckList);
-
-		scrollList.setSelectedValues(dataObjects);
-
+		return dataObjects;
 	}
-
-	/**
-	 * Gets the list of all capabilities for a selected functional area
-	 * @param sparqlQuery 		String containing the query to get all capabilities for a selected functional area
-	 * @return capabilities		Vector<String> containing list of all capabilities for a selected functional area
-	 */
-	public ArrayList<String> getList(String sparqlQuery)
-	{
-
-		ArrayList<String> retList=new ArrayList<String>();
-		try{
-			EntityFiller filler = new EntityFiller();
-			filler.engineName = engine.getEngineName();
-			filler.type = type;
-			filler.setExternalQuery(sparqlQuery);
-			filler.run();
-			Vector names = filler.nameVector;
-			for (int i = 0;i<names.size();i++)
-			{
-				retList.add((String) names.get(i));
-			}
-		}catch(RuntimeException e)
-		{
-			System.out.println("ignored");
-		}
-		return retList;
-
-	}
-
-	public void setEngine(IEngine engine)
-	{
-		this.engine = engine;
-
-	}
-	public void setScrollList(SelectScrollList scrollList)
-	{
-		this.scrollList = scrollList;
-		this.type = "ActiveSystem";
-	}
-	public void setCheckBox(JCheckBox allElemCheckBox,JCheckBox hsdCheck,JCheckBox hssCheck,JCheckBox fhpCheck,JCheckBox dhmsmCheck)
-	{
-		this.allElemCheckBox = allElemCheckBox;
-		this.hsdCheck = hsdCheck;
-		this.hssCheck = hssCheck;
-		this.fhpCheck = fhpCheck;
-		this.dhmsmCheck = dhmsmCheck;
-
-		getQueryResults();
-	}
-
-	public void getQueryResults()
+	@Override
+	public void createCheckboxList()
 	{
 		hsdCheckList = getList("SELECT DISTINCT ?entity WHERE {{?CapabilityFunctionalArea <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityFunctionalArea>;}{?Utilizes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Utilizes>;}{?CapabilityGroup <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityGroup>;}{?CapabilityFunctionalArea ?Utilizes ?CapabilityGroup;}{?ConsistsOfCapability <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?CapabilityGroup ?ConsistsOfCapability ?Capability;} {?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?entity.}} BINDINGS ?CapabilityFunctionalArea {(<http://health.mil/ontologies/Concept/CapabilityFunctionalArea/HSD>)}");
 		hssCheckList = getList("SELECT DISTINCT ?entity WHERE {{?CapabilityFunctionalArea <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityFunctionalArea>;}{?Utilizes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Utilizes>;}{?CapabilityGroup <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityGroup>;}{?CapabilityFunctionalArea ?Utilizes ?CapabilityGroup;}{?ConsistsOfCapability <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?CapabilityGroup ?ConsistsOfCapability ?Capability;} {?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?entity.}} BINDINGS ?CapabilityFunctionalArea {(<http://health.mil/ontologies/Concept/CapabilityFunctionalArea/HSS>)}");
 		fhpCheckList = getList("SELECT DISTINCT ?entity WHERE {{?CapabilityFunctionalArea <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityFunctionalArea>;}{?Utilizes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Utilizes>;}{?CapabilityGroup <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityGroup>;}{?CapabilityFunctionalArea ?Utilizes ?CapabilityGroup;}{?ConsistsOfCapability <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?CapabilityGroup ?ConsistsOfCapability ?Capability;} {?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?entity.}} BINDINGS ?CapabilityFunctionalArea {(<http://health.mil/ontologies/Concept/CapabilityFunctionalArea/FHP>)}");
 		dhmsmCheckList = getList("SELECT DISTINCT ?entity WHERE {{?DHMSM <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DHMSM>;}{?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?DHMSM ?TaggedBy ?Capability;} {?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?entity.}}");
 	}
-	/**
-	 * Override method from AbstractListener
-	 * @param view JComponent
-	 */
-	@Override
-	public void setView(JComponent view) {
 
-	}
 }
