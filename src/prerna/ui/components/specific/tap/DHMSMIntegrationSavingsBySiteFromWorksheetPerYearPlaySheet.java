@@ -27,19 +27,27 @@ public class DHMSMIntegrationSavingsBySiteFromWorksheetPerYearPlaySheet extends 
 		DHMSMIntegrationSavingsPerYearFromWkSht reader = new DHMSMIntegrationSavingsPerYearFromWkSht();
 		DHMSMIntegrationSavingsPerFiscalYearProcessor processor = new DHMSMIntegrationSavingsPerFiscalYearProcessor();
 		
-		processor.runSupportQueries();
-		
+		boolean success = true;
 		try {
-			reader.read();
-			ArrayList<String> systems = reader.getSystems();
-			processor.runMainQueryFromWorksheetList(systems);
-			processor.generateSavingsData();
-			processor.processSiteData();
-			list = processor.getSiteOutputList();
-			names = processor.getSiteNames();
-		} catch (FileReaderException e) {
-			Utility.showError(e.getMessage());
-			e.printStackTrace();
+			processor.runSupportQueries();
+		} catch(NullPointerException ex) {
+			Utility.showError(ex.getMessage());
+			success = false;
+		}
+		
+		if(success) {
+			try {
+				reader.read();
+				ArrayList<String> systems = reader.getSystems();
+				processor.runMainQueryFromWorksheetList(systems);
+				processor.generateSavingsData();
+				processor.processSiteData();
+				list = processor.getSiteOutputList();
+				names = processor.getSiteNames();
+			} catch (FileReaderException e) {
+				Utility.showError(e.getMessage());
+				e.printStackTrace();
+			}
 		}
 	}
 }

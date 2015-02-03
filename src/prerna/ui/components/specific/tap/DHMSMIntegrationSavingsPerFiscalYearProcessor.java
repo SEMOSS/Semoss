@@ -674,7 +674,17 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		this.tapPortfolio = (IEngine) DIHelper.getInstance().getLocalProp(TAP_PORTFOLIO);
 		this.tapSite = (IEngine) DIHelper.getInstance().getLocalProp(TAP_SITE);
 		this.hrCore = (IEngine) DIHelper.getInstance().getLocalProp(HR_CORE);
-
+		if(tapPortfolio == null) {
+			throw new NullPointerException("Need to add TAP_Portfolio db.");
+		}
+		if(tapSite == null) {
+			throw new NullPointerException("Need to add TAP_Site_DB db.");
+		}
+		if(hrCore == null) {
+			throw new NullPointerException("Need to add HR_Core db.");
+		}
+		
+		
 		sysSustainmentInfoHash = DHMSMDeploymentHelper.getSysSustainmentBudget(tapPortfolio);
 		
 		HashMap<String, HashMap<String, Double>> sysSiteSupportCostHash = DHMSMDeploymentHelper.getSysSiteSupportCost(tapPortfolio);

@@ -16,20 +16,29 @@
 package prerna.ui.components.specific.tap;
 
 import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.util.Utility;
 
 public class DHMSMIntegrationSavingsBySelectedSystemPlaySheet extends GridPlaySheet{
 	@Override
 	public void createData(){
 		DHMSMIntegrationSavingsPerFiscalYearProcessor processor = new DHMSMIntegrationSavingsPerFiscalYearProcessor();
-		processor.runSupportQueries();
-		if(query.equalsIgnoreCase("None")) {
-			processor.runMainQuery("");
-		} else {
-			processor.runMainQuery(query);
+		boolean success = true;
+		try {
+			processor.runSupportQueries();
+		} catch(NullPointerException ex) {
+			success = false;
+			Utility.showError(ex.getMessage());
 		}
-		processor.generateSavingsData();
-		processor.processSystemData();
-		list = processor.getSystemOutputList();
-		names = processor.getSysNames();
+		if(success) {
+			if(query.equalsIgnoreCase("None")) {
+				processor.runMainQuery("");
+			} else {
+				processor.runMainQuery(query);
+			}
+			processor.generateSavingsData();
+			processor.processSystemData();
+			list = processor.getSystemOutputList();
+			names = processor.getSysNames();
+		}
 	}
 }
