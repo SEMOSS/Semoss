@@ -142,6 +142,13 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 						}
 					}
 				}
+				
+				String[] checkLastDate = waveStartEndHash.get(waveOrder.get(waveOrder.size()-1));
+				if(!checkLastDate[1].equals("Q".concat(endQuarter + "").concat("FY20").concat(endYear + ""))) {
+					LOGGER.info("Alter last date");
+					checkLastDate[1] = "Q".concat(endQuarter + "").concat("FY20").concat(endYear + "");
+					waveStartEndHash.put(waveOrder.get(waveOrder.size()-1), checkLastDate);
+				}
 			}
 		} else {
 			//grab the original values for the deployment schedule
@@ -247,34 +254,61 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 						}
 					}
 				}
+				
+				String region = regionsList.get(regionsList.size() - 1);
+				int endYear = getInteger(endYearFieldRegionList.get(region), endYearFieldRegionList.get(region).getName());
+				int endQuarter = getInteger(endQuarterFieldRegionList.get(region), endQuarterFieldRegionList.get(region).getName());
+				String[] checkLastDate = waveStartEndHash.get(waveOrder.get(waveOrder.size()-1));
+				if(!checkLastDate[1].equals("Q".concat(endQuarter + "").concat("FY20").concat(endYear + ""))) {
+					LOGGER.info("Alter last date");
+					checkLastDate[1] = "Q".concat(endQuarter + "").concat("FY20").concat(endYear + "");
+					waveStartEndHash.put(waveOrder.get(waveOrder.size()-1), checkLastDate);
+				}
 			}
 		}
 
+		ArrayList<Object[]> systemList = new ArrayList<Object[]>();
+		String[] sysNames = null;
+		ArrayList<Object[]> siteList = new ArrayList<Object[]>();
+		String[] siteNames = null;
+		
 		DHMSMIntegrationSavingsPerFiscalYearProcessor processor = new DHMSMIntegrationSavingsPerFiscalYearProcessor();
-		processor.runSupportQueries();
-		processor.runMainQuery("");
-		if(!waveStartEndHash.isEmpty()) {
-			processor.setWaveStartEndDate(waveStartEndHash);
+		boolean success = true;
+		try {
+			processor.runSupportQueries();
+		} catch(NullPointerException ex) {
+			Utility.showError(ex.getMessage());
 		}
-		processor.generateSavingsData();
-		processor.processSystemData();
-		ArrayList<Object[]> systemList = processor.getSystemOutputList();	
-		String[] sysNames = processor.getSysNames();
-		displayListOnTab(sysNames, systemList, ps.overallAlysPanel);
-
+		if(success) {
+			processor.runMainQuery("");
+			if(!waveStartEndHash.isEmpty()) {
+				processor.setWaveStartEndDate(waveStartEndHash);
+			}
+			processor.generateSavingsData();
+			processor.processSystemData();
+			systemList = processor.getSystemOutputList();	
+			sysNames = processor.getSysNames();
+			displayListOnTab(sysNames, systemList, ps.overallAlysPanel);
+		}
 		//TODO: figure out why what obj is being changed causing me to run twice to make sure numbers match
+		success = true;
 		processor = new DHMSMIntegrationSavingsPerFiscalYearProcessor();
-		processor.runSupportQueries();
-		processor.runMainQuery("");
-		if(!waveStartEndHash.isEmpty()) {
-			processor.setWaveStartEndDate(waveStartEndHash);
+		try {
+			processor.runSupportQueries();
+		} catch(NullPointerException ex) {
+			Utility.showError(ex.getMessage());
 		}
-		processor.generateSavingsData();
-		processor.processSiteData();
-		ArrayList<Object[]> siteList = processor.getSiteOutputList();	
-		String[] siteNames = processor.getSiteNames();
-		displayListOnTab(siteNames, siteList, ps.siteAnalysisPanel);
-
+		if(success) {
+			processor.runMainQuery("");
+			if(!waveStartEndHash.isEmpty()) {
+				processor.setWaveStartEndDate(waveStartEndHash);
+			}
+			processor.generateSavingsData();
+			processor.processSiteData();
+			siteList = processor.getSiteOutputList();	
+			siteNames = processor.getSiteNames();
+			displayListOnTab(siteNames, siteList, ps.siteAnalysisPanel);
+		}
 		//print out waveinfo
 		for(String s : waveOrder) {
 			String[] x = waveStartEndHash.get(s);
