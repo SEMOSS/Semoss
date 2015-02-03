@@ -163,6 +163,16 @@ var renderGeoMap = function(dataGeo){
                     var colorCounter = 0;
                     var redCounter = 0;
                     var greenCounter = 0;
+					if(d.Status === "Not Started") {
+						colorFlag = "red"
+					}
+					else if(d.Status === "In Progress") {
+						colorFlag = "orange"
+					}
+					else if(d.Status === "Decommissioned") {
+						colorFlag = "green"
+					}
+					else {
                         for(var system in d.Systems){
                             colorCounter++
                             if(d.Systems[system].Status === "Not Started"){
@@ -181,6 +191,7 @@ var renderGeoMap = function(dataGeo){
                         else{
                             colorFlag = "orange"
                         }
+					}
                     return colorFlag
 
                }
@@ -278,7 +289,7 @@ var renderGeoMap = function(dataGeo){
             var geoDataRefresh = function(year){
                 var dataGeo = [];
                 for(var site in dataString[year].site){
-                    dataGeo.push({'site': site,'lat': dataString[year].site[site].Lat, 'lon': dataString[year].site[site].Long, 'Total Site Cost': dataString[year].site[site]['tCostSite'], "Systems": dataString[year].site[site]['SystemForSite']})
+                    dataGeo.push({'site': site,'lat': dataString[year].site[site].Lat, 'lon': dataString[year].site[site].Long, 'Status':dataString[year].site[site].Status, 'Total Site Cost': dataString[year].site[site]['tCostSite'], "Systems": dataString[year].site[site]['SystemForSite']})
                 }
                 return dataGeo
             }
