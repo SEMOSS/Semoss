@@ -339,16 +339,20 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 			String sys = (String)row[0];
 			String startWave = firstWaveForEachSystem.get(sys);
 			String endWave = lastWaveForEachSystem.get(sys);
+			int startYear;
+			int endYear;
 			if(startWave==null || endWave == null || startWave.equals("") || endWave.equals("")) {
 				LOGGER.error("No wave info for system "+sys);
 				consoleArea.setText(consoleArea.getText()+"\nNo wave info for system "+sys);
+				startYear = 3000;
+				endYear = Integer.parseInt("20"+sysNames[sysNames.length - 3].substring(2));
 			} else {
-			String[] startWaveDate = waveStartEndHash.get(startWave);
-			String[] endWaveDate = waveStartEndHash.get(endWave);
-			
-			int startYear = Integer.parseInt(startWaveDate[0].substring(4));
-			int endYear = Integer.parseInt(endWaveDate[1].substring(4));
-			
+				String[] startWaveDate = waveStartEndHash.get(startWave);
+				String[] endWaveDate = waveStartEndHash.get(endWave);
+				
+				startYear = Integer.parseInt(startWaveDate[0].substring(4));
+				endYear = Integer.parseInt(endWaveDate[1].substring(4));
+			}
 			for(int i=1;i<sysNames.length - 1;i++) {
 				int year = Integer.parseInt("20"+sysNames[i].substring(2));
 				String status = "Not Started";
@@ -383,8 +387,6 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 					yearHash.put("system", systemHash);
 					dataHash.put(year, yearHash);
 				}
-				
-			}
 			}
 		}
 		
