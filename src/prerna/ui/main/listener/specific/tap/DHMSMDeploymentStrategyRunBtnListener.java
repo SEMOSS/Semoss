@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Set;
 import java.util.Vector;
 
 import javax.swing.JPanel;
@@ -36,6 +37,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.GridScrollPane;
+import prerna.ui.components.specific.tap.DHMSMDeploymentHelper;
 import prerna.ui.components.specific.tap.DHMSMDeploymentStrategyPlaySheet;
 import prerna.ui.components.specific.tap.DHMSMIntegrationSavingsPerFiscalYearProcessor;
 import prerna.util.Utility;
@@ -279,11 +281,11 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 			System.out.println(s + " : " + x[0] + ", " + x[1]);
 		}
 		
+		//setting data for bar chart tab
 		ps.setSystemYearlySavings(systemList);
 		ps.setSysSavingsHeaders(sysNames);
-		
-		//sort the list for drop down
-		Vector sysVector = new Vector(processor.getAllSystems());
+		Set<String> allSystemsList = processor.getAllSystems();
+		Vector sysVector = new Vector(allSystemsList);
 		Collections.sort(sysVector);
 		sysVector.remove("Total");
 		sysVector.add(0,"Total");
@@ -291,6 +293,149 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		ps.systemSelectBarChartPanel.setVisible(true);
 		ps.sysSavingsChart.setVisible(true);
 		ps.runSysBarChartBtn.setVisible(true);
+		
+		
+		//setting data for the deployment map
+		Hashtable<Integer, Object> dataHash = new Hashtable<Integer, Object>();
+		HashMap<String, String> lastWaveForEachSystem = processor.getLastWaveForEachSystem();
+		HashMap<String, String> firstWaveForEachSystem = processor.getFirstWaveForEachSystem();
+
+		for(int sysIndex=0;sysIndex<systemList.size();sysIndex++) {
+			Object[] row = systemList.get(sysIndex);
+			String sys = (String)row[0];
+			String startWave = firstWaveForEachSystem.get(sys);
+			String endWave = lastWaveForEachSystem.get(sys);
+			if(startWave==null || endWave == null || startWave.equals("") || endWave.equals("")) {
+				LOGGER.error("No wave info for system "+sys);
+				consoleArea.setText(consoleArea.getText()+"\nNo wave info for system "+sys);
+			} else {
+			String[] startWaveDate = waveStartEndHash.get(startWave);
+			String[] endWaveDate = waveStartEndHash.get(endWave);
+			
+			int startYear = Integer.parseInt(startWaveDate[0].substring(4));
+			int endYear = Integer.parseInt(endWaveDate[1].substring(4));
+			
+			for(int i=1;i<sysNames.length - 1;i++) {
+				int year = Integer.parseInt("20"+sysNames[i].substring(2));
+				String status = "Not Started";
+				if(year>=startYear)
+					status = "In Progress";
+				if(year>endYear)
+					status = "Decommissioned";
+				double savings = 0.0;
+				String value = (String)systemList.get(sysIndex)[i];
+				if(value.contains("No")) {
+					LOGGER.info("No cost info for system "+sys);
+					consoleArea.setText(consoleArea.getText()+"\nNo cost info for system "+sys);
+				} else {
+					if(value.startsWith("$ "))
+						value = value.substring(2);
+					value = value.replaceAll(",","");
+					value = value.replaceAll("\\*","");
+					savings = Double.parseDouble(value);
+				}
+				Hashtable<String, Object> sysElement = new Hashtable<String, Object>();
+				sysElement.put("AggregatedStatus",status);
+				sysElement.put("TCostSystem", savings);
+				
+				if(dataHash.containsKey(year)) {
+					Hashtable<String, Hashtable> yearHash = (Hashtable<String, Hashtable>)dataHash.get(year);
+					Hashtable<String, Hashtable> systemHash = (Hashtable<String, Hashtable>)yearHash.get("system");
+					systemHash.put(sys, sysElement);
+				}else {
+					Hashtable<String, Hashtable> yearHash = new Hashtable<String, Hashtable>();
+					Hashtable<String, Hashtable> systemHash = new Hashtable<String, Hashtable>();
+					systemHash.put(sys, sysElement);
+					yearHash.put("system", systemHash);
+					dataHash.put(year, yearHash);
+				}
+				
+			}
+			}
+		}
+		
+		HashMap<String, String> lastWaveForSitesAndFloatersInMultipleWavesHash = processor.getLastWaveForSitesAndFloatersInMultipleWavesHash();
+		HashMap<String, String> firstWaveForSitesAndFloatersInMultipleWavesHash= processor.getFirstWaveForSitesAndFloatersInMultipleWavesHash();
+		HashMap<String, ArrayList<String>> systemsForSiteHash = processor.getSystemsForSiteHash();
+		HashMap<String, HashMap<String, Double>> siteLocationHash = processor.getSiteLocationHash();
+		HashMap<String, List<String>> waveForSites = processor.getWaveForSites();
+
+		for(int siteIndex=0;siteIndex<siteList.size();siteIndex++) {
+			Object[] row = siteList.get(siteIndex);
+			String site = (String)row[0];
+			String startWave = firstWaveForSitesAndFloatersInMultipleWavesHash.get(site);
+			String endWave = lastWaveForSitesAndFloatersInMultipleWavesHash.get(site);
+			List<String> startWaves = waveForSites.get(site);
+			List<String> endWaves = waveForSites.get(site);
+			if((startWave==null || endWave == null) && (startWaves ==null || endWaves ==null)) {
+				LOGGER.error("No wave info for site "+site);
+				consoleArea.setText(consoleArea.getText()+"\nNo wave info for site "+site);
+			} else {
+				if((startWave==null || endWave == null)) {
+					startWave = startWaves.get(0);
+					endWave = endWaves.get(0);
+				}
+			
+				String[] startWaveDate = waveStartEndHash.get(startWave);
+				String[] endWaveDate = waveStartEndHash.get(endWave);
+				
+				int startYear = Integer.parseInt(startWaveDate[0].substring(4));
+				int endYear = Integer.parseInt(endWaveDate[1].substring(4));
+				
+				for(int i=1;i<siteNames.length - 1;i++) {
+					int year = Integer.parseInt("20"+siteNames[i].substring(2));
+					String status = "Not Started";
+					if(year>=startYear)
+						status = "In Progress";
+					if(year>endYear)
+						status = "Decommissioned";
+					double savings = 0.0;
+					String value = (String)siteList.get(siteIndex)[i];
+					if(value.contains("No")) {
+						LOGGER.info("No cost info for site "+site);
+						consoleArea.setText(consoleArea.getText()+"\nNo cost info for site "+site);
+					} else {
+						if(value.startsWith("$ "))
+							value = value.substring(2);
+						value = value.replaceAll(",","");
+						value = value.replaceAll("\\*","");
+						savings = Double.parseDouble(value);
+					}
+					HashMap<String, Double> latLongHash = siteLocationHash.get(site);
+					if(latLongHash==null) {
+						LOGGER.info("No lat or long info for site "+site);
+						consoleArea.setText(consoleArea.getText()+"\nNo lat or long info for site "+site);
+					} else {
+						double latVal = latLongHash.get("Lat");
+						double longVal = latLongHash.get("Long");
+						ArrayList<String> systemsForSite = systemsForSiteHash.get(site);
+						Hashtable<String,Hashtable> systemHash = new Hashtable<String,Hashtable>();
+						for(String system : systemsForSite) {
+							systemHash.put(system,new Hashtable());
+						}
+						
+						Hashtable<String, Object> siteElement = new Hashtable<String, Object>();
+						siteElement.put("Lat", latVal);
+						siteElement.put("Long", longVal);
+						siteElement.put("Status",status);
+						siteElement.put("tCostSite", savings);
+						siteElement.put("SystemForSite", systemHash);
+						//TODO only systems that are included in my list?
+						Hashtable<String, Hashtable> yearHash = (Hashtable<String, Hashtable>)dataHash.get(year);
+						if(yearHash.containsKey("site")) {
+							Hashtable<String, Hashtable> siteHash = (Hashtable<String, Hashtable>)yearHash.get("site");
+							siteHash.put(site, siteElement);
+						}else {
+							Hashtable<String, Hashtable> siteHash = new Hashtable<String, Hashtable>();
+							siteHash.put(site, siteElement);
+							yearHash.put("site", siteHash);
+						}
+					}
+				}
+			}
+		}
+		
+		ps.sysMap.callIt(dataHash);
 	}
 
 	public void displayListOnTab(String[] colNames,ArrayList <Object []> list, JPanel panel) {
@@ -367,6 +512,15 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		return true;
 	}
 
+	public int findSystem(ArrayList<Object []> savingsList,String system) {
+		for(int i=0;i<savingsList.size(); i++) {
+			Object[] row = savingsList.get(i);
+			if(((String)row[0]).equals(system))
+				return i;
+		}
+		return -1;
+	}
+	
 	public Hashtable<String, List<String>> getRegionWaveHash() {
 		return regionWaveHash;
 	}

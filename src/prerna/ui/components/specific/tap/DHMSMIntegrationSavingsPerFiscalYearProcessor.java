@@ -51,13 +51,18 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 
 	private HashMap<String, Double[]> sysSustainmentInfoHash;
 	private HashMap<String, Integer> numSitesForSysHash;
+	private HashMap<String, ArrayList<String>> systemsForSiteHash;
+	private HashMap<String, HashMap<String, Double>> siteLocationHash; 
 	private HashMap<String, Integer> numSitesNotInWaveForSysHash;
 	private Set<String> sysList = new HashSet<String>();
 	private Set<String> systemsToAddList = new HashSet<String>();
 	private HashMap<String, HashMap<String, Double>> sysSiteSupportAndFloaterCostHash;
 	private HashMap<String, String[]> waveStartEndDate;
 	private HashMap<String, String> lastWaveForSitesAndFloatersInMultipleWavesHash;
+	private HashMap<String, String> firstWaveForSitesAndFloatersInMultipleWavesHash;
 	private HashMap<String, String> lastWaveForEachSystem;
+	private HashMap<String, String> firstWaveForEachSystem;
+	private HashMap<String, List<String>>  waveForSites;
 	private HashMap<String, HashMap<String, ArrayList<String>>> masterHash;
 	
 	private Set<String> centrallyLocatedSys = new HashSet<String>();
@@ -677,6 +682,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		sysSiteSupportAndFloaterCostHash = addAllCostInfo(sysSiteSupportCostHash, sysFloaterCostHash);
 		
 		numSitesForSysHash = DHMSMDeploymentHelper.getNumSitesSysDeployedAt(tapSite);
+		systemsForSiteHash = DHMSMDeploymentHelper.getSysAtSitesInDeploymentPlan(tapSite);
+		siteLocationHash = DHMSMDeploymentHelper.getSiteLocation(tapSite);
 		
 		ArrayList<String> waveOrder = DHMSMDeploymentHelper.getWaveOrder(tapSite);
 		HashMap<String, List<String>> sitesInMultipleWavesHash = DHMSMDeploymentHelper.getSitesAndMultipleWaves(tapSite);
@@ -685,9 +692,15 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		HashMap<String, List<String>> floaterWaveList = DHMSMDeploymentHelper.getFloatersAndWaves(tapSite);
 		lastWaveForSitesAndFloatersInMultipleWavesHash.putAll(DHMSMDeploymentHelper.determineLastWaveForInput(waveOrder, floaterWaveList));
 		
+		firstWaveForSitesAndFloatersInMultipleWavesHash = DHMSMDeploymentHelper.determineFirstWaveForInput(waveOrder, sitesInMultipleWavesHash);
+		firstWaveForSitesAndFloatersInMultipleWavesHash.putAll(DHMSMDeploymentHelper.determineFirstWaveForInput(waveOrder, floaterWaveList));
+		
+		waveForSites = DHMSMDeploymentHelper.getSitesAndWaves(tapSite);
+		
 		waveStartEndDate = DHMSMDeploymentHelper.getWaveStartAndEndDate(tapSite);
 		
 		lastWaveForEachSystem = DHMSMDeploymentHelper.getLastWaveForEachSystem(tapSite, waveOrder);
+		firstWaveForEachSystem = DHMSMDeploymentHelper.getFirstWaveForEachSystem(tapSite, waveOrder);
 		
 		centrallyLocatedSys = DHMSMDeploymentHelper.getCentrallyDeployedSystems(hrCore);
 		
@@ -853,5 +866,31 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		 return allSysList;
 	}
 	
+	public HashMap<String, String> getLastWaveForEachSystem(){
+		return lastWaveForEachSystem;
+	}
 	
+	public HashMap<String, String> getFirstWaveForEachSystem(){
+		return firstWaveForEachSystem;
+	}
+	
+	public HashMap<String, String> getLastWaveForSitesAndFloatersInMultipleWavesHash() {
+		return lastWaveForSitesAndFloatersInMultipleWavesHash;
+	}
+	
+	public HashMap<String, String> getFirstWaveForSitesAndFloatersInMultipleWavesHash() {
+		return firstWaveForSitesAndFloatersInMultipleWavesHash;
+	}
+	
+	public HashMap<String, ArrayList<String>> getSystemsForSiteHash() {
+		return systemsForSiteHash;
+	}
+	
+	public HashMap<String, HashMap<String, Double>> getSiteLocationHash() {
+		return siteLocationHash;
+	}
+	
+	public HashMap<String, List<String>> getWaveForSites() {
+		return waveForSites;
+	}
 }

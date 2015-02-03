@@ -52,6 +52,7 @@ public final class DHMSMDeploymentHelper {
 	public static final String SYS_IN_WAVES_QUERY = "SELECT DISTINCT ?System ?Wave WHERE { {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSite} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSite} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} }";
 
 	public static final String SYS_DEPLOYED_AT_SITE_QUERY = "SELECT DISTINCT ?HostSite ?System WHERE { {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSite} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } ORDER BY ?HostSite ?System";
+	public static final String SITE_IN_WAVES_QUERY = "SELECT DISTINCT ?HostSite ?Wave WHERE { {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSite}} ORDER BY ?HostSite";
 	public static final String SITE_IN_MULTIPLE_WAVES_QUERY = "SELECT DISTINCT ?HostSite ?Wave WHERE { {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSite} FILTER( ?WaveNum > 1) { SELECT DISTINCT ?HostSite (COUNT(DISTINCT ?Wave) AS ?WaveNum) WHERE { {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSite} } GROUP BY ?HostSite } } ORDER BY ?HostSite";
 	public static final String SITE_IN_MULTIPLE_WAVES_COUNT_QUERY = "SELECT DISTINCT ?HostSite (COUNT(DISTINCT ?Wave) AS ?WaveCount) WHERE { {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSite} FILTER( ?WaveNum > 1) { SELECT DISTINCT ?HostSite (COUNT(DISTINCT ?Wave) AS ?WaveNum) WHERE { {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSite} } GROUP BY ?HostSite } } GROUP BY ?HostSite ORDER BY ?HostSite";
 	
@@ -102,6 +103,34 @@ public final class DHMSMDeploymentHelper {
 		return sysList;
 	}
 	
+	public static HashMap<String, String> getFirstWaveForEachSystem(IEngine engine) {
+		ArrayList<String> waveOrder = getWaveOrder(engine);
+		return getFirstWaveForEachSystem(engine, waveOrder);
+	}
+	
+	public static HashMap<String, String> getFirstWaveForEachSystem(IEngine engine, ArrayList<String> waveOrder) {
+		HashMap<String, List<String>> inputHash = new HashMap<String, List<String>>();
+		
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SYS_IN_WAVES_QUERY);
+		String[] names = sjsw.getVariables();
+		while(sjsw.hasNext()) {
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String sys = sjss.getVar(names[0]).toString();
+			String wave = sjss.getVar(names[1]).toString();
+			List<String> waveList;
+			if(inputHash.containsKey(sys)) {
+				waveList = inputHash.get(sys);
+				waveList.add(wave);
+			} else {
+				waveList = new ArrayList<String>();
+				waveList.add(wave);
+				inputHash.put(sys, waveList);
+			}
+		}
+		
+		return determineFirstWaveForInput(waveOrder, inputHash);
+	}
+	
 	public static HashMap<String, String> getLastWaveForEachSystem(IEngine engine) {
 		ArrayList<String> waveOrder = getWaveOrder(engine);
 		return getLastWaveForEachSystem(engine, waveOrder);
@@ -145,6 +174,26 @@ public final class DHMSMDeploymentHelper {
 				}
 			}
 			retHash.put(entity, lastWave);
+		}
+		
+		return retHash;
+	}
+	
+	public static HashMap<String, String> determineFirstWaveForInput(ArrayList<String> waveOrder, HashMap<String, List<String>> waveHash) {
+		HashMap<String, String> retHash = new HashMap<String, String>();
+
+		for(String entity : waveHash.keySet()) {
+			List<String> waveList = waveHash.get(entity);
+			int firstWaveIndex = waveOrder.size()-1;
+			String firstWave = "";
+			for(String wave : waveList) {
+				int index = waveOrder.indexOf(wave);
+				if(firstWaveIndex > index) {
+					firstWaveIndex = index;
+					firstWave = wave;
+				}
+			}
+			retHash.put(entity, firstWave);
 		}
 		
 		return retHash;
@@ -293,6 +342,29 @@ public final class DHMSMDeploymentHelper {
 		HashMap<String, List<String>> retHash = new HashMap<String, List<String>>();
 		
 		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SITE_IN_MULTIPLE_WAVES_QUERY);
+		String[] names = sjsw.getVariables();
+		while(sjsw.hasNext()) {
+			SesameJenaSelectStatement sjss = sjsw.next();
+			String site = sjss.getVar(names[0]).toString();
+			String wave = sjss.getVar(names[1]).toString();
+			List<String> waveList;
+			if(retHash.containsKey(site)) {
+				waveList = retHash.get(site);
+				waveList.add(wave);
+			} else {
+				waveList = new ArrayList<String>();
+				waveList.add(wave);
+				retHash.put(site, waveList);
+			}
+		}
+		
+		return retHash;
+	}
+	
+	public static HashMap<String, List<String>> getSitesAndWaves(IEngine engine) {
+		HashMap<String, List<String>> retHash = new HashMap<String, List<String>>();
+		
+		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SITE_IN_WAVES_QUERY);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
 			SesameJenaSelectStatement sjss = sjsw.next();
