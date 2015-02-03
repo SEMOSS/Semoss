@@ -89,6 +89,10 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	//display tabs
 	public JPanel siteAnalysisPanel = new JPanel();
 	
+	//system geospatial panel
+	public JPanel sysMapPanel = new JPanel();
+	public BrowserGraphPanel sysMap;
+	
 	//system savings bar chart panel
 	public JPanel sysBarChartPanel = new JPanel();
 	public DHMSMHighSystemSelectPanel systemSelectBarChartPanel;
@@ -363,9 +367,28 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		gbl_siteAnalysisPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
 		siteAnalysisPanel.setLayout(gbl_siteAnalysisPanel);
 		
+		//map deployment panel
+		sysMapPanel = new JPanel();
+		tabbedPane.insertTab("Deployment Map", null, sysMapPanel, null,2);
+		GridBagLayout gbl_sysMapPanel = new GridBagLayout();
+		gbl_sysMapPanel.columnWidths = new int[] { 0, 0 };
+		gbl_sysMapPanel.rowHeights = new int[] { 0, 0 };
+		gbl_sysMapPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
+		gbl_sysMapPanel.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
+		sysMapPanel.setLayout(gbl_sysMapPanel);
+		
+		sysMap = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/world-map-timeline.html");
+		
+		GridBagConstraints gbc_sysMap = new GridBagConstraints();
+		gbc_sysMap.insets = new Insets(0, 0, 0, 5);
+		gbc_sysMap.fill = GridBagConstraints.BOTH;
+		gbc_sysMap.gridx = 0;
+		gbc_sysMap.gridy = 0;
+		sysMapPanel.add(sysMap, gbc_sysMap);
+		
 		//panel with bar chart of savings for selected systems
 		sysBarChartPanel = new JPanel();
-		tabbedPane.insertTab("System Bar Chart", null, sysBarChartPanel, null,2);
+		tabbedPane.insertTab("System Bar Chart", null, sysBarChartPanel, null,3);
 		GridBagLayout gbl_sysBarChartPanel = new GridBagLayout();
 		gbl_sysBarChartPanel.columnWidths = new int[]{0, 0};
 		gbl_sysBarChartPanel.rowHeights = new int[]{0, 0};
