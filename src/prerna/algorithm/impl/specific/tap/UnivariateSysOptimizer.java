@@ -20,7 +20,9 @@ import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -81,8 +83,8 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 	private int[] provideDataBLUNow;
 	private int[] provideDataBLUFuture;
 	
-	private String capability;
-	private String system;
+	private String capability, system, geoCapability;
+	ArrayList<String> geoSpatialMapSystemList;
 	
 	public void setSelectDropDowns(DHMSMSystemSelectPanel sysSelectPanel, DHMSMCapabilitySelectPanel capabilitySelectPanel,
 			DHMSMDataBLUSelectPanel dataBLUSelectPanel, DHMSMSystemSelectPanel systemModernizePanel, DHMSMSystemSelectPanel systemDecommissionPanel,
@@ -309,6 +311,11 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 		SysOptPlaySheet.createSysCapButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				displaySysCapComparison();
+			}
+		});
+		SysOptPlaySheet.createGeoSpatialMapButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				displayGeoSpatialMap();
 			}
 		});
 	}
@@ -679,6 +686,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 		
 		for (String cap : capSet) {
 			SysOptPlaySheet.capComboBox.addItem(cap);
+			SysOptPlaySheet.geoCapComboBox.addItem(cap);
 		}
 		SysOptPlaySheet.capComboBox.addActionListener(new ActionListener() {
 			
@@ -687,7 +695,9 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 				HashMap<String, TreeSet<String>> capSystemMap = new HashMap<String, TreeSet<String>>();
 				capSystemMap = QueryProcessor.getStringSetMap(capSystemQuery, "HR_Core");
 				SysOptPlaySheet.sysComboBox.removeAllItems();
+				
 				capability = SysOptPlaySheet.capComboBox.getSelectedItem().toString();
+				
 				for (int i = 0; i < resFunc.sysList.size(); i++) {
 					if (resFunc.systemCapability[i].equalsIgnoreCase(capability)) {
 						SysOptPlaySheet.sysComboBox.addItem(resFunc.sysList.get(i));
@@ -705,6 +715,26 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 						}
 					}
 				});
+			}
+		});
+		// GeoSpatialMap ComboBox
+		SysOptPlaySheet.geoCapComboBox.addActionListener(new ActionListener() {
+			
+			public void actionPerformed(ActionEvent e) {
+				geoSpatialMapSystemList = new ArrayList<String>();
+				geoCapability = SysOptPlaySheet.geoCapComboBox.getSelectedItem().toString();
+				
+				String capSystemQuery = "SELECT ?Capability ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>} {?System ?Supports ?Capability}{?Supports <http://semoss.org/ontologies/Relation/Contains/Calculated> \"Yes\"}}";
+				HashMap<String, TreeSet<String>> capSystemMap = new HashMap<String, TreeSet<String>>();
+				capSystemMap = QueryProcessor.getStringSetMap(capSystemQuery, "HR_Core");
+				
+				for (int i = 0; i < resFunc.sysList.size(); i++) {
+					if (resFunc.systemCapability[i].equalsIgnoreCase(capability)) {
+						geoSpatialMapSystemList.add(resFunc.sysList.get(i));
+					} else if (capSystemMap.get(capability) != null && capSystemMap.get(capability).contains(resFunc.sysList.get(i))) {
+						geoSpatialMapSystemList.add(resFunc.sysList.get(i) + "*");
+					}
+				}
 			}
 		});
 		
@@ -849,7 +879,45 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 	}
 	
 	public void displayGeoSpatialMap() {
-		// TODO: write method
+		
+		HashSet data = new HashSet();
+		String[] var = { "System", "Lat", "Long", "size" };
+		String getSystemCoordinatesQuery = "SELECT DISTINCT ?System ?Lat ?Long WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>}{?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite}{?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?DCSite}{?DCSite <http://semoss.org/ontologies/Relation/Contains/LONG> ?Long}{?DCSite <http://semoss.org/ontologies/Relation/Contains/LAT> ?Lat}}";
+		HashMap<String, ArrayList<String[]>> systemCoordinatesList = new HashMap<String, ArrayList<String[]>>();
+		QueryProcessor.getStringTwoArrayListMap(getSystemCoordinatesQuery, "TAP_Site_Data");
+		String systemKey = "";
+		// Possibly filter out all US Facilities from the query?
+		
+		for (String system : geoSpatialMapSystemList) {
+			if (system.contains("*")) {
+				int asteriskIndex = system.indexOf("*");
+				systemKey = system.substring(0, asteriskIndex);
+			} else {
+				systemKey = system;
+			}
+			for (String coordinates[] : systemCoordinatesList.get(systemKey)) {
+				LinkedHashMap elementHash = new LinkedHashMap();
+				elementHash.put("System", system);
+				elementHash.put("Lat", Double.parseDouble(coordinates[0]));
+				elementHash.put("Long", Double.parseDouble(coordinates[1]));
+				elementHash.put("size", 1000000);
+				data.add(elementHash);
+			}
+		}
+		
+		Hashtable allHash = new Hashtable();
+		allHash.put("dataSeries", data);
+		
+		allHash.put("lat", var[1]);
+		allHash.put("lon", var[2]);
+		if (var.length > 3 && !var[3].equals(null))
+			allHash.put("size", var[3]);
+		else
+			allHash.put("size", "");
+		allHash.put("locationName", var[0]);
+		
+		((SysOptPlaySheet) playSheet).geoSpatialMap.callIt(allHash);
+		((SysOptPlaySheet) playSheet).geoSpatialMap.setVisible(true);
 		
 	}
 	
