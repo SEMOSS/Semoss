@@ -136,4 +136,28 @@ public class QueryProcessor {
 		}
 		return finalMap;
 	}
+	
+	public static HashMap<String, ArrayList<String[]>> getStringTwoArrayListMap(String query, String engineName) {
+		HashMap<String, ArrayList<String[]>> finalMap = new HashMap<String, ArrayList<String[]>>();
+		try {
+			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+			SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
+			String[] values = sjsw.getVariables();
+			while (sjsw.hasNext()) {
+				SesameJenaSelectStatement sjss = sjsw.next();
+				
+				String key = sjss.getVar(values[0]).toString();
+				String valueOne = sjss.getVar(values[1]).toString();
+				String valueTwo = sjss.getVar(values[2]).toString();
+				if (!finalMap.containsKey(key)) {
+					finalMap.put(key, new ArrayList<String[]>());
+				}
+				String[] temp = { valueOne, valueTwo };
+				finalMap.get(key).add(temp);
+			}
+		} catch (RuntimeException e) {
+			Utility.showError("Cannot find engine: " + engineName);
+		}
+		return finalMap;
+	}
 }

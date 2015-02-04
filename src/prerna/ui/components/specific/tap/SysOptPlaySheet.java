@@ -520,6 +520,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet {
 		gbc_clusterHeatMap.gridy = 0;
 		clusterHeatMapPanel.add(clusterHeatMap, gbc_clusterHeatMap);
 		
+		// Components for Capability System Comparison Panel
 		JPanel sysCapPanel = new JPanel();
 		tabbedPane.addTab("Capability System Comparison", null, sysCapPanel, null);
 		GridBagLayout gbl_sysCapPanel = new GridBagLayout();
@@ -536,6 +537,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet {
 		gbc_sysCapOptionsPanel.gridwidth = 1;
 		gbc_sysCapOptionsPanel.insets = new Insets(0, 0, 5, 5);
 		gbc_sysCapOptionsPanel.gridx = 0;
+		gbc_sysCapOptionsPanel.fill = GridBagConstraints.HORIZONTAL;
 		gbc_sysCapOptionsPanel.gridy = 0;
 		sysCapPanel.add(sysCapOptionsPanel, gbc_sysCapOptionsPanel);
 		
@@ -602,23 +604,15 @@ public class SysOptPlaySheet extends SerOptPlaySheet {
 		gbc_noteLabel.gridy = 0;
 		sysCapOptionsPanel.add(noteLabel, gbc_noteLabel);
 		
+		// Components for GeoSpatial Map
 		JPanel geoSpatialPanel = new JPanel();
 		tabbedPane.addTab("GeoSpatial Map", null, geoSpatialPanel, null);
 		GridBagLayout gbl_geoSpatialPanel = new GridBagLayout();
-		gbl_geoSpatialPanel.columnWidths = new int[] { 0, 0 };
-		gbl_geoSpatialPanel.rowHeights = new int[] { 0, 0 };
+		gbl_geoSpatialPanel.columnWidths = new int[] { 0, 0, 10 };
+		gbl_geoSpatialPanel.rowHeights = new int[] { 0, 0, 10 };
 		gbl_geoSpatialPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
-		gbl_geoSpatialPanel.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
+		gbl_geoSpatialPanel.rowWeights = new double[] { 0.0, 1.0, Double.MIN_VALUE };
 		geoSpatialPanel.setLayout(gbl_geoSpatialPanel);
-		
-		geoSpatialMap = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/clusterheatmap.html"); // TODO: change
-		
-		GridBagConstraints gbc_geoSpatialPanel = new GridBagConstraints();
-		gbc_geoSpatialPanel.insets = new Insets(0, 0, 0, 5);
-		gbc_geoSpatialPanel.fill = GridBagConstraints.BOTH;
-		gbc_geoSpatialPanel.gridx = 0;
-		gbc_geoSpatialPanel.gridy = 0;
-		geoSpatialPanel.add(geoSpatialMap, gbc_geoSpatialPanel);
 		
 		geoSpatialOptionsPanel = new JPanel();
 		geoSpatialOptionsPanel.setBackground(SystemColor.control);
@@ -627,6 +621,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet {
 		gbc_geoSpatialOptionsPanel.gridwidth = 1;
 		gbc_geoSpatialOptionsPanel.insets = new Insets(0, 0, 5, 5);
 		gbc_geoSpatialOptionsPanel.gridx = 0;
+		gbc_geoSpatialOptionsPanel.fill = GridBagConstraints.HORIZONTAL;
 		gbc_geoSpatialOptionsPanel.gridy = 0;
 		geoSpatialPanel.add(geoSpatialOptionsPanel, gbc_geoSpatialOptionsPanel);
 		
@@ -638,10 +633,25 @@ public class SysOptPlaySheet extends SerOptPlaySheet {
 		gbc_geoSpatialDisplayPanel.insets = new Insets(0, 0, 5, 5);
 		gbc_geoSpatialDisplayPanel.gridx = 0;
 		gbc_geoSpatialDisplayPanel.fill = GridBagConstraints.BOTH;
-		gbc_geoSpatialDisplayPanel.gridy = 1;
-		geoSpatialPanel.add(geoSpatialDisplayPanel, gbc_geoSpatialDisplayPanel);
+		gbc_geoSpatialDisplayPanel.gridy = 0;
+		// GridBagLayout gbl_geoSpatialDisplayPanel = new GridBagLayout();
+		// gbl_geoSpatialDisplayPanel.columnWidths = new int[] { 0, 0 };
+		// gbl_geoSpatialDisplayPanel.rowHeights = new int[] { 0, 0 };
+		// gbl_geoSpatialDisplayPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
+		// gbl_geoSpatialDisplayPanel.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
+		// geoSpatialDisplayPanel.setLayout(gbl_geoSpatialDisplayPanel);
+		geoSpatialPanel.add(geoSpatialDisplayPanel, null);
 		
-		geoSpatialPanel.add(capLabel, gbc_capLabel);
+		geoSpatialMap = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/worldmap.html");
+		
+		GridBagConstraints gbc_geoSpatialPanel = new GridBagConstraints();
+		gbc_geoSpatialPanel.insets = new Insets(0, 0, 0, 5);
+		gbc_geoSpatialPanel.fill = GridBagConstraints.BOTH;
+		gbc_geoSpatialPanel.gridx = 0;
+		gbc_geoSpatialPanel.gridy = 0;
+		geoSpatialDisplayPanel.add(geoSpatialMap, gbc_geoSpatialPanel);
+		
+		geoSpatialOptionsPanel.add(capLabel, gbc_capLabel);
 		
 		geoCapComboBox = new JComboBox<String>();
 		GridBagConstraints gbc_geoCapComboBox = new GridBagConstraints();
@@ -650,7 +660,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet {
 		gbc_geoCapComboBox.fill = GridBagConstraints.HORIZONTAL;
 		gbc_geoCapComboBox.gridx = 1;
 		gbc_geoCapComboBox.gridy = 0;
-		geoSpatialPanel.add(geoCapComboBox, gbc_geoCapComboBox);
+		geoSpatialOptionsPanel.add(geoCapComboBox, gbc_geoCapComboBox);
 		
 		createGeoSpatialMapButton = new CustomButton("Create");
 		createGeoSpatialMapButton.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -659,7 +669,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet {
 		gbc_createGeoSpatialMapButton.insets = new Insets(0, 0, 5, 5);
 		gbc_createGeoSpatialMapButton.gridx = 0;
 		gbc_createGeoSpatialMapButton.gridy = 2;
-		geoSpatialPanel.add(createGeoSpatialMapButton, gbc_createSysCapButton);
+		geoSpatialOptionsPanel.add(createGeoSpatialMapButton, gbc_createSysCapButton);
 		Style.registerTargetClassName(createGeoSpatialMapButton, ".standardButton");
 	}
 	
