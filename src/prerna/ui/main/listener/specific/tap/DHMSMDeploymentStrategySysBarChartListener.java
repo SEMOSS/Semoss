@@ -15,29 +15,17 @@
  *******************************************************************************/
 package prerna.ui.main.listener.specific.tap;
 
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.List;
 
-import javax.swing.JPanel;
 import javax.swing.JTextArea;
-import javax.swing.JTextField;
-import javax.swing.JToggleButton;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.specific.tap.DHMSMDeploymentStrategyPlaySheet;
-import prerna.ui.components.specific.tap.DHMSMIntegrationSavingsPerFiscalYearProcessor;
-import prerna.ui.components.specific.tap.SerOptPlaySheet;
-import prerna.util.Utility;
 
 /**
  */

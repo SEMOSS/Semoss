@@ -36,8 +36,9 @@ import javax.swing.JToggleButton;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.teamdev.jxbrowser.chromium.JSValue;
+
 import prerna.ui.components.GridScrollPane;
-import prerna.ui.components.specific.tap.DHMSMDeploymentHelper;
 import prerna.ui.components.specific.tap.DHMSMDeploymentStrategyPlaySheet;
 import prerna.ui.components.specific.tap.DHMSMIntegrationSavingsPerFiscalYearProcessor;
 import prerna.util.Utility;
@@ -328,7 +329,6 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		ps.sysSavingsChart.setVisible(true);
 		ps.runSysBarChartBtn.setVisible(true);
 		
-		
 		//setting data for the deployment map
 		Hashtable<Integer, Object> dataHash = new Hashtable<Integer, Object>();
 		HashMap<String, String> lastWaveForEachSystem = processor.getLastWaveForEachSystem();
@@ -454,7 +454,7 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 						siteElement.put("Lat", latVal);
 						siteElement.put("Long", longVal);
 						siteElement.put("Status",status);
-						siteElement.put("tCostSite", savings);
+						siteElement.put("TCostSite", savings);
 						siteElement.put("SystemForSite", systemHash);
 						//TODO only systems that are included in my list?
 						Hashtable<String, Hashtable> yearHash = (Hashtable<String, Hashtable>)dataHash.get(year);
@@ -471,7 +471,12 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 			}
 		}
 		
-		ps.sysMap.callIt(dataHash);
+		Hashtable allData = new Hashtable();
+		allData.put("data", dataHash);
+		allData.put("label", "savings");
+		// execute method to restart values when different deployment schedule is initiated
+		JSValue val = ps.sysMap.browser.executeJavaScriptAndReturnValue("refresh();");
+		ps.sysMap.callIt(allData);
 	}
 
 	public void displayListOnTab(String[] colNames,ArrayList <Object []> list, JPanel panel) {

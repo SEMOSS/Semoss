@@ -2,13 +2,14 @@
     box-sizing: border-box;
 }
 .slider {
-    width: 800px;
-    margin-top: 13px;
+    width: 700px;
+    margin-top: 5px;
 }
 
 .slider-container {
     width: 800px;
-    margin: 0 auto;
+    margin-top: -15px;
+    margin-left: 25%;
 }
 
 #sidebarHeader {
@@ -122,3 +123,57 @@
  .ng-table th.text-center {
      text-align: center;
  }
+.value-container {
+    position: relative;
+    left: 50px;
+    top: 10px;
+    z-index: -1;
+    text-indent: 50px;
+    font-size: 150%;
+
+
+}
+.square-box{
+    position: relative;
+    width: 150px;
+    height: 30px;
+    margin-top: 10px;
+    margin-left: 20px;
+    overflow: hidden;
+    border: 2px solid blue;
+    border-radius: 10px;
+    border-color: #0e90d2;
+}
+.square-box:before{
+    content: "";
+    display: block;
+    padding-top: 100%;
+}
+.square-content{
+    position:  absolute;
+    top: 2px;
+    left: 3px;
+    bottom: 0;
+    right: 0;
+    z-index: 2;
+    color: white;
+}
+.square-content div {
+   display: table;
+   width: 20%;
+   height: 20%;
+}
+.square-content span {
+    display: table-cell;
+    text-align: center;
+    vertical-align: middle;
+    color: black
+}
+.sliderVal {
+    position:  absolute;
+    top: 2px;
+    left: 3px;
+    bottom: 0;
+    right: 0;
+    color: white;
+}
