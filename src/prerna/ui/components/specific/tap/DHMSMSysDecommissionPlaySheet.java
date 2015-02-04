@@ -60,8 +60,11 @@ public class DHMSMSysDecommissionPlaySheet extends BrowserPlaySheet{
 		dataProcessing.setDataSource(data);
 		dataProcessing.setAllData(data.masterHash);
 		dataProcessing.decomposeData();
-		Hashtable<Integer, Object> allHash = dataProcessing.constructHash();
+		Hashtable<Integer, Object> loeHash = dataProcessing.constructHash();
 		
+		Hashtable allHash = new Hashtable();
+		allHash.put("data", loeHash);
+		allHash.put("label", "cost");
 		this.dataHash = allHash;
 	}
 }
