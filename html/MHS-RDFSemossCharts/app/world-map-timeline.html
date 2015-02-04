@@ -6,7 +6,7 @@
 
     <link rel="stylesheet" type="text/css" href="css/ng-table.css">
     <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
-    <link rel="stylesheet" type="text/css" href="css/slider.css">
+    <link rel="stylesheet" type="text/css" href="css/tslider.css">
     <link rel="stylesheet" type="text/css" href="css/world-map-timeline.css">
     <link type="text/css" rel="stylesheet" href="css/tooltip.css"></link>
     
@@ -25,7 +25,11 @@
 <body ng-app="main">
     <div id="controllerID" ng-controller="DemoCtrl">
         <div id="sidebarContainer">
-            <div id="sidebarHeader">
+             <div id="sidebarHeader">
+                <!-- <span id="value-container">Year: <span id="sliderVal"> </span></span> -->
+                <span class="value-container">Year: {{year}} </span>
+                <!-- <div class='square-box'>
+                    </div> -->
                 <div class="slider-container">
                     <input type="text" class="slider" id="slider" value="">
                 </div>
@@ -39,7 +43,7 @@
                             <td data-title="'Name'" sortable="'name'" filter="{ 'name': 'text' }" header-class = "text-center">
                                 {{user.name}}
                             </td>
-                             <td id="cumulativeSystemCost" data-title="'Cumulative Cost ($)'" sortable="'totalSystemCost'" filter="{ 'totalSystemCost': 'text' }" header-class = "text-center" class="text-right" >
+                             <td id="tableCostColumn" data-title="costTitle" sortable="'totalSystemCost'" filter="{ 'totalSystemCost': 'text' }" header-class = "text-center" class="text-right" >
                                 {{user.totalSystemCost}}
                             </td>
                             <td data-title="'Aggregated Status'" sortable="'aggregatedStatus'" filter="{ 'aggregatedStatus': 'text' }" header-class = "text-center" class="text-center">
@@ -57,9 +61,16 @@
     </div>
 
     <script> 
+
+
+
+        function refresh(){
+            location.reload();
+            return true;
+        };
         
         function start(dataPassed) {
-            
+                d3.selectAll("svg").remove();
                 var ctrlScope = angular.element(jQuery('#controllerID')).scope();
                 // calling function in controller
                 ctrlScope.setJSONData(dataPassed);
@@ -69,20 +80,31 @@
         angular.module('main', ['ngTable']).
         controller('DemoCtrl', function($scope, $filter, ngTableParams) {
 
+            $scope.costTitle;
+
             $scope.setJSONData = function (data) {
                 $scope.$apply(function () {
                     createAll(jQuery.parseJSON(data));
                 });
             };
             
-            function createAll (dataString) {
-
+            function createAll (allData) {
+            // $("#slider").destroy(); 
+            var dataString = allData.data;
+            var chartType = allData.label;
+            if(chartType === "savings") {
+                // $('#tableCostColumn').attr('data-title', 'Cumulative Savings ($)');
+                $scope.costTitle = 'Cumulative Savings ($)';
+            } else {
+                // $('#tableCostColumn').attr('data-title', 'Cumulative Cost ($)');
+                $scope.costTitle = 'Cumulative Cost ($)';
+            }
             //Load in GeoJSON data
-                var json = worldData;
+            var json = worldData;
 
             //Width and height
             var w = 1500;
-            var h = 1000;
+            var h = 1000;            
 
             //Define map projection
             var projection = d3.geo.mercator()
@@ -123,15 +145,30 @@
            .style("fill", 
             "#ccc"
            );
+            var maxYear = 0;
+                var minYear = 3000;
+                var hop = 1;
+                for (var year in dataString){
+                    if(year<minYear){
+                        minYear = year;
+                    } else{}
+                    if(year>maxYear){
+                        maxYear = year;
+                    } else {};
+                }
 
+        var renderGeoMap = function(dataGeo){
 
-
-var renderGeoMap = function(dataGeo){
 
                              /* Initialize tooltip */
              /*(if(undefined != d.System) {+ " " + d.System }*/
             var genObj = function (d) {
-                var tempvar = "Site: " + d.site + "</br>" + "Total Site Cost: " + d['Total Site Cost'];
+                if (chartType === "savings") {
+                    var tempvar = "Site: " + d.site + "</br>" + "Total Site Savings: " + d['Total Site Cost'];
+                } else {
+                    var tempvar = "Site: " + d.site + "</br>" + "Total Site Cost: " + d['Total Site Cost'];
+                }
+
                     for(var system in d.Systems){
                         tempvar = tempvar + "</br>" + "&nbsp &nbsp" + system
                         for (var prop in d.Systems[system]){
@@ -203,6 +240,8 @@ var renderGeoMap = function(dataGeo){
 
             redCircle.call(tip);
             redCircle.exit().remove();
+             $('#slider').slider('refresh');
+            // sliderRefresh();
             }
 
                 $scope.dataUpdater;
@@ -226,61 +265,82 @@ var renderGeoMap = function(dataGeo){
                 }
 
 
+                $("#slider").on("slide", function(slideEvt) {
+                $("#sliderVal").text(slideEvt.value);
+                });
 
-                var maxYear = 0;
-                var minYear = 3000;
-                var hop = 1;
-                for (var year in dataString){
-                    if(year<minYear){
-                        minYear = year;
-                    } else{}
-                    if(year>maxYear){
-                        maxYear = year;
-                    } else {};
-                }
+                // var sliderRefresh = function(){
+                //     $('#slider').slider.destroy();
+                //     var maxYear = 0;
+                //     var minYear = 3000;
+                //     var hop = 1;
+                //     for (var year in dataString){
+                //         if(year<minYear){
+                //             minYear = year;
+                //         } else{}
+                //         if(year>maxYear){
+                //             maxYear = year;
+                //         } else {};
+                //     }
+                //      $('#slider').slider({
+                //     min: parseInt(minYear),
+                //     max: parseInt(maxYear),
+                //     step: 1
+                //   })
+                //     $('#slider').slider('setValue', parseInt(minYear), parseInt(maxYear))
+                //     location.reload();
+                // }
+                
+
+
+                
 
                 var slideFunction = function(){
-                    var data = dataRefresh($('#slider').data('slider').getValue())
+                    $scope.year = $('#slider').data('slider').getValue();
+                    var data = dataRefresh($scope.year)
                     $scope.dataUpdater = data;
                     $scope.tableParams.reload();
-                    var dataGeo = geoDataRefresh($('#slider').data('slider').getValue())
+                    var dataGeo = geoDataRefresh($scope.year)
                     renderGeoMap(dataGeo);
                 }
+
 
                 $('#slider').slider({
                     min: parseInt(minYear),
                     max: parseInt(maxYear),
                     step: 1
                   })
-                .on('slide', function(){
+             
+                $('#slider').on('slide', function(){
                     slideFunction();
-                })
+                });
+
                     
-                    var data = dataRefresh($('#slider').data('slider').getValue());
-                     $scope.dataUpdater = data;
-                    $scope.tableParams = new ngTableParams({
-                        count: data.length,          // count per page
-                        filter: {
-                            name: ''       // initial filter
-                        },
-                        sorting: {
-                            name: 'asc'     // initial sorting
-                        }
-                    }, {
-                        total: data.length, // length of data
-                        getData: function($defer, params) {
-                            var data = $scope.dataUpdater;
-                            // use build-in angular filter
-                            var filteredData = params.filter() ?
-                                    $filter('filter')(data, params.filter()) :
-                                    data;
-                            var orderedData = params.sorting() ?
-                                    $filter('orderBy')(filteredData, params.orderBy()) :
-                                    data;
-                            params.total(orderedData.length); // set total for recalc pagination
-                            $defer.resolve(orderedData.slice((params.page() - 1) * params.count(), params.page() * params.count()));
-                        }
-                    });
+                var data = dataRefresh($('#slider').data('slider').getValue());
+                $scope.dataUpdater = data;
+                $scope.tableParams = new ngTableParams({
+                    count: data.length,          // count per page
+                    filter: {
+                        name: ''       // initial filter
+                    },
+                    sorting: {
+                        name: 'asc'     // initial sorting
+                    }
+                }, {
+                    total: data.length, // length of data
+                    getData: function($defer, params) {
+                        var data = $scope.dataUpdater;
+                        // use build-in angular filter
+                        var filteredData = params.filter() ?
+                                $filter('filter')(data, params.filter()) :
+                                data;
+                        var orderedData = params.sorting() ?
+                                $filter('orderBy')(filteredData, params.orderBy()) :
+                                data;
+                        params.total(orderedData.length); // set total for recalc pagination
+                        $defer.resolve(orderedData.slice((params.page() - 1) * params.count(), params.page() * params.count()));
+                    }
+                });
 
 
         //GEOMAP FUNNNN
@@ -289,18 +349,14 @@ var renderGeoMap = function(dataGeo){
             var geoDataRefresh = function(year){
                 var dataGeo = [];
                 for(var site in dataString[year].site){
-                    dataGeo.push({'site': site,'lat': dataString[year].site[site].Lat, 'lon': dataString[year].site[site].Long, 'Status':dataString[year].site[site].Status, 'Total Site Cost': dataString[year].site[site]['tCostSite'], "Systems": dataString[year].site[site]['SystemForSite']})
+                    dataGeo.push({'site': site,'lat': dataString[year].site[site].Lat, 'lon': dataString[year].site[site].Long, 'Status':dataString[year].site[site].Status, 'Total Site Cost': dataString[year].site[site]['TCostSite'], "Systems": dataString[year].site[site]['SystemForSite']})
                 }
                 return dataGeo
             }
 
             dataGeo = geoDataRefresh(2015);
 
-           renderGeoMap(dataGeo);
-
-        
-
-
+            renderGeoMap(dataGeo);
 
             }
 
