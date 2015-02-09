@@ -10595,245 +10595,230 @@
 	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/ActiveSystem"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:LPI-System_Perspective">
-	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
-	<label>TAP_Core_Data:LPI-System_Perspective</label>
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">LPI-System_Perspective</Label>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
-	<label>TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective</label>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Core_Data">
-	<LPI-System_Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/TAP_Core_Data:TAP_Core_Data:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:LPI-System_Perspective"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_1">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_1">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_1</label>
+	<label>TAP_Core_Data:Data-Perspective:Data-Perspective_1</label>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_1">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:Data-Perspective:Data-Perspective_1">
 	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_1</label>
+	<label>TAP_Core_Data:TAP_Core_Data:Data-Perspective:Data-Perspective_1</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Core_Data">
-	<LPI-System_Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_1"/>
+	<Data-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:Data-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_1"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:LPI-System_Perspective:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_1">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:Data-Perspective:TAP_Core_Data:Data-Perspective:Data-Perspective_1">
 	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Core_Data:LPI-System_Perspective:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_1</label>
+	<label>TAP_Core_Data:Data-Perspective:TAP_Core_Data:Data-Perspective:Data-Perspective_1</label>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:LPI-System_Perspective">
-	<LPI-System_Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:LPI-System_Perspective:TAP_Core_Data:LPI-System_Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_1"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:Data-Perspective">
+	<Data-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:Data-Perspective:TAP_Core_Data:Data-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_1"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_1">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What systems were designed as Current Creators by SMEs but not by System owners?</Label>
-	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What systems were designed as Current Creators by SMEs but not by System owners? </Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">20</Order>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:LPI-System_Perspective">
-	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">LPI-System_Perspective_1</IDLabel>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:Data-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">Data-Perspective_1</IDLabel>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_1">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_1">
 	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?System ?DataObject WHERE {BIND (&lt;http://health.mil/ontologies/Concept/SourceType/CurrentCreator&gt; AS ?SourceType){?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;;}{?Designated &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Designated&gt;;}{?DataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;;}{?LabeledAs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt;;}{?DataObjectSource ?LabeledAs ?SourceType}{?DataObjectSource ?Delivers ?DataObject}{?System ?Designated ?DataObjectSource} MINUS {SELECT DISTINCT ?System ?DataObject  WHERE {{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?Provide &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;}{?Provide &lt;http://semoss.org/ontologies/Relation/Contains/CRM&gt; 'C'}{?System ?Provide ?DataObject}} } }</SPARQL>
 	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_2">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_2">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_2</label>
+	<label>TAP_Core_Data:Data-Perspective:Data-Perspective_2</label>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_2">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:Data-Perspective:Data-Perspective_2">
 	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_2</label>
+	<label>TAP_Core_Data:TAP_Core_Data:Data-Perspective:Data-Perspective_2</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Core_Data">
-	<LPI-System_Perspective_2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_2"/>
+	<Data-Perspective_2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:Data-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_2"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:LPI-System_Perspective:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_2">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:Data-Perspective:TAP_Core_Data:Data-Perspective:Data-Perspective_2">
 	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Core_Data:LPI-System_Perspective:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_2</label>
+	<label>TAP_Core_Data:Data-Perspective:TAP_Core_Data:Data-Perspective:Data-Perspective_2</label>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:LPI-System_Perspective">
-	<LPI-System_Perspective_2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:LPI-System_Perspective:TAP_Core_Data:LPI-System_Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_2"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:Data-Perspective">
+	<Data-Perspective_2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:Data-Perspective:TAP_Core_Data:Data-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_2"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_2">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What systems were designed as Creators by System Owners but not by SMEs?</Label>
-	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_2">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What systems were designed as Creators by System Owners but not by SMEs? </Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">21</Order>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:LPI-System_Perspective">
-	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">LPI-System_Perspective_2</IDLabel>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:Data-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">Data-Perspective_2</IDLabel>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_2">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_2">
 	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?System ?DataObject  WHERE {{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?Provide &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;}{?Provide &lt;http://semoss.org/ontologies/Relation/Contains/CRM&gt; 'C'}{?System ?Provide ?DataObject} MINUS {SELECT DISTINCT ?System ?DataObject ?DataObjectSource WHERE{BIND (&lt;http://health.mil/ontologies/Concept/SourceType/CurrentCreator&gt; AS ?SourceType){?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;;}{?Designated &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Designated&gt;;}{?DataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;;}{?LabeledAs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt;;}{?DataObjectSource ?LabeledAs ?SourceType}{?DataObjectSource ?Delivers ?DataObject}{?System ?Designated ?DataObjectSource} } } }</SPARQL>
 	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_3">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_3">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_3</label>
+	<label>TAP_Core_Data:Data-Perspective:Data-Perspective_3</label>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_3">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:Data-Perspective:Data-Perspective_3">
 	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_3</label>
+	<label>TAP_Core_Data:TAP_Core_Data:Data-Perspective:Data-Perspective_3</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Core_Data">
-	<LPI-System_Perspective_3 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_3"/>
+	<Data-Perspective_3 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:Data-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_3"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:LPI-System_Perspective:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_3">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:Data-Perspective:TAP_Core_Data:Data-Perspective:Data-Perspective_3">
 	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Core_Data:LPI-System_Perspective:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_3</label>
+	<label>TAP_Core_Data:Data-Perspective:TAP_Core_Data:Data-Perspective:Data-Perspective_3</label>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:LPI-System_Perspective">
-	<LPI-System_Perspective_3 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:LPI-System_Perspective:TAP_Core_Data:LPI-System_Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_3"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:Data-Perspective">
+	<Data-Perspective_3 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:Data-Perspective:TAP_Core_Data:Data-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_3"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_3">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What systems are designed as MigrationReference but do not Create or Read information?</Label>
-	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">3</Order>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_3">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What systems are designed as MigrationReference but do not Create or Read information? </Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">22</Order>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:LPI-System_Perspective">
-	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">LPI-System_Perspective_3</IDLabel>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:Data-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">Data-Perspective_3</IDLabel>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_3">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_3">
 	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?System ?DataObject WHERE{BIND (&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?SourceType){?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;;}{?Designated &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Designated&gt;;}{?DataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;;}{?LabeledAs &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt;;}{?Delivers &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Delivers&gt;}{?DataObjectSource ?LabeledAs ?SourceType}{?DataObjectSource ?Delivers ?DataObject}{?System ?Designated ?DataObjectSource} MINUS {SELECT DISTINCT ?System ?DataObject WHERE {{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?Provide &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;}{?System ?Provide ?DataObject}}} }</SPARQL>
 	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_4">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_4">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_4</label>
+	<label>TAP_Core_Data:Data-Perspective:Data-Perspective_4</label>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_4">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:Data-Perspective:Data-Perspective_4">
 	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_4</label>
+	<label>TAP_Core_Data:TAP_Core_Data:Data-Perspective:Data-Perspective_4</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Core_Data">
-	<LPI-System_Perspective_4 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_4"/>
+	<Data-Perspective_4 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:Data-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_4"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:LPI-System_Perspective:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_4">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:Data-Perspective:TAP_Core_Data:Data-Perspective:Data-Perspective_4">
 	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Core_Data:LPI-System_Perspective:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_4</label>
+	<label>TAP_Core_Data:Data-Perspective:TAP_Core_Data:Data-Perspective:Data-Perspective_4</label>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:LPI-System_Perspective">
-	<LPI-System_Perspective_4 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:LPI-System_Perspective:TAP_Core_Data:LPI-System_Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_4"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:Data-Perspective">
+	<Data-Perspective_4 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:Data-Perspective:TAP_Core_Data:Data-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_4"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_4">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">How do systems that create data store said data?</Label>
-	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">4</Order>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_4">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">How do systems that create data store said data? </Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">23</Order>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:LPI-System_Perspective">
-	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">LPI-System_Perspective_4</IDLabel>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:Data-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">Data-Perspective_4</IDLabel>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_4">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_4">
 	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?System ?DataObject ?ReferenceSource  WHERE {{BIND ('Inherently_Reference_Source' AS ?ReferenceSource)BIND (&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?MigrationReference) {?MigrationReference &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SourceType&gt;}{?DataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?System &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?DataObjectSource}{?Provide1 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;}{?Provide1 &lt;http://semoss.org/ontologies/Relation/Contains/CRM&gt; 'C'} {?System ?Provide1 ?DataObject}} UNION { SELECT DISTINCT ?System ?DataObject ?ReferenceSource WHERE {BIND ('Interfaces_with_Reference_Source' AS ?ReferenceSource)BIND (&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?MigrationReference) {?MigrationReference &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SourceType&gt;}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?InterfaceControlDocument &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/InterfaceControlDocument&gt;}{?OtherSystem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?OtherDataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?OtherDataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?System &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?InterfaceControlDocument}{?OtherSystem &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?OtherDataObjectSource}{?OtherDataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}{?InterfaceControlDocument &lt;http://semoss.org/ontologies/Relation/Consume&gt; ?OtherSystem}{?InterfaceControlDocument &lt;http://semoss.org/ontologies/Relation/Payload&gt; ?DataObject}{?Provide1 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;}{?Provide1 &lt;http://semoss.org/ontologies/Relation/Contains/CRM&gt; 'C'} {?System ?Provide1 ?DataObject}MINUS {SELECT DISTINCT ?System ?DataObject ?ReferenceSource WHERE{BIND ('Interfaces_with_Reference_Source' AS ?ReferenceSource)BIND (&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?MigrationReference) {?MigrationReference &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SourceType&gt;}{?DataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?System &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?DataObjectSource}{?System &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?DataObject}}}}} UNION {SELECT DISTINCT ?System ?DataObject ?ReferenceSource WHERE{BIND ('No Reference Involvement' AS ?ReferenceSource) {?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?Provide1 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;}{?DataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}{?System &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?DataObjectSource}{?Provide1 &lt;http://semoss.org/ontologies/Relation/Contains/CRM&gt; 'C'} {?System ?Provide1 ?DataObject}MINUS {SELECT DISTINCT ?System ?DataObject ?ReferenceSource WHERE{{BIND ('No Reference Involvement' AS ?ReferenceSource) BIND (&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?MigrationReference){?MigrationReference &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SourceType&gt;}{?DataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?System &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?DataObjectSource}{?Provide1 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;}{?Provide1 &lt;http://semoss.org/ontologies/Relation/Contains/CRM&gt; 'C'} {?System ?Provide1 ?DataObject}} UNION {SELECT DISTINCT ?System ?DataObject ?ReferenceSource WHERE {BIND ('No Reference Involvement' AS ?ReferenceSource) BIND (&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?MigrationReference) {?MigrationReference &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SourceType&gt;}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?InterfaceControlDocument &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/InterfaceControlDocument&gt;}{?OtherSystem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?OtherDataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?OtherDataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?System &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?InterfaceControlDocument}{?OtherSystem &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?OtherDataObjectSource}{?OtherDataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}{?InterfaceControlDocument &lt;http://semoss.org/ontologies/Relation/Consume&gt; ?OtherSystem}{?InterfaceControlDocument &lt;http://semoss.org/ontologies/Relation/Payload&gt; ?DataObject}{?Provide1 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;}{?Provide1 &lt;http://semoss.org/ontologies/Relation/Contains/CRM&gt; 'C'} {?System ?Provide1 ?DataObject}MINUS {SELECT DISTINCT ?System ?DataObject ?ReferenceSource WHERE{BIND ('No Reference Involvement' AS ?ReferenceSource) BIND (&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?MigrationReference) {?MigrationReference &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SourceType&gt;}{?DataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?System &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?DataObjectSource}{?System &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?DataObject}}}}}}}}}}</SPARQL>
 	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_6">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_5">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_6</label>
+	<label>TAP_Core_Data:Data-Perspective:Data-Perspective_5</label>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_6">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:Data-Perspective:Data-Perspective_5">
 	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_6</label>
+	<label>TAP_Core_Data:TAP_Core_Data:Data-Perspective:Data-Perspective_5</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Core_Data">
-	<LPI-System_Perspective_6 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_6"/>
+	<Data-Perspective_5 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:Data-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_5"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:LPI-System_Perspective:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_6">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:Data-Perspective:TAP_Core_Data:Data-Perspective:Data-Perspective_5">
 	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Core_Data:LPI-System_Perspective:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_6</label>
+	<label>TAP_Core_Data:Data-Perspective:TAP_Core_Data:Data-Perspective:Data-Perspective_5</label>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:LPI-System_Perspective">
-	<LPI-System_Perspective_6 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:LPI-System_Perspective:TAP_Core_Data:LPI-System_Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_6"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:Data-Perspective">
+	<Data-Perspective_5 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:Data-Perspective:TAP_Core_Data:Data-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_5"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_6">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What are the data objects that CHCS and CIS-Essentris are identified as a MigrationReference for that CDR is NOT a MigrationReference for?</Label>
-	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">6</Order>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_5">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">How do reference sources interact with data creators? </Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">24</Order>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:LPI-System_Perspective">
-	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">LPI-System_Perspective_6</IDLabel>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:Data-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">Data-Perspective_5</IDLabel>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_6">
-	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?DataObject WHERE{BIND(&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?MigrationReference){?MigrationReference &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SourceType&gt;}{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;;}{?DataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;;} {?System &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?DataObjectSource}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}MINUS{SELECT DISTINCT ?DataObject WHERE {BIND(&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?MigrationReference)BIND (&lt;http://health.mil/ontologies/Concept/System/CDR&gt; AS ?CDR){?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;;}{?DataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?CDRDataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;;} {?CDR &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?CDRDataObjectSource }{?CDRDataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?CDRDataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?System &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?DataObjectSource}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}}  BINDINGS ?System {(&lt;http://health.mil/ontologies/Concept/System/CHCS&gt;)(&lt;http://health.mil/ontologies/Concept/System/CIS-Essentris&gt;)}}}</SPARQL>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_5">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?System ?DataObject ?ReferenceSource  WHERE {{BIND ('Reference_Source_is_Creator' AS ?ReferenceSource)BIND (&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?MigrationReference) {?MigrationReference &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SourceType&gt;}{?DataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?System &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?DataObjectSource}{?Provide1 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;}{?Provide1 &lt;http://semoss.org/ontologies/Relation/Contains/CRM&gt; 'C'} {?System ?Provide1 ?DataObject}}UNION{SELECT DISTINCT ?System ?DataObject ?ReferenceSource WHERE {BIND ('Reference_Source_Interfaces_with_Creator' AS ?ReferenceSource)BIND (&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?MigrationReference) {?MigrationReference &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SourceType&gt;}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?InterfaceControlDocument &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/InterfaceControlDocument&gt;}{?OtherSystem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?System &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?DataObjectSource}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}{?InterfaceControlDocument &lt;http://semoss.org/ontologies/Relation/Consume&gt; ?System}{?OtherSystem &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?InterfaceControlDocument}{?InterfaceControlDocument &lt;http://semoss.org/ontologies/Relation/Payload&gt; ?DataObject}}}UNION{SELECT DISTINCT ?System ?DataObject ?ReferenceSource WHERE{BIND ('Reference_Source_has_no_Creator' AS ?ReferenceSource) BIND (&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?MigrationReference){?MigrationReference &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SourceType&gt;}{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?DataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}{?System &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?DataObjectSource}MINUS{SELECT DISTINCT ?System ?DataObject ?ReferenceSource WHERE{{BIND ('Reference_Source_has_no_Creator' AS ?ReferenceSource) BIND (&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?MigrationReference){?MigrationReference &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SourceType&gt;}{?DataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?System &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?DataObjectSource}{?Provide1 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;}{?Provide1 &lt;http://semoss.org/ontologies/Relation/Contains/CRM&gt; 'C'} {?System ?Provide1 ?DataObject}}UNION{SELECT DISTINCT ?System ?DataObject ?ReferenceSource WHERE {BIND ('Reference_Source_has_no_Creator' AS ?ReferenceSource) BIND (&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?MigrationReference) {?MigrationReference &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SourceType&gt;}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?InterfaceControlDocument &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/InterfaceControlDocument&gt;}{?OtherSystem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?OtherSystem &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?InterfaceControlDocument}{?System &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?DataObjectSource}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}{?InterfaceControlDocument &lt;http://semoss.org/ontologies/Relation/Consume&gt; ?System}{?InterfaceControlDocument &lt;http://semoss.org/ontologies/Relation/Payload&gt; ?DataObject}{?Provide1 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;}{?Provide1 &lt;http://semoss.org/ontologies/Relation/Contains/CRM&gt; 'C'} {?OtherSystem ?Provide1 ?DataObject}MINUS{SELECT DISTINCT ?System ?DataObject ?ReferenceSource WHERE{BIND ('Reference_Source_has_no_Creator' AS ?ReferenceSource) BIND (&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?MigrationReference) {?MigrationReference &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SourceType&gt;}{?DataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?System &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?DataObjectSource}{?System &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?DataObject}}}}}}}}}}</SPARQL>
 	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_7">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_6">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_7</label>
+	<label>TAP_Core_Data:Data-Perspective:Data-Perspective_6</label>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_7">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:Data-Perspective:Data-Perspective_6">
 	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_7</label>
+	<label>TAP_Core_Data:TAP_Core_Data:Data-Perspective:Data-Perspective_6</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Core_Data">
-	<LPI-System_Perspective_7 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_7"/>
+	<Data-Perspective_6 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:Data-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_6"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:LPI-System_Perspective:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_7">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:Data-Perspective:TAP_Core_Data:Data-Perspective:Data-Perspective_6">
 	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Core_Data:LPI-System_Perspective:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_7</label>
+	<label>TAP_Core_Data:Data-Perspective:TAP_Core_Data:Data-Perspective:Data-Perspective_6</label>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:LPI-System_Perspective">
-	<LPI-System_Perspective_7 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:LPI-System_Perspective:TAP_Core_Data:LPI-System_Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_7"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:Data-Perspective">
+	<Data-Perspective_6 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:Data-Perspective:TAP_Core_Data:Data-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_6"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_7">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">System Data Objects that are a migration reference?</Label>
-	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">7</Order>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_6">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What Data Object is a given system a reference source of? </Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">25</Order>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:LPI-System_Perspective">
-	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">LPI-System_Perspective_7</IDLabel>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:Data-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">Data-Perspective_6</IDLabel>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_7">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_6">
 	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?System ?DataObject WHERE{BIND(&lt;@System-http://semoss.org/ontologies/System@&gt; AS ?System) BIND(&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?MigrationReference){?MigrationReference &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SourceType&gt;}{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;;}{?DataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?System &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?DataObjectSource}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}}</SPARQL>
 	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
-	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_7:System"/>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Core_Data:Data-Perspective:Data-Perspective_6:System"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_7:System">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Core_Data:Data-Perspective:Data-Perspective_6:System">
 	<LABEL xmlns="PARAM:">System</LABEL>
 	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
 	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
@@ -10841,41 +10826,50 @@
 	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/System"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_5">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_7">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_5</label>
+	<label>TAP_Core_Data:Data-Perspective:Data-Perspective_7</label>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_5">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:Data-Perspective:Data-Perspective_7">
 	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_5</label>
+	<label>TAP_Core_Data:TAP_Core_Data:Data-Perspective:Data-Perspective_7</label>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Core_Data">
-	<LPI-System_Perspective_5 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:LPI-System_Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_5"/>
+	<Data-Perspective_7 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:Data-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_7"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:LPI-System_Perspective:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_5">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:Data-Perspective:TAP_Core_Data:Data-Perspective:Data-Perspective_7">
 	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Core_Data:LPI-System_Perspective:TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_5</label>
+	<label>TAP_Core_Data:Data-Perspective:TAP_Core_Data:Data-Perspective:Data-Perspective_7</label>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:LPI-System_Perspective">
-	<LPI-System_Perspective_5 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:LPI-System_Perspective:TAP_Core_Data:LPI-System_Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_5"/>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:Data-Perspective">
+	<Data-Perspective_7 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:Data-Perspective:TAP_Core_Data:Data-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_7"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_5">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">How do reference sources interact with data creators?</Label>
-	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">5</Order>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_7">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What are the reference sources for a given Data Object? </Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">26</Order>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:LPI-System_Perspective">
-	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">LPI-System_Perspective_5</IDLabel>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:Data-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">Data-Perspective_7</IDLabel>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:LPI-System_Perspective:LPI-System_Perspective_5">
-	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?System ?DataObject ?ReferenceSource  WHERE {{BIND ('Reference_Source_is_Creator' AS ?ReferenceSource)BIND (&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?MigrationReference) {?MigrationReference &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SourceType&gt;}{?DataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?System &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?DataObjectSource}{?Provide1 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;}{?Provide1 &lt;http://semoss.org/ontologies/Relation/Contains/CRM&gt; 'C'} {?System ?Provide1 ?DataObject}}UNION{SELECT DISTINCT ?System ?DataObject ?ReferenceSource WHERE {BIND ('Reference_Source_Interfaces_with_Creator' AS ?ReferenceSource)BIND (&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?MigrationReference) {?MigrationReference &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SourceType&gt;}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?InterfaceControlDocument &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/InterfaceControlDocument&gt;}{?OtherSystem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?System &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?DataObjectSource}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}{?InterfaceControlDocument &lt;http://semoss.org/ontologies/Relation/Consume&gt; ?System}{?OtherSystem &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?InterfaceControlDocument}{?InterfaceControlDocument &lt;http://semoss.org/ontologies/Relation/Payload&gt; ?DataObject}}}UNION{SELECT DISTINCT ?System ?DataObject ?ReferenceSource WHERE{BIND ('Reference_Source_has_no_Creator' AS ?ReferenceSource) BIND (&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?MigrationReference){?MigrationReference &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SourceType&gt;}{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?DataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}{?System &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?DataObjectSource}MINUS{SELECT DISTINCT ?System ?DataObject ?ReferenceSource WHERE{{BIND ('Reference_Source_has_no_Creator' AS ?ReferenceSource) BIND (&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?MigrationReference){?MigrationReference &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SourceType&gt;}{?DataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?System &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?DataObjectSource}{?Provide1 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;}{?Provide1 &lt;http://semoss.org/ontologies/Relation/Contains/CRM&gt; 'C'} {?System ?Provide1 ?DataObject}}UNION{SELECT DISTINCT ?System ?DataObject ?ReferenceSource WHERE {BIND ('Reference_Source_has_no_Creator' AS ?ReferenceSource) BIND (&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?MigrationReference) {?MigrationReference &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SourceType&gt;}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?InterfaceControlDocument &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/InterfaceControlDocument&gt;}{?OtherSystem &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?OtherSystem &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?InterfaceControlDocument}{?System &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?DataObjectSource}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}{?InterfaceControlDocument &lt;http://semoss.org/ontologies/Relation/Consume&gt; ?System}{?InterfaceControlDocument &lt;http://semoss.org/ontologies/Relation/Payload&gt; ?DataObject}{?Provide1 &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/Provide&gt;}{?Provide1 &lt;http://semoss.org/ontologies/Relation/Contains/CRM&gt; 'C'} {?OtherSystem ?Provide1 ?DataObject}MINUS{SELECT DISTINCT ?System ?DataObject ?ReferenceSource WHERE{BIND ('Reference_Source_has_no_Creator' AS ?ReferenceSource) BIND (&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?MigrationReference) {?MigrationReference &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SourceType&gt;}{?DataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;}{?System &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?DataObjectSource}{?System &lt;http://semoss.org/ontologies/Relation/Provide&gt; ?DataObject}}}}}}}}}}</SPARQL>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:Data-Perspective:Data-Perspective_7">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?System ?DataObject WHERE{ BIND(&lt;@DataObject-http://semoss.org/ontologies/DataObject@&gt; AS ?DataObject)BIND(&lt;http://health.mil/ontologies/Concept/SourceType/MigrationReference&gt; AS ?MigrationReference){?MigrationReference &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SourceType&gt;}{?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;;}{?DataObjectSource &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObjectSource&gt;;}{?DataObject &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/DataObject&gt;;} {?System &lt;http://semoss.org/ontologies/Relation/Designated&gt; ?DataObjectSource}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/LabeledAs&gt; ?MigrationReference}{?DataObjectSource &lt;http://semoss.org/ontologies/Relation/Delivers&gt; ?DataObject}}</SPARQL>
 	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Core_Data:Data-Perspective:Data-Perspective_7:DataObject"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Core_Data:Data-Perspective:Data-Perspective_7:DataObject">
+	<LABEL xmlns="PARAM:">DataObject</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
 </rdf:Description>
 
 </rdf:RDF>
