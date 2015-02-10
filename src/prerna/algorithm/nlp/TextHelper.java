@@ -1,5 +1,7 @@
 package prerna.algorithm.nlp;
 
+import prerna.util.ArrayUtilityMethods;
+
 
 public final class TextHelper {
 	
@@ -19,8 +21,8 @@ public final class TextHelper {
 		}
 	
 	public static String[] breakCompoundText(String s) {
-		s = splitCamelCase(s).replaceAll("_", " ");
-		return s.split(" ");
+		s = splitCamelCase(s).replaceAll("_", " ").replaceAll("-", " ");
+		return ArrayUtilityMethods.removeAllEmptyValuesAndNulls(s.split(" "));
 	}
 	
 }

@@ -15,17 +15,14 @@
  *******************************************************************************/
 package prerna.algorithm.impl;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.Hashtable;
-import java.util.Locale;
 
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Utility;
 
 public class GenerateEntropyDensity {
 	
@@ -59,7 +56,7 @@ public class GenerateEntropyDensity {
 			int j;
 			for(j = 1; j < numProps - 1; j++) {
 				data[j][counter] = dataRow[j];
-				trackType[j][counter] = processType(dataRow[j].toString());
+				trackType[j][counter] = Utility.processType(dataRow[j].toString());
 			}
 			counter++;
 		}
@@ -112,53 +109,4 @@ public class GenerateEntropyDensity {
 		
 		return entropyDensityArray;
 	}
-	
-	/**
-	 * Determines the type of a given value
-	 * @param s		The value to determine the type off
-	 * @return		The type of the value
-	 */
-	private static String processType(String s) {
-		
-		boolean isDouble = true;
-		try {
-			Double.parseDouble(s);
-		} catch(NumberFormatException e) {
-			isDouble = false;
-		}
-
-		if(isDouble) {
-			return ("DOUBLE");
-		}
-
-		// will analyze date types as numerical data
-		Boolean isLongDate = true;
-		SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
-		Date longdate = null;
-		try {
-			formatLongDate.setLenient(true);
-			longdate  = formatLongDate.parse(s);
-		} catch (ParseException e) {
-			isLongDate = false;
-		}
-		if(isLongDate){
-			return ("DATE");
-		}
-
-		Boolean isSimpleDate = true;
-		SimpleDateFormat formatSimpleDate = new SimpleDateFormat("mm/dd/yyyy", Locale.US);
-		Date simpleDate = null;
-		try {
-			formatSimpleDate.setLenient(true);
-			simpleDate  = formatSimpleDate.parse(s);
-		} catch (ParseException e) {
-			isSimpleDate = false;
-		}
-		if(isSimpleDate){
-			return ("SIMPLEDATE");
-		}
-
-		return ("STRING");
-	}
-	
 }
