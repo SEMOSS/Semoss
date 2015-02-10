@@ -24,51 +24,78 @@ import javax.swing.JComponent;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.error.EngineException;
 import prerna.poi.specific.FactSheetProcessor;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
+import prerna.ui.components.specific.tap.DHMSMDispositionFactSheetProcessor;
 import prerna.ui.components.specific.tap.DHMSMHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
- * Listener for btnFactSheetReport on the MHS TAP tab
- * Results in the creation of fact sheets for either all systems or a specified system
+ * Listener for btnFactSheetReport on the MHS TAP tab Results in the creation of
+ * fact sheets for either all systems or a specified system
  */
 public class FactSheetListener implements IChakraListener {
 
-	FactSheetProcessor processor = new FactSheetProcessor();
-	static final Logger logger = LogManager.getLogger(FactSheetListener.class.getName());
+	FactSheetProcessor processor;
+	static final Logger logger = LogManager.getLogger(FactSheetListener.class
+			.getName());
 	ArrayList queryArray = new ArrayList();
 
 	/**
-	 * This is executed when the btnFactSheetReport is pressed by the user
-	 * Calls FactSheetProcessor to generate all the information from the queries to write onto the fact sheet
-	 * @param arg0 ActionEvent
+	 * This is executed when the btnFactSheetReport is pressed by the user Calls
+	 * FactSheetProcessor to generate all the information from the queries to
+	 * write onto the fact sheet
+	 * 
+	 * @param arg0
+	 *            ActionEvent
 	 */
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
-		JComboBox reportType = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.FACT_SHEET_REPORT_TYPE_COMBO_BOX);
-		String type = (String) reportType.getSelectedItem();
+		JComboBox reportTypeToggleComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(
+				Constants.FACT_SHEET_REPORT_TYPE_TOGGLE_COMBO_BOX);
+		JComboBox reportSystemToggleComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(
+				Constants.FACT_SHEET_REPORT_SYSTEM_TOGGLE_COMBO_BOX);
+		String reportType = (String) reportTypeToggleComboBox.getSelectedItem();
+		String systemSelectionType = (String) reportSystemToggleComboBox.getSelectedItem();
 		String system = null;
+		
 		DHMSMHelper dhelp = new DHMSMHelper();
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(
+				"HR_Core");
 		dhelp.runData(engine);
-		if(type.contains("Specific")){
-			ParamComboBox systemComboBox = (ParamComboBox) DIHelper.getInstance().getLocalProp(Constants.FACT_SHEET_SYSTEM_SELECT_COMBO_BOX);
+		
+		if (reportType.contains("Services")) {
+			processor = new FactSheetProcessor();
+		} else if (reportType.contains("DHMSM Disposition")) {
+			try {
+				processor = new DHMSMDispositionFactSheetProcessor();
+			} catch (EngineException e) {
+				e.printStackTrace();
+				Utility.showError(e.getMessage());
+			}
+		}
+		
+		if (systemSelectionType.contains("Specific")) {
+			ParamComboBox systemComboBox = (ParamComboBox) DIHelper
+					.getInstance().getLocalProp(
+							Constants.FACT_SHEET_SYSTEM_SELECT_COMBO_BOX);
 			system = (String) systemComboBox.getSelectedItem();
 			processor.setDHMSMHelper(dhelp);
-			processor.generateSystemReport(system);
-		}
-		else if (type.contains("All Systems")) {
+			processor.generateSystemReport(system, true);
+		} else if (systemSelectionType.contains("All Systems")) {
 			processor.setDHMSMHelper(dhelp);
-			processor.generateReports();	
+			processor.generateReports();
 		}
 	}
 
 	/**
 	 * Override method from IChakraListener
+	 * 
 	 * @param view
 	 */
 	@Override

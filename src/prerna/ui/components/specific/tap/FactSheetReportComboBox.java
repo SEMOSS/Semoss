@@ -15,12 +15,16 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import javax.swing.JComboBox;
+
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.poi.specific.FactSheetProcessor;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.helpers.EntityFiller;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 /**
@@ -69,9 +73,17 @@ public class FactSheetReportComboBox extends ParamComboBox implements Runnable {
 	 * Gets access to the engine and runs a query given certain parameters.
 	 */
 	public void fillParam(){
-//		String key = "System";
-		// execute the logic for filling the information here
-//		String entityType = "http://semoss.org/ontologies/Concept/System";
+		/*//based on the report type, limit the systems within the combo box ***This is causing some UI bugs with swing.... Commenting out for now
+		JComboBox reportTypeToggleComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(
+				Constants.FACT_SHEET_REPORT_TYPE_TOGGLE_COMBO_BOX);
+		String reportType = (String) reportTypeToggleComboBox.getSelectedItem();
+		String system = null;
+				
+		if (reportType.contains("Services")) {
+			//processor = new FactSheetProcessor();
+		} else if (reportType.contains("DHMSM Disposition")) {
+			//processor = new DHMSMDispositionFactSheetProcessor();
+		}*/
 		String entityType = "http://semoss.org/ontologies/Concept/"+key;
 		setParamName(key);
 		

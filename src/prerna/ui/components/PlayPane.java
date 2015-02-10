@@ -289,7 +289,7 @@ public class PlayPane extends JFrame {
 	public JButton btnFactSheetImageExport, btnFactSheetReport;
 	public JPanel factSheetReportSysDropDownPanel, factSheetReportTypeDropDownPanel;
 	public FactSheetReportComboBox factSheetReportSyscomboBox;
-	public JComboBox factSheetReportTypecomboBox;
+	public JComboBox factSheetReportSystemToggleComboBox, factSheetReportTypeToggleComboBox;
 	
 	// Tasker Generation and System Info Panel
 	private JSeparator separator_8;
@@ -3272,6 +3272,7 @@ public class PlayPane extends JFrame {
 		RFPNameField.setText("RFP1");
 		RFPNameField.setColumns(10);
 		GridBagConstraints gbc_RFPNameField = new GridBagConstraints();
+		gbc_RFPNameField.gridwidth = 2;
 		gbc_RFPNameField.fill = GridBagConstraints.HORIZONTAL;
 		gbc_RFPNameField.insets = new Insets(0, 0, 5, 5);
 		gbc_RFPNameField.gridx = 2;
@@ -3450,7 +3451,7 @@ public class PlayPane extends JFrame {
 				Double.MIN_VALUE };
 		FactSheetPanel.setLayout(gbl_FactSheetPanel);
 		
-		JLabel FactSheetTitleLabel = new JLabel("Services Fact Sheet Reports");
+		JLabel FactSheetTitleLabel = new JLabel("System Fact Sheet Reports");
 		FactSheetTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
 		GridBagConstraints gbc_FactSheetTitleLabel = new GridBagConstraints();
 		gbc_FactSheetTitleLabel.gridwidth = 3;
@@ -3460,7 +3461,7 @@ public class PlayPane extends JFrame {
 		gbc_FactSheetTitleLabel.gridy = 0;
 		FactSheetPanel.add(FactSheetTitleLabel, gbc_FactSheetTitleLabel);
 		
-		JLabel lblFactSheetGenerator = new JLabel("Fact Sheet Generator:");
+		/*JLabel lblFactSheetGenerator = new JLabel("Fact Sheet Generator:");
 		lblFactSheetGenerator.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblFactSheetGenerator = new GridBagConstraints();
 		gbc_lblFactSheetGenerator.gridwidth = 6;
@@ -3468,7 +3469,27 @@ public class PlayPane extends JFrame {
 		gbc_lblFactSheetGenerator.insets = new Insets(5, 20, 10, 5);
 		gbc_lblFactSheetGenerator.gridx = 1;
 		gbc_lblFactSheetGenerator.gridy = 1;
-		FactSheetPanel.add(lblFactSheetGenerator, gbc_lblFactSheetGenerator);
+		FactSheetPanel.add(lblFactSheetGenerator, gbc_lblFactSheetGenerator);*/
+		
+		JLabel ReportVariationLabel = new JLabel("                            Select Report Variation:");
+		GridBagConstraints gbc_ReportVariationLabel = new GridBagConstraints();
+		gbc_ReportVariationLabel.gridwidth = 4;
+		gbc_ReportVariationLabel.fill = GridBagConstraints.BOTH;
+		gbc_ReportVariationLabel.insets = new Insets(5, 20, 10, 5);
+		gbc_ReportVariationLabel.gridx = 3;
+		gbc_ReportVariationLabel.gridy = 1;
+		FactSheetPanel.add(ReportVariationLabel, gbc_ReportVariationLabel);
+		ReportVariationLabel.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		
+		factSheetReportTypeToggleComboBox = new JComboBox();
+		factSheetReportTypeToggleComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		factSheetReportTypeToggleComboBox.setBackground(Color.GRAY);
+		GridBagConstraints gbc_factSheetReportTypeToggleComboBox = new GridBagConstraints();
+		gbc_factSheetReportTypeToggleComboBox.fill = GridBagConstraints.HORIZONTAL;
+		gbc_factSheetReportTypeToggleComboBox.gridx = 4;
+		gbc_factSheetReportTypeToggleComboBox.gridy = 1;
+		FactSheetPanel.add(factSheetReportTypeToggleComboBox, gbc_factSheetReportTypeToggleComboBox);
+		factSheetReportTypeToggleComboBox.setModel(new DefaultComboBoxModel(new String[] { "Services", "DHMSM Disposition" }));
 		
 		factSheetReportSysDropDownPanel = new JPanel();
 		factSheetReportSysDropDownPanel.setBackground(SystemColor.control);
@@ -3476,7 +3497,7 @@ public class PlayPane extends JFrame {
 		gbc_factSheetReportSysDropDownPanel.gridheight = 2;
 		gbc_factSheetReportSysDropDownPanel.insets = new Insets(0, 10, 5, 5);
 		gbc_factSheetReportSysDropDownPanel.fill = GridBagConstraints.BOTH;
-		gbc_factSheetReportSysDropDownPanel.gridx = 4;
+		gbc_factSheetReportSysDropDownPanel.gridx = 5;
 		gbc_factSheetReportSysDropDownPanel.gridy = 3;
 		FactSheetPanel.add(factSheetReportSysDropDownPanel, gbc_factSheetReportSysDropDownPanel);
 		GridBagLayout gbl_factSheetReportSysDropDownPanel = new GridBagLayout();
@@ -3487,7 +3508,7 @@ public class PlayPane extends JFrame {
 		factSheetReportSysDropDownPanel.setLayout(gbl_factSheetReportSysDropDownPanel);
 		factSheetReportSysDropDownPanel.setVisible(false);
 		
-		JLabel lblFactSheetSelectSystem = new JLabel("Select System");
+		JLabel lblFactSheetSelectSystem = new JLabel("Select System:");
 		lblSelectSystem.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblFactSheetSelectSystem = new GridBagConstraints();
 		gbc_lblFactSheetSelectSystem.insets = new Insets(0, 0, 5, 0);
@@ -3521,23 +3542,23 @@ public class PlayPane extends JFrame {
 		gbl_factSheetReportTypeDropDownPanel.rowWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
 		factSheetReportTypeDropDownPanel.setLayout(gbl_factSheetReportTypeDropDownPanel);
 		
-		JLabel lblSelectFactSheetReportType = new JLabel("Select Report Type");
+		JLabel lblSelectFactSheetReportType = new JLabel("                                     Select Report Type:");
 		lblSelectFactSheetReportType.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		GridBagConstraints gbc_lblSelectFactSheetReportType = new GridBagConstraints();
 		gbc_lblSelectFactSheetReportType.insets = new Insets(0, 0, 5, 0);
-		gbc_lblSelectFactSheetReportType.gridx = 0;
-		gbc_lblSelectFactSheetReportType.gridy = 0;
-		factSheetReportTypeDropDownPanel.add(lblSelectFactSheetReportType, gbc_lblSelectFactSheetReportType);
+		gbc_lblSelectFactSheetReportType.gridx = 3;
+		gbc_lblSelectFactSheetReportType.gridy = 2;
+		FactSheetPanel.add(lblSelectFactSheetReportType, gbc_lblSelectFactSheetReportType);
 		
-		factSheetReportTypecomboBox = new JComboBox();
-		factSheetReportTypecomboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		factSheetReportTypecomboBox.setBackground(Color.GRAY);
-		GridBagConstraints gbc_factSheetReportTypecomboBox = new GridBagConstraints();
-		gbc_factSheetReportTypecomboBox.fill = GridBagConstraints.HORIZONTAL;
-		gbc_factSheetReportTypecomboBox.gridx = 0;
-		gbc_factSheetReportTypecomboBox.gridy = 1;
-		factSheetReportTypeDropDownPanel.add(factSheetReportTypecomboBox, gbc_factSheetReportTypecomboBox);
-		factSheetReportTypecomboBox.setModel(new DefaultComboBoxModel(new String[] { "All Systems", "System Specific" }));
+		factSheetReportSystemToggleComboBox = new JComboBox();
+		factSheetReportSystemToggleComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		factSheetReportSystemToggleComboBox.setBackground(Color.GRAY);
+		GridBagConstraints gbc_factSheetReportSystemToggleComboBox = new GridBagConstraints();
+		gbc_factSheetReportSystemToggleComboBox.fill = GridBagConstraints.HORIZONTAL;
+		gbc_factSheetReportSystemToggleComboBox.gridx = 4;
+		gbc_factSheetReportSystemToggleComboBox.gridy = 2;
+		FactSheetPanel.add(factSheetReportSystemToggleComboBox, gbc_factSheetReportSystemToggleComboBox);
+		factSheetReportSystemToggleComboBox.setModel(new DefaultComboBoxModel(new String[] { "All Systems", "System Specific" }));	
 		
 		btnFactSheetReport = new CustomButton("Generate Fact Sheet Report");
 		btnFactSheetReport.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -3545,12 +3566,12 @@ public class PlayPane extends JFrame {
 		gbc_btnFactSheetReport.fill = GridBagConstraints.HORIZONTAL;
 		gbc_btnFactSheetReport.gridwidth = 2;
 		gbc_btnFactSheetReport.insets = new Insets(0, 0, 5, 5);
-		gbc_btnFactSheetReport.gridx = 4;
+		gbc_btnFactSheetReport.gridx = 5;
 		gbc_btnFactSheetReport.gridy = 5;
 		FactSheetPanel.add(btnFactSheetReport, gbc_btnFactSheetReport);
 		Style.registerTargetClassName(btnFactSheetReport, ".standardButton");
 		
-		JLabel CONUSMapExportTitleLabel = new JLabel("Export Application Health Grid and Maps for all Systems:");
+		JLabel CONUSMapExportTitleLabel = new JLabel("Export Health Grid and Maps for all Systems:");
 		GridBagConstraints gbc_CONUSMapExportTitleLabel = new GridBagConstraints();
 		gbc_CONUSMapExportTitleLabel.gridwidth = 3;
 		gbc_CONUSMapExportTitleLabel.fill = GridBagConstraints.BOTH;

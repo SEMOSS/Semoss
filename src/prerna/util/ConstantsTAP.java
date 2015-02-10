@@ -91,6 +91,13 @@ public final class ConstantsTAP {
 	public static final String BUSINESS_PROCESS_QUERY = "BUSINESS_PROCESS_QUERY";
 	public static final String PPI_QUERY = "PPI_QUERY";
 	public static final String CAPABILITIES_SUPPORTED_QUERY = "CAPABILITIES_SUPPORTED_QUERY";
+	public static final String LPI_SYSTEMS_QUERY = "LPI_SYSTEMS_QUERY";
+	public static final String LPNI_SYSTEMS_QUERY = "LPNI_SYSTEMS_QUERY";
+	public static final String HIGH_SYSTEMS_QUERY = "HIGH_SYSTEMS_QUERY";
+	public static final String REFERENCE_REPOSITORY_QUERY = "REFERENCE_REPOSITORY_QUERY";
+	public static final String RTM_QUERY = "RTM_QUERY";
+	public static final String DHMSM_DATA_PROVIDED_PERCENT = "DHMSM_DATA_PROVIDED_PERCENT";
+	public static final String DHMSM_BLU_PROVIDED_PERCENT = "DHMSM_BLU_PROVIDED_PERCENT";	
 	
 	// Tasker Generation Constants
 	public static final String TASKER_GENERATION_SYSTEM_COMBO_BOX = "TaskerGenerationSyscomboBox";
