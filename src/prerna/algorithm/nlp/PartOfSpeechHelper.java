@@ -8,6 +8,7 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import rita.RiWordNet;
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.ling.LabeledWord;
 import edu.stanford.nlp.ling.TaggedWord;
@@ -31,6 +32,10 @@ public final class PartOfSpeechHelper {
 	
 	private PartOfSpeechHelper() {
 
+	}
+	
+	public static String bestPOS(RiWordNet wordnet, String word) {
+		return wordnet.getBestPos(word);
 	}
 	
 	/**
@@ -399,5 +404,4 @@ public final class PartOfSpeechHelper {
 		}
 		return retString;
 	}
-
 }

@@ -729,9 +729,9 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 				capSystemMap = QueryProcessor.getStringSetMap(capSystemQuery, "HR_Core");
 				
 				for (int i = 0; i < resFunc.sysList.size(); i++) {
-					if (resFunc.systemCapability[i].equalsIgnoreCase(geoCapability)) {
+					if (resFunc.systemCapability[i].equalsIgnoreCase(capability)) {
 						geoSpatialMapSystemList.add(resFunc.sysList.get(i));
-					} else if (capSystemMap.get(geoCapability) != null && capSystemMap.get(geoCapability).contains(resFunc.sysList.get(i))) {
+					} else if (capSystemMap.get(capability) != null && capSystemMap.get(capability).contains(resFunc.sysList.get(i))) {
 						geoSpatialMapSystemList.add(resFunc.sysList.get(i) + "*");
 					}
 				}
@@ -884,7 +884,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 		String[] var = { "System", "Lat", "Long", "size" };
 		String getSystemCoordinatesQuery = "SELECT DISTINCT ?System ?Lat ?Long WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>}{?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite}{?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?DCSite}{?DCSite <http://semoss.org/ontologies/Relation/Contains/LONG> ?Long}{?DCSite <http://semoss.org/ontologies/Relation/Contains/LAT> ?Lat}}";
 		HashMap<String, ArrayList<String[]>> systemCoordinatesList = new HashMap<String, ArrayList<String[]>>();
-		systemCoordinatesList = QueryProcessor.getStringTwoArrayListMap(getSystemCoordinatesQuery, "TAP_Site_Data");
+		QueryProcessor.getStringTwoArrayListMap(getSystemCoordinatesQuery, "TAP_Site_Data");
 		String systemKey = "";
 		// Possibly filter out all US Facilities from the query?
 		

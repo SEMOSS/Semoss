@@ -193,6 +193,23 @@ public class Utility {
 	}
 
 	/**
+	 * Splits up a URI into tokens based on "/" character and uses logic to return the base URI
+	 * @param String		URI to be split into tokens.
+	 * @return String		Base URI */
+	public static String getBaseURI(String uri) {
+		int indexOf = uri.lastIndexOf("/");
+		String baseURI = uri.substring(0, indexOf);
+		
+		indexOf = baseURI.lastIndexOf("/");
+		baseURI = baseURI.substring(0, indexOf);
+		
+		indexOf = baseURI.lastIndexOf("/");
+		baseURI = baseURI.substring(0, indexOf);
+		
+		return baseURI;
+	}
+	
+	/**
 	 * Go through all URIs in list, splits them into tokens based on "/", and uses logic to return the instance names.
 	 * @param Vector<String>	List of URIs to be tokenized.
 
