@@ -47,7 +47,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 	}
 
 	public List<Hashtable<String,Object>> getRelatedInsights(List<String> instanceURIList) {
-		String keywordURI = keywordBaseURI + "/" + Utility.getClassName(instanceURIList.get(0));
+		String keywordURI = KEYWORD_BASE_URI + "/" + Utility.getClassName(instanceURIList.get(0));
 		
 		// track all keywords and the nouns that make them up
 		Map<String, Set<String>> keywordNounMap = new HashMap<String, Set<String>>();
@@ -86,7 +86,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 			
 			if(engineInstances.containsKey(engine)) {
 				Map<String, String> typeAndInstance = engineInstances.get(engine);
-				String typeURI = semossConceptURI.concat("/").concat(Utility.getInstanceName(keyword));
+				String typeURI = SEMOSS_CONCEPT_URI.concat("/").concat(Utility.getInstanceName(keyword));
 				if(typeAndInstance != null && typeAndInstance.containsKey(typeURI)) {
 					Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
 					insightHash.put(DB_KEY, engine);
@@ -106,7 +106,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 	
 	public List<Hashtable<String,Object>> getRelatedInsightsWeb(List<String> instanceURIList) {
 		fillAPIHash();
-		String keywordURI = keywordBaseURI + "/" + Utility.getClassName(instanceURIList.get(0));
+		String keywordURI = KEYWORD_BASE_URI + "/" + Utility.getClassName(instanceURIList.get(0));
 		
 		// track all keywords and the nouns that make them up
 		Map<String, Set<String>> keywordNounMap = new HashMap<String, Set<String>>();
@@ -153,7 +153,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 			
 			if(engineInstances.containsKey(engine)) {
 				Map<String, String> typeAndInstance = engineInstances.get(engine);
-				String typeURI = semossConceptURI.concat("/").concat(Utility.getInstanceName(keyword));
+				String typeURI = SEMOSS_CONCEPT_URI.concat("/").concat(Utility.getInstanceName(keyword));
 				if(typeAndInstance != null && typeAndInstance.containsKey(typeURI)) {
 					Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
 					insightHash.put(DB_KEY, engine);

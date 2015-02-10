@@ -15,27 +15,21 @@ public interface IMasterDatabase {
 	String ENGINE_API_QUERY = "SELECT DISTINCT ?Engine ?API WHERE { {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?Engine <http://semoss.org/ontologies/Relation/Contains/API> ?API}}";
 
 	//uri variables
-	String semossURI = "http://semoss.org/ontologies";
-	String semossConceptURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
-	String semossRelationURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
-	String propURI = semossRelationURI + "/" + "Contains";
+	String SEMOSS_URI = "http://semoss.org/ontologies";
+	String SEMOSS_CONCEPT_URI = SEMOSS_URI + "/" + Constants.DEFAULT_NODE_CLASS;
+	String SEMOSS_RELATION_URI = SEMOSS_URI + "/" + Constants.DEFAULT_RELATION_CLASS;
+	String PROP_URI = SEMOSS_RELATION_URI + "/" + "Contains";
 
-	String resourceURI = "http://www.w3.org/2000/01/rdf-schema#Resource";
-	String mcBaseURI = semossConceptURI+"/MasterConcept";
-	String keywordBaseURI = semossConceptURI+"/Keyword";
-	String engineBaseURI = semossConceptURI+"/Engine";
-	String serverBaseURI = semossConceptURI + "/" + "Server";
-	String userBaseURI = semossConceptURI + "/" + "User";
-	String userInsightBaseURI = semossConceptURI + "/" + "UserInsight";
-	String insightBaseURI = semossConceptURI + "/" + "Insight";
-	String PERSPECTIVE_BASE_URI = semossConceptURI+"/Perspective";
-
-	String engineInsightBaseURI = semossRelationURI + "/Engine:Insight";
-	String enginePerspectiveBaseURI = semossRelationURI + "/Engine:Perspective";
-	String ENGINE_KEYWORD_BASE_URI = semossRelationURI + "/Has";
-	String engineMCCBaseURI = semossRelationURI + "/Has";	
-	String mcKeywordBaseURI = semossRelationURI + "/ConsistsOf";
-	String engineServerBaseURI = semossRelationURI + "/HostedOn";
+	String RESOURCE_URI = "http://www.w3.org/2000/01/rdf-schema#Resource";
+	String MC_BASE_URI = SEMOSS_CONCEPT_URI+"/MasterConcept";
+	String KEYWORD_BASE_URI = SEMOSS_CONCEPT_URI+"/Keyword";
+	String ENGINE_BASE_URI = SEMOSS_CONCEPT_URI+"/Engine";
+	
+	String USER_BASE_URI = SEMOSS_CONCEPT_URI + "/" + "User";
+	String USER_INSIGHT_BASE_URI = SEMOSS_CONCEPT_URI + "/" + "UserInsight";
+	String INSIGHT_BASE_URI = SEMOSS_CONCEPT_URI + "/" + "Insight";
+	String PERSPECTIVE_BASE_URI = SEMOSS_CONCEPT_URI+"/Perspective";
+	String ENGINE_KEYWORD_BASE_URI = SEMOSS_RELATION_URI + "/Has";
 	
 	// keys for passing insights
 	String DB_KEY = "database";

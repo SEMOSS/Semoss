@@ -71,7 +71,7 @@ public class DeleteMasterDB extends ModifyMasterDB {
 				deleteEngineInsights(engineName);
 
 				//delete the engine
-				removeNode(engineBaseURI + "/" + engineName);
+				removeNode(ENGINE_BASE_URI + "/" + engineName);
 
 				logger.info("Finished deleting engine " + engineName);
 				successHash.put(engineName, true);
@@ -110,7 +110,7 @@ public class DeleteMasterDB extends ModifyMasterDB {
 				deleteEngineInsights(engineName);
 
 				//delete the engine
-				removeNode(engineBaseURI + "/" + engineName);
+				removeNode(ENGINE_BASE_URI + "/" + engineName);
 
 				logger.info("Finished deleting engine " + engineName);
 				successHash.put(engineName, true);
@@ -134,7 +134,7 @@ public class DeleteMasterDB extends ModifyMasterDB {
 			//grab query results
 			SesameJenaSelectStatement sjss = wrapper.next();
 			String keyword = (String)sjss.getVar(names[0]);
-			removeRelationship(engineBaseURI + "/" + engineName, keywordBaseURI + "/" + keyword, semossRelationURI + "/Has/" + engineName + ":" +keyword);
+			removeRelationship(ENGINE_BASE_URI + "/" + engineName, KEYWORD_BASE_URI + "/" + keyword, SEMOSS_RELATION_URI + "/Has/" + engineName + ":" +keyword);
 			//TODO: keyword is not deleted from the database, just the relationship between keyword and engine is deleted.
 		}
 	}
@@ -150,7 +150,7 @@ public class DeleteMasterDB extends ModifyMasterDB {
 			//grab query results
 			SesameJenaSelectStatement sjss = wrapper1.next();
 			String insight = (String)sjss.getVar(names1[0]);
-			removeRelationship(engineBaseURI + "/" + engineName, insightBaseURI + "/" + insight, semossRelationURI + "/Engine:Insight/" + engineName + ":" +insight);
+			removeRelationship(ENGINE_BASE_URI + "/" + engineName, INSIGHT_BASE_URI + "/" + insight, SEMOSS_RELATION_URI + "/Engine:Insight/" + engineName + ":" +insight);
 		}
 
 		ArrayList<String> perspectiveList = new ArrayList<String>();
@@ -162,7 +162,7 @@ public class DeleteMasterDB extends ModifyMasterDB {
 			//grab query results
 			SesameJenaSelectStatement sjss = wrapper2.next();
 			String perspective = (String)sjss.getVar(names2[0]);
-			removeRelationship(engineBaseURI + "/" + engineName, PERSPECTIVE_BASE_URI + "/" + perspective, semossRelationURI + "/Engine:Perspective/" + engineName + ":" +perspective);
+			removeRelationship(ENGINE_BASE_URI + "/" + engineName, PERSPECTIVE_BASE_URI + "/" + perspective, SEMOSS_RELATION_URI + "/Engine:Perspective/" + engineName + ":" +perspective);
 			perspectiveList.add(perspective);
 		}
 
@@ -170,7 +170,7 @@ public class DeleteMasterDB extends ModifyMasterDB {
 		//set the engine, delete all from each perspective and then store the rc and sc.
 		RDFFileSesameEngine eng = new RDFFileSesameEngine();
 		eng.setEngineName(engineName);
-		eng.setEngineURI2Name(engineBaseURI+"/"+engineName);
+		eng.setEngineURI2Name(ENGINE_BASE_URI+"/"+engineName);
 		eng.createInsightBase();
 		RDFFileSesameEngine insightBaseXML = eng.getInsightBaseXML();
 		insightBaseXML.setRC(masterEngine.rc);
@@ -179,7 +179,7 @@ public class DeleteMasterDB extends ModifyMasterDB {
 
 		QuestionAdministrator qa = new QuestionAdministrator(eng);
 		qa.selectedEngine = engineName;
-		qa.setEngineURI2(engineBaseURI + "/" + engineName);
+		qa.setEngineURI2(ENGINE_BASE_URI + "/" + engineName);
 		for(String perspective : perspectiveList) {
 			qa.deleteAllFromPerspective(PERSPECTIVE_BASE_URI + "/" +perspective);
 		}
@@ -198,7 +198,7 @@ public class DeleteMasterDB extends ModifyMasterDB {
 			//grab query results
 			SesameJenaSelectStatement sjss = wrapper.next();
 			String url = (String)sjss.getVar(names[0]);
-			removeProperty(engineBaseURI + "/" + engineName, propURI + "/" + "API",url,true);
+			removeProperty(ENGINE_BASE_URI + "/" + engineName, PROP_URI + "/" + "API",url,true);
 		}
 	}
 
@@ -214,10 +214,10 @@ public class DeleteMasterDB extends ModifyMasterDB {
 		String instance = nodeURI.substring(index+1);
 
 		masterEngine.removeStatement(nodeURI, RDFS.LABEL.stringValue(), instance, false);
-		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), semossConceptURI, true);
+		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), SEMOSS_CONCEPT_URI, true);
 		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), baseURI, true);
-		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), resourceURI, true);
-		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), resourceURI, false);
+		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), RESOURCE_URI, true);
+		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), RESOURCE_URI, false);
 	}
 
 	/**
@@ -232,13 +232,13 @@ public class DeleteMasterDB extends ModifyMasterDB {
 		String relBaseURI = relationURI.substring(0,relIndex);
 		String relInst = relationURI.substring(relIndex+1);
 
-		masterEngine.removeStatement(relationURI, RDFS.SUBPROPERTYOF.stringValue(), semossRelationURI, true);
+		masterEngine.removeStatement(relationURI, RDFS.SUBPROPERTYOF.stringValue(), SEMOSS_RELATION_URI, true);
 		masterEngine.removeStatement(relationURI, RDFS.SUBPROPERTYOF.stringValue(), relBaseURI, true);
 		masterEngine.removeStatement(relationURI, RDFS.SUBPROPERTYOF.stringValue(), relationURI, true);
 		masterEngine.removeStatement(relationURI, RDFS.LABEL.stringValue(), relInst, false);
 		masterEngine.removeStatement(relationURI, RDF.TYPE.stringValue(), Constants.DEFAULT_PROPERTY_URI, true);
-		masterEngine.removeStatement(relationURI, RDF.TYPE.stringValue(), resourceURI, true);
-		masterEngine.removeStatement(node1URI, semossRelationURI, node2URI, true);
+		masterEngine.removeStatement(relationURI, RDF.TYPE.stringValue(), RESOURCE_URI, true);
+		masterEngine.removeStatement(node1URI, SEMOSS_RELATION_URI, node2URI, true);
 		masterEngine.removeStatement(node1URI, relBaseURI, node2URI, true);
 		masterEngine.removeStatement(node1URI, relationURI, node2URI, true);
 	}
