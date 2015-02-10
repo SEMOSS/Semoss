@@ -91,11 +91,11 @@ public class SearchMasterDB extends ModifyMasterDB {
 					Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
 					insightHash.put(DB_KEY, engine);
 					insightHash.put(QUESITON_KEY, insightLabel);
-					insightHash.put(KEYWORD_KEY, keyword);
+					insightHash.put(TYPE_KEY, typeURI);
 					insightHash.put(PERSPECTIVE_KEY, perspectiveLabel);
 					insightHash.put(VIZ_TYPE_KEY, viz);
 					insightHash.put(SCORE_KEY, similarKeywordScores.get(keyword));
-					insightHash.put(INSTANCE_KEY, new ArrayList<String>().add(typeAndInstance.get(typeURI)));
+					insightHash.put(INSTANCE_KEY, typeAndInstance.get(typeURI));
 					insightList.add(insightHash);
 				}
 			}
@@ -158,11 +158,11 @@ public class SearchMasterDB extends ModifyMasterDB {
 					Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
 					insightHash.put(DB_KEY, engine);
 					insightHash.put(QUESITON_KEY, insightLabel);
-					insightHash.put(KEYWORD_KEY, keyword);
+					insightHash.put(TYPE_KEY, typeURI);
 					insightHash.put(PERSPECTIVE_KEY, perspectiveLabel);
 					insightHash.put(VIZ_TYPE_KEY, viz);
 					insightHash.put(SCORE_KEY, similarKeywordScores.get(keyword));
-					insightHash.put(INSTANCE_KEY, new ArrayList<String>().add(typeAndInstance.get(typeURI)));
+					insightHash.put(INSTANCE_KEY, typeAndInstance.get(typeURI));
 					String engineURI = engineURLHash.get(engine);
 					insightHash.put(ENGINE_URI_KEY, engineURI);
 					insightList.add(insightHash);

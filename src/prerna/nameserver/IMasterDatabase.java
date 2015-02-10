@@ -35,7 +35,7 @@ public interface IMasterDatabase {
 	String DB_KEY = "database";
 	String SCORE_KEY = "similarityScore";
 	String QUESITON_KEY = "question";
-	String KEYWORD_KEY = "keyword";
+	String TYPE_KEY = "type";
 	String PERSPECTIVE_KEY = "perspective";
 	String INSTANCE_KEY = "instances";
 	String VIZ_TYPE_KEY = "viz";
