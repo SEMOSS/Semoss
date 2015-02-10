@@ -206,6 +206,21 @@ public final class ArrayUtilityMethods {
 		}
 		return Arrays.copyOfRange(dummyArr, positionInNewArr, originalLength);
 	}
+	
+	public static String[] removeAllEmptyValuesAndNulls(final String[] arr) {
+		int positionInOriginalArr;
+		int positionInNewArr;
+		int originalLength = positionInOriginalArr = positionInNewArr = arr.length;
+
+		String[] dummyArr = arr.clone();
+		while (positionInOriginalArr > 0) {
+			String value = dummyArr[--positionInOriginalArr];
+			if (value != null && !value.isEmpty()) {
+				dummyArr[--positionInNewArr] = value;
+			}
+		}
+		return Arrays.copyOfRange(dummyArr, positionInNewArr, originalLength);
+	}
 
 	public static double[] removeAllZeroValues(final double[] arr) {
 		int positionInOriginalArr;

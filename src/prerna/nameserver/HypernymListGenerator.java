@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import prerna.algorithm.nlp.PartOfSpeechHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import rita.RiWordNet;
@@ -47,6 +48,15 @@ public class HypernymListGenerator {
 	 */
 	public TreeNode<String> getHypernymTree(String noun) {
 		List<String> hypernymList = getHypernymList(noun);
+		return generateTree(hypernymList);
+	}
+	
+	/**
+	 * Returns the root node in a hypernym tree
+	 * @param noun	The list of hypernyms of a noun
+	 * @return		The root node (which can be traversed to all the children) of the hypernym tree
+	 */
+	public TreeNode<String> getHypernymTree(List<String> hypernymList) {
 		return generateTree(hypernymList);
 	}
 	
@@ -148,5 +158,18 @@ public class HypernymListGenerator {
 	 */
 	public void addMappings(Map<String, String> previousMappings) {
 		mappings.putAll(previousMappings);
+	}
+	
+	/**
+	 * Get the best part of speech guess for a word
+	 * @param word		String containing the word
+	 * @return			boolean is word is a noun 
+	 */
+	public boolean isNoun(String word) {
+		String pos = PartOfSpeechHelper.bestPOS(wordnet, word);
+		if(pos != null && pos.equals("n")) {
+			return true;
+		}
+		return false;
 	}
 }
