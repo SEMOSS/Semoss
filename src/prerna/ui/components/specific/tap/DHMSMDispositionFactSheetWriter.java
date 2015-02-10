@@ -310,7 +310,7 @@ public class DHMSMDispositionFactSheetWriter {
 
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 		ArrayList<Object[]> dataList = (ArrayList<Object[]>)result.get("data");
-
+		writeHeader(wb, sheetToWriteOver);
 		fillStringInText(sheetToWriteOver,3,0,null,systemName);
 		
 		int rowToStart = 6;
