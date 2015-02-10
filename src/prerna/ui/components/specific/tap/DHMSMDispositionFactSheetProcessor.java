@@ -179,7 +179,7 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 		ArrayList<String> referenceRepositoryList = runQuery(hrCoreEngine, referenceRepositoryQuery);
 		ArrayList<String> rtmList = runQuery(hrCoreEngine, rtmQuery);
 
-		ArrayList<Integer> capabilitiesSupportedResultsList = dhelp.getNumOfCapabilitiesSupported(systemName);
+		//ArrayList<Integer> capabilitiesSupportedResultsList = dhelp.getNumOfCapabilitiesSupported(systemName);
 		
 		calculateTransitionPercentageValues(systemName);
 				
@@ -190,7 +190,7 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 		returnHash.put(ConstantsTAP.POC_QUERY, pocList);		
 		returnHash.put(ConstantsTAP.PPI_QUERY, ppiList);
 		returnHash.put(ConstantsTAP.LIST_OF_INTERFACES_QUERY, interfacesResultsList);
-		returnHash.put(ConstantsTAP.CAPABILITIES_SUPPORTED_QUERY, capabilitiesSupportedResultsList);
+		//returnHash.put(ConstantsTAP.CAPABILITIES_SUPPORTED_QUERY, capabilitiesSupportedResultsList);
 		returnHash.put(ConstantsTAP.LPI_SYSTEMS_QUERY, lpiSystemsList);
 		returnHash.put(ConstantsTAP.LPNI_SYSTEMS_QUERY, lpniSystemsList);
 		returnHash.put(ConstantsTAP.HIGH_SYSTEMS_QUERY, highSystemsList);

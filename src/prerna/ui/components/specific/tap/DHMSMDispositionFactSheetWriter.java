@@ -92,7 +92,7 @@ public class DHMSMDispositionFactSheetWriter {
 		ArrayList systemHighlightsResults = (ArrayList) systemDataHash.get(ConstantsTAP.SYSTEM_HIGHLIGHTS_QUERY);
 		ArrayList ppiResults = (ArrayList) systemDataHash.get(ConstantsTAP.PPI_QUERY);
 		ArrayList icdResults = (ArrayList) systemDataHash.get(ConstantsTAP.LIST_OF_INTERFACES_QUERY);
-		ArrayList capabilitiesSupportedResults = (ArrayList) systemDataHash.get(ConstantsTAP.CAPABILITIES_SUPPORTED_QUERY);	
+		//ArrayList capabilitiesSupportedResults = (ArrayList) systemDataHash.get(ConstantsTAP.CAPABILITIES_SUPPORTED_QUERY);	
 		ArrayList lpiSystemResults = (ArrayList) systemDataHash.get(ConstantsTAP.LPI_SYSTEMS_QUERY);	
 		ArrayList lpniSystemResults = (ArrayList) systemDataHash.get(ConstantsTAP.LPNI_SYSTEMS_QUERY);	
 		ArrayList highSystemResults = (ArrayList) systemDataHash.get(ConstantsTAP.HIGH_SYSTEMS_QUERY);	
@@ -102,11 +102,11 @@ public class DHMSMDispositionFactSheetWriter {
 		double percentBLUCreatedDHMSMProvide = (Double) systemDataHash.get(ConstantsTAP.DHMSM_BLU_PROVIDED_PERCENT);
 		
 		writeSystemOverviewSheet(wb, icdResults, systemDescriptionResults, 
-				systemHighlightsResults, pocResults, capabilitiesSupportedResults, ppiResults, devICDCount, decomICDCount, sustainICDCount, 
+				systemHighlightsResults, pocResults, ppiResults, devICDCount, decomICDCount, sustainICDCount, 
 				lpiSystemResults, lpniSystemResults, highSystemResults, referenceRepositoryResults, rtmResults, percentDataCreatedDHMSMProvide, percentBLUCreatedDHMSMProvide);
 		writeSiteListSheet(wb, siteResults);
 		writeBudgetSheet(wb, budgetResults);
-		writeFeederSheet(wb, capabilitiesSupportedResults);
+		//writeFeederSheet(wb, capabilitiesSupportedResults);
 		wb.setForceFormulaRecalculation(true);
 		hideWorkSheet("Feeder");
 		Utility.writeWorkbook(wb, fileLoc);
@@ -122,7 +122,7 @@ public class DHMSMDispositionFactSheetWriter {
 	 * @param ppiResults					ArrayList containing the system owner
 	 */
 	public void writeSystemOverviewSheet(XSSFWorkbook wb, ArrayList icdResults, ArrayList systemDescriptionResults, ArrayList systemHighlightsResults, ArrayList pocResults, 
-			ArrayList capabilitiesSupportedResults, ArrayList ppiResults, int devICDCount, int decomICDCount, int sustainICDCount, 
+			ArrayList ppiResults, int devICDCount, int decomICDCount, int sustainICDCount, 
 			ArrayList lpiSystemsList, ArrayList lpniSystemsList, ArrayList highSystemsList, ArrayList referenceRepositoryList, ArrayList rtmResults, 
 			double percentDataCreatedDHMSMProvide, double percentBLUCreatedDHMSMProvide) {
 		XSSFSheet sheetToWriteOver = wb.getSheet("System Overview");
@@ -226,7 +226,7 @@ public class DHMSMDispositionFactSheetWriter {
 					uniqueInterfacesSupported.add(row.get(j));
 				if (j==2) {
 					if (row.get(j).toString().equals(systemName))
-						uniqueDownstreamSystemsInterfaced.add(row.get(j));
+						uniqueDownstreamSystemsInterfaced.add(row.get(j+1));
 				}
 				if (j==4)
 					uniqueDataObjects.add(row.get(j));
@@ -261,7 +261,7 @@ public class DHMSMDispositionFactSheetWriter {
 		for (int i=0; i<systemHighlightsResults.size(); i++) {	
 			ArrayList highlights = (ArrayList) systemHighlightsResults.get(i);			
 			for (int j=0; j< highlights.size(); j++) {
-				rowToWriteOn = sheetToWriteOver.getRow(25);
+				rowToWriteOn = sheetToWriteOver.getRow(22);
 				if (j==0) //Number of Users
 					cellToWriteOn = rowToWriteOn.getCell(1);
 				if (j==1) //Number of Consoles
