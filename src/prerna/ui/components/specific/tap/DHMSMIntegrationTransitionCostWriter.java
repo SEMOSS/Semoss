@@ -56,21 +56,21 @@ public class DHMSMIntegrationTransitionCostWriter {
 	
 	private String sysURI;
 	private String systemName;
-	private double costPerHr = 150.0;
-	private double sumHWSWCost;
+	double costPerHr = 150.0;
+	double sumHWSWCost;
 	int[] atoDateList = new int[2];
 
 	private TAPLegacySystemDispositionReportWriter diacapReport;
 	private LPInterfaceProcessor processor;
 	
-	private final String[] phases = new String[]{"Requirements","Design","Develop","Test","Deploy"};
-	private final String[] tags1 = new String[]{"Consume", "Provide"};
-	private final String[] tags = new String[]{"Consumer", "Provider"};
-	private final double sustainmentFactor = 0.18;
-	private final double trainingFactor = 0.15;
-	private final double inflation = 0.018;
-	private final String sysKey = "@SYSTEM@";
-	private double atoCost;
+	final String[] phases = new String[]{"Requirements","Design","Develop","Test","Deploy"};
+	final String[] tags1 = new String[]{"Consume", "Provide"};
+	final String[] tags = new String[]{"Consumer", "Provider"};
+	final double sustainmentFactor = 0.18;
+	final double trainingFactor = 0.15;
+	final double inflation = 0.018;
+	final String sysKey = "@SYSTEM@";
+	double atoCost;
 	
 	public DHMSMIntegrationTransitionCostWriter() throws EngineException{
 		TAP_Cost_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");

@@ -101,7 +101,6 @@ public class FactSheetWriter {
 		ArrayList systemHighlightsResults = (ArrayList) systemDataHash.get(ConstantsTAP.SYSTEM_HIGHLIGHTS_QUERY);
 		ArrayList userTypesResults = (ArrayList) systemDataHash.get(ConstantsTAP.USER_TYPES_QUERY);
 		ArrayList userInterfacesResults = (ArrayList) systemDataHash.get(ConstantsTAP.USER_INTERFACES_QUERY);
-		//		ArrayList businessProcessResults = (ArrayList) systemDataHash.get(ConstantsTAP.BUSINESS_PROCESS_QUERY);
 		ArrayList ppiResults = (ArrayList) systemDataHash.get(ConstantsTAP.PPI_QUERY);
 		ArrayList capabilitiesSupportedResults = (ArrayList) systemDataHash.get(ConstantsTAP.CAPABILITIES_SUPPORTED_QUERY);
 
@@ -1061,7 +1060,7 @@ public class FactSheetWriter {
 			ArrayList row = (ArrayList) result.get(i);
 			rowToWriteOn = sheetToWriteOver.getRow(i+7);
 
-			for (int j=0; j<row.size(); j++) {
+			for (int j=0; j<row.size() - 1; j++) {
 				cellToWriteOn = rowToWriteOn.getCell(j+1);
 				if (!(((String) row.get(j) ).replaceAll("\"", "")).equals("NULL") && row.get(j) != null) {	
 					cellToWriteOn.setCellValue( (((String) row.get(j) ).replaceAll("\"", "")).replaceAll("_", " ") );
