@@ -129,7 +129,7 @@ public class CreateMasterDB extends ModifyMasterDB {
 			Hashtable<String, SEMOSSVertex> vertStore  = gps.getGraphData().getVertStore();
 
 			addNewDBConcepts(engineName, vertStore, parentChildMapping);
-			addProperty(engineBaseURI + "/" + engineName, propURI + "/" + "API",baseURL,true);
+			addProperty(ENGINE_BASE_URI + "/" + engineName, PROP_URI + "/" + "API",baseURL,true);
 
 			String insights = Utility.retrieveResult(engineAPI + "/getInsightDefinition", null);
 			RepositoryConnection insightsRC = getNewRepository();
@@ -176,7 +176,7 @@ public class CreateMasterDB extends ModifyMasterDB {
 					TreeNode<String> node = hypernymGenerator.getHypernymTree(hypernymList);
 					forest.addNodes(node);
 					String topHypernym = hypernymList.get(hypernymList.size()-1);
-					addRelationship(mcBaseURI + "/" + noun, mcBaseURI + "/" + topHypernym, semossRelationURI + "/HasTopHypernym/" + noun + ":" + topHypernym);
+					addRelationship(MC_BASE_URI + "/" + noun, MC_BASE_URI + "/" + topHypernym, SEMOSS_RELATION_URI + "/HasTopHypernym/" + noun + ":" + topHypernym);
 				}
 				keywordConceptBipartiteGraph.addToKeywordSet(biNode);
 			}
@@ -191,24 +191,24 @@ public class CreateMasterDB extends ModifyMasterDB {
 			if(childrenMC != null && !childrenMC.isEmpty()) {
 				for(String childMC : childrenMC) {
 					String cleanChildMC = Utility.cleanString(childMC, false);
-					addNode(mcBaseURI + "/" + cleanParentMC);
-					addNode(mcBaseURI + "/" + cleanChildMC);
-					addRelationship(mcBaseURI + "/" + cleanParentMC, mcBaseURI + "/" + cleanChildMC, semossRelationURI + "/ParentOf/" + cleanParentMC + ":" + cleanChildMC);
+					addNode(MC_BASE_URI + "/" + cleanParentMC);
+					addNode(MC_BASE_URI + "/" + cleanChildMC);
+					addRelationship(MC_BASE_URI + "/" + cleanParentMC, MC_BASE_URI + "/" + cleanChildMC, SEMOSS_RELATION_URI + "/ParentOf/" + cleanParentMC + ":" + cleanChildMC);
 				}
 			}
 		}
 
-		addNode(engineBaseURI + "/" + engineName);
+		addNode(ENGINE_BASE_URI + "/" + engineName);
 		// add keyword to mc information to db
 		Map<String, Set<String>> keywordMapping = keywordConceptBipartiteGraph.getKeywordMapping();
 		for(String keyword : keywordMapping.keySet()) {
-			addRelationship(engineBaseURI + "/" + engineName, keywordBaseURI + "/" + keyword, semossRelationURI + "/Has/" + engineName + ":" +keyword);
+			addRelationship(ENGINE_BASE_URI + "/" + engineName, KEYWORD_BASE_URI + "/" + keyword, SEMOSS_RELATION_URI + "/Has/" + engineName + ":" +keyword);
 			Set<String> mcList = keywordMapping.get(keyword);
 			for(String mc : mcList) {
 				String cleanMC = Utility.cleanString(mc, false);
-				addNode(keywordBaseURI + "/" + keyword);
-				addNode(mcBaseURI + "/" + cleanMC);
-				addRelationship(keywordBaseURI + "/" + keyword, mcBaseURI + "/" + cleanMC, semossRelationURI + "/ComposedOf/" + keyword + ":" + cleanMC);
+				addNode(KEYWORD_BASE_URI + "/" + keyword);
+				addNode(MC_BASE_URI + "/" + cleanMC);
+				addRelationship(KEYWORD_BASE_URI + "/" + keyword, MC_BASE_URI + "/" + cleanMC, SEMOSS_RELATION_URI + "/ComposedOf/" + keyword + ":" + cleanMC);
 			}
 		}
 	}
@@ -224,7 +224,7 @@ public class CreateMasterDB extends ModifyMasterDB {
 		String baseURI = nodeURI.substring(0,index);
 		String instance = nodeURI.substring(index+1);
 		masterEngine.addStatement(nodeURI, RDF.TYPE.stringValue(), baseURI, true);
-		masterEngine.addStatement(baseURI, RDFS.SUBCLASSOF.stringValue(), semossConceptURI, true);
+		masterEngine.addStatement(baseURI, RDFS.SUBCLASSOF.stringValue(), SEMOSS_CONCEPT_URI, true);
 		masterEngine.addStatement(nodeURI, RDFS.LABEL.stringValue(), instance, false);
 	}
 
@@ -241,7 +241,7 @@ public class CreateMasterDB extends ModifyMasterDB {
 		String relInst = relationURI.substring(relIndex+1);
 
 		masterEngine.addStatement(relationURI, RDFS.SUBPROPERTYOF.stringValue(), relBaseURI,true);
-		masterEngine.addStatement(relBaseURI, RDFS.SUBPROPERTYOF.stringValue(), semossRelationURI,true);
+		masterEngine.addStatement(relBaseURI, RDFS.SUBPROPERTYOF.stringValue(), SEMOSS_RELATION_URI,true);
 		masterEngine.addStatement(relationURI, RDFS.LABEL.stringValue(), relInst,false);
 		masterEngine.addStatement(node1URI, relationURI, node2URI,true);
 	}
@@ -284,7 +284,7 @@ public class CreateMasterDB extends ModifyMasterDB {
 					if(s.getObject() instanceof MemURI) {
 						String typeURI = ((MemURI) s.getObject()).stringValue();
 						String keyword = typeURI.substring(typeURI.lastIndexOf("/")+1);
-						addRelationship(keywordBaseURI + "/" + keyword, typeURI, semossRelationURI + "/Has/" + keyword + ":" + keyword);
+						addRelationship(KEYWORD_BASE_URI + "/" + keyword, typeURI, SEMOSS_RELATION_URI + "/Has/" + keyword + ":" + keyword);
 						//					this.masterEngine.sc.addStatement(keyword, RDF.TYPE, masterEngine.vf.createURI(keywordBaseURI));
 					}
 					else {
