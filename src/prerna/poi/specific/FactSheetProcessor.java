@@ -164,7 +164,7 @@ public class FactSheetProcessor {
 		ArrayList<String> list = new ArrayList<String>();
 		JList repoList = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		Object[] repo = (Object[]) repoList.getSelectedValues();
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(repo[0] + "");
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(hrCoreEngine + "");
 
 		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);

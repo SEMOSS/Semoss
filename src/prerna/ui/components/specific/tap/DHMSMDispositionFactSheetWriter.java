@@ -306,7 +306,7 @@ public class DHMSMDispositionFactSheetWriter {
 	 * @param sheetName	String containing the name of the sheet to populate
 	 * @param results	ArrayList containing the output of the query
 	 */
-	public void writeListSheet(String sheetName, HashMap<String,Object> result){
+	public void writeListSheet(String sheetName, HashMap<String,Object> result, boolean systemProbabilityHigh){
 
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 		ArrayList<Object[]> dataList = (ArrayList<Object[]>)result.get("data");
@@ -357,7 +357,19 @@ public class DHMSMDispositionFactSheetWriter {
 				}
 				else {
 					cellToWriteOn.setCellValue(((String)resultRowValues[col]).replaceAll("\"", "").replaceAll("_"," "));
+				}				
+			}
+			if (systemProbabilityHigh) {
+				XSSFCell cellToWriteOn;
+				if(row==0)
+					cellToWriteOn = rowToWriteOn.getCell(resultRowValues.length);
+				else
+				{
+					cellToWriteOn = rowToWriteOn.createCell(resultRowValues.length);;
 				}
+				XSSFCell cellToCopyFormat = rowToCopyFormat.getCell(resultRowValues.length);
+				cellToWriteOn.setCellStyle(cellToCopyFormat.getCellStyle());
+				cellToWriteOn.setCellValue((String) "Decommission Interface.");
 			}
 		}
 

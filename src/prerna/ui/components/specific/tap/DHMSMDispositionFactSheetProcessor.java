@@ -48,6 +48,10 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 	private IEngine FutureDB;
 	private IEngine FutureCostDB;
 	
+	ArrayList<String> systemList = new ArrayList<String>();
+	ArrayList<String> lpiSystemList = new ArrayList<String>();
+	ArrayList<String> lpniSystemList = new ArrayList<String>();
+	ArrayList<String> highSystemList = new ArrayList<String>();	
 
 	public DHMSMDispositionFactSheetProcessor() throws EngineException{
 		TAP_Cost_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
@@ -98,15 +102,10 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 		if (!dbcheck) {
 			return;
 		}
-		//make this the query to return all High, LPNI, and LPI systems
-		ArrayList<String> systemList = new ArrayList<String>();
-		ArrayList<String> lpiSystemList = createSystemList(lpiSystemsQuery);
-		ArrayList<String> lpniSystemList = createSystemList(lpiSystemsQuery);
-		ArrayList<String> highSystemList = createSystemList(lpiSystemsQuery);
+		//make this the query to return all High, LPNI, and LPI system
 		systemList.addAll(lpiSystemList);
 		systemList.addAll(lpniSystemList);
 		systemList.addAll(highSystemList);
-
 		boolean shouldStart = true;
 		for (int i=0; i<systemList.size(); i++) {
 			String systemName = systemList.get(i);
@@ -129,8 +128,12 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 		boolean dbcheck = retrieveDatabases();
 		if (!dbcheck) {
 			return;
-		}		
-
+		}
+		
+		lpiSystemList = createSystemList(lpiSystemsQuery);
+		lpniSystemList = createSystemList(lpniSystemsQuery);
+		highSystemList = createSystemList(highSystemsQuery);
+		
 		Hashtable queryResults = processQueries(systemName);
 		ArrayList serviceResults = (ArrayList) queryResults.get(ConstantsTAP.PPI_QUERY);
 		String service = null;
@@ -225,6 +228,10 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 		
 		writer.createWorkbook(systemName, templateLoc);
 		//For the DHSMSM Transition Report Interface tabs
+		boolean systemProbabilityHigh = false;
+		if (highSystemList.contains(systemName))
+			systemProbabilityHigh = true;
+		
 		String systemQueryURI = "<" + sysBaseURI + systemName + ">"; 
 		proposedFutureICDQuery = proposedFutureICDQuery.replace("@SYSTEM@", systemQueryURI);
 		decommissionedFutureICDQuery = decommissionedFutureICDQuery.replace("@SYSTEM@", systemQueryURI);
@@ -233,25 +240,34 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 		HashMap<String, Object> sysProposedFutureICD = getQueryDataWithHeaders(FutureDB, proposedFutureICDQuery);
 		HashMap<String, Object> sysDecommissionedFutureICD = getQueryDataWithHeaders(FutureDB, decommissionedFutureICDQuery);
 		HashMap<String, Object> sysPersistentICD = determinePersistentICDs(sysDecommissionedFutureICD);
-
-		ArrayList<Object[]> devICDList = (ArrayList<Object[]>)sysProposedFutureICD.get("data");
-		if (devICDList.size() == 0)
-			writer.hideWorkSheet("Future Interface Development");
-		else {
-			writer.writeListSheet("Future Interface Development", sysProposedFutureICD);
-		}
 		
+		ArrayList<Object[]> devICDList = (ArrayList<Object[]>)sysProposedFutureICD.get("data");
 		ArrayList<Object[]> decomICDList = (ArrayList<Object[]>)sysDecommissionedFutureICD.get("data");
-		if (decomICDList.size() == 0)
-			writer.hideWorkSheet("Future Interface Decommission");
-		else {
-			writer.writeListSheet("Future Interface Decommission", sysDecommissionedFutureICD);
-		}		
 		ArrayList<Object[]> sustainICDList = (ArrayList<Object[]>)sysPersistentICD.get("data");
-		if (sustainICDList.size() == 0)
+		
+		if (!systemProbabilityHigh) {			
+			if (devICDList.size() == 0)
+				writer.hideWorkSheet("Future Interface Development");
+			else {
+				writer.writeListSheet("Future Interface Development", sysProposedFutureICD, false);
+			}	
+			if (decomICDList.size() == 0)
+				writer.hideWorkSheet("Future Interface Decommission");
+			else {
+				writer.writeListSheet("Future Interface Decommission", sysDecommissionedFutureICD, false);
+			}	
+			if (sustainICDList.size() == 0)
+				writer.hideWorkSheet("Future Interface Sustainment");
+			else {
+				writer.writeListSheet("Future Interface Sustainment", sysPersistentICD, false);
+			}
+		} else {
+			sysDecommissionedFutureICD.putAll(sysPersistentICD);
+			decomICDList.addAll(sustainICDList);
+			sustainICDList = new ArrayList<Object[]>();
+			writer.hideWorkSheet("Future Interface Development");
 			writer.hideWorkSheet("Future Interface Sustainment");
-		else {
-			writer.writeListSheet("Future Interface Sustainment", sysPersistentICD);
+			writer.writeListSheet("Future Interface Decommission", sysDecommissionedFutureICD, systemProbabilityHigh);
 		}
 		
 		
