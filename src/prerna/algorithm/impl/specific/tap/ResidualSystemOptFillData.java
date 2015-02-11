@@ -21,8 +21,11 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.specific.tap.DHMSMHelper;
 import prerna.ui.components.specific.tap.SysOptPlaySheet;
 import prerna.util.DIHelper;
@@ -110,14 +113,16 @@ public class ResidualSystemOptFillData{
 			try {
 				IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 
-				SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+				/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 				wrapper.setQuery(query);
 				wrapper.setEngine(engine);
 				wrapper.executeQuery();
+				*/
+				ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
 				String[] names = wrapper.getVariables();
 				while (wrapper.hasNext()) {
-					SesameJenaSelectStatement sjss = wrapper.next();
+					ISelectStatement sjss = wrapper.next();
 					list.add((String) sjss.getVar(names[0]));
 				}
 			} catch (RuntimeException e) {
@@ -489,24 +494,29 @@ public class ResidualSystemOptFillData{
 		return matrixToFill;
 	}
 	
-	private SesameJenaSelectWrapper runQuery(String engineName, String query) {
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+	private ISelectWrapper runQuery(String engineName, String query) {
+		
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
 		wrapper.setEngineType(IEngine.ENGINE_TYPE.SESAME);
-		try{
+		*/
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		
+		/*try{
 			wrapper.executeQuery();	
 		}
 		catch (RuntimeException e)
 		{
 			e.printStackTrace();
-		}
+		}*/
 		return wrapper;
 	}
 	
 	private int[][] fillMatrixFromQuery(String engineName, String query,int[][] matrix,ArrayList<String> rowNames,ArrayList<String> colNames) {
-		SesameJenaSelectWrapper	wrapper = runQuery(engineName,query);
+		ISelectWrapper	wrapper = runQuery(engineName,query);
 
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
@@ -514,7 +524,7 @@ public class ResidualSystemOptFillData{
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				Object rowName = getVariable(names[0], sjss);
 				Object colName = getVariable(names[1], sjss);
 				
@@ -536,14 +546,14 @@ public class ResidualSystemOptFillData{
 	}
 	
 	private double[][] fillMatrixFromQuery(String engineName, String query,double[][] matrix,ArrayList<String> rowNames,ArrayList<String> colNames) {
-		SesameJenaSelectWrapper	wrapper = runQuery(engineName,query);
+		ISelectWrapper	wrapper = runQuery(engineName,query);
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
 		// now get the bindings and generate the data
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				Object rowName = getVariable(names[0], sjss);
 				Object colName = getVariable(names[1], sjss);
 				
@@ -577,14 +587,14 @@ public class ResidualSystemOptFillData{
 	}
 	
 	private double[] fillVectorFromQuery(String engineName, String query,double[] matrix,ArrayList<String> rowNames, boolean needsConversion) {
-		SesameJenaSelectWrapper	wrapper = runQuery(engineName,query);
+		ISelectWrapper	wrapper = runQuery(engineName,query);
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
 		// now get the bindings and generate the data
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				Object rowName = getVariable(names[0], sjss);
 				int rowIndex = rowNames.indexOf(rowName);
 				if(rowIndex>-1)
@@ -620,7 +630,7 @@ public class ResidualSystemOptFillData{
 		return matrix;
 	}
 	private String[] fillVectorFromQuery(String engineName, String query,String[] matrix,ArrayList<String> rowNames, boolean valIsOne) {
-		SesameJenaSelectWrapper	wrapper = runQuery(engineName,query);
+		ISelectWrapper	wrapper = runQuery(engineName,query);
 
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
@@ -628,7 +638,7 @@ public class ResidualSystemOptFillData{
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				Object rowName = getVariable(names[0], sjss);
 				int rowIndex = rowNames.indexOf(rowName);
 				if(rowIndex>-1)
@@ -642,7 +652,7 @@ public class ResidualSystemOptFillData{
 		return matrix;
 	}
 	
-	public Object getVariable(String varName, SesameJenaSelectStatement sjss) {
+	public Object getVariable(String varName, ISelectStatement sjss) {
 		return sjss.getVar(varName);
 	}
 	

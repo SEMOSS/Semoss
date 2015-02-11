@@ -48,8 +48,9 @@ import prerna.algorithm.cluster.GenerateEntropyDensity;
 import prerna.algorithm.cluster.PartitionedClusteringAlgorithm;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridTableModel;
 import prerna.ui.components.GridTableRowSorter;
@@ -603,15 +604,18 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 
 	private void processQuery() 
 	{
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+		ISelectWrapper sjsw = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 		//run the query against the engine provided
 		sjsw.setEngine(engine);
 		sjsw.setQuery(query);
 		sjsw.executeQuery();	
+		*/
 		names = sjsw.getVariables();
 		list = new ArrayList<Object[]>();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			Object[] dataRow = new Object[names.length];
 			for(int i = 0; i < names.length; i++) {
 				dataRow[i] = sjss.getVar(names[i]);

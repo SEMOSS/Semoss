@@ -21,8 +21,11 @@ import java.util.HashSet;
 import java.util.Set;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 
 public final class DHMSMTransitionUtility {
 	
@@ -68,10 +71,12 @@ public final class DHMSMTransitionUtility {
 	public static HashMap<String, ArrayList<String>> getDataToServiceHash(IEngine engine) {
 		HashMap<String, ArrayList<String>> retHash = new HashMap<String, ArrayList<String>>();
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, DATA_TO_SERVICE_QUERY);
+		
+		ISelectWrapper sjsw = Utility.processQuery(engine, DATA_TO_SERVICE_QUERY);
+		
 		String[] varName = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String data = sjss.getVar(varName[0]).toString();
 			String ser = sjss.getVar(varName[1]).toString();
 			
@@ -101,10 +106,10 @@ public final class DHMSMTransitionUtility {
 	public static HashMap<String, HashMap<String, String[]>> runFutureICDProp(IEngine engine, String query) {
 		HashMap<String, HashMap<String, String[]>> retHash = new HashMap<String, HashMap<String, String[]>>();
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
+		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] varName = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String system = sjss.getVar(varName[0]).toString();
 			String data = sjss.getVar(varName[1]).toString();
 			String format = sjss.getVar(varName[2]).toString();
@@ -214,10 +219,10 @@ public final class DHMSMTransitionUtility {
 	public static Set<String> getAllSelfReportedSystems(IEngine engine) {
 		Set<String> retList = new HashSet<String>();
 
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, ALL_SELF_REPORTED_SYSTEMS);
+		ISelectWrapper sjsw = Utility.processQuery(engine, ALL_SELF_REPORTED_SYSTEMS);
 		String[] varName = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String system = sjss.getRawVar(varName[0]).toString();
 			if(!system.equals("DHMSM"))
 				retList.add(system);
@@ -228,10 +233,10 @@ public final class DHMSMTransitionUtility {
 	public static Set<String> getAllSelfReportedICDs(IEngine engine) {
 		Set<String> retList = new HashSet<String>();
 
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, ALL_SELF_REPORTED_ICD_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, ALL_SELF_REPORTED_ICD_QUERY);
 		String[] varName = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String icd = sjss.getRawVar(varName[0]).toString();
 			retList.add(icd);
 		}
@@ -241,10 +246,10 @@ public final class DHMSMTransitionUtility {
 	public static Set<String> getAllSelfReportedICDQuery(IEngine engine) {
 		Set<String> retList = new HashSet<String>();
 
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, ALL_SELF_REPORTED_ICD_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, ALL_SELF_REPORTED_ICD_QUERY);
 		String[] varName = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String icd = sjss.getRawVar(varName[0]).toString();
 			retList.add(icd);
 		}
@@ -254,10 +259,10 @@ public final class DHMSMTransitionUtility {
 	public static HashMap<String,String> processReportTypeQuery(IEngine engine) {
 		HashMap<String,String> retList = new HashMap<String,String>();
 
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SYS_TYPE_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, SYS_TYPE_QUERY);
 		String[] varName = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String instance = sjss.getVar(varName[0]).toString();
 			String reportType = sjss.getVar(varName[1]).toString();
 			retList.put(instance,reportType);
@@ -268,16 +273,19 @@ public final class DHMSMTransitionUtility {
 	
 	public static HashSet<String> processSysDataSOR(IEngine engine){
 		String[] names = new String[1];
-		SesameJenaSelectWrapper sorWrapper = new SesameJenaSelectWrapper();
+
+		ISelectWrapper sorWrapper = WrapperManager.getInstance().getSWrapper(engine, SYS_SOR_DATA_CONCAT_QUERY);
+
+		/*SesameJenaSelectWrapper sorWrapper = new SesameJenaSelectWrapper();
 		sorWrapper.setQuery(SYS_SOR_DATA_CONCAT_QUERY);
 		sorWrapper.setEngine(engine);
-		sorWrapper.executeQuery();
+		sorWrapper.executeQuery();*/
 		names = sorWrapper.getVariables();
 
 		HashSet<String> retSet = new HashSet<String>();
 		while(sorWrapper.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sorWrapper.next();
+			ISelectStatement sjss = sorWrapper.next();
 			int colIndex = 0;
 			String val = sjss.getVar(names[colIndex]).toString();
 			retSet.add(val);
@@ -289,12 +297,12 @@ public final class DHMSMTransitionUtility {
 	{
 		HashMap<String, HashMap<String, Double>> dataHash = new HashMap<String, HashMap<String, Double>>();
 
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, LOE_SYS_GLITEM_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, LOE_SYS_GLITEM_QUERY);
 		String[] names = sjsw.getVariables();
 
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String sys = sjss.getVar(names[0]).toString().replace("\"", "");
 			String data = sjss.getVar(names[1]).toString().replace("\"", "");
 			String ser = sjss.getVar(names[2]).toString().replace("\"", "");
@@ -318,12 +326,12 @@ public final class DHMSMTransitionUtility {
 	{
 		HashMap<String, HashMap<String, Double>> dataHash = new HashMap<String, HashMap<String, Double>>();
 
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, AVG_LOE_SYS_GLITEM_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, AVG_LOE_SYS_GLITEM_QUERY);
 		String[] names = sjsw.getVariables();
 
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String data = sjss.getVar(names[0]).toString().replace("\"", "");
 			String ser = sjss.getVar(names[1]).toString().replace("\"", "");
 			Double loe = (Double) sjss.getVar(names[2]);
@@ -346,12 +354,12 @@ public final class DHMSMTransitionUtility {
 	{
 		HashMap<String, HashMap<String, Double>> dataHash = new HashMap<String, HashMap<String, Double>>();
 
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, LOE_GENERIC_GLITEM_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, LOE_GENERIC_GLITEM_QUERY);
 		String[] names = sjsw.getVariables();
 
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String data = sjss.getVar(names[0]).toString().replace("\"", "");
 			String ser = sjss.getVar(names[1]).toString().replace("\"", "");
 			Double loe = (Double) sjss.getVar(names[2]);
@@ -373,12 +381,12 @@ public final class DHMSMTransitionUtility {
 	{
 		HashMap<String, String> dataHash = new HashMap<String, String>();
 
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SERVICE_TO_DATA_LIST_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, SERVICE_TO_DATA_LIST_QUERY);
 		String[] names = sjsw.getVariables();
 
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String data = sjss.getVar(names[0]).toString().replace("\"", "");
 			String ser = sjss.getVar(names[1]).toString().replace("\"", "");
 
@@ -391,12 +399,12 @@ public final class DHMSMTransitionUtility {
 	{
 		HashMap<String, HashMap<String, HashMap<String, Double>>> dataHash = new HashMap<String, HashMap<String, HashMap<String, Double>>>();
 
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SYS_SPECIFIC_LOE_AND_PHASE_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, SYS_SPECIFIC_LOE_AND_PHASE_QUERY);
 		String[] names = sjsw.getVariables();
 
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String sys = sjss.getVar(names[0]).toString().replace("\"", "");
 			String data = sjss.getVar(names[1]).toString().replace("\"", "");
 			String ser = sjss.getVar(names[2]).toString().replace("\"", "");
@@ -429,12 +437,12 @@ public final class DHMSMTransitionUtility {
 	{
 		HashMap<String, HashMap<String, HashMap<String, Double>>> dataHash = new HashMap<String, HashMap<String, HashMap<String, Double>>>();
 
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, AVERAGE_LOE_AND_PHASE_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, AVERAGE_LOE_AND_PHASE_QUERY);
 		String[] names = sjsw.getVariables();
 
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String data = sjss.getVar(names[0]).toString().replace("\"", "");
 			String ser = sjss.getVar(names[1]).toString().replace("\"", "");
 			Double loe = (Double) sjss.getVar(names[2]);
@@ -466,12 +474,12 @@ public final class DHMSMTransitionUtility {
 	{
 		HashMap<String, HashMap<String, HashMap<String, Double>>> dataHash = new HashMap<String, HashMap<String, HashMap<String, Double>>>();
 
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, GENERIC_LOE_AND_PHASE_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, GENERIC_LOE_AND_PHASE_QUERY);
 		String[] names = sjsw.getVariables();
 
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String data = sjss.getVar(names[0]).toString().replace("\"", "");
 			String ser = sjss.getVar(names[1]).toString().replace("\"", "");
 			Double loe = (Double) sjss.getVar(names[2]);
@@ -501,12 +509,12 @@ public final class DHMSMTransitionUtility {
 	public static HashSet<String> runVarListQuery(IEngine engine, String query) 
 	{
 		HashSet<String> dataSet = new HashSet<String>();
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
+		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] names = sjsw.getVariables();
 
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String var = sjss.getVar(names[0]).toString().replace("\"", "");
 			dataSet.add(var);
 		}
@@ -517,12 +525,12 @@ public final class DHMSMTransitionUtility {
 	public static HashSet<String> runRawVarListQuery(IEngine engine, String query) 
 	{
 		HashSet<String> dataSet = new HashSet<String>();
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
+		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] names = sjsw.getVariables();
 
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String var = sjss.getRawVar(names[0]).toString().replace("\"", "");
 			dataSet.add(var);
 		}

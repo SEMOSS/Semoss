@@ -23,9 +23,11 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.ui.components.playsheets.BrowserPlaySheet;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.DIHelper;
 
@@ -45,12 +47,15 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 		ArrayList<Object[]> processedList = new ArrayList<Object[]>();
 
 		logger.info("PROCESSING QUERY: " + queryString);
+		
+		//ISelectWrapper sjsw = WrapperManager.getInstance().getSWrapper(engine, queryString);
+		
 		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 		//run the query against the engine provided
 		sjsw.setEngine(engine);
 		sjsw.setQuery(queryString);
 		sjsw.executeQuery();
-
+		
 		names = sjsw.getVariables();
 
 		while(sjsw.hasNext())

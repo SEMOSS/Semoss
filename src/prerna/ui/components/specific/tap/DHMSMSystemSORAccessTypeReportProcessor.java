@@ -25,8 +25,11 @@ import org.apache.log4j.Logger;
 
 import prerna.poi.specific.BasicReportWriter;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -63,18 +66,21 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 	public void runQuery(String engineName, String query) {
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
 		wrapper.executeQuery();
-
+		*/
+		
 		String[] names = wrapper.getVariables();
 		for(String head : names)
 			if(!headersList.contains(head))
 				headersList.add(head);
 		try {
 			while (wrapper.hasNext()) {
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				String sys = (String)sjss.getVar(names[0]);
 				if(masterHash.containsKey(sys))
 				{
@@ -108,15 +114,17 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 	public void runSystemListQuery(String engineName, String query) {
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
 		wrapper.executeQuery();
-
+*/
 		String[] names = wrapper.getVariables();
 		try {
 			while (wrapper.hasNext()) {
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				Hashtable<String,Object> sysHash = new Hashtable<String,Object>();
 				masterHash.put((String) sjss.getVar(names[0]),sysHash);
 				sysList.add((String) sjss.getVar(names[0]));

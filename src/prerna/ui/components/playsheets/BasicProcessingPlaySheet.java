@@ -26,8 +26,10 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridRAWTableModel;
 import prerna.ui.components.GridTableModel;
@@ -50,7 +52,7 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 	protected String [] names = null;
 	public JTable table = null;
 	protected ArrayList <Object []> list = null;
-	public SesameJenaSelectWrapper wrapper;
+	public ISelectWrapper wrapper;
 
 	/**
 	 * This is the function that is used to create the first view 
@@ -144,7 +146,7 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 	 * @param sjss SesameJenaSelectStatement - the associated sesame jena select statement.
 
 	 * @return Object - results.*/
-	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+	public Object getVariable(String varName, ISelectStatement sjss){
 		return sjss.getVar(varName);
 	}
 
@@ -171,8 +173,8 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 		if(this.overlay)
 			list = gfd.dataList;
 		else list = new ArrayList();
-		wrapper = new SesameJenaSelectWrapper();
-		if(engine!= null && rs == null){
+		wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+		/*if(engine!= null && rs == null){
 
 			wrapper.setQuery(query);
 			wrapper.setEngine(engine);
@@ -188,7 +190,7 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 		else if (engine==null && rs!=null){
 			wrapper.setResultSet(rs);
 			wrapper.setEngineType(IEngine.ENGINE_TYPE.JENA);
-		}
+		}*/
 
 		// get the bindings from it
 		names = wrapper.getVariables();
@@ -197,7 +199,7 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				
 				Object [] values = new Object[names.length];
 				for(int colIndex = 0;colIndex < names.length;colIndex++)

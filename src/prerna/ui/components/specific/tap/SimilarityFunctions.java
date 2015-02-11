@@ -17,17 +17,17 @@ package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Set;
 import java.util.Map.Entry;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -37,7 +37,7 @@ import prerna.util.Utility;
 public class SimilarityFunctions {
 
 	ArrayList <Object []> list;
-	SesameJenaSelectWrapper wrapper;
+	ISelectWrapper wrapper;
 	ArrayList <String> comparisonObjectList;
 	protected static final Logger logger = LogManager.getLogger(SimilarityFunctions.class.getName());
 	final static String COUNT = "Count";
@@ -57,12 +57,14 @@ public class SimilarityFunctions {
 		// and then create filter data and a table
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(dbName);
 		list = new ArrayList();
-		wrapper = new SesameJenaSelectWrapper();
+		wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*wrapper = new SesameJenaSelectWrapper();
 		if(engine!= null){
 			wrapper.setQuery(query);
 			wrapper.setEngine(engine);
 			wrapper.executeQuery();
-		}
+		}*/
 
 		// get the bindings from it
 		String [] names;
@@ -79,7 +81,7 @@ public class SimilarityFunctions {
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 
 				Object [] values = new Object[names.length];
 				for(int colIndex = 0;colIndex < names.length;colIndex++)
@@ -397,7 +399,7 @@ public class SimilarityFunctions {
 	 * 
 	 * @return Object	Value of the var
 	 */
-	public Object getVariable(String varName, SesameJenaSelectStatement sjss)
+	public Object getVariable(String varName, ISelectStatement sjss)
 	{
 		return sjss.getVar(varName);
 	}

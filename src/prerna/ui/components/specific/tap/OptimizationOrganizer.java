@@ -22,8 +22,11 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.DIHelper;
 
 /**
@@ -114,14 +117,14 @@ public class OptimizationOrganizer {
 	{
 		ArrayList<String> retList = new ArrayList<String>();
 
-		SesameJenaSelectWrapper wrapper = runQuery(query, engineName);
+		ISelectWrapper wrapper = runQuery(query, engineName);
 
 		String[] names = wrapper.getVariables();
 		// now get the bindings and generate the data
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				String dataName = sjss.getVar(names[0])+"";
 				String sysName = sjss.getVar(names[1])+"";
 				retList.add(dataName+":"+sysName);
@@ -143,9 +146,9 @@ public class OptimizationOrganizer {
 	 * @return 	Matrix with the appropriate number of rows and columns. */
 	private Object[][] createMatrix(String query, String engineName){
 
-		SesameJenaSelectWrapper wrapper = runQuery(query, engineName);
+		ISelectWrapper wrapper = runQuery(query, engineName);
 		String[] names = wrapper.getVariables();
-		SesameJenaSelectStatement sjss = wrapper.next();
+		ISelectStatement sjss = wrapper.next();
 		//get the dimensions for the matrix
 		int rows = ((Double) sjss.getVar(names[1])).intValue();
 
@@ -169,7 +172,7 @@ public class OptimizationOrganizer {
 		icdServiceRowNames = new ArrayList<String>();
 		icdServiceColNames = new ArrayList<String>();
 
-		SesameJenaSelectWrapper wrapper = runQuery(query, engineName);
+		ISelectWrapper wrapper = runQuery(query, engineName);
 
 		//this is going to be processed such that the first col is row name, then column name, then value
 		//not going to account for the same cell coming up twice--SPARQL should sum it up
@@ -179,7 +182,7 @@ public class OptimizationOrganizer {
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 
 				if(sjss.getVar(names[0]) != null)
 				{
@@ -236,14 +239,14 @@ public class OptimizationOrganizer {
 	 * @return 	Service hashtable with updated values. */
 	private Hashtable<String,Double> addToHashtable(String query, String engineName, Hashtable<String,Double> hash, Hashtable<String,Double> hash2, boolean createEntryPrivledges){
 
-		SesameJenaSelectWrapper wrapper = runQuery(query, engineName);
+		ISelectWrapper wrapper = runQuery(query, engineName);
 
 		String[] names = wrapper.getVariables();
 		// now get the bindings and generate the data
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				if(sjss.getVar(names[0]) != null)
 				{
 //					String rowName = sjss.getVar(names[0])+"";
@@ -308,14 +311,14 @@ public class OptimizationOrganizer {
 	 * @return 	Hashtable with updated values. */
 	private Hashtable<String,Double> addConsumerToHash(String query, String engineName, Hashtable<String,Double> hash, Hashtable<String,Double> hash2, ArrayList<String> sysList){
 
-		SesameJenaSelectWrapper wrapper = runQuery(query, engineName);
+		ISelectWrapper wrapper = runQuery(query, engineName);
 
 		String[] names = wrapper.getVariables();
 		// now get the bindings and generate the data
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				if(sjss.getVar(names[0]) != null)
 				{
 					String sysName = sjss.getVar(names[0])+"";
@@ -369,7 +372,7 @@ public class OptimizationOrganizer {
 	 * @param 	Name of the service.
 	 * @param 	List of existing names of services.
 	 */
-	private void addToMasterHash(SesameJenaSelectStatement sjss, String serName, String[] names){
+	private void addToMasterHash(ISelectStatement sjss, String serName, String[] names){
 		//first create the new row of the table
 		Object[] newRow = new Object[names.length];
 		for(int nameIdx = 0; nameIdx<names.length; nameIdx++){
@@ -395,14 +398,18 @@ public class OptimizationOrganizer {
 	 * @param 	Engine name.
 	
 	 * @return 	Wrapper that processes SELECT statements. */
-	private SesameJenaSelectWrapper runQuery(String query, String engineName){
+	private ISelectWrapper runQuery(String query, String engineName){
 		
 		Object[] repo = new Object[]{engineName};
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repo[0]+"");
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
 		wrapper.executeQuery();
+		*/
 		
 		return wrapper;
 	}

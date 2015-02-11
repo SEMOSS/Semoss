@@ -42,6 +42,7 @@ import com.hp.hpl.jena.query.ResultSet;
  * This takes a select query and turns it over into a Construct Statement
  * it assumes the first one is subject, second one is predicate and third one is object
  */
+@Deprecated
 public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 	
 	public transient TupleQueryResult tqr = null;

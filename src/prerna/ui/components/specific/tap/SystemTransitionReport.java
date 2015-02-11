@@ -21,8 +21,9 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.AbstractRDFPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -51,14 +52,14 @@ public class SystemTransitionReport extends AbstractRDFPlaySheet{
 		this.query = systemAndReport[0];
 		String reportType = systemAndReport[1];
 
-		SesameJenaSelectWrapper sjsw = processQuery(hr_Core, systemAndReport[0]);
+		ISelectWrapper sjsw = processQuery(hr_Core, systemAndReport[0]);
 
 		String[] names = sjsw.getVariables();
 		ArrayList<String> systemList = new ArrayList<String>();
 		String systemListString = "";
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			BigdataURIImpl sysRawURI = (BigdataURIImpl)sjss.getRawVar(names[0]);
 			String sysURI = "<"+sysRawURI.stringValue()+">";
 			systemList.add(sysURI);
@@ -80,14 +81,17 @@ public class SystemTransitionReport extends AbstractRDFPlaySheet{
 		Utility.showMessage("System Transition Reports Finished! Files located in:\n" +fileLoc);
 	}
 
-	private SesameJenaSelectWrapper processQuery(IEngine engine, String query){
+	private ISelectWrapper processQuery(IEngine engine, String query){
 		logger.info("PROCESSING QUERY: " + query);
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 		//run the query against the engine provided
 		sjsw.setEngine(engine);
 		sjsw.setQuery(query);
 		sjsw.executeQuery();	
-		return sjsw;
+		return sjsw;*/
+		return wrapper;
 	}
 
 	@Override

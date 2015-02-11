@@ -21,12 +21,12 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 
-import com.bigdata.rdf.model.BigdataLiteral;
-import com.bigdata.rdf.model.BigdataURIImpl;
-
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
+import prerna.rdf.engine.api.ISelectStatement;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+
+import com.bigdata.rdf.model.BigdataLiteral;
+import com.bigdata.rdf.model.BigdataURIImpl;
 
 /**
  * The Play Sheet for the United States geo-location data heatmap.  
@@ -51,7 +51,7 @@ public class CountyHeatMapPlaySheet extends BrowserPlaySheet {
 	
 	 * @return Object - results with given URI.*/
 	@Override
-	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+	public Object getVariable(String varName, ISelectStatement sjss){
 		return sjss.getRawVar(varName);
 	}
 	

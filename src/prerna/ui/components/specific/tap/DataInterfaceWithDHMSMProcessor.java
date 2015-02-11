@@ -27,8 +27,10 @@ import org.apache.log4j.Logger;
 
 import prerna.poi.specific.BasicReportWriter;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -202,7 +204,10 @@ public class DataInterfaceWithDHMSMProcessor {
 	}
 	
 	public void runListQuery(IEngine engine, String query) {
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
 		try{
@@ -211,7 +216,7 @@ public class DataInterfaceWithDHMSMProcessor {
 		catch (RuntimeException e)
 		{
 			e.printStackTrace();
-		}
+		}*/
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
 		int count = 0;
@@ -219,7 +224,7 @@ public class DataInterfaceWithDHMSMProcessor {
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				String interfaceNeeded = "";
 				if(names.length>=7)
 					interfaceNeeded = ((String)getVariable(names[6], sjss)).replaceAll("\"","");
@@ -297,7 +302,7 @@ public class DataInterfaceWithDHMSMProcessor {
 	 * @param sjss SesameJenaSelectStatement - the associated sesame jena select statement.
 
 	 * @return Object - results.*/
-	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+	public Object getVariable(String varName, ISelectStatement sjss){
 		return sjss.getVar(varName);
 	}
 }

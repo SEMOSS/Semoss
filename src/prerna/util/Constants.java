@@ -439,4 +439,9 @@ public class Constants {
 	public static final String NEW_DB_COMBOBOX = "newDBComboBox";
 	public static final String OLD_DB_COMBOBOX = "oldDBComboBox";
 	public static final String DB_COMPARISON_BUTTON = "compareDBButton";
+	public static final String CONNECTION_URL = "CONNECTION_URL";
+	public static final String DRIVER = "DRIVER";
+	public static final String USERNAME = "USERNAME";
+	public static final String PASSWORD = "PASSWORD";
+	
 }

@@ -48,6 +48,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import prerna.error.EngineException;
 import prerna.error.FileReaderException;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.specific.tap.IndividualSystemTransitionReport;
@@ -287,10 +289,10 @@ public class TAPLegacySystemDispositionReportWriter {
 
 	private void generateSysBudgetData() {
 		if(sysBudgetHash.isEmpty()) {
-			SesameJenaSelectWrapper sjsw = Utility.processQuery(TAP_Portfolio, systemBudgetQuery);
+			ISelectWrapper sjsw = Utility.processQuery(TAP_Portfolio, systemBudgetQuery);
 			String[] varNames = sjsw.getVariables();
 			while(sjsw.hasNext()) {
-				SesameJenaSelectStatement sjss = sjsw.next();
+				ISelectStatement sjss = sjsw.next();
 				String sysName = sjss.getVar(varNames[0]).toString();
 				String year = sjss.getVar(varNames[1]).toString();
 				Object cost = sjss.getVar(varNames[2]).toString();
@@ -363,10 +365,10 @@ public class TAPLegacySystemDispositionReportWriter {
 
 	public void generateModernizationActivitiesData() {
 		if(sysSWHash.isEmpty()){
-			SesameJenaSelectWrapper sjsw = Utility.processQuery(HR_Core, sysSWCostQuery);
+			ISelectWrapper sjsw = Utility.processQuery(HR_Core, sysSWCostQuery);
 			String[] varNames = sjsw.getVariables();
 			while(sjsw.hasNext()){
-				SesameJenaSelectStatement sjss = sjsw.next();
+				ISelectStatement sjss = sjsw.next();
 				String sysName = sjss.getVar(varNames[0]).toString();
 				Double numProducts = (Double) sjss.getVar(varNames[1]);
 				Double cost = (Double) sjss.getVar(varNames[2]);
@@ -377,10 +379,10 @@ public class TAPLegacySystemDispositionReportWriter {
 			}
 		}
 		if(sysHWHash.isEmpty()){
-			SesameJenaSelectWrapper sjsw = Utility.processQuery(HR_Core, sysHWCostQuery);
+			ISelectWrapper sjsw = Utility.processQuery(HR_Core, sysHWCostQuery);
 			String[] varNames = sjsw.getVariables();
 			while(sjsw.hasNext()){
-				SesameJenaSelectStatement sjss = sjsw.next();
+				ISelectStatement sjss = sjsw.next();
 				String sysName = sjss.getVar(varNames[0]).toString();
 				Double numProducts = (Double) sjss.getVar(varNames[1]);
 				Double cost = (Double) sjss.getVar(varNames[2]);
@@ -391,10 +393,10 @@ public class TAPLegacySystemDispositionReportWriter {
 			}
 		}
 		if(sysInterfaceModHash.isEmpty()){
-			SesameJenaSelectWrapper sjsw = Utility.processQuery(HR_Core, sysInterfaceModCostQuery);
+			ISelectWrapper sjsw = Utility.processQuery(HR_Core, sysInterfaceModCostQuery);
 			String[] varNames = sjsw.getVariables();
 			while(sjsw.hasNext()){
-				SesameJenaSelectStatement sjss = sjsw.next();
+				ISelectStatement sjss = sjsw.next();
 				String sysName = sjss.getVar(varNames[0]).toString();
 				Double cost = (Double) sjss.getVar(varNames[1]);
 				sysInterfaceModHash.put(sysName, cost);
@@ -456,7 +458,7 @@ public class TAPLegacySystemDispositionReportWriter {
 
 	public void processBasisSysInfo() {
 		String query = basicSysInfoQuery.replace(bindingsKey, "<" + sysURI + ">");
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(HR_Core, query);
+		ISelectWrapper sjsw = Utility.processQuery(HR_Core, query);
 		String[] varNames = sjsw.getVariables();
 		// output binds to a single system - query should only return one line
 		// if query returns nothing, never executed
@@ -466,7 +468,7 @@ public class TAPLegacySystemDispositionReportWriter {
 		atoRenewalDate = "REQUIRES IMMEDIATE ACCREDITATION";
 		//String atoRenewal = "";
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			description = sjss.getVar(varNames[0]).toString();
 			sysOwner = sjss.getVar(varNames[1]).toString();
 			ato = sjss.getVar(varNames[2]).toString();

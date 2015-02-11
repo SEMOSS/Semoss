@@ -16,7 +16,6 @@
 package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
-import java.io.File;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,8 +34,11 @@ import org.apache.log4j.Logger;
 
 import prerna.poi.specific.ReportSheetWriter;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.SourceSelectPanel;
 import prerna.util.Constants;
@@ -120,15 +122,20 @@ public class SourceReportGenButtonListener implements IChakraListener {
 			
 			capHash.put("FillCapability", capabilityList);				
 			String nFillQuery = Utility.fillParam(queryArray.get(ind), capHash);
-			SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+			
+			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, nFillQuery);
+
+			
+			/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 			wrapper.setQuery(nFillQuery);
 			wrapper.setEngine(engine);
 			wrapper.executeQuery();
+			*/
 			
 			names = wrapper.getVariables();
 			try {
 				while(wrapper.hasNext()) {
-					SesameJenaSelectStatement sjss = wrapper.next();
+					ISelectStatement sjss = wrapper.next();
 					String [] values = new String[names.length];
 					for(int colIndex = 0;colIndex < names.length;colIndex++) {
 						if(sjss.getVar(names[colIndex]) != null) {
@@ -202,15 +209,20 @@ public class SourceReportGenButtonListener implements IChakraListener {
 
 		ArrayList<String> decomSystems = new ArrayList<String>();
 		String[] names=null;
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
 		wrapper.executeQuery();
+		*/
 		
 		names = wrapper.getVariables();
 		try {
 			while(wrapper.hasNext()) {
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				decomSystems.add((String)sjss.getVar(names[0]));
 			}
 		} 

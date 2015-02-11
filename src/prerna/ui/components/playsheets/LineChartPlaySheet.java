@@ -17,12 +17,11 @@ package prerna.ui.components.playsheets;
 
 import java.awt.Dimension;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Hashtable;
 
 import org.openrdf.model.Literal;
 
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
+import prerna.rdf.engine.api.ISelectStatement;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -61,7 +60,7 @@ public class LineChartPlaySheet extends BrowserPlaySheet{
 	}
 	
 	@Override
-	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+	public Object getVariable(String varName, ISelectStatement sjss){
 		Object var = sjss.getRawVar(varName);
 			if( var != null && var instanceof Literal) {
 				var = sjss.getVar(varName);

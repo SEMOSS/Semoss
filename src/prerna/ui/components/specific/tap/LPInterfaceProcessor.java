@@ -24,8 +24,9 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
@@ -245,27 +246,32 @@ public class LPInterfaceProcessor {
 		}
 		
 		//Process main query
-		SesameJenaSelectWrapper wrapper1 = new SesameJenaSelectWrapper();
+		ISelectWrapper wrapper1 = WrapperManager.getInstance().getSWrapper(engine, upstreamQuery);
+
+		/*SesameJenaSelectWrapper wrapper1 = new SesameJenaSelectWrapper();
 		LOGGER.info("Main Query upstream: " + upstreamQuery);
 		wrapper1.setQuery(upstreamQuery);
 		wrapper1.setEngine(engine);
-		wrapper1.executeQuery();
+		wrapper1.executeQuery();*/
 		// get the bindings from it
 		names = wrapper1.getVariables();
 		
-		SesameJenaSelectWrapper wrapper2 = new SesameJenaSelectWrapper();
+		ISelectWrapper wrapper2 = WrapperManager.getInstance().getSWrapper(engine, downstreamQuery);
+		
+		/*SesameJenaSelectWrapper wrapper2 = new SesameJenaSelectWrapper();
 		LOGGER.info("Main Query downstream: " + downstreamQuery);
 		wrapper2.setQuery(downstreamQuery);
 		wrapper2.setEngine(engine);
 		wrapper2.executeQuery();
 		wrapper2.getVariables();
+		*/
 
-		list = processBusinessRules(new SesameJenaSelectWrapper[]{wrapper1, wrapper2}, names, sysDataSOR, sysTypeHash);
+		list = processBusinessRules(new ISelectWrapper[]{wrapper1, wrapper2}, names, sysDataSOR, sysTypeHash);
 
 		return list;
 	}
 
-	private ArrayList<Object[]> processBusinessRules(SesameJenaSelectWrapper[] sjswArr, String[] names, Set<String> sorV, HashMap<String, String> sysTypeHash){
+	private ArrayList<Object[]> processBusinessRules(ISelectWrapper[] sjswArr, String[] names, Set<String> sorV, HashMap<String, String> sysTypeHash){
 		ArrayList<Object[]> retList = new ArrayList<Object[]>();
 		relList = new ArrayList<Object[]>();
 		relPropList = new ArrayList<Object[]>();
@@ -294,11 +300,11 @@ public class LPInterfaceProcessor {
 		HashSet<String> servicesConsumeList = new HashSet<String>();
 		int rowIdx = 0;
 		
-		for(SesameJenaSelectWrapper sjsw : sjswArr)
+		for(ISelectWrapper sjsw : sjswArr)
 		{
 			while(sjsw.hasNext())
 			{
-				SesameJenaSelectStatement sjss = sjsw.next();
+				ISelectStatement sjss = sjsw.next();
 				// get var's
 				String sysName = "";
 				String interfaceType = "";

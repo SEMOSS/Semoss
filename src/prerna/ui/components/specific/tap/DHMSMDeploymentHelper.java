@@ -23,10 +23,9 @@ import java.util.List;
 import java.util.Set;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.ui.components.BooleanProcessor;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public final class DHMSMDeploymentHelper {
@@ -74,10 +73,10 @@ public final class DHMSMDeploymentHelper {
 	public static HashMap<String, HashMap<String, Double>> getSiteLocation(IEngine engine) {
 		HashMap<String, HashMap<String, Double>> retHash = new HashMap<String, HashMap<String, Double>>();
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, GET_SITE_LOCATION_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, GET_SITE_LOCATION_QUERY);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String site = sjss.getVar(names[0]).toString();
 			Double lat = (double) sjss.getVar(names[1]);
 			Double lon = (double) sjss.getVar(names[2]);
@@ -94,7 +93,7 @@ public final class DHMSMDeploymentHelper {
 	public static Set<String> getHPSysList(IEngine engine) {
 		Set<String> sysList = new HashSet<String>();
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, GET_HP_SYSTEM_LIST);
+		ISelectWrapper sjsw = Utility.processQuery(engine, GET_HP_SYSTEM_LIST);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
 			sysList.add(sjsw.next().getVar(names[0]).toString());
@@ -111,10 +110,10 @@ public final class DHMSMDeploymentHelper {
 	public static HashMap<String, String> getFirstWaveForEachSystem(IEngine engine, ArrayList<String> waveOrder) {
 		HashMap<String, List<String>> inputHash = new HashMap<String, List<String>>();
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SYS_IN_WAVES_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, SYS_IN_WAVES_QUERY);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String sys = sjss.getVar(names[0]).toString();
 			String wave = sjss.getVar(names[1]).toString();
 			List<String> waveList;
@@ -139,10 +138,10 @@ public final class DHMSMDeploymentHelper {
 	public static HashMap<String, String> getLastWaveForEachSystem(IEngine engine, ArrayList<String> waveOrder) {
 		HashMap<String, List<String>> inputHash = new HashMap<String, List<String>>();
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SYS_IN_WAVES_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, SYS_IN_WAVES_QUERY);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String sys = sjss.getVar(names[0]).toString();
 			String wave = sjss.getVar(names[1]).toString();
 			List<String> waveList;
@@ -200,22 +199,22 @@ public final class DHMSMDeploymentHelper {
 	}
 	
 	public static HashMap<String, HashMap<String, Double>> getSysFloaterCost(IEngine engine) {
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SYS_FLOATER_COST_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, SYS_FLOATER_COST_QUERY);
 		
 		return processCosts(sjsw);
 	}
 	
 	public static HashMap<String, HashMap<String, Double>> getSysSiteSupportCost(IEngine engine) {
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SYS_SITE_SUPPORT_COST_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, SYS_SITE_SUPPORT_COST_QUERY);
 
 		return processCosts(sjsw);
 	}
 	
-	private static HashMap<String, HashMap<String, Double>> processCosts(SesameJenaSelectWrapper sjsw) {
+	private static HashMap<String, HashMap<String, Double>> processCosts(ISelectWrapper sjsw) {
 		HashMap<String, HashMap<String, Double>> retHash = new HashMap<String, HashMap<String, Double>>();
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String system = sjss.getVar(names[0]).toString();
 			String floater = sjss.getVar(names[1]).toString();
 			Double cost = (Double) sjss.getVar(names[2]);
@@ -238,10 +237,10 @@ public final class DHMSMDeploymentHelper {
 	public static HashMap<String, List<String>> getFloatersAndWaves(IEngine engine) {
 		HashMap<String, List<String>> retHash = new HashMap<String, List<String>>();
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, FLOATER_SUPPORTS_WAVE_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, FLOATER_SUPPORTS_WAVE_QUERY);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String floater = sjss.getVar(names[0]).toString();
 			String wave = sjss.getVar(names[1]).toString();
 			List<String> waveList;
@@ -309,10 +308,10 @@ public final class DHMSMDeploymentHelper {
 	public static HashMap<String, String[]> getWaveStartAndEndDate(IEngine engine) {
 		HashMap<String, String[]> retHash = new HashMap<String, String[]>();
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, WAVE_START_END_DATE);
+		ISelectWrapper sjsw = Utility.processQuery(engine, WAVE_START_END_DATE);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String site = sjss.getVar(names[0]).toString();
 			String[] dateArr = new String[2];
 			dateArr[0] = sjss.getVar(names[1]).toString();
@@ -326,10 +325,10 @@ public final class DHMSMDeploymentHelper {
 	public static HashMap<String, Double> getSiteAndMultipleWaveCount(IEngine engine) {
 		HashMap<String, Double> retHash = new HashMap<String, Double>();
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SITE_IN_MULTIPLE_WAVES_COUNT_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, SITE_IN_MULTIPLE_WAVES_COUNT_QUERY);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String site = sjss.getVar(names[0]).toString();
 			Double count = (Double) sjss.getVar(names[1]);
 			retHash.put(site, count);
@@ -341,10 +340,10 @@ public final class DHMSMDeploymentHelper {
 	public static HashMap<String, List<String>> getSitesAndMultipleWaves(IEngine engine) {
 		HashMap<String, List<String>> retHash = new HashMap<String, List<String>>();
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SITE_IN_MULTIPLE_WAVES_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, SITE_IN_MULTIPLE_WAVES_QUERY);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String site = sjss.getVar(names[0]).toString();
 			String wave = sjss.getVar(names[1]).toString();
 			List<String> waveList;
@@ -364,10 +363,10 @@ public final class DHMSMDeploymentHelper {
 	public static HashMap<String, List<String>> getSitesAndWaves(IEngine engine) {
 		HashMap<String, List<String>> retHash = new HashMap<String, List<String>>();
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SITE_IN_WAVES_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, SITE_IN_WAVES_QUERY);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String site = sjss.getVar(names[0]).toString();
 			String wave = sjss.getVar(names[1]).toString();
 			List<String> waveList;
@@ -400,7 +399,7 @@ public final class DHMSMDeploymentHelper {
 			if(proc.processQuery());
 				regionOrder.add("IOC");
 		}
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, FIRST_REGION_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, FIRST_REGION_QUERY);
 		String[] names = sjsw.getVariables();
 		String firstRegion = sjsw.next().getVar(names[0]).toString();
 		
@@ -409,7 +408,7 @@ public final class DHMSMDeploymentHelper {
 		HashMap<String, String> regionHash = new HashMap<String, String>();
 		int counter = 0;
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String region1 = sjss.getVar(names[0]).toString();
 			String region2 = sjss.getVar(names[1]).toString();
 			regionHash.put(region1, region2);
@@ -426,7 +425,7 @@ public final class DHMSMDeploymentHelper {
 	}
 	
 	public static ArrayList<String> getWaveOrder(IEngine engine) {
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, FIRST_WAVE_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, FIRST_WAVE_QUERY);
 		String[] names = sjsw.getVariables();
 		String firstWave = sjsw.next().getVar(names[0]).toString();
 	
@@ -436,7 +435,7 @@ public final class DHMSMDeploymentHelper {
 		HashMap<String, String> regionHash = new HashMap<String, String>();
 		int counter = 0;
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String region1 = sjss.getVar(names[0]).toString();
 			String region2 = sjss.getVar(names[1]).toString();
 			regionHash.put(region1, region2);
@@ -455,14 +454,14 @@ public final class DHMSMDeploymentHelper {
 	
 	public static Hashtable<String, List<String>> getWavesInRegion(IEngine engine) {
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine,WAVES_IN_REGION_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine,WAVES_IN_REGION_QUERY);
 		String[] names = sjsw.getVariables();
 
 		Hashtable<String, List<String>> regionWaveHash = new Hashtable<String, List<String>>();
 		
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String region = sjss.getVar(names[0]).toString();
 			String wave = sjss.getVar(names[1]).toString();
 
@@ -482,10 +481,10 @@ public final class DHMSMDeploymentHelper {
 //	public static HashMap<String, String> getRegionStartDate(IEngine engine) {
 //		HashMap<String, String> retHash = new HashMap<String, String>();
 //		
-//		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, REGION_START_DATE);
+//		ISelectWrapper sjsw = Utility.processQuery(engine, REGION_START_DATE);
 //		String[] names = sjsw.getVariables();
 //		while(sjsw.hasNext()) {
-//			SesameJenaSelectStatement sjss = sjsw.next();
+//			ISelectStatement sjss = sjsw.next();
 //			String regionName = sjss.getVar(names[0]).toString();
 //			String regionStartDate = sjss.getVar(names[1]).toString();
 //			retHash.put(regionName, regionStartDate);
@@ -497,10 +496,10 @@ public final class DHMSMDeploymentHelper {
 	public static HashMap<String, Integer> getNumSitesSysDeployedAt(IEngine engine) {
 		HashMap<String, Integer> retHash = new HashMap<String, Integer>();
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SYS_COUNT_AT_SITES);
+		ISelectWrapper sjsw = Utility.processQuery(engine, SYS_COUNT_AT_SITES);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String sysName = sjss.getVar(names[0]).toString();
 			Integer siteCount = ((Double) sjss.getVar(names[1])).intValue();
 			retHash.put(sysName, siteCount);
@@ -512,10 +511,10 @@ public final class DHMSMDeploymentHelper {
 	public static HashMap<String, Double[]> getSysSustainmentBudget(IEngine engine) {
 		HashMap<String, Double[]> retHash = new HashMap<String, Double[]>();
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SYS_SUSTIANMENT_BUDGET_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, SYS_SUSTIANMENT_BUDGET_QUERY);
 		String[] names1 = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String sysName = sjss.getVar(names1[0]).toString();
 			Double sustCost;
 			if(sjss.getVar(names1[1]).toString().equals("")){
@@ -550,10 +549,10 @@ public final class DHMSMDeploymentHelper {
 	
 	public static HashMap<String, ArrayList<String>> getSysAtSitesInDeploymentPlan(IEngine engine) {
 		HashMap<String, ArrayList<String>> retHash = new HashMap<String, ArrayList<String>>();
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, SYS_AT_SITE_IN_DEPLOYMENT_PLAN_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, SYS_AT_SITE_IN_DEPLOYMENT_PLAN_QUERY);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String site = sjss.getVar(names[0]).toString();
 			String sys = sjss.getVar(names[1]).toString();
 			ArrayList<String> sysList;
@@ -571,10 +570,10 @@ public final class DHMSMDeploymentHelper {
 	
 	public static Set<String> getCentrallyDeployedSystems(IEngine engine) {
 		Set<String> retSet = new HashSet<String>();
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, CENTRALLY_DEPLOYED_SYS_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(engine, CENTRALLY_DEPLOYED_SYS_QUERY);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String sys = sjss.getVar(names[0]).toString();
 			retSet.add(sys);
 		}

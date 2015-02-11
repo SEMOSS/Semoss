@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Set;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -51,7 +51,7 @@ public class ComparisonHeatMap extends BrowserPlaySheet {
 		Hashtable<String, Object> simValuesHash = new Hashtable<String, Object>();
 		for(;i < length; i++) {
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(databaseArr[i]);
-			SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, queryArr[i]);
+			ISelectWrapper sjsw = Utility.processQuery(engine, queryArr[i]);
 			Hashtable<String, List<String>> queryData = runQuery(sjsw);
 			simValuesHash = runComparison(queryData, simValuesHash);
 		}
@@ -68,12 +68,12 @@ public class ComparisonHeatMap extends BrowserPlaySheet {
 		dataHash = allHash;
 	}
 	
-	public Hashtable<String, List<String>> runQuery(SesameJenaSelectWrapper sjsw) {
+	public Hashtable<String, List<String>> runQuery(ISelectWrapper sjsw) {
 		String[] names = sjsw.getVariables();
 		
 		Hashtable<String, List<String>> dataHash = new Hashtable<String, List<String>>();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String instance = sjss.getVar(names[0]).toString();
 			String value = sjss.getVar(names[1]).toString();
 			

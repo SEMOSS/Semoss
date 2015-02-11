@@ -22,8 +22,10 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.DIHelper;
 
 public class SystemTransitionOrganizer {
@@ -215,9 +217,10 @@ public class SystemTransitionOrganizer {
 	public ArrayList <Object []> createData(String engineName, String query) {
 		
 		ArrayList <Object []> list = new ArrayList<Object[]>();
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+
+		//SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-		wrapper.setQuery(query);
+		/*wrapper.setQuery(query);
 		wrapper.setEngine(engine);
 		wrapper.setEngineType(IEngine.ENGINE_TYPE.SESAME);
 		try{
@@ -226,7 +229,8 @@ public class SystemTransitionOrganizer {
 		catch (RuntimeException e)
 		{
 			e.printStackTrace();
-		}		
+		}*/		
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
@@ -235,7 +239,7 @@ public class SystemTransitionOrganizer {
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 
 				Object [] values = new Object[names.length];
 				for(int colIndex = 0;colIndex < names.length;colIndex++)
@@ -254,7 +258,7 @@ public class SystemTransitionOrganizer {
 		return list;
 	}
 	
-	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+	public Object getVariable(String varName, ISelectStatement sjss){
 		return sjss.getVar(varName);
 	}
 	

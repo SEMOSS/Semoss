@@ -30,6 +30,8 @@ import prerna.algorithm.impl.CentralityCalculator;
 import prerna.algorithm.impl.SubclassingMapGenerator;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.RDFFileSesameEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
@@ -170,12 +172,12 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 	}
 	
 	private Hashtable<String, Hashtable<String, Object>> addToAllData(IEngine engine, String query, String key, Hashtable<String, Hashtable<String, Object>> allData) {
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
+		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] names = sjsw.getVariables();
 		String param1 = names[0];
 		String param2 = names[1];
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String concept = sjss.getRawVar(param1).toString();
 			if(!concept.equals("http://semoss.org/ontologies/Concept")) {
 				if(allData.containsKey(concept)) {
@@ -228,7 +230,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		RDFFileSesameEngine insightEngine = ((AbstractEngine)engine).getInsightBaseXML();
 		String query = getInsightsWithoutParamsQuery.replace("@ENGINE_NAME@", "http://semoss.org/ontologies/Concept/Engine/".concat(engineName));
 				
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(insightEngine, query);
+		ISelectWrapper sjsw = Utility.processQuery(insightEngine, query);
 		String[] names = sjsw.getVariables();
 		String param1 = names[0];
 		String param2 = names[1];
@@ -236,7 +238,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		
 		String removeToGetPerspective = engineName.concat(":");
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			Hashtable<String, String> questionHash = new Hashtable<String, String>();
 			questionHash.put("database", engineName);
 			questionHash.put("keyword", ""); // no keyword since this is returning questions without parameters
@@ -259,7 +261,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		String query = getInsightsWithParamsQuery.replace("@ENGINE_NAME@", "http://semoss.org/ontologies/Concept/Engine/".concat(engineName));
 		query = query.replace("@ENTITY_TYPE@", typeURI);
 				
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(insightEngine, query);
+		ISelectWrapper sjsw = Utility.processQuery(insightEngine, query);
 		String[] names = sjsw.getVariables();
 		String param1 = names[0];
 		String param2 = names[1];
@@ -267,7 +269,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 
 		String removeToGetPerspective = engineName.concat(":");
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			Hashtable<String, String> questionHash = new Hashtable<String, String>();
 			questionHash.put("database", engineName);
 			questionHash.put("keyword", typeURI);
@@ -295,13 +297,13 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 	private List<Hashtable<String, String>> mostConnectedInstancesProcessing(IEngine engine, String query) {
 		List<Hashtable<String, String>> retList = new ArrayList<Hashtable<String, String>>();
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
+		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] names = sjsw.getVariables();
 		String param1 = names[0];
 		String param2 = names[1];
 		String param3 = names[2];
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			Hashtable<String, String> instancesHash = new Hashtable<String, String>();
 			instancesHash.put("NodeTypeURI", sjss.getRawVar(param1).toString());
 			instancesHash.put("NodeTypeName", sjss.getVar(param1).toString());
@@ -322,14 +324,14 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		String type = Utility.getInstanceName(typeURI);
 		
 		boolean hasProperties = false;
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, propListQuery.replace("@TYPE_URI@", typeURI));
+		ISelectWrapper sjsw = Utility.processQuery(engine, propListQuery.replace("@TYPE_URI@", typeURI));
 		String[] names = sjsw.getVariables();
 		String retVar = names[0];
 		String propVars = "";
 		String propTriples = "";
 		while(sjsw.hasNext()) {
 			hasProperties = true;
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String varName = sjss.getVar(retVar).toString().replaceAll("-", "_");
 			String varURI = sjss.getRawVar(retVar).toString();
 			
@@ -353,7 +355,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		int length = names.length;
 		while(sjsw.hasNext()) {
 			Object[] row = new Object[length];
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			int i = 0;
 			for(i = 0; i < length; i++) {
 				if(i == 0) {
@@ -439,14 +441,14 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		
 		List<Hashtable<String, Object>> retList = new ArrayList<Hashtable<String, Object>>();
 
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
+		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] names = sjsw.getVariables();
 		String param1 = names[0];
 		String param2 = names[1];
 		String param3 = names[2];
 		String param4 = names[3];
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 			innerHash.put("typeURI", sjss.getRawVar(param1));
 			innerHash.put("typeName", sjss.getVar(param1));
@@ -467,12 +469,12 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 
 		String query = getPropertiesForInstance.replace("@INSTANCE_URI@", instanceURI);
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
+		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] names = sjsw.getVariables();
 		String param1 = names[0];
 		String param2 = names[1];
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			Hashtable<String, String> propHash = new Hashtable<String, String>();
 			propHash.put("Property", sjss.getVar(param1).toString());
 			propHash.put("Value", sjss.getVar(param2).toString());

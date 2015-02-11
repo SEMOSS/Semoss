@@ -26,8 +26,11 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.IAlgorithm;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.api.IPlaySheet;
@@ -76,15 +79,18 @@ public class CapabilityBVCalculationPerformer implements IAlgorithm,Runnable{
 			//finds any capability that is not in the current result list and adds a bv of 0 to it.		
 			String query = "SELECT DISTINCT ?Capability WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> ;}}";
 			
-			SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+			
+			/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 			wrapper.setQuery(query);
 			wrapper.setEngine(engine);
 			wrapper.executeQuery();
+			*/
 			String[] names = wrapper.getVariables();
 
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss= wrapper.next();
+				ISelectStatement sjss= wrapper.next();
 				String capability = (String)sjss.getVar(names[0]);
 				if(!capList.contains(capability))
 				{
@@ -111,15 +117,18 @@ public class CapabilityBVCalculationPerformer implements IAlgorithm,Runnable{
 			//finds any business process that is not in the current result list and adds a bv of 0 to it.		
 			query = "SELECT DISTINCT ?BusinessProcess WHERE {{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;}}";			
 	
-			wrapper = new SesameJenaSelectWrapper();
+			
+			wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+			/*wrapper = new SesameJenaSelectWrapper();
 			wrapper.setQuery(query);
 			wrapper.setEngine(engine);
-			wrapper.executeQuery();
+			wrapper.executeQuery();*/
 			names = wrapper.getVariables();
 
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss= wrapper.next();
+				ISelectStatement sjss= wrapper.next();
 				String bp = (String)sjss.getVar(names[0]);
 				if(!bpList.contains(bp))
 				{

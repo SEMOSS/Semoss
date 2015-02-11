@@ -20,7 +20,6 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.beans.PropertyVetoException;
 
-import javax.swing.JButton;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
@@ -31,20 +30,13 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
 
-import com.bigdata.rdf.model.BigdataURIImpl;
-
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
+import prerna.rdf.engine.api.ISelectStatement;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridRAWTableModel;
 import prerna.ui.components.GridTableModel;
-import prerna.ui.components.GridTableRowSorter;
 import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.main.listener.impl.GridPlaySheetListener;
 import prerna.ui.main.listener.impl.JTableExcelExportListener;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
-import prerna.util.QuestionPlaySheetStore;
-import prerna.util.Utility;
 
 /**
  * The GridPlaySheet class creates the panel and table for a grid view of data from a SPARQL query.
@@ -126,7 +118,7 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 	}
 	
 	@Override
-	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+	public Object getVariable(String varName, ISelectStatement sjss){
 		Object var = sjss.getRawVar(varName);
 			if( var != null && var instanceof Literal) {
 				var = sjss.getVar(varName);

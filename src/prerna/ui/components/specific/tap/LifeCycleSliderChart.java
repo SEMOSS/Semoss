@@ -34,9 +34,11 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.ui.components.playsheets.BrowserPlaySheet;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
 import prerna.ui.main.listener.impl.PlaySheetListener;
@@ -141,7 +143,10 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 	@Override
 	public void createView() {
 		addPanel();
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+		
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		if(engine!= null && rs == null){
 			wrapper.setQuery(query);
 			updateProgressBar("10%...Querying RDF Repository", 10);
@@ -154,6 +159,7 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 			wrapper.setResultSet(rs);
 			wrapper.setEngineType(IEngine.ENGINE_TYPE.JENA);
 		}
+		*/
 		
 		// get the bindings from it
 		String [] colNames = wrapper.getVariables();
@@ -163,7 +169,7 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				
 				String[] values = new String[colNames.length-1];
 				String key = sjss.getVar(colNames[0]).toString();
@@ -227,7 +233,7 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 	}
 	
 	@Override
-	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+	public Object getVariable(String varName, ISelectStatement sjss){
 		return sjss.getVar(varName);
 	}
 	

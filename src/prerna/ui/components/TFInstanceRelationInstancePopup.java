@@ -29,8 +29,9 @@ import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.main.listener.impl.NeighborMenuListener;
 import prerna.util.Constants;
@@ -113,18 +114,20 @@ public class TFInstanceRelationInstancePopup extends JMenu implements MouseListe
 			logger.debug("Found the engine for repository   " + repo);
 
 			// run the query
-			SesameJenaSelectWrapper sjw = new SesameJenaSelectWrapper();
+			ISelectWrapper sjw = WrapperManager.getInstance().getSWrapper(engine, filledQuery);
+
+			/*SesameJenaSelectWrapper sjw = new SesameJenaSelectWrapper();
 			sjw.setEngine(engine);
 			sjw.setEngineType(engine.getEngineType());
 			sjw.setQuery(filledQuery);
 			sjw.executeQuery();
-
+			*/
 			logger.debug("Executed Query");
 
 			String [] vars = sjw.getVariables();
 			while(sjw.hasNext())
 			{
-				SesameJenaSelectStatement stmt = sjw.next();
+				ISelectStatement stmt = sjw.next();
 				// only one variable
 				String objURI = stmt.getRawVar(vars[0])+"";
 				String typeName = Utility.getConceptType(engine, objURI);

@@ -18,13 +18,16 @@ package prerna.rdf.engine.impl;
 /**
  * A way of storing each triple in RDF for CONSTRUCT based SPARQL queries.
  */
-public class SesameJenaConstructStatement {
+@Deprecated
+public class SesameJenaConstructStatement{
 	
 	String subject = null;
 	String predicate = null;
 	Object object = null;
 	
 	String serialRep = null;
+	
+	
 	
 	public String getSerialRep() {
 		return serialRep;

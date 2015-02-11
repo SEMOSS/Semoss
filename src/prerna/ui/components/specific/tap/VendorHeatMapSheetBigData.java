@@ -23,9 +23,10 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.ui.components.playsheets.BrowserPlaySheet;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.HeatMapPlaySheet;
 import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
@@ -57,8 +58,8 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 	public void createData() {
 	//	addPanel();
 		String rfi = "";
-		wrapper = new SesameJenaSelectWrapper();
-		if(engine!= null && rs == null){
+		wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+		/*if(engine!= null && rs == null){
 			wrapper.setQuery(query);
 			wrapper.setEngine(engine);
 			wrapper.executeQuery();
@@ -66,11 +67,11 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 		else if (engine==null && rs!=null){
 			wrapper.setResultSet(rs);
 			wrapper.setEngineType(IEngine.ENGINE_TYPE.JENA);
-		}
+		}*/
 		names = wrapper.getVariables();
 		while(wrapper.hasNext())
 		{
-			SesameJenaSelectStatement sjss = wrapper.next();
+			ISelectStatement sjss = wrapper.next();
 			rfi = (String) sjss.getVar(names[0]);
 		}
 		updateProgressBar("0%...Generating Queries", 0);
@@ -104,7 +105,8 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 		for(int i=0;i<queryArray.size();i++)
 		{
 			updateProgressBar((i+1)+"0%...Processing Queries", (i+1)*10);
-			wrapper = new SesameJenaSelectWrapper();
+			wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+			/*
 			if(engine!= null && rs == null){
 				wrapper.setQuery(queryArray.get(i));
 				wrapper.setEngine(engine);
@@ -113,7 +115,7 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 			else if (engine==null && rs!=null){
 				wrapper.setResultSet(rs);
 				wrapper.setEngineType(IEngine.ENGINE_TYPE.JENA);
-			}
+			}*/
 			
 			// get the bindings from it
 			names = wrapper.getVariables();
@@ -122,7 +124,7 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 			try {
 				while(wrapper.hasNext())
 				{
-					SesameJenaSelectStatement sjss = wrapper.next();
+					ISelectStatement sjss = wrapper.next();
 					String vendor = (String)sjss.getVar(names[0]);
 					String capability = (String)sjss.getVar(names[1]);
 					String requirement = ((String)sjss.getVar(names[2]));

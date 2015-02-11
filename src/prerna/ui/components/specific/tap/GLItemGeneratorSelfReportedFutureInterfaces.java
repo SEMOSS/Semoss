@@ -28,9 +28,9 @@ import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.BigDataEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.Utility;
 
 /**
@@ -315,10 +315,10 @@ public class GLItemGeneratorSelfReportedFutureInterfaces extends AggregationHelp
 		((BigDataEngine) futureCostDB).commit();
 		((BigDataEngine) futureCostDB).infer();
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(futureCostDB, insertLOEQuery);
+		ISelectWrapper sjsw = Utility.processQuery(futureCostDB, insertLOEQuery);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String sub = sjss.getRawVar(names[0]).toString();
 			String pred = sjss.getRawVar(names[1]).toString();
 			Double obj = (Double) sjss.getVar(names[2]);

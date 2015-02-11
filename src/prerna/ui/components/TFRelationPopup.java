@@ -29,8 +29,9 @@ import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.main.listener.impl.NeighborMenuListener;
@@ -158,19 +159,23 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 			String filledQuery = Utility.fillParam(query2, hash);
 			logger.debug("Found the engine for repository   " + repo);
 
+			
+			ISelectWrapper sjw = WrapperManager.getInstance().getSWrapper(engine, filledQuery);
+
 			// run the query
-			SesameJenaSelectWrapper sjw = new SesameJenaSelectWrapper();
+			/*SesameJenaSelectWrapper sjw = new SesameJenaSelectWrapper();
 			sjw.setEngine(engine);
 			sjw.setEngineType(engine.getEngineType());
 			sjw.setQuery(filledQuery);
 			sjw.executeQuery();
-
+			*/
+			
 			logger.debug("Executed Query");
 
 			String [] vars = sjw.getVariables();
 			while(sjw.hasNext())
 			{
-				SesameJenaSelectStatement stmt = sjw.next();
+				ISelectStatement stmt = sjw.next();
 				// only one variable
 				String objClassName = stmt.getRawVar(vars[0])+"";
 				String pred = "";

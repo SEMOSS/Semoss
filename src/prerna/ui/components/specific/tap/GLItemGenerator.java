@@ -23,8 +23,11 @@ import javax.swing.JList;
 
 import prerna.poi.main.POIWriter;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -1264,10 +1267,12 @@ public class GLItemGenerator {
 		// get the selected repository
 		Object[] repo = (Object[])repoList.getSelectedValues();
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repo[0]+"");
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
-		wrapper.executeQuery();
+		wrapper.executeQuery();*/
 		// get the bindings from it
 
 		int count = 0;
@@ -1276,7 +1281,7 @@ public class GLItemGenerator {
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				
 				String [] values = new String[names.length];
 				boolean filledData = true;
@@ -1314,10 +1319,13 @@ public class GLItemGenerator {
 		// get the selected repository
 		Object[] repo = (Object[])repoList.getSelectedValues();
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
-		wrapper.executeQuery();
+		wrapper.executeQuery();*/
 		// get the bindings from it
 
 		int count = 0;
@@ -1326,7 +1334,7 @@ public class GLItemGenerator {
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				
 				String [] values = new String[names.length];
 				boolean filledData = true;

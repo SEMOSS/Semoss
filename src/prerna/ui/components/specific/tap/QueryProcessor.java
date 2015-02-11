@@ -5,8 +5,8 @@ import java.util.HashMap;
 import java.util.TreeSet;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -16,10 +16,10 @@ public class QueryProcessor {
 		try {
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 			
-			SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
+			ISelectWrapper sjsw = Utility.processQuery(engine, query);
 			String[] values = sjsw.getVariables();
 			while (sjsw.hasNext()) {
-				SesameJenaSelectStatement sjss = sjsw.next();
+				ISelectStatement sjss = sjsw.next();
 				finalList.add(sjss.getVar(values[0]).toString());
 			}
 		} catch (RuntimeException e) {
@@ -33,10 +33,10 @@ public class QueryProcessor {
 		HashMap<String, ArrayList<String>> finalMap = new HashMap<String, ArrayList<String>>();
 		try {
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-			SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
+			ISelectWrapper sjsw = Utility.processQuery(engine, query);
 			String[] values = sjsw.getVariables();
 			while (sjsw.hasNext()) {
-				SesameJenaSelectStatement sjss = sjsw.next();
+				ISelectStatement sjss = sjsw.next();
 				ArrayList<String> temp;
 				
 				String key = sjss.getVar(values[0]).toString();
@@ -56,10 +56,10 @@ public class QueryProcessor {
 		HashMap<String, TreeSet<String>> finalMap = new HashMap<String, TreeSet<String>>();
 		try {
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-			SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
+			ISelectWrapper sjsw = Utility.processQuery(engine, query);
 			String[] values = sjsw.getVariables();
 			while (sjsw.hasNext()) {
-				SesameJenaSelectStatement sjss = sjsw.next();
+				ISelectStatement sjss = sjsw.next();
 				TreeSet<String> temp;
 				
 				String key = sjss.getVar(values[0]).toString();
@@ -79,10 +79,10 @@ public class QueryProcessor {
 		HashMap<String, String> finalMap = new HashMap<String, String>();
 		try {
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-			SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
+			ISelectWrapper sjsw = Utility.processQuery(engine, query);
 			String[] values = sjsw.getVariables();
 			while (sjsw.hasNext()) {
-				SesameJenaSelectStatement sjss = sjsw.next();
+				ISelectStatement sjss = sjsw.next();
 				String key = sjss.getVar(values[0]).toString();
 				String value = sjss.getVar(values[1]).toString();
 				finalMap.put(key, value);
@@ -97,10 +97,10 @@ public class QueryProcessor {
 		HashMap<String, ArrayList<String[]>> finalMap = new HashMap<String, ArrayList<String[]>>();
 		try {
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-			SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
+			ISelectWrapper sjsw = Utility.processQuery(engine, query);
 			String[] values = sjsw.getVariables();
 			while (sjsw.hasNext()) {
-				SesameJenaSelectStatement sjss = sjsw.next();
+				ISelectStatement sjss = sjsw.next();
 				
 				String key = sjss.getVar(values[0]).toString();
 				if (!finalMap.containsKey(key)) {
@@ -119,10 +119,10 @@ public class QueryProcessor {
 		HashMap<String, HashMap<String, Double>> finalMap = new HashMap<String, HashMap<String, Double>>();
 		try {
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-			SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
+			ISelectWrapper sjsw = Utility.processQuery(engine, query);
 			String[] values = sjsw.getVariables();
 			while (sjsw.hasNext()) {
-				SesameJenaSelectStatement sjss = sjsw.next();
+				ISelectStatement sjss = sjsw.next();
 				
 				String oneKey = sjss.getVar(values[0]).toString();
 				String twoKey = sjss.getVar(values[1]).toString();
@@ -141,10 +141,10 @@ public class QueryProcessor {
 		HashMap<String, ArrayList<String[]>> finalMap = new HashMap<String, ArrayList<String[]>>();
 		try {
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-			SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
+			ISelectWrapper sjsw = Utility.processQuery(engine, query);
 			String[] values = sjsw.getVariables();
 			while (sjsw.hasNext()) {
-				SesameJenaSelectStatement sjss = sjsw.next();
+				ISelectStatement sjss = sjsw.next();
 				
 				String key = sjss.getVar(values[0]).toString();
 				String valueOne = sjss.getVar(values[1]).toString();

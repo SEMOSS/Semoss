@@ -24,8 +24,9 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.UpdateProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -38,7 +39,7 @@ public class ServiceICDProcessor {
 	
 		static final Logger logger = LogManager.getLogger(ServiceICDProcessor.class.getName());
 		public Hashtable finalHash = new Hashtable();
-		SesameJenaSelectWrapper sjw = new SesameJenaSelectWrapper();
+		ISelectWrapper sjw = null; //new SesameJenaSelectWrapper();
 		public String namesKey = "serviceNames";
 		public String valuesKey = "icdCountValues";
 
@@ -58,7 +59,7 @@ public class ServiceICDProcessor {
 			try {
 				while(sjw.hasNext())
 				{
-					SesameJenaSelectStatement sjss = sjw.next();
+					ISelectStatement sjss = sjw.next();
 					serNames.add(count, (String) sjss.getVar(names[0]));
 					serValues.add(count, (Double) sjss.getVar(names[1]));
 					count++;
@@ -87,7 +88,7 @@ public class ServiceICDProcessor {
 		 */
 		private void runQuery(){
 			String query = "SELECT ?ser (COUNT(?icd) AS ?ICDcount) WHERE { {?ser ?exposes ?data } {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>;} BIND(<http://semoss.org/ontologies/Relation/Exposes> AS ?exposes) {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>;} BIND(<http://semoss.org/ontologies/Relation/Payload> AS ?payload) {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?icd ?payload ?data}} GROUP BY ?ser";
-			sjw.setQuery(query);
+			//sjw.setQuery(query);
 			JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 			// get the selected repository
 			Object [] repos = (Object [])list.getSelectedValues();
@@ -98,8 +99,11 @@ public class ServiceICDProcessor {
 			{
 				IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
 				// use the layout to load the sheet later
-				sjw.setEngine(engine);
-				sjw.executeQuery();
+				//sjw.setEngine(engine);
+				//sjw.executeQuery();
+				
+				sjw = WrapperManager.getInstance().getSWrapper(engine, query);
+
 			}
 		}
 		

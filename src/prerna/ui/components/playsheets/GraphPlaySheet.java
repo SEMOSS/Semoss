@@ -60,11 +60,12 @@ import org.openrdf.sail.SailException;
 import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
+import prerna.rdf.engine.api.IConstructStatement;
+import prerna.rdf.engine.api.IConstructWrapper;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.InMemorySesameEngine;
-import prerna.rdf.engine.impl.SesameJenaConstructStatement;
-import prerna.rdf.engine.impl.SesameJenaConstructWrapper;
-import prerna.rdf.engine.impl.SesameJenaSelectCheater;
+import prerna.rdf.engine.wrappers.ConstructStatement;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.ControlData;
 import prerna.ui.components.ControlPanel;
 import prerna.ui.components.LegendPanel2;
@@ -867,15 +868,18 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
         	  logger.debug("Query not set for current GraphPlaySheet");
         	  return;
           }
-          SesameJenaConstructWrapper sjsc;
           
-          if(query.toUpperCase().contains("CONSTRUCT"))
-                sjsc = new SesameJenaConstructWrapper();
+          //SesameJenaConstructWrapper sjsc;
+          IConstructWrapper sjsc = null;
+          
+          /*if(query.toUpperCase().contains("CONSTRUCT"))
+                sjsc = 	WrapperManager.getInstance().getCWrapper(jenaEngine, propertyQuery);
           else
                 sjsc = new SesameJenaSelectCheater();
-
+			*/
+          
           // = new SesameJenaSelectCheater();
-          sjsc.setEngine(jenaEngine);
+          //sjsc.setEngine(jenaEngine);
           logger.warn("<<<<");
           String end = "";
           
@@ -889,22 +893,24 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		                      end = query2;
 		                      logger.debug("Query is " + query2);
 		                      if(query2.toUpperCase().contains("CONSTRUCT"))
-		                            sjsc = new SesameJenaConstructWrapper();
+		                            sjsc = WrapperManager.getInstance().getCWrapper(jenaEngine, query2);
 		                      else
-		                            sjsc = new SesameJenaSelectCheater();
+		                            sjsc = 	WrapperManager.getInstance().getChWrapper(jenaEngine, query2);
+
 		
 		                      // = new SesameJenaSelectCheater();
+		                      /*
 		                      sjsc.setEngine(jenaEngine);
 		                      sjsc.setQuery(query);//conceptHierarchyForSubject);
 		                      sjsc.setQuery(query2);
-		                      sjsc.execute();
+		                      sjsc.execute();*/
 		                      while(sjsc.hasNext())
 		                      {
 		                            // read the subject predicate object
 		                            // add it to the in memory jena model
 		                            // get the properties
 		                            // add it to the in memory jena model
-		                            SesameJenaConstructStatement st = sjsc.next();
+		                            IConstructStatement st = sjsc.next();
 		                            logger.warn(st.getSubject() + "<<>>" + st.getPredicate() + "<<>>" + st.getObject());
 		                            //addToJenaModel(st);
 		                      }
@@ -1205,7 +1211,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 			else
 			listOfChilds = listOfChilds + ";" + child;
 			
-			SesameJenaConstructStatement st = new SesameJenaConstructStatement();
+			ConstructStatement st = new ConstructStatement();
 			st.setSubject(child);
 			st.setPredicate(predicate);
 			st.setObject(baseObject);

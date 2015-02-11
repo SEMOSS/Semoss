@@ -33,8 +33,9 @@ import org.apache.log4j.Logger;
 
 import prerna.poi.main.NodeLoadingSheetWriter;
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -84,10 +85,13 @@ public class ExportNodeLoadSheetsListener implements IChakraListener {
 			JComboBox exportDataSourceComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.EXPORT_LOAD_SHEET_SOURCE_COMBOBOX);
 			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(exportDataSourceComboBox.getSelectedItem().toString());
 
-			SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+			/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 			wrapper.setQuery(query);
 			wrapper.setEngine(engine);
 			wrapper.executeQuery();
+			*/
 
 			int count = 0;
 			String[] names = wrapper.getVariables();
@@ -95,7 +99,7 @@ public class ExportNodeLoadSheetsListener implements IChakraListener {
 			// now get the bindings and generate the data
 			try {
 				while(wrapper.hasNext()) {
-					SesameJenaSelectStatement sjss = wrapper.next();
+					ISelectStatement sjss = wrapper.next();
 					Object [] values = new Object[names.length];
 					boolean filledData = true;
 

@@ -28,8 +28,9 @@ import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -152,10 +153,12 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 		logger.info("Begining processTimeData with q: " + timeQuery + " on engine " + timeEngine);
 
 		// Run the time query
-		SesameJenaSelectWrapper timeWrapper = new SesameJenaSelectWrapper();
-		if(timeEngine!= null){
 
-			timeWrapper.setQuery(timeQuery);
+		//SesameJenaSelectWrapper timeWrapper = new SesameJenaSelectWrapper();
+		if(timeEngine!= null){
+			ISelectWrapper timeWrapper = WrapperManager.getInstance().getSWrapper(timeEngine, timeQuery);
+
+			/*timeWrapper.setQuery(timeQuery);
 			timeWrapper.setEngine(timeEngine);
 			try{
 				timeWrapper.executeQuery();	
@@ -163,7 +166,7 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 			catch (RuntimeException e)
 			{
 				e.printStackTrace();
-			}		
+			}*/		
 
 			// get the bindings from it
 			String[] timeNames = timeWrapper.getVariables();
@@ -175,7 +178,7 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 			try {
 				while(timeWrapper.hasNext())
 				{
-					SesameJenaSelectStatement sjss = timeWrapper.next();
+					ISelectStatement sjss = timeWrapper.next();
 					
 					//column 0 must be edge/node, so lets get that first... if it doesn't exist, skip the row
 					String uri = sjss.getRawVar(timeNames[0]).toString();
