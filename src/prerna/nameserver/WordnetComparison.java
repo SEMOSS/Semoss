@@ -205,10 +205,20 @@ public class WordnetComparison {
 			return getTopDep(tdlArr);
 		}
 		
+		tdlArr = nodeHash.get(EnglishGrammaticalRelations.NOMINAL_SUBJECT);
+		if(tdlArr != null) {
+			return getTopDep(tdlArr);
+		}
+		
+		tdlArr = nodeHash.get(EnglishGrammaticalRelations.DIRECT_OBJECT);
+		if(tdlArr != null) {
+			return getTopDep(tdlArr);
+		}
+		
 		// if cannot determine what type of grammatical relationship, just grab the dependent and get the gov
 		tdlArr = nodeHash.get(GrammaticalRelation.DEPENDENT);
 		if(tdlArr != null) {
-			return getTopGov(tdlArr);
+			return getTopDep(tdlArr);
 		}
 		
 		return null;
