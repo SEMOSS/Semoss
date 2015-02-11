@@ -37,7 +37,6 @@ import prerna.util.DIHelper;
 public class ColumnChartPlaySheet extends BrowserPlaySheet{
 
 	private static final Logger logger = LogManager.getLogger(ColumnChartPlaySheet.class.getName());
-	GraphDataModel gdm = new GraphDataModel();
 	
 	public ColumnChartPlaySheet() 
 	{
@@ -103,5 +102,15 @@ public class ColumnChartPlaySheet extends BrowserPlaySheet{
 				var = sjss.getVar(varName);
 			} 
 		return var;
+	}
+	
+	@Override
+	public Hashtable<String, String> getDataTableAlign() {
+		Hashtable<String, String> alignHash = new Hashtable<String, String>();
+		alignHash.put("label", names[0]);
+		for(int namesIdx = 1; namesIdx<names.length; namesIdx++){
+			alignHash.put("series " + namesIdx, names[namesIdx]);
+		}
+		return alignHash;
 	}
 }

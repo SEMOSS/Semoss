@@ -15,6 +15,8 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.util.Hashtable;
+
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
@@ -137,5 +139,11 @@ public class AllLegacySystemsDispositionPlaySheet extends AbstractRDFPlaySheet{
 	@Override
 	public void runAnalytics() {
 		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public Hashtable<String, String> getDataTableAlign() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

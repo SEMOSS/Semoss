@@ -1296,5 +1296,11 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		gdm.getEdgeStore().clear();
 	}
 
+	@Override
+	public Hashtable<String, String> getDataTableAlign() {
+		// Need to figure out how graph will align to table....
+		return null;
+	}
+
 	
 }
