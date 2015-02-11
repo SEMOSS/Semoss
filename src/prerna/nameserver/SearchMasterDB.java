@@ -97,7 +97,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 					insightHash.put(TYPE_KEY, typeURI);
 					insightHash.put(PERSPECTIVE_KEY, perspectiveLabel);
 					insightHash.put(VIZ_TYPE_KEY, viz);
-					insightHash.put(SCORE_KEY, similarKeywordScores.get(keyword));
+					insightHash.put(SCORE_KEY, 1.0 - similarKeywordScores.get(keyword));
 					insightHash.put(INSTANCE_KEY, typeAndInstance.get(typeURI));
 					insightList.add(insightHash);
 				}
@@ -166,7 +166,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 					insightHash.put(TYPE_KEY, typeURI);
 					insightHash.put(PERSPECTIVE_KEY, perspectiveLabel);
 					insightHash.put(VIZ_TYPE_KEY, viz);
-					insightHash.put(SCORE_KEY, similarKeywordScores.get(keyword));
+					insightHash.put(SCORE_KEY, 1.0 - similarKeywordScores.get(keyword));
 					insightHash.put(INSTANCE_KEY, typeAndInstance.get(typeURI));
 					String engineURI = engineURLHash.get(engine);
 					insightHash.put(ENGINE_URI_KEY, engineURI);

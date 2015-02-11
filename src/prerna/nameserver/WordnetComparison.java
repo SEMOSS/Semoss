@@ -30,6 +30,8 @@ public class WordnetComparison {
 	private double mainNounWeight = 0.8;
 	private double otherNounWeight = 0.2;
 	
+	private double cutOffSimScore = 0.20;
+	
 	/**
 	 * Constructor for the class
 	 * Defines the wordnet library
@@ -46,7 +48,7 @@ public class WordnetComparison {
 	}
 	
 	public boolean isSimilar(double comparissonVal) {
-		if(comparissonVal < 0.2) {
+		if(comparissonVal <= cutOffSimScore) {
 			return true;
 		}
 		return false;
