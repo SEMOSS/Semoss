@@ -223,6 +223,9 @@ public class SearchMasterDB extends ModifyMasterDB {
 				engineKeywordMap.put(engine, keywordForEngineList);
 			}
 		}
+		
+		System.err.println(">>>>>>>>>>>>>>>>>FOUND RELATED KEYWORDS " + Utility.getInstanceName(keywordURI));
+		System.err.println(">>>>>>>>>>>>>>>>>LIST IS: " + keywordNounMap.keySet());
 	}
 	
 	private String formUsableInsightsQuery(Set<String> keywordList, List<String> instanceURIList) {
@@ -245,7 +248,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 		// get list of insights for keywords if the score is above threshold
 		List<String> similarKeywordList = new ArrayList<String>();
 		similarKeywordList.add(keywordURI);
-		similarKeywordScores.put(keywordURI, 1.0);
+		similarKeywordScores.put(keywordURI, 0.0);
 		
 		Set<String> nounList = keywordNounMap.get(keywordURI);
 		for(String otherKeywords : keywordNounMap.keySet()) {
@@ -253,7 +256,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 				double simScore = wnComp.compareKeywords(nounList, keywordNounMap.get(otherKeywords));
 				if(wnComp.isSimilar(simScore)) {
 					similarKeywordList.add(otherKeywords);
-					similarKeywordScores.put(otherKeywords, 1.0 - simScore);
+					similarKeywordScores.put(otherKeywords, simScore);
 				}
 			}
 		}
@@ -264,8 +267,8 @@ public class SearchMasterDB extends ModifyMasterDB {
 		for(; i < size; i++) {
 			keywords = keywords.concat("(<").concat(similarKeywordList.get(i)).concat(">)");
 		}
-		return GET_INSIGHTS_FOR_KEYWORDS.replace("@KEYWORDS@", keywords);
 		
+		return GET_INSIGHTS_FOR_KEYWORDS.replace("@KEYWORDS@", keywords);
 	}
 	
 	private Map<String, String> getTypeAndInstance(ISelectWrapper sjsw) {
