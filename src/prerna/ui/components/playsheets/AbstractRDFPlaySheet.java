@@ -64,6 +64,8 @@ public abstract class AbstractRDFPlaySheet extends JInternalFrame implements IPl
 		createView();		
 	}
 	
+	public abstract Hashtable<String, String> getDataTableAlign();
+	
 	public Object getData(){
 		Hashtable retHash = new Hashtable();
 		retHash.put("id", this.questionNum==null? "": this.questionNum);
@@ -76,6 +78,7 @@ public abstract class AbstractRDFPlaySheet extends JInternalFrame implements IPl
 		}
 		retHash.put("playsheet", className);
 		retHash.put("title", this.title==null? "": this.title);
+		retHash.put("dataTableAlign", getDataTableAlign());
 		
 		return retHash;
 	}
