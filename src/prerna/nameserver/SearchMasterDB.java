@@ -25,9 +25,12 @@ import java.util.Map;
 import java.util.Set;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.RemoteSemossSesameEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -64,7 +67,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 			String getUsableInstancesQuery = formUsableInsightsQuery(keywordList,instanceURIList);
 			
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-			SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, getUsableInstancesQuery);
+			ISelectWrapper sjsw = Utility.processQuery(engine, getUsableInstancesQuery);
 			
 			Map<String, String> typeAndInstance = getTypeAndInstance(sjsw);
 			engineInstances.put(engineName, typeAndInstance);
@@ -74,10 +77,10 @@ public class SearchMasterDB extends ModifyMasterDB {
 		String query = formInsightsForKeywordsQuery(keywordURI,keywordNounMap,similarKeywordScores);
 
 		List<Hashtable<String,Object>> insightList = new ArrayList<Hashtable<String,Object>>();
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(masterEngine, query);
+		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String engine = sjss.getVar(names[0]).toString();
 			String insightLabel = sjss.getVar(names[1]).toString();
 			String keyword = sjss.getRawVar(names[2]).toString();
@@ -128,10 +131,12 @@ public class SearchMasterDB extends ModifyMasterDB {
 			engine.setAPI(engineAPI);
 			engine.setDatabase(engineName);
 			
-			SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+			ISelectWrapper sjsw = WrapperManager.getInstance().getSWrapper(engine,  getUsableInstancesQuery);
+			
+			/*SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 			sjsw.setEngine(engine);
 			sjsw.setQuery(getUsableInstancesQuery);
-			sjsw.executeQuery();
+			sjsw.executeQuery();*/
 			
 			Map<String, String> typeAndInstance = getTypeAndInstance(sjsw);
 			engineInstances.put(engineName, typeAndInstance);
@@ -141,10 +146,10 @@ public class SearchMasterDB extends ModifyMasterDB {
 		String query = formInsightsForKeywordsQuery(keywordURI,keywordNounMap,similarKeywordScores);
 
 		List<Hashtable<String,Object>> insightList = new ArrayList<Hashtable<String,Object>>();
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(masterEngine, query);
+		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String engine = sjss.getVar(names[0]).toString();
 			String insightLabel = sjss.getVar(names[1]).toString();
 			String keyword = sjss.getRawVar(names[2]).toString();
@@ -174,13 +179,13 @@ public class SearchMasterDB extends ModifyMasterDB {
 	
 	private void fillAPIHash(){
 		engineURLHash = new Hashtable<String,String>();
-		SesameJenaSelectWrapper wrapper = Utility.processQuery(masterEngine,ENGINE_API_QUERY);
+		ISelectWrapper wrapper = Utility.processQuery(masterEngine,ENGINE_API_QUERY);
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
 		// now get the bindings and generate the data
 		while(wrapper.hasNext())
 		{
-			SesameJenaSelectStatement sjss = wrapper.next();
+			ISelectStatement sjss = wrapper.next();
 			String engine = (String)sjss.getVar(names[0]);
 			String baseURI = (sjss.getRawVar(names[1])).toString();
 			engineURLHash.put(engine,baseURI);
@@ -190,10 +195,10 @@ public class SearchMasterDB extends ModifyMasterDB {
 	private void findRelatedKeywords(String keywordURI,Map<String, Set<String>> keywordNounMap,Map<String, Set<String>> engineKeywordMap){
 		// find all related keywords to the inputed data type
 		String query = GET_RELATED_KEYWORDS_AND_THEIR_NOUNS.replace("@KEYWORD@", keywordURI);
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(masterEngine, query);
+		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String engine = sjss.getVar(names[0]).toString();
 			String keyword = sjss.getRawVar(names[1]).toString();
 			String noun = sjss.getRawVar(names[2]).toString();
@@ -263,12 +268,12 @@ public class SearchMasterDB extends ModifyMasterDB {
 		
 	}
 	
-	private Map<String, String> getTypeAndInstance(SesameJenaSelectWrapper sjsw) {
+	private Map<String, String> getTypeAndInstance(ISelectWrapper sjsw) {
 		String[] names = sjsw.getVariables();
 
 		Map<String, String> typeAndInstance = new HashMap<String, String>();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			typeAndInstance.put(sjss.getRawVar(names[0]).toString(), sjss.getRawVar(names[1]).toString());
 		}
 		return typeAndInstance;

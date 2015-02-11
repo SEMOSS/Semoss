@@ -29,8 +29,9 @@ import javax.swing.JCheckBox;
 import javax.swing.JList;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.GridFilterData;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -412,10 +413,14 @@ public class EstimationCalculationFunctions {
 		// get the selected repository
 		Object[] repo = (Object[])repoList.getSelectedValues();
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repo[0]+"");
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
-		wrapper.executeQuery();
+		wrapper.executeQuery();*/
 		// get the bindings from it
 
 		String[] names = wrapper.getVariables();
@@ -433,10 +438,13 @@ public class EstimationCalculationFunctions {
 		// get the selected repository
 		Object[] repo = (Object[])repoList.getSelectedValues();
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repo[0]+"");
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
-		wrapper.executeQuery();
+		wrapper.executeQuery();*/
 		// get the bindings from it
 
 		int count = 0;
@@ -445,7 +453,7 @@ public class EstimationCalculationFunctions {
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				
 				Object [] values = new Object[names.length];
 				boolean filledData = true;

@@ -24,6 +24,8 @@ import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
@@ -70,14 +72,14 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 	}
 	
 	public void runDeleteQueries() {
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+		//SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 		String[] vars;
 		
-		sjsw = Utility.processQuery(coreDB, DELETE_NEW_PROPERTIES_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(coreDB, DELETE_NEW_PROPERTIES_QUERY);
 		vars = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{	
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String rel = sjss.getRawVar(vars[0]).toString();
 			String pred = sjss.getRawVar(vars[1]).toString();
 			String calc = sjss.getVar(vars[2]).toString();
@@ -89,7 +91,7 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 		vars = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{	
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String sys = sjss.getRawVar(vars[0]).toString();
 			String rel = sjss.getRawVar(vars[1]).toString();
 			String obj = sjss.getRawVar(vars[2]).toString();
@@ -166,16 +168,16 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 	
 	public HashMap<String, Set<String>> getQueryResultHash(IEngine db, String query) {
 		HashMap<String, Set<String>> queryDataHash = new HashMap<String, Set<String>>();
-		SesameJenaSelectWrapper queryDataWrapper = Utility.processQuery(db, query);
+		ISelectWrapper queryDataWrapper = Utility.processQuery(db, query);
 		queryDataHash = hashTableResultProcessor(queryDataWrapper);
 		return queryDataHash;
 	}
 	
-	public HashMap<String, Set<String>> hashTableResultProcessor(SesameJenaSelectWrapper sjsw) {
+	public HashMap<String, Set<String>> hashTableResultProcessor(ISelectWrapper sjsw) {
 		HashMap<String, Set<String>> aggregatedData = new HashMap<String, Set<String>>();
 		String[] vars = sjsw.getVariables();
 		while (sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();			
+			ISelectStatement sjss = sjsw.next();			
 			String sub = sjss.getRawVar(vars[0]).toString();
 			Set<String> pred = new HashSet<String>();
 			pred.add(sjss.getRawVar(vars[1]).toString());

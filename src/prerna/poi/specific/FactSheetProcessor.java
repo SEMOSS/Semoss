@@ -15,7 +15,6 @@
  *******************************************************************************/
 package prerna.poi.specific;
 
-import java.io.File;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -28,8 +27,11 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.specific.tap.DHMSMHelper;
 import prerna.ui.components.specific.tap.FactSheetSysSimCalculator;
 import prerna.util.Constants;
@@ -75,15 +77,18 @@ public class FactSheetProcessor {
 		JList repoList = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
 		wrapper.executeQuery();
-
+		*/
+		
 		String[] names = wrapper.getVariables();
 		ArrayList<ArrayList<Object>> list = new ArrayList<ArrayList<Object>>();
 		while (wrapper.hasNext()) {
-			SesameJenaSelectStatement sjss = wrapper.next();
+			ISelectStatement sjss = wrapper.next();
 			ArrayList<Object> values = new ArrayList<Object>();
 			for (int colIndex = 0; colIndex < names.length; colIndex++) {
 				if (sjss.getVar(names[colIndex]) != null) {
@@ -110,11 +115,13 @@ public class FactSheetProcessor {
 		JList repoList = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
 		wrapper.executeQuery();
-
+*/
 		String[] names = wrapper.getVariables();
 		ArrayList<String> list = new ArrayList<String>();
 		Calendar now = Calendar.getInstance();
@@ -122,7 +129,7 @@ public class FactSheetProcessor {
 		int currMonth=now.get(Calendar.MONTH);
 
 		while (wrapper.hasNext()) {
-			SesameJenaSelectStatement sjss = wrapper.next();
+			ISelectStatement sjss = wrapper.next();
 
 			if (sjss.getVar(names[1]) != null) {
 				String date = ((String) sjss.getVar(names[1])).replaceAll("\"", "");
@@ -166,14 +173,16 @@ public class FactSheetProcessor {
 		Object[] repo = (Object[]) repoList.getSelectedValues();
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(hrCoreEngine + "");
 
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
 		wrapper.executeQuery();
-
+*/
 		String[] names = wrapper.getVariables();
 		while (wrapper.hasNext()) {
-			SesameJenaSelectStatement sjss = wrapper.next();				
+			ISelectStatement sjss = wrapper.next();				
 			String sys = (String)sjss.getVar(names[0]);
 			list.add(sys);
 		}

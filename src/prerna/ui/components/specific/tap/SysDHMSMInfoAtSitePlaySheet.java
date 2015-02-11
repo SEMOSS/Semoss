@@ -22,9 +22,11 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.ui.components.playsheets.BrowserPlaySheet;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -146,21 +148,26 @@ public class SysDHMSMInfoAtSitePlaySheet extends GridPlaySheet {
 		Hashtable<String, Hashtable<String, String>> hrCoreData = new Hashtable<String, Hashtable<String, String>>();
 
 		logger.info("PROCESSING QUERY: " + GET_SYSTEM_INFO);
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+		
+
+		//SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 		//run the query against the engine provided
 		IEngine hrCoreEngine = (IEngine) DIHelper.getInstance().getLocalProp(hrCoreEngineName);
 
+
 		if(hrCoreEngineName != null)
 		{
-			sjsw.setEngine(hrCoreEngine);
+			ISelectWrapper sjsw = WrapperManager.getInstance().getSWrapper(hrCoreEngine, GET_SYSTEM_INFO);
+			
+			/*sjsw.setEngine(hrCoreEngine);
 			sjsw.setQuery(GET_SYSTEM_INFO);
 			sjsw.executeQuery();
-
+			*/
 			names = sjsw.getVariables();
 
 			while(sjsw.hasNext())
 			{
-				SesameJenaSelectStatement sjss = sjsw.next();
+				ISelectStatement sjss = sjsw.next();
 				String sys = sjss.getVar(names[0]).toString();
 				String prob = sjss.getVar(names[1]).toString();
 				String integrate = sjss.getVar(names[2]).toString();
@@ -200,21 +207,24 @@ public class SysDHMSMInfoAtSitePlaySheet extends GridPlaySheet {
 		Hashtable<String, ArrayList<String>> siteData = new Hashtable<String, ArrayList<String>>();
 
 		logger.info("PROCESSING QUERY: " + GET_SYSTEMS_AT_SITE);
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+		//SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 		//run the query against the site engine provided
 		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp(siteEngineName);
 
 		if(siteEngine != null)
 		{
-			sjsw.setEngine(siteEngine);
+			ISelectWrapper sjsw = WrapperManager.getInstance().getSWrapper(siteEngine, GET_SYSTEMS_AT_SITE);
+
+			/*sjsw.setEngine(siteEngine);
 			sjsw.setQuery(GET_SYSTEMS_AT_SITE);
 			sjsw.executeQuery();
-
+			*/
+			
 			names = sjsw.getVariables();
 
 			while(sjsw.hasNext())
 			{
-				SesameJenaSelectStatement sjss = sjsw.next();
+				ISelectStatement sjss = sjsw.next();
 				String site = sjss.getVar(names[0]).toString();
 				String sys = sjss.getVar(names[1]).toString();
 				site = site.replace("\"", "");

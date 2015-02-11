@@ -17,25 +17,11 @@ package prerna.ui.components.specific.tap;
 
 import java.awt.Dimension;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.Hashtable;
-import java.util.Map.Entry;
 
-import javax.swing.event.EventListenerList;
-import javax.swing.event.InternalFrameEvent;
-
-import org.apache.log4j.Logger;
-
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.ui.components.playsheets.BrowserPlaySheet;
-import prerna.ui.main.listener.specific.tap.SimilarityBarChartBrowserFunction;
+import prerna.rdf.engine.api.ISelectStatement;
 import prerna.ui.main.listener.specific.tap.SysSimHealthGridListener;
-import prerna.ui.main.listener.specific.tap.SimilarityRefreshBrowserFunction;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
-
-import com.google.gson.Gson;
 
 
 /**
@@ -232,7 +218,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	}
 	
 	@Override
-	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+	public Object getVariable(String varName, ISelectStatement sjss){
 		return sjss.getRawVar(varName);
 	}
 

@@ -20,8 +20,8 @@ import java.util.Hashtable;
 import java.util.Set;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -42,11 +42,11 @@ public class DataCriticalityHeatMapSheet extends SimilarityHeatMapSheet {
 		
 	public void createData() {
 		SimilarityFunctions sdf = new SimilarityFunctions();
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(coreDB, dhmsmCapDataQuery);		
+		ISelectWrapper sjsw = Utility.processQuery(coreDB, dhmsmCapDataQuery);		
 		Hashtable<String, Set<String>> aggregatedData = new Hashtable<String, Set<String>>();
 		String[] vars = sjsw.getVariables();
 		while (sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();			
+			ISelectStatement sjss = sjsw.next();			
 			String sub = sjss.getVar(vars[0]).toString();
 			Set<String> pred = new HashSet<String>();
 			String concat = sjss.getVar(vars[1]).toString()+"@"+sjss.getVar(vars[2]).toString();

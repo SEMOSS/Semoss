@@ -25,8 +25,8 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.weka.impl.WekaClassification;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.util.Utility;
 
 public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
@@ -97,11 +97,11 @@ public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
 		if(query!=null) {
 			list = new ArrayList<Object[]>();
 			
-			SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
+			ISelectWrapper sjsw = Utility.processQuery(engine, query);
 			names = sjsw.getVariables();
 			int length = names.length;
 			while(sjsw.hasNext()) {
-				SesameJenaSelectStatement sjss = sjsw.next();
+				ISelectStatement sjss = sjsw.next();
 				Object[] row = new Object[length];
 				int i = 0;
 				for(; i < length; i++) {

@@ -32,8 +32,9 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.IAlgorithm;
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.specific.tap.RelationPlaySheet;
@@ -166,10 +167,11 @@ public class RelationFunction implements IAlgorithm {
 
 	public ArrayList<Object[]> processQuery(String query) {
 		// execute the query on a specified engine
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
-		sjsw.setEngine(engine);
+		//SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+		ISelectWrapper sjsw = WrapperManager.getInstance().getSWrapper(engine, query);
+		/*sjsw.setEngine(engine);
 		sjsw.setQuery(query);
-		sjsw.executeQuery();
+		sjsw.executeQuery();*/
 		
 		String[] names = sjsw.getVariables();
 		
@@ -177,7 +179,7 @@ public class RelationFunction implements IAlgorithm {
 		
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 		
 			String sys = (String) sjss.getVar(names[0]);
 			String data = (String) sjss.getVar(names[1]);

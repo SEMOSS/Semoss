@@ -11,13 +11,10 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.error.EngineException;
-import prerna.error.FileReaderException;
 import prerna.poi.specific.FactSheetProcessor;
-import prerna.poi.specific.FactSheetWriter;
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.util.Constants;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.util.ConstantsTAP;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
@@ -289,14 +286,14 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 	private HashMap<String, Object> getQueryDataWithHeaders(IEngine engine, String query){
 		HashMap<String, Object> dataHash = new HashMap<String, Object>();
 
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
+		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] names = sjsw.getVariables();
 		dataHash.put(DHMSMTransitionUtility.HEADER_KEY, names);
 
 		ArrayList<Object[]> dataToAddArr = new ArrayList<Object[]>();
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			Object[] dataRow = new Object[names.length];
 			for(int i = 0; i < names.length; i++)
 			{

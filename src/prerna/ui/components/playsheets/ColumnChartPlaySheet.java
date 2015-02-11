@@ -19,30 +19,17 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Hashtable;
-import java.util.Set;
 
 import javax.swing.JButton;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
-import org.openrdf.query.parser.ParsedQuery;
-import org.openrdf.query.parser.sparql.SPARQLParser;
-import org.openrdf.repository.Repository;
-import org.openrdf.repository.RepositoryException;
-import org.openrdf.repository.sail.SailRepository;
-import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
-import org.openrdf.sail.memory.MemoryStore;
 
 import prerna.om.GraphDataModel;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.rdf.util.StatementCollector;
+import prerna.rdf.engine.api.ISelectStatement;
 import prerna.ui.components.ChartControlPanel;
-import prerna.ui.components.RDFEngineHelper;
 import prerna.ui.main.listener.impl.ColumnChartGroupedStackedListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -110,7 +97,7 @@ public class ColumnChartPlaySheet extends BrowserPlaySheet{
 	}
 	
 	@Override
-	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+	public Object getVariable(String varName, ISelectStatement sjss){
 		Object var = sjss.getRawVar(varName);
 			if( var != null && var instanceof Literal) {
 				var = sjss.getVar(varName);

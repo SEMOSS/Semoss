@@ -16,11 +16,7 @@
 package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
@@ -30,9 +26,11 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.ui.components.playsheets.BrowserPlaySheet;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.DIHelper;
 
@@ -68,7 +66,9 @@ public class LPIFutureInterfaceIdentification extends GridPlaySheet {
 		list = new ArrayList<Object[]>();
 
 		//Process query 1
-		SesameJenaSelectWrapper statusWrapper = new SesameJenaSelectWrapper();
+		ISelectWrapper statusWrapper = WrapperManager.getInstance().getSWrapper(statusEngine, statusQuery);
+
+		/*SesameJenaSelectWrapper statusWrapper = new SesameJenaSelectWrapper();
 		if(statusEngine!= null){
 			statusWrapper.setQuery(statusQuery);
 			updateProgressBar("10%...Querying RDF Repository", 10);
@@ -76,12 +76,14 @@ public class LPIFutureInterfaceIdentification extends GridPlaySheet {
 			updateProgressBar("20%...Querying RDF Repository", 30);
 			statusWrapper.executeQuery();
 			updateProgressBar("30%...Processing RDF Statements	", 60);
-		}
+		}*/
 		// get the bindings from it
 		names = statusWrapper.getVariables();
 		
 		//process query 2
-		SesameJenaSelectWrapper DHMSMWrapper = new SesameJenaSelectWrapper();
+		ISelectWrapper DHMSMWrapper = WrapperManager.getInstance().getSWrapper(DHMSMEngine, DHMSMQuery);
+
+		/*SesameJenaSelectWrapper DHMSMWrapper = new SesameJenaSelectWrapper();
 		if(DHMSMEngine!= null){
 			DHMSMWrapper.setQuery(DHMSMQuery);
 			updateProgressBar("40%...Querying RDF Repository", 10);
@@ -89,12 +91,15 @@ public class LPIFutureInterfaceIdentification extends GridPlaySheet {
 			updateProgressBar("50%...Querying RDF Repository", 30);
 			DHMSMWrapper.executeQuery();
 			updateProgressBar("60%...Processing RDF Statements	", 60);
-		}
+		}*/
 		// get the bindings from it
 		String[] names2 = DHMSMWrapper.getVariables();
 
 		//process query 2
-		SesameJenaSelectWrapper lpiSorWrapper = new SesameJenaSelectWrapper();
+		ISelectWrapper lpiSorWrapper = WrapperManager.getInstance().getSWrapper(lpiSorEngine, lpiSorQuery);
+
+		
+		/*SesameJenaSelectWrapper lpiSorWrapper = new SesameJenaSelectWrapper();
 		if(lpiSorEngine!= null){
 			lpiSorWrapper.setQuery(lpiSorQuery);
 			updateProgressBar("40%...Querying RDF Repository", 10);
@@ -102,7 +107,7 @@ public class LPIFutureInterfaceIdentification extends GridPlaySheet {
 			updateProgressBar("50%...Querying RDF Repository", 30);
 			lpiSorWrapper.executeQuery();
 			updateProgressBar("60%...Processing RDF Statements	", 60);
-		}
+		}*/
 		// get the bindings from it
 		String[] names3 = lpiSorWrapper.getVariables();
 
@@ -119,12 +124,12 @@ public class LPIFutureInterfaceIdentification extends GridPlaySheet {
 	 * @param hash Hashtable<Object,ArrayList<Object[]>> - The data structure where the data from the query will be stored.
 	 * @param names String[] - An array consisting of all the variables from the query.
 	 */
-	private void processWrapper(SesameJenaSelectWrapper sjw, String[] names, Vector<String> DHMSMVect, Hashtable<String, String> lsHash){
+	private void processWrapper(ISelectWrapper sjw, String[] names, Vector<String> DHMSMVect, Hashtable<String, String> lsHash){
 		// now get the bindings and generate the data
 		try {
 			while(sjw.hasNext()) //while still row beneath (while data left)
 			{
-				SesameJenaSelectStatement sjss = sjw.next(); //go to new row 
+				ISelectStatement sjss = sjw.next(); //go to new row 
 
 				Object [] values = new Object[names.length]; 
 				for(int colIndex = 0;colIndex < names.length;colIndex++)
@@ -156,13 +161,13 @@ public class LPIFutureInterfaceIdentification extends GridPlaySheet {
 		}
 	}
 	
-	private Vector<String> processPeripheralWrapper(SesameJenaSelectWrapper sjw, String[] names){
+	private Vector<String> processPeripheralWrapper(ISelectWrapper sjw, String[] names){
 		// now get the bindings and generate the data
 		Vector<String> retV = new Vector<String>();
 		try {
 			while(sjw.hasNext())
 			{
-				SesameJenaSelectStatement sjss = sjw.next();
+				ISelectStatement sjss = sjw.next();
 
 				int colIndex = 0;
 				String val = sjss.getRawVar(names[colIndex]) + "";
@@ -179,14 +184,14 @@ public class LPIFutureInterfaceIdentification extends GridPlaySheet {
 		return retV;
 	}
 	
-	private Hashtable<String, String> processPeripheralHashWrapper(SesameJenaSelectWrapper sjw, String[] names){
+	private Hashtable<String, String> processPeripheralHashWrapper(ISelectWrapper sjw, String[] names){
 		// now get the bindings and generate the data
 		Hashtable<String, String> retHash = new Hashtable<String, String>();
 		
 		try {
 			while(sjw.hasNext())
 			{
-				SesameJenaSelectStatement sjss = sjw.next();
+				ISelectStatement sjss = sjw.next();
 				
 				String val0 = sjss.getRawVar(names[0]) + "";
 								if(val0.substring(0, 1).equals("\""))

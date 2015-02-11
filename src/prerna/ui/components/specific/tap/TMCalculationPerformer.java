@@ -35,8 +35,11 @@ import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 
 import prerna.algorithm.api.IAlgorithm;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.util.Constants;
@@ -86,19 +89,21 @@ public class TMCalculationPerformer implements IAlgorithm{
 			ArrayList<String> technicalNames = (ArrayList<String>) TMhash.get(Constants.TECH_MATURITY+Constants.CALC_NAMES_LIST);
 			ArrayList<String> technicalNamesTechStd = (ArrayList<String>) TMhash.get(Constants.TECH_MATURITY+Constants.CALC_NAMES_TECH_STD_LIST);
 			
-			SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+			//SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 
 			String query = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}}";
 
-			wrapper.setQuery(query);
+			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+			/*wrapper.setQuery(query);
 			wrapper.setEngine(engine);
-			wrapper.executeQuery();
+			wrapper.executeQuery();*/
 			String[] names = wrapper.getVariables();
 
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss= wrapper.next();
+				ISelectStatement sjss= wrapper.next();
 				String system = (String)sjss.getVar(names[0]);
 				if(!technicalNames.contains(system))
 				{
@@ -256,10 +261,12 @@ public class TMCalculationPerformer implements IAlgorithm{
 		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("Standards");
 
+
 		if(engine!=null)
 		{
 			String queryCounter = "SELECT DISTINCT ?StandardIdentifier WHERE {{?StandardIdentifier <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TechStandardIdentifier> ;}}";
 			String query = "SELECT DISTINCT ?System ?StandardIdentifier WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?PPI <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/PPI> ;} {?MapsTo <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/MapsTo>;} {?PPI ?MapsTo ?System.}{?StandardIdentifier <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TechStandardIdentifier> ;} {?UsedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>;}{?PPI <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/PPI> ;} {?StandardIdentifier ?UsedBy ?PPI.}}";
+			//ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, queryCounter);
 			wrapper.setQuery(queryCounter);
 			wrapper.setEngine(engine);
 			wrapper.executeQuery();
@@ -277,10 +284,15 @@ public class TMCalculationPerformer implements IAlgorithm{
 				numStandards++;
 			}
 			
+			
 			wrapper = new SesameJenaSelectWrapper();
 			wrapper.setQuery(query);
 			wrapper.setEngine(engine);
 			wrapper.executeQuery();
+			
+			
+			//wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
 			names = wrapper.getVariables();
 			while(wrapper.hasNext()) {
 				SesameJenaSelectStatement sjss = wrapper.BVnext();

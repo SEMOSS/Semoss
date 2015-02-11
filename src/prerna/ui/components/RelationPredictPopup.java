@@ -29,8 +29,10 @@ import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.main.listener.impl.NeighborRelationMenuListener;
 import prerna.util.Constants;
@@ -157,12 +159,15 @@ public class RelationPredictPopup extends JMenu implements MouseListener{
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repo);
 		logger.debug("Found the engine for repository   " + repo);
 
+		ISelectWrapper sjw = WrapperManager.getInstance().getSWrapper(engine, query1);
+
 		// run the query
-		SesameJenaSelectWrapper sjw = new SesameJenaSelectWrapper();
+		/*SesameJenaSelectWrapper sjw = new SesameJenaSelectWrapper();
 		sjw.setEngine(engine);
 		sjw.setEngineType(engine.getEngineType());
 		sjw.setQuery(query1);
 		sjw.executeQuery();
+		*/
 		
 		logger.debug("Executed Query");
 		logger.info("Executing query " + query1);
@@ -170,7 +175,7 @@ public class RelationPredictPopup extends JMenu implements MouseListener{
 		String [] vars = sjw.getVariables();
 		while(sjw.hasNext())
 		{
-			SesameJenaSelectStatement stmt = sjw.next();
+			ISelectStatement stmt = sjw.next();
 			// only one variable
 			
 			String predName = stmt.getRawVar(vars[0]) + "";
@@ -184,14 +189,15 @@ public class RelationPredictPopup extends JMenu implements MouseListener{
 		}			
 		
 		// do it the other way now
-		sjw.setQuery(query2);
-		sjw.executeQuery();
+		WrapperManager.getInstance().getSWrapper(engine, query2);
+		//sjw.setQuery(query2);
+		//sjw.executeQuery();
 		logger.info("Executing query " + query2);
 		
 		logger.debug("Executed Query");
 		while(sjw.hasNext())
 		{
-			SesameJenaSelectStatement stmt = sjw.next();
+			ISelectStatement stmt = sjw.next();
 			// only one variable
 			
 			String predName = stmt.getRawVar(vars[0]) + "";

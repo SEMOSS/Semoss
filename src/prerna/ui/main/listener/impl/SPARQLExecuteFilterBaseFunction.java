@@ -19,8 +19,9 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 
 import com.google.gson.Gson;
 import com.teamdev.jxbrowser.chromium.JSValue;
@@ -100,18 +101,21 @@ public class SPARQLExecuteFilterBaseFunction extends AbstractBrowserSPARQLFuncti
 		ArrayList<Object[]> list = new ArrayList<Object[]>();
 		
 		//create the update wrapper, set the variables, and let it run
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(selectedEngine, query);
+
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setEngine(selectedEngine);
 		wrapper.setQuery(query);
 		wrapper.executeQuery();
-
+		*/
+		
 		// get the bindings from it
 		String [] names = wrapper.getVariables();
 		int count = 0;
 		// now get the bindings and generate the data
 		while(wrapper.hasNext())
 		{
-			SesameJenaSelectStatement sjss = wrapper.next();
+			ISelectStatement sjss = wrapper.next();
 			// only will return things that are in the base data but not concept or resource or what not
 			Object [] values = new Object[names.length];
 			boolean addRow = true;

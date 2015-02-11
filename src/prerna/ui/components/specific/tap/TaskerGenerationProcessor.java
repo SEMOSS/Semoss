@@ -15,7 +15,6 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
-import java.io.File;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -28,8 +27,9 @@ import org.apache.log4j.Logger;
 
 import prerna.poi.specific.TaskerGenerationWriter;
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
@@ -57,16 +57,20 @@ public class TaskerGenerationProcessor {
 		Object[] repo = (Object[]) repoList.getSelectedValues();
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
 		wrapper.executeQuery();
-
+		*/
+		
 		String[] names = wrapper.getVariables();
 		ArrayList<ArrayList<Object>> list = new ArrayList<ArrayList<Object>>();
 		try {
 			while (wrapper.hasNext()) {
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				ArrayList<Object> values = new ArrayList<Object>();
 				for (int colIndex = 0; colIndex < names.length; colIndex++) {
 					if (sjss.getVar(names[colIndex]) != null) {

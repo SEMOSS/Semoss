@@ -30,8 +30,10 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.IAlgorithm;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.specific.tap.DHMSMSysDecommissionSchedulingPlaySheet;
@@ -264,25 +266,32 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 		}
 	}
 	
-	public SesameJenaSelectWrapper executeQuery(String engineName,String query) {
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+	public ISelectWrapper executeQuery(String engineName,String query) {
+
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
 		wrapper.setEngineType(IEngine.ENGINE_TYPE.SESAME);
+		*/
+		
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*
 		try{
 			wrapper.executeQuery();	
 		}
 		catch (Exception e)
 		{
 			e.printStackTrace();
-		}		
+		}*/		
 		return wrapper;
 	}
 	
 	public void createSystemList() {
 		
-		SesameJenaSelectWrapper wrapper = executeQuery(hrCoreDB,systemListQuery);
+		ISelectWrapper wrapper = executeQuery(hrCoreDB,systemListQuery);
 
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
@@ -290,7 +299,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				systemList.add((String)getVariable(names[0], sjss));
 			}
 		} catch (Exception e) {
@@ -299,7 +308,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 	}
 	
 	
-	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+	public Object getVariable(String varName, ISelectStatement sjss){
 		return sjss.getVar(varName);
 	}
 

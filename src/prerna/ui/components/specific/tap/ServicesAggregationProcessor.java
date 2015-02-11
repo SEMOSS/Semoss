@@ -26,6 +26,8 @@ import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
@@ -215,11 +217,11 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 	{
 		dataHash.clear();
 		allLabels.clear();
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(servicesDB, query);
+		ISelectWrapper sjsw = Utility.processQuery(servicesDB, query);
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			// get the next row and see how it must be added to the insert query
 			String subject = sjss.getRawVar(vars[0]).toString();
 			String pred = sjss.getRawVar(vars[1]).toString();
@@ -244,11 +246,11 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 	{
 		dataHash.clear();
 		allLabels.clear();
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(servicesDB, query);
+		ISelectWrapper sjsw = Utility.processQuery(servicesDB, query);
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			// get the next row and see how it must be added to the insert query
 			String subject = sjss.getRawVar(vars[0]).toString();
 			String pred = sjss.getRawVar(vars[1]).toString();
@@ -283,7 +285,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 	{
 		dataHash.clear();
 		allLabels.clear();
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(servicesDB, query);
+		ISelectWrapper sjsw = Utility.processQuery(servicesDB, query);
 		HashMap<String, LinkedList<String>> lifeCycleHash = aggregateLifeCycle(sjsw);
 		String lifeCycle = "";
 		for( String sys : lifeCycleHash.keySet())
@@ -318,12 +320,12 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		processLabel(coreDB);
 	}
 
-	private HashMap<String, LinkedList<String>> aggregateLifeCycle(SesameJenaSelectWrapper sjsw)	{
+	private HashMap<String, LinkedList<String>> aggregateLifeCycle(ISelectWrapper sjsw)	{
 		HashMap<String, LinkedList<String>> lifeCycleHash = new HashMap<String, LinkedList<String>>();
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			// get the next row and see how it must be added to the insert query
 			String sys = sjss.getRawVar(vars[0]).toString();
 			String pred = sjss.getRawVar(vars[1]).toString();
@@ -358,10 +360,10 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		dataHash.clear();
 		removeDataHash.clear();
 		allLabels.clear();
-		SesameJenaSelectWrapper sjswServices = Utility.processQuery(servicesDB, propSystemServiceQuery);
+		ISelectWrapper sjswServices = Utility.processQuery(servicesDB, propSystemServiceQuery);
 		processCommentPropertiesForRelationships(sjswServices,  false);
 
-		SesameJenaSelectWrapper sjswCore = Utility.processQuery(coreDB, propTAPCoreQuery);
+		ISelectWrapper sjswCore = Utility.processQuery(coreDB, propTAPCoreQuery);
 		processCommentPropertiesForRelationships(sjswCore, true);
 
 		// processing modifies class variable dataHash directly
@@ -370,14 +372,14 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		processLabel(coreDB);
 	}
 
-	private void processCommentPropertiesForRelationships(SesameJenaSelectWrapper sjsw, boolean TAP_Core)
+	private void processCommentPropertiesForRelationships(ISelectWrapper sjsw, boolean TAP_Core)
 	{
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
 			this.errorMessage = "";
 
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String sub = sjss.getRawVar(vars[0]).toString();
 			String obj = sjss.getRawVar(vars[1]).toString();
 			String pred = sjss.getRawVar(vars[2]).toString();
@@ -452,10 +454,10 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		dataHash.clear();
 		removeDataHash.clear();
 		allLabels.clear();
-		SesameJenaSelectWrapper sjswServices = Utility.processQuery(servicesDB, propSystemServiceQuery);
+		ISelectWrapper sjswServices = Utility.processQuery(servicesDB, propSystemServiceQuery);
 		processServiceSystemProperties(sjswServices,  false);
 
-		SesameJenaSelectWrapper sjswCore = Utility.processQuery(coreDB, propTAPCoreQuery);
+		ISelectWrapper sjswCore = Utility.processQuery(coreDB, propTAPCoreQuery);
 		processServiceSystemProperties(sjswCore, true);
 
 		// processing modifies class variable dataHash directly
@@ -464,7 +466,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		processLabel(coreDB);
 	}
 
-	private void processServiceSystemProperties(SesameJenaSelectWrapper sjsw, boolean TAP_Core)
+	private void processServiceSystemProperties(ISelectWrapper sjsw, boolean TAP_Core)
 	{	
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
@@ -472,7 +474,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 			this.errorMessage = "";
 			boolean aggregatedProp = false;
 			
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String sub = sjss.getRawVar(vars[0]).toString();
 			String prop = sjss.getRawVar(vars[1]).toString();
 			Object value = sjss.getRawVar(vars[2]);
@@ -607,10 +609,10 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		removeDataHash.clear();
 		allLabels.clear();
 
-		SesameJenaSelectWrapper sjswService = Utility.processQuery(servicesDB, servicesQuery);
+		ISelectWrapper sjswService = Utility.processQuery(servicesDB, servicesQuery);
 		processICDPropAggregation(sjswService, false);
 
-		SesameJenaSelectWrapper sjswCore = Utility.processQuery(coreDB, coreQuery);
+		ISelectWrapper sjswCore = Utility.processQuery(coreDB, coreQuery);
 		processICDPropAggregation(sjswCore , true);
 
 		// processing modifies class variable dataHash directly
@@ -622,7 +624,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// process icds
 
-	private void processICDPropAggregation(SesameJenaSelectWrapper sjsw, boolean TAP_Core) 
+	private void processICDPropAggregation(ISelectWrapper sjsw, boolean TAP_Core) 
 	{
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
@@ -630,7 +632,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 			this.errorMessage = "";
 			boolean aggregatedProp = false;
 
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String sub = sjss.getRawVar(vars[0]).toString();
 			String prop = sjss.getRawVar(vars[1]).toString();
 			Object value = sjss.getVar(vars[2]);
@@ -737,10 +739,10 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		removeDataHash.clear();
 		allLabels.clear();
 
-		SesameJenaSelectWrapper sjswService = Utility.processQuery(servicesDB, servicesQuery);
+		ISelectWrapper sjswService = Utility.processQuery(servicesDB, servicesQuery);
 		aggregatedTError = runAggregateAllData(sjswService, aggregatedTError, "weight", false);
 
-		SesameJenaSelectWrapper sjswCore = Utility.processQuery(coreDB, coreQuery);
+		ISelectWrapper sjswCore = Utility.processQuery(coreDB, coreQuery);
 		aggregatedTError = runAggregateAllData(sjswCore, aggregatedTError, "weight", true);
 
 		// processing modifies class variable dataHash directly
@@ -821,10 +823,10 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		removeDataHash.clear();
 		allLabels.clear();
 
-		SesameJenaSelectWrapper sjswService = Utility.processQuery(servicesDB, servicesQuery);
+		ISelectWrapper sjswService = Utility.processQuery(servicesDB, servicesQuery);
 		aggregatedDataObjects = runAggregateAllData(sjswService , aggregatedDataObjects, "CRM", false);
 
-		SesameJenaSelectWrapper sjswCore = Utility.processQuery(coreDB, coreQuery);
+		ISelectWrapper sjswCore = Utility.processQuery(coreDB, coreQuery);
 		aggregatedDataObjects = runAggregateAllData(sjswCore, aggregatedDataObjects, "CRM", true);
 
 		// processing modifies class variable dataHash directly
@@ -879,11 +881,11 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 
 	private void runGetListOfModules(String query, boolean softwareModule) 
 	{
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(coreDB, query);
+		ISelectWrapper sjsw = Utility.processQuery(coreDB, query);
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String sub = sjss.getRawVar(vars[0]).toString();
 			if(softwareModule)
 			{
@@ -902,10 +904,10 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		removeDataHash.clear();
 		allLabels.clear();
 
-		SesameJenaSelectWrapper sjswServices = Utility.processQuery(servicesDB, servicesQuery);
+		ISelectWrapper sjswServices = Utility.processQuery(servicesDB, servicesQuery);
 		processHardwareSoftwareProperties(sjswServices,  false, softwareModule);
 
-		SesameJenaSelectWrapper sjswCore = Utility.processQuery(coreDB, coreQuery);
+		ISelectWrapper sjswCore = Utility.processQuery(coreDB, coreQuery);
 		processHardwareSoftwareProperties(sjswCore, true, softwareModule);
 
 		// processing modifies class variable dataHash directly
@@ -915,7 +917,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 	}
 
 
-	private void processHardwareSoftwareProperties(SesameJenaSelectWrapper sjsw, boolean TAP_Core, boolean softwareModule)
+	private void processHardwareSoftwareProperties(ISelectWrapper sjsw, boolean TAP_Core, boolean softwareModule)
 	{
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
@@ -923,7 +925,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 			this.errorMessage = "";
 			boolean aggregatedProp = false;
 			
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String module = sjss.getRawVar(vars[0]).toString();
 			String prop = sjss.getRawVar(vars[1]).toString();
 			Object value = sjss.getRawVar(vars[2]);
@@ -1126,11 +1128,11 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		// get list of all concepts from tap core
 		HashSet<String> conceptList = new HashSet<String>();
 		LOGGER.info("PROCESSING QUERY: " + TAP_CORE_CONCEPTS_LIST_QUERY);
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(coreDB, TAP_CORE_CONCEPTS_LIST_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(coreDB, TAP_CORE_CONCEPTS_LIST_QUERY);
 		String[] var = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			conceptList.add(sjss.getRawVar(var[0]) + "");
 		}
 
@@ -1154,11 +1156,11 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		// get list of all relationships from tap core
 		HashSet<String> relationshipList = new HashSet<String>();
 		LOGGER.info("PROCESSING QUERY: " + TAP_CORE_RELATIONS_LIST_QUERY);
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(coreDB, TAP_CORE_RELATIONS_LIST_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(coreDB, TAP_CORE_RELATIONS_LIST_QUERY);
 		String[] var = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			relationshipList.add(sjss.getRawVar(var[0]) + "");
 		}
 
@@ -1401,12 +1403,12 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Utility methods 
 
-	private HashMap<String, HashMap<String, LinkedList<Object>>> runAggregateAllData(SesameJenaSelectWrapper sjsw, HashMap<String, HashMap<String, LinkedList<Object>>> aggregatedData, String propType, boolean TAP_Core)
+	private HashMap<String, HashMap<String, LinkedList<Object>>> runAggregateAllData(ISelectWrapper sjsw, HashMap<String, HashMap<String, LinkedList<Object>>> aggregatedData, String propType, boolean TAP_Core)
 	{
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			// get the next row and see how it must be added to the insert query
 			String sys = sjss.getRawVar(vars[0]).toString();
 			String pred = sjss.getRawVar(vars[1]).toString();

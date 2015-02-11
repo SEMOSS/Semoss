@@ -16,30 +16,25 @@
 package prerna.ui.components.specific.tap;
 
 import java.awt.BorderLayout;
-import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.beans.PropertyVetoException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Set;
-import java.util.Vector;
 
 import javax.swing.JPanel;
-import javax.swing.JSplitPane;
-import javax.swing.JTable;
-
-import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.BrowserFactory;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.ChartControlPanel;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.main.listener.impl.BrowserPlaySheetListener;
 import prerna.util.DIHelper;
+
+import com.teamdev.jxbrowser.chromium.BrowserFactory;
 
 /**
  * Heat Map that shows what gaps in data exist for systems to suppor their BLUs
@@ -133,10 +128,13 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 		updateProgressBar("10%...Getting " + comparisonType + " list for evaluation", 10);
 		
 		//Creating hashtable from main query 
+		ISelectWrapper mainWrapper = WrapperManager.getInstance().getSWrapper(coreDB, masterQuery);
+		/*
 		SesameJenaSelectWrapper mainWrapper = new SesameJenaSelectWrapper();
 		mainWrapper.setQuery(masterQuery);
 		mainWrapper.setEngine(coreDB);
 		mainWrapper.executeQuery();
+		*/
 		names = mainWrapper.getVariables();
 		processWrapper(mainWrapper, names, BLUNames, sysNames);
 		averageAdder();
@@ -154,13 +152,13 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 		
 	}
 	
-	private void processWrapper(SesameJenaSelectWrapper sjw, String[] names, ArrayList<String> BLUNames, ArrayList<String> sysNames){
+	private void processWrapper(ISelectWrapper sjw, String[] names, ArrayList<String> BLUNames, ArrayList<String> sysNames){
 		
 		Hashtable<String, Hashtable<String, Object>> BLUDataHash = new Hashtable<String, Hashtable<String, Object>>();
 		try {
 			while(sjw.hasNext())
 			{
-				SesameJenaSelectStatement sjss = sjw.next();
+				ISelectStatement sjss = sjw.next();
 				
 				Hashtable<String, Object> systemBLUHash = new Hashtable<String, Object>();
 				Hashtable<String, Object> keySystemBLUHash = new Hashtable<String, Object>();

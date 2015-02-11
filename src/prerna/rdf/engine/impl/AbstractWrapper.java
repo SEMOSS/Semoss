@@ -17,6 +17,7 @@ package prerna.rdf.engine.impl;
 
 import prerna.rdf.engine.api.IRemoteQueryable;
 
+@Deprecated
 public class AbstractWrapper implements IRemoteQueryable{
 
 	String ID = null;

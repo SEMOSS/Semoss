@@ -22,8 +22,8 @@ import org.apache.log4j.Logger;
 import prerna.error.EngineException;
 import prerna.error.FileReaderException;
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -54,10 +54,10 @@ public class DHMSMIntegrationTransitionBySystemOwnerPlaySheet extends BasicProce
 		} 
 		DHMSMIntegrationTransitionBySystemOwnerWriter writer = new DHMSMIntegrationTransitionBySystemOwnerWriter();
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(HR_Core, lpiSysQuery);
+		ISelectWrapper sjsw = Utility.processQuery(HR_Core, lpiSysQuery);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String sysURI = sjss.getRawVar(names[0]).toString();
 			try {
 				generateData.setSysURI(sysURI);

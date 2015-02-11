@@ -19,8 +19,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -237,10 +238,10 @@ public class EAFunctionalGapPlaySheet extends GridPlaySheet {
 	
 	public ArrayList<String> getStringList(String query) {
 		ArrayList<String> finalList = new ArrayList<String>();
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(hrCore, query);
+		ISelectWrapper sjsw = Utility.processQuery(hrCore, query);
 		String[] values = sjsw.getVariables();
 		while (sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			finalList.add(sjss.getVar(values[0]).toString());
 		}
 		return finalList;
@@ -248,10 +249,10 @@ public class EAFunctionalGapPlaySheet extends GridPlaySheet {
 	
 	public HashMap<String, ArrayList<String>> getStringListMap(String query) {
 		HashMap<String, ArrayList<String>> finalMap = new HashMap<String, ArrayList<String>>();
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(hrCore, query);
+		ISelectWrapper sjsw = Utility.processQuery(hrCore, query);
 		String[] values = sjsw.getVariables();
 		while (sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			ArrayList<String> temp;
 			
 			String key = sjss.getVar(values[0]).toString();
@@ -266,10 +267,10 @@ public class EAFunctionalGapPlaySheet extends GridPlaySheet {
 	
 	public HashMap<String, String> getActivityWeightMap(String query) {
 		HashMap<String, String> finalMap = new HashMap<String, String>();
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(hrCore, query);
+		ISelectWrapper sjsw = Utility.processQuery(hrCore, query);
 		String[] values = sjsw.getVariables();
 		while (sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String key = sjss.getVar(values[0]).toString();
 			String value = sjss.getVar(values[1]).toString();
 			finalMap.put(key, value);
@@ -279,10 +280,10 @@ public class EAFunctionalGapPlaySheet extends GridPlaySheet {
 	
 	public HashMap<String, ArrayList<String[]>> getActivityMap(String query) {
 		HashMap<String, ArrayList<String[]>> finalMap = new HashMap<String, ArrayList<String[]>>();
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(hrCore, query);
+		ISelectWrapper sjsw = Utility.processQuery(hrCore, query);
 		String[] values = sjsw.getVariables();
 		while (sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			
 			String key = sjss.getVar(values[0]).toString();
 			if (!finalMap.containsKey(key)) {
@@ -345,19 +346,23 @@ public class EAFunctionalGapPlaySheet extends GridPlaySheet {
 		String siteEngineName = "TAP_Site_Data";
 		String fccQuery = "SELECT DISTINCT ?FCC (SUM(?TotalCost) AS ?Cost) WHERE {{?FCC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC>} {?FCCMTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC-MTF>}{?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>}{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>}{?YearQuarter <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>}{?Year <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?FCCMTF <http://semoss.org/ontologies/Relation/Contains/TotalCost> ?TotalCost }{?FCC <http://semoss.org/ontologies/Relation/Has> ?FCCMTF}{?FCCMTF <http://semoss.org/ontologies/Relation/Occurs_At> ?MTF}{?DCSite <http://semoss.org/ontologies/Relation/Includes> ?MTF}{?Wave <http://semoss.org/ontologies/Relation/Contains> ?DCSite}{?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?YearQuarter}{?YearQuarter <http://semoss.org/ontologies/Relation/has> ?Year}} GROUP BY ?FCC";
 		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp(siteEngineName);
-		SesameJenaSelectWrapper siteWrapper = new SesameJenaSelectWrapper();
+
+		ISelectWrapper siteWrapper = WrapperManager.getInstance().getSWrapper(siteEngine, fccQuery);
+
+		/*ISelectWrapper siteWrapper = new ISelectWrapper();
 		if (siteEngine == null) {
 			Utility.showError("The database \"TAP_Site_Data\" could not be found. Process unable to continue");
 		}
 		siteWrapper.setQuery(fccQuery);
 		siteWrapper.setEngine(siteEngine);
 		siteWrapper.executeQuery();
+		*/
 		
 		// get the bindings from it
 		String[] fccColNames = siteWrapper.getVariables();
 		try {
 			while (siteWrapper.hasNext()) {
-				SesameJenaSelectStatement sjss = siteWrapper.next();
+				ISelectStatement sjss = siteWrapper.next();
 				String fcc = (String) sjss.getVar(fccColNames[0]);
 				Object cost = sjss.getVar(fccColNames[1]);
 				double doubleCost = 0.0;

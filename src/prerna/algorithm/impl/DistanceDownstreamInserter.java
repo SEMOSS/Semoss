@@ -27,10 +27,10 @@ import org.openrdf.model.URI;
 
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
+import prerna.rdf.engine.api.IConstructStatement;
+import prerna.rdf.engine.api.IConstructWrapper;
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaConstructStatement;
-import prerna.rdf.engine.impl.SesameJenaConstructWrapper;
-import prerna.ui.components.PropertySpecData;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.helpers.EntityFiller;
 import prerna.util.Constants;
@@ -293,11 +293,14 @@ public class DistanceDownstreamInserter {
 	 * @return DelegateForest<DBCMVertex,DBCMEdge>		Forest, comprised of vertices and edges. */
 	public DelegateForest<SEMOSSVertex, SEMOSSEdge> createForest(String query) {
 		//run query
-		SesameJenaConstructWrapper sjw = new SesameJenaConstructWrapper();
+		
+		IConstructWrapper sjw = WrapperManager.getInstance().getCWrapper(engine, query);
+
+		/*SesameJenaConstructWrapper sjw = new SesameJenaConstructWrapper();
 		sjw.setQuery(query);
 		sjw.setEngine(engine);
 		sjw.execute();
-		
+		*/
 		
 		//this is pretty much directly from GraphPlaySheet CreateForest().  I removed Jena Model and Control Data though
 		logger.info("Creating Forest >>>>>");
@@ -316,7 +319,7 @@ public class DistanceDownstreamInserter {
 			//logger.warn("Iterating " + count);
 			count++;
 
-			SesameJenaConstructStatement sct = sjw.next();
+			IConstructStatement sct = sjw.next();
 			String predicateName = sct.getPredicate();
 
 					// get the subject, predicate and object

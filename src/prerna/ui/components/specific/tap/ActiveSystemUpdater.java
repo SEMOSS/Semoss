@@ -29,11 +29,12 @@ import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 import org.openrdf.sail.SailException;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.rdf.engine.impl.RDFFileSesameEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
@@ -147,16 +148,17 @@ public class ActiveSystemUpdater {
 			foundQuery = true;
 			logger.info("Running: " + queryData);
 			System.out.println(queryData);
-			SesameJenaSelectWrapper wrapperAllSystems = new SesameJenaSelectWrapper();
+			ISelectWrapper wrapperAllSystems = WrapperManager.getInstance().getSWrapper(engine, queryData);
+			/*SesameJenaSelectWrapper wrapperAllSystems = new SesameJenaSelectWrapper();
 			wrapperAllSystems.setEngine(engine);
 			wrapperAllSystems.setQuery(queryData);
 			wrapperAllSystems.executeQuery();
 		
 			// perform so next() method works
 			wrapperAllSystems.getVariables();
-		
+		*/
 			while(wrapperAllSystems.hasNext()){
-				SesameJenaSelectStatement sjss = wrapperAllSystems.next();
+				ISelectStatement sjss = wrapperAllSystems.next();
 				systemList.add(sjss.getRawVar("system").toString());
 			}
 		}

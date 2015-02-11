@@ -21,7 +21,6 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
 
-import javax.swing.JComboBox;
 import javax.swing.JDesktopPane;
 import javax.swing.JList;
 import javax.swing.JScrollPane;
@@ -32,8 +31,9 @@ import org.apache.log4j.Logger;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.VertexFilterData;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
@@ -632,10 +632,14 @@ public class SOAAnalysisPerformer implements Runnable {
 		// get the selected repository
 		Object[] repo = (Object[])repoList.getSelectedValues();
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
-		wrapper.executeQuery();
+		wrapper.executeQuery();*/
 		// get the bindings from it
 
 		int count = 0;
@@ -644,7 +648,7 @@ public class SOAAnalysisPerformer implements Runnable {
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				
 				Object [] values = new Object[names.length];
 				boolean filledData = true;

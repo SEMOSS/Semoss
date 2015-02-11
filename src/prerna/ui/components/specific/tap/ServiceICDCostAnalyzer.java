@@ -25,8 +25,11 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridTableModel;
 import prerna.ui.components.NewScrollBarUI;
@@ -89,7 +92,7 @@ public class ServiceICDCostAnalyzer {
 		addBindingToQueries(systems);
 		
 		//there are upstream icd counts and downstream icd counts next two query processes combines both
-		SesameJenaSelectWrapper sjswQuery = processQuery(icdCountQueryUpstream, (IEngine)DIHelper.getInstance().getLocalProp("HR_Core"));
+		ISelectWrapper sjswQuery = processQuery(icdCountQueryUpstream, (IEngine)DIHelper.getInstance().getLocalProp("HR_Core"));
 		processDataSerICD(sjswQuery);
 		sjswQuery = processQuery(icdCountQueryDownstream, (IEngine)DIHelper.getInstance().getLocalProp("HR_Core"));
 		processDataSerICD(sjswQuery);
@@ -157,13 +160,13 @@ public class ServiceICDCostAnalyzer {
 	
 
 	
-	private void processDataSerICD(SesameJenaSelectWrapper sjswQuery)
+	private void processDataSerICD(ISelectWrapper sjswQuery)
 	{
 		
 		String[] vars = sjswQuery.getVariables();
 		while(sjswQuery.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjswQuery.next();
+			ISelectStatement sjss = sjswQuery.next();
 			String data = sjss.getVar(vars[0]).toString();
 			String service = sjss.getVar(vars[1]).toString();
 			double count = (Double) sjss.getVar(vars[2]);
@@ -178,26 +181,26 @@ public class ServiceICDCostAnalyzer {
 			}
 		}
 	}
-	private void processGenericSerCost(SesameJenaSelectWrapper sjswQuery)
+	private void processGenericSerCost(ISelectWrapper sjswQuery)
 	{
 		
 		String[] vars = sjswQuery.getVariables();
 		while(sjswQuery.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjswQuery.next();
+			ISelectStatement sjss = sjswQuery.next();
 			String service = sjss.getVar(vars[0]).toString();
 			double cost = (Double) sjss.getVar(vars[1]);
 			serGenericCostHash.put(service,  cost);
 		}
 	}
 	
-	private void processDataSerCost(SesameJenaSelectWrapper sjswQuery)
+	private void processDataSerCost(ISelectWrapper sjswQuery)
 	{
 		
 		String[] vars = sjswQuery.getVariables();
 		while(sjswQuery.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjswQuery.next();
+			ISelectStatement sjss = sjswQuery.next();
 			String data = sjss.getVar(vars[0]).toString();
 			String service = sjss.getVar(vars[1]).toString();
 			double cost = (Double) sjss.getVar(vars[2]);
@@ -211,13 +214,13 @@ public class ServiceICDCostAnalyzer {
 		}
 	}
 	
-	private void processSerForDataCount(SesameJenaSelectWrapper sjswQuery)
+	private void processSerForDataCount(ISelectWrapper sjswQuery)
 	{
 		
 		String[] vars = sjswQuery.getVariables();
 		while(sjswQuery.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjswQuery.next();
+			ISelectStatement sjss = sjswQuery.next();
 			String data = sjss.getVar(vars[0]).toString();
 			double count = (Double) sjss.getVar(vars[1]);
 			dataSerCount.put(data,  count);
@@ -225,8 +228,11 @@ public class ServiceICDCostAnalyzer {
 	}
 	
 	
-	private SesameJenaSelectWrapper processQuery(String query, IEngine engine){
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+	private ISelectWrapper processQuery(String query, IEngine engine){
+		
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 		//run the query against the engine provided
 		sjsw.setEngine(engine);
 		sjsw.setQuery(query);
@@ -234,6 +240,8 @@ public class ServiceICDCostAnalyzer {
 		sjsw.getVariables();
 		System.out.println(query);
 		return sjsw;
+		*/
+		return wrapper;
 	}
 	
 	

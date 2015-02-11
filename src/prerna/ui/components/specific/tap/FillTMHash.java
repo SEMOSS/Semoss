@@ -27,8 +27,11 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.Constants;
@@ -150,12 +153,14 @@ public class FillTMHash extends GridPlaySheet{
 		logger.info("Filling TMhash " + query);
 		
 		wrapper = new SesameJenaSelectWrapper();
+		
 		list = new ArrayList();
 	
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
 		wrapper.executeQuery();
 		
+		//wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 		try {
 			processQuery();
 			DIHelper.getInstance().setLocalProperty(Constants.TECH_MATURITY, TMhash);
@@ -316,7 +321,7 @@ public class FillTMHash extends GridPlaySheet{
 	}
 	
 	@Override
-	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+	public Object getVariable(String varName, ISelectStatement sjss){
 		return sjss.getVar(varName);
 	}
 

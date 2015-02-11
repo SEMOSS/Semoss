@@ -21,10 +21,10 @@ import java.util.Hashtable;
 
 import org.openrdf.model.Literal;
 
-import com.google.gson.Gson;
-
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -74,7 +74,7 @@ public class HealthGridSheet extends BrowserPlaySheet{
 		//list will be of the form: system/vendor, xname, yname1, yname2 size of circle,lifecycle
 		dataHash = new Hashtable<String,Object>();
 		ArrayList allData = new ArrayList();
-		String[] names = wrapper.getVariables();
+		String[] names = wrapper.getVariables(); 
 		String series = names[0];//System or Vendor
 		String xName = names[1];//BusinessValue
 		String yName1 = names[2];//ExternalStability TechMaturity
@@ -159,7 +159,7 @@ public class HealthGridSheet extends BrowserPlaySheet{
 					"BIND(<http://semoss.org/ontologies/Relation/Contains> AS ?o)" +
 					"{?s ?p ?o}}";
 			try{
-				SesameJenaSelectWrapper wrap = runQuery(typeTripleCheckQuery);
+				ISelectWrapper wrap = runQuery(typeTripleCheckQuery);
 				if(wrap.hasNext())
 					retBool = true;
 				else
@@ -177,13 +177,16 @@ public class HealthGridSheet extends BrowserPlaySheet{
 	 * @param query String
 	
 	 * @return SesameJenaSelectWrapper */
-	private SesameJenaSelectWrapper runQuery(String query){
+	private ISelectWrapper runQuery(String query){
 	
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
 		wrapper.executeQuery();
 		wrapper.getVariables();
+		*/
 		return wrapper;
 	}
 	
@@ -200,7 +203,7 @@ public class HealthGridSheet extends BrowserPlaySheet{
 	}
 	
 	@Override
-	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+	public Object getVariable(String varName, ISelectStatement sjss){
 		Object var = sjss.getRawVar(varName);
 			if( var != null && var instanceof Literal) {
 				var = sjss.getVar(varName);

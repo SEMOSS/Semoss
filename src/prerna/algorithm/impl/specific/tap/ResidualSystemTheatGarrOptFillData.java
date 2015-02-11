@@ -21,8 +21,9 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.DIHelper;
 
 public class ResidualSystemTheatGarrOptFillData extends ResidualSystemOptFillData{
@@ -91,18 +92,22 @@ public class ResidualSystemTheatGarrOptFillData extends ResidualSystemOptFillDat
 			for(int i=0;i<sysList.size();i++)
 				systemGarrison[i] = 0;
 		}
-	
-		SesameJenaSelectWrapper	wrapper = new SesameJenaSelectWrapper();
+
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(systemEngine);
+
+		/*SesameJenaSelectWrapper	wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
 		wrapper.setEngineType(IEngine.ENGINE_TYPE.SESAME);
 		wrapper.executeQuery();	
+		*/
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+		
 		String[] names = wrapper.getVariables();
 		// now get the bindings and generate the data
 		while(wrapper.hasNext())
 		{
-			SesameJenaSelectStatement sjss = wrapper.next();
+			ISelectStatement sjss = wrapper.next();
 			String sysName = (String)getVariable(names[0], sjss);
 			int rowIndex = sysList.indexOf(sysName);
 			if(rowIndex>-1) {

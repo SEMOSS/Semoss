@@ -19,8 +19,11 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.DIHelper;
 
 public class DHMSMHelper {
@@ -43,23 +46,23 @@ public class DHMSMHelper {
 
 	public void runData(IEngine engine)
 	{
-		SesameJenaSelectWrapper sjswQuery1 = processQuery(GET_ALL_SYSTEM_WITH_CREATE_AND_DOWNSTREAM_QUERY, engine);
+		ISelectWrapper sjswQuery1 = processQuery(GET_ALL_SYSTEM_WITH_CREATE_AND_DOWNSTREAM_QUERY, engine);
 		processAllResults(sjswQuery1, true);
 
-		SesameJenaSelectWrapper sjswQuery2 = processQuery(GET_ALL_SYSTEM_WITH_DOWNSTREAM_AND_NO_UPSTREAM, engine);
+		ISelectWrapper sjswQuery2 = processQuery(GET_ALL_SYSTEM_WITH_DOWNSTREAM_AND_NO_UPSTREAM, engine);
 		processAllResults(sjswQuery2, true);
 
-		SesameJenaSelectWrapper sjswQuery3 = processQuery(GET_ALL_SYSTEM_WITH_UPSTREAM, engine);
+		ISelectWrapper sjswQuery3 = processQuery(GET_ALL_SYSTEM_WITH_UPSTREAM, engine);
 		processAllResults(sjswQuery3, true);
 
 		if(useDHMSMOnly)
 		{
-			SesameJenaSelectWrapper sjswQuery4 = processQuery(GET_ALL_DHMSM_CAPABILITIES_AND_CRM, engine);
+			ISelectWrapper sjswQuery4 = processQuery(GET_ALL_DHMSM_CAPABILITIES_AND_CRM, engine);
 			processAllResults(sjswQuery4, false);
 		}
 		else
 		{
-			SesameJenaSelectWrapper sjswQuery4 = processQuery(GET_ALL_HR_CAPABILITIES_AND_CRM, engine);
+			ISelectWrapper sjswQuery4 = processQuery(GET_ALL_HR_CAPABILITIES_AND_CRM, engine);
 			processAllResults(sjswQuery4, false);
 		}
 		return;
@@ -74,7 +77,7 @@ public class DHMSMHelper {
 
 		String capabilityGroup = "SELECT DISTINCT ?CapabilityFunctionalArea ?Capability WHERE {{?CapabilityFunctionalArea <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityFunctionalArea>;}{?Utilizes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Utilizes>;}{?CapabilityGroup <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityGroup>;}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?ConsistsOfCapability <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?CapabilityFunctionalArea ?Utilizes ?CapabilityGroup;} {?CapabilityGroup ?ConsistsOfCapability ?Capability;}}";
 
-		SesameJenaSelectWrapper sjswQuery = processQuery(capabilityGroup, (IEngine)DIHelper.getInstance().getLocalProp("HR_Core"));
+		ISelectWrapper sjswQuery = processQuery(capabilityGroup, (IEngine)DIHelper.getInstance().getLocalProp("HR_Core"));
 		
 		ArrayList<String> allHSDCapabilities = new ArrayList<String>();
 		ArrayList<String> allHSSCapabilities = new ArrayList<String>();
@@ -83,7 +86,7 @@ public class DHMSMHelper {
 		String[] vars = sjswQuery.getVariables();
 		while(sjswQuery.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjswQuery.next();
+			ISelectStatement sjss = sjswQuery.next();
 			String group = sjss.getVar(vars[0]).toString();
 			String cap = sjss.getVar(vars[1]).toString();
 			if(group.contains("HSD"))
@@ -318,7 +321,7 @@ public class DHMSMHelper {
 		return resultSet;
 	}
 
-	private void processAllResults(SesameJenaSelectWrapper sjsw, boolean sys)
+	private void processAllResults(ISelectWrapper sjsw, boolean sys)
 	{
 		if(sys)
 		{
@@ -330,12 +333,12 @@ public class DHMSMHelper {
 		}
 	}
 	
-	private  Hashtable<String, Hashtable<String, String>> processResults(SesameJenaSelectWrapper sjsw, Hashtable<String, Hashtable<String, String>> dataList)
+	private  Hashtable<String, Hashtable<String, String>> processResults(ISelectWrapper sjsw, Hashtable<String, Hashtable<String, String>> dataList)
 	{
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String sub = sjss.getVar(vars[0]).toString();
 			String obj = sjss.getVar(vars[1]).toString();
 			String crm = sjss.getVar(vars[2]).toString();
@@ -364,13 +367,16 @@ public class DHMSMHelper {
 	}
 
 	//process the query
-	private SesameJenaSelectWrapper processQuery(String query, IEngine engine){
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+	private ISelectWrapper processQuery(String query, IEngine engine){
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 		//run the query against the engine provided
 		sjsw.setEngine(engine);
 		sjsw.setQuery(query);
 		sjsw.executeQuery();		
 		sjsw.getVariables();
-		return sjsw;
+		return sjsw;*/
+		return wrapper;
 	}
 }

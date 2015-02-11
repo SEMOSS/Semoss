@@ -25,8 +25,9 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.UpdateProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -39,7 +40,7 @@ public class SystemBudgetPropInserter {
 	static final Logger logger = LogManager.getLogger(SystemBudgetPropInserter.class.getName());
 	String query;
 	String propName = "SustainmentBudget";
-	SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+	ISelectWrapper wrapper = null; //new SesameJenaSelectWrapper();
 	String tapEngineName = "TAP_Core_Data";
 	Boolean hideProp = true;
 	
@@ -103,7 +104,7 @@ public class SystemBudgetPropInserter {
 		
 		while(wrapper.hasNext()){
 
-			SesameJenaSelectStatement sjss = wrapper.next();
+			ISelectStatement sjss = wrapper.next();
 			
 			Object [] values = new Object[names.length];
 			for(int colIndex = 0;colIndex < names.length;colIndex++)
@@ -143,10 +144,12 @@ public class SystemBudgetPropInserter {
 			IEngine selectedEngine = (IEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
 			logger.info("Selecting repository " + repos[repoIndex]);
 			
+			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(selectedEngine, query);
+
 			//create the update wrapper, set the variables, and let it run
-			wrapper.setEngine(selectedEngine);
+			/*wrapper.setEngine(selectedEngine);
 			wrapper.setQuery(query);
-			wrapper.executeQuery();
+			wrapper.executeQuery();*/
 		}
 	}
 	

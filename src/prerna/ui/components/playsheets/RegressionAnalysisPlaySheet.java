@@ -15,7 +15,6 @@
  *******************************************************************************/
 package prerna.ui.components.playsheets;
 
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.ComponentOrientation;
@@ -38,31 +37,26 @@ import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
-import javax.swing.JTable;
 import javax.swing.JTextField;
-import javax.swing.Painter;
 import javax.swing.ScrollPaneConstants;
-import javax.swing.UIDefaults;
-import javax.swing.UIManager;
 import javax.swing.border.LineBorder;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.helpers.EntityFillerForSubClass;
-import prerna.ui.main.listener.impl.GridPlaySheetListener;
 import prerna.ui.main.listener.impl.PlaySheetListener;
 import prerna.ui.main.listener.impl.RegressionAnalysisButtonListener;
 import prerna.ui.main.listener.impl.RegressionDepVarListener;
 import prerna.ui.main.listener.impl.RegressionIndepVarDeleteListener;
 import prerna.ui.main.listener.impl.RegressionIndepVarListener;
 import prerna.ui.swing.custom.CustomButton;
-import prerna.ui.swing.custom.ProgressPainter;
 import prerna.util.CSSApplication;
 import aurelienribon.ui.css.Style;
 
@@ -98,7 +92,7 @@ public class RegressionAnalysisPlaySheet extends AbstractRDFPlaySheet{
 	boolean append = false;
 	protected ResultSet rs = null;
 	public ArrayList <String> possibleList;
-	public SesameJenaSelectWrapper wrapper;
+	public ISelectWrapper wrapper;
 
 	/**
 	 * Method createView.
@@ -141,13 +135,16 @@ public class RegressionAnalysisPlaySheet extends AbstractRDFPlaySheet{
 		indVarListModel.removeAllElements();
 		possibleList = new ArrayList();
 
-		wrapper = new SesameJenaSelectWrapper();
+
+		//wrapper = new SesameJenaSelectWrapper();
 		if(engine!= null && rs == null){
 			String selected = (String) nodeSelectorCombo.getSelectedItem();
 			String nodeType = nodeSelectorCombo.getURI(selected);
 			query = "SELECT DISTINCT ?property WHERE{{?node <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <"+nodeType+"> ;} {?node ?property ?Value}{?property <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> ;}} ORDER BY ?property";
 
-			wrapper.setQuery(query);
+			wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+			/*wrapper.setQuery(query);
 			updateProgressBar("10%...Querying RDF Repository", 10);
 			wrapper.setEngine(engine);
 			updateProgressBar("30%...Querying RDF Repository", 30);
@@ -168,10 +165,11 @@ public class RegressionAnalysisPlaySheet extends AbstractRDFPlaySheet{
 			}		
 
 			updateProgressBar("60%...Processing RDF Statements	", 60);
+			*/
 		}
 		else if (engine==null && rs!=null){
-			wrapper.setResultSet(rs);
-			wrapper.setEngineType(IEngine.ENGINE_TYPE.JENA);
+			//wrapper.setResultSet(rs);
+			//wrapper.setEngineType(IEngine.ENGINE_TYPE.JENA);
 		}
 		String [] names = wrapper.getVariables();
 
@@ -180,7 +178,7 @@ public class RegressionAnalysisPlaySheet extends AbstractRDFPlaySheet{
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				possibleList.add((String)sjss.getVar(names[0]));
 				count++;
 			}			

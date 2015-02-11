@@ -24,6 +24,8 @@ import org.apache.log4j.Logger;
 
 import prerna.error.EngineException;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.Utility;
@@ -74,8 +76,8 @@ public class GenericDBComparer
 		ArrayList<Object[]> oldDBList = new ArrayList<Object[]>();
 		Object[] row = null;
 		
-		SesameJenaSelectWrapper newSjsw = null;
-		SesameJenaSelectWrapper oldSjsw = null;
+		ISelectWrapper newSjsw = null;
+		ISelectWrapper oldSjsw = null;
 		
 		if (isMeta)
 		{
@@ -92,14 +94,14 @@ public class GenericDBComparer
 		
 		while (newSjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = newSjsw.next();
+			ISelectStatement sjss = newSjsw.next();
 			// Index 0 is for concept, 1 is for count
 			Object[] tempCount = { sjss.getRawVar(newValues[0]), sjss.getVar(newValues[1]) };
 			newDBList.add(tempCount);
 		}
 		while (oldSjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = oldSjsw.next();
+			ISelectStatement sjss = oldSjsw.next();
 			// Index 0 is for concept, 1 is for count
 			Object[] tempCount = { sjss.getRawVar(oldValues[0]), sjss.getVar(oldValues[1]) };
 			oldDBList.add(tempCount);
@@ -171,21 +173,21 @@ public class GenericDBComparer
 		ArrayList<Object[]> oldDBList = new ArrayList<Object[]>();
 		Object[] row = null;
 		
-		SesameJenaSelectWrapper newSjsw = Utility.processQuery(newDB, query);
+		ISelectWrapper newSjsw = Utility.processQuery(newDB, query);
 		String[] newValues = newSjsw.getVariables();
-		SesameJenaSelectWrapper oldSjsw = Utility.processQuery(oldDB, query);
+		ISelectWrapper oldSjsw = Utility.processQuery(oldDB, query);
 		String[] oldValues = oldSjsw.getVariables();
 		
 		while (newSjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = newSjsw.next();
+			ISelectStatement sjss = newSjsw.next();
 			// Index 0 is for concept, 1 is for instance, 2 is for count
 			Object[] tempCount = { sjss.getRawVar(newValues[0]), sjss.getRawVar(newValues[1]), sjss.getVar(newValues[2]) };
 			newDBList.add(tempCount);
 		}
 		while (oldSjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = oldSjsw.next();
+			ISelectStatement sjss = oldSjsw.next();
 			// Index 0 is for concept, 1 is for instance, 2 is for count
 			Object[] tempCount = { sjss.getRawVar(oldValues[0]), sjss.getRawVar(oldValues[1]), sjss.getVar(newValues[2]) };
 			oldDBList.add(tempCount);
@@ -252,14 +254,14 @@ public class GenericDBComparer
 	{
 		ArrayList<Object[]> finalComparison = new ArrayList<Object[]>();
 		
-		SesameJenaSelectWrapper newSjsw = Utility.processQuery(newMetaDB, query);
-		SesameJenaSelectWrapper oldSjsw = Utility.processQuery(oldMetaDB, query);
+		ISelectWrapper newSjsw = Utility.processQuery(newMetaDB, query);
+		ISelectWrapper oldSjsw = Utility.processQuery(oldMetaDB, query);
 		
 		String[] newValues = newSjsw.getVariables();
 		String[] oldValues = oldSjsw.getVariables();
 		
-		SesameJenaSelectStatement newSjss = newSjsw.next();
-		SesameJenaSelectStatement oldSjss = oldSjsw.next();
+		ISelectStatement newSjss = newSjsw.next();
+		ISelectStatement oldSjss = oldSjsw.next();
 		Object[] tempCount = { newSjss.getVar(newValues[0]), oldSjss.getVar(oldValues[0]) };
 		finalComparison.add(tempCount);
 		
@@ -273,14 +275,14 @@ public class GenericDBComparer
 		ArrayList<Object[]> oldDBList = new ArrayList<Object[]>();
 		Object[] row = null;
 		
-		SesameJenaSelectWrapper newSjsw = Utility.processQuery(newDB, query);
+		ISelectWrapper newSjsw = Utility.processQuery(newDB, query);
 		String[] newValues = newSjsw.getVariables();
-		SesameJenaSelectWrapper oldSjsw = Utility.processQuery(oldDB, query);
+		ISelectWrapper oldSjsw = Utility.processQuery(oldDB, query);
 		String[] oldValues = oldSjsw.getVariables();
 		
 		while (newSjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = newSjsw.next();
+			ISelectStatement sjss = newSjsw.next();
 			// Index 0 is for subject's concept, 1 is for relation, 2 is for object's concept, 3 is for count
 			Object[] tempCount = { sjss.getRawVar(newValues[0]), sjss.getRawVar(newValues[1]), sjss.getRawVar(newValues[2]),
 					sjss.getVar(newValues[3]) };
@@ -288,7 +290,7 @@ public class GenericDBComparer
 		}
 		while (oldSjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = oldSjsw.next();
+			ISelectStatement sjss = oldSjsw.next();
 			// Index 0 is for subject's concept, 1 is for relation, 2 is for object's concept, 3 is for count
 			Object[] tempCount = { sjss.getRawVar(oldValues[0]), sjss.getRawVar(oldValues[1]), sjss.getRawVar(newValues[2]),
 					sjss.getVar(newValues[3]) };
@@ -363,12 +365,12 @@ public class GenericDBComparer
 		
 		Object[] row = null;
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(newDB, query);
+		ISelectWrapper sjsw = Utility.processQuery(newDB, query);
 		String[] values = sjsw.getVariables();
 		
 		while (sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			
 			Object[] singleProp = { sjss.getRawVar(values[0]), sjss.getRawVar(values[1]) };
 			allProps.add(singleProp);
@@ -420,12 +422,12 @@ public class GenericDBComparer
 		ArrayList<Object[]> allProps = new ArrayList<Object[]>();
 		Object[] row = null;
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(newDB, query);
+		ISelectWrapper sjsw = Utility.processQuery(newDB, query);
 		String[] values = sjsw.getVariables();
 		
 		while (sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String key = sjss.getRawVar(values[0]).toString().concat("+++").concat(sjss.getRawVar(values[1]).toString());
 			if (!allInstancesAndProps.containsKey(key))
 			{
@@ -489,14 +491,14 @@ public class GenericDBComparer
 		ArrayList<Object[]> allProps = new ArrayList<Object[]>();
 		Object[] row = null;
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(newDB, query);
+		ISelectWrapper sjsw = Utility.processQuery(newDB, query);
 		String[] values = sjsw.getVariables();
 		
 		
 
 		while (sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String key = sjss.getRawVar(values[0]).toString().concat("+++").concat(sjss.getRawVar(values[1]).toString()).concat("+++").concat(
 					sjss.getRawVar(values[2]).toString()).concat("+++").concat(
 					sjss.getRawVar(values[3]).toString().concat("+++").concat(sjss.getRawVar(values[4]).toString()));

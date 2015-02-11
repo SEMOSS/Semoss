@@ -31,9 +31,12 @@ import org.openrdf.query.UpdateExecutionException;
 import org.openrdf.repository.RepositoryException;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
@@ -98,11 +101,16 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 	 */
 	public ArrayList<String> getVendorTasks(){
 		String vendorTasksQuery = "SELECT DISTINCT ?Task WHERE {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}";
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+
+
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(vendorTasksQuery);
-		engine = (IEngine)DIHelper.getInstance().getLocalProp(repo);
 		wrapper.setEngine(engine);
-		wrapper.executeQuery();
+		wrapper.executeQuery();*/
+		engine = (IEngine)DIHelper.getInstance().getLocalProp(repo);
+
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, vendorTasksQuery);
+
 		ArrayList<String> tasks = new ArrayList<String>();
 		String[] names = wrapper.getVariables();
 		try {
@@ -112,7 +120,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 				return null;
 			}
 			while(wrapper.hasNext()) {
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				tasks.add((String)sjss.getVar(names[0]));
 			}
 		} 
@@ -136,11 +144,14 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 		String query2 = "SELECT DISTINCT ?Capability ?Task (SUM(COALESCE(?dataWeight,0) * COALESCE(?Error_Percent,0) * .583 + COALESCE(?bluWeight,0) * COALESCE(?Error_Percent1,0) * .23) AS ?Task_Effect) WHERE {{SELECT DISTINCT ?Capability ?Task ?Data_Object ?FError ?Error_Percent ?dataWeight WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Data_Object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}  {?FError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FError>}{?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?Attribute <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Attribute> ;} {?FError_Needs_Data_Object <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Assigned <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Assigned> ;}{?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task.} {?Task <http://semoss.org/ontologies/Relation/Needs> ?Data_Object}{ ?Task <http://semoss.org/ontologies/Relation/Has> ?Attribute.}{?FError <http://semoss.org/ontologies/Relation/Supports> ?Attribute}{?FError ?FError_Needs_Data_Object ?Data_Object}{?FError_Needs_Data_Object <http://semoss.org/ontologies/Relation/Contains/weight> ?dataWeight} { ?Activity ?Assigned ?FError.}{?Assigned <http://semoss.org/ontologies/Relation/Contains/weight> ?Error_Percent}}  }UNION{SELECT DISTINCT ?Capability ?Task ?BLU ?FError ?Error_Percent1 ?bluWeight WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}{?FError <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FError>}{?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;} {?Attribute <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Attribute> ;}{?FError_Needs_Data_Object <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>} {?Assigned <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Assigned> ;}{ ?Task <http://semoss.org/ontologies/Relation/Has> ?Attribute.}{?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task.}{?Task <http://semoss.org/ontologies/Relation/Needs> ?BLU}{?FError <http://semoss.org/ontologies/Relation/Supports> ?Attribute}{?FError ?FError_Needs_Data_Object ?BLU}{?FError_Needs_Data_Object <http://semoss.org/ontologies/Relation/Contains/weight> ?bluWeight}{ ?Activity ?Assigned ?FError.}{?Assigned <http://semoss.org/ontologies/Relation/Contains/weight> ?Error_Percent1} } }} GROUP BY ?Capability ?Task ORDER BY ?Task_Effect";
 
 		engine = (IEngine)DIHelper.getInstance().getLocalProp(changedDB);
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query1);
+
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query1);
 		wrapper.setEngine(engine);
-		wrapper.executeQuery();
+		wrapper.executeQuery();*/
 
 		Hashtable<String, Double> taskHash = new Hashtable<String, Double>();
 		String[] names = wrapper.getVariables();
@@ -151,7 +162,7 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 				return null;
 			}
 			while(wrapper.hasNext()) {
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				Double valToAdd=0.0;
 				if((Double)sjss.getVar(names[4])!=0.0)
 						valToAdd=((Double)(sjss.getVar(names[3])) *Math.log(((Double)sjss.getVar(names[4]))))/((Double)sjss.getVar(names[2]));
@@ -164,17 +175,21 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 		catch (RuntimeException e) {
 			e.printStackTrace();
 		}
-			wrapper = new SesameJenaSelectWrapper();
+		
+			wrapper = WrapperManager.getInstance().getSWrapper(engine, query2);
+
+			/*wrapper = new SesameJenaSelectWrapper();
 			wrapper.setQuery(query2);
 			wrapper.setEngine(engine);
 			wrapper.executeQuery();
+			*/
 			
 			//all tasks and their associated weights are stored in taskAndWeights
 			Hashtable<String,Double> taskAndWeights = new Hashtable<String,Double>();
 			String[] names2 = wrapper.getVariables();
 			try {
 				while(wrapper.hasNext()) {
-					SesameJenaSelectStatement sjss = wrapper.next();
+					ISelectStatement sjss = wrapper.next();
 					//Object [] values = new Object[2];
 					String task=(String)sjss.getVar(names2[1]);
 					if(tasks.contains(task))
@@ -271,21 +286,25 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 		}
 
 		Hashtable<String, Hashtable<String, Hashtable<String,Object>>> vendors = new Hashtable<String, Hashtable<String, Hashtable<String,Object>>>();
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+
+		//SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		ISelectWrapper wrapper;
 		String[] names;
 		for(int i=0;i<queryArray.size();i++)
 		{
-			wrapper = new SesameJenaSelectWrapper();
+			/*wrapper = new SesameJenaSelectWrapper();
 			wrapper.setQuery(queryArray.get(i));
 			wrapper.setEngine(engine);
-			wrapper.executeQuery();
-			
+			wrapper.executeQuery();*/
+
+			wrapper = WrapperManager.getInstance().getSWrapper(engine, queryArray.get(i));
+
 			// get the bindings from it
 			names = wrapper.getVariables();
 			try {
 				while(wrapper.hasNext())
 				{
-					SesameJenaSelectStatement sjss = wrapper.next();
+					ISelectStatement sjss = wrapper.next();
 					String vendor = (String)sjss.getVar(names[0]);
 					String task = (String)sjss.getVar(names[1]);
 					String requirementCategory = (String)names[2];
@@ -357,20 +376,25 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 		
 		Hashtable<String,Double> vendorsCost = new Hashtable<String, Double>();
 		Hashtable<String,ArrayList<String>> vendorsRequirements = new Hashtable<String,ArrayList<String>>();
-		SesameJenaSelectWrapper wrapper;
+		//SesameJenaSelectWrapper wrapper;
+		ISelectWrapper wrapper;
+
 		for(int i=0;i<queryArray.size();i++)
 		{
-			wrapper = new SesameJenaSelectWrapper();
+			/*wrapper = new SesameJenaSelectWrapper();
 			wrapper.setQuery(queryArray.get(i));
 			wrapper.setEngine(engine);
 			wrapper.executeQuery();
+			*/
+			wrapper = WrapperManager.getInstance().getSWrapper(engine, queryArray.get(i));
+
 			
 			// get the bindings from it
 			String[] names = wrapper.getVariables();
 			try {
 				while(wrapper.hasNext())
 				{
-					SesameJenaSelectStatement sjss = wrapper.next();
+					ISelectStatement sjss = wrapper.next();
 					String vendor = (String)sjss.getVar(names[0]);
 					String requirement = (String)sjss.getVar(names[1]);
 					String fulfill = (String)sjss.getVar(names[2]);
@@ -410,20 +434,26 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 				
 		Hashtable<String,Double> vendorsHWSWCost = new Hashtable<String, Double>();
 		
-		SesameJenaSelectWrapper wrapper;
+		//SesameJenaSelectWrapper wrapper;
+		ISelectWrapper wrapper;
+
 		for(int i=0;i<queryArray.size();i++)
 		{
-			wrapper = new SesameJenaSelectWrapper();
+			/*wrapper = new SesameJenaSelectWrapper();
 			wrapper.setQuery(queryArray.get(i));
 			wrapper.setEngine(engine);
 			wrapper.executeQuery();
+			*/
+			
+			wrapper = WrapperManager.getInstance().getSWrapper(engine, queryArray.get(i));
+
 			
 			// get the bindings from it
 			String[] names = wrapper.getVariables();
 			try {
 				while(wrapper.hasNext())
 				{
-					SesameJenaSelectStatement sjss = wrapper.next();
+					ISelectStatement sjss = wrapper.next();
 					String vendor = (String)sjss.getVar(names[0]);
 					Double cost = (Double)sjss.getVar(names[1]);
 					if(vendorsHWSWCost.containsKey(vendor))

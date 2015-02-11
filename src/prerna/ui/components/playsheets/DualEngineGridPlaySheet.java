@@ -30,8 +30,9 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ArrayListUtilityMethods;
 import prerna.util.DIHelper;
 
@@ -81,8 +82,10 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 
 		list = new ArrayList<Object[]>();
 
+		ISelectWrapper wrapper1 = WrapperManager.getInstance().getSWrapper(engine, query);
+
 		//Process query 1
-		SesameJenaSelectWrapper wrapper1 = new SesameJenaSelectWrapper();
+		/*SesameJenaSelectWrapper wrapper1 = new SesameJenaSelectWrapper();
 		if(engine1!= null){
 			wrapper1.setQuery(query1);
 			updateProgressBar("10%...Querying RDF Repository", 10);
@@ -90,13 +93,16 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 			updateProgressBar("20%...Querying RDF Repository", 30);
 			wrapper1.executeQuery();
 			updateProgressBar("30%...Processing RDF Statements	", 60);
-		}
+		}*/
 		// get the bindings from it
 		String [] names1 = wrapper1.getVariables();
 		names1size = names1.length;
 
 		//process query 2
-		SesameJenaSelectWrapper wrapper2 = new SesameJenaSelectWrapper();
+		ISelectWrapper wrapper2 = WrapperManager.getInstance().getSWrapper(engine, query);
+	
+		/*SesameJenaSelectWrapper wrapper2 = new SesameJenaSelectWrapper();
+
 		if(engine2!= null){
 			wrapper2.setQuery(query2);
 			updateProgressBar("40%...Querying RDF Repository", 10);
@@ -104,7 +110,7 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 			updateProgressBar("50%...Querying RDF Repository", 30);
 			wrapper2.executeQuery();
 			updateProgressBar("60%...Processing RDF Statements	", 60);
-		}
+		}*/
 		// get the bindings from it
 		String[] names2 = wrapper2.getVariables();
 		names2size = names2.length;
@@ -228,12 +234,12 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 	 * @param hash Hashtable<Object,ArrayList<Object[]>> - The data structure where the data from the query will be stored.
 	 * @param names String[] - An array consisting of all the variables from the query.
 	 */
-	private void processWrapper(String commonVar, SesameJenaSelectWrapper sjw, HashMap<Object, ArrayList<Object[]>> hash, String[] names){
+	private void processWrapper(String commonVar, ISelectWrapper sjw, HashMap<Object, ArrayList<Object[]>> hash, String[] names){
 		// now get the bindings and generate the data
 		try {
 			while(sjw.hasNext())
 			{
-				SesameJenaSelectStatement sjss = sjw.next();
+				ISelectStatement sjss = sjw.next();
 
 				Object [] values = new Object[names.length];
 				Object commonVal = null;

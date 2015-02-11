@@ -24,8 +24,10 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.DIHelper;
 
 public class SysDecommissionOptimizationFunctions {
@@ -554,7 +556,11 @@ public class SysDecommissionOptimizationFunctions {
 	public ArrayList <Object []> createData(String engineName, String query) {
 		
 		ArrayList <Object []> list = new ArrayList<Object[]>();
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
@@ -566,7 +572,8 @@ public class SysDecommissionOptimizationFunctions {
 		{
 			e.printStackTrace();
 		}		
-
+		*/
+		
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
 		int count = 0;
@@ -574,7 +581,7 @@ public class SysDecommissionOptimizationFunctions {
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				Object [] values = new Object[names.length];
 				for(int colIndex = 0;colIndex < names.length;colIndex++)
 				{
@@ -592,7 +599,7 @@ public class SysDecommissionOptimizationFunctions {
 		return list;
 	}
 	
-	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+	public Object getVariable(String varName, ISelectStatement sjss){
 		return sjss.getVar(varName);
 	}
 	

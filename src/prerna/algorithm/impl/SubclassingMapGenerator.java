@@ -23,16 +23,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import edu.uci.ics.jung.graph.DelegateForest;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.RDFFileSesameEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import edu.uci.ics.jung.graph.DelegateForest;
 
 public class SubclassingMapGenerator {
 
@@ -65,7 +67,7 @@ public class SubclassingMapGenerator {
 	public Map<String, Map> processSubclassing(IEngine engine) {
 		final String GET_SUBCLASSED_CONCEPTS = "SELECT DISTINCT ?parent ?child WHERE { FILTER(?parent != <http://semoss.org/ontologies/Concept>) FILTER(?child != <http://semoss.org/ontologies/Concept>) FILTER(?parent != ?child) {?parent <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?child <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?child <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?parent} }";		
 		
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, GET_SUBCLASSED_CONCEPTS);
+		ISelectWrapper sjsw = Utility.processQuery(engine, GET_SUBCLASSED_CONCEPTS);
 		String[] names = sjsw.getVariables();
 
 		subclassList = new HashMap<String, ArrayList<String>>();
@@ -73,7 +75,7 @@ public class SubclassingMapGenerator {
 		Set<String> childList = new HashSet<String>();
 
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String parent = sjss.getRawVar(names[0]).toString();
 			String child = sjss.getRawVar(names[1]).toString();
 
@@ -215,13 +217,13 @@ public class SubclassingMapGenerator {
 		final String GET_CONCEPT_EDGE_COUNT_QUERY = "SELECT DISTINCT ?entity ?direction ?node WHERE { { SELECT DISTINCT ?entity ?direction ?node WHERE { BIND('in' AS ?direction) FILTER(?inRel != <http://semoss.org/ontologies/Relation>) {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?inRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?node ?inRel ?entity} } } UNION { SELECT DISTINCT ?entity ?direction ?node WHERE { BIND('out' AS ?direction) FILTER(?outRel != <http://semoss.org/ontologies/Relation>) {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} {?outRel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} {?entity ?outRel ?node} } } }";
 
 		HashMap<String, HashMap<String, Set<String>>> conceptEdgeHash = new HashMap<String, HashMap<String, Set<String>>>();
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(baseDataEngine, GET_CONCEPT_EDGE_COUNT_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(baseDataEngine, GET_CONCEPT_EDGE_COUNT_QUERY);
 		String[] names = sjsw.getVariables();
 		String param1 = names[0];
 		String param2 = names[1];
 		String param3 = names[2];
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String concept = sjss.getRawVar(param1).toString();
 			String direction = sjss.getVar(param2).toString();
 			String relationshipNode = sjss.getRawVar(param3).toString();

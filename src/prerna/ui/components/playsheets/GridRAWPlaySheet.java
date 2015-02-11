@@ -15,10 +15,9 @@
  *******************************************************************************/
 package prerna.ui.components.playsheets;
 
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
+import prerna.rdf.engine.api.ISelectStatement;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridRAWTableModel;
-import prerna.ui.components.GridTableModel;
 
 /**
  */
@@ -31,7 +30,7 @@ public class GridRAWPlaySheet extends GridPlaySheet {
 	
 	 * @return Object - results with given URI.*/
 	@Override
-	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+	public Object getVariable(String varName, ISelectStatement sjss){
 		return sjss.getRawVar(varName).toString();
 	}
 	

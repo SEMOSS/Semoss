@@ -33,7 +33,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.cluster.LocalOutlierFactorAlgorithm;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
+import prerna.rdf.engine.api.ISelectStatement;
 import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.main.listener.impl.GridPlaySheetListener;
 import prerna.ui.main.listener.impl.JTableExcelExportListener;
@@ -176,7 +176,7 @@ public class LocalOutlierPlaySheet extends GridPlaySheet{
 	}
 	
 	@Override
-	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
+	public Object getVariable(String varName, ISelectStatement sjss){
 		return sjss.getVar(varName);
 	}
 	

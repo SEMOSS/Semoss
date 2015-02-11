@@ -27,8 +27,9 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.GridTableModel;
 import prerna.ui.components.GridTableRowSorter;
 import prerna.ui.components.playsheets.GridPlaySheet;
@@ -72,10 +73,12 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 		}
 
 
-		SesameJenaSelectWrapper runQuery = new SesameJenaSelectWrapper();
+		ISelectWrapper runQuery = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper runQuery = new SesameJenaSelectWrapper();
 		runQuery.setQuery(this.query);
 		runQuery.setEngine(this.engine);
-		runQuery.executeQuery();
+		runQuery.executeQuery();*/
 		varNames = runQuery.getVariables();
 
 		this.names = new String[varNames.length + costDataLength];
@@ -91,7 +94,7 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 		while(runQuery.hasNext()) {
 			Object[] addRow = new Object[varNames.length + costDataLength];
 
-			SesameJenaSelectStatement sjss = runQuery.next();
+			ISelectStatement sjss = runQuery.next();
 			String sysName = "";
 			for(int i = 0; i < varNames.length + 1; i++) {
 				if(i == 0) {
@@ -128,15 +131,19 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 	private Hashtable<String, Hashtable<String, Double>> processCostQuery(IEngine engine) 
 	{
 		Hashtable<String, Hashtable<String, Double>> costHash = new Hashtable<String, Hashtable<String, Double>>();
-		SesameJenaSelectWrapper costWrapper = new SesameJenaSelectWrapper();
+		
+		ISelectWrapper costWrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		
+		/*SesameJenaSelectWrapper costWrapper = new SesameJenaSelectWrapper();
 		costWrapper.setQuery(costQuery);
 		costWrapper.setEngine(engine);
 		costWrapper.executeQuery();
-
+		*/
 		costDataVarNames = costWrapper.getVariables();
 		costDataLength = costDataVarNames.length - 1;
 		while(costWrapper.hasNext()) {
-			SesameJenaSelectStatement sjss = costWrapper.next();
+			ISelectStatement sjss = costWrapper.next();
 			String sys = sjss.getVar(costDataVarNames[0]).toString();
 			Hashtable<String, Double> innerHash = new Hashtable<String, Double>();
 			costHash.put(sys, innerHash);

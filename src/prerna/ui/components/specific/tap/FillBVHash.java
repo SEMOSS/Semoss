@@ -24,8 +24,10 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.VertexFilterData;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -67,13 +69,17 @@ public class FillBVHash implements Runnable{
 			BVhash = (Hashtable<String, Object>) DIHelper.getInstance().getLocalProp(Constants.BUSINESS_VALUE);
 		logger.info("Graph PlaySheet " + query);
 		
-		wrapper = new SesameJenaSelectWrapper();
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		
+		//wrapper = new SesameJenaSelectWrapper();
 		list = new ArrayList();
 	
-		wrapper.setQuery(query);
+		/*wrapper.setQuery(query);
 		wrapper.setEngine(engine);
 		wrapper.executeQuery();
-			
+		*/
+		
 		fillArrayLists();//fills arraylists with names and puts values in 5000x5000 matrix. Stores all in tempSelectHash
 			
 		try {

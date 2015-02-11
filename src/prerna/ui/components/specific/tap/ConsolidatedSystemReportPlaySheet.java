@@ -27,8 +27,9 @@ import org.apache.log4j.Logger;
 import prerna.error.EngineException;
 import prerna.poi.specific.ConsolidatedSystemReportWriter;
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.playsheets.GridPlaySheet;
@@ -180,11 +181,11 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 		Hashtable<String, Object> retHash = new Hashtable<String, Object>();
 
 		passedQuery = passedQuery.replace("@BINDINGS_STRING@", bindingsNames);
-		SesameJenaSelectWrapper sjsw = processSelectQuery(passedEngine, passedQuery);
+		ISelectWrapper sjsw = processSelectQuery(passedEngine, passedQuery);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String key = sjss.getRawVar(names[0]).toString();
 			Object value = sjss.getVar(names[1]);
 			retHash.put(key, value);
@@ -196,11 +197,11 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 		Hashtable<String, Hashtable<String, Double>> retHash = new Hashtable<String, Hashtable<String, Double>>();
 
 		passedQuery = passedQuery.replace("@BINDINGS_STRING@", bindingsNames);
-		SesameJenaSelectWrapper sjsw = processSelectQuery(passedEngine, passedQuery);
+		ISelectWrapper sjsw = processSelectQuery(passedEngine, passedQuery);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String key = sjss.getRawVar(names[0]).toString();
 			Hashtable<String, Double> innerHash = retHash.get(key);
 			if(innerHash == null){
@@ -222,25 +223,28 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 	private ArrayList<String> getList(String passedQuery){
 		ArrayList<String> retArray = new ArrayList<String>();
 
-		SesameJenaSelectWrapper sjsw = processSelectQuery(this.engine, passedQuery);
+		ISelectWrapper sjsw = processSelectQuery(this.engine, passedQuery);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String sysURI = sjss.getRawVar(names[0]) + "";
 			retArray.add(sysURI);
 		}
 		return retArray;
 	}
 
-	private SesameJenaSelectWrapper processSelectQuery(IEngine engine, String query){
+	private ISelectWrapper processSelectQuery(IEngine engine, String query){
 		logger.info("PROCESSING SELECT QUERY: " + query);
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 		//run the query against the engine provided
 		sjsw.setEngine(engine);
 		sjsw.setQuery(query);
 		sjsw.executeQuery();	
-		return sjsw;
+		return sjsw;*/
+		return wrapper;
 	}
 	
 	private void deleteModernizationProp(){

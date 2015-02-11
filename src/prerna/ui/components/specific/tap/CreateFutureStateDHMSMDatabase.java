@@ -24,10 +24,10 @@ import org.openrdf.rio.RDFHandlerException;
 
 import prerna.error.EngineException;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.Utility;
 
 public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
@@ -187,10 +187,10 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 	}
 	
 	public void addTriplesToExistingICDs(){
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(futureState, CURR_ICD_AND_WEIGHT_QUERY);
+		ISelectWrapper sjsw = Utility.processQuery(futureState, CURR_ICD_AND_WEIGHT_QUERY);
 		String[] varNames = sjsw.getVariables();
 		while(sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String icdURI = sjss.getRawVar(varNames[0]).toString();
 			Double weight = (Double) sjss.getVar(varNames[1]);
 			if(weight.doubleValue() == 5) {

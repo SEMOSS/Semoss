@@ -26,10 +26,10 @@ import javax.swing.JPanel;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.GridScrollPane;
-import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
 /** 
@@ -50,10 +50,13 @@ public class GenericXGridPlaySheet extends GridPlaySheet {
 		logger.info("PROCESSING QUERY: " + queryString);
 		
 		//executes the query on a specified engine
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+		ISelectWrapper sjsw = WrapperManager.getInstance().getSWrapper(engine, queryString);
+
+		/*SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 		sjsw.setEngine(engine);
 		sjsw.setQuery(queryString);
 		sjsw.executeQuery();
+		*/
 		
 		names = sjsw.getVariables();
 		
@@ -62,7 +65,7 @@ public class GenericXGridPlaySheet extends GridPlaySheet {
 
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 
 			String var1 = (String) sjss.getVar(names[0]);
 			String var2 = (String) sjss.getVar(names[1]);

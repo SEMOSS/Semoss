@@ -18,8 +18,12 @@ package prerna.ui.components.specific.tap;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Set;
+
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 
 /**
  * Heat Map that shows what gaps in data exist for systems to suppor their BLUs
@@ -56,10 +60,12 @@ public class NIHSysConceptHeatMapSheet extends SimilarityHeatMapSheet{
 		fillFullHash();
 		
 		//Creating hashtable from main query 
-		SesameJenaSelectWrapper mainWrapper = new SesameJenaSelectWrapper();
+		ISelectWrapper mainWrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper mainWrapper = new SesameJenaSelectWrapper();
 		mainWrapper.setQuery(this.query);
 		mainWrapper.setEngine(this.engine);
-		mainWrapper.executeQuery();
+		mainWrapper.executeQuery();*/
 		names = mainWrapper.getVariables();
 		processWrapper(mainWrapper, names);
 		scoreAdder();
@@ -78,15 +84,19 @@ public class NIHSysConceptHeatMapSheet extends SimilarityHeatMapSheet{
 	}
 	
 	private void fillFullHash(){
-		SesameJenaSelectWrapper sjw = new SesameJenaSelectWrapper();
+		
+		ISelectWrapper sjw = WrapperManager.getInstance().getSWrapper(engine, fullConceptColumnNameQuery);
+
+		/*SesameJenaSelectWrapper sjw = new SesameJenaSelectWrapper();
 		sjw.setQuery(this.fullConceptColumnNameQuery);
 		sjw.setEngine(this.engine);
 		sjw.executeQuery();
+		*/
 		String[] mappingNames = sjw.getVariables();
 		try {
 			while(sjw.hasNext())
 			{
-				SesameJenaSelectStatement sjss = sjw.next();
+				ISelectStatement sjss = sjw.next();
 				String conceptTemp = sjss.getVar(conceptKey) + "";
 				String colTemp = sjss.getVar(columnNameKey) + "";
 				Hashtable<String, Double> innerHash = new Hashtable<String, Double>();
@@ -102,13 +112,13 @@ public class NIHSysConceptHeatMapSheet extends SimilarityHeatMapSheet{
 				
 	}
 	
-	private void processWrapper(SesameJenaSelectWrapper sjw, String[] names){
+	private void processWrapper(ISelectWrapper sjw, String[] names){
 		
 		Hashtable<String, Hashtable<String, Object>> conceptTableHash = new Hashtable<String, Hashtable<String, Object>>();
 		try {
 			while(sjw.hasNext())
 			{
-				SesameJenaSelectStatement sjss = sjw.next();
+				ISelectStatement sjss = sjw.next();
 				
 				Hashtable<String, Object> systemConceptHash = new Hashtable<String, Object>();
 				Hashtable<String, Object> keySystemConceptHash = new Hashtable<String, Object>();

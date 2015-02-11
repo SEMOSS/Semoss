@@ -26,8 +26,9 @@ import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.BigDataEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -221,16 +222,16 @@ public class SORpropInsertProcessor extends AggregationHelper {
 	}
 	
 	public Hashtable<String, Set<String>> getQueryResultHash(IEngine db, String query) {
-		SesameJenaSelectWrapper queryDataWrapper = Utility.processQuery(db, query);
+		ISelectWrapper queryDataWrapper = Utility.processQuery(db, query);
 		Hashtable<String, Set<String>> queryDataHash = hashTableResultProcessor(queryDataWrapper);
 		return queryDataHash;
 	}
 	
-	public Hashtable<String, Set<String>> hashTableResultProcessor(SesameJenaSelectWrapper sjsw) {
+	public Hashtable<String, Set<String>> hashTableResultProcessor(ISelectWrapper sjsw) {
 		Hashtable<String, Set<String>> aggregatedData = new Hashtable<String, Set<String>>();
 		String[] vars = sjsw.getVariables();
 		while (sjsw.hasNext()) {
-			SesameJenaSelectStatement sjss = sjsw.next();			
+			ISelectStatement sjss = sjsw.next();			
 			String sub = sjss.getRawVar(vars[0]).toString();
 			Set<String> pred = new HashSet<String>();
 			pred.add(sjss.getRawVar(vars[1]).toString());

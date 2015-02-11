@@ -31,8 +31,9 @@ import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 
 /**
  * Used in the starter class to create checkboxes that are used to select a source.
@@ -137,16 +138,19 @@ public class SelectRadioButtonPanel extends JPanel {
 		String query = "SELECT DISTINCT ?Data ?Crm WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?Crm;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} } BINDINGS ?Capability {@CAPABILITY-BINDINGS@}";
 		query = query.replace("@CAPABILITY-BINDINGS@", capabilityBindings);
 		
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+		ISelectWrapper sjsw = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 		sjsw.setEngine(engine);
 		sjsw.setQuery(query);
 		sjsw.executeQuery();
 		sjsw.getVariables();
+		*/
 		
 		String[] vars = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String data = sjss.getVar(vars[0]).toString();
 			String crm = sjss.getVar(vars[1]).toString();
 			//cap reads then access is integrated and realtime

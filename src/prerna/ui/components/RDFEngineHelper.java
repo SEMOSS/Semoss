@@ -37,15 +37,18 @@ import org.openrdf.rio.RDFFormat;
 import org.openrdf.rio.RDFParseException;
 import org.openrdf.sail.memory.MemoryStore;
 
-import prerna.om.SEMOSSEdge;
 import prerna.om.GraphDataModel;
+import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
+import prerna.rdf.engine.api.IConstructStatement;
+import prerna.rdf.engine.api.IConstructWrapper;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.InMemorySesameEngine;
-import prerna.rdf.engine.impl.SesameJenaConstructStatement;
 import prerna.rdf.engine.impl.SesameJenaConstructWrapper;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.SesameConstructWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 
 /**
@@ -212,14 +215,16 @@ public class RDFEngineHelper {
 				"{?Subject ?Predicate ?Object}}";
 
 
-		SesameJenaConstructWrapper sjsc = new SesameJenaConstructWrapper();
-		sjsc.setEngine(sesameEngine);
+		//SesameJenaConstructWrapper sjsc = new SesameJenaConstructWrapper();
+		IConstructWrapper sjsc = WrapperManager.getInstance().getCWrapper(sesameEngine, propertyQuery);
+		/*sjsc.setEngine(sesameEngine);
 		sjsc.setQuery(propertyQuery);
 		sjsc.execute();
-
+		*/
+		
 		while(sjsc.hasNext())
 		{
-			SesameJenaConstructStatement sct = sjsc.next();
+			IConstructStatement sct = sjsc.next();
 
 			String subject = sct.getSubject();
 			String predicate = sct.getPredicate();
@@ -248,15 +253,18 @@ public class RDFEngineHelper {
 				"{?inNode " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>   " +  " <http://semoss.org/ontologies/Concept>;}" +
 				"{?edge ?prop ?value} {?outNode ?edge ?inNode} }";
 
+		
+		ISelectWrapper sjsc = WrapperManager.getInstance().getSWrapper(sesameEngine, propertyQuery);
 
-		SesameJenaSelectWrapper sjsc = new SesameJenaSelectWrapper();
+		/*SesameJenaSelectWrapper sjsc = new SesameJenaSelectWrapper();
 		sjsc.setEngine(sesameEngine);
 		sjsc.setQuery(propertyQuery);
 		sjsc.executeQuery();
-		sjsc.getVariables();
+		sjsc.getVariables();*/
+		
 		while(sjsc.hasNext())
 		{
-			SesameJenaSelectStatement sct = sjsc.next();
+			ISelectStatement sct = sjsc.next();
 
 			String edge = sct.getRawVar("edge") + "";
 			String prop = sct.getRawVar("prop") + "";
@@ -297,17 +305,21 @@ public class RDFEngineHelper {
 					"}";
 		}
 		System.err.println("Query is " + labelQuery);
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+
+		ISelectWrapper sjsw = WrapperManager.getInstance().getSWrapper(fromEngine, labelQuery);
+
+		/*SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 		sjsw.setEngine(fromEngine);
 		sjsw.setQuery(labelQuery);
 		sjsw.executeQuery();
 		sjsw.getVariables();
-
+		*/
+		
 		Hashtable<String, SEMOSSVertex> vertStore = ps.getVertStore();
 		Hashtable<String, SEMOSSEdge> edgeStore = ps.getEdgeStore();
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement st = sjsw.next();
+			ISelectStatement st = sjsw.next();
 			String subject = st.getRawVar("Subject") + "";
 			String label = st.getVar("Label") + "";
 
@@ -331,14 +343,17 @@ public class RDFEngineHelper {
 	 * @param ps 			Graph playsheet where sesame construct statement is stored.
 	 */
 	private static void addResultsToRC(IEngine fromEngine, String query, GraphDataModel ps) {
-		SesameJenaConstructWrapper sjsc = new SesameJenaConstructWrapper();
+		
+		IConstructWrapper sjsc = WrapperManager.getInstance().getCWrapper(fromEngine, query);
+
+		/*SesameJenaConstructWrapper sjsc = new SesameJenaConstructWrapper();
 		sjsc.setEngine(fromEngine);
 		sjsc.setQuery(query);
 		sjsc.execute();
-
+		*/
 		while(sjsc.hasNext())
 		{
-			SesameJenaConstructStatement st = sjsc.next();
+			IConstructStatement st = sjsc.next();
 			ps.addToSesame(st, false, false);
 		}
 		
@@ -357,15 +372,19 @@ public class RDFEngineHelper {
 				"{?Subject ?Predicate ?Object} }" + 
 				"";
 
-		SesameJenaConstructWrapper sjsc = new SesameJenaConstructWrapper();
+		IConstructWrapper sjsc = WrapperManager.getInstance().getCWrapper(fromEngine, constructAllQuery);
+
+		
+		/*SesameJenaConstructWrapper sjsc = new SesameJenaConstructWrapper();
 		sjsc.setEngine(fromEngine);
 		sjsc.setQuery(constructAllQuery);
 		sjsc.execute();
-
+		*/
+		
 		if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 		{			
 			try {
-				toRC.add(sjsc.gqr);
+				toRC.add(((SesameConstructWrapper)sjsc).gqr); // abstraction leak
 				//TODO: Delete? Engine type is Sesame
 //				while(sjsc.hasNext())
 //				{
@@ -394,15 +413,17 @@ public class RDFEngineHelper {
 				"{?Subject ?Predicate ?Object} }" + 
 				"";// relation hierarchy
 
-		SesameJenaConstructWrapper sjsc = new SesameJenaConstructWrapper();
+		IConstructWrapper sjsc = WrapperManager.getInstance().getCWrapper(fromEngine, constructAllQuery);
+
+		/*SesameJenaConstructWrapper sjsc = new SesameJenaConstructWrapper();
 		sjsc.setEngine(fromEngine);
 		sjsc.setQuery(constructAllQuery);
 		sjsc.execute();
-
+		 */
 		if(fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || fromEngine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 		{			
 			try {
-				toRC.remove(sjsc.gqr);
+				toRC.remove(((SesameConstructWrapper)sjsc).gqr);
 			} catch (QueryEvaluationException e) {
 				e.printStackTrace();
 			} catch (RepositoryException e) {

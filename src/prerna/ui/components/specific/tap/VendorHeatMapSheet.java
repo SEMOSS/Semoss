@@ -23,10 +23,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.ui.components.playsheets.BrowserPlaySheet;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.HeatMapPlaySheet;
 import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
 import prerna.util.Constants;
@@ -84,8 +82,8 @@ public class VendorHeatMapSheet extends HeatMapPlaySheet {
 		for(int i=0;i<queryArray.size();i++)
 		{
 			updateProgressBar((i+1)+"0%...Processing Queries", (i+1)*10);
-			wrapper = new SesameJenaSelectWrapper();
-			if(engine!= null && rs == null){
+			wrapper = WrapperManager.getInstance().getSWrapper(engine, query); //new SesameJenaSelectWrapper();
+			/*if(engine!= null && rs == null){
 				wrapper.setQuery(queryArray.get(i));
 				wrapper.setEngine(engine);
 				wrapper.executeQuery();
@@ -93,7 +91,7 @@ public class VendorHeatMapSheet extends HeatMapPlaySheet {
 			else if (engine==null && rs!=null){
 				wrapper.setResultSet(rs);
 				wrapper.setEngineType(IEngine.ENGINE_TYPE.JENA);
-			}
+			}*/
 			
 			// get the bindings from it
 			String[] names = wrapper.getVariables();
@@ -102,7 +100,7 @@ public class VendorHeatMapSheet extends HeatMapPlaySheet {
 			try {
 				while(wrapper.hasNext())
 				{
-					SesameJenaSelectStatement sjss = wrapper.next();
+					ISelectStatement sjss = wrapper.next();
 					String vendor = (String)sjss.getVar(names[0]);
 					String capability = (String)sjss.getVar(names[1]);
 					//TODO: the variable underneath is not used?

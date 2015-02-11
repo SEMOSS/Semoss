@@ -22,6 +22,7 @@ import org.apache.james.mime4j.dom.datetime.DateTime;
 /**
  * A way of storing each triple in RDF for SELECT SPARQL queries.
  */
+@Deprecated
 public class SesameJenaSelectStatement {
 	
 	transient public Hashtable propHash = new Hashtable();
@@ -29,7 +30,7 @@ public class SesameJenaSelectStatement {
 	String serialRep = null;
 	public boolean remote = false;
 	
-
+	
 	/**
 	 * Method setVar.  Sets the variables and the values.
 	 * @param var Object - The variable name.
