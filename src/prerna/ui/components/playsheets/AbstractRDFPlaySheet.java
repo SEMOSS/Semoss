@@ -78,7 +78,9 @@ public abstract class AbstractRDFPlaySheet extends JInternalFrame implements IPl
 		}
 		retHash.put("playsheet", className);
 		retHash.put("title", this.title==null? "": this.title);
-		retHash.put("dataTableAlign", getDataTableAlign());
+		Hashtable<String, String> tableAlign = getDataTableAlign();
+		if(tableAlign != null)
+			retHash.put("dataTableAlign", tableAlign);
 		
 		return retHash;
 	}
