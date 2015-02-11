@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Vector;
 
@@ -643,6 +644,12 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 
 	@Override
 	public void runAnalytics() {
+	}
+
+	@Override
+	public Hashtable<String, String> getDataTableAlign() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

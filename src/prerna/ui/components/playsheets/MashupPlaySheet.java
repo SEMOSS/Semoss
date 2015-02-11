@@ -45,4 +45,10 @@ public class MashupPlaySheet extends AbstractRDFPlaySheet {
 		
 	}
 
+	@Override
+	public Hashtable<String, String> getDataTableAlign() {
+		// No table to align to for mash ups at this point
+		return null;
+	}
+
 }

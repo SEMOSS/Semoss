@@ -24,6 +24,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyVetoException;
 import java.util.ArrayList;
+import java.util.Hashtable;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -306,5 +307,12 @@ public class RegExplorerPlaySheet extends AbstractRDFPlaySheet{
 	public void runAnalytics() {
 		// TODO Auto-generated method stub
 		
+	}
+
+
+	@Override
+	public Hashtable<String, String> getDataTableAlign() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

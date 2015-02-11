@@ -16,6 +16,7 @@
 package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
+import java.util.Hashtable;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -107,6 +108,12 @@ public class SystemTransitionReport extends AbstractRDFPlaySheet{
 	@Override
 	public void runAnalytics() {
 		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public Hashtable<String, String> getDataTableAlign() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

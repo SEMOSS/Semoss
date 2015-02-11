@@ -250,4 +250,10 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 		this.list = list;
 	}
 
+	@Override
+	public Hashtable<String, String> getDataTableAlign() {
+		// will be overridden by specific playsheets
+		return null;
+	}
+
 }
