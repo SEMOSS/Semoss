@@ -41,6 +41,7 @@ import com.hp.hpl.jena.rdf.model.RDFNode;
 /**
  * The wrapper helps takes care of selection of the type of engine you are using (Jena/Sesame).  This wrapper processes SELECT statements. 
  */
+@Deprecated
 public class SesameJenaSelectWrapper extends AbstractWrapper{
 	public transient TupleQueryResult tqr = null;
 	transient ResultSet rs = null;
@@ -53,6 +54,11 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 	transient SesameJenaSelectStatement retSt = null;
 	transient ObjectInputStream ris = null;
 	String [] var = null;
+	
+	public SesameJenaSelectWrapper()
+	{
+		
+	}
 	
 	/**
 	 * Method setEngine.  Sets the engine type.

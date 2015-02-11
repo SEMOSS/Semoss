@@ -58,8 +58,10 @@ import org.apache.log4j.Logger;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 
 import com.ibm.icu.text.DecimalFormat;
 
@@ -311,15 +313,18 @@ public class Utility {
 		Hashtable<String, String> paramHash = new Hashtable<String, String>();
 		paramHash.put("ENTITY", subjectURI);
 		query = Utility.fillParam(query,  paramHash);
-		SesameJenaSelectWrapper sjw = new SesameJenaSelectWrapper();
+
+		ISelectWrapper sjw = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper sjw = new SesameJenaSelectWrapper();
 		sjw.setEngine(engine);
 		sjw.setEngineType(engine.getEngineType());
 		sjw.setQuery(query);
-		sjw.executeQuery();
+		sjw.executeQuery();*/
 		String [] vars = sjw.getVariables();
 		String returnType = null;
 		while(sjw.hasNext()) {
-			SesameJenaSelectStatement stmt = sjw.next();
+			ISelectStatement stmt = sjw.next();
 			String objURI = stmt.getRawVar(vars[0])+"";
 			if (!objURI.equals(DIHelper.getInstance().getProperty(Constants.SEMOSS_URI)+"/Concept")) {
 				returnType = objURI;
@@ -443,14 +448,18 @@ public class Utility {
 		// get the selected repository
 		List<String> repos = list.getSelectedValuesList();
 
-		SesameJenaSelectWrapper selectWrapper = null;
+
+		ISelectWrapper selectWrapper = null;//WrapperManager.getInstance().getSWrapper(engine, queries.get(tabName));
+
+		//SesameJenaSelectWrapper selectWrapper = null;
 		for(String s : repos) {
 			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(s);
+			selectWrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 			
-			selectWrapper = new SesameJenaSelectWrapper();
+			/*selectWrapper = new SesameJenaSelectWrapper();
 			selectWrapper.setEngine(engine);
 			selectWrapper.setQuery(query);
-			selectWrapper.executeQuery();
+			selectWrapper.executeQuery();*/
 		}
 		
 		//if the wrapper is not empty, calculations have already been performed.
@@ -827,14 +836,18 @@ public class Utility {
 		return null;
 	}
 	
-	public static SesameJenaSelectWrapper processQuery(IEngine engine, String query) {
+	public static ISelectWrapper processQuery(IEngine engine, String query) {
 		LOGGER.info("PROCESSING QUERY: " + query);
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 		//run the query against the engine provided
 		sjsw.setEngine(engine);
 		sjsw.setQuery(query);
 		sjsw.executeQuery();	
-		return sjsw;
+		return sjsw;*/
+		return wrapper;
 	}
 	
 	/**

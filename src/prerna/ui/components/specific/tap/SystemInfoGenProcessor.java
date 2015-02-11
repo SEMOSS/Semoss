@@ -25,8 +25,11 @@ import org.apache.log4j.Logger;
 
 import prerna.poi.specific.BasicReportWriter;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -57,10 +60,12 @@ public class SystemInfoGenProcessor {
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 
 		try{
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
-		wrapper.setQuery(query);
+		//SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*wrapper.setQuery(query);
 		wrapper.setEngine(engine);
-		wrapper.executeQuery();
+		wrapper.executeQuery();*/
 
 		String[] names = wrapper.getVariables();
 		for(String head : names)
@@ -68,7 +73,7 @@ public class SystemInfoGenProcessor {
 				headersList.add(head);
 
 			while (wrapper.hasNext()) {
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				String sys = (String)sjss.getVar(names[0]);
 				if(masterHash.containsKey(sys))
 				{
@@ -113,15 +118,18 @@ public class SystemInfoGenProcessor {
 
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
 		wrapper.executeQuery();
-
+		*/
+		
 		String[] names = wrapper.getVariables();
 
 			while (wrapper.hasNext()) {
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				Hashtable sysHash = new Hashtable();
 				masterHash.put((String) sjss.getVar(names[0]),sysHash);
 				sysList.add((String) sjss.getVar(names[0]));
@@ -146,15 +154,18 @@ public class SystemInfoGenProcessor {
 			
 			for(String query : queryList)
 			{
-				SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+				ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+				/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 				wrapper.setQuery(query);
 				wrapper.setEngine(engine);
 				wrapper.executeQuery();
-		
+				*/
+				
 				String[] names = wrapper.getVariables();
 				try {
 					while (wrapper.hasNext()) {
-						SesameJenaSelectStatement sjss = wrapper.next();
+						ISelectStatement sjss = wrapper.next();
 						String sys = (String) sjss.getVar(names[0]);
 						Double cost = (Double) sjss.getVar(names[1]);
 						if(sysAndCostHash.containsKey(sys))

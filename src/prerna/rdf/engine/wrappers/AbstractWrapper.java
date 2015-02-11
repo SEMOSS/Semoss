@@ -13,16 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-package prerna.rdf.engine.impl;
+package prerna.rdf.engine.wrappers;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
+import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.IEngineWrapper;
 import prerna.rdf.engine.api.IRemoteQueryable;
+import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 
-@Deprecated
-public class AbstractWrapper implements IRemoteQueryable{
+public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrapper{
 
 	String ID = null;
 	String api = null;
 	boolean remote = false;
+	static final Logger logger = LogManager.getLogger(SesameJenaSelectWrapper.class.getName());
+	transient IEngine engine = null;
+	transient Enum engineType;
+	transient String query = null;
+	transient String [] var = null;
+
+
 	
 	@Override
 	public void setRemoteID(String id) {
@@ -52,5 +64,23 @@ public class AbstractWrapper implements IRemoteQueryable{
 	{
 		this.remote = remote;
 	}
+
+	@Override
+	public void setQuery(String query) {
+		logger.debug("Setting the query " + query);
+		this.query = query;
+	}
+
+	@Override
+	public void setEngine(IEngine engine) {
+		logger.debug("Set the engine " );
+		this.engine = engine;
+		if(engine == null) engineType = IEngine.ENGINE_TYPE.JENA;
+		else engineType = engine.getEngineType();
+	}
+
+	public abstract void execute();
+
+	public abstract boolean hasNext();
 
 }

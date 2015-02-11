@@ -31,6 +31,7 @@ import com.hp.hpl.jena.rdf.model.StmtIterator;
 /**
  * Insert and delete queries.  This will set the graph query result for the sesame.
  */
+@Deprecated
 public class SesameJenaUpdateWrapper {
 	GraphQueryResult gqr = null;
 	Model model = null;	
