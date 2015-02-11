@@ -237,7 +237,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 			int j = 0;
 			for(; j < numInstances; j++) {
 				String instanceBaseURI = Utility.getBaseURI(instanceURIList.get(j)).concat("/Concept");
-				bindingsStr += bindingsStr.concat("(<").concat(instanceBaseURI).concat("/").concat(keywordName).concat("/").concat(Utility.getInstanceName(instanceURIList.get(j))).concat(">)");
+				bindingsStr = bindingsStr.concat("(<").concat(instanceBaseURI).concat("/").concat(keywordName).concat("/").concat(Utility.getInstanceName(instanceURIList.get(j))).concat(">)");
 			}
 		}
 		return INSTANCE_EXISTS_QUERY.replace("@BINDINGS@", bindingsStr);
