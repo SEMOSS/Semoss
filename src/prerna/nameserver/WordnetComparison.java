@@ -30,7 +30,7 @@ public class WordnetComparison {
 	private double mainNounWeight = 0.8;
 	private double otherNounWeight = 0.2;
 	
-	private double cutOffSimScore = 0.20;
+	private double simScoreThreshold = 0.20;
 	
 	/**
 	 * Constructor for the class
@@ -42,18 +42,35 @@ public class WordnetComparison {
 		lp.setOptionFlags(new String[]{"-maxLength", "80", "-retainTmpSubcategories"});
 	}
 
+	/**
+	 * Determines if two words are similar based on their noun list
+	 * @param firstNounList		The Set of nouns in the first word
+	 * @param secondNounList	The Set of nouns in the second word
+	 * @return					Boolean true if the two words are similar based on the threshold
+	 */
 	public boolean isSimilar(Set<String> firstNounList, Set<String> secondNounList) {
 		double comparissonVal = compareKeywords(firstNounList, secondNounList);
 		return isSimilar(comparissonVal);
 	}
 	
+	/**
+	 * Determines if the distance score is within the threshold to consider two words similar
+	 * @param comparissonVal	The value of the distance between the words
+	 * @return					Boolean true if the two words are similar based on the threshold
+	 */
 	public boolean isSimilar(double comparissonVal) {
-		if(comparissonVal <= cutOffSimScore) {
+		if(comparissonVal <= simScoreThreshold) {
 			return true;
 		}
 		return false;
 	}
 	
+	/**
+	 * Runs the comparison algorithm to determine the distance between two words
+	 * @param firstNounList			The Set of nouns in the first word
+	 * @param secondNounList		The Set of nouns in the second word
+	 * @return						Double containing the distance between the two words
+	 */
 	public double compareKeywords(Set<String> firstNounList, Set<String> secondNounList) {
 		System.err.println(">>>>>>>>>>>>>>>>>COMPARING: " + firstNounList + " to " + secondNounList);
 		// need to iterate through and break apart the URIs
@@ -98,6 +115,11 @@ public class WordnetComparison {
 		return mainCompVal + otherCompVal;
 	}
 	
+	/**
+	 * Determines and outputs the best distance pairing between nouns 
+	 * @param comparisonMatrix		The double[][] of distance values between all nouns
+	 * @return						The double containing the best matching between nouns
+	 */
 	private double calculateBestComparison(double[][] comparisonMatrix) {
 		int size = comparisonMatrix.length;
 		
@@ -134,6 +156,13 @@ public class WordnetComparison {
 		return bestCombination;
 	}
 	
+	/**
+	 * Constructs a matrix with the distance between all nouns in one list to the nouns in another list
+	 * If the two sets are not the same size, the default distance value is 0.5
+	 * @param nounList1		The first Set of nouns
+	 * @param nounList2		The second Set of nouns
+	 * @return				The double[][] of distance values between all nouns
+	 */
 	private double[][] getComparisonMatrix(Set<String> nounList1, Set<String> nounList2) {
 		
 		int sizeNounList1 = nounList1.size();
@@ -169,6 +198,11 @@ public class WordnetComparison {
 		return comparisonMatrix;
 	}
 
+	/**
+	 * Determines the main noun by concatenating the nouns and using NLP to find the gov/dep depending on the grammatical relationship found
+	 * @param nounList		The Set containing the list of all nouns
+	 * @return				The Set containing the list of main nouns
+	 */
 	private Set<String> getMainNouns(Set<String> nounList) {
 		if(nounList.size() == 1) {
 			return nounList;
@@ -231,34 +265,49 @@ public class WordnetComparison {
 		return null;
 	}
 	
-	private Set<String> getTopGov(Vector<TypedDependency> subV) {
+	/**
+	 * Return the Set of govs in the sentence based on the grammatical relationship formed by combining the nouns in the word
+	 * @param tdlArr		The Vector of typed dependencies of the specified grammatical relationship
+	 * @return				Set of govs in the sentence based on the grammatical relationship
+	 */
+	private Set<String> getTopGov(Vector<TypedDependency> tdlArr) {
 		Set<String> govList = new HashSet<String>();
 		
 		int i = 0;
-		int size = subV.size();
+		int size = tdlArr.size();
 		
 		for(; i < size; i++) {
-			TypedDependency td = subV.get(i);
+			TypedDependency td = tdlArr.get(i);
 			govList.add(td.gov().value());
 		}
 		
 		return govList;
 	}
 	
-	private Set<String> getTopDep(Vector<TypedDependency> subV) {
+	/**
+	 * Return the Set of deps in the sentence based on the grammatical relationship formed by combining the nouns in the word
+	 * @param tdlArr		The Vector of typed dependencies of the specified grammatical relationship
+	 * @return				Set of deps in the sentence based on the grammatical relationship
+	 */
+	private Set<String> getTopDep(Vector<TypedDependency> tdlArr) {
 		Set<String> govList = new HashSet<String>();
 		
 		int i = 0;
-		int size = subV.size();
+		int size = tdlArr.size();
 		
 		for(; i < size; i++) {
-			TypedDependency td = subV.get(i);
+			TypedDependency td = tdlArr.get(i);
 			govList.add(td.dep().value());
 		}
 		
 		return govList;
 	}
 	
+	/**
+	 * Gets the instance name from a Set of URI's
+	 * @param uriList		The Set containing the URI's to get the instances
+	 * @return				Set containing the instance values of all the URI's 
+	 */
 	private Set<String> getInstanceForSet(Set<String> uriList) {
 		Set<String> retSet = new HashSet<String>();
 		Iterator<String> it = uriList.iterator();
