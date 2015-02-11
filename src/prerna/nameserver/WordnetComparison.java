@@ -215,6 +215,11 @@ public class WordnetComparison {
 			return getTopDep(tdlArr);
 		}
 		
+		tdlArr = nodeHash.get(EnglishGrammaticalRelations.NUMERIC_MODIFIER);
+		if(tdlArr != null) {
+			return getTopGov(tdlArr);
+		}
+		
 		// if cannot determine what type of grammatical relationship, just grab the dependent and get the gov
 		tdlArr = nodeHash.get(GrammaticalRelation.DEPENDENT);
 		if(tdlArr != null) {
