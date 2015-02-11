@@ -16,7 +16,6 @@
 package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
@@ -28,8 +27,11 @@ import org.apache.log4j.Logger;
 
 import prerna.poi.specific.DeconflictingReportSheetWriter;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -68,18 +70,22 @@ public class DeconflictingReportButtonListener implements IChakraListener{
 		{
 			ArrayList<ArrayList<String>> list = new ArrayList<ArrayList<String>>();
 			
-			SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
-			wrapper.setQuery(queries.get(tabName));
 			engine = (IEngine)DIHelper.getInstance().getLocalProp(repo[0]+"");
+
+			/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+			wrapper.setQuery(queries.get(tabName));
 			if(tabName.contains("F"))
 				engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 			wrapper.setEngine(engine);
 			wrapper.executeQuery();
+			*/
 			
+			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, queries.get(tabName));
+
 			String[] names = wrapper.getVariables();
 			try {
 				while(wrapper.hasNext()) {
-					SesameJenaSelectStatement sjss = wrapper.next();
+					ISelectStatement sjss = wrapper.next();
 					ArrayList<String> values = new ArrayList<String>();
 					for(int colIndex = 0;colIndex < names.length;colIndex++) {
 						if(sjss.getVar(names[colIndex]) != null) {
@@ -171,15 +177,18 @@ public class DeconflictingReportButtonListener implements IChakraListener{
 		Object[] repo = (Object[])repoList.getSelectedValues();
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repo[0]+"");
 		
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
-		wrapper.executeQuery();
+		wrapper.executeQuery();*/
 		
 		String[] names = wrapper.getVariables();
 		try {
 			while(wrapper.hasNext()) {
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				list.add((String)sjss.getVar(names[0]));
 			}
 		}
@@ -202,15 +211,18 @@ public class DeconflictingReportButtonListener implements IChakraListener{
 		Object[] repo = (Object[])repoList.getSelectedValues();
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repo[0]+"");
 		
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		
+		/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
 		wrapper.executeQuery();
-		
+		*/
 		String[] names = wrapper.getVariables();
 		try {
 			while(wrapper.hasNext()) {
-				SesameJenaSelectStatement sjss = wrapper.next();
+				ISelectStatement sjss = wrapper.next();
 				ArrayList<String> mapList = new ArrayList<String>();
 				mapList.add((String)sjss.getVar(names[0]));
 				mapList.add("");

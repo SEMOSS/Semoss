@@ -45,6 +45,8 @@ import prerna.algorithm.nlp.TextHelper;
 import prerna.error.EngineException;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
@@ -71,11 +73,11 @@ public class CreateMasterDB extends ModifyMasterDB {
 		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 
 		Map<String, String> parentChildMapping = new HashMap<String, String>();
-		SesameJenaSelectWrapper wrapper = Utility.processQuery(masterEngine, MC_PARENT_CHILD_QUERY);
+		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MC_PARENT_CHILD_QUERY);
 		String[] names = wrapper.getVariables();
 		while(wrapper.hasNext()) {
 			// add parent child relationships to value mapping
-			SesameJenaSelectStatement sjss = wrapper.next();
+			ISelectStatement sjss = wrapper.next();
 			parentChildMapping.put(sjss.getVar(names[0]).toString(), sjss.getVar(names[1]).toString());
 		}
 
@@ -110,11 +112,11 @@ public class CreateMasterDB extends ModifyMasterDB {
 		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 
 		Map<String, String> parentChildMapping = new HashMap<String, String>();
-		SesameJenaSelectWrapper wrapper = Utility.processQuery(masterEngine, MC_PARENT_CHILD_QUERY);
+		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MC_PARENT_CHILD_QUERY);
 		String[] names = wrapper.getVariables();
 		while(wrapper.hasNext()) {
 			// add parent child relationships to value mapping
-			SesameJenaSelectStatement sjss = wrapper.next();
+			ISelectStatement sjss = wrapper.next();
 			parentChildMapping.put(sjss.getVar(names[0]).toString(), sjss.getVar(names[1]).toString());
 		}
 

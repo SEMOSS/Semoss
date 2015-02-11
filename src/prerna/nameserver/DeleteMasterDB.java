@@ -24,6 +24,8 @@ import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.sail.SailConnection;
 
 import prerna.error.EngineException;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.rdf.engine.impl.QuestionAdministrator;
 import prerna.rdf.engine.impl.RDFFileSesameEngine;
@@ -127,12 +129,12 @@ public class DeleteMasterDB extends ModifyMasterDB {
 
 	public void deleteEngineKeywords(String engineName) throws EngineException{
 		String filledKeywordsQuery = KEYWORDS_QUERY.replaceAll("@ENGINE@", engineName);
-		SesameJenaSelectWrapper wrapper = Utility.processQuery(masterEngine,filledKeywordsQuery);
+		ISelectWrapper wrapper = Utility.processQuery(masterEngine,filledKeywordsQuery);
 		String[] names = wrapper.getVariables();
 		while(wrapper.hasNext())
 		{
 			//grab query results
-			SesameJenaSelectStatement sjss = wrapper.next();
+			ISelectStatement sjss = wrapper.next();
 			String keyword = (String)sjss.getVar(names[0]);
 			removeRelationship(ENGINE_BASE_URI + "/" + engineName, KEYWORD_BASE_URI + "/" + keyword, SEMOSS_RELATION_URI + "/Has/" + engineName + ":" +keyword);
 			//TODO: keyword is not deleted from the database, just the relationship between keyword and engine is deleted.
@@ -143,24 +145,24 @@ public class DeleteMasterDB extends ModifyMasterDB {
 	private void deleteEngineInsights(String engineName) throws EngineException{
 
 		String filledInsightsQuery = INSIGHTS_QUERY.replaceAll("@ENGINE@", engineName);
-		SesameJenaSelectWrapper wrapper1 = Utility.processQuery(masterEngine,filledInsightsQuery);
+		ISelectWrapper wrapper1 = Utility.processQuery(masterEngine,filledInsightsQuery);
 		String[] names1 = wrapper1.getVariables();
 		while(wrapper1.hasNext())
 		{
 			//grab query results
-			SesameJenaSelectStatement sjss = wrapper1.next();
+			ISelectStatement sjss = wrapper1.next();
 			String insight = (String)sjss.getVar(names1[0]);
 			removeRelationship(ENGINE_BASE_URI + "/" + engineName, INSIGHT_BASE_URI + "/" + insight, SEMOSS_RELATION_URI + "/Engine:Insight/" + engineName + ":" +insight);
 		}
 
 		ArrayList<String> perspectiveList = new ArrayList<String>();
 		String filledPerspectivesQuery = PERSPECTIVES_QUERY.replaceAll("@ENGINE@", engineName);
-		SesameJenaSelectWrapper wrapper2 = Utility.processQuery(masterEngine,filledPerspectivesQuery);
+		ISelectWrapper wrapper2 = Utility.processQuery(masterEngine,filledPerspectivesQuery);
 		String[] names2 = wrapper2.getVariables();
 		while(wrapper2.hasNext())
 		{
 			//grab query results
-			SesameJenaSelectStatement sjss = wrapper2.next();
+			ISelectStatement sjss = wrapper2.next();
 			String perspective = (String)sjss.getVar(names2[0]);
 			removeRelationship(ENGINE_BASE_URI + "/" + engineName, PERSPECTIVE_BASE_URI + "/" + perspective, SEMOSS_RELATION_URI + "/Engine:Perspective/" + engineName + ":" +perspective);
 			perspectiveList.add(perspective);
@@ -191,12 +193,12 @@ public class DeleteMasterDB extends ModifyMasterDB {
 
 	private void deleteEngineAPI(String engineName) throws EngineException{
 		String filledURLQuery = API_QUERY.replaceAll("@ENGINE@", engineName);
-		SesameJenaSelectWrapper wrapper = Utility.processQuery(masterEngine,filledURLQuery);
+		ISelectWrapper wrapper = Utility.processQuery(masterEngine,filledURLQuery);
 		String[] names = wrapper.getVariables();
 		while(wrapper.hasNext())
 		{
 			//grab query results
-			SesameJenaSelectStatement sjss = wrapper.next();
+			ISelectStatement sjss = wrapper.next();
 			String url = (String)sjss.getVar(names[0]);
 			removeProperty(ENGINE_BASE_URI + "/" + engineName, PROP_URI + "/" + "API",url,true);
 		}

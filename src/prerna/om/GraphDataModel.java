@@ -21,7 +21,6 @@ import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.jgrapht.graph.SimpleGraph;
 import org.openrdf.model.Literal;
 import org.openrdf.model.URI;
 import org.openrdf.model.impl.URIImpl;
@@ -36,11 +35,8 @@ import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
-import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.ModelFactory;
-import com.hp.hpl.jena.rdf.model.Property;
-import com.hp.hpl.jena.rdf.model.Resource;
-
+import prerna.rdf.engine.api.IConstructStatement;
+import prerna.rdf.engine.api.IConstructWrapper;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.InMemoryJenaEngine;
@@ -50,15 +46,19 @@ import prerna.rdf.engine.impl.SesameJenaConstructStatement;
 import prerna.rdf.engine.impl.SesameJenaConstructWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectCheater;
 import prerna.rdf.engine.impl.SesameJenaUpdateWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.GraphOWLHelper;
 import prerna.ui.components.PropertySpecData;
 import prerna.ui.components.RDFEngineHelper;
-import prerna.ui.components.VertexColorShapeData;
-import prerna.ui.components.VertexFilterData;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.JenaSesameUtils;
 import prerna.util.Utility;
+
+import com.hp.hpl.jena.rdf.model.Model;
+import com.hp.hpl.jena.rdf.model.ModelFactory;
+import com.hp.hpl.jena.rdf.model.Property;
+import com.hp.hpl.jena.rdf.model.Resource;
 
 public class GraphDataModel {
 	/*
@@ -161,13 +161,15 @@ public class GraphDataModel {
 		// open up the engine
 		String queryCap = query.toUpperCase();
 		
-		SesameJenaConstructWrapper sjw = null;
-		if(queryCap.startsWith("CONSTRUCT"))
-			sjw = new SesameJenaConstructWrapper();
-		else
-			sjw = new SesameJenaSelectCheater();
+		//SesameJenaConstructWrapper sjw = null;
+		IConstructWrapper sjw = null;
 
-		logger.debug("Query is " + query);
+		if(queryCap.startsWith("CONSTRUCT"))
+			sjw = WrapperManager.getInstance().getCWrapper(engine, query);
+		else
+			sjw = WrapperManager.getInstance().getChWrapper(engine, query);
+
+		/*logger.debug("Query is " + query);
 		sjw.setEngine(engine);
 		sjw.setQuery(query);
 		
@@ -175,7 +177,7 @@ public class GraphDataModel {
 			sjw.execute();	
 		} catch (RuntimeException e) {
 			e.printStackTrace();
-		}
+		}*/
 		
 		logger.info("Executed the query");
 		// need to take the base information from the base query and insert it into the jena model
@@ -226,7 +228,7 @@ public class GraphDataModel {
 				// add it to the in memory jena model
 				// get the properties
 				// add it to the in memory jena model
-				SesameJenaConstructStatement st = sjw.next();
+				IConstructStatement st = sjw.next();
 				Object obj = st.getObject();
 				logger.debug(st.getSubject() + "<<>>" + st.getPredicate() + "<<>>" + st.getObject());
 				//predData.addPredicate2(st.getPredicate());
@@ -316,7 +318,7 @@ public class GraphDataModel {
 	 * @param overrideURI boolean
 	 * @param add2Base boolean
 	 */
-	public void addToSesame(SesameJenaConstructStatement st, boolean overrideURI, boolean add2Base) {
+	public void addToSesame(IConstructStatement st, boolean overrideURI, boolean add2Base) {
 		try {
 			// initialization routine...
 			if(rc == null)
@@ -416,7 +418,7 @@ public class GraphDataModel {
 	 * Method addToJenaModel3.
 	 * @param st SesameJenaConstructStatement
 	 */
-	public void addToJenaModel3(SesameJenaConstructStatement st) {
+	public void addToJenaModel3(IConstructStatement st) {
 		// if the jena model is not null
 		// then add to the new jenaModel and the old one
 		if(jenaModel == null)
@@ -547,7 +549,8 @@ public class GraphDataModel {
 
 		String containsString = null;
 		
-		SesameJenaConstructWrapper sjsc = new SesameJenaConstructWrapper();
+		//SesameJenaConstructWrapper sjsc = new SesameJenaConstructWrapper();
+		IConstructWrapper sjsc = null;
 		
 		//IEngine jenaEngine = new InMemoryJenaEngine();
 		//((InMemoryJenaEngine)jenaEngine).setModel(jenaModel);
@@ -557,20 +560,21 @@ public class GraphDataModel {
 
 		
 		if(query2.toUpperCase().contains("CONSTRUCT"))
-			sjsc = new SesameJenaConstructWrapper();
+			sjsc = WrapperManager.getInstance().getCWrapper(jenaEngine, query2);
 		else
-			sjsc = new SesameJenaSelectCheater();
+			sjsc = WrapperManager.getInstance().getChWrapper(jenaEngine, query2);
 
-		// = new SesameJenaSelectCheater();
+		/*// = new SesameJenaSelectCheater();
 		sjsc.setEngine(jenaEngine);
 		sjsc.setQuery(query2);
 		sjsc.execute();
+		*/
 		
 		// eventually - I will not need the count
 		int count = 0;
 		while(sjsc.hasNext() && count < 1)
 		{
-			SesameJenaConstructStatement st = sjsc.next();
+			IConstructStatement st = sjsc.next();
 			containsString = "<" + st.getSubject() + ">";
 			count++;
 		}
@@ -951,20 +955,22 @@ public class GraphDataModel {
 		// i.e. Checks to see if the node is available
 		// if the node is not already there then this predicate wont be added
 
-		SesameJenaConstructWrapper sjw = null;
+		//SesameJenaConstructWrapper sjw = null;
+		IConstructWrapper sjw = null;
 		String queryCap = query.toUpperCase();
 		if(queryCap.startsWith("CONSTRUCT"))
-			sjw = new SesameJenaConstructWrapper();
+			sjw = WrapperManager.getInstance().getCWrapper(engine, query);
 		else
-			sjw = new SesameJenaSelectCheater();
+			sjw = WrapperManager.getInstance().getChWrapper(engine, query);
+		/*
 		sjw.setEngine(engine);
 		sjw.setQuery(query);
 		sjw.execute();
-
+		*/
 		Model curModel = ModelFactory.createDefaultModel();
 		
 		while (sjw.hasNext()) {
-			SesameJenaConstructStatement st = sjw.next();
+			IConstructStatement st = sjw.next();
 			org.openrdf.model.Resource subject = new URIImpl(st.getSubject());
 			org.openrdf.model.URI predicate = new URIImpl(st.getPredicate());
 			String delQuery = "DELETE DATA {";

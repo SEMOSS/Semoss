@@ -38,7 +38,7 @@ public interface IEngine extends IExplorable{
 	 * @version $Revision: 1.0 $
 	 */
 	
-	public enum ENGINE_TYPE {JENA, SESAME, SEMOSS_SESAME_REMOTE};
+	public enum ENGINE_TYPE {JENA, SESAME, SEMOSS_SESAME_REMOTE, RDBMS};
 	
 	/**
 	 * Opens a database as defined by its properties file.  What is included in the properties file is dependent on the type of 

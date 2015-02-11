@@ -27,8 +27,9 @@ import org.apache.log4j.Logger;
 
 import prerna.poi.specific.BasicReportWriter;
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -59,15 +60,18 @@ public class DHMSMSystemCapabilityOverlapProcessor {
 			
 			String query = "SELECT DISTINCT ?Capability ?CapabilityFunctionalArea WHERE {BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> as ?dhmsm) {?CapabilityFunctionalArea <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityFunctionalArea>;}{?Utilizes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Utilizes>;}{?CapabilityGroup <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CapabilityGroup>;}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?ConsistsOfCapability <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?dhmsm <http://semoss.org/ontologies/Relation/TaggedBy> ?cap}{?CapabilityFunctionalArea ?Utilizes ?CapabilityGroup;} {?CapabilityGroup ?ConsistsOfCapability ?Capability;}}";
 	
-			SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+			
+			/*SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 			wrapper.setQuery(query);
 			wrapper.setEngine(engine);
 			wrapper.executeQuery();
-	
+			*/
 			String[] names = wrapper.getVariables();
 	
 				while (wrapper.hasNext()) {
-					SesameJenaSelectStatement sjss = wrapper.next();
+					ISelectStatement sjss = wrapper.next();
 					capToFunctionalAreaHash.put((String) sjss.getVar(names[0]),(String) sjss.getVar(names[1]));
 				}
 		} catch (RuntimeException e) {
