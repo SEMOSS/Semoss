@@ -59,7 +59,8 @@ import prerna.util.Utility;
 public class CreateMasterDB extends ModifyMasterDB {
 
 	private String wordnetPath;
-
+	private HypernymListGenerator hypernymGenerator;
+	
 	public CreateMasterDB(String localMasterDbName) {
 		super(localMasterDbName);
 	}
@@ -69,7 +70,6 @@ public class CreateMasterDB extends ModifyMasterDB {
 
 	public Hashtable<String, Boolean> registerEngineLocal(ArrayList<String> dbArray) throws EngineException {
 		Hashtable<String, Boolean> successHash = new Hashtable<String, Boolean>();
-
 		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 
 		Map<String, String> parentChildMapping = new HashMap<String, String>();
@@ -80,6 +80,9 @@ public class CreateMasterDB extends ModifyMasterDB {
 			ISelectStatement sjss = wrapper.next();
 			parentChildMapping.put(sjss.getVar(names[0]).toString(), sjss.getVar(names[1]).toString());
 		}
+		
+		hypernymGenerator = new HypernymListGenerator(wordnetPath);
+		hypernymGenerator.addMappings(parentChildMapping);
 
 		for(String engineName : dbArray) {
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName + "");
@@ -120,6 +123,9 @@ public class CreateMasterDB extends ModifyMasterDB {
 			parentChildMapping.put(sjss.getVar(names[0]).toString(), sjss.getVar(names[1]).toString());
 		}
 
+		hypernymGenerator = new HypernymListGenerator(wordnetPath);
+		hypernymGenerator.addMappings(parentChildMapping);
+		
 		for(String engineName : dbArray) {
 			String engineAPI = baseURL + "/s-"+engineName;
 			String owl = Utility.retrieveResult(engineAPI + "/getOWLDefinition", null);
@@ -156,8 +162,6 @@ public class CreateMasterDB extends ModifyMasterDB {
 	private void addNewDBConcepts(String engineName, Hashtable<String, SEMOSSVertex> vertStore, Map<String, String> parentChildMapping) throws EngineException {
 		MasterDatabaseForest<String> forest = new MasterDatabaseForest<String>();
 		MasterDatabaseBipartiteGraph<String> keywordConceptBipartiteGraph = new MasterDatabaseBipartiteGraph<String>();
-		HypernymListGenerator hypernymGenerator = new HypernymListGenerator(wordnetPath);
-		hypernymGenerator.addMappings(parentChildMapping);
 
 		Iterator<SEMOSSVertex> vertItr = vertStore.values().iterator();
 		while(vertItr.hasNext()) {
@@ -177,8 +181,9 @@ public class CreateMasterDB extends ModifyMasterDB {
 					List<String> hypernymList = hypernymGenerator.getHypernymList(noun);
 					TreeNode<String> node = hypernymGenerator.getHypernymTree(hypernymList);
 					forest.addNodes(node);
-					String topHypernym = hypernymList.get(hypernymList.size()-1);
-					addRelationship(MC_BASE_URI + "/" + noun, MC_BASE_URI + "/" + topHypernym, SEMOSS_RELATION_URI + "/HasTopHypernym/" + noun + ":" + topHypernym);
+					String topHypernym = Utility.cleanString(hypernymList.get(hypernymList.size()-1), false);
+					String cleanNoun = Utility.cleanString(noun, false);
+					addRelationship(MC_BASE_URI + "/" + cleanNoun, MC_BASE_URI + "/" + topHypernym, SEMOSS_RELATION_URI + "/HasTopHypernym/" + cleanNoun + ":" + topHypernym);
 				}
 				keywordConceptBipartiteGraph.addToKeywordSet(biNode);
 			}

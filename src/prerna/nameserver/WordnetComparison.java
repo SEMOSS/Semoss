@@ -8,6 +8,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.algorithm.nlp.PartOfSpeechHelper;
 import prerna.util.Utility;
 import rita.RiWordNet;
@@ -19,6 +22,8 @@ import edu.stanford.nlp.trees.TypedDependency;
 
 public class WordnetComparison {
 
+	private static final Logger LOGGER = LogManager.getLogger(WordnetComparison.class.getName());
+	
 	private RiWordNet wordnet;
 	private LexicalizedParser lp;
 
@@ -48,13 +53,18 @@ public class WordnetComparison {
 	}
 	
 	public double compareKeywords(Set<String> firstNounList, Set<String> secondNounList) {
+		System.err.println(">>>>>>>>>>>>>>>>>COMPARING: " + firstNounList + " to " + secondNounList);
 		// need to iterate through and break apart the URIs
 		firstNounList = getInstanceForSet(firstNounList);
 		secondNounList = getInstanceForSet(secondNounList);
+		System.err.println(">>>>>>>>>>>>>>>>> " + firstNounList);
+		System.err.println(">>>>>>>>>>>>>>>>> " + secondNounList);
 		
 		Set<String> firstMainNouns = getMainNouns(firstNounList);
 		Set<String> secondMainNouns = getMainNouns(secondNounList);
-		
+		System.err.println(">>>>>>>>>>>>>>>>>FOUND MAIN NOUNS IN SET 1: " + firstMainNouns);
+		System.err.println(">>>>>>>>>>>>>>>>>FOUND MAIN NOUNS IN SET 2: " + secondMainNouns);
+
 		Set<String> firstOtherNouns = new HashSet<String>();
 		Set<String> secondOtherNouns = new HashSet<String>();
 
@@ -77,9 +87,12 @@ public class WordnetComparison {
 		double[][] mainComparisonMatrix = getComparisonMatrix(firstMainNouns, secondMainNouns);
 		double[][] otherComparisonMatrix = getComparisonMatrix(firstOtherNouns, secondOtherNouns);
 
-		double mainCompVal = calculateBestComparison(mainComparisonMatrix) / mainNounWeight;
-		double otherCompVal = calculateBestComparison(otherComparisonMatrix) / otherNounWeight;
+		double mainCompVal = calculateBestComparison(mainComparisonMatrix) * mainNounWeight;
+		double otherCompVal = calculateBestComparison(otherComparisonMatrix) * otherNounWeight;
 		
+		System.err.println(">>>>>>>>>>>>>>>>>COMPARING: " + firstMainNouns + " to " + secondMainNouns + " gives value = " + mainCompVal);
+		System.err.println(">>>>>>>>>>>>>>>>>COMPARING: " + firstOtherNouns + " to " + secondOtherNouns + " gives value = " + otherCompVal);
+
 		return mainCompVal + otherCompVal;
 	}
 	
@@ -159,7 +172,6 @@ public class WordnetComparison {
 			return nounList;
 		}
 		
-		
 		String sentence = "";
 		Iterator<String> nounIt = nounList.iterator();
 		while(nounIt.hasNext()) {
@@ -172,9 +184,34 @@ public class WordnetComparison {
 		Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash = new Hashtable<GrammaticalRelation, Vector<TypedDependency>>();
 		PartOfSpeechHelper.setTypeDependencyHash(tdl, nodeHash);
 
-		Vector<TypedDependency> firstSubV = nodeHash.get(EnglishGrammaticalRelations.NOUN_COMPOUND_MODIFIER);
-		return getTopGov(firstSubV);
+		Vector<TypedDependency> tdlArr = nodeHash.get(EnglishGrammaticalRelations.NOUN_COMPOUND_MODIFIER);
+		if(tdlArr != null) {
+			return getTopGov(tdlArr);
+		}
 		
+		// if NLP determines something isn't a noun, look for adj/adv
+		tdlArr = nodeHash.get(EnglishGrammaticalRelations.ADJECTIVAL_MODIFIER);
+		if(tdlArr != null) {
+			return getTopGov(tdlArr);
+		}
+		
+		tdlArr = nodeHash.get(EnglishGrammaticalRelations.ADVERBIAL_MODIFIER);
+		if(tdlArr != null) {
+			return getTopGov(tdlArr);
+		}
+		
+		tdlArr = nodeHash.get(EnglishGrammaticalRelations.NP_ADVERBIAL_MODIFIER);
+		if(tdlArr != null) {
+			return getTopDep(tdlArr);
+		}
+		
+		// if cannot determine what type of grammatical relationship, just grab the dependent and get the gov
+		tdlArr = nodeHash.get(GrammaticalRelation.DEPENDENT);
+		if(tdlArr != null) {
+			return getTopGov(tdlArr);
+		}
+		
+		return null;
 	}
 	
 	private Set<String> getTopGov(Vector<TypedDependency> subV) {
@@ -185,8 +222,21 @@ public class WordnetComparison {
 		
 		for(; i < size; i++) {
 			TypedDependency td = subV.get(i);
-			System.out.println(td.gov().toString());
-			govList.add(td.gov().toString());
+			govList.add(td.gov().value());
+		}
+		
+		return govList;
+	}
+	
+	private Set<String> getTopDep(Vector<TypedDependency> subV) {
+		Set<String> govList = new HashSet<String>();
+		
+		int i = 0;
+		int size = subV.size();
+		
+		for(; i < size; i++) {
+			TypedDependency td = subV.get(i);
+			govList.add(td.dep().value());
 		}
 		
 		return govList;
