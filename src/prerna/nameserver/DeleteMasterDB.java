@@ -29,8 +29,6 @@ import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.rdf.engine.impl.QuestionAdministrator;
 import prerna.rdf.engine.impl.RDFFileSesameEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
