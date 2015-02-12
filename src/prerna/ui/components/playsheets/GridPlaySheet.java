@@ -30,6 +30,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
 
+import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridRAWTableModel;
@@ -123,6 +124,8 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 			if( var != null && var instanceof Literal) {
 				var = sjss.getVar(varName);
 			} 
+			if(engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS)
+				var = sjss.getVar(varName);
 		return var;
 	}
 	

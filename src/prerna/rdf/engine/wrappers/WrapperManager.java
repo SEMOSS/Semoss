@@ -50,6 +50,8 @@ public class WrapperManager {
 				break;
 			}
 			case RDBMS:{
+				returnWrapper = new RDBMSSelectWrapper();
+				break;
 				//TBD
 			}
 

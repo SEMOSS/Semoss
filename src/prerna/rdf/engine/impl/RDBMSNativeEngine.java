@@ -26,7 +26,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		super.openDB(propFile);
 		String connectionURL = prop.getProperty(Constants.CONNECTION_URL);
 		String userName = prop.getProperty(Constants.USERNAME);
-		String password = prop.getProperty(Constants.PASSWORD);
+		String password = "";
+		if(prop.containsKey(Constants.PASSWORD))
+			password = prop.getProperty(Constants.PASSWORD);
 		String driver = prop.getProperty(Constants.DRIVER);
         try {
 			Class.forName(driver);
