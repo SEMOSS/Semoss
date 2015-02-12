@@ -76,4 +76,13 @@ public class ParallelCoordinatesPlaySheet extends BrowserPlaySheet {
 		return allHash;
 	}
 	
+	@Override
+	public Hashtable<String, String> getDataTableAlign() {
+		Hashtable<String, String> alignHash = new Hashtable<String, String>();
+		for(int namesIdx = 0; namesIdx<names.length; namesIdx++){
+			alignHash.put("dim " + namesIdx, names[namesIdx]);
+		}
+		return alignHash;
+	}
+	
 }

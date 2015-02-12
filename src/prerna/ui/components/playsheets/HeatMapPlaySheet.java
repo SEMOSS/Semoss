@@ -84,4 +84,13 @@ public class HeatMapPlaySheet extends BrowserPlaySheet {
 			} 
 		return var;
 	}
+	
+	@Override
+	public Hashtable<String, String> getDataTableAlign() {
+		Hashtable<String, String> alignHash = new Hashtable<String, String>();
+		alignHash.put("x", names[0]);
+		alignHash.put("y", names[1]);
+		alignHash.put("heat", names[2]);
+		return alignHash;
+	}
 }

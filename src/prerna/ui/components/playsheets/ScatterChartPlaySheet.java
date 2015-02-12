@@ -45,13 +45,12 @@ public class ScatterChartPlaySheet extends BrowserPlaySheet{
 	public Hashtable processQueryData()
 	{
 		ArrayList allData = new ArrayList();
-		String[] var = wrapper.getVariables();
 		for (int i=0;i<list.size();i++)
 		{
 			Hashtable elementHash = new Hashtable();
 			Object[] listElement = list.get(i);
 			
-			elementHash.put("series", var[0]);
+			elementHash.put("series", names[0]);
 			elementHash.put("label", listElement[0]);
 			elementHash.put("x", listElement[1]);
 			if(listElement.length>2)
@@ -75,13 +74,25 @@ public class ScatterChartPlaySheet extends BrowserPlaySheet{
 		}
 		Hashtable allHash = new Hashtable();
 		allHash.put("dataSeries", allData);
-		allHash.put("title",  var[1] + " vs " + var[2]);
-		allHash.put("xAxisTitle", var[1]);
-		if(var.length>2)
-			allHash.put("yAxisTitle", var[2]);
-		if(var.length>3)
-			allHash.put("zAxisTitle", var[3]);
+		allHash.put("title",  names[1] + " vs " + names[2]);
+		allHash.put("xAxisTitle", names[1]);
+		if(names.length>2)
+			allHash.put("yAxisTitle", names[2]);
+		if(names.length>3)
+			allHash.put("zAxisTitle", names[3]);
 		return allHash;
+	}
+	
+	@Override
+	public Hashtable<String, String> getDataTableAlign() {
+		Hashtable<String, String> alignHash = new Hashtable<String, String>();
+		alignHash.put("label", names[0]);
+		alignHash.put("x", names[1]);
+		if(names.length>2)
+			alignHash.put("y", names[2]);
+		if(names.length>3)
+			alignHash.put("z", names[3]);
+		return alignHash;
 	}
 	
 }
