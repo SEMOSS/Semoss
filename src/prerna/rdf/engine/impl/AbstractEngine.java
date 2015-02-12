@@ -561,7 +561,11 @@ public abstract class AbstractEngine implements IEngine {
 	public Properties loadProp(String fileName) throws FileNotFoundException, IOException {
 		Properties retProp = new Properties();
 		if(fileName != null)
-			retProp.load(new FileInputStream(fileName));
+		{
+			FileInputStream fis = new FileInputStream(fileName);
+			retProp.load(fis);
+			fis.close();
+		}
 		logger.info("Properties >>>>>>>>" + fileName);
 		return retProp;
 	}
@@ -1656,6 +1660,10 @@ public abstract class AbstractEngine implements IEngine {
 
 	public RDFFileSesameEngine getInsightBaseXML() {
 		return insightBaseXML;
+	}
+	
+	public String getSMSS(){
+		return this.propFile;
 	}
 	
 	
