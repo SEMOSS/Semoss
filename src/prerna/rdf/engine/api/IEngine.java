@@ -173,6 +173,9 @@ public interface IEngine extends IExplorable{
 
 	// sets the rdbms map, if it exists
 	public void setMap(String map);
+
+	// gets the smss file location
+	public String getSMSS();
 	
 	// get property
 	public String getProperty(String key);
