@@ -1,37 +1,24 @@
 package prerna.nameserver;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 import java.util.Vector;
-
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 
 import prerna.algorithm.nlp.PartOfSpeechHelper;
 import prerna.util.Utility;
 import rita.RiWordNet;
-import edu.stanford.nlp.ling.TaggedWord;
 import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
 import edu.stanford.nlp.trees.EnglishGrammaticalRelations;
 import edu.stanford.nlp.trees.GrammaticalRelation;
 import edu.stanford.nlp.trees.TypedDependency;
 
-public class WordnetComparison {
+public class WordnetComparison implements IMasterDatabaseConstants{
 
-	private static final Logger LOGGER = LogManager.getLogger(WordnetComparison.class.getName());
-	
 	private RiWordNet wordnet;
 	private LexicalizedParser lp;
 
-	private double mainNounWeight = 0.8;
-	private double otherNounWeight = 0.2;
-	
-	private double simScoreThreshold = 0.20;
-	
 	/**
 	 * Constructor for the class
 	 * Defines the wordnet library
@@ -59,7 +46,7 @@ public class WordnetComparison {
 	 * @return					Boolean true if the two words are similar based on the threshold
 	 */
 	public boolean isSimilar(double comparissonVal) {
-		if(comparissonVal <= simScoreThreshold) {
+		if(comparissonVal <= similarityCutOff) {
 			return true;
 		}
 		return false;
@@ -215,10 +202,8 @@ public class WordnetComparison {
 		}
 		sentence = sentence.trim();
 		
-		List<TypedDependency> tdl = new ArrayList<TypedDependency>();
-		PartOfSpeechHelper.createDepList(lp, sentence, tdl, new ArrayList<TaggedWord>()); //create dependencies
-		Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash = new Hashtable<GrammaticalRelation, Vector<TypedDependency>>();
-		PartOfSpeechHelper.setTypeDependencyHash(tdl, nodeHash);
+		// get the grammatical relationships in the sentence
+		Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash = PartOfSpeechHelper.getTypeDependencyHash(lp, sentence);
 
 		Vector<TypedDependency> tdlArr = nodeHash.get(EnglishGrammaticalRelations.NOUN_COMPOUND_MODIFIER);
 		if(tdlArr != null) {
@@ -256,7 +241,6 @@ public class WordnetComparison {
 			return getTopGov(tdlArr);
 		}
 		
-		// if cannot determine what type of grammatical relationship, just grab the dependent and get the gov
 		tdlArr = nodeHash.get(GrammaticalRelation.DEPENDENT);
 		if(tdlArr != null) {
 			return getTopDep(tdlArr);

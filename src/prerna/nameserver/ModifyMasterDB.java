@@ -21,7 +21,7 @@ import org.apache.log4j.Logger;
 import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.util.DIHelper;
 
-public class ModifyMasterDB implements IMasterDatabase{
+public class ModifyMasterDB implements IMasterDatabaseConstants, IMasterDatabaseURIs, IMasterDatabaseQueries{
 	
 	protected static final Logger logger = LogManager.getLogger(ModifyMasterDB.class.getName());
 
