@@ -39,23 +39,6 @@ import prerna.util.Utility;
 
 public class DeleteMasterDB extends ModifyMasterDB {
 
-	//queries for relations to delete
-	private static final String KEYWORDS_QUERY = "SELECT DISTINCT ?Keyword WHERE { BIND(<http://semoss.org/ontologies/Concept/Engine/@ENGINE@> AS ?Engine) {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?Keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?Engine ?p ?Keyword}}";
-	private static final String API_QUERY = "SELECT DISTINCT ?API WHERE { BIND(<http://semoss.org/ontologies/Concept/Engine/@ENGINE@> AS ?Engine) {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?Engine <http://semoss.org/ontologies/Relation/Contains/API> ?API}}";
-
-	private static final String PERSPECTIVES_QUERY = "SELECT DISTINCT ?Perspective WHERE { BIND(<http://semoss.org/ontologies/Concept/Engine/@ENGINE@> AS ?Engine) {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?Perspective <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Perspective>}{?Engine ?p ?Perspective}}";
-	private static final String INSIGHTS_QUERY = "SELECT DISTINCT ?Insight WHERE { BIND(<http://semoss.org/ontologies/Concept/Engine/@ENGINE@> AS ?Engine) {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?Insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>}{?Engine ?p ?Insight}}";
-
-	//queries to clean up the keywords after engines deleted
-	private static final String KEYWORDS_WITHOUT_ENGINES_QUERY = "SELECT DISTINCT ?Keyword WHERE {{?Keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} OPTIONAL{{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?Engine <http://semoss.org/ontologies/Relation/Has> ?Keyword}}FILTER(!BOUND(?Engine))}";
-	private static final String MC_KEYWORDS_QUERY = "SELECT DISTINCT ?MasterConcept ?Keyword WHERE {{?Keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?Keyword <http://semoss.org/ontologies/Relation/ComposedOf> ?MasterConcept}} BINDINGS ?Keyword {@BINDINGS@}";
-	private static final String KEYWORDS_TYPE_QUERY = "SELECT DISTINCT ?Keyword ?Type WHERE {{?Keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?Keyword <http://semoss.org/ontologies/Relation/Has> ?Type}} BINDINGS ?Keyword {@BINDINGS@}";
-
-	//queries to clean up MCs on a deep clean
-	private static final String MCS_WITHOUT_KEYWORDS_QUERY = "SELECT DISTINCT ?MC WHERE { {?MC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>}MINUS{SELECT DISTINCT ?MC WHERE{{?MC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {{?childMC  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>}{?Keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MC <http://semoss.org/ontologies/Relation/ParentOf>+ ?childMC}{?Keyword <http://semoss.org/ontologies/Relation/ComposedOf> ?childMC}}UNION{{?Keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}{?Keyword <http://semoss.org/ontologies/Relation/ComposedOf> ?MC}}}}}";
-	private static final String PARENT_CHILD_MC_QUERY = "SELECT DISTINCT ?ParentMC ?ChildMC WHERE {{?ParentMC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>}{?ChildMC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?ParentMC <http://semoss.org/ontologies/Relation/ParentOf> ?ChildMC}} BINDINGS ?ChildMC {@BINDINGS@}";
-	private static final String MC_TOP_HYPERNYM_MC_QUERY = "SELECT DISTINCT ?MC ?TopHypernymMC WHERE {{?MC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>}{?TopHypernymMC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MC <http://semoss.org/ontologies/Relation/HasTopHypernym> ?TopHypernymMC}} BINDINGS ?MC {@BINDINGS@}";
-
 	public DeleteMasterDB(String localMasterDbName) {
 		super(localMasterDbName);
 	}
