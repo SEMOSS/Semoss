@@ -83,7 +83,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 			// BigdataSail.Options.TRUTH_MAINTENANCE = "true";
 			BigdataSailRepository repo = new BigdataSailRepository(bdSail);
 			repo.initialize();
-			rc = repo.getConnection();
+			rc = repo.getUnisolatedConnection();
 		
 			// logger.info("ie forward chaining " + ie);
 			// need to convert to constants
@@ -114,12 +114,6 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 	@Override
 	public void closeDB() {
 		// ng.stopTransaction(Conclusion.SUCCESS);
-		try {
-			sc.commit();
-			sc.close();
-		} catch (SailException e1) {
-			e1.printStackTrace();
-		}
 		
 		try {
 			bdSail.shutDown();
@@ -127,6 +121,12 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 		} catch (SailException e) {
 			e.printStackTrace();
 		}
+//		try {
+//		sc.commit();
+//		sc.close();
+//	} catch (SailException e1) {
+//		e1.printStackTrace();
+//	}
 		// ng.shutdown();
 	}
 
