@@ -24,6 +24,7 @@ import java.util.Hashtable;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
+import org.mvel2.util.ThisLiteral;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.repository.RepositoryException;
@@ -131,6 +132,7 @@ public class QuestionAdministrator {
 
 	public QuestionAdministrator(IEngine engine) {
 		this.engine = engine;
+		this.selectedEngine = engine.getEngineName();
 		insightBaseXML = ((AbstractEngine) engine).getInsightBaseXML();
 	}
 
@@ -1181,6 +1183,19 @@ public class QuestionAdministrator {
 						Integer.parseInt(questionOrder) + "");
 			}
 		}
+	}
+	
+	public void deleteAllFromPersp(String perspective){
+		String pURI = "";
+		Vector<String> pURIs = ((AbstractEngine) engine).getPerspectivesURI();
+		for(String p : pURIs){
+			String pURIinstance =Utility.getInstanceName(p);
+			if(pURIinstance.equals(engine.getEngineName() + ":" + perspective)){
+				pURI = p;
+				break;
+			}
+		}
+		deleteAllFromPerspective(pURI);
 	}
 
 	public void deleteAllFromPerspective(String perspectiveURI) {
