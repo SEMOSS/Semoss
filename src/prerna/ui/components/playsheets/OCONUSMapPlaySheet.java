@@ -120,4 +120,15 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 		data.clear();
 	}
 	
+	@Override
+	public Hashtable<String, String> getDataTableAlign() {
+		Hashtable<String, String> alignHash = new Hashtable<String, String>();
+		alignHash.put("label", names[0]);
+		alignHash.put("lat", names[1]);
+		alignHash.put("lon", names[2]);
+		if (names.length > 3 && !names[3].equals(null))
+			alignHash.put("size", names[3]);
+		return alignHash;
+	}
+	
 }
