@@ -16,12 +16,16 @@
 package prerna.nameserver;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.Set;
 
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.sail.SailConnection;
+import org.openrdf.sail.SailException;
 
 import prerna.error.EngineException;
 import prerna.rdf.engine.api.ISelectStatement;
@@ -41,6 +45,16 @@ public class DeleteMasterDB extends ModifyMasterDB {
 
 	private static final String PERSPECTIVES_QUERY = "SELECT DISTINCT ?Perspective WHERE { BIND(<http://semoss.org/ontologies/Concept/Engine/@ENGINE@> AS ?Engine) {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?Perspective <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Perspective>}{?Engine ?p ?Perspective}}";
 	private static final String INSIGHTS_QUERY = "SELECT DISTINCT ?Insight WHERE { BIND(<http://semoss.org/ontologies/Concept/Engine/@ENGINE@> AS ?Engine) {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?Insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>}{?Engine ?p ?Insight}}";
+
+	//queries to clean up the keywords after engines deleted
+	private static final String KEYWORDS_WITHOUT_ENGINES_QUERY = "SELECT DISTINCT ?Keyword WHERE {{?Keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} OPTIONAL{{?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?Engine <http://semoss.org/ontologies/Relation/Has> ?Keyword}}FILTER(!BOUND(?Engine))}";
+	private static final String MC_KEYWORDS_QUERY = "SELECT DISTINCT ?MasterConcept ?Keyword WHERE {{?Keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MasterConcept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?Keyword <http://semoss.org/ontologies/Relation/ComposedOf> ?MasterConcept}} BINDINGS ?Keyword {@BINDINGS@}";
+	private static final String KEYWORDS_TYPE_QUERY = "SELECT DISTINCT ?Keyword ?Type WHERE {{?Keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?Keyword <http://semoss.org/ontologies/Relation/Has> ?Type}} BINDINGS ?Keyword {@BINDINGS@}";
+
+	//queries to clean up MCs on a deep clean
+	private static final String MCS_WITHOUT_KEYWORDS_QUERY = "SELECT DISTINCT ?MC WHERE { {?MC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>}MINUS{SELECT DISTINCT ?MC WHERE{{?MC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {{?childMC  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>}{?Keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} {?MC <http://semoss.org/ontologies/Relation/ParentOf>+ ?childMC}{?Keyword <http://semoss.org/ontologies/Relation/ComposedOf> ?childMC}}UNION{{?Keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>}{?Keyword <http://semoss.org/ontologies/Relation/ComposedOf> ?MC}}}}}";
+	private static final String PARENT_CHILD_MC_QUERY = "SELECT DISTINCT ?ParentMC ?ChildMC WHERE {{?ParentMC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>}{?ChildMC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?ParentMC <http://semoss.org/ontologies/Relation/ParentOf> ?ChildMC}} BINDINGS ?ChildMC {@BINDINGS@}";
+	private static final String MC_TOP_HYPERNYM_MC_QUERY = "SELECT DISTINCT ?MC ?TopHypernymMC WHERE {{?MC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>}{?TopHypernymMC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} {?MC <http://semoss.org/ontologies/Relation/HasTopHypernym> ?TopHypernymMC}} BINDINGS ?MC {@BINDINGS@}";
 
 	public DeleteMasterDB(String localMasterDbName) {
 		super(localMasterDbName);
@@ -78,6 +92,14 @@ public class DeleteMasterDB extends ModifyMasterDB {
 			} catch (EngineException e) {
 				successHash.put(engineName, false);
 			}
+		}
+		
+		try {
+			deleteKeywordsWithoutEngines();
+			successHash.put("keywordDeletion", true);
+
+		} catch (EngineException e) {
+			successHash.put("keywordDeletion", false);
 		}
 
 		masterEngine.commit();
@@ -118,6 +140,15 @@ public class DeleteMasterDB extends ModifyMasterDB {
 				successHash.put(engineName, false);
 			}
 		}
+		
+		
+		try {
+			deleteKeywordsWithoutEngines();
+			successHash.put("keywordDeletion", true);
+
+		} catch (EngineException e) {
+			successHash.put("keywordDeletion", false);
+		}
 
 		masterEngine.commit();
 		masterEngine.infer();
@@ -135,11 +166,10 @@ public class DeleteMasterDB extends ModifyMasterDB {
 			ISelectStatement sjss = wrapper.next();
 			String keyword = (String)sjss.getVar(names[0]);
 			removeRelationship(ENGINE_BASE_URI + "/" + engineName, KEYWORD_BASE_URI + "/" + keyword, SEMOSS_RELATION_URI + "/Has/" + engineName + ":" +keyword);
-			//TODO: keyword is not deleted from the database, just the relationship between keyword and engine is deleted.
 		}
 	}
 
-	//TODO
+	//TODO refactor question administrator so we dont have to create a new engine
 	private void deleteEngineInsights(String engineName) throws EngineException{
 
 		String filledInsightsQuery = INSIGHTS_QUERY.replaceAll("@ENGINE@", engineName);
@@ -201,7 +231,130 @@ public class DeleteMasterDB extends ModifyMasterDB {
 			removeProperty(ENGINE_BASE_URI + "/" + engineName, PROP_URI + "/" + "API",url,true);
 		}
 	}
+	
+	/**
+	 * Removes all of the keywords that are no longer associated with engines.
+	 * Deletes the relationships from keyword to type, keyword to MC and the keyword itself
+	 * Run whenever a user deletes an engine.
+	 * @throws EngineException
+	 */
+	private void deleteKeywordsWithoutEngines() throws EngineException {
+		//create a list of keywords that do not have associated engines
+		Set<String> keywordsWithoutEnginesList = new HashSet<String>();
+		//create a binding string for queries
+		String bindingsStr = "";
+		ISelectWrapper wrapper = Utility.processQuery(masterEngine,KEYWORDS_WITHOUT_ENGINES_QUERY);
+		String[] names = wrapper.getVariables();
+		while(wrapper.hasNext())
+		{
+			//grab query results
+			ISelectStatement sjss = wrapper.next();
+			String keyword = (String)sjss.getVar(names[0]);
+			keywordsWithoutEnginesList.add(keyword);
+			bindingsStr = bindingsStr.concat("(<").concat(KEYWORD_BASE_URI).concat("/").concat(keyword).concat(">)");
 
+		}
+		
+		//delete the keyword type relationships
+		String boundKeywordTypeQuery = KEYWORDS_TYPE_QUERY.replaceAll("@BINDINGS@", bindingsStr);
+		ISelectWrapper wrapper2 = Utility.processQuery(masterEngine,boundKeywordTypeQuery);
+		String[] names2 = wrapper2.getVariables();
+		while(wrapper2.hasNext())
+		{
+			ISelectStatement sjss = wrapper2.next();
+			String keyword = (String)sjss.getVar(names2[0]);
+			String typeURI = sjss.getRawVar(names2[1]).toString();
+			removeRelationship(KEYWORD_BASE_URI + "/" + keyword, typeURI, SEMOSS_RELATION_URI + "/Has/" + keyword + ":" + keyword);
+			masterEngine.removeStatement(typeURI, RDF.TYPE.stringValue(), RESOURCE_URI, true);
+		}
+		
+		//delete the mc keyword relationships
+		String boundMCKeywordsQuery = MC_KEYWORDS_QUERY.replaceAll("@BINDINGS@", bindingsStr);
+		ISelectWrapper wrapper3 = Utility.processQuery(masterEngine,boundMCKeywordsQuery);
+		String[] names3 = wrapper3.getVariables();
+		while(wrapper3.hasNext())
+		{
+			//grab query results
+			ISelectStatement sjss = wrapper3.next();
+			String mc = (String)sjss.getVar(names3[0]);
+			String keyword = (String)sjss.getVar(names3[1]);
+			removeRelationship(KEYWORD_BASE_URI + "/" + keyword, MC_BASE_URI + "/" + mc, SEMOSS_RELATION_URI + "/ComposedOf/" + keyword + ":" +mc);
+		}
+		
+		//delete the keywords
+		Iterator<String> keywordIt = keywordsWithoutEnginesList.iterator();
+		while(keywordIt.hasNext()) {
+			String keyword = keywordIt.next();
+			removeNode(KEYWORD_BASE_URI + "/" + keyword);
+		}
+	}
+
+	/**
+	 * Removes all of the master concepts that are no longer associated with keywords.
+	 * For any master concept that does not have a keyword
+	 * AND does not have a child master concept that has a keyword,
+	 * deletes the relationships from the master concept to its parent master concept and the mc itself.
+	 * This is a deep clean run. NOT run every time an engine is deleted
+	 * @throws EngineException
+	 */
+	public void deleteMCsWithoutKeywords() throws EngineException {
+		//create a list of mcs that do not have keywords associated
+		Set<String> mcsWithoutKeywords = new HashSet<String>();
+		//create a binding string for queries
+		String bindingsStr = "";
+		ISelectWrapper wrapper = Utility.processQuery(masterEngine,MCS_WITHOUT_KEYWORDS_QUERY);
+		String[] names = wrapper.getVariables();
+		while(wrapper.hasNext())
+		{
+			//grab query results
+			ISelectStatement sjss = wrapper.next();
+			String mc = (String)sjss.getVar(names[0]);
+			mcsWithoutKeywords.add(mc);
+			bindingsStr = bindingsStr.concat("(<").concat(MC_BASE_URI).concat("/").concat(mc).concat(">)");
+
+		}
+		
+		//delete the parent mcs to any mc that no longer has any keywords bounded
+		String boundParentChildMCQuery = PARENT_CHILD_MC_QUERY.replaceAll("@BINDINGS@", bindingsStr);
+		ISelectWrapper wrapper2 = Utility.processQuery(masterEngine,boundParentChildMCQuery);
+		String[] names2 = wrapper2.getVariables();
+		while(wrapper2.hasNext())
+		{
+			ISelectStatement sjss = wrapper2.next();
+			String parentMC = (String)sjss.getVar(names2[0]);
+			String childMC = (String)sjss.getVar(names2[1]);
+			removeRelationship(MC_BASE_URI + "/" + parentMC, MC_BASE_URI + "/" + childMC, SEMOSS_RELATION_URI + "/ParentOf/" + parentMC + ":" + childMC);
+		}
+		
+		//delete the top hypernyms associated with the mcs that no longer have keywords bounded
+		String boundTopHypernymQuery = MC_TOP_HYPERNYM_MC_QUERY.replaceAll("@BINDINGS@", bindingsStr);
+		ISelectWrapper wrapper3 = Utility.processQuery(masterEngine,boundTopHypernymQuery);
+		String[] names3 = wrapper3.getVariables();
+		while(wrapper3.hasNext())
+		{
+			ISelectStatement sjss = wrapper3.next();
+			String mc = (String)sjss.getVar(names3[0]);
+			String topHypernymMC = (String)sjss.getVar(names3[1]);
+			removeRelationship(MC_BASE_URI + "/" + mc, MC_BASE_URI + "/" + topHypernymMC, SEMOSS_RELATION_URI + "/HasTopHypernym/" + mc + ":" + topHypernymMC);
+		}		
+		
+		//delete the master concepts
+		Iterator<String> mcItr = mcsWithoutKeywords.iterator();
+		while(mcItr.hasNext()) {
+			String mc = mcItr.next();
+			removeNode(MC_BASE_URI + "/" + mc);
+		}
+	}
+
+	/**
+	 * Deletes all triples in the master database.
+	 * @throws EngineException
+	 * @throws SailException
+	 */
+	public void deleteAll() throws EngineException, SailException{
+		masterEngine.sc.clear();
+	}
+	
 	/**
 	 * Removes a node given a baseURI
 	 * @param nodeURI	String representing the URI for the node type. e.g. http://semoss.org/ontologies/Concept/MasterConcept/Dog
@@ -254,5 +407,6 @@ public class DeleteMasterDB extends ModifyMasterDB {
 	private void removeProperty(String nodeURI, String propURI, Object value,Boolean isConcept) throws EngineException {
 		masterEngine.removeStatement(nodeURI, propURI, value, isConcept);
 	}
+
 
 }
