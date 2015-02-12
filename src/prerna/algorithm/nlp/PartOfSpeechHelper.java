@@ -1,6 +1,7 @@
 package prerna.algorithm.nlp;
 
 import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Vector;
@@ -40,6 +41,7 @@ public final class PartOfSpeechHelper {
 	
 	/**
 	 * Create a list of the type dependencies for each word in an inputed sentence
+	 * @param lp			The parser that generates the treebank of the sentence depdency 
 	 * @param sentence		The sentence to generate the typed dependencies list
 	 * @param tdl			The object to add the typed dependency list too
 	 * @param taggedWords	The list to add all the Parts of Speech (POS) for each word in the sentence
@@ -108,6 +110,21 @@ public final class PartOfSpeechHelper {
 			baseVector.addElement(one);
 			nodeHash.put(rel, baseVector);
 		}
+	}
+	
+	/**
+	 * Generate a key-value mapping between the grammatical relation to the word from the sentence
+	 * @param lp				The parser that generates the treebank of the sentence depdency 
+	 * @param searchString		The sentence to generate the typed dependencies list
+	 * @return					The Hashtable to put the key-value mapping from the type dependency list
+	 */
+	public static Hashtable<GrammaticalRelation, Vector<TypedDependency>> getTypeDependencyHash(LexicalizedParser lp, String searchString)
+	{
+		List<TypedDependency> tdl = new ArrayList<TypedDependency>();
+		createDepList(lp, searchString, tdl, new ArrayList<TaggedWord>()); //create dependencies
+		Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash = new Hashtable<GrammaticalRelation, Vector<TypedDependency>>();
+		setTypeDependencyHash(tdl, nodeHash);
+		return nodeHash;
 	}
 
 	/**
