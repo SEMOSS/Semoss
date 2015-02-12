@@ -28,8 +28,6 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.RemoteSemossSesameEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -132,11 +130,6 @@ public class SearchMasterDB extends ModifyMasterDB {
 			engine.setDatabase(engineName);
 			
 			ISelectWrapper sjsw = WrapperManager.getInstance().getSWrapper(engine,  getUsableInstancesQuery);
-			
-			/*SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
-			sjsw.setEngine(engine);
-			sjsw.setQuery(getUsableInstancesQuery);
-			sjsw.executeQuery();*/
 			
 			Map<String, String> typeAndInstance = getTypeAndInstance(sjsw);
 			engineInstances.put(engineName, typeAndInstance);
@@ -243,8 +236,8 @@ public class SearchMasterDB extends ModifyMasterDB {
 		return INSTANCE_EXISTS_QUERY.replace("@BINDINGS@", bindingsStr);
 	}
 	
-
-	private String formInsightsForKeywordsQuery(String keywordURI, Map<String, Set<String>> keywordNounMap,Map<String, Double> similarKeywordScores) {
+	//TODO: shouldn't need to pass keywordNounMap -> instead pass in keyword and I should break it apart to preserve the order
+	private String formInsightsForKeywordsQuery(String keywordURI, Map<String, Set<String>> keywordNounMap, Map<String, Double> similarKeywordScores) {
 		// get list of insights for keywords if the score is above threshold
 		List<String> similarKeywordList = new ArrayList<String>();
 		similarKeywordList.add(keywordURI);
