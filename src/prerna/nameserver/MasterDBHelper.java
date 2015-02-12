@@ -10,7 +10,7 @@ import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public final class MasterDBHelper implements IMasterDatabase{
+public final class MasterDBHelper implements IMasterDatabaseQueries{
 
 	private MasterDBHelper() {
 		
