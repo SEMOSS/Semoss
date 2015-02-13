@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
@@ -38,6 +39,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
+import com.google.gson.internal.StringMap;
 import com.ibm.icu.util.StringTokenizer;
 
 public class QuestionAdministrator {
@@ -152,6 +154,12 @@ public class QuestionAdministrator {
 
 	public void setEngineURI2(String engineURI2) {
 		this.engineURI2 = engineURI2;
+	}
+
+	public void createQuestionXMLFile() {
+		String insights = this.engine.getProperty(Constants.INSIGHTS);
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		createQuestionXMLFile(insights, baseFolder);
 	}
 
 	public void createQuestionXMLFile(String questionXMLFile, String baseFolder) {
@@ -1186,6 +1194,12 @@ public class QuestionAdministrator {
 	}
 	
 	public void deleteAllFromPersp(String perspective){
+		String pURI = getPerspectiveURI(perspective);
+		deleteAllFromPerspective(pURI);
+		createQuestionXMLFile();
+	}
+	
+	private String getPerspectiveURI(String perspective){
 		String pURI = "";
 		Vector<String> pURIs = ((AbstractEngine) engine).getPerspectivesURI();
 		for(String p : pURIs){
@@ -1195,14 +1209,13 @@ public class QuestionAdministrator {
 				break;
 			}
 		}
-		deleteAllFromPerspective(pURI);
+		return pURI;
 	}
 
 	public void deleteAllFromPerspective(String perspectiveURI) {
 		logger.info("Deleting all questions from perspective with this URI: " + perspectiveURI);
 		
-		Vector questionsVector = ((AbstractEngine) engine)
-				.getInsightsURI(perspectiveURI);
+		Vector questionsVector = ((AbstractEngine) engine).getInsightsURI(perspectiveURI);
 
 		questionList2.clear();
 		for (Object question : questionsVector) {
@@ -1278,5 +1291,48 @@ public class QuestionAdministrator {
 					parameterQueryVector, optionVector);
 		}
 
+	}
+	
+	public void reorderPerspective(String perspective, Vector<Hashtable<String, Object>> orderedInsights){
+		String perspectiveURI = getPerspectiveURI(perspective);
+		logger.info("Reordering all questions from perspective with this URI: " + perspectiveURI);
+		Vector<String> questionsVector = ((AbstractEngine) engine).getOrderedInsightsURI(perspectiveURI);
+		System.out.println("questions currenlty ordered as " + questionsVector);
+		
+		//determine difference in order between orderedInsights and questionsVector so that we only update the questions that need updating
+		Hashtable<String, Integer> needsReorder = new Hashtable<String, Integer>();
+		for(int i = 0; i < orderedInsights.size(); i++){
+			Hashtable orderedInsightHash = orderedInsights.get(i);
+			String qID = ((StringMap)orderedInsightHash.get("propHash")).get("id") + "";
+			if(!qID.equals(Utility.getInstanceName(questionsVector.get(i)))){
+				needsReorder.put(qID, i+1);
+			}
+		}
+		
+		// now reorder! 
+		Iterator<String> it = needsReorder.keySet().iterator();
+		boolean save = false;
+		while(it.hasNext()) {
+			save = true;
+			String question = it.next();
+			String qURI = "http://semoss.org/ontologies/Concept/Insight/" + question;
+			Insight in = ((AbstractEngine) engine).getInsight2URI(qURI)
+					.get(0);
+
+			System.out.println("Removing order question " + question);
+			String questionOrder = in.getOrder();
+			
+			if (questionOrder != null) {
+				System.out.println("Removing order " + questionOrder + " from question " + question);
+				insightBaseXML.removeStatement(qURI, orderBaseURI, questionOrder, false);
+			}
+			
+			int newOrder = needsReorder.get(question);	
+			System.out.println("Adding order " + newOrder + " to question " + question);
+			insightBaseXML.addStatement(qURI, orderBaseURI, newOrder, false);
+			
+		}
+		if(save)
+			createQuestionXMLFile();
 	}
 }
