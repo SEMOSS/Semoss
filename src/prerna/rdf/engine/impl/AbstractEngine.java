@@ -126,6 +126,13 @@ public abstract class AbstractEngine implements IEngine {
 			+ "{?perspectiveInsight <"+Constants.SUBPROPERTY_URI +"> <"+perspectiveInsightBaseURI+"> }"
 			+ "{?perspectiveURI ?perspectiveInsight ?insightURI.}"
 			+ "}";
+	
+	protected static final String orderedInsightsURI = "SELECT DISTINCT ?insightURI WHERE {"
+			+ "BIND(<@perspective@> AS ?perspectiveURI)"
+			+ "{?perspectiveInsight <"+Constants.SUBPROPERTY_URI +"> <"+perspectiveInsightBaseURI+"> }"
+			+ "{?perspectiveURI ?perspectiveInsight ?insightURI.} "
+			+ "{?insightURI <" + orderBaseURI + "> ?order } BIND(xsd:decimal(?order) AS ?orderNum)"
+			+ "} ORDER BY ?orderNum";
 
 	protected static final String insightsOutputs = "SELECT ?insight ?output WHERE {"
 			+ "{?insightURI <" + labelBaseURI + "> ?insight.}"
@@ -874,12 +881,23 @@ public abstract class AbstractEngine implements IEngine {
 		return null;
 	}
 
-	public Vector<Object> getInsightsURI(String perspective) {
+	public Vector<String> getInsightsURI(String perspective) {
 
 		return getInsightsURI(perspective, engineURI2 + "");
 	}
 
-	public Vector getInsightsURI(String perspective, String engine) {
+	public Vector<String> getOrderedInsightsURI(String perspective) {
+		if (perspective != null) {
+			Hashtable paramHash = new Hashtable();
+			paramHash.put("perspective", perspective);
+			String query = Utility.fillParam(orderedInsightsURI, paramHash);
+			System.err.println("Query " + query);
+			return getSelect(query, insightBaseXML.rc, "insightURI");
+		}
+		return null;
+	}
+
+	public Vector<String> getInsightsURI(String perspective, String engine) {
 
 		if (perspective != null) {
 			Hashtable paramHash = new Hashtable();
