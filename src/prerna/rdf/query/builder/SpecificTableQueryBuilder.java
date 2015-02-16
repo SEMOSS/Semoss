@@ -35,39 +35,28 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.query.util.SEMOSSQuery;
-import prerna.rdf.query.util.SEMOSSQueryHelper;
 
-public class PieChartQueryBuilder extends AbstractQueryBuilder {
-	static final Logger logger = LogManager.getLogger(PieChartQueryBuilder.class.getName());
-
-	String label;
-	String valueName;
-	String valueMathFunc;
+public class SpecificTableQueryBuilder extends AbstractSpecificQueryBuilder{
+	static final Logger logger = LogManager.getLogger(SpecificTableQueryBuilder.class.getName());
 	
-	public PieChartQueryBuilder (String label, String valueName, String valueMathFunc, ArrayList<Hashtable<String, String>> parameters, SEMOSSQuery baseQuery) {
+	ArrayList<String> labelList;
+	
+	public SpecificTableQueryBuilder (ArrayList<String> labelList, ArrayList<Hashtable<String, String>> parameters, SEMOSSQuery baseQuery) {
 		super(parameters, baseQuery);
-		this.label = label;
-		this.valueName = valueName;
-		this.valueMathFunc = valueMathFunc;
+		this.labelList = labelList;
 	}
-	
+
 	@Override
-	public void buildQuery () {
-		ArrayList<String> varNames = uniqifyColNames(Arrays.asList(label, valueName));		
+	public void buildQuery() {
+		// TODO Auto-generated method stub
+		ArrayList<String> varNames = uniqifyColNames(labelList);
 		
-		//add label to query
-		logger.info("Adding label: " + label + " with name: " + varNames.get(0));
-		addReturnVariable(label, varNames.get(0), baseQuery, "false");
-		
-		// add the heat value
-		logger.info("Adding value math function " + valueMathFunc + " on column " + valueName);
-		addReturnVariable(valueName, varNames.get(1), baseQuery, valueMathFunc);
-		
-		//add them as group by
-		ArrayList<String> groupList = new ArrayList<String>();
-		groupList.add(label);
-		logger.info("Query will GroupBy: " + groupList);
-		SEMOSSQueryHelper.addGroupByToQuery(groupList, baseQuery);
+		for(int i=0; i < labelList.size(); i++){
+			String varName = labelList.get(i);
+			
+			logger.info("Adding variable: " + varName);
+			addReturnVariable(varName, varNames.get(i), baseQuery, "false");
+		}
 		
 		if(!parameters.isEmpty()) {
 			logger.info("Adding parameters: " + parameters);
@@ -75,6 +64,7 @@ public class PieChartQueryBuilder extends AbstractQueryBuilder {
 		}
 		
 		createQuery();
-		logger.info("Created PieChart Query: " + query);		
+		logger.info("Created Generic Table Query: " + query);		
 	}
+	
 }

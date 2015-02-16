@@ -27,48 +27,54 @@
  *******************************************************************************/
 package prerna.rdf.query.builder;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.rdf.query.util.SEMOSSQuery;
+import prerna.rdf.query.util.SEMOSSQueryHelper;
 
-public abstract class AbstractCustomVizBuilder implements ICustomVizBuilder{
-	public final static String vizTypeKey = "visualizationType";
-	SEMOSSQuery semossQuery = new SEMOSSQuery();
+public class SpecificPieChartQueryBuilder extends AbstractSpecificQueryBuilder {
+	static final Logger logger = LogManager.getLogger(SpecificPieChartQueryBuilder.class.getName());
 
-	public Hashtable<String, Object> allJSONHash = new Hashtable<String, Object>();
+	String label;
+	String valueName;
+	String valueMathFunc;
 	
-	public String visualType = "";
-	@Override
-	public void setVisualType(String visualType) {
-		this.visualType = visualType;
-	}
-
-	@Override
-	public String getVisualType() {
-		return visualType;
-	}
-
-	@Override
-	public void setJSONDataHash(Hashtable<String, Object> allJSONHash) {
-		this.allJSONHash = allJSONHash;
-	}
-
-	@Override
-	public Hashtable<String, Object> getJSONDataHash() {
-		return allJSONHash;
-	}
-
-	@Override
-	public String getQuery() {
-		return semossQuery.getQuery();
+	public SpecificPieChartQueryBuilder (String label, String valueName, String valueMathFunc, ArrayList<Hashtable<String, String>> parameters, SEMOSSQuery baseQuery) {
+		super(parameters, baseQuery);
+		this.label = label;
+		this.valueName = valueName;
+		this.valueMathFunc = valueMathFunc;
 	}
 	
-	public SEMOSSQuery getSEMOSSQuery(){
-		return this.semossQuery;
-	}
-
 	@Override
-	public void buildQuery() {
+	public void buildQuery () {
+		ArrayList<String> varNames = uniqifyColNames(Arrays.asList(label, valueName));		
 		
+		//add label to query
+		logger.info("Adding label: " + label + " with name: " + varNames.get(0));
+		addReturnVariable(label, varNames.get(0), baseQuery, "false");
+		
+		// add the heat value
+		logger.info("Adding value math function " + valueMathFunc + " on column " + valueName);
+		addReturnVariable(valueName, varNames.get(1), baseQuery, valueMathFunc);
+		
+		//add them as group by
+		ArrayList<String> groupList = new ArrayList<String>();
+		groupList.add(label);
+		logger.info("Query will GroupBy: " + groupList);
+		SEMOSSQueryHelper.addGroupByToQuery(groupList, baseQuery);
+		
+		if(!parameters.isEmpty()) {
+			logger.info("Adding parameters: " + parameters);
+			addParam("Main");
+		}
+		
+		createQuery();
+		logger.info("Created PieChart Query: " + query);		
 	}
 }
