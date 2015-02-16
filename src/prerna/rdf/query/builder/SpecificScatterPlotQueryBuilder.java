@@ -37,8 +37,8 @@ import org.apache.log4j.Logger;
 import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.rdf.query.util.SEMOSSQueryHelper;
 
-public class ScatterPlotQueryBuilder extends AbstractQueryBuilder{
-	static final Logger logger = LogManager.getLogger(ScatterPlotQueryBuilder.class.getName());
+public class SpecificScatterPlotQueryBuilder extends AbstractSpecificQueryBuilder{
+	static final Logger logger = LogManager.getLogger(SpecificScatterPlotQueryBuilder.class.getName());
 
 	String labelColName;
 	String xAxisColName;
@@ -49,7 +49,7 @@ public class ScatterPlotQueryBuilder extends AbstractQueryBuilder{
 	String zAxisMathFunc;
 	String seriesColName;
 	
-	public ScatterPlotQueryBuilder(String labelColName, String xAxisColName, String yAxisColName, String zAxisColName, String xAxisMathFunc, String yAxisMathFunc, String zAxisMathFunc, String seriesColName, ArrayList<Hashtable<String, String>> parameters, SEMOSSQuery baseQuery) {
+	public SpecificScatterPlotQueryBuilder(String labelColName, String xAxisColName, String yAxisColName, String zAxisColName, String xAxisMathFunc, String yAxisMathFunc, String zAxisMathFunc, String seriesColName, ArrayList<Hashtable<String, String>> parameters, SEMOSSQuery baseQuery) {
 		super(parameters, baseQuery);
 		this.labelColName = labelColName;
 		this.xAxisColName = xAxisColName;
