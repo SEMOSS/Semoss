@@ -19,14 +19,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Vector;
 
 import prerna.error.EngineException;
 import prerna.poi.specific.IndividualSystemTransitionReportWriter;
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.ui.components.playsheets.AbstractRDFPlaySheet;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
@@ -456,11 +457,11 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		HashMap<String,ArrayList<String>> dataConsumedFromHash = new HashMap<String,ArrayList<String>>();
 
 		//making list of SOR systems
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine,sysSORDataQuery);
+		ISelectWrapper sjsw = Utility.processQuery(engine,sysSORDataQuery);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			String data = (String)sjss.getVar(names[0]);
 			String provideConsume = (String)sjss.getVar(names[1]);
 			String service = (String)sjss.getVar(names[2]);
@@ -538,11 +539,11 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		otherSysSORDataQuery += " BINDINGS ?System {"+systemsBindings+"}";
 
 		ArrayList<Object[]> otherSysList = new ArrayList<Object[]>();
-		SesameJenaSelectWrapper sjsw3 = Utility.processQuery(engine,otherSysSORDataQuery);
+		ISelectWrapper sjsw3 = Utility.processQuery(engine,otherSysSORDataQuery);
 		String[] names3 = sjsw3.getVariables();
 		while(sjsw3.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw3.next();
+			ISelectStatement sjss = sjsw3.next();
 			Object[] dataRow = new Object[names3.length];
 			for(int i=0;i<names3.length;i++)
 			{
@@ -584,14 +585,14 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	private HashMap<String, Object> getQueryDataWithHeaders(IEngine engine, String query){
 		HashMap<String, Object> dataHash = new HashMap<String, Object>();
 
-		SesameJenaSelectWrapper sjsw = Utility.processQuery(engine, query);
+		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] names = sjsw.getVariables();
 		dataHash.put(DHMSMTransitionUtility.HEADER_KEY, names);
 
 		ArrayList<Object[]> dataToAddArr = new ArrayList<Object[]>();
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 			Object[] dataRow = new Object[names.length];
 			for(int i = 0; i < names.length; i++)
 			{
@@ -643,4 +644,8 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	public void runAnalytics() {
 	}
 
+	@Override
+	public Hashtable<String, String> getDataTableAlign() {
+		return null;
+	}
 }
