@@ -37,14 +37,14 @@ import org.apache.log4j.Logger;
 import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.rdf.query.util.SEMOSSQueryHelper;
 
-public class HeatMapQueryBuilder extends AbstractQueryBuilder {
-	static final Logger logger = LogManager.getLogger(HeatMapQueryBuilder.class.getName());
+public class SpecificHeatMapQueryBuilder extends AbstractSpecificQueryBuilder {
+	static final Logger logger = LogManager.getLogger(SpecificHeatMapQueryBuilder.class.getName());
 	String xAxisColName;
 	String yAxisColName;
 	String heatName;
 	String heatMathFunc;
 	
-	public HeatMapQueryBuilder(String xAxisColName, String yAxisColName, String heatName, String heatMathFunc, ArrayList<Hashtable<String, String>> parameters, SEMOSSQuery baseQuery) {
+	public SpecificHeatMapQueryBuilder(String xAxisColName, String yAxisColName, String heatName, String heatMathFunc, ArrayList<Hashtable<String, String>> parameters, SEMOSSQuery baseQuery) {
 		super(parameters, baseQuery);
 		
 		this.xAxisColName = xAxisColName;
