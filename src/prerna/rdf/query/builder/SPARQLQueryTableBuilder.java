@@ -49,8 +49,8 @@ public class SPARQLQueryTableBuilder extends AbstractSPARQLQueryBuilder{
 	
 	protected void addRelationshipTriples (ArrayList<Hashtable<String,String>> predV) {
 		for(Hashtable<String, String> predHash : predV){
-			String predName = predHash.get(varKey);
-			String predURI = predHash.get(uriKey);
+			String predName = predHash.get(QueryBuilderHelper.varKey);
+			String predURI = predHash.get(QueryBuilderHelper.uriKey);
 			TriplePart relationVar = new TriplePart(predHash.get("SubjectVar"), TriplePart.VARIABLE);
 			TriplePart subPropURI = new TriplePart(predURI, TriplePart.URI);
 			TriplePart relationTypeURI = new TriplePart(predHash.get("ObjectVar"), TriplePart.VARIABLE);

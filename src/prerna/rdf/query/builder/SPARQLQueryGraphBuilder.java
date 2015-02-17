@@ -19,8 +19,8 @@ public class SPARQLQueryGraphBuilder extends AbstractSPARQLQueryBuilder {
 
 	protected void addRelationshipTriples (ArrayList<Hashtable<String,String>> predV) {
 		for(Hashtable<String, String> predHash : predV){
-			String predName = predHash.get(varKey);
-			String predURI = predHash.get(uriKey);
+			String predName = predHash.get(QueryBuilderHelper.varKey);
+			String predURI = predHash.get(QueryBuilderHelper.uriKey);
 
 			SEMOSSQueryHelper.addRelationTypeTripleToQuery(predName, predURI, semossQuery);
 			SEMOSSQueryHelper.addRelationshipVarTripleToQuery(predHash.get("SubjectVar"), predName, predHash.get("ObjectVar"), semossQuery);
@@ -32,7 +32,7 @@ public class SPARQLQueryGraphBuilder extends AbstractSPARQLQueryBuilder {
 	{
 		semossQuery.setQueryType(SPARQLConstants.CONSTRUCT);
 		semossQuery.setDisctinct(false);
-		semossQuery.setReturnTripleArray((ArrayList<ArrayList<String>>) allJSONHash.get(relArrayKey));
+		semossQuery.setReturnTripleArray((ArrayList<ArrayList<String>>) allJSONHash.get(QueryBuilderHelper.relArrayKey));
 		parsePath();
 		// we are assuming properties are passed in now based on user selection
 //		parsePropertiesFromPath(); 
