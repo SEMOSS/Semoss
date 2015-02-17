@@ -237,17 +237,17 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 				ISelectStatement sjss = sjsw.next();
 				String concept = sjss.getVar(names[0]).toString();
 				String instanceSampleURI = sjss.getRawVar(names[1]).toString();
-				String instanceBaseURI = Utility.getBaseURI(instanceSampleURI) + "/" + concept;
+				String instanceBaseURI = Utility.getBaseURI(instanceSampleURI) + "/Concept/" + concept;
 				
 				keywordBaseURIMap.put(concept, instanceBaseURI);
 			}
 			
 			String bindingsStr = "";
 			for(String concept : keywordBaseURIMap.keySet()) {
-				String instanceBaseURI = keywordBaseURIMap.get(concept).concat("/Concept");
+				String instanceBaseURI = keywordBaseURIMap.get(concept);
 				Iterator<String> instanceNameIt = instanceNameSet.iterator();
 				while(instanceNameIt.hasNext()) {
-					bindingsStr = bindingsStr.concat("(<").concat(instanceBaseURI).concat("/").concat(concept).concat("/").concat(instanceNameIt.next()).concat(">)");
+					bindingsStr = bindingsStr.concat("(<").concat(instanceBaseURI).concat("/").concat(instanceNameIt.next()).concat(">)");
 				}
 			}
 			
@@ -302,7 +302,7 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 		}
 		
 		// if only found instances in main nouns, look through noun modifiers
-		if(keywordSet.isEmpty() && mcSet.isEmpty()) {
+		if(searchKeywords.isEmpty() && searchMC.isEmpty()) {
 			for(String noun : nounModifiers) {
 				if(keywordSet.contains(noun)) {
 					searchKeywords.add(noun);
@@ -360,10 +360,10 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 	 */
 	public void determineMainNoun(Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash, Set<String> mainNouns) {
 		if(nodeHash.containsKey(EnglishGrammaticalRelations.NOMINAL_SUBJECT)) {
-			mainNouns = getTopDep(nodeHash.get(EnglishGrammaticalRelations.NOMINAL_SUBJECT));
+			mainNouns.addAll(getTopDep(nodeHash.get(EnglishGrammaticalRelations.NOMINAL_SUBJECT)));
 		}
 		if(nodeHash.containsKey(EnglishGrammaticalRelations.NOUN_COMPOUND_MODIFIER)) {
-			mainNouns = getTopGov(nodeHash.get(EnglishGrammaticalRelations.NOUN_COMPOUND_MODIFIER));
+			mainNouns.addAll(getTopGov(nodeHash.get(EnglishGrammaticalRelations.NOUN_COMPOUND_MODIFIER)));
 		}
 	}
 	
@@ -380,6 +380,9 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 		if(nodeHash.containsKey(GrammaticalRelation.DEPENDENT)) {
 			nounModifiers.addAll(getTopDep(nodeHash.get(GrammaticalRelation.DEPENDENT), mainNouns));
 		}
+		if(nodeHash.containsKey(GrammaticalRelation.ROOT)) {
+			nounModifiers.addAll(getTopDep(nodeHash.get(GrammaticalRelation.ROOT), mainNouns));
+		}
 	}
 	
 	/**
@@ -389,7 +392,7 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 	 * @return
 	 */
 	private Set<String> getTopDep(Vector<TypedDependency> tdlArr, Set<String> filterValues) {
-		Set<String> govList = new HashSet<String>();
+		Set<String> depList = new HashSet<String>();
 		
 		int i = 0;
 		int size = tdlArr.size();
@@ -397,11 +400,15 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 		for(; i < size; i++) {
 			TypedDependency td = tdlArr.get(i);
 			if(filterValues.contains(td.gov().value())) {
-				govList.add(td.dep().value());
+				depList.add(td.dep().value());
+			}
+			// in case no main nouns found
+			if(filterValues.isEmpty()) {
+				depList.add(td.dep().value());
 			}
 		}
 		
-		return govList;
+		return depList;
 	}
 
 	/**
