@@ -62,44 +62,13 @@ public class QuestionAdministrator {
 	private String selectedEngine = null;
 
 	String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-	String xmlFile = "db/" + selectedEngine + "/" + selectedEngine
-			+ "_Questions.XML";
-	
-	//TODO need to clean up the below; shouldn't need those as class objects
+
+	// TODO need to clean up the below; shouldn't need those as class objects
 	boolean reorder = true;
 	String questionModType = "";
 	String selectedPerspective = "";
 	public ArrayList<String> questionList = new ArrayList<String>();
 	String newPerspective;
-
-	// the following are variables used for storing the triples for the
-	// questions
-	HashMap<String, String> parameterProperties = new HashMap<String, String>();
-	String perspectiveURI;
-	String perspectivePred;
-	String qsKey;
-	String qsOrder;
-	String qsDescr;
-	String layoutName;
-	String description;
-	Hashtable paramHash;
-	String qURI;
-	String qPred;
-	String ePred;
-
-	// following variables will hold the current values before being modified by
-	// user
-	public static String currentPerspective = null;
-	public static String currentQuestionKey = null;
-	public static String currentQuestion = null;
-	public static String currentQuestionOrder = null;
-	public static String currentLayout = null;
-	public static String currentSparql = null;
-	public static String currentQuestionDescription = null;
-	public static Vector<String> currentParameterDependListVector = null;
-	public static Vector<String> currentParameterQueryListVector = null;
-	public static Vector<String> currentParameterOptionListVector = null;
-	public static String currentNumberofQuestions = null;
 
 	protected static final String semossURI = "http://semoss.org/ontologies/";
 	protected static final String conceptBaseURI = semossURI
@@ -133,12 +102,13 @@ public class QuestionAdministrator {
 	protected static final String descriptionBaseURI = containsBaseURI
 			+ "/Description";
 
-	String engineURI2 = engineBaseURI + "/" + selectedEngine;
+	String engineURI2;
 
 	public QuestionAdministrator(IEngine engine) {
 		this.engine = engine;
 		this.selectedEngine = engine.getEngineName();
 		insightBaseXML = ((AbstractEngine) engine).getInsightBaseXML();
+		engineURI2 = engineBaseURI + "/" + selectedEngine;
 	}
 
 	public QuestionAdministrator(IEngine engine,
@@ -274,7 +244,8 @@ public class QuestionAdministrator {
 	 * @param qPred
 	 */
 	private void addQuestionID(String ePred, String qURI,
-			String perspectiveURI, String perspective, String qPred) {
+			String perspectiveURI, String perspective, String qPred,
+			String qsKey) {
 
 		// add the question to the engine; if perspective change, the qURI will
 		// need to change as well
@@ -305,7 +276,8 @@ public class QuestionAdministrator {
 	}
 
 	private void removeQuestionID(String ePred, String qURI,
-			String perspectiveURI, String perspective, String qPred) {
+			String perspectiveURI, String perspective, String qPred,
+			String qsKey) {
 		// remove the question to the engine; if perspective change, the qURI
 		// will need to change as well
 		insightBaseXML.removeStatement(qURI, RDF.TYPE.stringValue(),
@@ -873,18 +845,18 @@ public class QuestionAdministrator {
 		String questionKey = null;
 		boolean existingPerspective = false;
 		boolean existingAutoGenQuestionKey = false;
-		
+
 		Vector<String> perspectives = engine.getPerspectives();
 		Vector<String> questionsV = engine.getInsights(perspective);
-		
+
 		for (int i = 0; i < perspectives.size(); i++) {
 			if (perspectives.get(i).equals(perspective)) {
 				existingPerspective = true;
 				if (existingPerspective) {
 					for (int j = 0; j < questionsV.size(); j++) {
 						String question = questionsV.get(j);
-						Insight in = ((AbstractEngine) engine).getInsight2(question)
-								.get(0);
+						Insight in = ((AbstractEngine) engine).getInsight2(
+								question).get(0);
 
 						String questionID = in.getId();
 						String[] questionIDArray = questionID.split(":");
@@ -899,8 +871,7 @@ public class QuestionAdministrator {
 					}
 				}
 				break;
-			}
-			else {
+			} else {
 				existingPerspective = false;
 			}
 
@@ -955,17 +926,28 @@ public class QuestionAdministrator {
 			Vector<String> parameterDependList,
 			Vector<String> parameterQueryList,
 			Vector<String> parameterOptionList) {
-		
-		logger.info("Adding question with the following information: perspective=" + perspective
-				+ "; questionKey=" + questionKey + "; questionOrder="
-				+ questionOrder + "; questionLabel=" + question + "; sparql="
-				+ sparql + "; layout=" + layout + "; questionDescription="
-				+ questionDescription + "; parameterDependList="
-				+ parameterDependList + "; parameterQueryList="
-				+ parameterQueryList + "; parameterOptionList="
-				+ parameterOptionList);
 
-		parameterProperties.clear();
+		logger.info("Adding question with the following information: perspective="
+				+ perspective
+				+ "; questionKey="
+				+ questionKey
+				+ "; questionOrder="
+				+ questionOrder
+				+ "; questionLabel="
+				+ question
+				+ "; sparql="
+				+ sparql
+				+ "; layout="
+				+ layout
+				+ "; questionDescription="
+				+ questionDescription
+				+ "; parameterDependList="
+				+ parameterDependList
+				+ "; parameterQueryList="
+				+ parameterQueryList
+				+ "; parameterOptionList=" + parameterOptionList);
+
+		HashMap<String, String> parameterProperties = new HashMap<String, String>();
 
 		// take in the parameter properties and store in a hashmap; will be used
 		// when adding param properties (dependencies and param queries)
@@ -973,47 +955,38 @@ public class QuestionAdministrator {
 				parameterQueryList, parameterOptionList, questionKey);
 
 		// create the perspective uris
-		perspectiveURI = perspectiveBaseURI + "/" + selectedEngine + ":"
-				+ perspective;
-		perspectivePred = enginePerspectiveBaseURI + "/" + selectedEngine
-				+ Constants.RELATION_URI_CONCATENATOR + selectedEngine + ":"
-				+ perspective;
+		String perspectiveURI = perspectiveBaseURI + "/" + selectedEngine + ":" + perspective;
+		String perspectivePred = getPerspectivePred(perspective);
 
-		qsKey = questionKey;
+		String qsKey = questionKey;
 
 		if (qsKey == null) {
 			qsKey = createQuestionKey(perspective);
 		}
 
-		qsOrder = questionOrder;
-		qsDescr = question;
-		layoutName = layout;
-		description = questionDescription;
+		String qsOrder = questionOrder;
+		String qsDescr = question;
+		String layoutName = layout;
 
 		// insight uri
-		qURI = insightBaseURI + "/" + selectedEngine + ":" + perspective + ":"
-				+ qsKey;
+		String qURI = getQURI(perspective, qsKey);
 
 		// perspective to insight relationship
-		qPred = perspectiveInsightBaseURI + "/" + selectedEngine + ":"
-				+ perspective + Constants.RELATION_URI_CONCATENATOR
-				+ selectedEngine + ":" + perspective + ":" + qsKey;
+		String qPred = getQPred(perspective, qsKey);
 		// engine to insight relationship
-		ePred = engineInsightBaseURI + "/" + selectedEngine
-				+ Constants.RELATION_URI_CONCATENATOR + selectedEngine + ":"
-				+ perspective + ":" + qsKey;
+		String ePred = getEPred(perspective, qsKey);
 
-		paramHash = Utility.getParams(sparql);
-		
+		Hashtable paramHash = Utility.getParams(sparql);
+
 		Enumeration<String> paramKeys = paramHash.keys();
 
 		// add the question to the engine
 		addPerspective(perspectivePred, perspectiveURI, perspective);
-		addQuestionID(ePred, qURI, perspectiveURI, perspective, qPred);
+		addQuestionID(ePred, qURI, perspectiveURI, perspective, qPred, qsKey);
 
 		// add description as a property on the insight
-		if (description != null) {
-			addDescription(qURI, descriptionBaseURI, description);
+		if (questionDescription != null) {
+			addDescription(qURI, descriptionBaseURI, questionDescription);
 		}
 
 		// add label, sparql, layout as properties
@@ -1039,7 +1012,8 @@ public class QuestionAdministrator {
 				if (!(Integer.parseInt(questionOrder) == questionList.size() + 1)
 						&& reorder) {
 					// the addQuestion method will call the reOrder method once;
-					// prevents infinite loops from addQuestion to reorderQuestion
+					// prevents infinite loops from addQuestion to
+					// reorderQuestion
 					reorder = false;
 					reorderQuestions(questionOrder, questionList.size() + 1
 							+ "");
@@ -1053,7 +1027,14 @@ public class QuestionAdministrator {
 			String layout, String questionDescription,
 			Vector<String> parameterDependList,
 			Vector<String> parameterQueryList,
-			Vector<String> parameterOptionList) {
+			Vector<String> parameterOptionList, String currentPerspective,
+			String currentQuestionKey, String currentQuestionOrder,
+			String currentQuestion, String currentSparql, String currentLayout,
+			String currentQuestionDescription,
+			Vector<String> currentParameterDependListVector,
+			Vector<String> currentParameterQueryListVector,
+			Vector<String> currentParameterOptionListVector,
+			String currentNumberofQuestions) {
 
 		newPerspective = perspective;
 
@@ -1061,36 +1042,11 @@ public class QuestionAdministrator {
 
 		currentParameterProperties.clear();
 
-		// create the perspective uris
-		perspectiveURI = perspectiveBaseURI + "/" + selectedEngine + ":"
-				+ perspective;
-		perspectivePred = enginePerspectiveBaseURI + "/" + selectedEngine
-				+ Constants.RELATION_URI_CONCATENATOR + selectedEngine + ":"
-				+ perspective;
-
-		qsKey = questionKey;
+		String qsKey = questionKey;
 
 		if (qsKey == null) {
 			qsKey = createQuestionKey(perspective);
 		}
-
-		qsDescr = question;
-		layoutName = layout;
-		description = questionDescription;
-
-		paramHash = Utility.getParams(sparql);
-
-		// insight uri
-		qURI = insightBaseURI + "/" + selectedEngine + ":" + perspective + ":"
-				+ qsKey;
-		// perspective to insight relationship
-		qPred = perspectiveInsightBaseURI + "/" + selectedEngine + ":"
-				+ perspective + Constants.RELATION_URI_CONCATENATOR
-				+ selectedEngine + ":" + perspective + ":" + qsKey;
-		// engine to insight relationship
-		ePred = engineInsightBaseURI + "/" + selectedEngine
-				+ Constants.RELATION_URI_CONCATENATOR + selectedEngine + ":"
-				+ perspective + ":" + qsKey;
 
 		// check if currentperspective is equal to perspective; if not, change
 		// questionkey, get the last order number in perspective and replace the
@@ -1127,7 +1083,8 @@ public class QuestionAdministrator {
 			}
 
 			if (!currentOrder.equals(order) && reorder) {
-				logger.info("Question reordering from " + currentOrder + " to " + order);
+				logger.info("Question reordering from " + currentOrder + " to "
+						+ order);
 				reorder = false;
 				reorderQuestions(order, currentOrder);
 			}
@@ -1141,7 +1098,7 @@ public class QuestionAdministrator {
 			Vector<String> parameterQueryList,
 			Vector<String> parameterOptionList) {
 		boolean lastQuestion = false;
-		
+
 		logger.info("Deleting question: perspective=" + perspective
 				+ "; questionKey=" + questionKey + "; questionOrder="
 				+ questionOrder + "; questionLabel=" + question + "; sparql="
@@ -1150,40 +1107,26 @@ public class QuestionAdministrator {
 				+ parameterDependList + "; parameterQueryList="
 				+ parameterQueryList + "; parameterOptionList="
 				+ parameterOptionList);
-		
-		parameterProperties.clear();
+
+		HashMap<String, String> parameterProperties = new HashMap<String, String>();
 
 		// populates parameterProperties based on on paramProp values passed in
 		populateParamProps(parameterProperties, parameterDependList,
 				parameterQueryList, parameterOptionList, questionKey);
 
 		// create the perspective uris
-		perspectiveURI = perspectiveBaseURI + "/" + selectedEngine + ":"
-				+ perspective;
-		perspectivePred = enginePerspectiveBaseURI + "/" + selectedEngine
-				+ Constants.RELATION_URI_CONCATENATOR + selectedEngine + ":"
-				+ perspective;
+		String perspectiveURI = getPerspectiveURI(perspective);
+		String perspectivePred = getPerspectivePred(perspective);
 
 		// add the question
-		qsOrder = questionOrder;
-		qsKey = questionKey;
-		qsDescr = question;
-		layoutName = layout;
-		description = questionDescription;
-
-		paramHash = Utility.getParams(sparql);
+		Hashtable paramHash = Utility.getParams(sparql);
 
 		// insight uri
-		qURI = insightBaseURI + "/" + selectedEngine + ":" + perspective + ":"
-				+ qsKey;
+		String qURI = getQURI(perspective, questionKey);
 		// perspective to insight relationship
-		qPred = perspectiveInsightBaseURI + "/" + selectedEngine + ":"
-				+ perspective + Constants.RELATION_URI_CONCATENATOR
-				+ selectedEngine + ":" + perspective + ":" + qsKey;
+		String qPred = getQPred(perspective, questionKey);
 		// engine to insight relationship
-		ePred = engineInsightBaseURI + "/" + selectedEngine
-				+ Constants.RELATION_URI_CONCATENATOR + selectedEngine + ":"
-				+ perspective + ":" + qsKey;
+		String ePred = getEPred(perspective, questionKey);
 
 		// checks if there is only one question left in the perspective
 		if (questionList.size() == 1) {
@@ -1196,19 +1139,21 @@ public class QuestionAdministrator {
 			removePerspective(perspectivePred, perspectiveURI, perspective);
 		}
 
-		removeQuestionID(ePred, qURI, perspectiveURI, perspective, qPred);
+		removeQuestionID(ePred, qURI, perspectiveURI, perspective, qPred,
+				questionKey);
 
-		if (description != null) {
-			removeDescription(qURI, descriptionBaseURI, description);
+		if (questionDescription != null) {
+			removeDescription(qURI, descriptionBaseURI, questionDescription);
 		}
-		removeQuestionLabel(perspectiveURI, qURI, qsOrder, qsDescr, qPred);
-		removeQuestionIDLabel(perspectiveURI, qsKey);
+		removeQuestionLabel(perspectiveURI, qURI, questionOrder, question,
+				qPred);
+		removeQuestionIDLabel(perspectiveURI, questionKey);
 		removeQuestionSparql(qURI, sparql);
-		removeQuestionLayout(qURI, layoutName);
+		removeQuestionLayout(qURI, layout);
 
 		Enumeration<String> paramKeys = paramHash.keys();
 
-		removeQuestionParam(paramKeys, perspective, qsKey, qURI,
+		removeQuestionParam(paramKeys, perspective, questionKey, qURI,
 				parameterProperties);
 
 		if (questionModType.equals("Delete Question")
@@ -1227,34 +1172,44 @@ public class QuestionAdministrator {
 			}
 		}
 	}
-	
-	public void deleteAllFromPersp(String perspective){
+
+	public void deleteAllFromPersp(String perspective) {
 		String pURI = getPerspectiveURI(perspective);
 		deleteAllFromPerspective(pURI);
 		createQuestionXMLFile();
 	}
-	
-	private String getPerspectiveURI(String perspective){
+
+	private String getPerspectiveURI(String perspective) {
 		String pURI = "";
 		Vector<String> pURIs = ((AbstractEngine) engine).getPerspectivesURI();
-		for(String p : pURIs){
-			String pURIinstance =Utility.getInstanceName(p);
-			if(pURIinstance.equals(engine.getEngineName() + ":" + perspective)){
+		for (String p : pURIs) {
+			String pURIinstance = Utility.getInstanceName(p);
+			if (pURIinstance.equals(engine.getEngineName() + ":" + perspective)) {
 				pURI = p;
 				break;
 			}
 		}
+		
+		//pURI will return "" if a new perspective is passed in. we will create the pURI here in this case
+		if(pURI.equals("")) {
+			pURI = perspectiveBaseURI + "/" + selectedEngine + ":"
+					+ perspective;
+		}
+		
 		return pURI;
 	}
 
 	public void deleteAllFromPerspective(String perspectiveURI) {
-		logger.info("Deleting all questions from perspective with this URI: " + perspectiveURI);
-		
-		Vector questionsVector = ((AbstractEngine) engine).getInsightsURI(perspectiveURI);
+		logger.info("Deleting all questions from perspective with this URI: "
+				+ perspectiveURI);
+
+		Vector questionsVector = ((AbstractEngine) engine)
+				.getInsightsURI(perspectiveURI);
 		ArrayList<String> questionList2 = new ArrayList<String>();
 		String perspective = perspectiveURI.substring(perspectiveURI
 				.lastIndexOf(":") + 1);
-		
+		String perspectivePred = getPerspectivePred(perspective);
+
 		for (Object question : questionsVector) {
 			questionList2.add((String) question);
 		}
@@ -1266,7 +1221,7 @@ public class QuestionAdministrator {
 					.getParamsURI(question2);
 
 			System.out.println("Removing question " + question2);
-			
+
 			String questionOrder = in.getOrder();
 			String question = in.getLabel();
 			String questionID = in.getId();
@@ -1325,50 +1280,92 @@ public class QuestionAdministrator {
 					sparql, layoutValue, questionDescription, dependVector,
 					parameterQueryVector, optionVector);
 		}
-		//delete perspective from the engine
+		// delete perspective from the engine
 		removePerspective(perspectivePred, perspectiveURI, perspective);
 	}
-	
-	public void reorderPerspective(String perspective, Vector<Hashtable<String, Object>> orderedInsights){
+
+	public void reorderPerspective(String perspective,
+			Vector<Hashtable<String, Object>> orderedInsights) {
 		String perspectiveURI = getPerspectiveURI(perspective);
-		logger.info("Reordering all questions from perspective with this URI: " + perspectiveURI);
-		Vector<String> questionsVector = ((AbstractEngine) engine).getOrderedInsightsURI(perspectiveURI);
+		logger.info("Reordering all questions from perspective with this URI: "
+				+ perspectiveURI);
+		Vector<String> questionsVector = ((AbstractEngine) engine)
+				.getOrderedInsightsURI(perspectiveURI);
 		System.out.println("questions currenlty ordered as " + questionsVector);
-		
-		//determine difference in order between orderedInsights and questionsVector so that we only update the questions that need updating
+
+		// determine difference in order between orderedInsights and
+		// questionsVector so that we only update the questions that need
+		// updating
 		Hashtable<String, Integer> needsReorder = new Hashtable<String, Integer>();
-		for(int i = 0; i < orderedInsights.size(); i++){
+		for (int i = 0; i < orderedInsights.size(); i++) {
 			Hashtable orderedInsightHash = orderedInsights.get(i);
-			String qID = ((StringMap)orderedInsightHash.get("propHash")).get("id") + "";
-			if(!qID.equals(Utility.getInstanceName(questionsVector.get(i)))){
-				needsReorder.put(qID, i+1);
+			String qID = ((StringMap) orderedInsightHash.get("propHash"))
+					.get("id") + "";
+			if (!qID.equals(Utility.getInstanceName(questionsVector.get(i)))) {
+				needsReorder.put(qID, i + 1);
 			}
 		}
-		
-		// now reorder! 
+
+		// now reorder!
 		Iterator<String> it = needsReorder.keySet().iterator();
 		boolean save = false;
-		while(it.hasNext()) {
+		while (it.hasNext()) {
 			save = true;
 			String question = it.next();
-			String qURI = "http://semoss.org/ontologies/Concept/Insight/" + question;
-			Insight in = ((AbstractEngine) engine).getInsight2URI(qURI)
-					.get(0);
+			String qURI = "http://semoss.org/ontologies/Concept/Insight/"
+					+ question;
+			Insight in = ((AbstractEngine) engine).getInsight2URI(qURI).get(0);
 
 			System.out.println("Removing order question " + question);
 			String questionOrder = in.getOrder();
-			
+
 			if (questionOrder != null) {
-				System.out.println("Removing order " + questionOrder + " from question " + question);
-				insightBaseXML.removeStatement(qURI, orderBaseURI, questionOrder, false);
+				System.out.println("Removing order " + questionOrder
+						+ " from question " + question);
+				insightBaseXML.removeStatement(qURI, orderBaseURI,
+						questionOrder, false);
 			}
-			
-			int newOrder = needsReorder.get(question);	
-			System.out.println("Adding order " + newOrder + " to question " + question);
+
+			int newOrder = needsReorder.get(question);
+			System.out.println("Adding order " + newOrder + " to question "
+					+ question);
 			insightBaseXML.addStatement(qURI, orderBaseURI, newOrder, false);
-			
+
 		}
-		if(save)
+		if (save)
 			createQuestionXMLFile();
+	}
+
+	private String getQPred(String perspective, String qsKey) {
+		String qPred = perspectiveInsightBaseURI + "/" + selectedEngine + ":"
+				+ perspective + Constants.RELATION_URI_CONCATENATOR
+				+ selectedEngine + ":" + perspective + ":" + qsKey;
+
+		return qPred;
+	}
+
+	private String getPerspectivePred(String perspective) {
+		String perspectivePred = enginePerspectiveBaseURI + "/"
+				+ selectedEngine + Constants.RELATION_URI_CONCATENATOR
+				+ selectedEngine + ":" + perspective;
+
+		return perspectivePred;
+	}
+
+	private String getEPred(String perspective, String qsKey) {
+		String ePred = engineInsightBaseURI + "/" + selectedEngine
+				+ Constants.RELATION_URI_CONCATENATOR + selectedEngine + ":"
+				+ perspective + ":" + qsKey;
+		;
+
+		return ePred;
+	}
+
+	private String getQURI(String perspective, String qsKey) {
+		String qURI = insightBaseURI + "/" + selectedEngine + ":" + perspective
+				+ ":" + qsKey;
+		;
+
+		return qURI;
 	}
 }

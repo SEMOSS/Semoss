@@ -227,21 +227,6 @@ public class QuestionModSelectorListener implements IChakraListener {
 			// split and get the questionKey
 			String questionKey = questionIDArray[2];
 
-			// sets the current values in QuestionAdministrator
-			// will be used when user edits an existing question (deleting old
-			// question and then adding the modified question)
-			QuestionAdministrator.currentPerspective = perspective;
-			QuestionAdministrator.currentQuestionKey = questionKey;
-			QuestionAdministrator.currentQuestionOrder = order;
-			QuestionAdministrator.currentQuestion = question;
-			QuestionAdministrator.currentLayout = layoutValue;
-			QuestionAdministrator.currentSparql = sparql;
-			QuestionAdministrator.currentParameterDependListVector = dependVector;
-			QuestionAdministrator.currentParameterQueryListVector = parameterQueryVector;
-			QuestionAdministrator.currentParameterOptionListVector = optionVector;
-			QuestionAdministrator.currentNumberofQuestions = Integer.toString(questionModSelector.getItemCount());
-
-
 			// sets the field data if user is editing or deleting question
 			if (!addQuestionModTypeBtn.isSelected()) {
 				// questionPerspectiveField.setText(perspective);

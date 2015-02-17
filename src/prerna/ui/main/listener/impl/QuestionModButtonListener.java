@@ -45,6 +45,7 @@ import javax.swing.JTextPane;
 import javax.swing.ListModel;
 
 import prerna.om.Insight;
+import prerna.om.SEMOSSParam;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.QuestionAdministrator;
@@ -78,6 +79,19 @@ public class QuestionModButtonListener implements IChakraListener {
 	Vector<String> parameterQueryListVector = new Vector<String>();
 	Vector<String> parameterOptionListVector = new Vector<String>();
 
+	// tracking the original/current insight information
+	String currentPerspective;
+	String currentQuestionKey;
+	String currentQuestionOrder;
+	String currentQuestion;
+	String currentLayout;
+	String currentSparql;
+	String currentQuestionDescription;
+	Vector<String> currentParameterDependListVector;
+	Vector<String> currentParameterQueryListVector;
+	Vector<String> currentParameterOptionListVector;
+	String currentNumberofQuestions;
+
 	ListModel<String> dependModel = null;
 	ListModel<String> queryModel = null;
 	ListModel<String> optionModel = null;
@@ -94,28 +108,33 @@ public class QuestionModButtonListener implements IChakraListener {
 
 	boolean existingPerspective = false;
 
-	private void reloadDB(){
-		//selects the db in repolist so the questions refresh with the changes
-		//selects the db in repolist so the questions refresh with the changes
-		JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+	private void reloadDB() {
+		// selects the db in repolist so the questions refresh with the changes
+		// selects the db in repolist so the questions refresh with the changes
+		JList list = (JList) DIHelper.getInstance().getLocalProp(
+				Constants.REPO_LIST);
 		List selectedList = list.getSelectedValuesList();
-		String selectedValue = selectedList.get(selectedList.size()-1).toString();
-		
-		//don't need to refresh if selected db is not the db you're modifying. when you click to it it will refresh anyway.
-		if(engineName.equals(selectedValue)){
-			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(selectedValue);
+		String selectedValue = selectedList.get(selectedList.size() - 1)
+				.toString();
+
+		// don't need to refresh if selected db is not the db you're modifying.
+		// when you click to it it will refresh anyway.
+		if (engineName.equals(selectedValue)) {
+			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(
+					selectedValue);
 			Vector<String> perspectives = engine.getPerspectives();
 			Collections.sort(perspectives);
-			
-			JComboBox<String> box = (JComboBox<String>)DIHelper.getInstance().getLocalProp(Constants.PERSPECTIVE_SELECTOR);
+
+			JComboBox<String> box = (JComboBox<String>) DIHelper.getInstance()
+					.getLocalProp(Constants.PERSPECTIVE_SELECTOR);
 			box.removeAllItems();
-			
-			for(int itemIndex = 0;itemIndex < perspectives.size(); itemIndex++) {
+
+			for (int itemIndex = 0; itemIndex < perspectives.size(); itemIndex++) {
 				box.addItem(perspectives.get(itemIndex).toString());
 			}
 		}
 	}
-	
+
 	public void getFieldData() {
 		addQuestionRadioButton = (JRadioButton) DIHelper.getInstance()
 				.getLocalProp(Constants.ADD_QUESTION_BUTTON);
@@ -225,8 +244,84 @@ public class QuestionModButtonListener implements IChakraListener {
 		questionList.clear();
 		if (!selectedPerspective.equals("*NEW Perspective")) {
 			for (int i = 0; i < questionListModel.getSize(); i++) {
-				String[] questionSplit = ((String) questionListModel.getElementAt(i)).split("\\. ", 2);
+				String[] questionSplit = ((String) questionListModel
+						.getElementAt(i)).split("\\. ", 2);
 				questionList.add(questionSplit[1]);
+			}
+		}
+
+		// get the current insight values
+		if(!questionModType.equals("Add Question")) {
+			currentPerspective = (String) questionPerspectiveSelector
+					.getSelectedItem();
+			String[] currentQuestionSplit = ((String) questionSelector.getSelectedItem()).split("\\. ", 2);;
+			currentQuestion = currentQuestionSplit[1];
+	
+			in = ((AbstractEngine) engine).getInsight2(currentQuestion).get(0);
+	
+			String questionID = in.getId();
+			if (questionID != "DN" && questionID != null) {
+				String[] questionIDArray = questionID.split(":");
+				currentQuestionKey = questionIDArray[2];
+			}
+			currentQuestionOrder = in.getOrder();
+			currentLayout = in.getOutput();
+			currentSparql = in.getSparql();
+			currentQuestionDescription = in.getDescription();
+	
+			populateParamVectors();
+	
+			Vector<String> insights = engine.getInsights(currentPerspective);
+			currentNumberofQuestions = insights.size() + "";
+		}
+	}
+
+	public void populateParamVectors() {
+		Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine) engine)
+				.getParams(currentQuestion);
+
+		// if there are params, get any related data (queries/dependencies)
+		// and store them
+		if (!paramInfoVector.isEmpty()) {
+			for (int i = 0; i < paramInfoVector.size(); i++) {
+				if (paramInfoVector.get(i).getQuery() != null
+						&& !paramInfoVector
+								.get(i)
+								.getQuery()
+								.equals(DIHelper.getInstance().getProperty(
+										"TYPE" + "_" + Constants.QUERY))) {
+					currentParameterQueryListVector.add(paramInfoVector.get(i)
+							.getName()
+							+ "_QUERY_-_"
+							+ paramInfoVector.get(i).getQuery());
+				}
+
+				if (!paramInfoVector.get(i).getDependVars().isEmpty()
+						&& !paramInfoVector.get(i).getDependVars().get(0)
+								.equals("None")) {
+					for (int j = 0; j < paramInfoVector.get(i).getDependVars()
+							.size(); j++) {
+						currentParameterDependListVector
+								.add(paramInfoVector.get(i).getName()
+										+ "_DEPEND_-_"
+										+ paramInfoVector.get(i)
+												.getDependVars().get(j));
+					}
+				}
+
+				if (paramInfoVector.get(i).getOptions() != null
+						&& !paramInfoVector.get(i).getOptions().isEmpty()) {
+					Vector options = paramInfoVector.get(i).getOptions();
+					String optionsConcat = "";
+					for (int j = 0; j < options.size(); j++) {
+						optionsConcat += options.get(j);
+						if (j != options.size() - 1) {
+							optionsConcat += ";";
+						}
+					}
+					currentParameterOptionListVector.add(paramInfoVector.get(i)
+							.getType() + "_OPTION_-_" + optionsConcat);
+				}
 			}
 		}
 	}
@@ -240,10 +335,10 @@ public class QuestionModButtonListener implements IChakraListener {
 
 		// populate the fields with data based on question
 		getFieldData();
-		
+
 		questionAdmin = new QuestionAdministrator(engine, questionList,
 				selectedPerspective, questionModType);
-		
+
 		// get the perspectives from the combobox
 		DefaultComboBoxModel model = (DefaultComboBoxModel) questionPerspectiveSelector
 				.getModel();
@@ -252,8 +347,7 @@ public class QuestionModButtonListener implements IChakraListener {
 		// (questionKey and questionDescription) from insight
 		if (!(modificationType.equals("Add Question") && addQuestionRadioButton
 				.isSelected())) {
-			in = ((AbstractEngine) engine).getInsight2(
-					QuestionAdministrator.currentQuestion).get(0);
+			in = ((AbstractEngine) engine).getInsight2(currentQuestion).get(0);
 
 			if (in.getDescription() != null) {
 				questionDescription = in.getDescription();
@@ -299,20 +393,21 @@ public class QuestionModButtonListener implements IChakraListener {
 								null,
 								"To add a new perspective, please select \"*NEW Perspective\".\nTo change the perspective name, please select \"Edit Question\" as the modification type.");
 			} else {
-				//createQuestionKey();
-				//Vector questionsVector = ((AbstractEngine) engine)
-				//		.getInsights(perspective);
+				// createQuestionKey();
+				// Vector questionsVector = ((AbstractEngine) engine)
+				// .getInsights(perspective);
 				questionKey = questionAdmin.createQuestionKey(perspective);
 
-				questionAdmin.addQuestion(perspective, questionKey, order, question,
-						sparql, layout, questionDescription,
+				questionAdmin.addQuestion(perspective, questionKey, order,
+						question, sparql, layout, questionDescription,
 						parameterDependListVector, parameterQueryListVector,
 						parameterOptionListVector);
 
 				emptyFields(questionPerspectiveField, questionField,
 						questionLayoutField, questionSparql,
 						parameterDependTextPane, parameterQueryTextPane,
-						parameterDependList, parameterQueryList, parameterOptionList);
+						parameterDependList, parameterQueryList,
+						parameterOptionList);
 
 				questionAdmin.createQuestionXMLFile(xmlFile, baseFolder);
 				// Refresh the questions by selecting the db again and
@@ -322,9 +417,9 @@ public class QuestionModButtonListener implements IChakraListener {
 						.getSelectedItem();
 				questionDBSelector.setSelectedItem(currentDBSelected);
 
-				//reload the db with modified questions
+				// reload the db with modified questions
 				reloadDB();
-				
+
 				JOptionPane.showMessageDialog(null,
 						"The question has been added.");
 			}
@@ -342,23 +437,19 @@ public class QuestionModButtonListener implements IChakraListener {
 						.showMessageDialog(null,
 								"There are empty field(s). Please fill out all of the required fields.");
 			} else {
-				if (((QuestionAdministrator.currentQuestion != null) && (QuestionAdministrator.currentQuestion
+				if (((currentQuestion != null) && (currentQuestion
 						.equals(question)))
-						&& ((QuestionAdministrator.currentLayout != null) && (QuestionAdministrator.currentLayout
+						&& ((currentLayout != null) && (currentLayout
 								.equals(layout)))
-						&& ((QuestionAdministrator.currentParameterDependListVector != null) && (QuestionAdministrator.currentParameterDependListVector
+						&& ((currentParameterDependListVector != null) && (currentParameterDependListVector
 								.equals(parameterDependListVector)))
-						&& ((QuestionAdministrator.currentParameterQueryListVector != null) && (QuestionAdministrator.currentParameterQueryListVector
+						&& ((currentParameterQueryListVector != null) && (currentParameterQueryListVector
 								.equals(parameterQueryListVector)))
-						// &&
-						// ((QuestionAdministrator.currentParameterOptionListArray!=null)
-						// &&(QuestionAdministrator.currentParameterOptionListArray
-						// .equals(parameterOptionListVector)))
-						&& ((QuestionAdministrator.currentPerspective != null) && (QuestionAdministrator.currentPerspective
+						&& ((currentPerspective != null) && (currentPerspective
 								.equals(perspective)))
-						&& ((QuestionAdministrator.currentSparql != null) && (QuestionAdministrator.currentSparql
+						&& ((currentSparql != null) && (currentSparql
 								.equals(sparql)))
-						&& ((QuestionAdministrator.currentQuestionOrder.equals(order)))) {
+						&& ((currentQuestionOrder.equals(order)))) {
 					JOptionPane
 							.showMessageDialog(null,
 									"No modifications were found. Please modify the field/s and try again.");
@@ -369,7 +460,8 @@ public class QuestionModButtonListener implements IChakraListener {
 				} else {
 					if (!perspective.equals(questionPerspectiveSelector
 							.getSelectedItem())) {
-						String originalPerspective = (String) questionPerspectiveSelector.getSelectedItem();
+						String originalPerspective = (String) questionPerspectiveSelector
+								.getSelectedItem();
 						int dialogButton = JOptionPane.YES_NO_OPTION;
 						int dialogResult = JOptionPane.showConfirmDialog(
 								null,
@@ -386,30 +478,41 @@ public class QuestionModButtonListener implements IChakraListener {
 							// need to set the perspective to the new
 							// perspective
 							// if(existing perspective)
-							//createQuestionKey();
-							questionKey = questionAdmin.createQuestionKey(perspective);
+							// createQuestionKey();
+							questionKey = questionAdmin
+									.createQuestionKey(perspective);
 
 							if (existingPerspective) {
 								questionPerspectiveSelector
 										.setSelectedItem(perspective);
 								String newOrderNumber = questionSelector
 										.getItemCount() + 1 + "";
-								questionPerspectiveSelector.setSelectedItem(originalPerspective);
+								questionPerspectiveSelector
+										.setSelectedItem(originalPerspective);
 								questionSelector.setSelectedItem(question);
-								//QuestionAdministrator.currentNumberofQuestions = Integer.toString(questionSelector.getItemCount());
-								
+								// QuestionAdministrator.currentNumberofQuestions
+								// =
+								// Integer.toString(questionSelector.getItemCount());
+
 								order = newOrderNumber;
-							} 
-							else {
+							} else {
 								order = "1";
 							}
 
 							questionAdmin.modifyQuestion(perspective,
-									questionKey, order, question, sparql, layout,
-									questionDescription,
+									questionKey, order, question, sparql,
+									layout, questionDescription,
 									parameterDependListVector,
 									parameterQueryListVector,
-									parameterOptionListVector);
+									parameterOptionListVector,
+									currentPerspective, currentQuestionKey,
+									currentQuestionOrder, currentQuestion,
+									currentSparql, currentLayout,
+									currentQuestionDescription,
+									currentParameterDependListVector,
+									currentParameterQueryListVector,
+									currentParameterOptionListVector,
+									currentNumberofQuestions);
 
 							questionAdmin.createQuestionXMLFile(xmlFile,
 									baseFolder);
@@ -421,18 +524,27 @@ public class QuestionModButtonListener implements IChakraListener {
 							questionDBSelector
 									.setSelectedItem(currentDBSelected);
 
-							//reload db with modified questions
+							// reload db with modified questions
 							reloadDB();
-							
+
 							JOptionPane.showMessageDialog(null,
 									"The question has been updated.");
 						}
 					} else {
-						questionAdmin.modifyQuestion(perspective, questionKey, order,
-								question, sparql, layout, questionDescription,
+						questionAdmin.modifyQuestion(perspective,
+								questionKey, order, question, sparql,
+								layout, questionDescription,
 								parameterDependListVector,
 								parameterQueryListVector,
-								parameterOptionListVector);
+								parameterOptionListVector,
+								currentPerspective, currentQuestionKey,
+								currentQuestionOrder, currentQuestion,
+								currentSparql, currentLayout,
+								currentQuestionDescription,
+								currentParameterDependListVector,
+								currentParameterQueryListVector,
+								currentParameterOptionListVector,
+								currentNumberofQuestions);
 
 						questionAdmin
 								.createQuestionXMLFile(xmlFile, baseFolder);
@@ -466,8 +578,9 @@ public class QuestionModButtonListener implements IChakraListener {
 
 				if (dialogResult == JOptionPane.YES_OPTION) {
 					questionAdmin
-							.deleteQuestion(perspective, questionKey, order, question,
-									sparql, layout, questionDescription,
+							.deleteQuestion(perspective, questionKey, order,
+									question, sparql, layout,
+									questionDescription,
 									parameterDependListVector,
 									parameterQueryListVector,
 									parameterOptionListVector);
@@ -480,9 +593,9 @@ public class QuestionModButtonListener implements IChakraListener {
 							.getSelectedItem();
 					questionDBSelector.setSelectedItem(currentDBSelected);
 
-					//reload db with modified questions
+					// reload db with modified questions
 					reloadDB();
-					
+
 					JOptionPane.showMessageDialog(null,
 							"The question has been deleted.");
 				}
@@ -493,7 +606,8 @@ public class QuestionModButtonListener implements IChakraListener {
 	private void emptyFields(JTextField perspectiveField,
 			JTextField questionField, JTextField layoutField, JTextPane sparql,
 			JTextPane dependencyTextPane, JTextPane parameterQueryTextPane,
-			JList<String> dependencyList, JList<String> queryList, JList<String> optionList) {
+			JList<String> dependencyList, JList<String> queryList,
+			JList<String> optionList) {
 		Vector<String> listData = new Vector<String>();
 
 		perspectiveField.setText("");
