@@ -243,42 +243,6 @@ public class QuestionModButtonListener implements IChakraListener {
 		
 		questionAdmin = new QuestionAdministrator(engine, questionList,
 				selectedPerspective, questionModType);
-
-		// check to see if perspective already exists in the perspective
-		// drop-down
-		for (int i = 0; i < questionPerspectiveSelector.getItemCount(); i++) {
-			if (questionPerspectiveSelector.getItemAt(i).equals(perspective)) {
-				existingPerspective = true;
-				questionAdmin.existingPerspective = true;
-				
-				if (existingPerspective) {
-					for (int j = 0; j < questionSelector.getItemCount(); j++) {
-						String question = questionSelector.getItemAt(j);
-						String[] questionSplit = question.split("\\. ", 2);
-						question = questionSplit[1];
-
-						Insight in = ((AbstractEngine) engine).getInsight2(question)
-								.get(0);
-
-						String questionID = in.getId();
-						String[] questionIDArray = questionID.split(":");
-						String currentQuestionKey = questionIDArray[2];
-
-						// checks if there has been any auto-generated question
-						// key
-						if (currentQuestionKey.contains(perspective)) {
-							questionAdmin.existingAutoGenQuestionKey = true;
-							break;
-						}
-					}
-				}
-				break;
-			}
-			else {
-				existingPerspective = false;
-				questionAdmin.existingPerspective = false;
-			}
-		}
 		
 		// get the perspectives from the combobox
 		DefaultComboBoxModel model = (DefaultComboBoxModel) questionPerspectiveSelector

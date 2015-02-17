@@ -59,23 +59,20 @@ public class QuestionAdministrator {
 
 	IEngine engine;
 	RDFFileSesameEngine insightBaseXML;
+	private String selectedEngine = null;
 
 	String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-	boolean reorder = true;
-	boolean deletePerspective = false;
-
-	String questionModType = "";
-
-	ArrayList<String> questionList2 = new ArrayList<String>();
-	public ArrayList<String> questionList = new ArrayList<String>();
-
-	String selectedPerspective = "";
-	public static String selectedEngine = null;
-
 	String xmlFile = "db/" + selectedEngine + "/" + selectedEngine
 			+ "_Questions.XML";
+	
+	//TODO need to clean up the below; shouldn't need those as class objects
+	boolean reorder = true;
+	String questionModType = "";
+	String selectedPerspective = "";
+	public ArrayList<String> questionList = new ArrayList<String>();
+	String newPerspective;
 
-	// the following are variables used to in storing the triples for the
+	// the following are variables used for storing the triples for the
 	// questions
 	HashMap<String, String> parameterProperties = new HashMap<String, String>();
 	String perspectiveURI;
@@ -89,7 +86,6 @@ public class QuestionAdministrator {
 	String qURI;
 	String qPred;
 	String ePred;
-	Enumeration<String> paramKeys;
 
 	// following variables will hold the current values before being modified by
 	// user
@@ -104,8 +100,6 @@ public class QuestionAdministrator {
 	public static Vector<String> currentParameterQueryListVector = null;
 	public static Vector<String> currentParameterOptionListVector = null;
 	public static String currentNumberofQuestions = null;
-	boolean lastQuestion;
-	String newPerspective;
 
 	protected static final String semossURI = "http://semoss.org/ontologies/";
 	protected static final String conceptBaseURI = semossURI
@@ -140,9 +134,6 @@ public class QuestionAdministrator {
 			+ "/Description";
 
 	String engineURI2 = engineBaseURI + "/" + selectedEngine;
-
-	public boolean existingPerspective;
-	public boolean existingAutoGenQuestionKey;
 
 	public QuestionAdministrator(IEngine engine) {
 		this.engine = engine;
@@ -880,6 +871,40 @@ public class QuestionAdministrator {
 
 	public String createQuestionKey(String perspective) {
 		String questionKey = null;
+		boolean existingPerspective = false;
+		boolean existingAutoGenQuestionKey = false;
+		
+		Vector<String> perspectives = engine.getPerspectives();
+		Vector<String> questionsV = engine.getInsights(perspective);
+		
+		for (int i = 0; i < perspectives.size(); i++) {
+			if (perspectives.get(i).equals(perspective)) {
+				existingPerspective = true;
+				if (existingPerspective) {
+					for (int j = 0; j < questionsV.size(); j++) {
+						String question = questionsV.get(j);
+						Insight in = ((AbstractEngine) engine).getInsight2(question)
+								.get(0);
+
+						String questionID = in.getId();
+						String[] questionIDArray = questionID.split(":");
+						String currentQuestionKey = questionIDArray[2];
+
+						// checks if there has been any auto-generated question
+						// key
+						if (currentQuestionKey.contains(perspective)) {
+							existingAutoGenQuestionKey = true;
+							break;
+						}
+					}
+				}
+				break;
+			}
+			else {
+				existingPerspective = false;
+			}
+
+		}
 
 		// auto generate a questionKey based on existing similar
 		// question key
@@ -979,7 +1004,8 @@ public class QuestionAdministrator {
 				+ perspective + ":" + qsKey;
 
 		paramHash = Utility.getParams(sparql);
-		paramKeys = paramHash.keys();
+		
+		Enumeration<String> paramKeys = paramHash.keys();
 
 		// add the question to the engine
 		addPerspective(perspectivePred, perspectiveURI, perspective);
@@ -1013,7 +1039,7 @@ public class QuestionAdministrator {
 				if (!(Integer.parseInt(questionOrder) == questionList.size() + 1)
 						&& reorder) {
 					// the addQuestion method will call the reOrder method once;
-					// prevents infite loops from addQuestion to reorderQuestion
+					// prevents infinite loops from addQuestion to reorderQuestion
 					reorder = false;
 					reorderQuestions(questionOrder, questionList.size() + 1
 							+ "");
@@ -1114,7 +1140,8 @@ public class QuestionAdministrator {
 			Vector<String> parameterDependList,
 			Vector<String> parameterQueryList,
 			Vector<String> parameterOptionList) {
-
+		boolean lastQuestion = false;
+		
 		logger.info("Deleting question: perspective=" + perspective
 				+ "; questionKey=" + questionKey + "; questionOrder="
 				+ questionOrder + "; questionLabel=" + question + "; sparql="
@@ -1169,10 +1196,6 @@ public class QuestionAdministrator {
 			removePerspective(perspectivePred, perspectiveURI, perspective);
 		}
 
-		if (deletePerspective) {
-			removePerspective(perspectivePred, perspectiveURI, perspective);
-		}
-
 		removeQuestionID(ePred, qURI, perspectiveURI, perspective, qPred);
 
 		if (description != null) {
@@ -1183,7 +1206,7 @@ public class QuestionAdministrator {
 		removeQuestionSparql(qURI, sparql);
 		removeQuestionLayout(qURI, layoutName);
 
-		paramKeys = paramHash.keys();
+		Enumeration<String> paramKeys = paramHash.keys();
 
 		removeQuestionParam(paramKeys, perspective, qsKey, qURI,
 				parameterProperties);
@@ -1228,8 +1251,10 @@ public class QuestionAdministrator {
 		logger.info("Deleting all questions from perspective with this URI: " + perspectiveURI);
 		
 		Vector questionsVector = ((AbstractEngine) engine).getInsightsURI(perspectiveURI);
-
-		questionList2.clear();
+		ArrayList<String> questionList2 = new ArrayList<String>();
+		String perspective = perspectiveURI.substring(perspectiveURI
+				.lastIndexOf(":") + 1);
+		
 		for (Object question : questionsVector) {
 			questionList2.add((String) question);
 		}
@@ -1241,8 +1266,7 @@ public class QuestionAdministrator {
 					.getParamsURI(question2);
 
 			System.out.println("Removing question " + question2);
-			String perspective = perspectiveURI.substring(perspectiveURI
-					.lastIndexOf(":") + 1);
+			
 			String questionOrder = in.getOrder();
 			String question = in.getLabel();
 			String questionID = in.getId();
@@ -1297,12 +1321,12 @@ public class QuestionAdministrator {
 				}
 			}
 			reorder = false;
-			deletePerspective = true;
 			deleteQuestion(perspective, questionKey, questionOrder, question,
 					sparql, layoutValue, questionDescription, dependVector,
 					parameterQueryVector, optionVector);
 		}
-
+		//delete perspective from the engine
+		removePerspective(perspectivePred, perspectiveURI, perspective);
 	}
 	
 	public void reorderPerspective(String perspective, Vector<Hashtable<String, Object>> orderedInsights){
