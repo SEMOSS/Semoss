@@ -128,7 +128,7 @@ public class QuestionNLP {
 		tdl = CreateDepList(Question_Sentence, tdl, TaggedWords); //create dependencies
 		if(SentenceParsable == true)
 		{
-			PartOfSpeechHelper.setTypeDependencyHash(tdl, nodeHash);
+			NaturalLanguageProcessingHelper.setTypeDependencyHash(tdl, nodeHash);
 		}
 		//extract key nouns
 		phraselist.addAll(findTriples(negHash, nodeHash, EnglishGrammaticalRelations.NOMINAL_SUBJECT, EnglishGrammaticalRelations.DIRECT_OBJECT));
@@ -172,17 +172,17 @@ public class QuestionNLP {
 						// find if complemented
 						// need to do this only if the subj is not a noun
 						// final subject
-						TreeGraphNode altPredicate = PartOfSpeechHelper.findCompObject(dep2, nodeHash);
+						TreeGraphNode altPredicate = NaturalLanguageProcessingHelper.findCompObject(dep2, nodeHash);
 						if(!subj.label().tag().contains("NN") && ( nodeHash.containsKey(EnglishGrammaticalRelations.CLAUSAL_COMPLEMENT) || nodeHash.containsKey(EnglishGrammaticalRelations.XCLAUSAL_COMPLEMENT)))
 						{
-							subj = PartOfSpeechHelper.findComplementNoun(subj, dep2, nodeHash, EnglishGrammaticalRelations.CLAUSAL_COMPLEMENT);
+							subj = NaturalLanguageProcessingHelper.findComplementNoun(subj, dep2, nodeHash, EnglishGrammaticalRelations.CLAUSAL_COMPLEMENT);
 							if(!subj.label().tag().contains("NN")){
-								subj = PartOfSpeechHelper.findCompSubject(dep2, nodeHash);
+								subj = NaturalLanguageProcessingHelper.findCompSubject(dep2, nodeHash);
 							}
 						}		
-						finalObject = PartOfSpeechHelper.getFullNoun(obj);
-						finalObject = finalObject + PartOfSpeechHelper.findPrepNounForPredicate(pred, nodeHash);
-						finalSubject = PartOfSpeechHelper.getFullNoun(subj);
+						finalObject = NaturalLanguageProcessingHelper.getFullNoun(obj);
+						finalObject = finalObject + NaturalLanguageProcessingHelper.findPrepNounForPredicate(pred, nodeHash);
+						finalSubject = NaturalLanguageProcessingHelper.getFullNoun(subj);
 
 						//FINDING EXTENSION OF PREDICATE****
 						// find the negators for the predicates next

@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.nameserver;
 
+import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
 
@@ -41,6 +43,86 @@ public final class MasterDBHelper implements IMasterDatabaseQueries{
 
 	private MasterDBHelper() {
 		
+	}
+	
+	/**
+	 * Adds the list of enignes that are in the master db
+	 * @param masterEngine		The engine to query
+	 * @param engineList		The set to add the engine list to
+	 */
+	public static void fillEnglishList(IEngine masterEngine, Set<String> engineList) {
+		ISelectWrapper wrapper = Utility.processQuery(masterEngine, ENGINE_LIST_QUERY);
+		// get the bindings from it
+		String[] names = wrapper.getVariables();
+		// now get the bindings and generate the data
+		while(wrapper.hasNext()) {
+			ISelectStatement sjss = wrapper.next();
+			engineList.add((String) sjss.getVar(names[0]));
+		}
+	}
+	
+	/**
+	 * Add the engine URLs to a hashtable
+	 * @param masterEngine		The engine to query
+	 * @param engineURLHash		The hashtable to add all the engine URLs to
+	 */
+	public static void fillAPIHash(IEngine masterEngine, Hashtable<String, String> engineURLHash){
+		engineURLHash = new Hashtable<String,String>();
+		ISelectWrapper wrapper = Utility.processQuery(masterEngine, ENGINE_API_QUERY);
+		// get the bindings from it
+		String[] names = wrapper.getVariables();
+		// now get the bindings and generate the data
+		while(wrapper.hasNext())
+		{
+			ISelectStatement sjss = wrapper.next();
+			String engine = (String)sjss.getVar(names[0]);
+			String baseURI = (sjss.getRawVar(names[1])).toString();
+			engineURLHash.put(engine,baseURI);
+		}
+	}
+	
+	/**
+	 * Based on the keywordURI, find related keywords and their respective nouns and engines
+	 * @param masterEngine			The engine to query
+	 * @param keywordURI			The keywordURI to find related keywords
+	 * @param keywordNounMap		The Map containing the key keyword and the value Set of nouns that comprise the keyword
+	 * @param engineKeywordMap		The Map containing the engine keyword and the value Set of keywords contained in that engine
+	 */
+	public static void findRelatedKeywords(IEngine masterEngine, String keywordURI, Map<String, Set<String>> keywordNounMap, Map<String, Set<String>> engineKeywordMap){
+		// find all related keywords to the inputed data type
+		String query = GET_RELATED_KEYWORDS_AND_THEIR_NOUNS.replace("@KEYWORD@", keywordURI);
+		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
+		String[] names = sjsw.getVariables();
+		while(sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			String engine = sjss.getVar(names[0]).toString();
+			String keyword = sjss.getRawVar(names[1]).toString();
+			String noun = sjss.getRawVar(names[2]).toString();
+			
+			Set<String> nounList;
+			if(keywordNounMap.containsKey(keyword)) {
+				nounList = keywordNounMap.get(keyword);
+				nounList.add(noun);
+			} else {
+				nounList = new HashSet<String>();
+				nounList.add(noun);
+				keywordNounMap.put(keyword, nounList);
+			}
+			
+			Set<String> keywordForEngineList;
+			if(engineKeywordMap.containsKey(engine)) {
+				keywordForEngineList = engineKeywordMap.get(engine);
+				keywordForEngineList.add(keyword);
+			} else {
+				keywordForEngineList = new HashSet<String>();
+				keywordForEngineList.add(keyword);
+				engineKeywordMap.put(engine, keywordForEngineList);
+			}
+		}
+		
+		//TODO: remove once error checking is done
+		System.err.println(">>>>>>>>>>>>>>>>>FOUND RELATED KEYWORDS " + Utility.getInstanceName(keywordURI));
+		System.err.println(">>>>>>>>>>>>>>>>>LIST IS: " + keywordNounMap.keySet());
 	}
 	
 	public static Map<String, Set<String>> getMCValueMappingTree(IEngine masterEngine) {
