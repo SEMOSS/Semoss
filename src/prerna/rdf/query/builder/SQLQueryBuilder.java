@@ -31,29 +31,13 @@ import java.util.Hashtable;
 
 import prerna.rdf.query.util.SEMOSSQuery;
 
-public abstract class AbstractQueryBuilder implements IQueryBuilder{
-	String query;
+public class SQLQueryBuilder extends AbstractQueryBuilder{
 
-	public Hashtable<String, Object> allJSONHash = new Hashtable<String, Object>();
+	@Override
+	public void buildQuery() {
+		//get query from json data
+		//thats about it for now
+		this.query = this.allJSONHash.get("sqlquery") + "";
+	}
 	
-
-	@Override
-	public void setJSONDataHash(Hashtable<String, Object> allJSONHash) {
-		this.allJSONHash = allJSONHash;
-	}
-
-	@Override
-	public Hashtable<String, Object> getJSONDataHash() {
-		return allJSONHash;
-	}
-
-	@Override
-	public void setQuery(String query) {
-		this.query = query;
-	}
-
-	@Override
-	public String getQuery() {
-		return this.query;
-	}
 }
