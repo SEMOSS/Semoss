@@ -450,7 +450,6 @@ public abstract class AbstractEngine implements IEngine {
 		// this should load the properties from the specified as opposed to
 		// loading from core prop
 		// lastly the localprop needs to set up so that it can be swapped
-		QuestionAdministrator.selectedEngine = engineName;
 		QuestionAdministrator questionAdmin = new QuestionAdministrator(this);
 		String perspectives = (String) dreamerProp
 				.get(Constants.PERSPECTIVE);

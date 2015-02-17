@@ -78,8 +78,6 @@ public class QuestionModDBComboBoxListener implements IChakraListener {
 		Thread aThread = new Thread(entityFillerSC);
 		aThread.start();
 
-		QuestionAdministrator.selectedEngine = engineName;
-		
 		//get the perspectives and store it
 		Vector<String> perspectives = engine.getPerspectives();
 		Collections.sort(perspectives);
