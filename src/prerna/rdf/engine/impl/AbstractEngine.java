@@ -50,7 +50,6 @@ import org.openrdf.model.URI;
 import org.openrdf.model.Value;
 import org.openrdf.model.ValueFactory;
 import org.openrdf.model.vocabulary.RDF;
-import org.openrdf.query.Binding;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryEvaluationException;
@@ -72,6 +71,8 @@ import org.openrdf.sail.memory.MemoryStore;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.query.builder.IQueryBuilder;
+import prerna.rdf.query.builder.SPARQLQueryTableBuilder;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -1697,5 +1698,8 @@ public abstract class AbstractEngine implements IEngine {
 		return this.propFile;
 	}
 	
+	public IQueryBuilder getQueryBuilder(){
+		return new SPARQLQueryTableBuilder();
+	}
 	
 }
