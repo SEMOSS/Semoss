@@ -1173,10 +1173,11 @@ public class QuestionAdministrator {
 		}
 	}
 
-	public void deleteAllFromPersp(String perspective) {
+	public Boolean deleteAllFromPersp(String perspective) {
 		String pURI = getPerspectiveURI(perspective);
 		deleteAllFromPerspective(pURI);
 		createQuestionXMLFile();
+		return true;
 	}
 
 	private String getPerspectiveURI(String perspective) {
