@@ -93,6 +93,8 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	private ArrayList<JCheckBox> clusterCheckboxes;
 	private ArrayList<JCheckBox> paramsToCheck;
 	private JPanel clusterSelectorPanel;
+	private ArrayList<Object[]> masterListWithCluster;
+	private String[] asteriskNamesWithCluster;
 	private ArrayList<Object []> masterList;
 	private String[] masterNames;
 	private String paramSelectorTabName = "Param Selector";
@@ -167,7 +169,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public void addGridTab() {
 		
-		table = new JTable();
+		JTable table = new JTable();
 		
 		//Add Excel export popup menu and menuitem
 		JPopupMenu popupMenu = new JPopupMenu();
@@ -183,16 +185,6 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		LOGGER.debug("Added the internal frame listener ");
 		//table.setAutoCreateRowSorter(true);
 		
-		JPanel panel = new JPanel();
-		panel.add(table);
-		GridBagLayout gbl_mainPanel = new GridBagLayout();
-		gbl_mainPanel.columnWidths = new int[]{0, 0};
-		gbl_mainPanel.rowHeights = new int[]{0, 0};
-		gbl_mainPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gbl_mainPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-		panel.setLayout(gbl_mainPanel);
-		
-		addScrollPanel(panel, table);
 		GridFilterData gfd = new GridFilterData();
 		if(names.length != rawDataNames.length) {
 			if(names.length > 15) {
@@ -211,15 +203,25 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 				table.setRowSorter(new GridTableRowSorter(model));
 			}
 		} else {
-			list.addAll(0, clusterInfo);
-			gfd.setColumnNames(names);
+			masterListWithCluster.addAll(0, clusterInfo);
+			gfd.setColumnNames(asteriskNamesWithCluster);
 			//append cluster information to list data
-			gfd.setDataList(list);
+			gfd.setDataList(masterListWithCluster);
 			GridTableModel model = new GridTableModel(gfd);
 			table.setModel(model);
 			table.setRowSorter(new GridTableRowSorter(model));
 
 		}
+		JPanel panel = new JPanel();
+		panel.add(table);
+		GridBagLayout gbl_mainPanel = new GridBagLayout();
+		gbl_mainPanel.columnWidths = new int[]{0, 0};
+		gbl_mainPanel.rowHeights = new int[]{0, 0};
+		gbl_mainPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_mainPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		panel.setLayout(gbl_mainPanel);
+		
+		addScrollPanel(panel, table);
 		jTab.addTab(rawDataTabName, panel);
 	}
 
@@ -602,12 +604,62 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 			listWithCluster.add(newDataRow);
 		}
 		list = listWithCluster;
+		//updating our list and names to include the cluster assigned in the last column
+		masterListWithCluster = new ArrayList<Object[]>();
+		size = masterList.size();
+		for(i = 0; i < size; i++) {
+			Object[] dataRow = masterList.get(i);
+			Object[] newDataRow = new Object[dataRow.length + 1];
+			for(int j = 0; j < dataRow.length; j++) {
+				newDataRow[j] = dataRow[j];
+			}
+			int clusterNumber = clusterAssignment[i];
+			newDataRow[newDataRow.length - 1] = clusterNumber;
+			masterListWithCluster.add(newDataRow);
+		}
 		String[] namesWithCluster = new String[names.length + 1];
 		for(i = 0; i < names.length; i++) {
 			namesWithCluster[i] = names[i];
 		}
 		namesWithCluster[namesWithCluster.length - 1] = "ClusterID";
 		names = namesWithCluster;
+		
+		asteriskNamesWithCluster = new String[masterNames.length+1];
+		i=0;
+		for(;i<masterNames.length;i++) {
+			String name = masterNames[i];
+			Boolean nameIncluded = false;
+			int j=0;
+			for(;j<names.length;j++) {
+				if(names[j].equals(name))
+					nameIncluded = true;
+			}
+			if(!nameIncluded)
+				name = name+"*";
+			asteriskNamesWithCluster[i]=name;
+		}
+		
+		asteriskNamesWithCluster[asteriskNamesWithCluster.length - 1] = "ClusterID";
+		
+		//update cluster info to acount for filtered rows
+		int j=0;
+		for(;j<clusterInfo.size();j++) {
+			Object[] oldRow = clusterInfo.get(j);
+			Object[] newRow = new Object[asteriskNamesWithCluster.length];
+			int newRowIndex = 0;
+			int oldRowIndex = 0;
+			for(;newRowIndex<asteriskNamesWithCluster.length;newRowIndex++) {
+				String name = asteriskNamesWithCluster[newRowIndex];
+				if(name.contains("*")) {
+					newRow[newRowIndex]="-";
+				}else {
+					newRow[newRowIndex]=oldRow[oldRowIndex];
+					oldRowIndex++;
+				}
+			}
+			clusterInfo.set(j, newRow);
+		}
+		
 		rawDataList =  new ArrayList<Object[]>(list);
 		rawDataNames = names.clone();//TODO make sure this writes properly
 
