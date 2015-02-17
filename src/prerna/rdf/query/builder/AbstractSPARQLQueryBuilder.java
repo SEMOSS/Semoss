@@ -1,65 +1,62 @@
 package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SPARQLConstants;
 import prerna.rdf.query.util.TriplePart;
 import prerna.rdf.query.util.TriplePartConstant;
-import prerna.util.Utility;
 
+import com.google.gson.Gson;
 import com.google.gson.internal.StringMap;
+import com.google.gson.reflect.TypeToken;
 
 public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 
 	SEMOSSQuery semossQuery = new SEMOSSQuery();
-	static final String relArrayKey = "relTriples";
 	static final String relVarArrayKey = "relVarTriples";
 	static final String filterKey = "filter";
 	ArrayList<String> totalVarList = new ArrayList<String>();
 	ArrayList<Hashtable<String,String>> nodeV = new ArrayList<Hashtable<String,String>>();
 	ArrayList<Hashtable<String,String>> predV = new ArrayList<Hashtable<String,String>>();
 	ArrayList<Hashtable<String,String>> nodePropV = new ArrayList<Hashtable<String,String>>();
-	ArrayList<Hashtable<String,String>> edgePropV = new ArrayList<Hashtable<String,String>>();
 	Hashtable<String, ArrayList<Object>> filterDataHash = new Hashtable<String, ArrayList<Object>>();
 	Hashtable<String, ArrayList<Object>> bindingsDataHash = new Hashtable<String, ArrayList<Object>>();
 	Hashtable<String, Object> bindDataHash = new Hashtable<String, Object>();
 	Hashtable<String, SEMOSSQuery> headerFilterHash = new Hashtable<String, SEMOSSQuery>();
-	IEngine coreEngine = null;
-	static final int subIdx = 0;
-	static final int predIdx = 1;
-	static final int objIdx = 2;
-	static final int propIdx = 0;
-	public static final String uriKey = "uriKey";
-	static final String queryKey = "queryKey";
-	static final String varKey = "varKey";
 	static final Logger logger = LogManager.getLogger(AbstractSPARQLQueryBuilder.class.getName());
-
+	
+	protected void parsePath(){
+		Hashtable<String, ArrayList> parsedPath = QueryBuilderHelper.parsePath(allJSONHash);
+		totalVarList = parsedPath.get(QueryBuilderHelper.totalVarListKey);
+		nodeV = parsedPath.get(QueryBuilderHelper.nodeVKey);
+		predV = parsedPath.get(QueryBuilderHelper.predVKey);
+	}
+	
 	@Override
-	abstract public void buildQuery();
-
-	public Hashtable<String, ArrayList<Hashtable<String,String>>> getPropsFromPath() 
-	{
-		parsePath();
-		parsePropertiesFromPath();	
-		Hashtable<String, ArrayList<Hashtable<String,String>>> propsHash = new Hashtable<String, ArrayList<Hashtable<String,String>>>();
-		propsHash.put("nodes", nodePropV);
-		propsHash.put("edges", edgePropV);
-		return propsHash;
+	public void setJSONDataHash(Hashtable<String, Object> allJSONHash) {
+		Gson gson = new Gson();
+		this.allJSONHash = new Hashtable<String, Object>();
+		this.allJSONHash.putAll((StringMap) allJSONHash.get("QueryData"));
+		ArrayList<StringMap> list = (ArrayList<StringMap>) allJSONHash.get("SelectedNodeProps") ;
+		this.nodePropV = new ArrayList<Hashtable<String, String>>();
+		for(StringMap map : list){
+			Hashtable hash = new Hashtable();
+			hash.putAll(map);
+			nodePropV.add(hash);
+		}
 	}
 	
 	protected void addNodesToQuery (ArrayList<Hashtable<String,String>> nodeV) {
 		for(Hashtable<String, String> nodeHash : nodeV){
-			String nodeName = nodeHash.get(varKey);
-			String nodeURI = nodeHash.get(uriKey);
+			String nodeName = nodeHash.get(QueryBuilderHelper.varKey);
+			String nodeURI = nodeHash.get(QueryBuilderHelper.uriKey);
 			SEMOSSQuery headerQuery = createDefaultFilterQuery(nodeName);
 			this.headerFilterHash.put(nodeName, headerQuery);
 			SEMOSSQueryHelper.addConceptTypeTripleToQuery(nodeName, nodeURI, headerQuery);
@@ -69,13 +66,12 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 		}
 	}
 	
-	protected void addPropsToQuery (ArrayList<Hashtable<String,String>> nodePropV, ArrayList<Hashtable<String,String>> edgePropV) {
+	protected void addPropsToQuery (ArrayList<Hashtable<String,String>> nodePropV) {
 		ArrayList<Hashtable<String, String>> propV = new ArrayList<Hashtable<String, String>>();
 		propV.addAll(nodePropV);
-		propV.addAll(edgePropV);
 		for(Hashtable<String, String> propHash : propV) {
-			String propName = propHash.get(varKey);
-			String propURI = propHash.get(uriKey);
+			String propName = propHash.get(QueryBuilderHelper.varKey);
+			String propURI = propHash.get(QueryBuilderHelper.uriKey);
 			SEMOSSQueryHelper.addGenericTriple(propHash.get("SubjectVar"), TriplePart.VARIABLE, propURI, TriplePart.URI, propName, TriplePart.VARIABLE, semossQuery);
 			SEMOSSQueryHelper.addSingleReturnVarToQuery(propName, semossQuery);
 		}
@@ -95,7 +91,7 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 		
 		addReturnVariables(predV);
 
-		addPropsToQuery(nodePropV, edgePropV);
+		addPropsToQuery(nodePropV);
 		
 		addFilter();
 	};
@@ -105,57 +101,6 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 
 	abstract protected void addReturnVariables(ArrayList<Hashtable<String, String>> predV2);
 
-	public void parsePath()
-	{
-		ArrayList<ArrayList<String>> tripleArray = (ArrayList<ArrayList<String>>) allJSONHash.get(relArrayKey);
-		for (int tripleIdx = 0; tripleIdx<tripleArray.size(); tripleIdx++)
-		{
-			ArrayList<String> thisTripleArray = tripleArray.get(tripleIdx);
-			String subjectURI = thisTripleArray.get(subIdx);
-			String subjectName = Utility.getInstanceName(subjectURI);
-			// store node/rel info
-			if (!totalVarList.contains(subjectName))
-			{
-				//store node info
-				Hashtable<String, String> elementHash = new Hashtable<String, String>();
-				elementHash.put(varKey, subjectName);
-				elementHash.put(uriKey, subjectURI);
-				totalVarList.add(subjectName);
-				nodeV.add(elementHash);
-			}
-			// if a full path has been selected and not just a single node, go through predicate and object
-			if(thisTripleArray.size()>1)
-			{
-				String predURI = thisTripleArray.get(predIdx);
-				String objectURI = thisTripleArray.get(objIdx);
-				String objectName = Utility.getInstanceName(objectURI);
-				String predName = subjectName + "_" +Utility.getInstanceName(predURI) + "_" + objectName;
-				if (!totalVarList.contains(predName))
-				{
-					Hashtable<String, String> predInfoHash = new Hashtable<String,String>();
-					predInfoHash.put("Subject", subjectURI);
-					predInfoHash.put("SubjectVar", subjectName);
-					predInfoHash.put("Pred", predURI);
-					predInfoHash.put("Object", objectURI);
-					predInfoHash.put("ObjectVar", objectName);
-					predInfoHash.put(uriKey, predURI);
-					predInfoHash.put(varKey, predName);
-
-					totalVarList.add(predName);
-					predV.add(predInfoHash);
-				}
-				if (!totalVarList.contains(objectName))
-				{
-					totalVarList.add(objectName);
-					//store node info
-					Hashtable<String, String> elementHash = new Hashtable<String, String>();
-					elementHash.put(varKey, objectName);
-					elementHash.put(uriKey, objectURI);
-					nodeV.add(elementHash);
-				}
-			}
-		}
-	}
 	
 	private SEMOSSQuery createDefaultFilterQuery(String varName){
 		SEMOSSQuery q = new SEMOSSQuery();
@@ -253,76 +198,19 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 		}
 	}
 
-	private void parsePropertiesFromPath()
-	{
-		ArrayList<Hashtable<String, String>> relationVarList = new ArrayList<Hashtable<String, String>>();
-		relationVarList.addAll(nodeV);
-		// run through all of the variables to get properties
-		for (int i=0;i<relationVarList.size();i++)
-		{
-			Hashtable<String, String> vHash = relationVarList.get(i);
-			String varName = vHash.get(varKey);
-			String varURI = vHash.get(uriKey);
-			String nodePropQuery = "SELECT DISTINCT ?entity WHERE {{?source <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <"+varURI+">} {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?source ?entity ?prop }}";
-			Vector<String> propVector = coreEngine.getEntityOfType(nodePropQuery);
-			for (int propIdx=0 ; propIdx<propVector.size(); propIdx++)
-			{
-				String propURI = propVector.get(propIdx);
-				String propName = varName + "__" + Utility.getInstanceName(propURI).replace("-",  "_");
-				totalVarList.add(propName);
-				//store node prop info
-				Hashtable<String, String> elementHash = new Hashtable<String, String>();
-				elementHash.put("SubjectVar", varName);
-				elementHash.put(varKey, propName);
-				elementHash.put(uriKey, propURI);
-				nodePropV.add(elementHash);
-			}
-		}
-		ArrayList<Hashtable<String, String>> predVarList = new ArrayList<Hashtable<String, String>>();
-		predVarList.addAll(predV);
-	}
-
-	public void setEngine(IEngine coreEngine)
-	{
-		this.coreEngine = coreEngine;
-	}
-	
-	public void setPropV(ArrayList<Hashtable<String,String>> selectedNodePropsList, ArrayList<Hashtable<String,String>> selectedEdgePropsList)
+	public void setPropV(ArrayList<Hashtable<String,String>> selectedNodePropsList)
 	{
 		this.nodePropV = selectedNodePropsList;
-		this.edgePropV = selectedEdgePropsList;
 	}
-	
-	public Integer runCountQuery(int maxCount){
-		Integer curLimit = this.semossQuery.getLimit();
-		this.semossQuery.setLimit(maxCount);
-		String q = this.semossQuery.getCountQuery(maxCount);
-		logger.info("Count query generated : " + q);
-		Vector<String> countV = coreEngine.getEntityOfType(q);
-		int totalSize = 0;
-		if(countV.size()>0)
-		{
-			System.out.println(countV.get(0));
-			try 
-			{
-				totalSize = Integer.parseInt(countV.get(0));
-			}catch (NumberFormatException e){
-				logger.error(e);
-			}
-		}
-		this.semossQuery.setLimit(curLimit); // reset the limit to whatever it was before
-		return totalSize;
-	}
-
+			
 	public ArrayList<Hashtable<String,String>> getHeaderArray(){
 		ArrayList<Hashtable<String,String>> retArray = new ArrayList<Hashtable<String,String>>();
 		retArray.addAll(nodeV);
 		retArray.addAll(nodePropV);
-		retArray.addAll(edgePropV);
 		// add the filter queries
 		String defaultQueryPattern = this.semossQuery.getQueryPattern();
 		for(Hashtable<String, String> headerHash : retArray){
-			String varName = headerHash.get(this.varKey);
+			String varName = headerHash.get(QueryBuilderHelper.varKey);
 			String filterQuery = "";
 			if(this.headerFilterHash.containsKey(varName)){
 				SEMOSSQuery q = headerFilterHash.get(varName);
@@ -332,7 +220,7 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 			else{
 				filterQuery = "SELECT DISTINCT ?" + varName + " " + defaultQueryPattern ;
 			}
-			headerHash.put(this.queryKey, filterQuery);
+			headerHash.put(QueryBuilderHelper.queryKey, filterQuery);
 		}
 		return retArray;
 	}
@@ -347,6 +235,7 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 
 	@Override
 	public String getQuery() {
+		semossQuery.createQuery();
 		return semossQuery.getQuery();
 	}
 	

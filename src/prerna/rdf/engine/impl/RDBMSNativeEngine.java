@@ -36,6 +36,8 @@ import java.util.ArrayList;
 import java.util.Vector;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.query.builder.IQueryBuilder;
+import prerna.rdf.query.builder.SQLQueryBuilder;
 import prerna.util.Constants;
 
 public class RDBMSNativeEngine extends AbstractEngine {
@@ -148,5 +150,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		Statement stmt = conn.createStatement();
 		ResultSet rs = stmt.executeQuery(query);
 		return rs;
+	}
+	
+	public IQueryBuilder getQueryBuilder(){
+		return new SQLQueryBuilder();
 	}
 }
