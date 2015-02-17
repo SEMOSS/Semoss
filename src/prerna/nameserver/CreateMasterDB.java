@@ -231,7 +231,7 @@ public class CreateMasterDB extends ModifyMasterDB {
 	}
 
 	/**
-	 * Adds a node given a baseURI
+	 * Adds a node and the necessary triples given its instance URI
 	 * @param nodeURI	String representing the URI for the node type. e.g. http://semoss.org/ontologies/Concept/MasterConcept/Dog
 	 * @throws EngineException
 	 */
