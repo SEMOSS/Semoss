@@ -33,7 +33,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.algorithm.nlp.PartOfSpeechHelper;
+import prerna.algorithm.nlp.NaturalLanguageProcessingHelper;
 import prerna.util.Utility;
 import rita.RiWordNet;
 import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
@@ -230,7 +230,7 @@ public class WordnetComparison implements IMasterDatabaseConstants{
 		sentence = sentence.trim();
 		
 		// get the grammatical relationships in the sentence
-		Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash = PartOfSpeechHelper.getTypeDependencyHash(lp, sentence);
+		Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash = NaturalLanguageProcessingHelper.getTypeDependencyHash(lp, sentence);
 
 		Vector<TypedDependency> tdlArr = nodeHash.get(EnglishGrammaticalRelations.NOUN_COMPOUND_MODIFIER);
 		if(tdlArr != null) {
