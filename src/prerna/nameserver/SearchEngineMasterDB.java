@@ -292,10 +292,10 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 	{
 		// search if main nouns are keywords, master concepts, or instances
 		for(String noun : mainNouns) {
-			if(keywordSet.contains(noun)) {
-				searchKeywords.add(noun);
-			} else if(mcSet.contains(noun)) {
-				searchMC.add(noun);
+			if(containsIgnoreCase(keywordSet, noun)) {
+				searchKeywords.add(getFromSetIgnoringCase(keywordSet, noun));
+			} else if(containsIgnoreCase(mcSet, noun)) {
+				searchMC.add(getFromSetIgnoringCase(mcSet, noun));
 			} else {
 				searchInstances.add(noun);
 			}
@@ -304,10 +304,10 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 		// if only found instances in main nouns, look through noun modifiers
 		if(searchKeywords.isEmpty() && searchMC.isEmpty()) {
 			for(String noun : nounModifiers) {
-				if(keywordSet.contains(noun)) {
-					searchKeywords.add(noun);
-				} else if(mcSet.contains(noun)) {
-					searchMC.add(noun);
+				if(containsIgnoreCase(keywordSet, noun)) {
+					searchKeywords.add(getFromSetIgnoringCase(keywordSet, noun));
+				} else if(containsIgnoreCase(mcSet, noun)) {
+					searchMC.add(getFromSetIgnoringCase(mcSet, noun));
 				} else {
 					searchInstances.add(noun);
 				}
@@ -473,6 +473,32 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 		}
 		
 		return set;
+	}
+	
+	//TODO: put in utility class somewhere
+	
+	private boolean containsIgnoreCase(Set<String> set1, String compareVal) {
+		Iterator<String> it1 = set1.iterator();
+		while(it1.hasNext()) {
+			String val1 = it1.next();
+			if(val1.equalsIgnoreCase(compareVal)) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	private String getFromSetIgnoringCase(Set<String> set1, String compareVal) {
+		Iterator<String> it1 = set1.iterator();
+		while(it1.hasNext()) {
+			String val1 = it1.next();
+			if(val1.equalsIgnoreCase(compareVal)) {
+				return val1;
+			}
+		}
+		
+		return null;
 	}
 
 }
