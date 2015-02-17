@@ -68,7 +68,6 @@ public final class MasterDBHelper implements IMasterDatabaseQueries, IMasterData
 	 * @param engineURLHash		The hashtable to add all the engine URLs to
 	 */
 	public static void fillAPIHash(IEngine masterEngine, Hashtable<String, String> engineURLHash){
-		engineURLHash = new Hashtable<String,String>();
 		ISelectWrapper wrapper = Utility.processQuery(masterEngine, ENGINE_API_QUERY);
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
