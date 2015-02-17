@@ -203,7 +203,6 @@ public class DeleteMasterDB extends ModifyMasterDB {
 		insightBaseXML.setVF(masterEngine.vf);
 
 		QuestionAdministrator qa = new QuestionAdministrator(eng);
-		qa.selectedEngine = engineName;
 		qa.setEngineURI2(ENGINE_BASE_URI + "/" + engineName);
 		for(String perspective : perspectiveList) {
 			qa.deleteAllFromPerspective(PERSPECTIVE_BASE_URI + "/" +perspective);
