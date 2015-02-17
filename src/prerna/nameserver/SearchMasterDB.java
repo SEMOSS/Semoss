@@ -63,7 +63,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 		Map<String, Set<String>> keywordNounMap = new HashMap<String, Set<String>>();
 		// track all the engines that contain the keywords to speed up instance search
 		Map<String, Set<String>> engineKeywordMap = new HashMap<String, Set<String>>();
-		MasterDBHelper.findRelatedKeywords(masterEngine, keywordURI, keywordNounMap, engineKeywordMap);
+		MasterDBHelper.findRelatedKeywordsToSpecificURI(masterEngine, keywordURI, keywordNounMap, engineKeywordMap);
 		
 		// check if instance exists in the engines
 		Map<String, Map<String, String>> engineInstances = new HashMap<String, Map<String, String>>();
@@ -122,7 +122,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 		Map<String, Set<String>> keywordNounMap = new HashMap<String, Set<String>>();
 		// track all the engines that contain the keywords to speed up instance search
 		Map<String, Set<String>> engineKeywordMap = new HashMap<String, Set<String>>();
-		MasterDBHelper.findRelatedKeywords(masterEngine, keywordURI,keywordNounMap,engineKeywordMap);
+		MasterDBHelper.findRelatedKeywordsToSpecificURI(masterEngine, keywordURI, keywordNounMap, engineKeywordMap);
 		
 		// check if instance exists in the engines
 		Map<String, Map<String, String>> engineInstances = new HashMap<String, Map<String, String>>();

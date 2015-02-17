@@ -29,6 +29,7 @@ package prerna.nameserver;
 
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -39,7 +40,7 @@ import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public final class MasterDBHelper implements IMasterDatabaseQueries{
+public final class MasterDBHelper implements IMasterDatabaseQueries, IMasterDatabaseURIs{
 
 	private MasterDBHelper() {
 		
@@ -88,7 +89,58 @@ public final class MasterDBHelper implements IMasterDatabaseQueries{
 	 * @param keywordNounMap		The Map containing the key keyword and the value Set of nouns that comprise the keyword
 	 * @param engineKeywordMap		The Map containing the engine keyword and the value Set of keywords contained in that engine
 	 */
-	public static void findRelatedKeywords(IEngine masterEngine, String keywordURI, Map<String, Set<String>> keywordNounMap, Map<String, Set<String>> engineKeywordMap){
+	public static void findRelatedKeywordsToSetStrings(IEngine masterEngine, Set<String> keywordSet, Map<String, Set<String>> keywordNounMap, Map<String, Set<String>> engineKeywordMap){
+		// find all related keywords to the inputed data type
+		String bindingsStr = "";
+		Iterator<String> keywordsIt = keywordSet.iterator();
+		while(keywordsIt.hasNext()) {
+			bindingsStr = bindingsStr.concat("(<").concat(KEYWORD_BASE_URI).concat("/").concat(keywordsIt.next()).concat(">)");
+		}
+		
+		String query = GET_RELATED_KEYWORDS_TO_SET_AND_THEIR_NOUNS.replace("@KEYWORD@", bindingsStr);
+		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
+		String[] names = sjsw.getVariables();
+		while(sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			String engine = sjss.getVar(names[0]).toString();
+			String keyword = sjss.getRawVar(names[1]).toString();
+			String noun = sjss.getRawVar(names[2]).toString();
+			
+			Set<String> nounList;
+			if(keywordNounMap.containsKey(keyword)) {
+				nounList = keywordNounMap.get(keyword);
+				nounList.add(noun);
+			} else {
+				nounList = new HashSet<String>();
+				nounList.add(noun);
+				keywordNounMap.put(keyword, nounList);
+			}
+			
+			Set<String> keywordForEngineList;
+			if(engineKeywordMap.containsKey(engine)) {
+				keywordForEngineList = engineKeywordMap.get(engine);
+				keywordForEngineList.add(keyword);
+			} else {
+				keywordForEngineList = new HashSet<String>();
+				keywordForEngineList.add(keyword);
+				engineKeywordMap.put(engine, keywordForEngineList);
+			}
+		}
+		
+		//TODO: remove once error checking is done
+		System.err.println(">>>>>>>>>>>>>>>>>FOUND RELATED KEYWORDS TO SET: " + keywordSet);
+		System.err.println(">>>>>>>>>>>>>>>>>LIST IS: " + keywordNounMap.keySet());
+	}
+	
+	
+	/**
+	 * Based on the keywordURI, find related keywords and their respective nouns and engines
+	 * @param masterEngine			The engine to query
+	 * @param keywordURI			The keywordURI to find related keywords
+	 * @param keywordNounMap		The Map containing the key keyword and the value Set of nouns that comprise the keyword
+	 * @param engineKeywordMap		The Map containing the engine keyword and the value Set of keywords contained in that engine
+	 */
+	public static void findRelatedKeywordsToSpecificURI(IEngine masterEngine, String keywordURI, Map<String, Set<String>> keywordNounMap, Map<String, Set<String>> engineKeywordMap){
 		// find all related keywords to the inputed data type
 		String query = GET_RELATED_KEYWORDS_AND_THEIR_NOUNS.replace("@KEYWORD@", keywordURI);
 		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
