@@ -97,7 +97,7 @@ public final class MasterDBHelper implements IMasterDatabaseQueries, IMasterData
 			bindingsStr = bindingsStr.concat("(<").concat(KEYWORD_BASE_URI).concat("/").concat(keywordsIt.next()).concat(">)");
 		}
 		
-		String query = GET_RELATED_KEYWORDS_TO_SET_AND_THEIR_NOUNS.replace("@KEYWORD@", bindingsStr);
+		String query = GET_RELATED_KEYWORDS_TO_SET_AND_THEIR_NOUNS.replace("@BINDINGS@", bindingsStr);
 		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {

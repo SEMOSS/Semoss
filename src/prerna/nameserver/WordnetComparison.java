@@ -46,6 +46,18 @@ public class WordnetComparison implements IMasterDatabaseConstants{
 	private RiWordNet wordnet;
 	private LexicalizedParser lp;
 
+	public WordnetComparison() {
+		
+	}
+	
+	public void setWordnet(RiWordNet wordnet) {
+		this.wordnet = wordnet;
+	}
+	
+	public void setLp(LexicalizedParser lp) {
+		this.lp = lp;
+	}
+	
 	/**
 	 * Constructor for the class
 	 * Defines the wordnet library
