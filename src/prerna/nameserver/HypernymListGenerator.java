@@ -32,7 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.algorithm.nlp.PartOfSpeechHelper;
+import prerna.algorithm.nlp.NaturalLanguageProcessingHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import rita.RiWordNet;
@@ -193,7 +193,7 @@ public class HypernymListGenerator {
 	 * @return			boolean is word is a noun 
 	 */
 	public boolean isNoun(String word) {
-		String pos = PartOfSpeechHelper.bestPOS(wordnet, word);
+		String pos = NaturalLanguageProcessingHelper.bestPOS(wordnet, word);
 		if(pos != null && pos.equals("n")) {
 			return true;
 		}

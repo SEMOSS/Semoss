@@ -41,7 +41,7 @@ import org.apache.log4j.Logger;
 import org.apache.tika.exception.TikaException;
 import org.xml.sax.SAXException;
 
-import prerna.algorithm.nlp.PartOfSpeechHelper;
+import prerna.algorithm.nlp.NaturalLanguageProcessingHelper;
 import prerna.error.NLPException;
 import prerna.util.DIHelper;
 import edu.stanford.nlp.ling.CoreAnnotations.LemmaAnnotation;
@@ -100,13 +100,13 @@ public class ProcessNLP {
 			List<TypedDependency> tdl = new ArrayList<TypedDependency>();
 			List<TaggedWord> taggedWords = new ArrayList<TaggedWord>();
 
-			boolean sentenceParsable = PartOfSpeechHelper.createDepList(lp, sentence, tdl, taggedWords); //create dependencies
+			boolean sentenceParsable = NaturalLanguageProcessingHelper.createDepList(lp, sentence, tdl, taggedWords); //create dependencies
 			if(sentenceParsable)
 			{
 				Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash = new Hashtable<GrammaticalRelation, Vector<TypedDependency>>();
 				Hashtable<String, String> negHash = new Hashtable<String, String>();
 				// fill the hashtable between the grammatical part of speech to the words in the sentence
-				PartOfSpeechHelper.setTypeDependencyHash(tdl, nodeHash);
+				NaturalLanguageProcessingHelper.setTypeDependencyHash(tdl, nodeHash);
 				generateTriples(sentence, file.substring(file.lastIndexOf(File.separator)+1), taggedWords, negHash, nodeHash);
 			}
 		}
@@ -182,7 +182,7 @@ public class ProcessNLP {
 	
 	public void generateTriples(String sentence, String documentName, List<TaggedWord> taggedWords, Hashtable<String, String> negHash, Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash)
 	{
-		PartOfSpeechHelper.createNegations(negHash, nodeHash);
+		NaturalLanguageProcessingHelper.createNegations(negHash, nodeHash);
 		// I ate the sandwich. -> I, ate, sandwich (“the” is included in expanded object.)
 		findTriples(sentence, documentName, taggedWords, negHash, nodeHash, EnglishGrammaticalRelations.NOMINAL_SUBJECT, EnglishGrammaticalRelations.DIRECT_OBJECT);
 		// The man has been killed by the police. -> man, killed, police (Requires Collapsed Dependencies)
@@ -234,7 +234,7 @@ public class ProcessNLP {
 				 
 				String preposition = null;
 				if (dobjV.get(i).toString().contains("prep")) {
-					obj = PartOfSpeechHelper.findPrepObject(dobjV, subjV, nodeHash, EnglishGrammaticalRelations.PREPOSITIONAL_MODIFIER, EnglishGrammaticalRelations.PREPOSITIONAL_OBJECT);
+					obj = NaturalLanguageProcessingHelper.findPrepObject(dobjV, subjV, nodeHash, EnglishGrammaticalRelations.PREPOSITIONAL_MODIFIER, EnglishGrammaticalRelations.PREPOSITIONAL_OBJECT);
 					preposition = dobjV.get(i).dep().toString();
 				}
 				
@@ -266,18 +266,18 @@ public class ProcessNLP {
 						// find if complemented
 						// need to do this only if the subj is not a noun
 						// final subject
-						TreeGraphNode altPredicate = PartOfSpeechHelper.findCompObject(dep2, nodeHash);
+						TreeGraphNode altPredicate = NaturalLanguageProcessingHelper.findCompObject(dep2, nodeHash);
 						if(!subj.label().tag().contains("NN") && ( nodeHash.containsKey(EnglishGrammaticalRelations.CLAUSAL_COMPLEMENT) || nodeHash.containsKey(EnglishGrammaticalRelations.XCLAUSAL_COMPLEMENT)))
 						{
-							subj = PartOfSpeechHelper.findComplementNoun(subj, dep2, nodeHash, EnglishGrammaticalRelations.CLAUSAL_COMPLEMENT);
+							subj = NaturalLanguageProcessingHelper.findComplementNoun(subj, dep2, nodeHash, EnglishGrammaticalRelations.CLAUSAL_COMPLEMENT);
 							if(!subj.label().tag().contains("NN")){
-								subj = PartOfSpeechHelper.findCompSubject(dep2, nodeHash);
+								subj = NaturalLanguageProcessingHelper.findCompSubject(dep2, nodeHash);
 							}
 						}		
 
-						String finalSubject = PartOfSpeechHelper.getFullNoun(subj);
-						String finalObject = PartOfSpeechHelper.getFullNoun(obj);
-						finalObject = finalObject + PartOfSpeechHelper.findPrepNounForPredicate(pred, nodeHash);
+						String finalSubject = NaturalLanguageProcessingHelper.getFullNoun(subj);
+						String finalObject = NaturalLanguageProcessingHelper.getFullNoun(obj);
+						finalObject = finalObject + NaturalLanguageProcessingHelper.findPrepNounForPredicate(pred, nodeHash);
 
 						//FINDING EXTENSION OF PREDICATE****
 						// find the negators for the predicates next
