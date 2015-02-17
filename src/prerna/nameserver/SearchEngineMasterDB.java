@@ -134,6 +134,17 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 				engineInstancesMap = new Hashtable<String, Map<String, Set<String>>>();
 				// fill in the engineInstances map
 				determineLocalEngineAndAcceptableInstances(searchInstances, engineList, engineInstancesMap);
+				// make sure engine InstanceMap is not empty for instance
+				boolean isEmpty = true;
+				for(String engine : engineInstancesMap.keySet()) {
+					if(!engineInstancesMap.get(engine).isEmpty()) {
+						isEmpty = false;
+						break;
+					}
+				}
+				if(isEmpty) {
+					engineInstancesMap = null;
+				}
 			}
 			
 			Map<String, Double> similarKeywordScores = new HashMap<String, Double>();
