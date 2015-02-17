@@ -1,6 +1,7 @@
 package prerna.nameserver;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -15,7 +16,6 @@ import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import rita.RiWordNet;
 import edu.stanford.nlp.ling.TaggedWord;
 import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
 import edu.stanford.nlp.trees.EnglishGrammaticalRelations;
@@ -24,9 +24,9 @@ import edu.stanford.nlp.trees.TypedDependency;
 
 public class SearchEngineMasterDB extends ModifyMasterDB {
 
-	private RiWordNet wordnet;
 	private LexicalizedParser lp;
-	
+	private WordnetComparison wnComp;
+
 	private Set<String> keywordSet;
 	private Set<String> mcSet;
 	
@@ -37,9 +37,9 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 	 */
 	public SearchEngineMasterDB(String wordNetDir, String lpDir) {
 		super();
-		wordnet = new RiWordNet(wordNetDir, false, true); // params: wordnetInstallDir, ignoreCompoundWords, ignoreUppercaseWords
 		lp = LexicalizedParser.loadModel(lpDir);
 		lp.setOptionFlags(new String[]{"-maxLength", "80", "-retainTmpSubcategories"});
+		wnComp = new WordnetComparison(wordNetDir, lpDir);
 	}
 	
 	/**
@@ -50,9 +50,9 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 	 */
 	public SearchEngineMasterDB(String localMasterDbName, String wordNetDir, String lpDir) {
 		super(localMasterDbName);
-		wordnet = new RiWordNet(wordNetDir, false, true); // params: wordnetInstallDir, ignoreCompoundWords, ignoreUppercaseWords
 		lp = LexicalizedParser.loadModel(lpDir);
 		lp.setOptionFlags(new String[]{"-maxLength", "80", "-retainTmpSubcategories"});
+		wnComp = new WordnetComparison(wordNetDir, lpDir);
 	}
 
 	public List<Hashtable<String, Object>> getWebInsightsFromSearchString(String searchString) {
@@ -75,16 +75,17 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 		Set<String> searchInstances = new HashSet<String>();
 		determineWordAllocation(searchKeywords, searchMC, searchInstances, mainNouns, nounModifiers);
 		
+		Set<String> engineList = new HashSet<String>();
+		MasterDBHelper.fillEnglishList(masterEngine, engineList);
+		
+		List<Hashtable<String,Object>> insightList = new ArrayList<Hashtable<String,Object>>();
+		
 		// path for looking through each db and checking if any keyword contains the instance
 		if(searchKeywords.isEmpty() && searchMC.isEmpty()) {
-			Set<String> engineList = new HashSet<String>();
-			MasterDBHelper.fillEnglishList(masterEngine, engineList);
-			
 			Map<String, Map<String, Set<String>>> engineInstancesMap = new Hashtable<String, Map<String, Set<String>>>();
 			// fill in the engineInstances map
 			determineLocalEngineAndAcceptableInstances(searchInstances, engineList, engineInstancesMap);
 			
-			List<Hashtable<String,Object>> insightList = new ArrayList<Hashtable<String,Object>>();
 			ISelectWrapper sjsw = Utility.processQuery(masterEngine, GET_ALL_INSIGHTS);
 			String[] names = sjsw.getVariables();
 			while(sjsw.hasNext()) {
@@ -109,18 +110,110 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 					insightList.add(insightHash);
 				}
 			}
-			return insightList;
-		} else {
-			// path for looking at specific keywords 
+		} 
+		// path for looking at specific keywords 
+		// initially, returning all nouns found
+		else {
+			Set<String> combinedNounSet = new HashSet<String>();
+			combinedNounSet.addAll(searchMC);
+			combinedNounSet.addAll(searchKeywords);
 			
+			// track all keywords and the nouns that make them up
+			Map<String, Set<String>> keywordNounMap = new HashMap<String, Set<String>>();
+			// track all the engines that contain the keywords to speed up instance search
+			Map<String, Set<String>> engineKeywordMap = new HashMap<String, Set<String>>();
+			MasterDBHelper.findRelatedKeywordsToSetStrings(masterEngine, combinedNounSet, keywordNounMap, engineKeywordMap);
 			
+			Map<String, Map<String, Set<String>>> engineInstancesMap = null;
+			//if no instances, give all insights
+			if(searchInstances.isEmpty()) {
+				// keep engineInstances null
+			}
+			// if instances found, limit insights based on instances
+			else {
+				engineInstancesMap = new Hashtable<String, Map<String, Set<String>>>();
+				// fill in the engineInstances map
+				determineLocalEngineAndAcceptableInstances(searchInstances, engineList, engineInstancesMap);
+			}
+			
+			Map<String, Double> similarKeywordScores = new HashMap<String, Double>();
+			String query = formInsightsForKeywordsQuery(combinedNounSet, keywordNounMap, similarKeywordScores);
+
+			ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
+			String[] names = sjsw.getVariables();
+			while(sjsw.hasNext()) {
+				ISelectStatement sjss = sjsw.next();
+				String engine = sjss.getVar(names[0]).toString();
+				String insightLabel = sjss.getVar(names[1]).toString();
+				String keyword = sjss.getRawVar(names[2]).toString();
+				String perspectiveLabel = sjss.getVar(names[3]).toString();
+				String viz = sjss.getVar(names[4]).toString();
+				
+				String typeURI = SEMOSS_CONCEPT_URI.concat("/").concat(Utility.getInstanceName(keyword));
+				if(engineInstancesMap == null) {
+					Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
+					insightHash.put(DB_KEY, engine);
+					insightHash.put(QUESITON_KEY, insightLabel);
+					insightHash.put(TYPE_KEY, typeURI);
+					insightHash.put(PERSPECTIVE_KEY, perspectiveLabel);
+					insightHash.put(VIZ_TYPE_KEY, viz);
+					insightHash.put(SCORE_KEY, 1.0 - similarKeywordScores.get(keyword));
+					insightList.add(insightHash);
+				} else {
+					Map<String, Set<String>> typeAndInstance = engineInstancesMap.get(engine);
+					if(typeAndInstance != null && typeAndInstance.containsKey(typeURI)) {
+						Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
+						insightHash.put(DB_KEY, engine);
+						insightHash.put(QUESITON_KEY, insightLabel);
+						insightHash.put(TYPE_KEY, typeURI);
+						insightHash.put(PERSPECTIVE_KEY, perspectiveLabel);
+						insightHash.put(VIZ_TYPE_KEY, viz);
+						insightHash.put(SCORE_KEY, 1.0 - similarKeywordScores.get(keyword));
+						insightHash.put(INSTANCE_KEY, typeAndInstance.get(typeURI));
+						insightList.add(insightHash);
+					}
+				}
+			}
 		}
 		
-		List<Hashtable<String, Object>> retList = new ArrayList<Hashtable<String, Object>>();
-		
-		
-		return retList;
+		return insightList;
 	}
+	
+	
+	//TODO: shouldn't need to pass keywordNounMap -> instead pass in keyword and I should break it apart to preserve the order
+	private String formInsightsForKeywordsQuery(Set<String> keywordSet, Map<String, Set<String>> keywordNounMap, Map<String, Double> similarKeywordScores) {
+		// get list of insights for keywords if the score is above threshold
+		List<String> similarKeywordList = new ArrayList<String>();
+		
+		Iterator<String> keywordIt = keywordSet.iterator();
+		while(keywordIt.hasNext()) {
+			String keywordURI = KEYWORD_BASE_URI +"/" + keywordIt.next();
+			similarKeywordList.add(keywordURI);
+			similarKeywordScores.put(keywordURI, 0.0);
+			
+			Set<String> nounList = keywordNounMap.get(keywordURI);
+			for(String otherKeywords : keywordNounMap.keySet()) {
+				if(!otherKeywords.equals(keywordURI)) {
+					double simScore = wnComp.compareKeywords(nounList, keywordNounMap.get(otherKeywords));
+					if(wnComp.isSimilar(simScore)) {
+						similarKeywordList.add(otherKeywords);
+						similarKeywordScores.put(otherKeywords, simScore);
+					}
+				}
+			}
+		}
+		
+		String keywords = "";
+		int i = 0;
+		int size = similarKeywordList.size();
+		for(; i < size; i++) {
+			keywords = keywords.concat("(<").concat(similarKeywordList.get(i)).concat(">)");
+		}
+		
+		return GET_INSIGHTS_FOR_KEYWORDS.replace("@KEYWORDS@", keywords);
+	}
+	
+	
 	
 	//TODO: how to deal with multiple baseURI's in a db?
 	/**
