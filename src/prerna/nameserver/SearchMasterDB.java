@@ -29,6 +29,7 @@ package prerna.nameserver;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -59,12 +60,15 @@ public class SearchMasterDB extends ModifyMasterDB {
 
 	public List<Hashtable<String,Object>> getRelatedInsights(List<String> instanceURIList) {
 		String keywordURI = KEYWORD_BASE_URI + "/" + Utility.getClassName(instanceURIList.get(0));
-		// track all keywords and the nouns that make them up
-		Map<String, Set<String>> keywordNounMap = new HashMap<String, Set<String>>();
+		// track all keywords
+		Set<String> keywordSet = new HashSet<String>();
 		// track all the engines that contain the keywords to speed up instance search
 		Map<String, Set<String>> engineKeywordMap = new HashMap<String, Set<String>>();
-		MasterDBHelper.findRelatedKeywordsToSpecificURI(masterEngine, keywordURI, keywordNounMap, engineKeywordMap);
+		MasterDBHelper.findRelatedKeywordsToSpecificURI(masterEngine, keywordURI, keywordSet, engineKeywordMap);
 		
+		Map<String, Double> similarKeywordScores = new HashMap<String, Double>();
+		String query = formInsightsForKeywordsQuery(keywordURI, keywordSet, similarKeywordScores);
+
 		// check if instance exists in the engines
 		Map<String, Map<String, String>> engineInstances = new HashMap<String, Map<String, String>>();
 		for(String engineName : engineKeywordMap.keySet()) {
@@ -78,9 +82,6 @@ public class SearchMasterDB extends ModifyMasterDB {
 			engineInstances.put(engineName, typeAndInstance);
 		}
 		
-		Map<String, Double> similarKeywordScores = new HashMap<String, Double>();
-		String query = formInsightsForKeywordsQuery(keywordURI, keywordNounMap, similarKeywordScores);
-
 		List<Hashtable<String,Object>> insightList = new ArrayList<Hashtable<String,Object>>();
 		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
 		String[] names = sjsw.getVariables();
@@ -118,11 +119,14 @@ public class SearchMasterDB extends ModifyMasterDB {
 
 		String keywordURI = KEYWORD_BASE_URI + "/" + Utility.getClassName(instanceURIList.get(0));
 		
-		// track all keywords and the nouns that make them up
-		Map<String, Set<String>> keywordNounMap = new HashMap<String, Set<String>>();
+		// track all keywords
+		Set<String> keywordSet = new HashSet<String>();
 		// track all the engines that contain the keywords to speed up instance search
 		Map<String, Set<String>> engineKeywordMap = new HashMap<String, Set<String>>();
-		MasterDBHelper.findRelatedKeywordsToSpecificURI(masterEngine, keywordURI, keywordNounMap, engineKeywordMap);
+		MasterDBHelper.findRelatedKeywordsToSpecificURI(masterEngine, keywordURI, keywordSet, engineKeywordMap);
+		
+		Map<String, Double> similarKeywordScores = new HashMap<String, Double>();
+		String query = formInsightsForKeywordsQuery(keywordURI, keywordSet, similarKeywordScores);
 		
 		// check if instance exists in the engines
 		Map<String, Map<String, String>> engineInstances = new HashMap<String, Map<String, String>>();
@@ -142,9 +146,6 @@ public class SearchMasterDB extends ModifyMasterDB {
 			engineInstances.put(engineName, typeAndInstance);
 		}
 		
-		Map<String, Double> similarKeywordScores = new HashMap<String, Double>();
-		String query = formInsightsForKeywordsQuery(keywordURI, keywordNounMap, similarKeywordScores);
-
 		List<Hashtable<String,Object>> insightList = new ArrayList<Hashtable<String,Object>>();
 		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
 		String[] names = sjsw.getVariables();
@@ -192,21 +193,15 @@ public class SearchMasterDB extends ModifyMasterDB {
 		return INSTANCE_EXISTS_QUERY.replace("@BINDINGS@", bindingsStr);
 	}
 	
-	//TODO: shouldn't need to pass keywordNounMap -> instead pass in keyword and I should break it apart to preserve the order
-	private String formInsightsForKeywordsQuery(String keywordURI, Map<String, Set<String>> keywordNounMap, Map<String, Double> similarKeywordScores) {
+	private String formInsightsForKeywordsQuery(String keywordURI, Set<String> keywordSet, Map<String, Double> similarKeywordScores) {
 		// get list of insights for keywords if the score is above threshold
 		List<String> similarKeywordList = new ArrayList<String>();
-		similarKeywordList.add(keywordURI);
-		similarKeywordScores.put(keywordURI, 0.0);
 		
-		Set<String> nounList = keywordNounMap.get(keywordURI);
-		for(String otherKeywords : keywordNounMap.keySet()) {
-			if(!otherKeywords.equals(keywordURI)) {
-				double simScore = wnComp.compareKeywords(nounList, keywordNounMap.get(otherKeywords));
-				if(wnComp.isSimilar(simScore)) {
-					similarKeywordList.add(otherKeywords);
-					similarKeywordScores.put(otherKeywords, simScore);
-				}
+		for(String otherKeywordURI : keywordSet) {
+			double simScore = wnComp.compareKeywords(keywordURI, otherKeywordURI);
+			if(wnComp.isSimilar(simScore)) {
+				similarKeywordList.add(otherKeywordURI);
+				similarKeywordScores.put(otherKeywordURI, simScore);
 			}
 		}
 
