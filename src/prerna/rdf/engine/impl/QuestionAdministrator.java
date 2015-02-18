@@ -1097,7 +1097,9 @@ public class QuestionAdministrator {
 	{
 		//first have to get the question
 		Insight insight = ((AbstractEngine)engine).getInsight2(questionTitle).get(0);
-		String questionKey = insight.getId();
+		String questionID = insight.getId();
+		String[] questionIDArray = questionID.split(":");
+		String questionKey = questionIDArray[2];
 		String questionOrder = insight.getOrder();
 		String question = questionTitle;
 		String sparql = insight.getSparql();
