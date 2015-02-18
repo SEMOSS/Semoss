@@ -623,6 +623,7 @@ public class QuestionAdministrator {
 				String localID = in.getId();
 				if(localID.equals("DN"))
 					in = ((AbstractEngine) engine).getInsight2URI(oldQuestion).get(0);
+				localID = in.getId();
 				String[] localIDSplit = localID.split(":");
 				localCurrentQsKey = localIDSplit[2];
 				Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine) engine)
@@ -738,6 +739,7 @@ public class QuestionAdministrator {
 				String localID = in.getId();
 				if(localID.equals("DN"))
 					in = ((AbstractEngine) engine).getInsight2URI(oldQuestion).get(0);
+				localID = in.getId();
 				String[] localIDSplit = localID.split(":");
 				localCurrentQsKey = localIDSplit[2];
 				Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine) engine)
