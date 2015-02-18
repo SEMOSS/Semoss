@@ -435,7 +435,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		}
 
 		//original names
-		for(Object[] dataRow : list) {
+		for(Object[] dataRow : masterListWithCluster) {
 			//add name and cluster under special names first
 			int clusterID = (int) dataRow[dataRow.length - 1];
 			
@@ -450,7 +450,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 			//loop through properties and add to innerHash
 			for(int i = 1; i < dataRow.length - 1; i++) {
 				Object value = dataRow[i];
-				String propName = names[i];
+				String propName = asteriskNamesWithCluster[i];
 				instanceHash.put(propName, value);
 				// add properties to cluster hash
 				updateClusterHash(clusterHash, propName, value);
