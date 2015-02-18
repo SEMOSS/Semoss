@@ -47,9 +47,17 @@ public final class TextHelper {
 		   );
 		}
 	
+	public static String formatCompountText(String s) {
+		return s = splitCamelCase(s).replaceAll("_", " ").replaceAll("-", " ");
+	}
+	
+	public static String[] splitRemovingEmptyValuesAndNulls(String s) {
+		return  ArrayUtilityMethods.removeAllEmptyValuesAndNulls(s.split(" "));
+	}
+	
 	public static String[] breakCompoundText(String s) {
-		s = splitCamelCase(s).replaceAll("_", " ").replaceAll("-", " ");
-		return ArrayUtilityMethods.removeAllEmptyValuesAndNulls(s.split(" "));
+		s = formatCompountText(s);
+		return splitRemovingEmptyValuesAndNulls(s);
 	}
 	
 }
