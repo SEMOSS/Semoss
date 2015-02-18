@@ -198,6 +198,8 @@ public class RunAlgorithmListener extends AbstractListener {
 			newPlaySheet = new LocalOutlierPlaySheet();
 			newPlaySheet.setList(filteredList);
 			newPlaySheet.setNames(filteredNames);
+			((LocalOutlierPlaySheet)newPlaySheet).setMasterList(list);
+			((LocalOutlierPlaySheet)newPlaySheet).setMasterNames(names);
 			((LocalOutlierPlaySheet)newPlaySheet).setKNeighbors(kneighbors);
 			((LocalOutlierPlaySheet)newPlaySheet).setJTab(jTab);
 			((LocalOutlierPlaySheet)newPlaySheet).setJBar(jBar);

@@ -635,7 +635,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 					nameIncluded = true;
 			}
 			if(!nameIncluded)
-				name = name+"*";
+				name = "*" + name;
 			asteriskNamesWithCluster[i]=name;
 		}
 		
