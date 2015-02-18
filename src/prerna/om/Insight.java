@@ -41,6 +41,7 @@ public class Insight extends Hashtable {
 	String sparqlKey = "sparql";	// Sparql of the question
 	String descrKey = "description";	// Sparql of the question
 	String orderKey = "order";	// order of the question
+	String uriKey = "uri";	// order of the question
 
 	// database id where this insight is
 	// this may be a URL
@@ -57,6 +58,14 @@ public class Insight extends Hashtable {
 	}
 	public void setId(String id) {
 		this.propHash.put(this.idKey, id);
+	}
+	
+	public void setURI(String uri) {
+		this.propHash.put(this.uriKey, uri);
+	}
+	
+	public String getURI() {
+		return this.propHash.get(this.uriKey);
 	}
 	
 	public String getOutput() {
