@@ -17,6 +17,7 @@ import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.RemoteSemossSesameEngine;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import rita.RiWordNet;
 import edu.stanford.nlp.ling.TaggedWord;
 import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
 import edu.stanford.nlp.trees.EnglishGrammaticalRelations;
@@ -27,7 +28,8 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 
 	private LexicalizedParser lp;
 	private WordnetComparison wnComp;
-
+	private RiWordNet wordnet;
+	
 	private Set<String> keywordSet;
 	private Set<String> mcSet;
 	
@@ -40,7 +42,10 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 		super();
 		lp = LexicalizedParser.loadModel(lpDir);
 		lp.setOptionFlags(new String[]{"-maxLength", "80", "-retainTmpSubcategories"});
-		wnComp = new WordnetComparison(wordNetDir, lpDir);
+		wordnet = new RiWordNet(wordNetDir, false, true); // params: wordnetInstallDir, ignoreCompoundWords, ignoreUppercaseWords
+		wnComp = new WordnetComparison();
+		wnComp.setLp(lp);
+		wnComp.setWordnet(wordnet);
 	}
 	
 	/**
@@ -53,11 +58,13 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 		super(localMasterDbName);
 		lp = LexicalizedParser.loadModel(lpDir);
 		lp.setOptionFlags(new String[]{"-maxLength", "80", "-retainTmpSubcategories"});
+		wordnet = new RiWordNet(wordNetDir, false, true); // params: wordnetInstallDir, ignoreCompoundWords, ignoreUppercaseWords
 		wnComp = new WordnetComparison(wordNetDir, lpDir);
+		wnComp.setLp(lp);
+		wnComp.setWordnet(wordnet);
 	}
 
 	public List<Hashtable<String, Object>> getWebInsightsFromSearchString(String searchString) {
-
 		Set<String> mainNouns = new HashSet<String>();
 		Set<String> nounModifiers = new HashSet<String>();
 		
@@ -69,18 +76,13 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 		Set<String> searchMC = new HashSet<String>();
 		Set<String> searchInstances = new HashSet<String>();
 		determineWordAllocation(searchKeywords, searchMC, searchInstances, mainNouns, nounModifiers);
-		
-		Hashtable<String, String> engineURLHash = new Hashtable<String, String>();
-		MasterDBHelper.fillAPIHash(masterEngine, engineURLHash);
+		Map<String, Map<String, Set<String>>> engineInstancesMap = new Hashtable<String, Map<String, Set<String>>>();
+		webWordAllocationHelper(searchKeywords, searchMC, searchInstances, engineInstancesMap);
 		
 		List<Hashtable<String,Object>> insightList = new ArrayList<Hashtable<String,Object>>();
 		
 		// path for looking through each db and checking if any keyword contains the instance
 		if(searchKeywords.isEmpty() && searchMC.isEmpty()) {
-			Map<String, Map<String, Set<String>>> engineInstancesMap = new Hashtable<String, Map<String, Set<String>>>();
-			// fill in the engineInstances map
-			determineWebEngineAndAcceptableInstances(searchInstances, engineURLHash, engineInstancesMap);
-			
 			ISelectWrapper sjsw = Utility.processQuery(masterEngine, GET_ALL_INSIGHTS);
 			String[] names = sjsw.getVariables();
 			while(sjsw.hasNext()) {
@@ -110,41 +112,18 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 		// initially, returning all nouns found
 		else {
 			Set<String> combinedNounSet = new HashSet<String>();
-			combinedNounSet.addAll(searchMC);
 			combinedNounSet.addAll(searchKeywords);
-			
+			combinedNounSet.addAll(getKeywordsFromMCSet(searchMC));
+
 			// track all keywords and the nouns that make them up
 			Map<String, Set<String>> keywordNounMap = new HashMap<String, Set<String>>();
 			// track all the engines that contain the keywords to speed up instance search
 			Map<String, Set<String>> engineKeywordMap = new HashMap<String, Set<String>>();
 			MasterDBHelper.findRelatedKeywordsToSetStrings(masterEngine, combinedNounSet, keywordNounMap, engineKeywordMap);
 			
-			Map<String, Map<String, Set<String>>> engineInstancesMap = null;
-			//if no instances, give all insights
-			if(searchInstances.isEmpty()) {
-				// keep engineInstances null
-			}
-			// if instances found, limit insights based on instances
-			else {
-				engineInstancesMap = new Hashtable<String, Map<String, Set<String>>>();
-				// fill in the engineInstances map
-				determineWebEngineAndAcceptableInstances(searchInstances, engineURLHash, engineInstancesMap);
-				// make sure engine InstanceMap is not empty for instance
-				boolean isEmpty = true;
-				for(String engine : engineInstancesMap.keySet()) {
-					if(!engineInstancesMap.get(engine).isEmpty()) {
-						isEmpty = false;
-						break;
-					}
-				}
-				if(isEmpty) {
-					engineInstancesMap = null;
-				}
-			}
-			
 			Map<String, Double> similarKeywordScores = new HashMap<String, Double>();
 			String query = formInsightsForKeywordsQuery(combinedNounSet, keywordNounMap, similarKeywordScores);
-
+			
 			ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
 			String[] names = sjsw.getVariables();
 			while(sjsw.hasNext()) {
@@ -185,7 +164,6 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 		return insightList;
 	}
 	
-	
 	public List<Hashtable<String,Object>> getLocalInsightsFromSearchString(String searchString) {
 		Set<String> mainNouns = new HashSet<String>();
 		Set<String> nounModifiers = new HashSet<String>();
@@ -193,23 +171,18 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 		// update the mainNouns and nounModifiers set
 		processString(searchString, mainNouns, nounModifiers);
 		getMasterConceptAndKeywordList();
-		
 		Set<String> searchKeywords = new HashSet<String>();
 		Set<String> searchMC = new HashSet<String>();
 		Set<String> searchInstances = new HashSet<String>();
 		determineWordAllocation(searchKeywords, searchMC, searchInstances, mainNouns, nounModifiers);
-		
-		Set<String> engineList = new HashSet<String>();
-		MasterDBHelper.fillEnglishList(masterEngine, engineList);
+
+		Map<String, Map<String, Set<String>>> engineInstancesMap = new Hashtable<String, Map<String, Set<String>>>();
+		localWordAllocationHelper(searchKeywords, searchMC, searchInstances, engineInstancesMap);
 		
 		List<Hashtable<String,Object>> insightList = new ArrayList<Hashtable<String,Object>>();
 		
 		// path for looking through each db and checking if any keyword contains the instance
 		if(searchKeywords.isEmpty() && searchMC.isEmpty()) {
-			Map<String, Map<String, Set<String>>> engineInstancesMap = new Hashtable<String, Map<String, Set<String>>>();
-			// fill in the engineInstances map
-			determineLocalEngineAndAcceptableInstances(searchInstances, engineList, engineInstancesMap);
-			
 			ISelectWrapper sjsw = Utility.processQuery(masterEngine, GET_ALL_INSIGHTS);
 			String[] names = sjsw.getVariables();
 			while(sjsw.hasNext()) {
@@ -239,37 +212,14 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 		// initially, returning all nouns found
 		else {
 			Set<String> combinedNounSet = new HashSet<String>();
-			combinedNounSet.addAll(searchMC);
 			combinedNounSet.addAll(searchKeywords);
-			
+			combinedNounSet.addAll(getKeywordsFromMCSet(searchMC));
+
 			// track all keywords and the nouns that make them up
 			Map<String, Set<String>> keywordNounMap = new HashMap<String, Set<String>>();
 			// track all the engines that contain the keywords to speed up instance search
 			Map<String, Set<String>> engineKeywordMap = new HashMap<String, Set<String>>();
 			MasterDBHelper.findRelatedKeywordsToSetStrings(masterEngine, combinedNounSet, keywordNounMap, engineKeywordMap);
-			
-			Map<String, Map<String, Set<String>>> engineInstancesMap = null;
-			//if no instances, give all insights
-			if(searchInstances.isEmpty()) {
-				// keep engineInstances null
-			}
-			// if instances found, limit insights based on instances
-			else {
-				engineInstancesMap = new Hashtable<String, Map<String, Set<String>>>();
-				// fill in the engineInstances map
-				determineLocalEngineAndAcceptableInstances(searchInstances, engineList, engineInstancesMap);
-				// make sure engine InstanceMap is not empty for instance
-				boolean isEmpty = true;
-				for(String engine : engineInstancesMap.keySet()) {
-					if(!engineInstancesMap.get(engine).isEmpty()) {
-						isEmpty = false;
-						break;
-					}
-				}
-				if(isEmpty) {
-					engineInstancesMap = null;
-				}
-			}
 			
 			Map<String, Double> similarKeywordScores = new HashMap<String, Double>();
 			String query = formInsightsForKeywordsQuery(combinedNounSet, keywordNounMap, similarKeywordScores);
@@ -285,7 +235,7 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 				String viz = sjss.getVar(names[4]).toString();
 				
 				String typeURI = SEMOSS_CONCEPT_URI.concat("/").concat(Utility.getInstanceName(keyword));
-				if(engineInstancesMap == null) {
+				if(engineInstancesMap.isEmpty()) {
 					Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
 					insightHash.put(DB_KEY, engine);
 					insightHash.put(QUESITON_KEY, insightLabel);
@@ -474,18 +424,43 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 	
 	/**
 	 * 
+	 * @param mcSet
+	 * @return
+	 */
+	private Set<String> getKeywordsFromMCSet(Set<String> mcSet) {
+		Set<String> retSet = new HashSet<String>();
+		if(!mcSet.isEmpty()) {
+			String bindingStr = "";
+			for(String mc : mcSet) {
+				bindingStr = bindingStr.concat("(<").concat(MC_BASE_URI).concat("/").concat(mc).concat(">)");
+			}
+			String query = GET_ALL_KEYWORDS_FROM_MC_List.replace("@BINDINGS@", bindingStr);
+			ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
+			String[] names = sjsw.getVariables();
+			while(sjsw.hasNext()) {
+				ISelectStatement sjss = sjsw.next();
+				retSet.add(sjss.getVar(names[0]).toString());
+			}
+		}
+		return retSet;
+	}
+	
+	
+	/**
+	 * 
 	 * @param searchKeywords
 	 * @param searchMC
 	 * @param searchInstances
 	 * @param mainNouns
 	 * @param nounModifiers
+	 * @param engineInstancesMap 
 	 */
-	public void determineWordAllocation(
+	private void determineWordAllocation(
 			Set<String> searchKeywords,
 			Set<String> searchMC,
 			Set<String> searchInstances,
 			Set<String> mainNouns,
-			Set<String> nounModifiers			
+			Set<String> nounModifiers
 			) 
 	{
 		// search if main nouns are keywords, master concepts, or instances
@@ -515,6 +490,141 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param searchKeywords
+	 * @param searchMC
+	 * @param searchInstances
+	 * @param engineInstancesMap
+	 */
+	private void localWordAllocationHelper(
+			Set<String> searchKeywords,
+			Set<String> searchMC,
+			Set<String> searchInstances,
+			Map<String, Map<String, Set<String>>> engineInstancesMap			
+			) 
+	{
+		if(!searchInstances.isEmpty()) {
+			Set<String> engineList = new HashSet<String>();
+			MasterDBHelper.fillEnglishList(masterEngine, engineList);
+			// fill in the engineInstances map
+			determineLocalEngineAndAcceptableInstances(searchInstances, engineList, engineInstancesMap);
+			// make sure engine InstanceMap is not empty for instance
+			boolean isEmpty = true;
+			for(String engine : engineInstancesMap.keySet()) {
+				if(!engineInstancesMap.get(engine).isEmpty()) {
+					isEmpty = false;
+					break;
+				}
+			}
+			if(isEmpty) {
+				engineInstancesMap.clear(); // make it empty, before it contained engine keys pointing to empty values
+			}
+			
+			// make sure engine InstanceMap contains every instance
+			if(!searchInstances.isEmpty()) {
+				OUTER: for(String engine : engineInstancesMap.keySet()) {
+					Map<String, Set<String>> instanceMap = engineInstancesMap.get(engine);
+					for(String key : instanceMap.keySet()) {
+						Set<String> instancesFound = instanceMap.get(key);
+						for(String instance : instancesFound) {
+							searchInstances.remove(Utility.getBaseURI(instance));
+							if(searchInstances.isEmpty()) {
+								break OUTER;
+							}
+						}
+						
+					}
+				}
+			}
+				
+			if(!searchInstances.isEmpty()) {
+				// find related nouns in keyword set and mc set if searchInstance was not found as an instance in any engine
+				for(String instance : searchInstances) {
+					double bestSim = 1.1; // want min sim value, val cannot be larger than 1
+					String bestMatch = "";
+					for(String mc : mcSet) {
+						double simVal = wordnet.getDistance(instance.toLowerCase(), mc.toLowerCase(), "n");
+						if(simVal < bestSim) {
+							bestSim = simVal;
+							bestMatch = mc;
+						}
+					}
+					if(bestSim < similarityCutOff) {
+						searchMC.add(bestMatch);
+					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param searchKeywords
+	 * @param searchMC
+	 * @param searchInstances
+	 * @param engineInstancesMap
+	 */
+	private void webWordAllocationHelper(
+			Set<String> searchKeywords,
+			Set<String> searchMC,
+			Set<String> searchInstances,
+			Map<String, Map<String, Set<String>>> engineInstancesMap			
+			) 
+	{
+		if(!searchInstances.isEmpty()) {
+			Hashtable<String, String> engineURLHash = new Hashtable<String, String>();
+			MasterDBHelper.fillAPIHash(masterEngine, engineURLHash);
+			// fill in the engineInstances map
+			determineWebEngineAndAcceptableInstances(searchInstances, engineURLHash, engineInstancesMap);
+			// make sure engine InstanceMap is not empty for instance
+			boolean isEmpty = true;
+			for(String engine : engineInstancesMap.keySet()) {
+				if(!engineInstancesMap.get(engine).isEmpty()) {
+					isEmpty = false;
+					break;
+				}
+			}
+			if(isEmpty) {
+				engineInstancesMap.clear(); // make it empty, before it contained engine keys pointing to empty values
+			}
+			
+			// make sure engine InstanceMap contains every instance
+			if(!searchInstances.isEmpty()) {
+				OUTER: for(String engine : engineInstancesMap.keySet()) {
+					Map<String, Set<String>> instanceMap = engineInstancesMap.get(engine);
+					for(String key : instanceMap.keySet()) {
+						Set<String> instancesFound = instanceMap.get(key);
+						for(String instance : instancesFound) {
+							searchInstances.remove(Utility.getBaseURI(instance));
+							if(searchInstances.isEmpty()) {
+								break OUTER;
+							}
+						}
+						
+					}
+				}
+			}
+				
+			if(!searchInstances.isEmpty()) {
+				// find related nouns in keyword set and mc set if searchInstance was not found as an instance in any engine
+				for(String instance : searchInstances) {
+					double bestSim = 1.1; // want min sim value, val cannot be larger than 1
+					String bestMatch = "";
+					for(String mc : mcSet) {
+						double simVal = wordnet.getDistance(instance.toLowerCase(), mc.toLowerCase(), "n");
+						if(simVal < bestSim) {
+							bestSim = simVal;
+							bestMatch = mc;
+						}
+					}
+					if(bestSim < similarityCutOff) {
+						searchMC.add(bestMatch);
+					}
+				}
+			}
+		}
+	}
 	
 	/**
 	 * 
@@ -674,7 +784,6 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 	}
 	
 	//TODO: put in utility class somewhere
-	
 	private boolean containsIgnoreCase(Set<String> set1, String compareVal) {
 		Iterator<String> it1 = set1.iterator();
 		while(it1.hasNext()) {
@@ -687,6 +796,7 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 		return false;
 	}
 	
+	//TODO: put in utility class somewhere
 	private String getFromSetIgnoringCase(Set<String> set1, String compareVal) {
 		Iterator<String> it1 = set1.iterator();
 		while(it1.hasNext()) {
