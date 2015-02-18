@@ -621,6 +621,8 @@ public class QuestionAdministrator {
 				// and remove
 				in = ((AbstractEngine) engine).getInsight2(oldQuestion).get(0);// TODO
 				String localID = in.getId();
+				if(localID.equals("DN"))
+					in = ((AbstractEngine) engine).getInsight2URI(oldQuestion).get(0);
 				String[] localIDSplit = localID.split(":");
 				localCurrentQsKey = localIDSplit[2];
 				Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine) engine)
@@ -1090,8 +1092,28 @@ public class QuestionAdministrator {
 			}
 		}
 	}
-
-	public void deleteQuestion(String perspective, String questionKey,
+	
+	public Boolean deleteQuestion(String perspective, String questionTitle)
+	{
+		//first have to get the question
+		Insight insight = ((AbstractEngine)engine).getInsight2(questionTitle).get(0);
+		String questionKey = insight.getId();
+		String questionOrder = insight.getOrder();
+		String question = questionTitle;
+		String sparql = insight.getSparql();
+		String layout = insight.getOutput();
+		String questionDescription = insight.getDescription();
+		Hashtable<String, Vector> paramHash = getParameterVectors(insight.getURI());
+		Vector parameterQueryVector = paramHash.get("parameterQueryVector");
+		Vector dependVector = paramHash.get("dependVector");
+		Vector optionVector = paramHash.get("optionVector");
+		this.questionList = new ArrayList<String>();
+		String perspectiveURI = getPerspectiveURI(perspective);
+		this.questionList.addAll(((AbstractEngine) engine).getOrderedInsightsURI(perspectiveURI));
+		return deleteQuestion(perspective, questionKey, questionOrder, question, sparql, layout, questionDescription, dependVector, parameterQueryVector, optionVector);
+		
+	}
+	public Boolean deleteQuestion(String perspective, String questionKey,
 			String questionOrder, String question, String sparql,
 			String layout, String questionDescription,
 			Vector<String> parameterDependList,
@@ -1171,6 +1193,7 @@ public class QuestionAdministrator {
 						Integer.parseInt(questionOrder) + "");
 			}
 		}
+		return true;
 	}
 
 	public Boolean deleteAllFromPersp(String perspective) {
@@ -1218,8 +1241,6 @@ public class QuestionAdministrator {
 		for (String question2 : questionList2) {
 			Insight in = ((AbstractEngine) engine).getInsight2URI(question2)
 					.get(0);
-			Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine) engine)
-					.getParamsURI(question2);
 
 			System.out.println("Removing question " + question2);
 
@@ -1231,51 +1252,11 @@ public class QuestionAdministrator {
 			String sparql = in.getSparql();
 			String layoutValue = in.getOutput();
 			String questionDescription = in.getDescription();
-			Vector parameterQueryVector = new Vector();
-			Vector dependVector = new Vector();
-			Vector optionVector = new Vector();
-
-			if (!paramInfoVector.isEmpty()) {
-				for (int i = 0; i < paramInfoVector.size(); i++) {
-					if (paramInfoVector.get(i).getQuery() != null
-							&& !paramInfoVector
-									.get(i)
-									.getQuery()
-									.equals(DIHelper.getInstance().getProperty(
-											"TYPE" + "_" + Constants.QUERY))) {
-						parameterQueryVector.add(paramInfoVector.get(i)
-								.getName()
-								+ "_QUERY_-_"
-								+ paramInfoVector.get(i).getQuery());
-					}
-
-					if (!paramInfoVector.get(i).getDependVars().isEmpty()
-							&& !paramInfoVector.get(i).getDependVars().get(0)
-									.equals("None")) {
-						for (int j = 0; j < paramInfoVector.get(i)
-								.getDependVars().size(); j++) {
-							dependVector.add(paramInfoVector.get(i).getName()
-									+ "_DEPEND_-_"
-									+ paramInfoVector.get(i).getDependVars()
-											.get(j));
-						}
-					}
-
-					if (paramInfoVector.get(i).getOptions() != null
-							&& !paramInfoVector.get(i).getOptions().isEmpty()) {
-						Vector options = paramInfoVector.get(i).getOptions();
-						String optionsConcat = "";
-						for (int j = 0; j < options.size(); j++) {
-							optionsConcat += options.get(j);
-							if (j != options.size() - 1) {
-								optionsConcat += ";";
-							}
-						}
-						optionVector.add(paramInfoVector.get(i).getType()
-								+ "_OPTION_-_" + optionsConcat);
-					}
-				}
-			}
+			Hashtable<String, Vector> paramHash = getParameterVectors(question2);
+			Vector parameterQueryVector = paramHash.get("parameterQueryVector");
+			Vector dependVector = paramHash.get("dependVector");
+			Vector optionVector = paramHash.get("optionVector");
+			
 			reorder = false;
 			deleteQuestion(perspective, questionKey, questionOrder, question,
 					sparql, layoutValue, questionDescription, dependVector,
@@ -1283,6 +1264,60 @@ public class QuestionAdministrator {
 		}
 		// delete perspective from the engine
 		removePerspective(perspectivePred, perspectiveURI, perspective);
+	}
+	
+	public Hashtable<String, Vector> getParameterVectors(String questionURI){
+		Vector parameterQueryVector = new Vector();
+		Vector dependVector = new Vector();
+		Vector optionVector = new Vector();
+
+		Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine) engine).getParamsURI(questionURI);
+		if (!paramInfoVector.isEmpty()) {
+			for (int i = 0; i < paramInfoVector.size(); i++) {
+				if (paramInfoVector.get(i).getQuery() != null
+						&& !paramInfoVector
+								.get(i)
+								.getQuery()
+								.equals(DIHelper.getInstance().getProperty(
+										"TYPE" + "_" + Constants.QUERY))) {
+					parameterQueryVector.add(paramInfoVector.get(i)
+							.getName()
+							+ "_QUERY_-_"
+							+ paramInfoVector.get(i).getQuery());
+				}
+
+				if (!paramInfoVector.get(i).getDependVars().isEmpty()
+						&& !paramInfoVector.get(i).getDependVars().get(0)
+								.equals("None")) {
+					for (int j = 0; j < paramInfoVector.get(i)
+							.getDependVars().size(); j++) {
+						dependVector.add(paramInfoVector.get(i).getName()
+								+ "_DEPEND_-_"
+								+ paramInfoVector.get(i).getDependVars()
+										.get(j));
+					}
+				}
+
+				if (paramInfoVector.get(i).getOptions() != null
+						&& !paramInfoVector.get(i).getOptions().isEmpty()) {
+					Vector options = paramInfoVector.get(i).getOptions();
+					String optionsConcat = "";
+					for (int j = 0; j < options.size(); j++) {
+						optionsConcat += options.get(j);
+						if (j != options.size() - 1) {
+							optionsConcat += ";";
+						}
+					}
+					optionVector.add(paramInfoVector.get(i).getType()
+							+ "_OPTION_-_" + optionsConcat);
+				}
+			}
+		}
+		Hashtable<String, Vector> resHash = new Hashtable<String,Vector>();
+		resHash.put("parameterQueryVector", parameterQueryVector);
+		resHash.put("dependVector", dependVector);
+		resHash.put("optionVector", optionVector);
+		return resHash;
 	}
 
 	public void reorderPerspective(String perspective,
