@@ -56,6 +56,7 @@ import javax.swing.border.BevelBorder;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.cluster.ClusterRemoveDuplicates;
 import prerna.algorithm.cluster.DatasetSimilarity;
 import prerna.algorithm.cluster.GenerateEntropyDensity;
 import prerna.math.BarChart;
@@ -147,6 +148,13 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	public void createData() {
 		if(list==null)
 			super.createData();
+		
+		//make sure that we have no duplicates in the liast and names for the analysis
+		LOGGER.info("Removing any duplicated instances...");
+		ClusterRemoveDuplicates crd = new ClusterRemoveDuplicates(list, names);
+		this.list = crd.getRetMasterTable();
+		this.names = crd.getRetVarNames();
+		
 	}
 	@Override
 	public void runAnalytics() {

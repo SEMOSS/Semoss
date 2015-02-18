@@ -51,6 +51,8 @@ import prerna.ui.main.listener.impl.GridPlaySheetListener;
 import prerna.ui.main.listener.impl.JTableExcelExportListener;
 
 public class LocalOutlierPlaySheet extends GridPlaySheet{
+	private ArrayList<Object[]> masterList;
+	private String[] masterNames;
 
 	private static final Logger LOGGER = LogManager.getLogger(LocalOutlierPlaySheet.class.getName());
 	protected JTabbedPane jTab;
@@ -75,6 +77,29 @@ public class LocalOutlierPlaySheet extends GridPlaySheet{
 		double[] lof = alg.getLOF();
 //		double[] zScore = alg.getZScore();
 		double[] lop = alg.getLOP();
+		
+		if(masterNames!=null) {
+			//asterisk the columns that have not been included in analysis
+			String[] asteriskMasterNames = new String[masterNames.length];
+			int i;
+			int j;
+			for(i=0;i<masterNames.length;i++) {
+				String name = masterNames[i];
+				Boolean inFilteredSet = false;
+				for(j=0;j<names.length;j++){
+					//see if the column is used in the filtered set
+					//if not then asterisk
+					if(names[j].equals(name)) {
+						inFilteredSet=true;
+					}
+				}
+				if(!inFilteredSet)
+					name = "*"+name;
+				asteriskMasterNames[i] = name;
+			}
+			list = masterList;
+			names = asteriskMasterNames;
+		}
 		
 		ArrayList<Object[]> newList = new ArrayList<Object[]>();
 		int numRows = list.size();
@@ -191,7 +216,12 @@ public class LocalOutlierPlaySheet extends GridPlaySheet{
 	public Object getVariable(String varName, ISelectStatement sjss){
 		return sjss.getVar(varName);
 	}
-	
+	public void setMasterList(ArrayList<Object[]> masterList) {
+		this.masterList = masterList;
+	}
+	public void setMasterNames(String[] masterNames) {
+		this.masterNames = masterNames;
+	}
 	public void setJTab(JTabbedPane jTab) {
 		this.jTab = jTab;
 	}
