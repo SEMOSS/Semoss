@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import prerna.algorithm.nlp.NaturalLanguageProcessingHelper;
+import prerna.algorithm.nlp.TextHelper;
 import prerna.util.Utility;
 import rita.RiWordNet;
 import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
@@ -68,14 +69,15 @@ public class WordnetComparison implements IMasterDatabaseConstants{
 		lp.setOptionFlags(new String[]{"-maxLength", "80", "-retainTmpSubcategories"});
 	}
 
+	
 	/**
 	 * Determines if two words are similar based on their noun list
-	 * @param firstNounList		The Set of nouns in the first word
-	 * @param secondNounList	The Set of nouns in the second word
+	 * @param keyword1		The Set of nouns in the first word
+	 * @param keyword2	The Set of nouns in the second word
 	 * @return					Boolean true if the two words are similar based on the threshold
 	 */
-	public boolean isSimilar(Set<String> firstNounList, Set<String> secondNounList) {
-		double comparissonVal = compareKeywords(firstNounList, secondNounList);
+	public boolean isSimilar(String keyword1, String keyword2) {
+		double comparissonVal = compareKeywords(keyword1, keyword2);
 		return isSimilar(comparissonVal);
 	}
 	
@@ -97,35 +99,31 @@ public class WordnetComparison implements IMasterDatabaseConstants{
 	 * @param secondNounList		The Set of nouns in the second word
 	 * @return						Double containing the distance between the two words
 	 */
-	public double compareKeywords(Set<String> firstNounList, Set<String> secondNounList) {
-		System.err.println(">>>>>>>>>>>>>>>>>COMPARING: " + firstNounList + " to " + secondNounList);
+	public double compareKeywords(String keyword1, String keyword2) {
+		System.err.println(">>>>>>>>>>>>>>>>>COMPARING: " + keyword1 + " to " + keyword2);
 		// need to iterate through and break apart the URIs
-		firstNounList = getInstanceForSet(firstNounList);
-		secondNounList = getInstanceForSet(secondNounList);
-		System.err.println(">>>>>>>>>>>>>>>>> " + firstNounList);
-		System.err.println(">>>>>>>>>>>>>>>>> " + secondNounList);
-		
-		Set<String> firstMainNouns = getMainNouns(firstNounList);
-		Set<String> secondMainNouns = getMainNouns(secondNounList);
+		String keywordName1 = TextHelper.formatCompountText(Utility.getInstanceName(keyword1));
+		String keywordName2 = TextHelper.formatCompountText(Utility.getInstanceName(keyword2));
+
+		Set<String> firstMainNouns = getMainNouns(keywordName1);
+		Set<String> secondMainNouns = getMainNouns(keywordName2);
 		System.err.println(">>>>>>>>>>>>>>>>>FOUND MAIN NOUNS IN SET 1: " + firstMainNouns);
 		System.err.println(">>>>>>>>>>>>>>>>>FOUND MAIN NOUNS IN SET 2: " + secondMainNouns);
 
 		Set<String> firstOtherNouns = new HashSet<String>();
 		Set<String> secondOtherNouns = new HashSet<String>();
-
-		Iterator<String> iterator = firstNounList.iterator();
-		while(iterator.hasNext()) {
-			String val = iterator.next();
-			if(!firstMainNouns.contains(val)) {
-				firstOtherNouns.add(val);
+		
+		String[] nouns = TextHelper.splitRemovingEmptyValuesAndNulls(keywordName1);
+		for(String noun : nouns) {
+			if(!firstMainNouns.contains(noun)) {
+				firstOtherNouns.add(noun);
 			}
 		}
 		
-		iterator = secondNounList.iterator();
-		while(iterator.hasNext()) {
-			String val = iterator.next();
-			if(!secondMainNouns.contains(val)) {
-				secondOtherNouns.add(val);
+		nouns = TextHelper.splitRemovingEmptyValuesAndNulls(keywordName2);
+		for(String noun : nouns) {
+			if(!secondMainNouns.contains(noun)) {
+				secondOtherNouns.add(noun);
 			}
 		}
 		
@@ -140,6 +138,102 @@ public class WordnetComparison implements IMasterDatabaseConstants{
 
 		return mainCompVal + otherCompVal;
 	}
+	
+	/**
+	 * Determines the main noun by concatenating the nouns and using NLP to find the gov/dep depending on the grammatical relationship found
+	 * @param sentence		The String to get the main nouns
+	 * @return				The Set containing the list of main nouns
+	 */
+	private Set<String> getMainNouns(String sentence) {
+		// get the grammatical relationships in the sentence
+		Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash = NaturalLanguageProcessingHelper.getTypeDependencyHash(lp, sentence);
+
+		Vector<TypedDependency> tdlArr = nodeHash.get(EnglishGrammaticalRelations.NOUN_COMPOUND_MODIFIER);
+		if(tdlArr != null) {
+			return getTopGov(tdlArr);
+		}
+		
+		// if NLP determines something isn't a noun, look for adj/adv
+		tdlArr = nodeHash.get(EnglishGrammaticalRelations.ADJECTIVAL_MODIFIER);
+		if(tdlArr != null) {
+			return getTopGov(tdlArr);
+		}
+		
+		tdlArr = nodeHash.get(EnglishGrammaticalRelations.ADVERBIAL_MODIFIER);
+		if(tdlArr != null) {
+			return getTopGov(tdlArr);
+		}
+		
+		tdlArr = nodeHash.get(EnglishGrammaticalRelations.NP_ADVERBIAL_MODIFIER);
+		if(tdlArr != null) {
+			return getTopDep(tdlArr);
+		}
+		
+		tdlArr = nodeHash.get(EnglishGrammaticalRelations.NOMINAL_SUBJECT);
+		if(tdlArr != null) {
+			return getTopDep(tdlArr);
+		}
+		
+		tdlArr = nodeHash.get(EnglishGrammaticalRelations.DIRECT_OBJECT);
+		if(tdlArr != null) {
+			return getTopDep(tdlArr);
+		}
+		
+		tdlArr = nodeHash.get(EnglishGrammaticalRelations.NUMERIC_MODIFIER);
+		if(tdlArr != null) {
+			return getTopGov(tdlArr);
+		}
+		
+		tdlArr = nodeHash.get(GrammaticalRelation.DEPENDENT);
+		if(tdlArr != null) {
+			return getTopDep(tdlArr);
+		}
+		
+		tdlArr = nodeHash.get(GrammaticalRelation.ROOT);
+		if(tdlArr != null) {
+			return getTopDep(tdlArr);
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * Return the Set of govs in the sentence based on the grammatical relationship formed by combining the nouns in the word
+	 * @param tdlArr		The Vector of typed dependencies of the specified grammatical relationship
+	 * @return				Set of govs in the sentence based on the grammatical relationship
+	 */
+	private Set<String> getTopGov(Vector<TypedDependency> tdlArr) {
+		Set<String> govList = new HashSet<String>();
+		
+		int i = 0;
+		int size = tdlArr.size();
+		
+		for(; i < size; i++) {
+			TypedDependency td = tdlArr.get(i);
+			govList.add(td.gov().value());
+		}
+		
+		return govList;
+	}
+	
+	/**
+	 * Return the Set of deps in the sentence based on the grammatical relationship formed by combining the nouns in the word
+	 * @param tdlArr		The Vector of typed dependencies of the specified grammatical relationship
+	 * @return				Set of deps in the sentence based on the grammatical relationship
+	 */
+	private Set<String> getTopDep(Vector<TypedDependency> tdlArr) {
+		Set<String> govList = new HashSet<String>();
+		
+		int i = 0;
+		int size = tdlArr.size();
+		
+		for(; i < size; i++) {
+			TypedDependency td = tdlArr.get(i);
+			govList.add(td.dep().value());
+		}
+		
+		return govList;
+	}	
 	
 	/**
 	 * Determines and outputs the best distance pairing between nouns 
@@ -223,124 +317,179 @@ public class WordnetComparison implements IMasterDatabaseConstants{
 		
 		return comparisonMatrix;
 	}
-
-	/**
-	 * Determines the main noun by concatenating the nouns and using NLP to find the gov/dep depending on the grammatical relationship found
-	 * @param nounList		The Set containing the list of all nouns
-	 * @return				The Set containing the list of main nouns
-	 */
-	private Set<String> getMainNouns(Set<String> nounList) {
-		if(nounList.size() == 1) {
-			return nounList;
-		}
-		
-		String sentence = "";
-		Iterator<String> nounIt = nounList.iterator();
-		while(nounIt.hasNext()) {
-			sentence = sentence.concat(nounIt.next()).concat(" ");
-		}
-		sentence = sentence.trim();
-		
-		// get the grammatical relationships in the sentence
-		Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash = NaturalLanguageProcessingHelper.getTypeDependencyHash(lp, sentence);
-
-		Vector<TypedDependency> tdlArr = nodeHash.get(EnglishGrammaticalRelations.NOUN_COMPOUND_MODIFIER);
-		if(tdlArr != null) {
-			return getTopGov(tdlArr);
-		}
-		
-		// if NLP determines something isn't a noun, look for adj/adv
-		tdlArr = nodeHash.get(EnglishGrammaticalRelations.ADJECTIVAL_MODIFIER);
-		if(tdlArr != null) {
-			return getTopGov(tdlArr);
-		}
-		
-		tdlArr = nodeHash.get(EnglishGrammaticalRelations.ADVERBIAL_MODIFIER);
-		if(tdlArr != null) {
-			return getTopGov(tdlArr);
-		}
-		
-		tdlArr = nodeHash.get(EnglishGrammaticalRelations.NP_ADVERBIAL_MODIFIER);
-		if(tdlArr != null) {
-			return getTopDep(tdlArr);
-		}
-		
-		tdlArr = nodeHash.get(EnglishGrammaticalRelations.NOMINAL_SUBJECT);
-		if(tdlArr != null) {
-			return getTopDep(tdlArr);
-		}
-		
-		tdlArr = nodeHash.get(EnglishGrammaticalRelations.DIRECT_OBJECT);
-		if(tdlArr != null) {
-			return getTopDep(tdlArr);
-		}
-		
-		tdlArr = nodeHash.get(EnglishGrammaticalRelations.NUMERIC_MODIFIER);
-		if(tdlArr != null) {
-			return getTopGov(tdlArr);
-		}
-		
-		tdlArr = nodeHash.get(GrammaticalRelation.DEPENDENT);
-		if(tdlArr != null) {
-			return getTopDep(tdlArr);
-		}
-		
-		return null;
-	}
 	
-	/**
-	 * Return the Set of govs in the sentence based on the grammatical relationship formed by combining the nouns in the word
-	 * @param tdlArr		The Vector of typed dependencies of the specified grammatical relationship
-	 * @return				Set of govs in the sentence based on the grammatical relationship
-	 */
-	private Set<String> getTopGov(Vector<TypedDependency> tdlArr) {
-		Set<String> govList = new HashSet<String>();
-		
-		int i = 0;
-		int size = tdlArr.size();
-		
-		for(; i < size; i++) {
-			TypedDependency td = tdlArr.get(i);
-			govList.add(td.gov().value());
-		}
-		
-		return govList;
-	}
 	
-	/**
-	 * Return the Set of deps in the sentence based on the grammatical relationship formed by combining the nouns in the word
-	 * @param tdlArr		The Vector of typed dependencies of the specified grammatical relationship
-	 * @return				Set of deps in the sentence based on the grammatical relationship
-	 */
-	private Set<String> getTopDep(Vector<TypedDependency> tdlArr) {
-		Set<String> govList = new HashSet<String>();
-		
-		int i = 0;
-		int size = tdlArr.size();
-		
-		for(; i < size; i++) {
-			TypedDependency td = tdlArr.get(i);
-			govList.add(td.dep().value());
-		}
-		
-		return govList;
-	}
 	
-	/**
-	 * Gets the instance name from a Set of URI's
-	 * @param uriList		The Set containing the URI's to get the instances
-	 * @return				Set containing the instance values of all the URI's 
-	 */
-	private Set<String> getInstanceForSet(Set<String> uriList) {
-		Set<String> retSet = new HashSet<String>();
-		Iterator<String> it = uriList.iterator();
-		while(it.hasNext()) {
-			String uri = it.next();
-			String instance = Utility.getInstanceName(uri);
-			retSet.add(instance);
-		}
-		
-		return retSet;
-	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+//	/**
+//	 * Determines if two words are similar based on their noun list
+//	 * @param firstNounList		The Set of nouns in the first word
+//	 * @param secondNounList	The Set of nouns in the second word
+//	 * @return					Boolean true if the two words are similar based on the threshold
+//	 */
+//	public boolean isSimilar(Set<String> firstNounList, Set<String> secondNounList) {
+//		double comparissonVal = compareKeywords(firstNounList, secondNounList);
+//		return isSimilar(comparissonVal);
+//	}
+//	
+//	/**
+//	 * Runs the comparison algorithm to determine the distance between two words
+//	 * @param firstNounList			The Set of nouns in the first word
+//	 * @param secondNounList		The Set of nouns in the second word
+//	 * @return						Double containing the distance between the two words
+//	 */
+//	public double compareKeywords(Set<String> firstNounList, Set<String> secondNounList) {
+//		System.err.println(">>>>>>>>>>>>>>>>>COMPARING: " + firstNounList + " to " + secondNounList);
+//		// need to iterate through and break apart the URIs
+//		firstNounList = getInstanceForSet(firstNounList);
+//		secondNounList = getInstanceForSet(secondNounList);
+//		System.err.println(">>>>>>>>>>>>>>>>> " + firstNounList);
+//		System.err.println(">>>>>>>>>>>>>>>>> " + secondNounList);
+//		
+//		Set<String> firstMainNouns = getMainNouns(firstNounList);
+//		Set<String> secondMainNouns = getMainNouns(secondNounList);
+//		System.err.println(">>>>>>>>>>>>>>>>>FOUND MAIN NOUNS IN SET 1: " + firstMainNouns);
+//		System.err.println(">>>>>>>>>>>>>>>>>FOUND MAIN NOUNS IN SET 2: " + secondMainNouns);
+//
+//		Set<String> firstOtherNouns = new HashSet<String>();
+//		Set<String> secondOtherNouns = new HashSet<String>();
+//
+//		Iterator<String> iterator = firstNounList.iterator();
+//		while(iterator.hasNext()) {
+//			String val = iterator.next();
+//			if(!firstMainNouns.contains(val)) {
+//				firstOtherNouns.add(val);
+//			}
+//		}
+//		
+//		iterator = secondNounList.iterator();
+//		while(iterator.hasNext()) {
+//			String val = iterator.next();
+//			if(!secondMainNouns.contains(val)) {
+//				secondOtherNouns.add(val);
+//			}
+//		}
+//		
+//		double[][] mainComparisonMatrix = getComparisonMatrix(firstMainNouns, secondMainNouns);
+//		double[][] otherComparisonMatrix = getComparisonMatrix(firstOtherNouns, secondOtherNouns);
+//
+//		double mainCompVal = calculateBestComparison(mainComparisonMatrix) * mainNounWeight;
+//		double otherCompVal = calculateBestComparison(otherComparisonMatrix) * otherNounWeight;
+//		
+//		System.err.println(">>>>>>>>>>>>>>>>>COMPARING: " + firstMainNouns + " to " + secondMainNouns + " gives value = " + mainCompVal);
+//		System.err.println(">>>>>>>>>>>>>>>>>COMPARING: " + firstOtherNouns + " to " + secondOtherNouns + " gives value = " + otherCompVal);
+//
+//		return mainCompVal + otherCompVal;
+//	}
+//	
+//
+//	/**
+//	 * Determines the main noun by concatenating the nouns and using NLP to find the gov/dep depending on the grammatical relationship found
+//	 * @param nounList		The Set containing the list of all nouns
+//	 * @return				The Set containing the list of main nouns
+//	 */
+//	private Set<String> getMainNouns(Set<String> nounList) {
+//		if(nounList.size() == 1) {
+//			return nounList;
+//		}
+//		
+//		String sentence = "";
+//		Iterator<String> nounIt = nounList.iterator();
+//		while(nounIt.hasNext()) {
+//			sentence = sentence.concat(nounIt.next()).concat(" ");
+//		}
+//		sentence = sentence.trim();
+//		
+//		// get the grammatical relationships in the sentence
+//		Hashtable<GrammaticalRelation, Vector<TypedDependency>> nodeHash = NaturalLanguageProcessingHelper.getTypeDependencyHash(lp, sentence);
+//
+//		Vector<TypedDependency> tdlArr = nodeHash.get(EnglishGrammaticalRelations.NOUN_COMPOUND_MODIFIER);
+//		if(tdlArr != null) {
+//			return getTopGov(tdlArr);
+//		}
+//		
+//		// if NLP determines something isn't a noun, look for adj/adv
+//		tdlArr = nodeHash.get(EnglishGrammaticalRelations.ADJECTIVAL_MODIFIER);
+//		if(tdlArr != null) {
+//			return getTopGov(tdlArr);
+//		}
+//		
+//		tdlArr = nodeHash.get(EnglishGrammaticalRelations.ADVERBIAL_MODIFIER);
+//		if(tdlArr != null) {
+//			return getTopGov(tdlArr);
+//		}
+//		
+//		tdlArr = nodeHash.get(EnglishGrammaticalRelations.NP_ADVERBIAL_MODIFIER);
+//		if(tdlArr != null) {
+//			return getTopDep(tdlArr);
+//		}
+//		
+//		tdlArr = nodeHash.get(EnglishGrammaticalRelations.NOMINAL_SUBJECT);
+//		if(tdlArr != null) {
+//			return getTopDep(tdlArr);
+//		}
+//		
+//		tdlArr = nodeHash.get(EnglishGrammaticalRelations.DIRECT_OBJECT);
+//		if(tdlArr != null) {
+//			return getTopDep(tdlArr);
+//		}
+//		
+//		tdlArr = nodeHash.get(EnglishGrammaticalRelations.NUMERIC_MODIFIER);
+//		if(tdlArr != null) {
+//			return getTopGov(tdlArr);
+//		}
+//		
+//		tdlArr = nodeHash.get(GrammaticalRelation.DEPENDENT);
+//		if(tdlArr != null) {
+//			return getTopDep(tdlArr);
+//		}
+//		
+//		return null;
+//	}
+//	
+//	
+//	/**
+//	 * Gets the instance name from a Set of URI's
+//	 * @param uriList		The Set containing the URI's to get the instances
+//	 * @return				Set containing the instance values of all the URI's 
+//	 */
+//	private Set<String> getInstanceForSet(Set<String> uriList) {
+//		Set<String> retSet = new HashSet<String>();
+//		Iterator<String> it = uriList.iterator();
+//		while(it.hasNext()) {
+//			String uri = it.next();
+//			String instance = Utility.getInstanceName(uri);
+//			retSet.add(instance);
+//		}
+//		
+//		return retSet;
+//	}
 	
 }

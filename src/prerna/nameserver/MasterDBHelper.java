@@ -84,11 +84,11 @@ public final class MasterDBHelper implements IMasterDatabaseQueries, IMasterData
 	/**
 	 * Based on the keywordURI, find related keywords and their respective nouns and engines
 	 * @param masterEngine			The engine to query
-	 * @param keywordURI			The keywordURI to find related keywords
-	 * @param keywordNounMap		The Map containing the key keyword and the value Set of nouns that comprise the keyword
+	 * @param keywordSet			The Set of keywords to find related to
+	 * @param relatedKeywordSet		The Set connected keywords to the keywordSet passed in
 	 * @param engineKeywordMap		The Map containing the engine keyword and the value Set of keywords contained in that engine
 	 */
-	public static void findRelatedKeywordsToSetStrings(IEngine masterEngine, Set<String> keywordSet, Map<String, Set<String>> keywordNounMap, Map<String, Set<String>> engineKeywordMap){
+	public static void findRelatedKeywordsToSetStrings(IEngine masterEngine, Set<String> keywordSet, Set<String> connectedKeywordSet, Map<String, Set<String>> engineKeywordMap){
 		// find all related keywords to the inputed data type
 		String bindingsStr = "";
 		Iterator<String> keywordsIt = keywordSet.iterator();
@@ -103,17 +103,8 @@ public final class MasterDBHelper implements IMasterDatabaseQueries, IMasterData
 			ISelectStatement sjss = sjsw.next();
 			String engine = sjss.getVar(names[0]).toString();
 			String keyword = sjss.getRawVar(names[1]).toString();
-			String noun = sjss.getRawVar(names[2]).toString();
 			
-			Set<String> nounList;
-			if(keywordNounMap.containsKey(keyword)) {
-				nounList = keywordNounMap.get(keyword);
-				nounList.add(noun);
-			} else {
-				nounList = new HashSet<String>();
-				nounList.add(noun);
-				keywordNounMap.put(keyword, nounList);
-			}
+			connectedKeywordSet.add(keyword);
 			
 			Set<String> keywordForEngineList;
 			if(engineKeywordMap.containsKey(engine)) {
@@ -128,7 +119,7 @@ public final class MasterDBHelper implements IMasterDatabaseQueries, IMasterData
 		
 		//TODO: remove once error checking is done
 		System.err.println(">>>>>>>>>>>>>>>>>FOUND RELATED KEYWORDS TO SET: " + keywordSet);
-		System.err.println(">>>>>>>>>>>>>>>>>LIST IS: " + keywordNounMap.keySet());
+		System.err.println(">>>>>>>>>>>>>>>>>LIST IS: " + connectedKeywordSet);
 	}
 	
 	
@@ -136,10 +127,10 @@ public final class MasterDBHelper implements IMasterDatabaseQueries, IMasterData
 	 * Based on the keywordURI, find related keywords and their respective nouns and engines
 	 * @param masterEngine			The engine to query
 	 * @param keywordURI			The keywordURI to find related keywords
-	 * @param keywordNounMap		The Map containing the key keyword and the value Set of nouns that comprise the keyword
+	 * @param keywordSet			The Set containing all the keywords connected to the keywordURI
 	 * @param engineKeywordMap		The Map containing the engine keyword and the value Set of keywords contained in that engine
 	 */
-	public static void findRelatedKeywordsToSpecificURI(IEngine masterEngine, String keywordURI, Map<String, Set<String>> keywordNounMap, Map<String, Set<String>> engineKeywordMap){
+	public static void findRelatedKeywordsToSpecificURI(IEngine masterEngine, String keywordURI, Set<String> keywordSet, Map<String, Set<String>> engineKeywordMap){
 		// find all related keywords to the inputed data type
 		String query = GET_RELATED_KEYWORDS_AND_THEIR_NOUNS.replace("@KEYWORD@", keywordURI);
 		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
@@ -148,17 +139,8 @@ public final class MasterDBHelper implements IMasterDatabaseQueries, IMasterData
 			ISelectStatement sjss = sjsw.next();
 			String engine = sjss.getVar(names[0]).toString();
 			String keyword = sjss.getRawVar(names[1]).toString();
-			String noun = sjss.getRawVar(names[2]).toString();
 			
-			Set<String> nounList;
-			if(keywordNounMap.containsKey(keyword)) {
-				nounList = keywordNounMap.get(keyword);
-				nounList.add(noun);
-			} else {
-				nounList = new HashSet<String>();
-				nounList.add(noun);
-				keywordNounMap.put(keyword, nounList);
-			}
+			keywordSet.add(keyword);
 			
 			Set<String> keywordForEngineList;
 			if(engineKeywordMap.containsKey(engine)) {
@@ -173,7 +155,7 @@ public final class MasterDBHelper implements IMasterDatabaseQueries, IMasterData
 		
 		//TODO: remove once error checking is done
 		System.err.println(">>>>>>>>>>>>>>>>>FOUND RELATED KEYWORDS " + Utility.getInstanceName(keywordURI));
-		System.err.println(">>>>>>>>>>>>>>>>>LIST IS: " + keywordNounMap.keySet());
+		System.err.println(">>>>>>>>>>>>>>>>>LIST IS: " + keywordSet);
 	}
 	
 	public static Map<String, Set<String>> getMCValueMappingTree(IEngine masterEngine) {

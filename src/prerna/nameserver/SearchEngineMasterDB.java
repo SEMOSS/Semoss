@@ -59,7 +59,7 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 		lp = LexicalizedParser.loadModel(lpDir);
 		lp.setOptionFlags(new String[]{"-maxLength", "80", "-retainTmpSubcategories"});
 		wordnet = new RiWordNet(wordNetDir, false, true); // params: wordnetInstallDir, ignoreCompoundWords, ignoreUppercaseWords
-		wnComp = new WordnetComparison(wordNetDir, lpDir);
+		wnComp = new WordnetComparison();
 		wnComp.setLp(lp);
 		wnComp.setWordnet(wordnet);
 	}
@@ -115,14 +115,14 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 			combinedNounSet.addAll(searchKeywords);
 			combinedNounSet.addAll(getKeywordsFromMCSet(searchMC));
 
-			// track all keywords and the nouns that make them up
-			Map<String, Set<String>> keywordNounMap = new HashMap<String, Set<String>>();
+			// track all keywords
+			Set<String> connectedKeywordSet = new HashSet<String>();
 			// track all the engines that contain the keywords to speed up instance search
 			Map<String, Set<String>> engineKeywordMap = new HashMap<String, Set<String>>();
-			MasterDBHelper.findRelatedKeywordsToSetStrings(masterEngine, combinedNounSet, keywordNounMap, engineKeywordMap);
+			MasterDBHelper.findRelatedKeywordsToSetStrings(masterEngine, combinedNounSet, connectedKeywordSet, engineKeywordMap);
 			
 			Map<String, Double> similarKeywordScores = new HashMap<String, Double>();
-			String query = formInsightsForKeywordsQuery(combinedNounSet, keywordNounMap, similarKeywordScores);
+			String query = formInsightsForKeywordsQuery(combinedNounSet, connectedKeywordSet, similarKeywordScores);
 			
 			ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
 			String[] names = sjsw.getVariables();
@@ -215,14 +215,14 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 			combinedNounSet.addAll(searchKeywords);
 			combinedNounSet.addAll(getKeywordsFromMCSet(searchMC));
 
-			// track all keywords and the nouns that make them up
-			Map<String, Set<String>> keywordNounMap = new HashMap<String, Set<String>>();
+			// track all keywords
+			Set<String> connectedKeywordSet = new HashSet<String>();
 			// track all the engines that contain the keywords to speed up instance search
 			Map<String, Set<String>> engineKeywordMap = new HashMap<String, Set<String>>();
-			MasterDBHelper.findRelatedKeywordsToSetStrings(masterEngine, combinedNounSet, keywordNounMap, engineKeywordMap);
+			MasterDBHelper.findRelatedKeywordsToSetStrings(masterEngine, combinedNounSet, connectedKeywordSet, engineKeywordMap);
 			
 			Map<String, Double> similarKeywordScores = new HashMap<String, Double>();
-			String query = formInsightsForKeywordsQuery(combinedNounSet, keywordNounMap, similarKeywordScores);
+			String query = formInsightsForKeywordsQuery(combinedNounSet, connectedKeywordSet, similarKeywordScores);
 
 			ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
 			String[] names = sjsw.getVariables();
@@ -264,26 +264,19 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 		return insightList;
 	}
 	
-	
-	//TODO: shouldn't need to pass keywordNounMap -> instead pass in keyword and I should break it apart to preserve the order
-	private String formInsightsForKeywordsQuery(Set<String> keywordSet, Map<String, Set<String>> keywordNounMap, Map<String, Double> similarKeywordScores) {
+	private String formInsightsForKeywordsQuery(Set<String> keywordSet, Set<String> connectedKeywordSet, Map<String, Double> similarKeywordScores) {
 		// get list of insights for keywords if the score is above threshold
 		List<String> similarKeywordList = new ArrayList<String>();
 		
 		Iterator<String> keywordIt = keywordSet.iterator();
 		while(keywordIt.hasNext()) {
 			String keywordURI = KEYWORD_BASE_URI +"/" + keywordIt.next();
-			similarKeywordList.add(keywordURI);
-			similarKeywordScores.put(keywordURI, 0.0);
 			
-			Set<String> nounList = keywordNounMap.get(keywordURI);
-			for(String otherKeywords : keywordNounMap.keySet()) {
-				if(!otherKeywords.equals(keywordURI)) {
-					double simScore = wnComp.compareKeywords(nounList, keywordNounMap.get(otherKeywords));
-					if(wnComp.isSimilar(simScore)) {
-						similarKeywordList.add(otherKeywords);
-						similarKeywordScores.put(otherKeywords, simScore);
-					}
+			for(String otherKeywordURI : connectedKeywordSet) {
+				double simScore = wnComp.compareKeywords(keywordURI, otherKeywordURI);
+				if(wnComp.isSimilar(simScore)) {
+					similarKeywordList.add(otherKeywordURI);
+					similarKeywordScores.put(otherKeywordURI, simScore);
 				}
 			}
 		}
