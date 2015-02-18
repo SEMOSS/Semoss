@@ -736,6 +736,8 @@ public class QuestionAdministrator {
 				// and remove
 				in = ((AbstractEngine) engine).getInsight2(oldQuestion).get(0);// TODO
 				String localID = in.getId();
+				if(localID.equals("DN"))
+					in = ((AbstractEngine) engine).getInsight2URI(oldQuestion).get(0);
 				String[] localIDSplit = localID.split(":");
 				localCurrentQsKey = localIDSplit[2];
 				Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine) engine)
