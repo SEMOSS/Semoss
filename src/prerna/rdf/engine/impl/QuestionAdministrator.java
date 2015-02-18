@@ -1212,16 +1212,17 @@ public class QuestionAdministrator {
 	private String getPerspectiveURI(String perspective) {
 		String pURI = "";
 		Vector<String> pURIs = ((AbstractEngine) engine).getPerspectivesURI();
-		for (String p : pURIs) {
-			String pURIinstance = Utility.getInstanceName(p);
-			if (pURIinstance.equals(engine.getEngineName() + ":" + perspective)) {
-				pURI = p;
-				break;
+		if(pURIs != null){
+			for (String p : pURIs) {
+				String pURIinstance = Utility.getInstanceName(p);
+				if (pURIinstance.equals(engine.getEngineName() + ":" + perspective)) {
+					pURI = p;
+					break;
+				}
 			}
 		}
-		
-		//pURI will return "" if a new perspective is passed in. we will create the pURI here in this case
-		if(pURI.equals("")) {
+		//if the perspective triple has already been deleted or doesn't return for some reason, try concatenating
+		else {
 			pURI = perspectiveBaseURI + "/" + selectedEngine + ":"
 					+ perspective;
 		}
