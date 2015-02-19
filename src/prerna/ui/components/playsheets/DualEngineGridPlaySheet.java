@@ -270,7 +270,6 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 				hash.put(commonVal, overallArray);
 			}
 		} catch (RuntimeException e) {
-			e.printStackTrace();
 			logger.fatal(e);
 		}
 	}

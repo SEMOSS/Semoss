@@ -111,30 +111,24 @@ public class OCONUSSavingsMapPlaySheet extends OCONUSMapPlaySheet {
 			for (int j = 0; j < var.length; j++) {
 				colName = var[j];
 				
-				if(j==3) {
 				if (dcSiteSavingsMap.get(listElement[0]) != null) {
 					Integer size = (int) Math.round(dcSiteSavingsMap.get(listElement[0])) / 10;
 					elementHash.put("size", size);
-					System.out.println("size"+size);
 				} else {
 					elementHash.put("size", 0);
-				} }
-				else{
+				}
 				if (listElement[j] instanceof String) {
 					String text = (String) listElement[j];
 					elementHash.put(colName, text);
-					System.out.println(colName+text);
 				} else if (j != 3) {
 					value = (Double) listElement[j];
 					elementHash.put(colName, value);
-					System.out.println(colName+value);
-				}
 				}
 				
 			}
 			data.add(elementHash);
 		}
-
+		
 		allHash = new Hashtable();
 		allHash.put("dataSeries", data);
 		

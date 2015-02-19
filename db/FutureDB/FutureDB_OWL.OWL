@@ -8,16 +8,10 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DataObjectSource">
-	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
-</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/LoadSheet">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
-	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SourceType">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DataObject">
@@ -25,9 +19,6 @@
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/InterfaceControlDocument">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Designated">
-	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Payload">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
@@ -38,29 +29,17 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Provide">
 	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Delivers">
-	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/LabeledAs">
-	<rdfs:subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DataObjectSource">
-	<LabeledAs rdf:resource="http://semoss.org/ontologies/Concept/SourceType"/>
-</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
-	<Designated rdf:resource="http://semoss.org/ontologies/Concept/DataObjectSource"/>
-	<Provide rdf:resource="http://semoss.org/ontologies/Concept/InterfaceControlDocument"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DataObjectSource">
-	<Delivers rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
-</rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/InterfaceControlDocument">
-	<Payload rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
-	<Consume>
-		<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
-			<Provide rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
+	<Provide>
+		<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/InterfaceControlDocument">
+			<Payload rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
+			<Consume>
+				<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/System">
+					<Provide rdf:resource="http://semoss.org/ontologies/Concept/DataObject"/>
+				</rdf:Description>
+			</Consume>
 		</rdf:Description>
-	</Consume>
+	</Provide>
 </rdf:Description>
 
 </rdf:RDF>
