@@ -46,7 +46,7 @@
 		<script src="lib/underscore.js"></script>
 		<script src="lib/tooltip.js"></script>
 		<script src="structure changesJS_V0.4.js"></script>
-		<script src="data/dhmsm-deployment2.js"></script>
+		<script src="data/us-states.js"></script>
 		
 	</head>
 	<body>
@@ -130,9 +130,10 @@
 					   .style("fill", function(d) {
 					   		//Get data value
 					   		var value = d.properties.value;
+					   		
 					   		if (value) {
 					   			//If value exists…
-						   		return value;
+						   		return color(value);
 					   		} else {
 					   			//If value is undefined…
 						   		return "#ccc";
@@ -165,7 +166,7 @@
 						   .attr("r", function(d) {
 								return Math.sqrt(parseInt(d.size) * 0.00004);
 						   })
-						   .style("fill", "#2B2B2B")
+						   .style("fill", "#780000")
 						   .style("opacity", 0.75)
 						   						   
 						   .on('mouseover', tip.show)

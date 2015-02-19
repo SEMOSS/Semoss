@@ -91,24 +91,16 @@ public class AggregationHelper implements IAggregationHelper {
 	{
 		for( String sub : data.keySet())
 		{
-			HashMap inner = data.get(sub);
 			for ( String pred : data.get(sub).keySet())
 			{
 				Object obj = data.get(sub).get(pred);
-
-				if(pred.contains("Supports")&& obj instanceof String && ((String)obj).contains("yes"))
-				{String k = "k";}
 				boolean conceptTriple = true;
 				if( pred.contains("Relation/Contains"))
 				{
 					conceptTriple = false;
 				}
-				try {
 				( (BigDataEngine) engine).removeStatement(sub, pred, obj, conceptTriple);
-				LOGGER.error("REMOVING FROM " + engine.getEngineName() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
-				}catch(Exception e) {
-					System.out.println(sub+"......."+pred+"......."+obj);
-				}
+				LOGGER.info("REMOVING FROM " + engine.getEngineName() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
 			}
 		}		
 	}

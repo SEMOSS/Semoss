@@ -43,7 +43,7 @@
 		<script src="lib/d3.v3.js"></script>
 		<script src="lib/underscore.js"></script>
 		<script src="lib/tooltip.js"></script>
-		<script src="data/dhmsm-deployment.js"></script>
+		<script src="data/world-countries.js"></script>
 
 	</head>
 	<body>
@@ -128,7 +128,7 @@
 					   		
 					   		if (value) {
 					   			//If value exists…
-						   		return value;
+						   		return color(value);
 					   		} else {
 					   			//If value is undefined…
 						   		return "#ccc";
@@ -163,7 +163,7 @@
 						   			return 3;
 								return Math.sqrt(parseInt(d.size) * 0.00004);
 						   })
-						   .style("fill", "#2B2B2B")
+						   .style("fill", "#780000")
 						   .style("opacity", 0.75)
 						   						   
 						   .on('mouseover', tip.show)
