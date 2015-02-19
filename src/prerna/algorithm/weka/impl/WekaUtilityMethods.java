@@ -29,6 +29,7 @@ package prerna.algorithm.weka.impl;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 
 import prerna.math.BarChart;
 import prerna.util.ArrayUtilityMethods;
@@ -37,7 +38,6 @@ import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
-import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
 
@@ -48,14 +48,105 @@ public final class WekaUtilityMethods {
 	}
 
 	// cannot mix strings with doubles for attributes
-	public static Instances createInstancesFromQuery(String nameDataSet, ArrayList<Object[]> dataList, String[] names, int attributeIndex) {
+	public static Instances createInstancesFromQueryUsingBinNumerical(String nameDataSet, ArrayList<Object[]> dataList, String[] names) {
 		int numInstances = dataList.size();	
 		int i;
-		int j;
 		int numAttr = names.length;
 		boolean[] isCategorical = new boolean[numAttr];
 		HashSet<String>[] nominalValues = new HashSet[numAttr];
 		Double[][] numericValues = new Double[numAttr][numInstances];
+		preProcessQueryData(dataList, nominalValues, numericValues, isCategorical, numInstances, numAttr);
+
+		int numNumeric = 0;
+		for(i = 0; i < numAttr; i++) {
+			if(!isCategorical[i]) {
+				numNumeric++;
+			}
+		}
+		
+		String[][] binForInstance = new String[numNumeric][numInstances];
+		int counter = 0;
+		ArrayList<Attribute> attributeList = new ArrayList<Attribute>();
+		for(i = 0; i < numAttr; i++ ) {
+			//special case for predictor since it must be nominal
+			if(isCategorical[i]) {
+				ArrayList<String> nominalValuesInFV = new ArrayList<String>();
+				HashSet<String> allPossibleValues = nominalValues[i];
+				for(String val : allPossibleValues) {
+					nominalValuesInFV.add(val);
+				}
+				attributeList.add(new Attribute(names[i], nominalValuesInFV));
+			} else {
+				//create bins for numeric value
+				BarChart chart = new BarChart(ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(numericValues[i]));
+				String[] binRange = chart.getNumericalBinOrder();
+				binForInstance[counter] = chart.getAssignmentForEachObject();
+				counter++;
+				int numBins = binRange.length;
+				int z;
+				ArrayList<String> nominalValuesInBin = new ArrayList<String>();
+				for(z = 0; z < numBins; z++) {
+					nominalValuesInBin.add(binRange[z]);
+				}
+				attributeList.add(new Attribute(names[i], nominalValuesInBin));
+			}
+		}
+		//create the Instances Object to contain all the instance information
+		Instances data = new Instances(nameDataSet, attributeList, numInstances);
+		fillInstances(data, dataList, numericValues, binForInstance, isCategorical, numInstances, numAttr);
+
+		return data;
+	}
+	
+	// cannot mix strings with doubles for attributes
+	public static Instances createInstancesFromQuery(String nameDataSet, ArrayList<Object[]> dataList, String[] names, int attributeIndex) {
+		int numInstances = dataList.size();	
+		int i;
+		int numAttr = names.length;
+		boolean[] isCategorical = new boolean[numAttr];
+		HashSet<String>[] nominalValues = new HashSet[numAttr];
+		Double[][] numericValues = new Double[numAttr][numInstances];
+		preProcessQueryData(dataList, nominalValues, numericValues, isCategorical, numInstances, numAttr);
+
+		String[] binForInstance = null;
+		ArrayList<Attribute> attributeList = new ArrayList<Attribute>();
+		for(i = 0; i < numAttr; i++ ) {
+			//special case for predictor since it must be nominal
+			if(i == attributeIndex && !isCategorical[i]) {
+				//create bins for numeric value
+				BarChart chart = new BarChart(ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(numericValues[i]));
+				String[] binRange = chart.getNumericalBinOrder();
+				binForInstance = chart.getAssignmentForEachObject();
+				int numBins = binRange.length;
+				int z;
+				ArrayList<String> nominalValuesInBin = new ArrayList<String>();
+				for(z = 0; z < numBins; z++) {
+					nominalValuesInBin.add(binRange[z]);
+				}
+				attributeList.add(new Attribute(names[i], nominalValuesInBin));
+			} else if(isCategorical[i]) {
+				ArrayList<String> nominalValuesInFV = new ArrayList<String>();
+				HashSet<String> allPossibleValues = nominalValues[i];
+				for(String val : allPossibleValues) {
+					nominalValuesInFV.add(val);
+				}
+				attributeList.add(new Attribute(names[i], nominalValuesInFV));
+			} else {
+				attributeList.add(new Attribute(names[i]));
+			}
+		}
+		//create the Instances Object to contain all the instance information
+		Instances data = new Instances(nameDataSet, attributeList, numInstances);
+		fillInstances(data, dataList, numericValues, binForInstance, isCategorical, numInstances, numAttr, attributeIndex);
+
+		return data;
+	}
+	
+	// process information to determine data types
+	private static void preProcessQueryData(ArrayList<Object[]> dataList, HashSet<String>[] nominalValues, Double[][] numericValues, boolean[] isCategorical, int numInstances, int numAttr) {
+		int i;
+		int j;
+		
 		for(i = 0; i < numAttr; i++) {
 			if(nominalValues[i] == null) {
 				nominalValues[i] = new HashSet<String>();
@@ -88,37 +179,46 @@ public final class WekaUtilityMethods {
 				isCategorical[i] = false;
 			}
 		}
-
-		String[] binForInstance = null;
-		FastVector attributeList = new FastVector();
-		for(i = 0; i < numAttr; i++ ) {
-			//special case for predictor since it must be nominal
-			if(i == attributeIndex && !isCategorical[i]) {
-				//create bins for numeric value
-				BarChart chart = new BarChart(ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(numericValues[i]));
-				String[] binRange = chart.getNumericalBinOrder();
-				binForInstance = chart.getAssignmentForEachObject();
-				int numBins = binRange.length;
-				int z;
-				FastVector nominalValuesInBin = new FastVector();
-				for(z = 0; z < numBins; z++) {
-					nominalValuesInBin.addElement(binRange[z]);
+	}
+	
+	// fills in Instances object
+	private static void fillInstances(Instances data, ArrayList<Object[]> dataList, Double[][] numericValues, String[][] binForInstance, boolean[] isCategorical, int numInstances, int numAttr) {
+		int i;
+		int j;
+		
+		for(i = 0; i < numInstances; i++) {
+			Instance dataEntry = new DenseInstance(numAttr);
+			dataEntry.setDataset(data);
+			Object[] dataRow = dataList.get(i);
+			int counter = 0;
+			for(j = 0; j < numAttr; j++) {
+				if(!isCategorical[j]) {
+					String val = binForInstance[counter][i];
+					if(!val.equals("NaN")) {
+						dataEntry.setValue(j, val);
+					}
+					counter++;
+				} else {
+					Object valAttr = dataRow[j];
+					if(!valAttr.toString().isEmpty() && !valAttr.toString().equals("?")) {
+						if(isCategorical[j]) {
+							dataEntry.setValue(j, valAttr.toString());
+						} else {
+							dataEntry.setValue(j, numericValues[j][i]); // take the numeric values to prevent re-casting
+						}
+					}
 				}
-				attributeList.addElement(new Attribute(names[i], nominalValuesInBin));
-			} else if(isCategorical[i]) {
-				FastVector nominalValuesInFV = new FastVector();
-				HashSet<String> allPossibleValues = nominalValues[i];
-				for(String val : allPossibleValues) {
-					nominalValuesInFV.addElement(val);
-				}
-				attributeList.addElement(new Attribute(names[i], nominalValuesInFV));
-			} else {
-				attributeList.addElement(new Attribute(names[i]));
 			}
+//			System.out.println(dataEntry);
+			data.add(dataEntry);
 		}
-		//create the Instances Object to contain all the instance information
-		Instances data = new Instances(nameDataSet, attributeList, numInstances);
-
+	}
+	
+	// fills in Instances object
+	private static void fillInstances(Instances data, ArrayList<Object[]> dataList, Double[][] numericValues, String[] binForInstance, boolean[] isCategorical, int numInstances, int numAttr, int attributeIndex) {
+		int i;
+		int j;
+		
 		for(i = 0; i < numInstances; i++) {
 			Instance dataEntry = new DenseInstance(numAttr);
 			dataEntry.setDataset(data);
@@ -143,8 +243,6 @@ public final class WekaUtilityMethods {
 //			System.out.println(dataEntry);
 			data.add(dataEntry);
 		}
-
-		return data;
 	}
 	
 	public static Instances[][] crossValidationSplit(Instances data, int numberOfFolds) {
@@ -167,21 +265,21 @@ public final class WekaUtilityMethods {
 		return evaluation;
 	}
 	
-	public static double calculateAccuracy(FastVector predCorrect) {
+	public static double calculateAccuracy(List<Double> predCorrect) {
 		double sumPerCorrect = 0;
 		int size = predCorrect.size();
 		for (int i = 0; i < size; i++) {
-			sumPerCorrect+= (double) predCorrect.elementAt(i);
+			sumPerCorrect+= (double) predCorrect.get(i);
 		}
 
 		return sumPerCorrect / size;
 	}
 
-	public static double calculatePercision(FastVector kappaValues) {
+	public static double calculatePercision(List<Double> kappaValues) {
 		double sumKappa = 0;
 		int size = kappaValues.size();
 		for (int i = 0; i < size; i++) {
-			sumKappa+= (double) kappaValues.elementAt(i);
+			sumKappa+= (double) kappaValues.get(i);
 		}
 
 		return sumKappa / size;
