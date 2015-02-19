@@ -108,7 +108,7 @@ public class WekaAprioriAlgorithm {
 			String name = category.name();
 			String value = item.getItemValueAsString();
 			
-			tableRow[indexMap.get(name)] = value;
+			tableRow[indexMap.get(name)-1] = value;
 		}
 	}
 	
