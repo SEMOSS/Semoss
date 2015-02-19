@@ -237,11 +237,55 @@ public class RunAlgorithmListener extends AbstractListener {
 			return;
 			
 		} else if(algorithm.equals("Frequent Sets")) { 
-		
+			String numRuleString = playSheet.getEnterNumRulesTextField().getText();
+			String confIntervalString = playSheet.getEnterConfIntervalTextField().getText();
+			String minSupportString = playSheet.getEnterMinSupportTextField().getText();
+			
+			String errorMessage = "";
+			
+			int numRule = -1;
+			try {
+				numRule = Integer.parseInt(numRuleString);
+			} catch(NumberFormatException ex) {
+				errorMessage += "Number of Rules must be a integer value.  Using default value of 10. \n";
+				numRule = 10;
+			}
+			
+			double confPer = -1;
+			try {
+				confPer = Double.parseDouble(confIntervalString);
+				if(confPer < 0 || confPer > 1) {
+					errorMessage += "Conf Interval must be a value between 0 and 1.  Using default value of 0.9. \n";
+					confPer = 0.9;
+				}
+			} catch(NumberFormatException ex) {
+				errorMessage += "Conf Interval must be a value between 0 and 1.  Using default value of 0.9. \n";
+				confPer = 0.9;
+			}
+			
+			double minSupport = -1;
+			try {
+				minSupport = Double.parseDouble(minSupportString);
+				if(minSupport < 0 || minSupport > 1) {
+					errorMessage += "Min Support must be a value between 0 and 1.  Using default value of 0.1. \n";
+					minSupport = 0.9;
+				}
+			} catch(NumberFormatException ex) {
+				errorMessage += "Min Support must be a value between 0 and 1.  Using default value of 0.1. \n";
+				minSupport = 0.9;
+			}
+			
+			if(!errorMessage.isEmpty()) {
+				Utility.showError(errorMessage);
+			}
+			
 			newPlaySheet = new WekaAprioriPlaySheet();
 			newPlaySheet.setList(filteredList);
 			newPlaySheet.setNames(filteredNames);
 			((WekaAprioriPlaySheet)newPlaySheet).setJTab(jTab);
+			((WekaAprioriPlaySheet)newPlaySheet).setNumRules(numRule);
+			((WekaAprioriPlaySheet)newPlaySheet).setConfPer(confPer);
+			((WekaAprioriPlaySheet)newPlaySheet).setMinSupport(minSupport);
 		} else if(algorithm.equals("Matrix Regression")) {
 			//column to use as dependent variable
 			String depVar = matrixDepVarComboBox.getSelectedItem() + "";
