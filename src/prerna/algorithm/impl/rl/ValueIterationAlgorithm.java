@@ -31,17 +31,10 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-
-import prerna.ui.components.playsheets.RLGridPlaySheet;
-
 public class ValueIterationAlgorithm {
 	
-	private static final Logger LOGGER = LogManager.getLogger(ValueIterationAlgorithm.class.getName());
-	
-	private double discountRate = .99999;
-	private double errorApprox = .00000001; //if this becomes >=1, need to adjust while loop.
+	private double discountRate = 1.0;
+	private double errorApprox = 0.1; //if this becomes >=1, need to adjust while loop.
 	private BigDecimal initialPolicyVal = new BigDecimal(0.0);
 	private ArrayList<State> stateList;
 	private ArrayList<Action> actionList;
@@ -61,17 +54,13 @@ public class ValueIterationAlgorithm {
 	}
 
 	public void findOptimalPolicy() {
-		BigDecimal error  = new BigDecimal(.01);
 		initialize();
 		
 		int count = 1;
-		BigDecimal delta = new BigDecimal((1-discountRate) / discountRate + 1);
-		BigDecimal convergeVal = new BigDecimal((1-discountRate) / discountRate);
-		convergeVal = convergeVal.multiply(error);
-		while(delta.compareTo(convergeVal) > 0 ) {
-			LOGGER.error("Running iteration "+count);
+		double delta = (1-discountRate) / discountRate + 1;
+		while(delta > (1-discountRate) / discountRate* errorApprox) {
 			Hashtable<State, BigDecimal> fvHash =  calculateMaxPolicyValueIteration();
-			delta = new BigDecimal( calculateFVAndPolicyValDelta(fvHash));
+			delta = calculateFVAndPolicyValDelta(fvHash);
 			optimalPolicyValHash = fvHash;
 //			System.out.println("ITERATION "+count+" RESULTS:");
 //			System.out.println("MAXIMUM DELTA: "+delta);
@@ -80,10 +69,10 @@ public class ValueIterationAlgorithm {
 			
 			count++;
 		}
-//		System.out.println("ITERATION "+count+" RESULTS:");
-//		System.out.println("MAXIMUM DELTA: "+delta);
-//		printStateActionPolicyVal();
-//		System.out.println();
+		System.out.println("ITERATION "+count+" RESULTS:");
+		System.out.println("MAXIMUM DELTA: "+delta);
+		printStateActionPolicyVal();
+		System.out.println();
 	}
 	
 	public void findNormalPolicy() {
