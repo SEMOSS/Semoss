@@ -304,7 +304,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		algorithmComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		algorithmComboBox.setBackground(Color.GRAY);
 		algorithmComboBox.setPreferredSize(new Dimension(100, 25));
-		algorithmComboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"Cluster", "Classify","Outliers","Similarity","Predictability"}));
+		algorithmComboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"Cluster", "Classify","Outliers","Frequent Sets","Similarity","Predictability"}));
 		GridBagConstraints gbc_algorithmComboBox = new GridBagConstraints();
 		gbc_algorithmComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_algorithmComboBox.fill = GridBagConstraints.NONE;

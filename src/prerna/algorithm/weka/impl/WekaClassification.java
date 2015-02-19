@@ -29,20 +29,19 @@ package prerna.algorithm.weka.impl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.poi.main.AbstractFileReader;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
-import weka.core.FastVector;
 import weka.core.Instances;
 
 public class WekaClassification {
 
-	private static final Logger LOGGER = LogManager.getLogger(AbstractFileReader.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(WekaClassification.class.getName());
 
 	private Instances data;
 	
@@ -61,28 +60,8 @@ public class WekaClassification {
 	private String modelName;
 	private int classIndex;
 	
-	private FastVector<Double> accuracyArr = new FastVector<Double>();
-	private FastVector<Double> precisionArr = new FastVector<Double>();
-	
-	public FastVector<Double> getAccuracyArr() {
-		return accuracyArr;
-	}
-
-	public FastVector<Double> getPrecisionArr() {
-		return precisionArr;
-	}
-	
-	public double getAccuracy() {
-		return accuracy;
-	}
-	
-	public double getPrecision() {
-		return precision;
-	}
-	
-	public String getTreeAsString() {
-		return treeAsString;
-	}
+	private List<Double> accuracyArr = new ArrayList<Double>();
+	private List<Double> precisionArr = new ArrayList<Double>();
 	
 	/**
 	 * Constructor to run classification algorithms in WEKA package
@@ -110,14 +89,10 @@ public class WekaClassification {
 		LOGGER.info("Starting classification algorithm using " + modelName + " to predict variable " + names[classIndex] + "...");
 	}
 
-	public Map<String, Map> getTreeMap() {
-		return treeMap;
-	}
-	
 	//error will be thrown when trying to classify a variable that is always the same value
 	public void execute() throws Exception{
 		LOGGER.info("Generating Weka Instances object...");
-		this.data = WekaUtilityMethods.createInstancesFromQuery("Test", list, names, classIndex);
+		this.data = WekaUtilityMethods.createInstancesFromQuery("Classification dataset using " + modelName, list, names, classIndex);
 		data.setClassIndex(classIndex);
 		
 		// cannot classify when only one value
@@ -309,4 +284,28 @@ public class WekaClassification {
 		}
 	}
 	
+	public List<Double> getAccuracyArr() {
+		return accuracyArr;
+	}
+
+	public List<Double> getPrecisionArr() {
+		return precisionArr;
+	}
+	
+	public double getAccuracy() {
+		return accuracy;
+	}
+	
+	public double getPrecision() {
+		return precision;
+	}
+	
+	public String getTreeAsString() {
+		return treeAsString;
+	}
+	
+	public Map<String, Map> getTreeMap() {
+		return treeMap;
+	}
+
 }
