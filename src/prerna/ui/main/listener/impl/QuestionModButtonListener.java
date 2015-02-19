@@ -336,8 +336,7 @@ public class QuestionModButtonListener implements IChakraListener {
 		// populate the fields with data based on question
 		getFieldData();
 
-		questionAdmin = new QuestionAdministrator(engine, questionList,
-				selectedPerspective, questionModType);
+		questionAdmin = new QuestionAdministrator(engine);
 
 		// get the perspectives from the combobox
 		DefaultComboBoxModel model = (DefaultComboBoxModel) questionPerspectiveSelector
@@ -398,7 +397,7 @@ public class QuestionModButtonListener implements IChakraListener {
 				// .getInsights(perspective);
 				questionKey = questionAdmin.createQuestionKey(perspective);
 
-				questionAdmin.addQuestion(perspective, questionKey, order,
+				questionAdmin.cleanAddQuestion(perspective, questionKey, order,
 						question, sparql, layout, questionDescription,
 						parameterDependListVector, parameterQueryListVector,
 						parameterOptionListVector);
@@ -578,7 +577,7 @@ public class QuestionModButtonListener implements IChakraListener {
 
 				if (dialogResult == JOptionPane.YES_OPTION) {
 					questionAdmin
-							.deleteQuestion(perspective, questionKey, order,
+							.cleanDeleteQuestion(perspective, questionKey, order,
 									question, sparql, layout,
 									questionDescription,
 									parameterDependListVector,
