@@ -36,7 +36,8 @@ public class WekaAprioriAlgorithm {
 	
 	private int numRules = 10; // number of rules to output
 	private double confPer = 0.9; // min confidence lvl (percentage)
-	private double minSupport = 0.1; // min number of rows required for rule (percentage of total rows of data);
+	private double minSupport = 0.1; // min number of rows required for rule (percentage of total rows of data)
+	private double maxSupport = 1.0; // max number of rows required for rule (percentage of total rows of data)
 	
 	public WekaAprioriAlgorithm() {
 		
@@ -62,6 +63,7 @@ public class WekaAprioriAlgorithm {
 		apriori.setNumRules(numRules);
 		apriori.setMinMetric(confPer);
 		apriori.setLowerBoundMinSupport(minSupport);
+		apriori.setUpperBoundMinSupport(maxSupport);
 		
 		LOGGER.info("Running Apriori Algorithm...");
 		apriori.buildAssociations( data );
@@ -224,6 +226,14 @@ public class WekaAprioriAlgorithm {
 
 	public void setMinSupport(double minSupport) {
 		this.minSupport = minSupport;
+	}
+	
+	public double getMaxSupport() {
+		return maxSupport;
+	}
+
+	public void setMaxSupport(double maxSupport) {
+		this.maxSupport = maxSupport;
 	}
 	
 	public String[] getRetNames() {
