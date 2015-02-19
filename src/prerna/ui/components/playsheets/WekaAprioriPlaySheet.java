@@ -29,13 +29,11 @@ public class WekaAprioriPlaySheet extends GridPlaySheet{
 	private static final Logger LOGGER = LogManager.getLogger(WekaAprioriPlaySheet.class.getName());
 
 	private WekaAprioriAlgorithm alg;
+
+	private int numRules = -1; // number of rules to output
+	private double confPer = -1; // min confidence lvl (percentage)
+	private double minSupport = -1; // min number of rows required for rule (percentage of total rows of data);
 	
-	protected JTabbedPane jTab;
-
-	public WekaAprioriPlaySheet() {
-		super();
-	}
-
 	@Override
 	public void createData() {
 		generateData();
@@ -64,6 +62,15 @@ public class WekaAprioriPlaySheet extends GridPlaySheet{
 	public void runAlgorithm() {
 		LOGGER.info("Creating apriori algorithm for instance: " + names[0]);
 		alg = new WekaAprioriAlgorithm(list, names);
+		if(numRules != -1) {
+			alg.setNumRules(numRules);
+		}
+		if(confPer != -1) {
+			alg.setConfPer(confPer);
+		}
+		if(minSupport != -1) {
+			alg.setMinSupport(minSupport);
+		}
 		try {
 			alg.execute();
 			alg.generateDecisionRuleTable();
@@ -147,6 +154,36 @@ public class WekaAprioriPlaySheet extends GridPlaySheet{
 		gbc_scrollPane.gridx = 0;
 		gbc_scrollPane.gridy = 0;
 		panel.add(scrollPane, gbc_scrollPane);
+	}
+	
+	public int getNumRules() {
+		return numRules;
+	}
+
+	public void setNumRules(int numRules) {
+		this.numRules = numRules;
+	}
+
+	public double getConfPer() {
+		return confPer;
+	}
+
+	public void setConfPer(double confPer) {
+		this.confPer = confPer;
+	}
+
+	public double getMinSupport() {
+		return minSupport;
+	}
+
+	public void setMinSupport(double minSupport) {
+		this.minSupport = minSupport;
+	}
+
+	protected JTabbedPane jTab;
+
+	public WekaAprioriPlaySheet() {
+		super();
 	}
 
 }
