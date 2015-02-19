@@ -58,6 +58,8 @@ public class WekaAprioriAlgorithm {
 		apriori.buildAssociations( data );
 		LOGGER.info("Finished Running Algorithm...");
 		
+		System.out.println(apriori.toString());
+		
 		AssociationRules rules = apriori.getAssociationRules();
 		List<AssociationRule> ruleList = rules.getRules();
 		int numRule = 0;
