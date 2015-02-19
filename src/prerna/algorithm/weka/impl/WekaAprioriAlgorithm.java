@@ -23,7 +23,6 @@ public class WekaAprioriAlgorithm {
 	private Instances data;
 	private String[] names;
 	private ArrayList<Object[]> list;
-	private int classIndex;
 	
 	private Map<Integer, Collection<Item>> premises;
 	private Map<Integer, Collection<Item>> consequences;
@@ -36,10 +35,9 @@ public class WekaAprioriAlgorithm {
 		
 	}
 	
-	public WekaAprioriAlgorithm(ArrayList<Object[]> list, String[] names, int classIndex) {
+	public WekaAprioriAlgorithm(ArrayList<Object[]> list, String[] names) {
 		this.list = list;
 		this.names = names;
-		this.classIndex = classIndex;
 
 		LOGGER.info("Starting apriori algorithm using... ");
 	}
@@ -51,7 +49,6 @@ public class WekaAprioriAlgorithm {
 		
 		LOGGER.info("Generating Weka Instances object...");
 		this.data = WekaUtilityMethods.createInstancesFromQueryUsingBinNumerical("Apriori dataset", list, names);
-		data.setClassIndex(classIndex);
 
 		Apriori apriori = new Apriori();
 		LOGGER.info("Running Apriori Algorithm...");
@@ -73,14 +70,13 @@ public class WekaAprioriAlgorithm {
 	
 	public void generateDecisionRuleTable() {
 		LOGGER.info("Generating Decision Table...");
-		int numCategories = names.length;
-		int numCols = numCategories + 1;
+		int numCols = names.length;
 		retNames = new String[numCols];
-		int i = 0;
-		for(; i < numCategories; i++) {
-			retNames[i] = names[i];
+		int i = 1;
+		for(; i < numCols; i++) {
+			retNames[i-1] = names[i];
 		}
-		retNames[i] = "Count";
+		retNames[i-1] = "Count";
 		
 		retList = new ArrayList<Object[]>();
 
@@ -138,14 +134,6 @@ public class WekaAprioriAlgorithm {
 
 	public void setList(ArrayList<Object[]> list) {
 		this.list = list;
-	}
-
-	public int getClassIndex() {
-		return classIndex;
-	}
-
-	public void setClassIndex(int classIndex) {
-		this.classIndex = classIndex;
 	}
 
 	public Map<Integer, Collection<Item>> getPremises() {
