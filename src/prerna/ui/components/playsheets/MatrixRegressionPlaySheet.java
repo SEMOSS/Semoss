@@ -92,9 +92,9 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 		//create A from the list
 		int newNumCols;
 		if(bColumnIndex==-1)
-			newNumCols = numCols - 1;//subtract out string/identifier only since b created separately
+			newNumCols = numCols;//subtract out string/identifier only since b created separately
 		else
-			newNumCols = numCols - 2;//subtract out string/identifier and b
+			newNumCols = numCols - 1;//subtract out string/identifier and b
 			
 		double[][] A = new double[numRows][newNumCols];
 		for(i=0;i<numRows;i++) {
@@ -106,24 +106,57 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 					newIndex++;
 				}
 			}
+			A[i][newIndex-1] = 1;
 		}
 		
 		MatrixRegressionAlgorithm alg = new MatrixRegressionAlgorithm(A, b);
 		alg.execute();
-		
 		double[] coeffArray = alg.getCoeffArray();
-		Object[] coeffRow = new Object[coeffArray.length+2];
-		int oldIndex = 0;
-		for(i=0;i<coeffRow.length;i++) {
-			if(i==0) {
-				coeffRow[i] = "COEFFICIENTS";
-			}else if(i==bColumnIndex) {
-				coeffRow[i] = "-";
-			}else if(i!=bColumnIndex) {
-				coeffRow[i] = coeffArray[oldIndex];
-				oldIndex++;
+		
+		//add in estimated and residuals for each row determined using coefficients
+		for(i=0;i<numRows;i++) {
+			double actualVal = (Double)list.get(i)[bColumnIndex];
+			
+			double estimatedVal = 0.0;
+			for(j=0;j<newNumCols;j++) {
+				estimatedVal += A[i][j]*coeffArray[j];
+			}
+			
+			Object[] newRow = new Object[newNumCols+3];
+			newRow[0] = list.get(i)[0];
+			for(j=0;j<newNumCols-1;j++) {
+				newRow[j+1] = A[i][j];
+			}
+			newRow[j+1] = actualVal;
+			newRow[j+2] = estimatedVal;
+			newRow[j+3] = Math.abs(actualVal-estimatedVal);
+
+			list.set(i, newRow);
+		}
+		
+		//add in new columns for estimated and residual
+		String[] namesWithEstimateAndResiduals = new String[names.length+2];
+		int newIndex = 0;
+		for(i=0;i<names.length;i++) {
+			if(i!=bColumnIndex) {
+				namesWithEstimateAndResiduals[newIndex]  = names[i];
+				newIndex++;
 			}
 		}
+		namesWithEstimateAndResiduals[newIndex]  = "Actual- " + names[bColumnIndex];
+		namesWithEstimateAndResiduals[newIndex+1] = "Estimated- " + names[bColumnIndex];
+		namesWithEstimateAndResiduals[newIndex+2] = "Residual- " + names[bColumnIndex];
+
+		names = namesWithEstimateAndResiduals;
+		
+		Object[] coeffRow = new Object[names.length];
+		coeffRow[0] = "COEFFICIENTS";
+		for(i=0;i<coeffArray.length-1;i++)
+			coeffRow[i+1] = coeffArray[i];
+		coeffRow[i+1] = "b is "+coeffArray[coeffArray.length-1];
+		coeffRow[i+2] = "-";
+		coeffRow[i+3] = "-";	
+		
 		list.add(0,coeffRow);
 
 	}
