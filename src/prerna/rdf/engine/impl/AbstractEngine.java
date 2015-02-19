@@ -550,7 +550,7 @@ public abstract class AbstractEngine implements IEngine {
 							parameterOptionList.add(parameterOptionKey + "_-_" + parameterOptionValue);
 						}
 					}
-					questionAdmin.addQuestion(perspective, qsKey, qsOrder, qsDescr, sparql, layoutName, description, parameterDependList, parameterQueryList, parameterOptionList);
+					questionAdmin.cleanAddQuestion(perspective, qsKey, qsOrder, qsDescr, sparql, layoutName, description, parameterDependList, parameterQueryList, parameterOptionList);
 					count++;
 				}
 				logger.info("Loaded Perspective " + key);
