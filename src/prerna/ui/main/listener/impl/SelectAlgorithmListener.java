@@ -66,7 +66,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
 			playSheet.showOutlier(true);
-		} else if(selection.equals("Similarity") || selection.equals("Predictability")) {
+		} else if(selection.equals("Similarity") || selection.equals("Predictability") || selection.equals("Frequent Sets")) {
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
 			playSheet.showOutlier(false);
