@@ -57,6 +57,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.cluster.ClusterRemoveDuplicates;
+import prerna.algorithm.cluster.ClusteringDataProcessor;
 import prerna.algorithm.cluster.DatasetSimilarity;
 import prerna.algorithm.cluster.GenerateEntropyDensity;
 import prerna.math.BarChart;
@@ -98,6 +99,9 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	private JCheckBox checkboxSelectAllIVs;
 	private SelectCheckboxesListener selectAllIVsList;
 	public JPanel indVariablesPanel;
+	// lists of all the categorical and numerical property names 
+	public String[] categoryPropNames;
+	private String[] numericalPropNames;
 	
 	//data set similarity chart
 	private BrowserGraphPanel simBarChartPanel;
@@ -129,6 +133,11 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	private JLabel lblEnterKNeighbors;
 	private JSlider enterKNeighborsSlider;
 	
+	//matrix regression panel components
+	private JPanel matrixRegPanel;
+	private JComboBox<String> matrixDepVarComboBox;
+	private JLabel lblSelectDepVar;
+	
 	//drill down panel components
 	private JToggleButton showDrillDownBtn;
 	private JPanel drillDownPanel;
@@ -154,6 +163,11 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		ClusterRemoveDuplicates crd = new ClusterRemoveDuplicates(list, names);
 		this.list = crd.getRetMasterTable();
 		this.names = crd.getRetVarNames();
+		
+		LOGGER.info("Formatting dataset to run algorithm...");
+		ClusteringDataProcessor cdp = new ClusteringDataProcessor(list, names);
+		categoryPropNames = cdp.getCategoryPropNames();
+		numericalPropNames = cdp.getNumericalPropNames();
 		
 	}
 	@Override
@@ -304,7 +318,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		algorithmComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		algorithmComboBox.setBackground(Color.GRAY);
 		algorithmComboBox.setPreferredSize(new Dimension(100, 25));
-		algorithmComboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"Cluster", "Classify","Outliers","Frequent Sets","Similarity","Predictability"}));
+		algorithmComboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"Cluster", "Classify","Outliers","Frequent Sets","Similarity","Predictability","Matrix Regression"}));
 		GridBagConstraints gbc_algorithmComboBox = new GridBagConstraints();
 		gbc_algorithmComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_algorithmComboBox.fill = GridBagConstraints.NONE;
@@ -350,9 +364,21 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		variableSelectorPanel.add(outlierPanel, gbc_outlierPanel);
 		outlierPanel.setVisible(false);
 		
+		matrixRegPanel = new JPanel();
+		GridBagConstraints gbc_matrixRegPanel = new GridBagConstraints();
+		gbc_matrixRegPanel.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_matrixRegPanel.fill = GridBagConstraints.NONE;
+		gbc_matrixRegPanel.gridwidth = 3;
+		gbc_matrixRegPanel.insets = new Insets(5, 15, 0, 0);
+		gbc_matrixRegPanel.gridx = 1;
+		gbc_matrixRegPanel.gridy = 3;
+		variableSelectorPanel.add(matrixRegPanel, gbc_matrixRegPanel);
+		matrixRegPanel.setVisible(false);
+
 		fillClusterPanel(clusterPanel);
 		fillClassifyPanel(classifyPanel);
 		fillOutlierPanel(outlierPanel);
+		fillMatrixRegPanel(matrixRegPanel);
 		
 		runAlgorithm = new CustomButton("Run Algorithm");
 		runAlgorithm.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -708,6 +734,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		classifyPanel.add(lblSelectClass, gbc_lblSelectClass);
 
 		classComboBox = new JComboBox<String>();
+		classComboBox.setName("classComboBox");
 		classComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		classComboBox.setBackground(Color.GRAY);
 		classComboBox.setPreferredSize(new Dimension(250, 25));
@@ -789,6 +816,45 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_getEnterKNeighborsSlider.gridy = 1;
 		outlierPanel.add(enterKNeighborsSlider, gbc_getEnterKNeighborsSlider);
 	}
+	
+	private void fillMatrixRegPanel(JPanel matrixRegPanel) {
+	
+		GridBagLayout gbl_matrixRegPanel = new GridBagLayout();
+		gbl_matrixRegPanel.columnWidths = new int[]{0, 0, 0};
+		gbl_matrixRegPanel.rowHeights = new int[]{0, 0, 0};
+		gbl_matrixRegPanel.columnWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
+		gbl_matrixRegPanel.rowWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
+		matrixRegPanel.setLayout(gbl_matrixRegPanel);
+		
+		lblSelectDepVar = new JLabel("Select Dependent Var:");
+		lblSelectDepVar.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_lblSelectDepVar = new GridBagConstraints();
+		gbc_lblSelectDepVar.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_lblSelectDepVar.fill = GridBagConstraints.NONE;
+		gbc_lblSelectDepVar.insets = new Insets(10, 5, 0, 0);
+		gbc_lblSelectDepVar.gridx = 0;
+		gbc_lblSelectDepVar.gridy = 0;
+		matrixRegPanel.add(lblSelectDepVar, gbc_lblSelectDepVar);
+
+		matrixDepVarComboBox = new JComboBox<String>();
+		matrixDepVarComboBox.setName("matrixDepVarComboBox");
+		matrixDepVarComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		matrixDepVarComboBox.setBackground(Color.GRAY);
+		matrixDepVarComboBox.setPreferredSize(new Dimension(250, 25));
+
+		matrixDepVarComboBox.setModel(new DefaultComboBoxModel<String>(numericalPropNames));
+		GridBagConstraints gbc_matrixDepVarComboBox = new GridBagConstraints();
+		gbc_matrixDepVarComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_matrixDepVarComboBox.fill = GridBagConstraints.NONE;
+		gbc_matrixDepVarComboBox.insets = new Insets(5, 5, 0, 0);
+		gbc_matrixDepVarComboBox.gridx = 1;
+		gbc_matrixDepVarComboBox.gridy = 0;
+		matrixRegPanel.add(matrixDepVarComboBox, gbc_matrixDepVarComboBox);
+		ClassificationSelectionListener classSelectList = new ClassificationSelectionListener();
+		classSelectList.setView(this);
+		matrixDepVarComboBox.addActionListener(classSelectList);
+	}
+
 
 	public void fillDrillDownPanel(JPanel drillDownPanel) {
 		GridBagLayout gbl_drillDownPanel = new GridBagLayout();
@@ -896,16 +962,27 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		lblSelectClassMethod.setVisible(show);
 		classComboBox.setVisible(show);
 		classificationMethodComboBox.setVisible(show);
+		enableAllCheckboxes();
 		if(show) {
 			String selection = classComboBox.getSelectedItem() + "";
-			setDisabledCheckBox(selection);
-		} else
-			setDisabledCheckBox("");//all checkboxes will be enabled
+			disableCheckBox(selection,true);
+		}
 	}
 	public void showOutlier(Boolean show) {
 		outlierPanel.setVisible(show);
 		lblEnterKNeighbors.setVisible(show);
 		enterKNeighborsSlider.setVisible(show);
+	}
+	public void showMatrixRegression(Boolean show) {
+		matrixRegPanel.setVisible(show);
+		lblSelectDepVar.setVisible(show);
+		matrixDepVarComboBox.setVisible(show);
+		enableAllCheckboxes();
+		if(show) {
+			disableCheckBoxes(categoryPropNames,false);
+			String selection = matrixDepVarComboBox.getSelectedItem() + "";
+			disableCheckBox(selection,true);
+		}
 	}
 	public void enableDrillDown() {
 		showDrillDownBtn.setEnabled(true);
@@ -973,14 +1050,31 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 			}
 		}
 	}
-	public void setDisabledCheckBox(String checkboxToDisable){
+	
+	public void enableAllCheckboxes() {
+		for(JCheckBox checkbox : ivCheckboxes) {
+			checkbox.setEnabled(true);
+		}
+	}
+	
+	public void disableCheckBox(String checkboxToDisable,Boolean selected){//was true before
 		for(JCheckBox checkbox : ivCheckboxes) {
 			String name = checkbox.getName();
 			if(name.equals(checkboxToDisable + checkboxName)) {
-				checkbox.setSelected(true);
+				checkbox.setSelected(selected);
 				checkbox.setEnabled(false);
-			} else {
-				checkbox.setEnabled(true);
+			}
+		}
+	}
+	
+	public void disableCheckBoxes(String[] checkboxesToDisable,Boolean selected){
+		for(JCheckBox checkbox : ivCheckboxes) {
+			String name = checkbox.getName();
+			for(int i=0;i<checkboxesToDisable.length;i++) {
+				if(name.equals(checkboxesToDisable[i] + checkboxName)) {
+					checkbox.setSelected(selected);
+					checkbox.setEnabled(false);
+				}
 			}
 		}
 	}
@@ -1025,6 +1119,9 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	}
 	public JSlider getEnterKNeighborsSlider() {
 		return enterKNeighborsSlider;
+	}
+	public JComboBox<String> getMatrixDepVarComboBox() {
+		return matrixDepVarComboBox;
 	}
 	public JToggleButton getShowDrillDownBtn() {
 		return showDrillDownBtn;

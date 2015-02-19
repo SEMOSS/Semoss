@@ -28,9 +28,7 @@
 package prerna.ui.main.listener.impl;
 
 import java.awt.event.ActionEvent;
-import java.util.ArrayList;
 
-import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
@@ -44,7 +42,7 @@ import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;
  * Greys out row in independent variable table when it has been selected
  */
 public class ClassificationSelectionListener extends AbstractListener {
-	static final Logger logger = LogManager.getLogger(ClassificationSelectionListener.class.getName());
+	static final Logger LOGGER = LogManager.getLogger(ClassificationSelectionListener.class.getName());
 	
 	//given two panels, the cluster panel and the classify panel and determines which one to show based on what is clicked.
 	private ClassifyClusterPlaySheet playSheet;
@@ -56,8 +54,17 @@ public class ClassificationSelectionListener extends AbstractListener {
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		JComboBox<String> bx = (JComboBox<String>)e.getSource();
-		String selection = bx.getSelectedItem() + "";
-		playSheet.setDisabledCheckBox(selection);
+		playSheet.enableAllCheckboxes();
+		if(bx.getName().equals("classComboBox")) {
+			String selection = bx.getSelectedItem() + "";
+			playSheet.disableCheckBox(selection,true);
+		}else if(bx.getName().equals("matrixDepVarComboBox")) {
+			playSheet.disableCheckBoxes(playSheet.categoryPropNames,false);
+			String selection = bx.getSelectedItem() + "";
+			playSheet.disableCheckBox(selection,true);
+		}else {
+			LOGGER.error("JComboBox name does not match any of the options.");
+		}
 
 	}
 

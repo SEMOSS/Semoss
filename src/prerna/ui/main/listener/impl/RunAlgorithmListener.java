@@ -51,6 +51,7 @@ import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
 import prerna.ui.components.playsheets.LocalOutlierPlaySheet;
 import prerna.ui.components.playsheets.WekaAprioriPlaySheet;
+import prerna.ui.components.playsheets.MatrixRegressionPlaySheet;
 import prerna.ui.components.playsheets.WekaClassificationPlaySheet;
 import prerna.ui.helpers.ClusteringModuleUpdateRunner;
 import prerna.ui.helpers.PlaysheetCreateRunner;
@@ -80,6 +81,9 @@ public class RunAlgorithmListener extends AbstractListener {
 	
 	//outlier
 	private JSlider enterKNeighborsSlider;
+	
+	//matrix regression
+	private JComboBox<String> matrixDepVarComboBox;
 	
 	private JToggleButton showDrillDownBtn;
 	private JComboBox<String> drillDownTabSelectorComboBox;
@@ -238,9 +242,26 @@ public class RunAlgorithmListener extends AbstractListener {
 			newPlaySheet.setList(filteredList);
 			newPlaySheet.setNames(filteredNames);
 			((WekaAprioriPlaySheet)newPlaySheet).setJTab(jTab);
-		}
-		
-		else {
+		} else if(algorithm.equals("Matrix Regression")) {
+			//column to use as dependent variable
+			String depVar = matrixDepVarComboBox.getSelectedItem() + "";
+			int depVarIndex = filteredNames.length-1;
+			while(depVarIndex>-1&&!filteredNames[depVarIndex].equals(depVar)) {
+				depVarIndex--;
+			}
+			
+			if(depVarIndex<0){
+				LOGGER.error("Cannot match dependent variable selected in drop down to list of columns");
+				return;
+			}
+			
+			newPlaySheet = new MatrixRegressionPlaySheet();
+			newPlaySheet.setList(filteredList);
+			newPlaySheet.setNames(filteredNames);
+			((MatrixRegressionPlaySheet)newPlaySheet).setbColumnIndex(depVarIndex);
+			((MatrixRegressionPlaySheet)newPlaySheet).setJTab(jTab);
+			((MatrixRegressionPlaySheet)newPlaySheet).setJBar(jBar);
+		} else {
 			LOGGER.error("Cannot find algorithm");
 			return;
 		}
@@ -272,6 +293,8 @@ public class RunAlgorithmListener extends AbstractListener {
 		this.classComboBox = playSheet.getClassComboBox();
 		//outlier
 		this.enterKNeighborsSlider = playSheet.getEnterKNeighborsSlider();
+		//matrix regression
+		this.matrixDepVarComboBox = playSheet.getMatrixDepVarComboBox();
 		
 		this.names = playSheet.getNames();
 		this.list = playSheet.getList();
