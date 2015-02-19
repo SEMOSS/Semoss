@@ -47,8 +47,8 @@ import com.google.gson.Gson;
 public class CONUSMapPlaySheet extends BrowserPlaySheet {
 
 	private static final Logger logger = LogManager.getLogger(CONUSMapPlaySheet.class.getName());
-	Hashtable allHash;
-	HashSet data;
+	protected Hashtable allHash;
+	protected HashSet data;
 	/**
 	 * Constructor for CONUSMapPlaySheet.
 	 */
@@ -110,6 +110,9 @@ public class CONUSMapPlaySheet extends BrowserPlaySheet {
 		return allHash;
 	}
 	
+	public String[] getVariableArray() {
+		return wrapper.getVariables();
+	}
 	@Override
 	/**
 	 * Method callIt.  Converts a given Hashtable to a Json and passes it to the browser.

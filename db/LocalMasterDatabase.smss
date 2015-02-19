@@ -6,7 +6,7 @@ ONTOLOGY	db/LocalMasterDatabase/MasterDatabase_Custom_Map.prop
 OWL	db/LocalMasterDatabase/MasterDatabase_OWL.OWL
 XML	db/LocalMasterDatabase/LocalMasterDatabase_Questions.XML
 DREAMER	db/LocalMasterDatabase/MasterDatabase_Questions.properties
-HIDDEN_DATABASE	true
+HIDDEN_DATABASE	false
 
 
 # changing the axiom model to none essentially disables all inference
