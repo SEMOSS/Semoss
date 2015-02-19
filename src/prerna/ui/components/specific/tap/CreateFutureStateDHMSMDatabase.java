@@ -43,7 +43,7 @@ import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.util.Utility;
 
 public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
-
+	
 	private final String CURR_ICD_AND_WEIGHT_QUERY = "SELECT DISTINCT ?icd ?weight WHERE{ {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?icd ?payload ?data} {?payload <http://semoss.org/ontologies/Relation/Contains/TypeWeight> ?weight} }";
 	
 	private final String NEW_ICD_TYPE = "http://semoss.org/ontologies/Concept/ProposedInterfaceControlDocument";
@@ -65,10 +65,12 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 	private ArrayList<Object[]> loeList;
 	private Set<String> sysCostList;
 	private Set<String> glItemList;
+	private Set<String> labelList;
+	private Set<String> labelCostList;
 	
 	private HashMap<String, HashMap<String, Set<String>>> baseFutureRelations;
 	private HashMap<String, HashMap<String, Set<String>>> baseFutureCostRelations;
-
+	
 	public CreateFutureStateDHMSMDatabase() {
 		
 	}
@@ -92,18 +94,19 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		this.futureCostState = futureCostState;
 	}
 	
-	public void createDBs() throws RepositoryException, RDFHandlerException, EngineException{
+	public void createDBs() throws RepositoryException, RDFHandlerException, EngineException {
 		createFutureStateDB();
 		createFutureStateCostDB();
 	}
 	
 	public void createFutureStateCostDB() throws EngineException, RepositoryException, RDFHandlerException {
-		if(relCostList == null || loeList == null || sysCostList == null || glItemList == null) {
+		if (relCostList == null || loeList == null || sysCostList == null || glItemList == null) {
 			generateData();
 		}
 		dataHash.clear();
 		allConcepts.clear();
 		allRelations.clear();
+		allLabels.clear();
 		
 		baseFutureCostRelations = new HashMap<String, HashMap<String, Set<String>>>();
 		processInstanceDataRelations(relCostList, baseFutureCostRelations);
@@ -118,7 +121,12 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		processActiveSystemSubclassing(futureCostState, sysCostList);
 		// add subclassing for glitems
 		processGlItemsSubclassing(futureCostState, glItemList);
-				
+		
+		for (String instance : labelCostList) {
+			addToAllLabel(instance);
+		}
+		processLabel(futureCostState);
+		
 		((BigDataEngine) futureCostState).commit();
 		((BigDataEngine) futureCostState).infer();
 		writeToOWL(futureCostState, baseFutureCostRelations);
@@ -127,12 +135,13 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 	}
 	
 	public void createFutureStateDB() throws EngineException, RepositoryException, RDFHandlerException {
-		if(relList == null || relPropList == null || addedInterfaces == null || removedInterfaces == null) {
+		if (relList == null || relPropList == null || addedInterfaces == null || removedInterfaces == null) {
 			generateData();
 		}
 		dataHash.clear();
 		allConcepts.clear();
 		allRelations.clear();
+		allLabels.clear();
 		
 		baseFutureRelations = new HashMap<String, HashMap<String, Set<String>>>();
 		processInstanceDataRelations(relList, baseFutureRelations);
@@ -143,18 +152,23 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		// process the high lvl rel data
 		processAllRelationshipSubpropTriples(futureState);
 		
-		//add sub-classing for systems
+		// add sub-classing for systems
 		processActiveSystemSubclassing(futureState, sysList);
 		
 		// add sub-classing of icd's
 		processNewSubclass(futureState, ICD_TYPE, NEW_ICD_TYPE);
 		processNewSubclass(futureState, ICD_TYPE, REMOVED_ICD_TYPE);
-		for(String addedICD: addedInterfaces) {
+		for (String addedICD : addedInterfaces) {
 			processNewConceptsAtInstanceLevel(futureState, addedICD, NEW_ICD_TYPE);
 		}
-		for(String removedICD: removedInterfaces) {
+		for (String removedICD : removedInterfaces) {
 			processNewConceptsAtInstanceLevel(futureState, removedICD, REMOVED_ICD_TYPE);
 		}
+		
+		for (String instance : labelList) {
+			addToAllLabel(instance);
+		}
+		processLabel(futureState);
 		
 		((BigDataEngine) futureState).commit();
 		((BigDataEngine) futureState).infer();
@@ -163,7 +177,7 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		((AbstractEngine) futureState).createBaseRelationEngine();
 	}
 	
-	public void processGlItemsSubclassing(IEngine engine, Set<String> data){
+	public void processGlItemsSubclassing(IEngine engine, Set<String> data) {
 		processNewConcepts(engine, "http://semoss.org/ontologies/Concept/GLItem");
 		processNewConcepts(engine, "http://semoss.org/ontologies/Concept/TransitionGLItem");
 		processNewSubclass(engine, "http://semoss.org/ontologies/Concept/GLItem", "http://semoss.org/ontologies/Concept/TransitionGLItem");
@@ -172,7 +186,7 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		processNewSubclass(engine, "http://semoss.org/ontologies/Concept/TransitionGLItem", "http://semoss.org/ontologies/Concept/DevelopGLItem");
 		processNewSubclass(engine, "http://semoss.org/ontologies/Concept/TransitionGLItem", "http://semoss.org/ontologies/Concept/TestGLItem");
 		processNewSubclass(engine, "http://semoss.org/ontologies/Concept/TransitionGLItem", "http://semoss.org/ontologies/Concept/DeployGLItem");
-		for(String glItemURI : data) {
+		for (String glItemURI : data) {
 			processNewConceptsAtInstanceLevel(engine, glItemURI, "http://semoss.org/ontologies/Concept/TransitionGLItem");
 		}
 	}
@@ -180,8 +194,8 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 	public void generateData() throws EngineException {
 		LPInterfaceProcessor processor = new LPInterfaceProcessor();
 		processor.setEngine(hrCore);
-//		processor.isGenerateCost(true);
-//		processor.setUsePhase(true);
+		// processor.isGenerateCost(true);
+		// processor.setUsePhase(true);
 		processor.setGenerateNewTriples(true);
 		
 		processor.getCostInfoAtPhaseLevel(tapCost);
@@ -196,18 +210,21 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		loeList = processor.getLoeList();
 		sysCostList = processor.getSysCostList();
 		glItemList = processor.getGlItemList();
+		
+		labelList = processor.getLabelList();
+		labelCostList = processor.getLabelCostList();
 	}
 	
-	public void addTriplesToExistingICDs(){
+	public void addTriplesToExistingICDs() {
 		ISelectWrapper sjsw = Utility.processQuery(futureState, CURR_ICD_AND_WEIGHT_QUERY);
 		String[] varNames = sjsw.getVariables();
-		while(sjsw.hasNext()) {
+		while (sjsw.hasNext()) {
 			ISelectStatement sjss = sjsw.next();
 			String icdURI = sjss.getRawVar(varNames[0]).toString();
 			Double weight = (Double) sjss.getVar(varNames[1]);
-			if(weight.doubleValue() == 5) {
+			if (weight.doubleValue() == 5) {
 				processNewConceptsAtInstanceLevel(futureState, icdURI, NEW_ICD_TYPE);
-			} else if(weight.doubleValue() == 0){
+			} else if (weight.doubleValue() == 0) {
 				processNewConceptsAtInstanceLevel(futureState, icdURI, REMOVED_ICD_TYPE);
 			}
 		}
