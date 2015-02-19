@@ -57,19 +57,28 @@ public class SelectAlgorithmListener extends AbstractListener {
 		if(selection.equals("Cluster") ) {
 			playSheet.showClassify(false);
 			playSheet.showOutlier(false);
+			playSheet.showMatrixRegression(false);
 			playSheet.showCluster(true);
 		} else if(selection.equals("Classify")){
 			playSheet.showCluster(false);
 			playSheet.showOutlier(false);
+			playSheet.showMatrixRegression(false);
 			playSheet.showClassify(true);
 		} else if(selection.equals("Outliers")) {
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
+			playSheet.showMatrixRegression(false);
 			playSheet.showOutlier(true);
+		} else if(selection.equals("Matrix Regression")) {
+			playSheet.showClassify(false);
+			playSheet.showCluster(false);
+			playSheet.showOutlier(false);
+			playSheet.showMatrixRegression(true);
 		} else if(selection.equals("Similarity") || selection.equals("Predictability") || selection.equals("Frequent Sets")) {
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
 			playSheet.showOutlier(false);
+			playSheet.showMatrixRegression(false);
 		}
 	}
 
