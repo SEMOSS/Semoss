@@ -16,6 +16,8 @@ import weka.associations.Item;
 import weka.core.Attribute;
 import weka.core.Instances;
 
+import com.ibm.icu.text.DecimalFormat;
+
 public class WekaAprioriAlgorithm {
 
 	private static final Logger LOGGER = LogManager.getLogger(WekaAprioriAlgorithm.class.getName());
@@ -27,9 +29,14 @@ public class WekaAprioriAlgorithm {
 	private Map<Integer, Collection<Item>> premises;
 	private Map<Integer, Collection<Item>> consequences;
 	private Map<Integer, Integer> counts;
+	private Map<Integer, Double> confidenceIntervals;
 	
 	private String[] retNames;
 	private ArrayList<Object[]> retList;
+	
+	private int numRules = 10; // number of rules to output
+	private double confPer = 0.9; // min confidence lvl (percentage)
+	private double minSupport = 0.1; // min number of rows required for rule (percentage of total rows of data);
 	
 	public WekaAprioriAlgorithm() {
 		
@@ -46,17 +53,23 @@ public class WekaAprioriAlgorithm {
 		premises = new HashMap<Integer, Collection<Item>>();
 		consequences = new HashMap<Integer, Collection<Item>>();
 		counts = new HashMap<Integer, Integer>();
+		confidenceIntervals = new HashMap<Integer, Double>();
 		
 		LOGGER.info("Generating Weka Instances object...");
 		this.data = WekaUtilityMethods.createInstancesFromQueryUsingBinNumerical("Apriori dataset", list, names);
 
 		Apriori apriori = new Apriori();
+		apriori.setNumRules(numRules);
+		apriori.setMinMetric(confPer);
+		apriori.setLowerBoundMinSupport(minSupport);
+		
 		LOGGER.info("Running Apriori Algorithm...");
 		apriori.buildAssociations( data );
 		LOGGER.info("Finished Running Algorithm...");
 		
 		System.out.println(apriori.toString());
 		
+		// get and store rules
 		AssociationRules rules = apriori.getAssociationRules();
 		List<AssociationRule> ruleList = rules.getRules();
 		int numRule = 0;
@@ -64,19 +77,26 @@ public class WekaAprioriAlgorithm {
 			premises.put(numRule, rule.getPremise());
 			consequences.put(numRule, rule.getConsequence());
 			counts.put(numRule, rule.getTotalSupport());
+			confidenceIntervals.put(numRule, rule.getPrimaryMetricValue());
 			numRule++;
 		}
 	}
 	
 	public void generateDecisionRuleTable() {
+		// return if no rules found
+		if(premises.isEmpty() && consequences.isEmpty() && counts.isEmpty()) {
+			return;
+		}
+		
 		LOGGER.info("Generating Decision Table...");
 		int numCols = names.length;
-		retNames = new String[numCols];
+		retNames = new String[numCols + 1];
 		int i = 1;
 		for(; i < numCols; i++) {
 			retNames[i-1] = names[i];
 		}
-		retNames[i-1] = "Count";
+		retNames[numCols-1] = "Count";
+		retNames[numCols] = "Confidence";
 		
 		retList = new ArrayList<Object[]>();
 
@@ -88,16 +108,20 @@ public class WekaAprioriAlgorithm {
 			index++;
 		}
 		
+		DecimalFormat format = new DecimalFormat("0.00");
+		
 		for(Integer numRule : premises.keySet()) {
-			Object[] tableRow = new Object[numCols];
+			Object[] tableRow = new Object[numCols+1];
 			Collection<Item> premise = premises.get(numRule);
 			Collection<Item> consequence = consequences.get(numRule);
 			int count = counts.get(numRule);
+			double confidence = confidenceIntervals.get(numRule);
 			
 			fillRow(tableRow, premise, indexMap);
 			fillRow(tableRow, consequence, indexMap);
 			tableRow[numCols-1] = count;
-			
+			tableRow[numCols] = format.format(confidence);
+
 			retList.add(tableRow);
 		}
 	}
@@ -160,6 +184,38 @@ public class WekaAprioriAlgorithm {
 		this.counts = counts;
 	}
 
+	public Map<Integer, Double> getConfidenceIntervals() {
+		return confidenceIntervals;
+	}
+
+	public void setConfidenceIntervals(Map<Integer, Double> confidenceIntervals) {
+		this.confidenceIntervals = confidenceIntervals;
+	}
+	
+	public int getNumRules() {
+		return numRules;
+	}
+
+	public void setNumRules(int numRules) {
+		this.numRules = numRules;
+	}
+
+	public double getConfPer() {
+		return confPer;
+	}
+
+	public void setConfPer(double confPer) {
+		this.confPer = confPer;
+	}
+
+	public double getMinSupport() {
+		return minSupport;
+	}
+
+	public void setMinSupport(double minSupport) {
+		this.minSupport = minSupport;
+	}
+	
 	public String[] getRetNames() {
 		return retNames;
 	}
@@ -176,5 +232,4 @@ public class WekaAprioriAlgorithm {
 		this.retList = retList;
 	} 
 
-	
 }
