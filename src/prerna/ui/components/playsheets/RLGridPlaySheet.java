@@ -49,10 +49,11 @@ public class RLGridPlaySheet extends GridPlaySheet{
 	private ArrayList<Action> actionList;
 	private int xSize;
 	private int ySize;
+	private double discountRate;
 	
 	@Override
 	public void createData() {
-		ValueIterationAlgorithm alg = new ValueIterationAlgorithm(stateList,actionList);
+		ValueIterationAlgorithm alg = new ValueIterationAlgorithm(discountRate,stateList,actionList);
 		alg.findOptimalPolicy();
 		Hashtable<State,BigDecimal> optimalActionHash = alg.getOptimalPolicyValHash();
 		
@@ -88,5 +89,8 @@ public class RLGridPlaySheet extends GridPlaySheet{
 	public void setGridDimensions(int xSize,int ySize) {
 		this.xSize = xSize;
 		this.ySize = ySize;
+	}
+	public void setDiscountRate(double discountRate) {
+		this.discountRate = discountRate;
 	}
 }

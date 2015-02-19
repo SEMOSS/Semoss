@@ -10,7 +10,6 @@ SoftwareVersion http://health.mil/ontologies/Concept/SoftwareVersion
 DCSiteCmdCode http://health.mil/ontologies/Concept/DCSiteCmdCode
 FacComCode http://health.mil/ontologies/Concept/FacComCode
 City http://health.mil/ontologies/Concept/City
-FCC|MTF http://health.mil/ontologies/Concept/FCC|MTF
 Quarter http://health.mil/ontologies/Concept/Quarter
 MAAGSite http://health.mil/ontologies/Concept/MAAGSite
 InterfaceControlDocument http://health.mil/ontologies/Concept/InterfaceControlDocument
@@ -106,7 +105,6 @@ TError_CLASS http://semoss.org/ontologies/Concept/TError
 NPI_CLASS http://semoss.org/ontologies/Concept/NPI
 DCSiteIncident_CLASS http://semoss.org/ontologies/Concept/DCSiteIncident
 DataObject_CLASS http://semoss.org/ontologies/Concept/DataObject
-FCC|MTF_CLASS http://semoss.org/ontologies/Concept/FCC|MTF
 DForm_CLASS http://semoss.org/ontologies/Concept/DForm
 DataElement_CLASS http://semoss.org/ontologies/Concept/DataElement
 SystemDCSiteIncident_CLASS http://semoss.org/ontologies/Concept/SystemDCSiteIncident

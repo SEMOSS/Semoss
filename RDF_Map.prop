@@ -4,18 +4,16 @@ BROWSER_TYPE	Mozilla15
 ENGINE_WATCHER	SMSSWatcher
 ENGINE_WEB_WATCHER	SMSSWebWatcher
 
-URI_BASE	https://localhost:443/Monolith/api/engine/s-
-
 SMSSWatcher	prerna.util.SMSSFileWatcher
-SMSSWatcher_DIR	C:\\Users\\mahkhalil\\workspace\\Semoss\\db
+SMSSWatcher_DIR	C:\\Users\\ksmart\\workspace-dev\\Semoss\\db
 SMSSWatcher_EXT	.smss
 
 SMSSWebWatcher	prerna.util.SMSSWebWatcher
-SMSSWebWatcher_DIR	C:\\Users\\mahkhalil\\workspace\\Semoss\\db
+SMSSWebWatcher_DIR	C:\\Users\\ksmart\\workspace-dev\\Semoss\\db
 SMSSWebWatcher_EXT	.smss
 
-LOG4J	C:\\Users\\mahkhalil\\workspace\\Semoss\\log4j.prop
-BaseFolder	C:\\Users\\mahkhalil\\workspace\\Semoss
+LOG4J	C:\\Users\\ksmart\\workspace-dev\\Semoss\\log4j.prop
+BaseFolder	C:\\Users\\ksmart\\workspace-dev\\Semoss
 
 SHOW_GOV_WARNING	false
 GPS_SUDOWL_DEFAULT	false

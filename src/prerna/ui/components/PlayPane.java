@@ -53,6 +53,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Vector;
 
@@ -281,7 +282,11 @@ public class PlayPane extends JFrame {
 	public CustomButton btnSORInsert;
 	
 	// Components on the Machine Learning Panel
+	public JTextField rlDiscountRateTextField;
+	public JTextField rlXSizeTextField, rlYSizeTextField;
+	public JSlider rlProbWinSlider;
 	public JButton btnRLGridExample, btnRLGamblingExample;
+	
 	
 	// Components on settings panel
 	public JCheckBox propertyCheck, sudowlCheck, searchCheck, highQualityExportCheck;
@@ -4503,20 +4508,158 @@ public class PlayPane extends JFrame {
 		lblReinforcementLearningExamples.setFont(new Font("Tahoma", Font.BOLD, 12));
 		GridBagConstraints gbc_lblReinforcementLearningExamples = new GridBagConstraints();
 		gbc_lblReinforcementLearningExamples.insets = new Insets(15, 0, 10, 0);
+		gbc_lblReinforcementLearningExamples.anchor = GridBagConstraints.NORTHWEST;
 		gbc_lblReinforcementLearningExamples.gridx = 1;
 		gbc_lblReinforcementLearningExamples.gridy = 0;
 		rlPanel.add(lblReinforcementLearningExamples, gbc_lblReinforcementLearningExamples);
 		
+		JLabel lblRLSelectDiscountRate = new JLabel("Select discount rate:");
+		lblRLSelectDiscountRate.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblRLSelectDiscountRate = new GridBagConstraints();
+		gbc_lblRLSelectDiscountRate.anchor = GridBagConstraints.WEST;
+		gbc_lblRLSelectDiscountRate.insets = new Insets(5, 5, 5, 5);
+		gbc_lblRLSelectDiscountRate.gridx = 1;
+		gbc_lblRLSelectDiscountRate.gridy = 1;
+		rlPanel.add(lblRLSelectDiscountRate, gbc_lblRLSelectDiscountRate);
+		
+		rlDiscountRateTextField = new JTextField();
+		rlDiscountRateTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		//rlDiscountRateTextField.setMinimumSize(new Dimension(122, 28));
+		rlDiscountRateTextField.setSize(new Dimension(10, 28));
+		rlDiscountRateTextField.setText("1.0");
+		rlDiscountRateTextField.setMaximumSize(new Dimension(15, 2147483647));
+		GridBagConstraints gbc_rlDiscountRateTextField = new GridBagConstraints();
+		gbc_rlDiscountRateTextField.anchor = GridBagConstraints.NORTHWEST;
+		gbc_rlDiscountRateTextField.insets = new Insets(0, 5, 5, 5);
+		gbc_rlDiscountRateTextField.gridx = 2;
+		gbc_rlDiscountRateTextField.gridy = 1;
+		rlPanel.add(rlDiscountRateTextField, gbc_rlDiscountRateTextField);
+		rlDiscountRateTextField.setColumns(12);
+		
+		JLabel lblRLGridExample = new JLabel("Grid Movement Analysis");
+		lblRLGridExample.setFont(new Font("Tahoma", Font.BOLD, 12));
+		GridBagConstraints gbc_lblRLGridExample = new GridBagConstraints();
+		gbc_lblRLGridExample.anchor = GridBagConstraints.NORTHWEST;
+		gbc_lblRLGridExample.insets = new Insets(0, 5, 5, 5);
+		gbc_lblRLGridExample.gridx = 1;
+		gbc_lblRLGridExample.gridy = 2;
+		rlPanel.add(lblRLGridExample, gbc_lblRLGridExample);
+		
+		JLabel lblRLGridExampleDetails = new JLabel("Definition of the problem goes here");
+		lblRLGridExampleDetails.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblRLGridExampleDetails = new GridBagConstraints();
+		gbc_lblRLGridExampleDetails.anchor = GridBagConstraints.NORTHWEST;
+		gbc_lblRLGridExampleDetails.gridwidth = 2;
+		gbc_lblRLGridExampleDetails.insets = new Insets(0, 5, 15, 5);
+		gbc_lblRLGridExampleDetails.gridx = 1;
+		gbc_lblRLGridExampleDetails.gridy = 3;
+		rlPanel.add(lblRLGridExampleDetails, gbc_lblRLGridExampleDetails);
+		
+		JLabel lblRLSelectXSize = new JLabel("Select number of columns:");
+		lblRLSelectXSize.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblSelectXSize = new GridBagConstraints();
+		gbc_lblSelectXSize.anchor = GridBagConstraints.NORTHWEST;
+		gbc_lblSelectXSize.insets = new Insets(0, 5, 5, 5);
+		gbc_lblSelectXSize.gridx = 1;
+		gbc_lblSelectXSize.gridy = 4;
+		rlPanel.add(lblRLSelectXSize, gbc_lblSelectXSize);
+		
+		rlXSizeTextField = new JTextField();
+		rlXSizeTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		rlXSizeTextField.setMinimumSize(new Dimension(122, 28));
+		rlXSizeTextField.setSize(new Dimension(10, 28));
+		rlXSizeTextField.setText("4");
+		rlXSizeTextField.setMaximumSize(new Dimension(15, 2147483647));
+		GridBagConstraints gbc_rlXSizeTextField = new GridBagConstraints();
+		gbc_rlXSizeTextField.anchor = GridBagConstraints.NORTHWEST;
+		gbc_rlXSizeTextField.insets = new Insets(0, 5, 5, 5);
+		gbc_rlXSizeTextField.gridx = 1;
+		gbc_rlXSizeTextField.gridy = 5;
+		rlPanel.add(rlXSizeTextField, gbc_rlXSizeTextField);
+		rlXSizeTextField.setColumns(12);
+		
+		JLabel lblRLSelectYSize = new JLabel("Select number of rows:");
+		lblRLSelectYSize.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblSelectYSize = new GridBagConstraints();
+		gbc_lblSelectYSize.anchor = GridBagConstraints.NORTHWEST;
+		gbc_lblSelectYSize.insets = new Insets(0, 5, 5, 5);
+		gbc_lblSelectYSize.gridx = 2;
+		gbc_lblSelectYSize.gridy = 4;
+		rlPanel.add(lblRLSelectYSize, gbc_lblSelectYSize);
+		
+		rlYSizeTextField = new JTextField();
+		rlYSizeTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		rlYSizeTextField.setMinimumSize(new Dimension(122, 28));
+		rlYSizeTextField.setSize(new Dimension(10, 28));
+		rlYSizeTextField.setText("4");
+		rlYSizeTextField.setMaximumSize(new Dimension(15, 2147483647));
+		GridBagConstraints gbc_rlYSizeTextField = new GridBagConstraints();
+		gbc_rlYSizeTextField.anchor = GridBagConstraints.NORTHWEST;
+		gbc_rlYSizeTextField.insets = new Insets(0, 5, 5, 5);
+		gbc_rlYSizeTextField.gridx = 2;
+		gbc_rlYSizeTextField.gridy = 5;
+		rlPanel.add(rlYSizeTextField, gbc_rlYSizeTextField);
+		rlYSizeTextField.setColumns(12);
+		
+		
 		btnRLGridExample = new CustomButton("Run Grid Example");
 		btnRLGridExample.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_btnRLGridExample = new GridBagConstraints();
-		gbc_btnRLGridExample.anchor = GridBagConstraints.NORTHWEST;
-		gbc_btnRLGridExample.gridwidth = 4;
+		gbc_btnRLGridExample.anchor = GridBagConstraints.NORTHEAST;
 		gbc_btnRLGridExample.insets = new Insets(10, 10, 0, 5);
-		gbc_btnRLGridExample.gridx = 1;
-		gbc_btnRLGridExample.gridy = 1;
+		gbc_btnRLGridExample.gridx = 2;
+		gbc_btnRLGridExample.gridy = 6;
 		rlPanel.add(btnRLGridExample, gbc_btnRLGridExample);
 		Style.registerTargetClassName(btnRLGridExample, ".standardButton");
+
+		JLabel lblRLGambleExample = new JLabel("Money Gambling Analysis");
+		lblRLGambleExample.setFont(new Font("Tahoma", Font.BOLD, 12));
+		GridBagConstraints gbc_lblRLGambleExample = new GridBagConstraints();
+		gbc_lblRLGambleExample.anchor = GridBagConstraints.NORTHWEST;
+		gbc_lblRLGambleExample.insets = new Insets(0, 5, 5, 5);
+		gbc_lblRLGambleExample.gridx = 1;
+		gbc_lblRLGambleExample.gridy = 7;
+		rlPanel.add(lblRLGambleExample, gbc_lblRLGambleExample);
+		
+		JLabel lblRLGambleExampleDetails = new JLabel("Definition of the problem goes here");
+		lblRLGambleExampleDetails.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblRLGambleExampleDetails = new GridBagConstraints();
+		gbc_lblRLGambleExampleDetails.anchor = GridBagConstraints.NORTHWEST;
+		gbc_lblRLGambleExampleDetails.gridwidth = 2;
+		gbc_lblRLGambleExampleDetails.insets = new Insets(0, 5, 15, 5);
+		gbc_lblRLGambleExampleDetails.gridx = 1;
+		gbc_lblRLGambleExampleDetails.gridy = 8;
+		rlPanel.add(lblRLGambleExampleDetails, gbc_lblRLGambleExampleDetails);
+		
+		JLabel lblRLProbWin = new JLabel("Select probability of a win:");
+		lblRLProbWin.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblRLProbWin = new GridBagConstraints();
+		gbc_lblRLProbWin.anchor = GridBagConstraints.NORTHWEST;
+		gbc_lblRLProbWin.insets = new Insets(0, 5, 5, 5);
+		gbc_lblRLProbWin.gridx = 1;
+		gbc_lblRLProbWin.gridy = 9;
+		rlPanel.add(lblRLProbWin, gbc_lblRLProbWin);
+		
+		rlProbWinSlider = new JSlider(0,100);
+		rlProbWinSlider.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		
+		Hashtable sliderLabels = new Hashtable();
+		for(int i=0;i<=100;i+=10)
+			sliderLabels.put( new Integer( i ), new JLabel(i/100.0+"") );
+		rlProbWinSlider.setLabelTable( sliderLabels );
+		rlProbWinSlider.setPaintLabels(true);
+		rlProbWinSlider.setMajorTickSpacing(10);
+		rlProbWinSlider.setMinorTickSpacing(1);
+		rlProbWinSlider.setPaintTicks(true);
+		rlProbWinSlider.setPreferredSize(new Dimension(300,40));
+		GridBagConstraints gbc_rlProbWinSlider = new GridBagConstraints();
+		gbc_rlProbWinSlider.anchor = GridBagConstraints.NORTHWEST;
+		gbc_rlProbWinSlider.insets = new Insets(0, 5, 5, 5);
+		gbc_rlProbWinSlider.gridwidth = 2;
+		gbc_rlProbWinSlider.gridx = 1;
+		gbc_rlProbWinSlider.gridy = 10;
+		rlPanel.add(rlProbWinSlider, gbc_rlProbWinSlider);
+		rlXSizeTextField.setColumns(12);
 
 		btnRLGamblingExample = new CustomButton("Run Gamble Example");
 		btnRLGamblingExample.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -4524,8 +4667,8 @@ public class PlayPane extends JFrame {
 		gbc_btnRLGamblingExample.anchor = GridBagConstraints.NORTHWEST;
 		gbc_btnRLGamblingExample.gridwidth = 4;
 		gbc_btnRLGamblingExample.insets = new Insets(10, 10, 10, 5);
-		gbc_btnRLGamblingExample.gridx = 1;
-		gbc_btnRLGamblingExample.gridy = 2;
+		gbc_btnRLGamblingExample.gridx = 2;
+		gbc_btnRLGamblingExample.gridy = 11;
 		rlPanel.add(btnRLGamblingExample, gbc_btnRLGamblingExample);
 		Style.registerTargetClassName(btnRLGamblingExample, ".standardButton");
 		
