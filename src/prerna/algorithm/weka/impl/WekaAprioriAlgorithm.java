@@ -118,7 +118,7 @@ public class WekaAprioriAlgorithm {
 			double confidence = confidenceIntervals.get(numRule);
 			
 			fillRow(tableRow, premise, indexMap);
-			fillRow(tableRow, consequence, indexMap);
+			fillRowWithAsterisk(tableRow, consequence, indexMap);
 			tableRow[numCols-1] = count;
 			tableRow[numCols] = format.format(confidence);
 
@@ -131,6 +131,16 @@ public class WekaAprioriAlgorithm {
 			Attribute category = item.getAttribute();
 			String name = category.name();
 			String value = item.getItemValueAsString();
+			
+			tableRow[indexMap.get(name)-1] = value;
+		}
+	}
+	
+	private void fillRowWithAsterisk(Object[] tableRow, Collection<Item> values, Map<String, Integer> indexMap) {
+		for(Item item : values) {
+			Attribute category = item.getAttribute();
+			String name = category.name();
+			String value = "*** " + item.getItemValueAsString() + " ***";
 			
 			tableRow[indexMap.get(name)-1] = value;
 		}
