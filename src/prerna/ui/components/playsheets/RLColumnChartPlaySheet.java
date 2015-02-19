@@ -44,6 +44,8 @@ public class RLColumnChartPlaySheet extends ColumnChartPlaySheet{
 	private static final Logger LOGGER = LogManager.getLogger(RLColumnChartPlaySheet.class.getName());
 	private ArrayList<State> stateList;
 	private ArrayList<Action> actionList;
+	private double probWin;
+	private double discountRate;
 	
 	public RLColumnChartPlaySheet() 
 	{
@@ -53,28 +55,28 @@ public class RLColumnChartPlaySheet extends ColumnChartPlaySheet{
 	@Override
 	public void createData()
 	{
-		ValueIterationAlgorithm alg = new ValueIterationAlgorithm(stateList,actionList);
+		ValueIterationAlgorithm alg = new ValueIterationAlgorithm(discountRate,stateList,actionList);
 		alg.findOptimalPolicy();
 		Hashtable<State, ArrayList<Action>> optimalActionHash = alg.getOptimalActionHash();
 		
-		names = new String[]{"Dollar Amount","Suggested Bid Amount"};
+		names = new String[]{"Dollar Amount","Suggested Bid Amount for win p="+probWin};
 		list = new ArrayList<Object []>();
 		
 		for(State state : stateList) {
 			int dollarAmt = ((NumericalState)state).getX();
 
-			int betAmt = 0;
+			int minBet = 0;
 			if(optimalActionHash.containsKey(state) && optimalActionHash.get(state).size() > 0 ) {
-				ArrayList<Action> actions =optimalActionHash.get(state);
-				int minBet = ((GamblerAction)actions.get(0)).getBetAmount();
+				ArrayList<Action> actions = optimalActionHash.get(state);
+				minBet = ((GamblerAction)actions.get(0)).getBetAmount();
 				for(Action action : actions) {
 					int nextBet = ((GamblerAction)action).getBetAmount();
 					minBet = Math.min(minBet,nextBet);
 				}
-				GamblerAction action = (GamblerAction)optimalActionHash.get(state).get(0);
-				betAmt = action.getBetAmount();
+//				GamblerAction action = (GamblerAction)optimalActionHash.get(state).get(0);
+//				betAmt = action.getBetAmount();
 			}
-			Object[] row = new Object[]{dollarAmt,betAmt};
+			Object[] row = new Object[]{dollarAmt,minBet};
 			list.add(row);
 		}
 		dataHash = processQueryData();
@@ -85,5 +87,11 @@ public class RLColumnChartPlaySheet extends ColumnChartPlaySheet{
 	}
 	public void setActionList(ArrayList<Action> actionList) {
 		this.actionList = actionList;	
+	}
+	public void setProbWin(double probWin) {
+		this.probWin = probWin;	
+	}
+	public void setDiscountRate(double discountRate) {
+		this.discountRate = discountRate;
 	}
 }

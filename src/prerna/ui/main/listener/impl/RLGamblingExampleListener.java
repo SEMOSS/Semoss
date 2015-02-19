@@ -32,6 +32,8 @@ import java.util.ArrayList;
 
 import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
+import javax.swing.JSlider;
+import javax.swing.JTextField;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -41,10 +43,11 @@ import prerna.algorithm.impl.rl.GamblerAction;
 import prerna.algorithm.impl.rl.NumericalState;
 import prerna.algorithm.impl.rl.State;
 import prerna.ui.components.api.IChakraListener;
-import prerna.ui.components.playsheets.RLColumnChartPlaySheet;
+import prerna.ui.components.playsheets.RLGridScatterSheet;
 import prerna.ui.helpers.PlaysheetCreateRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class RLGamblingExampleListener  implements IChakraListener {
 	
@@ -52,6 +55,7 @@ public class RLGamblingExampleListener  implements IChakraListener {
 	
 	private ArrayList<State> stateList;
 	private ArrayList<Action> actionList;
+	private double probWin;
 	
 	/**
 	 * Uses Reinforcement Learning to create an optimal strategy for gambling example.
@@ -61,13 +65,34 @@ public class RLGamblingExampleListener  implements IChakraListener {
 	public void actionPerformed(ActionEvent actionevent) {
 		LOGGER.info("RL Gambling example button pushed ...");
 		
+		JTextField discountRateField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.RL_DISCOUNT_RATE_TEXT_FIELD);
+		String discountRateTextValue = discountRateField.getText();
+		double discountRate = 0.0;
+		
+		try{
+			discountRate = Double.parseDouble(discountRateTextValue);
+		}catch(RuntimeException e){
+			Utility.showError("The discount rate must be a decimal between 0 and 1");
+			return;
+		}
+		if(discountRate<0.0 || discountRate > 1.0) {
+			Utility.showError("The discount rate must be a decimal between 0 and 1");
+			return;
+		}
+		
+		JSlider probWinSlider = (JSlider) DIHelper.getInstance().getLocalProp(Constants.RL_PROB_WIN_SLIDER);
+		int probWinInt = probWinSlider.getValue();
+		probWin = probWinInt / 100.0;
+		
 		fillTestData();
 				
-		RLColumnChartPlaySheet playSheet = new RLColumnChartPlaySheet();
+		RLGridScatterSheet playSheet = new RLGridScatterSheet();
 		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 		playSheet.setJDesktopPane(pane);
 		playSheet.setStateList(stateList);
 		playSheet.setActionList(actionList);
+		playSheet.setProbWin(probWin);
+		playSheet.setDiscountRate(discountRate);
 		
 		PlaysheetCreateRunner runner = new PlaysheetCreateRunner(playSheet);
 		Thread playThread = new Thread(runner);
@@ -93,7 +118,7 @@ public class RLGamblingExampleListener  implements IChakraListener {
 		actionList = new ArrayList<Action>();
 		for(int i=1;i<=50;i++) {
 			GamblerAction action = new GamblerAction("a"+i,i);
-			action.setWinProbability(0.4);
+			action.setWinProbability(probWin);
 			actionList.add(action);
 		}
 	}

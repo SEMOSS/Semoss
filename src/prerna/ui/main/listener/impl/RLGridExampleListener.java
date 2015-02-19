@@ -32,6 +32,7 @@ import java.util.ArrayList;
 
 import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
+import javax.swing.JTextField;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -48,6 +49,7 @@ import prerna.ui.components.playsheets.RLGridPlaySheet;
 import prerna.ui.helpers.PlaysheetCreateRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * This is the listener that runs the reinforcement learning example of moving in a grid.
@@ -71,6 +73,29 @@ public class RLGridExampleListener implements IChakraListener {
 	public void actionPerformed(ActionEvent actionevent) {
 		LOGGER.info("RL Grid example button pushed ...");
 		
+		JTextField xSizeField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.RL_X_SIZE_TEXT_FIELD);
+		String xSizeTextValue = xSizeField.getText();
+		xSize = 0;
+		JTextField ySizeField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.RL_Y_SIZE_TEXT_FIELD);
+		String ySizeTextValue = ySizeField.getText();
+		ySize = 0;
+		JTextField discountRateField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.RL_DISCOUNT_RATE_TEXT_FIELD);
+		String discountRateTextValue = discountRateField.getText();
+		double discountRate = 0.0;
+		
+		try{
+			xSize = Integer.parseInt(xSizeTextValue);
+			ySize = Integer.parseInt(ySizeTextValue);
+			discountRate = Double.parseDouble(discountRateTextValue);
+		}catch(RuntimeException e){
+			Utility.showError("X and Y sizes must be integers greater than or equal to 2 and the discount rate must be a decimal greater than 0 and less than or equal to 1");
+			return;
+		}
+		if(xSize<2 || ySize <2 || discountRate<=0.0 || discountRate > 1.0) {
+			Utility.showError("X and Y sizes must be integers greater than or equal to 2 and the discount rate must be a decimal between 0 and 1");
+			return;
+		}
+		
 		//builds test data so that the user has the option to choose to move in 4 directions (up, down, left, right)
 		//finds the optimal strategy for how the user should move at each state to maximize reward
 		fillDirectionData();
@@ -82,6 +107,7 @@ public class RLGridExampleListener implements IChakraListener {
 		playSheet.setActionList(actionList);
 		playSheet.setGridDimensions(xSize,ySize);
 		playSheet.setTitle("Reinforcement Learning Grid Example Results");
+		playSheet.setDiscountRate(discountRate);
 		
 		PlaysheetCreateRunner runner = new PlaysheetCreateRunner(playSheet);
 		Thread playThread = new Thread(runner);

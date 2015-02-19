@@ -1,6 +1,7 @@
 Base Properties 
 ENGINE	VendorSelection
 ENGINE_TYPE	prerna.rdf.engine.impl.BigDataEngine
+INSIGHTS	db/VendorSelection/VendorSelection_Questions.XML
 ONTOLOGY	db/VendorSelection/VendorSelection_Custom_Map.prop
 OWL	db/VendorSelection/VendorSelection_OWL.OWL
 DREAMER	db/VendorSelection/VendorSelection_Questions.properties

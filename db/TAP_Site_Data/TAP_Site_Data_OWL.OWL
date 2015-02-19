@@ -19,9 +19,6 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DataObject">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/FCC|MTF">
-	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
-</rdf:Description>
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/DForm">
 	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
 </rdf:Description>

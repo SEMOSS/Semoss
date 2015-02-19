@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.util;
 
+import javax.swing.JTextField;
+
 /**
  * This class contains all of the constants referenced elsewhere in the code.
  */
@@ -455,5 +457,13 @@ public class Constants {
 	public static final String DRIVER = "DRIVER";
 	public static final String USERNAME = "USERNAME";
 	public static final String PASSWORD = "PASSWORD";
+	
+	
+	// Machine Learning
+	public static final String RL_X_SIZE_TEXT_FIELD = "rlXSizeTextField";
+	public static final String RL_Y_SIZE_TEXT_FIELD = "rlYSizeTextField";
+	public static final String RL_PROB_WIN_SLIDER = "rlProbWinSlider";
+	public static final String RL_DISCOUNT_RATE_TEXT_FIELD = "rlDiscountRateTextField";
+	
 	
 }
