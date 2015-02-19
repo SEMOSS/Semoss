@@ -82,6 +82,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showClassify(false);
 			playSheet.showCluster(false);
 			playSheet.showOutlier(false);
+			playSheet.showAssociationLearning(false);
 			playSheet.showMatrixRegression(true);
 		}  else if(selection.equals("Similarity") || selection.equals("Predictability")) {
 			playSheet.showCluster(false);
