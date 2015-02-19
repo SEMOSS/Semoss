@@ -133,10 +133,10 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	private JLabel lblEnterKNeighbors;
 	private JSlider enterKNeighborsSlider;
 	
-	//frequent sets panel combonents
-	private JPanel frequentSetsPanel;
-	private JLabel lblEnterNumRules, lblEnterMinSupport, lblEnterConfInterval;
-	private JTextField enterNumRulesTextField, enterMinSupportTextField, enterConfIntervalTextField;
+	//association learning panel combonents
+	private JPanel associationLearningPanel;
+	private JLabel lblEnterNumRules, lblEnterMinSupport, lblEnterMaxSupport, lblEnterConfInterval;
+	private JTextField enterNumRulesTextField, enterMinSupportTextField, enterMaxSupportTextField, enterConfIntervalTextField;
 	
 	//matrix regression panel components
 	private JPanel matrixRegPanel;
@@ -322,8 +322,8 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		algorithmComboBox = new JComboBox<String>();
 		algorithmComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		algorithmComboBox.setBackground(Color.GRAY);
-		algorithmComboBox.setPreferredSize(new Dimension(100, 25));
-		algorithmComboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"Cluster", "Classify","Outliers","Frequent Sets","Similarity","Predictability","Matrix Regression"}));
+		algorithmComboBox.setPreferredSize(new Dimension(150, 25));
+		algorithmComboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"Cluster", "Classify","Outliers","Association Learning","Similarity","Predictability","Matrix Regression"}));
 		GridBagConstraints gbc_algorithmComboBox = new GridBagConstraints();
 		gbc_algorithmComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_algorithmComboBox.fill = GridBagConstraints.NONE;
@@ -369,7 +369,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		variableSelectorPanel.add(outlierPanel, gbc_outlierPanel);
 		outlierPanel.setVisible(false);
 		
-		frequentSetsPanel = new JPanel();
+		associationLearningPanel = new JPanel();
 		GridBagConstraints gbc_frequentSetsPanel = new GridBagConstraints();
 		gbc_frequentSetsPanel.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_frequentSetsPanel.fill = GridBagConstraints.NONE;
@@ -377,8 +377,8 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_frequentSetsPanel.insets = new Insets(5, 15, 0, 0);
 		gbc_frequentSetsPanel.gridx = 1;
 		gbc_frequentSetsPanel.gridy = 3;
-		variableSelectorPanel.add(frequentSetsPanel, gbc_frequentSetsPanel);
-		frequentSetsPanel.setVisible(false);
+		variableSelectorPanel.add(associationLearningPanel, gbc_frequentSetsPanel);
+		associationLearningPanel.setVisible(false);
 		
 		matrixRegPanel = new JPanel();
 		GridBagConstraints gbc_matrixRegPanel = new GridBagConstraints();
@@ -394,7 +394,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		fillClusterPanel(clusterPanel);
 		fillClassifyPanel(classifyPanel);
 		fillOutlierPanel(outlierPanel);
-		fillFrequentSetsPanel(frequentSetsPanel);
+		fillFrequentSetsPanel(associationLearningPanel);
 		fillMatrixRegPanel(matrixRegPanel);
 		
 		runAlgorithm = new CustomButton("Run Algorithm");
@@ -871,7 +871,6 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		matrixDepVarComboBox.addActionListener(classSelectList);
 	}
 	
-	//TODO: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	private void fillFrequentSetsPanel(JPanel frequentSetsPanel) {
 		GridBagLayout gbl_frequentSetsPanel = new GridBagLayout();
 		gbl_frequentSetsPanel.columnWidths = new int[]{0, 0, 0};
@@ -922,6 +921,27 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_enterMinSupportTextField.gridy = 1;
 		frequentSetsPanel.add(enterMinSupportTextField, gbc_enterMinSupportTextField);
 		
+		lblEnterMaxSupport = new JLabel("Enter Maximum Support:");
+		lblEnterMaxSupport.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_lblEnterMaxSupport = new GridBagConstraints();
+		gbc_lblEnterMaxSupport.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_lblEnterMaxSupport.fill = GridBagConstraints.NONE;
+		gbc_lblEnterMaxSupport.insets = new Insets(10, 5, 0, 0);
+		gbc_lblEnterMaxSupport.gridx = 0;
+		gbc_lblEnterMaxSupport.gridy = 2;
+		frequentSetsPanel.add(lblEnterMaxSupport, gbc_lblEnterMaxSupport);
+		
+		enterMaxSupportTextField = new JTextField();
+		enterMaxSupportTextField.setText("1.0");
+		enterMaxSupportTextField.setColumns(4);
+		GridBagConstraints gbc_enterMaxSupportTextField = new GridBagConstraints();
+		gbc_enterMaxSupportTextField.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_enterMaxSupportTextField.fill = GridBagConstraints.NONE;
+		gbc_enterMaxSupportTextField.insets = new Insets(10, 5, 0, 0);
+		gbc_enterMaxSupportTextField.gridx = 1;
+		gbc_enterMaxSupportTextField.gridy = 2;
+		frequentSetsPanel.add(enterMaxSupportTextField, gbc_enterMaxSupportTextField);
+		
 		lblEnterConfInterval = new JLabel("Enter Confidence Value:");
 		lblEnterConfInterval.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_lblEnterConfInterval = new GridBagConstraints();
@@ -929,7 +949,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_lblEnterConfInterval.fill = GridBagConstraints.NONE;
 		gbc_lblEnterConfInterval.insets = new Insets(10, 5, 0, 0);
 		gbc_lblEnterConfInterval.gridx = 0;
-		gbc_lblEnterConfInterval.gridy = 2;
+		gbc_lblEnterConfInterval.gridy = 3;
 		frequentSetsPanel.add(lblEnterConfInterval, gbc_lblEnterConfInterval);
 		
 		enterConfIntervalTextField = new JTextField();
@@ -940,7 +960,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_enterConfIntervalTextField.fill = GridBagConstraints.NONE;
 		gbc_enterConfIntervalTextField.insets = new Insets(10, 5, 0, 0);
 		gbc_enterConfIntervalTextField.gridx = 1;
-		gbc_enterConfIntervalTextField.gridy = 2;
+		gbc_enterConfIntervalTextField.gridy = 3;
 		frequentSetsPanel.add(enterConfIntervalTextField, gbc_enterConfIntervalTextField);
 	}
 
@@ -1036,14 +1056,15 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		
 	}
 	
-	//TODO: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	public void showFrequentSets(Boolean show) {
-		frequentSetsPanel.setVisible(show);
+	public void showAssociationLearning(Boolean show) {
+		associationLearningPanel.setVisible(show);
 		lblEnterNumRules.setVisible(show);
 		lblEnterMinSupport.setVisible(show);
+		lblEnterMaxSupport.setVisible(show);
 		lblEnterConfInterval.setVisible(show);
 		enterNumRulesTextField.setVisible(show);
 		enterMinSupportTextField.setVisible(show);
+		enterMaxSupportTextField.setVisible(show);
 		enterConfIntervalTextField.setVisible(show);
 	}
 	
@@ -1247,5 +1268,8 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	}
 	public JTextField getEnterConfIntervalTextField() {
 		return enterConfIntervalTextField;
+	}
+	public JTextField getEnterMaxSupportTextField() {
+		return enterMaxSupportTextField;
 	}
 }

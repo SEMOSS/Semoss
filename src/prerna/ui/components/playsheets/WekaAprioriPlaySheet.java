@@ -32,7 +32,12 @@ public class WekaAprioriPlaySheet extends GridPlaySheet{
 
 	private int numRules = -1; // number of rules to output
 	private double confPer = -1; // min confidence lvl (percentage)
-	private double minSupport = -1; // min number of rows required for rule (percentage of total rows of data);
+	private double minSupport = -1; // min number of rows required for rule (percentage of total rows of data)
+	private double maxSupport = -1; // max number of rows required for rule (percentage of total rows of data)
+	
+	public WekaAprioriPlaySheet() {
+		super();
+	}
 	
 	@Override
 	public void createData() {
@@ -71,6 +76,9 @@ public class WekaAprioriPlaySheet extends GridPlaySheet{
 		if(minSupport != -1) {
 			alg.setMinSupport(minSupport);
 		}
+		if(maxSupport != -1) {
+			alg.setMaxSupport(maxSupport);
+		}
 		try {
 			alg.execute();
 			alg.generateDecisionRuleTable();
@@ -97,7 +105,7 @@ public class WekaAprioriPlaySheet extends GridPlaySheet{
 			int count = 1;
 			if(jTab.getTabCount()>1)
 				count = Integer.parseInt(lastTabName.substring(0,lastTabName.indexOf(".")))+1;
-			addPanelAsTab(count+". Apriori");
+			addPanelAsTab(count+". Association Learning");
 		}
 	}
 
@@ -175,15 +183,19 @@ public class WekaAprioriPlaySheet extends GridPlaySheet{
 	public double getMinSupport() {
 		return minSupport;
 	}
-
+	
 	public void setMinSupport(double minSupport) {
 		this.minSupport = minSupport;
 	}
 
-	protected JTabbedPane jTab;
-
-	public WekaAprioriPlaySheet() {
-		super();
+	public double getMaxSupport() {
+		return maxSupport;
 	}
+
+	public void setMaxSupport(double maxSupport) {
+		this.maxSupport = maxSupport;
+	}
+
+	protected JTabbedPane jTab;
 
 }
