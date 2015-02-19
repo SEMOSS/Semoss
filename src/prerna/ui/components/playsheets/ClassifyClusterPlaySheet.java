@@ -133,6 +133,11 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	private JLabel lblEnterKNeighbors;
 	private JSlider enterKNeighborsSlider;
 	
+	//frequent sets panel combonents
+	private JPanel frequentSetsPanel;
+	private JLabel lblEnterNumRules, lblEnterMinSupport, lblEnterConfInterval;
+	private JTextField enterNumRulesTextField, enterMinSupportTextField, enterConfIntervalTextField;
+	
 	//matrix regression panel components
 	private JPanel matrixRegPanel;
 	private JComboBox<String> matrixDepVarComboBox;
@@ -364,6 +369,17 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		variableSelectorPanel.add(outlierPanel, gbc_outlierPanel);
 		outlierPanel.setVisible(false);
 		
+		frequentSetsPanel = new JPanel();
+		GridBagConstraints gbc_frequentSetsPanel = new GridBagConstraints();
+		gbc_frequentSetsPanel.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_frequentSetsPanel.fill = GridBagConstraints.NONE;
+		gbc_frequentSetsPanel.gridwidth = 3;
+		gbc_frequentSetsPanel.insets = new Insets(5, 15, 0, 0);
+		gbc_frequentSetsPanel.gridx = 1;
+		gbc_frequentSetsPanel.gridy = 3;
+		variableSelectorPanel.add(frequentSetsPanel, gbc_frequentSetsPanel);
+		frequentSetsPanel.setVisible(false);
+		
 		matrixRegPanel = new JPanel();
 		GridBagConstraints gbc_matrixRegPanel = new GridBagConstraints();
 		gbc_matrixRegPanel.anchor = GridBagConstraints.FIRST_LINE_START;
@@ -378,6 +394,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		fillClusterPanel(clusterPanel);
 		fillClassifyPanel(classifyPanel);
 		fillOutlierPanel(outlierPanel);
+		fillFrequentSetsPanel(frequentSetsPanel);
 		fillMatrixRegPanel(matrixRegPanel);
 		
 		runAlgorithm = new CustomButton("Run Algorithm");
@@ -818,7 +835,6 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	}
 	
 	private void fillMatrixRegPanel(JPanel matrixRegPanel) {
-	
 		GridBagLayout gbl_matrixRegPanel = new GridBagLayout();
 		gbl_matrixRegPanel.columnWidths = new int[]{0, 0, 0};
 		gbl_matrixRegPanel.rowHeights = new int[]{0, 0, 0};
@@ -835,7 +851,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_lblSelectDepVar.gridx = 0;
 		gbc_lblSelectDepVar.gridy = 0;
 		matrixRegPanel.add(lblSelectDepVar, gbc_lblSelectDepVar);
-
+		
 		matrixDepVarComboBox = new JComboBox<String>();
 		matrixDepVarComboBox.setName("matrixDepVarComboBox");
 		matrixDepVarComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
@@ -854,7 +870,79 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		classSelectList.setView(this);
 		matrixDepVarComboBox.addActionListener(classSelectList);
 	}
-
+	
+	//TODO: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	private void fillFrequentSetsPanel(JPanel frequentSetsPanel) {
+		GridBagLayout gbl_frequentSetsPanel = new GridBagLayout();
+		gbl_frequentSetsPanel.columnWidths = new int[]{0, 0, 0};
+		gbl_frequentSetsPanel.rowHeights = new int[]{0, 0, 0};
+		gbl_frequentSetsPanel.columnWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
+		gbl_frequentSetsPanel.rowWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
+		frequentSetsPanel.setLayout(gbl_frequentSetsPanel);
+		
+		lblEnterNumRules = new JLabel("Enter Number of Rules:");
+		lblEnterNumRules.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_lblEnterNumRules = new GridBagConstraints();
+		gbc_lblEnterNumRules.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_lblEnterNumRules.fill = GridBagConstraints.NONE;
+		gbc_lblEnterNumRules.insets = new Insets(10, 5, 0, 0);
+		gbc_lblEnterNumRules.gridx = 0;
+		gbc_lblEnterNumRules.gridy = 0;
+		frequentSetsPanel.add(lblEnterNumRules, gbc_lblEnterNumRules);
+		
+		enterNumRulesTextField = new JTextField();
+		enterNumRulesTextField.setText("10");
+		enterNumRulesTextField.setColumns(4);
+		GridBagConstraints gbc_numRulesTextField = new GridBagConstraints();
+		gbc_numRulesTextField.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_numRulesTextField.fill = GridBagConstraints.NONE;
+		gbc_numRulesTextField.insets = new Insets(10, 5, 0, 0);
+		gbc_numRulesTextField.gridx = 1;
+		gbc_numRulesTextField.gridy = 0;
+		frequentSetsPanel.add(enterNumRulesTextField, gbc_numRulesTextField);
+		
+		lblEnterMinSupport = new JLabel("Enter Minimum Support:");
+		lblEnterMinSupport.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_lblEnterMinSupport = new GridBagConstraints();
+		gbc_lblEnterMinSupport.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_lblEnterMinSupport.fill = GridBagConstraints.NONE;
+		gbc_lblEnterMinSupport.insets = new Insets(10, 5, 0, 0);
+		gbc_lblEnterMinSupport.gridx = 0;
+		gbc_lblEnterMinSupport.gridy = 1;
+		frequentSetsPanel.add(lblEnterMinSupport, gbc_lblEnterMinSupport);
+		
+		enterMinSupportTextField = new JTextField();
+		enterMinSupportTextField.setText("0.1");
+		enterMinSupportTextField.setColumns(4);
+		GridBagConstraints gbc_enterMinSupportTextField = new GridBagConstraints();
+		gbc_enterMinSupportTextField.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_enterMinSupportTextField.fill = GridBagConstraints.NONE;
+		gbc_enterMinSupportTextField.insets = new Insets(10, 5, 0, 0);
+		gbc_enterMinSupportTextField.gridx = 1;
+		gbc_enterMinSupportTextField.gridy = 1;
+		frequentSetsPanel.add(enterMinSupportTextField, gbc_enterMinSupportTextField);
+		
+		lblEnterConfInterval = new JLabel("Enter Confidence Value:");
+		lblEnterConfInterval.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_lblEnterConfInterval = new GridBagConstraints();
+		gbc_lblEnterConfInterval.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_lblEnterConfInterval.fill = GridBagConstraints.NONE;
+		gbc_lblEnterConfInterval.insets = new Insets(10, 5, 0, 0);
+		gbc_lblEnterConfInterval.gridx = 0;
+		gbc_lblEnterConfInterval.gridy = 2;
+		frequentSetsPanel.add(lblEnterConfInterval, gbc_lblEnterConfInterval);
+		
+		enterConfIntervalTextField = new JTextField();
+		enterConfIntervalTextField.setText("0.9");
+		enterConfIntervalTextField.setColumns(4);
+		GridBagConstraints gbc_enterConfIntervalTextField = new GridBagConstraints();
+		gbc_enterConfIntervalTextField.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_enterConfIntervalTextField.fill = GridBagConstraints.NONE;
+		gbc_enterConfIntervalTextField.insets = new Insets(10, 5, 0, 0);
+		gbc_enterConfIntervalTextField.gridx = 1;
+		gbc_enterConfIntervalTextField.gridy = 2;
+		frequentSetsPanel.add(enterConfIntervalTextField, gbc_enterConfIntervalTextField);
+	}
 
 	public void fillDrillDownPanel(JPanel drillDownPanel) {
 		GridBagLayout gbl_drillDownPanel = new GridBagLayout();
@@ -948,7 +1036,17 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		
 	}
 	
-
+	//TODO: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	public void showFrequentSets(Boolean show) {
+		frequentSetsPanel.setVisible(show);
+		lblEnterNumRules.setVisible(show);
+		lblEnterMinSupport.setVisible(show);
+		lblEnterConfInterval.setVisible(show);
+		enterNumRulesTextField.setVisible(show);
+		enterMinSupportTextField.setVisible(show);
+		enterConfIntervalTextField.setVisible(show);
+	}
+	
 	public void showCluster(Boolean show) {
 		clusterPanel.setVisible(show);
 		lblSelectNumClusters.setVisible(show);
@@ -1140,5 +1238,14 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	}
 	public Hashtable<String, IPlaySheet> getPlaySheetHash(){
 		return playSheetHash;
+	}
+	public JTextField getEnterNumRulesTextField() {
+		return enterNumRulesTextField;
+	}
+	public JTextField getEnterMinSupportTextField() {
+		return enterMinSupportTextField;
+	}
+	public JTextField getEnterConfIntervalTextField() {
+		return enterConfIntervalTextField;
 	}
 }
