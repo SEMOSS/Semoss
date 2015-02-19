@@ -50,6 +50,7 @@ import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
 import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
 import prerna.ui.components.playsheets.LocalOutlierPlaySheet;
+import prerna.ui.components.playsheets.WekaAprioriPlaySheet;
 import prerna.ui.components.playsheets.WekaClassificationPlaySheet;
 import prerna.ui.helpers.ClusteringModuleUpdateRunner;
 import prerna.ui.helpers.PlaysheetCreateRunner;
@@ -231,7 +232,15 @@ public class RunAlgorithmListener extends AbstractListener {
 			playSheet.fillAccuracyAndPrecision(accuracyArr, precisionArr);
 			return;
 			
-		} else {
+		} else if(algorithm.equals("Frequent Sets")) { 
+		
+			newPlaySheet = new WekaAprioriPlaySheet();
+			newPlaySheet.setList(filteredList);
+			newPlaySheet.setNames(filteredNames);
+			((WekaAprioriPlaySheet)newPlaySheet).setJTab(jTab);
+		}
+		
+		else {
 			LOGGER.error("Cannot find algorithm");
 			return;
 		}
