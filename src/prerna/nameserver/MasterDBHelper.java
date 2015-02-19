@@ -118,8 +118,8 @@ public final class MasterDBHelper implements IMasterDatabaseQueries, IMasterData
 		}
 		
 		//TODO: remove once error checking is done
-		System.err.println(">>>>>>>>>>>>>>>>>FOUND RELATED KEYWORDS TO SET: " + keywordSet);
-		System.err.println(">>>>>>>>>>>>>>>>>LIST IS: " + connectedKeywordSet);
+//		System.err.println(">>>>>>>>>>>>>>>>>FOUND RELATED KEYWORDS TO SET: " + keywordSet);
+//		System.err.println(">>>>>>>>>>>>>>>>>LIST IS: " + connectedKeywordSet);
 	}
 	
 	
@@ -154,8 +154,8 @@ public final class MasterDBHelper implements IMasterDatabaseQueries, IMasterData
 		}
 		
 		//TODO: remove once error checking is done
-		System.err.println(">>>>>>>>>>>>>>>>>FOUND RELATED KEYWORDS " + Utility.getInstanceName(keywordURI));
-		System.err.println(">>>>>>>>>>>>>>>>>LIST IS: " + keywordSet);
+//		System.err.println(">>>>>>>>>>>>>>>>>FOUND RELATED KEYWORDS " + Utility.getInstanceName(keywordURI));
+//		System.err.println(">>>>>>>>>>>>>>>>>LIST IS: " + keywordSet);
 	}
 	
 	public static Map<String, Set<String>> getMCValueMappingTree(IEngine masterEngine) {
