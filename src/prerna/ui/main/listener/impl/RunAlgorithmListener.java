@@ -236,10 +236,11 @@ public class RunAlgorithmListener extends AbstractListener {
 			playSheet.fillAccuracyAndPrecision(accuracyArr, precisionArr);
 			return;
 			
-		} else if(algorithm.equals("Frequent Sets")) { 
+		} else if(algorithm.equals("Association Learning")) { 
 			String numRuleString = playSheet.getEnterNumRulesTextField().getText();
 			String confIntervalString = playSheet.getEnterConfIntervalTextField().getText();
 			String minSupportString = playSheet.getEnterMinSupportTextField().getText();
+			String maxSupportString = playSheet.getEnterMaxSupportTextField().getText();
 			
 			String errorMessage = "";
 			
@@ -268,11 +269,23 @@ public class RunAlgorithmListener extends AbstractListener {
 				minSupport = Double.parseDouble(minSupportString);
 				if(minSupport < 0 || minSupport > 1) {
 					errorMessage += "Min Support must be a value between 0 and 1.  Using default value of 0.1. \n";
-					minSupport = 0.9;
+					minSupport = 0.1;
 				}
 			} catch(NumberFormatException ex) {
 				errorMessage += "Min Support must be a value between 0 and 1.  Using default value of 0.1. \n";
-				minSupport = 0.9;
+				minSupport = 0.1;
+			}
+			
+			double maxSupport = -1.0;
+			try {
+				maxSupport = Double.parseDouble(maxSupportString);
+				if(maxSupport < 0 || maxSupport > 1) {
+					errorMessage += "Max Support must be a value between 0 and 1.  Using default value of 1.0. \n";
+					maxSupport = 1.0;
+				}
+			} catch(NumberFormatException ex) {
+				errorMessage += "Max Support must be a value between 0 and 1.  Using default value of 1.0. \n";
+				maxSupport = 1.0;
 			}
 			
 			if(!errorMessage.isEmpty()) {
@@ -286,6 +299,7 @@ public class RunAlgorithmListener extends AbstractListener {
 			((WekaAprioriPlaySheet)newPlaySheet).setNumRules(numRule);
 			((WekaAprioriPlaySheet)newPlaySheet).setConfPer(confPer);
 			((WekaAprioriPlaySheet)newPlaySheet).setMinSupport(minSupport);
+			((WekaAprioriPlaySheet)newPlaySheet).setMaxSupport(maxSupport);
 		} else if(algorithm.equals("Matrix Regression")) {
 			//column to use as dependent variable
 			String depVar = matrixDepVarComboBox.getSelectedItem() + "";
