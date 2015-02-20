@@ -222,4 +222,14 @@ public class HealthGridSheet extends BrowserPlaySheet{
 			} 
 		return var;
 	}
+	
+	@Override
+	public Hashtable<String, String> getDataTableAlign() {
+		Hashtable<String, String> alignHash = new Hashtable<String, String>();
+		alignHash.put("label", names[0]);
+		for(int namesIdx = 1; namesIdx<names.length; namesIdx++){
+			alignHash.put("value " + namesIdx, names[namesIdx]);
+		}
+		return alignHash;
+	}
 }
