@@ -336,7 +336,7 @@ public class QuestionModButtonListener implements IChakraListener {
 		// populate the fields with data based on question
 		getFieldData();
 
-		questionAdmin = new QuestionAdministrator(engine);
+		questionAdmin = new QuestionAdministrator((AbstractEngine)engine);
 
 		// get the perspectives from the combobox
 		DefaultComboBoxModel model = (DefaultComboBoxModel) questionPerspectiveSelector
