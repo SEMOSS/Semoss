@@ -57,7 +57,7 @@ import com.ibm.icu.util.StringTokenizer;
 public class QuestionAdministrator {
 	Logger logger = Logger.getLogger(QuestionAdministrator.class.getName());
 
-	IEngine engine;
+	AbstractEngine engine;
 	RDFFileSesameEngine insightBaseXML;
 	private String selectedEngine = null;
 
@@ -97,10 +97,10 @@ public class QuestionAdministrator {
 
 	String engineURI2;
 
-	public QuestionAdministrator(IEngine engine) {
+	public QuestionAdministrator(AbstractEngine engine) {
 		this.engine = engine;
 		this.selectedEngine = engine.getEngineName();
-		insightBaseXML = ((AbstractEngine) engine).getInsightBaseXML();
+		insightBaseXML =  engine.getInsightBaseXML();
 		engineURI2 = engineBaseURI + "/" + selectedEngine;
 	}
 
@@ -111,6 +111,12 @@ public class QuestionAdministrator {
 	public void setEngineURI2(String engineURI2) {
 		this.engineURI2 = engineURI2;
 	}
+	
+	public void revertQuestionXML(){
+		engine.createInsightBase();
+		String insights = this.engine.getProperty(Constants.INSIGHTS);
+		engine.createBaseRelationXMLEngine(insights);
+	}
 
 	public void createQuestionXMLFile() {
 		String insights = this.engine.getProperty(Constants.INSIGHTS);
@@ -119,31 +125,7 @@ public class QuestionAdministrator {
 	}
 
 	public void createQuestionXMLFile(String questionXMLFile, String baseFolder) {
-		FileWriter fWrite = null;
-		RDFXMLWriter questionXMLWriter = null;
-
-		try {
-			String xmlFileName = baseFolder + "/" + questionXMLFile;
-
-			fWrite = new FileWriter(xmlFileName);
-			questionXMLWriter = new RDFXMLWriter(fWrite);
-			if (insightBaseXML instanceof RDFFileSesameEngine)
-				((RDFFileSesameEngine) insightBaseXML).rc
-						.export(questionXMLWriter);
-
-			logger.info("Updated XML Question File at: " + xmlFileName);
-		} catch (IOException | RDFHandlerException | RepositoryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} finally {
-			try {
-				if (fWrite != null) {
-					fWrite.close();
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
+		engine.createQuestionXMLFile(questionXMLFile, baseFolder);
 	}
 	
 	private void add2XML(RDFFileSesameEngine xml, ArrayList<Object[]> masterList){
@@ -278,13 +260,13 @@ public class QuestionAdministrator {
 		boolean existingPerspective = false;
 		boolean existingAutoGenQuestionKey = false;
 		
-		Vector<String> questionsV = engine.getInsights(perspective);
+		Vector<Object> questionsV = engine.getInsights(perspective);
 
 		if(questionsV!=null && !questionsV.isEmpty()) {
 			existingPerspective = true;
 			for (int j = 0; j < questionsV.size(); j++) {
-				String question = questionsV.get(j);
-				Insight in = ((AbstractEngine) engine).getInsight2(
+				String question = questionsV.get(j)+"";
+				Insight in = engine.getInsight2(
 						question).get(0);
 
 				String questionID = in.getId();
@@ -310,9 +292,9 @@ public class QuestionAdministrator {
 				// assigns the next value for the new questionKey
 				int largestQuestionKeyValue = 0;
 				for (int i = 0; i < questionsV.size(); i++) {
-					String question = questionsV.get(i);
+					String question = questionsV.get(i)+"";
 
-					Insight in = ((AbstractEngine) engine)
+					Insight in = engine
 							.getInsight2(question).get(0);
 
 					String questionID = in.getId();
@@ -355,7 +337,7 @@ public class QuestionAdministrator {
 
 		//get current order of insights in this perspective
 		String perspectiveURI = getPerspectiveURI(perspective);
-		Vector<String> currentQuestionOrderVector = ((AbstractEngine) engine).getOrderedInsightsURI(perspectiveURI);
+		Vector<String> currentQuestionOrderVector = engine.getOrderedInsightsURI(perspectiveURI);
 		if(currentQuestionOrderVector == null ) currentQuestionOrderVector = new Vector<String>();
 		System.out.println("questions currenlty ordered as " + currentQuestionOrderVector);
 		
@@ -450,14 +432,14 @@ public class QuestionAdministrator {
 		// if they are the same, that would be great
 		//get current order of insights in the perspective getting the delete
 		String deletedPerspectiveURI = getPerspectiveURI(currentPerspective);
-		Vector<String> currentDelQuestionOrderVector = ((AbstractEngine) engine).getOrderedInsightsURI(deletedPerspectiveURI);
+		Vector<String> currentDelQuestionOrderVector = engine.getOrderedInsightsURI(deletedPerspectiveURI);
 		System.out.println("questions currenlty ordered in deleted as " + currentDelQuestionOrderVector);
 		
 		Vector<String> currentAddQuestionOrderVector = null;
 		String addPerspectiveURI = null;
 		if(!perspective.equals(currentPerspective)){
 			addPerspectiveURI = getPerspectiveURI(perspective);
-			currentAddQuestionOrderVector = ((AbstractEngine) engine).getOrderedInsightsURI(addPerspectiveURI);
+			currentAddQuestionOrderVector = engine.getOrderedInsightsURI(addPerspectiveURI);
 			System.out.println("questions currenlty ordered in add as " + currentAddQuestionOrderVector);
 		}
 
@@ -472,10 +454,10 @@ public class QuestionAdministrator {
 				parameterQueryList, parameterOptionList);
 		
 		//now reorder
-		Vector<String> newDelQuestionOrderVector = ((AbstractEngine) engine).getOrderedInsightsURI(deletedPerspectiveURI);
+		Vector<String> newDelQuestionOrderVector = engine.getOrderedInsightsURI(deletedPerspectiveURI);
 		reorderPerspective2(currentDelQuestionOrderVector, newDelQuestionOrderVector);
 		if(currentAddQuestionOrderVector!=null){
-			Vector<String> newAddQuestionOrderVector = ((AbstractEngine) engine).getOrderedInsightsURI(addPerspectiveURI);
+			Vector<String> newAddQuestionOrderVector = engine.getOrderedInsightsURI(addPerspectiveURI);
 			reorderPerspective2(currentAddQuestionOrderVector, newAddQuestionOrderVector);
 		}
 		
@@ -485,14 +467,14 @@ public class QuestionAdministrator {
 	{
 		//get current order of insights in this perspective
 		String perspectiveURI = getPerspectiveURI(perspective);
-		Vector<String> currentQuestionOrderVector = ((AbstractEngine) engine).getOrderedInsightsURI(perspectiveURI);
+		Vector<String> currentQuestionOrderVector = engine.getOrderedInsightsURI(perspectiveURI);
 		System.out.println("questions currenlty ordered as " + currentQuestionOrderVector);
 		
 		Hashtable<String, Boolean> results = new Hashtable<String,Boolean>();
 		//now delete the questions
 		for(String questionTitle : questionTitles){
 			//first have to get the question
-			Insight insight = ((AbstractEngine)engine).getInsight2(questionTitle).get(0);
+			Insight insight = engine.getInsight2(questionTitle).get(0);
 			String questionID = insight.getId();
 			String[] questionIDArray = questionID.split(":");
 			String questionKey = questionIDArray[2];
@@ -510,7 +492,7 @@ public class QuestionAdministrator {
 			deleteQuestion( perspective, questionKey, questionOrder, question, sparql, layout, questionDescription, dependVector, parameterQueryVector, optionVector);
 		}
 
-		Vector<String> newQuestionOrderVector = ((AbstractEngine) engine).getOrderedInsightsURI(perspectiveURI);
+		Vector<String> newQuestionOrderVector = engine.getOrderedInsightsURI(perspectiveURI);
 		// if there are no questions left
 		// delete the perspective.
 		if (newQuestionOrderVector == null || newQuestionOrderVector.isEmpty()) {
@@ -561,7 +543,7 @@ public class QuestionAdministrator {
 		
 		//get current order of insights in this perspective
 		String perspectiveURI = getPerspectiveURI(perspective);
-		Vector<String> currentQuestionOrderVector = ((AbstractEngine) engine).getOrderedInsightsURI(perspectiveURI);
+		Vector<String> currentQuestionOrderVector = engine.getOrderedInsightsURI(perspectiveURI);
 		System.out.println("questions currenlty ordered as " + currentQuestionOrderVector);
 		
 		//now delete the question
@@ -650,7 +632,7 @@ public class QuestionAdministrator {
 
 	private String getPerspectiveURI(String perspective) {
 		String pURI = "";//
-		Vector<String> pURIs = ((AbstractEngine) engine).getPerspectivesURI();
+		Vector<String> pURIs = engine.getPerspectivesURI();
 		if(pURIs != null){
 			for (String p : pURIs) {
 				String pURIinstance = Utility.getInstanceName(p);
@@ -673,7 +655,7 @@ public class QuestionAdministrator {
 		logger.info("Deleting all questions from perspective with this URI: "
 				+ perspectiveURI);
 
-		Vector questionsVector = ((AbstractEngine) engine)
+		Vector questionsVector = engine
 				.getInsightsURI(perspectiveURI);
 		ArrayList<String> questionList2 = new ArrayList<String>();
 		String perspective = perspectiveURI.substring(perspectiveURI
@@ -685,7 +667,7 @@ public class QuestionAdministrator {
 		}
 
 		for (String question2 : questionList2) {
-			Insight in = ((AbstractEngine) engine).getInsight2URI(question2)
+			Insight in = engine.getInsight2URI(question2)
 					.get(0);
 
 			System.out.println("Removing question " + question2);
@@ -716,7 +698,7 @@ public class QuestionAdministrator {
 		Vector<String> dependVector = new Vector<String>();
 		Vector<String> optionVector = new Vector<String>();
 
-		Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine) engine).getParamsURI(questionURI);
+		Vector<SEMOSSParam> paramInfoVector = engine.getParamsURI(questionURI);
 		if (!paramInfoVector.isEmpty()) {
 			for (int i = 0; i < paramInfoVector.size(); i++) {
 				SEMOSSParam param = paramInfoVector.get(i);
@@ -774,7 +756,7 @@ public class QuestionAdministrator {
 		String perspectiveURI = getPerspectiveURI(perspective);
 		logger.info("Reordering all questions from perspective with this URI: "
 				+ perspectiveURI);
-		Vector<String> questionsVector = ((AbstractEngine) engine)
+		Vector<String> questionsVector = engine
 				.getOrderedInsightsURI(perspectiveURI);
 		System.out.println("questions currenlty ordered as " + questionsVector);
 		
@@ -816,7 +798,7 @@ public class QuestionAdministrator {
 			if(!qURI.contains("http://semoss.org/ontologies/Concept/Insight/"))
 				qURI = "http://semoss.org/ontologies/Concept/Insight/" + qURI;
 			
-			Insight in = ((AbstractEngine) engine).getInsight2URI(qURI).get(0);
+			Insight in = engine.getInsight2URI(qURI).get(0);
 
 			System.out.println("Removing order question " + qURI);
 			String questionOrder = in.getOrder();
