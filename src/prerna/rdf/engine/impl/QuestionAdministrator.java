@@ -783,22 +783,35 @@ public class QuestionAdministrator {
 
 	public void reorderPerspective2(Vector<String> currentOrderOfInsightsIDs, Vector<String> newOrderOfInsightsIDs) {
 
-		// determine difference in order between orderedInsights and
-		// questionsVector so that we only update the questions that need
-		// updating
-		Hashtable<String, Integer> needsReorder = new Hashtable<String, Integer>();
-		for (int i = 0; i < newOrderOfInsightsIDs.size(); i++) {
-			String qID = newOrderOfInsightsIDs.get(i);
-			if ((currentOrderOfInsightsIDs != null && i >= currentOrderOfInsightsIDs.size()) || (currentOrderOfInsightsIDs != null && 
-					!Utility.getInstanceName(qID).equals(Utility.getInstanceName(currentOrderOfInsightsIDs.get(i))))) {
-				needsReorder.put(qID, i+1);
-			}
-		}
+//		// determine difference in order between orderedInsights and
+//		// questionsVector so that we only update the questions that need
+//		// updating
+//		Hashtable<String, Integer> needsReorder = new Hashtable<String, Integer>();
+//		for (int i = 0; i < newOrderOfInsightsIDs.size(); i++) {
+//			String qID = newOrderOfInsightsIDs.get(i);
+//			if ((currentOrderOfInsightsIDs != null && i >= currentOrderOfInsightsIDs.size()) || (currentOrderOfInsightsIDs != null && 
+//					!Utility.getInstanceName(qID).equals(Utility.getInstanceName(currentOrderOfInsightsIDs.get(i))))) {
+//				needsReorder.put(qID, i+1);
+//			}
+//		}
 
 		// now reorder!
-		Iterator<String> it = needsReorder.keySet().iterator();
-		while (it.hasNext()) {
-			String key = it.next();
+//		Iterator<String> it = needsReorder.keySet().iterator();
+//		while (it.hasNext()) {
+//			String key = it.next();
+//			String qURI = key;
+//			if(!qURI.contains("http://semoss.org/ontologies/Concept/Insight/"))
+//				qURI = "http://semoss.org/ontologies/Concept/Insight/" + qURI;
+//			
+//			Insight in = ((AbstractEngine) engine).getInsight2URI(qURI).get(0);
+//
+//			System.out.println("Removing order question " + qURI);
+//			String questionOrder = in.getOrder();
+//			String newOrder = needsReorder.get(key) + "";
+//			reorderQuestion(qURI, newOrder, questionOrder);
+//
+//		}
+		for (String key : newOrderOfInsightsIDs) {
 			String qURI = key;
 			if(!qURI.contains("http://semoss.org/ontologies/Concept/Insight/"))
 				qURI = "http://semoss.org/ontologies/Concept/Insight/" + qURI;
@@ -807,7 +820,7 @@ public class QuestionAdministrator {
 
 			System.out.println("Removing order question " + qURI);
 			String questionOrder = in.getOrder();
-			String newOrder = needsReorder.get(key) + "";
+			String newOrder = newOrderOfInsightsIDs.indexOf(key)+1 + "";
 			reorderQuestion(qURI, newOrder, questionOrder);
 
 		}
