@@ -106,12 +106,13 @@ public class ScatterChartPlaySheet extends BrowserPlaySheet{
 		}
 		Hashtable allHash = new Hashtable();
 		allHash.put("dataSeries", allData);
-		allHash.put("title",  names[1] + " vs " + names[2]);
-		allHash.put("xAxisTitle", names[1]);
+		allHash.put("title",  names[2] + " vs " + names[3]);
+		allHash.put("labelHeader", names[1]);
+		allHash.put("xAxisTitle", names[2]);
 		if(names.length>2)
-			allHash.put("yAxisTitle", names[2]);
+			allHash.put("yAxisTitle", names[3]);
 		if(names.length>3)
-			allHash.put("zAxisTitle", names[3]);
+			allHash.put("zAxisTitle", names[4]);
 		return allHash;
 	}
 	
