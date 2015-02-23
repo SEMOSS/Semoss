@@ -40,6 +40,7 @@ public class MatrixRegressionAlgorithm extends OLSMultipleLinearRegression{
 	private double[] coeffErrorsArray;
 	private double[] residualArray;
 	private double[] estimateArray;
+	private double standardError;
 
 	public double[] getCoeffArray() {
 		return coeffArray;
@@ -57,6 +58,9 @@ public class MatrixRegressionAlgorithm extends OLSMultipleLinearRegression{
 		return estimateArray;
 	}
 
+	public double getStandardError() {
+		return standardError;
+	}
 	
 	/**
 	 * Creates a MatrixRegressionAlgorithm object to solve A*theta = y.
@@ -83,6 +87,9 @@ public class MatrixRegressionAlgorithm extends OLSMultipleLinearRegression{
 		
 		coeffErrorsArray = estimateRegressionParametersStandardErrors();
 		residualArray = estimateResiduals();
+		
+		double residualSumOfSquares = calculateResidualSumOfSquares();
+		standardError = Math.sqrt(residualSumOfSquares / residualArray.length);
 				
 		long endTime = System.currentTimeMillis();
 		System.out.println("Total Time = " + (endTime-startTime)/1000 );
