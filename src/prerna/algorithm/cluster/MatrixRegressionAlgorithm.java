@@ -27,58 +27,65 @@
  *******************************************************************************/
 package prerna.algorithm.cluster;
 
+import org.apache.commons.math3.linear.RealVector;
+import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import Jama.Matrix;
-
-public class MatrixRegressionAlgorithm {
+public class MatrixRegressionAlgorithm extends OLSMultipleLinearRegression{
 
 	private static final Logger LOGGER = LogManager.getLogger(MatrixRegressionAlgorithm.class.getName());
 
-	private Matrix A;
-	private Matrix b;
-	private Matrix coeffMatrix;
-	private double rNorm;
+	private double[] coeffArray;
+	private double[] coeffErrorsArray;
+	private double[] residualArray;
+	private double[] estimateArray;
 
-	public Matrix getCoeffMatrix() {
-		return coeffMatrix;
-	}
-	
 	public double[] getCoeffArray() {
-		return coeffMatrix.getRowPackedCopy();
+		return coeffArray;
 	}
 
-	public double getRNorm() {
-		return rNorm;
+	public double[] getCoeffErrorsArray() {
+		return coeffErrorsArray;
+	}
+	
+	public double[] getResidualArray() {
+		return residualArray;
+	}
+
+	public double[] getEstimateArray() {
+		return estimateArray;
 	}
 
 	
 	/**
-	 * Sets the matricies for regression analysis to solve Ax = b.
+	 * Creates a MatrixRegressionAlgorithm object to solve A*theta = y.
 	 * @param A  
-	 * @param b
+	 * @param y
 	 */
-	public MatrixRegressionAlgorithm(double[][] A, double[] b) {
-		this.A = new Matrix(A);
-		this.b = new Matrix(b,b.length);
+	public MatrixRegressionAlgorithm(double[][] A, double[] y) {
+		newSampleData(y, A);
+		setNoIntercept(false);
 	}
 	
 
 	/**
-	 * Determines the coefficients for the matricies provided.
+	 * Determines the coefficients, errors in the coefficients, estimates, and residuals.
 	 */
 	public void execute() {
 
 		long startTime = System.currentTimeMillis();
+
+		RealVector theta = calculateBeta();
+		coeffArray = theta.toArray();
+		//create estimate matrix from the coefficients and x values
+		estimateArray = getX().operate(theta).toArray();
 		
-		coeffMatrix = A.solve(b);
-		Matrix residual = A.times(coeffMatrix).minus(b);
-		rNorm = residual.normInf();
-		
+		coeffErrorsArray = estimateRegressionParametersStandardErrors();
+		residualArray = estimateResiduals();
+				
 		long endTime = System.currentTimeMillis();
 		System.out.println("Total Time = " + (endTime-startTime)/1000 );
 	}
-
 
 }
