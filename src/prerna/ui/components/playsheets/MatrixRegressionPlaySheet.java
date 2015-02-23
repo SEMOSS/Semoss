@@ -76,7 +76,7 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 		int listNumRows = list.size();
 		int listNumCols = list.get(0).length;
 		int aNumCols = listNumCols - 2;//subtract out the title and the column where b initially was
-		int outputNumCols = listNumCols+2; //add in the estimate and residuals
+		int outputNumCols = listNumCols+3; //add in the estimate and residuals and error range
 		
 		//the bIndex should have been provided. if not, will use the last column
 		if(bIndex==-1)
@@ -107,12 +107,14 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 		double[] coeffErrorsArray = alg.getCoeffErrorsArray();
 		double[] estimateArray = alg.getEstimateArray();
 		double[] residualArray = alg.getResidualArray();
+		double standardError = alg.getStandardError();
 		
 		//add in estimated and residuals for each row determined using coefficients
 		for(i=0;i<listNumRows;i++) {
 			double actualVal = b[i];
 			double estimatedVal = estimateArray[i];
 			double residualVal = residualArray[i];
+			double withinErrorRange = Math.abs(residualVal / standardError);
 			
 			Object[] newRow = new Object[outputNumCols];
 			newRow[0] = list.get(i)[0];
@@ -122,6 +124,7 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 			newRow[j+1] = actualVal;
 			newRow[j+2] = estimatedVal;
 			newRow[j+3] = residualVal;
+			newRow[j+4] = withinErrorRange;
 
 			list.set(i, newRow);
 		}
@@ -138,6 +141,7 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 		namesWithEstimateAndResiduals[newIndex]  = "Actual- " + names[bIndex];
 		namesWithEstimateAndResiduals[newIndex+1] = "Estimated- " + names[bIndex];
 		namesWithEstimateAndResiduals[newIndex+2] = "Residual- " + names[bIndex];
+		namesWithEstimateAndResiduals[newIndex+3] = "Within Error Range?";
 
 		names = namesWithEstimateAndResiduals;
 		
@@ -148,7 +152,8 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 			coeffRow[i] = coeffArray[i];
 		coeffRow[i] = "b is " + coeffArray[0];//first spot in the coefficient array is the constant value
 		coeffRow[i+1] = "-";
-		coeffRow[i+2] = "-";	
+		coeffRow[i+2] = "-";
+		coeffRow[i+3] = "standard error of estimates is "+standardError;	
 		list.add(0,coeffRow);
 		
 		//coeffErrorsArray
@@ -158,7 +163,8 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 			coeffErrorsRow[i] = coeffErrorsArray[i];
 		coeffErrorsRow[i] = "b error is " + coeffErrorsArray[0];//first spot in the coefficient array is the constant value
 		coeffErrorsRow[i+1] = "-";
-		coeffErrorsRow[i+2] = "-";	
+		coeffErrorsRow[i+2] = "-";
+		coeffErrorsRow[i+3] = "-";	
 		list.add(1,coeffErrorsRow);
 	}
 	
