@@ -286,9 +286,10 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 				writer.writeListSheet("Future Interface Sustainment", sysPersistentICD, false);
 			}
 		} else {
-			sysDecommissionedFutureICD.putAll(sysPersistentICD);
 			decomICDList.addAll(sustainICDList);
+			sysDecommissionedFutureICD.put("data", decomICDList);
 			sustainICDList = new ArrayList<Object[]>();
+			devICDList = new ArrayList<Object[]>();
 			writer.hideWorkSheet("Future Interface Development");
 			writer.hideWorkSheet("Future Interface Sustainment");
 			writer.writeListSheet("Future Interface Decommission", sysDecommissionedFutureICD, systemProbabilityHigh);
@@ -301,7 +302,7 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 		try {
 			costWriter = new DHMSMIntegrationTransitionCostWriter();
 			costWriter.setSysURI(systemURI);
-			writer.writeTransitionCosts(costWriter);
+			writer.writeTransitionCosts(costWriter, systemProbabilityHigh);
 		} catch (EngineException e) {
 			e.printStackTrace();
 			Utility.showError(e.getMessage());
@@ -367,8 +368,8 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 		sysNumBLUQuery = sysNumBLUQuery.replaceAll("ABACUS", systemName);
 		sysAndDHMSMNumBLUQuery = sysAndDHMSMNumBLUQuery.replaceAll("ABACUS", systemName);
 		
-		ArrayList<String> sysNumBLU = runQuery(hrCoreEngine, sysNumBLUQuery);
-		ArrayList<String> sysAndDHMSMBLU = runQuery(hrCoreEngine, sysAndDHMSMNumBLUQuery);
+		ArrayList sysNumBLU = runQuery(hrCoreEngine, sysNumBLUQuery);
+		ArrayList sysAndDHMSMBLU = runQuery(hrCoreEngine, sysAndDHMSMNumBLUQuery);
 		
 		DHMSMHelper dhelp = new DHMSMHelper();
 		dhelp.runData(HR_Core);
@@ -381,8 +382,8 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 		double numOfBLUSystemSOR = 0;
 		double numOfBLUSystemSORAndDHMSMCreate = 0;
 
-		numOfBLUSystemSOR = sysNumBLU.size() / 1.0;
-		numOfBLUSystemSORAndDHMSMCreate = sysAndDHMSMBLU.size() / 1.0;
+		numOfBLUSystemSOR = (double) ((ArrayList<Object>) sysNumBLU.get(0)).get(0);
+		numOfBLUSystemSORAndDHMSMCreate = (double) ((ArrayList<Object>) sysAndDHMSMBLU.get(0)).get(0);
 		
 		//Calculate % of BLU that DHMSM will provide for the given system
 		if (numOfBLUSystemSOR == 0)
