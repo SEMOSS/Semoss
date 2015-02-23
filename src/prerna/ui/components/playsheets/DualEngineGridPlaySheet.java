@@ -94,7 +94,7 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 
 		list = new ArrayList<Object[]>();
 
-		ISelectWrapper wrapper1 = WrapperManager.getInstance().getSWrapper(engine, query);
+		ISelectWrapper wrapper1 = WrapperManager.getInstance().getSWrapper(engine1, query1);
 
 		//Process query 1
 		/*SesameJenaSelectWrapper wrapper1 = new SesameJenaSelectWrapper();
@@ -111,7 +111,7 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 		names1size = names1.length;
 
 		//process query 2
-		ISelectWrapper wrapper2 = WrapperManager.getInstance().getSWrapper(engine, query);
+		ISelectWrapper wrapper2 = WrapperManager.getInstance().getSWrapper(engine2, query2);
 	
 		/*SesameJenaSelectWrapper wrapper2 = new SesameJenaSelectWrapper();
 
