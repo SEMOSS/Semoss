@@ -30,7 +30,7 @@ package prerna.ui.components.playsheets;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 
-import prerna.algorithm.cluster.DatasetSimilarity;
+import prerna.algorithm.learning.similarity.DatasetSimilarity;
 
 public class DatasetSimilarityPlaySheet extends GridPlaySheet{
 	

@@ -48,7 +48,7 @@ import org.apache.log4j.Logger;
 import com.google.gson.Gson;
 import com.teamdev.jxbrowser.chromium.JSValue;
 
-import prerna.algorithm.cluster.MatrixRegressionAlgorithm;
+import prerna.algorithm.learning.supervized.MatrixRegressionAlgorithm;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.main.listener.impl.GridPlaySheetListener;

@@ -25,11 +25,17 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.algorithm.cluster;
+package prerna.algorithm.learning.supervized;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import prerna.algorithm.learning.similarity.ClusterRemoveDuplicates;
+import prerna.algorithm.learning.similarity.ClusteringDataProcessor;
+import prerna.algorithm.learning.similarity.ClusteringNumericalMethods;
+import prerna.algorithm.learning.unsupervised.ClusterUtilityMethods;
+import prerna.algorithm.learning.unsupervised.ClusteringOptimization;
+import prerna.algorithm.learning.unsupervised.PartitionedClusteringAlgorithm;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.util.ArrayListUtilityMethods;
 import prerna.util.ArrayUtilityMethods;
@@ -81,9 +87,14 @@ public class ClusteringClassification {
 			String[] clusterNames = useNameFromList(masterNames, i);
 			
 			ClusteringOptimization alg = new ClusteringOptimization(clusterData, clusterNames);
-			alg.determineOptimalCluster();
+			alg.setDataVariables();
+			int minClusters = 2;
+			int maxClusters = 50;
+			((PartitionedClusteringAlgorithm) alg).generateBaseClusterInformation(50);
+			((ClusteringOptimization) alg).runGoldenSelectionForNumberOfClusters(minClusters, maxClusters);
+			((PartitionedClusteringAlgorithm) alg).generateInitialClusters();
 			alg.execute();
-			
+				
 			originalClusterAssignedIndices[i] = alg.getClusterAssignment();
 			int[] numInstancesInCluster = alg.getNumInstancesInCluster();
 			

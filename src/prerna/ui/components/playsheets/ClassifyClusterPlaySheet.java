@@ -56,10 +56,10 @@ import javax.swing.border.BevelBorder;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.cluster.ClusterRemoveDuplicates;
-import prerna.algorithm.cluster.ClusteringDataProcessor;
-import prerna.algorithm.cluster.DatasetSimilarity;
-import prerna.algorithm.cluster.GenerateEntropyDensity;
+import prerna.algorithm.learning.similarity.ClusterRemoveDuplicates;
+import prerna.algorithm.learning.similarity.ClusteringDataProcessor;
+import prerna.algorithm.learning.similarity.DatasetSimilarity;
+import prerna.algorithm.learning.similarity.GenerateEntropyDensity;
 import prerna.math.BarChart;
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.components.NewScrollBarUI;

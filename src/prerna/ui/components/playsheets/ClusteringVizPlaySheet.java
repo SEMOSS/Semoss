@@ -52,12 +52,12 @@ import javax.swing.JTable;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.cluster.AbstractClusteringAlgorithm;
-import prerna.algorithm.cluster.ClusterRemoveDuplicates;
-import prerna.algorithm.cluster.ClusteringOptimization;
-import prerna.algorithm.cluster.DatasetSimilarity;
-import prerna.algorithm.cluster.GenerateEntropyDensity;
-import prerna.algorithm.cluster.PartitionedClusteringAlgorithm;
+import prerna.algorithm.learning.similarity.ClusterRemoveDuplicates;
+import prerna.algorithm.learning.similarity.DatasetSimilarity;
+import prerna.algorithm.learning.similarity.GenerateEntropyDensity;
+import prerna.algorithm.learning.unsupervised.AbstractClusteringAlgorithm;
+import prerna.algorithm.learning.unsupervised.ClusteringOptimization;
+import prerna.algorithm.learning.unsupervised.PartitionedClusteringAlgorithm;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.rdf.engine.api.ISelectStatement;

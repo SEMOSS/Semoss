@@ -30,7 +30,7 @@ package prerna.ui.components.playsheets;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
-import prerna.algorithm.cluster.DatasetSimilarity;
+import prerna.algorithm.learning.similarity.DatasetSimilarity;
 import prerna.math.BarChart;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
