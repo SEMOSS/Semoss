@@ -389,12 +389,12 @@ public class DHMSMDispositionFactSheetWriter {
 			if (systemProbabilityHigh) {
 				XSSFCell cellToWriteOn;
 				if(row==0)
-					cellToWriteOn = rowToWriteOn.getCell(resultRowValues.length);
+					cellToWriteOn = rowToWriteOn.getCell(7);
 				else
 				{
-					cellToWriteOn = rowToWriteOn.createCell(resultRowValues.length);;
+					cellToWriteOn = rowToWriteOn.createCell(7);
 				}
-				XSSFCell cellToCopyFormat = rowToCopyFormat.getCell(resultRowValues.length);
+				XSSFCell cellToCopyFormat = rowToCopyFormat.getCell(7);
 				cellToWriteOn.setCellStyle(cellToCopyFormat.getCellStyle());
 				cellToWriteOn.setCellValue((String) "Decommission Interface.");
 			}
@@ -525,142 +525,144 @@ public class DHMSMDispositionFactSheetWriter {
 	 * @param sheet 	XSSFSheet within the workbook to add the header
 	 * @throws EngineException 
 	 */
-	public void writeTransitionCosts(DHMSMIntegrationTransitionCostWriter costWriter) throws EngineException {	
-		costWriter.calculateValuesForReport();
+	public void writeTransitionCosts(DHMSMIntegrationTransitionCostWriter costWriter, boolean systemProbabilityHigh) throws EngineException {
 		XSSFSheet reportSheet = wb.getSheet("Financials");
-		int i;
-		int j;
-		int numTags = costWriter.tags.length;
-		int numPhases = costWriter.phases.length;
-		int rowToOutput = 15;
-		
-		double[] totalCost = new double[2];
-		for(i = 0; i < numTags; i++) {
-			if(costWriter.tags[i].contains("Provide")){
-				rowToOutput = 23;
-			}
-			for(j = 0; j < numPhases; j++) {
-				String key = costWriter.tags[i].concat("+").concat(costWriter.phases[j]);
-				String key1 = costWriter.tags1[i].concat("+").concat(costWriter.phases[j]);
-				XSSFRow rowToWriteOn = reportSheet.getRow(rowToOutput);
-				if(costWriter.consolidatedSysCostInfo.containsKey(key)) {
-					Double cost = costWriter.consolidatedSysCostInfo.get(key);
-					if(cost == null) {
-						cost = (double) 0;
-					} else {
-						cost *= costWriter.costPerHr;
-					}
-					totalCost[i] += cost;
-					XSSFCell cellToWriteOn = rowToWriteOn.getCell(3);
-					cellToWriteOn.setCellValue(Math.round(cost));
-				} else if(costWriter.consolidatedSysCostInfo.containsKey(key1)) {
-					Double cost = costWriter.consolidatedSysCostInfo.get(key1);
-					if(cost == null) {
-						cost = (double) 0;
-					} else {
-						cost *= costWriter.costPerHr;
-					}
-					totalCost[i] += cost;
-					XSSFCell cellToWriteOn = rowToWriteOn.getCell(3);
-					cellToWriteOn.setCellValue(Math.round(cost));
-				}
-				rowToOutput++;
-			}
-		}
-		
-		double consumerTraining = totalCost[0]*costWriter.trainingFactor;
-		reportSheet.getRow(21).getCell(3).setCellValue(Math.round(consumerTraining));
-		double providerTraining = totalCost[1]*costWriter.trainingFactor;
-		reportSheet.getRow(29).getCell(3).setCellValue(Math.round(providerTraining));
-		
-		for(i = 0; i < 2; i++) {
-			int startRow;
-			if(i == 0) {
-				startRow = 20;
-			} else {
-				startRow = 28;
-			}
-			double sustainmentCost = totalCost[i]*costWriter.sustainmentFactor;
-			reportSheet.getRow(startRow).getCell(4).setCellValue(Math.round(sustainmentCost));
-			for(j = 0; j < 3; j++) {
-				sustainmentCost *= (1+costWriter.inflation);
-				XSSFCell cellToWriteOn = reportSheet.getRow(startRow).getCell(5+j);
-				cellToWriteOn.setCellValue(Math.round(sustainmentCost));
-			}
-		}
-		
-		//sum accross columns
-		int k;
-		for(k = 3; k < 8; k++) {
-			for(i = 0; i < 2; i++) {
-				int startRow;
-				if(i == 0) {
-					startRow = 15;
-				} else {
-					startRow = 23;
-				}
-				double sumColumn = 0;
-				for(j = 0; j < 7; j++) {
-					double val = reportSheet.getRow(startRow+j).getCell(k).getNumericCellValue();
-					sumColumn += val;
-				}
-				reportSheet.getRow(startRow+7).getCell(k).setCellValue(sumColumn);
-			}
-		}
-		//sum accross rows
-		for(k = 0; k < 8; k++) {
-			for(i = 0; i < 2; i++) {
-				int startRow;
-				if(i == 0) {
-					startRow = 15;
-				} else {
-					startRow = 23;
-				}
-				double sumRow = 0;
-				for(j = 3; j < 8; j++) {
-					double val = reportSheet.getRow(startRow+k).getCell(j).getNumericCellValue();
-					sumRow += val;
-				}
-				reportSheet.getRow(startRow+k).getCell(8).setCellValue(sumRow);
-			}
-		}
-		
-		reportSheet.getRow(32).getCell(3).setCellValue(Math.round(costWriter.sumHWSWCost));
-		//since hwsw cost assumed at FY15, total is equal to value at FY15
-		reportSheet.getRow(32).getCell(8).setCellValue(Math.round(costWriter.sumHWSWCost));
-		
-		int numATO = 0;
-		if(costWriter.atoDateList[0] < 2015) {
-			costWriter.atoDateList[0] = costWriter.atoDateList[1];
-			costWriter.atoDateList[1] += 3; 
-		}
-		for(Integer date : costWriter.atoDateList) {
-			if(date == 2015){
-				reportSheet.getRow(34).getCell(3).setCellValue(costWriter.atoCost);
-				numATO++;
-			} else if(date == 2016) {
-				reportSheet.getRow(34).getCell(4).setCellValue(costWriter.atoCost);
-				numATO++;
-			} else if(date == 2017) {
-				reportSheet.getRow(34).getCell(5).setCellValue(costWriter.atoCost);
-				numATO++;
-			} else if(date == 2018) {
-				reportSheet.getRow(34).getCell(6).setCellValue(costWriter.atoCost);
-				numATO++;
-			} else if(date == 2019) {
-				reportSheet.getRow(34).getCell(7).setCellValue(costWriter.atoCost);
-				numATO++;
-			}
-		}
-		reportSheet.getRow(34).getCell(8).setCellValue(costWriter.atoCost * numATO);
-		
-		for(i = 3; i < 9; i++){
-			double consumerCost = reportSheet.getRow(22).getCell(i).getNumericCellValue();
-			double providerCost = reportSheet.getRow(30).getCell(i).getNumericCellValue();
-			double hwswCost = reportSheet.getRow(32).getCell(i).getNumericCellValue();
-			double diacapCost = reportSheet.getRow(34).getCell(i).getNumericCellValue();
+		if (!systemProbabilityHigh) {
+			costWriter.calculateValuesForReport();
+			int i;
+			int j;
+			int numTags = costWriter.tags.length;
+			int numPhases = costWriter.phases.length;
+			int rowToOutput = 15;
 			
-			reportSheet.getRow(35).getCell(i).setCellValue(consumerCost + providerCost + hwswCost + diacapCost);
+			double[] totalCost = new double[2];
+			for(i = 0; i < numTags; i++) {
+				if(costWriter.tags[i].contains("Provide")){
+					rowToOutput = 23;
+				}
+				for(j = 0; j < numPhases; j++) {
+					String key = costWriter.tags[i].concat("+").concat(costWriter.phases[j]);
+					String key1 = costWriter.tags1[i].concat("+").concat(costWriter.phases[j]);
+					XSSFRow rowToWriteOn = reportSheet.getRow(rowToOutput);
+					if(costWriter.consolidatedSysCostInfo.containsKey(key)) {
+						Double cost = costWriter.consolidatedSysCostInfo.get(key);
+						if(cost == null) {
+							cost = (double) 0;
+						} else {
+							cost *= costWriter.costPerHr;
+						}
+						totalCost[i] += cost;
+						XSSFCell cellToWriteOn = rowToWriteOn.getCell(3);
+						cellToWriteOn.setCellValue(Math.round(cost));
+					} else if(costWriter.consolidatedSysCostInfo.containsKey(key1)) {
+						Double cost = costWriter.consolidatedSysCostInfo.get(key1);
+						if(cost == null) {
+							cost = (double) 0;
+						} else {
+							cost *= costWriter.costPerHr;
+						}
+						totalCost[i] += cost;
+						XSSFCell cellToWriteOn = rowToWriteOn.getCell(3);
+						cellToWriteOn.setCellValue(Math.round(cost));
+					}
+					rowToOutput++;
+				}
+			}
+			
+			double consumerTraining = totalCost[0]*costWriter.trainingFactor;
+			reportSheet.getRow(21).getCell(3).setCellValue(Math.round(consumerTraining));
+			double providerTraining = totalCost[1]*costWriter.trainingFactor;
+			reportSheet.getRow(29).getCell(3).setCellValue(Math.round(providerTraining));
+			
+			for(i = 0; i < 2; i++) {
+				int startRow;
+				if(i == 0) {
+					startRow = 20;
+				} else {
+					startRow = 28;
+				}
+				double sustainmentCost = totalCost[i]*costWriter.sustainmentFactor;
+				reportSheet.getRow(startRow).getCell(4).setCellValue(Math.round(sustainmentCost));
+				for(j = 0; j < 3; j++) {
+					sustainmentCost *= (1+costWriter.inflation);
+					XSSFCell cellToWriteOn = reportSheet.getRow(startRow).getCell(5+j);
+					cellToWriteOn.setCellValue(Math.round(sustainmentCost));
+				}
+			}
+			
+			//sum accross columns
+			int k;
+			for(k = 3; k < 8; k++) {
+				for(i = 0; i < 2; i++) {
+					int startRow;
+					if(i == 0) {
+						startRow = 15;
+					} else {
+						startRow = 23;
+					}
+					double sumColumn = 0;
+					for(j = 0; j < 7; j++) {
+						double val = reportSheet.getRow(startRow+j).getCell(k).getNumericCellValue();
+						sumColumn += val;
+					}
+					reportSheet.getRow(startRow+7).getCell(k).setCellValue(sumColumn);
+				}
+			}
+			//sum accross rows
+			for(k = 0; k < 8; k++) {
+				for(i = 0; i < 2; i++) {
+					int startRow;
+					if(i == 0) {
+						startRow = 15;
+					} else {
+						startRow = 23;
+					}
+					double sumRow = 0;
+					for(j = 3; j < 8; j++) {
+						double val = reportSheet.getRow(startRow+k).getCell(j).getNumericCellValue();
+						sumRow += val;
+					}
+					reportSheet.getRow(startRow+k).getCell(8).setCellValue(sumRow);
+				}
+			}
+			
+			reportSheet.getRow(32).getCell(3).setCellValue(Math.round(costWriter.sumHWSWCost));
+			//since hwsw cost assumed at FY15, total is equal to value at FY15
+			reportSheet.getRow(32).getCell(8).setCellValue(Math.round(costWriter.sumHWSWCost));
+			
+			int numATO = 0;
+			if(costWriter.atoDateList[0] < 2015) {
+				costWriter.atoDateList[0] = costWriter.atoDateList[1];
+				costWriter.atoDateList[1] += 3; 
+			}
+			for(Integer date : costWriter.atoDateList) {
+				if(date == 2015){
+					reportSheet.getRow(34).getCell(3).setCellValue(costWriter.atoCost);
+					numATO++;
+				} else if(date == 2016) {
+					reportSheet.getRow(34).getCell(4).setCellValue(costWriter.atoCost);
+					numATO++;
+				} else if(date == 2017) {
+					reportSheet.getRow(34).getCell(5).setCellValue(costWriter.atoCost);
+					numATO++;
+				} else if(date == 2018) {
+					reportSheet.getRow(34).getCell(6).setCellValue(costWriter.atoCost);
+					numATO++;
+				} else if(date == 2019) {
+					reportSheet.getRow(34).getCell(7).setCellValue(costWriter.atoCost);
+					numATO++;
+				}
+			}
+			reportSheet.getRow(34).getCell(8).setCellValue(costWriter.atoCost * numATO);
+			
+			for(i = 3; i < 9; i++){
+				double consumerCost = reportSheet.getRow(22).getCell(i).getNumericCellValue();
+				double providerCost = reportSheet.getRow(30).getCell(i).getNumericCellValue();
+				double hwswCost = reportSheet.getRow(32).getCell(i).getNumericCellValue();
+				double diacapCost = reportSheet.getRow(34).getCell(i).getNumericCellValue();
+				
+				reportSheet.getRow(35).getCell(i).setCellValue(consumerCost + providerCost + hwswCost + diacapCost);
+			}
 		}
 				
 		String description = reportSheet.getRow(4).getCell(1).getStringCellValue();
