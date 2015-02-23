@@ -25,22 +25,11 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.algorithm.cluster;
+package prerna.algorithm.learning.unsupervised;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
 
-import org.apache.commons.math3.optim.MaxEval;
-import org.apache.commons.math3.optim.OptimizationData;
-import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
-import org.apache.commons.math3.optim.univariate.BrentOptimizer;
-import org.apache.commons.math3.optim.univariate.MultiStartUnivariateOptimizer;
-import org.apache.commons.math3.optim.univariate.SearchInterval;
-import org.apache.commons.math3.optim.univariate.UnivariateObjectiveFunction;
-import org.apache.commons.math3.optim.univariate.UnivariateOptimizer;
-import org.apache.commons.math3.optim.univariate.UnivariatePointValuePair;
-import org.apache.commons.math3.random.RandomGenerator;
-import org.apache.commons.math3.random.Well1024a;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -113,35 +102,6 @@ public class ClusteringOptimization extends PartitionedClusteringAlgorithm {
 		clusterScoreHash.clear();
 	}
 
-	public void determineOptimalCluster() {
-		ClusterOptFunction f = new ClusterOptFunction();
-		f.setClusterOptimization(this);
-		f.setNumInstances(numInstances);
-		UnivariateOptimizer optimizer = new BrentOptimizer(1E-3, 1E-3);
-        RandomGenerator rand = new Well1024a(500);
-        MultiStartUnivariateOptimizer multiOpt = new MultiStartUnivariateOptimizer(optimizer, 5, rand);
-        UnivariateObjectiveFunction objF = new UnivariateObjectiveFunction(f);
-//        SearchInterval search = new SearchInterval(2, (int) Math.round(Math.sqrt(masterTable.size()))); //considering range from 2 to square root of number of instances
-        SearchInterval search = new SearchInterval(2, 50);
-        MaxEval eval = new MaxEval(200);
-        
-        OptimizationData[] data = new OptimizationData[]{search, objF, GoalType.MAXIMIZE, eval};
-        UnivariatePointValuePair pair = multiOpt.optimize(data);
-        
-        // must calculate two end points to determine which is larger
-        double val = pair.getPoint();
-        int numClusterCeil = (int) Math.ceil(val);
-        int numClusterFloor = (int) Math.floor(val);
-        
-        double avg1 = f.value(numClusterCeil);
-        double avg2 = f.value(numClusterFloor);
-        if(avg1 > avg2) {
-        	numClusters = numClusterCeil;
-        } else {
-        	numClusters = numClusterFloor;
-        }
-	}
-	
 	public int getNumClusters(){
 		return numClusters;
 	}

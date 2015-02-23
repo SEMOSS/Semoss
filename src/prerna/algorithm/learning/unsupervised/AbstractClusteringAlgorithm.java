@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.algorithm.cluster;
+package prerna.algorithm.learning.unsupervised;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -34,6 +34,8 @@ import java.util.Hashtable;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.learning.similarity.ClusteringDataProcessor;
+import prerna.algorithm.learning.similarity.ClusteringNumericalMethods;
 import prerna.util.ArrayUtilityMethods;
 
 public abstract class AbstractClusteringAlgorithm {

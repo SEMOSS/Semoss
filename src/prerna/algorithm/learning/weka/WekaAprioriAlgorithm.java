@@ -1,4 +1,4 @@
-package prerna.algorithm.weka.impl;
+package prerna.algorithm.learning.weka;
 
 import java.util.ArrayList;
 import java.util.Collection;

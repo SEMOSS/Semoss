@@ -36,7 +36,7 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.weka.impl.WekaClassification;
+import prerna.algorithm.learning.weka.WekaClassification;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.util.Utility;

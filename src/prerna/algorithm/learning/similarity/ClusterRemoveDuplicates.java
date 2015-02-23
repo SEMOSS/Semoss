@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.algorithm.cluster;
+package prerna.algorithm.learning.similarity;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,11 +33,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
 public class ClusterRemoveDuplicates {
 
+	private static final Logger LOGGER = LogManager.getLogger(ClusterRemoveDuplicates.class.getName());
+	
 	private ArrayList<Object[]> retMasterTable;
 	private String[] retVarNames;
 	
@@ -93,26 +98,55 @@ public class ClusterRemoveDuplicates {
 			} else {
 				isNumeric[j-1] = true;
 			}
-			
 		}
 		
 		Set<String> uniquePropNamesSet = new HashSet<String>();
-		HashMap<String, HashMap<String, Object>> numericPropForInstance = new HashMap<String, HashMap<String, Object>>();
+		HashMap<String, HashMap<String, HashMap<String, Double>>> numericPropForInstance = new HashMap<String, HashMap<String, HashMap<String, Double>>>();
 		
 		for(j = 1; j < numCols; j++ ) {
 			for(i = 0; i < numRows; i++) {
 				Object[] row = masterTable.get(i);
+				String instance = row[0].toString();
+				// average all numerical values
 				if(isNumeric[j-1]) {
-					HashMap<String, Object> innerHash;
-					if(numericPropForInstance.containsKey(row[0].toString())) {
-						innerHash = numericPropForInstance.get(row[0].toString());
-						innerHash.put(names[j], row[j]);
-					} else {
-						innerHash= new HashMap<String, Object>();
-						innerHash.put(names[j], row[j]);
-						numericPropForInstance.put(row[0].toString(), innerHash);
+					String numericPropName = names[j];
+					double val = 0;
+					try {
+						val = (double) row[j];
+					} catch(ClassCastException ex) {
+						try {
+							val = Double.parseDouble(row[j].toString());
+						} catch(NumberFormatException e) {
+							LOGGER.info("Error processing " + row[j] + " as a numerical value");
+							continue;
+						}
 					}
-				} else {
+					
+					HashMap<String, HashMap<String, Double>> innerHash;
+					if(numericPropForInstance.containsKey(instance)) {
+						innerHash = numericPropForInstance.get(instance);
+						if(innerHash.containsKey(numericPropName)) {
+							double newVal = val + innerHash.get(numericPropName).get("value");;
+							innerHash.get(numericPropName).put("value", newVal);
+							double newCount = 1 + innerHash.get(numericPropName).get("count");
+							innerHash.get(numericPropName).put("count", newCount);
+						} else {
+							HashMap<String, Double> propHash = new HashMap<String, Double>();
+							propHash.put("value", val);
+							propHash.put("count", 1.0);
+							innerHash.put(numericPropName, propHash);
+						}
+					} else {
+						HashMap<String, Double> propHash = new HashMap<String, Double>();
+						innerHash = new HashMap<String, HashMap<String, Double>>();
+						propHash.put("value", val);
+						propHash.put("count", 1.0);
+						innerHash.put(numericPropName, propHash);
+						numericPropForInstance.put(instance, innerHash);
+					}
+				} 
+				// keep track of all categorical properties that create duplicate columns and make those instances new columns
+				else {
 					uniquePropNamesSet.add(row[j].toString());
 				}
 			}
@@ -180,9 +214,9 @@ public class ClusterRemoveDuplicates {
 		for(i = 0; i < newNumRow; i++) {	
 			Object[] newRow = retMasterTable.get(i);
 			int retIndex = newCategoricalCols + 1;
-			HashMap<String, Object> innerHash = numericPropForInstance.get(newRow[0].toString());
+			HashMap<String, HashMap<String, Double>> innerHash = numericPropForInstance.get(newRow[0].toString());
 			for(j = 0; j < newNumericCols; j++) {
-				Object val = innerHash.get(numericPropNames[j]);
+				double val = innerHash.get(numericPropNames[j]).get("value") / innerHash.get(numericPropNames[j]).get("count");
 				newRow[retIndex] = val;
 				retIndex++;
 			}
