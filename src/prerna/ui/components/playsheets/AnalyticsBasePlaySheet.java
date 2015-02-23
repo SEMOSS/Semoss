@@ -37,9 +37,9 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.cluster.LocalOutlierFactorAlgorithm;
 import prerna.algorithm.impl.CentralityCalculator;
 import prerna.algorithm.impl.SubclassingMapGenerator;
+import prerna.algorithm.learning.unsupervised.LocalOutlierFactorAlgorithm;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.api.ISelectStatement;

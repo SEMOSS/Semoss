@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.algorithm.weka.impl;
+package prerna.algorithm.learning.weka;
 
 import weka.classifiers.Classifier;
 import weka.classifiers.functions.SimpleLogistic;

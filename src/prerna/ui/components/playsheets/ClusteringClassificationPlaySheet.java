@@ -29,7 +29,7 @@ package prerna.ui.components.playsheets;
 
 import java.util.ArrayList;
 
-import prerna.algorithm.cluster.ClusteringClassification;
+import prerna.algorithm.learning.supervized.ClusteringClassification;
 
 public class ClusteringClassificationPlaySheet extends GridPlaySheet{
 	

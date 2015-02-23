@@ -43,7 +43,7 @@ import javax.swing.JToggleButton;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.weka.impl.WekaClassification;
+import prerna.algorithm.learning.weka.WekaClassification;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
