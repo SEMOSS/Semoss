@@ -95,9 +95,9 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements
 			ResultSetMetaData rsmd = rs.getMetaData();
 			int numColumns = rsmd.getColumnCount();
 			
-			var = new String[numColumns-1];
+			var = new String[numColumns];
 			
-			for(int colIndex = 1;colIndex < numColumns;colIndex++)
+			for(int colIndex = 1;colIndex <= numColumns;colIndex++)
 			{
 				var[colIndex-1] = rsmd.getColumnName(colIndex);
 				int type = rsmd.getColumnType(colIndex);
