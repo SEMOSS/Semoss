@@ -42,7 +42,10 @@ public class BarChart {
 	private static final Logger LOGGER = LogManager.getLogger(BarChart.class.getName());
 	
 	private String[] stringValues;
-	private String[] uniqueValues;
+	private int[] stringCount;
+	
+	private String[] stringUniqueValues;
+	private int[] stringUniqueCounts;
 	
 	private double[] numericalValuesSorted;
 	private double[] numericalValuesUnsorted;
@@ -50,30 +53,24 @@ public class BarChart {
 	private Double[] wrapperNumericalValuesSorted;
 	private Double[] wrapperNumericalValuesUnsorted;
 	
-	private Hashtable<String, Object>[] retHashForJSON;
 	private String[] assignmentForEachObject;
+	private int[] numericBinCount;
+
 	private String[] numericalBinOrder;
+	private int[] numericBinCounterArr;
 	
+	private Hashtable<String, Object>[] retHashForJSON;
+
 	private String numericalLabel = "Distribution";
 	private String categoricalLabel = "Frequency";
+	
+	private boolean useCategoricalForNumericInput;
 	
 	public BarChart(String[] values) {
 		this.stringValues = values;
 		this.numericalValuesSorted = null;
 		assignmentForEachObject = new String[values.length];
-		this.uniqueValues = ArrayUtilityMethods.getUniqueArray(stringValues);
-		
-		retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues, "?", true);
-	}
-	
-	public BarChart(String[] values, String categoricalLabel) {
-		this.stringValues = values;
-		this.numericalValuesSorted = null;
-		assignmentForEachObject = new String[values.length];
-		this.uniqueValues = ArrayUtilityMethods.getUniqueArray(stringValues);
-		this.categoricalLabel = categoricalLabel;
-
-		retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues, "?", true);
+		this.stringUniqueValues = ArrayUtilityMethods.getUniqueArray(stringValues);
 	}
 	
 	public BarChart(double[] values) {
@@ -84,11 +81,11 @@ public class BarChart {
 		this.numericalValuesSorted = sortedValues;
 		
 		this.stringValues = null;
-		this.uniqueValues = null;
+		this.stringUniqueValues = null;
 		assignmentForEachObject = new String[values.length];
 		// stringValues becomes not null when process finds not enough unique values to make bins and decides to process values as individual strings
 		
-		retHashForJSON = calculateNumericBins(numericalValuesSorted, numericalValuesUnsorted);
+		calculateNumericBins(numericalValuesSorted, numericalValuesUnsorted);
 	}
 	
 	public BarChart(double[] values, String numericalLabel) {
@@ -99,11 +96,11 @@ public class BarChart {
 		this.numericalValuesSorted = sortedValues;
 		
 		this.stringValues = null;
-		this.uniqueValues = null;
+		this.stringUniqueValues = null;
 		assignmentForEachObject = new String[values.length];
 		this.numericalLabel = numericalLabel;
 		
-		retHashForJSON = calculateNumericBins(numericalValuesSorted, numericalValuesUnsorted);
+		calculateNumericBins(numericalValuesSorted, numericalValuesUnsorted);
 	}
 	
 	public BarChart(Double[] values) {
@@ -113,10 +110,10 @@ public class BarChart {
 		this.wrapperNumericalValuesSorted = ArrayUtilityMethods.sortDoubleWrapperArr(sortedValues);
 		
 		this.stringValues = null;
-		this.uniqueValues = null;
+		this.stringUniqueValues = null;
 		assignmentForEachObject = new String[values.length];
 		// stringValues becomes not null when process finds not enough unique values to make bins and decides to process values as individual strings
-		retHashForJSON = calculateNumericBins(wrapperNumericalValuesSorted, wrapperNumericalValuesUnsorted);
+		calculateNumericBins(wrapperNumericalValuesSorted, wrapperNumericalValuesUnsorted);
 	}
 	
 	public BarChart(Double[] values, String numericalLabel) {
@@ -126,80 +123,102 @@ public class BarChart {
 		this.wrapperNumericalValuesSorted = ArrayUtilityMethods.sortDoubleWrapperArr(sortedValues);
 		
 		this.stringValues = null;
-		this.uniqueValues = null;
+		this.stringUniqueValues = null;
 		assignmentForEachObject = new String[values.length];
 		this.numericalLabel = numericalLabel;
 
-		retHashForJSON = calculateNumericBins(wrapperNumericalValuesSorted, wrapperNumericalValuesUnsorted);
+		calculateNumericBins(wrapperNumericalValuesSorted, wrapperNumericalValuesUnsorted);
 	}
 	
 	@SuppressWarnings("unchecked")
-	private Hashtable<String, Object>[] calculateCategoricalBins(String[] values, String[] uniqueValues, String missingDataSymbol, boolean orderGaussian) {
-		int numOccurrences = values.length;
-		int uniqueSize = uniqueValues.length;
-		int[] uniqueCounts = new int[uniqueSize];
-		Hashtable<String, Object>[] retBins = new Hashtable[uniqueSize];
+	// order[0] = order from min to max
+	// order[1] = order as normal distribution
+	public void calculateCategoricalBins(String missingDataSymbol, boolean... order) {
+		int numOccurrences = stringValues.length;
+		stringCount = new int[numOccurrences];
+		int uniqueSize = stringUniqueValues.length;
+		stringUniqueCounts = new int[uniqueSize];
+		
 		// find counts for unique variables
 		int i;
 		for(i = 0; i < numOccurrences; i++) {
 			// each instance gets assigned its value
-			String val = values[i];
+			String val = stringValues[i];
 			if(val == null) {
 				assignmentForEachObject[i] = missingDataSymbol;
 			} else {
-				assignmentForEachObject[i] = values[i];
+				assignmentForEachObject[i] = stringValues[i];
 				INNER : for(int j = 0; j < uniqueSize; j++) {
-					if(uniqueValues[j].equals(val)) {
-						uniqueCounts[j]++;
+					if(stringUniqueValues[j].equals(val)) {
+						stringUniqueCounts[j]++;
 						break INNER;
 					}
 				}
 			}
 		}
-		// sort the unique counts from smallest to largest
-		for(i = 0; i < uniqueSize - 1; i++) {
-			int j;
-			// if first index is larger than second index, switch positions in both count and name arrays
-			for(j = i+1; j < uniqueSize; j++) {
-				if(uniqueCounts[i] > uniqueCounts[j]) {
-					int largerVal = uniqueCounts[i];
-					int smallerVal = uniqueCounts[j];
-					String largerPropName = uniqueValues[i];
-					String smallerPropName = uniqueValues[j];
-					uniqueCounts[j] = largerVal;
-					uniqueCounts[i] = smallerVal;
-					uniqueValues[j] = largerPropName;
-					uniqueValues[i] = smallerPropName;
+		
+		for(i = 0; i < numOccurrences; i++) {
+			INNER : for(int j = 0; j < uniqueSize; j++) {
+				if(stringValues[i].equals(stringUniqueValues[j])) {
+					stringCount[i] = stringUniqueCounts[j];
+					break INNER;
 				}
 			}
 		}
-		String[] sortedValues = uniqueValues;
-		int[] sortedCounts = uniqueCounts;
 		
-		if(orderGaussian) {
-			// order the values to look the normal distribution
-			sortedValues = new String[uniqueSize];
-			sortedCounts = new int[uniqueSize];
-			int center = (int) Math.ceil(uniqueSize / 2.0);
-			int sgn;
-			for(i = 1, sgn = -1; i <= uniqueSize; i++, sgn *= -1) {
-				sortedCounts[center - 1 + (sgn*i/2)] = uniqueCounts[uniqueSize - i];
-				sortedValues[center - 1 + (sgn*i/2)] = uniqueValues[uniqueSize - i];
+		if(order[0] || (order.length > 1 && order[1])) { // check size to prevent null point error
+			// sort the unique counts from smallest to largest
+			for(i = 0; i < uniqueSize - 1; i++) {
+				int j;
+				// if first index is larger than second index, switch positions in both count and name arrays
+				for(j = i+1; j < uniqueSize; j++) {
+					if(stringUniqueCounts[i] > stringUniqueCounts[j]) {
+						int largerVal = stringUniqueCounts[i];
+						int smallerVal = stringUniqueCounts[j];
+						String largerPropName = stringUniqueValues[i];
+						String smallerPropName = stringUniqueValues[j];
+						stringUniqueCounts[j] = largerVal;
+						stringUniqueCounts[i] = smallerVal;
+						stringUniqueValues[j] = largerPropName;
+						stringUniqueValues[i] = smallerPropName;
+					}
+				}
+			}
+			
+			if(order.length > 1 && order[1]) {
+				// order the values to look the normal distribution
+				String[] sortedValues = new String[uniqueSize];
+				int[] sortedCounts = new int[uniqueSize];
+				int center = (int) Math.ceil(uniqueSize / 2.0);
+				int sgn;
+				for(i = 1, sgn = -1; i <= uniqueSize; i++, sgn *= -1) {
+					sortedCounts[center - 1 + (sgn*i/2)] = stringUniqueCounts[uniqueSize - i];
+					sortedValues[center - 1 + (sgn*i/2)] = stringUniqueValues[uniqueSize - i];
+				}
+				stringUniqueValues = sortedValues;
+				stringUniqueCounts = sortedCounts;
 			}
 		}
-		
-		for(i = 0; i < uniqueSize; i++) {
+	}
+	
+	public Hashtable<String, Object>[] generateJSONHashtableCategorical() {
+		int uniqueSize = stringUniqueValues.length;
+		Hashtable<String, Object>[] retBins = new Hashtable[uniqueSize];
+		int i = 0;
+		for(; i < uniqueSize; i++) {
 			Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 			innerHash.put("seriesName", categoricalLabel);
 			innerHash.put("y0", "0");
-			innerHash.put("x", sortedValues[i]);
-			innerHash.put("y", sortedCounts[i]);
+			innerHash.put("x", stringUniqueValues[i]);
+			innerHash.put("y", stringUniqueCounts[i]);
 			retBins[i] = innerHash;
 		}
+		
+		this.retHashForJSON = retBins;
 		return retBins;
 	}
 	
-	private Hashtable<String, Object>[] calculateNumericBins(double[] numValues, double[] unsortedValues) {
+	private void calculateNumericBins(double[] numValues, double[] unsortedValues) {
 		int numOccurances = numValues.length;
 		double min = numValues[0];
 		double max = numValues[numOccurances -1];
@@ -214,18 +233,21 @@ public class BarChart {
 			// values in order since the methods in ArrayUtilityMethods both conserve order
 			String[] nonNullValues = ArrayUtilityMethods.getUniqueArray(stringValues);
 			numericalBinOrder = nonNullValues;
-			this.uniqueValues = numericalBinOrder;
+			this.stringUniqueValues = numericalBinOrder;
+			
 			this.numericalValuesSorted = null;
 			this.numericalValuesUnsorted = null;
-			return retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues, "NaN", false);
+			this.useCategoricalForNumericInput = true;
+			// need to check if not enough numeric values to generate bins, process as if values are unique
+			calculateCategoricalBins("NaN", false);
 		} else if(numUniqueValues < 10 && skewness > 1 || skewness > 2) {
-			return calculateLogDistributedBins(numValues, unsortedValues, formatter);
+			calculateLogDistributedBins(numValues, unsortedValues, formatter);
 		} else {
-			return calculateFreedmanDiaconisBins(numValues, unsortedValues, formatter);
+			calculateFreedmanDiaconisBins(numValues, unsortedValues, formatter);
 		}
 	}
 	
-	public Hashtable<String, Object>[] calculateLogDistributedBins(double[] numValues, double[] unsortedValues, NumberFormat formatter) {
+	public void calculateLogDistributedBins(double[] numValues, double[] unsortedValues, NumberFormat formatter) {
 		int numOccurances = numValues.length;
 		double[] logValuesUnsorted = new double[numOccurances];
 		double[] logValues = new double[numOccurances];
@@ -248,29 +270,28 @@ public class BarChart {
 		double binSize = Math.log10(1+max)/Math.pow(numOccurances, (double) 1/3);
 		int numBins = (int) Math.ceil(range/binSize);
 
-		return allocateValuesToBin(numBins, binSize, logValuesUnsorted, logValues, formatter);
+		allocateValuesToBin(numBins, binSize, logValuesUnsorted, logValues, formatter);
 	}
 	
-	public Hashtable<String, Object>[] calculateFreedmanDiaconisBins(double[] numValues, double[] unsortedValues, NumberFormat formatter){
+	public void calculateFreedmanDiaconisBins(double[] numValues, double[] unsortedValues, NumberFormat formatter){
 		int numOccurances = numValues.length;
 		double min = numValues[0];
 		double max = numValues[numOccurances -1];
 		double range = max - min;
 		double iqr = StatisticsUtilityMethods.quartile(numValues, 75, true) - StatisticsUtilityMethods.quartile(numValues, 25, true);
 		if(iqr == 0) {
-			return calculateLogDistributedBins(numValues, unsortedValues, formatter);
+			calculateLogDistributedBins(numValues, unsortedValues, formatter);
+		} else {
+			double binSize = 2 * iqr * Math.pow(numOccurances, -1.0/3.0);
+			int numBins = (int) Math.ceil(range/binSize);
+			allocateValuesToBin(numBins, binSize, unsortedValues, numValues, formatter);
 		}
-		double binSize = 2 * iqr * Math.pow(numOccurances, -1.0/3.0);
-		int numBins = (int) Math.ceil(range/binSize);
-		
-		return allocateValuesToBin(numBins, binSize, unsortedValues, numValues, formatter);
 	}
 	
-	private Hashtable<String, Object>[] allocateValuesToBin(int numBins, double binSize, double[] unsortedValues, double[] numValues, NumberFormat formatter) {
-		int numOccurances = numValues.length;
+	private void allocateValuesToBin(int numBins, double binSize, double[] unsortedValues, double[] numValues, NumberFormat formatter) {
+		int numOccurrences = numValues.length;
 		double min = numValues[0];
 		
-		Hashtable<String, Object>[] retBins = new Hashtable[numBins];
 		numericalBinOrder = new String[numBins];
 		int i = 0;
 		double start = min;
@@ -279,20 +300,14 @@ public class BarChart {
 		for(;i < numBins; i++) {
 			String bin = formatter.format(start) + "  -  " + formatter.format(end);
 			numericalBinOrder[i] = bin;
-
-			Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-			innerHash.put("seriesName", numericalLabel);
-			innerHash.put("y0", "0");
-			innerHash.put("x", bin);
-			retBins[i] = innerHash;
-			
 			start += binSize;
 			end += binSize;
 		}
 		// determine where each instance belongs
-		int[] counterArr = new int[numBins];
+		numericBinCount = new int[numOccurrences];
+		numericBinCounterArr = new int[numBins];
 		int j;
-		for(i = 0; i < numOccurances; i++) {
+		for(i = 0; i < numOccurrences; i++) {
 			double val = unsortedValues[i];
 			for(j = 0; j < numBins; j++) {
 				String bin = numericalBinOrder[j];
@@ -301,7 +316,7 @@ public class BarChart {
 				double binMax = Double.parseDouble(binSplit[1].trim());
 				if(binMin <= val && binMax >= val)
 				{
-					counterArr[j]++;
+					numericBinCounterArr[j]++;
 					assignmentForEachObject[i] = bin;
 					break;
 				}
@@ -313,14 +328,14 @@ public class BarChart {
 				String[] binSplit = minBin.split(" - ");
 				double binMin = Double.parseDouble(binSplit[0].trim());
 				if(val < binMin) {
-					counterArr[0]++;
+					numericBinCounterArr[0]++;
 					assignmentForEachObject[i] = numericalBinOrder[0];
 				} else {
 					String maxBin = numericalBinOrder[numBins - 1];
 					binSplit = maxBin.split(" - ");
 					double binMax = Double.parseDouble(binSplit[0].trim());
 					if(val > binMax) {
-						counterArr[numBins - 1]++;
+						numericBinCounterArr[numBins - 1]++;
 						assignmentForEachObject[i] = numericalBinOrder[numBins - 1];
 					} else {
 						LOGGER.info("ERROR: BINS DO NOT CAPTURE VALUE: " + val);
@@ -328,15 +343,18 @@ public class BarChart {
 				}
 			}
 		}
-		for(i = 0; i < numBins; i++) {
-			Hashtable<String, Object> innerHash = retBins[i];
-			innerHash.put("y", counterArr[i]);
-		}
 		
-		return retBins;
+		for(i = 0; i < numOccurrences; i++) {
+			INNER : for(j = 0; j < numBins; j++) {
+				if(assignmentForEachObject[i].equals(numericalBinOrder[j])) {
+					numericBinCount[i] = numericBinCounterArr[j];
+					break INNER;
+				}
+			}
+		}
 	}
 	
-	private Hashtable<String, Object>[] calculateNumericBins(Double[] numValues, Double[] unsortedValues) {
+	private void calculateNumericBins(Double[] numValues, Double[] unsortedValues) {
 		Double min = StatisticsUtilityMethods.getMinimumValueIgnoringNull(numValues);
 		Double max = StatisticsUtilityMethods.getMaximumValueIgnoringNull(numValues);
 		NumberFormat formatter = determineFormatter(max, min);
@@ -348,20 +366,23 @@ public class BarChart {
 		{
 			this.stringValues = ArrayUtilityMethods.convertDoubleWrapperArrToStringArr(numValues);
 			// values in order since the methods in ArrayUtilityMethods both conserve order
-			String[] nonNullValues = (String[]) ArrayUtilityMethods.removeAllNulls(stringValues);
-			numericalBinOrder = ArrayUtilityMethods.getUniqueArray(nonNullValues);
-			this.uniqueValues = numericalBinOrder;
+			String[] nonNullValues = ArrayUtilityMethods.getUniqueArray(stringValues);
+			numericalBinOrder = nonNullValues;
+			this.stringUniqueValues = numericalBinOrder;
+			
 			this.numericalValuesSorted = null;
 			this.numericalValuesUnsorted = null;
-			return retHashForJSON = calculateCategoricalBins(stringValues, uniqueValues, "NaN", false);
+			this.useCategoricalForNumericInput = true;
+			// need to check if not enough numeric values to generate bins, process as if values are unique
+			calculateCategoricalBins("NaN", false);
 		} else if(numUniqueValues < 10 && skewness > 1 || skewness > 2) {
-			return calculateLogDistributedBins(numValues, unsortedValues, formatter);
+			calculateLogDistributedBins(numValues, unsortedValues, formatter);
 		} else {
-			return calculateFreedmanDiaconisBins(numValues, unsortedValues, formatter);
+			calculateFreedmanDiaconisBins(numValues, unsortedValues, formatter);
 		}
 	}
 	
-	public Hashtable<String, Object>[] calculateLogDistributedBins(Double[] numValues, Double[] unsortedValues, NumberFormat formatter) {
+	public void calculateLogDistributedBins(Double[] numValues, Double[] unsortedValues, NumberFormat formatter) {
 		int numOccurances = numValues.length;
 		Double[] logValuesUnsorted = new Double[numOccurances];
 		Double[] logValues = new Double[numOccurances];
@@ -388,29 +409,27 @@ public class BarChart {
 		double binSize = Math.log10(1+max)/Math.pow(numOccurances, (double) 1/3);
 		int numBins = (int) Math.ceil(range/binSize);
 
-		return allocateValuesToBin(min, numBins, binSize, logValuesUnsorted, logValues, formatter);
+		allocateValuesToBin(min, numBins, binSize, logValuesUnsorted, logValues, formatter);
 	}
 		
-	public Hashtable<String, Object>[] calculateFreedmanDiaconisBins(Double[] numValues, Double[] unsortedValues, NumberFormat formatter){
+	public void calculateFreedmanDiaconisBins(Double[] numValues, Double[] unsortedValues, NumberFormat formatter){
 		int numOccurances = numValues.length;
 		Double min = StatisticsUtilityMethods.getMinimumValueIgnoringNull(numValues);
 		Double max = StatisticsUtilityMethods.getMaximumValueIgnoringNull(numValues);
 		double range = max - min;
 		double iqr = StatisticsUtilityMethods.quartileIgnoringNull(numValues, 75, true) - StatisticsUtilityMethods.quartileIgnoringNull(numValues, 25, true);
 		if(iqr == 0) {
-			return calculateLogDistributedBins(numValues, unsortedValues, formatter);
+			calculateLogDistributedBins(numValues, unsortedValues, formatter);
+		} else {
+			double binSize = 2 * iqr * Math.pow(numOccurances, -1.0/3.0);
+			int numBins = (int) Math.ceil(range/binSize);
+			allocateValuesToBin(min, numBins, binSize, unsortedValues, numValues, formatter);
 		}
-		double binSize = 2 * iqr * Math.pow(numOccurances, -1.0/3.0);
-		int numBins = (int) Math.ceil(range/binSize);
-		
-		return allocateValuesToBin(min, numBins, binSize, unsortedValues, numValues, formatter);
 	}
 	
 	
-	private Hashtable<String, Object>[] allocateValuesToBin(Double min, int numBins, double binSize, Double[] unsortedValues, Double[] numValues, NumberFormat formatter) {
-		int numOccurances = numValues.length;
-		
-		Hashtable<String, Object>[] retBins = new Hashtable[numBins];
+	private void allocateValuesToBin(Double min, int numBins, double binSize, Double[] unsortedValues, Double[] numValues, NumberFormat formatter) {
+		int numOccurrences = numValues.length;
 		numericalBinOrder = new String[numBins];
 		int i = 0;
 		double start = min;
@@ -419,20 +438,14 @@ public class BarChart {
 		for(;i < numBins; i++) {
 			String bin = formatter.format(start) + "  -  " + formatter.format(end);
 			numericalBinOrder[i] = bin;
-
-			Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-			innerHash.put("seriesName", numericalLabel);
-			innerHash.put("y0", "0");
-			innerHash.put("x", bin);
-			retBins[i] = innerHash;
-			
 			start += binSize;
 			end += binSize;
 		}
 		// determine where each instance belongs
-		int[] counterArr = new int[numBins];
+		numericBinCount = new int[numOccurrences];
+		numericBinCounterArr = new int[numBins];
 		int j;
-		for(i = 0; i < numOccurances; i++) {
+		for(i = 0; i < numOccurrences; i++) {
 			Double val = unsortedValues[i];
 			if(val == null) {
 				assignmentForEachObject[i] = "NaN";
@@ -444,7 +457,7 @@ public class BarChart {
 					double binMax = Double.parseDouble(binSplit[1].trim());
 					if(binMin <= val && binMax >= val)
 					{
-						counterArr[j]++;
+						numericBinCounterArr[j]++;
 						assignmentForEachObject[i] = bin;
 						break;
 					}
@@ -456,14 +469,14 @@ public class BarChart {
 					String[] binSplit = minBin.split(" - ");
 					double binMin = Double.parseDouble(binSplit[0].trim());
 					if(val < binMin) {
-						counterArr[0]++;
+						numericBinCounterArr[0]++;
 						assignmentForEachObject[i] = numericalBinOrder[0];
 					} else {
 						String maxBin = numericalBinOrder[numBins - 1];
 						binSplit = maxBin.split(" - ");
 						double binMax = Double.parseDouble(binSplit[0].trim());
 						if(val > binMax) {
-							counterArr[numBins - 1]++;
+							numericBinCounterArr[numBins - 1]++;
 							assignmentForEachObject[i] = numericalBinOrder[numBins - 1];
 						} else {
 							LOGGER.info("ERROR: BINS DO NOT CAPTURE VALUE: " + val);
@@ -472,15 +485,18 @@ public class BarChart {
 				}
 			}
 		}
-		for(i = 0; i < numBins; i++) {
-			Hashtable<String, Object> innerHash = retBins[i];
-			innerHash.put("y", counterArr[i]);
-		}
 		
-		return retBins;
+		for(i = 0; i < numOccurrences; i++) {
+			INNER : for(j = 0; j < numBins; j++) {
+				if(assignmentForEachObject[i].equals(numericalBinOrder[j])) {
+					numericBinCount[i] = numericBinCounterArr[j];
+					break INNER;
+				}
+			}
+		}
 	}
 	
-	public NumberFormat determineFormatter(Double max, Double min) {
+	private NumberFormat determineFormatter(Double max, Double min) {
 		NumberFormat formatter = null;
 		
 		double range = Math.abs(max - min);
@@ -507,11 +523,155 @@ public class BarChart {
 		return formatter;
 	}
 	
+	public Hashtable<String, Object>[] generateJSONHashtableNumerical() {
+		int numBins = numericalBinOrder.length;
+		
+		Hashtable<String, Object>[] retBins = new Hashtable[numBins];
+		int i = 0;
+		for(i = 0; i < numBins; i++) {
+			Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+			innerHash.put("seriesName", numericalLabel);
+			innerHash.put("y0", "0");
+			innerHash.put("x", numericalBinOrder[i]);
+			innerHash.put("y", numericBinCounterArr[i]);
+			
+			retBins[i] = innerHash;
+		}
+		retHashForJSON = retBins;
+		return retBins;
+	}
 	
+	public String[] getStringValues() {
+		return stringValues;
+	}
+
+	public void setStringValues(String[] stringValues) {
+		this.stringValues = stringValues;
+	}
+
+	public int[] getStringCount() {
+		return stringCount;
+	}
+
+	public void setStringCount(int[] stringCount) {
+		this.stringCount = stringCount;
+	}
+
+	public String[] getUniqueValues() {
+		return stringUniqueValues;
+	}
+
+	public void setUniqueValues(String[] stringUniqueValues) {
+		this.stringUniqueValues = stringUniqueValues;
+	}
+
+	public double[] getNumericalValuesSorted() {
+		return numericalValuesSorted;
+	}
+
+	public void setNumericalValuesSorted(double[] numericalValuesSorted) {
+		this.numericalValuesSorted = numericalValuesSorted;
+	}
+
+	public double[] getNumericalValuesUnsorted() {
+		return numericalValuesUnsorted;
+	}
+
+	public void setNumericalValuesUnsorted(double[] numericalValuesUnsorted) {
+		this.numericalValuesUnsorted = numericalValuesUnsorted;
+	}
+
+	public Double[] getWrapperNumericalValuesSorted() {
+		return wrapperNumericalValuesSorted;
+	}
+
+	public void setWrapperNumericalValuesSorted(
+			Double[] wrapperNumericalValuesSorted) {
+		this.wrapperNumericalValuesSorted = wrapperNumericalValuesSorted;
+	}
+
+	public Double[] getWrapperNumericalValuesUnsorted() {
+		return wrapperNumericalValuesUnsorted;
+	}
+
+	public void setWrapperNumericalValuesUnsorted(
+			Double[] wrapperNumericalValuesUnsorted) {
+		this.wrapperNumericalValuesUnsorted = wrapperNumericalValuesUnsorted;
+	}
+
+	public String getNumericalLabel() {
+		return numericalLabel;
+	}
+
+	public void setNumericalLabel(String numericalLabel) {
+		this.numericalLabel = numericalLabel;
+	}
+
+	public String getCategoricalLabel() {
+		return categoricalLabel;
+	}
+
+	public void setCategoricalLabel(String categoricalLabel) {
+		this.categoricalLabel = categoricalLabel;
+	}
+
+	public void setRetHashForJSON(Hashtable<String, Object>[] retHashForJSON) {
+		this.retHashForJSON = retHashForJSON;
+	}
+
+	public void setAssignmentForEachObject(String[] assignmentForEachObject) {
+		this.assignmentForEachObject = assignmentForEachObject;
+	}
+
+	public void setNumericalBinOrder(String[] numericalBinOrder) {
+		this.numericalBinOrder = numericalBinOrder;
+	}
+
 	public Hashtable<String, Object>[] getRetHashForJSON() {
 		return retHashForJSON;
 	}
 	
+	public String[] getStringUniqueValues() {
+		return stringUniqueValues;
+	}
+
+	public void setStringUniqueValues(String[] stringUniqueValues) {
+		this.stringUniqueValues = stringUniqueValues;
+	}
+
+	public int[] getStringUniqueCounts() {
+		return stringUniqueCounts;
+	}
+
+	public void setStringUniqueCounts(int[] stringUniqueCounts) {
+		this.stringUniqueCounts = stringUniqueCounts;
+	}
+
+	public int[] getNumericBinCount() {
+		return numericBinCount;
+	}
+
+	public void setNumericBinCount(int[] numericBinCount) {
+		this.numericBinCount = numericBinCount;
+	}
+
+	public int[] getNumericBinCounterArr() {
+		return numericBinCounterArr;
+	}
+
+	public void setNumericBinCounterArr(int[] numericBinCounterArr) {
+		this.numericBinCounterArr = numericBinCounterArr;
+	}
+
+	public boolean isUseCategoricalForNumericInput() {
+		return useCategoricalForNumericInput;
+	}
+
+	public void setUseCategoricalForNumericInput(
+			boolean useCategoricalForNumericInput) {
+		this.useCategoricalForNumericInput = useCategoricalForNumericInput;
+	}
+
 	public String[] getAssignmentForEachObject() {
 		return assignmentForEachObject;
 	}

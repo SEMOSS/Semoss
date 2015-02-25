@@ -79,6 +79,9 @@ public final class WekaUtilityMethods {
 			} else {
 				//create bins for numeric value
 				BarChart chart = new BarChart(ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(numericValues[i]));
+				if(chart.isUseCategoricalForNumericInput()) {
+					chart.calculateCategoricalBins("?", true, true);
+				}
 				String[] binRange = chart.getNumericalBinOrder();
 				binForInstance[counter] = chart.getAssignmentForEachObject();
 				counter++;
@@ -115,6 +118,9 @@ public final class WekaUtilityMethods {
 			if(i == attributeIndex && !isCategorical[i]) {
 				//create bins for numeric value
 				BarChart chart = new BarChart(ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(numericValues[i]));
+				if(chart.isUseCategoricalForNumericInput()) {
+					chart.calculateCategoricalBins("?", true, true);
+				}
 				String[] binRange = chart.getNumericalBinOrder();
 				binForInstance = chart.getAssignmentForEachObject();
 				int numBins = binRange.length;

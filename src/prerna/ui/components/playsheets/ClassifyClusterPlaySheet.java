@@ -190,9 +190,16 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		DatasetSimilarity alg = new DatasetSimilarity(list, names);
 		alg.generateClusterCenters();
 		double[] simBarChartValues = alg.getSimilarityValuesForInstances();	
-		
+		Hashtable<String, Object>[] bins = null;
 		BarChart chart = new BarChart(simBarChartValues, names[0]);
-		Hashtable<String, Object>[] bins = chart.getRetHashForJSON();
+		if(chart.isUseCategoricalForNumericInput()) {
+			chart.calculateCategoricalBins("?", true, true);
+			chart.generateJSONHashtableCategorical();
+			bins = chart.getRetHashForJSON();
+		} else {
+			chart.generateJSONHashtableNumerical();
+			bins = chart.getRetHashForJSON();
+		}
 		
 		simBarChartHash = new Hashtable<String, Object>();
 		Object[] binArr = new Object[]{bins};
