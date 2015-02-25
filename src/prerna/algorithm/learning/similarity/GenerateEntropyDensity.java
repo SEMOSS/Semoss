@@ -76,11 +76,20 @@ public class GenerateEntropyDensity {
 				//TODO: shouldn't create chart data, should use CalculateEntropy.java class
 				String[] dataRow = ArrayUtilityMethods.convertObjArrToStringArr(objDataRow);
 				BarChart chart = new BarChart(dataRow);
+				chart.calculateCategoricalBins("?", true, true);
+				chart.generateJSONHashtableCategorical();
 				binData = chart.getRetHashForJSON();
 			} else {
 				Double[] dataRow = ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(objDataRow);
 				BarChart chart = new BarChart(dataRow);
-				binData = chart.getRetHashForJSON();
+				if(chart.isUseCategoricalForNumericInput()) {
+					chart.calculateCategoricalBins("?", true, true);
+					chart.generateJSONHashtableCategorical();
+					binData = chart.getRetHashForJSON();
+				} else {
+					chart.generateJSONHashtableNumerical();
+					binData = chart.getRetHashForJSON();
+				}
 			}
 			
 			int j;

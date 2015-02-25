@@ -101,12 +101,21 @@ public class GenerateEntropyDensity {
 			if(isCategorical[i]) {
 				String[] dataRow = ArrayUtilityMethods.convertObjArrToStringArr(objDataRow);
 				BarChart chart = new BarChart(dataRow);
+				chart.calculateCategoricalBins("?", true, true);
+				chart.generateJSONHashtableCategorical();
 				binData = chart.getRetHashForJSON();
 			} else {
 				double[] dataRow = ArrayUtilityMethods.convertObjArrToDoubleArr(objDataRow);
 				Arrays.sort(dataRow);
 				BarChart chart = new BarChart(dataRow);
-				binData = chart.getRetHashForJSON();
+				if(chart.isUseCategoricalForNumericInput()) {
+					chart.calculateCategoricalBins("?", true, true);
+					chart.generateJSONHashtableCategorical();
+					binData = chart.getRetHashForJSON();
+				} else {
+					chart.generateJSONHashtableNumerical();
+					binData = chart.getRetHashForJSON();
+				}
 			}
 			
 			int j;
