@@ -246,7 +246,7 @@ public class RDBMSReader {
 		
 		// delete the file
 		try {
-			String tempFile = dbBaseFolder + "/" + engineName + "/conn.prop";
+			String tempFile = dbBaseFolder + "/db/" + engineName + "/conn.prop";
 			File file2 = new File(tempFile);
 			file2.delete();
 		} catch (Exception e1) {
@@ -254,7 +254,7 @@ public class RDBMSReader {
 			e1.printStackTrace();
 		}
 		
-		String fileName = dbBaseFolder + System.getProperty("file.separator") + engineName + System.getProperty("file.separator") + engineName + "_Questions.properties";
+		String fileName = dbBaseFolder + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + engineName + System.getProperty("file.separator") + engineName + "_Questions.properties";
 		
 		Properties prop = new Properties();
 		String genericQueries = "";
