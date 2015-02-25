@@ -31,6 +31,7 @@ import java.awt.Dimension;
 import java.util.Hashtable;
 
 import org.apache.commons.math3.stat.correlation.Covariance;
+import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -93,8 +94,11 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 		double[][] Ab = MatrixRegressionHelper.appendB(A, b);
 
 		//run covariance 
-		Covariance covariance = new Covariance(Ab);
-		double[][] covarianceArray = covariance.getCovarianceMatrix().getData();
+//		Covariance covariance = new Covariance(Ab);
+//		double[][] covarianceArray = covariance.getCovarianceMatrix().getData();
+		//run correlation
+		PearsonsCorrelation correlation = new PearsonsCorrelation(Ab);
+		double[][] correlationArray = correlation.getCorrelationMatrix().getData();		
 		
 		//for each element/instance
 		//add its values for all independent variables to the dataSeriesHash
@@ -145,7 +149,8 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 					objectHash.put("y", y);
 					objectHash.put("equation", "y = " + (-1*xCoeff / yCoeff) + "x + " + (-1*constant/yCoeff) );
 					objectHash.put("shift", standardError);
-					objectHash.put("covariance", covarianceArray[i][j]);
+//					objectHash.put("covariance", covarianceArray[i][j]);
+					objectHash.put("correlation", correlationArray[i][j]);
 
 					equations.put(x+"-"+y,objectHash);
 				}
