@@ -60,6 +60,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import prerna.error.EngineException;
 import prerna.error.FileReaderException;
 import prerna.poi.main.PropFileWriter;
+import prerna.ui.components.ImportDataProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -541,7 +542,7 @@ public class ImportRDBMSProcessor {
 		propWriter.ontologyFileName = dbDir + "/" + this.dbName + "_Custom_Map.prop";
 		propWriter.owlFile = this.owlPath;
 		propWriter.hasMap = true;
-		propWriter.runWriter(this.dbName, "", "", "");
+		propWriter.runWriter(this.dbName, "", "", "", ImportDataProcessor.DB_TYPE.RDF);
 	}
 	
 	public boolean checkConnection(String type, String url, String username, char[] password) {
