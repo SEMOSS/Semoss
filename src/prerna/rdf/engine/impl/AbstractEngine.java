@@ -260,16 +260,16 @@ public abstract class AbstractEngine implements IEngine {
 				else {
 					//need to add questionXML to the smss file
 					String questionPropFile = prop.getProperty(Constants.DREAMER);
-					questionXMLFile = "db/" + getEngineName() + "/" + getEngineName()	+ "_Questions.XML";
+					questionXMLFile = "db" + System.getProperty("file.separator") +  getEngineName() + System.getProperty("file.separator") + getEngineName()	+ "_Questions.XML";
 					//addConfiguration(Constants.XML, questionXMLFile);
 					//saveConfiguration();
-					addPropToFile(propFile, Constants.INSIGHTS, questionXMLFile, "ENGINE_TYPE");
 					
 					if(questionPropFile != null){
 						dreamerProp = loadProp(baseFolder + "/" + questionPropFile);
 						loadAllPerspectives(engineURI2);
 						createInsightBaseRelations();
 						createQuestionXMLFile(questionXMLFile, baseFolder);
+						addPropToFile(propFile, Constants.INSIGHTS, questionXMLFile, "ENGINE_TYPE");
 					}
 				}
 				/*String questionPropFile = prop.getProperty(Constants.DREAMER);
