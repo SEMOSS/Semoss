@@ -857,8 +857,8 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		matrixDepVarComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		matrixDepVarComboBox.setBackground(Color.GRAY);
 		matrixDepVarComboBox.setPreferredSize(new Dimension(250, 25));
-
-		matrixDepVarComboBox.setModel(new DefaultComboBoxModel<String>(numericalPropNames));
+		if(numericalPropNames!=null)
+			matrixDepVarComboBox.setModel(new DefaultComboBoxModel<String>(numericalPropNames));
 		GridBagConstraints gbc_matrixDepVarComboBox = new GridBagConstraints();
 		gbc_matrixDepVarComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_matrixDepVarComboBox.fill = GridBagConstraints.NONE;
@@ -1187,6 +1187,10 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	}
 	
 	public void disableCheckBoxes(String[] checkboxesToDisable,Boolean selected){
+		if(checkboxesToDisable==null) {
+			LOGGER.info("No checkboxes to disable");
+			return;
+		}
 		for(JCheckBox checkbox : ivCheckboxes) {
 			String name = checkbox.getName();
 			for(int i=0;i<checkboxesToDisable.length;i++) {

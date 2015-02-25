@@ -42,6 +42,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 
+import org.apache.commons.math3.stat.correlation.Covariance;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -55,12 +56,12 @@ import prerna.ui.main.listener.impl.GridPlaySheetListener;
 import prerna.ui.main.listener.impl.JTableExcelExportListener;
 
 public class MatrixRegressionPlaySheet extends GridPlaySheet{
-//	private ArrayList<Object[]> masterList;
-//	private String[] masterNames;
 
 	private static final Logger LOGGER = LogManager.getLogger(MatrixRegressionPlaySheet.class.getName());
 	protected JTabbedPane jTab;
 	private int bIndex = -1;
+	private double[] coeffArray;
+	private double standardError;
 	
 	@Override
 	public void createData() {
@@ -74,42 +75,29 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 		int i;
 		int j;
 		int listNumRows = list.size();
-		int listNumCols = list.get(0).length;
+		int listNumCols = names.length;
 		int aNumCols = listNumCols - 2;//subtract out the title and the column where b initially was
 		int outputNumCols = listNumCols+3; //add in the estimate and residuals and error range
 		
 		//the bIndex should have been provided. if not, will use the last column
 		if(bIndex==-1)
-			bIndex = listNumCols;//subtract out string/identifier only since b created separately
+			bIndex = listNumCols - 1;
 		
-		//create the b array by pulling the appropriate column
-		double[] b = new double[listNumRows];
-		for(i=0;i<listNumRows;i++)
-			b[i] = (Double)list.get(i)[bIndex];
-
-		//create A from the list
-		double[][] A = new double[listNumRows][aNumCols];
-		for(i=0;i<listNumRows;i++) {
-			Object[] oldRow = list.get(i);
-			int newIndex = 1;
-			for(j=1;j<listNumCols;j++) {
-				if(j!=bIndex) {
-					A[i][newIndex-1] = (double)oldRow[j];
-					newIndex++;
-				}
-			}
-		}
+		//create the b and A arrays which are used in matrix regression to determine coefficients
+		double[] b = MatrixRegressionHelper.createB(list, bIndex);
+		double[][] A = MatrixRegressionHelper.createA(list, bIndex);
 		
 		//run regression
 		MatrixRegressionAlgorithm alg = new MatrixRegressionAlgorithm(A, b);
 		alg.execute();
-		double[] coeffArray = alg.getCoeffArray();
+		coeffArray = alg.getCoeffArray();
 		double[] coeffErrorsArray = alg.getCoeffErrorsArray();
 		double[] estimateArray = alg.getEstimateArray();
 		double[] residualArray = alg.getResidualArray();
-		double standardError = alg.getStandardError();
-		
+		standardError = alg.getStandardError();
+
 		//add in estimated and residuals for each row determined using coefficients
+		ArrayList<Object []> outputList = new ArrayList<Object []>();
 		for(i=0;i<listNumRows;i++) {
 			double actualVal = b[i];
 			double estimatedVal = estimateArray[i];
@@ -126,8 +114,32 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 			newRow[j+3] = residualVal;
 			newRow[j+4] = withinErrorRange;
 
-			list.set(i, newRow);
+			outputList.add(newRow);
 		}
+		
+		//create a row with coefficient values
+		Object[] coeffRow = new Object[outputNumCols];
+		coeffRow[0] = "COEFFICIENTS";
+		for(i=1;i<coeffArray.length;i++)
+			coeffRow[i] = coeffArray[i];
+		coeffRow[i] = "b is " + coeffArray[0];//first spot in the coefficient array is the constant value
+		coeffRow[i+1] = "-";
+		coeffRow[i+2] = "-";
+		coeffRow[i+3] = "standard error of estimates is "+standardError;	
+		outputList.add(0,coeffRow);
+		
+		//create a row with coefficient errors
+		Object[] coeffErrorsRow = new Object[outputNumCols];
+		coeffErrorsRow[0] = "COEFFICIENTS ERRORS";
+		for(i=1;i<coeffErrorsArray.length;i++)
+			coeffErrorsRow[i] = coeffErrorsArray[i];
+		coeffErrorsRow[i] = "b error is " + coeffErrorsArray[0];//first spot in the coefficient array is the constant value
+		coeffErrorsRow[i+1] = "-";
+		coeffErrorsRow[i+2] = "-";
+		coeffErrorsRow[i+3] = "-";	
+		outputList.add(1,coeffErrorsRow);
+		
+		list = outputList;
 		
 		//update headers so that there are columns for estimated and residuals
 		String[] namesWithEstimateAndResiduals = new String[outputNumCols];
@@ -144,41 +156,7 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 		namesWithEstimateAndResiduals[newIndex+3] = "Within Error Range?";
 
 		names = namesWithEstimateAndResiduals;
-		
-		//create a row with coefficient values
-		Object[] coeffRow = new Object[outputNumCols];
-		coeffRow[0] = "COEFFICIENTS";
-		for(i=1;i<coeffArray.length;i++)
-			coeffRow[i] = coeffArray[i];
-		coeffRow[i] = "b is " + coeffArray[0];//first spot in the coefficient array is the constant value
-		coeffRow[i+1] = "-";
-		coeffRow[i+2] = "-";
-		coeffRow[i+3] = "standard error of estimates is "+standardError;	
-		list.add(0,coeffRow);
-		
-		//coeffErrorsArray
-		Object[] coeffErrorsRow = new Object[outputNumCols];
-		coeffErrorsRow[0] = "COEFFICIENT ERRORS";
-		for(i=1;i<coeffErrorsArray.length;i++)
-			coeffErrorsRow[i] = coeffErrorsArray[i];
-		coeffErrorsRow[i] = "b error is " + coeffErrorsArray[0];//first spot in the coefficient array is the constant value
-		coeffErrorsRow[i+1] = "-";
-		coeffErrorsRow[i+2] = "-";
-		coeffErrorsRow[i+3] = "-";	
-		list.add(1,coeffErrorsRow);
 	}
-	
-	/**
-	 * To be used when passing to javascript for visual
-	 */
-//	public void createJSON(String[] names, ArrayList<Object[]> list) {
-//		Hashtable dataHash = new Hashtable();
-//		dataHash.put("names", names);
-//		dataHash.put("dataSeries", list);
-//		Gson gson = new Gson();
-//		System.out.println(gson.toJson(dataHash));
-//		
-//	}
 	
 	@Override
 	public void addPanel()
@@ -256,6 +234,12 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 	}
 	public void setJBar(JProgressBar jBar) {
 		this.jBar = jBar;
+	}
+	public double[] getCoeffArray() {
+		return coeffArray;
+	}
+	public double getStandardError() {
+		return standardError;
 	}
 	public void addScrollPanel(JPanel panel, JComponent obj) {
 		JScrollPane scrollPane = new JScrollPane(obj);
