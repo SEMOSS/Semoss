@@ -136,14 +136,14 @@ public class ImportDataListener implements IChakraListener {
 			else if (importMethod == ImportDataProcessor.IMPORT_METHOD.ADD_TO_EXISTING){
 				boolean proceedWithImport = runCheck();
 				if(proceedWithImport)
-					processor.processAddToExisting(importType, customBaseURI, fileNames, repo);
+					processor.processAddToExisting(importType, customBaseURI, fileNames, repo, ImportDataProcessor.DB_TYPE.RDF);
 			}
 			else if (importMethod == ImportDataProcessor.IMPORT_METHOD.CREATE_NEW){
 				String mapFile = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.MAP_TEXT_FIELD)).getText();
 				String dbPropFile = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.DB_PROP_TEXT_FIELD)).getText();
 				String questionFile = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.QUESTION_TEXT_FIELD)).getText();
 				String dbName = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.DB_NAME_FIELD)).getText();
-				processor.processCreateNew(importType, customBaseURI, fileNames, dbName, mapFile, dbPropFile, questionFile);
+				processor.processCreateNew(importType, customBaseURI, fileNames, dbName, mapFile, dbPropFile, questionFile, ImportDataProcessor.DB_TYPE.RDF);
 			}
 			else if(importMethod == ImportDataProcessor.IMPORT_METHOD.RDBMS) {
 				String dbType = ((JComboBox<String>)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_DRIVER_COMBOBOX)).getSelectedItem().toString();
