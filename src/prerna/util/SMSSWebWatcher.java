@@ -130,9 +130,10 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	@Override
 	public void run()
 	{
-		logger.info("Starting thread");
+		logger.info("Starting SMSSWebWatcher thread");
 		synchronized(monitor)
 		{
+			loadFirst();
 			super.run();
 		}
 	}
