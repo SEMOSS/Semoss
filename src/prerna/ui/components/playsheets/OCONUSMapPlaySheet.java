@@ -34,7 +34,9 @@ import java.util.LinkedHashMap;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.openrdf.model.Literal;
 
+import prerna.rdf.engine.api.ISelectStatement;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -87,8 +89,7 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 					String text = (String) listElement[j];
 					elementHash.put(colName, text);
 				} else {
-					value = (Double) listElement[j];
-					elementHash.put(colName, value);
+					elementHash.put(colName, listElement[j]);
 				}
 				
 			}
@@ -130,6 +131,15 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 		output.clear();
 		allHash.clear();
 		data.clear();
+	}
+	
+	@Override
+	public Object getVariable(String varName, ISelectStatement sjss){
+		Object var = sjss.getRawVar(varName);
+			if( var != null && var instanceof Literal) {
+				var = sjss.getVar(varName);
+			} 
+		return var;
 	}
 	
 	@Override
