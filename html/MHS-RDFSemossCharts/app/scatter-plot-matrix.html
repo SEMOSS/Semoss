@@ -17,10 +17,22 @@
     <!-- // <script src="js/directives/scatter-plot-matrix.js"></script> -->
     <script src="data/scatterdata.js"></script>
 <style>
-
+body, html {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+  font-size: 12px;
+}
 svg {
   font: 10px sans-serif;
   padding: 10px;
+}
+.scattermatrix{
+    position: absolute;
+    overflow: auto;
+    height: 100%;
+    width: 100%;
 }
 
 .axis,
@@ -60,11 +72,14 @@ circle.hidden {
 </head>
 <body>    
 
-<div id='scatterplotmatrixviz'>
+<div id='scatterplotmatrixviz' class="scattermatrix">
 </div>
 <script type="text/javascript">
 
  function start(dataString) {
+  
+    var margin = {top: 30, right: 50, bottom: 50, left: 50};
+
     // var jsonData = dataString;
     var jsonData = jQuery.parseJSON(dataString);
     var cleanedData = [];
@@ -77,8 +92,9 @@ circle.hidden {
                     cleanedData.push(jsonData.dataSeries[i]);
                 }
 
-                var cleanedEquations = angular.copy(jsonData.equations);
 
+
+                var cleanedEquations = angular.copy(jsonData.equations);
 
                 var size = 135,
                     padding = 15;
@@ -146,22 +162,33 @@ circle.hidden {
                     .on("brushend", brushend);
 
                 var svg = d3.select("#scatterplotmatrixviz").append("svg")
-                    .attr("width", size * n + padding * 2)
-                    .attr("height", size * n + padding * 2)
+                    .attr("width", 900)
+                    .attr("height", 900)
                     .style("margin", "0 auto 0 auto")
                     .append("g")
-                    .attr("transform", "translate(" + padding / 2 + "," + padding / 2 + ")");
+                    .attr("transform", "translate(" + padding *6 + "," + padding / 2 + ")");
 
                 svg.selectAll(".x.axis")
                     .data(keys)
                     .enter().append("g")
                     .attr("class", "x axis")
+                    
                     .attr("transform", function(d, i) {
                         return "translate(" + (n - i - 1) * size + ",0)";
                     })
                     .each(function(d) {
                         x.domain(domainByKey[d]);
-                        d3.select(this).call(xAxis);
+                        d3.select(this).call(xAxis)
+
+                        .selectAll("text")  
+                            // .style("text-anchor", "end")
+                            .attr("dx", "-.8em")
+                            .attr("dy", ".15em")
+                            .attr("transform", function(d) {
+                                return "rotate(-65)" 
+                            })
+                        .attr("y", 300)
+                        .attr("x", -640);
                     });
 
                 svg.selectAll(".y.axis")
@@ -376,7 +403,7 @@ circle.hidden {
                 };
                 d3.select(self.frameElement).style("height", size * n + padding + 20 + "px");
             };
-start();
+start(scatterData);
 
 
 </script>
