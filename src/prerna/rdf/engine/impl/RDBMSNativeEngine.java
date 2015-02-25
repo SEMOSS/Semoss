@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.rdf.engine.impl;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -35,9 +37,14 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Vector;
 
+import org.openrdf.query.MalformedQueryException;
+import org.openrdf.query.UpdateExecutionException;
+import org.openrdf.repository.RepositoryException;
+import org.openrdf.sail.SailException;
+
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.query.builder.IQueryBuilder;
-import prerna.rdf.query.builder.SQLQueryBuilder;
+import prerna.rdf.query.builder.SQLQueryTableBuilder;
 import prerna.util.Constants;
 
 public class RDBMSNativeEngine extends AbstractEngine {
@@ -52,7 +59,17 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		// will mostly be sent the connection string and I will connect here
 		// I need to see if the connection pool has been initiated
 		// if not initiate the connection pool
-		super.openDB(propFile);
+		try {
+			prop = loadProp(propFile);
+			if(!prop.containsKey("TEMP"))
+				super.openDB(propFile);
+		} catch (FileNotFoundException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		String connectionURL = prop.getProperty(Constants.CONNECTION_URL);
 		String userName = prop.getProperty(Constants.USERNAME);
 		String password = "";
@@ -75,6 +92,25 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 	}
 
+	@Override
+	// need to clean up the exception it will never be thrown
+	public void execInsertQuery(String query) throws SailException,
+			UpdateExecutionException, RepositoryException,
+			MalformedQueryException 
+	{
+		try {
+			Statement stmt = conn.createStatement();
+			if(query.startsWith("CREATE")) // this is create statement"
+				stmt.execute(query);
+			else
+				stmt.executeUpdate(query);
+		}catch(Exception ex)
+		{
+			
+		}
+	}
+
+	
 	@Override
 	public ENGINE_TYPE getEngineType()
 	{
@@ -116,6 +152,13 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	public void closeDB()
 	{
 		// do nothing
+		try {
+			conn.commit();
+			conn.close();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	public Vector getColumnsFromResultSet(int columns, ResultSet rs)
@@ -127,7 +170,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			{
 				ArrayList list = new ArrayList();
 				String output = null;
-				for(int colIndex = 1;colIndex < columns;colIndex++)
+				for(int colIndex = 1;colIndex <= columns;colIndex++)
 				{					
 					output = rs.getString(colIndex);
 					System.out.print(rs.getObject(colIndex));
@@ -153,6 +196,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	}
 	
 	public IQueryBuilder getQueryBuilder(){
-		return new SQLQueryBuilder();
+		//return new SQLQueryBuilder();
+		return new SQLQueryTableBuilder(this);
 	}
 }
