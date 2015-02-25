@@ -44,7 +44,9 @@ import org.apache.commons.io.FileUtils;
 
 import prerna.error.EngineException;
 import prerna.error.FileReaderException;
+import prerna.ui.components.ImportDataProcessor;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 /**
  * Creates a folder in user.dir/db that contains the files required for the engine
@@ -66,6 +68,7 @@ public class PropFileWriter {
 	public File engineDirectory;
 	public String owlFile;
 	public String defaultEngine = "prerna.rdf.engine.impl.BigDataEngine";
+	public String defaultRDBMSEngine = "prerna.rdf.engine.impl.RDBMSNativeEngine";
 	public boolean hasMap = false;
 
 	public PropFileWriter () {
@@ -94,7 +97,7 @@ public class PropFileWriter {
 	 * @throws FileReaderException 
 	 * @throws EngineException 
 	 */
-	public void runWriter(String dbName, String ontologyName, String dbPropFile, String questionFile) throws FileReaderException, EngineException {
+	public void runWriter(String dbName, String ontologyName, String dbPropFile, String questionFile, ImportDataProcessor.DB_TYPE dbType) throws FileReaderException, EngineException {
 		if(dbName == null) {
 			throw new EngineException("Database name is invalid.");
 		}
@@ -107,13 +110,19 @@ public class PropFileWriter {
 			// define the owlFile location
 			this.owlFile = "db"+ System.getProperty("file.separator") + engineName + System.getProperty("file.separator") + engineName + "_OWL.OWL";
 			// if question sheet was not specified, we need to make a copy of the default questions
-			if(questionFile == null || questionFile.equals("")){
+			if((questionFile == null || questionFile.equals(""))){
 				questionFileName = defaultQuestionProp.replaceAll("Default", dbName);
-				copyFile(baseDirectory + System.getProperty("file.separator") + questionFileName, baseDirectory + System.getProperty("file.separator") + defaultQuestionProp);
+				// need to create XML file from scratch
+				if(dbType == ImportDataProcessor.DB_TYPE.RDF)
+					copyFile(baseDirectory + System.getProperty("file.separator") + questionFileName, baseDirectory + System.getProperty("file.separator") + defaultQuestionProp);
+				else if(dbType == ImportDataProcessor.DB_TYPE.RDBMS)
+					questionFileName = questionFileName.replace("XML", "properties");
+				// this needs to be completed	
 			}
 			// if it was specified, get it in the format for the map file and move the file to the new directory
 			else {
-				FileUtils.copyFileToDirectory(new File(questionFile), engineDirectory, true);
+				if (dbType == ImportDataProcessor.DB_TYPE.RDF)
+					FileUtils.copyFileToDirectory(new File(questionFile), engineDirectory, true);
 				questionFileName = engineDirectoryName + questionFile.substring(questionFile.lastIndexOf("\\"));
 				if(questionFileName.contains("\\"))
 					questionFileName = questionFileName.replaceAll("\\\\", "/");
@@ -122,7 +131,7 @@ public class PropFileWriter {
 			// if the map was not specified, copy default map.  All augmentation of the map must be done after poi reader though
 			if(ontologyName == null || ontologyName.equals("")) {
 				ontologyFileName = defaultOntologyProp.replace("Default", dbName);
-				copyFile(baseDirectory + System.getProperty("file.separator") + ontologyFileName, baseDirectory + System.getProperty("file.separator") + defaultOntologyProp);
+					copyFile(baseDirectory + System.getProperty("file.separator") + ontologyFileName, baseDirectory + System.getProperty("file.separator") + defaultOntologyProp);
 			}
 			// if it was specified, don't copy default---will augment after running reader
 			else {
@@ -149,7 +158,7 @@ public class PropFileWriter {
 			// Now we have all of the different file required for an engine taken care of, update the map file
 			if(dbPropFile == null || dbPropFile.equals("")){
 				propFileName = baseDirectory + System.getProperty("file.separator") + defaultDBPropName;
-				writeCustomDBProp(propFileName, dbName);
+				writeCustomDBProp(propFileName, dbName,dbType);
 			}
 			else {
 				FileUtils.copyFileToDirectory(new File(dbPropFile), engineDirectory, true);
@@ -201,7 +210,7 @@ public class PropFileWriter {
 	 * @param dbname 			String containing the name of the new database
 	 * @throws FileReaderException 
 	 */
-	private void writeCustomDBProp(String defaultName, String dbname) throws FileReaderException {
+	private void writeCustomDBProp(String defaultName, String dbname, ImportDataProcessor.DB_TYPE dbType) throws FileReaderException {
 		String jnlName = engineDirectoryName + System.getProperty("file.separator") + dbname+".jnl";
 		//move it outside the default directory
 		propFileName = defaultName.replace("Default/", "") + "1";
@@ -218,12 +227,27 @@ public class PropFileWriter {
 			File newFile = new File(propFileName);
 			pw = new FileWriter(newFile);
 			pw.write("Base Properties \n");
-			//pw.write(name+"_PROP" + "\t"+ propFileName + "\n");
-			pw.write(Constants.ENGINE + "\t" + dbname + "\n");
-			pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultEngine + "\n");
 			pw.write(Constants.ONTOLOGY + "\t"+  ontologyFileName + "\n");
 			pw.write(Constants.OWL + "\t" + owlFile + "\n");
-			pw.write(Constants.INSIGHTS + "\t" + questionFileName + "\n\n\n");
+			//pw.write(name+"_PROP" + "\t"+ propFileName + "\n");
+			pw.write(Constants.ENGINE + "\t" + dbname + "\n");
+			if(dbType == ImportDataProcessor.DB_TYPE.RDF)
+			{
+				pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultEngine + "\n");
+				pw.write(Constants.INSIGHTS + "\t" + questionFileName + "\n\n\n");
+			}
+			if(dbType == ImportDataProcessor.DB_TYPE.RDBMS)
+			{
+				pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultRDBMSEngine + "\n");
+				pw.write(Constants.DREAMER + "\t" + questionFileName + "\n\n\n");
+				pw.write(Constants.DRIVER + "\t" + "org.h2.Driver" + "\n");
+				pw.write(Constants.USERNAME + "\t" + "sa" + "\n");
+				pw.write(Constants.PASSWORD + "\t" + "" + "\n");
+				//pw.write("TEMP"+ "\t" + "true" + "\n");
+				String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
+				System.out.println("Base Folder...  " + baseFolder);
+				pw.write(Constants.CONNECTION_URL + "\t" + "jdbc:h2:" + baseFolder + System.getProperty("file.separator") + engineDirectoryName + System.getProperty("file.separator") + "database" + "\n"); 
+			}
 			if(this.hasMap) {
 				pw.write("MAP" + "\t" + "db/" + dbname + "/" + dbname + "_Mapping.ttl" + "\n");
 			}
