@@ -348,10 +348,19 @@ public class ClusteringDataProcessor {
 				continue;
 			}
 			Double[] dataRow = ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(propColumn);
+			Hashtable<String, Object>[] bins = null;
 			BarChart chart = new BarChart(dataRow);
 			numericalBinOrderingMatrix[i] = chart.getNumericalBinOrder();
-			generateNumericalBinMatrix(i, chart.getAssignmentForEachObject());
-			Hashtable<String, Object>[] bins = chart.getRetHashForJSON();
+			if(chart.isUseCategoricalForNumericInput()) {
+				chart.calculateCategoricalBins("NaN", true, true);
+				generateNumericalBinMatrix(i, chart.getAssignmentForEachObject());
+				chart.generateJSONHashtableCategorical();
+				bins = chart.getRetHashForJSON();
+			} else {
+				generateNumericalBinMatrix(i, chart.getAssignmentForEachObject());
+				chart.generateJSONHashtableNumerical();
+				bins = chart.getRetHashForJSON();
+			}
 			double entropy = 0;
 			int j;
 			int uniqueValues = bins.length;

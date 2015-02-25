@@ -473,8 +473,16 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 							// dealing with numerical prop - determine range, calculate IQR, determine bin-size, group
 							Double[] numValues = ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(values);
 							numValues = ArrayUtilityMethods.sortDoubleWrapperArr(numValues);
+							Hashtable<String, Object>[] propBins = null;
 							BarChart chart = new BarChart(numValues);
-							Hashtable<String, Object>[] propBins = chart.getRetHashForJSON();
+							if(chart.isUseCategoricalForNumericInput()) {
+								chart.calculateCategoricalBins("?", true, true);
+								chart.generateJSONHashtableCategorical();
+								propBins = chart.getRetHashForJSON();
+							} else {
+								chart.generateJSONHashtableNumerical();
+								propBins = chart.getRetHashForJSON();
+							}
 							Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 							String[] zScore = StatisticsUtilityMethods.getZScoreRangeAsStringIgnoringNull(numValues, true);
 							// cause JS is dumb
@@ -486,6 +494,8 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 						} else {
 							String[] stringValues = ArrayUtilityMethods.convertObjArrToStringArr(values);
 							BarChart chart = new BarChart(stringValues);
+							chart.calculateCategoricalBins("?", true, true);
+							chart.generateJSONHashtableCategorical();
 							Hashtable<String, Object>[] propBins = chart.getRetHashForJSON();
 							Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 							// cause JS is dumb
@@ -505,8 +515,16 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 				DatasetSimilarity alg = new DatasetSimilarity(storeInstanceDataInCluster.get(i), origArr);
 				alg.generateClusterCenters();
 				double[] simValues = alg.getSimilarityValuesForInstances();
+				Hashtable<String, Object>[] bins = null;
 				BarChart chart = new BarChart(simValues, "");
-				Hashtable<String, Object>[] bins = chart.getRetHashForJSON();
+				if(chart.isUseCategoricalForNumericInput()) {
+					chart.calculateCategoricalBins("?", true, true);
+					chart.generateJSONHashtableCategorical();
+					bins = chart.getRetHashForJSON();
+				} else {
+					chart.generateJSONHashtableNumerical();
+					bins = chart.getRetHashForJSON();
+				}
 				String[] zScore = StatisticsUtilityMethods.getZScoreRangeAsString(simValues, false);
 	
 				Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
