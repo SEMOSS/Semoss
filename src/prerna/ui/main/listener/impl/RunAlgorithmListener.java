@@ -50,6 +50,7 @@ import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
 import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
 import prerna.ui.components.playsheets.LocalOutlierPlaySheet;
+import prerna.ui.components.playsheets.MatrixRegressionVizPlaySheet;
 import prerna.ui.components.playsheets.WekaAprioriPlaySheet;
 import prerna.ui.components.playsheets.MatrixRegressionPlaySheet;
 import prerna.ui.components.playsheets.WekaClassificationPlaySheet;
@@ -313,12 +314,26 @@ public class RunAlgorithmListener extends AbstractListener {
 				return;
 			}
 			
-			newPlaySheet = new MatrixRegressionPlaySheet();
+			//create grid view
+			MatrixRegressionPlaySheet gridPlaySheet = new MatrixRegressionPlaySheet();
+			gridPlaySheet.setList(filteredList);
+			gridPlaySheet.setNames(filteredNames);
+			gridPlaySheet.setbColumnIndex(depVarIndex);
+			gridPlaySheet.setJTab(jTab);
+			gridPlaySheet.setJBar(jBar);
+			gridPlaySheet.setRDFEngine(engine);
+			gridPlaySheet.setTitle(title);
+			gridPlaySheet.runAnalytics();
+			gridPlaySheet.createView();
+			
+			newPlaySheet = new MatrixRegressionVizPlaySheet();
 			newPlaySheet.setList(filteredList);
 			newPlaySheet.setNames(filteredNames);
-			((MatrixRegressionPlaySheet)newPlaySheet).setbColumnIndex(depVarIndex);
-			((MatrixRegressionPlaySheet)newPlaySheet).setJTab(jTab);
-			((MatrixRegressionPlaySheet)newPlaySheet).setJBar(jBar);
+			((MatrixRegressionVizPlaySheet)newPlaySheet).setAddAsTab(true);
+			((MatrixRegressionVizPlaySheet)newPlaySheet).setbColumnIndex(depVarIndex);
+			((MatrixRegressionVizPlaySheet)newPlaySheet).setJTab(jTab);
+			((MatrixRegressionVizPlaySheet)newPlaySheet).setJBar(jBar);
+			
 		} else {
 			LOGGER.error("Cannot find algorithm");
 			return;
