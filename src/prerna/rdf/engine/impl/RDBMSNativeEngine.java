@@ -44,7 +44,7 @@ import org.openrdf.sail.SailException;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.query.builder.IQueryBuilder;
-import prerna.rdf.query.builder.SQLQueryTableBuilder;
+import prerna.rdf.query.builder.SQLQueryBuilder;
 import prerna.util.Constants;
 
 public class RDBMSNativeEngine extends AbstractEngine {
@@ -196,7 +196,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	}
 	
 	public IQueryBuilder getQueryBuilder(){
-		//return new SQLQueryBuilder();
-		return new SQLQueryTableBuilder(this);
+		return new SQLQueryBuilder();
+		//return new SQLQueryTableBuilder(this);
 	}
 }
