@@ -77,7 +77,15 @@ public class DatasetSimilairtyColumnChartPlaySheet extends ColumnChartPlaySheet 
 	
 	public Hashtable<String, Object> processQueryData() {
 		BarChart chart = new BarChart(simValues, names[0]);
-		Hashtable<String, Object>[] bins = chart.getRetHashForJSON();
+		Hashtable<String, Object>[] bins = null;
+		if(chart.isUseCategoricalForNumericInput()) {
+			chart.calculateCategoricalBins("?", true, true);
+			chart.generateJSONHashtableCategorical();
+			bins = chart.getRetHashForJSON();
+		} else {
+			chart.generateJSONHashtableNumerical();
+			bins = chart.getRetHashForJSON();
+		}
 		
 		Hashtable<String, Object> retHash = new Hashtable<String, Object>();
 		Object[] binArr = new Object[]{bins};
