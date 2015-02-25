@@ -24,7 +24,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
@@ -103,7 +102,7 @@ public class RDBMSReader {
 	private Hashtable <String, Hashtable> tableHash = new Hashtable();
 	private Hashtable <String, String> relHash = new Hashtable<String,String>(); // keeps it in the format of name of the relationship, the value being the name of the classes separated by @
 	Connection conn = null;
-	String dbBaseFolder = "C:/Users/pkapaleeswaran/workspacej2/SemossWeb/db";
+	String dbBaseFolder = null;
 	IEngine engine = null;
 	
 	
@@ -143,6 +142,7 @@ public class RDBMSReader {
 	{
 		RDBMSReader reader = new RDBMSReader();
 		String engineName = "Sample";
+		reader.dbBaseFolder = "C:/Users/pkapaleeswaran/workspacej2/SemossWeb/db";
 		String fileName = "C:/Users/pkapaleeswaran/workspacej2/Data/Movie.csv";
 		reader.propFile = "C:/Users/pkapaleeswaran/workspacej2/SemossWeb/db/Movie_DB/Movie_DB_PROP.prop";
 		reader.propFileExist = true;
@@ -156,14 +156,14 @@ public class RDBMSReader {
 	private String writePropFile(String engineName)
 	{
 		Properties prop = new Properties();
-		prop.put(Constants.CONNECTION_URL, "jdbc:h2:" + dbBaseFolder + "/" + engineName + "/database");
+		prop.put(Constants.CONNECTION_URL, "jdbc:h2:" + dbBaseFolder + "/db/" + engineName + "/database");
 		prop.put(Constants.USERNAME, "sa");
 		prop.put(Constants.PASSWORD, "");
 		prop.put(Constants.DRIVER,"org.h2.Driver");
 		prop.put("TEMP", "TRUE");
 		
 		// write this to a file
-		String tempFile = dbBaseFolder + "/" + engineName + "/conn.prop";
+		String tempFile = dbBaseFolder + "/db/" + engineName + "/conn.prop";
 		try {
 			File file = new File(tempFile);
 			FileOutputStream fo = new FileOutputStream(file);
