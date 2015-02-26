@@ -62,305 +62,278 @@
 
     <script> 
 
-
-
         function refresh(){
             location.reload();
             return true;
         };
         
         function start(dataPassed) {
-                d3.selectAll("svg").remove();
-                var ctrlScope = angular.element(jQuery('#controllerID')).scope();
-                // calling function in controller
-                ctrlScope.setJSONData(dataPassed);
-
+            d3.selectAll("svg").remove();
+            var ctrlScope = angular.element(jQuery('#controllerID')).scope();
+            // calling function in controller
+            ctrlScope.setJSONData(dataPassed);
         };
 
         angular.module('main', ['ngTable']).
-        controller('DemoCtrl', function($scope, $filter, ngTableParams) {
+            controller('DemoCtrl', function($scope, $filter, ngTableParams) {
 
-            $scope.costTitle;
+                $scope.costTitle;
 
-            $scope.setJSONData = function (data) {
-                $scope.$apply(function () {
-                    createAll(jQuery.parseJSON(data));
-                });
-            };
+                $scope.setJSONData = function (data) {
+                    $scope.$apply(function () {
+                        createAll(jQuery.parseJSON(data));
+                    });
+                };
             
-            function createAll (allData) {
-            // $("#slider").destroy(); 
-            var dataString = allData.data;
-            var chartType = allData.label;
-            if(chartType === "savings") {
-                // $('#tableCostColumn').attr('data-title', 'Cumulative Savings ($)');
-                $scope.costTitle = 'Cumulative Savings ($)';
-            } else {
-                // $('#tableCostColumn').attr('data-title', 'Cumulative Cost ($)');
-                $scope.costTitle = 'Cumulative Cost ($)';
-            }
-            //Load in GeoJSON data
-            var json = worldData;
-
-            //Width and height
-            var w = 1500;
-            var h = 1000;            
-
-            //Define map projection
-            var projection = d3.geo.mercator()
-                .translate([w/2, h/2])
-                .scale([1500]);
-
-            //Define path generator
-            var path = d3.geo.path()
-                .projection(projection);
-
-            //Create SVG element
-            var svg = d3.select("#sidebarContentLeft")
-                .append("svg")
-                .attr("width", w)
-                .attr("height", h)
-                .call (
-                    d3.behavior.zoom()
-                        .scaleExtent([.1, 10])
-                        .on("zoom", zoom)
-                )
-                .append("g");
-                    
-            function zoom() {
-                svg.attr("transform", "translate(" 
-                + d3.event.translate 
-                + ")scale(" + d3.event.scale + ")");
-            }   
-                                
-
-        //Bind data and create one path per GeoJSON feature
-        svg.selectAll("path")
-           .data(json.features)
-           .enter()
-           .append("path")
-           .attr("d", path)
-           .attr("stroke","#fff")
-           .attr("stroke-width", "1")
-           .style("fill", 
-            "#ccc"
-           );
-            var maxYear = 0;
-                var minYear = 3000;
-                var hop = 1;
-                for (var year in dataString){
-                    if(year<minYear){
-                        minYear = year;
-                    } else{}
-                    if(year>maxYear){
-                        maxYear = year;
-                    } else {};
-                }
-
-        var renderGeoMap = function(dataGeo){
-
-
-                             /* Initialize tooltip */
-             /*(if(undefined != d.System) {+ " " + d.System }*/
-            var genObj = function (d) {
-                if (chartType === "savings") {
-                    var tempvar = "Site: " + d.site + "</br>" + "Total Site Savings: " + d['Total Site Cost'];
-                } else {
-                    var tempvar = "Site: " + d.site + "</br>" + "Total Site Cost: " + d['Total Site Cost'];
-                }
-
-                    for(var system in d.Systems){
-                        tempvar = tempvar + "</br>" + "&nbsp &nbsp" + system
-                        for (var prop in d.Systems[system]){
-                            tempvar = tempvar + "</br>" + "&nbsp &nbsp &nbsp &nbsp" + prop + ": " + d.Systems[system][prop]
-                        }
+                function createAll (allData) {
+                    // $("#slider").destroy(); 
+                    var dataString = allData.data;
+                    var chartType = allData.label;
+                    if(chartType === "savings") {
+                        // $('#tableCostColumn').attr('data-title', 'Cumulative Savings ($)');
+                        $scope.costTitle = 'Cumulative Savings ($)';
+                    } else {
+                        // $('#tableCostColumn').attr('data-title', 'Cumulative Cost ($)');
+                        $scope.costTitle = 'Cumulative Cost ($)';
                     }
-            return (tempvar);
-            };
+                    //Load in GeoJSON data
+                    var json = worldData;
 
-            tip = d3.tip()
-                .attr('class', 'd3-tip')
-                .html(function(d) { return genObj(d)});
+                    //Width and height
+                    var w = 1500;
+                    var h = 1000;            
+
+                    //Define map projection
+                    var projection = d3.geo.mercator()
+                        .translate([w/2, h/2])
+                        .scale([1500]);
+
+                    //Define path generator
+                    var path = d3.geo.path()
+                        .projection(projection);
+
+                    //Create SVG element
+                    var svg = d3.select("#sidebarContentLeft")
+                        .append("svg")
+                        .attr("width", w)
+                        .attr("height", h)
+                        .call (
+                            d3.behavior.zoom()
+                                .scaleExtent([.1, 10])
+                                .on("zoom", zoom)
+                        )
+                        .append("g");
+                            
+                    function zoom() {
+                        svg.attr("transform", "translate(" 
+                        + d3.event.translate 
+                        + ")scale(" + d3.event.scale + ")");
+                    }                                
+
+                    //Bind data and create one path per GeoJSON feature
+                    svg.selectAll("path")
+                       .data(json.features)
+                       .enter()
+                       .append("path")
+                       .attr("d", path)
+                       .attr("stroke","#fff")
+                       .attr("stroke-width", "1")
+                       .style("fill", "#ccc");
+
+                    var maxYear = 0;
+                    var minYear = 3000;
+                    var hop = 1;
+
+                    for (var year in dataString){
+                        if(year < minYear) {
+                            minYear = year;
+                        } else {}
+                        if(year > maxYear) {
+                            maxYear = year;
+                        } else {};
+                    }
+
+                    var renderGeoMap = function(dataGeo) {
+                        /* Initialize tooltip */
+                        /*(if(undefined != d.System) {+ " " + d.System }*/
+                        var genObj = function (d) {
+                            if (chartType === "savings") {
+                                var tempvar = "Site: " + d.site + "</br>" + "Total Site Savings: " + d['Total Site Cost'];
+                            } else {
+                                var tempvar = "Site: " + d.site + "</br>" + "Total Site Cost: " + d['Total Site Cost'];
+                            }
+                            for(var system in d.Systems) {
+                                tempvar = tempvar + "</br>" + "&nbsp &nbsp" + system;
+                                for (var prop in d.Systems[system]) {
+                                    tempvar = tempvar + "</br>" + "&nbsp &nbsp &nbsp &nbsp" + prop + ": " + d.Systems[system][prop];
+                                }
+                            }
+                            return (tempvar);
+                        };
+
+                        tip = d3.tip()
+                            .attr('class', 'd3-tip')
+                            .html(function(d) { return genObj(d)});
     
-            var redCircle = svg.selectAll("circle")
-               .data(dataGeo);
-            redCircle
-               .enter()
-               .append("circle");
-            redCircle
-               .attr("cx", function(d) {
-                   return projection([d.lon, d.lat])[0];
-               })
-               .attr("cy", function(d) {
-                   return projection([d.lon, d.lat])[1];
-               })
-               .attr("r", 2.5)
-               .style("fill", function(d){
-                    var colorFlag = "orange";
-                    var colorCounter = 0;
-                    var redCounter = 0;
-                    var greenCounter = 0;
-					if(d.Status === "Not Started") {
-						colorFlag = "red"
-					}
-					else if(d.Status === "In Progress") {
-						colorFlag = "orange"
-					}
-					else if(d.Status === "Decommissioned") {
-						colorFlag = "green"
-					}
-					else {
-                        for(var system in d.Systems){
-                            colorCounter++
-                            if(d.Systems[system].Status === "Not Started"){
-                                redCounter++
-                            }
-                            if(d.Systems[system].Status === "Decommissioned"){
-                                greenCounter++
-                            }
-                        }
-                        if(colorCounter === redCounter){
-                            colorFlag = "red"
-                        }
-                        else if(colorCounter === greenCounter){
-                            colorFlag = "green"
-                        }
-                        else{
-                            colorFlag = "orange"
-                        }
-					}
-                    return colorFlag
+                        var redCircle = svg.selectAll("circle")
+                           .data(dataGeo);
+                        
+                        redCircle.enter()
+                           .append("circle");
+                        redCircle
+                            .attr("cx", function(d) {
+                               return projection([d.lon, d.lat])[0];
+                            })
+                            .attr("cy", function(d) {
+                               return projection([d.lon, d.lat])[1];
+                            })
+                            .attr("r", 2.5)
+                            .style("fill", function(d) {
+                                var colorFlag = "orange";
+                                var colorCounter = 0;
+                                var redCounter = 0;
+                                var greenCounter = 0;
+            					if(d.Status === "Not Started") {
+            						colorFlag = "red";
+            					}
+            					else if(d.Status === "In Progress") {
+            						colorFlag = "orange";
+            					}
+            					else if(d.Status === "Decommissioned") {
+            						colorFlag = "green";
+            					}
+            					else {
+                                    for(var system in d.Systems) {
+                                        colorCounter++;
+                                        if(d.Systems[system].Status === "Not Started") {
+                                            redCounter++;
+                                        }
+                                        if(d.Systems[system].Status === "Decommissioned") {
+                                            greenCounter++;
+                                        }
+                                    }
+                                    if(colorCounter === redCounter){
+                                        colorFlag = "red";
+                                    }
+                                    else if(colorCounter === greenCounter){
+                                        colorFlag = "green";
+                                    }
+                                    else{
+                                        colorFlag = "orange";
+                                    }
+            					}
+                                return colorFlag;
+                            })
+                            .style("opacity", 0.75);
 
-               }
-            )
-               .style("opacity", 0.75)
-            redCircle
-               .on('mouseover', tip.show)
-               .on('mouseout', tip.hide);
+                        redCircle.on('mouseover', tip.show)
+                            .on('mouseout', tip.hide);
 
-            redCircle.call(tip);
-            redCircle.exit().remove();
-             $('#slider').slider('refresh');
-            // sliderRefresh();
-            }
+                        redCircle.call(tip);
+                        redCircle.exit().remove();
 
-                $scope.dataUpdater;
+                        $('#slider').slider('refresh');
+                        // sliderRefresh();
+                    }
+
+                    $scope.dataUpdater;
                 
-                function numberWithCommas(x) {
-                    var parts = x.toString().split(".");
-                    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-                    return parts.join(".");
-                }
+                    function numberWithCommas(x) {
+                        var parts = x.toString().split(".");
+                        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                        return parts.join(".");
+                    }
 
+                    var dataRefresh = function(year) {
+                        var data = [];
+                        for(var system in dataString[year].system){
+                            dataString[year].system[system]['TCostSystem'] = numberWithCommas(dataString[year].system[system]['TCostSystem']);
+                            data.push({name: system, totalSystemCost: dataString[year].system[system]['TCostSystem'], aggregatedStatus: dataString[year].system[system]['AggregatedStatus']});
+                        };
+                        $scope.dataUpdater = data;
+                        return data;
+                    }
 
-                var dataRefresh = function(year){
-                    var data = [];
-                    for(var system in dataString[year].system){
-                        dataString[year].system[system]['TCostSystem'] = numberWithCommas(dataString[year].system[system]['TCostSystem'])
+                    $("#slider").on("slide", function(slideEvt) {
+                        $("#sliderVal").text(slideEvt.value);
+                    });
 
-                        data.push({name: system, totalSystemCost: dataString[year].system[system]['TCostSystem'], aggregatedStatus: dataString[year].system[system]['AggregatedStatus']});
-                    };
+                    // var sliderRefresh = function(){
+                    //     $('#slider').slider.destroy();
+                    //     var maxYear = 0;
+                    //     var minYear = 3000;
+                    //     var hop = 1;
+                    //     for (var year in dataString){
+                    //         if(year<minYear){
+                    //             minYear = year;
+                    //         } else{}
+                    //         if(year>maxYear){
+                    //             maxYear = year;
+                    //         } else {};
+                    //     }
+                    //      $('#slider').slider({
+                    //     min: parseInt(minYear),
+                    //     max: parseInt(maxYear),
+                    //     step: 1
+                    //   })
+                    //     $('#slider').slider('setValue', parseInt(minYear), parseInt(maxYear))
+                    //     location.reload();
+                    // }                
+
+                    var slideFunction = function() {
+                        $scope.year = $('#slider').data('slider').getValue();
+                        var data = dataRefresh($scope.year)
+                        $scope.dataUpdater = data;
+                        $scope.tableParams.reload();
+                        var dataGeo = geoDataRefresh($scope.year)
+                        renderGeoMap(dataGeo);
+                    }
+
+                    $('#slider').slider({
+                        min: parseInt(minYear),
+                        max: parseInt(maxYear),
+                        step: 1
+                    });
+             
+                    $('#slider').on('slide', function() {
+                        slideFunction();
+                    });
+                    
+                    var data = dataRefresh($('#slider').data('slider').getValue());
                     $scope.dataUpdater = data;
-                    return data;
-                }
+                    $scope.tableParams = new ngTableParams({
+                        count: data.length,          // count per page
+                        filter: {
+                            name: ''       // initial filter
+                        },
+                        sorting: {
+                            name: 'asc'     // initial sorting
+                        }
+                    }, {
+                        total: data.length, // length of data
+                        getData: function($defer, params) {
+                            var data = $scope.dataUpdater;
+                            // use build-in angular filter
+                            var filteredData = params.filter() ? $filter('filter')(data, params.filter()) : data;
+                            var orderedData = params.sorting() ? $filter('orderBy')(filteredData, params.orderBy()) : data;
+                            params.total(orderedData.length); // set total for recalc pagination
+                            $defer.resolve(orderedData.slice((params.page() - 1) * params.count(), params.page() * params.count()));
+                        }
+                    });
 
+                    var geoDataRefresh = function(year) {
+                        var dataGeo = [];
+                        for(var site in dataString[year].site){
+                            dataGeo.push({'site': site,'lat': dataString[year].site[site].Lat, 'lon': dataString[year].site[site].Long, 'Status':dataString[year].site[site].Status, 'Total Site Cost': dataString[year].site[site]['TCostSite'], "Systems": dataString[year].site[site]['SystemForSite']});
+                        }
+                        return dataGeo;
+                    }
 
-                $("#slider").on("slide", function(slideEvt) {
-                $("#sliderVal").text(slideEvt.value);
-                });
+                    dataGeo = geoDataRefresh(2015);
 
-                // var sliderRefresh = function(){
-                //     $('#slider').slider.destroy();
-                //     var maxYear = 0;
-                //     var minYear = 3000;
-                //     var hop = 1;
-                //     for (var year in dataString){
-                //         if(year<minYear){
-                //             minYear = year;
-                //         } else{}
-                //         if(year>maxYear){
-                //             maxYear = year;
-                //         } else {};
-                //     }
-                //      $('#slider').slider({
-                //     min: parseInt(minYear),
-                //     max: parseInt(maxYear),
-                //     step: 1
-                //   })
-                //     $('#slider').slider('setValue', parseInt(minYear), parseInt(maxYear))
-                //     location.reload();
-                // }
-                
-
-
-                
-
-                var slideFunction = function(){
-                    $scope.year = $('#slider').data('slider').getValue();
-                    var data = dataRefresh($scope.year)
-                    $scope.dataUpdater = data;
-                    $scope.tableParams.reload();
-                    var dataGeo = geoDataRefresh($scope.year)
                     renderGeoMap(dataGeo);
                 }
-
-
-                $('#slider').slider({
-                    min: parseInt(minYear),
-                    max: parseInt(maxYear),
-                    step: 1
-                  })
-             
-                $('#slider').on('slide', function(){
-                    slideFunction();
-                });
-
-                    
-                var data = dataRefresh($('#slider').data('slider').getValue());
-                $scope.dataUpdater = data;
-                $scope.tableParams = new ngTableParams({
-                    count: data.length,          // count per page
-                    filter: {
-                        name: ''       // initial filter
-                    },
-                    sorting: {
-                        name: 'asc'     // initial sorting
-                    }
-                }, {
-                    total: data.length, // length of data
-                    getData: function($defer, params) {
-                        var data = $scope.dataUpdater;
-                        // use build-in angular filter
-                        var filteredData = params.filter() ?
-                                $filter('filter')(data, params.filter()) :
-                                data;
-                        var orderedData = params.sorting() ?
-                                $filter('orderBy')(filteredData, params.orderBy()) :
-                                data;
-                        params.total(orderedData.length); // set total for recalc pagination
-                        $defer.resolve(orderedData.slice((params.page() - 1) * params.count(), params.page() * params.count()));
-                    }
-                });
-
-
-        //GEOMAP FUNNNN
-
-
-            var geoDataRefresh = function(year){
-                var dataGeo = [];
-                for(var site in dataString[year].site){
-                    dataGeo.push({'site': site,'lat': dataString[year].site[site].Lat, 'lon': dataString[year].site[site].Long, 'Status':dataString[year].site[site].Status, 'Total Site Cost': dataString[year].site[site]['TCostSite'], "Systems": dataString[year].site[site]['SystemForSite']})
-                }
-                return dataGeo
-            }
-
-            dataGeo = geoDataRefresh(2015);
-
-            renderGeoMap(dataGeo);
-
-            }
-
-        }); 
+            }); 
 
     </script>
 
