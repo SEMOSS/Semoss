@@ -706,7 +706,7 @@ public class RDBMSReader {
 				
 				String column = columnKeys.nextElement();
 				String type = (String)columns.get(column);
-				SQLCREATE = SQLCREATE + column.replace("-", "_") + "  " + sqlHash.get(type);
+				SQLCREATE = SQLCREATE + Utility.cleanString(column, true).replaceAll("-", "_") + "  " + sqlHash.get(type);
 				if(columnKeys.hasMoreElements())
 					SQLCREATE = SQLCREATE + " , ";
 			}
@@ -743,7 +743,7 @@ public class RDBMSReader {
 					key1 = false;
 				}
 				String column = columnKeys.nextElement();
-				SQLINSERT = SQLINSERT + column.replace("-", "_");
+				SQLINSERT = SQLINSERT + Utility.cleanString(column, true).replaceAll("-", "_");
 				if(columnKeys.hasMoreElements())
 					SQLINSERT = SQLINSERT + ",";
 			}
