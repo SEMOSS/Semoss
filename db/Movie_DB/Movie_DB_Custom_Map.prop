@@ -1,0 +1,34 @@
+
+##Base Objects##
+
+Director http://www.semoss.org/ontologies/Concept/Director
+Title http://www.semoss.org/ontologies/Concept/Title
+Nominated http://www.semoss.org/ontologies/Concept/Nominated
+Studio http://www.semoss.org/ontologies/Concept/Studio
+Genre http://www.semoss.org/ontologies/Concept/Genre
+
+##Base Predicates##
+
+Title_DirectedAt_Studio http://www.semoss.org/ontologies/Relation/DirectedAt
+Title_DirectedBy_Director http://www.semoss.org/ontologies/Relation/DirectedBy
+Title_BelongsTo_Genre http://www.semoss.org/ontologies/Relation/BelongsTo
+Title_Was_Nominated http://www.semoss.org/ontologies/Relation/Was
+
+##Base Objects Class##
+
+Director_CLASS http://semoss.org/ontologies/Concept/Director
+Genre_CLASS http://semoss.org/ontologies/Concept/Genre
+Nominated_CLASS http://semoss.org/ontologies/Concept/Nominated
+Title_CLASS http://semoss.org/ontologies/Concept/Title
+Studio_CLASS http://semoss.org/ontologies/Concept/Studio
+
+##Base Predicates Class##
+
+Title_DirectedAt_Studio_CLASS http://semoss.org/ontologies/Relation/DirectedAt
+Title_DirectedBy_Director_CLASS http://semoss.org/ontologies/Relation/DirectedBy
+Title_BelongsTo_Genre_CLASS http://semoss.org/ontologies/Relation/BelongsTo
+Title_Was_Nominated_CLASS http://semoss.org/ontologies/Relation/Was
+
+PROP_URI http://semoss.org/ontologies/Relation/Contains
+
+IGNORE_URI	;
