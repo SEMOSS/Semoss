@@ -1,0 +1,16 @@
+START_ROW	2
+END_ROW	100000
+NUM_COLUMNS	10
+1	STRING
+2	STRING
+3	STRING
+4	STRING
+5	STRING
+6	DOUBLE
+7	DOUBLE
+8	DOUBLE
+9	DOUBLE
+10	DOUBLE
+RELATION	Title@Was@Nominated;Title@BelongsTo@Genre;Title@DirectedBy@Director;Title@DirectedAt@Studio;
+NODE_PROP	Title%Revenue-Domestic;Title%Revenue-International ;Title%MovieBudget;Title%RottenTomatoes-Critics;Title%RottenTomatoes-Audience;
+RELATION_PROP	 
