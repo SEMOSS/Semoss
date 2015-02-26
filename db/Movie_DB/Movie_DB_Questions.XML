@@ -1,0 +1,1763 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF
+	xmlns="http://www.w3.org/2000/01/rdf-schema#"
+	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Generic-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label>Movie_DB:Generic-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Generic-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/Movie_DB:Movie_DB:Generic-Perspective">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>Movie_DB:Movie_DB:Generic-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<Generic-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/Movie_DB:Movie_DB:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Generic-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Generic-Perspective:GQ1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Generic-Perspective:GQ1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Generic-Perspective:GQ1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<GQ1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Generic-Perspective:Movie_DB:Generic-Perspective:GQ1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Generic-Perspective:Movie_DB:Generic-Perspective:GQ1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Generic-Perspective">
+	<GQ1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Generic-Perspective:Movie_DB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Explore an instance of a selected node type</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?instance ?instance ?instance} WHERE { BIND(&lt;@Concept-http://semoss.org/ontologies/Concept@&gt; AS ?entity) BIND(&lt;@Instance-http://semoss.org/ontologies/Concept/Instance@&gt; AS ?instance) {?instance &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; ?entity ;} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GraphPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Generic-Perspective:GQ1:Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Movie_DB:Generic-Perspective:GQ1:Concept">
+	<LABEL xmlns="PARAM:">Concept</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE { {?entity &lt;http://www.w3.org/2000/01/rdf-schema#subClassOf&gt; &lt;http://semoss.org/ontologies/Concept&gt; ;} }</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ1">
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Generic-Perspective:GQ1:Instance"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Movie_DB:Generic-Perspective:GQ1:Instance">
+	<LABEL xmlns="PARAM:">Instance</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE { {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;@Concept@&gt; ;} }</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">true</DEPEND>
+	<DEPEND xmlns="PARAM:">Concept</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Instance"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ2">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Generic-Perspective:GQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Generic-Perspective:GQ2">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Generic-Perspective:GQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<GQ2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Generic-Perspective:Movie_DB:Generic-Perspective:GQ2">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Generic-Perspective:Movie_DB:Generic-Perspective:GQ2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Generic-Perspective">
+	<GQ2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Generic-Perspective:Movie_DB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ2">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Generic CONSTRUCT Query</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ2</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ2">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?subject ?predicate ?object} WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GraphPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ3">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Generic-Perspective:GQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Generic-Perspective:GQ3">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Generic-Perspective:GQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<GQ3 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Generic-Perspective:Movie_DB:Generic-Perspective:GQ3">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Generic-Perspective:Movie_DB:Generic-Perspective:GQ3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Generic-Perspective">
+	<GQ3 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Generic-Perspective:Movie_DB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ3">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Select Query Raw</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">3</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ3</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ3">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?subject ?predicate ?object WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridRAWPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ4">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Generic-Perspective:GQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Generic-Perspective:GQ4">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Generic-Perspective:GQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<GQ4 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Generic-Perspective:Movie_DB:Generic-Perspective:GQ4">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Generic-Perspective:Movie_DB:Generic-Perspective:GQ4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Generic-Perspective">
+	<GQ4 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Generic-Perspective:Movie_DB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ4">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Select Query Rendered as a Grid</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">4</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ4</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ4">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?subject ?predicate ?object WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ5">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Generic-Perspective:GQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Generic-Perspective:GQ5">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Generic-Perspective:GQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<GQ5 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Generic-Perspective:Movie_DB:Generic-Perspective:GQ5">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Generic-Perspective:Movie_DB:Generic-Perspective:GQ5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Generic-Perspective">
+	<GQ5 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Generic-Perspective:Movie_DB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ5">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Select Distinct Subjects</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">5</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">GQ5</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:GQ5">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?subject WHERE {{?subject ?predicate ?object.}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Movie-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label>Movie_DB:Movie-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Movie-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/Movie_DB:Movie_DB:Movie-Perspective">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>Movie_DB:Movie_DB:Movie-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<Movie-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/Movie_DB:Movie_DB:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Movie-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Movie-Perspective:M1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Movie-Perspective:M1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Movie-Perspective:M1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<M1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Movie-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:M1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:M1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Movie-Perspective">
+	<M1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What is the list of Directors?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Movie-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">M1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Director WHERE {?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M2">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Movie-Perspective:M2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Movie-Perspective:M2">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Movie-Perspective:M2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<M2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Movie-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:M2">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:M2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Movie-Perspective">
+	<M2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M2">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What is the list of Directors that have produced with a specific studio?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Movie-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">M2</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M2">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Director ?Studio WHERE {BIND(&lt;@Studio-http://semoss.org/ontologies/Concept/Studio@&gt; AS ?Studio) {?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;} {?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;} {?DirectedBy &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt;} {?Title ?DirectedBy ?Director} {?DirectedAt &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt;} {?Title ?DirectedAt ?Studio} }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Movie-Perspective:M2:Studio"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Movie_DB:Movie-Perspective:M2:Studio">
+	<LABEL xmlns="PARAM:">Studio</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Studio"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M3">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Movie-Perspective:M3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Movie-Perspective:M3">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Movie-Perspective:M3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<M3 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Movie-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:M3">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:M3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Movie-Perspective">
+	<M3 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M3">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">How does the domestic revenue for each film by this director compare to each other?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">3</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Movie-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">M3</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M3">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?DomesticRevenue WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue } {?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?DirectedBy &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt;} {?Title ?DirectedBy ?Director} BIND(&lt;@Director-http://semoss.org/ontologies/Concept/Director@&gt; AS ?Director)}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.ColumnChartPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Movie-Perspective:M3:Director"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Movie_DB:Movie-Perspective:M3:Director">
+	<LABEL xmlns="PARAM:">Director</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Director"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M4">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Movie-Perspective:M4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Movie-Perspective:M4">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Movie-Perspective:M4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<M4 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Movie-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:M4">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:M4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Movie-Perspective">
+	<M4 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M4">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">For each movie and director combination, how big was the budget of the movie?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">4</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Movie-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">M4</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M4">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Director ?MovieBudget WHERE {BIND(&lt;@Director-http://semoss.org/ontologies/Concept/Director@&gt; AS ?Director){?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;} OPTIONAL{{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?MovieBudget}} {?DirectedBy &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt;}{?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;} {?Title ?DirectedBy ?Director}}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.HeatMapPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Movie-Perspective:M4:Director"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Movie_DB:Movie-Perspective:M4:Director">
+	<LABEL xmlns="PARAM:">Director</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Director"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M5">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Movie-Perspective:M5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Movie-Perspective:M5">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Movie-Perspective:M5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<M5 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Movie-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:M5">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:M5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Movie-Perspective">
+	<M5 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M5">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">How does the domestic vs international vs budget compare for each film by this director?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">5</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Movie-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">M5</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M5">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?DomesticRevenue ?InternationalRevenue ?Budget WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget } {?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?DirectedBy &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt;} {?Title ?DirectedBy ?Director} BIND(&lt;@Director-http://semoss.org/ontologies/Concept/Director@&gt; AS ?Director)}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.ColumnChartPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Movie-Perspective:M5:Director"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Movie_DB:Movie-Perspective:M5:Director">
+	<LABEL xmlns="PARAM:">Director</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Director"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M6">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Movie-Perspective:M6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Movie-Perspective:M6">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Movie-Perspective:M6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<M6 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Movie-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M6"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:M6">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:M6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Movie-Perspective">
+	<M6 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M6"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M6">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">How does the domestic vs international vs budget compare for each film by this director?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">6</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Movie-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">M6</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M6">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?DomesticRevenue ?InternationalRevenue ?Budget WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget } {?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?DirectedBy &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt;} {?Title ?DirectedBy ?Director} BIND(&lt;@Director-http://semoss.org/ontologies/Concept/Director@&gt; AS ?Director)}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GridScatterSheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Movie-Perspective:M6:Director"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Movie_DB:Movie-Perspective:M6:Director">
+	<LABEL xmlns="PARAM:">Director</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Director"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M7">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Movie-Perspective:M7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Movie-Perspective:M7">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Movie-Perspective:M7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<M7 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Movie-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M7"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:M7">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:M7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Movie-Perspective">
+	<M7 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M7"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M7">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">How does the rotten tomatoes scores compare for movies by this director?</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">7</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Movie-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">M7</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M7">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Critic ?Audience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?Audience } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?Critic } {?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?DirectedBy &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt;} {?Title ?DirectedBy ?Director} BIND(&lt;@Director-http://semoss.org/ontologies/Concept/Director@&gt; AS ?Director)}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.ColumnChartPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Movie-Perspective:M7:Director"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Movie_DB:Movie-Perspective:M7:Director">
+	<LABEL xmlns="PARAM:">Director</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Director"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M8">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Movie-Perspective:M8</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Movie-Perspective:M8">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Movie-Perspective:M8</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<M8 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Movie-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M8"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:M8">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:M8</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Movie-Perspective">
+	<M8 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M8"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M8">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">For a given director, compare the domestic revenue of all his/her movies.</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">8</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Movie-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">M8</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:M8">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?DomesticRevenue WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue } {?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?DirectedBy &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt;} {?Title ?DirectedBy ?Director} BIND(&lt;@Director-http://semoss.org/ontologies/Concept/Director@&gt; AS ?Director)}</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.PieChartPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Movie-Perspective:M8:Director"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Movie_DB:Movie-Perspective:M8:Director">
+	<LABEL xmlns="PARAM:">Director</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Director"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Cluster-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label>Movie_DB:Cluster-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Cluster-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/Movie_DB:Movie_DB:Cluster-Perspective">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>Movie_DB:Movie_DB:Cluster-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<Cluster-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/Movie_DB:Movie_DB:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Cluster-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Cluster-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">C6</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C6">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }{?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;}{?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;}{?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director}{?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre}{?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio}} ORDER BY ?Title</SPARQL>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Cluster-Perspective">
+	<C6 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C6"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<C6 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Cluster-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C6"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Cluster-Perspective:C6">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C6">
+	<label>Movie_DB:Cluster-Perspective:C6</label>
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C7">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Cluster-Perspective:C7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Cluster-Perspective:C7">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Cluster-Perspective:C7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<C7 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Cluster-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C7"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:C7">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:C7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Cluster-Perspective">
+	<C7 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C7"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C7">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Movie cluster based on genre property without specifying the number of clusters</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">3</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Cluster-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">C7</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C7">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Genre WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;} {?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;} {?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre}} ORDER BY ?Title</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.ClusteringVizPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C8">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Cluster-Perspective:C8</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Cluster-Perspective:C8">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Cluster-Perspective:C8</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<C8 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Cluster-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C8"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:C8">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:C8</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Cluster-Perspective">
+	<C8 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C8"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C8">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Movie cluster based on nomicated property without specifying the number of clusters</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">4</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Cluster-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">C8</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C8">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Nominated WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;} {?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated}} ORDER BY ?Title</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.ClusteringVizPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C9">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Cluster-Perspective:C9</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Cluster-Perspective:C9">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Cluster-Perspective:C9</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<C9 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Cluster-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C9"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:C9">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:C9</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Cluster-Perspective">
+	<C9 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C9"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C9">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Movie cluster for specific genre without specifying the number of clusters</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">5</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Cluster-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">C9</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C9">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {BIND(&lt;@Genre-http://semoss.org/ontologies/Concept/Genre@&gt; AS ?Genre){?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }{?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;}{?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;}{?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director}{?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre}{?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio}} ORDER BY ?Title</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.ClusteringVizPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Cluster-Perspective:C9:Genre"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Movie_DB:Cluster-Perspective:C9:Genre">
+	<LABEL xmlns="PARAM:">Genre</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Genre"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C10">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Cluster-Perspective:C10</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Cluster-Perspective:C10">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Cluster-Perspective:C10</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<C10 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Cluster-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C10"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:C10">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:C10</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Cluster-Perspective">
+	<C10 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C10"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C10">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Movie cluster for specific studio without specifying the number of clusters</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">6</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Cluster-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">C10</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C10">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }{?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;}{?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;}{?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director}{?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre}{?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio}BIND(&lt;@Studio-http://semoss.org/ontologies/Concept/Studio@&gt; AS ?Studio)} ORDER BY ?Title</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.ClusteringVizPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Cluster-Perspective:C10:Studio"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Movie_DB:Cluster-Perspective:C10:Studio">
+	<LABEL xmlns="PARAM:">Studio</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Studio"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C11">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Cluster-Perspective:C11</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Cluster-Perspective:C11">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Cluster-Perspective:C11</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<C11 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Cluster-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C11"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:C11">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:C11</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Cluster-Perspective">
+	<C11 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C11"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C11">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Movie cluster for specific director without specifying the number of clusters</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">7</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Cluster-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">C11</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C11">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }{?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;}{?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;}{?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director}{?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre}{?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio}BIND(&lt;@Director-http://semoss.org/ontologies/Concept/Director@&gt; AS ?Director)} ORDER BY ?Title</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.ClusteringVizPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Cluster-Perspective:C11:Director"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Movie_DB:Cluster-Perspective:C11:Director">
+	<LABEL xmlns="PARAM:">Director</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Director"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C12">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Cluster-Perspective:C12</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Cluster-Perspective:C12">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Cluster-Perspective:C12</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<C12 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Cluster-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C12"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:C12">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:C12</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Cluster-Perspective">
+	<C12 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C12"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C12">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Movie cluster for nominated or not nominated without specifying the number of clusters</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">8</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Cluster-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">C12</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C12">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }{?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;}{?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;}{?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director}{?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre}{?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio}BIND(&lt;@Nominated-http://semoss.org/ontologies/Concept/Nominated@&gt; AS ?Nominated)} ORDER BY ?Title</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.ClusteringVizPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Cluster-Perspective:C12:Nominated"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Movie_DB:Cluster-Perspective:C12:Nominated">
+	<LABEL xmlns="PARAM:">Nominated</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Nominated"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Classification-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label>Movie_DB:Classification-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Classification-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/Movie_DB:Movie_DB:Classification-Perspective">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>Movie_DB:Movie_DB:Classification-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<Classification-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/Movie_DB:Movie_DB:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Classification-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Classification-Perspective:W1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Classification-Perspective:W1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Classification-Perspective:W1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<W1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Classification-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:W1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:W1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Classification-Perspective">
+	<W1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Classify movies based on all properties using J48 algorithm</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Classification-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">W1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }{?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;}{?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;}{?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director}{?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre}{?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio}} ORDER BY ?Title+++J48</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.WekaClassificationPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W2">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Classification-Perspective:W2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Classification-Perspective:W2">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Classification-Perspective:W2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<W2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Classification-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:W2">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:W2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Classification-Perspective">
+	<W2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W2">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Classify movies based on all properties using PART algorithm</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Classification-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">W2</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W2">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }{?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;}{?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;}{?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director}{?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre}{?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio}} ORDER BY ?Title+++PART</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.WekaClassificationPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W3">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Classification-Perspective:W3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Classification-Perspective:W3">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Classification-Perspective:W3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<W3 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Classification-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:W3">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:W3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Classification-Perspective">
+	<W3 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W3">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Classify movies based on all properties using DecisionTable algorithm</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">3</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Classification-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">W3</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W3">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }{?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;}{?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;}{?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director}{?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre}{?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio}} ORDER BY ?Title+++DecisionTable</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.WekaClassificationPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W4">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Classification-Perspective:W4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Classification-Perspective:W4">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Classification-Perspective:W4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<W4 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Classification-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:W4">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:W4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Classification-Perspective">
+	<W4 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W4">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Classify movies based on all properties using DecisionStump algorithm</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">4</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Classification-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">W4</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W4">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }{?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;}{?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;}{?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director}{?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre}{?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio}} ORDER BY ?Title+++DecisionStump</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.WekaClassificationPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W5">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Classification-Perspective:W5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Classification-Perspective:W5">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Classification-Perspective:W5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<W5 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Classification-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:W5">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:W5</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Classification-Perspective">
+	<W5 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W5"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W5">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Classify movies based on all properties using REPTree algorithm</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">5</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Classification-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">W5</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W5">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }{?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;}{?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;}{?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director}{?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre}{?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio}} ORDER BY ?Title+++REPTree</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.WekaClassificationPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W6">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Classification-Perspective:W6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Classification-Perspective:W6">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Classification-Perspective:W6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<W6 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Classification-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W6"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:W6">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:W6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Classification-Perspective">
+	<W6 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W6"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W6">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Classify movies based on all properties using LMT algorithm</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">6</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Classification-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">W6</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W6">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }{?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;}{?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;}{?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director}{?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre}{?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio}} ORDER BY ?Title+++LMT</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.WekaClassificationPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W7">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Classification-Perspective:W7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Classification-Perspective:W7">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Classification-Perspective:W7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<W7 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Classification-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W7"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:W7">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:W7</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Classification-Perspective">
+	<W7 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W7"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W7">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Classify movies based on all properties using SimpleLogistic algorithm</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">7</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Classification-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">W7</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W7">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }{?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;}{?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;}{?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director}{?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre}{?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio}} ORDER BY ?Title+++SimpleLogistic</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.WekaClassificationPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W8">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Classification-Perspective:W8</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Classification-Perspective:W8">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Classification-Perspective:W8</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<W8 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Classification-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W8"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:W8">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:W8</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Classification-Perspective">
+	<W8 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Classification-Perspective:Movie_DB:Classification-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W8"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W8">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Classify movies based on all properties using Clustering Classificaiton</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">8</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Classification-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">W8</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Classification-Perspective:W8">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }{?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;}{?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;}{?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director}{?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre}{?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio}} ORDER BY ?Title</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.ClusteringClassificationPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Outlier-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label>Movie_DB:Outlier-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Outlier-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/Movie_DB:Movie_DB:Outlier-Perspective">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>Movie_DB:Movie_DB:Outlier-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<Outlier-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/Movie_DB:Movie_DB:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Outlier-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Outlier-Perspective:O1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Outlier-Perspective:O1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Outlier-Perspective:O1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Outlier-Perspective:O1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<O1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Outlier-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Outlier-Perspective:O1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Outlier-Perspective:Movie_DB:Outlier-Perspective:O1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Outlier-Perspective:Movie_DB:Outlier-Perspective:O1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Outlier-Perspective">
+	<O1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Outlier-Perspective:Movie_DB:Outlier-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Outlier-Perspective:O1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Outlier-Perspective:O1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Run Local Outlier for Movies and All Properties</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Outlier-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">O1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Outlier-Perspective:O1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }{?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;}{?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;}{?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director}{?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre}{?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio}} ORDER BY ?Title+++@KNeighbors-K@</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.LocalOutlierPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Outlier-Perspective:O1:KNeighbors"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Movie_DB:Outlier-Perspective:O1:KNeighbors">
+	<LABEL xmlns="PARAM:">KNeighbors</LABEL>
+	<OPTION xmlns="PARAM:">5;10;15;20;25;30;35;40;45;50;55;60;65;70</OPTION>
+	<TYPE xmlns="PARAM:">K</TYPE>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept">
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Class"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation">
+	<rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine">
+	<subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective">
+	<subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight">
+	<subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param">
+	<subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Order">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Label">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Layout">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SPARQL">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Tag">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/Description">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:Generic-Perspective_1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Generic-Perspective:Generic-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Generic-Perspective:Generic-Perspective_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Generic-Perspective:Generic-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<Generic-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:Generic-Perspective_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Generic-Perspective:Movie_DB:Generic-Perspective:Generic-Perspective_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Generic-Perspective:Movie_DB:Generic-Perspective:Generic-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Generic-Perspective">
+	<Generic-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Generic-Perspective:Movie_DB:Generic-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:Generic-Perspective_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:Generic-Perspective_1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Test Question</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">6</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Generic-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">Generic-Perspective_1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Generic-Perspective:Generic-Perspective_1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">NULL</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.TestPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C6">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Machine Leanring Module</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:C6">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C6">
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.ClassifyClusterPlaySheet</Layout>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:C6">
+	<label>Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:C6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Cluster-Perspective:C6">
+	<label>Movie_DB:Movie_DB:Cluster-Perspective:C6</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Cluster-Perspective:C1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Cluster-Perspective:C1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Cluster-Perspective:C1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<C1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Cluster-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:C1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:C1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Cluster-Perspective">
+	<C1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Movie cluster on all properties</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Cluster-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">C1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }{?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;}{?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;}{?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director}{?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre}{?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio}} ORDER BY ?Title+++@NumberOfClusters-OverrideCluster@</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.ClusteringVizPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Cluster-Perspective:C1:NumberOfClusters"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Movie_DB:Cluster-Perspective:C1:NumberOfClusters">
+	<LABEL xmlns="PARAM:">NumberOfClusters</LABEL>
+	<OPTION xmlns="PARAM:">2;3;4;5;6;7;8;9;10;11;12;13;14;15;16;17;18;19;20;21;22;23;24;25;30;35;40;50</OPTION>
+	<TYPE xmlns="PARAM:">OverrideCluster</TYPE>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:Movie-Perspective_1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Movie-Perspective:Movie-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Movie-Perspective:Movie-Perspective_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Movie-Perspective:Movie-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<Movie-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Movie-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:Movie-Perspective_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:Movie-Perspective_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:Movie-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Movie-Perspective">
+	<Movie-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Movie-Perspective:Movie_DB:Movie-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:Movie-Perspective_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:Movie-Perspective_1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Test</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">9</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Movie-Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">Movie-Perspective_1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Movie-Perspective:Movie-Perspective_1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title (AVG(?Title__Revenue_Domestic) AS ?Title__Revenue_Domestic) (AVG(?Title__Revenue_International) AS ?Title__Revenue_International) WHERE { BIND(&lt;@Studio-http://semoss.org/ontologies/Concept/Studio@&gt; AS ?Studio) {?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;} {?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;} {?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Title__MovieBudget} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?Title__Revenue_Domestic} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?Title__Revenue_International} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?Title__RottenTomatoes_Audience} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?Title__RottenTomatoes_Critics}  }  GROUP BY ?Title</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.ColumnChartPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Movie-Perspective:Movie-Perspective_1:Studio"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Movie_DB:Movie-Perspective:Movie-Perspective_1:Studio">
+	<LABEL xmlns="PARAM:">Studio</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Studio"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Enterprise_Science_Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label>Movie_DB:Enterprise_Science_Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Enterprise_Science_Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/Movie_DB:Movie_DB:Enterprise_Science_Perspective">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>Movie_DB:Movie_DB:Enterprise_Science_Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<Enterprise_Science_Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/Movie_DB:Movie_DB:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Enterprise_Science_Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<Enterprise_Science_Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Enterprise_Science_Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Enterprise_Science_Perspective:Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Enterprise_Science_Perspective:Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Enterprise_Science_Perspective">
+	<Enterprise_Science_Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Enterprise_Science_Perspective:Movie_DB:Enterprise_Science_Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">How do movies compare for a given genre between the budget and revenue</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Enterprise_Science_Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">Enterprise_Science_Perspective_1</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_1">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title (AVG(?Title__MovieBudget) AS ?Title__MovieBudget) (AVG(?Title__Revenue_Domestic) AS ?Title__Revenue_Domestic) WHERE { BIND(&lt;@Genre-http://semoss.org/ontologies/Concept/Genre@&gt; AS ?Genre) {?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;} {?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;} {?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;} {?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated} {?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Title__MovieBudget} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?Title__Revenue_Domestic} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?Title__Revenue_International} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?Title__RottenTomatoes_Audience} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?Title__RottenTomatoes_Critics}  }  GROUP BY ?Title</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.ColumnChartPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_1:Genre"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_1:Genre">
+	<LABEL xmlns="PARAM:">Genre</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Genre"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_2">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_2">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<Enterprise_Science_Perspective_2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Enterprise_Science_Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Enterprise_Science_Perspective:Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_2">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Enterprise_Science_Perspective:Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_2</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Enterprise_Science_Perspective">
+	<Enterprise_Science_Perspective_2 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Enterprise_Science_Perspective:Movie_DB:Enterprise_Science_Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_2"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_2">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Show me the world of movies for a given genre</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Enterprise_Science_Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">Enterprise_Science_Perspective_2</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_2">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Genre ?Nominated ?Title ?Title__MovieBudget ?Title__Revenue_International ?Title__RottenTomatoes_Audience WHERE { BIND(&lt;@Genre-http://semoss.org/ontologies/Concept/Genre@&gt; AS ?Genre) {?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;} {?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;} {?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;} {?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated} {?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Title__MovieBudget} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?Title__Revenue_Domestic} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?Title__Revenue_International} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?Title__RottenTomatoes_Audience} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?Title__RottenTomatoes_Critics}  }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.ParallelCoordinatesPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_2:Genre"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_2:Genre">
+	<LABEL xmlns="PARAM:">Genre</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Genre"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_4:Nominated">
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Nominated"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_3">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_3">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<Enterprise_Science_Perspective_3 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Enterprise_Science_Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Enterprise_Science_Perspective:Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_3">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<label>Movie_DB:Enterprise_Science_Perspective:Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Enterprise_Science_Perspective">
+	<Enterprise_Science_Perspective_3 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Enterprise_Science_Perspective:Movie_DB:Enterprise_Science_Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_3">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">test</Label>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">3</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Enterprise_Science_Perspective">
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">Enterprise_Science_Perspective_3</IDLabel>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_3">
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Nominated (SUM(?Title__MovieBudget) AS ?Title__MovieBudget) WHERE { BIND(&lt;@Nominated-http://semoss.org/ontologies/Concept/Nominated@&gt; AS ?Nominated) {?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;} {?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;} {?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Title__MovieBudget} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?Title__Revenue_Domestic} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?Title__Revenue_International} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?Title__RottenTomatoes_Audience} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?Title__RottenTomatoes_Critics}  }  GROUP BY ?Nominated</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.PieChartPlaySheet</Layout>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_3:Nominated"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_3:Nominated">
+	<LABEL xmlns="PARAM:">Nominated</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Nominated"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Enterprise_Science_Perspective">
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Resource"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_4">
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Resource"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Enterprise_Science_Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_4">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<label>Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_4">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<Enterprise_Science_Perspective_4 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Enterprise_Science_Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Enterprise_Science_Perspective:Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_4">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Resource"/>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Enterprise_Science_Perspective:Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_4"/>
+	<label>Movie_DB:Enterprise_Science_Perspective:Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_4</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Enterprise_Science_Perspective">
+	<Relation xmlns="http://semoss.org/ontologies/" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_4"/>
+	<Insight xmlns="http://semoss.org/ontologies/Relation/Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_4"/>
+	<Enterprise_Science_Perspective_4 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Enterprise_Science_Perspective:Movie_DB:Enterprise_Science_Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_4"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_4">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">saveThis</Label>
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">Enterprise_Science_Perspective_4</IDLabel>
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Nominated ?Title__MovieBudget WHERE { BIND(&lt;@Nominated-http://semoss.org/ontologies/Concept/Nominated@&gt; AS ?Nominated) {?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;} {?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;} {?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;} {?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre} {?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Title__MovieBudget} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?Title__Revenue_Domestic} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?Title__Revenue_International} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?Title__RottenTomatoes_Audience} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?Title__RottenTomatoes_Critics}  }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.ParallelCoordinatesPlaySheet</Layout>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">4</Order>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_4:Nominated"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/Movie_DB:Enterprise_Science_Perspective:Enterprise_Science_Perspective_4:Nominated">
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Resource"/>
+	<LABEL xmlns="PARAM:">Nominated</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Association_Learning">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Resource"/>
+	<label>Movie_DB:Association_Learning</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Association_Learning</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/Movie_DB:Movie_DB:Association_Learning">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>Movie_DB:Movie_DB:Association_Learning</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<Association_Learning xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/Movie_DB:Movie_DB:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Association_Learning"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Association_Learning:Association_Learning_1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Resource"/>
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<label>Movie_DB:Association_Learning:Association_Learning_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Association_Learning:Association_Learning_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Association_Learning:Association_Learning_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<Association_Learning_1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Association_Learning:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Association_Learning:Association_Learning_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Association_Learning:Movie_DB:Association_Learning:Association_Learning_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Association_Learning">
+	<Relation xmlns="http://semoss.org/ontologies/" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Association_Learning:Association_Learning_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Association_Learning:Movie_DB:Association_Learning:Association_Learning_1">
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Resource"/>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Association_Learning:Movie_DB:Association_Learning:Association_Learning_1"/>
+	<rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+	<label>Movie_DB:Association_Learning:Movie_DB:Association_Learning:Association_Learning_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Association_Learning">
+	<Insight xmlns="http://semoss.org/ontologies/Relation/Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Association_Learning:Association_Learning_1"/>
+	<Association_Learning_1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Association_Learning:Movie_DB:Association_Learning:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Association_Learning:Association_Learning_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Association_Learning:Association_Learning_1">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Run Apriori Algorithm</Label>
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">Association_Learning_1</IDLabel>
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }{?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;}{?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;}{?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director}{?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre}{?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio}} ORDER BY ?Title</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.WekaAprioriVizPlaySheet</Layout>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
+</rdf:Description>
+
+</rdf:RDF>

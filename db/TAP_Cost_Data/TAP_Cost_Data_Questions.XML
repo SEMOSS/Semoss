@@ -70,8 +70,8 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Cost_Data:Generic-Perspective:GQ1:Instance">
 	<LABEL xmlns="PARAM:">Instance</LABEL>
 	<QUERY xmlns="PARAM:">SELECT ?entity WHERE { {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;@Concept@&gt; ;} }</QUERY>
-	<DEPEND xmlns="PARAM:HAS:">true</DEPEND>
-	<DEPEND xmlns="PARAM:">Concept</DEPEND>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
 	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/Instance"/>
 </rdf:Description>
 
