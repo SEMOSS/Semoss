@@ -208,6 +208,7 @@ public class RDBMSReader {
 		
 		createSQLTypes();
 		System.out.println("Owl File is " + this.owlFile);
+		openDB(engineName);
 
 		for(int i = 0; i<files.length;i++)
 		{
@@ -229,12 +230,11 @@ public class RDBMSReader {
 				e.printStackTrace();
 			}
 			recreateRelations();
-			openDB(engineName);
 			createTables();
 			skipRows();
 			insertRecords();
-			writeDefaultQuestionSheet(engineName);
 		}
+		writeDefaultQuestionSheet(engineName);
 		createBaseRelations();
 		closeDB();
 	}
