@@ -3,6 +3,7 @@ package prerna.algorithm.learning.weka;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
@@ -34,7 +35,7 @@ public class WekaAprioriAlgorithm {
 	private String[] retNames;
 	private ArrayList<Object[]> retList;
 	
-	private int numRules = 10; // number of rules to output
+	private int numRules = 100; // number of rules to output
 	private double confPer = 0.9; // min confidence lvl (percentage)
 	private double minSupport = 0.1; // min number of rows required for rule (percentage of total rows of data)
 	private double maxSupport = 1.0; // max number of rows required for rule (percentage of total rows of data)
@@ -83,6 +84,51 @@ public class WekaAprioriAlgorithm {
 			numRule++;
 		}
 	}
+	
+	public List<Hashtable<String, Object>> generateDecisionRuleVizualization() {
+		// return if no rules found
+		if(premises.isEmpty() && consequences.isEmpty() && counts.isEmpty()) {
+			return new ArrayList<Hashtable<String, Object>>();
+		}
+		
+		LOGGER.info("Generating Decision Viz Data...");
+		DecimalFormat format = new DecimalFormat("0.00");
+		List<Hashtable<String, Object>> dataHashList = new ArrayList<Hashtable<String, Object>>();
+
+		for(Integer numRule : premises.keySet()) {
+			Collection<Item> premise = premises.get(numRule);
+			Collection<Item> consequence = consequences.get(numRule);
+			int count = counts.get(numRule);
+			double confidence = confidenceIntervals.get(numRule);
+			
+			String rule = getConcatedItems(premise) + " => " + getConcatedItems(consequence);
+			Hashtable<String, Object> dataHash = new Hashtable<String, Object>();
+			dataHash.put("rule", rule);
+			dataHash.put("count", count);
+			dataHash.put("confidence", format.format(confidence));
+			
+			dataHashList.add(dataHash);
+		}
+		
+		return dataHashList;
+	}
+	
+	private String getConcatedItems(Collection<Item> values) {
+		String retVal = "";
+		for(Item item : values) {
+			Attribute category = item.getAttribute();
+			String name = category.name().trim();
+			String value = item.getItemValueAsString().trim();
+			if(retVal.equals("")) {
+				retVal = name + "=" + value;
+			} else {
+				retVal += retVal + " & " + name + "=" + value;
+			}
+		}
+		
+		return retVal;
+	}
+	
 	
 	public void generateDecisionRuleTable() {
 		// return if no rules found
