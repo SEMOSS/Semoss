@@ -67,22 +67,21 @@ public class WekaAprioriPlaySheet extends GridPlaySheet{
 	public void runAlgorithm() {
 		LOGGER.info("Creating apriori algorithm for instance: " + names[0]);
 		alg = new WekaAprioriAlgorithm(list, names);
-		if(numRules != -1) {
+		if(numRules > 0) {
 			alg.setNumRules(numRules);
 		}
-		if(confPer != -1) {
+		if(confPer >= 0 && confPer <= 1.0) {
 			alg.setConfPer(confPer);
 		}
-		if(minSupport != -1) {
+		if(minSupport >= 0 && minSupport < 1) {
 			alg.setMinSupport(minSupport);
 		}
-		if(maxSupport != -1) {
+		if(maxSupport > 0 && maxSupport <=1) {
 			alg.setMaxSupport(maxSupport);
 		}
 		try {
 			alg.execute();
 			alg.generateDecisionRuleTable();
-			
 			list = alg.getRetList();
 			names = alg.getRetNames();
 		} catch (Exception e) {
