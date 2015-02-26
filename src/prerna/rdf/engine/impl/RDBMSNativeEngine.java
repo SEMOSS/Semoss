@@ -106,7 +106,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				stmt.executeUpdate(query);
 		}catch(Exception ex)
 		{
-			
+			ex.printStackTrace();
 		}
 	}
 
