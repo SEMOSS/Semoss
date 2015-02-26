@@ -49,6 +49,7 @@ import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
 import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
+import prerna.ui.components.playsheets.CorrelationPlaySheet;
 import prerna.ui.components.playsheets.LocalOutlierPlaySheet;
 import prerna.ui.components.playsheets.MatrixRegressionVizPlaySheet;
 import prerna.ui.components.playsheets.WekaAprioriPlaySheet;
@@ -86,6 +87,9 @@ public class RunAlgorithmListener extends AbstractListener {
 	//matrix regression
 	private JComboBox<String> matrixDepVarComboBox;
 	
+	//correlation
+	private Integer[] categoryPropIndices;
+	
 	private JToggleButton showDrillDownBtn;
 	private JComboBox<String> drillDownTabSelectorComboBox;
 	private ArrayList<JCheckBox> columnCheckboxes;
@@ -95,6 +99,7 @@ public class RunAlgorithmListener extends AbstractListener {
 	private String title;
 
 	private double[] entropyArr;
+
 	
 	/**
 	 * Method actionPerformed.
@@ -334,6 +339,16 @@ public class RunAlgorithmListener extends AbstractListener {
 			((MatrixRegressionVizPlaySheet)newPlaySheet).setJTab(jTab);
 			((MatrixRegressionVizPlaySheet)newPlaySheet).setJBar(jBar);
 			
+		} else if(algorithm.equals("Correlation")) {
+			
+			newPlaySheet = new CorrelationPlaySheet();
+			newPlaySheet.setList(filteredList);
+			newPlaySheet.setNames(filteredNames);
+
+			((CorrelationPlaySheet)newPlaySheet).setCategoryPropIndices(categoryPropIndices);
+			((CorrelationPlaySheet)newPlaySheet).setJTab(jTab);
+			((CorrelationPlaySheet)newPlaySheet).setJBar(jBar);
+			
 		} else {
 			LOGGER.error("Cannot find algorithm");
 			return;
@@ -368,6 +383,8 @@ public class RunAlgorithmListener extends AbstractListener {
 		this.enterKNeighborsSlider = playSheet.getEnterKNeighborsSlider();
 		//matrix regression
 		this.matrixDepVarComboBox = playSheet.getMatrixDepVarComboBox();
+		//correlation
+		this.categoryPropIndices = playSheet.getCategoryPropIndices();
 		
 		this.names = playSheet.getNames();
 		this.list = playSheet.getList();
