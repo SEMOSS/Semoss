@@ -262,6 +262,7 @@ public class RDBMSReader {
 		for(int tableIndex = 0;keys.hasMoreElements();tableIndex++)
 		{
 			String key = keys.nextElement();
+			key = realClean(key);
 			if(tableIndex == 0)
 				genericQueries = genericQueries + "GQ" + tableIndex;
 			else
@@ -681,6 +682,18 @@ public class RDBMSReader {
 		baseRelationURIHash.put(relSemossBaseURI+Constants.CLASS, relSemossBaseURI);
 	}
 	
+	private String realClean(String inputString)
+	{
+		inputString = inputString.replaceAll("\\+", "_");
+		// now clean it up
+		inputString = Utility.cleanString(inputString,true);
+		// finally finish it up with the replacing -
+		inputString = inputString.replaceAll("-", "_");
+		
+		return inputString;
+		
+	}
+	
 	
 	private void createTables()
 	{
@@ -689,7 +702,7 @@ public class RDBMSReader {
 		while(tableKeys.hasMoreElements())
 		{
 			String tableKey = tableKeys.nextElement();
-			String SQLCREATE = "CREATE TABLE " + tableKey + "(";
+			String SQLCREATE = "CREATE TABLE " + realClean(tableKey) + "(";
 			SQLCREATE = SQLCREATE + " " + "NAME" + "  " + sqlHash.get("STRING"); // add its own column first as name
 			
 			boolean key1 = true;
@@ -706,7 +719,13 @@ public class RDBMSReader {
 				
 				String column = columnKeys.nextElement();
 				String type = (String)columns.get(column);
-				SQLCREATE = SQLCREATE + Utility.cleanString(column, true).replaceAll("-", "_") + "  " + sqlHash.get(type);
+				// clean up the + first
+				column = column.replaceAll("\\+", "_");
+				// now clean it up
+				column = Utility.cleanString(column,true);
+				// finally finish it up with the replacing -
+				column = column.replaceAll("-", "_");
+				SQLCREATE = SQLCREATE + column + "  " + sqlHash.get(type);
 				if(columnKeys.hasMoreElements())
 					SQLCREATE = SQLCREATE + " , ";
 			}
@@ -730,7 +749,7 @@ public class RDBMSReader {
 		while(tableKeys.hasMoreElements())
 		{
 			String tableKey = tableKeys.nextElement();
-			String SQLINSERT = "INSERT INTO   " + tableKey + "  (NAME";
+			String SQLINSERT = "INSERT INTO   " + realClean(tableKey) + "  (NAME";
 			
 			Hashtable columns = tableHash.get(tableKey);
 			Enumeration <String> columnKeys = columns.keys();
@@ -743,7 +762,7 @@ public class RDBMSReader {
 					key1 = false;
 				}
 				String column = columnKeys.nextElement();
-				SQLINSERT = SQLINSERT + Utility.cleanString(column, true).replaceAll("-", "_");
+				SQLINSERT = SQLINSERT + realClean(column);
 				if(columnKeys.hasMoreElements())
 					SQLINSERT = SQLINSERT + ",";
 			}
