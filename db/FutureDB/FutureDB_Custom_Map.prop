@@ -1,29 +1,39 @@
 
 ##Base Objects##
 
+SourceType http://health.mil/ontologies/Concept/SourceType
 DataObject http://health.mil/ontologies/Concept/DataObject
+DataObjectSource http://health.mil/ontologies/Concept/DataObjectSource
 LoadSheet http://health.mil/ontologies/Concept/LoadSheet
 System http://health.mil/ontologies/Concept/System
 InterfaceControlDocument http://health.mil/ontologies/Concept/InterfaceControlDocument
 
 ##Base Predicates##
 
+DataObjectSource_LabeledAs_SourceType http://health.mil/ontologies/Relation/LabeledAs
+System_Designated_DataObjectSource http://health.mil/ontologies/Relation/Designated
 InterfaceControlDocument_Payload_DataObject http://health.mil/ontologies/Relation/Payload
+DataObjectSource_Delivers_DataObject http://health.mil/ontologies/Relation/Delivers
 System_Provide_InterfaceControlDocument http://health.mil/ontologies/Relation/Provide
 InterfaceControlDocument_Consume_System http://health.mil/ontologies/Relation/Consume
 
 ##Base Objects Class##
 
+DataObjectSource_CLASS http://semoss.org/ontologies/Concept/DataObjectSource
 LoadSheet_CLASS http://semoss.org/ontologies/Concept/LoadSheet
 System_CLASS http://semoss.org/ontologies/Concept/System
+SourceType_CLASS http://semoss.org/ontologies/Concept/SourceType
 DataObject_CLASS http://semoss.org/ontologies/Concept/DataObject
 InterfaceControlDocument_CLASS http://semoss.org/ontologies/Concept/InterfaceControlDocument
 
 ##Base Predicates Class##
 
+System_Designated_DataObjectSource_CLASS http://semoss.org/ontologies/Relation/Designated
 InterfaceControlDocument_Payload_DataObject_CLASS http://semoss.org/ontologies/Relation/Payload
 InterfaceControlDocument_Consume_System_CLASS http://semoss.org/ontologies/Relation/Consume
 System_Provide_InterfaceControlDocument_CLASS http://semoss.org/ontologies/Relation/Provide
+DataObjectSource_Delivers_DataObject_CLASS http://semoss.org/ontologies/Relation/Delivers
+DataObjectSource_LabeledAs_SourceType_CLASS http://semoss.org/ontologies/Relation/LabeledAs
 
 PROP_URI http://semoss.org/ontologies/Relation/Contains
 

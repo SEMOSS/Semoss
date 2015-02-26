@@ -1,12 +1,10 @@
 Base Properties 
-ENGINE	LocalMasterDatabase
+ENGINE	Movie_DB
 ENGINE_TYPE	prerna.rdf.engine.impl.BigDataEngine
-INSIGHTS	db/LocalMasterDatabase/LocalMasterDatabase_Questions.XML
-ONTOLOGY	db/LocalMasterDatabase/MasterDatabase_Custom_Map.prop
-OWL	db/LocalMasterDatabase/MasterDatabase_OWL.OWL
-XML	db/LocalMasterDatabase/LocalMasterDatabase_Questions.XML
-DREAMER	db/LocalMasterDatabase/MasterDatabase_Questions.properties
-HIDDEN_DATABASE	false
+INSIGHTS	db/Movie_DB/Movie_DB_Questions.XML
+ONTOLOGY	db/Movie_DB/Movie_DB_Custom_Map.prop
+OWL	db/Movie_DB/Movie_DB_OWL.OWL
+DREAMER	db/Movie_DB/Movie_DB_Questions.properties
 
 
 # changing the axiom model to none essentially disables all inference
@@ -21,7 +19,7 @@ com.bigdata.rdf.sail.bufferCapacity=100000
 com.bigdata.rdf.sail.truthMaintenance=true
 	
 # The name of the backing file.
-com.bigdata.journal.AbstractJournal.file=db/LocalMasterDatabase/MasterDatabase.jnl
+com.bigdata.journal.AbstractJournal.file=db/Movie_DB/Movie_DB.jnl
 com.bigdata.journal.AbstractJournal.bufferMode=DiskRW
 	
 com.bigdata.btree.writeRetentionQueue.capacity=4000
