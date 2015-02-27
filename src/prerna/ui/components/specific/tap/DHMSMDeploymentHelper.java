@@ -408,6 +408,7 @@ public final class DHMSMDeploymentHelper {
 		if(includeIOC) {
 			BooleanProcessor proc = new BooleanProcessor();
 			proc.setQuery(CONTAIN_IOC_QUERY);
+			proc.setEngine(engine);
 			if(proc.processQuery());
 				regionOrder.add("IOC");
 		}
