@@ -36,12 +36,9 @@ public class WekaAprioriVizPlaySheet extends BrowserPlaySheet{
 	
 	@Override
 	public void createData() {
-		if(list==null) {
-			generateData();
-		} else {
-			dataHash = processQueryData();
-		}
+		generateData();
 		runAlgorithm();
+		dataHash = processQueryData();
 	}
 
 	@Override
