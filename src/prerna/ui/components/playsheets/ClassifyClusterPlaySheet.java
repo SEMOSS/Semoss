@@ -56,6 +56,7 @@ import javax.swing.border.BevelBorder;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.impl.AlgorithmDataFormatter;
 import prerna.algorithm.learning.similarity.ClusterRemoveDuplicates;
 import prerna.algorithm.learning.similarity.ClusteringDataProcessor;
 import prerna.algorithm.learning.similarity.DatasetSimilarity;
@@ -101,7 +102,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	public JPanel indVariablesPanel;
 	// lists of all the categorical and numerical property names 
 	public String[] categoryPropNames;
-	private Integer[] categoryPropIndices;
+	private String[] columnTypesArr;
 
 	private String[] numericalPropNames;
 	
@@ -172,10 +173,9 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		this.names = crd.getRetVarNames();
 		
 		LOGGER.info("Formatting dataset to run algorithm...");
-		ClusteringDataProcessor cdp = new ClusteringDataProcessor(list, names);
-		categoryPropNames = cdp.getCategoryPropNames();
-		categoryPropIndices = cdp.getCategoryPropIndices();
-		numericalPropNames = cdp.getNumericalPropNames();
+		columnTypesArr = AlgorithmDataFormatter.determineColumnTypes(list);
+		categoryPropNames = AlgorithmDataFormatter.determineColumnNamesOfType(names, columnTypesArr, "STRING");
+		numericalPropNames = AlgorithmDataFormatter.determineColumnNamesOfType(names, columnTypesArr, "DOUBLE");
 		
 	}
 	@Override
@@ -333,7 +333,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		algorithmComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		algorithmComboBox.setBackground(Color.GRAY);
 		algorithmComboBox.setPreferredSize(new Dimension(150, 25));
-		algorithmComboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"Cluster", "Classify","Outliers","Association Learning","Similarity","Predictability","Matrix Regression", "Correlation"}));
+		algorithmComboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"Cluster", "Classify","Outliers","Association Learning","Similarity","Predictability","Matrix Regression","Numerical Correlation", "Correlation"}));
 		GridBagConstraints gbc_algorithmComboBox = new GridBagConstraints();
 		gbc_algorithmComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_algorithmComboBox.fill = GridBagConstraints.NONE;
@@ -1113,6 +1113,12 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 			disableCheckBox(selection,true);
 		}
 	}
+	public void showNumericalCorrelation(Boolean show) {
+		enableAllCheckboxes();
+		if(show) {
+			disableCheckBoxes(categoryPropNames,false);
+		}
+	}
 	public void enableDrillDown() {
 		showDrillDownBtn.setEnabled(true);
 	}
@@ -1286,7 +1292,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	public JTextField getEnterMaxSupportTextField() {
 		return enterMaxSupportTextField;
 	}
-	public Integer[] getCategoryPropIndices() {
-		return categoryPropIndices;
+	public String[] getColumnTypesArr() {
+		return columnTypesArr;
 	}
 }

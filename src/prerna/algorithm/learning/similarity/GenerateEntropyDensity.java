@@ -30,7 +30,7 @@ package prerna.algorithm.learning.similarity;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
-import prerna.algorithm.impl.AlgorithmDataFormatting;
+import prerna.algorithm.impl.AlgorithmDataFormatter;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.util.ArrayUtilityMethods;
@@ -39,7 +39,7 @@ public class GenerateEntropyDensity {
 	
 	private Object[][] data;
 	private double[] entropyDensityArray;
-	private boolean[] isCategorical;
+	private String[] columnTypes;
 	private boolean includeLastColumn = false;
 	
 	public double[] getEntropyDensityArray() {
@@ -47,17 +47,14 @@ public class GenerateEntropyDensity {
 	}
 	
 	public GenerateEntropyDensity(ArrayList<Object[]> queryData) {
-		AlgorithmDataFormatting formatter = new AlgorithmDataFormatting();
-		data = formatter.manipulateValues(queryData);
-		isCategorical = formatter.getIsCategorical();
+		data = AlgorithmDataFormatter.manipulateValues(queryData, false);
+		columnTypes = AlgorithmDataFormatter.determineColumnTypes(queryData);
 	}
 	
 	public GenerateEntropyDensity(ArrayList<Object[]> queryData, boolean includeLastColumn) {
 		this.includeLastColumn = includeLastColumn;
-		AlgorithmDataFormatting formatter = new AlgorithmDataFormatting();
-		formatter.setIncludeLastColumn(includeLastColumn);
-		data = formatter.manipulateValues(queryData);
-		isCategorical = formatter.getIsCategorical();
+		data = AlgorithmDataFormatter.manipulateValues(queryData, includeLastColumn);
+		columnTypes = AlgorithmDataFormatter.determineColumnTypes(queryData);
 	}
 	
 	public double[] generateEntropy() {
@@ -72,7 +69,7 @@ public class GenerateEntropyDensity {
 		for(i = 1; i < size; i++) {
 			Object[] objDataRow = data[i];
 			Hashtable<String, Object>[] binData = null;
-			if(isCategorical[i]) {
+			if(columnTypes[i].equals("STRING")) {
 				//TODO: shouldn't create chart data, should use CalculateEntropy.java class
 				String[] dataRow = ArrayUtilityMethods.convertObjArrToStringArr(objDataRow);
 				BarChart chart = new BarChart(dataRow);
