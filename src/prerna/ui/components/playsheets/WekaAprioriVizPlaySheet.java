@@ -47,12 +47,8 @@ public class WekaAprioriVizPlaySheet extends BrowserPlaySheet{
 
 	@Override
 	public Hashtable processQueryData() {
-		List<Hashtable<String, Object>> data = alg.generateDecisionRuleVizualization();
-		Hashtable<String, List<Hashtable<String, Object>>> allData = new Hashtable<String, List<Hashtable<String, Object>>>();
-		allData.put("dataString", data);
-		return allData;
+		return alg.generateDecisionRuleVizualization();
 	}
-
 	
 	private void generateData() {
 		if(query!=null) {
