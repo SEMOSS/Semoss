@@ -59,37 +59,50 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showOutlier(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showMatrixRegression(false);
+			playSheet.showNumericalCorrelation(false);
 			playSheet.showCluster(true);
 		} else if(selection.equals("Classify")){
 			playSheet.showCluster(false);
 			playSheet.showOutlier(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showMatrixRegression(false);
+			playSheet.showNumericalCorrelation(false);
 			playSheet.showClassify(true);
 		} else if(selection.equals("Outliers")) {
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showMatrixRegression(false);
+			playSheet.showNumericalCorrelation(false);
 			playSheet.showOutlier(true);
 		} else if(selection.equals("Association Learning")) {
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
 			playSheet.showMatrixRegression(false);
 			playSheet.showOutlier(false);
+			playSheet.showNumericalCorrelation(false);
 			playSheet.showAssociationLearning(true);
 		} else if(selection.equals("Matrix Regression")) {
 			playSheet.showClassify(false);
 			playSheet.showCluster(false);
 			playSheet.showOutlier(false);
 			playSheet.showAssociationLearning(false);
+			playSheet.showNumericalCorrelation(false);
 			playSheet.showMatrixRegression(true);
-		}  else if(selection.equals("Similarity") || selection.equals("Predictability") || selection.equals("Correlation")) {
+		} else if(selection.equals("Numerical Correlation")) {
+			playSheet.showClassify(false);
+			playSheet.showCluster(false);
+			playSheet.showOutlier(false);
+			playSheet.showAssociationLearning(false);
+			playSheet.showMatrixRegression(false);
+			playSheet.showNumericalCorrelation(true);
+		} else if(selection.equals("Similarity") || selection.equals("Predictability") || selection.equals("Correlation")) {
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
 			playSheet.showOutlier(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showMatrixRegression(false);
+			playSheet.showNumericalCorrelation(false);
 		}
 	}
 

@@ -44,26 +44,20 @@ import javax.swing.JTable;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.impl.AlgorithmDataFormatter;
 import prerna.algorithm.learning.similarity.ClusterRemoveDuplicates;
-import prerna.algorithm.learning.similarity.ClusteringDataProcessor;
-import prerna.math.BarChart;
+import prerna.algorithm.learning.supervized.CorrelationAlgorithm;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.main.listener.impl.GridPlaySheetListener;
 import prerna.ui.main.listener.impl.JTableExcelExportListener;
-import prerna.util.ArrayListUtilityMethods;
-import prerna.util.ArrayUtilityMethods;
 
 public class CorrelationPlaySheet extends GridPlaySheet{
 
 	private static final Logger LOGGER = LogManager.getLogger(CorrelationPlaySheet.class.getName());
 	protected JTabbedPane jTab;
 
-	private Integer[] categoryPropIndices;
-
-	ArrayList<String[]> valuesList = new ArrayList<String[]>();
-	ArrayList<String[]> uniqueValuesList = new ArrayList<String[]>();
-	private ArrayList<int[]> uniqueValueCountsList = new ArrayList<int[]>();
+	private String[] columnTypesArr;
 	
 	@Override
 	public void createData() {
@@ -76,8 +70,7 @@ public class CorrelationPlaySheet extends GridPlaySheet{
 			this.names = crd.getRetVarNames();
 			
 			LOGGER.info("Formatting dataset to run algorithm...");
-			ClusteringDataProcessor cdp = new ClusteringDataProcessor(list, names);
-			categoryPropIndices = cdp.getCategoryPropIndices();
+			columnTypesArr = AlgorithmDataFormatter.determineColumnTypes(list);
 		}
 
 	}
@@ -87,87 +80,13 @@ public class CorrelationPlaySheet extends GridPlaySheet{
 		
 		int i;
 		int j;
-		int nameslength = names.length;
 		int numVariables = names.length - 1;
-		int numCategorical = categoryPropIndices.length;
-		
-		Boolean[] isCategoricalArr = new Boolean[nameslength];
-		for(i=1;i<nameslength;i++) {
-			Boolean isCategorical = false;
-			for(j=0; j<numCategorical; j++)
-				if(categoryPropIndices[j]==i) {
-					isCategorical = true;
-				}
-			isCategoricalArr[i] = isCategorical;
-		}
-		
-		//go through all variables and get the outputs for each
-		
-		for(i=1;i<nameslength;i++) {
-			
-			String[] values;
-			String[] uniqueValues;
-			int[] uniqueValueCount;
-			
-			//calculate the number of times each value corresponds to one of the instances
-			if(isCategoricalArr[i]) {
-				
-				Object[] valuesObj = ArrayListUtilityMethods.getColumnFromList(list,i);
-				String[] valuesArr = ArrayUtilityMethods.convertObjArrToStringArr(valuesObj);
-				BarChart chart = new BarChart(valuesArr);
-				chart.calculateCategoricalBins("?", true, true);
-				values = chart.getStringValues();
-				uniqueValues = chart.getStringUniqueValues();
-				uniqueValueCount = chart.getStringUniqueCounts();
-				
-			}else {
-				
-				Object[] valuesObj = ArrayListUtilityMethods.getColumnFromList(list,i);
-				double[] valuesArr = ArrayUtilityMethods.convertObjArrToDoubleArr(valuesObj);
-				BarChart chart = new BarChart(valuesArr);
-				if(chart.isUseCategoricalForNumericInput()) {
-					chart.calculateCategoricalBins("?", true, true);
-					values = chart.getStringValues();
-					uniqueValues = chart.getStringUniqueValues();
-					uniqueValueCount = chart.getStringUniqueCounts();
-				} else {
-					values = chart.getAssignmentForEachObject();
-					uniqueValues = chart.getNumericalBinOrder();
-					uniqueValueCount = chart.getNumericBinCounterArr();
-				}		
-			}
-
-			valuesList.add(values);
-			uniqueValuesList.add(uniqueValues);
-			uniqueValueCountsList.add(uniqueValueCount);
-		
-		}
-		
-		//calculate the standard deviation for each column
-		double[] standardDev = new double[numVariables];
-		for(i=0; i<numVariables; i++) {
-			standardDev[i] = Math.sqrt(calculateVariance(i));
-		}
-
-		//calculate the covariance for each pair of columns
-		double[][] covariance = new double[numVariables][numVariables];
-		for(i=0; i<numVariables; i++) {
-			for(j=0; j<numVariables; j++) {
-				if(i==j)
-					covariance[i][j] = Math.pow(standardDev[i],2);
-				else
-					covariance[i][j] = calculateCovariance(i,j);
-			}
-		}
 		
 		//calculate the correlation for each pair of columns
-		double[][] correlation = new double[numVariables][numVariables];
-		for(i=0; i<numVariables; i++) {
-			for(j=0; j<numVariables; j++) {
-				correlation[i][j] = covariance[i][j] / (standardDev[i] * standardDev[j]);
-			}
-		}
-		
+		CorrelationAlgorithm alg = new CorrelationAlgorithm(names, list, columnTypesArr);
+		alg.execute();	
+		double[][] correlation = alg.getCorrelation();
+
 		names[0] = "-";
 		
 		ArrayList<Object []> output = new ArrayList<Object []>();
@@ -184,102 +103,7 @@ public class CorrelationPlaySheet extends GridPlaySheet{
 		}
 		list = output;
 	}
-	
-	/**
-	 * Calculate the variance in column x
-	 * @param x
-	 * @return
-	 */
-	public double calculateVariance(int x) {
-		
-		int i;
-		double numInstances = list.size()*1.0;
-		int[] uniqueValueCounts = uniqueValueCountsList.get(x);
-		int numUniqueValueCounts = uniqueValueCounts.length;
-		
-		double variance = 0.0;
-		for(i=0; i<numUniqueValueCounts; i++) {
-			variance += Math.pow(1 - uniqueValueCounts[i] / numInstances,2) * (uniqueValueCounts[i] / numInstances);
-		}
 
-		return variance;
-	}
-	
-	/**
-	 * Calculate the covariance between two columns, x and y
-	 * @param x
-	 * @param y
-	 * @return
-	 */
-	public double calculateCovariance(int x, int y) {
-		
-		int i;
-		int j;
-		double numInstances = list.size();
-		int[] xUniqueValueCounts = uniqueValueCountsList.get(x);
-		int[] yUniqueValueCounts = uniqueValueCountsList.get(y);
-		int numXUniqueValueCounts = xUniqueValueCounts.length;
-		int numYUniqueValueCounts = yUniqueValueCounts.length;
-		
-		double[][] occurenceArr = calculateOccurence(x,y);
-		
-		double covariance = 0.0;
-		for(i=0; i<numXUniqueValueCounts; i++) {
-			for(j=0; j<numYUniqueValueCounts; j++) {
-				covariance += (1 - xUniqueValueCounts[i] / numInstances) * (1 - yUniqueValueCounts[j] / numInstances) * (occurenceArr[i][j] / numInstances);
-			}
-		}
-
-		return covariance;
-	}
-	
-	private double[][] calculateOccurence(int x, int y) {
-		
-		int numInstances = list.size();
-		String[] xValues = valuesList.get(x);
-		String[] yValues = valuesList.get(y);
-		if(numInstances!=xValues.length || numInstances !=yValues.length) {
-			LOGGER.error("Variables do not have the same number of instances");
-			return null;
-		}
-		
-		String[] xUniqueValues = uniqueValuesList.get(x);
-		String[] yUniqueValues = uniqueValuesList.get(y);
-
-		int i;
-		int j;
-		int p;
-		int numXUniqueValues = xUniqueValues.length;
-		int numYUniqueValues = yUniqueValues.length;
-
-		double[][] probArr = new double[numXUniqueValues][numYUniqueValues];
-		for(i=0; i<numXUniqueValues; i++) {
-			for(j=0; j<numYUniqueValues; j++) {
-				probArr[i][j] = 0;
-			}
-		}
-		
-		for(p=0; p<numInstances; p++) {
-			String xName = xValues[p];
-			String yName = yValues[p];
-			
-			INNER : for(i=0; i<numXUniqueValues; i++) {
-				if(xName.equals(xUniqueValues[i])) {
-					
-					for(j=0; j<numYUniqueValues; j++) {
-						if(yName.equals(yUniqueValues[j])) {
-
-							probArr[i][j] ++;
-							break INNER;
-							
-						}
-					}
-				}
-			}
-		}
-
-		return probArr;
-	}
 	
 	@Override
 	public void addPanel()
@@ -350,8 +174,8 @@ public class CorrelationPlaySheet extends GridPlaySheet{
 	public void setJBar(JProgressBar jBar) {
 		this.jBar = jBar;
 	}
-	public void setCategoryPropIndices(Integer[] categoryPropIndices) {
-		this.categoryPropIndices = categoryPropIndices;
+	public void setColumnTypesArr(String[] columnTypesArr) {
+		this.columnTypesArr = columnTypesArr;
 	}
 
 	public void addScrollPanel(JPanel panel, JComponent obj) {

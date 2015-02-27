@@ -37,14 +37,20 @@ public final class MatrixRegressionHelper{
 	private static final Logger LOGGER = LogManager.getLogger(MatrixRegressionHelper.class.getName());
 
 	/*
-	 * Creates the A array by pulling out the identifier in the first column and the b values
+	 * Creates the A array by pulling out the identifier
+	 * Also pulls out the bIndex if the value is less than the number of cols
 	 */
 	public static double[][] createA(ArrayList<Object[]> list,int bIndex) {
 		int i;
 		int j;
 		int listNumRows = list.size();
 		int listNumCols = list.get(0).length;
-		double[][] A = new double[listNumRows][listNumCols-2];
+		double[][] A;
+		if(bIndex<listNumCols)
+			A = new double[listNumRows][listNumCols-2];
+		else
+			A = new double[listNumRows][listNumCols-1];
+
 		for(i=0;i<listNumRows;i++) {
 			Object[] oldRow = list.get(i);
 			int newIndex = 1;

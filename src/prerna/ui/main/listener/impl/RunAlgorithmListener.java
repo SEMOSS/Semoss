@@ -52,6 +52,7 @@ import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
 import prerna.ui.components.playsheets.CorrelationPlaySheet;
 import prerna.ui.components.playsheets.LocalOutlierPlaySheet;
 import prerna.ui.components.playsheets.MatrixRegressionVizPlaySheet;
+import prerna.ui.components.playsheets.NumericalCorrelationVizPlaySheet;
 import prerna.ui.components.playsheets.WekaAprioriPlaySheet;
 import prerna.ui.components.playsheets.MatrixRegressionPlaySheet;
 import prerna.ui.components.playsheets.WekaClassificationPlaySheet;
@@ -88,7 +89,7 @@ public class RunAlgorithmListener extends AbstractListener {
 	private JComboBox<String> matrixDepVarComboBox;
 	
 	//correlation
-	private Integer[] categoryPropIndices;
+	private String[] columnTypesArr;
 	
 	private JToggleButton showDrillDownBtn;
 	private JComboBox<String> drillDownTabSelectorComboBox;
@@ -339,13 +340,21 @@ public class RunAlgorithmListener extends AbstractListener {
 			((MatrixRegressionVizPlaySheet)newPlaySheet).setJTab(jTab);
 			((MatrixRegressionVizPlaySheet)newPlaySheet).setJBar(jBar);
 			
+		}  else if(algorithm.equals("Numerical Correlation")) {			
+			newPlaySheet = new NumericalCorrelationVizPlaySheet();
+			newPlaySheet.setList(filteredList);
+			newPlaySheet.setNames(filteredNames);
+			((NumericalCorrelationVizPlaySheet)newPlaySheet).setAddAsTab(true);
+			((NumericalCorrelationVizPlaySheet)newPlaySheet).setJTab(jTab);
+			((NumericalCorrelationVizPlaySheet)newPlaySheet).setJBar(jBar);
+			
 		} else if(algorithm.equals("Correlation")) {
 			
 			newPlaySheet = new CorrelationPlaySheet();
 			newPlaySheet.setList(filteredList);
 			newPlaySheet.setNames(filteredNames);
 
-			((CorrelationPlaySheet)newPlaySheet).setCategoryPropIndices(categoryPropIndices);
+			((CorrelationPlaySheet)newPlaySheet).setColumnTypesArr(columnTypesArr);
 			((CorrelationPlaySheet)newPlaySheet).setJTab(jTab);
 			((CorrelationPlaySheet)newPlaySheet).setJBar(jBar);
 			
@@ -384,7 +393,7 @@ public class RunAlgorithmListener extends AbstractListener {
 		//matrix regression
 		this.matrixDepVarComboBox = playSheet.getMatrixDepVarComboBox();
 		//correlation
-		this.categoryPropIndices = playSheet.getCategoryPropIndices();
+		this.columnTypesArr = playSheet.getColumnTypesArr();
 		
 		this.names = playSheet.getNames();
 		this.list = playSheet.getList();
