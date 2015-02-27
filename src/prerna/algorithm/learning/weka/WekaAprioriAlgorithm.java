@@ -85,32 +85,38 @@ public class WekaAprioriAlgorithm {
 		}
 	}
 	
-	public List<Hashtable<String, Object>> generateDecisionRuleVizualization() {
+	public Hashtable<String, Object> generateDecisionRuleVizualization() {
 		// return if no rules found
 		if(premises.isEmpty() && consequences.isEmpty() && counts.isEmpty()) {
-			return new ArrayList<Hashtable<String, Object>>();
+			return new Hashtable<String, Object>();
 		}
 		
 		LOGGER.info("Generating Decision Viz Data...");
 		DecimalFormat format = new DecimalFormat("0.00");
-		List<Hashtable<String, Object>> dataHashList = new ArrayList<Hashtable<String, Object>>();
 
+		List<List<Object>> retItemList = new ArrayList<List<Object>>();
 		for(Integer numRule : premises.keySet()) {
 			Collection<Item> premise = premises.get(numRule);
 			Collection<Item> consequence = consequences.get(numRule);
 			int count = counts.get(numRule);
 			double confidence = confidenceIntervals.get(numRule);
 			
-			String rule = getConcatedItems(premise) + " => " + getConcatedItems(consequence);
-			Hashtable<String, Object> dataHash = new Hashtable<String, Object>();
-			dataHash.put("rule", rule);
-			dataHash.put("count", count);
-			dataHash.put("confidence", format.format(confidence));
+			List<Object> item = new ArrayList<Object>();
+			item.add(getConcatedItems(premise));
+			item.add(getConcatedItems(consequence));
+			item.add(count);
+			item.add(format.format(confidence));
 			
-			dataHashList.add(dataHash);
+			retItemList.add(item);
 		}
+
+		String[] headers = new String[]{"Premises", "Consequence", "Count", "Confidence"};
+
+		Hashtable<String, Object> retHash = new Hashtable<String, Object>();
+		retHash.put("headers", headers);
+		retHash.put("dataSeries", retItemList);
 		
-		return dataHashList;
+		return retHash;
 	}
 	
 	private String getConcatedItems(Collection<Item> values) {
@@ -120,9 +126,9 @@ public class WekaAprioriAlgorithm {
 			String name = category.name().trim();
 			String value = item.getItemValueAsString().trim();
 			if(retVal.equals("")) {
-				retVal = name + "=" + value;
+				retVal = name + " = " + value;
 			} else {
-				retVal += retVal + " & " + name + "=" + value;
+				retVal += retVal + " & " + name + " = " + value + " ";
 			}
 		}
 		
