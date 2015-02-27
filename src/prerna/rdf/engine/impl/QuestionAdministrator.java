@@ -546,9 +546,6 @@ public class QuestionAdministrator {
 		Vector<String> currentQuestionOrderVector = engine.getOrderedInsightsURI(perspectiveURI);
 		System.out.println("questions currenlty ordered as " + currentQuestionOrderVector);
 		
-		//now delete the question
-		String questionURI = deleteQuestion( perspective, questionKey, questionOrder, question, sparql, layout, questionDescription, parameterDependList, parameterQueryList, parameterOptionList);
-
 		// if there are no questions left
 		// delete the perspective.
 		if (currentQuestionOrderVector.size() == 1) {
@@ -562,8 +559,7 @@ public class QuestionAdministrator {
 			Vector<String> newQuestionOrderVector = new Vector<String>();//
 			newQuestionOrderVector.addAll(currentQuestionOrderVector);
 			int order = Integer.parseInt(questionOrder);
-			newQuestionOrderVector.add(order-1, questionURI);
-			System.out.println("new order of questions : " + newQuestionOrderVector);
+			newQuestionOrderVector.remove(order-1);
 			System.out.println("new order of questions : " + newQuestionOrderVector);
 			
 			// now reorder
