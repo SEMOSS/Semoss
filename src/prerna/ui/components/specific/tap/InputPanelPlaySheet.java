@@ -34,6 +34,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.beans.PropertyVetoException;
+import java.util.Hashtable;
 
 import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
@@ -51,6 +52,7 @@ import javax.swing.event.InternalFrameEvent;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.components.playsheets.AbstractRDFPlaySheet;
 import prerna.ui.main.listener.impl.PlaySheetListener;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
@@ -61,7 +63,7 @@ import prerna.util.DIHelper;
  * This is the playsheet used exclusively for TAP service optimization.
  */
 @SuppressWarnings("serial")
-public class InputPanelPlaySheet extends JInternalFrame implements IPlaySheet{
+public class InputPanelPlaySheet extends AbstractRDFPlaySheet implements IPlaySheet{
 	protected String title = null;
 	public JComponent pane = null;
 	
@@ -89,21 +91,19 @@ public class InputPanelPlaySheet extends JInternalFrame implements IPlaySheet{
 	/**
 	 * Constructor for SerOptPlaySheet.
 	 */
-	public InputPanelPlaySheet()
-	{
+	public InputPanelPlaySheet() {
 		//createUI();
 		this.setClosable(true);
 		this.setMaximizable(true);
 		this.setIconifiable(true);
 		this.setResizable(true);
 		this.setPreferredSize(new Dimension(800, 600));
-
 	}
 	/**
 	 * Displays an error message in the pane if the Mozilla engine does not support the environment.
 	 * 
 	 */
-	public void displayCheckBoxError(){
+	public void displayCheckBoxError() {
 		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
 		JOptionPane.showMessageDialog(playPane, "Mozilla15 engine doesn't support the current environment. Please switch to 32-bit Java.", "Error", JOptionPane.ERROR_MESSAGE);
 	}
@@ -111,8 +111,7 @@ public class InputPanelPlaySheet extends JInternalFrame implements IPlaySheet{
 	/**
 	 * Sets up the Param panel at the top of the split pane
 	 */
-	public void createGenericParamPanel()
-	{
+	public void createGenericParamPanel() {
 		ctlScrollPane = new JScrollPane();		
 		ctlPanel = new JPanel();
 		ctlScrollPane.setViewportView(ctlPanel);
@@ -143,12 +142,10 @@ public class InputPanelPlaySheet extends JInternalFrame implements IPlaySheet{
 		gbc_progressBar.gridx = 6;
 		gbc_progressBar.gridy = 5;
 		ctlPanel.add(progressBar, gbc_progressBar);
-		progressBar.setVisible(false);
-		
+		progressBar.setVisible(false);		
 	}
 	
-	public void createGenericDisplayPanel()
-	{
+	public void createGenericDisplayPanel() {
 		
 		displayPanel = new JPanel();
 
@@ -213,17 +210,14 @@ public class InputPanelPlaySheet extends JInternalFrame implements IPlaySheet{
 
 		consoleArea = new JTextArea();
 		scrollPane_1.setViewportView(consoleArea);
-
-
-
 	}
+	
 	/**
 	 * Creates the user interface of the playsheet.
 	 * Calls functions to create param panel and tabbed display panel
 	 * Stitches the param and display panels together.
 	 */
-	public void createUI()
-	{
+	public void createUI() {
 		PlaySheetListener psListener = new PlaySheetListener();
 		this.addInternalFrameListener(psListener);
 		
@@ -265,37 +259,29 @@ public class InputPanelPlaySheet extends JInternalFrame implements IPlaySheet{
 		splitPane.setRightComponent(displayPanel);
 
 		new CSSApplication(getContentPane());
-
 	}
 
-	public void setGraphsVisible(boolean visible) {
-	}
+	public void setGraphsVisible(boolean visible) {}
 	
 	/**
 	 * Clears panels within the playsheet
 	 */
-	public void clearPanels() {
-	}
+	public void clearPanels() {}
 	
 	/**
 	 * Clears graphs within the playsheets.
 	 */
-	public void clearGraphs()
-	{
-	}
+	public void clearGraphs() {}
 	
 	/**
 	 * Sets N/A or $0 for values in optimizations. Allows for different TAP algorithms to be run as empty functions.
 	 */
-	public void clearLabels()
-	{
-	}
+	public void clearLabels() {}
 
 	/**
 	 * Adds a desktop pane and shows all properties in the main frame.
 	 */
-	public void showAll()
-	{
+	public void showAll() {
 		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(
 				Constants.DESKTOP_PANE);
 		pane.add(this);
@@ -313,60 +299,12 @@ public class InputPanelPlaySheet extends JInternalFrame implements IPlaySheet{
 				Constants.MAIN_FRAME);
 		frame2.repaint();
 	}
+	
 	/**
 	 * Method run.
 	 */
 	@Override
-	public void run() {
-
-	}
-
-	/**
-	 * Sets the query to be executed.
-	 * @param 	Query.
-	 */
-	@Override
-	public void setQuery(String query) {
-
-	}
-
-	/**
-	 * Obtains the query.
-	// TODO: Don't return null
-	 * @return String */
-	@Override
-	public String getQuery() {
-
-		return null;
-	}
-
-	/**
-	 * Sets the JDesktopPane.
-	 * @param pane Component to be set.
-	 */
-	@Override
-	public void setJDesktopPane(JComponent pane) {
-		this.pane = pane;
-
-	}
-
-	/**
-	 * Sets the question ID.
-	 * @param id 	Question number to be set.
-	 */
-	@Override
-	public void setQuestionID(String id) {
-		this.questionNum = id;
-	}
-
-	/**
-	 * Gets the question ID.
-
-	 * @return String	Question number. */
-	@Override
-	public String getQuestionID() {
-		return this.questionNum;
-	}
+	public void run() {}
 
 	/**
 	 * Creates user interface and shows all properties as long as the browser is supported.
@@ -389,17 +327,13 @@ public class InputPanelPlaySheet extends JInternalFrame implements IPlaySheet{
 	 * This function is used when the model to be displayed has not been changed, but rather the visualization itself must be redone. 
 	 */
 	@Override
-	public void refineView() {
-
-	}
+	public void refineView() {}
 
 	/**
 	 * Used to overlay a query that could be unrelated to the data that currently exists in the play sheet's model.
 	 */
 	@Override
-	public void overlayView() {
-
-	}
+	public void overlayView() {}
 
 	/**
 	 * Sets the RDF engine for the play sheet to run its query against. 
@@ -410,39 +344,20 @@ public class InputPanelPlaySheet extends JInternalFrame implements IPlaySheet{
 		this.engine = engine;
 	}
 
-	/**
-	 * Sets the title of the playsheet.
-	 * @param title 	Playsheet title.
-	 */
-	@Override
-	public void setTitle(String title) {
-		super.setTitle(title);
-		this.title = title;
-	}
-
-	/**
-	 * Gets the RDF engine for the play sheet to run its query against.
-	// TODO: Don't return null
-	 * @return IEngine */
-	@Override
-	public IEngine getRDFEngine() {
-		// TODO: Don't return null
-		return null;
-	}
 	@Override
 	public void createData() {
 		// TODO Auto-generated method stub
 		
 	}
 	@Override
-	public Object getData() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
 	public void runAnalytics() {
 		// TODO Auto-generated method stub
 		
+	}
+	@Override
+	public Hashtable<String, String> getDataTableAlign() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
