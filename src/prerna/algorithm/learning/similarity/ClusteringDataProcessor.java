@@ -37,13 +37,12 @@ import java.util.Locale;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.impl.AlgorithmDataFormatting;
+import prerna.algorithm.impl.AlgorithmDataFormatter;
 import prerna.math.BarChart;
 import prerna.math.CalculateEntropy;
 import prerna.math.SimilarityWeighting;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.Utility;
 
 public class ClusteringDataProcessor {
 
@@ -107,53 +106,8 @@ public class ClusteringDataProcessor {
 		Integer[] numericalPropIndices = new Integer[varNames.length - 1];
 		Integer[] dateTypeIndices = new Integer[varNames.length - 1];
 		Integer[] simpleDateTypeIndices = new Integer[varNames.length - 1];
-
-		int categoryPropNamesCounter = 0;
-		int numericalPropNamesCounter = 0;
-		int dateTypeIndicesCounter = 0;
-		int simpleDateTypeIndicesCounter = 0;
-
-		//iterate through columns
-		for(int j = 0; j < varNames.length; j++) {
-			String type = "";
-			if(j != 0) {
-				//iterate through rows
-				int numCategorical = 0;
-				int numNumerical = 0;
-				for(int i = 0; i < masterTable.size(); i++) {
-					Object[] dataRow = masterTable.get(i);
-					if(dataRow[j] != null && !dataRow[j].toString().equals("")) {
-						String colEntryAsString = dataRow[j].toString();
-						if(!colEntryAsString.isEmpty()) {
-							type = Utility.processType(colEntryAsString);
-							if(type.equals("STRING")) {
-								numCategorical++;
-							} else {
-								numNumerical++;
-							}
-						}
-					}
-				}
-				if(numCategorical > numNumerical) {
-					categoryPropNames[categoryPropNamesCounter] = varNames[j];
-					categoryPropIndices[categoryPropNamesCounter] = j;
-					categoryPropNamesCounter++;
-					//					LOGGER.info("Found " + varNames[j] + " to be a categorical data column");
-				} else {
-					numericalPropNames[numericalPropNamesCounter] = varNames[j];
-					numericalPropIndices[numericalPropNamesCounter] = j;
-					numericalPropNamesCounter++;
-					//					LOGGER.info("Found " + varNames[j] + " to be a numerical data column");
-					if(type.equals("DATE")){
-						dateTypeIndices[dateTypeIndicesCounter] = j;
-						dateTypeIndicesCounter++;
-					} else if(type.equals("SIMPLEDATE")){
-						simpleDateTypeIndices[simpleDateTypeIndicesCounter] = j;
-						simpleDateTypeIndicesCounter++;
-					}
-				}
-			} 
-		}
+		
+		AlgorithmDataFormatter.determineColumnTypes(varNames, masterTable, categoryPropNames, categoryPropIndices, numericalPropNames, numericalPropIndices, dateTypeIndices, simpleDateTypeIndices);
 
 		categoryPropNames = (String[]) ArrayUtilityMethods.trimEmptyValues(categoryPropNames);
 		categoryPropIndices = (Integer[]) ArrayUtilityMethods.trimEmptyValues(categoryPropIndices);
@@ -185,7 +139,7 @@ public class ClusteringDataProcessor {
 			totalNumericalPropIndices[i+numericSize] = dateTypeIndices[i];
 		}
 		for(i = 0; i < simpleDateSize; i++) {
-			totalNumericalPropIndices[i+numericSize+dateSize] = dateTypeIndices[i];
+			totalNumericalPropIndices[i+numericSize+dateSize] = simpleDateTypeIndices[i];
 		}
 
 		if(totalNumericalPropIndices != null) {
@@ -336,7 +290,7 @@ public class ClusteringDataProcessor {
 		int numCols = numericalPropNames.length;
 		numericalBinMatrix = new String[numRows][numCols];
 		numericalEntropy = new double[numCols];
-		AlgorithmDataFormatting formatter = new AlgorithmDataFormatting();
+		AlgorithmDataFormatter formatter = new AlgorithmDataFormatter();
 		Object[][] data = formatter.convertColumnValuesToRows(numericalMatrix);
 		int size = data.length;
 		numericalBinOrderingMatrix = new String[size][];

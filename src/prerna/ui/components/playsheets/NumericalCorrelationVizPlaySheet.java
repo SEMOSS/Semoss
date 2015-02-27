@@ -34,24 +34,20 @@ import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import com.google.gson.Gson;
-
-import prerna.algorithm.learning.supervized.MatrixRegressionAlgorithm;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
-public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
+public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 
-	private static final Logger LOGGER = LogManager.getLogger(MatrixRegressionVizPlaySheet.class.getName());	
-	private int bIndex = -1;
+	private static final Logger LOGGER = LogManager.getLogger(NumericalCorrelationVizPlaySheet.class.getName());	
 	private Boolean addAsTab = false;//determines whether to add this playsheet as a tab to the jTab or to create a new playsheet
 	
 	
 	/**
 	 * Constructor for MatrixRegressionVizPlaySheet.
 	 */
-	public MatrixRegressionVizPlaySheet() {
+	public NumericalCorrelationVizPlaySheet() {
 		super();
 		this.setPreferredSize(new Dimension(800,600));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
@@ -73,90 +69,67 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 		int j;
 		int listNumRows = list.size();
 		int numCols = names.length;
-		
-		//the bIndex should have been provided. if not, will use the last column
-		if(bIndex==-1)
-			bIndex = numCols - 1;
-		
+		int numVariables = numCols - 1;
+
 		//create the b and A arrays which are used in matrix regression to determine coefficients
-		double[] b = MatrixRegressionHelper.createB(list, bIndex);
-		double[][] A = MatrixRegressionHelper.createA(list, bIndex);
-		
-		//run regression so we have coefficients and error
-		MatrixRegressionAlgorithm alg = new MatrixRegressionAlgorithm(A, b);
-		alg.execute();
-		double[] coeffArray = alg.getCoeffArray();
-		double standardError = alg.getStandardError();
-		
-		//create Ab array
-		double[][] Ab = MatrixRegressionHelper.appendB(A, b);
+		double[][] dataArr = MatrixRegressionHelper.createA(list, numCols);
 
 		//run covariance 
-//		Covariance covariance = new Covariance(Ab);
+//		Covariance covariance = new Covariance(dataArr);
 //		double[][] covarianceArray = covariance.getCovarianceMatrix().getData();
 		//run correlation
 		//TODO this can be simplified to only get correlation for the params we need
-		PearsonsCorrelation correlation = new PearsonsCorrelation(Ab);
+		PearsonsCorrelation correlation = new PearsonsCorrelation(dataArr);
 		double[][] correlationArray = correlation.getCorrelationMatrix().getData();		
 		
 		//for each element/instance
 		//add its values for all independent variables to the dataSeriesHash
-		Object[][] dataSeries = new Object[listNumRows][numCols];
+		Hashtable dataSeries = new Hashtable();
 		for(i=0;i<listNumRows;i++) {
-			dataSeries[i][0] = list.get(i)[0];
-			for(j=1;j<numCols;j++) {
-				dataSeries[i][j] = Ab[i][j-1];
+			Object[] row = list.get(i);
+			Hashtable objectHash = new Hashtable();
+			for(j=0;j<numCols;j++) {
+				objectHash.put(names[j], row[j]);
 			}
+			int groupID = i % 6;
+			objectHash.put("group", groupID);//TODO make a groupID
+			dataSeries.put(row[0], objectHash);
 		}
-
-		
-//		Hashtable dataSeries = new Hashtable();
-//		for(i=0;i<listNumRows;i++) {
-//			Object[] row = list.get(i);
-//			Hashtable objectHash = new Hashtable();
-//			for(j=0;j<numCols;j++) {
-//				objectHash.put(names[j], row[j]);
-//			}
-//			int groupID = i % 6;
-//			objectHash.put("group", groupID);//TODO make a groupID
-//			dataSeries.put(row[0], objectHash);
-//		}
 				
 		//pull out the id column name
 		String id = names[0];
-		//reorder names so b is at the end
-		names = MatrixRegressionHelper.moveNameToEnd(names, bIndex);
-	
-		//add each equation to the hash
+
+		String[] variables = new String[numVariables];
+		for(i=0;i<numVariables;i++) {
+			variables[i] = names[i+1];
+		}
+
+		//add each correlation value to the hash
 		Hashtable equations = new Hashtable();
-		double constant = coeffArray[0];
-		String y = names[numCols - 1];
-		
-		for(i=1; i<numCols - 1; i++) {
-			String x = names[i];
-			double xCoeff= coeffArray[i];
-			Hashtable objectHash = new Hashtable();
-			objectHash.put("x", x);
-			objectHash.put("y", y);
-			objectHash.put("m",xCoeff);
-			objectHash.put("b",constant);
-//			objectHash.put("equation", "y = " + xCoeff + "x + " + constant);
-			objectHash.put("shift", standardError);
-	//		objectHash.put("covariance", covarianceArray[i][numCols - 1]);
-			objectHash.put("correlation", correlationArray[i][numCols - 2]);
-			equations.put(x+"-"+y,objectHash);
-			
+		for(i=0; i<numVariables; i++) {
+			String x = variables[i];
+			for(j=0; j<numVariables; j++) {
+				String y = variables[j];
+				if(i!=j) {
+					Hashtable objectHash = new Hashtable();
+					objectHash.put("x", x);
+					objectHash.put("y", y);
+//					objectHash.put("covariance", covarianceArray[i][j]);
+					objectHash.put("correlation", correlationArray[i][j]);
+					equations.put(x+"-"+y,objectHash);
+				}
+			}
 		}
 		
 		Hashtable dataHash = new Hashtable();
-		dataHash.put("one-row",true);
+		dataHash.put("one-row",false);
 		dataHash.put("id",id);
-		dataHash.put("names", names);
+		dataHash.put("names", variables);
 		dataHash.put("dataSeries", dataSeries);
 		dataHash.put("equations", equations);
 		
-		Gson gson = new Gson();
-		System.out.println(gson.toJson(dataHash));
+//		Gson gson = new Gson();
+//		System.out.println(gson.toJson(dataHash));
 		
 		return dataHash;
 	}
@@ -177,7 +150,7 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 			int count = 1;
 			if(jTab.getTabCount()>1)
 				count = Integer.parseInt(lastTabName.substring(0,lastTabName.indexOf(".")))+1;
-			addPanelAsTab(count+". Regression");
+			addPanelAsTab(count+". Correlation");
 		}
 		new CSSApplication(getContentPane());
 	}
@@ -185,8 +158,5 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 	public void setAddAsTab(Boolean addAsTab) {
 		this.addAsTab = addAsTab;
 	}
-	
-	public void setbColumnIndex(int bColumnIndex) {
-		this.bIndex = bColumnIndex;
-	}
+
 }
