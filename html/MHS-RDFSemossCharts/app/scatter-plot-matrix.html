@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="css/jquery-ui.min.css">
     <link rel="stylesheet" type="text/css" href="css/style.css">
     <script src="lib/jquery/jquery-1.8.3.min.js"></script>
+    <script src="lib/jquery/jquery.min.js"></script>
+    <script src="lib/jquery/jquery-ui.min.js"></script>
     <script src="lib/d3.v3.js"></script>
     <script src="lib/tooltip.js"></script>
     <script src="lib/d3.min.js"></script>
@@ -78,185 +80,337 @@ circle.hidden {
 
  function start(dataString) {
   
-    var margin = {top: 30, right: 50, bottom: 50, left: 50};
+   /*** Define Variables **/
+    //For Data
+    var i, j, dirtyData, cleanedData = [],
+        groupArray = [],
+        cleanedEquations, domainByKey = {},
+        keys, n, cleanedNames = [],
+        yVal, z;
+
+    //For Viz
+    var margin = {
+            top: 20,
+            right: 0,
+            bottom: 20,
+            left: 0
+        },
+        container = {
+            width: 0,
+            height: 0
+        },
+        padding, spacing, size, x, y, xAxis, yAxis, lineGenerator, areaGenerator, brushCell, color, brush, svg, cell, celltop, cellbottom, oneRow;
 
     // var jsonData = dataString;
     var jsonData = jQuery.parseJSON(dataString);
-    var cleanedData = [];
-                for (var i in jsonData.dataSeries) {
-                    for (var j in jsonData.dataSeries[i]) {
-                        if (!_.isNumber(jsonData.dataSeries[i][j]) && j !== "group") {
-                            delete jsonData.dataSeries[i][j];
+
+ /*** Clean Data **/
+    dirtyData = angular.copy(jsonData)
+    // console.log(dirtyData);
+
+    for (var i in dirtyData.dataSeries) {
+                    var cleanedObjectHolder = {}
+                    for (var j in dirtyData.dataSeries[i]) {
+                        if (!_.isNumber(dirtyData.dataSeries[i][j]) || dirtyData.names[j] === "group") {
+                            if (dirtyData.names[j] === "group") {
+                                cleanedObjectHolder[dirtyData.names[j]] = dirtyData.dataSeries[i][j];
+                                groupArray.push(dirtyData.dataSeries[i][j]);
+                            } 
+                        } else {
+                            cleanedObjectHolder[dirtyData.names[j]] = dirtyData.dataSeries[i][j]
                         }
                     }
-                    cleanedData.push(jsonData.dataSeries[i]);
+                    cleanedData.push(cleanedObjectHolder)
                 }
 
+                // console.log(cleanedData)
+
+                groupArray = _.uniq(groupArray);
+                cleanedEquations = angular.copy(dirtyData.equations);
+                cleanedNames = angular.copy(dirtyData.names)
+                oneRow = angular.copy(dirtyData["one-row"])
 
 
-                var cleanedEquations = angular.copy(jsonData.equations);
+                keys = d3.keys(cleanedData[0]).filter(function(d) {
+                    return d !== "group";
+                });
+                n = keys.length;
 
-                var size = 135,
-                    padding = 15;
+                if (oneRow) {
+                    z = 1;
+                } else {
+                    z = n;
+                }
 
-                var x = d3.scale.linear()
-                    .range([padding , size - padding ]);
-
-                var y = d3.scale.linear()
-                    .range([size - padding , padding ]);
-
-                var xAxis = d3.svg.axis()
-                    .scale(x)
-                    .orient("bottom")
-                    .ticks(5);
-
-                var yAxis = d3.svg.axis()
-                    .scale(y)
-                    .orient("left")
-                    .ticks(5);
-
-                var lineGenerator = d3.svg.line()
-                    .x(function(d) {
-                        return x(d.x);
-                    })
-                    .y(function(d) {
-                        return y(d.y);
-                    })
-                    .interpolate("linear");
-
-                var areaGenerator = d3.svg.area()
-                    .x(function(d) {
-                        return x(d.x);
-                    })
-                    .y0(function(d) {
-                        return y(d.y0);
-                    })
-                    .y1(function(d) {
-                        return y(d.y1);
-                    });
-
-                var brushCell;
-
-                var color = d3.scale.category10();
-
-                var domainByKey = {},
-                    keys = d3.keys(cleanedData[0]).filter(function(d) {
-                        return d !== "group";
-                    }),
-                    n = keys.length;
-
+                domainByKey = {};
                 keys.forEach(function(key) {
                     domainByKey[key] = d3.extent(cleanedData, function(d) {
                         return d[key];
                     });
                 });
 
-                xAxis.tickSize(size * n);
-                yAxis.tickSize(-size * n);
+                for (var i in domainByKey) {
+                    domainByKey[i][0] -= .03 * (domainByKey[i][1] - domainByKey[i][0]);
+                    domainByKey[i][1] += .03 * (domainByKey[i][1] - domainByKey[i][0]);
+                }
 
-                var brush = d3.svg.brush()
-                    .x(x)
-                    .y(y)
-                    .on("brushstart", brushstart)
-                    .on("brush", brushmove)
-                    .on("brushend", brushend);
+                containerSize(container, margin);
+                // scope.$emit("machineLearning");
 
-                var svg = d3.select("#scatterplotmatrixviz").append("svg")
-                    .attr("width", 900)
-                    .attr("height", 900)
-                    .style("margin", "0 auto 0 auto")
-                    .append("g")
-                    .attr("transform", "translate(" + padding *6 + "," + padding / 2 + ")");
+                /*** Set Up Viz ***/
+                padding = 15;
+                spacing = 15;
+                size = setSVGSize(containerSize(container, margin));
 
-                svg.selectAll(".x.axis")
-                    .data(keys)
-                    .enter().append("g")
-                    .attr("class", "x axis")
-                    
-                    .attr("transform", function(d, i) {
-                        return "translate(" + (n - i - 1) * size + ",0)";
-                    })
-                    .each(function(d) {
-                        x.domain(domainByKey[d]);
-                        d3.select(this).call(xAxis)
 
-                        .selectAll("text")  
-                            // .style("text-anchor", "end")
-                            .attr("dx", "-.8em")
-                            .attr("dy", ".15em")
-                            .attr("transform", function(d) {
-                                return "rotate(-65)" 
-                            })
-                        .attr("y", 300)
-                        .attr("x", -640);
-                    });
+                /*** Draw Viz ***/
 
-                svg.selectAll(".y.axis")
-                    .data(keys)
-                    .enter().append("g")
-                    .attr("class", "y axis")
-                    .attr("transform", function(d, i) {
-                        return "translate(0," + i * size + ")";
-                    })
-                    .each(function(d) {
-                        y.domain(domainByKey[d]);
-                        d3.select(this).call(yAxis);
-                    });
+                drawViz();
 
-                var cell = svg.selectAll(".cell")
-                    .data(cross(keys, keys))
-                    .enter().append("g")
-                    .attr("class", "cell")
-                    .attr("transform", function(d) {
-                        return "translate(" + (n - d.i - 1) * size + "," + d.j * size + ")";
-                    })
-                    .each(plot);
+                function drawViz() {
+                    x = d3.scale.linear()
+                        .range([padding / 2, size - padding / 2]);
 
-                // Titles for the diagonal.
-                cell.filter(function(d) {
-                        return d.i === d.j;
-                    })
-                    .append("text")
-                    .attr("width", size - padding)
-                    .attr("height", size - padding)
-                    .attr("x", padding / 2)
-                    .attr("y", padding * 4)
-                    .text(function(d){
-                        return d.x;
-                    });
-                    // .html(function(d) {
-                    //     return "<div style='width:" + (size - padding) + "px;height:" + (size - padding) + "px'><span>" + d.x + "</span></div>";
-                    // });
+                    y = d3.scale.linear()
+                        .range([size - padding / 2, padding / 2]);
 
-                // Correlation display
-                cell.filter(function(d) {
+                    xAxis = d3.svg.axis()
+                        .scale(x)
+                        .orient("bottom")
+                        .ticks(5);
+
+                    yAxis = d3.svg.axis()
+                        .scale(y)
+                        .orient("left")
+                        .ticks(5);
+
+                    xAxis.tickSize((spacing + size) * z);
+                    yAxis.tickSize(-size * n);
+
+                    lineGenerator = d3.svg.line()
+                        .x(function(d) {
+                            return x(d.x);
+                        })
+                        .y(function(d) {
+                            return y(d.y);
+                        })
+                        .interpolate("linear");
+
+                    areaGenerator = d3.svg.area()
+                        .x(function(d) {
+                            return x(d.x);
+                        })
+                        .y0(function(d) {
+                            return y(d.y0);
+                        })
+                        .y1(function(d) {
+                            return y(d.y1);
+                        });
+
+                    color = d3.scale.ordinal()
+                        .domain(groupArray)
+                        .range(["rgb(26,152,80)", "rgb(145,207,96)", "rgb(217,239,139)", "rgb(255,255,191)", "rgb(254,224,139)", "rgb(252,141,89)", "rgb(215,48,39)"]);
+
+                    brush = d3.svg.brush()
+                        .x(x)
+                        .y(y)
+                        .on("brushstart", brushstart)
+                        .on("brush", brushmove)
+                        .on("brushend", brushend);
+
+                    d3.select("#scatterplotmatrixviz").selectAll("*").remove();
+
+                    if (oneRow) {
+                        yVal = [keys[n - 1]];
+                    } else {
+                        yVal = keys;
+                    }
+
+                    svg = d3.select("#scatterplotmatrixviz").append("svg")
+                        .attr("width", size * n + padding * 2 + spacing * 2)
+                        .attr("height", (spacing + size) * z + padding * 2 + spacing * 2)
+                        .style("margin", "0 auto 0 auto")
+                        .append("g")
+                        .attr("transform", "translate(" + (padding / 2 + spacing) + "," + padding / 2 +
+                            ")");
+
+                    svg.selectAll(".x.axis")
+                        .data(keys)
+                        .enter().append("g")
+                        .attr("class", "x axis")
+                        .attr("transform", function(d, i) {
+                            return "translate(" + (n - i - 1) * size + ",0)";
+                        })
+                        .each(function(d) {
+                            x.domain(domainByKey[d]);
+                            d3.select(this).call(xAxis).selectAll("text").style("text-anchor", "end").attr("transform", function(g, i) {
+                                return "rotate(-25 0," + z * (size + spacing) + ")"
+                            });
+                        });
+
+                    svg.selectAll(".y.axis")
+                        .data(yVal)
+                        .enter().append("g")
+                        .attr("class", "y axis")
+                        .attr("transform", function(d, i) {
+                            return "translate(0," + i * (size + spacing) + ")";
+                        })
+                        .each(function(d) {
+                            y.domain(domainByKey[d]);
+                            d3.select(this).call(yAxis).selectAll("text").attr("transform", function(d) {
+                                return "rotate(-65)"
+                            });
+                        });
+
+                    cell = svg.selectAll(".cell")
+                        .data(cross(keys, keys))
+                        .enter().append("g")
+                        .attr("class", "cell")
+                        .attr("transform", function(d) {
+                            return "translate(" + (n - d.i - 1) * size + "," + ((n - d.j - 1) * (size + spacing)) + ")";
+                        });
+
+                    //Draws Each Cell
+                    celltop = cell.append("g")
+                        .each(plot);
+
+                    // Titles for Diagonal
+                    celltop.filter(function(d) {
+                            return d.i === d.j;
+                        })
+                        .append("foreignObject")
+                        .attr("width", size - padding)
+                        .attr("height", size - padding)
+                        .attr("x", padding / 2)
+                        .attr("y", padding / 2)
+                        .append("xhtml:div")
+                        .html(function(d) {
+                            return "<div style='width:" + (size - padding) + "px;height:" + (size - padding) + "px'><span>" + d.x + "</span></div>";
+                        });
+
+                    //Brushing for non-Diagonals
+                    celltop.filter(function(d) {
                         return d.i !== d.j;
-                    })
-                    .append("text")
-                    .attr("width", size - padding)
-                    .attr("height", size - padding)
-                    .attr("x", padding * 2)
-                    .attr("y", padding / 2)
-                    .text(function(d){
-                        for (prop in cleanedEquations) {
-                            if (d.x + "-" + d.y === prop){
-                                var cor = cleanedEquations[prop].correlation.toFixed(4);
-                                return "Correlation: " + cor;
-                            }
-                        } 
-                    });
+                    }).call(brush);
 
-                cell.filter(function(d) {
-                    return d.i !== d.j;
-                }).call(brush);
+                    if (oneRow) {
+                        cell.append("g").filter(function(d) {
+                                return d.i !== d.j;
+                            }).append("foreignObject")
+                            .attr("x", padding / 2)
+                            .attr("y", padding / 2)
+                            .attr("width", size - padding)
+                            .attr("height", spacing - 2)
+                            .append("xhtml:div")
+                            .html(function(d) {
+                                return "<div style='font-size:10px;width:" + (size - padding) + "px;height:" + (spacing - 2) + "px'><span>" + d.x + "</span></div>";
+                            });
+                    }
 
+                    //Bottom Label
+                    cellbottom = cell.append("g");
+
+                    cellbottom.append("rect")
+                        .attr("class", "frame")
+                        .attr("x", padding / 2)
+                        .attr("y", size - padding / 2 + 2)
+                        .attr("width", size - padding)
+                        .attr("height", spacing - 2);
+
+                    cellbottom.filter(function(d) {
+                            return d.i !== d.j;
+                        }).append("foreignObject")
+                        .attr("x", padding / 2)
+                        .attr("y", size - padding / 2 + 2)
+                        .attr("width", size - padding)
+                        .attr("height", spacing - 2)
+                        .append("xhtml:div")
+                        .html(function(d) {
+                            return "<div style='font-size:10px;width:" + (size - padding) + "px;height:" + (spacing - 2) + "px'><span>" + 'Correlation:' + getCorrelation(d) + "</span></div>";
+                        });
+
+                    cellbottom.filter(function(d) {
+                            return d.i === d.j;
+                        }).append("foreignObject")
+                        .attr("x", padding / 2)
+                        .attr("y", size - padding / 2 + 2)
+                        .attr("width", size - padding)
+                        .attr("height", spacing - 2)
+                        .append("xhtml:div")
+                        .html(function(d) {
+                            var Interest = getInterest(d);
+                            return "<div style='font-size:10px;width:" + (size - padding) + "px;height:" + (spacing - 2) + "px;color:" + Interest[0] + "'><span>" + Interest[1] + "</span></div>";
+                        });
+                }
+
+                /*** Setup Functions ***/
+
+                //Get Container Size
+                function containerSize(containerObj, marginObj) {
+                        containerObj.width = parseInt(d3.select('#scatterplotmatrixviz').style('width'));
+                        containerObj.height = parseInt(d3.select('#scatterplotmatrixviz').style('height'));
+
+                    containerObj.width = containerObj.width - marginObj.left - marginObj.right;
+                    containerObj.height = containerObj.height - marginObj.top - marginObj.bottom;
+                    return containerObj
+                }
+
+                //Resize
+                d3.select(window).on("resize", resize);
+
+                function resize() {
+                    size = setSVGSize(containerSize(container, margin));
+                    drawViz();
+                }
+
+
+                //Sets Size of SVG Based on Width and Height
+                function setSVGSize(containerObj) {
+                    var sizeBasedOnW, sizeBasedOnH;
+                    sizeBasedOnW = (containerObj.width - padding * 2 - spacing * 2) / n;
+                    sizeBasedOnH = (containerObj.height - padding * 2 - spacing * z) / z;
+                    if (105 < sizeBasedOnW && sizeBasedOnW < sizeBasedOnH) {
+                        return sizeBasedOnW;
+                    } else if (105 < sizeBasedOnH)
+                        return sizeBasedOnH;
+                    else {
+                        return 105;
+                    }
+                }
+
+                /*** Draw Functions ***/
+
+                //Cross Each Variable
+                function cross(a, b) {
+                    var c = [],
+                        n = a.length,
+                        m = b.length,
+                        i, j, jVal;
+
+                    if (oneRow) {
+                        jVal = m - 2;
+                    } else {
+                        jVal = -1;
+                    }
+
+                    for (i = -1; ++i < n;)
+                        for (j = jVal; ++j < m;) c.push({
+                            x: a[i],
+                            i: i,
+                            y: b[j],
+                            j: j
+                        });
+                    return c;
+                }
+
+                //Plot Each Point
                 function plot(p) {
-                    var cell = d3.select(this);
-
+                    var celltop;
+                    celltop = d3.select(this);
                     x.domain(domainByKey[p.x]);
                     y.domain(domainByKey[p.y]);
 
-                    cell.append("rect")
+                    celltop.append("rect")
                         .attr("class", "frame")
                         .attr("x", padding / 2)
                         .attr("y", padding / 2)
@@ -265,7 +419,7 @@ circle.hidden {
 
 
                     if (p.x !== p.y) {
-                        cell.selectAll("circle")
+                        celltop.selectAll("circle")
                             .data(cleanedData)
                             .enter().append("circle")
                             .attr("cx", function(d) {
@@ -277,20 +431,21 @@ circle.hidden {
                             .attr("r", 3)
                             .style("fill", function(d) {
                                 return color(d.group);
-                            });
+                            })
+                            .style("stroke", "#aaa");
 
-                        cell.append("path")
+                        celltop.append("path")
                             .attr("d", lineGenerator(getPoints(p)))
                             .attr("id", "regressionline")
                             .attr("stroke", "black")
                             .attr("stroke-width", "2px")
-                            .style("opacity", .8);
+                            .style("opacity", 0.8);
 
-                        cell.append("path")
+                        celltop.append("path")
                             .attr("d", areaGenerator(getPoints(p, "shade")))
                             .attr("id", "shader")
                             .attr("class", "shader")
-                            .attr("opacity", .05);
+                            .attr("opacity", 0.1);
 
                         cell.on("mouseover", function(d) {
                             cell.selectAll("circle")
@@ -303,79 +458,41 @@ circle.hidden {
                                 .style("opacity", 1);
                         });
 
-                       cell.on("mouseout", function(d) {
+                        cell.on("mouseout", function(d) {
                             cell.selectAll("circle")
                                 .style("opacity", 1);
 
                             cell.selectAll("#shader")
-                                .style("opacity", .1);
+                                .style("opacity", .2);
 
                             cell.selectAll("#regressionline")
                                 .style("opacity", .8);
                         });
                     }
-                };
+                }
 
-                // Clear the previously-active brush, if any.
-                function brushstart(p) {
-                    if (brushCell !== this) {
-                        d3.select(brushCell).call(brush.clear());
-                        x.domain(domainByKey[p.x]);
-                        y.domain(domainByKey[p.y]);
-                        brushCell = this;
-                    }
-                };
 
-                // Highlight the selected circles.
-                function brushmove(p) {
-                    var e = brush.extent();
-                    svg.selectAll("circle").classed("hidden", function(d) {
-                        return e[0][0] > d[p.x] || d[p.x] > e[1][0] || e[0][1] > d[p.y] || d[p.y] > e[1][1];
-                    });
-                };
-
-                // If the brush is empty, select all circles.
-                function brushend() {
-                    if (brush.empty()) svg.selectAll(".hidden").classed("hidden", false);
-                };
-
-                function cross(a, b) {
-                    var c = [],
-                        n = a.length,
-                        m = b.length,
-                        i, j;
-                    for (i = -1; ++i < n;)
-                        for (j = -1; ++j < m;) c.push({
-                            x: a[i],
-                           i: i,
-                            y: b[j],
-                            j: j
-                        });
-                    return c;
-                };
-
+                //Gets Point for Line and Shade
                 function getPoints(p, shade) {
-                    var cleanedLinePoints = [];
+                    var i, cleanedLinePoints = [],
+                        lineM, lineB, lineShift, minX, maxX, minY, maxY, point;
                     x.domain(domainByKey[p.x]);
                     y.domain(domainByKey[p.y]);
 
-                    //get coefficients
-                    for (var i in cleanedEquations) {
-                        if (cleanedEquations[i].x === p.x && cleanedEquations[i].y === p.y) {
-                            var rawEquation = cleanedEquations[i].equation;
-                            var lineEquation = rawEquation.split("\u003d").pop().replace(/\s+/g, '').split("x+");
-                            var lineM = +lineEquation[0];
-                            var lineB = +lineEquation[1];
-                            var lineShift = +cleanedEquations[i].shift;
-                            var minX = domainByKey[p.x][0]*.05;
-                            var maxX = domainByKey[p.x][1]*1.05;
-                            var minY = domainByKey[p.y][0]*.35;
-                            var maxY = domainByKey[p.y][1]*1.05;
+                    //Get Coefficients (Linear - y = mx + b)
+                    for (i in cleanedEquations) {
+                        if (cleanedEquations[i].x === p.x && cleanedEquations[i].y === p.y && _.isNumber(cleanedEquations[i].m)) {
+                            lineM = +cleanedEquations[i].m;
+                            lineB = +cleanedEquations[i].b;
+                            lineShift = +cleanedEquations[i].shift;
+                            minX = domainByKey[p.x][0];
+                            maxX = domainByKey[p.x][1];
+                            minY = domainByKey[p.y][0];
+                            maxY = domainByKey[p.y][1];
 
-
-                            //generate points
-                            for (var i = 0; i < 1001; i++) {
-                                var point = {};
+                            //Generate Points
+                            for (i = 0; i < 1001; i++) {
+                                point = {};
                                 if (shade === "shade") {
                                     point['x'] = minX + (maxX - minX) * i / 1000;
                                     point['y0'] = lineM * (point['x']) + lineB - lineShift;
@@ -399,11 +516,63 @@ circle.hidden {
                             break;
                         }
                     }
-                    return cleanedLinePoints
-                };
-                d3.select(self.frameElement).style("height", size * n + padding + 20 + "px");
-            };
-start(scatterData);
+                    return cleanedLinePoints;
+                }
+
+                //Returns Correlation from Graph
+                function getCorrelation(p) {
+                    var i;
+                    for (i in cleanedEquations) {
+                        if (cleanedEquations[i].x === p.x && cleanedEquations[i].y === p.y) {
+                            return Math.round(+cleanedEquations[i].correlation * 100) / 100;
+                        }
+                    }
+                }
+
+                //Assigns Variable of Interest
+                function getInterest(p) {
+                    var i, interestVariables;
+                    for (i in cleanedNames) {
+                        if (cleanedNames[0] === p.x && cleanedNames[0] === p.y) {
+                            interestVariables = ["red", "Explanatory"];
+                            return interestVariables;
+                        } else {
+                            interestVariables = ["green", "Dependent"];
+                            return interestVariables;
+                        }
+                    }
+                }
+
+                // Clear Previous Brush (if any) and Start New
+                function brushstart(p) {
+                    if (brushCell !== this) {
+                        d3.select(brushCell).call(brush.clear());
+                        x.domain(domainByKey[p.x]);
+                        y.domain(domainByKey[p.y]);
+                        brushCell = this;
+                    }
+                }
+
+                //Highlight Circles in Selected Area
+                function brushmove(p) {
+                    var e;
+                    e = brush.extent();
+                    svg.selectAll("circle").classed("hidden", function(d) {
+                        return e[0][0] > d[p.x] || d[p.x] > e[1][0] || e[0][1] > d[p.y] || d[p.y] > e[1][1];
+                    });
+                }
+
+                //Selects All if Brush Empty
+                function brushend() {
+                    if (brush.empty()) svg.selectAll(".hidden").classed("hidden", false);
+                }
+
+            
+
+        };
+    
+start();
+// start(scatterData);
 
 
 </script>
