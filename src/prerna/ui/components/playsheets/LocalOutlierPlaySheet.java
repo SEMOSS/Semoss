@@ -159,7 +159,7 @@ public class LocalOutlierPlaySheet extends GridPlaySheet{
 			int count = 1;
 			if(jTab.getTabCount()>1)
 				count = Integer.parseInt(lastTabName.substring(0,lastTabName.indexOf(".")))+1;
-			addPanelAsTab(count+". Outliers");
+			addPanelAsTab(count+". Outliers Raw Data");
 		}
 	}
 	
