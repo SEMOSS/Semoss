@@ -34,8 +34,6 @@ import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import com.google.gson.Gson;
-
 import prerna.algorithm.learning.supervized.MatrixRegressionAlgorithm;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
@@ -45,8 +43,11 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 
 	private static final Logger LOGGER = LogManager.getLogger(MatrixRegressionVizPlaySheet.class.getName());	
 	private int bIndex = -1;
-	private Boolean addAsTab = false;//determines whether to add this playsheet as a tab to the jTab or to create a new playsheet
+	private double[][] Ab;
 	
+	private double standardError;
+	private double[] coeffArray;
+	private double[][] correlationArray;
 	
 	/**
 	 * Constructor for MatrixRegressionVizPlaySheet.
@@ -62,16 +63,12 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 	public void createData() {
 		if(list==null)
 			super.createData();
-		else
-			dataHash = processQueryData();
+		runAlgorithm();
+		dataHash = processQueryData();
 	}
 	
-	@Override
-	public Hashtable processQueryData()
-	{
-		int i;
-		int j;
-		int listNumRows = list.size();
+	public void runAlgorithm() {
+
 		int numCols = names.length;
 		
 		//the bIndex should have been provided. if not, will use the last column
@@ -85,11 +82,11 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 		//run regression so we have coefficients and error
 		MatrixRegressionAlgorithm alg = new MatrixRegressionAlgorithm(A, b);
 		alg.execute();
-		double[] coeffArray = alg.getCoeffArray();
-		double standardError = alg.getStandardError();
+		coeffArray = alg.getCoeffArray();
+		standardError = alg.getStandardError();
 		
 		//create Ab array
-		double[][] Ab = MatrixRegressionHelper.appendB(A, b);
+		Ab = MatrixRegressionHelper.appendB(A, b);
 
 		//run covariance 
 //		Covariance covariance = new Covariance(Ab);
@@ -97,7 +94,16 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 		//run correlation
 		//TODO this can be simplified to only get correlation for the params we need
 		PearsonsCorrelation correlation = new PearsonsCorrelation(Ab);
-		double[][] correlationArray = correlation.getCorrelationMatrix().getData();		
+		correlationArray = correlation.getCorrelationMatrix().getData();		
+	}
+	
+	@Override
+	public Hashtable processQueryData()
+	{
+		int i;
+		int j;
+		int listNumRows = list.size();
+		int numCols = names.length;
 		
 		//for each element/instance
 		//add its values for all independent variables to the dataSeriesHash
@@ -108,20 +114,7 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 				dataSeries[i][j] = Ab[i][j-1];
 			}
 		}
-
-		
-//		Hashtable dataSeries = new Hashtable();
-//		for(i=0;i<listNumRows;i++) {
-//			Object[] row = list.get(i);
-//			Hashtable objectHash = new Hashtable();
-//			for(j=0;j<numCols;j++) {
-//				objectHash.put(names[j], row[j]);
-//			}
-//			int groupID = i % 6;
-//			objectHash.put("group", groupID);//TODO make a groupID
-//			dataSeries.put(row[0], objectHash);
-//		}
-				
+	
 		//pull out the id column name
 		String id = names[0];
 		//reorder names so b is at the end
@@ -155,8 +148,8 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 		dataHash.put("dataSeries", dataSeries);
 		dataHash.put("equations", equations);
 		
-		Gson gson = new Gson();
-		System.out.println(gson.toJson(dataHash));
+//		Gson gson = new Gson();
+//		System.out.println(gson.toJson(dataHash));
 		
 		return dataHash;
 	}
@@ -169,9 +162,9 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 	{
 		//if this is to be a separate playsheet, create the tab in a new window
 		//otherwise, if this is to be just a new tab in an existing playsheet,
-		if(!addAsTab) {
+		if(jTab==null) {
 			super.addPanel();
-		}else {
+		} else {
 			String lastTabName = jTab.getTitleAt(jTab.getTabCount()-1);
 			LOGGER.info("Parsing integer out of last tab name");
 			int count = 1;
@@ -181,11 +174,7 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 		}
 		new CSSApplication(getContentPane());
 	}
-	
-	public void setAddAsTab(Boolean addAsTab) {
-		this.addAsTab = addAsTab;
-	}
-	
+
 	public void setbColumnIndex(int bColumnIndex) {
 		this.bIndex = bColumnIndex;
 	}
