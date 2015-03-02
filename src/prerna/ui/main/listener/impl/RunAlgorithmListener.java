@@ -51,6 +51,7 @@ import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
 import prerna.ui.components.playsheets.CorrelationPlaySheet;
 import prerna.ui.components.playsheets.LocalOutlierPlaySheet;
+import prerna.ui.components.playsheets.LocalOutlierVizPlaySheet;
 import prerna.ui.components.playsheets.MatrixRegressionVizPlaySheet;
 import prerna.ui.components.playsheets.NumericalCorrelationVizPlaySheet;
 import prerna.ui.components.playsheets.WekaAprioriPlaySheet;
@@ -207,14 +208,27 @@ public class RunAlgorithmListener extends AbstractListener {
 		
 		} else if(algorithm.equals("Outliers")) {
 			int kneighbors = enterKNeighborsSlider.getValue();
-			newPlaySheet = new LocalOutlierPlaySheet();
+			LocalOutlierPlaySheet gridPlaySheet = new LocalOutlierPlaySheet();
+			gridPlaySheet.setList(filteredList);
+			gridPlaySheet.setNames(filteredNames);
+			gridPlaySheet.setMasterList(list);
+			gridPlaySheet.setMasterNames(names);
+			gridPlaySheet.setKNeighbors(kneighbors);
+			gridPlaySheet.setJTab(jTab);
+			gridPlaySheet.setJBar(jBar);
+			gridPlaySheet.setRDFEngine(engine);
+			gridPlaySheet.setTitle(title);
+			gridPlaySheet.runAnalytics();
+			gridPlaySheet.createView();
+			
+			newPlaySheet = new LocalOutlierVizPlaySheet();
 			newPlaySheet.setList(filteredList);
 			newPlaySheet.setNames(filteredNames);
-			((LocalOutlierPlaySheet)newPlaySheet).setMasterList(list);
-			((LocalOutlierPlaySheet)newPlaySheet).setMasterNames(names);
-			((LocalOutlierPlaySheet)newPlaySheet).setKNeighbors(kneighbors);
-			((LocalOutlierPlaySheet)newPlaySheet).setJTab(jTab);
-			((LocalOutlierPlaySheet)newPlaySheet).setJBar(jBar);
+			((LocalOutlierVizPlaySheet)newPlaySheet).setMasterList(list);
+			((LocalOutlierVizPlaySheet)newPlaySheet).setMasterNames(names);
+			((LocalOutlierVizPlaySheet)newPlaySheet).setKNeighbors(kneighbors);
+			((LocalOutlierVizPlaySheet)newPlaySheet).setJTab(jTab);
+			((LocalOutlierVizPlaySheet)newPlaySheet).setJBar(jBar);			
 		
 		} else if(algorithm.equals("Predictability")) {
 			
@@ -335,7 +349,6 @@ public class RunAlgorithmListener extends AbstractListener {
 			newPlaySheet = new MatrixRegressionVizPlaySheet();
 			newPlaySheet.setList(filteredList);
 			newPlaySheet.setNames(filteredNames);
-			((MatrixRegressionVizPlaySheet)newPlaySheet).setAddAsTab(true);
 			((MatrixRegressionVizPlaySheet)newPlaySheet).setbColumnIndex(depVarIndex);
 			((MatrixRegressionVizPlaySheet)newPlaySheet).setJTab(jTab);
 			((MatrixRegressionVizPlaySheet)newPlaySheet).setJBar(jBar);
@@ -344,7 +357,6 @@ public class RunAlgorithmListener extends AbstractListener {
 			newPlaySheet = new NumericalCorrelationVizPlaySheet();
 			newPlaySheet.setList(filteredList);
 			newPlaySheet.setNames(filteredNames);
-			((NumericalCorrelationVizPlaySheet)newPlaySheet).setAddAsTab(true);
 			((NumericalCorrelationVizPlaySheet)newPlaySheet).setJTab(jTab);
 			((NumericalCorrelationVizPlaySheet)newPlaySheet).setJBar(jBar);
 			

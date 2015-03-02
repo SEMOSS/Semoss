@@ -102,15 +102,15 @@ public class WekaAprioriAlgorithm {
 			double confidence = confidenceIntervals.get(numRule);
 			
 			List<Object> item = new ArrayList<Object>();
-			item.add(getConcatedItems(premise));
-			item.add(getConcatedItems(consequence));
 			item.add(count);
 			item.add(format.format(confidence));
+			item.add(getConcatedItems(premise));
+			item.add(getConcatedItems(consequence));
 			
 			retItemList.add(item);
 		}
 
-		String[] headers = new String[]{"Premises", "Consequence", "Count", "Confidence"};
+		String[] headers = new String[]{ "Count", "Confidence","Premises", "Consequence"};
 
 		Hashtable<String, Object> retHash = new Hashtable<String, Object>();
 		retHash.put("headers", headers);

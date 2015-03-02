@@ -40,9 +40,8 @@ import prerna.util.DIHelper;
 
 public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 
-	private static final Logger LOGGER = LogManager.getLogger(NumericalCorrelationVizPlaySheet.class.getName());	
-	private Boolean addAsTab = false;//determines whether to add this playsheet as a tab to the jTab or to create a new playsheet
-	
+	private static final Logger LOGGER = LogManager.getLogger(NumericalCorrelationVizPlaySheet.class.getName());		
+	private double[][] correlationArray;
 	
 	/**
 	 * Constructor for MatrixRegressionVizPlaySheet.
@@ -58,8 +57,23 @@ public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 	public void createData() {
 		if(list==null)
 			super.createData();
-		else
-			dataHash = processQueryData();
+		runAlgorithm();
+		dataHash = processQueryData();
+	}
+	
+	public void runAlgorithm() {
+
+		int numCols = names.length;
+		//create the b and A arrays which are used in matrix regression to determine coefficients
+		double[][] dataArr = MatrixRegressionHelper.createA(list, numCols);
+
+		//run covariance 
+//		Covariance covariance = new Covariance(dataArr);
+//		double[][] covarianceArray = covariance.getCovarianceMatrix().getData();
+		//run correlation
+		//TODO this can be simplified to only get correlation for the params we need
+		PearsonsCorrelation correlation = new PearsonsCorrelation(dataArr);
+		correlationArray = correlation.getCorrelationMatrix().getData();		
 	}
 	
 	@Override
@@ -70,17 +84,6 @@ public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 		int listNumRows = list.size();
 		int numCols = names.length;
 		int numVariables = numCols - 1;
-
-		//create the b and A arrays which are used in matrix regression to determine coefficients
-		double[][] dataArr = MatrixRegressionHelper.createA(list, numCols);
-
-		//run covariance 
-//		Covariance covariance = new Covariance(dataArr);
-//		double[][] covarianceArray = covariance.getCovarianceMatrix().getData();
-		//run correlation
-		//TODO this can be simplified to only get correlation for the params we need
-		PearsonsCorrelation correlation = new PearsonsCorrelation(dataArr);
-		double[][] correlationArray = correlation.getCorrelationMatrix().getData();		
 		
 		//for each element/instance
 		//add its values for all independent variables to the dataSeriesHash
@@ -142,9 +145,9 @@ public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 	{
 		//if this is to be a separate playsheet, create the tab in a new window
 		//otherwise, if this is to be just a new tab in an existing playsheet,
-		if(!addAsTab) {
+		if(jTab==null) {
 			super.addPanel();
-		}else {
+		} else {
 			String lastTabName = jTab.getTitleAt(jTab.getTabCount()-1);
 			LOGGER.info("Parsing integer out of last tab name");
 			int count = 1;
@@ -153,10 +156,6 @@ public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 			addPanelAsTab(count+". Correlation");
 		}
 		new CSSApplication(getContentPane());
-	}
-	
-	public void setAddAsTab(Boolean addAsTab) {
-		this.addAsTab = addAsTab;
 	}
 
 }
