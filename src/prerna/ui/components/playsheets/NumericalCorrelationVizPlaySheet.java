@@ -59,8 +59,8 @@ public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 	public void createData() {
 		if(list==null)
 			super.createData();
-		runAlgorithm();
-		dataHash = processQueryData();
+		else
+			dataHash = processQueryData();
 	}
 	
 	public void runAlgorithm() {
@@ -81,6 +81,7 @@ public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 	@Override
 	public Hashtable processQueryData()
 	{
+		runAlgorithm();
 		int i;
 		int j;
 		int listNumRows = list.size();
