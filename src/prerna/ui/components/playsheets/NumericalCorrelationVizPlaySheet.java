@@ -34,6 +34,8 @@ import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -85,20 +87,6 @@ public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 		int numCols = names.length;
 		int numVariables = numCols - 1;
 		
-		//for each element/instance
-		//add its values for all independent variables to the dataSeriesHash
-		Hashtable dataSeries = new Hashtable();
-		for(i=0;i<listNumRows;i++) {
-			Object[] row = list.get(i);
-			Hashtable objectHash = new Hashtable();
-			for(j=0;j<numCols;j++) {
-				objectHash.put(names[j], row[j]);
-			}
-			int groupID = i % 6;
-			objectHash.put("group", groupID);//TODO make a groupID
-			dataSeries.put(row[0], objectHash);
-		}
-				
 		//pull out the id column name
 		String id = names[0];
 
@@ -106,30 +94,30 @@ public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 		for(i=0;i<numVariables;i++) {
 			variables[i] = names[i+1];
 		}
-
-		//add each correlation value to the hash
-		Hashtable equations = new Hashtable();
-		for(i=0; i<numVariables; i++) {
-			String x = variables[i];
-			for(j=0; j<numVariables; j++) {
-				String y = variables[j];
-				if(i!=j) {
-					Hashtable objectHash = new Hashtable();
-					objectHash.put("x", x);
-					objectHash.put("y", y);
-//					objectHash.put("covariance", covarianceArray[i][j]);
-					objectHash.put("correlation", correlationArray[i][j]);
-					equations.put(x+"-"+y,objectHash);
-				}
+		names = variables;
+		
+		//for each element/instance
+		//add its values for all independent variables to the dataSeriesHash
+		Object[][] dataSeries = new Object[listNumRows][numCols];
+		for(i=0;i<listNumRows;i++) {
+			for(j=0;j<numCols;j++) {
+				dataSeries[i][j] = list.get(i)[j];
 			}
 		}
-		
+
+		Object[][] correlations = new Object[numVariables][numVariables];
+		for(i = 0; i<numVariables; i++) {
+			for(j = 0; j<numVariables; j++) {
+				correlations[i][j] = correlationArray[i][j];
+			}
+		}
+				
 		Hashtable dataHash = new Hashtable();
 		dataHash.put("one-row",false);
 		dataHash.put("id",id);
-		dataHash.put("names", variables);
+		dataHash.put("names", names);
 		dataHash.put("dataSeries", dataSeries);
-		dataHash.put("equations", equations);
+		dataHash.put("correlations", correlations);
 		
 //		Gson gson = new Gson();
 //		System.out.println(gson.toJson(dataHash));

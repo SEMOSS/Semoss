@@ -34,6 +34,8 @@ import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+
 import prerna.algorithm.learning.supervized.MatrixRegressionAlgorithm;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
@@ -104,6 +106,17 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 		int j;
 		int listNumRows = list.size();
 		int numCols = names.length;
+		int numVariables = numCols - 1;
+	
+		//separate names into id and variables
+		String id = names[0];
+		String[] variables = new String[numVariables];
+		for(i=0; i< numVariables; i++)
+			variables[i] = names[i+1];
+		bIndex --;
+
+		//reorder names so b is at the end
+		names = MatrixRegressionHelper.moveNameToEnd(variables, bIndex);
 		
 		//for each element/instance
 		//add its values for all independent variables to the dataSeriesHash
@@ -114,46 +127,38 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 				dataSeries[i][j] = Ab[i][j-1];
 			}
 		}
-	
-		//pull out the id column name
-		String id = names[0];
-		//reorder names so b is at the end
-		names = MatrixRegressionHelper.moveNameToEnd(names, bIndex);
-	
-		//add each equation to the hash
-		Hashtable equations = new Hashtable();
-		double constant = coeffArray[0];
-		String y = names[numCols - 1];
 		
-		for(i=1; i<numCols - 1; i++) {
-			String x = names[i];
-			double xCoeff= coeffArray[i];
-			Hashtable objectHash = new Hashtable();
-			objectHash.put("x", x);
-			objectHash.put("y", y);
-			objectHash.put("m",xCoeff);
-			objectHash.put("b",constant);
-//			objectHash.put("equation", "y = " + xCoeff + "x + " + constant);
-			objectHash.put("shift", standardError);
-	//		objectHash.put("covariance", covarianceArray[i][numCols - 1]);
-			objectHash.put("correlation", correlationArray[i][numCols - 2]);
-			equations.put(x+"-"+y,objectHash);
-			
+		Object[] stdErrors = new Object[numVariables];
+		for(i = 0; i<numVariables ; i++) {
+			stdErrors[i] = standardError;
 		}
 		
+		Object[] coefficients = new Object[numVariables];
+		for(i = 0; i< numVariables - 1; i++) {
+			coefficients[i] = coeffArray[i+1];
+		}
+		coefficients[numVariables - 1] = coeffArray[0];
+		
+		Object[] correlations = new Object[numVariables];
+		for(i = 0; i<numVariables; i++) {
+			correlations[i] = correlationArray[i][numVariables - 1];
+		}
+
 		Hashtable dataHash = new Hashtable();
 		dataHash.put("one-row",true);
 		dataHash.put("id",id);
 		dataHash.put("names", names);
 		dataHash.put("dataSeries", dataSeries);
-		dataHash.put("equations", equations);
+		dataHash.put("shifts", stdErrors);
+		dataHash.put("coefficients", coefficients);
+		dataHash.put("correlations", correlations);
 		
 //		Gson gson = new Gson();
 //		System.out.println(gson.toJson(dataHash));
 		
 		return dataHash;
 	}
-	
+
 	/**
 	 * Method addPanel. Creates a panel and adds the table to the panel.
 	 */
