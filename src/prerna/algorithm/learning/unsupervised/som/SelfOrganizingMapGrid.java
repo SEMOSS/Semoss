@@ -1,15 +1,16 @@
 package prerna.algorithm.learning.unsupervised.som;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class SelfOrganizingMapGrid {
-	
+
 	public static final String ADJACENT_CELLS_KEY = "adjacentCells";
 	public static final String ADJACENT_CELLS_RADIUS_KEY = "radiusOfCells";
-	
+
 	private int length;
 	private int height;
 	private int numGrids;
@@ -17,12 +18,14 @@ public class SelfOrganizingMapGrid {
 	public static void main(String[] args) {
 		SelfOrganizingMapGrid grid = new SelfOrganizingMapGrid(26, 17);
 		System.out.println(grid.getAdjacentCellsInRadius(104, 13));
+		
+		System.out.println(Arrays.toString(SelfOrganizingMapGrid.getCoordinatesOfCell(354, 26)));
 	}
 
 	public SelfOrganizingMapGrid() {
-		
+
 	}
-	
+
 	public SelfOrganizingMapGrid(int length, int height) {
 		this.length = length;
 		this.height = height;
@@ -35,66 +38,32 @@ public class SelfOrganizingMapGrid {
 		List<Integer> radiusForCells = new ArrayList<Integer>();
 		retHash.put(ADJACENT_CELLS_KEY, adjacentCells);
 		retHash.put(ADJACENT_CELLS_RADIUS_KEY, radiusForCells);
-		
+
 		int rad = (int) Math.round(radius);
 		if(rad == 0) {
 			return retHash;
 		}
 
 		// [x-coordinate, y-coordinate]
-		int[] cellPosition = getCoordinatesOfCell(cell);
+		int[] cellPosition = getCoordinatesOfCell(cell, length);
 
 		int i = rad;
 		for(; i > 0; i--) {
 			// add cell to the left
-			if(cellPosition[0] - i >= 0) {
-				adjacentCells.add(cell-i);
-				radiusForCells.add(i);
-			}
+			getLeftCells(cellPosition[0], i, cell, adjacentCells, radiusForCells);
 			// add cell to the right
-			if(cellPosition[0] + i < length) {
-				adjacentCells.add(cell+i);
-				radiusForCells.add(i);
-			}
-
+			getRightCells(cellPosition[0], length, i, cell, adjacentCells, radiusForCells);
 			// add cell to the top
-			if(cell - i*length >= 0) {
-				adjacentCells.add(cell-i*length);
-				radiusForCells.add(i);
-			}
+			getTopCells(cellPosition[0], length, i, cell, adjacentCells, radiusForCells);
 			// add cell to the bottom
-			if(cell + i*length < numGrids) {
-				adjacentCells.add(cell+i*length);
-				radiusForCells.add(i);
-			}
+			getBottomCells(cellPosition[0], length, numGrids, i, cell, adjacentCells, radiusForCells);
 
 			// add cell that is diagonal to the left
-			if(cellPosition[0] - i >= 0) {
-				// top-left
-				if(cell-1 - i*length >= 0) {
-					adjacentCells.add(cell-1-i*length);
-					radiusForCells.add(i);
-				}
-				// bottom-left
-				if(cell-1 + i*length < numGrids) {
-					adjacentCells.add(cell-1+i*length);
-					radiusForCells.add(i);
-				}
-			}
-
+			getDiagonalBottomLeftCells(cellPosition[0], length, numGrids, i, cell, adjacentCells, radiusForCells);
+			getDiagonalTopLeftCells(cellPosition[0], length, i, cell, adjacentCells, radiusForCells);
 			// add cell that is diagonal to the right
-			if(cellPosition[0] + i < length) {
-				// top-left
-				if(cell+1 - i*length >= 0) {
-					adjacentCells.add(cell+1-i*length);
-					radiusForCells.add(i);
-				}
-				// bottom-left
-				if(cell+1 + i*length < numGrids) {
-					adjacentCells.add(cell+1+i*length);
-					radiusForCells.add(i);
-				}
-			}
+			getDiagonalBottomRightCells(cellPosition[0], length, numGrids, i, cell, adjacentCells, radiusForCells);
+			getDiagonalTopRightCells(cellPosition[0], length, i, cell, adjacentCells, radiusForCells);
 
 			// add annoying cells that are not directly diagonal
 			if(i > 1) {
@@ -140,10 +109,78 @@ public class SelfOrganizingMapGrid {
 		return retHash;
 	}
 
+	protected static void getLeftCells(int x_coordinate, int radius, int cell, List<Integer> adjacentCells, List<Integer> radiusForCells) {
+		if(x_coordinate - radius >= 0) {
+			adjacentCells.add(cell-radius);
+			radiusForCells.add(radius);
+		}
+	}
+
+	protected static void getRightCells(int x_coordinate, int length, int radius, int cell, List<Integer> adjacentCells, List<Integer> radiusForCells) {
+		if(x_coordinate + radius < length) {
+			adjacentCells.add(cell+radius);
+			radiusForCells.add(radius);
+		}
+	}
+
+	protected static void getTopCells(int x_coordinate, int length, int radius, int cell, List<Integer> adjacentCells, List<Integer> radiusForCells) {
+		if(cell - radius*length >= 0) {
+			adjacentCells.add(cell-radius*length);
+			radiusForCells.add(radius);
+		}
+	}
+
+	protected static void getBottomCells(int x_coordinate, int length, int numGrids, int radius, int cell, List<Integer> adjacentCells, List<Integer> radiusForCells) {
+		if(cell + radius*length < numGrids) {
+			adjacentCells.add(cell+radius*length);
+			radiusForCells.add(radius);
+		}
+	}
+
+	protected static void getDiagonalTopLeftCells(int x_coordinate, int length, int radius, int cell, List<Integer> adjacentCells, List<Integer> radiusForCells) {
+		if(x_coordinate + radius < length) {
+			// top-left
+			if(cell+1 - radius*length >= 0) {
+				adjacentCells.add(cell+1-radius*length);
+				radiusForCells.add(radius);
+			}
+		}
+	}
+
+	protected static void getDiagonalBottomLeftCells(int x_coordinate, int length, int numGrids, int radius, int cell, List<Integer> adjacentCells, List<Integer> radiusForCells) {
+		if(x_coordinate + radius < length) {
+			// bottom-left
+			if(cell-1 + radius*length < numGrids) {
+				adjacentCells.add(cell-1+radius*length);
+				radiusForCells.add(radius);
+			}
+		}
+	}
+
+	protected static void getDiagonalTopRightCells(int x_coordinate, int length, int radius, int cell, List<Integer> adjacentCells, List<Integer> radiusForCells) {
+		if(x_coordinate + radius < length) {
+			// top-right
+			if(cell+1 - radius*length >= 0) {
+				adjacentCells.add(cell+1-radius*length);
+				radiusForCells.add(radius);
+			}
+		}
+	}
+
+	protected static void getDiagonalBottomRightCells(int x_coordinate, int length, int numGrids, int radius, int cell, List<Integer> adjacentCells, List<Integer> radiusForCells) {
+		if(x_coordinate + radius < length) {
+			// bottom-right
+			if(cell+1 + radius*length < numGrids) {
+				adjacentCells.add(cell+1+radius*length);
+				radiusForCells.add(radius);
+			}
+		}
+	}
+
 	// return array of [x-coordinate, y-coordinate]
-	private int[] getCoordinatesOfCell(int cell) {
+	public static int[] getCoordinatesOfCell(int cell, int length) {
 		int x_position = cell % length;
-		int y_position = cell - length * (x_position-1);
+		int y_position = (int) Math.floor( (double) cell/length);
 		return new int[]{x_position, y_position};
 	}
 
