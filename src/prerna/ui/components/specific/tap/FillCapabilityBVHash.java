@@ -37,8 +37,9 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -50,7 +51,7 @@ public class FillCapabilityBVHash implements Runnable{
 	String query = null;
 	IEngine engine = null;
 	Hashtable<String, Object> BVhash = new Hashtable<String, Object>();
-	SesameJenaSelectWrapper wrapper;
+	ISelectWrapper wrapper;
 	Hashtable tempSelectHash = new Hashtable();
 	static final Logger logger = LogManager.getLogger(FillCapabilityBVHash.class.getName());
 	
@@ -74,11 +75,12 @@ public class FillCapabilityBVHash implements Runnable{
 		if (DIHelper.getInstance().getLocalProp(Constants.CAPABILITY_BUSINESS_VALUE)!=null) 
 			BVhash = (Hashtable<String, Object>) DIHelper.getInstance().getLocalProp(Constants.CAPABILITY_BUSINESS_VALUE);
 		
-		wrapper = new SesameJenaSelectWrapper();
-	
+		wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*wrapper = new SesameJenaSelectWrapper();
 		wrapper.setQuery(query);
 		wrapper.setEngine(engine);
-		wrapper.executeQuery();
+		wrapper.executeQuery();*/
 			
 		fillArrayLists();//fills arraylists with names and puts values in 5000x5000 matrix. Stores all in tempSelectHash
 			
@@ -115,18 +117,15 @@ public class FillCapabilityBVHash implements Runnable{
 			String[] variables = wrapper.getVariables();
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.BVnext();
+				ISelectStatement sjss = wrapper.next();
 				
 				while(sjss==null && wrapper.hasNext()) {
-					sjss=wrapper.BVnext();
+					sjss=wrapper.next();
 				}
 				//make key
 				if(count == 0){
-					
-					String vert1uri = sjss.getVar(names[0])+"";
-					String vert1type = Utility.getClassName(vert1uri);
-					String vert2uri = sjss.getVar(names[2])+"";
-					String vert2type = Utility.getClassName(vert2uri);
+					String vert1type = Utility.getClassName(sjss.getRawVar(names[0]).toString());
+					String vert2type = Utility.getClassName(sjss.getRawVar(names[2]).toString());
 					key = vert1type + "/" + vert2type;
 					String propOrRel = names[1]+"";
 					if(propOrRel.equals("prop")){
@@ -139,9 +138,9 @@ public class FillCapabilityBVHash implements Runnable{
 				count++;
 
 				//if it is an edge triple, everything gets added
-				String var0 = Utility.getInstanceName(sjss.getVar(names[0])+"");
-				String var1 = Utility.getInstanceName(sjss.getVar(names[1])+"");
-				String var2 = Utility.getInstanceName(sjss.getVar(names[2])+"");
+				String var0 = sjss.getVar(names[0]).toString();
+				String var1 = sjss.getVar(names[1]).toString();
+				String var2 = sjss.getVar(names[2]).toString();
 
 				if(key.endsWith("prop"))
 				{

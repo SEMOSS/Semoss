@@ -156,7 +156,7 @@ public class SystemBudgetPropInserter {
 			IEngine selectedEngine = (IEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
 			logger.info("Selecting repository " + repos[repoIndex]);
 			
-			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(selectedEngine, query);
+			wrapper = WrapperManager.getInstance().getSWrapper(selectedEngine, query);
 
 			//create the update wrapper, set the variables, and let it run
 			/*wrapper.setEngine(selectedEngine);
