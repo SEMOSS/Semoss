@@ -34,7 +34,7 @@ import java.util.Set;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.learning.unsupervised.ClusterUtilityMethods;
+import prerna.algorithm.learning.unsupervised.clustering.ClusterUtilityMethods;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.util.ArrayUtilityMethods;
 
