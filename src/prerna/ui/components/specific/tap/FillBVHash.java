@@ -36,6 +36,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaSelectStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
@@ -53,7 +54,7 @@ public class FillBVHash implements Runnable{
 	IEngine engine = null;
 	VertexFilterData filterData = new VertexFilterData();
 	Hashtable<String, Object> BVhash = new Hashtable<String, Object>();
-	SesameJenaSelectWrapper wrapper;
+	ISelectWrapper wrapper;
 	ArrayList <String []> list;
 	Hashtable tempSelectHash = new Hashtable();
 	static final Logger logger = LogManager.getLogger(FillBVHash.class.getName());
@@ -81,7 +82,7 @@ public class FillBVHash implements Runnable{
 			BVhash = (Hashtable<String, Object>) DIHelper.getInstance().getLocalProp(Constants.BUSINESS_VALUE);
 		logger.info("Graph PlaySheet " + query);
 		
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+		wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
 		
 		//wrapper = new SesameJenaSelectWrapper();
@@ -89,8 +90,8 @@ public class FillBVHash implements Runnable{
 	
 		/*wrapper.setQuery(query);
 		wrapper.setEngine(engine);
-		wrapper.executeQuery();
-		*/
+		wrapper.executeQuery();*/
+		
 		
 		fillArrayLists();//fills arraylists with names and puts values in 5000x5000 matrix. Stores all in tempSelectHash
 			
@@ -146,17 +147,19 @@ public class FillBVHash implements Runnable{
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.BVnext();
+				ISelectStatement sjss = wrapper.next();
 				
 				while(sjss==null && wrapper.hasNext()) {
-					sjss=wrapper.BVnext();
+					sjss=wrapper.next();
 				}
 				//make key
 				if(count == 0){
-					String vert1uri = sjss.getVar(names[0])+"";
+					String vert1type = Utility.getClassName(sjss.getRawVar(names[0]).toString());
+					String vert2type = Utility.getClassName(sjss.getRawVar(names[2]).toString());
+					/*String vert1uri = sjss.getVar(names[0])+"";
 					String vert1type = Utility.getClassName(vert1uri);
 					String vert2uri = sjss.getVar(names[2])+"";
-					String vert2type = Utility.getClassName(vert2uri);
+					String vert2type = Utility.getClassName(vert2uri);*/
 					key = vert1type + "/" + vert2type;
 					if(names.length>3){
 						if(names[3].contains("NETWORK")) key=key+"NETWORK";
@@ -164,12 +167,16 @@ public class FillBVHash implements Runnable{
 				}
 				count++;
 				//if it is an edge triple, everything gets added
-				String var0 = Utility.getInstanceName(sjss.getVar(names[0])+"");
+				String var0 = sjss.getVar(names[0]).toString();
+				String var2 = sjss.getVar(names[2]).toString().replaceAll("\"","");
+				
+/*				String var0 = Utility.getInstanceName(sjss.getVar(names[0])+"");
 				String var1 = Utility.getInstanceName(sjss.getVar(names[1])+"");
-				String var2 = Utility.getInstanceName(sjss.getVar(names[2])+"").replaceAll("\"", "");
+				String var2 = Utility.getInstanceName(sjss.getVar(names[2])+"").replaceAll("\"", "");*/
 				//if BP/Act, need to get the necessary properties associated with the BP
 				if(key.equals("BusinessProcess/Activity")&&(sjss.getVar(names[3]) instanceof String)){
-					String var3 = Utility.getInstanceName(sjss.getVar(names[3])+"");
+					//String var3 = Utility.getInstanceName(sjss.getVar(names[3])+"");
+					String var3 = sjss.getVar(names[3]).toString();
 					double[] propArray = bpPropHash.get(var3);
 					if (propArray != null){
 						if (!rowLabels.contains(var0))
@@ -223,7 +230,7 @@ public class FillBVHash implements Runnable{
 						colLabels.add(var2);
 					int rowLoc = rowLabels.indexOf(var0);
 					int colLoc = colLabels.indexOf(var2);
-					String fulfill = Utility.getInstanceName(sjss.getVar(names[3])+"");
+					String fulfill = sjss.getVar(names[3]).toString();
 					String vendorObject=var0+"!vendorObject!"+var2;
 					Double fulfillValue=options.get(fulfill);
 					Double fulfillCount=1.0;

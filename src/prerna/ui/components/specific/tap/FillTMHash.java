@@ -41,8 +41,6 @@ import org.apache.log4j.Logger;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.playsheets.GridPlaySheet;
@@ -55,10 +53,9 @@ import prerna.util.Utility;
 public class FillTMHash extends GridPlaySheet{
 
 	String query = null;
-	SesameJenaSelectWrapper sjsw = null;
 	IEngine engine = null;
 	public Hashtable<String, Object> TMhash = new Hashtable<String, Object>();
-	SesameJenaSelectWrapper wrapper;
+	ISelectWrapper wrapper;
 	ArrayList <String []> list;
 	GridFilterData gfd = new GridFilterData();
 	
@@ -164,13 +161,14 @@ public class FillTMHash extends GridPlaySheet{
 		}
 		logger.info("Filling TMhash " + query);
 		
-		wrapper = new SesameJenaSelectWrapper();
+		wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+		//wrapper = new SesameJenaSelectWrapper();
 		
 		list = new ArrayList();
 	
-		wrapper.setQuery(query);
+		/*wrapper.setQuery(query);
 		wrapper.setEngine(engine);
-		wrapper.executeQuery();
+		wrapper.executeQuery();*/
 		
 		//wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 		try {
@@ -227,21 +225,19 @@ public class FillTMHash extends GridPlaySheet{
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.BVnext();
+				ISelectStatement sjss = wrapper.next();
 				try{
-					var2 = Utility.getInstanceName(sjss.getVar(names[2])+"");
-					var3 = Utility.getInstanceName(sjss.getVar(names[3])+"");
-					var4 = Utility.getInstanceName(sjss.getVar(names[4])+"");
+					var2 = sjss.getVar(names[2]).toString();
+					var3 = sjss.getVar(names[3]).toString();
+					var4 = sjss.getVar(names[4]).toString();
 					if(constant.contains("_Tech_Maturity_Lifecycle"))
-						var5 = (String)sjss.getVar(names[5]);
+						var5 = sjss.getRawVar(names[5]).toString();
 					else
-						var5 = Utility.getInstanceName(sjss.getVar(names[5])+"");
+						var5 = sjss.getVar(names[5]).toString();
 					
 					if(count == 0){
-						String vert3uri = sjss.getVar(names[3])+"";
-						String vert3type = Utility.getClassName(vert3uri);
-						String vert4uri = sjss.getVar(names[4])+"";
-						String vert4type = Utility.getClassName(vert4uri);
+						String vert3type = Utility.getClassName(sjss.getRawVar(names[3]).toString());
+						String vert4type = Utility.getClassName(sjss.getRawVar(names[4]).toString());
 						if (!(vert3type==null) && !(vert4type==null)) key = vert3type + "/" + vert4type;
 						else key = var2;
 					}
@@ -286,7 +282,7 @@ public class FillTMHash extends GridPlaySheet{
 		try {
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss = wrapper.BVnext();
+				ISelectStatement sjss = wrapper.next();
 				String key = null;
 				Double vert3double=0.0;
 				Double vert4double=0.0;

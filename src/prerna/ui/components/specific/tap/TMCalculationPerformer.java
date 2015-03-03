@@ -49,14 +49,11 @@ import prerna.algorithm.api.IAlgorithm;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 /**
  * Calculates necessary values for TM calculations.
@@ -270,18 +267,16 @@ public class TMCalculationPerformer implements IAlgorithm{
 	 * Populates fulfillment values based on tech standards.
 	 */
 	private boolean prepareTechStandards(){
-		SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("Standards");
-
 
 		if(engine!=null)
 		{
 			String queryCounter = "SELECT DISTINCT ?StandardIdentifier WHERE {{?StandardIdentifier <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TechStandardIdentifier> ;}}";
 			String query = "SELECT DISTINCT ?System ?StandardIdentifier WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?PPI <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/PPI> ;} {?MapsTo <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/MapsTo>;} {?PPI ?MapsTo ?System.}{?StandardIdentifier <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TechStandardIdentifier> ;} {?UsedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/UsedBy>;}{?PPI <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/PPI> ;} {?StandardIdentifier ?UsedBy ?PPI.}}";
-			//ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, queryCounter);
-			wrapper.setQuery(queryCounter);
+			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, queryCounter);
+			/*wrapper.setQuery(queryCounter);
 			wrapper.setEngine(engine);
-			wrapper.executeQuery();
+			wrapper.executeQuery();*/
 			int numStandards=0;
 			String[] names = wrapper.getVariables();
 	
@@ -292,23 +287,16 @@ public class TMCalculationPerformer implements IAlgorithm{
 			}
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss= wrapper.next();
+				ISelectStatement sjss= wrapper.next();
 				numStandards++;
 			}
 			
-			
-			wrapper = new SesameJenaSelectWrapper();
-			wrapper.setQuery(query);
-			wrapper.setEngine(engine);
-			wrapper.executeQuery();
-			
-			
-			//wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+			wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
 			names = wrapper.getVariables();
 			while(wrapper.hasNext()) {
-				SesameJenaSelectStatement sjss = wrapper.BVnext();
-				String key = (String) Utility.getInstanceName(sjss.getVar(names[0])+""); 
+				ISelectStatement sjss = wrapper.next();
+				String key = sjss.getVar(names[0]).toString(); 
 				Double counter = 1.0;
 				if (systemCount.containsKey(key))
 					counter += systemCount.get(key);

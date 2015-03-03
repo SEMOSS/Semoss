@@ -37,8 +37,6 @@ import org.apache.log4j.Logger;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.DIHelper;
@@ -60,19 +58,19 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 
 		logger.info("PROCESSING QUERY: " + queryString);
 		
-		//ISelectWrapper sjsw = WrapperManager.getInstance().getSWrapper(engine, queryString);
+		ISelectWrapper sjsw = WrapperManager.getInstance().getSWrapper(engine, queryString);
 		
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+		/*SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
 		//run the query against the engine provided
 		sjsw.setEngine(engine);
 		sjsw.setQuery(queryString);
-		sjsw.executeQuery();
+		sjsw.executeQuery();*/
 		
 		names = sjsw.getVariables();
 
 		while(sjsw.hasNext())
 		{
-			SesameJenaSelectStatement sjss = sjsw.next();
+			ISelectStatement sjss = sjsw.next();
 
 			String sys = (String)sjss.getVar(names[0]);
 			String ver = (String)sjss.getVar(names[1]);
@@ -105,17 +103,13 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 		try{
 			IEngine tapCostEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
 			String tapCostQuery = "SELECT DISTINCT ?System ?GLTag (max(coalesce(?FY15,0)) as ?fy15) WHERE { { {?SystemBudgetGLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemBudgetGLItem> ;} {?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;}  {?GLTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag> ;}{?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;} {?FYTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag> ;} {?System ?Has ?SystemBudgetGLItem}{?SystemBudgetGLItem ?TaggedBy ?GLTag}{?SystemBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?Budget ;} {?SystemBudgetGLItem ?OccursIn ?FYTag} {?OccursIn <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OccursIn>;} BIND(if(?FYTag = <http://health.mil/ontologies/Concept/FYTag/FY15>, ?Budget,0) as ?FY15)} UNION {{?SystemServiceBudgetGLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemServiceBudgetGLItem> ;} {?SystemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService> ;}{?ConsistsOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/ConsistsOf>;} {?System ?ConsistsOf ?SystemService}{?Has <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Has>;}  {?GLTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag> ;}{?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;} {?FYTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag> ;} {?SystemService ?Has ?SystemServiceBudgetGLItem}{?SystemServiceBudgetGLItem ?TaggedBy ?GLTag}{?SystemServiceBudgetGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?Budget ;} {?SystemServiceBudgetGLItem ?OccursIn ?FYTag} {?OccursIn <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OccursIn>;} BIND(if(?FYTag = <http://health.mil/ontologies/Concept/FYTag/FY15>, ?Budget,0) as ?FY15) } }GROUP BY ?System ?GLTag BINDINGS ?GLTag {(<http://health.mil/ontologies/Concept/GLTag/SW_Licen>) (<http://health.mil/ontologies/Concept/GLTag/HW>)}";
-			sjsw = new SesameJenaSelectWrapper();
-			//run the query against the engine provided
-			sjsw.setEngine(tapCostEngine);
-			sjsw.setQuery(tapCostQuery);
-			sjsw.executeQuery();
+			sjsw = WrapperManager.getInstance().getSWrapper(tapCostEngine, tapCostQuery);
 			
 			String[] names = sjsw.getVariables();
 
 			while(sjsw.hasNext())
 			{
-				SesameJenaSelectStatement sjss = sjsw.next();
+				ISelectStatement sjss = sjsw.next();
 
 				String sys = (String)sjss.getVar(names[0]);
 				String glTag = (String)sjss.getVar(names[1]);

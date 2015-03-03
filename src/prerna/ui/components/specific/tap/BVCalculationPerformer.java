@@ -27,34 +27,21 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
-import java.beans.PropertyVetoException;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.StringTokenizer;
 
-import javax.swing.JDesktopPane;
-import javax.swing.JInternalFrame;
 import javax.swing.JList;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.poi.hssf.usermodel.HSSFCell;
-import org.apache.poi.hssf.usermodel.HSSFRow;
-import org.apache.poi.hssf.usermodel.HSSFSheet;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 
 import prerna.algorithm.api.IAlgorithm;
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.GridFilterData;
-import prerna.ui.components.GridTableModel;
-import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.util.Constants;
@@ -125,20 +112,21 @@ public class BVCalculationPerformer implements IAlgorithm,Runnable{
 			businessValues = (ArrayList<Double>) BVHash.get(type+Constants.BUSINESS_VALUE+Constants.CALC_MATRIX);
 			businessNames = (ArrayList<String>) BVHash.get(type+Constants.BUSINESS_VALUE+Constants.CALC_NAMES_LIST);
 
-			
-			SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
+
+			//SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 
 			String query = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}}";
-
-			wrapper.setQuery(query);
-			wrapper.setEngine(engine);
-			wrapper.executeQuery();
+			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+			
+//			wrapper.setQuery(query);
+//			wrapper.setEngine(engine);
+//			wrapper.executeQuery();
 			String[] names = wrapper.getVariables();
 
 			while(wrapper.hasNext())
 			{
-				SesameJenaSelectStatement sjss= wrapper.next();
+				ISelectStatement sjss= wrapper.next();
 				String system = (String)sjss.getVar(names[0]);
 				if(!businessNames.contains(system))
 				{
