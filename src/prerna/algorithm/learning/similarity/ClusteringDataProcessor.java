@@ -290,8 +290,7 @@ public class ClusteringDataProcessor {
 		int numCols = numericalPropNames.length;
 		numericalBinMatrix = new String[numRows][numCols];
 		numericalEntropy = new double[numCols];
-		AlgorithmDataFormatter formatter = new AlgorithmDataFormatter();
-		Object[][] data = formatter.convertColumnValuesToRows(numericalMatrix);
+		Object[][] data = AlgorithmDataFormatter.convertColumnValuesToRows(numericalMatrix);
 		int size = data.length;
 		numericalBinOrderingMatrix = new String[size][];
 		for(int i = 0; i < size; i++) {

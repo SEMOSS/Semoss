@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.algorithm.learning.unsupervised;
+package prerna.algorithm.learning.unsupervised.clustering;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,7 +49,6 @@ public class PartitionedClusteringAlgorithm extends ClusteringAlgorithm {
 	protected ArrayList<ArrayList<Hashtable<String, Integer>>> initialClusterNumberBinMatrix;
 
 	private int partitionSize;
-	private int straglers;
 	private double[] numericalEntropyArr;
 	private double[] categoricalEntropyArr;
 
