@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.algorithm.learning.unsupervised;
+package prerna.algorithm.learning.unsupervised.clustering;
 
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;

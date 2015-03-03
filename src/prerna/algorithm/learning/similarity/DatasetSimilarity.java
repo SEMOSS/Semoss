@@ -30,7 +30,7 @@ package prerna.algorithm.learning.similarity;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
-import prerna.algorithm.learning.unsupervised.ClusterUtilityMethods;
+import prerna.algorithm.learning.unsupervised.clustering.ClusterUtilityMethods;
 
 public class DatasetSimilarity {
 
