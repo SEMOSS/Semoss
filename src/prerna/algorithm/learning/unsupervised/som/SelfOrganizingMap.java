@@ -12,6 +12,8 @@ import prerna.algorithm.learning.similarity.ClusteringDataProcessor;
 public class SelfOrganizingMap {
 
 	private SelfOrganizingMapGrid grid;
+	private int length;
+	private int height;
 	private int numGrids;
 	
 	private ClusterCenterNumericalMethods cnm;
@@ -43,7 +45,6 @@ public class SelfOrganizingMap {
 		this.grid = new SelfOrganizingMapGrid();
 		this.numInstances = queryData.size();
 		setGridSize(numInstances);
-		
 		
 		r0 = (double) grid.getLength() / 2;
 		tau = (double) maxIt / r0;
@@ -163,8 +164,8 @@ public class SelfOrganizingMap {
 	
 	public void setGridSize(int numInstances) {
 		double x = Math.sqrt((double) numInstances / 6);
-		int height = (int) Math.round(2*x);
-		int length = (int) Math.round(3*x);
+		height = (int) Math.round(2*x);
+		length = (int) Math.round(3*x);
 		
 		this.numGrids = height*length;
 		grid.setHeight(height);
@@ -185,6 +186,22 @@ public class SelfOrganizingMap {
 
 	public void setGrid(SelfOrganizingMapGrid grid) {
 		this.grid = grid;
+	}
+
+	public int getLength() {
+		return length;
+	}
+
+	public void setLength(int length) {
+		this.length = length;
+	}
+
+	public int getHeight() {
+		return height;
+	}
+
+	public void setHeight(int height) {
+		this.height = height;
 	}
 
 	public int getNumGrids() {
@@ -311,5 +328,4 @@ public class SelfOrganizingMap {
 	public double getL0() {
 		return l0;
 	}
-	
 }
