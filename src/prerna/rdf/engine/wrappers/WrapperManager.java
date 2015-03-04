@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.rdf.engine.wrappers;
 
+import java.util.Arrays;
+
 import prerna.rdf.engine.api.IConstructWrapper;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.api.IEngineWrapper;
@@ -91,7 +93,7 @@ public class WrapperManager {
 			returnWrapper.execute();
 			//ISelectWrapper doh = (ISelectWrapper)returnWrapper;
 			returnWrapper.getVariables();
-			System.out.println("Printing variables " + returnWrapper.getVariables());
+			System.out.println("Printing variables " + Arrays.toString(returnWrapper.getVariables()));
 			
 			return returnWrapper;
 	}
