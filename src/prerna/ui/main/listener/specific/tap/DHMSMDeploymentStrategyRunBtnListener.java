@@ -48,6 +48,9 @@ import javax.swing.JToggleButton;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.internal.StringMap;
+import com.google.gson.reflect.TypeToken;
 import com.teamdev.jxbrowser.chromium.JSValue;
 
 import prerna.ui.components.GridScrollPane;
@@ -71,6 +74,7 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 	private Hashtable<String, List<String>> regionWaveHash;
 	private ArrayList<String> waveOrder;
 	private HashMap<String, String[]> waveStartEndDate;
+	private Hashtable webValuesHash;
 
 	/**
 	 * Method actionPerformed.
@@ -281,19 +285,34 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		DHMSMDeploymentStrategyProcessor deploymentStrategyProcessor = new DHMSMDeploymentStrategyProcessor(regionWaveHash, waveOrder, waveStartEndDate, consoleArea);
 		
 		deploymentStrategyProcessor.setRegionsList(ps.getRegionsList());
-
+		
+		//grab the original values for the deployment schedule
+		Hashtable<String, Integer> oBeginQuarterFieldRegionList = ps.getqBeginDefaultHash();
+		Hashtable<String, Integer> oBeginYearFieldRegionList = ps.getyBeginDefaultHash();
+		Hashtable<String, Integer> oEndQuarterFieldRegionList = ps.getqEndDefaultHash();
+		Hashtable<String, Integer> oEndYearFieldRegionList = ps.getyEndDefaultHash();
+		
+		Hashtable defaultValuesHash = new Hashtable();
+		defaultValuesHash.put("startQuarter", oBeginQuarterFieldRegionList);
+		defaultValuesHash.put("startYear", oBeginYearFieldRegionList);
+		defaultValuesHash.put("endQuarter", oEndQuarterFieldRegionList);
+		defaultValuesHash.put("endYear", oEndYearFieldRegionList);
+		defaultValuesHash.put("regions", ps.getRegionsList());
+		
+		aggregateDataHash.put("defaultScheduleData", defaultValuesHash);
+		
 		if(defaultValuesSelected) {
 			//grab the original values for deployment schedule
-			int oBeginQuarter = ps.getqBeginDefault(); //%%% need to pass in defaults
-			int oBeginYear = ps.getyBeginDefault() - 2000; //%%% need to pass in defaults
-			int oEndQuarter = ps.getqEndDefault(); //%%% need to pass in defaults
-			int oEndYear = ps.getyEndDefault() - 2000; //%%% need to pass in defaults
+			int oBeginQuarter = ps.getqBeginDefault();
+			int oBeginYear = ps.getyBeginDefault() - 2000;
+			int oEndQuarter = ps.getqEndDefault();
+			int oEndYear = ps.getyEndDefault() - 2000;
 
 			//pull from begin / end and fill the regions accordingly
-			int beginQuarter = getInteger(ps.getQBeginField(), ps.getQBeginField().getName()); //%%% need to pass in defaults
-			int beginYear = getInteger(ps.getYBeginField(), ps.getYBeginField().getName()); //%%% need to pass in defaults
-			int endQuarter = getInteger(ps.getQEndField(), ps.getQEndField().getName()); //%%% need to pass in defaults
-			int endYear = getInteger(ps.getYEndField(), ps.getYEndField().getName()); //%%% need to pass in defaults
+			int beginQuarter = getInteger(ps.getQBeginField(), ps.getQBeginField().getName());
+			int beginYear = getInteger(ps.getYBeginField(), ps.getYBeginField().getName());
+			int endQuarter = getInteger(ps.getQEndField(), ps.getQEndField().getName());
+			int endYear = getInteger(ps.getYEndField(), ps.getYEndField().getName());
 			if(beginQuarter<0 || beginYear<0 || endQuarter<0 || endYear<0) {
 				Utility.showError("Cannot read fields. Please check the Console tab for more information");
 				return aggregateDataHash;
@@ -311,82 +330,29 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 				deploymentStrategyProcessor.runDefaultSchedule(beginQuarter, beginYear, endQuarter, endYear);
 			}
 		} else {
-			//grab the original values for the deployment schedule
-			//%%% need to pass in defaults
-			Hashtable<String, Integer> oBeginQuarterFieldRegionList = ps.getqBeginDefaultHash();
-			Hashtable<String, Integer> oBeginYearFieldRegionList = ps.getyBeginDefaultHash();
-			Hashtable<String, Integer> oEndQuarterFieldRegionList = ps.getqEndDefaultHash();
-			Hashtable<String, Integer> oEndYearFieldRegionList = ps.getyEndDefaultHash();
-			
-			//pull from region list
-			//check if region textfields are valid
-			//add them to list of regions
-			//%%% need to pass in defaults
-			Hashtable<String,JTextField> beginQuarterFieldRegionList = ps.getQBeginFieldHash();
-			Hashtable<String,JTextField> beginYearFieldRegionList = ps.getYBeginFieldHash();
-			Hashtable<String,JTextField> endQuarterFieldRegionList = ps.getQEndFieldHash();
-			Hashtable<String,JTextField> endYearFieldRegionList = ps.getYEndFieldHash();
-			
-			//if no changes to schedule, run default values
-			//check default values against new web values
 			ArrayList<String> regionsList = ps.getRegionsList();
-			boolean noChange = true;
-			for(int i = 0; i < regionsList.size(); i++) {
+			//run processing with new web values
+			for(int i=0;i<regionsList.size();i++) {
 				String region = regionsList.get(i);
-				int oBeginQuarter = oBeginQuarterFieldRegionList.get(region);
-				int oBeginYear = oBeginYearFieldRegionList.get(region) - 2000;
-				int oEndQuarter = oEndQuarterFieldRegionList.get(region);
-				int oEndYear = oEndYearFieldRegionList.get(region) - 2000;
-				
-				int beginQuarter = getInteger(beginQuarterFieldRegionList.get(region), beginQuarterFieldRegionList.get(region).getName());
-				int beginYear = getInteger(beginYearFieldRegionList.get(region), beginYearFieldRegionList.get(region).getName());
-				int endQuarter = getInteger(endQuarterFieldRegionList.get(region), endQuarterFieldRegionList.get(region).getName());
-				int endYear = getInteger(endYearFieldRegionList.get(region), endYearFieldRegionList.get(region).getName());
-				
+				Gson gson = new Gson();
+		        Hashtable<String, Double> regionHash = gson.fromJson(gson.toJson(webValuesHash.get(region)), new TypeToken<Hashtable<String, Double>>() {}.getType());
+				int beginQuarter = ((Double) regionHash.get("startQuarter")).intValue();
+				int beginYear = ((Double) regionHash.get("startYear")).intValue() - 2000;
+				int endQuarter = ((Double) regionHash.get("endQuarter")).intValue();
+				int endYear = ((Double) regionHash.get("endYear")).intValue() - 2000;
 				if(beginQuarter<0 || beginYear<0 || endQuarter<0 || endYear<0) {
 					Utility.showError("Cannot read fields. Please check the Console tab for more information");
 					return aggregateDataHash;
 				}
-				if(!validQuarter(beginQuarter, beginQuarterFieldRegionList.get(region).getName()) || !validQuarter(endQuarter, endQuarterFieldRegionList.get(region).getName()) || !validYear(beginYear, endQuarterFieldRegionList.get(region).getName())  || !validYear(endYear, endYearFieldRegionList.get(region).getName()) ) {
-					Utility.showError("Cannot read fields. Please check the Console tab for more information");
-					return aggregateDataHash;
-				}
-				
-				if(oBeginQuarter == beginQuarter && oBeginYear == beginYear && oEndQuarter == endQuarter && oEndYear == endYear) {
-					// do nothing
-				} else {
-					noChange = false;
-					break;
-				}
+				deploymentStrategyProcessor.runRegionTimesSchedule(beginQuarter, beginYear, endQuarter, endYear, region);
 			}
 			
-			if(noChange) {
-				LOGGER.info("Using original deployment schedule");
-			} else {
-				//run processing with new web values
-				for(int i=0;i<regionsList.size();i++) {
-					String region = regionsList.get(i);
-					int beginQuarter = getInteger(beginQuarterFieldRegionList.get(region), beginQuarterFieldRegionList.get(region).getName());
-					int beginYear = getInteger(beginYearFieldRegionList.get(region), beginYearFieldRegionList.get(region).getName());
-					int endQuarter = getInteger(endQuarterFieldRegionList.get(region), endQuarterFieldRegionList.get(region).getName());
-					int endYear = getInteger(endYearFieldRegionList.get(region), endYearFieldRegionList.get(region).getName());
-					if(beginQuarter<0 || beginYear<0 || endQuarter<0 || endYear<0) {
-						Utility.showError("Cannot read fields. Please check the Console tab for more information");
-						return aggregateDataHash;
-					}
-					if(!validQuarter(beginQuarter, beginQuarterFieldRegionList.get(region).getName()) || !validQuarter(endQuarter, endQuarterFieldRegionList.get(region).getName()) || !validYear(beginYear, endQuarterFieldRegionList.get(region).getName())  || !validYear(endYear, endYearFieldRegionList.get(region).getName()) ) {
-						Utility.showError("Cannot read fields. Please check the Console tab for more information");
-						return aggregateDataHash;
-					}
-
-					deploymentStrategyProcessor.runRegionTimesSchedule(beginQuarter, beginYear, endQuarter, endYear, region);
-				}
-				
-				String region = regionsList.get(regionsList.size() - 1);
-				int endYear = getInteger(endYearFieldRegionList.get(region), endYearFieldRegionList.get(region).getName());
-				int endQuarter = getInteger(endQuarterFieldRegionList.get(region), endQuarterFieldRegionList.get(region).getName());
-				deploymentStrategyProcessor.updateRegionTimesSchedule(endYear, endQuarter);
-			}
+			String region = regionsList.get(regionsList.size() - 1);
+			Gson gson = new Gson();
+	        Hashtable<String, Double> regionHash = gson.fromJson(gson.toJson(webValuesHash.get(region)), new TypeToken<Hashtable<String, Double>>() {}.getType());
+			int endYear = ((Double) regionHash.get("endYear")).intValue() - 2000;
+			int endQuarter = ((Double) regionHash.get("endQuarter")).intValue();
+			deploymentStrategyProcessor.updateRegionTimesSchedule(endYear, endQuarter);
 		}
 
 		ArrayList<Object[]> systemList = new ArrayList<Object[]>();
@@ -416,9 +382,28 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 			processor.processSystemData();
 			systemList = processor.getSystemOutputList();	
 			sysNames = processor.getSysNames();
+			//format the data for web
+			ArrayList<Hashtable> systemListArray = new ArrayList<Hashtable>();
+			ArrayList<Hashtable> sysNamesArray = new ArrayList<Hashtable>();
+			for (String name : sysNames) {
+				Hashtable sysNamesHash = new Hashtable();
+				Hashtable filter = new Hashtable();
+				filter.put(name, "");
+				sysNamesHash.put("filteredTitle", name);
+				sysNamesHash.put("title", name);
+				sysNamesHash.put("filter", filter);
+				sysNamesArray.add(sysNamesHash);
+			}
+			for (Object[] row : systemList) {
+				Hashtable sysListHash = new Hashtable();
+				for (int i = 0; i < row.length; i++) {
+					sysListHash.put(sysNames[i], row[i]);
+				}
+				systemListArray.add(sysListHash);
+			}
 			//*****Send Data to system Hash
-			systemAnalysisHash.put("sysNames", sysNames);
-			systemAnalysisHash.put("systemList", systemList);
+			systemAnalysisHash.put("headers", sysNamesArray);
+			systemAnalysisHash.put("data", systemListArray);
 		}
 		//TODO: figure out why what obj is being changed causing me to run twice to make sure numbers match
 		success = true;
@@ -437,9 +422,28 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 			processor.processSiteData();
 			siteList = processor.getSiteOutputList();	
 			siteNames = processor.getSiteNames();
+			//format the data for web
+			ArrayList<Hashtable> siteListArray = new ArrayList<Hashtable>();
+			ArrayList<Hashtable> siteNamesArray = new ArrayList<Hashtable>();
+			for (String name : siteNames) {
+				Hashtable siteNamesHash = new Hashtable();
+				Hashtable filter = new Hashtable();
+				filter.put(name, "");
+				siteNamesHash.put("filteredTitle", name);
+				siteNamesHash.put("title", name);
+				siteNamesHash.put("filter", filter);
+				siteNamesArray.add(siteNamesHash);
+			}
+			for (Object[] row : siteList) {
+				Hashtable siteListHash = new Hashtable();
+				for (int i = 0; i < row.length; i++) {
+					siteListHash.put(siteNames[i], row[i]);
+				}
+				siteListArray.add(siteListHash);
+			}
 			//*****Send Data to site Hash
-			siteAnalysisHash.put("siteNames", siteNames);
-			siteAnalysisHash.put("siteList", siteList);
+			siteAnalysisHash.put("headers", siteNamesArray);
+			siteAnalysisHash.put("data", siteListArray);
 		}
 				
 		//getting data for the deployment map
@@ -463,6 +467,8 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		aggregateDataHash.put("mapData", allData);
 		aggregateDataHash.put("systemAnalysisData", systemAnalysisHash);
 		aggregateDataHash.put("siteAnalysisData", siteAnalysisHash);
+		//get default schedule config
+		//aggregateDataHash.put("defaultSchedule", deploymentStrategyProcessor.getWaveStartEndHash());
 		
 		return aggregateDataHash;
 	}
@@ -572,5 +578,9 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 
 	public HashMap<String, String[]> setWaveStartEndDate() {
 		return waveStartEndDate;
+	}
+
+	public void setWebValuesHash(Hashtable webValuesHash) {
+		this.webValuesHash = webValuesHash;		
 	}
 }

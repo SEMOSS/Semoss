@@ -804,14 +804,45 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		runDeploymentStrategyListener.setPlaySheet(this);
 		dataHash = runDeploymentStrategyListener.generateJSONData(true);
 		
-		//These will be part of the new service
-		/*dataHash.put("regionOrder", regionOrder);
-		dataHash.put("regionWaveHash", regionWaveHash);
-		dataHash.put("waveOrder", waveOrder);
-		dataHash.put("waveStartEndDate", waveStartEndDate);
-		dataHash.put("waveStartEndDate", regionStartEndDate);*/
 		if (dataHash != null)
 			returnHash.put("data", dataHash);
 		return returnHash;
 	}
+	
+	@Override
+	public Hashtable registerControlPanelClick(Hashtable webDataHash) {
+		Hashtable returnHash = (Hashtable) super.getData();
+		Hashtable dataHash = new Hashtable();
+		//query and set the default playsheet values
+		queryRegions();
+		if(regionOrder.isEmpty()) {
+			Utility.showError("Cannot find regions in TAP Site");
+		}
+		//select by region panel
+		regionTimePanel = new JPanel();
+		qBeginField = new JTextField();
+		yBeginField = new JTextField();
+		qEndField = new JTextField();
+		yEndField = new JTextField();
+		qBeginFieldHash = new Hashtable<String,JTextField>();
+		yBeginFieldHash = new Hashtable<String,JTextField>();
+		qEndFieldHash = new Hashtable<String,JTextField>();
+		yEndFieldHash = new Hashtable<String,JTextField>();
+		for(String region : regionOrder) {
+			addRegion(region);
+		}
+		setDefaults();
+		
+		DHMSMDeploymentStrategyRunBtnListener runDeploymentStrategyListener = new DHMSMDeploymentStrategyRunBtnListener();
+		runDeploymentStrategyListener.setWebValuesHash(webDataHash);
+		runDeploymentStrategyListener.setRegionWaveHash(regionWaveHash);
+		runDeploymentStrategyListener.setWaveOrder(waveOrder);
+		runDeploymentStrategyListener.setWaveStartEndDate(waveStartEndDate);
+		runDeploymentStrategyListener.setPlaySheet(this);
+		dataHash = runDeploymentStrategyListener.generateJSONData(false);
+		
+		if (dataHash != null)
+			returnHash.put("data", dataHash);
+		return returnHash;		
+	};
 }
