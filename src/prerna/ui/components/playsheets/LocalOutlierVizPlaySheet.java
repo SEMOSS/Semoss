@@ -102,7 +102,7 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet{
 			if(Double.isNaN(lop[i])) {
 				item.add("NaN");
 			} else {
-				item.add(String.format("%.0f%%",lop[i]*100));
+				item.add(lop[i]);
 			}
 
 			for(j = 0; j<numCols; j++)
