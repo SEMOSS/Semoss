@@ -82,7 +82,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showOutlier(false);
 			playSheet.showNumericalCorrelation(false);
 			playSheet.showAssociationLearning(true);
-		} else if(selection.equals("Matrix Regression")) {
+		} else if(selection.equals("Linear Regression")) {
 			playSheet.showClassify(false);
 			playSheet.showCluster(false);
 			playSheet.showOutlier(false);

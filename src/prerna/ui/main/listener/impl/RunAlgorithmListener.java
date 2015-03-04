@@ -321,7 +321,7 @@ public class RunAlgorithmListener extends AbstractListener {
 			((WekaAprioriPlaySheet)newPlaySheet).setConfPer(confPer);
 			((WekaAprioriPlaySheet)newPlaySheet).setMinSupport(minSupport);
 			((WekaAprioriPlaySheet)newPlaySheet).setMaxSupport(maxSupport);
-		} else if(algorithm.equals("Matrix Regression")) {
+		} else if(algorithm.equals("Linear Regression")) {
 			//column to use as dependent variable
 			String depVar = matrixDepVarComboBox.getSelectedItem() + "";
 			int depVarIndex = filteredNames.length-1;
