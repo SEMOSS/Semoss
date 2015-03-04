@@ -187,8 +187,8 @@ public abstract class AbstractEngine implements IEngine {
 	
 	protected static final String typeSparql = "SELECT ?insight WHERE {"
 			+ "{?param <" + "PARAM:TYPE" + "> <@type@>}"
-			+ "{?insight <" + "INSIGHT:PARAM" + "> ?param;}"
-			+ "{?insightURI <" + labelBaseURI + "> ?insight.}" + "}";
+			+ "{?insightUri <" + "INSIGHT:PARAM" + "> ?param;}"
+			+ "{?insightUri <" + labelBaseURI + "> ?insight.}" + "}";
 
 	protected static final String insight4TagSparql = "SELECT ?insight WHERE {"
 			+ "{?insightURI <" + tagBaseURI + "> ?tag;}"
