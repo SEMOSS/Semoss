@@ -5,12 +5,12 @@ import java.util.ArrayList;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import cern.colt.Arrays;
 import prerna.algorithm.learning.unsupervised.som.SelfOrganizingMap;
 import prerna.algorithm.learning.unsupervised.som.SelfOrganizingMapGridViewer;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.util.Utility;
+import cern.colt.Arrays;
 
 public class SelfOrganizingMapPlaySheet extends GridPlaySheet{
 	
