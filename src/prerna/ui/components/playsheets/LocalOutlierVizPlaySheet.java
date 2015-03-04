@@ -64,8 +64,8 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet{
 	public void createData() {
 		if(list==null)
 			super.createData();
-		runAlgorithm();
-		dataHash = processQueryData();
+		else
+			dataHash = processQueryData();
 	}
 	
 	public void runAlgorithm() {
@@ -82,7 +82,7 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet{
 	
 	@Override
 	public Hashtable processQueryData() {
-
+		runAlgorithm();
 		int i;
 		int j;
 		int numInstances = list.size();
@@ -152,5 +152,10 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet{
 	public void setKNeighbors(int k) {
 		this.k = k;
 	}
-
+	@Override
+	public void setQuery(String query) {
+		String[] querySplit = query.split("\\+\\+\\+");
+		this.query = querySplit[0];
+		this.k = Integer.parseInt(querySplit[1].trim());
+	}
 }
