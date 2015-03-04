@@ -9,15 +9,18 @@
     <link rel="stylesheet" href="css/jquery-ui.min.css">
     <link rel="stylesheet" type="text/css" href="css/style.css">
     <script src="lib/jquery/jquery-1.8.3.min.js"></script>
-    <script src="lib/jquery/jquery.min.js"></script>
+    <!-- // <script src="lib/jquery/jquery.min.js"></script> -->
     <script src="lib/jquery/jquery-ui.min.js"></script>
     <script src="lib/d3.v3.js"></script>
     <script src="lib/tooltip.js"></script>
     <script src="lib/d3.min.js"></script>
     <script src="lib/angular/angular.js"></script>
     <script src="lib/underscore.js"></script>
+    <script src="lib/lodash.min.js"></script>
+    <script src="lib/lodash.math.js"></script>
     <!-- // <script src="js/directives/scatter-plot-matrix.js"></script> -->
     <script src="data/scatterdata.js"></script>
+    <script src="data/scatterdatanew.js"></script>
 <style>
 body, html {
   margin: 0;
@@ -106,7 +109,7 @@ circle.hidden {
 
  /*** Clean Data **/
     dirtyData = angular.copy(jsonData)
-    // console.log(dirtyData);
+    console.log(dirtyData);
 
     for (var i in dirtyData.dataSeries) {
                     var cleanedObjectHolder = {}
@@ -117,18 +120,54 @@ circle.hidden {
                                 groupArray.push(dirtyData.dataSeries[i][j]);
                             } 
                         } else {
-                            cleanedObjectHolder[dirtyData.names[j]] = dirtyData.dataSeries[i][j]
+                            cleanedObjectHolder[dirtyData.names[j-1]] = dirtyData.dataSeries[i][j]
                         }
                     }
                     cleanedData.push(cleanedObjectHolder)
                 }
 
-                // console.log(cleanedData)
+                console.log(cleanedData)
+                console.log(dirtyData)
+                console.log(cleanedObjectHolder)
 
                 groupArray = _.uniq(groupArray);
                 cleanedEquations = angular.copy(dirtyData.equations);
-                cleanedNames = angular.copy(dirtyData.names)
-                oneRow = angular.copy(dirtyData["one-row"])
+                cleanedNames = _.uniq(_.xor(_.keys(cleanedData[0]), cleanedData.names));
+                oneRow = angular.copy(dirtyData["one-row"]);
+                // oneRow = true;
+                specificData = angular.copy(dirtyData);
+                var headers = dirtyData.names;
+
+                if (oneRow) {
+                    cleanedEquations = [];
+                    for (i = 0; i < headers.length -1 ; i++) {
+                        var equationObject = {
+                            x: headers[i],
+                            y: headers[headers.length - 1],
+                            m: specificData.coefficients[i],
+                            b: specificData.coefficients[specificData.coefficients.length - 1],
+                            shifts: specificData.shifts[i],
+                            correlation: specificData.correlations[i]
+                        }
+                        cleanedEquations.push(equationObject);
+                    }
+                } else{
+
+                cleanedEquations = cross(cleanedNames, cleanedNames);
+                        for (k in cleanedEquations) {
+                            if (!_.isUndefined(specificData.correlations[cleanedNames.length - 1 - cleanedEquations[k].i])) {
+                                if (!_.isNaN(+specificData.correlations[cleanedNames.length - 1 - cleanedEquations[k].i][cleanedNames.length - 1 - cleanedEquations[k].j])) {
+                                    cleanedEquations[k]['correlation'] = +specificData.correlations[cleanedNames.length - 1 - cleanedEquations[k].i][cleanedNames.length - 1 - cleanedEquations[k].j];
+                                } else {
+                                    cleanedEquations[k]['correlation'] = undefined;
+                                }
+                            } else {
+                                cleanedEquations[k]['correlation'] = undefined;
+                            }
+                        }
+                    }
+                        // }};
+
 
 
                 keys = d3.keys(cleanedData[0]).filter(function(d) {
@@ -285,7 +324,12 @@ circle.hidden {
                         .attr("y", padding / 2)
                         .append("xhtml:div")
                         .html(function(d) {
-                            return "<div style='width:" + (size - padding) + "px;height:" + (size - padding) + "px'><span>" + d.x + "</span></div>";
+                            if (d.x === "undefined"){
+                                var title = "Domestic Revenue";
+                            }else {
+                                var title = d.x;
+                            };
+                            return "<div style='width:" + (size - padding) + "px;height:" + (size - padding) + "px'><span>" + title + "</span></div>";
                         });
 
                     //Brushing for non-Diagonals
@@ -433,13 +477,14 @@ circle.hidden {
                                 return color(d.group);
                             })
                             .style("stroke", "#aaa");
-
+                    if (oneRow){
                         celltop.append("path")
                             .attr("d", lineGenerator(getPoints(p)))
                             .attr("id", "regressionline")
                             .attr("stroke", "black")
                             .attr("stroke-width", "2px")
                             .style("opacity", 0.8);
+
 
                         celltop.append("path")
                             .attr("d", areaGenerator(getPoints(p, "shade")))
@@ -470,6 +515,7 @@ circle.hidden {
                         });
                     }
                 }
+            }
 
 
                 //Gets Point for Line and Shade
@@ -573,7 +619,7 @@ circle.hidden {
     
 start();
 // start(scatterData);
-
+// start(scatterDataNewOne);
 
 </script>
 </body>
