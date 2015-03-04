@@ -2158,4 +2158,60 @@
 	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Outlier-Perspective:Outlier-Perspective_1:KNeighbors"/>
 </rdf:Description>
 
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Association-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Resource"/>
+	<label>Movie_DB:Association-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Association-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/Movie_DB:Movie_DB:Association-Perspective">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>Movie_DB:Movie_DB:Association-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<Association-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/Movie_DB:Movie_DB:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Association-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Association-Perspective:Association-Perspective_1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Apriori Algorithm</Label>
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<label>Movie_DB:Association-Perspective:Association-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Association-Perspective:Association-Perspective_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Association-Perspective:Association-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<Association-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Association-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Association-Perspective:Association-Perspective_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Association-Perspective:Movie_DB:Association-Perspective:Association-Perspective_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Resource"/>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Association-Perspective:Movie_DB:Association-Perspective:Association-Perspective_1"/>
+	<label>Movie_DB:Association-Perspective:Movie_DB:Association-Perspective:Association-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Association-Perspective">
+	<Relation xmlns="http://semoss.org/ontologies/" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Association-Perspective:Association-Perspective_1"/>
+	<Insight xmlns="http://semoss.org/ontologies/Relation/Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Association-Perspective:Association-Perspective_1"/>
+	<Association-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Association-Perspective:Movie_DB:Association-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Association-Perspective:Association-Perspective_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Association-Perspective:Association-Perspective_1">
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Resource"/>
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">Association-Perspective_1</IDLabel>
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }{?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;}{?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;}{?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director}{?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre}{?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio}} ORDER BY ?Title</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.WekaAprioriVizPlaySheet</Layout>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
+</rdf:Description>
+
 </rdf:RDF>
