@@ -163,7 +163,7 @@ public class SelfOrganizingMap {
 	}
 	
 	public void setGridSize(int numInstances) {
-		double x = Math.sqrt((double) numInstances / 6);
+		double x = Math.sqrt((double) numInstances / (6*5));
 		height = (int) Math.round(2*x);
 		length = (int) Math.round(3*x);
 		
