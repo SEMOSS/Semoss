@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.algorithm.impl;
+package prerna.poi.main.insights;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,9 +37,6 @@ import javax.swing.JComboBox;
 import javax.swing.JList;
 
 import prerna.algorithm.learning.similarity.GenerateEntropyDensity;
-import prerna.poi.main.insights.InsightRule;
-import prerna.poi.main.insights.InsightRuleConstants;
-import prerna.poi.main.insights.InsightTemplateProcessor;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.AbstractEngine;
@@ -47,7 +44,6 @@ import prerna.rdf.engine.impl.QuestionAdministrator;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.PlaySheetEnum;
 
 /**
  * AutoInsightGenerator creates insights that are automatically added to a DB on upload
