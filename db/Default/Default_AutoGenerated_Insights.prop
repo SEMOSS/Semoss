@@ -1,0 +1,13 @@
+<Question>
+@Question=Count number of instances of $Concept with the given $Property?
+@Property-EntropyD_Max=0.3
+@Concept-Aggregation=Count
+@Output=Bar_Chart
+</Question>
+
+<Question>
+@Question=Count number of instances of $Concept with the given $Property?
+@Property-EntropyD_Min=0.3
+@Concept-Aggregation=Count
+@Output=Pie_Chart
+</Question>
