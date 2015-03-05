@@ -29,7 +29,7 @@ package prerna.ui.components.specific;
 
 import java.util.Hashtable;
 
-import prerna.algorithm.impl.AutoInsightGenerator;
+import prerna.poi.main.insights.AutoInsightGenerator;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.ui.components.playsheets.AbstractRDFPlaySheet;
 import prerna.util.Utility;
