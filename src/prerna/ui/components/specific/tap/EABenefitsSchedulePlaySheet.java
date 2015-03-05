@@ -136,7 +136,7 @@ public class EABenefitsSchedulePlaySheet extends GridPlaySheet {
 			Double efficiencyPercent = efficiencyPercentMap.get(bp);
 			Double productivityPercent = 0.0;
 			
-			productivityPercent = effectPercent + efficiencyPercent - (effectPercent * efficiencyPercent);
+			productivityPercent = effectPercent + efficiencyPercent;
 			productivityPercentMap.put(bp, productivityPercent);
 		}
 		
