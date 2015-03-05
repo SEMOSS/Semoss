@@ -14,6 +14,13 @@ public class InsightRule {
 		constraints = new Hashtable<String, Hashtable<String, Object>>();
 	}
 	
+	
+	/**
+	 * Adds to the constants table containing the constraints for the insight rule
+	 * @param param					The param name the rule applies to
+	 * @param constraintType		The type of the constraint
+	 * @param value					The value of the constraint
+	 */
 	public void addConstraint(String param, String constraintType, String value) {
 		Hashtable<String, Object> constraintValueHash;
 		if(constraints.containsKey(param)) {

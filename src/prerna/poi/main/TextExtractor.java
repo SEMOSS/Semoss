@@ -35,6 +35,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import org.apache.tika.detect.DefaultDetector;
 import org.apache.tika.detect.Detector;
@@ -106,5 +109,17 @@ public final class TextExtractor {
 		
 		extractedText = extractedText.replace("\n+|\r+", " ");
 		return extractedText;
+	}
+	
+	/**
+	 * Reads in a file and stores it as a string
+	 * @param path				The path of the file
+	 * @param encoding			Definition of standard charset
+	 * @return					The file as a string
+	 * @throws IOException
+	 */
+	public static String readFile(String path, Charset encoding) throws IOException {
+		byte[] encoded = Files.readAllBytes(Paths.get(path));
+		return new String(encoded, encoding);
 	}
 }
