@@ -98,7 +98,7 @@ public class CorrelationAlgorithm{
 			int[] uniqueValueCount;
 			
 			//calculate the number of times each value corresponds to one of the instances
-			if(columnTypesArr[i].equals("STRING")) {
+			if(columnTypesArr[i].equals(AlgorithmDataFormatter.STRING_KEY)) {
 				
 				Object[] valuesObj = ArrayListUtilityMethods.getColumnFromList(list,i);
 				String[] valuesArr = ArrayUtilityMethods.convertObjArrToStringArr(valuesObj);
