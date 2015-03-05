@@ -174,8 +174,8 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		
 		LOGGER.info("Formatting dataset to run algorithm...");
 		columnTypesArr = AlgorithmDataFormatter.determineColumnTypes(list);
-		categoryPropNames = AlgorithmDataFormatter.determineColumnNamesOfType(names, columnTypesArr, "STRING");
-		numericalPropNames = AlgorithmDataFormatter.determineColumnNamesOfType(names, columnTypesArr, "DOUBLE");
+		categoryPropNames = AlgorithmDataFormatter.determineColumnNamesOfType(names, columnTypesArr, AlgorithmDataFormatter.STRING_KEY);
+		numericalPropNames = AlgorithmDataFormatter.determineColumnNamesOfType(names, columnTypesArr, AlgorithmDataFormatter.DOUBLE_KEY);
 		
 	}
 	@Override
