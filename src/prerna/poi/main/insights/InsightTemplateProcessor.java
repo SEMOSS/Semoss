@@ -99,8 +99,16 @@ public class InsightTemplateProcessor implements InsightRuleConstants{
 						{
 							rule.setHasAggregation(true);
 							constraintValueSplit[0] = AGGREGATION;
+							rule.addConstraint(paramSplit[0].replace("@", "").trim(), constraintValueSplit[0].trim(), constraintValueSplit[1].trim());
+						} else {
+							Double val = null;
+							try {
+								val = Double.parseDouble(constraintValueSplit[1].trim());
+							} catch(NumberFormatException ex) {
+								continue NEXT_QUESTION;
+							}
+							rule.addConstraint(paramSplit[0].replace("@", "").trim(), constraintValueSplit[0].trim(), val);
 						}
-						rule.addConstraint(paramSplit[0].replace("@", "").trim(), constraintValueSplit[0].trim(), constraintValueSplit[1].trim());
 					}
 				}
 			}
