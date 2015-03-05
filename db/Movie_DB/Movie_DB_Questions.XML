@@ -2214,4 +2214,66 @@
 	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
 </rdf:Description>
 
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Auto-Generation-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Perspective"/>
+	<label>Movie_DB:Auto-Generation-Perspective</label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Auto-Generation-Perspective</Label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Perspective/Movie_DB:Movie_DB:Auto-Generation-Perspective">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Perspective"/>
+	<label>Movie_DB:Movie_DB:Auto-Generation-Perspective</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<Auto-Generation-Perspective xmlns="http://semoss.org/ontologies/Relation/Engine:Perspective/Movie_DB:Movie_DB:" rdf:resource="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Auto-Generation-Perspective"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Auto-Generation-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Resource"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Auto-Generation-Perspective:Auto-Generation-Perspective_1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<label>Movie_DB:Auto-Generation-Perspective:Auto-Generation-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Auto-Generation-Perspective:Auto-Generation-Perspective_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:Auto-Generation-Perspective:Auto-Generation-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<Auto-Generation-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:Auto-Generation-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Auto-Generation-Perspective:Auto-Generation-Perspective_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Auto-Generation-Perspective:Movie_DB:Auto-Generation-Perspective:Auto-Generation-Perspective_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Auto-Generation-Perspective:Movie_DB:Auto-Generation-Perspective:Auto-Generation-Perspective_1"/>
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Resource"/>
+	<rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+	<label>Movie_DB:Auto-Generation-Perspective:Movie_DB:Auto-Generation-Perspective:Auto-Generation-Perspective_1</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Auto-Generation-Perspective">
+	<Relation xmlns="http://semoss.org/ontologies/" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Auto-Generation-Perspective:Auto-Generation-Perspective_1"/>
+	<Insight xmlns="http://semoss.org/ontologies/Relation/Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Auto-Generation-Perspective:Auto-Generation-Perspective_1"/>
+	<Auto-Generation-Perspective_1 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Auto-Generation-Perspective:Movie_DB:Auto-Generation-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Auto-Generation-Perspective:Auto-Generation-Perspective_1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Auto-Generation-Perspective:Movie_DB:Auto-Generation-Perspective:Auto-Generation-Perspective_1">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Auto-Generation-Perspective:Auto-Generation-Perspective_1">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Resource"/>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Auto Generate Insights</Label>
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">Auto-Generation-Perspective_1</IDLabel>
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">NULL</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.AutoInsightGeneratorTest</Layout>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
+</rdf:Description>
+
 </rdf:RDF>
