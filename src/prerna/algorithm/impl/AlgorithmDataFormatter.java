@@ -34,6 +34,11 @@ import prerna.util.Utility;
 
 public final class AlgorithmDataFormatter {
 		
+	public static final String STRING_KEY = "STRING";
+	public static final String DOUBLE_KEY = "DOUBLE";
+	public static final String DATE_KEY = "DATE";
+	public static final String SIMPLEDATE_KEY = "SIMPLEDATE";
+	
 	//TODO: get to work with nulls/missing data
 	//TODO: already parse through data in clustering data processor, better way to improve efficiency?
 	//TODO: this uses indexing starting at 1 because this doesn't include the actual instance node name
@@ -106,7 +111,7 @@ public final class AlgorithmDataFormatter {
 		for(int j = 0; j < names.length; j++) {
 			if(j != 0) {
 				String type = determineColumnType(list,j);
-				if(type.equals("STRING")) {
+				if(type.equals(STRING_KEY)) {
 					categoryPropNames[categoryPropNamesCounter] = names[j];
 					categoryPropIndices[categoryPropNamesCounter] = j;
 					categoryPropNamesCounter++;
@@ -116,10 +121,10 @@ public final class AlgorithmDataFormatter {
 					numericalPropIndices[numericalPropNamesCounter] = j;
 					numericalPropNamesCounter++;
 					//					LOGGER.info("Found " + varNames[j] + " to be a numerical data column");
-					if(type.equals("DATE")){
+					if(type.equals(DATE_KEY)){
 						dateTypeIndices[dateTypeIndicesCounter] = j;
 						dateTypeIndicesCounter++;
-					} else if(type.equals("SIMPLEDATE")){
+					} else if(type.equals(SIMPLEDATE_KEY)){
 						simpleDateTypeIndices[simpleDateTypeIndicesCounter] = j;
 						simpleDateTypeIndicesCounter++;
 					}
@@ -159,7 +164,7 @@ public final class AlgorithmDataFormatter {
 				String colEntryAsString = dataRow[column].toString();
 				if(!colEntryAsString.isEmpty()) {
 					type = Utility.processType(colEntryAsString);
-					if(type.equals("STRING")) {
+					if(type.equals(STRING_KEY)) {
 						numCategorical++;
 					} else {
 						numNumerical++;
@@ -168,9 +173,9 @@ public final class AlgorithmDataFormatter {
 			}
 		}
 		if(numCategorical > numNumerical) {
-			return "STRING";
+			return STRING_KEY;
 		} else {
-			return "DOUBLE";
+			return DOUBLE_KEY;
 			//TODO account for dates
 //			if(type.equals("DATE")){
 //				return "DATE";
