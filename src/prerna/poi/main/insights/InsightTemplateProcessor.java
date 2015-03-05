@@ -89,6 +89,12 @@ public class InsightTemplateProcessor implements InsightRuleConstants{
 						}
 					} else {
 						String[] paramSplit = rulePart.split("-");
+						if(paramSplit[0].toUpperCase().startsWith(PROPERTY_KEY)) {
+							rule.addConstraint(paramSplit[0].replace("@", "").trim(), CLASS, PROPERTY_VALUE);
+						} else if(paramSplit[0].toUpperCase().startsWith(CONCEPT_KEY)){
+							rule.addConstraint(paramSplit[0].replace("@", "").trim(), CLASS, CONCEPT_VALUE);
+						}
+						
 						String[] constraintValueSplit = paramSplit[1].split("=");
 						// change boolean value if aggregation is used
 						if(constraintValueSplit[1].equalsIgnoreCase(COUNT) || 
