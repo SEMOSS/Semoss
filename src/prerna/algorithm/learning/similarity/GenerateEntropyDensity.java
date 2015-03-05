@@ -105,4 +105,8 @@ public class GenerateEntropyDensity {
 		return entropyDensityArray;
 	}
 	
+	public String[] getColumnTypes() {
+		return columnTypes;
+	}
+	
 }
