@@ -16,14 +16,6 @@ public interface InsightRuleConstants {
 	String DATA_TYPE = "TYPE";
 	String CLASS = "CLASS";
 	
-	// output types
-	String PIE_CHART = "PIE_CHART";
-	String BAR_CHART = "BAR_CHART";
-	String SCATTER_PLOT = "SCATTER_PLOT";
-	String HEAT_MAP = "HEAT_MAP";
-	String PARALLEL_COORDINATES = "PARALLEL_COORDINATES";
-	String BUBBLE_CHART = "BUBBLE_CHART";
-	
 	// aggregation types
 	String AGGREGATION = "AGGREGATION";
 	String COUNT = "COUNT";
