@@ -2,7 +2,7 @@
 @Question=Count number of instances of $Concept with the given $Property?
 @Property-EntropyD_Max=0.3
 @Concept-Aggregation=Count
-@Output=Bar_Chart
+@Output=Column_Chart
 </Question>
 
 <Question>
