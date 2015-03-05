@@ -9,6 +9,7 @@ import java.util.regex.Pattern;
 
 import prerna.poi.main.TextExtractor;
 import prerna.util.DIHelper;
+import prerna.util.PlaySheetEnum;
 
 public class InsightTemplateProcessor implements InsightRuleConstants{
 	
@@ -75,14 +76,10 @@ public class InsightTemplateProcessor implements InsightRuleConstants{
 						rule.setQuestion(questionRuleSplit[1].replace("@", "").trim());
 					} else if(rulePart.toUpperCase().startsWith(OUTPUT_KEY)) {
 						String[] outputRuleSplit = rulePart.split("=");
-						if(outputRuleSplit[1].equalsIgnoreCase(PIE_CHART) || 
-								outputRuleSplit[1].equalsIgnoreCase(BAR_CHART) || 
-								outputRuleSplit[1].equalsIgnoreCase(SCATTER_PLOT) || 
-								outputRuleSplit[1].equalsIgnoreCase(HEAT_MAP) || 
-								outputRuleSplit[1].equalsIgnoreCase(PARALLEL_COORDINATES) ||
-								outputRuleSplit[1].equalsIgnoreCase(BUBBLE_CHART)) 
-						{
-							rule.setOutput(outputRuleSplit[1].toUpperCase().replace("@", "").trim());
+						outputRuleSplit[1] = outputRuleSplit[1].replaceAll("_", " ").trim();
+						String psClass = PlaySheetEnum.getClassFromName(outputRuleSplit[1]);
+						if(!psClass.isEmpty()) {
+							rule.setOutput(psClass);
 						} else {
 							// if output not found above, then go to next question
 							continue NEXT_QUESTION;
