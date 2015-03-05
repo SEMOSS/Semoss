@@ -21,7 +21,7 @@ public class InsightRule {
 	 * @param constraintType		The type of the constraint
 	 * @param value					The value of the constraint
 	 */
-	public void addConstraint(String param, String constraintType, String value) {
+	public void addConstraint(String param, String constraintType, Object value) {
 		Hashtable<String, Object> constraintValueHash;
 		if(constraints.containsKey(param)) {
 			constraintValueHash = constraints.get(param);
