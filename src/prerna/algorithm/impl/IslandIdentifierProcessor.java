@@ -34,6 +34,7 @@ import java.util.Iterator;
 import java.util.Vector;
 
 import prerna.algorithm.api.IAlgorithm;
+import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.GridFilterData;
@@ -52,7 +53,7 @@ import edu.uci.ics.jung.graph.DelegateForest;
  */
 public class IslandIdentifierProcessor implements IAlgorithm{
 
-	DelegateForest forest = null;
+	protected GraphDataModel gdm = new GraphDataModel();
 	ArrayList<SEMOSSVertex> selectedVerts = new ArrayList<SEMOSSVertex>();
 	GridFilterData gfd = new GridFilterData();
 	GraphPlaySheet playSheet;
@@ -62,14 +63,24 @@ public class IslandIdentifierProcessor implements IAlgorithm{
 	Vector<SEMOSSVertex> masterVertexVector = new Vector();
 	Hashtable islandVerts = new Hashtable();
 	Hashtable islandEdges = new Hashtable();
+	
+	public Hashtable getIslandEdges() {
+		return islandEdges;
+	}
+
 	String edgeHashKey = "EdgeHashKey";
+	
+	public void execute() {
+		executeWeb();
+		setTransformers();
+	}
 	
 	/**
 	 * Executes identification of islands.
 	 * If a node is selected, highlight all nodes disconnected from that node.
 	 * If no node is selected, highlight all nodes disconnected from the largest network of nodes.
 	 */
-	public void execute(){
+	public void executeWeb(){
 		
 		Collection<SEMOSSVertex> forestRoots = new ArrayList();
 		if(selectedVerts.size()!=0){
@@ -88,7 +99,7 @@ public class IslandIdentifierProcessor implements IAlgorithm{
 		}
 		else{
 			selectedNodes = "All";
-			forestRoots = forest.getRoots();
+			forestRoots = gdm.getVertStore().values();
 			for(SEMOSSVertex forestVert : forestRoots){
 				if(masterVertexVector.contains(forestVert)){
 					masterVertexVector.remove(forestVert);
@@ -97,7 +108,6 @@ public class IslandIdentifierProcessor implements IAlgorithm{
 			}
 			differentiateMainlandFromIslands();
 		}
-		setTransformers();
 	}
 	
 	/**
@@ -216,7 +226,7 @@ public class IslandIdentifierProcessor implements IAlgorithm{
 	public ArrayList<SEMOSSVertex> traverseOutward(SEMOSSVertex vert, Hashtable vertNetworkHash, Hashtable edgeNetworkHash, String vertKey){
 		//get nodes downstream
 		ArrayList<SEMOSSVertex> vertArray = new ArrayList<SEMOSSVertex>();
-		Collection<SEMOSSEdge> edgeArray = forest.getOutEdges(vert);
+		Collection<SEMOSSEdge> edgeArray = vert.getOutEdges();
 		//add all edges
 		putEdgesInHash(edgeArray, edgeNetworkHash);
 		for (SEMOSSEdge edge: edgeArray){
@@ -229,7 +239,7 @@ public class IslandIdentifierProcessor implements IAlgorithm{
 			}
 		}
 		//get nodes upstream
-		Collection<SEMOSSEdge> inEdgeArray = forest.getInEdges(vert);
+		Collection<SEMOSSEdge> inEdgeArray = vert.getInEdges();
 		putEdgesInHash(inEdgeArray, edgeNetworkHash);
 		for (SEMOSSEdge edge: inEdgeArray){
 			SEMOSSVertex outVert = edge.outVertex;
@@ -272,14 +282,14 @@ public class IslandIdentifierProcessor implements IAlgorithm{
 		//remove vertex
 		masterVertexVector.remove(vert);
 		//remove downstream edges
-		Collection<SEMOSSEdge> edgeArray = forest.getOutEdges(vert);
+		Collection<SEMOSSEdge> edgeArray = vert.getOutEdges();
 		for (SEMOSSEdge edge: edgeArray){
 			if(masterEdgeVector.contains(edge)){
 				masterEdgeVector.remove(edge);
 			}
 		}
 		//remove upstream edges
-		Collection<SEMOSSEdge> inEdgeArray = forest.getInEdges(vert);
+		Collection<SEMOSSEdge> inEdgeArray = vert.getInEdges();
 		for (SEMOSSEdge edge: inEdgeArray){
 			if(masterEdgeVector.contains(edge)){
 				masterEdgeVector.remove(edge);
@@ -289,12 +299,12 @@ public class IslandIdentifierProcessor implements IAlgorithm{
 	
 	/**
 	 * Sets the forest.
-	 * @param f DelegateForest		Forest to be set.
+	 * @param f GraphDataModel		Forest to be set.
 	 */
-	public void setForest(DelegateForest f){
-		forest = f;
-		Collection<SEMOSSEdge> edges = f.getEdges();
-		Collection<SEMOSSVertex> v = f.getVertices();
+	public void setGraphDataModel(GraphDataModel g){
+		gdm = g;
+		Collection<SEMOSSEdge> edges = g.getEdgeStore().values();
+		Collection<SEMOSSVertex> v = g.getVertStore().values();
 		masterEdgeVector.addAll(edges);
 		masterVertexVector.addAll(v);
 	}

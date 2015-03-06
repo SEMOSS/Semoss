@@ -318,7 +318,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			int index;
 			for(index = 0; index < numCols - 1; index++) {
 				if(index == 0) {
-					siteNames[0] = "HostSite/Floater";
+					siteNames[0] = "HostSite-Floater";
 				}
 				String fyString = "" + fy;
 				fyString = "FY" + fyString.substring(2,4);

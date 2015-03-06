@@ -34,6 +34,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.LoopIdentifierProcessor;
+import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import edu.uci.ics.jung.graph.DelegateForest;
@@ -43,7 +44,6 @@ import edu.uci.ics.jung.graph.DelegateForest;
  */
 public class LoopIdentifierListener implements ActionListener{
 	GraphPlaySheet ps = null;
-	SEMOSSVertex [] pickedVertex = null;
 	static final Logger logger = LogManager.getLogger(LoopIdentifierListener.class.getName());
 	
 	/**
@@ -51,9 +51,8 @@ public class LoopIdentifierListener implements ActionListener{
 	 * @param p GraphPlaySheet
 	 * @param pickedV DBCMVertex[]
 	 */
-	public LoopIdentifierListener(GraphPlaySheet p, SEMOSSVertex[] pickedV){
+	public LoopIdentifierListener(GraphPlaySheet p){
 		ps = p;
-		pickedVertex = pickedV;
 	}
 		
 	/**
@@ -62,10 +61,9 @@ public class LoopIdentifierListener implements ActionListener{
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		DelegateForest forest = ps.forest;		
+		GraphDataModel gdm = ps.gdm;		
 		LoopIdentifierProcessor pro = new LoopIdentifierProcessor();
-		pro.setForest(forest);
-		pro.setSelectedNodes(pickedVertex);
+		pro.setGraphDataModel(gdm);
 		pro.setPlaySheet(ps);	
 		pro.execute();
 		//pro.setGridFilterData();

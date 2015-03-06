@@ -34,6 +34,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.IslandIdentifierProcessor;
+import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import edu.uci.ics.jung.graph.DelegateForest;
@@ -63,17 +64,14 @@ public class IslandIdentifierListener implements ActionListener{
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		DelegateForest forest = ps.forest;
-		
+		GraphDataModel gdm = ps.gdm;		
 		IslandIdentifierProcessor pro = new IslandIdentifierProcessor();
-		pro.setForest(forest);
+		pro.setGraphDataModel(gdm);
 		pro.setSelectedNodes(pickedVertex);
-		pro.setPlaySheet(ps);
-	
+		pro.setPlaySheet(ps);	
 		pro.execute();
 		//pro.setGridFilterData();
-		//pro.createTab();
-			
+		//pro.createTab();			
 	}
 
 }
