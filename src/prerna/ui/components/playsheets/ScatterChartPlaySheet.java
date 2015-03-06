@@ -119,7 +119,7 @@ public class ScatterChartPlaySheet extends BrowserPlaySheet{
 	@Override
 	public Hashtable<String, String> getDataTableAlign() {
 		Hashtable<String, String> alignHash = new Hashtable<String, String>();
-		if(offset == 0)
+		if(offset != 0)
 			alignHash.put("series", names[0]);
 		alignHash.put("label", names[0 + offset]);
 		alignHash.put("x", names[1 + offset]);
