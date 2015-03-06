@@ -29,7 +29,10 @@ package prerna.ui.components.specific.tap;
 
 import java.awt.Dimension;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Iterator;
 
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.ui.main.listener.specific.tap.SysSimHealthGridListener;
@@ -241,10 +244,22 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		ArrayList<Hashtable<String, Hashtable<String, Double>>> list = calculateHash(args, testHash);
 		Hashtable specdataHash = new Hashtable();
 //		for(Hashtable hash : list){ //Browser crashes on TAP Core when sending all of the data... for now just going to add one array (max of 20,000 cells)
-			specdataHash.putAll(list.get(0));
+//			specdataHash.putAll(list.get(0));
 //		}
+		Hashtable dimHash = new Hashtable();
+		Enumeration enumKey = allHash.keys();
+		while (enumKey.hasMoreElements())
+		{
+			String key = (String) enumKey.nextElement();
+			Object value = (Object) allHash.get(key);
+			
+			dimHash.put(value,key);
+			//System.out.println("dimensionData('" + gson.toJson(value) + "', '"+key+"');");
+		}
 		dataHash = new Hashtable();
-		dataHash.put("dataSeries", specdataHash);
+//		dataHash.put("dimHash", dimHash);
+		dataHash.put("dimData", args);
+//		dataHash.put("dataSeries", specdataHash);
 		dataHash.put("xAxisTitle", "System1");
 		dataHash.put("yAxisTitle", "System2");
 		dataHash.put("value", "Score");
@@ -252,15 +267,59 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		Hashtable returnHash = (Hashtable) super.getData();
 		if (dataHash != null)
 			returnHash.put("specificData", dataHash);
-
-		returnHash.put("data", new String[]{"1","2","3"});
-		returnHash.put("headers", new String[]{"1","2","3"});
-
+		ArrayList<Object[]> tableData = flattenData(list);
+		returnHash.put("data", tableData);
+		returnHash.put("headers", new String[]{"System1","System2","Score"});
+		this.paramDataHash.clear();
 //		Gson gson = new Gson();
 //		logger.info("Converted " + gson.toJson(dataHash));
 //		logger.info("Converted gson");
 		
 		return returnHash;
+	}
+	
+	public ArrayList<Object[]> flattenData(ArrayList<Hashtable<String, Hashtable<String, Double>>> list)
+	{
+		logger.info("Starting to flatten data");
+		ArrayList<Object[]> returnTable = new ArrayList<Object[]>();
+		for(Hashtable<String,Hashtable<String, Double>> hash : list){
+//		Hashtable<String,Hashtable<String, Double>> hash = list.get(0);
+			Collection<String> keys = hash.keySet();
+			Collection<String> newKeys = new ArrayList<String>(); // avoid concurrent modification
+			newKeys.addAll(keys);
+			Iterator<String> it = newKeys.iterator();
+			while(it.hasNext()){
+				String key = it.next();
+				Hashtable value = hash.get(key);
+				Double score = (Double) value.get("Score");
+				if(score>70){
+					Object[] row = new Object[3];
+					row[0] = value.get("System1");
+					row[1] = value.get("System2");
+					row[2] = score;//
+					returnTable.add(row);
+				}
+				else{
+					hash.remove(key); // remove it so we don't store uncessary data on the backend
+				}
+			}
+			logger.info("done flattening one hash");
+		}
+		logger.info("done flattening");
+		return returnTable;
+		
+		
+	}
+	
+	@Override
+	public Hashtable registerControlPanelClick(Hashtable dataHash){
+		ArrayList<String> selectedVarsList = (ArrayList<String>) dataHash.get("selectedVars");
+		Hashtable<String, Double> specifiedWeights = (Hashtable<String, Double>) dataHash.get("specifiedWeights");
+		ArrayList<Hashtable<String, Hashtable<String, Double>>> calculatedHash = calculateHash(selectedVarsList, specifiedWeights);
+		ArrayList<Object[]> table = flattenData(calculatedHash);
+		Hashtable retHash = new Hashtable();
+		retHash.put("data", table);
+		return retHash;
 	}
 
 }
