@@ -38,6 +38,7 @@ import prerna.util.DIHelper;
  * The GridScatterPlaySheet class creates the panel and table for a scatter plot view of data from a SPARQL query.
  */
 public class ScatterChartPlaySheet extends BrowserPlaySheet{
+	int offset = 0;
 	
 	/**
 	 * Constructor for GridScatterSheet.
@@ -60,7 +61,6 @@ public class ScatterChartPlaySheet extends BrowserPlaySheet{
 		String[] var = wrapper.getVariables();
 		String name = var[0];
 		boolean hasType = true;
-		int offset = 0;
 		try {
 			Double.parseDouble(list.get(0)[1].toString());
 			hasType = false;
@@ -109,9 +109,9 @@ public class ScatterChartPlaySheet extends BrowserPlaySheet{
 		allHash.put("title",  names[2] + " vs " + names[3]);
 		allHash.put("labelHeader", names[1]);
 		allHash.put("xAxisTitle", names[2]);
-		if(names.length>2)
+		if(names.length > 2 + offset)
 			allHash.put("yAxisTitle", names[3]);
-		if(names.length>3)
+		if(names.length > 3 + offset)
 			allHash.put("zAxisTitle", names[4]);
 		return allHash;
 	}
@@ -119,12 +119,14 @@ public class ScatterChartPlaySheet extends BrowserPlaySheet{
 	@Override
 	public Hashtable<String, String> getDataTableAlign() {
 		Hashtable<String, String> alignHash = new Hashtable<String, String>();
-		alignHash.put("label", names[0]);
-		alignHash.put("x", names[1]);
-		if(names.length>2)
-			alignHash.put("y", names[2]);
-		if(names.length>3)
-			alignHash.put("z", names[3]);
+		if(offset == 0)
+			alignHash.put("series", names[0]);
+		alignHash.put("label", names[0 + offset]);
+		alignHash.put("x", names[1 + offset]);
+		if(names.length > 2 + offset)
+			alignHash.put("y", names[2 + offset]);
+		if(names.length > 3 + offset)
+			alignHash.put("z", names[3 + offset]);
 		return alignHash;
 	}
 	
