@@ -101,18 +101,18 @@ public class ScatterChartPlaySheet extends BrowserPlaySheet{
 //			{
 //			dataSet[2]=(Double) listElement[3];
 //			}
-//			dataSet[3]=(String) listElement[0];
+//			dataSet[3]=(String) listElement[0];//
 			allData.add(elementHash);
 		}
 		Hashtable allHash = new Hashtable();
 		allHash.put("dataSeries", allData);
-		allHash.put("title",  names[2] + " vs " + names[3]);
-		allHash.put("labelHeader", names[1]);
-		allHash.put("xAxisTitle", names[2]);
+		allHash.put("title",  names[1 + offset] + " vs " + names[2 + offset]);
+		allHash.put("labelHeader", names[0 + offset]);
+		allHash.put("xAxisTitle", names[1 + offset]);
 		if(names.length > 2 + offset)
-			allHash.put("yAxisTitle", names[3]);
+			allHash.put("yAxisTitle", names[2 + offset]);
 		if(names.length > 3 + offset)
-			allHash.put("zAxisTitle", names[4]);
+			allHash.put("zAxisTitle", names[3 + offset]);
 		return allHash;
 	}
 	
