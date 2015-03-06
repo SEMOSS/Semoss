@@ -280,7 +280,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet{
 		for(int i=1;i<masterNames.length;i++) {
 			
 			JLabel entropyDensityVal = new JLabel();
-			entropyDensityVal.setText(formatter.format(testVals[i-1]));
+			entropyDensityVal.setText(formatter.format(testVals[i]));
 			GridBagConstraints gbc_entropyDensityVal = new GridBagConstraints();
 			gbc_entropyDensityVal.anchor = GridBagConstraints.NORTHWEST;
 			gbc_entropyDensityVal.fill = GridBagConstraints.NONE;

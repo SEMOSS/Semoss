@@ -59,14 +59,15 @@ public class GenerateEntropyDensity {
 	
 	public double[] generateEntropy() {
 		int i;
-		int size = data.length;
+		int size;
 		if(includeLastColumn) {
-			entropyDensityArray = new double[size];
+			size = data.length;
+		}else {
+			size = data.length - 1;
 		}
-		else {
-			entropyDensityArray = new double[size - 1];
-		}
-		for(i = 1; i < size; i++) {
+		entropyDensityArray = new double[size];
+
+		for(i = 0; i < size; i++) {
 			Object[] objDataRow = data[i];
 			Hashtable<String, Object>[] binData = null;
 			if(columnTypes[i].equals("STRING")) {
@@ -96,9 +97,7 @@ public class GenerateEntropyDensity {
 				for(j = 0; j < numBins; j++) {
 					values[j] = (int) binData[j].get("y");
 				}
-				entropyDensityArray[i-1] = StatisticsUtilityMethods.calculateEntropyDensity(values);
-			} else { // if all same value (numBins being 1), entropy value is 0
-				entropyDensityArray[i-1] = 0;
+				entropyDensityArray[i] = StatisticsUtilityMethods.calculateEntropyDensity(values);
 			}
 		}
 		

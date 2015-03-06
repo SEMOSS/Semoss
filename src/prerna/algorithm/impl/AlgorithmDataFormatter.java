@@ -58,7 +58,7 @@ public final class AlgorithmDataFormatter {
 		for(i = 0; i < size; i++) {
 			Object[] dataRow = queryData.get(i);
 			int j;
-			for(j = 1; j < numPropsSize; j++) {
+			for(j = 0; j < numPropsSize; j++) {
 				data[j][counter] = dataRow[j];
 			}
 			counter++;
@@ -146,9 +146,7 @@ public final class AlgorithmDataFormatter {
 		String[] columnTypes = new String[numCols];
 		//iterate through columns
 		for(int j = 0; j < numCols; j++) {
-			if(j != 0) {
-				columnTypes[j] = determineColumnType(list,j);
-			}
+			columnTypes[j] = determineColumnType(list,j);
 		}
 		return columnTypes;
 	}
