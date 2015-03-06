@@ -237,7 +237,7 @@ public class RunAlgorithmListener extends AbstractListener {
 			
 			for(int i=1; i < names.length; i++) {
 				if(includeColArr[i]) {
-					if(entropyArr[i-1] != 0) {
+					if(entropyArr[i] != 0) {
 						WekaClassification weka = new WekaClassification(list, names, "J48", i);
 						try {
 							weka.execute();

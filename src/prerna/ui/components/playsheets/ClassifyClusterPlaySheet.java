@@ -597,7 +597,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 			ivCheckboxes.add(checkbox);
 				
 			JLabel entropyVal = new JLabel();
-			entropyVal.setText(formatter.format(entropyArr[i-1]));
+			entropyVal.setText(formatter.format(entropyArr[i]));
 			GridBagConstraints gbc_entropyVal = new GridBagConstraints();
 			gbc_entropyVal.anchor = GridBagConstraints.FIRST_LINE_START;
 			gbc_entropyVal.fill = GridBagConstraints.NONE;
