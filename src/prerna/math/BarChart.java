@@ -227,7 +227,7 @@ public class BarChart {
 		double skewness = StatisticsUtilityMethods.getSkewness(numValues, true);
 		int numUniqueValues = ArrayUtilityMethods.getUniqueArray(numValues).length;
 		
-		if(numUniqueValues < 10 && (Double.isNaN(skewness) || skewness < 1) ) // skewness is NaN when all values are the same
+		if(numUniqueValues == 1 || (numUniqueValues < 10 && (Double.isNaN(skewness) || skewness <= 1.1)) ) // skewness is NaN when all values are the same
 		{
 			this.stringValues = ArrayUtilityMethods.convertDoubleArrToStringArr(numValues);
 			// values in order since the methods in ArrayUtilityMethods both conserve order
@@ -240,7 +240,7 @@ public class BarChart {
 			this.useCategoricalForNumericInput = true;
 			// need to check if not enough numeric values to generate bins, process as if values are unique
 			calculateCategoricalBins("NaN", false);
-		} else if(numUniqueValues < 10 && skewness > 1 || skewness > 2) {
+		} else if(numUniqueValues < 10 && skewness > 1.1 || skewness > 2) {
 			calculateLogDistributedBins(numValues, unsortedValues, formatter);
 		} else {
 			calculateFreedmanDiaconisBins(numValues, unsortedValues, formatter);
@@ -362,7 +362,7 @@ public class BarChart {
 		Double skewness = StatisticsUtilityMethods.getSkewnessIgnoringNull(numValues, true);
 		int numUniqueValues = ArrayUtilityMethods.getUniqueArrayIgnoringNull(numValues).length;
 		
-		if(numUniqueValues < 10 && (Double.isNaN(skewness) || skewness < 1) ) // skewness is NaN when all values are the same
+		if(numUniqueValues == 1 || (numUniqueValues < 10 && (Double.isNaN(skewness) || skewness <= 1.1) ) ) // skewness is NaN when all values are the same
 		{
 			this.stringValues = ArrayUtilityMethods.convertDoubleWrapperArrToStringArr(numValues);
 			// values in order since the methods in ArrayUtilityMethods both conserve order
@@ -375,7 +375,7 @@ public class BarChart {
 			this.useCategoricalForNumericInput = true;
 			// need to check if not enough numeric values to generate bins, process as if values are unique
 			calculateCategoricalBins("NaN", false);
-		} else if(numUniqueValues < 10 && skewness > 1 || skewness > 2) {
+		} else if(numUniqueValues < 10 && skewness > 1.1 || skewness > 2) {
 			calculateLogDistributedBins(numValues, unsortedValues, formatter);
 		} else {
 			calculateFreedmanDiaconisBins(numValues, unsortedValues, formatter);

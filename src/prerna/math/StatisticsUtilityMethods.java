@@ -470,12 +470,12 @@ public final class StatisticsUtilityMethods {
 		double skewness = 0;
 		for(i = 0; i < numValues; i++) {
 			if(values[i] != null) {
-				skewness += Math.pow( (values[i] - mean)/stdev, 3.0);
+				skewness += Math.pow( (values[i] - mean), 3.0);
 			}
 		}
 		double coefficient = (double) nonNullSize/ ( (nonNullSize - 1) * (nonNullSize - 2) );
 		
-		return coefficient * skewness; 
+		return coefficient * skewness / Math.pow(stdev, 3); 
 		
 	}
 	
