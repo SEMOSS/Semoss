@@ -34,6 +34,7 @@ import java.util.Iterator;
 import java.util.Vector;
 
 import prerna.algorithm.api.IAlgorithm;
+import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.GridFilterData;
@@ -52,13 +53,16 @@ import edu.uci.ics.jung.graph.DelegateForest;
  */
 public class LoopIdentifierProcessor implements IAlgorithm{
 
-	DelegateForest forest = null;
-	ArrayList<SEMOSSVertex> selectedVerts = new ArrayList<SEMOSSVertex>();
+	protected GraphDataModel gdm = new GraphDataModel();
 	GridFilterData gfd = new GridFilterData();
 	GraphPlaySheet playSheet;
 	Hashtable<String, SEMOSSEdge> nonLoopEdges = new Hashtable<String, SEMOSSEdge>();
 	Hashtable<String, SEMOSSEdge> loopEdges = new Hashtable<String, SEMOSSEdge>();
 	Hashtable<String, SEMOSSVertex> nonLoopVerts = new Hashtable<String, SEMOSSVertex>();
+	public Hashtable<String, SEMOSSEdge> getLoopEdges() {
+		return loopEdges;
+	}
+
 	Hashtable<String, String> loopVerts = new Hashtable<String, String>();
 	String selectedNodes="";
 	Vector<SEMOSSEdge> masterEdgeVector = new Vector();//keeps track of everything accounted for in the forest
@@ -66,20 +70,24 @@ public class LoopIdentifierProcessor implements IAlgorithm{
 	Vector<SEMOSSVertex> currentPathVerts = new Vector<SEMOSSVertex>();//these are used for depth search first
 	Vector<SEMOSSEdge> currentPathEdges = new Vector<SEMOSSEdge>();
 	
+	public void execute() {
+		executeWeb();
+		setTransformers();
+	}
 	
 	/**
 	 * Executes the process of loop identification.
 	 * If a node in the forest is not part of a loop, remove it from the forest.
 	 * Run depth search in order to validate the remaining edges in the forest.
 	 */
-	public void execute(){
+	public void executeWeb(){
 		//All I have to do is go through every node in the forest
 		//if the node has in and out, it could be part of a loop
 		//if a node has only in or only out edges, it is not part of a loop
 		//therefore, remove the vertex and all edges associated with it from the forest
 		//once there are no edges getting removed, its time to stop
 		//Then I run depth search first to validate the edges left
-		Collection<SEMOSSVertex> allVerts = forest.getVertices();
+		Collection<SEMOSSVertex> allVerts = gdm.getVertStore().values();
 		Vector<SEMOSSVertex> currentVertices = new Vector<SEMOSSVertex>();
 		Vector<SEMOSSVertex> nextVertices = new Vector<SEMOSSVertex>();
 		currentVertices.addAll(allVerts);
@@ -118,9 +126,7 @@ public class LoopIdentifierProcessor implements IAlgorithm{
 		//Now I will perform depth search first on all remaining nodes to ensure that every edge is a loop
 		runDepthSearchFirst();
 		//Everything that is left in nextVertices and the forest now must be loopers
-		//lets put them in their respective hashtables and set the transformers
-		setTransformers();
-		
+		//lets put them in their respective hashtables and set the transformers		
 	}
 	
 	/**
@@ -189,7 +195,7 @@ public class LoopIdentifierProcessor implements IAlgorithm{
 		boolean retBool = false;
 		if(leaf == null) return false;
 
-		Collection<SEMOSSEdge> edgeArray = getValidEdges(forest.getOutEdges(leaf));
+		Collection<SEMOSSEdge> edgeArray = leaf.getOutEdges();
 		for (SEMOSSEdge edge: edgeArray){
 			SEMOSSVertex inVert = edge.inVertex;
 			if(inVert.equals(root)) {
@@ -211,7 +217,7 @@ public class LoopIdentifierProcessor implements IAlgorithm{
 	 * @return DBCMVertex 							Next node for processing. */
 	private SEMOSSVertex traverseDepthDownward(SEMOSSVertex vert, Vector<SEMOSSVertex> usedLeafVerts){
 		SEMOSSVertex nextVert = null;
-		Collection<SEMOSSEdge> edgeArray = getValidEdges(forest.getOutEdges(vert));
+		Collection<SEMOSSEdge> edgeArray = vert.getOutEdges();
 		for (SEMOSSEdge edge: edgeArray){
 			SEMOSSVertex inVert = edge.inVertex;
 			if(masterVertexVector.contains(inVert) && !usedLeafVerts.contains(inVert) && !currentPathVerts.contains(inVert)){
@@ -310,22 +316,12 @@ public class LoopIdentifierProcessor implements IAlgorithm{
 	 * Sets the forest.
 	 * @param f DelegateForest	Forest to be set.
 	 */
-	public void setForest(DelegateForest f){
-		forest = f;
-		Collection<SEMOSSEdge> edges = f.getEdges();
-		Collection<SEMOSSVertex> v = f.getVertices();
+	public void setGraphDataModel(GraphDataModel g){
+		gdm = g;
+		Collection<SEMOSSEdge> edges = g.getEdgeStore().values();
+		Collection<SEMOSSVertex> v = g.getVertStore().values();
 		masterEdgeVector.addAll(edges);
 		masterVertexVector.addAll(v);
-	}
-	
-	/**
-	 * Sets selected nodes.
-	 * @param pickedVertices DBCMVertex[]		List of picked vertices to be set.
-	 */
-	public void setSelectedNodes(SEMOSSVertex[] pickedVertices){
-		for (int idx = 0; idx< pickedVertices.length ; idx++){
-			selectedVerts.add(pickedVertices[idx]);
-		}
 	}
 
 	/**

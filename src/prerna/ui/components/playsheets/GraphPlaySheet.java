@@ -69,6 +69,8 @@ import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.sail.SailException;
 
+import prerna.algorithm.impl.IslandIdentifierProcessor;
+import prerna.algorithm.impl.LoopIdentifierProcessor;
 import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
@@ -130,7 +132,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 	 * criterias including slider values
 	 */
 	private static final Logger logger = LogManager.getLogger(GraphPlaySheet.class.getName());
-	protected GraphDataModel gdm = new GraphDataModel();
+	public GraphDataModel gdm = new GraphDataModel();
 	public DelegateForest forest = null;
 	public VisualizationViewer <SEMOSSVertex, SEMOSSEdge> view = null;
 	protected String layoutName = Constants.FR;
@@ -1314,5 +1316,26 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		return null;
 	}
 
+	@Override
+	public Hashtable registerControlPanelClick(Hashtable webDataHash) {
+		Hashtable retHash = new Hashtable();
+		if ((webDataHash.get("type")).equals("Loop")) {
+			LoopIdentifierProcessor pro = new LoopIdentifierProcessor();
+			pro.setGraphDataModel(this.gdm);
+			pro.setPlaySheet(this);	
+			pro.executeWeb();
+			retHash = pro.getLoopEdges();
+		}
+		if ((webDataHash.get("type")).equals("Island")) {
+			IslandIdentifierProcessor pro = new IslandIdentifierProcessor();
+			SEMOSSVertex [] pickedVertex = new SEMOSSVertex[]{};
+			pro.setGraphDataModel(this.gdm);
+			pro.setSelectedNodes(pickedVertex);
+			pro.setPlaySheet(this);	
+			pro.executeWeb();
+			retHash = pro.getIslandEdges();
+		}
+		return retHash;		
+	}
 	
 }

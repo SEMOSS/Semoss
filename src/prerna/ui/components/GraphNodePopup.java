@@ -250,7 +250,7 @@ public class GraphNodePopup extends JPopupMenu {
 		algoItemDistanceDownstream.addActionListener(ddc);
 		algoPop.add(algoItemDistanceDownstream);
 
-		LoopIdentifierListener lil = new LoopIdentifierListener(ps, this.pickedVertex);
+		LoopIdentifierListener lil = new LoopIdentifierListener(ps);
 		JMenuItem algoItemLoopIdentifier  = new JMenuItem("Loop Identifier");
 		algoItemLoopIdentifier.addActionListener(lil);
 		algoPop.add(algoItemLoopIdentifier);
