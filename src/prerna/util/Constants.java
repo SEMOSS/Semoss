@@ -113,6 +113,7 @@ public class Constants {
 	public static final String SEMOSS_URI = "SEMOSS_URI";
 	public static final String CLASS = "_CLASS";
 	public static final String TYPE_URI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
+	public static final String DEFAULT_PROPERTY_CLASS = "Relation/Contains";
 
 	// layouts
 	public static final String FR = "Fruchterman-Reingold";

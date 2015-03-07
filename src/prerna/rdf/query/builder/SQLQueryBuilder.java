@@ -39,5 +39,11 @@ public class SQLQueryBuilder extends AbstractQueryBuilder{
 		//thats about it for now
 		this.query = this.allJSONHash.get("sqlquery") + "";
 	}
+
+	@Override
+	public void setJSONDataHash(Hashtable<String, Object> allJSONHash) {
+		// TODO Auto-generated method stub
+		
+	}
 	
 }

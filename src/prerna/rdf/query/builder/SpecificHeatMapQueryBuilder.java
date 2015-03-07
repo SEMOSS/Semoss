@@ -85,4 +85,10 @@ public class SpecificHeatMapQueryBuilder extends AbstractSpecificQueryBuilder {
 		createQuery();
 		logger.info("Created HeatMap Query: " + query);		
 	}
+
+	@Override
+	public void buildQueryR() {
+		// TODO Auto-generated method stub
+		
+	}
 }

@@ -33,14 +33,12 @@ import prerna.rdf.query.util.SEMOSSQuery;
 
 public abstract class AbstractQueryBuilder implements IQueryBuilder{
 	String query;
+	static final String filterKey = "filter";
+
 
 	public Hashtable<String, Object> allJSONHash = new Hashtable<String, Object>();
 	
 
-	@Override
-	public void setJSONDataHash(Hashtable<String, Object> allJSONHash) {
-		this.allJSONHash = allJSONHash;
-	}
 
 	@Override
 	public Hashtable<String, Object> getJSONDataHash() {

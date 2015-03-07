@@ -223,6 +223,7 @@ public abstract class AbstractEngine implements IEngine {
 
 	protected String questionXMLFile;
 	
+
 	/**
 	 * Opens a database as defined by its properties file. What is included in
 	 * the properties file is dependent on the type of engine that is being
@@ -289,6 +290,7 @@ public abstract class AbstractEngine implements IEngine {
 				if (genEngPropFile != null)
 					generalEngineProp = loadProp(baseFolder + "/" + genEngPropFile);
 
+				// need to add the logic for entityQuery
 			}
 		} catch (RuntimeException e) {
 			e.printStackTrace();

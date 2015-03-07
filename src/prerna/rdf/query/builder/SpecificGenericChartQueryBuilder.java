@@ -88,4 +88,68 @@ public class SpecificGenericChartQueryBuilder extends AbstractSpecificQueryBuild
 		createQuery();
 		logger.info("Created BarChart Query: " + query);		
 	}
+	
+	@Override
+	public void buildQueryR()
+	{
+		// I have three things I can use here
+		/**
+		 * They are
+		 * 
+LabelColName - Always only one - TITLE
+Value Col Names - [TITLE__REVENUE_INTERNATIONAL, NOMINATED_TITLE__MOVIEBUDGET]
+Math Functions - [average, average]
+Parameters [{STUDIO=http://semoss.org/ontologies/Concept/Studio}]
+		 * 
+		 */
+		// I need to compose a query based on this
+		
+		// start of with the label first
+		String colName = labelColName;
+		String tableName = colName;
+		if(colName.contains("__"))
+		{
+			tableName = colName.substring(0, colName.indexOf("__"));
+			colName = colName.substring(colName.indexOf("__") + 2);			
+		}
+		// throw in the label first
+		paramString = getAlias(tableName) + "." + colName + " AS " + colName;
+		tableString = tableName + " " + getAlias(tableName);
+		
+		// add it to group by
+		groupBy = "Group By " + getAlias(tableName) + "." + colName + " ";
+		
+		tablesProcessed.put(tableName.toUpperCase(), tableName.toUpperCase());
+		
+		// ok I forgot the label - I need to account for it
+		
+		for(int colNameIndex = 0;colNameIndex < valueColNames.size();colNameIndex++)
+		{
+			colName = valueColNames.get(colNameIndex);
+			String mathFunction = valueMathFunctions.get(colNameIndex);
+			String mapMath = mapMath(mathFunction);
+			
+			
+					
+			tableName = colName;
+			if(colName.contains("__")) // need to split
+			{
+				tableName = colName.substring(0, colName.indexOf("__"));
+				colName = colName.substring(colName.indexOf("__") + 2);
+			}
+			
+			// now compose the query
+			String alias = getAlias(tableName);
+			String qualifiedColumn = alias + "." + colName ;
+			
+			if(mapMath != null)
+				qualifiedColumn = mapMath + qualifiedColumn + ")";
+
+			// set the param string
+			paramString = paramString + ", " + alias + "." + qualifiedColumn + " AS " + colName;
+			
+			// set the table string
+			addToTableString(tableName);
+		}
+	}
 }

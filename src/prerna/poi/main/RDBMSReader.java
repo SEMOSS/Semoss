@@ -39,6 +39,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.ValueFactory;
 import org.openrdf.model.vocabulary.RDF;
+import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.UpdateExecutionException;
 import org.openrdf.repository.Repository;
@@ -62,6 +63,8 @@ import org.supercsv.cellprocessor.ift.CellProcessor;
 import org.supercsv.io.CsvMapReader;
 import org.supercsv.io.ICsvMapReader;
 import org.supercsv.prefs.CsvPreference;
+
+import com.hp.hpl.jena.vocabulary.OWL;
 
 import prerna.error.EngineException;
 import prerna.error.FileReaderException;
@@ -118,6 +121,7 @@ public class RDBMSReader {
 
 	protected SailConnection sc;
 	protected String semossURI;
+	protected String propURI = "http://semoss.org/ontologies/property";
 	protected final static String CONTAINS = "Contains";
 	
 	public Hashtable<String,String> baseConceptURIHash = new Hashtable<String,String>(); 
@@ -125,6 +129,8 @@ public class RDBMSReader {
 	public Hashtable<String,String> baseRelationURIHash = new Hashtable<String,String>(); 
 	public Hashtable<String,String> relationURIHash = new Hashtable<String,String>();
 	public Hashtable<String,String> basePropURIHash = new Hashtable<String,String>();
+	public Hashtable<String,String> basePropRelations = new Hashtable<String,String>();
+
 	
 	protected Hashtable<String, String[]> baseRelations = new Hashtable<String, String[]>();
 
@@ -141,16 +147,16 @@ public class RDBMSReader {
 	public static void main(String [] args) throws Exception
 	{
 		RDBMSReader reader = new RDBMSReader();
-		String engineName = "Sample";
-		reader.dbBaseFolder = "C:/Users/pkapaleeswaran/workspacej2/SemossWeb/db";
+		String engineName = "RDBMST7";
+		reader.dbBaseFolder = "C:/Users/pkapaleeswaran/workspacej2/SemossWeb";
 		String fileName = "C:/Users/pkapaleeswaran/workspacej2/Data/Movie.csv";
-		reader.propFile = "C:/Users/pkapaleeswaran/workspacej2/SemossWeb/db/Movie_DB/Movie_DB_PROP.prop";
+		reader.propFile = "C:/Users/pkapaleeswaran/workspacej2/SemossWeb/db/RDBMST7/RDBMST7_Movie_PROP.prop";
 		reader.propFileExist = true;
 		reader.semossURI = "http://semoss.org/ontologies";
 		reader.customBaseURI = "http://semoss.org/ontologies";
-		reader.owlFile = "C:/Users/pkapaleeswaran/workspacej2/SemossWeb/db/Movie_DB/Movie_DB_OWL2.OWL";
+		reader.owlFile = "C:/Users/pkapaleeswaran/workspacej2/SemossWeb/db/RDBMST7/Movie_DB_OWL2.OWL";
 		String outputFile = reader.writePropFile(engineName);
-		reader.importFileWithOutConnection(outputFile, fileName, reader.customBaseURI, "sample.txt","Movie");
+		reader.importFileWithOutConnection(outputFile, fileName, reader.customBaseURI, reader.owlFile,engineName);
 	}
 	
 	private String writePropFile(String engineName)
@@ -507,7 +513,7 @@ public class RDBMSReader {
 				processClassMetaData(sub, customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS + "/", conceptURIHash);
 				// put the relationship
 				// I need something that does the other way around or may be note
-				relHash.put(predicate, sub + "@" + obj);
+				relHash.put(predicate + sub + obj, sub + "@" + obj);
 			}
 		}		
 	}
@@ -606,10 +612,21 @@ public class RDBMSReader {
 					tableHash.put(sub, columnHash);
 					
 					// for now I am not adding properties to it
-					processClassMetaData(prop, basePropURI , basePropURIHash);
+					processPropertyMetaData(semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/" + processAutoConcat(sub), prop);
 				}
 			}
 		}
+	}
+	
+	private void processPropertyMetaData(String parentNodeURI, String property)
+	{
+		// add the base property first
+		property = processAutoConcat(property);
+		String propURI = semossURI + "/" + Constants.DEFAULT_PROPERTY_CLASS + "/" + property;
+		basePropURIHash.put(propURI, propURI);
+		
+		// now need to add a new one for the class as well
+		basePropRelations.put(parentNodeURI, propURI);
 	}
 	
 	private void recreateRelations()
@@ -642,18 +659,18 @@ public class RDBMSReader {
 				{
 					modifyingTable = table2;
 					targetHash = columnHash2;
-					targetHash.put(table1, "STRING");
+					// add FK to foreign key so that I 
+					targetHash.put(table1 + "_FK", "STRING");
 					tableHash.put(table2, targetHash);
-					createRelation(table1, table2, "NAME", table1);
+					createRelation(table1, table2, table1, table1 + "_FK");
 				}
 				else
 				{
 					modifyingTable = table1;
 					targetHash = columnHash1;
-					targetHash.put(table2, "STRING");
-					newRelationName = table2 + "." + "NAME" + "." + table1 + "." + table1;
+					targetHash.put(table2 + "_FK", "STRING");
 					tableHash.put(table1, targetHash);
-					createRelation(table2, table1, "NAME", table2);
+					createRelation(table2, table1, table2, table2 + "_FK");
 				}
 			}
 			if(commonKey != null)
@@ -666,17 +683,30 @@ public class RDBMSReader {
 	public void createRelation(String fromTable, String toTable, String fromProp, String toProp)
 	{
 		String [] subPredObj = new String[3];
-		String newRelationName = fromTable + "." + fromProp + "." + toTable + "." + toProp;
-		String relSemossBaseURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + newRelationName;
 		
 		if(fromTable.contains("+"))
 			fromTable = processAutoConcat(fromTable);
 		if(toTable.contains("+"))
 			toTable = processAutoConcat(toTable);
+		if(fromProp.contains("+"))
+			fromProp = processAutoConcat(fromTable);
+		if(toProp.contains("+"))
+			toProp = processAutoConcat(toTable);
+		
+		fromTable = realClean(fromTable);
+		toTable = realClean(toTable);
+		fromProp = realClean(fromProp);
+		toProp = realClean(toProp);
+
+		String newRelationName = fromTable + "." + fromProp + "." + toTable + "." + toProp;
+		
+		// set the relationURI for the front end
+		String relSemossBaseURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + newRelationName + "/" + fromTable + "_" + toTable; // this is the culprit
 		
 		subPredObj[0] = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/" + fromTable; // turn this into URI
 		subPredObj[1] = relSemossBaseURI;
 		subPredObj[2] = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/" + toTable; // turn this into an URI
+
 		baseRelations.put(newRelationName, subPredObj);	
 
 		baseRelationURIHash.put(relSemossBaseURI+Constants.CLASS, relSemossBaseURI);
@@ -694,7 +724,6 @@ public class RDBMSReader {
 		
 	}
 	
-	
 	private void createTables()
 	{
 		// the job here is to take the table hash and create tables
@@ -702,8 +731,10 @@ public class RDBMSReader {
 		while(tableKeys.hasMoreElements())
 		{
 			String tableKey = tableKeys.nextElement();
+			//if(tableKey.contains("+"))
+			//	tableKey = processAutoConcat(tableKey);
 			String SQLCREATE = "CREATE TABLE " + realClean(tableKey) + "(";
-			SQLCREATE = SQLCREATE + " " + "NAME" + "  " + sqlHash.get("STRING"); // add its own column first as name
+			SQLCREATE = SQLCREATE + " " + realClean(tableKey) + "  " + sqlHash.get("STRING"); // add its own column first as name
 			
 			boolean key1 = true;
 			
@@ -720,18 +751,17 @@ public class RDBMSReader {
 				String column = columnKeys.nextElement();
 				String type = (String)columns.get(column);
 				// clean up the + first
-				column = column.replaceAll("\\+", "_");
+				//column = column.replaceAll("\\+", "_");
 				// now clean it up
-				column = Utility.cleanString(column,true);
+				column = realClean(column); //,true);
 				// finally finish it up with the replacing -
-				column = column.replaceAll("-", "_");
+				//column = column.replaceAll("-", "_");
 				SQLCREATE = SQLCREATE + column + "  " + sqlHash.get(type);
 				if(columnKeys.hasMoreElements())
 					SQLCREATE = SQLCREATE + " , ";
 			}
 			
 			SQLCREATE = SQLCREATE + " )";
-			
 			
 			System.out.println("SQL CREATE IS " + SQLCREATE);
 			modifyDB(SQLCREATE);
@@ -749,7 +779,7 @@ public class RDBMSReader {
 		while(tableKeys.hasMoreElements())
 		{
 			String tableKey = tableKeys.nextElement();
-			String SQLINSERT = "INSERT INTO   " + realClean(tableKey) + "  (NAME";
+			String SQLINSERT = "INSERT INTO   " + realClean(tableKey) +  "  (" + realClean(tableKey);
 			
 			Hashtable columns = tableHash.get(tableKey);
 			Enumeration <String> columnKeys = columns.keys();
@@ -793,7 +823,9 @@ public class RDBMSReader {
 				{
 					String VALUES = "  VALUES (";
 					String tableKey = tableKeys.nextElement();
-					String value = "'" + createInstanceValue(tableKey, jcrMap) + "'"; // would the value be always string ?
+					String value = createInstanceValue(tableKey, jcrMap);
+					value = value.replaceAll("'", "''");	
+					value = "'" +  value + "'"; // would the value be always string ?
 					VALUES = VALUES + value;
 					boolean key1 = true;
 					Hashtable columns = tableHash.get(tableKey);
@@ -807,9 +839,16 @@ public class RDBMSReader {
 						}
 						String key = columnKeys.nextElement();
 						String type = (String)columns.get(key);
+						key = key.replace("_FK", "");
 						value = createInstanceValue(key, jcrMap);
+						//if(!sqlHash.get(type).contains("FLOAT"))
+						//	value = realClean(value);
+						// escape SQL Values
 						if(sqlHash.get(type).contains("VARCHAR"))
+						{
+							value = value.replaceAll("'", "''");
 							value = "'" + value + "'" ;
+						}
 						VALUES = VALUES + value;
 						if(columnKeys.hasMoreElements())
 							VALUES = VALUES + " , ";
@@ -1020,7 +1059,10 @@ public class RDBMSReader {
 		String output = "";
 		for (int i=0;i<split.length;i++)
 		{
-			output = output+split[i];
+			if(i > 0)
+				output = output+"_" + split[i];
+			else
+				output = split[i];
 		}
 		return output;
 	}
@@ -1064,7 +1106,7 @@ public class RDBMSReader {
 				if(jcrMap.containsKey(subjectElement) && jcrMap.get(subjectElement)!= null)
 				{
 					String value = jcrMap.get(subjectElement) + "";
-					value = Utility.cleanString(value, true);
+					value = realClean(value); //, true);
 
 					retString = retString  + value + "-";
 				}
@@ -1081,8 +1123,9 @@ public class RDBMSReader {
 		{
 			if(jcrMap.containsKey(subject) && jcrMap.get(subject)!= null)
 			{
+				// clean it only if the type happens to be something other than number
 				String value = jcrMap.get(subject) + "";
-				value = Utility.cleanString(value, true);
+				//value = realClean(value);
 				retString = value;
 			}
 		}
@@ -1179,7 +1222,7 @@ public class RDBMSReader {
 		String obj = Constants.CLASS_URI;
 		
 		//I dont need it to go to the database
-		//createStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj)); - 
+		// create base relations for concepts
 		
 		storeBaseStatement(sub, pred, obj);
 		
@@ -1196,31 +1239,36 @@ public class RDBMSReader {
 		}
 		storeBaseStatement(basePropURI, Constants.SUBPROPERTY_URI, basePropURI);
 
+		// concepts go first
 		Iterator<String> baseHashIt = baseConceptURIHash.keySet().iterator();
 		//now add all of the base relations that have been stored in the hash.
 		while(baseHashIt.hasNext()){
 			String subjectInstance = baseHashIt.next() +"";
 			String predicate = Constants.SUBCLASS_URI;
 			//convert instances to URIs
-			String subject = Utility.cleanString(baseConceptURIHash.get(subjectInstance) +"", false);
+			String subject = baseConceptURIHash.get(subjectInstance); // +"", false);
 			String object = semossURI + "/Concept";
 			// create the statement now
 			//createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
 			// add base relations URIs to OWL
 			storeBaseStatement(subject, predicate, object);
 		}
+		// relations go next
 		baseHashIt = baseRelationURIHash.keySet().iterator();
 		while(baseHashIt.hasNext()){
 			String subjectInstance = baseHashIt.next() +"";
 			String predicate = Constants.SUBPROPERTY_URI;
 			//convert instances to URIs
-			String subject = Utility.cleanString(baseRelationURIHash.get(subjectInstance) +"", false);
+			String subject = baseRelationURIHash.get(subjectInstance);// +"", false);
 			String object = semossURI + "/Relation";
 			// create the statement now
 			//createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
 			// add base relationship URIs to OWL
 			storeBaseStatement(subject, predicate, object);
 		}
+		
+		// now write the actual relations
+		// relation instances go next
 		for(String[] relArray : baseRelations.values()){
 			String subject = relArray[0];
 			String predicate = relArray[1];
@@ -1228,6 +1276,34 @@ public class RDBMSReader {
 
 			//			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
 			storeBaseStatement(subject, predicate, object);
+//			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
+		}
+		// I need to write one now for creating properties as well
+		// this is where I will do properties
+		// add the base relation first
+		storeBaseStatement(semossURI + "/" + Constants.DEFAULT_PROPERTY_CLASS, RDF.TYPE+"", semossURI + "/" + Constants.DEFAULT_RELATION_CLASS);
+		
+		baseHashIt = basePropURIHash.keySet().iterator();
+		while(baseHashIt.hasNext()){
+			String subjectInstance = baseHashIt.next() +"";
+			String predicate = RDF.TYPE +"";
+			//convert instances to URIs
+			String subject = subjectInstance; //baseRelationURIHash.get(subjectInstance);// +"", false);
+			String object = semossURI + "/" + Constants.DEFAULT_PROPERTY_CLASS;
+			// create the statement now
+			// base property uri is like
+			// Relation/Contains/MovieBudget RDFS:SUBCLASSOF /Relation/Contains
+			storeBaseStatement(subject, predicate, object);
+		}
+		
+		// now write the actual relations
+		// relation instances go next
+		for(String relArray : basePropRelations.keySet()){
+			String parent = relArray;
+			String property = basePropRelations.get(parent);
+
+			//			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
+			storeBaseStatement(parent, OWL.DatatypeProperty+"", property);
 //			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
 		}
 
