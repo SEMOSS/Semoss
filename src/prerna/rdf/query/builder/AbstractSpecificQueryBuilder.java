@@ -28,6 +28,7 @@
 package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
 
@@ -35,11 +36,18 @@ import prerna.rdf.query.util.ISPARQLReturnModifier;
 import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SPARQLAbstractReturnModifier;
+import prerna.util.Utility;
 
 public abstract class AbstractSpecificQueryBuilder {
 	protected ArrayList<Hashtable<String, String>> parameters;
 	protected SEMOSSQuery baseQuery;
 	protected String query;
+	Hashtable<String, String> aliases = new Hashtable<String, String>();
+	Hashtable <String, String> tablesProcessed = new Hashtable<String, String>();
+	String paramString = "";
+	String tableString =  "";
+	String joinString = "";
+	String groupBy = "";
 	
 	public AbstractSpecificQueryBuilder(ArrayList<Hashtable<String, String>> parameters, SEMOSSQuery baseQuery) {
 		this.baseQuery = baseQuery;
@@ -93,8 +101,121 @@ public abstract class AbstractSpecificQueryBuilder {
 	}
 	
 	public String getQuery() {
+		query = "SELECT " + paramString + " FROM " + tableString + " WHERE " + joinString + " " + groupBy;
 		return query;
 	}
 	
 	public abstract void buildQuery();
+
+	public abstract void buildQueryR();
+	
+	protected String getAlias(String tableName)
+	{
+		tableName = tableName.toUpperCase();
+		String response = null;
+		if(aliases.containsKey(tableName))
+			response = aliases.get(tableName);
+		else
+		{
+			boolean aliasComplete = false;
+			int count = 0;
+			String tryAlias = "";
+			while(!aliasComplete)
+			{
+				tryAlias = tryAlias + tableName.charAt(count);
+				aliasComplete = !aliases.containsValue(tryAlias);
+				count++;
+			}
+			response = tryAlias;
+			aliases.put(tableName, tryAlias);
+		}
+		return response;
+	}
+	
+	protected String mapMath(String function)
+	{
+		String retString = null;
+		
+		if(function.equalsIgnoreCase("Average"))
+			retString = "avg(";
+		if(function.equalsIgnoreCase("Count"))
+			retString = "count(";
+		
+		return retString;
+	}
+	
+	public void addParameters()
+	{
+		// this is supposed to append to the where
+		for(int paramIndex = 0;paramIndex < parameters.size();paramIndex++)
+		{
+			Hashtable<String, String> thisParam = parameters.get(paramIndex);
+			// the key 
+			// get the value
+			Enumeration <String> keys = thisParam.keys();
+			while(keys.hasMoreElements())
+			{
+				String colName = keys.nextElement();
+				String originalColName = colName;
+				String tableName = colName;
+				if(colName.contains("__"))
+				{
+					tableName = colName.substring(0,colName.indexOf("__"));
+					colName = colName.substring(colName.indexOf("__") + 2);
+				}
+				addToTableString(tableName);
+				String qualifiedColName = getAlias(tableName) + "." + colName;
+				String condition = qualifiedColName + " = '@" + colName + "-" + tableName + ":" + colName + "@'";
+				if(joinString.length() > 0)
+					joinString = joinString + " AND " + condition;
+				else
+					joinString = condition;
+			}
+		}
+	}
+	
+	
+	// this gets the rel triples and adds the join to the query
+	/**
+	 * relTriples=[[http://semoss.org/ontologies/Concept/Title, http://semoss.org/ontologies/Relation/Title.Title.Nominated_Title.Title_FK, http://semoss.org/ontologies/Concept/Nominated_Title], [http://semoss.org/ontologies/Concept/Title, http://semoss.org/ontologies/Relation/Title.Title.Studio.Title_FK, http://semoss.org/ontologies/Concept/Studio]]
+	 * @param relTriples
+	 */
+	public void addJoins(ArrayList<ArrayList<String>> relTriples)
+	{
+		for(int joinIndex = 0;joinIndex < relTriples.size();joinIndex++)
+		{
+			ArrayList <String> thisList = relTriples.get(joinIndex);
+			String predicate = thisList.get(1);
+			if(predicate.contains(":"))
+				predicate = Utility.getInstanceName(predicate);
+			String [] items = predicate.split("\\.");
+			// this will yield 4 strings
+			String fromTable = items[0];
+			String fromColumn = items[1];
+			String toTable = items[2];
+			String toColumn = items[3];
+			
+			String join = getAlias(fromTable) + "." + fromColumn + "=" + getAlias(toTable) + "." + toColumn;
+			
+			if(joinString.length() > 0)
+				joinString = joinString + " AND " + join;
+			else
+				joinString = join;
+			
+			addToTableString(fromTable);
+			addToTableString(toTable);
+		}		
+	}
+	
+	
+	protected void addToTableString(String tableName)
+	{
+		if(!tablesProcessed.containsKey(tableName.toUpperCase()))
+		{
+			String alias = getAlias(tableName);
+			tableString = tableString + ", " + tableName + " " + alias;			
+			tablesProcessed.put(tableName.toUpperCase(), tableName.toUpperCase());
+		}
+	}
+
 }

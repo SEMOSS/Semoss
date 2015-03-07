@@ -962,7 +962,18 @@ public class QuestionAdministrator {
 				// see if the param key has a query associated with it
 				// usually it is of the form qsKey + _ + paramKey + _ + Query
 				// if there is no specific query defined, we will use the type query from DIHelper
-				String query = DIHelper.getInstance().getProperty("TYPE" + "_" + Constants.QUERY);
+				String query = null;
+				if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.JENA || engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE  )
+				{
+					query = DIHelper.getInstance().getProperty("TYPE" + "_" + Constants.QUERY);
+				}
+				else if(engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS)
+				{
+					query = "SELECT DISTINCT @entity@ FROM @entity@";
+					// take the param and convert to query
+					//Hashtable paramHash = Utility.getParams(sparql);
+					//Enumeration keys = paramHash.
+				}
 
 				String customQueryKey = qsKey + "_" + paramKey + "_" + Constants.QUERY;
 				if (parameterProperties.get(customQueryKey) != null)

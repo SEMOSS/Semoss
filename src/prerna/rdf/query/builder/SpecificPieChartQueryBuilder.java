@@ -77,4 +77,10 @@ public class SpecificPieChartQueryBuilder extends AbstractSpecificQueryBuilder {
 		createQuery();
 		logger.info("Created PieChart Query: " + query);		
 	}
+
+	@Override
+	public void buildQueryR() {
+		// TODO Auto-generated method stub
+		
+	}
 }
