@@ -73,10 +73,14 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements
 				stmt.setVar(var[colIndex], value);
 				//set the type and URI based on the type
 				int type = (int)columnTypes.get(var[colIndex]);
-				String qualifiedValue = var[colIndex];
+				String qualifiedValue = null;
 				if(type == Types.LONGNVARCHAR || type == Types.VARCHAR || type == Types.CHAR || type == Types.LONGNVARCHAR || type == Types.NCHAR)
+				{
 					qualifiedValue = uri + "/" + var[colIndex] + "/" + value;
-				stmt.setRawVar(var[colIndex], qualifiedValue);
+					stmt.setRawVar(var[colIndex], qualifiedValue);
+				}
+				else
+					stmt.setRawVar(var[colIndex], value);
 			}
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
@@ -99,7 +103,7 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements
 			
 			for(int colIndex = 1;colIndex <= numColumns;colIndex++)
 			{
-				var[colIndex-1] = rsmd.getColumnName(colIndex);
+				var[colIndex-1] = rsmd.getColumnLabel(colIndex);
 				int type = rsmd.getColumnType(colIndex);
 				columnTypes.put(var[colIndex-1], type);
 			}

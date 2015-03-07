@@ -108,4 +108,10 @@ public class SpecificScatterPlotQueryBuilder extends AbstractSpecificQueryBuilde
         logger.info("Created ScatterPlot Query: " + query);
     }
 
+	@Override
+	public void buildQueryR() {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

@@ -37,22 +37,33 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Vector;
 
+import org.openrdf.model.Literal;
+import org.openrdf.model.Value;
 import org.openrdf.query.MalformedQueryException;
+import org.openrdf.query.QueryEvaluationException;
+import org.openrdf.query.QueryLanguage;
+import org.openrdf.query.TupleQuery;
+import org.openrdf.query.TupleQueryResult;
 import org.openrdf.query.UpdateExecutionException;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.sail.SailException;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryBuilder;
-import prerna.rdf.query.builder.SQLQueryBuilder;
+import prerna.rdf.query.builder.SQLQueryTableBuilder;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class RDBMSNativeEngine extends AbstractEngine {
 	
 	DriverManager manager = null;
 	Connection conn = null;
 	boolean connected = false;
-
+	
 	@Override
 	public void openDB(String propFile)
 	{
@@ -196,7 +207,15 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	}
 	
 	public IQueryBuilder getQueryBuilder(){
-		return new SQLQueryBuilder();
-		//return new SQLQueryTableBuilder(this);
+		//return new SQLQueryBuilder();
+		return new SQLQueryTableBuilder(this);
 	}
+	
+	public Vector<String> getParamValues(String name, String type, String insightId) 
+	{
+		if(type.contains(":"))
+			type = Utility.getInstanceName(type);
+		String query = "SELECT " + type + " AS " + name + " FROM " + type;
+		return getParamValues(name, type, insightId, query);
+	}	
 }

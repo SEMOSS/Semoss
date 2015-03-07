@@ -66,5 +66,11 @@ public class SpecificTableQueryBuilder extends AbstractSpecificQueryBuilder{
 		createQuery();
 		logger.info("Created Generic Table Query: " + query);		
 	}
+
+	@Override
+	public void buildQueryR() {
+		// TODO Auto-generated method stub
+		
+	}
 	
 }
