@@ -21,7 +21,6 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 
 	SEMOSSQuery semossQuery = new SEMOSSQuery();
 	static final String relVarArrayKey = "relVarTriples";
-	static final String filterKey = "filter";
 	ArrayList<String> totalVarList = new ArrayList<String>();
 	ArrayList<Hashtable<String,String>> nodeV = new ArrayList<Hashtable<String,String>>();
 	ArrayList<Hashtable<String,String>> predV = new ArrayList<Hashtable<String,String>>();
