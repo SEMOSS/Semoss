@@ -32,10 +32,11 @@ import java.util.Hashtable;
 import java.util.Vector;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.SesameJenaConstructStatement;
 import prerna.rdf.engine.impl.SesameJenaSelectCheater;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Utility;
 
 import com.google.gson.Gson;
@@ -52,18 +53,22 @@ public class RDFJSONConverter {
 		ArrayList<Object[]> list = new ArrayList<Object[]>();
 		
 		
+	ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+	
+	/*
 	SesameJenaSelectWrapper wrapper = new SesameJenaSelectWrapper();
 	wrapper.setEngine(engine);
 	wrapper.setQuery(query);
 	wrapper.executeQuery();
-
+	*/
+	
 	// get the bindings from it
 	String [] names = wrapper.getVariables();
 	int count = 0;
 	// now get the bindings and generate the data
 	while(wrapper.hasNext())
 	{
-		SesameJenaSelectStatement sjss = wrapper.next();
+		ISelectStatement sjss = wrapper.next();
 		
 		Object [] values = new Object[names.length];
 		for(int colIndex = 0;colIndex < names.length;colIndex++)
