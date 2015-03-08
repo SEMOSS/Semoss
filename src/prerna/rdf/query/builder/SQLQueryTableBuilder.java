@@ -200,9 +200,10 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 					if(filters.length() > 0)
 						filters = filters + " OR " + columnValue + " = '" + instance + "'";
 					else
-						filters = columnValue + " = '" + instance + "'";
+						filters = "(" + columnValue + " = '" + instance + "'";
 				}
 			}
+			filters = filters + ")";
 		}
 	}
 	
