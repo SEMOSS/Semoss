@@ -136,7 +136,7 @@ public class DataLatencyPerformer implements IAlgorithm{
 		validVerts.clear();
 		validEdges.clear();
 		Vector<SEMOSSVertex> forestRoots = getForestRoots();
-		runDepthSearchFirst(forestRoots);
+		runDepthFirstSearch(forestRoots);
 		setTransformers();
 	}
 	
@@ -176,7 +176,7 @@ public class DataLatencyPerformer implements IAlgorithm{
 	 * 
 	 * @param roots Vector<DBCMVertex>		List of roots.
 	 */
-	private void runDepthSearchFirst(Vector<SEMOSSVertex> roots){
+	private void runDepthFirstSearch(Vector<SEMOSSVertex> roots){
 
 		for(SEMOSSVertex vertex : roots){
 			
@@ -365,7 +365,7 @@ public class DataLatencyPerformer implements IAlgorithm{
 		value = inputValue;
 
 		Vector<SEMOSSVertex> forestRoots = getForestRoots();
-		runDepthSearchFirst(forestRoots);
+		runDepthFirstSearch(forestRoots);
 		
 		finalScoresFilled = true;
 	}
