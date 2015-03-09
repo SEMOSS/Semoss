@@ -43,236 +43,246 @@
 <script src="lib/d3.v3.js"></script>
 <script src="lib/tooltip.js"></script>
 <script>
-function replaceAll(find, replace, str) {
-  return str.replace(new RegExp(find, 'g'), replace);
-}
+	function replaceAll(find, replace, str) {
+	  return str.replace(new RegExp(find, 'g'), replace);
+	}
 
-function shortenValueFilter(str) {
-  //convert to string
-  str = String(str);
-  if (str.indexOf('"') == 0) {
-	var shortStr = str.substring(1, str.length);
-	var returnStr = shortStr.substring(0, shortStr.indexOf('"'));
-	return returnStr;
-  } else if (str.indexOf('http://') !== -1) {
-	var myRe = new RegExp("([^/]*)$");
-	var returnStr = myRe.exec(str);
-	return returnStr[0];
-  } else {
-	return str;
-  }
-}
+	function shortenValueFilter(str) {
+	  //convert to string
+	  str = String(str);
+	  if (str.indexOf('"') == 0) {
+		var shortStr = str.substring(1, str.length);
+		var returnStr = shortStr.substring(0, shortStr.indexOf('"'));
+		return returnStr;
+	  } else if (str.indexOf('http://') !== -1) {
+		var myRe = new RegExp("([^/]*)$");
+		var returnStr = myRe.exec(str);
+		return returnStr[0];
+	  } else {
+		return str;
+	  }
+	}
 
-//var dataString = {"type":"pie","dataSeries":[[{"pieVal":55,"pieCat":"Flags_of_Our_Fathers"},{"pieVal":55,"pieCat":"Letters_from_Iwo_Jima"},{"pieVal":55,"pieCat":"Midnight_in_the_Garden_of_Good_and_Evil"},{"pieVal":55,"pieCat":"Million_Dollar_Baby"},{"pieVal":55,"pieCat":"Mystic_River"},{"pieVal":55,"pieCat":"Space_Cowboys"}]],"names":["Title","Revenue"]};
+	//var dataString = {"type":"pie","dataSeries":[[{"pieVal":55,"pieCat":"Flags_of_Our_Fathers"},{"pieVal":55,"pieCat":"Letters_from_Iwo_Jima"},{"pieVal":55,"pieCat":"Midnight_in_the_Garden_of_Good_and_Evil"},{"pieVal":55,"pieCat":"Million_Dollar_Baby"},{"pieVal":55,"pieCat":"Mystic_River"},{"pieVal":55,"pieCat":"Space_Cowboys"}]],"names":["Title","Revenue"]};
 
-var width = 960,
-    height = 500,
-    radius = Math.min(width, height) / 2.4;
-	
-var STANDARD_OPACITY = 0.65, LABEL_AUGMENT = 1.5,
-	margin = {top: 0, right: 40, bottom: 80, left: 40},
-	container = {width: 0, height: 0},			    
-	color = d3.scale.category20(), 
-	radius;	
-          
-var arc = d3.svg.arc()
-	.outerRadius(radius)
-	.innerRadius(0);			
-
-var svg = d3.select("body").append("svg")
-	.attr("width", width)
-	.attr("height", height);
-
-var vis = svg.append("g")
-	.attr("transform", "translate(" + width / 2 + "," + height / 2 + ")"); 
-
-var pie = d3.layout.pie()
-	.value(function(d) { return d.pieVal; });
-
-/* Initialize tooltip */
-var tip = d3.tip()
-	.attr('class', 'd3-tip')
-	.style("z-index", "10000")
-	.html(function (d) {
-		var labelVal = shortenValueFilter(d.data.pieCat);
-		labelVal = replaceAll('_', ' ', labelVal) + "";
-		return "<div> <span class='light'>" + labelVal +
-		":</span> " + d.data.pieVal + "</div>";
-	});
-
-//start(dataString);	
-function start(dataString) {
-	//handle the data
-	var dataStringJson = jQuery.parseJSON(dataString);
-	var jsonData = dataStringJson.dataSeries;
-	var data = [];	
-	data = jsonData[0];
-	
-	var totalPieValue = 0,
-		labelCount = 0,
-		arcCount = 0,
-		legendCount = 0;
-			
-	data.forEach(function(d) { d.pieVal = Number(+d.pieVal); });
-			
-	data.forEach(function(d) { 
-		d.pieVal = Number(+d.pieVal);
-		totalPieValue = totalPieValue + Number(+d.pieVal); 
-	});
+	var width = 960,
+	    height = 500,
+	    radius = Math.min(width, height) / 2.4;
 		
-	var g = vis.selectAll(".arc")
-	  .data(pie(data))
-	  .enter().append("g")
-	  .attr("class", "background")
-	  .attr("class", "arc")
-	  .attr("transform", "translate(" + 0 + "," + 0 + ")");
-					
-	g.append("path")
-	  .attr("opacity", STANDARD_OPACITY)
-	  .attr("d", arc)
-	  .attr("id", function(d) { return "arc-" + (arcCount++); })
-	  .style("fill", function(d) { 
-			return color(d.data.pieCat); 
-	  })
-	  .on('mouseover', function (d) { 
-		var slice = d3.select(this);
-		slice.style("opacity", 1);
-	  })
-	  .on('mouseout', function (d) {
-		var slice = d3.select(this);
-		slice.style("opacity", STANDARD_OPACITY); 
-	  });
+	var STANDARD_OPACITY = 0.65, LABEL_AUGMENT = 1.5,
+		margin = {top: 0, right: 40, bottom: 80, left: 40},
+		container = {width: 0, height: 0},			    
+		color = d3.scale.category20(), 
+		radius;	
+	          
+	var arc = d3.svg.arc()
+		.outerRadius(radius)
+		.innerRadius(0);			
 
-	g.append("text")
-	  .attr("id", function(d) { return "arc-" + (labelCount++); })
-	  .attr("transform", function(d) { 
-		var textPosition = arc.centroid(d)
-		return "translate(" + (textPosition[0] * LABEL_AUGMENT) + ", " + (textPosition[1] * LABEL_AUGMENT) + ")";
-		//return "translate(" + arc.centroid(d) + ")"; 
-	  })
-	  //.attr("dy", ".35em")
-	  .style("text-anchor", "middle")
-	  .text(function(d) { 
-		//var retVal = $filter('shortenValueFilter')(d.pieCat)
-		//retVal = replaceAll('_', ' ', retVal)
-		var retVal = ((d.data.pieVal / totalPieValue) * 100).toFixed(1) + "%"
-		if ((d.data.pieVal / totalPieValue) > 0.025)
-			return retVal; 
-	  })
-	  .on('mouseover', function (d) { 
-		var slice = d3.select("path#" + this.id);
-		slice.style("opacity", 1);
-		tip.show(d); 
-	  })
-	  .on('mouseout', function (d) {
-		var slice = d3.select("path#" + this.id);
-		slice.style("opacity", STANDARD_OPACITY); 
-		tip.hide(d); 
-	  })
-	  //.style("font-weight", "bold")
-	  //.attr("font-size","16px");	
+	var svg = d3.select("body").append("svg")
+		.attr("width", width)
+		.attr("height", height);
 
-	vis.call(tip);  /* Invoke the tooltip in the context of your visualization */  	
-	
-	var legend = svg.selectAll(".legend")
-		.data(data).enter()
-		.append("g").attr("class", "legend")
-		.attr("legend-id", function(d) { return legendCount++; })
-		.attr("transform", function(d, i) {
-			  return "translate(-250," + (300 + i * 20) + ")";
-		 })
-		.on("click", function() {
-		  console.log("#arc-" + $(this).attr("legend-id"));
-		  var arc = d3.select("#arc-" + $(this).attr("legend-id"));
-		  arc.style("opacity", 1);
-		  setTimeout(function() {
-			  arc.style("opacity", STANDARD_OPACITY);
-		  }, 1000);
-		});	 
- 
-	//update legend
-	legend.append("rect")
-      .attr("x", width / 2)
-      .attr("width", 18).attr("height", 18)
-      .style("fill", function(d) {
-          return color(d.pieCat);
-      });
-    legend.append("text").attr("x", width / 2)
-      .attr("y", 9).attr("dy", ".35em")
-      .style("text-anchor", "end").text(function(d) {
-          var retVal = shortenValueFilter(d.pieCat)
-		  retVal = replaceAll('_', ' ', retVal) + ""
-		  return retVal;
-      });
-	//drawLegend();
-}
+	var vis = svg.append("g")
+		.attr("transform", "translate(" + width / 2 + "," + height / 2 + ")"); 
 
-function drawLegend() {
-	var legendCount = 0;
+	var pie = d3.layout.pie()
+		.value(function(d) { return d.pieVal; });
 
-	var legendBox = svg.append("g")
-	  .attr("class", "legend")
-	  .attr("height", 100)
-	  .attr("width", 100);
-
-   //legend update...
-	var legend = legendBox.selectAll('circle')
-		.data(data);
-
-	//legend enter...
-	legend.enter()
-		.append("circle")
-		.style("opacity", 1)
-		.attr("r", 0)
-		.transition().duration(1000)
-		.attr("r", 4)
-		.attr("stroke-width", ".5")
-		.attr("transform", function(d, i) { return "translate(20," + ((i * 20) + 15) + ")"; })
-		.attr("legend-id", function(d) { 
-			return legendCount++; 
-		})
-		.style("fill", function(d) {
-		  return color(d.pieCat);
-		});
+	//start(dataString);	
+	function start(dataString) {
+		//handle the data
+		var dataStringJson = jQuery.parseJSON(dataString);
+		var jsonData = dataStringJson.dataSeries;
+		var data = [];	
+		data = jsonData[0];
 		
-		/*.on("click", function() {
-		  console.log("#arc-" + $(this).attr("legend-id"));
-		  var arc = d3.select("#arc-" + $(this).attr("legend-id"));
-		  arc.style("opacity", 1);
-		  setTimeout(function() {
-			  arc.style("opacity", STANDARD_OPACITY);
-		  }, 1000);
-		});	*/
-
-	//legend exit...(move below with legendText exit?)
-	legend.exit().transition()
-		.attr("r", 0)
-		.remove();
-
-	//legendText update...
-	var legendText = legendBox.selectAll('text')
-		.data(data);
-
-	//legendText enter...
-	legendText.enter()
-		.append("text")
-		.transition().duration(1000)
-		.attr("x", 12)
-		.attr("transform", function(d, i) { 
-			return "translate(20," + ((i * 20) + 19) + ")"; 
-		})
-		.text(function(d) {
-		  var retVal = (d.pieCat)
-		  if (retVal.length > 20) {
-			retVal = (retVal.substring(0, 20) + '...');
-		  } 
-		  return retVal;
+		var totalPieValue = 0,
+			labelCount = 0,
+			arcCount = 0,
+			legendCount = 0;
+				
+		data.forEach(function(d) { d.pieVal = Number(+d.pieVal); });
+				
+		data.forEach(function(d) { 
+			d.pieVal = Number(+d.pieVal);
+			totalPieValue = totalPieValue + Number(+d.pieVal); 
 		});
+			
+		var g = vis.selectAll(".arc")
+		  .data(pie(data))
+		  .enter().append("g")
+		  .attr("class", "background")
+		  .attr("class", "arc")
+		  .attr("transform", "translate(" + 0 + "," + 0 + ")");
+						
+		g.append("path")
+		  .attr("opacity", STANDARD_OPACITY)
+		  .attr("d", arc)
+		  .attr("id", function(d) { return "arc-" + (arcCount++); })
+		  .style("fill", function(d) { 
+				return color(d.data.pieCat); 
+		  })
+		  .on('mouseover', function (d) { 
+			var slice = d3.select(this);
+			slice.style("opacity", 1);
+			tip.show(d);	
+		  })
+		  .on('mousemove', function (d) {		  	
+			tip.style("top", d3.event.pageY - 65 + "px")
+				.style("left", d3.event.pageX - 85 + "px");
+		  })
+		  .on('mouseout', function (d) {
+			var slice = d3.select(this);
+			slice.style("opacity", STANDARD_OPACITY);
+			tip.hide(d);
+		  });
 
-	//legendText exit...
-	legendText.exit().transition()
-		.remove();
-}
+		g.append("text")
+		  .attr("id", function(d) { return "arc-" + (labelCount++); })
+		  .attr("transform", function(d) { 
+			var textPosition = arc.centroid(d)
+			return "translate(" + (textPosition[0] * LABEL_AUGMENT) + ", " + (textPosition[1] * LABEL_AUGMENT) + ")";
+			//return "translate(" + arc.centroid(d) + ")"; 
+		  })
+		  //.attr("dy", ".35em")
+		  .style("text-anchor", "middle")
+		  .text(function(d) { 
+			//var retVal = $filter('shortenValueFilter')(d.pieCat)
+			//retVal = replaceAll('_', ' ', retVal)
+			var retVal = ((d.data.pieVal / totalPieValue) * 100).toFixed(1) + "%"
+			if ((d.data.pieVal / totalPieValue) > 0.025)
+				return retVal; 
+		  })
+		  .on('mouseover', function (d) { 
+			var slice = d3.select("path#" + this.id);
+			slice.style("opacity", 1);
+		  })
+		  .on('mouseout', function (d) {
+			var slice = d3.select("path#" + this.id);
+			slice.style("opacity", STANDARD_OPACITY);
+		  })
+		  //.style("font-weight", "bold")
+		  //.attr("font-size","16px");	
+
+		/* Initialize tooltip */
+		var tip = d3.tip()
+			.attr('class', 'd3-tip')
+			.style("z-index", "10000")
+			.html(function (d) {
+				var labelVal = shortenValueFilter(d.data.pieCat);
+				labelVal = replaceAll('_', ' ', labelVal) + "";
+				return "<div> <span class='light'>" + dataStringJson.names[0] + ":</span> " + labelVal + "<div></div>" + "<span class='light'>" + dataStringJson.names[1] + ":</span> " + d.data.pieVal +"</div>";
+			});
+
+		vis.call(tip);  /* Invoke the tooltip in the context of your visualization */  	
+		
+		var legend = svg.selectAll(".legend")
+			.data(data).enter()
+			.append("g").attr("class", "legend")
+			.attr("legend-id", function(d) { return legendCount++; })
+			.attr("transform", function(d, i) {
+				  return "translate(-250," + (100 + i * 20) + ")";
+			 })
+			.on("click", function() {
+			  console.log("#arc-" + $(this).attr("legend-id"));
+			  var arc = d3.select("#arc-" + $(this).attr("legend-id"));
+			  arc.style("opacity", 1);
+			  setTimeout(function() {
+				  arc.style("opacity", STANDARD_OPACITY);
+			  }, 1000);
+			});
+
+		var legendTitle = svg.selectAll("g")
+			.append("text")
+			.attr("x", "-290px")
+    		.attr("y", "-170px")
+    		.attr("dy", ".35em")
+			.style("text-anchor", "end").text(dataStringJson.names[0]);
+	 
+		//update legend
+		legend.append("rect")
+	      .attr("x", width / 2)
+	      .attr("width", 18).attr("height", 18)
+	      .style("fill", function(d) {
+	          return color(d.pieCat);
+	      });
+	    legend.append("text").attr("x", (width / 2) - 4)
+	      .attr("y", 9).attr("dy", ".35em")
+	      .style("text-anchor", "end").text(function(d) {
+	          var retVal = shortenValueFilter(d.pieCat)
+			  retVal = replaceAll('_', ' ', retVal) + "";
+			  return retVal;
+	      });
+		//drawLegend();
+	}
+
+	function drawLegend() {
+		var legendCount = 0;
+
+		var legendBox = svg.append("g")
+		  .attr("class", "legend")
+		  .attr("height", 100)
+		  .attr("width", 100);
+
+	   //legend update...
+		var legend = legendBox.selectAll('circle')
+			.data(data);
+
+		//legend enter...
+		legend.enter()
+			.append("circle")
+			.style("opacity", 1)
+			.attr("r", 0)
+			.transition().duration(1000)
+			.attr("r", 4)
+			.attr("stroke-width", ".5")
+			.attr("transform", function(d, i) { return "translate(20," + ((i * 20) + 15) + ")"; })
+			.attr("legend-id", function(d) { 
+				return legendCount++; 
+			})
+			.style("fill", function(d) {
+			  return color(d.pieCat);
+			});
+			
+			/*.on("click", function() {
+			  console.log("#arc-" + $(this).attr("legend-id"));
+			  var arc = d3.select("#arc-" + $(this).attr("legend-id"));
+			  arc.style("opacity", 1);
+			  setTimeout(function() {
+				  arc.style("opacity", STANDARD_OPACITY);
+			  }, 1000);
+			});	*/
+
+		//legend exit...(move below with legendText exit?)
+		legend.exit().transition()
+			.attr("r", 0)
+			.remove();
+
+		//legendText update...
+		var legendText = legendBox.selectAll('text')
+			.data(data);
+
+		//legendText enter...
+		legendText.enter()
+			.append("text")
+			.transition().duration(1000)
+			.attr("x", 12)
+			.attr("transform", function(d, i) { 
+				return "translate(20," + ((i * 20) + 19) + ")"; 
+			})
+			.text(function(d) {
+			  var retVal = (d.pieCat)
+			  if (retVal.length > 20) {
+				retVal = (retVal.substring(0, 20) + '...');
+			  } 
+			  return retVal;
+			});
+
+		//legendText exit...
+		legendText.exit().transition()
+			.remove();
+	}
 </script>
 </body>
 </html>
