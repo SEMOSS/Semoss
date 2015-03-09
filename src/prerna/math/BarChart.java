@@ -130,7 +130,6 @@ public class BarChart {
 		calculateNumericBins(wrapperNumericalValuesSorted, wrapperNumericalValuesUnsorted);
 	}
 	
-	@SuppressWarnings("unchecked")
 	// order[0] = order from min to max
 	// order[1] = order as normal distribution
 	public void calculateCategoricalBins(String missingDataSymbol, boolean... order) {
@@ -219,10 +218,6 @@ public class BarChart {
 	}
 	
 	private void calculateNumericBins(double[] numValues, double[] unsortedValues) {
-		int numOccurances = numValues.length;
-		double min = numValues[0];
-		double max = numValues[numOccurances -1];
-		NumberFormat formatter = determineFormatter(max, min);
 		
 		double skewness = StatisticsUtilityMethods.getSkewness(numValues, true);
 		int numUniqueValues = ArrayUtilityMethods.getUniqueArray(numValues).length;
@@ -241,13 +236,13 @@ public class BarChart {
 			// need to check if not enough numeric values to generate bins, process as if values are unique
 			calculateCategoricalBins("NaN", false);
 		} else if(numUniqueValues < 10 && skewness > 1.1 || skewness > 2) {
-			calculateLogDistributedBins(numValues, unsortedValues, formatter);
+			calculateLogDistributedBins(numValues, unsortedValues);
 		} else {
-			calculateFreedmanDiaconisBins(numValues, unsortedValues, formatter);
+			calculateFreedmanDiaconisBins(numValues, unsortedValues);
 		}
 	}
 	
-	public void calculateLogDistributedBins(double[] numValues, double[] unsortedValues, NumberFormat formatter) {
+	public void calculateLogDistributedBins(double[] numValues, double[] unsortedValues) {
 		int numOccurances = numValues.length;
 		double[] logValuesUnsorted = new double[numOccurances];
 		double[] logValues = new double[numOccurances];
@@ -270,42 +265,33 @@ public class BarChart {
 		double binSize = Math.log10(1+max)/Math.pow(numOccurances, (double) 1/3);
 		int numBins = (int) Math.ceil(range/binSize);
 
-		allocateValuesToBin(numBins, binSize, logValuesUnsorted, logValues, formatter);
+		createBins(numBins, binSize, unsortedValues, numValues, true);
+		allocateValuesToBin(numBins, binSize, unsortedValues, numValues);
 	}
 	
-	public void calculateFreedmanDiaconisBins(double[] numValues, double[] unsortedValues, NumberFormat formatter){
+	public void calculateFreedmanDiaconisBins(double[] numValues, double[] unsortedValues){
 		int numOccurances = numValues.length;
 		double min = numValues[0];
 		double max = numValues[numOccurances -1];
 		double range = max - min;
 		double iqr = StatisticsUtilityMethods.quartile(numValues, 75, true) - StatisticsUtilityMethods.quartile(numValues, 25, true);
 		if(iqr == 0) {
-			calculateLogDistributedBins(numValues, unsortedValues, formatter);
+			calculateLogDistributedBins(numValues, unsortedValues);
 		} else {
 			double binSize = 2 * iqr * Math.pow(numOccurances, -1.0/3.0);
 			int numBins = (int) Math.ceil(range/binSize);
-			allocateValuesToBin(numBins, binSize, unsortedValues, numValues, formatter);
+
+			createBins(numBins, binSize, unsortedValues, numValues, false);
+			allocateValuesToBin(numBins, binSize, unsortedValues, numValues);
 		}
 	}
 	
-	private void allocateValuesToBin(int numBins, double binSize, double[] unsortedValues, double[] numValues, NumberFormat formatter) {
+	private void allocateValuesToBin(int numBins, double binSize, double[] unsortedValues, double[] numValues) {
 		int numOccurrences = numValues.length;
-		double min = numValues[0];
-		
-		numericalBinOrder = new String[numBins];
-		int i = 0;
-		double start = min;
-		double end = min + binSize;
-		// create all bins
-		for(;i < numBins; i++) {
-			String bin = formatter.format(start) + "  -  " + formatter.format(end);
-			numericalBinOrder[i] = bin;
-			start += binSize;
-			end += binSize;
-		}
 		// determine where each instance belongs
 		numericBinCount = new int[numOccurrences];
 		numericBinCounterArr = new int[numBins];
+		int i;
 		int j;
 		for(i = 0; i < numOccurrences; i++) {
 			double val = unsortedValues[i];
@@ -354,11 +340,7 @@ public class BarChart {
 		}
 	}
 	
-	private void calculateNumericBins(Double[] numValues, Double[] unsortedValues) {
-		Double min = StatisticsUtilityMethods.getMinimumValueIgnoringNull(numValues);
-		Double max = StatisticsUtilityMethods.getMaximumValueIgnoringNull(numValues);
-		NumberFormat formatter = determineFormatter(max, min);
-		
+	private void calculateNumericBins(Double[] numValues, Double[] unsortedValues) {		
 		Double skewness = StatisticsUtilityMethods.getSkewnessIgnoringNull(numValues, true);
 		int numUniqueValues = ArrayUtilityMethods.getUniqueArrayIgnoringNull(numValues).length;
 		
@@ -376,13 +358,13 @@ public class BarChart {
 			// need to check if not enough numeric values to generate bins, process as if values are unique
 			calculateCategoricalBins("NaN", false);
 		} else if(numUniqueValues < 10 && skewness > 1.1 || skewness > 2) {
-			calculateLogDistributedBins(numValues, unsortedValues, formatter);
+			calculateLogDistributedBins(numValues, unsortedValues);
 		} else {
-			calculateFreedmanDiaconisBins(numValues, unsortedValues, formatter);
+			calculateFreedmanDiaconisBins(numValues, unsortedValues);
 		}
 	}
 	
-	public void calculateLogDistributedBins(Double[] numValues, Double[] unsortedValues, NumberFormat formatter) {
+	public void calculateLogDistributedBins(Double[] numValues, Double[] unsortedValues) {
 		int numOccurances = numValues.length;
 		Double[] logValuesUnsorted = new Double[numOccurances];
 		Double[] logValues = new Double[numOccurances];
@@ -409,41 +391,35 @@ public class BarChart {
 		double binSize = Math.log10(1+max)/Math.pow(numOccurances, (double) 1/3);
 		int numBins = (int) Math.ceil(range/binSize);
 
-		allocateValuesToBin(min, numBins, binSize, logValuesUnsorted, logValues, formatter);
+		createBins(numBins, binSize, unsortedValues, numValues, true);
+		allocateValuesToBin(min, numBins, binSize, unsortedValues, numValues);
 	}
 		
-	public void calculateFreedmanDiaconisBins(Double[] numValues, Double[] unsortedValues, NumberFormat formatter){
+	public void calculateFreedmanDiaconisBins(Double[] numValues, Double[] unsortedValues){
 		int numOccurances = numValues.length;
 		Double min = StatisticsUtilityMethods.getMinimumValueIgnoringNull(numValues);
 		Double max = StatisticsUtilityMethods.getMaximumValueIgnoringNull(numValues);
 		double range = max - min;
 		double iqr = StatisticsUtilityMethods.quartileIgnoringNull(numValues, 75, true) - StatisticsUtilityMethods.quartileIgnoringNull(numValues, 25, true);
 		if(iqr == 0) {
-			calculateLogDistributedBins(numValues, unsortedValues, formatter);
+			calculateLogDistributedBins(numValues, unsortedValues);
 		} else {
 			double binSize = 2 * iqr * Math.pow(numOccurances, -1.0/3.0);
 			int numBins = (int) Math.ceil(range/binSize);
-			allocateValuesToBin(min, numBins, binSize, unsortedValues, numValues, formatter);
+
+			createBins(numBins, binSize, unsortedValues, numValues, false);
+			allocateValuesToBin(min, numBins, binSize, unsortedValues, numValues);
 		}
 	}
 	
 	
-	private void allocateValuesToBin(Double min, int numBins, double binSize, Double[] unsortedValues, Double[] numValues, NumberFormat formatter) {
+	private void allocateValuesToBin(Double min, int numBins, double binSize, Double[] unsortedValues, Double[] numValues) {
 		int numOccurrences = numValues.length;
-		numericalBinOrder = new String[numBins];
-		int i = 0;
-		double start = min;
-		double end = min + binSize;
-		// create all bins
-		for(;i < numBins; i++) {
-			String bin = formatter.format(start) + "  -  " + formatter.format(end);
-			numericalBinOrder[i] = bin;
-			start += binSize;
-			end += binSize;
-		}
 		// determine where each instance belongs
 		numericBinCount = new int[numOccurrences];
 		numericBinCounterArr = new int[numBins];
+		
+		int i;
 		int j;
 		for(i = 0; i < numOccurrences; i++) {
 			Double val = unsortedValues[i];
@@ -496,31 +472,112 @@ public class BarChart {
 		}
 	}
 	
-	private NumberFormat determineFormatter(Double max, Double min) {
+	private NumberFormat determineFormatter(double minVal, double maxVal, double binSize) {
 		NumberFormat formatter = null;
 		
-		double range = Math.abs(max - min);
-		if(range <= 1 & min > .01) {
-			formatter = new DecimalFormat("#.00");
-		} else if(range <= 1) {
-			String pattern = "#.";
-			String text = Double.toString(Math.abs(range));
-			int integerPlaces = text.indexOf('.');
-			int decimalPlaces = text.length() - integerPlaces - 1;
-			for(int i = 0; i < decimalPlaces + 1; i++) {
-				pattern = pattern.concat("0");
-			}
-			formatter = new DecimalFormat(pattern);
-		} else {
+		double range = maxVal - minVal;
+		if(binSize < 1) {
 			String pattern = "0.";
-			int decimalPlaces = (int) Math.round(Math.log10(range)) + 1;
-			for(int i = 0; i < decimalPlaces; i++) {
-				pattern = pattern.concat("#");
+			while(binSize < 1) {
+				binSize *= 10;
+				pattern += "0";
 			}
 			formatter = new DecimalFormat(pattern);
+		}else {
+			String pattern = "#.";
+			while(range > 1) {
+				range /= 10;
+				binSize /= 10;
+				if(binSize < 1)
+					pattern += "#";
+			}
+			pattern += "E0";
+
+			formatter = new DecimalFormat(pattern);		
 		}
 		
 		return formatter;
+	}
+	
+	private void createBins(int numBins, double binSize, double[] unsortedValues, double[] numValues, boolean log) {
+		double min = numValues[0];
+		double max = numValues[numValues.length-1];
+		numericalBinOrder = new String[numBins];
+		int i = 0;
+		// create all bins
+		if(log) {
+			double maxBinSize = binSize * numBins;
+			NumberFormat formatter = determineFormatter(min, max, maxBinSize);
+			double start = 0;
+			if(min < 0) {
+				start = Math.log10(-1*min + 1);
+			} else {
+				start = Math.log10(min + 1);
+			}
+			double end = start + binSize;
+			for(;i < numBins; i++) {	
+				String bin = formatter.format(start) + "  -  " + formatter.format(end);
+				numericalBinOrder[i] = bin;
+
+				start = Math.pow(10, start + binSize) - 1;
+				end = Math.pow(10, end + binSize) - 1;
+			}
+		}  else {
+			NumberFormat formatter = determineFormatter(min, max, binSize);
+			double start = min;
+			double end = min + binSize;
+			for(;i < numBins; i++) {	
+				String bin = formatter.format(start) + "  -  " + formatter.format(end);
+				numericalBinOrder[i] = bin;
+				start += binSize;
+				end += binSize;
+			}
+		}
+	}
+	
+	private void createBins(int numBins, double binSize, Double[] unsortedValues, Double[] numValues, boolean log) {
+		double min = numValues[0];
+		double max = numValues[numValues.length-1];
+
+		numericalBinOrder = new String[numBins];
+		int i = 0;
+		// create all bins
+		if(log) {
+			double startLog = 0;
+			if(min < 0) {
+				startLog = Math.log10(-1*min + 1);
+			} else {
+				startLog = Math.log10(min + 1);
+			}
+			double endLog = startLog + binSize;
+			
+			double maxBinSize = Math.pow(10, startLog + binSize * (numBins-1)) - 1;
+			NumberFormat formatter = determineFormatter(min, max, maxBinSize);
+			
+			double start = min;
+			double end = Math.pow(10, endLog) - 1;
+			
+			for(;i < numBins; i++) {	
+				String bin = formatter.format(start) + "  -  " + formatter.format(end);
+				numericalBinOrder[i] = bin;
+
+				startLog += binSize;
+				endLog += binSize;
+				
+				start = Math.pow(10, startLog) - 1;
+				end = Math.pow(10, endLog) - 1;
+			}
+		}  else {
+			NumberFormat formatter = determineFormatter(min, max, binSize);
+			double start = min;
+			double end = min + binSize;
+			for(;i < numBins; i++) {	
+				String bin = formatter.format(start) + "  -  " + formatter.format(end);
+				numericalBinOrder[i] = bin;
+				start += binSize;
+				end += binSize;
+			}
+		}
 	}
 	
 	public Hashtable<String, Object>[] generateJSONHashtableNumerical() {

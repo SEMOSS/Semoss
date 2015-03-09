@@ -60,7 +60,7 @@ public class BinnedColumnChartPlaySheet extends BrowserPlaySheet{
 		
 		Object[] objDataRow = data[1];
 		String[] uniqueValues;
-		String labels;
+		String label;
 		int[] uniqueCounts;
 		
 		if(columnTypes[1].equals(AlgorithmDataFormatter.STRING_KEY)) {
@@ -68,8 +68,8 @@ public class BinnedColumnChartPlaySheet extends BrowserPlaySheet{
 			BarChart chart = new BarChart(dataRow);
 			chart.calculateCategoricalBins("?", true, true);
 			
+			label = chart.getCategoricalLabel();
 			uniqueValues = chart.getStringUniqueValues();
-			labels = chart.getCategoricalLabel();
 			uniqueCounts = chart.getStringUniqueCounts();
 			
 		}else {
@@ -79,15 +79,15 @@ public class BinnedColumnChartPlaySheet extends BrowserPlaySheet{
 
 			if(chart.isUseCategoricalForNumericInput()) {
 				chart.calculateCategoricalBins("?", true, true);
-				
+
+				label = chart.getCategoricalLabel();
 				uniqueValues = chart.getStringUniqueValues();
-				labels = chart.getCategoricalLabel();
 				uniqueCounts = chart.getStringUniqueCounts();
 
 			} else {
 
+				label = chart.getNumericalLabel();
 				uniqueValues = chart.getNumericalBinOrder();
-				labels = chart.getNumericalLabel();
 				uniqueCounts = chart.getNumericBinCounterArr();
 
 			}
@@ -100,14 +100,14 @@ public class BinnedColumnChartPlaySheet extends BrowserPlaySheet{
 
 		for(j=0; j < numBins; j++) {
 			Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-			innerHash.put("seriesName", labels);
+			innerHash.put("seriesName", label);
 			innerHash.put("x", uniqueValues[j]);
 			innerHash.put("y", uniqueCounts[j]);
 			seriesArray.add(innerHash);
 		}
 		dataObj.add(seriesArray);
 		
-		names = new String[]{names[1],labels};
+		names = new String[]{names[1],label};
 		
 		Hashtable<String, Object> columnChartHash = new Hashtable<String, Object>();
 		columnChartHash.put("names", names);
