@@ -50,28 +50,43 @@ public class BinnedPieChartPlaySheet extends BrowserPlaySheet{
 	
 	public Hashtable<String, Object> processQueryData()
 	{	
+		Object[][] data = AlgorithmDataFormatter.manipulateValues(list,true);	
+		String[] columnTypes = AlgorithmDataFormatter.determineColumnTypes(list);
 		
-		Object[][] data = AlgorithmDataFormatter.manipulateValues(list,true);		
 		Object[] objDataRow = data[1];
-		Double[] dataRow = ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(objDataRow);
-		BarChart chart = new BarChart(dataRow);
-
 		String[] uniqueValues;
 		String labels;
 		int[] uniqueCounts;
-		if(chart.isUseCategoricalForNumericInput()) {
+		
+		if(columnTypes[1].equals(AlgorithmDataFormatter.STRING_KEY)) {
+			
+			String[] dataRow = ArrayUtilityMethods.convertObjArrToStringArr(objDataRow);
+			BarChart chart = new BarChart(dataRow);
 			chart.calculateCategoricalBins("?", true, true);
 			
 			uniqueValues = chart.getStringUniqueValues();
 			labels = chart.getCategoricalLabel();
 			uniqueCounts = chart.getStringUniqueCounts();
+			
+		}else {
+			
+			Double[] dataRow = ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(objDataRow);
+			BarChart chart = new BarChart(dataRow);
 
-		} else {
+			if(chart.isUseCategoricalForNumericInput()) {
+				chart.calculateCategoricalBins("?", true, true);
+				
+				uniqueValues = chart.getStringUniqueValues();
+				labels = chart.getCategoricalLabel();
+				uniqueCounts = chart.getStringUniqueCounts();
 
-			uniqueValues = chart.getNumericalBinOrder();
-			labels = chart.getNumericalLabel();
-			uniqueCounts = chart.getNumericBinCounterArr();
+			} else {
 
+				uniqueValues = chart.getNumericalBinOrder();
+				labels = chart.getNumericalLabel();
+				uniqueCounts = chart.getNumericBinCounterArr();
+
+			}
 		}
 
 		int j;		
