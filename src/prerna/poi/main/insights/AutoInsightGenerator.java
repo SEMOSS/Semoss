@@ -110,12 +110,14 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 				
 				for(InsightRule rule : rulesList) {			
 					currRule = rule;
-					Hashtable<String, Hashtable<String,Object>> ruleParamHash = currRule.getConstraints();
+
+					Hashtable<String, Hashtable<String,Object>> paramConstraintHash = currRule.getConstraints();
+					Hashtable<String, String> paramClassHash = currRule.getVariableTypeHash();
 	
-					Boolean allParamsMet = calculatePossibleParamAssignments(ruleParamHash);
+					Boolean allParamsMet = calculatePossibleParamAssignments(paramConstraintHash,paramClassHash);
 					
 					if(allParamsMet) {
-						params = new ArrayList<String>(possibleParamAssignmentsHash.keySet());
+						params = new ArrayList<String>(paramClassHash.keySet());
 						addAllPossibleInsights(new ArrayList<Integer>());
 					}
 				}
@@ -206,11 +208,15 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 	}
 	
 	//checks to see if a given column in the table meets a given set of requirement
-	private Boolean meetsParamRequirements(int colIndex, Hashtable<String,Object> requirementHash) {
+	private Boolean meetsParamRequirements(int colIndex, Hashtable<String,Object> requirementHash, String paramClass) {
 
-		Object paramClass = requirementHash.get(CLASS);
-		if(paramClass!=null && !paramClass.toString().equals(classArr[colIndex]))
+		if(!paramClass.equals(classArr[colIndex]))
 			return false;
+		
+		//classes are the same and no constraints so return true
+		if(requirementHash == null) {
+			return true;
+		}
 
 		Object paramType = requirementHash.get(DATA_TYPE);
 		if(paramType != null && !paramType.toString().equals(colTypesArr[colIndex]))
@@ -229,17 +235,19 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 	}
 
 	
-	private Boolean calculatePossibleParamAssignments(Hashtable<String, Hashtable<String,Object>> ruleParamHash) {
+	private Boolean calculatePossibleParamAssignments(Hashtable<String, Hashtable<String,Object>> ruleParamHash, Hashtable<String, String> paramClassHash) {
 		//creates a mapping of the possible assignments for each parameter
 		//returns false if there is a param that cannot be met
 		possibleParamAssignmentsHash = new Hashtable<String, Set<Integer>>();
-		for(String param : ruleParamHash.keySet()) {
+		for(String param : paramClassHash.keySet()) {
+			
+			String paramClass = paramClassHash.get(param);
 			Hashtable<String,Object> paramConstraintHash = ruleParamHash.get(param);
 			
 			Set<Integer> possibleAssignments = new HashSet<Integer>();
 			
 			for(int j=0;j<names.length;j++) {
-				if(meetsParamRequirements(j,paramConstraintHash)) {
+				if(meetsParamRequirements(j,paramConstraintHash,paramClass)) {
 					possibleAssignments.add(j);
 				}
 			}
@@ -284,7 +292,8 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 		//then add to retvar and add to triples string
 
 		Hashtable<String, Hashtable<String,Object>> ruleParamHash = currRule.getConstraints();
-
+		Hashtable<String, String> paramClassHash = currRule.getVariableTypeHash();
+		
 		int i;
 		int paramSize = params.size();
 		String retVarString = "";
@@ -301,8 +310,10 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 		
 		for(i=0; i<paramSize; i++) {
 			String param = params.get(i);
-			String classType = (String) ruleParamHash.get(param).get(CLASS);
-			Object aggregationType = ruleParamHash.get(param).get(AGGREGATION);
+			String classType = paramClassHash.get(param);
+			String aggregationType = "";
+			if(ruleParamHash.containsKey(param) && ruleParamHash.get(param).containsKey(AGGREGATION))
+				aggregationType = ruleParamHash.get(param).get(AGGREGATION).toString();
 			
 			if(classType.equals(PROPERTY_VALUE)) {
 				String prop = names[assignments.get(i)];
@@ -313,7 +324,7 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 				//if aggregation for this insight and this param -> complicated return string
 				if(!hasAggregation)
 					retVarString += " ?"+propClean;
-				else if(aggregationType == null) {
+				else if(aggregationType.length() == 0) {
 					retVarString = " ?"+propClean + retVarString;
 					endString += " ?"+propClean;
 				}else {
@@ -326,7 +337,7 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 				
 				if(!hasAggregation)
 					retVarString = " ?"+concept + retVarString;
-				else if(aggregationType == null) {
+				else if(aggregationType.length() == 0) {
 					retVarString = " ?"+concept + retVarString;
 					endString += " ?"+concept;
 				}else {
