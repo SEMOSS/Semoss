@@ -101,7 +101,6 @@ public abstract class AbstractSpecificQueryBuilder {
 	}
 	
 	public String getQuery() {
-		query = "SELECT " + paramString + " FROM " + tableString + " WHERE " + joinString + " " + groupBy;
 		return query;
 	}
 	
@@ -213,7 +212,10 @@ public abstract class AbstractSpecificQueryBuilder {
 		if(!tablesProcessed.containsKey(tableName.toUpperCase()))
 		{
 			String alias = getAlias(tableName);
-			tableString = tableString + ", " + tableName + " " + alias;			
+			if(tableString.length() > 0)
+				tableString = tableString + ", " + tableName + " " + alias;			
+			else
+				tableString = tableName + " " + alias;	
 			tablesProcessed.put(tableName.toUpperCase(), tableName.toUpperCase());
 		}
 	}

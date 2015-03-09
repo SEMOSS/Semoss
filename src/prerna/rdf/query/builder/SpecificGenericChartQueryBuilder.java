@@ -114,12 +114,13 @@ Parameters [{STUDIO=http://semoss.org/ontologies/Concept/Studio}]
 		}
 		// throw in the label first
 		paramString = getAlias(tableName) + "." + colName + " AS " + colName;
-		tableString = tableName + " " + getAlias(tableName);
+		addToTableString(tableName);
+		///tableString = tableName + " " + getAlias(tableName);
 		
 		// add it to group by
 		groupBy = "Group By " + getAlias(tableName) + "." + colName + " ";
 		
-		tablesProcessed.put(tableName.toUpperCase(), tableName.toUpperCase());
+		//tablesProcessed.put(tableName.toUpperCase(), tableName.toUpperCase());
 		
 		// ok I forgot the label - I need to account for it
 		
@@ -151,5 +152,11 @@ Parameters [{STUDIO=http://semoss.org/ontologies/Concept/Studio}]
 			// set the table string
 			addToTableString(tableName);
 		}
+		createQueryR();
+	}
+	
+	public void createQueryR()
+	{
+		query = "SELECT " + paramString + " FROM " + tableString + " WHERE " + joinString + " " + groupBy;
 	}
 }
