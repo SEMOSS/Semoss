@@ -5,6 +5,7 @@ import java.util.Hashtable;
 public class InsightRule {
 
 	private Hashtable<String, Hashtable<String, Object>> constraints;
+	private Hashtable<String, String> variableTypeHash;
 	
 	private boolean hasAggregation = false;
 	private String question = "";
@@ -12,6 +13,16 @@ public class InsightRule {
 	
 	public InsightRule() {
 		constraints = new Hashtable<String, Hashtable<String, Object>>();
+		variableTypeHash = new Hashtable<String, String>();
+	}
+	
+	/**
+	 * Adds to the variable type hash the variable name and its type
+	 * @param variableName		The name of the variable in the rule
+	 * @param varaibleType		The type of the variable (either concept or property)
+	 */
+	public void addVariable(String variableName, String varaibleType) {
+		variableTypeHash.put(variableName, varaibleType);
 	}
 	
 	
@@ -37,9 +48,16 @@ public class InsightRule {
 		return constraints;
 	}
 
-	public void setConstraints(
-			Hashtable<String, Hashtable<String, Object>> constraints) {
+	public void setConstraints(Hashtable<String, Hashtable<String, Object>> constraints) {
 		this.constraints = constraints;
+	}
+
+	public Hashtable<String, String> getVariableTypeHash() {
+		return variableTypeHash;
+	}
+
+	public void setVariableTypeHash(Hashtable<String, String> variableTypeHash) {
+		this.variableTypeHash = variableTypeHash;
 	}
 
 	public boolean isHasAggregation() {
