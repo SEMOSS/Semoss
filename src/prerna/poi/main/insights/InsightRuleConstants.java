@@ -11,8 +11,8 @@ public interface InsightRuleConstants {
 	String CONCEPT_VALUE = "CONCEPT";
 	
 	// constraints
-	String ENTROPY_DENSITY_MAX = "EntropyD_Max";
-	String ENTROPY_DENSITY_MIN = "EntropyD_Min";
+	String ENTROPY_DENSITY_MAX = "ENTROPY_D_MAX";
+	String ENTROPY_DENSITY_MIN = "ENTROPY_D_MIN";
 	String DATA_TYPE = "TYPE";
 	String CLASS = "CLASS";
 	

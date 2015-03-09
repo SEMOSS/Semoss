@@ -105,19 +105,15 @@ public class InsightTemplateProcessor implements InsightRuleConstants{
 						}
 					} else {
 						String[] paramSplit = rulePart.split("-");
-//						if(paramSplit[0].toUpperCase().startsWith(PROPERTY_KEY)) {
-//							rule.addConstraint(paramSplit[0].replace("@", "").trim(), CLASS, PROPERTY_VALUE);
-//						} else if(paramSplit[0].toUpperCase().startsWith(CONCEPT_KEY)){
-//							rule.addConstraint(paramSplit[0].replace("@", "").trim(), CLASS, CONCEPT_VALUE);
-//						}
-						
 						String[] constraintValueSplit = paramSplit[1].split("=");
+						constraintValueSplit[0] = constraintValueSplit[0].toUpperCase();
+						constraintValueSplit[1] = constraintValueSplit[1].toUpperCase();
 						// change boolean value if aggregation is used
-						if(constraintValueSplit[1].equalsIgnoreCase(COUNT) || 
-								constraintValueSplit[1].equalsIgnoreCase(SUM) || 
-								constraintValueSplit[1].equalsIgnoreCase(AVERAGE) || 
-								constraintValueSplit[1].equalsIgnoreCase(MIN) || 
-								constraintValueSplit[1].equalsIgnoreCase(MAX)) 
+						if(constraintValueSplit[1].equals(COUNT) || 
+								constraintValueSplit[1].equals(SUM) || 
+								constraintValueSplit[1].equals(AVERAGE) || 
+								constraintValueSplit[1].equals(MIN) || 
+								constraintValueSplit[1].equals(MAX)) 
 						{
 							rule.setHasAggregation(true);
 							constraintValueSplit[0] = AGGREGATION;
