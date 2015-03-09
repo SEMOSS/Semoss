@@ -37,17 +37,15 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.learning.unsupervised.clustering.LocalOutlierFactorAlgorithm;
 import prerna.algorithm.impl.CentralityCalculator;
 import prerna.algorithm.impl.SubclassingMapGenerator;
+import prerna.algorithm.learning.unsupervised.clustering.LocalOutlierFactorAlgorithm;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.RDFFileSesameEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.Utility;
 
 public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
