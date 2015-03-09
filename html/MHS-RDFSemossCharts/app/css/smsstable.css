@@ -1,0 +1,39 @@
+/******smssTable directive styling******/
+.smss-table{
+    table-layout: fixed
+}
+
+.smss-table-body{
+    table-layout: fixed;
+}
+
+.smss-table-body.table th{
+    display: none;
+}
+
+.table-header-container {
+    height: 24px;
+}
+
+.table-header-container .form-control {
+    margin-top: 5px;
+    height: 24px;
+}
+
+.table-container .table-header-container {
+    position: inherit;
+}
+
+.table-body-container {
+    position: absolute;
+    bottom: 0;
+    overflow-y: auto;
+}
+
+.table-body-container.filter-on {
+    top: 66px;
+}
+
+.table-body-container.filter-off {
+    top: 37px;
+}
