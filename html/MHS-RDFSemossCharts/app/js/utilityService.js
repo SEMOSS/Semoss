@@ -52,7 +52,7 @@
                         newObjNoUri = {};
 
                     for (var i=0; i<item.length; i++) {
-                        if (0===item[i]) {
+                        if (_.isObject(item[i])) {
                             newObjUri[headers[i]] = item[i].uriString;
                             newObjNoUri[$filter("replaceUnderscores")(headers[i])] = $filter("shortenAndReplaceUnderscores")(item[i].uriString);
 
