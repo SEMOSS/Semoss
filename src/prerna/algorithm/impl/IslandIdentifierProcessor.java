@@ -46,7 +46,6 @@ import prerna.ui.transformer.EdgeStrokeTransformer;
 import prerna.ui.transformer.VertexLabelFontTransformer;
 import prerna.ui.transformer.VertexPaintTransformer;
 import prerna.util.Constants;
-import edu.uci.ics.jung.graph.DelegateForest;
 
 /**
  * This class is used to identify islands in the network.
@@ -63,12 +62,11 @@ public class IslandIdentifierProcessor implements IAlgorithm{
 	Vector<SEMOSSVertex> masterVertexVector = new Vector();
 	Hashtable islandVerts = new Hashtable();
 	Hashtable islandEdges = new Hashtable();
+	String edgeHashKey = "EdgeHashKey";
 	
 	public Hashtable getIslandEdges() {
 		return islandEdges;
-	}
-
-	String edgeHashKey = "EdgeHashKey";
+	}	
 	
 	public void execute() {
 		executeWeb();
