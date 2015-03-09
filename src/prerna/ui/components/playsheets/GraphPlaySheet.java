@@ -40,6 +40,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -68,6 +69,9 @@ import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.sail.SailException;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.impl.IslandIdentifierProcessor;
 import prerna.algorithm.impl.LoopIdentifierProcessor;
@@ -1328,9 +1332,17 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		}
 		if ((webDataHash.get("type")).equals("Island")) {
 			IslandIdentifierProcessor pro = new IslandIdentifierProcessor();
-			SEMOSSVertex [] pickedVertex = new SEMOSSVertex[]{};
-			pro.setGraphDataModel(this.gdm);
-			pro.setSelectedNodes(pickedVertex);
+			Gson gson = new Gson();
+			if (!(webDataHash.get("selectedNodes") == (null))) {
+				ArrayList<Hashtable<String, Object>> nodesArray = gson.fromJson(gson.toJson(webDataHash.get("selectedNodes")), new TypeToken<ArrayList<Hashtable<String, Object>>>() {}.getType());
+				SEMOSSVertex[] pickedVertex = new SEMOSSVertex[1];
+				pickedVertex[0] = gdm.getVertStore().get(nodesArray.get(0).get("uri"));
+				pro.setSelectedNodes(pickedVertex);
+			} else {
+				SEMOSSVertex[] pickedVertex = new SEMOSSVertex[]{};
+				pro.setSelectedNodes(pickedVertex);
+			}
+			pro.setGraphDataModel(this.gdm);			
 			pro.setPlaySheet(this);	
 			pro.executeWeb();
 			retHash = pro.getIslandEdges();
