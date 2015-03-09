@@ -28,6 +28,7 @@ public class InsightTemplateProcessor implements InsightRuleConstants{
 			for(; i < size; i++) {
 				InsightRule rule = rules.get(i);
 				System.out.println("Question: " + rule.getQuestion());
+				System.out.println("Variables: " + rule.getVariableTypeHash());
 				System.out.println("Output: " + rule.getOutput());
 				System.out.println("Has aggregation: " + rule.isHasAggregation());
 				System.out.println("Constraints: " + rule.getConstraints());
@@ -36,7 +37,6 @@ public class InsightTemplateProcessor implements InsightRuleConstants{
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
 	}
 	
 	/**
@@ -74,6 +74,24 @@ public class InsightTemplateProcessor implements InsightRuleConstants{
 					if(rulePart.toUpperCase().startsWith(QUESTION_KEY)) {
 						String[] questionRuleSplit = rulePart.split("=");
 						rule.setQuestion(questionRuleSplit[1].replace("@", "").trim());
+						
+						String questionRegex = "\\$(.+?)(\\s|\\?|\\.|\\n|\\r)";
+						Pattern pattern = Pattern.compile(questionRegex);
+						Matcher matcher = pattern.matcher(rulePart);
+						while(matcher.find()) {
+							String variableName = matcher.group();
+							variableName = variableName.substring(1, variableName.length()-1);
+							String variableType = null;
+							if(variableName.toUpperCase().contains(CONCEPT_VALUE)) {
+								variableType = CONCEPT_VALUE;
+							} else if(variableName.toUpperCase().equals(PROPERTY_VALUE)) {
+								variableType = PROPERTY_VALUE;
+							} else {
+								continue NEXT_QUESTION;
+							}
+							rule.addVariable(variableName, variableType);
+						}
+						
 					} else if(rulePart.toUpperCase().startsWith(OUTPUT_KEY)) {
 						String[] outputRuleSplit = rulePart.split("=");
 						outputRuleSplit[1] = outputRuleSplit[1].replaceAll("_", " ").trim();
@@ -86,11 +104,11 @@ public class InsightTemplateProcessor implements InsightRuleConstants{
 						}
 					} else {
 						String[] paramSplit = rulePart.split("-");
-						if(paramSplit[0].toUpperCase().startsWith(PROPERTY_KEY)) {
-							rule.addConstraint(paramSplit[0].replace("@", "").trim(), CLASS, PROPERTY_VALUE);
-						} else if(paramSplit[0].toUpperCase().startsWith(CONCEPT_KEY)){
-							rule.addConstraint(paramSplit[0].replace("@", "").trim(), CLASS, CONCEPT_VALUE);
-						}
+//						if(paramSplit[0].toUpperCase().startsWith(PROPERTY_KEY)) {
+//							rule.addConstraint(paramSplit[0].replace("@", "").trim(), CLASS, PROPERTY_VALUE);
+//						} else if(paramSplit[0].toUpperCase().startsWith(CONCEPT_KEY)){
+//							rule.addConstraint(paramSplit[0].replace("@", "").trim(), CLASS, CONCEPT_VALUE);
+//						}
 						
 						String[] constraintValueSplit = paramSplit[1].split("=");
 						// change boolean value if aggregation is used
