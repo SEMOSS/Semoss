@@ -40,49 +40,44 @@ import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
-public class LocalOutlierVizPlaySheet extends BrowserPlaySheet{
-
+public class LocalOutlierVizPlaySheet extends BrowserPlaySheet {
+	
 	private static final Logger LOGGER = LogManager.getLogger(LocalOutlierVizPlaySheet.class.getName());
 	private ArrayList<Object[]> masterList;
 	private String[] masterNames;
 	private double[] lop;
-	private int k;
-	
+	private int k = 25;
 	
 	/**
-	 * Constructor for LocalOutlierVizPlaySheet.
-	 * TODO needs to be changed to correct playsheet name when created
+	 * Constructor for LocalOutlierVizPlaySheet. TODO needs to be changed to correct playsheet name when created
 	 */
 	public LocalOutlierVizPlaySheet() {
 		super();
-		this.setPreferredSize(new Dimension(800,600));
+		this.setPreferredSize(new Dimension(800, 600));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/scatter-plot-matrix.html";
 	}
 	
 	@Override
 	public void createData() {
-		if(list==null)
+		if (list == null || list.isEmpty())
 			super.createData();
-		else
-			dataHash = processQueryData();
 	}
 	
-	public void runAlgorithm() {
-		
+	@Override
+	public void runAnalytics() {
 		LocalOutlierFactorAlgorithm alg = new LocalOutlierFactorAlgorithm(list, names);
 		alg.setK(k);
 		alg.execute();
 		
 		list = alg.getMasterTable();
 		names = alg.getNames();
-		lop = alg.getLOP();
-		
+		lop = alg.getLop();
 	}
 	
 	@Override
 	public Hashtable processQueryData() {
-		runAlgorithm();
+		runAnalytics(); // TODO: remove this once playsheet stop sucking
 		int i;
 		int j;
 		int numInstances = list.size();
@@ -90,35 +85,34 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet{
 		int newNumCols = numCols + 2;
 		
 		List<List<Object>> retItemList = new ArrayList<List<Object>>();
-		for(i=0; i<numInstances; i++){
+		for (i = 0; i < numInstances; i++) {
 			Object[] instanceRow = list.get(i);
 			List<Object> item = new ArrayList<Object>();
-
-			//count is first item
-			//outlier lop is second item
-			//then all the variables from analysis
+			
+			// count is first item
+			// outlier lop is second item
+			// then all the variables from analysis
 			item.add(1);
 			
-			if(Double.isNaN(lop[i])) {
+			if (Double.isNaN(lop[i])) {
 				item.add("NaN");
 			} else {
 				item.add(lop[i]);
 			}
-
-			for(j = 0; j<numCols; j++)
+			
+			for (j = 0; j < numCols; j++)
 				item.add(instanceRow[j]);
-
+			
 			retItemList.add(item);
 		}
 		
-
 		String[] headers = new String[newNumCols];
 		headers[0] = "Count";
 		headers[1] = "LOP";
-		for(i = 0; i < numCols; i++) {
-			headers[i+2] = names[i];
+		for (i = 0; i < numCols; i++) {
+			headers[i + 2] = names[i];
 		}
-
+		
 		Hashtable<String, Object> retHash = new Hashtable<String, Object>();
 		retHash.put("headers", headers);
 		retHash.put("dataSeries", retItemList);
@@ -127,35 +121,45 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet{
 	}
 	
 	@Override
-	public void addPanel()
-	{
-		if(jTab==null) {
+	public void addPanel() {
+		if (jTab == null) {
 			super.addPanel();
 		} else {
-			String lastTabName = jTab.getTitleAt(jTab.getTabCount()-1);
+			String lastTabName = jTab.getTitleAt(jTab.getTabCount() - 1);
 			LOGGER.info("Parsing integer out of last tab name");
 			int count = 1;
-			if(jTab.getTabCount()>1)
-				count = Integer.parseInt(lastTabName.substring(0,lastTabName.indexOf(".")))+1;
-			addPanelAsTab(count+". Outliers");
+			if (jTab.getTabCount() > 1)
+				count = Integer.parseInt(lastTabName.substring(0, lastTabName.indexOf("."))) + 1;
+			addPanelAsTab(count + ". Outliers");
 		}
-
+		
 		new CSSApplication(getContentPane());
 	}
 	
 	public void setMasterList(ArrayList<Object[]> masterList) {
 		this.masterList = masterList;
 	}
+	
 	public void setMasterNames(String[] masterNames) {
 		this.masterNames = masterNames;
 	}
+	
 	public void setKNeighbors(int k) {
 		this.k = k;
 	}
+	
 	@Override
 	public void setQuery(String query) {
-		String[] querySplit = query.split("\\+\\+\\+");
-		this.query = querySplit[0];
-		this.k = Integer.parseInt(querySplit[1].trim());
+		if (query.matches(".*\\+\\+\\+[0-9]+")) {
+			String[] querySplit = query.split("\\+\\+\\+");
+			this.query = querySplit[0];
+			this.k = Integer.parseInt(querySplit[1].trim());
+		} else {
+			this.query = query;
+		}
+	}
+	
+	public double[] getLop() {
+		return this.lop;
 	}
 }

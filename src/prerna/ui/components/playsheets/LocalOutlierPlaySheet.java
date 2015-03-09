@@ -50,17 +50,22 @@ import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.main.listener.impl.GridPlaySheetListener;
 import prerna.ui.main.listener.impl.JTableExcelExportListener;
 
-public class LocalOutlierPlaySheet extends GridPlaySheet{
+public class LocalOutlierPlaySheet extends GridPlaySheet {
+	
 	private ArrayList<Object[]> masterList;
 	private String[] masterNames;
-
+	
+	private double[] lop;
+	private double[] lrd;
+	private double[] lof;
+	
 	private static final Logger LOGGER = LogManager.getLogger(LocalOutlierPlaySheet.class.getName());
 	protected JTabbedPane jTab;
 	private int k;
 	
 	@Override
 	public void createData() {
-		if(list==null)
+		if (list == null || list.isEmpty())
 			super.createData();
 	}
 	
@@ -73,28 +78,28 @@ public class LocalOutlierPlaySheet extends GridPlaySheet{
 		list = alg.getMasterTable();
 		names = alg.getNames();
 		
-		double[] lrd = alg.getLRD();
-		double[] lof = alg.getLOF();
-//		double[] zScore = alg.getZScore();
-		double[] lop = alg.getLOP();
+		lrd = alg.getLrd();
+		lof = alg.getLof();
+		// double[] zScore = alg.getZScore();
+		lop = alg.getLop();
 		
-		if(masterNames!=null) {
-			//asterisk the columns that have not been included in analysis
+		if (masterNames != null) {
+			// asterisk the columns that have not been included in analysis
 			String[] asteriskMasterNames = new String[masterNames.length];
 			int i;
 			int j;
-			for(i=0;i<masterNames.length;i++) {
+			for (i = 0; i < masterNames.length; i++) {
 				String name = masterNames[i];
 				Boolean inFilteredSet = false;
-				for(j=0;j<names.length;j++){
-					//see if the column is used in the filtered set
-					//if not then asterisk
-					if(names[j].equals(name)) {
-						inFilteredSet=true;
+				for (j = 0; j < names.length; j++) {
+					// see if the column is used in the filtered set
+					// if not then asterisk
+					if (names[j].equals(name)) {
+						inFilteredSet = true;
 					}
 				}
-				if(!inFilteredSet)
-					name = "*"+name;
+				if (!inFilteredSet)
+					name = "*" + name;
 				asteriskMasterNames[i] = name;
 			}
 			list = masterList;
@@ -107,25 +112,25 @@ public class LocalOutlierPlaySheet extends GridPlaySheet{
 		int newNumCols = numCols + 3;
 		int i;
 		int j;
-		for(i = 0; i < numRows; i++) {
+		for (i = 0; i < numRows; i++) {
 			Object[] newRow = new Object[newNumCols];
 			Object[] row = list.get(i);
-			for(j = 0; j <= numCols; j++) {
-				if(j == numCols) {
-//					newRow[j] = lrd[i];
+			for (j = 0; j <= numCols; j++) {
+				if (j == numCols) {
+					// newRow[j] = lrd[i];
 					newRow[j] = Math.round(lrd[i] * 100) / 100.0;
-					if(Double.isInfinite(lof[i])){
-						newRow[j+1] = "Inf";
+					if (Double.isInfinite(lof[i])) {
+						newRow[j + 1] = "Inf";
 					} else {
-//						newRow[j+1] = lof[i];
-						newRow[j+1] = Math.round(lof[i] * 100) / 100.0;
+						// newRow[j+1] = lof[i];
+						newRow[j + 1] = Math.round(lof[i] * 100) / 100.0;
 					}
-					if(Double.isNaN(lop[i])) {
-						newRow[j+2] = "NaN";
+					if (Double.isNaN(lop[i])) {
+						newRow[j + 2] = "NaN";
 					} else {
-//						newRow[j+2] = zScore[i];
-//						newRow[j+2] = Math.round(zScore[i] * 100) / 100.0;
-						newRow[j+2] = String.format("%.0f%%",lop[i]*100);
+						// newRow[j+2] = zScore[i];
+						// newRow[j+2] = Math.round(zScore[i] * 100) / 100.0;
+						newRow[j + 2] = String.format("%.0f%%", lop[i] * 100);
 					}
 				} else {
 					newRow[j] = row[j];
@@ -136,11 +141,11 @@ public class LocalOutlierPlaySheet extends GridPlaySheet{
 		list = newList;
 		
 		String[] newNames = new String[newNumCols];
-		for(i = 0; i <= numCols; i++) {
-			if(i == numCols) {
+		for (i = 0; i <= numCols; i++) {
+			if (i == numCols) {
 				newNames[i] = "LRD";
-				newNames[i+1] = "LOF";
-				newNames[i+2] = "LOP";
+				newNames[i + 1] = "LOF";
+				newNames[i + 2] = "LOP";
 			} else {
 				newNames[i] = names[i];
 			}
@@ -149,26 +154,25 @@ public class LocalOutlierPlaySheet extends GridPlaySheet{
 	}
 	
 	@Override
-	public void addPanel()
-	{
-		if(jTab==null) {
+	public void addPanel() {
+		if (jTab == null) {
 			super.addPanel();
 		} else {
-			String lastTabName = jTab.getTitleAt(jTab.getTabCount()-1);
+			String lastTabName = jTab.getTitleAt(jTab.getTabCount() - 1);
 			LOGGER.info("Parsing integer out of last tab name");
 			int count = 1;
-			if(jTab.getTabCount()>1)
-				count = Integer.parseInt(lastTabName.substring(0,lastTabName.indexOf(".")))+1;
-			addPanelAsTab(count+". Outliers Raw Data");
+			if (jTab.getTabCount() > 1)
+				count = Integer.parseInt(lastTabName.substring(0, lastTabName.indexOf("."))) + 1;
+			addPanelAsTab(count + ". Outliers Raw Data");
 		}
 	}
 	
 	public void addPanelAsTab(String tabName) {
-	//	setWindow();
+		// setWindow();
 		try {
 			table = new JTable();
 			
-			//Add Excel export popup menu and menuitem
+			// Add Excel export popup menu and menuitem
 			JPopupMenu popupMenu = new JPopupMenu();
 			JMenuItem menuItemAdd = new JMenuItem("Export to Excel");
 			String questionTitle = this.getTitle();
@@ -180,15 +184,15 @@ public class LocalOutlierPlaySheet extends GridPlaySheet{
 			LOGGER.debug("Created the table");
 			this.addInternalFrameListener(gridPSListener);
 			LOGGER.debug("Added the internal frame listener ");
-			//table.setAutoCreateRowSorter(true);
+			// table.setAutoCreateRowSorter(true);
 			
 			JPanel panel = new JPanel();
 			panel.add(table);
 			GridBagLayout gbl_mainPanel = new GridBagLayout();
-			gbl_mainPanel.columnWidths = new int[]{0, 0};
-			gbl_mainPanel.rowHeights = new int[]{0, 0};
-			gbl_mainPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-			gbl_mainPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+			gbl_mainPanel.columnWidths = new int[] { 0, 0 };
+			gbl_mainPanel.rowHeights = new int[] { 0, 0 };
+			gbl_mainPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
+			gbl_mainPanel.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
 			panel.setLayout(gbl_mainPanel);
 			
 			addScrollPanel(panel, table);
@@ -205,41 +209,76 @@ public class LocalOutlierPlaySheet extends GridPlaySheet{
 			e.printStackTrace();
 		}
 	}
+	
 	@Override
 	public void setQuery(String query) {
-		String[] querySplit = query.split("\\+\\+\\+");
-		this.query = querySplit[0];
-		this.k = Integer.parseInt(querySplit[1].trim());
+		if (query.matches(".*\\+\\+\\+[0-9]+")) {
+			String[] querySplit = query.split("\\+\\+\\+");
+			this.query = querySplit[0];
+			this.k = Integer.parseInt(querySplit[1].trim());
+		} else {
+			this.query = query;
+		}
 	}
 	
 	@Override
-	public Object getVariable(String varName, ISelectStatement sjss){
+	public Object getVariable(String varName, ISelectStatement sjss) {
 		return sjss.getVar(varName);
 	}
+	
 	public void setMasterList(ArrayList<Object[]> masterList) {
 		this.masterList = masterList;
 	}
+	
 	public void setMasterNames(String[] masterNames) {
 		this.masterNames = masterNames;
 	}
+	
 	public void setJTab(JTabbedPane jTab) {
 		this.jTab = jTab;
 	}
+	
 	public void setJBar(JProgressBar jBar) {
 		this.jBar = jBar;
 	}
+	
 	public void setKNeighbors(int k) {
 		this.k = k;
 	}
+	
 	public void addScrollPanel(JPanel panel, JComponent obj) {
 		JScrollPane scrollPane = new JScrollPane(obj);
 		scrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
 		scrollPane.setAutoscrolls(true);
-
+		
 		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
 		gbc_scrollPane.fill = GridBagConstraints.BOTH;
 		gbc_scrollPane.gridx = 0;
 		gbc_scrollPane.gridy = 0;
 		panel.add(scrollPane, gbc_scrollPane);
+	}
+	
+	public double[] getLop() {
+		return lop;
+	}
+	
+	public void setLop(double[] lop) {
+		this.lop = lop;
+	}
+	
+	public double[] getLrd() {
+		return lrd;
+	}
+	
+	public void setLrd(double[] lrd) {
+		this.lrd = lrd;
+	}
+	
+	public double[] getLof() {
+		return lof;
+	}
+	
+	public void setLof(double[] lof) {
+		this.lof = lof;
 	}
 }
