@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.algorithm.impl;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -46,7 +45,6 @@ import prerna.ui.transformer.EdgeStrokeTransformer;
 import prerna.ui.transformer.VertexLabelFontTransformer;
 import prerna.ui.transformer.VertexPaintTransformer;
 import prerna.util.Constants;
-import edu.uci.ics.jung.graph.DelegateForest;
 
 /**
  * This class is used to identify loops within a network.
@@ -59,16 +57,16 @@ public class LoopIdentifierProcessor implements IAlgorithm{
 	Hashtable<String, SEMOSSEdge> nonLoopEdges = new Hashtable<String, SEMOSSEdge>();
 	Hashtable<String, SEMOSSEdge> loopEdges = new Hashtable<String, SEMOSSEdge>();
 	Hashtable<String, SEMOSSVertex> nonLoopVerts = new Hashtable<String, SEMOSSVertex>();
-	public Hashtable<String, SEMOSSEdge> getLoopEdges() {
-		return loopEdges;
-	}
-
 	Hashtable<String, String> loopVerts = new Hashtable<String, String>();
 	String selectedNodes="";
 	Vector<SEMOSSEdge> masterEdgeVector = new Vector();//keeps track of everything accounted for in the forest
 	Vector<SEMOSSVertex> masterVertexVector = new Vector();
 	Vector<SEMOSSVertex> currentPathVerts = new Vector<SEMOSSVertex>();//these are used for depth search first
 	Vector<SEMOSSEdge> currentPathEdges = new Vector<SEMOSSEdge>();
+	
+	public Hashtable<String, SEMOSSEdge> getLoopEdges() {
+		return loopEdges;
+	}
 	
 	public void execute() {
 		executeWeb();
@@ -123,8 +121,8 @@ public class LoopIdentifierProcessor implements IAlgorithm{
 		}
 		//phase 1 is now complete.  The only vertices and edges left must have in and out edges
 		//However, there is still the possiblity of fake edges and nodes that exist only between two loops
-		//Now I will perform depth search first on all remaining nodes to ensure that every edge is a loop
-		runDepthSearchFirst();
+		//Now I will perform depth-first search on all remaining nodes to ensure that every edge is a loop
+		runDepthFirstSearch();
 		//Everything that is left in nextVertices and the forest now must be loopers
 		//lets put them in their respective hashtables and set the transformers		
 	}
@@ -133,7 +131,7 @@ public class LoopIdentifierProcessor implements IAlgorithm{
 	 * Get all possible full length paths for every vertex in the master vertex vector.
 	 * If a path returns back to the starting node, then put it inside the loop hashtable.
 	 */
-	private void runDepthSearchFirst(){
+	private void runDepthFirstSearch(){
 		//for every vertex remaining in master vertex vector, I will get all possible full length paths
 		//If a path return back to the starting node, put it in the loop hash
 		for(SEMOSSVertex vertex : masterVertexVector){
@@ -195,7 +193,7 @@ public class LoopIdentifierProcessor implements IAlgorithm{
 		boolean retBool = false;
 		if(leaf == null) return false;
 
-		Collection<SEMOSSEdge> edgeArray = leaf.getOutEdges();
+		Collection<SEMOSSEdge> edgeArray = getValidEdges(leaf.getOutEdges());
 		for (SEMOSSEdge edge: edgeArray){
 			SEMOSSVertex inVert = edge.inVertex;
 			if(inVert.equals(root)) {
@@ -217,7 +215,7 @@ public class LoopIdentifierProcessor implements IAlgorithm{
 	 * @return DBCMVertex 							Next node for processing. */
 	private SEMOSSVertex traverseDepthDownward(SEMOSSVertex vert, Vector<SEMOSSVertex> usedLeafVerts){
 		SEMOSSVertex nextVert = null;
-		Collection<SEMOSSEdge> edgeArray = vert.getOutEdges();
+		Collection<SEMOSSEdge> edgeArray = getValidEdges(vert.getOutEdges());
 		for (SEMOSSEdge edge: edgeArray){
 			SEMOSSVertex inVert = edge.inVertex;
 			if(masterVertexVector.contains(inVert) && !usedLeafVerts.contains(inVert) && !currentPathVerts.contains(inVert)){
@@ -248,16 +246,16 @@ public class LoopIdentifierProcessor implements IAlgorithm{
 	 * Sets the transformers based on valid edges and vertices for the playsheet.
 	 */
 	private void setTransformers(){
-			EdgeStrokeTransformer tx = (EdgeStrokeTransformer)playSheet.getView().getRenderContext().getEdgeStrokeTransformer();
-			tx.setEdges(loopEdges);
-			EdgeArrowStrokeTransformer stx = (EdgeArrowStrokeTransformer)playSheet.getView().getRenderContext().getEdgeArrowStrokeTransformer();
-			stx.setEdges(loopEdges);
-			ArrowDrawPaintTransformer atx = (ArrowDrawPaintTransformer)playSheet.getView().getRenderContext().getArrowDrawPaintTransformer();
-			atx.setEdges(loopEdges);
-			VertexPaintTransformer vtx = (VertexPaintTransformer)playSheet.getView().getRenderContext().getVertexFillPaintTransformer();
-			vtx.setVertHash(loopVerts);
-			VertexLabelFontTransformer vlft = (VertexLabelFontTransformer)playSheet.getView().getRenderContext().getVertexFontTransformer();
-			vlft.setVertHash(loopVerts);
+		EdgeStrokeTransformer tx = (EdgeStrokeTransformer)playSheet.getView().getRenderContext().getEdgeStrokeTransformer();
+		tx.setEdges(loopEdges);
+		EdgeArrowStrokeTransformer stx = (EdgeArrowStrokeTransformer)playSheet.getView().getRenderContext().getEdgeArrowStrokeTransformer();
+		stx.setEdges(loopEdges);
+		ArrowDrawPaintTransformer atx = (ArrowDrawPaintTransformer)playSheet.getView().getRenderContext().getArrowDrawPaintTransformer();
+		atx.setEdges(loopEdges);
+		VertexPaintTransformer vtx = (VertexPaintTransformer)playSheet.getView().getRenderContext().getVertexFillPaintTransformer();
+		vtx.setVertHash(loopVerts);
+		VertexLabelFontTransformer vlft = (VertexLabelFontTransformer)playSheet.getView().getRenderContext().getVertexFontTransformer();
+		vlft.setVertHash(loopVerts);
 		// repaint it
 		playSheet.getView().repaint();
 	}

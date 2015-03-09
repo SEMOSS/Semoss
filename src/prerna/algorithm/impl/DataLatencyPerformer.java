@@ -36,6 +36,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.IAlgorithm;
+import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.api.IPlaySheet;
@@ -46,7 +47,6 @@ import prerna.ui.transformer.EdgeStrokeTransformer;
 import prerna.ui.transformer.VertexLabelFontTransformer;
 import prerna.ui.transformer.VertexPaintTransformer;
 import prerna.util.Constants;
-import edu.uci.ics.jung.graph.DelegateForest;
 
 /**
  * This class performs the calculations for data latency. 
@@ -54,7 +54,7 @@ import edu.uci.ics.jung.graph.DelegateForest;
 public class DataLatencyPerformer implements IAlgorithm{
 
 	GraphPlaySheet ps = null;
-	DelegateForest forest;
+	protected GraphDataModel gdm = new GraphDataModel();
 	public SEMOSSVertex [] pickedVertex = null;
 	static final Logger logger = LogManager.getLogger(DataLatencyPerformer.class.getName());
 	double value;
@@ -81,9 +81,9 @@ public class DataLatencyPerformer implements IAlgorithm{
 	public DataLatencyPerformer(GraphPlaySheet p, SEMOSSVertex[] vect){
 		ps = p;
 		pickedVertex = vect;
-		forest = ps.forest;
-		Collection<SEMOSSEdge> edges = forest.getEdges();
-		Collection<SEMOSSVertex> v = forest.getVertices();
+		gdm = ps.gdm;
+		Collection<SEMOSSEdge> edges = gdm.getEdgeStore().values();
+		Collection<SEMOSSVertex> v = gdm.getVertStore().values();
 		masterEdgeVector.addAll(edges);
 		masterVertexVector.addAll(v);
 	}
@@ -160,7 +160,7 @@ public class DataLatencyPerformer implements IAlgorithm{
 		}
 		else{
 			selectedNodes = "All";
-			Collection<SEMOSSVertex> forestRootsCollection = forest.getRoots();
+			Collection<SEMOSSVertex> forestRootsCollection = gdm.getVertStore().values();
 			for(SEMOSSVertex v : forestRootsCollection) {
 				forestRoots.add(v);
 				validVerts.put((String) v.getProperty(Constants.URI), (String) v.getProperty(Constants.URI));
@@ -241,7 +241,7 @@ public class DataLatencyPerformer implements IAlgorithm{
 	 * @return DBCMVertex */
 	private SEMOSSVertex traverseDepthDownward(SEMOSSVertex vert, Hashtable<SEMOSSEdge,  Double> usedLeafEdges, SEMOSSVertex rootVert){
 		SEMOSSVertex nextVert = null;
-		Collection<SEMOSSEdge> edgeArray = getValidEdges(forest.getOutEdges(vert));
+		Collection<SEMOSSEdge> edgeArray = getValidEdges(vert.getOutEdges());
 		for (SEMOSSEdge edge: edgeArray){
 			SEMOSSVertex inVert = edge.inVertex;
 			String freqString = "";
