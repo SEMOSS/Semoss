@@ -396,7 +396,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		alg.execute();
 		
 		results = alg.getMasterTable();
-		double[] lop = alg.getLOP();
+		double[] lop = alg.getLop();
 		
 		LOGGER.info("Ordering the probabilities to get the top results...");
 		int i;
