@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import prerna.algorithm.impl.AlgorithmDataFormatter;
 import prerna.poi.main.TextExtractor;
 import prerna.util.DIHelper;
 import prerna.util.PlaySheetEnum;
@@ -121,7 +122,14 @@ public class InsightTemplateProcessor implements InsightRuleConstants{
 							rule.setHasAggregation(true);
 							constraintValueSplit[0] = AGGREGATION;
 							rule.addConstraint(paramSplit[0].replace("@", "").trim(), constraintValueSplit[0].trim(), constraintValueSplit[1].trim());
-						} else {
+						} else if(constraintValueSplit[0].equalsIgnoreCase(DATA_TYPE) && 
+								(constraintValueSplit[1].equalsIgnoreCase(AlgorithmDataFormatter.STRING_KEY) ||
+								constraintValueSplit[1].equalsIgnoreCase(AlgorithmDataFormatter.DOUBLE_KEY)  ||
+								constraintValueSplit[1].equalsIgnoreCase(AlgorithmDataFormatter.SIMPLEDATE_KEY)  ||
+								constraintValueSplit[1].equalsIgnoreCase(AlgorithmDataFormatter.DATE_KEY ) ) )
+						{
+							rule.addConstraint(paramSplit[0].replace("@", "").trim(), constraintValueSplit[0].trim(), constraintValueSplit[1].trim());
+						}else {
 							Double val = null;
 							try {
 								val = Double.parseDouble(constraintValueSplit[1].trim());
