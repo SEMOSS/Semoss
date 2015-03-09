@@ -1,14 +1,14 @@
 <Question>
 @Question=What is the distribution of $Concept to each $Property?
 @Property-EntropyD_Min=0.3
-@Property-Type=STRING
+@Property-TYPE=STRING
 @Output=Binned_Pie_Chart
 </Question>
 
 <Question>
 @Question=What is the distribution of $Concept to $Property?
 @Property-EntropyD_Min=0.3
-@Property-Type=DOUBLE
+@Property-TYPE=DOUBLE
 @Output=Binned_Pie_Chart
 </Question>
 
@@ -16,14 +16,14 @@
 @Question=What is the distribution of $Concept to each $Property?
 @Property-EntropyD_Max=0.3
 @Property-EntropyD_Min=0.1
-@Property-Type=STRING
+@Property-TYPE=STRING
 @Output=Binned_Column_Chart
 </Question>
 
 <Question>
 @Question=What is the distribution of $Concept to $Property?
 @Property-EntropyD_Max=0.3
-@Property-Type=DOUBLE
+@Property-TYPE=DOUBLE
 @Output=Binned_Column_Chart
 </Question>
 
