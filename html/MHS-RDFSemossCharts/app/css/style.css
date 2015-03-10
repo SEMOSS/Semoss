@@ -157,3 +157,26 @@ tr.blue {
 .row.drop {
   margin-left: 0px;
 }
+
+#singleaxisbubblechart .axis path,
+#singleaxisbubblechart .axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
+#singleaxisbubblechart .dot {
+    stroke: #000;
+    stroke-opacity: .7;
+    fill-opacity: .7;
+}
+#singleaxisbubblechart .noLine path {
+    display: none;
+}
+#singleaxisbubblechart .noLine line {
+    fill: none;
+    stroke: #aaa;
+    shape-rendering: crispEdges;
+}
+#singleaxisbubblechart .noLine text {
+    display: none;
+}
