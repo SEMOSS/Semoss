@@ -7,6 +7,8 @@ import java.util.Hashtable;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+
 import prerna.algorithm.learning.weka.WekaAprioriAlgorithm;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
@@ -31,7 +33,7 @@ public class WekaAprioriVizPlaySheet extends BrowserPlaySheet{
 		super();
 		this.setPreferredSize(new Dimension(800,600));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/singleaxisbubblechart.html";//TODO change to new name
+		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/singleaxisbubbleassociation.html";//TODO change to new name
 	}
 	
 	@Override
@@ -39,6 +41,9 @@ public class WekaAprioriVizPlaySheet extends BrowserPlaySheet{
 		generateData();
 		runAlgorithm();
 		dataHash = processQueryData();
+		
+		Gson gson = new Gson();
+		System.out.println(gson.toJson(dataHash));
 	}
 
 	@Override
