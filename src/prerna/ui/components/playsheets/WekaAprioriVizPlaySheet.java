@@ -31,7 +31,7 @@ public class WekaAprioriVizPlaySheet extends BrowserPlaySheet{
 		super();
 		this.setPreferredSize(new Dimension(800,600));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/heatmap.html";//TODO change to new name
+		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/singleaxisbubblechart.html";//TODO change to new name
 	}
 	
 	@Override
