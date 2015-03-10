@@ -186,7 +186,7 @@ circle.hidden {
                 width, height, spacing = 3,
                 paddingX = 50,
                 paddingY = 20,
-                x, y, z, color, xAxis, noLine, svg, xrange, groupLegend, sizeLegend, minSize, maxSize, middleSize, sizeLegendData, clusterHeight, singleRowHeight, params;
+                x, y, z, color, xAxis, noLine, svg, xrange, groupLegend, sizeLegend, minSize, maxSize, middleSize, sizeLegendData, clusterHeight, singleRowHeight, params, tempkey;
 
 
             var dirtyData = angular.copy(jsonData);
@@ -460,8 +460,13 @@ circle.hidden {
                     .html(function(d) {
                         params=[];
                         for (keys in d){
-                            if (keys in originalData[0]){
-                                params += '<span class="light">' + keys + ':</span> ' + d[keys] + '<br/>'
+                            if (keys === "LOP"){
+                                tempkey = Math.round(d[keys]*10000)/10000;
+                            } else {
+                                tempkey = d[keys];
+                            }
+                            if (keys in originalData[0] && keys !== "y" && keys !== "Count"){
+                                params += '<span class="light">' + keys + ':</span> ' + tempkey + '<br/>'
                             }
                         }
                         return '<div>' + params +
