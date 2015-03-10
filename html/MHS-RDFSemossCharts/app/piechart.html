@@ -25,7 +25,7 @@
 		width: 100%;
 		line-height: 1;
 		color: rgba(0, 0, 0, 0.8);
-		content: "\25BC";
+		/*content: "\25BC";*/
 		position: absolute;
 		text-align: center;
 	}
@@ -129,7 +129,7 @@
 			tip.show(d);	
 		  })
 		  .on('mousemove', function (d) {		  	
-			tip.style("top", d3.event.pageY - 65 + "px")
+			tip.style("top", d3.event.pageY - 100 + "px")
 				.style("left", d3.event.pageX - 85 + "px");
 		  })
 		  .on('mouseout', function (d) {
@@ -172,7 +172,8 @@
 			.html(function (d) {
 				var labelVal = shortenValueFilter(d.data.pieCat);
 				labelVal = replaceAll('_', ' ', labelVal) + "";
-				return "<div> <span class='light'>" + dataStringJson.names[0] + ":</span> " + labelVal + "<div></div>" + "<span class='light'>" + dataStringJson.names[1] + ":</span> " + d.data.pieVal +"</div>";
+				return "<div style='max-width: 400px'> <span class='light'>" + dataStringJson.names[0] + ":</span> " + textTruncate(labelVal) + "<div></div>" + "<span class='light'>" 
+					+ dataStringJson.names[1] + ":</span> " + d.data.pieVal +"</div>";
 			});
 
 		vis.call(tip);  /* Invoke the tooltip in the context of your visualization */  	
@@ -208,14 +209,30 @@
 	          return color(d.pieCat);
 	      });
 	    legend.append("text").attr("x", (width / 2) - 4)
-	      .attr("y", 9).attr("dy", ".35em")
-	      .style("text-anchor", "end").text(function(d) {
-	          var retVal = shortenValueFilter(d.pieCat)
-			  retVal = replaceAll('_', ' ', retVal) + "";
-			  return retVal;
-	      });
+			.attr("y", 9).attr("dy", ".35em")
+			.style("text-anchor", "end").text(function(d) {
+				var retVal = shortenValueFilter(d.pieCat)
+				retVal = replaceAll('_', ' ', retVal) + "";
+				var ret = "";
+				if (retVal.length > 30) {
+					ret = (retVal.substring(0, 30) + '...');
+				} else {
+					ret = retVal;
+				}
+				return ret;
+			});
 		//drawLegend();
 	}
+
+	function textTruncate(text) {
+		var retVal = "";
+		if (text.length > 30) {
+			retVal = (text.substring(0, 30) + '&#8203;' + textTruncate(text.substring(30, text.length)));
+		} else {
+			retVal = text;
+		}
+		return retVal;
+	};
 
 	function drawLegend() {
 		var legendCount = 0;
