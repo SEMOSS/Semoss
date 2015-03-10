@@ -75,7 +75,7 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 	private Integer order;
 	
 	private final String CONCEPTS_QUERY = "SELECT DISTINCT ?Concept WHERE {{?Concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>}}";
-	private final String PROPERTIES_QUERY = "SELECT DISTINCT ?Prop WHERE {{?Concept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@CONCEPT@>}{?Prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>}{?Concept ?Prop ?PropVal }}";
+	private final String PROPERTIES_QUERY = "SELECT DISTINCT ?Prop WHERE {{?Concept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@CONCEPT@>}{?Prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>}{?Concept ?Prop ?PropVal }} ORDER BY ?Prop";
 	private final String EMPTY_QUERY = "SELECT DISTINCT @RETVARS@ WHERE {{?@CONCEPT@ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@CONCEPT@>} @TRIPLES@} @ENDSTRING@";
 	private final String PROPERTY_TRIPLE= "{?@CONCEPT@ <http://semoss.org/ontologies/Relation/Contains/@PROP@> ?@PROPCLEAN@}";
 	
@@ -100,6 +100,7 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 		int numConcepts = concepts.size();
 		for(i=0; i<numConcepts; i++) {
 			concept = concepts.get(i);
+//			concept = "Title";
 			perspective = concept+"-Perspective";
 			order = 1;
 			if(perspectiveList.contains(perspective))
@@ -118,7 +119,7 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 					
 					if(allParamsMet) {
 						params = new ArrayList<String>(paramClassHash.keySet());
-						addAllPossibleInsights(new ArrayList<Integer>());
+						addAllPossibleInsights(new ArrayList<Integer>(),new HashSet<Integer>());
 					}
 				}
 			}	
@@ -160,7 +161,7 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 		for(String prop : properties) {
 			String propClean = prop.replaceAll("-","_");
 			retVarString += " ?" + propClean;
-			triplesString += PROPERTY_TRIPLE.replaceAll("@CONCEPT@",concept).replaceAll("@PROP@", prop).replaceAll("@PROPCLEAN@", propClean);
+			triplesString += "OPTIONAL" + PROPERTY_TRIPLE.replaceAll("@CONCEPT@",concept).replaceAll("@PROP@", prop).replaceAll("@PROPCLEAN@", propClean);
 		}
 
 		String tableQuery = buildQuery(retVarString,triplesString,"");
@@ -260,23 +261,35 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 		return true;
 	}
 	
-	private void addAllPossibleInsights(List<Integer> assignments) {
-		
+	/**
+	 * Recursive method to determine the assignment for a parameter.
+	 * Fills the next spot in the assignment list and recalls the method.
+	 * Each combination of assignments can be used to make one insight.
+	 * i.e. makes sure that the same insight is not created with params in a different order
+	 * @param assignments
+	 * @param parentUsedAssignments
+	 */
+	private void addAllPossibleInsights(List<Integer> assignments, Set<Integer> parentUsedAssignments) {
+		//if all params have an assignment, then create the insight with the assignments
+		//otherwise, assign the current param and recall the method
 		if(assignments.size() == params.size()) {
 			createInsight(assignments);
 		}else {
+
+			Set<Integer> usedAssignments = new HashSet<Integer>(parentUsedAssignments);
 			
 			String currParam = params.get(assignments.size());
 			Set<Integer> possibleAssignments = possibleParamAssignmentsHash.get(currParam);
-			
+
 			Iterator<Integer> itr = possibleAssignments.iterator();
-			
 			while(itr.hasNext()) {
 				Integer possibleAssignment = itr.next();
 				
-				if(!assignments.contains(possibleAssignment)) {
+				//only continue if no previous parameters have been assigned this assignment
+				if(!usedAssignments.contains(possibleAssignment)) {
+					usedAssignments.add(possibleAssignment);
 					assignments.add(possibleAssignment);
-					addAllPossibleInsights(assignments);
+					addAllPossibleInsights(assignments,usedAssignments);
 					assignments.remove(possibleAssignment);
 				}
 			}
@@ -335,12 +348,11 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 				
 			}if(classType.equals(CONCEPT_VALUE)) {
 				
+				//if no aggregation for insight -> basic return string
+				//if aggregation for this concept -> complicated return string
 				if(!hasAggregation)
 					retVarString = " ?"+concept + retVarString;
-				else if(aggregationType.length() == 0) {
-					retVarString = " ?"+concept + retVarString;
-					endString += " ?"+concept;
-				}else {
+				else if(aggregationType.length() > 0){
 					retVarString = " (" + aggregationType.toString() + "(?" + concept + ") AS ?" + concept + "_" + aggregationType.toString() + ")" + retVarString;
 				}
 			}

@@ -19,7 +19,7 @@ public interface InsightRuleConstants {
 	// aggregation types
 	String AGGREGATION = "AGGREGATION";
 	String COUNT = "COUNT";
-	String AVERAGE = "AVERAGE";
+	String AVERAGE = "AVG";
 	String SUM = "SUM";
 	String MAX = "MAX";
 	String MIN = "MIN";
