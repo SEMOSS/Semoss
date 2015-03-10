@@ -56,6 +56,7 @@ import prerna.ui.components.playsheets.MatrixRegressionVizPlaySheet;
 import prerna.ui.components.playsheets.NumericalCorrelationVizPlaySheet;
 import prerna.ui.components.playsheets.WekaAprioriPlaySheet;
 import prerna.ui.components.playsheets.MatrixRegressionPlaySheet;
+import prerna.ui.components.playsheets.WekaAprioriVizPlaySheet;
 import prerna.ui.components.playsheets.WekaClassificationPlaySheet;
 import prerna.ui.helpers.ClusteringModuleUpdateRunner;
 import prerna.ui.helpers.PlaysheetCreateRunner;
@@ -312,15 +313,29 @@ public class RunAlgorithmListener extends AbstractListener {
 			if(!errorMessage.isEmpty()) {
 				Utility.showError(errorMessage);
 			}
+			WekaAprioriPlaySheet gridPlaySheet = new WekaAprioriPlaySheet();
+			gridPlaySheet.setList(filteredList);
+			gridPlaySheet.setNames(filteredNames);
+			gridPlaySheet.setNumRules(numRule);
+			gridPlaySheet.setConfPer(confPer);
+			gridPlaySheet.setMinSupport(minSupport);
+			gridPlaySheet.setMaxSupport(maxSupport);
+			gridPlaySheet.setJTab(jTab);
+			gridPlaySheet.setRDFEngine(engine);
+			gridPlaySheet.setTitle(title);
+			gridPlaySheet.createData();
+			gridPlaySheet.runAnalytics();
+			gridPlaySheet.createView();
 			
-			newPlaySheet = new WekaAprioriPlaySheet();
+			
+			newPlaySheet = new WekaAprioriVizPlaySheet();
 			newPlaySheet.setList(filteredList);
 			newPlaySheet.setNames(filteredNames);
-			((WekaAprioriPlaySheet)newPlaySheet).setJTab(jTab);
-			((WekaAprioriPlaySheet)newPlaySheet).setNumRules(numRule);
-			((WekaAprioriPlaySheet)newPlaySheet).setConfPer(confPer);
-			((WekaAprioriPlaySheet)newPlaySheet).setMinSupport(minSupport);
-			((WekaAprioriPlaySheet)newPlaySheet).setMaxSupport(maxSupport);
+			((WekaAprioriVizPlaySheet)newPlaySheet).setJTab(jTab);
+			((WekaAprioriVizPlaySheet)newPlaySheet).setNumRules(numRule);
+			((WekaAprioriVizPlaySheet)newPlaySheet).setConfPer(confPer);
+			((WekaAprioriVizPlaySheet)newPlaySheet).setMinSupport(minSupport);
+			((WekaAprioriVizPlaySheet)newPlaySheet).setMaxSupport(maxSupport);
 		} else if(algorithm.equals("Linear Regression")) {
 			//column to use as dependent variable
 			String depVar = matrixDepVarComboBox.getSelectedItem() + "";
