@@ -23,8 +23,35 @@
 <Question>
 @Question=What is the distribution of $Concept to $Property?
 @Property-ENTROPY_D_MAX=0.3
+@Property-ENTROPY_D_MIN=0.1
 @Property-TYPE=DOUBLE
 @Output=Binned_Column_Chart
 </Question>
 
+<Question>
+@Question=How does the count of $Concept vary by $Property1 and $Property2?
+@Property1-ENTROPY_D_MIN=0.1
+@Property1-TYPE=STRING
+@Property2-ENTROPY_D_MIN=0.1
+@Property2-TYPE=STRING
+@Concept-AGGREGATION=COUNT
+@Output=Heat_Map
+</Question>
 
+<Question>
+@Question=How does average $Concept $Property2 vary by $Property1?
+@Property1-ENTROPY_D_MIN=0.1
+@Property1-TYPE=STRING
+@Property2-TYPE=DOUBLE
+@Property2-AGGREGATION=AVG
+@Output=Column_Chart
+</Question>
+
+<Question>
+@Question=How do $Property1 and $Property2 relate to $Concept?
+@Property1-ENTROPY_D_MIN=0.1
+@Property1-TYPE=DOUBLE
+@Property2-ENTROPY_D_MIN=0.1
+@Property2-TYPE=DOUBLE
+@Output=Grid_Scatter
+</Question>
