@@ -12,6 +12,7 @@ import com.google.gson.Gson;
 import prerna.algorithm.learning.weka.WekaAprioriAlgorithm;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -90,6 +91,27 @@ public class WekaAprioriVizPlaySheet extends BrowserPlaySheet{
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+	
+	/**
+	 * Method addPanel. Creates a panel and adds the table to the panel.
+	 */
+	@Override
+	public void addPanel()
+	{
+		//if this is to be a separate playsheet, create the tab in a new window
+		//otherwise, if this is to be just a new tab in an existing playsheet,
+		if(jTab==null) {
+			super.addPanel();
+		} else {
+			String lastTabName = jTab.getTitleAt(jTab.getTabCount()-1);
+			LOGGER.info("Parsing integer out of last tab name");
+			int count = 1;
+			if(jTab.getTabCount()>1)
+				count = Integer.parseInt(lastTabName.substring(0,lastTabName.indexOf(".")))+1;
+			addPanelAsTab(count+". Association Learning");
+		}
+		new CSSApplication(getContentPane());
 	}
 	
 	public int getNumRules() {
