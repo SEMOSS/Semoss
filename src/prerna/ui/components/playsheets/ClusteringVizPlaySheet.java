@@ -102,6 +102,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 	
 	private Hashtable<String, IPlaySheet> playSheetHash;
 	private JComboBox<String> drillDownTabSelectorComboBox;
+	private Hashtable<String, Hashtable<String, Object>>[] barData;
 	
 	// indexing used for bar graph visualizations
 	private int[] numericalPropIndices;
@@ -455,7 +456,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 			dataList.add(instanceHash);
 		}
 		
-		Hashtable<String, Hashtable<String, Object>>[] barData = new Hashtable[numClusters];
+		barData = new Hashtable[numClusters];
 		for (int i = 0; i < numClusters; i++) {
 			Hashtable<String, Object[]> allClusterInfo = clusterInformation.get(i);
 			// algorithm can determine that the number of clusters should be less than the number specified by the user
@@ -786,5 +787,13 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 	
 	public String[] getMasterNames() {
 		return masterNames;
+	}
+	
+	public Hashtable<String, Hashtable<String, Object>>[] getBarData() {
+		return barData;
+	}
+	
+	public void setBarData(Hashtable<String, Hashtable<String, Object>>[] barData) {
+		this.barData = barData;
 	}
 }
