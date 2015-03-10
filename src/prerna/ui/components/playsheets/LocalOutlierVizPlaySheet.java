@@ -64,6 +64,9 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet {
 	public void createData() {
 		if (list == null || list.isEmpty())
 			super.createData();
+		else {
+			dataHash = processQueryData();
+		}
 	}
 	
 	@Override
