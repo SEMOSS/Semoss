@@ -35,6 +35,8 @@ import java.util.List;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+
 import prerna.algorithm.learning.unsupervised.clustering.LocalOutlierFactorAlgorithm;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
@@ -55,7 +57,7 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet {
 		super();
 		this.setPreferredSize(new Dimension(800, 600));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/scatter-plot-matrix.html";
+		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/singleaxisbubblechart.html";
 	}
 	
 	@Override
@@ -116,6 +118,9 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet {
 		Hashtable<String, Object> retHash = new Hashtable<String, Object>();
 		retHash.put("headers", headers);
 		retHash.put("dataSeries", retItemList);
+		
+		Gson gson = new Gson();
+		System.out.println(gson.toJson(retHash));
 		
 		return retHash;
 	}
