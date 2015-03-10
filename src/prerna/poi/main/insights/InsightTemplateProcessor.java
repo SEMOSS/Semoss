@@ -85,7 +85,7 @@ public class InsightTemplateProcessor implements InsightRuleConstants{
 							String variableType = null;
 							if(variableName.toUpperCase().contains(CONCEPT_VALUE)) {
 								variableType = CONCEPT_VALUE;
-							} else if(variableName.toUpperCase().equals(PROPERTY_VALUE)) {
+							} else if(variableName.toUpperCase().contains(PROPERTY_VALUE)) {
 								variableType = PROPERTY_VALUE;
 							} else {
 								continue NEXT_QUESTION;
