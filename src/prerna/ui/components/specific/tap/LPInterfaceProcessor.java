@@ -688,46 +688,47 @@ public class LPInterfaceProcessor {
 								addFutureDBCostRelTriples("", newICD, upstreamSystemURI, dataURI, data, rowIdx);
 							}
 						}
-					} else if (sorV.contains(upstreamSystemURI + dataURI) && !upstreamSysType.equals(HPI_KEY) && !upstreamSysType.equals(HPNI_KEY)
-							&& !interfaceingSysProbability.equals("null") && !interfaceingSysProbability.equals("")) { // upstream system is SOR and
-																														// has a probability
-						otherwise = false;
-						newICD = makeDHMSMConsumerOfICD(icdURI, upstreamSysName, data);
-						comment = comment.concat("Recommend review of developing interface between ").concat(upstreamSysName).concat("->DHMSM. ");
-						String[] propVals = getPropValsProvider(upstreamSysName, data);
-						if (propVals == null) {
-							propVals = new String[] { format, freq, prot };
-						}
-						// if(!selfReportedICDs.contains(newICD)) {
-						if (!selfReportedSystems.contains(upstreamSystemURI)) {
-							
-							// direct cost if system is upstream
-							if (generateCost && !costCalculated) {
-								costCalculated = true;
-								if (sysName.equals(upstreamSysName)) {
-									directCost = true;
-									if (usePhase) {
-										finalCost = calculateCost(data, upstreamSysName, "Provide", true, servicesProvideList, rowIdx);
-									} else {
-										finalCost = calculateCost(data, upstreamSysName, "Provide", true, servicesProvideList);
-									}
-								}
-							}
-							
-							if (generateNewTriples) {
-								finalCost = calculateCost(data, upstreamSysName, "Provide", true, new HashSet(), rowIdx);
-								// future db triples - new interface
-								newICD = makeDHMSMConsumerOfICD(icdURI, upstreamSysName, data);
-								payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/") + 1)).concat(":").concat(data);
-								addedInterfaces.add(newICD);
-								addTripleWithDHMSMConsumer(newICD, upstreamSystemURI, upstreamSysName, dataURI, data, payloadURI);
-								// addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
-								addPropTriples(payloadURI, propVals, comment, (double) 5);
-								// future cost triple
-								addFutureDBCostRelTriples("", newICD, upstreamSystemURI, dataURI, data, rowIdx);
-							}
-						}
-					}
+					} 
+//					else if (sorV.contains(upstreamSystemURI + dataURI) && !upstreamSysType.equals(HPI_KEY) && !upstreamSysType.equals(HPNI_KEY)
+//							&& !interfaceingSysProbability.equals("null") && !interfaceingSysProbability.equals("")) { // upstream system is SOR and
+//																														// has a probability
+//						otherwise = false;
+//						newICD = makeDHMSMConsumerOfICD(icdURI, upstreamSysName, data);
+//						comment = comment.concat("Recommend review of developing interface between ").concat(upstreamSysName).concat("->DHMSM. ");
+//						String[] propVals = getPropValsProvider(upstreamSysName, data);
+//						if (propVals == null) {
+//							propVals = new String[] { format, freq, prot };
+//						}
+//						// if(!selfReportedICDs.contains(newICD)) {
+//						if (!selfReportedSystems.contains(upstreamSystemURI)) {
+//							
+//							// direct cost if system is upstream
+//							if (generateCost && !costCalculated) {
+//								costCalculated = true;
+//								if (sysName.equals(upstreamSysName)) {
+//									directCost = true;
+//									if (usePhase) {
+//										finalCost = calculateCost(data, upstreamSysName, "Provide", true, servicesProvideList, rowIdx);
+//									} else {
+//										finalCost = calculateCost(data, upstreamSysName, "Provide", true, servicesProvideList);
+//									}
+//								}
+//							}
+//							
+//							if (generateNewTriples) {
+//								finalCost = calculateCost(data, upstreamSysName, "Provide", true, new HashSet(), rowIdx);
+//								// future db triples - new interface
+//								newICD = makeDHMSMConsumerOfICD(icdURI, upstreamSysName, data);
+//								payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/") + 1)).concat(":").concat(data);
+//								addedInterfaces.add(newICD);
+//								addTripleWithDHMSMConsumer(newICD, upstreamSystemURI, upstreamSysName, dataURI, data, payloadURI);
+//								// addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
+//								addPropTriples(payloadURI, propVals, comment, (double) 5);
+//								// future cost triple
+//								addFutureDBCostRelTriples("", newICD, upstreamSystemURI, dataURI, data, rowIdx);
+//							}
+//						}
+//					}
 					if (downstreamSysType.equals(LPI_KEY) && sorV.contains(downstreamSystemURI + dataURI)) { // downstream system is LPI and SOR of
 																												// data
 						otherwise = false;
@@ -765,44 +766,45 @@ public class LPInterfaceProcessor {
 								addFutureDBCostRelTriples("", newICD, downstreamSystemURI, dataURI, data, rowIdx);
 							}
 						}
-					} else if (sorV.contains(downstreamSystemURI + dataURI) && !downstreamSysType.equals(HPNI_KEY)
-							&& !downstreamSysType.equals(HPI_KEY) && !interfaceingSysProbability.equals("null")
-							&& !interfaceingSysProbability.equals("")) { // downstream system is SOR and has a probability
-						otherwise = false;
-						newICD = makeDHMSMConsumerOfICD(icdURI, downstreamSysName, data);
-						comment = comment.concat("Recommend review of developing interface between ").concat(downstreamSysName).concat("->DHMSM. ");
-						String[] propVals = getPropValsProvider(downstreamSysName, data);
-						if (propVals == null) {
-							propVals = new String[] { format, freq, prot };
-						}
-						// if(!selfReportedICDs.contains(newICD)) {
-						if (!selfReportedSystems.contains(downstreamSystemURI)) {
-							// direct cost if system is upstream
-							if (generateCost && !costCalculated) {
-								if (sysName.equals(downstreamSysName)) {
-									costCalculated = true;
-									directCost = true;
-									if (usePhase) {
-										finalCost = calculateCost(data, downstreamSysName, "Provide", true, servicesProvideList, rowIdx);
-									} else {
-										finalCost = calculateCost(data, downstreamSysName, "Provide", true, servicesProvideList);
-									}
-								}
-							}
-							
-							if (generateNewTriples) {
-								finalCost = calculateCost(data, downstreamSysName, "Provide", true, new HashSet(), rowIdx);
-								// future db triples - new interface
-								payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/") + 1)).concat(":").concat(data);
-								addedInterfaces.add(newICD);
-								addTripleWithDHMSMConsumer(newICD, downstreamSystemURI, downstreamSysName, dataURI, data, payloadURI);
-								// addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
-								addPropTriples(payloadURI, propVals, comment, (double) 5);
-								// future cost triple
-								addFutureDBCostRelTriples("", newICD, downstreamSystemURI, dataURI, data, rowIdx);
-							}
-						}
-					}
+					} 
+//					else if (sorV.contains(downstreamSystemURI + dataURI) && !downstreamSysType.equals(HPNI_KEY)
+//							&& !downstreamSysType.equals(HPI_KEY) && !interfaceingSysProbability.equals("null")
+//							&& !interfaceingSysProbability.equals("")) { // downstream system is SOR and has a probability
+//						otherwise = false;
+//						newICD = makeDHMSMConsumerOfICD(icdURI, downstreamSysName, data);
+//						comment = comment.concat("Recommend review of developing interface between ").concat(downstreamSysName).concat("->DHMSM. ");
+//						String[] propVals = getPropValsProvider(downstreamSysName, data);
+//						if (propVals == null) {
+//							propVals = new String[] { format, freq, prot };
+//						}
+//						// if(!selfReportedICDs.contains(newICD)) {
+//						if (!selfReportedSystems.contains(downstreamSystemURI)) {
+//							// direct cost if system is upstream
+//							if (generateCost && !costCalculated) {
+//								if (sysName.equals(downstreamSysName)) {
+//									costCalculated = true;
+//									directCost = true;
+//									if (usePhase) {
+//										finalCost = calculateCost(data, downstreamSysName, "Provide", true, servicesProvideList, rowIdx);
+//									} else {
+//										finalCost = calculateCost(data, downstreamSysName, "Provide", true, servicesProvideList);
+//									}
+//								}
+//							}
+//							
+//							if (generateNewTriples) {
+//								finalCost = calculateCost(data, downstreamSysName, "Provide", true, new HashSet(), rowIdx);
+//								// future db triples - new interface
+//								payloadURI = payloadInstanceRel.concat(newICD.substring(newICD.lastIndexOf("/") + 1)).concat(":").concat(data);
+//								addedInterfaces.add(newICD);
+//								addTripleWithDHMSMConsumer(newICD, downstreamSystemURI, downstreamSysName, dataURI, data, payloadURI);
+//								// addPropTriples(payloadURI, format, freq, prot, comment, (double) 5);
+//								addPropTriples(payloadURI, propVals, comment, (double) 5);
+//								// future cost triple
+//								addFutureDBCostRelTriples("", newICD, downstreamSystemURI, dataURI, data, rowIdx);
+//							}
+//						}
+//					}
 					if (otherwise) {
 						noCost = true;
 						if (upstreamSysType.equals(HPI_KEY) || upstreamSysType.equals(HPNI_KEY) || downstreamSysType.equals(HPI_KEY)
