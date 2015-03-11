@@ -17,7 +17,7 @@
  * along with SEMOSS.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
-package veera.ui.components.playsheets;
+package prerna.ui.components.playsheets;
 
 import java.awt.Dimension;
 import java.util.HashMap;
