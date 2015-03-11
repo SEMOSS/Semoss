@@ -34,6 +34,9 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.ui.main.listener.specific.tap.SysSimHealthGridListener;
 import prerna.util.Utility;
@@ -193,8 +196,8 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		
 		//allHash.put("dataSeries", testDataHash);
 		allHash.put("title",  "System Similarity");
-		allHash.put("xAxisTitle", "System1");
-		allHash.put("yAxisTitle", "System2");
+		allHash.put("xAxisTitle", comparisonObjectTypeX);
+		allHash.put("yAxisTitle", comparisonObjectTypeY);
 		allHash.put("value", "Score");
 		allHash.put("sysDup", true);
 
@@ -242,11 +245,11 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		ArrayList args = prepareOrderedVars();
 		Hashtable testHash = new Hashtable();
 		ArrayList<Hashtable<String, Hashtable<String, Double>>> list = calculateHash(args, testHash);
-		Hashtable specdataHash = new Hashtable();
+		this.paramDataHash.clear();
 //		for(Hashtable hash : list){ //Browser crashes on TAP Core when sending all of the data... for now just going to add one array (max of 20,000 cells)
 //			specdataHash.putAll(list.get(0));
 //		}
-		Hashtable dimHash = new Hashtable();
+		/*Hashtable dimHash = new Hashtable();
 		Enumeration enumKey = allHash.keys();
 		while (enumKey.hasMoreElements())
 		{
@@ -255,13 +258,13 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 			
 			dimHash.put(value,key);
 			//System.out.println("dimensionData('" + gson.toJson(value) + "', '"+key+"');");
-		}
+		}*/
 		dataHash = new Hashtable();
 //		dataHash.put("dimHash", dimHash);
 		dataHash.put("dimData", args);
 //		dataHash.put("dataSeries", specdataHash);
-		dataHash.put("xAxisTitle", "System1");
-		dataHash.put("yAxisTitle", "System2");
+		dataHash.put("xAxisTitle", comparisonObjectTypeX);
+		dataHash.put("yAxisTitle", comparisonObjectTypeY);
 		dataHash.put("value", "Score");
 		dataHash.put("sysDup", true);
 		Hashtable returnHash = (Hashtable) super.getData();
@@ -269,8 +272,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 			returnHash.put("specificData", dataHash);
 		ArrayList<Object[]> tableData = flattenData(list);
 		returnHash.put("data", tableData);
-		returnHash.put("headers", new String[]{"System1","System2","Score"});
-		this.paramDataHash.clear();
+		returnHash.put("headers", new String[]{comparisonObjectTypeX,comparisonObjectTypeY,"Score"});
 //		Gson gson = new Gson();
 //		logger.info("Converted " + gson.toJson(dataHash));
 //		logger.info("Converted gson");
@@ -294,13 +296,13 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 				Double score = (Double) value.get("Score");
 				if(score>70){
 					Object[] row = new Object[3];
-					row[0] = value.get("System1");
-					row[1] = value.get("System2");
+					row[0] = value.get(comparisonObjectTypeX);
+					row[1] = value.get(comparisonObjectTypeY);
 					row[2] = score;//
 					returnTable.add(row);
 				}
 				else{
-					hash.remove(key); // remove it so we don't store uncessary data on the backend
+					hash.remove(key); // remove it so we don't store unnecessary data on the back-end
 				}
 			}
 			logger.info("done flattening one hash");
@@ -313,8 +315,10 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	
 	@Override
 	public Hashtable registerControlPanelClick(Hashtable dataHash){
+		Gson gson = new Gson();
 		ArrayList<String> selectedVarsList = (ArrayList<String>) dataHash.get("selectedVars");
-		Hashtable<String, Double> specifiedWeights = (Hashtable<String, Double>) dataHash.get("specifiedWeights");
+		//Hashtable<String, Double> specifiedWeights = (Hashtable<String, Double>) dataHash.get("specifiedWeights");
+		Hashtable<String, Double> specifiedWeights = gson.fromJson(gson.toJson(dataHash.get("specifiedWeights")), new TypeToken<Hashtable<String, Double>>() {}.getType());
 		ArrayList<Hashtable<String, Hashtable<String, Double>>> calculatedHash = calculateHash(selectedVarsList, specifiedWeights);
 		ArrayList<Object[]> table = flattenData(calculatedHash);
 		Hashtable retHash = new Hashtable();
