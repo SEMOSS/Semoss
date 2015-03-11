@@ -382,7 +382,14 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			predString = Utility.cleanString(pred, false);
 			newPred = vf.createURI(predString);
 			
-			if(!concept)
+			URI uriObj = null;
+			try{
+				uriObj = vf.createURI(object+"");
+			}catch(IllegalArgumentException e){
+				// ignore exception
+			}
+			
+			if(!concept || uriObj == null)
 			{
 				if(object.getClass() == new Double(1).getClass())
 				{
@@ -408,7 +415,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			}
 			else
 			{
-				sc.removeStatements(newSub, newPred, vf.createURI(object+""));
+				sc.removeStatements(newSub, newPred, uriObj);
 			}
 			sc.commit();
 		} catch (SailException e) 
@@ -504,6 +511,10 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 	 * @return RepositoryConnection - The repository connection. */
 	public void setVF(ValueFactory vf) {
 		this.vf = vf;
+	}
+	
+	public ValueFactory getVF() {
+		return this.vf;
 	}
 	
 }
