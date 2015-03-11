@@ -49,9 +49,7 @@
 
 <Question>
 @Question=How do $Property1 and $Property2 relate to $Concept?
-@Property1-ENTROPY_D_MIN=0.1
 @Property1-TYPE=DOUBLE
-@Property2-ENTROPY_D_MIN=0.1
 @Property2-TYPE=DOUBLE
 @Output=Grid_Scatter
 </Question>

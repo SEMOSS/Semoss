@@ -155,6 +155,8 @@ public final class AlgorithmDataFormatter {
 		//iterate through rows
 		int numCategorical = 0;
 		int numNumerical = 0;
+		int numDate = 0;
+		int numSimpleDate = 0;
 		String type;
 		for(int i = 0; i < list.size(); i++) {
 			Object[] dataRow = list.get(i);
@@ -164,22 +166,24 @@ public final class AlgorithmDataFormatter {
 					type = Utility.processType(colEntryAsString);
 					if(type.equals(STRING_KEY)) {
 						numCategorical++;
-					} else {
+					}else if(type.equals(DOUBLE_KEY)) {
 						numNumerical++;
+					}else if(type.equals(SIMPLEDATE_KEY)) {
+						numDate++;
+					}else {
+						numSimpleDate++;
 					}
 				}
 			}
 		}
-		if(numCategorical > numNumerical) {
-			return STRING_KEY;
-		} else {
+		if(numNumerical > numCategorical) {
 			return DOUBLE_KEY;
-			//TODO account for dates
-//			if(type.equals("DATE")){
-//				return "DATE";
-//			} else if(type.equals("SIMPLEDATE")){
-//				return "SIMPLEDATE";
-//			}
+		} else if(numDate > numCategorical) {
+			return DATE_KEY;
+		} else if(numSimpleDate > numCategorical) {
+			return SIMPLEDATE_KEY;
+		} else {
+			return STRING_KEY;
 		}
 	}
 
