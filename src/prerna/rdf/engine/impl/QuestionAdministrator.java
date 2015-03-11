@@ -545,7 +545,10 @@ public class QuestionAdministrator {
 		String perspectiveURI = getPerspectiveURI(perspective);
 		Vector<String> currentQuestionOrderVector = engine.getOrderedInsightsURI(perspectiveURI);
 		System.out.println("questions currenlty ordered as " + currentQuestionOrderVector);
-		
+
+		//now delete the question
+		String questionURI = deleteQuestion( perspective, questionKey, questionOrder, question, sparql, layout, questionDescription, parameterDependList, parameterQueryList, parameterOptionList);
+
 		// if there are no questions left
 		// delete the perspective.
 		if (currentQuestionOrderVector.size() == 1) {
