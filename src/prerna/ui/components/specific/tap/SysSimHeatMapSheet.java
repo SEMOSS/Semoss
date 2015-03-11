@@ -245,7 +245,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		ArrayList args = prepareOrderedVars();
 		Hashtable testHash = new Hashtable();
 		ArrayList<Hashtable<String, Hashtable<String, Double>>> list = calculateHash(args, testHash);
-		this.paramDataHash.clear();
+		//this.paramDataHash.clear();
 //		for(Hashtable hash : list){ //Browser crashes on TAP Core when sending all of the data... for now just going to add one array (max of 20,000 cells)
 //			specdataHash.putAll(list.get(0));
 //		}
@@ -270,7 +270,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		Hashtable returnHash = (Hashtable) super.getData();
 		if (dataHash != null)
 			returnHash.put("specificData", dataHash);
-		ArrayList<Object[]> tableData = flattenData(list);
+		ArrayList<Object[]> tableData = flattenData(list, true);
 		returnHash.put("data", tableData);
 		returnHash.put("headers", new String[]{comparisonObjectTypeX,comparisonObjectTypeY,"Score"});
 //		Gson gson = new Gson();
@@ -280,7 +280,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		return returnHash;
 	}
 	
-	public ArrayList<Object[]> flattenData(ArrayList<Hashtable<String, Hashtable<String, Double>>> list)
+	public ArrayList<Object[]> flattenData(ArrayList<Hashtable<String, Hashtable<String, Double>>> list, boolean initialLoad)
 	{
 		logger.info("Starting to flatten data");
 		ArrayList<Object[]> returnTable = new ArrayList<Object[]>();
@@ -301,16 +301,26 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 					row[2] = score;//
 					returnTable.add(row);
 				}
-				else{
-					hash.remove(key); // remove it so we don't store unnecessary data on the back-end
+				else{ 
+					if (initialLoad) {    // remove it so we don't store unnecessary data on the back-end
+						hash.remove(key);
+						clearParamDataHash(key);
+					}
 				}
 			}
 			logger.info("done flattening one hash");
 		}
 		logger.info("done flattening");
-		return returnTable;
-		
-		
+		return returnTable;		
+	}
+	
+	public void clearParamDataHash(String key) {
+		Collection<String> keys = paramDataHash.keySet();
+		Iterator<String> it = keys.iterator();
+		while(it.hasNext()){
+			String paramKey = it.next();
+			paramDataHash.get(paramKey).remove(key);
+		}
 	}
 	
 	@Override
@@ -320,7 +330,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		//Hashtable<String, Double> specifiedWeights = (Hashtable<String, Double>) dataHash.get("specifiedWeights");
 		Hashtable<String, Double> specifiedWeights = gson.fromJson(gson.toJson(dataHash.get("specifiedWeights")), new TypeToken<Hashtable<String, Double>>() {}.getType());
 		ArrayList<Hashtable<String, Hashtable<String, Double>>> calculatedHash = calculateHash(selectedVarsList, specifiedWeights);
-		ArrayList<Object[]> table = flattenData(calculatedHash);
+		ArrayList<Object[]> table = flattenData(calculatedHash, false);
 		Hashtable retHash = new Hashtable();
 		retHash.put("data", table);
 		return retHash;
