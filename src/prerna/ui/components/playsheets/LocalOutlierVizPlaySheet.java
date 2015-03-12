@@ -125,12 +125,22 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet {
 	
 	@Override
 	public Object getData() {
-		if (dataHash != null) {
-			Hashtable<String, String> specificData = new Hashtable<String, String>();
-			specificData.put("x-axis", "LOP");
-			specificData.put("z-axis", "COUNT");
-			dataHash.put("specificData", specificData);
+		//TODO: remove this from getData() to call the super method
+		dataHash.put("id", this.questionNum==null? "": this.questionNum);
+		String className = "";
+		Class<?> enclosingClass = getClass().getEnclosingClass();
+		if (enclosingClass != null) {
+			className = enclosingClass.getName();
+		} else {
+			className = getClass().getName();
 		}
+		dataHash.put("playsheet", className);
+		dataHash.put("title", this.title==null? "": this.title);
+		
+		Hashtable<String, String> specificData = new Hashtable<String, String>();
+		specificData.put("x-axis", "LOP");
+		specificData.put("z-axis", "COUNT");
+		dataHash.put("specificData", specificData);
 		return dataHash;
 	}
 	
