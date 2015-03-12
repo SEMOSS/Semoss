@@ -85,27 +85,21 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet {
 		int j;
 		int numInstances = list.size();
 		int numCols = names.length;
-		int newNumCols = numCols + 2;
+		int newNumCols = numCols + 1;
 		
 		List<List<Object>> retItemList = new ArrayList<List<Object>>();
 		for (i = 0; i < numInstances; i++) {
 			Object[] instanceRow = list.get(i);
 			List<Object> item = new ArrayList<Object>();
-			
-			// count is first item
-			// outlier lop is second item
-			// then all the variables from analysis
-			item.add(1);
+			for (j = 0; j < numCols; j++) {
+				item.add(instanceRow[j]);
+			}
 			
 			if (Double.isNaN(lop[i])) {
 				item.add("NaN");
 			} else {
 				item.add(lop[i]);
 			}
-			
-			for (j = 0; j < numCols; j++)
-				item.add(instanceRow[j]);
-			
 			retItemList.add(item);
 		}
 		
@@ -113,8 +107,7 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet {
 		for (i = 0; i < numCols; i++) {
 			headers[i] = names[i];
 		}
-		headers[i+1] = "LOP";
-		headers[i] = "Count";
+		headers[i] = "LOP";
 		
 		Hashtable<String, Object> dataHash = new Hashtable<String, Object>();
 		dataHash.put("headers", headers);
