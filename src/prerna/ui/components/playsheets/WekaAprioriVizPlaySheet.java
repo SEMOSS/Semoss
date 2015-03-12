@@ -59,7 +59,7 @@ public class WekaAprioriVizPlaySheet extends BrowserPlaySheet{
 		dataHash.put("title", this.title==null? "": this.title);
 		
 		Hashtable<String, String> specificData = new Hashtable<String, String>();
-		specificData.put("x-axis", "LOP");
+		specificData.put("x-axis", "Confidence");
 		specificData.put("z-axis", "Count");
 		dataHash.put("specificData", specificData);
 		return dataHash;
