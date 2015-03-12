@@ -66,6 +66,8 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 	private double[] entropyArr;
 	
 	private ArrayList<String> relatedConcepts;
+	private ArrayList<String> conceptDirectionList;
+	private Set<String> biDirectionalConceptsSet;
 	private ArrayList<ArrayList<Object[]>> conceptTableList;
 	private ArrayList<String[]> conceptColTypesList;
 	private ArrayList<double[]> conceptEntropyList;
@@ -83,13 +85,18 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 	private String perspective;
 	private Integer order;
 	
+	private final String DOWNSTREAM = "DOWNSTREAM";
+	private final String UPSTREAM = "UPSTREAM";
+	
 	private final String CONCEPTS_QUERY = "SELECT DISTINCT ?Concept WHERE {{?Concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>}}";
 	private final String PROPERTIES_QUERY = "SELECT DISTINCT ?Prop WHERE {{?Concept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@CONCEPT@>}{?Prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>}{?Concept ?Prop ?PropVal }} ORDER BY ?Prop";
-	private final String RELATED_CONCEPTS_QUERY = "SELECT DISTINCT ?Concept2 WHERE {{?Concept2 <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>}{?Instance1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@CONCEPT@>}{?Instance1 <http://semoss.org/ontologies/Relation> ?Instance2 }{?Instance2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?Concept2}} ORDER BY ?Concept2";
+	private final String DOWNSTREAM_CONCEPTS_QUERY = "SELECT DISTINCT ?Concept2 WHERE {{?Concept2 <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>}{?Instance1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@CONCEPT@>}{?Instance1 <http://semoss.org/ontologies/Relation> ?Instance2 }{?Instance2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?Concept2}} ORDER BY ?Concept2";
+	private final String UPSTREAM_CONCEPTS_QUERY = "SELECT DISTINCT ?Concept2 WHERE {{?Concept2 <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>}{?Instance1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@CONCEPT@>}{?Instance2 <http://semoss.org/ontologies/Relation> ?Instance1 }{?Instance2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?Concept2}} ORDER BY ?Concept2";
 	private final String EMPTY_QUERY = "SELECT DISTINCT @RETVARS@ WHERE {{?@CONCEPT@ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@CONCEPT@>} @TRIPLES@} @ENDSTRING@";
 	
 	private final String PROPERTY_TRIPLE= "{?@CONCEPT@ <http://semoss.org/ontologies/Relation/Contains/@PROP@> ?@PROPCLEAN@}";
-	private final String CONCEPT_TRIPLE= "{?@RELATEDCONCEPT@ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@RELATEDCONCEPT@>}{?@CONCEPT@ ?rel ?@RELATEDCONCEPT@}";
+	private final String CONCEPT_DOWNSTREAM_TRIPLE= "{?@RELATEDCONCEPT@ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@RELATEDCONCEPT@>}{?@CONCEPT@ <http://semoss.org/ontologies/Relation> ?@RELATEDCONCEPT@}";
+	private final String CONCEPT_UPSTREAM_TRIPLE= "{?@RELATEDCONCEPT@ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@RELATEDCONCEPT@>}{?@RELATEDCONCEPT@ <http://semoss.org/ontologies/Relation> ?@CONCEPT@}";
 	
 	public AutoInsightGenerator(AbstractEngine engine) {
 		this.engine = engine;
@@ -112,7 +119,7 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 		int numConcepts = concepts.size();
 		for(i=0; i<numConcepts; i++) {
 			concept = concepts.get(i);
-			
+
 			//find what number question to start with if the concept already has a perspective
 			order = 1;
 			perspective = concept+"-Perspective";
@@ -207,26 +214,44 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 		//construct a query to pull the properties for each instance of concept
 		//create the table
 	
-		String relatedConceptQuery = RELATED_CONCEPTS_QUERY.replaceAll("@CONCEPT@", concept);
+		relatedConcepts = new ArrayList<String>();
+		conceptDirectionList = new ArrayList<String>();
+		biDirectionalConceptsSet = new HashSet<String>();
 		
-		relatedConcepts = getQueryResultsAsList(relatedConceptQuery);
-		relatedConcepts.remove("Concept");
-		relatedConcepts.remove(concept);//TODO handle when concept related to concept
-
-		int relatedConceptsLength = relatedConcepts.size();
 		conceptTableList = new ArrayList<ArrayList<Object[]>>();
 		conceptColTypesList = new ArrayList<String[]>();
 		conceptEntropyList = new ArrayList<double[]>();
 		
+		String downstreamConceptQuery = DOWNSTREAM_CONCEPTS_QUERY.replaceAll("@CONCEPT@", concept);
+		String upstreamConceptQuery = UPSTREAM_CONCEPTS_QUERY.replaceAll("@CONCEPT@", concept);
+
+		addToRelatedConceptsList(downstreamConceptQuery, DOWNSTREAM);
+		addToRelatedConceptsList(upstreamConceptQuery, UPSTREAM);
+
+		
 		if(relatedConcepts.isEmpty())
 			return false;
 		
+		//create a set of any concepts that go in both directions
 		int i=0;
+		int relatedConceptsLength = relatedConcepts.size();
+		
 		for(; i<relatedConceptsLength; i++ ) {
 			String relatedConcept = relatedConcepts.get(i);
 			
+			if(relatedConcepts.lastIndexOf(relatedConcept) != i) {
+				biDirectionalConceptsSet.add(relatedConcept);
+			}
+			
 			String retVarString = "?" + concept + " ?" + relatedConcept;
-			String triplesString = CONCEPT_TRIPLE.replaceAll("@CONCEPT@", concept).replaceAll("@RELATEDCONCEPT@", relatedConcept);
+			String triplesString;
+			
+			String direction = conceptDirectionList.get(i);
+			if(direction.equals(DOWNSTREAM))
+				triplesString = CONCEPT_DOWNSTREAM_TRIPLE.replaceAll("@CONCEPT@", concept).replaceAll("@RELATEDCONCEPT@", relatedConcept);
+			else
+				triplesString = CONCEPT_UPSTREAM_TRIPLE.replaceAll("@CONCEPT@", concept).replaceAll("@RELATEDCONCEPT@", relatedConcept);
+
 			
 			String relatedConceptInstanceQuery = buildQuery(retVarString,triplesString,"");
 			
@@ -253,6 +278,21 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 		}
 		
 		return true;
+	}
+	
+	private void addToRelatedConceptsList(String query, String direction) {
+		
+		ArrayList<String> relatedConceptsToAdd = getQueryResultsAsList(query);
+		relatedConceptsToAdd.remove("Concept");
+		relatedConceptsToAdd.remove(concept);//TODO handle when concept related to concept
+		
+		int i=0;
+		int numConcepts = relatedConceptsToAdd.size();
+		for(; i<numConcepts; i++) {
+			conceptDirectionList.add(direction);
+		}
+		
+		this.relatedConcepts.addAll(relatedConceptsToAdd);
 	}
 	
 	private ArrayList<String> getQueryResultsAsList(String query) {
@@ -339,7 +379,7 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 				// go through all property table and fill with all properties that meet reqs.
 				}else {
 					
-					if(meetsParamRequirements(0,colTypesArr,entropyArr,centralConceptConstraintHash)) {
+					if(names!=null && meetsParamRequirements(0,colTypesArr,entropyArr,centralConceptConstraintHash)) {
 						int j = 1;
 						int namesLength = names.length;
 						for(; j<namesLength; j++) {
@@ -408,13 +448,7 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 		int paramSize = params.size();
 		String retVarString = "";
 		String triplesString = "";
-		String endString;
-				
-		if(hasAggregation) {
-			endString = "GROUP BY ";
-		}else {
-			endString = "";
-		}
+		String endString = "";
 		
 		String filledQuestion = ruleQuestion;
 
@@ -433,11 +467,22 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 				
 				triplesString += PROPERTY_TRIPLE.replaceAll("@CONCEPT@",concept).replaceAll("@PROP@", var).replaceAll("@PROPCLEAN@", varClean);
 				
+				filledQuestion = filledQuestion.replaceAll("\\$"+ params.get(i), var);
+				
 			}else {
 				var = relatedConcepts.get(assignments.get(i));
 				varClean = var.replaceAll("-","_");
+				String direction = conceptDirectionList.get(assignments.get(i));
+				if(direction.equals(DOWNSTREAM))
+					triplesString += CONCEPT_DOWNSTREAM_TRIPLE.replaceAll("@CONCEPT@", concept).replaceAll("@RELATEDCONCEPT@", var);
+				else
+					triplesString += CONCEPT_UPSTREAM_TRIPLE.replaceAll("@CONCEPT@", concept).replaceAll("@RELATEDCONCEPT@", var);
 				
-				triplesString += CONCEPT_TRIPLE.replaceAll("@CONCEPT@", concept).replaceAll("@RELATEDCONCEPT@", var);
+				if(biDirectionalConceptsSet.contains(var)) {
+					filledQuestion = filledQuestion.replaceAll("\\$"+ params.get(i), direction + " " + var);
+				}else {
+					filledQuestion = filledQuestion.replaceAll("\\$"+ params.get(i), var);
+				}
 			}
 			
 			//if no aggregation for insight -> basic return string
@@ -451,19 +496,25 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 			}else {
 				retVarString += " (" + aggregationType.toString() + "(?" + varClean + ") AS ?" + varClean + "_" + aggregationType.toString() + ")";
 			}
+			
 
-			filledQuestion = filledQuestion.replaceAll("\\$"+ params.get(i), var);
 		}
 		
 		//add the central concept to the return string. //TODO the group by string too?
-		String aggregationType = "";
-		if(ruleConstraintHash.containsKey(centralConcept) && ruleConstraintHash.get(centralConcept).containsKey(AGGREGATION))
-			aggregationType = ruleConstraintHash.get(centralConcept).get(AGGREGATION).toString();
-
 		if(!hasAggregation)
 			retVarString = " ?"+concept + retVarString;
-		else if(aggregationType.length() > 0){
-			retVarString = " (" + aggregationType.toString() + "(?" + concept + ") AS ?" + concept + "_" + aggregationType.toString() + ")" + retVarString;
+		else  {
+
+			//if there is some type of aggregation on the central concept
+			if(ruleConstraintHash.containsKey(centralConcept) && ruleConstraintHash.get(centralConcept).containsKey(AGGREGATION)) {
+				String aggregationType = ruleConstraintHash.get(centralConcept).get(AGGREGATION).toString();
+				retVarString += " (" + aggregationType.toString() + "(?" + concept + ") AS ?" + concept + "_" + aggregationType.toString() + ")";
+			} else if(endString.length() == 0) {
+				//otherwise if there is no GROUP BY yet, need to include central concept
+				retVarString = " ?"+concept + retVarString;
+				endString = " ?" + concept;
+			}
+			endString = "GROUP BY" + endString;
 		}
 		
 		String sparql = buildQuery(retVarString, triplesString, endString);
