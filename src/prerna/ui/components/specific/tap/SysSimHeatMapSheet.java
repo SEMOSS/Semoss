@@ -161,31 +161,31 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		boolean allQueriesAreEmpty = true;
 		updateProgressBar("80%...Creating Heat Map Visualization", 80);
 		if (bpHash != null && !bpHash.isEmpty()) {
-			paramDataHash.put("Business Processes Supported", bpHash);
+			paramDataHash.put("Business_Processes_Supported", bpHash);
 			allQueriesAreEmpty = false;
 		}
 		if (actHash != null && !actHash.isEmpty()) {
-			paramDataHash.put("Activities Supported", actHash);
+			paramDataHash.put("Activities_Supported", actHash);
 			allQueriesAreEmpty = false;
 		}
 		if (dataBLUCompleteHash != null && !dataBLUCompleteHash.isEmpty()) {
-			paramDataHash.put("Data and Business Logic Supported", dataBLUCompleteHash);
+			paramDataHash.put("Data_and_Business_Logic_Supported", dataBLUCompleteHash);
 			allQueriesAreEmpty = false;
 		}
 		if (theaterHash != null && !theaterHash.isEmpty()) {
-			paramDataHash.put("Deployment (Theater/Garrison)",  theaterHash);
+			paramDataHash.put("Deployment_(Theater/Garrison)",  theaterHash);
 			allQueriesAreEmpty = false;
 		}
 		if (dwHash != null && !dwHash.isEmpty()) {
-			paramDataHash.put("Transactional (Yes/No)", dwHash);
+			paramDataHash.put("Transactional_(Yes/No)", dwHash);
 			allQueriesAreEmpty = false;
 		}
 		if (userHash != null && !userHash.isEmpty()) {
-			paramDataHash.put("User Types", userHash);
+			paramDataHash.put("User_Types", userHash);
 			allQueriesAreEmpty = false;
 		}
 		if (uiHash != null && !uiHash.isEmpty()) {
-			paramDataHash.put("User Interface Types (PC/Mobile/etc.)", uiHash);
+			paramDataHash.put("User_Interface_Types_(PC/Mobile/etc.)", uiHash);
 			allQueriesAreEmpty = false;
 		}		
 		
