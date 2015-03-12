@@ -161,31 +161,31 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		boolean allQueriesAreEmpty = true;
 		updateProgressBar("80%...Creating Heat Map Visualization", 80);
 		if (bpHash != null && !bpHash.isEmpty()) {
-			paramDataHash.put("Business_Processes_Supported", bpHash);
+			paramDataHash.put("Business Processes Supported", bpHash);
 			allQueriesAreEmpty = false;
 		}
 		if (actHash != null && !actHash.isEmpty()) {
-			paramDataHash.put("Activities_Supported", actHash);
+			paramDataHash.put("Activities Supported", actHash);
 			allQueriesAreEmpty = false;
 		}
 		if (dataBLUCompleteHash != null && !dataBLUCompleteHash.isEmpty()) {
-			paramDataHash.put("Data_and_Business_Logic_Supported", dataBLUCompleteHash);
+			paramDataHash.put("Data and Business Logic Supported", dataBLUCompleteHash);
 			allQueriesAreEmpty = false;
 		}
 		if (theaterHash != null && !theaterHash.isEmpty()) {
-			paramDataHash.put("Deployment_(Theater/Garrison)",  theaterHash);
+			paramDataHash.put("Deployment (Theater/Garrison)",  theaterHash);
 			allQueriesAreEmpty = false;
 		}
 		if (dwHash != null && !dwHash.isEmpty()) {
-			paramDataHash.put("Transactional_(Yes/No)", dwHash);
+			paramDataHash.put("Transactional (Yes/No)", dwHash);
 			allQueriesAreEmpty = false;
 		}
 		if (userHash != null && !userHash.isEmpty()) {
-			paramDataHash.put("User_Types", userHash);
+			paramDataHash.put("User Types", userHash);
 			allQueriesAreEmpty = false;
 		}
 		if (uiHash != null && !uiHash.isEmpty()) {
-			paramDataHash.put("User_Interface_Types_(PC/Mobile/etc.)", uiHash);
+			paramDataHash.put("User Interface Types (PC/Mobile/etc.)", uiHash);
 			allQueriesAreEmpty = false;
 		}		
 		
@@ -324,15 +324,22 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	}
 	
 	@Override
-	public Hashtable registerControlPanelClick(Hashtable dataHash){
+	public Hashtable registerControlPanelClick(Hashtable webDataHash) {
 		Gson gson = new Gson();
-		ArrayList<String> selectedVarsList = (ArrayList<String>) dataHash.get("selectedVars");
-		//Hashtable<String, Double> specifiedWeights = (Hashtable<String, Double>) dataHash.get("specifiedWeights");
-		Hashtable<String, Double> specifiedWeights = gson.fromJson(gson.toJson(dataHash.get("specifiedWeights")), new TypeToken<Hashtable<String, Double>>() {}.getType());
-		ArrayList<Hashtable<String, Hashtable<String, Double>>> calculatedHash = calculateHash(selectedVarsList, specifiedWeights);
-		ArrayList<Object[]> table = flattenData(calculatedHash, false);
 		Hashtable retHash = new Hashtable();
-		retHash.put("data", table);
+		if ((webDataHash.get("type")).equals("refresh")) {
+			ArrayList<String> selectedVarsList = (ArrayList<String>) webDataHash.get("selectedVars");
+			Hashtable<String, Double> specifiedWeights = gson.fromJson(gson.toJson(webDataHash.get("specifiedWeights")), new TypeToken<Hashtable<String, Double>>() {}.getType());
+			ArrayList<Hashtable<String, Hashtable<String, Double>>> calculatedHash = calculateHash(selectedVarsList, specifiedWeights);
+			ArrayList<Object[]> table = flattenData(calculatedHash, false);
+			retHash.put("data", table);
+		}
+		if ((webDataHash.get("type")).equals("popover")) {
+			ArrayList<String> categoryArray = (ArrayList<String>) webDataHash.get("categoryArray");
+			Hashtable<String, Double> thresh = gson.fromJson(gson.toJson(webDataHash.get("thresh")), new TypeToken<Hashtable<String, Double>>() {}.getType());
+			String cellKey = (String) webDataHash.get("cellKey");
+			retHash.put("barData", getSimBarChartData(cellKey, categoryArray, thresh));
+		}
 		return retHash;
 	}
 

@@ -63,10 +63,9 @@ public class SimilarityBarChartBrowserFunction implements BrowserFunction {
 
 		String cellKey = arg0[0].getString();
 		logger.info("cellKey = " + cellKey);
-		String[] selectedVars = gson.fromJson(arg0[1].getString(), String[].class);
+		ArrayList<String> selectedVars = gson.fromJson(arg0[1].getString(), ArrayList.class);
 		Hashtable<String, Double> specifiedWeights = new Hashtable<String, Double> ();
-		simHeat.getSimBarChartData(cellKey, selectedVars, specifiedWeights);
-		JSValue finalJson = JSValue.create(simHeat.getSimBarChartData(cellKey, selectedVars, specifiedWeights));
+		JSValue finalJson = JSValue.create(gson.toJson(simHeat.getSimBarChartData(cellKey, selectedVars, specifiedWeights)));
 		System.out.println("Java is done");
 		return finalJson;
 	}
