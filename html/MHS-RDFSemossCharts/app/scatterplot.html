@@ -312,19 +312,21 @@
       update();
       
       function update() {
-    	  
-    	  xScale.domain([
-               d3.min(dataSeriesArray, function(value) {
+
+      var minx = null;
+      var maxx = null;
+      minx = d3.min(dataSeriesArray, function(value) {
                    if(type !== "scatter") {
                        return xAxisMin;
                    } else {
                        return +value["x"];
                    }
-               }) - 1,
-               d3.max(dataSeriesArray, function(value) {
+               });
+      maxx = d3.max(dataSeriesArray, function(value) {
                    return +value["x"];
-               }) + 1
-           ])
+               });
+    	  
+    	  xScale.domain([minx*.95, maxx*1.01  ])
            .nice();
 
     	   if(yAxisMax >= 1) { yAxisMin = yAxisMin - 1; }
