@@ -1,21 +1,15 @@
 package prerna.ui.components.playsheets;
 
 import java.awt.Dimension;
-import java.util.ArrayList;
 import java.util.Hashtable;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import com.google.gson.Gson;
-
 import prerna.algorithm.learning.weka.WekaAprioriAlgorithm;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 public class WekaAprioriVizPlaySheet extends BrowserPlaySheet{
 
@@ -28,49 +22,49 @@ public class WekaAprioriVizPlaySheet extends BrowserPlaySheet{
 	private double minSupport = -1; // min number of rows required for rule (percentage of total rows of data)
 	private double maxSupport = -1; // max number of rows required for rule (percentage of total rows of data)
 	
-	
-	////////////////////////////////TODO: change heatmap in fileName
 	public WekaAprioriVizPlaySheet() {
 		super();
 		this.setPreferredSize(new Dimension(800,600));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/singleaxisbubbleassociation.html";//TODO change to new name
+		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/singleaxisbubbleassociation.html";
 	}
 	
 	@Override
 	public void createData() {
-		generateData();
-		runAlgorithm();
-		dataHash = processQueryData();
-		
-		Gson gson = new Gson();
-		System.out.println(gson.toJson(dataHash));
+		if (list == null || list.isEmpty())
+			super.createData();
+		else {
+			dataHash = processQueryData();
+		}
 	}
 
 	@Override
 	public Hashtable processQueryData() {
+		runAlgorithm();
 		return alg.generateDecisionRuleVizualization();
 	}
 	
-	private void generateData() {
-		if(query!=null) {
-			list = new ArrayList<Object[]>();
-
-			ISelectWrapper sjsw = Utility.processQuery(engine, query);
-			names = sjsw.getVariables();
-			int length = names.length;
-			while(sjsw.hasNext()) {
-				ISelectStatement sjss = sjsw.next();
-				Object[] row = new Object[length];
-				int i = 0;
-				for(; i < length; i++) {
-					row[i] = sjss.getVar(names[i]);
-				}
-				list.add(row);
-			}
+	@Override
+	public Object getData() {
+		//TODO: remove this from getData() to call the super method
+		dataHash.put("id", this.questionNum==null? "": this.questionNum);
+		String className = "";
+		Class<?> enclosingClass = getClass().getEnclosingClass();
+		if (enclosingClass != null) {
+			className = enclosingClass.getName();
+		} else {
+			className = getClass().getName();
 		}
+		dataHash.put("playsheet", className);
+		dataHash.put("title", this.title==null? "": this.title);
+		
+		Hashtable<String, String> specificData = new Hashtable<String, String>();
+		specificData.put("x-axis", "LOP");
+		specificData.put("z-axis", "Count");
+		dataHash.put("specificData", specificData);
+		return dataHash;
 	}
-
+	
 	public void runAlgorithm() {
 		LOGGER.info("Creating apriori algorithm for instance: " + names[0]);
 		alg = new WekaAprioriAlgorithm(list, names);
