@@ -114,7 +114,7 @@ public class WekaAprioriAlgorithm {
 
 		Hashtable<String, Object> retHash = new Hashtable<String, Object>();
 		retHash.put("headers", headers);
-		retHash.put("dataSeries", retItemList);
+		retHash.put("data", retItemList);
 		
 		return retHash;
 	}
