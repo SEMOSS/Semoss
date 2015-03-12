@@ -10,6 +10,7 @@ public class InsightRule {
 	private boolean hasAggregation = false;
 	private String question = "";
 	private String output = "";
+	private String centralConcept = "";
 	
 	public InsightRule() {
 		constraints = new Hashtable<String, Hashtable<String, Object>>();
@@ -82,5 +83,13 @@ public class InsightRule {
 
 	public void setOutput(String output) {
 		this.output = output;
+	}
+	
+	public String getCentralConcept() {
+		return centralConcept;
+	}
+
+	public void setCentralConcept(String centralConcept) {
+		this.centralConcept = centralConcept;
 	}
 }

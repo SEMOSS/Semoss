@@ -60,14 +60,23 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 	private String concept;
 	
 	private String[] names;
-	private ArrayList<Object []> list;
+	private ArrayList<Object []> propertyTable;
 	
-	private String[] classArr;
 	private String[] colTypesArr;
 	private double[] entropyArr;
 	
-	private InsightRule currRule;
+	private ArrayList<String> relatedConcepts;
+	private ArrayList<ArrayList<Object[]>> conceptTableList;
+	private ArrayList<String[]> conceptColTypesList;
+	private ArrayList<double[]> conceptEntropyList;
+	
+	private Boolean hasAggregation;
+	private String ruleQuestion;
+	private String ruleOutput;
+	private String centralConcept;
 	private List<String> params;
+	private Hashtable<String, Hashtable<String,Object>> ruleConstraintHash;
+	private Hashtable<String, String> paramClassHash;
 	private Hashtable<String, Set<Integer>> possibleParamAssignmentsHash = new Hashtable<String, Set<Integer>>();
 	
 	private QuestionAdministrator qa;
@@ -76,8 +85,11 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 	
 	private final String CONCEPTS_QUERY = "SELECT DISTINCT ?Concept WHERE {{?Concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>}}";
 	private final String PROPERTIES_QUERY = "SELECT DISTINCT ?Prop WHERE {{?Concept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@CONCEPT@>}{?Prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>}{?Concept ?Prop ?PropVal }} ORDER BY ?Prop";
+	private final String RELATED_CONCEPTS_QUERY = "SELECT DISTINCT ?Concept2 WHERE {{?Concept2 <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>}{?Instance1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@CONCEPT@>}{?Instance1 <http://semoss.org/ontologies/Relation> ?Instance2 }{?Instance2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?Concept2}} ORDER BY ?Concept2";
 	private final String EMPTY_QUERY = "SELECT DISTINCT @RETVARS@ WHERE {{?@CONCEPT@ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@CONCEPT@>} @TRIPLES@} @ENDSTRING@";
+	
 	private final String PROPERTY_TRIPLE= "{?@CONCEPT@ <http://semoss.org/ontologies/Relation/Contains/@PROP@> ?@PROPCLEAN@}";
+	private final String CONCEPT_TRIPLE= "{?@RELATEDCONCEPT@ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@RELATEDCONCEPT@>}{?@CONCEPT@ ?rel ?@RELATEDCONCEPT@}";
 	
 	public AutoInsightGenerator(AbstractEngine engine) {
 		this.engine = engine;
@@ -100,26 +112,32 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 		int numConcepts = concepts.size();
 		for(i=0; i<numConcepts; i++) {
 			concept = concepts.get(i);
-//			concept = "Title";
-			perspective = concept+"-Perspective";
+			
+			//find what number question to start with if the concept already has a perspective
 			order = 1;
+			perspective = concept+"-Perspective";
 			if(perspectiveList.contains(perspective))
 				order = engine.getInsights(perspective).size() + 1;
-			Boolean tableCreated = createTable(concept);
-			if(tableCreated) {
-				calculateEntropiesAndTypes();
+			
+			Boolean propertyTableCreated = createPropertyTable(concept);
+			Boolean conceptTablesCreated = createConceptTables(concept);
+			if(propertyTableCreated || conceptTablesCreated) {
 				
 				for(InsightRule rule : rulesList) {			
-					currRule = rule;
 
-					Hashtable<String, Hashtable<String,Object>> paramConstraintHash = currRule.getConstraints();
-					Hashtable<String, String> paramClassHash = currRule.getVariableTypeHash();
+					paramClassHash = rule.getVariableTypeHash();
+					params = new ArrayList<String>(paramClassHash.keySet());
+					ruleConstraintHash = rule.getConstraints();
+					ruleQuestion = rule.getQuestion();
+					ruleOutput = rule.getOutput();
+					centralConcept = rule.getCentralConcept();
+					hasAggregation = rule.isHasAggregation();
 	
-					Boolean allParamsMet = calculatePossibleParamAssignments(paramConstraintHash,paramClassHash);
+					Boolean allParamsMet = calculatePossibleParamAssignments();
 					
 					if(allParamsMet) {
-						params = new ArrayList<String>(paramClassHash.keySet());
-						addAllPossibleInsights(new ArrayList<Integer>(),new HashSet<Integer>());
+						
+						addAllPossibleInsights(0,new ArrayList<Integer>(),new HashSet<String>());
 					}
 				}
 			}	
@@ -134,7 +152,7 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 		reloadDB();
 	}
 	
-	private Boolean createTable(String concept) {
+	private Boolean createPropertyTable(String concept) {
 		//query to get the properties related to this concept
 		//construct a query to pull the properties for each instance of concept
 		//create the table
@@ -151,11 +169,6 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 			names[i] = properties.get(i-1);
 		}
 		
-		classArr = new String[numVariables];
-		classArr[0] = CONCEPT_VALUE;
-		for(int i=1; i<numVariables; i++)
-			classArr[i] = PROPERTY_VALUE;
-		
 		String retVarString = "?"+concept;
 		String triplesString = "";
 		for(String prop : properties) {
@@ -167,20 +180,78 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 		String tableQuery = buildQuery(retVarString,triplesString,"");
 		
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, tableQuery);
-		String[] wrapNames = wrapper.getVariables();
+		String[] vars = wrapper.getVariables();
 			
-		list = new ArrayList<Object[]>();
+		propertyTable = new ArrayList<Object[]>();
 		while(wrapper.hasNext())
 		{
 			ISelectStatement sjss = wrapper.next();
 			
-			Object [] values = new Object[wrapNames.length];
-			for(int colIndex = 0;colIndex < wrapNames.length;colIndex++)
+			Object [] values = new Object[vars.length];
+			for(int colIndex = 0;colIndex < vars.length;colIndex++)
 			{
-				values[colIndex] = sjss.getVar(wrapNames[colIndex]);
+				values[colIndex] = sjss.getVar(vars[colIndex]);
 			}
-			list.add(values);
+			propertyTable.add(values);
 		}
+		
+		GenerateEntropyDensity edGen = new GenerateEntropyDensity(propertyTable, true);
+		colTypesArr = edGen.getColumnTypes();
+		entropyArr = edGen.generateEntropy();
+		
+		return true;
+	}
+	
+	private Boolean createConceptTables(String concept) {
+		//query to get the properties related to this concept
+		//construct a query to pull the properties for each instance of concept
+		//create the table
+	
+		String relatedConceptQuery = RELATED_CONCEPTS_QUERY.replaceAll("@CONCEPT@", concept);
+		
+		relatedConcepts = getQueryResultsAsList(relatedConceptQuery);
+		relatedConcepts.remove("Concept");
+		relatedConcepts.remove(concept);//TODO handle when concept related to concept
+
+		int relatedConceptsLength = relatedConcepts.size();
+		conceptTableList = new ArrayList<ArrayList<Object[]>>();
+		conceptColTypesList = new ArrayList<String[]>();
+		conceptEntropyList = new ArrayList<double[]>();
+		
+		if(relatedConcepts.isEmpty())
+			return false;
+		
+		int i=0;
+		for(; i<relatedConceptsLength; i++ ) {
+			String relatedConcept = relatedConcepts.get(i);
+			
+			String retVarString = "?" + concept + " ?" + relatedConcept;
+			String triplesString = CONCEPT_TRIPLE.replaceAll("@CONCEPT@", concept).replaceAll("@RELATEDCONCEPT@", relatedConcept);
+			
+			String relatedConceptInstanceQuery = buildQuery(retVarString,triplesString,"");
+			
+			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, relatedConceptInstanceQuery);
+			String[] wrapNames = wrapper.getVariables();
+				
+			ArrayList<Object[]> relatedList = new ArrayList<Object[]>();
+			while(wrapper.hasNext())
+			{
+				ISelectStatement sjss = wrapper.next();
+				
+				Object [] values = new Object[wrapNames.length];
+				for(int colIndex = 0;colIndex < wrapNames.length;colIndex++)
+				{
+					values[colIndex] = sjss.getVar(wrapNames[colIndex]);
+				}
+				relatedList.add(values);
+			}
+			conceptTableList.add(relatedList);
+			
+			GenerateEntropyDensity edGen = new GenerateEntropyDensity(relatedList, true);
+			conceptColTypesList.add(edGen.getColumnTypes());
+			conceptEntropyList.add(edGen.generateEntropy());
+		}
+		
 		return true;
 	}
 	
@@ -201,21 +272,11 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 		return properties;
 	}
 	
-	
-	private void calculateEntropiesAndTypes() {//given table
-		GenerateEntropyDensity edGen = new GenerateEntropyDensity(list, true);
-		colTypesArr = edGen.getColumnTypes();
-		entropyArr = edGen.generateEntropy();
-	}
-	
 	//checks to see if a given column in the table meets a given set of requirement
-	private Boolean meetsParamRequirements(int colIndex, Hashtable<String,Object> requirementHash, String paramClass) {
+	private Boolean meetsParamRequirements(int colIndex, String[] colTypesArr, double[] entropyArr, Hashtable<String,Object> requirementHash) {
 
-		if(!paramClass.equals(classArr[colIndex]))
-			return false;
-		
 		//classes are the same and no constraints so return true
-		if(requirementHash == null) {
+		if(requirementHash == null || requirementHash.isEmpty()) {
 			return true;
 		}
 
@@ -236,28 +297,65 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 	}
 
 	
-	private Boolean calculatePossibleParamAssignments(Hashtable<String, Hashtable<String,Object>> ruleParamHash, Hashtable<String, String> paramClassHash) {
+	private Boolean calculatePossibleParamAssignments() {
 		//creates a mapping of the possible assignments for each parameter
-		//returns false if there is a param that cannot be met
+		//returns false if there is any param that cannot be met, since the whole rule cannot be met
 		possibleParamAssignmentsHash = new Hashtable<String, Set<Integer>>();
-		for(String param : paramClassHash.keySet()) {
-			
-			String paramClass = paramClassHash.get(param);
-			Hashtable<String,Object> paramConstraintHash = ruleParamHash.get(param);
-			
-			Set<Integer> possibleAssignments = new HashSet<Integer>();
-			
-			for(int j=0;j<names.length;j++) {
-				if(meetsParamRequirements(j,paramConstraintHash,paramClass)) {
-					possibleAssignments.add(j);
-				}
-			}
-			
-			if(possibleAssignments.size() == 0)
-				return false;
-			
-			possibleParamAssignmentsHash.put(param,possibleAssignments);
+		
+		//get the requirements for the central concept
+		Hashtable<String,Object> centralConceptConstraintHash;
+		if(ruleConstraintHash.containsKey(centralConcept)) {
+			centralConceptConstraintHash = ruleConstraintHash.get(centralConcept);	
+		}else {
+			centralConceptConstraintHash = new Hashtable<String,Object>();
 		}
+		
+		for(String param : params) {				
+				String paramClass = paramClassHash.get(param);
+				Hashtable<String,Object> paramConstraintHash = ruleConstraintHash.get(param);
+				
+				Set<Integer> possibleAssignments = new HashSet<Integer>();
+				
+				//if the parameter is a concept, go through all the concept tables
+				//if the concept and the concept its related to meet the central and parameter reqs, respectively
+				//add the possible assignment				
+				if(paramClass.equals(CONCEPT_VALUE)) {
+
+					int j;
+					int relatedConceptsLength = relatedConcepts.size();
+					for(j=0; j<relatedConceptsLength; j++) {
+						
+						String[] conceptColTypesArr  = conceptColTypesList.get(j);
+						double[] conceptEntropyArr = conceptEntropyList.get(j);
+						
+						if(meetsParamRequirements(0,conceptColTypesArr,conceptEntropyArr,centralConceptConstraintHash)
+								&& meetsParamRequirements(1,conceptColTypesArr,conceptEntropyArr,paramConstraintHash)) {
+							possibleAssignments.add(j);
+						}
+					}
+					
+				//if the parameter is a property
+				//AND if our concept meets the central concept constraints
+				// go through all property table and fill with all properties that meet reqs.
+				}else {
+					
+					if(meetsParamRequirements(0,colTypesArr,entropyArr,centralConceptConstraintHash)) {
+						int j = 1;
+						int namesLength = names.length;
+						for(; j<namesLength; j++) {
+							if(meetsParamRequirements(j,colTypesArr,entropyArr,paramConstraintHash)) {
+								possibleAssignments.add(j);
+							}
+						}
+					}
+					
+				}
+				
+				if(possibleAssignments.size() == 0)
+					return false;
+				
+				possibleParamAssignmentsHash.put(param,possibleAssignments);
+			}
 		return true;
 	}
 	
@@ -269,16 +367,18 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 	 * @param assignments
 	 * @param parentUsedAssignments
 	 */
-	private void addAllPossibleInsights(List<Integer> assignments, Set<Integer> parentUsedAssignments) {
+	private void addAllPossibleInsights(int index,List<Integer> assignments, Set<String> parentUsedAssignments) {
 		//if all params have an assignment, then create the insight with the assignments
 		//otherwise, assign the current param and recall the method
-		if(assignments.size() == params.size()) {
+		if(index == params.size()) {
 			createInsight(assignments);
 		}else {
 
-			Set<Integer> usedAssignments = new HashSet<Integer>(parentUsedAssignments);
+			Set<String> usedAssignments = new HashSet<String>(parentUsedAssignments);
 			
-			String currParam = params.get(assignments.size());
+			String currParam = params.get(index);
+			String paramClass = paramClassHash.get(currParam);
+			
 			Set<Integer> possibleAssignments = possibleParamAssignmentsHash.get(currParam);
 
 			Iterator<Integer> itr = possibleAssignments.iterator();
@@ -286,10 +386,10 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 				Integer possibleAssignment = itr.next();
 				
 				//only continue if no previous parameters have been assigned this assignment
-				if(!usedAssignments.contains(possibleAssignment)) {
-					usedAssignments.add(possibleAssignment);
+				if(!usedAssignments.contains(paramClass+"-"+possibleAssignment)) {
+					usedAssignments.add(paramClass+"-"+possibleAssignment);
 					assignments.add(possibleAssignment);
-					addAllPossibleInsights(assignments,usedAssignments);
+					addAllPossibleInsights(index+1,assignments,usedAssignments);
 					assignments.remove(possibleAssignment);
 				}
 			}
@@ -303,72 +403,75 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 		//ignore the concept
 		//if property
 		//then add to retvar and add to triples string
-
-		Hashtable<String, Hashtable<String,Object>> ruleParamHash = currRule.getConstraints();
-		Hashtable<String, String> paramClassHash = currRule.getVariableTypeHash();
 		
 		int i;
 		int paramSize = params.size();
 		String retVarString = "";
 		String triplesString = "";
 		String endString;
-		
-		Boolean hasAggregation = currRule.isHasAggregation();
-		
+				
 		if(hasAggregation) {
 			endString = "GROUP BY ";
 		}else {
 			endString = "";
 		}
 		
+		String filledQuestion = ruleQuestion;
+
 		for(i=0; i<paramSize; i++) {
 			String param = params.get(i);
 			String classType = paramClassHash.get(param);
 			String aggregationType = "";
-			if(ruleParamHash.containsKey(param) && ruleParamHash.get(param).containsKey(AGGREGATION))
-				aggregationType = ruleParamHash.get(param).get(AGGREGATION).toString();
+			if(ruleConstraintHash.containsKey(param) && ruleConstraintHash.get(param).containsKey(AGGREGATION))
+				aggregationType = ruleConstraintHash.get(param).get(AGGREGATION).toString();
 			
+			String var;
+			String varClean;
 			if(classType.equals(PROPERTY_VALUE)) {
-				String prop = names[assignments.get(i)];
-				String propClean = prop.replaceAll("-","_");
-
-				//if no aggregation for insight -> basic return string
-				//if aggregation for insight but not this param -> basic return string and end string
-				//if aggregation for this insight and this param -> complicated return string
-				if(!hasAggregation)
-					retVarString += " ?"+propClean;
-				else if(aggregationType.length() == 0) {
-					retVarString = " ?"+propClean + retVarString;
-					endString += " ?"+propClean;
-				}else {
-					retVarString += " (" + aggregationType.toString() + "(?" + propClean + ") AS ?" + propClean + "_" + aggregationType.toString() + ")";
-				}
+				var = names[assignments.get(i)];
+				varClean = var.replaceAll("-","_");
 				
-				triplesString += PROPERTY_TRIPLE.replaceAll("@CONCEPT@",concept).replaceAll("@PROP@", prop).replaceAll("@PROPCLEAN@", propClean);
+				triplesString += PROPERTY_TRIPLE.replaceAll("@CONCEPT@",concept).replaceAll("@PROP@", var).replaceAll("@PROPCLEAN@", varClean);
 				
-			}if(classType.equals(CONCEPT_VALUE)) {
+			}else {
+				var = relatedConcepts.get(assignments.get(i));
+				varClean = var.replaceAll("-","_");
 				
-				//if no aggregation for insight -> basic return string
-				//if aggregation for this concept -> complicated return string
-				if(!hasAggregation)
-					retVarString = " ?"+concept + retVarString;
-				else if(aggregationType.length() > 0){
-					retVarString = " (" + aggregationType.toString() + "(?" + concept + ") AS ?" + concept + "_" + aggregationType.toString() + ")" + retVarString;
-				}
+				triplesString += CONCEPT_TRIPLE.replaceAll("@CONCEPT@", concept).replaceAll("@RELATEDCONCEPT@", var);
 			}
+			
+			//if no aggregation for insight -> basic return string
+			//if aggregation for insight but not this param -> basic return string and end string
+			//if aggregation for this insight and this param -> complicated return string
+			if(!hasAggregation)
+				retVarString += " ?"+varClean;
+			else if(aggregationType.length() == 0) {
+				retVarString = " ?"+varClean + retVarString;
+				endString += " ?"+varClean;
+			}else {
+				retVarString += " (" + aggregationType.toString() + "(?" + varClean + ") AS ?" + varClean + "_" + aggregationType.toString() + ")";
+			}
+
+			filledQuestion = filledQuestion.replaceAll("\\$"+ params.get(i), var);
+		}
+		
+		//add the central concept to the return string. //TODO the group by string too?
+		String aggregationType = "";
+		if(ruleConstraintHash.containsKey(centralConcept) && ruleConstraintHash.get(centralConcept).containsKey(AGGREGATION))
+			aggregationType = ruleConstraintHash.get(centralConcept).get(AGGREGATION).toString();
+
+		if(!hasAggregation)
+			retVarString = " ?"+concept + retVarString;
+		else if(aggregationType.length() > 0){
+			retVarString = " (" + aggregationType.toString() + "(?" + concept + ") AS ?" + concept + "_" + aggregationType.toString() + ")" + retVarString;
 		}
 		
 		String sparql = buildQuery(retVarString, triplesString, endString);
 				
-		String question = currRule.getQuestion();
-		for(i=0; i<paramSize; i++) {
-			question = question.replaceAll("\\$"+ params.get(i), names[assignments.get(i)]);
-		}
-		
-		String layout = currRule.getOutput();
-		
+		filledQuestion = filledQuestion.replaceAll("\\$"+ centralConcept, concept);
+
 		String questionKey = qa.createQuestionKey(perspective);
-		qa.cleanAddQuestion(perspective, questionKey, order.toString(), question, sparql, layout, null, null, null, null);
+		qa.cleanAddQuestion(perspective, questionKey, order.toString(), filledQuestion, sparql, ruleOutput, null, null, null, null);
 		order++;
 	}
 	
