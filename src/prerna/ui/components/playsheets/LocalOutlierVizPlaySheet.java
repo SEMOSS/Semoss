@@ -35,8 +35,6 @@ import java.util.List;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import com.google.gson.Gson;
-
 import prerna.algorithm.learning.unsupervised.clustering.LocalOutlierFactorAlgorithm;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
@@ -69,8 +67,8 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet {
 		}
 	}
 	
-	@Override
-	public void runAnalytics() {
+	//TODO: change to runAnalytics when playsheet gets changed to run analytics before processingQueryData
+	public void runAlgorithm() {
 		LocalOutlierFactorAlgorithm alg = new LocalOutlierFactorAlgorithm(list, names);
 		alg.setK(k);
 		alg.execute();
@@ -82,7 +80,7 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet {
 	
 	@Override
 	public Hashtable processQueryData() {
-		runAnalytics(); // TODO: remove this once playsheet stop sucking
+		runAlgorithm(); // TODO: remove this once playsheet stop sucking
 		int i;
 		int j;
 		int numInstances = list.size();
@@ -112,20 +110,28 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet {
 		}
 		
 		String[] headers = new String[newNumCols];
-		headers[0] = "Count";
-		headers[1] = "LOP";
 		for (i = 0; i < numCols; i++) {
-			headers[i + 2] = names[i];
+			headers[i] = names[i];
 		}
+		headers[i+1] = "LOP";
+		headers[i] = "Count";
 		
-		Hashtable<String, Object> retHash = new Hashtable<String, Object>();
-		retHash.put("headers", headers);
-		retHash.put("dataSeries", retItemList);
+		Hashtable<String, Object> dataHash = new Hashtable<String, Object>();
+		dataHash.put("headers", headers);
+		dataHash.put("dataSeries", retItemList);
 		
-		Gson gson = new Gson();
-		System.out.println(gson.toJson(retHash));
-		
-		return retHash;
+		return dataHash;
+	}
+	
+	@Override
+	public Object getData() {
+		if (dataHash != null) {
+			Hashtable<String, String> specificData = new Hashtable<String, String>();
+			specificData.put("x-axis", "LOP");
+			specificData.put("z-axis", "COUNT");
+			dataHash.put("specificData", specificData);
+		}
+		return dataHash;
 	}
 	
 	@Override
