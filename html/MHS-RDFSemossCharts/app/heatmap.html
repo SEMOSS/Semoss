@@ -63,7 +63,7 @@
 		var bucketMapper = [10, 5, 4, 3, 2];
 		var quantiles = true;
 		var colorScale;
-		var margin = { top: 185, right: 150, bottom: 100, left: 150 };
+		var margin = { top: 225, right: 150, bottom: 100, left: 150 };
 		var gridSize = 20;
 		var xAxisData;
 		var yAxisData;
@@ -196,7 +196,7 @@
 		yAxisTitle
 			.attr("class", "yAxisTitle")
 			.attr("transform","rotate(-90)")
-			.attr("y", -140)
+			.attr("y", -60)
 			.attr("x", 0)
 			.attr("text-anchor", "end")
 			.text(function(d){return d});
@@ -222,7 +222,7 @@
 			.enter().append("text");
 		xAxisTitle
 			.attr("class", "xAxisTitle")
-			.attr("y", -120)
+			.attr("y", -60)
 			.attr("x", 0)
 			.text(function(d){return d});
 		xAxisTitle
