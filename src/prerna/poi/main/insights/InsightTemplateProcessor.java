@@ -83,14 +83,18 @@ public class InsightTemplateProcessor implements InsightRuleConstants{
 							String variableName = matcher.group();
 							variableName = variableName.substring(1, variableName.length()-1);
 							String variableType = null;
-							if(variableName.toUpperCase().contains(CONCEPT_VALUE)) {
-								variableType = CONCEPT_VALUE;
-							} else if(variableName.toUpperCase().contains(PROPERTY_VALUE)) {
-								variableType = PROPERTY_VALUE;
-							} else {
-								continue NEXT_QUESTION;
+							if(variableName.toUpperCase().contains(CENTRAL_CONCEPT_VALUE)) {
+								rule.setCentralConcept(variableName);
+							}else {
+								if(variableName.toUpperCase().contains(CONCEPT_VALUE)) {
+									variableType = CONCEPT_VALUE;
+								} else if(variableName.toUpperCase().contains(PROPERTY_VALUE)) {
+									variableType = PROPERTY_VALUE;
+								} else {
+									continue NEXT_QUESTION;
+								}
+								rule.addVariable(variableName, variableType);
 							}
-							rule.addVariable(variableName, variableType);
 						}
 						
 					} else if(rulePart.toUpperCase().startsWith(OUTPUT_KEY)) {
