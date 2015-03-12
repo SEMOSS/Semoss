@@ -1,5 +1,5 @@
 <Question>
-@Question=What is the distribution of $CentralConcept to each $Property?
+@Question=What is the distribution of $CentralConcept to $Property?
 @Property-ENTROPY_D_MIN=0.3
 @Property-TYPE=STRING
 @Output=Binned_Pie_Chart
@@ -13,7 +13,7 @@
 </Question>
 
 <Question>
-@Question=What is the distribution of $CentralConcept to each $Property?
+@Question=What is the distribution of $CentralConcept to $Property?
 @Property-ENTROPY_D_MAX=0.3
 @Property-TYPE=STRING
 @Output=Binned_Column_Chart
@@ -54,17 +54,20 @@
 
 <Question>
 @Question=What is the distribution of $Concept2 to each $CentralConcept?
-@Concept2-ENTROPY_D_MIN=0.3
-@Output=Binned_Pie_Chart
+@CentralConcept-ENTROPY_D_MIN=0.3
+@Concept2-AGGREGATION=COUNT
+@Output=Pie_Chart
 </Question>
 
 <Question>
 @Question=What is the distribution of $Concept2 to each $CentralConcept?
-@Concept2-ENTROPY_D_MAX=0.3
-@Output=Binned_Column_Chart
+@CentralConcept-ENTROPY_D_MAX=0.3
+@CentralConcept-ENTROPY_D_MIN=0.01
+@Concept2-AGGREGATION=COUNT
+@Output=Column_Chart
 </Question>
 
-@Question=How does the count of $CentralConcept vary by $Property1 and $Concept2?
+@Question=How does the count of $CentralConcept vary by $Property1 and each $Concept2?
 @Property1-ENTROPY_D_MIN=0.1
 @Property1-TYPE=STRING
 @Concept2-ENTROPY_D_MIN=0.1
@@ -73,17 +76,8 @@
 </Question>
 
 <Question>
-@Question=How does average $CentralConcept $Property vary by $Concept2?
-@Concept2-ENTROPY_D_MIN=0.3
-@Property-TYPE=DOUBLE
-@Property-AGGREGATION=AVG
-@Output=Pie_Chart
-</Question>
-
-<Question>
-@Question=How does average $CentralConcept $Property vary by $Concept2?
+@Question=How does average $CentralConcept $Property vary by each $Concept2?
 @Concept2-ENTROPY_D_MIN=0.1
-@Concept2-ENTROPY_D_MAX=0.3
 @Property-TYPE=DOUBLE
 @Property-AGGREGATION=AVG
 @Output=Column_Chart
