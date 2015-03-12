@@ -118,7 +118,7 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet {
 		
 		Hashtable<String, Object> dataHash = new Hashtable<String, Object>();
 		dataHash.put("headers", headers);
-		dataHash.put("dataSeries", retItemList);
+		dataHash.put("data", retItemList);
 		
 		return dataHash;
 	}
