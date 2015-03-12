@@ -225,8 +225,7 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		allHash.clear();
 //		paramDataHash.clear();
 	}
-	public String getSimBarChartData(String cellKey, String[] selectedVars, Hashtable<String, Double> specifiedWeights){
-		Gson gson = new Gson();
+	public ArrayList getSimBarChartData(String cellKey, ArrayList<String> selectedVars, Hashtable<String, Double> specifiedWeights){
 		logger.info("cellKey = " + cellKey);
 		
 		ArrayList<String> selectedVarsList = new ArrayList<String>();
@@ -243,8 +242,8 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 				logger.info(obj + " " + specifiedWeights.get(obj));
 		}
 		
-		ArrayList calculatedHash = retrieveValues(selectedVarsList, specifiedWeights, cellKey);
-		return gson.toJson(calculatedHash);
+		ArrayList calculatedArray = retrieveValues(selectedVarsList, specifiedWeights, cellKey);
+		return calculatedArray;
 	}
 	
 	public ArrayList retrieveValues(ArrayList<String> selectedVars, Hashtable<String, Double>minimumWeights, String key){
