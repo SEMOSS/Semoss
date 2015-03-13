@@ -73,6 +73,7 @@ import org.openrdf.sail.SailException;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.algorithm.impl.DataLatencyPerformer;
 import prerna.algorithm.impl.IslandIdentifierProcessor;
 import prerna.algorithm.impl.LoopIdentifierProcessor;
 import prerna.om.GraphDataModel;
@@ -1346,6 +1347,22 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 			pro.setPlaySheet(this);	
 			pro.executeWeb();
 			retHash = pro.getIslandEdges();
+		}
+		if ((webDataHash.get("type")).equals("DataLatency")) {
+			Gson gson = new Gson();
+			SEMOSSVertex[] pickedVertex;
+			if (!(webDataHash.get("selectedNodes") == (null))) {
+				ArrayList<Hashtable<String, Object>> nodesArray = gson.fromJson(gson.toJson(webDataHash.get("selectedNodes")), new TypeToken<ArrayList<Hashtable<String, Object>>>() {}.getType());
+				pickedVertex = new SEMOSSVertex[1];
+				pickedVertex[0] = gdm.getVertStore().get(nodesArray.get(0).get("uri"));
+			} else {
+				pickedVertex = new SEMOSSVertex[]{};
+			}
+			DataLatencyPerformer performer = new DataLatencyPerformer(this, pickedVertex);
+			double sliderValue = 1000;
+			performer.setValue(sliderValue);			
+			performer.executeWeb();			
+			retHash = performer.getEdgeScores();
 		}
 		return retHash;		
 	}

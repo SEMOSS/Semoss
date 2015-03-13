@@ -133,11 +133,15 @@ public class DataLatencyPerformer implements IAlgorithm{
 	 */
 	@Override
 	public void execute() {
+		executeWeb();
+		setTransformers();
+	}
+	
+	public void executeWeb() {
 		validVerts.clear();
 		validEdges.clear();
 		Vector<SEMOSSVertex> forestRoots = getForestRoots();
 		runDepthFirstSearch(forestRoots);
-		setTransformers();
 	}
 	
 	/**
@@ -498,5 +502,13 @@ public class DataLatencyPerformer implements IAlgorithm{
 		vlft.setVertHash(validVerts);
 		// repaint it
 		ps.getView().repaint();
+	}
+
+	public Hashtable getEdgeScores() {
+		Hashtable scores = new Hashtable();
+		for (SEMOSSEdge key : finalEdgeScores.keySet()) {
+			scores.put(key.getURI(), finalEdgeScores.get(key));
+		}
+		return scores;
 	}
 }
