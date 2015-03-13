@@ -31,6 +31,9 @@ import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import org.openrdf.model.Literal;
+
+import prerna.rdf.engine.api.ISelectStatement;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -114,6 +117,16 @@ public class ScatterChartPlaySheet extends BrowserPlaySheet{
 		if(names.length > 3 + offset)
 			allHash.put("zAxisTitle", names[3 + offset]);
 		return allHash;
+	}
+	
+	
+	@Override
+	public Object getVariable(String varName, ISelectStatement sjss){
+		Object var = sjss.getRawVar(varName);
+			if( var != null && var instanceof Literal) {
+				var = sjss.getVar(varName);
+			} 
+		return var;
 	}
 	
 	@Override
