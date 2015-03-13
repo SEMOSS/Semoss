@@ -55,38 +55,47 @@ import prerna.util.DIHelper;
  */
 public class AutoInsightGenerator implements InsightRuleConstants{
 
+	//engine and question administrator to add questions
 	private AbstractEngine engine;
+	private QuestionAdministrator qa;
+	
+	//concepts and perspectives + number of questions in perspective
 	private ArrayList<String> concepts;
 	private String concept;
+	private Hashtable<String,Integer> perspectiveHash;
 	
+	//property names and the table
 	private String[] names;
 	private ArrayList<Object []> propertyTable;
 	
+	//column types and entropies for each property
 	private String[] colTypesArr;
 	private double[] entropyArr;
 	
+	//related concept names, the directions and what is bidirectional
 	private ArrayList<String> relatedConcepts;
 	private ArrayList<String> conceptDirectionList;
 	private Set<String> biDirectionalConceptsSet;
+	
+	//entropies and column types for all related concepts
 	private ArrayList<ArrayList<Object[]>> conceptTableList;
 	private ArrayList<String[]> conceptColTypesList;
 	private ArrayList<double[]> conceptEntropyList;
 	
+	//rule requirements
 	private Boolean hasAggregation;
 	private String ruleQuestion;
+	private String rulePerspective;
 	private String ruleOutput;
 	private String centralConcept;
+	//list of params for the rule, as well as the params and constraints and possible assignments
 	private List<String> params;
 	private Hashtable<String, Hashtable<String,Object>> ruleConstraintHash;
 	private Hashtable<String, String> paramClassHash;
 	private Hashtable<String, Set<Integer>> possibleParamAssignmentsHash = new Hashtable<String, Set<Integer>>();
 	
-	private QuestionAdministrator qa;
-	private String perspective;
-	private Integer order;
-	
-	private final String DOWNSTREAM = "DOWNSTREAM";
-	private final String UPSTREAM = "UPSTREAM";
+	private final String DOWNSTREAM = "downstream";
+	private final String UPSTREAM = "upstream";
 	
 	private final String CONCEPTS_QUERY = "SELECT DISTINCT ?Concept WHERE {{?Concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>}}";
 	private final String PROPERTIES_QUERY = "SELECT DISTINCT ?Prop WHERE {{?Concept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@CONCEPT@>}{?Prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>}{?Concept ?Prop ?PropVal }} ORDER BY ?Prop";
@@ -105,11 +114,14 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 	public void execute() {
 		
 		qa = new QuestionAdministrator(engine);
+		Vector<String> perspectives = engine.getPerspectives();
+		perspectiveHash = new Hashtable<String,Integer>();
+		for(String perspective : perspectives){
+			perspectiveHash.put(perspective, engine.getInsights(perspective).size() + 1);
+		}
 		
 		InsightTemplateProcessor templateProc = new InsightTemplateProcessor();
 		List<InsightRule> rulesList = templateProc.runGenerateInsights();
-
-		Vector<String> perspectiveList = engine.getPerspectives();
 
 		//TODO how to filter the list of concepts?
 		concepts = getQueryResultsAsList(CONCEPTS_QUERY);
@@ -119,12 +131,8 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 		int numConcepts = concepts.size();
 		for(i=0; i<numConcepts; i++) {
 			concept = concepts.get(i);
-
 			//find what number question to start with if the concept already has a perspective
-			order = 1;
-			perspective = concept+"-Perspective";
-			if(perspectiveList.contains(perspective))
-				order = engine.getInsights(perspective).size() + 1;
+
 			
 			Boolean propertyTableCreated = createPropertyTable(concept);
 			Boolean conceptTablesCreated = createConceptTables(concept);
@@ -136,6 +144,7 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 					params = new ArrayList<String>(paramClassHash.keySet());
 					ruleConstraintHash = rule.getConstraints();
 					ruleQuestion = rule.getQuestion();
+					rulePerspective = rule.getPerspective();
 					ruleOutput = rule.getOutput();
 					centralConcept = rule.getCentralConcept();
 					hasAggregation = rule.isHasAggregation();
@@ -149,7 +158,6 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 				}
 			}	
 		}
-
 		//save the xmlFile with the changes
 		String xmlFile = "db/" + engine.getEngineName() + "/" + engine.getEngineName() + "_Questions.XML";
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
@@ -161,8 +169,10 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 	
 	private Boolean createPropertyTable(String concept) {
 		//query to get the properties related to this concept
-		//construct a query to pull the properties for each instance of concept
+		//construct a query to get all instances of this concept and their properties
 		//create the table
+		//calculate the column types and entropies
+		
 		String propQuery = PROPERTIES_QUERY.replaceAll("@CONCEPT@", concept);
 		
 		ArrayList<String> properties = getQueryResultsAsList(propQuery);
@@ -451,14 +461,12 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 		String endString = "";
 		
 		String filledQuestion = ruleQuestion;
+		String perspective = concept+"-Perspective";
 
 		for(i=0; i<paramSize; i++) {
 			String param = params.get(i);
 			String classType = paramClassHash.get(param);
-			String aggregationType = "";
-			if(ruleConstraintHash.containsKey(param) && ruleConstraintHash.get(param).containsKey(AGGREGATION))
-				aggregationType = ruleConstraintHash.get(param).get(AGGREGATION).toString();
-			
+
 			String var;
 			String varClean;
 			if(classType.equals(PROPERTY_VALUE)) {
@@ -472,6 +480,7 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 			}else {
 				var = relatedConcepts.get(assignments.get(i));
 				varClean = var.replaceAll("-","_");
+				
 				String direction = conceptDirectionList.get(assignments.get(i));
 				if(direction.equals(DOWNSTREAM))
 					triplesString += CONCEPT_DOWNSTREAM_TRIPLE.replaceAll("@CONCEPT@", concept).replaceAll("@RELATEDCONCEPT@", var);
@@ -485,45 +494,59 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 				}
 			}
 			
+			String aggregationType = "";
+			if(ruleConstraintHash.containsKey(param) && ruleConstraintHash.get(param).containsKey(AGGREGATION))
+				aggregationType = ruleConstraintHash.get(param).get(AGGREGATION).toString();
 			//if no aggregation for insight -> basic return string
 			//if aggregation for insight but not this param -> basic return string and end string
 			//if aggregation for this insight and this param -> complicated return string
-			if(!hasAggregation)
-				retVarString += " ?"+varClean;
-			else if(aggregationType.length() == 0) {
-				retVarString = " ?"+varClean + retVarString;
-				endString += " ?"+varClean;
-			}else {
+			if(!hasAggregation) {
+				retVarString += " ?" + varClean;
+				endString += " ?" + varClean;
+			} else if(aggregationType.length() == 0) {
+				retVarString = " ?" + varClean + retVarString;
+				endString += " ?" + varClean;
+			} else {
 				retVarString += " (" + aggregationType.toString() + "(?" + varClean + ") AS ?" + varClean + "_" + aggregationType.toString() + ")";
 			}
 			
-
+			if(rulePerspective.equals(param))
+				perspective = var + "-Perspective";
 		}
 		
 		//add the central concept to the return string. //TODO the group by string too?
-		if(!hasAggregation)
+		if(!hasAggregation || endString.length() == 0) {
 			retVarString = " ?"+concept + retVarString;
-		else  {
+			endString += " ?" + concept;
+		} else if(ruleConstraintHash.containsKey(centralConcept) && ruleConstraintHash.get(centralConcept).containsKey(AGGREGATION)) {
+				//if there is some type of aggregation on the central concept
 
-			//if there is some type of aggregation on the central concept
-			if(ruleConstraintHash.containsKey(centralConcept) && ruleConstraintHash.get(centralConcept).containsKey(AGGREGATION)) {
 				String aggregationType = ruleConstraintHash.get(centralConcept).get(AGGREGATION).toString();
 				retVarString += " (" + aggregationType.toString() + "(?" + concept + ") AS ?" + concept + "_" + aggregationType.toString() + ")";
-			} else if(endString.length() == 0) {
-				//otherwise if there is no GROUP BY yet, need to include central concept
-				retVarString = " ?"+concept + retVarString;
-				endString = " ?" + concept;
-			}
-			endString = "GROUP BY" + endString;
+
+		}
+		
+		if(!hasAggregation) {
+			endString = "ORDER BY" + endString;
+		}else {
+			endString = "GROUP BY" + endString + " ORDER BY" + endString;
 		}
 		
 		String sparql = buildQuery(retVarString, triplesString, endString);
 				
 		filledQuestion = filledQuestion.replaceAll("\\$"+ centralConcept, concept);
 
+		Integer order;
+		if(perspectiveHash.containsKey(perspective)) {
+			order = perspectiveHash.get(perspective) + 1;
+		} else {
+			order = 1;
+		}
+
+		perspectiveHash.put(perspective, order);
+
 		String questionKey = qa.createQuestionKey(perspective);
 		qa.cleanAddQuestion(perspective, questionKey, order.toString(), filledQuestion, sparql, ruleOutput, null, null, null, null);
-		order++;
 	}
 	
 	private void reloadDB() {
