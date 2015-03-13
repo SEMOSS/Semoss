@@ -107,6 +107,9 @@ public class InsightTemplateProcessor implements InsightRuleConstants{
 							// if output not found above, then go to next question
 							continue NEXT_QUESTION;
 						}
+					} else if(rulePart.toUpperCase().startsWith(PERSPECTIVE_KEY)) {
+						String[] perspectiveRuleSplit = rulePart.split("=");
+						rule.setPerspective(perspectiveRuleSplit[1].trim());
 					} else {
 						String[] paramSplit = rulePart.split("-");
 						String[] constraintValueSplit = paramSplit[1].split("=");
