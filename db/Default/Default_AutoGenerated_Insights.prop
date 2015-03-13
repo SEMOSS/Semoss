@@ -9,6 +9,7 @@
 <Question>
 @Question=What is the distribution of $CentralConcept to $Property?
 @Property-ENTROPY_D_MAX=0.3
+@Property-ENTROPY_D_MIN=0.1
 @Property-TYPE=STRING
 @Perspective=CentralConcept
 @Output=Binned_Column_Chart
@@ -16,7 +17,6 @@
 
 <Question>
 @Question=What is the distribution of $CentralConcept to $Property?
-@Property-ENTROPY_D_MAX=0.3
 @Property-TYPE=DOUBLE
 @Perspective=CentralConcept
 @Output=Binned_Column_Chart
