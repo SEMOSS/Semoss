@@ -132,7 +132,7 @@ public abstract class AbstractEngine implements IEngine {
 			+ "{?perspectiveInsight <"+Constants.SUBPROPERTY_URI +"> <"+perspectiveInsightBaseURI+"> }"
 			+ "{?perspectiveURI ?perspectiveInsight ?insightURI.}"
 			+ "{?insightURI <" + labelBaseURI + "> ?insight.}"
-			+ "FILTER (regex (?perspective, \"@perspective@\" ,\"i\"))" + "}";
+			+ "FILTER (regex (?perspective, \"^@perspective@$\" ,\"i\"))" + "}";
 	
 	protected static final String insightsURI = "SELECT DISTINCT ?insightURI WHERE {"
 			+ "BIND(<@perspective@> AS ?perspectiveURI)"
