@@ -11,6 +11,7 @@ public class InsightRule {
 	private String question = "";
 	private String output = "";
 	private String centralConcept = "";
+	private String perspective = "";
 	
 	public InsightRule() {
 		constraints = new Hashtable<String, Hashtable<String, Object>>();
@@ -91,5 +92,13 @@ public class InsightRule {
 
 	public void setCentralConcept(String centralConcept) {
 		this.centralConcept = centralConcept;
+	}
+	
+	public String getPerspective() {
+		return perspective;
+	}
+
+	public void setPerspective(String perspective) {
+		this.perspective = perspective;
 	}
 }
