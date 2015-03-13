@@ -172,6 +172,11 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 		//construct a query to get all instances of this concept and their properties
 		//create the table
 		//calculate the column types and entropies
+
+		propertyTable = new ArrayList<Object[]>();
+		names = null;
+		colTypesArr = null;
+		entropyArr = null;
 		
 		String propQuery = PROPERTIES_QUERY.replaceAll("@CONCEPT@", concept);
 		
@@ -199,7 +204,6 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, tableQuery);
 		String[] vars = wrapper.getVariables();
 			
-		propertyTable = new ArrayList<Object[]>();
 		while(wrapper.hasNext())
 		{
 			ISelectStatement sjss = wrapper.next();
