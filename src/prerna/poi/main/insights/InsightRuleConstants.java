@@ -5,6 +5,7 @@ public interface InsightRuleConstants {
 	// specific parameter keys
 	String QUESTION_KEY = "@QUESTION";
 	String OUTPUT_KEY = "@OUTPUT";
+	String PERSPECTIVE_KEY = "@PERSPECTIVE";
 	String PROPERTY_VALUE = "PROPERTY";
 	String CONCEPT_VALUE = "CONCEPT";
 	String CENTRAL_CONCEPT_VALUE = "CENTRALCONCEPT";

@@ -2,13 +2,7 @@
 @Question=What is the distribution of $CentralConcept to $Property?
 @Property-ENTROPY_D_MIN=0.3
 @Property-TYPE=STRING
-@Output=Binned_Pie_Chart
-</Question>
-
-<Question>
-@Question=What is the distribution of $CentralConcept to $Property?
-@Property-ENTROPY_D_MIN=0.3
-@Property-TYPE=DOUBLE
+@Perspective=CentralConcept
 @Output=Binned_Pie_Chart
 </Question>
 
@@ -16,6 +10,7 @@
 @Question=What is the distribution of $CentralConcept to $Property?
 @Property-ENTROPY_D_MAX=0.3
 @Property-TYPE=STRING
+@Perspective=CentralConcept
 @Output=Binned_Column_Chart
 </Question>
 
@@ -23,6 +18,7 @@
 @Question=What is the distribution of $CentralConcept to $Property?
 @Property-ENTROPY_D_MAX=0.3
 @Property-TYPE=DOUBLE
+@Perspective=CentralConcept
 @Output=Binned_Column_Chart
 </Question>
 
@@ -33,6 +29,7 @@
 @Property2-ENTROPY_D_MIN=0.1
 @Property2-TYPE=STRING
 @CentralConcept-AGGREGATION=COUNT
+@Perspective=CentralConcept
 @Output=Heat_Map
 </Question>
 
@@ -42,6 +39,7 @@
 @Property1-TYPE=STRING
 @Property2-TYPE=DOUBLE
 @Property2-AGGREGATION=AVG
+@Perspective=CentralConcept
 @Output=Column_Chart
 </Question>
 
@@ -49,6 +47,7 @@
 @Question=How do $Property1 and $Property2 relate to $CentralConcept?
 @Property1-TYPE=DOUBLE
 @Property2-TYPE=DOUBLE
+@Perspective=CentralConcept
 @Output=Grid_Scatter
 </Question>
 
@@ -56,14 +55,16 @@
 @Question=What is the distribution of $Concept2 to each $CentralConcept?
 @CentralConcept-ENTROPY_D_MIN=0.3
 @Concept2-AGGREGATION=COUNT
+@Perspective=CentralConcept
 @Output=Pie_Chart
 </Question>
 
 <Question>
 @Question=What is the distribution of $Concept2 to each $CentralConcept?
 @CentralConcept-ENTROPY_D_MAX=0.3
-@CentralConcept-ENTROPY_D_MIN=0.01
+@CentralConcept-ENTROPY_D_MIN=0.1
 @Concept2-AGGREGATION=COUNT
+@Perspective=CentralConcept
 @Output=Column_Chart
 </Question>
 
@@ -72,6 +73,7 @@
 @Property1-TYPE=STRING
 @Concept2-ENTROPY_D_MIN=0.1
 @CentralConcept-AGGREGATION=COUNT
+@Perspective=CentralConcept
 @Output=Heat_Map
 </Question>
 
@@ -80,5 +82,6 @@
 @Concept2-ENTROPY_D_MIN=0.1
 @Property-TYPE=DOUBLE
 @Property-AGGREGATION=AVG
+@Perspective=Concept2
 @Output=Column_Chart
 </Question>
