@@ -22,7 +22,8 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.sql.Connection;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,13 +34,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
+import java.util.Vector;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.ValueFactory;
 import org.openrdf.model.vocabulary.RDF;
-import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.UpdateExecutionException;
 import org.openrdf.repository.Repository;
@@ -64,19 +65,22 @@ import org.supercsv.io.CsvMapReader;
 import org.supercsv.io.ICsvMapReader;
 import org.supercsv.prefs.CsvPreference;
 
-import com.hp.hpl.jena.vocabulary.OWL;
-
 import prerna.error.EngineException;
 import prerna.error.FileReaderException;
 import prerna.error.FileWriterException;
 import prerna.error.HeaderClassException;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.RDBMSNativeEngine;
 import prerna.rdf.engine.impl.RDFFileSesameEngine;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+
+import com.hp.hpl.jena.vocabulary.OWL;
 
 
 /**
@@ -95,16 +99,17 @@ public class RDBMSReader {
 	public final static String NUMCOL = "NUM_COLUMNS";
 	public final static String NOT_OPTIONAL = "NOT_OPTIONAL";
 	private ArrayList<String> relationArrayList = new ArrayList<String>();
-	private ArrayList<String> nodePropArrayList = new ArrayList<String>();
-	private ArrayList<String> relPropArrayList = new ArrayList<String>();
+	//private ArrayList<String> nodePropArrayList = new ArrayList<String>();
+	//private ArrayList<String> relPropArrayList = new ArrayList<String>();
 	private int count = 0;
 	private boolean propFileExist = true;
 	private Hashtable<String, String>[] rdfMapArr;
 	private Hashtable <String, String> sqlHash = new Hashtable<String, String>();
 	private Hashtable <String, String> typeIndices = new Hashtable(); // this basically says for a given column what is its index
 	private Hashtable <String, Hashtable> tableHash = new Hashtable();
+	private Hashtable <String, Hashtable<String, String>> availableTables = new Hashtable(); // all the existing tables, tablename is the key, the value is another hashtable with field name and property
+	private Hashtable <String, Hashtable<String,String>> whereColumns = new Hashtable(); // same as previous table, but this are what get added to the where on an update query 
 	private Hashtable <String, String> relHash = new Hashtable<String,String>(); // keeps it in the format of name of the relationship, the value being the name of the classes separated by @
-	Connection conn = null;
 	String dbBaseFolder = null;
 	IEngine engine = null;
 	
@@ -130,15 +135,18 @@ public class RDBMSReader {
 	public Hashtable<String,String> relationURIHash = new Hashtable<String,String>();
 	public Hashtable<String,String> basePropURIHash = new Hashtable<String,String>();
 	public Hashtable<String,String> basePropRelations = new Hashtable<String,String>();
-
 	
 	protected Hashtable<String, String[]> baseRelations = new Hashtable<String, String[]>();
+	protected Vector <String> tables = new Vector<String>();
 
 	// OWL variables
 	protected RepositoryConnection rcOWL;
 	protected ValueFactory vfOWL;
 	protected SailConnection scOWL;
 	protected String owlFile = "";
+	
+	protected String scriptFileName = "DBScript.sql";
+	protected PrintWriter scriptFile = null;
 
 	//reload base data
 	protected RDFFileSesameEngine baseDataEngine;
@@ -147,16 +155,33 @@ public class RDBMSReader {
 	public static void main(String [] args) throws Exception
 	{
 		RDBMSReader reader = new RDBMSReader();
-		String engineName = "RDBMST7";
+		String engineName = "MovieRDBMS";
 		reader.dbBaseFolder = "C:/Users/pkapaleeswaran/workspacej2/SemossWeb";
 		String fileName = "C:/Users/pkapaleeswaran/workspacej2/Data/Movie.csv";
-		reader.propFile = "C:/Users/pkapaleeswaran/workspacej2/SemossWeb/db/RDBMST7/RDBMST7_Movie_PROP.prop";
+		reader.propFile = "C:/Users/pkapaleeswaran/workspacej2/SemossWeb/db/MovieRDBMS/MovieRDBMS_Movie_PROP.prop";
 		reader.propFileExist = true;
 		reader.semossURI = "http://semoss.org/ontologies";
 		reader.customBaseURI = "http://semoss.org/ontologies";
-		reader.owlFile = "C:/Users/pkapaleeswaran/workspacej2/SemossWeb/db/RDBMST7/Movie_DB_OWL2.OWL";
+		reader.owlFile = "C:/Users/pkapaleeswaran/workspacej2/SemossWeb/db/MovieRDBMS/Movie_DB_OWL2.OWL";
 		String outputFile = reader.writePropFile(engineName);
 		reader.importFileWithOutConnection(outputFile, fileName, reader.customBaseURI, reader.owlFile,engineName);
+
+		System.out.println("Trying the new one now");
+		
+		reader.cleanAll();
+		
+		fileName = "C:/Users/pkapaleeswaran/workspacej2/Data/Movie2.csv";
+		reader.propFile = "C:/Users/pkapaleeswaran/workspacej2/SemossWeb/db/MovieRDBMS/MovieRDBMS_Movie_PROP2.prop";
+		reader.importFileWithOutConnection(outputFile, fileName, reader.customBaseURI, reader.owlFile,engineName);
+
+	}
+	
+	private void cleanAll()
+	{
+		tableHash.clear();
+		availableTables.clear();
+		whereColumns.clear();
+		rdfMap.clear();
 	}
 	
 	private String writePropFile(String engineName)
@@ -175,6 +200,10 @@ public class RDBMSReader {
 			FileOutputStream fo = new FileOutputStream(file);
 			prop.store(fo, "Temporary Properties file for the RDBMS");
 			fo.close();
+			scriptFileName = dbBaseFolder + "/db/" + engineName + "/" + scriptFileName;
+			if(scriptFile == null)
+				scriptFile = new PrintWriter(new OutputStreamWriter(new FileOutputStream(new File(scriptFileName))));
+
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -182,6 +211,8 @@ public class RDBMSReader {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+
 		return tempFile;
 		
 	}
@@ -203,6 +234,9 @@ public class RDBMSReader {
 		logger.setLevel(Level.WARN);
 		String[] files = fileNames.split(";"); //)prepareReader(fileNames, customBase, owlFile);
 		this.owlFile = owlFile;
+		
+		
+		
 		//openEngineWithoutConnection(engineName);
 		openOWLWithOutConnection();
 		createTypes();
@@ -214,10 +248,13 @@ public class RDBMSReader {
 		
 		createSQLTypes();
 		System.out.println("Owl File is " + this.owlFile);
-		openDB(engineName);
-
+		
 		for(int i = 0; i<files.length;i++)
 		{
+			openDB(engineName);
+			// find the tables
+			findTables();
+
 			String fileName = files[i];
 			openCSVFile(fileName);			
 			// load the prop file for the CSV file 
@@ -239,10 +276,50 @@ public class RDBMSReader {
 			createTables();
 			skipRows();
 			insertRecords();
+			closeDB();
+			
+			cleanAll();
+
 		}
 		writeDefaultQuestionSheet(engineName);
 		createBaseRelations();
-		closeDB();
+		try {
+			scriptFile.close();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	private void findTables()
+	{
+		// this gets all the existing tables
+		String query = "SHOW TABLES FROM PUBLIC";
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+		while(wrapper.hasNext())
+		{
+			ISelectStatement stmt = wrapper.next();
+			String tableName = stmt.getVar("TABLE_NAME") + "";
+			findColumns(tableName);
+		}
+	}
+	
+	private void findColumns(String tableName)
+	{
+		String query = "SHOW COLUMNS FROM " + tableName;
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+		Hashtable <String, String> fieldHash = new Hashtable();
+		if(availableTables.containsKey(tableName))
+			fieldHash = availableTables.get(tableName);
+		while(wrapper.hasNext())
+		{
+			ISelectStatement stmt = wrapper.next();
+			String colName = stmt.getVar("FIELD") + "";
+			String type = stmt.getVar("TYPE") + "";
+			fieldHash.put(colName, type);
+			
+			availableTables.put(tableName.toUpperCase(), fieldHash);
+		}
 	}
 	
 	
@@ -264,10 +341,9 @@ public class RDBMSReader {
 		
 		Properties prop = new Properties();
 		String genericQueries = "";
-		Enumeration <String> keys = tableHash.keys();
-		for(int tableIndex = 0;keys.hasMoreElements();tableIndex++)
+		for(int tableIndex = 0;tableIndex < tables.size();tableIndex++)
 		{
-			String key = keys.nextElement();
+			String key = tables.elementAt(tableIndex);
 			key = realClean(key);
 			if(tableIndex == 0)
 				genericQueries = genericQueries + "GQ" + tableIndex;
@@ -319,6 +395,7 @@ public class RDBMSReader {
 				e.printStackTrace();
 			}
 		}
+		rdfMap.clear();
 		for(String name: rdfPropMap.stringPropertyNames()){
 			rdfMap.put(name, rdfPropMap.getProperty(name).toString());
 		}
@@ -626,7 +703,7 @@ public class RDBMSReader {
 		basePropURIHash.put(propURI, propURI);
 		
 		// now need to add a new one for the class as well
-		basePropRelations.put(parentNodeURI, propURI);
+		basePropRelations.put(propURI, parentNodeURI);
 	}
 	
 	private void recreateRelations()
@@ -731,43 +808,275 @@ public class RDBMSReader {
 		while(tableKeys.hasMoreElements())
 		{
 			String tableKey = tableKeys.nextElement();
-			//if(tableKey.contains("+"))
-			//	tableKey = processAutoConcat(tableKey);
-			String SQLCREATE = "CREATE TABLE " + realClean(tableKey) + "(";
-			SQLCREATE = SQLCREATE + " " + realClean(tableKey) + "  " + sqlHash.get("STRING"); // add its own column first as name
-			
-			boolean key1 = true;
-			
-			Hashtable columns = tableHash.get(tableKey);
-			Enumeration <String> columnKeys = columns.keys();
-			while(columnKeys.hasMoreElements())
+			String modString = null;
+			if(!availableTables.containsKey(tableKey.toUpperCase()))
 			{
-				if(key1)
-				{
-					SQLCREATE = SQLCREATE + " , ";
-					key1 = false;
-				}
-				
-				String column = columnKeys.nextElement();
+				modString = getCreateString(tableKey);
+				tables.add(tableKey);
+			}
+			else
+				modString = getAlterTable(tableKey);
+	
+			try {
+				scriptFile.println(modString);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			modifyDB(modString);
+		}
+	}
+	
+	private String getCreateString(String tableKey)
+	{
+		//if(tableKey.contains("+"))
+		//	tableKey = processAutoConcat(tableKey);
+		String SQLCREATE = "CREATE TABLE " + realClean(tableKey) + "(";
+		SQLCREATE = SQLCREATE + " " + realClean(tableKey) + "  " + sqlHash.get("STRING"); // add its own column first as name
+		
+		boolean key1 = true;
+		
+		Hashtable columns = tableHash.get(tableKey);
+		Enumeration <String> columnKeys = columns.keys();
+		while(columnKeys.hasMoreElements())
+		{
+			if(key1)
+			{
+				SQLCREATE = SQLCREATE + " , ";
+				key1 = false;
+			}
+			
+			String column = columnKeys.nextElement();
+			String type = (String)columns.get(column);
+			// clean up the + first
+			//column = column.replaceAll("\\+", "_");
+			// now clean it up
+			column = realClean(column); //,true);
+			// finally finish it up with the replacing -
+			//column = column.replaceAll("-", "_");
+			SQLCREATE = SQLCREATE + column + "  " + sqlHash.get(type);
+			if(columnKeys.hasMoreElements())
+				SQLCREATE = SQLCREATE + " , ";
+		}
+		
+		SQLCREATE = SQLCREATE + " )";
+		
+		System.out.println("SQL CREATE IS " + SQLCREATE);
+		return SQLCREATE;
+	}
+	
+	private String getAlterTable(String tableKey)
+	{
+		//if(tableKey.contains("+"))
+		//	tableKey = processAutoConcat(tableKey);
+		String SQLALTER = "ALTER TABLE " + realClean(tableKey) + " ADD (";
+		String columnString = "";
+		
+		Hashtable fieldHash = availableTables.get(tableKey.toUpperCase());
+		
+		Hashtable columns = tableHash.get(tableKey);
+		
+		// create the where column hash as well
+		Hashtable whereColumnHash = new Hashtable();
+		if(whereColumns.containsKey(tableKey.toUpperCase()))
+			whereColumnHash = whereColumns.get(tableKey.toUpperCase());
+		whereColumnHash.put(tableKey, "VARCHAR");
+		
+		
+		Enumeration <String> columnKeys = columns.keys();
+		while(columnKeys.hasMoreElements())
+		{
+			String column = columnKeys.nextElement();
+			if(!fieldHash.containsKey(column.toUpperCase()))
+			{
 				String type = (String)columns.get(column);
+				type = sqlHash.get(type);
 				// clean up the + first
 				//column = column.replaceAll("\\+", "_");
 				// now clean it up
 				column = realClean(column); //,true);
 				// finally finish it up with the replacing -
 				//column = column.replaceAll("-", "_");
-				SQLCREATE = SQLCREATE + column + "  " + sqlHash.get(type);
-				if(columnKeys.hasMoreElements())
-					SQLCREATE = SQLCREATE + " , ";
+				if(columnString.length() > 0)
+					columnString = columnString + ", " + column + " " + type;
+				else
+					columnString = column + " " + type;
 			}
-			
-			SQLCREATE = SQLCREATE + " )";
-			
-			System.out.println("SQL CREATE IS " + SQLCREATE);
-			modifyDB(SQLCREATE);
+			/*
+			 * Dont know if we are over-riding it
+			 */
+			else
+			{
+				// remove this from tableHash
+				whereColumnHash.put(column, fieldHash.get(column)); // unless we are overriding it ?
+				// remove it from table hash
+				tableHash.remove(column);
+			}
 		}
+		// put the list of where columns
+		whereColumns.put(tableKey.toUpperCase(), whereColumnHash);
+		
+		SQLALTER = SQLALTER + columnString + " )";
+		
+		System.out.println("SQL ALTER IS " + SQLALTER);
+		return SQLALTER;
 	}
 	
+	private String getInsertString(String tableKey, Map <String, Object> jcrMap, String insertTemplate)
+	{
+		String VALUES = "  VALUES (";		
+		String value = createInstanceValue(tableKey, jcrMap);
+		value = value.replaceAll("'", "''");	
+		value = "'" +  value + "'"; // would the value be always string ?
+		VALUES = VALUES + value;
+		boolean key1 = true;
+		Hashtable columns = tableHash.get(tableKey);
+		Enumeration <String> columnKeys = columns.keys();
+		while(columnKeys.hasMoreElements())
+		{
+			if(key1)
+			{
+				VALUES = VALUES + " , ";
+				key1 = false;
+			}
+			String key = columnKeys.nextElement();
+			String type = (String)columns.get(key);
+			key = key.replace("_FK", "");
+			value = createInstanceValue(key, jcrMap);
+			//if(!sqlHash.get(type).contains("FLOAT"))
+			//	value = realClean(value);
+			// escape SQL Values
+			if(sqlHash.get(type).contains("VARCHAR"))
+			{
+				value = value.replaceAll("'", "''");
+				value = "'" + value + "'" ;
+			}
+			VALUES = VALUES + value;
+			if(columnKeys.hasMoreElements())
+				VALUES = VALUES + " , ";
+		}
+		String SQLINSERT = insertTemplate + VALUES + ")";
+
+		return SQLINSERT;
+	}
+	
+	private String getAlterString(String tableKey, Map <String, Object> jcrMap, String insertTemplate)
+	{
+		String VALUES = "";		
+		Hashtable columns = tableHash.get(tableKey);
+		
+		Enumeration <String> columnKeys = columns.keys();
+		// generate the set portion first
+		while(columnKeys.hasMoreElements())
+		{
+			String key = columnKeys.nextElement();
+			String value = createInstanceValue(key, jcrMap);
+			String type = (String)columns.get(key);
+			
+			boolean string = false;
+			
+			if(sqlHash.get(type).contains("VARCHAR"))
+			{
+				value = value.replaceAll("'", "''");
+				value = "'" + value + "'" ;
+				string = true;
+			}
+
+			if(VALUES.length() == 0)
+			{
+				if(string || (value != null && value.length() != 0))
+				VALUES = realClean(key) + " = " +  value;
+			}
+			else
+			{
+				if(string || (value != null && value.length() != 0))
+				VALUES = VALUES + " , " + realClean(key) + " = " +  value;			
+			}
+		}
+		
+		// now generate the where
+		String SQLALTER = insertTemplate + VALUES + " WHERE ";
+		
+		Hashtable whereHash = whereColumns.get(tableKey.toUpperCase());
+		String where  = "";
+		
+		Enumeration <String> whereKeys = whereHash.keys();
+		
+		while(whereKeys.hasMoreElements())
+		{
+			String key = whereKeys.nextElement();
+			String value = createInstanceValue(key, jcrMap);
+
+			String type = (String)whereHash.get(key);
+			boolean string = false;
+			
+			if(type.contains("VARCHAR"))
+			{
+				value = value.replaceAll("'", "''");
+				value = "'" + value + "'" ;
+				string = true;
+			}
+			
+			if(where.length() == 0)
+			{
+				if(string || (value != null && value.length() != 0))
+				where = key + "=" + value;
+			}
+			else
+			{
+				if(string || (value != null && value.length() != 0))
+				where = where + " , " + key + "=" + value;
+			}			
+		}
+		
+		SQLALTER = SQLALTER + " " + where;
+
+		return SQLALTER;
+	}
+	
+	private boolean findIfRecordAvailable(String tableKey, Map <String, Object> jcrMap)
+	{
+		Hashtable columns = tableHash.get(tableKey);
+	
+		Enumeration <String> columnKeys = columns.keys();
+		String selfValue = createInstanceValue(tableKey, jcrMap);
+		selfValue = selfValue.replaceAll("'", "''");
+		selfValue = "'" + selfValue + "'" ;
+		String query = "SELECT * FROM " + realClean(tableKey) + " WHERE " ;
+		String VALUES = realClean(tableKey) + "=" + selfValue;
+		
+		// generate the set portion first
+		while(columnKeys.hasMoreElements())
+		{
+			String key = columnKeys.nextElement();
+			String value = createInstanceValue(key, jcrMap);
+			String type = (String)columns.get(key);
+			
+			boolean string = false;
+			
+			if(sqlHash.get(type).contains("VARCHAR"))
+			{
+				value = value.replaceAll("'", "''");
+				value = "'" + value + "'" ;
+				//value = realClean(value);
+				string = true;
+			}
+			if(string || (value != null && value.length() != 0))
+			VALUES = VALUES + " AND " + realClean(key) + " = " +  value;			
+		}
+		
+		query = query + VALUES;
+		ISelectWrapper sWrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+		
+		boolean hasNext = false;
+		hasNext = sWrapper.hasNext();
+
+		return hasNext;
+		
+	}
+	
+	
+		
 	private void insertRecords()
 	{
 		String [] insertTemplates = new String[tableHash.size()];
@@ -779,24 +1088,33 @@ public class RDBMSReader {
 		while(tableKeys.hasMoreElements())
 		{
 			String tableKey = tableKeys.nextElement();
-			String SQLINSERT = "INSERT INTO   " + realClean(tableKey) +  "  (" + realClean(tableKey);
 			
-			Hashtable columns = tableHash.get(tableKey);
-			Enumeration <String> columnKeys = columns.keys();
-			boolean key1 = true;
-			while(columnKeys.hasMoreElements())
+			String SQLINSERT = null;
+			
+			if(!availableTables.containsKey(tableKey.toUpperCase()))
 			{
-				if(key1)
+				SQLINSERT = "INSERT INTO   " + realClean(tableKey) +  "  (" + realClean(tableKey);
+			
+				Hashtable columns = tableHash.get(tableKey);
+				Enumeration <String> columnKeys = columns.keys();
+				boolean key1 = true;
+				while(columnKeys.hasMoreElements())
 				{
-					SQLINSERT = SQLINSERT + " , ";
-					key1 = false;
+					if(key1)
+					{
+						SQLINSERT = SQLINSERT + " , ";
+						key1 = false;
+					}
+					String column = columnKeys.nextElement();
+					SQLINSERT = SQLINSERT + realClean(column);
+					if(columnKeys.hasMoreElements())
+						SQLINSERT = SQLINSERT + ",";
 				}
-				String column = columnKeys.nextElement();
-				SQLINSERT = SQLINSERT + realClean(column);
-				if(columnKeys.hasMoreElements())
-					SQLINSERT = SQLINSERT + ",";
+				SQLINSERT = SQLINSERT + ")";
 			}
-			SQLINSERT = SQLINSERT + ")";
+			else
+				SQLINSERT = "UPDATE " + tableKey.toUpperCase() + " SET "; // the paranthesis seems to change between dialect to dialect
+
 			insertTemplates[tableIndex] = SQLINSERT;
 			tableIndex++;
 		}
@@ -821,8 +1139,31 @@ public class RDBMSReader {
 				int index = 0;
 				while(tableKeys.hasMoreElements())
 				{
-					String VALUES = "  VALUES (";
 					String tableKey = tableKeys.nextElement();
+					String SQL;
+					
+					// find if this record is already there
+					if(!findIfRecordAvailable(tableKey, jcrMap))
+					{
+						
+						if(!availableTables.containsKey(tableKey.toUpperCase()))
+						{
+							SQL = getInsertString(tableKey, jcrMap, insertTemplates[index]);
+							insertData(SQL);
+						}
+						else
+						{
+							SQL = getAlterString(tableKey, jcrMap, insertTemplates[index]);
+							insertData(SQL);
+						}
+						try {
+							scriptFile.println(SQL);
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+					/*
 					String value = createInstanceValue(tableKey, jcrMap);
 					value = value.replaceAll("'", "''");	
 					value = "'" +  value + "'"; // would the value be always string ?
@@ -852,9 +1193,8 @@ public class RDBMSReader {
 						VALUES = VALUES + value;
 						if(columnKeys.hasMoreElements())
 							VALUES = VALUES + " , ";
-					}
-					String SQLINSERT = insertTemplates[index] + VALUES + ")";
-					insertData(SQLINSERT);
+					}*/
+					//String SQLINSERT = insertTemplates[index] + VALUES + ")";
 					//System.out.println(SQLINSERT);
 					index++;
 				}
@@ -1299,8 +1639,8 @@ public class RDBMSReader {
 		// now write the actual relations
 		// relation instances go next
 		for(String relArray : basePropRelations.keySet()){
-			String parent = relArray;
-			String property = basePropRelations.get(parent);
+			String property = relArray;
+			String parent = basePropRelations.get(property);
 
 			//			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
 			storeBaseStatement(parent, OWL.DatatypeProperty+"", property);
