@@ -42,7 +42,7 @@ import edu.stanford.nlp.trees.EnglishGrammaticalRelations;
 import edu.stanford.nlp.trees.GrammaticalRelation;
 import edu.stanford.nlp.trees.TypedDependency;
 
-public class WordnetComparison implements IMasterDatabaseConstants{
+public class WordnetComparison {
 
 	private RiWordNet wordnet;
 	private LexicalizedParser lp;
@@ -87,7 +87,7 @@ public class WordnetComparison implements IMasterDatabaseConstants{
 	 * @return					Boolean true if the two words are similar based on the threshold
 	 */
 	public boolean isSimilar(double comparissonVal) {
-		if(comparissonVal <= similarityCutOff) {
+		if(comparissonVal <= MasterDatabaseConstants.SIMILARITY_CUTOFF) {
 			return true;
 		}
 		return false;
@@ -130,8 +130,8 @@ public class WordnetComparison implements IMasterDatabaseConstants{
 		double[][] mainComparisonMatrix = getComparisonMatrix(firstMainNouns, secondMainNouns);
 		double[][] otherComparisonMatrix = getComparisonMatrix(firstOtherNouns, secondOtherNouns);
 
-		double mainCompVal = calculateBestComparison(mainComparisonMatrix) * mainNounWeight;
-		double otherCompVal = calculateBestComparison(otherComparisonMatrix) * otherNounWeight;
+		double mainCompVal = calculateBestComparison(mainComparisonMatrix) * MasterDatabaseConstants.MAIN_NOUN_WEIGHT;
+		double otherCompVal = calculateBestComparison(otherComparisonMatrix) * MasterDatabaseConstants.OTHER_NOUN_WEIGHT;
 		
 //		System.err.println(">>>>>>>>>>>>>>>>>COMPARING: " + firstMainNouns + " to " + secondMainNouns + " gives value = " + mainCompVal);
 //		System.err.println(">>>>>>>>>>>>>>>>>COMPARING: " + firstOtherNouns + " to " + secondOtherNouns + " gives value = " + otherCompVal);

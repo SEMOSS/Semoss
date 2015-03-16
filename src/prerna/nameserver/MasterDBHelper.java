@@ -40,7 +40,7 @@ import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public final class MasterDBHelper implements IMasterDatabaseQueries, IMasterDatabaseURIs{
+public final class MasterDBHelper {
 
 	private MasterDBHelper() {
 		
@@ -52,7 +52,7 @@ public final class MasterDBHelper implements IMasterDatabaseQueries, IMasterData
 	 * @param engineList		The set to add the engine list to
 	 */
 	public static void fillEnglishList(IEngine masterEngine, Set<String> engineList) {
-		ISelectWrapper wrapper = Utility.processQuery(masterEngine, ENGINE_LIST_QUERY);
+		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.ENGINE_LIST_QUERY);
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
 		// now get the bindings and generate the data
@@ -68,7 +68,7 @@ public final class MasterDBHelper implements IMasterDatabaseQueries, IMasterData
 	 * @param engineURLHash		The hashtable to add all the engine URLs to
 	 */
 	public static void fillAPIHash(IEngine masterEngine, Hashtable<String, String> engineURLHash){
-		ISelectWrapper wrapper = Utility.processQuery(masterEngine, ENGINE_API_QUERY);
+		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.ENGINE_API_QUERY);
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
 		// now get the bindings and generate the data
@@ -93,10 +93,10 @@ public final class MasterDBHelper implements IMasterDatabaseQueries, IMasterData
 		String bindingsStr = "";
 		Iterator<String> keywordsIt = keywordSet.iterator();
 		while(keywordsIt.hasNext()) {
-			bindingsStr = bindingsStr.concat("(<").concat(KEYWORD_BASE_URI).concat("/").concat(keywordsIt.next()).concat(">)");
+			bindingsStr = bindingsStr.concat("(<").concat(MasterDatabaseURIs.KEYWORD_BASE_URI).concat("/").concat(keywordsIt.next()).concat(">)");
 		}
 		
-		String query = GET_RELATED_KEYWORDS_TO_SET_AND_THEIR_NOUNS.replace("@BINDINGS@", bindingsStr);
+		String query = MasterDatabaseQueries.GET_RELATED_KEYWORDS_TO_SET_AND_THEIR_NOUNS.replace("@BINDINGS@", bindingsStr);
 		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
@@ -132,7 +132,7 @@ public final class MasterDBHelper implements IMasterDatabaseQueries, IMasterData
 	 */
 	public static void findRelatedKeywordsToSpecificURI(IEngine masterEngine, String keywordURI, Set<String> keywordSet, Map<String, Set<String>> engineKeywordMap){
 		// find all related keywords to the inputed data type
-		String query = GET_RELATED_KEYWORDS_AND_THEIR_NOUNS.replace("@KEYWORD@", keywordURI);
+		String query = MasterDatabaseQueries.GET_RELATED_KEYWORDS_AND_THEIR_NOUNS.replace("@KEYWORD@", keywordURI);
 		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
@@ -161,7 +161,7 @@ public final class MasterDBHelper implements IMasterDatabaseQueries, IMasterData
 	public static Map<String, Set<String>> getMCValueMappingTree(IEngine masterEngine) {
 		// fill the concept-concept tree 
 		MasterDatabaseForest<String> forest = new MasterDatabaseForest<String>();
-		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MC_PARENT_CHILD_QUERY);
+		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.MC_PARENT_CHILD_QUERY);
 		String[] names = wrapper.getVariables();
 		while(wrapper.hasNext())
 		{
@@ -177,7 +177,7 @@ public final class MasterDBHelper implements IMasterDatabaseQueries, IMasterData
 	public static Map<String, Set<String>> getMCToKeywordValueMapping(IEngine masterEngine) {
 		// fill the keyword-concept graph
 		MasterDatabaseBipartiteGraph<String> keywordConceptBipartiteGraph = new MasterDatabaseBipartiteGraph<String>();
-		ISelectWrapper wrapper = Utility.processQuery(masterEngine, KEYWORD_NOUN_QUERY);
+		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.KEYWORD_NOUN_QUERY);
 		String[] names = wrapper.getVariables();
 		while(wrapper.hasNext())
 		{
@@ -194,7 +194,7 @@ public final class MasterDBHelper implements IMasterDatabaseQueries, IMasterData
 		BigDataEngine masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterEngineName);
 		// fill the concept-concept tree 
 		MasterDatabaseForest<String> forest = new MasterDatabaseForest<String>();
-		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MC_PARENT_CHILD_QUERY);
+		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.MC_PARENT_CHILD_QUERY);
 		String[] names = wrapper.getVariables();
 		while(wrapper.hasNext())
 		{
@@ -211,7 +211,7 @@ public final class MasterDBHelper implements IMasterDatabaseQueries, IMasterData
 		BigDataEngine masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterEngineName);
 		// fill the keyword-concept graph
 		MasterDatabaseBipartiteGraph<String> keywordConceptBipartiteGraph = new MasterDatabaseBipartiteGraph<String>();
-		ISelectWrapper wrapper = Utility.processQuery(masterEngine, KEYWORD_NOUN_QUERY);
+		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.KEYWORD_NOUN_QUERY);
 		String[] names = wrapper.getVariables();
 		while(wrapper.hasNext())
 		{
