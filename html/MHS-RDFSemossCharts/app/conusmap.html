@@ -39,8 +39,7 @@
       
 			
 		</style>
-	
- 
+
 		<script src="lib/jquery/jquery-1.8.3.min.js"></script> 
 		<script src="lib/d3.v3.js"></script>
 		<script src="lib/underscore.js"></script>
@@ -51,7 +50,6 @@
 	</head>
 	<body>
 		<script type="text/javascript">
-			
 			//var dataString = {"dataSeries":[{"size":1000000,"System":"AFCHIPS","Facility":"CHARLESTON_AFB","lat":32.887015,"lon":-80.0235}]}
 
 			//Width and height
@@ -85,104 +83,94 @@
 				+ ")scale(" + d3.event.scale + ")");
 			}	
 
-//				start(dataString);					
-				function start(dataString) {  
-					var jsonData = jQuery.parseJSON(dataString);
-					var data = jsonData.dataSeries  
-					var size = jsonData.size 
-					var lat = jsonData.lat
-					var lon = jsonData.lon
-					var locationName = jsonData.locationName 
-					var property1 = jsonData.property1 
-					var property2 = jsonData.property2
-					var property3 = jsonData.property3
-					var property4 = jsonData.property4
-					var property5 = jsonData.property5
-					
-					var dataArray = [];
+//start(dataString);					
+			function start(dataString) {  
+				var jsonData = jQuery.parseJSON(dataString);
+				var data = jsonData.dataSeries  
+				var size = jsonData.size 
+				var lat = jsonData.lat
+				var lon = jsonData.lon
+				var locationName = jsonData.locationName 
+				var property1 = jsonData.property1 
+				var property2 = jsonData.property2
+				var property3 = jsonData.property3
+				var property4 = jsonData.property4
+				var property5 = jsonData.property5
+				
+				var dataArray = [];
 
 				for (var key in data) {
 					dataArray.push({
-					
-					lat: data[key][lat], 
-					lon: data[key][lon], 
-					//get the last text in the uri
-					locationName: data[key][locationName].uriString.match(/([^/]*)$/g)[0], 
-					size: data[key][size],
-					property1: data[key][property1],
-					property2: data[key][property2],
-					property3: data[key][property3],
-					property4: data[key][property4],
-					property5: data[key][property5]						
-						
+						lat: data[key][lat], 
+						lon: data[key][lon], 
+						//get the last text in the uri
+						locationName: data[key][locationName].uriString.match(/([^/]*)$/g)[0], 
+						size: data[key][size],
+						property1: data[key][property1],
+						property2: data[key][property2],
+						property3: data[key][property3],
+						property4: data[key][property4],
+						property5: data[key][property5]
 					});
 				};
 
 				//Load in GeoJSON data
 				var json = usData;
-					//Bind data and create one path per GeoJSON feature
-					svg.selectAll("path")
-					   .data(json.features)
-					   .enter()
-					   .append("path")
-					   .attr("d", path)
-					   .attr("stroke","#fff")
-					   .attr("stroke-width", "2")
-					   .style("fill", function(d) {
-					   		//Get data value
-					   		var value = d.properties.value;
-					   		
-					   		if (value) {
-					   			//If value exists…
-						   		return color(value);
-					   		} else {
-					   			//If value is undefined…
-						   		return "#ccc";
-					   		}
-					   });
-					   
-
-										 /* Initialize tooltip */
-						 /*(if(undefined != d.System) {+ " " + d.System }*/
-						tip = d3.tip().attr('class', 'd3-tip').html(function(d) { 
-							if(d.System != undefined) 
-							{return 
-							locationName + ": " + d.locationName +
-							d.System + "<div> <span class='light'>";}
-							else 
-							{return locationName + ": " + d.locationName		
-							}        
-							});
-				
-						var redCircle = svg.selectAll("circle")
-						   .data(dataArray)
-						   .enter()
-						   .append("circle")
-						   .attr("cx", function(d) {
-							   return projection([d.lon, d.lat])[0];
-						   })
-						   .attr("cy", function(d) {
-							   return projection([d.lon, d.lat])[1];
-						   })
-						   .attr("r", function(d) {
-								return Math.sqrt(parseInt(d.size) * 0.00004);
-						   })
-						   .style("fill", "#780000")
-						   .style("opacity", 0.75)
-						   						   
-						   .on('mouseover', tip.show)
-						   .on('mouseout', tip.hide);
-						   					
-							redCircle.call(tip);
-							
-				
-			
-			};
-			
-
-			
-			
+				//Bind data and create one path per GeoJSON feature
+				svg.selectAll("path")
+				   .data(json.features)
+				   .enter()
+				   .append("path")
+				   .attr("d", path)
+				   .attr("stroke","#fff")
+				   .attr("stroke-width", "2")
+				   .style("fill", function(d) {
+						//Get data value
+						var value = d.properties.value;
 						
+						if (value) {
+							//If value exists…
+							return color(value);
+						} else {
+							//If value is undefined…
+							return "#ccc";
+						}
+				   });
+				   
+
+								 /* Initialize tooltip */
+				 /*(if(undefined != d.System) {+ " " + d.System }*/
+				tip = d3.tip().attr('class', 'd3-tip').html(function(d) { 
+					if(d.System != undefined) 
+					{return 
+					locationName + ": " + d.locationName +
+					d.System + "<div> <span class='light'>";}
+					else 
+					{return locationName + ": " + d.locationName		
+					}        
+					});
+		
+				var redCircle = svg.selectAll("circle")
+				   .data(dataArray)
+				   .enter()
+				   .append("circle")
+				   .attr("cx", function(d) {
+					   return projection([d.lon, d.lat])[0];
+				   })
+				   .attr("cy", function(d) {
+					   return projection([d.lon, d.lat])[1];
+				   })
+				   .attr("r", function(d) {
+						return Math.sqrt(parseInt(d.size) * 0.00004);
+				   })
+				   .style("fill", "#780000")
+				   .style("opacity", 0.75)
+										   
+				   .on('mouseover', tip.show)
+				   .on('mouseout', tip.hide);
+									
+					redCircle.call(tip);
+		};		
 		</script>
 	</body>
 </html>
