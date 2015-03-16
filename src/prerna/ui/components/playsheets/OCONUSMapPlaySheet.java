@@ -99,10 +99,10 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 		allHash = new Hashtable();
 		allHash.put("dataSeries", data);
 		
-		allHash.put("lat", var[1]);
-		allHash.put("lon", var[2]);
+		allHash.put("lat", "lat");
+		allHash.put("lon", "lon");
 		if (var.length > 3 && !var[3].equals(null))
-			allHash.put("size", var[3]);
+			allHash.put("size", "size");
 		else
 			allHash.put("size", "");
 		allHash.put("locationName", var[0]);
