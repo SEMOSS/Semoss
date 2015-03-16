@@ -100,7 +100,8 @@
 					dataArray.push({					
 						lat: data[key][lat], 
 						lon: data[key][lon], 
-						locationName: data[key][locationName], 
+						//get the last text in the uri
+						locationName: data[key][locationName].uriString, 
 						size: data[key][size],
 						property1: data[key][property1],
 						property2: data[key][property2],
@@ -136,13 +137,10 @@
 				/* Initialize tooltip */
 				/*(if(undefined != d.System) {+ " " + d.System }*/
 				tip = d3.tip().attr('class', 'd3-tip').html(function(d) { 
-					if(d.System != undefined) 
-					{return 
-						locationName + ": " + d.locationName +
-						d.System + "<div> <span class='light'>";}
-					else 
-					{
-						return locationName + ": " + shortenValueFilter(d.locationName.uriString)
+					if(d.System !== undefined) {
+						return locationName + ": " + d.locationName + d.System + "<div> <span class='light'>";
+					} else {
+						return locationName + ": " + shortenValueFilter(d.locationName);
 					}        
 				});
 		
