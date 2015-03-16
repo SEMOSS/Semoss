@@ -106,7 +106,8 @@
 					
 					lat: data[key][lat], 
 					lon: data[key][lon], 
-					locationName: data[key][locationName], 
+					//get the last text in the uri
+					locationName: data[key][locationName].uriString.match(/([^/]*)$/g)[0], 
 					size: data[key][size],
 					property1: data[key][property1],
 					property2: data[key][property2],
