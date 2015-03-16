@@ -80,7 +80,7 @@ public class DeleteMasterDB extends ModifyMasterDB {
 				deleteEngineInsights(engineName);
 
 				//delete the engine
-				removeNode(ENGINE_BASE_URI + "/" + engineName);
+				removeNode(MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName);
 
 				logger.info("Finished deleting engine " + engineName);
 				successHash.put(engineName, true);
@@ -127,7 +127,7 @@ public class DeleteMasterDB extends ModifyMasterDB {
 				deleteEngineInsights(engineName);
 
 				//delete the engine
-				removeNode(ENGINE_BASE_URI + "/" + engineName);
+				removeNode(MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName);
 
 				logger.info("Finished deleting engine " + engineName);
 				successHash.put(engineName, true);
@@ -152,7 +152,7 @@ public class DeleteMasterDB extends ModifyMasterDB {
 	}
 
 	public void deleteEngineKeywords(String engineName) throws EngineException{
-		String filledKeywordsQuery = KEYWORDS_QUERY.replaceAll("@ENGINE@", engineName);
+		String filledKeywordsQuery = MasterDatabaseQueries.KEYWORDS_QUERY.replaceAll("@ENGINE@", engineName);
 		ISelectWrapper wrapper = Utility.processQuery(masterEngine,filledKeywordsQuery);
 		String[] names = wrapper.getVariables();
 		while(wrapper.hasNext())
@@ -160,14 +160,14 @@ public class DeleteMasterDB extends ModifyMasterDB {
 			//grab query results
 			ISelectStatement sjss = wrapper.next();
 			String keyword = (String)sjss.getVar(names[0]);
-			removeRelationship(ENGINE_BASE_URI + "/" + engineName, KEYWORD_BASE_URI + "/" + keyword, SEMOSS_RELATION_URI + "/Has/" + engineName + ":" +keyword);
+			removeRelationship(MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + engineName + ":" +keyword);
 		}
 	}
 
 	//TODO refactor question administrator so we dont have to create a new engine
 	private void deleteEngineInsights(String engineName) throws EngineException{
 
-		String filledInsightsQuery = INSIGHTS_QUERY.replaceAll("@ENGINE@", engineName);
+		String filledInsightsQuery = MasterDatabaseQueries.INSIGHTS_QUERY.replaceAll("@ENGINE@", engineName);
 		ISelectWrapper wrapper1 = Utility.processQuery(masterEngine,filledInsightsQuery);
 		String[] names1 = wrapper1.getVariables();
 		while(wrapper1.hasNext())
@@ -175,11 +175,11 @@ public class DeleteMasterDB extends ModifyMasterDB {
 			//grab query results
 			ISelectStatement sjss = wrapper1.next();
 			String insight = (String)sjss.getVar(names1[0]);
-			removeRelationship(ENGINE_BASE_URI + "/" + engineName, INSIGHT_BASE_URI + "/" + insight, SEMOSS_RELATION_URI + "/Engine:Insight/" + engineName + ":" +insight);
+			removeRelationship(MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.INSIGHT_BASE_URI + "/" + insight, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Engine:Insight/" + engineName + ":" +insight);
 		}
 
 		ArrayList<String> perspectiveList = new ArrayList<String>();
-		String filledPerspectivesQuery = PERSPECTIVES_QUERY.replaceAll("@ENGINE@", engineName);
+		String filledPerspectivesQuery = MasterDatabaseQueries.PERSPECTIVES_QUERY.replaceAll("@ENGINE@", engineName);
 		ISelectWrapper wrapper2 = Utility.processQuery(masterEngine,filledPerspectivesQuery);
 		String[] names2 = wrapper2.getVariables();
 		while(wrapper2.hasNext())
@@ -187,7 +187,7 @@ public class DeleteMasterDB extends ModifyMasterDB {
 			//grab query results
 			ISelectStatement sjss = wrapper2.next();
 			String perspective = (String)sjss.getVar(names2[0]);
-			removeRelationship(ENGINE_BASE_URI + "/" + engineName, PERSPECTIVE_BASE_URI + "/" + perspective, SEMOSS_RELATION_URI + "/Engine:Perspective/" + engineName + ":" +perspective);
+			removeRelationship(MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.PERSPECTIVE_BASE_URI + "/" + perspective, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Engine:Perspective/" + engineName + ":" +perspective);
 			perspectiveList.add(perspective);
 		}
 
@@ -195,7 +195,7 @@ public class DeleteMasterDB extends ModifyMasterDB {
 		//set the engine, delete all from each perspective and then store the rc and sc.
 		RDFFileSesameEngine eng = new RDFFileSesameEngine();
 		eng.setEngineName(engineName);
-		eng.setEngineURI2Name(ENGINE_BASE_URI+"/"+engineName);
+		eng.setEngineURI2Name(MasterDatabaseURIs.ENGINE_BASE_URI+"/"+engineName);
 		eng.createInsightBase();
 		RDFFileSesameEngine insightBaseXML = eng.getInsightBaseXML();
 		insightBaseXML.setRC(masterEngine.rc);
@@ -203,9 +203,9 @@ public class DeleteMasterDB extends ModifyMasterDB {
 		insightBaseXML.setVF(masterEngine.vf);
 
 		QuestionAdministrator qa = new QuestionAdministrator(eng);
-		qa.setEngineURI2(ENGINE_BASE_URI + "/" + engineName);
+		qa.setEngineURI2(MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName);
 		for(String perspective : perspectiveList) {
-			qa.deleteAllFromPerspective(PERSPECTIVE_BASE_URI + "/" +perspective);
+			qa.deleteAllFromPerspective(MasterDatabaseURIs.PERSPECTIVE_BASE_URI + "/" +perspective);
 		}
 
 		masterEngine.rc = (SailRepositoryConnection)(qa.getInsightBaseXML().getRC());
@@ -214,7 +214,7 @@ public class DeleteMasterDB extends ModifyMasterDB {
 	}
 
 	private void deleteEngineAPI(String engineName) throws EngineException{
-		String filledURLQuery = API_QUERY.replaceAll("@ENGINE@", engineName);
+		String filledURLQuery = MasterDatabaseQueries.API_QUERY.replaceAll("@ENGINE@", engineName);
 		ISelectWrapper wrapper = Utility.processQuery(masterEngine,filledURLQuery);
 		String[] names = wrapper.getVariables();
 		while(wrapper.hasNext())
@@ -222,7 +222,7 @@ public class DeleteMasterDB extends ModifyMasterDB {
 			//grab query results
 			ISelectStatement sjss = wrapper.next();
 			String url = (String)sjss.getVar(names[0]);
-			removeProperty(ENGINE_BASE_URI + "/" + engineName, PROP_URI + "/" + "API",url,true);
+			removeProperty(MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.PROP_URI + "/" + "API",url,true);
 		}
 	}
 	
@@ -237,7 +237,7 @@ public class DeleteMasterDB extends ModifyMasterDB {
 		Set<String> keywordsWithoutEnginesList = new HashSet<String>();
 		//create a binding string for queries
 		String bindingsStr = "";
-		ISelectWrapper wrapper = Utility.processQuery(masterEngine,KEYWORDS_WITHOUT_ENGINES_QUERY);
+		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.KEYWORDS_WITHOUT_ENGINES_QUERY);
 		String[] names = wrapper.getVariables();
 		while(wrapper.hasNext())
 		{
@@ -245,12 +245,12 @@ public class DeleteMasterDB extends ModifyMasterDB {
 			ISelectStatement sjss = wrapper.next();
 			String keyword = (String)sjss.getVar(names[0]);
 			keywordsWithoutEnginesList.add(keyword);
-			bindingsStr = bindingsStr.concat("(<").concat(KEYWORD_BASE_URI).concat("/").concat(keyword).concat(">)");
+			bindingsStr = bindingsStr.concat("(<").concat(MasterDatabaseURIs.KEYWORD_BASE_URI).concat("/").concat(keyword).concat(">)");
 
 		}
 		
 		//delete the keyword type relationships
-		String boundKeywordTypeQuery = KEYWORDS_TYPE_QUERY.replaceAll("@BINDINGS@", bindingsStr);
+		String boundKeywordTypeQuery = MasterDatabaseQueries.KEYWORDS_TYPE_QUERY.replaceAll("@BINDINGS@", bindingsStr);
 		ISelectWrapper wrapper2 = Utility.processQuery(masterEngine,boundKeywordTypeQuery);
 		String[] names2 = wrapper2.getVariables();
 		while(wrapper2.hasNext())
@@ -258,12 +258,12 @@ public class DeleteMasterDB extends ModifyMasterDB {
 			ISelectStatement sjss = wrapper2.next();
 			String keyword = (String)sjss.getVar(names2[0]);
 			String typeURI = sjss.getRawVar(names2[1]).toString();
-			removeRelationship(KEYWORD_BASE_URI + "/" + keyword, typeURI, SEMOSS_RELATION_URI + "/Has/" + keyword + ":" + keyword);
-			masterEngine.removeStatement(typeURI, RDF.TYPE.stringValue(), RESOURCE_URI, true);
+			removeRelationship(MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, typeURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + keyword + ":" + keyword);
+			masterEngine.removeStatement(typeURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.RESOURCE_URI, true);
 		}
 		
 		//delete the mc keyword relationships
-		String boundMCKeywordsQuery = MC_KEYWORDS_QUERY.replaceAll("@BINDINGS@", bindingsStr);
+		String boundMCKeywordsQuery = MasterDatabaseQueries.MC_KEYWORDS_QUERY.replaceAll("@BINDINGS@", bindingsStr);
 		ISelectWrapper wrapper3 = Utility.processQuery(masterEngine,boundMCKeywordsQuery);
 		String[] names3 = wrapper3.getVariables();
 		while(wrapper3.hasNext())
@@ -272,14 +272,14 @@ public class DeleteMasterDB extends ModifyMasterDB {
 			ISelectStatement sjss = wrapper3.next();
 			String mc = (String)sjss.getVar(names3[0]);
 			String keyword = (String)sjss.getVar(names3[1]);
-			removeRelationship(KEYWORD_BASE_URI + "/" + keyword, MC_BASE_URI + "/" + mc, SEMOSS_RELATION_URI + "/ComposedOf/" + keyword + ":" +mc);
+			removeRelationship(MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, MasterDatabaseURIs.MC_BASE_URI + "/" + mc, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/ComposedOf/" + keyword + ":" +mc);
 		}
 		
 		//delete the keywords
 		Iterator<String> keywordIt = keywordsWithoutEnginesList.iterator();
 		while(keywordIt.hasNext()) {
 			String keyword = keywordIt.next();
-			removeNode(KEYWORD_BASE_URI + "/" + keyword);
+			removeNode(MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword);
 		}
 	}
 
@@ -296,7 +296,7 @@ public class DeleteMasterDB extends ModifyMasterDB {
 		Set<String> mcsWithoutKeywords = new HashSet<String>();
 		//create a binding string for queries
 		String bindingsStr = "";
-		ISelectWrapper wrapper = Utility.processQuery(masterEngine,MCS_WITHOUT_KEYWORDS_QUERY);
+		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.MCS_WITHOUT_KEYWORDS_QUERY);
 		String[] names = wrapper.getVariables();
 		while(wrapper.hasNext())
 		{
@@ -304,12 +304,12 @@ public class DeleteMasterDB extends ModifyMasterDB {
 			ISelectStatement sjss = wrapper.next();
 			String mc = (String)sjss.getVar(names[0]);
 			mcsWithoutKeywords.add(mc);
-			bindingsStr = bindingsStr.concat("(<").concat(MC_BASE_URI).concat("/").concat(mc).concat(">)");
+			bindingsStr = bindingsStr.concat("(<").concat(MasterDatabaseURIs.MC_BASE_URI).concat("/").concat(mc).concat(">)");
 
 		}
 		
 		//delete the parent mcs to any mc that no longer has any keywords bounded
-		String boundParentChildMCQuery = PARENT_CHILD_MC_QUERY.replaceAll("@BINDINGS@", bindingsStr);
+		String boundParentChildMCQuery = MasterDatabaseQueries.PARENT_CHILD_MC_QUERY.replaceAll("@BINDINGS@", bindingsStr);
 		ISelectWrapper wrapper2 = Utility.processQuery(masterEngine,boundParentChildMCQuery);
 		String[] names2 = wrapper2.getVariables();
 		while(wrapper2.hasNext())
@@ -317,11 +317,11 @@ public class DeleteMasterDB extends ModifyMasterDB {
 			ISelectStatement sjss = wrapper2.next();
 			String parentMC = (String)sjss.getVar(names2[0]);
 			String childMC = (String)sjss.getVar(names2[1]);
-			removeRelationship(MC_BASE_URI + "/" + parentMC, MC_BASE_URI + "/" + childMC, SEMOSS_RELATION_URI + "/ParentOf/" + parentMC + ":" + childMC);
+			removeRelationship(MasterDatabaseURIs.MC_BASE_URI + "/" + parentMC, MasterDatabaseURIs.MC_BASE_URI + "/" + childMC, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/ParentOf/" + parentMC + ":" + childMC);
 		}
 		
 		//delete the top hypernyms associated with the mcs that no longer have keywords bounded
-		String boundTopHypernymQuery = MC_TOP_HYPERNYM_MC_QUERY.replaceAll("@BINDINGS@", bindingsStr);
+		String boundTopHypernymQuery = MasterDatabaseQueries.MC_TOP_HYPERNYM_MC_QUERY.replaceAll("@BINDINGS@", bindingsStr);
 		ISelectWrapper wrapper3 = Utility.processQuery(masterEngine,boundTopHypernymQuery);
 		String[] names3 = wrapper3.getVariables();
 		while(wrapper3.hasNext())
@@ -329,14 +329,14 @@ public class DeleteMasterDB extends ModifyMasterDB {
 			ISelectStatement sjss = wrapper3.next();
 			String mc = (String)sjss.getVar(names3[0]);
 			String topHypernymMC = (String)sjss.getVar(names3[1]);
-			removeRelationship(MC_BASE_URI + "/" + mc, MC_BASE_URI + "/" + topHypernymMC, SEMOSS_RELATION_URI + "/HasTopHypernym/" + mc + ":" + topHypernymMC);
+			removeRelationship(MasterDatabaseURIs.MC_BASE_URI + "/" + mc, MasterDatabaseURIs.MC_BASE_URI + "/" + topHypernymMC, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/HasTopHypernym/" + mc + ":" + topHypernymMC);
 		}		
 		
 		//delete the master concepts
 		Iterator<String> mcItr = mcsWithoutKeywords.iterator();
 		while(mcItr.hasNext()) {
 			String mc = mcItr.next();
-			removeNode(MC_BASE_URI + "/" + mc);
+			removeNode(MasterDatabaseURIs.MC_BASE_URI + "/" + mc);
 		}
 	}
 
@@ -361,10 +361,10 @@ public class DeleteMasterDB extends ModifyMasterDB {
 		String instance = nodeURI.substring(index+1);
 
 		masterEngine.removeStatement(nodeURI, RDFS.LABEL.stringValue(), instance, false);
-		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), SEMOSS_CONCEPT_URI, true);
+		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.SEMOSS_CONCEPT_URI, true);
 		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), baseURI, true);
-		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), RESOURCE_URI, true);
-		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), RESOURCE_URI, false);
+		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.RESOURCE_URI, true);
+		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.RESOURCE_URI, false);
 	}
 
 	/**
@@ -379,13 +379,13 @@ public class DeleteMasterDB extends ModifyMasterDB {
 		String relBaseURI = relationURI.substring(0,relIndex);
 		String relInst = relationURI.substring(relIndex+1);
 
-		masterEngine.removeStatement(relationURI, RDFS.SUBPROPERTYOF.stringValue(), SEMOSS_RELATION_URI, true);
+		masterEngine.removeStatement(relationURI, RDFS.SUBPROPERTYOF.stringValue(), MasterDatabaseURIs.SEMOSS_RELATION_URI, true);
 		masterEngine.removeStatement(relationURI, RDFS.SUBPROPERTYOF.stringValue(), relBaseURI, true);
 		masterEngine.removeStatement(relationURI, RDFS.SUBPROPERTYOF.stringValue(), relationURI, true);
 		masterEngine.removeStatement(relationURI, RDFS.LABEL.stringValue(), relInst, false);
 		masterEngine.removeStatement(relationURI, RDF.TYPE.stringValue(), Constants.DEFAULT_PROPERTY_URI, true);
-		masterEngine.removeStatement(relationURI, RDF.TYPE.stringValue(), RESOURCE_URI, true);
-		masterEngine.removeStatement(node1URI, SEMOSS_RELATION_URI, node2URI, true);
+		masterEngine.removeStatement(relationURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.RESOURCE_URI, true);
+		masterEngine.removeStatement(node1URI, MasterDatabaseURIs.SEMOSS_RELATION_URI, node2URI, true);
 		masterEngine.removeStatement(node1URI, relBaseURI, node2URI, true);
 		masterEngine.removeStatement(node1URI, relationURI, node2URI, true);
 	}

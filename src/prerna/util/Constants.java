@@ -85,6 +85,8 @@ public class Constants {
 	public static final String CURRENT_PLAYSHEET = "layoutValue";
 	public static final String BASE_FOLDER = "BaseFolder";
 
+	public static final String LOCAL_MASTER_DB_NAME = "LocalMasterDatabase";
+	
 	// graphplaysheet option constants
 	// layouts
 	public static final String GPSSudowl = "GPS_SUDOWL_DEFAULT";
