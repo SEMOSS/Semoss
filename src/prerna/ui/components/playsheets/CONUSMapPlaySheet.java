@@ -82,22 +82,22 @@ public class CONUSMapPlaySheet extends BrowserPlaySheet {
 			{	
 				colName = var[j];
 				elementHash.put("size", 1000000);
-						if (listElement[j] instanceof String)
-						{	
-							String text = (String) listElement[j];
-							elementHash.put(colName, text);
-						}
-						else if (listElement[j] instanceof Double) {
-							value = (Double) listElement[j];							
-							elementHash.put(colName, value);
-						}
-						else 
-						{	
-							elementHash.put(colName, listElement[j]);
-						}
+				if (listElement[j] instanceof String)
+				{	
+					String text = (String) listElement[j];
+					elementHash.put(colName, text);
+				}
+				else if (listElement[j] instanceof Double) {
+					value = (Double) listElement[j];							
+					elementHash.put(colName, value);
+				}
+				else 
+				{	
+					elementHash.put(colName, listElement[j]);
+				}
 								
-			}	
-				data.add(elementHash);			
+			}
+			data.add(elementHash);			
 		}
 
 		allHash = new Hashtable();
