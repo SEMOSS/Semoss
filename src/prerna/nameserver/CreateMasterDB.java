@@ -38,8 +38,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.openrdf.model.Statement;
-import org.openrdf.model.vocabulary.RDF;
-import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
@@ -147,7 +145,7 @@ public class CreateMasterDB extends ModifyMasterDB {
 			Hashtable<String, SEMOSSVertex> vertStore  = gps.getGraphData().getVertStore();
 
 			addNewDBConcepts(engineName, vertStore, parentChildMapping);
-			addProperty(MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.PROP_URI + "/" + "API",baseURL,true);
+			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.PROP_URI + "/" + "API",baseURL,true);
 
 			String insights = Utility.retrieveResult(engineAPI + "/getInsightDefinition", null);
 			RepositoryConnection insightsRC = getNewRepository();
@@ -193,7 +191,7 @@ public class CreateMasterDB extends ModifyMasterDB {
 					forest.addNodes(node);
 					String topHypernym = Utility.cleanString(hypernymList.get(hypernymList.size()-1), false);
 					String cleanNoun = Utility.cleanString(noun, false);
-					addRelationship(MasterDatabaseURIs.MC_BASE_URI + "/" + cleanNoun, MasterDatabaseURIs.MC_BASE_URI + "/" + topHypernym, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/HasTopHypernym/" + cleanNoun + ":" + topHypernym);
+					MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.MC_BASE_URI + "/" + cleanNoun, MasterDatabaseURIs.MC_BASE_URI + "/" + topHypernym, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/HasTopHypernym/" + cleanNoun + ":" + topHypernym);
 				}
 				keywordConceptBipartiteGraph.addToKeywordSet(biNode);
 			}
@@ -208,78 +206,32 @@ public class CreateMasterDB extends ModifyMasterDB {
 			if(childrenMC != null && !childrenMC.isEmpty()) {
 				for(String childMC : childrenMC) {
 					String cleanChildMC = Utility.cleanString(childMC, false);
-					addNode(MasterDatabaseURIs.MC_BASE_URI + "/" + cleanParentMC);
-					addNode(MasterDatabaseURIs.MC_BASE_URI + "/" + cleanChildMC);
-					addRelationship(MasterDatabaseURIs.MC_BASE_URI + "/" + cleanParentMC, MasterDatabaseURIs.MC_BASE_URI + "/" + cleanChildMC, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/ParentOf/" + cleanParentMC + ":" + cleanChildMC);
+					MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.MC_BASE_URI + "/" + cleanParentMC);
+					MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.MC_BASE_URI + "/" + cleanChildMC);
+					MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.MC_BASE_URI + "/" + cleanParentMC, MasterDatabaseURIs.MC_BASE_URI + "/" + cleanChildMC, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/ParentOf/" + cleanParentMC + ":" + cleanChildMC);
 				}
 			}
 		}
 
-		addNode(MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName);
+		MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName);
 		// add keyword to mc information to db
 		Map<String, Set<String>> keywordMapping = keywordConceptBipartiteGraph.getKeywordMapping();
 		for(String keyword : keywordMapping.keySet()) {
-			addRelationship(MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + engineName + ":" +keyword);
+			MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + engineName + ":" +keyword);
 			Set<String> mcList = keywordMapping.get(keyword);
 			for(String mc : mcList) {
 				String cleanMC = Utility.cleanString(mc, false);
-				addNode(MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword);
-				addNode(MasterDatabaseURIs.MC_BASE_URI + "/" + cleanMC);
-				addRelationship(MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, MasterDatabaseURIs.MC_BASE_URI + "/" + cleanMC, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/ComposedOf/" + keyword + ":" + cleanMC);
+				MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword);
+				MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.MC_BASE_URI + "/" + cleanMC);
+				MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, MasterDatabaseURIs.MC_BASE_URI + "/" + cleanMC, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/ComposedOf/" + keyword + ":" + cleanMC);
 			}
 		}
-	}
-
-	/**
-	 * Adds a node and the necessary triples given its instance URI
-	 * @param nodeURI	String representing the URI for the node type. e.g. http://semoss.org/ontologies/Concept/MasterConcept/Dog
-	 * @throws EngineException
-	 */
-	private void addNode(String nodeURI) throws EngineException{
-
-		int index = nodeURI.lastIndexOf("/");
-		String baseURI = nodeURI.substring(0,index);
-		String instance = nodeURI.substring(index+1);
-		masterEngine.addStatement(nodeURI, RDF.TYPE.stringValue(), baseURI, true);
-		masterEngine.addStatement(baseURI, RDFS.SUBCLASSOF.stringValue(), MasterDatabaseURIs.SEMOSS_CONCEPT_URI, true);
-		masterEngine.addStatement(nodeURI, RDFS.LABEL.stringValue(), instance, false);
-	}
-
-	/**
-	 * Adds just the relationship given the URIs for the two nodes and the URI of the relation
-	 * @param node1URI	String representing the full URI of node 1 URI e.g. http://semoss.org/ontologies/Concept/MasterConcept/Dog
-	 * @param node2URI	String representing the full URI of node 2 URI e.g. http://semoss.org/ontologies/Concept/Keyword/Dog
-	 * @param relationURI	String representing the full URI of the relationship http://semoss.org/ontologies/Relation/Has/Dog:Dog
-	 * @throws EngineException
-	 */
-	private void addRelationship(String node1URI, String node2URI, String relationURI) throws EngineException{
-		int relIndex = relationURI.lastIndexOf("/");
-		String relBaseURI = relationURI.substring(0,relIndex);
-		String relInst = relationURI.substring(relIndex+1);
-
-		masterEngine.addStatement(relationURI, RDFS.SUBPROPERTYOF.stringValue(), relBaseURI,true);
-		masterEngine.addStatement(relBaseURI, RDFS.SUBPROPERTYOF.stringValue(), MasterDatabaseURIs.SEMOSS_RELATION_URI,true);
-		masterEngine.addStatement(relationURI, RDFS.LABEL.stringValue(), relInst,false);
-		masterEngine.addStatement(node1URI, relationURI, node2URI,true);
-	}
-
-
-	/**
-	 * Method to add property on an instance.
-	 * @param nodeURI	String containing the node or relationship URI to add the property to e.g. http://semoss.org/ontologies/Concept/MasterConcept/Dog
-	 * @param propURI	String representing the URI of the property relation e.g. http://semoss.org/ontologies/Relation/Contains/Weight
-	 * @param value	Value to add as the property e.g. 1.0
-	 * @throws EngineException	Thrown if statement cannot be added to the engine
-	 */
-	public void addProperty(String nodeURI, String propURI, Object value,Boolean isConcept) throws EngineException {
-		masterEngine.addStatement(nodeURI, propURI, value, isConcept);
 	}
 
 	public RepositoryConnection getNewRepository() {
 		try {
 			RepositoryConnection rc = null;
-			Repository myRepository = new SailRepository(
-					new ForwardChainingRDFSInferencer(new MemoryStore()));
+			Repository myRepository = new SailRepository(new ForwardChainingRDFSInferencer(new MemoryStore()));
 			myRepository.initialize();
 			rc = myRepository.getConnection();
 			return rc;
@@ -289,8 +241,7 @@ public class CreateMasterDB extends ModifyMasterDB {
 		return null;
 	}
 
-
-	private void addInsights(RepositoryConnection rc) throws EngineException {
+	private void addInsights(RepositoryConnection rc) {
 		try {
 			RepositoryResult<Statement> results = rc.getStatements(null, null, null, true);
 			while(results.hasNext()) {
@@ -301,8 +252,8 @@ public class CreateMasterDB extends ModifyMasterDB {
 					if(s.getObject() instanceof MemURI) {
 						String typeURI = ((MemURI) s.getObject()).stringValue();
 						String keyword = typeURI.substring(typeURI.lastIndexOf("/")+1);
-						addRelationship(MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, typeURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + keyword + ":" + keyword);
-						//					this.masterEngine.sc.addStatement(keyword, RDF.TYPE, masterEngine.vf.createURI(keywordBaseURI));
+						MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, typeURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + keyword + ":" + keyword);
+						//this.masterEngine.sc.addStatement(keyword, RDF.TYPE, masterEngine.vf.createURI(keywordBaseURI));
 					}
 					else {
 						logger.info("error adding param to keyword relationship for "+s.getSubject().stringValue()+">>>"+s.getPredicate().stringValue()+">>>"+s.getObject().stringValue());
