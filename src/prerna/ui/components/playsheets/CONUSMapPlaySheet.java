@@ -34,7 +34,9 @@ import java.util.LinkedHashMap;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.openrdf.model.Literal;
 
+import prerna.rdf.engine.api.ISelectStatement;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -85,10 +87,13 @@ public class CONUSMapPlaySheet extends BrowserPlaySheet {
 							String text = (String) listElement[j];
 							elementHash.put(colName, text);
 						}
-						else 
-						{	
+						else if (listElement[j] instanceof Double) {
 							value = (Double) listElement[j];							
 							elementHash.put(colName, value);
+						}
+						else 
+						{	
+							elementHash.put(colName, listElement[j]);
 						}
 								
 			}	
@@ -126,5 +131,25 @@ public class CONUSMapPlaySheet extends BrowserPlaySheet {
 		output.clear();
 		allHash.clear();
 		data.clear();
+	}
+	
+	@Override
+	public Object getVariable(String varName, ISelectStatement sjss){
+		Object var = sjss.getRawVar(varName);
+			if( var != null && var instanceof Literal) {
+				var = sjss.getVar(varName);
+			} 
+		return var;
+	}
+	
+	@Override
+	public Hashtable<String, String> getDataTableAlign() {
+		Hashtable<String, String> alignHash = new Hashtable<String, String>();
+		alignHash.put("label", names[0]);
+		alignHash.put("lat", names[1]);
+		alignHash.put("lon", names[2]);
+		if (names.length > 3 && !names[3].equals(null))
+			alignHash.put("size", names[3]);
+		return alignHash;
 	}
 }
