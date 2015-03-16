@@ -27,23 +27,19 @@
  *******************************************************************************/
 package prerna.rdf.engine.impl;
 
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
-import org.mvel2.util.ThisLiteral;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
-import org.openrdf.repository.RepositoryException;
-import org.openrdf.rio.RDFHandlerException;
-import org.openrdf.rio.rdfxml.RDFXMLWriter;
+import org.openrdf.sail.SailException;
 
+import prerna.nameserver.MasterDBHelper;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
 import prerna.rdf.engine.api.IEngine;
@@ -55,53 +51,45 @@ import com.google.gson.internal.StringMap;
 import com.ibm.icu.util.StringTokenizer;
 
 public class QuestionAdministrator {
-	Logger logger = Logger.getLogger(QuestionAdministrator.class.getName());
 
-	AbstractEngine engine;
-	RDFFileSesameEngine insightBaseXML;
+	private static final Logger logger = Logger.getLogger(QuestionAdministrator.class.getName());
+
+	private AbstractEngine engine;
+	private BigDataEngine masterDb;
+
+	private RDFFileSesameEngine insightBaseXML;
 	private String selectedEngine = null;
 
-	String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-
 	protected static final String semossURI = "http://semoss.org/ontologies/";
-	protected static final String conceptBaseURI = semossURI
-			+ Constants.DEFAULT_NODE_CLASS;
-	protected static final String relationBaseURI = semossURI
-			+ Constants.DEFAULT_RELATION_CLASS;
-	protected static final String engineBaseURI = semossURI
-			+ Constants.DEFAULT_NODE_CLASS + "/Engine";
-	protected static final String perspectiveBaseURI = semossURI
-			+ Constants.DEFAULT_NODE_CLASS + "/Perspective";
-	protected static final String insightBaseURI = semossURI
-			+ Constants.DEFAULT_NODE_CLASS + "/Insight";
-	protected static final String paramBaseURI = semossURI
-			+ Constants.DEFAULT_NODE_CLASS + "/Param";
+	protected static final String conceptBaseURI = semossURI + Constants.DEFAULT_NODE_CLASS;
+	protected static final String relationBaseURI = semossURI + Constants.DEFAULT_RELATION_CLASS;
+	protected static final String engineBaseURI = semossURI + Constants.DEFAULT_NODE_CLASS + "/Engine";
+	protected static final String perspectiveBaseURI = semossURI + Constants.DEFAULT_NODE_CLASS + "/Perspective";
+	protected static final String insightBaseURI = semossURI + Constants.DEFAULT_NODE_CLASS + "/Insight";
+	protected static final String paramBaseURI = semossURI + Constants.DEFAULT_NODE_CLASS + "/Param";
 	protected final static String resourceURI = "http://www.w3.org/2000/01/rdf-schema#Resource";
 
-	protected static final String enginePerspectiveBaseURI = semossURI
-			+ Constants.DEFAULT_RELATION_CLASS + "/Engine:Perspective";
-	protected static final String perspectiveInsightBaseURI = semossURI
-			+ Constants.DEFAULT_RELATION_CLASS + "/Perspective:Insight";
-	protected static final String engineInsightBaseURI = semossURI
-			+ Constants.DEFAULT_RELATION_CLASS + "/Engine:Insight";
-	protected static final String containsBaseURI = semossURI
-			+ Constants.DEFAULT_RELATION_CLASS + "/Contains";
+	protected static final String enginePerspectiveBaseURI = semossURI + Constants.DEFAULT_RELATION_CLASS + "/Engine:Perspective";
+	protected static final String perspectiveInsightBaseURI = semossURI + Constants.DEFAULT_RELATION_CLASS + "/Perspective:Insight";
+	protected static final String engineInsightBaseURI = semossURI + Constants.DEFAULT_RELATION_CLASS + "/Engine:Insight";
+	protected static final String containsBaseURI = semossURI + Constants.DEFAULT_RELATION_CLASS + "/Contains";
 	protected static final String labelBaseURI = containsBaseURI + "/Label";
 	protected static final String orderBaseURI = containsBaseURI + "/Order";
 	protected static final String idLabelBaseURI = containsBaseURI + "/IDLabel";
 	protected static final String layoutBaseURI = containsBaseURI + "/Layout";
 	protected static final String sparqlBaseURI = containsBaseURI + "/SPARQL";
 	// protected static final String tagBaseURI = containsBaseURI + "/Tag";
-	protected static final String descriptionBaseURI = containsBaseURI
-			+ "/Description";
+	protected static final String descriptionBaseURI = containsBaseURI + "/Description";
 
-	String engineURI2;
+	private String engineURI2;
 
 	public QuestionAdministrator(AbstractEngine engine) {
 		this.engine = engine;
 		this.selectedEngine = engine.getEngineName();
 		insightBaseXML =  engine.getInsightBaseXML();
 		engineURI2 = engineBaseURI + "/" + selectedEngine;
+
+		masterDb = (BigDataEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
 	}
 
 	public RDFFileSesameEngine getInsightBaseXML() {
@@ -111,11 +99,17 @@ public class QuestionAdministrator {
 	public void setEngineURI2(String engineURI2) {
 		this.engineURI2 = engineURI2;
 	}
-	
+
 	public void revertQuestionXML(){
 		engine.createInsightBase();
 		String insights = this.engine.getProperty(Constants.INSIGHTS);
 		engine.createBaseRelationXMLEngine(insights);
+
+		try {
+			masterDb.sc.rollback();
+		} catch (SailException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public void createQuestionXMLFile() {
@@ -126,8 +120,11 @@ public class QuestionAdministrator {
 
 	public void createQuestionXMLFile(String questionXMLFile, String baseFolder) {
 		engine.createQuestionXMLFile(questionXMLFile, baseFolder);
+
+		masterDb.infer();
+		masterDb.commit();
 	}
-	
+
 	private void add2XML(RDFFileSesameEngine xml, ArrayList<Object[]> masterList){
 		for(Object[] triple : masterList){
 			String sub = (String) triple[0];
@@ -135,9 +132,11 @@ public class QuestionAdministrator {
 			String obj = (String) triple[2];
 			Boolean concept = (Boolean) triple[3];
 			xml.addStatement(sub, pred, obj, concept);
+			
+			MasterDBHelper.addInsightStatementToMasterDBs(masterDb, selectedEngine, sub, pred, obj, concept);
 		}
 	}
-	
+
 	private void removeFromXML(RDFFileSesameEngine xml, ArrayList<Object[]> masterList){
 		for(Object[] triple : masterList){
 			String sub = (String) triple[0];
@@ -145,19 +144,17 @@ public class QuestionAdministrator {
 			String obj = (String) triple[2];
 			Boolean concept = (Boolean) triple[3];
 			xml.removeStatement(sub, pred, obj, concept);
+
+			MasterDBHelper.removeInsightStatementToMasterDBs(masterDb, selectedEngine, sub, pred, obj, concept);
 		}
 	}
 
+
 	/**
 	 * Adds a perspective.
-	 * 
-	 * @param perspectivePred
-	 *            String for relationship between engine and perspective full
-	 *            URI
-	 * @param perspectiveURI
-	 *            String for the perspective instance full URI
-	 * @param perspective
-	 *            String for the perspective instance
+	 * @param perspectivePred 		String for relationship between engine and perspective full URI
+	 * @param perspectiveURI		String for the perspective instance full URI
+	 * @param perspective			String for the perspective instance
 	 */
 	private void addPerspective(String perspectivePred, String perspectiveURI, String perspective) {
 		logger.info("Adding perspective " + perspective + "      " + perspectivePred + "     " + perspectiveURI);
@@ -259,7 +256,7 @@ public class QuestionAdministrator {
 		String questionKey = null;
 		boolean existingPerspective = false;
 		boolean existingAutoGenQuestionKey = false;
-		
+
 		Vector<Object> questionsV = engine.getInsights(perspective);
 
 		if(questionsV!=null && !questionsV.isEmpty()) {
@@ -340,7 +337,7 @@ public class QuestionAdministrator {
 		Vector<String> currentQuestionOrderVector = engine.getOrderedInsightsURI(perspectiveURI);
 		if(currentQuestionOrderVector == null ) currentQuestionOrderVector = new Vector<String>();
 		System.out.println("questions currenlty ordered as " + currentQuestionOrderVector);
-		
+
 		//now add the question
 		String questionURI = addQuestion( perspective, questionKey, questionOrder, question, sparql, layout, questionDescription, parameterDependList, parameterQueryList, parameterOptionList);
 
@@ -350,7 +347,7 @@ public class QuestionAdministrator {
 		int order = Integer.parseInt(questionOrder);
 		newQuestionOrderVector.add(order-1, questionURI);
 		System.out.println("new order of questions : " + newQuestionOrderVector);
-		
+
 		// now reorder
 		reorderPerspective2(currentQuestionOrderVector, newQuestionOrderVector);
 	}
@@ -434,7 +431,7 @@ public class QuestionAdministrator {
 		String deletedPerspectiveURI = getPerspectiveURI(currentPerspective);
 		Vector<String> currentDelQuestionOrderVector = engine.getOrderedInsightsURI(deletedPerspectiveURI);
 		System.out.println("questions currenlty ordered in deleted as " + currentDelQuestionOrderVector);
-		
+
 		Vector<String> currentAddQuestionOrderVector = null;
 		String addPerspectiveURI = null;
 		if(!perspective.equals(currentPerspective)){
@@ -452,7 +449,7 @@ public class QuestionAdministrator {
 		addQuestion(perspective, questionKey, questionOrder, question, sparql,
 				layout, questionDescription, parameterDependList,
 				parameterQueryList, parameterOptionList);
-		
+
 		//now reorder
 		Vector<String> newDelQuestionOrderVector = engine.getOrderedInsightsURI(deletedPerspectiveURI);
 		reorderPerspective2(currentDelQuestionOrderVector, newDelQuestionOrderVector);
@@ -460,16 +457,16 @@ public class QuestionAdministrator {
 			Vector<String> newAddQuestionOrderVector = engine.getOrderedInsightsURI(addPerspectiveURI);
 			reorderPerspective2(currentAddQuestionOrderVector, newAddQuestionOrderVector);
 		}
-		
+
 	}
-	
+
 	public void deleteQuestions(String perspective, Vector<String> questionTitles)
 	{
 		//get current order of insights in this perspective
 		String perspectiveURI = getPerspectiveURI(perspective);
 		Vector<String> currentQuestionOrderVector = engine.getOrderedInsightsURI(perspectiveURI);
 		System.out.println("questions currenlty ordered as " + currentQuestionOrderVector);
-		
+
 		Hashtable<String, Boolean> results = new Hashtable<String,Boolean>();
 		//now delete the questions
 		for(String questionTitle : questionTitles){
@@ -499,16 +496,16 @@ public class QuestionAdministrator {
 			String perspectivePred = getPerspectivePred(perspective);
 			removePerspective(perspectivePred, perspectiveURI, perspective);
 		}
-		
+
 		// else get the new order of the insights and reorder
 		else
 		{
 			System.out.println("new order of questions : " + newQuestionOrderVector);
-			
+
 			// now reorder
 			reorderPerspective2(currentQuestionOrderVector, newQuestionOrderVector);
 		}
-		
+
 	}
 
 	/**This method should be used when simply deleting one question. It is clean in that it will reorder the perspective if needed or delete the perspective if it is now empty
@@ -540,7 +537,7 @@ public class QuestionAdministrator {
 				+ parameterDependList + "; parameterQueryList="
 				+ parameterQueryList + "; parameterOptionList="
 				+ parameterOptionList);
-		
+
 		//get current order of insights in this perspective
 		String perspectiveURI = getPerspectiveURI(perspective);
 		Vector<String> currentQuestionOrderVector = engine.getOrderedInsightsURI(perspectiveURI);
@@ -555,7 +552,7 @@ public class QuestionAdministrator {
 			String perspectivePred = getPerspectivePred(perspective);
 			removePerspective(perspectivePred, perspectiveURI, perspective);
 		}
-		
+
 		// else get the new order of the insights and reorder
 		else
 		{
@@ -564,11 +561,11 @@ public class QuestionAdministrator {
 			int order = Integer.parseInt(questionOrder);
 			newQuestionOrderVector.remove(order-1);
 			System.out.println("new order of questions : " + newQuestionOrderVector);
-			
+
 			// now reorder
 			reorderPerspective2(currentQuestionOrderVector, newQuestionOrderVector);
 		}
-		
+
 
 		return true;
 	}
@@ -613,7 +610,7 @@ public class QuestionAdministrator {
 
 		// add all question properties
 		removeQuestionProperties(qURI, questionOrder, question, questionKey, sparql, layout, questionDescription);
-		
+
 
 		Enumeration<String> paramKeys = paramHash.keys();
 
@@ -646,7 +643,7 @@ public class QuestionAdministrator {
 			pURI = perspectiveBaseURI + "/" + selectedEngine + ":"
 					+ perspective;
 		}
-		
+
 		return pURI;
 	}
 
@@ -683,7 +680,7 @@ public class QuestionAdministrator {
 			Vector<String> parameterQueryVector = paramHash.get("parameterQueryVector");
 			Vector<String> dependVector = paramHash.get("dependVector");
 			Vector<String> optionVector = paramHash.get("optionVector");
-			
+
 			deleteQuestion(perspective, questionKey, questionOrder, question,
 					sparql, layoutValue, questionDescription, dependVector,
 					parameterQueryVector, optionVector);
@@ -691,7 +688,7 @@ public class QuestionAdministrator {
 		// delete perspective from the engine
 		removePerspective(perspectivePred, perspectiveURI, perspective);
 	}
-	
+
 	public Hashtable<String, Vector<String>> getParameterVectors(String questionURI){
 		Vector<String> parameterQueryVector = new Vector<String>();
 		Vector<String> dependVector = new Vector<String>();
@@ -750,7 +747,7 @@ public class QuestionAdministrator {
 		}
 		reorderPerspective2(perspective, idVector);
 	}
-	
+
 	public void reorderPerspective2(String perspective, Vector<String> orderedInsightIDs) {
 		String perspectiveURI = getPerspectiveURI(perspective);
 		logger.info("Reordering all questions from perspective with this URI: "
@@ -758,45 +755,45 @@ public class QuestionAdministrator {
 		Vector<String> questionsVector = engine
 				.getOrderedInsightsURI(perspectiveURI);
 		System.out.println("questions currenlty ordered as " + questionsVector);
-		
+
 		reorderPerspective2(questionsVector, orderedInsightIDs);
 	}
 
 	public void reorderPerspective2(Vector<String> currentOrderOfInsightsIDs, Vector<String> newOrderOfInsightsIDs) {
 
-//		// determine difference in order between orderedInsights and
-//		// questionsVector so that we only update the questions that need
-//		// updating
-//		Hashtable<String, Integer> needsReorder = new Hashtable<String, Integer>();
-//		for (int i = 0; i < newOrderOfInsightsIDs.size(); i++) {
-//			String qID = newOrderOfInsightsIDs.get(i);
-//			if ((currentOrderOfInsightsIDs != null && i >= currentOrderOfInsightsIDs.size()) || (currentOrderOfInsightsIDs != null && 
-//					!Utility.getInstanceName(qID).equals(Utility.getInstanceName(currentOrderOfInsightsIDs.get(i))))) {
-//				needsReorder.put(qID, i+1);
-//			}
-//		}
+		//		// determine difference in order between orderedInsights and
+		//		// questionsVector so that we only update the questions that need
+		//		// updating
+		//		Hashtable<String, Integer> needsReorder = new Hashtable<String, Integer>();
+		//		for (int i = 0; i < newOrderOfInsightsIDs.size(); i++) {
+		//			String qID = newOrderOfInsightsIDs.get(i);
+		//			if ((currentOrderOfInsightsIDs != null && i >= currentOrderOfInsightsIDs.size()) || (currentOrderOfInsightsIDs != null && 
+		//					!Utility.getInstanceName(qID).equals(Utility.getInstanceName(currentOrderOfInsightsIDs.get(i))))) {
+		//				needsReorder.put(qID, i+1);
+		//			}
+		//		}
 
 		// now reorder!
-//		Iterator<String> it = needsReorder.keySet().iterator();
-//		while (it.hasNext()) {
-//			String key = it.next();
-//			String qURI = key;
-//			if(!qURI.contains("http://semoss.org/ontologies/Concept/Insight/"))
-//				qURI = "http://semoss.org/ontologies/Concept/Insight/" + qURI;
-//			
-//			Insight in = ((AbstractEngine) engine).getInsight2URI(qURI).get(0);
-//
-//			System.out.println("Removing order question " + qURI);
-//			String questionOrder = in.getOrder();
-//			String newOrder = needsReorder.get(key) + "";
-//			reorderQuestion(qURI, newOrder, questionOrder);
-//
-//		}
+		//		Iterator<String> it = needsReorder.keySet().iterator();
+		//		while (it.hasNext()) {
+		//			String key = it.next();
+		//			String qURI = key;
+		//			if(!qURI.contains("http://semoss.org/ontologies/Concept/Insight/"))
+		//				qURI = "http://semoss.org/ontologies/Concept/Insight/" + qURI;
+		//			
+		//			Insight in = ((AbstractEngine) engine).getInsight2URI(qURI).get(0);
+		//
+		//			System.out.println("Removing order question " + qURI);
+		//			String questionOrder = in.getOrder();
+		//			String newOrder = needsReorder.get(key) + "";
+		//			reorderQuestion(qURI, newOrder, questionOrder);
+		//
+		//		}
 		for (String key : newOrderOfInsightsIDs) {
 			String qURI = key;
 			if(!qURI.contains("http://semoss.org/ontologies/Concept/Insight/"))
 				qURI = "http://semoss.org/ontologies/Concept/Insight/" + qURI;
-			
+
 			Insight in = engine.getInsight2URI(qURI).get(0);
 
 			System.out.println("Removing order question " + qURI);
@@ -815,14 +812,14 @@ public class QuestionAdministrator {
 				insightBaseXML.removeStatement(questionURI, orderBaseURI,
 						oldQuestionOrder, false);
 			}
-	
+
 			System.out.println("Changing order for " + questionURI + " from " + oldQuestionOrder + " to question "
 					+ newQuestionOrder );
 			insightBaseXML.addStatement(questionURI, orderBaseURI, newQuestionOrder, false);
 		}
 		else 
 			System.out.println("the order has not been updtaed for " + questionURI);
-		
+
 	}
 
 	private String getQPred(String perspective, String qsKey) {
@@ -857,10 +854,10 @@ public class QuestionAdministrator {
 	private String getqsParamKey(String paramBaseURI, String perspective, String qsKey, String paramKey)
 	{
 		String qsParamKey = paramBaseURI + "/" + selectedEngine + ":"
-			+ perspective + ":" + qsKey + ":" + paramKey;
+				+ perspective + ":" + qsKey + ":" + paramKey;
 		return qsParamKey;
 	}
-	
+
 	private ArrayList<Object[]> getEngine2PerspectiveTriples(String perspectivePred, String perspectiveURI, String perspective){
 		ArrayList<Object[]> masterList = new ArrayList<Object[]>();
 
@@ -868,18 +865,18 @@ public class QuestionAdministrator {
 		masterList.add(new Object[] {perspectiveURI, RDF.TYPE.stringValue(), perspectiveBaseURI, true});
 		masterList.add(new Object[] {perspectiveURI, RDFS.LABEL.stringValue(), selectedEngine + ":" + perspective, false});
 		masterList.add(new Object[] {perspectiveURI, labelBaseURI, perspective, false});
-		
+
 		//define the predicate
 		masterList.add(new Object[] {perspectivePred, RDFS.SUBPROPERTYOF.stringValue(), enginePerspectiveBaseURI, true});
 		masterList.add(new Object[] {perspectivePred, RDFS.LABEL.stringValue(), selectedEngine + Constants.RELATION_URI_CONCATENATOR + selectedEngine + ":" + perspective, false});
-		
+
 		//define the relationship
 		masterList.add(new Object[] {engineURI2, perspectivePred, perspectiveURI, true});
-		
+
 		// remove the resource and concept uris
 		masterList.add(new Object[] {perspectiveURI, RDF.TYPE.stringValue(), conceptBaseURI, true});
 		masterList.add(new Object[] {perspectiveURI, RDF.TYPE.stringValue(), resourceURI, true});
-		
+
 		return masterList;
 	}
 
@@ -910,7 +907,7 @@ public class QuestionAdministrator {
 		masterList.add(new Object[] {qPred, RDFS.SUBPROPERTYOF.stringValue(), relationBaseURI, true});
 		masterList.add(new Object[] {qURI, RDF.TYPE.stringValue(), conceptBaseURI, true});
 		masterList.add(new Object[] {qURI, RDF.TYPE.stringValue(), resourceURI, true});
-		
+
 		return masterList;
 	}
 
@@ -983,7 +980,7 @@ public class QuestionAdministrator {
 				{
 					query = parameterProperties.get(customQueryKey);
 				}
-				
+
 				masterList.add(new Object[] {qsParamKey, "PARAM:QUERY", query, false});
 
 				// see if there is dependency
@@ -1007,7 +1004,7 @@ public class QuestionAdministrator {
 				masterList.add(new Object[] {qsParamKey, "PARAM:TYPE", type, true});
 			}
 		}
-		
+
 		return masterList;
 	}
 }
