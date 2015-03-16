@@ -33,6 +33,10 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import org.openrdf.model.vocabulary.RDF;
+import org.openrdf.model.vocabulary.RDFS;
+
+import prerna.error.EngineException;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
@@ -44,6 +48,116 @@ public final class MasterDBHelper {
 
 	private MasterDBHelper() {
 		
+	}
+	
+	public static void removeInsightStatementToMasterDBs(IEngine masterEngine, String selectedEngineName, String sub, String pred, String obj, Boolean concept) {
+		masterEngine.removeStatement(sub, pred, obj, concept);
+		if(pred.equals("PARAM:TYPE")) {
+			if(concept) {
+				String keyword = obj.substring(obj.lastIndexOf("/")+1);
+				removeRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, obj, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + keyword + ":" + keyword);
+				removeRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + selectedEngineName, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + selectedEngineName + ":" + keyword);
+			}
+		}
+	}
+	
+	public static void addInsightStatementToMasterDBs(IEngine masterEngine, String selectedEngineName, String sub, String pred, String obj, Boolean concept) {
+		masterEngine.addStatement(sub, pred, obj, concept);
+		if(pred.equals("PARAM:TYPE")) {
+			if(concept) {
+				String keyword = obj.substring(obj.lastIndexOf("/")+1);
+				addRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, obj, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + keyword + ":" + keyword);
+				addRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + selectedEngineName, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + selectedEngineName + ":" + keyword);
+			}
+		}
+	}
+	
+	/**
+	 * Adds a node and the necessary triples given its instance URI
+	 * @param nodeURI	String representing the URI for the node type. e.g. http://semoss.org/ontologies/Concept/MasterConcept/Dog
+	 * @throws EngineException
+	 */
+	public static void addNode(IEngine masterEngine, String nodeURI) {
+		int index = nodeURI.lastIndexOf("/");
+		String baseURI = nodeURI.substring(0,index);
+		String instance = nodeURI.substring(index+1);
+		masterEngine.addStatement(nodeURI, RDF.TYPE.stringValue(), baseURI, true);
+		masterEngine.addStatement(baseURI, RDFS.SUBCLASSOF.stringValue(), MasterDatabaseURIs.SEMOSS_CONCEPT_URI, true);
+		masterEngine.addStatement(nodeURI, RDFS.LABEL.stringValue(), instance, false);
+	}
+
+	/**
+	 * Adds just the relationship given the URIs for the two nodes and the URI of the relation
+	 * @param node1URI	String representing the full URI of node 1 URI e.g. http://semoss.org/ontologies/Concept/MasterConcept/Dog
+	 * @param node2URI	String representing the full URI of node 2 URI e.g. http://semoss.org/ontologies/Concept/Keyword/Dog
+	 * @param relationURI	String representing the full URI of the relationship http://semoss.org/ontologies/Relation/Has/Dog:Dog
+	 * @throws EngineException
+	 */
+	public static void addRelationship(IEngine masterEngine, String node1URI, String node2URI, String relationURI) {
+		int relIndex = relationURI.lastIndexOf("/");
+		String relBaseURI = relationURI.substring(0,relIndex);
+		String relInst = relationURI.substring(relIndex+1);
+
+		masterEngine.addStatement(relationURI, RDFS.SUBPROPERTYOF.stringValue(), relBaseURI,true);
+		masterEngine.addStatement(relBaseURI, RDFS.SUBPROPERTYOF.stringValue(), MasterDatabaseURIs.SEMOSS_RELATION_URI,true);
+		masterEngine.addStatement(relationURI, RDFS.LABEL.stringValue(), relInst,false);
+		masterEngine.addStatement(node1URI, relationURI, node2URI,true);
+	}
+
+
+	/**
+	 * Method to add property on an instance.
+	 * @param nodeURI	String containing the node or relationship URI to add the property to e.g. http://semoss.org/ontologies/Concept/MasterConcept/Dog
+	 * @param propURI	String representing the URI of the property relation e.g. http://semoss.org/ontologies/Relation/Contains/Weight
+	 * @param value	Value to add as the property e.g. 1.0
+	 * @throws EngineException	Thrown if statement cannot be added to the engine
+	 */
+	public static void addProperty(IEngine masterEngine, String nodeURI, String propURI, Object value,Boolean isConcept) {
+		masterEngine.addStatement(nodeURI, propURI, value, isConcept);
+	}
+	
+	/**
+	 * Removes a node and the necessary triples given its instance URI
+	 * @param nodeURI	String representing the URI for the node type. e.g. http://semoss.org/ontologies/Concept/MasterConcept/Dog
+	 * @throws EngineException
+	 */
+	public static void removeNode(IEngine masterEngine, String nodeURI) {
+		int index = nodeURI.lastIndexOf("/");
+		String baseURI = nodeURI.substring(0,index);
+		String instance = nodeURI.substring(index+1);
+		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), baseURI, true);
+		masterEngine.removeStatement(baseURI, RDFS.SUBCLASSOF.stringValue(), MasterDatabaseURIs.SEMOSS_CONCEPT_URI, true);
+		masterEngine.removeStatement(nodeURI, RDFS.LABEL.stringValue(), instance, false);
+	}
+
+	/**
+	 * Removes just the relationship given the URIs for the two nodes and the URI of the relation
+	 * @param node1URI	String representing the full URI of node 1 URI e.g. http://semoss.org/ontologies/Concept/MasterConcept/Dog
+	 * @param node2URI	String representing the full URI of node 2 URI e.g. http://semoss.org/ontologies/Concept/Keyword/Dog
+	 * @param relationURI	String representing the full URI of the relationship http://semoss.org/ontologies/Relation/Has/Dog:Dog
+	 * @throws EngineException
+	 */
+	public static void removeRelationship(IEngine masterEngine, String node1URI, String node2URI, String relationURI) {
+		int relIndex = relationURI.lastIndexOf("/");
+		String relBaseURI = relationURI.substring(0,relIndex);
+		String relInst = relationURI.substring(relIndex+1);
+
+		masterEngine.removeStatement(relationURI, RDFS.SUBPROPERTYOF.stringValue(), relBaseURI,true);
+		masterEngine.removeStatement(relBaseURI, RDFS.SUBPROPERTYOF.stringValue(), MasterDatabaseURIs.SEMOSS_RELATION_URI,true);
+		masterEngine.removeStatement(relationURI, RDFS.LABEL.stringValue(), relInst,false);
+		masterEngine.removeStatement(node1URI, relationURI, node2URI,true);
+	}
+
+
+	/**
+	 * Method to remove property on an instance.
+	 * @param nodeURI	String containing the node or relationship URI to add the property to e.g. http://semoss.org/ontologies/Concept/MasterConcept/Dog
+	 * @param propURI	String representing the URI of the property relation e.g. http://semoss.org/ontologies/Relation/Contains/Weight
+	 * @param value	Value to remove as the property e.g. 1.0
+	 * @throws EngineException	Thrown if statement cannot be added to the engine
+	 */
+	public static void removeProperty(IEngine masterEngine, String nodeURI, String propURI, Object value,Boolean isConcept) {
+		masterEngine.removeStatement(nodeURI, propURI, value, isConcept);
 	}
 	
 	/**
