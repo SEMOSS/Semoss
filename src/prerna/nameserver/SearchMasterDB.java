@@ -59,7 +59,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 	}
 
 	public List<Hashtable<String,Object>> getRelatedInsights(List<String> instanceURIList) {
-		String keywordURI = KEYWORD_BASE_URI + "/" + Utility.getClassName(instanceURIList.get(0));
+		String keywordURI = MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + Utility.getClassName(instanceURIList.get(0));
 		// track all keywords
 		Set<String> keywordSet = new HashSet<String>();
 		// track all the engines that contain the keywords to speed up instance search
@@ -95,16 +95,16 @@ public class SearchMasterDB extends ModifyMasterDB {
 			
 			if(engineInstances.containsKey(engine)) {
 				Map<String, String> typeAndInstance = engineInstances.get(engine);
-				String typeURI = SEMOSS_CONCEPT_URI.concat("/").concat(Utility.getInstanceName(keyword));
+				String typeURI = MasterDatabaseURIs.SEMOSS_CONCEPT_URI.concat("/").concat(Utility.getInstanceName(keyword));
 				if(typeAndInstance != null && typeAndInstance.containsKey(typeURI)) {
 					Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
-					insightHash.put(DB_KEY, engine);
-					insightHash.put(QUESITON_KEY, insightLabel);
-					insightHash.put(TYPE_KEY, typeURI);
-					insightHash.put(PERSPECTIVE_KEY, perspectiveLabel);
-					insightHash.put(VIZ_TYPE_KEY, viz);
-					insightHash.put(SCORE_KEY, 1.0 - similarKeywordScores.get(keyword));
-					insightHash.put(INSTANCE_KEY, typeAndInstance.get(typeURI));
+					insightHash.put(MasterDatabaseConstants.DB_KEY, engine);
+					insightHash.put(MasterDatabaseConstants.QUESITON_KEY, insightLabel);
+					insightHash.put(MasterDatabaseConstants.TYPE_KEY, typeURI);
+					insightHash.put(MasterDatabaseConstants.PERSPECTIVE_KEY, perspectiveLabel);
+					insightHash.put(MasterDatabaseConstants.VIZ_TYPE_KEY, viz);
+					insightHash.put(MasterDatabaseConstants.SCORE_KEY, 1.0 - similarKeywordScores.get(keyword));
+					insightHash.put(MasterDatabaseConstants.INSTANCE_KEY, typeAndInstance.get(typeURI));
 					insightList.add(insightHash);
 				}
 			}
@@ -117,7 +117,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 		Hashtable<String, String> engineURLHash = new Hashtable<String, String>();
 		MasterDBHelper.fillAPIHash(masterEngine, engineURLHash);
 
-		String keywordURI = KEYWORD_BASE_URI + "/" + Utility.getClassName(instanceURIList.get(0));
+		String keywordURI = MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + Utility.getClassName(instanceURIList.get(0));
 		
 		// track all keywords
 		Set<String> keywordSet = new HashSet<String>();
@@ -159,18 +159,18 @@ public class SearchMasterDB extends ModifyMasterDB {
 			
 			if(engineInstances.containsKey(engine)) {
 				Map<String, String> typeAndInstance = engineInstances.get(engine);
-				String typeURI = SEMOSS_CONCEPT_URI.concat("/").concat(Utility.getInstanceName(keyword));
+				String typeURI = MasterDatabaseURIs.SEMOSS_CONCEPT_URI.concat("/").concat(Utility.getInstanceName(keyword));
 				if(typeAndInstance != null && typeAndInstance.containsKey(typeURI)) {
 					Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
-					insightHash.put(DB_KEY, engine);
-					insightHash.put(QUESITON_KEY, insightLabel);
-					insightHash.put(TYPE_KEY, typeURI);
-					insightHash.put(PERSPECTIVE_KEY, perspectiveLabel);
-					insightHash.put(VIZ_TYPE_KEY, viz);
-					insightHash.put(SCORE_KEY, 1.0 - similarKeywordScores.get(keyword));
-					insightHash.put(INSTANCE_KEY, typeAndInstance.get(typeURI));
+					insightHash.put(MasterDatabaseConstants.DB_KEY, engine);
+					insightHash.put(MasterDatabaseConstants.QUESITON_KEY, insightLabel);
+					insightHash.put(MasterDatabaseConstants.TYPE_KEY, typeURI);
+					insightHash.put(MasterDatabaseConstants.PERSPECTIVE_KEY, perspectiveLabel);
+					insightHash.put(MasterDatabaseConstants.VIZ_TYPE_KEY, viz);
+					insightHash.put(MasterDatabaseConstants.SCORE_KEY, 1.0 - similarKeywordScores.get(keyword));
+					insightHash.put(MasterDatabaseConstants.INSTANCE_KEY, typeAndInstance.get(typeURI));
 					String engineURI = engineURLHash.get(engine);
-					insightHash.put(ENGINE_URI_KEY, engineURI);
+					insightHash.put(MasterDatabaseConstants.ENGINE_URI_KEY, engineURI);
 					insightList.add(insightHash);
 				}
 			}
@@ -190,7 +190,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 				bindingsStr = bindingsStr.concat("(<").concat(instanceBaseURI).concat("/").concat(keywordName).concat("/").concat(Utility.getInstanceName(instanceURIList.get(j))).concat(">)");
 			}
 		}
-		return INSTANCE_EXISTS_QUERY.replace("@BINDINGS@", bindingsStr);
+		return MasterDatabaseQueries.INSTANCE_EXISTS_QUERY.replace("@BINDINGS@", bindingsStr);
 	}
 	
 	private String formInsightsForKeywordsQuery(String keywordURI, Set<String> keywordSet, Map<String, Double> similarKeywordScores) {
@@ -212,7 +212,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 			keywords = keywords.concat("(<").concat(similarKeywordList.get(i)).concat(">)");
 		}
 		
-		return GET_INSIGHTS_FOR_KEYWORDS.replace("@KEYWORDS@", keywords);
+		return MasterDatabaseQueries.GET_INSIGHTS_FOR_KEYWORDS.replace("@KEYWORDS@", keywords);
 	}
 	
 	private Map<String, String> getTypeAndInstance(ISelectWrapper sjsw) {

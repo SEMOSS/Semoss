@@ -27,20 +27,27 @@
  *******************************************************************************/
 package prerna.nameserver;
 
-public interface IMasterDatabaseConstants {
+import prerna.util.Constants;
 
-	// similarity cutoff value
-	double similarityCutOff = 0.20;
-	double mainNounWeight = 0.8;
-	double otherNounWeight = 0.2;
+public final class MasterDatabaseURIs {
+
+	private MasterDatabaseURIs() {
+		
+	}
 	
-	// keys for passing insights
-	String DB_KEY = "database";
-	String SCORE_KEY = "similarityScore";
-	String QUESITON_KEY = "question";
-	String TYPE_KEY = "type";
-	String PERSPECTIVE_KEY = "perspective";
-	String INSTANCE_KEY = "instances";
-	String VIZ_TYPE_KEY = "viz";
-	String ENGINE_URI_KEY = "engineURI";
+	public static final String SEMOSS_URI = "http://semoss.org/ontologies";
+	public static final String SEMOSS_CONCEPT_URI = SEMOSS_URI + "/" + Constants.DEFAULT_NODE_CLASS;
+	public static final String SEMOSS_RELATION_URI = SEMOSS_URI + "/" + Constants.DEFAULT_RELATION_CLASS;
+	public static final String PROP_URI = SEMOSS_RELATION_URI + "/Contains";
+
+	public static final String RESOURCE_URI = "http://www.w3.org/2000/01/rdf-schema#Resource";
+	public static final String MC_BASE_URI = SEMOSS_CONCEPT_URI+"/MasterConcept";
+	public static final String KEYWORD_BASE_URI = SEMOSS_CONCEPT_URI+"/Keyword";
+	public static final String ENGINE_BASE_URI = SEMOSS_CONCEPT_URI+"/Engine";
+	
+	public static final String USER_BASE_URI = SEMOSS_CONCEPT_URI + "/User";
+	public static final String USER_INSIGHT_BASE_URI = SEMOSS_CONCEPT_URI + "/UserInsight";
+	public static final String INSIGHT_BASE_URI = SEMOSS_CONCEPT_URI + "/Insight";
+	public static final String PERSPECTIVE_BASE_URI = SEMOSS_CONCEPT_URI+"/Perspective";
+	public static final String ENGINE_KEYWORD_BASE_URI = SEMOSS_RELATION_URI + "/Has";
 }
