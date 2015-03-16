@@ -1,5 +1,5 @@
 package prerna.util;
 
 public enum MachineLearningEnum {
-	Clustering, AssociationLearning, Classify, Outliers, Similarity, MatrixRegression, NumericalCorrelation
+	Clustering, Outliers, Similarity /* AssociationLearning, Classify, MatrixRegression, NumericalCorrelation */
 }
