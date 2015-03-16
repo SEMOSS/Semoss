@@ -28,10 +28,10 @@
 package prerna.rdf.engine.impl;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.List;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
@@ -43,6 +43,8 @@ import prerna.nameserver.MasterDBHelper;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -78,6 +80,7 @@ public class QuestionAdministrator {
 	protected static final String idLabelBaseURI = containsBaseURI + "/IDLabel";
 	protected static final String layoutBaseURI = containsBaseURI + "/Layout";
 	protected static final String sparqlBaseURI = containsBaseURI + "/SPARQL";
+	protected static final String TIME_STAMP_URI = containsBaseURI + "/TimeStamp";
 	// protected static final String tagBaseURI = containsBaseURI + "/Tag";
 	protected static final String descriptionBaseURI = containsBaseURI + "/Description";
 
@@ -119,12 +122,33 @@ public class QuestionAdministrator {
 	}
 
 	public void createQuestionXMLFile(String questionXMLFile, String baseFolder) {
+		// remove previous time stamp
+		removeTimeStampFromEngine();
+		
+		// get new current time
+		Date currentTime = Utility.getCurrentTime();
+		insightBaseXML.addStatement(engineURI2, TIME_STAMP_URI, currentTime, false);
 		engine.createQuestionXMLFile(questionXMLFile, baseFolder);
 
+		// add new current time to master db for engine
+		masterDb.addStatement(engineURI2, TIME_STAMP_URI, currentTime, false);
 		masterDb.infer();
 		masterDb.commit();
 	}
-
+	
+	public void removeTimeStampFromEngine() {
+		String previousTimeStampQuery = "SELECT DISTINCT ?Engine ?Time Where { {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?Engine <http://semoss.org/ontologies/Relation/Contains/TimeStamp> ?Time}}";
+		
+		ISelectWrapper sjsw = Utility.processQuery(insightBaseXML, previousTimeStampQuery);
+		String[] names = sjsw.getVariables();
+		while(sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			String engine = sjss.getRawVar(names[0]).toString();
+			Date engineDate = (Date) sjss.getVar(names[1]);
+			insightBaseXML.removeStatement(engine, TIME_STAMP_URI, engineDate, false);
+		}
+	}
+	
 	private void add2XML(RDFFileSesameEngine xml, ArrayList<Object[]> masterList){
 		for(Object[] triple : masterList){
 			String sub = (String) triple[0];
@@ -148,7 +172,6 @@ public class QuestionAdministrator {
 			MasterDBHelper.removeInsightStatementToMasterDBs(masterDb, selectedEngine, sub, pred, obj, concept);
 		}
 	}
-
 
 	/**
 	 * Adds a perspective.
