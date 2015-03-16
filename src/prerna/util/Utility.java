@@ -40,12 +40,15 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.StringTokenizer;
+import java.util.TimeZone;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -72,7 +75,6 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 
 import com.ibm.icu.text.DecimalFormat;
@@ -930,4 +932,13 @@ public class Utility {
 		}
 		return newNames;
 	}
+	
+	public static Date getCurrentTime() {
+		Calendar calendar = Calendar.getInstance();
+		TimeZone timeZone = calendar.getTimeZone();
+		calendar.setTimeZone(timeZone);
+		
+		return calendar.getTime();
+	}
+	
 }

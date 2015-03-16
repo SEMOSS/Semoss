@@ -37,6 +37,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
@@ -71,8 +72,11 @@ import org.openrdf.sail.memory.MemoryStore;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.query.builder.IQueryBuilder;
 import prerna.rdf.query.builder.SPARQLQueryTableBuilder;
+import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -117,7 +121,8 @@ public abstract class AbstractEngine implements IEngine {
 	protected static final String sparqlBaseURI = containsBaseURI + "/SPARQL";
 	protected static final String tagBaseURI = containsBaseURI + "/Tag";
 	protected static final String descriptionBaseURI = containsBaseURI + "/Description";
-	
+	protected static final String TIME_STAMP_URI = containsBaseURI + "/TimeStamp";
+
 	protected static final String perspectives = "SELECT DISTINCT ?perspective WHERE {"
 			+ "{?enginePerspective <"+Constants.SUBPROPERTY_URI +"> <"+enginePerspectiveBaseURI+"> }"
 			+ "{<@engine@> ?enginePerspective ?perspectiveURI.}" 
@@ -249,7 +254,6 @@ public abstract class AbstractEngine implements IEngine {
 				// everything else
 				// get the questions sheet
 				// get to the working dir and load it up
-				String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 				
 				//loads the questionxmlfile if there is one, if not, get the question sheet and create an xml file and load to engine
 				questionXMLFile = prop.getProperty(Constants.INSIGHTS);
@@ -258,6 +262,7 @@ public abstract class AbstractEngine implements IEngine {
 				if(questionXMLFile != null) {
 					createBaseRelationXMLEngine(questionXMLFile);
 				}
+				//TODO: delete once everything is shifted over to XML files
 				else {
 					//need to add questionXML to the smss file
 					String questionPropFile = prop.getProperty(Constants.DREAMER);
@@ -273,6 +278,10 @@ public abstract class AbstractEngine implements IEngine {
 						addPropToFile(propFile, Constants.INSIGHTS, questionXMLFile, "ENGINE_TYPE");
 					}
 				}
+				
+				//TODO: delete once all XML files have a timeStamp
+				checkAndAddTimeStampToXML();
+				
 				/*String questionPropFile = prop.getProperty(Constants.DREAMER);
 				if (questionPropFile != null) {
 					createInsightBase();
@@ -301,6 +310,23 @@ public abstract class AbstractEngine implements IEngine {
 		}
 	}
 	
+	//TODO: delete once all insight XML files have a timestamp
+	private void checkAndAddTimeStampToXML() {
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String checkTimeStamp = "SELECT DISTINCT ?Engine ?Time WHERE { {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?Engine <http://semoss.org/ontologies/Relation/Contains/TimeStamp> ?Time}}";
+		ISelectWrapper sjsw = Utility.processQuery(insightBaseXML, checkTimeStamp);
+		sjsw.getVariables();
+		boolean hasTime = false;
+		while(sjsw.hasNext()) {
+			hasTime = true;
+		}
+		if(!hasTime) {
+			Date currentTime = Utility.getCurrentTime();
+			insightBaseXML.addStatement(engineBaseURI + "/" + engineName, TIME_STAMP_URI, currentTime, false);
+			createQuestionXMLFile(questionXMLFile, workingDir);
+		}
+	}
+
 	public void addPropToFile(String propFile, String key, String value, String lineLocation){
 		
 		FileOutputStream fileOut = null;
@@ -398,8 +424,7 @@ public abstract class AbstractEngine implements IEngine {
 	public void createInsightBase() {
 		try {
 			insightBaseXML = new RDFFileSesameEngine();
-			Repository myRepository = new SailRepository(
-					new ForwardChainingRDFSInferencer(new MemoryStore()));
+			Repository myRepository = new SailRepository(new ForwardChainingRDFSInferencer(new MemoryStore()));
 			myRepository.initialize();
 			//insightBase = myRepository.getConnection();
 			insightBaseXML.rc = myRepository.getConnection();
