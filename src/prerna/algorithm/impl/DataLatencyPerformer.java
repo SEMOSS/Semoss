@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.algorithm.impl;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -507,7 +508,16 @@ public class DataLatencyPerformer implements IAlgorithm{
 	public Hashtable getEdgeScores() {
 		Hashtable scores = new Hashtable();
 		for (SEMOSSEdge key : finalEdgeScores.keySet()) {
-			scores.put(key.getURI(), finalEdgeScores.get(key));
+			if (!scores.containsKey(finalEdgeScores.get(key))) {
+				ArrayList<String> uriList = new ArrayList();
+				uriList.add(key.getURI());
+				scores.put(finalEdgeScores.get(key), uriList);
+			}
+			else {
+				ArrayList<String> uriList = (ArrayList<String>) scores.get(finalEdgeScores.get(key));
+				uriList.add(key.getURI());
+				scores.put(finalEdgeScores.get(key), uriList);
+			}
 		}
 		return scores;
 	}
