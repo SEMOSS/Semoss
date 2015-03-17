@@ -52,7 +52,6 @@ import org.openrdf.sail.memory.model.MemURI;
 
 import prerna.algorithm.impl.CentralityCalculator;
 import prerna.algorithm.nlp.TextHelper;
-import prerna.error.EngineException;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.api.ISelectStatement;
@@ -64,21 +63,90 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class CreateMasterDB extends ModifyMasterDB {
+public class AddToMasterDB extends ModifyMasterDB {
 
 	private String wordnetPath;
 	private HypernymListGenerator hypernymGenerator;
 	
-	public CreateMasterDB(String localMasterDbName) {
+	public AddToMasterDB(String localMasterDbName) {
 		super(localMasterDbName);
 	}
-	public CreateMasterDB() {
+	public AddToMasterDB() {
 		super();
 	}
 
-	public Hashtable<String, Boolean> registerEngineLocal(ArrayList<String> dbArray) throws EngineException {
-		Hashtable<String, Boolean> successHash = new Hashtable<String, Boolean>();
+	public boolean registerEngineLocal(String engineName) {
+		boolean success = false;
 		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
+
+		Map<String, String> parentChildMapping = new HashMap<String, String>();
+		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.MC_PARENT_CHILD_QUERY);
+		String[] names = wrapper.getVariables();
+		while(wrapper.hasNext()) {
+			// add parent child relationships to value mapping
+			ISelectStatement sjss = wrapper.next();
+			parentChildMapping.put(sjss.getVar(names[0]).toString(), sjss.getVar(names[1]).toString());
+		}
+		
+		hypernymGenerator = new HypernymListGenerator(wordnetPath);
+		hypernymGenerator.addMappings(parentChildMapping);
+
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName + "");
+		String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
+		GraphPlaySheet gps = CentralityCalculator.createMetamodel(((AbstractEngine)engine).getBaseDataEngine().getRC(), sparql);
+		Hashtable<String, SEMOSSVertex> vertStore  = gps.getGraphData().getVertStore();
+
+		addNewDBConcepts(engineName, vertStore, parentChildMapping);
+		RepositoryConnection rc = engine.getInsightDB();
+		addInsights(rc);
+
+		logger.info("Finished adding new engine " + engineName);
+		success = true;
+
+		masterEngine.commit();
+		masterEngine.infer();
+
+		return success;
+	}
+	
+	public boolean registerEngineLocal(IEngine engine) {
+		boolean success = false;
+		String engineName = engine.getEngineName();
+		
+//		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
+
+		Map<String, String> parentChildMapping = new HashMap<String, String>();
+		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.MC_PARENT_CHILD_QUERY);
+		String[] names = wrapper.getVariables();
+		while(wrapper.hasNext()) {
+			// add parent child relationships to value mapping
+			ISelectStatement sjss = wrapper.next();
+			parentChildMapping.put(sjss.getVar(names[0]).toString(), sjss.getVar(names[1]).toString());
+		}
+		
+		hypernymGenerator = new HypernymListGenerator(wordnetPath);
+		hypernymGenerator.addMappings(parentChildMapping);
+
+		String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
+		GraphPlaySheet gps = CentralityCalculator.createMetamodel(((AbstractEngine)engine).getBaseDataEngine().getRC(), sparql);
+		Hashtable<String, SEMOSSVertex> vertStore  = gps.getGraphData().getVertStore();
+
+		addNewDBConcepts(engineName, vertStore, parentChildMapping);
+		RepositoryConnection rc = engine.getInsightDB();
+		addInsights(rc);
+
+		logger.info("Finished adding new engine " + engineName);
+		success = true;
+
+		masterEngine.commit();
+		masterEngine.infer();
+
+		return success;
+	}
+	
+	public Hashtable<String, Boolean> registerEngineLocal(ArrayList<String> dbArray) {
+		Hashtable<String, Boolean> successHash = new Hashtable<String, Boolean>();
+//		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 
 		Map<String, String> parentChildMapping = new HashMap<String, String>();
 		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.MC_PARENT_CHILD_QUERY);
@@ -106,9 +174,9 @@ public class CreateMasterDB extends ModifyMasterDB {
 			successHash.put(engineName, true);
 		}
 
-		for(String parent : parentChildMapping.keySet()) {
-			logger.info("Parent: " + parent + ". Child: " + parentChildMapping.get(parent));
-		}
+//		for(String parent : parentChildMapping.keySet()) {
+//			logger.info("Parent: " + parent + ". Child: " + parentChildMapping.get(parent));
+//		}
 
 		masterEngine.commit();
 		masterEngine.infer();
@@ -116,11 +184,11 @@ public class CreateMasterDB extends ModifyMasterDB {
 		return successHash;
 	}
 
-	public Hashtable<String, Boolean> registerEngineAPI(String baseURL, ArrayList<String> dbArray) throws EngineException, RDFParseException, RepositoryException, IOException {
+	public Hashtable<String, Boolean> registerEngineAPI(String baseURL, ArrayList<String> dbArray) throws RDFParseException, RepositoryException, IOException {
 
 		Hashtable<String, Boolean> successHash = new Hashtable<String, Boolean>();
 
-		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
+//		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 
 		Map<String, String> parentChildMapping = new HashMap<String, String>();
 		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.MC_PARENT_CHILD_QUERY);
@@ -157,9 +225,9 @@ public class CreateMasterDB extends ModifyMasterDB {
 			successHash.put(engineName, true);
 		}
 
-		for(String parent : parentChildMapping.keySet()) {
-			logger.info("Parent: " + parent + ". Child: " + parentChildMapping.get(parent));
-		}
+//		for(String parent : parentChildMapping.keySet()) {
+//			logger.info("Parent: " + parent + ". Child: " + parentChildMapping.get(parent));
+//		}
 
 		masterEngine.commit();
 		masterEngine.infer();
@@ -167,7 +235,7 @@ public class CreateMasterDB extends ModifyMasterDB {
 		return successHash;
 	}	
 
-	private void addNewDBConcepts(String engineName, Hashtable<String, SEMOSSVertex> vertStore, Map<String, String> parentChildMapping) throws EngineException {
+	private void addNewDBConcepts(String engineName, Hashtable<String, SEMOSSVertex> vertStore, Map<String, String> parentChildMapping) {
 		MasterDatabaseForest<String> forest = new MasterDatabaseForest<String>();
 		MasterDatabaseBipartiteGraph<String> keywordConceptBipartiteGraph = new MasterDatabaseBipartiteGraph<String>();
 
