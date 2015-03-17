@@ -34,7 +34,7 @@
 </Question>
 
 <Question>
-@Question=How does average $CentralConcept $Property2 vary by $Property1?
+@Question=How does average $Property2 of $CentralConcept vary by $Property1?
 @Property1-ENTROPY_D_MIN=0.1
 @Property1-TYPE=STRING
 @Property2-TYPE=DOUBLE
@@ -79,7 +79,7 @@
 </Question>
 
 <Question>
-@Question=How does average $CentralConcept $Property vary by each $Concept2?
+@Question=How does average $Property of $CentralConcept vary by each $Concept2?
 @Concept2-ENTROPY_D_MIN=0.1
 @Property-TYPE=DOUBLE
 @Property-AGGREGATION=AVG
