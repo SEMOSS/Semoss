@@ -12,7 +12,7 @@ import prerna.poi.main.TextExtractor;
 import prerna.util.DIHelper;
 import prerna.util.PlaySheetEnum;
 
-public class InsightTemplateProcessor implements InsightRuleConstants{
+public class InsightTemplateProcessor {
 	
 	public InsightTemplateProcessor() {
 
@@ -72,7 +72,7 @@ public class InsightTemplateProcessor implements InsightRuleConstants{
 			for(; i < size; i++) {
 				String rulePart = questionSplit[i];
 				if(!rulePart.isEmpty()) {
-					if(rulePart.toUpperCase().startsWith(QUESTION_KEY)) {
+					if(rulePart.toUpperCase().startsWith(InsightRuleConstants.QUESTION_KEY)) {
 						String[] questionRuleSplit = rulePart.split("=");
 						rule.setQuestion(questionRuleSplit[1].replace("@", "").trim());
 						
@@ -83,13 +83,13 @@ public class InsightTemplateProcessor implements InsightRuleConstants{
 							String variableName = matcher.group();
 							variableName = variableName.substring(1, variableName.length()-1);
 							String variableType = null;
-							if(variableName.toUpperCase().contains(CENTRAL_CONCEPT_VALUE)) {
+							if(variableName.toUpperCase().contains(InsightRuleConstants.CENTRAL_CONCEPT_VALUE)) {
 								rule.setCentralConcept(variableName);
 							}else {
-								if(variableName.toUpperCase().contains(CONCEPT_VALUE)) {
-									variableType = CONCEPT_VALUE;
-								} else if(variableName.toUpperCase().contains(PROPERTY_VALUE)) {
-									variableType = PROPERTY_VALUE;
+								if(variableName.toUpperCase().contains(InsightRuleConstants.CONCEPT_VALUE)) {
+									variableType = InsightRuleConstants.CONCEPT_VALUE;
+								} else if(variableName.toUpperCase().contains(InsightRuleConstants.PROPERTY_VALUE)) {
+									variableType = InsightRuleConstants.PROPERTY_VALUE;
 								} else {
 									continue NEXT_QUESTION;
 								}
@@ -97,7 +97,7 @@ public class InsightTemplateProcessor implements InsightRuleConstants{
 							}
 						}
 						
-					} else if(rulePart.toUpperCase().startsWith(OUTPUT_KEY)) {
+					} else if(rulePart.toUpperCase().startsWith(InsightRuleConstants.OUTPUT_KEY)) {
 						String[] outputRuleSplit = rulePart.split("=");
 						outputRuleSplit[1] = outputRuleSplit[1].replaceAll("_", " ").trim();
 						String psClass = PlaySheetEnum.getClassFromName(outputRuleSplit[1]);
@@ -107,7 +107,7 @@ public class InsightTemplateProcessor implements InsightRuleConstants{
 							// if output not found above, then go to next question
 							continue NEXT_QUESTION;
 						}
-					} else if(rulePart.toUpperCase().startsWith(PERSPECTIVE_KEY)) {
+					} else if(rulePart.toUpperCase().startsWith(InsightRuleConstants.PERSPECTIVE_KEY)) {
 						String[] perspectiveRuleSplit = rulePart.split("=");
 						rule.setPerspective(perspectiveRuleSplit[1].trim());
 					} else {
@@ -116,16 +116,16 @@ public class InsightTemplateProcessor implements InsightRuleConstants{
 						constraintValueSplit[0] = constraintValueSplit[0].toUpperCase();
 						constraintValueSplit[1] = constraintValueSplit[1].toUpperCase();
 						// change boolean value if aggregation is used
-						if(constraintValueSplit[1].equals(COUNT) || 
-								constraintValueSplit[1].equals(SUM) || 
-								constraintValueSplit[1].equals(AVERAGE) || 
-								constraintValueSplit[1].equals(MIN) || 
-								constraintValueSplit[1].equals(MAX)) 
+						if(constraintValueSplit[1].equals(InsightRuleConstants.COUNT) || 
+								constraintValueSplit[1].equals(InsightRuleConstants.SUM) || 
+								constraintValueSplit[1].equals(InsightRuleConstants.AVERAGE) || 
+								constraintValueSplit[1].equals(InsightRuleConstants.MIN) || 
+								constraintValueSplit[1].equals(InsightRuleConstants.MAX)) 
 						{
 							rule.setHasAggregation(true);
-							constraintValueSplit[0] = AGGREGATION;
+							constraintValueSplit[0] = InsightRuleConstants.AGGREGATION;
 							rule.addConstraint(paramSplit[0].replace("@", "").trim(), constraintValueSplit[0].trim(), constraintValueSplit[1].trim());
-						} else if(constraintValueSplit[0].equalsIgnoreCase(DATA_TYPE) && 
+						} else if(constraintValueSplit[0].equalsIgnoreCase(InsightRuleConstants.DATA_TYPE) && 
 								(constraintValueSplit[1].equalsIgnoreCase(AlgorithmDataFormatter.STRING_KEY) ||
 								constraintValueSplit[1].equalsIgnoreCase(AlgorithmDataFormatter.DOUBLE_KEY)  ||
 								constraintValueSplit[1].equalsIgnoreCase(AlgorithmDataFormatter.SIMPLEDATE_KEY)  ||
