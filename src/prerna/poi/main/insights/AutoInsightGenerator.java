@@ -53,7 +53,7 @@ import prerna.util.DIHelper;
  * @author ksmart
  *
  */
-public class AutoInsightGenerator implements InsightRuleConstants{
+public class AutoInsightGenerator {
 
 	//engine and question administrator to add questions
 	private AbstractEngine engine;
@@ -334,15 +334,15 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 			return true;
 		}
 
-		Object paramType = requirementHash.get(DATA_TYPE);
+		Object paramType = requirementHash.get(InsightRuleConstants.DATA_TYPE);
 		if(paramType != null && !paramType.toString().equals(colTypesArr[colIndex]))
 			return false;
 		
-		Object entropyMax = requirementHash.get(ENTROPY_DENSITY_MAX);
+		Object entropyMax = requirementHash.get(InsightRuleConstants.ENTROPY_DENSITY_MAX);
 		if(entropyMax != null && entropyArr[colIndex] > Double.parseDouble(entropyMax.toString()))
 			return false;
 
-		Object entropyMin = requirementHash.get(ENTROPY_DENSITY_MIN);
+		Object entropyMin = requirementHash.get(InsightRuleConstants.ENTROPY_DENSITY_MIN);
 		if(entropyMin!=null && entropyArr[colIndex] <  Double.parseDouble(entropyMin.toString()))
 			return false;
 		
@@ -373,7 +373,7 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 				//if the parameter is a concept, go through all the concept tables
 				//if the concept and the concept its related to meet the central and parameter reqs, respectively
 				//add the possible assignment				
-				if(paramClass.equals(CONCEPT_VALUE)) {
+				if(paramClass.equals(InsightRuleConstants.CONCEPT_VALUE)) {
 
 					int j;
 					int relatedConceptsLength = relatedConcepts.size();
@@ -473,7 +473,7 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 
 			String var;
 			String varClean;
-			if(classType.equals(PROPERTY_VALUE)) {
+			if(classType.equals(InsightRuleConstants.PROPERTY_VALUE)) {
 				var = names[assignments.get(i)];
 				varClean = var.replaceAll("-","_");
 				
@@ -499,8 +499,8 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 			}
 			
 			String aggregationType = "";
-			if(ruleConstraintHash.containsKey(param) && ruleConstraintHash.get(param).containsKey(AGGREGATION))
-				aggregationType = ruleConstraintHash.get(param).get(AGGREGATION).toString();
+			if(ruleConstraintHash.containsKey(param) && ruleConstraintHash.get(param).containsKey(InsightRuleConstants.AGGREGATION))
+				aggregationType = ruleConstraintHash.get(param).get(InsightRuleConstants.AGGREGATION).toString();
 			//if no aggregation for insight -> basic return string
 			//if aggregation for insight but not this param -> basic return string and end string
 			//if aggregation for this insight and this param -> complicated return string
@@ -522,10 +522,10 @@ public class AutoInsightGenerator implements InsightRuleConstants{
 		if(!hasAggregation || endString.length() == 0) {
 			retVarString = " ?"+concept + retVarString;
 			endString += " ?" + concept;
-		} else if(ruleConstraintHash.containsKey(centralConcept) && ruleConstraintHash.get(centralConcept).containsKey(AGGREGATION)) {
+		} else if(ruleConstraintHash.containsKey(centralConcept) && ruleConstraintHash.get(centralConcept).containsKey(InsightRuleConstants.AGGREGATION)) {
 				//if there is some type of aggregation on the central concept
 
-				String aggregationType = ruleConstraintHash.get(centralConcept).get(AGGREGATION).toString();
+				String aggregationType = ruleConstraintHash.get(centralConcept).get(InsightRuleConstants.AGGREGATION).toString();
 				retVarString += " (" + aggregationType.toString() + "(?" + concept + ") AS ?" + concept + "_" + aggregationType.toString() + ")";
 
 		}
