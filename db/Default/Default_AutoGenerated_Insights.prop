@@ -23,7 +23,7 @@
 </Question>
 
 <Question>
-@Question=How does the count of $CentralConcept vary by $Property1 and $Property2?
+@Question=How does $CentralConcept count vary by $Property1 and $Property2?
 @Property1-ENTROPY_D_MIN=0.1
 @Property1-TYPE=STRING
 @Property2-ENTROPY_D_MIN=0.1
