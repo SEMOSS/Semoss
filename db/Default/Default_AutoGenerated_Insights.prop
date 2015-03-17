@@ -16,7 +16,7 @@
 </Question>
 
 <Question>
-@Question=What is the distribution of $CentralConcept to $Property?
+@Question=How is $CentralConcept distributed over $Property?
 @Property-TYPE=DOUBLE
 @Perspective=CentralConcept
 @Output=Binned_Column_Chart
@@ -60,7 +60,7 @@
 </Question>
 
 <Question>
-@Question=How does $Concept2 count distributed to each $CentralConcept?
+@Question=How is $Concept2 count distributed to each $CentralConcept?
 @CentralConcept-ENTROPY_D_MAX=0.3
 @CentralConcept-ENTROPY_D_MIN=0.1
 @Concept2-AGGREGATION=COUNT
