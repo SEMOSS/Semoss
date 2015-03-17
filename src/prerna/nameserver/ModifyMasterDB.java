@@ -48,4 +48,22 @@ public class ModifyMasterDB {
 		this.masterDBName = masterDBName;
 		this.masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 	}
+
+	public String getMasterDBName() {
+		return masterDBName;
+	}
+
+	public void setMasterDBName(String masterDBName) {
+		this.masterDBName = masterDBName;
+	}
+
+	public BigDataEngine getMasterEngine() {
+		return masterEngine;
+	}
+
+	public void setMasterEngine(BigDataEngine masterEngine) {
+		this.masterEngine = masterEngine;
+	}
+	
+	
 }

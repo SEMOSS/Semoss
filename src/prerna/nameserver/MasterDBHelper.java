@@ -41,6 +41,7 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.BigDataEngine;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -117,17 +118,21 @@ public final class MasterDBHelper {
 	}
 	
 	/**
-	 * Removes a node and the necessary triples given its instance URI
+	 * Removes a node given a baseURI
 	 * @param nodeURI	String representing the URI for the node type. e.g. http://semoss.org/ontologies/Concept/MasterConcept/Dog
-	 * @throws EngineException
+	 * @throws EngineException	Thrown if statement cannot be removed to the engine
 	 */
 	public static void removeNode(IEngine masterEngine, String nodeURI) {
+
 		int index = nodeURI.lastIndexOf("/");
 		String baseURI = nodeURI.substring(0,index);
 		String instance = nodeURI.substring(index+1);
-		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), baseURI, true);
-		masterEngine.removeStatement(baseURI, RDFS.SUBCLASSOF.stringValue(), MasterDatabaseURIs.SEMOSS_CONCEPT_URI, true);
+
 		masterEngine.removeStatement(nodeURI, RDFS.LABEL.stringValue(), instance, false);
+		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.SEMOSS_CONCEPT_URI, true);
+		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), baseURI, true);
+		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.RESOURCE_URI, true);
+		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.RESOURCE_URI, false);
 	}
 
 	/**
@@ -135,26 +140,31 @@ public final class MasterDBHelper {
 	 * @param node1URI	String representing the full URI of node 1 URI e.g. http://semoss.org/ontologies/Concept/MasterConcept/Dog
 	 * @param node2URI	String representing the full URI of node 2 URI e.g. http://semoss.org/ontologies/Concept/Keyword/Dog
 	 * @param relationURI	String representing the full URI of the relationship http://semoss.org/ontologies/Relation/Has/Dog:Dog
-	 * @throws EngineException
+	 * @throws EngineException	Thrown if statement cannot be removed to the engine
 	 */
 	public static void removeRelationship(IEngine masterEngine, String node1URI, String node2URI, String relationURI) {
 		int relIndex = relationURI.lastIndexOf("/");
 		String relBaseURI = relationURI.substring(0,relIndex);
 		String relInst = relationURI.substring(relIndex+1);
 
-		masterEngine.removeStatement(relationURI, RDFS.SUBPROPERTYOF.stringValue(), relBaseURI,true);
-		masterEngine.removeStatement(relBaseURI, RDFS.SUBPROPERTYOF.stringValue(), MasterDatabaseURIs.SEMOSS_RELATION_URI,true);
-		masterEngine.removeStatement(relationURI, RDFS.LABEL.stringValue(), relInst,false);
-		masterEngine.removeStatement(node1URI, relationURI, node2URI,true);
+		masterEngine.removeStatement(relationURI, RDFS.SUBPROPERTYOF.stringValue(), MasterDatabaseURIs.SEMOSS_RELATION_URI, true);
+		masterEngine.removeStatement(relationURI, RDFS.SUBPROPERTYOF.stringValue(), relBaseURI, true);
+		masterEngine.removeStatement(relationURI, RDFS.SUBPROPERTYOF.stringValue(), relationURI, true);
+		masterEngine.removeStatement(relationURI, RDFS.LABEL.stringValue(), relInst, false);
+		masterEngine.removeStatement(relationURI, RDF.TYPE.stringValue(), Constants.DEFAULT_PROPERTY_URI, true);
+		masterEngine.removeStatement(relationURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.RESOURCE_URI, true);
+		masterEngine.removeStatement(node1URI, MasterDatabaseURIs.SEMOSS_RELATION_URI, node2URI, true);
+		masterEngine.removeStatement(node1URI, relBaseURI, node2URI, true);
+		masterEngine.removeStatement(node1URI, relationURI, node2URI, true);
 	}
 
 
 	/**
 	 * Method to remove property on an instance.
-	 * @param nodeURI	String containing the node or relationship URI to add the property to e.g. http://semoss.org/ontologies/Concept/MasterConcept/Dog
+	 * @param nodeURI	String containing the node or relationship URI to remove the property from e.g. http://semoss.org/ontologies/Concept/MasterConcept/Dog
 	 * @param propURI	String representing the URI of the property relation e.g. http://semoss.org/ontologies/Relation/Contains/Weight
 	 * @param value	Value to remove as the property e.g. 1.0
-	 * @throws EngineException	Thrown if statement cannot be added to the engine
+	 * @throws EngineException	Thrown if statement cannot be removed to the engine
 	 */
 	public static void removeProperty(IEngine masterEngine, String nodeURI, String propURI, Object value,Boolean isConcept) {
 		masterEngine.removeStatement(nodeURI, propURI, value, isConcept);

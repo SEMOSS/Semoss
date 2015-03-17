@@ -91,6 +91,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 		Gson gson = new Gson();
 		logger.info("Converted " + gson.toJson(table));
 		logger.info("Converted gson");
+		System.out.println(gson.toJson(table));
 
 //		browser.executeJavaScript("start('" + gson.toJson(table) + "');");
 		// create variable val to ensure JXBrowser has the data before trying to paint
