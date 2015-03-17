@@ -1,5 +1,5 @@
 <Question>
-@Question=What is the distribution of $CentralConcept to $Property?
+@Question=How is $CentralConcept distributed to each $Property value? 
 @Property-ENTROPY_D_MIN=0.3
 @Property-TYPE=STRING
 @Perspective=CentralConcept
@@ -7,7 +7,7 @@
 </Question>
 
 <Question>
-@Question=What is the distribution of $CentralConcept to $Property?
+@Question=How is $CentralConcept distributed to each $Property value?
 @Property-ENTROPY_D_MAX=0.3
 @Property-ENTROPY_D_MIN=0.1
 @Property-TYPE=STRING
@@ -52,7 +52,7 @@
 </Question>
 
 <Question>
-@Question=What is the distribution of $Concept2 to each $CentralConcept?
+@Question=How does $Concept2 count distributed to each $CentralConcept?  
 @CentralConcept-ENTROPY_D_MIN=0.3
 @Concept2-AGGREGATION=COUNT
 @Perspective=CentralConcept
@@ -60,7 +60,7 @@
 </Question>
 
 <Question>
-@Question=What is the distribution of $Concept2 to each $CentralConcept?
+@Question=How does $Concept2 count distributed to each $CentralConcept?
 @CentralConcept-ENTROPY_D_MAX=0.3
 @CentralConcept-ENTROPY_D_MIN=0.1
 @Concept2-AGGREGATION=COUNT
@@ -68,7 +68,8 @@
 @Output=Column_Chart
 </Question>
 
-@Question=How does the count of $CentralConcept vary by $Property1 and each $Concept2?
+<Question>
+@Question=How does the count of $CentralConcept vary by $Property1 and each Concept2?
 @Property1-ENTROPY_D_MIN=0.1
 @Property1-TYPE=STRING
 @Concept2-ENTROPY_D_MIN=0.1
