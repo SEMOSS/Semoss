@@ -29,7 +29,7 @@ package prerna.ui.components.specific;
 
 import java.util.Hashtable;
 
-import prerna.poi.main.insights.AutoInsightGenerator;
+import prerna.poi.main.insights.AutoInsightExecutor;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.ui.components.playsheets.AbstractRDFPlaySheet;
 import prerna.util.Utility;
@@ -43,8 +43,8 @@ public class AutoInsightGeneratorTest extends AbstractRDFPlaySheet{
 
 	@Override
 	public void createData() {
-		AutoInsightGenerator gen = new AutoInsightGenerator((AbstractEngine)engine);
-		gen.execute();
+		AutoInsightExecutor gen = new AutoInsightExecutor((AbstractEngine)engine);
+		gen.run();
 		Utility.showMessage("Complete!");
 	}
 
