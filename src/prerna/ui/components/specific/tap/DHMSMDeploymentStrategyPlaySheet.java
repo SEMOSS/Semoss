@@ -802,7 +802,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		runDeploymentStrategyListener.setWaveOrder(waveOrder);
 		runDeploymentStrategyListener.setWaveStartEndDate(waveStartEndDate);
 		runDeploymentStrategyListener.setPlaySheet(this);
-		dataHash = runDeploymentStrategyListener.generateJSONData(true);
+		dataHash = runDeploymentStrategyListener.generateJSONData(true, true);
 		
 		if (dataHash != null)
 			returnHash.put("data", dataHash);
@@ -839,7 +839,10 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		runDeploymentStrategyListener.setWaveOrder(waveOrder);
 		runDeploymentStrategyListener.setWaveStartEndDate(waveStartEndDate);
 		runDeploymentStrategyListener.setPlaySheet(this);
-		dataHash = runDeploymentStrategyListener.generateJSONData(false);
+		if ((webDataHash.get("type")).equals("region"))
+			dataHash = runDeploymentStrategyListener.generateJSONData(false, false);
+		if ((webDataHash.get("type")).equals("deployment"))
+			dataHash = runDeploymentStrategyListener.generateJSONData(true, false);
 		
 		if (dataHash != null)
 			returnHash.put("data", dataHash);

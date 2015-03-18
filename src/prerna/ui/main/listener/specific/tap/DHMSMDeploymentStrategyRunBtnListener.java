@@ -278,7 +278,7 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		ps.sysMap.callIt(allData);
 	}
 	
-	public Hashtable generateJSONData(boolean defaultValuesSelected) {
+	public Hashtable generateJSONData(boolean defaultValuesSelected, boolean initialLoad) {
 		Hashtable aggregateDataHash = new Hashtable();
 		LOGGER.info("Run Deployment Strategy Button Pushed");
 		consoleArea = ps.consoleArea;
@@ -309,10 +309,22 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 			int oEndYear = ps.getyEndDefault() - 2000;
 
 			//pull from begin / end and fill the regions accordingly
-			int beginQuarter = getInteger(ps.getQBeginField(), ps.getQBeginField().getName());
-			int beginYear = getInteger(ps.getYBeginField(), ps.getYBeginField().getName());
-			int endQuarter = getInteger(ps.getQEndField(), ps.getQEndField().getName());
-			int endYear = getInteger(ps.getYEndField(), ps.getYEndField().getName());
+			int beginQuarter, beginYear, endQuarter, endYear;
+			if (initialLoad) {
+				beginQuarter = getInteger(ps.getQBeginField(), ps.getQBeginField().getName());
+				beginYear = getInteger(ps.getYBeginField(), ps.getYBeginField().getName());
+				endQuarter = getInteger(ps.getQEndField(), ps.getQEndField().getName());
+				endYear = getInteger(ps.getYEndField(), ps.getYEndField().getName());
+			} else {
+				Gson gson = new Gson();
+				Hashtable<String, Double> westHash = gson.fromJson(gson.toJson(webValuesHash.get("West")), new TypeToken<Hashtable<String, Double>>() {}.getType());
+				Hashtable<String, Double> pacificHash = gson.fromJson(gson.toJson(webValuesHash.get("Pacific")), new TypeToken<Hashtable<String, Double>>() {}.getType());
+				beginQuarter = ((Double) westHash.get("quarter")).intValue();
+				beginYear = ((Double) westHash.get("year")).intValue() - 2000;
+				endQuarter = ((Double) pacificHash.get("quarter")).intValue();
+				endYear = ((Double) pacificHash.get("year")).intValue() - 2000;
+			}
+			
 			if(beginQuarter<0 || beginYear<0 || endQuarter<0 || endYear<0) {
 				Utility.showError("Cannot read fields. Please check the Console tab for more information");
 				return aggregateDataHash;
