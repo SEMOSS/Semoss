@@ -1,30 +1,3 @@
-/*******************************************************************************
- * Copyright 2015 SEMOSS.ORG
- *
- * If your use of this software does not include any GPLv2 components:
- * 	Licensed under the Apache License, Version 2.0 (the "License");
- * 	you may not use this file except in compliance with the License.
- * 	You may obtain a copy of the License at
- *
- * 	  http://www.apache.org/licenses/LICENSE-2.0
- *
- * 	Unless required by applicable law or agreed to in writing, software
- * 	distributed under the License is distributed on an "AS IS" BASIS,
- * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * 	See the License for the specific language governing permissions and
- * 	limitations under the License.
- * ----------------------------------------------------------------------------
- * If your use of this software includes any GPLv2 components:
- * 	This program is free software; you can redistribute it and/or
- * 	modify it under the terms of the GNU General Public License
- * 	as published by the Free Software Foundation; either version 2
- * 	of the License, or (at your option) any later version.
- *
- * 	This program is distributed in the hope that it will be useful,
- * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
- * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * 	GNU General Public License for more details.
- *******************************************************************************/
 package prerna.poi.main.insights;
 
 import java.util.ArrayList;
@@ -48,21 +21,16 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
-/**
- * AutoInsightGenerator creates insights that are automatically added to a DB on upload
- * @author ksmart
- *
- */
-public class AutoInsightGenerator {
+public class AutoInsightRunnable implements Runnable {
 
 	//engine and question administrator to add questions
 	private AbstractEngine engine;
 	private QuestionAdministrator qa;
 	
-	//concepts and perspectives + number of questions in perspective
-	private ArrayList<String> concepts;
+	//concept, perspectives + number of questions in perspective
 	private String concept;
 	private Hashtable<String,Integer> perspectiveHash;
+	private List<InsightRule> rulesList;
 	
 	//property names and the table
 	private String[] names;
@@ -97,7 +65,6 @@ public class AutoInsightGenerator {
 	private final String DOWNSTREAM = "downstream";
 	private final String UPSTREAM = "upstream";
 	
-	private final String CONCEPTS_QUERY = "SELECT DISTINCT ?Concept WHERE {{?Concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>}}";
 	private final String PROPERTIES_QUERY = "SELECT DISTINCT ?Prop WHERE {{?Concept <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@CONCEPT@>}{?Prop <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>}{?Concept ?Prop ?PropVal }} ORDER BY ?Prop";
 	private final String DOWNSTREAM_CONCEPTS_QUERY = "SELECT DISTINCT ?Concept2 WHERE {{?Concept2 <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>}{?Instance1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@CONCEPT@>}{?Instance1 <http://semoss.org/ontologies/Relation> ?Instance2 }{?Instance2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?Concept2}} ORDER BY ?Concept2";
 	private final String UPSTREAM_CONCEPTS_QUERY = "SELECT DISTINCT ?Concept2 WHERE {{?Concept2 <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>}{?Instance1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@CONCEPT@>}{?Instance2 <http://semoss.org/ontologies/Relation> ?Instance1 }{?Instance2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?Concept2}} ORDER BY ?Concept2";
@@ -107,66 +74,109 @@ public class AutoInsightGenerator {
 	private final String CONCEPT_DOWNSTREAM_TRIPLE= "{?@RELATEDCONCEPT@ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@RELATEDCONCEPT@>}{?@CONCEPT@ <http://semoss.org/ontologies/Relation> ?@RELATEDCONCEPT@}";
 	private final String CONCEPT_UPSTREAM_TRIPLE= "{?@RELATEDCONCEPT@ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@RELATEDCONCEPT@>}{?@RELATEDCONCEPT@ <http://semoss.org/ontologies/Relation> ?@CONCEPT@}";
 	
-	public AutoInsightGenerator(AbstractEngine engine) {
+	public AutoInsightRunnable(AbstractEngine engine, QuestionAdministrator qa, String concept, List<InsightRule> rulesList, Hashtable<String, Integer> perspectiveHash) {
 		this.engine = engine;
+		this.qa = qa;
+		this.concept = concept;
+		this.rulesList = rulesList;
+		this.perspectiveHash = perspectiveHash;
 	}
-	
-	public void execute() {
-		
-		qa = new QuestionAdministrator(engine);
-		Vector<String> perspectives = engine.getPerspectives();
-		perspectiveHash = new Hashtable<String,Integer>();
-		for(String perspective : perspectives){
-			perspectiveHash.put(perspective, engine.getInsights(perspective).size() + 1);
-		}
-		
-		InsightTemplateProcessor templateProc = new InsightTemplateProcessor();
-		List<InsightRule> rulesList = templateProc.runGenerateInsights();
 
-		//TODO how to filter the list of concepts?
-		concepts = getQueryResultsAsList(CONCEPTS_QUERY);
-		concepts.remove("Concept");
-		
-		int i;
-		int numConcepts = concepts.size();
-		for(i=0; i<numConcepts; i++) {
-			concept = concepts.get(i);
-			//find what number question to start with if the concept already has a perspective
 
-			
-			Boolean propertyTableCreated = createPropertyTable(concept);
-			Boolean conceptTablesCreated = createConceptTables(concept);
-			if(propertyTableCreated || conceptTablesCreated) {
-				
-				for(InsightRule rule : rulesList) {			
+	@Override
+	public void run() {
+		//find what number question to start with if the concept already has a perspective
+		Boolean propertyTableCreated = createPropertyTable(concept);
+		Boolean conceptTablesCreated = createConceptTables(concept);
+		if(propertyTableCreated || conceptTablesCreated) {
 
-					paramClassHash = rule.getVariableTypeHash();
-					params = new ArrayList<String>(paramClassHash.keySet());
-					ruleConstraintHash = rule.getConstraints();
-					ruleQuestion = rule.getQuestion();
-					rulePerspective = rule.getPerspective();
-					ruleOutput = rule.getOutput();
-					centralConcept = rule.getCentralConcept();
-					hasAggregation = rule.isHasAggregation();
-	
-					Boolean allParamsMet = calculatePossibleParamAssignments();
-					
-					if(allParamsMet) {
-						
-						addAllPossibleInsights(0,new ArrayList<Integer>(),new HashSet<String>());
-					}
+			for(InsightRule rule : rulesList) {			
+				paramClassHash = rule.getVariableTypeHash();
+				params = new ArrayList<String>(paramClassHash.keySet());
+				ruleConstraintHash = rule.getConstraints();
+				ruleQuestion = rule.getQuestion();
+				rulePerspective = rule.getPerspective();
+				ruleOutput = rule.getOutput();
+				centralConcept = rule.getCentralConcept();
+				hasAggregation = rule.isHasAggregation();
+
+				boolean allParamsMet = calculatePossibleParamAssignments();
+
+				if(allParamsMet) {
+					addAllPossibleInsights(0,new ArrayList<Integer>(),new HashSet<String>());
 				}
-			}	
-		}
+			}
+		}	
 		//save the xmlFile with the changes
 		String xmlFile = "db/" + engine.getEngineName() + "/" + engine.getEngineName() + "_Questions.XML";
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		qa.createQuestionXMLFile(xmlFile, baseFolder);
-
-		//reload the perspectives for the db so that new perspectives/questions are visible
+		
 		reloadDB();
 	}
 	
+	private boolean calculatePossibleParamAssignments() {
+		//creates a mapping of the possible assignments for each parameter
+		//returns false if there is any param that cannot be met, since the whole rule cannot be met
+		possibleParamAssignmentsHash = new Hashtable<String, Set<Integer>>();
+		
+		//get the requirements for the central concept
+		Hashtable<String,Object> centralConceptConstraintHash;
+		if(ruleConstraintHash.containsKey(centralConcept)) {
+			centralConceptConstraintHash = ruleConstraintHash.get(centralConcept);	
+		}else {
+			centralConceptConstraintHash = new Hashtable<String,Object>();
+		}
+		
+		for(String param : params) {				
+				String paramClass = paramClassHash.get(param);
+				Hashtable<String,Object> paramConstraintHash = ruleConstraintHash.get(param);
+				
+				Set<Integer> possibleAssignments = new HashSet<Integer>();
+				
+				//if the parameter is a concept, go through all the concept tables
+				//if the concept and the concept its related to meet the central and parameter reqs, respectively
+				//add the possible assignment				
+				if(paramClass.equals(InsightRuleConstants.CONCEPT_VALUE)) {
+
+					int j;
+					int relatedConceptsLength = relatedConcepts.size();
+					for(j=0; j<relatedConceptsLength; j++) {
+						
+						String[] conceptColTypesArr  = conceptColTypesList.get(j);
+						double[] conceptEntropyArr = conceptEntropyList.get(j);
+						
+						if(meetsParamRequirements(0,conceptColTypesArr,conceptEntropyArr,centralConceptConstraintHash)
+								&& meetsParamRequirements(1,conceptColTypesArr,conceptEntropyArr,paramConstraintHash)) {
+							possibleAssignments.add(j);
+						}
+					}
+					
+				//if the parameter is a property
+				//AND if our concept meets the central concept constraints
+				// go through all property table and fill with all properties that meet reqs.
+				}else {
+					
+					if(names!=null && meetsParamRequirements(0,colTypesArr,entropyArr,centralConceptConstraintHash)) {
+						int j = 1;
+						int namesLength = names.length;
+						for(; j<namesLength; j++) {
+							if(meetsParamRequirements(j,colTypesArr,entropyArr,paramConstraintHash)) {
+								possibleAssignments.add(j);
+							}
+						}
+					}
+					
+				}
+				
+				if(possibleAssignments.size() == 0)
+					return false;
+				
+				possibleParamAssignmentsHash.put(param,possibleAssignments);
+			}
+		return true;
+	}
+
 	private Boolean createPropertyTable(String concept) {
 		//query to get the properties related to this concept
 		//construct a query to get all instances of this concept and their properties
@@ -350,69 +360,6 @@ public class AutoInsightGenerator {
 
 	}
 
-	
-	private Boolean calculatePossibleParamAssignments() {
-		//creates a mapping of the possible assignments for each parameter
-		//returns false if there is any param that cannot be met, since the whole rule cannot be met
-		possibleParamAssignmentsHash = new Hashtable<String, Set<Integer>>();
-		
-		//get the requirements for the central concept
-		Hashtable<String,Object> centralConceptConstraintHash;
-		if(ruleConstraintHash.containsKey(centralConcept)) {
-			centralConceptConstraintHash = ruleConstraintHash.get(centralConcept);	
-		}else {
-			centralConceptConstraintHash = new Hashtable<String,Object>();
-		}
-		
-		for(String param : params) {				
-				String paramClass = paramClassHash.get(param);
-				Hashtable<String,Object> paramConstraintHash = ruleConstraintHash.get(param);
-				
-				Set<Integer> possibleAssignments = new HashSet<Integer>();
-				
-				//if the parameter is a concept, go through all the concept tables
-				//if the concept and the concept its related to meet the central and parameter reqs, respectively
-				//add the possible assignment				
-				if(paramClass.equals(InsightRuleConstants.CONCEPT_VALUE)) {
-
-					int j;
-					int relatedConceptsLength = relatedConcepts.size();
-					for(j=0; j<relatedConceptsLength; j++) {
-						
-						String[] conceptColTypesArr  = conceptColTypesList.get(j);
-						double[] conceptEntropyArr = conceptEntropyList.get(j);
-						
-						if(meetsParamRequirements(0,conceptColTypesArr,conceptEntropyArr,centralConceptConstraintHash)
-								&& meetsParamRequirements(1,conceptColTypesArr,conceptEntropyArr,paramConstraintHash)) {
-							possibleAssignments.add(j);
-						}
-					}
-					
-				//if the parameter is a property
-				//AND if our concept meets the central concept constraints
-				// go through all property table and fill with all properties that meet reqs.
-				}else {
-					
-					if(names!=null && meetsParamRequirements(0,colTypesArr,entropyArr,centralConceptConstraintHash)) {
-						int j = 1;
-						int namesLength = names.length;
-						for(; j<namesLength; j++) {
-							if(meetsParamRequirements(j,colTypesArr,entropyArr,paramConstraintHash)) {
-								possibleAssignments.add(j);
-							}
-						}
-					}
-					
-				}
-				
-				if(possibleAssignments.size() == 0)
-					return false;
-				
-				possibleParamAssignmentsHash.put(param,possibleAssignments);
-			}
-		return true;
-	}
-	
 	/**
 	 * Recursive method to determine the assignment for a parameter.
 	 * Fills the next spot in the assignment list and recalls the method.
@@ -434,17 +381,19 @@ public class AutoInsightGenerator {
 			String paramClass = paramClassHash.get(currParam);
 			
 			Set<Integer> possibleAssignments = possibleParamAssignmentsHash.get(currParam);
-
-			Iterator<Integer> itr = possibleAssignments.iterator();
-			while(itr.hasNext()) {
-				Integer possibleAssignment = itr.next();
-				
-				//only continue if no previous parameters have been assigned this assignment
-				if(!usedAssignments.contains(paramClass+"-"+possibleAssignment)) {
-					usedAssignments.add(paramClass+"-"+possibleAssignment);
-					assignments.add(possibleAssignment);
-					addAllPossibleInsights(index+1,assignments,usedAssignments);
-					assignments.remove(possibleAssignment);
+			
+			if(possibleAssignments != null) {
+				Iterator<Integer> itr = possibleAssignments.iterator();
+				while(itr.hasNext()) {
+					Integer possibleAssignment = itr.next();
+					
+					//only continue if no previous parameters have been assigned this assignment
+					if(!usedAssignments.contains(paramClass+"-"+possibleAssignment)) {
+						usedAssignments.add(paramClass+"-"+possibleAssignment);
+						assignments.add(possibleAssignment);
+						addAllPossibleInsights(index+1,assignments,usedAssignments);
+						assignments.remove(possibleAssignment);
+					}
 				}
 			}
 		}
