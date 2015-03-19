@@ -30,9 +30,10 @@ package prerna.poi.main.insights;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Vector;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -40,6 +41,7 @@ import java.util.concurrent.Future;
 import javax.swing.JComboBox;
 import javax.swing.JList;
 
+import prerna.om.Insight;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.AbstractEngine;
@@ -72,9 +74,23 @@ public class AutoInsightExecutor {
 		
 		qa = new QuestionAdministrator(engine);
 		Vector<String> perspectives = engine.getPerspectives();
-		Hashtable<String, Integer> perspectiveHash = new Hashtable<String,Integer>();
-		for(String perspective : perspectives){
-			perspectiveHash.put(perspective, engine.getInsights(perspective).size() + 1);
+		Hashtable<String, Integer> perspectiveIDHash = new Hashtable<String, Integer>();
+		
+		for(String perspective : perspectives) {
+			// calculate the max id to use
+			int maxId = 0;
+			Vector<Object> questionList = engine.getInsights(perspective);
+			for(Object question : questionList) {
+				String questString = question.toString();
+				Vector<Insight> in = engine.getInsight2(questString);
+				Insight insight = in.get(0);
+				String questionId = insight.getId();
+				int id = Integer.parseInt(questionId.split(":")[2].replaceAll("\\D", ""));
+				if(id > maxId) {
+					maxId = id;
+				}
+			}
+			perspectiveIDHash.put(perspective, maxId);
 		}
 
 		InsightTemplateProcessor templateProc = new InsightTemplateProcessor();
@@ -84,26 +100,49 @@ public class AutoInsightExecutor {
 		ArrayList<String> concepts = getQueryResultsAsList(CONCEPTS_QUERY);
 		concepts.remove("Concept");
 
-		ExecutorService executor = Executors.newFixedThreadPool(8);
+//		int limitThreadCount = 8;
+		ExecutorService executor = Executors.newCachedThreadPool();
 		int i;
 		int numConcepts = concepts.size();
-		for(i=0; i<numConcepts; i++) {
-			AutoInsightRunnable thread = new AutoInsightRunnable(engine, qa, concepts.get(i), rulesList, perspectiveHash);
-			executor.submit(thread);
+		List<Future<List<Object[]>>> futureList = new ArrayList<Future<List<Object[]>>>();
+		ListIterator<Future<List<Object[]>>> futureListIt = futureList.listIterator();
+		for(i = 0; i < numConcepts; i++) {
+			AutoInsightCallable thread = new AutoInsightCallable(engine, qa, concepts.get(i), rulesList, perspectiveIDHash);
+			Future<List<Object[]>> future = executor.submit(thread);
+			futureListIt.add(future);
 		}
 		
 		executor.shutdown();
 		while(!executor.isTerminated()) {
 			// wait till all threads are done processing
+			addInsightsToXML(futureListIt);
 		}
+		// in case some insights are left out
+		addInsightsToXML(futureListIt);
 		
 		//reload the perspectives for the db so that new perspectives/questions are visible
-//		reloadDB();
+		reloadDB();
 		
 		long endTime = System.currentTimeMillis();
 		System.out.println("Time in sec: " + (endTime - startTime)/1000 );
 	}
-		
+	
+	private void addInsightsToXML(ListIterator<Future<List<Object[]>>> futureListIt) {
+		while(futureListIt.hasPrevious()) {
+			Future<List<Object[]>> future = futureListIt.previous();
+			List<Object[]> insights = null;
+			try {
+				insights = future.get();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			} catch (ExecutionException e) {
+				e.printStackTrace();
+			}
+			AutoInsightCallable.addInsightsToXML(insights);
+			futureListIt.remove();
+		}
+	}
+	
 	private ArrayList<String> getQueryResultsAsList(String query) {
 
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
