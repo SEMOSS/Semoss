@@ -6,11 +6,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.Vector;
 import java.util.concurrent.Callable;
-
-import javax.swing.JComboBox;
-import javax.swing.JList;
 
 import prerna.algorithm.learning.similarity.GenerateEntropyDensity;
 import prerna.rdf.engine.api.ISelectStatement;
@@ -18,8 +14,6 @@ import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.QuestionAdministrator;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 
 public class AutoInsightCallable implements Callable<List<Object[]>> {
 
@@ -97,11 +91,6 @@ public class AutoInsightCallable implements Callable<List<Object[]>> {
 
 			qa.cleanAddQuestion(perspective, questionKey, null, filledQuestion, sparql, ruleOutput, null, null, null, null);
 		}
-
-		System.out.println("Adding to xml file");
-		String xmlFile = "db/" + engine.getEngineName() + "/" + engine.getEngineName() + "_Questions.XML";
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		qa.createQuestionXMLFile(xmlFile, baseFolder);
 	}
 
 	@Override
@@ -516,33 +505,6 @@ public class AutoInsightCallable implements Callable<List<Object[]>> {
 
 		Object[] insight = new Object[]{perspective, questionKey, null, filledQuestion, sparql, ruleOutput};
 		insightList.add(insight);
-	}
-
-	private void reloadDB(String perspective) {
-		if(!perspective.isEmpty()) {
-			// selects the db in repolist so the questions refresh with the changes
-			JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-			List selectedList = list.getSelectedValuesList();
-			String selectedValue = selectedList.get(selectedList.size() - 1).toString();
-
-			// don't need to refresh if selected db is not the db you're modifying.
-			// when you click to it it will refresh anyway.
-			if (engine.getEngineName().equals(selectedValue)) {
-				Vector<String> perspectives = engine.getPerspectives();
-
-				JComboBox<String> box = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.PERSPECTIVE_SELECTOR);
-				int numPerspectives = box.getItemCount();
-				boolean hasPerspective = false;
-				for(int i = 0; i < numPerspectives; i++) {
-					if(box.getItemAt(0).equals(perspective)) {
-						hasPerspective = true;
-					}
-				}
-				if(!hasPerspective) {
-					box.addItem(perspective);
-				}
-			}
-		}
 	}
 
 	private String buildQuery(String retVarString, String triplesString, String endString) {
