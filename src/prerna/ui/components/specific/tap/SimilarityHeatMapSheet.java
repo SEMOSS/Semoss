@@ -447,4 +447,13 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		hash.put(key, cellHash);
 		return arrayStore;
 	}
+	
+	@Override
+	public Hashtable<String, String> getDataTableAlign() {
+		Hashtable<String, String> alignHash = new Hashtable<String, String>();
+		alignHash.put("x", comparisonObjectTypeX);
+		alignHash.put("y", comparisonObjectTypeY);
+		alignHash.put("heat", valueString);
+		return alignHash;
+	}
 }
