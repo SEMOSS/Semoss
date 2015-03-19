@@ -286,8 +286,7 @@ public class QuestionAdministrator {
 			existingPerspective = true;
 			for (int j = 0; j < questionsV.size(); j++) {
 				String question = questionsV.get(j)+"";
-				Insight in = engine.getInsight2(
-						question).get(0);
+				Insight in = engine.getInsight2(question).get(0);
 
 				String questionID = in.getId();
 				String[] questionIDArray = questionID.split(":");
@@ -314,17 +313,14 @@ public class QuestionAdministrator {
 				for (int i = 0; i < questionsV.size(); i++) {
 					String question = questionsV.get(i)+"";
 
-					Insight in = engine
-							.getInsight2(question).get(0);
+					Insight in = engine.getInsight2(question).get(0);
 
 					String questionID = in.getId();
 					String[] questionIDArray = questionID.split(":");
 					String currentQuestionKey = questionIDArray[2];
 					int currentQuestionKeyValue = 0;
 					if (questionIDArray[2].contains(perspective)) {
-						currentQuestionKeyValue = Integer
-								.parseInt(currentQuestionKey.replace(
-										perspective + "_", ""));
+						currentQuestionKeyValue = Integer.parseInt(currentQuestionKey.replace(perspective + "_", ""));
 					}
 
 					// the following will make largestQuestionKeyValue
@@ -353,6 +349,15 @@ public class QuestionAdministrator {
 			String layout, String questionDescription, Vector<String> parameterDependList,
 			Vector<String> parameterQueryList, Vector<String> parameterOptionList) {
 
+		// add question at the bottom of the list
+		if(questionOrder == null) {
+			if(engine.getInsights(perspective) != null) {
+				questionOrder = engine.getInsights(perspective).size() + 1 + "";
+			} else {
+				questionOrder = "1";
+			}
+		}
+		
 		logger.info("CLEAN add of question with the following information: perspective=" + perspective + "; questionKey=" + questionKey + "; questionOrder="+ questionOrder+ "; questionLabel="+ question+ "; sparql="+ sparql+ "; layout="+ layout+ "; questionDescription="+ questionDescription+ "; parameterDependList="+ parameterDependList+ "; parameterQueryList="+ parameterQueryList+ "; parameterOptionList=" + parameterOptionList);
 
 		//get current order of insights in this perspective
@@ -423,7 +428,7 @@ public class QuestionAdministrator {
 		addQuestionParam(paramKeys, perspective, qsKey, qURI, parameterProperties);
 		return qURI;
 	}
-
+	
 	public void modifyQuestion(String perspective, String questionKey,
 			String questionOrder, String question, String sparql,
 			String layout, String questionDescription,
