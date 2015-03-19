@@ -28,7 +28,6 @@
 package prerna.poi.main.insights;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.ListIterator;
@@ -38,16 +37,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import javax.swing.JComboBox;
-import javax.swing.JList;
-
 import prerna.om.Insight;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.QuestionAdministrator;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 /**
@@ -100,7 +95,6 @@ public class AutoInsightExecutor {
 		ArrayList<String> concepts = getQueryResultsAsList(CONCEPTS_QUERY);
 		concepts.remove("Concept");
 
-//		int limitThreadCount = 8;
 		ExecutorService executor = Executors.newCachedThreadPool();
 		int i;
 		int numConcepts = concepts.size();
@@ -115,13 +109,13 @@ public class AutoInsightExecutor {
 		executor.shutdown();
 		while(!executor.isTerminated()) {
 			// wait till all threads are done processing
+			// start adding insights as they are added
 			addInsightsToXML(futureListIt);
 		}
-		// in case some insights are left out
-		addInsightsToXML(futureListIt);
 		
-		//reload the perspectives for the db so that new perspectives/questions are visible
-		reloadDB();
+		String xmlFile = "db/" + engine.getEngineName() + "/" + engine.getEngineName() + "_Questions.XML";
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		qa.createQuestionXMLFile(xmlFile, baseFolder);
 		
 		long endTime = System.currentTimeMillis();
 		System.out.println("Time in sec: " + (endTime - startTime)/1000 );
@@ -159,26 +153,4 @@ public class AutoInsightExecutor {
 
 		return properties;
 	}
-
-	private void reloadDB() {
-		// selects the db in repolist so the questions refresh with the changes
-		JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-		List selectedList = list.getSelectedValuesList();
-		String selectedValue = selectedList.get(selectedList.size() - 1).toString();
-
-		// don't need to refresh if selected db is not the db you're modifying.
-		// when you click to it it will refresh anyway.
-		if (engine.getEngineName().equals(selectedValue)) {
-			Vector<String> perspectives = engine.getPerspectives();
-			Collections.sort(perspectives);
-
-			JComboBox<String> box = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.PERSPECTIVE_SELECTOR);
-			box.removeAllItems();
-
-			for (int itemIndex = 0; itemIndex < perspectives.size(); itemIndex++) {
-				box.addItem(perspectives.get(itemIndex).toString());
-			}
-		}
-	}
-
 }
