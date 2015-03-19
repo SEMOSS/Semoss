@@ -55,7 +55,8 @@ public class AutoInsightExecutor {
 	//engine and question administrator to add questions
 	private AbstractEngine engine;
 	private QuestionAdministrator qa;
-
+	private boolean success;
+	
 	//concepts and perspectives + number of questions in perspective
 	private final String CONCEPTS_QUERY = "SELECT DISTINCT ?Concept WHERE {{?Concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>}}";
 
@@ -63,7 +64,8 @@ public class AutoInsightExecutor {
 		this.engine = engine;
 	}
 
-	public void run() {
+	public boolean run() {
+		success = true;
 		
 		long startTime = System.currentTimeMillis();
 		
@@ -119,6 +121,8 @@ public class AutoInsightExecutor {
 		
 		long endTime = System.currentTimeMillis();
 		System.out.println("Time in sec: " + (endTime - startTime)/1000 );
+		
+		return success;
 	}
 	
 	private void addInsightsToXML(ListIterator<Future<List<Object[]>>> futureListIt) {
@@ -129,8 +133,10 @@ public class AutoInsightExecutor {
 				insights = future.get();
 			} catch (InterruptedException e) {
 				e.printStackTrace();
+				success = false;
 			} catch (ExecutionException e) {
 				e.printStackTrace();
+				success = false;
 			}
 			AutoInsightCallable.addInsightsToXML(insights);
 			futureListIt.remove();
