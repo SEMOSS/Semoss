@@ -32,6 +32,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -54,6 +55,7 @@ import prerna.error.HeaderClassException;
 import prerna.error.NLPException;
 import prerna.ui.components.ImportDataProcessor;
 import prerna.ui.components.api.IChakraListener;
+import prerna.ui.components.specific.ProcessAutoInsightGenerator;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -86,6 +88,7 @@ public class ImportDataListener implements IChakraListener {
 		// trigger the import
 		JComboBox comboBox = (JComboBox)DIHelper.getInstance().getLocalProp(Constants.IMPORT_COMBOBOX);
 		JComboBox typeBox = (JComboBox)DIHelper.getInstance().getLocalProp(Constants.IMPORT_TYPE_COMBOBOX);
+		JCheckBox autoGenerateInsights = (JCheckBox)DIHelper.getInstance().getLocalProp(Constants.AUTO_GENERATE_INSIGHTS_CHECK_BOX);
 		
 		ImportDataProcessor.IMPORT_METHOD importMethod = null;
 		ImportDataProcessor.IMPORT_TYPE importType = null;
@@ -171,6 +174,26 @@ public class ImportDataListener implements IChakraListener {
 			Utility.showError("Import has failed.\n");
 		} catch (NLPException e1) {
 			Utility.showError("Import has failed.\n");
+		}
+		
+		if(autoGenerateInsights.isSelected()) {
+			try {
+				// need to wait until the database files are all written in order to run the auto generated insights
+				// will get a null pointer for the engine if you do not wait
+				Thread.sleep(1000);
+			} catch(InterruptedException ex) {
+			    Thread.currentThread().interrupt();
+			}
+			String engineName = "";
+			if(importMethod == ImportDataProcessor.IMPORT_METHOD.ADD_TO_EXISTING || importMethod == ImportDataProcessor.IMPORT_METHOD.OVERRIDE) {
+				engineName = repo;
+			} else if(importMethod == ImportDataProcessor.IMPORT_METHOD.CREATE_NEW) {
+				engineName = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.DB_NAME_FIELD)).getText();
+			}
+			
+			ProcessAutoInsightGenerator executor = new ProcessAutoInsightGenerator(engineName);
+			Thread thread = new Thread(executor);
+			thread.start();
 		}
 	}
 	

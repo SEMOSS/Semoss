@@ -236,6 +236,7 @@ public class PlayPane extends JFrame {
 	public JButton mapBrowseBtn, dbPropBrowseButton, questionBrowseButton, btnShowAdvancedImportFeatures, importButton, fileBrowseBtn,
 			btnTestRDBMSConnection, btnGetRDBMSSchema;
 	public JLabel selectionFileLbl, dbNameLbl, lblDataInputFormat, lblDBImportURL, lblDBImportUsername, lblDBImportPW, lblDBImportDriverType;
+	public JCheckBox autoGenerateInsights;
 	
 	// Export Components
 	public JLabel lblMaxExportLimit;
@@ -904,7 +905,7 @@ public class PlayPane extends JFrame {
 		gbc_btnShowAdvancedImportFeatures.gridwidth = 4;
 		gbc_btnShowAdvancedImportFeatures.insets = new Insets(0, 0, 5, 5);
 		gbc_btnShowAdvancedImportFeatures.gridx = 0;
-		gbc_btnShowAdvancedImportFeatures.gridy = 7;
+		gbc_btnShowAdvancedImportFeatures.gridy = 8;
 		dbImportPanel.add(btnShowAdvancedImportFeatures, gbc_btnShowAdvancedImportFeatures);
 		
 		advancedImportOptionsPanel = new JPanel();
@@ -914,7 +915,8 @@ public class PlayPane extends JFrame {
 		gbc_advancedImportOptionsPanel.insets = new Insets(0, 0, 5, 0);
 		gbc_advancedImportOptionsPanel.fill = GridBagConstraints.BOTH;
 		gbc_advancedImportOptionsPanel.gridx = 0;
-		gbc_advancedImportOptionsPanel.gridy = 8;
+		gbc_advancedImportOptionsPanel.gridy = 9;
+		
 		dbImportPanel.add(advancedImportOptionsPanel, gbc_advancedImportOptionsPanel);
 		GridBagLayout gbl_advancedImportOptionsPanel = new GridBagLayout();
 		gbl_advancedImportOptionsPanel.columnWidths = new int[] { 210, 0, 0, 0 };
@@ -1009,12 +1011,20 @@ public class PlayPane extends JFrame {
 		advancedImportOptionsPanel.add(questionFileNameField, gbc_questionFileNameField);
 		advancedImportOptionsPanel.setVisible(false);
 		
+		autoGenerateInsights = new JCheckBox("Auto-Generate Insights");
+		autoGenerateInsights.setHorizontalTextPosition(SwingConstants.LEFT);
+		GridBagConstraints gbc_autoGenerateInsights = new GridBagConstraints();
+		gbc_autoGenerateInsights.anchor = GridBagConstraints.EAST;
+		gbc_autoGenerateInsights.gridx = 4;
+		gbc_autoGenerateInsights.gridy = 7;
+		dbImportPanel.add(autoGenerateInsights, gbc_autoGenerateInsights);
+		
 		importButton = new CustomButton("Import");
 		importButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_importButton = new GridBagConstraints();
 		gbc_importButton.anchor = GridBagConstraints.EAST;
 		gbc_importButton.gridx = 4;
-		gbc_importButton.gridy = 7;
+		gbc_importButton.gridy = 8;
 		dbImportPanel.add(importButton, gbc_importButton);
 		
 		GridBagConstraints gbc_importPanel = new GridBagConstraints();
