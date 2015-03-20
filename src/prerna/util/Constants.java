@@ -51,6 +51,7 @@ public class Constants {
 	public static final String IMPORT_FILE_LABEL = "selectionFileLbl";
 	public static final String IMPORT_BUTTON_BROWSE = "fileBrowseBtn";
 	public static final String IMPORT_BUTTON = "importButton";
+	public static final String AUTO_GENERATE_INSIGHTS_CHECK_BOX = "autoGenerateInsights";
 	public static final String MAP_BROWSE_BUTTON = "mapBrowseBtn";
 	public static final String DB_PROP_BROWSE_BUTTON = "dbPropBrowseButton";
 	public static final String QUESTION_BROWSE_BUTTON = "questionBrowseButton";
