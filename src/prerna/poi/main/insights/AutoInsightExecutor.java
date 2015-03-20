@@ -50,7 +50,7 @@ import prerna.util.DIHelper;
  * @author ksmart
  *
  */
-public class AutoInsightExecutor {
+public class AutoInsightExecutor implements Runnable{
 
 	//engine and question administrator to add questions
 	private AbstractEngine engine;
@@ -63,8 +63,13 @@ public class AutoInsightExecutor {
 	public AutoInsightExecutor(AbstractEngine engine) {
 		this.engine = engine;
 	}
+	
+	public AutoInsightExecutor(String engineName) {
+		this.engine = (AbstractEngine) DIHelper.getInstance().getLocalProp(engineName);
+	}
 
-	public boolean run() {
+	@Override
+	public void run(){
 		success = true;
 		
 		long startTime = System.currentTimeMillis();
@@ -112,7 +117,15 @@ public class AutoInsightExecutor {
 		while(!executor.isTerminated()) {
 			// wait till all threads are done processing
 			// start adding insights as they are added
-			addInsightsToXML(futureListIt);
+			try {
+				addInsightsToXML(futureListIt);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+				success = false;
+			} catch (ExecutionException e) {
+				e.printStackTrace();
+				success = false;
+			}
 		}
 		
 		String xmlFile = "db/" + engine.getEngineName() + "/" + engine.getEngineName() + "_Questions.XML";
@@ -121,23 +134,13 @@ public class AutoInsightExecutor {
 		
 		long endTime = System.currentTimeMillis();
 		System.out.println("Time in sec: " + (endTime - startTime)/1000 );
-		
-		return success;
 	}
 	
-	private void addInsightsToXML(ListIterator<Future<List<Object[]>>> futureListIt) {
+	private void addInsightsToXML(ListIterator<Future<List<Object[]>>> futureListIt) throws InterruptedException, ExecutionException {
 		while(futureListIt.hasPrevious()) {
 			Future<List<Object[]>> future = futureListIt.previous();
 			List<Object[]> insights = null;
-			try {
-				insights = future.get();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-				success = false;
-			} catch (ExecutionException e) {
-				e.printStackTrace();
-				success = false;
-			}
+			insights = future.get();
 			AutoInsightCallable.addInsightsToXML(insights);
 			futureListIt.remove();
 		}
@@ -158,5 +161,9 @@ public class AutoInsightExecutor {
 		}
 
 		return properties;
+	}
+	
+	public boolean isSuccess() {
+		return success;
 	}
 }
