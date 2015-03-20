@@ -366,8 +366,6 @@ public class Constants {
 	public static final String EXPORT_LOAD_SHEET_ADD_EXPORT_BUTTON = "btnAddExport";
 	public static final int MAX_EXPORTS = 9;
 
-	public static final String SEARCH_DATABASE_TEXT = "databaseSearchTextField";
-
 	// Update Cost DB Panel
 	public static final String CHANGED_DB_COMBOBOX = "changedDBComboBox";
 	public static final String COST_DB_COMBOBOX = "costDBComboBox";
