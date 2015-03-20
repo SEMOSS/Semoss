@@ -249,9 +249,7 @@ public class PlayPane extends JFrame {
 	public ParamComboBox nodeRelationshipComboBox1, nodeRelationshipComboBox2, nodeRelationshipComboBox3, nodeRelationshipComboBox4,
 			nodeRelationshipComboBox5, nodeRelationshipComboBox6, nodeRelationshipComboBox7, nodeRelationshipComboBox8, nodeRelationshipComboBox9;
 	public JButton btnAddExport;
-	// public JButton btnCreateMasterDatabase;
-	public JTextField databaseSearchTextField;
-	public JButton btnSearchDatabase;
+
 	private Component rigidArea;
 	public JButton btnClearAll;
 	private JLabel lblChangedDB;
@@ -1570,38 +1568,6 @@ public class PlayPane extends JFrame {
 		gbc_btnExportRelationshipsLoad.gridx = 1;
 		gbc_btnExportRelationshipsLoad.gridy = 18;
 		loadSheetExportPanel.add(btnExportRelationshipsLoadSheets, gbc_btnExportRelationshipsLoad);
-		
-		// btnCreateMasterDatabase = new CustomButton("Create Master Database");
-		// btnCreateMasterDatabase.setFont(new Font("Tahoma", Font.BOLD, 11));
-		// GridBagConstraints gbc_btnCreateMasterDatabase = new
-		// GridBagConstraints();
-		// gbc_btnCreateMasterDatabase.anchor = GridBagConstraints.WEST;
-		// gbc_btnCreateMasterDatabase.insets = new Insets(0, 0, 5, 5);
-		// gbc_btnCreateMasterDatabase.gridx = 0;
-		// gbc_btnCreateMasterDatabase.gridy = 19;
-		// loadSheetExportPanel.add(btnCreateMasterDatabase,
-		// gbc_btnCreateMasterDatabase);
-		// Style.registerTargetClassName(btnCreateMasterDatabase,
-		// ".standardButton");
-		
-		databaseSearchTextField = new JTextField();
-		databaseSearchTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		databaseSearchTextField.setText("What are you looking for?");
-		databaseSearchTextField.setColumns(75);
-		GridBagConstraints gbc_databaseSearchTextField = new GridBagConstraints();
-		gbc_databaseSearchTextField.insets = new Insets(0, 0, 5, 5);
-		gbc_databaseSearchTextField.fill = GridBagConstraints.HORIZONTAL;
-		gbc_databaseSearchTextField.gridx = 0;
-		gbc_databaseSearchTextField.gridy = 20;
-		loadSheetExportPanel.add(databaseSearchTextField, gbc_databaseSearchTextField);
-		
-		btnSearchDatabase = new CustomButton("Search");
-		btnSearchDatabase.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_btnSearchDatabase = new GridBagConstraints();
-		gbc_btnSearchDatabase.gridx = 1;
-		gbc_btnSearchDatabase.gridy = 20;
-		loadSheetExportPanel.add(btnSearchDatabase, gbc_btnSearchDatabase);
-		Style.registerTargetClassName(btnSearchDatabase, ".standardButton");
 		
 		GridBagConstraints gbc_loadSheetExportPanel = new GridBagConstraints();
 		gbc_loadSheetExportPanel.insets = new Insets(0, 15, 5, 0);
