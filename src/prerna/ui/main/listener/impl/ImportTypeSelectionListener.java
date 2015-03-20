@@ -80,8 +80,8 @@ public class ImportTypeSelectionListener extends AbstractListener {
 		JTextField dbImportPWField = (JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_RDBMS_PW_FIELD);
 		JTextField dbNameField = (JTextField)DIHelper.getInstance().getLocalProp(Constants.DB_NAME_FIELD);
 		JTextField fileImportField = (JTextField)DIHelper.getInstance().getLocalProp(Constants.IMPORT_FILE_FIELD);
-		JButton btnFileBrowse = (JButton)DIHelper.getInstance().getLocalProp(Constants.IMPORT_BUTTON_BROWSE);
-		JButton btnImport = (JButton)DIHelper.getInstance().getLocalProp(Constants.IMPORT_BUTTON);
+//		JButton btnFileBrowse = (JButton)DIHelper.getInstance().getLocalProp(Constants.IMPORT_BUTTON_BROWSE);
+//		JButton btnImport = (JButton)DIHelper.getInstance().getLocalProp(Constants.IMPORT_BUTTON);
 		JButton btnTestRDBMSConnection = (JButton)DIHelper.getInstance().getLocalProp(Constants.TEST_RDBMS_CONNECTION);
 		JButton btnGetRDBMSSchema = (JButton)DIHelper.getInstance().getLocalProp(Constants.GET_RDBMS_SCHEMA);
 		JTextField mapText = (JTextField)DIHelper.getInstance().getLocalProp(Constants.MAP_TEXT_FIELD);
