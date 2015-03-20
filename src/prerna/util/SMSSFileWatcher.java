@@ -178,6 +178,11 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 			questionDatabaseSelectorModel.addElement(engineName);
 			questionDatabaseSelector.repaint();
 
+			JComboBox autoGenerateQueriesForEngineCombobox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.AUTO_GENERATE_INSIGHTS_FOR_ENGINE_COMBOBOX);
+			DefaultComboBoxModel autoGenerateQueriesForEngineComboboxModel = (DefaultComboBoxModel) autoGenerateQueriesForEngineCombobox.getModel();
+			autoGenerateQueriesForEngineComboboxModel.addElement(engineName);
+			autoGenerateQueriesForEngineCombobox.repaint();
+			
 			JFrame frame2 = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
 			frame2.repaint();
 

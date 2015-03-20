@@ -458,4 +458,6 @@ public class Constants {
 	public static final String USERNAME = "USERNAME";
 	public static final String PASSWORD = "PASSWORD";
 	
+	// Auto generate queries
+	public static final String AUTO_GENERATE_INSIGHTS_FOR_ENGINE_COMBOBOX = "autoGenerateQueriesForEngineSelector";
 }
