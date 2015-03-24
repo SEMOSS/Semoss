@@ -75,18 +75,20 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 */
 	public void loadNewDB(String newFile)
 	{
+		String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
 		FileInputStream fileIn = null;
 		try{
 			Properties prop = new Properties();
-			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-	
 			fileIn = new FileInputStream(folderToWatch + "/"  +  newFile);
 			prop.load(fileIn);
-			
-			String fileName = folderToWatch + "/" + newFile;
-			System.err.println("Loading DB " + folderToWatch + "<>" + newFile);
-			
-			Utility.loadEngine(fileName, prop);
+			String engineName = prop.getProperty(Constants.ENGINE);
+			if(engines.contains(engineName)) {
+				System.err.println("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
+			} else {
+				String fileName = folderToWatch + "/" + newFile;
+				System.err.println("Loading DB " + folderToWatch + "<>" + newFile);
+				Utility.loadEngine(fileName, prop);
+			}
 		}catch(IOException e){
 			e.printStackTrace();
 		}finally{
