@@ -198,11 +198,17 @@ public class ImportDataProcessor {
 			File newProp = new File(propWriter.propFileName.replace("temp", "smss"));
 			try {
 				FileUtils.copyFile(propFile, newProp);
+				newProp.setReadable(true);
 			} catch (IOException e) {
 				e.printStackTrace();
 				throw new FileWriterException("Could not create .smss file for new database");
 			}
-			propFile.delete();
+			try {
+				FileUtils.forceDelete(propFile);
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw new FileWriterException("Could not delete .temp file for new database");
+			}
 		}
 		//				try {
 		//					reader.closeDB();
@@ -236,11 +242,17 @@ public class ImportDataProcessor {
 			File newProp = new File(propWriter.propFileName.replace("temp", "smss"));
 			try {
 				FileUtils.copyFile(propFile, newProp);
+				newProp.setReadable(true);
 			} catch (IOException e) {
 				e.printStackTrace();
 				throw new FileWriterException("Could not create .smss file for new database");
 			}
-			propFile.delete();
+			try {
+				FileUtils.forceDelete(propFile);
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw new FileWriterException("Could not delete .temp file for new database");
+			}
 		}
 		//					csvReader.closeDB();
 		//					logger.warn("SC IS OPEN:" + csvReader.sc.isOpen());
@@ -266,11 +278,17 @@ public class ImportDataProcessor {
 			File newProp = new File(propWriter.propFileName.replace("temp", "smss"));
 			try {
 				FileUtils.copyFile(propFile, newProp);
+				newProp.setReadable(true);
 			} catch (IOException e) {
 				e.printStackTrace();
 				throw new FileWriterException("Could not create .smss file for new database");
 			}
-			propFile.delete();
+			try {
+				FileUtils.forceDelete(propFile);
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw new FileWriterException("Could not delete .temp file for new database");
+			}
 		} 
 		else if (importType == IMPORT_TYPE.CSV && dbType == DB_TYPE.RDBMS)
 		{
@@ -291,11 +309,17 @@ public class ImportDataProcessor {
 			File newProp = new File(propWriter.propFileName.replace("temp", "smss"));
 			try {
 				FileUtils.copyFile(propFile, newProp);
+				newProp.setReadable(true);
 			} catch (IOException e) {
 				e.printStackTrace();
 				throw new FileWriterException("Could not create .smss file for new database");
 			}
-			propFile.delete();
+			try {
+				FileUtils.forceDelete(propFile);
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw new FileWriterException("Could not delete .temp file for new database");
+			}
 		}
 	}
 
