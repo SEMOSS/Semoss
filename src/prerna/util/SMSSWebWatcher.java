@@ -50,18 +50,13 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 * Returns an array of strings naming the files in the directory.
 	 * Goes through list and loads an existing database.
 	 */
-	public void loadExistingDB()
-	{
+	public void loadExistingDB() {
 		File dir = new File(folderToWatch);
-		String [] fileNames = dir.list(this);
-		for(int fileIdx = 0;fileIdx < fileNames.length;fileIdx++)
-		{
-			try{
-				String fileName = folderToWatch + "/" + fileNames[fileIdx];
+		String[] fileNames = dir.list(this);
+		for(int fileIdx = 0;fileIdx < fileNames.length;fileIdx++) {
+			try {
 				loadNewDB(fileNames[fileIdx]);
-				//Utility.loadEngine(fileName, prop);				
-			}catch(RuntimeException ex)
-			{
+			} catch(RuntimeException ex) {
 				ex.printStackTrace();
 				logger.fatal("Engine Failed " + "./db/" + fileNames[fileIdx]);
 			}
@@ -73,8 +68,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 * Loads a new database by setting a specific engine with associated properties.
 	 * @param 	Specifies properties to load 
 	 */
-	public void loadNewDB(String newFile)
-	{
+	public void loadNewDB(String newFile) {
 		String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
 		FileInputStream fileIn = null;
 		try{
@@ -106,35 +100,27 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 * Used in the starter class for processing SMSS files.
 	 */
 	@Override
-	public void loadFirst()
-	{
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+	public void loadFirst() {
 		File dir = new File(folderToWatch);
 		System.err.println("Dir... " + dir);
 		String [] fileNames = dir.list(this);
 		for(int fileIdx = 0;fileIdx < fileNames.length;fileIdx++)
 		{
-			try{
-				String fileName = folderToWatch + fileNames[fileIdx];
-				Properties prop = new Properties();
+			try {
 				process(fileNames[fileIdx]);
-			}catch(RuntimeException ex)
-			{
+			} catch(RuntimeException ex) {
 				logger.fatal("Engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
 			}
 		}
 	}
-
 	
 	/**
 	 * Processes new SMSS files.
 	 */
 	@Override
-	public void run()
-	{
+	public void run() {
 		logger.info("Starting SMSSWebWatcher thread");
-		synchronized(monitor)
-		{
+		synchronized(monitor) {
 			loadFirst();
 			super.run();
 		}
