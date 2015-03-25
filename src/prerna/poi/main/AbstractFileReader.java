@@ -77,6 +77,7 @@ import prerna.util.Utility;
 import com.bigdata.rdf.rules.InferenceEngine;
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.BigdataSailRepository;
+import com.hp.hpl.jena.vocabulary.OWL;
 
 public abstract class AbstractFileReader {
 
@@ -85,6 +86,7 @@ public abstract class AbstractFileReader {
 	protected Properties bdProp = new Properties(); // properties for big data
 	protected Sail bdSail;
 	protected ValueFactory vf;
+	IEngine engine;
 	
 	protected String customBaseURI = "";
 	public String basePropURI= "";
@@ -98,6 +100,7 @@ public abstract class AbstractFileReader {
 	public Hashtable<String,String> baseRelationURIHash = new Hashtable<String,String>(); 
 	public Hashtable<String,String> relationURIHash = new Hashtable<String,String>();
 	public Hashtable<String,String> basePropURIHash = new Hashtable<String,String>();
+	public Hashtable<String,String> basePropRelations = new Hashtable<String,String>();
 	
 	protected Hashtable<String, String[]> baseRelations = new Hashtable<String, String[]>();
 
@@ -256,13 +259,27 @@ public abstract class AbstractFileReader {
 			e.printStackTrace();
 			throw new EngineException("Could not commit processed triples into database");
 		}
-		InferenceEngine ie = ((BigdataSail)bdSail).getInferenceEngine();
-		ie.computeClosure(null);
-		try {
-			sc.commit();
-		} catch (SailException e) {
-			e.printStackTrace();
-			throw new EngineException("Could not commit inferenced triples into database");
+		if(bdSail != null){
+			InferenceEngine ie = ((BigdataSail)bdSail).getInferenceEngine();
+			ie.computeClosure(null);
+			try {
+				sc.commit();
+			} catch (SailException e) {
+				e.printStackTrace();
+				throw new EngineException("Could not commit inferenced triples into database");
+			}
+		}
+		else{
+			if(engine!=null && engine instanceof RDFFileSesameEngine){
+				try {
+					((RDFFileSesameEngine)engine).exportDB();
+				} catch (RepositoryException | RDFHandlerException
+						| IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+				
 		}
 	}
 
@@ -342,22 +359,25 @@ public abstract class AbstractFileReader {
 	}
 
 	protected void storeBaseStatement(String sub, String pred, String obj) throws EngineException {
+		String cleanSub = Utility.cleanString(sub, false);
+		String cleanPred = Utility.cleanString(pred, false);
+		String cleanObj = Utility.cleanString(obj, false);
 		try {
 			if(!scOWL.isActive() || !scOWL.isOpen()) {
 				scOWL.begin();
 			}
-			scOWL.addStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj));
+			scOWL.addStatement(vf.createURI(cleanSub), vf.createURI(cleanPred), vf.createURI(cleanObj));
 			scOWL.commit();
 		} catch (SailException e) {
 			e.printStackTrace();
-			throw new EngineException("Error adding triple {<" + sub + "> <" + pred + "> <" + obj + ">}");
+			throw new EngineException("Error adding triple {<" + cleanSub + "> <" + cleanPred + "> <" + cleanObj + ">}");
 		}
 		if(baseDataEngine != null && baseDataHash != null)
 		{
-			baseDataEngine.addStatement(sub, pred, obj, true);
-			baseDataHash.put(sub, sub);
-			baseDataHash.put(pred, pred);
-			baseDataHash.put(obj,obj);
+			baseDataEngine.addStatement(cleanSub, cleanPred, cleanObj, true);
+			baseDataHash.put(cleanSub, cleanSub);
+			baseDataHash.put(cleanPred, cleanPred);
+			baseDataHash.put(cleanObj,cleanObj);//
 		}
 	}
 
@@ -420,6 +440,36 @@ public abstract class AbstractFileReader {
 //			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
 		}
 
+		// I need to write one now for creating properties as well
+		// this is where I will do properties
+		// add the base relation first
+		storeBaseStatement(semossURI + "/" + Constants.DEFAULT_PROPERTY_CLASS, RDF.TYPE+"", semossURI + "/" + Constants.DEFAULT_RELATION_CLASS);
+		
+		baseHashIt = basePropURIHash.keySet().iterator();
+		while(baseHashIt.hasNext()){
+			String subjectInstance = baseHashIt.next() +"";
+			String predicate = RDF.TYPE +"";
+			//convert instances to URIs
+			String subject = subjectInstance; //baseRelationURIHash.get(subjectInstance);// +"", false);
+			String object = semossURI + "/" + Constants.DEFAULT_PROPERTY_CLASS;
+			// create the statement now
+			// base property uri is like
+			// Relation/Contains/MovieBudget RDFS:SUBCLASSOF /Relation/Contains
+			storeBaseStatement(subject, predicate, object);
+		}
+		
+		// now write the actual relations
+		// relation instances go next
+		for(String relArray : basePropRelations.keySet()){
+			String property = relArray;
+			String parent = basePropRelations.get(property);
+
+			//			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
+			storeBaseStatement(parent, OWL.DatatypeProperty+"", property);
+//			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
+		}
+
+
 		try {
 			scOWL.commit();
 		} catch (SailException e) {
@@ -476,11 +526,29 @@ public abstract class AbstractFileReader {
 
 	protected void openEngineWithConnection(String engineName) throws EngineException {
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
-		BigDataEngine bigEngine = (BigDataEngine) engine;
-		SailRepositoryConnection rc = bigEngine.rc;
-		bdSail = bigEngine.bdSail;
-		sc = bigEngine.sc;
-		vf = bigEngine.vf;
+		if(engine instanceof RDFFileSesameEngine){
+			RDFFileSesameEngine rdfEngine = (RDFFileSesameEngine) engine;
+			sc = rdfEngine.getSC();
+			vf = rdfEngine.getVF();
+			try {
+				this.engine = rdfEngine;
+				System.out.println(" open is " + sc.isOpen());
+				System.out.println(" active is " + sc.isActive());
+				sc.begin();
+				System.out.println(" open is " + sc.isOpen());
+				System.out.println(" active is " + sc.isActive());
+			} catch (SailException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		else{
+			BigDataEngine bigEngine = (BigDataEngine) engine;
+			bdSail = bigEngine.bdSail;
+			sc = bigEngine.sc;
+			vf = bigEngine.vf;
+		}
+		
 		openOWLWithConnection(engine);
 	}
 
