@@ -687,7 +687,8 @@ public class CSVReader extends AbstractFileReader {
 					// see if subject node SEMOSS base URI exists in prop file
 					if(rdfMap.containsKey(sub+Constants.CLASS))
 					{
-						baseConceptURIHash.put(sub+Constants.CLASS,rdfMap.get(sub+Constants.CLASS));
+						idxBaseURI = rdfMap.get(sub+Constants.CLASS);
+						baseConceptURIHash.put(sub+Constants.CLASS,idxBaseURI);
 					}
 					// if no user specified URI, use generic SEMOSS base URI
 					else
@@ -749,7 +750,8 @@ public class CSVReader extends AbstractFileReader {
 
 					propURI = basePropURI+"/" + property;
 					createStatement(vf.createURI(propURI),RDF.TYPE,vf.createURI(basePropURI));
-					basePropURIHash.put(property,  propURI);
+					basePropURIHash.put(propURI,  propURI);
+					basePropRelations.put(propURI,  idxBaseURI);//
 				}
 			}
 		}
@@ -822,7 +824,8 @@ public class CSVReader extends AbstractFileReader {
 
 					propURI = basePropURI+"/" + property;
 					createStatement(vf.createURI(propURI),RDF.TYPE,vf.createURI( basePropURI));
-					basePropURIHash.put(property,  propURI);
+					basePropURIHash.put(propURI,  propURI);
+					//basePropRelations.put(propURI,  parentURI); // would need this if we were doing edge properties... but we are not any longer
 				}
 			}
 		}
