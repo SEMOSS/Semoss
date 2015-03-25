@@ -77,6 +77,7 @@ import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 
+import com.ibm.icu.math.BigDecimal;
 import com.ibm.icu.text.DecimalFormat;
 
 /**
@@ -520,9 +521,8 @@ public class Utility {
 
 	 * @return double */
 	public static double round(double valueToRound, int numberOfDecimalPlaces) {
-		double multipicationFactor = Math.pow(10, numberOfDecimalPlaces);
-		double interestedInZeroDPs = valueToRound * multipicationFactor;
-		return Math.round(interestedInZeroDPs) / multipicationFactor;
+		BigDecimal bigD = new BigDecimal(valueToRound);
+		return bigD.setScale(numberOfDecimalPlaces, BigDecimal.ROUND_HALF_UP).doubleValue();
 	}
 
 	/**
