@@ -92,8 +92,8 @@ public class InstanceNumericalMethods extends AbstractNumericalMethods implement
 				processingQueue.notify();
 			}
 		} else if(calculateReachability) {
-			int i = start;
-			int size = numInstances-start;
+			int i = 0;
+			int size = numInstances;
 			double[] values = new double[size];
 			int counter = 0;
 			for(; i < numInstances; i++) {
@@ -105,13 +105,8 @@ public class InstanceNumericalMethods extends AbstractNumericalMethods implement
 				}
 				counter++;
 			}
-			i = 0;
 			synchronized(processingQueue) {
-				for(; i < size; i++) {
-					double val = values[i];
-					reachSimMatrix[i+start][index] = val;
-					reachSimMatrix[index][i+start] = val;
-				}
+				reachSimMatrix[index] = values;
 				processingQueue.remove(index);
 				processingQueue.notify();
 			}
