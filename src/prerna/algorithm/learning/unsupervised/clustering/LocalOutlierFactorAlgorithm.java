@@ -264,7 +264,6 @@ public class LocalOutlierFactorAlgorithm {
 				inm.setCalculateSimMatrix(false);
 				inm.setCalculateReachability(true);
 				inm.setIndex(i);
-				inm.setStart(i);
 				inm.setProcessingQueue(processingQueue);
 				processingQueue.add(i);
 				while (processingQueue.size() >= numProcessors * 5) {
