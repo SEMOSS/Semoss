@@ -382,8 +382,12 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 		double numOfBLUSystemSOR = 0;
 		double numOfBLUSystemSORAndDHMSMCreate = 0;
 
-		numOfBLUSystemSOR = (double) ((ArrayList<Object>) sysNumBLU.get(0)).get(0);
-		numOfBLUSystemSORAndDHMSMCreate = (double) ((ArrayList<Object>) sysAndDHMSMBLU.get(0)).get(0);
+		if (!((ArrayList<Object>) sysNumBLU).isEmpty()) { 
+			numOfBLUSystemSOR = (double) ((ArrayList<Object>) sysNumBLU.get(0)).get(0);
+		}
+		if (!((ArrayList<Object>) sysAndDHMSMBLU).isEmpty()) { 
+			numOfBLUSystemSORAndDHMSMCreate = (double) ((ArrayList<Object>) sysAndDHMSMBLU.get(0)).get(0);
+		}
 		
 		//Calculate % of BLU that DHMSM will provide for the given system
 		if (numOfBLUSystemSOR == 0)
