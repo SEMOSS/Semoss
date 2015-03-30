@@ -294,7 +294,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 				String key = it.next();
 				Hashtable value = hash.get(key);
 				Double score = (Double) value.get("Score");
-				if(score>70){
+				if(score > 50){
 					Object[] row = new Object[3];
 					row[0] = value.get(comparisonObjectTypeX);
 					row[1] = value.get(comparisonObjectTypeY);
