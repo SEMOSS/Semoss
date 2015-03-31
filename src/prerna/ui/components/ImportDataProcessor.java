@@ -124,7 +124,7 @@ public class ImportDataProcessor {
 					reader.relationURIHash,  reader.baseRelationURIHash, 
 					reader.basePropURI);
 		}
-		else if (importType == IMPORT_TYPE.CSV)
+		else if (importType == IMPORT_TYPE.CSV && dbType == DB_TYPE.RDF)
 		{
 			CSVReader csvReader = new CSVReader();
 			//If propHash has not been set, we are coming from semoss and need to read the propFile
