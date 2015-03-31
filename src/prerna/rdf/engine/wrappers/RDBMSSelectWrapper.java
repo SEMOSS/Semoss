@@ -70,6 +70,10 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements
 			for(int colIndex = 0;colIndex < var.length;colIndex++)
 			{
 				Object value = rs.getObject(var[colIndex]);
+				if(value==null){
+					value = ""; //prevent null pointer exception.
+				}
+				
 				stmt.setVar(var[colIndex], value);
 				//set the type and URI based on the type
 				int type = (int)columnTypes.get(var[colIndex]);
