@@ -69,6 +69,7 @@ import prerna.error.FileWriterException;
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.rdf.engine.impl.BigDataEngine;
+import prerna.rdf.engine.impl.RDBMSNativeEngine;
 import prerna.rdf.engine.impl.RDFFileSesameEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -541,8 +542,7 @@ public abstract class AbstractFileReader {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-		}
-		else{
+		} else if(!(engine instanceof RDBMSNativeEngine)){ //for rdbms native engine skip this logic
 			BigDataEngine bigEngine = (BigDataEngine) engine;
 			bdSail = bigEngine.bdSail;
 			sc = bigEngine.sc;
