@@ -276,7 +276,6 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 //		logger.info("args: ");
 //		for(Object arg : arg0)
 //			System.out.println(arg);
-		Gson gson = new Gson();
 		ArrayList<String> selectedVarsList = new ArrayList<String>();
 		logger.info("Selected Vars are : ");
 		for(String obj : selectedVars) {
