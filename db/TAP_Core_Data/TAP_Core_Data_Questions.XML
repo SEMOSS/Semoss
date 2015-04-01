@@ -4440,62 +4440,8 @@
 	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/ActiveSystem"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:System-Perspective:SysP47">
-	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
-	<label>TAP_Core_Data:System-Perspective:SysP47</label>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:System-Perspective:SysP47">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
-	<label>TAP_Core_Data:TAP_Core_Data:System-Perspective:SysP47</label>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Core_Data">
-	<SysP47 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:System-Perspective:SysP47"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:System-Perspective:TAP_Core_Data:System-Perspective:SysP47">
-	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
-	<label>TAP_Core_Data:System-Perspective:TAP_Core_Data:System-Perspective:SysP47</label>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:System-Perspective">
-	<SysP47 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:System-Perspective:TAP_Core_Data:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:System-Perspective:SysP47"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:System-Perspective:SysP47">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What is the Application Health Grid for the systems used by this service with this system highlighted?</Label>
-	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">46</Order>
-</rdf:Description>
-
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:System-Perspective">
 	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">SysP47</IDLabel>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:System-Perspective:SysP47">
-	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?System (COALESCE(?bv * 100, 0.0) AS ?BusinessValue) (COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?tstm, 0.0) AS ?TechnicalStandards) (COALESCE(?SustainmentBud,0.0) AS ?SustainmentBudget) ?SystemStatus ?highlight WHERE {BIND(&lt;@User-http://semoss.org/ontologies/Concept/SystemUser@&gt; AS ?SystemUser) BIND(&lt;@System-http://semoss.org/ontologies/Concept/ActiveSystem@&gt; AS ?highlight) {?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;;}{?UsedBy &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/UsedBy&gt;;}{?System ?UsedBy ?SystemUser}OPTIONAL{{?System &lt;http://semoss.org/ontologies/Relation/Contains/SustainmentBudget&gt; ?SustainmentBud}}OPTIONAL {{?System &lt;http://semoss.org/ontologies/Relation/Contains/BusinessValue&gt; ?bv}} OPTIONAL{ {?System &lt;http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM&gt; ?estm} } OPTIONAL {{?System &lt;http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM&gt; ?tstm}} {?System &lt;http://semoss.org/ontologies/Relation/Phase&gt; ?SystemStatus } }</SPARQL>
-	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.HealthGridSheet</Layout>
-	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Core_Data:System-Perspective:SysP47:System"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Core_Data:System-Perspective:SysP47:System">
-	<LABEL xmlns="PARAM:">System</LABEL>
-	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
-	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
-	<DEPEND xmlns="PARAM:">None</DEPEND>
-	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/ActiveSystem"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:System-Perspective:SysP47">
-	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Core_Data:System-Perspective:SysP47:User"/>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Core_Data:System-Perspective:SysP47:User">
-	<LABEL xmlns="PARAM:">User</LABEL>
-	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
-	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
-	<DEPEND xmlns="PARAM:">None</DEPEND>
-	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/SystemUser"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:System-Perspective:SysP49">
@@ -11407,6 +11353,76 @@
 	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
 	<DEPEND xmlns="PARAM:">None</DEPEND>
 	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/DataObject"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:System-Perspective">
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Resource"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Core_Data">
+	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-31T18:07:44</TimeStamp>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:System-Perspective">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:System-Perspective:SysP47">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Resource"/>
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<label>TAP_Core_Data:System-Perspective:SysP47</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:System-Perspective:SysP47">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>TAP_Core_Data:TAP_Core_Data:System-Perspective:SysP47</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Core_Data">
+	<SysP47 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/TAP_Core_Data:TAP_Core_Data:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:System-Perspective:SysP47"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:System-Perspective:TAP_Core_Data:System-Perspective:SysP47">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Resource"/>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:System-Perspective:TAP_Core_Data:System-Perspective:SysP47"/>
+	<label>TAP_Core_Data:System-Perspective:TAP_Core_Data:System-Perspective:SysP47</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/TAP_Core_Data:System-Perspective">
+	<Relation xmlns="http://semoss.org/ontologies/" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:System-Perspective:SysP47"/>
+	<Insight xmlns="http://semoss.org/ontologies/Relation/Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:System-Perspective:SysP47"/>
+	<SysP47 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/TAP_Core_Data:System-Perspective:TAP_Core_Data:System-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:System-Perspective:SysP47"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/TAP_Core_Data:System-Perspective:SysP47">
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">What is the Application Health Grid for the systems used by this service with this system highlighted?</Label>
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">SysP47</IDLabel>
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT ?System (COALESCE(?bv * 100, 0.0) AS ?BusinessValue) (COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?tstm, 0.0) AS ?TechnicalStandards) (COALESCE(?SustainmentBud,0.0) AS ?SustainmentBudget) ?SystemStatus ?highlight WHERE { BIND(&lt;@System-http://semoss.org/ontologies/Concept/ActiveSystem@&gt; AS ?highlight) {?System &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/System&gt;;} {?SystemUser &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/SystemUser&gt;;}{?UsedBy &lt;http://www.w3.org/2000/01/rdf-schema#subPropertyOf&gt; &lt;http://semoss.org/ontologies/Relation/UsedBy&gt;;}{?System ?UsedBy ?SystemUser}OPTIONAL{{?System &lt;http://semoss.org/ontologies/Relation/Contains/SustainmentBudget&gt; ?SustainmentBud}}OPTIONAL {{?System &lt;http://semoss.org/ontologies/Relation/Contains/BusinessValue&gt; ?bv}} OPTIONAL{ {?System &lt;http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM&gt; ?estm} } OPTIONAL {{?System &lt;http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM&gt; ?tstm}} {?System &lt;http://semoss.org/ontologies/Relation/Phase&gt; ?SystemStatus } }</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.specific.tap.HealthGridSheet</Layout>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">46</Order>
+	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/TAP_Core_Data:System-Perspective:SysP47:System"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Param/TAP_Core_Data:System-Perspective:SysP47:System">
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Resource"/>
+	<LABEL xmlns="PARAM:">System</LABEL>
+	<QUERY xmlns="PARAM:">SELECT ?entity WHERE {?entity &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;  &lt;@entity@&gt;;}</QUERY>
+	<DEPEND xmlns="PARAM:HAS:">false</DEPEND>
+	<DEPEND xmlns="PARAM:">None</DEPEND>
+	<TYPE xmlns="PARAM:" rdf:resource="http://semoss.org/ontologies/Concept/ActiveSystem"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/TAP_Core_Data">
+	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-31T18:09:53</TimeStamp>
+	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-31T18:11:31</TimeStamp>
+	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-31T18:13:01</TimeStamp>
+	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T09:58:36</TimeStamp>
+	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T10:03:08</TimeStamp>
+	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T11:28:28</TimeStamp>
 </rdf:Description>
 
 </rdf:RDF>
