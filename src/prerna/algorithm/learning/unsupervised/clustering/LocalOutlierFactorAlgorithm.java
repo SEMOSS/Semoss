@@ -211,7 +211,7 @@ public class LocalOutlierFactorAlgorithm {
 			}
 		}
 		int size = threads.size();
-		i = size - (numProcessors * 10) - 1;
+		i = 0;
 		for (; i < size; i++) {
 			try {
 				threads.get(i).join();
