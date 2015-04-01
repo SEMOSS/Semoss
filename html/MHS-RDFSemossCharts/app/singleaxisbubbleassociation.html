@@ -190,10 +190,10 @@ circle.hidden {
 
 
             var dirtyData = angular.copy(jsonData);
-            for (var i in dirtyData.dataSeries) {
+            for (var i in dirtyData.data) {
                 var cleanedObjectHolder = {};
-                for (var j in dirtyData.dataSeries[i]) {
-                    cleanedObjectHolder[dirtyData.headers[j]] = dirtyData.dataSeries[i][j];
+                for (var j in dirtyData.data[i]) {
+                    cleanedObjectHolder[dirtyData.headers[j]] = dirtyData.data[i][j];
                 }
                 cleanedData.push(cleanedObjectHolder);
             }
