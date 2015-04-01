@@ -117,7 +117,12 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 		bIndex --;
 
 		//reorder names so b is at the end
-		names = MatrixRegressionHelper.moveNameToEnd(variables, bIndex);
+		variables = MatrixRegressionHelper.moveNameToEnd(variables, bIndex);
+		
+		names[0] = id;
+		for(i=1; i < numCols; i++) {
+			names[i] = variables[i-1];
+		}
 		
 		//for each element/instance
 		//add its values for all independent variables to the dataSeriesHash
