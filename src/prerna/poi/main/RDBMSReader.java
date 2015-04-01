@@ -25,8 +25,10 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.sql.SQLException;
+//import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+//import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -200,9 +202,7 @@ public class RDBMSReader {
 			FileOutputStream fo = new FileOutputStream(file);
 			prop.store(fo, "Temporary Properties file for the RDBMS");
 			fo.close();
-			scriptFileName = dbBaseFolder + "/db/" + engineName + "/" + scriptFileName;
-			if(scriptFile == null)
-				scriptFile = new PrintWriter(new OutputStreamWriter(new FileOutputStream(new File(scriptFileName))));
+			openScriptFile(engineName);
 
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -215,6 +215,16 @@ public class RDBMSReader {
 
 		return tempFile;
 		
+	}
+	
+	private void openScriptFile(String engineName){
+		try {
+			scriptFileName = dbBaseFolder + "/db/" + engineName + "/" + scriptFileName;
+			if(scriptFile == null)
+				scriptFile = new PrintWriter(new OutputStreamWriter(new FileOutputStream(new File(scriptFileName),true)));//set append to true
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/**
@@ -234,9 +244,7 @@ public class RDBMSReader {
 		logger.setLevel(Level.WARN);
 		String[] files = fileNames.split(";"); //)prepareReader(fileNames, customBase, owlFile);
 		this.owlFile = owlFile;
-		
-		
-		
+				
 		//openEngineWithoutConnection(engineName);
 		openOWLWithOutConnection();
 		createTypes();
@@ -248,23 +256,24 @@ public class RDBMSReader {
 		
 		createSQLTypes();
 		System.out.println("Owl File is " + this.owlFile);
-		
+	
 		for(int i = 0; i<files.length;i++)
 		{
+			String fileName = files[i];
 			openDB(engineName);
 			// find the tables
 			findTables();
-
-			String fileName = files[i];
-			openCSVFile(fileName);			
+			openCSVFile(fileName);	
 			// load the prop file for the CSV file 
 			if(propFileExist){
 				openProp(propFile);
 			} else {
 				rdfMap = rdfMapArr[i];
 			}
+
 			// determine the type of data in each column of CSV file
 			createProcessors();
+			
 			try {
 				processConceptURIs();
 				processProperties();
@@ -275,11 +284,11 @@ public class RDBMSReader {
 			recreateRelations();
 			createTables();
 			skipRows();
+			//System.out.println(currentDate() + " before insertRecords stuff, for " + fileName );
 			insertRecords();
+			//System.out.println(currentDate() + " after insertRecords stuff, for " + fileName );
 			closeDB();
-			
 			cleanAll();
-
 		}
 		writeDefaultQuestionSheet(engineName);
 		createBaseRelations();
@@ -358,7 +367,7 @@ public class RDBMSReader {
 		
 		try {
 			File file = new File(fileName);
-			FileOutputStream fo = new FileOutputStream(file);
+			FileOutputStream fo = new FileOutputStream(file,true);
 			prop.store(fo, "Questions for RDBMS");
 			fo.close();
 		} catch (FileNotFoundException e) {
@@ -410,20 +419,24 @@ public class RDBMSReader {
 	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile) throws EngineException, FileWriterException, FileReaderException, HeaderClassException {
 		
 		logger.setLevel(Level.WARN);
+		this.owlFile = owlFile;
+		System.out.println("Owl File is " + this.owlFile);
 		String[] files = fileNames.split(";"); //)prepareReader(fileNames, customBase, owlFile);
-		logger.setLevel(Level.WARN);
+		//logger.setLevel(Level.WARN);
 		openEngineWithConnection(engineName);
 		createTypes();
 		
 		// check if I am in the environment
 		getBaseFolder();
-		
 		createSQLTypes();
-		System.out.println("Owl File is " + this.owlFile);
+		
+		//try to open the script file
+		openScriptFile(engineName);
 
 		for(int i = 0; i<files.length;i++)
 		{
 			String fileName = files[i];
+			findTables();
 			openCSVFile(fileName);			
 			// load the prop file for the CSV file 
 			if(propFileExist){
@@ -445,7 +458,13 @@ public class RDBMSReader {
 			skipRows();
 			insertRecords();
 		}
+		writeDefaultQuestionSheet(engineName);
 		createBaseRelations();
+		try{
+			scriptFile.close();
+		} catch (Exception e){
+			e.printStackTrace();
+		}
 	}
 
 	
@@ -718,10 +737,16 @@ public class RDBMSReader {
 			String [] tableTokens = tables.split("@");
 			String table1 = tableTokens[0];
 			String table2 = tableTokens[1];
+			//System.out.println("table1: " +table1 + " table2: "+ table2);
 			
 			Hashtable columnHash1 = tableHash.get(table1);
+			/*if(columnHash1.size() == 0 && availableTables.containsKey(table1.toUpperCase())){ //check available tables to see if they have any columns
+				columnHash1 = availableTables.get(table1.toUpperCase());
+			}*/
 			Hashtable columnHash2 = tableHash.get(table2);
-			
+			/*if(columnHash2.size() == 0 && availableTables.contains(table2.toUpperCase())){ //check available tables to see if they have any columns
+				columnHash2 = availableTables.get(table2.toUpperCase());
+			}*/
 			String commonKey = findCommon(columnHash1, columnHash2);
 			relHash.remove(relKey);
 			String newRelationName = null;
@@ -818,7 +843,7 @@ public class RDBMSReader {
 				modString = getAlterTable(tableKey);
 	
 			try {
-				scriptFile.println(modString);
+				scriptFile.println(modString + ";");
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -861,7 +886,7 @@ public class RDBMSReader {
 		
 		SQLCREATE = SQLCREATE + " )";
 		
-		System.out.println("SQL CREATE IS " + SQLCREATE);
+		//System.out.println("SQL CREATE IS " + SQLCREATE);
 		return SQLCREATE;
 	}
 	
@@ -887,6 +912,7 @@ public class RDBMSReader {
 		while(columnKeys.hasMoreElements())
 		{
 			String column = columnKeys.nextElement();
+			System.out.println("Table: " +tableKey + " column: "+column);
 			if(!fieldHash.containsKey(column.toUpperCase()))
 			{
 				String type = (String)columns.get(column);
@@ -908,7 +934,7 @@ public class RDBMSReader {
 			else
 			{
 				// remove this from tableHash
-				whereColumnHash.put(column, fieldHash.get(column)); // unless we are overriding it ?
+				whereColumnHash.put(column, fieldHash.get(column.toUpperCase())); // unless we are overriding it ?
 				// remove it from table hash
 				tableHash.remove(column);
 			}
@@ -922,9 +948,9 @@ public class RDBMSReader {
 		return SQLALTER;
 	}
 	
-	private String getInsertString(String tableKey, Map <String, Object> jcrMap, String insertTemplate)
+	private String getInsertString(String tableKey, Map <String, Object> jcrMap)
 	{
-		String VALUES = "  VALUES (";		
+		String VALUES = " (";		
 		String value = createInstanceValue(tableKey, jcrMap);
 		value = value.replaceAll("'", "''");	
 		value = "'" +  value + "'"; // would the value be always string ?
@@ -932,11 +958,13 @@ public class RDBMSReader {
 		boolean key1 = true;
 		Hashtable columns = tableHash.get(tableKey);
 		Enumeration <String> columnKeys = columns.keys();
+		StringBuffer valuesBuffer = new StringBuffer();
+		valuesBuffer.append(VALUES);
 		while(columnKeys.hasMoreElements())
 		{
 			if(key1)
 			{
-				VALUES = VALUES + " , ";
+				valuesBuffer.append( " , ");
 				key1 = false;
 			}
 			String key = columnKeys.nextElement();
@@ -951,22 +979,26 @@ public class RDBMSReader {
 				value = value.replaceAll("'", "''");
 				value = "'" + value + "'" ;
 			}
-			VALUES = VALUES + value;
+			valuesBuffer.append(value);
 			if(columnKeys.hasMoreElements())
-				VALUES = VALUES + " , ";
+				valuesBuffer.append(" , ");
 		}
-		String SQLINSERT = insertTemplate + VALUES + ")";
-
+		String SQLINSERT = valuesBuffer.toString() + ")";
+		
 		return SQLINSERT;
 	}
 	
-	private String getAlterString(String tableKey, Map <String, Object> jcrMap, String insertTemplate)
+	
+	private String getAlterString(String tableKey, Map <String, Object> jcrMap, String insertTemplate, ArrayList<String> updateBufferSqlList)
 	{
-		String VALUES = "";		
+		String VALUES = "";
+		String SQLALTER = "";		
 		Hashtable columns = tableHash.get(tableKey);
 		
 		Enumeration <String> columnKeys = columns.keys();
 		// generate the set portion first
+		StringBuffer valuesBuffer = new StringBuffer();
+		valuesBuffer.append(VALUES);//yes this append doesn't do anything, BUT if someone changes the value of the where variable we wont have problems
 		while(columnKeys.hasMoreElements())
 		{
 			String key = columnKeys.nextElement();
@@ -975,33 +1007,63 @@ public class RDBMSReader {
 			
 			boolean string = false;
 			
-			if(sqlHash.get(type).contains("VARCHAR"))
+			if(sqlHash.get(type).contains("VARCHAR") && value.length() != 0) //check for value length != 0 here before you append the quotes 
 			{
 				value = value.replaceAll("'", "''");
 				value = "'" + value + "'" ;
 				string = true;
 			}
 
-			if(VALUES.length() == 0)
+			if(valuesBuffer.toString().length() == 0)
 			{
 				if(string || (value != null && value.length() != 0))
-				VALUES = realClean(key) + " = " +  value;
+					valuesBuffer.append(realClean(key) + " = " +  value); 
 			}
 			else
 			{
 				if(string || (value != null && value.length() != 0))
-				VALUES = VALUES + " , " + realClean(key) + " = " +  value;			
+					valuesBuffer.append(" , " + realClean(key) + " = " +  value);			
 			}
 		}
 		
+		VALUES = valuesBuffer.toString();
+		if(VALUES.length()==0) {
+			return "";
+		}
+		
+		//check if the update statement string matches a previous update statement 
+		// (the "update [tablename] set [columnname=value]" clause)
+		// if match found, we'll update the existing update statement instead of creating a seperate one.
+		boolean matchOnPreviousAlterStmt = false;
+		int matchPreviousAlterFoundAt = 0;
+		String compareToValues = (insertTemplate + VALUES).replaceAll("\\s+", " ");//normalize spaces
+		for(int i=0;i<updateBufferSqlList.size(); i++){
+			String valueAtUpdtBufferList = updateBufferSqlList.get(i);
+			int locateWhere = valueAtUpdtBufferList.indexOf("WHERE");
+			if(locateWhere > 0){//Where clause exists
+				String compareToPreviousQuery = (valueAtUpdtBufferList.substring(0,locateWhere-1)).replaceAll("\\s+", " ");//normalize spaces;
+				
+				if(compareToPreviousQuery.equals(compareToValues)){
+					if(countSubstring("OR",valueAtUpdtBufferList) >= 1000){ 
+						//System.out.print("TOO MANY ORS!, ");
+						continue;
+					}
+					matchOnPreviousAlterStmt = true;
+					matchPreviousAlterFoundAt = i;
+					break;
+				}
+			}
+		} 
+
 		// now generate the where
-		String SQLALTER = insertTemplate + VALUES + " WHERE ";
+		SQLALTER = insertTemplate + VALUES + " WHERE ";
 		
 		Hashtable whereHash = whereColumns.get(tableKey.toUpperCase());
 		String where  = "";
 		
 		Enumeration <String> whereKeys = whereHash.keys();
-		
+		StringBuffer whereBuffer = new StringBuffer();
+		whereBuffer.append(where);//yes this append doesn't do anything, BUT if someone changes the value of the where variable we wont have problems
 		while(whereKeys.hasMoreElements())
 		{
 			String key = whereKeys.nextElement();
@@ -1017,23 +1079,127 @@ public class RDBMSReader {
 				string = true;
 			}
 			
-			if(where.length() == 0)
+			if(whereBuffer.length() == 0)
 			{
 				if(string || (value != null && value.length() != 0))
-				where = key + "=" + value;
+					whereBuffer.append( key + " = " + value );
 			}
 			else
 			{
 				if(string || (value != null && value.length() != 0))
-				where = where + " , " + key + "=" + value;
+					whereBuffer.append(" AND " + key + " = " + value ); //change to and instead of comma
 			}			
 		}
+		if(matchOnPreviousAlterStmt){ 
+			SQLALTER = updateBufferSqlList.get(matchPreviousAlterFoundAt); 
+			SQLALTER += " OR ( " + whereBuffer.toString() + " ) ";
+			updateBufferSqlList.set(matchPreviousAlterFoundAt, SQLALTER); //update the arraylist here since we're replacing instead of creating a new one.
+			return "";// return blank so that the generated update statement doesn't get added to the existing array since we just altered an already added update statement
+		}
 		
-		SQLALTER = SQLALTER + " " + where;
+		SQLALTER = SQLALTER + " ( " + whereBuffer.toString() + ") ";
 
 		return SQLALTER;
 	}
 	
+	private static int countSubstring(String subStr, String str){
+		return (str.length() - str.replace(subStr, "").length()) / subStr.length();
+	}
+	
+	//unused, but functional
+	private String getMergeString(String tableKey, Map <String, Object> jcrMap, String insertTemplate)
+	{
+		String VALUES = "";		
+		Hashtable columns = tableHash.get(tableKey);
+		
+		Enumeration <String> columnKeys = columns.keys();
+		// generate the set portion first
+		StringBuffer valuesBuffer = new StringBuffer();
+		StringBuffer varIntoKeysBuffer = new StringBuffer();
+		String commaStr = "";
+		valuesBuffer.append(VALUES);//yes this append doesn't do anything, BUT if someone changes the value of the where variable we wont have problems
+		
+		while(columnKeys.hasMoreElements())
+		{
+			String key = columnKeys.nextElement();
+			String value = createInstanceValue(key, jcrMap);
+			String type = (String)columns.get(key);
+			
+			boolean string = false;
+			
+			if(sqlHash.get(type).contains("VARCHAR"))
+			{
+				value = value.replaceAll("'", "''");
+				value = "'" + value + "'" ;
+				string = true;
+			}
+
+			if(varIntoKeysBuffer.length() == 0)
+			{
+				if(string || (value != null && value.length() != 0)){
+					varIntoKeysBuffer.append(realClean(key)); //VALUES = realClean(key) + " = " +  value;
+					commaStr = (valuesBuffer.length() != 0)? " , " : ""; 
+					valuesBuffer.append(commaStr + value);
+				}
+					
+			}
+			else
+			{
+				if(string || (value != null && value.length() != 0)){
+					varIntoKeysBuffer.append(" , " + realClean(key)); //VALUES = VALUES + " , " + realClean(key) + " = " +  value;
+					valuesBuffer.append(" , " + value);
+				}
+			}
+		}
+
+		Hashtable whereHash = whereColumns.get(tableKey.toUpperCase());
+		String keysStr  = "";
+		
+		Enumeration <String> whereKeys = whereHash.keys();
+		StringBuffer whereBuffer = new StringBuffer();
+		StringBuffer keysBuffer = new StringBuffer();
+		keysBuffer.append(keysStr);//yes this append doesn't do anything, BUT if someone changes the value of the where variable we wont have problems
+		while(whereKeys.hasMoreElements())
+		{
+			String key = whereKeys.nextElement();
+			String value = createInstanceValue(key, jcrMap);
+
+			String type = (String)whereHash.get(key);
+			boolean string = false;
+			
+			if(type.contains("VARCHAR"))
+			{
+				value = value.replaceAll("'", "''");
+				value = "'" + value + "'" ;
+				string = true;
+			}
+			
+			if(whereBuffer.length() == 0)
+			{
+				if(string || (value != null && value.length() != 0))
+					keysBuffer.append(key);
+					commaStr = (varIntoKeysBuffer.length() != 0)? " , " : ""; 
+					varIntoKeysBuffer.append(commaStr + key);
+					commaStr = (valuesBuffer.length() != 0)? " , " : ""; 
+					valuesBuffer.append(commaStr + value);
+			}
+			else
+			{
+				if(string || (value != null && value.length() != 0))
+					keysBuffer.append(" , " + key);
+					varIntoKeysBuffer.append(" , " + key); 
+					valuesBuffer.append(" , " + value);
+			}			
+		}
+		
+		String SQLALTER = insertTemplate + "( " + varIntoKeysBuffer.toString() + " ) KEY ( "+ keysBuffer.toString() +" )";
+		SQLALTER = SQLALTER + " SELECT " + valuesBuffer.toString() + " FROM DUAL ";
+
+		return SQLALTER;
+	}
+	
+	
+	//duplicate check. unused at this time.
 	private boolean findIfRecordAvailable(String tableKey, Map <String, Object> jcrMap)
 	{
 		Hashtable columns = tableHash.get(tableKey);
@@ -1082,6 +1248,7 @@ public class RDBMSReader {
 		String [] insertTemplates = new String[tableHash.size()];
 		// the job here is to take the table hash and create tables
 		Enumeration <String> tableKeys = tableHash.keys();
+		
 		// get all the relation
 		// first block is for creating the templates
 		int tableIndex = 0;
@@ -1110,10 +1277,10 @@ public class RDBMSReader {
 					if(columnKeys.hasMoreElements())
 						SQLINSERT = SQLINSERT + ",";
 				}
-				SQLINSERT = SQLINSERT + ")";
+				SQLINSERT = SQLINSERT + ") VALUES "; // append the text 'values' here
 			}
 			else
-				SQLINSERT = "UPDATE " + tableKey.toUpperCase() + " SET "; // the paranthesis seems to change between dialect to dialect
+				SQLINSERT = "UPDATE " + tableKey.toUpperCase() + " SET "; // the paranthesis seems to change between dialect to dialect //SQLINSERT = "MERGE INTO " + tableKey.toUpperCase();
 
 			insertTemplates[tableIndex] = SQLINSERT;
 			tableIndex++;
@@ -1131,38 +1298,62 @@ public class RDBMSReader {
 		// only start from the maxRow - the startRow
 		// added -1 is because of index nature
 		// the earlier rows should already have been skipped
+		int numberOfTables = tableHash.size();
+		
+		StringBuffer[] insertBufferSql = new StringBuffer[numberOfTables];		
+		ArrayList<String> updateBufferSqlList = new ArrayList<String>(); 
+		
+		int countIndividualUpdateStatements = 0, countInserts = 0, countUpdates = 0;
 		try {
+			int outerIndex = 1;
 			while( (jcrMap = mapReader.read(header, processors)) != null && count<(maxRows))
 			{
 				// for each template do the mapping
 				tableKeys = tableHash.keys();
 				int index = 0;
-				while(tableKeys.hasMoreElements())
-				{
+				
+				while(tableKeys.hasMoreElements()){
 					String tableKey = tableKeys.nextElement();
-					String SQL;
+					String SQL = "";
+					
+					if(insertBufferSql[index] == null){//init the string buffer through the first go
+						insertBufferSql[index] = new StringBuffer();
+					}
 					
 					// find if this record is already there
-					if(!findIfRecordAvailable(tableKey, jcrMap))
-					{
+					//if(!findIfRecordAvailable(tableKey, jcrMap))
+					//{
 						
+						//Important note: do inserts table by table so that you can generate one long insert statement, update statements dont go 
+						//table by table, we need to search one array list for duplicate/similar update statements and make those more efficient
 						if(!availableTables.containsKey(tableKey.toUpperCase()))
 						{
-							SQL = getInsertString(tableKey, jcrMap, insertTemplates[index]);
-							insertData(SQL);
+							SQL = getInsertString(tableKey, jcrMap);
+							insertBufferSql[index].append(SQL + " ,");
+							countInserts++;
+							if(countInserts%(100*numberOfTables)== 0){//every 100 rows of data go do the insert
+								runIncrementalInsert(insertTemplates,insertBufferSql);
+								for(int tblIndx = 0; tblIndx < numberOfTables; tblIndx++){
+									insertBufferSql[tblIndx].setLength(0);//clear the stringbuffer obj
+								}
+							}
 						}
 						else
 						{
-							SQL = getAlterString(tableKey, jcrMap, insertTemplates[index]);
-							insertData(SQL);
+							SQL = getAlterString(tableKey, jcrMap, insertTemplates[index],updateBufferSqlList);
+							if(SQL.length() > 0){
+								updateBufferSqlList.add(0,SQL);//add the front, speed up the search for the "too many" ors situation.
+								countIndividualUpdateStatements++;
+							}
+							countUpdates++;
+							if(countIndividualUpdateStatements%1000 == 0){//every 1000 rows of data go do the insert
+								runIncrementalTransaction(updateBufferSqlList,";");
+							}
+
 						}
-						try {
-							scriptFile.println(SQL);
-						} catch (Exception e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					}
+						
+					//}
+					
 					/*
 					String value = createInstanceValue(tableKey, jcrMap);
 					value = value.replaceAll("'", "''");	
@@ -1197,11 +1388,70 @@ public class RDBMSReader {
 					//String SQLINSERT = insertTemplates[index] + VALUES + ")";
 					//System.out.println(SQLINSERT);
 					index++;
+					outerIndex++;
 				}
+				
 			}
-		}catch (Exception ex)
-		{
+			
+			if(insertBufferSql!=null && insertBufferSql.length>0){//if anything is left over, do the insert
+				runIncrementalInsert(insertTemplates,insertBufferSql);
+			}
+			
+			if(updateBufferSqlList!=null && updateBufferSqlList.size()>0){//if anything is left over, do the update
+				runIncrementalTransaction(updateBufferSqlList, ";");
+			}
+		} catch (Exception ex) {
 			ex.printStackTrace();
+		}
+	}
+	
+	private void runIncrementalTransaction(ArrayList<String> queries, String splitString){
+		StringBuffer queryBuffer = new StringBuffer(); 
+		String queryString = "";
+		try{
+			
+			for(String query : queries){
+				queryBuffer.append(query + splitString + " ");
+			}
+			queryString = queryBuffer.toString();
+			if(queryString.length()>0){
+				insertData(queryString); //execute the query first, then write it to the sql file.
+				scriptFile.println(queryString);
+			}
+			queries.clear();
+		} catch (Exception e){
+			e.printStackTrace();
+			System.exit(0);
+		}
+	}
+	
+	private void runIncrementalInsert(String[] insertTemplates,StringBuffer[] bufferSql){
+		try{
+			
+			Enumeration <String> tableKeys = tableHash.keys();
+			int indexForInsert = 0;
+			while(tableKeys.hasMoreElements()){
+				String tableKey = tableKeys.nextElement();
+				String insertClause = "";
+				if(insertTemplates[indexForInsert] != null) {
+					insertClause = insertTemplates[indexForInsert];
+				}
+				
+				if(bufferSql[indexForInsert] == null || bufferSql[indexForInsert].toString().equals("")){
+					indexForInsert++;
+					continue;
+				}
+				String SQL = insertClause + bufferSql[indexForInsert].toString();
+				
+				SQL = SQL.substring(0,SQL.length()-1); //get rid of that last comma
+				insertData(SQL); //execute query first, then write to sql file
+				scriptFile.println(SQL + ";");
+				
+				indexForInsert++;
+			}
+		} catch (Exception e){
+			e.printStackTrace();
+			System.exit(0);
 		}
 	}
 	
@@ -1216,7 +1466,7 @@ public class RDBMSReader {
 			//getConnection("jdbc:h2:" + dbFolder + "/" + dbName + "/database", "sa", "");
 		} catch(Exception ex)
         {
-			
+			ex.printStackTrace();
         }
 	}
 	
@@ -1378,7 +1628,7 @@ public class RDBMSReader {
 			while( count<startRow-1 && mapReader.read(header, processors) != null)// && count<maxRows)
 			{
 				count++;
-				logger.info("Skipping line: " + count);
+				//logger.info("Skipping line: " + count);
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -1701,5 +1951,12 @@ public class RDBMSReader {
 		}
 	}
 
+	/* function used for debugging, leaving it here for now
+	private String currentDate(){
+		Date dt = new Date();
+		SimpleDateFormat dtFormatter = new SimpleDateFormat("MM/dd/yy HH:mm:ss:SSS");
+		
+		return dtFormatter.format(dt);
+	}*/
 
 }
