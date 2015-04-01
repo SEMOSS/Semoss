@@ -148,7 +148,7 @@ public class BarChart {
 			} else {
 				assignmentForEachObject[i] = stringValues[i];
 				INNER : for(int j = 0; j < uniqueSize; j++) {
-					if(stringUniqueValues[j].equals(val)) {
+					if(stringUniqueValues[j] != null && stringUniqueValues[j].equals(val)) {
 						stringUniqueCounts[j]++;
 						break INNER;
 					}
@@ -158,7 +158,7 @@ public class BarChart {
 		
 		for(i = 0; i < numOccurrences; i++) {
 			INNER : for(int j = 0; j < uniqueSize; j++) {
-				if(stringValues[i].equals(stringUniqueValues[j])) {
+				if(stringValues[i] != null && stringValues[i].equals(stringUniqueValues[j])) {
 					stringCount[i] = stringUniqueCounts[j];
 					break INNER;
 				}
@@ -201,14 +201,15 @@ public class BarChart {
 	}
 	
 	public Hashtable<String, Object>[] generateJSONHashtableCategorical() {
-		int uniqueSize = stringUniqueValues.length;
+		String[] nonNullStringUniqueValues = (String[]) ArrayUtilityMethods.removeAllNulls(stringUniqueValues);
+		int uniqueSize = nonNullStringUniqueValues.length;
 		Hashtable<String, Object>[] retBins = new Hashtable[uniqueSize];
 		int i = 0;
 		for(; i < uniqueSize; i++) {
 			Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
 			innerHash.put("seriesName", categoricalLabel);
 			innerHash.put("y0", "0");
-			innerHash.put("x", stringUniqueValues[i]);
+			innerHash.put("x", nonNullStringUniqueValues[i]);
 			innerHash.put("y", stringUniqueCounts[i]);
 			retBins[i] = innerHash;
 		}
@@ -391,7 +392,7 @@ public class BarChart {
 		double binSize = Math.log10(1+max)/Math.pow(numOccurances, (double) 1/3);
 		int numBins = (int) Math.ceil(range/binSize);
 
-		createBins(numBins, binSize, unsortedValues, numValues, true);
+		createBins(numBins, binSize, min, max, unsortedValues, numValues, true);
 		allocateValuesToBin(min, numBins, binSize, unsortedValues, numValues);
 	}
 		
@@ -407,7 +408,7 @@ public class BarChart {
 			double binSize = 2 * iqr * Math.pow(numOccurances, -1.0/3.0);
 			int numBins = (int) Math.ceil(range/binSize);
 
-			createBins(numBins, binSize, unsortedValues, numValues, false);
+			createBins(numBins, binSize, min, max, unsortedValues, numValues, false);
 			allocateValuesToBin(min, numBins, binSize, unsortedValues, numValues);
 		}
 	}
@@ -535,10 +536,7 @@ public class BarChart {
 		}
 	}
 	
-	private void createBins(int numBins, double binSize, Double[] unsortedValues, Double[] numValues, boolean log) {
-		double min = numValues[0];
-		double max = numValues[numValues.length-1];
-
+	private void createBins(int numBins, double binSize, double min, double max, Double[] unsortedValues, Double[] numValues, boolean log) {
 		numericalBinOrder = new String[numBins];
 		int i = 0;
 		// create all bins
