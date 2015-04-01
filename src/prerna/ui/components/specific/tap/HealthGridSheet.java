@@ -114,7 +114,7 @@ public class HealthGridSheet extends BrowserPlaySheet{
 			if(i==0&&listElement.length>6)
 			{
 				setSystemHighlight(true);
-				setSystemToHighlight((String)listElement[6]);
+				setSystemToHighlight(listElement[6].toString());
 			}
 		}
 		
