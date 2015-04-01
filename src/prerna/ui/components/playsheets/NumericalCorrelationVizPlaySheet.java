@@ -91,12 +91,6 @@ public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 		//pull out the id column name
 		String id = names[0];
 
-		String[] variables = new String[numVariables];
-		for(i=0;i<numVariables;i++) {
-			variables[i] = names[i+1];
-		}
-		names = variables;
-		
 		//for each element/instance
 		//add its values for all independent variables to the dataSeriesHash
 		Object[][] dataSeries = new Object[listNumRows][numCols];
