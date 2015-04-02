@@ -41,6 +41,7 @@ import org.apache.log4j.Logger;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.playsheets.DualEngineGridPlaySheet;
+import prerna.util.ArrayUtilityMethods;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -383,6 +384,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			if(sysList.contains(system)) {
 				Double[] costs = sysSustainmentInfoHash.get(system);
 				if(costs != null) {
+					costs = (Double[]) ArrayUtilityMethods.removeAllNulls(costs);
 					int numSites = numSitesForSysHash.get(system);
 					int numSitesNotIncluded = numSitesNotInWaveForSysHash.get(system);
 					double otherSiteCost = costs[costs.length - 1] * numSitesNotIncluded/numSites  * inflationArr[inflationArr.length - costs.length];
@@ -413,9 +415,12 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		}
 		for(String system : systemsToAddList) {
 			Double[] costs = sysSustainmentInfoHash.get(system);
-			if(costs != null && costs[costs.length-1] != 0) {
-				double systemNotIncludedCost = costs[costs.length - 1] * inflationArr[inflationArr.length - costs.length];
-				totalSystemsNotIncludedCost += systemNotIncludedCost;
+			if(costs != null) {
+				costs = (Double[]) ArrayUtilityMethods.removeAllNulls(costs);
+				if(costs[costs.length-1] != 0) {
+					double systemNotIncludedCost = costs[costs.length - 1] * inflationArr[inflationArr.length - costs.length];
+					totalSystemsNotIncludedCost += systemNotIncludedCost;
+				}
 			} else {
 				missingData = true;
 			}
@@ -553,6 +558,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 				if(sysList.contains(system)) {
 					Double[] costs = sysSustainmentInfoHash.get(system);
 					if(costs != null) {
+						costs = (Double[]) ArrayUtilityMethods.removeAllNulls(costs);
 						int numSites = numSitesForSysHash.get(system);
 						int numSitesNotIncluded = numSitesNotInWaveForSysHash.get(system);
 						double additionalSavings = costs[costs.length - 1] * numSitesNotIncluded/numSites * inflationArr[inflationArr.length - costs.length];
@@ -643,6 +649,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			Double[] costArr = sysSustainmentInfoHash.get(system);
 			double inflatedSavings = 0;
 			if(costArr != null) {
+				costArr = (Double[]) ArrayUtilityMethods.removeAllNulls(costArr);
 				inflatedSavings = costArr[costArr.length - 1] * inflationArr[inflationArr.length - costArr.length];
 			}
 			if(inflatedSavings == 0) {
