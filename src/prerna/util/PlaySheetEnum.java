@@ -41,7 +41,7 @@ public enum PlaySheetEnum {
 	Raw_Grid("Raw Grid", "prerna.ui.components.playsheets.GridRAWPlaySheet", "GridRAWPlaySheet Hint: SELECT ?x1 ?x2 ?x3 WHERE{ ... }"),
 	Heat_Map("Heat Map", "prerna.ui.components.playsheets.HeatMapPlaySheet", "HeatMapPlaySheet Hint: SELECT ?xAxisList ?yAxisList ?numericHeatValue WHERE{ ... } GROUP BY ?xAxisList ?yAxisList"),
 	Parallel_Coordinates("Parallel Coordinates", "prerna.ui.components.playsheets.ParallelCoordinatesPlaySheet", "ParallelCoordinatesPlaySheet Hint: SELECT ?axis1 ?axis2 ?axis3 WHERE{ ... }"),
-	Grid_Scatter("Grid Scatter", "prerna.ui.components.playsheets.GridScatterSheet", "GridScatterSheet Hint: SELECT ?elementName ?xAxisValues ?yAxisValues (OPTIONAL)?zAxisValues WHERE{ ... }"),
+	Grid_Scatter("Grid Scatter", "prerna.ui.components.playsheets.ScatterChartPlaySheet", "GridScatterSheet Hint: SELECT ?elementName ?xAxisValues ?yAxisValues (OPTIONAL)?zAxisValues WHERE{ ... }"),
 	Column_Chart("Column Chart", "prerna.ui.components.playsheets.ColumnChartPlaySheet", "ColumnChartPlaySheet Hint: SELECT ?xAxis ?yAxis1 (OPTIONAL) ?yAxis2 ?yAxis3 ... (where all yAxis values are numbers) WHERE { ... }"),
 	Binned_Column_Chart("Binned Column Chart", "prerna.ui.components.playsheets.BinnedColumnChartPlaySheet", "BinnedColumnChartPlaySheet Hint: SELECT ?id ?value (where id is a unique identifier and value is its given value) WHERE { ... }"),
 	Pie_Chart("Pie Chart", "prerna.ui.components.playsheets.PieChartPlaySheet", "PieChartPlaySheet Hint: SELECT ?wedgeName ?wedgeValue WHERE { ... }"),
