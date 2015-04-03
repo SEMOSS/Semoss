@@ -83,7 +83,7 @@
 				+ ")scale(" + d3.event.scale + ")");
 			}	
 
-//start(dataString);					
+			//start(dataString);					
 			function start(dataString) {  
 				var jsonData = jQuery.parseJSON(dataString);
 				var data = jsonData.dataSeries  
@@ -126,8 +126,7 @@
 				   .attr("stroke-width", "2")
 				   .style("fill", function(d) {
 						//Get data value
-						var value = d.properties.value;
-						
+						var value = d.properties.value;						
 						if (value) {
 							//If value exists…
 							return color(value);
@@ -141,14 +140,12 @@
 								 /* Initialize tooltip */
 				 /*(if(undefined != d.System) {+ " " + d.System }*/
 				tip = d3.tip().attr('class', 'd3-tip').html(function(d) { 
-					if(d.System != undefined) 
-					{return 
-					locationName + ": " + d.locationName +
-					d.System + "<div> <span class='light'>";}
-					else 
-					{return locationName + ": " + d.locationName		
+					if(d.System != undefined) {
+						return locationName + ": " + d.locationName + d.System + "<div> <span class='light'>";
+					} else {
+						return locationName + ": " + (shortenValueFilter(d.locationName)).replace(/_/g, " ");
 					}        
-					});
+				});
 		
 				var redCircle = svg.selectAll("circle")
 				   .data(dataArray)
@@ -169,7 +166,23 @@
 				   .on('mouseover', tip.show)
 				   .on('mouseout', tip.hide);
 									
-					redCircle.call(tip);
+				redCircle.call(tip);
+
+				function shortenValueFilter(str) {
+					//convert to string
+					str = String(str);
+					if (str.indexOf('"') == 0) {
+						var shortStr = str.substring(1, str.length);
+						var returnStr = shortStr.substring(0, shortStr.indexOf('"'));
+						return returnStr;
+					} else if (str.indexOf('http://') !== -1) {
+						var myRe = new RegExp("([^/]*)$");
+						var returnStr = myRe.exec(str);
+						return returnStr[0];
+					} else {
+						return str;
+					}
+				}
 		};		
 		</script>
 	</body>
