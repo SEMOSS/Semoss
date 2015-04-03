@@ -140,7 +140,7 @@
 					if(d.System !== undefined) {
 						return locationName + ": " + d.locationName + d.System + "<div> <span class='light'>";
 					} else {
-						return locationName + ": " + shortenValueFilter(d.locationName);
+						return locationName + ": " + (shortenValueFilter(d.locationName)).replace(/_/g, " ");
 					}        
 				});
 		
