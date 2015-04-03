@@ -104,12 +104,14 @@ public class RDBMSReader {
 	//private ArrayList<String> nodePropArrayList = new ArrayList<String>();
 	//private ArrayList<String> relPropArrayList = new ArrayList<String>();
 	private int count = 0;
+	private int totalrowcount = 0;
 	private boolean propFileExist = true;
 	private Hashtable<String, String>[] rdfMapArr;
 	private Hashtable <String, String> sqlHash = new Hashtable<String, String>();
 	private Hashtable <String, String> typeIndices = new Hashtable(); // this basically says for a given column what is its index
 	private Hashtable <String, Hashtable> tableHash = new Hashtable();
 	private Hashtable <String, Hashtable<String, String>> availableTables = new Hashtable(); // all the existing tables, tablename is the key, the value is another hashtable with field name and property
+	private Hashtable <String, String> availableTablesInfo = new Hashtable();
 	private Hashtable <String, Hashtable<String,String>> whereColumns = new Hashtable(); // same as previous table, but this are what get added to the where on an update query 
 	private Hashtable <String, String> relHash = new Hashtable<String,String>(); // keeps it in the format of name of the relationship, the value being the name of the classes separated by @
 	String dbBaseFolder = null;
@@ -217,6 +219,10 @@ public class RDBMSReader {
 		
 	}
 	
+	/**
+	 * Open script file that contains all the sql statements run during the upload process
+	 * @param engineName name of the engine/db
+	 */
 	private void openScriptFile(String engineName){
 		try {
 			scriptFileName = dbBaseFolder + "/db/" + engineName + "/" + scriptFileName;
@@ -260,20 +266,21 @@ public class RDBMSReader {
 		for(int i = 0; i<files.length;i++)
 		{
 			String fileName = files[i];
-			openDB(engineName);
+			openDB(engineName); //scriptfile opened in here.
+			if(i ==0 )scriptFile.println("-- ********* begin load process ********* ");
+			scriptFile.println("-- ********* begin load " + fileName + " ********* ");
 			// find the tables
 			findTables();
-			openCSVFile(fileName);	
 			// load the prop file for the CSV file 
 			if(propFileExist){
 				openProp(propFile);
 			} else {
 				rdfMap = rdfMapArr[i];
 			}
-
+			
 			// determine the type of data in each column of CSV file
 			createProcessors();
-			
+			openCSVFile(fileName); //open further down in the process because we need variables defined in createProcessors
 			try {
 				processConceptURIs();
 				processProperties();
@@ -281,6 +288,7 @@ public class RDBMSReader {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			
 			recreateRelations();
 			createTables();
 			skipRows();
@@ -289,10 +297,12 @@ public class RDBMSReader {
 			//System.out.println(currentDate() + " after insertRecords stuff, for " + fileName );
 			closeDB();
 			cleanAll();
+			scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
 		}
 		writeDefaultQuestionSheet(engineName);
 		createBaseRelations();
 		try {
+			scriptFile.println("-- ********* completed load process ********* ");
 			scriptFile.close();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -310,7 +320,15 @@ public class RDBMSReader {
 			ISelectStatement stmt = wrapper.next();
 			String tableName = stmt.getVar("TABLE_NAME") + "";
 			findColumns(tableName);
+			String tableCountQuery =  "SELECT COUNT(*) ROW_COUNT FROM " + tableName;
+			ISelectWrapper tableCount = WrapperManager.getInstance().getSWrapper(engine, tableCountQuery);
+			while(tableCount.hasNext()){
+				ISelectStatement stmtTblCount = tableCount.next();
+				String numberOfRows = stmtTblCount.getVar("ROW_COUNT") + "";
+				availableTablesInfo.put(tableName.toUpperCase(), numberOfRows);
+			}
 		}
+		
 	}
 	
 	private void findColumns(String tableName)
@@ -326,7 +344,6 @@ public class RDBMSReader {
 			String colName = stmt.getVar("FIELD") + "";
 			String type = stmt.getVar("TYPE") + "";
 			fieldHash.put(colName, type);
-			
 			availableTables.put(tableName.toUpperCase(), fieldHash);
 		}
 	}
@@ -432,12 +449,12 @@ public class RDBMSReader {
 		
 		//try to open the script file
 		openScriptFile(engineName);
-
+		scriptFile.println("-- ********* begin load process ********* ");
 		for(int i = 0; i<files.length;i++)
 		{
 			String fileName = files[i];
-			findTables();
-			openCSVFile(fileName);			
+			scriptFile.println("-- ********* begin load " + fileName + " ********* ");
+			findTables();		
 			// load the prop file for the CSV file 
 			if(propFileExist){
 				openProp(propFile);
@@ -446,6 +463,7 @@ public class RDBMSReader {
 			}
 			// determine the type of data in each column of CSV file
 			createProcessors();
+			openCSVFile(fileName); //moved openCSVFile down because we need the variables that are set in createProcessors
 			try {
 				processConceptURIs();
 				processProperties();
@@ -453,14 +471,17 @@ public class RDBMSReader {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+
 			recreateRelations();
 			createTables();
 			skipRows();
 			insertRecords();
+			scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
 		}
 		writeDefaultQuestionSheet(engineName);
 		createBaseRelations();
 		try{
+			scriptFile.println("-- ********* completed load process ********* ");
 			scriptFile.close();
 		} catch (Exception e){
 			e.printStackTrace();
@@ -740,14 +761,28 @@ public class RDBMSReader {
 			//System.out.println("table1: " +table1 + " table2: "+ table2);
 			
 			Hashtable columnHash1 = tableHash.get(table1);
-			/*if(columnHash1.size() == 0 && availableTables.containsKey(table1.toUpperCase())){ //check available tables to see if they have any columns
-				columnHash1 = availableTables.get(table1.toUpperCase());
-			}*/
+			Hashtable columnHash1Tmp = null;
+			//create a temp column hash to store the available table column's if the new table has 0 columns.  This is so we have an accurate check below.
+			if(columnHash1.size() == 0 && availableTables.containsKey(table1.toUpperCase())){ //check available tables to see if they have any columns
+				columnHash1Tmp = availableTables.get(table1.toUpperCase());
+			} else {
+				columnHash1Tmp = columnHash1;
+			}
+			String rowCount1Obj = availableTablesInfo.get(table1.toUpperCase());
+			int rowCount1 = (rowCount1Obj==null)?totalrowcount:Integer.parseInt(rowCount1Obj);
+			
 			Hashtable columnHash2 = tableHash.get(table2);
-			/*if(columnHash2.size() == 0 && availableTables.contains(table2.toUpperCase())){ //check available tables to see if they have any columns
-				columnHash2 = availableTables.get(table2.toUpperCase());
-			}*/
-			String commonKey = findCommon(columnHash1, columnHash2);
+			Hashtable columnHash2Tmp = null;
+			//create a temp column hash to store the available table column's if the new table has 0 columns.  This is so we have an accurate check below.
+			if(columnHash2.size() == 0 && availableTables.contains(table2.toUpperCase())){ //check available tables to see if they have any columns
+				columnHash2Tmp = availableTables.get(table2.toUpperCase());
+			} else {
+				columnHash2Tmp = columnHash2;
+			}
+			String rowCount2Obj = availableTablesInfo.get(table2.toUpperCase());
+			int rowCount2 = (rowCount2Obj==null)?totalrowcount:Integer.parseInt(rowCount2Obj);
+			
+			String commonKey = findCommon(columnHash1Tmp, columnHash2Tmp);
 			relHash.remove(relKey);
 			String newRelationName = null;
 			String [] subPredObj = new String[3];
@@ -757,7 +792,7 @@ public class RDBMSReader {
 				// see which one of these has most columns
 				String modifyingTable = table1;
 				Hashtable targetHash = columnHash1;
-				if(columnHash1.size() > columnHash2.size())
+				if((rowCount1 < rowCount2) || ((rowCount1 == rowCount2) && (columnHash1Tmp.size() > columnHash2Tmp.size())))
 				{
 					modifyingTable = table2;
 					targetHash = columnHash2;
@@ -833,23 +868,51 @@ public class RDBMSReader {
 		while(tableKeys.hasMoreElements())
 		{
 			String tableKey = tableKeys.nextElement();
-			String modString = null;
+			String modString = "";
 			if(!availableTables.containsKey(tableKey.toUpperCase()))
 			{
 				modString = getCreateString(tableKey);
 				tables.add(tableKey);
 			}
-			else
+			else if(hasNewColumns(tableKey))
 				modString = getAlterTable(tableKey);
 	
-			try {
-				scriptFile.println(modString + ";");
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			modifyDB(modString);
+			
+			if(modString.length()>0){
+				try {
+					scriptFile.println(modString + ";");
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				modifyDB(modString);
+			} /* for debugging : else {
+				try {
+					scriptFile.println("-- no create or alter statement needed for table: "+ tableKey);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			} */
 		}
+	}
+	
+	private boolean hasNewColumns(String table) {
+		boolean hasNewColumn = false;
+		Hashtable availableTableColumns = null;
+		availableTableColumns = availableTables.get(table.toUpperCase());
+		Hashtable newColumnsHash = tableHash.get(table);
+		//check each column in the availableTableColumns to see if the new columnHash has a new column
+		Enumeration <String> newColumnKeys = newColumnsHash.keys();
+		while(newColumnKeys.hasMoreElements()){
+			String column = newColumnKeys.nextElement();
+			if(!availableTableColumns.containsKey(column.toUpperCase()))
+			{
+				hasNewColumn = true;
+				break;
+			}
+		}
+		return hasNewColumn;
 	}
 	
 	private String getCreateString(String tableKey)
@@ -960,6 +1023,7 @@ public class RDBMSReader {
 		Enumeration <String> columnKeys = columns.keys();
 		StringBuffer valuesBuffer = new StringBuffer();
 		valuesBuffer.append(VALUES);
+
 		while(columnKeys.hasMoreElements())
 		{
 			if(key1)
@@ -982,9 +1046,9 @@ public class RDBMSReader {
 			valuesBuffer.append(value);
 			if(columnKeys.hasMoreElements())
 				valuesBuffer.append(" , ");
+
 		}
 		String SQLINSERT = valuesBuffer.toString() + ")";
-		
 		return SQLINSERT;
 	}
 	
@@ -1102,11 +1166,23 @@ public class RDBMSReader {
 		return SQLALTER;
 	}
 	
+	/**
+	 * count the number of times a substring exists in a string.
+	 * @param subStr the substring that you are searching/trying to get a count for
+	 * @param str the string you are searching for the subStr in
+	 * @return the number of times the subStr occurs in the str
+	 */
 	private static int countSubstring(String subStr, String str){
 		return (str.length() - str.replace(subStr, "").length()) / subStr.length();
 	}
 	
-	//unused, but functional
+	/**
+	 * gets the merge statement, current unused
+	 * @param tableKey
+	 * @param jcrMap
+	 * @param insertTemplate
+	 * @return
+	 */
 	private String getMergeString(String tableKey, Map <String, Object> jcrMap, String insertTemplate)
 	{
 		String VALUES = "";		
@@ -1241,14 +1317,11 @@ public class RDBMSReader {
 		
 	}
 	
-	
-		
 	private void insertRecords()
 	{
 		String [] insertTemplates = new String[tableHash.size()];
 		// the job here is to take the table hash and create tables
 		Enumeration <String> tableKeys = tableHash.keys();
-		
 		// get all the relation
 		// first block is for creating the templates
 		int tableIndex = 0;
@@ -1258,7 +1331,10 @@ public class RDBMSReader {
 			
 			String SQLINSERT = null;
 			
-			if(!availableTables.containsKey(tableKey.toUpperCase()))
+			// if the table was just created 
+			// OR if the table already exists but so do all of the columns so we are actually just inserting to the existing table
+			boolean tableAlreadyExists = availableTables.containsKey(tableKey.toUpperCase());
+			if( !tableAlreadyExists || ( tableAlreadyExists && !hasNewColumns(tableKey)) )
 			{
 				SQLINSERT = "INSERT INTO   " + realClean(tableKey) +  "  (" + realClean(tableKey);
 			
@@ -1266,7 +1342,7 @@ public class RDBMSReader {
 				Enumeration <String> columnKeys = columns.keys();
 				boolean key1 = true;
 				while(columnKeys.hasMoreElements())
-				{
+				{	
 					if(key1)
 					{
 						SQLINSERT = SQLINSERT + " , ";
@@ -1288,6 +1364,7 @@ public class RDBMSReader {
 		
 		// this block is for inserting the data
 		Map<String, Object> jcrMap;
+		
 		// max row predetermined value
 		int maxRows = 10000;
 		// overwrite this value if user specified the max rows to load
@@ -1302,6 +1379,7 @@ public class RDBMSReader {
 		
 		StringBuffer[] insertBufferSql = new StringBuffer[numberOfTables];		
 		ArrayList<String> updateBufferSqlList = new ArrayList<String>(); 
+		
 		
 		int countIndividualUpdateStatements = 0, countInserts = 0, countUpdates = 0;
 		try {
@@ -1326,7 +1404,10 @@ public class RDBMSReader {
 						
 						//Important note: do inserts table by table so that you can generate one long insert statement, update statements dont go 
 						//table by table, we need to search one array list for duplicate/similar update statements and make those more efficient
-						if(!availableTables.containsKey(tableKey.toUpperCase()))
+						// if the table was just created 
+						// OR if the table already exists but so do all of the columns so we are actually just inserting to the existing table
+						boolean tableAlreadyExists = availableTables.containsKey(tableKey.toUpperCase());
+						if( !tableAlreadyExists || ( tableAlreadyExists && !hasNewColumns(tableKey)) )
 						{
 							SQL = getInsertString(tableKey, jcrMap);
 							insertBufferSql[index].append(SQL + " ,");
@@ -1405,6 +1486,11 @@ public class RDBMSReader {
 		}
 	}
 	
+	/**
+	 * execute all queries in ArrayList queries
+	 * @param queries contains all queries that are to be execute
+	 * @param splitString string that splits the queries 
+	 */
 	private void runIncrementalTransaction(ArrayList<String> queries, String splitString){
 		StringBuffer queryBuffer = new StringBuffer(); 
 		String queryString = "";
@@ -1415,9 +1501,9 @@ public class RDBMSReader {
 			}
 			queryString = queryBuffer.toString();
 			if(queryString.length()>0){
+				
 				insertData(queryString); //execute the query first, then write it to the sql file.
-				scriptFile.println(queryString);
-			}
+				scriptFile.println(queryString);			}
 			queries.clear();
 		} catch (Exception e){
 			e.printStackTrace();
@@ -1425,6 +1511,11 @@ public class RDBMSReader {
 		}
 	}
 	
+	/**
+	 * execute all insert statements
+	 * @param insertTemplates contains the insert statement portion of the statement
+	 * @param bufferSql contains the values portion of the statement
+	 */
 	private void runIncrementalInsert(String[] insertTemplates,StringBuffer[] bufferSql){
 		try{
 			
@@ -1444,6 +1535,7 @@ public class RDBMSReader {
 				String SQL = insertClause + bufferSql[indexForInsert].toString();
 				
 				SQL = SQL.substring(0,SQL.length()-1); //get rid of that last comma
+				
 				insertData(SQL); //execute query first, then write to sql file
 				scriptFile.println(SQL + ";");
 				
@@ -1630,12 +1722,35 @@ public class RDBMSReader {
 				count++;
 				//logger.info("Skipping line: " + count);
 			}
+		
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new FileReaderException("Error processing CSV headers");
 		}
 	}
 	
+	
+	/**
+	 * count the rows in the csv file
+	 * @param fileName
+	 * @throws FileReaderException
+	 */
+	public void getRowsCount(String fileName) throws FileReaderException{
+		//get row count
+		try{
+			totalrowcount=0;//reset row count
+
+			Map<String, Object> jcrMap;
+
+			while( (jcrMap = mapReader.read(header, processors)) != null)
+				totalrowcount++;
+				
+				
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new FileReaderException("Error processing CSV headers");
+		}		
+	}
 
 	/**
 	 * Change the name of nodes that are concatenations of multiple CSV columns
@@ -1762,25 +1877,33 @@ public class RDBMSReader {
 	 */
 	public void openCSVFile(String fileName) throws FileReaderException {
 		FileReader readCSVFile;
-		try {
-			readCSVFile = new FileReader(fileName);
-			mapReader = new CsvMapReader(readCSVFile, CsvPreference.STANDARD_PREFERENCE);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-			throw new FileReaderException("Could not find CSV file located at " + fileName);
-		}		
-		try {
-			header = mapReader.getHeader(true);
-			headerList = Arrays.asList(header);
-			// last header in CSV file is the absolute path to the prop file
-			//propFile = header[header.length-1];
-			// also keep this in the index now
-			for(int headerIndex = 1;headerIndex <= header.length;headerIndex++)
-				typeIndices.put(header[headerIndex-1], headerIndex+"");
-			
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new FileReaderException("Could not close reader input stream for CSV file " + fileName);
+		// loop through twice, first time open up the mapreader so we can loop through and get the rows count, then reopen it for
+		// processing in the insertrecords method
+		for(int i = 0; i < 2; i++){ 
+			try {
+				readCSVFile = new FileReader(fileName);
+				mapReader = new CsvMapReader(readCSVFile, CsvPreference.STANDARD_PREFERENCE);
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+				throw new FileReaderException("Could not find CSV file located at " + fileName);
+			}		
+			try {
+				header = mapReader.getHeader(true);
+				headerList = Arrays.asList(header);
+				// last header in CSV file is the absolute path to the prop file
+				//propFile = header[header.length-1];
+				// also keep this in the index now
+				for(int headerIndex = 1;headerIndex <= header.length;headerIndex++)
+					typeIndices.put(header[headerIndex-1], headerIndex+"");
+				
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw new FileReaderException("Could not close reader input stream for CSV file " + fileName);
+			}
+			if(i==0){ // first time through loop through the csv file to get the total row count, 
+					  // need to loop through a second time to reset the current line position on the csv reader back to the beginning.
+				getRowsCount(fileName);
+			}
 		}
 	}
 
