@@ -50,26 +50,25 @@ import prerna.util.Utility;
  */
 public class SerOptBtnListener implements IChakraListener {
 	
-	static final Logger logger = LogManager.getLogger(SerOptBtnListener.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(SerOptBtnListener.class.getName());
 
-	SerOptPlaySheet playSheet;
-	JTextArea consoleArea;
+	private SerOptPlaySheet playSheet;
 	
-	int maxYears;
-	double interfaceCost;
-	double serMainPerc;
-	int noOfPts;
-	double minBudget;
-	double maxBudget;
-	double hourlyCost;
-	double iniLC;
-	int scdLT;
-	double scdLC;
-	double attRate;
-	double hireRate;
-	double infRate;
-	double disRate;
-	IAlgorithm optimizer;
+	private int maxYears;
+	private double interfaceCost;
+	private double serMainPerc;
+	private int noOfPts;
+	private double minBudget;
+	private double maxBudget;
+	private double hourlyCost;
+	private double iniLC;
+	private int scdLT;
+	private double scdLC;
+	private double attRate;
+	private double hireRate;
+	private double infRate;
+	private double disRate;
+	private IAlgorithm optimizer;
 	
 	/**
 	 * Method actionPerformed.
@@ -77,7 +76,7 @@ public class SerOptBtnListener implements IChakraListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
-		logger.info("Optimization Button Pushed");
+		LOGGER.info("Optimization Button Pushed");
 		boolean validInputs = setVariables();
 		if(!playSheet.sysSpecComboBox.getSelectedItem().toString().equals("System Specific") && validInputs){
 			if(playSheet.rdbtnProfit.isSelected()) this.optimizer = new ProfitOptimizer();
@@ -222,13 +221,17 @@ public class SerOptBtnListener implements IChakraListener {
 		else 
 			this.noOfPts = userNoPts;
 		
+		double interfaceCost = Double.parseDouble(playSheet.icdSusField.getText());
+		if(interfaceCost<0){
+			failStr = failStr+"Annual Interface Sustainment Cost must not be negative\n";
+			failCount++;
+		}
+		else 
+			this.interfaceCost = interfaceCost;
 
 		this.infRate = Double.parseDouble(playSheet.infRateField.getText())/100;
 		this.disRate = Double.parseDouble(playSheet.disRateField.getText())/100;
-		
-		failStr = specificSetVariablesString(failStr);
-		failCount = specificSetVariablesCount(failCount);
-		
+
 		if(failCount>0){
 			failStr = failStr + "\nPlease adjust the inputs and try again";
 			Utility.showError(failStr);
@@ -237,30 +240,7 @@ public class SerOptBtnListener implements IChakraListener {
 		else
 			return true;
 	}
-	
-	public String specificSetVariablesString(String failStr)
-	{
-		double interfaceCost = Double.parseDouble(playSheet.icdSusField.getText());
-		if(interfaceCost<0){
-			failStr = failStr+"Annual Interface Sustainment Cost must not be negative\n";
-		}
-		else 
-			this.interfaceCost = interfaceCost;
-		return failStr;
-	}
-	
-	public Integer specificSetVariablesCount(int failCount)
-	{
-		double interfaceCost = Double.parseDouble(playSheet.icdSusField.getText());
-		if(interfaceCost<0){
-			failCount++;
-		}
-		else 
-			this.interfaceCost = interfaceCost;
-		return failCount;
-	}
-	
-	
+
 	/**
 	 * Override method from IChakraListener
 	 * @param view JComponent

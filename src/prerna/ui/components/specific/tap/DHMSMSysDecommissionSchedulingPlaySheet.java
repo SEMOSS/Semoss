@@ -62,12 +62,14 @@ public class DHMSMSysDecommissionSchedulingPlaySheet extends InputPanelPlaySheet
 	//other display components
 	public JPanel sysNumSitesAnalPanel;
 	public JPanel sysCostSavingsAnalPanel;
+
 	/**
 	 * Sets up the Param panel at the top of the split pane
 	 */
-	public void createGenericParamPanel()
+	@Override
+	protected void createParamPanel()
 	{
-		super.createGenericParamPanel();
+		super.createParamPanel();
 
 		yearField = new JTextField();
 		yearField.setFont(new Font("Tahoma", Font.PLAIN, 11));
@@ -169,38 +171,17 @@ public class DHMSMSysDecommissionSchedulingPlaySheet extends InputPanelPlaySheet
 		Style.registerTargetClassName(btnRunOptimization,  ".createBtn");
 	}
 	
-	public void addOptimizationBtnListener(JButton btnRunOptimization)
+	protected void addOptimizationBtnListener(JButton btnRunOptimization)
 	{
 		DHMSMSysDecomissionSchedulingBtnListener obl = new DHMSMSysDecomissionSchedulingBtnListener();
 		obl.setOptPlaySheet(this);
 		btnRunOptimization.addActionListener(obl);
 	}
 	
-	
-	public void createSpecificDisplayComponents()
-	{
-		sysNumSitesAnalPanel = new JPanel();
-		tabbedPane.addTab("System Site Analysis", null, sysNumSitesAnalPanel, null);
-		GridBagLayout gbl_specificSysAlysPanel = new GridBagLayout();
-		gbl_specificSysAlysPanel.columnWidths = new int[]{0, 0};
-		gbl_specificSysAlysPanel.rowHeights = new int[]{0, 0};
-		gbl_specificSysAlysPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gbl_specificSysAlysPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-		sysNumSitesAnalPanel.setLayout(gbl_specificSysAlysPanel);
-		
-		sysCostSavingsAnalPanel = new JPanel();
-		tabbedPane.addTab("System Cost/Savings Analysis", null, sysCostSavingsAnalPanel, null);
-		GridBagLayout gbl_sysCostSavingsAnalPanel = new GridBagLayout();
-		gbl_sysCostSavingsAnalPanel.columnWidths = new int[]{0, 0};
-		gbl_sysCostSavingsAnalPanel.rowHeights = new int[]{0, 0};
-		gbl_sysCostSavingsAnalPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gbl_sysCostSavingsAnalPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-		sysCostSavingsAnalPanel.setLayout(gbl_sysCostSavingsAnalPanel);
-	}
-	
-	public void createGenericDisplayPanel()
+	@Override
+	protected void createDisplayPanel()
 	{		
-		super.createGenericDisplayPanel();
+		super.createDisplayPanel();
 		//	public JLabel savingLbl, netSavingLbl, roiLbl, investLbl, budgetLbl;
 		JLabel lblSavingLabel = new JLabel("Total transition savings over time horizon:");
 		GridBagConstraints gbc_lblNewLabel = new GridBagConstraints();
@@ -353,6 +334,23 @@ public class DHMSMSysDecommissionSchedulingPlaySheet extends InputPanelPlaySheet
 		gbc_panel3.gridy = 2;
 		chartPanel.add(tab5,  gbc_panel3);
 		
-		createSpecificDisplayComponents();
+		sysNumSitesAnalPanel = new JPanel();
+		tabbedPane.addTab("System Site Analysis", null, sysNumSitesAnalPanel, null);
+		GridBagLayout gbl_specificSysAlysPanel = new GridBagLayout();
+		gbl_specificSysAlysPanel.columnWidths = new int[]{0, 0};
+		gbl_specificSysAlysPanel.rowHeights = new int[]{0, 0};
+		gbl_specificSysAlysPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_specificSysAlysPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		sysNumSitesAnalPanel.setLayout(gbl_specificSysAlysPanel);
+		
+		sysCostSavingsAnalPanel = new JPanel();
+		tabbedPane.addTab("System Cost/Savings Analysis", null, sysCostSavingsAnalPanel, null);
+		GridBagLayout gbl_sysCostSavingsAnalPanel = new GridBagLayout();
+		gbl_sysCostSavingsAnalPanel.columnWidths = new int[]{0, 0};
+		gbl_sysCostSavingsAnalPanel.rowHeights = new int[]{0, 0};
+		gbl_sysCostSavingsAnalPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_sysCostSavingsAnalPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		sysCostSavingsAnalPanel.setLayout(gbl_sysCostSavingsAnalPanel);
+
 	}
 }

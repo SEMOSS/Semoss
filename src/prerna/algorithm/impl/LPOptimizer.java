@@ -63,9 +63,10 @@ public class LPOptimizer extends AbstractOptimizer{
 		} catch (LpSolveException e1) {
 			e1.printStackTrace();
 		}
+		solver.setAddRowmode(true);
+		setObjFunction();
 		setConstraints();
 		solver.setAddRowmode(false);
-		setObjFunction();
 	}
 	
 	/**
