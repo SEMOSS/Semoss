@@ -39,7 +39,6 @@ import java.util.Hashtable;
 import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
 import javax.swing.JFrame;
-import javax.swing.JInternalFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -99,19 +98,60 @@ public class InputPanelPlaySheet extends AbstractRDFPlaySheet implements IPlaySh
 		this.setResizable(true);
 		this.setPreferredSize(new Dimension(800, 600));
 	}
+	
 	/**
-	 * Displays an error message in the pane if the Mozilla engine does not support the environment.
-	 * 
+	 * Creates the user interface of the playsheet.
+	 * Calls functions to create param panel and tabbed display panel
+	 * Stitches the param and display panels together.
 	 */
-	public void displayCheckBoxError() {
-		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
-		JOptionPane.showMessageDialog(playPane, "Mozilla15 engine doesn't support the current environment. Please switch to 32-bit Java.", "Error", JOptionPane.ERROR_MESSAGE);
+	protected void createUI() {
+		PlaySheetListener psListener = new PlaySheetListener();
+		this.addInternalFrameListener(psListener);
+		
+		createParamPanel();
+
+		createDisplayPanel();
+
+		GridBagLayout gridBagLayout = new GridBagLayout();
+		gridBagLayout.columnWidths = new int[]{723, 0};
+		gridBagLayout.rowHeights = new int[]{571, 0};
+		gridBagLayout.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gridBagLayout.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		getContentPane().setLayout(gridBagLayout);
+
+		JPanel panel = new JPanel();
+		GridBagLayout gbl_panel = new GridBagLayout();
+		gbl_panel.columnWidths = new int[]{0, 0};
+		gbl_panel.rowHeights = new int[]{0, 0};
+		gbl_panel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_panel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		panel.setLayout(gbl_panel);
+		GridBagConstraints gbc_optimizationHelpScrollPane = new GridBagConstraints();
+		gbc_optimizationHelpScrollPane.fill = GridBagConstraints.BOTH;
+		gbc_optimizationHelpScrollPane.gridx = 0;
+		gbc_optimizationHelpScrollPane.gridy = 0;		
+		getContentPane().add(panel, gbc_optimizationHelpScrollPane);
+		
+		JSplitPane splitPane = new JSplitPane();
+		splitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);
+		GridBagConstraints gbc_splitPane = new GridBagConstraints();
+		gbc_splitPane.fill = GridBagConstraints.BOTH;
+		gbc_splitPane.gridx = 0;
+		gbc_splitPane.gridy = 0;
+		panel.add(splitPane, gbc_splitPane);
+		splitPane.setDividerLocation(210);
+		splitPane.setContinuousLayout(true);
+		splitPane.setOneTouchExpandable(true);
+		splitPane.setLeftComponent(ctlScrollPane);
+		splitPane.setRightComponent(displayPanel);
+
+		new CSSApplication(getContentPane());
 	}
 	
 	/**
 	 * Sets up the Param panel at the top of the split pane
 	 */
-	public void createGenericParamPanel() {
+	protected void createParamPanel() {
 		ctlScrollPane = new JScrollPane();		
 		ctlPanel = new JPanel();
 		ctlScrollPane.setViewportView(ctlPanel);
@@ -145,7 +185,7 @@ public class InputPanelPlaySheet extends AbstractRDFPlaySheet implements IPlaySh
 		progressBar.setVisible(false);		
 	}
 	
-	public void createGenericDisplayPanel() {
+	protected void createDisplayPanel() {
 		
 		displayPanel = new JPanel();
 
@@ -210,55 +250,6 @@ public class InputPanelPlaySheet extends AbstractRDFPlaySheet implements IPlaySh
 
 		consoleArea = new JTextArea();
 		scrollPane_1.setViewportView(consoleArea);
-	}
-	
-	/**
-	 * Creates the user interface of the playsheet.
-	 * Calls functions to create param panel and tabbed display panel
-	 * Stitches the param and display panels together.
-	 */
-	public void createUI() {
-		PlaySheetListener psListener = new PlaySheetListener();
-		this.addInternalFrameListener(psListener);
-		
-		createGenericParamPanel();
-
-		createGenericDisplayPanel();
-
-		GridBagLayout gridBagLayout = new GridBagLayout();
-		gridBagLayout.columnWidths = new int[]{723, 0};
-		gridBagLayout.rowHeights = new int[]{571, 0};
-		gridBagLayout.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gridBagLayout.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-		getContentPane().setLayout(gridBagLayout);
-
-		JPanel panel = new JPanel();
-		GridBagLayout gbl_panel = new GridBagLayout();
-		gbl_panel.columnWidths = new int[]{0, 0};
-		gbl_panel.rowHeights = new int[]{0, 0};
-		gbl_panel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gbl_panel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-		panel.setLayout(gbl_panel);
-		GridBagConstraints gbc_optimizationHelpScrollPane = new GridBagConstraints();
-		gbc_optimizationHelpScrollPane.fill = GridBagConstraints.BOTH;
-		gbc_optimizationHelpScrollPane.gridx = 0;
-		gbc_optimizationHelpScrollPane.gridy = 0;		
-		getContentPane().add(panel, gbc_optimizationHelpScrollPane);
-		
-		JSplitPane splitPane = new JSplitPane();
-		splitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);
-		GridBagConstraints gbc_splitPane = new GridBagConstraints();
-		gbc_splitPane.fill = GridBagConstraints.BOTH;
-		gbc_splitPane.gridx = 0;
-		gbc_splitPane.gridy = 0;
-		panel.add(splitPane, gbc_splitPane);
-		splitPane.setDividerLocation(210);
-		splitPane.setContinuousLayout(true);
-		splitPane.setOneTouchExpandable(true);
-		splitPane.setLeftComponent(ctlScrollPane);
-		splitPane.setRightComponent(displayPanel);
-
-		new CSSApplication(getContentPane());
 	}
 
 	public void setGraphsVisible(boolean visible) {}
@@ -358,6 +349,15 @@ public class InputPanelPlaySheet extends AbstractRDFPlaySheet implements IPlaySh
 	public Hashtable<String, String> getDataTableAlign() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	/**
+	 * Displays an error message in the pane if the Mozilla engine does not support the environment.
+	 * 
+	 */
+	protected void displayCheckBoxError() {
+		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
+		JOptionPane.showMessageDialog(playPane, "Mozilla15 engine doesn't support the current environment. Please switch to 32-bit Java.", "Error", JOptionPane.ERROR_MESSAGE);
 	}
 
 }

@@ -185,7 +185,7 @@ public class MultivariateOptimizer extends UnivariateSysOptimizer{
         displayCurrFunctionality();
         displayFutureFunctionality();
         displayHeatMap();
-        displayClusterHeatMap();
+  //      displayClusterHeatMap();
 	}
 	
 	@Override

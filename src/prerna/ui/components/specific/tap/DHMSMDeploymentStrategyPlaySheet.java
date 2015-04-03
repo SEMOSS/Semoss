@@ -130,7 +130,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	/**
 	 * Sets up the Param panel at the top of the split pane
 	 */
-	public void createGenericParamPanel()
+	public void createParamPanel()
 	{
 		queryRegions();
 
@@ -138,7 +138,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 			Utility.showError("Cannot find regions in TAP Site");
 		}
 
-		super.createGenericParamPanel();
+		super.createParamPanel();
 
 		timePanel = new JPanel();
 		GridBagConstraints gbc_timePanel = new GridBagConstraints();
@@ -368,8 +368,8 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	}
 	
 	@Override
-	public void createGenericDisplayPanel() {
-		super.createGenericDisplayPanel();
+	public void createDisplayPanel() {
+		super.createDisplayPanel();
 		
 		siteAnalysisPanel = new JPanel();
 		tabbedPane.insertTab("Site Analysis", null, siteAnalysisPanel, null,1);

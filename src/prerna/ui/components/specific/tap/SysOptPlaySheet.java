@@ -36,7 +36,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.Vector;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -49,8 +48,6 @@ import javax.swing.JToggleButton;
 import javax.swing.border.BevelBorder;
 
 import prerna.ui.components.BrowserGraphPanel;
-import prerna.ui.helpers.EntityFiller;
-import prerna.ui.main.listener.specific.tap.AdvParamListener;
 import prerna.ui.main.listener.specific.tap.OptFunctionRadioBtnListener;
 import prerna.ui.main.listener.specific.tap.SysOptBtnListener;
 import prerna.ui.main.listener.specific.tap.UpdateDataBLUListListener;
@@ -62,7 +59,7 @@ import aurelienribon.ui.css.Style;
  * This is the playsheet used exclusively for TAP service optimization.
  */
 @SuppressWarnings("serial")
-public class SysOptPlaySheet extends SerOptPlaySheet {
+public class SysOptPlaySheet extends OptPlaySheet {
 	
 	public JCheckBox includeRegionalizationCheckbox;
 	public JCheckBox garrTheaterCheckbox;
@@ -82,37 +79,18 @@ public class SysOptPlaySheet extends SerOptPlaySheet {
 	public JToggleButton updateDataBLUPanelButton;
 	
 	// overall analysis tab
-	public JRadioButton rdbtnIRR;
+
+	public JRadioButton rdbtnProfit, rdbtnROI, rdbtnIRR;
 	public JLabel solutionLbl, irrLbl, annualBudgetLbl, timeTransitionLbl;
-	public BrowserGraphPanel replacementHeatMap, clusterHeatMap, geoSpatialMap;
-	public JPanel currentFuncPanel, futureFuncPanel, replacementHeatMapPanel, clusterHeatMapPanel, sysCapOptionsPanel, sysCapDisplayPanel,
-			geoSpatialOptionsPanel;//, geoSpatialDisplayPanel;
+	public BrowserGraphPanel replacementHeatMap, geoSpatialMap;
+	public JPanel currentFuncPanel, futureFuncPanel, replacementHeatMapPanel, sysCapOptionsPanel, sysCapDisplayPanel,
+			geoSpatialOptionsPanel;
 	public static JComboBox<String> capComboBox, sysComboBox, geoCapComboBox;
 	public static JButton createSysCapButton, createGeoSpatialMapButton;
-	
-	/**
-	 * Constructor for SysOptPlaySheet.
-	 */
-	public SysOptPlaySheet() {
-		super();
-	}
-	
-	public String[] makeListFromQuery(String type, String query) {
-		EntityFiller filler = new EntityFiller();
-		filler.engineName = engine.getEngineName();
-		filler.type = "Capability";
-		filler.setExternalQuery(query);
-		filler.run();
-		Vector<String> names = filler.nameVector;
-		String[] listArray = new String[names.size()];
-		for (int i = 0; i < names.size(); i++) {
-			listArray[i] = (String) names.get(i);
-		}
-		return listArray;
-	}
+
 	
 	@Override
-	public void createAdvParamPanels() {
+	protected void createAdvParamPanels() {
 		super.createAdvParamPanels();
 		
 		includeRegionalizationCheckbox = new JCheckBox("Include Regionalization");
@@ -254,7 +232,7 @@ public class SysOptPlaySheet extends SerOptPlaySheet {
 	}
 	
 	@Override
-	public void createAdvParamPanelsToggles() {
+	protected void createAdvParamPanelsToggles() {
 		super.createAdvParamPanelsToggles();
 		
 		GridBagConstraints gbc_showParamBtn = new GridBagConstraints();
@@ -306,15 +284,93 @@ public class SysOptPlaySheet extends SerOptPlaySheet {
 	}
 	
 	@Override
-	public void createAdvParamPanelsToggleListeners() {
-		AdvParamListener saLis = new AdvParamListener();
-		saLis.setPlaySheet(this);
-		saLis.setParamButtons(showParamBtn, showSystemSelectBtn, showSystemCapSelectBtn, showSystemModDecomBtn);
-		showParamBtn.addActionListener(saLis);
-		showSystemSelectBtn.addActionListener(saLis);
-		showSystemCapSelectBtn.addActionListener(saLis);
-		showSystemModDecomBtn.addActionListener(saLis);
+	protected void createAdvParamPanelsToggleListeners() {
 		
+		showParamBtn.addActionListener(new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				if(showParamBtn.isSelected()) {
+					showSystemSelectBtn.setSelected(false);
+					showSystemCapSelectBtn.setSelected(false);
+					showSystemModDecomBtn.setSelected(false);
+					systemDataBLUSelectPanel.setVisible(false);
+					systemModDecomSelectPanel.setVisible(false);
+					advParamPanel.setVisible(true);
+				} else
+					advParamPanel.setVisible(false);
+			}
+		});
+		
+		showSystemSelectBtn.addActionListener(new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				if(showSystemSelectBtn.isSelected()) {
+					showParamBtn.setSelected(false);
+					showSystemCapSelectBtn.setSelected(false);
+					showSystemModDecomBtn.setSelected(false);
+					advParamPanel.setVisible(false);
+					systemModDecomSelectPanel.setVisible(false);
+					systemDataBLUSelectPanel.setVisible(true);
+					capabilitySelectPanel.setVisible(false);
+					capabilitySelectPanel.clearList();
+					//if data or BLU was selected, show it. otherwise hide panel
+					if(dataBLUSelectPanel.noneSelected()) {
+						updateDataBLUPanelButton.setSelected(false);
+						dataBLUSelectPanel.setVisible(false);
+					} else {
+						updateDataBLUPanelButton.setSelected(true);
+						dataBLUSelectPanel.setVisible(true);
+						dataBLUSelectPanel.setFromSystem(true);
+					}
+				} else {
+					systemDataBLUSelectPanel.setVisible(false);
+				}
+			}
+		});
+		
+		showSystemCapSelectBtn.addActionListener(new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e) {
+
+				if(showSystemCapSelectBtn.isSelected()) {
+					showParamBtn.setSelected(false);
+					showSystemSelectBtn.setSelected(false);
+					showSystemModDecomBtn.setSelected(false);
+					advParamPanel.setVisible(false);
+					systemModDecomSelectPanel.setVisible(false);
+					systemDataBLUSelectPanel.setVisible(true);
+					capabilitySelectPanel.setVisible(true);
+					//if data or BLU was selected, show it. otherwise hide panel
+					if(dataBLUSelectPanel.noneSelected()) {
+						updateDataBLUPanelButton.setSelected(false);
+						dataBLUSelectPanel.setVisible(false);
+					} else {
+						updateDataBLUPanelButton.setSelected(true);
+						dataBLUSelectPanel.setVisible(true);
+						dataBLUSelectPanel.setFromSystem(false);					}
+				} else {
+					systemDataBLUSelectPanel.setVisible(false);
+				}
+			}
+		});
+		
+		showSystemModDecomBtn.addActionListener(new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e) {
+				if(showSystemModDecomBtn.isSelected()) {
+					showParamBtn.setSelected(false);
+					showSystemSelectBtn.setSelected(false);
+					showSystemCapSelectBtn.setSelected(false);
+					advParamPanel.setVisible(false);
+					systemDataBLUSelectPanel.setVisible(false);
+					systemModDecomSelectPanel.setVisible(true);
+				} else {
+					systemModDecomSelectPanel.setVisible(false);
+				}
+			}
+		});
 		ActionListener viewDataBLUPanelListener = new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				// if the updateDataBLUPanelButton is unselected by user, hide the panel
@@ -346,7 +402,9 @@ public class SysOptPlaySheet extends SerOptPlaySheet {
 	}
 	
 	@Override
-	public void createSpecificParamComponents() {
+	protected void createBasicParamComponents() {
+		
+		super.createBasicParamComponents();
 		lblSoaSustainmentCost.setText("Annual Maint Exposed Data (%)");
 		maxBudgetField.setText("500");
 		
@@ -380,14 +438,64 @@ public class SysOptPlaySheet extends SerOptPlaySheet {
 		
 	}
 	
-	public void addOptimizationBtnListener(JButton btnRunOptimization) {
+	@Override
+	protected void addOptimizationBtnListener(JButton btnRunOptimization) {
 		SysOptBtnListener obl = new SysOptBtnListener();
 		obl.setOptPlaySheet(this);
 		btnRunOptimization.addActionListener(obl);
 	}
 	
+	/**
+	 * Creates the user interface of the playsheet. Calls functions to create param panel and tabbed display panel Stitches
+	 * the param and display panels together.
+	 */
 	@Override
-	public void createSpecificDisplayComponents() {
+	protected void createOptimizationTypeComponents() {
+		
+		rdbtnProfit = new JRadioButton("Savings");
+		rdbtnProfit.setName("rdbtnProfit");
+		rdbtnProfit.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		rdbtnProfit.setSelected(true);
+		GridBagConstraints gbc_rdbtnProfit = new GridBagConstraints();
+		gbc_rdbtnProfit.gridwidth = 2;
+		gbc_rdbtnProfit.anchor = GridBagConstraints.WEST;
+		gbc_rdbtnProfit.insets = new Insets(0, 0, 5, 5);
+		gbc_rdbtnProfit.gridx = 1;
+		gbc_rdbtnProfit.gridy = 4;
+		ctlPanel.add(rdbtnProfit, gbc_rdbtnProfit);
+		
+		rdbtnROI = new JRadioButton("ROI");
+		rdbtnROI.setName("rdbtnROI");
+		rdbtnROI.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_rdbtnRoi = new GridBagConstraints();
+		gbc_rdbtnRoi.anchor = GridBagConstraints.WEST;
+		gbc_rdbtnRoi.insets = new Insets(0, 0, 5, 5);
+		gbc_rdbtnRoi.gridx = 3;
+		gbc_rdbtnRoi.gridy = 4;
+		ctlPanel.add(rdbtnROI, gbc_rdbtnRoi);
+		
+		rdbtnIRR = new JRadioButton("IRR");
+		rdbtnIRR.setName("rdbtnIRR");
+		rdbtnIRR.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_rdbtnIRR = new GridBagConstraints();
+		gbc_rdbtnIRR.anchor = GridBagConstraints.WEST;
+		gbc_rdbtnIRR.insets = new Insets(0, 0, 5, 5);
+		gbc_rdbtnIRR.gridx = 5;
+		gbc_rdbtnIRR.gridy = 4;
+		ctlPanel.add(rdbtnIRR, gbc_rdbtnIRR);
+		
+		OptFunctionRadioBtnListener opl = new OptFunctionRadioBtnListener();
+		rdbtnROI.addActionListener(opl);
+		rdbtnProfit.addActionListener(opl);
+		rdbtnIRR.addActionListener(opl);
+		opl.setSerOptRadioBtn(rdbtnProfit, rdbtnROI, rdbtnIRR);
+	}
+	
+	
+	
+	@Override
+	protected void createDisplayPanel() {
+		super.createDisplayPanel();
 		GridBagConstraints gbc_panel = new GridBagConstraints();
 		gbc_panel.insets = new Insets(0, 0, 0, 5);
 		gbc_panel.fill = GridBagConstraints.BOTH;
@@ -514,24 +622,6 @@ public class SysOptPlaySheet extends SerOptPlaySheet {
 		gbc_replacementHeatMap.gridy = 0;
 		replacementHeatMapPanel.add(replacementHeatMap, gbc_replacementHeatMap);
 		
-		clusterHeatMapPanel = new JPanel();
-		tabbedPane.addTab("Cluster Heat Map", null, clusterHeatMapPanel, null);
-		GridBagLayout gbl_clusterHeatMapPanel = new GridBagLayout();
-		gbl_clusterHeatMapPanel.columnWidths = new int[] { 0, 0, 10 };
-		gbl_clusterHeatMapPanel.rowHeights = new int[] { 0, 0, 10 };
-		gbl_clusterHeatMapPanel.columnWeights = new double[] { Double.MIN_VALUE, Double.MIN_VALUE, 1.0 };
-		gbl_clusterHeatMapPanel.rowWeights = new double[] { Double.MIN_VALUE, Double.MIN_VALUE, 1.0 };
-		clusterHeatMapPanel.setLayout(gbl_clusterHeatMapPanel);
-		
-		clusterHeatMap = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/clusterheatmap.html");
-		
-		GridBagConstraints gbc_clusterHeatMap = new GridBagConstraints();
-		gbc_clusterHeatMap.insets = new Insets(0, 0, 0, 5);
-		gbc_clusterHeatMap.fill = GridBagConstraints.BOTH;
-		gbc_clusterHeatMap.gridx = 0;
-		gbc_clusterHeatMap.gridy = 0;
-		clusterHeatMapPanel.add(clusterHeatMap, gbc_clusterHeatMap);
-		
 		// Components for Capability System Comparison Panel
 		JPanel sysCapPanel = new JPanel();
 		tabbedPane.addTab("Capability System Comparison", null, sysCapPanel, null);
@@ -636,23 +726,6 @@ public class SysOptPlaySheet extends SerOptPlaySheet {
 		gbc_geoSpatialOptionsPanel.gridy = 0;
 		geoSpatialPanel.add(geoSpatialOptionsPanel, gbc_geoSpatialOptionsPanel);
 		
-//		geoSpatialDisplayPanel = new JPanel();
-//		geoSpatialDisplayPanel.setBackground(SystemColor.control);
-//		GridBagConstraints gbc_geoSpatialDisplayPanel = new GridBagConstraints();
-//		gbc_geoSpatialDisplayPanel.anchor = GridBagConstraints.SOUTH;
-//		gbc_geoSpatialDisplayPanel.gridwidth = 1;
-//		gbc_geoSpatialDisplayPanel.insets = new Insets(0, 0, 5, 5);
-//		gbc_geoSpatialDisplayPanel.gridx = 0;
-//		gbc_geoSpatialDisplayPanel.fill = GridBagConstraints.BOTH;
-//		gbc_geoSpatialDisplayPanel.gridy = 1;
-//		// GridBagLayout gbl_geoSpatialDisplayPanel = new GridBagLayout();
-//		// gbl_geoSpatialDisplayPanel.columnWidths = new int[] { 0, 0 };
-//		// gbl_geoSpatialDisplayPanel.rowHeights = new int[] { 0, 0 };
-//		// gbl_geoSpatialDisplayPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
-//		// gbl_geoSpatialDisplayPanel.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
-//		// geoSpatialDisplayPanel.setLayout(gbl_geoSpatialDisplayPanel);
-//		geoSpatialPanel.add(geoSpatialDisplayPanel, null);
-		
 		geoSpatialMap = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/worldmap.html");
 		
 		GridBagConstraints gbc_geoSpatialMap = new GridBagConstraints();
@@ -690,51 +763,6 @@ public class SysOptPlaySheet extends SerOptPlaySheet {
 		Style.registerTargetClassName(createGeoSpatialMapButton, ".standardButton");
 	}
 	
-	/**
-	 * Creates the user interface of the playsheet. Calls functions to create param panel and tabbed display panel Stitches
-	 * the param and display panels together.
-	 */
-	public void createOptimizationTypeComponents() {
-		
-		rdbtnProfit = new JRadioButton("Savings");
-		rdbtnProfit.setName("rdbtnProfit");
-		rdbtnProfit.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		rdbtnProfit.setSelected(true);
-		GridBagConstraints gbc_rdbtnProfit = new GridBagConstraints();
-		gbc_rdbtnProfit.gridwidth = 2;
-		gbc_rdbtnProfit.anchor = GridBagConstraints.WEST;
-		gbc_rdbtnProfit.insets = new Insets(0, 0, 5, 5);
-		gbc_rdbtnProfit.gridx = 1;
-		gbc_rdbtnProfit.gridy = 4;
-		ctlPanel.add(rdbtnProfit, gbc_rdbtnProfit);
-		
-		rdbtnROI = new JRadioButton("ROI");
-		rdbtnROI.setName("rdbtnROI");
-		rdbtnROI.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_rdbtnRoi = new GridBagConstraints();
-		gbc_rdbtnRoi.anchor = GridBagConstraints.WEST;
-		gbc_rdbtnRoi.insets = new Insets(0, 0, 5, 5);
-		gbc_rdbtnRoi.gridx = 3;
-		gbc_rdbtnRoi.gridy = 4;
-		ctlPanel.add(rdbtnROI, gbc_rdbtnRoi);
-		
-		rdbtnIRR = new JRadioButton("IRR");
-		rdbtnIRR.setName("rdbtnIRR");
-		rdbtnIRR.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_rdbtnIRR = new GridBagConstraints();
-		gbc_rdbtnIRR.anchor = GridBagConstraints.WEST;
-		gbc_rdbtnIRR.insets = new Insets(0, 0, 5, 5);
-		gbc_rdbtnIRR.gridx = 5;
-		gbc_rdbtnIRR.gridy = 4;
-		ctlPanel.add(rdbtnIRR, gbc_rdbtnIRR);
-		
-		OptFunctionRadioBtnListener opl = new OptFunctionRadioBtnListener();
-		rdbtnROI.addActionListener(opl);
-		rdbtnProfit.addActionListener(opl);
-		rdbtnIRR.addActionListener(opl);
-		opl.setSerOptRadioBtn(rdbtnProfit, rdbtnROI, rdbtnIRR);
-	}
-	
 	@Override
 	public void setGraphsVisible(boolean visible) {
 		tab3.setVisible(visible);
@@ -755,8 +783,8 @@ public class SysOptPlaySheet extends SerOptPlaySheet {
 	/**
 	 * Sets N/A or $0 for values in optimizations. Allows for different TAP algorithms to be run as empty functions.
 	 */
+	@Override
 	public void clearLabels() {
-		// solutionLbl.setText("N/A");
 		bkevenLbl.setText("N/A");
 		savingLbl.setText("$0");
 		roiLbl.setText("N/A");
