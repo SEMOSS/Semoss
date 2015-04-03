@@ -53,6 +53,11 @@ public class DHMSMDeploymentStrategyProcessor {
 		this.waveOrder = waveOrder;
 		this.waveStartEndDate = waveStartEndDate;
 		this.consoleArea = consoleArea;
+		
+		//TODO: figure out where to put this
+		if(waveOrder.contains("FOC")) {
+			waveOrder.remove("FOC");
+		}
 	}
 
 	private static final Logger LOGGER = LogManager.getLogger(DHMSMDeploymentStrategyProcessor.class.getName());
