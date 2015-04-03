@@ -127,7 +127,7 @@ public class ComparingTwoColumns {
 		
 		long end = System.currentTimeMillis();
 
-		System.out.println("Time in seconds = " + (end - start)/1000/60);
+		System.out.println("Time in seconds = " + (end - start)/1000);
 	}
 	
 //	public static void main(String[] args) {
