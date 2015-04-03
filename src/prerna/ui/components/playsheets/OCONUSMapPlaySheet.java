@@ -99,8 +99,8 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 		allHash = new Hashtable();
 		allHash.put("dataSeries", data);
 		
-		allHash.put("lat", "lat");
-		allHash.put("lon", "lon");
+		allHash.put("lat", var[1]);
+		allHash.put("lon", var[2]);
 		if (var.length > 3 && !var[3].equals(null))
 			allHash.put("size", "size");
 		else
@@ -127,7 +127,6 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 		Gson gson = new Gson();
 		logger.info("Converted gson");
 		JSValue val = browser.executeJavaScriptAndReturnValue("start('" + gson.toJson(table) + "');");
-		
 		output.clear();
 		allHash.clear();
 		data.clear();
