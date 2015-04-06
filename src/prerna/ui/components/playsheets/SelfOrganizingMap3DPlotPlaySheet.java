@@ -55,6 +55,7 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 	public void createData() {
 		generateData();
 		runAlgorithm();
+		dataHash = processQueryData();
 	}
 
 	private void generateData() {
