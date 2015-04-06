@@ -43,6 +43,7 @@ import javax.swing.JToggleButton;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.learning.unsupervised.som.SelfOrganizingMap;
 import prerna.algorithm.learning.weka.WekaClassification;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.api.IPlaySheet;
@@ -54,6 +55,7 @@ import prerna.ui.components.playsheets.LocalOutlierPlaySheet;
 import prerna.ui.components.playsheets.LocalOutlierVizPlaySheet;
 import prerna.ui.components.playsheets.MatrixRegressionVizPlaySheet;
 import prerna.ui.components.playsheets.NumericalCorrelationVizPlaySheet;
+import prerna.ui.components.playsheets.SelfOrganizingMapPlaySheet;
 import prerna.ui.components.playsheets.WekaAprioriPlaySheet;
 import prerna.ui.components.playsheets.MatrixRegressionPlaySheet;
 import prerna.ui.components.playsheets.WekaAprioriVizPlaySheet;
@@ -385,6 +387,44 @@ public class RunAlgorithmListener extends AbstractListener {
 			((CorrelationPlaySheet)newPlaySheet).setJTab(jTab);
 			((CorrelationPlaySheet)newPlaySheet).setJBar(jBar);
 			
+		} else if(algorithm.equals("Self Organizing Map")) {
+			newPlaySheet = new SelfOrganizingMapPlaySheet();
+			newPlaySheet.setList(filteredList);
+			newPlaySheet.setNames(filteredNames);
+			
+			String l0Text = playSheet.getEnterL0TextField().getText();
+			String r0Text = playSheet.getEnterR0TextField().getText();
+			String tauText = playSheet.getEnterTauTextField().getText();
+			
+			if(l0Text != null && !l0Text.isEmpty()) {
+				try {
+					double l0 = Double.parseDouble(l0Text);
+					((SelfOrganizingMapPlaySheet)newPlaySheet).setL0(l0);
+				} catch(NumberFormatException ex) {
+					Utility.showError("Entered value for l0, " + l0Text + ", is not a valid numerical input.\nWill use default value.");
+				}
+			}
+			
+			if(r0Text != null && !r0Text.isEmpty()) {
+				try {
+					double r0 = Double.parseDouble(r0Text);
+					((SelfOrganizingMapPlaySheet)newPlaySheet).setR0(r0);
+				} catch(NumberFormatException ex) {
+					Utility.showError("Entered value for r0, " + r0Text + ", is not a valid numerical input.\nWill use default value.");
+				}
+			}
+			
+			if(tauText != null && !tauText.isEmpty()) {
+				try {
+					double tau = Double.parseDouble(tauText);
+					((SelfOrganizingMapPlaySheet)newPlaySheet).setTau(tau);
+				} catch(NumberFormatException ex) {
+					Utility.showError("Entered value for tau, " + tauText + ", is not a valid numerical input.\nWill use default value.");
+				}
+			}
+
+			((SelfOrganizingMapPlaySheet)newPlaySheet).setJTab(jTab);
+			((SelfOrganizingMapPlaySheet)newPlaySheet).setJBar(jBar);
 		} else {
 			LOGGER.error("Cannot find algorithm");
 			return;

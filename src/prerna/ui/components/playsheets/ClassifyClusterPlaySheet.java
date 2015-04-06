@@ -58,7 +58,6 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.AlgorithmDataFormatter;
 import prerna.algorithm.learning.similarity.ClusterRemoveDuplicates;
-import prerna.algorithm.learning.similarity.ClusteringDataProcessor;
 import prerna.algorithm.learning.similarity.DatasetSimilarity;
 import prerna.algorithm.learning.similarity.GenerateEntropyDensity;
 import prerna.math.BarChart;
@@ -145,6 +144,11 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	private JPanel matrixRegPanel;
 	private JComboBox<String> matrixDepVarComboBox;
 	private JLabel lblSelectDepVar;
+	
+	//self organizing map components
+	private JPanel somPanel;
+	private JLabel lblEnterR0, lblEnterL0, lblEnterTau;
+	private JTextField enterR0TextField, enterL0TextField, enterTauTextField; 
 	
 	//drill down panel components
 	private JToggleButton showDrillDownBtn;
@@ -333,7 +337,8 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		algorithmComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		algorithmComboBox.setBackground(Color.GRAY);
 		algorithmComboBox.setPreferredSize(new Dimension(150, 25));
-		algorithmComboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"Cluster", "Classify","Outliers","Association Learning","Similarity","Predictability","Linear Regression","Numerical Correlation", "Correlation"}));
+		algorithmComboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"Cluster", "Classify","Outliers","Association Learning","Similarity",
+				"Predictability","Linear Regression","Numerical Correlation", "Correlation", "Self Organizing Map"}));
 		GridBagConstraints gbc_algorithmComboBox = new GridBagConstraints();
 		gbc_algorithmComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_algorithmComboBox.fill = GridBagConstraints.NONE;
@@ -401,12 +406,24 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		variableSelectorPanel.add(matrixRegPanel, gbc_matrixRegPanel);
 		matrixRegPanel.setVisible(false);
 
+		somPanel = new JPanel();
+		GridBagConstraints gbc_somPanel = new GridBagConstraints();
+		gbc_somPanel.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_somPanel.fill = GridBagConstraints.NONE;
+		gbc_somPanel.gridwidth = 3;
+		gbc_somPanel.insets = new Insets(5, 15, 0, 0);
+		gbc_somPanel.gridx = 1;
+		gbc_somPanel.gridy = 3;
+		variableSelectorPanel.add(somPanel, gbc_somPanel);
+		somPanel.setVisible(false);
+		
 		fillClusterPanel(clusterPanel);
 		fillClassifyPanel(classifyPanel);
 		fillOutlierPanel(outlierPanel);
 		fillFrequentSetsPanel(associationLearningPanel);
 		fillMatrixRegPanel(matrixRegPanel);
-		
+		fillSOMPanel(somPanel);
+
 		runAlgorithm = new CustomButton("Run Algorithm");
 		runAlgorithm.setFont(new Font("Tahoma", Font.BOLD, 11));
 		runAlgorithm.setPreferredSize(new Dimension(150, 25));
@@ -805,8 +822,8 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		classifyPanel.add(classificationMethodComboBox, gbc_classificationMethodComboBox);
 
 	}
-	private void fillOutlierPanel(JPanel outlierPanel) {
 	
+	private void fillOutlierPanel(JPanel outlierPanel) {
 		GridBagLayout gbl_outlierPanel = new GridBagLayout();
 		gbl_outlierPanel.columnWidths = new int[]{0, 0, 0};
 		gbl_outlierPanel.rowHeights = new int[]{0, 0, 0};
@@ -879,6 +896,75 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		ClassificationSelectionListener classSelectList = new ClassificationSelectionListener();
 		classSelectList.setView(this);
 		matrixDepVarComboBox.addActionListener(classSelectList);
+	}
+	
+	private void fillSOMPanel(JPanel somPanel) {
+		GridBagLayout gbl_somPanel = new GridBagLayout();
+		gbl_somPanel.columnWidths = new int[]{0, 0, 0};
+		gbl_somPanel.rowHeights = new int[]{0, 0, 0};
+		gbl_somPanel.columnWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
+		gbl_somPanel.rowWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
+		somPanel.setLayout(gbl_somPanel);
+		
+		lblEnterR0 = new JLabel("Enter Initial Radius (r0): ");
+		lblEnterR0.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_lblEnterR0 = new GridBagConstraints();
+		gbc_lblEnterR0.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_lblEnterR0.fill = GridBagConstraints.NONE;
+		gbc_lblEnterR0.insets = new Insets(10, 5, 0, 0);
+		gbc_lblEnterR0.gridx = 0;
+		gbc_lblEnterR0.gridy = 0;
+		somPanel.add(lblEnterR0, gbc_lblEnterR0);
+		
+		enterR0TextField = new JTextField();
+		enterR0TextField.setColumns(4);
+		GridBagConstraints gbc_enterR0TextField = new GridBagConstraints();
+		gbc_enterR0TextField.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_enterR0TextField.fill = GridBagConstraints.NONE;
+		gbc_enterR0TextField.insets = new Insets(10, 5, 0, 0);
+		gbc_enterR0TextField.gridx = 1;
+		gbc_enterR0TextField.gridy = 0;
+		somPanel.add(enterR0TextField, gbc_enterR0TextField);
+		
+		lblEnterL0 = new JLabel("Enter Learning Rate (l0): ");
+		lblEnterL0.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_lblEnterL0 = new GridBagConstraints();
+		gbc_lblEnterL0.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_lblEnterL0.fill = GridBagConstraints.NONE;
+		gbc_lblEnterL0.insets = new Insets(10, 5, 0, 0);
+		gbc_lblEnterL0.gridx = 0;
+		gbc_lblEnterL0.gridy = 1;
+		somPanel.add(lblEnterL0, gbc_lblEnterL0);
+		
+		enterL0TextField = new JTextField();
+		enterL0TextField.setColumns(4);
+		GridBagConstraints gbc_enterL0TextField = new GridBagConstraints();
+		gbc_enterL0TextField.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_enterL0TextField.fill = GridBagConstraints.NONE;
+		gbc_enterL0TextField.insets = new Insets(10, 5, 0, 0);
+		gbc_enterL0TextField.gridx = 1;
+		gbc_enterL0TextField.gridy = 1;
+		somPanel.add(enterL0TextField, gbc_enterL0TextField);
+		
+		lblEnterTau = new JLabel("Enter Tau: ");
+		lblEnterTau.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_lblEnterTau = new GridBagConstraints();
+		gbc_lblEnterTau.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_lblEnterTau.fill = GridBagConstraints.NONE;
+		gbc_lblEnterTau.insets = new Insets(10, 5, 0, 0);
+		gbc_lblEnterTau.gridx = 0;
+		gbc_lblEnterTau.gridy = 2;
+		somPanel.add(lblEnterTau, gbc_lblEnterTau);
+		
+		enterTauTextField = new JTextField();
+		enterTauTextField.setColumns(4);
+		GridBagConstraints gbc_enterTauTextField = new GridBagConstraints();
+		gbc_enterTauTextField.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_enterTauTextField.fill = GridBagConstraints.NONE;
+		gbc_enterTauTextField.insets = new Insets(10, 5, 0, 0);
+		gbc_enterTauTextField.gridx = 1;
+		gbc_enterTauTextField.gridy = 2;
+		somPanel.add(enterTauTextField, gbc_enterTauTextField);
 	}
 	
 	private void fillFrequentSetsPanel(JPanel frequentSetsPanel) {
@@ -1064,6 +1150,16 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		drillDownPanel.add(runDrillDown, gbc_runDrillDown);
 		Style.registerTargetClassName(runDrillDown,  ".createBtn");
 		
+	}
+	
+	public void showSelfOrganizingMap(Boolean show) {
+		somPanel.setVisible(show);
+		lblEnterR0.setVisible(show);
+		enterR0TextField.setVisible(show);
+		lblEnterL0.setVisible(show);
+		enterL0TextField.setVisible(show);
+		lblEnterTau.setVisible(show);
+		enterTauTextField.setVisible(show);
 	}
 	
 	public void showAssociationLearning(Boolean show) {
@@ -1295,4 +1391,14 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	public String[] getColumnTypesArr() {
 		return columnTypesArr;
 	}
+	public JTextField getEnterR0TextField() {
+		return enterR0TextField;
+	}
+	public JTextField getEnterL0TextField() {
+		return enterL0TextField;
+	}
+	public JTextField getEnterTauTextField() {
+		return enterTauTextField;
+	}
+	
 }

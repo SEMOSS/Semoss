@@ -60,6 +60,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showAssociationLearning(false);
 			playSheet.showMatrixRegression(false);
 			playSheet.showNumericalCorrelation(false);
+			playSheet.showSelfOrganizingMap(false);
 			playSheet.showCluster(true);
 		} else if(selection.equals("Classify")){
 			playSheet.showCluster(false);
@@ -67,6 +68,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showAssociationLearning(false);
 			playSheet.showMatrixRegression(false);
 			playSheet.showNumericalCorrelation(false);
+			playSheet.showSelfOrganizingMap(false);
 			playSheet.showClassify(true);
 		} else if(selection.equals("Outliers")) {
 			playSheet.showCluster(false);
@@ -74,6 +76,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showAssociationLearning(false);
 			playSheet.showMatrixRegression(false);
 			playSheet.showNumericalCorrelation(false);
+			playSheet.showSelfOrganizingMap(false);
 			playSheet.showOutlier(true);
 		} else if(selection.equals("Association Learning")) {
 			playSheet.showCluster(false);
@@ -81,6 +84,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showMatrixRegression(false);
 			playSheet.showOutlier(false);
 			playSheet.showNumericalCorrelation(false);
+			playSheet.showSelfOrganizingMap(false);
 			playSheet.showAssociationLearning(true);
 		} else if(selection.equals("Linear Regression")) {
 			playSheet.showClassify(false);
@@ -88,6 +92,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showOutlier(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showNumericalCorrelation(false);
+			playSheet.showSelfOrganizingMap(false);
 			playSheet.showMatrixRegression(true);
 		} else if(selection.equals("Numerical Correlation")) {
 			playSheet.showClassify(false);
@@ -95,7 +100,16 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showOutlier(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showMatrixRegression(false);
+			playSheet.showSelfOrganizingMap(false);
 			playSheet.showNumericalCorrelation(true);
+		} else if(selection.equals("Self Organizing Map")) { //TODO: need to expose values for SOM
+			playSheet.showCluster(false);
+			playSheet.showClassify(false);
+			playSheet.showOutlier(false);
+			playSheet.showAssociationLearning(false);
+			playSheet.showMatrixRegression(false);
+			playSheet.showNumericalCorrelation(false);
+			playSheet.showSelfOrganizingMap(true);
 		} else if(selection.equals("Similarity") || selection.equals("Predictability") || selection.equals("Correlation")) {
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
@@ -103,6 +117,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showAssociationLearning(false);
 			playSheet.showMatrixRegression(false);
 			playSheet.showNumericalCorrelation(false);
+			playSheet.showSelfOrganizingMap(false);
 		}
 	}
 
