@@ -39,15 +39,17 @@ public class SelfOrganizingMapGridViewer extends SelfOrganizingMapGrid{
 					// add surrounding cells for border point
 					getTopCells(currLength, length, 1, currCell, adjacentCells,  new ArrayList<Integer>());
 					avgCount = getAverageCount(adjacentCells, numInstancesInGrid);
-					newRow[currLength] = avgCount;
+					newRow[currLength+1] = avgCount;
 					currCell++;
 				}
 			}
 			coordinates[currHeight] = newRow;
 			// special processing for last row
 			if(currHeight == height - 1) {
+				currCell = currCell - length;
 				currHeight++;
-				double[] lastRow = new double[length];
+				double[] lastRow = new double[length+1];
+				currLength = 0;
 				for(; currLength < length; currLength++) {
 					List<Integer> adjacentCells = new ArrayList<Integer>();
 					// add currentCell to list
@@ -59,15 +61,15 @@ public class SelfOrganizingMapGridViewer extends SelfOrganizingMapGrid{
 					currCell++;
 					// special processing for last column
 					if(currLength == length - 1) {
-						currLength--;
+						currCell--;
 						adjacentCells = new ArrayList<Integer>();
 						// add currentCell to list
 						adjacentCells.add(currCell);
 						// add surrounding cells for border point
 						// no surrounding cells for last point
 						avgCount = getAverageCount(adjacentCells, numInstancesInGrid);
-						lastRow[currLength] = avgCount;
-						currLength++;
+						lastRow[currLength+1] = avgCount;
+						currCell++;
 					}
 				}
 				coordinates[currHeight] = lastRow;
