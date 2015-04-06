@@ -28,7 +28,7 @@ public class SelfOrganizingMap {
 	private double[] categoricalWeights;
 	
 	private int maxIt = 100;
-	private final double l0 = 0.1;
+	private double l0 = 0.1;
 	private double r0;
 	private double tau;
 	
@@ -46,7 +46,7 @@ public class SelfOrganizingMap {
 		this.numInstances = queryData.size();
 		setGridSize(numInstances);
 		
-		r0 = (double) grid.getLength() / 2;
+		r0 = (double) length / 2;
 		tau = (double) maxIt / r0;
 		
 		this.gridCategoricalValues = new ArrayList<ClusterCenter>(numGrids);
@@ -327,5 +327,9 @@ public class SelfOrganizingMap {
 
 	public double getL0() {
 		return l0;
+	}
+	
+	public void setL0(double l0) {
+		this.l0 = l0;
 	}
 }
