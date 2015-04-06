@@ -906,6 +906,21 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbl_somPanel.rowWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
 		somPanel.setLayout(gbl_somPanel);
 		
+		double x = Math.sqrt((double) list.size() / (6*5));
+		int height = (int) Math.round(2*x);
+		int length = (int) Math.round(3*x);
+		
+		JLabel lblSizeGrid = new JLabel("Grid size is: " + height + " x " + length);
+		lblSizeGrid.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_lblSizeGrid = new GridBagConstraints();
+		gbc_lblSizeGrid.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_lblSizeGrid.fill = GridBagConstraints.NONE;
+		gbc_lblSizeGrid.insets = new Insets(10, 5, 0, 0);
+		gbc_lblSizeGrid.gridx = 0;
+		gbc_lblSizeGrid.gridy = 0;
+		gbc_lblSizeGrid.gridwidth = 2;
+		somPanel.add(lblSizeGrid, gbc_lblSizeGrid);
+		
 		lblEnterR0 = new JLabel("Enter Initial Radius (r0): ");
 		lblEnterR0.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_lblEnterR0 = new GridBagConstraints();
@@ -913,7 +928,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_lblEnterR0.fill = GridBagConstraints.NONE;
 		gbc_lblEnterR0.insets = new Insets(10, 5, 0, 0);
 		gbc_lblEnterR0.gridx = 0;
-		gbc_lblEnterR0.gridy = 0;
+		gbc_lblEnterR0.gridy = 1;
 		somPanel.add(lblEnterR0, gbc_lblEnterR0);
 		
 		enterR0TextField = new JTextField();
@@ -923,7 +938,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_enterR0TextField.fill = GridBagConstraints.NONE;
 		gbc_enterR0TextField.insets = new Insets(10, 5, 0, 0);
 		gbc_enterR0TextField.gridx = 1;
-		gbc_enterR0TextField.gridy = 0;
+		gbc_enterR0TextField.gridy = 1;
 		somPanel.add(enterR0TextField, gbc_enterR0TextField);
 		
 		lblEnterL0 = new JLabel("Enter Learning Rate (l0): ");
@@ -933,7 +948,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_lblEnterL0.fill = GridBagConstraints.NONE;
 		gbc_lblEnterL0.insets = new Insets(10, 5, 0, 0);
 		gbc_lblEnterL0.gridx = 0;
-		gbc_lblEnterL0.gridy = 1;
+		gbc_lblEnterL0.gridy = 2;
 		somPanel.add(lblEnterL0, gbc_lblEnterL0);
 		
 		enterL0TextField = new JTextField();
@@ -943,7 +958,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_enterL0TextField.fill = GridBagConstraints.NONE;
 		gbc_enterL0TextField.insets = new Insets(10, 5, 0, 0);
 		gbc_enterL0TextField.gridx = 1;
-		gbc_enterL0TextField.gridy = 1;
+		gbc_enterL0TextField.gridy = 2;
 		somPanel.add(enterL0TextField, gbc_enterL0TextField);
 		
 		lblEnterTau = new JLabel("Enter Tau: ");
@@ -953,7 +968,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_lblEnterTau.fill = GridBagConstraints.NONE;
 		gbc_lblEnterTau.insets = new Insets(10, 5, 0, 0);
 		gbc_lblEnterTau.gridx = 0;
-		gbc_lblEnterTau.gridy = 2;
+		gbc_lblEnterTau.gridy = 3;
 		somPanel.add(lblEnterTau, gbc_lblEnterTau);
 		
 		enterTauTextField = new JTextField();
@@ -963,7 +978,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_enterTauTextField.fill = GridBagConstraints.NONE;
 		gbc_enterTauTextField.insets = new Insets(10, 5, 0, 0);
 		gbc_enterTauTextField.gridx = 1;
-		gbc_enterTauTextField.gridy = 2;
+		gbc_enterTauTextField.gridy = 3;
 		somPanel.add(enterTauTextField, gbc_enterTauTextField);
 	}
 	
