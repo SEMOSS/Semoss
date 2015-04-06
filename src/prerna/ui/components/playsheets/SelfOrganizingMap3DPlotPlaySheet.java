@@ -1,9 +1,11 @@
 package prerna.ui.components.playsheets;
 
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.beans.PropertyVetoException;
 import java.util.ArrayList;
+import java.util.Hashtable;
 
 import javax.swing.JComponent;
 import javax.swing.JMenuItem;
@@ -24,11 +26,13 @@ import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.main.listener.impl.GridPlaySheetListener;
 import prerna.ui.main.listener.impl.JTableExcelExportListener;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 import cern.colt.Arrays;
 
-public class SelfOrganizingMapPlaySheet extends GridPlaySheet{
-	
+public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
+
 	private static final Logger LOGGER = LogManager.getLogger(SelfOrganizingMapPlaySheet.class.getName());
 
 	private SelfOrganizingMap alg;
@@ -40,15 +44,17 @@ public class SelfOrganizingMapPlaySheet extends GridPlaySheet{
 	
 	protected JTabbedPane jTab;
 	
-	public SelfOrganizingMapPlaySheet() {
+	public SelfOrganizingMap3DPlotPlaySheet() {
 		super();
+		this.setPreferredSize(new Dimension(800, 600));
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/surfaceplot.html";
 	}
 	
 	@Override
 	public void createData() {
 		generateData();
 		runAlgorithm();
-		processAlgorithm();
 	}
 
 	private void generateData() {
@@ -90,46 +96,19 @@ public class SelfOrganizingMapPlaySheet extends GridPlaySheet{
 		}
 	}
 	
-	public void processAlgorithm() {
+	@Override 
+	public Hashtable processQueryData() {
 		if(coordinates != null) {
-			int[] gridAssignmentForInstance = alg.getGridAssignmentForInstances();
-			
-			int gridLength = alg.getLength();
-			
 			int i = 0;
-			int numRows = list.size();
-			int numColumns = list.get(0).length;
-			ArrayList<Object[]> retList = new ArrayList<Object[]>();
-			for(; i < numRows; i++) {
-				Object[] values = new Object[numColumns + 3];
-				Object[] oldValues = list.get(i);
-				int j = 0;
-				for(; j < numColumns; j++) {
-					values[j] = oldValues[j];
-				}
-				values[j] = gridAssignmentForInstance[i];
-				j++;
-				int[] cellPosition = SelfOrganizingMapGridViewer.getCoordinatesOfCell(gridAssignmentForInstance[i], gridLength);
-				values[j] = cellPosition[0];
-				j++;
-				values[j] = cellPosition[1];
-				
-				retList.add(values);
+			for(; i < coordinates.length; i++) {
+				System.out.println(Arrays.toString(coordinates[i]));
 			}
-			list = retList;
-			
-			i = 0;
-			String[] retNames = new String[numColumns + 3];
-			for(; i < numColumns; i++) {
-				retNames[i] = names[i];
-			}
-			retNames[i] = "Cell";
-			i++;
-			retNames[i] = "X-Pos";
-			i++;
-			retNames[i] = "Y-Pos";
-			names = retNames;
 		}
+		
+		Hashtable data = new Hashtable();
+		data.put("grid", coordinates);
+		
+		return data;
 	}
 	
 	@Override
@@ -233,4 +212,5 @@ public class SelfOrganizingMapPlaySheet extends GridPlaySheet{
 		panel.add(scrollPane, gbc_scrollPane);
 	}
 
+	
 }
