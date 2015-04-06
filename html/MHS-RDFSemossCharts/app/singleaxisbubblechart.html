@@ -431,10 +431,11 @@ circle.hidden {
                     .nodes(selectedData)
                     .size([width, clusterHeight])
                     .on("tick", tick)
-                    .charge(-1)
+                    .charge(-220)
+                    .alpha(1)
                     .gravity(0);
-                    // .chargeDistance(20);
-                    // .linkDistance(20);
+                    // .chargeDistance(1);
+                    // .linkDistance(2);
 
                 nodeLayer = svg.append("g")
                     .attr("transform", "translate(0," + (paddingY + clusterHeight) * i + ")");
@@ -518,8 +519,8 @@ circle.hidden {
                 //On Draw Move Points
                 function moveTowardDataPosition(alpha) {
                     return function(d) {
-                        d.x += (x(d[xVar]) - d.x) * .1 * alpha;
-                        d.y += (y(d[yVar]) - d.y) * .05 * alpha;
+                        d.x += (x(d[xVar]) - d.x) * 10 * alpha;
+                        d.y += (y(d[yVar]) - d.y) * 5 * alpha;
                     };
                 }
 
