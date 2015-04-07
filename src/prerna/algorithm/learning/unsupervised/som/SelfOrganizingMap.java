@@ -28,7 +28,7 @@ public class SelfOrganizingMap {
 	private double[] categoricalWeights;
 	
 	private int maxIt = 15;
-	private double l0 = 0.05;
+	private double l0 = 0.07;
 	private double r0;
 	private double tau;
 	
