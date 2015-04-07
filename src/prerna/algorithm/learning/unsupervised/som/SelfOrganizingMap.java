@@ -75,14 +75,25 @@ public class SelfOrganizingMap {
 		
 		// randomly add instances to grid
 		Random randomGenerator = new Random();
-		int randIdx = 0;
-		for(; randIdx < numInstances; randIdx++) {
+		int idx = 0;
+		for(; idx < numGrids; idx++) {
+			// get random instance not placed yet
+			int getRandomInstance = randomGenerator.nextInt(numInstances);
+			while(gridAssignmentForInstances[getRandomInstance] != -1) {
+				getRandomInstance = randomGenerator.nextInt(numInstances);
+			}
+			
+			// get random grid without any instances inside
 			int getRandomGrid = randomGenerator.nextInt(numGrids);
+			while(numInstancesInGrid[getRandomGrid] != 0) {
+				getRandomGrid = randomGenerator.nextInt(numGrids);
+			}
+			
 			ClusterCenter numericalClusterCenter = gridNumericalBinValues.get(getRandomGrid);
 			ClusterCenter categoricalClusterCenter = gridCategoricalValues.get(getRandomGrid);
-			cnm.addToClusterCenter(randIdx, numericalClusterCenter, categoricalClusterCenter);
+			cnm.addToClusterCenter(getRandomInstance, numericalClusterCenter, categoricalClusterCenter);
 
-			gridAssignmentForInstances[randIdx] = getRandomGrid;
+			gridAssignmentForInstances[getRandomInstance] = getRandomGrid;
 			numInstancesInGrid[getRandomGrid]++;
 		}
 		
