@@ -3,7 +3,6 @@ package prerna.ui.components.playsheets;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.beans.PropertyVetoException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
@@ -23,9 +22,13 @@ import prerna.algorithm.learning.unsupervised.som.SelfOrganizingMap;
 import prerna.algorithm.learning.unsupervised.som.SelfOrganizingMapGridViewer;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.ui.components.GridFilterData;
+import prerna.ui.components.GridTableModel;
+import prerna.ui.components.GridTableRowSorter;
 import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.main.listener.impl.GridPlaySheetListener;
 import prerna.ui.main.listener.impl.JTableExcelExportListener;
+import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -41,8 +44,6 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 	private Double l0;
 	private Double r0;
 	private Double tau;
-	
-	protected JTabbedPane jTab;
 	
 	public SelfOrganizingMap3DPlotPlaySheet() {
 		super();
@@ -112,11 +113,25 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 		return data;
 	}
 	
+	public SelfOrganizingMap getAlg() {
+		return alg;
+	}
+	public void setAlg(SelfOrganizingMap alg) {
+		this.alg = alg;
+	}
+	public double[][] getCoordinates() {
+		return coordinates;
+	}
+	public void setCoordinates(double[][] coordinates) {
+		this.coordinates = coordinates;
+	}
+
 	@Override
 	public void addPanel()
 	{
 		if(jTab==null) {
 			super.addPanel();
+			addGridTab();
 		} else {
 			String lastTabName = jTab.getTitleAt(jTab.getTabCount()-1);
 			LOGGER.info("Parsing integer out of last tab name");
@@ -124,53 +139,57 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 			if(jTab.getTabCount()>1)
 				count = Integer.parseInt(lastTabName.substring(0,lastTabName.indexOf(".")))+1;
 			addPanelAsTab(count+". Self Organizing Map");
+			addGridTab();
 		}
+		
+		new CSSApplication(getContentPane());
 	}
 	
+	public void addGridTab() {
+		SelfOrganizingMapPlaySheet tablePS = new SelfOrganizingMapPlaySheet();
+		tablePS.setList(list);
+		tablePS.setNames(names);
+		tablePS.setAlg(alg);
+		tablePS.processAlgorithm();
+		ArrayList<Object[]> tableList = tablePS.getList();
+		String[] tableNames = tablePS.getNames();
+		
+		JTable table = new JTable();
+		// Add Excel export popup menu and menuitem
+		JPopupMenu popupMenu = new JPopupMenu();
+		JMenuItem menuItemAdd = new JMenuItem("Export to Excel");
+		String questionTitle = this.getTitle();
+		menuItemAdd.addActionListener(new JTableExcelExportListener(table, questionTitle));
+		popupMenu.add(menuItemAdd);
+		table.setComponentPopupMenu(popupMenu);
+		
+		GridPlaySheetListener gridPSListener = new GridPlaySheetListener();
+		LOGGER.debug("Created the table");
+		this.addInternalFrameListener(gridPSListener);
+		LOGGER.debug("Added the internal frame listener ");
+		// table.setAutoCreateRowSorter(true);
+		
+		GridFilterData gfd = new GridFilterData();
+		gfd.setColumnNames(tableNames);
+		// append cluster information to list data
+		gfd.setDataList(tableList);
+		GridTableModel model = new GridTableModel(gfd);
+		table.setModel(model);
+		table.setRowSorter(new GridTableRowSorter(model));
 
-	public void addPanelAsTab(String tabName) {
-	//	setWindow();
-		try {
-			table = new JTable();
-			
-			//Add Excel export popup menu and menuitem
-			JPopupMenu popupMenu = new JPopupMenu();
-			JMenuItem menuItemAdd = new JMenuItem("Export to Excel");
-			String questionTitle = this.getTitle();
-			menuItemAdd.addActionListener(new JTableExcelExportListener(table, questionTitle));
-			popupMenu.add(menuItemAdd);
-			table.setComponentPopupMenu(popupMenu);
-			
-			GridPlaySheetListener gridPSListener = new GridPlaySheetListener();
-			LOGGER.debug("Created the table");
-			this.addInternalFrameListener(gridPSListener);
-			LOGGER.debug("Added the internal frame listener ");
-			//table.setAutoCreateRowSorter(true);
-			
-			JPanel panel = new JPanel();
-			panel.add(table);
-			GridBagLayout gbl_mainPanel = new GridBagLayout();
-			gbl_mainPanel.columnWidths = new int[]{0, 0};
-			gbl_mainPanel.rowHeights = new int[]{0, 0};
-			gbl_mainPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-			gbl_mainPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-			panel.setLayout(gbl_mainPanel);
-			
-			addScrollPanel(panel, table);
-			
-			jTab.addTab(tabName, panel);
-			
-			this.pack();
-			this.setVisible(true);
-			this.setSelected(false);
-			this.setSelected(true);
-			LOGGER.debug("Added new Self Organizing Map Sheet");
-			
-		} catch (PropertyVetoException e) {
-			e.printStackTrace();
-		}
+		JPanel panel = new JPanel();
+		panel.add(table);
+		GridBagLayout gbl_mainPanel = new GridBagLayout();
+		gbl_mainPanel.columnWidths = new int[] { 0, 0 };
+		gbl_mainPanel.rowHeights = new int[] { 0, 0 };
+		gbl_mainPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
+		gbl_mainPanel.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
+		panel.setLayout(gbl_mainPanel);
+		
+		addScrollPanel(panel, table);
+		jTab.addTab("SOM Raw Data", panel);
 	}
-	
+
 	public Double getL0() {
 		return l0;
 	}
@@ -212,6 +231,5 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 		gbc_scrollPane.gridy = 0;
 		panel.add(scrollPane, gbc_scrollPane);
 	}
-
 	
 }
