@@ -73,16 +73,18 @@ public class SelfOrganizingMap {
 		
 		boolean success = true;
 		
+		// randomly add instances to grid
 		Random randomGenerator = new Random();
-		int getRandomInstance = randomGenerator.nextInt(numInstances);
-		int getRandomGrid = randomGenerator.nextInt(numGrids);
+		int randIdx = 0;
+		for(; randIdx < numInstances; randIdx++) {
+			int getRandomGrid = randomGenerator.nextInt(numGrids);
+			ClusterCenter numericalClusterCenter = gridNumericalBinValues.get(getRandomGrid);
+			ClusterCenter categoricalClusterCenter = gridCategoricalValues.get(getRandomGrid);
+			cnm.addToClusterCenter(randIdx, numericalClusterCenter, categoricalClusterCenter);
 
-		ClusterCenter numericalClusterCenter = gridNumericalBinValues.get(getRandomGrid);
-		ClusterCenter categoricalClusterCenter = gridCategoricalValues.get(getRandomGrid);
-		cnm.addToClusterCenter(getRandomInstance, numericalClusterCenter, categoricalClusterCenter);
-
-		gridAssignmentForInstances[getRandomInstance] = getRandomGrid;
-		numInstancesInGrid[getRandomGrid]++;
+			gridAssignmentForInstances[randIdx] = getRandomGrid;
+			numInstancesInGrid[getRandomGrid]++;
+		}
 		
 		int currIt = 0;
 		// base radius
