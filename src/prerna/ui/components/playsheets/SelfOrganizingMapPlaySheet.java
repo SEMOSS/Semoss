@@ -85,51 +85,47 @@ public class SelfOrganizingMapPlaySheet extends GridPlaySheet{
 		boolean success = alg.execute();
 		if(success == false) {
 			Utility.showError("Error occured running SOM Algorithm!");
-		} else {
-			coordinates = SelfOrganizingMapGridViewer.getGridCoordinates(alg.getLength(), alg.getHeight(), alg.getNumInstancesInGrid());
 		}
 	}
 	
 	public void processAlgorithm() {
-		if(coordinates != null) {
-			int[] gridAssignmentForInstance = alg.getGridAssignmentForInstances();
-			
-			int gridLength = alg.getLength();
-			
-			int i = 0;
-			int numRows = list.size();
-			int numColumns = list.get(0).length;
-			ArrayList<Object[]> retList = new ArrayList<Object[]>();
-			for(; i < numRows; i++) {
-				Object[] values = new Object[numColumns + 3];
-				Object[] oldValues = list.get(i);
-				int j = 0;
-				for(; j < numColumns; j++) {
-					values[j] = oldValues[j];
-				}
-				values[j] = gridAssignmentForInstance[i];
-				j++;
-				int[] cellPosition = SelfOrganizingMapGridViewer.getCoordinatesOfCell(gridAssignmentForInstance[i], gridLength);
-				values[j] = cellPosition[0];
-				j++;
-				values[j] = cellPosition[1];
-				
-				retList.add(values);
+		int[] gridAssignmentForInstance = alg.getGridAssignmentForInstances();
+		
+		int gridLength = alg.getLength();
+		
+		int i = 0;
+		int numRows = list.size();
+		int numColumns = list.get(0).length;
+		ArrayList<Object[]> retList = new ArrayList<Object[]>();
+		for(; i < numRows; i++) {
+			Object[] values = new Object[numColumns + 3];
+			Object[] oldValues = list.get(i);
+			int j = 0;
+			for(; j < numColumns; j++) {
+				values[j] = oldValues[j];
 			}
-			list = retList;
+			values[j] = gridAssignmentForInstance[i];
+			j++;
+			int[] cellPosition = SelfOrganizingMapGridViewer.getCoordinatesOfCell(gridAssignmentForInstance[i], gridLength);
+			values[j] = cellPosition[0];
+			j++;
+			values[j] = cellPosition[1];
 			
-			i = 0;
-			String[] retNames = new String[numColumns + 3];
-			for(; i < numColumns; i++) {
-				retNames[i] = names[i];
-			}
-			retNames[i] = "Cell";
-			i++;
-			retNames[i] = "X-Pos";
-			i++;
-			retNames[i] = "Y-Pos";
-			names = retNames;
+			retList.add(values);
 		}
+		list = retList;
+		
+		i = 0;
+		String[] retNames = new String[numColumns + 3];
+		for(; i < numColumns; i++) {
+			retNames[i] = names[i];
+		}
+		retNames[i] = "Cell";
+		i++;
+		retNames[i] = "X-Pos";
+		i++;
+		retNames[i] = "Y-Pos";
+		names = retNames;
 	}
 	
 	@Override
@@ -208,6 +204,12 @@ public class SelfOrganizingMapPlaySheet extends GridPlaySheet{
 	}
 	public void setTau(Double tau) {
 		this.tau = tau;
+	}
+	public SelfOrganizingMap getAlg() {
+		return alg;
+	}
+	public void setAlg(SelfOrganizingMap alg) {
+		this.alg = alg;
 	}
 
 	@Override
