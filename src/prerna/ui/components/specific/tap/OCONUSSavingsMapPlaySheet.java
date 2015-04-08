@@ -34,8 +34,11 @@ import java.util.Hashtable;
 import java.util.LinkedHashMap;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.api.ISelectStatement;
+import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.ui.components.playsheets.OCONUSMapPlaySheet;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class OCONUSSavingsMapPlaySheet extends OCONUSMapPlaySheet {
 	private IEngine hrCore = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
@@ -45,15 +48,17 @@ public class OCONUSSavingsMapPlaySheet extends OCONUSMapPlaySheet {
 	private final String getFCCBPQuery = "SELECT DISTINCT ?FCC ?BusinessProcess ?weight WHERE { {?FCC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC>;}{?PartOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/PartOf> ;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?PartOf <http://semoss.org/ontologies/Relation/Contains/PercentBilled> ?weight}{?FCC ?PartOf ?BusinessProcess ;} }";
 	private final String getMTFFCCQuery = "SELECT DISTINCT ?MTF ?FCC ?TotalCost WHERE {{?FCC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC>}{?FCCMTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC-MTF>}{?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>}{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>}{?YearQuarter <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>}{?Year <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?FCCMTF <http://semoss.org/ontologies/Relation/Contains/TotalCost> ?TotalCost }{?FCC <http://semoss.org/ontologies/Relation/Has> ?FCCMTF}{?FCCMTF <http://semoss.org/ontologies/Relation/Occurs_At> ?MTF}{?DCSite <http://semoss.org/ontologies/Relation/Includes> ?MTF}{?Wave <http://semoss.org/ontologies/Relation/Contains> ?DCSite}{?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?YearQuarter}{?YearQuarter <http://semoss.org/ontologies/Relation/has> ?Year}}";
 	private final String getDCSiteMTFQuery = "SELECT DISTINCT ?DCSite ?MTF WHERE {{?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>}{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>}{?YearQuarter <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>}{?Year <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?DCSite <http://semoss.org/ontologies/Relation/Includes> ?MTF}{?Wave <http://semoss.org/ontologies/Relation/Contains> ?DCSite}{?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?YearQuarter}{?YearQuarter <http://semoss.org/ontologies/Relation/has> ?Year}}";
+	private final String getInitialQuery = "SELECT ?DCSite ?lat ?lon ?size WHERE { {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite> ;} {?DCSite  <http://semoss.org/ontologies/Relation/Contains/LONG> ?lon}{?DCSite  <http://semoss.org/ontologies/Relation/Contains/LAT> ?lat} }";
 	
 	@SuppressWarnings("unchecked")
 	@Override
 	public Hashtable processQueryData() {
 		EAFunctionalGapHelper helper = new EAFunctionalGapHelper();
-		HashMap<String, String> bpProdMap = helper.getStringMap(getBPProdQuery, hrCore);
-		HashMap<String, ArrayList<String[]>> fccBPMap = helper.getStringListArrayMap(getFCCBPQuery, hrCore);
-		HashMap<String, ArrayList<String[]>> mtfFCCMap = helper.getStringListArrayMap(getMTFFCCQuery, tapSite);
-		HashMap<String, ArrayList<String>> dcSiteMTFMap = helper.getStringListMap(getDCSiteMTFQuery, tapSite);
+		list = getInitialList(getInitialQuery, tapSite);
+		HashMap<String, String> bpProdMap = helper.getBPProdMap(getBPProdQuery, hrCore);
+		HashMap<String, ArrayList<String[]>> fccBPMap = helper.getRawOCONArrayMap(getFCCBPQuery, hrCore);
+		HashMap<String, ArrayList<String[]>> mtfFCCMap = helper.getRawOCONArrayMap(getMTFFCCQuery, tapSite);
+		HashMap<String, ArrayList<String>> dcSiteMTFMap = helper.getRawOCONListMap(getDCSiteMTFQuery, tapSite);
 		
 		HashMap<String, Double> fccProdMap = new HashMap<String, Double>();
 		HashMap<String, Double> mtfSavingsMap = new HashMap<String, Double>();
@@ -107,22 +112,17 @@ public class OCONUSSavingsMapPlaySheet extends OCONUSMapPlaySheet {
 				listElement[3] = 0;
 			}
 			String colName;
-			Double value;
 			for (int j = 0; j < var.length; j++) {
 				colName = var[j];
 				
-				if (dcSiteSavingsMap.get(listElement[0]) != null) {
-					Integer size = (int) Math.round(dcSiteSavingsMap.get(listElement[0])) / 10;
+				if (dcSiteSavingsMap.get(listElement[0].toString()) != null) {
+					Double size = (double) Math.round(dcSiteSavingsMap.get(listElement[0].toString())) / 10;
 					elementHash.put("size", size);
 				} else {
 					elementHash.put("size", 0);
 				}
-				if (listElement[j] instanceof String) {
-					String text = (String) listElement[j];
-					elementHash.put(colName, text);
-				} else if (j != 3) {
-					value = (Double) listElement[j];
-					elementHash.put(colName, value);
+				if (j != 3) {
+					elementHash.put(colName, listElement[j]);
 				}
 				
 			}
@@ -141,5 +141,17 @@ public class OCONUSSavingsMapPlaySheet extends OCONUSMapPlaySheet {
 		 */
 		
 		return allHash;
+	}
+	
+	private ArrayList<Object[]> getInitialList(String query, IEngine engine) {
+		ArrayList<Object[]> finalList = new ArrayList<Object[]>();
+		ISelectWrapper sjsw = Utility.processQuery(engine, query);
+		names = sjsw.getVariables();
+		while (sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			Object[] temp = { sjss.getRawVar(names[0]), sjss.getVar(names[1]), sjss.getVar(names[2]), sjss.getVar(names[3]) };
+			finalList.add(temp);
+		}
+		return finalList;
 	}
 }
