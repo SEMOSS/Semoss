@@ -44,6 +44,7 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 	private Double l0;
 	private Double r0;
 	private Double tau;
+	private Integer maxIt;
 	
 	public SelfOrganizingMap3DPlotPlaySheet() {
 		super();
@@ -90,6 +91,9 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 		if(r0 != null) {
 			alg.setR0(r0);
 		}
+		if(maxIt != null) {
+			alg.setMaxIt(maxIt);
+		}
 		boolean success = alg.execute();
 		if(success == false) {
 			Utility.showError("Error occured running SOM Algorithm!");
@@ -124,6 +128,12 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 	}
 	public void setCoordinates(double[][] coordinates) {
 		this.coordinates = coordinates;
+	}
+	public Integer getMaxIt() {
+		return maxIt;
+	}
+	public void setMaxIt(Integer maxIt) {
+		this.maxIt = maxIt;
 	}
 
 	@Override

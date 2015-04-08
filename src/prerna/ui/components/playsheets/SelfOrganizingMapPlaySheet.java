@@ -25,7 +25,6 @@ import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.main.listener.impl.GridPlaySheetListener;
 import prerna.ui.main.listener.impl.JTableExcelExportListener;
 import prerna.util.Utility;
-import cern.colt.Arrays;
 
 public class SelfOrganizingMapPlaySheet extends GridPlaySheet{
 	
@@ -37,6 +36,7 @@ public class SelfOrganizingMapPlaySheet extends GridPlaySheet{
 	private Double l0;
 	private Double r0;
 	private Double tau;
+	private Integer maxIt;
 	
 	protected JTabbedPane jTab;
 	
@@ -81,6 +81,9 @@ public class SelfOrganizingMapPlaySheet extends GridPlaySheet{
 		}
 		if(r0 != null) {
 			alg.setR0(r0);
+		}
+		if(maxIt != null) {
+			alg.setMaxIt(maxIt);
 		}
 		boolean success = alg.execute();
 		if(success == false) {
@@ -204,6 +207,18 @@ public class SelfOrganizingMapPlaySheet extends GridPlaySheet{
 	}
 	public void setTau(Double tau) {
 		this.tau = tau;
+	}
+	public double[][] getCoordinates() {
+		return coordinates;
+	}
+	public void setCoordinates(double[][] coordinates) {
+		this.coordinates = coordinates;
+	}
+	public Integer getMaxIt() {
+		return maxIt;
+	}
+	public void setMaxIt(Integer maxIt) {
+		this.maxIt = maxIt;
 	}
 	public SelfOrganizingMap getAlg() {
 		return alg;
