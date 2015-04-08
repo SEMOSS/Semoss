@@ -145,6 +145,13 @@ public class SelfOrganizingMap {
 			currIt++;
 		}
 		
+		//TODO: printing out cluster centers for all grid cells
+//		for(int j = 0; j < numGrids; j++) {
+//			System.out.println(j + ">>>>" + gridNumericalBinValues.get(j).getClusterValues());
+//			System.out.println(j + ">>>>" + gridCategoricalValues.get(j).getClusterValues());
+//			System.out.println("");
+//		}
+		
 		return success;
 	}
 
