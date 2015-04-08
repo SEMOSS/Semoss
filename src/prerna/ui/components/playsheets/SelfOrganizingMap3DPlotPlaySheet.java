@@ -131,7 +131,7 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 	{
 		if(jTab==null) {
 			super.addPanel();
-			addGridTab();
+			addGridTab(1);
 		} else {
 			String lastTabName = jTab.getTitleAt(jTab.getTabCount()-1);
 			LOGGER.info("Parsing integer out of last tab name");
@@ -139,13 +139,13 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 			if(jTab.getTabCount()>1)
 				count = Integer.parseInt(lastTabName.substring(0,lastTabName.indexOf(".")))+1;
 			addPanelAsTab(count+". Self Organizing Map");
-			addGridTab();
+			addGridTab(count);
 		}
 		
 		new CSSApplication(getContentPane());
 	}
 	
-	public void addGridTab() {
+	public void addGridTab(int count) {
 		SelfOrganizingMapPlaySheet tablePS = new SelfOrganizingMapPlaySheet();
 		tablePS.setList(list);
 		tablePS.setNames(names);
@@ -187,7 +187,7 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 		panel.setLayout(gbl_mainPanel);
 		
 		addScrollPanel(panel, table);
-		jTab.addTab("SOM Raw Data", panel);
+		jTab.addTab(count + ". SOM Raw Data", panel);
 	}
 
 	public Double getL0() {
