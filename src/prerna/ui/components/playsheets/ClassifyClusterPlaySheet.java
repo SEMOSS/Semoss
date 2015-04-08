@@ -147,8 +147,9 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	
 	//self organizing map components
 	private JPanel somPanel;
-	private JLabel lblEnterR0, lblEnterL0, lblEnterTau;
-	private JTextField enterR0TextField, enterL0TextField, enterTauTextField; 
+	private JLabel lblEnterR0, lblEnterL0, lblEnterTau, lblEnterMaxIt;
+	private JTextField enterR0TextField, enterL0TextField, enterTauTextField, enterMaxItTextField; 
+	private int som_height, som_length;
 	
 	//drill down panel components
 	private JToggleButton showDrillDownBtn;
@@ -907,10 +908,10 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		somPanel.setLayout(gbl_somPanel);
 		
 		double x = Math.sqrt((double) list.size() / (6*5));
-		int height = (int) Math.round(2*x);
-		int length = (int) Math.round(3*x);
+		som_height = (int) Math.round(2*x);
+		som_length = (int) Math.round(3*x);
 		
-		JLabel lblSizeGrid = new JLabel("Grid size is: " + height + " x " + length);
+		JLabel lblSizeGrid = new JLabel("Grid size is: " + som_height + " x " + som_length);
 		lblSizeGrid.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_lblSizeGrid = new GridBagConstraints();
 		gbc_lblSizeGrid.anchor = GridBagConstraints.FIRST_LINE_START;
@@ -931,8 +932,13 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_lblEnterR0.gridy = 1;
 		somPanel.add(lblEnterR0, gbc_lblEnterR0);
 		
+		int defaultMaxIt = 15;
+		double defaultR0 = som_length / 6;
+		double defaultTau = defaultMaxIt/defaultR0;
+		
 		enterR0TextField = new JTextField();
 		enterR0TextField.setColumns(4);
+		enterR0TextField.setText(defaultR0+"");
 		GridBagConstraints gbc_enterR0TextField = new GridBagConstraints();
 		gbc_enterR0TextField.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_enterR0TextField.fill = GridBagConstraints.NONE;
@@ -953,6 +959,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		
 		enterL0TextField = new JTextField();
 		enterL0TextField.setColumns(4);
+		enterL0TextField.setText("0.07");
 		GridBagConstraints gbc_enterL0TextField = new GridBagConstraints();
 		gbc_enterL0TextField.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_enterL0TextField.fill = GridBagConstraints.NONE;
@@ -973,6 +980,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		
 		enterTauTextField = new JTextField();
 		enterTauTextField.setColumns(4);
+		enterTauTextField.setText(defaultTau+"");
 		GridBagConstraints gbc_enterTauTextField = new GridBagConstraints();
 		gbc_enterTauTextField.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_enterTauTextField.fill = GridBagConstraints.NONE;
@@ -980,6 +988,27 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_enterTauTextField.gridx = 1;
 		gbc_enterTauTextField.gridy = 3;
 		somPanel.add(enterTauTextField, gbc_enterTauTextField);
+		
+		lblEnterMaxIt = new JLabel("Enter Maximum Iterations: ");
+		lblEnterMaxIt.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_lblEnterMaxIt = new GridBagConstraints();
+		gbc_lblEnterMaxIt.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_lblEnterMaxIt.fill = GridBagConstraints.NONE;
+		gbc_lblEnterMaxIt.insets = new Insets(10, 5, 0, 0);
+		gbc_lblEnterMaxIt.gridx = 0;
+		gbc_lblEnterMaxIt.gridy = 4;
+		somPanel.add(lblEnterMaxIt, gbc_lblEnterMaxIt);
+		
+		enterMaxItTextField = new JTextField();
+		enterMaxItTextField.setColumns(4);
+		enterMaxItTextField.setText(defaultMaxIt+"");
+		GridBagConstraints gbc_enterMaxItTextField = new GridBagConstraints();
+		gbc_enterMaxItTextField.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_enterMaxItTextField.fill = GridBagConstraints.NONE;
+		gbc_enterMaxItTextField.insets = new Insets(10, 5, 0, 0);
+		gbc_enterMaxItTextField.gridx = 1;
+		gbc_enterMaxItTextField.gridy = 4;
+		somPanel.add(enterMaxItTextField, gbc_enterMaxItTextField);
 	}
 	
 	private void fillFrequentSetsPanel(JPanel frequentSetsPanel) {
@@ -1175,6 +1204,8 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		enterL0TextField.setVisible(show);
 		lblEnterTau.setVisible(show);
 		enterTauTextField.setVisible(show);
+		lblEnterMaxIt.setVisible(show);
+		enterMaxItTextField.setVisible(show);
 	}
 	
 	public void showAssociationLearning(Boolean show) {
