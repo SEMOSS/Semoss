@@ -115,5 +115,18 @@ public class ClusterCenter {
 		}
 		return false;
 	}
+
+	public List<String> getPropNames() {
+		return propNames;
+	}
+	public void setPropNames(List<String> propNames) {
+		this.propNames = propNames;
+	}
+	public List<Map<String, Double>> getClusterValues() {
+		return clusterValues;
+	}
+	public void setClusterValues(List<Map<String, Double>> clusterValues) {
+		this.clusterValues = clusterValues;
+	}
 	
 }
