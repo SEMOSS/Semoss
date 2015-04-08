@@ -72,6 +72,24 @@ public class EAFunctionalGapHelper {
 		return finalMap;
 	}
 	
+	HashMap<String, ArrayList<String>> getRawOCONListMap(String query, IEngine engine) {
+		HashMap<String, ArrayList<String>> finalMap = new HashMap<String, ArrayList<String>>();
+		ISelectWrapper sjsw = Utility.processQuery(engine, query);
+		String[] values = sjsw.getVariables();
+		while (sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			ArrayList<String> temp;
+			
+			String key = sjss.getRawVar(values[0]).toString();
+			if (!finalMap.containsKey(key)) {
+				temp = new ArrayList<String>();
+				finalMap.put(key, temp);
+			}
+			finalMap.get(key).add(sjss.getRawVar(values[1]).toString());
+		}
+		return finalMap;
+	}
+	
 	HashMap<String, String> getStringMap(String query, IEngine engine) {
 		HashMap<String, String> finalMap = new HashMap<String, String>();
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);
@@ -79,6 +97,19 @@ public class EAFunctionalGapHelper {
 		while (sjsw.hasNext()) {
 			ISelectStatement sjss = sjsw.next();
 			String key = sjss.getVar(values[0]).toString();
+			String value = sjss.getVar(values[1]).toString();
+			finalMap.put(key, value);
+		}
+		return finalMap;
+	}
+	
+	HashMap<String, String> getBPProdMap(String query, IEngine engine) {
+		HashMap<String, String> finalMap = new HashMap<String, String>();
+		ISelectWrapper sjsw = Utility.processQuery(engine, query);
+		String[] values = sjsw.getVariables();
+		while (sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			String key = sjss.getRawVar(values[0]).toString();
 			String value = sjss.getVar(values[1]).toString();
 			finalMap.put(key, value);
 		}
@@ -114,6 +145,23 @@ public class EAFunctionalGapHelper {
 				finalMap.put(key, new ArrayList<String[]>());
 			}
 			String[] temp = { sjss.getVar(values[1]).toString(), sjss.getVar(values[2]).toString() };
+			finalMap.get(key).add(temp);
+		}
+		return finalMap;
+	}
+	
+	HashMap<String, ArrayList<String[]>> getRawOCONArrayMap(String query, IEngine engine) {
+		HashMap<String, ArrayList<String[]>> finalMap = new HashMap<String, ArrayList<String[]>>();
+		ISelectWrapper sjsw = Utility.processQuery(engine, query);
+		String[] values = sjsw.getVariables();
+		while (sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			
+			String key = sjss.getRawVar(values[0]).toString();
+			if (!finalMap.containsKey(key)) {
+				finalMap.put(key, new ArrayList<String[]>());
+			}
+			String[] temp = { sjss.getRawVar(values[1]).toString(), sjss.getVar(values[2]).toString() };
 			finalMap.get(key).add(temp);
 		}
 		return finalMap;
@@ -310,22 +358,17 @@ public class EAFunctionalGapHelper {
 	HashMap<String, Double> fillFCCCostHash() {
 		HashMap<String, Double> fccCost = new HashMap<String, Double>();
 		String siteEngineName = "TAP_Site_Data";
-		String fccQuery = "SELECT DISTINCT ?FCC (SUM(?TotalCost) AS ?Cost) WHERE {{?FCC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC>} {?FCCMTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC-MTF>}{?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>}{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>}{?YearQuarter <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>}{?Year <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?FCCMTF <http://semoss.org/ontologies/Relation/Contains/TotalCost> ?TotalCost }{?FCC <http://semoss.org/ontologies/Relation/Has> ?FCCMTF}{?FCCMTF <http://semoss.org/ontologies/Relation/Occurs_At> ?MTF}{?DCSite <http://semoss.org/ontologies/Relation/Includes> ?MTF}{?Wave <http://semoss.org/ontologies/Relation/Contains> ?DCSite}{?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?YearQuarter}{?YearQuarter <http://semoss.org/ontologies/Relation/has> ?Year}} GROUP BY ?FCC";
+		String fccQuery = "SELECT DISTINCT ?FCC (SUM(?TotalCost) AS ?Cost) WHERE { SELECT DISTINCT ?MTF ?FCC ?TotalCost WHERE{ {?FCC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC>}{?FCCMTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC-MTF>}{?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>}{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>}{?YearQuarter <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>}{?Year <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?FCCMTF <http://semoss.org/ontologies/Relation/Contains/TotalCost> ?TotalCost }{?FCC <http://semoss.org/ontologies/Relation/Has> ?FCCMTF}{?FCCMTF <http://semoss.org/ontologies/Relation/Occurs_At> ?MTF}{?DCSite <http://semoss.org/ontologies/Relation/Includes> ?MTF}{?Wave <http://semoss.org/ontologies/Relation/Contains> ?DCSite}{?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?YearQuarter}{?YearQuarter <http://semoss.org/ontologies/Relation/has> ?Year}}} GROUP BY ?FCC";
 		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp(siteEngineName);
 		
-
-		
-		/*ISelectWrapper siteWrapper = new ISelectWrapper();
-		if (siteEngine == null) {
-			Utility.showError("The database \"TAP_Site_Data\" could not be found. Process unable to continue");
-		}
-		siteWrapper.setQuery(fccQuery);
-		siteWrapper.setEngine(siteEngine);
-		siteWrapper.executeQuery();
-		*/
+		/*
+		 * ISelectWrapper siteWrapper = new ISelectWrapper(); if (siteEngine == null) {
+		 * Utility.showError("The database \"TAP_Site_Data\" could not be found. Process unable to continue"); } siteWrapper.setQuery(fccQuery);
+		 * siteWrapper.setEngine(siteEngine); siteWrapper.executeQuery();
+		 */
 		
 		ISelectWrapper siteWrapper = WrapperManager.getInstance().getSWrapper(siteEngine, fccQuery);
-
+		
 		// get the bindings from it
 		String[] fccColNames = siteWrapper.getVariables();
 		try {
