@@ -101,6 +101,10 @@ public class RDBMSReader {
 	public final static String NUMCOL = "NUM_COLUMNS";
 	public final static String NOT_OPTIONAL = "NOT_OPTIONAL";
 	private ArrayList<String> relationArrayList = new ArrayList<String>();
+	private ArrayList<String> recreateIndexesArr = new ArrayList<String>(); 
+	private ArrayList<String> tempIndexArray = new ArrayList<String>();
+	private ArrayList<String> tempDropArrays = new ArrayList<String>();
+	private int indexUniqueId = 1;
 	//private ArrayList<String> nodePropArrayList = new ArrayList<String>();
 	//private ArrayList<String> relPropArrayList = new ArrayList<String>();
 	private int count = 0;
@@ -191,7 +195,7 @@ public class RDBMSReader {
 	private String writePropFile(String engineName)
 	{
 		Properties prop = new Properties();
-		prop.put(Constants.CONNECTION_URL, "jdbc:h2:" + dbBaseFolder + "/db/" + engineName + "/database");
+		prop.put(Constants.CONNECTION_URL, "jdbc:h2:" + dbBaseFolder + "/db/" + engineName + "/database");//prop.put(Constants.CONNECTION_URL, "jdbc:h2:" + dbBaseFolder + "/db/" + engineName + "/database" + ";CACHE_SIZE=" + (512 * 512) + ";LOG=0;LOCK_MODE=0;UNDO_LOG=0");
 		prop.put(Constants.USERNAME, "sa");
 		prop.put(Constants.PASSWORD, "");
 		prop.put(Constants.DRIVER,"org.h2.Driver");
@@ -308,6 +312,57 @@ public class RDBMSReader {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	
+	//get current indexes that are saved off.  If some exist we will reexecute them when the upload process completes
+	private void findIndexes(){
+		// this gets all the existing tables
+		String query = "SELECT DISTINCT INDEX_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_SCHEMA = 'PUBLIC' ORDER BY INDEX_NAME";
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+		while(wrapper.hasNext())
+		{
+			String recreateIndexText = "";
+			String dropCurrentIndexText = "";
+			ISelectStatement stmt = wrapper.next();
+			String indexName = stmt.getVar("INDEX_NAME") + "";
+			String indexInfoQry = "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_SCHEMA = 'PUBLIC' AND INDEX_NAME = '" + indexName +"'";
+			ISelectWrapper indexInfo = WrapperManager.getInstance().getSWrapper(engine, indexInfoQry);
+			while(indexInfo.hasNext()){
+				ISelectStatement stmtIndx = indexInfo.next();
+				String tablename = stmtIndx.getVar("TABLE_NAME") + "";
+				String columnName = stmtIndx.getVar("COLUMN_NAME") + "";
+				if(recreateIndexText.length() == 0){
+					recreateIndexText = "CREATE INDEX " + indexName + " ON " + tablename  + "(";
+				} else {
+					recreateIndexText += ",";
+				}
+				recreateIndexText += columnName;
+			}
+			recreateIndexText += ")";
+			dropCurrentIndexText = "DROP INDEX "+ indexName;
+
+			singleDBModTransaction(dropCurrentIndexText);
+			
+			recreateIndexesArr.add(recreateIndexText);
+			//System.out.println("recreateIndexText: " + recreateIndexText);
+			//System.out.println("dropCurrentIndexText: " + dropCurrentIndexText);
+		}
+	}
+	
+	private void runDBModTransactions(ArrayList<String> itemsArray){
+		for(String eachSQL: itemsArray){
+			singleDBModTransaction(eachSQL);
+		}
+	}
+	
+	private void singleDBModTransaction(String sql){
+		try {
+			scriptFile.println(sql + ";");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		modifyDB(sql);
 	}
 	
 	private void findTables()
@@ -450,6 +505,9 @@ public class RDBMSReader {
 		//try to open the script file
 		openScriptFile(engineName);
 		scriptFile.println("-- ********* begin load process ********* ");
+		//first find all indexes, drop current ones, store off those current ones to recreate them when the process completes
+		findIndexes();
+		
 		for(int i = 0; i<files.length;i++)
 		{
 			String fileName = files[i];
@@ -478,6 +536,7 @@ public class RDBMSReader {
 			insertRecords();
 			scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
 		}
+		runDBModTransactions(recreateIndexesArr);
 		writeDefaultQuestionSheet(engineName);
 		createBaseRelations();
 		try{
@@ -585,10 +644,12 @@ public class RDBMSReader {
 				logger.info("Loading relation " + relation);            	
 				String[] strSplit = relation.split("@");
 				// get the subject and object for triple (the two indexes)
-				String sub = strSplit[0];
+				String subTemp = strSplit[0];
+				String sub = subTemp.replaceAll("\\*", "");
 				String subject = "";
 				String predicate = strSplit[1]; // this needs to be ignored
-				String obj = strSplit[2];
+				String objTemp = strSplit[2];
+				String obj = objTemp.replaceAll("\\*", "");
 				String object = "";
 								
 				// check if prop file entries are not in excel and if nodes are concatenations
@@ -627,10 +688,10 @@ public class RDBMSReader {
 				// see if object node instance URI exists in prop file
 				tableHash.put(obj, new Hashtable());
 				processClassMetaData(obj, semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/", baseConceptURIHash);
-				processClassMetaData(sub, customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS + "/", conceptURIHash);
+				processClassMetaData(obj, customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS + "/", conceptURIHash);
 				// put the relationship
 				// I need something that does the other way around or may be note
-				relHash.put(predicate + sub + obj, sub + "@" + obj);
+				relHash.put(predicate + sub + obj, subTemp + "@" + objTemp);
 			}
 		}		
 	}
@@ -758,6 +819,10 @@ public class RDBMSReader {
 			String [] tableTokens = tables.split("@");
 			String table1 = tableTokens[0];
 			String table2 = tableTokens[1];
+			boolean table1IsTheFK = table1.contains("*") && !table2.contains("*");
+			boolean table2IsTheFK = table2.contains("*") && !table1.contains("*");
+			table1 = table1.replaceAll("\\*", "");
+			table2 = table2.replaceAll("\\*", "");
 			//System.out.println("table1: " +table1 + " table2: "+ table2);
 			
 			Hashtable columnHash1 = tableHash.get(table1);
@@ -792,7 +857,9 @@ public class RDBMSReader {
 				// see which one of these has most columns
 				String modifyingTable = table1;
 				Hashtable targetHash = columnHash1;
-				if((rowCount1 < rowCount2) || ((rowCount1 == rowCount2) && (columnHash1Tmp.size() > columnHash2Tmp.size())))
+				if((table1IsTheFK) || //if table 1 is the fk column
+					(!table2IsTheFK && rowCount1 < rowCount2) ||  //or if table2 is NOT the fk column and table two has more rows than table 1
+					(!table2IsTheFK && (rowCount1 == rowCount2) && (columnHash1Tmp.size() > columnHash2Tmp.size()))) //or if table 2 is NOT the fk and the table row counts are the same and table one has more columns than table two
 				{
 					modifyingTable = table2;
 					targetHash = columnHash2;
@@ -874,7 +941,7 @@ public class RDBMSReader {
 				modString = getCreateString(tableKey);
 				tables.add(tableKey);
 			}
-			else if(hasNewColumns(tableKey))
+			else if(!allColumnsMatch(tableKey))
 				modString = getAlterTable(tableKey);
 	
 			
@@ -913,6 +980,48 @@ public class RDBMSReader {
 			}
 		}
 		return hasNewColumn;
+	}
+	
+	private boolean allColumnsMatch(String table){
+		boolean hasNewColumn = false;
+		Hashtable availableTableColumns = availableTables.get(table.toUpperCase());
+		Hashtable newColumnsHash = tableHash.get(table);
+		//Hashtable newColumnsHashUpper = null;
+		String upper = "";
+		
+		//convert all newColumnsHash values to upper case 
+		Enumeration <String> newColumnKeys = newColumnsHash.keys();
+		while(newColumnKeys.hasMoreElements()){
+			upper += newColumnKeys.nextElement().toUpperCase() +",";
+		}
+		
+		//check each column in the availableTableColumns to see if the new columnHash has a new column
+		newColumnKeys = newColumnsHash.keys();
+		while(newColumnKeys.hasMoreElements()){
+			String column = newColumnKeys.nextElement();
+			if(!availableTableColumns.containsKey(column.toUpperCase()))
+			{
+				hasNewColumn = true;
+				break;
+			}
+		}
+		boolean allColumnsMatch = true;
+		
+		//check that the tables have the exact same columns
+		Enumeration <String> availableColumnKeys = availableTableColumns.keys();
+		while(availableColumnKeys.hasMoreElements()){
+			String column = availableColumnKeys.nextElement();
+			//if(!newColumnsHashUpper.containsKey(column))
+			if(!upper.contains(column))
+			{
+				allColumnsMatch = false;
+				break;
+			}
+		}
+		if(allColumnsMatch && !hasNewColumn)
+			return true;
+		else 
+			return false;
 	}
 	
 	private String getCreateString(String tableKey)
@@ -1127,6 +1236,7 @@ public class RDBMSReader {
 		
 		Enumeration <String> whereKeys = whereHash.keys();
 		StringBuffer whereBuffer = new StringBuffer();
+		StringBuffer indexBuffer = new StringBuffer();
 		whereBuffer.append(where);//yes this append doesn't do anything, BUT if someone changes the value of the where variable we wont have problems
 		while(whereKeys.hasMoreElements())
 		{
@@ -1145,13 +1255,17 @@ public class RDBMSReader {
 			
 			if(whereBuffer.length() == 0)
 			{
-				if(string || (value != null && value.length() != 0))
+				if(string || (value != null && value.length() != 0)){
 					whereBuffer.append( key + " = " + value );
+					indexBuffer.append( key );
+				}
 			}
 			else
 			{
-				if(string || (value != null && value.length() != 0))
+				if(string || (value != null && value.length() != 0)){
 					whereBuffer.append(" AND " + key + " = " + value ); //change to and instead of comma
+					indexBuffer.append( " , " + key );
+				}
 			}			
 		}
 		if(matchOnPreviousAlterStmt){ 
@@ -1162,7 +1276,34 @@ public class RDBMSReader {
 		}
 		
 		SQLALTER = SQLALTER + " ( " + whereBuffer.toString() + ") ";
-
+		
+		//create indexes
+		String indexOnTable =  tableKey + " ( " +  indexBuffer.toString() + " ) ";
+		String indexName = "INDX_" + tableKey + indexUniqueId;
+		String createIndex = "CREATE INDEX " + indexName + " ON " + indexOnTable;
+		String dropIndex = "DROP INDEX " + indexName;
+		if(tempIndexArray.size() ==0){
+			singleDBModTransaction(createIndex);
+			tempIndexArray.add(indexOnTable);
+			tempDropArrays.add(dropIndex);
+			indexUniqueId++;
+		} else {
+			boolean indexAlreadyExists = false; 
+			for(String index: tempIndexArray){
+				if(index.equals(indexOnTable)){//TODO check various order of keys since they are comma seperated
+					indexAlreadyExists = true;
+					break;
+				}
+					
+			}
+			if(!indexAlreadyExists){
+				singleDBModTransaction(createIndex);
+				tempDropArrays.add(dropIndex);
+				tempIndexArray.add(indexOnTable);
+				indexUniqueId++;
+			}
+		}
+		
 		return SQLALTER;
 	}
 	
@@ -1334,7 +1475,7 @@ public class RDBMSReader {
 			// if the table was just created 
 			// OR if the table already exists but so do all of the columns so we are actually just inserting to the existing table
 			boolean tableAlreadyExists = availableTables.containsKey(tableKey.toUpperCase());
-			if( !tableAlreadyExists || ( tableAlreadyExists && !hasNewColumns(tableKey)) )
+			if( !tableAlreadyExists || ( tableAlreadyExists && allColumnsMatch(tableKey)) )
 			{
 				SQLINSERT = "INSERT INTO   " + realClean(tableKey) +  "  (" + realClean(tableKey);
 			
@@ -1407,7 +1548,7 @@ public class RDBMSReader {
 						// if the table was just created 
 						// OR if the table already exists but so do all of the columns so we are actually just inserting to the existing table
 						boolean tableAlreadyExists = availableTables.containsKey(tableKey.toUpperCase());
-						if( !tableAlreadyExists || ( tableAlreadyExists && !hasNewColumns(tableKey)) )
+						if( !tableAlreadyExists || ( tableAlreadyExists && allColumnsMatch(tableKey)) )
 						{
 							SQL = getInsertString(tableKey, jcrMap);
 							insertBufferSql[index].append(SQL + " ,");
@@ -1481,6 +1622,12 @@ public class RDBMSReader {
 			if(updateBufferSqlList!=null && updateBufferSqlList.size()>0){//if anything is left over, do the update
 				runIncrementalTransaction(updateBufferSqlList, ";");
 			}
+			// delete the indexes created and clear the arrays
+			runDBModTransactions(tempDropArrays);
+			tempDropArrays.clear();//clear the drop index sql text
+			tempIndexArray.clear();//clear the index array text
+			
+			
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
@@ -1502,8 +1649,10 @@ public class RDBMSReader {
 			queryString = queryBuffer.toString();
 			if(queryString.length()>0){
 				
-				insertData(queryString); //execute the query first, then write it to the sql file.
-				scriptFile.println(queryString);			}
+				scriptFile.println(queryString); 		
+				insertData(queryString); //write query to the sql file, then execute it
+					
+			}
 			queries.clear();
 		} catch (Exception e){
 			e.printStackTrace();
@@ -1536,8 +1685,8 @@ public class RDBMSReader {
 				
 				SQL = SQL.substring(0,SQL.length()-1); //get rid of that last comma
 				
-				insertData(SQL); //execute query first, then write to sql file
-				scriptFile.println(SQL + ";");
+				scriptFile.println( SQL + ";");
+				insertData(SQL); //write query to the sql file, then execute it
 				
 				indexForInsert++;
 			}
@@ -1834,7 +1983,7 @@ public class RDBMSReader {
 				retString = value;
 			}
 		}
-		return retString;
+		return Utility.cleanString(retString,true); //clean string 
 	}
 
 	/**
@@ -2074,7 +2223,7 @@ public class RDBMSReader {
 		}
 	}
 
-	/* function used for debugging, leaving it here for now
+	/* function used for debugging, leaving it here for now 
 	private String currentDate(){
 		Date dt = new Date();
 		SimpleDateFormat dtFormatter = new SimpleDateFormat("MM/dd/yy HH:mm:ss:SSS");
