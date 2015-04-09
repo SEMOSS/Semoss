@@ -1,54 +1,53 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8">
-<style>
-body{
-  font-family: sans;
-  padding: 10px;
-}
-svg path{
-  stroke: #000;
-  stroke-width: 1px;
-  stroke: rgba(0,0,0,0.2);
-}
-svg{
-  border: 1px solid #DED8BF;
-  background-color: #CEDAE6;
-  width: 700px;
-  height: 900px;
-}
-h1{
-  font-weight: normal;
-  margin: 0;
-  padding-left: 5px;
-  color: #53483e;
-}
-p{
-  margin: 0;
-  margin-bottom: 10px;
-  padding-left: 5px;
-  color: #917e6b;
-}
-ul{
-  width: 200px;
-  float: left;
-  list-style-type: none;
-  margin: 0;
-  padding: 0;
-  padding-right: 10px;
-}
-li{
-  cursor: pointer;
-  background-color: #AEB6BF;
-  padding: 10px;
-  margin: 2px;
-  color: #fff;
-}
-</style>
+    <meta charset="utf-8">
+    <style>
+    body{
+      font-family: sans;
+      padding: 10px;
+  }
+  svg path{
+      stroke: #000;
+      stroke-width: 1px;
+      stroke: rgba(0,0,0,0.2);
+  }
+  svg{
+      border: 1px solid #DED8BF;
+      background-color: #CEDAE6;
+      width: 700px;
+      height: 900px;
+  }
+  h1{
+      font-weight: normal;
+      margin: 0;
+      padding-left: 5px;
+      color: #53483e;
+  }
+  p{
+      margin: 0;
+      margin-bottom: 10px;
+      padding-left: 5px;
+      color: #917e6b;
+  }
+  ul{
+      width: 200px;
+      float: left;
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+      padding-right: 10px;
+  }
+  li{
+      cursor: pointer;
+      background-color: #AEB6BF;
+      padding: 10px;
+      margin: 2px;
+      color: #fff;
+  }
+  </style>
 </head>
 <body>
-  <h1>Surface Plot</h1>
   <script src="http://d3js.org/d3.v3.min.js"></script>
   <script src="js/surfacePlot.js"></script>
   <script src="data/heatmapdata.js"></script>
@@ -58,101 +57,205 @@ li{
 
 
 function start(dataSeries) {
-  var yaw=0.5,pitch=0.5, width=700, height=900, drag=false;
+    var yaw=0.5,pitch=0.5, width=700, height=900, drag=false, step = null, tempVal = null, tempSplit = null, rowStep = null;
 
-  function dataFromFormular(func){
-    var output=[];
-    for(var x=-20;x<20;x++){
-      var f0=[];            
-      output.push(f0);
-      for(var y=-20;y<20;y++){
-          f0.push(func(x,y));
+// STEP CHANGE HERE***************************************************
+    var n = 5;    
+
+    function dataFromFormular(func){
+        var output=[];
+        for(var x=-20;x<20;x++){
+          var f0=[];            
+          output.push(f0);
+          for(var y=-20;y<20;y++){
+              f0.push(func(x,y));
+          }
       }
-    }
-    return output;
+      return output;
   }
   // var jsonData = dataSeries;
-  var jsonData = jQuery.parseJSON(dataSeries);
-  // alert(jsonData);
-  var surfaces = jsonData;
-  // alert(surfaces);
+    var jsonData = jQuery.parseJSON(dataSeries);
+    // alert(jsonData);
+    var surfaces = jsonData;
+    // alert(surfaces);
 
-  // var surfaces=[
-  //   {
-  //     name: 'Dataset 1',
-  //     data: dataFromFormular(function(x,y){
-  //         return Math.sin(Math.sqrt(x*x+y*y)/5*Math.PI)*50;
-  //       })
-  //   },
-  //   {
-  //     name: 'Dataset 2',
-  //     data: dataFromFormular(function(x,y){
-  //         return Math.cos(x/15*Math.PI)*Math.cos(y/15*Math.PI)*60+Math.cos(x/8*Math.PI)*Math.cos(y/10*Math.PI)*40;
-  //       })
-  //   },
-  //   {
-  //     name: 'Dataset 3',
-  //     data: dataFromFormular(function(x,y){
-  //         return -(Math.cos(Math.sqrt(x*x+y*y)/6*Math.PI)+1)*300/(Math.pow(x*x+y*y+1,0.3)+1)+50;
-  //       })
-  //   }
-  // ];
-  var selected=surfaces;
+    var newData = [];
+    for(i=0; i< surfaces.grid.length; i++){
+        newData.push([]);
+        for(j=0; j<surfaces.grid[i].length-1; j++){
+            step = (surfaces.grid[i][j+1] - surfaces.grid[i][j]) / n;
+            // if(j+1 < surfaces.grid[i].length){
+                // tempVal = surfaces.grid[i][j] + step;
+                newData[i].push(surfaces.grid[i][j])
+                for (k=1; k<n; k++){
+                    tempSplit = surfaces.grid[i][j] + step*k;
+                    newData[i].push(tempSplit);
+                };
+            // };
+        };
+        newData[i].push(surfaces.grid[i][surfaces.grid[i].length-1]);
+           
+        console.log(newData);
+    };
 
-  var ul=d3.select('body')
-           .append('ul');
-  d3.selectAll('svg').remove();
-  var svg=d3.select('body')
-          .append('svg')
-            .attr('height',height)
-            .attr('width',width);
+    for(i = 0; i< surfaces.grid.length; i++){
+        surfaces.grid.splice(i,1, newData[i]);
+        // console.log(surfaces);
+    };
+console.log(surfaces);
+//**************************************************************************************************
+    newData=[];
+    for(i=0; i< surfaces.grid.length-1; i++){      
+        for (k=0; k<n-1; k++){
+            newData.push([]);
+            for(j=0; j<surfaces.grid[i].length; j++){
+                rowStep =  (surfaces.grid[i+1][j] - surfaces.grid[i][j]) / n;
+                tempSplit = surfaces.grid[i][j] + rowStep*(k+1);
+                newData[(i*(n-1))+k].push(tempSplit);
+            };
+        };      
+        console.log(newData);
+    };
+console.log(newData);
+var rows = surfaces.grid.length;
+var space = 0;
+var dat = 0
 
-  var group = svg.append("g");
+for(i = 0; i< rows-1; i++){
+    space++;
+    for(k=0; k<n-1; k++){
+         surfaces.grid.splice(space,0, newData[dat]);
+         space++;
+         dat++;
+        // console.log(surfaces);
+    };
+       
+};
+console.log(surfaces.grid);
 
-  var md=group.data([surfaces.grid])
+
+    // var surfaces=[
+    //   {
+    //     name: 'Dataset 1',
+    //     data: dataFromFormular(function(x,y){
+    //         return Math.sin(Math.sqrt(x*x+y*y)/5*Math.PI)*50;
+    //       })
+    //   },
+    //   {
+    //     name: 'Dataset 2',
+    //     data: dataFromFormular(function(x,y){
+    //         return Math.cos(x/15*Math.PI)*Math.cos(y/15*Math.PI)*60+Math.cos(x/8*Math.PI)*Math.cos(y/10*Math.PI)*40;
+    //       })
+    //   },
+    //   {
+    //     name: 'Dataset 3',
+    //     data: dataFromFormular(function(x,y){
+    //         return -(Math.cos(Math.sqrt(x*x+y*y)/6*Math.PI)+1)*300/(Math.pow(x*x+y*y+1,0.3)+1)+50;
+    //       })
+    //   }
+    // ];
+    var selected=surfaces;
+
+    var ul=d3.select('body')
+    .append('ul');
+    d3.selectAll('svg').remove();
+    var svg=d3.select('body')
+    .append('svg')
+    .attr('height',height)
+    .attr('width',width);
+
+    var group = svg.append("g");
+
+    var total = $.extend(true, {}, surfaces );
+
+    for (i = 0; i< surfaces.grid.length-1; i++){
+        total.grid[0] = total.grid[0].concat(total.grid[i+1]);
+    }
+
+    function maxVal(numArray){
+        return Math.max.apply(null, numArray);
+    };
+
+    function minVal(numArray){
+        return Math.min.apply(null, numArray);
+    };
+
+    var max = maxVal(total.grid[0]);
+    var min = minVal(total.grid[0]);
+
+    var globalGrad = d3.scale.linear()
+    .domain([min, max])
+    .range(["white", "red"]);
+
+    // var gradient = svg
+    // .append("linearGradient")
+    // .attr("y1", min)
+    // .attr("y2", max)
+    // .attr("x1", "0")
+    // .attr("x2", "0")
+    // .attr("id", "gradient")
+    // .attr("gradientUnits", "userSpaceOnUse")
+
+    // gradient
+    // .append("stop")
+    // .attr("offset", "0")
+    // .attr("stop-color", "#ff0")
+
+    // gradient
+    // .append("stop")
+    // .attr("offset", "0.5")
+    // .attr("stop-color", "#f00")
+
+    var md=group.data([surfaces.grid])
     .surface3D(width,height)
-      .surfaceHeight(function(d){ 
-        return -d*25;
-      }).surfaceColor(function(d){
-        var c=d3.hsl((d*15), 0.6, 0.5).rgb();
-        return "rgb("+parseInt(c.r)+","+parseInt(c.g)+","+parseInt(c.b)+")";
-      });
+    .surfaceHeight(function(d){ 
+        return -d*15;
+    }).surfaceColor(function(d){
+        var color = d3.scale.linear()
+        .domain([0, 200])
+        .range(["white", "red"]);
+        var c= globalGrad(d);
+        // var c=d3.hsl((d*15), 0.6, 0.5).rgb();
+        return c;
+    });
 
-  ul.selectAll('li')
+
+
+    ul.selectAll('li')
     .data(surfaces)
-      .enter().append('li')
-        .html(function(d){
-          return d.name
-        }).on('mousedown',function(){
-          md.data([d3.select(this).datum().data]).surface3D()
-            .transition().duration(500)
-            .surfaceHeight(function(d){
-              return d;
-            }).surfaceColor(function(d){
-              var c=d3.hsl((d+100), 0.6, 0.5).rgb();
-              return "rgb("+parseInt(c.r)+","+parseInt(c.g)+","+parseInt(c.b)+")";
-            });
-        });
+    .enter().append('li')
+    .html(function(d){
+      return d.name
+  }).on('mousedown',function(){
+      md.data([d3.select(this).datum().data]).surface3D()
+      .transition().duration(500)
+      .surfaceHeight(function(d){
+        return d;
+    }).surfaceColor(function(d){
+      var c=d3.hsl((d+100), 0.6, 0.5).rgb();
+      return "rgb("+parseInt(c.r)+","+parseInt(c.g)+","+parseInt(c.b)+")";
+  });
+});
 
   svg.on("mousedown",function(){
     drag=[d3.mouse(this),yaw,pitch];
-  }).on("mouseup",function(){
+}).on("mouseup",function(){
     drag=false;
-  }).on("mousemove",function(){
+}).on("mousemove",function(){
     if(drag){            
       var mouse=d3.mouse(this);
       yaw=drag[1]-(mouse[0]-drag[0][0])/50;
       pitch=drag[2]+(mouse[1]-drag[0][1])/50;
       pitch=Math.max(-Math.PI/2,Math.min(Math.PI/2,pitch));
       md.turntable(yaw,pitch);
-    }
-  });
+  }
+});
 };
 
 start();
 // start(gridTest);
 // start(scatterDataNewOne);
-  
-  </script>
+
+</script>
 </body>
 </html>
