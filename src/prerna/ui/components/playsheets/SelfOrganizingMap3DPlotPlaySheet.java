@@ -83,6 +83,9 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 	}
 
 	public void runAlgorithm() {
+		
+		long start = System.currentTimeMillis();
+		
 		LOGGER.info("Creating apriori algorithm for instance: " + names[0]);
 		alg = new SelfOrganizingMap(list, names);
 		if(l0 != null) {
@@ -103,6 +106,10 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 		} else {
 			coordinates = SelfOrganizingMapGridViewer.getGridCoordinates(alg.getLength(), alg.getHeight(), alg.getNumInstancesInGrid());
 		}
+		
+		long end = System.currentTimeMillis();
+
+		System.out.println("Time in (s): " + (end-start)/1000);
 	}
 	
 	@Override 
@@ -135,10 +142,12 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 			}
 		}
 		
+		String[] subGridNames = Arrays.copyOf(gridNames, length-3);
+		
 		Hashtable data = new Hashtable();
 		data.put("grid", coordinates);
 		data.put("specificData", gridData);
-		
+		data.put("names", subGridNames);
 		return data;
 	}
 	
