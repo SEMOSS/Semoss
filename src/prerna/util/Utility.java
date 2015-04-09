@@ -610,6 +610,17 @@ public class Utility {
 
 	 * @return 	Cleaned string */
 	public static String cleanString(String original, boolean replaceForwardSlash){
+		return cleanString(original,replaceForwardSlash,true);
+	}
+	
+	/**
+	 * Cleans a string based on certain patterns
+	 * @param 	Original string
+	 * @param 	If true, replace forward slashes ("/") with dashes ("-")
+	 * @param	If true, replace double quote with single quote.  For RDBMS this should be false
+
+	 * @return 	Cleaned string */
+	public static String cleanString(String original, boolean replaceForwardSlash, boolean replaceQuotes){
 		String retString = original;
 		
 		retString = retString.trim();
@@ -622,7 +633,9 @@ public class Utility {
 		retString = retString.replaceAll("\\}", ")");
 		retString = retString.replaceAll("\\\\", "-");//replace backslashes with dashes
 		retString = retString.replaceAll("'", "");//remove apostrophe
-		retString = retString.replaceAll("\"", "'");//replace double quotes with single quotes
+		if(replaceQuotes){
+			retString = retString.replaceAll("\"", "'");//replace double quotes with single quotes
+		}
 		if(replaceForwardSlash) {
 			retString = retString.replaceAll("/", "-");//replace forward slashes with dashes
 		}
