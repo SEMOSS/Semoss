@@ -4,6 +4,7 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Hashtable;
 
 import javax.swing.JComponent;
@@ -32,7 +33,6 @@ import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import cern.colt.Arrays;
 
 public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 
@@ -45,6 +45,9 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 	private Double r0;
 	private Double tau;
 	private Integer maxIt;
+	
+	private ArrayList<Object[]> gridList;
+	private String[] gridNames;
 	
 	public SelfOrganizingMap3DPlotPlaySheet() {
 		super();
@@ -104,15 +107,37 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 	
 	@Override 
 	public Hashtable processQueryData() {
-		if(coordinates != null) {
-			int i = 0;
-			for(; i < coordinates.length; i++) {
-				System.out.println(Arrays.toString(coordinates[i]));
+		SelfOrganizingMapPlaySheet tablePS = new SelfOrganizingMapPlaySheet();
+		tablePS.setList(list);
+		tablePS.setNames(names);
+		tablePS.setAlg(alg);
+		tablePS.processAlgorithm();
+		gridList = tablePS.getList();
+		gridNames = tablePS.getNames();
+		
+		Hashtable<Integer, ArrayList<Object[]>> gridData = new Hashtable<Integer, ArrayList<Object[]>>();
+		int i = 0;
+		int length = gridList.get(0).length;
+		int size = gridList.size();
+		for(; i < size; i++) {
+			Object[] dataRow = gridList.get(i);
+			int gridNum = (int) dataRow[length-3];
+			
+			ArrayList<Object[]> instancesInGridNum;
+			Object[] subDataRow = Arrays.copyOf(dataRow, length-3);
+			if(gridData.containsKey(gridNum)) {
+				instancesInGridNum = gridData.get(gridNum);
+				instancesInGridNum.add(subDataRow);
+			} else {
+				instancesInGridNum = new ArrayList<Object[]>();
+				instancesInGridNum.add(subDataRow);
+				gridData.put(gridNum, instancesInGridNum);
 			}
 		}
 		
 		Hashtable data = new Hashtable();
 		data.put("grid", coordinates);
+		data.put("specificData", gridData);
 		
 		return data;
 	}
@@ -156,14 +181,6 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 	}
 	
 	public void addGridTab(int count) {
-		SelfOrganizingMapPlaySheet tablePS = new SelfOrganizingMapPlaySheet();
-		tablePS.setList(list);
-		tablePS.setNames(names);
-		tablePS.setAlg(alg);
-		tablePS.processAlgorithm();
-		ArrayList<Object[]> tableList = tablePS.getList();
-		String[] tableNames = tablePS.getNames();
-		
 		JTable table = new JTable();
 		// Add Excel export popup menu and menuitem
 		JPopupMenu popupMenu = new JPopupMenu();
@@ -180,9 +197,9 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 		// table.setAutoCreateRowSorter(true);
 		
 		GridFilterData gfd = new GridFilterData();
-		gfd.setColumnNames(tableNames);
+		gfd.setColumnNames(gridNames);
 		// append cluster information to list data
-		gfd.setDataList(tableList);
+		gfd.setDataList(gridList);
 		GridTableModel model = new GridTableModel(gfd);
 		table.setModel(model);
 		table.setRowSorter(new GridTableRowSorter(model));
