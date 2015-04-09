@@ -920,7 +920,7 @@ public class RDBMSReader {
 	{
 		inputString = inputString.replaceAll("\\+", "_");
 		// now clean it up
-		inputString = Utility.cleanString(inputString,true);
+		inputString = Utility.cleanString(inputString,true,true);//should the last param (replacequotes) be true or false?
 		// finally finish it up with the replacing -
 		inputString = inputString.replaceAll("-", "_");
 		
@@ -1983,7 +1983,7 @@ public class RDBMSReader {
 				retString = value;
 			}
 		}
-		return Utility.cleanString(retString,true); //clean string 
+		return Utility.cleanString(retString,true,false); //clean string 
 	}
 
 	/**
