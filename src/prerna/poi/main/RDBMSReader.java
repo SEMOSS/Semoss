@@ -644,13 +644,21 @@ public class RDBMSReader {
 				logger.info("Loading relation " + relation);            	
 				String[] strSplit = relation.split("@");
 				// get the subject and object for triple (the two indexes)
-				String subTemp = strSplit[0];
-				String sub = subTemp.replaceAll("\\*", "");
+				String sub = strSplit[0];
 				String subject = "";
 				String predicate = strSplit[1]; // this needs to be ignored
-				String objTemp = strSplit[2];
-				String obj = objTemp.replaceAll("\\*", "");
+				String obj = strSplit[2];
 				String object = "";
+				
+				//guide FK creation by grabbing where the asterisk is on the predicate if one exists
+				String objTemp = obj;
+				String subTemp = sub;
+				int locateAsterisk = predicate.indexOf('*');
+				if(locateAsterisk == 0){ //if its at the beginning then the subject should be the FK
+					subTemp+="*";
+				} else if(locateAsterisk > 0){ //if its anywhere else supposedly the end then the object should be the FK
+					objTemp+="*";
+				}
 								
 				// check if prop file entries are not in excel and if nodes are concatenations
 				// throw exception if prop file entries not in excel
@@ -1117,6 +1125,9 @@ public class RDBMSReader {
 		SQLALTER = SQLALTER + columnString + " )";
 		
 		System.out.println("SQL ALTER IS " + SQLALTER);
+		if(columnString.length() == 0){
+			return "";
+		}
 		return SQLALTER;
 	}
 	
@@ -1175,7 +1186,8 @@ public class RDBMSReader {
 		while(columnKeys.hasMoreElements())
 		{
 			String key = columnKeys.nextElement();
-			String value = createInstanceValue(key, jcrMap);
+			String tempkey = key.replace("_FK", "");
+			String value = createInstanceValue(tempkey, jcrMap);
 			String type = (String)columns.get(key);
 			
 			boolean string = false;
