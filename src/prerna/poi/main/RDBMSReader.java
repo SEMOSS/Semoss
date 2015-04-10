@@ -146,6 +146,8 @@ public class RDBMSReader {
 	
 	protected Hashtable<String, String[]> baseRelations = new Hashtable<String, String[]>();
 	protected Vector <String> tables = new Vector<String>();
+	protected Vector <String> allTables = new Vector<String>();
+	protected Vector <String> allTablesModified = new Vector<String>();
 
 	// OWL variables
 	protected RepositoryConnection rcOWL;
@@ -188,6 +190,7 @@ public class RDBMSReader {
 	{
 		tableHash.clear();
 		availableTables.clear();
+		availableTablesInfo.clear();
 		whereColumns.clear();
 		rdfMap.clear();
 	}
@@ -266,11 +269,11 @@ public class RDBMSReader {
 		
 		createSQLTypes();
 		System.out.println("Owl File is " + this.owlFile);
-	
+		openDB(engineName); //scriptfile opened in here.
 		for(int i = 0; i<files.length;i++)
 		{
 			String fileName = files[i];
-			openDB(engineName); //scriptfile opened in here.
+			
 			if(i ==0 )scriptFile.println("-- ********* begin load process ********* ");
 			scriptFile.println("-- ********* begin load " + fileName + " ********* ");
 			// find the tables
@@ -299,11 +302,15 @@ public class RDBMSReader {
 			//System.out.println(currentDate() + " before insertRecords stuff, for " + fileName );
 			insertRecords();
 			//System.out.println(currentDate() + " after insertRecords stuff, for " + fileName );
-			closeDB();
 			cleanAll();
+			commitDB();
 			scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
 		}
+		cleanUpDBTables();
+		closeDB();
+		cleanAll(); //do it again because we reset availableTables and availableTablesInfo
 		writeDefaultQuestionSheet(engineName);
+
 		createBaseRelations();
 		try {
 			scriptFile.println("-- ********* completed load process ********* ");
@@ -325,25 +332,27 @@ public class RDBMSReader {
 			String dropCurrentIndexText = "";
 			ISelectStatement stmt = wrapper.next();
 			String indexName = stmt.getVar("INDEX_NAME") + "";
-			String indexInfoQry = "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_SCHEMA = 'PUBLIC' AND INDEX_NAME = '" + indexName +"'";
-			ISelectWrapper indexInfo = WrapperManager.getInstance().getSWrapper(engine, indexInfoQry);
-			while(indexInfo.hasNext()){
-				ISelectStatement stmtIndx = indexInfo.next();
-				String tablename = stmtIndx.getVar("TABLE_NAME") + "";
-				String columnName = stmtIndx.getVar("COLUMN_NAME") + "";
-				if(recreateIndexText.length() == 0){
-					recreateIndexText = "CREATE INDEX " + indexName + " ON " + tablename  + "(";
-				} else {
-					recreateIndexText += ",";
+			//only storing off custom indexes, recreating the non custom ones on the fly on the cleanUpDBTables method
+			if(indexName.startsWith("CUST_")){
+				String indexInfoQry = "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_SCHEMA = 'PUBLIC' AND INDEX_NAME = '" + indexName +"'";
+				ISelectWrapper indexInfo = WrapperManager.getInstance().getSWrapper(engine, indexInfoQry);
+				while(indexInfo.hasNext()){
+					ISelectStatement stmtIndx = indexInfo.next();
+					String tablename = stmtIndx.getVar("TABLE_NAME") + "";
+					String columnName = stmtIndx.getVar("COLUMN_NAME") + "";
+					if(recreateIndexText.length() == 0){
+						recreateIndexText = "CREATE INDEX " + indexName + " ON " + tablename  + "(";
+					} else {
+						recreateIndexText += ",";
+					}
+					recreateIndexText += columnName;
 				}
-				recreateIndexText += columnName;
+				recreateIndexText += ")";
+				recreateIndexesArr.add(recreateIndexText);
 			}
-			recreateIndexText += ")";
+			//drop all indexes, recreate the custom ones, the non custom ones will be systematically recreated.
 			dropCurrentIndexText = "DROP INDEX "+ indexName;
-
 			singleDBModTransaction(dropCurrentIndexText);
-			
-			recreateIndexesArr.add(recreateIndexText);
 			//System.out.println("recreateIndexText: " + recreateIndexText);
 			//System.out.println("dropCurrentIndexText: " + dropCurrentIndexText);
 		}
@@ -356,13 +365,90 @@ public class RDBMSReader {
 	}
 	
 	private void singleDBModTransaction(String sql){
+		
 		try {
 			scriptFile.println(sql + ";");
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		modifyDB(sql);
+		modifyDB(sql);	
+	}
+	
+	//remove duplicates and create standard indexes on table
+	private void cleanUpDBTables(){
+		String createTable = "", verifyTable="", dropTable = "", alterTableName = "", createIndex = "";
+		String tableName = "", currentTable ="", columnName = "", fullColumnNameList = "", indexColumnNameList = "";
+		Enumeration allTablesEnum = null, columns = null;
+		Hashtable availableTableColumns = null;
+		ISelectWrapper wrapper = null;
+		boolean tableAltered = false; //includes tables created/modified appended to etc.
+		
+		//fill up the availableTables and availableTablesInfo maps
+		findTables();
+		
+		allTablesEnum = availableTables.keys();
+		while(allTablesEnum.hasMoreElements()){
+			fullColumnNameList = "";
+			indexColumnNameList = "";
+			tableAltered = false;
+			tableName = (String)allTablesEnum.nextElement();
+			allTables.add(tableName);
+			availableTableColumns = availableTables.get(tableName);
+			columns = availableTableColumns.keys();
+			while(columns.hasMoreElements()){
+				columnName = (String)columns.nextElement();
+				if(fullColumnNameList.length()!=0) 
+					fullColumnNameList += " , ";
+				fullColumnNameList += columnName;
+				
+				if(columnName.equals(tableName) || columnName.endsWith("_FK")){
+					if(indexColumnNameList.length()!=0) 
+						indexColumnNameList += " , ";
+					indexColumnNameList += columnName;
+				}
+			}
+			
+			//find out if the table was altered on this time through (or if it was new...)
+			for(int tableIndex = 0;tableIndex < allTablesModified.size();tableIndex++)
+			{
+				currentTable = allTablesModified.elementAt(tableIndex);
+				if(tableName.equals(currentTable.toUpperCase())){
+					tableAltered = true;
+					break;
+				}
+			}
+			
+			//do this duplicates removal for only the tables that were modified
+			if(tableAltered){
+				//create new temporary table that has ONLY distinct values
+				createTable = "CREATE TABLE "+ tableName + "_TEMP AS (SELECT DISTINCT " + fullColumnNameList + " FROM " + tableName+" )";
+				singleDBModTransaction(createTable);
+				
+				//check that the temp table was created before dropping the table.
+				verifyTable = "SELECT 1 FROM " + tableName + "_TEMP LIMIT 1";
+				//if temp table wasnt successfully created, go to the next table.
+				wrapper = WrapperManager.getInstance().getSWrapper(engine, verifyTable);
+				if(!wrapper.hasNext()){ //This REALLY shouldnt happen, but its here just in case...
+					logger.error("Error occurred during database clean up on table " + tableName);
+					continue;
+				}
+				//drop existing table
+				dropTable = "DROP TABLE " + tableName;
+				singleDBModTransaction(dropTable);
+				
+				//rename our temporary table to the new table name
+				alterTableName = "ALTER TABLE " + tableName + "_TEMP RENAME TO " + tableName;
+				singleDBModTransaction(alterTableName);
+			}
+			
+			//create indexs for ALL tables since we deleted all indexes before
+			createIndex = "CREATE INDEX " + tableName + "_INDX ON " + tableName + "("+indexColumnNameList+")";
+			singleDBModTransaction(createIndex);
+		}
+		// clear out the availableTables and availableTablesInfo maps that were created in findTables method call
+		//availableTables.clear();
+		//availableTablesInfo.clear();
 	}
 	
 	private void findTables()
@@ -534,10 +620,15 @@ public class RDBMSReader {
 			createTables();
 			skipRows();
 			insertRecords();
+			cleanAll();
+			commitDB();
 			scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
 		}
-		runDBModTransactions(recreateIndexesArr);
+		cleanUpDBTables();
+		runDBModTransactions(recreateIndexesArr); 
+		cleanAll(); //clean again because we reset the values for availableTables and availableTablesInfo
 		writeDefaultQuestionSheet(engineName);
+		
 		createBaseRelations();
 		try{
 			scriptFile.println("-- ********* completed load process ********* ");
@@ -551,6 +642,10 @@ public class RDBMSReader {
 	public void closeDB()
 	{
 		engine.closeDB();
+	}
+	
+	public void commitDB(){
+		engine.commit();
 	}
 	
 	private void getBaseFolder()
@@ -942,6 +1037,7 @@ public class RDBMSReader {
 		Enumeration <String> tableKeys = tableHash.keys();
 		while(tableKeys.hasMoreElements())
 		{
+			boolean modifiedTable = true;
 			String tableKey = tableKeys.nextElement();
 			String modString = "";
 			if(!availableTables.containsKey(tableKey.toUpperCase()))
@@ -951,7 +1047,11 @@ public class RDBMSReader {
 			}
 			else if(!allColumnsMatch(tableKey))
 				modString = getAlterTable(tableKey);
-	
+			else{
+				modifiedTable = false;
+			}
+			if(modifiedTable)
+				allTablesModified.add(tableKey);
 			
 			if(modString.length()>0){
 				try {
