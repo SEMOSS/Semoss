@@ -172,6 +172,18 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 	}
 	
+	@Override
+	public void commit()
+	{
+		// do nothing
+		try {
+			conn.commit();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
 	public Vector getColumnsFromResultSet(int columns, ResultSet rs)
 	{
 		Vector retVector = new Vector();
