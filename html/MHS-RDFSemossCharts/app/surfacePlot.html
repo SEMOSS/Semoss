@@ -48,6 +48,7 @@
   </style>
 </head>
 <body>
+    <div input type="text" id="stepChooser"></div>
   <script src="http://d3js.org/d3.v3.min.js"></script>
   <script src="js/surfacePlot.js"></script>
   <script src="data/heatmapdata.js"></script>
@@ -59,8 +60,6 @@
 function start(dataSeries) {
     var yaw=0.5,pitch=0.5, width=700, height=900, drag=false, step = null, tempVal = null, tempSplit = null, rowStep = null;
 
-// STEP CHANGE HERE***************************************************
-    var n = 5;    
 
     function dataFromFormular(func){
         var output=[];
@@ -78,6 +77,14 @@ function start(dataSeries) {
     // alert(jsonData);
     var surfaces = jsonData;
     // alert(surfaces);
+
+// STEP CHANGE HERE****************************************************************************************
+    var maxGrid = 5000;
+    var n = Math.floor(Math.sqrt(maxGrid/((surfaces.grid.length-1)*(surfaces.grid[0].length-1))));
+    console.log(n);
+    if (surfaces.grid.length> maxGrid || surfaces.grid[0].length  > maxGrid) {
+        n = 0;
+    }
 
     var newData = [];
     for(i=0; i< surfaces.grid.length; i++){
@@ -164,7 +171,8 @@ console.log(surfaces.grid);
     .attr('height',height)
     .attr('width',width);
 
-    var group = svg.append("g");
+    var group = svg.append("g")
+        .attr("id", "g");
 
     var total = $.extend(true, {}, surfaces );
 
@@ -183,33 +191,19 @@ console.log(surfaces.grid);
     var max = maxVal(total.grid[0]);
     var min = minVal(total.grid[0]);
 
+     var globalScale = d3.scale.linear()
+        .domain([min, max])
+        .range([0, 350]);
+
     var globalGrad = d3.scale.linear()
     .domain([min, max])
     .range(["white", "red"]);
 
-    // var gradient = svg
-    // .append("linearGradient")
-    // .attr("y1", min)
-    // .attr("y2", max)
-    // .attr("x1", "0")
-    // .attr("x2", "0")
-    // .attr("id", "gradient")
-    // .attr("gradientUnits", "userSpaceOnUse")
-
-    // gradient
-    // .append("stop")
-    // .attr("offset", "0")
-    // .attr("stop-color", "#ff0")
-
-    // gradient
-    // .append("stop")
-    // .attr("offset", "0.5")
-    // .attr("stop-color", "#f00")
 
     var md=group.data([surfaces.grid])
     .surface3D(width,height)
     .surfaceHeight(function(d){ 
-        return -d*15;
+        return -globalScale(d);
     }).surfaceColor(function(d){
         var color = d3.scale.linear()
         .domain([0, 200])
@@ -225,31 +219,37 @@ console.log(surfaces.grid);
     .data(surfaces)
     .enter().append('li')
     .html(function(d){
-      return d.name
-  }).on('mousedown',function(){
-      md.data([d3.select(this).datum().data]).surface3D()
-      .transition().duration(500)
-      .surfaceHeight(function(d){
-        return d;
-    }).surfaceColor(function(d){
-      var c=d3.hsl((d+100), 0.6, 0.5).rgb();
-      return "rgb("+parseInt(c.r)+","+parseInt(c.g)+","+parseInt(c.b)+")";
-  });
-});
+        return d.name
+    }).on('mousedown',function(){
+        md.data([d3.select(this).datum().data]).surface3D()
+        .transition().duration(500)
+        .surfaceHeight(function(d){
+            return d;
+        }).surfaceColor(function(d){
+        var c=d3.hsl((d+100), 0.6, 0.5).rgb();
+        return "rgb("+parseInt(c.r)+","+parseInt(c.g)+","+parseInt(c.b)+")";
+        });
+    });
 
-  svg.on("mousedown",function(){
-    drag=[d3.mouse(this),yaw,pitch];
-}).on("mouseup",function(){
-    drag=false;
-}).on("mousemove",function(){
+    svg.on("mousedown",function(){
+        drag=[d3.mouse(this),yaw,pitch];
+    }).on("mouseup",function(){
+        drag=false;
+    }).on("mousemove",function(){
     if(drag){            
-      var mouse=d3.mouse(this);
-      yaw=drag[1]-(mouse[0]-drag[0][0])/50;
-      pitch=drag[2]+(mouse[1]-drag[0][1])/50;
-      pitch=Math.max(-Math.PI/2,Math.min(Math.PI/2,pitch));
-      md.turntable(yaw,pitch);
-  }
-});
+        var mouse=d3.mouse(this);
+        yaw=drag[1]-(mouse[0]-drag[0][0])/50;
+        pitch=drag[2]+(mouse[1]-drag[0][1])/50;
+        pitch=Math.max(-Math.PI/2,Math.min(Math.PI/2,pitch));
+        md.turntable(yaw,pitch);
+    }
+    });
+    console.log(svg);
+    var paths = d3.selectAll("path");
+    console.log(paths)
+    d3.selectAll("g").on("click",function(){
+            console.log(d3.select(this).attr("id"));
+    })
 };
 
 start();
