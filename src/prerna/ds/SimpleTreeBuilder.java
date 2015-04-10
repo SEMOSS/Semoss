@@ -1,0 +1,866 @@
+package prerna.ds;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Hashtable;
+import java.util.Vector;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class SimpleTreeBuilder 
+{
+	// core set of issues I am trying to solve
+	// the ability to add columns on the fly - Complete
+	// ability to remove columns - Complete
+	// ability to flatten it at any point and generate a table - Complete
+	// Ability to add a single node  - Complete
+	// ability to add columns with link to any of the existing columns - Complete
+	// ability to remove a single node - Complete
+	// Balance the tree automatically - need to see where to hook it in
+	// stop flattening at an individual point - Done
+	
+	// 2 adjacent nodes from the metamodel are selected
+	// The information is sent
+	// Out of this, the key is from the existing node
+	// The vector of all the SimpleTreeNodes are created based on where they are 
+	// based on the nodes - we reach every leaf of this node then add the value node from the incoming hashtable to it
+	// when a node is deleted, it is demarcated on the binary tree that this has been filtered out
+	// with all the children of this node being deleted
+	
+	// What happens if I go with basically adding the node only to the last one
+	// in this case, I dont need to worry about cloning the node multiple times
+	// I need to check this out
+	// and everytime there is a new one coming in
+	// I need to flatten the existing structure and add to that one again
+	// which means I need a way to fast search it
+	// this is not difficult
+	// I just need to keep the index and then add to it
+	// so instead of adding a child
+	// I just add to that node directly
+	
+	// distributed
+	// What I am trying to do is
+	// spray the nodes
+	// so that I can load the data on a different machine if need be
+	// any node can be a network node
+	// SimpleNetworkNode extends SimpleTreeNode
+	// TreeNetworkNode extends TreeNode
+	// 
+	
+	
+	// actual value tree root
+	SimpleTreeNode lastAddedNode = null;
+	// see if the child can be a single node
+	// this means you can only add to the last child
+	// nothing before it
+	boolean singleNode = false;
+	// type to the root node of the type
+	// type is expresed as string
+	Hashtable <String, TreeNode> nodeIndexHash = new Hashtable <String, TreeNode>();
+	Hashtable <String, Integer> typeToLevel = new Hashtable <String, Integer>();
+	Hashtable <String, Hashtable> nodeTypeFilters = new Hashtable <String, Hashtable>();
+	
+	// hosting everything else for the thread runner
+	ISEMOSSNode [] seeds = null;
+	ILinkeableEngine [] engines = null;
+	String [] childs = null;
+	TreePhaser phaser = null;
+	ArrayList threadList = null;
+	int runLevel = 0;
+	ExecutorService service = null;
+	String finalChildType = null;
+	
+ 	
+
+	// parent node
+	// and the child node
+	// adds the child node to the instances
+
+	public synchronized void addNode(ISEMOSSNode parentNode, ISEMOSSNode node)
+	{
+		// this case is when data needs to be added to the lower most node
+		// consider the case of Modify Referrals - Patient ID and to this I need to add Eligibility
+		// I send in Modify Referrals, Eligibility
+		// this needs to navigate down to the lower most and then add it to the lower most
+		// set the final child type
+		if(finalChildType == null || !nodeIndexHash.containsKey(node.getType()))
+			finalChildType = node.getType();		
+		
+		TreeNode parentIndexNode = createNode(parentNode, false);
+		
+		// before all of this, I need to find if this parent already has this node
+		
+		
+		Vector <SimpleTreeNode> parentInstances = parentIndexNode.getInstances();
+		
+		boolean childExists = false;
+		
+		for(int instanceIndex = 0;instanceIndex < parentInstances.size() && !childExists;instanceIndex++)
+		{
+			SimpleTreeNode parentInstanceNode = parentInstances.elementAt(instanceIndex);
+			childExists = parentInstanceNode.hasChild(node);
+		}		
+		
+		if(childExists)
+			return;
+		
+		for(int instanceIndex = 0;instanceIndex < parentInstances.size();instanceIndex++)
+		{
+			SimpleTreeNode parentInstanceNode = parentInstances.elementAt(instanceIndex);
+			// add at the same level
+			if((parentInstanceNode.leftChild == null) || (parentInstanceNode.leftChild != null && ((ISEMOSSNode)parentInstanceNode.leftChild.leaf).getType().equalsIgnoreCase(node.getType())))
+			{
+				// logic of adding it to every child
+				TreeNode childIndexNode = createNode(node, true);
+				SimpleTreeNode childInstanceNode = childIndexNode.getInstances().lastElement();
+				//System.err.println("Landed into this logic " + parentInstanceNode.leaf.getKey());
+				//synchronized (parentNode) 
+				{
+				SimpleTreeNode.addLeafChild(parentInstanceNode, childInstanceNode);
+				}
+				lastAddedNode = parentInstanceNode;
+			}
+			// else go down one level and then add it
+			else if((parentInstanceNode.leftChild != null && !((ISEMOSSNode)parentInstanceNode.leftChild.leaf).getType().equalsIgnoreCase(node.getType())))
+			{
+				//System.err.println("Skipping this " + parentNode.getKey() + "<<>> " + node.getKey());
+				SimpleTreeNode daNode = parentInstanceNode.leftChild;
+				while(daNode != null)
+				{
+					//System.err.println("Da Node is " + daNode.leaf.getKey());
+					
+					addLeafNode(daNode, node);
+					daNode = daNode.rightSibling;
+				}
+				//SimpleTreeNode.addLeafChild(parentInstanceNode, childInstanceNode);
+			}
+		}		
+	}
+		
+	public int getNodeTypeCount(String nodeType)
+	{
+		return getSInstanceNodes(nodeType).size();
+	}
+	
+	public void adjustType(String type, boolean recurse)
+	{
+		// the point here is to ensure that the type is being adjusted so that the levels are taken care of
+		// i.e. say if you extend one side of the tree, but however, the other side is really empty
+		// you want to extend this in a balanced manner
+		// consider Lab - CP / AP
+		// now I extend CP, however AP is empty what this basically means is 
+		// when I actually extend CP further or delete a node, there is a asymmetric tree growth which I am trying to avoid
+		
+		// we start of by picking all the instances for this type
+		// then we methodically look to see if any of them have a left child
+		// if they do
+		// we then pick that type and create an empty node and attach it to those that do not have a children
+		// the only word of caution is at a later point
+		// when we want to add a node of the same type - we will need to ensure that the left child which is empty has been taken care of
+		// I am not sure if we need to have to add this to TreeNode i.e. there is not a need to index this
+		// actually I do, otherwise, it wont work.. :(
+		
+		// we start of by picking all the instances for this type
+		TreeNode rootNodeForType = nodeIndexHash.get(type);
+		if(rootNodeForType != null)
+		{
+			Vector nodeGetter = new Vector();
+			nodeGetter.addElement(rootNodeForType);
+			Vector <SimpleTreeNode> typeInstances = rootNodeForType.getInstanceNodes(nodeGetter, new Vector<SimpleTreeNode>());
+			
+			if(typeInstances == null)
+				return;
+			
+			// then we methodically look to see if any of them have a left child
+			// if they do
+			// we then pick that type and create an empty node and attach it to those that do not have a children
+			SimpleTreeNode child = null;
+			for(int instanceIndex = 0;instanceIndex < typeInstances.size() && (child == null || (child != null && child.leaf.getKey().equalsIgnoreCase(SimpleTreeNode.EMPTY)));instanceIndex++)
+				child = typeInstances.elementAt(instanceIndex).leftChild;
+
+			if(child == null) // nothing to do here 
+				return; 
+			// the only word of caution is at a later point
+			// when we want to add a node of the same type - we will need to ensure that the left child which is empty has been taken care of
+			String childType = ((ISEMOSSNode)child.leaf).getType();
+			boolean newNode = false;
+			for(int instanceIndex = 0;instanceIndex < typeInstances.size();instanceIndex++)
+			{
+				if(typeInstances.elementAt(instanceIndex).leftChild == null)
+				{
+					// reset it to something useful
+					System.err.println("Adjusting... " + ((ISEMOSSNode)typeInstances.elementAt(instanceIndex).leaf).getType() + " Adding " + type + "  Child Type  " + childType);
+					StringClass dummySEMOSSNode = new StringClass(SimpleTreeNode.EMPTY, childType);
+					TreeNode dummyIndexNode = getNode(dummySEMOSSNode);
+					if(dummyIndexNode == null)
+						dummyIndexNode = createNode(dummySEMOSSNode, true);
+					// do the create routine here
+					else
+					{
+						SimpleTreeNode instanceNode = new SimpleTreeNode(dummySEMOSSNode);
+						dummyIndexNode.addInstance(instanceNode);
+					}
+					typeInstances.elementAt(instanceIndex).addChild(dummyIndexNode.instanceNode.lastElement());
+					
+					newNode = true;
+					//typeInstances.elementAt(instanceIndex).leftChild = dummyIndexNode.instanceNode.lastElement(); // set it to the last added one
+				}
+				// if the child is null and if it is not the same type
+				// then insert a node here
+				// not sure if we will ever do this, but
+				// just setting it up
+			}
+			if(recurse && newNode)
+				adjustType(childType, recurse);
+		}	
+		
+	}
+	
+	public void addLeafNode(SimpleTreeNode parentNode, ISEMOSSNode node)
+	{
+		if((parentNode.leftChild == null) || (parentNode.leftChild != null && ((ISEMOSSNode)parentNode.leftChild.leaf).getType().equalsIgnoreCase(node.getType())))
+		{
+			// logic of adding it to every child
+			TreeNode childIndexNode = createNode(node, true);
+			SimpleTreeNode childInstanceNode = childIndexNode.getInstances().lastElement();
+			//System.err.println("Landed into this logic " + parentNode.leaf.getKey());
+			//synchronized(parentNode)
+			{
+				SimpleTreeNode.addLeafChild(parentNode, childInstanceNode);
+			}
+			lastAddedNode = parentNode;
+		}
+		else if((parentNode.leftChild != null && !((ISEMOSSNode)parentNode.leftChild.leaf).getType().equalsIgnoreCase(node.getType())))
+		{
+			//System.err.println("Skipping this " + parentNode.leaf.getKey() + "<<>> " + node.getKey());
+			SimpleTreeNode daNode = parentNode.leftChild;
+			while(daNode != null)
+			{
+				//System.err.println("Da Node is " + daNode.leaf.getKey());
+				addLeafNode(daNode, node);
+				daNode = daNode.rightSibling;
+			}
+			//SimpleTreeNode.addLeafChild(parentInstanceNode, childInstanceNode);
+		}
+	}
+		
+	
+	public TreeNode getNode(ISEMOSSNode node)
+	{
+		TreeNode typeIndexRoot = nodeIndexHash.get(node.getType());
+		TreeNode retNode = null;
+		if(typeIndexRoot != null)
+		{
+			Vector <TreeNode> rootNodeVector = new Vector<TreeNode>();
+			rootNodeVector.add(typeIndexRoot);
+			// find the node which has
+			retNode = typeIndexRoot.getNode(rootNodeVector, new TreeNode(node), false);
+		}
+		return retNode;
+	}
+	
+	// I need to introduce a routine here for multi insert
+	public TreeNode createNode(ISEMOSSNode node, boolean child)
+	{
+		TreeNode retNode = null;
+		TreeNode typeIndexRoot = nodeIndexHash.get(node.getType());
+		boolean newNode = false;
+		boolean hasChild = false;
+		retNode = getNode(node);
+		if(retNode != null)
+			hasChild = hasChild(retNode);
+		if(retNode == null)
+		{
+			retNode = new TreeNode(node);
+			newNode = true;
+		}
+		if(newNode || (child && !hasChild && !singleNode))
+		{
+			//System.err.println(node.getKey()+ "    Has child is " + hasChild + "   newNode" + newNode);
+			//retNode = new TreeNode(node);
+			SimpleTreeNode instanceNode = new SimpleTreeNode(node);
+			//System.err.println("Adding instance " + node.getKey());
+			retNode.addInstance(instanceNode);
+			// add it as a sibling
+			// if the child is false
+			// and the type index root is not null
+			// and the instances do not have a parent
+			// add this guy as a sibling
+			if(newNode && !child &&  typeIndexRoot != null && typeIndexRoot.getInstances() != null && typeIndexRoot.getInstances().elementAt(0).parent == null)
+			{
+				SimpleTreeNode rightMostNode = typeIndexRoot.getInstances().elementAt(0);
+				rightMostNode = rightMostNode.getRight(rightMostNode);
+				rightMostNode.rightSibling = instanceNode;
+				instanceNode.leftSibling = rightMostNode;
+			}
+
+		}
+		addToNodeIndex(node.getType(), retNode);
+		return retNode;
+	}
+	
+	public boolean hasChild(TreeNode node)
+	{
+		boolean hasChild = false;
+		Vector <SimpleTreeNode> instances = node.getInstances();
+		for(int instanceIndex = 0;instanceIndex < instances.size()&& !hasChild ;instanceIndex++)
+			hasChild = (instances.get(instanceIndex).leftChild != null);
+		return hasChild;
+	}
+	
+	public void addToNodeIndex(String nodeType, TreeNode node)
+	{
+		TreeNode root = node;
+		//System.err.println("Adding type " + nodeType + " <> " + node.leaf.getKey());
+		if(nodeIndexHash.containsKey(nodeType))
+		{
+			// need to search first to make sure this node is not there
+			root = nodeIndexHash.get(nodeType);
+			//System.err.println("Old root is " + root.leaf.getKey());
+			Vector<TreeNode> searcher = new Vector<TreeNode>();
+			searcher.add(root);
+			if(!root.search(searcher, node, false))
+			{// if not found insert it
+				//System.err.println("In the not found loop");
+				root = nodeIndexHash.get(nodeType).insertData(node);
+			}
+			//System.err.println("New root is " + root.leaf.getKey());
+		}
+		nodeIndexHash.put(nodeType, root);
+	}
+	
+	// flatten for a particular type
+	public Vector flattenFromType(String type)
+	{
+		// pick the type root from the index
+		// Run through every node and add the instances to a vector
+		// push to flatten roots on the SimpleTreeNode and flatten it
+		System.out.println("Calling Flatten");
+		TreeNode typeRoot = nodeIndexHash.get(type);
+		SimpleTreeNode instanceNode = typeRoot.getInstances().elementAt(0);
+		instanceNode = instanceNode.getLeft(instanceNode);
+		Vector <SimpleTreeNode> rootVector = new Vector<SimpleTreeNode>();
+		rootVector.add(instanceNode);
+		//instanceNode.printNode(rootVector, true, 1);
+		// the flatten takes the following arguments
+		//the node / parent to flatten from, the output vector that will have the values
+		// filter hashtable - optional
+		Vector outputVector = new Vector();
+		if(nodeTypeFilters.size() == 0)
+			instanceNode.flattenRoots(instanceNode.getLeft(instanceNode),outputVector);
+		else
+			instanceNode.flattenRoots(instanceNode.getLeft(instanceNode),outputVector, nodeTypeFilters);			
+		
+		//Vector output = typeRoot.getInstanceNodes(rootVector, new Vector());
+		//System.out.println("Total Number of instances are " + output.size());
+		return null;
+	}
+
+	// flatten for a particular type .. until a particular type
+	public Vector flattenFromType(String type, String untilType)
+	{
+		// pick the type root from the index
+		// Run through every node and add the instances to a vector
+		// push to flatten roots on the SimpleTreeNode and flatten it
+		TreeNode typeRoot = nodeIndexHash.get(type);
+		SimpleTreeNode instanceNode = typeRoot.getInstances().elementAt(0);
+		instanceNode = instanceNode.getLeft(instanceNode);
+		Vector <SimpleTreeNode> rootVector = new Vector<SimpleTreeNode>();
+		rootVector.add(instanceNode);
+		//instanceNode.printNode(rootVector, true, 1);
+		Vector outputVector = new Vector();
+		if(nodeTypeFilters.size() == 0)
+			instanceNode.flattenRoots(instanceNode, untilType, outputVector);
+		else
+			instanceNode.flattenRoots(instanceNode, untilType, outputVector, nodeTypeFilters);
+		//Vector output = typeRoot.getInstanceNodes(rootVector, new Vector());
+		//System.out.println("Total Number of instances are " + output.size());
+		return null;
+	}
+
+	// get all instances of this node
+	public Vector<SimpleTreeNode> getInstances(String type)
+	{
+		// pick the type root from the index
+		// Run through every node and add the instances to a vector
+		// push to flatten roots on the SimpleTreeNode and flatten it
+		TreeNode typeRoot = nodeIndexHash.get(type);
+		SimpleTreeNode instanceNode = typeRoot.getInstances().elementAt(0);
+		instanceNode = instanceNode.getLeft(instanceNode);
+		Vector <TreeNode> rootVector = new Vector<TreeNode>();
+		rootVector.add(typeRoot);
+		Vector <SimpleTreeNode> instanceVector = new Vector<SimpleTreeNode>();
+		instanceVector.add(instanceNode);
+		//Vector output = typeRoot.getInstanceNodes(rootVector, new Vector());
+		Vector <SimpleTreeNode> output = instanceNode.getChildsOfType(instanceVector, "Activity", new Vector<SimpleTreeNode>());
+		
+		// need to remove the duplicates
+		System.out.println("Total Number of instances are " + output.size() + output.elementAt(0).leaf.getKey());
+		//System.out.println("Total Number of instances are " + output.size() + output.elementAt(5).leaf.getKey());
+		
+		return output;
+	}
+	
+	public Hashtable<SimpleTreeNode, Vector<SimpleTreeNode>> getPath(String fromType, String toType)
+	{
+		TreeNode typeRoot = nodeIndexHash.get(fromType);
+		Vector <TreeNode> searchVector = new Vector<TreeNode>();
+		searchVector.add(typeRoot);
+		// I need to write the logic to walk the tree and get all instances
+		// gets all the instances
+		Vector <SimpleTreeNode> allInstanceVector = typeRoot.getInstanceNodes(searchVector, new Vector<SimpleTreeNode>());
+		
+		Hashtable<SimpleTreeNode, Vector<SimpleTreeNode>> values = new Hashtable<SimpleTreeNode, Vector<SimpleTreeNode>>();
+		for(int instanceIndex = 0;instanceIndex < allInstanceVector.size();instanceIndex++)
+		{
+			
+			Vector <SimpleTreeNode> instanceVector = new Vector<SimpleTreeNode>();
+			SimpleTreeNode fromNode = allInstanceVector.elementAt(instanceIndex);
+			instanceVector.addElement(fromNode);
+			//SimpleTreeNode instanceNode = typeRoot.getInstances().elementAt(0);
+			//instanceNode = instanceNode.getLeft(instanceNode);
+			//instanceVector.add(instanceNode);
+			//Vector output = typeRoot.getInstanceNodes(rootVector, new Vector());
+			Vector <SimpleTreeNode> output = SimpleTreeNode.getChildsOfType(instanceVector, toType, new Vector<SimpleTreeNode>());
+			values.put(fromNode, output);
+			
+			// need to remove the duplicates
+			System.out.println("Total Number of instances are " + output.size() + output.elementAt(0).leaf.getKey());
+		}
+		System.out.println("Output values is " + values);
+		return values;
+	}
+
+	// gets all the semoss nodes i.e. the leafs within the simple tree node
+	public Vector<ISEMOSSNode> getSInstanceNodes(String type)
+	{
+		TreeNode typeRoot = nodeIndexHash.get(type);
+		Vector <TreeNode> rootVector = new Vector<TreeNode>();
+		rootVector.add(typeRoot);
+		Vector <ISEMOSSNode> output = typeRoot.getInstanceSNodes(rootVector, new Vector<ISEMOSSNode>()); // gives me simple tree nodes
+		return output;
+	}
+	
+	public void addStress()
+	{
+		int [] nodeNumberArray = {100,1000,10000,100000};
+		
+		int total = 3000000;
+		int levels = 10;
+		int eachLevel = total / levels;
+		int levelCounter = 1;
+		int secCounter = 1;
+		for(int counter = 0;counter < total;counter++)
+		{
+			String nodeName = "Sample" + secCounter;
+			String type = "Type" + levelCounter;
+			String type2 = "Type" + (levelCounter + 1);
+			//System.err.println("Adding " + nodeName + "   Parent Type" + type + "child Name " + nodeName  +  "   Parent Type 2" + type2);
+			addNode(new StringClass(nodeName, type), new StringClass(nodeName, type2));
+			secCounter++;
+			if(secCounter % eachLevel == 0)
+			{
+				levelCounter++;
+				secCounter = 1;
+				//System.err.println("Moved to next level" + counter);
+				//System.err.println("Level Counter " + levelCounter);
+			}
+		}
+		System.out.println("Held up ");
+		//flattenFromType("Type1");
+	}
+
+	public void addStress2()
+	{
+		// 50 capabilities - 20 activity each - 6 data objects - 200 systems for each object
+		//int [] nodeNumberArray = {50,20,6,20};//,100000}; // number of nodes / children at every level
+		int []  nodeNumberArray = {10,200,300}; // number of nodes / children at every level
+		
+		// create the first piece where 
+		// the number of nodes on level 1 is 100
+		// number of nodes on level 2 is 1000
+		// at the next level add 10,000 nodes to each of the children
+		// at the level next to that add 100,000 to each node again
+		
+		long startTime = printTime();
+		
+		int numLevels = nodeNumberArray.length;
+		String nodeName = "NODE";
+		String type = "TYPE";
+		int numRecords = nodeNumberArray[0];
+		
+		for(int levelIndex = 1;levelIndex < numLevels;levelIndex++)
+		{
+			int numNodesAtThisLevel = nodeNumberArray[levelIndex - 1];
+			int numNodesAtNextLevel = nodeNumberArray[levelIndex];
+			numRecords = numRecords * numNodesAtNextLevel;
+			
+			String parentType = type + levelIndex;
+			String childType = type + (levelIndex + 1);
+			
+			System.out.println("Completing Type " + parentType + " To  " + childType);
+			
+			for (int parentIndex = 0;parentIndex < numNodesAtThisLevel;parentIndex++)
+			{
+				String parentName = nodeName + parentIndex;
+				//System.out.println("Running Parent " + parentName);
+				for(int childIndex = 0;childIndex < numNodesAtNextLevel;childIndex++)
+				{
+					//System.out.println("Completing Type " + parentType + " To  " + childType);
+					
+					String childName = nodeName + childIndex;
+					addNode(new StringClass(parentName, parentType), new StringClass(childName, childType));
+				}
+			}
+		}		
+		long endTime = printTime();
+		long timeToCreateTree = (endTime - startTime)/1000;
+		System.out.println("Time Spent... seconds " + timeToCreateTree);
+		System.out.println("Total Records " + numRecords);
+
+		System.out.println("Held up ");
+		startTime = printTime();
+		flattenFromType("TYPE1");
+		endTime = printTime();
+		long flattenTime = (endTime - startTime)/1000;
+		System.out.println("Time Spent... to create  " + timeToCreateTree );
+		System.out.println("Time Spent... to flatten  " + flattenTime);
+
+	}
+	
+	public long printTime()
+	{
+		DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+		Date date = new Date();
+		long time1 = System.nanoTime();
+		long mtime1 = System.currentTimeMillis();
+		//System.out.println("Start >> Nano " + dateFormat.format(date));
+		System.out.println("Start >> Nano " + time1);
+		return mtime1;
+	}
+
+	public void addSimple()
+	{
+		addNode(new StringClass("AnatomicPath", "BP"), new StringClass("Modify Referrals", "Activity"));
+		addNode(new StringClass("AnatomicPath", "BP"), new StringClass("Modify Referrals", "Activity"));
+		addNode(new StringClass("AnatomicPath", "BP"), new StringClass("Modify Referrals", "Activity"));
+		addNode(new StringClass("AnatomicPath", "BP"), new StringClass("Modify Orders", "Activity"));
+		addNode(new StringClass("AnatomicPath", "BP"), new StringClass("Procurement", "Activity"));
+		
+		addNode(new StringClass("Lab", "Cap"), new StringClass("AnatomicPath", "BP"));
+		addNode(new StringClass("Lab", "Cap"), new StringClass("ClinicalPath", "BP"));
+		//flattenFromType("Cap");
+		
+		System.out.println("Number of nodes " + getSInstanceNodes("Activity").size());
+		
+		System.err.println("-----");
+		adjustType("BP", false);
+		flattenFromType("Cap");
+		
+		System.err.println("-----");
+		addNode(new StringClass("ClinicalPath", "BP"), new StringClass("Procurement", "Activity"));
+		flattenFromType("Cap");
+		
+		System.err.println("-----");
+		
+		addNode(new StringClass("Modify Referrals", "Activity"), new StringClass("Orders", "DO"));
+		addNode(new StringClass("Modify Referrals", "Activity"), new StringClass("Referrals", "DO"));
+		addNode(new StringClass("Modify Referrals", "Activity"), new StringClass("Patients", "DO"));
+		addNode(new StringClass("ClinicalPath", "BP"), new StringClass("Procurement2", "Activity"));
+		
+		adjustType("Activity", false);
+		
+		//addNode(new StringClass("Procurement", "Activity"), new StringClass("Eligibility", "BLU"));
+		//addNode(new StringClass("Modify Referrals", "Activity"), new StringClass("Eligibility", "BLU"));
+		addNode(new StringClass("Patients", "DO"), new StringClass("Eligibility32", "BLUMEAWAY"));
+		adjustType("DO", false);
+		//addNode(new StringClass("Eligibility", "BLU"), new StringClass("Eligibility33", "TRY"));
+		addNode(new StringClass("Lab", "Cap"), new StringClass("HOLYCow", "TRY2"));
+		
+		//adjustType("DO", false);
+		
+		flattenFromType("Cap");
+		//getInstances("Cap");
+		//getPath("BP", "TRY2");
+		addNode(new StringClass("Lab", "Cap"), new StringClass("PK", "BP"));
+		adjustType("BP", true);
+		System.err.println("After Adjustments.... for a single node");
+		flattenFromType("Cap");
+		//removeNode(new StringClass("Referrals", "DO"));
+		removeType("DO"); // not removing the last one
+		//addNode(new StringClass("Modify Referrals", "Activity"), new StringClass("Eligibility", "BLU"));
+		System.out.println("Flattening ");
+		flattenFromType("Cap");
+		System.err.println("-----");
+		
+		flattenFromType("Cap", "Activity");
+
+	}
+	
+	public Vector <String> findLevels()
+	{
+		
+		if(finalChildType == null)
+			return null;
+		Vector <String> retVector = new Vector<String>();
+		
+		TreeNode aNode = nodeIndexHash.get(finalChildType);
+		SimpleTreeNode sNode = aNode.instanceNode.elementAt(0);
+		while(sNode != null)
+		{
+			retVector.add(((ISEMOSSNode)sNode.leaf).getType());
+			sNode = sNode.parent;
+		}
+		Collections.reverse(retVector);
+		return retVector;
+	}
+
+	public static void main(String [] args)
+	{
+		SimpleTreeBuilder builder = new SimpleTreeBuilder();
+		System.out.println(Runtime.getRuntime().availableProcessors());
+		
+		
+		
+		//builder.addSimple();
+		//builder.addStress2();
+		builder.multiEngineAdd();
+	}
+	
+	public void removeNode(ISEMOSSNode node)
+	{
+		String type = node.getType();
+		if(nodeIndexHash.containsKey(type))
+		{
+			TreeNode rootNode = nodeIndexHash.get(type);
+			TreeNode searchNode = new TreeNode(node);
+			Vector searchVector = new Vector();
+			searchVector.addElement(rootNode);
+			TreeNode foundNode = rootNode.getNode(searchVector, searchNode, false);
+			
+			if(foundNode != null)
+			{
+				// get all the instances and delete
+				Vector <SimpleTreeNode> instances = foundNode.getInstances();
+				for(int instanceIndex = 0;instanceIndex < instances.size();instanceIndex++)
+					SimpleTreeNode.deleteNode(instances.get(instanceIndex));
+				foundNode.instanceNode = null;
+			}
+		}
+	}
+	
+	public void multiEngineAdd()
+	{
+		// need to create some structures
+		// I need an array of linkeable engines
+		// I need an array of childs 
+		// I need a seed set of data to start of the process
+		// Optionally, I need some filters
+		// filters are typically of the form of
+		int numProc = Runtime.getRuntime().availableProcessors();
+		threadList = new ArrayList();
+		numProc = 8;
+
+		// this is the core method that would test the tree add
+		// I need set of levels
+		// number of nodes at every level
+		// I need to set up the engines so that
+		// for every node it gives me multiple child nodes
+		int []  nodeNumberArray = {10,600,800}; //,3,4,10,2}; //,10};//,10,10}; //,20}; //,20,20}; // number of nodes / children at every level
+		service = Executors.newFixedThreadPool(numProc);
+		phaser = new TreePhaser(this, service);
+		
+		engines = new ILinkeableEngine[nodeNumberArray.length - 1];
+		for(int engineIndex = 1;engineIndex < nodeNumberArray.length;engineIndex++)
+			engines[(engineIndex-1)] = new SampleHashEngine(0, nodeNumberArray[engineIndex], engineIndex, engineIndex+1);
+
+		seeds = new ISEMOSSNode[nodeNumberArray[0]];
+		String type = "TYPE0";
+		for(int nodeIndex = 0;nodeIndex < nodeNumberArray[0];nodeIndex++)
+			seeds[nodeIndex] = new StringClass("NODE"+nodeIndex, type); 
+
+		// now create the threads
+		for(int threadIndex = 0;threadIndex < numProc;threadIndex++)
+			threadList.add(new TreeThreader(this, phaser));		
+		runLevel = 0;
+		execEngine();
+	}
+		
+	public void execEngine()
+	{
+		int numProc = Runtime.getRuntime().availableProcessors();
+		numProc = 8;
+		int seedSplitter = seeds.length / numProc;
+		
+		String [] childTypeToGet = new String[1];
+		childTypeToGet[0] = "IGNORE FOR NOW";
+		//childTypeToGet[0] = childs[runLevel];
+		int lastIndex = 0;
+				
+		for(int threadIndex = 0;threadIndex < numProc;threadIndex++)
+		{
+			int nextIndex = lastIndex + seedSplitter;
+			// get the thread
+			ISEMOSSNode [] curParents = Arrays.copyOfRange(seeds, lastIndex, nextIndex);
+			TreeThreader threader = (TreeThreader) threadList.get(threadIndex);
+			threader.setChildTypes(childTypeToGet);
+			((SampleHashEngine)this.engines[runLevel]).parLevel = runLevel;
+			((SampleHashEngine)this.engines[runLevel]).childLevel = (runLevel + 1);
+			threader.setEngine(this.engines[runLevel]);
+			threader.setParents(curParents);
+			if(runLevel == 0) // first time
+				service.execute(threader);
+			lastIndex = nextIndex;
+		}		
+	}
+	
+	// returns whether to terminate or move forward
+	public boolean triggerNext()
+	{
+		if((runLevel + 1) >= engines.length)
+		{
+			System.out.println("Ending now.. " + finalChildType);
+			runLevel++;
+			System.out.println("Levels... " + findLevels());
+
+			//finalChildType = "TYPE" + runLevel;
+			Vector <ISEMOSSNode> childNodes = getSInstanceNodes(finalChildType);
+			System.out.println("Number of child nodes... " + childNodes.size());
+			return true;
+		}
+		else
+		{
+			runLevel++;
+			finalChildType = "TYPE" + runLevel;
+			// need to set the new set of seeds
+			// reset seeds
+			System.err.println("Now at run level.... " + runLevel + finalChildType);
+			Vector <ISEMOSSNode> childNodes = getSInstanceNodes(finalChildType);
+			System.out.println("Number of child nodes... " + childNodes.size());
+			seeds = new ISEMOSSNode[childNodes.size()];
+			for(int seedIndex = 0;seedIndex < childNodes.size();seedIndex++)
+				seeds[seedIndex] = childNodes.elementAt(seedIndex);
+			//seeds = (StringClass[])childNodes.toArray();
+			execEngine();
+			return false;
+		}
+	}
+
+	// equivalent of removing a column
+	// this needs to be revisited
+	// i.e. it needs to be remastered / reparented
+	// I cant just drop the entire tree and below for this
+	public void removeType(String type)
+	{
+		// find the node of this type
+		// get the instance node
+		// go to the parent node and find the type for parent
+		// gather all the instances of parent
+		// 0. for each parent
+		// assimilate all the nodes below it
+		// 1. i.e. pick the left child
+		// 2. get the instances
+		// 3. parent the instances to the grand parent in step 0.
+		// 4. Add these instance to the parent in step 0.
+		// need to handle when the first columns is blown out
+		
+		if(!nodeIndexHash.containsKey(type))
+			return;
+		
+		TreeNode typeRoot = nodeIndexHash.get(type);
+		SimpleTreeNode typeInstanceNode = typeRoot.instanceNode.firstElement();
+		SimpleTreeNode parent = typeInstanceNode.parent;
+		if(parent != null)
+		{
+			String parentType = ((ISEMOSSNode)parent.leaf).getType();
+			
+			Vector <TreeNode> searchVector = new Vector<TreeNode>();
+			TreeNode parentRoot = nodeIndexHash.get(parentType); 
+			searchVector.add(parentRoot);
+			// I need to write the logic to walk the tree and get all instances
+			// gets all the instances
+			// the complexity of this routine is really bad.. three freaking loops..
+			// need to revisit
+			Vector <SimpleTreeNode> allInstanceVector = parentRoot.getInstanceNodes(searchVector, new Vector<SimpleTreeNode>());
+			for(int instanceIndex = 0;instanceIndex < allInstanceVector.size();instanceIndex++)
+			{
+				SimpleTreeNode daParentNode = allInstanceVector.get(instanceIndex);
+				SimpleTreeNode deletedNode = daParentNode.leftChild;
+				daParentNode.leftChild = null; // nullify so that the type wont interfere
+				while(deletedNode != null)
+				{
+					deletedNode.parent = null;
+					// assimilate the child
+					if(deletedNode.leftChild != null)
+					{
+						SimpleTreeNode targetNode = deletedNode.leftChild;
+						while(targetNode != null)
+						{
+							SimpleTreeNode.addLeafChild(daParentNode, targetNode);
+							targetNode = targetNode.rightSibling;
+						}
+					}
+					// get to the next deleted node
+					deletedNode = deletedNode.rightSibling;
+				}
+			}
+		}
+		else
+		{
+			// need to remove the parentage of them childs
+			// the child become the new parent
+			// this case needs to be tested with 
+			if(typeRoot.rightSibling == null) // if it is != null // I am not sure what to do
+			{
+				SimpleTreeNode rootNode = typeRoot.instanceNode.firstElement();
+				SimpleTreeNode targetNode = rootNode.leftChild;
+				while(targetNode != null)
+				{
+					targetNode.parent = null;
+					targetNode = targetNode.rightSibling;
+				}
+			}
+			
+		}
+		// if I take it off the main hashtable
+		// it will get GC'ed. I am not sure I need to travel individually and do it
+		nodeIndexHash.remove(type);
+	}
+	
+	// add a filter so that it is not kept when flattening is done
+	public void addFilter(String nodeType, String filter)
+	{
+		Hashtable filters = new Hashtable();
+		if(nodeTypeFilters.containsKey(nodeType))
+			filters = nodeTypeFilters.get(nodeType);
+		
+		// put it in
+		filters.put(filter, filter);
+		
+		// set the filter back
+		nodeTypeFilters.put(nodeType, filters);
+	}
+
+	// add a filter so that it is not kept when flattening is done
+	public void removeFilter(String nodeType, String filter)
+	{
+		Hashtable filters = new Hashtable();
+		if(nodeTypeFilters.containsKey(nodeType))
+			filters = nodeTypeFilters.get(nodeType);
+		
+		// put it in
+		filters.remove(filter); //, filter);
+		
+		// set the filter back
+		nodeTypeFilters.put(nodeType, filters);
+	}
+	
+	
+	
+	
+
+}
