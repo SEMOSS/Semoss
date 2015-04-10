@@ -313,11 +313,12 @@ public abstract class AbstractEngine implements IEngine {
 	//TODO: delete once all insight XML files have a timestamp
 	private void checkAndAddTimeStampToXML() {
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String checkTimeStamp = "SELECT DISTINCT ?Engine ?Time WHERE { {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?Engine <http://semoss.org/ontologies/Relation/Contains/TimeStamp> ?Time}}";
+		String checkTimeStamp = "SELECT DISTINCT ?Time WHERE { {<http://semoss.org/ontologies/Concept/Engine/" + engineName + "> <http://semoss.org/ontologies/Relation/Contains/TimeStamp> ?Time}}";
 		ISelectWrapper sjsw = Utility.processQuery(insightBaseXML, checkTimeStamp);
 		sjsw.getVariables();
 		boolean hasTime = false;
 		while(sjsw.hasNext()) {
+			sjsw.next();
 			hasTime = true;
 		}
 		if(!hasTime) {
