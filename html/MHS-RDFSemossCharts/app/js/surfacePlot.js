@@ -62,7 +62,8 @@
               'L'+(data[x+1][y][0]+displayWidth/2).toFixed(10)+','+(data[x+1][y][1]+displayHeight/2).toFixed(10)+
               'L'+(data[x+1][y+1][0]+displayWidth/2).toFixed(10)+','+(data[x+1][y+1][1]+displayHeight/2).toFixed(10)+
               'L'+(data[x][y+1][0]+displayWidth/2).toFixed(10)+','+(data[x][y+1][1]+displayHeight/2).toFixed(10)+'Z',
-            depth: depth, data: originalData[x][y]
+            depth: depth, data: originalData[x][y],
+            cell: ylength*x+y
           });
         }
       }
@@ -76,6 +77,9 @@
       if(colorFunction){
         dr.attr("fill",function(d){return colorFunction(d.data)});
       }
+      dr.attr("id", function(d){
+        return "C" + d.cell;
+      })
       trans=false;
     };
     this.renderSurface=renderSurface;
