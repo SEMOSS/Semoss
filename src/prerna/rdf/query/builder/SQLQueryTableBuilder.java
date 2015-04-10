@@ -44,6 +44,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	ArrayList<Hashtable<String,String>> nodePropV = new ArrayList<Hashtable<String,String>>();
 	String variableSequence = "";
 	int limit = 5000;
+	int limitFilter = 10000;
 	
 	Hashtable <String,ArrayList<String>> tableHash = new Hashtable <String,ArrayList<String>>(); // contains the processed node name / table name and the properties
 	String joins = "";
@@ -203,7 +204,8 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 						filters = "(" + columnValue + " = '" + instance + "'";
 				}
 			}
-			filters = filters + ")";
+			if(filters.length() > 0)
+				filters = filters + ")";
 		}
 	}
 	
@@ -376,7 +378,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 				tableName = varName.substring(0,varName.indexOf("__"));
 				varName = varName.substring(varName.indexOf("__") + 2);
 			}
-			filterQuery = "SELECT DISTINCT " + varName + " FROM " + tableName + " LIMIT " + limit;
+			filterQuery = "SELECT DISTINCT " + varName + " FROM " + tableName + " LIMIT " + limitFilter;
 			headerHash.put(QueryBuilderHelper.queryKey, filterQuery);
 			sequencer.put(key.toUpperCase(), headerHash);
 		}
