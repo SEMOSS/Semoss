@@ -30,8 +30,12 @@ package prerna.ui.components.specific.tap;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import javax.swing.JDesktopPane;
+
 import prerna.rdf.engine.api.IEngine;
+import prerna.ui.components.playsheets.ColumnChartPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class EABenefitsSchedulePlaySheet extends GridPlaySheet {
@@ -44,6 +48,8 @@ public class EABenefitsSchedulePlaySheet extends GridPlaySheet {
 	private final String getFCCBPQuery = "SELECT DISTINCT ?FCC ?BusinessProcess ?weight WHERE { {?FCC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC>;}{?PartOf <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/PartOf> ;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?PartOf <http://semoss.org/ontologies/Relation/Contains/PercentBilled> ?weight}{?FCC ?PartOf ?BusinessProcess ;} }";
 	private final String getMTFQuery = "SELECT DISTINCT ?MTF ?FCC ?TotalCost WHERE {{?FCC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC>}{?FCCMTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC-MTF>}{?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>}{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>}{?YearQuarter <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>}{?Year <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?FCCMTF <http://semoss.org/ontologies/Relation/Contains/TotalCost> ?TotalCost }{?FCC <http://semoss.org/ontologies/Relation/Has> ?FCCMTF}{?FCCMTF <http://semoss.org/ontologies/Relation/Occurs_At> ?MTF}{?DCSite <http://semoss.org/ontologies/Relation/Includes> ?MTF}{?Wave <http://semoss.org/ontologies/Relation/Contains> ?DCSite}{?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?YearQuarter}{?YearQuarter <http://semoss.org/ontologies/Relation/has> ?Year}}";
 	private final String getMTFYearQuery = "SELECT DISTINCT ?MTF ?Year WHERE {{?FCC <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC>}{?FCCMTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FCC-MTF>}{?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>}{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>}{?YearQuarter <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>}{?Year <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?FCCMTF <http://semoss.org/ontologies/Relation/Contains/TotalCost> ?TotalCost }{?FCC <http://semoss.org/ontologies/Relation/Has> ?FCCMTF}{?FCCMTF <http://semoss.org/ontologies/Relation/Occurs_At> ?MTF}{?DCSite <http://semoss.org/ontologies/Relation/Includes> ?MTF}{?Wave <http://semoss.org/ontologies/Relation/Contains> ?DCSite}{?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?YearQuarter}{?YearQuarter <http://semoss.org/ontologies/Relation/has> ?Year}}";
+	private final String getYearInflationQuery = "SELECT DISTINCT ?Year ?Inflation WHERE {{?Year <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>}{?Year <http://semoss.org/ontologies/Relation/Contains/InflationRate> ?Inflation}}";
+	private final String getMTFRegionQuery = "SELECT DISTINCT ?MTF ?Region WHERE {{?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>}{?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>}{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>}{?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>}{?Region <http://semoss.org/ontologies/Relation/Deploys> ?Wave}{?Wave <http://semoss.org/ontologies/Relation/Contains> ?DCSite}{?DCSite <http://semoss.org/ontologies/Relation/Includes> ?MTF}}";
 	
 	private ArrayList<String> bpList;
 	private HashMap<String, ArrayList<String[]>> bpFCCs;
@@ -51,6 +57,9 @@ public class EABenefitsSchedulePlaySheet extends GridPlaySheet {
 	private HashMap<String, HashMap<String, Double>> yearFCCCost;
 	private HashMap<String, HashMap<String, Double>> mtfFCCCost;
 	private HashMap<String, String> mtfYear;
+	private HashMap<String, String> yearInflation;
+	private HashMap<String, ArrayList<String>> mtfRegion;
+	
 	HashMap<String, Double> effectPercentMap;
 	HashMap<String, Double> efficiencyPercentMap;
 	HashMap<String, Double> productivityPercentMap;
@@ -63,31 +72,42 @@ public class EABenefitsSchedulePlaySheet extends GridPlaySheet {
 		yearFCCCost = helper.getCostPerYear();
 		mtfFCCCost = helper.getDoubleMap(getMTFQuery, tapSite);
 		mtfYear = helper.getWaveMap(getMTFYearQuery, tapSite);
+		yearInflation = helper.getStringMap(getYearInflationQuery, tapSite);
+		mtfRegion = helper.getStringListMap(getMTFRegionQuery, tapSite);
 	}
 	
 	@Override
 	public void runAnalytics() {
 		list = new ArrayList<Object[]>();
 		// for column headers
-		if (query.contains("1")) {
+		if (query.contains("1")) { // EA-Perspective question 16
 			names = new String[4];
 			names[0] = "Year";
 			names[1] = "Effectiveness";
 			names[2] = "Efficiency";
 			names[3] = "Productivity";
-		} else if (query.contains("2")) {
-			names = new String[9];
-			names[0] = "MTF";
-			names[1] = "FY18";
-			names[2] = "FY19";
-			names[3] = "FY20";
-			names[4] = "FY21";
-			names[5] = "FY22";
-			names[6] = "FY23";
-			names[7] = "FY24";
-			names[8] = "FY25";
-		} else if (query.contains("3")) {
-			names = new String[20];
+		} else if (query.contains("2")) { // EA-Perspective question 18
+			names = new String[17];
+			names[0] = "Region";
+			names[1] = "MTF";
+			names[2] = "FY18";
+			names[3] = "FY19";
+			names[4] = "FY20";
+			names[5] = "FY21";
+			names[6] = "FY22";
+			names[7] = "FY23";
+			names[8] = "FY24";
+			names[9] = "FY25";
+			names[10] = "FY26";
+			names[11] = "FY27";
+			names[12] = "FY28";
+			names[13] = "FY29";
+			names[14] = "FY30";
+			names[15] = "FY31";
+			names[16] = "FY32";
+			
+		} else if (query.contains("3")) { // EA-Perspective question 17
+			names = new String[16];
 			names[0] = "BP";
 			names[1] = "Effectiveness";
 			names[2] = "Efficiency";
@@ -104,10 +124,6 @@ public class EABenefitsSchedulePlaySheet extends GridPlaySheet {
 			names[13] = "FY22 Total Savings";
 			names[14] = "FY23 Total Cost";
 			names[15] = "FY23 Total Savings";
-			names[16] = "FY24 Total Cost";
-			names[17] = "FY24 Total Savings";
-			names[18] = "FY25 Total Cost";
-			names[19] = "FY25 Total Savings";
 		}
 		
 		effectPercentMap = new HashMap<String, Double>();
@@ -176,6 +192,7 @@ public class EABenefitsSchedulePlaySheet extends GridPlaySheet {
 		}
 		
 		if (query.contains("1")) {
+			HashMap<String, Double[]> savingsPerYear = new HashMap<String, Double[]>();
 			for (String year : bpCosts.keySet()) {
 				Double totalEffect = 0.0;
 				Double totalEfficiency = 0.0;
@@ -185,17 +202,54 @@ public class EABenefitsSchedulePlaySheet extends GridPlaySheet {
 					totalEfficiency += efficiencySavingsMap.get(year).get(bp);
 					totalProductivity += productivitySavingsMap.get(year).get(bp);
 				}
-				Object[] temp = { Integer.parseInt(year) + 1, totalEffect, totalEfficiency, totalProductivity };
+				Double[] temp = { totalEffect, totalEfficiency, totalProductivity };
+				savingsPerYear.put(year, temp);
+			}
+			for (Integer year = 2017; year < 2032; year++) {
+				Double totalEffect = 0.0;
+				Double totalEfficiency = 0.0;
+				Double totalProductivity = 0.0;
+				for (Integer i = year; i > 2016; i--) {
+					if (savingsPerYear.get(i.toString()) != null) {
+						totalEffect += savingsPerYear.get(i.toString())[0];
+						totalEfficiency += savingsPerYear.get(i.toString())[1];
+						totalProductivity += savingsPerYear.get(i.toString())[2];
+					}
+				}
+				Integer realizedYear = year + 1;
+				Double inflation = Double.parseDouble(yearInflation.get(realizedYear.toString()));
+				totalEffect *= inflation;
+				totalEfficiency *= inflation;
+				totalProductivity *= inflation;
+				Object[] temp = { realizedYear, totalEffect, totalEfficiency, totalProductivity };
 				list.add(temp);
 			}
+			// if (query.contains("barGraph")) {
+			ColumnChartPlaySheet graph = new ColumnChartPlaySheet();
+			graph.setNames(names);
+			graph.setList(list);
+			JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
+			graph.setJDesktopPane(pane);
+			graph.setDataHash(graph.processQueryData());
+			graph.createView();
+			// }
 		} else if (query.contains("2")) {
 			if (query.contains("mtfParameter")) {
 				
 			} else {
 				for (String mtf : mtfFCCCost.keySet()) {
-					Object[] temp = new Object[9];
-					temp[0] = mtf;
-					for (int i = 1; i < 9; i++) {
+					Object[] temp = new Object[17];
+					temp[1] = mtf;
+					String regionList = null;
+					for (String region : mtfRegion.get(mtf)) {
+						if (regionList == null) {
+							regionList = region;
+						} else {
+							regionList = regionList + ", " + region;
+						}
+					}
+					temp[0] = regionList;
+					for (int i = 2; i < 17; i++) {
 						temp[i] = 0.0;
 					}
 					Double totalCost = 0.0;
@@ -209,9 +263,10 @@ public class EABenefitsSchedulePlaySheet extends GridPlaySheet {
 						}
 					}
 					Integer year = Integer.parseInt(mtfYear.get(mtf));
-					totalCost *= 1.014;
-					for (int i = 2016; (year - i) < 9; i--) {
-						temp[year - i] = totalCost * Math.pow(1.03, (year - i + 3)); // ***inflation
+					for (Integer i = 2015; (year - i) < 17; year++) {
+						Integer inflationYear = year + 1;
+						Double inflation = Double.parseDouble(yearInflation.get(inflationYear.toString()));
+						temp[year - i] = (totalCost * inflation); // ***inflation
 					}
 					list.add(temp);
 				}
@@ -219,13 +274,13 @@ public class EABenefitsSchedulePlaySheet extends GridPlaySheet {
 		} else if (query.contains("3")) {
 			if (query.contains("bpParameter")) {
 				String singleBP = query.substring(query.indexOf("BusinessProcess/") + 16, query.indexOf(">"));
-				Object[] temp = new Object[20];
+				Object[] temp = new Object[16];
 				temp[0] = singleBP;
 				temp[1] = effectPercentMap.get(singleBP);
 				temp[2] = efficiencyPercentMap.get(singleBP);
 				temp[3] = productivityPercentMap.get(singleBP);
 				int step = 0;
-				for (Integer year = 2017; year < 2025; year++) {
+				for (Integer year = 2017; year < 2023; year++) {
 					temp[year - 2013 + step] = bpCosts.get(year.toString()).get(singleBP);
 					temp[year - 2012 + step] = productivitySavingsMap.get(year.toString()).get(singleBP);
 					step++;
@@ -233,13 +288,13 @@ public class EABenefitsSchedulePlaySheet extends GridPlaySheet {
 				list.add(temp);
 			} else {
 				for (String bp : bpList) {
-					Object[] temp = new Object[20];
+					Object[] temp = new Object[16];
 					temp[0] = bp;
 					temp[1] = effectPercentMap.get(bp);
 					temp[2] = efficiencyPercentMap.get(bp);
 					temp[3] = productivityPercentMap.get(bp);
 					int step = 0;
-					for (Integer year = 2017; year < 2025; year++) {
+					for (Integer year = 2017; year < 2023; year++) {
 						temp[year - 2013 + step] = bpCosts.get(year.toString()).get(bp);
 						temp[year - 2012 + step] = productivitySavingsMap.get(year.toString()).get(bp);
 						step++;

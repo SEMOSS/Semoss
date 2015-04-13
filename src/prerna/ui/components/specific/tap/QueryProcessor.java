@@ -38,6 +38,21 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class QueryProcessor {
+	
+	public static String[] getNames(String query, String engineName) {
+		String[] temp = null;
+		try {
+			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+			
+			ISelectWrapper sjsw = Utility.processQuery(engine, query);
+			String[] values = sjsw.getVariables();
+			temp = values;
+		} catch (RuntimeException e) {
+			Utility.showError("Cannot find engine: " + engineName);
+		}
+		return temp;
+	}
+	
 	public static ArrayList<String> getStringList(String query, String engineName) {
 		ArrayList<String> finalList = new ArrayList<String>();
 		try {
@@ -53,7 +68,23 @@ public class QueryProcessor {
 			Utility.showError("Cannot find engine: " + engineName);
 		}
 		return finalList;
-		
+	}
+	
+	public static ArrayList<String> getRawStringList(String query, String engineName) {
+		ArrayList<String> finalList = new ArrayList<String>();
+		try {
+			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+			
+			ISelectWrapper sjsw = Utility.processQuery(engine, query);
+			String[] values = sjsw.getVariables();
+			while (sjsw.hasNext()) {
+				ISelectStatement sjss = sjsw.next();
+				finalList.add(sjss.getRawVar(values[0]).toString());
+			}
+		} catch (RuntimeException e) {
+			Utility.showError("Cannot find engine: " + engineName);
+		}
+		return finalList;
 	}
 	
 	public static HashMap<String, ArrayList<String>> getStringListMap(String query, String engineName) {
