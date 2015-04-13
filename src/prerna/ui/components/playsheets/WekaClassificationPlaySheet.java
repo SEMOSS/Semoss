@@ -62,12 +62,12 @@ public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
 	
 	public void runAlgorithm() {
 		if(classColumn<0) {
-			LOGGER.info("Creating classifier to predict column "+names[names.length-1]);
+			classColumn = names.length-1;
 			alg = new WekaClassification(list, names, modelName, names.length - 1);
 		} else {
 			LOGGER.info("Creating classifier to predict column "+names[classColumn]);
-			alg = new WekaClassification(list, names, modelName, classColumn);
 		}
+		alg = new WekaClassification(list, names, modelName, classColumn);
 		try {
 			alg.execute();
 			alg.processTreeString();
@@ -156,5 +156,8 @@ public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
 	public void setClassColumn(int classColumn){
 		this.classColumn = classColumn;
 	}
-
+	
+	public int getClassColumn() {
+		return classColumn;
+	}
 }
