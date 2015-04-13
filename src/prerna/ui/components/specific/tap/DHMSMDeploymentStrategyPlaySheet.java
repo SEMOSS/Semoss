@@ -809,8 +809,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		return returnHash;
 	}
 	
-	@Override
-	public Hashtable registerControlPanelClick(Hashtable webDataHash) {
+	public Hashtable refreshReport(Hashtable webDataHash, boolean defaultValuesSelected) {
 		Hashtable returnHash = (Hashtable) super.getData();
 		Hashtable dataHash = new Hashtable();
 		//query and set the default playsheet values
@@ -839,10 +838,7 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 		runDeploymentStrategyListener.setWaveOrder(waveOrder);
 		runDeploymentStrategyListener.setWaveStartEndDate(waveStartEndDate);
 		runDeploymentStrategyListener.setPlaySheet(this);
-		if ((webDataHash.get("type")).equals("region"))
-			dataHash = runDeploymentStrategyListener.generateJSONData(false, false);
-		if ((webDataHash.get("type")).equals("deployment"))
-			dataHash = runDeploymentStrategyListener.generateJSONData(true, false);
+		dataHash = runDeploymentStrategyListener.generateJSONData(defaultValuesSelected, false);
 		
 		if (dataHash != null)
 			returnHash.put("data", dataHash);
