@@ -36,6 +36,9 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
@@ -315,13 +318,32 @@ public abstract class AbstractEngine implements IEngine {
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String checkTimeStamp = "SELECT DISTINCT ?Time WHERE { {<http://semoss.org/ontologies/Concept/Engine/" + engineName + "> <http://semoss.org/ontologies/Relation/Contains/TimeStamp> ?Time}}";
 		ISelectWrapper sjsw = Utility.processQuery(insightBaseXML, checkTimeStamp);
-		sjsw.getVariables();
+		String[] names = sjsw.getVariables();
 		boolean hasTime = false;
+		List<Date> dateList = new ArrayList<Date>();
+		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 		while(sjsw.hasNext()) {
-			sjsw.next();
-			hasTime = true;
+			ISelectStatement sjss = sjsw.next();
+			Date d;
+			try {
+				d = df.parse(sjss.getVar(names[0]).toString());
+				dateList.add(d);
+				hasTime = true;
+			} catch (ParseException e) {
+				e.printStackTrace();
+			}
 		}
-		if(!hasTime) {
+		//to fix error when multiple dates were added
+		if(dateList.size() > 1) {
+			// remove all old dates
+			for(Date d : dateList) {
+				insightBaseXML.removeStatement(engineBaseURI + "/" + engineName, TIME_STAMP_URI, d, false);
+			}
+			// add new date
+			Date currentTime = Utility.getCurrentTime();
+			insightBaseXML.addStatement(engineBaseURI + "/" + engineName, TIME_STAMP_URI, currentTime, false);
+			createQuestionXMLFile(questionXMLFile, workingDir);
+		} else if(!hasTime) {
 			Date currentTime = Utility.getCurrentTime();
 			insightBaseXML.addStatement(engineBaseURI + "/" + engineName, TIME_STAMP_URI, currentTime, false);
 			createQuestionXMLFile(questionXMLFile, workingDir);
