@@ -460,4 +460,7 @@ public class Constants {
 	
 	// Auto generate queries
 	public static final String AUTO_GENERATE_INSIGHTS_FOR_ENGINE_COMBOBOX = "autoGenerateQueriesForEngineSelector";
+	
+	//Tool Panel Functions
+	public static final String MHS_FUNCTIONS = "prerna.semoss.web.services.specific.tap.";
 }

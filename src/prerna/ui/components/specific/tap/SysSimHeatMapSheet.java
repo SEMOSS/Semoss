@@ -34,6 +34,8 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 
+import org.openrdf.model.Literal;
+
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -235,10 +237,10 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		return sysSimQuery;		
 	}
 	
-	@Override
+	/*@Override
 	public Object getVariable(String varName, ISelectStatement sjss){
 		return sjss.getRawVar(varName);
-	}
+	}*/
 
 	@Override
 	public Object getData() {
@@ -324,23 +326,12 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	}
 	
 	@Override
-	public Hashtable registerControlPanelClick(Hashtable webDataHash) {
-		Gson gson = new Gson();
-		Hashtable retHash = new Hashtable();
-		if ((webDataHash.get("type")).equals("refresh")) {
-			ArrayList<String> selectedVarsList = (ArrayList<String>) webDataHash.get("selectedVars");
-			Hashtable<String, Double> specifiedWeights = gson.fromJson(gson.toJson(webDataHash.get("specifiedWeights")), new TypeToken<Hashtable<String, Double>>() {}.getType());
-			ArrayList<Hashtable<String, Hashtable<String, Double>>> calculatedHash = calculateHash(selectedVarsList, specifiedWeights);
-			ArrayList<Object[]> table = flattenData(calculatedHash, false);
-			retHash.put("data", table);
-		}
-		if ((webDataHash.get("type")).equals("popover")) {
-			ArrayList<String> categoryArray = (ArrayList<String>) webDataHash.get("categoryArray");
-			Hashtable<String, Double> thresh = gson.fromJson(gson.toJson(webDataHash.get("thresh")), new TypeToken<Hashtable<String, Double>>() {}.getType());
-			String cellKey = (String) webDataHash.get("cellKey");
-			retHash.put("barData", getSimBarChartData(cellKey, categoryArray, thresh));
-		}
-		return retHash;
+	public Object getVariable(String varName, ISelectStatement sjss){
+		Object var = sjss.getRawVar(varName);
+			if( var != null && var instanceof Literal) {
+				var = sjss.getVar(varName);
+			} 
+		return var;
 	}
 
 }
