@@ -105,13 +105,13 @@ public class EAEffectivenessPlaySheet extends GridPlaySheet {
 	}
 	
 	/**
-	 * Performs Effectiveness calculations and displays different information: 1. Activity and functional gap combination
-	 * with all parameters used in calculation, 2. Activity and G value, 3. Business Process, G value, total cost of
-	 * business process, and savings realized by effectiveness
+	 * Performs Effectiveness calculations and displays different information: 1. Activity and functional gap combination with all parameters used in
+	 * calculation, 2. Activity and G value, 3. Business Process, G value, total cost of business process, and savings realized by effectiveness
 	 */
 	@Override
 	public void runAnalytics() {
 		HashMap<String[], String[]> activityFGDelta = new HashMap<String[], String[]>();
+		HashMap<String[], String[]> bpFGActivityDelta = new HashMap<String[], String[]>();
 		HashMap<String, Double> activityDelta = new HashMap<String, Double>();
 		HashMap<String, Double> bpCosts = new HashMap<String, Double>();
 		HashMap<String, HashMap<String, Double>> yearBPCosts = new HashMap<String, HashMap<String, Double>>();
@@ -121,20 +121,26 @@ public class EAEffectivenessPlaySheet extends GridPlaySheet {
 		// for column headers
 		if (query != null) {
 			if (query.contains("Functional Gap")) {
-				names = new String[13];
+				names = new String[19];
 				names[0] = "Functional Gap";
 				names[1] = "Activity";
-				names[2] = "G";
-				names[3] = "Freq";
-				names[4] = "J";
-				names[5] = "FG DataW";
-				names[6] = "FG BLUW";
-				names[7] = "Activity DataW";
-				names[8] = "Activity BLUW";
-				names[9] = "FG Data Sum";
-				names[10] = "FG BLU Sum";
-				names[11] = "Activity Data Sum";
-				names[12] = "Activity BLU Sum";
+				names[2] = "Business Process";
+				names[3] = "Dollars Impacted";
+				names[4] = "Failure Rate";
+				names[5] = "Dollars Lost";
+				names[6] = "Improvement Factor";
+				names[7] = "Dollars Saved";
+				names[8] = "G";
+				names[9] = "Freq";
+				names[10] = "J";
+				names[11] = "FG DataW";
+				names[12] = "FG BLUW";
+				names[13] = "Activity DataW";
+				names[14] = "Activity BLUW";
+				names[15] = "FG Data Sum";
+				names[16] = "FG BLU Sum";
+				names[17] = "Activity Data Sum";
+				names[18] = "Activity BLU Sum";
 			} else if (query.contains("Activity")) {
 				names = new String[2];
 				names[0] = "Activity";
@@ -153,6 +159,15 @@ public class EAEffectivenessPlaySheet extends GridPlaySheet {
 				names[3] = "Dollars Saved";
 			}
 		}
+		for (String bp : bpFCCs.keySet()) {
+			Double bpCost = 0.0;
+			for (String[] FCC : bpFCCs.get(bp)) {
+				if (fccCosts.containsKey(FCC[0])) {
+					bpCost += (Double.parseDouble(FCC[1]) * fccCosts.get(FCC[0]));
+				}
+			}
+			bpCosts.put(bp, bpCost);
+		}
 		// Iterate through every activity that has a functional gap
 		for (String activity : activityFGMap.keySet()) {
 			for (String fg : activityFGMap.get(activity)) {
@@ -168,10 +183,24 @@ public class EAEffectivenessPlaySheet extends GridPlaySheet {
 				Double[] tempVal = { fd, id };
 				activityFGFDID.put(tempKey, tempVal);
 				// try {
+				// try {
 				String[] tempValue = { g.toString(), fgProps.get(fg)[0], fgActivityCount.get(fg), fgProps.get(fg)[1], fgProps.get(fg)[2],
 						activityDataWeight.get(activity), activityBLUWeight.get(activity), helper.fgDataSum.toString(), helper.fgBLUSum.toString(),
 						helper.activityDataSum.toString(), helper.activityBLUSum.toString() };
 				activityFGDelta.put(tempKey, tempValue);
+				if (activityBP.get(activity) != null) {
+					for (String[] bpAndWeight : activityBP.get(activity)) {
+						String[] tempFGActBPKey = { fg, activity, bpAndWeight[0] };
+						Double activityCost = bpCosts.get(bpAndWeight[0]) * Double.parseDouble(bpAndWeight[1]);
+						Double dollarsLost = activityCost * fd;
+						Double dollarsSaved = dollarsLost * id;
+						String[] tempBPValue = { activityCost.toString(), fd.toString(), dollarsLost.toString(), id.toString(),
+								dollarsSaved.toString(), g.toString(), fgProps.get(fg)[0], fgActivityCount.get(fg), fgProps.get(fg)[1],
+								fgProps.get(fg)[2], activityDataWeight.get(activity), activityBLUWeight.get(activity), helper.fgDataSum.toString(),
+								helper.fgBLUSum.toString(), helper.activityDataSum.toString(), helper.activityBLUSum.toString() };
+						bpFGActivityDelta.put(tempFGActBPKey, tempBPValue);
+					}
+				}
 				// } catch (NullPointerException e) {
 				// e.printStackTrace();
 				// Utility.showError("FError properties are missing. Please make sure all FErrors have Frequency, Dataweight, and BLUweight.");
@@ -188,20 +217,12 @@ public class EAEffectivenessPlaySheet extends GridPlaySheet {
 			tempG += Double.parseDouble(temp[0]);
 			activityDelta.put(activityFG[0], tempG);
 		}
-		for (String bp : bpFCCs.keySet()) {
-			Double bpCost = 0.0;
-			for (String[] bpFCC : bpFCCs.get(bp)) {
-				if (fccCosts.containsKey(bpFCC[0])) {
-					bpCost += Double.parseDouble(bpFCC[1]) * fccCosts.get(bpFCC[0]);
-				}
-			}
-			bpCosts.put(bp, bpCost);
-		}
+		
 		if (query.contains("Functional Gap")) {
-			for (String[] activityFG : activityFGDelta.keySet()) {
-				String[] temp = activityFGDelta.get(activityFG);
-				Object[] finalRow = { activityFG[0], activityFG[1], temp[0], temp[1], temp[2], temp[3], temp[4], temp[5], temp[6], temp[7], temp[8],
-						temp[9], temp[10] };
+			for (String[] activityFG : bpFGActivityDelta.keySet()) {
+				String[] temp = bpFGActivityDelta.get(activityFG);
+				Object[] finalRow = { activityFG[0], activityFG[1], activityFG[2], temp[0], temp[1], temp[2], temp[3], temp[4], temp[5], temp[6],
+						temp[7], temp[8], temp[9], temp[10], temp[11], temp[12], temp[13], temp[14], temp[15] };
 				list.add(finalRow);
 			}
 			// Roll up to activity level
