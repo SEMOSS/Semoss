@@ -183,7 +183,11 @@ public class SelfOrganizingMap {
 	}
 	
 	public void setGridSize(int numInstances) {
-		double x = Math.sqrt((double) numInstances / (6*5));
+		int maxInstanceSize = numInstances;
+		if(maxInstanceSize > 3000) {
+			maxInstanceSize = 3000;
+		}
+		double x = Math.sqrt((double) maxInstanceSize / (6*5));
 		height = (int) Math.round(2*x);
 		length = (int) Math.round(3*x);
 		
