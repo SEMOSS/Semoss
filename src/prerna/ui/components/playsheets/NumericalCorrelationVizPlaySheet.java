@@ -34,8 +34,6 @@ import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import com.google.gson.Gson;
-
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -140,5 +138,5 @@ public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 		}
 		new CSSApplication(getContentPane());
 	}
-
+	
 }
