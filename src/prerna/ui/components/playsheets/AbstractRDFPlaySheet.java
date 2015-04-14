@@ -75,11 +75,7 @@ public abstract class AbstractRDFPlaySheet extends JInternalFrame implements IPl
 	public void run() {
 		createView();		
 	}
-	
-	public Hashtable registerControlPanelClick(Hashtable dataHash) {
-		return dataHash;
-	};
-	
+		
 	public abstract Hashtable<String, String> getDataTableAlign();
 	
 	public Object getData(){
