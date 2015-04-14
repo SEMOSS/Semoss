@@ -144,9 +144,14 @@ public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
 	
 	@Override
 	public void setQuery(String query) {
-		String[] querySplit = query.split("\\+\\+\\+");
-		this.query = querySplit[0];
-		this.modelName = querySplit[1].trim();
+		if(query.contains("\\+\\+\\+")) {
+			String[] querySplit = query.split("\\+\\+\\+");
+			this.query = querySplit[0];
+			this.modelName = querySplit[1].trim();
+		} else {
+			this.query = query;
+			this.modelName = "J48";
+		}
 	}
 	
 	public void setModelName(String modelName) {
