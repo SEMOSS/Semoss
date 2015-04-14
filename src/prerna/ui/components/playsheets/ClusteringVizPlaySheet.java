@@ -421,7 +421,6 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	public Hashtable processQueryData() {
-		Hashtable allHash = new Hashtable();
 		ArrayList<Hashtable<String, Object>> dataList = new ArrayList<Hashtable<String, Object>>(list.size());
 		ArrayList<Hashtable<String, Object[]>> clusterInformation = new ArrayList<Hashtable<String, Object[]>>(numClusters);
 		ArrayList<ArrayList<Object[]>> storeInstanceDataInCluster = new ArrayList<ArrayList<Object[]>>();
@@ -535,10 +534,10 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 			}
 		}
 		
-		allHash.put("dataSeries", dataList);
-		allHash.put("barData", barData);
+		dataHash.put("dataSeries", dataList);
+		dataHash.put("barData", barData);
 		
-		return allHash;
+		return dataHash;
 	}
 	
 	public void updateClusterHash(Hashtable<String, Object[]> clusterHash, String propName, Object value) {
@@ -571,8 +570,13 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 			masterList = new ArrayList<Object[]>(list);
 			masterNames = names.clone();// TODO make sure this writes properly
 		}
+		runAlgorithm();
+		processQueryData();
+	}
+	
+	public void runAlgorithm() {
 		long startTime = System.currentTimeMillis();
-		
+
 		AbstractClusteringAlgorithm clusterAlg;
 		// if(type.equalsIgnoreCase("agglomerative")){
 		// clusterAlg = new AgglomerativeClusteringAlgorithm(list,names);
@@ -679,8 +683,6 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 		
 		rawDataList = new ArrayList<Object[]>(list);
 		rawDataNames = names.clone();// TODO make sure this writes properly
-		
-		dataHash = processQueryData();
 	}
 	
 	private void processQuery() {
@@ -796,4 +798,14 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 	public void setBarData(Hashtable<String, Hashtable<String, Object>>[] barData) {
 		this.barData = barData;
 	}
+
+	public void setMasterList(ArrayList<Object[]> masterList) {
+		this.masterList = masterList;
+	}
+
+	public void setMasterNames(String[] masterNames) {
+		this.masterNames = masterNames;
+	}
+	
+	
 }
