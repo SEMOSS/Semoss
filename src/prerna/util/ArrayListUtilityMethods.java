@@ -141,7 +141,29 @@ public final class ArrayListUtilityMethods {
 		return newList;
 	}
 
+	public static ArrayList<Object[]> filterList(ArrayList<Object[]> list, Boolean[] include) {
+		int size = 0;
+		for(boolean val : include) {
+			if(val) {
+				size++;
+			}
+		}
 
+		ArrayList<Object[]> newList = new ArrayList<Object[]>();
+		for(Object[] row : list) {
+			Object[] newRow = new Object[size];
+			int nextIndex=0;
+			for(int i=0;i<row.length;i++) {
+				if(include[i]) {
+					newRow[nextIndex]=row[i];
+					nextIndex++;
+				}
+			}
+			newList.add(newRow);
+		}
+		return newList;
+	}
+	
 	public static ArrayList<Object[]> orderQuery(ArrayList<Object[]> queryResults){
 		ArrayList<Object[]> sortedQuery = new ArrayList<Object[]>();
 		ArrayList<String> sortingList = new ArrayList<String>();
