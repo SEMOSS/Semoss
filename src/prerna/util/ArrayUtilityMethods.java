@@ -36,6 +36,25 @@ public final class ArrayUtilityMethods {
 	private ArrayUtilityMethods() {
 
 	}
+	
+	public static String[] filterArray(String[] arr, Boolean[] include) {
+		int size = 0;
+		for(boolean val : include) {
+			if(val) {
+				size++;
+			}
+		}
+
+		String[] newNames = new String[size];
+		int nextIndex=0;
+		for(int i=0;i<arr.length;i++) {
+			if(include[i]) {
+				newNames[nextIndex]=arr[i];
+				nextIndex++;
+			}
+		}
+		return newNames;
+	}
 
 	public static int calculateIndexOfArray(final String[] arr, final String value) {
 		if(arr == null) {
@@ -66,6 +85,22 @@ public final class ArrayUtilityMethods {
 		return false;
 	}
 
+	// return -1 if no match found
+	public static int arrayContainsValueAtIndex(final Object[] arr, final Object value) {
+		if(arr == null) {
+			throw new NullPointerException(ERROR);
+		}
+
+		int size = arr.length;
+		int index;
+		for(index = 0; index < size; index++) {
+			if(arr[index] != null && arr[index] == value) {
+				return index;
+			}
+		}
+		return -1;
+	}
+	
 	public static boolean arrayContainsValue(final String[] arr, final String value) {
 		if(arr == null) {
 			throw new NullPointerException(ERROR);

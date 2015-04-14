@@ -88,9 +88,8 @@ public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
 
 		String root = engine.getEngineName();
 		
-		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
-		allHash.put("name", root);
-		allHash.put("children", hashSet);
+		dataHash.put("name", root);
+		dataHash.put("children", hashSet);
 		
 		DecimalFormat df = new DecimalFormat("#%");
 		ArrayList<Hashtable<String, Object>> statList = new ArrayList<Hashtable<String, Object>>();
@@ -100,9 +99,9 @@ public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
 		statHash = new Hashtable<String, Object>();
 		statHash.put("Precision", df.format(alg.getPrecision()/100));
 		statList.add(statHash);
-		allHash.put("stats", statList);
+		dataHash.put("stats", statList);
 		
-		return allHash;
+		return dataHash;
 	}
 	
 	private void generateData() {
