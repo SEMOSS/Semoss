@@ -148,7 +148,7 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 			correlations[i] = correlationArray[i][numVariables - 1];
 		}
 
-		Hashtable dataHash = new Hashtable();
+		dataHash = new Hashtable();
 		dataHash.put("one-row",true);
 		dataHash.put("id",id);
 		dataHash.put("names", names);

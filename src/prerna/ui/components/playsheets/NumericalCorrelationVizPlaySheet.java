@@ -105,7 +105,7 @@ public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 			}
 		}
 				
-		Hashtable dataHash = new Hashtable();
+		dataHash = new Hashtable();
 		dataHash.put("one-row",false);
 		dataHash.put("id",id);
 		dataHash.put("names", names);
