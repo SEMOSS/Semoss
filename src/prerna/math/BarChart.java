@@ -386,14 +386,14 @@ public class BarChart {
 			}
 		}
 		
-		Double min = StatisticsUtilityMethods.getMinimumValueIgnoringNull(logValues);
-		Double max = StatisticsUtilityMethods.getMaximumValueIgnoringNull(logValues);
-		double range = max - min;
-		double binSize = Math.log10(1+max)/Math.pow(numOccurances, (double) 1/3);
+		Double minLog = StatisticsUtilityMethods.getMinimumValueIgnoringNull(logValues);
+		Double maxLog = StatisticsUtilityMethods.getMaximumValueIgnoringNull(logValues);
+		double range = maxLog - minLog;
+		double binSize = Math.log10(1+maxLog)/Math.pow(numOccurances, (double) 1/3);
 		int numBins = (int) Math.ceil(range/binSize);
 
-		createBins(numBins, binSize, min, max, unsortedValues, numValues, true);
-		allocateValuesToBin(min, numBins, binSize, unsortedValues, numValues);
+		createBins(numBins, binSize, unsortedValues, numValues, true);
+		allocateValuesToBin(minLog, numBins, binSize, unsortedValues, numValues);
 	}
 		
 	public void calculateFreedmanDiaconisBins(Double[] numValues, Double[] unsortedValues){
@@ -408,7 +408,7 @@ public class BarChart {
 			double binSize = 2 * iqr * Math.pow(numOccurances, -1.0/3.0);
 			int numBins = (int) Math.ceil(range/binSize);
 
-			createBins(numBins, binSize, min, max, unsortedValues, numValues, false);
+			createBins(numBins, binSize, unsortedValues, numValues, false);
 			allocateValuesToBin(min, numBins, binSize, unsortedValues, numValues);
 		}
 	}
@@ -536,7 +536,9 @@ public class BarChart {
 		}
 	}
 	
-	private void createBins(int numBins, double binSize, double min, double max, Double[] unsortedValues, Double[] numValues, boolean log) {
+	private void createBins(int numBins, double binSize, Double[] unsortedValues, Double[] numValues, boolean log) {
+		Double min = StatisticsUtilityMethods.getMinimumValueIgnoringNull(numValues);
+		Double max = StatisticsUtilityMethods.getMinimumValueIgnoringNull(numValues);
 		numericalBinOrder = new String[numBins];
 		int i = 0;
 		// create all bins
