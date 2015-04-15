@@ -507,23 +507,31 @@ public class BarChart {
 		int i = 0;
 		// create all bins
 		if(log) {
-			double maxBinSize = binSize * numBins;
-			NumberFormat formatter = determineFormatter(min, max, maxBinSize);
-			double start = 0;
+			double startLog = 0;
 			if(min < 0) {
-				start = Math.log10(-1*min + 1);
+				startLog = Math.log10(-1*min + 1);
 			} else {
-				start = Math.log10(min + 1);
+				startLog = Math.log10(min + 1);
 			}
-			double end = start + binSize;
+			double endLog = startLog + binSize;
+			
+			double maxBinSize = Math.pow(10, startLog + binSize * (numBins-1)) - 1;
+			NumberFormat formatter = determineFormatter(min, max, maxBinSize);
+			
+			double start = min;
+			double end = Math.pow(10, endLog) - 1;
+			
 			for(;i < numBins; i++) {	
 				String bin = formatter.format(start) + "  -  " + formatter.format(end);
 				numericalBinOrder[i] = bin;
 
-				start = Math.pow(10, start + binSize) - 1;
-				end = Math.pow(10, end + binSize) - 1;
+				startLog += binSize;
+				endLog += binSize;
+				
+				start = Math.pow(10, startLog) - 1;
+				end = Math.pow(10, endLog) - 1;
 			}
-		}  else {
+		} else {
 			NumberFormat formatter = determineFormatter(min, max, binSize);
 			double start = min;
 			double end = min + binSize;
