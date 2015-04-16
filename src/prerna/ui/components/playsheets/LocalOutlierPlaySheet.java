@@ -28,14 +28,10 @@
 package prerna.ui.components.playsheets;
 
 import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.beans.PropertyVetoException;
 import java.util.ArrayList;
 
 import javax.swing.JComponent;
-import javax.swing.JMenuItem;
 import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
@@ -46,43 +42,42 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.learning.unsupervised.clustering.LocalOutlierFactorAlgorithm;
 import prerna.rdf.engine.api.ISelectStatement;
+import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.NewScrollBarUI;
-import prerna.ui.main.listener.impl.GridPlaySheetListener;
-import prerna.ui.main.listener.impl.JTableExcelExportListener;
 
 public class LocalOutlierPlaySheet extends GridPlaySheet {
-	
+
 	private ArrayList<Object[]> masterList;
 	private String[] masterNames;
-	
+
 	private double[] lop;
 	private double[] lrd;
 	private double[] lof;
-	
+
 	private static final Logger LOGGER = LogManager.getLogger(LocalOutlierPlaySheet.class.getName());
 	protected JTabbedPane jTab;
 	private int k;
-	
+
 	@Override
 	public void createData() {
 		if (list == null || list.isEmpty())
 			super.createData();
 	}
-	
+
 	@Override
 	public void runAnalytics() {
 		LocalOutlierFactorAlgorithm alg = new LocalOutlierFactorAlgorithm(list, names);
 		alg.setK(k);
 		alg.execute();
-		
+
 		list = alg.getMasterTable();
 		names = alg.getNames();
-		
+
 		lrd = alg.getLrd();
 		lof = alg.getLof();
 		// double[] zScore = alg.getZScore();
 		lop = alg.getLop();
-		
+
 		if (masterNames != null) {
 			// asterisk the columns that have not been included in analysis
 			String[] asteriskMasterNames = new String[masterNames.length];
@@ -105,7 +100,7 @@ public class LocalOutlierPlaySheet extends GridPlaySheet {
 			list = masterList;
 			names = asteriskMasterNames;
 		}
-		
+
 		ArrayList<Object[]> newList = new ArrayList<Object[]>();
 		int numRows = list.size();
 		int numCols = names.length;
@@ -139,7 +134,7 @@ public class LocalOutlierPlaySheet extends GridPlaySheet {
 			newList.add(newRow);
 		}
 		list = newList;
-		
+
 		String[] newNames = new String[newNumCols];
 		for (i = 0; i <= numCols; i++) {
 			if (i == numCols) {
@@ -152,7 +147,7 @@ public class LocalOutlierPlaySheet extends GridPlaySheet {
 		}
 		names = newNames;
 	}
-	
+
 	@Override
 	public void addPanel() {
 		if (jTab == null) {
@@ -166,50 +161,15 @@ public class LocalOutlierPlaySheet extends GridPlaySheet {
 			addPanelAsTab(count + ". Outliers Raw Data");
 		}
 	}
-	
+
 	public void addPanelAsTab(String tabName) {
-		// setWindow();
-		try {
-			table = new JTable();
-			
-			// Add Excel export popup menu and menuitem
-			JPopupMenu popupMenu = new JPopupMenu();
-			JMenuItem menuItemAdd = new JMenuItem("Export to Excel");
-			String questionTitle = this.getTitle();
-			menuItemAdd.addActionListener(new JTableExcelExportListener(table, questionTitle));
-			popupMenu.add(menuItemAdd);
-			table.setComponentPopupMenu(popupMenu);
-			
-			GridPlaySheetListener gridPSListener = new GridPlaySheetListener();
-			LOGGER.debug("Created the table");
-			this.addInternalFrameListener(gridPSListener);
-			LOGGER.debug("Added the internal frame listener ");
-			// table.setAutoCreateRowSorter(true);
-			
-			JPanel panel = new JPanel();
-			panel.add(table);
-			GridBagLayout gbl_mainPanel = new GridBagLayout();
-			gbl_mainPanel.columnWidths = new int[] { 0, 0 };
-			gbl_mainPanel.rowHeights = new int[] { 0, 0 };
-			gbl_mainPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
-			gbl_mainPanel.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
-			panel.setLayout(gbl_mainPanel);
-			
-			addScrollPanel(panel, table);
-			
-			jTab.addTab(tabName, panel);
-			
-			this.pack();
-			this.setVisible(true);
-			this.setSelected(false);
-			this.setSelected(true);
-			LOGGER.debug("Added new Outlier Sheet");
-			
-		} catch (PropertyVetoException e) {
-			e.printStackTrace();
-		}
+		table = new JTable();
+		GridScrollPane gsp = null;
+		gsp = new GridScrollPane(names, list);
+		gsp.addHorizontalScroll();
+		jTab.addTab(tabName, gsp);
 	}
-	
+
 	@Override
 	public void setQuery(String query) {
 		if (query.matches(".*\\+\\+\\+[0-9]+")) {
@@ -220,64 +180,64 @@ public class LocalOutlierPlaySheet extends GridPlaySheet {
 			this.query = query;
 		}
 	}
-	
+
 	@Override
 	public Object getVariable(String varName, ISelectStatement sjss) {
 		return sjss.getVar(varName);
 	}
-	
+
 	public void setMasterList(ArrayList<Object[]> masterList) {
 		this.masterList = masterList;
 	}
-	
+
 	public void setMasterNames(String[] masterNames) {
 		this.masterNames = masterNames;
 	}
-	
+
 	public void setJTab(JTabbedPane jTab) {
 		this.jTab = jTab;
 	}
-	
+
 	public void setJBar(JProgressBar jBar) {
 		this.jBar = jBar;
 	}
-	
+
 	public void setKNeighbors(int k) {
 		this.k = k;
 	}
-	
+
 	public void addScrollPanel(JPanel panel, JComponent obj) {
 		JScrollPane scrollPane = new JScrollPane(obj);
 		scrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
 		scrollPane.setAutoscrolls(true);
-		
+
 		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
 		gbc_scrollPane.fill = GridBagConstraints.BOTH;
 		gbc_scrollPane.gridx = 0;
 		gbc_scrollPane.gridy = 0;
 		panel.add(scrollPane, gbc_scrollPane);
 	}
-	
+
 	public double[] getLop() {
 		return lop;
 	}
-	
+
 	public void setLop(double[] lop) {
 		this.lop = lop;
 	}
-	
+
 	public double[] getLrd() {
 		return lrd;
 	}
-	
+
 	public void setLrd(double[] lrd) {
 		this.lrd = lrd;
 	}
-	
+
 	public double[] getLof() {
 		return lof;
 	}
-	
+
 	public void setLof(double[] lof) {
 		this.lof = lof;
 	}
