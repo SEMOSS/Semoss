@@ -90,10 +90,6 @@ public class ClusteringAlgorithm extends AbstractClusteringAlgorithm implements 
 	 */
 	@Override
 	public boolean execute() throws IllegalArgumentException {
-		if(numClusters > numInstances) {
-			return success = false;
-		}
-		
 		setAlgorithmVariables();
 		
 		boolean noChange = false;
