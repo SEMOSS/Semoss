@@ -20,7 +20,7 @@
     <script src="lib/lodash.min.js"></script>
     <script src="lib/lodash.math.js"></script>
     <!-- // <script src="js/directives/scatter-plot-matrix.js"></script> -->
-    <!--<script src="data/scatterdata.js"></script>-->
+    <!-- // <script src="data/scatterdata.js"></script> -->
     <script src="data/scatterdatanew.js"></script>
     <script src="js/filters.js"></script>
     <script src="js/utilityService.js"></script>
@@ -513,7 +513,7 @@ function start(dataSeries) {
                 if (!_.isEmpty(scope.data)) {
                     var names = angular.copy(scope.data.names);
                 //     if (names.length < 6 ){
-                        names.unshift(scope.data.id);
+                //         names.unshift(scope.data.id);
                 //     }
                     scope.tableData = utilityService.formatTableData(names, scope.data.dataSeries);
                     fullTableData = angular.copy(scope.tableData);
@@ -586,11 +586,13 @@ function start(dataSeries) {
 
                 keys = [];
                 for (var i in cleanedNames) {
-                    if (cleanedNames[i] !== "group") {
+                    // alert(cleanedNames)
+                    if (cleanedNames[i] !== "group" || cleanedNames[i] === "Title") {
                         keys.push(cleanedNames[i])
                     }
                 }
                 n = keys.length;
+                // alert(cleanedNames)
 
 
                 if (oneRow) {
@@ -744,7 +746,9 @@ function start(dataSeries) {
                     .attr("y", padding / 2)
                     .append("xhtml:div")
                     .html(function(d) {
+                        // if (d.x !== "Title"){
                         return "<div style='width:" + (size - padding) + "px;height:" + (size - padding) + "px'><span>" + d.x + "</span></div>";
+                    // }
                     });
 
                 //Brushing for non-Diagonals
@@ -1105,7 +1109,7 @@ function start(dataSeries) {
 start();
 // setTimeout(function(){ start(); }, 1000);
 // start(scatterData);
-//start(scatterDataNewOne);
+// start(scatterDataNewOne);
 // setTimeout(function(){ start(scatterDataNewAll); }, 1000);
 
 </script>
