@@ -216,9 +216,14 @@ public class ClusterRemoveDuplicates {
 			int retIndex = newCategoricalCols + 1;
 			HashMap<String, HashMap<String, Double>> innerHash = numericPropForInstance.get(newRow[0].toString());
 			for(j = 0; j < newNumericCols; j++) {
-				double val = innerHash.get(numericPropNames[j]).get("value") / innerHash.get(numericPropNames[j]).get("count");
-				newRow[retIndex] = val;
-				retIndex++;
+				if(innerHash.containsKey((numericPropNames[j]))) {
+					double val = innerHash.get(numericPropNames[j]).get("value") / innerHash.get(numericPropNames[j]).get("count");
+					newRow[retIndex] = val;
+					retIndex++;
+				} else {
+					newRow[retIndex] = "";
+					retIndex++;
+				}
 			}
 		}
 	}		
