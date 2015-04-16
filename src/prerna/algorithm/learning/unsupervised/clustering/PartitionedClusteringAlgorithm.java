@@ -132,7 +132,8 @@ public class PartitionedClusteringAlgorithm extends ClusteringAlgorithm {
 		ArrayList<Thread> threads = new ArrayList<Thread>();
 		int i = 0;
 		synchronized(processingQueue) {
-			for(; i < numInstances; i += partitionSize) {
+			boolean finishData = false;
+			for(; i < numInstances && !finishData; i += partitionSize) {
 				LOGGER.info("Staring data processing for " + i);
 
 				AbstractClusteringAlgorithm partitionedAlg = new ClusteringAlgorithm();
@@ -146,6 +147,7 @@ public class PartitionedClusteringAlgorithm extends ClusteringAlgorithm {
 				int val = i + partitionSize;
 				// determine if last portion will not split evenly and add to last partition
 				if(val != numInstances && val + partitionSize > numInstances && (val + partitionSize)%numInstances != 0) {
+					finishData = true;
 					val = numInstances;
 					partitionNumInstances = numInstances - i;
 				}
