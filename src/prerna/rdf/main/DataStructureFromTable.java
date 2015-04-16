@@ -4,7 +4,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.Hashtable;
 
@@ -14,12 +13,14 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import prerna.algorithm.learning.similarity.GenerateEntropyDensity;
+import prerna.algorithm.impl.AlgorithmDataFormatter;
+import prerna.math.CalculateEntropy;
 
 public class DataStructureFromTable {
 
 	private static ArrayList<Object[]> table = new ArrayList<Object[]>();
 	private static String[] headers;
+	private static String[] columnTypes;
 
 	public static void main(String[] args) {
 
@@ -29,14 +30,15 @@ public class DataStructureFromTable {
 		///////////////////////////////////////////////////
 
 		readExcelFile(loc);
+		//		GenerateEntropyDensity eDensity = new GenerateEntropyDensity(table,true);
+		//		double[] entropyArr = eDensity.generateEntropy();
+		//		String[] columnTypes = eDensity.getColumnTypes();
 
-		GenerateEntropyDensity eDensity = new GenerateEntropyDensity(table,true);
-		double[] entropyArr = eDensity.generateEntropy();
-		String[] columnTypes = eDensity.getColumnTypes();
-		
-		System.out.println(Arrays.toString(headers));
-		System.out.println(Arrays.toString(entropyArr));
-		
+		int[] uniqueCounts = getUniqueCounts(table);
+
+//		System.out.println(Arrays.toString(headers));
+//		System.out.println(Arrays.toString(uniqueCounts));
+
 		int i = 0;
 		int numCol = headers.length;
 		int[] indexFromMaxToMin = new int[numCol];
@@ -48,28 +50,28 @@ public class DataStructureFromTable {
 			change = false;
 			i = 0;
 			for(; i < numCol-1; i++) {
-				if(entropyArr[i] < entropyArr[i+1]) {
+				if(uniqueCounts[i] > uniqueCounts[i+1]) {
 					change = true;
-					double valTemp = entropyArr[i];
-					entropyArr[i] = entropyArr[i+1];
-					entropyArr[i+1] = valTemp;
-					
+					int valTemp = uniqueCounts[i];
+					uniqueCounts[i] = uniqueCounts[i+1];
+					uniqueCounts[i+1] = valTemp;
+
 					int indexTemp = indexFromMaxToMin[i];
 					indexFromMaxToMin[i] = indexFromMaxToMin[i+1];
 					indexFromMaxToMin[i+1] = indexTemp;
 				}
 			}
 		}
-		
-		System.out.println(Arrays.toString(entropyArr));
-		for(i = 0; i < numCol; i++) {
-			System.out.print(headers[indexFromMaxToMin[i]] + ", ");
-		}
-		System.out.println("");
+
+//		System.out.println(Arrays.toString(uniqueCounts));
+//		for(i = 0; i < numCol; i++) {
+//			System.out.print(headers[indexFromMaxToMin[i]] + ", ");
+//		}
+//		System.out.println("");
 
 		boolean[] usedCol = new boolean[numCol];
 		Hashtable<String, ArrayList<String>> matches = new Hashtable<String, ArrayList<String>>();
-		
+
 		i = 0;
 		for(; i < numCol; i++) {
 			//ignore numerical values
@@ -80,27 +82,70 @@ public class DataStructureFromTable {
 			for(; j < numCol; j++) {
 				if(i != j && !usedCol[j]) {
 					if(compareCols(indexFromMaxToMin[i],indexFromMaxToMin[j])) {
-						if(matches.containsKey(headers[indexFromMaxToMin[i]])) {
-							matches.get(headers[indexFromMaxToMin[i]]).add(headers[indexFromMaxToMin[j]]);
-						} else {
-							ArrayList<String> list = new ArrayList<String>();
-							list.add(headers[indexFromMaxToMin[j]]);
-							matches.put(headers[indexFromMaxToMin[i]], list);
+						boolean useInverse = false;
+						if(compareCols(indexFromMaxToMin[j],indexFromMaxToMin[i])) {
+							if(i > j) {
+								useInverse = true;
+								// if inverse also works, take the value from the most left as the concept
+								if(matches.containsKey(headers[indexFromMaxToMin[j]])) {
+									matches.get(headers[indexFromMaxToMin[j]]).add(headers[indexFromMaxToMin[i]]);
+								} else {
+									ArrayList<String> list = new ArrayList<String>();
+									list.add(headers[indexFromMaxToMin[i]]);
+									matches.put(headers[indexFromMaxToMin[j]], list);
+								}
+							}
+							usedCol[i] = true;
 						}
-						usedCol[j] = true;
+						if(!useInverse) {
+							if(matches.containsKey(headers[indexFromMaxToMin[i]])) {
+								matches.get(headers[indexFromMaxToMin[i]]).add(headers[indexFromMaxToMin[j]]);
+							} else {
+								ArrayList<String> list = new ArrayList<String>();
+								list.add(headers[indexFromMaxToMin[j]]);
+								matches.put(headers[indexFromMaxToMin[i]], list);
+							}
+							usedCol[j] = true;
+						}
+						
 					}
 				}
 			}
 		}
 		
+		i = 0;
+		for(; i < numCol; i++) {
+			if(!matches.containsKey(headers[i]) && !usedCol[i]) {
+				matches.put(headers[i], new ArrayList<String>());
+			}
+		}
+
 		System.out.println(matches);
 	}
+
+	private static int[] getUniqueCounts(ArrayList<Object[]> data) {
+		Object[][] newData = AlgorithmDataFormatter.manipulateValues(data, true);
+		columnTypes = AlgorithmDataFormatter.determineColumnTypes(data);
 	
+
+		int i = 0;
+		int numRow = newData.length;
+		int[] uniqueCounts = new int[numRow];
+		for(; i < numRow; i++) {
+			CalculateEntropy e = new CalculateEntropy();
+			e.setDataArr(newData[i]);
+			e.addDataToCountHash();
+			uniqueCounts[i] = 	e.getCountHash().keySet().size();
+		}
+
+		return uniqueCounts;	
+	}
+
 	public static boolean compareCols(int mainCol, int otherCol) {
 		Hashtable<String, String> values = new Hashtable<String, String>();
 		int i = 0;
 		int size = table.size();
-		
+
 		for(; i < size; i++) {
 			Object[] row = table.get(i);
 			String val1 = row[mainCol].toString();
@@ -113,7 +158,7 @@ public class DataStructureFromTable {
 				values.put(val1, val2);
 			}
 		}
-		
+
 		return true;
 	}
 
