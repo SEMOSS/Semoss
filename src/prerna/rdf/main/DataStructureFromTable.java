@@ -84,7 +84,7 @@ public class DataStructureFromTable {
 				if(i != j) {
 					if(compareCols(indexFromMaxToMin[i],indexFromMaxToMin[j]) && !usedCol[indexFromMaxToMin[j]]) {
 						boolean useInverse = false;
-						if(compareCols(indexFromMaxToMin[j],indexFromMaxToMin[i])) {
+						if(compareCols(indexFromMaxToMin[j],indexFromMaxToMin[i]) && !usedCol[indexFromMaxToMin[i]]) {
 							if(i > j) {
 								useInverse = true;
 								// if inverse also works, take the value from the most left as the concept
