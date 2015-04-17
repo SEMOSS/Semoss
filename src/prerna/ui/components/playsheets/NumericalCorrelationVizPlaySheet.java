@@ -98,10 +98,11 @@ public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 			}
 		}
 
-		Object[][] correlations = new Object[numVariables][numVariables];
+		// reversing values since it is being painted by JS in reverse order
+		double[][] correlations = new double[numVariables][numVariables];
 		for(i = 0; i<numVariables; i++) {
 			for(j = 0; j<numVariables; j++) {
-				correlations[i][j] = correlationArray[i][j];
+				correlations[numVariables-i-1][numVariables-j-1] = correlationArray[i][j];
 			}
 		}
 				
