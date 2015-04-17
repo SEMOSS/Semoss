@@ -69,7 +69,6 @@ public class DataStructureFromTable {
 //		}
 //		System.out.println("");
 
-		boolean[] usedCol = new boolean[numCol];
 		Hashtable<String, ArrayList<String>> matches = new Hashtable<String, ArrayList<String>>();
 
 		i = 0;
@@ -80,7 +79,7 @@ public class DataStructureFromTable {
 			}
 			int j = 0;
 			for(; j < numCol; j++) {
-				if(i != j && !usedCol[j]) {
+				if(i != j) {
 					if(compareCols(indexFromMaxToMin[i],indexFromMaxToMin[j])) {
 						boolean useInverse = false;
 						if(compareCols(indexFromMaxToMin[j],indexFromMaxToMin[i])) {
@@ -95,7 +94,6 @@ public class DataStructureFromTable {
 									matches.put(headers[indexFromMaxToMin[j]], list);
 								}
 							}
-							usedCol[i] = true;
 						}
 						if(!useInverse) {
 							if(matches.containsKey(headers[indexFromMaxToMin[i]])) {
@@ -105,7 +103,6 @@ public class DataStructureFromTable {
 								list.add(headers[indexFromMaxToMin[j]]);
 								matches.put(headers[indexFromMaxToMin[i]], list);
 							}
-							usedCol[j] = true;
 						}
 						
 					}
@@ -115,7 +112,7 @@ public class DataStructureFromTable {
 		
 		i = 0;
 		for(; i < numCol; i++) {
-			if(!matches.containsKey(headers[i]) && !usedCol[i]) {
+			if(!matches.containsKey(headers[i])) {
 				matches.put(headers[i], new ArrayList<String>());
 			}
 		}
