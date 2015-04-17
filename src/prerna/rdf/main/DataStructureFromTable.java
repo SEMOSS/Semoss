@@ -26,7 +26,7 @@ public class DataStructureFromTable {
 
 		///////////////////////////////////////////////////
 		//TODO: change to correct file location when testing
-//		String loc = "C:\\Users\\mahkhalil\\Desktop\\ConstructingDataStructure.xlsx";
+//		String loc = "C:\\Users\\mahkhalil\\Desktop\\ConstructingDataStructure_2.xlsx";
 		String loc = "C:\\Users\\mahkhalil\\Desktop\\FY16 BTA List.xlsx";
 		///////////////////////////////////////////////////
 
@@ -115,7 +115,7 @@ public class DataStructureFromTable {
 		}
 		
 		i = 0;
-		for(; i < numCol; i++) {
+		for(; i < numCol && !usedCol[indexFromMaxToMin[i]]; i++) {
 			if(!matches.containsKey(headers[i])) {
 				matches.put(headers[i], new ArrayList<String>());
 			}
@@ -178,6 +178,8 @@ public class DataStructureFromTable {
 			for(; i < numCol; i++) {
 				if(headerRow.getCell(i) != null) {
 					headers[i] = headerRow.getCell(i).getStringCellValue();
+				} else {
+					headers[i] = "FIX NO NAME COLUMN";
 				}
 			}
 
@@ -205,6 +207,8 @@ public class DataStructureFromTable {
 							} else {
 								row[j] = "";
 							}
+						} else {
+							row[j] = "";
 						}
 					}
 					table.add(row);
