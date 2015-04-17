@@ -26,8 +26,8 @@ public class DataStructureFromTable {
 
 		///////////////////////////////////////////////////
 		//TODO: change to correct file location when testing
-//		String loc = "C:\\Users\\mahkhalil\\Desktop\\ConstructingDataStructure_2.xlsx";
-		String loc = "C:\\Users\\mahkhalil\\Desktop\\FY16 BTA List.xlsx";
+		String loc = "C:\\Users\\mahkhalil\\Desktop\\ConstructingDataStructure_3.xlsx";
+//		String loc = "C:\\Users\\mahkhalil\\Desktop\\FY16 BTA List.xlsx";
 		///////////////////////////////////////////////////
 
 		readExcelFile(loc);
@@ -81,8 +81,8 @@ public class DataStructureFromTable {
 			}
 			int j = 0;
 			for(; j < numCol; j++) {
-				if(i != j && !usedCol[indexFromMaxToMin[j]]) {
-					if(compareCols(indexFromMaxToMin[i],indexFromMaxToMin[j])) {
+				if(i != j) {
+					if(compareCols(indexFromMaxToMin[i],indexFromMaxToMin[j]) && !usedCol[indexFromMaxToMin[j]]) {
 						boolean useInverse = false;
 						if(compareCols(indexFromMaxToMin[j],indexFromMaxToMin[i])) {
 							if(i > j) {
@@ -95,8 +95,8 @@ public class DataStructureFromTable {
 									list.add(headers[indexFromMaxToMin[i]]);
 									matches.put(headers[indexFromMaxToMin[j]], list);
 								}
+								usedCol[indexFromMaxToMin[i]] = true;
 							}
-							usedCol[indexFromMaxToMin[i]] = true;
 						}
 						if(!useInverse) {
 							if(matches.containsKey(headers[indexFromMaxToMin[i]])) {
@@ -108,14 +108,13 @@ public class DataStructureFromTable {
 							}
 							usedCol[indexFromMaxToMin[j]] = true;
 						}
-						
 					}
 				}
 			}
 		}
 		
 		i = 0;
-		for(; i < numCol && !usedCol[indexFromMaxToMin[i]]; i++) {
+		for(; i < numCol && !usedCol[i]; i++) {
 			if(!matches.containsKey(headers[i])) {
 				matches.put(headers[i], new ArrayList<String>());
 			}
