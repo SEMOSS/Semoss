@@ -398,9 +398,12 @@ public class RDBMSReader {
 			columns = availableTableColumns.keys();
 			while(columns.hasMoreElements()){
 				columnName = (String)columns.nextElement();
-				if(fullColumnNameList.length()!=0) 
-					fullColumnNameList += " , ";
-				fullColumnNameList += columnName;
+				if(fullColumnNameList.length()==0 ) { 
+					fullColumnNameList += tableName; //put the table name column first
+				} 
+				if(!columnName.equals(tableName) && fullColumnNameList.length()!=0) {
+					fullColumnNameList += " , " + columnName;
+				} 
 				
 				if(columnName.equals(tableName) || columnName.endsWith("_FK")){
 					if(indexColumnNameList.length()!=0) 
@@ -421,8 +424,9 @@ public class RDBMSReader {
 			
 			//do this duplicates removal for only the tables that were modified
 			if(tableAltered){
-				//create new temporary table that has ONLY distinct values
-				createTable = "CREATE TABLE "+ tableName + "_TEMP AS (SELECT DISTINCT " + fullColumnNameList + " FROM " + tableName+" )";
+				//create new temporary table that has ONLY distinct values, also make sure you are removing those null values from the PK column
+				createTable = "CREATE TABLE "+ tableName + "_TEMP AS (SELECT DISTINCT " + fullColumnNameList + " FROM " + tableName+" WHERE " + tableName 
+							+ " IS NOT NULL AND TRIM(" + tableName + ") <> '' )";
 				singleDBModTransaction(createTable);
 				
 				//check that the temp table was created before dropping the table.
@@ -440,6 +444,7 @@ public class RDBMSReader {
 				//rename our temporary table to the new table name
 				alterTableName = "ALTER TABLE " + tableName + "_TEMP RENAME TO " + tableName;
 				singleDBModTransaction(alterTableName);
+				commitDB();
 			}
 			
 			//create indexs for ALL tables since we deleted all indexes before
@@ -508,9 +513,9 @@ public class RDBMSReader {
 		
 		Properties prop = new Properties();
 		String genericQueries = "";
-		for(int tableIndex = 0;tableIndex < tables.size();tableIndex++)
+		for(int tableIndex = 0;tableIndex < allTables.size();tableIndex++)
 		{
-			String key = tables.elementAt(tableIndex);
+			String key = allTables.elementAt(tableIndex);
 			key = realClean(key);
 			if(tableIndex == 0)
 				genericQueries = genericQueries + "GQ" + tableIndex;
@@ -525,7 +530,7 @@ public class RDBMSReader {
 		
 		try {
 			File file = new File(fileName);
-			FileOutputStream fo = new FileOutputStream(file,true);
+			FileOutputStream fo = new FileOutputStream(file);
 			prop.store(fo, "Questions for RDBMS");
 			fo.close();
 		} catch (FileNotFoundException e) {
@@ -1095,13 +1100,14 @@ public class RDBMSReader {
 		Hashtable availableTableColumns = availableTables.get(table.toUpperCase());
 		Hashtable newColumnsHash = tableHash.get(table);
 		//Hashtable newColumnsHashUpper = null;
-		String upper = "";
+		String upper = table.toUpperCase()+",";
 		
 		//convert all newColumnsHash values to upper case 
 		Enumeration <String> newColumnKeys = newColumnsHash.keys();
 		while(newColumnKeys.hasMoreElements()){
 			upper += newColumnKeys.nextElement().toUpperCase() +",";
 		}
+		
 		
 		//check each column in the availableTableColumns to see if the new columnHash has a new column
 		newColumnKeys = newColumnsHash.keys();
