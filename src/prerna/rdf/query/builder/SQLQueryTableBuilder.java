@@ -43,7 +43,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	ArrayList<Hashtable<String,String>> predV = new ArrayList<Hashtable<String,String>>();
 	ArrayList<Hashtable<String,String>> nodePropV = new ArrayList<Hashtable<String,String>>();
 	String variableSequence = "";
-	int limit = 5000;
+	int limit = 500;
 	int limitFilter = 10000;
 	
 	Hashtable <String,ArrayList<String>> tableHash = new Hashtable <String,ArrayList<String>>(); // contains the processed node name / table name and the properties
@@ -74,7 +74,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		// now that this is done
 		if(joins.length() > 0)
 			joins = " WHERE " + joins;
-		query = "SELECT " + selectors + "  FROM  " + froms + joins + " LIMIT " + limit ;
+		query = "SELECT DISTINCT " + selectors + "  FROM  " + froms + joins + " LIMIT " + limit ;
 
 	}
 	
@@ -156,6 +156,12 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			}
 			
 			String join = getAlias(fromTable) + "." + fromColumn + "=" + getAlias(toTable) + "." + toColumn;
+
+			
+			//String join = "( " + getAlias(fromTable) + "." + fromColumn + "=" + getAlias(toTable) + "." + toColumn;
+			//join += " OR " + getAlias(fromTable) + "." + fromColumn + " IS NULL ";
+			//join += " OR " + getAlias(toTable) + "." + toColumn + " IS NULL ) ";
+
 			if(joins.length() > 0)
 				joins = joins + " AND " + join;
 			else
@@ -357,12 +363,28 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		retArray.addAll(nodePropV);
 		
 		Hashtable <String,Hashtable<String,String>> sequencer = new Hashtable <String, Hashtable<String,String>>();
-		
 		// add the filter queries
 		// each list looks like this
 		// Prop looks like this SelectedNodeProps=[{SubjectVar=Title, uriKey=TITLE, varKey=Title__TITLE}
 		// node looks like a prop except it has no varKey I am told
 		// i need a way to align this back to what I am spitting out upfront
+		
+		String tempjoins = joins;
+		//if its already built, skip ahead
+		if(!tempjoins.contains("WHERE")){
+			if(joins.length() > 0 && filters.length() > 0)
+				tempjoins = joins + " AND " + filters;
+			else if(filters.length() > 0)
+				tempjoins = filters;
+			
+			// now that this is done
+			if(tempjoins.length() > 0)
+				tempjoins = " WHERE " + tempjoins;
+		}
+		
+		//we need to encode the equals signs, for when json sends the qry back over
+		tempjoins = tempjoins.replaceAll("=", "%3D");
+		
 		for(Hashtable<String, String> headerHash : retArray){
 
 			String varName = headerHash.get(QueryBuilderHelper.varKey); // title__rottenTomatoes
@@ -378,9 +400,21 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 				tableName = varName.substring(0,varName.indexOf("__"));
 				varName = varName.substring(varName.indexOf("__") + 2);
 			}
-			filterQuery = "SELECT DISTINCT " + varName + " FROM " + tableName + " LIMIT " + limitFilter;
-			headerHash.put(QueryBuilderHelper.queryKey, filterQuery);
+			
+			if(tempjoins.length() >0){
+				//filter that query down even further, make sure you are showing the distinct values for that query.
+				filterQuery = "SELECT DISTINCT " + varName + " FROM " + tableName + " WHERE " + varName + 
+					" in (SELECT " + varName + "  FROM  " + froms + tempjoins +") ";
+			} else {
+				filterQuery = "SELECT DISTINCT " + varName + " FROM " + tableName ;
+			}
+			filterQuery += " ORDER BY 1 LIMIT " +  limitFilter;
+
+			headerHash.put(QueryBuilderHelper.queryKey, filterQuery.toUpperCase());
 			sequencer.put(key.toUpperCase(), headerHash);
+			
+			
+			
 		}
 		
 		retArray = new ArrayList<Hashtable<String,String>>();
