@@ -48,7 +48,10 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 	private double standardError;
 	private double[] coeffArray;
 	private double[][] correlationArray;
+
+	private boolean includesInstance = true;
 	
+
 	/**
 	 * Constructor for MatrixRegressionVizPlaySheet.
 	 */
@@ -69,15 +72,18 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 	
 	public void runAlgorithm() {
 
-		int numCols = names.length;
-		
 		//the bIndex should have been provided. if not, will use the last column
 		if(bIndex==-1)
-			bIndex = numCols - 1;
+			bIndex = names.length - 1;
 		
 		//create the b and A arrays which are used in matrix regression to determine coefficients
 		double[] b = MatrixRegressionHelper.createB(list, bIndex);
-		double[][] A = MatrixRegressionHelper.createA(list, bIndex);
+		double[][] A;
+		if(includesInstance)
+			A = MatrixRegressionHelper.createA(list, 1, bIndex);
+		else
+			A = MatrixRegressionHelper.createA(list, 0, bIndex);
+			
 		
 		//run regression so we have coefficients and error
 		MatrixRegressionAlgorithm alg = new MatrixRegressionAlgorithm(A, b);
@@ -104,31 +110,36 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 		int i;
 		int j;
 		int listNumRows = list.size();
-		int numCols = names.length;
-		int numVariables = numCols - 1;
-	
-		//separate names into id and variables
+//		int numCols = names.length;
+		int numVariables;
+			
+		if(includesInstance) {
+			numVariables = names.length - 1;
+		}else {
+			numVariables = names.length;
+			String[] newNames = new String[numVariables + 1];
+			newNames[0] = "";
+			for(i = 0; i< numVariables; i++)
+				newNames[i + 1] = names[i];
+			names = newNames;
+		}
+		
 		String id = names[0];
-		String[] variables = new String[numVariables];
-		for(i=0; i< numVariables; i++)
-			variables[i] = names[i+1];
-		bIndex --;
 
 		//reorder names so b is at the end
-		variables = MatrixRegressionHelper.moveNameToEnd(variables, bIndex);
-		
-		names[0] = id;
-		for(i=1; i < numCols; i++) {
-			names[i] = variables[i-1];
-		}
+//		names = MatrixRegressionHelper.moveNameToEnd(names, bIndex);
 		
 		//for each element/instance
 		//add its values for all independent variables to the dataSeriesHash
-		Object[][] dataSeries = new Object[listNumRows][numCols];
+		Object[][] dataSeries = new Object[listNumRows][numVariables + 1];
 		for(i=0;i<listNumRows;i++) {
-			dataSeries[i][0] = list.get(i)[0];
-			for(j=1;j<numCols;j++) {
-				dataSeries[i][j] = Ab[i][j-1];
+			if(includesInstance)
+				dataSeries[i][0] = list.get(i)[0];
+			else
+				dataSeries[i][0] = "";
+			
+			for(j=0;j<numVariables;j++) {
+				dataSeries[i][j + 1] = Ab[i][j];
 			}
 		}
 		
@@ -137,15 +148,15 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 			stdErrors[i] = standardError;
 		}
 		
-		Object[] coefficients = new Object[numVariables];
+		Object[] coefficients = new Object[numVariables + 1];
 		for(i = 0; i< numVariables - 1; i++) {
-			coefficients[i] = coeffArray[i+1];
+			coefficients[i + 1] = coeffArray[i+1];
 		}
-		coefficients[numVariables - 1] = coeffArray[0];
+		coefficients[numVariables] = coeffArray[0];
 		
-		Object[] correlations = new Object[numVariables];
-		for(i = 0; i<numVariables; i++) {
-			correlations[i] = correlationArray[i][numVariables - 1];
+		Object[] correlations = new Object[numVariables + 1];
+		for(i = 0; i<numVariables-1; i++) {
+			correlations[i+1] = correlationArray[i][numVariables - 1];
 		}
 
 		dataHash = new Hashtable();
