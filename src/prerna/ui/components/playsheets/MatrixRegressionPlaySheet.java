@@ -31,7 +31,6 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.beans.PropertyVetoException;
 import java.util.ArrayList;
-import java.util.Hashtable;
 
 import javax.swing.JComponent;
 import javax.swing.JMenuItem;
@@ -42,12 +41,8 @@ import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 
-import org.apache.commons.math3.stat.correlation.Covariance;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-
-import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.JSValue;
 
 import prerna.algorithm.learning.supervized.MatrixRegressionAlgorithm;
 import prerna.rdf.engine.api.ISelectStatement;
@@ -62,6 +57,9 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 	private int bIndex = -1;
 	private double[] coeffArray;
 	private double standardError;
+
+	private boolean includesInstance = true;
+	
 	
 	@Override
 	public void createData() {
@@ -75,17 +73,25 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 		int i;
 		int j;
 		int listNumRows = list.size();
-		int listNumCols = names.length;
-		int aNumCols = listNumCols - 2;//subtract out the title and the column where b initially was
-		int outputNumCols = listNumCols+3; //add in the estimate and residuals and error range
-		
+
+		int numIndepVariables;
+		int variableStartIndex;
+		if(includesInstance) {
+			numIndepVariables = names.length - 2;//-1 for instance, -1 for dep var
+			variableStartIndex = 1;
+		} else {
+			numIndepVariables = names.length - 1;// -1 for dep var
+			variableStartIndex = 0;
+		}
+		int outputNumCols = 1 + numIndepVariables + 4;//instance, numIndVariables, and results
+
 		//the bIndex should have been provided. if not, will use the last column
 		if(bIndex==-1)
-			bIndex = listNumCols - 1;
-		
+			bIndex = names.length - 1;
+
 		//create the b and A arrays which are used in matrix regression to determine coefficients
 		double[] b = MatrixRegressionHelper.createB(list, bIndex);
-		double[][] A = MatrixRegressionHelper.createA(list, bIndex);
+		double[][] A = MatrixRegressionHelper.createA(list, variableStartIndex, bIndex);
 		
 		//run regression
 		MatrixRegressionAlgorithm alg = new MatrixRegressionAlgorithm(A, b);
@@ -105,8 +111,11 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 			double withinErrorRange = Math.abs(residualVal / standardError);
 			
 			Object[] newRow = new Object[outputNumCols];
-			newRow[0] = list.get(i)[0];
-			for(j=0;j<aNumCols;j++) {
+			if(includesInstance)
+				newRow[0] = list.get(i)[0];
+			else
+				newRow[0] = "";
+			for(j=0;j<numIndepVariables;j++) {
 				newRow[j+1] = A[i][j];
 			}
 			newRow[j+1] = actualVal;
@@ -142,17 +151,23 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 		list = outputList;
 		
 		//update headers so that there are columns for estimated and residuals
+		names = MatrixRegressionHelper.moveNameToEnd(names, bIndex);
+		
 		String[] namesWithEstimateAndResiduals = new String[outputNumCols];
-		int newIndex = 0;
-		for(i=0;i<listNumCols;i++) {
-			if(i!=bIndex) {
-				namesWithEstimateAndResiduals[newIndex]  = names[i];
-				newIndex++;
-			}
+		if(includesInstance)
+			namesWithEstimateAndResiduals[0] = names[0];
+		else
+			namesWithEstimateAndResiduals[0] = "";
+		
+		int newIndex = 1;
+		for(i=0;i<numIndepVariables;i++) {
+			namesWithEstimateAndResiduals[newIndex] = names[i + variableStartIndex];
+			newIndex++;
 		}
-		namesWithEstimateAndResiduals[newIndex]  = "Actual- " + names[bIndex];
-		namesWithEstimateAndResiduals[newIndex+1] = "Estimated- " + names[bIndex];
-		namesWithEstimateAndResiduals[newIndex+2] = "Residual- " + names[bIndex];
+		
+		namesWithEstimateAndResiduals[newIndex]  = "Actual- " + names[numIndepVariables + 1];
+		namesWithEstimateAndResiduals[newIndex+1] = "Estimated- " + names[numIndepVariables + 1];
+		namesWithEstimateAndResiduals[newIndex+2] = "Residual- " + names[numIndepVariables + 1];
 		namesWithEstimateAndResiduals[newIndex+3] = "Within Error Range?";
 
 		names = namesWithEstimateAndResiduals;
@@ -251,5 +266,9 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 		gbc_scrollPane.gridx = 0;
 		gbc_scrollPane.gridy = 0;
 		panel.add(scrollPane, gbc_scrollPane);
+	}
+	
+	public void setIncludesInstance(boolean includesInstance) {
+		this.includesInstance = includesInstance;
 	}
 }

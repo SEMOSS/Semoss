@@ -36,28 +36,33 @@ public final class MatrixRegressionHelper{
 
 	private static final Logger LOGGER = LogManager.getLogger(MatrixRegressionHelper.class.getName());
 
+	
 	/*
-	 * Creates the A array by pulling out the identifier
-	 * Also pulls out the bIndex if the value is less than the number of cols
+	 * Creates the A array
+	 * Start index tells what column to start at
+	 * If bIndex is less than the number of columns, bIndex will be removed
 	 */
-	public static double[][] createA(ArrayList<Object[]> list,int bIndex) {
+	public static double[][] createA(ArrayList<Object[]> list, int variableStartCol, int bIndex) {
 		int i;
 		int j;
 		int listNumRows = list.size();
 		int listNumCols = list.get(0).length;
-		double[][] A;
-		if(bIndex<listNumCols)
-			A = new double[listNumRows][listNumCols-2];
-		else
-			A = new double[listNumRows][listNumCols-1];
 
-		for(i=0;i<listNumRows;i++) {
+		int outNumCols;
+		if(bIndex<listNumCols)
+			outNumCols = listNumCols - variableStartCol - 1;
+		else
+			outNumCols = listNumCols - variableStartCol;
+		
+		double[][] A = new double[listNumRows][outNumCols];
+
+		for(i=0; i<listNumRows; i++) {
 			Object[] oldRow = list.get(i);
-			int newIndex = 1;
-			for(j=1;j<listNumCols;j++) {
+			int outIndex = 0;
+			for(j=variableStartCol; j<listNumCols; j++) {
 				if(j!=bIndex) {
-					A[i][newIndex-1] = (double)oldRow[j];
-					newIndex++;
+					A[i][outIndex] = (double)oldRow[j];
+					outIndex++;
 				}
 			}
 		}
