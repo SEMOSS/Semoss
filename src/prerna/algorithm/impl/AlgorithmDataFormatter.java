@@ -36,6 +36,7 @@ public final class AlgorithmDataFormatter {
 		
 	public static final String STRING_KEY = "STRING";
 	public static final String DOUBLE_KEY = "DOUBLE";
+	public static final String INTEGER_KEY = "INTEGER";
 	public static final String DATE_KEY = "DATE";
 	public static final String SIMPLEDATE_KEY = "SIMPLEDATE";
 	
@@ -166,7 +167,7 @@ public final class AlgorithmDataFormatter {
 					type = Utility.processType(colEntryAsString);
 					if(type.equals(STRING_KEY)) {
 						numCategorical++;
-					}else if(type.equals(DOUBLE_KEY)) {
+					}else if(type.equals(DOUBLE_KEY) || type.equals(INTEGER_KEY)) {
 						numNumerical++;
 					}else if(type.equals(SIMPLEDATE_KEY)) {
 						numDate++;
