@@ -151,7 +151,12 @@ public abstract class AbstractClusteringAlgorithm {
 		clusterAssignment[0] = 0;
 		ArrayList<ArrayList<Hashtable<String, Integer>>> initialClusterNumberMatrix = ClusterUtilityMethods.createClustersCategoryProperties(instanceNumberBinMatrix, clusterAssignment, 1);
 		ArrayList<ArrayList<Hashtable<String, Integer>>> initialClusterCategoryMatrix = ClusterUtilityMethods.createClustersCategoryProperties(instanceCategoryMatrix, clusterAssignment, 1);
-	
+		
+		// no point in having empty clusters, cannot have more clusters than instances
+		if(numClusters > numInstances) {
+			numClusters = numInstances;
+		}
+		
 		for(i = 1; i < numClusters; i++) {
 			int j;
 			int minIndex = -1; //initialize to impossible value for index
