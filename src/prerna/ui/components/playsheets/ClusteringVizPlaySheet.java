@@ -608,7 +608,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 
 		asteriskNamesWithCluster[asteriskNamesWithCluster.length - 1] = "ClusterID";
 
-		// update cluster info to acount for filtered rows
+		// update cluster info to account for filtered rows
 		int j = 0;
 		for (; j < clusterInfo.size(); j++) {
 			Object[] oldRow = clusterInfo.get(j);

@@ -40,6 +40,8 @@ public class DatasetSimilarityPlaySheet extends GridPlaySheet {
 	public void runAnalytics() {
 		DatasetSimilarity alg = new DatasetSimilarity(list, names);
 		alg.generateClusterCenters();
+		list = alg.getMasterTable();
+		names = alg.getMasterNames();
 		simValues = alg.getSimilarityValuesForInstances();
 		
 		int i = 0;
