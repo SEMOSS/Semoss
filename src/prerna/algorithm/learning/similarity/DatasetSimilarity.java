@@ -95,8 +95,21 @@ public class DatasetSimilarity {
 		
 		return similarityScoresToCluster;
 	}
-	
-	
-	
+
+	public ArrayList<Object[]> getMasterTable() {
+		return masterTable;
+	}
+
+	public void setMasterTable(ArrayList<Object[]> masterTable) {
+		this.masterTable = masterTable;
+	}
+
+	public String[] getMasterNames() {
+		return masterNames;
+	}
+
+	public void setMasterNames(String[] masterNames) {
+		this.masterNames = masterNames;
+	}
 	
 }

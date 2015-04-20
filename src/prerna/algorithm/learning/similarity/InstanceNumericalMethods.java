@@ -232,7 +232,7 @@ public class InstanceNumericalMethods extends AbstractNumericalMethods implement
 		int idxCounter = 0;
 		int kCounter = 0;
 		boolean noKCluster = false;
-		while(kCounter < k || idxCounter == numInstances) {
+		while(kCounter < k && idxCounter < numInstances) {
 			// don't include the node
 			int index = indexOrderArr[idxCounter];
 			if(index != instanceIdx) {	

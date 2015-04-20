@@ -202,4 +202,9 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 	public int getbColumnIndex() {
 		return bIndex;
 	}
+	
+	public void setIncludesInstance(boolean includesInstance) {
+		this.includesInstance = includesInstance;
+	}
+
 }
