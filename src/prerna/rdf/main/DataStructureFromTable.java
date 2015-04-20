@@ -26,7 +26,7 @@ public class DataStructureFromTable {
 
 		///////////////////////////////////////////////////
 		//TODO: change to correct file location when testing
-		String loc = "C:\\Users\\mahkhalil\\Desktop\\ConstructingDataStructure_3.xlsx";
+		String loc = "C:\\Users\\mahkhalil\\Desktop\\ConstructingDataStructure.xlsx";
 //		String loc = "C:\\Users\\mahkhalil\\Desktop\\FY16 BTA List.xlsx";
 		///////////////////////////////////////////////////
 
@@ -65,48 +65,63 @@ public class DataStructureFromTable {
 		}
 
 //		System.out.println(Arrays.toString(uniqueCounts));
-//		for(i = 0; i < numCol; i++) {
-//			System.out.print(headers[indexFromMaxToMin[i]] + ", ");
-//		}
-//		System.out.println("");
-
-		boolean[] usedCol = new boolean[numCol];
+		for(i = 0; i < numCol; i++) {
+			System.out.print(headers[indexFromMaxToMin[i]] + ", ");
+		}
+		System.out.println("");
+		
+		
+		boolean[] colAlreadyProperty = new boolean[numCol];
 		Hashtable<String, ArrayList<String>> matches = new Hashtable<String, ArrayList<String>>();
 
 		i = 0;
 		for(; i < numCol; i++) {
 			//ignore numerical values
-			if(!columnTypes[indexFromMaxToMin[i]].equals("STRING")) {
+			if(!columnTypes[indexFromMaxToMin[i]].equals("STRING") || !!columnTypes[indexFromMaxToMin[i]].equals("INTEGER")) {
 				continue;
 			}
 			int j = 0;
 			for(; j < numCol; j++) {
 				if(i != j) {
-					if(compareCols(indexFromMaxToMin[i],indexFromMaxToMin[j]) && !usedCol[indexFromMaxToMin[j]]) {
+					int firstCol = indexFromMaxToMin[i];
+					int secondCol = indexFromMaxToMin[j];
+					String firstColName = headers[firstCol];
+					String secondColName = headers[secondCol];
+					System.out.println("Comparing " + firstColName + " with " + secondColName);
+					
+					if(compareCols(firstCol,secondCol) && !colAlreadyProperty[secondCol]) {
+						// need to make sure secondCol does not have firstCol as property already
+						if(matches.containsKey(secondColName) && matches.get(secondColName).contains(firstColName)) {
+							// false alarm
+							continue;
+						}
+						
+						System.out.println("MATCH!!!");
 						boolean useInverse = false;
-						if(compareCols(indexFromMaxToMin[j],indexFromMaxToMin[i]) && !usedCol[indexFromMaxToMin[i]]) {
+						if(compareCols(secondCol, firstCol) && !colAlreadyProperty[firstCol]) {
 							if(i > j) {
+								System.out.println("Use Inverse since column order");
 								useInverse = true;
 								// if inverse also works, take the value from the most left as the concept
-								if(matches.containsKey(headers[indexFromMaxToMin[j]])) {
-									matches.get(headers[indexFromMaxToMin[j]]).add(headers[indexFromMaxToMin[i]]);
+								if(matches.containsKey(secondColName)) {
+									matches.get(secondColName).add(firstColName);
 								} else {
 									ArrayList<String> list = new ArrayList<String>();
-									list.add(headers[indexFromMaxToMin[i]]);
-									matches.put(headers[indexFromMaxToMin[j]], list);
+									list.add(firstColName);
+									matches.put(secondColName, list);
 								}
-								usedCol[indexFromMaxToMin[i]] = true;
+								colAlreadyProperty[indexFromMaxToMin[i]] = true;
 							}
 						}
 						if(!useInverse) {
-							if(matches.containsKey(headers[indexFromMaxToMin[i]])) {
-								matches.get(headers[indexFromMaxToMin[i]]).add(headers[indexFromMaxToMin[j]]);
+							if(matches.containsKey(firstColName)) {
+								matches.get(firstColName).add(secondColName);
 							} else {
 								ArrayList<String> list = new ArrayList<String>();
-								list.add(headers[indexFromMaxToMin[j]]);
-								matches.put(headers[indexFromMaxToMin[i]], list);
+								list.add(secondColName);
+								matches.put(firstColName, list);
 							}
-							usedCol[indexFromMaxToMin[j]] = true;
+							colAlreadyProperty[indexFromMaxToMin[j]] = true;
 						}
 					}
 				}
@@ -114,13 +129,16 @@ public class DataStructureFromTable {
 		}
 		
 		i = 0;
-		for(; i < numCol && !usedCol[i]; i++) {
+		for(; i < numCol && !colAlreadyProperty[i]; i++) {
 			if(!matches.containsKey(headers[i])) {
 				matches.put(headers[i], new ArrayList<String>());
 			}
 		}
 
-		System.out.println(matches);
+		System.out.println("\nResults!!!");
+		for(String s : matches.keySet()) {
+			System.out.println(s + ":" + matches.get(s));
+		}
 	}
 
 	private static int[] getUniqueCounts(ArrayList<Object[]> data) {
@@ -176,7 +194,7 @@ public class DataStructureFromTable {
 			int i = 0;
 			for(; i < numCol; i++) {
 				if(headerRow.getCell(i) != null) {
-					headers[i] = headerRow.getCell(i).getStringCellValue();
+					headers[i] = headerRow.getCell(i).getStringCellValue().replaceAll("\n+|\r+", "");
 				} else {
 					headers[i] = "FIX NO NAME COLUMN";
 				}

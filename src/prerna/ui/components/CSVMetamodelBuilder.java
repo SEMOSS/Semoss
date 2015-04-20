@@ -222,6 +222,10 @@ public class CSVMetamodelBuilder {
 					if(instances.get(i) != null)
 					{
 						String type = new String(Utility.processType(instances.get(i)));
+						//TODO: have integer as separate load than double
+						if(type.equals("INTEGER")) {
+							type = "DOUBLE";
+						}
 						dataType.get(header[i]).get("AllDataTypes").add(type);
 						dataType.get(header[i]).get("AllowedDataTypes").add(type);
 					}
