@@ -61,6 +61,7 @@ import prerna.error.EngineException;
 import prerna.error.FileReaderException;
 import prerna.poi.main.PropFileWriter;
 import prerna.ui.components.ImportDataProcessor;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -631,302 +632,309 @@ public class ImportRDBMSProcessor {
 		String sql = "";
 		Hashtable<String, Hashtable<String, ArrayList<String>>> schemaHash = new Hashtable<String, Hashtable<String, ArrayList<String>>>();
 		ResultSet resultSet = null;
-
-		if(type.equals(this.MYSQL)) 
-		{
-			try {
-				Class.forName(this.MYSQL_DRIVER);
-				con = DriverManager
-						.getConnection(url + "?user=" + username + "&password=" + new String(password));
-				//Get DBname from URL
-				dbName = url.substring(url.lastIndexOf("/")+1);
-				sql = "SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" + dbName + "';";
-				logger.info("SQL Query for all Tables/Columns/DataTypes: " + sql);
-				Statement statement = con.createStatement();
-				resultSet = statement.executeQuery(sql);
-			}
-			catch (ClassNotFoundException e) {
-				e.printStackTrace();
-				return (success = false);
-			} catch (SQLException e) {
-				e.printStackTrace();
-				return (success = false);
-			}
-		}
-		else if(type.equals(this.ORACLE)) 
-		{
-			try {
-				Class.forName(this.ORACLE_DRIVER);
-				
-				if(url.contains("-")) {
-					// Get DBname from URL
-					dbName = url.substring(url.lastIndexOf("-")+1, url.length());
-					// Modify url for connection
-					url = url.substring(0, url.indexOf("-"));
-				}
-				
-				con = DriverManager
-						.getConnection(url, username, new String(password));
-				
-				sql = "SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM ALL_TAB_COLUMNS ";
-				
-				if(!dbName.isEmpty()) {
-					sql += "WHERE OWNER=\'" + dbName + "\'";
-				}
-				
-				logger.info("SQL Query for all Tables/Columns/DataTypes: " + sql);
-				Statement statement = con.createStatement();
-				resultSet = statement.executeQuery(sql);
-			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
-				return (success = false);
-			} catch (SQLException e) {
-				e.printStackTrace();
-				return (success = false);
-			}
-		} 
-		else if(type.equals(this.SQLSERVER)) 
-		{
-			try {
-				Class.forName(this.SQLSERVER_DRIVER);
-				con = DriverManager
-						.getConnection(url + ";" + "user=" + username + ";" + "password=" + new String(password));				
-				//Get DBname from URL
-				dbName = url.substring(url.indexOf("=")+1);
-				sql = "SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_CATALOG = '" + dbName + "';";
-				logger.info("SQL Query for all Tables/Columns/DataTypes: " + sql);
-				Statement statement = con.createStatement();
-				resultSet = statement.executeQuery(sql);
-			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
-				return (success = false);
-			} catch (SQLException e) {
-				e.printStackTrace();
-				return (success = false);
-			}
-		} else if(type.equals(this.ASTER)) {
-			try {
-				Class.forName(this.ASTER_DRIVER);
-				con = DriverManager.getConnection(url, username, new String(password));
-				
-				DatabaseMetaData md = con.getMetaData();
-				resultSet = md.getColumns(null, null, null, null);
-			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
-				return (success = false);
-			} catch (SQLException e) {
-				e.printStackTrace();
-				return (success = false);
-			}
-		}
-
-		try {
-			while(resultSet.next())
+		Statement statement  = null;
+		try{
+			if(type.equals(this.MYSQL)) 
 			{
-				String tableName = "";
-				String columnName = "";
-				String dataType = "";
-				
-				if(type.equals(this.ASTER)) {
-					tableName = resultSet.getString("TABLE_NAME");
-					if(tableName.startsWith("nc_")) {
-						continue;
+				try {
+					Class.forName(this.MYSQL_DRIVER);
+					con = DriverManager
+							.getConnection(url + "?user=" + username + "&password=" + new String(password));
+					//Get DBname from URL
+					dbName = url.substring(url.lastIndexOf("/")+1);
+					sql = "SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" + dbName + "';";
+					logger.info("SQL Query for all Tables/Columns/DataTypes: " + sql);
+					statement = con.createStatement();
+					resultSet = statement.executeQuery(sql);
+				}
+				catch (ClassNotFoundException e) {
+					e.printStackTrace();
+					return (success = false);
+				} catch (SQLException e) {
+					e.printStackTrace();
+					return (success = false);
+				}
+			}
+			else if(type.equals(this.ORACLE)) 
+			{
+				try {
+					Class.forName(this.ORACLE_DRIVER);
+					
+					if(url.contains("-")) {
+						// Get DBname from URL
+						dbName = url.substring(url.lastIndexOf("-")+1, url.length());
+						// Modify url for connection
+						url = url.substring(0, url.indexOf("-"));
 					}
-					columnName = resultSet.getString("COLUMN_NAME");
-					System.err.println(tableName + " " + columnName);
-					dataType = resultSet.getString("DATA_TYPE");
-				} else {
-					tableName = resultSet.getString(1);
-					columnName = resultSet.getString(2);
-					dataType = resultSet.getString(3);
+					
+					con = DriverManager
+							.getConnection(url, username, new String(password));
+					
+					sql = "SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM ALL_TAB_COLUMNS ";
+					
+					if(!dbName.isEmpty()) {
+						sql += "WHERE OWNER=\'" + dbName + "\'";
+					}
+					
+					logger.info("SQL Query for all Tables/Columns/DataTypes: " + sql);
+					statement = con.createStatement();
+					resultSet = statement.executeQuery(sql);
+				} catch (ClassNotFoundException e) {
+					e.printStackTrace();
+					return (success = false);
+				} catch (SQLException e) {
+					e.printStackTrace();
+					return (success = false);
 				}
-				
-				logger.debug("SQL Result:     " + tableName + ">>>>>" + columnName + ">>>>>" + dataType);
-
-				if(!schemaHash.containsKey(tableName))
-				{
-					ArrayList<String> columnList = new ArrayList<String>();
-					columnList.add(columnName);
-					ArrayList<String> dataTypeList = new ArrayList<String>();
-					dataTypeList.add(dataType);
-					schemaHash.put(tableName, new Hashtable<String, ArrayList<String>>());
-					Hashtable<String, ArrayList<String>> innerHash = schemaHash.get(tableName);
-					innerHash.put("COLUMN", columnList);
-					innerHash.put("DATATYPE", dataTypeList);
+			} 
+			else if(type.equals(this.SQLSERVER)) 
+			{
+				try {
+					Class.forName(this.SQLSERVER_DRIVER);
+					con = DriverManager
+							.getConnection(url + ";" + "user=" + username + ";" + "password=" + new String(password));				
+					//Get DBname from URL
+					dbName = url.substring(url.indexOf("=")+1);
+					sql = "SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_CATALOG = '" + dbName + "';";
+					logger.info("SQL Query for all Tables/Columns/DataTypes: " + sql);
+					statement = con.createStatement();
+					resultSet = statement.executeQuery(sql);
+				} catch (ClassNotFoundException e) {
+					e.printStackTrace();
+					return (success = false);
+				} catch (SQLException e) {
+					e.printStackTrace();
+					return (success = false);
 				}
-				else
-				{
-					Hashtable<String, ArrayList<String>> innerHash = schemaHash.get(tableName);
-					ArrayList<String> columnList = innerHash.get("COLUMN");
-					columnList.add(columnName);
-					ArrayList<String> dataTypeList = innerHash.get("DATATYPE");
-					dataTypeList.add(dataType);
+			} else if(type.equals(this.ASTER)) {
+				try {
+					Class.forName(this.ASTER_DRIVER);
+					con = DriverManager.getConnection(url, username, new String(password));
+					
+					DatabaseMetaData md = con.getMetaData();
+					resultSet = md.getColumns(null, null, null, null);
+				} catch (ClassNotFoundException e) {
+					e.printStackTrace();
+					return (success = false);
+				} catch (SQLException e) {
+					e.printStackTrace();
+					return (success = false);
 				}
 			}
-		} catch (SQLException e1) {
-			e1.printStackTrace();
-			return (success = false);
-		}
 
-		String path = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/rdbms/";
-		String excelLoc = path + "RDBMS_Import_Sheet.xlsx";
+			try {
+				while(resultSet.next())
+				{
+					String tableName = "";
+					String columnName = "";
+					String dataType = "";
+					
+					if(type.equals(this.ASTER)) {
+						tableName = resultSet.getString("TABLE_NAME");
+						if(tableName.startsWith("nc_")) {
+							continue;
+						}
+						columnName = resultSet.getString("COLUMN_NAME");
+						System.err.println(tableName + " " + columnName);
+						dataType = resultSet.getString("DATA_TYPE");
+					} else {
+						tableName = resultSet.getString(1);
+						columnName = resultSet.getString(2);
+						dataType = resultSet.getString(3);
+					}
+					
+					logger.debug("SQL Result:     " + tableName + ">>>>>" + columnName + ">>>>>" + dataType);
 
-		XSSFWorkbook wb = null;
-		try {
-			wb = new XSSFWorkbook(new FileInputStream(excelLoc));
-		} catch (IOException e) {
-			e.printStackTrace();
-			return (success = false);
-		}
-		
-		
-		// add schema sheet
-		XSSFSheet schemaSheet = wb.createSheet(dbName + "_Schema");
-		XSSFRow row = schemaSheet.createRow(0);
-		row.createCell(0).setCellValue("TABLE NAME");
-		row.createCell(1).setCellValue("COLUMN NAME");
-		row.createCell(2).setCellValue("COLUMN DATA TYPE");
+					if(!schemaHash.containsKey(tableName))
+					{
+						ArrayList<String> columnList = new ArrayList<String>();
+						columnList.add(columnName);
+						ArrayList<String> dataTypeList = new ArrayList<String>();
+						dataTypeList.add(dataType);
+						schemaHash.put(tableName, new Hashtable<String, ArrayList<String>>());
+						Hashtable<String, ArrayList<String>> innerHash = schemaHash.get(tableName);
+						innerHash.put("COLUMN", columnList);
+						innerHash.put("DATATYPE", dataTypeList);
+					}
+					else
+					{
+						Hashtable<String, ArrayList<String>> innerHash = schemaHash.get(tableName);
+						ArrayList<String> columnList = innerHash.get("COLUMN");
+						columnList.add(columnName);
+						ArrayList<String> dataTypeList = innerHash.get("DATATYPE");
+						dataTypeList.add(dataType);
+					}
+				}
+			} catch (SQLException e1) {
+				e1.printStackTrace();
+				return (success = false);
+			}
 
-		int counter = 1;
-		for(String tName : schemaHash.keySet())
-		{
-			Hashtable<String, ArrayList<String>> innerHash = schemaHash.get(tName);
-			ArrayList<String> columnList = innerHash.get("COLUMN");
-			ArrayList<String> dataTypeList = innerHash.get("DATATYPE");
+			String path = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/rdbms/";
+			String excelLoc = path + "RDBMS_Import_Sheet.xlsx";
 
-			for(int i = 0; i < columnList.size(); i++)
+			XSSFWorkbook wb = null;
+			try {
+				wb = new XSSFWorkbook(new FileInputStream(excelLoc));
+			} catch (IOException e) {
+				e.printStackTrace();
+				return (success = false);
+			}
+			
+			
+			// add schema sheet
+			XSSFSheet schemaSheet = wb.createSheet(dbName + "_Schema");
+			XSSFRow row = schemaSheet.createRow(0);
+			row.createCell(0).setCellValue("TABLE NAME");
+			row.createCell(1).setCellValue("COLUMN NAME");
+			row.createCell(2).setCellValue("COLUMN DATA TYPE");
+
+			int counter = 1;
+			for(String tName : schemaHash.keySet())
 			{
-				row = schemaSheet.createRow(counter); 
-				row.createCell(0).setCellValue(tName);
-				row.createCell(1).setCellValue(columnList.get(i));
-				row.createCell(2).setCellValue(dataTypeList.get(i));
+				Hashtable<String, ArrayList<String>> innerHash = schemaHash.get(tName);
+				ArrayList<String> columnList = innerHash.get("COLUMN");
+				ArrayList<String> dataTypeList = innerHash.get("DATATYPE");
+
+				for(int i = 0; i < columnList.size(); i++)
+				{
+					row = schemaSheet.createRow(counter); 
+					row.createCell(0).setCellValue(tName);
+					row.createCell(1).setCellValue(columnList.get(i));
+					row.createCell(2).setCellValue(dataTypeList.get(i));
+					counter++;
+				}			
+			}
+			
+			String dataSheetSuffix = "_Data";
+			String dataSheetName = dbName;
+			if(dataSheetName.length() + dataSheetSuffix.length() > this.EXCEL_WORKSHEET_NAME_CHARACTER_LIMIT) {
+				dataSheetName = dbName.substring(0, 25);
+			}
+			XSSFSheet dataSheet = wb.createSheet(dataSheetName + dataSheetSuffix);
+			buildDataSheeet(dataSheet, schemaHash);
+			dataSheet.getWorkbook().setSheetHidden(4, true);
+			
+			// create drop downs for node and relationship tabs
+			
+			HashSet<String> allColumnNames = new HashSet<String>();
+			HashSet<String> allDataTypes = new HashSet<String>();
+			String[] tableNames = new String[schemaHash.keySet().size()];
+			
+			// remove duplicated results
+			counter = 0;
+			for(String tName : schemaHash.keySet())
+			{
+				tableNames[counter] = tName; 
+				
+				Hashtable<String, ArrayList<String>> innerHash = schemaHash.get(tName);
+				ArrayList<String> columnList = innerHash.get("COLUMN");
+				ArrayList<String> dataTypeList = innerHash.get("DATATYPE");
+				
+				allColumnNames.addAll(columnList);
+				allDataTypes.addAll(dataTypeList);
 				counter++;
-			}			
-		}
-		
-		String dataSheetSuffix = "_Data";
-		String dataSheetName = dbName;
-		if(dataSheetName.length() + dataSheetSuffix.length() > this.EXCEL_WORKSHEET_NAME_CHARACTER_LIMIT) {
-			dataSheetName = dbName.substring(0, 25);
-		}
-		XSSFSheet dataSheet = wb.createSheet(dataSheetName + dataSheetSuffix);
-		buildDataSheeet(dataSheet, schemaHash);
-		dataSheet.getWorkbook().setSheetHidden(4, true);
-		
-		// create drop downs for node and relationship tabs
-		
-		HashSet<String> allColumnNames = new HashSet<String>();
-		HashSet<String> allDataTypes = new HashSet<String>();
-		String[] tableNames = new String[schemaHash.keySet().size()];
-		
-		// remove duplicated results
-		counter = 0;
-		for(String tName : schemaHash.keySet())
-		{
-			tableNames[counter] = tName; 
+			}
+			allColumnNames.toArray(new String[allColumnNames.size()]);
+			allDataTypes.toArray(new String[allDataTypes.size()]);
 			
-			Hashtable<String, ArrayList<String>> innerHash = schemaHash.get(tName);
-			ArrayList<String> columnList = innerHash.get("COLUMN");
-			ArrayList<String> dataTypeList = innerHash.get("DATATYPE");
+			XSSFSheet nodeSheet = wb.getSheet("Nodes");
+			XSSFSheet relationshipSheet = wb.getSheet("Relationships");
 			
-			allColumnNames.addAll(columnList);
-			allDataTypes.addAll(dataTypeList);
-			counter++;
-		}
-		allColumnNames.toArray(new String[allColumnNames.size()]);
-		allDataTypes.toArray(new String[allDataTypes.size()]);
-		
-		XSSFSheet nodeSheet = wb.getSheet("Nodes");
-		XSSFSheet relationshipSheet = wb.getSheet("Relationships");
-		
-		// create drop down validation helper
-		XSSFDataValidationHelper nodeSheetValidationHelper = new XSSFDataValidationHelper(nodeSheet);
-		// create all lists
-		DataValidationConstraint nodeSheetTableNameConstraint = nodeSheetValidationHelper.createFormulaListConstraint("TABLES");
-		DataValidationConstraint nodeSheetColumnNameConstraint = nodeSheetValidationHelper.createFormulaListConstraint("INDIRECT(UPPER(A2))");
-		DataValidationConstraint nodeSheetDataTypeConstraint = nodeSheetValidationHelper.createFormulaListConstraint("INDIRECT(CONCATENATE(UPPER(A2),\"_\",UPPER(C2)))");
-		// create all ranges
-		CellRangeAddressList nodeSheetTableNameAddressList = new CellRangeAddressList(1,6,0,0);
-		CellRangeAddressList nodeSheetColumnNameAddressList1 = new CellRangeAddressList(1,6,1,1);
-		CellRangeAddressList nodeSheetColumnNameAddressList2 = new CellRangeAddressList(1,6,2,2);
-		CellRangeAddressList nodeSheetDataTypeAddressList = new CellRangeAddressList(1,6,3,3);
-		// create the drop downs
-		DataValidation nodeSheetTableNameDataValidation = nodeSheetValidationHelper.createValidation(nodeSheetTableNameConstraint, nodeSheetTableNameAddressList);
-		DataValidation nodeSheetColumnNameDataValidation1 = nodeSheetValidationHelper.createValidation(nodeSheetColumnNameConstraint, nodeSheetColumnNameAddressList1);
-		DataValidation nodeSheetColumnNameDataValidation2 = nodeSheetValidationHelper.createValidation(nodeSheetColumnNameConstraint, nodeSheetColumnNameAddressList2);
-		DataValidation nodeSheetDataTypeDataValidation = nodeSheetValidationHelper.createValidation(nodeSheetDataTypeConstraint, nodeSheetDataTypeAddressList);
-		// create the drop down side btn
-		nodeSheetTableNameDataValidation.setSuppressDropDownArrow(true);
-		nodeSheetColumnNameDataValidation1.setSuppressDropDownArrow(true);
-		nodeSheetColumnNameDataValidation2.setSuppressDropDownArrow(true);
-		nodeSheetDataTypeDataValidation.setSuppressDropDownArrow(true);
-		// add the validation to the node sheet
-		nodeSheet.addValidationData(nodeSheetTableNameDataValidation);
-		nodeSheet.addValidationData(nodeSheetColumnNameDataValidation1);
-		nodeSheet.addValidationData(nodeSheetColumnNameDataValidation2);
-		nodeSheet.addValidationData(nodeSheetDataTypeDataValidation);
-		
-		
-		// create drop down validation helper
-		XSSFDataValidationHelper relationshipSheetValidationHelper = new XSSFDataValidationHelper(relationshipSheet);
-	    // create all lists
-		DataValidationConstraint relationshipSheetTableNameConstraint = relationshipSheetValidationHelper.createFormulaListConstraint("TABLES");
-		DataValidationConstraint relationshipSheetColumnNameConstraint1 = relationshipSheetValidationHelper.createFormulaListConstraint("INDIRECT(UPPER(A2))");
-		DataValidationConstraint relationshipSheetColumnNameConstraint2 = relationshipSheetValidationHelper.createFormulaListConstraint("INDIRECT(UPPER(D2))");
-		DataValidationConstraint relationshipSheetColumnNameConstraint3 = relationshipSheetValidationHelper.createFormulaListConstraint("INDIRECT(UPPER(G2))");
+			// create drop down validation helper
+			XSSFDataValidationHelper nodeSheetValidationHelper = new XSSFDataValidationHelper(nodeSheet);
+			// create all lists
+			DataValidationConstraint nodeSheetTableNameConstraint = nodeSheetValidationHelper.createFormulaListConstraint("TABLES");
+			DataValidationConstraint nodeSheetColumnNameConstraint = nodeSheetValidationHelper.createFormulaListConstraint("INDIRECT(UPPER(A2))");
+			DataValidationConstraint nodeSheetDataTypeConstraint = nodeSheetValidationHelper.createFormulaListConstraint("INDIRECT(CONCATENATE(UPPER(A2),\"_\",UPPER(C2)))");
+			// create all ranges
+			CellRangeAddressList nodeSheetTableNameAddressList = new CellRangeAddressList(1,6,0,0);
+			CellRangeAddressList nodeSheetColumnNameAddressList1 = new CellRangeAddressList(1,6,1,1);
+			CellRangeAddressList nodeSheetColumnNameAddressList2 = new CellRangeAddressList(1,6,2,2);
+			CellRangeAddressList nodeSheetDataTypeAddressList = new CellRangeAddressList(1,6,3,3);
+			// create the drop downs
+			DataValidation nodeSheetTableNameDataValidation = nodeSheetValidationHelper.createValidation(nodeSheetTableNameConstraint, nodeSheetTableNameAddressList);
+			DataValidation nodeSheetColumnNameDataValidation1 = nodeSheetValidationHelper.createValidation(nodeSheetColumnNameConstraint, nodeSheetColumnNameAddressList1);
+			DataValidation nodeSheetColumnNameDataValidation2 = nodeSheetValidationHelper.createValidation(nodeSheetColumnNameConstraint, nodeSheetColumnNameAddressList2);
+			DataValidation nodeSheetDataTypeDataValidation = nodeSheetValidationHelper.createValidation(nodeSheetDataTypeConstraint, nodeSheetDataTypeAddressList);
+			// create the drop down side btn
+			nodeSheetTableNameDataValidation.setSuppressDropDownArrow(true);
+			nodeSheetColumnNameDataValidation1.setSuppressDropDownArrow(true);
+			nodeSheetColumnNameDataValidation2.setSuppressDropDownArrow(true);
+			nodeSheetDataTypeDataValidation.setSuppressDropDownArrow(true);
+			// add the validation to the node sheet
+			nodeSheet.addValidationData(nodeSheetTableNameDataValidation);
+			nodeSheet.addValidationData(nodeSheetColumnNameDataValidation1);
+			nodeSheet.addValidationData(nodeSheetColumnNameDataValidation2);
+			nodeSheet.addValidationData(nodeSheetDataTypeDataValidation);
+			
+			
+			// create drop down validation helper
+			XSSFDataValidationHelper relationshipSheetValidationHelper = new XSSFDataValidationHelper(relationshipSheet);
+			// create all lists
+			DataValidationConstraint relationshipSheetTableNameConstraint = relationshipSheetValidationHelper.createFormulaListConstraint("TABLES");
+			DataValidationConstraint relationshipSheetColumnNameConstraint1 = relationshipSheetValidationHelper.createFormulaListConstraint("INDIRECT(UPPER(A2))");
+			DataValidationConstraint relationshipSheetColumnNameConstraint2 = relationshipSheetValidationHelper.createFormulaListConstraint("INDIRECT(UPPER(D2))");
+			DataValidationConstraint relationshipSheetColumnNameConstraint3 = relationshipSheetValidationHelper.createFormulaListConstraint("INDIRECT(UPPER(G2))");
 
-		// create all ranges
-		CellRangeAddressList relationshipSheetTableNameAddressList1 = new  CellRangeAddressList(1,6,0,0);
-	    CellRangeAddressList relationshipSheetTableNameAddressList2 = new  CellRangeAddressList(1,6,3,3);
-	    CellRangeAddressList relationshipSheetTableNameAddressList3 = new  CellRangeAddressList(1,6,6,6);
-	    
-	    CellRangeAddressList relationshipSheetColumnNameAddressList1 = new CellRangeAddressList(1,6,1,1);
-	    CellRangeAddressList relationshipSheetColumnNameAddressList2 = new CellRangeAddressList(1,6,2,2);
-	    CellRangeAddressList relationshipSheetColumnNameAddressList3 = new CellRangeAddressList(1,6,4,4);
-	    CellRangeAddressList relationshipSheetColumnNameAddressList4 = new CellRangeAddressList(1,6,5,5);
-	    CellRangeAddressList relationshipSheetColumnNameAddressList5 = new CellRangeAddressList(1,6,7,7);
-	    CellRangeAddressList relationshipSheetColumnNameAddressList6 = new CellRangeAddressList(1,6,8,8);
+			// create all ranges
+			CellRangeAddressList relationshipSheetTableNameAddressList1 = new  CellRangeAddressList(1,6,0,0);
+			CellRangeAddressList relationshipSheetTableNameAddressList2 = new  CellRangeAddressList(1,6,3,3);
+			CellRangeAddressList relationshipSheetTableNameAddressList3 = new  CellRangeAddressList(1,6,6,6);
+			
+			CellRangeAddressList relationshipSheetColumnNameAddressList1 = new CellRangeAddressList(1,6,1,1);
+			CellRangeAddressList relationshipSheetColumnNameAddressList2 = new CellRangeAddressList(1,6,2,2);
+			CellRangeAddressList relationshipSheetColumnNameAddressList3 = new CellRangeAddressList(1,6,4,4);
+			CellRangeAddressList relationshipSheetColumnNameAddressList4 = new CellRangeAddressList(1,6,5,5);
+			CellRangeAddressList relationshipSheetColumnNameAddressList5 = new CellRangeAddressList(1,6,7,7);
+			CellRangeAddressList relationshipSheetColumnNameAddressList6 = new CellRangeAddressList(1,6,8,8);
 
-	    // create the drop downs	    
-	    DataValidation relationshipSheetTableNameDataValidation1 = relationshipSheetValidationHelper.createValidation(relationshipSheetTableNameConstraint, relationshipSheetTableNameAddressList1);
-	    DataValidation relationshipSheetTableNameDataValidation2 = relationshipSheetValidationHelper.createValidation(relationshipSheetTableNameConstraint, relationshipSheetTableNameAddressList2);
-	    DataValidation relationshipSheetTableNameDataValidation3 = relationshipSheetValidationHelper.createValidation(relationshipSheetTableNameConstraint, relationshipSheetTableNameAddressList3);
-	    DataValidation relationshipSheetColumnNameDataValidation1 = relationshipSheetValidationHelper.createValidation(relationshipSheetColumnNameConstraint1, relationshipSheetColumnNameAddressList1);
-	    DataValidation relationshipSheetColumnNameDataValidation2 = relationshipSheetValidationHelper.createValidation(relationshipSheetColumnNameConstraint1, relationshipSheetColumnNameAddressList2);
-	    DataValidation relationshipSheetColumnNameDataValidation3 = relationshipSheetValidationHelper.createValidation(relationshipSheetColumnNameConstraint2, relationshipSheetColumnNameAddressList3);
-	    DataValidation relationshipSheetColumnNameDataValidation4 = relationshipSheetValidationHelper.createValidation(relationshipSheetColumnNameConstraint2, relationshipSheetColumnNameAddressList4);
-	    DataValidation relationshipSheetColumnNameDataValidation5 = relationshipSheetValidationHelper.createValidation(relationshipSheetColumnNameConstraint3, relationshipSheetColumnNameAddressList5);
-	    DataValidation relationshipSheetColumnNameDataValidation6 = relationshipSheetValidationHelper.createValidation(relationshipSheetColumnNameConstraint3, relationshipSheetColumnNameAddressList6);
-	    // create the drop down side btn
-	    relationshipSheetTableNameDataValidation1.setSuppressDropDownArrow(true);
-	    relationshipSheetTableNameDataValidation2.setSuppressDropDownArrow(true);
-	    relationshipSheetTableNameDataValidation3.setSuppressDropDownArrow(true);
-	    relationshipSheetColumnNameDataValidation1.setSuppressDropDownArrow(true);
-	    relationshipSheetColumnNameDataValidation2.setSuppressDropDownArrow(true);
-	    relationshipSheetColumnNameDataValidation3.setSuppressDropDownArrow(true);
-	    relationshipSheetColumnNameDataValidation4.setSuppressDropDownArrow(true);
-	    relationshipSheetColumnNameDataValidation5.setSuppressDropDownArrow(true);
-	    relationshipSheetColumnNameDataValidation6.setSuppressDropDownArrow(true);
-	    // add the validations to the relationship sheet
-	    relationshipSheet.addValidationData(relationshipSheetTableNameDataValidation1);
-	    relationshipSheet.addValidationData(relationshipSheetTableNameDataValidation2);
-	    relationshipSheet.addValidationData(relationshipSheetTableNameDataValidation3);
-	    relationshipSheet.addValidationData(relationshipSheetColumnNameDataValidation1);
-	    relationshipSheet.addValidationData(relationshipSheetColumnNameDataValidation2);
-	    relationshipSheet.addValidationData(relationshipSheetColumnNameDataValidation3);
-	    relationshipSheet.addValidationData(relationshipSheetColumnNameDataValidation4);
-	    relationshipSheet.addValidationData(relationshipSheetColumnNameDataValidation5);
-	    relationshipSheet.addValidationData(relationshipSheetColumnNameDataValidation6);
+			// create the drop downs	    
+			DataValidation relationshipSheetTableNameDataValidation1 = relationshipSheetValidationHelper.createValidation(relationshipSheetTableNameConstraint, relationshipSheetTableNameAddressList1);
+			DataValidation relationshipSheetTableNameDataValidation2 = relationshipSheetValidationHelper.createValidation(relationshipSheetTableNameConstraint, relationshipSheetTableNameAddressList2);
+			DataValidation relationshipSheetTableNameDataValidation3 = relationshipSheetValidationHelper.createValidation(relationshipSheetTableNameConstraint, relationshipSheetTableNameAddressList3);
+			DataValidation relationshipSheetColumnNameDataValidation1 = relationshipSheetValidationHelper.createValidation(relationshipSheetColumnNameConstraint1, relationshipSheetColumnNameAddressList1);
+			DataValidation relationshipSheetColumnNameDataValidation2 = relationshipSheetValidationHelper.createValidation(relationshipSheetColumnNameConstraint1, relationshipSheetColumnNameAddressList2);
+			DataValidation relationshipSheetColumnNameDataValidation3 = relationshipSheetValidationHelper.createValidation(relationshipSheetColumnNameConstraint2, relationshipSheetColumnNameAddressList3);
+			DataValidation relationshipSheetColumnNameDataValidation4 = relationshipSheetValidationHelper.createValidation(relationshipSheetColumnNameConstraint2, relationshipSheetColumnNameAddressList4);
+			DataValidation relationshipSheetColumnNameDataValidation5 = relationshipSheetValidationHelper.createValidation(relationshipSheetColumnNameConstraint3, relationshipSheetColumnNameAddressList5);
+			DataValidation relationshipSheetColumnNameDataValidation6 = relationshipSheetValidationHelper.createValidation(relationshipSheetColumnNameConstraint3, relationshipSheetColumnNameAddressList6);
+			// create the drop down side btn
+			relationshipSheetTableNameDataValidation1.setSuppressDropDownArrow(true);
+			relationshipSheetTableNameDataValidation2.setSuppressDropDownArrow(true);
+			relationshipSheetTableNameDataValidation3.setSuppressDropDownArrow(true);
+			relationshipSheetColumnNameDataValidation1.setSuppressDropDownArrow(true);
+			relationshipSheetColumnNameDataValidation2.setSuppressDropDownArrow(true);
+			relationshipSheetColumnNameDataValidation3.setSuppressDropDownArrow(true);
+			relationshipSheetColumnNameDataValidation4.setSuppressDropDownArrow(true);
+			relationshipSheetColumnNameDataValidation5.setSuppressDropDownArrow(true);
+			relationshipSheetColumnNameDataValidation6.setSuppressDropDownArrow(true);
+			// add the validations to the relationship sheet
+			relationshipSheet.addValidationData(relationshipSheetTableNameDataValidation1);
+			relationshipSheet.addValidationData(relationshipSheetTableNameDataValidation2);
+			relationshipSheet.addValidationData(relationshipSheetTableNameDataValidation3);
+			relationshipSheet.addValidationData(relationshipSheetColumnNameDataValidation1);
+			relationshipSheet.addValidationData(relationshipSheetColumnNameDataValidation2);
+			relationshipSheet.addValidationData(relationshipSheetColumnNameDataValidation3);
+			relationshipSheet.addValidationData(relationshipSheetColumnNameDataValidation4);
+			relationshipSheet.addValidationData(relationshipSheetColumnNameDataValidation5);
+			relationshipSheet.addValidationData(relationshipSheetColumnNameDataValidation6);
 
-		try {
-			wb.write(new FileOutputStream(path + dbName + "_" + "RDBMS_Import_Sheet.xlsx"));
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();	
-			return (success = false);
-		} catch (IOException e) {
-			e.printStackTrace();
-			return (success = false);
-		}
+			try {
+				wb.write(new FileOutputStream(path + dbName + "_" + "RDBMS_Import_Sheet.xlsx"));
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();	
+				return (success = false);
+			} catch (IOException e) {
+				e.printStackTrace();
+				return (success = false);
+			}
+		 
+	} catch (Exception e ){
+		e.printStackTrace();
+	} finally {
+		ConnectionUtils.closeAllConnections(null, resultSet, statement);
+	}
 
 		return success;
 	}
