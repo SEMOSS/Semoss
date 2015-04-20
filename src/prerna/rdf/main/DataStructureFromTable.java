@@ -15,6 +15,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.algorithm.impl.AlgorithmDataFormatter;
 import prerna.math.CalculateEntropy;
+import prerna.util.Utility;
 
 public class DataStructureFromTable {
 
@@ -77,7 +78,7 @@ public class DataStructureFromTable {
 		i = 0;
 		for(; i < numCol; i++) {
 			//ignore numerical values
-			if(!columnTypes[indexFromMaxToMin[i]].equals("STRING") || !!columnTypes[indexFromMaxToMin[i]].equals("INTEGER")) {
+			if(!columnTypes[indexFromMaxToMin[i]].equals("STRING") && !columnTypes[indexFromMaxToMin[i]].equals("INTEGER")) {
 				continue;
 			}
 			int j = 0;
@@ -143,9 +144,8 @@ public class DataStructureFromTable {
 
 	private static int[] getUniqueCounts(ArrayList<Object[]> data) {
 		Object[][] newData = AlgorithmDataFormatter.manipulateValues(data, true);
-		columnTypes = AlgorithmDataFormatter.determineColumnTypes(data);
+		columnTypes = determineColumnTypes(data);
 	
-
 		int i = 0;
 		int numRow = newData.length;
 		int[] uniqueCounts = new int[numRow];
@@ -157,6 +157,57 @@ public class DataStructureFromTable {
 		}
 
 		return uniqueCounts;	
+	}
+	
+	public static String[] determineColumnTypes(ArrayList<Object []> list) {
+		int numCols = list.get(0).length;
+		String[] columnTypes = new String[numCols];
+		//iterate through columns
+		for(int j = 0; j < numCols; j++) {
+			columnTypes[j] = determineColumnType(list,j);
+		}
+		return columnTypes;
+	}
+	
+	private static String determineColumnType(ArrayList<Object []> list,int column) {
+		//iterate through rows
+		int numCategorical = 0;
+		int numDouble = 0;
+		int numInteger = 0;
+		int numDate = 0;
+		int numSimpleDate = 0;
+		String type;
+		for(int i = 0; i < list.size(); i++) {
+			Object[] dataRow = list.get(i);
+			if(dataRow[column] != null && !dataRow[column].toString().equals("")) {
+				String colEntryAsString = dataRow[column].toString();
+				if(!colEntryAsString.isEmpty()) {
+					type = Utility.processType(colEntryAsString);
+					if(type.equals("STRING")) {
+						numCategorical++;
+					}else if(type.equals("DOUBLE")) {
+						numDouble++;
+					} else if(type.equals("INTEGER")) {
+						numInteger++;
+					} else if(type.equals("DATE")) {
+						numDate++;
+					}else {
+						numSimpleDate++;
+					}
+				}
+			}
+		}
+		if(numDouble > numCategorical && numDouble > numInteger && numDouble > numDate && numDouble > numSimpleDate ) {
+			return "DOUBLE";
+		} else if(numInteger > numCategorical && numInteger > numDouble && numInteger > numDate && numInteger > numSimpleDate ) {
+			return "INTEGER";
+		} else if(numDate > numCategorical && numDate > numDouble && numDate > numInteger && numDate > numSimpleDate ) {
+			return "DATE";
+		} else if(numSimpleDate > numCategorical && numSimpleDate > numDouble && numSimpleDate > numDate && numSimpleDate > numInteger ) {
+			return "SIMPLEDATE";
+		} else {
+			return "STRING";
+		}
 	}
 
 	public static boolean compareCols(int mainCol, int otherCol) {
