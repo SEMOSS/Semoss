@@ -37,6 +37,7 @@ import java.util.Hashtable;
 
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.util.ConnectionUtils;
 
 public class RDBMSSelectWrapper extends AbstractWrapper implements
 		ISelectWrapper {
@@ -58,18 +59,7 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements
 		populateQueryResults();
 		
 		//close the result set
-		try{
-			rs.close();
-		} catch (Exception e){
-			e.printStackTrace();
-		}
-	}
-	
-	private String currentDate(){
-		Date dt = new Date();
-		SimpleDateFormat dtFormatter = new SimpleDateFormat("MM/dd/yy HH:mm:ss:SSS");
-		
-		return dtFormatter.format(dt);
+		ConnectionUtils.closeResultSet(rs);
 	}
 
 	@Override
