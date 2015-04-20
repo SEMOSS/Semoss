@@ -129,8 +129,8 @@ public class DataStructureFromTable {
 		}
 		
 		i = 0;
-		for(; i < numCol && !colAlreadyProperty[i]; i++) {
-			if(!matches.containsKey(headers[i])) {
+		for(; i < numCol; i++) {
+			if(!matches.containsKey(headers[i]) && (columnTypes[i].equals("STRING") || columnTypes[i].equals("INTEGER")) ) {
 				matches.put(headers[i], new ArrayList<String>());
 			}
 		}
