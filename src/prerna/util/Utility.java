@@ -888,20 +888,12 @@ public class Utility {
 			return null;
 		}
 		
-		boolean isInteger = true;
-		try {
-			Integer.parseInt(s);
-		} catch(NumberFormatException e) {
-			isInteger = false;
-		}
-		
-		if(isInteger) {
-			return ("INTEGER");
-		}
-		
 		boolean isDouble = true;
 		try {
-			Double.parseDouble(s);
+			double val = Double.parseDouble(s);
+			if(val == Math.floor(val)) {
+				return "INTEGER";
+			}
 		} catch(NumberFormatException e) {
 			isDouble = false;
 		}
