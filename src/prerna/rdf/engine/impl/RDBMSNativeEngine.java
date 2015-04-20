@@ -54,6 +54,7 @@ import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryBuilder;
 import prerna.rdf.query.builder.SQLQueryTableBuilder;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -63,6 +64,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	DriverManager manager = null;
 	Connection conn = null;
 	boolean connected = false;
+	private ResultSet rs = null;
+	private Statement stmt = null;
 	
 	@Override
 	public void openDB(String propFile)
@@ -143,7 +146,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	public Object execSelectQuery(String query)
 	{
 		try {
-			ResultSet rs = getResults(query);
+			rs = getResults(query);
 			return rs;
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -165,7 +168,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		// do nothing
 		try {
 			conn.commit();
-			conn.close();
+			ConnectionUtils.closeAllConnections(conn, rs, stmt);
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -183,6 +186,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			e.printStackTrace();
 		}
 	}
+	
 	
 	public Vector getColumnsFromResultSet(int columns, ResultSet rs)
 	{
@@ -211,10 +215,17 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		return retVector;
 	}
 	
-	public ResultSet getResults(String query) throws Exception
+	/**
+	 * Private method that returns a ResultSet object.  If you choose to make this method public
+	 * it make it harder to keep track of the Result set object and where you need to explicity close it
+	 * @param query
+	 * @return ResultSet object
+	 * @throws Exception
+	 */
+	private ResultSet getResults(String query) throws Exception 
 	{
-		Statement stmt = conn.createStatement();
-		ResultSet rs = stmt.executeQuery(query);
+		stmt = conn.createStatement();
+		rs = stmt.executeQuery(query);
 		return rs;
 	}
 	
