@@ -60,6 +60,9 @@ public class ScatterChartPlaySheet extends BrowserPlaySheet{
 	 * @return Hashtable Includes the data series, graph title, and the x- and y-axis titles.*/
 	public Hashtable processQueryData()
 	{
+		if(list == null || list.isEmpty()) {
+			return null;
+		}
 		ArrayList allData = new ArrayList();
 		String[] var = wrapper.getVariables();
 		String name = var[0];
