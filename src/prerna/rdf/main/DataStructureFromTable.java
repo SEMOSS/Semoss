@@ -68,10 +68,10 @@ public class DataStructureFromTable {
 		}
 
 //		System.out.println(Arrays.toString(uniqueCounts));
-		for(i = 0; i < numCol; i++) {
-			System.out.print(headers[indexFromMaxToMin[i]] + ", ");
-		}
-		System.out.println("");
+//		for(i = 0; i < numCol; i++) {
+//			System.out.print(headers[indexFromMaxToMin[i]] + ", ");
+//		}
+//		System.out.println("");
 		
 		
 		boolean[] colAlreadyProperty = new boolean[numCol];
@@ -101,9 +101,10 @@ public class DataStructureFromTable {
 						
 						System.out.println("MATCH!!!");
 						boolean useInverse = false;
-						if(compareCols(secondCol, firstCol) && !colAlreadyProperty[firstCol]) {
-							if(i > j) {
-								System.out.println("Use Inverse since column order");
+						if(i > j) {
+							System.out.println("TRY TESTING REVERSE ORDER TO GO IN ORDER OF TABLE INPUT...");
+							if(compareCols(secondCol, firstCol) && !colAlreadyProperty[firstCol]) {
+								System.out.println("USE REVERSE ORDER!!!");
 								useInverse = true;
 								// if inverse also works, take the value from the most left as the concept
 								if(matches.containsKey(secondColName)) {
@@ -226,6 +227,7 @@ public class DataStructureFromTable {
 			String val2 = row[otherCol].toString();
 			if(values.containsKey(val1)) {
 				if(!val2.equals(values.get(val1))) {
+					System.out.println("NO MATCH! " + headers[mainCol] + " specific instance, " + val1 + ", has 2 different values for " + headers[otherCol] + " which equals " + values.get(val1) + " and " + val2);
 					return false;
 				}
 			} else {
