@@ -546,7 +546,7 @@ public class BarChart {
 	
 	private void createBins(int numBins, double binSize, Double[] unsortedValues, Double[] numValues, boolean log) {
 		Double min = StatisticsUtilityMethods.getMinimumValueIgnoringNull(numValues);
-		Double max = StatisticsUtilityMethods.getMinimumValueIgnoringNull(numValues);
+		Double max = StatisticsUtilityMethods.getMaximumValueIgnoringNull(numValues);
 		numericalBinOrder = new String[numBins];
 		int i = 0;
 		// create all bins
