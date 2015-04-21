@@ -36,6 +36,8 @@ public class DataStructureFromTable {
 		//		double[] entropyArr = eDensity.generateEntropy();
 		//		String[] columnTypes = eDensity.getColumnTypes();
 
+		long startT = System.currentTimeMillis();
+		
 		int[] uniqueCounts = getUniqueCounts(table);
 
 //		System.out.println(Arrays.toString(headers));
@@ -140,6 +142,9 @@ public class DataStructureFromTable {
 		for(String s : matches.keySet()) {
 			System.out.println(s + ":" + matches.get(s));
 		}
+		
+		long endT = System.currentTimeMillis();
+		System.out.println("\nTime(s) to run algorithm (excluding reading the excel) = " + (endT - startT)/1000);
 	}
 
 	private static int[] getUniqueCounts(ArrayList<Object[]> data) {
