@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.algorithm.impl.specific.tap;
 
-import java.util.ArrayList;
 
 
 /**
@@ -38,26 +37,76 @@ public class SysSiteOptFunction extends UnivariateOptFunction{
 	protected int count = 0;
 	protected SysSiteLPSolver lpSolver;
 	
+	//given
 	protected double currentSustainmentCost;
-	protected int years;
-	protected double maxBudget;
+	protected double budgetForYear;
 	
-	public void setVariables(int[][] systemDataMatrix, int[][] systemBLUMatrix, double[][] systemSiteMatrix, int[] systemTheater, int[] systemGarrison, Integer[] sysModArr, Integer[] sysDecomArr, double[] maintenaceCosts, double[] siteMaintenaceCosts, double[] siteDeploymentCosts,int[][] centralSystemDataMatrix,int[][] centralSystemBLUMatrix, int[] centralSystemTheater, int[] centralSystemGarrison, Integer[] centralModArr, Integer[] centralDecomArr, double[] centralSystemMaintenaceCosts, double maxBudget, int years, double currentSustainmentCost, ArrayList<String> sysList, ArrayList<String> centralSysList, ArrayList<String> dataList, ArrayList<String> bluList, ArrayList<String> siteList) {		
-		this.maxBudget = maxBudget;
-		this.years = years;
+	//calculated during run
+	protected double futureSustainmentCost;
+	protected double adjustedDeploymentCost;
+	protected double yearsToComplete;
+	
+	//outputs of extended classes
+	protected double adjustedTotalSavings;
+	protected double roi;
+	protected double irr;
+	
+	
+	public void setVariables(int[][] systemDataMatrix, int[][] systemBLUMatrix, double[][] systemSiteMatrix, int[] systemTheater, int[] systemGarrison, Integer[] sysModArr, Integer[] sysDecomArr, double[] maintenaceCosts, double[] siteMaintenaceCosts, double[] siteDeploymentCosts,int[][] centralSystemDataMatrix,int[][] centralSystemBLUMatrix, int[] centralSystemTheater, int[] centralSystemGarrison, Integer[] centralModArr, Integer[] centralDecomArr, double[] centralSystemMaintenaceCosts, double budgetForYear, int years, double currentSustainmentCost, double infRate, double disRate) {
+		
+		this.budgetForYear = budgetForYear;
+		this.totalYrs = years;
 		this.currentSustainmentCost = currentSustainmentCost;
+		
+		this.infRate = infRate;
+		this.disRate = disRate;
 		
 		long startTime;
 		long endTime;
 		startTime = System.currentTimeMillis();			
 
-		lpSolver = new SysSiteLPSolver(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, sysModArr, sysDecomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, maxBudget / 2);
-		lpSolver.setVariableNames(sysList, centralSysList, dataList, bluList, siteList);
+		lpSolver = new SysSiteLPSolver(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, sysModArr, sysDecomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, budgetForYear * years / 2);
 		lpSolver.setupModel();
 		
 		endTime = System.currentTimeMillis();
-		System.out.println("Time to set up the solver " + (endTime - startTime) / 1000 );
+		System.out.println("Time to set up the LP solver " + (endTime - startTime) / 1000  + " seconds");
 
+	}
+	
+	protected Boolean runLPSolve(double budget) {
+		count++;
+//		updateProgressBar("Iteration " + count);
+		System.out.println("budget "+budget);
+		
+		long startTime;
+		long endTime;
+		startTime = System.currentTimeMillis();
+		
+		lpSolver.updateBudget(budget);
+		lpSolver.setTimeOut(200);
+		lpSolver.execute();
+		
+		endTime = System.currentTimeMillis();
+		System.out.println("Time to run iteration " + count + ": " + (endTime - startTime) / 1000 );
+		
+		if(!lpSolver.isOptimalSolution()) {
+			return false;
+		}
+		
+		futureSustainmentCost = lpSolver.getObjectiveVal();
+		double deploymentCost = lpSolver.getTotalDeploymentCost();
+		
+		if(budgetForYear == 0)
+			yearsToComplete = 0.0;
+		else
+			yearsToComplete = deploymentCost / budgetForYear;
+		
+		double mu = (1 + infRate / 100) / (1 + disRate / 100);
+		adjustedDeploymentCost = SysOptUtilityMethods.calculateAdjustedDeploymentCost(mu, yearsToComplete, budgetForYear);
+		adjustedTotalSavings = SysOptUtilityMethods.calculateAdjustedTotalSavings(mu, yearsToComplete, totalYrs, currentSustainmentCost - futureSustainmentCost);
+
+				
+		return true;
 	}
 	
 	public double[] getSysKeptArr() {
@@ -72,12 +121,27 @@ public class SysSiteOptFunction extends UnivariateOptFunction{
 		return lpSolver.getSystemSiteResultMatrix();
 	}
 
-	public double getTotalDeploymentCost() {
-		return lpSolver.getTotalDeploymentCost();
-	}
-
 	public double getFutureSustainmentCost() {
-		return lpSolver.getObjectiveVal();
+		return futureSustainmentCost;
 	}
-
+	
+	public double getAdjustedDeploymentCost() {
+		return adjustedDeploymentCost;
+	}
+	
+	public double getYearsToComplete() {
+		return yearsToComplete;
+	}
+	
+	public double getAdjustedTotalSavings() {
+		return adjustedTotalSavings;
+	}
+	
+	public double getROI() {
+		return roi;
+	}
+	
+	public double getIRR() {
+		return irr;
+	}
 }

@@ -38,41 +38,18 @@ public class SysSiteROIOptFunction extends SysSiteOptFunction{
 	 * @return double	max savings possible when optimizing for budget*/
 	public double value(double arg0) {
 		
-		count++;
-//		updateProgressBar("Iteration " + count);
-		System.out.println("budget "+arg0);
-		
-		long startTime;
-		long endTime;
-		startTime = System.currentTimeMillis();
-		
-		lpSolver.updateBudget(arg0);
-		lpSolver.setTimeOut(200);
-		lpSolver.execute();
-		
-		endTime = System.currentTimeMillis();
-		System.out.println("Time to run iteration " + count + ": " + (endTime - startTime) / 1000 );
-		
-		if(!lpSolver.isOptimalSolution()) {
+		if(runLPSolve(arg0)) {
+			roi = adjustedTotalSavings / adjustedDeploymentCost - 1;
+			
+			System.out.println("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", roi "+roi);
+			return roi;
+			
+		} else {
+			
 			System.out.println("iteration " + count + ": solution is not optimal ");
 			return 0.0;
+			
 		}
-	
-		double deployCost = lpSolver.getTotalDeploymentCost();
-		
-		double yearsToComplete;
-		if(maxBudget == 0)
-			yearsToComplete = 0.0;
-		else
-			yearsToComplete = deployCost / (maxBudget / years);
-		
-		double savings = (years - Math.ceil(yearsToComplete)) * (currentSustainmentCost - lpSolver.getObjectiveVal());
-		
-		double roi = savings / deployCost - 1;
-
-		System.out.println("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + deployCost + ", years to deploy " + yearsToComplete + ", savings over the entire time frame " + savings + " roi "+roi);
-		
-		return roi;
 	}
 
 }

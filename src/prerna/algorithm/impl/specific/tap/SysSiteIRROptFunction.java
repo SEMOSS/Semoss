@@ -28,19 +28,35 @@
 package prerna.algorithm.impl.specific.tap;
 
 
+
 /**
  * Interface representing a univariate real function that is implemented for TAP system and service optimization functions.
  */
-public class SysSiteSavingsOptFunction extends SysSiteOptFunction{
+public class SysSiteIRROptFunction extends SysSiteOptFunction{
+	
+	SysSiteIRRLinInterp linInt;
+	
+	public void setVariables(int[][] systemDataMatrix, int[][] systemBLUMatrix, double[][] systemSiteMatrix, int[] systemTheater, int[] systemGarrison, Integer[] sysModArr, Integer[] sysDecomArr, double[] maintenaceCosts, double[] siteMaintenaceCosts, double[] siteDeploymentCosts,int[][] centralSystemDataMatrix,int[][] centralSystemBLUMatrix, int[] centralSystemTheater, int[] centralSystemGarrison, Integer[] centralModArr, Integer[] centralDecomArr, double[] centralSystemMaintenaceCosts, double budgetForYear, int years, double currentSustainmentCost, double infRate, double disRate) {
+		
+		super.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, sysModArr, sysDecomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts,  budgetForYear, years, currentSustainmentCost, infRate, disRate);
 
+		createLinearInterpolation();
+	}
+	
 	/**
 	 * Given a budget, optimize the savings to return max savings.
 	 * @return double	max savings possible when optimizing for budget*/
 	public double value(double arg0) {
 		
-		if(runLPSolve(arg0)) {			
-			System.out.println("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", savings over entire time frame "+adjustedTotalSavings);
-			return adjustedTotalSavings;
+		if(runLPSolve(arg0)) {
+
+			linInt.setYearSavingsAndYearsToComplete(currentSustainmentCost - futureSustainmentCost, yearsToComplete);
+			linInt.execute();
+			irr =  linInt.retVal;
+			
+			System.out.println("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", internal rate of return "+irr);
+			
+			return irr;
 			
 		} else {
 			
@@ -48,6 +64,13 @@ public class SysSiteSavingsOptFunction extends SysSiteOptFunction{
 			return 0.0;
 			
 		}
+	}
+
+	public void createLinearInterpolation()
+	{
+		 linInt = new SysSiteIRRLinInterp();
+		 linInt.setMinAndMax(-.95, 5);
+		 linInt.setVariables(budgetForYear, totalYrs, infRate);
 	}
 
 }

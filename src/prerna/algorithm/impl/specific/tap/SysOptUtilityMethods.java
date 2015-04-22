@@ -289,4 +289,101 @@ public final class SysOptUtilityMethods {
 		
 	}
 	
+	public static double calculateAdjustedTotalSavings(double mu, double yearsToComplete, double totalYrs, double savingsForYear) {
+
+		double i;
+		double adjustedTotalSavings = 0.0; 
+
+		if(mu != 1) {
+			for(i= Math.ceil(yearsToComplete); i<totalYrs; i++)
+				adjustedTotalSavings += savingsForYear *  Math.pow(mu,i);
+		} else {
+			for(i= Math.ceil(yearsToComplete); i<totalYrs; i++)
+				adjustedTotalSavings += savingsForYear;
+		}
+		
+		return adjustedTotalSavings;
+	}
+	
+	public static double calculateAdjustedDeploymentCost(double mu, double yearsToComplete, double budgetForYear) {
+
+		double i;
+		double adjustedDeploymentCost = 0.0; 
+		
+		if(mu != 1) {
+			for(i=1 ; i<= yearsToComplete; i++) {
+				adjustedDeploymentCost+= budgetForYear * Math.pow(mu,i - 1);
+			}
+			adjustedDeploymentCost += (yearsToComplete - Math.floor(yearsToComplete)) * budgetForYear * Math.pow(mu,i - 1);
+			
+		} else {
+			
+			for(i=1 ; i<= yearsToComplete; i++)
+				adjustedDeploymentCost+= budgetForYear;
+				
+			adjustedDeploymentCost += (yearsToComplete - Math.floor(yearsToComplete)) * budgetForYear;
+		}
+		return adjustedDeploymentCost;
+	}
+	
+	public static double[] calculateAdjustedSavingsArr(double mu, double yearsToComplete, int totalYrs, double savingsForYear) {
+			
+		int i;
+		double[] adjustedSavingsArr = new double[totalYrs];
+		if(mu != 1) {
+			for(i=0; i<totalYrs; i++) {
+				if(i < yearsToComplete) {
+					adjustedSavingsArr[i] = 0;
+					
+				}else {
+					adjustedSavingsArr[i] = savingsForYear *  Math.pow(mu,i);
+				}
+			}
+		} else {
+			for(i=0; i<totalYrs; i++) {
+				if(i<yearsToComplete) {
+					adjustedSavingsArr[i] = 0;
+					
+				}else {
+					adjustedSavingsArr[i] = savingsForYear;
+				}
+			}
+		}
+		return adjustedSavingsArr;
+	}
+	
+	public static double[] calculateAdjustedDeploymentCostArr(double mu, double yearsToComplete, int totalYrs, double budgetForYear){
+		
+		int i;
+		double[] adjustedDeploymentCostArr = new double[totalYrs];
+		
+		if(mu != 1) {
+			for(i=0; i<totalYrs; i++) {
+				if(i+1 < yearsToComplete) {
+					adjustedDeploymentCostArr[i] = budgetForYear * Math.pow(mu,i);
+					
+				}else if(i<yearsToComplete) {
+					adjustedDeploymentCostArr[i] = (yearsToComplete - Math.floor(yearsToComplete)) *  budgetForYear *  Math.pow(mu,i);
+					
+				}else {
+					adjustedDeploymentCostArr[i] = 0;
+				}
+			}
+		} else {
+			for(i=0; i<totalYrs; i++) {
+				if(i+1 < yearsToComplete) {
+					adjustedDeploymentCostArr[i] = budgetForYear;
+					
+				}else if(i<yearsToComplete) {
+					adjustedDeploymentCostArr[i] = (yearsToComplete - Math.floor(yearsToComplete)) *  budgetForYear;
+					
+				}else {
+					adjustedDeploymentCostArr[i] = 0;
+				}
+			}
+		}
+		return adjustedDeploymentCostArr;
+
+	}
+	
 }

@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.algorithm.impl.specific.tap;
 
-import java.util.ArrayList;
-
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 
@@ -88,9 +86,6 @@ public class SysSiteLPSolver extends LPOptimizer{
 	private double[] sysKeptArr;
 	private double[] centralSysKeptArr;
 	private double totalDeploymentCost;
-	
-	//TODO delete after testing
-	ArrayList<String> sysList, centralSysList, dataList, bluList, siteList;
 
 	/**
 	 * Instantiates the SystemDeploymentOptimizer
@@ -142,15 +137,6 @@ public class SysSiteLPSolver extends LPOptimizer{
 		this.garrisonBLUAtSiteMatrix = calculateFunctionalityAtSite(systemBLUMatrix, centralSystemBLUMatrix, systemGarrison,centralSystemGarrison, bluStillProvidedGarrison);
 	}
 	
-	public void setVariableNames(ArrayList<String> sysList, ArrayList<String> centralSysList, ArrayList<String> dataList, ArrayList<String> bluList, ArrayList<String> siteList) {
-
-		this.sysList = sysList;
-		this.centralSysList = centralSysList;
-		this.dataList = dataList;
-		this.bluList = bluList;
-		this.siteList = siteList;
-	}
-	
 	
 	/**
 	 * Sets system site matrix so that the optimizer can be rerun
@@ -185,13 +171,13 @@ public class SysSiteLPSolver extends LPOptimizer{
 		
 		OUTER: for(i=0; i<funcSize; i++) {
 			for(j=0; j<numSystems; j++)  {
-				if(systemFuncMatrix[j][i] == 1 && systemEnvironment[j] == 1 && decomArr[j] == null) {
+				if(systemFuncMatrix[j][i] == 1 && systemEnvironment[j] == 1 && (decomArr[j] == null || decomArr[j] == 0)) {
 					funcStillProvidedEnvironment[i] = 1;
 					continue OUTER;
 				}	
 			}
 			for(j=0; j<numCentralSystems; j++)  {
-				if(centralSystemFuncMatrix[j][i] == 1 && centralSystemEnvironment[j] == 1  && centralDecomArr[j] == null) {
+				if(centralSystemFuncMatrix[j][i] == 1 && centralSystemEnvironment[j] == 1  && (centralDecomArr[j] == null || centralDecomArr[j] == 0)) {
 					funcStillProvidedEnvironment[i] = 1;
 					continue OUTER;
 				}	
@@ -266,7 +252,7 @@ public class SysSiteLPSolver extends LPOptimizer{
 			for(j=0; j<siteLength; j++) {
 				
 				solver.setBinary(index + 1, true);
-				solver.setColName(index + 1, sysList.get(i)+"-"+siteList.get(j));
+//				solver.setColName(index + 1, sysList.get(i)+"-"+siteList.get(j));
 				index++;
 //				if(systemSiteMatrix[i][j]==1.0)
 					solver.setVarBranch(index,LpSolve.BRANCH_FLOOR);
@@ -278,7 +264,7 @@ public class SysSiteLPSolver extends LPOptimizer{
 		//one variable for each system to say whether it is deployed at any site
 		for(i=0; i<numNotCentralSystems; i++) {
 			solver.setBinary(index + 1, true);
-			solver.setColName(index + 1, sysList.get(i));
+//			solver.setColName(index + 1, sysList.get(i));
 			index++;
 			solver.setVarBranch(index, LpSolve.BRANCH_FLOOR);
 		}
@@ -286,7 +272,7 @@ public class SysSiteLPSolver extends LPOptimizer{
 		//one variable for each centrally deployed system to say whether it is deployed at all site
 		for(i=0; i<numCentralSystems; i++) {
 			solver.setBinary(index + 1, true);
-			solver.setColName(index + 1, centralSysList.get(i));
+//			solver.setColName(index + 1, centralSysList.get(i));
 			index++;
 			solver.setVarBranch(index, LpSolve.BRANCH_FLOOR);
 		}
@@ -303,13 +289,9 @@ public class SysSiteLPSolver extends LPOptimizer{
 			long startTime;
 			long endTime1;
 
-//			solver.resizeLp(sysLength * siteLength * 7 / 5, sysLength * siteLength + sysLength);
-
-
 			startTime = System.currentTimeMillis();			
 			addBudgetConstraint();
 			endTime1 = System.currentTimeMillis();
-//			System.out.println("Time to create budget constraint " + (endTime1 - startTime) / 1000 );
 			
 			startTime = System.currentTimeMillis();			
 			//adding constraints for washingtodata and blu at each site
@@ -319,17 +301,10 @@ public class SysSiteLPSolver extends LPOptimizer{
 			addFunctionalityConstraints(theaterBLUAtSiteMatrix, systemBLUMatrix, centralSystemBLUMatrix, systemGarrison, centralSystemGarrison);
 			addFunctionalityConstraints(garrisonBLUAtSiteMatrix, systemBLUMatrix, centralSystemBLUMatrix,  systemGarrison, centralSystemGarrison);
 			endTime1 = System.currentTimeMillis();
-//			System.out.println("Time to create functionality constraints " + (endTime1 - startTime) / 1000 );
-			
-//			//we estimated the number of rows necessary. if there isnt enough space, we need to resize
-//			if(solver.getNrows() - currRowInd < sysLength * siteLength + 1) {
-//				solver.resizeLp(currRowInd + sysLength * siteLength + 1, solver.getNcolumns());
-//			}
 			
 			startTime = System.currentTimeMillis();			
 			addSystemDeployedConstraints();
 			endTime1 = System.currentTimeMillis();
-//			System.out.println("Time to create deployment constraints " + (endTime1 - startTime) / 1000 );
 			
 			//addBudgetBounds();
 			addModDecomBounds();
@@ -384,30 +359,6 @@ public class SysSiteLPSolver extends LPOptimizer{
 			        }
 			        
 		        	solver.addConstraintex(numNotCentralSystems + numCentralSystems, row, colno, LpSolve.GE, 1);
-		        	
-//					//added
-//					count = 0;
-//			        for(k=0; k<sysLength; k++)
-//			        	if(systemFunctionalityMatrix[k][i] == 1)
-//			        		count++;
-//		
-//					int[] colno = new int[count];
-//			        double[] row = new double[count];
-//			        index = 0;
-//			        for(k=0; k<sysLength; k++) {
-//			        	if(systemFunctionalityMatrix[k][i] == 1) {
-//				        	colno[index] = k * siteLength + j+1;
-//				        	row[index] = 1.0;
-//				        	index++;
-//			        	}
-//			        }
-////					solver.setRowex(currRowInd, count, row, colno);
-////					solver.setRh(currRowInd, 1);
-////					solver.setConstrType(currRowInd, LpSolve.GE);
-////					currRowInd++;
-//
-//		        	solver.addConstraintex(count, row, colno, LpSolve.GE,1);
-//					//added
 
 				}				
 			}
@@ -433,10 +384,6 @@ public class SysSiteLPSolver extends LPOptimizer{
 				colno[1] = numNotCentralSystems * siteLength + i + 1;
 				row[1] = 1.0;
 
-//				solver.setRowex(currRowInd, 2, row, colno);
-//				solver.setRh(currRowInd, 0);
-//				solver.setConstrType(currRowInd, LpSolve.GE);
-//				currRowInd++;
 			    solver.addConstraintex(2, row, colno, LpSolve.GE, 0);
 			}
         }
@@ -449,31 +396,6 @@ public class SysSiteLPSolver extends LPOptimizer{
 	 * @throws LpSolveException
 	 */
 	private void addBudgetConstraint() throws LpSolveException { //TODO
-//		int i;
-//		int j;
-//
-//		int count = 0;
-//        for(i=0; i<sysLength; i++) {
-//			for(j=0; j<siteLength; j++) {
-//				if(systemSiteMatrix[i][j]==0) {
-//					count++;
-//				}
-//			}
-//        }
-//        
-//        int index = 0;
-//		int[] colno = new int[count];
-//        double[] row = new double[count];
-//        for(i=0; i<sysLength; i++) {
-//			for(j=0; j<siteLength; j++) {
-//				if(systemSiteMatrix[i][j]==0) {
-//					colno[index] = i * siteLength + j +1 ;
-//				    row[index] = siteDeploymentCosts[i] / scalingFactor;
-//				    index++;
-//				}
-//			}
-//        }
-//    	solver.addConstraintex(count, row, colno, LpSolve.LE, maxBudget/scalingFactor);
 
 		int i;
 		int j;
@@ -497,61 +419,7 @@ public class SysSiteLPSolver extends LPOptimizer{
     	solver.addConstraintex(numNotCentralSystems * siteLength + numNotCentralSystems + numCentralSystems, row, colno, LpSolve.LE, maxBudget);
     	budgetRow = solver.getNorigRows();
 
-//		solver.setRowex(currRowInd, sysLength * siteLength, row, colno);
-//		solver.setRh(currRowInd, maxBudget/scalingFactor);
-//		solver.setConstrType(currRowInd, LpSolve.LE);
-//		currRowInd++;
-
 	}
-	
-//	private void updateBounds() throws LpSolveException{
-//		int i;
-//		int j;
-//		int oldIndex = 0;
-//		int newIndex = 0;
-//		
-//        for(i=0; i<numNotCentralSystems; i++) {
-//			for(j=0; j<siteLength; j++) {
-//				oldIndex = i * siteLength + j +1;
-//				newIndex = solver.getLpIndex(oldIndex);
-//				System.out.println("old var " + oldIndex + " new index " + newIndex + ": lower " + solver.getLowbo(newIndex)+ " upper " + solver.getUpbo(newIndex));
-//				if(newIndex !=0)
-//					solver.setBounds(newIndex, 0, 1);
-//			}
-//			oldIndex = numNotCentralSystems * siteLength + i + 1;
-//			newIndex = solver.getLpIndex(oldIndex);
-//			System.out.println("old var " + oldIndex + " new index " + newIndex + ": lower " + solver.getLowbo(newIndex)+ " upper " + solver.getUpbo(newIndex));
-//			if(newIndex !=0)
-//				solver.setBounds(newIndex, 0, 1);
-//         }
-//        
-//        for(i=0; i<numCentralSystems; i++) {
-//
-//			oldIndex = numNotCentralSystems * (siteLength + 1) + i + 1;
-//			newIndex = solver.getLpIndex(oldIndex);
-//			System.out.println("old var " + oldIndex + " new index " + newIndex + ": lower " + solver.getLowbo(newIndex)+ " upper " + solver.getUpbo(newIndex));
-//			if(newIndex !=0)
-//				solver.setBounds(newIndex, 0, 1);
-//        }
-//        addBudgetBounds();
-//        addModDecomBounds();
-//
-//	}
-	
-//	private void addBudgetBounds() throws LpSolveException{
-//		int i;
-//		int j;
-//		
-//        for(i=0; i<numNotCentralSystems; i++) {
-//        	if(siteDeploymentCosts[i] > maxBudget) {
-//				for(j=0; j<siteLength; j++) {
-//					if(systemSiteMatrix[i][j]==0) {
-//						solver.setUpbo(i * siteLength + j +1, 0);//cost to deploy is greater than budget, 0 for all sites system is not currently at
-//					}
-//				}
-//        	}
-//        }
-//	}
 	
 	private void addModDecomBounds() throws LpSolveException{
 		int i;
@@ -645,34 +513,11 @@ public class SysSiteLPSolver extends LPOptimizer{
 	@Override
 	public void execute() {
 		try{
-			
-//			System.out.println("orig rows" + solver.getNorigRows());
-			
 			solver.writeLp("model.lp");
-//			System.out.println("row index " + currRowInd);
 
-//			System.out.println("Presolve Loops..." + solver.getPresolveloops());
-//			
 			solver.setScaling(LpSolve.SCALE_EXTREME | LpSolve.SCALE_QUADRATIC | LpSolve.SCALE_INTEGERS);
-//			solver.setScaling(LpSolve.SCALE_GEOMETRIC | LpSolve.SCALE_EQUILIBRATE | LpSolve.SCALE_INTEGERS);
-////			solver.setScaling(LpSolve.SCALE_GEOMETRIC | LpSolve.SCALE_QUADRATIC | LpSolve.SCALE_INTEGERS);
-//
-			solver.setPresolve(LpSolve.PRESOLVE_COLS | LpSolve.PRESOLVE_ROWS | LpSolve.PRESOLVE_PROBEFIX | LpSolve.PRESOLVE_LINDEP  | LpSolve.PRESOLVE_PROBEREDUCE , solver.getPresolveloops());
 
-//			solver.setPresolve(LpSolve.PRESOLVE_COLS | LpSolve.PRESOLVE_ROWS | LpSolve.PRESOLVE_PROBEFIX | LpSolve.PRESOLVE_LINDEP | LpSolve.PRESOLVE_ELIMEQ2, solver.getPresolveloops());
-//			solver.setPresolve(solver.PRESOLVE_COLS | solver.PRESOLVE_ROWS | solver.PRESOLVE_LINDEP | solver.PRESOLVE_SOS | solver.PRESOLVE_REDUCEMIP | solver.PRESOLVE_KNAPSACK | solver.PRESOLVE_ELIMEQ2 |  solver.PRESOLVE_IMPLIEDFREE | solver.PRESOLVE_REDUCEGCD | solver.PRESOLVE_PROBEFIX | solver.PRESOLVE_PROBEREDUCE | solver.PRESOLVE_ROWDOMINATE | solver.PRESOLVE_COLDOMINATE | solver.PRESOLVE_MERGEROWS | solver.PRESOLVE_COLFIXDUAL | solver.PRESOLVE_BOUNDS | solver.PRESOLVE_DUALS | solver.PRESOLVE_SENSDUALS, solver.getPresolveloops());
-//
-//			solver.setPivoting(LpSolve.PRICER_DANTZIG | LpSolve.PRICE_PARTIAL);
-//			solver.setPivoting(LpSolve.PRICER_DANTZIG | LpSolve.PRICE_ADAPTIVE );
-//			
-//			solver.setAntiDegen(LpSolve.ANTIDEGEN_STALLING | LpSolve.ANTIDEGEN_FIXEDVARS);
-//			solver.setBbFloorfirst(LpSolve.BRANCH_AUTOMATIC);
-//			solver.setImprove(LpSolve.IMPROVE_DUALFEAS | LpSolve.IMPROVE_THETAGAP | LpSolve.IMPROVE_BBSIMPLEX);
-//			solver.guessBasis();
-//			solver.setBasis(), arg1);
-//			solver.setEpsb(1.0e-5);
-//			solver.setPreferdual(true);
-//
+			solver.setPresolve(LpSolve.PRESOLVE_COLS | LpSolve.PRESOLVE_ROWS | LpSolve.PRESOLVE_PROBEFIX | LpSolve.PRESOLVE_LINDEP  | LpSolve.PRESOLVE_PROBEREDUCE , solver.getPresolveloops());
 			
 			solver.setBbDepthlimit(-1);
 			solver.setMipGap(true,maxBudget);
@@ -699,11 +544,7 @@ public class SysSiteLPSolver extends LPOptimizer{
 			int j;
 
 			int nConstraints = solver.getNorigRows();
-//			System.out.println("row index " + currRowInd);
-//			System.out.println("orig cols " + solver.getNorigColumns() + " now cols "+solver.getNcolumns());
-//			System.out.println("orig rows " + solver.getNorigRows() + " now rows "+solver.getNrows());
 
-			
 			systemSiteResultMatrix = new double[numNotCentralSystems][siteLength];
 			sysKeptArr = new double[numNotCentralSystems];
 			centralSysKeptArr = new double[numCentralSystems];
