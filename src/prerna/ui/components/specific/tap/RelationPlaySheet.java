@@ -131,23 +131,21 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 		gbl_systemDataBLUSelectPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
 		systemDataBLUSelectPanel.setLayout(gbl_systemDataBLUSelectPanel);
 		
-		systemSelectPanel = new DHMSMSystemSelectPanel();
+		systemSelectPanel = new DHMSMSystemSelectPanel(engine);
 		GridBagConstraints gbc_systemSelectPanel = new GridBagConstraints();
 		gbc_systemSelectPanel.gridheight = 6;
 		gbc_systemSelectPanel.fill = GridBagConstraints.BOTH;
 		gbc_systemSelectPanel.gridx = 0;
 		gbc_systemSelectPanel.gridy = 0;
 		systemDataBLUSelectPanel.add(systemSelectPanel, gbc_systemSelectPanel);
-		systemSelectPanel.addElements();
 		
-		dataSelectPanel = new DHMSMDataSelectPanel();
+		dataSelectPanel = new DHMSMDataSelectPanel(engine,systemSelectPanel);
 		GridBagConstraints gbc_dataSelectPanel = new GridBagConstraints();
 		gbc_dataSelectPanel.gridheight = 6;
 		gbc_dataSelectPanel.fill = GridBagConstraints.BOTH;
 		gbc_dataSelectPanel.gridx = 3;
 		gbc_dataSelectPanel.gridy = 0;
 		systemDataBLUSelectPanel.add(dataSelectPanel, gbc_dataSelectPanel);
-		dataSelectPanel.addElements(systemSelectPanel);
 		
 		Object hidePopupKey = new JComboBox<Object>().getClientProperty("doNotCancelPopup");  
 		JButton btnGenerateRelations = new CustomButton("Generate Relations");

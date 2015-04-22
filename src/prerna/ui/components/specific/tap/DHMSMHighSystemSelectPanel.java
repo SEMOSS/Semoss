@@ -121,7 +121,7 @@ public class DHMSMHighSystemSelectPanel extends JPanel {
 	public void clearList() {
 		allSysCheckBox.setSelected(false);
 		ehrCoreCheckBox.setSelected(false);
-		sysSelectDropDown.clearList();
+		sysSelectDropDown.clearSelection();
 	}
 	
 	public ArrayList<String> getSelectedSystems()

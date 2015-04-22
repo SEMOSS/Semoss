@@ -174,7 +174,7 @@ public class RepoSelectionListener implements ListSelectionListener {
 			}			
 			try{
 				DHMSMSystemSelectPanel dhmsmSystemSelectPanel = (DHMSMSystemSelectPanel) DIHelper.getInstance().getLocalProp(ConstantsTAP.DHMSM_SYSTEM_SELECT_PANEL);
-				dhmsmSystemSelectPanel.addElements();
+				dhmsmSystemSelectPanel.changeEngine(engine);
 			}catch(RuntimeException ex){
 				logger.debug(ex);
 			}

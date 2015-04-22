@@ -28,20 +28,25 @@
 package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
+import java.util.ArrayList;
 
 import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.IAlgorithm;
 import prerna.algorithm.impl.specific.tap.SysIRROptimizer;
 import prerna.algorithm.impl.specific.tap.SysNetSavingsOptimizer;
+import prerna.algorithm.impl.specific.tap.SysOptUtilityMethods;
 import prerna.algorithm.impl.specific.tap.SysROIOptimizer;
 import prerna.algorithm.impl.specific.tap.UnivariateSysOptimizer;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.SysOptPlaySheet;
 import prerna.ui.helpers.AlgorithmRunner;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class SysOptBtnListener implements IChakraListener {
@@ -62,7 +67,7 @@ public class SysOptBtnListener implements IChakraListener {
 	private double hireRate;
 	private double infRate;
 	private double disRate;
-	private IAlgorithm optimizer;
+	private UnivariateSysOptimizer optimizer;
 	
 	/**
 	 * Method actionPerformed.
@@ -75,22 +80,50 @@ public class SysOptBtnListener implements IChakraListener {
 		
 		if (validInputs)
 		{	
+			ArrayList<String> sysList = playSheet.systemSelectPanel.getSelectedSystems();
+
+			if(sysList.size() < 2) {
+				JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
+				Object[] buttons = {"Cancel Calculation", "Continue with All Systems"};
+				int response = JOptionPane.showOptionDialog(playPane, "At least two systems must be selected to run algorithm. Would you like to proceed with all systems?", 
+					"Warning", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE, null, buttons, buttons[1]);
+
+				if (response == 1){
+					playSheet.systemSelectPanel.selectAllSystems();
+					sysList = playSheet.systemSelectPanel.getSelectedSystems();
+					
+				}else {
+					return;
+				}
+			}
+			
+			ArrayList<String> sysModList = playSheet.systemModernizePanel.getSelectedSystems();
+			ArrayList<String> sysDecList = playSheet.systemDecomissionPanel.getSelectedSystems();
+			
+			ArrayList<String> duplicates = SysOptUtilityMethods.inBothLists(sysModList, sysDecList);
+			if (!duplicates.isEmpty()) {
+				Utility.showError("There is at least one system on the manually modernize and manually decommission. Please resolve the lists for systems: " + duplicates.toString());
+				return;
+			}
+
 			playSheet.progressBar.setVisible(true);
 			playSheet.progressBar.setIndeterminate(true);
 			playSheet.progressBar.setStringPainted(true);
-			playSheet.progressBar.setString("Collecting Data");
 			
 			if(playSheet.rdbtnProfit.isSelected()) this.optimizer = new SysNetSavingsOptimizer();
 			else if(playSheet.rdbtnROI.isSelected()) this.optimizer = new SysROIOptimizer();
 			else if(playSheet.rdbtnIRR.isSelected()) this.optimizer = new SysIRROptimizer();
 
 			optimizer.setPlaySheet(playSheet);
-			((UnivariateSysOptimizer)optimizer).setVariables(maxYears, 0.0, serMainPerc, attRate,hireRate,infRate, disRate,noOfPts, minBudget,maxBudget,hourlyCost,  iniLC, scdLT, scdLC); //dont need an interface cost so set to 0.0
-			((UnivariateSysOptimizer)optimizer).setSelectDropDowns(((SysOptPlaySheet)playSheet).systemSelectPanel.getSelectedSystems(), ((SysOptPlaySheet)playSheet).systemSelectPanel.theaterSysCheckBox.isSelected(), ((SysOptPlaySheet)playSheet).systemSelectPanel.garrisonSysCheckBox.isSelected(), ((SysOptPlaySheet)playSheet).capabilitySelectPanel.getSelectedCapabilities(),((SysOptPlaySheet)playSheet).dataBLUSelectPanel.getSelectedData(),((SysOptPlaySheet)playSheet).dataBLUSelectPanel.getSelectedBLU(),((SysOptPlaySheet)playSheet).systemModernizePanel.getSelectedSystems(),((SysOptPlaySheet)playSheet).systemDecomissionPanel.getSelectedSystems(),((SysOptPlaySheet)playSheet).includeRegionalizationCheckbox.isSelected(),((SysOptPlaySheet)playSheet).garrTheaterCheckbox.isSelected());
+			optimizer.setProgressBar(playSheet.progressBar);
+			optimizer.setConsoleArea(playSheet.consoleArea);
+			optimizer.setVariables(maxYears, 0.0, serMainPerc, attRate,hireRate,infRate, disRate,noOfPts, minBudget,maxBudget,hourlyCost,  iniLC, scdLT, scdLC); //dont need an interface cost so set to 0.0
+			optimizer.setSelectDropDowns(sysList, playSheet.systemSelectPanel.isTheaterCheckBoxSelected(), playSheet.systemSelectPanel.isGarrisonCheckBoxSelected(), playSheet.capabilitySelectPanel.getSelectedCapabilities(), playSheet.dataBLUSelectPanel.getSelectedData(), playSheet.dataBLUSelectPanel.getSelectedBLU(), sysModList, sysDecList, playSheet.includeRegionalizationCheckbox.isSelected(), playSheet.garrTheaterCheckbox.isSelected());
 
 			AlgorithmRunner runner = new AlgorithmRunner(optimizer);
 			Thread playThread = new Thread(runner);
 			playThread.start();
+
 		}
 	}
 	
@@ -218,6 +251,7 @@ public class SysOptBtnListener implements IChakraListener {
 		}
 		else
 			return true;
+
 	}
 
 	/**

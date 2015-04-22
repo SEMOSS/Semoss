@@ -47,6 +47,7 @@ import prerna.rdf.engine.api.ISelectStatement;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridRAWTableModel;
 import prerna.ui.components.GridTableModel;
+import prerna.ui.components.NewHoriScrollBarUI;
 import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.main.listener.impl.GridPlaySheetListener;
 import prerna.ui.main.listener.impl.JTableExcelExportListener;
@@ -56,6 +57,8 @@ import prerna.ui.main.listener.impl.JTableExcelExportListener;
  */
 @SuppressWarnings("serial")
 public class GridPlaySheet extends BasicProcessingPlaySheet{
+	
+	Boolean horizontalScrollBar = false;
 	
 	/**
 	 * Method addPanel.  Creates a panel and adds the table to the panel.
@@ -121,6 +124,10 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 	public void addScrollPanel(JPanel mainPanel) {
 		JScrollPane scrollPane = new JScrollPane(table);
 		scrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		if(horizontalScrollBar) {
+			scrollPane.getHorizontalScrollBar().setUI(new NewHoriScrollBarUI());
+			table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+		}
 		scrollPane.setAutoscrolls(true);
 		
 		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
@@ -146,4 +153,9 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 		GridTableModel model = new GridTableModel(gfd);
 		return model;
 	}
+	
+	public void setHorizontalScrollBar(Boolean horizontalScrollBar) {
+		this.horizontalScrollBar = horizontalScrollBar;
+	}
+	
 }

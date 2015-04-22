@@ -32,7 +32,6 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.util.ArrayList;
-import java.util.Vector;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -41,31 +40,31 @@ import javax.swing.JPanel;
 import javax.swing.ListSelectionModel;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.ui.helpers.EntityFiller;
 import prerna.ui.main.listener.specific.tap.DataCheckBoxSelectorListener;
 import prerna.ui.swing.custom.CustomButton;
 import prerna.ui.swing.custom.SelectScrollList;
-import prerna.util.DIHelper;
 import aurelienribon.ui.css.Style;
 
 @SuppressWarnings("serial")
 public class DHMSMDataSelectPanel extends JPanel {
-	public IEngine engine;
-
-	public JLabel lblDataSelectHeader;
+	
 	public SelectScrollList dataSelectDropDown;
-	public JCheckBox hsdCheck, hssCheck, fhpCheck, dhmsmCheck, allDataCheck;
-	public JButton updateProvideDataButton, updateConsumeDataButton;
+	public JCheckBox allDataCheck, hsdCheck, hssCheck, fhpCheck, dhmsmCheck;
+	JButton updateProvideDataButton, updateConsumeDataButton;
 
-	public DHMSMDataSelectPanel()
-	{
-		//addElements();
+	public DHMSMDataSelectPanel(IEngine engine, DHMSMSystemSelectPanel systemSelectPanel) {
+		SysOptCheckboxListUpdater checkboxListUpdater = new SysOptCheckboxListUpdater(engine);
+		createView(checkboxListUpdater, systemSelectPanel);
+	}
+	
+	public DHMSMDataSelectPanel(SysOptCheckboxListUpdater checkboxListUpdater, DHMSMSystemSelectPanel systemSelectPanel) {
+		createView(checkboxListUpdater, systemSelectPanel);
 	}
 
-	public void addElements(DHMSMSystemSelectPanel systemSelectPanel)
+	private void createView(SysOptCheckboxListUpdater checkboxListUpdater, DHMSMSystemSelectPanel systemSelectPanel)
 	{
-
 		this.removeAll();
+		
 		GridBagLayout gbl_systemSelectPanel = new GridBagLayout();
 		gbl_systemSelectPanel.columnWidths = new int[]{0, 0, 0, 0,};
 		gbl_systemSelectPanel.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0};
@@ -83,6 +82,51 @@ public class DHMSMDataSelectPanel extends JPanel {
 		gbc_lblSystemSelectHeader.gridy = 0;
 		this.add(lblSystemSelectHeader, gbc_lblSystemSelectHeader);
 
+		dataSelectDropDown = new SelectScrollList("Select Individual Data");
+		dataSelectDropDown.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+		GridBagConstraints gbc_dataSelectDropDown = new GridBagConstraints();
+		gbc_dataSelectDropDown.gridwidth = 3;
+		gbc_dataSelectDropDown.fill = GridBagConstraints.HORIZONTAL;
+		gbc_dataSelectDropDown.insets = new Insets(0, 0, 0, 5);
+		gbc_dataSelectDropDown.gridx = 0;
+		gbc_dataSelectDropDown.gridy = 3;
+		this.add(dataSelectDropDown.pane, gbc_dataSelectDropDown);
+		
+		dataSelectDropDown.setupButton(checkboxListUpdater.getAllDataList(),100,120); 
+		dataSelectDropDown.setVisible(true);
+
+		updateProvideDataButton = new CustomButton("Select Provide");
+		updateProvideDataButton.setName("updateProvideDataButton");
+		updateProvideDataButton.setFont(new Font("Tahoma", Font.BOLD, 11));
+		Style.registerTargetClassName(updateProvideDataButton,  ".toggleButton");
+		updateProvideDataButton.setVisible(true);		
+
+		GridBagConstraints gbc_updateProvideDataButton = new GridBagConstraints();
+		gbc_updateProvideDataButton.anchor = GridBagConstraints.WEST;
+		gbc_updateProvideDataButton.gridheight = 2;
+		gbc_updateProvideDataButton.insets = new Insets(5, 0, 5, 5);
+		gbc_updateProvideDataButton.gridx = 10;
+		gbc_updateProvideDataButton.gridy = 0;
+		this.add(updateProvideDataButton, gbc_updateProvideDataButton);
+
+		updateConsumeDataButton = new CustomButton("Select Consume");
+		updateConsumeDataButton.setName("updateConsumeDataButton");
+		updateConsumeDataButton.setFont(new Font("Tahoma", Font.BOLD, 11));
+		Style.registerTargetClassName(updateConsumeDataButton,  ".toggleButton");
+		updateConsumeDataButton.setVisible(true);		
+
+		GridBagConstraints gbc_updateConsumeDataButton = new GridBagConstraints();
+		gbc_updateConsumeDataButton.anchor = GridBagConstraints.WEST;
+		gbc_updateConsumeDataButton.gridheight = 2;
+		gbc_updateConsumeDataButton.insets = new Insets(5, 0, 5, 5);
+		gbc_updateConsumeDataButton.gridx = 15;
+		gbc_updateConsumeDataButton.gridy = 0;
+		this.add(updateConsumeDataButton, gbc_updateConsumeDataButton);	
+		
+		addCheckBoxes(checkboxListUpdater);
+	}
+
+	private void addCheckBoxes(SysOptCheckboxListUpdater checkboxListUpdater) {
 		allDataCheck = new JCheckBox("All");
 		GridBagConstraints gbc_allDataCheck = new GridBagConstraints();
 		gbc_allDataCheck.anchor = GridBagConstraints.WEST;
@@ -118,79 +162,20 @@ public class DHMSMDataSelectPanel extends JPanel {
 		gbc_dhmsmCheck.gridy = 2;
 		this.add(dhmsmCheck, gbc_dhmsmCheck);
 
-		dataSelectDropDown = new SelectScrollList("Select Individual Data");
-		dataSelectDropDown.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-		GridBagConstraints gbc_dataSelectDropDown = new GridBagConstraints();
-		gbc_dataSelectDropDown.gridwidth = 3;
-		gbc_dataSelectDropDown.fill = GridBagConstraints.HORIZONTAL;
-		gbc_dataSelectDropDown.insets = new Insets(0, 0, 0, 5);
-		gbc_dataSelectDropDown.gridx = 0;
-		gbc_dataSelectDropDown.gridy = 3;
-		this.add(dataSelectDropDown.pane, gbc_dataSelectDropDown);
-
-		String[] dataArray = makeListFromQuery("DataObject","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}}");
-		dataSelectDropDown.setupButton(dataArray,100,120); 
-		dataSelectDropDown.setVisible(true);
-
-		DataCheckBoxSelectorListener dataCheckBoxListener = new DataCheckBoxSelectorListener(engine, dataSelectDropDown,allDataCheck,hsdCheck,hssCheck, fhpCheck,dhmsmCheck);
+		DataCheckBoxSelectorListener dataCheckBoxListener = new DataCheckBoxSelectorListener(checkboxListUpdater, dataSelectDropDown,allDataCheck,hsdCheck,hssCheck, fhpCheck,dhmsmCheck);
 		allDataCheck.addActionListener(dataCheckBoxListener);
 		hsdCheck.addActionListener(dataCheckBoxListener);
 		hssCheck.addActionListener(dataCheckBoxListener);
 		fhpCheck.addActionListener(dataCheckBoxListener);
 		dhmsmCheck.addActionListener(dataCheckBoxListener);
-
-		updateProvideDataButton = new CustomButton("Select Provide");
-		updateProvideDataButton.setName("updateProvideDataButton");
-		updateProvideDataButton.setFont(new Font("Tahoma", Font.BOLD, 11));
-		Style.registerTargetClassName(updateProvideDataButton,  ".toggleButton");
-		updateProvideDataButton.setVisible(true);		
-
-		GridBagConstraints gbc_updateProvideDataButton = new GridBagConstraints();
-		gbc_updateProvideDataButton.anchor = GridBagConstraints.WEST;
-		gbc_updateProvideDataButton.gridheight = 2;
-		gbc_updateProvideDataButton.insets = new Insets(5, 0, 5, 5);
-		gbc_updateProvideDataButton.gridx = 10;
-		gbc_updateProvideDataButton.gridy = 0;
-		this.add(updateProvideDataButton, gbc_updateProvideDataButton);
-
-		updateConsumeDataButton = new CustomButton("Select Consume");
-		updateConsumeDataButton.setName("updateConsumeDataButton");
-		updateConsumeDataButton.setFont(new Font("Tahoma", Font.BOLD, 11));
-		Style.registerTargetClassName(updateConsumeDataButton,  ".toggleButton");
-		updateConsumeDataButton.setVisible(true);		
-
-		GridBagConstraints gbc_updateConsumeDataButton = new GridBagConstraints();
-		gbc_updateConsumeDataButton.anchor = GridBagConstraints.WEST;
-		gbc_updateConsumeDataButton.gridheight = 2;
-		gbc_updateConsumeDataButton.insets = new Insets(5, 0, 5, 5);
-		gbc_updateConsumeDataButton.gridx = 15;
-		gbc_updateConsumeDataButton.gridy = 0;
-		this.add(updateConsumeDataButton, gbc_updateConsumeDataButton);	
 	}
-
-	public String[] makeListFromQuery(String type, String query)
-	{
-		engine = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
-		EntityFiller filler = new EntityFiller();
-		filler.engineName = engine.getEngineName();
-		filler.type = "Capability";
-		filler.setExternalQuery(query);
-		filler.run();
-		Vector<String> names = filler.nameVector;
-		String[] listArray=new String[names.size()];
-		for (int i = 0;i<names.size();i++)
-		{
-			listArray[i]=(String) names.get(i);
-		}
-		return listArray;
-	}
-
+	
 	public void setVisible(boolean visible)
 	{
 		super.setVisible(visible);
 		if(!visible)
 		{
-			dataSelectDropDown.clearList();
+			dataSelectDropDown.clearSelection();
 		}
 	}
 
@@ -199,5 +184,5 @@ public class DHMSMDataSelectPanel extends JPanel {
 	{
 		return dataSelectDropDown.getSelectedValues();
 	}
-
+	
 }

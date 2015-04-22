@@ -61,6 +61,8 @@ import aurelienribon.ui.css.Style;
 @SuppressWarnings("serial")
 public class SysOptPlaySheet extends OptPlaySheet {
 	
+	private SysOptCheckboxListUpdater checkboxListUpdater;
+	
 	public JCheckBox includeRegionalizationCheckbox;
 	public JCheckBox garrTheaterCheckbox;
 	
@@ -70,10 +72,9 @@ public class SysOptPlaySheet extends OptPlaySheet {
 	public JPanel systemDataBLUSelectPanel;
 	public JPanel systemModDecomSelectPanel;
 	// individual components of the panel
-	public DHMSMSystemSelectPanel systemSelectPanel;
+	public DHMSMSystemSelectPanel systemSelectPanel, systemModernizePanel, systemDecomissionPanel;
 	public DHMSMCapabilitySelectPanel capabilitySelectPanel;
 	public DHMSMDataBLUSelectPanel dataBLUSelectPanel;
-	public DHMSMManualSystemSelectPanel systemModernizePanel, systemDecomissionPanel;
 	
 	// toggle to show the data/blu panel (dataBLUSelectPanel) within the systemDataBLUSelectPanel
 	public JToggleButton updateDataBLUPanelButton;
@@ -88,6 +89,12 @@ public class SysOptPlaySheet extends OptPlaySheet {
 	public static JComboBox<String> capComboBox, sysComboBox, geoCapComboBox;
 	public static JButton createSysCapButton, createGeoSpatialMapButton;
 
+	@Override
+	public void createData() {
+		//create all the data needed for the system, capability, data, and blu scroll lsits
+		checkboxListUpdater = new SysOptCheckboxListUpdater(engine);
+		
+	}
 	
 	@Override
 	protected void createAdvParamPanels() {
@@ -127,23 +134,21 @@ public class SysOptPlaySheet extends OptPlaySheet {
 		gbl_systemDataBLUSelectPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		systemDataBLUSelectPanel.setLayout(gbl_systemDataBLUSelectPanel);
 		
-		systemSelectPanel = new DHMSMSystemSelectPanel();
+		systemSelectPanel = new DHMSMSystemSelectPanel(checkboxListUpdater);
 		GridBagConstraints gbc_systemSelectPanel = new GridBagConstraints();
 		gbc_systemSelectPanel.gridheight = 6;
 		gbc_systemSelectPanel.fill = GridBagConstraints.BOTH;
 		gbc_systemSelectPanel.gridx = 0;
 		gbc_systemSelectPanel.gridy = 0;
 		systemDataBLUSelectPanel.add(systemSelectPanel, gbc_systemSelectPanel);
-		systemSelectPanel.addElements();
 		
-		capabilitySelectPanel = new DHMSMCapabilitySelectPanel();
+		capabilitySelectPanel = new DHMSMCapabilitySelectPanel(checkboxListUpdater);
 		GridBagConstraints gbc_capabilitySelectPanel = new GridBagConstraints();
 		gbc_capabilitySelectPanel.gridheight = 6;
 		gbc_capabilitySelectPanel.fill = GridBagConstraints.BOTH;
 		gbc_capabilitySelectPanel.gridx = 1;
 		gbc_capabilitySelectPanel.gridy = 0;
 		systemDataBLUSelectPanel.add(capabilitySelectPanel, gbc_capabilitySelectPanel);
-		capabilitySelectPanel.addElements();
 		
 		updateDataBLUPanelButton = new ToggleButton("View Data/BLU");
 		updateDataBLUPanelButton.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -185,25 +190,21 @@ public class SysOptPlaySheet extends OptPlaySheet {
 		gbl_systemModDecomSelectPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		systemModDecomSelectPanel.setLayout(gbl_systemModDecomSelectPanel);
 		
-		systemModernizePanel = new DHMSMManualSystemSelectPanel();
+		systemModernizePanel = new DHMSMSystemSelectPanel("Select Systems that MUST be modernized:",true,checkboxListUpdater);
 		GridBagConstraints gbc_systemModernizePanel = new GridBagConstraints();
 		gbc_systemModernizePanel.gridheight = 6;
 		gbc_systemModernizePanel.fill = GridBagConstraints.BOTH;
 		gbc_systemModernizePanel.gridx = 0;
 		gbc_systemModernizePanel.gridy = 0;
 		systemModDecomSelectPanel.add(systemModernizePanel, gbc_systemModernizePanel);
-		systemModernizePanel.setHeader("Select Systems that MUST be modernized:");
-		systemModernizePanel.addElements();
 		
-		systemDecomissionPanel = new DHMSMManualSystemSelectPanel();
+		systemDecomissionPanel = new DHMSMSystemSelectPanel("Select Systems that MUST be decommissioned:",true,checkboxListUpdater);
 		GridBagConstraints gbc_systemDecomissionPanel = new GridBagConstraints();
 		gbc_systemDecomissionPanel.gridheight = 6;
 		gbc_systemDecomissionPanel.fill = GridBagConstraints.BOTH;
 		gbc_systemDecomissionPanel.gridx = 1;
 		gbc_systemDecomissionPanel.gridy = 0;
 		systemModDecomSelectPanel.add(systemDecomissionPanel, gbc_systemDecomissionPanel);
-		systemDecomissionPanel.setHeader("Select Systems that MUST be decommissioned:");
-		systemDecomissionPanel.addElements();
 		
 		final JComponent contentPane = (JComponent) this.getContentPane();
 		contentPane.addMouseListener(new MouseAdapter() {
@@ -792,4 +793,9 @@ public class SysOptPlaySheet extends OptPlaySheet {
 		annualBudgetLbl.setText("$0");
 		timeTransitionLbl.setText("N/A");
 	}
+	
+	public SysOptCheckboxListUpdater getCheckboxListUpdater() {
+		return checkboxListUpdater;
+	}
+	
 }

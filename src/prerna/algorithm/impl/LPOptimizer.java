@@ -42,6 +42,8 @@ public class LPOptimizer extends AbstractOptimizer{
 	
 	static final Logger logger = LogManager.getLogger(LPOptimizer.class.getName());
 	
+	protected int solved;
+	
 	public LpSolve solver;
 	
 	/**
@@ -129,7 +131,7 @@ public class LPOptimizer extends AbstractOptimizer{
 		solver.setVerbose(LpSolve.IMPORTANT);
 		// solve the problem
 		try {
-			solver.solve();
+			solved = solver.solve();
 		} catch (LpSolveException e) {
 			e.printStackTrace();
 		}
