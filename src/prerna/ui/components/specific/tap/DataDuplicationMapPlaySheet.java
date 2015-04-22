@@ -44,15 +44,11 @@ public class DataDuplicationMapPlaySheet extends OCONUSMapPlaySheet {
 		HashMap<String, ArrayList<String>> dcSiteSystemMap = getRawOCONListMap(getDCSiteSystemQuery, tapSite);
 		HashMap<String, ArrayList<String>> systemDataMap = new HashMap<String, ArrayList<String>>();
 		
-		// Multiplier needed depending on which question will be used
-		Double multiplier = 0.0;
-		
 		// HashMap that will hold dc site and size data
 		HashMap<String, Integer> dcSiteDataSourceCountMap = new HashMap<String, Integer>();
 		
 		// For question: # of systems that are SOR at each site
 		if (query.contains("Data Object Sources")) {
-			multiplier = 40000.0;
 			systemDataMap = getRawOCONListMap(getSystemDataQuery, tapCore);
 			
 			// Counts number of systems per site that are Migration References for at least one data object
@@ -73,7 +69,6 @@ public class DataDuplicationMapPlaySheet extends OCONUSMapPlaySheet {
 		
 		// For question: number of data objects with at least 2 Migration References
 		if (query.contains("Duplicative Data Objects")) {
-			multiplier = 10000.0;
 			systemDataMap = getRawOCONListMap(getDataDuplicateQuery, tapCore);
 			
 			for (String dcSite : dcSiteSystemMap.keySet()) {
@@ -98,7 +93,7 @@ public class DataDuplicationMapPlaySheet extends OCONUSMapPlaySheet {
 			LinkedHashMap elementHash = new LinkedHashMap();
 			Object[] listElement = list.get(i);
 			if (dcSiteDataSourceCountMap.get(listElement[0]) != null) {
-				listElement[3] = dcSiteDataSourceCountMap.get(listElement[0]) * multiplier;
+				listElement[3] = dcSiteDataSourceCountMap.get(listElement[0]);
 			} else {
 				listElement[3] = 0;
 			}
@@ -107,7 +102,7 @@ public class DataDuplicationMapPlaySheet extends OCONUSMapPlaySheet {
 				colName = var[j];
 				
 				if (dcSiteDataSourceCountMap.get(listElement[0].toString()) != null) {
-					Double size = (double) Math.round(dcSiteDataSourceCountMap.get(listElement[0].toString())) * multiplier;
+					Double size = (double) Math.round(dcSiteDataSourceCountMap.get(listElement[0].toString()));
 					System.out.println(size);
 					elementHash.put("size", size);
 				} else {
