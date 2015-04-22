@@ -28,27 +28,75 @@
 package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
+import java.util.Hashtable;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.impl.specific.tap.SysSiteOptimizer;
 import prerna.algorithm.impl.specific.tap.SysOptUtilityMethods;
+import prerna.algorithm.impl.specific.tap.SysSiteOptimizer;
 import prerna.rdf.engine.api.IEngine;
-import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+
+import com.google.gson.Gson;
 
 /**
  * The GridPlaySheet class creates the panel and table for a grid view of data from a SPARQL query.
  */
 @SuppressWarnings("serial")
-public class SysSiteOptPlaySheet extends GridPlaySheet{
+public class SysSiteOptPlaySheet extends BasicProcessingPlaySheet{
+	
+	SysOptCheckboxListUpdater sysUpdater;
+	SysSiteOptimizer opt;
 	
 	/**
 	 * Method addPanel.  Creates a panel and adds the table to the panel.
 	 */
 	private static final Logger LOGGER = LogManager.getLogger(SysSiteOptPlaySheet.class.getName());
+	
+	public SysSiteOptPlaySheet() {
+		sysUpdater = new SysOptCheckboxListUpdater(engine, true, false, false);
+	}
+	
+	public Hashtable getSystems(Hashtable<String, Object> webDataHash) {
+		Hashtable returnHash = (Hashtable) super.getData();
+		Hashtable dataHash = new Hashtable();
+		
+		Gson gson = new Gson();
+		Boolean low = gson.fromJson(gson.toJson(webDataHash.get("low")), Boolean.class);
+		Boolean high = gson.fromJson(gson.toJson(webDataHash.get("high")), Boolean.class);
+		Boolean intDHMSM = gson.fromJson(gson.toJson(webDataHash.get("interface")), Boolean.class);
+		Boolean notIntDHMSM = gson.fromJson(gson.toJson(webDataHash.get("nointerface")), Boolean.class);
+		Boolean theater;
+		Boolean garrison;
+		Boolean mhsSpecific;
+		Boolean ehrCore;
+		
+		if(webDataHash.get("theater") == null)
+			theater = false;
+		else
+			theater = gson.fromJson(gson.toJson(webDataHash.get("theater")), Boolean.class);
+		if(webDataHash.get("garrison") == null)
+			garrison = false;
+		else
+			garrison = gson.fromJson(gson.toJson(webDataHash.get("garrison")), Boolean.class);
+		if(webDataHash.get("mhsspecific") == null)
+			mhsSpecific = false;
+		else
+			mhsSpecific = gson.fromJson(gson.toJson(webDataHash.get("mhsspecific")), Boolean.class);
+		if(webDataHash.get("ehrcore") == null)
+			ehrCore = false;
+		else
+			ehrCore = gson.fromJson(gson.toJson(webDataHash.get("ehrcore")), Boolean.class);
+		
+		dataHash.put("systems",sysUpdater.getSelectedSystemList(intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore));
+		
+		if (dataHash != null)
+			returnHash.put("data", dataHash);
+		return returnHash;
+	}
 	
 	@Override
 	public void createData() {
@@ -69,7 +117,7 @@ public class SysSiteOptPlaySheet extends GridPlaySheet{
 		String sysModQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;} {?System <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'}{?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?cost}FILTER(?cost > 0){{?System <http://semoss.org/ontologies/Relation/Contains/MHS_Specific> 'Y'} }UNION{{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> 'Low'}{?System <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y'}}} ORDER BY ?System";
 		ArrayList<String> sysModList = SysOptUtilityMethods.runListQuery(engine, sysModQuery);
 		
-		//all systems that must be decomissioned: NOT IMPLEMENTED YET, but will pull same as above (received info, not devices and have sustainment budgets > 0) AND be EHR Core
+		//all systems that must be decomissioned: same as above (received info, not devices and have sustainment budgets > 0) AND be EHR Core
 		String sysDecomQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?System <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'}{?System <http://semoss.org/ontologies/Relation/Contains/EHR_Core> 'YN'}{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?cost}FILTER(?cost > 0)} ORDER BY ?System";
 		ArrayList<String> sysDecomList = SysOptUtilityMethods.runListQuery(engine, sysDecomQuery);
 		
@@ -82,25 +130,25 @@ public class SysSiteOptPlaySheet extends GridPlaySheet{
 
 		
 		//actually running the algorithm
-		SysSiteOptimizer opt = new SysSiteOptimizer();
+		opt = new SysSiteOptimizer();
 		opt.setEngines(engine, siteEngine); //likely hr core and tap site
-		opt.setVariables(10000, 10); //budget per year and the number of years
+		opt.setVariables(100000, 10); //budget per year and the number of years
 		opt.setAdvancedVariables(1.5, 2.5, 1); //OPTIONAL: there are default values if not selected, inflation rate = 1.5, discount rate = 2.5, and number of starting points = 1
 		opt.setUseDHMSMFunctionality(false); //whether the data objects will come from the list of systems or the dhmsm provided capabilities
-		opt.setOptimizationType("savings"); //eventually will be savings, roi, or irr
-		opt.setIsOptimizeBudget(true); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
+		opt.setOptimizationType("irr"); //eventually will be savings, roi, or irr
+		opt.setIsOptimizeBudget(false); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
 		opt.setSysList(sysList); //list of all systems to use in analysis
 		opt.setMustModDecomList(sysModList, sysDecomList); //list of systems to force modernize/decommision. Decommision is not implemented yet
 		opt.execute();
-
 		
 	}
 	@Override
 	public void runAnalytics() {
 		
 	}
+	
 	@Override
 	public void createView() {
-		
+		opt.display();
 	}
 }

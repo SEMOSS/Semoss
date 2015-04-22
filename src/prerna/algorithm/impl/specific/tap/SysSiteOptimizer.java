@@ -28,6 +28,8 @@
 package prerna.algorithm.impl.specific.tap;
 
 import java.util.ArrayList;
+import java.util.Hashtable;
+import java.util.Iterator;
 
 import javax.swing.JDesktopPane;
 
@@ -67,7 +69,7 @@ public class SysSiteOptimizer implements IAlgorithm {
 	private IEngine siteEngine;
 	
 	//user must select these
-	private double maxBudget;
+	private double budgetForYear;
 	private int years;
 	private Boolean useDHMSMFunctionality = false;//true if data/blu list made from dhmsm capabilities. False if from the systems
 	private Boolean isOptimizeBudget = false;
@@ -102,9 +104,11 @@ public class SysSiteOptimizer implements IAlgorithm {
 	private double[] sysKeptArr;
 	private double[] centralSysKeptArr;
 	private double[][] systemSiteResultMatrix;
-	private double totalDeploymentCost;
-	private double currSustainmentCost;
-	private double futureSustainmentCost;
+	
+	private double currSustainmentCost, futureSustainmentCost;
+	private double adjustedDeploymentCost, adjustedTotalSavings;
+	
+	private double[] budgetSpentPerYear, costAvoidedPerYear;
 	
 	@Override
 	public void execute() {
@@ -116,15 +120,11 @@ public class SysSiteOptimizer implements IAlgorithm {
 		getData();
 		endTime = System.currentTimeMillis();
 		System.out.println("Time to query data " + (endTime - startTime) / 1000 );
-
 		
 		startTime = System.currentTimeMillis();			
 		optimizeSystemsAtSites();
 		endTime = System.currentTimeMillis();
 		System.out.println("Time to run LP " + (endTime - startTime) / 1000 );
-
-		
-		//display();
 		
 	}
 	
@@ -137,8 +137,8 @@ public class SysSiteOptimizer implements IAlgorithm {
 		this.useDHMSMFunctionality = useDHMSMFunctionality;
 	}
 	
-	public void setVariables(int maxBudget, int years) {
-		this.maxBudget = maxBudget * years;
+	public void setVariables(int budgetForYear, int years) {
+		this.budgetForYear = budgetForYear;
 		this.years = years;
 	}
 	
@@ -219,12 +219,85 @@ public class SysSiteOptimizer implements IAlgorithm {
 		
 	}
 	
+	public void setSysHash(Hashtable<String,String> sysHash) {
+		sysList = new ArrayList<String>();
+		centralSysList = new ArrayList<String>();
+		
+		String centralSysQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?System <http://semoss.org/ontologies/Relation/Contains/CentralDeployment> 'Y'}{?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?cost}FILTER(?cost > 0)} ORDER BY ?System LIMIT 50";
+		ArrayList<String> allCentralSys = SysOptUtilityMethods.runListQuery(systemEngine, centralSysQuery);
+		
+		int numCentral = 0;
+		Iterator<String> sysItr = sysHash.keySet().iterator();
+		while(sysItr.hasNext()) {
+			String sys = sysItr.next();
+			if(allCentralSys.contains(sys)) {
+				numCentral++;
+			}
+		}
+		
+
+		int numNonCentral = sysHash.size() - numCentral;
+		
+		modArr = new Integer[numNonCentral];
+		centralModArr = new Integer[numCentral];
+		
+		decomArr = new Integer[numNonCentral];
+		centralDecomArr = new Integer[numCentral];		
+		
+		int centralIndex = 0;
+		int nonCentralIndex = 0;
+		sysItr = sysHash.keySet().iterator();
+		while(sysItr.hasNext()) {
+			
+			String sys = sysItr.next();
+			String status = sysHash.get(sys);
+			
+			if(allCentralSys.contains(sys)) {
+				
+				centralSysList.add(sys);
+				
+				if(status.equals("Modernize"))
+					centralModArr[centralIndex] = 1;
+				else 
+					centralModArr[centralIndex] = 0;
+
+				if(status.equals("Decommission"))
+					centralDecomArr[centralIndex] = 1;
+				else
+					centralDecomArr[centralIndex] = 0;
+				centralIndex++;
+			
+			}else {
+				
+				sysList.add(sys);
+				
+				if(status.equals("Modernize"))
+					modArr[nonCentralIndex] = 1;
+				else
+					modArr[nonCentralIndex] = 0;
+				
+				if(status.equals("Decommission"))
+					decomArr[nonCentralIndex] = 1;
+				else
+					decomArr[nonCentralIndex] = 0;
+				nonCentralIndex++;
+			}
+		}
+		
+		System.out.println("Not Central Systems are..." + SysOptUtilityMethods.createPrintString(sysList));
+		System.out.println("Central Systems are..." + SysOptUtilityMethods.createPrintString(centralSysList));
+
+	}
+	
+	
 	public void setOptimizationType(String type) {
 
 		if(type.equals("savings"))
 			optFunc = new SysSiteSavingsOptFunction();
 		else if(type.equals("roi"))
 			optFunc = new SysSiteROIOptFunction();
+		else if(type.equals("irr"))
+			optFunc = new SysSiteIRROptFunction();
 		else {
 			System.out.println("OPTIMIZATION TYPE DOES NOT EXIST");
 		}
@@ -321,15 +394,15 @@ public class SysSiteOptimizer implements IAlgorithm {
 	
 	private void optimizeSystemsAtSites() {
 		
-		optFunc.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, modArr, decomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, maxBudget, years, currSustainmentCost, sysList, centralSysList, dataList, bluList, siteList);
+		optFunc.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, modArr, decomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, budgetForYear, years, currSustainmentCost, infRate, disRate);
 
 		if(isOptimizeBudget) {
-			UnivariateOptimizer optimizer = new BrentOptimizer(.1, .1);
+			UnivariateOptimizer optimizer = new BrentOptimizer(.001, 10000);
 	
 			RandomGenerator rand = new Well1024a(500);
 			MultiStartUnivariateOptimizer multiOpt = new MultiStartUnivariateOptimizer(optimizer, noOfPts, rand);
 			UnivariateObjectiveFunction objF = new UnivariateObjectiveFunction(optFunc);
-			SearchInterval search = new SearchInterval(0, maxBudget); // budget in LOE
+			SearchInterval search = new SearchInterval(0, budgetForYear * years);
 			MaxEval eval = new MaxEval(200);
 			
 			OptimizationData[] data = new OptimizationData[] { search, objF, GoalType.MAXIMIZE, eval };
@@ -341,54 +414,27 @@ public class SysSiteOptimizer implements IAlgorithm {
 				System.out.println("Too many evalutions");
 			}
 		} else {
-			optFunc.value(maxBudget);
+			optFunc.value(budgetForYear * years);
 		}
 	
 		sysKeptArr = optFunc.getSysKeptArr();
 		centralSysKeptArr = optFunc.getCentralSysKeptArr();
 		systemSiteResultMatrix = optFunc.getSystemSiteResultMatrix();
-		totalDeploymentCost = optFunc.getTotalDeploymentCost();
+		
 		futureSustainmentCost = optFunc.getFutureSustainmentCost();
+		adjustedDeploymentCost = optFunc.getAdjustedDeploymentCost();
+		adjustedTotalSavings = optFunc.getAdjustedTotalSavings();
+
+		double yearsToComplete = optFunc.getYearsToComplete();
 		
 		double mu = (1 + infRate / 100) / (1 + disRate / 100);
-		double yearsToComplete = totalDeploymentCost / (maxBudget / years);
 		
-		double[] budgetSpentPerYear = new double[years];
-		double[] costAvoidedPerYear = new double[years];
+		budgetSpentPerYear = SysOptUtilityMethods.calculateAdjustedDeploymentCostArr(mu, yearsToComplete, years, budgetForYear);
+		costAvoidedPerYear =  SysOptUtilityMethods.calculateAdjustedSavingsArr(mu, yearsToComplete, years, currSustainmentCost - futureSustainmentCost);
 
-		int i;
-		
-		if(mu != 1) {
-			for(i=0; i<years; i++) {
-				if(i+1 < yearsToComplete) {
-					budgetSpentPerYear[i] = (maxBudget / years) *  Math.pow(mu,i);
-					costAvoidedPerYear[i] = 0;
-					
-				}else if(i<yearsToComplete) {
-					budgetSpentPerYear[i] = totalDeploymentCost % (maxBudget / years) *  Math.pow(mu,i);
-					costAvoidedPerYear[i] = 0;
-					
-				}else {
-					budgetSpentPerYear[i] = 0;
-					costAvoidedPerYear[i] = (currSustainmentCost - futureSustainmentCost) *  Math.pow(mu,i);
-				}
-			}
-		} else {
-			for(i=0; i<years; i++) {
-				if(i+1 < yearsToComplete) {
-					budgetSpentPerYear[i] = (maxBudget / years);
-					costAvoidedPerYear[i] = 0;
-					
-				}else if(i<yearsToComplete) {
-					budgetSpentPerYear[i] = totalDeploymentCost % (maxBudget / years);
-					costAvoidedPerYear[i] = 0;
-					
-				}else {
-					budgetSpentPerYear[i] = 0;
-					costAvoidedPerYear[i] = (currSustainmentCost - futureSustainmentCost);
-				}
-			}
-		}
+	}
+	
+	public void display() {
 				
 		createSiteGrid(systemSiteMatrix, sysList, siteList,"Current NonCentral Systems at Sites");
 		createSiteGrid(systemSiteResultMatrix, sysList, siteList,"Future NonCentral Systems at Sites");
@@ -396,18 +442,23 @@ public class SysSiteOptimizer implements IAlgorithm {
 		
 		createOverallGrid(centralSysKeptArr, centralSysList, "Central System", "Future Central Systems (Was central system kept or decommissioned?)");
 		createOverallGrid(sysKeptArr, sysList, "NonCentral Systems", "Future NonCentral Systems (Was noncentral system kept or decommissioned?)");
-
+		
 		System.out.println("**Curr Sustainment Cost " + currSustainmentCost);
 		System.out.println("**Future Sustainment Cost " + futureSustainmentCost);
-		System.out.println("**Deployment Cost " + totalDeploymentCost);
+		System.out.println("**Adjusted Deployment Cost " + adjustedDeploymentCost);
 		
-		double totalSavings = 0.0;
+		int i;
 		System.out.println("**Year Investment CostAvoided: ");
 		for(i = 0; i<years; i++) {
 			System.out.println((i + 1) + " " + budgetSpentPerYear[i] + " " + costAvoidedPerYear[i]);
-			totalSavings += costAvoidedPerYear[i];
 		}
-		System.out.println("**Total Savings: " + totalSavings);
+		
+		if(optFunc instanceof SysSiteSavingsOptFunction)
+			System.out.println("**Adjusted Total Savings: " + adjustedTotalSavings);
+		else if(optFunc instanceof SysSiteROIOptFunction)
+			System.out.println("**ROI: " + optFunc.getROI());
+		else if(optFunc  instanceof SysSiteIRROptFunction)
+			System.out.println("**ROI: " + optFunc.getIRR());
 	}
 	
 	private void createOverallGrid(double[] matrix, ArrayList<String> rowLabels, String systemType, String title) {

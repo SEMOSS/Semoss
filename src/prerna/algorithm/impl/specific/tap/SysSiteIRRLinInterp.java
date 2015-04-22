@@ -27,27 +27,53 @@
  *******************************************************************************/
 package prerna.algorithm.impl.specific.tap;
 
+import prerna.algorithm.impl.LinearInterpolation;
+
 
 /**
- * Interface representing a univariate real function that is implemented for TAP system and service optimization functions.
+ * SysSiteLinInterp is used to estimate the IRR (mu) for a given discount rate using Linear Interpolation.
  */
-public class SysSiteSavingsOptFunction extends SysSiteOptFunction{
+public class SysSiteIRRLinInterp extends LinearInterpolation{
+
+	private double budgetForYear, totalYrs, infRate;
+	private double savingsForYear, yearsToComplete;
+
 
 	/**
-	 * Given a budget, optimize the savings to return max savings.
-	 * @return double	max savings possible when optimizing for budget*/
-	public double value(double arg0) {
-		
-		if(runLPSolve(arg0)) {			
-			System.out.println("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", savings over entire time frame "+adjustedTotalSavings);
-			return adjustedTotalSavings;
-			
-		} else {
-			
-			System.out.println("iteration " + count + ": solution is not optimal ");
-			return 0.0;
-			
-		}
-	}
+	 * Sets the parameters used in the equation.
+	 * @param yearlySavings
+	 * @param maxYearlyBudget
+	 * @param yearsToComplete
+	 * @param totalYrs
+	 * @param infRate
+	 */
+	public void setVariables(double budgetForYear, double totalYrs, double infRate) {
 
+		this.budgetForYear = budgetForYear;
+		this.totalYrs = totalYrs;
+		this.infRate = infRate;
+	}
+	
+	public void setYearSavingsAndYearsToComplete(double savingsForYear, double yearsToComplete) {
+		this.savingsForYear = savingsForYear;
+		this.yearsToComplete = yearsToComplete;
+	}
+	
+
+	/**
+	 * Calculate the residual value for a given root estimate, possibleDiscRate.
+	 * @param possibleDiscRate double	root estimate	
+	 * @return Double	residual value for the calculation
+	 */
+	@Override
+	public Double calcY(double possibleDiscRate) {
+		double mu = (1 + infRate / 100) / (1 + possibleDiscRate / 100);
+
+		double i;
+		double adjustedTotalSavings = SysOptUtilityMethods.calculateAdjustedTotalSavings(mu, yearsToComplete, totalYrs, savingsForYear);
+		double adjustedDeploymentCost = SysOptUtilityMethods.calculateAdjustedDeploymentCost(mu, yearsToComplete, budgetForYear);
+
+		return adjustedTotalSavings - adjustedDeploymentCost;
+
+	}
 }
