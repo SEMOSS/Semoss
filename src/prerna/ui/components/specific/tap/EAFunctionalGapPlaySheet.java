@@ -144,6 +144,7 @@ public class EAFunctionalGapPlaySheet extends GridPlaySheet {
 			dataEfficiency *= Double.parseDouble(activityDataWeight.get(activity));
 			activityEfficiency.put(activity, dataEfficiency);
 		}
+		
 		for (String activity : activityBLUWeight.keySet()) {
 			Double bluEfficiency = 0.0;
 			bluEfficiency = getEffiencyScore("blu", activityBLUMap.get(activity), ehrBLU, fgBLUMap.get(activity), dhmsmBLU);
