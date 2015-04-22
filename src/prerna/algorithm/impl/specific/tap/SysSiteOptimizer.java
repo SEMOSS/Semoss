@@ -50,7 +50,6 @@ import prerna.algorithm.api.IAlgorithm;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
-import prerna.ui.helpers.PlaysheetCreateRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -75,7 +74,7 @@ public class SysSiteOptimizer implements IAlgorithm {
 	//user can change these as advanced settings
 	private double infRate = 1.5;
 	private double disRate = 2.5;
-	private int noOfPts = 3;
+	private int noOfPts = 1;
 	
 	//user should not change these
 	private double centralDeploymentPer = 0.80;
@@ -138,7 +137,7 @@ public class SysSiteOptimizer implements IAlgorithm {
 	}
 	
 	public void setVariables(int maxBudget, int years) {
-		this.maxBudget = maxBudget;
+		this.maxBudget = maxBudget * years;
 		this.years = years;
 	}
 	
@@ -317,9 +316,6 @@ public class SysSiteOptimizer implements IAlgorithm {
 	
 	private void optimizeSystemsAtSites() {
 		
-
-		createSiteGrid(systemSiteMatrix, sysList, siteList,"Current NonCentral Systems at Sites");
-		
 		optFunc.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, modArr, decomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, maxBudget, years, currSustainmentCost, sysList, centralSysList, dataList, bluList, siteList);
 
 		UnivariateOptimizer optimizer = new BrentOptimizer(.1, .1);
@@ -409,10 +405,13 @@ public class SysSiteOptimizer implements IAlgorithm {
 		System.out.println("**Future Sustainment Cost " + futureSustainmentCost);
 		System.out.println("**Deployment Cost " + totalDeploymentCost);
 		
+		double totalSavings = 0.0;
 		System.out.println("**Year Investment CostAvoided: ");
 		for(i = 0; i<years; i++) {
 			System.out.println((i + 1) + " " + budgetSpentPerYear[i] + " " + costAvoidedPerYear[i]);
+			totalSavings += costAvoidedPerYear[i];
 		}
+		System.out.println("**Total Savings: " + totalSavings);
 	}
 	
 	private void createOverallGrid(double[] matrix, ArrayList<String> rowLabels, String systemType, String title) {
