@@ -30,6 +30,8 @@ package prerna.util;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
+import java.util.Vector;
 
 public final class ArrayListUtilityMethods {
 
@@ -188,5 +190,64 @@ public final class ArrayListUtilityMethods {
 
 		return sortedQuery;
 	}
+	
+	/**
+	 * Helper method to determining the list of systems.
+	 * Performs an AND union on two lists if neither is empty.
+	 * If one is empty, returns the other list.
+	 * @param list1
+	 * @param list2
+	 * @return
+	 */
+	public static Vector<String> createAndUnionIfBothFilled(Vector<String> list1,Vector<String> list2) {
+		if(list1.isEmpty())
+			return list2;
+		if(list2.isEmpty())
+			return list1;
+		return createAndUnion(list1,list2);
+	}
+	
+	/**
+	 * Helper method to determining the list of systems.
+	 * Performs an AND union on two lists.
+	 * @param list1
+	 * @param list2
+	 * @return
+	 */
+	public static Vector<String> createAndUnion(Vector<String> list1,Vector<String> list2) {
+		Vector<String> retList = new Vector<String>();
+		Iterator<String> it1 = list1.iterator();
+		while(it1.hasNext()) {
+			String check = it1.next();
+			if(list2.contains(check)&&!retList.contains(check))
+				retList.add(check);
+		}
+		return retList;
+	}
+	
+	/**
+	 * Helper method to determining the list of systems.
+	 * Performs an OR union on two lists.
+	 * @param list1
+	 * @param list2
+	 * @return
+	 */
+	public static Vector<String> createOrUnion(Vector<String> list1,Vector<String> list2) {
+		Vector<String> retList = new Vector<String>();
+		Iterator<String> it1 = list1.iterator();
+		while(it1.hasNext()) {
+			String check = it1.next();
+			if(!retList.contains(check))
+				retList.add(check);
+		}
+		Iterator<String> it2 = list2.iterator();
+		while(it2.hasNext()) {
+			String check = it2.next();
+			if(!retList.contains(check))
+				retList.add(check);
+		}
+		return retList;
+	}
+
 
 }
