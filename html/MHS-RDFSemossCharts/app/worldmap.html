@@ -178,7 +178,11 @@
 				   		if (d.size == undefined || isNaN(d.size)) 
 				   			return DEFAULT_RADIUS;
 				   		else {
-							return rScale(d.size);
+				   			if (d.size != 0) {
+								return rScale(d.size);
+							} else {
+								return 0;
+							}
 						}
 				   })
 				   .style("fill", "#780000")
