@@ -69,7 +69,8 @@ public class SysSiteOptimizer implements IAlgorithm {
 	//user must select these
 	private double maxBudget;
 	private int years;
-	private Boolean useDHMSMFunctionality;//true if data/blu list made from dhmsm capabilities. False if from the systems 
+	private Boolean useDHMSMFunctionality = false;//true if data/blu list made from dhmsm capabilities. False if from the systems
+	private Boolean isOptimizeBudget = false;
 
 	//user can change these as advanced settings
 	private double infRate = 1.5;
@@ -96,7 +97,7 @@ public class SysSiteOptimizer implements IAlgorithm {
 	private double[] centralSystemMaintenaceCosts;
 
 	//results of the algorithm
-	private SysSiteOptFunction optFunc;
+	private SysSiteOptFunction optFunc = new SysSiteSavingsOptFunction();;
 	
 	private double[] sysKeptArr;
 	private double[] centralSysKeptArr;
@@ -141,7 +142,7 @@ public class SysSiteOptimizer implements IAlgorithm {
 		this.years = years;
 	}
 	
-	public void setAdvancedVariables(int infRate, int disRate, int noOfPts) {
+	public void setAdvancedVariables(double infRate, double disRate, int noOfPts) {
 		this.infRate = infRate;
 		this.disRate = disRate;
 		this.noOfPts = noOfPts;
@@ -227,6 +228,10 @@ public class SysSiteOptimizer implements IAlgorithm {
 		else {
 			System.out.println("OPTIMIZATION TYPE DOES NOT EXIST");
 		}
+	}
+	
+	public void setIsOptimizeBudget(Boolean isOptimizeBudget) {
+		this.isOptimizeBudget = isOptimizeBudget;
 	}
 	
 	private void getData() {
@@ -318,41 +323,32 @@ public class SysSiteOptimizer implements IAlgorithm {
 		
 		optFunc.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, modArr, decomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, maxBudget, years, currSustainmentCost, sysList, centralSysList, dataList, bluList, siteList);
 
-		UnivariateOptimizer optimizer = new BrentOptimizer(.1, .1);
-
-		RandomGenerator rand = new Well1024a(500);
-		MultiStartUnivariateOptimizer multiOpt = new MultiStartUnivariateOptimizer(optimizer, noOfPts, rand);
-		UnivariateObjectiveFunction objF = new UnivariateObjectiveFunction(optFunc);
-		SearchInterval search = new SearchInterval(0, maxBudget); // budget in LOE
-//		optimizer.getStartValue();
-		MaxEval eval = new MaxEval(200);
-		
-		OptimizationData[] data = new OptimizationData[] { search, objF, GoalType.MAXIMIZE, eval };
-		try {
-			UnivariatePointValuePair pair = multiOpt.optimize(data);
-			optFunc.value(pair.getPoint());
+		if(isOptimizeBudget) {
+			UnivariateOptimizer optimizer = new BrentOptimizer(.1, .1);
+	
+			RandomGenerator rand = new Well1024a(500);
+			MultiStartUnivariateOptimizer multiOpt = new MultiStartUnivariateOptimizer(optimizer, noOfPts, rand);
+			UnivariateObjectiveFunction objF = new UnivariateObjectiveFunction(optFunc);
+			SearchInterval search = new SearchInterval(0, maxBudget); // budget in LOE
+			MaxEval eval = new MaxEval(200);
 			
-			sysKeptArr = optFunc.getSysKeptArr();
-			centralSysKeptArr = optFunc.getCentralSysKeptArr();
-			systemSiteResultMatrix = optFunc.getSystemSiteResultMatrix();
-			totalDeploymentCost = optFunc.getTotalDeploymentCost();
-			futureSustainmentCost = optFunc.getFutureSustainmentCost();
-			
-		} catch (TooManyEvaluationsException fee) {
-			System.out.println("Too many evalutions");
+			OptimizationData[] data = new OptimizationData[] { search, objF, GoalType.MAXIMIZE, eval };
+			try {
+				UnivariatePointValuePair pair = multiOpt.optimize(data);
+				optFunc.value(pair.getPoint());
+				
+			} catch (TooManyEvaluationsException fee) {
+				System.out.println("Too many evalutions");
+			}
+		} else {
+			optFunc.value(maxBudget);
 		}
-		
-
-////		SysSiteROIOptFunctionVersionOne optFunc = new SysSiteROIOptFunctionVersionOne();
-//		SysSiteSavingsOptFunction optFunc = new SysSiteSavingsOptFunction();
-//		optFunc.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, modArr, decomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, maxBudget, years, currSustainmentCost, sysList, centralSysList, dataList, bluList, siteList);
-//		optFunc.value(maxBudget);
-//		
-//		sysKeptArr = optFunc.getSysKeptArr();
-//		centralSysKeptArr = optFunc.getCentralSysKeptArr();
-//		systemSiteResultMatrix = optFunc.getSystemSiteResultMatrix();
-//		totalDeploymentCost = optFunc.getTotalDeploymentCost();
-//		futureSustainmentCost = optFunc.getFutureSustainmentCost();
+	
+		sysKeptArr = optFunc.getSysKeptArr();
+		centralSysKeptArr = optFunc.getCentralSysKeptArr();
+		systemSiteResultMatrix = optFunc.getSystemSiteResultMatrix();
+		totalDeploymentCost = optFunc.getTotalDeploymentCost();
+		futureSustainmentCost = optFunc.getFutureSustainmentCost();
 		
 		double mu = (1 + infRate / 100) / (1 + disRate / 100);
 		double yearsToComplete = totalDeploymentCost / (maxBudget / years);

@@ -185,19 +185,19 @@ public class SysSiteLPSolver extends LPOptimizer{
 		
 		OUTER: for(i=0; i<funcSize; i++) {
 			for(j=0; j<numSystems; j++)  {
-				if(systemFuncMatrix[j][i] == 1 && systemEnvironment[j] == 1 && decomArr[j] != null && decomArr[j] == 0) {
-					funcStillProvidedEnvironment[j] = 1;
+				if(systemFuncMatrix[j][i] == 1 && systemEnvironment[j] == 1 && decomArr[j] == null) {
+					funcStillProvidedEnvironment[i] = 1;
 					continue OUTER;
 				}	
 			}
 			for(j=0; j<numCentralSystems; j++)  {
-				if(centralSystemFuncMatrix[j][i] == 1 && centralSystemEnvironment[j] == 1  && centralDecomArr[j] != null && centralDecomArr[j] == 0) {
-					funcStillProvidedEnvironment[j] = 1;
+				if(centralSystemFuncMatrix[j][i] == 1 && centralSystemEnvironment[j] == 1  && centralDecomArr[j] == null) {
+					funcStillProvidedEnvironment[i] = 1;
 					continue OUTER;
 				}	
 			}
 
-			funcStillProvidedEnvironment[j] = 0;
+			funcStillProvidedEnvironment[i] = 0;
 		}
 		return funcStillProvidedEnvironment;
 	}
