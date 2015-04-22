@@ -70,7 +70,7 @@ public class SysSiteROIOptFunction extends SysSiteOptFunction{
 		
 		double roi = savings / deployCost - 1;
 
-		System.out.println("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + deployCost + ", savings over the entire time frame " + savings + " roi "+roi);
+		System.out.println("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + deployCost + ", years to deploy " + yearsToComplete + ", savings over the entire time frame " + savings + " roi "+roi);
 		
 		return roi;
 	}

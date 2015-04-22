@@ -68,7 +68,7 @@ public class SysSiteSavingsOptFunction extends SysSiteOptFunction{
 		
 		double savings = (years - Math.ceil(yearsToComplete)) * (currentSustainmentCost - lpSolver.getObjectiveVal());
 		
-		System.out.println("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + deployCost + ", savings over entire time frame "+savings);
+		System.out.println("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + deployCost + ", years to deploy " + yearsToComplete + ", savings over entire time frame "+savings);
 		
 		return savings;
 	}
