@@ -35,6 +35,7 @@ import java.util.ArrayList;
 
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
+import javax.swing.JTextArea;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -70,6 +71,7 @@ public class UnivariateOpt implements IAlgorithm{
 	public UnivariateOptFunction f;
 	double optBudget =0.0;
 	JProgressBar progressBar;
+	JTextArea consoleArea;
 	
 	/**
 	 * Method setVariables.
@@ -105,7 +107,14 @@ public class UnivariateOpt implements IAlgorithm{
 		this.infRate = infRate;
 		this.disRate = disRate;
 	}
+
+	public void setProgressBar(JProgressBar progressBar) {
+		this.progressBar = progressBar;
+	}
 	
+	public void setConsoleArea(JTextArea consoleArea) {
+		this.consoleArea = consoleArea;
+	}
 
 	/**
 	 * Runs the optimization for services.

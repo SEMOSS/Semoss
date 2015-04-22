@@ -40,26 +40,48 @@ import javax.swing.JPanel;
 import javax.swing.ListSelectionModel;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.ui.helpers.EntityFiller;
 import prerna.ui.main.listener.specific.tap.SystemCheckBoxSelectorListener;
 import prerna.ui.swing.custom.SelectScrollList;
-import prerna.util.DIHelper;
 
 @SuppressWarnings("serial")
 public class DHMSMSystemSelectPanel extends JPanel {
-	public IEngine engine;
-	String header = "Select Systems:";
-	public JCheckBox allSysCheckBox, recdSysCheckBox, intDHMSMSysCheckBox, notIntDHMSMSysCheckBox;
-	public JCheckBox lowProbCheckBox, highProbCheckBox, theaterSysCheckBox, garrisonSysCheckBox;
-	public SelectScrollList sysSelectDropDown;
 	
-	public DHMSMSystemSelectPanel()
+	private Boolean includeMHSEHR = false;
+	private String header = "Select Systems:";
+	
+	private JCheckBox intDHMSMSysCheckBox, notIntDHMSMSysCheckBox, lowProbCheckBox, highProbCheckBox, theaterSysCheckBox, garrisonSysCheckBox, mhsSpecificCheckBox, ehrCoreCheckBox;
+	private SelectScrollList sysSelectDropDown;
+	private SystemCheckBoxSelectorListener sysCheckBoxListener;
+	
+	public DHMSMSystemSelectPanel() {
+		createView(null);
+	}
+	
+	public DHMSMSystemSelectPanel(IEngine engine) {
+		SysOptCheckboxListUpdater checkboxListUpdater = new SysOptCheckboxListUpdater(engine, true, false, false);
+		createView(checkboxListUpdater);
+	}
+	
+	public DHMSMSystemSelectPanel(SysOptCheckboxListUpdater checkboxListUpdater) {
+		createView(checkboxListUpdater);
+	}
+	
+	public DHMSMSystemSelectPanel(String header, Boolean includeMHSEHR, SysOptCheckboxListUpdater checkboxListUpdater)
 	{
-	}
-	public void setHeader(String header) {
 		this.header = header;
+		this.includeMHSEHR = includeMHSEHR;
+		createView(checkboxListUpdater);
 	}
-	public void addElements()
+	
+	public void changeEngine(IEngine engine) {
+		SysOptCheckboxListUpdater checkboxListUpdater = new SysOptCheckboxListUpdater(engine, true, false, false);
+		removeListeners();
+		sysSelectDropDown.resetList(checkboxListUpdater.getReceivedSysList());
+		addListeners(checkboxListUpdater);
+		
+	}
+	
+	private void createView(SysOptCheckboxListUpdater checkboxListUpdater)
 	{
 		this.removeAll();
 		
@@ -82,6 +104,12 @@ public class DHMSMSystemSelectPanel extends JPanel {
 		
 		sysSelectDropDown = new SelectScrollList("Select Individual Systems");
 		sysSelectDropDown.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+		if(checkboxListUpdater == null)
+			sysSelectDropDown.setupButton(new Vector<String>(),40,120); //need to give list of all systems
+		else
+			sysSelectDropDown.setupButton(checkboxListUpdater.getReceivedSysList(),40,120); //need to give list of all systems
+//		sysSelectDropDown.setupButton(playSheet.getCheckboxListUpdater().getReceivedSysList(),40,120); //need to give list of all systems
+
 		GridBagConstraints gbc_sysSelectDropDown = new GridBagConstraints();
 		gbc_sysSelectDropDown.gridwidth = 5;
 		gbc_sysSelectDropDown.insets = new Insets(0, 0, 0, 5);
@@ -90,36 +118,18 @@ public class DHMSMSystemSelectPanel extends JPanel {
 		gbc_sysSelectDropDown.gridy = 3;
 		this.add(sysSelectDropDown.pane, gbc_sysSelectDropDown);
 		
-		addCheckBoxes();
-
-		String[] sysArray = makeListFromQuery("System","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}} ");
-		sysSelectDropDown.setupButton(sysArray,40,120); //need to give list of all systems
+		addCheckBoxes(checkboxListUpdater);
+		if(checkboxListUpdater != null)
+			addListeners(checkboxListUpdater);
 		
-		addListener();
-
 	}
-	protected void addCheckBoxes() {	
-		allSysCheckBox = new JCheckBox("All");
-		allSysCheckBox.setName("allSysCheckBox");
-		GridBagConstraints gbc_allSysButton = new GridBagConstraints();
-		gbc_allSysButton.anchor = GridBagConstraints.WEST;
-		gbc_allSysButton.gridx = 0;
-		gbc_allSysButton.gridy = 1;
-		this.add(allSysCheckBox, gbc_allSysButton);
-		
-		recdSysCheckBox = new JCheckBox("Rec'd");
-		recdSysCheckBox.setName("recdSysCheckBox");
-		GridBagConstraints gbc_recdSysButton = new GridBagConstraints();
-		gbc_recdSysButton.anchor = GridBagConstraints.WEST;
-		gbc_recdSysButton.gridx = 1;
-		gbc_recdSysButton.gridy = 1;
-		this.add(recdSysCheckBox, gbc_recdSysButton);
+	private void addCheckBoxes(SysOptCheckboxListUpdater checkboxListUpdater) {
 
 		intDHMSMSysCheckBox = new JCheckBox("Interface");
 		intDHMSMSysCheckBox.setName("intDHMSMSysCheckBox");
 		GridBagConstraints gbc_intDHMSMSysButton = new GridBagConstraints();
 		gbc_intDHMSMSysButton.anchor = GridBagConstraints.WEST;
-		gbc_intDHMSMSysButton.gridx = 2;
+		gbc_intDHMSMSysButton.gridx = 0;
 		gbc_intDHMSMSysButton.gridy = 1;
 		this.add(intDHMSMSysCheckBox, gbc_intDHMSMSysButton);
 		
@@ -127,16 +137,16 @@ public class DHMSMSystemSelectPanel extends JPanel {
 		notIntDHMSMSysCheckBox.setName("notIntDHMSMSysCheckBox");
 		GridBagConstraints gbc_notIntDHMSMSysButton = new GridBagConstraints();
 		gbc_notIntDHMSMSysButton.anchor = GridBagConstraints.WEST;
-		gbc_notIntDHMSMSysButton.gridx = 3;
-		gbc_notIntDHMSMSysButton.gridy = 1;
+		gbc_notIntDHMSMSysButton.gridx = 0;
+		gbc_notIntDHMSMSysButton.gridy = 2;
 		this.add(notIntDHMSMSysCheckBox, gbc_notIntDHMSMSysButton);
 		
 		lowProbCheckBox = new JCheckBox("Low");
 		lowProbCheckBox.setName("lowProbCheckBox");
 		GridBagConstraints gbc_lowProbButton = new GridBagConstraints();
 		gbc_lowProbButton.anchor = GridBagConstraints.WEST;
-		gbc_lowProbButton.gridx = 0;
-		gbc_lowProbButton.gridy = 2;
+		gbc_lowProbButton.gridx = 1;
+		gbc_lowProbButton.gridy = 1;
 		this.add(lowProbCheckBox, gbc_lowProbButton);
 		
 		highProbCheckBox = new JCheckBox("High");
@@ -152,62 +162,95 @@ public class DHMSMSystemSelectPanel extends JPanel {
 		GridBagConstraints gbc_theaterSysButton = new GridBagConstraints();
 		gbc_theaterSysButton.anchor = GridBagConstraints.WEST;
 		gbc_theaterSysButton.gridx = 2;
-		gbc_theaterSysButton.gridy = 2;
+		gbc_theaterSysButton.gridy = 1;
 		this.add(theaterSysCheckBox, gbc_theaterSysButton);
 		
 		garrisonSysCheckBox = new JCheckBox("Garrison");
 		garrisonSysCheckBox.setName("garrisonSysCheckBox");
 		GridBagConstraints gbc_garrisonSysButton = new GridBagConstraints();
 		gbc_garrisonSysButton.anchor = GridBagConstraints.WEST;
-		gbc_garrisonSysButton.gridx = 3;
+		gbc_garrisonSysButton.gridx = 2;
 		gbc_garrisonSysButton.gridy = 2;
 		this.add(garrisonSysCheckBox, gbc_garrisonSysButton);
+		
+		if(includeMHSEHR) {
+			mhsSpecificCheckBox = new JCheckBox("MHS Specific");
+			mhsSpecificCheckBox.setName("mhsSpecificCheckBox");
+			GridBagConstraints gbc_mhsSpecificCheckBox = new GridBagConstraints();
+			gbc_mhsSpecificCheckBox.anchor = GridBagConstraints.WEST;
+			gbc_mhsSpecificCheckBox.gridx = 4;
+			gbc_mhsSpecificCheckBox.gridy = 1;
+			this.add(mhsSpecificCheckBox, gbc_mhsSpecificCheckBox);
+			
+			ehrCoreCheckBox = new JCheckBox("EHR Core");
+			ehrCoreCheckBox.setName("ehrCoreCheckBox");
+			GridBagConstraints gbc_ehrCoreCheckBox = new GridBagConstraints();
+			gbc_ehrCoreCheckBox.anchor = GridBagConstraints.WEST;
+			gbc_ehrCoreCheckBox.gridx = 4;
+			gbc_ehrCoreCheckBox.gridy = 2;
+			this.add(ehrCoreCheckBox, gbc_ehrCoreCheckBox);
+		}
+
 	}
-	protected void addListener() {
-		SystemCheckBoxSelectorListener sysCheckBoxListener = new SystemCheckBoxSelectorListener(engine, sysSelectDropDown,allSysCheckBox,recdSysCheckBox, intDHMSMSysCheckBox,notIntDHMSMSysCheckBox,theaterSysCheckBox,garrisonSysCheckBox,lowProbCheckBox, highProbCheckBox);
-		allSysCheckBox.addActionListener(sysCheckBoxListener);
-		recdSysCheckBox.addActionListener(sysCheckBoxListener);
+	
+	private void addListeners(SysOptCheckboxListUpdater checkboxListUpdater) {
+		sysCheckBoxListener = new SystemCheckBoxSelectorListener(checkboxListUpdater, sysSelectDropDown, intDHMSMSysCheckBox,notIntDHMSMSysCheckBox,theaterSysCheckBox,garrisonSysCheckBox,lowProbCheckBox, highProbCheckBox,mhsSpecificCheckBox,ehrCoreCheckBox);
 		intDHMSMSysCheckBox.addActionListener(sysCheckBoxListener);
 		notIntDHMSMSysCheckBox.addActionListener(sysCheckBoxListener);
 		theaterSysCheckBox.addActionListener(sysCheckBoxListener);
 		garrisonSysCheckBox.addActionListener(sysCheckBoxListener);
 		lowProbCheckBox.addActionListener(sysCheckBoxListener);
 		highProbCheckBox.addActionListener(sysCheckBoxListener);
-	}
-	
-	public String[] makeListFromQuery(String type, String query)
-	{
-		engine = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
-		EntityFiller filler = new EntityFiller();
-		filler.engineName = engine.getEngineName();
-		filler.type = "Capability";
-		filler.setExternalQuery(query);
-		filler.run();
-		Vector<String> names = filler.nameVector;
-		String[] listArray=new String[names.size()];
-		for (int i = 0;i<names.size();i++)
-		{
-			listArray[i]=(String) names.get(i);
+		if(includeMHSEHR) {
+			mhsSpecificCheckBox.addActionListener(sysCheckBoxListener);
+			ehrCoreCheckBox.addActionListener(sysCheckBoxListener);
 		}
-		return listArray;
 	}
 	
-	public void clearList() {
-		recdSysCheckBox.setSelected(false);
+	private void removeListeners() {
+		intDHMSMSysCheckBox.removeActionListener(sysCheckBoxListener);
+		notIntDHMSMSysCheckBox.removeActionListener(sysCheckBoxListener);
+		theaterSysCheckBox.removeActionListener(sysCheckBoxListener);
+		garrisonSysCheckBox.removeActionListener(sysCheckBoxListener);
+		lowProbCheckBox.removeActionListener(sysCheckBoxListener);
+		highProbCheckBox.removeActionListener(sysCheckBoxListener);
+		if(includeMHSEHR) {
+			mhsSpecificCheckBox.removeActionListener(sysCheckBoxListener);
+			ehrCoreCheckBox.removeActionListener(sysCheckBoxListener);
+		}
+	}
+
+	//TODO change the name of this
+	private void clearList() {
 		intDHMSMSysCheckBox.setSelected(false);
 		notIntDHMSMSysCheckBox.setSelected(false);
-		allSysCheckBox.setSelected(false);
-		recdSysCheckBox.setSelected(false);
-		intDHMSMSysCheckBox.setSelected(false);
 		lowProbCheckBox.setSelected(false);
 		highProbCheckBox.setSelected(false);
 		theaterSysCheckBox.setSelected(false);
 		garrisonSysCheckBox.setSelected(false);
-		sysSelectDropDown.clearList();
+		if(includeMHSEHR) {
+			mhsSpecificCheckBox.setSelected(false);
+			ehrCoreCheckBox.setSelected(false);
+		}
+		sysSelectDropDown.clearSelection();
+	}
+	
+	public void selectAllSystems()
+	{
+		sysSelectDropDown.selectAll();
 	}
 	
 	public ArrayList<String> getSelectedSystems()
 	{
 		return sysSelectDropDown.getSelectedValues();
 	}
+
+	public Boolean isTheaterCheckBoxSelected() {
+		return theaterSysCheckBox.isSelected();
+	}
+	
+	public Boolean isGarrisonCheckBoxSelected() {
+		return garrisonSysCheckBox.isSelected();
+	}
+
 }

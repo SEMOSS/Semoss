@@ -32,38 +32,39 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.util.ArrayList;
-import java.util.Vector;
 
-import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.ListSelectionModel;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.ui.helpers.EntityFiller;
 import prerna.ui.main.listener.specific.tap.BLUCheckBoxSelectorListener;
 import prerna.ui.swing.custom.SelectScrollList;
-import prerna.util.DIHelper;
 
 @SuppressWarnings("serial")
 public class DHMSMBLUSelectPanel extends JPanel {
-	public IEngine engine;
 
-	public JLabel lblDataSelectHeader;
-	public SelectScrollList dataSelectDropDown;
-	public JCheckBox hsdCheck, hssCheck, fhpCheck, dhmsmCheck, allDataCheck;
-	public JButton updateProvideDataButton, updateConsumeDataButton;
+	private SysOptPlaySheet playSheet;
 
-	public DHMSMBLUSelectPanel()
+	private SelectScrollList dataSelectDropDown;
+	private JCheckBox hsdCheck, hssCheck, fhpCheck, dhmsmCheck, allDataCheck;
+
+	public DHMSMBLUSelectPanel(IEngine engine, DHMSMSystemSelectPanel systemSelectPanel)
 	{
-		//addElements();
+		SysOptCheckboxListUpdater checkboxListUpdater = new SysOptCheckboxListUpdater(engine);
+		createView(checkboxListUpdater, systemSelectPanel);
+	}
+	
+	public DHMSMBLUSelectPanel(SysOptCheckboxListUpdater checkboxListUpdater, DHMSMSystemSelectPanel systemSelectPanel)
+	{
+		createView(checkboxListUpdater, systemSelectPanel);
 	}
 
-	public void addElements(DHMSMSystemSelectPanel systemSelectPanel)
+	private void createView(SysOptCheckboxListUpdater checkboxListUpdater, DHMSMSystemSelectPanel systemSelectPanel)
 	{
-
 		this.removeAll();
+		
 		GridBagLayout gbl_systemSelectPanel = new GridBagLayout();
 		gbl_systemSelectPanel.columnWidths = new int[]{0, 0, 0, 0,};
 		gbl_systemSelectPanel.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0};
@@ -80,6 +81,25 @@ public class DHMSMBLUSelectPanel extends JPanel {
 		gbc_lblSystemSelectHeader.gridx = 0;
 		gbc_lblSystemSelectHeader.gridy = 0;
 		this.add(lblSystemSelectHeader, gbc_lblSystemSelectHeader);
+
+		dataSelectDropDown = new SelectScrollList("Select Individual Data");
+		dataSelectDropDown.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+		dataSelectDropDown.setupButton(playSheet.getCheckboxListUpdater().getAllBLUList(),100,120);
+		dataSelectDropDown.setVisible(true);
+
+
+		GridBagConstraints gbc_dataSelectDropDown = new GridBagConstraints();
+		gbc_dataSelectDropDown.gridwidth = 4;
+		gbc_dataSelectDropDown.fill = GridBagConstraints.HORIZONTAL;
+		gbc_dataSelectDropDown.insets = new Insets(0, 0, 0, 5);
+		gbc_dataSelectDropDown.gridx = 0;
+		gbc_dataSelectDropDown.gridy = 3;
+		this.add(dataSelectDropDown.pane, gbc_dataSelectDropDown);
+
+		addCheckBoxes(checkboxListUpdater);
+	}
+	
+	private void addCheckBoxes(SysOptCheckboxListUpdater checkboxListUpdater) {
 
 		allDataCheck = new JCheckBox("All");
 		allDataCheck.setName("allDataCheck");
@@ -117,21 +137,7 @@ public class DHMSMBLUSelectPanel extends JPanel {
 		gbc_dhmsmCheck.gridy = 2;
 		this.add(dhmsmCheck, gbc_dhmsmCheck);
 
-		dataSelectDropDown = new SelectScrollList("Select Individual Data");
-		dataSelectDropDown.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-		GridBagConstraints gbc_dataSelectDropDown = new GridBagConstraints();
-		gbc_dataSelectDropDown.gridwidth = 4;
-		gbc_dataSelectDropDown.fill = GridBagConstraints.HORIZONTAL;
-		gbc_dataSelectDropDown.insets = new Insets(0, 0, 0, 5);
-		gbc_dataSelectDropDown.gridx = 0;
-		gbc_dataSelectDropDown.gridy = 3;
-		this.add(dataSelectDropDown.pane, gbc_dataSelectDropDown);
-
-		String[] dataArray = makeListFromQuery("BusinessLogicUnit","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}}");
-		dataSelectDropDown.setupButton(dataArray,250,120); 
-		dataSelectDropDown.setVisible(true);
-
-		BLUCheckBoxSelectorListener dataCheckBoxListener = new BLUCheckBoxSelectorListener(engine,dataSelectDropDown,allDataCheck,hsdCheck,hssCheck, fhpCheck,dhmsmCheck);
+		BLUCheckBoxSelectorListener dataCheckBoxListener = new BLUCheckBoxSelectorListener(checkboxListUpdater,dataSelectDropDown,allDataCheck,hsdCheck,hssCheck, fhpCheck,dhmsmCheck);
 		allDataCheck.addActionListener(dataCheckBoxListener);
 		hsdCheck.addActionListener(dataCheckBoxListener);
 		hssCheck.addActionListener(dataCheckBoxListener);
@@ -139,29 +145,12 @@ public class DHMSMBLUSelectPanel extends JPanel {
 		dhmsmCheck.addActionListener(dataCheckBoxListener);
 	}
 
-	public String[] makeListFromQuery(String type, String query)
-	{
-		engine = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
-		EntityFiller filler = new EntityFiller();
-		filler.engineName = engine.getEngineName();
-		filler.type = "Business Logic";
-		filler.setExternalQuery(query);
-		filler.run();
-		Vector<String> names = filler.nameVector;
-		String[] listArray=new String[names.size()];
-		for (int i = 0;i<names.size();i++)
-		{
-			listArray[i]=(String) names.get(i);
-		}
-		return listArray;
-	}
-
 	public void setVisible(boolean visible)
 	{
 		super.setVisible(visible);
 		if(!visible)
 		{
-			dataSelectDropDown.clearList();
+			dataSelectDropDown.clearSelection();
 		}
 	}
 

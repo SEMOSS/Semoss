@@ -184,8 +184,8 @@ public class DHMSMDataBLUSelectPanel extends JPanel {
 	}
 
 	public void clearList() {
-		dataSelectDropDown.clearList();
-		bluSelectDropDown.clearList();
+		dataSelectDropDown.clearSelection();
+		bluSelectDropDown.clearSelection();
 	}
 	
 	public void setFromSystem(boolean isPullFromSystem)

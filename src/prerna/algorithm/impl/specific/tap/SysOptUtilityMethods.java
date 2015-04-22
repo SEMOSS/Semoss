@@ -28,24 +28,23 @@
 package prerna.algorithm.impl.specific.tap;
 
 import java.util.ArrayList;
+import java.util.Vector;
 
 import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.util.DIHelper;
-import prerna.util.Utility;
+import prerna.ui.helpers.EntityFiller;
 
 public final class SysOptUtilityMethods {
 
 	
 	public static String makeBindingString(String type,ArrayList<String> vals) {
-		String bindings = "{";
+		String bindings = "";
 		for(String val : vals)
 		{
 			bindings+= "(<http://health.mil/ontologies/Concept/"+type+"/"+val+">)";
 		}
-		bindings+="}";
 		return bindings;
 	}
 	
@@ -54,24 +53,30 @@ public final class SysOptUtilityMethods {
 	 * @param engineName 	String containing the name of the database engine to be queried
 	 * @param query 		String containing the SPARQL query to run
 	 */
-	public static ArrayList<String> runListQuery(String engineName, String query) {
+	public static ArrayList<String> runListQuery(IEngine engine, String query){
 		ArrayList<String> list = new ArrayList<String>();
 		if(!query.isEmpty()) {
-			try {
-				IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
-				ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-
-				String[] names = wrapper.getVariables();
-				while (wrapper.hasNext()) {
-					ISelectStatement sjss = wrapper.next();
-					list.add((String) sjss.getVar(names[0]));
-				}
-			} catch (RuntimeException e) {
-				Utility.showError("Cannot find engine: " + engineName);
+			String[] names = wrapper.getVariables();
+			while (wrapper.hasNext()) {
+				ISelectStatement sjss = wrapper.next();
+				list.add((String) sjss.getVar(names[0]));
 			}
 		}
 		return list;
+	}
+	
+	public static ArrayList<String> inBothLists(ArrayList<String> list1,ArrayList<String> list2) {
+		ArrayList<String> duplicates = new ArrayList<String>();
+		
+		int size1 = list1.size();
+		for(int i=0; i<size1; i++) {
+			if(list2.contains(list1.get(i)))
+				duplicates.add(list1.get(i));
+		}
+		
+		return duplicates;
 	}
 	
 	public static ArrayList<String> removeDuplicates(ArrayList<String> list) {
@@ -257,6 +262,31 @@ public final class SysOptUtilityMethods {
 		for (int i = 0; i < row.length; i++)
 			sum += row[i];
 		return sum;
+	}
+	
+	/**
+	 * Gets the list of all capabilities for a selected functional area
+	 * @param sparqlQuery 		String containing the query to get all capabilities for a selected functional area
+	 * @return capabilities		Vector<String> containing list of all capabilities for a selected functional area
+	 */
+	public static Vector<String> getList(IEngine engine, String type, String sparqlQuery)
+	{
+		Vector<String> retList=new Vector<String>();
+		try{
+			EntityFiller filler = new EntityFiller();
+			filler.engineName = engine.getEngineName();
+			filler.type = type;
+			filler.setExternalQuery(sparqlQuery);
+			filler.run();
+			Vector names = filler.nameVector;
+			for (int i = 0;i<names.size();i++) {
+				retList.add((String) names.get(i));
+			}
+		}catch(NullPointerException e) {
+			System.out.println("Concept does not exist in DB");
+		}
+		return retList;
+		
 	}
 	
 }

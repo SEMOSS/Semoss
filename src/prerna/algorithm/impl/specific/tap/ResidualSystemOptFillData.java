@@ -38,7 +38,6 @@ import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.specific.tap.DHMSMHelper;
 import prerna.ui.components.specific.tap.SysOptPlaySheet;
-import prerna.util.DIHelper;
 
 public class ResidualSystemOptFillData{
 	
@@ -67,6 +66,8 @@ public class ResidualSystemOptFillData{
 	//cM_i, cDM_i, s_i
 	public double[] systemCostOfMaintenance;
 	public double[] systemCostOfDB;
+
+	public double[] systemCentralDeployment;
 	public double[] systemNumOfSites;
 	public String[] systemLPI;
 	public String[] systemCapability;
@@ -107,9 +108,9 @@ public class ResidualSystemOptFillData{
 	private ArrayList<Integer> bluReducedGarrisonIndex;
 	
 	
-	String systemEngine = "";
-	String costEngine = "TAP_Cost_Data";
-	String siteEngine = "TAP_Site_Data";
+	IEngine systemEngine;
+	IEngine costEngine;// = "TAP_Cost_Data";
+	IEngine siteEngine;// = "TAP_Site_Data";
 	
 	String sysListBindings;
 	double maxYears;
@@ -138,7 +139,7 @@ public class ResidualSystemOptFillData{
 	public void setPlaySheet(SysOptPlaySheet playSheet)
 	{
 		this.playSheet = playSheet;
-		this.systemEngine = playSheet.engine.getEngineName();
+		this.systemEngine = playSheet.engine;
 	}
 	public void setMaxYears(double maxYears)
 	{
@@ -147,7 +148,7 @@ public class ResidualSystemOptFillData{
 
 	
 	public boolean fillDataStores() {
-		sysListBindings = SysOptUtilityMethods.makeBindingString("System",sysList);		
+		sysListBindings = "{" + SysOptUtilityMethods.makeBindingString("System",sysList) + "}";		
 		fillSystemFunctionality();
 
 		fillSystemCostOfData();
@@ -207,7 +208,7 @@ public class ResidualSystemOptFillData{
 	
 	public boolean fillTheaterGarrisonDataStores(boolean includeTheater,boolean includeGarrison)
 	{
-		sysListBindings = SysOptUtilityMethods.makeBindingString("System",sysList);		
+		sysListBindings = "{" + SysOptUtilityMethods.makeBindingString("System",sysList) + "}";		
 		fillSystemFunctionality();
 
 		fillSystemCostOfData();
@@ -291,29 +292,28 @@ public class ResidualSystemOptFillData{
 	
 
 	public void fillSysDeploymentOptDataStores() {
-		sysListBindings = SysOptUtilityMethods.makeBindingString("System",sysList);		
+		sysListBindings = "{" + SysOptUtilityMethods.makeBindingString("System",sysList) + "}";	
 		fillSystemFunctionality();
 		fillSystemSite();
+		fillSystemNumOfSites();//TODO limit to sites we are actually looking at?
 		fillSystemCost();
 		fillSystemTheaterGarrison(true,true);
 		
-		String sysDataString = SysOptUtilityMethods.createMatrixPrintString(systemDataMatrix,sysList,dataList);
-		System.out.println("System Provides Data:" + sysDataString);
-		
-		String sysBLUString = SysOptUtilityMethods.createMatrixPrintString(systemBLUMatrix,sysList,bluList);
-		System.out.println("System Provides BLU:" + sysBLUString);
-		
+//		String sysDataString = SysOptUtilityMethods.createMatrixPrintString(systemDataMatrix,sysList,dataList);
+//		System.out.println("System Provides Data:" + sysDataString);
+//		
+//		String sysBLUString = SysOptUtilityMethods.createMatrixPrintString(systemBLUMatrix,sysList,bluList);
+//		System.out.println("System Provides BLU:" + sysBLUString);
+//		
 //		String sysSiteString = SysOptUtilityMethods.createMatrixPrintString(systemSiteMatrix,sysList,siteList);
 //		System.out.println("System At Sites:" + sysSiteString);
-		
-		String sysMaintenanceCostString = SysOptUtilityMethods.createVectorPrintString(systemCostOfMaintenance,sysList);
-		System.out.println("System Sustainment Budget:" + sysMaintenanceCostString);
-		
-		String sysTheaterString = SysOptUtilityMethods.createVectorPrintString(systemTheater,sysList);
-		System.out.println("System Theater:" + sysTheaterString);
-		
-		String sysGarrisonString = SysOptUtilityMethods.createVectorPrintString(systemGarrison,sysList);
-		System.out.println("System Garrison:" + sysGarrisonString);
+//		
+//		String sysMaintenanceCostString = SysOptUtilityMethods.createVectorPrintString(systemCostOfMaintenance,sysList);
+//		System.out.println("System Sustainment Budget:" + sysMaintenanceCostString);
+//
+//		String sysNumSitesString = SysOptUtilityMethods.createVectorPrintString(systemNumOfSites,sysList);
+//		System.out.println("System Number of Sites List:" + sysNumSitesString);
+
 	}
 	
 	private void fillSystemFunctionality() {
@@ -321,9 +321,8 @@ public class ResidualSystemOptFillData{
 		systemBLUMatrix = SysOptUtilityMethods.createEmptyMatrix(systemBLUMatrix,sysList.size(),bluList.size());
 
 		DHMSMHelper dhelp = new DHMSMHelper();
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(systemEngine);
 		dhelp.setUseDHMSMOnly(false);
-		dhelp.runData(engine);
+		dhelp.runData(systemEngine);
 		
 		for(int sysInd = 0;sysInd < sysList.size();sysInd++)
 		{
@@ -352,7 +351,7 @@ public class ResidualSystemOptFillData{
 			systemRegionMatrix = SysOptUtilityMethods.createEmptyMatrix(systemRegionMatrix,sysList.size(),regionList.size());
 
 			String query = "SELECT DISTINCT ?System ?Region WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?DeployedAt2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>} {?Includes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Includes>} {?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HealthServiceRegion>} {?Located <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Located>} {?System ?DeployedAt1 ?SystemDCSite} {?SystemDCSite ?DeployedAt2 ?DCSite} {?DCSite ?Includes ?MTF} {?MTF ?Located ?Region} } BINDINGS ?System @SYSTEM-BINDINGS@";
-			sysListBindings = SysOptUtilityMethods.makeBindingString("System",sysList);		
+			sysListBindings = "{" + SysOptUtilityMethods.makeBindingString("System",sysList) + "}";		
 			query = query.replace("@SYSTEM-BINDINGS@",sysListBindings);
 			systemRegionMatrix = fillMatrixFromQuery(siteEngine,query,systemRegionMatrix,sysList,regionList);
 		} else {
@@ -361,6 +360,14 @@ public class ResidualSystemOptFillData{
 				systemRegionMatrix[i][0] = 1;
 		}
 	}
+//	
+//	private void fillSystemCentralDeployment() {
+//		systemCentralDeployment = SysOptUtilityMethods.createEmptyVector(systemCentralDeployment, sysList.size());
+//		String query = "SELECT DISTINCT ?sys (IF(?central = 'Y',1,0) AS ?Central)  WHERE {{?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}OPTIONAL{?sys <http://semoss.org/ontologies/Relation/Contains/CentralDeployment> ?central}}BINDINGS ?sys @SYSTEM-BINDINGS@";
+//		query = query.replace("@SYSTEM-BINDINGS@",sysListBindings);
+//		systemCentralDeployment = fillVectorFromQuery(systemEngine,query,systemCentralDeployment,sysList,false);
+//
+//	}
 	
 	private void fillSystemSite() 	{
 		systemSiteMatrix = SysOptUtilityMethods.createEmptyMatrix(systemSiteMatrix,sysList.size(),siteList.size());
@@ -456,9 +463,7 @@ public class ResidualSystemOptFillData{
 				systemGarrison[i] = 0;
 		}
 
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(systemEngine);
-
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(systemEngine, query);
 		
 		String[] names = wrapper.getVariables();
 		// now get the bindings and generate the data
@@ -492,16 +497,10 @@ public class ResidualSystemOptFillData{
 		return matrixToFill;
 	}
 	
-	private ISelectWrapper runQuery(String engineName, String query) {
-		
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-		return wrapper;
-	}
-	
-	private int[][] fillMatrixFromQuery(String engineName, String query,int[][] matrix,ArrayList<String> rowNames,ArrayList<String> colNames) {
-		ISelectWrapper	wrapper = runQuery(engineName,query);
+	private int[][] fillMatrixFromQuery(IEngine engine, String query,int[][] matrix,ArrayList<String> rowNames,ArrayList<String> colNames) {
 
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+		
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
 		// now get the bindings and generate the data
@@ -529,8 +528,10 @@ public class ResidualSystemOptFillData{
 		return matrix;
 	}
 	
-	private double[][] fillMatrixFromQuery(String engineName, String query,double[][] matrix,ArrayList<String> rowNames,ArrayList<String> colNames) {
-		ISelectWrapper	wrapper = runQuery(engineName,query);
+	private double[][] fillMatrixFromQuery(IEngine engine, String query,double[][] matrix,ArrayList<String> rowNames,ArrayList<String> colNames) {
+
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+		
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
 		// now get the bindings and generate the data
@@ -574,8 +575,10 @@ public class ResidualSystemOptFillData{
 		return matrix;
 	}
 	
-	private double[] fillVectorFromQuery(String engineName, String query,double[] matrix,ArrayList<String> rowNames, boolean needsConversion) {
-		ISelectWrapper	wrapper = runQuery(engineName,query);
+	private double[] fillVectorFromQuery(IEngine engine, String query,double[] matrix,ArrayList<String> rowNames, boolean needsConversion) {
+
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+		
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
 		// now get the bindings and generate the data
@@ -617,8 +620,9 @@ public class ResidualSystemOptFillData{
 		}
 		return matrix;
 	}
-	private String[] fillVectorFromQuery(String engineName, String query,String[] matrix,ArrayList<String> rowNames, boolean valIsOne) {
-		ISelectWrapper	wrapper = runQuery(engineName,query);
+	private String[] fillVectorFromQuery(IEngine engine, String query,String[] matrix,ArrayList<String> rowNames, boolean valIsOne) {
+
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
@@ -639,12 +643,6 @@ public class ResidualSystemOptFillData{
 		}
 		return matrix;
 	}
-	
-//	private Object getVariable(String varName, ISelectStatement sjss) {
-//		return sjss.getVar(varName);
-//	}
-	
-
 	
 	public int[][] calculateIfProviderExistsWithRegion(int[][] sysMatrix,boolean isData) {
 		int[][] retVector = new int[sysMatrix[0].length][1];
@@ -690,14 +688,6 @@ public class ResidualSystemOptFillData{
 			}
 		}
 		return matrixToReduce;		
-	}
-	
-	public boolean doManualModDecommOverlap() {
-		for(int i=0;i<systemModernize.length;i++) {
-			if(systemModernize[i]>=1.0&&systemDecommission[i]>=1.0)
-				return true;
-		}
-		return false;
 	}
 	
 	public double percentDataBLUReplacedReg(int modIndex,int decommIndex) {
@@ -836,8 +826,14 @@ public class ResidualSystemOptFillData{
 		}
 	}
 
-	
-	public void setSystemEngine(String systemEngine) {
+	public void setEngines(IEngine systemEngine, IEngine siteEngine) {
 		this.systemEngine = systemEngine;
+		this.siteEngine = siteEngine;
+	}
+	
+	public void setEngines(IEngine systemEngine, IEngine costEngine, IEngine siteEngine) {
+		this.systemEngine = systemEngine;
+		this.costEngine = costEngine;
+		this.siteEngine = siteEngine;
 	}
 }

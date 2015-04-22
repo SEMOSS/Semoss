@@ -27,29 +27,57 @@
  *******************************************************************************/
 package prerna.ui.main.listener.specific.tap;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.Vector;
 
 import javax.swing.JCheckBox;
 
 import prerna.rdf.engine.api.IEngine;
+import prerna.ui.helpers.EntityFiller;
 import prerna.ui.swing.custom.SelectScrollList;
 
-public class HighSystemCheckBoxSelectorListener extends CheckBoxSelectorListener {
+public class HighSystemCheckBoxSelectorListener implements ActionListener {
+
+	protected IEngine engine;
+	protected JCheckBox allElemCheckBox;
+	protected SelectScrollList scrollList;
+	protected String type;
 
 	JCheckBox ehrCoreCheckBox;
 	Vector<String> ehrCoreSysList;
-
 	
 	public HighSystemCheckBoxSelectorListener(IEngine engine, SelectScrollList scrollList,JCheckBox allElemCheckBox,JCheckBox ehrCoreCheckBox) {
-		super(engine, scrollList,"ActiveSystem",allElemCheckBox);
+		this.engine = engine;
+		this.scrollList = scrollList;
+		this.allElemCheckBox = allElemCheckBox;
+		this.type = "ActiveSystem";
 		this.ehrCoreCheckBox = ehrCoreCheckBox;
 		createCheckboxList();
 	}
 
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		if(((JCheckBox)e.getSource()).getName().equals(allElemCheckBox.getName()))
+		{
+			if(allElemCheckBox.isSelected()) {
+				unselectAllCheckBoxes();
+				selectAllElements();
+			} else {
+				unselectAllCheckBoxes();
+				scrollList.clearSelection();
+			}
+			return;
+		}
+		allElemCheckBox.setSelected(false);
+		
+		Vector<String> systemsToSelect = createSelectedList();
+		scrollList.setSelectedValues(systemsToSelect);
+	}
+	
 	/**
 	 * Selects all the elements in the scroll list except total
 	 */
-	@Override
 	public void selectAllElements() {
 		scrollList.selectAll();
 		Vector<String> totalVect = new Vector<String>();
@@ -58,23 +86,43 @@ public class HighSystemCheckBoxSelectorListener extends CheckBoxSelectorListener
 		
 	}
 
-	@Override
 	protected void unselectAllCheckBoxes() {
 		ehrCoreCheckBox.setSelected(false);
 	}
 	
-	@Override
 	protected Vector<String> createSelectedList() {
 		if(ehrCoreCheckBox.isSelected())
 			return ehrCoreSysList;
 		else
 			return new Vector<String>();
 	}
-	
-	@Override
+
 	protected void createCheckboxList()
 	{
-		ehrCoreSysList = getList("SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/EHR_Core> 'Y'}}");
+		ehrCoreSysList = getList(engine, type, "SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/EHR_Core> 'Y'}}");
 	}
-
+	/**
+	 * Gets the list of all capabilities for a selected functional area
+	 * @param sparqlQuery 		String containing the query to get all capabilities for a selected functional area
+	 * @return capabilities		Vector<String> containing list of all capabilities for a selected functional area
+	 */
+	public Vector<String> getList(IEngine engine, String type, String sparqlQuery)
+	{
+		Vector<String> retList=new Vector<String>();
+		try{
+			EntityFiller filler = new EntityFiller();
+			filler.engineName = engine.getEngineName();
+			filler.type = type;
+			filler.setExternalQuery(sparqlQuery);
+			filler.run();
+			Vector names = filler.nameVector;
+			for (int i = 0;i<names.size();i++) {
+				retList.add((String) names.get(i));
+			}
+		}catch(RuntimeException e) {
+			System.out.println("Error creating checkboses for engine "+engine+" and type "+type);
+		}
+		return retList;
+		
+	}
 }

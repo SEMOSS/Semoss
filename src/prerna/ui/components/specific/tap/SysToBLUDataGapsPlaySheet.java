@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
@@ -48,13 +47,10 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
-import javax.swing.JToggleButton;
 import javax.swing.border.BevelBorder;
 import javax.swing.event.InternalFrameEvent;
 
-import aurelienribon.ui.css.Style;
 import prerna.rdf.engine.api.IEngine;
-import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.main.listener.impl.PlaySheetListener;
 import prerna.ui.main.listener.specific.tap.SystToBLUHeatmapBtnListener;
@@ -62,6 +58,7 @@ import prerna.ui.swing.custom.CustomButton;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import aurelienribon.ui.css.Style;
 
 
 
@@ -130,23 +127,21 @@ public class SysToBLUDataGapsPlaySheet extends JInternalFrame implements IPlaySh
 		gbl_systemDataBLUSelectPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
 		systemDataBLUSelectPanel.setLayout(gbl_systemDataBLUSelectPanel);
 		
-		systemSelectPanel = new DHMSMSystemSelectPanel();
+		systemSelectPanel = new DHMSMSystemSelectPanel(engine);
 		GridBagConstraints gbc_systemSelectPanel = new GridBagConstraints();
 		gbc_systemSelectPanel.gridheight = 6;
 		gbc_systemSelectPanel.fill = GridBagConstraints.BOTH;
 		gbc_systemSelectPanel.gridx = 0;
 		gbc_systemSelectPanel.gridy = 0;
 		systemDataBLUSelectPanel.add(systemSelectPanel, gbc_systemSelectPanel);
-		systemSelectPanel.addElements();
 		
-		dataSelectPanel = new DHMSMBLUSelectPanel();
+		dataSelectPanel = new DHMSMBLUSelectPanel(engine,systemSelectPanel);
 		GridBagConstraints gbc_dataSelectPanel = new GridBagConstraints();
 		gbc_dataSelectPanel.gridheight = 6;
 		gbc_dataSelectPanel.fill = GridBagConstraints.BOTH;
 		gbc_dataSelectPanel.gridx = 3;
 		gbc_dataSelectPanel.gridy = 0;
 		systemDataBLUSelectPanel.add(dataSelectPanel, gbc_dataSelectPanel);
-		dataSelectPanel.addElements(systemSelectPanel);
 		
 		Object hidePopupKey = new JComboBox().getClientProperty("doNotCancelPopup");  
 		JButton btnHeatUpdate = new CustomButton("Update Heat Map");

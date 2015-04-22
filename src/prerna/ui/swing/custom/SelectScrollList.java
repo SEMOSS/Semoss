@@ -34,8 +34,6 @@ import java.util.List;
 import java.util.Vector;
 
 import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JScrollPane;
 import javax.swing.ListModel;
@@ -48,9 +46,9 @@ import prerna.ui.components.NewScrollBarUI;
  */
 public class SelectScrollList  extends JButton {  
 
-	private JFrame frame = new JFrame("Test");
-	public JDialog dialog = new JDialog();
-	public JList list;
+//	private JFrame frame = new JFrame("Test");
+//	private JDialog dialog = new JDialog();
+	private JList list;
 	public JScrollPane pane = new JScrollPane();
 	/** 
 	
@@ -62,29 +60,22 @@ public class SelectScrollList  extends JButton {
 		list = new JList();
 	}
 	
-	public void resetList(Vector<String> listSet) {
+	/**
+	 * Adds button with specified views, size, and horizontal/vertical scrollbars to the popup menu. 
+	 * @param listArray String[]		List of elements to add.
+	 * @param width int					Preferred width for button dimensions.
+	 * @param height int				Preferred height for button dimensions.
+	 */
+	public void setupButton(Vector<String> listSet, int width, int height)
+	{
 		String[] listArray = new String[listSet.size()];
 		int count = 0;
 		for(String element : listSet) {
 			listArray[count] = element;
 			count++;
 		}
-		list = new JList(listArray);
-
-		pane.setViewportView(list);
-	}
-	public void setVisible(boolean visible)
-	{
-		list.setVisible(visible);
-		pane.setVisible(visible);
-	}
-	/**
-	 * Set's the table's selection mode.
-	 * @param mode int		Specifies single selections, a single contiguous interval, or multiple intervals.
-	 */
-	public void setSelectionMode(int mode)
-	{
-		list.setSelectionMode(mode);
+		setupButton(listArray);
+		pane.setPreferredSize(new Dimension(width, height));
 	}
 	
 	/**
@@ -97,7 +88,6 @@ public class SelectScrollList  extends JButton {
 	{
 		setupButton(listArray);
 		pane.setPreferredSize(new Dimension(width, height));
-	
 	}
 	/**
 	 * Adds button to the popup menu. 
@@ -112,28 +102,43 @@ public class SelectScrollList  extends JButton {
 		pane.getHorizontalScrollBar().setUI(new NewHoriScrollBarUI());
 	
 	}
-	/**
-	 * Resets existing button.
-	 */
-	public void resetButton()
-	{
-		JScrollPane pane = new JScrollPane();
-		list = new JList();
+	
+	public void resetList(Vector<String> listSet) {
+		String[] listArray = new String[listSet.size()];
+		int count = 0;
+		for(String element : listSet) {
+			listArray[count] = element;
+			count++;
+		}
+		list = new JList(listArray);
+
+		pane.setViewportView(list);
 	}
+	
+	/**
+	 * Set's the table's selection mode.
+	 * @param mode int		Specifies single selections, a single contiguous interval, or multiple intervals.
+	 */
+	public void setSelectionMode(int mode)
+	{
+		list.setSelectionMode(mode);
+	}
+	
+	public void setVisible(boolean visible)
+	{
+		list.setVisible(visible);
+		pane.setVisible(visible);
+	}
+
 	public void selectAll()
 	{
 		list.setSelectionInterval(0,list.getModel().getSize()-1);
 	}
-	public void deSelectValues(Vector<String> listToDeselect) {
-		ListModel model = list.getModel();
-		for (int i = 0; i < model.getSize(); i++)
-		{
-			String value = (String)model.getElementAt(i);
-			//if the unselect list doesnt contain the value, then it should be selected
-			if(listToDeselect.contains(value))
-				list.removeSelectionInterval(i, i);
-		}
-	}
+	
+	/**
+	 * Unselects everything and selects only the specified values
+	 * @param listToSelect
+	 */
 	public void setSelectedValues(Vector<String> listToSelect) {
 	    list.clearSelection();
 	    
@@ -148,7 +153,12 @@ public class SelectScrollList  extends JButton {
 		}
 	    list.ensureIndexIsVisible(list.getSelectedIndex());
 	}
-	public void setUnselectedValues(Vector<String> listToUnselect) {
+
+	/**
+	 * Selects everything but the specified values
+	 * @param listToUnselect
+	 */
+	private void setUnselectedValues(Vector<String> listToUnselect) {
 	    list.clearSelection();
 		ListModel model = list.getModel();
 		for (int i = 0; i < model.getSize(); i++)
@@ -159,13 +169,30 @@ public class SelectScrollList  extends JButton {
 				list.addSelectionInterval(i, i);
 		}
 	}
-	public int getIndex(ListModel model, String value) {
+	
+	/**
+	 * Removes the specified values from the selection
+	 * @param listToDeselect
+	 */
+	public void deSelectValues(Vector<String> listToDeselect) {
+		ListModel model = list.getModel();
+		for (int i = 0; i < model.getSize(); i++)
+		{
+			String value = (String)model.getElementAt(i);
+			//if the unselect list doesnt contain the value, then it should be selected
+			if(listToDeselect.contains(value))
+				list.removeSelectionInterval(i, i);
+		}
+	}
+
+	private int getIndex(ListModel model, String value) {
 	    if (value == null) return -1;
 	    for (int i = 0; i < model.getSize(); i++) {
 	        if (value.equals(model.getElementAt(i))) return i;
 	    }
 	    return -1;
 	}
+	
 	public ArrayList<String> getSelectedValues()
 	{
 		if(list.getSelectedValuesList().isEmpty())
@@ -187,9 +214,18 @@ public class SelectScrollList  extends JButton {
 		}
 		return unselectedList;
 	}
-	public void clearList()
+	
+	public void clearSelection()
 	{
 		list.clearSelection();
 	}
-	
+
+	/**
+	 * Resets existing button.
+	 */
+	private void resetButton()
+	{
+		JScrollPane pane = new JScrollPane();
+		list = new JList();
+	}
 }  
