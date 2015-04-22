@@ -85,9 +85,10 @@ public class SysSiteOptPlaySheet extends GridPlaySheet{
 		SysSiteOptimizer opt = new SysSiteOptimizer();
 		opt.setEngines(engine, siteEngine); //likely hr core and tap site
 		opt.setVariables(10000, 10); //budget per year and the number of years
-		//opt.setAdvancedVariables(infRate, disRate, noOfPts); //OPTIONAL: there are default values if not selected, inflation rate, discount rate, and number of starting points
+		opt.setAdvancedVariables(1.5, 2.5, 1); //OPTIONAL: there are default values if not selected, inflation rate = 1.5, discount rate = 2.5, and number of starting points = 1
 		opt.setUseDHMSMFunctionality(false); //whether the data objects will come from the list of systems or the dhmsm provided capabilities
 		opt.setOptimizationType("savings"); //eventually will be savings, roi, or irr
+		opt.setIsOptimizeBudget(true); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
 		opt.setSysList(sysList); //list of all systems to use in analysis
 		opt.setMustModDecomList(sysModList, sysDecomList); //list of systems to force modernize/decommision. Decommision is not implemented yet
 		opt.execute();
