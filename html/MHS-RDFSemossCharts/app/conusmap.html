@@ -56,6 +56,11 @@
 			var w = 1500;
 			var h = 1000;
 
+			//radius
+			var DEFAULT_RADIUS = 5,
+                MIN_RADIUS = 3,
+                MAX_RADIUS = 20;
+
 			//Define map projection
 			var projection = d3.geo.albersUsa()
 				.translate([w/2, h/2])
@@ -137,15 +142,31 @@
 				   });
 				   
 
-								 /* Initialize tooltip */
-				 /*(if(undefined != d.System) {+ " " + d.System }*/
+				var NewDataSeriesArray = [];
+                for (var i = 0; i < dataArray.length; i++) {
+                    NewDataSeriesArray.push(dataArray[i].size);
+                }
+
+                var rScale = d3.scale.linear()
+                    .domain([d3.min(NewDataSeriesArray), d3.max(NewDataSeriesArray)])
+                    .rangeRound([MIN_RADIUS, MAX_RADIUS])
+                    .nice();
+
+				/* Initialize tooltip */
+				/*(if(undefined != d.System) {+ " " + d.System }*/
 				tip = d3.tip().attr('class', 'd3-tip').html(function(d) { 
 					if(d.System != undefined) {
 						return locationName + ": " + d.locationName + d.System + "<div> <span class='light'>";
 					} else {
-						return locationName + ": " + (shortenValueFilter(d.locationName)).replace(/_/g, " ");
+						if (!isNaN(d.size)) {
+							return locationName + ": " + (shortenValueFilter(d.locationName)).replace(/_/g, " ") + "<div> <span class='light'>" + (shortenValueFilter(size)).replace(/_/g, " ") + ": " + d.size.toFixed(2) + "</span></div>";
+						} else {
+							return locationName + ": " + (shortenValueFilter(d.locationName)).replace(/_/g, " ");
+						}
 					}        
 				});
+
+				tip.direction('n');
 		
 				var redCircle = svg.selectAll("circle")
 				   .data(dataArray)
@@ -158,7 +179,11 @@
 					   return projection([d.lon, d.lat])[1];
 				   })
 				   .attr("r", function(d) {
-						return Math.sqrt(parseInt(d.size) * 0.00004);
+				   		if (d.size == undefined || isNaN(d.size)) 
+				   			return DEFAULT_RADIUS;
+				   		else {
+							return rScale(d.size);
+						}
 				   })
 				   .style("fill", "#780000")
 				   .style("opacity", 0.75)

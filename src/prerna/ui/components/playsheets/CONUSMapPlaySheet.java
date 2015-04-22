@@ -81,7 +81,7 @@ public class CONUSMapPlaySheet extends BrowserPlaySheet {
 			for (int j = 0; j < var.length; j++) 
 			{	
 				colName = var[j];
-				elementHash.put("size", 1000000);
+				elementHash.put("size", "size");
 				if (listElement[j] instanceof String)
 				{	
 					String text = (String) listElement[j];
@@ -105,7 +105,10 @@ public class CONUSMapPlaySheet extends BrowserPlaySheet {
 		
 		allHash.put("lat", var[1]);
 		allHash.put("lon", var[2]);
-		allHash.put("size", "size");
+		if (var.length > 3 && !var[3].equals(null))
+			allHash.put("size", var[3]);
+		else
+			allHash.put("size", "size");
 		allHash.put("locationName", var[0]);
 //		allHash.put("xAxisTitle", var[0]);
 //		allHash.put("yAxisTitle", var[1]);

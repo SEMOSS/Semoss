@@ -84,7 +84,7 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 			for (int j = 0; j < var.length; j++) {
 				colName = var[j];
 				if (var.length > 3 && var[3].equals(null))
-					elementHash.put("size", 1000000);
+					elementHash.put("size", "size");
 				if (listElement[j] instanceof String) {
 					String text = (String) listElement[j];
 					elementHash.put(colName, text);
@@ -102,7 +102,7 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 		allHash.put("lat", var[1]);
 		allHash.put("lon", var[2]);
 		if (var.length > 3 && !var[3].equals(null))
-			allHash.put("size", "size");
+			allHash.put("size", var[3]);
 		else
 			allHash.put("size", "");
 		allHash.put("locationName", var[0]);
