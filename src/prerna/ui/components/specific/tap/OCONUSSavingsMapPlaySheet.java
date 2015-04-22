@@ -194,16 +194,17 @@ public class OCONUSSavingsMapPlaySheet extends OCONUSMapPlaySheet {
 			LinkedHashMap elementHash = new LinkedHashMap();
 			Object[] listElement = list.get(i);
 			if (dcSiteDollarsMap.get(listElement[0]) != null) {
-				listElement[3] = dcSiteDollarsMap.get(listElement[0]) / 10;
+				listElement[3] = dcSiteDollarsMap.get(listElement[0]);
 			} else {
 				listElement[3] = 0;
 			}
 			String colName;
 			for (int j = 0; j < var.length; j++) {
 				colName = var[j];
+				Double dollars = 0.0;
 				
 				if (dcSiteDollarsMap.get(listElement[0].toString()) != null) {
-					Double size = (double) Math.round(dcSiteDollarsMap.get(listElement[0].toString())) / 10;
+					Double size = (double) Math.round(dcSiteDollarsMap.get(listElement[0].toString()));
 					elementHash.put("size", size);
 				} else {
 					elementHash.put("size", 0);
