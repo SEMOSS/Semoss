@@ -37,7 +37,7 @@ public class ModifyMasterDB {
 	
 	protected static final Logger logger = LogManager.getLogger(ModifyMasterDB.class.getName());
 
-	protected String masterDBName = "MasterDatabase";
+	protected String masterDBName = "LocalMasterDatabase";
 	protected BigDataEngine masterEngine;
 	
 	public ModifyMasterDB() {
