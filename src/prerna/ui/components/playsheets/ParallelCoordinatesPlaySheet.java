@@ -32,6 +32,9 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 
+import org.openrdf.model.Literal;
+
+import prerna.rdf.engine.api.ISelectStatement;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -73,10 +76,13 @@ public class ParallelCoordinatesPlaySheet extends BrowserPlaySheet {
 					text = text.replaceAll("^\"|\"$", "");
 					elementHash.put(colName, text);
 				}
-				else 
+				else if (listElement[j] instanceof Double)
 				{	
 					value = (Double) listElement[j];	
 					elementHash.put(colName, value);
+				} 
+				else {
+					elementHash.put(colName, listElement[j]);
 				}
 			}	
 				dataArrayList.add(elementHash);			
@@ -86,6 +92,15 @@ public class ParallelCoordinatesPlaySheet extends BrowserPlaySheet {
 		allHash.put("dataSeries", dataArrayList);
 		
 		return allHash;
+	}
+	
+	@Override
+	public Object getVariable(String varName, ISelectStatement sjss) {
+		Object var = sjss.getRawVar(varName);
+			if( var != null && var instanceof Literal) {
+				var = sjss.getVar(varName);
+			}
+		return var;
 	}
 	
 	@Override
