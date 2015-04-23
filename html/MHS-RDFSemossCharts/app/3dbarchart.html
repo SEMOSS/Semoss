@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+    body{
+      font-family: sans;
+      padding: 10px;
+  }
+  svg path{
+      stroke: #000;
+      stroke-width: 1px;
+      stroke: rgba(0,0,0,0.2);
+  }
+  svg{
+      border: 1px solid #DED8BF;
+      background-color: #CEDAE6;
+      width: 700px;
+      height: 900px;
+  }
+  h1{
+      font-weight: normal;
+      margin: 0;
+      padding-left: 5px;
+      color: #53483e;
+  }
+  p{
+      margin: 0;
+      margin-bottom: 10px;
+      padding-left: 5px;
+      color: #917e6b;
+  }
+  ul{
+      width: 200px;
+      float: left;
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+      padding-right: 10px;
+  }
+  li{
+      cursor: pointer;
+      background-color: #AEB6BF;
+      padding: 10px;
+      margin: 2px;
+      color: #fff;
+  }
+    .popup{
+        bottom: 10px; 
+        position: absolute;
+        top: auto;
+        right: auto;
+        height: 25%;
+        width: 100%;
+        /*z-index: -1;*/
+        background-color: #AEB6BF;
+    }   
+  </style>
+</head>
+<body>
+    <div input type="text" id="stepChooser"></div>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="lib/three.min.js"></script>
+    <script src="lib/TrackballControls.js"></script>
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="css/select2.css">
+    <link rel="stylesheet" type="text/css" href="css/slider.css">
+    <link rel="stylesheet" type="text/css" href="css/heatmap.css">
+    <!-- // <script src="js/surfacePlot.js"></script> -->
+    <script src="lib/divgrid.js"></script>
+    <script src="data/heatmapdata.js"></script>
+    <script src="data/gridTest.js"></script>
+    <script src="lib/jquery/jquery-1.8.3.min.js"></script>
+    <script src="lib/tooltip.js"></script>
+    <!-- SlickGrid -->
+    <link rel="stylesheet" href="lib/slickgrid/slick.grid.css" type="text/css"/>
+    <link rel="stylesheet" href="lib/slickgrid/jquery-ui-1.8.16.custom.css" type="text/css"/>
+    <link rel="stylesheet" href="lib/slickgrid/examples.css" type="text/css"/>
+    <link rel="stylesheet" href="lib/slickgrid/slick.pager.css" type="text/css"/>
+    <script src="lib/slickgrid/jquery.event.drag-2.0.min.js"></script>
+    <script src="lib/slickgrid/slick.core.js"></script>
+    <script src="lib/slickgrid/slick.grid.js"></script>
+    <script src="lib/slickgrid/slick.pager.js"></script>
+    <script src="lib/slickgrid/slick.dataview.js"></script>
+    <!-- End SlickGrid -->
+    <div id="slick">
+        <div id="grid"></div>
+        <div id="pager"></div>
+    </div>
+    <div id="popup"></div>
+
+<script>
+
+function start(){
+    var data = [];
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 1, 10000);
+    var renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+    // var geometry = new THREE.BoxGeometry(50, 700, 50);
+    // var material = new THREE.MeshBasicMaterial({color: 0xfffff, wireframe: false});
+    // var cube = new THREE.Mesh(geometry, material);
+    // scene.add(cube);
+
+    var controls = new THREE.TrackballControls(camera);
+    controls.addEventListener('change', render);
+
+    for (var t = 0; t< 10; t++){
+        data.push([]);
+        for(var i = 0; i< 10; i++){
+            var rand = Math.random();
+            data[t].push(rand*100);
+            
+        };
+    };
+
+    console.log(data)
+
+    var total = $.extend(true, {}, data );
+
+    for (i = 0; i< data.length-1; i++){
+        total[0] = total[0].concat(total[i+1]);
+    }
+
+    function maxVal(numArray){
+        return Math.max.apply(null, numArray);
+    };
+
+    function minVal(numArray){
+        return Math.min.apply(null, numArray);
+    };
+
+    var max = maxVal(total[0]);
+    var min = minVal(total[0]);
+
+     var globalScale = d3.scale.linear()
+        .domain([min, max])
+        .range([0, 350]);
+
+    var globalGrad = d3.scale.linear()
+    .domain([min, max])
+    .range(["white", "red"]);
+
+
+    var mx = -700;
+    for (var t = 0; t< 10; t++){
+        for(var i = 0; i< 10; i++){
+            var barHeight = data[t][i];
+            var geometry = new THREE.BoxGeometry(50, barHeight, 50);
+            var material = new THREE.MeshBasicMaterial({color: globalGrad(barHeight), wireframe: false});
+            var cube = new THREE.Mesh(geometry, material);
+            cube.position.z = t*50;
+            cube.position.x = mx;
+            cube.position.y = 200+(barHeight/2);
+            scene.add(cube);
+            mx+= 50;
+        };
+        mx = -700;
+    };
+
+
+    camera.position.z = 1000; 
+    camera.position.y = 400;
+    camera.position.x = -400;       
+
+    render();
+    animate();
+
+function animate(){
+    requestAnimationFrame(animate);
+    // cube.rotation.x += 0.01;
+    // cube.rotation.y += 0.01;
+    controls.update();
+}
+function render() {
+    renderer.render(scene, camera);
+};
+
+}
+
+
+start();
+// start(gridTest);
+// start(scatterDataNewOne);
+
+</script>
+</body>
+</html>
