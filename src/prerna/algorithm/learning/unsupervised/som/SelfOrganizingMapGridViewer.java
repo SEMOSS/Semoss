@@ -93,4 +93,22 @@ public class SelfOrganizingMapGridViewer extends SelfOrganizingMapGrid{
 		
 		return avgCount / size;
 	}
+	
+	public static double[][] generateZAxisGridValues(int length, int height, int[] numInstancesInGrid) {
+		double[][] zAxisHeight = new double[height][length];
+		
+		int gridNum = 0;
+		
+		int currHeight = 0;
+		//loop through heights
+		for(; currHeight < height; currHeight++) {
+			// loop through lengths
+			int currLength = 0;
+			for(; currLength < length; currLength++) {
+				zAxisHeight[currHeight][currLength] = numInstancesInGrid[gridNum];
+				gridNum++;
+			}
+		}
+		return zAxisHeight;
+	}
 }
