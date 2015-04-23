@@ -463,4 +463,8 @@ public class Constants {
 	
 	//Tool Panel Functions
 	public static final String MHS_FUNCTIONS = "prerna.semoss.web.services.specific.tap.";
+	
+	// Security
+	public static final String SECURITY_ENABLED = "SECURITY_ENABLED";
+	public static final String SESSION_USER = "user";
 }
