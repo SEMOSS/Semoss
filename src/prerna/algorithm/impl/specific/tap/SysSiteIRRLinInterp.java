@@ -67,11 +67,10 @@ public class SysSiteIRRLinInterp extends LinearInterpolation{
 	 */
 	@Override
 	public Double calcY(double possibleDiscRate) {
-		double mu = (1 + infRate / 100) / (1 + possibleDiscRate / 100);
+		double possibleMu = (1 + infRate / 100) / (1 + possibleDiscRate / 100);
 
-		double i;
-		double adjustedTotalSavings = SysOptUtilityMethods.calculateAdjustedTotalSavings(mu, yearsToComplete, totalYrs, savingsForYear);
-		double adjustedDeploymentCost = SysOptUtilityMethods.calculateAdjustedDeploymentCost(mu, yearsToComplete, budgetForYear);
+		double adjustedTotalSavings = SysOptUtilityMethods.calculateAdjustedTotalSavings(possibleMu, yearsToComplete, totalYrs, savingsForYear);
+		double adjustedDeploymentCost = SysOptUtilityMethods.calculateAdjustedDeploymentCost(possibleMu, yearsToComplete, budgetForYear);
 
 		return adjustedTotalSavings - adjustedDeploymentCost;
 
