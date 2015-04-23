@@ -21,6 +21,7 @@ public class SelfOrganizingMap {
 	private List<ClusterCenter> gridNumericalBinValues;
 	
 	private int numInstances;
+	private int maxInstanceSize = 3000;
 	private String[][] instanceNumberBinMatrix;
 	private String[][] instanceCategoryMatrix;
 	private String[][] instanceNumberBinOrderingMatrix;
@@ -44,7 +45,7 @@ public class SelfOrganizingMap {
 	public SelfOrganizingMap(ArrayList<Object[]> queryData, String[] varNames) {
 		this.grid = new SelfOrganizingMapGrid();
 		this.numInstances = queryData.size();
-		setGridSize(numInstances);
+		setGridSize(numInstances, maxInstanceSize);
 		
 		r0 = (double) length / 6;
 		tau = (double) maxIt / r0;
@@ -182,12 +183,12 @@ public class SelfOrganizingMap {
 		}
 	}
 	
-	public void setGridSize(int numInstances) {
-		int maxInstanceSize = numInstances;
-		if(maxInstanceSize > 3000) {
-			maxInstanceSize = 3000;
+	public void setGridSize(int numInstances, int maxSize) {
+		int size = numInstances;
+		if(size > maxSize) {
+			size = maxSize;
 		}
-		double x = Math.sqrt((double) maxInstanceSize / (6*5));
+		double x = Math.sqrt((double) size / (6*5));
 		height = (int) Math.round(2*x);
 		length = (int) Math.round(3*x);
 		
