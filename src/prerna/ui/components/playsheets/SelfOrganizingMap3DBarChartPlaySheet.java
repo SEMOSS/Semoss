@@ -4,7 +4,6 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Hashtable;
 
 import javax.swing.JComponent;
@@ -34,22 +33,20 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
+public class SelfOrganizingMap3DBarChartPlaySheet extends BrowserPlaySheet {
 
-	private static final Logger LOGGER = LogManager.getLogger(SelfOrganizingMapPlaySheet.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(SelfOrganizingMap3DBarChartPlaySheet.class.getName());
 
 	private SelfOrganizingMap alg;
-	private double[][] coordinates;
 	
 	private Double l0;
 	private Double r0;
 	private Double tau;
 	private Integer maxIt;
 	
-	private ArrayList<Object[]> gridList;
-	private String[] gridNames;
+	private double[][] zAxisGrid;
 	
-	public SelfOrganizingMap3DPlotPlaySheet() {
+	public SelfOrganizingMap3DBarChartPlaySheet() {
 		super();
 		this.setPreferredSize(new Dimension(800, 600));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
@@ -104,7 +101,7 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 		if(success == false) {
 			Utility.showError("Error occured running SOM Algorithm!");
 		} else {
-			coordinates = SelfOrganizingMapGridViewer.getGridCoordinates(alg.getLength(), alg.getHeight(), alg.getNumInstancesInGrid());
+			zAxisGrid = SelfOrganizingMapGridViewer.generateZAxisGridValues(alg.getLength(), alg.getHeight(), alg.getNumInstancesInGrid());
 		}
 		
 		long end = System.currentTimeMillis();
@@ -115,41 +112,16 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 	@Override 
 	public Hashtable processQueryData() {
 		SelfOrganizingMapPlaySheet tablePS = new SelfOrganizingMapPlaySheet();
-		tablePS.setIncludeXYPos(true);
 		tablePS.setList(list);
 		tablePS.setNames(names);
 		tablePS.setAlg(alg);
 		tablePS.processAlgorithm();
-		gridList = tablePS.getList();
-		gridNames = tablePS.getNames();
+		list = tablePS.getList();
+		names = tablePS.getNames();
 		
-		Hashtable<Integer, ArrayList<Object[]>> gridData = new Hashtable<Integer, ArrayList<Object[]>>();
-		int i = 0;
-		int length = gridList.get(0).length;
-		int size = gridList.size();
-		for(; i < size; i++) {
-			Object[] dataRow = gridList.get(i);
-			int gridNum = (int) dataRow[length-3];
-			
-			ArrayList<Object[]> instancesInGridNum;
-			Object[] subDataRow = Arrays.copyOf(dataRow, length-3);
-			if(gridData.containsKey(gridNum)) {
-				instancesInGridNum = gridData.get(gridNum);
-				instancesInGridNum.add(subDataRow);
-			} else {
-				instancesInGridNum = new ArrayList<Object[]>();
-				instancesInGridNum.add(subDataRow);
-				gridData.put(gridNum, instancesInGridNum);
-			}
-		}
-		
-		String[] subGridNames = Arrays.copyOf(gridNames, length-3);
-		
-		Hashtable data = new Hashtable();
-		data.put("grid", coordinates);
-		data.put("specificData", gridData);
-		data.put("names", subGridNames);
-		return data;
+		dataHash = new Hashtable();
+		dataHash.put("specificData", zAxisGrid);
+		return dataHash;
 	}
 	
 	public SelfOrganizingMap getAlg() {
@@ -157,12 +129,6 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 	}
 	public void setAlg(SelfOrganizingMap alg) {
 		this.alg = alg;
-	}
-	public double[][] getCoordinates() {
-		return coordinates;
-	}
-	public void setCoordinates(double[][] coordinates) {
-		this.coordinates = coordinates;
 	}
 	public Integer getMaxIt() {
 		return maxIt;
@@ -207,9 +173,9 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 		// table.setAutoCreateRowSorter(true);
 		
 		GridFilterData gfd = new GridFilterData();
-		gfd.setColumnNames(gridNames);
+		gfd.setColumnNames(names);
 		// append cluster information to list data
-		gfd.setDataList(gridList);
+		gfd.setDataList(list);
 		GridTableModel model = new GridTableModel(gfd);
 		table.setModel(model);
 		table.setRowSorter(new GridTableRowSorter(model));
