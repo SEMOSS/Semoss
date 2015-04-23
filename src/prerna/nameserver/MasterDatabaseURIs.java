@@ -29,9 +29,9 @@ package prerna.nameserver;
 
 import prerna.util.Constants;
 
-public final class MasterDatabaseURIs {
+public class MasterDatabaseURIs {
 
-	private MasterDatabaseURIs() {
+	public MasterDatabaseURIs() {
 		
 	}
 	
@@ -50,4 +50,33 @@ public final class MasterDatabaseURIs {
 	public static final String INSIGHT_BASE_URI = SEMOSS_CONCEPT_URI + "/Insight";
 	public static final String PERSPECTIVE_BASE_URI = SEMOSS_CONCEPT_URI+"/Perspective";
 	public static final String ENGINE_KEYWORD_BASE_URI = SEMOSS_RELATION_URI + "/Has";
+	
+	//User-based URI vars
+	public static final String ENGINEROLEGROUP_URI = SEMOSS_CONCEPT_URI+"/EngineRoleGroup";
+	public static final String USERGROUP_URI = SEMOSS_CONCEPT_URI+"/UserGroup";
+	public static final String ROLE_URI = SEMOSS_CONCEPT_URI+"/Role";
+	public static final String CREATE_PERMISSION_PROP_URI = PROP_URI + "/CreatePermission";
+	public static final String READ_PERMISSION_PROP_URI = PROP_URI + "/ReadPermission";
+	public static final String MODIFY_PERMISSION_PROP_URI = PROP_URI + "/ModifyPermission";
+	public static final String ENGINE_ROLEGROUP_REL_URI = SEMOSS_RELATION_URI + "/HasRoleGroup";
+	public static final String ENGINEROLEGROUP_ROLE_REL_URI = SEMOSS_RELATION_URI + "/IsRole";
+	public static final String ROLEGROUP_USERGROUP_REL_URI = SEMOSS_RELATION_URI + "/HasUserGroup";
+	public static final String USERGROUP_USER_REL_URI = SEMOSS_RELATION_URI + "/HasUser";
+	public static final String USER_USERINSIGHT_REL_URI = SEMOSS_RELATION_URI + "/PartOf";
+	public static final String USER_NAME_PROP_URI = PROP_URI + "/Name";
+	public static final String USER_EMAIL_PROP_URI = PROP_URI + "/Email";
+	public static final String EXPLORE_PERMISSION_PROP_URI = "/ExplorePermission";
+	public static final String TRAVERSE_PERMISSION_PROP_URI = "/TraversePermission";
+	public static final String CREATE_INSIGHT_PERMISSION_PROP_URI = "/CreateInsightPermission";
+	public static final String COPY_INSIGHT_PERMISSION_PROP_URI = "/CopyInsightPermission";
+	public static final String EDIT_INSIGHT_PERMISSION_PROP_URI = "/EditInsightPermission";
+	public static final String DELETE_INSIGHT_PERMISSION_PROP_URI = "/DeleteInsightPermission";
+	public static final String MODIFY_DATA_PERMISSION_PROP_URI = "/ModifyDataPermission";
+	
+	//Engine access request URIs
+	public static final String ENGINE_ACCESSREQUEST_URI = SEMOSS_CONCEPT_URI+"/EngineAccessRequest";
+	public static final String USER_ENGINE_ACCESSREQUEST_REL_URI = SEMOSS_RELATION_URI + "/HasRequest";
+	public static final String ENGINE_NAME_REQUESTED_PROP_URI = PROP_URI + "/EngineNameRequested";
+	public static final String ENGINE_ACCESS_REQUESTOR_PROP_URI = PROP_URI + "/EngineAccessRequestor";
+	public static final String ENGINE_ACCESS_PERMISSIONS_PROP_URI = PROP_URI + "/EngineAccessPermissions";
 }
