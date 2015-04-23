@@ -40,6 +40,8 @@ public class SelfOrganizingMapPlaySheet extends GridPlaySheet{
 	
 	protected JTabbedPane jTab;
 	
+	private boolean includeXYPos;
+	
 	public SelfOrganizingMapPlaySheet() {
 		super();
 	}
@@ -99,21 +101,26 @@ public class SelfOrganizingMapPlaySheet extends GridPlaySheet{
 		int i = 0;
 		int numRows = list.size();
 		int numColumns = list.get(0).length;
+		int newSize = numColumns + 2;
+		if(includeXYPos) {
+			newSize++;
+		}
 		ArrayList<Object[]> retList = new ArrayList<Object[]>();
 		for(; i < numRows; i++) {
-			Object[] values = new Object[numColumns + 3];
+			Object[] values = new Object[newSize];
 			Object[] oldValues = list.get(i);
 			int j = 0;
 			for(; j < numColumns; j++) {
 				values[j] = oldValues[j];
 			}
 			values[j] = gridAssignmentForInstance[i];
-			j++;
-			int[] cellPosition = SelfOrganizingMapGridViewer.getCoordinatesOfCell(gridAssignmentForInstance[i], gridLength);
-			values[j] = cellPosition[0];
-			j++;
-			values[j] = cellPosition[1];
-			
+			if(includeXYPos) {
+				j++;
+				int[] cellPosition = SelfOrganizingMapGridViewer.getCoordinatesOfCell(gridAssignmentForInstance[i], gridLength);
+				values[j] = cellPosition[0];
+				j++;
+				values[j] = cellPosition[1];
+			}
 			retList.add(values);
 		}
 		list = retList;
@@ -124,10 +131,12 @@ public class SelfOrganizingMapPlaySheet extends GridPlaySheet{
 			retNames[i] = names[i];
 		}
 		retNames[i] = "Cell";
-		i++;
-		retNames[i] = "X-Pos";
-		i++;
-		retNames[i] = "Y-Pos";
+		if(includeXYPos) {
+			i++;
+			retNames[i] = "X-Pos";
+			i++;
+			retNames[i] = "Y-Pos";
+		}
 		names = retNames;
 	}
 	
@@ -226,7 +235,13 @@ public class SelfOrganizingMapPlaySheet extends GridPlaySheet{
 	public void setAlg(SelfOrganizingMap alg) {
 		this.alg = alg;
 	}
-
+	public boolean isIncludeXYPos() {
+		return includeXYPos;
+	}
+	public void setIncludeXYPos(boolean includeXYPos) {
+		this.includeXYPos = includeXYPos;
+	}
+	
 	@Override
 	public Object getVariable(String varName, ISelectStatement sjss){
 		return sjss.getVar(varName);
