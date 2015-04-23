@@ -458,7 +458,7 @@ public class SysSiteOptimizer implements IAlgorithm {
 		else if(optFunc instanceof SysSiteROIOptFunction)
 			System.out.println("**ROI: " + optFunc.getROI());
 		else if(optFunc  instanceof SysSiteIRROptFunction)
-			System.out.println("**ROI: " + optFunc.getIRR());
+			System.out.println("**IRR: " + optFunc.getIRR());
 	}
 	
 	private void createOverallGrid(double[] matrix, ArrayList<String> rowLabels, String systemType, String title) {
