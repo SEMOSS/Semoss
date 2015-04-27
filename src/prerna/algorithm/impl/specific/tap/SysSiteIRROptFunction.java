@@ -69,7 +69,7 @@ public class SysSiteIRROptFunction extends SysSiteOptFunction{
 	public void createLinearInterpolation()
 	{
 		 linInt = new SysSiteIRRLinInterp();
-		 linInt.setMinAndMax(-99, 100000);
+		 linInt.setMinAndMax(-99, 10000000);
 		 linInt.setVariables(budgetForYear, totalYrs, infRate);
 	}
 

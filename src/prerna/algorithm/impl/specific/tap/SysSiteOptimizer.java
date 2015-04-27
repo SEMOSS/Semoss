@@ -394,7 +394,7 @@ public class SysSiteOptimizer implements IAlgorithm {
 		
 		optFunc.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, modArr, decomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, budgetForYear, years, currSustainmentCost, infRate, disRate);
 
-		if(isOptimizeBudget) {
+		if(isOptimizeBudget && budgetForYear != 0) {
 			UnivariateOptimizer optimizer = new BrentOptimizer(.001, 10000);
 	
 			RandomGenerator rand = new Well1024a(500);

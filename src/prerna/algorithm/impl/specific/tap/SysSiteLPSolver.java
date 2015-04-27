@@ -143,20 +143,18 @@ public class SysSiteLPSolver extends LPOptimizer{
 	 * @param systemSiteMatrix
 	 */
 	public void updateBudget(double maxBudget) {
-//		if(this.maxBudget != maxBudget) {
 			this.maxBudget = maxBudget;
 			try{
 				
 				if(budgetRow == 0) {
-					LOGGER.error("BUDGET ROW IS ZERO");
+					LOGGER.info("Readding budget constraint since removed");
+					addBudgetConstraint();
+				}else {
+					solver.setRh(budgetRow, maxBudget);
 				}
-				solver.setRh(budgetRow, maxBudget);
-			//	updateBounds();
-				
 			}catch (LpSolveException e) {
 				e.printStackTrace(); //TODO
 			}
-//		}
 	}
 	
 	private int[] calculateFunctionalityStillProvided(int[][] systemFuncMatrix, int[][] centralSystemFuncMatrix, int[] systemEnvironment, int[] centralSystemEnvironment) {
@@ -528,9 +526,9 @@ public class SysSiteLPSolver extends LPOptimizer{
 			
 			if(solved == LpSolve.SUBOPTIMAL)
 				LOGGER.error("SOLUTION IS SUBOPTIMAL");
-			if(solved == LpSolve.TIMEOUT)
+			else if(solved == LpSolve.TIMEOUT)
 				LOGGER.error("SOLUTION TIMED OUT");
-			if(solved != 0)
+			else if(solved != 0)
  				LOGGER.error("SOLVED IS "+solved);
 			
 			System.out.println("orig cols " + solver.getNorigColumns() + " now cols "+solver.getNcolumns());
