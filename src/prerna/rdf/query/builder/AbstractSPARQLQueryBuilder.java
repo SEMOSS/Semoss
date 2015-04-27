@@ -238,6 +238,7 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 		return semossQuery.getQuery();
 	}
 	
+	@Override
 	public SEMOSSQuery getSEMOSSQuery(){
 		return this.semossQuery;
 	}
