@@ -63,6 +63,11 @@ public abstract class AbstractSpecificQueryBuilder {
 		query = baseQuery.getQuery();
 	}
 	
+	protected void createSQLQuery(String selectorsString) {
+		baseQuery.createSQLQuery(selectorsString , tableString, joinString);
+		query = baseQuery.getQuery();
+	}
+	
 	protected void addReturnVariable(String colName, String varName, SEMOSSQuery semossQuery, String mathFunc){
 		if(!mathFunc.equals("false")){
 			SEMOSSQueryHelper.addMathFuncToQuery(mathFunc, colName, semossQuery, varName); // add one to account for label
