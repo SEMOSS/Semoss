@@ -41,6 +41,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 /**
  * The GridPlaySheet class creates the panel and table for a grid view of data from a SPARQL query.
@@ -57,7 +58,6 @@ public class SysSiteOptPlaySheet extends BasicProcessingPlaySheet{
 	private static final Logger LOGGER = LogManager.getLogger(SysSiteOptPlaySheet.class.getName());
 	
 	public SysSiteOptPlaySheet() {
-		sysUpdater = new SysOptCheckboxListUpdater(engine, true, false, false);
 	}
 	
 	public Hashtable getSystems(Hashtable<String, Object> webDataHash) {
@@ -91,6 +91,8 @@ public class SysSiteOptPlaySheet extends BasicProcessingPlaySheet{
 		else
 			ehrCore = gson.fromJson(gson.toJson(webDataHash.get("ehrcore")), Boolean.class);
 		
+		if(sysUpdater == null) 
+			sysUpdater = new SysOptCheckboxListUpdater(engine, true, false, false);
 		dataHash.put("systems",sysUpdater.getSelectedSystemList(intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore));
 		
 		if (dataHash != null)
@@ -98,8 +100,50 @@ public class SysSiteOptPlaySheet extends BasicProcessingPlaySheet{
 		return returnHash;
 	}
 	
+	public void runOpt(Hashtable<String, Object> webDataHash) {
+
+		//check to make sure site engine is loaded
+		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
+		if(siteEngine == null) {
+			//TODO error here
+			return;
+		}
+
+		Gson gson = new Gson();
+		//general params
+		Hashtable<String, String> sysHash = gson.fromJson(gson.toJson(webDataHash.get("systemList")), new TypeToken<Hashtable<String, String>>() {}.getType());
+		int yearBudget = gson.fromJson(gson.toJson(webDataHash.get("maxAnnualBudget")), Integer.class);
+		int years = gson.fromJson(gson.toJson(webDataHash.get("maxYearValue")), Integer.class);
+		Boolean useDHMSMCap = gson.fromJson(gson.toJson(webDataHash.get("dhmsmCap")), Boolean.class);
+		String optType = gson.fromJson(gson.toJson(webDataHash.get("optTypes")), String.class);
+		
+		//advanced params
+		int infl = gson.fromJson(gson.toJson(webDataHash.get("infl")), Integer.class);
+		int disc = gson.fromJson(gson.toJson(webDataHash.get("disc")), Integer.class);
+		int numPts = gson.fromJson(gson.toJson(webDataHash.get("numPts")), Integer.class);
+		
+		opt = new SysSiteOptimizer();
+		opt.setEngines(engine, siteEngine); //likely hr core and tap site
+		opt.setVariables(yearBudget,years, infl, disc, numPts); //budget per year and the number of years
+		opt.setUseDHMSMFunctionality(useDHMSMCap); //whether the data objects will come from the list of systems or the dhmsm provided capabilities
+		opt.setOptimizationType(optType); //eventually will be savings, roi, or irr
+		opt.setIsOptimizeBudget(true); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
+		opt.setSysHash(sysHash);
+		opt.execute();
+	}
+	
 	@Override
 	public void createData() {
+
+		
+	}
+	@Override
+	public void runAnalytics() {
+		
+	}
+	
+	@Override
+	public void createView() {
 		
 		//check to make sure site engine is loaded
 		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
@@ -132,23 +176,13 @@ public class SysSiteOptPlaySheet extends BasicProcessingPlaySheet{
 		//actually running the algorithm
 		opt = new SysSiteOptimizer();
 		opt.setEngines(engine, siteEngine); //likely hr core and tap site
-		opt.setVariables(10000, 10); //budget per year and the number of years
-		opt.setAdvancedVariables(1.5, 2.5, 1); //OPTIONAL: there are default values if not selected, inflation rate = 1.5, discount rate = 2.5, and number of starting points = 1
+		opt.setVariables(10000, 10, 1.5, 2.5,1); //budget per year and the number of years
 		opt.setUseDHMSMFunctionality(false); //whether the data objects will come from the list of systems or the dhmsm provided capabilities
-		opt.setOptimizationType("irr"); //eventually will be savings, roi, or irr
+		opt.setOptimizationType("IRR"); //eventually will be Savings, ROI, or IRR
 		opt.setIsOptimizeBudget(true); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
 		opt.setSysList(sysList); //list of all systems to use in analysis
 		opt.setMustModDecomList(sysModList, sysDecomList); //list of systems to force modernize/decommision. Decommision is not implemented yet
 		opt.execute();
-		
-	}
-	@Override
-	public void runAnalytics() {
-		
-	}
-	
-	@Override
-	public void createView() {
 		opt.display();
 	}
 }

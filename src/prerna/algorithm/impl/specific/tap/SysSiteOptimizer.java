@@ -75,9 +75,9 @@ public class SysSiteOptimizer implements IAlgorithm {
 	private Boolean isOptimizeBudget = false;
 
 	//user can change these as advanced settings
-	private double infRate = 1.5;
-	private double disRate = 2.5;
-	private int noOfPts = 1;
+	private double infRate;
+	private double disRate;
+	private int noOfPts;
 	
 	//user should not change these
 	private double centralDeploymentPer = 0.80;
@@ -137,22 +137,19 @@ public class SysSiteOptimizer implements IAlgorithm {
 		this.useDHMSMFunctionality = useDHMSMFunctionality;
 	}
 	
-	public void setVariables(int budgetForYear, int years) {
+	public void setVariables(int budgetForYear, int years, double infRate, double disRate, int noOfPts) {
 		this.budgetForYear = budgetForYear;
 		this.years = years;
-	}
-	
-	public void setAdvancedVariables(double infRate, double disRate, int noOfPts) {
 		this.infRate = infRate;
 		this.disRate = disRate;
 		this.noOfPts = noOfPts;
 	}
 	
-	public void setSysList(ArrayList<String> sysList, ArrayList<String> centralSysList) {
-
-		this.sysList = sysList;
-		this.centralSysList = centralSysList;
-	}
+//	public void setSysList(ArrayList<String> sysList, ArrayList<String> centralSysList) {
+//
+//		this.sysList = sysList;
+//		this.centralSysList = centralSysList;
+//	}
 	
 	public void setSysList(ArrayList<String> sysList) {
 		
@@ -292,11 +289,11 @@ public class SysSiteOptimizer implements IAlgorithm {
 	
 	public void setOptimizationType(String type) {
 
-		if(type.equals("savings"))
+		if(type.equals("Savings"))
 			optFunc = new SysSiteSavingsOptFunction();
-		else if(type.equals("roi"))
+		else if(type.equals("ROI"))
 			optFunc = new SysSiteROIOptFunction();
-		else if(type.equals("irr"))
+		else if(type.equals("IRR"))
 			optFunc = new SysSiteIRROptFunction();
 		else {
 			System.out.println("OPTIMIZATION TYPE DOES NOT EXIST");
