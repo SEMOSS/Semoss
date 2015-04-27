@@ -378,7 +378,7 @@ public class RDBMSReader {
 	//remove duplicates and create standard indexes on table
 	private void cleanUpDBTables(){
 		String createTable = "", verifyTable="", dropTable = "", alterTableName = "", createIndex = "";
-		String tableName = "", currentTable ="", columnName = "", fullColumnNameList = "", indexColumnNameList = "";
+		String tableName = "", currentTable ="", columnName = "", fullColumnNameList = "";
 		Enumeration allTablesEnum = null, columns = null;
 		Hashtable availableTableColumns = null;
 		ISelectWrapper wrapper = null;
@@ -390,13 +390,15 @@ public class RDBMSReader {
 		allTablesEnum = availableTables.keys();
 		while(allTablesEnum.hasMoreElements()){
 			fullColumnNameList = "";
-			indexColumnNameList = "";
+			createIndex = "";
 			tableAltered = false;
 			tableName = (String)allTablesEnum.nextElement();
 			allTables.add(tableName);
 			availableTableColumns = availableTables.get(tableName);
 			columns = availableTableColumns.keys();
+			int indexCount = 1;
 			while(columns.hasMoreElements()){
+				
 				columnName = (String)columns.nextElement();
 				if(fullColumnNameList.length()==0 ) { 
 					fullColumnNameList += tableName; //put the table name column first
@@ -404,11 +406,10 @@ public class RDBMSReader {
 				if(!columnName.equals(tableName) && fullColumnNameList.length()!=0) {
 					fullColumnNameList += " , " + columnName;
 				} 
-				
+				//index should be created on each individual primary and foreign key column
 				if(columnName.equals(tableName) || columnName.endsWith("_FK")){
-					if(indexColumnNameList.length()!=0) 
-						indexColumnNameList += " , ";
-					indexColumnNameList += columnName;
+					createIndex += "CREATE INDEX " + tableName + "_INDX_"+indexCount+" ON " + tableName + "("+columnName+") ; ";
+					indexCount++;
 				}
 			}
 			
@@ -425,7 +426,8 @@ public class RDBMSReader {
 			//do this duplicates removal for only the tables that were modified
 			if(tableAltered){
 				//create new temporary table that has ONLY distinct values, also make sure you are removing those null values from the PK column
-				createTable = "CREATE TABLE "+ tableName + "_TEMP AS (SELECT DISTINCT " + fullColumnNameList + " FROM " + tableName+" WHERE " + tableName 
+				createTable = "CREATE TABLE "+ tableName + "_TEMP AS (SELECT DISTINCT " + fullColumnNameList
+							+ " FROM " + tableName+" WHERE " + tableName 
 							+ " IS NOT NULL AND TRIM(" + tableName + ") <> '' )";
 				singleDBModTransaction(createTable);
 				
@@ -437,6 +439,7 @@ public class RDBMSReader {
 					logger.error("Error occurred during database clean up on table " + tableName);
 					continue;
 				}
+				
 				//drop existing table
 				dropTable = "DROP TABLE " + tableName;
 				singleDBModTransaction(dropTable);
@@ -444,11 +447,12 @@ public class RDBMSReader {
 				//rename our temporary table to the new table name
 				alterTableName = "ALTER TABLE " + tableName + "_TEMP RENAME TO " + tableName;
 				singleDBModTransaction(alterTableName);
+				
 				commitDB();
+				
 			}
 			
 			//create indexs for ALL tables since we deleted all indexes before
-			createIndex = "CREATE INDEX " + tableName + "_INDX ON " + tableName + "("+indexColumnNameList+")";
 			singleDBModTransaction(createIndex);
 		}
 		// clear out the availableTables and availableTablesInfo maps that were created in findTables method call
@@ -1099,15 +1103,14 @@ public class RDBMSReader {
 		boolean hasNewColumn = false;
 		Hashtable availableTableColumns = availableTables.get(table.toUpperCase());
 		Hashtable newColumnsHash = tableHash.get(table);
-		//Hashtable newColumnsHashUpper = null;
-		String upper = table.toUpperCase()+",";
-		
-		//convert all newColumnsHash values to upper case 
+		String upperAllNewCols = table.toUpperCase()+",";
+
+		//convert all newColumnsHash values to upper case and only store off the FK cols and PK col 
 		Enumeration <String> newColumnKeys = newColumnsHash.keys();
 		while(newColumnKeys.hasMoreElements()){
-			upper += newColumnKeys.nextElement().toUpperCase() +",";
+			String newColVal = newColumnKeys.nextElement().toUpperCase() ;
+			upperAllNewCols += newColVal +",";
 		}
-		
 		
 		//check each column in the availableTableColumns to see if the new columnHash has a new column
 		newColumnKeys = newColumnsHash.keys();
@@ -1121,12 +1124,11 @@ public class RDBMSReader {
 		}
 		boolean allColumnsMatch = true;
 		
-		//check that the tables have the exact same columns
+		//check that the tables have the exact FK same columns
 		Enumeration <String> availableColumnKeys = availableTableColumns.keys();
 		while(availableColumnKeys.hasMoreElements()){
 			String column = availableColumnKeys.nextElement();
-			//if(!newColumnsHashUpper.containsKey(column))
-			if(!upper.contains(column))
+			if(!upperAllNewCols.contains(column))
 			{
 				allColumnsMatch = false;
 				break;
@@ -1136,6 +1138,35 @@ public class RDBMSReader {
 			return true;
 		else 
 			return false;
+	}
+	
+	private boolean hasNewTableKeys(String table){
+		boolean hasNewFKs = false;
+		Hashtable availableTableColumns = availableTables.get(table.toUpperCase());
+		Hashtable newColumnsHash = tableHash.get(table);
+		String upperAllExistingCols = "";
+
+		//check that the tables have the exact FK same columns
+		Enumeration <String> availableColumnKeys = availableTableColumns.keys();
+		while(availableColumnKeys.hasMoreElements()){
+			String column = availableColumnKeys.nextElement();
+			if(column.endsWith("_FK"))
+			{
+				upperAllExistingCols += column + ",";
+			}
+		}
+		
+		//convert all newColumnsHash values to upper case and only store off the FK cols and PK col 
+		Enumeration <String> newColumnKeys = newColumnsHash.keys();
+		while(newColumnKeys.hasMoreElements()){
+			String newColVal = newColumnKeys.nextElement().toUpperCase() ;
+			if(newColVal.endsWith("_FK") && !upperAllExistingCols.contains(newColVal)){
+				hasNewFKs = true;
+				break;
+			}
+		}
+	
+		return hasNewFKs;
 	}
 	
 	private String getCreateString(String tableKey)
@@ -1268,7 +1299,10 @@ public class RDBMSReader {
 			{
 				value = value.replaceAll("'", "''");
 				value = "'" + value + "'" ;
-			}
+			} else {
+				value = "null";
+			} 
+				
 			valuesBuffer.append(value);
 			if(columnKeys.hasMoreElements())
 				valuesBuffer.append(" , ");
@@ -1593,7 +1627,7 @@ public class RDBMSReader {
 			// if the table was just created 
 			// OR if the table already exists but so do all of the columns so we are actually just inserting to the existing table
 			boolean tableAlreadyExists = availableTables.containsKey(tableKey.toUpperCase());
-			if( !tableAlreadyExists || ( tableAlreadyExists && allColumnsMatch(tableKey)) )
+			if( !tableAlreadyExists || ( tableAlreadyExists && (!hasNewTableKeys(tableKey) || allColumnsMatch(tableKey))))
 			{
 				SQLINSERT = "INSERT INTO   " + realClean(tableKey) +  "  (" + realClean(tableKey);
 			
@@ -1666,7 +1700,7 @@ public class RDBMSReader {
 						// if the table was just created 
 						// OR if the table already exists but so do all of the columns so we are actually just inserting to the existing table
 						boolean tableAlreadyExists = availableTables.containsKey(tableKey.toUpperCase());
-						if( !tableAlreadyExists || ( tableAlreadyExists && allColumnsMatch(tableKey)) )
+						if( !tableAlreadyExists || ( tableAlreadyExists && (!hasNewTableKeys(tableKey) || allColumnsMatch(tableKey))) )
 						{
 							SQL = getInsertString(tableKey, jcrMap);
 							insertBufferSql[index].append(SQL + " ,");
