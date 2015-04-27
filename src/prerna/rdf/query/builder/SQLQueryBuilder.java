@@ -46,4 +46,8 @@ public class SQLQueryBuilder extends AbstractQueryBuilder{
 		
 	}
 	
+	@Override
+	public SEMOSSQuery getSEMOSSQuery(){
+		return null;
+	}
 }
