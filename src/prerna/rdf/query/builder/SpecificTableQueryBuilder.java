@@ -69,7 +69,35 @@ public class SpecificTableQueryBuilder extends AbstractSpecificQueryBuilder{
 
 	@Override
 	public void buildQueryR() {
-		// TODO Auto-generated method stub
+		ArrayList<String> varNames = uniqifyColNames(labelList);
+		String selectorsString = "";
+		for(int i=0; i < labelList.size(); i++){
+			String columnName = labelList.get(i);
+			String tableName = columnName;
+			if(columnName.contains("__")){
+				tableName = columnName.substring(0, columnName.indexOf("__"));
+				columnName = columnName.substring(columnName.indexOf("__") + 2);
+			}
+			String alias = getAlias(tableName);
+			String asName = columnName;
+
+			if(!tableName.equalsIgnoreCase(columnName)) // this is a self reference dont worry about it something like title.title
+				asName = tableName + "__" + columnName;
+			
+			if(selectorsString.length() > 0)  selectorsString += " , ";
+			selectorsString +=  alias + "." + columnName + " AS " + asName;
+			logger.info("Adding variable: " + columnName);
+			//addReturnVariable(varName, varNames.get(i), baseQuery, "false");
+		}
+		
+		//eyi revisit
+		if(!parameters.isEmpty()) {
+			logger.info("Adding parameters: " + parameters);
+			addParam("Main");
+		}
+		
+		createSQLQuery(selectorsString);
+		logger.info("Created Generic Table Query: " + query);
 		
 	}
 	
