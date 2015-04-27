@@ -50,6 +50,7 @@ public class SEMOSSQuery {
 	private boolean distinct = false;
 	private String query;
 	private String queryID;
+	private String SQLFilter = "";
 	
 	public SEMOSSQuery()
 	{
@@ -86,6 +87,28 @@ public class SEMOSSQuery {
 		String postWhereString = createPostPatternString();
 		query=query+retVarString + wherePatternString +postWhereString;
 		
+	}
+	
+	public void createSQLQuery(String selectorsString, String tableString, String joinString){
+		String joins = "";
+		query = queryType + " "; //Should be select, will be an issue if not
+		if(distinct)
+			query= query+ "DISTINCT ";
+		
+		query=query + selectorsString + " FROM " + tableString;
+		
+		if(joinString.length() > 0 && SQLFilter.length() > 0)
+			joins += joinString + " AND " + SQLFilter;
+		else if(SQLFilter.length() > 0)
+			joins = SQLFilter;
+		else if(joinString.length() > 0)
+			joins = joinString;
+		
+		if(joins.length() > 0){
+			joins = " WHERE " + joins;
+		}
+		
+		query += joins;
 	}
 	
 	public String getCountQuery(int maxCount)
@@ -505,5 +528,7 @@ public class SEMOSSQuery {
 	{
 		this.offset = offset;
 	}
-	
+	public void setSQLFilter(String filter){
+		this.SQLFilter = filter;
+	}
 }
