@@ -101,9 +101,9 @@ public class SelfOrganizingMapPlaySheet extends GridPlaySheet{
 		int i = 0;
 		int numRows = list.size();
 		int numColumns = list.get(0).length;
-		int newSize = numColumns + 2;
+		int newSize = numColumns + 1;
 		if(includeXYPos) {
-			newSize++;
+			newSize += 2;
 		}
 		ArrayList<Object[]> retList = new ArrayList<Object[]>();
 		for(; i < numRows; i++) {
@@ -126,7 +126,7 @@ public class SelfOrganizingMapPlaySheet extends GridPlaySheet{
 		list = retList;
 		
 		i = 0;
-		String[] retNames = new String[numColumns + 3];
+		String[] retNames = new String[newSize];
 		for(; i < numColumns; i++) {
 			retNames[i] = names[i];
 		}
