@@ -84,7 +84,7 @@ public class LinearInterpolation implements IAlgorithm{
 	   	 }
 	   	 retVal = (a+b)/2;
 	   	 if((max-retVal)<.001)
-	   		 retVal =  -1.0E30;
+	   		 retVal =  -1.0E31;
 	}
 	/**
 	 * Sets the min and max values for the root estimate.

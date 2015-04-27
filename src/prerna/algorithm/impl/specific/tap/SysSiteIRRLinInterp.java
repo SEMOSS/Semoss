@@ -59,6 +59,13 @@ public class SysSiteIRRLinInterp extends LinearInterpolation{
 		this.yearsToComplete = yearsToComplete;
 	}
 	
+	@Override
+	public void execute() {
+		super.execute();
+		if(retVal == -1.0E30) {
+			retVal = Double.POSITIVE_INFINITY;
+		}
+	}
 
 	/**
 	 * Calculate the residual value for a given root estimate, possibleDiscRate.
