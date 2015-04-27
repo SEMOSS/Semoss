@@ -26,6 +26,8 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.rdf.query.util.SQLConstants;
+import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.util.Utility;
 
 import com.google.gson.Gson;
@@ -35,6 +37,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	static final Logger logger = LogManager.getLogger(SQLQueryTableBuilder.class.getName());
 	IEngine engine = null;
 	
+	SEMOSSQuery semossQuery = new SEMOSSQuery();
 	Hashtable <String,String> aliases = new Hashtable<String,String>();
 	Hashtable <String, String> tableProcessed = new Hashtable<String, String>();
 	Hashtable <String, String> columnProcessed = new Hashtable<String,String>();
@@ -61,6 +64,8 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	@Override
 	public void buildQuery() 
 	{
+		semossQuery.setQueryType(SQLConstants.SELECT);
+		semossQuery.setDisctinct(true);
 		parsePath();
 		// we are assuming properties are passed in now based on user selection
 //		parsePropertiesFromPath(); 
@@ -74,8 +79,13 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		// now that this is done
 		if(joins.length() > 0)
 			joins = " WHERE " + joins;
-		query = "SELECT DISTINCT " + selectors + "  FROM  " + froms + joins + " LIMIT " + limit ;
+		query = "SELECT DISTINCT " + selectors + "  FROM  " + froms + joins + " ORDER BY 1 LIMIT " + limit ;
 
+	}
+	
+	@Override
+	public String getQuery() {
+		return query;
 	}
 	
 	
@@ -166,6 +176,8 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 				joins = joins + " AND " + join;
 			else
 				joins = join;
+			
+			//joins += " ORDER BY 1 ";
 		}		
 		
 		// finalie the filters
@@ -190,6 +202,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			Iterator <String> keys = filterResults.keySet().iterator();
 			for(int colIndex = 0;keys.hasNext();colIndex++) // process one column at a time. At this point my key is title on the above
 			{
+				String currentFilters = "";
 				String columnValue = keys.next(); // this gets me title above
 				// need to split when there are underscores
 				// for now keeping it simple
@@ -204,15 +217,23 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 				{
 					String instance = Utility.getInstanceName(filterValues.get(filterIndex) + "");
 					instance.replaceAll("'", "''");
-					if(filters.length() > 0)
-						filters = filters + " OR " + columnValue + " = '" + instance + "'";
-					else
-						filters = "(" + columnValue + " = '" + instance + "'";
+					if(filterIndex == 0){
+						currentFilters += " ( ";
+					} else {
+						currentFilters += " OR ";
+					}
+						
+					currentFilters += columnValue + " = '" + instance + "'";
+				}
+				if(currentFilters.length() > 0){
+					if(filters.length() > 0)// if we already have a filter on a column, add the AND clause before appending our new filter
+						filters+= " AND ";
+					filters += currentFilters + " ) ";
 				}
 			}
-			if(filters.length() > 0)
-				filters = filters + ")";
+
 		}
+		semossQuery.setSQLFilter(filters);
 	}
 	
 	private void addSelfProp(String tableName)
@@ -436,5 +457,10 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			columns.add(stmt.getVar("COLUMN_NAME")+"");
 		}
 		return columns;
+	}
+	
+	@Override
+	public SEMOSSQuery getSEMOSSQuery(){
+		return this.semossQuery;
 	}
 }
