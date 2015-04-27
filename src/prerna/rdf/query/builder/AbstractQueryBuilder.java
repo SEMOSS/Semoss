@@ -54,4 +54,6 @@ public abstract class AbstractQueryBuilder implements IQueryBuilder{
 	public String getQuery() {
 		return this.query;
 	}
+	
+	public abstract SEMOSSQuery getSEMOSSQuery();
 }
