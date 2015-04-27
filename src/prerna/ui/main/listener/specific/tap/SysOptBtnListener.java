@@ -42,6 +42,7 @@ import prerna.algorithm.impl.specific.tap.SysNetSavingsOptimizer;
 import prerna.algorithm.impl.specific.tap.SysOptUtilityMethods;
 import prerna.algorithm.impl.specific.tap.SysROIOptimizer;
 import prerna.algorithm.impl.specific.tap.UnivariateSysOptimizer;
+import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.SysOptPlaySheet;
 import prerna.ui.helpers.AlgorithmRunner;
@@ -80,6 +81,17 @@ public class SysOptBtnListener implements IChakraListener {
 		
 		if (validInputs)
 		{	
+			//check to make sure site engine is loaded
+			IEngine systemEngine = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
+			IEngine costEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+			IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
+			
+			if(systemEngine == null || costEngine == null || siteEngine == null) {
+				Utility.showError("Missing databases. Please make sure you have: HR_Core_Data, TAP_Cost_Data, and TAP_Site_Data");
+				return;
+
+			}
+			
 			ArrayList<String> sysList = playSheet.systemSelectPanel.getSelectedSystems();
 
 			if(sysList.size() < 2) {
@@ -114,6 +126,7 @@ public class SysOptBtnListener implements IChakraListener {
 			else if(playSheet.rdbtnROI.isSelected()) this.optimizer = new SysROIOptimizer();
 			else if(playSheet.rdbtnIRR.isSelected()) this.optimizer = new SysIRROptimizer();
 
+			optimizer.setEngines(systemEngine, siteEngine, costEngine);
 			optimizer.setPlaySheet(playSheet);
 			optimizer.setProgressBar(playSheet.progressBar);
 			optimizer.setConsoleArea(playSheet.consoleArea);

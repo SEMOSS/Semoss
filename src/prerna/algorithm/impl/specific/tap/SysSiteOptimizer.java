@@ -335,7 +335,8 @@ public class SysSiteOptimizer implements IAlgorithm {
 		System.out.println("blu are..." + SysOptUtilityMethods.createPrintString(bluList));
 
 		ResidualSystemOptFillData resFunc = new ResidualSystemOptFillData();
-		resFunc.setEngines(systemEngine, siteEngine);
+		resFunc.setSystemEngine(systemEngine);
+		resFunc.setSiteEngine(siteEngine);
 		resFunc.setSysSiteLists(sysList,dataList,bluList,siteList);
 		resFunc.fillSysDeploymentOptDataStores();
 		

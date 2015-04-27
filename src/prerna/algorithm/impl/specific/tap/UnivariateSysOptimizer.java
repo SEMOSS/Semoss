@@ -85,8 +85,18 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 	private int[] provideDataBLUNow;
 	private int[] provideDataBLUFuture;
 	
+	private IEngine systemEngine;
+	private IEngine siteEngine;
+	private IEngine costEngine;
+	
 	private String capability, system, geoCapability;
 	private ArrayList<String> geoSpatialMapSystemList;
+	
+	public void setEngines(IEngine systemEngine, IEngine siteEngine, IEngine costEngine) {
+		this.systemEngine = systemEngine;
+		this.siteEngine = siteEngine;
+		this.costEngine = costEngine;
+	}
 	
 	public void setSelectDropDowns(ArrayList<String> sysList, Boolean theaterSelected, Boolean garrisonSelected, ArrayList<String> capList, ArrayList<String> dataList, ArrayList<String> bluList, ArrayList<String> modSysList, ArrayList<String> decomSysList, boolean includeRegionalization, boolean ignoreTheatGarr) {
 
@@ -107,8 +117,6 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 
 		if (includeRegionalization) {
 			String regionQuery = "SELECT DISTINCT ?Region WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?DeployedAt1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?DeployedAt2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/DeployedAt>} {?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>} {?Includes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Includes>} {?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HealthServiceRegion>} {?Located <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Located>} {?System ?DeployedAt1 ?SystemDCSite} {?SystemDCSite ?DeployedAt2 ?DCSite} {?DCSite ?Includes ?MTF} {?MTF ?Located ?Region} } ORDER BY ASC(?Region) BINDINGS ?System {" + SysOptUtilityMethods.makeBindingString("System", this.sysList) + "}";
-
-			IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 			this.regionList = SysOptUtilityMethods.runListQuery(siteEngine, regionQuery);
 		}
 
@@ -119,18 +127,18 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 
 		}// if there are capabilities provided use them
 		else if (capList.size() > 0) {
-			String dataQuery = "SELECT DISTINCT ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} } BINDINGS ?Capability " + SysOptUtilityMethods.makeBindingString("Capability", capList);
-			String bluQuery = "SELECT DISTINCT ?BLU WHERE { {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?BLU}} BINDINGS ?Capability "  + SysOptUtilityMethods.makeBindingString("Capability", capList);
+			String dataQuery = "SELECT DISTINCT ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?Data.} } BINDINGS ?Capability {" + SysOptUtilityMethods.makeBindingString("Capability", capList) + "}";
+			String bluQuery = "SELECT DISTINCT ?BLU WHERE { {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Task_Needs_BusinessLogicUnit <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>}{?Capability ?Consists ?Task.}{?Task ?Task_Needs_BusinessLogicUnit ?BLU}} BINDINGS ?Capability {"  + SysOptUtilityMethods.makeBindingString("Capability", capList) + "}";
 
-			this.dataList = SysOptUtilityMethods.runListQuery(playSheet.engine, dataQuery);
-			this.bluList = SysOptUtilityMethods.runListQuery(playSheet.engine, bluQuery);
+			this.dataList = SysOptUtilityMethods.runListQuery(systemEngine, dataQuery);
+			this.bluList = SysOptUtilityMethods.runListQuery(systemEngine, bluQuery);
 			
 		}// otherwise use the systems list to generate
 		else {
 
 			DHMSMHelper dhelp = new DHMSMHelper();
 			dhelp.setUseDHMSMOnly(false);
-			dhelp.runData(playSheet.engine);
+			dhelp.runData(systemEngine);
 			ArrayList<String> systems = sysList;
 			dataList = new ArrayList<String>();
 			for (int sysInd = 0; sysInd < systems.size(); sysInd++) {
@@ -139,9 +147,9 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 			}
 			this.dataList = SysOptUtilityMethods.removeDuplicates(dataList);
 			
-			String bluQuery = "SELECT DISTINCT ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System <http://semoss.org/ontologies/Relation/Provide> ?BLU.}} BINDINGS ?System "  + SysOptUtilityMethods.makeBindingString("System", sysList);
+			String bluQuery = "SELECT DISTINCT ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System <http://semoss.org/ontologies/Relation/Provide> ?BLU.}} BINDINGS ?System {"  + SysOptUtilityMethods.makeBindingString("System", sysList) + "}";
 
-			this.bluList = SysOptUtilityMethods.runListQuery(playSheet.engine, bluQuery);	
+			this.bluList = SysOptUtilityMethods.runListQuery(systemEngine, bluQuery);	
 		}
 	}
 
@@ -150,10 +158,13 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 		resFunc = new ResidualSystemOptFillData();
 		resFunc.setMaxYears(maxYears);
 		resFunc.setPlaySheet((SysOptPlaySheet) playSheet);
+		resFunc.setSystemEngine(systemEngine);
+		resFunc.setCostEngine(costEngine);
+		resFunc.setSiteEngine(siteEngine);
 		
-		if (includeRegionalization)
+		if (includeRegionalization) {
 			resFunc.setSysDataBLULists(SysOptUtilityMethods.deepCopy(sysList), SysOptUtilityMethods.deepCopy(dataList), SysOptUtilityMethods.deepCopy(bluList), SysOptUtilityMethods.deepCopy(regionList), SysOptUtilityMethods.deepCopy(systemMustModernize), SysOptUtilityMethods.deepCopy(systemMustDecommission));
-		else
+		}else
 			resFunc.setSysDataBLULists(SysOptUtilityMethods.deepCopy(sysList), SysOptUtilityMethods.deepCopy(dataList), SysOptUtilityMethods.deepCopy(bluList), null, SysOptUtilityMethods.deepCopy(systemMustModernize), SysOptUtilityMethods.deepCopy(systemMustDecommission));
 		
 		if (ignoreTheatGarr)

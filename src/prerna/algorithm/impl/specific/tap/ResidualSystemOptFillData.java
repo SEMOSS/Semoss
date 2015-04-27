@@ -825,15 +825,16 @@ public class ResidualSystemOptFillData{
 				bluRegionProviderGarrisonCount = garrisonProviderCount;
 		}
 	}
-
-	public void setEngines(IEngine systemEngine, IEngine siteEngine) {
+	
+	public void setSystemEngine(IEngine systemEngine) {
 		this.systemEngine = systemEngine;
-		this.siteEngine = siteEngine;
 	}
 	
-	public void setEngines(IEngine systemEngine, IEngine costEngine, IEngine siteEngine) {
-		this.systemEngine = systemEngine;
+	public void setCostEngine(IEngine costEngine) {
 		this.costEngine = costEngine;
+	}
+	
+	public void setSiteEngine(IEngine siteEngine) {
 		this.siteEngine = siteEngine;
 	}
 }
