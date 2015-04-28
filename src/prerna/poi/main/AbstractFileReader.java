@@ -33,12 +33,14 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 
 import org.apache.log4j.LogManager;
@@ -464,8 +466,7 @@ public abstract class AbstractFileReader {
 		for(String relArray : basePropRelations.keySet()){
 			String property = relArray;
 			String parent = basePropRelations.get(property);
-
-			//			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
+			//createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
 			storeBaseStatement(parent, OWL.DatatypeProperty+"", property);
 //			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
 		}
@@ -685,6 +686,16 @@ public abstract class AbstractFileReader {
 		createStatement(vf.createURI(subjectNodeURI), RDFS.LABEL, vf.createLiteral(instanceName));
 
 		addProperties(subjectNodeURI, propHash);
+		// adding node properties to owl
+		if(basePropURI.equals(""))
+		{
+			basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
+		}
+		for(String propName : propHash.keySet()) {
+			String propURI = basePropURI + "/" + propName;
+			basePropRelations.put(propURI, semossBaseURI);
+			basePropURIHash.put(propURI, propURI);
+		}
 	}
 
 	public void addProperties(String instanceURI, Hashtable<String, Object> propHash) throws EngineException {
@@ -701,7 +712,7 @@ public abstract class AbstractFileReader {
 			String key = propKeys.nextElement().toString();
 			String propURI = basePropURI + "/" + key;
 //			logger.info("Processing Property " + key + " for " + instanceURI);
-			createStatement(vf.createURI(propURI), RDF.TYPE, vf.createURI(basePropURI));	
+			createStatement(vf.createURI(propURI), RDF.TYPE, vf.createURI(basePropURI));
 			if(propHash.get(key).getClass() == new Double(1).getClass())
 			{
 				Double value = (Double) propHash.get(key);
@@ -725,19 +736,32 @@ public abstract class AbstractFileReader {
 			}
 			else
 			{
-				String value = propHash.get(key).toString();
-				if(value.equals(Constants.PROCESS_CURRENT_DATE)){
-//					logger.info("Processing Current Date Property"); 
-					insertCurrentDate(propURI, basePropURI, instanceURI);
-				}
-				else if(value.equals(Constants.PROCESS_CURRENT_USER)){
-//					logger.info("Processing Current User Property"); 
-					insertCurrentUser(propURI, basePropURI, instanceURI);
-				}
-				else{
-					String cleanValue = Utility.cleanString(value, true);
-//					logger.info("Processing String value " + cleanValue); 
-					createStatement(vf.createURI(instanceURI), vf.createURI(propURI), vf.createLiteral(cleanValue));
+				String stringValue = propHash.get(key).toString();
+				// now try to cast the value if it can potentially be a double/date
+				String type = Utility.processType(stringValue);
+				if(type.equals("DOUBLE") || type.equals("INTEGER")) {
+					Double value = Double.parseDouble(stringValue);
+					logger.info("Processing Double value " + value); 
+					createStatement(vf.createURI(instanceURI), vf.createURI(propURI), vf.createLiteral(value.doubleValue()));
+				} 
+//				else if(type.equals("DATE") || type.equals("SIMPLEDATE")) {
+//					URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
+//					createStatement(vf.createURI(instanceURI), vf.createURI(propURI), vf.createLiteral(stringValue, datatype));
+//				} 
+				else {
+					if(stringValue.equals(Constants.PROCESS_CURRENT_DATE)){
+	//					logger.info("Processing Current Date Property"); 
+						insertCurrentDate(propURI, basePropURI, instanceURI);
+					}
+					else if(stringValue.equals(Constants.PROCESS_CURRENT_USER)){
+	//					logger.info("Processing Current User Property"); 
+						insertCurrentUser(propURI, basePropURI, instanceURI);
+					}
+					else{
+						String cleanValue = Utility.cleanString(stringValue, true);
+	//					logger.info("Processing String value " + cleanValue); 
+						createStatement(vf.createURI(instanceURI), vf.createURI(propURI), vf.createLiteral(cleanValue));
+					}
 				}
 			}
 		}
