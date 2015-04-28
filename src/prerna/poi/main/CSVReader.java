@@ -824,7 +824,7 @@ public class CSVReader extends AbstractFileReader {
 
 					propURI = basePropURI+"/" + property;
 					createStatement(vf.createURI(propURI),RDF.TYPE,vf.createURI( basePropURI));
-					basePropURIHash.put(propURI,  propURI);
+					//basePropURIHash.put(propURI,  propURI);
 					//basePropRelations.put(propURI,  parentURI); // would need this if we were doing edge properties... but we are not any longer
 				}
 			}
