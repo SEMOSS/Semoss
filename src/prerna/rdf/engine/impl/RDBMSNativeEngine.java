@@ -37,26 +37,16 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Vector;
 
-import org.openrdf.model.Literal;
-import org.openrdf.model.Value;
 import org.openrdf.query.MalformedQueryException;
-import org.openrdf.query.QueryEvaluationException;
-import org.openrdf.query.QueryLanguage;
-import org.openrdf.query.TupleQuery;
-import org.openrdf.query.TupleQueryResult;
 import org.openrdf.query.UpdateExecutionException;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.sail.SailException;
 
 import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryBuilder;
 import prerna.rdf.query.builder.SQLQueryTableBuilder;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class RDBMSNativeEngine extends AbstractEngine {
@@ -68,14 +58,13 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	private Statement stmt = null;
 	
 	@Override
-	public void openDB(String propFile)
-	{
+	public void openDB(String propFile) {
 		// will mostly be sent the connection string and I will connect here
 		// I need to see if the connection pool has been initiated
 		// if not initiate the connection pool
 		try {
 			prop = loadProp(propFile);
-			if(!prop.containsKey("TEMP"))
+			if (!prop.containsKey("TEMP"))
 				super.openDB(propFile);
 		} catch (FileNotFoundException e1) {
 			// TODO Auto-generated catch block
@@ -87,14 +76,13 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		String connectionURL = prop.getProperty(Constants.CONNECTION_URL);
 		String userName = prop.getProperty(Constants.USERNAME);
 		String password = "";
-		if(prop.containsKey(Constants.PASSWORD))
+		if (prop.containsKey(Constants.PASSWORD))
 			password = prop.getProperty(Constants.PASSWORD);
 		String driver = prop.getProperty(Constants.DRIVER);
-        try {
+		try {
 			Class.forName(driver);
-			if(this.conn == null)
-			conn = DriverManager.
-			    getConnection(connectionURL, userName, password);
+			if (this.conn == null)
+				conn = DriverManager.getConnection(connectionURL, userName, password);
 			connected = true;
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -105,35 +93,28 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			e.printStackTrace();
 		}
 	}
-
+	
 	@Override
 	// need to clean up the exception it will never be thrown
-	public void execInsertQuery(String query) throws SailException,
-			UpdateExecutionException, RepositoryException,
-			MalformedQueryException 
-	{
+	public void execInsertQuery(String query) throws SailException, UpdateExecutionException, RepositoryException, MalformedQueryException {
 		try {
 			Statement stmt = conn.createStatement();
-			if(query.startsWith("CREATE")) // this is create statement"
+			if (query.startsWith("CREATE")) // this is create statement"
 				stmt.execute(query);
 			else
 				stmt.executeUpdate(query);
-		}catch(Exception ex)
-		{
+		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
 	}
-
 	
 	@Override
-	public ENGINE_TYPE getEngineType()
-	{
+	public ENGINE_TYPE getEngineType() {
 		return IEngine.ENGINE_TYPE.RDBMS;
 	}
 	
 	@Override
-	public Vector<String> getEntityOfType(String sparqlQuery)
-	{
+	public Vector<String> getEntityOfType(String sparqlQuery) {
 		try {
 			return getColumnsFromResultSet(1, getResults(sparqlQuery));
 		} catch (Exception e) {
@@ -142,9 +123,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 		return null;
 	}
-
-	public Object execSelectQuery(String query)
-	{
+	
+	public Object execSelectQuery(String query) {
 		try {
 			rs = getResults(query);
 			return rs;
@@ -155,16 +135,13 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		return null;
 	}
 	
-
 	@Override
-	public boolean isConnected()
-	{
+	public boolean isConnected() {
 		return connected;
 	}
-
+	
 	@Override
-	public void closeDB()
-	{
+	public void closeDB() {
 		// do nothing
 		try {
 			conn.commit();
@@ -176,8 +153,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	}
 	
 	@Override
-	public void commit()
-	{
+	public void commit() {
 		// do nothing
 		try {
 			conn.commit();
@@ -187,23 +163,19 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 	}
 	
-	
-	public Vector getColumnsFromResultSet(int columns, ResultSet rs)
-	{
+	public Vector getColumnsFromResultSet(int columns, ResultSet rs) {
 		Vector retVector = new Vector();
 		// each value is an array in itself as well
 		try {
-			while(rs.next())
-			{
+			while (rs.next()) {
 				ArrayList list = new ArrayList();
 				String output = null;
-				for(int colIndex = 1;colIndex <= columns;colIndex++)
-				{					
+				for (int colIndex = 1; colIndex <= columns; colIndex++) {
 					output = rs.getString(colIndex);
 					System.out.print(rs.getObject(colIndex));
 					list.add(output);
 				}
-				if(columns == 1)
+				if (columns == 1)
 					retVector.addElement(output);
 				else
 					retVector.addElement(list);
@@ -216,29 +188,41 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	}
 	
 	/**
-	 * Private method that returns a ResultSet object.  If you choose to make this method public
-	 * it make it harder to keep track of the Result set object and where you need to explicity close it
+	 * Private method that returns a ResultSet object. If you choose to make this method public it make it harder to keep track of the Result set
+	 * object and where you need to explicity close it
+	 * 
 	 * @param query
 	 * @return ResultSet object
 	 * @throws Exception
 	 */
-	private ResultSet getResults(String query) throws Exception 
-	{
+	private ResultSet getResults(String query) throws Exception {
 		stmt = conn.createStatement();
 		rs = stmt.executeQuery(query);
 		return rs;
 	}
 	
-	public IQueryBuilder getQueryBuilder(){
-		//return new SQLQueryBuilder();
+	public IQueryBuilder getQueryBuilder() {
+		// return new SQLQueryBuilder();
 		return new SQLQueryTableBuilder(this);
 	}
 	
-	public Vector<String> getParamValues(String name, String type, String insightId) 
-	{
-		if(type.contains(":"))
+	public Vector<String> getParamValues(String name, String type, String insightId) {
+		if (type.contains(":"))
 			type = Utility.getInstanceName(type);
 		String query = "SELECT " + type + " AS " + name + " FROM " + type;
 		return getParamValues(name, type, insightId, query);
-	}	
+	}
+	
+	@Override
+	// TODO Address once engine refactoring is finished
+	public Vector<String> getParamValues(String name, String type, String insightId, String query) {
+		String splitType = "";
+		if (type.contains(":")) {
+			String[] typeArray = type.split(":");
+			String table = typeArray[0];
+			splitType = typeArray[1];
+			query = query.substring(0, query.lastIndexOf("@entity@")) + table;
+		}
+		return super.getParamValues(name, splitType, insightId, query);
+	}
 }
