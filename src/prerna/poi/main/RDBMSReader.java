@@ -1299,7 +1299,7 @@ public class RDBMSReader {
 			{
 				value = value.replaceAll("'", "''");
 				value = "'" + value + "'" ;
-			} else {
+			} else if (value.length() == 0) {
 				value = "null";
 			} 
 				
