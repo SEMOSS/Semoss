@@ -53,7 +53,7 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 		super();
 		this.setPreferredSize(new Dimension(800, 600));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/surfaceplot.html";
+		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/barchart3d.html";
 	}
 	
 	@Override
