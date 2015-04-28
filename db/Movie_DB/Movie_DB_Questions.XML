@@ -1467,10 +1467,6 @@
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-06T15:41:24</TimeStamp>
-</rdf:Description>
-
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Enterprise_Science_Perspective">
 	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">Enterprise_Science_Perspective_1</IDLabel>
 	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">Enterprise_Science_Perspective_2</IDLabel>
@@ -1991,178 +1987,6 @@
 	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }{?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;}{?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;}{?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director}{?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre}{?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio}} ORDER BY ?Title</SPARQL>
 	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.WekaAprioriVizPlaySheet</Layout>
 	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
-</rdf:Description>
-
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T12:33:25</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T12:32:21</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-19T15:52:05</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-26T09:40:21</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-26T09:17:32</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T19:02:12</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T18:56:18</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T18:51:42</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T17:09:37</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T17:01:58</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T17:00:39</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T16:04:24</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T12:04:49</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T10:57:28</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T12:24:21</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T18:57:30</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T17:13:21</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T17:17:55</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T17:14:46</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T12:25:22</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T12:33:40</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T11:08:29</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T10:55:33</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T17:42:20</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T17:45:16</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T16:45:39</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T09:00:15</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T10:47:12</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T09:07:21</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T10:43:03</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T09:55:50</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T09:01:57</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T17:25:59</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T16:47:59</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T17:20:59</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T17:19:15</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T16:41:37</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-26T10:16:33</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-30T09:53:49</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T16:24:29</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T16:26:15</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T16:24:01</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T16:11:10</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T15:25:12</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-30T09:52:19</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-27T16:54:20</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-27T16:53:44</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-26T14:44:32</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-30T16:07:31</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-31T13:48:48</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-31T14:13:57</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T15:00:13</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-31T14:36:45</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-31T17:14:00</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T11:22:22</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-31T14:31:55</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-30T10:02:36</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T13:16:53</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T11:13:04</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T17:15:59</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T16:34:26</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T16:36:09</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T11:17:41</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T18:45:20</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T18:58:53</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T18:59:49</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T16:38:19</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T16:17:00</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-01T16:22:23</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-19T15:52:20</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-19T15:52:21</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-19T15:52:22</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-19T16:01:49</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-19T16:07:56</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-19T16:23:44</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-19T17:20:24</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T12:09:19</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T12:32:34</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T12:35:51</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T12:40:36</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T12:47:23</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T12:50:25</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T12:51:03</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T13:11:07</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T13:12:22</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T13:13:05</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T13:13:30</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T13:13:59</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T13:14:27</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T14:31:45</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T14:32:16</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T14:33:47</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T14:34:33</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T14:37:08</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T14:56:14</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T14:58:28</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T15:08:54</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T15:12:14</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T15:20:00</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T15:23:01</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T15:24:59</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T15:25:17</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T15:28:59</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T15:33:37</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T16:02:31</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T17:15:37</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T17:28:27</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T17:31:44</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T17:34:10</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T17:43:05</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T17:43:22</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T17:45:20</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T17:47:32</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T17:49:23</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T17:58:40</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T18:00:34</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T18:00:59</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T18:02:05</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T18:02:42</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T18:12:58</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T18:14:28</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T18:17:31</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T18:20:28</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T18:32:53</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T18:35:00</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T19:38:42</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T19:43:00</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T19:45:11</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T20:14:42</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T20:24:52</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T20:29:18</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T20:30:55</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T20:32:47</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T21:06:51</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T21:07:46</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T21:10:58</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-20T21:15:53</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-23T14:45:45</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-23T15:09:52</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-23T15:31:54</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-23T15:39:31</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-23T15:42:36</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-23T15:49:05</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-23T16:06:12</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-23T16:19:47</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-23T16:23:13</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-23T16:40:28</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-24T15:05:12</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-24T15:06:20</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-24T16:35:12</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-24T17:19:45</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-24T17:28:05</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-24T17:31:33</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-24T17:42:00</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-24T17:43:49</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T09:36:20</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T09:37:20</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T09:39:46</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T09:51:29</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T10:11:39</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T10:40:22</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T12:07:18</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T12:13:12</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T16:41:47</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T16:43:36</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T16:57:06</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-03-25T16:57:40</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T13:19:18</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T13:20:01</TimeStamp>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:Title-Perspective">
@@ -3643,50 +3467,6 @@
 	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">6</Order>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T13:20:14</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T13:23:07</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T16:16:45</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T16:17:32</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T16:19:52</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T16:22:26</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T16:35:48</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T16:33:02</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T16:36:30</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T17:21:35</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T18:40:15</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T19:55:48</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-02T20:10:48</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-03T12:12:35</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-03T12:21:30</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-03T12:24:05</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-03T12:30:07</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-03T13:25:06</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-03T15:18:16</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-03T15:20:23</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-03T15:21:31</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-03T15:21:49</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-03T15:26:58</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-03T15:29:33</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-03T15:31:03</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-03T15:32:33</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-03T15:32:59</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-03T15:36:15</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-03T15:38:57</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-03T15:41:53</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-03T16:08:11</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-03T17:18:46</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-06T09:23:27</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-06T10:12:59</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-06T10:15:21</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-06T10:19:55</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-06T10:28:07</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-06T10:49:08</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-06T10:55:07</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-06T12:14:39</TimeStamp>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-06T12:44:55</TimeStamp>
-</rdf:Description>
-
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:SOM-Perspective:Movie_DB:SOM-Perspective:SOM-Perspective_2">
 	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:SOM-Perspective:Movie_DB:SOM-Perspective:SOM-Perspective_2"/>
 </rdf:Description>
@@ -3721,17 +3501,56 @@
 	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Resource"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-06T15:42:30</TimeStamp>
-</rdf:Description>
-
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:SOM-Perspective">
 	<Relation xmlns="http://semoss.org/ontologies/" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:SOM-Perspective:SOM-Perspective_2"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
 	<SOM-Perspective_2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:SOM-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:SOM-Perspective:SOM-Perspective_2"/>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-06T15:42:47</TimeStamp>
+	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-13T17:18:48</TimeStamp>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:SOM-Perspective:SOM-Perspective_3">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept/Insight"/>
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Resource"/>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Run SOM 3D BarChart Algorithm</Label>
+	<label>Movie_DB:SOM-Perspective:SOM-Perspective_3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:SOM-Perspective:SOM-Perspective_3">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Engine:Insight"/>
+	<label>Movie_DB:Movie_DB:SOM-Perspective:SOM-Perspective_3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<SOM-Perspective_3 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:SOM-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:SOM-Perspective:SOM-Perspective_3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:SOM-Perspective:Movie_DB:SOM-Perspective:SOM-Perspective_3">
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight"/>
+	<rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Property"/>
+	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Resource"/>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation"/>
+	<subPropertyOf rdf:resource="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:SOM-Perspective:Movie_DB:SOM-Perspective:SOM-Perspective_3"/>
+	<label>Movie_DB:SOM-Perspective:Movie_DB:SOM-Perspective:SOM-Perspective_3</label>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Perspective/Movie_DB:SOM-Perspective">
+	<Relation xmlns="http://semoss.org/ontologies/" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:SOM-Perspective:SOM-Perspective_3"/>
+	<Insight xmlns="http://semoss.org/ontologies/Relation/Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:SOM-Perspective:SOM-Perspective_3"/>
+	<SOM-Perspective_3 xmlns="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:SOM-Perspective:Movie_DB:SOM-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:SOM-Perspective:SOM-Perspective_3"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:SOM-Perspective:SOM-Perspective_3">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">SOM-Perspective_3</IDLabel>
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }{?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;}{?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;}{?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director}{?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre}{?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio}} ORDER BY ?Title</SPARQL>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.SelfOrganizingMap3DBarChartPlaySheet</Layout>
+	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">3</Order>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
+	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-28T16:20:34</TimeStamp>
 </rdf:Description>
 
 </rdf:RDF>
