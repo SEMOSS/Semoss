@@ -111,7 +111,7 @@ public class SysSiteOptPlaySheet extends BasicProcessingPlaySheet{
 
 		Gson gson = new Gson();
 		//general params
-		Hashtable<String, String> sysHash = gson.fromJson(gson.toJson(webDataHash.get("systemList")), new TypeToken<Hashtable<String, String>>() {}.getType());
+		ArrayList<Hashtable<String, String>> sysHashList = gson.fromJson(gson.toJson(webDataHash.get("systemList")), new TypeToken<ArrayList<Hashtable<String, String>>>() {}.getType());
 		int yearBudget = gson.fromJson(gson.toJson(webDataHash.get("maxAnnualBudget")), Integer.class);
 		int years = gson.fromJson(gson.toJson(webDataHash.get("maxYearValue")), Integer.class);
 		Boolean useDHMSMCap = gson.fromJson(gson.toJson(webDataHash.get("dhmsmCap")), Boolean.class);
@@ -128,7 +128,7 @@ public class SysSiteOptPlaySheet extends BasicProcessingPlaySheet{
 		opt.setUseDHMSMFunctionality(useDHMSMCap); //whether the data objects will come from the list of systems or the dhmsm provided capabilities
 		opt.setOptimizationType(optType); //eventually will be savings, roi, or irr
 		opt.setIsOptimizeBudget(true); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
-		opt.setSysHash(sysHash);
+		opt.setSysHashList(sysHashList);
 		opt.execute();
 	}
 	
