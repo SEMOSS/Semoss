@@ -279,7 +279,8 @@ public abstract class AbstractEngine implements IEngine {
 						createInsightBaseRelations();
 						createQuestionXMLFile(questionXMLFile, baseFolder);
 						addPropToFile(propFile, Constants.INSIGHTS, questionXMLFile, "ENGINE_TYPE");
-						prop.putIfAbsent(Constants.INSIGHTS, questionXMLFile);
+						if(!prop.contains(Constants.INSIGHTS))
+							prop.put(Constants.INSIGHTS, questionXMLFile);
 					}
 				}
 				
