@@ -130,7 +130,7 @@ public class UserPermissionsMasterDB extends ModifyMasterDB {
 		return requests;
 	}
 	
-	public Boolean approveEngineAccessRequest(String requestId, String approvingUserId, String[] permissions) {
+	public Boolean processEngineAccessRequest(String requestId, String approvingUserId, String[] permissions) {
 		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 		
 		String userId = "", engine = "";
@@ -142,17 +142,19 @@ public class UserPermissionsMasterDB extends ModifyMasterDB {
 			engine = sjss.getVar(names[1]).toString();
 		}
 		
-		MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.ENGINEROLEGROUP_URI + "/" + engine + "-" + userId + "-EngineRoleGroup");
-		MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.ROLE_URI + "/" + engine + "-" + userId + "-Role");
-		for(String ep : permissions) {
-			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.ROLE_URI + "/" + engine + "-" + userId + "-Role", MasterDatabaseURIs.PROP_URI + "/" + EnginePermission.getPropertyNameByPermissionName(ep), "true", false);
+		if(permissions.length != 0) {
+			MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.ENGINEROLEGROUP_URI + "/" + engine + "-" + userId + "-EngineRoleGroup");
+			MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.ROLE_URI + "/" + engine + "-" + userId + "-Role");
+			for(String ep : permissions) {
+				MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.ROLE_URI + "/" + engine + "-" + userId + "-Role", MasterDatabaseURIs.PROP_URI + "/" + EnginePermission.getPropertyNameByPermissionName(ep), "true", false);
+			}
+			MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.USERGROUP_URI + "/" + engine + "-" + userId + "-UserGroup");
+			
+			MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engine, MasterDatabaseURIs.ENGINEROLEGROUP_URI + "/" + engine + "-" + userId + "-EngineRoleGroup", MasterDatabaseURIs.ENGINE_ROLEGROUP_REL_URI + "/" + engine + ":" + engine + "-" + userId + "-EngineRoleGroup");
+			MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.ENGINEROLEGROUP_URI + "/" + engine + "-" + userId + "-EngineRoleGroup", MasterDatabaseURIs.ROLE_URI + "/" + engine + "-" + userId + "-Role", MasterDatabaseURIs.ENGINEROLEGROUP_ROLE_REL_URI + "/" + engine + "-" + userId + "-EngineRoleGroup" + ":" + engine + "-" + userId + "-Role");
+			MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.ENGINEROLEGROUP_URI + "/" + engine + "-" + userId + "-EngineRoleGroup", MasterDatabaseURIs.USERGROUP_URI + "/" + engine + "-" + userId + "-UserGroup", MasterDatabaseURIs.ROLEGROUP_USERGROUP_REL_URI + "/" + engine + "-" + userId + "-EngineRoleGroup" + ":" + engine + "-" + userId + "-UserGroup");
+			MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.USERGROUP_URI + "/" + engine + "-" + userId + "-UserGroup", MasterDatabaseURIs.USER_BASE_URI + "/" + userId, MasterDatabaseURIs.USERGROUP_USER_REL_URI + "/" + engine + "-" + userId + "-UserGroup" + ":" + userId);
 		}
-		MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.USERGROUP_URI + "/" + engine + "-" + userId + "-UserGroup");
-		
-		MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engine, MasterDatabaseURIs.ENGINEROLEGROUP_URI + "/" + engine + "-" + userId + "-EngineRoleGroup", MasterDatabaseURIs.ENGINE_ROLEGROUP_REL_URI + "/" + engine + ":" + engine + "-" + userId + "-EngineRoleGroup");
-		MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.ENGINEROLEGROUP_URI + "/" + engine + "-" + userId + "-EngineRoleGroup", MasterDatabaseURIs.ROLE_URI + "/" + engine + "-" + userId + "-Role", MasterDatabaseURIs.ENGINEROLEGROUP_ROLE_REL_URI + "/" + engine + "-" + userId + "-EngineRoleGroup" + ":" + engine + "-" + userId + "-Role");
-		MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.ENGINEROLEGROUP_URI + "/" + engine + "-" + userId + "-EngineRoleGroup", MasterDatabaseURIs.USERGROUP_URI + "/" + engine + "-" + userId + "-UserGroup", MasterDatabaseURIs.ROLEGROUP_USERGROUP_REL_URI + "/" + engine + "-" + userId + "-EngineRoleGroup" + ":" + engine + "-" + userId + "-UserGroup");
-		MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.USERGROUP_URI + "/" + engine + "-" + userId + "-UserGroup", MasterDatabaseURIs.USER_BASE_URI + "/" + userId, MasterDatabaseURIs.USERGROUP_USER_REL_URI + "/" + engine + "-" + userId + "-UserGroup" + ":" + userId);
 		
 		MasterDBHelper.removeNode(masterEngine, MasterDatabaseURIs.ENGINE_ACCESSREQUEST_URI + "/" + userId + "-" + engine);
 		ArrayList<String> engineOwners = getEngineOwner(engine);
@@ -160,11 +162,6 @@ public class UserPermissionsMasterDB extends ModifyMasterDB {
 			MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.USER_BASE_URI + "/" + s, MasterDatabaseURIs.ENGINE_ACCESSREQUEST_URI + "/" + userId + "-" + engine, MasterDatabaseURIs.USER_ENGINE_ACCESSREQUEST_REL_URI + "/" + s + ":" + userId + "-" + engine);
 		}
 		
-		String permissionsRequested = "";
-		for(String s : permissions) {
-			permissionsRequested = permissionsRequested.concat(s).concat(";");
-		}
-		MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.ENGINE_ACCESSREQUEST_URI + "/" + userId + "-" + engine, MasterDatabaseURIs.ENGINE_ACCESS_PERMISSIONS_PROP_URI, permissionsRequested.substring(0, permissionsRequested.length()), false);
 		MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.ENGINE_ACCESSREQUEST_URI + "/" + userId + "-" + engine, MasterDatabaseURIs.ENGINE_NAME_REQUESTED_PROP_URI, engine, false);
 		MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.ENGINE_ACCESSREQUEST_URI + "/" + userId + "-" + engine, MasterDatabaseURIs.ENGINE_ACCESS_REQUESTOR_PROP_URI, userId, false);
 		
