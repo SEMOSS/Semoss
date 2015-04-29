@@ -4,13 +4,11 @@ public class EngineAccessRequest {
 	private String requestId;
 	private String userName;
 	private String engineName;
-	private String[] permissions;
 	
-	public EngineAccessRequest(String requestId, String userId, String engineName, String[] permissions) {
+	public EngineAccessRequest(String requestId, String userId, String engineName) {
 		this.requestId = requestId;
 		this.userName = userId;
 		this.engineName = engineName;
-		this.permissions = permissions;
 	}
 	
 	public String getRequestId() {
@@ -23,9 +21,5 @@ public class EngineAccessRequest {
 	
 	public String getEngineRequested() {
 		return this.engineName;
-	}
-	
-	public String[] getPermissionsRequested() {
-		return this.permissions;
-	}
+	}	
 }
