@@ -66,6 +66,7 @@ public class ResidualSystemOptFillData{
 	//cM_i, cDM_i, s_i
 	public double[] systemCostOfMaintenance;
 	public double[] systemCostOfDB;
+	public double[] systemCostConsumeDataArr;
 
 	public double[] systemCentralDeployment;
 	public double[] systemNumOfSites;
@@ -151,7 +152,7 @@ public class ResidualSystemOptFillData{
 		sysListBindings = "{" + SysOptUtilityMethods.makeBindingString("System",sysList) + "}";		
 		fillSystemFunctionality();
 
-		fillSystemCostOfData();
+		fillSystemCostToProvideData();
 		fillSystemRegion();
 		
 		fillSystemCost();
@@ -211,7 +212,7 @@ public class ResidualSystemOptFillData{
 		sysListBindings = "{" + SysOptUtilityMethods.makeBindingString("System",sysList) + "}";		
 		fillSystemFunctionality();
 
-		fillSystemCostOfData();
+		fillSystemCostToProvideData();
 		fillSystemRegion();
 		
 		fillSystemCost();
@@ -291,12 +292,13 @@ public class ResidualSystemOptFillData{
 	}
 	
 
-	public void fillSysDeploymentOptDataStores() {
+	public void fillSysSiteOptDataStores() {
 		sysListBindings = "{" + SysOptUtilityMethods.makeBindingString("System",sysList) + "}";	
 		fillSystemFunctionality();
 		fillSystemSite();
 		fillSystemNumOfSites();//TODO limit to sites we are actually looking at?
 		fillSystemCost();
+		fillSystemCostToConsumeData();
 		fillSystemTheaterGarrison(true,true);
 		
 //		String sysDataString = SysOptUtilityMethods.createMatrixPrintString(systemDataMatrix,sysList,dataList);
@@ -337,7 +339,7 @@ public class ResidualSystemOptFillData{
 
 	}
 	
-	private void fillSystemCostOfData() {
+	private void fillSystemCostToProvideData() {
 		systemCostOfDataMatrix = SysOptUtilityMethods.createEmptyMatrix(systemCostOfDataMatrix,sysList.size(),dataList.size());
 		String query = "SELECT DISTINCT ?sys ?data (SUM(?loe)*" + hourlyRate + " AS ?cost) WHERE { BIND( <http://health.mil/ontologies/Concept/GLTag/Provider> AS ?gltag) {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase>} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass}{?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}{?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;}{?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start}  {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser }{?data <http://semoss.org/ontologies/Relation/Input> ?GLitem}} GROUP BY ?sys ?data BINDINGS ?sys @SYSTEM-BINDINGS@";
 		
@@ -345,6 +347,15 @@ public class ResidualSystemOptFillData{
 		
 		systemCostOfDataMatrix = fillMatrixFromQuery(costEngine,query,systemCostOfDataMatrix,sysList,dataList);
 	}
+	
+	private void fillSystemCostToConsumeData() {
+		systemCostConsumeDataArr = SysOptUtilityMethods.createEmptyVector(systemCostConsumeDataArr, sysList.size());
+		String query = "SELECT DISTINCT ?sys (SUM(?loe)*150 AS ?cost) WHERE { BIND( <http://health.mil/ontologies/Concept/GLTag/Consumer> AS ?gltag){?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}{?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;}{?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser }{?data <http://semoss.org/ontologies/Relation/Input> ?GLitem}} GROUP BY ?sys BINDINGS ?sys @SYSTEM-BINDINGS@";
+		query = query.replace("@SYSTEM-BINDINGS@",sysListBindings);
+		systemCostConsumeDataArr = fillVectorFromQuery(costEngine,query,systemCostConsumeDataArr,sysList,false);
+		
+	}
+	
 	private void fillSystemRegion() 	{
 		if(regionList!=null) {
 			includeRegionalization = true;
@@ -360,14 +371,6 @@ public class ResidualSystemOptFillData{
 				systemRegionMatrix[i][0] = 1;
 		}
 	}
-//	
-//	private void fillSystemCentralDeployment() {
-//		systemCentralDeployment = SysOptUtilityMethods.createEmptyVector(systemCentralDeployment, sysList.size());
-//		String query = "SELECT DISTINCT ?sys (IF(?central = 'Y',1,0) AS ?Central)  WHERE {{?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}OPTIONAL{?sys <http://semoss.org/ontologies/Relation/Contains/CentralDeployment> ?central}}BINDINGS ?sys @SYSTEM-BINDINGS@";
-//		query = query.replace("@SYSTEM-BINDINGS@",sysListBindings);
-//		systemCentralDeployment = fillVectorFromQuery(systemEngine,query,systemCentralDeployment,sysList,false);
-//
-//	}
 	
 	private void fillSystemSite() 	{
 		systemSiteMatrix = SysOptUtilityMethods.createEmptyMatrix(systemSiteMatrix,sysList.size(),siteList.size());
@@ -826,15 +829,10 @@ public class ResidualSystemOptFillData{
 		}
 	}
 	
-	public void setSystemEngine(IEngine systemEngine) {
+	public void setEngines(IEngine systemEngine, IEngine costEngine, IEngine siteEngine) {
 		this.systemEngine = systemEngine;
-	}
-	
-	public void setCostEngine(IEngine costEngine) {
 		this.costEngine = costEngine;
-	}
-	
-	public void setSiteEngine(IEngine siteEngine) {
 		this.siteEngine = siteEngine;
 	}
+	
 }

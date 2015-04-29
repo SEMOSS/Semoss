@@ -61,22 +61,21 @@ import prerna.util.DIHelper;
 public class SysSiteOptimizer implements IAlgorithm {
 	
 	private static final Logger LOGGER = LogManager.getLogger(SysSiteOptimizer.class.getName());
-
-	private ArrayList<String> sysList, dataList, bluList, siteList;
-	Integer[] modArr, centralModArr, decomArr, centralDecomArr;
 	
-	private IEngine systemEngine;
-	private IEngine siteEngine;
+	private IEngine systemEngine, costEngine, siteEngine;
+	
+	private ArrayList<String> sysList, dataList, bluList, siteList, capList;
+	private ArrayList<String> centralSysList;
 	
 	//user must select these
 	private double budgetForYear;
 	private int years;
-	private Boolean useDHMSMFunctionality = false;//true if data/blu list made from dhmsm capabilities. False if from the systems
-	private Boolean isOptimizeBudget = false;
+	private Boolean useDHMSMFunctionality;//true if data/blu list made from dhmsm capabilities. False if from the systems
+	private Boolean isOptimizeBudget;
+	private String type;
 
 	//user can change these as advanced settings
-	private double infRate;
-	private double disRate;
+	private double infRate, disRate, trainingPerc;
 	private int noOfPts;
 	
 	//user should not change these
@@ -84,26 +83,24 @@ public class SysSiteOptimizer implements IAlgorithm {
 	private double deploymentFactor = 5;
 	
 	//generated data stores based off of the users selections
+	private Integer[] modArr, decomArr;
 	private int[][] systemDataMatrix, systemBLUMatrix;
 	private double[][] systemSiteMatrix;
 	private int[] systemTheater, systemGarrison;
-
-	private double[] maintenaceCosts;
-	private double[] siteMaintenaceCosts;//assuming that may be different at different sites/
-	private double[] siteDeploymentCosts;//assuming that may be different at different sites/
+	private double[] maintenaceCosts, siteMaintenaceCosts, systemCostConsumeDataArr, siteDeploymentCosts;
 	
-	private ArrayList<String> centralSysList;
+	private Integer[] centralModArr, centralDecomArr;
 	private int[][] centralSystemDataMatrix, centralSystemBLUMatrix;
 	private int[] centralSystemTheater, centralSystemGarrison;
-	
 	private double[] centralSystemMaintenaceCosts;
 
 	//results of the algorithm
-	private SysSiteOptFunction optFunc = new SysSiteSavingsOptFunction();;
-	
-	private double[] sysKeptArr;
-	private double[] centralSysKeptArr;
+	private SysSiteOptFunction optFunc;
+		
+	private double[] sysKeptArr, centralSysKeptArr;
 	private double[][] systemSiteResultMatrix;
+	
+	private int numSysKept, numCentralSysKept;
 	
 	private double currSustainmentCost, futureSustainmentCost;
 	private double adjustedDeploymentCost, adjustedTotalSavings;
@@ -116,20 +113,51 @@ public class SysSiteOptimizer implements IAlgorithm {
 		long startTime;
 		long endTime;
 		
-		startTime = System.currentTimeMillis();			
+		startTime = System.currentTimeMillis();
+		createSiteDataBLULists();
 		getData();
 		endTime = System.currentTimeMillis();
-		System.out.println("Time to query data " + (endTime - startTime) / 1000 );
+		System.out.println("Time to query data " + (endTime - startTime) / 1000 + " seconds");
 		
 		startTime = System.currentTimeMillis();			
-		optimizeSystemsAtSites();
+		optimizeSystemsAtSites(isOptimizeBudget, systemSiteMatrix, currSustainmentCost, budgetForYear, years);
 		endTime = System.currentTimeMillis();
-		System.out.println("Time to run LP " + (endTime - startTime) / 1000 );
+		System.out.println("Time to run Optimization " + (endTime - startTime) / 1000 + " seconds");
 		
 	}
 	
-	public void setEngines(IEngine systemEngine, IEngine siteEngine) {
+//	//run for 0 budget first
+//	public void execute2() {
+//		
+//		long startTime;
+//		long endTime;
+//		
+//		startTime = System.currentTimeMillis();
+//		createSiteDataBLULists();
+//		getData();
+//		endTime = System.currentTimeMillis();
+//		System.out.println("Time to query data " + (endTime - startTime) / 1000 + " seconds");
+//		
+//		startTime = System.currentTimeMillis();			
+//		optimizeSystemsAtSites(false, systemSiteMatrix, currSustainmentCost, 0, years);
+//		endTime = System.currentTimeMillis();
+//		System.out.println("Time to run Zero Budget LP " + (endTime - startTime) / 1000 + " seconds");		
+//		
+//		startTime = System.currentTimeMillis();		
+//		filterData();
+//		endTime = System.currentTimeMillis();
+//		System.out.println("Time to filter data " + (endTime - startTime) / 1000 + " seconds");
+//
+//		startTime = System.currentTimeMillis();			
+//		optimizeSystemsAtSites(isOptimizeBudget, systemSitePhase1FilteredMatrix, phase1SustainmentCost, budgetForYear, years);
+//		endTime = System.currentTimeMillis();
+//		System.out.println("Time to run Optimization " + (endTime - startTime) / 1000 + " seconds");
+//		
+//	}
+	
+	public void setEngines(IEngine systemEngine, IEngine costEngine, IEngine siteEngine) {
 		this.systemEngine = systemEngine;
+		this.costEngine = costEngine;
 		this.siteEngine = siteEngine;
 	}
 	
@@ -137,11 +165,12 @@ public class SysSiteOptimizer implements IAlgorithm {
 		this.useDHMSMFunctionality = useDHMSMFunctionality;
 	}
 	
-	public void setVariables(int budgetForYear, int years, double infRate, double disRate, int noOfPts) {
+	public void setVariables(int budgetForYear, int years, double infRate, double disRate, double trainingPerc, int noOfPts) {
 		this.budgetForYear = budgetForYear;
 		this.years = years;
 		this.infRate = infRate;
 		this.disRate = disRate;
+		this.trainingPerc = trainingPerc;
 		this.noOfPts = noOfPts;
 	}
 	
@@ -287,29 +316,19 @@ public class SysSiteOptimizer implements IAlgorithm {
 	
 	
 	public void setOptimizationType(String type) {
-
-		if(type.equals("Savings"))
-			optFunc = new SysSiteSavingsOptFunction();
-		else if(type.equals("ROI"))
-			optFunc = new SysSiteROIOptFunction();
-		else if(type.equals("IRR"))
-			optFunc = new SysSiteIRROptFunction();
-		else {
-			System.out.println("OPTIMIZATION TYPE DOES NOT EXIST");
-		}
+		this.type = type;
 	}
 	
 	public void setIsOptimizeBudget(Boolean isOptimizeBudget) {
 		this.isOptimizeBudget = isOptimizeBudget;
 	}
 	
-	private void getData() {
+	private void createSiteDataBLULists() {
 
 		String sysBindings = "{" + SysOptUtilityMethods.makeBindingString("System",sysList) + SysOptUtilityMethods.makeBindingString("System",centralSysList) + "}";
 		
 		String siteQuery = "SELECT DISTINCT ?Site WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;}{?Site <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?Site;}{?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite;} } ORDER BY ?Site BINDINGS ?System @SYSTEM-BINDINGS@";
 		siteQuery = siteQuery.replace("@SYSTEM-BINDINGS@",sysBindings);
-		siteList = SysOptUtilityMethods.runListQuery(siteEngine, siteQuery);
 
 		//any data and any blu is being selected
 		String dataQuery, bluQuery;
@@ -322,19 +341,26 @@ public class SysSiteOptimizer implements IAlgorithm {
 			bluQuery = "SELECT DISTINCT ?BLU WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;}{?System <http://semoss.org/ontologies/Relation/Provide> ?BLU}} ORDER BY ?BLU BINDINGS ?System @SYSTEM-BINDINGS@";
 			bluQuery = bluQuery.replace("@SYSTEM-BINDINGS@",sysBindings);
 		}
+		
+		String capQuery = "SELECT DISTINCT ?Capability WHERE {BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> as ?DHMSM){?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> ;}} ORDER BY ?Capability";
 
+		siteList = SysOptUtilityMethods.runListQuery(siteEngine, siteQuery);
 		dataList = SysOptUtilityMethods.runListQuery(systemEngine, dataQuery);
 		bluList = SysOptUtilityMethods.runListQuery(systemEngine, bluQuery);
+		capList = SysOptUtilityMethods.runListQuery(systemEngine, capQuery);
 		
 		System.out.println("Sites are..." + SysOptUtilityMethods.createPrintString(siteList));
 		System.out.println("Data are..." + SysOptUtilityMethods.createPrintString(dataList));
-		System.out.println("blu are..." + SysOptUtilityMethods.createPrintString(bluList));
+		System.out.println("BLU are..." + SysOptUtilityMethods.createPrintString(bluList));
+		System.out.println("Capabilities are..." + SysOptUtilityMethods.createPrintString(capList));
+	}
+	
+	private void getData() {
 
 		ResidualSystemOptFillData resFunc = new ResidualSystemOptFillData();
-		resFunc.setSystemEngine(systemEngine);
-		resFunc.setSiteEngine(siteEngine);
-		resFunc.setSysSiteLists(sysList,dataList,bluList,siteList);
-		resFunc.fillSysDeploymentOptDataStores();
+		resFunc.setSysSiteLists(sysList, dataList, bluList, siteList);
+		resFunc.setEngines(systemEngine, costEngine, siteEngine);
+		resFunc.fillSysSiteOptDataStores();
 		
 		systemDataMatrix = resFunc.systemDataMatrix;
 		systemBLUMatrix = resFunc.systemBLUMatrix;
@@ -342,6 +368,8 @@ public class SysSiteOptimizer implements IAlgorithm {
 		
 		systemTheater = resFunc.systemTheater;
 		systemGarrison = resFunc.systemGarrison;
+		
+		systemCostConsumeDataArr = resFunc.systemCostConsumeDataArr;
 		
 		double[] systemSustainmentBudget = resFunc.systemCostOfMaintenance;
 		double[] systemNumOfSites = resFunc.systemNumOfSites;
@@ -367,12 +395,10 @@ public class SysSiteOptimizer implements IAlgorithm {
 			double siteMaintenance = (1 - centralDeploymentPer) * sysBudget / numSites;
 			siteMaintenaceCosts[i] = siteMaintenance;
 			siteDeploymentCosts[i] = siteMaintenance * deploymentFactor;
-
-			currSustainmentCost += systemSustainmentBudget[i];
 		}
 		
 		resFunc.setSysSiteLists(centralSysList,dataList,bluList,siteList);
-		resFunc.fillSysDeploymentOptDataStores();
+		resFunc.fillSysSiteOptDataStores();
 		
 		centralSystemDataMatrix = resFunc.systemDataMatrix;
 		centralSystemBLUMatrix = resFunc.systemBLUMatrix;
@@ -381,17 +407,95 @@ public class SysSiteOptimizer implements IAlgorithm {
 		centralSystemGarrison = resFunc.systemGarrison;
 
 		centralSystemMaintenaceCosts = resFunc.systemCostOfMaintenance;
-		int centralSysLength = centralSysList.size();
-		for(i=0; i<centralSysLength; i++) {
 
-			currSustainmentCost += centralSystemMaintenaceCosts[i];
+		currSustainmentCost = calculateCurrentSustainmentCost(maintenaceCosts, centralSystemMaintenaceCosts);
+	}
+//	
+//	private void filterData() {
+//		
+//		phase2SysList = new ArrayList<String>();
+//		int i;
+//		int numSys = phase1SysList.size();
+//		for(i=0; i<numSys; i++) {
+//			if(sysKeptArr[i] == 1)
+//				phase2SysList.add(phase1SysList.get(i));
+//		}
+//		
+//		phase2CentralSysList = new ArrayList<String>();
+//		numSys = phase1CentralSysList.size();
+//		for(i=0; i<numSys; i++) {
+//			if(centralSysKeptArr[i] == 1)
+//				phase2CentralSysList.add(phase1CentralSysList.get(i));
+//		}
+//		
+//		
+//		//save intermediate values
+//		centralSysKeptPhase1Arr = centralSysKeptArr;
+//		sysKeptPhase1Arr = sysKeptArr;
+//		systemSitePhase1Matrix = systemSiteResultMatrix;
+//		
+//		//do not save, just filter
+//		modArr = SysOptUtilityMethods.filterSys(sysKeptArr, numSysKept, modArr);
+//		decomArr = SysOptUtilityMethods.filterSys(sysKeptArr, numSysKept, decomArr);
+//		
+//		systemDataMatrix = SysOptUtilityMethods.filterSys(sysKeptArr, numSysKept, systemDataMatrix);
+//		systemBLUMatrix = SysOptUtilityMethods.filterSys(sysKeptArr, numSysKept, systemBLUMatrix);
+//		systemSitePhase1FilteredMatrix = SysOptUtilityMethods.filterSys(sysKeptArr, numSysKept, systemSitePhase1Matrix);
+//
+//		systemTheater = SysOptUtilityMethods.filterSys(sysKeptArr, numSysKept, systemTheater);
+//		systemGarrison = SysOptUtilityMethods.filterSys(sysKeptArr, numSysKept, systemGarrison);
+//		
+//		maintenaceCosts = SysOptUtilityMethods.filterSys(sysKeptArr, numSysKept, maintenaceCosts);
+//		siteMaintenaceCosts = SysOptUtilityMethods.filterSys(sysKeptArr, numSysKept, siteMaintenaceCosts);
+//		siteDeploymentCosts = SysOptUtilityMethods.filterSys(sysKeptArr, numSysKept, siteDeploymentCosts);
+//		
+//		//central systems
+//		centralModArr = SysOptUtilityMethods.filterSys(centralSysKeptArr, numCentralSysKept, centralModArr);
+//		centralDecomArr = SysOptUtilityMethods.filterSys(centralSysKeptArr, numCentralSysKept, centralDecomArr);
+//		
+//		centralSystemDataMatrix = SysOptUtilityMethods.filterSys(centralSysKeptArr, numCentralSysKept, centralSystemDataMatrix);
+//		centralSystemBLUMatrix = SysOptUtilityMethods.filterSys(centralSysKeptArr, numCentralSysKept, centralSystemBLUMatrix);
+//
+//		centralSystemTheater = SysOptUtilityMethods.filterSys(centralSysKeptArr, numCentralSysKept, centralSystemTheater);
+//		centralSystemGarrison = SysOptUtilityMethods.filterSys(centralSysKeptArr, numCentralSysKept, centralSystemGarrison);
+//		
+//		centralSystemMaintenaceCosts = SysOptUtilityMethods.filterSys(centralSysKeptArr, numCentralSysKept, centralSystemMaintenaceCosts);
+//
+//		phase1SustainmentCost = phase2SustainmentCost;
+//		phase1AdjustedTotalSavings = phase2AdjustedTotalSavings;
+//	}
+	
+	private double calculateCurrentSustainmentCost(double[] maintenaceCosts, double[] centralSysMaintenaceCosts) {
+		double currSustainmentCost = 0.0;
+
+		int i;
+		int length = maintenaceCosts.length;
+		for(i=0; i<length; i++) {
+			currSustainmentCost += maintenaceCosts[i] / centralDeploymentPer;
 		}
-
+		
+		length = centralSysMaintenaceCosts.length;
+		for(i=0; i<length; i++) {
+			currSustainmentCost += centralSysMaintenaceCosts[i];
+		}
+		
+		return currSustainmentCost;
+			
 	}
 	
-	private void optimizeSystemsAtSites() {
+	private void optimizeSystemsAtSites(Boolean isOptimizeBudget, double[][] systemSiteMatrix, double currSustainmentCost, double budgetForYear, int years) {
 		
-		optFunc.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, modArr, decomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, budgetForYear, years, currSustainmentCost, infRate, disRate);
+		if(type.equals("Savings"))
+			optFunc = new SysSiteSavingsOptFunction();
+		else if(type.equals("ROI"))
+			optFunc = new SysSiteROIOptFunction();
+		else if(type.equals("IRR"))
+			optFunc = new SysSiteIRROptFunction();
+		else {
+			System.out.println("OPTIMIZATION TYPE DOES NOT EXIST");
+		}
+		
+		optFunc.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, modArr, decomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, systemCostConsumeDataArr, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, budgetForYear, years, currSustainmentCost, infRate, disRate, trainingPerc);
 
 		if(isOptimizeBudget && budgetForYear != 0) {
 			UnivariateOptimizer optimizer = new BrentOptimizer(.001, 10000);
@@ -418,12 +522,15 @@ public class SysSiteOptimizer implements IAlgorithm {
 		centralSysKeptArr = optFunc.getCentralSysKeptArr();
 		systemSiteResultMatrix = optFunc.getSystemSiteResultMatrix();
 		
+		numSysKept = optFunc.getNumSysKept();
+		numCentralSysKept = optFunc.getNumCentralSysKept();
+		
 		futureSustainmentCost = optFunc.getFutureSustainmentCost();
-		adjustedDeploymentCost = optFunc.getAdjustedDeploymentCost();
 		adjustedTotalSavings = optFunc.getAdjustedTotalSavings();
+		adjustedDeploymentCost = optFunc.getAdjustedDeploymentCost();
 
 		double yearsToComplete = optFunc.getYearsToComplete();
-		
+	
 		double mu = (1 + infRate / 100) / (1 + disRate / 100);
 		
 		budgetSpentPerYear = SysOptUtilityMethods.calculateAdjustedDeploymentCostArr(mu, yearsToComplete, years, budgetForYear);
@@ -578,6 +685,39 @@ public class SysSiteOptimizer implements IAlgorithm {
 			}
 			
 		}
+	}
+	
+	public Hashtable<String,Object> getSysCapHash() {
+		Hashtable<String,Object> sysCapHash = new Hashtable<String,Object>();
+		ArrayList<Hashtable<String,String>> sysHashList = new ArrayList<Hashtable<String,String>>();
+		
+		int i;
+		int numSys = sysList.size();
+		for(i = 0; i < numSys; i++) {
+			Hashtable<String, String> sysHash = new Hashtable<String, String>();
+			sysHash.put("name",sysList.get(i));
+			if(sysKeptArr[i] == 0)
+				sysHash.put("ind", "Decommissioned");
+			else
+				sysHash.put("ind", "Modernized");
+			sysHashList.add(sysHash);
+		}
+		
+		numSys = centralSysList.size();
+		for(i = 0; i < numSys; i++) {
+			Hashtable<String, String> sysHash = new Hashtable<String, String>();
+			sysHash.put("name",centralSysList.get(i));
+			if(centralSysKeptArr[i] == 0)
+				sysHash.put("ind", "Decommissioned");
+			else
+				sysHash.put("ind", "Modernized");
+			sysHashList.add(sysHash);
+		}
+		
+		sysCapHash.put("systemList",sysHashList);
+		sysCapHash.put("capList",capList);
+		
+		return sysCapHash;
 	}
 	
 	@Override
