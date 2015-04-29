@@ -31,7 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class User {
-	public static enum LOGIN_TYPES {google, facebook, twitter, cac};
+	public static enum LOGIN_TYPES {google, facebook, twitter, cac, anonymous};
 	
 	private String userId;
 	private String name;
