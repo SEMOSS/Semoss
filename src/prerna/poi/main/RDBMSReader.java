@@ -75,6 +75,7 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.impl.AbstractEngine;
+import prerna.rdf.engine.impl.QuestionAdministrator;
 import prerna.rdf.engine.impl.RDBMSNativeEngine;
 import prerna.rdf.engine.impl.RDFFileSesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -90,6 +91,7 @@ import com.hp.hpl.jena.vocabulary.OWL;
  */
 public class RDBMSReader {
 
+	private static final String GENERIC_PERSPECTIVE = "Generic-Perspective";
 	private static final Logger logger = LogManager.getLogger(RDBMSReader.class.getName());
 	
 	private String propFile; // the file that serves as the property file
@@ -516,21 +518,40 @@ public class RDBMSReader {
 		String fileName = dbBaseFolder + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + engineName + System.getProperty("file.separator") + engineName + "_Questions.properties";
 		
 		Properties prop = new Properties();
+		
+		int newTableSeq = allTables.size() - tables.size();
+		if(newTableSeq != 0 ){ //ie you are doing add to existing logic
+			try{
+				prop = ((AbstractEngine)engine).loadProp(fileName);
+			} catch (Exception e){
+				e.printStackTrace();
+			}
+		}
+		
 		String genericQueries = "";
-		for(int tableIndex = 0;tableIndex < allTables.size();tableIndex++)
+		
+		int questionOrder = 0;
+		for(int tableIndex = 0;tableIndex < tables.size();tableIndex++)
 		{
-			String key = allTables.elementAt(tableIndex);
+			questionOrder = newTableSeq + tableIndex;
+			String key = tables.elementAt(tableIndex);
 			key = realClean(key);
 			if(tableIndex == 0)
-				genericQueries = genericQueries + "GQ" + tableIndex;
+				genericQueries = genericQueries + "GQ" + questionOrder;
 			else
-				genericQueries = genericQueries + ";" + "GQ" + tableIndex;				
-			prop.put("GQ" + tableIndex, "Show all from " + key );
-			prop.put("GQ" + tableIndex +"_LAYOUT", "prerna.ui.components.playsheets.GridPlaySheet");
-			prop.put("GQ" + tableIndex +"_QUERY", "SELECT * FROM " + key);
+				genericQueries = genericQueries + ";" + "GQ" + questionOrder;				
+			prop.put("GQ" + questionOrder, "Show all from " + key );
+			prop.put("GQ" + questionOrder +"_LAYOUT", "prerna.ui.components.playsheets.GridPlaySheet");
+			prop.put("GQ" + questionOrder +"_QUERY", "SELECT * FROM " + key);
 		}
-		prop.put("Generic-Perspective", genericQueries);
-		prop.put("PERSPECTIVE", "Generic-Perspective");
+		if(newTableSeq != 0 ){
+			String savedGenericQueries = (String) prop.get(GENERIC_PERSPECTIVE);
+			genericQueries = savedGenericQueries + ";" + genericQueries;
+			prop.remove(GENERIC_PERSPECTIVE); //remove so it can be recreated
+		}
+		prop.put(GENERIC_PERSPECTIVE, genericQueries);
+		if(newTableSeq == 0 )
+			prop.put("PERSPECTIVE", GENERIC_PERSPECTIVE);
 		
 		try {
 			File file = new File(fileName);
@@ -544,6 +565,41 @@ public class RDBMSReader {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	
+	private void updateDefaultQuestionSheet(String engineName){
+		
+		QuestionAdministrator questionAdmin = new QuestionAdministrator(((AbstractEngine)engine));
+
+		//determine the # where the new questions should start
+		int newTableSeq = allTables.size() - tables.size();
+		String questionOrder = "", question = "", sql = "", layout = "", questionDescription = ""; 
+		
+		try {
+			String questionKey = questionAdmin.createQuestionKey(GENERIC_PERSPECTIVE);
+			for(int tableIndex = 0;tableIndex < tables.size();tableIndex++)
+			{
+				questionOrder = Integer.toString(newTableSeq + tableIndex);
+				questionKey = "GQ"+questionOrder;
+				String key = tables.elementAt(tableIndex);
+				key = realClean(key);
+				question = "Show all from " + key;
+				questionDescription = question;
+				layout = "prerna.ui.components.playsheets.GridPlaySheet";
+				sql = "SELECT * FROM " + key;
+								
+				questionAdmin.cleanAddQuestion(GENERIC_PERSPECTIVE, questionKey, questionOrder,
+						question, sql, layout, questionDescription, null, null, null); // parameterDependList, parameterQueryList, parameterOptionList);
+				questionAdmin.createQuestionXMLFile();
+			}
+		} catch(RuntimeException e) {
+			System.out.println("caught exception while adding question.................");
+			e.printStackTrace();
+			System.out.println("reverting xml........................");
+			questionAdmin.revertQuestionXML();
+			//return Response.status(500).entity(WebUtility.getSO(e.toString().substring(0, (e.toString().length() < MAX_CHAR)?e.toString().length():MAX_CHAR))).build();
+		}
+		
 	}
 	
 	/**
@@ -637,6 +693,7 @@ public class RDBMSReader {
 		runDBModTransactions(recreateIndexesArr); 
 		cleanAll(); //clean again because we reset the values for availableTables and availableTablesInfo
 		writeDefaultQuestionSheet(engineName);
+		updateDefaultQuestionSheet(engineName);
 		
 		createBaseRelations();
 		try{
