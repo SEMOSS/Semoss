@@ -95,7 +95,7 @@ public class UserPermissionsMasterDB extends ModifyMasterDB {
 		return true;
 	}
 	
-	public boolean addEngineAccessRequest(String engineName, String userRequestedBy, String[] permissions) {
+	public boolean addEngineAccessRequest(String engineName, String userRequestedBy) {
 		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 		
 		MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.ENGINE_ACCESSREQUEST_URI + "/" + userRequestedBy + "-" + engineName);
@@ -104,11 +104,6 @@ public class UserPermissionsMasterDB extends ModifyMasterDB {
 			MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.USER_BASE_URI + "/" + s, MasterDatabaseURIs.ENGINE_ACCESSREQUEST_URI + "/" + userRequestedBy + "-" + engineName, MasterDatabaseURIs.USER_ENGINE_ACCESSREQUEST_REL_URI + "/" + s + ":" + userRequestedBy + "-" + engineName);
 		}
 		
-		String permissionsRequested = "";
-		for(String s : permissions) {
-			permissionsRequested = permissionsRequested.concat(EnginePermission.getPropertyNameByPermissionName(s)).concat(";");
-		}
-		MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.ENGINE_ACCESSREQUEST_URI + "/" + userRequestedBy + "-" + engineName, MasterDatabaseURIs.ENGINE_ACCESS_PERMISSIONS_PROP_URI, permissionsRequested.substring(0, permissionsRequested.length()), false);
 		MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.ENGINE_ACCESSREQUEST_URI + "/" + userRequestedBy + "-" + engineName, MasterDatabaseURIs.ENGINE_NAME_REQUESTED_PROP_URI, engineName, false);
 		MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.ENGINE_ACCESSREQUEST_URI + "/" + userRequestedBy + "-" + engineName, MasterDatabaseURIs.ENGINE_ACCESS_REQUESTOR_PROP_URI, userRequestedBy, false);
 		
@@ -127,10 +122,9 @@ public class UserPermissionsMasterDB extends ModifyMasterDB {
 			ISelectStatement sjss = sjsw.next();
 			String user = sjss.getVar(names[0]).toString();
 			String engine = sjss.getVar(names[1]).toString();
-			String[] permissions = sjss.getVar(names[2]).toString().split(";");
-			String engineAccessRequest = sjss.getVar(names[3]).toString();
+			String engineAccessRequest = sjss.getVar(names[2]).toString();
 			
-			requests.add(new EngineAccessRequest(engineAccessRequest, user, engine, permissions));
+			requests.add(new EngineAccessRequest(engineAccessRequest, user, engine));
 		}
 		
 		return requests;
