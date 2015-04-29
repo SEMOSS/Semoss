@@ -95,6 +95,10 @@ public class SEMOSSQuery {
 		if(distinct)
 			query= query+ "DISTINCT ";
 		
+		if(selectorsString.length() == 0){
+			selectorsString = createReturnVariableSQLString();
+		}
+		
 		query=query + selectorsString + " FROM " + tableString;
 		
 		if(joinString.length() > 0 && SQLFilter.length() > 0)
@@ -181,8 +185,19 @@ public class SEMOSSQuery {
 		return wherePatternString;
 	}
 	
-	public String createReturnVariableString()
+	public String createReturnVariableSQLString()
 	{
+		String retVarString = "";
+		for (int varIdx=0; varIdx<retVars.size();varIdx++)
+		{
+			if(retVarString.length() > 0 ) 
+				retVarString += " , ";
+			retVarString += SPARQLQueryHelper.createComponentString(retVars.get(varIdx)).replace('?', ' ') ;
+		}
+		return retVarString;
+	}
+	
+	public String createReturnVariableString(){
 		String retVarString = "";
 		for (int varIdx=0; varIdx<retVars.size();varIdx++)
 		{
