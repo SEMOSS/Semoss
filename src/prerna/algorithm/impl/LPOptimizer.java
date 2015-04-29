@@ -145,6 +145,9 @@ public class LPOptimizer extends AbstractOptimizer{
 	 */
 	@Override
 	public void deleteModel() {
-		solver.deleteLp();
+		if(solver!=null) {
+			solver.deleteLp();
+			solver = null;
+		}
 	}
 }

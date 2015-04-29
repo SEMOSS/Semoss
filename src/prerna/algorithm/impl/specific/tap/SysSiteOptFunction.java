@@ -51,8 +51,12 @@ public class SysSiteOptFunction extends UnivariateOptFunction{
 	protected double roi;
 	protected double irr;
 	
+	public SysSiteOptFunction() {
+
+		lpSolver = new SysSiteLPSolver();
+	}
 	
-	public void setVariables(int[][] systemDataMatrix, int[][] systemBLUMatrix, double[][] systemSiteMatrix, int[] systemTheater, int[] systemGarrison, Integer[] sysModArr, Integer[] sysDecomArr, double[] maintenaceCosts, double[] siteMaintenaceCosts, double[] siteDeploymentCosts,int[][] centralSystemDataMatrix,int[][] centralSystemBLUMatrix, int[] centralSystemTheater, int[] centralSystemGarrison, Integer[] centralModArr, Integer[] centralDecomArr, double[] centralSystemMaintenaceCosts, double budgetForYear, int years, double currentSustainmentCost, double infRate, double disRate) {
+	public void setVariables(int[][] systemDataMatrix, int[][] systemBLUMatrix, double[][] systemSiteMatrix, int[] systemTheater, int[] systemGarrison, Integer[] sysModArr, Integer[] sysDecomArr, double[] maintenaceCosts, double[] siteMaintenaceCosts, double[] siteDeploymentCosts, double[] systemCostConsumeDataArr, int[][] centralSystemDataMatrix,int[][] centralSystemBLUMatrix, int[] centralSystemTheater, int[] centralSystemGarrison, Integer[] centralModArr, Integer[] centralDecomArr, double[] centralSystemMaintenaceCosts, double budgetForYear, int years, double currentSustainmentCost, double infRate, double disRate, double trainingPerc) {
 		
 		this.budgetForYear = budgetForYear;
 		this.totalYrs = years;
@@ -65,8 +69,7 @@ public class SysSiteOptFunction extends UnivariateOptFunction{
 		long endTime;
 		startTime = System.currentTimeMillis();			
 
-		lpSolver = new SysSiteLPSolver(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, sysModArr, sysDecomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, budgetForYear * years / 2);
-		lpSolver.setupModel();
+		lpSolver.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, sysModArr, sysDecomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, systemCostConsumeDataArr, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, trainingPerc);
 		
 		endTime = System.currentTimeMillis();
 		System.out.println("Time to set up the LP solver " + (endTime - startTime) / 1000  + " seconds");
@@ -81,10 +84,12 @@ public class SysSiteOptFunction extends UnivariateOptFunction{
 		long startTime;
 		long endTime;
 		startTime = System.currentTimeMillis();
-		
-		lpSolver.updateBudget(budget);
+
+		lpSolver.setMaxBudget(budget);
+		lpSolver.setupModel();
 		lpSolver.setTimeOut(200);
-		lpSolver.execute();
+		lpSolver.execute();	
+		lpSolver.deleteModel();
 		
 		endTime = System.currentTimeMillis();
 		System.out.println("Time to run iteration " + count + ": " + (endTime - startTime) / 1000 );
@@ -143,5 +148,13 @@ public class SysSiteOptFunction extends UnivariateOptFunction{
 	
 	public double getIRR() {
 		return irr;
+	}
+	
+	public int getNumSysKept() {
+		return lpSolver.getNumSysKept();
+	}
+	
+	public int getNumCentralSysKept() {
+		return lpSolver.getNumCentralSysKept();
 	}
 }

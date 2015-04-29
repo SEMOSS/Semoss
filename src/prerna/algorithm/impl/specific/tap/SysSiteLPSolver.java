@@ -55,9 +55,8 @@ public class SysSiteLPSolver extends LPOptimizer{
 	private int siteLength;
 	private double[][] systemSiteMatrix;	
 
-	private double[] maintenaceCosts;
-	private double[] siteMaintenaceCosts;
-	private double[] siteDeploymentCosts;
+	private double[] maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, systemCostConsumeDataArr;
+	private double trainingPerc;
 	
 	//for systems that are centrally deployed
 	private int numCentralSystems;
@@ -83,15 +82,17 @@ public class SysSiteLPSolver extends LPOptimizer{
 	
 	private double objectiveVal;
 	private double[][] systemSiteResultMatrix;
-	private double[] sysKeptArr;
-	private double[] centralSysKeptArr;
+	private double[] sysKeptArr, centralSysKeptArr;
 	private double totalDeploymentCost;
+	
+	private int numSysKept, numCentralSysKept;
 
+	
 	/**
-	 * Instantiates the SystemDeploymentOptimizer
+	 * Sets/updates the variables required to run the LP module
 	 */
-	public SysSiteLPSolver(int[][] systemDataMatrix, int[][] systemBLUMatrix, double[][] systemSiteMatrix, int[] systemTheater, int[] systemGarrison, Integer[] sysModArr, Integer[] sysDecomArr, double[] maintenaceCosts, double[] siteMaintenaceCosts, double[] siteDeploymentCosts,int[][] centralSystemDataMatrix,int[][] centralSystemBLUMatrix, int[] centralSystemTheater, int[] centralSystemGarrison, Integer[] centralModArr, Integer[] centralDecomArr, double[] centralSystemMaintenaceCosts, double maxBudget) {
-
+	public void setVariables(int[][] systemDataMatrix, int[][] systemBLUMatrix, double[][] systemSiteMatrix, int[] systemTheater, int[] systemGarrison, Integer[] sysModArr, Integer[] sysDecomArr, double[] maintenaceCosts, double[] siteMaintenaceCosts, double[] siteDeploymentCosts, double[] systemCostConsumeDataArr, int[][] centralSystemDataMatrix,int[][] centralSystemBLUMatrix, int[] centralSystemTheater, int[] centralSystemGarrison, Integer[] centralModArr, Integer[] centralDecomArr, double[] centralSystemMaintenaceCosts, double trainingPerc) {
+	
 		this.systemDataMatrix = systemDataMatrix;
 		this.systemBLUMatrix = systemBLUMatrix;
 		this.systemSiteMatrix = systemSiteMatrix;
@@ -105,6 +106,7 @@ public class SysSiteLPSolver extends LPOptimizer{
 		this.maintenaceCosts = maintenaceCosts;
 		this.siteMaintenaceCosts = siteMaintenaceCosts;
 		this.siteDeploymentCosts = siteDeploymentCosts;
+		this.systemCostConsumeDataArr = systemCostConsumeDataArr;
 
 		this.centralSystemDataMatrix = centralSystemDataMatrix;
 		this.centralSystemBLUMatrix = centralSystemBLUMatrix;
@@ -116,14 +118,39 @@ public class SysSiteLPSolver extends LPOptimizer{
 		this.centralDecomArr = centralDecomArr;
 		
 		this.centralSystemMaintenaceCosts = centralSystemMaintenaceCosts;
-		
-		this.maxBudget = maxBudget;
+
+		this.trainingPerc = trainingPerc;
 		
 		this.numCentralSystems = centralSystemMaintenaceCosts.length;
 
 		this.numNotCentralSystems = systemSiteMatrix.length;
 		this.siteLength = systemSiteMatrix[0].length;
-
+	}
+	
+	public void setMaxBudget(double maxBudget) {
+		this.maxBudget = maxBudget;
+	}
+	
+//	/**
+//	 * Sets system site matrix so that the optimizer can be rerun
+//	 * @param systemSiteMatrix
+//	 */
+//	public void updateBudget(double maxBudget) {
+//			this.maxBudget = maxBudget;
+//			try{
+//				
+//				if(budgetRow == 0) {
+//					LOGGER.info("Readding budget constraint since removed");
+//					addBudgetConstraint();
+//				}else {
+//					solver.setRh(budgetRow, maxBudget);
+//				}
+//			}catch (LpSolveException e) {
+//				e.printStackTrace(); //TODO
+//			}
+//	}
+	
+	private void calculateFunctionality() {
 		this.dataStillProvidedTheater = calculateFunctionalityStillProvided(systemDataMatrix, centralSystemDataMatrix, systemTheater, centralSystemTheater);
 		this.dataStillProvidedGarrison = calculateFunctionalityStillProvided(systemDataMatrix, centralSystemDataMatrix, systemGarrison, centralSystemGarrison);
 		
@@ -135,26 +162,6 @@ public class SysSiteLPSolver extends LPOptimizer{
 		
 		this.theaterBLUAtSiteMatrix = calculateFunctionalityAtSite(systemBLUMatrix, centralSystemBLUMatrix, systemTheater,centralSystemTheater, bluStillProvidedTheater);
 		this.garrisonBLUAtSiteMatrix = calculateFunctionalityAtSite(systemBLUMatrix, centralSystemBLUMatrix, systemGarrison,centralSystemGarrison, bluStillProvidedGarrison);
-	}
-	
-	
-	/**
-	 * Sets system site matrix so that the optimizer can be rerun
-	 * @param systemSiteMatrix
-	 */
-	public void updateBudget(double maxBudget) {
-			this.maxBudget = maxBudget;
-			try{
-				
-				if(budgetRow == 0) {
-					LOGGER.info("Readding budget constraint since removed");
-					addBudgetConstraint();
-				}else {
-					solver.setRh(budgetRow, maxBudget);
-				}
-			}catch (LpSolveException e) {
-				e.printStackTrace(); //TODO
-			}
 	}
 	
 	private int[] calculateFunctionalityStillProvided(int[][] systemFuncMatrix, int[][] centralSystemFuncMatrix, int[] systemEnvironment, int[] centralSystemEnvironment) {
@@ -191,7 +198,7 @@ public class SysSiteLPSolver extends LPOptimizer{
 	 * @param systemFunctionalityMatrix
 	 * @return
 	 */
-	private int[][] calculateFunctionalityAtSite(int[][] systemFunctionalityMatrix, int[][] centralSystemFunctionalityMatrix, int[] systemEnvironment, int[] centralSystemEnvironment, int[] funcStillProvided) {
+	private int[][] calculateFunctionalityAtSite(int[][] systemFunctionalityMatrix, int[][] centralSystemFunctionalityMatrix, int[] systemEnvironment, int[] centralSystemEnvironment, int[] funcStillProvidedInEnvironment) {
 		int i;
 		int j;
 		int k;
@@ -200,21 +207,21 @@ public class SysSiteLPSolver extends LPOptimizer{
 		int[][] functionalityAtSiteMatrix = new int[functionalityLength][siteLength];
 		
 		for(i=0; i<functionalityLength; i++) {
-			NEXT: for(j=0; j<siteLength; j++) {
-				
-				for(k=0; k<numNotCentralSystems; k++) {
-					//if the system is in this environment, has functionality, and is at site, then functionality is at site and on to next one
-					if(systemEnvironment[k] == 1 && systemFunctionalityMatrix[k][i] == 1 && systemSiteMatrix[k][j] == 1 && funcStillProvided[i] == 1) {
-						functionalityAtSiteMatrix[i][j] = 1;
-						continue NEXT;
-					}
-				}
+			OUTER: for(j=0; j<siteLength; j++) {
 				
 				for(k=0; k<numCentralSystems; k++) {
 					//if a central system has functionality, then functionality is at site and on to next one
-					if(centralSystemEnvironment[k] == 1 && centralSystemFunctionalityMatrix[k][i] == 1 && funcStillProvided[i] == 1) {
+					if(centralSystemEnvironment[k] == 1 && centralSystemFunctionalityMatrix[k][i] == 1 && funcStillProvidedInEnvironment[i] == 1) {
 						functionalityAtSiteMatrix[i][j] = 1;
-						continue NEXT;
+						continue OUTER;
+					}
+				}
+				
+				for(k=0; k<numNotCentralSystems; k++) {
+					//if the system is in this environment, has functionality, and is at site, then functionality is at site and on to next one
+					if(systemEnvironment[k] == 1 && systemFunctionalityMatrix[k][i] == 1 && systemSiteMatrix[k][j] == 1 && funcStillProvidedInEnvironment[i] == 1) {
+						functionalityAtSiteMatrix[i][j] = 1;
+						continue OUTER;
 					}
 				}
 
@@ -226,6 +233,10 @@ public class SysSiteLPSolver extends LPOptimizer{
 		}
 		return functionalityAtSiteMatrix;
 	}
+	
+	/**
+	 * Sets up the model for calculations to be performed upon.
+	 */
 
 	/**
 	 * Sets variables in model.
@@ -234,7 +245,7 @@ public class SysSiteLPSolver extends LPOptimizer{
 	 */
 	@Override
 	public void setVariables() throws LpSolveException { //TODO
-		
+
 		//create solver - one variable for each pair of sys and site combos + one variable for each system to say deployed at any site
 		// + one variable for each centrally deployed system to say deployed at all sites
 		
@@ -287,6 +298,8 @@ public class SysSiteLPSolver extends LPOptimizer{
 			long startTime;
 			long endTime1;
 
+			calculateFunctionality();
+			
 			startTime = System.currentTimeMillis();			
 			addBudgetConstraint();
 			endTime1 = System.currentTimeMillis();
@@ -296,7 +309,7 @@ public class SysSiteLPSolver extends LPOptimizer{
 			addFunctionalityConstraints(theaterDataAtSiteMatrix, systemDataMatrix, centralSystemDataMatrix, systemTheater, centralSystemTheater);
 			addFunctionalityConstraints(garrisonDataAtSiteMatrix, systemDataMatrix, centralSystemDataMatrix, systemGarrison, centralSystemGarrison);
 			
-			addFunctionalityConstraints(theaterBLUAtSiteMatrix, systemBLUMatrix, centralSystemBLUMatrix, systemGarrison, centralSystemGarrison);
+			addFunctionalityConstraints(theaterBLUAtSiteMatrix, systemBLUMatrix, centralSystemBLUMatrix, systemTheater, centralSystemTheater);
 			addFunctionalityConstraints(garrisonBLUAtSiteMatrix, systemBLUMatrix, centralSystemBLUMatrix,  systemGarrison, centralSystemGarrison);
 			endTime1 = System.currentTimeMillis();
 			
@@ -398,23 +411,28 @@ public class SysSiteLPSolver extends LPOptimizer{
 		int i;
 		int j;
 		int index = 0;
+		double cost = 0.0;
 		
 		int[] colno = new int[numNotCentralSystems * siteLength];
         double[] row = new double[numNotCentralSystems * siteLength];
         for(i=0; i<numNotCentralSystems; i++) {
 			for(j=0; j<siteLength; j++) {
-				if(systemSiteMatrix[i][j]==0) {
-					
-//					if(siteDeploymentCosts[i] <= maxBudget) {
-						colno[index] = i * siteLength + j +1;
-						row[index] = siteDeploymentCosts[i];
-						index++;
-//					}
-				}
+				if(systemSiteMatrix[i][j] == 0) {
+				colno[index] = i * siteLength + j +1;
+				row[index] = siteDeploymentCosts[i];
+				index++;
+				}//else {
+//
+//					cost += (1+trainingPerc) * systemCostConsumeDataArr[i];
+//				}
+//				colno[index] = i * siteLength + j +1;
+//				row[index] = (1 - systemSiteMatrix[i][j]) * siteDeploymentCosts[i];//  + (1+trainingPerc) * systemCostConsumeDataArr[i];
+//				index++;
 			}
         }
+ //       System.out.println("Cost "+cost);
 
-    	solver.addConstraintex(numNotCentralSystems * siteLength + numNotCentralSystems + numCentralSystems, row, colno, LpSolve.LE, maxBudget);
+    	solver.addConstraintex(numNotCentralSystems * siteLength, row, colno, LpSolve.LE, maxBudget);
     	budgetRow = solver.getNorigRows();
 
 	}
@@ -555,24 +573,32 @@ public class SysSiteLPSolver extends LPOptimizer{
 				}
 			}
 			
+			numSysKept = 0;
 			for(i = 0; i < numNotCentralSystems; i++ ) {
 				sysKeptArr[i] = solver.getVarPrimalresult(nConstraints + index + 1);
+				numSysKept += sysKeptArr[i];
 				index++;
 			}			
 			
+			numCentralSysKept = 0;
 			for(i = 0; i < numCentralSystems; i++ ) {
 				centralSysKeptArr[i] = solver.getVarPrimalresult(nConstraints + index + 1);
+				numCentralSysKept += centralSysKeptArr[i];
 				index++;
 			}
 			
 			totalDeploymentCost = 0.0;
 	        for(i=0; i<numNotCentralSystems; i++) {
 				for(j=0; j<siteLength; j++) {
-					if(systemSiteMatrix[i][j] == 0 && systemSiteResultMatrix[i][j] == 1) {
-						totalDeploymentCost += siteDeploymentCosts[i];
+					if(systemSiteResultMatrix[i][j] == 1) {
+					//	totalDeploymentCost += systemCostConsumeDataArr[i];
+						if(systemSiteMatrix[i][j] == 0)
+							totalDeploymentCost += siteDeploymentCosts[i];
 					}
 				}
 	        }
+	        
+			deleteModel();
 			
 		} catch(LpSolveException e) {
 			e.printStackTrace(); //TODO
@@ -601,5 +627,13 @@ public class SysSiteLPSolver extends LPOptimizer{
 	
 	public Boolean isOptimalSolution() {
 		return solved == 0;
+	}
+	
+	public int getNumSysKept() {
+		return numSysKept;
+	}
+	
+	public int getNumCentralSysKept() {
+		return numCentralSysKept;
 	}
 }

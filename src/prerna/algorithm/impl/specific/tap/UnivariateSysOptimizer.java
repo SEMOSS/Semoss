@@ -158,9 +158,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 		resFunc = new ResidualSystemOptFillData();
 		resFunc.setMaxYears(maxYears);
 		resFunc.setPlaySheet((SysOptPlaySheet) playSheet);
-		resFunc.setSystemEngine(systemEngine);
-		resFunc.setCostEngine(costEngine);
-		resFunc.setSiteEngine(siteEngine);
+		resFunc.setEngines(systemEngine, costEngine, siteEngine);
 		
 		if (includeRegionalization) {
 			resFunc.setSysDataBLULists(SysOptUtilityMethods.deepCopy(sysList), SysOptUtilityMethods.deepCopy(dataList), SysOptUtilityMethods.deepCopy(bluList), SysOptUtilityMethods.deepCopy(regionList), SysOptUtilityMethods.deepCopy(systemMustModernize), SysOptUtilityMethods.deepCopy(systemMustDecommission));

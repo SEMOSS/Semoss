@@ -90,9 +90,7 @@ public class SysSiteOptPlaySheet extends BasicProcessingPlaySheet{
 			ehrCore = false;
 		else
 			ehrCore = gson.fromJson(gson.toJson(webDataHash.get("ehrcore")), Boolean.class);
-		
-		if(sysUpdater == null) 
-			sysUpdater = new SysOptCheckboxListUpdater(engine, true, false, false);
+
 		dataHash.put("systems",sysUpdater.getSelectedSystemList(intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore));
 		
 		if (dataHash != null)
@@ -100,13 +98,14 @@ public class SysSiteOptPlaySheet extends BasicProcessingPlaySheet{
 		return returnHash;
 	}
 	
-	public void runOpt(Hashtable<String, Object> webDataHash) {
+	public Hashtable<String,Object> runOpt(Hashtable<String, Object> webDataHash) {
 
 		//check to make sure site engine is loaded
 		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
-		if(siteEngine == null) {
+		IEngine costEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+		if(siteEngine == null || costEngine == null) {
 			//TODO error here
-			return;
+			return new Hashtable<String,Object>();
 		}
 
 		Gson gson = new Gson();
@@ -123,18 +122,19 @@ public class SysSiteOptPlaySheet extends BasicProcessingPlaySheet{
 		int numPts = gson.fromJson(gson.toJson(webDataHash.get("numPts")), Integer.class);
 		
 		opt = new SysSiteOptimizer();
-		opt.setEngines(engine, siteEngine); //likely hr core and tap site
-		opt.setVariables(yearBudget,years, infl, disc, numPts); //budget per year and the number of years
+		opt.setEngines(engine, costEngine, siteEngine); //likely hr core and tap site
+		opt.setVariables(yearBudget,years, infl, disc, 0.15, numPts); //budget per year and the number of years
 		opt.setUseDHMSMFunctionality(useDHMSMCap); //whether the data objects will come from the list of systems or the dhmsm provided capabilities
 		opt.setOptimizationType(optType); //eventually will be savings, roi, or irr
-		opt.setIsOptimizeBudget(true); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
+		opt.setIsOptimizeBudget(false); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
 		opt.setSysHashList(sysHashList);
 		opt.execute();
+		return opt.getSysCapHash();
 	}
 	
 	@Override
 	public void createData() {
-
+		sysUpdater = new SysOptCheckboxListUpdater(engine, true, false, false);
 		
 	}
 	@Override
@@ -147,13 +147,16 @@ public class SysSiteOptPlaySheet extends BasicProcessingPlaySheet{
 		
 		//check to make sure site engine is loaded
 		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
-		if(siteEngine == null) {
-			Utility.showError("Cannot find database: " + "TAP_Site_Data");
+		IEngine costEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+		
+		if(siteEngine == null || costEngine == null) {
+			Utility.showError("Cannot find required databases. Make sure you have all: " + "TAP_Cost_Data and TAP_Site_Data");
 			return;
 
 		}
 		
 		//all systems to consider: must have received information, not be a device, and have a sustainment budget > 0.
+//		String sysQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?System <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'}{?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?cost}FILTER(?cost > 0)} ORDER BY ?System BINDINGS ?System {(<http://health.mil/ontologies/Concept/System/3M_Dictation_and_Transcription_Solution>)(<http://health.mil/ontologies/Concept/System/ABACUS>)(<http://health.mil/ontologies/Concept/System/ABHIDE>)(<http://health.mil/ontologies/Concept/System/ACAV>)(<http://health.mil/ontologies/Concept/System/AFIFHCT>)}";
 		String sysQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?System <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'}{?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?cost}FILTER(?cost > 0)} ORDER BY ?System";
 		ArrayList<String> sysList = SysOptUtilityMethods.runListQuery(engine, sysQuery);
 		
@@ -175,11 +178,11 @@ public class SysSiteOptPlaySheet extends BasicProcessingPlaySheet{
 		
 		//actually running the algorithm
 		opt = new SysSiteOptimizer();
-		opt.setEngines(engine, siteEngine); //likely hr core and tap site
-		opt.setVariables(10000, 10, 1.5, 2.5, 1); //budget per year, the number of years, infl rate, discount rate, number of points
+		opt.setEngines(engine, costEngine, siteEngine); //likely hr core and tap site
+		opt.setVariables(0, 10, 1.5, 2.5, .15, 1); //budget per year, the number of years, infl rate, discount rate, training perc, number of points
 		opt.setUseDHMSMFunctionality(false); //whether the data objects will come from the list of systems or the dhmsm provided capabilities
 		opt.setOptimizationType("Savings"); //eventually will be Savings, ROI, or IRR
-		opt.setIsOptimizeBudget(true); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
+		opt.setIsOptimizeBudget(false); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
 		opt.setSysList(sysList); //list of all systems to use in analysis
 		opt.setMustModDecomList(sysModList, sysDecomList); //list of systems to force modernize/decommision. Decommision is not implemented yet
 		opt.execute();
