@@ -216,7 +216,7 @@ public class SysSiteOptimizer implements IAlgorithm {
 		
 	}
 	
-	public void setSysHash(Hashtable<String,String> sysHash) {
+	public void setSysHashList(ArrayList<Hashtable<String, String>> sysHashList) {
 		sysList = new ArrayList<String>();
 		centralSysList = new ArrayList<String>();
 		
@@ -224,16 +224,16 @@ public class SysSiteOptimizer implements IAlgorithm {
 		ArrayList<String> allCentralSys = SysOptUtilityMethods.runListQuery(systemEngine, centralSysQuery);
 		
 		int numCentral = 0;
-		Iterator<String> sysItr = sysHash.keySet().iterator();
-		while(sysItr.hasNext()) {
-			String sys = sysItr.next();
-			if(allCentralSys.contains(sys)) {
+		int i;
+		int numSysHash = sysHashList.size();
+		for(i = 0; i < numSysHash; i++) {
+			Hashtable<String, String> sysHash = sysHashList.get(i);
+			String name = sysHash.get("name");
+			if(allCentralSys.contains(name))
 				numCentral++;
-			}
 		}
-		
 
-		int numNonCentral = sysHash.size() - numCentral;
+		int numNonCentral = numSysHash - numCentral;
 		
 		modArr = new Integer[numNonCentral];
 		centralModArr = new Integer[numCentral];
@@ -243,11 +243,10 @@ public class SysSiteOptimizer implements IAlgorithm {
 		
 		int centralIndex = 0;
 		int nonCentralIndex = 0;
-		sysItr = sysHash.keySet().iterator();
-		while(sysItr.hasNext()) {
-			
-			String sys = sysItr.next();
-			String status = sysHash.get(sys);
+		for(i = 0; i < numSysHash; i++) {
+			Hashtable<String, String> sysHash = sysHashList.get(i);
+			String sys = sysHash.get("name");
+			String status = sysHash.get("ind");
 			
 			if(allCentralSys.contains(sys)) {
 				
