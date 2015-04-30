@@ -44,13 +44,16 @@ public class SpecificHeatMapQueryBuilder extends AbstractSpecificQueryBuilder {
 	String heatName;
 	String heatMathFunc;
 	
-	public SpecificHeatMapQueryBuilder(String xAxisColName, String yAxisColName, String heatName, String heatMathFunc, ArrayList<Hashtable<String, String>> parameters, SEMOSSQuery baseQuery) {
+	ArrayList<String> labelList;
+	
+	public SpecificHeatMapQueryBuilder(String xAxisColName, String yAxisColName, String heatName, String heatMathFunc, ArrayList<Hashtable<String, String>> parameters, SEMOSSQuery baseQuery, ArrayList<String> labelList) {
 		super(parameters, baseQuery);
 		
 		this.xAxisColName = xAxisColName;
 		this.yAxisColName = yAxisColName;
 		this.heatName = heatName;
 		this.heatMathFunc = heatMathFunc;
+		this.labelList = labelList;
 	}
 	
 	@Override
@@ -88,7 +91,15 @@ public class SpecificHeatMapQueryBuilder extends AbstractSpecificQueryBuilder {
 
 	@Override
 	public void buildQueryR() {
-		// TODO Auto-generated method stub
+		String selectorsString = generateSelectorsString(labelList);
+		//eyi revisit
+		if(!parameters.isEmpty()) {
+			logger.info("Adding parameters: " + parameters);
+			addParam("Main");
+		}
+		
+		createSQLQuery(selectorsString);
+		logger.info("Created Generic Table Query: " + query);
 		
 	}
 }
