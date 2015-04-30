@@ -690,6 +690,7 @@ public class SysSiteOptimizer implements IAlgorithm {
 	public Hashtable<String,Object> getSysCapHash() {
 		Hashtable<String,Object> sysCapHash = new Hashtable<String,Object>();
 		ArrayList<Hashtable<String,String>> sysHashList = new ArrayList<Hashtable<String,String>>();
+		ArrayList<Hashtable<String,String>> capHashList = new ArrayList<Hashtable<String,String>>();
 		
 		int i;
 		int numSys = sysList.size();
@@ -697,9 +698,9 @@ public class SysSiteOptimizer implements IAlgorithm {
 			Hashtable<String, String> sysHash = new Hashtable<String, String>();
 			sysHash.put("name",sysList.get(i));
 			if(sysKeptArr[i] == 0)
-				sysHash.put("ind", "Decommissioned");
+				sysHash.put("ind", "Decommission");
 			else
-				sysHash.put("ind", "Modernized");
+				sysHash.put("ind", "Modernize");
 			sysHashList.add(sysHash);
 		}
 		
@@ -708,14 +709,22 @@ public class SysSiteOptimizer implements IAlgorithm {
 			Hashtable<String, String> sysHash = new Hashtable<String, String>();
 			sysHash.put("name",centralSysList.get(i));
 			if(centralSysKeptArr[i] == 0)
-				sysHash.put("ind", "Decommissioned");
+				sysHash.put("ind", "Decommission");
 			else
-				sysHash.put("ind", "Modernized");
+				sysHash.put("ind", "Modernize");
 			sysHashList.add(sysHash);
 		}
 		
+		int numCap = capList.size();
+		for(i = 0; i < numCap; i++) {
+			Hashtable<String, String> capHash = new Hashtable<String, String>();
+			capHash.put("name", capList.get(i));
+			capHash.put("ind", "Capability");
+			capHashList.add(capHash);
+		}
+		
 		sysCapHash.put("systemList",sysHashList);
-		sysCapHash.put("capList",capList);
+		sysCapHash.put("capList",capHashList);
 		
 		return sysCapHash;
 	}

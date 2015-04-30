@@ -117,8 +117,8 @@ public class SysSiteOptPlaySheet extends BasicProcessingPlaySheet{
 		String optType = gson.fromJson(gson.toJson(webDataHash.get("optTypes")), String.class);
 		
 		//advanced params
-		int infl = gson.fromJson(gson.toJson(webDataHash.get("infl")), Integer.class);
-		int disc = gson.fromJson(gson.toJson(webDataHash.get("disc")), Integer.class);
+		double infl = gson.fromJson(gson.toJson(webDataHash.get("infl")), Double.class);
+		double disc = gson.fromJson(gson.toJson(webDataHash.get("disc")), Double.class);
 		int numPts = gson.fromJson(gson.toJson(webDataHash.get("numPts")), Integer.class);
 		
 		opt = new SysSiteOptimizer();
