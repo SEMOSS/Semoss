@@ -160,7 +160,7 @@ public class GraphDataModel {
 				containsRelation = findContainsRelation();
 			if(containsRelation == null)
 				containsRelation = "<http://semoss.org/ontologies/Relation/Contains>";
-			RDFEngineHelper.genNodePropertiesLocal(rc, containsRelation, this);
+			RDFEngineHelper.genNodePropertiesLocal(rc, containsRelation, this, subclassCreate);
 			RDFEngineHelper.genEdgePropertiesLocal(rc, containsRelation, this);
 			genBaseConcepts();
 			logger.info("Loaded Orphans");
