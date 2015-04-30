@@ -38,18 +38,14 @@ public class SysSiteROIOptFunction extends SysSiteOptFunction{
 	 * @return double	max savings possible when optimizing for budget*/
 	public double value(double arg0) {
 		
-		if(runLPSolve(arg0)) {
-			roi = adjustedTotalSavings / adjustedDeploymentCost - 1;
-			
-			System.out.println("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", roi "+roi);
-			return roi;
-			
-		} else {
-			
-			System.out.println("iteration " + count + ": solution is not optimal ");
-			return 0.0;
-			
-		}
+		runLPSolve(arg0);
+		if(adjustedDeploymentCost == 0)
+			roi = 0;
+		else
+			roi = (adjustedTotalSavings / adjustedDeploymentCost - 1) * 100;
+		
+		System.out.println("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", roi "+roi+"%");
+		return roi;
 	}
 
 }

@@ -38,16 +38,10 @@ public class SysSiteSavingsOptFunction extends SysSiteOptFunction{
 	 * @return double	max savings possible when optimizing for budget*/
 	public double value(double arg0) {
 		
-		if(runLPSolve(arg0)) {			
-			System.out.println("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", savings over entire time frame "+adjustedTotalSavings);
-			return adjustedTotalSavings;
-			
-		} else {
-			
-			System.out.println("iteration " + count + ": solution is not optimal ");
-			return 0.0;
-			
-		}
+		runLPSolve(arg0);
+		System.out.println("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", savings over entire time frame "+adjustedTotalSavings);
+		return adjustedTotalSavings;
+
 	}
 
 }
