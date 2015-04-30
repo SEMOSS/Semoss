@@ -26,6 +26,7 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SQLConstants;
 import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.util.Utility;
@@ -38,7 +39,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	IEngine engine = null;
 	
 	SEMOSSQuery semossQuery = new SEMOSSQuery();
-	Hashtable <String,String> aliases = new Hashtable<String,String>();
+	private static Hashtable <String,String> aliases = new Hashtable<String,String>();
 	Hashtable <String, String> tableProcessed = new Hashtable<String, String>();
 	Hashtable <String, String> columnProcessed = new Hashtable<String,String>();
 	ArrayList<String> totalVarList = new ArrayList<String>();
@@ -135,6 +136,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		createSelectors();
 		
 		
+		
 		for(int predIndex = 0;predIndex < predV.size();predIndex++)
 		{
 			// get the predicate
@@ -204,14 +206,24 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			{
 				String currentFilters = "";
 				String columnValue = keys.next(); // this gets me title above
+				String simpleColumnValue = columnValue;
 				// need to split when there are underscores
 				// for now keeping it simple
-				String alias = getAlias(columnValue);
+				
+				String tableValue = columnValue;
+				//if the value passed into this method still has the tablename__column name syntax, need to pull out JUST the table name
+				if(columnValue.contains("__")){
+					String[] splitColAndTable = tableValue.split("__");
+					tableValue = splitColAndTable[0];
+					simpleColumnValue = splitColAndTable[1];
+				}
+				
+				String alias = getAlias(tableValue);
 				// get the list
 				ArrayList <Object> filterValues = (ArrayList<Object>)filterResults.get(columnValue);
 				
 				//transform the column value
-				columnValue = alias + "." + columnValue;
+				columnValue = alias + "." + simpleColumnValue;
 				
 				for(int filterIndex = 0;filterIndex < filterValues.size();filterIndex++)
 				{
@@ -301,6 +313,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	private void createSelectors()
 	{
 		String columnSubString = "";
+		String singleSelector = "";
 		//ArrayList <String> tColumns = getColumnsFromTable(tableName);
 		// instead get this from what they sent
 	
@@ -329,12 +342,13 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 				// the as query needs to reflect how I am sending eventually on the var headers
 				// the variable name is really
 				// tableName__columnName <-- yes that is a double underscore
-				
+				singleSelector = alias + "." + colName + " AS " + asName;
 				if(selectors.length() == 0)
-					selectors = alias + "." + colName + " AS " + asName;
+					selectors = singleSelector;
 				else
-					selectors = selectors + " , " + alias + "." + colName + " AS " + asName;
+					selectors = selectors + " , " + singleSelector;
 				
+				SEMOSSQueryHelper.addSingleReturnVarToQuery(singleSelector, semossQuery);
 				columnProcessed.put(asName.toUpperCase(), asName.toUpperCase());					
 			}
 			addFrom(tableName, alias);
@@ -354,9 +368,10 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	}
 	
 	
-	private String getAlias(String tableName)
+	public static String getAlias(String tableName)
 	{
 		tableName = tableName.toUpperCase();
+		
 		String response = null;
 		if(aliases.containsKey(tableName))
 			response = aliases.get(tableName);
@@ -431,7 +446,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			}
 			filterQuery += " ORDER BY 1 LIMIT " +  limitFilter;
 
-			headerHash.put(QueryBuilderHelper.queryKey, filterQuery.toUpperCase());
+			headerHash.put(QueryBuilderHelper.queryKey, filterQuery);
 			sequencer.put(key.toUpperCase(), headerHash);
 			
 			
