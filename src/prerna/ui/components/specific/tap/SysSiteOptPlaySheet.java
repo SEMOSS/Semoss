@@ -200,4 +200,8 @@ public class SysSiteOptPlaySheet extends BasicProcessingPlaySheet{
 		return opt.getOverviewCostData();
 	}
 	
+	Hashtable<String,Object> getHealthGrid(String capability) {
+		return opt.getHealthGrid(capability);
+	}
+	
 }
