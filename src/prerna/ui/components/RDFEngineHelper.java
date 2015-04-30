@@ -216,7 +216,7 @@ public class RDFEngineHelper {
 	 * @param containsRelation 	String that shows the relation for the property query.
 	 * @param ps 				Graph playsheet where edge properties are added.
 	 */
-	public static void genNodePropertiesLocal(RepositoryConnection rc, String containsRelation, GraphDataModel ps)
+	public static void genNodePropertiesLocal(RepositoryConnection rc, String containsRelation, GraphDataModel ps, Boolean subclassCreate)
 	{
 
 		IEngine sesameEngine = new InMemorySesameEngine();
@@ -225,6 +225,14 @@ public class RDFEngineHelper {
 				"{?Predicate " +"<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +  containsRelation + ";}" +
 				"{?Subject " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
 				"{?Subject ?Predicate ?Object}}";
+		if(subclassCreate){
+			propertyQuery =  "CONSTRUCT { ?Subject ?Predicate ?Property} WHERE {" +
+					"{?Predicate " +"<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +  containsRelation + ";}" +
+					"{?Subject " + "<http://www.w3.org/2000/01/rdf-schema#subClassOf>  " +  " <http://semoss.org/ontologies/Concept>;}" +
+					"{?Subject ?Object ?Predicate} BIND('' AS ?Property)}";
+		}
+		
+		logger.info("Local node prop query " + propertyQuery);
 
 
 		//SesameJenaConstructWrapper sjsc = new SesameJenaConstructWrapper();
