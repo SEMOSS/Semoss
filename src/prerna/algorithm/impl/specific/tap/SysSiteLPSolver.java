@@ -56,7 +56,7 @@ public class SysSiteLPSolver extends LPOptimizer{
 	private double[][] systemSiteMatrix;	
 
 	private double[] maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, systemCostConsumeDataArr;
-	private double trainingPerc;
+	private double trainingPerc, currentSustainmentCost;
 	
 	//for systems that are centrally deployed
 	private int numCentralSystems;
@@ -77,9 +77,6 @@ public class SysSiteLPSolver extends LPOptimizer{
 	//input
 	private double maxBudget;
 	
-	//row pertaining to the budget constraint to make updating faster
-	private int budgetRow;
-	
 	private double objectiveVal;
 	private double[][] systemSiteResultMatrix;
 	private double[] sysKeptArr, centralSysKeptArr;
@@ -91,7 +88,7 @@ public class SysSiteLPSolver extends LPOptimizer{
 	/**
 	 * Sets/updates the variables required to run the LP module
 	 */
-	public void setVariables(int[][] systemDataMatrix, int[][] systemBLUMatrix, double[][] systemSiteMatrix, int[] systemTheater, int[] systemGarrison, Integer[] sysModArr, Integer[] sysDecomArr, double[] maintenaceCosts, double[] siteMaintenaceCosts, double[] siteDeploymentCosts, double[] systemCostConsumeDataArr, int[][] centralSystemDataMatrix,int[][] centralSystemBLUMatrix, int[] centralSystemTheater, int[] centralSystemGarrison, Integer[] centralModArr, Integer[] centralDecomArr, double[] centralSystemMaintenaceCosts, double trainingPerc) {
+	public void setVariables(int[][] systemDataMatrix, int[][] systemBLUMatrix, double[][] systemSiteMatrix, int[] systemTheater, int[] systemGarrison, Integer[] sysModArr, Integer[] sysDecomArr, double[] maintenaceCosts, double[] siteMaintenaceCosts, double[] siteDeploymentCosts, double[] systemCostConsumeDataArr, int[][] centralSystemDataMatrix,int[][] centralSystemBLUMatrix, int[] centralSystemTheater, int[] centralSystemGarrison, Integer[] centralModArr, Integer[] centralDecomArr, double[] centralSystemMaintenaceCosts, double trainingPerc, double currentSustainmentCost) {
 	
 		this.systemDataMatrix = systemDataMatrix;
 		this.systemBLUMatrix = systemBLUMatrix;
@@ -120,6 +117,7 @@ public class SysSiteLPSolver extends LPOptimizer{
 		this.centralSystemMaintenaceCosts = centralSystemMaintenaceCosts;
 
 		this.trainingPerc = trainingPerc;
+		this.currentSustainmentCost = currentSustainmentCost;
 		
 		this.numCentralSystems = centralSystemMaintenaceCosts.length;
 
@@ -411,7 +409,6 @@ public class SysSiteLPSolver extends LPOptimizer{
 		int i;
 		int j;
 		int index = 0;
-		double cost = 0.0;
 		
 		int[] colno = new int[numNotCentralSystems * siteLength];
         double[] row = new double[numNotCentralSystems * siteLength];
@@ -419,21 +416,20 @@ public class SysSiteLPSolver extends LPOptimizer{
 			for(j=0; j<siteLength; j++) {
 				if(systemSiteMatrix[i][j] == 0) {
 				colno[index] = i * siteLength + j +1;
-				row[index] = siteDeploymentCosts[i];
+				row[index] = siteDeploymentCosts[i] + (1+trainingPerc) * systemCostConsumeDataArr[i];
 				index++;
-				}//else {
-//
-//					cost += (1+trainingPerc) * systemCostConsumeDataArr[i];
-//				}
+				}else {
+					colno[index] = i * siteLength + j +1;
+					row[index] = (1+trainingPerc) * systemCostConsumeDataArr[i];
+					index++;
+				}
 //				colno[index] = i * siteLength + j +1;
 //				row[index] = (1 - systemSiteMatrix[i][j]) * siteDeploymentCosts[i];//  + (1+trainingPerc) * systemCostConsumeDataArr[i];
 //				index++;
 			}
         }
- //       System.out.println("Cost "+cost);
 
     	solver.addConstraintex(numNotCentralSystems * siteLength, row, colno, LpSolve.LE, maxBudget);
-    	budgetRow = solver.getNorigRows();
 
 	}
 	
@@ -538,68 +534,81 @@ public class SysSiteLPSolver extends LPOptimizer{
 			solver.setBbDepthlimit(-1);
 			solver.setMipGap(true,maxBudget);
 
-			System.out.println("Starting execute...");
 			super.execute();
-			System.out.println("Finished execute...");
-			
-			if(solved == LpSolve.SUBOPTIMAL)
-				LOGGER.error("SOLUTION IS SUBOPTIMAL");
-			else if(solved == LpSolve.TIMEOUT)
-				LOGGER.error("SOLUTION TIMED OUT");
-			else if(solved != 0)
- 				LOGGER.error("SOLVED IS "+solved);
-			
-			System.out.println("orig cols " + solver.getNorigColumns() + " now cols "+solver.getNcolumns());
-			System.out.println("orig rows " + solver.getNorigRows() + " now rows "+solver.getNrows());
-
-			objectiveVal = solver.getObjective();
-			
-			budgetRow = solver.getLpIndex(budgetRow);
 			
 			int i;
 			int j;
-
+			int index = 0;
 			int nConstraints = solver.getNorigRows();
 
 			systemSiteResultMatrix = new double[numNotCentralSystems][siteLength];
 			sysKeptArr = new double[numNotCentralSystems];
 			centralSysKeptArr = new double[numCentralSystems];
 			
-			int index = 0;
-			for(i = 0; i < numNotCentralSystems; i++ ) {
-				for(j = 0; j < siteLength; j++) {
-					systemSiteResultMatrix[i][j] = solver.getVarPrimalresult(nConstraints + index + 1);
-					index++;
+			//if you don't get an output, then everything is just left as is, keep all at all current sites
+			if(solved != 0) {
+				if(solved == LpSolve.SUBOPTIMAL)
+					LOGGER.error("SOLUTION IS SUBOPTIMAL");
+				else if(solved == LpSolve.TIMEOUT)
+					LOGGER.error("SOLUTION TIMED OUT");
+				else if(solved == LpSolve.INFEASIBLE)
+	 				LOGGER.error("Solution is infeasible for given budget. Recommend do nothing.");
+				else
+	 				LOGGER.error("SOLVED IS "+solved);
+				
+				objectiveVal = currentSustainmentCost;
+				
+				systemSiteResultMatrix = systemSiteMatrix;
+				
+				numSysKept = numNotCentralSystems;
+				for(i = 0; i < numNotCentralSystems; i++ ) {
+					sysKeptArr[i] = 1;
 				}
-			}
-			
-			numSysKept = 0;
-			for(i = 0; i < numNotCentralSystems; i++ ) {
-				sysKeptArr[i] = solver.getVarPrimalresult(nConstraints + index + 1);
-				numSysKept += sysKeptArr[i];
-				index++;
-			}			
-			
-			numCentralSysKept = 0;
-			for(i = 0; i < numCentralSystems; i++ ) {
-				centralSysKeptArr[i] = solver.getVarPrimalresult(nConstraints + index + 1);
-				numCentralSysKept += centralSysKeptArr[i];
-				index++;
-			}
-			
-			totalDeploymentCost = 0.0;
-	        for(i=0; i<numNotCentralSystems; i++) {
-				for(j=0; j<siteLength; j++) {
-					if(systemSiteResultMatrix[i][j] == 1) {
-					//	totalDeploymentCost += systemCostConsumeDataArr[i];
-						if(systemSiteMatrix[i][j] == 0)
-							totalDeploymentCost += siteDeploymentCosts[i];
+				
+				numCentralSysKept = numCentralSystems;
+				for(i = 0; i < numCentralSystems; i++ ) {
+					centralSysKeptArr[i] = 1;
+				}
+				
+				totalDeploymentCost = 0.0;
+
+			} else {
+				objectiveVal = solver.getObjective();
+				
+				for(i = 0; i < numNotCentralSystems; i++ ) {
+					for(j = 0; j < siteLength; j++) {
+						systemSiteResultMatrix[i][j] = solver.getVarPrimalresult(nConstraints + index + 1);
+						index++;
 					}
 				}
-	        }
-	        
-			deleteModel();
+				
+				numSysKept = 0;
+				for(i = 0; i < numNotCentralSystems; i++ ) {
+					sysKeptArr[i] = solver.getVarPrimalresult(nConstraints + index + 1);
+					numSysKept += sysKeptArr[i];
+					index++;
+				}			
+				
+				numCentralSysKept = 0;
+				for(i = 0; i < numCentralSystems; i++ ) {
+					centralSysKeptArr[i] = solver.getVarPrimalresult(nConstraints + index + 1);
+					numCentralSysKept += centralSysKeptArr[i];
+					index++;
+				}
+				
+				totalDeploymentCost = 0.0;
+		        for(i=0; i<numNotCentralSystems; i++) {
+					for(j=0; j<siteLength; j++) {
+						if(systemSiteResultMatrix[i][j] == 1) {
+							totalDeploymentCost += (1+trainingPerc) * systemCostConsumeDataArr[i];
+							if(systemSiteMatrix[i][j] == 0)
+								totalDeploymentCost += siteDeploymentCosts[i];
+						}
+					}
+		        }
+			}
 			
+			deleteModel();
 		} catch(LpSolveException e) {
 			e.printStackTrace(); //TODO
 		}
@@ -623,10 +632,6 @@ public class SysSiteLPSolver extends LPOptimizer{
 	
 	public double getTotalDeploymentCost() {
 		return totalDeploymentCost;
-	}
-	
-	public Boolean isOptimalSolution() {
-		return solved == 0;
 	}
 	
 	public int getNumSysKept() {

@@ -41,6 +41,10 @@ public class SysSiteOptFunction extends UnivariateOptFunction{
 	protected double currentSustainmentCost;
 	protected double budgetForYear;
 	
+	protected double previousDeployCost = -1;
+	protected double lowBound = -1;
+	protected double highBound = -1;
+	
 	//calculated during run
 	protected double futureSustainmentCost;
 	protected double adjustedDeploymentCost;
@@ -53,7 +57,6 @@ public class SysSiteOptFunction extends UnivariateOptFunction{
 	
 	public SysSiteOptFunction() {
 
-		lpSolver = new SysSiteLPSolver();
 	}
 	
 	public void setVariables(int[][] systemDataMatrix, int[][] systemBLUMatrix, double[][] systemSiteMatrix, int[] systemTheater, int[] systemGarrison, Integer[] sysModArr, Integer[] sysDecomArr, double[] maintenaceCosts, double[] siteMaintenaceCosts, double[] siteDeploymentCosts, double[] systemCostConsumeDataArr, int[][] centralSystemDataMatrix,int[][] centralSystemBLUMatrix, int[] centralSystemTheater, int[] centralSystemGarrison, Integer[] centralModArr, Integer[] centralDecomArr, double[] centralSystemMaintenaceCosts, double budgetForYear, int years, double currentSustainmentCost, double infRate, double disRate, double trainingPerc) {
@@ -69,14 +72,15 @@ public class SysSiteOptFunction extends UnivariateOptFunction{
 		long endTime;
 		startTime = System.currentTimeMillis();			
 
-		lpSolver.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, sysModArr, sysDecomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, systemCostConsumeDataArr, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, trainingPerc);
+		lpSolver = new SysSiteLPSolver();
+		lpSolver.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, sysModArr, sysDecomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, systemCostConsumeDataArr, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, trainingPerc, currentSustainmentCost);
 		
 		endTime = System.currentTimeMillis();
 		System.out.println("Time to set up the LP solver " + (endTime - startTime) / 1000  + " seconds");
 
 	}
 	
-	protected Boolean runLPSolve(double budget) {
+	protected void runLPSolve(double budget) {
 		count++;
 //		updateProgressBar("Iteration " + count);
 		System.out.println("budget "+budget);
@@ -84,22 +88,39 @@ public class SysSiteOptFunction extends UnivariateOptFunction{
 		long startTime;
 		long endTime;
 		startTime = System.currentTimeMillis();
+		
+		if(budget == lowBound || (budget> lowBound && budget <= highBound))
+			return;
 
 		lpSolver.setMaxBudget(budget);
 		lpSolver.setupModel();
 		lpSolver.setTimeOut(200);
-		lpSolver.execute();	
-		lpSolver.deleteModel();
+		lpSolver.execute();
 		
 		endTime = System.currentTimeMillis();
 		System.out.println("Time to run iteration " + count + ": " + (endTime - startTime) / 1000 );
 		
-		if(!lpSolver.isOptimalSolution()) {
-			return false;
-		}
-		
 		futureSustainmentCost = lpSolver.getObjectiveVal();
 		double deploymentCost = lpSolver.getTotalDeploymentCost();
+		
+		if(previousDeployCost == deploymentCost) {
+			if(highBound > 0) {
+				if(budget < lowBound)
+					lowBound = budget;
+				else if(budget > highBound)
+					highBound = budget;
+			}
+			else if(lowBound < budget)
+				highBound = budget;
+			else {
+				highBound = lowBound;
+				lowBound = budget;
+			}
+		}else {
+			previousDeployCost = deploymentCost;
+			lowBound = budget;
+			highBound = -1;
+		}
 		
 		if(budgetForYear == 0)
 			yearsToComplete = 0.0;
@@ -110,8 +131,6 @@ public class SysSiteOptFunction extends UnivariateOptFunction{
 		adjustedDeploymentCost = SysOptUtilityMethods.calculateAdjustedDeploymentCost(mu, yearsToComplete, budgetForYear);
 		adjustedTotalSavings = SysOptUtilityMethods.calculateAdjustedTotalSavings(mu, yearsToComplete, totalYrs, currentSustainmentCost - futureSustainmentCost);
 
-				
-		return true;
 	}
 	
 	public double[] getSysKeptArr() {

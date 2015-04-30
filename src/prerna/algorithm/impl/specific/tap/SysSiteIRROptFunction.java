@@ -48,22 +48,19 @@ public class SysSiteIRROptFunction extends SysSiteOptFunction{
 	 * @return double	max savings possible when optimizing for budget*/
 	public double value(double arg0) {
 		
-		if(runLPSolve(arg0)) {
-
+		runLPSolve(arg0);
+		if(currentSustainmentCost == futureSustainmentCost) {
+			irr =  -1E-30;
+		}else {
+			
 			linInt.setYearSavingsAndYearsToComplete(currentSustainmentCost - futureSustainmentCost, yearsToComplete);
 			linInt.execute();
-			irr =  linInt.retVal;
-			
-			System.out.println("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", internal rate of return "+irr);
-			
-			return irr;
-			
-		} else {
-			
-			System.out.println("iteration " + count + ": solution is not optimal ");
-			return 0.0;
-			
+			irr =  linInt.retVal * 100;
 		}
+		System.out.println("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", internal rate of return "+irr + "%");
+		
+		return irr;
+		
 	}
 
 	public void createLinearInterpolation()

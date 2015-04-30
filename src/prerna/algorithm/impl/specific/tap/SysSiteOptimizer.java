@@ -27,13 +27,16 @@
  *******************************************************************************/
 package prerna.algorithm.impl.specific.tap;
 
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.Iterator;
 
 import javax.swing.JDesktopPane;
 
 import org.apache.commons.math3.exception.TooManyEvaluationsException;
+import org.apache.commons.math3.optim.InitialGuess;
 import org.apache.commons.math3.optim.MaxEval;
 import org.apache.commons.math3.optim.OptimizationData;
 import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
@@ -51,6 +54,7 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.IAlgorithm;
 import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.components.playsheets.ColumnChartPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -497,16 +501,17 @@ public class SysSiteOptimizer implements IAlgorithm {
 		
 		optFunc.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, modArr, decomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, systemCostConsumeDataArr, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, budgetForYear, years, currSustainmentCost, infRate, disRate, trainingPerc);
 
-		if(isOptimizeBudget && budgetForYear != 0) {
-			UnivariateOptimizer optimizer = new BrentOptimizer(.001, 10000);
+		double output = optFunc.value(budgetForYear * years);
+		if(isOptimizeBudget && output > 0) {
+			UnivariateOptimizer optimizer = new BrentOptimizer(.05, 10000);
 	
 			RandomGenerator rand = new Well1024a(500);
 			MultiStartUnivariateOptimizer multiOpt = new MultiStartUnivariateOptimizer(optimizer, noOfPts, rand);
 			UnivariateObjectiveFunction objF = new UnivariateObjectiveFunction(optFunc);
-			SearchInterval search = new SearchInterval(0, budgetForYear * years);
+			SearchInterval search = new SearchInterval(0, budgetForYear * years, budgetForYear * years);
 			MaxEval eval = new MaxEval(200);
 			
-			OptimizationData[] data = new OptimizationData[] { search, objF, GoalType.MAXIMIZE, eval };
+			OptimizationData[] data = new OptimizationData[] { search, objF, GoalType.MAXIMIZE, eval};
 			try {
 				UnivariatePointValuePair pair = multiOpt.optimize(data);
 				optFunc.value(pair.getPoint());
@@ -514,8 +519,6 @@ public class SysSiteOptimizer implements IAlgorithm {
 			} catch (TooManyEvaluationsException fee) {
 				System.out.println("Too many evalutions");
 			}
-		} else {
-			optFunc.value(budgetForYear * years);
 		}
 	
 		sysKeptArr = optFunc.getSysKeptArr();
@@ -563,6 +566,34 @@ public class SysSiteOptimizer implements IAlgorithm {
 			System.out.println("**ROI: " + optFunc.getROI());
 		else if(optFunc  instanceof SysSiteIRROptFunction)
 			System.out.println("**IRR: " + optFunc.getIRR());
+		
+		createCostGrid();
+	}
+
+	private void createCostGrid() {
+		
+		String[] headers = new String[5];
+		headers[0] = "System";
+		headers[1] = "Sustain Cost";
+		headers[2] = "Site Maintain Cost";
+		headers[3] = "Site Data Consume Cost";
+		headers[4] = "Site Deploy Cost";
+		
+		ArrayList<Object []> list = new ArrayList<Object []>();
+		
+		int i=0;
+		int rowLength = sysList.size();
+		
+		for(i = 0; i<rowLength; i++) {
+			Object[] row = new Object[5];
+			row[0] = sysList.get(i);
+			row[1] = maintenaceCosts[i];
+			row[2] = siteMaintenaceCosts[i];
+			row[3] = systemCostConsumeDataArr[i];
+			row[4] = siteDeploymentCosts[i];
+			list.add(row);
+		}
+		createNewGridPlaySheet(headers,list,"NonCentral System Costs");
 	}
 	
 	private void createOverallGrid(double[] matrix, ArrayList<String> rowLabels, String systemType, String title) {
@@ -728,6 +759,72 @@ public class SysSiteOptimizer implements IAlgorithm {
 		
 		return sysCapHash;
 	}
+	
+	public Hashtable<String,Object> getOverviewInfoData() {
+
+		Hashtable<String,Object> overviewInfoHash = new Hashtable<String,Object>();
+		Hashtable<String,Object> systemInfoHash = new Hashtable<String,Object>();
+		Hashtable<String,Object> budgetInfoHash = new Hashtable<String,Object>();
+		
+		int totalSys = sysList.size() + centralSysList.size();
+		int totalKept = numSysKept + numCentralSysKept;
+		systemInfoHash.put("beforeCount", totalSys);
+		systemInfoHash.put("decommissionedCount", totalSys - totalKept);
+		systemInfoHash.put("afterCount", totalKept);
+		
+		DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
+		symbols.setGroupingSeparator(',');
+		NumberFormat formatter = new DecimalFormat("'$' ###,##0.00", symbols);
+
+		budgetInfoHash.put("formattedCurrentSustVal", formatter.format(currSustainmentCost));
+		budgetInfoHash.put("formattedFutureSustVal", formatter.format(futureSustainmentCost));
+		budgetInfoHash.put("formattedCostVal", formatter.format(adjustedDeploymentCost));
+		
+		overviewInfoHash.put("systemInfo",systemInfoHash);
+		overviewInfoHash.put("budgetInfo",budgetInfoHash);
+		
+		return overviewInfoHash;
+	}
+	
+	public Hashtable<String,Object> getOverviewCostData() {
+		String[] names = new String[]{"Year", "Build Cost","Sustainment Cost"};
+		ArrayList<Object []> list = new ArrayList<Object []>();
+		int i;
+		int startYear = 2017;
+		for(i=0; i<years; i++) {
+			Object[] row = new Object[3];
+			row[0] = startYear + i;
+			row[1] = budgetSpentPerYear[i];
+			row[2] = costAvoidedPerYear[i];
+			list.add(row);
+		}
+		
+		ColumnChartPlaySheet ps = new ColumnChartPlaySheet();
+		ps.setNames(names);
+		ps.setList(list);
+		ps.setDataHash(ps.processQueryData());
+		return (Hashtable<String,Object>)ps.getData();
+	}
+	
+//	public Hashtable<String,Object> getOverviewCostData() {
+//		String[] names = new String[]{"Year", "Build Cost","Sustainment Cost"};
+//		ArrayList<Object []> list = new ArrayList<Object []>();
+//		int i;
+//		int startYear = 2017;
+//		for(i=0; i<years; i++) {
+//			Object[] row = new Object[3];
+//			row[0] = startYear + i;
+//			row[1] = budgetSpentPerYear[i];
+//			row[2] = costAvoidedPerYear[i];
+//			list.add(row);
+//		}
+//		
+//		ColumnChartPlaySheet ps = new ColumnChartPlaySheet();
+//		ps.setNames(names);
+//		ps.setList(list);
+//		ps.setDataHash(ps.processQueryData());
+//		return (Hashtable<String,Object>)ps.getData();
+//	}
 	
 	@Override
 	public void setPlaySheet(IPlaySheet playSheet) {

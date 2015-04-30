@@ -179,13 +179,25 @@ public class SysSiteOptPlaySheet extends BasicProcessingPlaySheet{
 		//actually running the algorithm
 		opt = new SysSiteOptimizer();
 		opt.setEngines(engine, costEngine, siteEngine); //likely hr core and tap site
-		opt.setVariables(0, 10, 1.5, 2.5, .15, 1); //budget per year, the number of years, infl rate, discount rate, training perc, number of points
+		opt.setVariables(100000000, 10, 1.5, 2.5, .15, 1); //budget per year, the number of years, infl rate, discount rate, training perc, number of points
 		opt.setUseDHMSMFunctionality(false); //whether the data objects will come from the list of systems or the dhmsm provided capabilities
-		opt.setOptimizationType("Savings"); //eventually will be Savings, ROI, or IRR
-		opt.setIsOptimizeBudget(false); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
+		opt.setOptimizationType("IRR"); //eventually will be Savings, ROI, or IRR
+		opt.setIsOptimizeBudget(true); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
 		opt.setSysList(sysList); //list of all systems to use in analysis
 		opt.setMustModDecomList(sysModList, sysDecomList); //list of systems to force modernize/decommision. Decommision is not implemented yet
 		opt.execute();
 		opt.display();
 	}
+	
+	public Hashtable<String,Object> getOverviewInfoData() {
+		
+		return opt.getOverviewInfoData();
+	}
+	
+	
+	public Hashtable<String,Object> getOverviewCostData() {
+		
+		return opt.getOverviewCostData();
+	}
+	
 }
