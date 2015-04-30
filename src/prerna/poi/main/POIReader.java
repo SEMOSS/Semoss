@@ -262,13 +262,13 @@ public class POIReader extends AbstractFileReader {
 							}
 						} else {
 							loadSheet(sheetToLoad, workbook);
-							try {
-								sc.commit();
-							} catch (SailException e) {
-								e.printStackTrace();
-								throw new EngineException("Error committing processed triples from sheet " + fileName + "!" + sheetToLoad
-										+ " into database");
-							}
+//							try {
+//								sc.commit();
+//							} catch (SailException e) {
+//								e.printStackTrace();
+//								throw new EngineException("Error committing processed triples from sheet " + fileName + "!" + sheetToLoad
+//										+ " into database");
+//							}
 						}
 					}
 				}
