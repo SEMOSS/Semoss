@@ -36,7 +36,6 @@ import java.util.Hashtable;
 import javax.swing.JDesktopPane;
 
 import org.apache.commons.math3.exception.TooManyEvaluationsException;
-import org.apache.commons.math3.optim.InitialGuess;
 import org.apache.commons.math3.optim.MaxEval;
 import org.apache.commons.math3.optim.OptimizationData;
 import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
@@ -56,6 +55,7 @@ import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.ColumnChartPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.ui.components.specific.tap.HealthGridSheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -104,6 +104,7 @@ public class SysSiteOptimizer implements IAlgorithm {
 	private double[] sysKeptArr, centralSysKeptArr;
 	private double[][] systemSiteResultMatrix;
 	
+	private String sysKeptQueryString = "";
 	private int numSysKept, numCentralSysKept;
 	
 	private double currSustainmentCost, futureSustainmentCost;
@@ -130,35 +131,6 @@ public class SysSiteOptimizer implements IAlgorithm {
 		
 	}
 	
-//	//run for 0 budget first
-//	public void execute2() {
-//		
-//		long startTime;
-//		long endTime;
-//		
-//		startTime = System.currentTimeMillis();
-//		createSiteDataBLULists();
-//		getData();
-//		endTime = System.currentTimeMillis();
-//		System.out.println("Time to query data " + (endTime - startTime) / 1000 + " seconds");
-//		
-//		startTime = System.currentTimeMillis();			
-//		optimizeSystemsAtSites(false, systemSiteMatrix, currSustainmentCost, 0, years);
-//		endTime = System.currentTimeMillis();
-//		System.out.println("Time to run Zero Budget LP " + (endTime - startTime) / 1000 + " seconds");		
-//		
-//		startTime = System.currentTimeMillis();		
-//		filterData();
-//		endTime = System.currentTimeMillis();
-//		System.out.println("Time to filter data " + (endTime - startTime) / 1000 + " seconds");
-//
-//		startTime = System.currentTimeMillis();			
-//		optimizeSystemsAtSites(isOptimizeBudget, systemSitePhase1FilteredMatrix, phase1SustainmentCost, budgetForYear, years);
-//		endTime = System.currentTimeMillis();
-//		System.out.println("Time to run Optimization " + (endTime - startTime) / 1000 + " seconds");
-//		
-//	}
-	
 	public void setEngines(IEngine systemEngine, IEngine costEngine, IEngine siteEngine) {
 		this.systemEngine = systemEngine;
 		this.costEngine = costEngine;
@@ -177,12 +149,6 @@ public class SysSiteOptimizer implements IAlgorithm {
 		this.trainingPerc = trainingPerc;
 		this.noOfPts = noOfPts;
 	}
-	
-//	public void setSysList(ArrayList<String> sysList, ArrayList<String> centralSysList) {
-//
-//		this.sysList = sysList;
-//		this.centralSysList = centralSysList;
-//	}
 	
 	public void setSysList(ArrayList<String> sysList) {
 		
@@ -331,8 +297,7 @@ public class SysSiteOptimizer implements IAlgorithm {
 
 		String sysBindings = "{" + SysOptUtilityMethods.makeBindingString("System",sysList) + SysOptUtilityMethods.makeBindingString("System",centralSysList) + "}";
 		
-		String siteQuery = "SELECT DISTINCT ?Site WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;}{?Site <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?Site;}{?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite;} } ORDER BY ?Site BINDINGS ?System @SYSTEM-BINDINGS@";
-		siteQuery = siteQuery.replace("@SYSTEM-BINDINGS@",sysBindings);
+		String siteQuery = "SELECT DISTINCT ?Site WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;}{?Site <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?Site;}{?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite;} } ORDER BY ?Site BINDINGS ?System " + sysBindings;
 
 		//any data and any blu is being selected
 		String dataQuery, bluQuery;
@@ -340,13 +305,11 @@ public class SysSiteOptimizer implements IAlgorithm {
 			dataQuery = "SELECT DISTINCT ?Data WHERE {BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> as ?DHMSM){?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> ;}{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}{?DHMSM <http://semoss.org/ontologies/Relation/TaggedBy> ?Capability}{ ?Capability <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess.}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?Data.}}";
 			bluQuery = "SELECT DISTINCT ?BLU WHERE {BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> as ?DHMSM){?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> ;}{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;}{?DHMSM <http://semoss.org/ontologies/Relation/TaggedBy> ?Capability}{ ?Capability <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess.}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?BLU.}}";
 		}else {
-			dataQuery = "SELECT DISTINCT ?Data WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}{?System <http://semoss.org/ontologies/Relation/Provide> ?Data}} ORDER BY ?Data BINDINGS ?System @SYSTEM-BINDINGS@";
-			dataQuery = dataQuery.replace("@SYSTEM-BINDINGS@",sysBindings);
-			bluQuery = "SELECT DISTINCT ?BLU WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;}{?System <http://semoss.org/ontologies/Relation/Provide> ?BLU}} ORDER BY ?BLU BINDINGS ?System @SYSTEM-BINDINGS@";
-			bluQuery = bluQuery.replace("@SYSTEM-BINDINGS@",sysBindings);
+			dataQuery = "SELECT DISTINCT ?Data WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}{?System <http://semoss.org/ontologies/Relation/Provide> ?Data}} ORDER BY ?Data BINDINGS ?System " + sysBindings;
+			bluQuery = "SELECT DISTINCT ?BLU WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;}{?System <http://semoss.org/ontologies/Relation/Provide> ?BLU}} ORDER BY ?BLU BINDINGS ?System " + sysBindings;
 		}
 		
-		String capQuery = "SELECT DISTINCT ?Capability WHERE {BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> as ?DHMSM){?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> ;}} ORDER BY ?Capability";
+		String capQuery = "SELECT DISTINCT ?Capability WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> ;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?System <http://semoss.org/ontologies/Relation/Supports> ?Capability}} ORDER BY ?Capability BINDINGS ?System " + sysBindings;
 
 		siteList = SysOptUtilityMethods.runListQuery(siteEngine, siteQuery);
 		dataList = SysOptUtilityMethods.runListQuery(systemEngine, dataQuery);
@@ -414,60 +377,6 @@ public class SysSiteOptimizer implements IAlgorithm {
 
 		currSustainmentCost = calculateCurrentSustainmentCost(maintenaceCosts, centralSystemMaintenaceCosts);
 	}
-//	
-//	private void filterData() {
-//		
-//		phase2SysList = new ArrayList<String>();
-//		int i;
-//		int numSys = phase1SysList.size();
-//		for(i=0; i<numSys; i++) {
-//			if(sysKeptArr[i] == 1)
-//				phase2SysList.add(phase1SysList.get(i));
-//		}
-//		
-//		phase2CentralSysList = new ArrayList<String>();
-//		numSys = phase1CentralSysList.size();
-//		for(i=0; i<numSys; i++) {
-//			if(centralSysKeptArr[i] == 1)
-//				phase2CentralSysList.add(phase1CentralSysList.get(i));
-//		}
-//		
-//		
-//		//save intermediate values
-//		centralSysKeptPhase1Arr = centralSysKeptArr;
-//		sysKeptPhase1Arr = sysKeptArr;
-//		systemSitePhase1Matrix = systemSiteResultMatrix;
-//		
-//		//do not save, just filter
-//		modArr = SysOptUtilityMethods.filterSys(sysKeptArr, numSysKept, modArr);
-//		decomArr = SysOptUtilityMethods.filterSys(sysKeptArr, numSysKept, decomArr);
-//		
-//		systemDataMatrix = SysOptUtilityMethods.filterSys(sysKeptArr, numSysKept, systemDataMatrix);
-//		systemBLUMatrix = SysOptUtilityMethods.filterSys(sysKeptArr, numSysKept, systemBLUMatrix);
-//		systemSitePhase1FilteredMatrix = SysOptUtilityMethods.filterSys(sysKeptArr, numSysKept, systemSitePhase1Matrix);
-//
-//		systemTheater = SysOptUtilityMethods.filterSys(sysKeptArr, numSysKept, systemTheater);
-//		systemGarrison = SysOptUtilityMethods.filterSys(sysKeptArr, numSysKept, systemGarrison);
-//		
-//		maintenaceCosts = SysOptUtilityMethods.filterSys(sysKeptArr, numSysKept, maintenaceCosts);
-//		siteMaintenaceCosts = SysOptUtilityMethods.filterSys(sysKeptArr, numSysKept, siteMaintenaceCosts);
-//		siteDeploymentCosts = SysOptUtilityMethods.filterSys(sysKeptArr, numSysKept, siteDeploymentCosts);
-//		
-//		//central systems
-//		centralModArr = SysOptUtilityMethods.filterSys(centralSysKeptArr, numCentralSysKept, centralModArr);
-//		centralDecomArr = SysOptUtilityMethods.filterSys(centralSysKeptArr, numCentralSysKept, centralDecomArr);
-//		
-//		centralSystemDataMatrix = SysOptUtilityMethods.filterSys(centralSysKeptArr, numCentralSysKept, centralSystemDataMatrix);
-//		centralSystemBLUMatrix = SysOptUtilityMethods.filterSys(centralSysKeptArr, numCentralSysKept, centralSystemBLUMatrix);
-//
-//		centralSystemTheater = SysOptUtilityMethods.filterSys(centralSysKeptArr, numCentralSysKept, centralSystemTheater);
-//		centralSystemGarrison = SysOptUtilityMethods.filterSys(centralSysKeptArr, numCentralSysKept, centralSystemGarrison);
-//		
-//		centralSystemMaintenaceCosts = SysOptUtilityMethods.filterSys(centralSysKeptArr, numCentralSysKept, centralSystemMaintenaceCosts);
-//
-//		phase1SustainmentCost = phase2SustainmentCost;
-//		phase1AdjustedTotalSavings = phase2AdjustedTotalSavings;
-//	}
 	
 	private double calculateCurrentSustainmentCost(double[] maintenaceCosts, double[] centralSysMaintenaceCosts) {
 		double currSustainmentCost = 0.0;
@@ -497,6 +406,7 @@ public class SysSiteOptimizer implements IAlgorithm {
 			optFunc = new SysSiteIRROptFunction();
 		else {
 			System.out.println("OPTIMIZATION TYPE DOES NOT EXIST");
+			return;
 		}
 		
 		optFunc.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, modArr, decomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, systemCostConsumeDataArr, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, budgetForYear, years, currSustainmentCost, infRate, disRate, trainingPerc);
@@ -806,25 +716,50 @@ public class SysSiteOptimizer implements IAlgorithm {
 		return (Hashtable<String,Object>)ps.getData();
 	}
 	
-//	public Hashtable<String,Object> getOverviewCostData() {
-//		String[] names = new String[]{"Year", "Build Cost","Sustainment Cost"};
-//		ArrayList<Object []> list = new ArrayList<Object []>();
-//		int i;
-//		int startYear = 2017;
-//		for(i=0; i<years; i++) {
-//			Object[] row = new Object[3];
-//			row[0] = startYear + i;
-//			row[1] = budgetSpentPerYear[i];
-//			row[2] = costAvoidedPerYear[i];
-//			list.add(row);
-//		}
-//		
-//		ColumnChartPlaySheet ps = new ColumnChartPlaySheet();
-//		ps.setNames(names);
-//		ps.setList(list);
-//		ps.setDataHash(ps.processQueryData());
-//		return (Hashtable<String,Object>)ps.getData();
-//	}
+	/**
+	 * Gets the health grid for all systems selected OR all systems selected that support the given capability
+	 * Includes whether those systems were sustained or or consolidated.
+	 * @param capability String that is null if all systems for the overview page or a capability to filter the systems
+	 * @return
+	 */
+	public Hashtable<String,Object> getHealthGrid(String capability) {
+		
+		if(sysKeptQueryString.isEmpty())
+			makeSysKeptQueryString();
+		
+		String capabilityBindings;
+		if(capability==null || capability.isEmpty())
+			capabilityBindings = "";
+		else {
+			capabilityBindings = "BIND(<http://health.mil/ontologies/Concept/Capability/"+capability+"> AS ?Capability){?System <http://semoss.org/ontologies/Relation/Supports> ?Capability}";
+		}
+			
+		String sysBindings = SysOptUtilityMethods.makeBindingString("System",sysList) + SysOptUtilityMethods.makeBindingString("System",centralSysList);
+		
+		String query = "SELECT ?System (COALESCE(?bv * 100, 0.0) AS ?BusinessValue) (COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?tstm, 0.0) AS ?TechnicalStandards) (COALESCE(?SustainmentBud,0.0) AS ?SustainmentBudget) (IF(?System in (" + sysKeptQueryString + "), \"Sustained\", \"Consolidated\") AS ?Status) WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}" + capabilityBindings + "OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?SustainmentBud}}OPTIONAL {{?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv}} OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM> ?estm} } OPTIONAL {{?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM> ?tstm}} } BINDINGS ?System {" + sysBindings + "}";
+
+		HealthGridSheet ps = new HealthGridSheet();
+		ps.setQuery(query);
+		ps.setRDFEngine(systemEngine);
+		ps.createData();
+		return (Hashtable<String,Object>)ps.getData();
+	}
+	
+	public void makeSysKeptQueryString() {
+		int i;
+		int numSys = sysList.size();
+		for(i = 0; i<numSys; i++)
+			if(sysKeptArr[i] == 1)
+				sysKeptQueryString+= "<http://health.mil/ontologies/Concept/System/"+sysList.get(i)+">,";
+
+		numSys = centralSysList.size();
+		for(i = 0; i<numSys; i++)
+			if(centralSysKeptArr[i] == 1)
+				sysKeptQueryString+= "<http://health.mil/ontologies/Concept/System/"+centralSysList.get(i)+">,";
+
+		if(sysKeptQueryString.length() > 0)
+			sysKeptQueryString = sysKeptQueryString.substring(0,sysKeptQueryString.length() - 1);
+	}
 	
 	@Override
 	public void setPlaySheet(IPlaySheet playSheet) {
