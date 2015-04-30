@@ -29,9 +29,10 @@ package prerna.auth;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Hashtable;
 
 public class User {
-	public static enum LOGIN_TYPES {google, facebook, twitter, cac, anonymous};
+	public static enum LOGIN_TYPES {google, facebook, twitter, cac, anonymous, email};
 	
 	private String userId;
 	private String name;
@@ -39,7 +40,8 @@ public class User {
 	private String email;
 	private String pictureUrl= "";
 	private HashMap<String, HashMap<String, Boolean>> enginePermissions = new HashMap<String, HashMap<String, Boolean>>();
-	private HashMap<String, Object> userPreferences = new HashMap<String, Object>();
+	private Hashtable<String, String> userParamPreferences = new Hashtable<String, String>();
+	private Hashtable<String, Object> customProps = new Hashtable<String, Object>();
 	
 	public User(String id, String name, LOGIN_TYPES type, String email) {
 		this.userId = id;
@@ -92,11 +94,19 @@ public class User {
 		this.enginePermissions.put(engine, permissions);
 	}
 	
-	public Object getPreference(String key) {
-		return this.userPreferences.get(key);
+	public Hashtable<String, String> getParamPreferences() {
+		return this.userParamPreferences;
 	}
 	
-	public void setPreference(String key, Object value) {
-		this.userPreferences.put(key, value);
+	public void setParamPreferences(Hashtable<String, String> preferences) {
+		this.userParamPreferences = preferences;
+	}
+	
+	public Object getCustomProp(String key) {
+		return this.customProps.get(key);
+	}
+	
+	public void setCustomProp(String key, Object value) {
+		this.customProps.put(key, value);
 	}
 }
