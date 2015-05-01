@@ -58,6 +58,7 @@ import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.teamdev.jxbrowser.chromium.Browser;
+import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 
 /**
  * Controls the export of a chart to a vector image.
@@ -90,7 +91,8 @@ public class ChartImageExportListener extends AbstractAction implements IChakraL
 		JSplitPane splitPane = (JSplitPane) source.getParent().getParent();
 		BrowserPlaySheet bps = (BrowserPlaySheet) splitPane.getParent().getParent().getParent(); //Parents: JLayeredPane - JRootPane - Subclass of BrowserPlaySheet
 		Browser browser = bps.getBrowser();
-		Image i = browser.getView().getImage();
+		BrowserView browserView = bps.getBrowserView();
+		Image i = browserView.getImage();
 		
 		FileOutputStream graphicsFileOut = null;
 		try {

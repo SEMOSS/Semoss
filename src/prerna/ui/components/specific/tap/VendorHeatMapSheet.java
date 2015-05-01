@@ -230,7 +230,7 @@ public class VendorHeatMapSheet extends HeatMapPlaySheet {
 	@Override
 	public void createView()
 	{
-		browser.getView().getComponent().addKeyListener(new BrowserZoomKeyListener(browser));
+		browserView.addKeyListener(new BrowserZoomKeyListener(browser));
 		browser.loadURL(fileName);
 		while (browser.isLoading()) {
 		    try {

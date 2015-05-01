@@ -45,11 +45,8 @@ import javax.swing.UIManager;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.engine.api.ISelectStatement;
 import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
@@ -59,7 +56,7 @@ import prerna.util.DIHelper;
 
 import com.google.gson.Gson;
 import com.teamdev.jxbrowser.chromium.Browser;
-import com.teamdev.jxbrowser.chromium.BrowserFactory;
+import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 
 /**
  * This class creates the chart for the lifecycle slider.
@@ -69,7 +66,8 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 
 	private static final Logger logger = LogManager.getLogger(LifeCycleSliderChart.class.getName());
 	//public JPanel cheaterPanel = new JPanel();
-	public Browser browser = BrowserFactory.create();
+	public Browser browser;
+	public BrowserView browserView;
 	Hashtable <String, String[]> hardwareHash;
 	String fileName;
 
@@ -79,7 +77,8 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 	 */
 	public LifeCycleSliderChart() {
 		super();
-
+		browser = new Browser();
+		browserView = new BrowserView(browser);
 		this.setPreferredSize(new Dimension(800,600));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/lifecycle.html";
@@ -109,7 +108,7 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 			//callIt(table);
 			JPanel panel = new JPanel();
 			panel.setLayout(new BorderLayout());
-			panel.add(browser.getView().getComponent(), BorderLayout.CENTER);
+			panel.add(browserView, BorderLayout.CENTER);
 			GridBagConstraints gbc_scrollPane = new GridBagConstraints();
 			gbc_scrollPane.fill = GridBagConstraints.BOTH;
 			gbc_scrollPane.gridx = 0;
@@ -200,7 +199,7 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 		}
 		updateProgressBar("100%...Table Generation Complete", 100);
 		showAll();
-		browser.getView().getComponent().addKeyListener(new BrowserZoomKeyListener(browser));
+		browserView.addKeyListener(new BrowserZoomKeyListener(browser));
 		browser.loadURL(fileName);
 		while (browser.isLoading()) {
 		    try {

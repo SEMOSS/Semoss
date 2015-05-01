@@ -30,11 +30,12 @@ package prerna.ui.components;
 import java.awt.BorderLayout;
 import java.util.Hashtable;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 import javax.swing.JPanel;
 
-import org.apache.log4j.Logger;
 import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
 import prerna.util.Constants;
@@ -42,18 +43,17 @@ import prerna.util.DIHelper;
 
 import com.google.gson.Gson;
 import com.teamdev.jxbrowser.chromium.Browser;
-import com.teamdev.jxbrowser.chromium.BrowserFactory;
 import com.teamdev.jxbrowser.chromium.LoggerProvider;
-
-import java.util.logging.*;
+import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 
 /**
  * This class is used to create the appropriate window depending on the browser specified (Mozilla, IE, Safari).
  */
 public class BrowserGraphPanel extends JPanel{
 	static final Logger logger = LogManager.getLogger(BrowserGraphPanel.class.getName());
-	
+
 	public Browser browser = null;
+	public BrowserView browserView;
 	/**
 	 * Constructor for BrowserGraphPanel.
 	 * @param fileName 	File name.
@@ -61,26 +61,27 @@ public class BrowserGraphPanel extends JPanel{
 	 */
 	public BrowserGraphPanel(String fileName)
 	{
-		 browser = BrowserFactory.create();
-		 LoggerProvider.getBrowserLogger().setLevel(Level.OFF);
-		 LoggerProvider.getIPCLogger().setLevel(Level.OFF);
-		 LoggerProvider.getChromiumProcessLogger().setLevel(Level.OFF);
-//		try{
-//		if(DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Mozilla15"))
-//			  browser = BrowserFactory.createBrowser(BrowserType.Mozilla15);
-//		  else if (DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("IE"))
-//			  browser = BrowserFactory.createBrowser(BrowserType.IE);
-//		  else if (DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Mozilla"))
-//			  browser = BrowserFactory.createBrowser(BrowserType.Mozilla);
-//		  else if(DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Safari"))
-//			  browser = BrowserFactory.createBrowser(BrowserType.Safari);
-		 
+		browser = new Browser();
+		browserView = new BrowserView(browser);
+		LoggerProvider.getBrowserLogger().setLevel(Level.OFF);
+		LoggerProvider.getIPCLogger().setLevel(Level.OFF);
+		LoggerProvider.getChromiumProcessLogger().setLevel(Level.OFF);
+		//		try{
+		//		if(DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Mozilla15"))
+		//			  browser = BrowserFactory.createBrowser(BrowserType.Mozilla15);
+		//		  else if (DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("IE"))
+		//			  browser = BrowserFactory.createBrowser(BrowserType.IE);
+		//		  else if (DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Mozilla"))
+		//			  browser = BrowserFactory.createBrowser(BrowserType.Mozilla);
+		//		  else if(DIHelper.getInstance().getProperty(Constants.BROWSER_TYPE).equalsIgnoreCase("Safari"))
+		//			  browser = BrowserFactory.createBrowser(BrowserType.Safari);
+
 		//BrowserServices.getInstance().setPromptService(new SilentPromptService());
-		browser.getView().getComponent().addKeyListener(new BrowserZoomKeyListener(browser));
+		browserView.addKeyListener(new BrowserZoomKeyListener(browser));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		browser.loadURL("file://" + workingDir + fileName);
 		while (browser.isLoading()) {
-		    try {
+			try {
 				TimeUnit.MILLISECONDS.sleep(50);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
@@ -88,13 +89,13 @@ public class BrowserGraphPanel extends JPanel{
 			}
 		}
 		setLayout(new BorderLayout());
-		add(browser.getView().getComponent(), BorderLayout.CENTER);
-//		}
-//		catch(UnsupportedBrowserTypeException e){
-//			displayCheckBoxError();
-//			return false;
-//		}
-//		return true;
+		add(browserView, BorderLayout.CENTER);
+		//		}
+		//		catch(UnsupportedBrowserTypeException e){
+		//			displayCheckBoxError();
+		//			return false;
+		//		}
+		//		return true;
 	}
 	/**
 	 * This method is used to convert a hashtable via GSON.
@@ -117,13 +118,13 @@ public class BrowserGraphPanel extends JPanel{
 		//Please tell me this is awesome !!!!!!');");
 		browser.executeJavaScript("start('" + gson.toJson(table) + "');");
 	}
-//	/**
-//	 * Method displayCheckBoxError.
-//	 * 
-//	 */
-//	public void displayCheckBoxError(){
-//		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
-//		JOptionPane.showMessageDialog(playPane, "Mozilla15 engine doesn't support the current environment. Please switch to 32-bit Java.", "Error", JOptionPane.ERROR_MESSAGE);
-//		
-//	}
+	//	/**
+	//	 * Method displayCheckBoxError.
+	//	 * 
+	//	 */
+	//	public void displayCheckBoxError(){
+	//		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
+	//		JOptionPane.showMessageDialog(playPane, "Mozilla15 engine doesn't support the current environment. Please switch to 32-bit Java.", "Error", JOptionPane.ERROR_MESSAGE);
+	//		
+	//	}
 }
