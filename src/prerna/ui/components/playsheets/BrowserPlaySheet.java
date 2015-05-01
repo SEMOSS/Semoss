@@ -98,6 +98,9 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 		// browser.executeJavaScript("start('" + gson.toJson(table) + "');");
 		// create variable val to ensure JXBrowser has the data before trying to paint
 		JSValue val = browser.executeJavaScriptAndReturnValue("start('" + gson.toJson(table) + "');");
+		
+		String remoteDebuggingURL = browser.getRemoteDebuggingURL();
+		System.out.println(">>>>>>>>>>>>>>> REMOTE DEBUGGING URL: " +  remoteDebuggingURL);
 	}
 	
 	/**
@@ -138,6 +141,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 		// });
 		browserView.addKeyListener(new BrowserZoomKeyListener(browser));
 		browser.loadURL(fileName);
+		
 		while (browser.isLoading()) {
 			try {
 				TimeUnit.MILLISECONDS.sleep(50);
@@ -154,6 +158,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 				return;
 			}
 		}
+		
 		callIt(dataHash);
 	}
 	

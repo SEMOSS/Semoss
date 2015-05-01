@@ -47,6 +47,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 import com.ibm.icu.util.StringTokenizer;
+import com.teamdev.jxbrowser.chromium.BrowserPreferences;
 
 /**
  * The Starter class is run to start the SEMOSS application.  This launches the Splash Screen and the base user interface.
@@ -99,6 +100,9 @@ public class Starter {
 		String workingDir = System.getProperty("user.dir");
 		String propFile = workingDir + "/RDF_Map.prop";
 		Logger logger = Logger.getLogger(prerna.ui.main.Starter.class);
+		// set browser preference to enable chrome tools for visualizations using jxbrowser
+		BrowserPreferences.setChromiumSwitches("--remote-debugging-port=9222");
+
 		//Object monitor = new Object(); // stupid object for being a monitor
 		
 		//logger.setLevel(Level.INFO);
