@@ -53,9 +53,9 @@ import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
 
 import com.google.gson.Gson;
 import com.teamdev.jxbrowser.chromium.Browser;
-import com.teamdev.jxbrowser.chromium.BrowserFactory;
 import com.teamdev.jxbrowser.chromium.JSValue;
 import com.teamdev.jxbrowser.chromium.LoggerProvider;
+import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 
 /**
  * The BrowserPlaySheet creates an instance of a browser to utilize the D3 Javascript library to create visualizations.
@@ -65,6 +65,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	private static final Logger logger = LogManager.getLogger(BrowserPlaySheet.class.getName());
 	public Boolean empty = false;
 	public Browser browser;
+	public BrowserView browserView;
 	protected String fileName;
 	JSplitPane splitPane;
 	protected JTabbedPane jTab;
@@ -92,7 +93,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 		Gson gson = new Gson();
 		logger.info("Converted " + gson.toJson(table));
 		logger.info("Converted gson");
-		System.out.println(gson.toJson(table));
+		System.out.println(">>>>>>>>>>>>>>> " + gson.toJson(table));
 		
 		// browser.executeJavaScript("start('" + gson.toJson(table) + "');");
 		// create variable val to ensure JXBrowser has the data before trying to paint
@@ -135,7 +136,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 		//
 		// }
 		// });
-		browser.getView().getComponent().addKeyListener(new BrowserZoomKeyListener(browser));
+		browserView.addKeyListener(new BrowserZoomKeyListener(browser));
 		browser.loadURL(fileName);
 		while (browser.isLoading()) {
 			try {
@@ -209,7 +210,8 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	 */
 	@Override
 	public void addPanel() {
-		browser = BrowserFactory.create();
+		browser = new Browser();
+		browserView = new BrowserView(browser);
 		try {
 			table = new JTable();
 			this.jTab = new JTabbedPane();
@@ -240,7 +242,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 			// callIt(table);
 			JPanel panel = new JPanel();
 			panel.setLayout(new BorderLayout());
-			panel.add(browser.getView().getComponent(), BorderLayout.CENTER);
+			panel.add(browserView, BorderLayout.CENTER);
 			GridBagConstraints gbc_scrollPane = new GridBagConstraints();
 			gbc_scrollPane.fill = GridBagConstraints.BOTH;
 			gbc_scrollPane.gridx = 0;
@@ -272,7 +274,8 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	}
 	
 	public void addPanelAsTab(String tabName) {
-		browser = BrowserFactory.create();
+		browser = new Browser();
+		browserView = new BrowserView(browser);
 		try {
 			table = new JTable();
 			
@@ -285,7 +288,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 			this.addInternalFrameListener(psListener);
 			
 			mainPanel.setLayout(new BorderLayout());
-			mainPanel.add(browser.getView().getComponent(), BorderLayout.CENTER);
+			mainPanel.add(browserView, BorderLayout.CENTER);
 			
 			updateProgressBar("0%...Preprocessing", 0);
 			resetProgressBar();
@@ -309,11 +312,18 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	
 	/**
 	 * Method getBrowser. Gets the current browser.
-	 * 
 	 * @return Browser - the current browser.
 	 */
 	public Browser getBrowser() {
 		return this.browser;
+	}
+	
+	/**
+	 * Getter for the browser view
+	 * @return
+	 */
+	public BrowserView getBrowserView() {
+		return this.browserView;
 	}
 	
 	@Override

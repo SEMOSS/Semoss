@@ -46,7 +46,8 @@ import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.main.listener.impl.BrowserPlaySheetListener;
 import prerna.util.DIHelper;
 
-import com.teamdev.jxbrowser.chromium.BrowserFactory;
+import com.teamdev.jxbrowser.chromium.Browser;
+import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 
 /**
  * Heat Map that shows what gaps in data exist for systems to suppor their BLUs
@@ -80,7 +81,8 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 	@Override
 	public void addPanel()
 	{
-		browser = BrowserFactory.create();
+		browser = new Browser();
+		browserView = new BrowserView(browser);
 		try {
 //			table = new JTable();
 			JPanel mainPanel = new JPanel();
@@ -99,7 +101,7 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 			
 			JPanel panel = new JPanel();
 			panel.setLayout(new BorderLayout());
-			panel.add(browser.getView().getComponent(), BorderLayout.CENTER);
+			panel.add(browserView, BorderLayout.CENTER);
 			GridBagConstraints gbc_scrollPane = new GridBagConstraints();
 			gbc_scrollPane.fill = GridBagConstraints.BOTH;
 			gbc_scrollPane.gridx = 0;
