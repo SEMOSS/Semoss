@@ -49,7 +49,7 @@ public final class MasterDatabaseQueries extends MasterDatabaseURIs {
 	
 	public static final String INSTANCE_EXISTS_QUERY = "SELECT DISTINCT ?keyword ?s WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?keyword ;} } BINDINGS ?s {@BINDINGS@}";
 	public static final String ENGINE_API_QUERY = "SELECT DISTINCT ?Engine ?API WHERE { {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?Engine <http://semoss.org/ontologies/Relation/Contains/API> ?API}}";
-	public static final String ENGINE_LIST_QUERY = "SELECT DISTINCT ?Engine ?API WHERE { {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} }";
+	public static final String ENGINE_LIST_QUERY = "SELECT DISTINCT ?Engine WHERE { {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} }";
 	
 	public static final String GET_ALL_KEYWORDS = "SELECT DISTINCT ?keyword WHERE { {?keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} }";
 	public static final String GET_ALL_MASTER_CONCEPTS = "SELECT DISTINCT ?mc WHERE { {?mc <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} }";
@@ -82,4 +82,6 @@ public final class MasterDatabaseQueries extends MasterDatabaseURIs {
 	public static final String GET_ENGINE_OWNER_QUERY = "SELECT DISTINCT ?user WHERE { BIND(<" + ENGINE_BASE_URI + "/@ENGINE_NAME@> as ?engine) {?engine <" + ENGINE_ROLEGROUP_REL_URI + "> <" + ENGINEROLEGROUP_URI + "/@ENGINE_NAME@-Owner>} {<" + ENGINEROLEGROUP_URI + "/@ENGINE_NAME@-Owner> <" + ROLEGROUP_USERGROUP_REL_URI + "> ?userGroup } {?userGroup <" + USERGROUP_USER_REL_URI + "> ?user } }";
 	public static final String ENGINE_ACCESSREQUESTS_FOR_USER = "SELECT DISTINCT ?requestorName ?engine ?engineAccessRequest WHERE {BIND(<" + MasterDatabaseURIs.USER_BASE_URI + "/@USER_ID@> as ?notifiedUser) {?notifiedUser <" + MasterDatabaseURIs.USER_ENGINE_ACCESSREQUEST_REL_URI + "> ?engineAccessRequest} {?engineAccessRequest <" + MasterDatabaseURIs.ENGINE_ACCESS_REQUESTOR_PROP_URI + "> ?requestorUserId} BIND(URI(CONCAT(<" + MasterDatabaseURIs.USER_BASE_URI + "/,?requestorUserId,>)) as ?requestorUser) {?requestorUser <" + MasterDatabaseURIs.USER_NAME_PROP_URI + "> ?requestorName} {?engineAccessRequest <" + MasterDatabaseURIs.ENGINE_NAME_REQUESTED_PROP_URI + "> ?engine} }";
 	public static final String GET_ENGINE_ACCESSREQUEST_USER = "SELECT ?requestorUserId ?engine WHERE {BIND(<" + MasterDatabaseURIs.USER_BASE_URI + "/@USER_ID@> as ?notifiedUser) BIND(<" + MasterDatabaseURIs.ENGINE_ACCESSREQUEST_URI + "/@REQUEST_ID@> as ?engineAccessRequest) {?notifiedUser <" + MasterDatabaseURIs.USER_ENGINE_ACCESSREQUEST_REL_URI + "> ?engineAccessRequest} {?engineAccessRequest <" + MasterDatabaseURIs.ENGINE_ACCESS_REQUESTOR_PROP_URI + "> ?requestorUserId} {?engineAccessRequest <" + MasterDatabaseURIs.ENGINE_NAME_REQUESTED_PROP_URI + "> ?engine} }";
+
+
 }
