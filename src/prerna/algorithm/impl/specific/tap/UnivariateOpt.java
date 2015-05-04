@@ -124,6 +124,25 @@ public class UnivariateOpt implements IAlgorithm{
         
 	}
 	
+	public void createTabAndDisplayList(String[] colNames,ArrayList <Object []> list, String panelTitle, Boolean addScroll) {
+		JPanel panel;
+		int tabIndex = playSheet.tabbedPane.indexOfTab(panelTitle);
+		if(tabIndex < 0) {
+			panel = new JPanel();
+			playSheet.tabbedPane.addTab(panelTitle, null, panel, null);
+			GridBagLayout gbl_specificSysAlysPanel = new GridBagLayout();
+			gbl_specificSysAlysPanel.columnWidths = new int[] { 0, 0 };
+			gbl_specificSysAlysPanel.rowHeights = new int[] { 0, 0 };
+			gbl_specificSysAlysPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
+			gbl_specificSysAlysPanel.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
+			panel.setLayout(gbl_specificSysAlysPanel);
+		}else
+			panel = (JPanel)playSheet.tabbedPane.getComponentAt(tabIndex);
+		
+		displayListOnTab(colNames,list,panel, addScroll);
+
+	}
+	
 	public void displayListOnTab(String[] colNames,ArrayList <Object []> list,JPanel panel) {
 		displayListOnTab(colNames, list, panel, false);
 	}

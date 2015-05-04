@@ -118,7 +118,6 @@ public class SysOptPlaySheet extends OptPlaySheet {
 		
 		systemDataBLUSelectPanel = new JPanel();
 		systemDataBLUSelectPanel.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
-		systemDataBLUSelectPanel.setVisible(false);
 		
 		GridBagConstraints gbc_systemDataBLUSelectPanel = new GridBagConstraints();
 		gbc_systemDataBLUSelectPanel.gridheight = 6;
@@ -143,6 +142,7 @@ public class SysOptPlaySheet extends OptPlaySheet {
 		systemDataBLUSelectPanel.add(systemSelectPanel, gbc_systemSelectPanel);
 		
 		capabilitySelectPanel = new DHMSMCapabilitySelectPanel(checkboxListUpdater);
+		capabilitySelectPanel.setVisible(false);
 		GridBagConstraints gbc_capabilitySelectPanel = new GridBagConstraints();
 		gbc_capabilitySelectPanel.gridheight = 6;
 		gbc_capabilitySelectPanel.fill = GridBagConstraints.BOTH;
@@ -163,6 +163,7 @@ public class SysOptPlaySheet extends OptPlaySheet {
 		systemDataBLUSelectPanel.add(updateDataBLUPanelButton, gbc_updateDataBLUPanelButton);
 		
 		dataBLUSelectPanel = new DHMSMDataBLUSelectPanel();
+		dataBLUSelectPanel.setVisible(false);
 		GridBagConstraints gbc_dataBLUSelectPanel = new GridBagConstraints();
 		gbc_dataBLUSelectPanel.gridheight = 6;
 		gbc_dataBLUSelectPanel.fill = GridBagConstraints.BOTH;

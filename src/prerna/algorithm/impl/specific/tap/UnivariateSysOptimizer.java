@@ -58,7 +58,6 @@ import prerna.ui.components.specific.tap.DHMSMHelper;
 import prerna.ui.components.specific.tap.QueryProcessor;
 import prerna.ui.components.specific.tap.SysOptGraphFunctions;
 import prerna.ui.components.specific.tap.SysOptPlaySheet;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
