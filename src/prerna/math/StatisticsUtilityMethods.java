@@ -727,4 +727,21 @@ public final class StatisticsUtilityMethods {
 		return Math.log(x) / Math.log(2);
 	}
 	
+	public static double[] calculatePercentDiff(final double[] values1, final double[] values2) {
+
+		int i;
+		int length = values1.length;
+		double[] percDiffArr = new double[length];
+
+		for(i=0; i<length; i++) {
+			if(values1[i] == 0)
+				percDiffArr[i] = Double.NaN;
+			else
+				percDiffArr[i] = (1 - values2[i] / values1[i]) * 100;
+
+		}
+		
+		return percDiffArr;
+	}
+	
 }
