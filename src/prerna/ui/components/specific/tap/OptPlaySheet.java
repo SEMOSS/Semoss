@@ -71,7 +71,7 @@ public class OptPlaySheet extends InputPanelPlaySheet{
 	public JComboBox<String> sysSpecComboBox;
 	
 	//display overall analysis components
-	public BrowserGraphPanel tab1, tab2, tab3, tab4, tab5, tab6, timeline;
+	public BrowserGraphPanel tab1, tab2, tab3, tab4, tab5, tab6;
 	public JLabel savingLbl, costLbl, roiLbl, bkevenLbl, recoupLbl;
 	
 	//other display components
@@ -435,8 +435,6 @@ public class OptPlaySheet extends InputPanelPlaySheet{
 		tab6.setPreferredSize(new Dimension(500, 400));
 		tab6.setMinimumSize(new Dimension(500, 400));
 		tab6.setVisible(false);
-
-		timeline = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/timeline.html");
 		
 		super.createDisplayPanel();
 
@@ -529,24 +527,6 @@ public class OptPlaySheet extends InputPanelPlaySheet{
 		gbc_panel4.gridx = 1;
 		gbc_panel4.gridy = 2;
 		chartPanel.add(tab6,  gbc_panel4);
-
-		//second tab: timeline panel
-		timelinePanel = new JPanel();
-		tabbedPane.addTab("Timeline", null, timelinePanel, null);
-		GridBagLayout gbl_timelinePanel = new GridBagLayout();
-		gbl_timelinePanel.columnWidths = new int[]{0, 0};
-		gbl_timelinePanel.rowHeights = new int[]{0, 0};
-		gbl_timelinePanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gbl_timelinePanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-		timelinePanel.setLayout(gbl_timelinePanel);
-
-		//		timeline = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/timeline.html");
-		GridBagConstraints gbc_panel_2 = new GridBagConstraints();
-		gbc_panel_2.fill = GridBagConstraints.BOTH;
-		gbc_panel_2.gridx = 0;
-		gbc_panel_2.gridy = 0;
-		timelinePanel.add(timeline, gbc_panel_2);
-		timeline.setVisible(false);
 
 	}
 

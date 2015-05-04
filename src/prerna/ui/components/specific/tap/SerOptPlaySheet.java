@@ -71,6 +71,7 @@ import prerna.util.DIHelper;
 public class SerOptPlaySheet extends OptPlaySheet{
 
 
+	public BrowserGraphPanel timeline;
 	public JRadioButton rdbtnBreakeven, rdbtnProfit, rdbtnROI;
 	
 	@Override
@@ -261,6 +262,8 @@ public class SerOptPlaySheet extends OptPlaySheet{
 	{
 		//first tab: overall systems with charts
 		//top panel that has labels
+
+		timeline = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/timeline.html");
 		super.createDisplayPanel();
 
 		lblInvestmentRecoupTime = new JLabel("Investment Recoup Time:");
@@ -318,7 +321,24 @@ public class SerOptPlaySheet extends OptPlaySheet{
 		gbc_advParamPanel1.gridy = 0;
 		chartPanel.add(tab2, gbc_advParamPanel1);
 
+		//second tab: timeline panel
+		timelinePanel = new JPanel();
+		tabbedPane.addTab("Timeline", null, timelinePanel, null);
+		GridBagLayout gbl_timelinePanel = new GridBagLayout();
+		gbl_timelinePanel.columnWidths = new int[]{0, 0};
+		gbl_timelinePanel.rowHeights = new int[]{0, 0};
+		gbl_timelinePanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_timelinePanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		timelinePanel.setLayout(gbl_timelinePanel);
 
+		//		timeline = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/timeline.html");
+		GridBagConstraints gbc_panel_2 = new GridBagConstraints();
+		gbc_panel_2.fill = GridBagConstraints.BOTH;
+		gbc_panel_2.gridx = 0;
+		gbc_panel_2.gridy = 0;
+		timelinePanel.add(timeline, gbc_panel_2);
+		timeline.setVisible(false);
+		
 
 		specificAlysPanel = new JPanel();
 		tabbedPane.addTab("Service Analysis", null, specificAlysPanel, null);

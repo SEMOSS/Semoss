@@ -27,6 +27,9 @@
  *******************************************************************************/
 package prerna.algorithm.impl.specific.tap;
 
+import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.components.specific.tap.SysSiteOptPlaySheet;
+
 
 
 /**
@@ -36,6 +39,8 @@ public class SysSiteOptFunction extends UnivariateOptFunction{
 	
 	protected int count = 0;
 	protected SysSiteLPSolver lpSolver;
+	
+	protected SysSiteOptPlaySheet playSheet;
 	
 	//given
 	protected double currentSustainmentCost;
@@ -59,7 +64,7 @@ public class SysSiteOptFunction extends UnivariateOptFunction{
 
 	}
 	
-	public void setVariables(int[][] systemDataMatrix, int[][] systemBLUMatrix, double[][] systemSiteMatrix, int[] systemTheater, int[] systemGarrison, Integer[] sysModArr, Integer[] sysDecomArr, double[] maintenaceCosts, double[] siteMaintenaceCosts, double[] siteDeploymentCosts, double[] systemCostConsumeDataArr, int[][] centralSystemDataMatrix,int[][] centralSystemBLUMatrix, int[] centralSystemTheater, int[] centralSystemGarrison, Integer[] centralModArr, Integer[] centralDecomArr, double[] centralSystemMaintenaceCosts, double budgetForYear, int years, double currentSustainmentCost, double infRate, double disRate, double trainingPerc) {
+	public void setVariables(int[][] systemDataMatrix, int[][] systemBLUMatrix, double[][] systemSiteMatrix, int[] systemTheater, int[] systemGarrison, Integer[] sysModArr, Integer[] sysDecomArr, double[] maintenaceCosts, double[] siteMaintenaceCosts, double[] siteDeploymentCosts, double[] interfaceCostArr, int[][] centralSystemDataMatrix,int[][] centralSystemBLUMatrix, int[] centralSystemTheater, int[] centralSystemGarrison, Integer[] centralModArr, Integer[] centralDecomArr, double[] centralSystemMaintenaceCosts, double budgetForYear, int years, double currentSustainmentCost, double infRate, double disRate, double trainingPerc) {
 		
 		this.budgetForYear = budgetForYear;
 		this.totalYrs = years;
@@ -73,17 +78,17 @@ public class SysSiteOptFunction extends UnivariateOptFunction{
 		startTime = System.currentTimeMillis();			
 
 		lpSolver = new SysSiteLPSolver();
-		lpSolver.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, sysModArr, sysDecomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, systemCostConsumeDataArr, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, trainingPerc, currentSustainmentCost);
+		lpSolver.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, sysModArr, sysDecomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, interfaceCostArr, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, trainingPerc, currentSustainmentCost);
 		
 		endTime = System.currentTimeMillis();
-		System.out.println("Time to set up the LP solver " + (endTime - startTime) / 1000  + " seconds");
+		printMessage("Time to set up the LP solver " + (endTime - startTime) / 1000  + " seconds");
 
 	}
 	
 	protected void runLPSolve(double budget) {
 		count++;
 //		updateProgressBar("Iteration " + count);
-		System.out.println("budget "+budget);
+		printMessage("budget "+budget);
 		
 		long startTime;
 		long endTime;
@@ -98,7 +103,7 @@ public class SysSiteOptFunction extends UnivariateOptFunction{
 		lpSolver.execute();
 		
 		endTime = System.currentTimeMillis();
-		System.out.println("Time to run iteration " + count + ": " + (endTime - startTime) / 1000 );
+		printMessage("Time to run iteration " + count + ": " + (endTime - startTime) / 1000 );
 		
 		futureSustainmentCost = lpSolver.getObjectiveVal();
 		double deploymentCost = lpSolver.getTotalDeploymentCost();
@@ -131,6 +136,18 @@ public class SysSiteOptFunction extends UnivariateOptFunction{
 		adjustedDeploymentCost = SysOptUtilityMethods.calculateAdjustedDeploymentCost(mu, yearsToComplete, budgetForYear);
 		adjustedTotalSavings = SysOptUtilityMethods.calculateAdjustedTotalSavings(mu, yearsToComplete, totalYrs, currentSustainmentCost - futureSustainmentCost);
 
+	}
+	
+	protected void printMessage(String message) {
+		if(playSheet == null)
+			System.out.println(message);
+		else
+			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n" + message);
+	}
+	
+	public void setPlaySheet(IPlaySheet playSheet) {
+		this.playSheet = (SysSiteOptPlaySheet) playSheet;
+		
 	}
 	
 	public double[] getSysKeptArr() {

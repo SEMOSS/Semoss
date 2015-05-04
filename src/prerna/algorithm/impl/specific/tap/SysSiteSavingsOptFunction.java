@@ -39,7 +39,7 @@ public class SysSiteSavingsOptFunction extends SysSiteOptFunction{
 	public double value(double arg0) {
 		
 		runLPSolve(arg0);
-		System.out.println("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", savings over entire time frame "+adjustedTotalSavings);
+		printMessage("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", savings over entire time frame "+adjustedTotalSavings);
 		return adjustedTotalSavings;
 
 	}

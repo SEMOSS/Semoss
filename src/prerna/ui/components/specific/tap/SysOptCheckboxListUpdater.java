@@ -52,7 +52,7 @@ public class SysOptCheckboxListUpdater {
 
 	public SysOptCheckboxListUpdater(IEngine engine) {
 		this.engine = engine;
-		createSystemCheckBoxLists();
+		createSystemCheckBoxLists(false);
 		createCapabilityCheckBoxLists();
 		createDataAndBLUCheckBoxLists();
 	}
@@ -60,23 +60,38 @@ public class SysOptCheckboxListUpdater {
 	public SysOptCheckboxListUpdater(IEngine engine, Boolean runSystem, Boolean runCap, Boolean runDataBLU) {
 		this.engine = engine;
 		if(runSystem)
-			createSystemCheckBoxLists();
+			createSystemCheckBoxLists(false);
 		if(runCap)
 			createCapabilityCheckBoxLists();
 		if(runDataBLU)
 			createDataAndBLUCheckBoxLists();
 	}
 	
-	private void createSystemCheckBoxLists() {
-		recdSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'}}");
-		intDHMSMSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y'}}");
-		notIntDHMSMSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'N'}}");
-		theaterSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> ?GT}FILTER( !regex(str(?GT),'Garrison'))}");
-		garrisonSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> ?GT}FILTER( !regex(str(?GT),'Theater'))}");
-		lowProbSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob}}BINDINGS ?Prob {('Low')('Medium')('Medium-High')}");
-		highProbSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob}}BINDINGS ?Prob {('High')('Question')}");
-		mhsSpecificSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/MHS_Specific> 'Y'}}");
-		ehrCoreSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/EHR_Core> 'Y'}}");
+	public SysOptCheckboxListUpdater(IEngine engine, Boolean runSystem, Boolean runCap, Boolean runDataBLU, Boolean costGreaterThanZero) {
+		this.engine = engine;
+		if(runSystem)
+			createSystemCheckBoxLists(costGreaterThanZero);
+		if(runCap)
+			createCapabilityCheckBoxLists();
+		if(runDataBLU)
+			createDataAndBLUCheckBoxLists();
+	}
+	
+	private void createSystemCheckBoxLists(Boolean costGreaterThanZero) {
+		String costGreaterThanZeroTriples;
+		if(costGreaterThanZero)
+			costGreaterThanZeroTriples = "{?entity <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?cost}FILTER(?cost > 0)";
+		else
+			costGreaterThanZeroTriples = "";
+		recdSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'}"+ costGreaterThanZeroTriples + "}");
+		intDHMSMSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y'}"+ costGreaterThanZeroTriples + "}");
+		notIntDHMSMSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'N'}"+ costGreaterThanZeroTriples + "}");
+		theaterSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> ?GT}FILTER( !regex(str(?GT),'Garrison'))"+ costGreaterThanZeroTriples + "}");
+		garrisonSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> ?GT}FILTER( !regex(str(?GT),'Theater'))"+ costGreaterThanZeroTriples + "}");
+		lowProbSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob}"+ costGreaterThanZeroTriples + "}BINDINGS ?Prob {('Low')('Medium')('Medium-High')}");
+		highProbSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob}"+ costGreaterThanZeroTriples + "}BINDINGS ?Prob {('High')('Question')}");
+		mhsSpecificSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/MHS_Specific> 'Y'}"+ costGreaterThanZeroTriples + "}");
+		ehrCoreSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/EHR_Core> 'Y'}"+ costGreaterThanZeroTriples + "}");
 	}
 	
 	private void createCapabilityCheckBoxLists() {

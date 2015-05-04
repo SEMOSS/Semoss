@@ -33,8 +33,6 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
-import javax.swing.JDesktopPane;
-
 import org.apache.commons.math3.exception.TooManyEvaluationsException;
 import org.apache.commons.math3.optim.MaxEval;
 import org.apache.commons.math3.optim.OptimizationData;
@@ -50,19 +48,16 @@ import org.apache.commons.math3.random.Well1024a;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.IAlgorithm;
+import prerna.math.StatisticsUtilityMethods;
 import prerna.rdf.engine.api.IEngine;
-import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.ColumnChartPlaySheet;
-import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.ui.components.playsheets.OCONUSMapPlaySheet;
 import prerna.ui.components.specific.tap.HealthGridSheet;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 
 /**
  * This optimizer is used for implementation of the ROI (return on investment) function.
  */
-public class SysSiteOptimizer implements IAlgorithm {
+public class SysSiteOptimizer extends UnivariateOpt {
 	
 	private static final Logger LOGGER = LogManager.getLogger(SysSiteOptimizer.class.getName());
 	
@@ -91,7 +86,8 @@ public class SysSiteOptimizer implements IAlgorithm {
 	private int[][] systemDataMatrix, systemBLUMatrix;
 	private double[][] systemSiteMatrix;
 	private int[] systemTheater, systemGarrison;
-	private double[] maintenaceCosts, siteMaintenaceCosts, systemCostConsumeDataArr, siteDeploymentCosts;
+	private double[] interfaceCostArr;
+	private double[] maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts;
 	
 	private Integer[] centralModArr, centralDecomArr;
 	private int[][] centralSystemDataMatrix, centralSystemBLUMatrix;
@@ -107,13 +103,21 @@ public class SysSiteOptimizer implements IAlgorithm {
 	private String sysKeptQueryString = "";
 	private int numSysKept, numCentralSysKept;
 	
+	private double[] siteLat, siteLon;
 	private double currSustainmentCost, futureSustainmentCost;
 	private double adjustedDeploymentCost, adjustedTotalSavings;
 	
 	private double[] budgetSpentPerYear, costAvoidedPerYear;
+
+	private double[] siteMaintenanceCosts;
 	
 	@Override
 	public void execute() {
+		executeWeb();
+		display();
+	}
+	
+	public void executeWeb() {
 	
 		long startTime;
 		long endTime;
@@ -122,12 +126,12 @@ public class SysSiteOptimizer implements IAlgorithm {
 		createSiteDataBLULists();
 		getData();
 		endTime = System.currentTimeMillis();
-		System.out.println("Time to query data " + (endTime - startTime) / 1000 + " seconds");
+		printMessage("Time to query data " + (endTime - startTime) / 1000 + " seconds");
 		
 		startTime = System.currentTimeMillis();			
 		optimizeSystemsAtSites(isOptimizeBudget, systemSiteMatrix, currSustainmentCost, budgetForYear, years);
 		endTime = System.currentTimeMillis();
-		System.out.println("Time to run Optimization " + (endTime - startTime) / 1000 + " seconds");
+		printMessage("Time to run Optimization " + (endTime - startTime) / 1000 + " seconds");
 		
 	}
 	
@@ -168,8 +172,8 @@ public class SysSiteOptimizer implements IAlgorithm {
 		
 		this.sysList = sysList;
 		
-		System.out.println("Not Central Systems are..." + SysOptUtilityMethods.createPrintString(sysList));
-		System.out.println("Central Systems are..." + SysOptUtilityMethods.createPrintString(centralSysList));
+		printMessage("Not Central Systems are..." + SysOptUtilityMethods.createPrintString(sysList));
+		printMessage("Central Systems are..." + SysOptUtilityMethods.createPrintString(centralSysList));
 	}
 	
 	public void setMustModDecomList(ArrayList<String> modList, ArrayList<String> decomList) {
@@ -279,8 +283,8 @@ public class SysSiteOptimizer implements IAlgorithm {
 			}
 		}
 		
-		System.out.println("Not Central Systems are..." + SysOptUtilityMethods.createPrintString(sysList));
-		System.out.println("Central Systems are..." + SysOptUtilityMethods.createPrintString(centralSysList));
+		printMessage("Not Central Systems are..." + SysOptUtilityMethods.createPrintString(sysList));
+		printMessage("Central Systems are..." + SysOptUtilityMethods.createPrintString(centralSysList));
 
 	}
 	
@@ -316,10 +320,10 @@ public class SysSiteOptimizer implements IAlgorithm {
 		bluList = SysOptUtilityMethods.runListQuery(systemEngine, bluQuery);
 		capList = SysOptUtilityMethods.runListQuery(systemEngine, capQuery);
 		
-		System.out.println("Sites are..." + SysOptUtilityMethods.createPrintString(siteList));
-		System.out.println("Data are..." + SysOptUtilityMethods.createPrintString(dataList));
-		System.out.println("BLU are..." + SysOptUtilityMethods.createPrintString(bluList));
-		System.out.println("Capabilities are..." + SysOptUtilityMethods.createPrintString(capList));
+		printMessage("Sites are..." + SysOptUtilityMethods.createPrintString(siteList));
+		printMessage("Data are..." + SysOptUtilityMethods.createPrintString(dataList));
+		printMessage("BLU are..." + SysOptUtilityMethods.createPrintString(bluList));
+		printMessage("Capabilities are..." + SysOptUtilityMethods.createPrintString(capList));
 	}
 	
 	private void getData() {
@@ -327,7 +331,7 @@ public class SysSiteOptimizer implements IAlgorithm {
 		ResidualSystemOptFillData resFunc = new ResidualSystemOptFillData();
 		resFunc.setSysSiteLists(sysList, dataList, bluList, siteList);
 		resFunc.setEngines(systemEngine, costEngine, siteEngine);
-		resFunc.fillSysSiteOptDataStores();
+		resFunc.fillSysSiteOptDataStores(true);
 		
 		systemDataMatrix = resFunc.systemDataMatrix;
 		systemBLUMatrix = resFunc.systemBLUMatrix;
@@ -336,7 +340,7 @@ public class SysSiteOptimizer implements IAlgorithm {
 		systemTheater = resFunc.systemTheater;
 		systemGarrison = resFunc.systemGarrison;
 		
-		systemCostConsumeDataArr = resFunc.systemCostConsumeDataArr;
+		double[][] systemCostConsumeDataMatrix = resFunc.systemCostOfDataMatrix;
 		
 		double[] systemSustainmentBudget = resFunc.systemCostOfMaintenance;
 		double[] systemNumOfSites = resFunc.systemNumOfSites;
@@ -365,7 +369,7 @@ public class SysSiteOptimizer implements IAlgorithm {
 		}
 		
 		resFunc.setSysSiteLists(centralSysList,dataList,bluList,siteList);
-		resFunc.fillSysSiteOptDataStores();
+		resFunc.fillSysSiteOptDataStores(false);
 		
 		centralSystemDataMatrix = resFunc.systemDataMatrix;
 		centralSystemBLUMatrix = resFunc.systemBLUMatrix;
@@ -376,7 +380,50 @@ public class SysSiteOptimizer implements IAlgorithm {
 		centralSystemMaintenaceCosts = resFunc.systemCostOfMaintenance;
 
 		currSustainmentCost = calculateCurrentSustainmentCost(maintenaceCosts, centralSystemMaintenaceCosts);
+		
+		calculateInterfaceCost(systemCostConsumeDataMatrix);
+		
+		resFunc.fillSiteLatLon();
+		siteLat = resFunc.siteLat;
+		siteLon = resFunc.siteLon;
 	}
+	
+	//TODO do we need costs for the central systems too?
+	private void calculateInterfaceCost(double[][] costConsumeDataMatrix) {
+		
+		int i;
+		int j;
+		int numTheaterProviders;
+		int numGarrisonProviders;
+		double probInferfaceStaying;
+		double probInferfaceStayingTheater;
+		double probInferfaceStayingGarrison;
+		int numData = systemDataMatrix[0].length;
+		int numSystems = systemDataMatrix.length;
+	//	int numCentralSystems = centralSystemDataMatrix.length;
+		
+		interfaceCostArr = SysOptUtilityMethods.createEmptyVector(interfaceCostArr, numSystems);
+		
+		for(i=0; i<numData; i++) {
+			numTheaterProviders = SysOptUtilityMethods.sumColIf(systemDataMatrix, i, systemTheater) + SysOptUtilityMethods.sumColIf(centralSystemDataMatrix, i, centralSystemTheater);
+			numGarrisonProviders = SysOptUtilityMethods.sumColIf(systemDataMatrix, i, systemGarrison) + SysOptUtilityMethods.sumColIf(centralSystemDataMatrix, i, centralSystemGarrison);
+			
+			for(j=0; j<numSystems; j++) {
+				probInferfaceStayingTheater = 1.0;
+				probInferfaceStayingGarrison = 1.0;
+				//in perfect solution only one provider should stay. probability that that one is the one currently receiving from is 1/total number
+				if(systemTheater[j] == 1 && numTheaterProviders != 0)
+					probInferfaceStayingTheater = 1.0/numTheaterProviders;
+				if(systemGarrison[j] == 1 && numGarrisonProviders != 0)
+					probInferfaceStayingGarrison = 1.0/numGarrisonProviders;
+				probInferfaceStaying = Math.min(probInferfaceStayingTheater, probInferfaceStayingGarrison);
+				//if the sys does not consume the data object, the costConsumeDataMatrix is already 0 so cost is 0
+				interfaceCostArr[j] += (1.0-probInferfaceStaying) * costConsumeDataMatrix[j][i];
+			}
+		}
+		
+	}
+	
 	
 	private double calculateCurrentSustainmentCost(double[] maintenaceCosts, double[] centralSysMaintenaceCosts) {
 		double currSustainmentCost = 0.0;
@@ -396,6 +443,28 @@ public class SysSiteOptimizer implements IAlgorithm {
 			
 	}
 	
+	private double[] calculateSiteSustainCost(double[][] sysSiteMatrix, double[] sysCost) {
+		int i;
+		int j;
+		int numSys = sysList.size();
+		int numSite = siteList.size();
+		double[] siteCostArr = new double[numSite];
+		
+		for(i=0; i<numSite; i++) {
+			
+			double siteCost = 0.0;
+			for(j=0; j<numSys; j++) {
+				
+				if(sysSiteMatrix[j][i] == 1)
+					siteCost += sysCost[j];
+					
+			}
+			siteCostArr[i] = siteCost;
+		}
+		
+		return siteCostArr;
+	}
+	
 	private void optimizeSystemsAtSites(Boolean isOptimizeBudget, double[][] systemSiteMatrix, double currSustainmentCost, double budgetForYear, int years) {
 		
 		if(type.equals("Savings"))
@@ -405,21 +474,22 @@ public class SysSiteOptimizer implements IAlgorithm {
 		else if(type.equals("IRR"))
 			optFunc = new SysSiteIRROptFunction();
 		else {
-			System.out.println("OPTIMIZATION TYPE DOES NOT EXIST");
+			printMessage("OPTIMIZATION TYPE DOES NOT EXIST");
 			return;
 		}
-		
-		optFunc.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, modArr, decomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, systemCostConsumeDataArr, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, budgetForYear, years, currSustainmentCost, infRate, disRate, trainingPerc);
+		optFunc.setPlaySheet(playSheet);
+		optFunc.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, modArr, decomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, interfaceCostArr, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, budgetForYear, years, currSustainmentCost, infRate, disRate, trainingPerc);
 
-		double output = optFunc.value(budgetForYear * years);
-		if(isOptimizeBudget && output > 0) {
+		optFunc.value(budgetForYear * years);
+		futureSustainmentCost = optFunc.getFutureSustainmentCost();
+		if(isOptimizeBudget && futureSustainmentCost!=currSustainmentCost) {
 			UnivariateOptimizer optimizer = new BrentOptimizer(.05, 10000);
 	
 			RandomGenerator rand = new Well1024a(500);
 			MultiStartUnivariateOptimizer multiOpt = new MultiStartUnivariateOptimizer(optimizer, noOfPts, rand);
 			UnivariateObjectiveFunction objF = new UnivariateObjectiveFunction(optFunc);
 			SearchInterval search = new SearchInterval(0, budgetForYear * years, budgetForYear * years);
-			MaxEval eval = new MaxEval(200);
+			MaxEval eval = new MaxEval(10);
 			
 			OptimizationData[] data = new OptimizationData[] { search, objF, GoalType.MAXIMIZE, eval};
 			try {
@@ -427,7 +497,7 @@ public class SysSiteOptimizer implements IAlgorithm {
 				optFunc.value(pair.getPoint());
 				
 			} catch (TooManyEvaluationsException fee) {
-				System.out.println("Too many evalutions");
+				printMessage("Too many evalutions");
 			}
 		}
 	
@@ -460,22 +530,22 @@ public class SysSiteOptimizer implements IAlgorithm {
 		createOverallGrid(centralSysKeptArr, centralSysList, "Central System", "Future Central Systems (Was central system kept or decommissioned?)");
 		createOverallGrid(sysKeptArr, sysList, "NonCentral Systems", "Future NonCentral Systems (Was noncentral system kept or decommissioned?)");
 		
-		System.out.println("**Curr Sustainment Cost " + currSustainmentCost);
-		System.out.println("**Future Sustainment Cost " + futureSustainmentCost);
-		System.out.println("**Adjusted Deployment Cost " + adjustedDeploymentCost);
+		printMessage("**Curr Sustainment Cost " + currSustainmentCost);
+		printMessage("**Future Sustainment Cost " + futureSustainmentCost);
+		printMessage("**Adjusted Deployment Cost " + adjustedDeploymentCost);
 		
 		int i;
-		System.out.println("**Year Investment CostAvoided: ");
+		printMessage("**Year ....... Investment ....... CostAvoided: ");
 		for(i = 0; i<years; i++) {
-			System.out.println((i + 1) + " " + budgetSpentPerYear[i] + " " + costAvoidedPerYear[i]);
+			printMessage((i + 1) + "     ....... " + budgetSpentPerYear[i] + " ..... " + costAvoidedPerYear[i]);
 		}
 		
 		if(optFunc instanceof SysSiteSavingsOptFunction)
-			System.out.println("**Adjusted Total Savings: " + adjustedTotalSavings);
+			printMessage("**Adjusted Total Savings: " + adjustedTotalSavings);
 		else if(optFunc instanceof SysSiteROIOptFunction)
-			System.out.println("**ROI: " + optFunc.getROI());
-		else if(optFunc  instanceof SysSiteIRROptFunction)
-			System.out.println("**IRR: " + optFunc.getIRR());
+			printMessage("**ROI: " + optFunc.getROI()+"%");
+		else if(optFunc instanceof SysSiteIRROptFunction)
+			printMessage("**IRR: " + optFunc.getIRR()+"%");
 		
 		createCostGrid();
 	}
@@ -485,8 +555,8 @@ public class SysSiteOptimizer implements IAlgorithm {
 		String[] headers = new String[5];
 		headers[0] = "System";
 		headers[1] = "Sustain Cost";
-		headers[2] = "Site Maintain Cost";
-		headers[3] = "Site Data Consume Cost";
+		headers[2] = "Interface Cost";
+		headers[3] = "Site Maintain Cost";
 		headers[4] = "Site Deploy Cost";
 		
 		ArrayList<Object []> list = new ArrayList<Object []>();
@@ -498,12 +568,12 @@ public class SysSiteOptimizer implements IAlgorithm {
 			Object[] row = new Object[5];
 			row[0] = sysList.get(i);
 			row[1] = maintenaceCosts[i];
-			row[2] = siteMaintenaceCosts[i];
-			row[3] = systemCostConsumeDataArr[i];
+			row[2] = interfaceCostArr[i];
+			row[3] = siteMaintenaceCosts[i];
 			row[4] = siteDeploymentCosts[i];
 			list.add(row);
 		}
-		createNewGridPlaySheet(headers,list,"NonCentral System Costs");
+		createTabAndDisplayList(headers,list,"NonCentral System Costs",false);
 	}
 	
 	private void createOverallGrid(double[] matrix, ArrayList<String> rowLabels, String systemType, String title) {
@@ -524,8 +594,8 @@ public class SysSiteOptimizer implements IAlgorithm {
 			row[1] = matrix[i];
 			list.add(row);
 		}
-		
-		createNewGridPlaySheet(headers,list,title);
+
+		createTabAndDisplayList(headers,list,title,false);
 	}
 	
 	private void createSiteGrid(double[][] matrix, ArrayList<String> rowLabels, ArrayList<String> colLabels, String title) {
@@ -552,8 +622,8 @@ public class SysSiteOptimizer implements IAlgorithm {
 
 			list.add(row);
 		}
-		
-		createNewGridPlaySheet(headers,list,title);
+
+		createTabAndDisplayList(headers,list,title,true);
 	}
 	
 	private void createSiteChange(double[][] oldMatrix, double[][] newMatrix, ArrayList<String> rowLabels, ArrayList<String> colLabels, String title) {
@@ -591,41 +661,7 @@ public class SysSiteOptimizer implements IAlgorithm {
 			list.add(row);
 		}
 	
-		createNewGridPlaySheet(headers,list,title);
-
-	}
-	
-	private void createNewGridPlaySheet(String[] headers, ArrayList<Object []> list, String title) {
-		GridPlaySheet ps = new GridPlaySheet();
-		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
-		ps.setJDesktopPane(pane);
-		ps.setList(list);
-		ps.setNames(headers);
-		ps.setTitle(title);
-		ps.setHorizontalScrollBar(true);
-		ps.createView();
-//		
-//		PlaysheetCreateRunner runner = new PlaysheetCreateRunner(ps);
-//		Thread playThread = new Thread(runner);
-//		playThread.start();
-	}
-	
-	
-	private void printMatrixDifference(double[][] oldMatrix,double[][] newMatrix, ArrayList<String> rowLabels, ArrayList<String> colLabels) {
-		int i;
-		int j;
-
-		int rowLength = rowLabels.size();
-		int colLength = colLabels.size();
-		
-		for(i=0; i<rowLength; i++) {
-			for(j=0; j<colLength; j++) {
-				if(oldMatrix[i][j] != newMatrix[i][j]) {
-					System.out.println("Changed " + rowLabels.get(i) + " - " + colLabels.get(j) + " from " + oldMatrix[i][j] + " to " + newMatrix[i][j]);
-				}
-			}
-			
-		}
+		createTabAndDisplayList(headers,list,title,true);
 	}
 	
 	public Hashtable<String,Object> getSysCapHash() {
@@ -745,7 +781,35 @@ public class SysSiteOptimizer implements IAlgorithm {
 		return (Hashtable<String,Object>)ps.getData();
 	}
 	
-	public void makeSysKeptQueryString() {
+
+	public Hashtable<String,Object> getOverviewSiteMapData() {
+		double[] currSiteSustainCost = calculateSiteSustainCost(systemSiteMatrix, siteMaintenanceCosts); 
+		double[] futureSiteSustainCost = calculateSiteSustainCost(systemSiteResultMatrix, siteMaintenanceCosts); 
+		double[] percentDiff = StatisticsUtilityMethods.calculatePercentDiff(currSiteSustainCost,futureSiteSustainCost);
+		
+		String[] names = new String[]{"DCSite", "lat", "lon", "Future Sustainment Cost", "Decrease in Sustainment Cost %"};
+		ArrayList<Object []> list = new ArrayList<Object []>();
+		int i;
+		int numSites = siteList.size();
+		for(i=0; i<numSites; i++) {
+			Object[] row = new Object[5];
+			row[0] = siteList.get(i);
+			row[1] = siteLat[i];
+			row[2] = siteLon[i];
+			row[3] = futureSiteSustainCost[i];
+			row[4] = percentDiff[i]+"%";//positive number means it decreased in cost, negative means increased cost
+			list.add(row);
+		}
+		
+		OCONUSMapPlaySheet ps = new OCONUSMapPlaySheet();
+		ps.setNames(names);
+		ps.setList(list);
+		ps.setDataHash(ps.processQueryData());
+		return (Hashtable<String,Object>)ps.getData();
+	}
+
+	
+	private void makeSysKeptQueryString() {
 		int i;
 		int numSys = sysList.size();
 		for(i = 0; i<numSys; i++)
@@ -761,11 +825,13 @@ public class SysSiteOptimizer implements IAlgorithm {
 			sysKeptQueryString = sysKeptQueryString.substring(0,sysKeptQueryString.length() - 1);
 	}
 	
-	@Override
-	public void setPlaySheet(IPlaySheet playSheet) {
-		// TODO Auto-generated method stub
-		
+	private void printMessage(String message) {
+		if(playSheet == null)
+			System.out.println(message);
+		else
+			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\n" + message);
 	}
+
 	@Override
 	public String[] getVariables() {
 		// TODO Auto-generated method stub

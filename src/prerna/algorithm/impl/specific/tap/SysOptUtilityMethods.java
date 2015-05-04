@@ -264,6 +264,15 @@ public final class SysOptUtilityMethods {
 		return sum;
 	}
 	
+	public static int sumColIf(int[][] matrix, int col, int[] ifMatrix) {
+		int sum = 0;
+		int i;
+		int numRows = matrix.length;
+		for (i = 0; i < numRows; i++)
+			sum += matrix[i][col] * ifMatrix[i];
+		return sum;
+	}
+	
 	/**
 	 * Gets the list of all capabilities for a selected functional area
 	 * @param sparqlQuery 		String containing the query to get all capabilities for a selected functional area

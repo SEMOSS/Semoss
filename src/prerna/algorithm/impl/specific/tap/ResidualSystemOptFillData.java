@@ -66,7 +66,6 @@ public class ResidualSystemOptFillData{
 	//cM_i, cDM_i, s_i
 	public double[] systemCostOfMaintenance;
 	public double[] systemCostOfDB;
-	public double[] systemCostConsumeDataArr;
 
 	public double[] systemCentralDeployment;
 	public double[] systemNumOfSites;
@@ -78,6 +77,7 @@ public class ResidualSystemOptFillData{
 	public double[] systemModernize;
 	public double[] systemDecommission;
 
+	public double[] siteLat, siteLon;
 	
 	//Ap, Bq
 	public int[][] dataRegionSORSystemCount;
@@ -152,7 +152,7 @@ public class ResidualSystemOptFillData{
 		sysListBindings = "{" + SysOptUtilityMethods.makeBindingString("System",sysList) + "}";		
 		fillSystemFunctionality();
 
-		fillSystemCostToProvideData();
+		fillSystemCostOfData(true);
 		fillSystemRegion();
 		
 		fillSystemCost();
@@ -212,7 +212,7 @@ public class ResidualSystemOptFillData{
 		sysListBindings = "{" + SysOptUtilityMethods.makeBindingString("System",sysList) + "}";		
 		fillSystemFunctionality();
 
-		fillSystemCostToProvideData();
+		fillSystemCostOfData(true);
 		fillSystemRegion();
 		
 		fillSystemCost();
@@ -292,13 +292,15 @@ public class ResidualSystemOptFillData{
 	}
 	
 
-	public void fillSysSiteOptDataStores() {
+	public void fillSysSiteOptDataStores(Boolean nonCentralSystems) {
 		sysListBindings = "{" + SysOptUtilityMethods.makeBindingString("System",sysList) + "}";	
 		fillSystemFunctionality();
-		fillSystemSite();
-		fillSystemNumOfSites();//TODO limit to sites we are actually looking at?
+		if(nonCentralSystems) {
+			fillSystemSite();
+			fillSystemNumOfSites();
+			fillSystemCostOfData(false);
+		}
 		fillSystemCost();
-		fillSystemCostToConsumeData();
 		fillSystemTheaterGarrison(true,true);
 		
 //		String sysDataString = SysOptUtilityMethods.createMatrixPrintString(systemDataMatrix,sysList,dataList);
@@ -339,21 +341,17 @@ public class ResidualSystemOptFillData{
 
 	}
 	
-	private void fillSystemCostToProvideData() {
+	private void fillSystemCostOfData(Boolean provider) {
 		systemCostOfDataMatrix = SysOptUtilityMethods.createEmptyMatrix(systemCostOfDataMatrix,sysList.size(),dataList.size());
-		String query = "SELECT DISTINCT ?sys ?data (SUM(?loe)*" + hourlyRate + " AS ?cost) WHERE { BIND( <http://health.mil/ontologies/Concept/GLTag/Provider> AS ?gltag) {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase>} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass}{?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}{?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;}{?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start}  {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser }{?data <http://semoss.org/ontologies/Relation/Input> ?GLitem}} GROUP BY ?sys ?data BINDINGS ?sys @SYSTEM-BINDINGS@";
+		String query;
+		if(provider)
+			query = "SELECT DISTINCT ?sys ?data (SUM(?loe)*" + hourlyRate + " AS ?cost) WHERE { BIND( <http://health.mil/ontologies/Concept/GLTag/Provider> AS ?gltag) {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?phase <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SDLCPhase>} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass}{?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}{?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;}{?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;}  {?phase <http://semoss.org/ontologies/Relation/Contains/StartDate> ?start}  {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser }{?data <http://semoss.org/ontologies/Relation/Input> ?GLitem}} GROUP BY ?sys ?data BINDINGS ?sys @SYSTEM-BINDINGS@";
+		else
+			query = "SELECT DISTINCT ?sys ?data (SUM(?loe)*150 AS ?cost) WHERE { BIND( <http://health.mil/ontologies/Concept/GLTag/Consumer> AS ?gltag){?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}{?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;}{?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser }{?data <http://semoss.org/ontologies/Relation/Input> ?GLitem}} GROUP BY ?sys ?data BINDINGS ?sys @SYSTEM-BINDINGS@";
 		
 		query = query.replace("@SYSTEM-BINDINGS@",sysListBindings);
 		
 		systemCostOfDataMatrix = fillMatrixFromQuery(costEngine,query,systemCostOfDataMatrix,sysList,dataList);
-	}
-	
-	private void fillSystemCostToConsumeData() {
-		systemCostConsumeDataArr = SysOptUtilityMethods.createEmptyVector(systemCostConsumeDataArr, sysList.size());
-		String query = "SELECT DISTINCT ?sys (SUM(?loe)*150 AS ?cost) WHERE { BIND( <http://health.mil/ontologies/Concept/GLTag/Consumer> AS ?gltag){?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?subclass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept/TransitionGLItem> ;} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subclass} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}{?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;}{?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe;} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser }{?data <http://semoss.org/ontologies/Relation/Input> ?GLitem}} GROUP BY ?sys BINDINGS ?sys @SYSTEM-BINDINGS@";
-		query = query.replace("@SYSTEM-BINDINGS@",sysListBindings);
-		systemCostConsumeDataArr = fillVectorFromQuery(costEngine,query,systemCostConsumeDataArr,sysList,false);
-		
 	}
 	
 	private void fillSystemRegion() 	{
@@ -378,6 +376,20 @@ public class ResidualSystemOptFillData{
 
 		query = query.replace("@SYSTEM-BINDINGS@",sysListBindings);
 		systemSiteMatrix = fillMatrixFromQuery(siteEngine,query,systemSiteMatrix,sysList,siteList);
+	}
+	
+	
+	public void fillSiteLatLon() {
+		String siteListBindings = "{" + SysOptUtilityMethods.makeBindingString("DCSite",siteList) + "}";
+		
+		siteLon = SysOptUtilityMethods.createEmptyVector(siteLon, siteList.size());
+		String lonQuery = "SELECT DISTINCT ?DCSite ?lon WHERE { {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?DCSite <http://semoss.org/ontologies/Relation/Contains/LONG> ?lon}} BINDINGS ?DCSite "+siteListBindings;
+		siteLon = fillVectorFromQuery(siteEngine,lonQuery,siteLon,siteList,false);
+		
+		siteLat = SysOptUtilityMethods.createEmptyVector(siteLat, siteList.size());
+		String latQuery = "SELECT DISTINCT ?DCSite ?lat WHERE { {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?DCSite <http://semoss.org/ontologies/Relation/Contains/LAT> ?lat}} BINDINGS ?DCSite "+siteListBindings;
+		siteLat = fillVectorFromQuery(siteEngine,latQuery,siteLat,siteList,false);
+		
 	}
 	
 	private void fillSystemCost() {

@@ -44,7 +44,7 @@ public class SysSiteROIOptFunction extends SysSiteOptFunction{
 		else
 			roi = (adjustedTotalSavings / adjustedDeploymentCost - 1) * 100;
 		
-		System.out.println("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", roi "+roi+"%");
+		printMessage("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", roi "+roi+"%");
 		return roi;
 	}
 
