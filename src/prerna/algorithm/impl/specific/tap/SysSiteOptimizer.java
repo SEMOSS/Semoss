@@ -109,11 +109,12 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	
 	private double[] budgetSpentPerYear, costAvoidedPerYear;
 
-	private double[] siteMaintenanceCosts;
+//	private double[] siteMaintenanceCosts;
 	
 	@Override
 	public void execute() {
 		executeWeb();
+		getOverviewSiteMapData();//TODO remove
 		display();
 	}
 	
@@ -783,8 +784,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	
 
 	public Hashtable<String,Object> getOverviewSiteMapData() {
-		double[] currSiteSustainCost = calculateSiteSustainCost(systemSiteMatrix, siteMaintenanceCosts); 
-		double[] futureSiteSustainCost = calculateSiteSustainCost(systemSiteResultMatrix, siteMaintenanceCosts); 
+		double[] currSiteSustainCost = calculateSiteSustainCost(systemSiteMatrix, maintenaceCosts); 
+		double[] futureSiteSustainCost = calculateSiteSustainCost(systemSiteResultMatrix, maintenaceCosts); 
 		double[] percentDiff = StatisticsUtilityMethods.calculatePercentDiff(currSiteSustainCost,futureSiteSustainCost);
 		
 		String[] names = new String[]{"DCSite", "lat", "lon", "Future Sustainment Cost", "Decrease in Sustainment Cost %"};
