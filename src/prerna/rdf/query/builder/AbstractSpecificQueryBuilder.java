@@ -63,8 +63,8 @@ public abstract class AbstractSpecificQueryBuilder {
 		query = baseQuery.getQuery();
 	}
 	
-	protected void createSQLQuery(String selectorsString) {
-		baseQuery.createSQLQuery(selectorsString , tableString, joinString);
+	protected void createSQLQuery() {
+		baseQuery.createSQLQuery(paramString , tableString, joinString, groupBy);
 		query = baseQuery.getQuery();
 	}
 	
@@ -129,6 +129,40 @@ public abstract class AbstractSpecificQueryBuilder {
 		return selectorsString;
 	}
 	
+	protected String generateSelectorsSubString(String fullColName, String colAlias, boolean isGroupBy, String valueMathFunc){
+		String returnParamStr = "";
+		String tableName = fullColName;
+		String colName = fullColName;
+		
+		//do the label column first
+		//colName = label; //tableName = label;
+		if(colName.contains("__"))
+		{
+			tableName = colName.substring(0, colName.indexOf("__"));
+			colName = colName.substring(colName.indexOf("__") + 2);			
+		}
+		
+		colName = getAlias(tableName) + "." + colName;
+		
+		//generate the group by statement first, before changing the colname for the aggregate column
+		if(isGroupBy){
+			if(groupBy.length() > 0) 
+				groupBy += " , ";
+			groupBy += colName;
+		}
+		
+		//change the column name for the aggregate column if there is a function passed in.
+		if(valueMathFunc.length() > 0){
+			String sqlMathFunc = mapMath(valueMathFunc);
+			if(sqlMathFunc != null)
+				colName = sqlMathFunc + colName + ")";
+		}
+		
+		returnParamStr = colName + " AS " + colAlias;
+
+		return returnParamStr;
+	}
+	
 	public String getQuery() {
 		return query;
 	}
@@ -142,14 +176,21 @@ public abstract class AbstractSpecificQueryBuilder {
 		return SQLQueryTableBuilder.getAlias(tableName);
 	}
 	
+	//used for RDBMS functions
 	protected String mapMath(String function)
 	{
 		String retString = null;
 		
 		if(function.equalsIgnoreCase("Average"))
 			retString = "avg(";
-		if(function.equalsIgnoreCase("Count"))
+		else if(function.equalsIgnoreCase("Count"))
 			retString = "count(";
+		else if(function.equalsIgnoreCase("Sum"))
+			retString = "sum(";
+		else if(function.equalsIgnoreCase("Max"))
+			retString = "max(";
+		else if(function.equalsIgnoreCase("Min"))
+			retString = "min(";
 		
 		return retString;
 	}
@@ -230,5 +271,4 @@ public abstract class AbstractSpecificQueryBuilder {
 			tablesProcessed.put(tableName.toUpperCase(), tableName.toUpperCase());
 		}
 	}
-
 }
