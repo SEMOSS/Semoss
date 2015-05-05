@@ -42,12 +42,10 @@ import org.openrdf.query.Update;
 import org.openrdf.query.UpdateExecutionException;
 import org.openrdf.repository.RepositoryException;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.BigDataEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
@@ -233,20 +231,10 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 	{
 		//delete old properties
 		String deleteQuery="DELETE {?Task ?rel ?Weight.} WHERE{BIND(<http://semoss.org/ontologies/Relation/Contains/Weight> AS ?rel){?Task ?rel ?Weight ;}}";	
-		Update up;
 		engine = (IEngine)DIHelper.getInstance().getLocalProp(repo);
-		try {
-			up = ((BigDataEngine)engine).rc.prepareUpdate(QueryLanguage.SPARQL, deleteQuery);
-			((BigDataEngine)engine).rc.setAutoCommit(false);
-			up.execute();
-			((BigDataEngine)engine).rc.commit();
-		} catch (RepositoryException e) {
-			e.printStackTrace();
-		} catch (MalformedQueryException e) {
-			e.printStackTrace();
-		} catch (UpdateExecutionException e) {
-			e.printStackTrace();
-		}
+		
+		engine.execQuery(deleteQuery);
+		engine.commit();
 		
 		String predUri = "<http://semoss.org/ontologies/Relation/Contains/Weight>";
 			//start with type triple
@@ -267,18 +255,8 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 			}
 		insertQuery = insertQuery + "}";
 
-		try {
-			up = ((BigDataEngine)engine).rc.prepareUpdate(QueryLanguage.SPARQL, insertQuery);
-			((BigDataEngine)engine).rc.setAutoCommit(false);
-			up.execute();
-			((BigDataEngine)engine).rc.commit();
-		} catch (RepositoryException e) {
-			e.printStackTrace();
-		} catch (MalformedQueryException e) {
-			e.printStackTrace();
-		} catch (UpdateExecutionException e) {
-			e.printStackTrace();
-		}
+		engine.execQuery(insertQuery);
+		engine.commit();
 	}
 	
 	/**
@@ -495,19 +473,8 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 		
 		for(int i=0;i<deleteQueries.size();i++)
 		{
-			Update up;
-			try {
-				up = ((BigDataEngine)engine).rc.prepareUpdate(QueryLanguage.SPARQL, deleteQueries.get(i));
-				((BigDataEngine)engine).rc.setAutoCommit(false);
-				up.execute();
-				((BigDataEngine)engine).rc.commit();
-			} catch (RepositoryException e) {
-				e.printStackTrace();
-			} catch (MalformedQueryException e) {
-				e.printStackTrace();
-			} catch (UpdateExecutionException e) {
-				e.printStackTrace();
-			}
+			engine.execQuery(deleteQueries.get(i));
+			engine.commit();
 		}
 
 			ArrayList<String> predUris = new ArrayList<String>();
@@ -562,19 +529,9 @@ public class SourceReportTaskWeightButtonListener implements IChakraListener {
 				}
 			}
 			insertQuery = insertQuery + "}";
-			Update up;
-			try {
-				up = ((BigDataEngine)engine).rc.prepareUpdate(QueryLanguage.SPARQL, insertQuery);
-				((BigDataEngine)engine).rc.setAutoCommit(false);
-				up.execute();
-				((BigDataEngine)engine).rc.commit();
-			} catch (RepositoryException e) {
-				e.printStackTrace();
-			} catch (MalformedQueryException e) {
-				e.printStackTrace();
-			} catch (UpdateExecutionException e) {
-				e.printStackTrace();
-			}
+
+			engine.execQuery(insertQuery);
+			engine.commit();
 	}
 	
 	/**

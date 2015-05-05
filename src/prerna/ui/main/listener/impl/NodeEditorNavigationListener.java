@@ -33,8 +33,8 @@ import java.util.Hashtable;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.engine.api.IEngine;
 import prerna.om.SEMOSSVertex;
-import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 

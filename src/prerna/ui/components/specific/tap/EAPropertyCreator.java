@@ -33,10 +33,10 @@ import java.util.HashMap;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.error.EngineException;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.AbstractEngine;
-import prerna.rdf.engine.impl.BigDataEngine;
 
 public class EAPropertyCreator extends AggregationHelper {
 	

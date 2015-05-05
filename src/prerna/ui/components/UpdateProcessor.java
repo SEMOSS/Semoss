@@ -32,9 +32,9 @@ import javax.swing.JList;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.BigDataEngine;
-import prerna.rdf.engine.impl.SesameJenaUpdateWrapper;
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdf.BigDataEngine;
+import prerna.engine.impl.rdf.SesameJenaUpdateWrapper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 

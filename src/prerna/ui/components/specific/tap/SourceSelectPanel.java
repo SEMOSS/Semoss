@@ -39,7 +39,7 @@ import java.util.Vector;
 import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.main.listener.specific.tap.SourceSelectAllListener;
 import prerna.ui.main.listener.specific.tap.SourceSelectListener;
 import prerna.util.Constants;
@@ -92,7 +92,7 @@ public class SourceSelectPanel extends JPanel {
 		paramTable.put(Constants.ENTITY, entityNS );
 		sparqlQuery = Utility.fillParam(sparqlQuery, paramTable);	
 		
-		names = engine.getEntityOfType(sparqlQuery);
+		names = Utility.getVectorOfReturn(sparqlQuery, engine);
 		Hashtable<String, String> paramHash = Utility.getInstanceNameViaQuery(names);
 		Set<String> nameC = paramHash.keySet();
 		names = new Vector<String>(nameC);

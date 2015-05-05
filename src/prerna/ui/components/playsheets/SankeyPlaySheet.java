@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.swing.JDesktopPane;
 
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 

@@ -40,12 +40,12 @@ import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 import org.openrdf.sail.SailException;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.AbstractEngine;
-import prerna.rdf.engine.impl.BigDataEngine;
-import prerna.rdf.engine.impl.RDFFileSesameEngine;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.rdf.BigDataEngine;
+import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
@@ -128,14 +128,14 @@ public class ActiveSystemUpdater {
 		if(foundQuery)
 		{
 			String semossSystemURI = baseSemossSystemURI + "/System";
-			( (BigDataEngine) engine).addStatement(activeSystemURI, subclassURI, baseSemossSystemURI, true);
-			( (BigDataEngine) engine).addStatement(activeSystemURI, subclassURI, semossSystemURI, true);
+			( (BigDataEngine) engine).addStatement(new Object[]{activeSystemURI, subclassURI, baseSemossSystemURI, true});
+			( (BigDataEngine) engine).addStatement(new Object[]{activeSystemURI, subclassURI, semossSystemURI, true});
 			Iterator<String> iterator = activeSystems.iterator();
 			while(iterator.hasNext())
 			{
 				String systemInstanceURI = iterator.next();
 				logger.info("Inserting: " + systemInstanceURI);
-				( (BigDataEngine) engine).addStatement(systemInstanceURI, typeURI, activeSystemURI, true);
+				( (BigDataEngine) engine).addStatement(new Object[]{systemInstanceURI, typeURI, activeSystemURI, true});
 			}
 			
 			((BigDataEngine) engine).commit();
@@ -197,8 +197,8 @@ public class ActiveSystemUpdater {
 		
 		AbstractEngine baseRelEngine = ((AbstractEngine)engine).getBaseDataEngine();
 		RDFFileSesameEngine existingEngine = (RDFFileSesameEngine) baseRelEngine;
-		existingEngine.addStatement(activeSystemURI, subclassURI, baseSemossSystemURI, true);
-		existingEngine.addStatement(activeSystemURI, subclassURI, baseSemossSystemURI + "/System", true);
+		existingEngine.addStatement(new Object[]{activeSystemURI, subclassURI, baseSemossSystemURI, true});
+		existingEngine.addStatement(new Object[]{activeSystemURI, subclassURI, baseSemossSystemURI + "/System", true});
 		RepositoryConnection exportRC = existingEngine.getRc();
 		
 		FileWriter fWrite = null;

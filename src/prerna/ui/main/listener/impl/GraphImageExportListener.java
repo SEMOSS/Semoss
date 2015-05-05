@@ -47,17 +47,17 @@ import javax.swing.JTabbedPane;
 
 import org.sourceforge.jlibeps.epsgraphics.EpsGraphics2D;
 
-import com.itextpdf.text.Document;
-import com.itextpdf.text.DocumentException;
-import com.itextpdf.text.Image;
-import com.itextpdf.text.Rectangle;
-import com.itextpdf.text.pdf.PdfWriter;
-
 import prerna.ui.components.LegendPanel2;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+
+import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Image;
+import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.pdf.PdfWriter;
 
 /**
  * Controls the export of a graph to PNG/EPS image formats.

@@ -28,9 +28,7 @@
 package prerna.ui.components.specific.tap;
 
 import java.awt.event.ActionListener;
-import java.beans.PropertyVetoException;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import javax.swing.JButton;
 import javax.swing.JDesktopPane;
@@ -38,11 +36,8 @@ import javax.swing.JDesktopPane;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.ChartControlPanel;
-import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.CONUSMapPlaySheet;
-import prerna.ui.helpers.PlaysheetCreateRunner;
 import prerna.ui.main.listener.impl.ChartImageExportListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;

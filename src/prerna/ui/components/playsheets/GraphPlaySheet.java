@@ -40,7 +40,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -68,21 +67,14 @@ import org.openrdf.query.UpdateExecutionException;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
-import org.openrdf.sail.SailException;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
-import prerna.algorithm.impl.DataLatencyPerformer;
-import prerna.algorithm.impl.IslandIdentifierProcessor;
-import prerna.algorithm.impl.LoopIdentifierProcessor;
+import prerna.engine.api.IConstructStatement;
+import prerna.engine.api.IConstructWrapper;
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
-import prerna.rdf.engine.api.IConstructStatement;
-import prerna.rdf.engine.api.IConstructWrapper;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.InMemorySesameEngine;
 import prerna.rdf.engine.wrappers.ConstructStatement;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.ControlData;
@@ -1182,13 +1174,10 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 				
 				Update update = gdm.rc.prepareUpdate(QueryLanguage.SPARQL, remQuery);
 				update.execute();
-				this.gdm.baseRelEngine.execInsertQuery(remQuery);
+				this.gdm.baseRelEngine.insertData(remQuery);
 			
 			} catch (RuntimeException e) {
 				// TODO: Specify exception
-				e.printStackTrace();
-			} catch (SailException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (UpdateExecutionException e) {
 				// TODO Auto-generated catch block

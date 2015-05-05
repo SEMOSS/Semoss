@@ -29,12 +29,10 @@ package prerna.algorithm.learning.supervized;
 
 import java.util.ArrayList;
 
-import org.apache.commons.math3.linear.RealVector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.AlgorithmDataFormatter;
-import prerna.algorithm.learning.similarity.ClusteringDataProcessor;
 import prerna.math.BarChart;
 import prerna.util.ArrayListUtilityMethods;
 import prerna.util.ArrayUtilityMethods;

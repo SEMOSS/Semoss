@@ -36,9 +36,9 @@ import javax.swing.JComponent;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.engine.api.IEngine;
 import prerna.error.EngineException;
 import prerna.poi.specific.FactSheetProcessor;
-import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.DHMSMDispositionFactSheetProcessor;

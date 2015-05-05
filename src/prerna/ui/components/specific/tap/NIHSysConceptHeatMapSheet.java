@@ -31,10 +31,8 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Set;
 
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 
 /**

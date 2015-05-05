@@ -30,9 +30,9 @@ package prerna.algorithm.impl.specific.tap;
 import java.util.ArrayList;
 import java.util.Vector;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.helpers.EntityFiller;
 

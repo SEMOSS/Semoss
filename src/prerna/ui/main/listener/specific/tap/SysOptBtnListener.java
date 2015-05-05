@@ -42,7 +42,7 @@ import prerna.algorithm.impl.specific.tap.SysNetSavingsOptimizer;
 import prerna.algorithm.impl.specific.tap.SysOptUtilityMethods;
 import prerna.algorithm.impl.specific.tap.SysROIOptimizer;
 import prerna.algorithm.impl.specific.tap.UnivariateSysOptimizer;
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.SysOptPlaySheet;
 import prerna.ui.helpers.AlgorithmRunner;

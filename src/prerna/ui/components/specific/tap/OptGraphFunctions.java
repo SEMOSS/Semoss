@@ -30,9 +30,6 @@ package prerna.ui.components.specific.tap;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
-import prerna.algorithm.impl.specific.tap.UnivariateOpt;
-import prerna.algorithm.impl.specific.tap.UnivariateSvcOptimizer;
-
 /**
  * This class is used to optimize graph functions used in services calculations.
  */

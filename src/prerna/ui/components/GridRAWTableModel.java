@@ -29,10 +29,6 @@ package prerna.ui.components;
 
 import javax.swing.table.AbstractTableModel;
 
-import com.bigdata.rdf.model.BigdataURIImpl;
-
-import prerna.util.Utility;
-
 
 /**
  * This class is used to create a table model for raw grids.

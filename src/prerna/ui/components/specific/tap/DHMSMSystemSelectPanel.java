@@ -39,7 +39,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.ListSelectionModel;
 
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.main.listener.specific.tap.SystemCheckBoxSelectorListener;
 import prerna.ui.swing.custom.SelectScrollList;
 

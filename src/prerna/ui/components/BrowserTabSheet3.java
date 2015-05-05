@@ -46,6 +46,7 @@ import com.teamdev.jxbrowser.chromium.Browser;
 import com.teamdev.jxbrowser.chromium.LoggerProvider;
 import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 
+
 /**
  * This class is used in chart listeners to create the appropriate browser and pull the appropriate data for a playsheet.
  */

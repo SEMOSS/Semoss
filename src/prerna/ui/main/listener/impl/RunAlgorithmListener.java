@@ -44,7 +44,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.learning.weka.WekaClassification;
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
 import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;

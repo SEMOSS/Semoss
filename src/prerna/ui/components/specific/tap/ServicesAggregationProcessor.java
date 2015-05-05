@@ -37,12 +37,10 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.BigDataEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.util.Utility;
 
 public class ServicesAggregationProcessor extends AggregationHelper {

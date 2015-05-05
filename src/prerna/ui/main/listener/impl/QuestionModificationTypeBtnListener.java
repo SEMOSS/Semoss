@@ -44,10 +44,10 @@ import javax.swing.JTextPane;
 
 import org.apache.log4j.Logger;
 
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.AbstractEngine;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.ui.components.ParamComboBox;
 import prerna.util.Constants;
 import prerna.util.DIHelper;

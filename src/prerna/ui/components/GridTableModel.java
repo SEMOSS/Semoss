@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.ui.components;
 
-import javax.swing.table.AbstractTableModel;
-
 import prerna.util.Utility;
 
 import com.bigdata.rdf.model.BigdataURIImpl;

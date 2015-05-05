@@ -37,8 +37,8 @@ import org.apache.log4j.Logger;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 
+import prerna.engine.api.IEngine;
 import prerna.error.EngineException;
-import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.specific.tap.CreateFutureStateDHMSMDatabase;
 import prerna.ui.components.specific.tap.GLItemGeneratorSelfReportedFutureInterfaces;
 import prerna.ui.main.listener.impl.AbstractListener;

@@ -97,7 +97,7 @@ import javax.swing.event.InternalFrameListener;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.DHMSMSystemSelectPanel;
 import prerna.ui.components.specific.tap.FactSheetReportComboBox;

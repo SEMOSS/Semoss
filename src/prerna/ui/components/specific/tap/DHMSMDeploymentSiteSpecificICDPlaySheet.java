@@ -33,7 +33,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.playsheets.DualEngineGridPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.ArrayListUtilityMethods;

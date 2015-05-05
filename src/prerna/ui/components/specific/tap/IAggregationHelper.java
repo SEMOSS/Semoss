@@ -30,7 +30,7 @@ package prerna.ui.components.specific.tap;
 import java.util.HashMap;
 import java.util.Set;
 
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 
 public interface IAggregationHelper {
 

@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.ui.components.playsheets;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Hashtable;
 
 import javax.swing.JComponent;
@@ -42,7 +43,7 @@ import javax.swing.plaf.basic.BasicInternalFrameUI;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.main.listener.impl.EditPlaySheetTitleListener;
 
@@ -259,4 +260,32 @@ public abstract class AbstractRDFPlaySheet extends JInternalFrame implements IPl
         jBar.putClientProperty("Nimbus.Overrides.InheritDefaults", false);
 		jBar.setStringPainted(true);
 	}
+    
+	//for handling playsheet specific tool calls
+	public Object doMethod(String methodName, Hashtable argHash)
+	{    	
+		logger.info("Trying to preform method " + methodName + " with arguments " + argHash.toString());
+		java.lang.reflect.Method method = null;
+		Object ret = null;
+		try {
+			method = this.getClass().getMethod(methodName, Hashtable.class);
+			logger.info("Successfully got method : " + methodName);
+			ret = method.invoke(this, argHash);
+			logger.info("Successfully invoked method : " + methodName);
+		} catch (NoSuchMethodException | SecurityException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+}
+		return ret;
+
+	}  
 }

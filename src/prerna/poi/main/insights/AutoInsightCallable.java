@@ -9,10 +9,10 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 
 import prerna.algorithm.learning.similarity.GenerateEntropyDensity;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.AbstractEngine;
-import prerna.rdf.engine.impl.QuestionAdministrator;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.QuestionAdministrator;
 import prerna.rdf.engine.wrappers.WrapperManager;
 
 public class AutoInsightCallable implements Callable<List<Object[]>> {

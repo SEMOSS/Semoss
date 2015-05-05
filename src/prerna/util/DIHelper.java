@@ -45,7 +45,7 @@ import javax.swing.JList;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 
 import com.ibm.icu.util.StringTokenizer;
 

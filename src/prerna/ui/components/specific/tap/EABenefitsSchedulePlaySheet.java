@@ -31,8 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import javax.swing.JDesktopPane;
-
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.playsheets.ColumnChartPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.Constants;

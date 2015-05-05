@@ -35,14 +35,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.RDFFileSesameEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;

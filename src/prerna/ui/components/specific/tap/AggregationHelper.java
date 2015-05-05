@@ -47,10 +47,10 @@ import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.AbstractEngine;
-import prerna.rdf.engine.impl.BigDataEngine;
-import prerna.rdf.engine.impl.RDFFileSesameEngine;
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.rdf.BigDataEngine;
+import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -81,7 +81,7 @@ public class AggregationHelper implements IAggregationHelper {
 				{
 					conceptTriple = false;
 				}
-				( (BigDataEngine) engine).addStatement(sub, pred, obj, conceptTriple);
+				( (BigDataEngine) engine).addStatement(new Object[]{sub, pred, obj, conceptTriple});
 				LOGGER.info("ADDING INTO " + engine.getEngineName() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
 			}
 		}
@@ -99,7 +99,7 @@ public class AggregationHelper implements IAggregationHelper {
 				{
 					conceptTriple = false;
 				}
-				( (BigDataEngine) engine).removeStatement(sub, pred, obj, conceptTriple);
+				( (BigDataEngine) engine).removeStatement(new Object[]{sub, pred, obj, conceptTriple});
 				LOGGER.info("REMOVING FROM " + engine.getEngineName() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
 			}
 		}		
@@ -144,7 +144,7 @@ public class AggregationHelper implements IAggregationHelper {
 	public void processNewSubclass(IEngine engine, String parentType, String childType)
 	{
 		String subclassOf = RDFS.SUBCLASSOF.toString();
-		( (BigDataEngine) engine).addStatement(childType, subclassOf, parentType, true);
+		( (BigDataEngine) engine).addStatement(new Object[]{childType, subclassOf, parentType, true});
 		LOGGER.info("ADDING NEW SUBCLASS TRIPLE: " + childType + ">>>>>" + subclassOf + ">>>>>" + parentType + ">>>>>");
 	}
 	
@@ -160,9 +160,9 @@ public class AggregationHelper implements IAggregationHelper {
 		String concept = "http://semoss.org/ontologies/Concept";
 		String subclassOf = RDFS.SUBCLASSOF.toString();
 		
-		( (BigDataEngine) engine).addStatement(newConceptType, subclassOf, concept, true);
+		( (BigDataEngine) engine).addStatement(new Object[]{newConceptType, subclassOf, concept, true});
 		RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) engine).getBaseDataEngine();
-		existingBaseEngine.addStatement(newConceptType, subclassOf, concept, true);
+		existingBaseEngine.addStatement(new Object[]{newConceptType, subclassOf, concept, true});
 		LOGGER.info("ADDING NEW CONCEPT TRIPLE: " + newConceptType + ">>>>>" + subclassOf + ">>>>>" + concept + ">>>>>");
 	}
 
@@ -171,23 +171,23 @@ public class AggregationHelper implements IAggregationHelper {
 		String relation = "http://semoss.org/ontologies/Relation";
 		String subpropertyOf = RDFS.SUBPROPERTYOF.toString();
 		
-		( (BigDataEngine) engine).addStatement(newRelationshipType, subpropertyOf, relation, true);
+		( (BigDataEngine) engine).addStatement(new Object[]{newRelationshipType, subpropertyOf, relation, true});
 		RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) engine).getBaseDataEngine();
-		existingBaseEngine.addStatement(newRelationshipType, subpropertyOf, relation, true);
+		existingBaseEngine.addStatement(new Object[]{newRelationshipType, subpropertyOf, relation, true});
 		LOGGER.info("ADDING NEW RELATIONSHIP TRIPLE: " + newRelationshipType + ">>>>>" + subpropertyOf + ">>>>>" + relation + ">>>>>");
 	}
 	
 	public void processNewConceptsAtInstanceLevel(IEngine engine, String subject, String object)
 	{
 		String pred = RDF.TYPE.toString();
-		((BigDataEngine) engine).addStatement(subject, pred, object, true);
+		((BigDataEngine) engine).addStatement(new Object[]{subject, pred, object, true});
 		LOGGER.info("ADDING CONCEPT INSTANCE TYPE TRIPLE: " + subject + ">>>>>" + pred + ">>>>>" + object	+ ">>>>>");				
 	}
 
 	public void processNewRelationshipsAtInstanceLevel(IEngine engine, String subject, String object) 
 	{
 		String subpropertyOf = RDFS.SUBPROPERTYOF.toString();
-		((BigDataEngine) engine).addStatement(subject, subpropertyOf, object, true);
+		((BigDataEngine) engine).addStatement(new Object[]{subject, subpropertyOf, object, true});
 		LOGGER.info("ADDING RELATIONSHIP INSTANCE SUBPROPERTY TRIPLE: " + subject + ">>>>>" + subpropertyOf + ">>>>>" + object	+ ">>>>>");
 	}
 	
@@ -279,7 +279,7 @@ public class AggregationHelper implements IAggregationHelper {
 	public void processLabel(IEngine engine) {
 		String label = RDFS.LABEL.toString();
 		for(String instanceNodeURI : allLabels.keySet()) {
-			((BigDataEngine) engine).addStatement(instanceNodeURI, label, allLabels.get(instanceNodeURI), false);
+			((BigDataEngine) engine).addStatement(new Object[]{instanceNodeURI, label, allLabels.get(instanceNodeURI), false});
 		}
 	}
 	
@@ -351,7 +351,7 @@ public class AggregationHelper implements IAggregationHelper {
 				Set<String> objectURIList = predicateURIHash.get(predicateURI);
 				for(String objectURI : objectURIList) 
 				{
-					existingBaseEngine.addStatement(subjectURI, predicateURI, objectURI, true);
+					existingBaseEngine.addStatement(new Object[]{subjectURI, predicateURI, objectURI, true});
 				}
 			}
 		}

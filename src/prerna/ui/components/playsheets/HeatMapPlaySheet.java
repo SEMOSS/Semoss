@@ -32,7 +32,7 @@ import java.util.Hashtable;
 
 import org.openrdf.model.Literal;
 
-import prerna.rdf.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectStatement;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 

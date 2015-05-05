@@ -30,18 +30,17 @@ package prerna.ui.components.specific.tap;
 import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 
 import org.openrdf.model.Literal;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
-import prerna.rdf.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectStatement;
 import prerna.ui.main.listener.specific.tap.SysSimHealthGridListener;
 import prerna.util.Utility;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 
 /**

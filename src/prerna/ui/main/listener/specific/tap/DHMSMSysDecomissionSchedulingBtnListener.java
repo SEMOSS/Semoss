@@ -28,7 +28,6 @@
 package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
-import java.util.ArrayList;
 
 import javax.swing.JComponent;
 import javax.swing.JTextArea;

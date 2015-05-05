@@ -39,10 +39,10 @@ import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.BigDataEngine;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.util.Utility;
 
 /**
@@ -334,24 +334,24 @@ public class GLItemGeneratorSelfReportedFutureInterfaces extends AggregationHelp
 			String sub = sjss.getRawVar(names[0]).toString();
 			String pred = sjss.getRawVar(names[1]).toString();
 			Double obj = (Double) sjss.getVar(names[2]);
-			( (BigDataEngine) futureCostDB).addStatement(sub, pred, obj, false);
+			( (BigDataEngine) futureCostDB).addStatement(new Object[]{sub, pred, obj, false});
 		}
 		
-		( (BigDataEngine) futureCostDB).addStatement("http://semoss.org/ontologies/Relation/Contains/LOECalc", RDF.TYPE.toString(), "http://semoss.org/ontologies/Relation/Contains", false);
+		( (BigDataEngine) futureCostDB).addStatement(new Object[]{"http://semoss.org/ontologies/Relation/Contains/LOECalc", RDF.TYPE.toString(), "http://semoss.org/ontologies/Relation/Contains", false});
 	}
 	
 	private void addGLItemSubclassing() {
 		String concept = "http://semoss.org/ontologies/Concept";
 		String subclassOf = RDFS.SUBCLASSOF.toString();
 		
-		( (BigDataEngine) futureCostDB).addStatement("http://semoss.org/ontologies/Concept/GLItem", subclassOf, concept, true);
-		( (BigDataEngine) futureCostDB).addStatement("http://semoss.org/ontologies/Concept/TransitionGLItem", subclassOf, concept, true);
+		( (BigDataEngine) futureCostDB).addStatement(new Object[]{"http://semoss.org/ontologies/Concept/GLItem", subclassOf, concept, true});
+		( (BigDataEngine) futureCostDB).addStatement(new Object[]{"http://semoss.org/ontologies/Concept/TransitionGLItem", subclassOf, concept, true});
 
-		( (BigDataEngine) futureCostDB).addStatement("http://semoss.org/ontologies/Concept/RequirementsGLItem", subclassOf, "http://semoss.org/ontologies/Concept/TransitionGLItem", true);
-		( (BigDataEngine) futureCostDB).addStatement("http://semoss.org/ontologies/Concept/DesignGLItem", subclassOf, "http://semoss.org/ontologies/Concept/TransitionGLItem", true);
-		( (BigDataEngine) futureCostDB).addStatement("http://semoss.org/ontologies/Concept/DevelopGLItem", subclassOf, "http://semoss.org/ontologies/Concept/TransitionGLItem", true);
-		( (BigDataEngine) futureCostDB).addStatement("http://semoss.org/ontologies/Concept/TestGLItem", subclassOf, "http://semoss.org/ontologies/Concept/TransitionGLItem", true);
-		( (BigDataEngine) futureCostDB).addStatement("http://semoss.org/ontologies/Concept/DeployGLItem", subclassOf, "http://semoss.org/ontologies/Concept/TransitionGLItem", true);
+		( (BigDataEngine) futureCostDB).addStatement(new Object[]{"http://semoss.org/ontologies/Concept/RequirementsGLItem", subclassOf, "http://semoss.org/ontologies/Concept/TransitionGLItem", true});
+		( (BigDataEngine) futureCostDB).addStatement(new Object[]{"http://semoss.org/ontologies/Concept/DesignGLItem", subclassOf, "http://semoss.org/ontologies/Concept/TransitionGLItem", true});
+		( (BigDataEngine) futureCostDB).addStatement(new Object[]{"http://semoss.org/ontologies/Concept/DevelopGLItem", subclassOf, "http://semoss.org/ontologies/Concept/TransitionGLItem", true});
+		( (BigDataEngine) futureCostDB).addStatement(new Object[]{"http://semoss.org/ontologies/Concept/TestGLItem", subclassOf, "http://semoss.org/ontologies/Concept/TransitionGLItem", true});
+		( (BigDataEngine) futureCostDB).addStatement(new Object[]{"http://semoss.org/ontologies/Concept/DeployGLItem", subclassOf, "http://semoss.org/ontologies/Concept/TransitionGLItem", true});
 	}
 	
 	public void insertRelDataAndGetSystems(Vector<String[]> data, String subBaseURI, String predBaseURI, String objBaseURI) {

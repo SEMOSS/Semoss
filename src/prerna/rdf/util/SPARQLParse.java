@@ -75,10 +75,10 @@ import org.openrdf.sail.SailException;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.InMemorySesameEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdf.InMemorySesameEngine;
+import prerna.engine.impl.rdf.SesameJenaSelectStatement;
+import prerna.engine.impl.rdf.SesameJenaSelectWrapper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -436,7 +436,7 @@ public class SPARQLParse {
 			// rc.
 			// sc.addStatement(vf.createURI((String) subjectT),
 			// vf.createURI((String) predicateT), (Value)objectT);
-			rc.addStatement(subjectT + "", predicateT + "", objectT, true);
+			rc.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectT + "", predicateT + "", objectT, true});
 		}
 	}
 

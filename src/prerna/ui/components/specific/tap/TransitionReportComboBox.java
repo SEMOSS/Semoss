@@ -30,7 +30,7 @@ package prerna.ui.components.specific.tap;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.helpers.EntityFiller;
 import prerna.util.DIHelper;

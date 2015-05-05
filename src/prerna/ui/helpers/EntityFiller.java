@@ -30,18 +30,16 @@ package prerna.ui.helpers;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.Set;
-import java.util.StringTokenizer;
 import java.util.Vector;
 
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 
-import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.engine.api.IEngine;
 import prerna.om.SEMOSSParam;
-import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.ParamComboBox;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -136,7 +134,7 @@ public class EntityFiller implements Runnable {
 					}
 
 					// get back all of the URIs that are of that type
-					names = engine.getEntityOfType(sparqlQuery);				
+					names = Utility.getVectorOfReturn(sparqlQuery, engine);				
 					// try to query for the label
 					logger.debug("Names " + names);
 					Hashtable paramHash = Utility.getInstanceNameViaQuery(names);
@@ -182,7 +180,7 @@ public class EntityFiller implements Runnable {
 					sparqlQuery = Utility.fillParam(sparqlQuery, paramTable);	
 				}
 
-				names = engine.getEntityOfType(sparqlQuery);
+				names = Utility.getVectorOfReturn(sparqlQuery, engine);
 				Collections.sort(names);
 				Hashtable paramHash = Utility.getInstanceNameViaQuery(names);
 				if (paramHash.isEmpty()) {

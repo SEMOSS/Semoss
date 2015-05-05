@@ -29,7 +29,6 @@ package prerna.ui.components.playsheets;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -37,9 +36,9 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.impl.CentralityCalculator;
 import prerna.algorithm.impl.PageRankCalculator;
 import prerna.algorithm.impl.SubclassingMapGenerator;
+import prerna.engine.impl.AbstractEngine;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
-import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.util.Constants;
 import edu.uci.ics.jung.graph.DelegateForest;
 
@@ -50,7 +49,7 @@ public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
 		
 	@Override
 	public void createData() {
-		GraphPlaySheet graphPS = CentralityCalculator.createMetamodel(((AbstractEngine)engine).getBaseDataEngine().getRC(), query);
+		GraphPlaySheet graphPS = CentralityCalculator.createMetamodel(((AbstractEngine)engine).getBaseDataEngine().getRc(), query);
 
 		Hashtable<String, SEMOSSVertex> vertStore  = graphPS.getGraphData().getVertStore();
 		Hashtable<String, SEMOSSEdge> edgeStore = graphPS.getGraphData().getEdgeStore();

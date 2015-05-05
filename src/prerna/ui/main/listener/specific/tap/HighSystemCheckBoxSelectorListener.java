@@ -33,7 +33,7 @@ import java.util.Vector;
 
 import javax.swing.JCheckBox;
 
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.helpers.EntityFiller;
 import prerna.ui.swing.custom.SelectScrollList;
 

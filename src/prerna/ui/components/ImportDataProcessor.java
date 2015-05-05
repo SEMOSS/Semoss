@@ -41,6 +41,7 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import prerna.engine.api.IEngine;
 import prerna.error.EngineException;
 import prerna.error.FileReaderException;
 import prerna.error.FileWriterException;
@@ -53,7 +54,6 @@ import prerna.poi.main.OntologyFileWriter;
 import prerna.poi.main.POIReader;
 import prerna.poi.main.PropFileWriter;
 import prerna.poi.main.RDBMSReader;
-import prerna.rdf.engine.api.IEngine;
 import prerna.rdf.main.ImportRDBMSProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;

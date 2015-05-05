@@ -48,8 +48,8 @@ import org.apache.commons.math3.random.Well1024a;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.engine.api.IEngine;
 import prerna.math.StatisticsUtilityMethods;
-import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.playsheets.ColumnChartPlaySheet;
 import prerna.ui.components.playsheets.OCONUSMapPlaySheet;
 import prerna.ui.components.specific.tap.HealthGridSheet;

@@ -29,12 +29,10 @@ package prerna.ui.main.listener.specific.tap;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.List;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.IEngine;
 import prerna.ui.components.specific.tap.SimilarityHeatMapSheet;
 
 import com.google.gson.Gson;

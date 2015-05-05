@@ -36,8 +36,8 @@ import java.util.Vector;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.AbstractEngine;
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.AbstractEngine;
 import prerna.ui.components.ParamComboBox;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -62,9 +62,9 @@ public class EntityFillerForSubClass implements Runnable {
 		String entityNS = DIHelper.getInstance().getProperty(parent);
 		if (entityNS != null) {
 			sparqlQuery = sparqlQuery + entityNS + "/" + parent + "> ;}";
-			names = engine.getEntityOfType(sparqlQuery);
+			names = Utility.getVectorOfReturn(sparqlQuery, engine);
 			if(engine instanceof AbstractEngine){
-				Vector<String> baseNames = ((AbstractEngine)engine).getBaseDataEngine().getEntityOfType(sparqlQuery);
+				Vector<String> baseNames = Utility.getVectorOfReturn(sparqlQuery, ((AbstractEngine)engine).getBaseDataEngine());
 				for(String name: baseNames) 
 					if(!names.contains(name)) 
 						names.addAll(baseNames);

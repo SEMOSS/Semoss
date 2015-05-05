@@ -42,6 +42,8 @@ import com.teamdev.jxbrowser.chromium.LoggerProvider;
 import com.teamdev.jxbrowser.chromium.events.LoadListener;
 import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 
+
+
 /**
  * This class creates the tab sheet in the browser window containing the full address.
  * It is used in the node editor listener to set the appropriate address, listener, and playsheet for navigation.

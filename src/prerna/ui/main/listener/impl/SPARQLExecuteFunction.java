@@ -30,10 +30,10 @@ package prerna.ui.main.listener.impl;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.SesameJenaUpdateWrapper;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.rdf.SesameJenaUpdateWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 

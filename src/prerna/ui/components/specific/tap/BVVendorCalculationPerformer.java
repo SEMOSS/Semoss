@@ -32,7 +32,7 @@ import java.util.Hashtable;
 import java.util.StringTokenizer;
 
 import prerna.algorithm.api.IAlgorithm;
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.UpdateProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;

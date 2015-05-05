@@ -49,7 +49,7 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.event.InternalFrameEvent;
 
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.AbstractRDFPlaySheet;
 import prerna.ui.main.listener.impl.PlaySheetListener;

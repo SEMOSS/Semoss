@@ -45,7 +45,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.learning.supervized.MatrixRegressionAlgorithm;
-import prerna.rdf.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectStatement;
 import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.main.listener.impl.GridPlaySheetListener;
 import prerna.ui.main.listener.impl.JTableExcelExportListener;

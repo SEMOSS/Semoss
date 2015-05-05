@@ -33,11 +33,8 @@ import java.util.Hashtable;
 
 import org.openrdf.model.Statement;
 
-import prerna.rdf.engine.api.IConstructStatement;
-import prerna.rdf.engine.api.IConstructWrapper;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaConstructStatement;
-import prerna.rdf.engine.impl.SesameJenaConstructWrapper;
+import prerna.engine.api.IConstructStatement;
+import prerna.engine.api.IConstructWrapper;
 import prerna.util.Utility;
 
 public class RemoteSesameConstructWrapper extends AbstractWrapper implements IConstructWrapper {
@@ -49,7 +46,7 @@ public class RemoteSesameConstructWrapper extends AbstractWrapper implements ICo
 
 	@Override
 	public void execute() {
-		remoteWrapperProxy = (SesameConstructWrapper)engine.execGraphQuery(query);
+		remoteWrapperProxy = (SesameConstructWrapper)engine.execQuery(query);
 	}
 
 	@Override

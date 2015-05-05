@@ -33,9 +33,8 @@ import java.util.Hashtable;
 
 import org.openrdf.model.Literal;
 
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;

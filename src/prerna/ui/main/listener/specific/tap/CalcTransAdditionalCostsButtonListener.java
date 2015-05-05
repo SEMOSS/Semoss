@@ -37,7 +37,7 @@ import javax.swing.JTable;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.engine.impl.rdf.SesameJenaSelectWrapper;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.TransitionCostInsert;

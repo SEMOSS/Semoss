@@ -37,11 +37,10 @@ import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
 
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.AbstractEngine;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.AbstractEngine;
-import prerna.rdf.engine.impl.QuestionAdministrator;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;

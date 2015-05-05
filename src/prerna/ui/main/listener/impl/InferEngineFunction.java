@@ -29,7 +29,7 @@ package prerna.ui.main.listener.impl;
 
 import java.util.Hashtable;
 
-import prerna.rdf.engine.impl.BigDataEngine;
+import prerna.engine.impl.rdf.BigDataEngine;
 
 import com.google.gson.Gson;
 import com.teamdev.jxbrowser.chromium.JSValue;

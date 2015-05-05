@@ -38,6 +38,8 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.ListSelectionModel;
 
+import prerna.engine.api.IEngine;
+import prerna.ui.helpers.EntityFiller;
 import prerna.ui.main.listener.specific.tap.CapCheckBoxSelectorListener;
 import prerna.ui.swing.custom.SelectScrollList;
 

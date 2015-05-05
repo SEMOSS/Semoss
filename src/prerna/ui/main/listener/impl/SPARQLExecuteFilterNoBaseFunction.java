@@ -30,9 +30,9 @@ package prerna.ui.main.listener.impl;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 
 import com.google.gson.Gson;

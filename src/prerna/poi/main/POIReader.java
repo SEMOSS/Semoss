@@ -49,6 +49,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openrdf.sail.SailException;
 
+import prerna.engine.api.IEngine;
 import prerna.error.EngineException;
 import prerna.error.FileReaderException;
 import prerna.error.FileWriterException;
@@ -84,7 +85,7 @@ public class POIReader extends AbstractFileReader {
 	public void importFileWithConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile)
 			throws EngineException, FileReaderException, FileWriterException, InvalidUploadFormatException {
 		logger.setLevel(Level.ERROR);
-		String[] files = prepareReader(fileNames, customBase, owlFile);
+		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
 		openEngineWithConnection(engineName);
 		
 		// load map file for existing db
@@ -118,7 +119,7 @@ public class POIReader extends AbstractFileReader {
 	 */
 	public void importFileWithOutConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile)
 			throws FileReaderException, EngineException, FileWriterException, InvalidUploadFormatException {
-		String[] files = prepareReader(fileNames, customBase, owlFile);
+		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
 		openEngineWithoutConnection(engineName);
 		
 		// load map file for db if user wants to use specific URIs
@@ -143,14 +144,14 @@ public class POIReader extends AbstractFileReader {
 	 * @throws SailException
 	 */
 	private void createSubClassing(XSSFSheet subclassSheet) throws EngineException {
-		try {
-			if (!scOWL.isActive() || !scOWL.isOpen()) {
-				scOWL.begin();
-			}
-		} catch (SailException e1) {
-			e1.printStackTrace();
-			throw new EngineException("Error opening connection to OWL file");
-		}
+//		try {
+//			if (!scOWL.isActive() || !scOWL.isOpen()) {
+//				scOWL.begin();
+//			}
+//		} catch (SailException e1) {
+//			e1.printStackTrace();
+//			throw new EngineException("Error opening connection to OWL file");
+//		}
 		// URI for sublcass
 		String pred = Constants.SUBCLASS_URI;
 		String semossNodeURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
@@ -175,26 +176,15 @@ public class POIReader extends AbstractFileReader {
 			parentNode = semossNodeURI + "/" + row.getCell(0).toString();
 			childNode = semossNodeURI + "/" + row.getCell(1).toString();
 			// add triples to engine
-			createStatement(vf.createURI(childNode), vf.createURI(pred), vf.createURI(parentNode));
-			createStatement(vf.createURI(childNode), vf.createURI(pred), vf.createURI(semossNodeURI));
-			createStatement(vf.createURI(parentNode), vf.createURI(pred), vf.createURI(semossNodeURI));
+			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{childNode, pred, parentNode, true});
+			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{childNode, pred, semossNodeURI, true});
+			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{parentNode, pred, semossNodeURI, true});
 			// add triples to OWL
-			try {
-				scOWL.addStatement(vf.createURI(childNode), vf.createURI(pred), vf.createURI(parentNode));
-				scOWL.addStatement(vf.createURI(childNode), vf.createURI(pred), vf.createURI(semossNodeURI));
-				scOWL.addStatement(vf.createURI(parentNode), vf.createURI(pred), vf.createURI(semossNodeURI));
-			} catch (SailException e) {
-				e.printStackTrace();
-				throw new EngineException("Error processing subclassing relationships in OWL file. Error on triple {<" + childNode + "> <" + pred
-						+ "> <" + parentNode + ">}");
-			}
+			baseDataEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{childNode, pred, parentNode, true});
+			baseDataEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{childNode, pred, semossNodeURI, true});
+			baseDataEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{parentNode, pred, semossNodeURI, true});
 		}
-		try {
-			scOWL.commit();
-		} catch (SailException e) {
-			e.printStackTrace();
-			throw new EngineException("Error committing subclassing relationships into OWL database");
-		}
+		baseDataEngine.commit();
 	}
 	
 	/**
@@ -253,22 +243,10 @@ public class POIReader extends AbstractFileReader {
 						// this is a relationship
 						if (loadTypeName.contains("Matrix")) {
 							loadMatrixSheet(sheetToLoad, workbook);
-							try {
-								sc.commit();
-							} catch (SailException e) {
-								e.printStackTrace();
-								throw new EngineException("Error committing processed triples from sheet " + fileName + "!" + sheetToLoad
-										+ " into database");
-							}
+							engine.commit();
 						} else {
 							loadSheet(sheetToLoad, workbook);
-//							try {
-//								sc.commit();
-//							} catch (SailException e) {
-//								e.printStackTrace();
-//								throw new EngineException("Error committing processed triples from sheet " + fileName + "!" + sheetToLoad
-//										+ " into database");
-//							}
+							engine.commit();
 						}
 					}
 				}

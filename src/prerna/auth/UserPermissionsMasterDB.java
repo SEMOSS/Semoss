@@ -30,13 +30,13 @@ package prerna.auth;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.nameserver.MasterDBHelper;
 import prerna.nameserver.MasterDatabaseQueries;
 import prerna.nameserver.MasterDatabaseURIs;
 import prerna.nameserver.ModifyMasterDB;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 

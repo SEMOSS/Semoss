@@ -32,9 +32,9 @@ import java.util.HashMap;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.error.EngineException;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -90,7 +90,7 @@ public class InsertInterfaceModernizationProperty {
 
 	private void addProperty(String sub, String pred, Object obj, boolean concept_triple) 
 	{
-		( (BigDataEngine) HR_Core).addStatement(sub, pred, obj, concept_triple);
+		( (BigDataEngine) HR_Core).addStatement(new Object[]{sub, pred, obj, concept_triple});
 		( (BigDataEngine) HR_Core).commit();
 		System.out.println(sub + " >>> " + pred + " >>> " + obj);
 	}

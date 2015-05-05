@@ -37,6 +37,15 @@ public class SEMOSSParam {
 	String type = null;
 	Vector<String> options = new Vector<String>();
 	Boolean hasQuery = true;
+	String uri = null;
+	
+	public void setUri(String uri){
+		this.uri = uri;
+	}
+	
+	public String getUri(){
+		return this.uri;
+	}
 	
 	public String getType() {
 		return type;

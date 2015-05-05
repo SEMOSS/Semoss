@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectStatement;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.HeatMapPlaySheet;
 import prerna.ui.main.listener.impl.BrowserZoomKeyListener;

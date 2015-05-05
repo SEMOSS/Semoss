@@ -29,9 +29,7 @@ package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
-
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import java.util.List;
 
 import prerna.algorithm.impl.DataLatencyPerformer;
 import prerna.algorithm.impl.IslandIdentifierProcessor;

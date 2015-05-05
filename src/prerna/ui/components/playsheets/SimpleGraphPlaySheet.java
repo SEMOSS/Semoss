@@ -33,11 +33,11 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.URI;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.InMemorySesameEngine;
-import prerna.rdf.engine.impl.SesameJenaConstructStatement;
-import prerna.rdf.engine.impl.SesameJenaConstructWrapper;
-import prerna.rdf.engine.impl.SesameJenaSelectCheater;
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdf.InMemorySesameEngine;
+import prerna.engine.impl.rdf.SesameJenaConstructStatement;
+import prerna.engine.impl.rdf.SesameJenaConstructWrapper;
+import prerna.engine.impl.rdf.SesameJenaSelectCheater;
 
 /**
  */

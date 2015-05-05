@@ -29,7 +29,7 @@ package prerna.rdf.engine.wrappers;
 
 import java.util.Hashtable;
 
-import prerna.rdf.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectStatement;
 
 public class SelectStatement implements ISelectStatement {
 	

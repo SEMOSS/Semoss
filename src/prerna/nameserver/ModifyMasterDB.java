@@ -30,7 +30,7 @@ package prerna.nameserver;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.impl.BigDataEngine;
+import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.util.DIHelper;
 
 public class ModifyMasterDB {

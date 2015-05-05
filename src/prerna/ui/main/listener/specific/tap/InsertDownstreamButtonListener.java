@@ -36,7 +36,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 
 import prerna.algorithm.impl.DistanceDownstreamInserter;
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.api.IChakraListener;

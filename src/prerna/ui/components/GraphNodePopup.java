@@ -37,9 +37,9 @@ import javax.swing.JPopupMenu;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdf.RemoteSparqlEngine;
 import prerna.om.SEMOSSVertex;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.RemoteSparqlEngine;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.main.listener.impl.AdjacentPopupMenuListener;
 import prerna.ui.main.listener.impl.ChartListener;

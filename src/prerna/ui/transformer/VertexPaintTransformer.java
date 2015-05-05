@@ -27,17 +27,14 @@
  *******************************************************************************/
 package prerna.ui.transformer;
 
-import java.awt.Color;
 import java.awt.Paint;
 import java.util.Hashtable;
-import java.util.StringTokenizer;
 
 import org.apache.commons.collections15.Transformer;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
-import prerna.ui.helpers.TypeColorShapeTable;
 import prerna.util.Constants;
 
 /**

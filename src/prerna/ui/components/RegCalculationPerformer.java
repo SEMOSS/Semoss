@@ -37,8 +37,8 @@ import org.apache.log4j.Logger;
 import org.codehaus.jet.regression.estimators.OLSMultipleLinearRegressionEstimator;
 
 import prerna.algorithm.api.IAlgorithm;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.RegExplorerPlaySheet;

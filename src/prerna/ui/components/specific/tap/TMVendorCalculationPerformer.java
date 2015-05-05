@@ -36,8 +36,6 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
 
-import javax.swing.JList;
-
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.poi.hssf.usermodel.HSSFCell;
@@ -46,14 +44,10 @@ import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 
 import prerna.algorithm.api.IAlgorithm;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 /**
  * Calculates necessary values for TM Vendor calculation.

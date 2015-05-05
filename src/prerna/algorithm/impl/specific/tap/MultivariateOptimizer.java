@@ -39,12 +39,6 @@ import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
 import org.apache.commons.math3.optim.nonlinear.scalar.MultiStartMultivariateOptimizer;
 import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction;
 import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.BOBYQAOptimizer;
-import org.apache.commons.math3.random.GaussianRandomGenerator;
-import org.apache.commons.math3.random.NormalizedRandomGenerator;
-import org.apache.commons.math3.random.RandomVectorGenerator;
-import org.apache.commons.math3.random.UncorrelatedRandomVectorGenerator;
-import org.apache.commons.math3.random.UnitSphereRandomVectorGenerator;
-import org.apache.commons.math3.random.Well1024a;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 

@@ -35,7 +35,7 @@ import javax.swing.JComponent;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.specific.tap.ServicesAggregationProcessor;
 import prerna.ui.main.listener.impl.AbstractListener;
 import prerna.util.ConstantsTAP;

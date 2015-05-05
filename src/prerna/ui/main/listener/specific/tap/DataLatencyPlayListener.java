@@ -31,8 +31,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyVetoException;
 
-import javax.swing.JTextField;
-
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 

@@ -28,7 +28,6 @@
 package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Hashtable;
 
 import org.apache.log4j.LogManager;

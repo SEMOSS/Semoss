@@ -27,16 +27,12 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
-import javax.swing.JComboBox;
-
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.poi.specific.FactSheetProcessor;
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.helpers.EntityFiller;
-import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 /**
