@@ -31,17 +31,13 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.openrdf.query.BindingSet;
+import prerna.engine.api.IConstructStatement;
+import prerna.engine.api.IConstructWrapper;
 
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 
-import prerna.rdf.engine.api.IConstructStatement;
-import prerna.rdf.engine.api.IConstructWrapper;
-import prerna.rdf.engine.impl.SesameJenaConstructStatement;
-
-public class JenaSelectCheater extends AbstractWrapper implements
-		IConstructWrapper {
+public class JenaSelectCheater extends AbstractWrapper implements IConstructWrapper {
 	
 	transient int count = 0;
 	transient String [] var = null;
@@ -68,7 +64,7 @@ public class JenaSelectCheater extends AbstractWrapper implements
 	@Override
 	public void execute() {
 		try {
-			rs = (ResultSet)engine.execSelectQuery(query);
+			rs = (ResultSet)engine.execQuery(query);
 			getVariables();
 			
 			processSelectVar();

@@ -30,21 +30,21 @@ package prerna.rdf.engine.wrappers;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.api.IEngineWrapper;
-import prerna.rdf.engine.api.IRemoteQueryable;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngineWrapper;
+import prerna.engine.api.IRemoteQueryable;
+import prerna.engine.impl.rdf.SesameJenaSelectWrapper;
 
 public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrapper{
 
 	String ID = null;
 	String api = null;
 	boolean remote = false;
-	static final Logger logger = LogManager.getLogger(SesameJenaSelectWrapper.class.getName());
+	static final Logger logger = LogManager.getLogger(AbstractWrapper.class.getName());
 	transient IEngine engine = null;
 	transient Enum engineType;
 	transient String query = null;
-	transient String [] var = null;
+	String [] var = null;
 
 
 	

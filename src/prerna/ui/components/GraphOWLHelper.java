@@ -31,12 +31,11 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.repository.RepositoryConnection;
 
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdf.InMemorySesameEngine;
+import prerna.engine.impl.rdf.SesameJenaConstructStatement;
+import prerna.engine.impl.rdf.SesameJenaSelectCheater;
 import prerna.om.GraphDataModel;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.InMemorySesameEngine;
-import prerna.rdf.engine.impl.SesameJenaConstructStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectCheater;
-import prerna.ui.components.playsheets.GraphPlaySheet;
 
 /**
  * This class is responsible for handling various components related to the engine for the OWL file.

@@ -30,17 +30,14 @@ package prerna.ui.main.listener.specific.tap;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 
-import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.ui.components.ParamComboBox;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.InterfaceReportProcessor;
-import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 /**

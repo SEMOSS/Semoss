@@ -1,18 +1,13 @@
 package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SPARQLConstants;
-import prerna.rdf.query.util.TriplePart;
 
 public class SPARQLQueryGraphBuilder extends AbstractSPARQLQueryBuilder {
 	static final Logger logger = LogManager.getLogger(SPARQLQueryGraphBuilder.class.getName());

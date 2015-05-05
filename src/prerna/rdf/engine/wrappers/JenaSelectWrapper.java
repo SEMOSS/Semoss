@@ -29,15 +29,13 @@ package prerna.rdf.engine.wrappers;
 
 import java.util.List;
 
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.util.Utility;
+
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.RDFNode;
-
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.util.Utility;
 
 public class JenaSelectWrapper extends AbstractWrapper implements ISelectWrapper {
 	
@@ -89,7 +87,7 @@ public class JenaSelectWrapper extends AbstractWrapper implements ISelectWrapper
 
 	@Override
 	public void execute() {
-		rs = (ResultSet) engine.execSelectQuery(query);		
+		rs = (ResultSet) engine.execQuery(query);		
 	}
 
 }

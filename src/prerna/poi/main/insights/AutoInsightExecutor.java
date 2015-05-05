@@ -37,11 +37,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.QuestionAdministrator;
 import prerna.om.Insight;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.AbstractEngine;
-import prerna.rdf.engine.impl.QuestionAdministrator;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.DIHelper;
 
@@ -81,9 +81,9 @@ public class AutoInsightExecutor implements Runnable{
 		for(String perspective : perspectives) {
 			// calculate the max id to use
 			int maxId = 0;
-			Vector<Object> questionList = engine.getInsights(perspective);
-			for(Object question : questionList) {
-				String questString = question.toString();
+			Vector<String> questionList = engine.getInsights(perspective);
+			for(String question : questionList) {
+				String questString = question;
 				Vector<Insight> in = engine.getInsight2(questString);
 				Insight insight = in.get(0);
 				String questionId = insight.getId();

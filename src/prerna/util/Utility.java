@@ -71,10 +71,12 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.log4j.Logger;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.openrdf.model.Value;
+import org.openrdf.query.Binding;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 
 import com.ibm.icu.math.BigDecimal;
@@ -555,10 +557,18 @@ public class Utility {
 
 			String engineName = prop.getProperty(Constants.ENGINE);
 			String engineClass = prop.getProperty(Constants.ENGINE_TYPE);
+			//TEMPORARY
+			// TODO: remove this
+			if(engineClass.equals("prerna.rdf.engine.impl.RDBMSNativeEngine")){
+				engineClass = "prerna.engine.impl.rdbms.RDBMSNativeEngine";
+			}
+			else if(engineClass.startsWith("prerna.rdf.engine.impl.")){
+				engineClass = engineClass.replace("prerna.rdf.engine.impl.", "prerna.engine.impl.rdf.");
+			}
 			engine = (IEngine)Class.forName(engineClass).newInstance();
 			engine.setEngineName(engineName);
 			if(prop.getProperty("MAP") != null) {
-				engine.setMap(prop.getProperty("MAP"));
+				engine.addProperty("MAP", prop.getProperty("MAP"));
 			}
 			engine.openDB(fileName);
 			engine.setDreamer(prop.getProperty(Constants.DREAMER));
@@ -955,6 +965,36 @@ public class Utility {
 		calendar.setTimeZone(timeZone);
 		
 		return calendar.getTime();
+	}
+
+	/**
+	 * Gets the vector of uris from first variable returned from the query
+	 * @param sparql
+	 * @param eng
+	 * @return Vector of uris associated with first variale returned from the query
+	 */
+	public static Vector<String> getVectorOfReturn(String query,IEngine engine){
+		Vector<String> retString = new Vector<String>();
+		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(engine, query);
+//		wrap.execute();
+
+		String[] names = wrap.getVariables();
+
+		while (wrap.hasNext()) {
+			ISelectStatement bs = wrap.next();
+			Object value = bs.getRawVar(names[0]);
+			String val = null;
+			if(value instanceof Binding){
+				val = ((Value)((Binding) value).getValue()).stringValue();
+			}
+			else{
+				val = value +"";
+			}
+				val = val.replace("\"", "");
+			retString.addElement(val);
+		}
+		return retString;
+
 	}
 	
 }

@@ -45,19 +45,18 @@ import org.openrdf.repository.RepositoryResult;
 import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.rio.RDFFormat;
 import org.openrdf.rio.RDFParseException;
-import org.openrdf.sail.SailException;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 import org.openrdf.sail.memory.model.MemURI;
 
 import prerna.algorithm.impl.CentralityCalculator;
 import prerna.algorithm.nlp.TextHelper;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.om.SEMOSSVertex;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.AbstractEngine;
-import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -93,7 +92,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName + "");
 		String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
-		GraphPlaySheet gps = CentralityCalculator.createMetamodel(((AbstractEngine)engine).getBaseDataEngine().getRC(), sparql);
+		GraphPlaySheet gps = CentralityCalculator.createMetamodel(((AbstractEngine)engine).getBaseDataEngine().getRc(), sparql);
 		Hashtable<String, SEMOSSVertex> vertStore  = gps.getGraphData().getVertStore();
 
 		addNewDBConcepts(engineName, vertStore, parentChildMapping);
@@ -128,7 +127,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		hypernymGenerator.addMappings(parentChildMapping);
 
 		String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
-		GraphPlaySheet gps = CentralityCalculator.createMetamodel(((AbstractEngine)engine).getBaseDataEngine().getRC(), sparql);
+		GraphPlaySheet gps = CentralityCalculator.createMetamodel(((AbstractEngine)engine).getBaseDataEngine().getRc(), sparql);
 		Hashtable<String, SEMOSSVertex> vertStore  = gps.getGraphData().getVertStore();
 
 		addNewDBConcepts(engineName, vertStore, parentChildMapping);
@@ -163,7 +162,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		for(String engineName : dbArray) {
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName + "");
 			String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
-			GraphPlaySheet gps = CentralityCalculator.createMetamodel(((AbstractEngine)engine).getBaseDataEngine().getRC(), sparql);
+			GraphPlaySheet gps = CentralityCalculator.createMetamodel(((AbstractEngine)engine).getBaseDataEngine().getRc(), sparql);
 			Hashtable<String, SEMOSSVertex> vertStore  = gps.getGraphData().getVertStore();
 
 			addNewDBConcepts(engineName, vertStore, parentChildMapping);
@@ -314,7 +313,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 			RepositoryResult<Statement> results = rc.getStatements(null, null, null, true);
 			while(results.hasNext()) {
 				Statement s = results.next();
-				this.masterEngine.sc.addStatement(s.getSubject(),s.getPredicate(),s.getObject(),s.getContext());
+				this.masterEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{s.getSubject(), s.getPredicate(), s.getObject(), s.getContext()});
 				if(s.getPredicate().toString().equals("PARAM:TYPE")) {
 					//TODO discuss the relationships
 					if(s.getObject() instanceof MemURI) {
@@ -330,9 +329,6 @@ public class AddToMasterDB extends ModifyMasterDB {
 			}
 		} catch (RepositoryException e) {
 			logger.info("Repository Error adding insights");
-		} catch (SailException e) {
-			e.printStackTrace();
-			logger.info("Sail Error adding insights");
 		}
 	}
 

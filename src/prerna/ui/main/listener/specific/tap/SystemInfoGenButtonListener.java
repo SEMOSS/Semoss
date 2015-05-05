@@ -35,11 +35,8 @@ import javax.swing.JComponent;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.SystemInfoGenProcessor;
-import prerna.util.ConstantsTAP;
-import prerna.util.DIHelper;
 
 /**
  * Listener for btnTaskerGeneration on the MHS TAP tab

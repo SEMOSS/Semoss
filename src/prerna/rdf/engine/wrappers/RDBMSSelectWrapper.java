@@ -35,12 +35,11 @@ import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
 import prerna.util.ConnectionUtils;
 
-public class RDBMSSelectWrapper extends AbstractWrapper implements
-		ISelectWrapper {
+public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrapper {
 
 	private ArrayList<ISelectStatement> queryResults = new ArrayList();
 	public static String uri = "http://semoss.org/ontologies/concept";
@@ -54,7 +53,7 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements
 		// TODO Auto-generated method stub
 		
 		queryResults.clear(); //clear the query results arraylis
-		rs = (ResultSet)engine.execSelectQuery(query);
+		rs = (ResultSet)engine.execQuery(query);
 		setVariables(); //get the variables
 		populateQueryResults();
 		

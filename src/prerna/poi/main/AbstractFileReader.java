@@ -29,9 +29,7 @@ package prerna.poi.main;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -39,47 +37,28 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.openrdf.model.Literal;
-import org.openrdf.model.Statement;
-import org.openrdf.model.URI;
-import org.openrdf.model.Value;
-import org.openrdf.model.ValueFactory;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
-import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
-import org.openrdf.repository.RepositoryResult;
-import org.openrdf.repository.sail.SailRepository;
-import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.rio.RDFHandlerException;
-import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
-import org.openrdf.sail.Sail;
-import org.openrdf.sail.SailConnection;
-import org.openrdf.sail.SailException;
-import org.openrdf.sail.memory.MemoryStore;
 
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.rdf.BigDataEngine;
+import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.error.EngineException;
 import prerna.error.FileReaderException;
 import prerna.error.FileWriterException;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.AbstractEngine;
-import prerna.rdf.engine.impl.BigDataEngine;
-import prerna.rdf.engine.impl.RDBMSNativeEngine;
-import prerna.rdf.engine.impl.RDFFileSesameEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-import com.bigdata.rdf.rules.InferenceEngine;
-import com.bigdata.rdf.sail.BigdataSail;
-import com.bigdata.rdf.sail.BigdataSailRepository;
 import com.hp.hpl.jena.vocabulary.OWL;
 
 public abstract class AbstractFileReader {
@@ -87,14 +66,11 @@ public abstract class AbstractFileReader {
 	protected Hashtable<String, String> rdfMap = new Hashtable<String, String>();
 	protected String bdPropFile;
 	protected Properties bdProp = new Properties(); // properties for big data
-	protected Sail bdSail;
-	protected ValueFactory vf;
-	IEngine engine;
+	protected IEngine engine;
 	
 	protected String customBaseURI = "";
 	public String basePropURI= "";
 
-	protected SailConnection sc;
 	protected String semossURI;
 	protected final static String CONTAINS = "Contains";
 	
@@ -111,102 +87,11 @@ public abstract class AbstractFileReader {
 
 	// OWL variables
 	protected RepositoryConnection rcOWL;
-	protected ValueFactory vfOWL;
-	protected SailConnection scOWL;
 	protected String owlFile = "";
 
 	//reload base data
 	protected RDFFileSesameEngine baseDataEngine;
 	protected Hashtable<String, String> baseDataHash = new Hashtable<String, String>();
-
-	/**
-	 * Creates and adds the triple into the repository connection
-	 * @param subject		URI for the subject of the triple
-	 * @param predicate		URI for the predicate of the triple
-	 * @param object		Value for the object of the triple, this param is not a URI since objects can be literals and literals do not have URIs
-	 * @throws EngineException  
-	 */
-	protected void createStatement(URI subject, URI predicate, Value object) throws EngineException {
-		URI newSub;
-		URI newPred;
-		Value newObj;
-		String subString;
-		String predString;
-		String objString;
-		String sub = subject.stringValue().trim();
-		String pred = predicate.stringValue().trim();
-
-		subString = Utility.cleanString(sub, false);
-		newSub = vf.createURI(subString);
-
-		predString = Utility.cleanString(pred, false);
-		newPred = vf.createURI(predString);
-
-		if(object instanceof Literal) 
-			newObj = object;
-		else {
-			objString = Utility.cleanString(object.stringValue(), false);
-			newObj = vf.createURI(objString);
-		}
-		try {
-			sc.addStatement(newSub, newPred, newObj);
-		} catch (SailException e) {
-			e.printStackTrace();
-			throw new EngineException("Error adding triple {<" + newSub + "> <" + newPred + "> <" + newObj + ">}");
-		}
-	}
-
-	/**
-	 * Creates the database based on the engine properties 
-	 * @throws EngineException 
-	 */
-	private void openDB() throws EngineException {
-		// create database based on engine properties
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String fileName = baseFolder + "/" + bdProp.getProperty("com.bigdata.journal.AbstractJournal.file");
-		bdProp.put("com.bigdata.journal.AbstractJournal.file", fileName);
-		bdSail = new BigdataSail(bdProp);
-		Repository repo = new BigdataSailRepository((BigdataSail) bdSail);
-		SailRepositoryConnection src = null;
-		try {
-			repo.initialize();
-			src = (SailRepositoryConnection) repo.getConnection();
-		} catch (RepositoryException e) {
-			e.printStackTrace();
-			throw new EngineException("Error creating repository engine based on pre-defined .smss properties");
-		}
-		sc = src.getSailConnection();
-		vf = bdSail.getValueFactory();
-	}
-
-	/**
-	 * Loading engine properties in order to create the database 
-	 * @param fileName String containing the fileName of the temp file that contains the information of the smss file
-	 * @throws FileReaderException 
-	 */
-	private void loadBDProperties(String fileName) throws FileReaderException {
-		InputStream fis = null;
-		try {
-			fis = new FileInputStream(fileName);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-			throw new FileReaderException("Could not find user-specified .smss file located at: " + fileName);
-		}
-		try {
-			bdProp.load(fis);
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new FileReaderException("Could not read user-specified .smss file located at: " + fileName);
-		} finally {
-			try{
-				if(fis!=null)
-					fis.close();
-			}catch(IOException e) {
-				e.printStackTrace();
-				throw new FileReaderException("Could not close file reader for .smss file located at: " + fileName);
-			}
-		}
-	}
 
 	/**
 	 * Loads the prop file for the CSV file
@@ -245,44 +130,34 @@ public abstract class AbstractFileReader {
 	public void closeDB() throws EngineException {
 		logger.warn("Closing....");
 		commitDB();
-		try {
-			sc.close();
-			bdSail.shutDown();
-		} catch (SailException e) {
-			e.printStackTrace();
-			throw new EngineException("Could not close database connection");
-		}
+		engine.closeDB();
+		//TODO: why do we do this?
+//		try {
+//			sc.close();
+//			bdSail.shutDown();
+//		} catch (SailException e) {
+//			e.printStackTrace();
+//			throw new EngineException("Could not close database connection");
+//		}
 	}	
 
 	protected void commitDB() throws EngineException {
 		logger.warn("Committing....");
-		try {
-			sc.commit();
-		} catch (SailException e) {
-			e.printStackTrace();
-			throw new EngineException("Could not commit processed triples into database");
-		}
-		if(bdSail != null){
-			InferenceEngine ie = ((BigdataSail)bdSail).getInferenceEngine();
-			ie.computeClosure(null);
-			try {
-				sc.commit();
-			} catch (SailException e) {
-				e.printStackTrace();
-				throw new EngineException("Could not commit inferenced triples into database");
-			}
+		engine.commit();
+		
+		//TODO: how to call .infer() ?
+		if(engine!=null && engine instanceof BigDataEngine){
+			((BigDataEngine)engine).infer();
 		}
 		else{
 			if(engine!=null && engine instanceof RDFFileSesameEngine){
 				try {
 					((RDFFileSesameEngine)engine).exportDB();
-				} catch (RepositoryException | RDFHandlerException
-						| IOException e) {
+				} catch (RepositoryException | RDFHandlerException | IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
-				
 		}
 	}
 
@@ -291,17 +166,9 @@ public abstract class AbstractFileReader {
 	 * @throws EngineException 
 	 */
 	private void openOWLWithOutConnection() throws EngineException {
-		Repository myRepository = new SailRepository(new MemoryStore());
-		try {
-			myRepository.initialize();
-			rcOWL = myRepository.getConnection();
-		} catch (RepositoryException e) {
-			e.printStackTrace();
-			throw new EngineException("Could not create new repository connection to store OWL information");
-		} 
-
-		scOWL = ((SailRepositoryConnection) rcOWL).getSailConnection();
-		vfOWL = rcOWL.getValueFactory();
+		baseDataEngine = new RDFFileSesameEngine();
+		baseDataEngine.openDB(null);
+		baseDataEngine.setFileName(owlFile);
 	}
 
 	/**
@@ -311,37 +178,9 @@ public abstract class AbstractFileReader {
 	 */
 	@SuppressWarnings("unchecked")
 	private void openOWLWithConnection(IEngine engine) throws EngineException {
-		Repository myRepository = new SailRepository(new MemoryStore());
-		try {
-			myRepository.initialize();
-			rcOWL = myRepository.getConnection();
-			rcOWL.begin();
-			scOWL = ((SailRepositoryConnection) rcOWL).getSailConnection();
-			vfOWL = rcOWL.getValueFactory();
-		} catch (RepositoryException e) {
-			e.printStackTrace();
-			throw new EngineException("Could not create new repository connection to store OWL information");
-		} 
-
 		baseDataEngine = ((AbstractEngine)engine).getBaseDataEngine();
 		baseDataHash = ((AbstractEngine)engine).getBaseHash();
-
-		RepositoryConnection existingRC = ((RDFFileSesameEngine) baseDataEngine).getRc();
-		// load pre-existing base data
-		RepositoryResult<Statement> rcBase = null;
-		try {
-			rcBase = existingRC.getStatements(null, null, null, false);
-			List<Statement> rcBaseList = null;
-			rcBaseList = rcBase.asList();
-			Iterator<Statement> iterator = rcBaseList.iterator();
-			while(iterator.hasNext()){
-				logger.info(iterator.next());
-			}
-			rcOWL.add(rcBaseList);
-		} catch (RepositoryException e) {
-			e.printStackTrace();
-			throw new EngineException("Could not load OWL information from existing database");
-		}
+		baseDataEngine.setFileName(owlFile);
 	}
 
 	/**
@@ -349,35 +188,17 @@ public abstract class AbstractFileReader {
 	 * @throws EngineException 
 	 */
 	protected void closeOWL() throws EngineException {
-		try {
-			scOWL.close();
-			rcOWL.close();
-		} catch (SailException e1) {
-			e1.printStackTrace();
-			throw new EngineException("Could not close OWL database connection");
-		} catch (RepositoryException e) {
-			e.printStackTrace();
-			throw new EngineException("Could not close OWL database connection");
-		}
+		baseDataEngine.commit();
 	}
 
 	protected void storeBaseStatement(String sub, String pred, String obj) throws EngineException {
 		String cleanSub = Utility.cleanString(sub, false);
 		String cleanPred = Utility.cleanString(pred, false);
 		String cleanObj = Utility.cleanString(obj, false);
-		try {
-			if(!scOWL.isActive() || !scOWL.isOpen()) {
-				scOWL.begin();
-			}
-			scOWL.addStatement(vf.createURI(cleanSub), vf.createURI(cleanPred), vf.createURI(cleanObj));
-			scOWL.commit();
-		} catch (SailException e) {
-			e.printStackTrace();
-			throw new EngineException("Error adding triple {<" + cleanSub + "> <" + cleanPred + "> <" + cleanObj + ">}");
-		}
+		baseDataEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{cleanSub, cleanPred, cleanObj, true});
 		if(baseDataEngine != null && baseDataHash != null)
 		{
-			baseDataEngine.addStatement(cleanSub, cleanPred, cleanObj, true);
+			baseDataEngine.addStatement(new Object[]{cleanSub, cleanPred, cleanObj, true});
 			baseDataHash.put(cleanSub, cleanSub);
 			baseDataHash.put(cleanPred, cleanPred);
 			baseDataHash.put(cleanObj,cleanObj);//
@@ -394,13 +215,13 @@ public abstract class AbstractFileReader {
 		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
 		String pred = RDF.TYPE.stringValue();
 		String obj = Constants.CLASS_URI;
-		createStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj));
+		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, pred, obj, true});
 		storeBaseStatement(sub, pred, obj);
 		// necessary triple saying Relation is a type of Property
 		sub =  semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
 		pred = RDF.TYPE.stringValue();
 		obj = Constants.DEFAULT_PROPERTY_URI;
-		createStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj));
+		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, pred, obj, true});
 		storeBaseStatement(sub, pred, obj);
 
 		if(basePropURI.equals("")){
@@ -417,7 +238,7 @@ public abstract class AbstractFileReader {
 			String subject = Utility.cleanString(baseConceptURIHash.get(subjectInstance) +"", false);
 			String object = semossURI + "/Concept";
 			// create the statement now
-			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
+			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subject, predicate, object, true});
 			// add base relations URIs to OWL
 			storeBaseStatement(subject, predicate, object);
 		}
@@ -429,16 +250,14 @@ public abstract class AbstractFileReader {
 			String subject = Utility.cleanString(baseRelationURIHash.get(subjectInstance) +"", false);
 			String object = semossURI + "/Relation";
 			// create the statement now
-			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
-			// add base relationship URIs to OWL
+			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subject, predicate, object, true});
+			// add base relationship URIs to OWL//
 			storeBaseStatement(subject, predicate, object);
 		}
 		for(String[] relArray : baseRelations.values()){
 			String subject = relArray[0];
 			String predicate = relArray[1];
 			String object = relArray[2];
-
-			//			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
 			storeBaseStatement(subject, predicate, object);
 //			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
 		}
@@ -453,7 +272,7 @@ public abstract class AbstractFileReader {
 			String subjectInstance = baseHashIt.next() +"";
 			String predicate = RDF.TYPE +"";
 			//convert instances to URIs
-			String subject = subjectInstance; //baseRelationURIHash.get(subjectInstance);// +"", false);
+			String subject = subjectInstance;
 			String object = semossURI + "/" + Constants.DEFAULT_PROPERTY_CLASS;
 			// create the statement now
 			// base property uri is like
@@ -471,85 +290,45 @@ public abstract class AbstractFileReader {
 //			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
 		}
 
-
+		baseDataEngine.commit();
 		try {
-			scOWL.commit();
-		} catch (SailException e) {
-			throw new EngineException("Could not commit base relationships into OWL database");
+			baseDataEngine.exportDB();
+		} catch (RepositoryException ex) {
+			ex.printStackTrace();
+		} catch (RDFHandlerException ex) {
+			ex.printStackTrace();
+		} catch (IOException ex) {
+			ex.printStackTrace();
 		}
-		if(baseDataEngine != null) {
-			baseDataEngine.commit();
-		}
-		// create the OWL File
-		FileWriter fWrite = null;
-		try {
-			fWrite = new FileWriter(owlFile);
-			RDFXMLPrettyWriter owlWriter  = new RDFXMLPrettyWriter(fWrite); 
-			rcOWL.export(owlWriter);
-			fWrite.close();
-			owlWriter.close();
-		} catch (RepositoryException e) {
-			e.printStackTrace();
-			throw new FileWriterException("Could not export base relationships from OWL database");
-		} catch (RDFHandlerException e) {
-			e.printStackTrace();
-			throw new FileWriterException("Could not export base relationships from OWL database");
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new FileWriterException("Could not close OWL file writer");
-		} finally {
-			try {
-				if(fWrite!=null)
-					fWrite.close();
-			}catch(IOException e) {
-				e.printStackTrace();
-			}
-		}
-
 		closeOWL();
 	}
 
-	protected String[] prepareReader(String fileNames, String customBase, String owlFile){
+	protected String[] prepareReader(String fileNames, String customBase, String owlFile, String bdPropFile){
 		String[] files = fileNames.split(";");
 		//make location of the owl file in the dbname folder
 		this.owlFile = owlFile; 
+		// location of bdPropFile
+		this.bdPropFile = bdPropFile;
 		semossURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
-		if(!customBase.equals("")) customBaseURI = customBase;
+		if(!customBase.equals("")) {
+			customBaseURI = customBase;
+		}
 
 		return files;
 	}
 
 	protected void openEngineWithoutConnection(String dbName) throws FileReaderException, EngineException {
-		String bdPropFile = dbName;
-		loadBDProperties(bdPropFile);
-		openDB();
+		createNewEngine();
 		openOWLWithOutConnection();
+	}
+	
+	private void createNewEngine() {
+		engine = new BigDataEngine();
+		engine.openDB(bdPropFile);
 	}
 
 	protected void openEngineWithConnection(String engineName) throws EngineException {
-		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
-		if(engine instanceof RDFFileSesameEngine){
-			RDFFileSesameEngine rdfEngine = (RDFFileSesameEngine) engine;
-			sc = rdfEngine.getSC();
-			vf = rdfEngine.getVF();
-			try {
-				this.engine = rdfEngine;
-				System.out.println(" open is " + sc.isOpen());
-				System.out.println(" active is " + sc.isActive());
-				sc.begin();
-				System.out.println(" open is " + sc.isOpen());
-				System.out.println(" active is " + sc.isActive());
-			} catch (SailException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		} else if(!(engine instanceof RDBMSNativeEngine)){ //for rdbms native engine skip this logic
-			BigDataEngine bigEngine = (BigDataEngine) engine;
-			bdSail = bigEngine.bdSail;
-			sc = bigEngine.sc;
-			vf = bigEngine.vf;
-		}
-		
+		engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
 		openOWLWithConnection(engine);
 	}
 
@@ -621,14 +400,18 @@ public abstract class AbstractFileReader {
 		// create the full URI for the subject instance
 		// add type and label triples to database
 		String subjectNodeURI = subjectInstanceBaseURI + "/" + instanceSubjectName;
-		createStatement(vf.createURI(subjectNodeURI), RDF.TYPE, vf.createURI(subjectSemossBaseURI));
-		createStatement(vf.createURI(subjectNodeURI), RDFS.LABEL, vf.createLiteral(instanceSubjectName));
+		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDF.TYPE, subjectSemossBaseURI, true});
+		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDFS.LABEL, instanceSubjectName, false});
+//		createStatement(vf.createURI(subjectNodeURI), RDF.TYPE, vf.createURI(subjectSemossBaseURI));
+//		createStatement(vf.createURI(subjectNodeURI), RDFS.LABEL, vf.createLiteral(instanceSubjectName));
 
 		// create the full URI for the object instance
 		// add type and label triples to database
 		String objectNodeURI = objectInstanceBaseURI + "/" + instanceObjectName;
-		createStatement(vf.createURI(objectNodeURI), RDF.TYPE, vf.createURI(objectSemossBaseURI));
-		createStatement(vf.createURI(objectNodeURI), RDFS.LABEL, vf.createLiteral(instanceObjectName));
+		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{objectNodeURI, RDF.TYPE, objectSemossBaseURI, true});
+		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{objectNodeURI, RDFS.LABEL, instanceObjectName, false});
+//		createStatement(vf.createURI(objectNodeURI), RDF.TYPE, vf.createURI(objectSemossBaseURI));
+//		createStatement(vf.createURI(objectNodeURI), RDFS.LABEL, vf.createLiteral(instanceObjectName));
 
 		// generate URIs for the relationship
 		relName = Utility.cleanString(relName, true);
@@ -669,9 +452,13 @@ public abstract class AbstractFileReader {
 		// create instance value of relationship and add instance relationship, subproperty, and label triples
 		String instanceRelURI = relInstanceBaseURI + "/" + instanceSubjectName + Constants.RELATION_URI_CONCATENATOR + instanceObjectName;
 //		logger.info("Adding Relationship " +subjectNodeType +" " + instanceSubjectName + " ... " + relName + " ... " + objectNodeType +" " + instanceObjectName); 
-		createStatement(vf.createURI(instanceRelURI), RDFS.SUBPROPERTYOF, vf.createURI(relSemossBaseURI));
-		createStatement(vf.createURI(instanceRelURI), RDFS.LABEL, vf.createLiteral(instanceSubjectName + Constants.RELATION_URI_CONCATENATOR + instanceObjectName));
-		createStatement(vf.createURI(subjectNodeURI), vf.createURI(instanceRelURI), vf.createURI(objectNodeURI));
+		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceRelURI, RDFS.SUBPROPERTYOF, relSemossBaseURI, true});
+		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceRelURI, RDFS.LABEL, instanceSubjectName + Constants.RELATION_URI_CONCATENATOR + instanceObjectName, false});
+		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, instanceRelURI, objectNodeURI, true});
+
+//		createStatement(vf.createURI(instanceRelURI), RDFS.SUBPROPERTYOF, vf.createURI(relSemossBaseURI));
+//		createStatement(vf.createURI(instanceRelURI), RDFS.LABEL, vf.createLiteral(instanceSubjectName + Constants.RELATION_URI_CONCATENATOR + instanceObjectName));
+//		createStatement(vf.createURI(subjectNodeURI), vf.createURI(instanceRelURI), vf.createURI(objectNodeURI));
 
 		addProperties(instanceRelURI, propHash);
 	}
@@ -682,8 +469,10 @@ public abstract class AbstractFileReader {
 		String semossBaseURI = getBaseURI(nodeType);
 		String instanceBaseURI = getInstanceURI(nodeType);
 		String subjectNodeURI = instanceBaseURI + "/" + instanceName;
-		createStatement(vf.createURI(subjectNodeURI), RDF.TYPE, vf.createURI(semossBaseURI));
-		createStatement(vf.createURI(subjectNodeURI), RDFS.LABEL, vf.createLiteral(instanceName));
+//		createStatement(vf.createURI(subjectNodeURI), RDF.TYPE, vf.createURI(semossBaseURI));
+//		createStatement(vf.createURI(subjectNodeURI), RDFS.LABEL, vf.createLiteral(instanceName));
+		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDF.TYPE, semossBaseURI, true});
+		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDFS.LABEL, instanceName, false});
 
 		addProperties(subjectNodeURI, propHash);
 		// adding node properties to owl
@@ -712,56 +501,52 @@ public abstract class AbstractFileReader {
 			String key = propKeys.nextElement().toString();
 			String propURI = basePropURI + "/" + key;
 //			logger.info("Processing Property " + key + " for " + instanceURI);
-			createStatement(vf.createURI(propURI), RDF.TYPE, vf.createURI(basePropURI));
+			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE, basePropURI, true});
 			if(propHash.get(key).getClass() == new Double(1).getClass())
 			{
 				Double value = (Double) propHash.get(key);
 //				logger.info("Processing Double value " + value); 
-				createStatement(vf.createURI(instanceURI), vf.createURI(propURI), vf.createLiteral(value.doubleValue()));
+				engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceURI, propURI, value.doubleValue(), false});
 			}
 			else if(propHash.get(key).getClass() == new Date(1).getClass())
 			{
 				Date value = (Date)propHash.get(key);
 				DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 				String date = df.format(value);
-				URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
+				Date dateFormatted;
+				try {
+					dateFormatted = df.parse(date);
+				} catch (ParseException e) {
+					logger.error("ERROR: could not parse date: " + date);
+					continue;
+				}
+				engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceURI, propURI, dateFormatted, false});
+//				URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
 //				logger.info("Processing Date value " + date); 
-				createStatement(vf.createURI(instanceURI), vf.createURI(propURI), vf.createLiteral(date, datatype));
+//				createStatement(vf.createURI(instanceURI), vf.createURI(propURI), vf.createLiteral(date, datatype));
 			}
 			else if(propHash.get(key).getClass() == new Boolean(true).getClass())
 			{
 				Boolean value = (Boolean) propHash.get(key);
 //				logger.info("Processing Boolean value " + value); 
-				createStatement(vf.createURI(instanceURI), vf.createURI(propURI), vf.createLiteral(value.booleanValue()));
+				engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceURI, propURI, value.booleanValue(), false});
 			}
 			else
 			{
-				String stringValue = propHash.get(key).toString();
-				// now try to cast the value if it can potentially be a double/date
-				String type = Utility.processType(stringValue);
-				if(type.equals("DOUBLE") || type.equals("INTEGER")) {
-					Double value = Double.parseDouble(stringValue);
-					logger.info("Processing Double value " + value); 
-					createStatement(vf.createURI(instanceURI), vf.createURI(propURI), vf.createLiteral(value.doubleValue()));
-				} 
-//				else if(type.equals("DATE") || type.equals("SIMPLEDATE")) {
-//					URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
-//					createStatement(vf.createURI(instanceURI), vf.createURI(propURI), vf.createLiteral(stringValue, datatype));
-//				} 
-				else {
-					if(stringValue.equals(Constants.PROCESS_CURRENT_DATE)){
-	//					logger.info("Processing Current Date Property"); 
-						insertCurrentDate(propURI, basePropURI, instanceURI);
-					}
-					else if(stringValue.equals(Constants.PROCESS_CURRENT_USER)){
-	//					logger.info("Processing Current User Property"); 
-						insertCurrentUser(propURI, basePropURI, instanceURI);
-					}
-					else{
-						String cleanValue = Utility.cleanString(stringValue, true);
-	//					logger.info("Processing String value " + cleanValue); 
-						createStatement(vf.createURI(instanceURI), vf.createURI(propURI), vf.createLiteral(cleanValue));
-					}
+				String value = propHash.get(key).toString();
+				if(value.equals(Constants.PROCESS_CURRENT_DATE)){
+//					logger.info("Processing Current Date Property"); 
+					insertCurrentDate(propURI, basePropURI, instanceURI);
+				}
+				else if(value.equals(Constants.PROCESS_CURRENT_USER)){
+//					logger.info("Processing Current User Property"); 
+					insertCurrentUser(propURI, basePropURI, instanceURI);
+				}
+				else{
+					String cleanValue = Utility.cleanString(value, true);
+//					logger.info("Processing String value " + cleanValue); 
+					engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceURI, propURI, cleanValue, true});
+//					createStatement(vf.createURI(instanceURI), vf.createURI(propURI), vf.createLiteral(cleanValue));
 				}
 			}
 		}
@@ -776,8 +561,10 @@ public abstract class AbstractFileReader {
 	 */
 	private void insertCurrentUser(String propURI, String basePropURI, String subjectNodeURI) throws EngineException {
 		String cleanValue = System.getProperty("user.name");
-		createStatement(vf.createURI(propURI), RDF.TYPE, vf.createURI(basePropURI));				
-		createStatement(vf.createURI(subjectNodeURI), vf.createURI(propURI), vf.createLiteral(cleanValue));	
+		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE, basePropURI, true});
+		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, propURI, cleanValue, false});
+//		createStatement(vf.createURI(propURI), RDF.TYPE, vf.createURI(basePropURI));				
+//		createStatement(vf.createURI(subjectNodeURI), vf.createURI(propURI), vf.createLiteral(cleanValue));	
 	}
 
 	/**
@@ -791,9 +578,17 @@ public abstract class AbstractFileReader {
 		Date dValue = new Date();
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 		String date = df.format(dValue);
-		createStatement(vf.createURI(propInstanceURI), RDF.TYPE, vf.createURI(basePropURI));
-		URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
-		createStatement(vf.createURI(subjectNodeURI), vf.createURI(propInstanceURI), vf.createLiteral(date, datatype));
+		Date dateFormatted;
+		try {
+			dateFormatted = df.parse(date);
+			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propInstanceURI, RDF.TYPE, basePropURI, true});
+			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, propInstanceURI, dateFormatted, false});
+		} catch (ParseException e) {
+			logger.error("ERROR: could not parse date: " + date);
+		}
+//		createStatement(vf.createURI(propInstanceURI), RDF.TYPE, vf.createURI(basePropURI));
+//		URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
+//		createStatement(vf.createURI(subjectNodeURI), vf.createURI(propInstanceURI), vf.createLiteral(date, datatype));
 	}
 
 }

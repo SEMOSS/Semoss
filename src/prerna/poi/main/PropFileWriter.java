@@ -67,8 +67,8 @@ public class PropFileWriter {
 	public String ontologyFileName;
 	public File engineDirectory;
 	public String owlFile;
-	public String defaultEngine = "prerna.rdf.engine.impl.BigDataEngine";
-	public String defaultRDBMSEngine = "prerna.rdf.engine.impl.RDBMSNativeEngine";
+	public String defaultEngine = "prerna.engine.impl.rdf.BigDataEngine";
+	public String defaultRDBMSEngine = "prerna.engine.impl.rdbms.RDBMSNativeEngine";//
 	public boolean hasMap = false;
 
 	public PropFileWriter () {

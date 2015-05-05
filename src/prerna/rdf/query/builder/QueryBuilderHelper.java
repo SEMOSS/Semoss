@@ -34,9 +34,9 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.util.Utility;
@@ -61,7 +61,7 @@ public class QueryBuilderHelper {
 		semossQuery.setLimit(maxCount);
 		String q = semossQuery.getCountQuery(maxCount);
 		logger.info("Count query generated : " + q);
-		Vector<String> countV = coreEngine.getEntityOfType(q);
+		Vector<String> countV = Utility.getVectorOfReturn(q, coreEngine);
 		int totalSize = 0;
 		if(countV.size()>0)
 		{
@@ -102,7 +102,7 @@ public class QueryBuilderHelper {
 			String varName = vHash.get(varKey);
 			String varURI = vHash.get(uriKey);
 			String nodePropQuery = "SELECT DISTINCT ?entity WHERE {{?source <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <"+varURI+">} {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?source ?entity ?prop }}";
-			Vector<String> propVector = coreEngine.getEntityOfType(nodePropQuery);
+			Vector<String> propVector = Utility.getVectorOfReturn(nodePropQuery, coreEngine);
 			for (int propIdx=0 ; propIdx<propVector.size(); propIdx++)
 			{
 				String propURI = propVector.get(propIdx);

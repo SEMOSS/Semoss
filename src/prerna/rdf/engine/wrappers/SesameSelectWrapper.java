@@ -36,19 +36,18 @@ import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 import org.openrdf.query.algebra.evaluation.util.QueryEvaluationUtil;
 
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
 import prerna.util.Utility;
 
-public class SesameSelectWrapper extends AbstractWrapper implements
-		ISelectWrapper {
+public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapper {
 
-	transient TupleQueryResult tqr = null;
+	public transient TupleQueryResult tqr = null;
 
 	@Override
 	public void execute() {
 		// TODO Auto-generated method stub
-		tqr = (TupleQueryResult) engine.execSelectQuery(query);
+		tqr = (TupleQueryResult) engine.execQuery(query);
 	}
 
 	@Override
@@ -136,15 +135,17 @@ public class SesameSelectWrapper extends AbstractWrapper implements
 
 	@Override
 	public String[] getVariables() {
-		try {
-			var = new String[tqr.getBindingNames().size()];
-			List<String> names = tqr.getBindingNames();
-			for (int colIndex = 0; colIndex < names.size(); var[colIndex] = names
-					.get(colIndex), colIndex++)
-				;
-		} catch (QueryEvaluationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		if(var == null){
+			try {
+				var = new String[tqr.getBindingNames().size()];
+				List<String> names = tqr.getBindingNames();
+				for (int colIndex = 0; colIndex < names.size(); var[colIndex] = names
+						.get(colIndex), colIndex++)
+					;
+			} catch (QueryEvaluationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		return var;
 	}
