@@ -128,10 +128,8 @@ Parameters [{STUDIO=http://semoss.org/ontologies/Concept/Studio}]
 		{
 			colName = valueColNames.get(colNameIndex);
 			String mathFunction = valueMathFunctions.get(colNameIndex);
-			String mapMath = mapMath(mathFunction);
+			String sqlMathFunc = mapMath(mathFunction);
 			
-			
-					
 			tableName = colName;
 			if(colName.contains("__")) // need to split
 			{
@@ -143,20 +141,15 @@ Parameters [{STUDIO=http://semoss.org/ontologies/Concept/Studio}]
 			String alias = getAlias(tableName);
 			String qualifiedColumn = alias + "." + colName ;
 			
-			if(mapMath != null)
-				qualifiedColumn = mapMath + qualifiedColumn + ")";
+			if(sqlMathFunc != null)
+				qualifiedColumn = sqlMathFunc + qualifiedColumn + ")";
 
 			// set the param string
-			paramString = paramString + ", " + alias + "." + qualifiedColumn + " AS " + colName;
+			paramString = paramString + ", " + qualifiedColumn + " AS " + colName;
 			
 			// set the table string
 			addToTableString(tableName);
 		}
-		createQueryR();
-	}
-	
-	public void createQueryR()
-	{
-		query = "SELECT " + paramString + " FROM " + tableString + " WHERE " + joinString + " " + groupBy;
+		createSQLQuery();
 	}
 }
