@@ -617,10 +617,10 @@ public class Utility {
 	 * Cleans a string based on certain patterns
 	 * @param 	Original string
 	 * @param 	If true, replace forward slashes ("/") with dashes ("-")
-	 * @param	If true, replace double quote with single quote.  For RDBMS this should be false
+	 * @param	replaceForRDF If true, replace double quote with single quote and replace space with underscore.  For RDBMS this should be false
 
 	 * @return 	Cleaned string */
-	public static String cleanString(String original, boolean replaceForwardSlash, boolean replaceQuotes){
+	public static String cleanString(String original, boolean replaceForwardSlash, boolean replaceForRDF){
 		String retString = original;
 		
 		retString = retString.trim();
@@ -628,13 +628,13 @@ public class Utility {
 		while (retString.contains("  ")){
 			retString = retString.replace("  ", " ");
 		}
-		retString = retString.replaceAll(" ", "_");//replace spaces with underscores
 		retString = retString.replaceAll("\\{", "(");
 		retString = retString.replaceAll("\\}", ")");
 		retString = retString.replaceAll("\\\\", "-");//replace backslashes with dashes
 		retString = retString.replaceAll("'", "");//remove apostrophe
-		if(replaceQuotes){
+		if(replaceForRDF){
 			retString = retString.replaceAll("\"", "'");//replace double quotes with single quotes
+			retString = retString.replaceAll(" ", "_");//replace spaces with underscores
 		}
 		if(replaceForwardSlash) {
 			retString = retString.replaceAll("/", "-");//replace forward slashes with dashes
