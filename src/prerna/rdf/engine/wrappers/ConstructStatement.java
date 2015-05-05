@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.rdf.engine.wrappers;
 
-import prerna.rdf.engine.api.IConstructStatement;
+import prerna.engine.api.IConstructStatement;
 
 public class ConstructStatement implements IConstructStatement {
 

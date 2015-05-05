@@ -35,13 +35,12 @@ import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 
-import prerna.rdf.engine.api.IConstructStatement;
-import prerna.rdf.engine.api.IConstructWrapper;
+import prerna.engine.api.IConstructStatement;
+import prerna.engine.api.IConstructWrapper;
 
-public class SesameSelectCheater extends AbstractWrapper implements
-		IConstructWrapper {
+public class SesameSelectCheater extends AbstractWrapper implements IConstructWrapper {
 
-	transient TupleQueryResult tqr = null;
+	public transient TupleQueryResult tqr = null;
 	transient int count = 0;
 	transient String [] var = null;
 	transient BindingSet bs = null;
@@ -139,7 +138,7 @@ public class SesameSelectCheater extends AbstractWrapper implements
 
 	@Override
 	public void execute() {
-		tqr = (TupleQueryResult) engine.execSelectQuery(query);
+		tqr = (TupleQueryResult) engine.execQuery(query);
 		getVariables();
 		
 		processSelectVar();

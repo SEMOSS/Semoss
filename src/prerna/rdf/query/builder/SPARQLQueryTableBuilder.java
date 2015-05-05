@@ -16,22 +16,13 @@
 package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Hashtable;
-import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.query.util.SEMOSSQuery;
-import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SPARQLConstants;
 import prerna.rdf.query.util.TriplePart;
-import prerna.rdf.query.util.TriplePartConstant;
-import prerna.util.Utility;
-
-import com.google.gson.internal.StringMap;
 
 public class SPARQLQueryTableBuilder extends AbstractSPARQLQueryBuilder{
 	static final Logger logger = LogManager.getLogger(SPARQLQueryTableBuilder.class.getName());

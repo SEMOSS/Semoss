@@ -31,12 +31,10 @@ import org.openrdf.model.Statement;
 import org.openrdf.query.GraphQueryResult;
 import org.openrdf.query.QueryEvaluationException;
 
-import prerna.rdf.engine.api.IConstructStatement;
-import prerna.rdf.engine.api.IConstructWrapper;
-import prerna.rdf.engine.impl.SesameJenaConstructStatement;
+import prerna.engine.api.IConstructStatement;
+import prerna.engine.api.IConstructWrapper;
 
-public class SesameConstructWrapper extends AbstractWrapper implements
-		IConstructWrapper {
+public class SesameConstructWrapper extends AbstractWrapper implements IConstructWrapper {
 
 	public transient GraphQueryResult gqr = null;
 	
@@ -58,7 +56,7 @@ public class SesameConstructWrapper extends AbstractWrapper implements
 
 	@Override
 	public void execute() {
-		gqr = (GraphQueryResult)engine.execGraphQuery(this.query);
+		gqr = (GraphQueryResult)engine.execQuery(this.query);
 	}
 
 	@Override

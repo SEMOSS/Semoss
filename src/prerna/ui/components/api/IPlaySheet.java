@@ -27,10 +27,12 @@
  *******************************************************************************/
 package prerna.ui.components.api;
 
+import java.util.Hashtable;
+
 import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
 
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 
 /**
  * This interface class is used to define the basic functionality for all play sheet classes.  A play sheet is loosely defined
@@ -178,5 +180,8 @@ public interface IPlaySheet extends Runnable{
 	
 	// Interim call to run analytics
 	public void runAnalytics();
+	
+	// Interim call to run analytics
+	public Object doMethod(String methodName, Hashtable argHash);
 		
 }

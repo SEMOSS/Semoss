@@ -43,8 +43,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.ValueFactory;
 import org.openrdf.model.vocabulary.RDF;
-import org.openrdf.query.MalformedQueryException;
-import org.openrdf.query.UpdateExecutionException;
 import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
@@ -67,24 +65,23 @@ import org.supercsv.io.CsvMapReader;
 import org.supercsv.io.ICsvMapReader;
 import org.supercsv.prefs.CsvPreference;
 
+import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.QuestionAdministrator;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.error.EngineException;
 import prerna.error.FileReaderException;
 import prerna.error.FileWriterException;
 import prerna.error.HeaderClassException;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.AbstractEngine;
-import prerna.rdf.engine.impl.QuestionAdministrator;
-import prerna.rdf.engine.impl.RDBMSNativeEngine;
-import prerna.rdf.engine.impl.RDFFileSesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 import com.hp.hpl.jena.vocabulary.OWL;
-
 
 /**
  * Loading data into SEMOSS using comma separated value (CSV) files
@@ -1943,40 +1940,13 @@ public class RDBMSReader {
 	
 	private void insertData(String insert) throws SQLException
 	{
-		try {
-			engine.execInsertQuery(insert);
-		} catch (SailException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (UpdateExecutionException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (RepositoryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (MalformedQueryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		engine.insertData(insert);
 	}
 	
 	private void modifyDB(String tableCreate)
 	{
-		try {
-			engine.execInsertQuery(tableCreate);
-		} catch (SailException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (UpdateExecutionException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (RepositoryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (MalformedQueryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}	}
+		engine.insertData(tableCreate);
+	}
 
 	
 	
@@ -2299,7 +2269,7 @@ public class RDBMSReader {
 		}
 		if(baseDataEngine != null && baseDataHash != null)
 		{
-			baseDataEngine.addStatement(sub, pred, obj, true);
+			baseDataEngine.addStatement(new Object[]{sub, pred, obj, true});
 			baseDataHash.put(sub, sub);
 			baseDataHash.put(pred, pred);
 			baseDataHash.put(obj,obj);

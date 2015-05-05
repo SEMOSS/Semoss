@@ -29,10 +29,6 @@ package prerna.rdf.query.util;
 
 import java.util.ArrayList;
 
-import org.openrdf.model.URI;
-import org.openrdf.model.ValueFactory;
-import org.openrdf.model.impl.ValueFactoryImpl;
-
 public class SEMOSSQueryTester {
 	public static void main(String [] args)
 	{

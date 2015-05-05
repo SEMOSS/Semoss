@@ -41,7 +41,7 @@ import java.nio.file.WatchService;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 
 /**
  * Interface that provides a common protocol for objects that wish to execute code while they are active. 

@@ -28,6 +28,7 @@
 package prerna.om;
 
 import java.util.Hashtable;
+import java.util.Vector;
 
 public class Insight extends Hashtable {
 	
@@ -50,7 +51,7 @@ public class Insight extends Hashtable {
 	String databaseIDkey = "databaseID";
 	
 	public Insight(){
-		this.put("propHash", propHash);
+		this.put("propHash", this.propHash);
 	}
 	
 	public String getId() {

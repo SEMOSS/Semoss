@@ -38,10 +38,10 @@ import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
 
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.QuestionAdministrator;
-import prerna.rdf.engine.impl.RDFFileSesameEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.QuestionAdministrator;
+import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.util.Utility;
 
 public class DeleteFromMasterDB extends ModifyMasterDB {
@@ -226,23 +226,18 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 
 		//Use question administrator to remove all the perspectives, insights, and params for this database
 		//set the engine, delete all from each perspective and then store the rc and sc.
+		///////////////////////////////
+		//TODO: FIX LOGIC UNDERNEATH FOR DELETING PERSPECTIVES IN MASTER_ENGINE
 		RDFFileSesameEngine eng = new RDFFileSesameEngine();
 		eng.setEngineName(engineName);
 		eng.setEngineURI2Name(MasterDatabaseURIs.ENGINE_BASE_URI+"/"+engineName);
 		eng.createInsightBase();
-		RDFFileSesameEngine insightBaseXML = eng.getInsightBaseXML();
-		insightBaseXML.setRC(masterEngine.rc);
-		insightBaseXML.setSC(masterEngine.sc);
-		insightBaseXML.setVF(masterEngine.vf);
 
 		QuestionAdministrator qa = new QuestionAdministrator(eng);
 		qa.setEngineURI2(MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName);
 		for(String perspective : perspectiveList) {
 			qa.deleteAllFromPerspective(MasterDatabaseURIs.PERSPECTIVE_BASE_URI + "/" +perspective);
 		}
-
-		masterEngine.rc = (SailRepositoryConnection)(qa.getInsightBaseXML().getRC());
-		masterEngine.sc = (SailConnection)(qa.getInsightBaseXML().getSC());
 
 	}
 
@@ -291,7 +286,7 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 			String keyword = (String)sjss.getVar(names2[0]);
 			String typeURI = sjss.getRawVar(names2[1]).toString();
 			MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, typeURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + keyword + ":" + keyword);
-			masterEngine.removeStatement(typeURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.RESOURCE_URI, true);
+			masterEngine.removeStatement(new Object[]{typeURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.RESOURCE_URI, true});
 		}
 		
 		//delete the mc keyword relationships
@@ -376,7 +371,8 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 	 * @throws SailException
 	 */
 	public void deleteAll() throws SailException{
-		masterEngine.sc.clear();
+		masterEngine.removeData("DELETE {?x ?y ?z}");
+//		masterEngine.sc.clear();
 	}
 	
 }

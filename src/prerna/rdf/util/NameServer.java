@@ -33,8 +33,8 @@ import java.util.Vector;
 
 import org.openrdf.repository.RepositoryConnection;
 
+import prerna.engine.api.IEngine;
 import prerna.om.Insight;
-import prerna.rdf.engine.api.IEngine;
 
 public class NameServer {
 

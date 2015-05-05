@@ -40,7 +40,7 @@ import javax.swing.JList;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.specific.tap.SourceSelectPanel;
 import prerna.ui.main.listener.impl.AbstractListener;
 import prerna.util.Constants;
@@ -132,7 +132,7 @@ public class DHMSMFunctionalAreaSelectorListener extends AbstractListener {
 		String entityNS = DIHelper.getInstance().getProperty("Capability"+Constants.CLASS);
 		paramTable.put(Constants.ENTITY, entityNS );
 		sparqlQuery = Utility.fillParam(sparqlQuery, paramTable);	
-		capabilities = engine.getEntityOfType(sparqlQuery);
+		capabilities = Utility.getVectorOfReturn(sparqlQuery, engine);
 		Hashtable paramHash = Utility.getInstanceNameViaQuery(capabilities);
 		Set nameC = paramHash.keySet();
 		capabilities = new Vector(nameC);

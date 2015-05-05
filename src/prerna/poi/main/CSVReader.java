@@ -51,6 +51,7 @@ import org.supercsv.io.CsvMapReader;
 import org.supercsv.io.ICsvMapReader;
 import org.supercsv.prefs.CsvPreference;
 
+import prerna.engine.api.IEngine;
 import prerna.error.EngineException;
 import prerna.error.FileReaderException;
 import prerna.error.FileWriterException;
@@ -94,7 +95,7 @@ public class CSVReader extends AbstractFileReader {
 	 */
 	public void importFileWithOutConnection(String engineName, String fileNames, String customBase, String owlFile) throws EngineException, FileWriterException, FileReaderException, HeaderClassException {
 		logger.setLevel(Level.WARN);
-		String[] files = prepareReader(fileNames, customBase, owlFile);
+		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
 		openEngineWithoutConnection(engineName);
 		createTypes();
 
@@ -134,7 +135,7 @@ public class CSVReader extends AbstractFileReader {
 	 */
 	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile) throws EngineException, FileReaderException, HeaderClassException, FileWriterException {
 		logger.setLevel(Level.WARN);
-		String[] files = prepareReader(fileNames, customBase, owlFile);
+		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
 		openEngineWithConnection(engineName);
 
 		createTypes();
@@ -636,7 +637,8 @@ public class CSVReader extends AbstractFileReader {
 			if(basePropURI.equals("")){
 				basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
 			}
-			createStatement(vf.createURI(basePropURI),vf.createURI(Constants.SUBPROPERTY_URI),vf.createURI(basePropURI));
+			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{basePropURI, Constants.SUBPROPERTY_URI, basePropURI, true});
+//			createStatement(vf.createURI(basePropURI),vf.createURI(),vf.createURI(basePropURI));
 
 			while(nodePropTokens.hasMoreElements())
 			{
@@ -749,9 +751,13 @@ public class CSVReader extends AbstractFileReader {
 					}
 
 					propURI = basePropURI+"/" + property;
-					createStatement(vf.createURI(propURI),RDF.TYPE,vf.createURI(basePropURI));
-					basePropURIHash.put(propURI,  propURI);
-					basePropRelations.put(propURI,  idxBaseURI);//
+					engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE, basePropURI, true});
+//					createStatement(vf.createURI(propURI),RDF.TYPE,vf.createURI(basePropURI));
+					//TODO: no longer needed since added in processNodeProperties method in AbstractFileReader s.t. POIReader also
+					//adds properties to OWL files.  However, that method is less efficient since this only adds once while that one
+					//adds for each node instance... need to combine the logic between classes better
+//					basePropURIHash.put(propURI,  propURI);
+//					basePropRelations.put(propURI,  idxBaseURI);
 				}
 			}
 		}
@@ -823,7 +829,8 @@ public class CSVReader extends AbstractFileReader {
 					}
 
 					propURI = basePropURI+"/" + property;
-					createStatement(vf.createURI(propURI),RDF.TYPE,vf.createURI( basePropURI));
+					engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE, basePropURI, true});
+//					createStatement(vf.createURI(propURI),RDF.TYPE,vf.createURI( basePropURI));
 					//basePropURIHash.put(propURI,  propURI);
 					//basePropRelations.put(propURI,  parentURI); // would need this if we were doing edge properties... but we are not any longer
 				}

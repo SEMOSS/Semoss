@@ -49,16 +49,15 @@ import org.openrdf.rio.RDFFormat;
 import org.openrdf.rio.RDFParseException;
 import org.openrdf.sail.memory.MemoryStore;
 
+import prerna.engine.api.IConstructStatement;
+import prerna.engine.api.IConstructWrapper;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
-import prerna.rdf.engine.api.IConstructStatement;
-import prerna.rdf.engine.api.IConstructWrapper;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.InMemorySesameEngine;
-import prerna.rdf.engine.impl.SesameJenaConstructWrapper;
 import prerna.rdf.engine.wrappers.SesameConstructWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
@@ -452,28 +451,6 @@ public class RDFEngineHelper {
 		}
 
 	}
-	
-	/**
-	 * Loads base relations from the OWL file.
-	 * @param owlFilePath 	String that contains the path to the OWL file.
-	
-	 * @return Hashtable 	Hashtable of base relations. 
-	 * @throws RepositoryException 
-	 * @throws IOException 
-	 * @throws RDFParseException 
-	 * @throws MalformedQueryException 
-	 * @throws QueryEvaluationException */
-	public static Hashtable loadBaseRelationsFromOWL(String owlFilePath) throws RepositoryException, RDFParseException, IOException, MalformedQueryException, QueryEvaluationException {
-		Repository myRepository = new SailRepository(new MemoryStore());
-		myRepository.initialize();
-		RepositoryConnection rcOWL = myRepository.getConnection();
-		
-		File owlFile = new File(owlFilePath);
-		rcOWL.add(owlFile, owlFilePath, RDFFormat.RDFXML);
-		rcOWL.commit();
-		Hashtable retHash = createBaseFilterHash(rcOWL);
-		return retHash;
-	}	
 	
 	public static Hashtable createBaseFilterHash(RepositoryConnection rcOWL) throws RepositoryException, MalformedQueryException, QueryEvaluationException{
 		Hashtable<String,String> baseFilterHash = new Hashtable<String,String>();
