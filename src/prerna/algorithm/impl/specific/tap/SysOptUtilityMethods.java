@@ -53,6 +53,24 @@ public final class SysOptUtilityMethods {
 	 * @param engineName 	String containing the name of the database engine to be queried
 	 * @param query 		String containing the SPARQL query to run
 	 */
+	public static Object runSingleResultQuery(IEngine engine, String query){
+		if(!query.isEmpty()) {
+			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+			String[] names = wrapper.getVariables();
+			while (wrapper.hasNext()) {
+				ISelectStatement sjss = wrapper.next();
+				return sjss.getVar(names[0]);
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * Runs a query on a specific engine to make a list of systems to report on
+	 * @param engineName 	String containing the name of the database engine to be queried
+	 * @param query 		String containing the SPARQL query to run
+	 */
 	public static ArrayList<String> runListQuery(IEngine engine, String query){
 		ArrayList<String> list = new ArrayList<String>();
 		if(!query.isEmpty()) {
@@ -259,6 +277,13 @@ public final class SysOptUtilityMethods {
 	
 	public static int sumRow(int[] row) {
 		int sum = 0;
+		for (int i = 0; i < row.length; i++)
+			sum += row[i];
+		return sum;
+	}
+	
+	public static double sumRow(double[] row) {
+		double sum = 0;
 		for (int i = 0; i < row.length; i++)
 			sum += row[i];
 		return sum;

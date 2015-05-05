@@ -622,4 +622,8 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		return opt.getOverviewSiteMapData();
 	}
 	
+	public Hashtable<String,Object> getSystemInfoData(String system, Boolean isModernizedPage) {
+		return opt.getSystemInfoData(system, isModernizedPage);
+	}
+	
 }
