@@ -91,7 +91,13 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements
 						qualifiedValue = uri + "/" + var[colIndex] + "/" + value;
 						stmt.setRawVar(var[colIndex], qualifiedValue);
 					}
-					else
+					else if (type == Types.BIGINT){
+						//a bit of a hack but this converts the big int object into double,
+						//we had issues in the heatmapplaysheet with conversion of long to double
+						Long valueLong = (long) value;
+						double valueDouble = valueLong.doubleValue();
+						stmt.setRawVar(var[colIndex], valueDouble); 
+					} else
 						stmt.setRawVar(var[colIndex], value);
 				}
 				queryResults.add(stmt);
