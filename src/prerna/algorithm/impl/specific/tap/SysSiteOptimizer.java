@@ -108,13 +108,10 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	private double adjustedDeploymentCost, adjustedTotalSavings;
 	
 	private double[] budgetSpentPerYear, costAvoidedPerYear;
-
-//	private double[] siteMaintenanceCosts;
 	
 	@Override
 	public void execute() {
 		executeWeb();
-		getOverviewSiteMapData();//TODO remove
 		display();
 	}
 	
@@ -798,7 +795,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			row[1] = siteLat[i];
 			row[2] = siteLon[i];
 			row[3] = futureSiteSustainCost[i];
-			row[4] = percentDiff[i]+"%";//positive number means it decreased in cost, negative means increased cost
+			row[4] = percentDiff[i];//positive number means it decreased in cost, negative means increased cost
 			list.add(row);
 		}
 		
@@ -809,6 +806,113 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		return (Hashtable<String,Object>)ps.getData();
 	}
 
+	public Hashtable<String,Object> getSystemInfoData(String system, Boolean isModernizedPage) {
+
+		Hashtable<String,Object> systemInfoHash = new Hashtable<String,Object>();
+		Hashtable<String,Object> dataBLUInfoHash = new Hashtable<String,Object>();
+		Hashtable<String,Object> descriptionInfoHash = new Hashtable<String,Object>();
+		Hashtable<String,Object> budgetInfoHash = new Hashtable<String,Object>();
+
+		int sysIndex;
+		int bluCount;
+		int dataCount;
+		String hosting;
+		double sysCurrSustainCost;
+		double sysFutureSustainCost;
+		double sysDeployCost;
+		int sysNumSites;
+		
+		if(sysList.contains(system)) {//if noncentral system
+			sysIndex = sysList.indexOf(system);
+
+			bluCount = SysOptUtilityMethods.sumRow(systemBLUMatrix[sysIndex]);
+			dataCount = SysOptUtilityMethods.sumRow(systemDataMatrix[sysIndex]);
+			hosting = "Local";
+			
+			sysCurrSustainCost = maintenaceCosts[sysIndex] / centralDeploymentPer;
+			if(isModernizedPage) {
+				sysNumSites = (int)SysOptUtilityMethods.sumRow(systemSiteResultMatrix[sysIndex]);
+				sysFutureSustainCost = maintenaceCosts[sysIndex] + sysNumSites * siteMaintenaceCosts[sysIndex];
+				sysDeployCost = 0.0;
+				int i;
+				int numSites = siteList.size();
+				for(i=0; i<numSites; i++) {
+					sysDeployCost += systemSiteResultMatrix[sysIndex][i] * ((1 - systemSiteMatrix[sysIndex][i]) * siteDeploymentCosts[sysIndex] + (1+trainingPerc) * interfaceCostArr[sysIndex]);
+				}
+			}else {
+				sysNumSites = (int)SysOptUtilityMethods.sumRow(systemSiteMatrix[sysIndex]);
+				sysFutureSustainCost = 0;
+				sysDeployCost = 0;
+			}
+			
+		}else {//if central system
+			sysIndex = centralSysList.indexOf(system);
+
+			bluCount = SysOptUtilityMethods.sumRow(centralSystemBLUMatrix[sysIndex]);
+			dataCount = SysOptUtilityMethods.sumRow(centralSystemDataMatrix[sysIndex]);
+			hosting = "Central";
+			
+			sysCurrSustainCost = centralSystemMaintenaceCosts[sysIndex];
+			
+			sysNumSites = siteList.size();
+			sysDeployCost = 0;
+			if(isModernizedPage) {
+				sysFutureSustainCost = sysCurrSustainCost;
+			}else {
+				sysFutureSustainCost = 0;
+			}
+		}
+		
+		String downstreamQuery = "SELECT DISTINCT (COUNT(DISTINCT(?DownstreamSys)) AS ?NumDownstreamSys) WHERE {BIND(<http://health.mil/ontologies/Concept/System/" + system + "> AS ?System){?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?System <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?DownstreamSys ;}} GROUP BY ?System";
+		String upstreamQuery = "SELECT DISTINCT (COUNT(DISTINCT(?UpstreamSys)) AS ?NumUpstreamSys) WHERE {BIND(<http://health.mil/ontologies/Concept/System/" + system + "> AS ?System){?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?UpstreamSys <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?System ;}} GROUP BY ?System";
+		
+		Object numDownstream = SysOptUtilityMethods.runSingleResultQuery(systemEngine, downstreamQuery);
+		Object numUpstream = SysOptUtilityMethods.runSingleResultQuery(systemEngine, upstreamQuery);
+		if(numDownstream == null)
+			numDownstream = 0;
+		if(numUpstream == null)
+			numUpstream = 0;
+		
+		String atoQuery = "SELECT DISTINCT ?ATO WHERE {BIND(<http://health.mil/ontologies/Concept/System/" + system + "> AS ?System){?System <http://semoss.org/ontologies/Relation/Contains/ATO_Date> ?ATO}}";
+
+		Object ato = SysOptUtilityMethods.runSingleResultQuery(systemEngine, atoQuery);
+		if(ato == null)
+			ato = "TBD";
+		else if(((String)ato).endsWith("00.000Z"))
+				ato = ((String)ato).substring(0,((String)ato).indexOf("T"));
+		
+		String descriptionQuery = "SELECT DISTINCT ?Description WHERE {BIND(<http://health.mil/ontologies/Concept/System/" + system + "> AS ?System){?System <http://semoss.org/ontologies/Relation/Contains/Description> ?Description}}";
+
+		Object description = SysOptUtilityMethods.runSingleResultQuery(systemEngine, descriptionQuery);
+		if(description == null)
+			description = "TBD";
+		else
+			description = ((String) description).replaceAll("_"," ");
+
+		dataBLUInfoHash.put("bluCount", bluCount);
+		dataBLUInfoHash.put("dataCount", dataCount);
+		dataBLUInfoHash.put("upstreamCount", numUpstream);
+		dataBLUInfoHash.put("downstreamCount", numDownstream);
+		dataBLUInfoHash.put("hosting", hosting);
+		
+		descriptionInfoHash.put("atoDate", ato);
+		descriptionInfoHash.put("decomCount", sysNumSites);
+		descriptionInfoHash.put("systemDesc", description);
+		
+		DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
+		symbols.setGroupingSeparator(',');
+		NumberFormat formatter = new DecimalFormat("'$' ###,##0.00", symbols);
+
+		budgetInfoHash.put("formattedCurrentSustVal", formatter.format(sysCurrSustainCost));
+		budgetInfoHash.put("formattedFutureSustVal", formatter.format(sysFutureSustainCost));
+		budgetInfoHash.put("formattedCostVal", formatter.format(sysDeployCost));
+		
+		systemInfoHash.put("dataBluInfo",dataBLUInfoHash);
+		systemInfoHash.put("decommissionInfo",descriptionInfoHash);
+		systemInfoHash.put("budgetInfo",budgetInfoHash);
+
+		return systemInfoHash;
+	}
 	
 	private void makeSysKeptQueryString() {
 		int i;
