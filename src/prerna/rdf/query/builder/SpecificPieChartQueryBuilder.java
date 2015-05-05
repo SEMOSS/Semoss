@@ -81,6 +81,30 @@ public class SpecificPieChartQueryBuilder extends AbstractSpecificQueryBuilder {
 	@Override
 	public void buildQueryR() {
 		// TODO Auto-generated method stub
+		ArrayList<String> colAliases = uniqifyColNames(Arrays.asList(label, valueName));		
+
+		//add label to query
+		logger.info("Adding label: " + label + " with name: " + colAliases.get(0));
+		//addReturnVariable(label, colAliases.get(0), baseQuery, "false");
+		
+		// add the heat value
+		logger.info("Adding value math function " + valueMathFunc + " on column " + valueName);
+		//addReturnVariable(valueName, colAliases.get(1), baseQuery, valueMathFunc);
+		
+		//add the as group by for the label
+		paramString = generateSelectorsSubString(label, colAliases.get(0), true, "");
+
+		//next do the values
+		paramString += " , " + generateSelectorsSubString(valueName, colAliases.get(1), false, valueMathFunc);
+
+		if(!parameters.isEmpty()) {
+			logger.info("Adding parameters: " + parameters);
+			addParam("Main");
+		}
+		
+		createSQLQuery();
+		logger.info("Created PieChart Query: " + query);		
 		
 	}
+
 }
