@@ -89,7 +89,7 @@ public class SEMOSSQuery {
 		
 	}
 	
-	public void createSQLQuery(String selectorsString, String tableString, String joinString){
+	public void createSQLQuery(String selectorsString, String tableString, String joinString, String groupBy){
 		String joins = "";
 		query = queryType + " "; //Should be select, will be an issue if not
 		if(distinct)
@@ -112,7 +112,11 @@ public class SEMOSSQuery {
 			joins = " WHERE " + joins;
 		}
 		
-		query += joins;
+		if(groupBy.length() > 0 ){
+			groupBy = " GROUP BY " + groupBy;
+		}
+		
+		query += joins + groupBy;
 	}
 	
 	public String getCountQuery(int maxCount)
