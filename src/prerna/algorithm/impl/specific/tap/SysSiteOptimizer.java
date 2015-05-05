@@ -94,6 +94,9 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	private int[] centralSystemTheater, centralSystemGarrison;
 	private double[] centralSystemMaintenaceCosts;
 
+	private int[][] systemCapMatrix;
+	private int[][] centralSystemCapMatrix;
+	
 	//results of the algorithm
 	private SysSiteOptFunction optFunc;
 		
@@ -327,13 +330,14 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	private void getData() {
 
 		ResidualSystemOptFillData resFunc = new ResidualSystemOptFillData();
-		resFunc.setSysSiteLists(sysList, dataList, bluList, siteList);
+		resFunc.setSysSiteLists(sysList, dataList, bluList, siteList, capList);
 		resFunc.setEngines(systemEngine, costEngine, siteEngine);
 		resFunc.fillSysSiteOptDataStores(true);
 		
 		systemDataMatrix = resFunc.systemDataMatrix;
 		systemBLUMatrix = resFunc.systemBLUMatrix;
 		systemSiteMatrix = resFunc.systemSiteMatrix;
+		systemCapMatrix = resFunc.systemCapabilityMatrix;
 		
 		systemTheater = resFunc.systemTheater;
 		systemGarrison = resFunc.systemGarrison;
@@ -366,12 +370,13 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			siteDeploymentCosts[i] = siteMaintenance * deploymentFactor;
 		}
 		
-		resFunc.setSysSiteLists(centralSysList,dataList,bluList,siteList);
+		resFunc.setSysSiteLists(centralSysList,dataList,bluList,siteList, capList);
 		resFunc.fillSysSiteOptDataStores(false);
 		
 		centralSystemDataMatrix = resFunc.systemDataMatrix;
 		centralSystemBLUMatrix = resFunc.systemBLUMatrix;
 
+		centralSystemCapMatrix = resFunc.systemCapabilityMatrix;
 		centralSystemTheater = resFunc.systemTheater;
 		centralSystemGarrison = resFunc.systemGarrison;
 
@@ -912,6 +917,86 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		systemInfoHash.put("budgetInfo",budgetInfoHash);
 
 		return systemInfoHash;
+	}
+	
+	public Hashtable<String,Object> getCapabilityInfoData(String capability) {
+
+		Hashtable<String,Object> capInfoHash = new Hashtable<String,Object>();
+		Hashtable<String,Object> dataBLUInfoHash = new Hashtable<String,Object>();
+		Hashtable<String,Object> budgetInfoHash = new Hashtable<String,Object>();
+	
+		String dataCountQuery = "SELECT DISTINCT (COUNT(DISTINCT(?Data)) AS ?NumData) WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/" + capability + "> as ?Capability){?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}{?Capability <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess.}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?Data.}} GROUP BY ?Capability";
+		
+		String bluCountQuery = "SELECT DISTINCT (COUNT(DISTINCT(?BLU)) AS ?NumBLU)  WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/" + capability + "> as ?Capability){?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;}{ ?Capability <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess.}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?BLU.}} GROUP BY ?Capability";
+		
+		Object bluCount = SysOptUtilityMethods.runSingleResultQuery(systemEngine, dataCountQuery);
+		Object dataCount = SysOptUtilityMethods.runSingleResultQuery(systemEngine, bluCountQuery);
+		if(bluCount == null)
+			bluCount = 0;
+		if(dataCount == null)
+			dataCount = 0;
+		
+		int capIndex = capList.indexOf(capability);
+		int i;
+		int numSystems = sysList.size();
+		int numCentralSystems = centralSysList.size();
+		int numSysBefore = 0;
+		int numSysAfter = 0;
+		for(i=0; i<numSystems; i++) {
+			numSysBefore += systemCapMatrix[i][capIndex];
+			numSysAfter += systemCapMatrix[i][capIndex] * sysKeptArr[i];
+		}
+		
+		for(i=0; i<numCentralSystems; i++) {
+			numSysBefore += centralSystemCapMatrix[i][capIndex];
+			numSysAfter += centralSystemCapMatrix[i][capIndex] * centralSysKeptArr[i];
+		}
+
+		double capCurrSustainCost = 0.0;
+		double capFutureSustainCost = 0.0;
+		int sysNumSites;
+		
+		for(i=0; i<numSystems; i++) {
+			if(systemCapMatrix[i][capIndex] == 1) {
+				capCurrSustainCost += maintenaceCosts[i] / centralDeploymentPer;
+				sysNumSites = (int)SysOptUtilityMethods.sumRow(systemSiteResultMatrix[i]);
+				capFutureSustainCost += sysKeptArr[i] * (maintenaceCosts[i] + sysNumSites * siteMaintenaceCosts[i]);
+			}
+		}
+		
+		for(i=0; i<numCentralSystems; i++) {
+
+			if(centralSystemCapMatrix[i][capIndex] == 1) {
+				capCurrSustainCost += centralSystemMaintenaceCosts[i];
+				capFutureSustainCost += centralSysKeptArr[i] * centralSystemMaintenaceCosts[i];
+			}
+		}
+
+		String descriptionQuery = "SELECT DISTINCT ?Description WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/" + capability + "> AS ?Capability){?Capability <http://semoss.org/ontologies/Relation/Contains/Description> ?Description}}";
+
+		Object description = SysOptUtilityMethods.runSingleResultQuery(systemEngine, descriptionQuery);
+		if(description == null)
+			description = "TBD";
+		else
+			description = ((String) description).replaceAll("_"," ");
+
+		dataBLUInfoHash.put("bluCount", bluCount);
+		dataBLUInfoHash.put("dataCount", dataCount);
+		dataBLUInfoHash.put("beforeCount", numSysBefore);
+		dataBLUInfoHash.put("afterCount", numSysAfter);
+		
+		DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
+		symbols.setGroupingSeparator(',');
+		NumberFormat formatter = new DecimalFormat("'$' ###,##0.00", symbols);
+
+		budgetInfoHash.put("formattedCurrentSustVal", formatter.format(capCurrSustainCost));
+		budgetInfoHash.put("formattedFutureSustVal", formatter.format(capFutureSustainCost));
+		
+		capInfoHash.put("dataBluInfo",dataBLUInfoHash);
+		capInfoHash.put("capabilityDesc",description);
+		capInfoHash.put("budgetInfo",budgetInfoHash);
+
+		return capInfoHash;
 	}
 	
 	private void makeSysKeptQueryString() {
