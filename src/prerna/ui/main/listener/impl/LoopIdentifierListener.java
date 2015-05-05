@@ -35,9 +35,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.LoopIdentifierProcessor;
 import prerna.om.GraphDataModel;
-import prerna.om.SEMOSSVertex;
 import prerna.ui.components.playsheets.GraphPlaySheet;
-import edu.uci.ics.jung.graph.DelegateForest;
 
 /**
  * Controls running of the loop identifier algorithm.

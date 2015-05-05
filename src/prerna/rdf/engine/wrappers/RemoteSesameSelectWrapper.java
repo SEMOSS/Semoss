@@ -33,35 +33,31 @@ import java.util.Hashtable;
 
 import org.openrdf.query.BindingSet;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
 import prerna.util.Utility;
 
-public class RemoteSesameSelectWrapper extends SesameSelectWrapper implements	ISelectWrapper {
+public class RemoteSesameSelectWrapper extends SesameSelectWrapper implements ISelectWrapper {
 
 	transient SesameSelectWrapper remoteWrapperProxy = null;
 	transient ISelectStatement retSt = null;
-	transient boolean retBool = false;
 	transient ObjectInputStream ris = null;
 
 
 	@Override
 	public void execute() {
 		System.out.println("Trying to get the wrapper remotely now");
-		remoteWrapperProxy = (SesameSelectWrapper)engine.execSelectQuery(query);
-		var = remoteWrapperProxy.getVariables();
-		System.out.println("Output variables is " + remoteWrapperProxy.getVariables());
+		remoteWrapperProxy = (SesameSelectWrapper)engine.execQuery(query);
+//		var = remoteWrapperProxy.getVariables();
+//		System.out.println("Output variables is " + remoteWrapperProxy.getVariables());
 	}
 
 	@Override
 	public boolean hasNext() {
-		
+		boolean retBool = false;
 		if(retSt != null) // this means they have not picked it up yet
 			return true;
-		//retSt = new SelectStatement();
+		//retSt = new SelectStatement();//
 
 		// I need to pull from remote
 		// this is just so stupid to call its own
@@ -101,6 +97,8 @@ public class RemoteSesameSelectWrapper extends SesameSelectWrapper implements	IS
 	@Override
 	public String[] getVariables() {
 		// TODO Auto-generated method stub
+		var = remoteWrapperProxy.getVariables();
+		System.out.println("Output variables is " + remoteWrapperProxy.getVariables());
 		return var;
 	}
 }

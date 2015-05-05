@@ -50,7 +50,7 @@ import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.repository.sail.SailTupleQuery;
 import org.openrdf.repository.sparql.query.SPARQLQueryBindingSet;
 
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 
 public class QueryBuilderHelper {
 	ValueFactory vf = null;

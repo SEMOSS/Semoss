@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.rdf.query.util;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
 
 public interface ISPARQLReturnModifier {

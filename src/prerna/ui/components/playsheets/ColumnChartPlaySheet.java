@@ -39,8 +39,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
 
-import prerna.om.GraphDataModel;
-import prerna.rdf.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectStatement;
 import prerna.ui.components.ChartControlPanel;
 import prerna.ui.main.listener.impl.ColumnChartGroupedStackedListener;
 import prerna.util.Constants;

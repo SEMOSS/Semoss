@@ -53,7 +53,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.specific.tap.SysSiteOptimizer;
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.main.listener.specific.tap.OptFunctionRadioBtnListener;
 import prerna.ui.main.listener.specific.tap.SysSiteOptBtnListener;
 import prerna.ui.swing.custom.CustomButton;

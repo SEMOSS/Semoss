@@ -2,7 +2,6 @@ package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -15,7 +14,6 @@ import prerna.rdf.query.util.TriplePartConstant;
 
 import com.google.gson.Gson;
 import com.google.gson.internal.StringMap;
-import com.google.gson.reflect.TypeToken;
 
 public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 

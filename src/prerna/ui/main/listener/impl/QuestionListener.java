@@ -29,10 +29,8 @@ package prerna.ui.main.listener.impl;
 
 import java.awt.CardLayout;
 import java.awt.event.ActionEvent;
-import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.StringTokenizer;
 import java.util.Vector;
 
 import javax.swing.DefaultComboBoxModel;
@@ -46,16 +44,15 @@ import javax.swing.JToggleButton;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.AbstractEngine;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.ui.components.ParamPanel;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.PlaySheetEnum;
-import prerna.util.Utility;
 
 /**
  *  listens for the change in questions, then refreshes the sparql area with the actual question in SPARQL

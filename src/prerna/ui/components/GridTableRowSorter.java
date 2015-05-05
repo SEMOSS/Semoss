@@ -29,19 +29,11 @@ package prerna.ui.components;
 
 import java.util.Comparator;
 
-import javax.swing.JTable;
-import javax.swing.table.AbstractTableModel;
-import javax.swing.table.TableCellEditor;
-import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-
-import com.bigdata.rdf.model.BigdataLiteralImpl;
-import com.bigdata.rdf.model.BigdataURIImpl;
-import com.itextpdf.text.pdf.PdfStructTreeController.returnType;
 
 
 /**

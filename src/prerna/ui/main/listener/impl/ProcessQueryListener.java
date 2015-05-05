@@ -44,9 +44,9 @@ import javax.swing.JToggleButton;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.AbstractEngine;
 import prerna.om.Insight;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;

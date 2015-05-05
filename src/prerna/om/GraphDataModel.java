@@ -28,7 +28,6 @@
 package prerna.om;
 
 import java.util.Hashtable;
-import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -47,17 +46,16 @@ import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
-import prerna.rdf.engine.api.IConstructStatement;
-import prerna.rdf.engine.api.IConstructWrapper;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.AbstractEngine;
-import prerna.rdf.engine.impl.InMemoryJenaEngine;
-import prerna.rdf.engine.impl.InMemorySesameEngine;
-import prerna.rdf.engine.impl.RDFFileSesameEngine;
-import prerna.rdf.engine.impl.SesameJenaConstructStatement;
-import prerna.rdf.engine.impl.SesameJenaConstructWrapper;
-import prerna.rdf.engine.impl.SesameJenaSelectCheater;
-import prerna.rdf.engine.impl.SesameJenaUpdateWrapper;
+import prerna.engine.api.IConstructStatement;
+import prerna.engine.api.IConstructWrapper;
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.rdf.InMemoryJenaEngine;
+import prerna.engine.impl.rdf.InMemorySesameEngine;
+import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.engine.impl.rdf.SesameJenaConstructStatement;
+import prerna.engine.impl.rdf.SesameJenaSelectCheater;
+import prerna.engine.impl.rdf.SesameJenaUpdateWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.GraphOWLHelper;
 import prerna.ui.components.PropertySpecData;
@@ -83,7 +81,6 @@ public class GraphDataModel {
 	
 	Hashtable <String, String> loadedOWLS = new Hashtable<String, String>();
 
-	Properties rdfMap = null;
 	String RELATION_URI = null;
 	String PROP_URI = null;
 	public RepositoryConnection rc = null;
@@ -113,7 +110,6 @@ public class GraphDataModel {
 	public GraphDataModel(){
 		vertStore = new Hashtable<String, SEMOSSVertex>();
 		edgeStore =new Hashtable<String, SEMOSSEdge>();
-		rdfMap = DIHelper.getInstance().getRdfMap();
 		createBaseURIs();
 	}
 	
@@ -368,7 +364,7 @@ public class GraphDataModel {
 					}
 				}
 				if(add2Base) {
-					baseRelEngine.addStatement(st.getSubject(), st.getPredicate(), st.getObject(), true);
+					baseRelEngine.addStatement(new Object[]{st.getSubject(), st.getPredicate(), st.getObject(), true});
 				}
 				rc.add(subject,predicate,object);
 			}
@@ -397,7 +393,7 @@ public class GraphDataModel {
 					}
 				}
 				if(add2Base) {
-					baseRelEngine.addStatement(st.getSubject(), st.getPredicate(), st.getObject(), false);
+					baseRelEngine.addStatement(new Object[]{st.getSubject(), st.getPredicate(), st.getObject(), false});
 				}
 				rc.add(subject, predicate, (Literal)obj);
 			}
@@ -415,7 +411,7 @@ public class GraphDataModel {
 					}
 				}
 				if(add2Base) {
-					baseRelEngine.addStatement(st.getSubject(), st.getPredicate(), st.getObject(), false);
+					baseRelEngine.addStatement(new Object[]{st.getSubject(), st.getPredicate(), st.getObject(), false});
 				}
 				rc.add(subject, predicate, (Literal)newObj);
 			}
@@ -1040,7 +1036,7 @@ public class GraphDataModel {
 			if(this.baseRelEngine == null){
 				this.baseRelEngine = ((AbstractEngine)engine).getBaseDataEngine();
 			} else {
-				RDFEngineHelper.addAllData(((AbstractEngine)engine).getBaseDataEngine(), this.baseRelEngine.getRC());
+				RDFEngineHelper.addAllData(((AbstractEngine)engine).getBaseDataEngine(), this.baseRelEngine.getRc());
 			}
 
 			this.baseFilterHash.putAll(((AbstractEngine)engine).getBaseHash());

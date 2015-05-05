@@ -40,12 +40,12 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.impl.CentralityCalculator;
 import prerna.algorithm.impl.SubclassingMapGenerator;
 import prerna.algorithm.learning.unsupervised.clustering.LocalOutlierFactorAlgorithm;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.SEMOSSVertex;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.AbstractEngine;
-import prerna.rdf.engine.impl.RDFFileSesameEngine;
 import prerna.util.Utility;
 
 public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
@@ -80,7 +80,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		final String eccentricityQuery = "SELECT DISTINCT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
 
 		LOGGER.info("Getting the list of concepts...");
-		Vector<String> conceptList = engine.getEntityOfType(getConceptListQuery);
+		Vector<String> conceptList = Utility.getVectorOfReturn(getConceptListQuery, engine);
 		Hashtable<String, Hashtable<String, Object>> allData = constructDataHash(conceptList);
 
 		LOGGER.info("Getting the number of instances for each concept...");
@@ -98,7 +98,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		allData = addToAllData(edgeCountsHash, "y", allData);
 
 		LOGGER.info("Generating metamodel graph for centrality measures...");
-		GraphPlaySheet graphPS = CentralityCalculator.createMetamodel(baseDataEngine.getRC(), eccentricityQuery);
+		GraphPlaySheet graphPS = CentralityCalculator.createMetamodel(baseDataEngine.getRc(), eccentricityQuery);
 		LOGGER.info("Extending metamodel graph for subclassed concepts...");
 		Hashtable<String, SEMOSSVertex> vertStore  = graphPS.getGraphData().getVertStore();
 		subclassGen.updateVertAndEdgeStoreForSubclassing(vertStore, graphPS.getGraphData().getEdgeStore());

@@ -37,8 +37,8 @@ import javax.swing.JDesktopPane;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.InMemoryJenaEngine;
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdf.InMemoryJenaEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
@@ -101,7 +101,7 @@ public class GraphPlaySheetExportListener  extends AbstractListener{
 		
 		
 		String sparql = "SELECT ?Subjects ?Predicates ?Objects WHERE {?Subjects ?Predicates ?Objects}";		
-		ResultSet rs = (ResultSet) jenaEng.execSelectQuery(sparql);
+		ResultSet rs = (ResultSet) jenaEng.execQuery(sparql);
 		NewplaySheet.setRs(rs);
 		
 		NewplaySheet.setTitle(title);

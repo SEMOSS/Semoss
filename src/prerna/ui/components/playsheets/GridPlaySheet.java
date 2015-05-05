@@ -42,8 +42,8 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.api.ISelectStatement;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridRAWTableModel;
 import prerna.ui.components.GridTableModel;

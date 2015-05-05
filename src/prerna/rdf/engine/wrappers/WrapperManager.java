@@ -29,10 +29,9 @@ package prerna.rdf.engine.wrappers;
 
 import java.util.Arrays;
 
-import prerna.rdf.engine.api.IConstructWrapper;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.api.IEngineWrapper;
-import prerna.rdf.engine.api.ISelectWrapper;
+import prerna.engine.api.IConstructWrapper;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectWrapper;
 
 public class WrapperManager {
 

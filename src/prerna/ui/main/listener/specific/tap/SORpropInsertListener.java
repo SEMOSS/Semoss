@@ -29,22 +29,18 @@ package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
 
-import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
-import javax.swing.JTextField;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.specific.tap.SORpropInsertProcessor;
-import prerna.ui.components.specific.tap.SysBPCapInsertProcessor;
 import prerna.ui.main.listener.impl.AbstractListener;
 import prerna.util.Constants;
-import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 

@@ -57,9 +57,9 @@ import javax.swing.border.LineBorder;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.rdf.SesameJenaSelectStatement;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.components.ParamComboBox;

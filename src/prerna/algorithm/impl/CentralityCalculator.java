@@ -35,9 +35,9 @@ import java.util.Vector;
 
 import org.openrdf.repository.RepositoryConnection;
 
+import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
-import prerna.rdf.engine.impl.RDFFileSesameEngine;
 import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;

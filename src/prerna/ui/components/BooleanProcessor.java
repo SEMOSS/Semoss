@@ -32,8 +32,8 @@ import javax.swing.JList;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaBooleanWrapper;
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdf.SesameJenaBooleanWrapper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 

@@ -32,13 +32,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Vector;
 
-import javax.swing.ComboBoxModel;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JRadioButton;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.QuestionAdministrator;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.helpers.EntityFillerForSubClass;

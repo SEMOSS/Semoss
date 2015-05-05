@@ -37,8 +37,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
-import prerna.ui.components.ShapeColorTableModel;
-import prerna.ui.components.VertexColorShapeData;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.helpers.TypeColorShapeTable;

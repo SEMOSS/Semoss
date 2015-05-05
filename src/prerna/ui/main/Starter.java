@@ -39,7 +39,7 @@ import javax.swing.plaf.ColorUIResource;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.PlayPane;
 import prerna.util.AbstractFileWatcher;
 import prerna.util.Constants;

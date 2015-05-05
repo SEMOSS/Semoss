@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.poi.specific;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -80,11 +79,11 @@ import org.supercsv.io.CsvMapReader;
 import org.supercsv.io.ICsvMapReader;
 import org.supercsv.prefs.CsvPreference;
 
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.rdf.BigDataEngine;
+import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.error.HeaderClassException;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.AbstractEngine;
-import prerna.rdf.engine.impl.BigDataEngine;
-import prerna.rdf.engine.impl.RDFFileSesameEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -101,6 +100,7 @@ public class D3CSVLoader {
 	public final static String CONTAINS = "Contains";
 	public final static String NUMCOL = "NUM_COLUMNS";
 	public final static String NOT_OPTIONAL = "NOT_OPTIONAL";
+	BigDataEngine bigEngine;
 	
 	private static final Logger logger = LogManager.getLogger(D3CSVLoader.class.getName());
 	
@@ -112,7 +112,6 @@ public class D3CSVLoader {
 	private Properties bdProp = new Properties(); // properties for big data
 	private Sail bdSail;
 	private ValueFactory vf;
-	private SailConnection sc;
 	private Hashtable <String, CellProcessor> typeHash = new Hashtable<String, CellProcessor>();
 	private String customBaseURI = "";
 	private ArrayList<String> relationArrayList, nodePropArrayList, relPropArrayList;
@@ -214,24 +213,24 @@ public class D3CSVLoader {
 			scOWL.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Contains/Longitude"), RDF.TYPE, vf.createURI("http://semoss.org/ontologies/Relation/Contains"));
 
 
-			sc.addStatement(vf.createURI("http://semoss.org/ontologies/Concept/Organization"), RDFS.SUBCLASSOF, vf.createURI("http://semoss.org/ontologies/Concept"));
-			sc.addStatement(vf.createURI("http://semoss.org/ontologies/Concept/Person"), RDFS.SUBCLASSOF, vf.createURI("http://semoss.org/ontologies/Concept"));
-			sc.addStatement(vf.createURI("http://semoss.org/ontologies/Concept/Location"), RDFS.SUBCLASSOF, vf.createURI("http://semoss.org/ontologies/Concept"));
+			this.addStatement(vf.createURI("http://semoss.org/ontologies/Concept/Organization"), RDFS.SUBCLASSOF, vf.createURI("http://semoss.org/ontologies/Concept"));
+			this.addStatement(vf.createURI("http://semoss.org/ontologies/Concept/Person"), RDFS.SUBCLASSOF, vf.createURI("http://semoss.org/ontologies/Concept"));
+			this.addStatement(vf.createURI("http://semoss.org/ontologies/Concept/Location"), RDFS.SUBCLASSOF, vf.createURI("http://semoss.org/ontologies/Concept"));
 
 			// add all the relations
-			sc.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Executive"), RDFS.SUBPROPERTYOF, vf.createURI("http://semoss.org/ontologies/Relation"));
-			sc.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Employee"), RDFS.SUBPROPERTYOF, vf.createURI("http://semoss.org/ontologies/Relation"));
-			sc.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Subsidiary"), RDFS.SUBPROPERTYOF, vf.createURI("http://semoss.org/ontologies/Relation"));
-			sc.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/LocatedAt"), RDFS.SUBPROPERTYOF, vf.createURI("http://semoss.org/ontologies/Relation"));			
+			this.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Executive"), RDFS.SUBPROPERTYOF, vf.createURI("http://semoss.org/ontologies/Relation"));
+			this.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Employee"), RDFS.SUBPROPERTYOF, vf.createURI("http://semoss.org/ontologies/Relation"));
+			this.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Subsidiary"), RDFS.SUBPROPERTYOF, vf.createURI("http://semoss.org/ontologies/Relation"));
+			this.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/LocatedAt"), RDFS.SUBPROPERTYOF, vf.createURI("http://semoss.org/ontologies/Relation"));			
 
 			// add all properties
-			sc.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Contains/DUNS"), RDF.TYPE, vf.createURI("http://semoss.org/ontologies/Relation/Contains"));
-			sc.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Contains/Address"), RDF.TYPE, vf.createURI("http://semoss.org/ontologies/Relation/Contains"));
-			sc.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Contains/Website"), RDF.TYPE, vf.createURI("http://semoss.org/ontologies/Relation/Contains"));
-			sc.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Contains/Tel"), RDF.TYPE, vf.createURI("http://semoss.org/ontologies/Relation/Contains"));
-			sc.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Contains/Fax"), RDF.TYPE, vf.createURI("http://semoss.org/ontologies/Relation/Contains"));
-			sc.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Contains/Latitude"), RDF.TYPE, vf.createURI("http://semoss.org/ontologies/Relation/Contains"));
-			sc.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Contains/Longitude"), RDF.TYPE, vf.createURI("http://semoss.org/ontologies/Relation/Contains"));
+			this.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Contains/DUNS"), RDF.TYPE, vf.createURI("http://semoss.org/ontologies/Relation/Contains"));
+			this.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Contains/Address"), RDF.TYPE, vf.createURI("http://semoss.org/ontologies/Relation/Contains"));
+			this.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Contains/Website"), RDF.TYPE, vf.createURI("http://semoss.org/ontologies/Relation/Contains"));
+			this.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Contains/Tel"), RDF.TYPE, vf.createURI("http://semoss.org/ontologies/Relation/Contains"));
+			this.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Contains/Fax"), RDF.TYPE, vf.createURI("http://semoss.org/ontologies/Relation/Contains"));
+			this.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Contains/Latitude"), RDF.TYPE, vf.createURI("http://semoss.org/ontologies/Relation/Contains"));
+			this.addStatement(vf.createURI("http://semoss.org/ontologies/Relation/Contains/Longitude"), RDF.TYPE, vf.createURI("http://semoss.org/ontologies/Relation/Contains"));
 
 			FileWriter fWrite = new FileWriter(owlFile);
 			RDFXMLPrettyWriter owlWriter  = new RDFXMLPrettyWriter(fWrite); 
@@ -247,6 +246,14 @@ public class D3CSVLoader {
 		} catch (RDFHandlerException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	private void addStatement(URI a, URI b, URI c){
+		this.bigEngine.addStatement(new Object[]{a.stringValue(), b.stringValue(), c.stringValue(), true});
+	}
+	
+	private void addStatement(URI a, URI b, Object c){
+		this.bigEngine.addStatement(new Object[]{a.stringValue(), b.stringValue(), c, true});
 	}
 
 	public void processD3Relationships()
@@ -300,14 +307,12 @@ public class D3CSVLoader {
 	public void printTriple(String subject, String predicate, Object object)
 	{
 		logger.error(subject + "<>" + predicate + "<>" + object);
-		try {
+
 			if(object instanceof Literal)
-				sc.addStatement(vf.createURI(subject), vf.createURI(predicate), (Literal)object);
+				this.addStatement(vf.createURI(subject), vf.createURI(predicate), (Literal)object);
 			else
-				sc.addStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object+""));
-		} catch (SailException e) {
-			e.printStackTrace();
-		}
+				this.addStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object+""));
+		
 	}
 
 	/**
@@ -370,14 +375,13 @@ public class D3CSVLoader {
 		String[] files = fileNames.split(";");
 		semossURI = (String) DIHelper.getInstance().getLocalProp(Constants.SEMOSS_URI);
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
-		BigDataEngine bigEngine = (BigDataEngine) engine;
+		this.bigEngine = (BigDataEngine) engine;
 		//make location of the owl file in the dbname folder
 		this.owlFile = owlFile; 
 		semossURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
 		if(!customBase.equals("")) customBaseURI = customBase;
-		bdSail = bigEngine.bdSail;
-		sc = bigEngine.sc;
-		vf = bigEngine.vf;
+//		bdSail = bigEngine.bdSail;
+//		vf = bigEngine.vf;
 		openOWLWithConnection(engine);
 		createTypes();
 		for(int i = 0; i<files.length;i++)
@@ -1040,7 +1044,7 @@ public class D3CSVLoader {
 			objString = Utility.cleanString(object.stringValue(), false);
 			newObj = vf.createURI(objString);
 		}
-		sc.addStatement(newSub, newPred, newObj);
+		this.addStatement(newSub, newPred, newObj);
 	}
 
 	/**
@@ -1124,7 +1128,6 @@ public class D3CSVLoader {
 		Repository repo = new BigdataSailRepository((BigdataSail) bdSail);
 		repo.initialize();
 		SailRepositoryConnection src = (SailRepositoryConnection) repo.getConnection();
-		sc = src.getSailConnection();
 		vf = bdSail.getValueFactory();
 	}
 
@@ -1210,11 +1213,6 @@ public class D3CSVLoader {
 	public void closeDB() throws SailException
 	{
 		logger.warn("Closing....");
-		sc.commit();
-		InferenceEngine ie = ((BigdataSail)bdSail).getInferenceEngine();
-		ie.computeClosure(null);
-		sc.commit();
-		sc.close();
-		bdSail.shutDown();
+		bigEngine.closeDB();
 	}	
 }

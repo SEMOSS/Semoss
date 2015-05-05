@@ -28,7 +28,6 @@
 package prerna.ui.helpers;
 
 import java.util.ArrayList;
-import java.util.Vector;
 
 import javax.swing.JInternalFrame;
 import javax.swing.JScrollPane;

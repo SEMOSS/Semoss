@@ -39,6 +39,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 
+import prerna.engine.impl.AbstractEngine;
 import prerna.ui.components.PropertySpecData;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.playsheets.GraphPlaySheet;
@@ -206,7 +207,7 @@ public class OWLRefreshListener implements IChakraListener {
 		String engineName = ps.engine.getEngineName();
 		// get the core properties
 		ps.exportDB();
-		ps.engine.saveConfiguration();
+		((AbstractEngine)ps.engine).saveConfiguration();
 	}
 	
 	/**

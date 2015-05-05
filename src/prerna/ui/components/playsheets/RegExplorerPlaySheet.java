@@ -50,7 +50,7 @@ import javax.swing.border.EmptyBorder;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
+import prerna.engine.impl.rdf.SesameJenaSelectStatement;
 import prerna.ui.components.WrapLayout;
 import prerna.ui.swing.custom.CustomButton;
 import prerna.util.CSSApplication;

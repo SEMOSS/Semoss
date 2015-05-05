@@ -36,11 +36,11 @@ import java.util.Set;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
+import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.error.EngineException;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -52,7 +52,8 @@ public final class MasterDBHelper {
 	}
 	
 	public static void removeInsightStatementToMasterDBs(IEngine masterEngine, String selectedEngineName, String sub, String pred, String obj, Boolean concept) {
-		masterEngine.removeStatement(sub, pred, obj, concept);
+//		masterEngine.removeStatement(sub, pred, obj, concept);
+		removeFromMaster(masterEngine, sub, pred, obj, concept);
 		if(pred.equals("PARAM:TYPE")) {
 			if(concept) {
 				String keyword = obj.substring(obj.lastIndexOf("/")+1);
@@ -62,8 +63,17 @@ public final class MasterDBHelper {
 		}
 	}
 	
+	private static void addToMaster(IEngine masterEngine, String sub, String pred, Object obj, boolean concept){
+		masterEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, pred, obj, concept});
+	}
+	
+	private static void removeFromMaster(IEngine masterEngine, String sub, String pred, Object obj, boolean concept){
+		masterEngine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{sub, pred, obj, concept});
+	}
+	
 	public static void addInsightStatementToMasterDBs(IEngine masterEngine, String selectedEngineName, String sub, String pred, String obj, Boolean concept) {
-		masterEngine.addStatement(sub, pred, obj, concept);
+
+		addToMaster(masterEngine, sub, pred, obj, concept);
 		if(pred.equals("PARAM:TYPE")) {
 			if(concept) {
 				String keyword = obj.substring(obj.lastIndexOf("/")+1);
@@ -82,9 +92,9 @@ public final class MasterDBHelper {
 		int index = nodeURI.lastIndexOf("/");
 		String baseURI = nodeURI.substring(0,index);
 		String instance = nodeURI.substring(index+1);
-		masterEngine.addStatement(nodeURI, RDF.TYPE.stringValue(), baseURI, true);
-		masterEngine.addStatement(baseURI, RDFS.SUBCLASSOF.stringValue(), MasterDatabaseURIs.SEMOSS_CONCEPT_URI, true);
-		masterEngine.addStatement(nodeURI, RDFS.LABEL.stringValue(), instance, false);
+		addToMaster(masterEngine, nodeURI, RDF.TYPE.stringValue(), baseURI, true);
+		addToMaster(masterEngine, baseURI, RDFS.SUBCLASSOF.stringValue(), MasterDatabaseURIs.SEMOSS_CONCEPT_URI, true);
+		addToMaster(masterEngine, nodeURI, RDFS.LABEL.stringValue(), instance, false);
 	}
 
 	/**
@@ -99,10 +109,10 @@ public final class MasterDBHelper {
 		String relBaseURI = relationURI.substring(0,relIndex);
 		String relInst = relationURI.substring(relIndex+1);
 
-		masterEngine.addStatement(relationURI, RDFS.SUBPROPERTYOF.stringValue(), relBaseURI,true);
-		masterEngine.addStatement(relBaseURI, RDFS.SUBPROPERTYOF.stringValue(), MasterDatabaseURIs.SEMOSS_RELATION_URI,true);
-		masterEngine.addStatement(relationURI, RDFS.LABEL.stringValue(), relInst,false);
-		masterEngine.addStatement(node1URI, relationURI, node2URI,true);
+		addToMaster(masterEngine, relationURI, RDFS.SUBPROPERTYOF.stringValue(), relBaseURI,true);
+		addToMaster(masterEngine, relBaseURI, RDFS.SUBPROPERTYOF.stringValue(), MasterDatabaseURIs.SEMOSS_RELATION_URI,true);
+		addToMaster(masterEngine, relationURI, RDFS.LABEL.stringValue(), relInst,false);
+		addToMaster(masterEngine, node1URI, relationURI, node2URI,true);
 	}
 
 
@@ -114,7 +124,7 @@ public final class MasterDBHelper {
 	 * @throws EngineException	Thrown if statement cannot be added to the engine
 	 */
 	public static void addProperty(IEngine masterEngine, String nodeURI, String propURI, Object value,Boolean isConcept) {
-		masterEngine.addStatement(nodeURI, propURI, value, isConcept);
+		addToMaster(masterEngine, nodeURI, propURI, value, isConcept);
 	}
 	
 	/**
@@ -128,11 +138,11 @@ public final class MasterDBHelper {
 		String baseURI = nodeURI.substring(0,index);
 		String instance = nodeURI.substring(index+1);
 
-		masterEngine.removeStatement(nodeURI, RDFS.LABEL.stringValue(), instance, false);
-		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.SEMOSS_CONCEPT_URI, true);
-		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), baseURI, true);
-		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.RESOURCE_URI, true);
-		masterEngine.removeStatement(nodeURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.RESOURCE_URI, false);
+		removeFromMaster(masterEngine, nodeURI, RDFS.LABEL.stringValue(), instance, false);
+		removeFromMaster(masterEngine, nodeURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.SEMOSS_CONCEPT_URI, true);
+		removeFromMaster(masterEngine, nodeURI, RDF.TYPE.stringValue(), baseURI, true);
+		removeFromMaster(masterEngine, nodeURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.RESOURCE_URI, true);
+		removeFromMaster(masterEngine, nodeURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.RESOURCE_URI, false);
 	}
 
 	/**
@@ -147,15 +157,15 @@ public final class MasterDBHelper {
 		String relBaseURI = relationURI.substring(0,relIndex);
 		String relInst = relationURI.substring(relIndex+1);
 
-		masterEngine.removeStatement(relationURI, RDFS.SUBPROPERTYOF.stringValue(), MasterDatabaseURIs.SEMOSS_RELATION_URI, true);
-		masterEngine.removeStatement(relationURI, RDFS.SUBPROPERTYOF.stringValue(), relBaseURI, true);
-		masterEngine.removeStatement(relationURI, RDFS.SUBPROPERTYOF.stringValue(), relationURI, true);
-		masterEngine.removeStatement(relationURI, RDFS.LABEL.stringValue(), relInst, false);
-		masterEngine.removeStatement(relationURI, RDF.TYPE.stringValue(), Constants.DEFAULT_PROPERTY_URI, true);
-		masterEngine.removeStatement(relationURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.RESOURCE_URI, true);
-		masterEngine.removeStatement(node1URI, MasterDatabaseURIs.SEMOSS_RELATION_URI, node2URI, true);
-		masterEngine.removeStatement(node1URI, relBaseURI, node2URI, true);
-		masterEngine.removeStatement(node1URI, relationURI, node2URI, true);
+		removeFromMaster(masterEngine, relationURI, RDFS.SUBPROPERTYOF.stringValue(), MasterDatabaseURIs.SEMOSS_RELATION_URI, true);
+		removeFromMaster(masterEngine, relationURI, RDFS.SUBPROPERTYOF.stringValue(), relBaseURI, true);
+		removeFromMaster(masterEngine, relationURI, RDFS.SUBPROPERTYOF.stringValue(), relationURI, true);
+		removeFromMaster(masterEngine, relationURI, RDFS.LABEL.stringValue(), relInst, false);
+		removeFromMaster(masterEngine, relationURI, RDF.TYPE.stringValue(), Constants.DEFAULT_PROPERTY_URI, true);
+		removeFromMaster(masterEngine, relationURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.RESOURCE_URI, true);
+		removeFromMaster(masterEngine, node1URI, MasterDatabaseURIs.SEMOSS_RELATION_URI, node2URI, true);
+		removeFromMaster(masterEngine, node1URI, relBaseURI, node2URI, true);
+		removeFromMaster(masterEngine, node1URI, relationURI, node2URI, true);
 	}
 
 
@@ -167,7 +177,7 @@ public final class MasterDBHelper {
 	 * @throws EngineException	Thrown if statement cannot be removed to the engine
 	 */
 	public static void removeProperty(IEngine masterEngine, String nodeURI, String propURI, Object value,Boolean isConcept) {
-		masterEngine.removeStatement(nodeURI, propURI, value, isConcept);
+		removeFromMaster(masterEngine, nodeURI, propURI, value, isConcept);
 	}
 	
 	/**

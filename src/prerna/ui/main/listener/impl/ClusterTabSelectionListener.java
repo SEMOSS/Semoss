@@ -28,10 +28,8 @@
 package prerna.ui.main.listener.impl;
 
 import java.awt.event.ActionEvent;
-import java.util.ArrayList;
 import java.util.Hashtable;
 
-import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 

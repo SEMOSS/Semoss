@@ -30,7 +30,7 @@ package prerna.ui.components.specific.tap;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.DIHelper;
 

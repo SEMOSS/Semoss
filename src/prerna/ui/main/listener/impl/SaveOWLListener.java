@@ -34,6 +34,7 @@ import javax.swing.JComponent;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.engine.impl.AbstractEngine;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.QuestionPlaySheetStore;
@@ -67,7 +68,7 @@ public class SaveOWLListener implements IChakraListener {
 		String engineName = ps.engine.getEngineName();
 		// get the core properties
 		ps.exportDB();
-		ps.engine.saveConfiguration();
+		((AbstractEngine)ps.engine).saveConfiguration();
 	}
 	
 	/**

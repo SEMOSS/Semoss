@@ -31,11 +31,11 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Vector;
 
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
-import prerna.rdf.engine.impl.SesameJenaConstructStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectCheater;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.rdf.SesameJenaConstructStatement;
+import prerna.engine.impl.rdf.SesameJenaSelectCheater;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Utility;
 

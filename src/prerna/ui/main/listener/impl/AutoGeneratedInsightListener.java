@@ -37,8 +37,8 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JList;
 
+import prerna.engine.impl.AbstractEngine;
 import prerna.poi.main.insights.AutoInsightExecutor;
-import prerna.rdf.engine.impl.AbstractEngine;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;

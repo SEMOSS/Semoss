@@ -30,7 +30,7 @@ package prerna.ui.components.specific.tap;
 import java.util.Vector;
 
 import prerna.algorithm.impl.specific.tap.SysOptUtilityMethods;
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.util.ArrayListUtilityMethods;
 
 /**

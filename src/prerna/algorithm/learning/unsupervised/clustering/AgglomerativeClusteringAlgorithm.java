@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.algorithm.learning.unsupervised.clustering;
 
-import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 

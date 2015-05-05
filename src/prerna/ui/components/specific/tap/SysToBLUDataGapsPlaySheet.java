@@ -35,6 +35,7 @@ import java.awt.Insets;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyVetoException;
+import java.util.Hashtable;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -50,7 +51,7 @@ import javax.swing.JTabbedPane;
 import javax.swing.border.BevelBorder;
 import javax.swing.event.InternalFrameEvent;
 
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.main.listener.impl.PlaySheetListener;
 import prerna.ui.main.listener.specific.tap.SystToBLUHeatmapBtnListener;
@@ -369,6 +370,12 @@ public class SysToBLUDataGapsPlaySheet extends JInternalFrame implements IPlaySh
 	public void setTitle(String title) {
 		super.setTitle(title);
 		this.title = title;
+	}
+
+	@Override
+	public Object doMethod(String methodName, Hashtable argHash) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 	

@@ -32,10 +32,10 @@ import java.awt.event.ActionEvent;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.error.EngineException;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.AbstractEngine;
-import prerna.rdf.engine.impl.RDFFileSesameEngine;
 import prerna.ui.comparison.specific.tap.GenericDBComparisonWriter;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;

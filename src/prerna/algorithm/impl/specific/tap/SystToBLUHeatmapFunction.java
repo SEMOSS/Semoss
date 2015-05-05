@@ -29,46 +29,21 @@ package prerna.algorithm.impl.specific.tap;
 
 
 
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.awt.GridLayout;
-import java.awt.Insets;
-import java.beans.PropertyVetoException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Set;
 import java.util.Vector;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-
-import javax.swing.JDesktopPane;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.LoggerProvider;
-
 import prerna.algorithm.api.IAlgorithm;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectStatement;
-import prerna.rdf.engine.impl.SesameJenaSelectWrapper;
-import prerna.ui.components.GridScrollPane;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.GraphPlaySheet;
-import prerna.ui.components.specific.tap.SimilarityFunctions;
-import prerna.ui.components.specific.tap.SimilarityHeatMapSheet;
-import prerna.ui.components.specific.tap.SysToBLUDataGapsPlaySheet;
 import prerna.ui.components.specific.tap.BLUSysComparison;
-import prerna.ui.main.listener.specific.tap.SimilarityBarChartBrowserFunction;
-import prerna.ui.main.listener.specific.tap.SimilarityRefreshBrowserFunction;
-import prerna.util.Constants;
+import prerna.ui.components.specific.tap.SysToBLUDataGapsPlaySheet;
 import prerna.util.DIHelper;
-import prerna.util.QuestionPlaySheetStore;
 
 /**
  * This class is used to process through two variables to identify relationships.

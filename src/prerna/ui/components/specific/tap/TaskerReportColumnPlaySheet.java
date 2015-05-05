@@ -28,7 +28,6 @@
 package prerna.ui.components.specific.tap;
 
 import java.awt.Dimension;
-import java.util.ArrayList;
 import java.util.Hashtable;
 
 import prerna.ui.components.playsheets.BrowserPlaySheet;

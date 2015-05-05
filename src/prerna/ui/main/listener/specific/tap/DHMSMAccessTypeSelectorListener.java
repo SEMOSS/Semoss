@@ -33,7 +33,7 @@ import java.util.Enumeration;
 import javax.swing.JComponent;
 import javax.swing.JRadioButton;
 
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.specific.tap.SelectRadioButtonPanel;
 import prerna.ui.main.listener.impl.AbstractListener;
 import prerna.util.Constants;

@@ -33,13 +33,12 @@ import java.util.Hashtable;
 
 import org.openrdf.query.BindingSet;
 
-import prerna.rdf.engine.api.IConstructStatement;
-import prerna.rdf.engine.api.IConstructWrapper;
-import prerna.rdf.engine.impl.RemoteSemossSesameEngine;
+import prerna.engine.api.IConstructStatement;
+import prerna.engine.api.IConstructWrapper;
+import prerna.engine.impl.rdf.RemoteSemossSesameEngine;
 import prerna.util.Utility;
 
-public class RemoteSesameSelectCheater extends SesameSelectCheater implements
-		IConstructWrapper {
+public class RemoteSesameSelectCheater extends SesameSelectCheater implements IConstructWrapper {
 	
 	SesameSelectCheater proxy = null;
 	String [] var = null;

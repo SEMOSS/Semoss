@@ -41,7 +41,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.learning.unsupervised.clustering.LocalOutlierFactorAlgorithm;
-import prerna.rdf.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectStatement;
 import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.NewScrollBarUI;
 

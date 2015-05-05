@@ -37,7 +37,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.specific.tap.SysOptUtilityMethods;
 import prerna.algorithm.impl.specific.tap.SysSiteOptimizer;
-import prerna.rdf.engine.api.IEngine;
+import prerna.engine.api.IEngine;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.SysSiteOptPlaySheet;
 import prerna.ui.helpers.AlgorithmRunner;

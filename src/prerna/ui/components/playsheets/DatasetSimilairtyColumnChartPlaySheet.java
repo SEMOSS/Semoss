@@ -31,9 +31,9 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 
 import prerna.algorithm.learning.similarity.DatasetSimilarity;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
 import prerna.math.BarChart;
-import prerna.rdf.engine.api.ISelectStatement;
-import prerna.rdf.engine.api.ISelectWrapper;
 import prerna.util.Utility;
 
 public class DatasetSimilairtyColumnChartPlaySheet extends ColumnChartPlaySheet {

@@ -29,9 +29,9 @@ package prerna.ui.components.specific.tap;
 
 import java.util.HashSet;
 
+import prerna.engine.api.IEngine;
 import prerna.error.EngineException;
 import prerna.error.FileReaderException;
-import prerna.rdf.engine.api.IEngine;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
 

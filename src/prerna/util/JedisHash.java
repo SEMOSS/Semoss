@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.util;
 
-import java.util.Hashtable;
-
 import redis.clients.jedis.Jedis;
 
 public class JedisHash{

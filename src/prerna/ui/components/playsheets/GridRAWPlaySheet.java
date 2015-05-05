@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.ui.components.playsheets;
 
-import prerna.rdf.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectStatement;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridRAWTableModel;
 
