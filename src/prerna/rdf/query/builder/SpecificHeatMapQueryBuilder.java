@@ -44,16 +44,13 @@ public class SpecificHeatMapQueryBuilder extends AbstractSpecificQueryBuilder {
 	String heatName;
 	String heatMathFunc;
 	
-	ArrayList<String> labelList;
-	
-	public SpecificHeatMapQueryBuilder(String xAxisColName, String yAxisColName, String heatName, String heatMathFunc, ArrayList<Hashtable<String, String>> parameters, SEMOSSQuery baseQuery, ArrayList<String> labelList) {
+	public SpecificHeatMapQueryBuilder(String xAxisColName, String yAxisColName, String heatName, String heatMathFunc, ArrayList<Hashtable<String, String>> parameters, SEMOSSQuery baseQuery) {
 		super(parameters, baseQuery);
 		
 		this.xAxisColName = xAxisColName;
 		this.yAxisColName = yAxisColName;
 		this.heatName = heatName;
 		this.heatMathFunc = heatMathFunc;
-		this.labelList = labelList;
 	}
 	
 	@Override
@@ -91,15 +88,21 @@ public class SpecificHeatMapQueryBuilder extends AbstractSpecificQueryBuilder {
 
 	@Override
 	public void buildQueryR() {
-		String selectorsString = generateSelectorsString(labelList);
+		ArrayList<String> colAliases = uniqifyColNames(Arrays.asList( xAxisColName, yAxisColName, heatName ));
+		
+		paramString = generateSelectorsSubString(xAxisColName, colAliases.get(0), true, "");
+		paramString += " , " + generateSelectorsSubString(yAxisColName, colAliases.get(1), true, "");
+		paramString += " , " + generateSelectorsSubString(heatName, colAliases.get(2), false, heatMathFunc);
+		
 		//eyi revisit
 		if(!parameters.isEmpty()) {
 			logger.info("Adding parameters: " + parameters);
 			addParam("Main");
 		}
 		
-		createSQLQuery(selectorsString);
-		logger.info("Created Generic Table Query: " + query);
-		
+		createSQLQuery();
+		logger.info("Created Generic Table Query: " + query);	
 	}
+	
+	
 }
