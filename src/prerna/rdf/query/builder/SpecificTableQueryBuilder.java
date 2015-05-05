@@ -69,7 +69,7 @@ public class SpecificTableQueryBuilder extends AbstractSpecificQueryBuilder{
 
 	@Override
 	public void buildQueryR() {
-		String selectorsString = generateSelectorsString(labelList);
+		paramString = generateSelectorsString(labelList);
 		
 		//eyi revisit
 		if(!parameters.isEmpty()) {
@@ -77,7 +77,7 @@ public class SpecificTableQueryBuilder extends AbstractSpecificQueryBuilder{
 			addParam("Main");
 		}
 		
-		createSQLQuery(selectorsString);
+		createSQLQuery();
 		logger.info("Created Generic Table Query: " + query);
 		
 	}
