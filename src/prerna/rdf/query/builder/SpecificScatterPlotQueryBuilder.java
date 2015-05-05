@@ -111,7 +111,28 @@ public class SpecificScatterPlotQueryBuilder extends AbstractSpecificQueryBuilde
 	@Override
 	public void buildQueryR() {
 		// TODO Auto-generated method stub
-		
+	       ArrayList<String> colAliases = uniqifyColNames(Arrays.asList( labelColName, xAxisColName, yAxisColName, zAxisColName, seriesColName ));
+	        ArrayList<String> groupList = new ArrayList<String>();
+
+	        // the order for the return variables is series, label, x, y, z
+	        // start with series
+	        paramString = "";
+	        if(seriesColName != null){
+	        	paramString = generateSelectorsSubString(seriesColName, colAliases.get(4), true, "") + " , ";
+	        } 
+			paramString += generateSelectorsSubString(labelColName, colAliases.get(0), true, "");
+			paramString += " , " + generateSelectorsSubString(xAxisColName, colAliases.get(1), false, xAxisMathFunc);
+			paramString += " , " + generateSelectorsSubString(yAxisColName, colAliases.get(2), false, yAxisMathFunc);
+	        //z if it is not null
+	        if(zAxisColName != null){
+	        	paramString += " , " + generateSelectorsSubString(zAxisColName, colAliases.get(3), false, zAxisMathFunc);
+	        }
+
+			if(!parameters.isEmpty()) {
+				logger.info("Adding parameters: " + parameters);
+				addParam("Main");
+			}
+			createSQLQuery();
 	}
 
 }
