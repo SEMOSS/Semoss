@@ -72,7 +72,7 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 	 */
 	public Hashtable processQueryData() {
 		data = new HashSet();
-		String[] var = getVariableArray();
+//		String[] var = getVariableArray();
 		
 		// Possibly filter out all US Facilities from the query?
 		
@@ -81,9 +81,9 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 			Object[] listElement = list.get(i);
 			String colName;
 			Double value;
-			for (int j = 0; j < var.length; j++) {
-				colName = var[j];
-				if (var.length > 3 && var[3].equals(null))
+			for (int j = 0; j < names.length; j++) {
+				colName = names[j];
+				if (names.length > 3 && names[3].equals(null))
 					elementHash.put("size", "size");
 				if (listElement[j] instanceof String) {
 					String text = (String) listElement[j];
@@ -99,13 +99,13 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 		allHash = new Hashtable();
 		allHash.put("dataSeries", data);
 		
-		allHash.put("lat", var[1]);
-		allHash.put("lon", var[2]);
-		if (var.length > 3 && !var[3].equals(null))
-			allHash.put("size", var[3]);
+		allHash.put("lat", names[1]);
+		allHash.put("lon", names[2]);
+		if (names.length > 3 && !names[3].equals(null))
+			allHash.put("size", names[3]);
 		else
 			allHash.put("size", "");
-		allHash.put("locationName", var[0]);
+		allHash.put("locationName", names[0]);
 		/*
 		 * allHash.put("xAxisTitle", var[0]); allHash.put("yAxisTitle", var[1]); allHash.put("value", var[2]);
 		 */

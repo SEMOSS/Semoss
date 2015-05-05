@@ -521,14 +521,14 @@ public class SysSiteLPSolver extends LPOptimizer{
 			
 			//if you don't get an output, then everything is just left as is, keep all at all current sites
 			if(solved != 0) {
-				if(solved == LpSolve.SUBOPTIMAL)
-					LOGGER.error("SOLUTION IS SUBOPTIMAL");
-				else if(solved == LpSolve.TIMEOUT)
-					LOGGER.error("SOLUTION TIMED OUT");
-				else if(solved == LpSolve.INFEASIBLE)
-	 				LOGGER.error("Solution is infeasible for given budget. Recommend do nothing.");
-				else
-	 				LOGGER.error("SOLVED IS "+solved);
+//				if(solved == LpSolve.SUBOPTIMAL)
+//					LOGGER.error("SOLUTION IS SUBOPTIMAL");
+//				else if(solved == LpSolve.TIMEOUT)
+//					LOGGER.error("SOLUTION TIMED OUT");
+//				else if(solved == LpSolve.INFEASIBLE)
+//	 				LOGGER.error("Solution is infeasible for given budget. Recommend do nothing.");
+//				else
+//	 				LOGGER.error("SOLVED IS "+solved);
 				
 				objectiveVal = currentSustainmentCost;
 				
