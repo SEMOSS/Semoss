@@ -80,7 +80,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		// now that this is done
 		if(joins.length() > 0)
 			joins = " WHERE " + joins;
-		query = "SELECT DISTINCT " + selectors + "  FROM  " + froms + joins + " ORDER BY 1 LIMIT " + limit ;
+		query = "SELECT DISTINCT " + selectors + "  FROM  " + froms + joins + " LIMIT " + limit ;
 
 	}
 	
@@ -444,7 +444,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			} else {
 				filterQuery = "SELECT DISTINCT " + varName + " FROM " + tableName ;
 			}
-			filterQuery += " ORDER BY 1 LIMIT " +  limitFilter;
+			filterQuery += " 1 LIMIT " +  limitFilter;
 
 			headerHash.put(QueryBuilderHelper.queryKey, filterQuery);
 			sequencer.put(key.toUpperCase(), headerHash);
