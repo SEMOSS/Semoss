@@ -45,11 +45,11 @@ public class ResidualSystemOptFillData{
 	
 	protected static final Logger logger = LogManager.getLogger(ResidualSystemOptFillData.class.getName());
 	ArrayList<String> sysList;
-	ArrayList<String> dataList;
-	ArrayList<String> bluList;
+	ArrayList<String> dataList, bluList;
 	ArrayList<String> regionList;
 	ArrayList<String> siteList;
-
+	ArrayList<String> capList;
+	
 	ArrayList<String> systemMustModernize;
 	ArrayList<String> systemMustDecommission;
 	
@@ -58,6 +58,7 @@ public class ResidualSystemOptFillData{
 	//a_ip, b_iq, c_ip
 	public int[][] systemDataMatrix;
 	public int[][] systemBLUMatrix;
+	public int[][] systemCapabilityMatrix;
 	public int[][] systemRegionMatrix;
 	public double[][] systemSiteMatrix;
 	
@@ -128,13 +129,14 @@ public class ResidualSystemOptFillData{
 		this.systemMustModernize = systemMustModernize;
 		this.systemMustDecommission = systemMustDecommission;	
 	}
-	
-	public void setSysSiteLists(ArrayList<String> sysList,ArrayList<String> dataList,ArrayList<String> bluList,ArrayList<String> siteList)
+
+	public void setSysSiteLists(ArrayList<String> sysList,ArrayList<String> dataList,ArrayList<String> bluList,ArrayList<String> siteList, ArrayList<String> capList)
 	{
 		this.sysList = sysList;
 		this.dataList = dataList;
 		this.bluList = bluList;
 		this.siteList = siteList;
+		this.capList = capList;
 	}
 	
 	public void setPlaySheet(SysOptPlaySheet playSheet)
@@ -295,6 +297,7 @@ public class ResidualSystemOptFillData{
 	public void fillSysSiteOptDataStores(Boolean nonCentralSystems) {
 		sysListBindings = "{" + SysOptUtilityMethods.makeBindingString("System",sysList) + "}";	
 		fillSystemFunctionality();
+		fillSystemCapabilityMatrix();
 		if(nonCentralSystems) {
 			fillSystemSite();
 			fillSystemNumOfSites();
@@ -319,6 +322,16 @@ public class ResidualSystemOptFillData{
 //		System.out.println("System Number of Sites List:" + sysNumSitesString);
 
 	}
+	
+	private void fillSystemCapabilityMatrix() {
+		systemCapabilityMatrix = SysOptUtilityMethods.createEmptyMatrix(systemDataMatrix,sysList.size(),capList.size());
+
+		String capQuery = "SELECT DISTINCT ?System ?Capability WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?System <http://semoss.org/ontologies/Relation/Supports> ?Capability}} BINDINGS ?System @SYSTEM-BINDINGS@";
+		capQuery = capQuery.replace("@SYSTEM-BINDINGS@",sysListBindings);
+		systemCapabilityMatrix = fillMatrixFromQuery(systemEngine,capQuery,systemBLUMatrix,sysList,bluList);
+
+	}
+	
 	
 	private void fillSystemFunctionality() {
 		systemDataMatrix = SysOptUtilityMethods.createEmptyMatrix(systemDataMatrix,sysList.size(),dataList.size());

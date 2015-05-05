@@ -626,4 +626,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		return opt.getSystemInfoData(system, isModernizedPage);
 	}
 	
+	public Hashtable<String,Object> getCapabilityInfoData(String capability) {
+		return opt.getCapabilityInfoData(capability);
+	}
 }
