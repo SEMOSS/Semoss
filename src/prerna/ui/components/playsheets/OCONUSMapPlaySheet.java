@@ -149,6 +149,8 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 		alignHash.put("lon", names[2]);
 		if (names.length > 3 && !names[3].equals(null))
 			alignHash.put("size", names[3]);
+		if (names.length > 4 && !names[4].equals(null))
+			alignHash.put("heat", names[4]);
 		return alignHash;
 	}
 	
