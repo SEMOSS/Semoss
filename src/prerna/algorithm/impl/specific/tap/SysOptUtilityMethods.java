@@ -136,13 +136,14 @@ public final class SysOptUtilityMethods {
 		return ret;
 	}
 	
-	public static String createNonZeroPrintString(ArrayList<String> sysList,int[] listToCheck)
+	public static ArrayList<String> createNonZeroList(ArrayList<String> sysList,int[] listToCheck)
 	{
-		String printString = "";
+		ArrayList<String> nonZeroList = new ArrayList<String>();
+		
 		for(int i=0;i<listToCheck.length;i++)
 			if(listToCheck[i]>0)
-				printString +=sysList.get(i)+", ";
-		return printString;
+				nonZeroList.add(sysList.get(i));
+		return nonZeroList;
 	}
 	
 	public static String createMatrixPrintString(int[][] matrix, ArrayList<String> rowList,ArrayList<String> colList) {

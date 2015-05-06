@@ -58,11 +58,12 @@ public class ResidualSystemOptFillData{
 	//a_ip, b_iq, c_ip
 	public int[][] systemDataMatrix;
 	public int[][] systemBLUMatrix;
-	public int[][] systemCapabilityMatrix;
 	public int[][] systemRegionMatrix;
 	public double[][] systemSiteMatrix;
 	
 	public double[][] systemCostOfDataMatrix;
+	
+	public int[][] systemCapabilityMatrix, capabilityDataMatrix, capabilityBLUMatrix;
 	
 	//cM_i, cDM_i, s_i
 	public double[] systemCostOfMaintenance;
@@ -114,7 +115,7 @@ public class ResidualSystemOptFillData{
 	IEngine costEngine;// = "TAP_Cost_Data";
 	IEngine siteEngine;// = "TAP_Site_Data";
 	
-	String sysListBindings;
+	String sysListBindings, capListBindings;
 	double maxYears;
 	double hourlyRate = 150.0;
 	
@@ -268,7 +269,7 @@ public class ResidualSystemOptFillData{
 			playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nBLUs Considered..."+bluString);
 
 			if(systemTheater!=null) {
-				String theaterString = SysOptUtilityMethods.createNonZeroPrintString(SysOptUtilityMethods.deepCopy(sysList),systemTheater);
+				String theaterString = SysOptUtilityMethods.createPrintString(SysOptUtilityMethods.createNonZeroList(SysOptUtilityMethods.deepCopy(sysList),systemTheater));
 				playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nTheater Systems: "+theaterString);
 				
 				String numTheaterSORForDataString = SysOptUtilityMethods.createNumberPrintString(SysOptUtilityMethods.deepCopy(dataList),dataRegionSORSystemTheaterCount);
@@ -279,7 +280,7 @@ public class ResidualSystemOptFillData{
 			}
 			
 			if(systemGarrison!=null) {
-				String garrisonString = SysOptUtilityMethods.createNonZeroPrintString(SysOptUtilityMethods.deepCopy(sysList),systemGarrison);
+				String garrisonString = SysOptUtilityMethods.createPrintString(SysOptUtilityMethods.createNonZeroList(SysOptUtilityMethods.deepCopy(sysList),systemGarrison));
 				playSheet.consoleArea.setText(playSheet.consoleArea.getText()+"\nGarrison Systems: "+garrisonString);
 
 				String numGarrisonSORForDataString = SysOptUtilityMethods.createNumberPrintString(SysOptUtilityMethods.deepCopy(dataList),dataRegionSORSystemGarrisonCount);
@@ -295,13 +296,15 @@ public class ResidualSystemOptFillData{
 	
 
 	public void fillSysSiteOptDataStores(Boolean nonCentralSystems) {
-		sysListBindings = "{" + SysOptUtilityMethods.makeBindingString("System",sysList) + "}";	
+		sysListBindings = "{" + SysOptUtilityMethods.makeBindingString("System",sysList) + "}";
+		capListBindings = "{" + SysOptUtilityMethods.makeBindingString("Capability",capList) + "}";
 		fillSystemFunctionality();
 		fillSystemCapabilityMatrix();
 		if(nonCentralSystems) {
 			fillSystemSite();
 			fillSystemNumOfSites();
 			fillSystemCostOfData(false);
+			fillCapabilityFunctionality();
 		}
 		fillSystemCost();
 		fillSystemTheaterGarrison(true,true);
@@ -323,16 +326,6 @@ public class ResidualSystemOptFillData{
 
 	}
 	
-	private void fillSystemCapabilityMatrix() {
-		systemCapabilityMatrix = SysOptUtilityMethods.createEmptyMatrix(systemDataMatrix,sysList.size(),capList.size());
-
-		String capQuery = "SELECT DISTINCT ?System ?Capability WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?System <http://semoss.org/ontologies/Relation/Supports> ?Capability}} BINDINGS ?System @SYSTEM-BINDINGS@";
-		capQuery = capQuery.replace("@SYSTEM-BINDINGS@",sysListBindings);
-		systemCapabilityMatrix = fillMatrixFromQuery(systemEngine,capQuery,systemBLUMatrix,sysList,bluList);
-
-	}
-	
-	
 	private void fillSystemFunctionality() {
 		systemDataMatrix = SysOptUtilityMethods.createEmptyMatrix(systemDataMatrix,sysList.size(),dataList.size());
 		systemBLUMatrix = SysOptUtilityMethods.createEmptyMatrix(systemBLUMatrix,sysList.size(),bluList.size());
@@ -353,6 +346,29 @@ public class ResidualSystemOptFillData{
 		systemBLUMatrix = fillMatrixFromQuery(systemEngine,query,systemBLUMatrix,sysList,bluList);
 
 	}
+	
+	private void fillSystemCapabilityMatrix() {
+		systemCapabilityMatrix = SysOptUtilityMethods.createEmptyMatrix(systemDataMatrix,sysList.size(),capList.size());
+
+		String capQuery = "SELECT DISTINCT ?System ?Capability WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?System <http://semoss.org/ontologies/Relation/Supports> ?Capability}} BINDINGS ?System @SYSTEM-BINDINGS@";
+		capQuery = capQuery.replace("@SYSTEM-BINDINGS@",sysListBindings);
+		systemCapabilityMatrix = fillMatrixFromQuery(systemEngine,capQuery,systemBLUMatrix,sysList,bluList);
+
+	}
+	
+	private void fillCapabilityFunctionality() {
+		capabilityDataMatrix = SysOptUtilityMethods.createEmptyMatrix(capabilityDataMatrix,capList.size(),dataList.size());
+		capabilityBLUMatrix = SysOptUtilityMethods.createEmptyMatrix(capabilityBLUMatrix,capList.size(),bluList.size());
+		
+		String dataQuery = "SELECT DISTINCT ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> ;}{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}{ ?Capability <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess.}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?Data.}} BINDINGS ?Capability " + capListBindings;
+		String bluQuery = "SELECT DISTINCT ?BLU WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> ;}{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;}{ ?Capability <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess.}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?BLU.}} BINDINGS ?Capability " + capListBindings;
+		
+		capabilityDataMatrix = fillMatrixFromQuery(systemEngine,dataQuery,capabilityDataMatrix,capList,dataList);
+		capabilityBLUMatrix = fillMatrixFromQuery(systemEngine,bluQuery,capabilityBLUMatrix,capList,bluList);
+
+	}
+	
+
 	
 	private void fillSystemCostOfData(Boolean provider) {
 		systemCostOfDataMatrix = SysOptUtilityMethods.createEmptyMatrix(systemCostOfDataMatrix,sysList.size(),dataList.size());
