@@ -114,7 +114,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	private double adjustedDeploymentCost, adjustedTotalSavings;
 	
 	private double[] budgetSpentPerYear, costAvoidedPerYear;
-	
+
 	@Override
 	public void execute() {
 		executeWeb();
@@ -875,7 +875,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			row[1] = siteLat[i];
 			row[2] = siteLon[i];
 			row[3] = futureSiteSustainCost[i];
-			row[4] = percentDiff[i];//positive number means it decreased in cost, negative means increased cost
+			row[4] = (double) Math.round(percentDiff[i] * 1000)/1000;//positive number means it decreased in cost, negative means increased cost
 			list.add(row);
 		}
 		
@@ -887,7 +887,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	}
 
 	public Hashtable<String,Object> getSystemInfoData(String system, Boolean isModernizedPage) {
-
+	
 		Hashtable<String,Object> systemInfoHash = new Hashtable<String,Object>();
 		Hashtable<String,Object> dataBLUInfoHash = new Hashtable<String,Object>();
 		Hashtable<String,Object> descriptionInfoHash = new Hashtable<String,Object>();
