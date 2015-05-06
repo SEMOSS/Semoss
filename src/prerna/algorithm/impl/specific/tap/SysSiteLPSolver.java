@@ -65,6 +65,7 @@ public class SysSiteLPSolver extends LPOptimizer{
 
 	private Integer[] centralModArr, centralDecomArr;
 	
+	private double[] centralInterfaceCostArr;
 	private double[] centralSystemMaintenaceCosts;
 	
 	//created by algorithm
@@ -89,7 +90,7 @@ public class SysSiteLPSolver extends LPOptimizer{
 	/**
 	 * Sets/updates the variables required to run the LP module
 	 */
-	public void setVariables(int[][] systemDataMatrix, int[][] systemBLUMatrix, double[][] systemSiteMatrix, int[] systemTheater, int[] systemGarrison, Integer[] sysModArr, Integer[] sysDecomArr, double[] maintenaceCosts, double[] siteMaintenaceCosts, double[] siteDeploymentCosts, double[]  interfaceCostArr, int[][] centralSystemDataMatrix,int[][] centralSystemBLUMatrix, int[] centralSystemTheater, int[] centralSystemGarrison, Integer[] centralModArr, Integer[] centralDecomArr, double[] centralSystemMaintenaceCosts, double trainingPerc, double currentSustainmentCost) {
+	public void setVariables(int[][] systemDataMatrix, int[][] systemBLUMatrix, double[][] systemSiteMatrix, int[] systemTheater, int[] systemGarrison, Integer[] sysModArr, Integer[] sysDecomArr, double[] maintenaceCosts, double[] siteMaintenaceCosts, double[] siteDeploymentCosts, double[] interfaceCostArr, double[] centralInterfaceCostArr, int[][] centralSystemDataMatrix,int[][] centralSystemBLUMatrix, int[] centralSystemTheater, int[] centralSystemGarrison, Integer[] centralModArr, Integer[] centralDecomArr, double[] centralSystemMaintenaceCosts, double trainingPerc, double currentSustainmentCost) {
 	
 		this.systemDataMatrix = systemDataMatrix;
 		this.systemBLUMatrix = systemBLUMatrix;
@@ -116,6 +117,7 @@ public class SysSiteLPSolver extends LPOptimizer{
 		this.centralDecomArr = centralDecomArr;
 		
 		this.centralSystemMaintenaceCosts = centralSystemMaintenaceCosts;
+		this.centralInterfaceCostArr = centralInterfaceCostArr;
 
 		this.trainingPerc = trainingPerc;
 		this.currentSustainmentCost = currentSustainmentCost;
@@ -392,7 +394,11 @@ public class SysSiteLPSolver extends LPOptimizer{
 		int i;
 		int j;
 		int index = 0;
-		
+
+		//TODO update this to take central interface cost. does it go at all sites?
+//		int[] colno = new int[numNotCentralSystems * siteLength + numCentralSystems];
+//        double[] row = new double[numNotCentralSystems * siteLength + numCentralSystems];
+        
 		int[] colno = new int[numNotCentralSystems * siteLength];
         double[] row = new double[numNotCentralSystems * siteLength];
         for(i=0; i<numNotCentralSystems; i++) {
@@ -402,8 +408,15 @@ public class SysSiteLPSolver extends LPOptimizer{
 				index++;
 			}
         }
-
-    	solver.addConstraintex(numNotCentralSystems * siteLength, row, colno, LpSolve.LE, maxBudget);
+ 
+//        for(i=0; i<numCentralSystems; i++) {
+// 			colno[index] = numNotCentralSystems * (siteLength + 1) + 1;
+// 			row[index] = (1+trainingPerc) * centralInterfaceCostArr[i] * siteLength;
+// 			index++;
+//        }
+//        solver.addConstraintex(numNotCentralSystems * siteLength + numCentralSystems, row, colno, LpSolve.LE, maxBudget);
+ 
+        solver.addConstraintex(numNotCentralSystems * siteLength, row, colno, LpSolve.LE, maxBudget);
 
 	}
 	

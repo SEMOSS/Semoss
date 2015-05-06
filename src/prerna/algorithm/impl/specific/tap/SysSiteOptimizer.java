@@ -92,6 +92,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	private Integer[] centralModArr, centralDecomArr;
 	private int[][] centralSystemDataMatrix, centralSystemBLUMatrix;
 	private int[] centralSystemTheater, centralSystemGarrison;
+	private double[] centralInterfaceCostArr;
 	private double[] centralSystemMaintenaceCosts;
 
 	private int[][] systemCapMatrix, centralSystemCapMatrix;
@@ -347,9 +348,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		
 		systemTheater = resFunc.systemTheater;
 		systemGarrison = resFunc.systemGarrison;
-		
-		double[][] systemCostConsumeDataMatrix = resFunc.systemCostOfDataMatrix;
-		
+
 		double[] systemSustainmentBudget = resFunc.systemCostOfMaintenance;
 		double[] systemNumOfSites = resFunc.systemNumOfSites;
 
@@ -376,6 +375,10 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			siteDeploymentCosts[i] = siteMaintenance * deploymentFactor;
 		}
 		
+		
+		double[][] systemCostConsumeDataMatrix = resFunc.systemCostOfDataMatrix;
+		calculateInterfaceCost(interfaceCostArr, systemCostConsumeDataMatrix, systemDataMatrix, systemTheater, systemGarrison);
+		
 		resFunc.setSysSiteLists(centralSysList,dataList,bluList,siteList, capList);
 		resFunc.fillSysSiteOptDataStores(false);
 		
@@ -390,7 +393,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 
 		currSustainmentCost = calculateCurrentSustainmentCost(maintenaceCosts, centralSystemMaintenaceCosts);
 		
-		calculateInterfaceCost(systemCostConsumeDataMatrix);
+		double[][] centralSystemCostConsumeDataMatrix = resFunc.systemCostOfDataMatrix;
+		calculateInterfaceCost(centralInterfaceCostArr, centralSystemCostConsumeDataMatrix, centralSystemDataMatrix, centralSystemTheater, centralSystemGarrison);
 		
 		resFunc.fillSiteLatLon();
 		siteLat = resFunc.siteLat;
@@ -398,7 +402,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	}
 	
 	//TODO do we need costs for the central systems too?
-	private void calculateInterfaceCost(double[][] costConsumeDataMatrix) {
+	private void calculateInterfaceCost(double[] interfaceCostArr, double[][] costConsumeDataMatrix, int[][] systemDataMatrix, int[] sysTheater, int[] sysGarrison) {
 		
 		int i;
 		int j;
@@ -409,7 +413,6 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		double probInferfaceStayingGarrison;
 		int numData = systemDataMatrix[0].length;
 		int numSystems = systemDataMatrix.length;
-	//	int numCentralSystems = centralSystemDataMatrix.length;
 		
 		interfaceCostArr = SysOptUtilityMethods.createEmptyVector(interfaceCostArr, numSystems);
 		
@@ -421,9 +424,9 @@ public class SysSiteOptimizer extends UnivariateOpt {
 				probInferfaceStayingTheater = 1.0;
 				probInferfaceStayingGarrison = 1.0;
 				//in perfect solution only one provider should stay. probability that that one is the one currently receiving from is 1/total number
-				if(systemTheater[j] == 1 && numTheaterProviders != 0)
+				if(sysTheater[j] == 1 && numTheaterProviders != 0)
 					probInferfaceStayingTheater = 1.0/numTheaterProviders;
-				if(systemGarrison[j] == 1 && numGarrisonProviders != 0)
+				if(sysGarrison[j] == 1 && numGarrisonProviders != 0)
 					probInferfaceStayingGarrison = 1.0/numGarrisonProviders;
 				probInferfaceStaying = Math.min(probInferfaceStayingTheater, probInferfaceStayingGarrison);
 				//if the sys does not consume the data object, the costConsumeDataMatrix is already 0 so cost is 0
@@ -487,7 +490,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			return;
 		}
 		optFunc.setPlaySheet(playSheet);
-		optFunc.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, modArr, decomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, interfaceCostArr, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, budgetForYear, years, currSustainmentCost, infRate, disRate, trainingPerc);
+		optFunc.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, modArr, decomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, interfaceCostArr, centralInterfaceCostArr, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, budgetForYear, years, currSustainmentCost, infRate, disRate, trainingPerc);
 
 		optFunc.value(budgetForYear * years);
 		futureSustainmentCost = optFunc.getFutureSustainmentCost();
