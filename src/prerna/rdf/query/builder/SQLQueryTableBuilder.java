@@ -444,7 +444,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			} else {
 				filterQuery = "SELECT DISTINCT " + varName + " FROM " + tableName ;
 			}
-			filterQuery += " 1 LIMIT " +  limitFilter;
+			filterQuery += " LIMIT " +  limitFilter;
 
 			headerHash.put(QueryBuilderHelper.queryKey, filterQuery);
 			sequencer.put(key.toUpperCase(), headerHash);
