@@ -377,7 +377,6 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		
 		
 		double[][] systemCostConsumeDataMatrix = resFunc.systemCostOfDataMatrix;
-		calculateInterfaceCost(interfaceCostArr, systemCostConsumeDataMatrix, systemDataMatrix, systemTheater, systemGarrison);
 		
 		resFunc.setSysSiteLists(centralSysList,dataList,bluList,siteList, capList);
 		resFunc.fillSysSiteOptDataStores(false);
@@ -394,7 +393,9 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		currSustainmentCost = calculateCurrentSustainmentCost(maintenaceCosts, centralSystemMaintenaceCosts);
 		
 		double[][] centralSystemCostConsumeDataMatrix = resFunc.systemCostOfDataMatrix;
-		calculateInterfaceCost(centralInterfaceCostArr, centralSystemCostConsumeDataMatrix, centralSystemDataMatrix, centralSystemTheater, centralSystemGarrison);
+		
+		interfaceCostArr = calculateInterfaceCost(interfaceCostArr, systemCostConsumeDataMatrix, systemDataMatrix, systemTheater, systemGarrison);
+		centralInterfaceCostArr = calculateInterfaceCost(centralInterfaceCostArr, centralSystemCostConsumeDataMatrix, centralSystemDataMatrix, centralSystemTheater, centralSystemGarrison);
 		
 		resFunc.fillSiteLatLon();
 		siteLat = resFunc.siteLat;
@@ -402,7 +403,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	}
 	
 	//TODO do we need costs for the central systems too?
-	private void calculateInterfaceCost(double[] interfaceCostArr, double[][] costConsumeDataMatrix, int[][] systemDataMatrix, int[] sysTheater, int[] sysGarrison) {
+	private double[] calculateInterfaceCost(double[] interfaceCostArr, double[][] costConsumeDataMatrix, int[][] sysDataMatrix, int[] sysTheater, int[] sysGarrison) {
 		
 		int i;
 		int j;
@@ -411,8 +412,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		double probInferfaceStaying;
 		double probInferfaceStayingTheater;
 		double probInferfaceStayingGarrison;
-		int numData = systemDataMatrix[0].length;
-		int numSystems = systemDataMatrix.length;
+		int numData = sysDataMatrix[0].length;
+		int numSystems = sysDataMatrix.length;
 		
 		interfaceCostArr = SysOptUtilityMethods.createEmptyVector(interfaceCostArr, numSystems);
 		
@@ -433,6 +434,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 				interfaceCostArr[j] += (1.0-probInferfaceStaying) * costConsumeDataMatrix[j][i];
 			}
 		}
+		
+		return interfaceCostArr;
 		
 	}
 	
