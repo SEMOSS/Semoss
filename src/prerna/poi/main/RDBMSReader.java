@@ -414,6 +414,7 @@ public class RDBMSReader {
 			}
 			
 			//find out if the table was altered on this time through (or if it was new...)
+
 			for(int tableIndex = 0;tableIndex < allTablesModified.size();tableIndex++)
 			{
 				currentTable = allTablesModified.elementAt(tableIndex);
@@ -1114,8 +1115,8 @@ public class RDBMSReader {
 			else{
 				modifiedTable = false;
 			}
-			if(modifiedTable)
-				allTablesModified.add(tableKey);
+
+			allTablesModified.add(tableKey);
 			
 			if(modString.length()>0){
 				try {
