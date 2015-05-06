@@ -618,15 +618,35 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		return opt.getHealthGrid(capability);
 	}
 	
-	public Hashtable<String,Object> getOverviewSiteMapData() {
-		return opt.getOverviewSiteMapData();
+	//returns overview site map OR capability site map depending on whether capability is null or an actual capability
+	public Hashtable<String,Object> getOverviewSiteMapData(String capability) {
+		return opt.getOverviewSiteMapData(capability);
 	}
 	
 	public Hashtable<String,Object> getSystemInfoData(String system, Boolean isModernizedPage) {
 		return opt.getSystemInfoData(system, isModernizedPage);
 	}
 	
+	public Hashtable<String,Object> getSystemCoverageData(String system, Boolean isModernizedPage) {
+		if(isModernizedPage)
+			return opt.getKeptSystemCoverageData(system);
+		else
+			return opt.getDecomSystemCoverageData(system);
+	}
+	
+	public Hashtable<String,Object> getSystemSiteMapData(String system, Boolean isModernizedPage) {
+		if(isModernizedPage)
+			return opt.getKeptSystemSiteMapData(system);
+		else
+			return opt.getDecomSystemSiteMapData(system);
+	}
+	
 	public Hashtable<String,Object> getCapabilityInfoData(String capability) {
 		return opt.getCapabilityInfoData(capability);
 	}
+	
+	public Hashtable<String,Object> getCapabilityCoverageData(String capability) {
+		return opt.getCapabilityCoverageData(capability);
+	}
 }
+

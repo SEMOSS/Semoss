@@ -94,14 +94,17 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	private int[] centralSystemTheater, centralSystemGarrison;
 	private double[] centralSystemMaintenaceCosts;
 
-	private int[][] systemCapMatrix;
-	private int[][] centralSystemCapMatrix;
+	private int[][] systemCapMatrix, centralSystemCapMatrix;
+	
+	private int[][] capBLUMatrix, capDataMatrix;
 	
 	//results of the algorithm
 	private SysSiteOptFunction optFunc;
 		
 	private double[] sysKeptArr, centralSysKeptArr;
 	private double[][] systemSiteResultMatrix;
+	
+	private String[][] systemSiteRecMatrix;
 	
 	private String sysKeptQueryString = "";
 	private int numSysKept, numCentralSysKept;
@@ -334,6 +337,9 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		resFunc.setEngines(systemEngine, costEngine, siteEngine);
 		resFunc.fillSysSiteOptDataStores(true);
 		
+		capBLUMatrix = resFunc.capabilityBLUMatrix;
+		capDataMatrix = resFunc.capabilityDataMatrix;
+		
 		systemDataMatrix = resFunc.systemDataMatrix;
 		systemBLUMatrix = resFunc.systemBLUMatrix;
 		systemSiteMatrix = resFunc.systemSiteMatrix;
@@ -446,7 +452,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			
 	}
 	
-	private double[] calculateSiteSustainCost(double[][] sysSiteMatrix, double[] sysCost) {
+	private double[] calculateSiteSustainCost(double[][] sysSiteMatrix, double[] sysCost, int[][] includeSystem, int includeSysCol) {
 		int i;
 		int j;
 		int numSys = sysList.size();
@@ -458,7 +464,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			double siteCost = 0.0;
 			for(j=0; j<numSys; j++) {
 				
-				if(sysSiteMatrix[j][i] == 1)
+				if(sysSiteMatrix[j][i] == 1 && (includeSystem == null || includeSystem[j][includeSysCol] == 1))
 					siteCost += sysCost[j];
 					
 			}
@@ -517,6 +523,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 
 		double yearsToComplete = optFunc.getYearsToComplete();
 	
+		systemSiteRecMatrix = calculateSiteRecMatrix(this.systemSiteMatrix, systemSiteResultMatrix);
+		
 		double mu = (1 + infRate / 100) / (1 + disRate / 100);
 		
 		budgetSpentPerYear = SysOptUtilityMethods.calculateAdjustedDeploymentCostArr(mu, yearsToComplete, years, budgetForYear);
@@ -524,11 +532,36 @@ public class SysSiteOptimizer extends UnivariateOpt {
 
 	}
 	
+	private String[][] calculateSiteRecMatrix(double[][] oldMatrix, double[][] newMatrix) {
+		int i;
+		int j;
+
+		int numRows = oldMatrix.length;
+		int numCols = oldMatrix[0].length;
+		
+		String[][] siteRecMatrix = new String[numRows][numCols];
+		
+		for(i=0; i<numRows; i++) {
+			for(j=0; j<numCols; j++) {
+				if(oldMatrix[i][j] == 1 && newMatrix[i][j] == 1) {
+					siteRecMatrix[i][j] = "SUSTAINED";
+				} else if(oldMatrix[i][j] == 1 && newMatrix[i][j] == 0) {
+					siteRecMatrix[i][j] = "CONSOLIDATED";
+				} else if(oldMatrix[i][j] == 0 && newMatrix[i][j] == 1) {
+					siteRecMatrix[i][j] = "DEPLOYED";
+				}
+			}
+		}
+	
+		return siteRecMatrix;
+	}
+
+	
 	public void display() {
 				
 		createSiteGrid(systemSiteMatrix, sysList, siteList,"Current NonCentral Systems at Sites");
 		createSiteGrid(systemSiteResultMatrix, sysList, siteList,"Future NonCentral Systems at Sites");
-		createSiteChange(systemSiteMatrix, systemSiteResultMatrix, sysList, siteList,"Changes for NonCentral Systems at Sites");
+		createSiteGrid(systemSiteRecMatrix, sysList, siteList,"Changes for NonCentral Systems at Sites");
 		
 		createOverallGrid(centralSysKeptArr, centralSysList, "Central System", "Future Central Systems (Was central system kept or decommissioned?)");
 		createOverallGrid(sysKeptArr, sysList, "NonCentral Systems", "Future NonCentral Systems (Was noncentral system kept or decommissioned?)");
@@ -552,6 +585,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		
 		createCostGrid();
 	}
+	
+	
 
 	private void createCostGrid() {
 		
@@ -628,6 +663,35 @@ public class SysSiteOptimizer extends UnivariateOpt {
 
 		createTabAndDisplayList(headers,list,title,true);
 	}
+	
+	private void createSiteGrid(String[][] matrix, ArrayList<String> rowLabels, ArrayList<String> colLabels, String title) {
+		int i;
+		int j;
+
+		int rowLength = rowLabels.size();
+		int colLength = colLabels.size();
+		
+		String[] headers = new String[colLength + 1];
+		headers[0] = "NonCentral System";
+		for(i=0; i<colLength; i++)
+			headers[i + 1] = colLabels.get(i);
+		
+		ArrayList<Object []> list = new ArrayList<Object []>();
+		
+		for(i=0; i<rowLength; i++) {
+
+			Object[] row = new Object[colLength + 1];
+			row[0] = rowLabels.get(i);
+			for(j=0; j<colLength; j++) {
+				row[j + 1] = matrix[i][j];
+			}
+
+			list.add(row);
+		}
+
+		createTabAndDisplayList(headers,list,title,true);
+	}
+
 	
 	private void createSiteChange(double[][] oldMatrix, double[][] newMatrix, ArrayList<String> rowLabels, ArrayList<String> colLabels, String title) {
 		int i;
@@ -767,7 +831,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			makeSysKeptQueryString();
 		
 		String capabilityBindings;
-		if(capability==null || capability.isEmpty())
+		if(capability == null || capability.isEmpty())
 			capabilityBindings = "";
 		else {
 			capabilityBindings = "BIND(<http://health.mil/ontologies/Concept/Capability/"+capability+"> AS ?Capability){?System <http://semoss.org/ontologies/Relation/Supports> ?Capability}";
@@ -785,9 +849,20 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	}
 	
 
-	public Hashtable<String,Object> getOverviewSiteMapData() {
-		double[] currSiteSustainCost = calculateSiteSustainCost(systemSiteMatrix, maintenaceCosts); 
-		double[] futureSiteSustainCost = calculateSiteSustainCost(systemSiteResultMatrix, maintenaceCosts); 
+	public Hashtable<String,Object> getOverviewSiteMapData(String capability) {
+		double[] currSiteSustainCost;
+		double[] futureSiteSustainCost;
+		
+		if(capability.equals("")) {
+			currSiteSustainCost = calculateSiteSustainCost(systemSiteMatrix, maintenaceCosts, null, -1); 
+			futureSiteSustainCost = calculateSiteSustainCost(systemSiteResultMatrix, maintenaceCosts, null, -1); 
+		}else {
+			int capIndex = capList.indexOf(capability);
+			
+			currSiteSustainCost = calculateSiteSustainCost(systemSiteMatrix, maintenaceCosts, systemCapMatrix, capIndex); 
+			futureSiteSustainCost = calculateSiteSustainCost(systemSiteResultMatrix, maintenaceCosts, systemCapMatrix, capIndex); 
+		}
+
 		double[] percentDiff = StatisticsUtilityMethods.calculatePercentDiff(currSiteSustainCost,futureSiteSustainCost);
 		
 		String[] names = new String[]{"DCSite", "lat", "lon", "Future Sustainment Cost", "Decrease in Sustainment Cost %"};
@@ -919,24 +994,226 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		return systemInfoHash;
 	}
 	
+	public Hashtable<String,Object> getKeptSystemSiteMapData(String system) {
+		String[] names = new String[]{"DCSite", "lat", "lon", "Recommendation"};
+		ArrayList<Object []> list = new ArrayList<Object []>();
+
+		int i;
+		int numSites = siteList.size();
+
+		int sysIndex;
+
+		if(sysList.contains(system)) {//if noncentral system
+
+			sysIndex = sysList.indexOf(system);
+			for(i=0; i<numSites; i++) {
+				if(systemSiteRecMatrix[sysIndex][i]!=null) {
+					Object[] row = new Object[5];
+					row[0] = siteList.get(i);
+					row[1] = siteLat[i];
+					row[2] = siteLon[i];
+					row[3] = systemSiteRecMatrix[sysIndex][i];
+					list.add(row);
+				}
+			}
+
+		}else {//if central system
+			sysIndex = centralSysList.indexOf(system);
+			
+			for(i=0; i<numSites; i++) {
+				if(systemSiteRecMatrix[sysIndex][i]!=null) {
+					Object[] row = new Object[5];
+					row[0] = siteList.get(i);
+					row[1] = siteLat[i];
+					row[2] = siteLon[i];
+					row[3] = "SUSTAINED";
+					list.add(row);
+				}
+			}
+
+		}
+
+		OCONUSMapPlaySheet ps = new OCONUSMapPlaySheet();
+		ps.setNames(names);
+		ps.setList(list);
+		ps.setDataHash(ps.processQueryData());
+		return (Hashtable<String,Object>)ps.getData();
+		
+	}
+
+	public Hashtable<String,Object> getDecomSystemSiteMapData(String system) {
+		String[] names = new String[]{"DCSite", "lat", "lon", "Systems at Site"};
+		ArrayList<Object []> list = new ArrayList<Object []>();
+
+		int i;
+		int numSites = siteList.size();
+
+		int sysIndex;
+
+		if(sysList.contains(system)) {//if noncentral system
+
+			sysIndex = sysList.indexOf(system);
+			for(i=0; i<numSites; i++) {
+				if(systemSiteMatrix[sysIndex][i] == 1) {
+					Object[] row = new Object[5];
+					row[0] = siteList.get(i);
+					row[1] = siteLat[i];
+					row[2] = siteLon[i];
+					row[3] = getSystemsAtSiteList(i);
+					list.add(row);
+				}
+			}
+
+		}else {//if central system
+			for(i=0; i<numSites; i++) {
+				Object[] row = new Object[5];
+				row[0] = siteList.get(i);
+				row[1] = siteLat[i];
+				row[2] = siteLon[i];
+				row[3] = getSystemsAtSiteList(i);
+				list.add(row);
+			}
+
+		}
+
+		OCONUSMapPlaySheet ps = new OCONUSMapPlaySheet();
+		ps.setNames(names);
+		ps.setList(list);
+		ps.setDataHash(ps.processQueryData());
+		return (Hashtable<String,Object>)ps.getData();
+		
+	}
+	
+	private ArrayList<String> getSystemsAtSiteList(int siteIndex) {
+
+		ArrayList<String> sysAtSiteList = new ArrayList<String>();
+		int i;
+		int numSys = sysList.size();
+		for(i=0; i<numSys; i++) {
+			if(systemSiteResultMatrix[i][siteIndex] == 1)
+				sysAtSiteList.add(sysList.get(i));
+		}
+		
+		numSys = centralSysList.size();
+		for(i=0; i<numSys; i++) {
+			if(centralSysKeptArr[i] == 1)
+				sysAtSiteList.add(centralSysList.get(i));
+		}
+		
+		return sysAtSiteList;
+	}
+	
+	public Hashtable<String,Object> getDecomSystemCoverageData(String system) {
+
+		Hashtable<String,Object> systemCoverageHash = new Hashtable<String,Object>();
+		Hashtable<String, Hashtable<String,ArrayList<String>>> dataHash = new Hashtable<String, Hashtable<String,ArrayList<String>>> ();
+
+		int sysIndex;
+		
+		if(sysList.contains(system)) {//if noncentral system
+			sysIndex = sysList.indexOf(system);
+			
+			processCoverage(dataHash, systemDataMatrix[sysIndex], systemDataMatrix, sysKeptArr, sysList, dataList, sysIndex, "Data");
+			processCoverage(dataHash, systemDataMatrix[sysIndex], centralSystemDataMatrix, centralSysKeptArr, centralSysList, dataList, -1, "Data");
+			processCoverage(dataHash, systemBLUMatrix[sysIndex], systemBLUMatrix, sysKeptArr, sysList, bluList, sysIndex, "BLU");
+			processCoverage(dataHash, systemBLUMatrix[sysIndex], centralSystemBLUMatrix, centralSysKeptArr, centralSysList, bluList, -1, "BLU");
+
+		}else {//if central system
+			sysIndex = centralSysList.indexOf(system);
+			
+			processCoverage(dataHash, centralSystemDataMatrix[sysIndex], systemDataMatrix, sysKeptArr, sysList, dataList, -1, "Data");
+			processCoverage(dataHash, centralSystemDataMatrix[sysIndex], centralSystemDataMatrix, centralSysKeptArr, centralSysList, dataList, sysIndex, "Data");
+			processCoverage(dataHash, centralSystemBLUMatrix[sysIndex], systemBLUMatrix, sysKeptArr, sysList, bluList, -1, "BLU");
+			processCoverage(dataHash, centralSystemBLUMatrix[sysIndex], centralSystemBLUMatrix, centralSysKeptArr, centralSysList, bluList, sysIndex, "BLU");
+		}
+		
+		systemCoverageHash.put("data",dataHash);
+
+		return systemCoverageHash;
+	}
+	
+	
+	public Hashtable<String,Object> getKeptSystemCoverageData(String system) {
+
+		Hashtable<String,Object> systemCoverageHash = new Hashtable<String,Object>();
+		Hashtable<String, Hashtable<String,ArrayList<String>>> dataHash = new Hashtable<String, Hashtable<String,ArrayList<String>>> ();
+
+		int sysIndex;
+		
+		if(sysList.contains(system)) {//if noncentral system
+			sysIndex = sysList.indexOf(system);
+			
+			processCoverage(dataHash, systemDataMatrix[sysIndex], capDataMatrix, null, capList, dataList, -1, "Data");
+			processCoverage(dataHash, systemBLUMatrix[sysIndex], capBLUMatrix, null, capList, bluList, -1, "BLU");
+
+		}else {//if central system
+			sysIndex = centralSysList.indexOf(system);
+			
+			processCoverage(dataHash, centralSystemDataMatrix[sysIndex], capDataMatrix, null, capList, dataList, -1, "Data");
+			processCoverage(dataHash, centralSystemBLUMatrix[sysIndex], capBLUMatrix, null, capList, bluList, -1, "BLU");
+		}
+		systemCoverageHash.put("data",dataHash);
+
+		return systemCoverageHash;
+	}
+	
+	private void processCoverage(Hashtable<String, Hashtable<String,ArrayList<String>>> hashtable, int[] currSysFunc, int[][] systemFuncMatrix, double[] sysKeptArr, ArrayList<String> sysList, ArrayList<String> funcList, int ignoreIndex, String key) {
+		
+		int i;
+		int j;
+		int numFunc = funcList.size();
+		int numSys = sysList.size();
+		String func;
+		String system;
+
+		for(i=0; i<numFunc; i++) {
+			Boolean funcCovered = false;
+			func = funcList.get(i);
+			if(currSysFunc[i] == 1) //system provides the functionality
+				for(j=0; j<numSys; j++) {
+					
+					if(j!=ignoreIndex && systemFuncMatrix[j][i] == 1 && (sysKeptArr == null || sysKeptArr[j] == 1)) {//another system provides the same functionality and is kept
+						system = sysList.get(j);
+						Hashtable<String,ArrayList<String>> systemFuncHash;
+						if(hashtable.containsKey(system)) {
+							systemFuncHash = hashtable.get(system);
+						}else {
+							systemFuncHash = new Hashtable<String,ArrayList<String>>();
+							systemFuncHash.put("Data", new ArrayList<String>());
+							systemFuncHash.put("BLU", new ArrayList<String>());
+							hashtable.put(system, systemFuncHash);
+						}
+						systemFuncHash.get(key).add(func);
+					}
+				}
+			
+			if(!funcCovered) {
+				Hashtable<String,ArrayList<String>> systemFuncHash;
+				if(hashtable.containsKey("Uncovered")) {
+					systemFuncHash = hashtable.get("Uncovered");
+				}else {
+					systemFuncHash = new Hashtable<String,ArrayList<String>>();
+					systemFuncHash.put("Data", new ArrayList<String>());
+					systemFuncHash.put("BLU", new ArrayList<String>());
+					hashtable.put("Uncovered", systemFuncHash);
+				}
+				systemFuncHash.get(key).add(func);
+			}
+			
+		}
+	}
+	
 	public Hashtable<String,Object> getCapabilityInfoData(String capability) {
 
 		Hashtable<String,Object> capInfoHash = new Hashtable<String,Object>();
 		Hashtable<String,Object> dataBLUInfoHash = new Hashtable<String,Object>();
 		Hashtable<String,Object> budgetInfoHash = new Hashtable<String,Object>();
-	
-		String dataCountQuery = "SELECT DISTINCT (COUNT(DISTINCT(?Data)) AS ?NumData) WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/" + capability + "> as ?Capability){?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}{?Capability <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess.}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?Data.}} GROUP BY ?Capability";
-		
-		String bluCountQuery = "SELECT DISTINCT (COUNT(DISTINCT(?BLU)) AS ?NumBLU)  WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/" + capability + "> as ?Capability){?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;}{ ?Capability <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess.}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?BLU.}} GROUP BY ?Capability";
-		
-		Object bluCount = SysOptUtilityMethods.runSingleResultQuery(systemEngine, dataCountQuery);
-		Object dataCount = SysOptUtilityMethods.runSingleResultQuery(systemEngine, bluCountQuery);
-		if(bluCount == null)
-			bluCount = 0;
-		if(dataCount == null)
-			dataCount = 0;
 		
 		int capIndex = capList.indexOf(capability);
+		
+		int bluCount = SysOptUtilityMethods.sumRow(capBLUMatrix[capIndex]);
+		int dataCount = SysOptUtilityMethods.sumRow(capDataMatrix[capIndex]);
+		
 		int i;
 		int numSystems = sysList.size();
 		int numCentralSystems = centralSysList.size();
@@ -997,6 +1274,23 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		capInfoHash.put("budgetInfo",budgetInfoHash);
 
 		return capInfoHash;
+	}
+	
+	public Hashtable<String,Object> getCapabilityCoverageData(String capability) {
+
+		Hashtable<String,Object> capabilityCoverageHash = new Hashtable<String,Object>();
+		Hashtable<String, Hashtable<String,ArrayList<String>>>  dataHash = new Hashtable<String, Hashtable<String,ArrayList<String>>> ();
+
+		int capIndex = capList.indexOf(capability);
+		
+		processCoverage(dataHash, capDataMatrix[capIndex], systemDataMatrix, null, sysList, dataList, -1, "Data");
+		processCoverage(dataHash, capDataMatrix[capIndex], centralSystemDataMatrix, null, centralSysList, dataList, -1, "Data");
+		processCoverage(dataHash, capBLUMatrix[capIndex], systemBLUMatrix, null, sysList, bluList, -1, "BLU");
+		processCoverage(dataHash, capBLUMatrix[capIndex], centralSystemBLUMatrix, null, centralSysList, bluList, -1, "BLU");
+
+		capabilityCoverageHash.put("data",dataHash);
+
+		return capabilityCoverageHash;
 	}
 	
 	private void makeSysKeptQueryString() {
