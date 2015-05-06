@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+    body{
+      font-family: sans;
+      padding: 10px;
+  }
+  svg path{
+      stroke: #000;
+      stroke-width: 1px;
+      stroke: rgba(0,0,0,0.2);
+  }
+  svg{
+      border: 1px solid #DED8BF;
+      background-color: #CEDAE6;
+      width: 700px;
+      height: 900px;
+  }
+  h1{
+      font-weight: normal;
+      margin: 0;
+      padding-left: 5px;
+      color: #53483e;
+  }
+  p{
+      margin: 0;
+      margin-bottom: 10px;
+      padding-left: 5px;
+      color: #917e6b;
+  }
+  ul{
+      width: 200px;
+      float: left;
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+      padding-right: 10px;
+  }
+  li{
+      cursor: pointer;
+      background-color: #AEB6BF;
+      padding: 10px;
+      margin: 2px;
+      color: #fff;
+  }
+    .popup{
+        bottom: 10px; 
+        position: absolute;
+        top: auto;
+        right: auto;
+        height: 25%;
+        width: 100%;
+        /*z-index: -1;*/
+        background-color: #AEB6BF;
+    }   
+  </style>
+</head>
+<body>
+    <div input type="text" id="stepChooser"></div>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="lib/three.min.js"></script>
+    <script src="lib/TrackballControls.js"></script>
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="css/select2.css">
+    <link rel="stylesheet" type="text/css" href="css/slider.css">
+    <link rel="stylesheet" type="text/css" href="css/heatmap.css">
+    <!-- // <script src="js/surfacePlot.js"></script> -->
+    <script src="lib/divgrid.js"></script>
+    <script src="data/heatmapdata.js"></script>
+    <script src="data/gridTest.js"></script>
+    <script src="lib/jquery/jquery-1.8.3.min.js"></script>
+    <script src="lib/tooltip.js"></script>
+    <!-- SlickGrid -->
+    <link rel="stylesheet" href="lib/slickgrid/slick.grid.css" type="text/css"/>
+    <link rel="stylesheet" href="lib/slickgrid/jquery-ui-1.8.16.custom.css" type="text/css"/>
+    <link rel="stylesheet" href="lib/slickgrid/examples.css" type="text/css"/>
+    <link rel="stylesheet" href="lib/slickgrid/slick.pager.css" type="text/css"/>
+    <script src="lib/slickgrid/jquery.event.drag-2.0.min.js"></script>
+    <script src="lib/slickgrid/slick.core.js"></script>
+    <script src="lib/slickgrid/slick.grid.js"></script>
+    <script src="lib/slickgrid/slick.pager.js"></script>
+    <script src="lib/slickgrid/slick.dataview.js"></script>
+    <!-- End SlickGrid -->
+    <div id="slick">
+        <div id="grid"></div>
+        <div id="pager"></div>
+    </div>
+    <div id="popup"></div>
+
+<script>
+var mouse = { x: 0, y: 0 }, projector, raycaster,texture1;
+start();
+
+function start(){
+    var data = [];
+    var objects = [];
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 1, 10000);
+    var renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor( 0xffffff, 1 );
+    document.body.appendChild(renderer.domElement);
+
+    raycaster = new THREE.Raycaster();
+
+    var controls = new THREE.TrackballControls(camera);
+    controls.addEventListener('change', render);
+
+
+    //Creating Random data
+    for (var t = 0; t< 10; t++){
+        data.push([]);
+        for(var i = 0; i< 10; i++){
+            var rand = Math.random();
+            data[t].push(rand*200);
+            
+        };
+    };
+
+    console.log(data)
+
+    //Clone data
+    var total = $.extend(true, {}, data );
+
+    for (i = 0; i< data.length-1; i++){
+        total[0] = total[0].concat(total[i+1]);
+    }
+
+    function maxVal(numArray){
+        return Math.max.apply(null, numArray);
+    };
+
+    function minVal(numArray){
+        return Math.min.apply(null, numArray);
+    };
+
+    var max = maxVal(total[0]);
+    var min = minVal(total[0]);
+
+    var globalScale = d3.scale.linear()
+        .domain([min, max])
+        .range([0, 250]);
+
+    var globalGrad = d3.scale.linear()
+        .domain([min, max])
+        .range(['#D7DBE0', "red"]);
+
+
+    var mx = -700;
+    for (var t = 0; t< data.length-1; t++){
+        for(var i = 0; i< data[t].length-1; i++){
+            var barHeight = globalScale(data[t][i]);
+            var geometry = new THREE.BoxGeometry(50, barHeight, 50);
+            var material = new THREE.MeshBasicMaterial({color: globalGrad(data[t][i]), wireframe: false});
+            var cube = new THREE.Mesh(geometry, material);
+            cube.position.z = t*50;
+            cube.position.x = mx;
+            cube.position.y = 200+(barHeight/2);
+            scene.add(cube);
+            objects.push(cube);
+            mx+= 50;
+        };
+        mx = -700;
+    };
+
+
+    camera.position.z = 1000; 
+    camera.position.y = 400;
+    camera.position.x = -400;       
+
+    render();
+    animate();
+
+    var tip = d3.tip()
+        .attr('class', 'd3-tip')
+        .direction('e')
+        .offset([-10, 0])
+        .html(function(d) {
+            params=[];
+                // for (clus in data.specificData[gridNum]){
+                //     for (keys in surfaces.specificData[gridNum][clus]){
+                //         if(surfaces.names[keys] === "Title" ){
+                //     params += '<span class="light">' + surfaces.names[keys] + ':</span> ' + surfaces.specificData[gridNum][clus][keys]  + '<br/>'
+                //         }
+                //     }
+                // }
+            return '<div>' + params + '</div>';
+        });
+
+    function animate(){
+        requestAnimationFrame(animate);
+        // cube.rotation.x += 0.01;
+        // cube.rotation.y += 0.01;
+        controls.update();
+    }
+
+    function render() {
+        renderer.render(scene, camera);
+    };
+
+    document.addEventListener( 'click', onDocumentClick, false );
+    // document.addEventListener( 'click', tip.show, false );
+
+
+    function onDocumentClick( event ) {
+        // the following line would stop any other event handler from firing
+        // (such as the mouse's TrackballControls)
+        event.preventDefault();
+        
+        // update the mouse variable
+        mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+        mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+        
+        raycaster.setFromCamera( mouse, camera );
+
+        var intersects = raycaster.intersectObjects( objects );
+
+        if ( intersects.length > 0 ) {
+
+            intersects[ 0 ].object.material.color.setHex( Math.random() * 0xffffff );
+            console.log(intersects[0].object.id);
+
+            var spriteMaterial = new THREE.SpriteMaterial();
+    
+            sprite1 = new THREE.Sprite( spriteMaterial );
+            sprite1.scale.set(200,100,1.0);
+            sprite1.position.set( 50, 50, 0 );
+            scene.add( sprite1 );   
+
+            // update sprite position
+            sprite1.position.set( event.clientX, event.clientY - 20, 0 );
+            
+            // update the mouse variable
+            mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+            mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+            // var particle = new THREE.Sprite( material );
+            // particle.position.copy( intersects[ 0 ].point );
+            // particle.scale.x = particle.scale.y = 200;
+            // scene.add( particle );
+
+        }
+
+    }
+
+    function createGrid(data){
+       // slickgrid needs each data element to have an id
+      data.forEach(function(d,i) { d.id = d.id || i; });
+
+      // setting up grid
+      var column_keys = d3.keys(data[0]);
+      // var identifiers = column_keys.pop();
+
+      console.log(column_keys);
+
+      var columns = column_keys.map(function(key,i) {
+        return {
+          id: key,
+          name: key,
+          field: key,
+          sortable: true
+        }
+      });
+
+      var options = {
+        enableCellNavigation: true,
+        enableColumnReorder: false,
+        multiColumnSort: false,
+        forceFitColumns: true
+      };
+
+      var dataView = new Slick.Data.DataView();
+      var grid = new Slick.Grid("#grid", dataView, columns, options);
+      var pager = new Slick.Controls.Pager(dataView, grid, $("#pager"));
+
+      // wire up model events to drive the grid
+      dataView.onRowCountChanged.subscribe(function (e, args) {
+        grid.updateRowCount();
+        grid.render();
+      });
+
+      dataView.onRowsChanged.subscribe(function (e, args) {
+        grid.invalidateRows(args.rows);
+        grid.render();
+      });
+
+      // column sorting
+      var sortcol = column_keys[0];
+      var sortdir = 1;
+
+      function comparer(a, b) {
+        var x = a[sortcol], y = b[sortcol];
+        return (x == y ? 0 : (x > y ? 1 : -1));
+      }
+      
+      // click header to sort grid column
+      grid.onSort.subscribe(function (e, args) {
+        sortdir = args.sortAsc ? 1 : -1;
+        sortcol = args.sortCol.field;
+
+        if ($.browser.msie && $.browser.version <= 8) {
+          dataView.fastSort(sortcol, args.sortAsc);
+        } else {
+          dataView.sort(comparer, args.sortAsc);
+        }
+      });
+
+      // highlight row in chart
+      grid.onMouseEnter.subscribe(function(e,args) {
+        var i = grid.getCellFromEvent(e).row;
+        var d = parcoords.brushed() || data;
+        parcoords.highlight([d[i]]);
+      });
+      grid.onMouseLeave.subscribe(function(e,args) {
+        parcoords.unhighlight();
+      });
+
+      // fill grid with data
+          //rounding grid data values to have 3 sig figs
+            for(var key in data){
+                for(var secondKey in data[key]){
+                  if(typeof data[key][secondKey] === 'number' && secondKey !== 'id'){
+                    data[key][secondKey] = data[key][secondKey].toPrecision(3);
+                    // console.log(data[key][secondKey]);
+                  }
+                }
+              };
+
+
+      gridUpdate(data);
+
+      function gridUpdate(data) {
+        dataView.beginUpdate();
+        dataView.setItems(data);
+        dataView.endUpdate();
+      };
+
+        $(document).ready(function(){
+            $('#grid').slideToggle(01);
+            $('#pager').fadeToggle(01);
+        });
+    };
+createGrid(data);
+
+
+}
+
+// start();
+// start(gridTest);
+// start(scatterDataNewOne);
+
+</script>
+</body>
+</html>
