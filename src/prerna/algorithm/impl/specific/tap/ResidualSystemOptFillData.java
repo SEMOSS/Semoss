@@ -28,6 +28,8 @@
 package prerna.algorithm.impl.specific.tap;
 
 import java.util.ArrayList;
+import java.util.Hashtable;
+import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -59,7 +61,8 @@ public class ResidualSystemOptFillData{
 	public int[][] systemDataMatrix;
 	public int[][] systemBLUMatrix;
 	public int[][] systemRegionMatrix;
-	public double[][] systemSiteMatrix;
+	public double[][] systemSiteMatrix, centralSystemSiteMatrix;
+	public double[] centralSystemNumSite;
 	
 	public double[][] systemCostOfDataMatrix;
 	
@@ -305,6 +308,8 @@ public class ResidualSystemOptFillData{
 			fillSystemSite();
 			fillSystemNumOfSites();
 			fillCapabilityFunctionality();
+		}else{
+			fillCentralSystemSite();
 		}
 		fillSystemCost();
 		fillSystemCostOfData(false);
@@ -407,6 +412,20 @@ public class ResidualSystemOptFillData{
 		systemSiteMatrix = fillMatrixFromQuery(siteEngine,query,systemSiteMatrix,sysList,siteList);
 	}
 	
+	private void fillCentralSystemSite() 	{
+		centralSystemSiteMatrix = SysOptUtilityMethods.createEmptyMatrix(systemSiteMatrix,sysList.size(),siteList.size());
+		String query = "SELECT DISTINCT ?System ?Site WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;}{?Site <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?Site;}{?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite;} } BINDINGS ?System @SYSTEM-BINDINGS@";
+
+		query = query.replace("@SYSTEM-BINDINGS@",sysListBindings);
+		centralSystemSiteMatrix = fillMatrixFromQuery(siteEngine,query,centralSystemSiteMatrix,sysList,siteList);
+		
+		centralSystemNumSite = SysOptUtilityMethods.createEmptyVector(centralSystemNumSite,sysList.size());
+		int i;
+		int numCentralSys = sysList.size();
+		for(i=0;i<numCentralSys; i++) {
+			centralSystemNumSite[i] = SysOptUtilityMethods.sumRow(centralSystemSiteMatrix[i]);
+		}
+	}
 	
 	public void fillSiteLatLon() {
 		String siteListBindings = "{" + SysOptUtilityMethods.makeBindingString("DCSite",siteList) + "}";
