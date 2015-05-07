@@ -1145,25 +1145,27 @@ public class RDBMSReader {
 		
 		//for each table modified during this process, get the columns and put them into a hashtable
 		for(String table: allTablesModified){
-			Hashtable<String, String> cols = new Hashtable();
-			if(availableTables.containsKey(table.toUpperCase()))
-				cols=(Hashtable)availableTables.get(table.toUpperCase()).clone();//default it to hold all the columns that are existing that are being updated
-				//cols = availableTables.get(table); //default it to hold all the columns that are existing that are being updated
-			
-			//Hashtable availableTableColumns = null;
-			//availableTableColumns = availableTables.get(table.toUpperCase());
-			Hashtable newColumnsHash = tableHash.get(table);
-			//check each column in the availableTableColumns to see if the new columnHash has a new column
-			Enumeration <String> newColumnKeys = newColumnsHash.keys();
-			
-			//loop through the new columns + the keys (pks, fks) and add any columns that werent already available
-			while(newColumnKeys.hasMoreElements()){
-				String column = newColumnKeys.nextElement();
-				if(cols==null || !cols.containsKey(column.toUpperCase())){
-					cols.put(column.toUpperCase(), (String) newColumnsHash.get(column) );
+			if(tableHash.contains(table)){
+				Hashtable<String, String> cols = new Hashtable();
+				if(availableTables.containsKey(table.toUpperCase()))
+					cols=(Hashtable)availableTables.get(table.toUpperCase()).clone();//default it to hold all the columns that are existing that are being updated
+					//cols = availableTables.get(table); //default it to hold all the columns that are existing that are being updated
+				
+				//Hashtable availableTableColumns = null;
+				//availableTableColumns = availableTables.get(table.toUpperCase());
+				Hashtable newColumnsHash = tableHash.get(table);
+				//check each column in the availableTableColumns to see if the new columnHash has a new column
+				Enumeration <String> newColumnKeys = newColumnsHash.keys();
+				
+				//loop through the new columns + the keys (pks, fks) and add any columns that werent already available
+				while(newColumnKeys.hasMoreElements()){
+					String column = newColumnKeys.nextElement();
+					if(cols==null || !cols.containsKey(column.toUpperCase())){
+						cols.put(column.toUpperCase(), (String) newColumnsHash.get(column) );
+					}
 				}
+				allColsHash.put(table, cols);
 			}
-			allColsHash.put(table, cols);
 		}
 		return allColsHash;
 	}
