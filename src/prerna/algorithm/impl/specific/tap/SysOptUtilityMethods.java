@@ -323,95 +323,17 @@ public final class SysOptUtilityMethods {
 		return retList;
 		
 	}
-/**	
-	public static double[][] filterSys(double[] sysKeptArr, int numSysKept, double[][] sysMatrix) {
-		double[][] sysMatrix2 = new double[numSysKept][sysMatrix[0].length];
-		
+	
+	public static double[] addArrays(double[] a1, double[] a2) {
+		int size = a1.length;
 		int i;
-		int numSys = sysKeptArr.length;
-		int index = 0;
-		
-		for(i=0; i<numSys; i++) {
-			if(sysKeptArr[i] == 1) {
-
-				sysMatrix2[index] = sysMatrix[i];
-				index++;
-			}
+		double[] newArray = new double[size];
+		for(i=0; i<size; i++) {
+			newArray[i] = a1[i] + a2[i];
 		}
-		return sysMatrix2;
+		return newArray;
 	}
 	
-	public static int[][] filterSys(double[] sysKeptArr, int numSysKept, int[][] sysMatrix) {
-		int[][] sysMatrix2 = new int[numSysKept][sysMatrix[0].length];
-		
-		int i;
-		int numSys = sysKeptArr.length;
-		int index = 0;
-		
-		for(i=0; i<numSys; i++) {
-			if(sysKeptArr[i] == 1) {
-
-				sysMatrix2[index] = sysMatrix[i];
-				index++;
-			}
-		}
-		return sysMatrix2;
-	}
-	
-	public static int[] filterSys(double[] sysKeptArr, int numSysKept, int[] sysArr) {
-		int[] sysArr2 = new int[numSysKept];
-		
-		int i;
-		int numSys = sysKeptArr.length;
-		int index = 0;
-		
-		for(i=0; i<numSys; i++) {
-			if(sysKeptArr[i] == 1) {
-
-				sysArr2[index] = sysArr[i];
-				index++;
-			}
-		}
-		
-		return sysArr2;
-	}
-	
-	public static Integer[] filterSys(double[] sysKeptArr, int numSysKept, Integer[] sysArr) {
-		Integer[] sysArr2 = new Integer[numSysKept];
-		
-		int i;
-		int numSys = sysKeptArr.length;
-		int index = 0;
-		
-		for(i=0; i<numSys; i++) {
-			if(sysKeptArr[i] == 1) {
-
-				sysArr2[index] = sysArr[i];
-				index++;
-			}
-		}
-		
-		return sysArr2;
-	}
-	
-	public static double[] filterSys(double[] sysKeptArr, int numSysKept, double[] sysArr) {
-		double[] sysArr2 = new double[numSysKept];
-		
-		int i;
-		int numSys = sysKeptArr.length;
-		int index = 0;
-		
-		for(i=0; i<numSys; i++) {
-			if(sysKeptArr[i] == 1) {
-
-				sysArr2[index] = sysArr[i];
-				index++;
-			}
-		}
-		
-		return sysArr2;
-	}
-	**/
 	public static double calculateAdjustedTotalSavings(double mu, double yearsToComplete, double totalYrs, double savingsForYear) {
 
 		double i;
