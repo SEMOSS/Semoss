@@ -35,14 +35,10 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.openrdf.query.algebra.Extension;
 import org.openrdf.query.algebra.StatementPattern;
 import org.openrdf.query.algebra.Var;
 import org.openrdf.query.parser.ParsedQuery;
-import org.openrdf.query.parser.ParsedTupleQuery;
 import org.openrdf.query.parser.sparql.SPARQLParser;
-import org.openrdf.repository.sail.SailRepositoryConnection;
-import org.openrdf.repository.sail.SailTupleQuery;
 
 public class SPARQLParse {
 
@@ -238,23 +234,4 @@ public class SPARQLParse {
 		this.returnVariables = returnVariables;
 	}
 
-}
-
-
-
-class MyTupleQuery extends SailTupleQuery {
-	public MyTupleQuery(ParsedTupleQuery query, SailRepositoryConnection sc) {
-		super(query, sc);
-
-	}
-}
-
-class MyExtension extends Extension
-{
-	@Override
-	public Set<String> getBindingNames()
-	{
-		System.out.println("Going to crash");
-		return super.getBindingNames();
-	}
 }
