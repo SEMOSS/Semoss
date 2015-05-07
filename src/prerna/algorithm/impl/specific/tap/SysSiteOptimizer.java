@@ -1070,7 +1070,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			}
 
 		}else {//if central system
-			sysIndex = sysList.indexOf(system);
+			sysIndex = centralSysList.indexOf(system);
 			for(i=0; i<numSites; i++) {
 				Object[] row = new Object[5];
 				row[0] = siteList.get(i);
