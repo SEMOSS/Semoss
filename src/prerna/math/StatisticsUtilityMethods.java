@@ -737,7 +737,7 @@ public final class StatisticsUtilityMethods {
 			if(values1[i] == 0)
 				percDiffArr[i] = Double.NaN;
 			else
-				percDiffArr[i] = (1 - values2[i] / values1[i]) * 100;
+				percDiffArr[i] = (values2[i] / values1[i] - 1) * 100;
 
 		}
 		
