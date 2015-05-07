@@ -31,7 +31,9 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Set;
 
 import org.apache.commons.math3.exception.TooManyEvaluationsException;
 import org.apache.commons.math3.optim.MaxEval;
@@ -871,7 +873,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 
 		double[] percentDiff = StatisticsUtilityMethods.calculatePercentDiff(currSiteSustainCost,futureSiteSustainCost);
 		
-		String[] names = new String[]{"DCSite", "lat", "lon", "Future Sustainment Cost", "Decrease in Sustainment Cost %"};
+		String[] names = new String[]{"DCSite", "lat", "lon", "Future Sustainment Cost", "Change in Sustainment Cost %"};
 		ArrayList<Object []> list = new ArrayList<Object []>();
 		int i;
 		int numSites = siteList.size();
@@ -1112,26 +1114,39 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	public Hashtable<String,Object> getDecomSystemCoverageData(String system) {
 
 		Hashtable<String,Object> systemCoverageHash = new Hashtable<String,Object>();
-		Hashtable<String, Hashtable<String,ArrayList<String>>> dataHash = new Hashtable<String, Hashtable<String,ArrayList<String>>> ();
-
+		Hashtable<String, Hashtable<String,Set<String>>> dataHash = new Hashtable<String, Hashtable<String,Set<String>>> ();
+		Set<String> dataProvided;
+		Set<String> bluProvided; 
 		int sysIndex;
 		
 		if(sysList.contains(system)) {//if noncentral system
 			sysIndex = sysList.indexOf(system);
 			
-			processCoverage(dataHash, systemDataMatrix[sysIndex], systemDataMatrix, sysKeptArr, sysList, dataList, sysIndex, "Data");
-			processCoverage(dataHash, systemDataMatrix[sysIndex], centralSystemDataMatrix, centralSysKeptArr, centralSysList, dataList, -1, "Data");
-			processCoverage(dataHash, systemBLUMatrix[sysIndex], systemBLUMatrix, sysKeptArr, sysList, bluList, sysIndex, "BLU");
-			processCoverage(dataHash, systemBLUMatrix[sysIndex], centralSystemBLUMatrix, centralSysKeptArr, centralSysList, bluList, -1, "BLU");
+			dataProvided = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(dataList, systemDataMatrix[sysIndex]));
+			bluProvided = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(bluList, systemBLUMatrix[sysIndex]));
 
+			dataProvided = processCoverage(dataHash, dataProvided, systemDataMatrix[sysIndex], systemDataMatrix, sysKeptArr, sysList, dataList, sysIndex, "Data");
+			dataProvided = processCoverage(dataHash, dataProvided, systemDataMatrix[sysIndex], centralSystemDataMatrix, centralSysKeptArr, centralSysList, dataList, -1, "Data");
+			bluProvided = processCoverage(dataHash, bluProvided, systemBLUMatrix[sysIndex], systemBLUMatrix, sysKeptArr, sysList, bluList, sysIndex, "BLU");
+			bluProvided = processCoverage(dataHash, bluProvided, systemBLUMatrix[sysIndex], centralSystemBLUMatrix, centralSysKeptArr, centralSysList, bluList, -1, "BLU");
+			
 		}else {//if central system
 			sysIndex = centralSysList.indexOf(system);
 			
-			processCoverage(dataHash, centralSystemDataMatrix[sysIndex], systemDataMatrix, sysKeptArr, sysList, dataList, -1, "Data");
-			processCoverage(dataHash, centralSystemDataMatrix[sysIndex], centralSystemDataMatrix, centralSysKeptArr, centralSysList, dataList, sysIndex, "Data");
-			processCoverage(dataHash, centralSystemBLUMatrix[sysIndex], systemBLUMatrix, sysKeptArr, sysList, bluList, -1, "BLU");
-			processCoverage(dataHash, centralSystemBLUMatrix[sysIndex], centralSystemBLUMatrix, centralSysKeptArr, centralSysList, bluList, sysIndex, "BLU");
+			dataProvided = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(dataList, centralSystemDataMatrix[sysIndex]));
+			bluProvided = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(bluList, centralSystemBLUMatrix[sysIndex]));
+			
+			dataProvided = processCoverage(dataHash, dataProvided, centralSystemDataMatrix[sysIndex], systemDataMatrix, sysKeptArr, sysList, dataList, -1, "Data");
+			dataProvided = processCoverage(dataHash, dataProvided, centralSystemDataMatrix[sysIndex], centralSystemDataMatrix, centralSysKeptArr, centralSysList, dataList, sysIndex, "Data");
+			bluProvided = processCoverage(dataHash, bluProvided, centralSystemBLUMatrix[sysIndex], systemBLUMatrix, sysKeptArr, sysList, bluList, -1, "BLU");
+			bluProvided = processCoverage(dataHash, bluProvided, centralSystemBLUMatrix[sysIndex], centralSystemBLUMatrix, centralSysKeptArr, centralSysList, bluList, sysIndex, "BLU");
 		}
+		
+		Hashtable<String,Set<String>> uncoveredFuncHash;
+		uncoveredFuncHash = new Hashtable<String,Set<String>>();
+		uncoveredFuncHash.put("Data", dataProvided);
+		uncoveredFuncHash.put("BLU", bluProvided);
+		dataHash.put("Uncovered", uncoveredFuncHash);
 		
 		systemCoverageHash.put("data",dataHash);
 
@@ -1142,28 +1157,43 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	public Hashtable<String,Object> getKeptSystemCoverageData(String system) {
 
 		Hashtable<String,Object> systemCoverageHash = new Hashtable<String,Object>();
-		Hashtable<String, Hashtable<String,ArrayList<String>>> dataHash = new Hashtable<String, Hashtable<String,ArrayList<String>>> ();
-
+		Hashtable<String, Hashtable<String,Set<String>>> dataHash = new Hashtable<String, Hashtable<String,Set<String>>> ();
+		Set<String> dataProvided;
+		Set<String> bluProvided; 
 		int sysIndex;
 		
 		if(sysList.contains(system)) {//if noncentral system
 			sysIndex = sysList.indexOf(system);
 			
-			processCoverage(dataHash, systemDataMatrix[sysIndex], capDataMatrix, null, capList, dataList, -1, "Data");
-			processCoverage(dataHash, systemBLUMatrix[sysIndex], capBLUMatrix, null, capList, bluList, -1, "BLU");
+			dataProvided = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(dataList, systemDataMatrix[sysIndex]));
+			bluProvided = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(bluList, systemBLUMatrix[sysIndex]));
+
+			dataProvided = processCoverage(dataHash, dataProvided, systemDataMatrix[sysIndex], capDataMatrix, null, capList, dataList, -1, "Data");
+			bluProvided = processCoverage(dataHash, bluProvided, systemBLUMatrix[sysIndex], capBLUMatrix, null, capList, bluList, -1, "BLU");
 
 		}else {//if central system
 			sysIndex = centralSysList.indexOf(system);
 			
-			processCoverage(dataHash, centralSystemDataMatrix[sysIndex], capDataMatrix, null, capList, dataList, -1, "Data");
-			processCoverage(dataHash, centralSystemBLUMatrix[sysIndex], capBLUMatrix, null, capList, bluList, -1, "BLU");
+			dataProvided = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(dataList, centralSystemDataMatrix[sysIndex]));
+			bluProvided = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(bluList, centralSystemBLUMatrix[sysIndex]));
+			
+			dataProvided = processCoverage(dataHash, dataProvided, centralSystemDataMatrix[sysIndex], capDataMatrix, null, capList, dataList, -1, "Data");
+			bluProvided = processCoverage(dataHash, bluProvided, centralSystemBLUMatrix[sysIndex], capBLUMatrix, null, capList, bluList, -1, "BLU");
 		}
+		
+		Hashtable<String,Set<String>> uncoveredFuncHash;
+		uncoveredFuncHash = new Hashtable<String,Set<String>>();
+		uncoveredFuncHash.put("Data", dataProvided);
+		uncoveredFuncHash.put("BLU", bluProvided);
+		dataHash.put("Uncovered", uncoveredFuncHash);
+	
+		
 		systemCoverageHash.put("data",dataHash);
 
 		return systemCoverageHash;
 	}
-	
-	private void processCoverage(Hashtable<String, Hashtable<String,ArrayList<String>>> hashtable, int[] currSysFunc, int[][] systemFuncMatrix, double[] sysKeptArr, ArrayList<String> sysList, ArrayList<String> funcList, int ignoreIndex, String key) {
+
+	private Set<String> processCoverage(Hashtable<String, Hashtable<String,Set<String>>> hashtable,Set<String> uncoveredSet, int[] desiredFunc, int[][] systemFuncMatrix, double[] sysKeptArr, ArrayList<String> sysList, ArrayList<String> funcList, int ignoreIndex, String dataOrBLU) {
 		
 		int i;
 		int j;
@@ -1173,41 +1203,32 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		String system;
 
 		for(i=0; i<numFunc; i++) {
-			Boolean funcCovered = false;
-			func = funcList.get(i);
-			if(currSysFunc[i] == 1) //system provides the functionality
+			if(desiredFunc[i] == 1) {//system provides the functionality
+				func = funcList.get(i);
+				
 				for(j=0; j<numSys; j++) {
 					
 					if(j!=ignoreIndex && systemFuncMatrix[j][i] == 1 && (sysKeptArr == null || sysKeptArr[j] == 1)) {//another system provides the same functionality and is kept
 						system = sysList.get(j);
-						Hashtable<String,ArrayList<String>> systemFuncHash;
+						Hashtable<String,Set<String>> systemFuncHash;
 						if(hashtable.containsKey(system)) {
 							systemFuncHash = hashtable.get(system);
 						}else {
-							systemFuncHash = new Hashtable<String,ArrayList<String>>();
-							systemFuncHash.put("Data", new ArrayList<String>());
-							systemFuncHash.put("BLU", new ArrayList<String>());
+							systemFuncHash = new Hashtable<String,Set<String>>();
+							systemFuncHash.put("Data", new HashSet<String>());
+							systemFuncHash.put("BLU", new HashSet<String>());
 							hashtable.put(system, systemFuncHash);
 						}
-						systemFuncHash.get(key).add(func);
+						systemFuncHash.get(dataOrBLU).add(func);
+						uncoveredSet.remove(func);
 					}
 				}
-			
-			if(!funcCovered) {
-				Hashtable<String,ArrayList<String>> systemFuncHash;
-				if(hashtable.containsKey("Uncovered")) {
-					systemFuncHash = hashtable.get("Uncovered");
-				}else {
-					systemFuncHash = new Hashtable<String,ArrayList<String>>();
-					systemFuncHash.put("Data", new ArrayList<String>());
-					systemFuncHash.put("BLU", new ArrayList<String>());
-					hashtable.put("Uncovered", systemFuncHash);
-				}
-				systemFuncHash.get(key).add(func);
+
 			}
 			
 		}
-	}
+		return uncoveredSet;
+	}	
 	
 	public Hashtable<String,Object> getCapabilityInfoData(String capability) {
 
@@ -1285,15 +1306,24 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	public Hashtable<String,Object> getCapabilityCoverageData(String capability) {
 
 		Hashtable<String,Object> capabilityCoverageHash = new Hashtable<String,Object>();
-		Hashtable<String, Hashtable<String,ArrayList<String>>>  dataHash = new Hashtable<String, Hashtable<String,ArrayList<String>>> ();
+		Hashtable<String, Hashtable<String,Set<String>>>  dataHash = new Hashtable<String, Hashtable<String,Set<String>>> ();
 
 		int capIndex = capList.indexOf(capability);
 		
-		processCoverage(dataHash, capDataMatrix[capIndex], systemDataMatrix, null, sysList, dataList, -1, "Data");
-		processCoverage(dataHash, capDataMatrix[capIndex], centralSystemDataMatrix, null, centralSysList, dataList, -1, "Data");
-		processCoverage(dataHash, capBLUMatrix[capIndex], systemBLUMatrix, null, sysList, bluList, -1, "BLU");
-		processCoverage(dataHash, capBLUMatrix[capIndex], centralSystemBLUMatrix, null, centralSysList, bluList, -1, "BLU");
+		Set<String> dataProvided = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(dataList, capDataMatrix[capIndex]));
+		Set<String> bluProvided = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(bluList, capBLUMatrix[capIndex]));
 
+		dataProvided = processCoverage(dataHash, dataProvided, capDataMatrix[capIndex], systemDataMatrix, sysKeptArr, sysList, dataList, -1, "Data");
+		dataProvided = processCoverage(dataHash, dataProvided, capDataMatrix[capIndex], centralSystemDataMatrix, centralSysKeptArr, centralSysList, dataList, -1, "Data");
+		bluProvided = processCoverage(dataHash, bluProvided, capBLUMatrix[capIndex], systemBLUMatrix, sysKeptArr, sysList, bluList, -1, "BLU");
+		bluProvided = processCoverage(dataHash, bluProvided, capBLUMatrix[capIndex], centralSystemBLUMatrix, centralSysKeptArr, centralSysList, bluList, -1, "BLU");
+
+		Hashtable<String,Set<String>> uncoveredFuncHash;
+		uncoveredFuncHash = new Hashtable<String,Set<String>>();
+		uncoveredFuncHash.put("Data", dataProvided);
+		uncoveredFuncHash.put("BLU", bluProvided);
+		dataHash.put("Uncovered", uncoveredFuncHash);
+		
 		capabilityCoverageHash.put("data",dataHash);
 
 		return capabilityCoverageHash;

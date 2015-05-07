@@ -352,7 +352,7 @@ public class ResidualSystemOptFillData{
 
 		String capQuery = "SELECT DISTINCT ?System ?Capability WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?System <http://semoss.org/ontologies/Relation/Supports> ?Capability}} BINDINGS ?System @SYSTEM-BINDINGS@";
 		capQuery = capQuery.replace("@SYSTEM-BINDINGS@",sysListBindings);
-		systemCapabilityMatrix = fillMatrixFromQuery(systemEngine,capQuery,systemBLUMatrix,sysList,bluList);
+		systemCapabilityMatrix = fillMatrixFromQuery(systemEngine,capQuery,systemCapabilityMatrix,sysList,capList);
 
 	}
 	
