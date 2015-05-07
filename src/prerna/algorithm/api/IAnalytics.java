@@ -1,21 +1,20 @@
 package prerna.algorithm.api;
 
-import java.util.ArrayList;
 import java.util.Map;
 
 public interface IAnalytics {
 
 	/**
 	 * Set the options for the analytic routines
-	 * @param options			A list of mappings of the option type and their values
+	 * @param options			A mappings of the option type and their values
 	 */
-	public void setOptions(ArrayList<Map> options);
+	public void setOptions(Map options);
 	
 	/**
 	 * Get the options used for the analytic routine
-	 * @return					A list of mappings of the option type and their values
+	 * @return					A mappings of the option type and their values
 	 */
-	public ArrayList<Map> getOptions();
+	public Map getOptions();
 	
 	/**
 	 * Perform an algorithm on a data-frame. The routine does not necessarily have to 
