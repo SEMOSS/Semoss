@@ -1313,7 +1313,7 @@ public abstract class AbstractEngine implements IEngine {
 		// if the method does not exist on the engine
 		// look at the smss for the method (?)
 		String methodName = this.getMethodName(actionType);
-		logger.info("Trying to run method: " + methodName + " on database: " + this.getEngineName() + " with arguments: " + args.toString());
+//		logger.info("Trying to run method: " + methodName + " on database: " + this.getEngineName() + " with arguments: " + args.toString());
 		
 		Object[] params = {args};
     	java.lang.reflect.Method method = null;
