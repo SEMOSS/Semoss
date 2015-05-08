@@ -1,7 +1,6 @@
 package prerna.algorithm.learning.unsupervised.recommender;
 
 import java.util.ArrayList;
-import java.util.function.Predicate;
 
 /*
  * This class handles the top recommended users
