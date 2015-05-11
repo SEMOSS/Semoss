@@ -396,11 +396,11 @@ public class SysSiteLPSolver extends LPOptimizer{
 		int index = 0;
 
 		//TODO update this to take central interface cost. does it go at all sites?
-//		int[] colno = new int[numNotCentralSystems * siteLength + numCentralSystems];
-//        double[] row = new double[numNotCentralSystems * siteLength + numCentralSystems];
+		int[] colno = new int[numNotCentralSystems * siteLength + numCentralSystems];
+        double[] row = new double[numNotCentralSystems * siteLength + numCentralSystems];
         
-		int[] colno = new int[numNotCentralSystems * siteLength];
-        double[] row = new double[numNotCentralSystems * siteLength];
+//		int[] colno = new int[numNotCentralSystems * siteLength];
+//        double[] row = new double[numNotCentralSystems * siteLength];
         for(i=0; i<numNotCentralSystems; i++) {
 			for(j=0; j<siteLength; j++) {
 				colno[index] = i * siteLength + j +1;
@@ -409,14 +409,14 @@ public class SysSiteLPSolver extends LPOptimizer{
 			}
         }
  
-//        for(i=0; i<numCentralSystems; i++) {
-// 			colno[index] = numNotCentralSystems * (siteLength + 1) + 1;
-// 			row[index] = (1+trainingPerc) * centralInterfaceCostArr[i] * siteLength;
-// 			index++;
-//        }
-//        solver.addConstraintex(numNotCentralSystems * siteLength + numCentralSystems, row, colno, LpSolve.LE, maxBudget);
+        for(i=0; i<numCentralSystems; i++) {
+ 			colno[index] = numNotCentralSystems * (siteLength + 1) + 1;
+ 			row[index] = (1+trainingPerc) * centralInterfaceCostArr[i] * siteLength;
+ 			index++;
+        }
+        solver.addConstraintex(numNotCentralSystems * siteLength + numCentralSystems, row, colno, LpSolve.LE, maxBudget);
  
-        solver.addConstraintex(numNotCentralSystems * siteLength, row, colno, LpSolve.LE, maxBudget);
+ //       solver.addConstraintex(numNotCentralSystems * siteLength, row, colno, LpSolve.LE, maxBudget);
 
 	}
 	
@@ -593,6 +593,12 @@ public class SysSiteLPSolver extends LPOptimizer{
 						}
 					}
 		        }
+		        
+		        for(i=0; i<numCentralSystems; i++) {
+		        	if(centralSysKeptArr[i] == 1)
+		        		totalDeploymentCost += (1+trainingPerc) * centralInterfaceCostArr[i];
+		        }
+		        
 			}
 			
 			deleteModel();

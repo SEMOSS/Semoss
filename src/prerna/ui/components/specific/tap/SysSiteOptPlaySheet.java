@@ -37,6 +37,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Vector;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -70,7 +71,9 @@ import com.google.gson.reflect.TypeToken;
 @SuppressWarnings("serial")
 public class SysSiteOptPlaySheet extends OptPlaySheet{
 	
-	private JPanel systemSelectPanel, systemModDecomSelectPanel;
+	private ArrayList<String> capList;
+	
+	private JPanel systemSelectPanel, systemModDecomSelectPanel;	
 	public DHMSMSystemSelectPanel sysSelectPanel, systemModernizePanel, systemDecomissionPanel;
 	private JToggleButton showSystemSelectBtn, showSystemModDecomBtn;
 	
@@ -118,10 +121,25 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		else
 			ehrCore = gson.fromJson(gson.toJson(webDataHash.get("ehrcore")), Boolean.class);
 
-		dataHash.put("systems",sysUpdater.getSelectedSystemList(intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore));
+		ArrayList<String> sysList;
+
+//		capList = gson.fromJson(gson.toJson(webDataHash.get("capList")), new TypeToken<ArrayList<String>>() {}.getType());
+		if(capList!=null && !capList.isEmpty()) {
+			sysList = new ArrayList<String>(sysUpdater.getSelectedSystemList(new Vector<String>(capList),intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore));
+		}else {
+			sysList = new ArrayList<String>(sysUpdater.getSelectedSystemList(intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore));
+		}
+		
+		dataHash.put("systems",sysList);
 		
 		if (dataHash != null)
 			returnHash.put("data", dataHash);
+		return returnHash;
+	}
+	
+	public Hashtable getCapabilities() {
+		Hashtable returnHash = (Hashtable) super.getData();
+		returnHash.put("data", sysUpdater.getDHMSMCapabilityList());
 		return returnHash;
 	}
 	
@@ -157,6 +175,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		opt.setOptimizationType(optType); //eventually will be savings, roi, or irr
 		opt.setIsOptimizeBudget(false); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
 		opt.setSysHashList(sysHashList);
+		opt.setCapList(capList);
 		opt.executeWeb();
 		return opt.getSysCapHash();
 	}
