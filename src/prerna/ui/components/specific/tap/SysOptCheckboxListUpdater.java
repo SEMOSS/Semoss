@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.util.ArrayList;
 import java.util.Vector;
 
 import prerna.algorithm.impl.specific.tap.SysOptUtilityMethods;
@@ -57,12 +58,14 @@ public class SysOptCheckboxListUpdater {
 		createDataAndBLUCheckBoxLists();
 	}
 	
-	public SysOptCheckboxListUpdater(IEngine engine, Boolean runSystem, Boolean runCap, Boolean runDataBLU) {
+	public SysOptCheckboxListUpdater(IEngine engine, Boolean runSystem, Boolean runFullCap, Boolean runDataBLU) {
 		this.engine = engine;
 		if(runSystem)
 			createSystemCheckBoxLists(false);
-		if(runCap)
+		if(runFullCap)
 			createCapabilityCheckBoxLists();
+		else
+			dhmsmCapList = SysOptUtilityMethods.getList(engine,"Capability","Select DISTINCT ?entity WHERE {{?DHMSM <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DHMSM>;}{?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?DHMSM ?TaggedBy ?entity;}}");
 		if(runDataBLU)
 			createDataAndBLUCheckBoxLists();
 	}
@@ -123,6 +126,16 @@ public class SysOptCheckboxListUpdater {
 		return recdSysList;
 	}
 	
+	public Vector<String> getSelectedSystemList(Vector<String> capList, Boolean intDHMSM, Boolean notIntDHMSM, Boolean theater, Boolean garrison, Boolean low, Boolean high, Boolean mhsSpecific, Boolean ehrCore) {
+		Vector<String> checkboxSysList = getSelectedSystemList(intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore);
+		if(checkboxSysList == null || checkboxSysList.isEmpty())
+			checkboxSysList = recdSysList;
+		
+		Vector<String> capabilitySysList = SysOptUtilityMethods.getList(engine,"Capability","SELECT DISTINCT ?entity WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?entity <http://semoss.org/ontologies/Relation/Supports> ?Capability}} BINDINGS ?Capability {" + SysOptUtilityMethods.makeBindingString("Capability",new ArrayList<String>(capList)) + "}");	
+		
+		return ArrayListUtilityMethods.createAndUnionIfBothFilled(checkboxSysList,capabilitySysList);
+	}
+	
 	public Vector<String> getSelectedSystemList(Boolean intDHMSM, Boolean notIntDHMSM, Boolean theater, Boolean garrison, Boolean low, Boolean high, Boolean mhsSpecific, Boolean ehrCore) {
 		Vector<String> interfaced = new Vector<String>();
 		if(intDHMSM)
@@ -157,6 +170,10 @@ public class SysOptCheckboxListUpdater {
 	
 	public Vector<String> getAllCapabilityList() {
 		return allCapList;
+	}
+	
+	public Vector<String> getDHMSMCapabilityList() {
+		return dhmsmCapList;
 	}
 	
 	public Vector<String> getSelectedCapabilityList(Boolean dhmsm, Boolean hsd, Boolean hss, Boolean fhp) {

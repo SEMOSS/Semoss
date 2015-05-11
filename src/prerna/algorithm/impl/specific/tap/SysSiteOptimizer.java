@@ -119,7 +119,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	private double currSustainmentCost, futureSustainmentCost;
 	private double adjustedDeploymentCost, adjustedTotalSavings;
 	
-	private double[] budgetSpentPerYear, costAvoidedPerYear;
+	private double[] deployCostPerYear, currCostPerYear, futureCostPerYear, costAvoidedPerYear;
 
 	@Override
 	public void execute() {
@@ -307,6 +307,10 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		this.isOptimizeBudget = isOptimizeBudget;
 	}
 	
+	public void setCapList(ArrayList<String> capList) {
+		this.capList = capList;
+	}
+	
 	private void createSiteDataBLULists() {
 
 		String sysBindings = "{" + SysOptUtilityMethods.makeBindingString("System",sysList) + SysOptUtilityMethods.makeBindingString("System",centralSysList) + "}";
@@ -328,7 +332,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		siteList = SysOptUtilityMethods.runListQuery(siteEngine, siteQuery);
 		dataList = SysOptUtilityMethods.runListQuery(systemEngine, dataQuery);
 		bluList = SysOptUtilityMethods.runListQuery(systemEngine, bluQuery);
-		capList = SysOptUtilityMethods.runListQuery(systemEngine, capQuery);
+		if(capList == null || capList.isEmpty())
+			capList = SysOptUtilityMethods.runListQuery(systemEngine, capQuery);
 		
 		printMessage("Sites are..." + SysOptUtilityMethods.createPrintString(siteList));
 		printMessage("Data are..." + SysOptUtilityMethods.createPrintString(dataList));
@@ -562,7 +567,9 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		
 		double mu = (1 + infRate / 100) / (1 + disRate / 100);
 		
-		budgetSpentPerYear = SysOptUtilityMethods.calculateAdjustedDeploymentCostArr(mu, yearsToComplete, years, budgetForYear);
+		deployCostPerYear = SysOptUtilityMethods.calculateAdjustedDeploymentCostArr(mu, yearsToComplete, years, -1 * budgetForYear);
+		currCostPerYear = SysOptUtilityMethods.calculateAdjustedDeploymentCostArr(mu, Math.ceil(yearsToComplete), years, currSustainmentCost);
+		futureCostPerYear =  SysOptUtilityMethods.calculateAdjustedSavingsArr(mu, yearsToComplete, years, futureSustainmentCost);
 		costAvoidedPerYear =  SysOptUtilityMethods.calculateAdjustedSavingsArr(mu, yearsToComplete, years, currSustainmentCost - futureSustainmentCost);
 
 	}
@@ -608,7 +615,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		int i;
 		printMessage("**Year ....... Investment ....... CostAvoided: ");
 		for(i = 0; i<years; i++) {
-			printMessage((i + 1) + "     ....... " + budgetSpentPerYear[i] + " ..... " + costAvoidedPerYear[i]);
+			printMessage((i + 1) + "     ....... " + (-1*deployCostPerYear[i]) + " ..... " + costAvoidedPerYear[i]);
 		}
 		
 		if(optFunc instanceof SysSiteSavingsOptFunction)
@@ -780,7 +787,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		systemInfoHash.put("beforeCount", totalSys);
 		systemInfoHash.put("decommissionedCount", totalSys - totalKept);
 		systemInfoHash.put("afterCount", totalKept);
-		systemInfoHash.put("yearsToTransition", Math.round(yearsToComplete * 1000)/1000);
+		systemInfoHash.put("yearsToTransition",(double) Math.round(yearsToComplete * 1000)/1000);
 		
 		DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
 		symbols.setGroupingSeparator(',');
@@ -797,14 +804,14 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	}
 	
 	public Hashtable<String,Object> getOverviewCostData() {
-		String[] names = new String[]{"Year", "Build Cost","Sustainment Cost"};
+		String[] names = new String[]{"Year", "Build Cost","Cost Avoided"};
 		ArrayList<Object []> list = new ArrayList<Object []>();
 		int i;
 		int startYear = 2017;
 		for(i=0; i<years; i++) {
 			Object[] row = new Object[3];
 			row[0] = startYear + i;
-			row[1] = budgetSpentPerYear[i];
+			row[1] = deployCostPerYear[i];
 			row[2] = costAvoidedPerYear[i];
 			list.add(row);
 		}
@@ -938,11 +945,12 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			sysCurrSustainCost = centralSystemMaintenaceCosts[sysIndex];
 			
 			sysNumSites = siteList.size();
-			sysDeployCost = 0;
 			if(isModernizedPage) {
 				sysFutureSustainCost = sysCurrSustainCost;
+				sysDeployCost = (1+trainingPerc)*centralInterfaceCostArr[sysIndex];
 			}else {
 				sysFutureSustainCost = 0;
+				sysDeployCost = 0;
 			}
 		}
 		
