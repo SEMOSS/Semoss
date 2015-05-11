@@ -147,6 +147,8 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		double infl = gson.fromJson(gson.toJson(webDataHash.get("infl")), Double.class);
 		double disc = gson.fromJson(gson.toJson(webDataHash.get("disc")), Double.class);
 		int numPts = gson.fromJson(gson.toJson(webDataHash.get("numPts")), Integer.class);
+		int hourlyBuildCost = gson.fromJson(gson.toJson(webDataHash.get("hbc")), Integer.class);
+		double trainingRate = gson.fromJson(gson.toJson(webDataHash.get("training")), Double.class);
 		
 		opt = new SysSiteOptimizer();
 		opt.setEngines(engine, costEngine, siteEngine); //likely hr core and tap site
