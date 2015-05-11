@@ -112,19 +112,14 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 		int listNumRows = list.size();
 //		int numCols = names.length;
 		int numVariables;
-			
+		
+		String id = "";
 		if(includesInstance) {
 			numVariables = names.length - 1;
+			id = names[0];
 		}else {
 			numVariables = names.length;
-			String[] newNames = new String[numVariables + 1];
-			newNames[0] = "";
-			for(i = 0; i< numVariables; i++)
-				newNames[i + 1] = names[i];
-			names = newNames;
 		}
-		
-		String id = names[0];
 
 		//reorder names so b is at the end
 //		names = MatrixRegressionHelper.moveNameToEnd(names, bIndex);
