@@ -55,6 +55,7 @@ import prerna.ui.components.playsheets.LocalOutlierVizPlaySheet;
 import prerna.ui.components.playsheets.MatrixRegressionPlaySheet;
 import prerna.ui.components.playsheets.MatrixRegressionVizPlaySheet;
 import prerna.ui.components.playsheets.NumericalCorrelationVizPlaySheet;
+import prerna.ui.components.playsheets.SelfOrganizingMap3DBarChartPlaySheet;
 import prerna.ui.components.playsheets.SelfOrganizingMap3DPlotPlaySheet;
 import prerna.ui.components.playsheets.WekaAprioriPlaySheet;
 import prerna.ui.components.playsheets.WekaAprioriVizPlaySheet;
@@ -387,12 +388,12 @@ public class RunAlgorithmListener extends AbstractListener {
 			((CorrelationPlaySheet)newPlaySheet).setJBar(jBar);
 			
 		} else if(algorithm.equals("Self Organizing Map")) {
-			newPlaySheet = new SelfOrganizingMap3DPlotPlaySheet();
+			newPlaySheet = new SelfOrganizingMap3DBarChartPlaySheet();
 			newPlaySheet.setList(filteredList);
 			newPlaySheet.setNames(filteredNames);
 			
-			((SelfOrganizingMap3DPlotPlaySheet)newPlaySheet).setJTab(jTab);
-			((SelfOrganizingMap3DPlotPlaySheet)newPlaySheet).setJBar(jBar);
+			((SelfOrganizingMap3DBarChartPlaySheet)newPlaySheet).setJTab(jTab);
+			((SelfOrganizingMap3DBarChartPlaySheet)newPlaySheet).setJBar(jBar);
 			
 			String l0Text = playSheet.getEnterL0TextField().getText();
 			String r0Text = playSheet.getEnterR0TextField().getText();
@@ -401,7 +402,7 @@ public class RunAlgorithmListener extends AbstractListener {
 			if(l0Text != null && !l0Text.isEmpty()) {
 				try {
 					double l0 = Double.parseDouble(l0Text);
-					((SelfOrganizingMap3DPlotPlaySheet)newPlaySheet).setL0(l0);
+					((SelfOrganizingMap3DBarChartPlaySheet)newPlaySheet).setL0(l0);
 				} catch(NumberFormatException ex) {
 					Utility.showError("Entered value for l0, " + l0Text + ", is not a valid numerical input.\nWill use default value.");
 				}
@@ -410,7 +411,7 @@ public class RunAlgorithmListener extends AbstractListener {
 			if(r0Text != null && !r0Text.isEmpty()) {
 				try {
 					double r0 = Double.parseDouble(r0Text);
-					((SelfOrganizingMap3DPlotPlaySheet)newPlaySheet).setR0(r0);
+					((SelfOrganizingMap3DBarChartPlaySheet)newPlaySheet).setR0(r0);
 				} catch(NumberFormatException ex) {
 					Utility.showError("Entered value for r0, " + r0Text + ", is not a valid numerical input.\nWill use default value.");
 				}
@@ -419,7 +420,7 @@ public class RunAlgorithmListener extends AbstractListener {
 			if(tauText != null && !tauText.isEmpty()) {
 				try {
 					double tau = Double.parseDouble(tauText);
-					((SelfOrganizingMap3DPlotPlaySheet)newPlaySheet).setTau(tau);
+					((SelfOrganizingMap3DBarChartPlaySheet)newPlaySheet).setTau(tau);
 				} catch(NumberFormatException ex) {
 					Utility.showError("Entered value for tau, " + tauText + ", is not a valid numerical input.\nWill use default value.");
 				}
