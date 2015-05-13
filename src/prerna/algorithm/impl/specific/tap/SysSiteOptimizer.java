@@ -811,8 +811,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		for(i=0; i<years; i++) {
 			Object[] row = new Object[3];
 			row[0] = startYear + i;
-			row[1] = deployCostPerYear[i];
-			row[2] = costAvoidedPerYear[i];
+			row[1] = Math.round(deployCostPerYear[i] * 1000)/1000;
+			row[2] = Math.round(costAvoidedPerYear[i] * 1000)/1000;
 			list.add(row);
 		}
 		
