@@ -904,8 +904,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		Hashtable<String,Object> budgetInfoHash = new Hashtable<String,Object>();
 
 		int sysIndex;
-		int bluCount;
-		int dataCount;
+		ArrayList<String> sysBLUList;
+		ArrayList<String> sysDataList;
 		String hosting;
 		double sysCurrSustainCost;
 		double sysFutureSustainCost;
@@ -915,8 +915,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		if(sysList.contains(system)) {//if noncentral system
 			sysIndex = sysList.indexOf(system);
 
-			bluCount = SysOptUtilityMethods.sumRow(systemBLUMatrix[sysIndex]);
-			dataCount = SysOptUtilityMethods.sumRow(systemDataMatrix[sysIndex]);
+			sysBLUList = SysOptUtilityMethods.createNonZeroList(bluList, systemBLUMatrix[sysIndex]);
+			sysDataList = SysOptUtilityMethods.createNonZeroList(dataList, systemDataMatrix[sysIndex]);
 			hosting = "Local";
 			
 			sysCurrSustainCost = maintenaceCosts[sysIndex] / centralDeploymentPer;
@@ -938,8 +938,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		}else {//if central system
 			sysIndex = centralSysList.indexOf(system);
 
-			bluCount = SysOptUtilityMethods.sumRow(centralSystemBLUMatrix[sysIndex]);
-			dataCount = SysOptUtilityMethods.sumRow(centralSystemDataMatrix[sysIndex]);
+			sysBLUList = SysOptUtilityMethods.createNonZeroList(bluList, centralSystemBLUMatrix[sysIndex]);
+			sysDataList = SysOptUtilityMethods.createNonZeroList(dataList, centralSystemDataMatrix[sysIndex]);
 			hosting = "Central";
 			
 			sysCurrSustainCost = centralSystemMaintenaceCosts[sysIndex];
@@ -954,16 +954,12 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			}
 		}
 		
-		String downstreamQuery = "SELECT DISTINCT (COUNT(DISTINCT(?DownstreamSys)) AS ?NumDownstreamSys) WHERE {BIND(<http://health.mil/ontologies/Concept/System/" + system + "> AS ?System){?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?System <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?DownstreamSys ;}} GROUP BY ?System";
-		String upstreamQuery = "SELECT DISTINCT (COUNT(DISTINCT(?UpstreamSys)) AS ?NumUpstreamSys) WHERE {BIND(<http://health.mil/ontologies/Concept/System/" + system + "> AS ?System){?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?UpstreamSys <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?System ;}} GROUP BY ?System";
+		String downstreamQuery = "SELECT DISTINCT ?DownstreamSys WHERE {BIND(<http://health.mil/ontologies/Concept/System/" + system + "> AS ?System){?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?System <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?DownstreamSys ;}}";
+		String upstreamQuery = "SELECT DISTINCT ?UpstreamSys WHERE {BIND(<http://health.mil/ontologies/Concept/System/" + system + "> AS ?System){?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?UpstreamSys <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?System ;}}";
 		
-		Object numDownstream = SysOptUtilityMethods.runSingleResultQuery(systemEngine, downstreamQuery);
-		Object numUpstream = SysOptUtilityMethods.runSingleResultQuery(systemEngine, upstreamQuery);
-		if(numDownstream == null)
-			numDownstream = 0;
-		if(numUpstream == null)
-			numUpstream = 0;
-		
+		ArrayList<String> downstreamSysList = SysOptUtilityMethods.runListQuery(systemEngine, downstreamQuery);
+		ArrayList<String> upsteramSysList = SysOptUtilityMethods.runListQuery(systemEngine, upstreamQuery);
+
 		String atoQuery = "SELECT DISTINCT ?ATO WHERE {BIND(<http://health.mil/ontologies/Concept/System/" + system + "> AS ?System){?System <http://semoss.org/ontologies/Relation/Contains/ATO_Date> ?ATO}}";
 
 		Object ato = SysOptUtilityMethods.runSingleResultQuery(systemEngine, atoQuery);
@@ -980,10 +976,10 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		else
 			description = ((String) description).replaceAll("_"," ");
 
-		dataBLUInfoHash.put("bluCount", bluCount);
-		dataBLUInfoHash.put("dataCount", dataCount);
-		dataBLUInfoHash.put("upstreamCount", numUpstream);
-		dataBLUInfoHash.put("downstreamCount", numDownstream);
+		dataBLUInfoHash.put("bluProvided", sysBLUList);
+		dataBLUInfoHash.put("dataProvided", sysDataList);
+		dataBLUInfoHash.put("upstreamSystems", upsteramSysList);
+		dataBLUInfoHash.put("downstreamSystems", downstreamSysList);
 		dataBLUInfoHash.put("hosting", hosting);
 		
 		descriptionInfoHash.put("atoDate", ato);
