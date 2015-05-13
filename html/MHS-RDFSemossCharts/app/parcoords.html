@@ -53,14 +53,14 @@ text {
 </style>
 <script src="lib/d3.min.js"></script>
 <script src="js/d3.parcoords.js"></script>
-<script src="/lib/underscore.js"></script>
-<script src="/lib/divgrid.js"></script>
+<script src="lib/underscore.js"></script>
+<script src="lib/divgrid.js"></script>
 <div id="nav" style="position: fixed; z-index:1;" >
   <img src="img/parcoordsSmall.png" style="margin-top:5px; margin-right:7px;">
   <span class="brand" sty;e="margin-right:20px;">Parallel Coordinates</span>
-<button id="refreshBtn" type="button" class="btn btn-default" data-toggle="buttons-checkbox" style="float: right; margin-right: 20px">
-  <i class="fa fa-table"></i>
-</button>
+  <button id="refreshBtn" type="button" class="btn btn-default" data-toggle="buttons-checkbox" style="float: right; margin-right: 20px">
+    <i class="fa fa-table"></i>
+  </button>
 </div>
 <div id="example" class="parcoords" style="height:240px;"></div>
 
@@ -74,7 +74,7 @@ text {
 var touch = "true";
 
 var parcoords = d3.parcoords()("#example")
-  .alpha(0.1)
+.alpha(0.1)
   .mode("queue") // progressive rendering
   .height(d3.max([document.body.clientHeight-05, 220]))
   .width(d3.max([document.body.clientWidth]))
@@ -91,15 +91,33 @@ var parcoords = d3.parcoords()("#example")
    // var data = dataString.dataSeries
 
 //SEMOSS version
-     function start(dataString) {
-   var jsonData = jQuery.parseJSON(dataString);
-   var data = jsonData.dataSeries
+function start(dataString) {
+ var jsonData = jQuery.parseJSON(dataString);
+ var data = jsonData.dataSeries;
+ var tempData = [];
 
-  parcoords
-    .data(data)
-    .render()
-    .reorderable()
-    .brushable();
+   //need to parse through the uriStrings and make it strings rather than objects
+   for(var datum in data) {
+    var tempDatum = {};
+    for(var key in data[datum]){
+      var uri;
+      if(data[datum][key].uriString) {
+        uri = '' + data[datum][key].uriString;
+      } else {
+        uri = '' + data[datum][key];
+      }
+      tempDatum[replaceUnderscores(key)] = shortenAndReplaceUnderscores(uri);
+    }
+    tempData[datum] = tempDatum;
+  }
+
+        data = tempData;
+
+        parcoords
+        .data(data)
+        .render()
+        .reorderable()
+        .brushable();
 
   // slickgrid needs each data element to have an id
   data.forEach(function(d,i) { d.id = d.id || i; });
@@ -174,17 +192,17 @@ var parcoords = d3.parcoords()("#example")
 
   // fill grid with data
       //rounding grid data values to have 3 sig figs
-        for(var key in data){
-            for(var secondKey in data[key]){
-              if(typeof data[key][secondKey] === 'number' && secondKey !== 'id'){
-                data[key][secondKey] = data[key][secondKey].toPrecision(3);
-                console.log(data[key][secondKey]);
-              }
-            }
-          };
+      for(var key in data){
+        for(var secondKey in data[key]){
+          if(typeof data[key][secondKey] === 'number' && secondKey !== 'id'){
+            data[key][secondKey] = data[key][secondKey].toPrecision(3);
+            console.log(data[key][secondKey]);
+          }
+        }
+      };
 
 
-  gridUpdate(data);
+      gridUpdate(data);
 
   // update grid on brush
   parcoords.on("brush", function(d) {
@@ -197,16 +215,16 @@ var parcoords = d3.parcoords()("#example")
     dataView.endUpdate();
   };
 
-$(document).ready(function(){
+  $(document).ready(function(){
     $('#grid').slideToggle(01);
     $('#pager').fadeToggle(01);
-});
+  });
 
-d3.select(window).on('resize', resize); 
+  d3.select(window).on('resize', resize); 
 
-function resize() {
+  function resize() {
     if(touch == "false"){
-    parcoords
+      parcoords
       .height(d3.max([document.body.clientHeight-325, 220]))
       .width(d3.max([document.body.clientWidth]))
       .data(data)
@@ -214,48 +232,81 @@ function resize() {
       .reorderable()
       .brushable();
     }else{
-    parcoords
+      parcoords
       .height(d3.max([document.body.clientHeight-05, 220]))
       .width(d3.max([document.body.clientWidth]))
       .data(data)
       .render()
       .reorderable()
       .brushable();
-  }
+    }
 
-  grid.resizeCanvas();
+    grid.resizeCanvas();
   };
 
 
 
-$(document).ready(function(){
+  $(document).ready(function(){
     $('#refreshBtn').click(function(){
-        $('#grid').slideToggle(50);
-        $('#pager').fadeToggle(100);
+      $('#grid').slideToggle(50);
+      $('#pager').fadeToggle(100);
 
-        if(touch == "false"){
-          touch = "true";
-          parcoords
-            .height(d3.max([document.body.clientHeight-05, 220]))
-            .width(d3.max([document.body.clientWidth]))
-            .data(data)
-            .render()
-            .reorderable()
-            .brushable();
-        }else{
-          touch = "false";
-          parcoords
-            .height(d3.max([document.body.clientHeight-325, 220]))
-            .width(d3.max([document.body.clientWidth]))
-            .data(data)
-            .render()
-            .reorderable()
-            .brushable();
-        }
+      if(touch == "false"){
+        touch = "true";
+        parcoords
+        .height(d3.max([document.body.clientHeight-05, 220]))
+        .width(d3.max([document.body.clientWidth]))
+        .data(data)
+        .render()
+        .reorderable()
+        .brushable();
+      }else{
+        touch = "false";
+        parcoords
+        .height(d3.max([document.body.clientHeight-325, 220]))
+        .width(d3.max([document.body.clientWidth]))
+        .data(data)
+        .render()
+        .reorderable()
+        .brushable();
+      }
 
     });
 
   });
 
-};
+  function shortenAndReplaceUnderscores(str) {
+      //will take the string after the last slash and will replaces underscores with spaces
+      str = String(str);
+      var returnStr = "",
+      shortStr = "",
+      result = "",
+      myRe;
+
+      if (str.indexOf('"') === 0) {
+        shortStr = str.substring(1, str.length);
+        returnStr = shortStr.substring(0, shortStr.indexOf('"')).replace(/_/g, " ");
+        return returnStr;
+      }
+
+      if (str.indexOf('http://') !== -1) {
+        returnStr = '';
+        myRe = new RegExp("([^/]*)$");
+        shortStr = myRe.exec(str);
+        result = shortStr[0].replace(/_/g, " ");
+        return result;
+      }
+      return str;
+    };
+    resize();
+  };
+
+  function replaceUnderscores(str) {
+    str = String(str);
+    var myRe = new RegExp("([^/]*)$"),
+    shortStr = myRe.exec(str),
+    result = shortStr[0].replace(/_/g, " ");
+
+    return result;
+  }
 </script>
