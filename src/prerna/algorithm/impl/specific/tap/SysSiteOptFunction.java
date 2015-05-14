@@ -72,16 +72,17 @@ public class SysSiteOptFunction extends UnivariateOptFunction{
 		
 		this.infRate = infRate;
 		this.disRate = disRate;
+
 		
 		long startTime;
 		long endTime;
-		startTime = System.currentTimeMillis();			
+		startTime = System.currentTimeMillis();
 
 		lpSolver = new SysSiteLPSolver();
 		lpSolver.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, sysModArr, sysDecomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, interfaceCostArr, centralInterfaceCostArr, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, trainingPerc, currentSustainmentCost);
-		
+
 		endTime = System.currentTimeMillis();
-		printMessage("Time to set up the LP solver " + (endTime - startTime) / 1000  + " seconds");
+		printMessage("Time to set up entire model: " + (endTime - startTime) / 1000 );
 
 	}
 	
@@ -90,16 +91,18 @@ public class SysSiteOptFunction extends UnivariateOptFunction{
 //		updateProgressBar("Iteration " + count);
 		printMessage("budget "+budget);
 		
+		if(budget == lowBound || (budget> lowBound && budget <= highBound))
+			return;
+		
 		long startTime;
 		long endTime;
 		startTime = System.currentTimeMillis();
-		
-		if(budget == lowBound || (budget> lowBound && budget <= highBound))
-			return;
-
-		lpSolver.setMaxBudget(budget);
+		lpSolver.updateMaxBudget(budget);
 		lpSolver.setupModel();
-		lpSolver.setTimeOut(200);
+		endTime = System.currentTimeMillis();
+		printMessage("Time to set up for iteration " + count + ": " + (endTime - startTime) / 1000 );
+		
+		startTime = System.currentTimeMillis();
 		lpSolver.execute();
 		
 		endTime = System.currentTimeMillis();
