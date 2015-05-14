@@ -545,7 +545,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		optFunc.value(budgetForYear * years);
 		futureSustainmentCost = optFunc.getFutureSustainmentCost();
 		if(isOptimizeBudget && futureSustainmentCost!=currSustainmentCost) {
-			UnivariateOptimizer optimizer = new BrentOptimizer(.05, 10000);
+			UnivariateOptimizer optimizer = new BrentOptimizer(.05, budgetForYear * years * 0.20);
 	
 			RandomGenerator rand = new Well1024a(500);
 			MultiStartUnivariateOptimizer multiOpt = new MultiStartUnivariateOptimizer(optimizer, noOfPts, rand);
