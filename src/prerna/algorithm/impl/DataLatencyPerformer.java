@@ -509,13 +509,13 @@ public class DataLatencyPerformer implements IAlgorithm{
 		Hashtable scores = new Hashtable();
 		for (SEMOSSEdge key : finalEdgeScores.keySet()) {
 			if (!scores.containsKey(finalEdgeScores.get(key))) {
-				ArrayList<String> uriList = new ArrayList();
-				uriList.add(key.getURI());
+				ArrayList<SEMOSSEdge> uriList = new ArrayList();
+				uriList.add(key);
 				scores.put(finalEdgeScores.get(key), uriList);
 			}
 			else {
-				ArrayList<String> uriList = (ArrayList<String>) scores.get(finalEdgeScores.get(key));
-				uriList.add(key.getURI());
+				ArrayList<SEMOSSEdge> uriList = (ArrayList<SEMOSSEdge>) scores.get(finalEdgeScores.get(key));
+				uriList.add(key);
 				scores.put(finalEdgeScores.get(key), uriList);
 			}
 		}
