@@ -52,11 +52,7 @@ public class SysSiteOptBtnListener implements IChakraListener {
 	private int maxYears, maxBudget;
 	private int noOfPts;
 	private double trainingPerc;
-//	private double hourlyCost;
-//	private double iniLC;
-//	private int scdLT;
-//	private double scdLC;
-//	private double attRate, hireRate;
+	private double hourlyRate;
 	private double infRate, disRate;
 	private SysSiteOptimizer optimizer;
 	
@@ -93,7 +89,7 @@ public class SysSiteOptBtnListener implements IChakraListener {
 			//actually running the algorithm
 			optimizer = new SysSiteOptimizer();
 			optimizer.setEngines(playSheet.engine, costEngine, siteEngine); //likely hr core and tap site
-			optimizer.setVariables(maxBudget, maxYears, infRate, disRate, trainingPerc, noOfPts); //budget per year, the number of years, infl rate, discount rate, training perc, number of points
+			optimizer.setVariables(maxBudget, maxYears, infRate, disRate, trainingPerc, hourlyRate, noOfPts); //budget per year, the number of years, infl rate, discount rate, training perc, number of points
 			optimizer.setUseDHMSMFunctionality(playSheet.useDHMSMFuncCheckbox.isSelected()); //whether the data objects will come from the list of systems or the dhmsm provided capabilities
 			optimizer.setOptimizationType(playSheet.getOptType()); //eventually will be Savings, ROI, or IRR
 			optimizer.setIsOptimizeBudget(playSheet.optimizeBudgetCheckbox.isSelected()); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
@@ -199,7 +195,15 @@ public class SysSiteOptBtnListener implements IChakraListener {
 		}
 		else 
 			this.trainingPerc = trainingPerc;
-		///trainingPercField
+
+
+		double hourlyRate = Double.parseDouble(playSheet.hourlyRateField.getText());
+		if(hourlyRate<1 ){
+			failStr = failStr+"Hourly Rate must be greater than 0\n";
+			failCount++;
+		}
+		else 
+			this.hourlyRate = hourlyRate;
 
 		this.infRate = Double.parseDouble(playSheet.infRateField.getText());
 		this.disRate = Double.parseDouble(playSheet.disRateField.getText());

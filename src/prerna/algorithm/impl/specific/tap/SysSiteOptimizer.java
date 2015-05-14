@@ -76,12 +76,13 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	private String type;
 
 	//user can change these as advanced settings
-	private double infRate, disRate, trainingPerc;
+	private double infRate, disRate, trainingPerc, hourlyRate;
 	private int noOfPts;
 	
 	//user should not change these
 	private double centralDeploymentPer = 0.80;
 	private double deploymentFactor = 5;
+	private double interfacePercOfDeployment = 0.075;
 	
 	//generated data stores based off of the users selections
 	private Integer[] modArr, decomArr;
@@ -155,12 +156,13 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		this.useDHMSMFunctionality = useDHMSMFunctionality;
 	}
 	
-	public void setVariables(int budgetForYear, int years, double infRate, double disRate, double trainingPerc, int noOfPts) {
+	public void setVariables(int budgetForYear, int years, double infRate, double disRate, double trainingPerc,double hourlyRate, int noOfPts) {
 		this.budgetForYear = budgetForYear;
 		this.years = years;
 		this.infRate = infRate;
 		this.disRate = disRate;
 		this.trainingPerc = trainingPerc;
+		this.hourlyRate = hourlyRate;
 		this.noOfPts = noOfPts;
 	}
 	
@@ -344,6 +346,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	private void getData() {
 
 		ResidualSystemOptFillData resFunc = new ResidualSystemOptFillData();
+		resFunc.setHourlyRate(hourlyRate);
 		resFunc.setSysSiteLists(sysList, dataList, bluList, siteList, capList);
 		resFunc.setEngines(systemEngine, costEngine, siteEngine);
 		resFunc.fillSysSiteOptDataStores(true);
@@ -386,7 +389,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		}
 		
 		
-		double[][] systemCostConsumeDataMatrix = resFunc.systemCostOfDataMatrix;
+		interfaceCostArr = resFunc.systemCostOfDataConsumeArr;
 		
 		resFunc.setSysSiteLists(centralSysList,dataList,bluList,siteList, capList);
 		resFunc.fillSysSiteOptDataStores(false);
@@ -404,17 +407,27 @@ public class SysSiteOptimizer extends UnivariateOpt {
 
 		currSustainmentCost = calculateCurrentSustainmentCost(maintenaceCosts, centralSystemMaintenaceCosts);
 		
-		double[][] centralSystemCostConsumeDataMatrix = resFunc.systemCostOfDataMatrix;
+		centralInterfaceCostArr = resFunc.systemCostOfDataConsumeArr;
 		
-		interfaceCostArr = calculateInterfaceCost(interfaceCostArr, systemCostConsumeDataMatrix, systemDataMatrix, systemTheater, systemGarrison);
-		centralInterfaceCostArr = calculateInterfaceCost(centralInterfaceCostArr, centralSystemCostConsumeDataMatrix, centralSystemDataMatrix, centralSystemTheater, centralSystemGarrison);
+//		interfaceCostArr = calculateInterfaceCost(interfaceCostArr, systemCostConsumeDataMatrix, systemDataMatrix, systemTheater, systemGarrison);
+//		centralInterfaceCostArr = calculateInterfaceCost(centralInterfaceCostArr, centralSystemCostConsumeDataMatrix, centralSystemDataMatrix, centralSystemTheater, centralSystemGarrison);
+
+		sysLength = sysList.size();
+		for(i=0; i<sysLength; i++)
+			if(interfaceCostArr[i] != 0)
+				interfaceCostArr[i] = interfacePercOfDeployment*siteDeploymentCosts[i];
+		
+		sysLength = centralSysList.size();
+		int siteLength = siteList.size();
+		for(i=0; i<sysLength; i++) 
+			if(centralInterfaceCostArr[i] != 0)
+				centralInterfaceCostArr[i] = centralSystemMaintenaceCosts[i] * (1-centralDeploymentPer) * deploymentFactor * interfacePercOfDeployment / siteLength;
 		
 		resFunc.fillSiteLatLon();
 		siteLat = resFunc.siteLat;
 		siteLon = resFunc.siteLon;
 	}
 	
-	//TODO do we need costs for the central systems too?
 	private double[] calculateInterfaceCost(double[] interfaceCostArr, double[][] costConsumeDataMatrix, int[][] sysDataMatrix, int[] sysTheater, int[] sysGarrison) {
 		
 		int i;
@@ -626,18 +639,20 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			printMessage("**IRR: " + optFunc.getIRR()+"%");
 		
 		createCostGrid();
+		createCentralCostGrid();
 	}
 	
 	
 
 	private void createCostGrid() {
 		
-		String[] headers = new String[5];
+		String[] headers = new String[6];
 		headers[0] = "System";
 		headers[1] = "Sustain Cost";
 		headers[2] = "Interface Cost";
 		headers[3] = "Site Maintain Cost";
 		headers[4] = "Site Deploy Cost";
+		headers[5] = "System Kept";
 		
 		ArrayList<Object []> list = new ArrayList<Object []>();
 		
@@ -645,15 +660,40 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		int rowLength = sysList.size();
 		
 		for(i = 0; i<rowLength; i++) {
-			Object[] row = new Object[5];
+			Object[] row = new Object[6];
 			row[0] = sysList.get(i);
 			row[1] = maintenaceCosts[i];
 			row[2] = interfaceCostArr[i];
 			row[3] = siteMaintenaceCosts[i];
 			row[4] = siteDeploymentCosts[i];
+			row[5] = sysKeptArr[i];
 			list.add(row);
 		}
 		createTabAndDisplayList(headers,list,"NonCentral System Costs",false);
+	}
+	
+	private void createCentralCostGrid() {
+		
+		String[] headers = new String[4];
+		headers[0] = "Central System";
+		headers[1] = "Sustain Cost";
+		headers[2] = "Interface Cost";
+		headers[3] = "System Kept";
+		
+		ArrayList<Object []> list = new ArrayList<Object []>();
+		
+		int i=0;
+		int rowLength = centralSysList.size();
+		
+		for(i = 0; i<rowLength; i++) {
+			Object[] row = new Object[4];
+			row[0] = centralSysList.get(i);
+			row[1] = centralSystemMaintenaceCosts[i];
+			row[2] = centralInterfaceCostArr[i];
+			row[3] = centralSysKeptArr[i];
+			list.add(row);
+		}
+		createTabAndDisplayList(headers,list,"Central System Costs",false);
 	}
 	
 	private void createOverallGrid(double[] matrix, ArrayList<String> rowLabels, String systemType, String title) {
@@ -976,8 +1016,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		else
 			description = ((String) description).replaceAll("_"," ");
 
-		dataBLUInfoHash.put("bluProvided", sysBLUList);
-		dataBLUInfoHash.put("dataProvided", sysDataList);
+		dataBLUInfoHash.put("bluCount", sysBLUList);
+		dataBLUInfoHash.put("dataCount", sysDataList);
 		dataBLUInfoHash.put("upstreamSystems", upsteramSysList);
 		dataBLUInfoHash.put("downstreamSystems", downstreamSysList);
 		dataBLUInfoHash.put("hosting", hosting);
@@ -1291,8 +1331,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		else
 			description = ((String) description).replaceAll("_"," ");
 
-		dataBLUInfoHash.put("bluCount", bluCount);
-		dataBLUInfoHash.put("dataCount", dataCount);
+		dataBLUInfoHash.put("bluProvided", bluCount);
+		dataBLUInfoHash.put("dataProvided", dataCount);
 		dataBLUInfoHash.put("beforeCount", numSysBefore);
 		dataBLUInfoHash.put("afterCount", numSysAfter);
 		

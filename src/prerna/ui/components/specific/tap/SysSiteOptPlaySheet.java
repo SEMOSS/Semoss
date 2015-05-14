@@ -122,8 +122,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 			ehrCore = gson.fromJson(gson.toJson(webDataHash.get("ehrcore")), Boolean.class);
 
 		ArrayList<String> sysList;
-
-//		capList = gson.fromJson(gson.toJson(webDataHash.get("capList")), new TypeToken<ArrayList<String>>() {}.getType());
+		capList = gson.fromJson(gson.toJson(webDataHash.get("capList")), new TypeToken<ArrayList<String>>() {}.getType());
 		if(capList!=null && !capList.isEmpty()) {
 			sysList = new ArrayList<String>(sysUpdater.getSelectedSystemList(new Vector<String>(capList),intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore));
 		}else {
@@ -165,12 +164,12 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		double infl = gson.fromJson(gson.toJson(webDataHash.get("infl")), Double.class);
 		double disc = gson.fromJson(gson.toJson(webDataHash.get("disc")), Double.class);
 		int numPts = gson.fromJson(gson.toJson(webDataHash.get("numPts")), Integer.class);
-		int hourlyBuildCost = gson.fromJson(gson.toJson(webDataHash.get("hbc")), Integer.class);
+		int hourlyRate = gson.fromJson(gson.toJson(webDataHash.get("hbc")), Integer.class);
 		double trainingRate = gson.fromJson(gson.toJson(webDataHash.get("training")), Double.class);
 		
 		opt = new SysSiteOptimizer();
 		opt.setEngines(engine, costEngine, siteEngine); //likely hr core and tap site
-		opt.setVariables(yearBudget,years, infl, disc, 0.15, numPts); //budget per year and the number of years
+		opt.setVariables(yearBudget,years, infl, disc, trainingRate, hourlyRate, numPts); //budget per year and the number of years
 		opt.setUseDHMSMFunctionality(useDHMSMCap); //whether the data objects will come from the list of systems or the dhmsm provided capabilities
 		opt.setOptimizationType(optType); //eventually will be savings, roi, or irr
 		opt.setIsOptimizeBudget(false); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
@@ -412,13 +411,33 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		gbc_lblTrainingPercField.gridy = 2;
 		advParamPanel.add(lblTrainingPercField, gbc_lblTrainingPercField);
 		
+		hourlyRateField = new JTextField();
+		hourlyRateField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		hourlyRateField.setText("150");
+		hourlyRateField.setColumns(4);
+		GridBagConstraints gbc_hourlyRateField = new GridBagConstraints();
+		gbc_hourlyRateField.insets = new Insets(0, 0, 5, 5);
+		gbc_hourlyRateField.anchor = GridBagConstraints.WEST;
+		gbc_hourlyRateField.gridx = 0;
+		gbc_hourlyRateField.gridy = 3;
+		advParamPanel.add(hourlyRateField, gbc_hourlyRateField);
+
+		JLabel lblHourlyRate = new JLabel("Hourly Build Cost Rate ($)");
+		lblHourlyRate.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblHourlyRate = new GridBagConstraints();
+		gbc_lblHourlyRate.insets = new Insets(0, 0, 5, 5);
+		gbc_lblHourlyRate.anchor = GridBagConstraints.WEST;
+		gbc_lblHourlyRate.gridx = 1;
+		gbc_lblHourlyRate.gridy = 3;
+		advParamPanel.add(lblHourlyRate, gbc_lblHourlyRate);
+		
 		useDHMSMFuncCheckbox = new JCheckBox("Use DHMSM Functionality");
 		GridBagConstraints gbc_useDHMSMFuncCheckbox = new GridBagConstraints();
 		gbc_useDHMSMFuncCheckbox.gridwidth = 2;
 		gbc_useDHMSMFuncCheckbox.insets = new Insets(0, 0, 5, 5);
 		gbc_useDHMSMFuncCheckbox.anchor = GridBagConstraints.WEST;
 		gbc_useDHMSMFuncCheckbox.gridx = 0;
-		gbc_useDHMSMFuncCheckbox.gridy = 3;
+		gbc_useDHMSMFuncCheckbox.gridy = 4;
 		advParamPanel.add(useDHMSMFuncCheckbox, gbc_useDHMSMFuncCheckbox);
 		
 		optimizeBudgetCheckbox = new JCheckBox("Find Optimal Budget");
@@ -428,7 +447,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		gbc_optimizeBudgetCheckbox.anchor = GridBagConstraints.WEST;
 		gbc_optimizeBudgetCheckbox.insets = new Insets(0, 0, 5, 5);
 		gbc_optimizeBudgetCheckbox.gridx = 2;
-		gbc_optimizeBudgetCheckbox.gridy = 3;
+		gbc_optimizeBudgetCheckbox.gridy = 4;
 		advParamPanel.add(optimizeBudgetCheckbox, gbc_optimizeBudgetCheckbox);
 //				
 		systemSelectPanel = new JPanel();
