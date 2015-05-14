@@ -148,7 +148,7 @@ public class ClusterRemoveDuplicates {
 				// keep track of all categorical properties that create duplicate columns and make those instances new columns
 				else {
 					if(!row[j].toString().isEmpty()) {
-						uniquePropNamesSet.add(names[j] + "_" + row[j].toString());
+						uniquePropNamesSet.add(row[j].toString() + "_" + names[j]);
 					}
 				}
 			}
@@ -189,7 +189,7 @@ public class ClusterRemoveDuplicates {
 					INNERMOST: for(k = 0; k < newCategoricalCols; k++) {
 						int l;
 						for(l = 1; l < row.length; l++) {
-							if(uniquePropNames[k].toString().equals(names[l].toString().concat("_").concat(row[l].toString()).toString())){
+							if(uniquePropNames[k].toString().equals(row[l].toString().concat("_").concat(names[l]))){
 								newRow[k+1] = "Yes";
 								continue INNERMOST;
 							}
