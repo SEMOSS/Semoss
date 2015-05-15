@@ -55,7 +55,7 @@ public class SysSiteIRROptFunction extends SysSiteOptFunction{
 			
 			linInt.setYearSavingsAndYearsToComplete(currentSustainmentCost - futureSustainmentCost, yearsToComplete);
 			linInt.execute();
-			irr =  linInt.retVal * 100;
+			irr =  linInt.retVal;
 		}
 		printMessage("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", internal rate of return "+irr + "%");
 		
