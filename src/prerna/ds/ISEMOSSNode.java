@@ -7,6 +7,9 @@ public interface ISEMOSSNode extends ITreeKeyEvaluatable{
 	// gets the type of this node
 	public String getType();
 	
+	// gets the raw type of this node
+	public String getRawValue();
+	
 	// gets the value of this node
 	public String getValue();
 	
