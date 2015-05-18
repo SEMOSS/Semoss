@@ -4,6 +4,7 @@ public class StringClass implements ISEMOSSNode {
 	
 	String innerString = null;
 	String type = null;
+	String rawValue = null;
 	
 	public StringClass(String innerString)
 	{
@@ -14,6 +15,12 @@ public class StringClass implements ISEMOSSNode {
 	{
 		this.innerString = innerString;
 		this.type = type;
+	}
+	
+	public StringClass(String innerString, String rawValue, String type) {
+		this.innerString = innerString;
+		this.type = type;
+		this.rawValue = rawValue;
 	}
 	
 
@@ -54,5 +61,11 @@ public class StringClass implements ISEMOSSNode {
 	public VALUE_TYPE getValueType() {
 		// TODO Auto-generated method stub
 		return ISEMOSSNode.VALUE_TYPE.NOMINAL;
+	}
+
+	@Override
+	public String getRawValue() {
+		// TODO Auto-generated method stub
+		return this.rawValue;
 	}
 }
