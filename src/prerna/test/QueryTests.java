@@ -21,7 +21,7 @@ import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 
 import prerna.om.Insight;
-import prerna.rdf.engine.impl.BigDataEngine;
+import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
