@@ -44,7 +44,7 @@
 		
 		<echo>Copying RDFGraph Jars to test_lib...</echo>
 			<copy todir="test/test_lib" overwrite="true">
-					<fileset dir="RDFGraphlib" includes="**/*.jar"/>
+					<fileset dir="RDFGraphLib" includes="**/*.jar"/>
 			</copy>
 		
 		<echo>DBs to Stagging...</echo>
