@@ -1,0 +1,18 @@
+Machine Learning UI - John
+Clusting Algorithm - Kartick
+
+Learning SEMOSS engine classes, how they function and how they relate is crucial to understanding and developing SEMOSS. 
+Some of the classes to learn are:
+
+IEngine
+- Ask about Dreamer property files
+AbstractEngine
+BigDataEngine
+- log4j.LogManager
+- log4j.Logger
+SesameJenaSelectWrapper
+SesameJenaSelectStatement
+
+http://www.vogella.com/tutorials/JUnit/article.html#unittesting
+
+Let me or Kartik know if you have questions.
