@@ -1,0 +1,22 @@
+
+##Base Objects##
+
+Level http://theTest/Concept/Level
+Activity http://theTest/Concept/Activity
+
+##Base Predicates##
+
+Activity_Has_Level http://theTest/Relation/Has
+
+##Base Objects Class##
+
+Activity_CLASS http://semoss.org/ontologies/Concept/Activity
+Level_CLASS http://semoss.org/ontologies/Concept/Level
+
+##Base Predicates Class##
+
+Activity_Has_Level_CLASS http://semoss.org/ontologies/Relation/Has
+
+PROP_URI http://semoss.org/ontologies/Relation/Contains
+
+IGNORE_URI	;
