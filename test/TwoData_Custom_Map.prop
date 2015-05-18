@@ -1,0 +1,72 @@
+
+##Base Objects##
+
+companyName http://semoss.org/ontologies/Concept/companyName
+firstName http://semoss.org/ontologies/Concept/firstName
+lastName http://semoss.org/ontologies/Concept/lastName
+address http://semoss.org/ontologies/Concept/address
+zip http://semoss.org/ontologies/Concept/zip
+state http://semoss.org/ontologies/Concept/state
+county http://semoss.org/ontologies/Concept/county
+city http://semoss.org/ontologies/Concept/city
+email http://semoss.org/ontologies/Concept/email
+
+##Base Predicates##
+
+lastName_has first name_firstName http://semoss.org/ontologies/Relation/has first name
+lastName_lives_at_address http://semoss.org/ontologies/Relation/lives_at
+lastName_works at_companyName http://semoss.org/ontologies/Relation/works at
+lastName_lives_in_county http://semoss.org/ontologies/Relation/lives_in
+lastName_lives_in_state http://semoss.org/ontologies/Relation/lives_in
+lastName_lives_in_city http://semoss.org/ontologies/Relation/lives_in
+lastName_works_at_companyName http://semoss.org/ontologies/Relation/works_at
+lastName_lives in_county http://semoss.org/ontologies/Relation/lives in
+lastName_lives at_address http://semoss.org/ontologies/Relation/lives at
+lastName_lives in_state http://semoss.org/ontologies/Relation/lives in
+city_is_in_county http://semoss.org/ontologies/Relation/is_in
+address_is_in_city http://semoss.org/ontologies/Relation/is_in
+county_is in_state http://semoss.org/ontologies/Relation/is in
+city_is in_county http://semoss.org/ontologies/Relation/is in
+lastName_lives in_city http://semoss.org/ontologies/Relation/lives in
+address_is in_city http://semoss.org/ontologies/Relation/is in
+county_is_in_state http://semoss.org/ontologies/Relation/is_in
+address_has_zip http://semoss.org/ontologies/Relation/has
+lastName_has_email http://semoss.org/ontologies/Relation/has
+
+##Base Objects Class##
+
+city_CLASS http://semoss.org/ontologies/Concept/city
+state_CLASS http://semoss.org/ontologies/Concept/state
+companyName_CLASS http://semoss.org/ontologies/Concept/companyName
+zip_CLASS http://semoss.org/ontologies/Concept/zip
+county_CLASS http://semoss.org/ontologies/Concept/county
+address_CLASS http://semoss.org/ontologies/Concept/address
+firstName_CLASS http://semoss.org/ontologies/Concept/firstName
+lastName_CLASS http://semoss.org/ontologies/Concept/lastName
+email_CLASS http://semoss.org/ontologies/Concept/email
+
+##Base Predicates Class##
+
+lastName_has first name_firstName_CLASS http://semoss.org/ontologies/Relation/has first name
+address_has_zip_CLASS http://semoss.org/ontologies/Relation/has
+lastName_lives in_state_CLASS http://semoss.org/ontologies/Relation/lives in
+county_is_in_state_CLASS http://semoss.org/ontologies/Relation/is_in
+lastName_lives_in_city_CLASS http://semoss.org/ontologies/Relation/lives_in
+lastName_works at_companyName_CLASS http://semoss.org/ontologies/Relation/works at
+address_is in_city_CLASS http://semoss.org/ontologies/Relation/is in
+lastName_lives_at_address_CLASS http://semoss.org/ontologies/Relation/lives_at
+lastName_works_at_companyName_CLASS http://semoss.org/ontologies/Relation/works_at
+lastName_lives_in_state_CLASS http://semoss.org/ontologies/Relation/lives_in
+county_is in_state_CLASS http://semoss.org/ontologies/Relation/is in
+city_is in_county_CLASS http://semoss.org/ontologies/Relation/is in
+lastName_lives in_city_CLASS http://semoss.org/ontologies/Relation/lives in
+lastName_lives in_county_CLASS http://semoss.org/ontologies/Relation/lives in
+address_is_in_city_CLASS http://semoss.org/ontologies/Relation/is_in
+lastName_lives at_address_CLASS http://semoss.org/ontologies/Relation/lives at
+city_is_in_county_CLASS http://semoss.org/ontologies/Relation/is_in
+lastName_lives_in_county_CLASS http://semoss.org/ontologies/Relation/lives_in
+lastName_has_email_CLASS http://semoss.org/ontologies/Relation/has
+
+PROP_URI http://semoss.org/ontologies/Relation/Contains
+
+IGNORE_URI	;
