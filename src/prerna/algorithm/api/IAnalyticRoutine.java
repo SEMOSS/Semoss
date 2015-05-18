@@ -1,9 +1,12 @@
 package prerna.algorithm.api;
 
+import java.util.HashMap;
 import java.util.Map;
 
-public interface IAnalytics {
+public interface IAnalyticRoutine {
 
+	Map options = new HashMap();
+	
 	/**
 	 * Set the options for the analytic routines
 	 * @param options			A mappings of the option type and their values
@@ -19,9 +22,8 @@ public interface IAnalytics {
 	/**
 	 * Perform an algorithm on a data-frame. The routine does not necessarily have to 
 	 * alter/modify the existing data-frame
-	 * @param data				The data-frame containing the input data for the analytical routine
+	 * @param data				An array of data-frame containing the input data for the analytical routine
 	 * @return					The resulting data-frame as a result of the analytical routine
 	 */
-	ITableDataFrame runAlgorithm(ITableDataFrame data);
-	
+	ITableDataFrame runAlgorithm(ITableDataFrame... data);
 }
