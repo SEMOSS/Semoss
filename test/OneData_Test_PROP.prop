@@ -1,0 +1,19 @@
+START_ROW	2
+END_ROW	10000
+NUM_COLUMNS	12
+1	STRING
+2	STRING
+3	STRING
+4	STRING
+5	STRING
+6	STRING
+7	STRING
+8	STRING
+9	STRING
+10	STRING
+11	STRING
+12	STRING
+13	STRING
+RELATION	firstName@has first name@lastName;lastName@works at@companyName;lastName@lives at@address;lastName@lives in@city;lastName@lives in@county;lastName@lives in@state;address@is in@city;city@is in@county;county@is in@state;address@has@zip;
+NODE_PROP	lastName%email;lastName%phone1;lastName%phone2;lastName%web;
+RELATION_PROP	 
