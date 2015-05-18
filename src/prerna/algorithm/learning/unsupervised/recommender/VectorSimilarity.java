@@ -50,7 +50,8 @@ public class VectorSimilarity implements SimilarityAnalytics{
 	}	
 
 	@Override
-	public ITableDataFrame runAlgorithm(ITableDataFrame data) {
+	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
+		// TODO Auto-generated method stub
 		return null;
 	}
 }

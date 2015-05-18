@@ -3,8 +3,6 @@ package prerna.algorithm.learning.unsupervised.recommender;
 import org.apache.commons.math3.linear.BlockRealMatrix;
 
 /**
- *
- *
  * Duties of Recommender
  * 	handling the update of top users with new information
  * 	figure out when to stop running in the event of streaming

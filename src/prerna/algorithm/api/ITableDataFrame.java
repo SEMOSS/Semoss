@@ -10,9 +10,16 @@ import prerna.engine.api.ISelectStatement;
 public interface ITableDataFrame {
 
 	/**
-	 * Generates an empty data-frame
+	 * Adds a row to the data-frame
+	 * @param statement				The query result to add to the data-frame
 	 */
 	void addRow(ISelectStatement statement);
+	
+	/**
+	 * Adds a row to the data-frame
+	 * @param row					The Object[] row to add to the data-frame
+	 */
+	void addRow(Object[] row);
 	
 	/**
 	 * Gets the most similar columns given threshold and routine between this and the passed in table.
@@ -22,17 +29,17 @@ public interface ITableDataFrame {
 	 * @param routine				The analytical routine to perform the joining
 	 * @return						The column headers that are most similar from the two tables. First value is from this table, second value is from passed in table
 	 */
-	Vector<String> getMostSimilarColumns(ITableDataFrame table, double confidenceThreshold, IAnalytics routine);
+	Vector<String> getMostSimilarColumns(ITableDataFrame table, double confidenceThreshold, IAnalyticRoutine routine);
 	
 	/**
 	 * Joins the inputed data-frame to the current data-frame for the provided column names 
 	 * @param table					The data-frame to join with the current data-frame
 	 * @param colNameInTable		The column name in the original data-frame to join
-	 * @param colNameInJoiningTable				The column name in the inputed data-frame to join
+	 * @param colNameInJoiningTable	The column name in the inputed data-frame to join
 	 * @param confidenceThreshold	The confidence interval for the joining algorithm, should be in range [0,1]
 	 * @param routine				The analytical routine to perform the joining
 	 */
-	void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable, double confidenceThreshold, IAnalytics routine);
+	void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable, double confidenceThreshold, IAnalyticRoutine routine);
 	
 	/**
 	 * Undo the most recent join on the data-table
@@ -56,7 +63,7 @@ public interface ITableDataFrame {
 	 * alter/modify the existing data-frame
 	 * @param routine				The IAnalytics routine to perform onto the data-frame
 	 */
-	void performAction(IAnalytics routine);
+	void performAction(IAnalyticRoutine routine);
 	
 	/**
 	 * Undo the most recent analytical routine performed on the data-frame
