@@ -30,7 +30,7 @@
 		 <fileset dir="test/test_lib">
 		       <include name="*.jar"/>
 		 </fileset>
-		<fileset dir="test/test_stagging\db"/>
+		<fileset dir="test/test_stagging/db"/>
 	 </path>
 	
 	<!-- Create files p3 -->
@@ -39,7 +39,7 @@
 		<echo>Copying Tomcat Jars to test_lib...</echo>
 		<echo>Copying JUnit Jars to test_lib...</echo>
 			<copy todir="test/test_lib" overwrite="true">
-				<fileset dir="test\util_lib" includes="**/*.jar"/>
+				<fileset dir="test/util_lib" includes="**/*.jar"/>
 			</copy>
 		
 		<echo>Copying RDFGraph Jars to test_lib...</echo>
