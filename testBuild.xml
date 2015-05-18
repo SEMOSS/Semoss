@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- testBuilder is an Ant script file used to run the Automation test class.
+	It was created to be run on the Jenkins server after each SVN Commit for Semoss Thick Client
+	@author  August Bender 
+	@version 1.0 
+	@since   03-24-2015 
+	Questions? Email abender@deloitte.com  -->
+<project default= "run" name= "Aug Ben ANT testBuild - complie and run JAVA class">
+	
+	<!-- Clean -->
+	<target name="clean">
+		<echo>Cleaning...</echo>
+		<delete failonerror="false" dir="test/test_lib"/>
+		<delete failonerror="false" dir="test/test_stagging"/>
+		<!-- dbs are cleaned in test_stagging -->
+	</target>
+	
+	<!-- Create files p1 -->
+	<target name="create" depends="clean">
+		<echo>Creating test_lib...</echo>
+		<mkdir dir="test/test_lib"/>
+		<echo>Creating test_stagging...</echo>
+		<mkdir dir="test/test_stagging"/>
+		<echo>Creating DB Folder</echo>
+		<mkdir dir="test/test_stagging/db"/>
+	</target>
+	
+	<!-- Create files p2 -->
+	<path id="classpath">
+		 <fileset dir="test/test_lib">
+		       <include name="*.jar"/>
+		 </fileset>
+		<fileset dir="test/test_stagging\db"/>
+	 </path>
+	
+	<!-- Create files p3 -->
+	<target name="copy" depends="create">
+		
+		<echo>Copying Tomcat Jars to test_lib...</echo>
+		<echo>Copying JUnit Jars to test_lib...</echo>
+			<copy todir="test/test_lib" overwrite="true">
+				<fileset dir="test\util_lib" includes="**/*.jar"/>
+			</copy>
+		
+		<echo>Copying RDFGraph Jars to test_lib...</echo>
+			<copy todir="test/test_lib" overwrite="true">
+					<fileset dir="RDFGraphlib" includes="**/*.jar"/>
+			</copy>
+		
+		<echo>DBs to Stagging...</echo>
+			<copy todir="test/test_stagging/db" overwrite="true">
+				<fileset dir="db" />
+			</copy>
+		
+	</target>
+	
+	<!-- Compile -->
+	<target name="compile" depends="copy">
+		<echo>Compiling...</echo>
+		<javac classpathref="classpath" includeantruntime="true" srcdir="src" destdir="test/test_stagging">
+		</javac>
+	</target>
+	
+	<!-- Testing -->
+	<target name="test" depends="compile">
+		<echo>Testing...</echo>
+		<junit includeantruntime="true" outputtoformatters="true">
+			<classpath>
+				<fileset dir="test/test_lib">
+					<include name="*.jar"/>
+				</fileset>
+				<!--<pathelement location="test_lib\JUnit\junit-4.12.jar"/>
+				<pathelement location="test_lib\JUnit\ant-junit.jar"/> -->
+				<pathelement location="test/test_stagging"/>
+				<pathelement location="test/test_stagging/db"/>
+			</classpath>
+			<formatter type="plain" usefile="false" /> <!-- to screen -->
+			<formatter type="plain" />				   <!--  to file -->
+			<!-- Tests -->
+			<test name="prerna.test.AutomationTest" todir="test/test_stagging"/>
+		</junit>	
+		<echo>Done...</echo>
+	</target>
+	
+	<!-- Main Method -->
+	<target name="run" depends="test">
+		<echo>Running...</echo>
+	</target>
+	
+</project>
