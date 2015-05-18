@@ -2,14 +2,14 @@ package prerna.algorithm.learning.unsupervised.recommender;
 
 import org.apache.commons.math3.linear.BlockRealMatrix;
 
-import prerna.algorithm.api.IAnalytics;
+import prerna.algorithm.api.IAnalyticRoutine;
 
 /**
  * 
  * All algorithms used by the recommender must implement this interface
  *
  */
-public interface SimilarityAnalytics extends IAnalytics{
+public interface SimilarityAnalytics extends IAnalyticRoutine{
 	
 	/**
 	 * Perform an algorithm on a matrix. The routine does not necessarily have to 
