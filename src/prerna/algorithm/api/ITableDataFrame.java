@@ -1,5 +1,6 @@
 package prerna.algorithm.api;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -286,4 +287,10 @@ public interface ITableDataFrame {
 	 * @return						An array of data-frames containing the two partitions of the split
 	 */
 	ITableDataFrame[] splitTableByRow(int rowIdx);
+	
+	/**
+	 * Get all the data contained in the data-frame
+	 * @return						An ArrayList of Object arrays containing all the data
+	 */
+	ArrayList<Object[]> getData();
 }

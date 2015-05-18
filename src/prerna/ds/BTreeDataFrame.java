@@ -1,23 +1,20 @@
 package prerna.ds;
 
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
-//import java.util.
-
-
-
-
 
 import prerna.algorithm.api.IAnalytics;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.ISelectStatement;
 
-public class SimpleTreeAPI implements ITableDataFrame{
+public class BTreeDataFrame implements ITableDataFrame {
+	
 	SimpleTreeBuilder simpleTree;
+	
 	public void createTree(/*Header Data*/) {
 		simpleTree = new SimpleTreeBuilder();
 	}
@@ -30,9 +27,6 @@ public class SimpleTreeAPI implements ITableDataFrame{
 		
 		Vector<String> levels = simpleTree.findLevels();
 		Vector<String> rowOrder = new Vector<>();
-		
-		//create the rowOrder based on the hierarchy of the tree
-		Set<String> totalColumns = new HashSet<>();
 		
 		for(String level: levels) {
 			if(rowKeys.contains(level)) {
@@ -95,6 +89,23 @@ public class SimpleTreeAPI implements ITableDataFrame{
 			node = new StringClass(null, level);
 		}
 		return node;
+	}
+	
+	@Override
+	public ArrayList<Object[]> getData() {
+		if(simpleTree == null) {
+			return null;
+		}
+		
+		Vector<String> levels = simpleTree.findLevels();
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levels.elementAt(0));
+		SimpleTreeNode leftRootNode = typeRoot.getInstances().elementAt(0);
+		leftRootNode = leftRootNode.getLeft(leftRootNode);
+
+		ArrayList<Object[]> table = new ArrayList<Object[]>();
+		leftRootNode.flattenTreeFromRoot(leftRootNode, new Vector<String>(), table, levels.size());
+		
+		return table;
 	}
 
 	@Override
@@ -295,7 +306,6 @@ public class SimpleTreeAPI implements ITableDataFrame{
 	@Override
 	public void refresh() {
 		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
@@ -328,7 +338,5 @@ public class SimpleTreeAPI implements ITableDataFrame{
 	@Override
 	public void unfilter(String columnHeader) {
 		// TODO Auto-generated method stub
-		
 	}
-
 }
