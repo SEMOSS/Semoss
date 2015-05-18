@@ -1,0 +1,6 @@
+JAVA_VERSION="1.8.0_40"
+OS_NAME="Windows"
+OS_VERSION="5.2"
+OS_ARCH="amd64"
+SOURCE=" .:12deacac8257 corba:bd0186cd2419 deploy:1cf226848be9 hotspot:6824e2475e04 hotspot/make/closed:bad43f4d2630 hotspot/src/closed:262670bb96ce hotspot/test/closed:20584e33b79e install:5dde3aeed6eb jaxp:56f6ca79467d jaxws:a5f2cdedb940 jdk:fb21543dce39 jdk/make/closed:81dbfddd0c0f jdk/src/closed:8dd8653f0b32 jdk/test/closed:638494da7e01 langtools:83eca922346e nashorn:c2dd88e89edc pubs:1b43d79210fd sponsors:537a96f6cb8e"
+BUILD_TYPE="commercial"
