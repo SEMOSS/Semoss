@@ -57,7 +57,7 @@
 	<!-- Compile -->
 	<target name="compile" depends="copy">
 		<echo>Compiling...</echo>
-		<javac classpathref="classpath" includeantruntime="true" srcdir="src" destdir="test/test_stagging">
+		<javac encoding="cp1252" classpathref="classpath"  includeantruntime="true" srcdir="src" destdir="test/test_stagging">
 		</javac>
 	</target>
 	
