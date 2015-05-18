@@ -4,8 +4,11 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
@@ -491,33 +494,56 @@ public class SimpleTreeNode {
 	}
 	public static void tryFlatten()
 	{
-		StringClass cap = new StringClass("Lab");
-		StringClass bp1 = new StringClass("AnatomicPath");
-		StringClass bp2 = new StringClass("ClinicalPath");
-		
-		SimpleTreeNode capt = new SimpleTreeNode(cap);
-		SimpleTreeNode bp1t = new SimpleTreeNode(bp1);
-		SimpleTreeNode bp2t = new SimpleTreeNode(bp2);
-		SimpleTreeNode bp3 = new SimpleTreeNode(bp1);
-		SimpleTreeNode bp4 = new SimpleTreeNode(bp1);
-		
-		bp3.addChild(bp4);
-		bp1t.addChild(bp3);
-		
-		capt.addChild(bp1t);
-		capt.addChild(bp2t);
+		StringClass x1 = new StringClass("ROOT1");
+		StringClass x2 = new StringClass("CHILD1");
+		StringClass x3 = new StringClass("CHILD2");
+		StringClass x4 = new StringClass("CHILD_CHILD_1");
+		StringClass x5 = new StringClass("CHILD_CHILD_CHILD_1");
+		StringClass x6 = new StringClass("CHILD_CHILD_2");
 
-		Vector rootNodes = new Vector();
-		rootNodes.add(capt);
-		
-		
+		SimpleTreeNode X1 = new SimpleTreeNode(x1);
+		SimpleTreeNode X2 = new SimpleTreeNode(x2);
+		SimpleTreeNode X3 = new SimpleTreeNode(x3);
+		SimpleTreeNode X4 = new SimpleTreeNode(x4);
+		SimpleTreeNode X5 = new SimpleTreeNode(x5);
+		SimpleTreeNode X6 = new SimpleTreeNode(x6);
 
-		capt.printNode(rootNodes, true, 1);
+		X1.addChild(X2);
+		X1.addChild(X3);
+		X2.addChild(X4);
+		X4.addChild(X5);
+		X3.addChild(X6);
 		
-		capt.flattenRoots(capt, new Vector());
+		StringClass x11 = new StringClass("ROOT2");
+		StringClass x21 = new StringClass("2_CHILD1");
+		StringClass x31 = new StringClass("2_CHILD2");
+		StringClass x41 = new StringClass("2_CHILD_CHILD_1");
+		StringClass x51 = new StringClass("2_CHILD_CHILD_CHILD_1");
+		StringClass x61 = new StringClass("2_CHILD_CHILD_2");
+
+		SimpleTreeNode X11 = new SimpleTreeNode(x11);
+		SimpleTreeNode X21 = new SimpleTreeNode(x21);
+		SimpleTreeNode X31 = new SimpleTreeNode(x31);
+		SimpleTreeNode X41 = new SimpleTreeNode(x41);
+		SimpleTreeNode X51 = new SimpleTreeNode(x51);
+		SimpleTreeNode X61 = new SimpleTreeNode(x61);
+
+		X11.addChild(X21);
+		X11.addChild(X31);
+		X21.addChild(X41);
+		X41.addChild(X51);
+		X31.addChild(X61);
+		
+		X1.rightSibling = X11;
+		int levels = 5;
+		
+		List<Object[]> table = new ArrayList<Object[]>();
+		X1.flattenTreeFromRoot(X1, new Vector(levels), table, levels);
+		
+		for(Object[] row : table) {
+			System.out.println(Arrays.toString(row));
+		}
 	}
-	
-	
 
 	public static void main(String [] args) throws Exception
 	{
@@ -785,6 +811,52 @@ public class SimpleTreeNode {
 		return inVector;
 	}
 	
+	/**
+	 * Will flatten the data based on all the right siblings and children of the node input
+	 * Will add the flattened data into the table List<Object[]> input
+ 	 * @param table						The List<Object[]> that will contain the flattened data
+	 * @param node						The node to grab all right siblings and children to get the flattened data
+	 * @param parentNodeList			A Vector used to recursively store all the parent-child relationships in a row of the data
+	 * @param levels					The number of levels to place null values such that the data is not a jagged matrix
+	 */
+	public void flattenTreeFromRoot(SimpleTreeNode node, Vector<String> parentNodeList, List<Object[]> table, int levels)
+	{
+		while(node != null)
+		{
+			flattenTree(table, parentNodeList, node, levels);
+			node = node.rightSibling;
+		}
+	}
+	
+	/**
+	 * Recursive method to flattened out the tree
+ 	 * @param table						The List<Object[]> that will store the flattened data
+	 * @param parentNodeList			The Vector used to store all the parent-child relationship in a row of the data
+	 * @param node						The node in the recursive step of iterating through the tree
+	 * @param levels					The number of levels to place null values such that the data is not a jagged matrix
+	 */
+	public void flattenTree(List<Object[]> table, Vector<String> parentNodeList, SimpleTreeNode node, int levels)
+	{
+		if(node.leftChild != null)
+		{
+			Vector<String> newList = getNewVector(parentNodeList);
+			newList.add(node.leaf.getKey());
+			SimpleTreeNode leftChild = node.leftChild;
+			while(leftChild != null)
+			{
+				flattenTree(table, newList, leftChild, levels);
+				leftChild = leftChild.rightSibling;
+			}
+		}
+		else {
+			Vector<String> newList = getNewVector(parentNodeList);
+			newList.add(node.leaf.getKey());
+			while(newList.size() < levels) {
+				newList.add(null);
+			}
+			table.add(newList.toArray());
+		}
+	}
 	
 	// need to accomodate rows to fill
 	public void flattenRoots(SimpleTreeNode node, Vector outputVector)
