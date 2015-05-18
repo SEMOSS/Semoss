@@ -11,6 +11,7 @@ import java.util.Vector;
 
 
 
+
 import prerna.algorithm.api.IAnalytics;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.ISelectStatement;
@@ -104,41 +105,35 @@ public class SimpleTreeAPI implements ITableDataFrame{
 	}
 
 	@Override
-	public ITableDataFrame join(ITableDataFrame table, String colNameInTable,
+	public void join(ITableDataFrame table, String colNameInTable,
 			String colNameInJoiningTable, double confidenceThreshold,
 			IAnalytics routine) {
 		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override
-	public ITableDataFrame undoJoin() {
+	public void undoJoin() {
 		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override
-	public ITableDataFrame append(ITableDataFrame table) {
+	public void append(ITableDataFrame table) {
 		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override
-	public ITableDataFrame undoAppend() {
+	public void undoAppend() {
 		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override
-	public ITableDataFrame performAction(IAnalytics routine) {
+	public void performAction(IAnalytics routine) {
 		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override
-	public ITableDataFrame undoAction() {
+	public void undoAction() {
 		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override
@@ -304,33 +299,36 @@ public class SimpleTreeAPI implements ITableDataFrame{
 	}
 
 	@Override
-	public ITableDataFrame filter(String columnHeader, List<Object> filterValues) {
+	public void filter(String columnHeader, List<Object> filterValues) {
+		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public void removeColumn(String columnHeader) {
+		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public void removeRow(int rowIdx) {
+		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public ITableDataFrame[] splitTableByColumn(String colHeader) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public ITableDataFrame removeColumn(String columnHeader) {
+	public ITableDataFrame[] splitTableByRow(int rowIdx) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public ITableDataFrame removeRow(int rowIdx) {
+	public void unfilter(String columnHeader) {
 		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public ITableDataFrame splitTableByColumn(String colHeader) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public ITableDataFrame splitTableByRow(int rowIdx) {
-		// TODO Auto-generated method stub
-		return null;
+		
 	}
 
 }
