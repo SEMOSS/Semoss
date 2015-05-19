@@ -62,30 +62,47 @@ public class ExactStringMatcher implements IAnalyticRoutine {
 		Object[] table1Col = table1.getColumn(options.get(COLUMN_ONE_KEY).toString());
 		System.out.println(Arrays.toString(table1Col));
 	
-		Object[] table2Col = table2.getColumn(options.get(COLUMN_TWO_KEY).toString());
-		System.out.println(Arrays.toString(table2Col));
+		List<Object[]> flatData = table2.getData();
+		List<String> table2Headers = table2.getColumnHeaders();
+		int col2Index = table2Headers.indexOf(options.get(COLUMN_TWO_KEY).toString());
 
-		ITableDataFrame results = performMatch(table1Col, table2Col);//
+		ITableDataFrame results = performMatch(table1Col, flatData, table2Headers, col2Index);
 		
 		return results;
 	}
 
-	private ITableDataFrame performMatch(Object[] table1Col, Object[] table2Col) {
+	private ITableDataFrame performMatch(Object[] table1Col, List<Object[]> flatTable2, List<String> table2Headers, int col2Index) {
 		String col1Name = options.get(COLUMN_ONE_KEY).toString();
 		String col2Name = options.get(COLUMN_TWO_KEY).toString();
 		if(col1Name.equals(col2Name)){
 			col2Name = col2Name + "_2";
 		}
 		
-		ITableDataFrame bTree = new BTreeDataFrame(new String[]{col1Name, col2Name});
+		String[] bTreeHeaders = new String[table2Headers.size()];
+		bTreeHeaders[0] = col1Name;
+		int index = 1;
+		for(int k=0; k < table2Headers.size(); k++) {
+			if(k != col2Index) {
+				bTreeHeaders[index] = table2Headers.get(k);
+				index ++;
+			}
+		}
+		
+		ITableDataFrame bTree = new BTreeDataFrame(bTreeHeaders);
 		
 		for(int i = 0; i < table1Col.length; i++) {
-			for(int j = 0; j < table2Col.length; j++) {
-				if(table1Col[i].equals(table2Col[j])) {
-					System.out.println("MATCHED::::::::::::::::: " + table1Col[i] + "      " +   table2Col[j]  );
+			for(int j = 0; j < flatTable2.size(); j++) {
+				Object[] table2Row = flatTable2.get(j);
+				Object table2Col = table2Row[col2Index];
+				if(table1Col[i].equals(table2Col)) {
+					System.out.println("MATCHED::::::::::::::::: " + table1Col[i] + "      " +   table2Col  );
 					Map<String, Object> row = new HashMap<String, Object>();
 					row.put(col1Name , table1Col[i]);
-					row.put(col2Name, table2Col[j]);
+					for(int k=0; k < table2Headers.size(); k++) {
+						if(k != col2Index) {
+							row.put(table2Headers.get(k), table2Row[k]);
+						}
+					}
 					bTree.addRow(row);
 					success++;
 				}
