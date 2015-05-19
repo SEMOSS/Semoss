@@ -1,6 +1,7 @@
 package prerna.algorithm.impl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,11 +35,11 @@ public class ExactStringMatcher implements IAnalyticRoutine {
 		
 		SEMOSSParam p1 = new SEMOSSParam();
 		p1.setName(this.COLUMN_ONE_KEY);
-		options.set(0, p1);
+		options.add(0, p1);
 
 		SEMOSSParam p2 = new SEMOSSParam();
 		p2.setName(this.COLUMN_TWO_KEY);
-		options.set(1, p2);
+		options.add(1, p2);
 		
 		return options;
 	}
@@ -59,22 +60,32 @@ public class ExactStringMatcher implements IAnalyticRoutine {
 		ITableDataFrame table2 = data[1];
 		
 		Object[] table1Col = table1.getColumn(options.get(COLUMN_ONE_KEY).toString());
+		System.out.println(Arrays.toString(table1Col));
+	
 		Object[] table2Col = table2.getColumn(options.get(COLUMN_TWO_KEY).toString());
+		System.out.println(Arrays.toString(table2Col));
 
-		ITableDataFrame results = performMatch(table1Col, table2Col);
+		ITableDataFrame results = performMatch(table1Col, table2Col);//
 		
 		return results;
 	}
 
 	private ITableDataFrame performMatch(Object[] table1Col, Object[] table2Col) {
-		ITableDataFrame bTree = new BTreeDataFrame(new String[]{options.get(COLUMN_ONE_KEY).toString(), options.get(COLUMN_TWO_KEY).toString()});
+		String col1Name = options.get(COLUMN_ONE_KEY).toString();
+		String col2Name = options.get(COLUMN_TWO_KEY).toString();
+		if(col1Name.equals(col2Name)){
+			col2Name = col2Name + "_2";
+		}
+		
+		ITableDataFrame bTree = new BTreeDataFrame(new String[]{col1Name, col2Name});
 		
 		for(int i = 0; i < table1Col.length; i++) {
 			for(int j = 0; j < table2Col.length; j++) {
 				if(table1Col[i].equals(table2Col[j])) {
+					System.out.println("MATCHED::::::::::::::::: " + table1Col[i] + "      " +   table2Col[j]  );
 					Map<String, Object> row = new HashMap<String, Object>();
-					row.put(options.get(COLUMN_ONE_KEY).toString(), table1Col[i]);
-					row.put(options.get(COLUMN_TWO_KEY).toString(), table2Col[j]);
+					row.put(col1Name , table1Col[i]);
+					row.put(col2Name, table2Col[j]);
 					bTree.addRow(row);
 					success++;
 				}
