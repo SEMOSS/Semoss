@@ -153,7 +153,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public ArrayList<Object[]> getData() {
+	public List<Object[]> getData() {
 		if(simpleTree == null) {
 			return null;
 		}
@@ -162,14 +162,14 @@ public class BTreeDataFrame implements ITableDataFrame {
 		SimpleTreeNode leftRootNode = typeRoot.getInstances().elementAt(0);
 		leftRootNode = leftRootNode.getLeft(leftRootNode);
 
-		ArrayList<Object[]> table = new ArrayList<Object[]>();
+		List<Object[]> table = new ArrayList<Object[]>();
 		leftRootNode.flattenTreeFromRoot(leftRootNode, new Vector<String>(), table, levelNames.length);
 
 		return table;
 	}
 
 	@Override
-	public Vector<String> getMostSimilarColumns(ITableDataFrame table, double confidenceThreshold, IAnalyticRoutine routine) {
+	public List<String> getMostSimilarColumns(ITableDataFrame table, double confidenceThreshold, IAnalyticRoutine routine) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -194,33 +194,33 @@ public class BTreeDataFrame implements ITableDataFrame {
 		// let the routine run
 		LOGGER.info("Begining matching routine");
 		ITableDataFrame matched = routine.runAlgorithm(this, table);
-		Vector<String> columnNames = matched.getColumnHeaders();
+		List<String> columnNames = matched.getColumnHeaders();
 		
 		// add the new data to this tree
 		LOGGER.info("Augmenting tree");
 		joinTreeLevels(columnNames, colNameInJoiningTable);
-		ArrayList<Object[]> flatMatched = matched.getData();
+		List<Object[]> flatMatched = matched.getData();
 		// loop through all rows
 		for(Object[] flatRow : flatMatched) {
 			// add row as a key-value pair of level to instance value
 			Map<String, Object> row = new HashMap<String, Object>();
 			for(int i = 0; i < columnNames.size(); i++) {
-				row.put(columnNames.elementAt(i), flatRow[i]);
+				row.put(columnNames.get(i), flatRow[i]);
 			}
 			this.addRow(row);
 		}
 	}
 
-	private void joinTreeLevels(Vector<String> joinLevelNames, String colNameInJoiningTable) {
+	private void joinTreeLevels(List<String> joinLevelNames, String colNameInJoiningTable) {
 		String[] newLevelNames = new String[levelNames.length + joinLevelNames.size() - 1];
 		// copy old values to new
 		System.arraycopy(levelNames, 0, newLevelNames, 0, levelNames.length);
 		for(int i = levelNames.length; i < newLevelNames.length + 1; i++) {
-			String name = joinLevelNames.elementAt(i-levelNames.length);
+			String name = joinLevelNames.get(i-levelNames.length);
 			if(name.equals(colNameInJoiningTable)) {
 				//skip this since the column is being joined
 			} else {
-				newLevelNames[i] = joinLevelNames.elementAt(i-levelNames.length);
+				newLevelNames[i] = joinLevelNames.get(i-levelNames.length);
 			}
 		}
 
@@ -359,7 +359,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public int getNumCols() {
-		return levelNames.length;
+		return this.levelNames.length;
 	}
 
 	@Override
