@@ -80,10 +80,9 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	private String type;
 
 	//user can change these as advanced settings //TODO make absConvergence a perc of num years and budget 
-	private double trainingPerc, relConvergence, absConvergence;
+	private double centralPercOfBudget, trainingPerc, relConvergence, absConvergence;
 	
 	//user should not change these
-	private double centralDeploymentPer = 0.80;
 	private double deploymentFactor = 5;
 	private double interfacePercOfDeployment = 0.075;
 	
@@ -172,11 +171,12 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	 * @param relConvergence in decimal (NOT percent)
 	 * @param absConvergence
 	 */
-	public void setVariables(double budgetForYear, int years, double infRate, double disRate, double trainingPerc,double hourlyCost, int noOfPts, double relConvergence, double absConvergence) {
+	public void setVariables(double budgetForYear, int years, double infRate, double disRate, double centralPercOfBudget, double trainingPerc,double hourlyCost, int noOfPts, double relConvergence, double absConvergence) {
 		this.budgetForYear = budgetForYear;
 		this.maxYears = years;
 		this.infRate = infRate;
 		this.disRate = disRate;
+		this.centralPercOfBudget = centralPercOfBudget;
 		this.trainingPerc = trainingPerc;
 		this.hourlyCost = hourlyCost;
 		this.noOfPts = noOfPts;
@@ -396,8 +396,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 				numSites = systemNumOfSites[i];
 			}
 				
-			localSystemMaintenanceCostArr[i] = centralDeploymentPer * sysBudget;
-			double siteMaintenance = (1 - centralDeploymentPer) * sysBudget / numSites;
+			localSystemMaintenanceCostArr[i] = centralPercOfBudget * sysBudget;
+			double siteMaintenance = (1 - centralPercOfBudget) * sysBudget / numSites;
 			localSystemSiteMaintenaceCostArr[i] = siteMaintenance;
 			localSystemSiteDeploymentCostArr[i] = siteMaintenance * deploymentFactor;
 		}
@@ -429,10 +429,9 @@ public class SysSiteOptimizer extends UnivariateOpt {
 				localSystemSiteInterfaceCostArr[i] = interfacePercOfDeployment*localSystemSiteDeploymentCostArr[i];
 		
 		sysLength = centralSysList.size();
-		int siteLength = siteList.size();
 		for(i=0; i<sysLength; i++) 
 			if(centralSystemInterfaceCostArr[i] != 0)
-				centralSystemInterfaceCostArr[i] = centralSystemMaintenanceCostArr[i] * (1-centralDeploymentPer) * deploymentFactor * interfacePercOfDeployment / siteLength;
+				centralSystemInterfaceCostArr[i] = centralSystemMaintenanceCostArr[i] * deploymentFactor * interfacePercOfDeployment;
 		
 		resFunc.fillSiteLatLon();
 		siteLat = resFunc.siteLat;
@@ -445,7 +444,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		int i;
 		int length = maintenaceCosts.length;
 		for(i=0; i<length; i++) {
-			currSustainmentCost += maintenaceCosts[i] / centralDeploymentPer;
+			currSustainmentCost += maintenaceCosts[i] / centralPercOfBudget;
 		}
 		
 		length = centralSysMaintenaceCosts.length;
@@ -702,9 +701,9 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			row[3] = localSystemSiteMaintenaceCostArr[i];
 			row[4] = localSystemSiteDeploymentCostArr[i];
 			if(localSysKeptArr[i] == 1)
-				row[5] = "X";
+				row[5] = "Sustained";
 			else 
-				row[5] = "";
+				row[5] = "Consolidated";
 			list.add(row);
 		}
 		createTabAndDisplayList(headers,list,"NonCentral System Costs",false);
@@ -729,9 +728,9 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			row[1] = centralSystemMaintenanceCostArr[i];
 			row[2] = centralSystemInterfaceCostArr[i];
 			if(centralSysKeptArr[i] == 1)
-				row[3] = "X";
+				row[3] = "Sustained";
 			else 
-				row[3] = "";
+				row[3] = "Consolidated";
 			list.add(row);
 		}
 		createTabAndDisplayList(headers,list,"Central System Costs",false);
@@ -1006,7 +1005,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			sysDataList = SysOptUtilityMethods.createNonZeroList(dataList, localSystemDataMatrix[sysIndex]);
 			hosting = "Local";
 			
-			sysCurrSustainCost = localSystemMaintenanceCostArr[sysIndex] / centralDeploymentPer;
+			sysCurrSustainCost = localSystemMaintenanceCostArr[sysIndex] / centralPercOfBudget;
 			if(isModernizedPage) {
 				sysNumSites = (int)SysOptUtilityMethods.sumRow(localSystemSiteResultMatrix[sysIndex]);
 				sysFutureSustainCost = localSystemMaintenanceCostArr[sysIndex] + sysNumSites * localSystemSiteMaintenaceCostArr[sysIndex];
@@ -1356,7 +1355,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		
 		for(i=0; i<numSystems; i++) {
 			if(localSystemCapMatrix[i][capIndex] == 1) {
-				capCurrSustainCost += localSystemMaintenanceCostArr[i] / centralDeploymentPer;
+				capCurrSustainCost += localSystemMaintenanceCostArr[i] / centralPercOfBudget;
 				sysNumSites = (int)SysOptUtilityMethods.sumRow(localSystemSiteResultMatrix[i]);
 				capFutureSustainCost += localSysKeptArr[i] * (localSystemMaintenanceCostArr[i] + sysNumSites * localSystemSiteMaintenaceCostArr[i]);
 			}

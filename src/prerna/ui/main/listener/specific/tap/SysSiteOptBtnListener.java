@@ -52,7 +52,7 @@ public class SysSiteOptBtnListener implements IChakraListener {
 	private int maxYears;
 	private double maxBudget;
 	private double infRate, disRate;
-	private double trainingPerc;
+	private double centralPercOfBudget, trainingPerc;
 	private double hourlyRate;
 	private double relConvergence, absConvergence;
 	private int noOfPts;
@@ -91,7 +91,7 @@ public class SysSiteOptBtnListener implements IChakraListener {
 			//actually running the algorithm
 			optimizer = new SysSiteOptimizer();
 			optimizer.setEngines(playSheet.engine, costEngine, siteEngine); //likely hr core and tap site
-			optimizer.setVariables(maxBudget, maxYears, infRate, disRate, trainingPerc, hourlyRate, noOfPts, relConvergence, absConvergence); //budget per year, the number of years, infl rate, discount rate, training perc, number of points
+			optimizer.setVariables(maxBudget, maxYears, infRate, disRate, centralPercOfBudget, trainingPerc, hourlyRate, noOfPts, relConvergence, absConvergence); //budget per year, the number of years, infl rate, discount rate, training perc, number of points
 			optimizer.setUseDHMSMFunctionality(playSheet.useDHMSMFuncCheckbox.isSelected()); //whether the data objects will come from the list of systems or the dhmsm provided capabilities
 			optimizer.setOptimizationType(playSheet.getOptType()); //eventually will be Savings, ROI, or IRR
 			optimizer.setIsOptimizeBudget(playSheet.optimizeBudgetCheckbox.isSelected()); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
@@ -138,14 +138,33 @@ public class SysSiteOptBtnListener implements IChakraListener {
 		}
 		else 
 			this.maxBudget = userMaxBudget;
-
-		int userNoPts = Integer.parseInt(playSheet.startingPtsField.getText());
-		if(userNoPts<1 ){
-			failStr = failStr+"Number of Starting Points must be greater than 0\n";
+		
+		//convert to decimal
+		double centralPercOfBudget =Double.parseDouble(playSheet.centralPercOfBudgetField.getText())/100;
+		if(centralPercOfBudget<0 || centralPercOfBudget > 1){
+			failStr = failStr+"Central Percentage of Budget must be between 0 and 100 inclusive\n";
 			failCount++;
 		}
 		else 
-			this.noOfPts = userNoPts;
+			this.centralPercOfBudget = centralPercOfBudget;
+
+		//convert to decimal
+		double relConvergence =Double.parseDouble(playSheet.relConvergenceField.getText())/100;
+		if(relConvergence<0 || relConvergence > 1){
+			failStr = failStr+"Relative Convergence must be between 0 and 100 inclusive\n";
+			failCount++;
+		}
+		else 
+			this.relConvergence = relConvergence;
+
+		//convert to decimal
+		double absConvergence =Double.parseDouble(playSheet.absConvergenceField.getText())/100;
+		if(absConvergence<0 || absConvergence > 1){
+			failStr = failStr+"Absolute Convergence must be between 0 and 100 inclusive\n";
+			failCount++;
+		}
+		else 
+			this.absConvergence = absConvergence;
 		
 		//convert to decimal
 		double trainingPerc =Double.parseDouble(playSheet.trainingPercField.getText())/100;
@@ -156,7 +175,6 @@ public class SysSiteOptBtnListener implements IChakraListener {
 		else 
 			this.trainingPerc = trainingPerc;
 
-
 		double hourlyRate = Double.parseDouble(playSheet.hourlyRateField.getText());
 		if(hourlyRate<1 ){
 			failStr = failStr+"Hourly Rate must be greater than 0\n";
@@ -164,14 +182,18 @@ public class SysSiteOptBtnListener implements IChakraListener {
 		}
 		else 
 			this.hourlyRate = hourlyRate;
-
+	
+		int userNoPts = Integer.parseInt(playSheet.startingPtsField.getText());
+		if(userNoPts<1 ){
+			failStr = failStr+"Number of Starting Points must be greater than 0\n";
+			failCount++;
+		}
+		else 
+			this.noOfPts = userNoPts;
+		
 		//convert to decimal
 		this.infRate = Double.parseDouble(playSheet.infRateField.getText())/100;
 		this.disRate = Double.parseDouble(playSheet.disRateField.getText())/100;
-
-		//convert to decimal
-		this.relConvergence = Double.parseDouble(playSheet.relConvergenceField.getText())/100;
-		this.absConvergence = Double.parseDouble(playSheet.absConvergenceField.getText())/100;
 		
 		if(failCount>0){
 			failStr = failStr + "\nPlease adjust the inputs and try again";

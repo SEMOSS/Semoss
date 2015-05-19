@@ -419,7 +419,7 @@ public class SysSiteLPSolver extends LPOptimizer{
  
         for(i=0; i<numCentralSystems; i++) {
  			colno[index] = numLocalSystems * (siteLength + 1) + i + 1;
- 			row[index] = (1+trainingPerc) * centralSystemInterfaceCostArr[i] * siteLength;
+ 			row[index] = (1+trainingPerc) * centralSystemInterfaceCostArr[i];
  			index++;
         }
         solver.addConstraintex(numLocalSystems * siteLength + numCentralSystems, row, colno, LpSolve.LE, maxBudget);
