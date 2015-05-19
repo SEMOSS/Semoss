@@ -29,7 +29,7 @@ public interface ITableDataFrame {
 	 * @param routine				The analytical routine to perform the joining
 	 * @return						The column headers that are most similar from the two tables. First value is from this table, second value is from passed in table
 	 */
-	Vector<String> getMostSimilarColumns(ITableDataFrame table, double confidenceThreshold, IAnalyticRoutine routine);
+	List<String> getMostSimilarColumns(ITableDataFrame table, double confidenceThreshold, IAnalyticRoutine routine);
 	
 	/**
 	 * Joins the inputed data-frame to the current data-frame for the provided column names 
@@ -186,7 +186,7 @@ public interface ITableDataFrame {
 	 * Get the column header names for the data-frame
 	 * @return						The column header names for the data-frame
 	 */
-	Vector<String> getColumnHeaders();
+	List<String> getColumnHeaders();
 	
 	/**
 	 * Get the total number of columns in the data-frame
@@ -299,5 +299,5 @@ public interface ITableDataFrame {
 	 * Get all the data contained in the data-frame
 	 * @return						An ArrayList of Object arrays containing all the data
 	 */
-	ArrayList<Object[]> getData();
+	List<Object[]> getData();
 }
