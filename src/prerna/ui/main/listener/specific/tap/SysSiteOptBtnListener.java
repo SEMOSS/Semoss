@@ -49,11 +49,13 @@ public class SysSiteOptBtnListener implements IChakraListener {
 	private static final Logger LOGGER = LogManager.getLogger(SysOptBtnListener.class.getName());
 	private SysSiteOptPlaySheet playSheet;
 	
-	private int maxYears, maxBudget;
-	private int noOfPts;
+	private int maxYears;
+	private double maxBudget;
+	private double infRate, disRate;
 	private double trainingPerc;
 	private double hourlyRate;
-	private double infRate, disRate;
+	private double relConvergence, absConvergence;
+	private int noOfPts;
 	private SysSiteOptimizer optimizer;
 	
 	/**
@@ -89,12 +91,11 @@ public class SysSiteOptBtnListener implements IChakraListener {
 			//actually running the algorithm
 			optimizer = new SysSiteOptimizer();
 			optimizer.setEngines(playSheet.engine, costEngine, siteEngine); //likely hr core and tap site
-			optimizer.setVariables(maxBudget, maxYears, infRate, disRate, trainingPerc, hourlyRate, noOfPts); //budget per year, the number of years, infl rate, discount rate, training perc, number of points
+			optimizer.setVariables(maxBudget, maxYears, infRate, disRate, trainingPerc, hourlyRate, noOfPts, relConvergence, absConvergence); //budget per year, the number of years, infl rate, discount rate, training perc, number of points
 			optimizer.setUseDHMSMFunctionality(playSheet.useDHMSMFuncCheckbox.isSelected()); //whether the data objects will come from the list of systems or the dhmsm provided capabilities
 			optimizer.setOptimizationType(playSheet.getOptType()); //eventually will be Savings, ROI, or IRR
 			optimizer.setIsOptimizeBudget(playSheet.optimizeBudgetCheckbox.isSelected()); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
-			optimizer.setSysList(sysList); //list of all systems to use in analysis
-			optimizer.setMustModDecomList(sysModList, sysDecomList); //list of systems to force modernize/decommision. Decommision is not implemented yet
+			optimizer.setSysList(sysList, sysModList, sysDecomList); //list of all systems to use in analysis, force modernize and force decommision. Decommision is not implemented yet
 			optimizer.setPlaySheet(playSheet);
 
 			AlgorithmRunner runner = new AlgorithmRunner(optimizer);
@@ -129,56 +130,14 @@ public class SysSiteOptBtnListener implements IChakraListener {
 		else 
 			this.maxYears = userMaxYears;
 		
-		int userMaxBudget = Integer.parseInt(playSheet.maxBudgetField.getText()) * 1000000;
+		//convert to milions
+		double userMaxBudget = Double.parseDouble(playSheet.maxBudgetField.getText()) * 1000000;
 		if(userMaxBudget<0){
 			failStr = failStr+"Maximum Annual Budget must not be negative\n";
 			failCount++;
 		}
 		else 
-			this.maxBudget = userMaxBudget;//convert to milions
-		
-//		double userAttrition =Double.parseDouble(playSheet.attRateField.getText())/100;
-//		if(userAttrition<0 || userAttrition > 1){
-//			failStr = failStr+"Attrition Rate must be between 0 and 100 inclusive\n";
-//			failCount++;
-//		}
-//		else 
-//			this.attRate = userAttrition;
-//		
-//		double userHire =Double.parseDouble(playSheet.hireRateField.getText())/100;
-//		if(userHire<0){
-//			failStr = failStr+"Hiring Rate must not be negative\n";
-//			failCount++;
-//		}
-//		else 
-//			this.hireRate = userHire;
-//		if(userAttrition-userHire == 1){
-//			this.hireRate=0.000000000001;
-//		}
-//		
-//		double userInitLC = Double.parseDouble(playSheet.iniLearningCnstField.getText());
-//		if(userInitLC<0 || userInitLC>=1){
-//			failStr = failStr+"Experience Level at year 0 must be greater than or equal to 0 and less than 1\n";
-//			failCount++;
-//		}
-//		else 
-//			this.iniLC = userInitLC;
-//
-//		double userSecondLC = Double.parseDouble(playSheet.scdLearningCnstField.getText());
-//		if(userSecondLC<0 || userSecondLC>=1){
-//			failStr = failStr+"Second Experience Level must be greater than or equal to 0 and less than 1\n";
-//			failCount++;
-//		}
-//		else 
-//			this.scdLC = userSecondLC;
-//
-//		int userSecondLT = Integer.parseInt(playSheet.scdLearningTimeField.getText());
-//		if(userSecondLT<0 ){
-//			failStr = failStr+"Second Experience Level year must be greater than 0\n";
-//			failCount++;
-//		}
-//		else 
-//			this.scdLT = userSecondLT;
+			this.maxBudget = userMaxBudget;
 
 		int userNoPts = Integer.parseInt(playSheet.startingPtsField.getText());
 		if(userNoPts<1 ){
@@ -188,6 +147,7 @@ public class SysSiteOptBtnListener implements IChakraListener {
 		else 
 			this.noOfPts = userNoPts;
 		
+		//convert to decimal
 		double trainingPerc =Double.parseDouble(playSheet.trainingPercField.getText())/100;
 		if(trainingPerc<0 || trainingPerc > 1){
 			failStr = failStr+"Training Percentage must be between 0 and 100 inclusive\n";
@@ -205,8 +165,13 @@ public class SysSiteOptBtnListener implements IChakraListener {
 		else 
 			this.hourlyRate = hourlyRate;
 
-		this.infRate = Double.parseDouble(playSheet.infRateField.getText());
-		this.disRate = Double.parseDouble(playSheet.disRateField.getText());
+		//convert to decimal
+		this.infRate = Double.parseDouble(playSheet.infRateField.getText())/100;
+		this.disRate = Double.parseDouble(playSheet.disRateField.getText())/100;
+
+		//convert to decimal
+		this.relConvergence = Double.parseDouble(playSheet.relConvergenceField.getText())/100;
+		this.absConvergence = Double.parseDouble(playSheet.absConvergenceField.getText())/100;
 		
 		if(failCount>0){
 			failStr = failStr + "\nPlease adjust the inputs and try again";

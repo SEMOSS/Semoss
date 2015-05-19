@@ -149,6 +149,7 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 	    	}
 	    }
 	 	((BigDataEngine) coreDB).infer();
+	 	((BigDataEngine) coreDB).commit();
 	 	
 		return success;		
 	}

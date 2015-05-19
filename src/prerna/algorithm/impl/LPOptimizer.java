@@ -40,7 +40,7 @@ import prerna.ui.components.api.IPlaySheet;
  */
 public class LPOptimizer extends AbstractOptimizer{
 	
-	static final Logger logger = LogManager.getLogger(LPOptimizer.class.getName());
+	static final Logger LOGGER = LogManager.getLogger(LPOptimizer.class.getName());
 	
 	protected int solved;
 	
@@ -59,16 +59,26 @@ public class LPOptimizer extends AbstractOptimizer{
 	 * Sets up the model for calculations to be performed upon.
 	 */
 	@Override
-	public void setupModel() {
+	public void setupModel() throws LpSolveException{
+		LOGGER.info("Setting up LP Solve model...");
 		try {
 			setVariables();
+			solver.setAddRowmode(true);
+			setObjFunction();
+			setConstraints();
+			solver.setAddRowmode(false);
 		} catch (LpSolveException e1) {
-			e1.printStackTrace();
+			LOGGER.error("Failed to set up LP Solve model.");
+			throw new LpSolveException("Failed to set up LP Solve model" + e1.getMessage());
 		}
-		solver.setAddRowmode(true);
-		setObjFunction();
-		setConstraints();
-		solver.setAddRowmode(false);
+
+		LOGGER.info("Successfully set up LP Solve model");
+		
+		try{
+			solver.writeLp("model.lp");
+		}catch (LpSolveException e) {
+			LOGGER.error("Could not write LP Solve model to file. Continuing anyways...");
+		}
 	}
 	
 	/**
@@ -111,7 +121,7 @@ public class LPOptimizer extends AbstractOptimizer{
 	 * Sets constraints in the model.
 	 */
 	@Override
-	public void setConstraints() {
+	public void setConstraints() throws LpSolveException  {
 		
 	}
 
@@ -119,7 +129,7 @@ public class LPOptimizer extends AbstractOptimizer{
 	 * Sets the function for calculations.
 	 */
 	@Override
-	public void setObjFunction() {
+	public void setObjFunction() throws LpSolveException  {
 		
 	}
 
@@ -129,15 +139,14 @@ public class LPOptimizer extends AbstractOptimizer{
 	@Override
 	public void execute() {
 		solver.setVerbose(LpSolve.IMPORTANT);
-		// solve the problem
 		try {
+			LOGGER.info("Executing LP Solve...");
 			solved = solver.solve();
+			LOGGER.info("Successfully executed LP Solve...");
 		} catch (LpSolveException e) {
-			e.printStackTrace();
+			solved = -1;
+			LOGGER.error("Failed to execute LP Solve...");
 		}
-		
-		// print solution
-		//logger.info("Value of objective function: " + solver.getObjective());
 	}
 
 	/**
@@ -146,8 +155,10 @@ public class LPOptimizer extends AbstractOptimizer{
 	@Override
 	public void deleteModel() {
 		if(solver!=null) {
+			LOGGER.info("Deleting LP solver...");
 			solver.deleteLp();
 			solver = null;
+			LOGGER.info("Successfully deleted LP solver.");
 		}
 	}
 }

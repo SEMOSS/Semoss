@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.algorithm.impl.specific.tap;
 
+import lpsolve.LpSolveException;
+
 
 
 /**
@@ -36,9 +38,9 @@ public class SysSiteIRROptFunction extends SysSiteOptFunction{
 	
 	SysSiteIRRLinInterp linInt;
 	
-	public void setVariables(int[][] systemDataMatrix, int[][] systemBLUMatrix, double[][] systemSiteMatrix, int[] systemTheater, int[] systemGarrison, Integer[] sysModArr, Integer[] sysDecomArr, double[] maintenaceCosts, double[] siteMaintenaceCosts, double[] siteDeploymentCosts, double[] interfaceCostArr, double[] centralInterfaceCostArr, int[][] centralSystemDataMatrix,int[][] centralSystemBLUMatrix, int[] centralSystemTheater, int[] centralSystemGarrison, Integer[] centralModArr, Integer[] centralDecomArr, double[] centralSystemMaintenaceCosts, double budgetForYear, int years, double currentSustainmentCost, double infRate, double disRate, double trainingPerc) {
+	public void setVariables(int[][] localSystemDataMatrix, int[][] localSystemBLUMatrix, int[] localSystemIsTheaterArr, int[] localSystemIsGarrisonArr, Integer[] localSystemIsModArr, Integer[] localSystemIsDecomArr, double[] localSystemMaintenanceCostArr, double[] localSystemSiteMaintenaceCostArr, double[] localSystemSiteDeploymentCostArr, double[] localSystemSiteInterfaceCostArr, double[][] localSystemSiteMatrix, int[][] centralSystemDataMatrix, int[][] centralSystemBLUMatrix, int[] centralSystemIsTheaterArr, int[] centralSystemIsGarrisonArr, Integer[] centralSystemIsModArr, Integer[] centralSystemIsDecomArr, double[] centralSystemMaintenanceCostArr, double[] centralSystemInterfaceCostArr, double trainingPerc, double currentSustainmentCost, double budgetForYear, int years, double infRate, double disRate) {
 		
-		super.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, sysModArr, sysDecomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, interfaceCostArr, centralInterfaceCostArr, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts,  budgetForYear, years, currentSustainmentCost, infRate, disRate, trainingPerc);
+		super.setVariables(localSystemDataMatrix, localSystemBLUMatrix, localSystemIsTheaterArr, localSystemIsGarrisonArr, localSystemIsModArr, localSystemIsDecomArr, localSystemMaintenanceCostArr, localSystemSiteMaintenaceCostArr, localSystemSiteDeploymentCostArr, localSystemSiteInterfaceCostArr, localSystemSiteMatrix, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemIsTheaterArr, centralSystemIsGarrisonArr, centralSystemIsModArr, centralSystemIsDecomArr, centralSystemMaintenanceCostArr, centralSystemInterfaceCostArr, trainingPerc, currentSustainmentCost, budgetForYear, years, infRate, disRate);
 
 		createLinearInterpolation();
 	}
@@ -47,18 +49,27 @@ public class SysSiteIRROptFunction extends SysSiteOptFunction{
 	 * Given a budget, optimize the savings to return max savings.
 	 * @return double	max savings possible when optimizing for budget*/
 	public double value(double arg0) {
-		
-		runLPSolve(arg0);
-		if(currentSustainmentCost == futureSustainmentCost) {
-			irr =  -1E-30;
-		}else {
+		try{
+			runLPSolve(arg0);
+			if(adjustedTotalSavings <= 0.0) {
+				irr = -1E-40;
+				printMessage("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", internal rate of return " + "does not exist since no savings");
+			}else {
+				
+				linInt.setYearSavingsAndYearsToComplete(currentSustainmentCost - futureSustainmentCost, yearsToComplete);
+				linInt.execute();
+				irr =  linInt.retVal;
+				if(irr == -1E-30 || irr == -1E-31) {
+					printMessage("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", internal rate of return "+ "has problem with calculation");
+				}else {
+					printMessage("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", internal rate of return "+(irr*100) + "%");
+				}
+			}
 			
-			linInt.setYearSavingsAndYearsToComplete(currentSustainmentCost - futureSustainmentCost, yearsToComplete);
-			linInt.execute();
-			irr =  linInt.retVal;
+		}catch(LpSolveException e) {
+			irr = -1E-40;
+			printMessage("Error solving iteration " + count);
 		}
-		printMessage("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", internal rate of return "+irr + "%");
-		
 		return irr;
 		
 	}
@@ -66,7 +77,7 @@ public class SysSiteIRROptFunction extends SysSiteOptFunction{
 	public void createLinearInterpolation()
 	{
 		 linInt = new SysSiteIRRLinInterp();
-		 linInt.setMinAndMax(-99, 10000000);
+		 linInt.setMinAndMax(0, 10000000);
 		 linInt.setVariables(budgetForYear, totalYrs, infRate);
 	}
 

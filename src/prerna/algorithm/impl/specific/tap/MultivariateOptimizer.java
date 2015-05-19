@@ -43,6 +43,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.math.RandVectorGenerator;
+import prerna.ui.components.specific.tap.OptChartUtilityMethods;
 import prerna.ui.components.specific.tap.SysOptGraphFunctions;
 import prerna.ui.components.specific.tap.SysOptPlaySheet;
 
@@ -213,12 +214,12 @@ public class MultivariateOptimizer extends UnivariateSysOptimizer{
 		displayHeaderLabels();
 
 		SysOptGraphFunctions graphF= new SysOptGraphFunctions();
-		graphF.setOptimzer(this,f.learningConstants);
+		graphF.setOptimizer(this);
 
 		Hashtable chartHash3 = graphF.createCostChart();
 		Hashtable chartHash4 = graphF.createCumulativeSavings();
 		Hashtable chartHash5 = graphF.createBreakevenGraph();
-		Hashtable chartHash6 = graphF.createLearningCurve();
+		Hashtable chartHash6 = OptChartUtilityMethods.createLearningCurve(2014, iniLC, scdLT, scdLC, f.learningConstants);
 
 		((SysOptPlaySheet)playSheet).tab3.callIt(chartHash3);
 		((SysOptPlaySheet)playSheet).tab4.callIt(chartHash4);

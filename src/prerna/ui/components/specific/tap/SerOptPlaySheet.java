@@ -70,9 +70,22 @@ import prerna.util.DIHelper;
 @SuppressWarnings("serial")
 public class SerOptPlaySheet extends OptPlaySheet{
 
-
-	public BrowserGraphPanel timeline;
+	//input panel- optimization types
 	public JRadioButton rdbtnBreakeven, rdbtnProfit, rdbtnROI;
+	
+	//overview tab components
+	public JLabel costLbl, recoupLbl;
+	public BrowserGraphPanel tab1, tab2;
+	
+	//timeline tab
+	public JPanel timelinePanel;
+	public BrowserGraphPanel timeline;
+	
+	//other tabs
+	public JPanel specificAlysPanel = new JPanel();
+	public JPanel playSheetPanel = new JPanel();
+	public JTextPane helpTextArea;
+	
 	
 	@Override
 	protected void createBasicParamComponents() {
@@ -266,7 +279,7 @@ public class SerOptPlaySheet extends OptPlaySheet{
 		timeline = new BrowserGraphPanel("/html/MHS-RDFSemossCharts/app/timeline.html");
 		super.createDisplayPanel();
 
-		lblInvestmentRecoupTime = new JLabel("Investment Recoup Time:");
+		JLabel lblInvestmentRecoupTime = new JLabel("Investment Recoup Time:");
 		GridBagConstraints gbc_lblInvestmentRecoupTime = new GridBagConstraints();
 		gbc_lblInvestmentRecoupTime.insets = new Insets(0, 0, 5, 5);
 		gbc_lblInvestmentRecoupTime.gridx = 4;
@@ -410,33 +423,30 @@ public class SerOptPlaySheet extends OptPlaySheet{
 
 	}
 	
+	@Override
 	public void setGraphsVisible(boolean visible) {
+		super.setGraphsVisible(visible);
 		tab1.setVisible(visible);
 		tab2.setVisible(visible);
-		tab3.setVisible(visible);
-		tab4.setVisible(visible);
-		tab5.setVisible(visible);
-		tab6.setVisible(visible);
 		timeline.setVisible(visible);
 	}
 	
 	/**
 	 * Clears panels within the playsheet
 	 */
+	@Override
 	public void clearPanels() {
+		super.clearPanels();
 		specificAlysPanel.removeAll();
-		specificSysAlysPanel.removeAll();
 		playSheetPanel.removeAll();
 	}
 	
 	/**
 	 * Sets N/A or $0 for values in optimizations. Allows for different TAP algorithms to be run as empty functions.
 	 */
-	public void clearLabels()
-	{
-		bkevenLbl.setText("N/A");
-        savingLbl.setText("$0");
-		roiLbl.setText("N/A");
+	@Override
+	public void clearLabels() {
+		super.clearLabels();
 		recoupLbl.setText("N/A");
 		costLbl.setText("$0");
 	}

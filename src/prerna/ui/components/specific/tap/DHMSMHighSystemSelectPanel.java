@@ -32,6 +32,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.util.ArrayList;
+import java.util.Vector;
 
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
@@ -89,8 +90,9 @@ public class DHMSMHighSystemSelectPanel extends JPanel {
 		
 		addCheckBoxes();
 
-		String[] sysArray = new String[]{"Error: no systems"};
-		sysSelectDropDown.setupButton(sysArray);
+		Vector<String> elementList = new Vector<String>();
+		elementList.add("Error: no systems");
+		sysSelectDropDown.setupButton(elementList);
 		
 		addListener();
 

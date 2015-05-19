@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.algorithm.impl.specific.tap;
 
+import lpsolve.LpSolveException;
+
 
 /**
  * Interface representing a univariate real function that is implemented for TAP system and service optimization functions.
@@ -37,14 +39,12 @@ public class SysSiteROIOptFunction extends SysSiteOptFunction{
 	 * Given a budget, optimize the savings to return max savings.
 	 * @return double	max savings possible when optimizing for budget*/
 	public double value(double arg0) {
-		
-		runLPSolve(arg0);
-		if(adjustedDeploymentCost == 0)
-			roi = 0;
-		else
-			roi = (adjustedTotalSavings / adjustedDeploymentCost - 1) * 100;
-		
-		printMessage("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", roi "+roi+"%");
+		try{
+			runLPSolve(arg0);
+			printMessage("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", roi "+(roi*100)+"%");
+		}catch(LpSolveException e) {
+			printMessage("Error solving iteration " + count);
+		}
 		return roi;
 	}
 

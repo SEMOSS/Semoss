@@ -58,14 +58,6 @@ public class SysSiteIRRLinInterp extends LinearInterpolation{
 		this.savingsForYear = savingsForYear;
 		this.yearsToComplete = yearsToComplete;
 	}
-	
-	@Override
-	public void execute() {
-		super.execute();
-		if(retVal == -1.0E30) {
-			retVal = Double.POSITIVE_INFINITY;
-		}
-	}
 
 	/**
 	 * Calculate the residual value for a given root estimate, possibleDiscRate.
@@ -74,7 +66,7 @@ public class SysSiteIRRLinInterp extends LinearInterpolation{
 	 */
 	@Override
 	public Double calcY(double possibleDiscRate) {
-		double possibleMu = (1 + infRate / 100) / (1 + possibleDiscRate / 100);
+		double possibleMu = (1 + infRate) / (1 + possibleDiscRate);
 
 		double adjustedTotalSavings = SysOptUtilityMethods.calculateAdjustedTotalSavings(possibleMu, yearsToComplete, totalYrs, savingsForYear);
 		double adjustedDeploymentCost = SysOptUtilityMethods.calculateAdjustedDeploymentCost(possibleMu, yearsToComplete, budgetForYear);

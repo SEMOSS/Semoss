@@ -27,128 +27,80 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
 
-import prerna.algorithm.impl.specific.tap.UnivariateSysOptimizer;
+import prerna.algorithm.impl.specific.tap.SysSiteOptimizer;
 
 /**
  * This class is used to optimize graph functions used in system optimization calculations.
  */
-public class SysOptGraphFunctions{
+public class SysSiteOptGraphFunctions{
 
-	private UnivariateSysOptimizer opt = null;
+	private SysSiteOptimizer opt = null;
 	private int maxYears;
+	private int startYear;
+
 	/**
 	 * Sets the Systems Optimizer and other constants that will be used.
 	 * @param opt SysNetSavingsOptimizer
 	 */
-	public void setOptimizer (UnivariateSysOptimizer opt)
+	public void setOptimzer(SysSiteOptimizer opt)
 	{
 		this.opt=opt;
 		this.maxYears = opt.maxYears;
-	}
-	
-	public Hashtable createModernizedHeatMap()
-	{
-		ArrayList<String> sysList = opt.sysOpt.sysList;
-		double[] modernizedList = opt.sysOpt.systemIsModernized;
-		Hashtable dataHash = new Hashtable();
-		String xName = "System";
-		String yName = "Modernized";
-		for (int i=0;i<sysList.size();i++)
-		{
-			Hashtable elementHash = new Hashtable();
-			String sysName = sysList.get(i);	
-			double modernizedVal = modernizedList[i];
-			sysName = sysName.replaceAll("\"", "");
-			String key = sysName +"-"+yName;
-			if(modernizedVal>0)
-				modernizedVal = 1.0;
-			else
-				modernizedVal = 0.0;
-			elementHash.put(xName, sysName);
-			elementHash.put(yName, yName);
-			elementHash.put("value", modernizedVal);
-			dataHash.put(key, elementHash);
-			
-		}
-
-		Hashtable allHash = new Hashtable();
-		allHash.put("dataSeries", dataHash);
-		allHash.put("title", "Modernized Systems"); //var1[0] + " vs " + var1[1]);
-		allHash.put("xAxisTitle", xName);
-		allHash.put("yAxisTitle", yName);
-		allHash.put("value", "value");
-		allHash.put("hideHeader","true");
-		
-		return allHash;
+		this.startYear = opt.startYear;
 	}
 	
 	public Hashtable createCostChart()
 	{
-		int thisYear = 2014;
-		double[] buildCost = new double[maxYears];
-		double[] sustainCost = new double[maxYears];
 		int[] totalYearsAxis = new int[maxYears];
-		for(int i=0;i<maxYears;i++) {
-			buildCost[i] = opt.installCostList.get(i);
-			sustainCost[i] = opt.sustainCostList.get(i);
-			totalYearsAxis[i]=thisYear+i;
+		for (int i=0;i<maxYears;i++) {
+			totalYearsAxis[i]=startYear+i;
 		}
 
 		Hashtable barChartHash = new Hashtable();
 		Hashtable seriesHash = new Hashtable();
-//		Hashtable colorHash = new Hashtable();
+		Hashtable colorHash = new Hashtable();
 		barChartHash.put("type",  "column");
-		//barChartHash.put("stack", "normal");
 		barChartHash.put("title",  "Build and Sustainment Cost ");
-		barChartHash.put("yAxisTitle", "Learning-Adjusted Cost (Actual-time value)");
+		barChartHash.put("yAxisTitle", "Cost (Actual-time value)");
 		barChartHash.put("xAxisTitle", "Fiscal Year");
 		barChartHash.put("xAxis", totalYearsAxis);
-		seriesHash.put("Build Costs", buildCost);
-		seriesHash.put("Sustainment Costs", sustainCost);
-//		colorHash.put("Build Costs", "#4572A7");
-//		colorHash.put("Sustainment Costs", "#80699B");
+		seriesHash.put("Build Costs", opt.deployCostPerYearArr);
+		seriesHash.put("Current Sustainment Costs", opt.currCostPerYearArr);
+		seriesHash.put("Future Sustainment Costs", opt.futureCostPerYearArr);
+		colorHash.put("Build Costs", "#4572A7");
+		colorHash.put("Sustainment Costs", "#80699B");
 		
-		if(opt.workDoneList!=null) {
-			double[] workDoneList = new double[maxYears];
-			for(int i=0;i<maxYears;i++)
-				workDoneList[i] = opt.workDoneList.get(i);
-			seriesHash.put("Work Performed", workDoneList);
-//			colorHash.put("Work Performed", "#4592B7");
-		}
 		barChartHash.put("dataSeries",  seriesHash);
-//		barChartHash.put("colorSeries", colorHash);
+		barChartHash.put("colorSeries", colorHash);
 		return barChartHash;
 		
 	}
 	
+	/**
+	 * Used to create a hashtable that stores information about cumulative savings used in a bar graph.
+	
+	 * @return Hashtable 	Contains information about cumulative sustainment savings. */
 	public Hashtable createCumulativeSavings()
 	{
-		int thisYear = 2013+1;
-
 		int[] totalYearsAxis = new int[maxYears];
-		double[] yearSeries = new double[maxYears];
 		for (int i=0;i<maxYears;i++) {
-			yearSeries[i]=opt.cumSavingsList.get(i);
-			totalYearsAxis[i]=thisYear+i+1;
+			totalYearsAxis[i]=startYear+i;
 		}
 		Hashtable barChartHash = new Hashtable();
 		Hashtable seriesHash = new Hashtable();
-//		Hashtable colorHash = new Hashtable();
+		Hashtable colorHash = new Hashtable();
 		barChartHash.put("type",  "column");
 		barChartHash.put("stack", "normal");
 		barChartHash.put("title",  "Accumulative Sustainment Savings");
 		barChartHash.put("yAxisTitle", "Savings (Actual-time value)");
 		barChartHash.put("xAxisTitle", "Fiscal Year");
 		barChartHash.put("xAxis", totalYearsAxis);
-
-		seriesHash.put("Savings", yearSeries);
-	
-		barChartHash.put("dataSeries",  seriesHash);
-//		barChartHash.put("colorSeries", colorHash);
+		seriesHash.put("Sustainment Savings", opt.cummCostAvoidedArr);
 		
+		barChartHash.put("dataSeries",  seriesHash);
+		barChartHash.put("colorSeries", colorHash);
 		return barChartHash;
 	}
 
@@ -158,30 +110,19 @@ public class SysOptGraphFunctions{
 	 * @return Hashtable		Hashtable containing information about the balance over a time horizon. */
 	public Hashtable createBreakevenGraph()
 	{
-		int thisYear = 2013+1;
-		double[][] balanceList  = new double[maxYears][2];
-		int[] totalYearsAxis = new int[maxYears];
-		for (int i=0; i<maxYears;i++)
-		{	
-			balanceList[i][0]=thisYear+i;
-			balanceList[i][1]=opt.breakEvenList.get(i);
-			totalYearsAxis[i]=thisYear+i+1;
-		}
 		Hashtable barChartHash = new Hashtable();
 		Hashtable seriesHash = new Hashtable();
-//		Hashtable colorHash = new Hashtable();
+		Hashtable colorHash = new Hashtable();
 		barChartHash.put("type",  "line");
 		barChartHash.put("title",  "Balance Over Time Horizon");
-		barChartHash.put("yAxisTitle", "Balance(Actual time value)");
+		barChartHash.put("yAxisTitle", "Balance (Actual-time value)");
 		barChartHash.put("xAxisTitle", "Fiscal Year");
-		//barChartHash.put("xAxis", totalYearsAxis);
-		seriesHash.put("Balance Line", balanceList);
-//		colorHash.put("Balance Line", "#4572A7");
+		seriesHash.put("Balance Line", opt.balanceArr);
+		colorHash.put("Balance Line", "#4572A7");
 		barChartHash.put("dataSeries",  seriesHash);
-//		barChartHash.put("colorSeries", colorHash);
+		barChartHash.put("colorSeries", colorHash);
 		barChartHash.put("xAxisInterval", 1);
 		return barChartHash;
 	}
-
 
 }

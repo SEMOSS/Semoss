@@ -397,7 +397,7 @@ public final class SysOptUtilityMethods {
 		return adjustedSavingsArr;
 	}
 	
-	public static double[] calculateAdjustedDeploymentCostArr(double mu, double yearsToComplete, int totalYrs, double budgetForYear){
+	public static double[] calculateAdjustedDeploymentCostArr(double mu, double yearsToComplete, boolean roundYearsUp, int totalYrs, double budgetForYear){
 		
 		int i;
 		double[] adjustedDeploymentCostArr = new double[totalYrs];
@@ -408,8 +408,11 @@ public final class SysOptUtilityMethods {
 					adjustedDeploymentCostArr[i] = budgetForYear * Math.pow(mu,i);
 					
 				}else if(i<yearsToComplete) {
-					adjustedDeploymentCostArr[i] = (yearsToComplete - Math.floor(yearsToComplete)) *  budgetForYear *  Math.pow(mu,i);
-					
+					if(roundYearsUp) {
+						adjustedDeploymentCostArr[i] = (Math.ceil(yearsToComplete) - Math.floor(yearsToComplete)) *  budgetForYear *  Math.pow(mu,i);
+					} else {
+						adjustedDeploymentCostArr[i] = (yearsToComplete - Math.floor(yearsToComplete)) *  budgetForYear *  Math.pow(mu,i);
+					}
 				}else {
 					adjustedDeploymentCostArr[i] = 0;
 				}
@@ -429,6 +432,18 @@ public final class SysOptUtilityMethods {
 		}
 		return adjustedDeploymentCostArr;
 
+	}
+	
+	public static double[] calculateCummulativeArr(double[] array) {
+		double cummulative = 0.0;
+		int length = array.length;
+
+		double[] retArray = new double[length];
+		for(int i = 0; i<length; i++) {
+			cummulative += array[i];
+			retArray[i] = cummulative;
+		}
+		return retArray;
 	}
 	
 }
