@@ -22,9 +22,14 @@ public class ExactStringMatcher implements IAnalyticRoutine {
 	public void setOptions(Map options) {
 		this.options = options;
 	}
+	
+	@Override
+	public Map getOptions() {
+		return this.options;
+	}
 
 	@Override
-	public List<SEMOSSParam> getOptions() {
+	public List<SEMOSSParam> getAllAlgorithmOptions() {
 		List<SEMOSSParam> options = new ArrayList<SEMOSSParam>();
 		
 		SEMOSSParam p1 = new SEMOSSParam();
@@ -104,5 +109,4 @@ public class ExactStringMatcher implements IAnalyticRoutine {
 	public String getResultDescription() {
 		return "This routine matches matches objects by calling .toString and then comparing using .equals method";
 	}
-
 }
