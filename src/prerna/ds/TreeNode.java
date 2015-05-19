@@ -1140,7 +1140,6 @@ public class TreeNode {
 			return getLeaf(node.rightChild, false);
 		else return node;
 	}
-
 		
 	// x
 	public void flattenTree(Vector<TreeNode> parentNodeList, TreeNode node)
@@ -1183,17 +1182,35 @@ public class TreeNode {
 		}
 	}
 
-	public void flattenTree2(List<String> table, TreeNode node)
+	public void flattenTree2Array(List<String> table, TreeNode node)
 	{
-		if(node.leftChild != null)
+		table.add(node.leaf.getKey());
+		if(node.leftChild != null && node.rightChild != null)
 		{
-			table.add(node.leaf.getKey());
-			TreeNode leftChild = node.leftChild;
-			while(leftChild != null)
+			if(node.leftChild != null)
 			{
-				flattenTree2(table, leftChild);
-				leftChild = leftChild.rightSibling;
+				TreeNode leftChild = node.leftChild;
+				while(leftChild != null)
+				{
+					flattenTree2Array(table, leftChild);
+					leftChild = leftChild.rightSibling;
+				}
 			}
+			if(node.rightChild != null && node.rightSibling == null)
+			{
+				TreeNode leftChild = node.rightChild;
+				while(leftChild != null)
+				{
+					flattenTree2Array(table, leftChild);
+					leftChild = leftChild.rightSibling;
+				}
+			}
+		}
+		else
+		{			
+			System.err.print("Reached the else. Here is my leaf");
+			System.err.println("----");
+
 		}
 	}
 
@@ -1222,6 +1239,26 @@ public class TreeNode {
 			}
 	}
 
+	public void flattenUnBalancedTree2Array(List<String> table, TreeNode node)
+	{
+			if(node.leftChild != null)
+			{
+				table.add(node.leaf.getValue());
+				TreeNode leftChild = node.leftChild;
+				while(leftChild != null)
+				{
+					flattenUnBalancedTree2Array(table, leftChild);
+					leftChild = leftChild.rightSibling;
+				}
+			}
+			else
+			{
+				System.err.print(node.leaf.getKey());
+				System.err.println("----");
+	
+			}
+	}
+
 	public void flattenRoots(TreeNode node, boolean balanced)
 	{
 		while(node != null)
@@ -1232,6 +1269,20 @@ public class TreeNode {
 				flattenUnBalancedTree(new Vector(), node);
 			node = node.rightSibling;
 		}
+	}
+
+	public List<String> flattenToArray(TreeNode node, boolean balanced)
+	{
+		List<String> list = new Vector<String>();
+		while(node != null)
+		{
+			if(balanced)
+				flattenTree2Array(list, node);
+			else
+				flattenUnBalancedTree2Array(list, node);
+			node = node.rightSibling;
+		}
+		return list;
 	}
 	
 	public TreeNode mergeTrees(TreeNode fromNode, TreeNode toNode, boolean inner)

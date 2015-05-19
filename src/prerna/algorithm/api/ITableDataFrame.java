@@ -186,7 +186,7 @@ public interface ITableDataFrame {
 	 * Get the column header names for the data-frame
 	 * @return						The column header names for the data-frame
 	 */
-	List<String> getColumnHeaders();
+	String[] getColumnHeaders();
 	
 	/**
 	 * Get the total number of columns in the data-frame
