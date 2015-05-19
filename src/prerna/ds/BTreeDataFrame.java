@@ -1,18 +1,24 @@
 package prerna.ds;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.ISelectStatement;
+import prerna.om.SEMOSSParam;
 
 public class BTreeDataFrame implements ITableDataFrame {
 
+	private static final Logger LOGGER = LogManager.getLogger(BTreeDataFrame.class.getName());
 	private SimpleTreeBuilder simpleTree;
 	private String[] levelNames;
 	
@@ -143,7 +149,31 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable, double confidenceThreshold, IAnalyticRoutine routine) {
-		// TODO Auto-generated method stub
+		LOGGER.info("Begining join on columns ::: " + colNameInTable + " and " + colNameInJoiningTable);
+		LOGGER.info("Confidence Threshold :: " + confidenceThreshold);
+		LOGGER.info("Analytics Routine ::: " + routine.getName());
+		
+		// fill the options needed for the routine
+		List<SEMOSSParam> params = routine.getOptions();
+		Map<String, Object> selectedOptions = new HashMap<String, Object>();
+		selectedOptions.put(params.get(0).getName(), colNameInTable);
+		selectedOptions.put(params.get(1).getName(), colNameInJoiningTable);
+		//if the routine takes in confidence threshold, must pass that in as well
+		if(params.size()>2){
+			selectedOptions.put(params.get(2).getName(), confidenceThreshold);
+		}
+		routine.setOptions(selectedOptions);
+		
+		// let the routine run
+		LOGGER.info("Begining matching routine");
+		ITableDataFrame matched = routine.runAlgorithm(this, table);
+		
+		// add the new data to this tree
+		LOGGER.info("Augmenting tree");
+		ArrayList<Object[]> flatMatched = matched.getData();
+		for(Object[] row : flatMatched){
+			this.addRow(row);
+		}
 	}
 
 	@Override
