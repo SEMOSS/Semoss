@@ -1,16 +1,22 @@
 package prerna.algorithm.impl;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.BTreeDataFrame;
+import prerna.om.SEMOSSParam;
 
 public class ExactStringMatcher implements IAnalyticRoutine {
 
 	private Map options;
-	private final String COLUMN_ONE_KEY = "table1Col";
-	private final String COLUMN_TWO_KEY = "table2Col";
+	public final String COLUMN_ONE_KEY = "table1Col";
+	public final String COLUMN_TWO_KEY = "table2Col";
+	int success = 0;
+	int total = 0;
 	
 	@Override
 	public void setOptions(Map options) {
@@ -18,7 +24,17 @@ public class ExactStringMatcher implements IAnalyticRoutine {
 	}
 
 	@Override
-	public Map getOptions() {
+	public List<SEMOSSParam> getOptions() {
+		List<SEMOSSParam> options = new ArrayList<SEMOSSParam>();
+		
+		SEMOSSParam p1 = new SEMOSSParam();
+		p1.setName(this.COLUMN_ONE_KEY);
+		options.set(0, p1);
+
+		SEMOSSParam p2 = new SEMOSSParam();
+		p2.setName(this.COLUMN_TWO_KEY);
+		options.set(1, p2);
+		
 		return options;
 	}
 
@@ -52,11 +68,41 @@ public class ExactStringMatcher implements IAnalyticRoutine {
 			for(int j = 0; j < table2Col.length; j++) {
 				if(table1Col[i].equals(table2Col[j])) {
 					bTree.addRow(new Object[]{table1Col[i], table2Col[j]});
+					success++;
 				}
+				total++;
 			}
 		}
 		
 		return bTree;
+	}
+
+	@Override
+	public String getName() {
+		return "Exact String Matcher";
+	}
+
+	@Override
+	public String getDefaultViz() {
+		return null;
+	}
+
+	@Override
+	public List<String> getChangedColumns() {
+		return null;
+	}
+
+	@Override
+	public Map<String, Object> getResultMetadata() {
+		Map<String, Object> results = new HashMap<String, Object>();
+		results.put("success", this.success);
+		results.put("total", this.total);
+		return null;
+	}
+
+	@Override
+	public String getResultDescription() {
+		return "This routine matches matches objects by calling .toString and then comparing using .equals method";
 	}
 
 }
