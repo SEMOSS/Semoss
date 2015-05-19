@@ -297,7 +297,11 @@ public class SimpleTreeBuilder
 				rightMostNode.rightSibling = instanceNode;
 				instanceNode.leftSibling = rightMostNode;
 			}
-
+			
+			//if it is a new node and it is not a child and nodeIndexHash size is 0
+			if(newNode && !child && nodeIndexHash.keySet().size()==0) {
+				finalChildType = node.getType();
+			}
 		}
 		addToNodeIndex(node.getType(), retNode);
 		return retNode;
@@ -604,8 +608,12 @@ public class SimpleTreeBuilder
 	public Vector <String> findLevels()
 	{
 		
-		if(finalChildType == null)
-			return null;
+		if(finalChildType == null) return null;
+		//{
+			//Set<String> keys = nodeIndexHash.keySet();
+			//if(keys !)
+			//return null;
+		//}
 		Vector <String> retVector = new Vector<String>();
 		
 		TreeNode aNode = nodeIndexHash.get(finalChildType);
@@ -626,9 +634,9 @@ public class SimpleTreeBuilder
 		
 		
 		
-		//builder.addSimple();
+		builder.addSimple();
 		//builder.addStress2();
-		builder.multiEngineAdd();
+		//builder.multiEngineAdd();
 	}
 	
 	public void removeNode(ISEMOSSNode node)
