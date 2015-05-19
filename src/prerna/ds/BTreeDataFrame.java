@@ -86,6 +86,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 		
 		// get parent node
+		//TODO: how to deal with URI being null
 		ISEMOSSNode parent = createNodeObject(rowData[0], null, levelNames[0]);
 		
 		// if no children nodes found, add node by itself
@@ -154,7 +155,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		LOGGER.info("Analytics Routine ::: " + routine.getName());
 		
 		// fill the options needed for the routine
-		List<SEMOSSParam> params = routine.getOptions();
+		List<SEMOSSParam> params = routine.getAllAlgorithmOptions();
 		Map<String, Object> selectedOptions = new HashMap<String, Object>();
 		selectedOptions.put(params.get(0).getName(), colNameInTable);
 		selectedOptions.put(params.get(1).getName(), colNameInJoiningTable);
@@ -170,10 +171,29 @@ public class BTreeDataFrame implements ITableDataFrame {
 		
 		// add the new data to this tree
 		LOGGER.info("Augmenting tree");
+		joinTreeLevels(table, colNameInJoiningTable);
+		
 		ArrayList<Object[]> flatMatched = matched.getData();
 		for(Object[] row : flatMatched){
 			this.addRow(row);
 		}
+	}
+	
+	private void joinTreeLevels(ITableDataFrame table, String colNameInJoiningTable) {
+		Vector<String> joinLevelNames = table.getColumnHeaders();
+		String[] newLevelNames = new String[levelNames.length + joinLevelNames.size() - 1];
+		// copy old values to new
+		System.arraycopy(levelNames, 0, newLevelNames, 0, levelNames.length);
+		for(int i = levelNames.length; i < newLevelNames.length + 1; i++) {
+			String name = joinLevelNames.elementAt(i-levelNames.length);
+			if(name.equals(colNameInJoiningTable)) {
+				//skip this since the column is being joined
+			} else {
+				newLevelNames[i] = joinLevelNames.elementAt(i-levelNames.length);
+			}
+		}
+		
+		this.levelNames = newLevelNames;
 	}
 
 	@Override
@@ -392,5 +412,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 	@Override
 	public void unfilter(String columnHeader) {
 		// TODO Auto-generated method stub
+	}
+	
+	public String[] getTreeLevels() {
+		return this.levelNames;
 	}
 }
