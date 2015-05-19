@@ -15,13 +15,14 @@ import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.ISelectStatement;
 import prerna.om.SEMOSSParam;
+import prerna.util.ArrayUtilityMethods;
 
 public class BTreeDataFrame implements ITableDataFrame {
 
 	private static final Logger LOGGER = LogManager.getLogger(BTreeDataFrame.class.getName());
 	private SimpleTreeBuilder simpleTree;
 	private String[] levelNames;
-	
+
 	public BTreeDataFrame(String[] levelNames) {
 		this.simpleTree = new SimpleTreeBuilder();
 		this.levelNames = levelNames;
@@ -65,7 +66,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		for(int i = 1; i<rowOrder.size(); i++) {
 			level = rowOrder.get(i);
 
-			if (level==null) {
+			if(level == null) {
 				value = null;
 				rawValue = null;
 			} else {
@@ -80,37 +81,63 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public void addRow(Object[] rowData) {
-		if(levelNames.length != rowData.length) {
-			throw new IllegalArgumentException("The input rowData must have the same length as the current number of levels in the tree");
+	public void addRow(Map<String, Object> rowData) {
+		// keys that are not in current tree level will not be used
+		for(String key : rowData.keySet()) {
+			if(!ArrayUtilityMethods.arrayContainsValue(levelNames, key)) {
+				LOGGER.error("Column name " + key + " does not exist in current tree");
+			}
 		}
-		
-		// get parent node
-		//TODO: how to deal with URI being null
-		ISEMOSSNode parent = createNodeObject(rowData[0], null, levelNames[0]);
-		
-		// if no children nodes found, add node by itself
-		if(rowData.length == 1) {
-			simpleTree.createNode(parent, false);
+
+		ISEMOSSNode parent = null;
+		int index = 0;
+		while(parent == null) {
+			Object val = rowData.get(levelNames[index]);
+			if(val != null) {
+				//TODO: how to deal with URI being null
+				parent = createNodeObject(val, null, levelNames[index]);
+			}
+			if(index == levelNames.length-1) {
+				break;
+			}
+			index++;
+		}
+
+		if(parent == null) {
+			LOGGER.error("No information found to add to data frame");
 			return;
 		}
-		
-		// if children nodes found, add each parent-child relationship to tree
-		for(int i = 1; i < rowData.length; i++) {
-			ISEMOSSNode child = createNodeObject(rowData[i], null, levelNames[i]);
-			
-			simpleTree.addNode(parent, child);
-			parent = child;
+
+		boolean foundChild = false;
+		ISEMOSSNode child;
+		for(; index < levelNames.length; index++) {
+			Object val = rowData.get(levelNames[index]);
+			if(val == null) {
+				continue;
+			} else {
+				foundChild = true;
+				//TODO: how to deal with URI being null
+				child = createNodeObject(val, null, levelNames[index]);
+
+				simpleTree.addNode(parent, child);
+				parent = child;
+			}
+
+		}
+
+		// not one relationship found, add an empty node
+		if(!foundChild) {
+			simpleTree.createNode(parent, false);
 		}
 	}
-	
-	
+
+
 	private ISEMOSSNode createNodeObject(Object value, String rawValue, String level) {
 		ISEMOSSNode node;
-		if(value == null){
+		if(value == null) {
 			node = new StringClass(null, level);
 		} 
-		else if(value instanceof String){
+		else if(value instanceof String) {
 			node = new StringClass((String)value, level);
 		} 
 		//else if(value instanceof Number) {
@@ -119,7 +146,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		//else if(value instanceof Boolean) {
 		//child = new BooleanClass((boolean)value, level);
 		//} 
-		else{
+		else {
 			node = new StringClass(null, level);
 		}
 		return node;
@@ -131,13 +158,12 @@ public class BTreeDataFrame implements ITableDataFrame {
 			return null;
 		}
 
-		Vector<String> levels = simpleTree.findLevels();
-		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levels.elementAt(0));
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[0]);
 		SimpleTreeNode leftRootNode = typeRoot.getInstances().elementAt(0);
 		leftRootNode = leftRootNode.getLeft(leftRootNode);
 
 		ArrayList<Object[]> table = new ArrayList<Object[]>();
-		leftRootNode.flattenTreeFromRoot(leftRootNode, new Vector<String>(), table, levels.size());
+		leftRootNode.flattenTreeFromRoot(leftRootNode, new Vector<String>(), table, levelNames.length);
 
 		return table;
 	}
@@ -153,7 +179,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		LOGGER.info("Begining join on columns ::: " + colNameInTable + " and " + colNameInJoiningTable);
 		LOGGER.info("Confidence Threshold :: " + confidenceThreshold);
 		LOGGER.info("Analytics Routine ::: " + routine.getName());
-		
+
 		// fill the options needed for the routine
 		List<SEMOSSParam> params = routine.getAllAlgorithmOptions();
 		Map<String, Object> selectedOptions = new HashMap<String, Object>();
@@ -164,23 +190,28 @@ public class BTreeDataFrame implements ITableDataFrame {
 			selectedOptions.put(params.get(2).getName(), confidenceThreshold);
 		}
 		routine.setOptions(selectedOptions);
-		
+
 		// let the routine run
 		LOGGER.info("Begining matching routine");
 		ITableDataFrame matched = routine.runAlgorithm(this, table);
+		Vector<String> columnNames = matched.getColumnHeaders();
 		
 		// add the new data to this tree
 		LOGGER.info("Augmenting tree");
-		joinTreeLevels(table, colNameInJoiningTable);
-		
+		joinTreeLevels(columnNames, colNameInJoiningTable);
 		ArrayList<Object[]> flatMatched = matched.getData();
-		for(Object[] row : flatMatched){
+		// loop through all rows
+		for(Object[] flatRow : flatMatched) {
+			// add row as a key-value pair of level to instance value
+			Map<String, Object> row = new HashMap<String, Object>();
+			for(int i = 0; i < columnNames.size(); i++) {
+				row.put(columnNames.elementAt(i), flatRow[i]);
+			}
 			this.addRow(row);
 		}
 	}
-	
-	private void joinTreeLevels(ITableDataFrame table, String colNameInJoiningTable) {
-		Vector<String> joinLevelNames = table.getColumnHeaders();
+
+	private void joinTreeLevels(Vector<String> joinLevelNames, String colNameInJoiningTable) {
 		String[] newLevelNames = new String[levelNames.length + joinLevelNames.size() - 1];
 		// copy old values to new
 		System.arraycopy(levelNames, 0, newLevelNames, 0, levelNames.length);
@@ -192,7 +223,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 				newLevelNames[i] = joinLevelNames.elementAt(i-levelNames.length);
 			}
 		}
-		
+
 		this.levelNames = newLevelNames;
 	}
 
@@ -319,14 +350,16 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public Vector<String> getColumnHeaders() {
-		// TODO Auto-generated method stub
-		return null;
+		Vector<String> retVec = new Vector<String>();
+		for(int i = 0; i < levelNames.length; i++) {
+			retVec.insertElementAt(levelNames[i], i);
+		}
+		return retVec;
 	}
 
 	@Override
 	public int getNumCols() {
-		// TODO Auto-generated method stub
-		return 0;
+		return levelNames.length;
 	}
 
 	@Override
@@ -413,7 +446,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public void unfilter(String columnHeader) {
 		// TODO Auto-generated method stub
 	}
-	
+
 	public String[] getTreeLevels() {
 		return this.levelNames;
 	}

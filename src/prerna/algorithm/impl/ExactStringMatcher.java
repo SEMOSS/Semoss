@@ -72,7 +72,10 @@ public class ExactStringMatcher implements IAnalyticRoutine {
 		for(int i = 0; i < table1Col.length; i++) {
 			for(int j = 0; j < table2Col.length; j++) {
 				if(table1Col[i].equals(table2Col[j])) {
-					bTree.addRow(new Object[]{table1Col[i], table2Col[j]});
+					Map<String, Object> row = new HashMap<String, Object>();
+					row.put(options.get(COLUMN_ONE_KEY).toString(), table1Col[i]);
+					row.put(options.get(COLUMN_TWO_KEY).toString(), table2Col[j]);
+					bTree.addRow(row);
 					success++;
 				}
 				total++;

@@ -17,9 +17,9 @@ public interface ITableDataFrame {
 	
 	/**
 	 * Adds a row to the data-frame
-	 * @param row					The Object[] row to add to the data-frame
+	 * @param row					The map between the column and the value for the row being added
 	 */
-	void addRow(Object[] row);
+	void addRow(Map<String, Object> row);
 	
 	/**
 	 * Gets the most similar columns given threshold and routine between this and the passed in table.
