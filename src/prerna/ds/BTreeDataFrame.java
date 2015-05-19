@@ -3,6 +3,7 @@ package prerna.ds;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,6 +24,11 @@ public class BTreeDataFrame implements ITableDataFrame {
 	private SimpleTreeBuilder simpleTree;
 	private String[] levelNames;
 
+	public BTreeDataFrame() {
+		this.simpleTree = new SimpleTreeBuilder();
+		levelNames = new String[1]; //{"Director"};
+		levelNames[0] = "Director";
+	}
 	public BTreeDataFrame(String[] levelNames) {
 		this.simpleTree = new SimpleTreeBuilder();
 		this.levelNames = levelNames;
@@ -30,54 +36,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public void addRow(ISelectStatement rowData) {
-		Hashtable rowHash = rowData.getPropHash(); //cleaned data
-		Hashtable rowRawHash = rowData.getRPropHash(); //raw data
-		Set<String> rowKeys = rowHash.keySet(); //these are the simple tree types or column names in the table
-
-		Vector<String> levels = simpleTree.findLevels();
-		Vector<String> rowOrder = new Vector<>();
-
-		for(String level: levels) {
-			if(rowKeys.contains(level)) {
-				rowOrder.add(level);
-			} else {
-				rowOrder.add(null);
-			}
-		}
-
-		//Add the keys that are new to the levels
-		for(String key: rowKeys){
-			if(!rowOrder.contains(key)){
-				rowOrder.add(key);
-			}
-		}
-
-		//How do you create an empty node?
-		ISEMOSSNode child;
-		Object value;
-		String rawValue;
-
-		String level = rowOrder.get(0);
-		value = (level==null) ? null : rowHash.get(level);
-		rawValue = (String) ((level==null) ? null : rowRawHash.get(level));
-
-		ISEMOSSNode parent = createNodeObject(value, rawValue, level);
-
-		for(int i = 1; i<rowOrder.size(); i++) {
-			level = rowOrder.get(i);
-
-			if(level == null) {
-				value = null;
-				rawValue = null;
-			} else {
-				value = rowHash.get(level);
-				rawValue = (String) rowRawHash.get(level);
-			}
-
-			child = createNodeObject(value, rawValue, level);
-			simpleTree.addNode(parent, child);
-			parent = child;
-		}
+		//Map rowHash = rowData.getPropHash(); //cleaned data
+		//Map rowRawHash = rowData.getRPropHash(); //raw data
+		addRow(rowData.getPropHash());
 	}
 
 	@Override
@@ -134,24 +95,25 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	private ISEMOSSNode createNodeObject(Object value, String rawValue, String level) {
 		ISEMOSSNode node;
+
 		if(value == null) {
 			node = new StringClass(null, level);
 		} 
 		else if(value instanceof String) {
 			node = new StringClass((String)value, level);
 		} 
-		//else if(value instanceof Number) {
-		//child = new DoubleClass((double)value, level);
-		//} 
-		//else if(value instanceof Boolean) {
-		//child = new BooleanClass((boolean)value, level);
-		//} 
+//		else if(value instanceof Number) {
+//			child = new DoubleClass((double)value, level);
+//		} 
+//		else if(value instanceof Boolean) {
+//			child = new BooleanClass((boolean)value, level);
+//		} 
 		else {
 			node = new StringClass(null, level);
 		}
 		return node;
 	}
-
+	
 	@Override
 	public List<Object[]> getData() {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[0]);
