@@ -1,6 +1,7 @@
 package prerna.algorithm.learning.unsupervised.recommender;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 /*
  * This class handles the top recommended users
@@ -30,8 +31,9 @@ public class RecommendedUsers {
     	//below capacity?
         if(lastUser<capacity){
         	//should only put users in the list if they meet a certain threshold
-        	if(u.getSimilarity()>=threshold){
+        	if(u.getSimilarity()>=threshold) {
         		userList.add(u);
+        		Collections.sort(userList);
         		lastUser++;
         	}
         } else {
