@@ -134,9 +134,13 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable, double confidenceThreshold, IAnalyticRoutine routine) {
-		LOGGER.info("Begining join on columns ::: " + colNameInTable + " and " + colNameInJoiningTable);
+		LOGGER.info("Columns Passed ::: " + colNameInTable + " and " + colNameInJoiningTable);
 		LOGGER.info("Confidence Threshold :: " + confidenceThreshold);
 		LOGGER.info("Analytics Routine ::: " + routine.getName());
+		
+		
+		
+		LOGGER.info("Begining join on columns ::: " + colNameInTable + " and " + colNameInJoiningTable);
 
 		// fill the options needed for the routine
 		List<SEMOSSParam> params = routine.getAllAlgorithmOptions();
@@ -152,7 +156,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		// let the routine run
 		LOGGER.info("Begining matching routine");
 		ITableDataFrame matched = routine.runAlgorithm(this, table);
-		List<String> columnNames = matched.getColumnHeaders();
+		String[] columnNames = matched.getColumnHeaders();
 		
 		// add the new data to this tree
 		LOGGER.info("Augmenting tree");
@@ -162,24 +166,24 @@ public class BTreeDataFrame implements ITableDataFrame {
 		for(Object[] flatRow : flatMatched) {
 			// add row as a key-value pair of level to instance value
 			Map<String, Object> row = new HashMap<String, Object>();
-			for(int i = 0; i < columnNames.size(); i++) {
-				row.put(columnNames.get(i), flatRow[i]);
+			for(int i = 0; i < columnNames.length; i++) {
+				row.put(columnNames[i], flatRow[i]);
 			}
 			this.addRow(row);
 		}
 	}
 
-	private void joinTreeLevels(List<String> joinLevelNames, String colNameInJoiningTable) {
-		String[] newLevelNames = new String[this.levelNames.length + joinLevelNames.size() - 1];
+	private void joinTreeLevels(String[] joinLevelNames, String colNameInJoiningTable) {
+		String[] newLevelNames = new String[this.levelNames.length + joinLevelNames.length - 1];
 		// copy old values to new
 		System.arraycopy(levelNames, 0, newLevelNames, 0, levelNames.length);
 		int newNameIdx = levelNames.length;
-		for(int i = 0; i < joinLevelNames.size(); i++) {
-			String name = joinLevelNames.get(i);
+		for(int i = 0; i < joinLevelNames.length; i++) {
+			String name = joinLevelNames[i];
 			if(name.equals(colNameInJoiningTable)) {
 				//skip this since the column is being joined
 			} else {
-				newLevelNames[newNameIdx] = joinLevelNames.get(i);
+				newLevelNames[newNameIdx] = joinLevelNames[i];
 				newNameIdx ++;
 			}
 		}
@@ -309,12 +313,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public Vector<String> getColumnHeaders() {
-		Vector<String> retVec = new Vector<String>();
-		for(int i = 0; i < levelNames.length; i++) {
-			retVec.insertElementAt(levelNames[i], i);
-		}
-		return retVec;
+	public String[] getColumnHeaders() {
+		return this.levelNames;
 	}
 
 	@Override
@@ -352,10 +352,12 @@ public class BTreeDataFrame implements ITableDataFrame {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
 		typeRoot = typeRoot.getLeft(typeRoot);
 
-		Vector<String> table = new Vector<String>();
-		typeRoot.flattenTree2(table, typeRoot);
+		List<String> table = typeRoot.flattenToArray(typeRoot, true);
+		
 
+		System.out.println("Final count for column " + columnHeader + " = " + table.size());
 		return table.toArray();
+		
 	}
 
 	@Override
