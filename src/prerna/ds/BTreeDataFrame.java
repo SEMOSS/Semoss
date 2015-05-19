@@ -207,17 +207,17 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 	}
 
-	private void joinTreeLevels(Vector<String> joinLevelNames, String colNameInJoiningTable) {
+	private void joinTreeLevels(List<String> joinLevelNames, String colNameInJoiningTable) {
 		String[] newLevelNames = new String[this.levelNames.length + joinLevelNames.size() - 1];
 		// copy old values to new
 		System.arraycopy(levelNames, 0, newLevelNames, 0, levelNames.length);
 		int newNameIdx = levelNames.length;
 		for(int i = 0; i < joinLevelNames.size(); i++) {
-			String name = joinLevelNames.elementAt(i);
+			String name = joinLevelNames.get(i);
 			if(name.equals(colNameInJoiningTable)) {
 				//skip this since the column is being joined
 			} else {
-				newLevelNames[newNameIdx] = joinLevelNames.elementAt(i);
+				newLevelNames[newNameIdx] = joinLevelNames.get(i);
 				newNameIdx ++;
 			}
 		}
