@@ -38,7 +38,7 @@ public abstract class AbstractOptimizer implements IAlgorithm{
 	/**
 	 * Sets up model.
 	 */
-	public abstract void setupModel();
+	public abstract void setupModel() throws LpSolveException;
 	
 	/**
 	 * Gathers data set.
@@ -48,12 +48,12 @@ public abstract class AbstractOptimizer implements IAlgorithm{
 	/**
 	 * Sets constraints for algorithm.
 	 */
-	public abstract void setConstraints();
+	public abstract void setConstraints() throws LpSolveException ;
 	
 	/**
 	 * Sets the algorithm/function to be executed.
 	 */
-	public abstract void setObjFunction();
+	public abstract void setObjFunction() throws LpSolveException ;
 	
 	/**
 	 * Deletes model.

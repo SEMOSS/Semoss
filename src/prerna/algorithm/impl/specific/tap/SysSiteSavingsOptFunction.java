@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.algorithm.impl.specific.tap;
 
+import lpsolve.LpSolveException;
+
 
 /**
  * Interface representing a univariate real function that is implemented for TAP system and service optimization functions.
@@ -37,9 +39,12 @@ public class SysSiteSavingsOptFunction extends SysSiteOptFunction{
 	 * Given a budget, optimize the savings to return max savings.
 	 * @return double	max savings possible when optimizing for budget*/
 	public double value(double arg0) {
-		
-		runLPSolve(arg0);
-		printMessage("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", savings over entire time frame "+adjustedTotalSavings);
+		try{
+			runLPSolve(arg0);
+			printMessage("iteration " + count + ": budget entered " + arg0 + ", actual cost to deploy " + adjustedDeploymentCost + ", years to deploy " + yearsToComplete + ", savings over entire time frame "+adjustedTotalSavings);
+		}catch(LpSolveException e) {
+			printMessage("Error solving iteration " + count);
+		}
 		return adjustedTotalSavings;
 
 	}

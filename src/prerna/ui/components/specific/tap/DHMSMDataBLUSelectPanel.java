@@ -145,9 +145,8 @@ public class DHMSMDataBLUSelectPanel extends JPanel {
 		gbc_dataSelectDropDown.gridy = 3;
 		this.add(dataSelectDropDown.pane, gbc_dataSelectDropDown);
 
-		//String[] dataArray = makeListFromQuery("DataObject","SELECT DISTINCT ?entity WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?Task ?Needs ?entity.} }");
-		String[] dataArray = makeListFromQuery("DataObject","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}}");
-		dataSelectDropDown.setupButton(dataArray,40,120); //need to give list of all systems
+		Vector<String> dataList = makeListFromQuery("DataObject","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}}");
+		dataSelectDropDown.setupButton(dataList,40,120);
 		dataSelectDropDown.setVisible(true);
 		
 		bluSelectDropDown = new SelectScrollList("Select Individual BLU");
@@ -160,13 +159,13 @@ public class DHMSMDataBLUSelectPanel extends JPanel {
 		gbc_bluSelectDropDown.gridy = 3;
 		this.add(bluSelectDropDown.pane, gbc_bluSelectDropDown);
 		
-		String[] bluArray = makeListFromQuery("BusinessLogicUnit","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}}");
-		bluSelectDropDown.setupButton(bluArray,40,120); //need to give list of all systems
+		Vector<String> bluList = makeListFromQuery("BusinessLogicUnit","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}}");
+		bluSelectDropDown.setupButton(bluList,40,120);
 		bluSelectDropDown.setVisible(true);
 	
 	}
 	
-	public String[] makeListFromQuery(String type, String query)
+	public Vector<String> makeListFromQuery(String type, String query)
 	{
 		engine = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
 		EntityFiller filler = new EntityFiller();
@@ -174,13 +173,7 @@ public class DHMSMDataBLUSelectPanel extends JPanel {
 		filler.type = "Capability";
 		filler.setExternalQuery(query);
 		filler.run();
-		Vector<String> names = filler.nameVector;
-		String[] listArray=new String[names.size()];
-		for (int i = 0;i<names.size();i++)
-		{
-			listArray[i]=(String) names.get(i);
-		}
-		return listArray;
+		return filler.nameVector;
 	}
 
 	public void clearList() {

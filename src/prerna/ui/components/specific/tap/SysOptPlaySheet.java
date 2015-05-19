@@ -537,7 +537,7 @@ public class SysOptPlaySheet extends OptPlaySheet {
 		
 		JLabel lblIRR = new JLabel("Internal Rate of Return:");
 		GridBagConstraints gbc_lblIRR = new GridBagConstraints();
-		gbc_lblIRR.insets = new Insets(0, 0, 5, 5);
+		gbc_lblIRR.insets = new Insets(0, 30, 5, 5);
 		gbc_lblIRR.gridx = 4;
 		gbc_lblIRR.gridy = 1;
 		panel_1.add(lblIRR, gbc_lblIRR);
@@ -765,21 +765,13 @@ public class SysOptPlaySheet extends OptPlaySheet {
 		Style.registerTargetClassName(createGeoSpatialMapButton, ".standardButton");
 	}
 	
-	@Override
-	public void setGraphsVisible(boolean visible) {
-		tab3.setVisible(visible);
-		tab4.setVisible(visible);
-		tab5.setVisible(visible);
-		tab6.setVisible(visible);
-	}
-	
 	/**
 	 * Clears panels within the playsheet
 	 */
 	@Override
 	public void clearPanels() {
+		super.clearPanels();
 		currentFuncPanel.removeAll();
-		specificSysAlysPanel.removeAll();
 	}
 	
 	/**
@@ -787,9 +779,7 @@ public class SysOptPlaySheet extends OptPlaySheet {
 	 */
 	@Override
 	public void clearLabels() {
-		bkevenLbl.setText("N/A");
-		savingLbl.setText("$0");
-		roiLbl.setText("N/A");
+		super.clearLabels();
 		irrLbl.setText("N/A");
 		annualBudgetLbl.setText("$0");
 		timeTransitionLbl.setText("N/A");

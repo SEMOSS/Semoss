@@ -36,8 +36,8 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.impl.LPOptimizer;
 
 /**
- * Optimizes the systems deployed at each site so that there is not duplicate functionality
- * if possible
+ * Optimizes the systems deployed at each site so that there is not duplicate systems providing the same functionality
+ * Differentiates between theater and garrison systems as well as centrally hosted and local systems
  * @author ksmart
  *
  */
@@ -45,137 +45,119 @@ public class SysSiteLPSolver extends LPOptimizer{
 		
 	protected static final Logger LOGGER = LogManager.getLogger(SysSiteLPSolver.class.getName());
 	
-	//for systems that are not centrally deployed
-	private int numNotCentralSystems;
-	private int[][] systemDataMatrix, systemBLUMatrix;
-	private int[] systemTheater, systemGarrison;
-
-	private Integer[] modArr, decomArr;
+	//for local systems
+	private int numLocalSystems;
+	private int[][] localSystemDataMatrix, localSystemBLUMatrix;
+	private int[] localSystemIsTheaterArr, localSystemIsGarrisonArr;
+	private Integer[] localSystemIsModArr, localSystemIsDecomArr;
+	private double[] localSystemMaintenanceCostArr, localSystemSiteMaintenaceCostArr, localSystemSiteDeploymentCostArr, localSystemSiteInterfaceCostArr;
 	
 	private int siteLength;
-	private double[][] systemSiteMatrix;	
+	private double[][] localSystemSiteMatrix;	
 
-	private double[] maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts;
-	private double trainingPerc, currentSustainmentCost;
-	
-	//for systems that are centrally deployed
+	//for centrally deployed systems
 	private int numCentralSystems;
 	private int[][] centralSystemDataMatrix, centralSystemBLUMatrix;
-	private int[] centralSystemTheater, centralSystemGarrison;
-
-	private Integer[] centralModArr, centralDecomArr;
-	
-	private double[] centralInterfaceCostArr;
-	private double[] centralSystemMaintenaceCosts;
-	
-	//created by algorithm
-	private double[] interfaceCostArr;
-	private int[] dataStillProvidedTheater, dataStillProvidedGarrison;
-	private int[] bluStillProvidedTheater, bluStillProvidedGarrison;
-	
-	private int[][] theaterDataAtSiteMatrix, theaterBLUAtSiteMatrix;
-	private int[][] garrisonDataAtSiteMatrix, garrisonBLUAtSiteMatrix;
+	private int[] centralSystemIsTheaterArr, centralSystemIsGarrisonArr;
+	private Integer[] centralSystemIsModArr, centralSystemIsDecomArr;
+	private double[] centralSystemMaintenanceCostArr, centralSystemInterfaceCostArr;
 	
 	//input
-	private double maxBudget = 1000000000;
+	private double trainingPerc, currentSustainmentCost;
+	
+	//created by algorithm to show what data/blu in theater/garrison environments will be maintained if forcing decommision
+	private int[][] dataStillProvidedInTheaterAtSiteMatrix, dataStillProvidedInGarrisonAtSiteMatrix;
+	private int[][] bluStillProvidedInTheaterAtSiteMatrix, bluStillProvidedInGarrisonAtSiteMatrix;
+	
+	//input
+	private double maxBudget;
 	
 	private int budgetRow = 0;
-//	private int[] basis;
-	private double objectiveVal;
-	private double[][] systemSiteResultMatrix;
-	private double[] sysKeptArr, centralSysKeptArr;
-	private double totalDeploymentCost;
 	
-	private int numSysKept, numCentralSysKept;
-
+	//results
+	private double objectiveVal;//the future sustainment cost
+	private double totalDeploymentCost;
+	private double[] localSysKeptArr, centralSysKeptArr;
+	private double[][] localSystemSiteResultMatrix;
 	
 	/**
 	 * Sets/updates the variables required to run the LP module
 	 */
-	public void setVariables(int[][] systemDataMatrix, int[][] systemBLUMatrix, double[][] systemSiteMatrix, int[] systemTheater, int[] systemGarrison, Integer[] sysModArr, Integer[] sysDecomArr, double[] maintenaceCosts, double[] siteMaintenaceCosts, double[] siteDeploymentCosts, double[] interfaceCostArr, double[] centralInterfaceCostArr, int[][] centralSystemDataMatrix,int[][] centralSystemBLUMatrix, int[] centralSystemTheater, int[] centralSystemGarrison, Integer[] centralModArr, Integer[] centralDecomArr, double[] centralSystemMaintenaceCosts, double trainingPerc, double currentSustainmentCost) {
+	public void setVariables(int[][] localSystemDataMatrix, int[][] localSystemBLUMatrix, int[] localSystemIsTheaterArr, int[] localSystemIsGarrisonArr, Integer[] localSystemIsModArr, Integer[] localSystemIsDecomArr, double[] localSystemMaintenanceCostArr, double[] localSystemSiteMaintenaceCostArr, double[] localSystemSiteDeploymentCostArr, double[] localSystemSiteInterfaceCostArr, double[][] localSystemSiteMatrix, int[][] centralSystemDataMatrix, int[][] centralSystemBLUMatrix, int[] centralSystemIsTheaterArr, int[] centralSystemIsGarrisonArr, Integer[] centralSystemIsModArr, Integer[] centralSystemIsDecomArr, double[] centralSystemMaintenanceCostArr, double[] centralSystemInterfaceCostArr, double trainingPerc, double currentSustainmentCost) {
 	
-		this.systemDataMatrix = systemDataMatrix;
-		this.systemBLUMatrix = systemBLUMatrix;
-		this.systemSiteMatrix = systemSiteMatrix;
+		this.localSystemDataMatrix = localSystemDataMatrix;
+		this.localSystemBLUMatrix = localSystemBLUMatrix;
  
-		this.systemTheater = systemTheater;
-		this.systemGarrison = systemGarrison;
+		this.localSystemIsTheaterArr = localSystemIsTheaterArr;
+		this.localSystemIsGarrisonArr = localSystemIsGarrisonArr;
 
-		this.modArr = sysModArr;
-		this.decomArr = sysDecomArr;
+		this.localSystemIsModArr = localSystemIsModArr;
+		this.localSystemIsDecomArr = localSystemIsDecomArr;
 
-		this.maintenaceCosts = maintenaceCosts;
-		this.siteMaintenaceCosts = siteMaintenaceCosts;
-		this.siteDeploymentCosts = siteDeploymentCosts;
-		this.interfaceCostArr = interfaceCostArr;
+		this.localSystemMaintenanceCostArr = localSystemMaintenanceCostArr;
+		this.localSystemSiteMaintenaceCostArr = localSystemSiteMaintenaceCostArr;
+		this.localSystemSiteDeploymentCostArr = localSystemSiteDeploymentCostArr;
+		this.localSystemSiteInterfaceCostArr = localSystemSiteInterfaceCostArr;
+
+		this.siteLength = localSystemSiteMatrix[0].length;
+		this.localSystemSiteMatrix = localSystemSiteMatrix;
 
 		this.centralSystemDataMatrix = centralSystemDataMatrix;
 		this.centralSystemBLUMatrix = centralSystemBLUMatrix;
 		
-		this.centralSystemTheater = centralSystemTheater;
-		this.centralSystemGarrison = centralSystemGarrison;
+		this.centralSystemIsTheaterArr = centralSystemIsTheaterArr;
+		this.centralSystemIsGarrisonArr = centralSystemIsGarrisonArr;
 		
-		this.centralModArr = centralModArr;
-		this.centralDecomArr = centralDecomArr;
+		this.centralSystemIsModArr = centralSystemIsModArr;
+		this.centralSystemIsDecomArr = centralSystemIsDecomArr;
 		
-		this.centralSystemMaintenaceCosts = centralSystemMaintenaceCosts;
-		this.centralInterfaceCostArr = centralInterfaceCostArr;
+		this.centralSystemMaintenanceCostArr = centralSystemMaintenanceCostArr;
+		this.centralSystemInterfaceCostArr = centralSystemInterfaceCostArr;
 
 		this.trainingPerc = trainingPerc;
 		this.currentSustainmentCost = currentSustainmentCost;
 		
-		this.numCentralSystems = centralSystemMaintenaceCosts.length;
-
-		this.numNotCentralSystems = systemSiteMatrix.length;
-		this.siteLength = systemSiteMatrix[0].length;
+		this.numCentralSystems = centralSystemMaintenanceCostArr.length;
+		this.numLocalSystems = localSystemMaintenanceCostArr.length;
 		
 		calculateFunctionality();
 	}
 	
-	public void updateMaxBudget(double maxBudget) {
+	public void setMaxBudget(double maxBudget) {
 		this.maxBudget = maxBudget;
-//		try {
-//			if(budgetRow!=0)
-//				solver.delConstraint(budgetRow);
-//			addBudgetConstraint();
-//		}catch (LpSolveException e) {
-//			e.printStackTrace(); //TODO
-//		}
 	}
 	
 	private void calculateFunctionality() {
-		this.dataStillProvidedTheater = calculateFunctionalityStillProvided(systemDataMatrix, centralSystemDataMatrix, systemTheater, centralSystemTheater);
-		this.dataStillProvidedGarrison = calculateFunctionalityStillProvided(systemDataMatrix, centralSystemDataMatrix, systemGarrison, centralSystemGarrison);
+		int[] dataStillProvidedInTheaterArr = calculateFunctionalityStillProvided(localSystemDataMatrix, centralSystemDataMatrix, localSystemIsTheaterArr, centralSystemIsTheaterArr);
+		int[] dataStillProvidedInGarrisonArr = calculateFunctionalityStillProvided(localSystemDataMatrix, centralSystemDataMatrix, localSystemIsGarrisonArr, centralSystemIsGarrisonArr);
 		
-		this.bluStillProvidedTheater = calculateFunctionalityStillProvided(systemBLUMatrix, centralSystemBLUMatrix, systemTheater, centralSystemTheater);
-		this.bluStillProvidedGarrison = calculateFunctionalityStillProvided(systemBLUMatrix, centralSystemBLUMatrix, systemGarrison, centralSystemGarrison);
+		int[] bluStillProvidedInTheaterArr = calculateFunctionalityStillProvided(localSystemBLUMatrix, centralSystemBLUMatrix, localSystemIsTheaterArr, centralSystemIsTheaterArr);
+		int[] bluStillProvidedInGarrisonArr = calculateFunctionalityStillProvided(localSystemBLUMatrix, centralSystemBLUMatrix, localSystemIsGarrisonArr, centralSystemIsGarrisonArr);
 		
-		this.theaterDataAtSiteMatrix =calculateFunctionalityAtSite(systemDataMatrix, centralSystemDataMatrix, systemTheater,centralSystemTheater, dataStillProvidedTheater);
-		this.garrisonDataAtSiteMatrix =calculateFunctionalityAtSite(systemDataMatrix, centralSystemDataMatrix, systemGarrison,centralSystemGarrison, dataStillProvidedGarrison);
+		this.dataStillProvidedInTheaterAtSiteMatrix =calculateFunctionalityAtSite(localSystemDataMatrix, centralSystemDataMatrix, localSystemIsTheaterArr,centralSystemIsTheaterArr, dataStillProvidedInTheaterArr);
+		this.dataStillProvidedInGarrisonAtSiteMatrix =calculateFunctionalityAtSite(localSystemDataMatrix, centralSystemDataMatrix, localSystemIsGarrisonArr,centralSystemIsGarrisonArr, dataStillProvidedInGarrisonArr);
 		
-		this.theaterBLUAtSiteMatrix = calculateFunctionalityAtSite(systemBLUMatrix, centralSystemBLUMatrix, systemTheater,centralSystemTheater, bluStillProvidedTheater);
-		this.garrisonBLUAtSiteMatrix = calculateFunctionalityAtSite(systemBLUMatrix, centralSystemBLUMatrix, systemGarrison,centralSystemGarrison, bluStillProvidedGarrison);
+		this.bluStillProvidedInTheaterAtSiteMatrix = calculateFunctionalityAtSite(localSystemBLUMatrix, centralSystemBLUMatrix, localSystemIsTheaterArr,centralSystemIsTheaterArr, bluStillProvidedInTheaterArr);
+		this.bluStillProvidedInGarrisonAtSiteMatrix = calculateFunctionalityAtSite(localSystemBLUMatrix, centralSystemBLUMatrix, localSystemIsGarrisonArr,centralSystemIsGarrisonArr, bluStillProvidedInGarrisonArr);
 	}
 	
-	private int[] calculateFunctionalityStillProvided(int[][] systemFuncMatrix, int[][] centralSystemFuncMatrix, int[] systemEnvironment, int[] centralSystemEnvironment) {
+	private int[] calculateFunctionalityStillProvided(int[][] localSystemFuncMatrix, int[][] centralSystemFuncMatrix, int[] localSystemEnvironment, int[] centralSystemEnvironment) {
 		
 		int i;
 		int j;
-		int funcSize = systemFuncMatrix[0].length;
-		int numSystems = systemFuncMatrix.length;
-		int numCentralSystems = centralSystemFuncMatrix.length;
+		int funcSize = localSystemFuncMatrix[0].length;
 		
 		int[] funcStillProvidedEnvironment = new int[funcSize];
 		
 		OUTER: for(i=0; i<funcSize; i++) {
-			for(j=0; j<numSystems; j++)  {
-				if(systemFuncMatrix[j][i] == 1 && systemEnvironment[j] == 1 && (decomArr[j] == null || decomArr[j] == 0)) {
+			for(j=0; j<numLocalSystems; j++)  {
+				if(localSystemFuncMatrix[j][i] == 1 && localSystemEnvironment[j] == 1 && localSystemIsDecomArr[j] == 0) {
 					funcStillProvidedEnvironment[i] = 1;
 					continue OUTER;
 				}	
 			}
 			for(j=0; j<numCentralSystems; j++)  {
-				if(centralSystemFuncMatrix[j][i] == 1 && centralSystemEnvironment[j] == 1  && (centralDecomArr[j] == null || centralDecomArr[j] == 0)) {
+				if(centralSystemFuncMatrix[j][i] == 1 && centralSystemEnvironment[j] == 1  && centralSystemIsDecomArr[j] == 0) {
 					funcStillProvidedEnvironment[i] = 1;
 					continue OUTER;
 				}	
@@ -210,9 +192,9 @@ public class SysSiteLPSolver extends LPOptimizer{
 					}
 				}
 				
-				for(k=0; k<numNotCentralSystems; k++) {
+				for(k=0; k<numLocalSystems; k++) {
 					//if the system is in this environment, has functionality, and is at site, then functionality is at site and on to next one
-					if(systemEnvironment[k] == 1 && systemFunctionalityMatrix[k][i] == 1 && systemSiteMatrix[k][j] == 1 && funcStillProvidedInEnvironment[i] == 1) {
+					if(systemEnvironment[k] == 1 && systemFunctionalityMatrix[k][i] == 1 && localSystemSiteMatrix[k][j] == 1 && funcStillProvidedInEnvironment[i] == 1) {
 						functionalityAtSiteMatrix[i][j] = 1;
 						continue OUTER;
 					}
@@ -226,109 +208,139 @@ public class SysSiteLPSolver extends LPOptimizer{
 		}
 		return functionalityAtSiteMatrix;
 	}
-	
-	/**
-	 * Sets up the model for calculations to be performed upon.
-	 */
 
 	/**
-	 * Sets variables in model.
-	 * Makes the new LpSolver with a variable for each system and site pair.
-	 * Also names the variables and declares them to be binary.
+	 * Makes the new LpSolver and sets variables in model.
+	 * Variables are: one for each system at every site,
+	 * one for each system to say deployed at any site (kept or not),
+	 * one for each centrally deployed system to say deployed at all sites (kept or not)
+	 * Also declares all variables to be binary and gives a starting point for optimization.
 	 */
 	@Override
-	public void setVariables() throws LpSolveException { //TODO
+	public void setVariables() throws LpSolveException {
 
-		//create solver - one variable for each pair of sys and site combos + one variable for each system to say deployed at any site
-		// + one variable for each centrally deployed system to say deployed at all sites
-		
-//		solver = LpSolve.makeLp(sysLength * siteLength * 7 / 5, sysLength * siteLength + sysLength);
-		solver = LpSolve.makeLp(0, numNotCentralSystems * siteLength + numNotCentralSystems + numCentralSystems);
+		//make the lp solver with enough variables
+		try{
+			solver = LpSolve.makeLp(0, numLocalSystems * siteLength + numLocalSystems + numCentralSystems);
+		}catch (LpSolveException e) {
+			LOGGER.error("Could not instantiate a new LP solver");
+			throw new LpSolveException("Could not instantiate a new LP solver");
+		}
 		
         //name variables and make binary
-		//one variable for each pair of sys and site combos
-		int i;
-		int j;
-		int index = 0;
-		for(i=0; i<numNotCentralSystems; i++) {
-			for(j=0; j<siteLength; j++) {
-				
+		try{
+			int i;
+			int j;
+			int index = 0;
+			
+			//one variable for each pair of sys and site combos
+			for(i=0; i<numLocalSystems; i++) {
+				for(j=0; j<siteLength; j++) {
+					solver.setBinary(index + 1, true);
+					solver.setVarBranch(index + 1,LpSolve.BRANCH_FLOOR);
+					index++;
+				}
+			}
+			
+			//one variable for each system to say whether it is deployed at any site
+			for(i=0; i<numLocalSystems; i++) {
 				solver.setBinary(index + 1, true);
-				solver.setVarBranch(index + 1,LpSolve.BRANCH_FLOOR);
+				solver.setVarBranch(index + 1, LpSolve.BRANCH_FLOOR);
 				index++;
 			}
+			
+			//one variable for each centrally deployed system to say whether it is deployed at all site
+			for(i=0; i<numCentralSystems; i++) {
+				solver.setBinary(index + 1, true);
+				solver.setVarBranch(index + 1, LpSolve.BRANCH_FLOOR);
+				index++;
+			}
+		}catch (LpSolveException e) {
+			LOGGER.error("Could not add variables to LP solver");
+			throw new LpSolveException("Could not add variables to LP solver");
 		}
-		
-		//one variable for each system to say whether it is deployed at any site
-		for(i=0; i<numNotCentralSystems; i++) {
-			solver.setBinary(index + 1, true);
-			solver.setVarBranch(index + 1, LpSolve.BRANCH_FLOOR);
-			index++;
-		}
-		
-		//one variable for each centrally deployed system to say whether it is deployed at all site
-		for(i=0; i<numCentralSystems; i++) {
-			solver.setBinary(index + 1, true);
-			solver.setVarBranch(index + 1, LpSolve.BRANCH_FLOOR);
-			index++;
-		}
-		
 	}
 	
 	/**
 	 * Sets constraints in the model.
+	 * Functionality constraint: data/blu at any site must be still provided at that site, by the same type of system(theater/garrison)
+	 * Local system deployed constraint: if a local system is deployed at any site, it must be kept
+	 * Budget constraint: deployment costs and interface costs must be less than the budget specified
+	 * Mod/decom bounds: sets bounds for systems that were force modernized or force decommissioned
 	 */
 	@Override
-	public void setConstraints() {
+	public void setConstraints() throws LpSolveException{
+			
+		long startTime;
+		long endTime;
+		
 		try {
-			long startTime;
-			long endTime;
-
+			//adding constraints for data and blu at each site
+			startTime = System.currentTimeMillis();
+			addFunctionalityConstraints(dataStillProvidedInTheaterAtSiteMatrix, localSystemDataMatrix, centralSystemDataMatrix, localSystemIsTheaterArr, centralSystemIsTheaterArr);
+			addFunctionalityConstraints(dataStillProvidedInGarrisonAtSiteMatrix, localSystemDataMatrix, centralSystemDataMatrix, localSystemIsGarrisonArr, centralSystemIsGarrisonArr);
+			
+			addFunctionalityConstraints(bluStillProvidedInTheaterAtSiteMatrix, localSystemBLUMatrix, centralSystemBLUMatrix, localSystemIsTheaterArr, centralSystemIsTheaterArr);
+			addFunctionalityConstraints(bluStillProvidedInGarrisonAtSiteMatrix, localSystemBLUMatrix, centralSystemBLUMatrix,  localSystemIsGarrisonArr, centralSystemIsGarrisonArr);
+			endTime = System.currentTimeMillis();
+			System.out.println("Time to run add functionality constraint " + (endTime - startTime) / 1000 );
+		}catch (LpSolveException e) {
+			LOGGER.error("Could not add functionality constraints at each site to LP solver");
+			throw new LpSolveException("Could not add functionality constraints at each site to LP solver");
+		}
+		
+		try{
+			startTime = System.currentTimeMillis();
+			addLocalSystemDeployedConstraints();
+			endTime = System.currentTimeMillis();
+			System.out.println("Time to run add system deployed constraint " + (endTime - startTime) / 1000 );
+		}catch (LpSolveException e) {
+			LOGGER.error("Could not add system deployment constraints at each site to LP solver");
+			throw new LpSolveException("Could not addcsystem deployment constraints at each site to LP solver");
+		}
+		
+		try {
 			startTime = System.currentTimeMillis();
 			addBudgetConstraint();
 			endTime = System.currentTimeMillis();
-			System.out.println("Time to run add budget constraint " + (endTime - startTime) / 1000 );
-						
-			//adding constraints for data and blu at each site
-			startTime = System.currentTimeMillis();
-			addFunctionalityConstraints(theaterDataAtSiteMatrix, systemDataMatrix, centralSystemDataMatrix, systemTheater, centralSystemTheater);
-			addFunctionalityConstraints(garrisonDataAtSiteMatrix, systemDataMatrix, centralSystemDataMatrix, systemGarrison, centralSystemGarrison);
-			
-			addFunctionalityConstraints(theaterBLUAtSiteMatrix, systemBLUMatrix, centralSystemBLUMatrix, systemTheater, centralSystemTheater);
-			addFunctionalityConstraints(garrisonBLUAtSiteMatrix, systemBLUMatrix, centralSystemBLUMatrix,  systemGarrison, centralSystemGarrison);
-			endTime = System.currentTimeMillis();
-			System.out.println("Time to run add functionality constraint " + (endTime - startTime) / 1000 );
-						
-			startTime = System.currentTimeMillis();
-			addSystemDeployedConstraints();
-			endTime = System.currentTimeMillis();
-			System.out.println("Time to run add system deployed constraint " + (endTime - startTime) / 1000 );
-			
+			System.out.println("Time to add budget constraint " + (endTime - startTime) / 1000 );
+		}catch (LpSolveException e) {
+			LOGGER.error("Could not add budget constraint");
+		}
+		
+		try{			
 			startTime = System.currentTimeMillis();
 			addModDecomBounds();
 			endTime = System.currentTimeMillis();
 			System.out.println("Time to run add mod/decom bounds " + (endTime - startTime) / 1000 );
-			
 		}catch (LpSolveException e) {
-			e.printStackTrace(); //TODO
+			LOGGER.error("Could not add constraints for the manually-selected consolidate or sustain systems to LP solver");
+			throw new LpSolveException("Could not add constraints for the manually-selected consolidate or sustain systems to LP solver");
 		}
+
 	}
 	
 	/**
 	 * Adds constraints to ensure functionality remains at each site
-	 * For each data/blu AND site pair, adds a new constraint to say if functionality is at a site,
-	 * then there must be a system in the solution that is at this site that provides this data/blu
-	 * @param systemFunctionalityMatrix
+	 * For each data/blu that exists at a site, this method adds a new constraint
+	 * that there must be a system in the solution that is at this site that provides this data/blu
+	 * AND that system must match the environment (Theater/garrison) of the original provider
 	 * @param functionalityAtSiteMatrix
+	 * @param localSystemFunctionalityMatrix
+	 * @param centralSystemFunctionalityMatrix
+	 * @param localSystemEnvironmentArr
+	 * @param centralSystemEnvironmentArr
 	 * @throws LpSolveException
 	 */
-	private void addFunctionalityConstraints(int[][] functionalityAtSiteMatrix, int[][] systemFunctionalityMatrix, int[][] centralSystemFunctionalityMatrix, int[] systemEnvironment, int[] centralSystemEnvironment) throws LpSolveException { //TODO
+	private void addFunctionalityConstraints(int[][] functionalityAtSiteMatrix, int[][] localSystemFunctionalityMatrix, int[][] centralSystemFunctionalityMatrix, int[] localSystemEnvironmentArr, int[] centralSystemEnvironmentArr) throws LpSolveException {
 		int i;
 		int j;
 		int k;
-		int functionalityLength = systemFunctionalityMatrix[0].length;
+		int functionalityLength = localSystemFunctionalityMatrix[0].length;
 		
 		int index;
+		int[] colno;
+		double[] row;
  		//new constraint for each data/site pairing
 		for(i=0; i<functionalityLength; i++) {
 			for(j=0; j<siteLength; j++) {
@@ -336,28 +348,22 @@ public class SysSiteLPSolver extends LPOptimizer{
 				//determine if data is at a site, if not don't need any constraints				
 				if(functionalityAtSiteMatrix[i][j] == 1) {
 					
-					int[] colno = new int[numNotCentralSystems + numCentralSystems];
-			        double[] row = new double[numNotCentralSystems + numCentralSystems];
+					colno = new int[numLocalSystems + numCentralSystems];
+			        row = new double[numLocalSystems + numCentralSystems];
 			        index = 0;
-			        for(k=0; k<numNotCentralSystems; k++)
-			        {
-//			        	if(systemEnvironment[k] == 1 && systemFunctionalityMatrix[k][i] == 1) {
-				        	colno[index] = k * siteLength + j+1;
-				        	row[index] = systemEnvironment[k] * systemFunctionalityMatrix[k][i];
-				        	index++;
-//			        	}
+			        for(k=0; k<numLocalSystems; k++) {
+				        colno[index] = k * siteLength + j+1;
+				        row[index] = localSystemEnvironmentArr[k] * localSystemFunctionalityMatrix[k][i];
+				        index++;
 			        }
 			        
-			        for(k=0; k<numCentralSystems; k++)
-			        {
-//			        	if(centralSystemEnvironment[k] == 1 &&  centralSystemFunctionalityMatrix[k][i] == 1) {
-			        		colno[index] = numNotCentralSystems * siteLength + numNotCentralSystems + k + 1;
-			        		row[index] = centralSystemEnvironment[k] *  centralSystemFunctionalityMatrix[k][i];
-			        		index++;
-//			        	}
+			        for(k=0; k<numCentralSystems; k++)  {
+			        	colno[index] = numLocalSystems * siteLength + numLocalSystems + k + 1;
+			        	row[index] = centralSystemEnvironmentArr[k] *  centralSystemFunctionalityMatrix[k][i];
+			        	index++;
 			        }
 			        
-		        	solver.addConstraintex(numNotCentralSystems + numCentralSystems, row, colno, LpSolve.GE, 1);
+		        	solver.addConstraintex(numLocalSystems + numCentralSystems, row, colno, LpSolve.GE, 1);
 
 				}				
 			}
@@ -365,23 +371,24 @@ public class SysSiteLPSolver extends LPOptimizer{
 	}
 	
 	/**
-	 * Add constraints to determine whether a system is deployed at any site
+	 * Adds constraints to say whether a local system is kept at any site.
+	 * If a local system is kept at any site, then the local system kept variable must be 1 or modernized.
 	 * @throws LpSolveException
 	 */
-	private void addSystemDeployedConstraints() throws LpSolveException { //TODO		
+	private void addLocalSystemDeployedConstraints() throws LpSolveException {		
 		int i;
 		int j;
-
-		for(i=0; i<numNotCentralSystems; i++) {
+		int[] colno = new int[2];
+		double[] row = new double[2];
+		for(i=0; i<numLocalSystems; i++) {
+			
+			colno[1] = numLocalSystems * siteLength + i + 1;
+			row[1] = 1.0;
+			
 			for(j=0; j<siteLength; j++) {
-				int[] colno = new int[2];
-				double[] row = new double[2];
 				
 				colno[0] = i * siteLength + j + 1;
 				row[0] = -1.0;
-				
-				colno[1] = numNotCentralSystems * siteLength + i + 1;
-				row[1] = 1.0;
 
 			    solver.addConstraintex(2, row, colno, LpSolve.GE, 0);
 			}
@@ -389,112 +396,120 @@ public class SysSiteLPSolver extends LPOptimizer{
 	}
 
 	/**
-	 * Adds a constraint to ensure deployment cost for systems at new sites is under the specified budget
-	 * @param systemFunctionalityMatrix
-	 * @param functionalityAtSiteMatrix
+	 * Adds a constraint to ensure deployment cost for systems at new sites 
+	 * and interface costs for systems consuming data is under the specified budget
 	 * @throws LpSolveException
 	 */
-	private void addBudgetConstraint() throws LpSolveException { //TODO
+	private void addBudgetConstraint() throws LpSolveException {
 
 		int i;
 		int j;
 		int index = 0;
 
-		int[] colno = new int[numNotCentralSystems * siteLength + numCentralSystems];
-        double[] row = new double[numNotCentralSystems * siteLength + numCentralSystems];
+		int[] colno = new int[numLocalSystems * siteLength + numCentralSystems];
+        double[] row = new double[numLocalSystems * siteLength + numCentralSystems];
 
-        for(i=0; i<numNotCentralSystems; i++) {
+        for(i=0; i<numLocalSystems; i++) {
 			for(j=0; j<siteLength; j++) {
 				colno[index] = i * siteLength + j +1;
-				row[index] = (1 - systemSiteMatrix[i][j]) * siteDeploymentCosts[i] + (1+trainingPerc) * interfaceCostArr[i];
+				row[index] = (1 - localSystemSiteMatrix[i][j]) * localSystemSiteDeploymentCostArr[i] + (1+trainingPerc) * localSystemSiteInterfaceCostArr[i];
 				index++;
 			}
         }
  
         for(i=0; i<numCentralSystems; i++) {
- 			colno[index] = numNotCentralSystems * (siteLength + 1) + i + 1;
- 			row[index] = (1+trainingPerc) * centralInterfaceCostArr[i] * siteLength;
+ 			colno[index] = numLocalSystems * (siteLength + 1) + i + 1;
+ 			row[index] = (1+trainingPerc) * centralSystemInterfaceCostArr[i] * siteLength;
  			index++;
         }
-        solver.addConstraintex(numNotCentralSystems * siteLength + numCentralSystems, row, colno, LpSolve.LE, maxBudget);
+        solver.addConstraintex(numLocalSystems * siteLength + numCentralSystems, row, colno, LpSolve.LE, maxBudget);
     	budgetRow = solver.getNrows();
 
 	}
 	
+	/**
+	 * Adds bounds for systems that were specified for force modernization or force decommission
+	 * If a local system is force modernized, then must be kept at all the sites. If force decommissioned, must be decommissioned at all sites.
+	 * If central system is force modernized, then it must be kept. If force decommissioned, must be decommissioned. 
+	 * @throws LpSolveException
+	 */
 	private void addModDecomBounds() throws LpSolveException{
 		int i;
 		int j;
 		
-        for(i=0; i<numNotCentralSystems; i++) {
-        	if(modArr[i]!=null && modArr[i] == 1) {
+        for(i=0; i<numLocalSystems; i++) {
+        	if(localSystemIsModArr[i] == 1) {
 				for(j=0; j<siteLength; j++) {
-					if(systemSiteMatrix[i][j]==1) {
+					if(localSystemSiteMatrix[i][j]==1) {
 						solver.setLowbo(i * siteLength + j +1, 1);
 					}
 				}
-				solver.setLowbo(numNotCentralSystems * siteLength + i + 1, 1);
-        	} else if(decomArr[i]!=null && decomArr[i] == 1) {
+				solver.setLowbo(numLocalSystems * siteLength + i + 1, 1);
+        	} else if(localSystemIsDecomArr[i] == 1) {
 				for(j=0; j<siteLength; j++) {
-					if(systemSiteMatrix[i][j]==1) {
+					if(localSystemSiteMatrix[i][j]==1) {
 						solver.setUpbo(i * siteLength + j +1, 0);
 					}
 				}
-				solver.setUpbo(numNotCentralSystems * siteLength + i + 1, 0);
+				solver.setUpbo(numLocalSystems * siteLength + i + 1, 0);
         	}
         }
         
         for(i=0; i<numCentralSystems; i++) {
-        	if(centralModArr[i]!=null && centralModArr[i] == 1) {
-				solver.setLowbo(numNotCentralSystems * (siteLength + 1) + i + 1, 1);
-        	} else if(centralDecomArr[i]!=null && centralDecomArr[i] == 1) {
-				solver.setUpbo(numNotCentralSystems * (siteLength + 1) + i + 1, 0);
+        	if(centralSystemIsModArr[i] == 1) {
+				solver.setLowbo(numLocalSystems * (siteLength + 1) + i + 1, 1);
+        	} else if(centralSystemIsDecomArr[i] == 1) {
+				solver.setUpbo(numLocalSystems * (siteLength + 1) + i + 1, 0);
         	}
         }
 	}
 
 
 	/**
-	 * Sets the function for calculations.
+	 * Sets the objection function to minimize sustainment cost.
+	 * Sums the sustainment cost for the local systems kept at sites + their central maintenance costs
+	 * + the sustainment cost for the centrally hosted systems.
 	 */
 	@Override
-	public void setObjFunction() {
+	public void setObjFunction() throws LpSolveException{
 		int i;
 		int j;
 		int index = 0;
 		
-		int[] colno = new int[numNotCentralSystems * siteLength + numNotCentralSystems + numCentralSystems];
-        double[] row = new double[numNotCentralSystems * siteLength + numNotCentralSystems + numCentralSystems];
+		int[] colno = new int[numLocalSystems * siteLength + numLocalSystems + numCentralSystems];
+        double[] row = new double[numLocalSystems * siteLength + numLocalSystems + numCentralSystems];
 
-        for(i=0; i<numNotCentralSystems; i++) {
+        for(i=0; i<numLocalSystems; i++) {
 
         	for(j=0; j<siteLength; j++) {
 				colno[index] = i * siteLength + j+1;
- 				row[index] = siteMaintenaceCosts[i];
+ 				row[index] = localSystemSiteMaintenaceCostArr[i];
  				index++;
  			}
         }
         
-        for(i=0; i<numNotCentralSystems; i++) {
+        for(i=0; i<numLocalSystems; i++) {
         	
- 			colno[index] = numNotCentralSystems * siteLength + i+1;
-			row[index] = maintenaceCosts[i];
+ 			colno[index] = numLocalSystems * siteLength + i+1;
+			row[index] = localSystemMaintenanceCostArr[i];
 			index ++;
 			
         }
         
         for(i=0; i<numCentralSystems; i++) {
         	
-			colno[index] = numNotCentralSystems * siteLength + numNotCentralSystems + i + 1;
-			row[index] = centralSystemMaintenaceCosts[i];
+			colno[index] = numLocalSystems * siteLength + numLocalSystems + i + 1;
+			row[index] = centralSystemMaintenanceCostArr[i];
 			index++;
 			
         }
         
 		try{
-	        solver.setObjFnex(numNotCentralSystems * siteLength + numNotCentralSystems + numCentralSystems, row, colno);
+	        solver.setObjFnex(numLocalSystems * siteLength + numLocalSystems + numCentralSystems, row, colno);
 			solver.setMinim();
-		}catch (LpSolveException e){
-			e.printStackTrace(); //TODO
+		}catch (LpSolveException e) {
+			LOGGER.error("Could not set objective function for LP solver");
+			throw new LpSolveException("Could not set objective function for LP solver");
 		}
 
 	}
@@ -503,141 +518,95 @@ public class SysSiteLPSolver extends LPOptimizer{
 	 * Executes the optimization.
 	 */
 	@Override
-	public void execute() {
-		try{
-			solver.writeLp("model.lp");
+	public void execute(){
 
-			solver.setScaling(LpSolve.SCALE_EXTREME | LpSolve.SCALE_QUADRATIC | LpSolve.SCALE_INTEGERS);
-
-			solver.setPresolve(LpSolve.PRESOLVE_COLS | LpSolve.PRESOLVE_ROWS | LpSolve.PRESOLVE_PROBEFIX | LpSolve.PRESOLVE_LINDEP  | LpSolve.PRESOLVE_PROBEREDUCE , solver.getPresolveloops());
-			
-			solver.setBbDepthlimit(-1);
-			solver.setMipGap(true,maxBudget);
-
-//			if(basis!=null) {
-//				solver.setBasis(basis, true);
-//			}
-			
-			
-			super.execute();
-			
-			int i;
-			int j;
-			int index = 0;
-			int nConstraints = solver.getNorigRows();
-
-//			double otherDeployCost = 0.0;
-
-			systemSiteResultMatrix = new double[numNotCentralSystems][siteLength];
-			sysKeptArr = new double[numNotCentralSystems];
-			centralSysKeptArr = new double[numCentralSystems];
-			
-			//if you don't get an output, then everything is just left as is, keep all at all current sites
-			if(solved != 0) {
-//				if(solved == LpSolve.SUBOPTIMAL)
-//					LOGGER.error("SOLUTION IS SUBOPTIMAL");
-//				else if(solved == LpSolve.TIMEOUT)
-//					LOGGER.error("SOLUTION TIMED OUT");
-//				else if(solved == LpSolve.INFEASIBLE)
-//	 				LOGGER.error("Solution is infeasible for given budget. Recommend do nothing.");
-//				else
-//	 				LOGGER.error("SOLVED IS "+solved);
-				
-				objectiveVal = currentSustainmentCost;
-				
-//				basis = null;
-				
-				systemSiteResultMatrix = systemSiteMatrix;
-				
-				numSysKept = numNotCentralSystems;
-				for(i = 0; i < numNotCentralSystems; i++ ) {
-					sysKeptArr[i] = 1;
-				}
-				
-				numCentralSysKept = numCentralSystems;
-				for(i = 0; i < numCentralSystems; i++ ) {
-					centralSysKeptArr[i] = 1;
-				}
-				
-				totalDeploymentCost = 0.0;
-
-			} else {
+		//settings to increase solver performance
+		solver.setScaling(LpSolve.SCALE_EXTREME | LpSolve.SCALE_QUADRATIC | LpSolve.SCALE_INTEGERS);
+		solver.setPresolve(LpSolve.PRESOLVE_COLS | LpSolve.PRESOLVE_ROWS | LpSolve.PRESOLVE_PROBEFIX | LpSolve.PRESOLVE_LINDEP  | LpSolve.PRESOLVE_PROBEREDUCE , solver.getPresolveloops());
+		solver.setBbDepthlimit(-1);
+		solver.setMipGap(true,maxBudget);
+		
+		super.execute();
+		
+		int i;
+		int j;
+		int index = 0;
+		int nConstraints = solver.getNorigRows();
+		
+		localSystemSiteResultMatrix = new double[numLocalSystems][siteLength];
+		localSysKeptArr = new double[numLocalSystems];
+		centralSysKeptArr = new double[numCentralSystems];
+		
+		if(solved == LpSolve.OPTIMAL) {
+			try {
 				objectiveVal = solver.getObjective();
 				
-//				basis = new int[1 + solver.getNrows() + solver.getNcolumns()];
-//				solver.getBasis(basis, true);
-				
-				for(i = 0; i < numNotCentralSystems; i++ ) {
+				for(i = 0; i < numLocalSystems; i++ ) {
 					for(j = 0; j < siteLength; j++) {
-						systemSiteResultMatrix[i][j] = solver.getVarPrimalresult(nConstraints + index + 1);
+						localSystemSiteResultMatrix[i][j] = solver.getVarPrimalresult(nConstraints + index + 1);
 						index++;
 					}
 				}
 				
-				numSysKept = 0;
-				for(i = 0; i < numNotCentralSystems; i++ ) {
-					sysKeptArr[i] = solver.getVarPrimalresult(nConstraints + index + 1);
-					numSysKept += sysKeptArr[i];
+				for(i = 0; i < numLocalSystems; i++ ) {
+					localSysKeptArr[i] = solver.getVarPrimalresult(nConstraints + index + 1);
 					index++;
 				}			
 				
-				numCentralSysKept = 0;
 				for(i = 0; i < numCentralSystems; i++ ) {
 					centralSysKeptArr[i] = solver.getVarPrimalresult(nConstraints + index + 1);
-					numCentralSysKept += centralSysKeptArr[i];
 					index++;
 				}
 				
 				totalDeploymentCost = solver.getVarPrimalresult(budgetRow);	
-//				
-//
-//		        for(i=0; i<numNotCentralSystems; i++) {
-//					for(j=0; j<siteLength; j++) {
-//						if(systemSiteResultMatrix[i][j] == 1)
-//							otherDeployCost += (1 - systemSiteMatrix[i][j]) * siteDeploymentCosts[i] + (1+trainingPerc) * interfaceCostArr[i];
-//					}
-//		        }
-//		 
-//		        for(i=0; i<numCentralSystems; i++) {
-//		        	if(centralSysKeptArr[i] == 1)
-//		        		otherDeployCost += (1+trainingPerc) * centralInterfaceCostArr[i] * siteLength;
-//		        }
+			} catch(LpSolveException e) {
+				LOGGER.error("Unable to get solution. Take no action.");
+				setNoSolution();
 			}
-			
-//			double numRows = solver.getNrows();
-			budgetRow = solver.getLpIndex(budgetRow);
-			
-			deleteModel();
-		} catch(LpSolveException e) {
-			e.printStackTrace(); //TODO
+
+		} else {
+			LOGGER.error("Solution is not optimal. Take no action.");
+			setNoSolution();
 		}
+
 	}
 	
-	public double[] getSysKeptArr() {
-		return sysKeptArr;
+	private void setNoSolution() {
+		
+		objectiveVal = currentSustainmentCost;
+		
+		localSystemSiteResultMatrix = localSystemSiteMatrix;
+		
+		int i;
+		for(i = 0; i < numLocalSystems; i++ ) {
+			localSysKeptArr[i] = 1;
+		}
+		
+		for(i = 0; i < numCentralSystems; i++ ) {
+			centralSysKeptArr[i] = 1;
+		}
+		
+		totalDeploymentCost = 0.0;
+	}
+	
+	public double[] getLocalSysKeptArr() {
+		return localSysKeptArr;
 	}
 	
 	public double[] getCentralSysKeptArr() {
 		return centralSysKeptArr;
 	}
 	
+	public double[][] getLocalSystemSiteResultMatrix() {
+		return localSystemSiteResultMatrix;
+	}
+	
 	public double getObjectiveVal() {
 		return objectiveVal;
 	}
-	
-	public double[][] getSystemSiteResultMatrix() {
-		return systemSiteResultMatrix;
-	}
-	
+
 	public double getTotalDeploymentCost() {
 		return totalDeploymentCost;
 	}
-	
-	public int getNumSysKept() {
-		return numSysKept;
-	}
-	
-	public int getNumCentralSysKept() {
-		return numCentralSysKept;
-	}
+
 }

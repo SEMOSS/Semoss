@@ -71,17 +71,11 @@ public class OptPlaySheet extends InputPanelPlaySheet{
 	public JComboBox<String> sysSpecComboBox;
 	
 	//display overall analysis components
-	public BrowserGraphPanel tab1, tab2, tab3, tab4, tab5, tab6;
-	public JLabel savingLbl, costLbl, roiLbl, bkevenLbl, recoupLbl;
+	public BrowserGraphPanel tab3, tab4, tab5, tab6;
+	public JLabel savingLbl, roiLbl, bkevenLbl;
 	
-	//other display components
-	public JPanel specificAlysPanel = new JPanel();
-	public JPanel playSheetPanel = new JPanel();
+	//other display panels
 	public JPanel specificSysAlysPanel;
-	public JPanel timelinePanel;
-	public JTextPane helpTextArea;
-
-	public JLabel lblInvestmentRecoupTime;
 	
 	
 	/**
@@ -531,20 +525,26 @@ public class OptPlaySheet extends InputPanelPlaySheet{
 	}
 
 	public void setGraphsVisible(boolean visible) {
-
+		tab3.setVisible(visible);
+		tab4.setVisible(visible);
+		tab5.setVisible(visible);
+		tab6.setVisible(visible);
 	}
 	
 	/**
 	 * Clears panels within the playsheet
 	 */
 	public void clearPanels() {
+		specificSysAlysPanel.removeAll();
 	}
 	
 	/**
 	 * Sets N/A or $0 for values in optimizations. Allows for different TAP algorithms to be run as empty functions.
 	 */
-	public void clearLabels()
-	{
+	public void clearLabels() {
+		bkevenLbl.setText("N/A");
+        savingLbl.setText("$0");
+		roiLbl.setText("N/A");
 	}
 
 }

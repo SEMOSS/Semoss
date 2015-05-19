@@ -36,14 +36,10 @@ import prerna.algorithm.impl.specific.tap.UnivariateSvcOptimizer;
 /**
  * This class is used to optimize graph functions used in services calculations.
  */
-public class SerOptGraphFunctions extends OptGraphFunctions {
-	protected UnivariateSvcOptimizer opt = null;
-	protected ServiceOptimizer lin = null;
-//	protected double iniLC;
-//	protected double scdLT;
-//	protected double scdLC;
-//	protected double[] learningConstants;
-//	protected int maxYears;
+public class SerOptGraphFunctions {
+	private UnivariateSvcOptimizer opt = null;
+	private ServiceOptimizer lin = null;
+	private int maxYears;
 	/**
 	 * Sets the Univariate Service Optimizer.
 	 * @param opt UnivariateSvcOptimizer
@@ -51,10 +47,6 @@ public class SerOptGraphFunctions extends OptGraphFunctions {
 	public void setOptimzer (UnivariateSvcOptimizer opt)
 	{
 		this.opt=opt;
-		this.iniLC=opt.iniLC;
-		this.scdLT = opt.scdLT;
-		this.scdLC = opt.scdLC;
-		this.learningConstants = opt.f.learningConstants;
 		this.maxYears = opt.maxYears;
 	}
 	
@@ -75,7 +67,19 @@ public class SerOptGraphFunctions extends OptGraphFunctions {
 	public Hashtable createCostChart()
 	{
 		int thisYear = 2014;
-		ArrayList<double[]> susPerYearList = createSusPerYear();
+		ArrayList<double[]> susPerYearList = new ArrayList<double[]>();
+		for (int i=0 ;i< lin.actualBudgetList.size();i++)
+		{
+			//yearlyBuildCosts[i]=lin.actualBudgetList.get(i);
+			double[] newYear = new double[maxYears];
+			newYear[i]=Math.round(lin.actualBudgetList.get(i)*Math.pow((1+opt.infRate), i));
+			for (int j=i+1;j<maxYears;j++)
+			{
+				newYear[j]=Math.round(lin.actualBudgetList.get(i)*opt.serMainPerc*Math.pow((1+opt.infRate), j));
+			}
+			
+			susPerYearList.add(newYear);
+		}
 		int[] totalYearsAxis = new int[maxYears];
 		for (int i=0;i<maxYears;i++)
 		{
@@ -104,23 +108,6 @@ public class SerOptGraphFunctions extends OptGraphFunctions {
 		return barChartHash;
 		
 	}
-	public ArrayList<double[]> createSusPerYear()
-	{
-		ArrayList<double[]> susPerYearList = new ArrayList<double[]>();
-		for (int i=0 ;i< lin.actualBudgetList.size();i++)
-		{
-			//yearlyBuildCosts[i]=lin.actualBudgetList.get(i);
-			double[] newYear = new double[maxYears];
-			newYear[i]=Math.round(lin.actualBudgetList.get(i)*Math.pow((1+opt.infRate), i));
-			for (int j=i+1;j<maxYears;j++)
-			{
-				newYear[j]=Math.round(lin.actualBudgetList.get(i)*opt.serMainPerc*Math.pow((1+opt.infRate), j));
-			}
-			
-			susPerYearList.add(newYear);
-		}
-		return susPerYearList;
-	}
 
 	/**
 	 * Creates the build cost chart by putting budget information in the bar chart hash.
@@ -131,14 +118,11 @@ public class SerOptGraphFunctions extends OptGraphFunctions {
 		double[] yearlyCosts = new double[lin.actualBudgetList.size()];
 		String[] yearCount = new String[lin.actualBudgetList.size()];
 		int thisYear = 2013;
+		int[] totalYearsAxis = new int[lin.actualBudgetList.size()];
 		for (int i=0 ;i< lin.actualBudgetList.size();i++)
 		{
 			yearCount[i]="Year "+(i+1) +" Services";
 			yearlyCosts[i]=lin.actualBudgetList.get(i);
-		}
-		int[] totalYearsAxis = new int[lin.actualBudgetList.size()];
-		for (int i=0;i<lin.actualBudgetList.size();i++)
-		{
 			totalYearsAxis[i]=thisYear+i+1;
 		}
 		Hashtable barChartHash = new Hashtable();
@@ -186,9 +170,13 @@ public class SerOptGraphFunctions extends OptGraphFunctions {
 		return barChartHash;
 	}
 	
-	@Override
-	public ArrayList<double[]> createSavingsPerYearList()
+	/**
+	 * Used to create a hashtable that stores information about cumulative savings used in a bar graph.
+	
+	 * @return Hashtable 	Contains information about cumulative sustainment savings. */
+	public Hashtable createCumulativeSavings()
 	{
+		int thisYear = 2013;
 		ArrayList<double[]> savingsPerYearList = new ArrayList<double[]>();
 		for (int i=0 ;i< lin.actualBudgetList.size();i++)
 		{
@@ -200,12 +188,41 @@ public class SerOptGraphFunctions extends OptGraphFunctions {
 			
 			savingsPerYearList.add(newYear);
 		}
-		return savingsPerYearList;
+		int[] totalYearsAxis = new int[maxYears];
+		for (int i=0;i<maxYears;i++)
+		{
+			totalYearsAxis[i]=thisYear+i+1;
+		}
+		Hashtable barChartHash = new Hashtable();
+		Hashtable seriesHash = new Hashtable();
+		Hashtable colorHash = new Hashtable();
+		barChartHash.put("type",  "column");
+		barChartHash.put("stack", "normal");
+		barChartHash.put("title",  "Accumulative Sustainment Savings");
+		barChartHash.put("yAxisTitle", "Savings (Actual-time value)");
+		barChartHash.put("xAxisTitle", "Fiscal Year");
+		barChartHash.put("xAxis", totalYearsAxis);
+		for (int i=0;i<savingsPerYearList.size();i++)
+		{
+			double[] yearSeries = savingsPerYearList.get(i);
+			seriesHash.put("Year "+(i+1) +" Services", yearSeries);
+			//use high charts default charts
+			//colorHash.put("Year "+(i+1) +" Services", colorArray.get(i));
+		}
+		
+		barChartHash.put("dataSeries",  seriesHash);
+		barChartHash.put("colorSeries", colorHash);
+		return barChartHash;
 	}
+
 	
-	@Override
-	public double[][] createBalanceList(int thisYear)
+	/**
+	 * Used to create a hashtable with breakeven information for services used to create a bar graph.
+	
+	 * @return Hashtable		Hashtable containing information about the balance over a time horizon. */
+	public Hashtable createBreakevenGraph()
 	{
+		int thisYear = 2013+1;
 		double[][] balanceList  = new double[maxYears+1][2];
 		balanceList[0][1]=0;
 		balanceList[0][0]=thisYear;
@@ -232,7 +249,25 @@ public class SerOptGraphFunctions extends OptGraphFunctions {
 			balanceList[i+1][0]=thisYear+i+1;
 
 		}
-		return balanceList;
+		int[] totalYearsAxis = new int[maxYears];
+		for (int i=0;i<maxYears;i++)
+		{
+			totalYearsAxis[i]=thisYear+i+1;
+		}
+		Hashtable barChartHash = new Hashtable();
+		Hashtable seriesHash = new Hashtable();
+		Hashtable colorHash = new Hashtable();
+		barChartHash.put("type",  "line");
+		barChartHash.put("title",  "Balance Over Time Horizon");
+		barChartHash.put("yAxisTitle", "Balance(Actual time value)");
+		barChartHash.put("xAxisTitle", "Fiscal Year");
+		//barChartHash.put("xAxis", totalYearsAxis);
+		seriesHash.put("Balance Line", balanceList);
+		colorHash.put("Balance Line", "#4572A7");
+		barChartHash.put("dataSeries",  seriesHash);
+		barChartHash.put("colorSeries", colorHash);
+		barChartHash.put("xAxisInterval", 1);
+		return barChartHash;
 	}
 
 }

@@ -41,6 +41,7 @@ import javax.swing.JDesktopPane;
 
 import prerna.engine.api.IEngine;
 import prerna.ui.components.playsheets.GraphPlaySheet;
+import prerna.ui.components.specific.tap.OptChartUtilityMethods;
 import prerna.ui.components.specific.tap.OptimizationOrganizer;
 import prerna.ui.components.specific.tap.SerOptGraphFunctions;
 import prerna.ui.components.specific.tap.SerOptPlaySheet;
@@ -450,7 +451,7 @@ public class UnivariateSvcOptimizer extends UnivariateOpt{
 		Hashtable chartHash3 = graphF.createCostChart();
 		Hashtable chartHash4 = graphF.createCumulativeSavings();
 		Hashtable chartHash5 = graphF.createBreakevenGraph();
-		Hashtable chartHash6 = graphF.createLearningCurve();
+		Hashtable chartHash6 = OptChartUtilityMethods.createLearningCurve(2014, iniLC, scdLT, scdLC, f.learningConstants);
 		((SerOptPlaySheet)playSheet).tab1.callIt(chartHash1);
 		((SerOptPlaySheet)playSheet).tab2.callIt(chartHash2);
 		((SerOptPlaySheet)playSheet).tab3.callIt(chartHash3);

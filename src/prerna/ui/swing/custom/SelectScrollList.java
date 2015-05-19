@@ -46,8 +46,6 @@ import prerna.ui.components.NewScrollBarUI;
  */
 public class SelectScrollList  extends JButton {  
 
-//	private JFrame frame = new JFrame("Test");
-//	private JDialog dialog = new JDialog();
 	private JList list;
 	public JScrollPane pane = new JScrollPane();
 	/** 
@@ -60,42 +58,14 @@ public class SelectScrollList  extends JButton {
 		list = new JList();
 	}
 	
+
 	/**
 	 * Adds button with specified views, size, and horizontal/vertical scrollbars to the popup menu. 
 	 * @param listArray String[]		List of elements to add.
-	 * @param width int					Preferred width for button dimensions.
-	 * @param height int				Preferred height for button dimensions.
 	 */
-	public void setupButton(Vector<String> listSet, int width, int height)
+	public void setupButton(Vector<String> elementList)
 	{
-		String[] listArray = new String[listSet.size()];
-		int count = 0;
-		for(String element : listSet) {
-			listArray[count] = element;
-			count++;
-		}
-		setupButton(listArray);
-		pane.setPreferredSize(new Dimension(width, height));
-	}
-	
-	/**
-	 * Adds button with specified views, size, and horizontal/vertical scrollbars to the popup menu. 
-	 * @param listArray String[]		List of elements to add.
-	 * @param width int					Preferred width for button dimensions.
-	 * @param height int				Preferred height for button dimensions.
-	 */
-	public void setupButton(String[] listArray, int width, int height)
-	{
-		setupButton(listArray);
-		pane.setPreferredSize(new Dimension(width, height));
-	}
-	/**
-	 * Adds button to the popup menu. 
-	 * @param listArray String[]		List of elements to add.
-	 */
-	public void setupButton(String[] listArray)
-	{
-		list = new JList(listArray);
+		list = new JList(elementList);
 	
 		pane.setViewportView(list);
 		pane.getVerticalScrollBar().setUI(new NewScrollBarUI());
@@ -103,14 +73,21 @@ public class SelectScrollList  extends JButton {
 	
 	}
 	
-	public void resetList(Vector<String> listSet) {
-		String[] listArray = new String[listSet.size()];
-		int count = 0;
-		for(String element : listSet) {
-			listArray[count] = element;
-			count++;
-		}
-		list = new JList(listArray);
+	/**
+	 * Adds button with specified views, size, and horizontal/vertical scrollbars to the popup menu. 
+	 * @param listArray String[]		List of elements to add.
+	 * @param width int					Preferred width for button dimensions.
+	 * @param height int				Preferred height for button dimensions.
+	 */
+	public void setupButton(Vector<String> elementList, int width, int height)
+	{
+		setupButton(elementList);
+		pane.setPreferredSize(new Dimension(width, height));
+	}
+	
+		
+	public void resetList(Vector<String> elementList) {
+		list = new JList(elementList);
 
 		pane.setViewportView(list);
 	}
@@ -153,22 +130,6 @@ public class SelectScrollList  extends JButton {
 		}
 	    list.ensureIndexIsVisible(list.getSelectedIndex());
 	}
-
-	/**
-	 * Selects everything but the specified values
-	 * @param listToUnselect
-	 */
-	private void setUnselectedValues(Vector<String> listToUnselect) {
-	    list.clearSelection();
-		ListModel model = list.getModel();
-		for (int i = 0; i < model.getSize(); i++)
-		{
-			String value = (String)model.getElementAt(i);
-			//if the unselect list doesnt contain the value, then it should be selected
-			if(!listToUnselect.contains(value))
-				list.addSelectionInterval(i, i);
-		}
-	}
 	
 	/**
 	 * Removes the specified values from the selection
@@ -199,6 +160,7 @@ public class SelectScrollList  extends JButton {
 			return new ArrayList<String>();
 		return (ArrayList<String>)list.getSelectedValuesList();
 	}
+	
 	public ArrayList<String> getUnselectedValues()
 	{
 		ArrayList<String> unselectedList = new ArrayList<String>();
@@ -218,14 +180,5 @@ public class SelectScrollList  extends JButton {
 	public void clearSelection()
 	{
 		list.clearSelection();
-	}
-
-	/**
-	 * Resets existing button.
-	 */
-	private void resetButton()
-	{
-		JScrollPane pane = new JScrollPane();
-		list = new JList();
 	}
 }  

@@ -35,6 +35,8 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Set;
 
+import javax.swing.JLabel;
+
 import org.apache.commons.math3.exception.TooManyEvaluationsException;
 import org.apache.commons.math3.optim.MaxEval;
 import org.apache.commons.math3.optim.OptimizationData;
@@ -52,9 +54,13 @@ import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.math.StatisticsUtilityMethods;
+import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.components.playsheets.ColumnChartPlaySheet;
 import prerna.ui.components.playsheets.OCONUSMapPlaySheet;
 import prerna.ui.components.specific.tap.HealthGridSheet;
+import prerna.ui.components.specific.tap.SysSiteOptGraphFunctions;
+import prerna.ui.components.specific.tap.SysSiteOptPlaySheet;
+import prerna.util.Utility;
 
 /**
  * This optimizer is used for implementation of the ROI (return on investment) function.
@@ -65,19 +71,16 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	
 	private IEngine systemEngine, costEngine, siteEngine;
 	
-	private ArrayList<String> sysList, dataList, bluList, siteList, capList;
-	private ArrayList<String> centralSysList;
+	private ArrayList<String> localSysList, centralSysList, dataList, bluList, siteList, capList;
 	
 	//user must select these
 	private double budgetForYear;
-	private int years;
 	private Boolean useDHMSMFunctionality;//true if data/blu list made from dhmsm capabilities. False if from the systems
 	private Boolean isOptimizeBudget;
 	private String type;
 
-	//user can change these as advanced settings
-	private double infRate, disRate, trainingPerc, hourlyRate;
-	private int noOfPts;
+	//user can change these as advanced settings //TODO make absConvergence a perc of num years and budget 
+	private double trainingPerc, relConvergence, absConvergence;
 	
 	//user should not change these
 	private double centralDeploymentPer = 0.80;
@@ -85,43 +88,45 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	private double interfacePercOfDeployment = 0.075;
 	
 	//generated data stores based off of the users selections
-	private Integer[] modArr, decomArr;
-	private int[][] systemDataMatrix, systemBLUMatrix;
-	private double[][] systemSiteMatrix;
-	private int[] systemTheater, systemGarrison;
-	private double[] interfaceCostArr;
-	private double[] maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts;
+	//local systems
+	private int[][] localSystemDataMatrix, localSystemBLUMatrix;
+	private int[] localSystemIsTheaterArr, localSystemIsGarrisonArr;
+	private Integer[] localSystemIsModArr, localSystemIsDecomArr;
+	private double[] localSystemMaintenanceCostArr, localSystemSiteMaintenaceCostArr, localSystemSiteDeploymentCostArr, localSystemSiteInterfaceCostArr;
+	private double[][] localSystemSiteMatrix;
 	
-	private Integer[] centralModArr, centralDecomArr;
+	//central systems
 	private int[][] centralSystemDataMatrix, centralSystemBLUMatrix;
+	private int[] centralSystemIsTheaterArr, centralSystemIsGarrisonArr;
+	private Integer[] centralSystemIsModArr, centralSystemIsDecomArr;
+	private double[] centralSystemMaintenanceCostArr, centralSystemInterfaceCostArr;
+	private double[] centralSystemNumSiteArr;
 	private double[][] centralSystemSiteMatrix;
-	private double[] centralSystemNumSite;
-	private int[] centralSystemTheater, centralSystemGarrison;
-	private double[] centralInterfaceCostArr;
-	private double[] centralSystemMaintenaceCosts;
 
-	private int[][] systemCapMatrix, centralSystemCapMatrix;
-	
+	//capability
+	private int[][] localSystemCapMatrix, centralSystemCapMatrix;
 	private int[][] capBLUMatrix, capDataMatrix;
 	
 	//results of the algorithm
 	private SysSiteOptFunction optFunc;
-		
-	private double[] sysKeptArr, centralSysKeptArr;
-	private double[][] systemSiteResultMatrix;
 	
-	private String[][] systemSiteRecMatrix;
+	private double[] localSysKeptArr, centralSysKeptArr;
+	private double[][] localSystemSiteResultMatrix;
+	private String[][] localSystemSiteRecMatrix;
 	
 	private String sysKeptQueryString = "";
-	private int numSysKept, numCentralSysKept;
 	
 	private double[] siteLat, siteLon;
 	private double yearsToComplete;
-	private double currSustainmentCost, futureSustainmentCost;
-	private double adjustedDeploymentCost, adjustedTotalSavings;
+	private double currentSustainmentCost, futureSustainmentCost;
+	private double adjustedDeploymentCost, adjustedTotalSavings, roi, irr;
 	
-	private double[] deployCostPerYear, currCostPerYear, futureCostPerYear, costAvoidedPerYear;
-
+	private double[] costAvoidedPerYearArr;
+	public double[] deployCostPerYearArr, futureCostPerYearArr, currCostPerYearArr, cummDeployCostArr, cummCostAvoidedArr;
+	public double[][] balanceArr;
+	
+	public int startYear = 2015;
+	
 	@Override
 	public void execute() {
 		executeWeb();
@@ -140,7 +145,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		printMessage("Time to query data " + (endTime - startTime) / 1000 + " seconds");
 		
 		startTime = System.currentTimeMillis();			
-		optimizeSystemsAtSites(isOptimizeBudget, systemSiteMatrix, currSustainmentCost, budgetForYear, years);
+		optimizeSystemsAtSites(isOptimizeBudget, localSystemSiteMatrix, currentSustainmentCost, budgetForYear, maxYears);
 		endTime = System.currentTimeMillis();
 		printMessage("Time to run Optimization " + (endTime - startTime) / 1000 + " seconds");
 		
@@ -156,19 +161,32 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		this.useDHMSMFunctionality = useDHMSMFunctionality;
 	}
 	
-	public void setVariables(int budgetForYear, int years, double infRate, double disRate, double trainingPerc,double hourlyRate, int noOfPts) {
+	/**
+	 * 
+	 * @param budgetForYear
+	 * @param years
+	 * @param infRate, disRate in decimals (NOT percents)
+	 * @param trainingPerc in decimal (NOT percent)
+	 * @param hourlyRate
+	 * @param noOfPts
+	 * @param relConvergence in decimal (NOT percent)
+	 * @param absConvergence
+	 */
+	public void setVariables(double budgetForYear, int years, double infRate, double disRate, double trainingPerc,double hourlyCost, int noOfPts, double relConvergence, double absConvergence) {
 		this.budgetForYear = budgetForYear;
-		this.years = years;
+		this.maxYears = years;
 		this.infRate = infRate;
 		this.disRate = disRate;
 		this.trainingPerc = trainingPerc;
-		this.hourlyRate = hourlyRate;
+		this.hourlyCost = hourlyCost;
 		this.noOfPts = noOfPts;
+		this.relConvergence = relConvergence;
+		this.absConvergence = absConvergence;
 	}
 	
-	public void setSysList(ArrayList<String> sysList) {
+	public void setSysList(ArrayList<String> sysList, ArrayList<String> modList, ArrayList<String> decomList) {
 		
-		String centralSysQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?System <http://semoss.org/ontologies/Relation/Contains/CentralDeployment> 'Y'}{?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?cost}FILTER(?cost > 0)} ORDER BY ?System LIMIT 50";
+		String centralSysQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?System <http://semoss.org/ontologies/Relation/Contains/CentralDeployment> 'Y'}{?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?cost}FILTER(?cost > 0)} ORDER BY ?System";
 		ArrayList<String> unfilteredCentralSys = SysOptUtilityMethods.runListQuery(systemEngine, centralSysQuery);
 		this.centralSysList = new ArrayList<String>();
 		
@@ -182,60 +200,52 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			}
 		}
 		
-		this.sysList = sysList;
+		this.localSysList = sysList;
 		
-		printMessage("Not Central Systems are..." + SysOptUtilityMethods.createPrintString(sysList));
+		int numLocalSys = localSysList.size();
+		int numCentralSys = centralSysList.size();
+		
+		localSystemIsModArr = new Integer[numLocalSys];
+		centralSystemIsModArr = new Integer[numCentralSys];
+		
+		localSystemIsDecomArr = new Integer[numLocalSys];
+		centralSystemIsDecomArr = new Integer[numCentralSys];
+
+		for(i=0; i<numLocalSys; i++) {
+			if(modList.contains(localSysList.get(i))) {
+				localSystemIsModArr[i] = 1;
+				localSystemIsDecomArr[i] = 0;
+			}else if(decomList.contains(localSysList.get(i))) {
+				localSystemIsModArr[i] = 0;
+				localSystemIsDecomArr[i] = 1;				
+			}else {
+				localSystemIsModArr[i] = 0;
+				localSystemIsDecomArr[i] = 0;				
+			}
+		}
+		
+		for(i=0; i<numCentralSys; i++) {
+			if(modList.contains(centralSysList.get(i))) {
+				centralSystemIsModArr[i] = 1;
+				centralSystemIsDecomArr[i] = 0;
+			}else if(decomList.contains(centralSysList.get(i))) {
+				centralSystemIsModArr[i] = 0;
+				centralSystemIsDecomArr[i] = 1;				
+			}else {
+				centralSystemIsModArr[i] = 0;
+				centralSystemIsDecomArr[i] = 0;				
+			}
+		}
+
+		printMessage("Not Central Systems are..." + SysOptUtilityMethods.createPrintString(localSysList));
 		printMessage("Central Systems are..." + SysOptUtilityMethods.createPrintString(centralSysList));
 	}
 	
-	public void setMustModDecomList(ArrayList<String> modList, ArrayList<String> decomList) {
-
-		int i;
-		int index;
-		int numMod = modList.size();
-		int numDecom = decomList.size();
-		
-		modArr = new Integer[sysList.size()];
-		centralModArr = new Integer[centralSysList.size()];
-		
-		decomArr = new Integer[sysList.size()];
-		centralDecomArr = new Integer[centralSysList.size()];
-		
-		NEXT: for(i=0; i<numMod; i++) {
-			String mod = modList.get(i);
-			index = sysList.indexOf(mod);
-			if(index > -1) {
-				modArr[index] = 1;
-				continue NEXT;
-			}
-			
-			index = centralSysList.indexOf(mod);
-			if(index > -1) {
-				centralModArr[index] = 1;
-			}	
-		}
-		
-		NEXT: for(i=0; i<numDecom; i++) {
-			String decom = decomList.get(i);
-			index = sysList.indexOf(decom);
-			if(index > -1) {
-				decomArr[index] = 1;
-				continue NEXT;
-			}
-			
-			index = centralSysList.indexOf(decom);
-			if(index > -1) {
-				centralDecomArr[index] = 1;
-			}	
-		}
-		
-	}
-	
 	public void setSysHashList(ArrayList<Hashtable<String, String>> sysHashList) {
-		sysList = new ArrayList<String>();
+		localSysList = new ArrayList<String>();
 		centralSysList = new ArrayList<String>();
 		
-		String centralSysQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?System <http://semoss.org/ontologies/Relation/Contains/CentralDeployment> 'Y'}{?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?cost}FILTER(?cost > 0)} ORDER BY ?System LIMIT 50";
+		String centralSysQuery = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?System <http://semoss.org/ontologies/Relation/Contains/CentralDeployment> 'Y'}{?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?cost}FILTER(?cost > 0)} ORDER BY ?System";
 		ArrayList<String> allCentralSys = SysOptUtilityMethods.runListQuery(systemEngine, centralSysQuery);
 		
 		int numCentral = 0;
@@ -250,11 +260,11 @@ public class SysSiteOptimizer extends UnivariateOpt {
 
 		int numNonCentral = numSysHash - numCentral;
 		
-		modArr = new Integer[numNonCentral];
-		centralModArr = new Integer[numCentral];
+		localSystemIsModArr = new Integer[numNonCentral];
+		centralSystemIsModArr = new Integer[numCentral];
 		
-		decomArr = new Integer[numNonCentral];
-		centralDecomArr = new Integer[numCentral];		
+		localSystemIsDecomArr = new Integer[numNonCentral];
+		centralSystemIsDecomArr = new Integer[numCentral];		
 		
 		int centralIndex = 0;
 		int nonCentralIndex = 0;
@@ -267,35 +277,39 @@ public class SysSiteOptimizer extends UnivariateOpt {
 				
 				centralSysList.add(sys);
 				
-				if(status.equals("Modernize"))
-					centralModArr[centralIndex] = 1;
-				else 
-					centralModArr[centralIndex] = 0;
-
-				if(status.equals("Decommission"))
-					centralDecomArr[centralIndex] = 1;
-				else
-					centralDecomArr[centralIndex] = 0;
+				if(status.equals("Modernize")) {
+					centralSystemIsModArr[centralIndex] = 1;
+					centralSystemIsDecomArr[centralIndex] = 0;
+				} else if(status.equals("Decommission")) {
+					centralSystemIsModArr[centralIndex] = 0;
+					centralSystemIsDecomArr[centralIndex] = 1;
+				} else {
+					centralSystemIsModArr[centralIndex] = 0;
+					centralSystemIsDecomArr[centralIndex] = 0;
+				}
+				
 				centralIndex++;
 			
 			}else {
 				
-				sysList.add(sys);
+				localSysList.add(sys);
 				
-				if(status.equals("Modernize"))
-					modArr[nonCentralIndex] = 1;
-				else
-					modArr[nonCentralIndex] = 0;
+				if(status.equals("Modernize")) {
+					localSystemIsModArr[nonCentralIndex] = 1;
+					localSystemIsDecomArr[nonCentralIndex] = 0;	
+				} else if(status.equals("Decommission")) {
+					localSystemIsModArr[nonCentralIndex] = 0;
+					localSystemIsDecomArr[nonCentralIndex] = 1;
+				} else {
+					localSystemIsModArr[nonCentralIndex] = 0;
+					localSystemIsDecomArr[nonCentralIndex] = 0;
+				}
 				
-				if(status.equals("Decommission"))
-					decomArr[nonCentralIndex] = 1;
-				else
-					decomArr[nonCentralIndex] = 0;
 				nonCentralIndex++;
 			}
 		}
 		
-		printMessage("Not Central Systems are..." + SysOptUtilityMethods.createPrintString(sysList));
+		printMessage("Not Central Systems are..." + SysOptUtilityMethods.createPrintString(localSysList));
 		printMessage("Central Systems are..." + SysOptUtilityMethods.createPrintString(centralSysList));
 
 	}
@@ -315,7 +329,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	
 	private void createSiteDataBLULists() {
 
-		String sysBindings = "{" + SysOptUtilityMethods.makeBindingString("System",sysList) + SysOptUtilityMethods.makeBindingString("System",centralSysList) + "}";
+		String sysBindings = "{" + SysOptUtilityMethods.makeBindingString("System",localSysList) + SysOptUtilityMethods.makeBindingString("System",centralSysList) + "}";
 		
 		String siteQuery = "SELECT DISTINCT ?Site WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite> ;}{?Site <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?Site;}{?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite;} } ORDER BY ?Site BINDINGS ?System " + sysBindings;
 
@@ -346,30 +360,30 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	private void getData() {
 
 		ResidualSystemOptFillData resFunc = new ResidualSystemOptFillData();
-		resFunc.setHourlyRate(hourlyRate);
-		resFunc.setSysSiteLists(sysList, dataList, bluList, siteList, capList);
+		resFunc.setHourlyRate(hourlyCost);
+		resFunc.setSysSiteLists(localSysList, dataList, bluList, siteList, capList);
 		resFunc.setEngines(systemEngine, costEngine, siteEngine);
 		resFunc.fillSysSiteOptDataStores(true);
 		
 		capBLUMatrix = resFunc.capabilityBLUMatrix;
 		capDataMatrix = resFunc.capabilityDataMatrix;
 		
-		systemDataMatrix = resFunc.systemDataMatrix;
-		systemBLUMatrix = resFunc.systemBLUMatrix;
-		systemSiteMatrix = resFunc.systemSiteMatrix;
-		systemCapMatrix = resFunc.systemCapabilityMatrix;
+		localSystemDataMatrix = resFunc.systemDataMatrix;
+		localSystemBLUMatrix = resFunc.systemBLUMatrix;
+		localSystemSiteMatrix = resFunc.systemSiteMatrix;
+		localSystemCapMatrix = resFunc.systemCapabilityMatrix;
 		
-		systemTheater = resFunc.systemTheater;
-		systemGarrison = resFunc.systemGarrison;
+		localSystemIsTheaterArr = resFunc.systemTheater;
+		localSystemIsGarrisonArr = resFunc.systemGarrison;
 
 		double[] systemSustainmentBudget = resFunc.systemCostOfMaintenance;
 		double[] systemNumOfSites = resFunc.systemNumOfSites;
 
 		int i;
-		int sysLength = sysList.size();
-		maintenaceCosts = new double[sysLength];
-		siteMaintenaceCosts = new double[sysLength];
-		siteDeploymentCosts = new double[sysLength];
+		int sysLength = localSysList.size();
+		localSystemMaintenanceCostArr = new double[sysLength];
+		localSystemSiteMaintenaceCostArr = new double[sysLength];
+		localSystemSiteDeploymentCostArr = new double[sysLength];
 		
 		for(i=0; i<sysLength; i++) {
 			
@@ -382,14 +396,14 @@ public class SysSiteOptimizer extends UnivariateOpt {
 				numSites = systemNumOfSites[i];
 			}
 				
-			maintenaceCosts[i] = centralDeploymentPer * sysBudget;
+			localSystemMaintenanceCostArr[i] = centralDeploymentPer * sysBudget;
 			double siteMaintenance = (1 - centralDeploymentPer) * sysBudget / numSites;
-			siteMaintenaceCosts[i] = siteMaintenance;
-			siteDeploymentCosts[i] = siteMaintenance * deploymentFactor;
+			localSystemSiteMaintenaceCostArr[i] = siteMaintenance;
+			localSystemSiteDeploymentCostArr[i] = siteMaintenance * deploymentFactor;
 		}
 		
 		
-		interfaceCostArr = resFunc.systemCostOfDataConsumeArr;
+		localSystemSiteInterfaceCostArr = resFunc.systemCostOfDataConsumeArr;
 		
 		resFunc.setSysSiteLists(centralSysList,dataList,bluList,siteList, capList);
 		resFunc.fillSysSiteOptDataStores(false);
@@ -397,73 +411,33 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		centralSystemDataMatrix = resFunc.systemDataMatrix;
 		centralSystemBLUMatrix = resFunc.systemBLUMatrix;
 		centralSystemSiteMatrix = resFunc.centralSystemSiteMatrix;
-		centralSystemNumSite = resFunc.centralSystemNumSite;
+		centralSystemNumSiteArr = resFunc.centralSystemNumSite;
 
 		centralSystemCapMatrix = resFunc.systemCapabilityMatrix;
-		centralSystemTheater = resFunc.systemTheater;
-		centralSystemGarrison = resFunc.systemGarrison;
+		centralSystemIsTheaterArr = resFunc.systemTheater;
+		centralSystemIsGarrisonArr = resFunc.systemGarrison;
 
-		centralSystemMaintenaceCosts = resFunc.systemCostOfMaintenance;
+		centralSystemMaintenanceCostArr = resFunc.systemCostOfMaintenance;
 
-		currSustainmentCost = calculateCurrentSustainmentCost(maintenaceCosts, centralSystemMaintenaceCosts);
+		currentSustainmentCost = calculateCurrentSustainmentCost(localSystemMaintenanceCostArr, centralSystemMaintenanceCostArr);
 		
-		centralInterfaceCostArr = resFunc.systemCostOfDataConsumeArr;
-		
-//		interfaceCostArr = calculateInterfaceCost(interfaceCostArr, systemCostConsumeDataMatrix, systemDataMatrix, systemTheater, systemGarrison);
-//		centralInterfaceCostArr = calculateInterfaceCost(centralInterfaceCostArr, centralSystemCostConsumeDataMatrix, centralSystemDataMatrix, centralSystemTheater, centralSystemGarrison);
+		centralSystemInterfaceCostArr = resFunc.systemCostOfDataConsumeArr;
 
-		sysLength = sysList.size();
+		sysLength = localSysList.size();
 		for(i=0; i<sysLength; i++)
-			if(interfaceCostArr[i] != 0)
-				interfaceCostArr[i] = interfacePercOfDeployment*siteDeploymentCosts[i];
+			if(localSystemSiteInterfaceCostArr[i] != 0)
+				localSystemSiteInterfaceCostArr[i] = interfacePercOfDeployment*localSystemSiteDeploymentCostArr[i];
 		
 		sysLength = centralSysList.size();
 		int siteLength = siteList.size();
 		for(i=0; i<sysLength; i++) 
-			if(centralInterfaceCostArr[i] != 0)
-				centralInterfaceCostArr[i] = centralSystemMaintenaceCosts[i] * (1-centralDeploymentPer) * deploymentFactor * interfacePercOfDeployment / siteLength;
+			if(centralSystemInterfaceCostArr[i] != 0)
+				centralSystemInterfaceCostArr[i] = centralSystemMaintenanceCostArr[i] * (1-centralDeploymentPer) * deploymentFactor * interfacePercOfDeployment / siteLength;
 		
 		resFunc.fillSiteLatLon();
 		siteLat = resFunc.siteLat;
 		siteLon = resFunc.siteLon;
-	}
-	
-	private double[] calculateInterfaceCost(double[] interfaceCostArr, double[][] costConsumeDataMatrix, int[][] sysDataMatrix, int[] sysTheater, int[] sysGarrison) {
-		
-		int i;
-		int j;
-		int numTheaterProviders;
-		int numGarrisonProviders;
-		double probInferfaceStaying;
-		double probInferfaceStayingTheater;
-		double probInferfaceStayingGarrison;
-		int numData = sysDataMatrix[0].length;
-		int numSystems = sysDataMatrix.length;
-		
-		interfaceCostArr = SysOptUtilityMethods.createEmptyVector(interfaceCostArr, numSystems);
-		
-		for(i=0; i<numData; i++) {
-			numTheaterProviders = SysOptUtilityMethods.sumColIf(systemDataMatrix, i, systemTheater) + SysOptUtilityMethods.sumColIf(centralSystemDataMatrix, i, centralSystemTheater);
-			numGarrisonProviders = SysOptUtilityMethods.sumColIf(systemDataMatrix, i, systemGarrison) + SysOptUtilityMethods.sumColIf(centralSystemDataMatrix, i, centralSystemGarrison);
-			
-			for(j=0; j<numSystems; j++) {
-				probInferfaceStayingTheater = 1.0;
-				probInferfaceStayingGarrison = 1.0;
-				//in perfect solution only one provider should stay. probability that that one is the one currently receiving from is 1/total number
-				if(sysTheater[j] == 1 && numTheaterProviders != 0)
-					probInferfaceStayingTheater = 1.0/numTheaterProviders;
-				if(sysGarrison[j] == 1 && numGarrisonProviders != 0)
-					probInferfaceStayingGarrison = 1.0/numGarrisonProviders;
-				probInferfaceStaying = Math.min(probInferfaceStayingTheater, probInferfaceStayingGarrison);
-				//if the sys does not consume the data object, the costConsumeDataMatrix is already 0 so cost is 0
-				interfaceCostArr[j] += (1.0-probInferfaceStaying) * costConsumeDataMatrix[j][i];
-			}
-		}
-		
-		return interfaceCostArr;
-		
-	}
-	
+	}	
 	
 	private double calculateCurrentSustainmentCost(double[] maintenaceCosts, double[] centralSysMaintenaceCosts) {
 		double currSustainmentCost = 0.0;
@@ -486,7 +460,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	private double[] calculateSiteSustainCost(double[][] sysSiteMatrix, double[] sysCost, int[][] includeSystem, int includeSysCol) {
 		int i;
 		int j;
-		int numSys = sysList.size();
+		int numSys = localSysList.size();
 		int numSite = siteList.size();
 		double[] siteCostArr = new double[numSite];
 		
@@ -529,23 +503,25 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	
 	private void optimizeSystemsAtSites(Boolean isOptimizeBudget, double[][] systemSiteMatrix, double currSustainmentCost, double budgetForYear, int years) {
 		
-		if(type.equals("Savings"))
-			optFunc = new SysSiteSavingsOptFunction();
-		else if(type.equals("ROI"))
-			optFunc = new SysSiteROIOptFunction();
-		else if(type.equals("IRR"))
+		if(!isOptimizeBudget) {
 			optFunc = new SysSiteIRROptFunction();
-		else {
+		} else if(type.equals("Savings")) {
+			optFunc = new SysSiteSavingsOptFunction();
+		} else if(type.equals("ROI")) {
+			optFunc = new SysSiteROIOptFunction();
+		} else if(type.equals("IRR")) {
+			optFunc = new SysSiteIRROptFunction();
+		} else {
 			printMessage("OPTIMIZATION TYPE DOES NOT EXIST");
 			return;
 		}
 		optFunc.setPlaySheet(playSheet);
-		optFunc.setVariables(systemDataMatrix, systemBLUMatrix, systemSiteMatrix, systemTheater, systemGarrison, modArr, decomArr, maintenaceCosts, siteMaintenaceCosts, siteDeploymentCosts, interfaceCostArr, centralInterfaceCostArr, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemTheater, centralSystemGarrison, centralModArr, centralDecomArr, centralSystemMaintenaceCosts, budgetForYear, years, currSustainmentCost, infRate, disRate, trainingPerc);
+		optFunc.setVariables(localSystemDataMatrix, localSystemBLUMatrix, localSystemIsTheaterArr, localSystemIsGarrisonArr, localSystemIsModArr, localSystemIsDecomArr, localSystemMaintenanceCostArr, localSystemSiteMaintenaceCostArr, localSystemSiteDeploymentCostArr, localSystemSiteInterfaceCostArr, localSystemSiteMatrix, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemIsTheaterArr, centralSystemIsGarrisonArr, centralSystemIsModArr, centralSystemIsDecomArr, centralSystemMaintenanceCostArr, centralSystemInterfaceCostArr, trainingPerc, currentSustainmentCost, budgetForYear, years, infRate, disRate);
 
 		optFunc.value(budgetForYear * years);
 		futureSustainmentCost = optFunc.getFutureSustainmentCost();
 		if(isOptimizeBudget && futureSustainmentCost!=currSustainmentCost) {
-			UnivariateOptimizer optimizer = new BrentOptimizer(.05, budgetForYear * years * 0.20);
+			UnivariateOptimizer optimizer = new BrentOptimizer(relConvergence, budgetForYear * years * absConvergence);
 	
 			RandomGenerator rand = new Well1024a(500);
 			MultiStartUnivariateOptimizer multiOpt = new MultiStartUnivariateOptimizer(optimizer, noOfPts, rand);
@@ -556,6 +532,9 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			OptimizationData[] data = new OptimizationData[] { search, objF, GoalType.MAXIMIZE, eval};
 			try {
 				UnivariatePointValuePair pair = multiOpt.optimize(data);
+				optFunc = new SysSiteIRROptFunction();
+				optFunc.setPlaySheet(playSheet);
+				optFunc.setVariables(localSystemDataMatrix, localSystemBLUMatrix, localSystemIsTheaterArr, localSystemIsGarrisonArr, localSystemIsModArr, localSystemIsDecomArr, localSystemMaintenanceCostArr, localSystemSiteMaintenaceCostArr, localSystemSiteDeploymentCostArr, localSystemSiteInterfaceCostArr, localSystemSiteMatrix, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemIsTheaterArr, centralSystemIsGarrisonArr, centralSystemIsModArr, centralSystemIsDecomArr, centralSystemMaintenanceCostArr, centralSystemInterfaceCostArr, trainingPerc, currentSustainmentCost, budgetForYear, years, infRate, disRate);
 				optFunc.value(pair.getPoint());
 				
 			} catch (TooManyEvaluationsException fee) {
@@ -563,28 +542,37 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			}
 		}
 	
-		sysKeptArr = optFunc.getSysKeptArr();
+		localSysKeptArr = optFunc.getSysKeptArr();
 		centralSysKeptArr = optFunc.getCentralSysKeptArr();
-		systemSiteResultMatrix = optFunc.getSystemSiteResultMatrix();
-		
-		numSysKept = optFunc.getNumSysKept();
-		numCentralSysKept = optFunc.getNumCentralSysKept();
+		localSystemSiteResultMatrix = optFunc.getSystemSiteResultMatrix();
 		
 		futureSustainmentCost = optFunc.getFutureSustainmentCost();
 		adjustedTotalSavings = optFunc.getAdjustedTotalSavings();
 		adjustedDeploymentCost = optFunc.getAdjustedDeploymentCost();
-
+		roi = optFunc.getROI();
+		irr = optFunc.getIRR();
+		
 		yearsToComplete = optFunc.getYearsToComplete();
 	
-		systemSiteRecMatrix = calculateSiteRecMatrix(this.systemSiteMatrix, systemSiteResultMatrix);
+		localSystemSiteRecMatrix = calculateSiteRecMatrix(this.localSystemSiteMatrix, localSystemSiteResultMatrix);
 		
 		double mu = (1 + infRate / 100) / (1 + disRate / 100);
 		
-		deployCostPerYear = SysOptUtilityMethods.calculateAdjustedDeploymentCostArr(mu, yearsToComplete, years, -1 * budgetForYear);
-		currCostPerYear = SysOptUtilityMethods.calculateAdjustedDeploymentCostArr(mu, Math.ceil(yearsToComplete), years, currSustainmentCost);
-		futureCostPerYear =  SysOptUtilityMethods.calculateAdjustedSavingsArr(mu, yearsToComplete, years, futureSustainmentCost);
-		costAvoidedPerYear =  SysOptUtilityMethods.calculateAdjustedSavingsArr(mu, yearsToComplete, years, currSustainmentCost - futureSustainmentCost);
-
+		deployCostPerYearArr = SysOptUtilityMethods.calculateAdjustedDeploymentCostArr(mu, yearsToComplete, false, years, budgetForYear);
+		currCostPerYearArr = SysOptUtilityMethods.calculateAdjustedDeploymentCostArr(mu,yearsToComplete, true, years, currSustainmentCost);
+		futureCostPerYearArr =  SysOptUtilityMethods.calculateAdjustedSavingsArr(mu, yearsToComplete, years, futureSustainmentCost);
+		costAvoidedPerYearArr =  SysOptUtilityMethods.calculateAdjustedSavingsArr(mu, yearsToComplete, years, currSustainmentCost - futureSustainmentCost);
+		cummDeployCostArr= SysOptUtilityMethods.calculateCummulativeArr(deployCostPerYearArr);
+		cummCostAvoidedArr = SysOptUtilityMethods.calculateCummulativeArr(costAvoidedPerYearArr);
+		
+		balanceArr  = new double[maxYears+1][2];
+		balanceArr[0][0]=startYear;
+		balanceArr[0][1]=0;
+		for (int i=0; i<maxYears;i++)
+		{	
+			balanceArr[i+1][0]=startYear+i+1;
+			balanceArr[i+1][1]=cummCostAvoidedArr[i] - cummDeployCostArr[i];
+		}
 	}
 	
 	private String[][] calculateSiteRecMatrix(double[][] oldMatrix, double[][] newMatrix) {
@@ -613,30 +601,77 @@ public class SysSiteOptimizer extends UnivariateOpt {
 
 	
 	public void display() {
-				
-		createSiteGrid(systemSiteMatrix, sysList, siteList,"Current NonCentral Systems at Sites");
-		createSiteGrid(systemSiteResultMatrix, sysList, siteList,"Future NonCentral Systems at Sites");
-		createSiteGrid(systemSiteRecMatrix, sysList, siteList,"Changes for NonCentral Systems at Sites");
 		
-		createOverallGrid(centralSysKeptArr, centralSysList, "Central System", "Future Central Systems (Was central system kept or decommissioned?)");
-		createOverallGrid(sysKeptArr, sysList, "NonCentral Systems", "Future NonCentral Systems (Was noncentral system kept or decommissioned?)");
-		
-		printMessage("**Curr Sustainment Cost " + currSustainmentCost);
+		//output results to the console
+		printMessage("**Curr Sustainment Cost " + currentSustainmentCost);
 		printMessage("**Future Sustainment Cost " + futureSustainmentCost);
 		printMessage("**Adjusted Deployment Cost " + adjustedDeploymentCost);
 		
 		int i;
 		printMessage("**Year ....... Investment ....... CostAvoided: ");
-		for(i = 0; i<years; i++) {
-			printMessage((i + 1) + "     ....... " + (-1*deployCostPerYear[i]) + " ..... " + costAvoidedPerYear[i]);
+		for(i = 0; i<maxYears; i++) {
+			printMessage((i + 1) + "     ....... " + deployCostPerYearArr[i] + " ..... " + costAvoidedPerYearArr[i]);
 		}
 		
-		if(optFunc instanceof SysSiteSavingsOptFunction)
+		if(type.equals("Savings")) {
 			printMessage("**Adjusted Total Savings: " + adjustedTotalSavings);
-		else if(optFunc instanceof SysSiteROIOptFunction)
-			printMessage("**ROI: " + optFunc.getROI()+"%");
-		else if(optFunc instanceof SysSiteIRROptFunction)
-			printMessage("**IRR: " + optFunc.getIRR()+"%");
+		} else if(type.equals("ROI")) {
+			printMessage("**ROI: " + (optFunc.getROI()*100) + "%");
+		} else if(type.equals("IRR")) {
+			if(optFunc.getIRR() == -1E-40) {
+				printMessage("**IRR: " + "does not exist since no savings");
+			} else if(optFunc.getIRR() == -1E-30 || optFunc.getIRR() == -1E-31) {
+				printMessage("**IRR: " + "has problem with calculation");
+			} else {
+				printMessage("**IRR: " + (optFunc.getIRR()*100) + "%");
+			}
+		}
+
+		String netSavingsString = Utility.sciToDollar(adjustedTotalSavings);
+		((SysSiteOptPlaySheet)playSheet).savingLbl.setText(netSavingsString);
+		double roiRounded =Utility.round(roi * 100, 2);
+		((SysSiteOptPlaySheet)playSheet).roiLbl.setText(Double.toString(roiRounded)+ "%");
+		double irrRounded =Utility.round(irr * 100, 2);
+		((SysSiteOptPlaySheet)playSheet).irrLbl.setText(Double.toString(irrRounded) + "%");
+		double yearsToCompleteRounded = Utility.round(yearsToComplete, 2);
+		((SysSiteOptPlaySheet)playSheet).timeTransitionLbl.setText(Double.toString(yearsToCompleteRounded) + " Years");
+		String deployCostString = Utility.sciToDollar(adjustedDeploymentCost);
+		((SysSiteOptPlaySheet)playSheet).costLbl.setText(deployCostString);
+		
+		int breakEvenYear = 0;
+		for(i = 0; i < maxYears+1; i++) {
+			if (balanceArr[i][1] < 0)
+				breakEvenYear = i + 1;
+		}
+		if(breakEvenYear>maxYears) {
+			((SysSiteOptPlaySheet)playSheet).bkevenLbl.setText("Beyond Max Time");
+		} else if (breakEvenYear == 0) {
+			((SysSiteOptPlaySheet)playSheet).bkevenLbl.setText("1 Year");
+		} else {
+			double amountInLastYear = balanceArr[breakEvenYear][1] - balanceArr[breakEvenYear - 1][1];
+			double fraction = (-balanceArr[breakEvenYear][1]) / amountInLastYear;
+			double breakEven = Utility.round(breakEvenYear + 1 + fraction, 2);
+			((SysSiteOptPlaySheet)playSheet).bkevenLbl.setText(Double.toString(breakEven) + " Years");
+		}
+
+		SysSiteOptGraphFunctions graphF = new SysSiteOptGraphFunctions();
+		graphF.setOptimzer(this);
+		Hashtable chartHash3 = graphF.createCostChart();
+		Hashtable chartHash4 = graphF.createCumulativeSavings();
+		Hashtable chartHash5 = graphF.createBreakevenGraph();
+		
+		((SysSiteOptPlaySheet)playSheet).tab3.callIt(chartHash3);
+		((SysSiteOptPlaySheet)playSheet).tab4.callIt(chartHash4);
+		((SysSiteOptPlaySheet)playSheet).tab5.callIt(chartHash5);
+		playSheet.setGraphsVisible(true);
+		
+		//create additional tabs
+		createSiteGrid(localSystemSiteMatrix, localSysList, siteList,"Current NonCentral Systems at Sites");
+		createSiteGrid(localSystemSiteResultMatrix, localSysList, siteList,"Future NonCentral Systems at Sites");
+		createSiteGrid(localSystemSiteRecMatrix, localSysList, siteList,"Changes for NonCentral Systems at Sites");
+		
+		createOverallGrid(centralSysKeptArr, centralSysList, "Central System", "Future Central Systems (Was central system sustained or consolidated?)");
+		createOverallGrid(localSysKeptArr, localSysList, "NonCentral Systems", "Future NonCentral Systems (Was noncentral system sustained or consolidated?)");
 		
 		createCostGrid();
 		createCentralCostGrid();
@@ -652,21 +687,24 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		headers[2] = "Interface Cost";
 		headers[3] = "Site Maintain Cost";
 		headers[4] = "Site Deploy Cost";
-		headers[5] = "System Kept";
+		headers[5] = "Sustained or Consolidated";
 		
 		ArrayList<Object []> list = new ArrayList<Object []>();
 		
 		int i=0;
-		int rowLength = sysList.size();
+		int rowLength = localSysList.size();
 		
 		for(i = 0; i<rowLength; i++) {
 			Object[] row = new Object[6];
-			row[0] = sysList.get(i);
-			row[1] = maintenaceCosts[i];
-			row[2] = interfaceCostArr[i];
-			row[3] = siteMaintenaceCosts[i];
-			row[4] = siteDeploymentCosts[i];
-			row[5] = sysKeptArr[i];
+			row[0] = localSysList.get(i);
+			row[1] = localSystemMaintenanceCostArr[i];
+			row[2] = localSystemSiteInterfaceCostArr[i];
+			row[3] = localSystemSiteMaintenaceCostArr[i];
+			row[4] = localSystemSiteDeploymentCostArr[i];
+			if(localSysKeptArr[i] == 1)
+				row[5] = "X";
+			else 
+				row[5] = "";
 			list.add(row);
 		}
 		createTabAndDisplayList(headers,list,"NonCentral System Costs",false);
@@ -678,7 +716,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		headers[0] = "Central System";
 		headers[1] = "Sustain Cost";
 		headers[2] = "Interface Cost";
-		headers[3] = "System Kept";
+		headers[3] = "Sustained or Consolidated";
 		
 		ArrayList<Object []> list = new ArrayList<Object []>();
 		
@@ -688,9 +726,12 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		for(i = 0; i<rowLength; i++) {
 			Object[] row = new Object[4];
 			row[0] = centralSysList.get(i);
-			row[1] = centralSystemMaintenaceCosts[i];
-			row[2] = centralInterfaceCostArr[i];
-			row[3] = centralSysKeptArr[i];
+			row[1] = centralSystemMaintenanceCostArr[i];
+			row[2] = centralSystemInterfaceCostArr[i];
+			if(centralSysKeptArr[i] == 1)
+				row[3] = "X";
+			else 
+				row[3] = "";
 			list.add(row);
 		}
 		createTabAndDisplayList(headers,list,"Central System Costs",false);
@@ -703,7 +744,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		
 		String[] headers = new String[2];
 		headers[0] = systemType;
-		headers[1] = "1 if kept";
+		headers[1] = "Sustained or Consolidated";
 		
 		ArrayList<Object []> list = new ArrayList<Object []>();
 		
@@ -711,7 +752,10 @@ public class SysSiteOptimizer extends UnivariateOpt {
 
 			Object[] row = new Object[2];
 			row[0] = rowLabels.get(i);
-			row[1] = matrix[i];
+			if(matrix[i] == 1)
+				row[1] = "Sustained";
+			else
+				row[1] = "Consolidated";
 			list.add(row);
 		}
 
@@ -737,7 +781,10 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			Object[] row = new Object[colLength + 1];
 			row[0] = rowLabels.get(i);
 			for(j=0; j<colLength; j++) {
-				row[j + 1] = matrix[i][j];
+				if(matrix[i][j] == 1)
+					row[j + 1] = "X";
+				else 
+					row[j + 1] = "";
 			}
 
 			list.add(row);
@@ -780,11 +827,11 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		ArrayList<Hashtable<String,String>> capHashList = new ArrayList<Hashtable<String,String>>();
 		
 		int i;
-		int numSys = sysList.size();
+		int numSys = localSysList.size();
 		for(i = 0; i < numSys; i++) {
 			Hashtable<String, String> sysHash = new Hashtable<String, String>();
-			sysHash.put("name",sysList.get(i));
-			if(sysKeptArr[i] == 0)
+			sysHash.put("name",localSysList.get(i));
+			if(localSysKeptArr[i] == 0)
 				sysHash.put("ind", "Decommission");
 			else
 				sysHash.put("ind", "Modernize");
@@ -822,8 +869,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		Hashtable<String,Object> systemInfoHash = new Hashtable<String,Object>();
 		Hashtable<String,Object> budgetInfoHash = new Hashtable<String,Object>();
 		
-		int totalSys = sysList.size() + centralSysList.size();
-		int totalKept = numSysKept + numCentralSysKept;
+		int totalSys = localSysList.size() + centralSysList.size();
+		double totalKept = SysOptUtilityMethods.sumRow(localSysKeptArr) + SysOptUtilityMethods.sumRow(centralSysKeptArr);
 		systemInfoHash.put("beforeCount", totalSys);
 		systemInfoHash.put("decommissionedCount", totalSys - totalKept);
 		systemInfoHash.put("afterCount", totalKept);
@@ -833,7 +880,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		symbols.setGroupingSeparator(',');
 		NumberFormat formatter = new DecimalFormat("'$' ###,##0.00", symbols);
 
-		budgetInfoHash.put("formattedCurrentSustVal", formatter.format(currSustainmentCost));
+		budgetInfoHash.put("formattedCurrentSustVal", formatter.format(currentSustainmentCost));
 		budgetInfoHash.put("formattedFutureSustVal", formatter.format(futureSustainmentCost));
 		budgetInfoHash.put("formattedCostVal", formatter.format(adjustedDeploymentCost));
 		
@@ -848,11 +895,11 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		ArrayList<Object []> list = new ArrayList<Object []>();
 		int i;
 		int startYear = 2017;
-		for(i=0; i<years; i++) {
+		for(i=0; i<maxYears; i++) {
 			Object[] row = new Object[3];
 			row[0] = startYear + i;
-			row[1] = Math.round(deployCostPerYear[i] * 1000)/1000;
-			row[2] = Math.round(costAvoidedPerYear[i] * 1000)/1000;
+			row[1] = Math.round(-1* deployCostPerYearArr[i] * 1000)/1000;
+			row[2] = Math.round(costAvoidedPerYearArr[i] * 1000)/1000;
 			list.add(row);
 		}
 		
@@ -881,7 +928,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			capabilityBindings = "BIND(<http://health.mil/ontologies/Concept/Capability/"+capability+"> AS ?Capability){?System <http://semoss.org/ontologies/Relation/Supports> ?Capability}";
 		}
 			
-		String sysBindings = SysOptUtilityMethods.makeBindingString("System",sysList) + SysOptUtilityMethods.makeBindingString("System",centralSysList);
+		String sysBindings = SysOptUtilityMethods.makeBindingString("System",localSysList) + SysOptUtilityMethods.makeBindingString("System",centralSysList);
 		
 		String query = "SELECT ?System (COALESCE(?bv * 100, 0.0) AS ?BusinessValue) (COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?tstm, 0.0) AS ?TechnicalStandards) (COALESCE(?SustainmentBud,0.0) AS ?SustainmentBudget) (IF(?System in (" + sysKeptQueryString + "), \"Sustained\", \"Consolidated\") AS ?Status) WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}" + capabilityBindings + "OPTIONAL{{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?SustainmentBud}}OPTIONAL {{?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv}} OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM> ?estm} } OPTIONAL {{?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM> ?tstm}} } BINDINGS ?System {" + sysBindings + "}";
 
@@ -898,19 +945,19 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		double[] futureSiteSustainCost;
 
 		if(capability.equals("")) {
-			currSiteSustainCost = calculateSiteSustainCost(systemSiteMatrix, maintenaceCosts, null, -1);
-			currSiteSustainCost = SysOptUtilityMethods.addArrays(currSiteSustainCost, calculateHostSiteSustainCost(centralSystemSiteMatrix, centralSystemMaintenaceCosts, centralSystemNumSite, null, null, -1));
+			currSiteSustainCost = calculateSiteSustainCost(localSystemSiteMatrix, localSystemMaintenanceCostArr, null, -1);
+			currSiteSustainCost = SysOptUtilityMethods.addArrays(currSiteSustainCost, calculateHostSiteSustainCost(centralSystemSiteMatrix, centralSystemMaintenanceCostArr, centralSystemNumSiteArr, null, null, -1));
 
-			futureSiteSustainCost = calculateSiteSustainCost(systemSiteResultMatrix, maintenaceCosts, null, -1); 
-			futureSiteSustainCost = SysOptUtilityMethods.addArrays(futureSiteSustainCost, calculateHostSiteSustainCost(centralSystemSiteMatrix, centralSystemMaintenaceCosts, centralSystemNumSite, centralSysKeptArr, null, -1));
+			futureSiteSustainCost = calculateSiteSustainCost(localSystemSiteResultMatrix, localSystemMaintenanceCostArr, null, -1); 
+			futureSiteSustainCost = SysOptUtilityMethods.addArrays(futureSiteSustainCost, calculateHostSiteSustainCost(centralSystemSiteMatrix, centralSystemMaintenanceCostArr, centralSystemNumSiteArr, centralSysKeptArr, null, -1));
 		}else {
 			int capIndex = capList.indexOf(capability);
 			
-			currSiteSustainCost = calculateSiteSustainCost(systemSiteMatrix, maintenaceCosts, systemCapMatrix, capIndex);
-			currSiteSustainCost = SysOptUtilityMethods.addArrays(currSiteSustainCost, calculateHostSiteSustainCost(centralSystemSiteMatrix, centralSystemMaintenaceCosts, centralSystemNumSite, null, centralSystemCapMatrix, capIndex));
+			currSiteSustainCost = calculateSiteSustainCost(localSystemSiteMatrix, localSystemMaintenanceCostArr, localSystemCapMatrix, capIndex);
+			currSiteSustainCost = SysOptUtilityMethods.addArrays(currSiteSustainCost, calculateHostSiteSustainCost(centralSystemSiteMatrix, centralSystemMaintenanceCostArr, centralSystemNumSiteArr, null, centralSystemCapMatrix, capIndex));
 		
-			futureSiteSustainCost = calculateSiteSustainCost(systemSiteResultMatrix, maintenaceCosts, systemCapMatrix, capIndex);
-			futureSiteSustainCost = SysOptUtilityMethods.addArrays(futureSiteSustainCost, calculateHostSiteSustainCost(centralSystemSiteMatrix, centralSystemMaintenaceCosts, centralSystemNumSite, centralSysKeptArr, centralSystemCapMatrix, capIndex));
+			futureSiteSustainCost = calculateSiteSustainCost(localSystemSiteResultMatrix, localSystemMaintenanceCostArr, localSystemCapMatrix, capIndex);
+			futureSiteSustainCost = SysOptUtilityMethods.addArrays(futureSiteSustainCost, calculateHostSiteSustainCost(centralSystemSiteMatrix, centralSystemMaintenanceCostArr, centralSystemNumSiteArr, centralSysKeptArr, centralSystemCapMatrix, capIndex));
 		}
 
 		double[] percentDiff = StatisticsUtilityMethods.calculatePercentDiff(currSiteSustainCost,futureSiteSustainCost);
@@ -952,25 +999,25 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		double sysDeployCost;
 		int sysNumSites;
 		
-		if(sysList.contains(system)) {//if noncentral system
-			sysIndex = sysList.indexOf(system);
+		if(localSysList.contains(system)) {//if noncentral system
+			sysIndex = localSysList.indexOf(system);
 
-			sysBLUList = SysOptUtilityMethods.createNonZeroList(bluList, systemBLUMatrix[sysIndex]);
-			sysDataList = SysOptUtilityMethods.createNonZeroList(dataList, systemDataMatrix[sysIndex]);
+			sysBLUList = SysOptUtilityMethods.createNonZeroList(bluList, localSystemBLUMatrix[sysIndex]);
+			sysDataList = SysOptUtilityMethods.createNonZeroList(dataList, localSystemDataMatrix[sysIndex]);
 			hosting = "Local";
 			
-			sysCurrSustainCost = maintenaceCosts[sysIndex] / centralDeploymentPer;
+			sysCurrSustainCost = localSystemMaintenanceCostArr[sysIndex] / centralDeploymentPer;
 			if(isModernizedPage) {
-				sysNumSites = (int)SysOptUtilityMethods.sumRow(systemSiteResultMatrix[sysIndex]);
-				sysFutureSustainCost = maintenaceCosts[sysIndex] + sysNumSites * siteMaintenaceCosts[sysIndex];
+				sysNumSites = (int)SysOptUtilityMethods.sumRow(localSystemSiteResultMatrix[sysIndex]);
+				sysFutureSustainCost = localSystemMaintenanceCostArr[sysIndex] + sysNumSites * localSystemSiteMaintenaceCostArr[sysIndex];
 				sysDeployCost = 0.0;
 				int i;
 				int numSites = siteList.size();
 				for(i=0; i<numSites; i++) {
-					sysDeployCost += systemSiteResultMatrix[sysIndex][i] * ((1 - systemSiteMatrix[sysIndex][i]) * siteDeploymentCosts[sysIndex] + (1+trainingPerc) * interfaceCostArr[sysIndex]);
+					sysDeployCost += localSystemSiteResultMatrix[sysIndex][i] * ((1 - localSystemSiteMatrix[sysIndex][i]) * localSystemSiteDeploymentCostArr[sysIndex] + (1+trainingPerc) * localSystemSiteInterfaceCostArr[sysIndex]);
 				}
 			}else {
-				sysNumSites = (int)SysOptUtilityMethods.sumRow(systemSiteMatrix[sysIndex]);
+				sysNumSites = (int)SysOptUtilityMethods.sumRow(localSystemSiteMatrix[sysIndex]);
 				sysFutureSustainCost = 0;
 				sysDeployCost = 0;
 			}
@@ -982,12 +1029,12 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			sysDataList = SysOptUtilityMethods.createNonZeroList(dataList, centralSystemDataMatrix[sysIndex]);
 			hosting = "Central";
 			
-			sysCurrSustainCost = centralSystemMaintenaceCosts[sysIndex];
+			sysCurrSustainCost = centralSystemMaintenanceCostArr[sysIndex];
 			
 			sysNumSites = siteList.size();
 			if(isModernizedPage) {
 				sysFutureSustainCost = sysCurrSustainCost;
-				sysDeployCost = (1+trainingPerc)*centralInterfaceCostArr[sysIndex];
+				sysDeployCost = (1+trainingPerc)*centralSystemInterfaceCostArr[sysIndex];
 			}else {
 				sysFutureSustainCost = 0;
 				sysDeployCost = 0;
@@ -1050,16 +1097,16 @@ public class SysSiteOptimizer extends UnivariateOpt {
 
 		int sysIndex;
 
-		if(sysList.contains(system)) {//if noncentral system
+		if(localSysList.contains(system)) {//if noncentral system
 
-			sysIndex = sysList.indexOf(system);
+			sysIndex = localSysList.indexOf(system);
 			for(i=0; i<numSites; i++) {
-				if(systemSiteRecMatrix[sysIndex][i]!=null) {
+				if(localSystemSiteRecMatrix[sysIndex][i]!=null) {
 					Object[] row = new Object[5];
 					row[0] = siteList.get(i);
 					row[1] = siteLat[i];
 					row[2] = siteLon[i];
-					row[3] = systemSiteRecMatrix[sysIndex][i];
+					row[3] = localSystemSiteRecMatrix[sysIndex][i];
 					list.add(row);
 				}
 			}
@@ -1098,11 +1145,11 @@ public class SysSiteOptimizer extends UnivariateOpt {
 
 		int sysIndex;
 
-		if(sysList.contains(system)) {//if noncentral system
+		if(localSysList.contains(system)) {//if noncentral system
 
-			sysIndex = sysList.indexOf(system);
+			sysIndex = localSysList.indexOf(system);
 			for(i=0; i<numSites; i++) {
-				if(systemSiteMatrix[sysIndex][i] == 1) {
+				if(localSystemSiteMatrix[sysIndex][i] == 1) {
 					Object[] row = new Object[5];
 					row[0] = siteList.get(i);
 					row[1] = siteLat[i];
@@ -1143,10 +1190,10 @@ public class SysSiteOptimizer extends UnivariateOpt {
 
 		ArrayList<String> sysAtSiteList = new ArrayList<String>();
 		int i;
-		int numSys = sysList.size();
+		int numSys = localSysList.size();
 		for(i=0; i<numSys; i++) {
-			if(systemSiteResultMatrix[i][siteIndex] == 1)
-				sysAtSiteList.add(sysList.get(i));
+			if(localSystemSiteResultMatrix[i][siteIndex] == 1)
+				sysAtSiteList.add(localSysList.get(i));
 		}
 		
 		numSys = centralSysList.size();
@@ -1166,16 +1213,16 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		Set<String> bluProvided; 
 		int sysIndex;
 		
-		if(sysList.contains(system)) {//if noncentral system
-			sysIndex = sysList.indexOf(system);
+		if(localSysList.contains(system)) {//if noncentral system
+			sysIndex = localSysList.indexOf(system);
 			
-			dataProvided = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(dataList, systemDataMatrix[sysIndex]));
-			bluProvided = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(bluList, systemBLUMatrix[sysIndex]));
+			dataProvided = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(dataList, localSystemDataMatrix[sysIndex]));
+			bluProvided = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(bluList, localSystemBLUMatrix[sysIndex]));
 
-			dataProvided = processCoverage(dataHash, dataProvided, systemDataMatrix[sysIndex], systemDataMatrix, sysKeptArr, sysList, dataList, sysIndex, "Data");
-			dataProvided = processCoverage(dataHash, dataProvided, systemDataMatrix[sysIndex], centralSystemDataMatrix, centralSysKeptArr, centralSysList, dataList, -1, "Data");
-			bluProvided = processCoverage(dataHash, bluProvided, systemBLUMatrix[sysIndex], systemBLUMatrix, sysKeptArr, sysList, bluList, sysIndex, "BLU");
-			bluProvided = processCoverage(dataHash, bluProvided, systemBLUMatrix[sysIndex], centralSystemBLUMatrix, centralSysKeptArr, centralSysList, bluList, -1, "BLU");
+			dataProvided = processCoverage(dataHash, dataProvided, localSystemDataMatrix[sysIndex], localSystemDataMatrix, localSysKeptArr, localSysList, dataList, sysIndex, "Data");
+			dataProvided = processCoverage(dataHash, dataProvided, localSystemDataMatrix[sysIndex], centralSystemDataMatrix, centralSysKeptArr, centralSysList, dataList, -1, "Data");
+			bluProvided = processCoverage(dataHash, bluProvided, localSystemBLUMatrix[sysIndex], localSystemBLUMatrix, localSysKeptArr, localSysList, bluList, sysIndex, "BLU");
+			bluProvided = processCoverage(dataHash, bluProvided, localSystemBLUMatrix[sysIndex], centralSystemBLUMatrix, centralSysKeptArr, centralSysList, bluList, -1, "BLU");
 			
 		}else {//if central system
 			sysIndex = centralSysList.indexOf(system);
@@ -1183,9 +1230,9 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			dataProvided = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(dataList, centralSystemDataMatrix[sysIndex]));
 			bluProvided = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(bluList, centralSystemBLUMatrix[sysIndex]));
 			
-			dataProvided = processCoverage(dataHash, dataProvided, centralSystemDataMatrix[sysIndex], systemDataMatrix, sysKeptArr, sysList, dataList, -1, "Data");
+			dataProvided = processCoverage(dataHash, dataProvided, centralSystemDataMatrix[sysIndex], localSystemDataMatrix, localSysKeptArr, localSysList, dataList, -1, "Data");
 			dataProvided = processCoverage(dataHash, dataProvided, centralSystemDataMatrix[sysIndex], centralSystemDataMatrix, centralSysKeptArr, centralSysList, dataList, sysIndex, "Data");
-			bluProvided = processCoverage(dataHash, bluProvided, centralSystemBLUMatrix[sysIndex], systemBLUMatrix, sysKeptArr, sysList, bluList, -1, "BLU");
+			bluProvided = processCoverage(dataHash, bluProvided, centralSystemBLUMatrix[sysIndex], localSystemBLUMatrix, localSysKeptArr, localSysList, bluList, -1, "BLU");
 			bluProvided = processCoverage(dataHash, bluProvided, centralSystemBLUMatrix[sysIndex], centralSystemBLUMatrix, centralSysKeptArr, centralSysList, bluList, sysIndex, "BLU");
 		}
 		
@@ -1209,14 +1256,14 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		Set<String> bluProvided; 
 		int sysIndex;
 		
-		if(sysList.contains(system)) {//if noncentral system
-			sysIndex = sysList.indexOf(system);
+		if(localSysList.contains(system)) {//if noncentral system
+			sysIndex = localSysList.indexOf(system);
 			
-			dataProvided = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(dataList, systemDataMatrix[sysIndex]));
-			bluProvided = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(bluList, systemBLUMatrix[sysIndex]));
+			dataProvided = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(dataList, localSystemDataMatrix[sysIndex]));
+			bluProvided = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(bluList, localSystemBLUMatrix[sysIndex]));
 
-			dataProvided = processCoverage(dataHash, dataProvided, systemDataMatrix[sysIndex], capDataMatrix, null, capList, dataList, -1, "Data");
-			bluProvided = processCoverage(dataHash, bluProvided, systemBLUMatrix[sysIndex], capBLUMatrix, null, capList, bluList, -1, "BLU");
+			dataProvided = processCoverage(dataHash, dataProvided, localSystemDataMatrix[sysIndex], capDataMatrix, null, capList, dataList, -1, "Data");
+			bluProvided = processCoverage(dataHash, bluProvided, localSystemBLUMatrix[sysIndex], capBLUMatrix, null, capList, bluList, -1, "BLU");
 
 		}else {//if central system
 			sysIndex = centralSysList.indexOf(system);
@@ -1289,13 +1336,13 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		int dataCount = SysOptUtilityMethods.sumRow(capDataMatrix[capIndex]);
 		
 		int i;
-		int numSystems = sysList.size();
+		int numSystems = localSysList.size();
 		int numCentralSystems = centralSysList.size();
 		int numSysBefore = 0;
 		int numSysAfter = 0;
 		for(i=0; i<numSystems; i++) {
-			numSysBefore += systemCapMatrix[i][capIndex];
-			numSysAfter += systemCapMatrix[i][capIndex] * sysKeptArr[i];
+			numSysBefore += localSystemCapMatrix[i][capIndex];
+			numSysAfter += localSystemCapMatrix[i][capIndex] * localSysKeptArr[i];
 		}
 		
 		for(i=0; i<numCentralSystems; i++) {
@@ -1308,18 +1355,18 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		int sysNumSites;
 		
 		for(i=0; i<numSystems; i++) {
-			if(systemCapMatrix[i][capIndex] == 1) {
-				capCurrSustainCost += maintenaceCosts[i] / centralDeploymentPer;
-				sysNumSites = (int)SysOptUtilityMethods.sumRow(systemSiteResultMatrix[i]);
-				capFutureSustainCost += sysKeptArr[i] * (maintenaceCosts[i] + sysNumSites * siteMaintenaceCosts[i]);
+			if(localSystemCapMatrix[i][capIndex] == 1) {
+				capCurrSustainCost += localSystemMaintenanceCostArr[i] / centralDeploymentPer;
+				sysNumSites = (int)SysOptUtilityMethods.sumRow(localSystemSiteResultMatrix[i]);
+				capFutureSustainCost += localSysKeptArr[i] * (localSystemMaintenanceCostArr[i] + sysNumSites * localSystemSiteMaintenaceCostArr[i]);
 			}
 		}
 		
 		for(i=0; i<numCentralSystems; i++) {
 
 			if(centralSystemCapMatrix[i][capIndex] == 1) {
-				capCurrSustainCost += centralSystemMaintenaceCosts[i];
-				capFutureSustainCost += centralSysKeptArr[i] * centralSystemMaintenaceCosts[i];
+				capCurrSustainCost += centralSystemMaintenanceCostArr[i];
+				capFutureSustainCost += centralSysKeptArr[i] * centralSystemMaintenanceCostArr[i];
 			}
 		}
 
@@ -1360,9 +1407,9 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		Set<String> dataProvided = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(dataList, capDataMatrix[capIndex]));
 		Set<String> bluProvided = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(bluList, capBLUMatrix[capIndex]));
 
-		dataProvided = processCoverage(dataHash, dataProvided, capDataMatrix[capIndex], systemDataMatrix, sysKeptArr, sysList, dataList, -1, "Data");
+		dataProvided = processCoverage(dataHash, dataProvided, capDataMatrix[capIndex], localSystemDataMatrix, localSysKeptArr, localSysList, dataList, -1, "Data");
 		dataProvided = processCoverage(dataHash, dataProvided, capDataMatrix[capIndex], centralSystemDataMatrix, centralSysKeptArr, centralSysList, dataList, -1, "Data");
-		bluProvided = processCoverage(dataHash, bluProvided, capBLUMatrix[capIndex], systemBLUMatrix, sysKeptArr, sysList, bluList, -1, "BLU");
+		bluProvided = processCoverage(dataHash, bluProvided, capBLUMatrix[capIndex], localSystemBLUMatrix, localSysKeptArr, localSysList, bluList, -1, "BLU");
 		bluProvided = processCoverage(dataHash, bluProvided, capBLUMatrix[capIndex], centralSystemBLUMatrix, centralSysKeptArr, centralSysList, bluList, -1, "BLU");
 
 		Hashtable<String,Set<String>> uncoveredFuncHash;
@@ -1378,10 +1425,10 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	
 	private void makeSysKeptQueryString() {
 		int i;
-		int numSys = sysList.size();
+		int numSys = localSysList.size();
 		for(i = 0; i<numSys; i++)
-			if(sysKeptArr[i] == 1)
-				sysKeptQueryString+= "<http://health.mil/ontologies/Concept/System/"+sysList.get(i)+">,";
+			if(localSysKeptArr[i] == 1)
+				sysKeptQueryString+= "<http://health.mil/ontologies/Concept/System/"+localSysList.get(i)+">,";
 
 		numSys = centralSysList.size();
 		for(i = 0; i<numSys; i++)
