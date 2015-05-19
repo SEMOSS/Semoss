@@ -77,7 +77,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 	public DHMSMSystemSelectPanel sysSelectPanel, systemModernizePanel, systemDecomissionPanel;
 	private JToggleButton showSystemSelectBtn, showSystemModDecomBtn;
 	
-	public JTextField trainingPercField, relConvergenceField, absConvergenceField;
+	public JTextField centralPercOfBudgetField, trainingPercField, relConvergenceField, absConvergenceField;
 	public JCheckBox optimizeBudgetCheckbox, useDHMSMFuncCheckbox;
 	
 	private JRadioButton rdbtnProfit, rdbtnROI, rdbtnIRR;
@@ -172,7 +172,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		
 		opt = new SysSiteOptimizer();
 		opt.setEngines(engine, costEngine, siteEngine); //likely hr core and tap site
-		opt.setVariables(yearBudget,years, infl/100, disc/100, trainingRate, hourlyRate, numPts, 0.05, 0.20); //budget per year and the number of years
+		opt.setVariables(yearBudget,years, infl/100, disc/100, 0.80, trainingRate, hourlyRate, numPts, 0.05, 0.20); //budget per year and the number of years
 		opt.setUseDHMSMFunctionality(useDHMSMCap); //whether the data objects will come from the list of systems or the dhmsm provided capabilities
 		opt.setOptimizationType(optType); //eventually will be savings, roi, or irr
 		opt.setIsOptimizeBudget(false); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
@@ -372,25 +372,25 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		gbc_lblYearlyDiscountRate.gridy = 1;
 		advParamPanel.add(lblYearlyDiscountRate, gbc_lblYearlyDiscountRate);
 		
-		hourlyRateField = new JTextField();
-		hourlyRateField.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		hourlyRateField.setText("150");
-		hourlyRateField.setColumns(4);
-		GridBagConstraints gbc_hourlyRateField = new GridBagConstraints();
-		gbc_hourlyRateField.insets = new Insets(0, 0, 5, 5);
-		gbc_hourlyRateField.anchor = GridBagConstraints.WEST;
-		gbc_hourlyRateField.gridx = 0;
-		gbc_hourlyRateField.gridy = 2;
-		advParamPanel.add(hourlyRateField, gbc_hourlyRateField);
+		centralPercOfBudgetField = new JTextField();
+		centralPercOfBudgetField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		centralPercOfBudgetField.setText("80");
+		centralPercOfBudgetField.setColumns(4);
+		GridBagConstraints gbc_centralPercOfBudgetField = new GridBagConstraints();
+		gbc_centralPercOfBudgetField.insets = new Insets(0, 0, 5, 5);
+		gbc_centralPercOfBudgetField.anchor = GridBagConstraints.WEST;
+		gbc_centralPercOfBudgetField.gridx = 0;
+		gbc_centralPercOfBudgetField.gridy = 2;
+		advParamPanel.add(centralPercOfBudgetField, gbc_centralPercOfBudgetField);
 
-		JLabel lblHourlyRate = new JLabel("Hourly Build Cost Rate ($)");
-		lblHourlyRate.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		GridBagConstraints gbc_lblHourlyRate = new GridBagConstraints();
-		gbc_lblHourlyRate.insets = new Insets(0, 0, 5, 5);
-		gbc_lblHourlyRate.anchor = GridBagConstraints.WEST;
-		gbc_lblHourlyRate.gridx = 1;
-		gbc_lblHourlyRate.gridy = 2;
-		advParamPanel.add(lblHourlyRate, gbc_lblHourlyRate);
+		JLabel lblCentralPerc = new JLabel("Central Percent of Budget (%)");
+		lblCentralPerc.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblCentralPerc = new GridBagConstraints();
+		gbc_lblCentralPerc.insets = new Insets(0, 0, 5, 5);
+		gbc_lblCentralPerc.anchor = GridBagConstraints.WEST;
+		gbc_lblCentralPerc.gridx = 1;
+		gbc_lblCentralPerc.gridy = 2;
+		advParamPanel.add(lblCentralPerc, gbc_lblCentralPerc);
 
 		trainingPercField = new JTextField();
 		trainingPercField.setFont(new Font("Tahoma", Font.PLAIN, 11));
@@ -411,6 +411,26 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		gbc_lblTrainingPercField.gridx = 3;
 		gbc_lblTrainingPercField.gridy = 2;
 		advParamPanel.add(lblTrainingPercField, gbc_lblTrainingPercField);
+		
+		hourlyRateField = new JTextField();
+		hourlyRateField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		hourlyRateField.setText("150");
+		hourlyRateField.setColumns(4);
+		GridBagConstraints gbc_hourlyRateField = new GridBagConstraints();
+		gbc_hourlyRateField.insets = new Insets(0, 0, 5, 5);
+		gbc_hourlyRateField.anchor = GridBagConstraints.WEST;
+		gbc_hourlyRateField.gridx = 0;
+		gbc_hourlyRateField.gridy = 3;
+		advParamPanel.add(hourlyRateField, gbc_hourlyRateField);
+
+		JLabel lblHourlyRate = new JLabel("Hourly Build Cost Rate ($)");
+		lblHourlyRate.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		GridBagConstraints gbc_lblHourlyRate = new GridBagConstraints();
+		gbc_lblHourlyRate.insets = new Insets(0, 0, 5, 5);
+		gbc_lblHourlyRate.anchor = GridBagConstraints.WEST;
+		gbc_lblHourlyRate.gridx = 1;
+		gbc_lblHourlyRate.gridy = 3;
+		advParamPanel.add(lblHourlyRate, gbc_lblHourlyRate);
 
 		relConvergenceField = new JTextField();
 		relConvergenceField.setFont(new Font("Tahoma", Font.PLAIN, 11));
@@ -420,7 +440,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		gbc_relConvergenceField.insets = new Insets(0, 0, 5, 5);
 		gbc_relConvergenceField.anchor = GridBagConstraints.WEST;
 		gbc_relConvergenceField.gridx = 0;
-		gbc_relConvergenceField.gridy = 3;
+		gbc_relConvergenceField.gridy = 4;
 		advParamPanel.add(relConvergenceField, gbc_relConvergenceField);
 
 		JLabel lblRelConvergence = new JLabel("Relative Convergence (%)");
@@ -429,7 +449,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		gbc_lblRelConvergence.insets = new Insets(0, 0, 5, 5);
 		gbc_lblRelConvergence.anchor = GridBagConstraints.WEST;
 		gbc_lblRelConvergence.gridx = 1;
-		gbc_lblRelConvergence.gridy = 3;
+		gbc_lblRelConvergence.gridy = 4;
 		advParamPanel.add(lblRelConvergence, gbc_lblRelConvergence);
 
 		absConvergenceField = new JTextField();
@@ -440,7 +460,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		gbc_absConvergenceField.anchor = GridBagConstraints.WEST;
 		gbc_absConvergenceField.insets = new Insets(0, 0, 5, 5);
 		gbc_absConvergenceField.gridx = 2;
-		gbc_absConvergenceField.gridy = 3;
+		gbc_absConvergenceField.gridy = 4;
 		advParamPanel.add(absConvergenceField, gbc_absConvergenceField);
 
 		JLabel lblAbsConvergence = new JLabel("Absolute Convergence (% of total budget)");
@@ -449,7 +469,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		gbc_lblAbsConvergence.insets = new Insets(0, 0, 5, 5);
 		gbc_lblAbsConvergence.anchor = GridBagConstraints.WEST;
 		gbc_lblAbsConvergence.gridx = 3;
-		gbc_lblAbsConvergence.gridy = 3;
+		gbc_lblAbsConvergence.gridy = 4;
 		advParamPanel.add(lblAbsConvergence, gbc_lblAbsConvergence);
 
 		startingPtsField = new JTextField();
@@ -460,7 +480,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		gbc_startingPtsField.insets = new Insets(0, 0, 5, 5);
 		gbc_startingPtsField.anchor = GridBagConstraints.WEST;
 		gbc_startingPtsField.gridx = 0;
-		gbc_startingPtsField.gridy = 4;
+		gbc_startingPtsField.gridy = 5;
 		advParamPanel.add(startingPtsField, gbc_startingPtsField);
 
 		JLabel lblInitialYearlyBudget = new JLabel("Number of Starting Points");
@@ -469,7 +489,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		gbc_lblInitialYearlyBudget.insets = new Insets(0, 0, 5, 5);
 		gbc_lblInitialYearlyBudget.anchor = GridBagConstraints.WEST;
 		gbc_lblInitialYearlyBudget.gridx = 1;
-		gbc_lblInitialYearlyBudget.gridy = 4;
+		gbc_lblInitialYearlyBudget.gridy = 5;
 		advParamPanel.add(lblInitialYearlyBudget, gbc_lblInitialYearlyBudget);
 		
 		useDHMSMFuncCheckbox = new JCheckBox("Use DHMSM Functionality");
@@ -478,7 +498,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		gbc_useDHMSMFuncCheckbox.insets = new Insets(0, 0, 5, 5);
 		gbc_useDHMSMFuncCheckbox.anchor = GridBagConstraints.WEST;
 		gbc_useDHMSMFuncCheckbox.gridx = 0;
-		gbc_useDHMSMFuncCheckbox.gridy = 5;
+		gbc_useDHMSMFuncCheckbox.gridy = 6;
 		advParamPanel.add(useDHMSMFuncCheckbox, gbc_useDHMSMFuncCheckbox);
 		
 		optimizeBudgetCheckbox = new JCheckBox("Find Optimal Budget");
@@ -488,7 +508,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		gbc_optimizeBudgetCheckbox.anchor = GridBagConstraints.WEST;
 		gbc_optimizeBudgetCheckbox.insets = new Insets(0, 0, 5, 5);
 		gbc_optimizeBudgetCheckbox.gridx = 2;
-		gbc_optimizeBudgetCheckbox.gridy = 5;
+		gbc_optimizeBudgetCheckbox.gridy = 6;
 		advParamPanel.add(optimizeBudgetCheckbox, gbc_optimizeBudgetCheckbox);
 			
 		systemSelectPanel = new JPanel();
