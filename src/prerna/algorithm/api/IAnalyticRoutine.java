@@ -1,7 +1,10 @@
 package prerna.algorithm.api;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import prerna.om.SEMOSSParam;
 
 public interface IAnalyticRoutine {
 
@@ -17,7 +20,7 @@ public interface IAnalyticRoutine {
 	 * Get the options used for the analytic routine
 	 * @return					A mappings of the option type and their values
 	 */
-	Map getOptions();
+	List<SEMOSSParam> getOptions();
 	
 	/**
 	 * Perform an algorithm on a data-frame. The routine does not necessarily have to 
@@ -26,4 +29,11 @@ public interface IAnalyticRoutine {
 	 * @return					The resulting data-frame as a result of the analytical routine
 	 */
 	ITableDataFrame runAlgorithm(ITableDataFrame... data);
+	
+	String getName();
+	String getDefaultViz();
+	List<String> getChangedColumns();
+	Map<String, Object> getResultMetadata();
+	String	getResultDescription();
+	
 }
