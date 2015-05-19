@@ -3,7 +3,7 @@ package prerna.algorithm.learning.unsupervised.recommender;
 /*
  * class to hold important data for a user
  */
-public class User {
+public class User implements Comparable<User>{
 	
     private String id;
     private double simScore;
@@ -29,5 +29,17 @@ public class User {
     public double getSimilarity() {
         return simScore;
     }
+
+
+	@Override
+	public int compareTo(User u) {
+		//ascending order
+		//if(this.getSimilarity() > u.getSimilarity()) return 1;
+		
+		//descending order
+		if(this.getSimilarity() < u.getSimilarity()) return 1;
+		
+		else return -1;
+	}
 
 }
