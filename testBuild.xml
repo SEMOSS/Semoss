@@ -69,8 +69,6 @@
 				<fileset dir="test/test_lib">
 					<include name="*.jar"/>
 				</fileset>
-				<!--<pathelement location="test_lib\JUnit\junit-4.12.jar"/>
-				<pathelement location="test_lib\JUnit\ant-junit.jar"/> -->
 				<pathelement location="test/test_stagging"/>
 				<pathelement location="test/test_stagging/db"/>
 			</classpath>
@@ -83,7 +81,7 @@
 	</target>
 	
 	<!-- Main Method -->
-	<target name="run" depends="test">
+	<target name="run" depends="compile">
 		<echo>Running...</echo>
 	</target>
 	
