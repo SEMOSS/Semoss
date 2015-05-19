@@ -34,7 +34,7 @@ import prerna.util.Utility;
 *
 * @author  August Bender
 * @version 1.1
-* @since   03-20-2015
+* @since   05-18-2015
 * Questions? Email abender@deloitte.com
 */
 public class QueryTests {
@@ -143,7 +143,7 @@ public class QueryTests {
 			engine = loadEngine(engineLocation);
 			//Perspectives
 			Vector<String> perspec = engine.getPerspectives();
-			/*DeBug*/System.out.println("break Perspective: "+perspec.get(0));
+			/*DeBug*///System.out.println("break Perspective: "+perspec.get(0));
 			if(perspec != null){
 				for(int k = 0; k < perspec.size(); k++){
 					String currentPerspec = perspec.get(k);
@@ -289,26 +289,30 @@ public class QueryTests {
 		System.out.println("Query: "+query);
 		
 		if(query.contains("CONSTRUCT")){
-			GraphQueryResult res  = engine.execGraphQuery(query);
-			if(res.toString() != ""){result = true;}
+			Object res;
 			try {
-				res.close();	
-			} catch( QueryEvaluationException e) {
-				e.printStackTrace();
-				System.out.println("Data remains in Cashe...");
+				 res  = engine.execQuery(query);
+				 if(res.toString() != ""){result = true;}
+			}catch (NullPointerException e){
+				
 			}
 		} 
 		else if(query.contains("ASK")) {
-			result = engine.execAskQuery(query);
+			Object res;
+			try {
+				 res  = engine.execQuery(query);
+				 if(res.toString() != ""){result = true;}
+			}catch (NullPointerException e){
+				
+			}
 		} 
 		else if (query.contains("SELECT")){
-			TupleQueryResult res = engine.execSelectQuery(query);
-			if(res.toString() != ""){result = true;}
+			Object res;
 			try {
-				res.close();	
-			} catch( QueryEvaluationException e) {
-				e.printStackTrace();
-				System.out.println("Data remains in Cashe...");
+				 res  = engine.execQuery(query);
+				 if(res.toString() != ""){result = true;}
+			}catch (NullPointerException e){
+				
 			}
 		}
 		System.out.println("");
