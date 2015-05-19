@@ -5,7 +5,7 @@
 	@version 1.0 
 	@since   03-24-2015 
 	Questions? Email abender@deloitte.com  -->
-<project default= "run" name= "Aug Ben ANT testBuild - complie and run JAVA class">
+<project default= "run" name= "ANT testBuild - complie and run JAVA class">
 	
 	<!-- Clean -->
 	<target name="clean">
@@ -36,7 +36,6 @@
 	<!-- Create files p3 -->
 	<target name="copy" depends="create">
 		
-		<echo>Copying Tomcat Jars to test_lib...</echo>
 		<echo>Copying JUnit Jars to test_lib...</echo>
 			<copy todir="test/test_lib" overwrite="true">
 				<fileset dir="test/util_lib" includes="**/*.jar"/>
