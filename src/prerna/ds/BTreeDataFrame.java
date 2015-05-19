@@ -154,10 +154,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public List<Object[]> getData() {
-		if(simpleTree == null) {
-			return null;
-		}
-
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[0]);
 		SimpleTreeNode leftRootNode = typeRoot.getInstances().elementAt(0);
 		leftRootNode = leftRootNode.getLeft(leftRootNode);
@@ -211,16 +207,18 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 	}
 
-	private void joinTreeLevels(List<String> joinLevelNames, String colNameInJoiningTable) {
-		String[] newLevelNames = new String[levelNames.length + joinLevelNames.size() - 1];
+	private void joinTreeLevels(Vector<String> joinLevelNames, String colNameInJoiningTable) {
+		String[] newLevelNames = new String[this.levelNames.length + joinLevelNames.size() - 1];
 		// copy old values to new
 		System.arraycopy(levelNames, 0, newLevelNames, 0, levelNames.length);
-		for(int i = levelNames.length; i < newLevelNames.length + 1; i++) {
-			String name = joinLevelNames.get(i-levelNames.length);
+		int newNameIdx = levelNames.length;
+		for(int i = 0; i < joinLevelNames.size(); i++) {
+			String name = joinLevelNames.elementAt(i);
 			if(name.equals(colNameInJoiningTable)) {
 				//skip this since the column is being joined
 			} else {
-				newLevelNames[i] = joinLevelNames.get(i-levelNames.length);
+				newLevelNames[newNameIdx] = joinLevelNames.elementAt(i);
+				newNameIdx ++;
 			}
 		}
 
@@ -388,8 +386,14 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public Object[] getColumn(String columnHeader) {
-		// TODO Auto-generated method stub
-		return null;
+
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		typeRoot = typeRoot.getLeft(typeRoot);
+
+		Vector<String> table = new Vector<String>();
+		typeRoot.flattenTree2(table, typeRoot);
+
+		return table.toArray();
 	}
 
 	@Override

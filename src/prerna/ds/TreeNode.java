@@ -5,6 +5,7 @@ import java.io.InputStreamReader;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
@@ -790,6 +791,7 @@ public class TreeNode {
 			if(!parent)
 				output += "|";
 		}
+		System.out.println(output);
 		output += "/";
 		if(childNodes.size() > 0)
 			return serializeTree(output, childNodes, false, level+1);
@@ -956,7 +958,7 @@ public class TreeNode {
 	
 	
 
-	public static void main2(String [] args) throws Exception
+	public static void main(String [] args) throws Exception
 	{
 		
 		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
@@ -1026,7 +1028,7 @@ public class TreeNode {
 		System.out.println("Available memory...  " + Runtime.getRuntime().freeMemory());
 		//System.out.println(new DateTim)
 		int count = 1;
-		for (int i =0;i < 100000;i++)
+		for (int i =0;i < 15;i++)
 		{
 			
 			//int inserter = (int) ((Math.random() * 1000)%1000);
@@ -1043,7 +1045,7 @@ public class TreeNode {
 				System.out.println("Available memory...  " + count + ">> " + Runtime.getRuntime().freeMemory() / 1000 + "kb");
 				//wait(reader, root);
 			}	
-			//if(!found)
+			//if(found)
 				root = root.insertData(new TreeNode(new IntClass(inserter)));
 				//System.err.println("Numbers " + numberList);
 			count++;//else
@@ -1063,7 +1065,7 @@ public class TreeNode {
 		nodes.add(root);
 		
 		// enable search
-		searchIt(nodes, reader);
+		//searchIt(nodes, reader);
 		TreeNode leaf = root.getLeaf(root, true);
 		System.out.println("leaf is " + leaf.leaf.getKey());
 		
@@ -1178,6 +1180,20 @@ public class TreeNode {
 			System.err.print(node.leaf.getKey());
 			System.err.println("----");
 
+		}
+	}
+
+	public void flattenTree2(List<String> table, TreeNode node)
+	{
+		if(node.leftChild != null)
+		{
+			table.add(node.leaf.getKey());
+			TreeNode leftChild = node.leftChild;
+			while(leftChild != null)
+			{
+				flattenTree2(table, leftChild);
+				leftChild = leftChild.rightSibling;
+			}
 		}
 	}
 
