@@ -1,6 +1,5 @@
 package prerna.algorithm.api;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -8,7 +7,17 @@ import prerna.om.SEMOSSParam;
 
 public interface IAnalyticRoutine {
 
-	Map options = new HashMap();
+	/**
+	 * Get the name of the algorithm
+	 * @return
+	 */
+	String getName();
+	
+	/**
+	 * Get the description of the algorithm output
+	 * @return
+	 */
+	String	getResultDescription();
 	
 	/**
 	 * Set the options for the analytic routines
@@ -20,7 +29,13 @@ public interface IAnalyticRoutine {
 	 * Get the options used for the analytic routine
 	 * @return					A mappings of the option type and their values
 	 */
-	List<SEMOSSParam> getOptions();
+	Map getOptions();
+	
+	/**
+	 * Get the list of parameter options used for the analytic routine
+	 * @return					The list of parameters required for the analytic routine
+	 */
+	List<SEMOSSParam> getAllAlgorithmOptions();
 	
 	/**
 	 * Perform an algorithm on a data-frame. The routine does not necessarily have to 
@@ -30,10 +45,23 @@ public interface IAnalyticRoutine {
 	 */
 	ITableDataFrame runAlgorithm(ITableDataFrame... data);
 	
-	String getName();
+	/**
+	 * Get the default visualization type for the algorithm output
+	 * @return
+	 */
 	String getDefaultViz();
+	
+	/**
+	 * Get the list of the columns that have been altered as a result of the algorithm
+	 * This will return null when no columns have been changed
+	 * @return
+	 */
 	List<String> getChangedColumns();
+	
+	/**
+	 * Get the meta-data for the results of the algorithm 
+	 * @return
+	 */
 	Map<String, Object> getResultMetadata();
-	String	getResultDescription();
 	
 }
