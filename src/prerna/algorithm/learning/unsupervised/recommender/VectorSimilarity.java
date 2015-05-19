@@ -1,11 +1,13 @@
 package prerna.algorithm.learning.unsupervised.recommender;
 
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.math3.linear.BlockRealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.om.SEMOSSParam;
 
 /*
  * algorithm to calculate the similarity of users with a user using cosine similarity
@@ -45,12 +47,49 @@ public class VectorSimilarity implements SimilarityAnalytics{
 	}
 
 	@Override
-	public Map getOptions() {
-		return options;
-	}	
+	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 	@Override
-	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
+	public String getName() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String getDefaultViz() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<String> getChangedColumns() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Map<String, Object> getResultMetadata() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String getResultDescription() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<SEMOSSParam> getAllAlgorithmOptions() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Map getOptions() {
 		// TODO Auto-generated method stub
 		return null;
 	}
