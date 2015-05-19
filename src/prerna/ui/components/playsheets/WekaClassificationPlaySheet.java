@@ -143,13 +143,13 @@ public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
 	
 	@Override
 	public void setQuery(String query) {
-		if(query.contains("\\+\\+\\+")) {
-			String[] querySplit = query.split("\\+\\+\\+");
-			this.query = querySplit[0];
-			this.modelName = querySplit[1].trim();
-		} else {
+		String[] querySplit = query.split("\\+\\+\\+");
+		if (querySplit.length == 1) {
 			this.query = query;
 			this.modelName = "J48";
+		} else {
+			this.query = querySplit[0];
+			this.modelName = querySplit[1].trim();
 		}
 	}
 	
