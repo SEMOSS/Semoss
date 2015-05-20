@@ -1,10 +1,8 @@
 package prerna.ds;
 
-import prerna.ds.ISEMOSSNode.VALUE_TYPE;
-
 public class DoubleClass implements ISEMOSSNode {
 
-	Double value = null;
+	double value;
 	String type = null;
 	Object rawValue = null;
 	
@@ -44,9 +42,9 @@ public class DoubleClass implements ISEMOSSNode {
 	}
 
 	@Override
-	public Object getRawValue() {
+	public String getRawValue() {
 		// TODO Auto-generated method stub
-		return this.rawValue;
+		return this.rawValue.toString();
 	}
 
 	@Override
