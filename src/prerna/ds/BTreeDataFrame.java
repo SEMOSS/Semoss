@@ -255,40 +255,13 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 	}
 	
-	public void append(Map<String, Object[]> table) {
-		Object[] tableColumns = table.keySet().toArray();
-		int tableLength = table.get(tableColumns[0]).length;		
-		int levels = levelNames.length;
-		
-		List<String> tempLevels = new ArrayList<>();
-		for(int x = 0; x < levels; x++) {
-			if(table.containsKey(levelNames[x])) {
-				tempLevels.add(levelNames[x]);
-			}
+	public void append(ITableDataFrame table, Map<String, String> tableLookup) {
+		List<String> levels = new ArrayList<>();
+		for(int i = 0; i < levelNames.length; i ++) {
+			if(tableLookup.containsKey(levelNames[i])) levels.add(tableLookup.get(levelNames[i]));
 		}
-		int tempSize = tempLevels.size();
 		
-		//do nothing if there are no levels(columns) in common
-		if(tempSize==0) return;
-		
-		ISEMOSSNode parent = null;
-		ISEMOSSNode child = null;
-		
-		for(int i = 0; i < tableLength; i++) {
-			String firstLevel = tempLevels.get(0);
-			parent = createNodeObject(table.get(firstLevel), null, firstLevel);
-			if(tempSize == 1) {
-				simpleTree.createNode(parent,  false);
-			}
-			else {
-				for(int j = 1; j < tempLevels.size(); j++){
-					String level = tempLevels.get(j);
-					child = createNodeObject(table.get(level), null, level);
-					simpleTree.addNode(parent, child);
-					parent = child;
-				}
-			}
-		}
+		this.append(table, levels);
 	}
 
 	@Override
