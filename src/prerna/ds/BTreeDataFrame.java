@@ -200,6 +200,60 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public void append(ITableDataFrame table) {
 		// TODO Auto-generated method stub
 	}
+	
+	/***
+	 * 
+	 * @param table - the table to be appended to this table
+	 * @param levels - the order in which levels will be extracted from table
+	 * 
+	 * Append
+	 * 	The method will take the values from 'table' row by row from the columns specified in 'levels' in the order listed in 'levels'
+	 * 	and add the values to this table
+	 * 
+	 * Assumptions
+	 * no new columns will be added to this table, therefore 'List<String> levels' must be a subset of this table's levels
+	 * */
+	public void append(ITableDataFrame table, List<String> levels) {
+		
+		//create an array so that it is known where is level is located in the table
+		int columnLength = levels.size();
+		String[] tableStructure = table.getColumnHeaders();
+		int[] orderArray = new int[columnLength];
+		
+		for (int i = 0; i < columnLength; i++) {
+			int j = 0;
+			for(; j < tableStructure.length; j++){
+				if(levels.get(i).equals(tableStructure[j])) break;
+			}
+			orderArray[i] = j;
+		}
+		
+		ISEMOSSNode parent = null;
+		ISEMOSSNode child = null;
+		
+		int numRows = table.getNumRows();
+		List<Object[]> flatTable = table.getData();
+		Object[] row;
+		
+		//go row by row and add the parent-child relationships to this table
+		for(int i = 0; i < numRows; i++) {
+			row = flatTable.get(i);
+			parent = createNodeObject(row[orderArray[0]], null, levels.get(i));
+			//parent = (ISEMOSSNode)row[orderArray[0]];
+			
+			if(columnLength == 1) {
+				simpleTree.createNode(parent, false);
+			} 
+			else {
+				for(int j = 1; i < row.length; i++) {
+					child = createNodeObject(row[orderArray[j]], null, levels.get(j));
+					//child = (ISEMOSSNode)row[orderArray[j]];
+					simpleTree.addNode(parent, child);
+					parent = child;
+				}
+			}
+		}
+	}
 
 	@Override
 	public void undoAppend() {
@@ -417,5 +471,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	public String[] getTreeLevels() {
 		return this.levelNames;
+	}
+	
+	public static void main(String[] args) {
+		//use this as a test method
 	}
 }
