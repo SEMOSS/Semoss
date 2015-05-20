@@ -1,6 +1,6 @@
 package prerna.ds;
 
-public interface ISEMOSSNode extends ITreeKeyEvaluatable{
+public interface ISEMOSSNode extends ITreeKeyEvaluatable {
 	
 	public enum VALUE_TYPE {ORDINAL, NOMINAL};
 	

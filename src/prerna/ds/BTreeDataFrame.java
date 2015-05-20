@@ -2,11 +2,8 @@ package prerna.ds;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -137,9 +134,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		LOGGER.info("Columns Passed ::: " + colNameInTable + " and " + colNameInJoiningTable);
 		LOGGER.info("Confidence Threshold :: " + confidenceThreshold);
 		LOGGER.info("Analytics Routine ::: " + routine.getName());
-		
-		
-		
 		LOGGER.info("Begining join on columns ::: " + colNameInTable + " and " + colNameInJoiningTable);
 
 		// fill the options needed for the routine
@@ -214,7 +208,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 	 * no new columns will be added to this table, therefore 'List<String> levels' must be a subset of this table's levels
 	 * */
 	public void append(ITableDataFrame table, List<String> levels) {
-		
 		//create an array so that it is known where is level is located in the table
 		int columnLength = levels.size();
 		String[] tableStructure = table.getColumnHeaders();
@@ -365,14 +358,28 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public boolean isNumeric(String columnHeader) {
-		// TODO Auto-generated method stub
+		if(!ArrayUtilityMethods.arrayContainsValue(levelNames, columnHeader)) {
+			throw new IllegalArgumentException("Column name is not contained in the table");
+		}
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		ITreeKeyEvaluatable nodeEvaluator = typeRoot.getInstances().elementAt(0).leaf;
+		
+		if(nodeEvaluator instanceof IntClass || nodeEvaluator instanceof DoubleClass) {
+			return true;
+		}
+		
 		return false;
 	}
 
 	@Override
 	public boolean[] isNumeric() {
-		// TODO Auto-generated method stub
-		return null;
+		boolean[] isNumeric = new boolean[levelNames.length];
+		
+		for(int i = 0; i < levelNames.length; i++) {
+			isNumeric[i] = isNumeric(levelNames[i]);
+		}
+		
+		return isNumeric;
 	}
 
 	@Override
@@ -411,16 +418,12 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public Object[] getColumn(String columnHeader) {
-
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
 		typeRoot = typeRoot.getLeft(typeRoot);
-
 		List<String> table = typeRoot.flattenToArray(typeRoot, true);
-		
 
 		System.out.println("Final count for column " + columnHeader + " = " + table.size());
 		return table.toArray();
-		
 	}
 
 	@Override
@@ -478,10 +481,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		// TODO Auto-generated method stub
 	}
 
-	public String[] getTreeLevels() {
-		return this.levelNames;
-	}
-	
 	public static void main(String[] args) {
 		//use this as a test method
 	}
