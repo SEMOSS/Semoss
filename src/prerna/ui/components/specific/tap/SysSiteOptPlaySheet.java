@@ -803,18 +803,16 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 	public Hashtable<String,Object> getCapabilityCoverageData(String capability) {
 		return opt.getCapabilityCoverageData(capability);
 	}
-	
-	//TODO instead of rewriting like i have
-	
-//	/**
-//	 * Clears panels within the playsheet
-//	 */
-//	@Override
-//	public void clearPanels() {
-//		super.clearPanels();
-//		specificAlysPanel.removeAll();
-//		playSheetPanel.removeAll();
-//	}
+
+	/**
+	 * Clears panels within the playsheet
+	 */
+	@Override
+	public void clearPanels() {
+		while(tabbedPane.getTabCount() > 2) {
+			tabbedPane.removeTabAt(2);
+		}
+	}
 	
 	/**
 	 * Sets N/A or $0 for values in optimizations. Allows for different TAP algorithms to be run as empty functions.

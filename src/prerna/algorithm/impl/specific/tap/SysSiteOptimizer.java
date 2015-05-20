@@ -443,8 +443,10 @@ public class SysSiteOptimizer extends UnivariateOpt {
 
 		int i;
 		int length = maintenaceCosts.length;
-		for(i=0; i<length; i++) {
-			currSustainmentCost += maintenaceCosts[i] / centralPercOfBudget;
+		if(centralPercOfBudget != 0) {
+			for(i=0; i<length; i++) {
+				currSustainmentCost += maintenaceCosts[i] / centralPercOfBudget;
+			}
 		}
 		
 		length = centralSysMaintenaceCosts.length;
@@ -625,55 +627,58 @@ public class SysSiteOptimizer extends UnivariateOpt {
 				printMessage("**IRR: " + (optFunc.getIRR()*100) + "%");
 			}
 		}
-
-		String netSavingsString = Utility.sciToDollar(adjustedTotalSavings);
-		((SysSiteOptPlaySheet)playSheet).savingLbl.setText(netSavingsString);
-		double roiRounded =Utility.round(roi * 100, 2);
-		((SysSiteOptPlaySheet)playSheet).roiLbl.setText(Double.toString(roiRounded)+ "%");
-		double irrRounded =Utility.round(irr * 100, 2);
-		((SysSiteOptPlaySheet)playSheet).irrLbl.setText(Double.toString(irrRounded) + "%");
-		double yearsToCompleteRounded = Utility.round(yearsToComplete, 2);
-		((SysSiteOptPlaySheet)playSheet).timeTransitionLbl.setText(Double.toString(yearsToCompleteRounded) + " Years");
-		String deployCostString = Utility.sciToDollar(adjustedDeploymentCost);
-		((SysSiteOptPlaySheet)playSheet).costLbl.setText(deployCostString);
-		
-		int negBalanceYear = 0;
-		for(i = 0; i < maxYears+1; i++) {
-			if (balanceArr[i][1] < 0)
-				negBalanceYear = i;
+		if(currentSustainmentCost == futureSustainmentCost) {
+			clearPlaysheet();
+		}else {
+			String netSavingsString = Utility.sciToDollar(adjustedTotalSavings);
+			((SysSiteOptPlaySheet)playSheet).savingLbl.setText(netSavingsString);
+			double roiRounded =Utility.round(roi * 100, 2);
+			((SysSiteOptPlaySheet)playSheet).roiLbl.setText(Double.toString(roiRounded)+ "%");
+			double irrRounded =Utility.round(irr * 100, 2);
+			((SysSiteOptPlaySheet)playSheet).irrLbl.setText(Double.toString(irrRounded) + "%");
+			double yearsToCompleteRounded = Utility.round(yearsToComplete, 2);
+			((SysSiteOptPlaySheet)playSheet).timeTransitionLbl.setText(Double.toString(yearsToCompleteRounded) + " Years");
+			String deployCostString = Utility.sciToDollar(adjustedDeploymentCost);
+			((SysSiteOptPlaySheet)playSheet).costLbl.setText(deployCostString);
+			
+			int negBalanceYear = 0;
+			for(i = 0; i < maxYears+1; i++) {
+				if (balanceArr[i][1] < 0)
+					negBalanceYear = i;
+			}
+			if(negBalanceYear>=maxYears) {
+				((SysSiteOptPlaySheet)playSheet).bkevenLbl.setText("Beyond Max Time");
+			} else if (negBalanceYear == 0) {
+				((SysSiteOptPlaySheet)playSheet).bkevenLbl.setText("1 Year");
+			} else {
+				double amountInLastYear = balanceArr[negBalanceYear+1][1] - balanceArr[negBalanceYear][1];
+				double fraction = (-balanceArr[negBalanceYear][1]) / amountInLastYear;
+				double breakEven = Utility.round(negBalanceYear + fraction, 2);
+				((SysSiteOptPlaySheet)playSheet).bkevenLbl.setText(Double.toString(breakEven) + " Years");
+			}
+	
+			SysSiteOptGraphFunctions graphF = new SysSiteOptGraphFunctions();
+			graphF.setOptimzer(this);
+			Hashtable chartHash3 = graphF.createCostChart();
+			Hashtable chartHash4 = graphF.createCumulativeSavings();
+			Hashtable chartHash5 = graphF.createBreakevenGraph();
+			
+			((SysSiteOptPlaySheet)playSheet).tab3.callIt(chartHash3);
+			((SysSiteOptPlaySheet)playSheet).tab4.callIt(chartHash4);
+			((SysSiteOptPlaySheet)playSheet).tab5.callIt(chartHash5);
+			playSheet.setGraphsVisible(true);
+			
+			//create additional tabs
+			createSiteGrid(localSystemSiteMatrix, localSysList, siteList,"Current NonCentral Systems at Sites");
+			createSiteGrid(localSystemSiteResultMatrix, localSysList, siteList,"Future NonCentral Systems at Sites");
+			createSiteGrid(localSystemSiteRecMatrix, localSysList, siteList,"Changes for NonCentral Systems at Sites");
+			
+			createOverallGrid(centralSysKeptArr, centralSysList, "Central System", "Future Central Systems (Was central system sustained or consolidated?)");
+			createOverallGrid(localSysKeptArr, localSysList, "NonCentral Systems", "Future NonCentral Systems (Was noncentral system sustained or consolidated?)");
+			
+			createCostGrid();
+			createCentralCostGrid();
 		}
-		if(negBalanceYear>=maxYears) {
-			((SysSiteOptPlaySheet)playSheet).bkevenLbl.setText("Beyond Max Time");
-		} else if (negBalanceYear == 0) {
-			((SysSiteOptPlaySheet)playSheet).bkevenLbl.setText("1 Year");
-		} else {
-			double amountInLastYear = balanceArr[negBalanceYear+1][1] - balanceArr[negBalanceYear][1];
-			double fraction = (-balanceArr[negBalanceYear][1]) / amountInLastYear;
-			double breakEven = Utility.round(negBalanceYear + fraction, 2);
-			((SysSiteOptPlaySheet)playSheet).bkevenLbl.setText(Double.toString(breakEven) + " Years");
-		}
-
-		SysSiteOptGraphFunctions graphF = new SysSiteOptGraphFunctions();
-		graphF.setOptimzer(this);
-		Hashtable chartHash3 = graphF.createCostChart();
-		Hashtable chartHash4 = graphF.createCumulativeSavings();
-		Hashtable chartHash5 = graphF.createBreakevenGraph();
-		
-		((SysSiteOptPlaySheet)playSheet).tab3.callIt(chartHash3);
-		((SysSiteOptPlaySheet)playSheet).tab4.callIt(chartHash4);
-		((SysSiteOptPlaySheet)playSheet).tab5.callIt(chartHash5);
-		playSheet.setGraphsVisible(true);
-		
-		//create additional tabs
-		createSiteGrid(localSystemSiteMatrix, localSysList, siteList,"Current NonCentral Systems at Sites");
-		createSiteGrid(localSystemSiteResultMatrix, localSysList, siteList,"Future NonCentral Systems at Sites");
-		createSiteGrid(localSystemSiteRecMatrix, localSysList, siteList,"Changes for NonCentral Systems at Sites");
-		
-		createOverallGrid(centralSysKeptArr, centralSysList, "Central System", "Future Central Systems (Was central system sustained or consolidated?)");
-		createOverallGrid(localSysKeptArr, localSysList, "NonCentral Systems", "Future NonCentral Systems (Was noncentral system sustained or consolidated?)");
-		
-		createCostGrid();
-		createCentralCostGrid();
 	}
 	
 	
