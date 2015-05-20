@@ -384,22 +384,24 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		localSystemMaintenanceCostArr = new double[sysLength];
 		localSystemSiteMaintenaceCostArr = new double[sysLength];
 		localSystemSiteDeploymentCostArr = new double[sysLength];
-		
+		currentSustainmentCost = 0.0;
 		for(i=0; i<sysLength; i++) {
 			
 			double sysBudget = systemSustainmentBudget[i];
-			double numSites;
-
+			double siteMaintenance;
+			
 			if(systemNumOfSites[i]==0) {
-				numSites = 1;
+				localSystemMaintenanceCostArr[i] = sysBudget;
+				siteMaintenance = (1 - centralPercOfBudget) * sysBudget;
 			}else {
-				numSites = systemNumOfSites[i];
+				localSystemMaintenanceCostArr[i] = centralPercOfBudget * sysBudget;
+				siteMaintenance = (1 - centralPercOfBudget) * sysBudget / systemNumOfSites[i];
 			}
-				
-			localSystemMaintenanceCostArr[i] = centralPercOfBudget * sysBudget;
-			double siteMaintenance = (1 - centralPercOfBudget) * sysBudget / numSites;
+			
 			localSystemSiteMaintenaceCostArr[i] = siteMaintenance;
 			localSystemSiteDeploymentCostArr[i] = siteMaintenance * deploymentFactor;
+
+			currentSustainmentCost+=sysBudget;
 		}
 		
 		
@@ -418,8 +420,11 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		centralSystemIsGarrisonArr = resFunc.systemGarrison;
 
 		centralSystemMaintenanceCostArr = resFunc.systemCostOfMaintenance;
-
-		currentSustainmentCost = calculateCurrentSustainmentCost(localSystemMaintenanceCostArr, centralSystemMaintenanceCostArr);
+		
+		sysLength = centralSysList.size();
+		for(i=0; i<sysLength; i++) {
+			currentSustainmentCost += centralSystemMaintenanceCostArr[i];
+		}
 		
 		centralSystemInterfaceCostArr = resFunc.systemCostOfDataConsumeArr;
 
@@ -436,26 +441,6 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		resFunc.fillSiteLatLon();
 		siteLat = resFunc.siteLat;
 		siteLon = resFunc.siteLon;
-	}	
-	
-	private double calculateCurrentSustainmentCost(double[] maintenaceCosts, double[] centralSysMaintenaceCosts) {
-		double currSustainmentCost = 0.0;
-
-		int i;
-		int length = maintenaceCosts.length;
-		if(centralPercOfBudget != 0) {
-			for(i=0; i<length; i++) {
-				currSustainmentCost += maintenaceCosts[i] / centralPercOfBudget;
-			}
-		}
-		
-		length = centralSysMaintenaceCosts.length;
-		for(i=0; i<length; i++) {
-			currSustainmentCost += centralSysMaintenaceCosts[i];
-		}
-		
-		return currSustainmentCost;
-			
 	}
 	
 	private double[] calculateSiteSustainCost(double[][] sysSiteMatrix, double[] sysCost, int[][] includeSystem, int includeSysCol) {
