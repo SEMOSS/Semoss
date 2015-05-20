@@ -39,8 +39,7 @@ import java.util.Set;
 
 import org.openrdf.model.Literal;
 import org.openrdf.model.Statement;
-import org.openrdf.model.vocabulary.RDF;
-import org.openrdf.model.vocabulary.RDFS;
+import org.openrdf.model.Value;
 import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
@@ -317,10 +316,12 @@ public class AddToMasterDB extends ModifyMasterDB {
 			while(results.hasNext()) {
 				Statement s = results.next();
 				boolean concept = true;
+				Object obj = s.getObject();
 				if(s.getObject() instanceof Literal) {
 					concept = false;
+					obj = ( (Value)obj).stringValue();
 				}
-				this.masterEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{s.getSubject(), s.getPredicate(), s.getObject(), concept});
+				this.masterEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{s.getSubject(), s.getPredicate(), obj, concept});
 				if(s.getPredicate().toString().equals("PARAM:TYPE")) {
 					//TODO discuss the relationships
 					if(s.getObject() instanceof MemURI) {
