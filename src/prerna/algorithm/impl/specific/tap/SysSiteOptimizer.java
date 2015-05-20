@@ -642,7 +642,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			if (balanceArr[i][1] < 0)
 				negBalanceYear = i;
 		}
-		if(negBalanceYear>maxYears) {
+		if(negBalanceYear>=maxYears) {
 			((SysSiteOptPlaySheet)playSheet).bkevenLbl.setText("Beyond Max Time");
 		} else if (negBalanceYear == 0) {
 			((SysSiteOptPlaySheet)playSheet).bkevenLbl.setText("1 Year");
