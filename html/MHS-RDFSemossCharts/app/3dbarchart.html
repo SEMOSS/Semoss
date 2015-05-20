@@ -2,7 +2,31 @@
 <html>
 <head>
     <meta charset="utf-8">
+
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="lib/three.min.js"></script>
+    <script src="lib/TrackballControls.js"></script>
+    <script src="lib/angular/angular.js"></script>
+    <script src="lib/angular/angularGrid.js"></script>
+    <script src="js/utilityService.js"></script>
+    <script src="js/filters.js"></script>
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="css/select2.css">
+    <link rel="stylesheet" type="text/css" href="css/slider.css">
+    <link rel="stylesheet" type="text/css" href="css/angularGrid.min.css">
+    <link rel="stylesheet" type="text/css" href="css/theme-fresh.min.css">
+    <!-- // <script src="js/surfacePlot.js"></script> -->
+    <script src="lib/divgrid.js"></script>
+    <script src="data/heatmapdata.js"></script>
+    <script src="data/gridTest.js"></script>
+    <script src="lib/jquery/jquery-1.8.3.min.js"></script>
+    <script src="lib/tooltip.js"></script>
+    <script src="lib/lodash.min.js"></script>
+    <script src="lib/lodash.math.js"></script>
+
+
     <style>
+
     body{
       font-family: sans;
       padding: 10px;
@@ -45,6 +69,13 @@
       margin: 2px;
       color: #fff;
   }
+    .barchart3d{
+        position: absolute;
+        overflow: scroll;
+        height: 100%;
+        width: 100%;
+        /*margin-top: -322px*/
+    }   
     .popup{
         bottom: 10px; 
         position: absolute;
@@ -54,133 +85,711 @@
         width: 100%;
         /*z-index: -1;*/
         background-color: #AEB6BF;
+    }
+    .semossPopUpContainer{
+        position: absolute;
+        overflow: auto;
+        width: 100%;
+        /*height: 200px;*/
+        min-height: 200px;
+        max-height: 200px;
+        right: 0;
+        bottom: 0;
+        /*bottom: -695px;*/
+    }
+    .canv {
+        background-color: #000;
+        width: 100%;
+        height: 100%;
+        margin: auto;
+        padding: auto;
+        position: static; /* fixed or static */
+        top: 100px;
+        left: 80px;
+        z-index: 3;
+    }
+    .smss-grid-column {
+        position: relative;
+        z-index: 2
     }   
   </style>
 </head>
-<body>
-    <div input type="text" id="stepChooser"></div>
-    <script src="http://d3js.org/d3.v3.min.js"></script>
-    <script src="lib/three.min.js"></script>
-    <script src="lib/TrackballControls.js"></script>
-    <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
-    <link rel="stylesheet" type="text/css" href="css/select2.css">
-    <link rel="stylesheet" type="text/css" href="css/slider.css">
-    <link rel="stylesheet" type="text/css" href="css/heatmap.css">
-    <!-- // <script src="js/surfacePlot.js"></script> -->
-    <script src="lib/divgrid.js"></script>
-    <script src="data/heatmapdata.js"></script>
-    <script src="data/gridTest.js"></script>
-    <script src="lib/jquery/jquery-1.8.3.min.js"></script>
-    <script src="lib/tooltip.js"></script>
-    <!-- SlickGrid -->
-    <link rel="stylesheet" href="lib/slickgrid/slick.grid.css" type="text/css"/>
-    <link rel="stylesheet" href="lib/slickgrid/jquery-ui-1.8.16.custom.css" type="text/css"/>
-    <link rel="stylesheet" href="lib/slickgrid/examples.css" type="text/css"/>
-    <link rel="stylesheet" href="lib/slickgrid/slick.pager.css" type="text/css"/>
-    <script src="lib/slickgrid/jquery.event.drag-2.0.min.js"></script>
-    <script src="lib/slickgrid/slick.core.js"></script>
-    <script src="lib/slickgrid/slick.grid.js"></script>
-    <script src="lib/slickgrid/slick.pager.js"></script>
-    <script src="lib/slickgrid/slick.dataview.js"></script>
-    <!-- End SlickGrid -->
-    <div id="slick">
-        <div id="grid"></div>
-        <div id="pager"></div>
+<body ng-app="app">
+    <div id='canv' ng-controller="matrixCtrl" >
+
+        <barchart3d data="matrixData"  space-at-screen-bottom="0">
+           
+
+        </barchart3d>
+
+        
+
+        
     </div>
-    <div id="popup"></div>
 
 <script>
 
-function start(){
-    var data = [];
-    var scene = new THREE.Scene();
-    var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 1, 10000);
-    var renderer = new THREE.WebGLRenderer();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
-    // var geometry = new THREE.BoxGeometry(50, 700, 50);
-    // var material = new THREE.MeshBasicMaterial({color: 0xfffff, wireframe: false});
-    // var cube = new THREE.Mesh(geometry, material);
-    // scene.add(cube);
-
-    var controls = new THREE.TrackballControls(camera);
-    controls.addEventListener('change', render);
-
-    for (var t = 0; t< 10; t++){
-        data.push([]);
-        for(var i = 0; i< 10; i++){
-            var rand = Math.random();
-            data[t].push(rand*100);
-            
-        };
-    };
-
-    console.log(data)
-
-    var total = $.extend(true, {}, data );
-
-    for (i = 0; i< data.length-1; i++){
-        total[0] = total[0].concat(total[i+1]);
-    }
-
-    function maxVal(numArray){
-        return Math.max.apply(null, numArray);
-    };
-
-    function minVal(numArray){
-        return Math.min.apply(null, numArray);
-    };
-
-    var max = maxVal(total[0]);
-    var min = minVal(total[0]);
-
-     var globalScale = d3.scale.linear()
-        .domain([min, max])
-        .range([0, 350]);
-
-    var globalGrad = d3.scale.linear()
-    .domain([min, max])
-    .range(["white", "red"]);
-
-
-    var mx = -700;
-    for (var t = 0; t< 10; t++){
-        for(var i = 0; i< 10; i++){
-            var barHeight = data[t][i];
-            var geometry = new THREE.BoxGeometry(50, barHeight, 50);
-            var material = new THREE.MeshBasicMaterial({color: globalGrad(barHeight), wireframe: false});
-            var cube = new THREE.Mesh(geometry, material);
-            cube.position.z = t*50;
-            cube.position.x = mx;
-            cube.position.y = 200+(barHeight/2);
-            scene.add(cube);
-            mx+= 50;
-        };
-        mx = -700;
-    };
-
-
-    camera.position.z = 1000; 
-    camera.position.y = 400;
-    camera.position.x = -400;       
-
-    render();
-    animate();
-
-function animate(){
-    requestAnimationFrame(animate);
-    // cube.rotation.x += 0.01;
-    // cube.rotation.y += 0.01;
-    controls.update();
-}
-function render() {
-    renderer.render(scene, camera);
+function start(dataSeries) {
+    var ctrlScope = angular.element(jQuery('#canv')).scope();
+    // var jsonData = dataSeries;
+    var jsonData = jQuery.parseJSON(dataSeries);
+    console.log(jsonData);
+    // calling that function
+    ctrlScope.setJSONData(jsonData);
 };
 
-}
+(function () {
+    'use strict';
+
+    angular.module('app', [
+        'app.controllers',
+        'app.smssgrid',
+        'app.barchart3d',
+        'app.services.utility',
+        'rdfGraphFilters'
+        ]);
+    // .config([$routeProvider, $locationProvider){
+    //     $routeProvider
+    //         .when(/);
+})();
+
+//simple controller to use set the data for the directive
+(function () {
+    angular.module("app.controllers", [])
+            .controller("matrixCtrl", matrixCtrl);
+
+    function matrixCtrl($scope) {
+        console.log("controller");
+        $scope.matrixData = [];
+
+        $scope.setJSONData = function (data) {
+            $scope.$apply(function () {
+                $scope.matrixData = data;
+            });
+        }
+    }
+
+})();
+
+(function () {
+    "use strict";
+
+    angular.module("app.barchart3d", [])
+        .directive("barchart3d", barchart3d);
+
+    barchart3d.$inject = ["$filter", "$rootScope", "$timeout"];
+
+    function barchart3d($filter, $rootScope, $timeout) {
+
+        barchart3dLink.$inject = ["scope", "ele", "attrs"];
+
+        function barchart3dLink(scope, ele, attrs) {
+            // alert("in 2nd barchart");
+
+            scope.isTableShown = false;
+
+            /* Embed Code */
+            scope.embedConfig = {
+                toolbar: "&toolbar=true",
+                navbar: "&navbar=false",
+                sidebar: "&sidebar=false"
+            };
+            scope.embedCode = "<iframe style='border: 1px solid #ccc;' frameborder='0' width='1000' height='600' src='" + scope.absUrl + scope.embedConfig.navbar + scope.embedConfig.sidebar + scope.embedConfig.toolbar + "></iframe>";
+            scope.updateEmbedCode = function () {
+                scope.embedCode = "<iframe style='border: 1px solid #ccc;' frameborder='0' width='1000' height='600' src='" + scope.absUrl + scope.embedConfig.navbar + scope.embedConfig.sidebar + scope.embedConfig.toolbar + "></iframe>";
+            };
+
+            scope.$watch('data', function() {
+                if (!_.isEmpty(scope.data)) {
+                    drawViz();
+                    console.log("data watch");
+                    
+                    }
+            });
+
+            scope.viz = {};
+            
+            scope.$on('UserMode Has Changed', function () {
+                
+            });
+
+            scope.editvisualization = function () {
+                
+                scope.$emit('UserMode Has Changed');
+            };
+
+             scope.toggleDataTable = function(tableBool) {
+                if (tableBool !== undefined) {
+                    scope.isTableShown = tableBool;
+                } else {
+                    scope.isTableShown = !scope.isTableShown;
+                }
+            };
+
+            scope.$watch('tableData', function () {
+                if (scope.data === undefined || scope.data === null || scope.data === [] || scope.data === '') {
+                    //don't want to do anything if there is no freakin data
+                } else {
+                    //make sure table is toggled
+                    scope.toggleDataTable(true);
+                    console.log("gridwatch1");
+                    
+                }
+            });
 
 
-start();
+            // scope.tableData = angular.copy(scope.data.data);
+
+
+
+    function drawViz(){
+            var margin = {
+                    top: 90,
+                    right: 40,
+                    bottom: 120,
+                    left: 40
+                },
+                container = {
+                    width: 0,
+                    height: 0
+                },
+                SHOW_TITLE_CONSTANT = scope.showTitle || true;
+
+            scope.internalControl = {};
+            scope.$on('filterValue', function (event, args) {
+                highlightColumn(args);
+            });
+
+            //set container width and height
+            //containerSize(scope.containerClass, container, margin);
+
+            // function containerSize(containerClass, containerObj, marginObj) {
+            //     if (containerClass) {
+            //         containerObj.width = parseInt(d3.select('.' + containerClass).style('width')) - 25;
+            //         containerObj.height = parseInt(d3.select('.' + containerClass).style('height')) - 25;
+            //         if (scope.showTitle) {
+            //             containerObj.height = containerObj.height - 25;
+            //         }
+            //     } else {
+            //         containerObj.width = parseInt(d3.select('.graph-canvas').style('width')) - 25;
+            //         containerObj.height = parseInt(d3.select('.graph-canvas').style('height')) - 25;
+            //         if (scope.showTitle) {
+            //             containerObj.height = containerObj.height - 25;
+            //         }
+            //     }
+
+            //     containerObj.width = containerObj.width - marginObj.left - marginObj.right;
+            //     containerObj.height = containerObj.height - marginObj.top - marginObj.bottom;
+            //     container.width = containerObj.width;
+            //     container.height = containerObj.height;
+            // }
+
+          
+
+            //Display Title and Controls for visualization when selected in Mash-Up View
+            scope.$watch('selectedViz', function () {
+                if (scope.selectedViz) {
+                    if (scope.selectedViz === scope.containerClass && SHOW_TITLE_CONSTANT) {
+                        scope.showTitle = true;
+                    } else if (SHOW_TITLE_CONSTANT) {
+                        scope.showTitle = false;
+                    }
+                }
+            });
+
+            var resizeCleanUpFunc = $rootScope.$on('resize-viz', function () {
+                //need to check and make sure the containerClass that is trying to resize actually has values in it
+                if ($("." + scope.containerClass).length > 0) {
+                    $timeout(function () {
+                        resize();
+                    }, 350);
+                }
+            });
+
+            var projector, raycaster,texture1;
+            var mouse = new THREE.Vector3();
+
+            // var data = [];
+            var objects = [];
+
+            var canv = document.getElementById("canv");
+            document.body.appendChild(canv);
+            var scene = new THREE.Scene();
+            var camera = new THREE.PerspectiveCamera(75, (window.innerWidth)/(window.innerHeight-200), 1, 10000);
+            var renderer = new THREE.WebGLRenderer();
+            renderer.setSize((window.innerWidth), window.innerHeight-200);
+            renderer.setClearColor( 0xffffff, 1 );
+            // document.body.appendChild(renderer.domElement);
+            canv.appendChild(renderer.domElement);
+
+               raycaster = new THREE.Raycaster();
+
+        var controls = new THREE.TrackballControls(camera);
+        controls.addEventListener('change', render);
+
+        //Clone data
+        // console.log(scope.data.data);
+        var total = $.extend(true, {}, scope.data.specificData );
+        // console.log(total);
+
+        scope.tableData = angular.copy(scope.data);
+
+        for (i = 0; i< scope.data.specificData.length-1; i++){
+            total[0] = total[0].concat(total[i+1]);
+        }
+
+        function maxVal(numArray){
+            return Math.max.apply(null, numArray);
+        };
+
+        function minVal(numArray){
+            return Math.min.apply(null, numArray);
+        };
+
+        var max = maxVal(total[0]);
+        var min = minVal(total[0]);
+
+        var globalScale = d3.scale.linear()
+            .domain([0, max])
+            .range([0, 250]);
+
+        var globalGrad = d3.scale.linear()
+            .domain([min, (min+max/2), max])
+            .range(['green',"yellow", "red"]);
+
+
+        var mx = -700;
+        for (var t = 0; t< scope.data.specificData.length; t++){
+            for(var i = 0; i< scope.data.specificData[t].length; i++){
+                var barHeight = globalScale(scope.data.specificData[t][i]);
+                var geometry = new THREE.BoxGeometry(50, barHeight, 50);
+                var material = new THREE.MeshBasicMaterial({color: globalGrad(scope.data.specificData[t][i]), wireframe: false});
+                var cube = new THREE.Mesh(geometry, material);
+                cube.position.z = t*70;
+                cube.position.x = mx;
+                cube.position.y = 200+(barHeight/2);
+                scene.add(cube);
+                objects.push(cube);
+                mx+= 70;
+            };
+            mx = -700;
+        };
+
+
+        camera.position.z = 800; 
+        camera.position.y = 300;
+        camera.position.x = -1000;       
+
+        render();
+        animate();
+
+
+
+        function animate(){
+            requestAnimationFrame(animate);
+            // cube.rotation.x += 0.01;
+            
+            controls.update();
+        }
+
+        function render() {
+            renderer.render(scene, camera);
+        };
+
+        // document.addEventListener( 'click', tip.show, false );
+
+        var geometry = new THREE.BoxGeometry(20, 20, 20);
+        var material = new THREE.MeshBasicMaterial({color: 0x9933CC, wireframe: true});
+        var marker = new THREE.Mesh(geometry, material);
+
+        var spriteMaterial = new THREE.SpriteMaterial({color: 0x9933CC});
+        var sprite1 = new THREE.Sprite( spriteMaterial );
+
+        function de2ra(degree) {
+            return degree*(Math.PI/180); 
+        };
+
+        function markerRotate(){
+            requestAnimationFrame(markerRotate);
+            marker.rotation.y += 0.03;
+            // marker.rotation.z += 0.02;
+            controls.update();
+            render();
+        }
+
+        markerRotate();  
+
+        scope.$on("$destroy", function barchart3dDestroyer() {
+            console.log('destroy');
+            resizeCleanUpFunc();
+            renderer.domElement.addEventListener('click', null, false); //remove listener to render
+            scene = null;
+            projector = null;
+            camera = null;
+            controls = null;
+            objects = null;
+            d3.select("canv").remove();
+
+        });
+
+        // function resize(){
+        //    container.width = parseInt(d3.select('.graph-canvas').style('width')) + 'px';
+        //    container.height = parseInt(d3.select('.graph-canvas').style('height')) + 'px';
+        // }
+
+            // d3.select("#step3").style('height');
+
+        document.addEventListener( 'click', onDocumentClick, false );
+        
+        function onDocumentClick( event ) {
+            // the following line would stop any other event handler from firing
+            // (such as the mouse's TrackballControls)
+            event.preventDefault();
+            
+            // update the mouse variable
+            mouse.x = ( event.clientX / (window.innerWidth) ) * 2 - 1;
+            mouse.y = 1 - ( event.clientY / (window.innerHeight-200) ) * 2 ;
+            
+            raycaster.setFromCamera( mouse.clone(), camera );
+
+            var intersects = raycaster.intersectObjects( objects );
+
+
+            if ( intersects.length > 0 ) {
+
+                // intersects[ 0 ].object.material.color.setHex();
+                console.log(intersects[0].object.id);
+                // console.log(scope.data);
+                // intersects[0].object.id
+                // scope.tableData= [];
+                var newData = [];
+                // console.log(scope.data.data)
+                for (i=0; i < scope.data.data.length -1; i++){
+                  // for (var j=0; j < scope.data.data[i].length; j++){
+                    // console.log(scope.data.data[i]);
+                                if (scope.data.data[i][10] === (intersects[0].object.id-3) ){
+                                    newData.push(scope.data.data[i])
+                                };
+                            // };
+
+                };
+                scope.tableData = {data: newData , headers: scope.data.headers, filteredData: newData};
+                // console.log(scope.tableData);
+
+                scope.$apply();
+
+                // resize();
+              
+
+                // scene.remove(sprite1)
+                // sprite1.scale.set(20,40,1.0);
+                // sprite1.position.set( intersects[0].object.position.x, intersects[0].object.position.y*1.4, intersects[0].object.position.z );
+                // scene.add( sprite1 );   
+
+                scene.remove(marker)
+                marker.position.set( intersects[0].object.position.x, (intersects[0].object.position.y*2)-200+30, intersects[0].object.position.z );
+                marker.rotation.y = de2ra(45);
+                marker.rotation.x = de2ra(45);
+                scene.add( marker );   
+
+                renderer.setSize((window.innerWidth), window.innerHeight-200);
+            };
+        };
+    };
+};
+
+        return {
+            restrict: 'AE',
+            scope: {
+                data: "=",
+                containerClass: "=",
+                sidebarActive: "=",
+                sendUri: "&",
+                showTitle: "=",
+                absUrl: "=",
+                selectedViz: "=",
+                pinViz: "&",
+                viewType: "="
+            },
+            template: '<div class="semossPopUpContainer"> <smss-grid  chart-data="tableData" ></smss-grid></div>',
+            link: barchart3dLink
+        };
+    
+    };
+})();
+
+(function () {
+    "use strict";
+
+    angular.module("app.smssgrid", [])
+        .directive("smssGrid", smssGrid);
+
+    smssGrid.$inject = ["$rootScope", "$timeout"];
+
+    function smssGrid($rootScope, $timeout) {
+        SmssGridLink.$inject = ["scope", "ele", "attrs", "ctrl"];
+
+        function SmssGridLink(scope, ele, attrs, ctrl) {
+            console.log("in link")
+            $rootScope.$on("resize-viz", function() {
+                //need to check and make sure the containerClass that is trying to resize actually has values in it
+                //if ($("." + scope.containerClass).length > 0) {
+                    $timeout(function() {
+                        ctrl.resize();
+                    }, 350);
+                //}
+            });
+        };
+
+        return {
+            restrict: "E",
+            scope: {
+                chartData: "=",
+                sidebarActive: "=",
+                showTitle: "=",
+                tableType: "=",
+                selectedViz: "=",
+                containerClass: "=",
+                viewType: "=",
+                config: "="
+            },
+            template: '<div id="chartSpace" angular-grid="smssgrid.gridOptions" class="ag-fresh" ></div>',
+            controllerAs: "smssgrid",
+            bindToController: true,
+            controller: SmssGridCtrl,
+            link: SmssGridLink
+        };
+    }
+    
+    SmssGridCtrl.$inject = ["$scope", "$filter", "$rootScope", "$timeout", "utilityService"];
+
+    function SmssGridCtrl($scope, $filter, $rootScope, $timeout, utilityService) {
+                    console.log("in ctrl")
+        var dataHasChanged = false;
+        this.filterOptions = {};
+        this.headerInputFilter = {};
+        this.gridSelected = {
+            uri: "",
+            index: -1
+        };
+        this.viz = {};
+        this.viz.userMode = "barchart3d"
+        this.columnDefs;
+
+        $scope.$on("smsstabletools.export-data-csv", function() {
+            if (graphDataService.getSelectedCanvas() === this.containerClass) {
+                downloadDataCSV();
+            }
+        }.bind(this));
+
+        $scope.$on("filterpanel.filter-table-data", function(event, filterOptions) {
+            this.filterTableData(filterOptions);
+        }.bind(this));
+
+         $scope.$on("filterCell", function(event, filterOptions) {
+            this.filterTableData(filterOptions);
+        }.bind(this));
+
+        $scope.$watch("chartData", function () {
+
+            console.log($scope);
+            if (!_.isEmpty($scope.chartData)) {
+                this.filterOptions = {};
+                this.gridSelected = {
+                    uri: "",
+                    index: 1
+                };
+                console.log("grid watch");
+                this.columnDefs = [];
+                var test = null;
+            
+                test = utilityService.formatTableData($scope.chartData.headers, $scope.chartData.data, true )
+                
+                console.log(test);
+                // console.log($scope.chartData);
+                //add objects in the headers array
+                for (var i = 0; i < test.headers.length; i++) {
+                    console.log(test.headers[i]);
+                    var header = {
+                        displayName: test.headers[i].title,
+                        field: test.headers[i].title,
+                        cellClass: 'smss-grid-column'
+                    };
+                    this.columnDefs.push(header);
+                    // console.log(this.columnDefs[0]);
+                    // console.log(this.columnDefs[10]);
+
+
+                    //add objects in the headers array
+                    //need filter object to hold all filter dropdown variables
+                    var completeList = [],
+                        uniqueList = [];
+                    for (var j=0; j < test.data.length; j++) {
+                        // console.log($scope.chartData.data[j]);
+                        completeList.push(test.data[j][test.headers[i].title]);
+                    }
+
+                    uniqueList = _.uniq(completeList);
+                    // console.log(uniqueList);
+                    //set all variables necessary for filtering
+                    this.filterOptions[test.headers[i].title] = {
+                        list: angular.copy(uniqueList),
+                        selectAll: true,
+                        selected: [],
+                        tempSelected: angular.copy(uniqueList),
+                        inputSearch: "",
+                        isCollapsed: true
+                    };
+
+                    // this.headerInputFilter[test.headers[i].title] = "";
+                }
+
+
+                this.gridWidth = parseInt(d3.select('#chartSpace').style('width')) + 'px';
+                this.gridHeight = parseInt(d3.select('#chartSpace').style('height')) + 'px';
+
+                $rootScope.$broadcast("smssGrid.filter-options", this.filterOptions);
+
+                this.gridOptions.columnDefs = this.columnDefs;
+
+                // console.log(this);
+                // console.log(this.gridOptions);
+                this.gridOptions.rowData = test.filteredData
+
+                console.log(this.gridOptions.columnDefs);
+
+                window.angularGrid('#chartSpace', this.gridOptions);
+              
+                // $scope.gridOptions.api.refreshView();
+
+                // $scope.gridOptions.columnDefs = this.columnDefs;
+                // $scope.gridOptions.rowData = $scope.chartData.data;
+                // console.log($scope.gridOptions.rowData);
+
+                // console.log($scope.gridOptions.api);
+
+                // $scope.gridOptions.api.onNewRows();
+                // $scope.gridOptions.api.onNewCols();
+
+
+                this.gridOptions.api.onNewCols();
+                this.gridOptions.api.onNewRows();
+                
+                this.gridOptions.api.sizeColumnsToFit();
+            }
+        }.bind(this), true);
+
+        this.headerCellRendererFunc = function(params) {
+            var eHeader = document.createElement('span');
+
+            var eTitle = document.createTextNode('> ' + params.colDef.displayName + ' <');
+            eHeader.appendChild(eTitle);
+
+            eHeader.addEventListener('click', function() {
+                if (eHeader.style.color === 'red') {
+                    eHeader.style.color = '';
+                } else {
+                    eHeader.style.color = 'red';
+                }
+            });
+
+            return eHeader;
+        };
+
+        // this.cellClickedFunc = function(params) {
+        //     console.log(params);
+        //     var check = false,
+        //         uriData = [];
+        //     if (_.isString(selectedUri) && selectedUri.indexOf("http://") > -1) {
+        //         check = true;
+        //     }
+
+        //     if (check) {
+        //         this.gridSelected.uri = selectedUri;
+        //         this.gridSelected.index = index;
+        //         uriData = [{
+        //             uri: selectedUri
+        //         }];
+        //         traverseService.getTraverseOptions(uriData, graphDataService.getCurrentViz(), [dataLabel]);
+        //     }
+        // };
+
+        this.filterTableData = function(filteredColumns) {
+            for (var key in filteredColumns) {
+                this.filterOptions[key].selected = angular.copy(filteredColumns[key].tempSelected);
+            }
+
+            //var newFilteredData = $scope.chartData.filteredData.filter(filterBySelections(this.filterOptions));
+
+            this.gridOptions.rowData = $scope.chartData.data;
+            //refresh the table
+            this.gridOptions.api.onNewRows();
+        };
+
+        this.filterCell = function(filteredColumns) {
+            for (var key in filteredColumns) {
+                this.filterOptions[key].selected = angular.copy(filteredColumns[key].tempSelected);
+            }
+
+            //var newFilteredData = $scope.chartData.filteredData.filter(filterBySelections(this.filterOptions));
+
+            this.gridOptions.rowData = $scope.chartData.data;
+            //refresh the table
+            this.gridOptions.api.onNewRows();
+        };
+
+
+        function downloadDataCSV() {
+            //need to properly get the table data
+            var csvData = Papa.unparse(gridData()),
+                hiddenElement = document.createElement('a');
+
+            hiddenElement.href = 'data:attachment/csv,' + encodeURI(csvData);
+            hiddenElement.target = '_blank';
+            hiddenElement.download = 'tableData.csv';
+            hiddenElement.click();
+        };
+
+        this.resize = function() {
+            this.gridWidth = parseInt(d3.select('.graph-canvas').style('width')) + 'px';
+            this.gridHeight = parseInt(d3.select('.graph-canvas').style('height')) + 'px';
+            this.gridOptions.api.sizeColumnsToFit();
+        };
+
+        var gridData = function() {
+            return $scope.chartData.data;
+        }.bind(this);
+
+        // IIFE to initialize table and all values
+        (function(that) {
+
+            that.gridOptions = {
+                columnDefs: null,
+                rowData: null,
+                enableSorting: true,
+                enableFilter: true,
+                enableColResize: true,
+                headerCellRenderer: that.headerCellRendererFunc,
+                pinnedColumnCount: 0,
+                headerHeight: 25,
+                icons: {
+                    //menu: '<i class="fa fa-bars"/>',
+                    filter: '<i class="fa fa-filter"/>',
+                    sortAscending: '<i class="fa fa-long-arrow-down"/>',
+                    sortDescending: '<i class="fa fa-long-arrow-up"/>',
+                    groupExpanded: '<i class="fa fa-minus-square-o"/>',
+                    groupContracted: '<i class="fa fa-plus-square-o"/>'
+                }
+            };
+
+        })(this);
+    }
+
+})();
+
+
+
+// start();
 // start(gridTest);
 // start(scatterDataNewOne);
 
