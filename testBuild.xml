@@ -81,7 +81,9 @@
 	
 	<!-- Main Method -->
 	<target name="run" depends="compile">
-		<echo>Running...</echo>
+		<echo>Final Clean...</echo>
+			<delete failonerror="false" dir="test/test_lib"/>
+			<delete failonerror="false" dir="test/test_stagging"/>
 	</target>
 	
 </project>
