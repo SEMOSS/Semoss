@@ -37,7 +37,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.openrdf.model.Literal;
 import org.openrdf.model.Statement;
+import org.openrdf.model.vocabulary.RDF;
+import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
@@ -313,14 +316,18 @@ public class AddToMasterDB extends ModifyMasterDB {
 			RepositoryResult<Statement> results = rc.getStatements(null, null, null, true);
 			while(results.hasNext()) {
 				Statement s = results.next();
-				this.masterEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{s.getSubject(), s.getPredicate(), s.getObject(), s.getContext()});
+				boolean concept = true;
+				if(s.getObject() instanceof Literal) {
+					concept = false;
+				}
+				this.masterEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{s.getSubject(), s.getPredicate(), s.getObject(), concept});
 				if(s.getPredicate().toString().equals("PARAM:TYPE")) {
 					//TODO discuss the relationships
 					if(s.getObject() instanceof MemURI) {
 						String typeURI = ((MemURI) s.getObject()).stringValue();
 						String keyword = typeURI.substring(typeURI.lastIndexOf("/")+1);
 						MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, typeURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + keyword + ":" + keyword);
-						//this.masterEngine.sc.addStatement(keyword, RDF.TYPE, masterEngine.vf.createURI(keywordBaseURI));
+//						this.masteerEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{keyword, RDF.TYPE, MasterDatabaseURIs.KEYWORD_BASE_URI, true});
 					}
 					else {
 						logger.info("error adding param to keyword relationship for "+s.getSubject().stringValue()+">>>"+s.getPredicate().stringValue()+">>>"+s.getObject().stringValue());
