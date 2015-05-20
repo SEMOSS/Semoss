@@ -637,19 +637,19 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		String deployCostString = Utility.sciToDollar(adjustedDeploymentCost);
 		((SysSiteOptPlaySheet)playSheet).costLbl.setText(deployCostString);
 		
-		int breakEvenYear = 0;
+		int negBalanceYear = 0;
 		for(i = 0; i < maxYears+1; i++) {
 			if (balanceArr[i][1] < 0)
-				breakEvenYear = i + 1;
+				negBalanceYear = i;
 		}
-		if(breakEvenYear>maxYears) {
+		if(negBalanceYear>maxYears) {
 			((SysSiteOptPlaySheet)playSheet).bkevenLbl.setText("Beyond Max Time");
-		} else if (breakEvenYear == 0) {
+		} else if (negBalanceYear == 0) {
 			((SysSiteOptPlaySheet)playSheet).bkevenLbl.setText("1 Year");
 		} else {
-			double amountInLastYear = balanceArr[breakEvenYear][1] - balanceArr[breakEvenYear - 1][1];
-			double fraction = (-balanceArr[breakEvenYear][1]) / amountInLastYear;
-			double breakEven = Utility.round(breakEvenYear + 1 + fraction, 2);
+			double amountInLastYear = balanceArr[negBalanceYear+1][1] - balanceArr[negBalanceYear][1];
+			double fraction = (-balanceArr[negBalanceYear][1]) / amountInLastYear;
+			double breakEven = Utility.round(negBalanceYear + fraction, 2);
 			((SysSiteOptPlaySheet)playSheet).bkevenLbl.setText(Double.toString(breakEven) + " Years");
 		}
 
