@@ -99,11 +99,11 @@ public class BTreeDataFrame implements ITableDataFrame {
 		else if(value instanceof String) {
 			node = new StringClass((String)value, level);
 		} 
-//		else if(value instanceof Number) {
-//			child = new DoubleClass((double)value, level);
-//		} 
+		else if(value instanceof Number) {
+			node = new DoubleClass((double)value, level);
+		} 
 //		else if(value instanceof Boolean) {
-//			child = new BooleanClass((boolean)value, level);
+//			node = new BooleanClass((boolean)value, level);
 //		} 
 		else {
 			node = new StringClass(null, level);
@@ -420,7 +420,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public Object[] getColumn(String columnHeader) {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
 		typeRoot = typeRoot.getLeft(typeRoot);
-		List<String> table = typeRoot.flattenToArray(typeRoot, true);
+		List<Object> table = typeRoot.flattenToArray(typeRoot, true);
 
 		System.out.println("Final count for column " + columnHeader + " = " + table.size());
 		return table.toArray();
