@@ -819,7 +819,7 @@ public class SimpleTreeNode {
 	 * @param parentNodeList			A Vector used to recursively store all the parent-child relationships in a row of the data
 	 * @param levels					The number of levels to place null values such that the data is not a jagged matrix
 	 */
-	public void flattenTreeFromRoot(SimpleTreeNode node, Vector<String> parentNodeList, List<Object[]> table, int levels)
+	public void flattenTreeFromRoot(SimpleTreeNode node, Vector<Object> parentNodeList, List<Object[]> table, int levels)
 	{
 		while(node != null)
 		{
@@ -835,12 +835,12 @@ public class SimpleTreeNode {
 	 * @param node						The node in the recursive step of iterating through the tree
 	 * @param levels					The number of levels to place null values such that the data is not a jagged matrix
 	 */
-	public void flattenTree(List<Object[]> table, Vector<String> parentNodeList, SimpleTreeNode node, int levels)
+	public void flattenTree(List<Object[]> table, Vector<Object> parentNodeList, SimpleTreeNode node, int levels)
 	{
 		if(node.leftChild != null)
 		{
-			Vector<String> newList = getNewVector(parentNodeList);
-			newList.add(node.leaf.getKey());
+			Vector<Object> newList = getNewVector(parentNodeList);
+			newList.add(node.leaf.getValue());
 			SimpleTreeNode leftChild = node.leftChild;
 			while(leftChild != null)
 			{
@@ -849,8 +849,8 @@ public class SimpleTreeNode {
 			}
 		}
 		else {
-			Vector<String> newList = getNewVector(parentNodeList);
-			newList.add(node.leaf.getKey());
+			Vector<Object> newList = getNewVector(parentNodeList);
+			newList.add(node.leaf.getValue());
 			while(newList.size() < levels) {
 				newList.add(null);
 			}
