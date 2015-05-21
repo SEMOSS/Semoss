@@ -466,8 +466,11 @@ function start(dataSeries) {
                 // console.log(scope.data.data)
                 for (i=0; i < scope.data.data.length -1; i++){
                   // for (var j=0; j < scope.data.data[i].length; j++){
-                    // console.log(scope.data.data[i]);
-                                if (scope.data.data[i][10] === (intersects[0].object.id-3) ){
+                    var cellSpace = scope.data.data[i].length -1;
+                    // console.log(scope.data.data.length);
+                    // console.log(cellSpace);
+                                if (scope.data.data[i][cellSpace] === (intersects[0].object.id-3) ){
+
                                     newData.push(scope.data.data[i])
                                 };
                             // };
