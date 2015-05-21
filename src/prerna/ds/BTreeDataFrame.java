@@ -118,7 +118,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		leftRootNode = leftRootNode.getLeft(leftRootNode);
 
 		List<Object[]> table = new ArrayList<Object[]>();
-		leftRootNode.flattenTreeFromRoot(leftRootNode, new Vector<String>(), table, levelNames.length);
+		leftRootNode.flattenTreeFromRoot(leftRootNode, new Vector<Object>(), table, levelNames.length);
 
 		return table;
 	}
