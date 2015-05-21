@@ -1182,9 +1182,9 @@ public class TreeNode {
 		}
 	}
 
-	public void flattenTree2Array(List<String> table, TreeNode node)
+	public void flattenTree2Array(List<Object> table, TreeNode node)
 	{
-		table.add(node.leaf.getKey());
+		table.add(node.leaf.getValue());
 		if(node.leftChild != null && node.rightChild != null)
 		{
 			if(node.leftChild != null)
@@ -1239,7 +1239,7 @@ public class TreeNode {
 			}
 	}
 
-	public void flattenUnBalancedTree2Array(List<String> table, TreeNode node)
+	public void flattenUnBalancedTree2Array(List<Object> table, TreeNode node)
 	{
 			if(node.leftChild != null)
 			{
@@ -1271,9 +1271,9 @@ public class TreeNode {
 		}
 	}
 
-	public List<String> flattenToArray(TreeNode node, boolean balanced)
+	public List<Object> flattenToArray(TreeNode node, boolean balanced)
 	{
-		List<String> list = new Vector<String>();
+		List<Object> list = new Vector<Object>();
 		while(node != null)
 		{
 			if(balanced)
