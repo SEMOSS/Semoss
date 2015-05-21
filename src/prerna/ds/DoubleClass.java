@@ -4,9 +4,9 @@ public class DoubleClass implements ISEMOSSNode {
 
 	double value;
 	String type = null;
-	Object rawValue = null;
+	double rawValue;
 	
-	public DoubleClass(double d, String t, Object r) {
+	public DoubleClass(double d, String t, double r) {
 		value = d;
 		type = t;
 		rawValue = r;
@@ -25,37 +25,31 @@ public class DoubleClass implements ISEMOSSNode {
 
 	@Override
 	public boolean isLeft(ITreeKeyEvaluatable object) {
-		// TODO Auto-generated method stub
 		return this.value > ((DoubleClass)object).value;
 	}
 
 	@Override
 	public boolean isEqual(ITreeKeyEvaluatable object) {
-		// TODO Auto-generated method stub
 		return this.value == ((DoubleClass)object).value;
 	}
 
 	@Override
 	public String getType() {
-		// TODO Auto-generated method stub
 		return type;
 	}
 
 	@Override
-	public String getRawValue() {
-		// TODO Auto-generated method stub
-		return this.rawValue.toString();
+	public Double getRawValue() {
+		return this.rawValue;
 	}
 
 	@Override
-	public String getValue() {
-		// TODO Auto-generated method stub
-		return null;
+	public Double getValue() {
+		return this.value;
 	}
 
 	@Override
 	public VALUE_TYPE getValueType() {
-		// TODO Auto-generated method stub
 		return ISEMOSSNode.VALUE_TYPE.ORDINAL;
 	}
 

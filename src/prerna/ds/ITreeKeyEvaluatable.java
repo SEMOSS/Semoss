@@ -8,5 +8,5 @@ public interface ITreeKeyEvaluatable {
 	
 	public boolean isEqual(ITreeKeyEvaluatable object); // evaluates if it is equal
 	
-	public String getValue();
+	public Object getValue();
 }
