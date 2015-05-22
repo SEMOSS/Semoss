@@ -40,6 +40,15 @@ public class SEMOSSParam {
 	String uri = null;
 	String depends = "false";
 	Vector<String> dependVars = new Vector<String>();
+	Object selected = null;
+	
+	public void setSelected(Object selected){
+		this.selected = selected;
+	}
+	
+	public Object getSelected(){
+		return this.selected;
+	}
 		
 	public void setUri(String uri){
 		this.uri = uri;
