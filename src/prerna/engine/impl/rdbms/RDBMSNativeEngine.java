@@ -48,6 +48,7 @@ import prerna.rdf.query.builder.SQLQueryTableBuilder;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.sql.SQLQueryUtil;
 
 public class RDBMSNativeEngine extends AbstractEngine {
 	
@@ -75,16 +76,31 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			e1.printStackTrace();
 		}
 		String connectionURL = prop.getProperty(Constants.CONNECTION_URL);
+		String tempEngineName = "";
+		String tempConnectionURL = prop.getProperty(Constants.TEMP_CONNECTION_URL);
 		String userName = prop.getProperty(Constants.USERNAME);
 		String password = "";
+		SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.valueOf((prop.getProperty(Constants.RDBMS_TYPE)));
+		//special treatment for mariadb
+		if(dbType == SQLQueryUtil.DB_TYPE.MARIA_DB){
+			String splitConnectionURL[] = connectionURL.split("/");
+			tempEngineName = splitConnectionURL[splitConnectionURL.length - 1];
+		}
 		if(prop.containsKey(Constants.PASSWORD))
 			password = prop.getProperty(Constants.PASSWORD);
 		String driver = prop.getProperty(Constants.DRIVER);
         try {
 			Class.forName(driver);
+			//if the tempConnectionURL is set, connect to mysql, create the database, disconnect then reconnect to the database you created
+			if(this.conn == null && dbType == SQLQueryUtil.DB_TYPE.MARIA_DB && (tempConnectionURL != null && tempConnectionURL.length()>0)){
+				conn = DriverManager.getConnection(tempConnectionURL, userName, password);
+				//create database
+				createDatabase(tempEngineName);
+				closeDB();
+				this.conn = null; //reset back to null;
+			}
 			if(this.conn == null)
-			conn = DriverManager.
-			    getConnection(connectionURL, userName, password);
+				conn = DriverManager.getConnection(connectionURL, userName, password);
 			connected = true;
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -96,22 +112,27 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 	}
 
+	private void createDatabase(String engineName){
+		String createDB = "CREATE DATABASE " + engineName;
+		insertData(createDB);
+	}
+	
 	@Override
 	// need to clean up the exception it will never be thrown
 	public void insertData(String query) 
 	{
 		try {
 			Statement stmt = conn.createStatement();
-			if(query.startsWith("CREATE")) // this is create statement"
+			if(query.startsWith("CREATE") && !(query.startsWith("CREATE DATABASE"))){ // this is create statement"
 				stmt.execute(query);
-			else
+			} else {
 				stmt.executeUpdate(query);
+			}
 		}catch(Exception ex)
 		{
 			ex.printStackTrace();
 		}
 	}
-
 	
 	@Override
 	public ENGINE_TYPE getEngineType()
