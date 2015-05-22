@@ -47,6 +47,7 @@ import prerna.error.FileReaderException;
 import prerna.ui.components.ImportDataProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.sql.SQLQueryUtil;
 
 /**
  * Creates a folder in user.dir/db that contains the files required for the engine The custom map, smss, and question sheet are all named based on the
@@ -70,6 +71,8 @@ public class PropFileWriter {
 	public String defaultRDBMSEngine = "prerna.engine.impl.rdbms.RDBMSNativeEngine";//
 	public boolean hasMap = false;
 	
+	private SQLQueryUtil.DB_TYPE dbDriverType = null;
+	
 	public PropFileWriter() {
 		defaultDBPropName = "db/Default/Default.properties";
 		defaultQuestionProp = "db/Default/Default_Questions.XML";
@@ -82,6 +85,10 @@ public class PropFileWriter {
 	
 	public void setBaseDir(String baseDir) {
 		baseDirectory = baseDir;
+	}
+	
+	public void setRDBMSType(SQLQueryUtil.DB_TYPE dbDriverType){
+		this.dbDriverType = dbDriverType;
 	}
 	
 	// TODO Change variable names, should we change default.properties to default.smss?
@@ -246,16 +253,19 @@ public class PropFileWriter {
 				pw.write(Constants.INSIGHTS + "\t" + questionFileName + "\n\n\n");
 			}
 			if (dbType == ImportDataProcessor.DB_TYPE.RDBMS) {
+				SQLQueryUtil queryUtil = SQLQueryUtil.initialize(dbDriverType);
 				pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultRDBMSEngine + "\n");
+				pw.write(Constants.RDBMS_TYPE + "\t" + dbDriverType.toString() + "\n");
 				pw.write(Constants.DREAMER + "\t" + questionFileName + "\n\n\n");
-				pw.write(Constants.DRIVER + "\t" + "org.h2.Driver" + "\n");
-				pw.write(Constants.USERNAME + "\t" + "sa" + "\n");
-				pw.write(Constants.PASSWORD + "\t" + "" + "\n");
+				pw.write(Constants.DRIVER + "\t" + queryUtil.getDatabaseDriverClassName() + "\n");
+				pw.write(Constants.USERNAME + "\t" + queryUtil.getDefaultDBUserName() + "\n");
+				pw.write(Constants.PASSWORD + "\t" + queryUtil.getDefaultDBPassword() + "\n");
 				// pw.write("TEMP"+ "\t" + "true" + "\n");
 				String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
 				System.out.println("Base Folder...  " + baseFolder);
-				pw.write(Constants.CONNECTION_URL + "\t" + "jdbc:h2:" + baseFolder + System.getProperty("file.separator") + engineDirectoryName
-						+ System.getProperty("file.separator") + "database;query_timeout=180000" + "\n");
+				pw.write(Constants.CONNECTION_URL + "\t" + queryUtil.getConnectionURL(baseFolder,dbname) + "\n");
+				//pw.write(Constants.RDBMS_QUERY_CLASS + "\t" +  H2QueryUtil.class.getCanonicalName() + "\n");
+				pw.write(Constants.USE_OUTER_JOINS + "\t" + queryUtil.getDefaultOuterJoins()+ "\n");
 			}
 			if (this.hasMap) {
 				pw.write("MAP" + "\t" + "db/" + dbname + "/" + dbname + "_Mapping.ttl" + "\n");
