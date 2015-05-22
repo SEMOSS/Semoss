@@ -49,7 +49,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 		ISEMOSSNode parent = null;
 		int index = 0;
-		while(parent == null) {
+		while(parent == null) { //Do we need this while loop? We should create a null parent if thats what the parent is
 			Object val = rowData.get(levelNames[index]);
 			if(val != null) {
 				//TODO: how to deal with URI being null
@@ -137,7 +137,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		LOGGER.info("Begining join on columns ::: " + colNameInTable + " and " + colNameInJoiningTable);
 
 		// fill the options needed for the routine
-		List<SEMOSSParam> params = routine.getAllAlgorithmOptions();
+		List<SEMOSSParam> params = routine.getOptions();
 		Map<String, Object> selectedOptions = new HashMap<String, Object>();
 		selectedOptions.put(params.get(0).getName(), colNameInTable);
 		selectedOptions.put(params.get(1).getName(), colNameInJoiningTable);
@@ -145,25 +145,97 @@ public class BTreeDataFrame implements ITableDataFrame {
 		if(params.size()>2){
 			selectedOptions.put(params.get(2).getName(), confidenceThreshold);
 		}
-		routine.setOptions(selectedOptions);
+		routine.setSelectedOptions(selectedOptions);
 
 		// let the routine run
 		LOGGER.info("Begining matching routine");
 		ITableDataFrame matched = routine.runAlgorithm(this, table);
-		String[] columnNames = matched.getColumnHeaders();
-		
-		// add the new data to this tree
-		LOGGER.info("Augmenting tree");
-		joinTreeLevels(columnNames, colNameInJoiningTable);
-		List<Object[]> flatMatched = matched.getData();
-		// loop through all rows
-		for(Object[] flatRow : flatMatched) {
-			// add row as a key-value pair of level to instance value
-			Map<String, Object> row = new HashMap<String, Object>();
-			for(int i = 0; i < columnNames.length; i++) {
-				row.put(columnNames[i], flatRow[i]);
+
+		if(table instanceof BTreeDataFrame){
+			BTreeDataFrame passedTree = (BTreeDataFrame) table;
+			
+			//Here is the logic that this should use.
+			// Iterate for every row in the matched table
+			// search for tree node in this table and tree node in passed table
+			// hook up passed tree node with each instance of this tree node
+			// make deep copy of passed tree node if there is more than one instance on this tree node
+			///// I also probably need to make sure types aren't duplicated (more than one col with same type) or is this not a problem...?
+			///// Also need to grab index trees of passed table and add to my index hash
+
+			String[] columnNames = passedTree.getColumnHeaders();
+			// add the new data to this tree
+			LOGGER.info("Augmenting tree");
+			joinTreeLevels(columnNames, colNameInJoiningTable); // need to add new levels to this tree's level array
+			List<Object[]> flatMatched = matched.getData();// TODO: this could be replaced with nextRow or getRow method directly on the tree
+
+			// Iterate for every row in the matched table
+			for(Object[] flatMatchedRow : flatMatched) { // for each matched item
+				Object item1 = flatMatchedRow[0];
+				Object item2 = flatMatchedRow[1];
+
+				// search for tree node in this table and tree node in passed table
+				TreeNode thisRootNode = this.simpleTree.nodeIndexHash.get(colNameInJoiningTable); //TODO: is there a better way to get the type? I don't think this is reliable
+				TreeNode thisSearchNode = new TreeNode(createNodeObject(item1, null, colNameInJoiningTable)); //TODO: how do we generically do this...?
+				Vector thisSearchVector = new Vector();
+				thisSearchVector.addElement(thisRootNode);
+				TreeNode thisTreeNode = thisRootNode.getNode(thisSearchVector, thisSearchNode, false);
+				Vector <SimpleTreeNode> thisInstances = thisTreeNode.getInstances();
+				System.out.println(thisInstances.size());
+				
+				SimpleTreeBuilder passedBuilder = passedTree.getBuilder();
+				TreeNode passedRootNode = passedBuilder.nodeIndexHash.get(colNameInJoiningTable); //TODO: is there a better way to get the type? I don't think this is reliable
+				TreeNode passedSearchNode = new TreeNode(createNodeObject(item2, null, colNameInJoiningTable)); //TODO: how do we generically do this...?
+				Vector passedSearchVector = new Vector();
+				passedSearchVector.addElement(passedRootNode);
+				TreeNode passedTreeNode = passedRootNode.getNode(passedSearchVector, passedSearchNode, false);
+				Vector <SimpleTreeNode> passedInstances = passedTreeNode.getInstances();
+				System.out.println(passedInstances.size()); // this should be 1
+				SimpleTreeNode instance2HookUp = passedInstances.get(0);
+
+				// hook up passed tree node with each instance of this tree node
+				for(int instIdx = 0; instIdx < thisInstances.size(); instIdx++){
+					SimpleTreeNode hookUp = instance2HookUp;
+					if(instIdx != thisInstances.size() - 1){ // unless this is the last one, we need to make a deep copy
+						// make a deep copy of instance2HookUp
+//						hookUp = new SimpleTreeNode(instance2HookUp);
+					}
+				}
 			}
-			this.addRow(row);
+			
+			
+		}
+		else // use the flat join. This is not idea. Not sure if we will ever actually use this
+		{
+			String[] columnNames = table.getColumnHeaders();
+			
+			// add the new data to this tree
+			LOGGER.info("Augmenting tree");
+			joinTreeLevels(columnNames, colNameInJoiningTable);
+			List<Object[]> flatMatched = matched.getData();
+			List<Object[]> flatTable = table.getData();
+			// loop through all rows
+			// TODO: this is terrible logic that is extremely inefficient. If we want to join something that is not a btree, revist this for sure
+			for(Object[] flatMatchedRow : flatMatched) { // for each matched item
+				// add row as a key-value pair of level to instance value
+				Object item1 = flatMatchedRow[0];
+				Object item2 = flatMatchedRow[1];
+				for(Object[] flatRow : flatTable){
+					if(flatRow[0].equals(item2)) // get the whole row associated with that matched item
+					{
+						Map<String, Object> row = new HashMap<String, Object>();
+						for(int i = 0; i < columnNames.length; i++) {
+							String colName = columnNames[i];
+							if(colName.equals(colNameInJoiningTable)){ // fill in the row replacing the matched on the right value with the matched on the left value
+								row.put(colNameInTable, item1);
+							}
+							else {
+								row.put(colName, flatRow[i]);
+							}
+						}
+						this.addRow(row);
+					}
+				}
+			}
 		}
 	}
 
@@ -483,5 +555,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	public static void main(String[] args) {
 		//use this as a test method
+	}
+	
+	public SimpleTreeBuilder getBuilder(){
+		return this.simpleTree;
 	}
 }
