@@ -1,37 +1,61 @@
 package prerna.ds;
 
 // simple class to test the binary tree
-
-public class IntClass implements ITreeKeyEvaluatable{
+public class IntClass implements ISEMOSSNode{
 
 	int value;
+	String type = null;
+	int rawValue;
 	
 	public IntClass(int value)
 	{
 		this.value = value;
 	}
 	
+	public IntClass(int value, String type)
+	{
+		this.value = value;
+		this.type = type;
+	}
+	
+	public IntClass(int value, int rawValue, String type) {
+		this.value = value;
+		this.type = type;
+		this.rawValue = rawValue;
+	}
+	
 	@Override
 	public String getKey() {
-		// TODO Auto-generated method stub
 		return value+"";
 	}
 
 	@Override
 	public boolean isLeft(ITreeKeyEvaluatable object) {
-		// TODO Auto-generated method stub
 		return this.value > ((IntClass)object).value;
 	}
 	@Override
 	public boolean isEqual(ITreeKeyEvaluatable object) {
-		// TODO Auto-generated method stub
 		return this.value == ((IntClass)object).value;
 	}
 
 	@Override
-	public String getValue() {
-		// TODO Auto-generated method stub
-		return null;
+	public String getType() {
+		return type;
+	}
+
+	@Override
+	public Integer getRawValue() {
+		return this.rawValue;
+	}
+
+	@Override
+	public Integer getValue() {
+		return this.value;
+	}
+
+	@Override
+	public VALUE_TYPE getValueType() {
+		return ISEMOSSNode.VALUE_TYPE.ORDINAL;
 	}
 
 }
