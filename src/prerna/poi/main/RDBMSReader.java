@@ -80,6 +80,8 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.sql.MariaDbQueryUtil;
+import prerna.util.sql.SQLQueryUtil;
 
 import com.hp.hpl.jena.vocabulary.OWL;
 
@@ -161,6 +163,8 @@ public class RDBMSReader {
 	protected RDFFileSesameEngine baseDataEngine;
 	protected Hashtable<String, String> baseDataHash = new Hashtable<String, String>();
 	
+	private SQLQueryUtil queryUtil;
+	
 	public static void main(String [] args) throws Exception
 	{
 		RDBMSReader reader = new RDBMSReader();
@@ -173,7 +177,7 @@ public class RDBMSReader {
 		reader.customBaseURI = "http://semoss.org/ontologies";
 		reader.owlFile = "C:/Users/pkapaleeswaran/workspacej2/SemossWeb/db/MovieRDBMS/Movie_DB_OWL2.OWL";
 		String outputFile = reader.writePropFile(engineName);
-		reader.importFileWithOutConnection(outputFile, fileName, reader.customBaseURI, reader.owlFile,engineName);
+		reader.importFileWithOutConnection(outputFile, fileName, reader.customBaseURI, reader.owlFile,engineName, SQLQueryUtil.DB_TYPE.MARIA_DB);
 
 		System.out.println("Trying the new one now");
 		
@@ -181,7 +185,7 @@ public class RDBMSReader {
 		
 		fileName = "C:/Users/pkapaleeswaran/workspacej2/Data/Movie2.csv";
 		reader.propFile = "C:/Users/pkapaleeswaran/workspacej2/SemossWeb/db/MovieRDBMS/MovieRDBMS_Movie_PROP2.prop";
-		reader.importFileWithOutConnection(outputFile, fileName, reader.customBaseURI, reader.owlFile,engineName);
+		reader.importFileWithOutConnection(outputFile, fileName, reader.customBaseURI, reader.owlFile,engineName, SQLQueryUtil.DB_TYPE.H2_DB);
 
 	}
 	
@@ -197,10 +201,15 @@ public class RDBMSReader {
 	private String writePropFile(String engineName)
 	{
 		Properties prop = new Properties();
-		prop.put(Constants.CONNECTION_URL, "jdbc:h2:" + dbBaseFolder + "/db/" + engineName + "/database");//prop.put(Constants.CONNECTION_URL, "jdbc:h2:" + dbBaseFolder + "/db/" + engineName + "/database" + ";CACHE_SIZE=" + (512 * 512) + ";LOG=0;LOCK_MODE=0;UNDO_LOG=0");
-		prop.put(Constants.USERNAME, "sa");
-		prop.put(Constants.PASSWORD, "");
-		prop.put(Constants.DRIVER,"org.h2.Driver");
+
+		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,engineName));
+		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
+		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
+		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
+		if(queryUtil.getDatabaseType() == SQLQueryUtil.DB_TYPE.MARIA_DB){
+			prop.put(Constants.TEMP_CONNECTION_URL, MariaDbQueryUtil.getTempConnectionURL());
+		}
+		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
 		prop.put("TEMP", "TRUE");
 		
 		// write this to a file
@@ -251,8 +260,10 @@ public class RDBMSReader {
 	 * @throws FileWriterException 
 	 * @throws HeaderClassException 
 	 */
-	public void importFileWithOutConnection(String engineFile, String fileNames, String customBase, String owlFile, String engineName) throws EngineException, FileWriterException, FileReaderException, HeaderClassException {
+	public void importFileWithOutConnection(String engineFile, String fileNames, String customBase, String owlFile, String engineName, SQLQueryUtil.DB_TYPE dbType) throws EngineException, FileWriterException, FileReaderException, HeaderClassException {
 
+		queryUtil = SQLQueryUtil.initialize(dbType);
+		
 		logger.setLevel(Level.WARN);
 		String[] files = fileNames.split(";"); //)prepareReader(fileNames, customBase, owlFile);
 		this.owlFile = owlFile;
@@ -269,6 +280,7 @@ public class RDBMSReader {
 		createSQLTypes();
 		System.out.println("Owl File is " + this.owlFile);
 		openDB(engineName); //scriptfile opened in here.
+
 		for(int i = 0; i<files.length;i++)
 		{
 			String fileName = files[i];
@@ -276,7 +288,7 @@ public class RDBMSReader {
 			if(i ==0 )scriptFile.println("-- ********* begin load process ********* ");
 			scriptFile.println("-- ********* begin load " + fileName + " ********* ");
 			// find the tables
-			findTables();
+			findTables(engineName);
 			// load the prop file for the CSV file 
 			if(propFileExist){
 				openProp(propFile);
@@ -305,7 +317,7 @@ public class RDBMSReader {
 			commitDB();
 			scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
 		}
-		cleanUpDBTables();
+		cleanUpDBTables(engineName);
 		closeDB();
 		cleanAll(); //do it again because we reset availableTables and availableTablesInfo
 		writeDefaultQuestionSheet(engineName);
@@ -321,39 +333,34 @@ public class RDBMSReader {
 	}
 	
 	//get current indexes that are saved off.  If some exist we will reexecute them when the upload process completes
-	private void findIndexes(){
+	private void findIndexes(String engineName){
 		// this gets all the existing tables
-		String query = "SELECT DISTINCT INDEX_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_SCHEMA = 'PUBLIC' ORDER BY INDEX_NAME";
+		String query = queryUtil.getDialectAllIndexesInDB(engineName);
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 		while(wrapper.hasNext())
 		{
-			String recreateIndexText = "";
+			String tablename = "";
 			String dropCurrentIndexText = "";
 			ISelectStatement stmt = wrapper.next();
-			String indexName = stmt.getVar("INDEX_NAME") + "";
+			String indexName = stmt.getVar(queryUtil.getResultAllIndexesInDBIndexName()) + "";
 			//only storing off custom indexes, recreating the non custom ones on the fly on the cleanUpDBTables method
+			
+			String indexInfoQry = queryUtil.getDialectIndexInfo(indexName, engineName);
+			ISelectWrapper indexInfo = WrapperManager.getInstance().getSWrapper(engine, indexInfoQry);
+			ArrayList<String> columnsInIndex = new ArrayList();
+			String columnName = "";
+			while(indexInfo.hasNext()){
+				ISelectStatement stmtIndx = indexInfo.next();
+				tablename = stmtIndx.getVar(queryUtil.getResultAllIndexesInDBTableName()) + "";
+				columnName = stmtIndx.getVar(queryUtil.getResultAllIndexesInDBColumnName()) + "";
+				columnsInIndex.add(columnName);
+			}
 			if(indexName.startsWith("CUST_")){
-				String indexInfoQry = "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_SCHEMA = 'PUBLIC' AND INDEX_NAME = '" + indexName +"'";
-				ISelectWrapper indexInfo = WrapperManager.getInstance().getSWrapper(engine, indexInfoQry);
-				while(indexInfo.hasNext()){
-					ISelectStatement stmtIndx = indexInfo.next();
-					String tablename = stmtIndx.getVar("TABLE_NAME") + "";
-					String columnName = stmtIndx.getVar("COLUMN_NAME") + "";
-					if(recreateIndexText.length() == 0){
-						recreateIndexText = "CREATE INDEX " + indexName + " ON " + tablename  + "(";
-					} else {
-						recreateIndexText += ",";
-					}
-					recreateIndexText += columnName;
-				}
-				recreateIndexText += ")";
-				recreateIndexesArr.add(recreateIndexText);
+				recreateIndexesArr.add(queryUtil.getDialectCreateIndex(indexName,tablename,columnsInIndex));
 			}
 			//drop all indexes, recreate the custom ones, the non custom ones will be systematically recreated.
-			dropCurrentIndexText = "DROP INDEX "+ indexName;
+			dropCurrentIndexText = queryUtil.getDialectDropIndex(indexName, tablename);
 			singleDBModTransaction(dropCurrentIndexText);
-			//System.out.println("recreateIndexText: " + recreateIndexText);
-			//System.out.println("dropCurrentIndexText: " + dropCurrentIndexText);
 		}
 	}
 	
@@ -376,21 +383,22 @@ public class RDBMSReader {
 	}
 	
 	//remove duplicates and create standard indexes on table
-	private void cleanUpDBTables(){
-		String createTable = "", verifyTable="", dropTable = "", alterTableName = "", createIndex = "";
+	private void cleanUpDBTables(String engineName){
+		String createTable = "", verifyTable="", dropTable = "", alterTableName = "";  //, createIndex = "";
 		String tableName = "", currentTable ="", columnName = "", fullColumnNameList = "";
+		ArrayList<String> createIndex = new ArrayList();
 		Enumeration allTablesEnum = null, columns = null;
 		Hashtable availableTableColumns = null;
 		ISelectWrapper wrapper = null;
 		boolean tableAltered = false; //includes tables created/modified appended to etc.
 		
 		//fill up the availableTables and availableTablesInfo maps
-		findTables();
+		findTables(engineName);
 		
 		allTablesEnum = availableTables.keys();
 		while(allTablesEnum.hasMoreElements()){
 			fullColumnNameList = "";
-			createIndex = "";
+			createIndex.clear();
 			tableAltered = false;
 			tableName = (String)allTablesEnum.nextElement();
 			allTables.add(tableName);
@@ -408,7 +416,7 @@ public class RDBMSReader {
 				} 
 				//index should be created on each individual primary and foreign key column
 				if(columnName.equals(tableName) || columnName.endsWith("_FK")){
-					createIndex += "CREATE INDEX " + tableName + "_INDX_"+indexCount+" ON " + tableName + "("+columnName+") ; ";
+					createIndex.add(queryUtil.getDialectCreateIndex(tableName + "_INDX_"+indexCount,tableName, columnName));
 					indexCount++;
 				}
 			}
@@ -427,64 +435,70 @@ public class RDBMSReader {
 			//do this duplicates removal for only the tables that were modified
 			if(tableAltered){
 				//create new temporary table that has ONLY distinct values, also make sure you are removing those null values from the PK column
-				createTable = "CREATE TABLE "+ tableName + "_TEMP AS (SELECT DISTINCT " + fullColumnNameList
-							+ " FROM " + tableName+" WHERE " + tableName 
-							+ " IS NOT NULL AND TRIM(" + tableName + ") <> '' )";
+				createTable = queryUtil.getDialectRemoveDuplicates(tableName, fullColumnNameList);
 				singleDBModTransaction(createTable);
 				
 				//check that the temp table was created before dropping the table.
-				verifyTable = "SELECT 1 FROM " + tableName + "_TEMP LIMIT 1";
+				verifyTable = queryUtil.dialectVerifyTableExists(tableName + "_TEMP"); //query here would return a row count 
 				//if temp table wasnt successfully created, go to the next table.
 				wrapper = WrapperManager.getInstance().getSWrapper(engine, verifyTable);
-				if(!wrapper.hasNext()){ //This REALLY shouldnt happen, but its here just in case...
-					logger.error("Error occurred during database clean up on table " + tableName);
-					continue;
+				while(wrapper.hasNext()){ 
+					ISelectStatement stmtTblCount = wrapper.next();
+					String numberOfRows = stmtTblCount.getVar(queryUtil.getResultSelectRowCountFromRowCount()) + "";
+					if(numberOfRows.equals(0)){
+						//This REALLY shouldnt happen, but its here just in case...
+						logger.error("**** Error***** occurred during database clean up on table " + tableName);
+						continue;
+					}
 				}
 				
 				//drop existing table
-				dropTable = "DROP TABLE " + tableName;
+				dropTable = queryUtil.getDialectDropTable(tableName);//dropTable = "DROP TABLE " + tableName;
 				singleDBModTransaction(dropTable);
 				
 				//rename our temporary table to the new table name
-				alterTableName = "ALTER TABLE " + tableName + "_TEMP RENAME TO " + tableName;
+				alterTableName = queryUtil.getDialectAlterTableName(tableName+"_TEMP",tableName); //alterTableName = "ALTER TABLE " + tableName + "_TEMP RENAME TO " + tableName;
 				singleDBModTransaction(alterTableName);
 				
 				commitDB();
 				
 			}
-			
-			//create indexs for ALL tables since we deleted all indexes before
-			singleDBModTransaction(createIndex);
+			for(String singleIndex: createIndex){
+				//create indexs for ALL tables since we deleted all indexes before
+				singleDBModTransaction(singleIndex);
+			}
 		}
 		// clear out the availableTables and availableTablesInfo maps that were created in findTables method call
 		//availableTables.clear();
 		//availableTablesInfo.clear();
 	}
 	
-	private void findTables()
-	{
+	private void findTables(String engineName){
 		// this gets all the existing tables
-		String query = "SHOW TABLES FROM PUBLIC";
+		String query = queryUtil.getDialectAllTables();
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 		while(wrapper.hasNext())
 		{
 			ISelectStatement stmt = wrapper.next();
-			String tableName = stmt.getVar("TABLE_NAME") + "";
+			String tableNameVar = queryUtil.getResultAllTablesTableName();
+			if(queryUtil.getDatabaseType() == SQLQueryUtil.DB_TYPE.MARIA_DB)
+				tableNameVar += engineName.toLowerCase(); //Maria db wants a lower case table name, but the first letter is capital
+			
+			String tableName = stmt.getVar(tableNameVar) + "";
 			findColumns(tableName);
-			String tableCountQuery =  "SELECT COUNT(*) ROW_COUNT FROM " + tableName;
+			String tableCountQuery = queryUtil.getDialectSelectRowCountFrom(tableName,"");
 			ISelectWrapper tableCount = WrapperManager.getInstance().getSWrapper(engine, tableCountQuery);
 			while(tableCount.hasNext()){
 				ISelectStatement stmtTblCount = tableCount.next();
-				String numberOfRows = stmtTblCount.getVar("ROW_COUNT") + "";
+				String numberOfRows = stmtTblCount.getVar(queryUtil.getResultSelectRowCountFromRowCount()) + "";
 				availableTablesInfo.put(tableName.toUpperCase(), numberOfRows);
 			}
 		}
 		
 	}
 	
-	private void findColumns(String tableName)
-	{
-		String query = "SHOW COLUMNS FROM " + tableName;
+	private void findColumns(String tableName){
+		String query = queryUtil.getDialectAllColumns(tableName);
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 		Hashtable <String, String> fieldHash = new Hashtable();
 		if(availableTables.containsKey(tableName))
@@ -492,9 +506,9 @@ public class RDBMSReader {
 		while(wrapper.hasNext())
 		{
 			ISelectStatement stmt = wrapper.next();
-			String colName = stmt.getVar("FIELD") + "";
-			String type = stmt.getVar("TYPE") + "";
-			fieldHash.put(colName, type);
+			String colName = stmt.getVar(queryUtil.getAllColumnsResultColumnName()) + "";
+			String type = stmt.getVar(queryUtil.getResultAllColumnsColumnType()) + "";
+			fieldHash.put(colName.toUpperCase(), type);
 			availableTables.put(tableName.toUpperCase(), fieldHash);
 		}
 	}
@@ -638,7 +652,8 @@ public class RDBMSReader {
 	}
 
 
-	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile) throws EngineException, FileWriterException, FileReaderException, HeaderClassException {
+	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile,SQLQueryUtil.DB_TYPE dbType) throws EngineException, FileWriterException, FileReaderException, HeaderClassException {
+		queryUtil = SQLQueryUtil.initialize(dbType);
 		
 		logger.setLevel(Level.WARN);
 		this.owlFile = owlFile;
@@ -656,13 +671,13 @@ public class RDBMSReader {
 		openScriptFile(engineName);
 		scriptFile.println("-- ********* begin load process ********* ");
 		//first find all indexes, drop current ones, store off those current ones to recreate them when the process completes
-		findIndexes();
+		findIndexes(engineName);
 		
 		for(int i = 0; i<files.length;i++)
 		{
 			String fileName = files[i];
 			scriptFile.println("-- ********* begin load " + fileName + " ********* ");
-			findTables();		
+			findTables(engineName);		
 			// load the prop file for the CSV file 
 			if(propFileExist){
 				openProp(propFile);
@@ -688,7 +703,7 @@ public class RDBMSReader {
 			commitDB();
 			scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
 		}
-		cleanUpDBTables();
+		cleanUpDBTables(engineName);
 		runDBModTransactions(recreateIndexesArr); 
 		cleanAll(); //clean again because we reset the values for availableTables and availableTablesInfo
 		writeDefaultQuestionSheet(engineName);
@@ -1145,7 +1160,7 @@ public class RDBMSReader {
 		
 		//for each table modified during this process, get the columns and put them into a hashtable
 		for(String table: allTablesModified){
-			if(tableHash.contains(table)){
+			if(tableHash.containsKey(table)){
 				Hashtable<String, String> cols = new Hashtable();
 				if(availableTables.containsKey(table.toUpperCase()))
 					cols=(Hashtable)availableTables.get(table.toUpperCase()).clone();//default it to hold all the columns that are existing that are being updated
@@ -1322,14 +1337,14 @@ public class RDBMSReader {
 		{
 			String column = columnKeys.nextElement();
 			System.out.println("Table: " +tableKey + " column: "+column);
-			if(!fieldHash.containsKey(column.toUpperCase()))
+			column = realClean(column.toUpperCase()); //,true);
+			if(!fieldHash.containsKey(column))
 			{
 				String type = (String)columns.get(column);
 				type = sqlHash.get(type);
 				// clean up the + first
 				//column = column.replaceAll("\\+", "_");
 				// now clean it up
-				column = realClean(column); //,true);
 				// finally finish it up with the replacing -
 				//column = column.replaceAll("-", "_");
 				if(columnString.length() > 0)
@@ -1510,7 +1525,7 @@ public class RDBMSReader {
 		String indexOnTable =  tableKey + " ( " +  indexBuffer.toString() + " ) ";
 		String indexName = "INDX_" + tableKey + indexUniqueId;
 		String createIndex = "CREATE INDEX " + indexName + " ON " + indexOnTable;
-		String dropIndex = "DROP INDEX " + indexName;
+		String dropIndex = queryUtil.getDialectDropIndex(indexName,tableKey);//"DROP INDEX " + indexName;
 		if(tempIndexArray.size() ==0){
 			singleDBModTransaction(createIndex);
 			tempIndexArray.add(indexOnTable);
@@ -1538,12 +1553,12 @@ public class RDBMSReader {
 		String whereclause = whereBuffer.toString() + " AND " + selectClauseWhereBuffer.toString();
 		boolean isInsert = false;
 		
-		String select = "SELECT COUNT(1) AS ROWCOUNT FROM " + tableKey + " WHERE " + whereclause;
+		String getRowCount = queryUtil.getDialectSelectRowCountFrom(tableKey,whereclause);//"SELECT COUNT(1) AS ROWCOUNT FROM " + tableKey + " WHERE " + whereclause;
 		//execute query
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, select);
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, getRowCount);
 		if(wrapper.hasNext()){
 			ISelectStatement stmt = wrapper.next();
-			String rowcount = stmt.getVar("ROWCOUNT") + "";
+			String rowcount = stmt.getVar(queryUtil.getResultSelectRowCountFromRowCount()) + "";
 			if(rowcount.equals("0")){
 				isInsert = true;
 			}
@@ -1558,6 +1573,7 @@ public class RDBMSReader {
 			
 			//list of columns that we were going to update but are going to be the varying value when it comes to the insert statement
 			for(String singleClause : insertValsAliasClause){
+				if(insertIntoClause.length()>0) insertIntoClause+=" , ";
 				insertIntoClause += singleClause;
 			}
 			
@@ -1577,11 +1593,14 @@ public class RDBMSReader {
 			
 			//now add the columns that you pulled out of the allColumns string back in 
 			//(doing it this way because we can control the order of the insert and select clause) since the ORDER IS VERY IMPORTANT HERE
+			String insertIntoClauseValues = "";
 			if(allColumns.length() > 0) insertIntoClause = " , " + insertIntoClause; 
+			if(allColumns.length() > 0) insertIntoClauseValues = " , " + insertValsClauseBuffer.toString(); 
 			insertIntoClause = allColumns + insertIntoClause;
+			insertIntoClauseValues = allColumns + insertIntoClauseValues;
 			
-			String SQLINSERT = "INSERT INTO " + tableKey + " ("+ insertIntoClause + ") SELECT DISTINCT " + allColumns + ", " + insertValsClauseBuffer.toString() +
-							   " FROM " + tableKey + " WHERE " + whereBuffer.toString() ;
+			String SQLINSERT = queryUtil.getDialectMergeStatement(tableKey, insertIntoClause, allColumns+ ", " +insertValsClauseBuffer.toString(), whereBuffer.toString());
+			
 			return SQLINSERT;
 		} else {
 			return SQLALTER;
