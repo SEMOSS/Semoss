@@ -31,8 +31,8 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Hashtable;
 
 import prerna.engine.api.ISelectStatement;
@@ -47,15 +47,56 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 	boolean hasMore = false;
 	Hashtable columnTypes = new Hashtable();
 	private int currentQueryIndex = 0;
-
+	private boolean distinct = false;
+	private int limitNum = -1; //-1 default (is not set)
+	private static final String SELECT_DISTINCT = "SELECT DISTINCT ";
+	private static final String LIMIT = " LIMIT ";
+	private HashSet<ISelectStatement> uniqueValues = new HashSet<>();
+		
 	@Override
 	public void execute() {
 		// TODO Auto-generated method stub
-		
-		queryResults.clear(); //clear the query results arraylis
+		query = query.replaceAll("\\s+", " "); //normalize spaces
+		boolean doThis = true; //Skip this logic for now, will restest later to see if we still want it.
+		if(!doThis){
+			if(!doThis && query.contains(SELECT_DISTINCT)){ 
+				distinct = true;
+				//TODO add regex on the select distnct to make sure its case insensitive
+				query = query.replace(SELECT_DISTINCT, "SELECT ");
+			}
+			if(!doThis &&  query.contains(LIMIT)){ 
+				int indexLimitBegin = query.indexOf(LIMIT);
+				String limitSubString = query.substring(indexLimitBegin + LIMIT.length());
+				int indexLimitEnd = limitSubString.indexOf(" ");
+				String limitVal = limitSubString;
+				if(indexLimitEnd != -1) 
+					limitVal = limitSubString.substring(0, indexLimitEnd);
+				try{
+					limitNum = Integer.parseInt(limitVal);
+					query = query.replace(LIMIT + limitNum, " ");
+				} catch (Exception e){
+					System.out.println("Non numeric limit value is present in the select clause, skipping limit logic");
+				}
+			}
+		}
+		System.out.println("DEBUG ******* the new query we will run is: " + query);
+ 		queryResults.clear(); //clear the query results arraylist
+ 		uniqueValues.clear(); //clear the query results hashset (distinct values)
+ 		System.out.println("DEBUG ******* BEFORE running qry " + currentDate());
 		rs = (ResultSet)engine.execQuery(query);
+		System.out.println("DEBUG ******* AFTER running qry " + currentDate());
 		setVariables(); //get the variables
 		populateQueryResults();
+		
+		// if we are running a distinct query, we need to pull out the duplicates, 
+		// at this point since we removed the distinct clause.  It's faster 
+		// to do it here than through the query the cost of using the 
+		// DISTINCT keyword is just too much
+		if(distinct){
+			System.out.println("DEBUG ******* BEFORE looking for DUPS " + currentDate());
+			getDistinctValues();
+			System.out.println("DEBUG ******* AFTER looking for DUPS  " + currentDate());
+		}
 		
 		//close the result set
 		ConnectionUtils.closeResultSet(rs);
@@ -71,9 +112,14 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 	
 	private void populateQueryResults(){
 		ISelectStatement stmt;
+		HashSet<String> dupCheck = new HashSet();
+		boolean added = false;
+		int rsCount = 0;
 		try {
 			while(rs.next()){
+				rsCount++;
 				stmt = new SelectStatement();
+
 				for(int colIndex = 0;colIndex < var.length;colIndex++)
 				{
 					Object value = rs.getObject(var[colIndex]);
@@ -96,11 +142,17 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 						Long valueLong = (long) value;
 						double valueDouble = valueLong.doubleValue();
 						stmt.setRawVar(var[colIndex], valueDouble); 
-					} else
+					} else {
 						stmt.setRawVar(var[colIndex], value);
+					}
 				}
-				queryResults.add(stmt);
+
+				if(distinct)
+					uniqueValues.add(stmt);//we'll drop it back into queryResults in the method getDistinctValues
+				else
+					queryResults.add(stmt);
 			}
+			System.out.println("DEBUG ***** RESULT SET COUNT : " +rsCount);
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -152,4 +204,24 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 		
 		return retObject;
 	}
+	
+	//manually pull out dups instead of having the sql engine do it for you... the limit logic is here too
+	private void getDistinctValues(){
+		
+		int loopCount = 0;
+		for (ISelectStatement value : uniqueValues) {
+			loopCount++;
+			if(loopCount == limitNum) break; //assumed logic : limitNum!= -1
+			queryResults.add(value);
+		}
+		
+	}
+	
+	private String currentDate(){
+		java.util.Date dt = new java.util.Date();
+		java.text.SimpleDateFormat dtFormatter = new java.text.SimpleDateFormat("MM/dd/yy HH:mm:ss:SSS");
+		
+		return dtFormatter.format(dt);
+	}
+	
 }
