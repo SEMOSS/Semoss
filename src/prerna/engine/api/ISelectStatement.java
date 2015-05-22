@@ -46,5 +46,9 @@ public interface ISelectStatement {
 	public Hashtable getPropHash();
 
 	public Hashtable getRPropHash();
+	
+	public boolean equals(Object other);
+	
+	public int hashCode();
 
 }
