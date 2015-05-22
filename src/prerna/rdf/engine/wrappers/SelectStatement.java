@@ -78,4 +78,60 @@ public class SelectStatement implements ISelectStatement {
 		rawPropHash.put(key, value);		
 	}
 
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result
+				+ ((propHash == null) ? 0 : propHash.hashCode());
+		result = prime * result
+				+ ((rawPropHash == null) ? 0 : rawPropHash.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		SelectStatement other = (SelectStatement) obj;
+		if (propHash == null) {
+			if (other.propHash != null)
+				return false;
+		} else if (!propHash.equals(other.propHash))
+			return false;
+		if (rawPropHash == null) {
+			if (other.rawPropHash != null)
+				return false;
+		} else if (!rawPropHash.equals(other.rawPropHash))
+			return false;
+		return true;
+	}
+
+
+
+	
+//	@Override
+//	public boolean equals(ISelectStatement other){
+//		boolean equal = false;
+//		Hashtable otherRPropHash = other.getRPropHash();
+//		Hashtable compareRPropToHash = this.getPropHash();
+//		Hashtable otherPropHash = other.getRPropHash();
+//		Hashtable comparePropToHash = this.getPropHash();
+//		if(otherRPropHash.equals(compareRPropToHash) && otherPropHash.equals(comparePropToHash)){
+//			equal = true;
+//		} else {
+//			System.out.println("not equal!");
+//		}
+//		return equal;
+//	}
+//	
+//	@Override
+//	public int hashCode(){
+//		return 0;
+//	}
+
 }
