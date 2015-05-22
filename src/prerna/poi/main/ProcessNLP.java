@@ -235,6 +235,9 @@ public class ProcessNLP {
 				String preposition = null;
 				if (dobjV.get(i).toString().contains("prep")) {
 					obj = NaturalLanguageProcessingHelper.findPrepObject(dobjV, subjV, nodeHash, EnglishGrammaticalRelations.PREPOSITIONAL_MODIFIER, EnglishGrammaticalRelations.PREPOSITIONAL_OBJECT);
+					if (obj == null) {
+						continue;
+					}
 					preposition = dobjV.get(i).dep().toString();
 				}
 				
@@ -261,6 +264,9 @@ public class ProcessNLP {
 						tripleContainer.setObj1(formatString(subj.value(), false, true));
 						tripleContainer.setPred(formatString(pred.value(), false, true));
 						tripleContainer.setObj2(formatString(obj.value(), false, true));
+						if (obj.value().toString().equals("view")) {
+							System.out.println("k");
+						}
 
 						//FINDING EXTENSION OF SUBJECT****
 						// find if complemented
