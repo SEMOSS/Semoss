@@ -23,7 +23,6 @@ public class StringClass implements ISEMOSSNode {
 		this.rawValue = rawValue;
 	}
 	
-
 	@Override
 	public String getKey() {
 		// TODO Auto-generated method stub

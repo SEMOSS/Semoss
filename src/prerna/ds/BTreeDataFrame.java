@@ -95,11 +95,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 		if(value == null) {
 			node = new StringClass(null, level);
-		} 
-		else if(value instanceof String) {
-			node = new StringClass((String)value, level);
-		} 
-		else if(value instanceof Number) {
+		} else if(value instanceof Integer) {
+			node = new IntClass((int)value, level);
+		} else if(value instanceof Number) {
 			node = new DoubleClass((double)value, level);
 		} 
 //		else if(value instanceof Boolean) {
