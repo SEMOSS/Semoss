@@ -58,6 +58,7 @@ import prerna.rdf.main.ImportRDBMSProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.sql.SQLQueryUtil;
 
 public class ImportDataProcessor {
 
@@ -69,6 +70,7 @@ public class ImportDataProcessor {
 
 	private String baseDirectory;
 	private Hashtable<String, String>[] propHashArr;
+	private SQLQueryUtil.DB_TYPE dbDriverType = null;
 
 	public void setPropHashArr(Hashtable<String, String>[] propHashArr) {
 		this.propHashArr = propHashArr;
@@ -76,6 +78,10 @@ public class ImportDataProcessor {
 	
 	public void setBaseDirectory(String baseDirectory){
 		this.baseDirectory = baseDirectory;
+	}
+	
+	public void setRDBMSType(SQLQueryUtil.DB_TYPE dbDriverType){
+		this.dbDriverType = dbDriverType;
 	}
 
 	//This method will take in all possible required information
@@ -150,7 +156,7 @@ public class ImportDataProcessor {
 				csvReader.setRdfMapArr(propHashArr);
 			}
 			//run the reader
-			csvReader.importFileWithConnection(repoName, fileNames, customBaseURI, owlPath);
+			csvReader.importFileWithConnection(repoName, fileNames, customBaseURI, owlPath, dbDriverType);
 			//run the ontology augmentor
 			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
 			ontologyWriter.runAugment(mapPath, csvReader.conceptURIHash, csvReader.baseConceptURIHash, 
@@ -298,7 +304,8 @@ public class ImportDataProcessor {
 			if(propHashArr != null) {
 				csvReader.setRdfMapArr(propHashArr);
 			}
-			csvReader.importFileWithOutConnection(propWriter.propFileName , fileNames, customBaseURI, owlPath, dbName);
+			
+			csvReader.importFileWithOutConnection(propWriter.propFileName , fileNames, customBaseURI, owlPath, dbName, dbDriverType);
 
 			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
 			ontologyWriter.runAugment(ontoPath, csvReader.conceptURIHash, csvReader.baseConceptURIHash, 
@@ -532,6 +539,7 @@ public class ImportDataProcessor {
 		}
 
 		propWriter.setBaseDir(baseDirectory);
+		propWriter.setRDBMSType(dbDriverType);
 		propWriter.runWriter(dbName, mapFile, dbPropFile, questionFile,dbType);
 		return propWriter;
 	}
