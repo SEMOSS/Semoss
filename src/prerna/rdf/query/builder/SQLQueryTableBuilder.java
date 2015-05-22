@@ -16,6 +16,7 @@
 package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 
@@ -29,8 +30,9 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SQLConstants;
 import prerna.rdf.query.util.SEMOSSQuery;
+import prerna.util.Constants;
 import prerna.util.Utility;
-
+import prerna.util.sql.SQLQueryUtil;
 import com.google.gson.Gson;
 import com.google.gson.internal.StringMap;
 
@@ -48,30 +50,45 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	ArrayList<Hashtable<String,String>> nodePropV = new ArrayList<Hashtable<String,String>>();
 	String variableSequence = "";
 	int limit = 500;
-	int limitFilter = 10000;
+	int limitFilter = 1000;
+	private boolean useOuterJoins = false;
+	private SQLQueryUtil queryUtil;
 	
 	Hashtable <String,ArrayList<String>> tableHash = new Hashtable <String,ArrayList<String>>(); // contains the processed node name / table name and the properties
 	String joins = "";
+	String leftOuterJoins = "";
+	String rightOuterJoins = "";
 	String selectors = "";
+	ArrayList<String> joinsArr = new ArrayList();
+	ArrayList<String> leftJoinsArr = new ArrayList();
+	ArrayList<String> rightJoinsArr = new ArrayList();
+	String nullSelectors = "";
 	String froms = "";
 	String filters = "";
+	HashMap<String,String> searchFilter = new HashMap();
 
 
 	public SQLQueryTableBuilder(IEngine engine)
 	{
 		this.engine = engine;
+		queryUtil = SQLQueryUtil.initialize(SQLQueryUtil.DB_TYPE.valueOf(engine.getProperty(Constants.RDBMS_TYPE)));
 	}
 	
 	@Override
 	public void buildQuery() 
 	{
+		String useOuterJoinsStr = engine.getProperty(Constants.USE_OUTER_JOINS);
+		
+		if(useOuterJoinsStr!=null && (useOuterJoinsStr.equalsIgnoreCase("TRUE") || useOuterJoinsStr.equalsIgnoreCase("YES")))
+			useOuterJoins = true;//for NIH NIAID usecase TODO add logic to search through prop file to determine if we have the NIAID logic
+		
 		semossQuery.setQueryType(SQLConstants.SELECT);
 		semossQuery.setDisctinct(true);
 		parsePath();
 		// we are assuming properties are passed in now based on user selection
-//		parsePropertiesFromPath(); 
+
 		configureQuery();	
-		
+
 		if(joins.length() > 0 && filters.length() > 0)
 			joins = joins + " AND " + filters;
 		else if(filters.length() > 0)
@@ -80,8 +97,17 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		// now that this is done
 		if(joins.length() > 0)
 			joins = " WHERE " + joins;
-		query = "SELECT DISTINCT " + selectors + "  FROM  " + froms + joins + " LIMIT " + limit ;
-
+		
+		if(!useOuterJoins){
+			query = queryUtil.getDialectDistinctInnerJoinQuery(selectors, froms, joins, limit);
+		} else {
+			if(filters.length() > 0){
+					query = queryUtil.getDialectDistinctFullOuterJoinQuery(selectors,rightJoinsArr,leftJoinsArr,joinsArr,filters,limit);
+			} else {
+				int dualLimit = 0;
+				query = queryUtil.getDialectDistinctFromDual(nullSelectors,dualLimit);
+			}
+		}
 	}
 	
 	@Override
@@ -168,25 +194,62 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			}
 			
 			String join = getAlias(fromTable) + "." + fromColumn + "=" + getAlias(toTable) + "." + toColumn;
-
 			
-			//String join = "( " + getAlias(fromTable) + "." + fromColumn + "=" + getAlias(toTable) + "." + toColumn;
-			//join += " OR " + getAlias(fromTable) + "." + fromColumn + " IS NULL ";
-			//join += " OR " + getAlias(toTable) + "." + toColumn + " IS NULL ) ";
-
+			joinsArr.add(join);
 			if(joins.length() > 0)
 				joins = joins + " AND " + join;
-			else
+			else 
 				joins = join;
+			
 			
 			//joins += " ORDER BY 1 ";
 		}		
 		
 		// finalie the filters
 		filterData();
+		searchFilterData();
 		
 	}
 	
+	//search filter logic 
+	private void searchFilterData()
+	{
+		StringMap<String> searchFilterResults = (StringMap<String>) allJSONHash.get(searchFilterKey);
+		if(searchFilterResults != null){
+			Iterator <String> keys = searchFilterResults.keySet().iterator();
+			for(int colIndex = 0;keys.hasNext();colIndex++) // process one column at a time. At this point my key is title on the above
+			{
+				String currentFilters = "";
+				String columnValue = keys.next(); // this gets me title above
+				String simpleColumnValue = columnValue;
+				// need to split when there are underscores
+				// for now keeping it simple
+				
+				String tableValue = columnValue;
+				//if the value passed into this method still has the tablename__column name syntax, need to pull out JUST the table name
+				if(columnValue.contains("__")){
+					String[] splitColAndTable = tableValue.split("__");
+					tableValue = splitColAndTable[0];
+					simpleColumnValue = splitColAndTable[1];
+				}
+				
+				String alias = getAlias(tableValue);
+				// get the list
+				String filterValues = searchFilterResults.get(columnValue);
+				if(filterValues.length()>0){
+					//transform the column value
+					columnValue = alias + "." + simpleColumnValue;
+	
+					String instance = Utility.getInstanceName(filterValues);
+					
+					instance.replaceAll("'", "''");		
+					searchFilter.put(tableValue.toUpperCase()," LOWER(" + columnValue + ") LIKE LOWER('%" + instance + "%') ");
+				}
+
+			}
+		
+		}
+	}
 	
 	private void filterData()
 	{
@@ -314,6 +377,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	{
 		String columnSubString = "";
 		String singleSelector = "";
+		String nullSingleSelector = "";
 		//ArrayList <String> tColumns = getColumnsFromTable(tableName);
 		// instead get this from what they sent
 	
@@ -343,10 +407,15 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 				// the variable name is really
 				// tableName__columnName <-- yes that is a double underscore
 				singleSelector = alias + "." + colName + " AS " + asName;
-				if(selectors.length() == 0)
+				nullSingleSelector = " NULL AS " + asName;
+				
+				if(selectors.length() == 0) {
 					selectors = singleSelector;
-				else
+					nullSelectors = nullSingleSelector;
+				} else {
 					selectors = selectors + " , " + singleSelector;
+					nullSelectors += " , " + nullSingleSelector;
+				}
 				
 				SEMOSSQueryHelper.addSingleReturnVarToQuery(singleSelector, semossQuery);
 				columnProcessed.put(asName.toUpperCase(), asName.toUpperCase());					
@@ -360,10 +429,16 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		if(!tableProcessed.containsKey(tableName.toUpperCase()))
 		{
 			tableProcessed.put(tableName.toUpperCase(),"true");
-			if(froms.length() > 0)
-				froms = froms + " , " + tableName + "  " + alias;
-			else
-				froms = tableName + "  " + alias;			
+			String fromText =  tableName + "  " + alias;
+			if(froms.length() > 0){
+				froms = froms + " , " + fromText;
+				rightJoinsArr.add(queryUtil.getDialectOuterJoinRight(fromText));
+				leftJoinsArr.add(queryUtil.getDialectOuterJoinLeft(fromText));
+			} else {
+				froms = fromText;
+				rightJoinsArr.add(fromText);
+				leftJoinsArr.add(fromText);
+			}
 		}
 	}
 	
@@ -404,26 +479,14 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		// Prop looks like this SelectedNodeProps=[{SubjectVar=Title, uriKey=TITLE, varKey=Title__TITLE}
 		// node looks like a prop except it has no varKey I am told
 		// i need a way to align this back to what I am spitting out upfront
-		
-		String tempjoins = joins;
-		//if its already built, skip ahead
-		if(!tempjoins.contains("WHERE")){
-			if(joins.length() > 0 && filters.length() > 0)
-				tempjoins = joins + " AND " + filters;
-			else if(filters.length() > 0)
-				tempjoins = filters;
-			
-			// now that this is done
-			if(tempjoins.length() > 0)
-				tempjoins = " WHERE " + tempjoins;
-		}
-		
+
 		//we need to encode the equals signs, for when json sends the qry back over
-		tempjoins = tempjoins.replaceAll("=", "%3D");
+		query.replaceAll("=", "%3D");
 		
 		for(Hashtable<String, String> headerHash : retArray){
 
 			String varName = headerHash.get(QueryBuilderHelper.varKey); // title__rottenTomatoes
+			String colName = varName; 
 			String key = varName;
 			// the var key needs to match the capitalization
 			headerHash.put(QueryBuilderHelper.varKey, varName.toUpperCase());
@@ -434,23 +497,26 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			if(varName.contains("__"))
 			{
 				tableName = varName.substring(0,varName.indexOf("__"));
-				varName = varName.substring(varName.indexOf("__") + 2);
+				colName = varName.substring(varName.indexOf("__") + 2);
 			}
-			
-			if(tempjoins.length() >0){
+			String tableAlias = getAlias(tableName);
+			String singleSelector = tableAlias + "." + colName + " AS " + varName;
+			boolean TEMPORARYRunme = true;//TODO temp hide
+			if(!TEMPORARYRunme && filters.length() > 0){ //&& (tempjoins.length() >0)
 				//filter that query down even further, make sure you are showing the distinct values for that query.
-				filterQuery = "SELECT DISTINCT " + varName + " FROM " + tableName + " WHERE " + varName + 
-					" in (SELECT " + varName + "  FROM  " + froms + tempjoins +") ";
+				filterQuery = "SELECT DISTINCT " + singleSelector + " FROM " + tableName + " " + tableAlias + " WHERE " + tableAlias+"."+varName + 
+						" in (" + query + " ORDER BY 1 ) ";
 			} else {
-				filterQuery = "SELECT DISTINCT " + varName + " FROM " + tableName ;
+				filterQuery = "SELECT DISTINCT " + singleSelector + " FROM " + tableName + " " + tableAlias ;
+				if(searchFilter.size()>0 && searchFilter.containsKey(tableName.toUpperCase())){
+					String tempSearchFilter = searchFilter.get(tableName.toUpperCase()).replaceAll("%", "%25");//encode percent..
+					filterQuery += " WHERE " + tempSearchFilter; 
+				}
 			}
-			filterQuery += " LIMIT " +  limitFilter;
+			filterQuery += " ORDER BY 1 LIMIT " +  limitFilter;
 
 			headerHash.put(QueryBuilderHelper.queryKey, filterQuery);
 			sequencer.put(key.toUpperCase(), headerHash);
-			
-			
-			
 		}
 		
 		retArray = new ArrayList<Hashtable<String,String>>();
@@ -463,13 +529,15 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	
 	private ArrayList<String> getColumnsFromTable(String table)
 	{
-		String query = "SHOW COLUMNS from " + table;
+		String query = queryUtil.getDialectAllColumns(table) ; //"SHOW COLUMNS from "
 		ISelectWrapper sWrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 		ArrayList <String> columns = new ArrayList<String>();
 		while(sWrapper.hasNext())
 		{
 			ISelectStatement stmt = sWrapper.next();
-			columns.add(stmt.getVar("COLUMN_NAME")+"");
+			String colName = stmt.getVar(queryUtil.getAllColumnsResultColumnName())+"";
+			colName = colName.toUpperCase();
+			columns.add(colName);
 		}
 		return columns;
 	}
