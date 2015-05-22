@@ -39,7 +39,9 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.util.SEMOSSQuery;
+import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.sql.SQLQueryUtil;
 
 public class QueryBuilderHelper {
 
@@ -168,13 +170,19 @@ public class QueryBuilderHelper {
 	
 	private static ArrayList<String> getColumnsFromTable(IEngine engine, String table)
 	{
-		String query = "SHOW COLUMNS from " + table;
+		String engineName = engine.getEngineName();
+		String query = "";
+		SQLQueryUtil queryUtil = SQLQueryUtil.initialize(SQLQueryUtil.DB_TYPE.valueOf(engine.getProperty(Constants.RDBMS_TYPE)));
+
+		query = queryUtil.getDialectAllColumns(table);
 		ISelectWrapper sWrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 		ArrayList <String> columns = new ArrayList<String>();
 		while(sWrapper.hasNext())
 		{
 			ISelectStatement stmt = sWrapper.next();
-			String colName = stmt.getVar("FIELD")+"";
+			String var = queryUtil.getAllColumnsResultColumnName();
+			String colName = stmt.getVar(var)+"";
+			colName = colName.toUpperCase();
 			if(!colName.endsWith("_FK"))
 				columns.add(colName);
 		}
