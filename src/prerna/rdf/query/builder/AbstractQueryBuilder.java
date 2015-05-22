@@ -34,7 +34,7 @@ import prerna.rdf.query.util.SEMOSSQuery;
 public abstract class AbstractQueryBuilder implements IQueryBuilder{
 	String query;
 	static final String filterKey = "filter";
-
+	static final String searchFilterKey = "searchFilterKey";
 
 	public Hashtable<String, Object> allJSONHash = new Hashtable<String, Object>();
 	
