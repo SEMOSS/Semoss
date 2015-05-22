@@ -454,9 +454,11 @@ public class Constants {
 	public static final String OLD_DB_COMBOBOX = "oldDBComboBox";
 	public static final String DB_COMPARISON_BUTTON = "compareDBButton";
 	public static final String CONNECTION_URL = "CONNECTION_URL";
+	public static final String TEMP_CONNECTION_URL = "TEMP_CONNECTION_URL";
 	public static final String DRIVER = "DRIVER";
 	public static final String USERNAME = "USERNAME";
 	public static final String PASSWORD = "PASSWORD";
+	public static final String RDBMS_TYPE = "RDBMS_TYPE";
 	
 	// Auto generate queries
 	public static final String AUTO_GENERATE_INSIGHTS_FOR_ENGINE_COMBOBOX = "autoGenerateQueriesForEngineSelector";
@@ -468,4 +470,7 @@ public class Constants {
 	public static final String SECURITY_ENABLED = "security-enabled";
 	public static final String SESSION_USER = "user";
 	public static final String ANONYMOUS_USER_ID = "1";
+	
+	//RDBMS specific
+	public static final String USE_OUTER_JOINS = "USE_OUTER_JOINS";// if present and true use outer joins instead of inner joins
 }
