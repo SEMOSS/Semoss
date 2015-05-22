@@ -23,19 +23,13 @@ public interface IAnalyticRoutine {
 	 * Set the options for the analytic routines
 	 * @param options			A mappings of the option type and their values
 	 */
-	void setOptions(Map options);
-	
-	/**
-	 * Get the options used for the analytic routine
-	 * @return					A mappings of the option type and their values
-	 */
-	Map getOptions();
+	void setSelectedOptions(Map<String, Object> selected);
 	
 	/**
 	 * Get the list of parameter options used for the analytic routine
 	 * @return					The list of parameters required for the analytic routine
 	 */
-	List<SEMOSSParam> getAllAlgorithmOptions();
+	List<SEMOSSParam> getOptions();
 	
 	/**
 	 * Perform an algorithm on a data-frame. The routine does not necessarily have to 
