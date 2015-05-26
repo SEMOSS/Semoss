@@ -250,6 +250,7 @@ public class ImportDataProcessorTest {
 		
 		//Setup for Header Tests(asserts) & Querys
 		BigDataEngine engine = loadEngine(CSVsmss);
+		engine.commitOWL();
 		
 		//Checks All Generic Queries
 		Vector<String> perspec = engine.getPerspectives();
@@ -274,6 +275,7 @@ public class ImportDataProcessorTest {
 		System.out.println(" Information is correct");
 		
 		//Tear down
+		engine.commitOWL();
 		engine.commit();
 		engine.closeDB();
 	}
@@ -308,6 +310,7 @@ public class ImportDataProcessorTest {
 				
 		//Setup for Header Tests(asserts) & Querys
 		BigDataEngine engine = loadEngine(EXCELsmss);
+		engine.commitOWL();
 				
 		//Checks All Generic Queries
 		Vector<String> perspec = engine.getPerspectives();
@@ -330,6 +333,7 @@ public class ImportDataProcessorTest {
 		}
 
 		//Tear down
+		engine.commitOWL();
 		engine.commit();
 		engine.closeDB();
 	}
@@ -367,6 +371,7 @@ public class ImportDataProcessorTest {
 		//Run Processor
 		processor.runProcessor(testMethod, testType, replacementCSV, customBaseURI, "", "", "", "", newDBnameCSV, dbType);
 		System.out.println("CSV Db proccesor ran successfully. CSV DB Altered.");
+		engine.commitOWL();
 		engine.commit();
 		engine.closeDB();
 
@@ -430,6 +435,7 @@ public class ImportDataProcessorTest {
 		//Run Processor
 		processor.runProcessor(testMethod, testType, replacementExcel, customBaseURI , "", "", "", "", newDBnameEXCEL, dbType);
 		System.out.println("	EXCEL Db proccesor ran successfully. Excel DB created.");
+		engine.commitOWL();
 		engine.commit();
 		engine.closeDB();
 
@@ -457,6 +463,7 @@ public class ImportDataProcessorTest {
 		}
 
 		//Tear down
+		engine.commitOWL();
 		engine.commit();
 		engine.closeDB();
 	}
