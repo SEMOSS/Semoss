@@ -29,13 +29,13 @@ import prerna.error.FileWriterException;
 import prerna.error.HeaderClassException;
 import prerna.error.NLPException;
 import prerna.om.Insight;
-import prerna.rdf.engine.api.IEngine;
-import prerna.rdf.engine.impl.BigDataEngine;
-import prerna.rdf.engine.impl.SesameJenaSelectCheater;
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.ui.components.ImportDataProcessor;
 import prerna.ui.components.ImportDataProcessor.DB_TYPE;
 import prerna.ui.components.ImportDataProcessor.IMPORT_METHOD;
 import prerna.ui.components.ImportDataProcessor.IMPORT_TYPE;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -47,15 +47,14 @@ import prerna.util.Utility;
 * There are two tests for each one: CSV and Excel
 *
 * @author  August Bender
-* @version 1.0
-* @since   03-23-2015 
+* @version 1.1
+* @since   05-26-2015 
 * Questions? Email abender@deloitte.com
 */
 public class ImportDataProcessorTest {
 
 	//Core obj
 	private static ImportDataProcessor processor;
-	private SesameJenaSelectCheater selector;
 	@SuppressWarnings("unused")
 	private BigDataEngine engine;
 	
@@ -130,9 +129,9 @@ public class ImportDataProcessorTest {
 
 	@Before
 	public void setUp() throws Exception {
-		System.out.println("Test "+testCounter+":Started");
+		System.out.println("Test " + testCounter + "...");
+		testCounter++;
 		processor = new ImportDataProcessor();
-		selector = new SesameJenaSelectCheater();
 		engine = new BigDataEngine();
 		
 		// Set the Sudo-Prop (Created in Prerna.ui.main.Starter.java)
@@ -224,7 +223,7 @@ public class ImportDataProcessorTest {
 
 	//CSV DB created
 	@Test
-	public void Test_CreateNew_CSV() throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException{
+	public void Test_CreateNew_CSV() throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException, NullPointerException{
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.CREATE_NEW;
 		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.CSV;
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
@@ -250,35 +249,32 @@ public class ImportDataProcessorTest {
 		System.out.println("	All Files Exist.");
 		
 		//Setup for Header Tests(asserts) & Querys
-		IEngine engine = new BigDataEngine();
-		selector.setEngine(engine);
-		engine.openDB(CSVsmss);
-		String query = "SELECT DISTINCT ?firstName ?lastName ?lastName__web WHERE { BIND(<http://semoss.org/ontologies/Concept/lastName/Agramonte> AS ?lastName) "
-				+ "{?firstName <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/firstName>} "
-				+ "{?lastName <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/lastName>} "
-				+ "{?firstName <http://semoss.org/ontologies/Relation/has_first_name> ?lastName}"
-				+ " {?lastName <http://semoss.org/ontologies/Relation/Contains/web> ?lastName__web}  }";
-		selector.setQuery(query);
-		selector.execute();
-		System.out.println("	Query works.");
+		BigDataEngine engine = loadEngine(CSVsmss);
 		
-		//Checks Headers
-		String[] var = selector.getVariables();
-		assertEquals("CSV DB Headers are correct.",var[0],"firstName");
-		assertEquals("CSV DB Headers correct.",var[1],"lastName");
-		assertEquals("CSV DB Property Headers correct.",var[2],"lastName__web");
-		System.out.println("	Headers are correct.");
+		//Checks All Generic Queries
+		Vector<String> perspec = engine.getPerspectives();
+		String currentPerspec = perspec.get(0); //get only first Perspective
+		Vector<String> insights = engine.getInsights(currentPerspec, engine.getEngineName());
+		for(int i = 0; i < insights.size(); i++){
+			String query = engine.getInsight(insights.get(i)).getSparql();
+			query = prepQuery(query);
+			String queryHome = "Engine: "+engine.getEngineName()+", Perspective: " + currentPerspec + ", Insight: "+insights.get(i);
+			try {
+				query = prepQuery(query); //Prep the Query for engine use
+				assertTrue(queryHome +": is broken...", checkQuery(engine, query));
+			} catch (MalformedQueryException e) {
+				assertTrue(queryHome +": is MALFORMED...", false);
+				e.printStackTrace();
+			} catch (NullPointerException e) {
+				assertTrue(queryHome +": is NULL...", false);
+				e.printStackTrace();
+			}
+		}
 		
-		//Checks the information is correct
-		String askQuery = "ASK {<http://theTest/Concept/firstName/Jenelle> <http://www.w3.org/2000/01/rdf-schema#label> 'Jenelle'}";
-		assertTrue("CSV DB Var are correct.",engine.execAskQuery(askQuery));
-		askQuery = "ASK {<http://theTest/Concept/firstName/Jennie> <http://semoss.org/ontologies/Relation> <http://theTest/Concept/lastName/Drymon>}";
-		assertTrue("CSV DB Relationships correct.",engine.execAskQuery(askQuery));
-		askQuery = "ASK {<http://theTest/Concept/lastName/Cetta> <http://semoss.org/ontologies/Relation/Contains/phone2> '808-475-2310'}";
-		assertTrue("CSV DB Properties correct.",engine.execAskQuery(askQuery));
-		System.out.println("	Information is correct");
+		System.out.println(" Information is correct");
 		
 		//Tear down
+		engine.commit();
 		engine.closeDB();
 	}
 	
@@ -297,6 +293,7 @@ public class ImportDataProcessorTest {
 		//Files Created and in the right place
 		File f = new File(dbDirectory+newDBnameEXCEL);
 		assertTrue("DB Folder exists.", f.exists());
+		/*DBUG*/System.out.println(".jnl: "+ "\\" + dbDirectory+"\\"+newDBnameEXCEL+"\\\\"+newDBnameEXCEL+".jnl");
 		f = new File(dbDirectory+newDBnameEXCEL+"\\"+newDBnameEXCEL+".jnl");
 		assertTrue("DB .jnl exists.", f.exists());
 		f = new File(dbDirectory+newDBnameEXCEL+"\\"+newDBnameEXCEL+"_Custom_Map.prop");
@@ -309,39 +306,31 @@ public class ImportDataProcessorTest {
 		assertTrue("DB smss exists.", f.exists());
 		System.out.println("	All Files Exist.");
 				
-		//Information is correct
-		BigDataEngine engine = new BigDataEngine();	
-		selector.setEngine(engine);
-		engine.openDB(EXCELsmss);
-		String query = "SELECT DISTINCT ?Activity ?Level ?Activity__Number WHERE "
-				+ "{ {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>} "
-				+ "{?Level <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Level>}"
-				+ " {?Activity <http://semoss.org/ontologies/Relation/Has> ?Level}"
-				+ " {?Activity <http://semoss.org/ontologies/Relation/Contains/Number> ?Activity__Number}  }";
-		selector.setQuery(query);
-		selector.execute();
-		System.out.println("	Query works.");
-
-		//Checks Headers
-		String[] var = selector.getVariables();
-		assertEquals("CSV DB Headers are correct.",var[0],"Activity");
-		assertEquals("CSV DB Headers correct.",var[1],"Level");
-		assertEquals("CSV DB Property Headers correct.",var[2],"Activity__Number");
-		System.out.println("	Headers are correct.");
-		
-		//Checks the information is correct
-		//Var are correct
-		String askQuery = "ASK {<http://theTest/Concept/Level/Level> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Level>}";
-		assertTrue("Excel DB Var are correct.",engine.execAskQuery(askQuery));
-		//Properties
-		askQuery = "ASK {<http://theTest/Concept/Activity/Assign_Patient_to_Care_Provider> <http://semoss.org/ontologies/Relation> <http://theTest/Concept/Level/Level_2>}";
-		assertTrue("Excel DB Relationships correct..",engine.execAskQuery(askQuery));
-		//Relationships
-		askQuery = "ASK {<http://theTest/Concept/Activity/Capture_Data_and_Documentation_from_External_Sources> <http://semoss.org/ontologies/Relation/Contains/Number> '4.11.5'}";
-		assertTrue("Excel DB Properties correct.",engine.execAskQuery(askQuery));
-		System.out.println("	Information is correct");
+		//Setup for Header Tests(asserts) & Querys
+		BigDataEngine engine = loadEngine(EXCELsmss);
 				
+		//Checks All Generic Queries
+		Vector<String> perspec = engine.getPerspectives();
+		String currentPerspec = perspec.get(0); //get only first Perspective
+		Vector<String> insights = engine.getInsights(currentPerspec, engine.getEngineName());
+		for(int i = 0; i < insights.size(); i++){
+			String query = engine.getInsight(insights.get(i)).getSparql();
+			query = prepQuery(query);
+			String queryHome = "Engine: "+engine.getEngineName()+", Perspective: " + currentPerspec + ", Insight: "+insights.get(i);
+			try {
+				query = prepQuery(query); //Prep the Query for engine use
+				assertTrue(queryHome +": is BROKEN...", checkQuery(engine, query));
+			} catch (MalformedQueryException e) {
+				assertTrue(queryHome +": is MALFORMED...", false);
+				e.printStackTrace();
+			} catch (NullPointerException e) {
+				assertTrue(queryHome +": is NULL...", false);
+				e.printStackTrace();
+			}
+		}
+
 		//Tear down
+		engine.commit();
 		engine.closeDB();
 	}
 	
@@ -378,25 +367,34 @@ public class ImportDataProcessorTest {
 		//Run Processor
 		processor.runProcessor(testMethod, testType, replacementCSV, customBaseURI, "", "", "", "", newDBnameCSV, dbType);
 		System.out.println("CSV Db proccesor ran successfully. CSV DB Altered.");
+		engine.commit();
 		engine.closeDB();
 
-		//Information is correct
+		//Setup for Header Tests(asserts) & Querys
 		engine = loadEngine(CSVsmss);
+				
+		//Checks All Generic Queries
 		Vector<String> perspec = engine.getPerspectives();
-		String currentPerspec = perspec.get(0);
-		@SuppressWarnings("unchecked")
+		String currentPerspec = perspec.get(0); //get only first Perspective
 		Vector<String> insights = engine.getInsights(currentPerspec, engine.getEngineName());
-		String currentInsight = insights.get(1);
-		Insight test = engine.getInsight(currentInsight);
-		String query = test.getSparql();
-		query = prepQuery(query);
-		String queryHome = "Engine: "+engine.getEngineName()+", Perspective: " + currentPerspec + ", Insight: "+currentInsight;
-				
-		//Checks the information is correct
-		assertTrue(queryHome +": is broken...",checkQuery(engine, query));
-		System.out.println("	Information is correct");
-				
+		for(int i = 0; i < insights.size(); i++){
+			String query = engine.getInsight(insights.get(i)).getSparql();
+			query = prepQuery(query);
+			String queryHome = "Engine: "+engine.getEngineName()+", Perspective: " + currentPerspec + ", Insight: "+insights.get(i);
+			try {
+				query = prepQuery(query); //Prep the Query for engine use
+				assertTrue(queryHome +": is BROKEN...", checkQuery(engine, query));
+			} catch (MalformedQueryException e) {
+				assertTrue(queryHome +": is MALFORMED...", false);
+				e.printStackTrace();
+			} catch (NullPointerException e) {
+				assertTrue(queryHome +": is NULL...", false);
+				e.printStackTrace();
+			}
+		}
+		
 		//Tear down
+		engine.commit();
 		engine.closeDB();
 	}
 
@@ -413,17 +411,17 @@ public class ImportDataProcessorTest {
 		//TESTING ASSERTIONS
 		//Files Created and in the right place
 		File f = new File(dbDirectory+newDBnameEXCEL);
-		assertTrue("DB Folder exists.", f.exists());
+		assertTrue("DB Folder doesn't exists.", f.exists());
 		f = new File(dbDirectory+newDBnameEXCEL+"\\"+newDBnameEXCEL+".jnl");
-		assertTrue("DB .jnl exists.", f.exists());
+		assertTrue("DB .jnl doesn't exists.", f.exists());
 		f = new File(dbDirectory+newDBnameEXCEL+"\\"+newDBnameEXCEL+"_Custom_Map.prop");
-		assertTrue("DB Custom_Map.prop exists.", f.exists());
+		assertTrue("DB Custom_Map.prop doesn't exists.", f.exists());
 		f = new File(dbDirectory+newDBnameEXCEL+"\\"+newDBnameEXCEL+"_OWL.OWL");
-		assertTrue("DB .OWL exists.", f.exists());
+		assertTrue("DB .OWL doesn't exists.", f.exists());
 		f = new File(dbDirectory+newDBnameEXCEL+"\\"+newDBnameEXCEL+"_Questions.XML");
-		assertTrue("DB Questions.xml exists.", f.exists());
+		assertTrue("DB Questions.xml doesn't exists.", f.exists());
 		f = new File(dbDirectory+newDBnameEXCEL+".smss");
-		assertTrue("DB smss exists.", f.exists());
+		assertTrue("DB smss doesn't exists.", f.exists());
 		System.out.println("	All Files Exist.");
 			
 		//Reset Prop
@@ -432,42 +430,34 @@ public class ImportDataProcessorTest {
 		//Run Processor
 		processor.runProcessor(testMethod, testType, replacementExcel, customBaseURI , "", "", "", "", newDBnameEXCEL, dbType);
 		System.out.println("	EXCEL Db proccesor ran successfully. Excel DB created.");
+		engine.commit();
 		engine.closeDB();
-		System.out.println("Connected: "+engine.isConnected());
-		
-		//TESTING ASSERTIONS
-		//Files Created and in the right place
-		f = new File(dbDirectory+newDBnameEXCEL);
-		assertTrue("DB Folder exists.", f.exists());
-		f = new File(dbDirectory+newDBnameEXCEL+"\\"+newDBnameEXCEL+".jnl");
-		assertTrue("DB .jnl exists.", f.exists());
-		f = new File(dbDirectory+newDBnameEXCEL+"\\"+newDBnameEXCEL+"_Custom_Map.prop");
-		assertTrue("DB Custom_Map.prop exists.", f.exists());
-		f = new File(dbDirectory+newDBnameEXCEL+"\\"+newDBnameEXCEL+"_OWL.OWL");
-		assertTrue("DB .OWL exists.", f.exists());
-		f = new File(dbDirectory+newDBnameEXCEL+"\\"+newDBnameEXCEL+"_Questions.XML");
-		assertTrue("DB Questions.xml exists.", f.exists());
-		f = new File(dbDirectory+newDBnameEXCEL+".smss");
-		assertTrue("DB smss exists.", f.exists());
-		System.out.println("	All Files Exist.");
-				
-		//Information is correct
+
+		//Setup for Header Tests(asserts) & Querys
 		engine = loadEngine(EXCELsmss);
+				
+		//Checks All Generic Queries
 		Vector<String> perspec = engine.getPerspectives();
-		String currentPerspec = perspec.get(0);
-		@SuppressWarnings("unchecked")
+		String currentPerspec = perspec.get(0); //get only first Perspective
 		Vector<String> insights = engine.getInsights(currentPerspec, engine.getEngineName());
-		String currentInsight = insights.get(0);
-		Insight test = engine.getInsight(currentInsight);
-		String query = test.getSparql();
-		query = prepQuery(query);
-		String queryHome = "Engine: "+engine.getEngineName()+", Perspective: " + currentPerspec + ", Insight: "+currentInsight;
-		
-		//Checks the information is correct
-		assertTrue(queryHome +": is broken...",checkQuery(engine, query));
-		System.out.println("	Information is correct");
-		
+		for(int i = 0; i < insights.size(); i++){
+			String query = engine.getInsight(insights.get(i)).getSparql();
+			query = prepQuery(query);
+			String queryHome = "Engine: "+engine.getEngineName()+", Perspective: " + currentPerspec + ", Insight: "+insights.get(i);
+			try {
+				query = prepQuery(query); //Prep the Query for engine use
+				assertTrue(queryHome +": is BROKEN...", checkQuery(engine, query));
+			} catch (MalformedQueryException e) {
+				assertTrue(queryHome +": is MALFORMED...", false);
+				e.printStackTrace();
+			} catch (NullPointerException e) {
+				assertTrue(queryHome +": is NULL...", false);
+				e.printStackTrace();
+			}
+		}
+
 		//Tear down
+		engine.commit();
 		engine.closeDB();
 	}
 	
@@ -579,7 +569,7 @@ public class ImportDataProcessorTest {
 	 * prepQuery
 	 * loadEngine
 	 */
-	public void makeExcel() throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException{
+	private void makeExcel() throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException{
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.CREATE_NEW;
 		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.EXCEL;	
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
@@ -589,7 +579,7 @@ public class ImportDataProcessorTest {
 		System.out.println("	EXCEL Db proccesor ran successfully. Excel DB created.");
 	}
 	
-	public void makeCSV() throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException{
+	private void makeCSV() throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException{
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.CREATE_NEW;
 		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.CSV;
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
@@ -599,50 +589,69 @@ public class ImportDataProcessorTest {
 		System.out.println("	CSV Db proccesor ran successfully. CSV DB Created.");
 	}
 	
-	public boolean checkQuery(BigDataEngine engine, String query) throws MalformedQueryException, NullPointerException{
-		//Limit the results
-		if(query.contains("BINDINGS")){
-			query = query.replace("BINDINGS", "LIMIT 3 BINDINGS");
-		}
-		if(query.contains("LIMIT") || query.contains("limit")){} 
-		else {query += " LIMIT 3";}
-		
-		//get Check
+	private boolean checkQuery(BigDataEngine engine, String query) throws MalformedQueryException{
+		/*DBUG*/System.out.println("CHECKING "+engine.getEngineName());
+
 		Boolean result = false;
-		System.out.println("Query: "+query);
+		Object check = engine.execQuery(query);
 		
-		if(query.contains("CONSTRUCT")){
-			GraphQueryResult res  = engine.execGraphQuery(query);
-			if(res.toString() != ""){result = true;}
-			try {
-				res.close();	
-			} catch( QueryEvaluationException e) {
-				e.printStackTrace();
-				System.out.println("Data remains in Cashe...");
+		if(check instanceof Boolean){
+			//DO NOTHING
+		} else {
+			//Limit the results
+			if(query.contains("BINDINGS")){
+				query = query.replace("BINDINGS", "LIMIT 3 BINDINGS");
 			}
-		} 
-		else if(query.contains("ASK")) {
-			result = engine.execAskQuery(query);
-		} 
-		else if (query.contains("SELECT")){
-			TupleQueryResult res = engine.execSelectQuery(query);
-			if(res.toString() != ""){result = true;}
-			try {
-				res.close();	
-			} catch( QueryEvaluationException e) {
-				e.printStackTrace();
-				System.out.println("Data remains in Cashe...");
-			}
+			if(query.contains("LIMIT") || query.contains("limit")){
+				//DO Nothing
+			} else {query += " LIMIT 3";}
 		}
-		System.out.println("");
+		
+		System.out.println(query);
+		
+		if(check instanceof GraphQueryResult){
+			try {
+				GraphQueryResult res = (GraphQueryResult) check;
+				if(res != null){result = true;}
+				res.close();
+			} catch (NullPointerException | QueryEvaluationException e){
+				//Nothing
+			}
+		} else if(check instanceof Boolean) {
+			try {
+				result = (Boolean) check;
+			} catch (NullPointerException e){
+				//Nothing
+			}
+		} else if(check instanceof TupleQueryResult){
+			try {
+				TupleQueryResult res = (TupleQueryResult) check;
+				if(res != null){result = true;}
+				res.close();
+			} catch (NullPointerException | QueryEvaluationException e){
+				//Nothing
+			}
+		} else {
+			/*DBUG*/System.out.println("NOT A THING!");
+			result = true;
+		}
+		System.out.println("...");
 		return result;
 	}
-	
+
 	private String prepQuery(String query){
 		//Clustering; Remove all clustering info so query can be processed
-		String[] clusterRemoval= {"+++@NumberOfClusters-OverrideCluster@","+++J48","+++PART", "+++DecisionTable", "+++DecisionStump"
-								,"+++REPTree", "+++LMT", "+++SimpleLogistic", "+++@KNeighbors-K@"}; //Add new Cluster param types here
 		if(query.contains("+++")){
+			String[] clusterRemoval= {
+					"+++@NumberOfClusters-OverrideCluster@",
+					"+++J48",
+					"+++PART",
+					"+++DecisionTable", 
+					"+++DecisionStump",
+					"+++REPTree", 
+					"+++LMT", 
+					"+++SimpleLogistic", 
+					"+++@KNeighbors-K@"}; //Add new Cluster param types here
 			for(int i = 0; i < clusterRemoval.length; i++){
 				if(query.contains(clusterRemoval[i])){
 					query = query.replace(clusterRemoval[i], "");
@@ -652,8 +661,12 @@ public class ImportDataProcessorTest {
 		}
 		
 		//Dates; removed them, they are dealt with in the play-sheet and not the engine
-		String[] dateRemoval = {"@Year-OverrideYear@;", "@Month-OverrideMonth@;"};//Add additional time and date params here
 		if(query.contains("CONSTRUCT") && query.contains("-Override")){
+			String[] dateRemoval = {
+					"@Year-OverrideYear@;", 
+					"@Month-OverrideMonth@;"
+					//Add more here
+					};
 			for(int i = 0; i < dateRemoval.length; i++){
 				if(query.contains(dateRemoval[i])){
 					query = query.replace(dateRemoval[i], "");
@@ -663,23 +676,66 @@ public class ImportDataProcessorTest {
 		}
 		
 		//Params; find and insert query params normally put in by the user
-		if(query.contains("BIND") || query.contains("DISTINCT")){
-			Hashtable paramHash = Utility.getParams(query);
-			Utility.fillParam(query, paramHash);
-			
+		if(query.contains("@")){
+			query = Utility.fillParam(query, Utility.getParams(query));
 		}
-		return query;
+		return query.trim();
 	}
 
 	private BigDataEngine loadEngine(String engineLocation){
 		BigDataEngine engine = new BigDataEngine();
-		FileInputStream fileIn = null;
+		FileInputStream fileIn;
 		Properties prop = new Properties();
 		try {
 			fileIn = new FileInputStream(engineLocation);
 			prop.load(fileIn);
-			engine = (BigDataEngine) Utility.loadEngine(engineLocation, prop);
+			//SEP
+			try {
+				String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
+
+				String engineName = prop.getProperty(Constants.ENGINE);
+				String engineClass = prop.getProperty(Constants.ENGINE_TYPE);
+				//TEMPORARY
+				// TODO: remove this
+				if(engineClass.equals("prerna.rdf.engine.impl.RDBMSNativeEngine")){
+					engineClass = "prerna.engine.impl.rdbms.RDBMSNativeEngine";
+				}
+				else if(engineClass.startsWith("prerna.rdf.engine.impl.")){
+					engineClass = engineClass.replace("prerna.rdf.engine.impl.", "prerna.engine.impl.rdf.");
+				}
+				engine = (BigDataEngine)Class.forName(engineClass).newInstance();
+				engine.setEngineName(engineName);
+				if(prop.getProperty("MAP") != null) {
+					engine.addProperty("MAP", prop.getProperty("MAP"));
+				}
+				engine.openDB(engineLocation);
+				engine.setDreamer(prop.getProperty(Constants.DREAMER));
+				engine.setOntology(prop.getProperty(Constants.ONTOLOGY));
+				
+				// set the core prop
+				if(prop.containsKey(Constants.DREAMER))
+					DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.DREAMER, prop.getProperty(Constants.DREAMER));
+				if(prop.containsKey(Constants.ONTOLOGY))
+					DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.ONTOLOGY, prop.getProperty(Constants.ONTOLOGY));
+				if(prop.containsKey(Constants.OWL)) {
+					DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.OWL, prop.getProperty(Constants.OWL));
+					engine.setOWL(prop.getProperty(Constants.OWL));
+				}
+				
+				// set the engine finally
+				engines = engines + ";" + engineName;
+				DIHelper.getInstance().setLocalProperty(engineName, engine);
+				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engines);
+			} catch (InstantiationException e) {
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+			}
+			//SEP
 			fileIn.close();
+			prop.clear();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
