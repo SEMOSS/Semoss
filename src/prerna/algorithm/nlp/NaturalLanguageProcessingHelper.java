@@ -4,11 +4,13 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import rita.RiTa;
 import rita.RiWordNet;
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.ling.LabeledWord;
@@ -420,5 +422,66 @@ public final class NaturalLanguageProcessingHelper {
 			}
 		}
 		return retString;
+	}
+	
+	
+//	public static String[] determineMostSimilarValues(RiWordNet wordnet, Object[] col) {
+//		
+//		String[] mostSimilarSet = null;
+//		double simVal = 2.0; // set to arbitrary value larger than 1
+//		
+//		int i = 0;
+//		int size = col.length;
+//		for(; i < size; i++) {
+//			String s1 = col[i].toString();
+//			String s_s1 = RiTa.singularize(s1.toLowerCase());
+//			int j = i+1;
+//			// compare against all other strings in col
+//			for(; j < size; j++) {
+//				String s2 = col[j].toString();
+//				String s_s2 = RiTa.singularize(s2.toLowerCase());
+//				double newSim = wordnet.getDistance(s_s1, s_s2, "n");
+//				if(newSim < simVal) {
+//					mostSimilarSet = new String[]{s1, s2};
+//					simVal = newSim;
+//				}
+//			}
+//		}
+//		
+//		return mostSimilarSet;
+//	}
+	
+	public static double determineAverageMinimumSimilarity(RiWordNet wordnet, Object[] col) {
+		
+		int numOfVals = 0;
+		double sumMinSimilarity = 0.0; // set to arbitrary value larger than 1
+		
+		int size = col.length;
+		for(int i=0; i < size; i++) {
+			String s1 = col[i].toString();
+			String s_s1 = RiTa.singularize(s1.toLowerCase());
+			// compare against all other strings in col
+			double minSimVal = 2.0;
+			for(int j=0; j < size; j++) {
+				if(i!=j) {
+					String s2 = col[j].toString();
+					String s_s2 = RiTa.singularize(s2.toLowerCase());
+					double newSim = wordnet.getDistance(s_s1, s_s2, "n");
+					if(newSim < minSimVal) {
+						minSimVal = newSim;
+					}
+				}
+			}
+//			System.out.println(s1 + " "+minSimVal);
+			if(minSimVal != 1) {
+				numOfVals++;
+				sumMinSimilarity += minSimVal;
+			}
+		}
+		double avgMinSimilarity = sumMinSimilarity / numOfVals;
+//		System.out.println("Num ones: "+numOfOnes);
+//		System.out.println("Avg Min Sim: "+avgMinSimilarity);
+		
+		return avgMinSimilarity;
 	}
 }
