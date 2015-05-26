@@ -3,7 +3,7 @@
 	It was created to be run on the Jenkins server after each SVN Commit for Semoss Thick Client
 	@author  August Bender 
 	@version 1.0 
-	@since   03-24-2015 
+	@since   05-26-2015 
 	Questions? Email abender@deloitte.com  -->
 <project default= "run" name= "ANT testBuild - complie and run JAVA class">
 	
@@ -80,7 +80,7 @@
 	</target>
 	
 	<!-- Main Method -->
-	<target name="run" depends="compile">
+	<target name="run" depends="test">
 		<echo>Final Clean...</echo>
 			<delete failonerror="false" dir="test/test_lib"/>
 			<delete failonerror="false" dir="test/test_stagging"/>
