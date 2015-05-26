@@ -1,9 +1,8 @@
 package prerna.algorithm.api;
 
-import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import prerna.engine.api.ISelectStatement;
 
@@ -215,11 +214,11 @@ public interface ITableDataFrame {
 	int getRowCount(String columnHeader);
 	
 	/**
-	 * Get the values for a specific row in the data-frame
-	 * @param rowIdx				The row index for the data-frame
-	 * @return						The values for the specific row index in the data-frame
+	 * Iterator to go through all the rows in the data-frame
+	 * The iterator will return an Object[] corresponding to the data in a row of the data-frame
+	 * @return						The iterator to go through all the rows
 	 */
-	Object[] getRow(int rowIdx);
+	Iterator<Object[]> iterator();
 	
 	/**
 	 * Get the values for a specific column in the data-frame
