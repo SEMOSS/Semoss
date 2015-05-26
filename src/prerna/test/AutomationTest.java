@@ -20,7 +20,8 @@ import org.junit.runners.Suite.SuiteClasses;
 */
 
 @RunWith(Suite.class)
-@SuiteClasses({ QueryTests.class, ImportDataProcessorTest.class})
+@SuiteClasses({ QueryTests.class, ImportDataProcessorTest.class })
 public class AutomationTest {
+
 
 }

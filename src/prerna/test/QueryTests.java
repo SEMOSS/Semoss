@@ -21,7 +21,7 @@ import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 
 import prerna.om.Insight;
-import prerna.engine.impl.rdf.BigDataEngine;
+import prerna.rdf.engine.impl.BigDataEngine;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -34,7 +34,7 @@ import prerna.util.Utility;
 *
 * @author  August Bender
 * @version 1.1
-* @since   05-18-2015
+* @since   03-20-2015
 * Questions? Email abender@deloitte.com
 */
 public class QueryTests {
@@ -45,14 +45,12 @@ public class QueryTests {
 	private static String semossDirectory;
 	private static String dbDirectory;
 
-	private static String serverDirectory = "test\\test_stagging\\db\\";
 	
 	@BeforeClass 
 	public static void setUpOnce(){
 		semossDirectory = System.getProperty("user.dir");
 		semossDirectory = semossDirectory.replace("\\", "\\\\");
 		dbDirectory = semossDirectory + "\\db\\";
-		//dbDirectory = serverDirectory;
 		
 	}
 
@@ -115,7 +113,6 @@ public class QueryTests {
 			}
 		}
 		
-		
 		/*Get Perspectives from each DB
 		*There are three layers of for-loops:
 		*1: Engines
@@ -139,17 +136,14 @@ public class QueryTests {
 		//Engine
 		for (int i = 0; i < listOfDB.length; i++){
 			String engineLocation = dbDirectory + listOfDB[i];
-			/*DeBug*/System.out.println("break engine: "+engineLocation);
 			engine = loadEngine(engineLocation);
 			//Perspectives
 			Vector<String> perspec = engine.getPerspectives();
-			/*DeBug*///System.out.println("break Perspective: "+perspec.get(0));
 			if(perspec != null){
 				for(int k = 0; k < perspec.size(); k++){
 					String currentPerspec = perspec.get(k);
 					//Insights
 					Vector<String> insights = engine.getInsights(currentPerspec, engine.getEngineName());
-					/*DeBug*/System.out.println("break insight");
 					if(insights != null){
 						for(int l = 0; l < insights.size(); l++){
 							String currentInsight = insights.get(l);
@@ -289,30 +283,26 @@ public class QueryTests {
 		System.out.println("Query: "+query);
 		
 		if(query.contains("CONSTRUCT")){
-			Object res;
+			GraphQueryResult res  = engine.execGraphQuery(query);
+			if(res.toString() != ""){result = true;}
 			try {
-				 res  = engine.execQuery(query);
-				 if(res.toString() != ""){result = true;}
-			}catch (NullPointerException e){
-				
+				res.close();	
+			} catch( QueryEvaluationException e) {
+				e.printStackTrace();
+				System.out.println("Data remains in Cashe...");
 			}
 		} 
 		else if(query.contains("ASK")) {
-			Object res;
-			try {
-				 res  = engine.execQuery(query);
-				 if(res.toString() != ""){result = true;}
-			}catch (NullPointerException e){
-				
-			}
+			result = engine.execAskQuery(query);
 		} 
 		else if (query.contains("SELECT")){
-			Object res;
+			TupleQueryResult res = engine.execSelectQuery(query);
+			if(res.toString() != ""){result = true;}
 			try {
-				 res  = engine.execQuery(query);
-				 if(res.toString() != ""){result = true;}
-			}catch (NullPointerException e){
-				
+				res.close();	
+			} catch( QueryEvaluationException e) {
+				e.printStackTrace();
+				System.out.println("Data remains in Cashe...");
 			}
 		}
 		System.out.println("");
