@@ -2,6 +2,7 @@ package prerna.ds;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -483,9 +484,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public Object[] getRow(int rowIdx) {
-		// TODO Auto-generated method stub
-		return null;
+	public Iterator<Object[]> iterator() {
+		Iterator<Object[]> it = new BTreeIterator(simpleTree.getInstances(levelNames[levelNames.length-1]));
+		return it;
 	}
 
 	@Override
