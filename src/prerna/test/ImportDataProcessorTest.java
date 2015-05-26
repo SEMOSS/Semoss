@@ -29,9 +29,9 @@ import prerna.error.FileWriterException;
 import prerna.error.HeaderClassException;
 import prerna.error.NLPException;
 import prerna.om.Insight;
-import prerna.engine.api.IEngine;
-import prerna.engine.impl.rdf.BigDataEngine;
-import prerna.engine.impl.rdf.SesameJenaSelectCheater;
+import prerna.rdf.engine.api.IEngine;
+import prerna.rdf.engine.impl.BigDataEngine;
+import prerna.rdf.engine.impl.SesameJenaSelectCheater;
 import prerna.ui.components.ImportDataProcessor;
 import prerna.ui.components.ImportDataProcessor.DB_TYPE;
 import prerna.ui.components.ImportDataProcessor.IMPORT_METHOD;
@@ -224,7 +224,7 @@ public class ImportDataProcessorTest {
 
 	//CSV DB created
 	@Test
-	public void Test_CreateNew_CSV() throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException, NullPointerException{
+	public void Test_CreateNew_CSV() throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException{
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.CREATE_NEW;
 		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.CSV;
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
@@ -250,7 +250,7 @@ public class ImportDataProcessorTest {
 		System.out.println("	All Files Exist.");
 		
 		//Setup for Header Tests(asserts) & Querys
-		BigDataEngine engine = new BigDataEngine();
+		IEngine engine = new BigDataEngine();
 		selector.setEngine(engine);
 		engine.openDB(CSVsmss);
 		String query = "SELECT DISTINCT ?firstName ?lastName ?lastName__web WHERE { BIND(<http://semoss.org/ontologies/Concept/lastName/Agramonte> AS ?lastName) "
@@ -271,26 +271,11 @@ public class ImportDataProcessorTest {
 		
 		//Checks the information is correct
 		String askQuery = "ASK {<http://theTest/Concept/firstName/Jenelle> <http://www.w3.org/2000/01/rdf-schema#label> 'Jenelle'}";
-		try {
-			assertTrue("CSV DB Var are correct.",checkQuery(engine, askQuery));
-		} catch (MalformedQueryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		assertTrue("CSV DB Var are correct.",engine.execAskQuery(askQuery));
 		askQuery = "ASK {<http://theTest/Concept/firstName/Jennie> <http://semoss.org/ontologies/Relation> <http://theTest/Concept/lastName/Drymon>}";
-		try {
-			assertTrue("CSV DB Relationships correct.",checkQuery(engine, askQuery));
-		} catch (MalformedQueryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		assertTrue("CSV DB Relationships correct.",engine.execAskQuery(askQuery));
 		askQuery = "ASK {<http://theTest/Concept/lastName/Cetta> <http://semoss.org/ontologies/Relation/Contains/phone2> '808-475-2310'}";
-		try {
-			assertTrue("CSV DB Properties correct.",checkQuery(engine, askQuery));
-		} catch (MalformedQueryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		assertTrue("CSV DB Properties correct.",engine.execAskQuery(askQuery));
 		System.out.println("	Information is correct");
 		
 		//Tear down
@@ -312,7 +297,6 @@ public class ImportDataProcessorTest {
 		//Files Created and in the right place
 		File f = new File(dbDirectory+newDBnameEXCEL);
 		assertTrue("DB Folder exists.", f.exists());
-		/*DBUG*/System.out.println(".jnl: "+ "\\" + dbDirectory+"\\"+newDBnameEXCEL+"\\\\"+newDBnameEXCEL+".jnl");
 		f = new File(dbDirectory+newDBnameEXCEL+"\\"+newDBnameEXCEL+".jnl");
 		assertTrue("DB .jnl exists.", f.exists());
 		f = new File(dbDirectory+newDBnameEXCEL+"\\"+newDBnameEXCEL+"_Custom_Map.prop");
@@ -348,28 +332,13 @@ public class ImportDataProcessorTest {
 		//Checks the information is correct
 		//Var are correct
 		String askQuery = "ASK {<http://theTest/Concept/Level/Level> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Level>}";
-		try {
-			assertTrue("Excel DB Var are correct.",checkQuery(engine,askQuery));
-		} catch (MalformedQueryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		assertTrue("Excel DB Var are correct.",engine.execAskQuery(askQuery));
 		//Properties
 		askQuery = "ASK {<http://theTest/Concept/Activity/Assign_Patient_to_Care_Provider> <http://semoss.org/ontologies/Relation> <http://theTest/Concept/Level/Level_2>}";
-		try {
-			assertTrue("Excel DB Relationships correct..",checkQuery(engine,askQuery));
-		} catch (MalformedQueryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		assertTrue("Excel DB Relationships correct..",engine.execAskQuery(askQuery));
 		//Relationships
 		askQuery = "ASK {<http://theTest/Concept/Activity/Capture_Data_and_Documentation_from_External_Sources> <http://semoss.org/ontologies/Relation/Contains/Number> '4.11.5'}";
-		try {
-			assertTrue("Excel DB Properties correct.",checkQuery(engine,askQuery));
-		} catch (MalformedQueryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		assertTrue("Excel DB Properties correct.",engine.execAskQuery(askQuery));
 		System.out.println("	Information is correct");
 				
 		//Tear down
@@ -444,17 +413,17 @@ public class ImportDataProcessorTest {
 		//TESTING ASSERTIONS
 		//Files Created and in the right place
 		File f = new File(dbDirectory+newDBnameEXCEL);
-		assertTrue("DB Folder doesn't exists.", f.exists());
+		assertTrue("DB Folder exists.", f.exists());
 		f = new File(dbDirectory+newDBnameEXCEL+"\\"+newDBnameEXCEL+".jnl");
-		assertTrue("DB .jnl doesn't exists.", f.exists());
+		assertTrue("DB .jnl exists.", f.exists());
 		f = new File(dbDirectory+newDBnameEXCEL+"\\"+newDBnameEXCEL+"_Custom_Map.prop");
-		assertTrue("DB Custom_Map.prop doesn't exists.", f.exists());
+		assertTrue("DB Custom_Map.prop exists.", f.exists());
 		f = new File(dbDirectory+newDBnameEXCEL+"\\"+newDBnameEXCEL+"_OWL.OWL");
-		assertTrue("DB .OWL doesn't exists.", f.exists());
+		assertTrue("DB .OWL exists.", f.exists());
 		f = new File(dbDirectory+newDBnameEXCEL+"\\"+newDBnameEXCEL+"_Questions.XML");
-		assertTrue("DB Questions.xml doesn't exists.", f.exists());
+		assertTrue("DB Questions.xml exists.", f.exists());
 		f = new File(dbDirectory+newDBnameEXCEL+".smss");
-		assertTrue("DB smss doesn't exists.", f.exists());
+		assertTrue("DB smss exists.", f.exists());
 		System.out.println("	All Files Exist.");
 			
 		//Reset Prop
@@ -630,7 +599,7 @@ public class ImportDataProcessorTest {
 		System.out.println("	CSV Db proccesor ran successfully. CSV DB Created.");
 	}
 	
-	public boolean checkQuery(BigDataEngine engine, String query) throws MalformedQueryException{
+	public boolean checkQuery(BigDataEngine engine, String query) throws MalformedQueryException, NullPointerException{
 		//Limit the results
 		if(query.contains("BINDINGS")){
 			query = query.replace("BINDINGS", "LIMIT 3 BINDINGS");
@@ -643,30 +612,26 @@ public class ImportDataProcessorTest {
 		System.out.println("Query: "+query);
 		
 		if(query.contains("CONSTRUCT")){
-			Object res;
+			GraphQueryResult res  = engine.execGraphQuery(query);
+			if(res.toString() != ""){result = true;}
 			try {
-				 res  = engine.execQuery(query);
-				 if(res.toString() != ""){result = true;}
-			}catch (NullPointerException e){
-				
+				res.close();	
+			} catch( QueryEvaluationException e) {
+				e.printStackTrace();
+				System.out.println("Data remains in Cashe...");
 			}
 		} 
 		else if(query.contains("ASK")) {
-			Object res;
-			try {
-				 res  = engine.execQuery(query);
-				 if(res.toString() != ""){result = true;}
-			}catch (NullPointerException e){
-				
-			}
+			result = engine.execAskQuery(query);
 		} 
 		else if (query.contains("SELECT")){
-			Object res;
+			TupleQueryResult res = engine.execSelectQuery(query);
+			if(res.toString() != ""){result = true;}
 			try {
-				 res  = engine.execQuery(query);
-				 if(res.toString() != ""){result = true;}
-			}catch (NullPointerException e){
-				
+				res.close();	
+			} catch( QueryEvaluationException e) {
+				e.printStackTrace();
+				System.out.println("Data remains in Cashe...");
 			}
 		}
 		System.out.println("");
