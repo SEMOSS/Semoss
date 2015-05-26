@@ -40,20 +40,33 @@ public class VectorSimilarity implements SimilarityAnalytics{
 
 		return similarityArray;
 	}
-	
-	@Override
-	public void setOptions(Map options) {
-		this.options = options;
-	}
 
 	@Override
-	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
+	public String getName() {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public String getName() {
+	public String getResultDescription() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void setSelectedOptions(Map<String, Object> selected) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public List<SEMOSSParam> getOptions() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -72,24 +85,6 @@ public class VectorSimilarity implements SimilarityAnalytics{
 
 	@Override
 	public Map<String, Object> getResultMetadata() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public String getResultDescription() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<SEMOSSParam> getAllAlgorithmOptions() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Map getOptions() {
 		// TODO Auto-generated method stub
 		return null;
 	}
