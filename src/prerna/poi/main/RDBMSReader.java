@@ -1337,7 +1337,7 @@ public class RDBMSReader {
 		{
 			String column = columnKeys.nextElement();
 			System.out.println("Table: " +tableKey + " column: "+column);
-			column = realClean(column.toUpperCase()); //,true);
+			column = realClean(column); //,true);
 			if(!fieldHash.containsKey(column))
 			{
 				String type = (String)columns.get(column);
@@ -1347,6 +1347,7 @@ public class RDBMSReader {
 				// now clean it up
 				// finally finish it up with the replacing -
 				//column = column.replaceAll("-", "_");
+				column = column.toUpperCase();
 				if(columnString.length() > 0)
 					columnString = columnString + ", " + column + " " + type;
 				else
