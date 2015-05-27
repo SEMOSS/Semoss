@@ -545,7 +545,7 @@ public abstract class AbstractFileReader {
 				else{
 					String cleanValue = Utility.cleanString(value, true);
 //					logger.info("Processing String value " + cleanValue); 
-					engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceURI, propURI, cleanValue, true});
+					engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceURI, propURI, cleanValue, false});
 //					createStatement(vf.createURI(instanceURI), vf.createURI(propURI), vf.createLiteral(cleanValue));
 				}
 			}
