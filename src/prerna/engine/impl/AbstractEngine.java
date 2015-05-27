@@ -150,7 +150,7 @@ public abstract class AbstractEngine implements IEngine {
 			+ "{?x ?rel  ?y} "
 			+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf>* ?x}"
 			+ "{<@nodeType@> <http://www.w3.org/2000/01/rdf-schema#subClassOf>* ?y}"
-					+ "}";
+			+ "}";
 
 	private static final String toSparql = "SELECT DISTINCT ?entity WHERE { "
 			+ "{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} "

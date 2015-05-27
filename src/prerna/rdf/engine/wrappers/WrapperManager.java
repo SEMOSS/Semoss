@@ -147,7 +147,8 @@ public class WrapperManager {
 				break;
 			}
 			case RDBMS:{
-				//TBD
+				returnWrapper = new RDBMSSelectCheater();
+				break;
 			}
 
 			default: {

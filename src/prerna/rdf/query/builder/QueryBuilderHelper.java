@@ -154,14 +154,14 @@ public class QueryBuilderHelper {
 			for (int propIdx=0 ; propIdx<propVector.size(); propIdx++)
 			{
 				String propURI = propVector.get(propIdx);
-				String propName = varName + "__" + propURI.replace("-",  "_");
+				String propName = Utility.toCamelCase(varName) + "__" + Utility.toCamelCase(propURI.replace("-",  "_"));
 				totalVarList.add(propName);
 				//store node prop info
 				Hashtable<String, String> elementHash = new Hashtable<String, String>();
-				elementHash.put("SubjectVar", varName);
+				elementHash.put("SubjectVar", Utility.toCamelCase(varName));
 				elementHash.put(varKey, propName);
 				// do I need the URI key ?
-				elementHash.put(uriKey, propURI);
+				elementHash.put(uriKey, Utility.toCamelCase(propURI));
 				nodePropV.add(elementHash);
 			}
 		}
