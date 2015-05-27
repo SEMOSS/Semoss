@@ -131,7 +131,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		List<Double> inflationValues = DHMSMDeploymentHelper.getInflationRate(tapSite);
 		int i;
 		for(i = 0; i < numColumns + 1; i++) {
-			if(i <= inflationValues.size()) {
+			if(i < inflationValues.size()) {
 				inflationArr[i] = inflationValues.get(i);
 			} else {
 				inflationArr[i] = inflationArr[i-1] + .02;
