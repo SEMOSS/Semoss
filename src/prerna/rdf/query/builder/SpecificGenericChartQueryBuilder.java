@@ -118,7 +118,7 @@ Parameters [{STUDIO=http://semoss.org/ontologies/Concept/Studio}]
 		///tableString = tableName + " " + getAlias(tableName);
 		
 		// add it to group by
-		groupBy = "Group By " + getAlias(tableName) + "." + colName + " ";
+		groupBy = getAlias(tableName) + "." + colName + " ";
 		
 		//tablesProcessed.put(tableName.toUpperCase(), tableName.toUpperCase());
 		
