@@ -89,7 +89,17 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 
 		logger.info("Creating the base Graph");
 //		gdm.fillStoresFromModel();
-		gdm.genBaseGraph();
+		String predicateSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
+				  //"VALUES ?Subject {"  + subjects + "}"+
+				  //"VALUES ?Object {"  + subjects + "}"+
+				  //"VALUES ?Object {"  + objects + "}" +
+				  //"VALUES ?Predicate {"  + predicates + "}" +
+				  "{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;}" +
+				  "{?Subject " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
+				  //  "{?Object " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
+				  "{?Subject ?Predicate ?Object}" +
+				  "}";
+		gdm.genBaseGraph(predicateSelectQuery);
 	}
 
 	@Override

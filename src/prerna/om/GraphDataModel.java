@@ -94,6 +94,8 @@ public class GraphDataModel {
 	String containsRelation;
 	public Vector <RepositoryConnection> rcStore = new Vector<RepositoryConnection>();
 	public PropertySpecData predData = new PropertySpecData();
+	StringBuffer subjects = new StringBuffer("");
+	StringBuffer objects = new StringBuffer("");
 	
 	boolean search, prop, sudowl;
 	
@@ -114,6 +116,10 @@ public class GraphDataModel {
 	}
 	
 	public void overlayData(String query, IEngine engine){
+		
+		subjects = new StringBuffer(""); // remove from the old one
+		objects = new StringBuffer(""); // remove fromt he old one
+		
 		curModel = null;
 		curRC = null;
 		incrementalVertStore = new Hashtable<String, SEMOSSVertex>();
@@ -150,7 +156,7 @@ public class GraphDataModel {
 	//it will use the rc to create edge and node properties
 	//and then nodes and edges
 	boolean test = true;
-	public void fillStoresFromModel(){
+	public void fillStoresFromModel(IEngine engine){
 		if(rc!=null){
 			if(containsRelation == null)
 				containsRelation = findContainsRelation();
@@ -158,14 +164,81 @@ public class GraphDataModel {
 				containsRelation = "<http://semoss.org/ontologies/Relation/Contains>";
 			RDFEngineHelper.genNodePropertiesLocal(rc, containsRelation, this, subclassCreate);
 			RDFEngineHelper.genEdgePropertiesLocal(rc, containsRelation, this);
-			genBaseConcepts();
+			
+			boolean isRDF = (engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.JENA || 
+					engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE);
+
+			String baseConceptSelectQuery = null;
+			// the queries below needs to be instrumented later to come from engine
+			isRDF = true;
+			if(isRDF)
+			{
+				baseConceptSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
+					  //"{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;}" +
+					  "{?Subject " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
+//					  "{?Subject ?Predicate ?Object.}" +
+					  "BIND(\"\" AS ?Predicate)" + // these are only used so that I can use select cheater...
+					  "BIND(\"\" AS ?Object)" +
+					  "}";
+				if(subclassCreate) //this is used for our metamodel graphs. Need to be subclass of concept rather than type
+					baseConceptSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
+					  "{?Subject " + "<http://www.w3.org/2000/01/rdf-schema#subClassOf>  " +  " <http://semoss.org/ontologies/Concept>;}" +
+//					  "{?Subject ?Predicate ?Object.}" +
+					  "BIND(\"\" AS ?Predicate)" + // these are only used so that I can use select cheater...
+					  "BIND(\"\" AS ?Object)" +
+					  "}";
+			}
+			else if(engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS)
+			{
+				// change the query here
+				baseConceptSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {"
+						+ "{?Subject ?Predicate ?Object} "
+						+ "} BINDINGS ?Subject {" + subjects + "}";
+			}
+			genBaseConcepts(baseConceptSelectQuery);
 			logger.info("Loaded Orphans");
-			genBaseGraph();//subjects2, predicates2, subjects2);
+			
+			
+			String predicateSelectQuery = null;
+			if(isRDF)
+			{
+				predicateSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
+						  //"VALUES ?Subject {"  + subjects + "}"+
+						  //"VALUES ?Object {"  + subjects + "}"+
+						  //"VALUES ?Object {"  + objects + "}" +
+						  //"VALUES ?Predicate {"  + predicates + "}" +
+						  "{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;}" +
+						  "{?Subject " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
+						  //  "{?Object " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
+						  "{?Subject ?Predicate ?Object}" +
+						  "}";
+				if(subclassCreate) //this is used for our metamodel graphs. Need to be subclass of concept rather than type
+				predicateSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
+										  "{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;}" +
+										  "{?Subject " + "<http://www.w3.org/2000/01/rdf-schema#subClassOf>  " +  " <http://semoss.org/ontologies/Concept>;}" +
+										  "{?Subject ?Predicate ?Object}" +
+										  "}";
+
+
+
+				
+				
+			}
+			else if(engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS)
+			{
+				predicateSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {"
+						+ "{?Subject ?Predicate ?Object} "
+						+ "} BINDINGS ?Subject {" + subjects + "}";
+			}
+			
+			
+			genBaseGraph(predicateSelectQuery);//subjects2, predicates2, subjects2);
 			logger.info("Loaded Graph");
 		}
 	}
 	
 	public void processData(String query, IEngine engine) {
+		
 		// open up the engine
 		String queryCap = query.toUpperCase();
 		
@@ -222,9 +295,9 @@ public class GraphDataModel {
 		try {
 //			boolean isError = false;
 			
-			StringBuffer subjects = new StringBuffer("");
+			//StringBuffer subjects = new StringBuffer(""); - Moved to class scope
 			StringBuffer predicates = new StringBuffer("");
-			StringBuffer objects = new StringBuffer("");
+			// StringBuffer objects = new StringBuffer(""); - moved to class scope
 			//if(!sjw.hasNext())
 			//{
 			//	logger.info("Came into not having ANY data"); 
@@ -244,39 +317,42 @@ public class GraphDataModel {
 				//predData.addPredicateAvailable(st.getPredicate());//, st.getPredicate());
 
 				if(subjects.indexOf("(<" + st.getSubject() + ">)") < 0) {
-					if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+					if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE || engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS) // RDBMS because the the in memory is RDBMS
 						subjects.append("(<").append(st.getSubject()).append(">)");
-					else
+					else if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA)
 						subjects.append("<").append(st.getSubject()).append(">");
+					// do the block for RDBMS - For RDBMS - What I really need are the instances - actually I dont need anything
 				}
 				
 				if(predicates.indexOf("(<" + st.getPredicate() +">)") < 0) {
-					if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+					if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE || engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS)
 						predicates.append("(<").append(st.getPredicate()).append(">)");
-					else
+					else if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA)
 						predicates.append("<").append(st.getPredicate()).append(">");
 				}
 				
 				//TODO: need to find a way to do this for jena too
 				if(obj instanceof URI && !(obj instanceof com.hp.hpl.jena.rdf.model.Literal)) {			
 					if(objects.indexOf("(<" + obj +">)") < 0) {
-						if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+						if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE || engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS)
 							objects.append("(<" + obj +">)");
-						else
+						else if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA)
 							objects.append("<" + obj +">");
 					}
 				}
 				//addToJenaModel(st);
-				addToSesame(st, false, false);
+				addToSesame(st, false, false); // and this will work fine because I am just giving out URIs
 				if (search) addToJenaModel3(st);
 			}			
 			logger.debug("Subjects >>> " + subjects);
 			logger.debug("Predicatss >>>> " + predicates);
 			
-			loadBaseData(engine);
+			loadBaseData(engine); // this method will work fine too.. although I have no use for it for later
 			// load the concept linkages
 			// the concept linkages are a combination of the base relationships and what is on the file
-			boolean loadHierarchy = !(subjects.length()==0 && predicates.length()==0 && objects.length()==0); 
+			boolean isRDF = (engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.JENA || 
+					engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE);
+			boolean loadHierarchy = !(subjects.length()==0 && predicates.length()==0 && objects.length()==0) && isRDF; // Load Hierarchy if and only if this is a RDF Engine - else dont worry about it
 			if(loadHierarchy) {
 				try {
 					RDFEngineHelper.loadConceptHierarchy(engine, subjects.toString(), objects.toString(), this);
@@ -291,14 +367,14 @@ public class GraphDataModel {
 			if(containsRelation == null)
 				containsRelation = "<http://semoss.org/ontologies/Relation/Contains>";
 
-			if(sudowl) {
+			if(sudowl && isRDF) { // I wont worry about this for now
 				logger.info("Starting to load SUDOWL");
 				GraphOWLHelper.loadConceptHierarchy(rc, subjects.toString(), objects.toString(), this);
 				GraphOWLHelper.loadRelationHierarchy(rc, predicates.toString(), this);
 				GraphOWLHelper.loadPropertyHierarchy(rc,predicates.toString(), containsRelation, this);
 				logger.info("Finished loading SUDOWL");
 			}
-			if(prop) {
+			if(prop && isRDF) { // hmm this is something i need wor worry about but I will work it with an RDF plug right now
 				logger.info("Starting to load properties");
 				// load local property hierarchy
 				try
@@ -663,24 +739,9 @@ public class GraphDataModel {
 	/**
 	 * Method genBaseConcepts.
 	 */
-	public void genBaseConcepts()
+	public void genBaseConcepts(String conceptSelectQuery)
 	{
 		// create all the relationships now
-		String conceptSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
-				  //"{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;}" +
-				  "{?Subject " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
-//				  "{?Subject ?Predicate ?Object.}" +
-				  "BIND(\"\" AS ?Predicate)" + // these are only used so that I can use select cheater...
-				  "BIND(\"\" AS ?Object)" +
-				  "}";
-		if(subclassCreate) //this is used for our metamodel graphs. Need to be subclass of concept rather than type
-			conceptSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
-				  "{?Subject " + "<http://www.w3.org/2000/01/rdf-schema#subClassOf>  " +  " <http://semoss.org/ontologies/Concept>;}" +
-//				  "{?Subject ?Predicate ?Object.}" +
-				  "BIND(\"\" AS ?Predicate)" + // these are only used so that I can use select cheater...
-				  "BIND(\"\" AS ?Object)" +
-				  "}";
-		
 		logger.info("ConceptSelectQuery query " + conceptSelectQuery);
 		
 		//IEngine jenaEngine = new InMemoryJenaEngine();
@@ -730,27 +791,9 @@ public class GraphDataModel {
 	/**
 	 * Method genBaseGraph.
 	 */
-	public void genBaseGraph()
+	public void genBaseGraph(String predicateSelectQuery)
 	{
 		// create all the relationships now
-		String predicateSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
-									  //"VALUES ?Subject {"  + subjects + "}"+
-									  //"VALUES ?Object {"  + subjects + "}"+
-									  //"VALUES ?Object {"  + objects + "}" +
-									  //"VALUES ?Predicate {"  + predicates + "}" +
-									  "{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;}" +
-									  "{?Subject " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
-//									  "{?Object " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
-									  "{?Subject ?Predicate ?Object}" +
-									  "}";
-		if(subclassCreate) //this is used for our metamodel graphs. Need to be subclass of concept rather than type
-			predicateSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
-									  "{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;}" +
-									  "{?Subject " + "<http://www.w3.org/2000/01/rdf-schema#subClassOf>  " +  " <http://semoss.org/ontologies/Concept>;}" +
-									  "{?Subject ?Predicate ?Object}" +
-									  "}";
-		
-		
 		//IEngine jenaEngine = new InMemoryJenaEngine();
 		//((InMemoryJenaEngine)jenaEngine).setModel(jenaModel);
 
