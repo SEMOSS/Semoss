@@ -42,6 +42,7 @@ import org.apache.log4j.Logger;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.api.IPlaySheet;
@@ -98,6 +99,10 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 		// hopefully they have selected one :)
 		String repo = repos[0] +"";
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repo);
+
+		boolean isRDF = (engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.JENA || 
+				engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE);
+
 		// execute the query
 		// add all the relationships
 		// the relationship needs to have the subject - selected vertex
@@ -114,7 +119,7 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 		Hashtable<String, String> hash = new Hashtable<String, String>();
 		String ignoreURI = engine.getProperty(Constants.IGNORE_URI);
 		int count = 0;
-		Vector typeV = new Vector();
+		//Vector typeV = new Vector();
 		for(int pi = 0;pi < pickedVertex.length;pi++)
 		{
 			
@@ -127,15 +132,19 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 			} else {
 				query2 = DIHelper.getInstance().getProperty(this.mainQuery + prefix);
 			}
-			String typeName = Utility.getConceptType(engine, thisVert.uri);
-			if(typeV.contains(typeName))
+			String typeName = null;
+			if(isRDF)
+				typeName = Utility.getConceptType(engine, thisVert.uri);
+			else if(engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS)
+				typeName = Utility.getQualifiedClassName(thisVert.uri);
+			/*if(typeV.contains(typeName))
 			{
 				continue;
 			}
 			else
 			{
 				typeV.addElement(typeName);
-			}
+			}*/
 			String type = Utility.getClassName(uri);
 			if(prefix.equals(""))
 				hash.put("SUBJECT_TYPE", typeName);
@@ -145,103 +154,139 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 			
 			// get the filter values
 			String fileName = "";
-			Vector <SEMOSSVertex> vertVector = ((GraphPlaySheet)ps).filterData.getNodes(type);
+			Vector <SEMOSSVertex> vertVector = ((GraphPlaySheet)ps).filterData.getNodes(type); // in reality this should work now
+			//Vector <SEMOSSVertex> vertVector = new Vector<SEMOSSVertex>();
 			logger.info("Vert vector size is " + vertVector.size());
 			
-			if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
-				for(int vertIndex = 0;vertIndex < vertVector.size();vertIndex++)
-				{
-					if(vertIndex == 0)
-						fileName = "<" + vertVector.elementAt(vertIndex).getURI() + ">";
-					else
-						fileName = fileName + "<" + vertVector.elementAt(vertIndex).getURI() + ">";
-				}
-			} else {
-				for(int vertIndex = 0;vertIndex < vertVector.size();vertIndex++)
-				{
-					if(vertIndex == 0)
-						fileName = "(<" + vertVector.elementAt(vertIndex).getURI() + ">)";
-					else
-						fileName = fileName + "(<" + vertVector.elementAt(vertIndex).getURI() + ">)";
-				}
-			}
-			
-			//put in param hash and fill  
-			hash.put("FILTER_VALUES", fileName);
-			String filledQuery = Utility.fillParam(query2, hash);
-			logger.debug("Found the engine for repository   " + repo);
+			// Replacing this call with the simple engines get neighborhood call
+			Vector <String> neighbors = engine.getNeighbors(typeName, 0);
 
-			
-			ISelectWrapper sjw = WrapperManager.getInstance().getSWrapper(engine, filledQuery);
-
-			// run the query
-			/*SesameJenaSelectWrapper sjw = new SesameJenaSelectWrapper();
-			sjw.setEngine(engine);
-			sjw.setEngineType(engine.getEngineType());
-			sjw.setQuery(filledQuery);
-			sjw.executeQuery();
-			*/
-			
-			logger.debug("Executed Query");
-
-			String [] vars = sjw.getVariables();
-			while(sjw.hasNext())
+			if(isRDF) // valid if this guy is RDF - this needs to be replaced with the logic below for neighbors - however				
 			{
-				ISelectStatement stmt = sjw.next();
-				// only one variable
-				String objClassName = stmt.getRawVar(vars[0])+"";
-				String pred = "";
+			
 				if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
-					pred = stmt.getRawVar(vars[1])+"";
+					for(int vertIndex = 0;vertIndex < vertVector.size();vertIndex++)
+					{
+						if(vertIndex == 0)
+							fileName = "<" + vertVector.elementAt(vertIndex).getURI() + ">";
+						else
+							fileName = fileName + "<" + vertVector.elementAt(vertIndex).getURI() + ">";
+					}
+				} else {
+					for(int vertIndex = 0;vertIndex < vertVector.size();vertIndex++)
+					{
+						if(vertIndex == 0)
+							fileName = "(<" + vertVector.elementAt(vertIndex).getURI() + ">)";
+						else
+							fileName = fileName + "(<" + vertVector.elementAt(vertIndex).getURI() + ">)";
+					}
 				}
 				
-				//logger.debug("Filler Query is " + nFillQuery);
-				// compose the query based on this class name
-				// should we get type or not ?
-				// that is the question
-				logger.debug("Trying predicate class name for " + objClassName );
-				if(objClassName.length() > 0 && !Utility.checkPatternInString(ignoreURI, objClassName)
-						&& !objClassName.equals("http://semoss.org/ontologies/Concept")
-						&& !objClassName.equals("http://www.w3.org/2000/01/rdf-schema#Resource")
-						&& !objClassName.equals("http://www.w3.org/2000/01/rdf-schema#Class")
-						&& !pred.equals("http://semoss.org/ontologies/Relation")
-						&& (pred.equals("") || pred.startsWith("http://semoss.org")))
+				//put in param hash and fill  
+				hash.put("FILTER_VALUES", fileName);
+				String filledQuery = Utility.fillParam(query2, hash);
+				logger.debug("Found the engine for repository   " + repo);
+	
+				
+				ISelectWrapper sjw = WrapperManager.getInstance().getSWrapper(engine, filledQuery);
+				
+				logger.debug("Executed Query");
+	
+				String [] vars = sjw.getVariables();
+				while(sjw.hasNext())
 				{
-					//add the to: and from: labels
-					if(count == 0){
-						if(this.getItemCount()>0)
-							addSeparator();
+					ISelectStatement stmt = sjw.next();
+					// only one variable
+					String objClassName = stmt.getRawVar(vars[0])+"";
+					String pred = "";
+					if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
+						pred = stmt.getRawVar(vars[1])+"";
+					}
+					
+					//logger.debug("Filler Query is " + nFillQuery);
+					// compose the query based on this class name
+					// should we get type or not ?
+					// that is the question
+					logger.debug("Trying predicate class name for " + objClassName );
+					if(objClassName.length() > 0 && !Utility.checkPatternInString(ignoreURI, objClassName)
+							&& !objClassName.equals("http://semoss.org/ontologies/Concept")
+							&& !objClassName.equals("http://www.w3.org/2000/01/rdf-schema#Resource")
+							&& !objClassName.equals("http://www.w3.org/2000/01/rdf-schema#Class")
+							&& !pred.equals("http://semoss.org/ontologies/Relation")
+							&& (pred.equals("") || pred.startsWith("http://semoss.org")))
+					{
+						//add the to: and from: labels
+						if(count == 0){
+							if(this.getItemCount()>0)
+								addSeparator();
+							if(prefix.equals(""))
+								addLabel("To:");
+							else
+								addLabel("From:");
+						}
+						count++;
+	
+						logger.debug("Adding Relation " + objClassName);
+						String instance = Utility.getInstanceName(objClassName);
+	
 						if(prefix.equals(""))
-							addLabel("To:");
+							hash.put("OBJECT_TYPE", objClassName);
 						else
-							addLabel("From:");
+							hash.put("SUBJECT_TYPE", objClassName);
+						if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
+							hash.put("PREDICATE", pred);
+						}
+	
+						String nFillQuery = Utility.fillParam(typeQuery, hash);
+	
+						NeighborMenuItem nItem = new NeighborMenuItem(instance, nFillQuery, engine);
+						if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
+							nItem = new NeighborMenuItem("->" + Utility.getInstanceName(pred) + "->" + instance, nFillQuery, engine);
+						}
+						nItem.addActionListener(NeighborMenuListener.getInstance());
+						add(nItem);
+						//hash.put(objClassName, predClassName);
 					}
-					count++;
-
-					logger.debug("Adding Relation " + objClassName);
-					String instance = Utility.getInstanceName(objClassName);
-
-					if(prefix.equals(""))
-						hash.put("OBJECT_TYPE", objClassName);
-					else
-						hash.put("SUBJECT_TYPE", objClassName);
-					if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
-						hash.put("PREDICATE", pred);
+					// for each of these relationship add a relationitem
+				}
+			}
+			else if(engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS)
+			{
+			// block to uncomment later
+				
+				Vector <String> fromInstances = new Vector<String>();
+				for(int vertIndex = 0;vertIndex < vertVector.size();vertIndex++)
+					fromInstances.add(vertVector.elementAt(vertIndex).getURI());
+				
+				for(int nIndex = 0;nIndex < neighbors.size();nIndex++)
+				{
+					String neighbor = neighbors.get(nIndex);					
+					String instance = Utility.getInstanceName(neighbor);
+					
+					// get the query here from engine and embed it
+					// It uses three things
+					// current class name, new type name, instance
+					// for now I am going to cast this based on RDBMS
+					
+					RDBMSNativeEngine rEngine = null;
+					String traverseQuery = "";
+					if(engine instanceof RDBMSNativeEngine)
+					{
+						rEngine = (RDBMSNativeEngine)engine;
+						traverseQuery = rEngine.traverseOutputQuery(typeName, neighbor, false, fromInstances);
+						System.out.println("Query is...  " + traverseQuery);
+						
 					}
-
-					String nFillQuery = Utility.fillParam(typeQuery, hash);
-
-					NeighborMenuItem nItem = new NeighborMenuItem(instance, nFillQuery, engine);
+					
+					NeighborMenuItem nItem = new NeighborMenuItem(instance, traverseQuery, engine);
 					if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
-						nItem = new NeighborMenuItem("->" + Utility.getInstanceName(pred) + "->" + instance, nFillQuery, engine);
+						nItem = new NeighborMenuItem(instance, traverseQuery, engine);
 					}
 					nItem.addActionListener(NeighborMenuListener.getInstance());
 					add(nItem);
-					//hash.put(objClassName, predClassName);
-				}
-				// for each of these relationship add a relationitem
-
-			}			
+					
+				}			
+			}
 		}
 		populated = true;
 		repaint();
@@ -265,7 +310,18 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 		if(!populated)
 		{
 			addRelations("");
-			addRelations("_2");
+
+			JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+			Object [] repos = (Object [])list.getSelectedValues();
+			// I am only going to get one repository
+			// hopefully they have selected one :)
+			String repo = repos[0] +"";
+			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repo);
+
+			boolean isRDF = (engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.JENA || 
+					engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE);
+			if(isRDF)
+				addRelations("_2");
 		}
 
 		//	addRelations();

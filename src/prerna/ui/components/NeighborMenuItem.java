@@ -35,6 +35,7 @@ import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.ui.components.playsheets.GraphPlaySheet;
+import prerna.ui.components.playsheets.SQLGraphPlaysheet;
 import prerna.ui.helpers.PlaysheetOverlayRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -71,33 +72,44 @@ public class NeighborMenuItem extends JMenuItem{
 	 */
 	public void paintNeighborhood()
 	{
-		GraphPlaySheet playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
-		logger.debug("Extending ");
-		Runnable playRunner = null;
-		// Here I need to get the active sheet
-		// get everything with respect the selected node type
-		// and then create the filter on top of the query
-		// use the @filter@ to get this done / some of the 			
-
-		// need to create playsheet extend runner
-		playRunner = new PlaysheetOverlayRunner(playSheet);
-		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-		// get the selected repository
-		Object [] repos = (Object [])list.getSelectedValues();
-
-		for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
+		if(QuestionPlaySheetStore.getInstance().getActiveSheet() instanceof GraphPlaySheet)
 		{
-			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
-			playSheet.setRDFEngine(engine);
-			playSheet.setQuery(query);
-		
-		
-			// thread
-			Thread playThread = new Thread(playRunner);
-			playThread.start();
-		}
-		
-	}
+			GraphPlaySheet playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
+			logger.debug("Extending ");
+			Runnable playRunner = null;
+			// Here I need to get the active sheet
+			// get everything with respect the selected node type
+			// and then create the filter on top of the query
+			// use the @filter@ to get this done / some of the 			
 	
+			// need to create playsheet extend runner
+			playRunner = new PlaysheetOverlayRunner(playSheet);
+			JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+			// get the selected repository
+			Object [] repos = (Object [])list.getSelectedValues();
+	
+			for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
+			{
+				IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
+				playSheet.setRDFEngine(engine);
+				playSheet.setQuery(query);
+			
+			
+				// thread
+				Thread playThread = new Thread(playRunner);
+				playThread.start();
+			}
+		}
+		// else is where we implement our logic
+		else if(QuestionPlaySheetStore.getInstance().getActiveSheet() instanceof SQLGraphPlaysheet)
+		{
+			// this is the sql playsheet
+			SQLGraphPlaysheet playSheet = (SQLGraphPlaysheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
+			playSheet.addMore(engine, query);
+			logger.debug("Extending ");
+
+			
+		}
+	}
 	
 }
