@@ -71,7 +71,7 @@ public class PropFileWriter {
 	public String defaultRDBMSEngine = "prerna.engine.impl.rdbms.RDBMSNativeEngine";//
 	public boolean hasMap = false;
 	
-	private SQLQueryUtil.DB_TYPE dbDriverType = null;
+	private SQLQueryUtil.DB_TYPE dbDriverType = SQLQueryUtil.DB_TYPE.H2_DB;
 	
 	public PropFileWriter() {
 		defaultDBPropName = "db/Default/Default.properties";
@@ -88,7 +88,8 @@ public class PropFileWriter {
 	}
 	
 	public void setRDBMSType(SQLQueryUtil.DB_TYPE dbDriverType){
-		this.dbDriverType = dbDriverType;
+		if(dbDriverType != null)
+			this.dbDriverType = dbDriverType;
 	}
 	
 	// TODO Change variable names, should we change default.properties to default.smss?

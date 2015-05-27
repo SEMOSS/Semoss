@@ -37,11 +37,12 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Vector;
 
-import org.openrdf.model.Value;
-import org.openrdf.query.Binding;
+import org.openrdf.model.vocabulary.RDFS;
+import org.openrdf.query.BindingSet;
+import org.openrdf.query.QueryEvaluationException;
+import org.openrdf.query.TupleQueryResult;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.api.ISelectStatement;
 import prerna.engine.impl.AbstractEngine;
 import prerna.rdf.query.builder.IQueryBuilder;
 import prerna.rdf.query.builder.SQLQueryTableBuilder;
@@ -257,5 +258,90 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			e.printStackTrace();
 		}
 		
+	}
+	
+	// traverse from a type to a type, optionally include properties
+	public String traverseOutputQuery(String fromType, String toType, boolean isProperties, Vector <String> fromInstances)
+	{
+		/*
+		 * 1. Get the relation for the type
+		 * 2. For every relation create a join
+		 * 3. If Properties are included get the properties
+		 * 4. Add the properties
+		 * 5. For every, type 
+		 * 
+		 * 
+		 */
+		SQLQueryTableBuilder builder = (SQLQueryTableBuilder) getQueryBuilder();
+		Vector <String> neighBors = getNeighbors(fromType, 0);
+		
+		// get the properties for the tables	
+		Vector <String> properties = new Vector<String>();
+		if(isProperties)
+			properties = getProperties4Concept(toType);
+		
+		// string relation selector
+		String relationQuery = "SELECT ?relation WHERE {"
+				+ "{" + "<" + fromType + "> ?relation <" + toType +">}"
+				+ "{?relation <" + RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation>}"
+				+ "}";
+
+		String relationName = getRelation(relationQuery);
+		
+		if(relationName == null || relationName.length() == 0)
+		{
+			relationQuery = "SELECT ?relation WHERE {"
+					+ "{" + "<" + toType + "> ?relation <" + fromType +">}"
+					+ "{?relation <" + RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation>}"
+					+ "}";
+			relationName = getRelation(relationQuery);
+			
+		}
+		
+		String fromTableName = Utility.getInstanceName(fromType);
+		builder.addSelector(fromTableName, fromTableName);
+
+		String toTableName = Utility.getInstanceName(toType);
+		// get the relation name for this from and to
+		relationName = Utility.getClassName(relationName);
+		builder.addRelation(relationName, " AND ", true);
+		builder.addTable(fromTableName, properties, properties);
+		
+		// need something that will identify the main identifier instead of it being always the same as table name
+		builder.addSelector(toTableName, toTableName);
+		
+		
+		if(fromInstances != null)
+		{
+			String propertyAsName = Utility.getInstanceName(fromType); // play on the type
+			// convert instances to simple instance
+			Vector <String> simpleFromInstances = new Vector<String>();
+			for(int fromIndex = 0;fromIndex <fromInstances.size();fromIndex++)
+				simpleFromInstances.add(Utility.getInstanceName(fromInstances.get(fromIndex)));
+			builder.addStringFilter(propertyAsName, propertyAsName, simpleFromInstances);
+		}		
+		builder.makeQuery();
+		String retQuery = builder.getQuery();
+		return retQuery;
+	}
+	
+	private String getRelation(String query)
+	{
+		String relation = null;
+		try {
+			TupleQueryResult tqr = (TupleQueryResult)execOntoSelectQuery(query);
+			while(tqr.hasNext())
+			{
+				BindingSet bs = tqr.next();
+				relation = bs.getBinding("relation").getValue() + "";
+				if(!relation.equalsIgnoreCase("http://semoss.org/ontologies/Relation"))
+					break;
+			}
+		} catch (QueryEvaluationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return relation;
 	}
 }

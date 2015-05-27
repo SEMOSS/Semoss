@@ -484,7 +484,9 @@ public class RDBMSReader {
 			if(queryUtil.getDatabaseType() == SQLQueryUtil.DB_TYPE.MARIA_DB)
 				tableNameVar += engineName.toLowerCase(); //Maria db wants a lower case table name, but the first letter is capital
 			
+			//tableNameVar = Utility.toCamelCase(tableNameVar);
 			String tableName = stmt.getVar(tableNameVar) + "";
+			//tableName = Utility.toCamelCase(tableName);
 			findColumns(tableName);
 			String tableCountQuery = queryUtil.getDialectSelectRowCountFrom(tableName,"");
 			ISelectWrapper tableCount = WrapperManager.getInstance().getSWrapper(engine, tableCountQuery);
