@@ -46,4 +46,9 @@ public class BTreeIterator implements Iterator<Object[]>{
 		return retRow.toArray();
 	}
 
+	@Override
+	public void remove() {
+		// what would this do.... should it remove the row from the entire tree?
+	}
+
 }
