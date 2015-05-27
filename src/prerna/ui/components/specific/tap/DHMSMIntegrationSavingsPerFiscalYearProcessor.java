@@ -128,14 +128,13 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		}
 
 		inflationArr = new double[numColumns+1];
-		
+		List<Double> inflationValues = DHMSMDeploymentHelper.getInflationRate(tapSite);
 		int i;
-		for(i = 0; i < numColumns+1; i++) {
-			if(i <= 1) {
-				inflationArr[i] = 1;
+		for(i = 0; i < numColumns + 1; i++) {
+			if(i <= inflationValues.size()) {
+				inflationArr[i] = inflationValues.get(i);
 			} else {
-				// only add inflation for years we don't have O&M budget info for
-				inflationArr[i] = Math.pow(1.03, i-1);
+				inflationArr[i] = inflationArr[i-1] + .02;
 			}
 		}
 		
@@ -215,6 +214,26 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 										if(costs[sustainmentIndex + counter] == null || costs[sustainmentIndex + counter] == 0){
 											dataMissing = true;
 											missingDataYear[index] = true;
+											// find last non-missing value and inflate
+											
+											int position = costs.length - 1;
+											boolean loop = true;
+											boolean data = true;
+											while(loop) {
+												if(position < 0) {
+													loop = false;
+													data = false;
+												}
+												if(costs[position] == null) {
+													position = position - 1;
+												} else {
+													loop = false;
+												}
+											}
+											if(data) {
+												double inflatedSavings = costs[position] * inflationArr[sustainmentIndex-position+1];
+												savings += inflatedSavings / numSites;
+											}
 										} else {
 											savings += costs[sustainmentIndex + counter] / numSites;
 										}

@@ -73,6 +73,8 @@ public final class DHMSMDeploymentHelper {
 	
 	public static final String GET_SITE_LOCATION_QUERY = "SELECT DISTINCT ?dcSite ?lat ?long WHERE { {?dcSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?dcSite <http://semoss.org/ontologies/Relation/Contains/LAT> ?lat }  {?dcSite <http://semoss.org/ontologies/Relation/Contains/LONG> ?long } }";
 	
+	public static final String GET_INFLATION_FOR_YEAR = "SELECT DISTINCT ?year ?inflationRate WHERE { {?year <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year>} {?year <http://semoss.org/ontologies/Relation/Contains/InflationRate> ?inflationRate } } ORDER BY ?year";
+	
 	public static final String REGION_START_Q_KEY = "REGION_START_Q";
 	public static final String REGION_START_Y_KEY = "REGION_START_Y";
 	public static final String REGION_END_Q_KEY = "REGION_END_Q";
@@ -80,6 +82,28 @@ public final class DHMSMDeploymentHelper {
 	
 	private DHMSMDeploymentHelper() {
 		
+	}
+	
+	public static List<Double> getInflationRate(IEngine engine) {
+		List<Double> retList = new ArrayList<Double>();
+		
+		ISelectWrapper sjsw = Utility.processQuery(engine, GET_INFLATION_FOR_YEAR);
+		String[] names = sjsw.getVariables();
+		int counter = 0;
+		while(sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			String year = sjss.getVar(names[0]).toString();
+			Double inflationRate = (double) sjss.getVar(names[1]);
+			
+			//TODO: remove this once year 2015 is added
+			if(counter == 0 && !year.equalsIgnoreCase("2015")) {
+				retList.add(1.0);
+			}
+			retList.add(inflationRate);
+			counter++;
+		}
+		
+		return retList;
 	}
 	
 	public static HashMap<String, HashMap<String, Double>> getSiteLocation(IEngine engine) {
