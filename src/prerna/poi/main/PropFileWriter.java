@@ -271,14 +271,16 @@ public class PropFileWriter {
 			if (this.hasMap) {
 				pw.write("MAP" + "\t" + "db/" + dbname + "/" + dbname + "_Mapping.ttl" + "\n");
 			}
-			fileRead = new FileReader(defaultName);
-			read = new BufferedReader(fileRead);
-			String currentLine;
-			while ((currentLine = read.readLine()) != null) {
-				if (currentLine.contains("@FileName@")) {
-					currentLine = currentLine.replace("@FileName@", jnlName);
+			if (dbType == ImportDataProcessor.DB_TYPE.RDF) {
+				fileRead = new FileReader(defaultName);
+				read = new BufferedReader(fileRead);
+				String currentLine;
+				while ((currentLine = read.readLine()) != null) {
+					if (currentLine.contains("@FileName@")) {
+						currentLine = currentLine.replace("@FileName@", jnlName);
+					}
+					pw.write(currentLine + "\n");
 				}
-				pw.write(currentLine + "\n");
 			}
 		} catch (FileNotFoundException ex) {
 			ex.printStackTrace();
