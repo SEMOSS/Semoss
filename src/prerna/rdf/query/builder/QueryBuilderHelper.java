@@ -172,7 +172,13 @@ public class QueryBuilderHelper {
 	{
 		String engineName = engine.getEngineName();
 		String query = "";
-		SQLQueryUtil queryUtil = SQLQueryUtil.initialize(SQLQueryUtil.DB_TYPE.valueOf(engine.getProperty(Constants.RDBMS_TYPE)));
+		
+		String dbTypeString = prop.getProperty(Constants.RDBMS_TYPE);
+		if (dbTypeString != null) {
+			dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
+		}
+		
+		SQLQueryUtil queryUtil = SQLQueryUtil.initialize(dbType);
 
 		query = queryUtil.getDialectAllColumns(table);
 		ISelectWrapper sWrapper = WrapperManager.getInstance().getSWrapper(engine, query);
