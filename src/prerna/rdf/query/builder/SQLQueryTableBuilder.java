@@ -72,7 +72,8 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	public SQLQueryTableBuilder(IEngine engine)
 	{
 		this.engine = engine;
-		String dbTypeString = prop.getProperty(Constants.RDBMS_TYPE);
+		SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
+		String dbTypeString = engine.getProperty(Constants.RDBMS_TYPE);
 		if (dbTypeString != null) {
 			dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
 		}
