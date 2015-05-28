@@ -852,7 +852,7 @@ public class CSVReader extends AbstractFileReader {
 		{
 			output = output+split[i];
 		}
-		return output;
+		return Utility.cleanString(output, true);
 	}
 
 	/**
