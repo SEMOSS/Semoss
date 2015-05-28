@@ -81,7 +81,11 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		String tempConnectionURL = prop.getProperty(Constants.TEMP_CONNECTION_URL);
 		String userName = prop.getProperty(Constants.USERNAME);
 		String password = "";
-		SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.valueOf((prop.getProperty(Constants.RDBMS_TYPE)));
+		SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
+		String dbTypeString = prop.getProperty(Constants.RDBMS_TYPE);
+		if (dbTypeString != null) {
+			dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
+		}
 		//special treatment for mariadb
 		if(dbType == SQLQueryUtil.DB_TYPE.MARIA_DB){
 			String splitConnectionURL[] = connectionURL.split("/");
