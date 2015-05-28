@@ -37,14 +37,12 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.Locale;
 import java.util.Properties;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
-import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 
@@ -86,7 +84,6 @@ public abstract class AbstractFileReader {
 	private static final Logger logger = LogManager.getLogger(AbstractFileReader.class.getName());
 
 	// OWL variables
-	protected RepositoryConnection rcOWL;
 	protected String owlFile = "";
 
 	//reload base data
