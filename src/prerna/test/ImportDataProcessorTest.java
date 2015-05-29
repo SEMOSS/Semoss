@@ -125,6 +125,8 @@ public class ImportDataProcessorTest {
 		//Excel Replace
 		replacementExcel = testFolder + "ExcelReplace.xlsm";
 		
+		System.out.println("Cleaning...");
+		clean();
 	}
 
 	@Before
@@ -147,77 +149,14 @@ public class ImportDataProcessorTest {
 
 	@After
 	public void tearDown() throws Exception {
-		//After all tests are run
-		//DeleteMe
-		//Delete Source Folder
-		File file = new File(dbDirectory+newDBname);
-		processor.deleteFile(file);
-		//Delete .temp
-		file = new File(dbDirectory+newDBname+".temp");
-		processor.deleteFile(file);
-		//Delete .SMSS
-		file = new File(dbDirectory+newDBname+".smss");
-		processor.deleteFile(file);
-				
-		//CSV
-		//Delete Source Folder
-		file = new File(dbDirectory+newDBnameCSV);
-		processor.deleteFile(file);
-		//Delete .temp
-		file = new File(dbDirectory+newDBnameCSV+".temp");
-		processor.deleteFile(file);
-		//Delete .SMSS
-		file = new File(CSVsmss);
-		processor.deleteFile(file);
-				
-		//Excel
-		//Delete Source Folder
-		file = new File(dbDirectory+newDBnameEXCEL);
-		processor.deleteFile(file);
-		//Delete .temp
-		file = new File(dbDirectory+newDBnameEXCEL+".temp");
-		processor.deleteFile(file);
-		//Delete .SMSS
-		file = new File(EXCELsmss);
-		processor.deleteFile(file);
-
+		//After tests are run
+		clean();
 	}
 	
 	@AfterClass
 	public static void finalTearDown() throws Exception {
 		//After all tests are run
-		//DeleteMe
-		//Delete Source Folder
-		File file = new File(dbDirectory+newDBname);
-		processor.deleteFile(file);
-		//Delete .temp
-		file = new File(dbDirectory+newDBname+".temp");
-		processor.deleteFile(file);
-		//Delete .SMSS
-		file = new File(dbDirectory+newDBname+".smss");
-		processor.deleteFile(file);
-		
-		//CSV
-		//Delete Source Folder
-		file = new File(dbDirectory+newDBnameCSV);
-		processor.deleteFile(file);
-		//Delete .temp
-		file = new File(dbDirectory+newDBnameCSV+".temp");
-		processor.deleteFile(file);
-		//Delete .SMSS
-		file = new File(CSVsmss);
-		processor.deleteFile(file);
-		
-		//Excel
-		//Delete Source Folder
-		file = new File(dbDirectory+newDBnameEXCEL);
-		processor.deleteFile(file);
-		//Delete .temp
-		file = new File(dbDirectory+newDBnameEXCEL+".temp");
-		processor.deleteFile(file);
-		//Delete .SMSS
-		file = new File(EXCELsmss);
-		processor.deleteFile(file);
+		clean();
 		
 	}
 
@@ -750,5 +689,40 @@ public class ImportDataProcessorTest {
 		}
 		return engine;
 	}
+	
+	private static void clean(){
+		//DeleteMe
+				//Delete Source Folder
+				File file = new File(dbDirectory+newDBname);
+				processor.deleteFile(file);
+				//Delete .temp
+				file = new File(dbDirectory+newDBname+".temp");
+				processor.deleteFile(file);
+				//Delete .SMSS
+				file = new File(dbDirectory+newDBname+".smss");
+				processor.deleteFile(file);
+						
+				//CSV
+				//Delete Source Folder
+				file = new File(dbDirectory+newDBnameCSV);
+				processor.deleteFile(file);
+				//Delete .temp
+				file = new File(dbDirectory+newDBnameCSV+".temp");
+				processor.deleteFile(file);
+				//Delete .SMSS
+				file = new File(CSVsmss);
+				processor.deleteFile(file);
+						
+				//Excel
+				//Delete Source Folder
+				file = new File(dbDirectory+newDBnameEXCEL);
+				processor.deleteFile(file);
+				//Delete .temp
+				file = new File(dbDirectory+newDBnameEXCEL+".temp");
+				processor.deleteFile(file);
+				//Delete .SMSS
+				file = new File(EXCELsmss);
+				processor.deleteFile(file);
 	}
+}
 
