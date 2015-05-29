@@ -36,7 +36,7 @@ public class SEMOSSParam {
 	String query = null;
 	String type = null;
 	Vector<String> options = new Vector<String>();
-	Boolean hasQuery = true;
+	Boolean hasQuery = false;
 	String uri = null;
 	String depends = "false";
 	Vector<String> dependVars = new Vector<String>();
@@ -105,7 +105,6 @@ public class SEMOSSParam {
 		while(st.hasMoreElements()) {
 			options.add((String)st.nextElement());
 		}
-		this.hasQuery=false;
 	}
 	
 	public Vector<String> getOptions() {
