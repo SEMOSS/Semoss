@@ -125,7 +125,7 @@ public class EntityFiller implements Runnable {
 					paramTable.put(Constants.ENTITY, type);
 					if (extQuery!=null) {
 						sparqlQuery=extQuery;
-					} else if (param!=null) {
+					} else if (param!=null && param.isQuery()) {
 						sparqlQuery = param.getQuery();
 						sparqlQuery = Utility.fillParam(sparqlQuery, paramTable);	
 					}
