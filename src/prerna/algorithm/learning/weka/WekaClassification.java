@@ -97,7 +97,7 @@ public class WekaClassification {
 		
 		// cannot classify when only one value
 		if(data.numDistinctValues(classIndex) == 1) {
-			LOGGER.info("There is only one distinct value for collumn " + names[classIndex]);
+			LOGGER.info("There is only one distinct value for column " + names[classIndex]);
 			accuracy = 100;
 			precision = 100;
 			return;
@@ -139,6 +139,13 @@ public class WekaClassification {
 	
 	public void processTreeString() {
 		LOGGER.info("Generating Tree Map from classification tree string...");
+		if(treeAsString == null) {
+			if(data.numDistinctValues(classIndex) == 1) {
+				treeMap = new HashMap<String, Map>();
+				treeMap.put(data.get(0).attribute(classIndex).value(classIndex), new HashMap());
+				return;
+			}
+		}
 		String[] treeSplit = treeAsString.split("\n");
 		treeMap = new HashMap<String, Map>();
 		// exception case when tree is a single node
