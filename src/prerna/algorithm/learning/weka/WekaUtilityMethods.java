@@ -271,7 +271,7 @@ public final class WekaUtilityMethods {
 		return evaluation;
 	}
 	
-	public static double calculateAccuracy(List<Double> predCorrect) {
+	public static double calculateAverage(List<Double> predCorrect) {
 		double sumPerCorrect = 0;
 		int size = predCorrect.size();
 		for (int i = 0; i < size; i++) {
@@ -279,15 +279,5 @@ public final class WekaUtilityMethods {
 		}
 
 		return sumPerCorrect / size;
-	}
-
-	public static double calculatePercision(List<Double> kappaValues) {
-		double sumKappa = 0;
-		int size = kappaValues.size();
-		for (int i = 0; i < size; i++) {
-			sumKappa+= (double) kappaValues.get(i);
-		}
-
-		return sumKappa / size;
 	}
 }
