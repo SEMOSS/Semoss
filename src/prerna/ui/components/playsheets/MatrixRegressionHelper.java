@@ -84,7 +84,7 @@ public final class MatrixRegressionHelper{
 		int listNumRows = list.size();
 		double[] b = new double[listNumRows];
 		for(i=0;i<listNumRows;i++)
-			if(list.get(i) != null && !list.get(i).toString().trim().isEmpty()) {
+			if(list.get(i)[bIndex] != null && !list.get(i)[bIndex].toString().trim().isEmpty()) {
 				b[i] = (Double)list.get(i)[bIndex];
 			} else {
 				b[i] = 0;
