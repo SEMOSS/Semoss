@@ -53,6 +53,9 @@ public class WekaClassification {
 	private double accuracy;
 	private double precision;
 	
+	private double bestAccuracy = -1;
+	private double bestPrecision = -1;
+	
 	private String[] treeStringArr = null;
 	private Map<String, Map> treeMap = new HashMap<String, Map>();
 	int index; 
@@ -112,7 +115,6 @@ public class WekaClassification {
 		
 		// For each training-testing split pair, train and test the classifier
 		int j;
-		double bestTreeAccuracy = -1;
 		for(j = 0; j < trainingSplits.length; j++) {
 			LOGGER.info("Running classification on training and test set number " + j + "...");
 			Evaluation validation = WekaUtilityMethods.classify(model, trainingSplits[j], testingSplits[j]);
@@ -121,9 +123,10 @@ public class WekaClassification {
 			if(Double.isNaN(newPctCorrect)) {
 				LOGGER.info("Cannot use this classification since every instance in training set is unknown for " + names[classIndex]);
 			} else {
-				if(newPctCorrect > bestTreeAccuracy) {
+				if(newPctCorrect > bestAccuracy) {
 					treeAsString = model.toString();
-					bestTreeAccuracy = newPctCorrect;
+					bestAccuracy = newPctCorrect;
+					bestPrecision = validation.precision(1)*100;
 				}
 				
 				// keep track of accuracy and precision of each test
@@ -133,8 +136,8 @@ public class WekaClassification {
 			}
 		}
 		
-		accuracy = WekaUtilityMethods.calculateAccuracy(accuracyArr);
-		precision = WekaUtilityMethods.calculateAccuracy(precisionArr);
+		accuracy = WekaUtilityMethods.calculateAverage(accuracyArr);
+		precision = WekaUtilityMethods.calculateAverage(precisionArr);
 	}
 	
 	public void processTreeString() {
@@ -315,4 +318,11 @@ public class WekaClassification {
 		return treeMap;
 	}
 
+	public double getBestPrecision() {
+		return bestPrecision;
+	}
+	
+	public double getBestAccuracy() {
+		return bestAccuracy;
+	}
 }
