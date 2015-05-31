@@ -935,7 +935,7 @@ public class CSVReader extends AbstractFileReader {
 			for(int i = 0; i < objList.length; i++){
 				strBuilder.append(jcrMap.get(objList[i])); 
 			}
-			return strBuilder.toString();
+			return Utility.cleanString(strBuilder.toString(), true);
 		}
 
 		return jcrMap.get(object);
