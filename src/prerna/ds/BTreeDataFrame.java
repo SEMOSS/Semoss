@@ -485,7 +485,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public Iterator<Object[]> iterator() {
-		Iterator<Object[]> it = new BTreeIterator(simpleTree.getInstances(levelNames[levelNames.length-1]));
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);	
+		typeRoot = typeRoot.getLeft(typeRoot);
+		Iterator<Object[]> it = new BTreeIterator(typeRoot);
 		return it;
 	}
 
@@ -554,6 +556,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 		// TODO Auto-generated method stub
 	}
 
+	public void test() {
+
+	}
+	
 	public static void main(String[] args) {
 		//use this as a test method
 	}
