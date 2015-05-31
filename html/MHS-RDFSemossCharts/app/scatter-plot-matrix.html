@@ -585,9 +585,11 @@ function start(dataSeries) {
                 }
 
                 keys = [];
+                console.log(cleanedNames);
                 for (var i in cleanedNames) {
                     // alert(cleanedNames)
-                    if (cleanedNames[i] !== "group" || cleanedNames[i] === "Title") {
+//                    if (cleanedNames[i] !== "group" || cleanedNames[i] === "Title" || cleanedNames[i] === "ID") {
+                    if (cleanedNames[i] !== "Title" && cleanedNames[i] !== "ID") {
                         keys.push(cleanedNames[i])
                     }
                 }
