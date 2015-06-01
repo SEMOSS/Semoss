@@ -36,6 +36,7 @@ import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.util.DIHelper;
@@ -115,6 +116,11 @@ public class ExecuteQueryProcessor {
 			}
 		}
 		System.out.println("Param Hash is " + paramHash);
+		
+		// clean up the hash 
+		if(engine instanceof RDBMSNativeEngine)
+			paramHash = Utility.cleanParamsForRDBMS(paramHash);
+		
 		//String[] questionTitleArray = insightString.split("\\.");
 		playSheetTitle = playSheetTitle+insightString.trim();
 		QuestionPlaySheetStore.getInstance().idCount++;

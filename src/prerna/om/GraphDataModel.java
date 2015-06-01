@@ -200,6 +200,7 @@ public class GraphDataModel {
 			
 			
 			String predicateSelectQuery = null;
+			isRDF = true;
 			if(isRDF)
 			{
 				predicateSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +

@@ -35,6 +35,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Vector;
 
 import org.openrdf.model.vocabulary.RDFS;
@@ -265,7 +266,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	}
 	
 	// traverse from a type to a type, optionally include properties
-	public String traverseOutputQuery(String fromType, String toType, boolean isProperties, Vector <String> fromInstances)
+	public String traverseOutputQuery(String fromType, String toType, boolean isProperties, List <String> fromInstances)
 	{
 		/*
 		 * 1. Get the relation for the type
@@ -307,8 +308,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 
 		String toTableName = Utility.getInstanceName(toType);
 		// get the relation name for this from and to
-		relationName = Utility.getClassName(relationName);
-		builder.addRelation(relationName, " AND ", true);
+		String relationClassName = Utility.getClassName(relationName);
+		builder.addRelation(relationClassName,relationName, " AND ", true);
 		builder.addTable(fromTableName, properties, properties);
 		
 		// need something that will identify the main identifier instead of it being always the same as table name
