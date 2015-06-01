@@ -330,6 +330,7 @@ public abstract class AbstractFileReader {
 	}
 
 	public String getBaseURI(String nodeType) {
+		nodeType = Utility.cleanString(nodeType, true);
 		// Generate URI for subject node at the instance and base level
 		String semossBaseURI = baseConceptURIHash.get(nodeType+Constants.CLASS);
 		// check to see if user specified URI in custom map file
