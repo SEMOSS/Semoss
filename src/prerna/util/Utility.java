@@ -1004,5 +1004,24 @@ public class Utility {
 		System.out.println("Output is " + output);
 		return output;
 	}
+
+	public static Hashtable<String, Object> cleanParamsForRDBMS(
+			Hashtable<String, Object> paramHash) {
+		// TODO Auto-generated method stub
+		// really simple, I am runnign the keys and then I will have strip the instance values out
+		Enumeration <String> keys = paramHash.keys();
+		while(keys.hasMoreElements())
+		{
+			String singleKey = keys.nextElement();
+			String value = paramHash.get(singleKey) + "";
+			if(value.startsWith("http:") || value.contains(":"))
+			{
+				value = getInstanceName(value);
+				paramHash.put(singleKey, value);
+			}
+		}
+		
+		return paramHash;
+	}
 	
 }
