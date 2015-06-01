@@ -546,7 +546,8 @@ public class RDBMSReader {
 		String genericQueries = "";
 		
 		int questionOrder = 0;
-		for(int tableIndex = 0;tableIndex < tables.size();tableIndex++)
+		int tableIndex = 0;
+		for(;tableIndex < tables.size();tableIndex++)
 		{
 			questionOrder = newTableSeq + tableIndex;
 			String key = tables.elementAt(tableIndex);
@@ -559,6 +560,18 @@ public class RDBMSReader {
 			prop.put("GQ" + questionOrder +"_LAYOUT", "prerna.ui.components.playsheets.GridPlaySheet");
 			prop.put("GQ" + questionOrder +"_QUERY", "SELECT * FROM " + key);
 		}
+		genericQueries = genericQueries + ";" + "GQ" + tableIndex;
+		prop.put("GQ" + tableIndex, "Explore a concept from the database");
+		prop.put("GQ" + tableIndex + "_LAYOUT", "prerna.ui.components.playsheets.GraphPlaySheet");
+		prop.put("GQ" + tableIndex +"_QUERY", "SELECT @Concept-Concept:Concept@, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://semoss.org/ontologies/Concept' "
+						+ "From @Concept-Concept:Concept@ WHERE @Concept-Concept:Concept@='@Instance-Instance:Instance@'");
+		prop.put("GQ" + tableIndex + "_Instance_DEPEND", "Concept");
+		prop.put("GQ" + tableIndex + "_Concept_QUERY", "select Distinct Table_name from information_schema.tables where table_schema='PUBLIC'"); // I recognize.. I need to work this for MariaDB
+		prop.put("GQ" + tableIndex + "_Instance_QUERY", "SELECT Distinct @Concept@ FROM @Concept@");
+		
+		prop.put("Generic-Perspective", genericQueries);
+		//prop.put("PERSPECTIVE", "Generic-Perspective");
+
 		if(newTableSeq != 0 ){
 			String savedGenericQueries = (String) prop.get(GENERIC_PERSPECTIVE);
 			genericQueries = savedGenericQueries + ";" + genericQueries;

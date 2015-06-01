@@ -588,7 +588,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	}
 	
 	// add a relationship
-	public void addRelation(String relationName, String operator, boolean addToSelect)
+	public void addRelation(String relationName, String uri, String operator, boolean addToSelect)
 	{
 		// we can pick up the relationship from here
 		//String relation = Utility.getInstanceName(relationName);
@@ -614,8 +614,8 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		
 		if(addToSelect) // add this to selector
 		{
-			String qualifiedRelationName = "http://semoss.org/ontologies/Relation/" + relationName + "/";
-			addSelector(null, "concat('" + qualifiedRelationName + "'," + fromAlias + "." + fromColumn + ",':'," + toAlias + "." + toColumn + ")");
+			String qualifiedRelationName = uri + "/";
+			addSelector(null, "concat('" + qualifiedRelationName + "'," + fromAlias + "." + fromColumn + ",':'," + toAlias + "." + toTable + ")");
 		}
 
 	}

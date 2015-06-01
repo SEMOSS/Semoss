@@ -1226,8 +1226,8 @@ public abstract class AbstractEngine implements IEngine {
 					String[] typeArray = type.split(":");
 					String table = typeArray[0];
 					type = typeArray[1];
-					if(paramQuery != null)
-						paramQuery = paramQuery.substring(0, paramQuery.lastIndexOf("@entity@")) + table;
+					//if(paramQuery != null)
+					//	paramQuery = paramQuery.substring(0, paramQuery.lastIndexOf("@entity@")) + table;
 				}
 			}
 			if(paramQuery != null){
