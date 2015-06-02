@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -61,7 +62,7 @@ public class SimpleTreeBuilder
 	// type to the root node of the type
 	// type is expresed as string
 	Hashtable <String, TreeNode> nodeIndexHash = new Hashtable <String, TreeNode>();
-	Hashtable <String, Integer> typeToLevel = new Hashtable <String, Integer>();
+	//Hashtable <String, Integer> typeToLevel = new Hashtable <String, Integer>();
 	Hashtable <String, Hashtable> nodeTypeFilters = new Hashtable <String, Hashtable>();
 	
 	// hosting everything else for the thread runner
@@ -559,24 +560,24 @@ public class SimpleTreeBuilder
 		addNode(new StringClass("Lab", "Cap"), new StringClass("ClinicalPath", "BP"));
 		//flattenFromType("Cap");
 		
-		System.out.println("Number of nodes " + getSInstanceNodes("Activity").size());
+		//System.out.println("Number of nodes " + getSInstanceNodes("Activity").size());
 		
-		System.err.println("-----");
-		adjustType("BP", false);
-		flattenFromType("Cap");
+		//System.err.println("-----");
+		//adjustType("BP", false);
+		//flattenFromType("Cap");
 		
-		System.err.println("-----");
+		//System.err.println("-----");
 		addNode(new StringClass("ClinicalPath", "BP"), new StringClass("Procurement", "Activity"));
-		flattenFromType("Cap");
+		//flattenFromType("Cap");
 		
-		System.err.println("-----");
+		//System.err.println("-----");
 		
 		addNode(new StringClass("Modify Referrals", "Activity"), new StringClass("Orders", "DO"));
 		addNode(new StringClass("Modify Referrals", "Activity"), new StringClass("Referrals", "DO"));
 		addNode(new StringClass("Modify Referrals", "Activity"), new StringClass("Patients", "DO"));
 		addNode(new StringClass("ClinicalPath", "BP"), new StringClass("Procurement2", "Activity"));
 		
-		adjustType("Activity", false);
+		//adjustType("Activity", false);
 		
 		//addNode(new StringClass("Procurement", "Activity"), new StringClass("Eligibility", "BLU"));
 		//addNode(new StringClass("Modify Referrals", "Activity"), new StringClass("Eligibility", "BLU"));
@@ -587,21 +588,21 @@ public class SimpleTreeBuilder
 		
 		//adjustType("DO", false);
 		
-		flattenFromType("Cap");
+		//flattenFromType("Cap");
 		//getInstances("Cap");
 		//getPath("BP", "TRY2");
 		addNode(new StringClass("Lab", "Cap"), new StringClass("PK", "BP"));
-		adjustType("BP", true);
-		System.err.println("After Adjustments.... for a single node");
-		flattenFromType("Cap");
+		//adjustType("BP", true);
+		//System.err.println("After Adjustments.... for a single node");
+		//flattenFromType("Cap");
 		//removeNode(new StringClass("Referrals", "DO"));
-		removeType("DO"); // not removing the last one
+		//removeType("DO"); // not removing the last one
 		//addNode(new StringClass("Modify Referrals", "Activity"), new StringClass("Eligibility", "BLU"));
-		System.out.println("Flattening ");
-		flattenFromType("Cap");
-		System.err.println("-----");
+		//System.out.println("Flattening ");
+		//flattenFromType("Cap");
+		//System.err.println("-----");
 		
-		flattenFromType("Cap", "Activity");
+		//flattenFromType("Cap", "Activity");
 
 	}
 	
@@ -630,11 +631,15 @@ public class SimpleTreeBuilder
 	public static void main(String [] args)
 	{
 		SimpleTreeBuilder builder = new SimpleTreeBuilder();
-		System.out.println(Runtime.getRuntime().availableProcessors());
+		SimpleTreeBuilder builder2 = new SimpleTreeBuilder();
+		
+		//System.out.println(Runtime.getRuntime().availableProcessors());
 		
 		
 		
 		builder.addSimple();
+		builder.append(builder.getRoot(), builder2.getRoot());
+		
 		//builder.addStress2();
 		//builder.multiEngineAdd();
 	}
@@ -672,7 +677,7 @@ public class SimpleTreeBuilder
 		int numProc = Runtime.getRuntime().availableProcessors();
 		threadList = new ArrayList();
 		numProc = 8;
-
+		
 		// this is the core method that would test the tree add
 		// I need set of levels
 		// number of nodes at every level
@@ -867,7 +872,117 @@ public class SimpleTreeBuilder
 		nodeTypeFilters.put(nodeType, filters);
 	}
 	
+	public void append(SimpleTreeNode node, SimpleTreeNode node2merge) {
+		//Recursive Algorithm for merging
+		//Use in the case node and node2merge come from structurally identical Simple Trees
+		//Not sure yet how adding nodes affects the index tree and assumes right child does not matter/get used in a SimpleTree
+		/*
+		 * Vector<Node> siblings = node.allSiblings
+		 * Vector<Node> mSiblings = node2merge.allSiblings
+		 * For each sNode in mSiblings
+		 * 		If sNode !exist in siblings
+		 * 			append sNode to siblings
+		 * 		Else
+		 * 			Merge(siblings.get(sNode).leftChild, sNode.leftChild)
+		 * 
+		 * 
+		 * */
+		
+		SimpleTreeNode rightNode = node.getRight(node);
+		SimpleTreeNode leftNode2Merge = node2merge.getLeft(node2merge);
+		
+		ISEMOSSNode n = (ISEMOSSNode)node.leaf;
+		TreeNode indexNode = nodeIndexHash.get(n.getType());
+		SimpleTreeNode rightMergeSibling = null;
+		
+		while(leftNode2Merge!=null) {
+			//find if the node exists in the tree node
+			TreeNode tn = this.getNode((ISEMOSSNode)leftNode2Merge.leaf);
+			
+			//If the node doesn't exist in the tree, take the node, sever connection from right sibling and add node to level, repeat for right sibling
+			if(tn == null) {
+				//Add to the Value Tree
+				rightNode.rightSibling = leftNode2Merge;
+				leftNode2Merge.leftSibling = rightNode;
+				rightMergeSibling = leftNode2Merge.rightSibling;
+				
+				leftNode2Merge.rightSibling = null;
+				rightNode = rightNode.rightSibling;
+				
+				//Update the Index Tree
+				appendToIndexTree(leftNode2Merge);
+			} 
+			//If the node does exist in the tree, determine if the node exists on this branch
+			else {				
+				List<SimpleTreeNode> instanceList = tn.getInstances();
+				SimpleTreeNode equivalentInstance = null;
+				
+				boolean foundNode = false;
+				SimpleTreeNode instance = null;
+				SimpleTreeNode mergeInstance;
+				for(int i = 0; i < instanceList.size(); i++) {
+					instance = instanceList.get(i);
+					mergeInstance = leftNode2Merge;
+					while(!foundNode && instance.equal(mergeInstance)){
+						if(instance.parent==null) {
+							foundNode = true; break;
+						}
+						instance = instance.parent;
+						mergeInstance = mergeInstance.parent;
+					}
+				}
+				//If the node exists on the branch, append the children
+				if(foundNode) {
+					equivalentInstance = instance; 
+					//FIXME
+					if(equivalentInstance.leftChild!=null) {
+						append(equivalentInstance.leftChild, leftNode2Merge.leftChild);
+					}
+					rightMergeSibling = leftNode2Merge.rightSibling;
+				} 
+				//if the node doesn't exist on the branch simply add it
+				else {
+					//Add to the Value Tree
+					rightNode.rightSibling = leftNode2Merge;
+					leftNode2Merge.leftSibling = rightNode;
+					rightMergeSibling = leftNode2Merge.rightSibling;
+					
+					leftNode2Merge.rightSibling = null;
+					rightNode = rightNode.rightSibling;
+
+					//Update the Index Tree
+					appendToIndexTree(leftNode2Merge);
+				}
+				//append(equivalentInstance.leftChild, leftNode2Merge.leftChild);
+			}
+			leftNode2Merge = rightMergeSibling;
+		}		
+	}
 	
+	//Recursively add a node and it's children to the appropriate index trees
+	private void appendToIndexTree(SimpleTreeNode node) {
+		ISEMOSSNode n = (ISEMOSSNode)node.leaf;
+		TreeNode indexNode = nodeIndexHash.get(n.getType());
+		if(node!=null)indexNode.addInstance(node);
+		while(node.rightSibling!=null) {
+			node = node.rightSibling;
+			
+			indexNode.insertData(new TreeNode(node.leaf));
+			
+			indexNode.addInstance(node);
+			//node = node.rightSibling;
+		}
+		if(node.leftChild!=null) {
+			appendToIndexTree(node.leftChild);
+		}
+	}
+	
+	public SimpleTreeNode getRoot() {
+		SimpleTreeNode root = lastAddedNode;
+		while(root.parent!=null) root = root.parent;
+		while(root.leftSibling!=null) root = root.leftSibling;
+		return root;
+	}
 	
 	
 
