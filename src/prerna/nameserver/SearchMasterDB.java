@@ -64,48 +64,58 @@ public class SearchMasterDB extends ModifyMasterDB {
 		Set<String> keywordSet = new HashSet<String>();
 		// track all the engines that contain the keywords to speed up instance search
 		Map<String, Set<String>> engineKeywordMap = new HashMap<String, Set<String>>();
-		MasterDBHelper.findRelatedKeywordsToSpecificURI(masterEngine, keywordURI, keywordSet, engineKeywordMap);
-		
-		Map<String, Double> similarKeywordScores = new HashMap<String, Double>();
-		String query = formInsightsForKeywordsQuery(keywordURI, keywordSet, similarKeywordScores);
-
-		// check if instance exists in the engines
-		Map<String, Map<String, String>> engineInstances = new HashMap<String, Map<String, String>>();
-		for(String engineName : engineKeywordMap.keySet()) {
-			Set<String> keywordList = engineKeywordMap.get(engineName);
-			String getUsableInstancesQuery = formUsableInsightsQuery(keywordList,instanceURIList);
-			
-			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-			ISelectWrapper sjsw = Utility.processQuery(engine, getUsableInstancesQuery);
-			
-			Map<String, String> typeAndInstance = getTypeAndInstance(sjsw);
-			engineInstances.put(engineName, typeAndInstance);
-		}
-		
 		List<Hashtable<String,Object>> insightList = new ArrayList<Hashtable<String,Object>>();
-		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
-		String[] names = sjsw.getVariables();
-		while(sjsw.hasNext()) {
-			ISelectStatement sjss = sjsw.next();
-			String engine = sjss.getVar(names[0]).toString();
-			String insightLabel = sjss.getVar(names[1]).toString();
-			String keyword = sjss.getRawVar(names[2]).toString();
-			String perspectiveLabel = sjss.getVar(names[3]).toString();
-			String viz = sjss.getVar(names[4]).toString();
+		if(masterEngine != null)
+		{
+			MasterDBHelper.findRelatedKeywordsToSpecificURI(masterEngine, keywordURI, keywordSet, engineKeywordMap);
 			
-			if(engineInstances.containsKey(engine)) {
-				Map<String, String> typeAndInstance = engineInstances.get(engine);
-				String typeURI = MasterDatabaseURIs.SEMOSS_CONCEPT_URI.concat("/").concat(Utility.getInstanceName(keyword));
-				if(typeAndInstance != null && typeAndInstance.containsKey(typeURI)) {
-					Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
-					insightHash.put(MasterDatabaseConstants.DB_KEY, engine);
-					insightHash.put(MasterDatabaseConstants.QUESITON_KEY, insightLabel);
-					insightHash.put(MasterDatabaseConstants.TYPE_KEY, typeURI);
-					insightHash.put(MasterDatabaseConstants.PERSPECTIVE_KEY, perspectiveLabel);
-					insightHash.put(MasterDatabaseConstants.VIZ_TYPE_KEY, viz);
-					insightHash.put(MasterDatabaseConstants.SCORE_KEY, 1.0 - similarKeywordScores.get(keyword));
-					insightHash.put(MasterDatabaseConstants.INSTANCE_KEY, typeAndInstance.get(typeURI));
-					insightList.add(insightHash);
+			Map<String, Double> similarKeywordScores = new HashMap<String, Double>();
+			String query = formInsightsForKeywordsQuery(keywordURI, keywordSet, similarKeywordScores);
+	
+			// check if instance exists in the engines
+			Map<String, Map<String, String>> engineInstances = new HashMap<String, Map<String, String>>();
+			for(String engineName : engineKeywordMap.keySet()) {
+				Set<String> keywordList = engineKeywordMap.get(engineName);
+				String getUsableInstancesQuery = formUsableInsightsQuery(keywordList,instanceURIList);
+				
+				IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+				if(engine != null)
+				{
+					ISelectWrapper sjsw = Utility.processQuery(engine, getUsableInstancesQuery);
+				
+					Map<String, String> typeAndInstance = getTypeAndInstance(sjsw);
+					engineInstances.put(engineName, typeAndInstance);
+				}
+				else
+				{
+					// find a way to remove this sucker from overall piece
+				}
+			}
+			
+			ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
+			String[] names = sjsw.getVariables();
+			while(sjsw.hasNext()) {
+				ISelectStatement sjss = sjsw.next();
+				String engine = sjss.getVar(names[0]).toString();
+				String insightLabel = sjss.getVar(names[1]).toString();
+				String keyword = sjss.getRawVar(names[2]).toString();
+				String perspectiveLabel = sjss.getVar(names[3]).toString();
+				String viz = sjss.getVar(names[4]).toString();
+				
+				if(engineInstances.containsKey(engine)) {
+					Map<String, String> typeAndInstance = engineInstances.get(engine);
+					String typeURI = MasterDatabaseURIs.SEMOSS_CONCEPT_URI.concat("/").concat(Utility.getInstanceName(keyword));
+					if(typeAndInstance != null && typeAndInstance.containsKey(typeURI)) {
+						Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
+						insightHash.put(MasterDatabaseConstants.DB_KEY, engine);
+						insightHash.put(MasterDatabaseConstants.QUESITON_KEY, insightLabel);
+						insightHash.put(MasterDatabaseConstants.TYPE_KEY, typeURI);
+						insightHash.put(MasterDatabaseConstants.PERSPECTIVE_KEY, perspectiveLabel);
+						insightHash.put(MasterDatabaseConstants.VIZ_TYPE_KEY, viz);
+						insightHash.put(MasterDatabaseConstants.SCORE_KEY, 1.0 - similarKeywordScores.get(keyword));
+						insightHash.put(MasterDatabaseConstants.INSTANCE_KEY, typeAndInstance.get(typeURI));
+						insightList.add(insightHash);
+					}
 				}
 			}
 		}
