@@ -267,26 +267,28 @@ public final class MasterDBHelper {
 	public static void findRelatedKeywordsToSpecificURI(IEngine masterEngine, String keywordURI, Set<String> keywordSet, Map<String, Set<String>> engineKeywordMap){
 		// find all related keywords to the inputed data type
 		String query = MasterDatabaseQueries.GET_RELATED_KEYWORDS_AND_THEIR_NOUNS.replace("@KEYWORD@", keywordURI);
-		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
-		String[] names = sjsw.getVariables();
-		while(sjsw.hasNext()) {
-			ISelectStatement sjss = sjsw.next();
-			String engine = sjss.getVar(names[0]).toString();
-			String keyword = sjss.getRawVar(names[1]).toString();
-			
-			keywordSet.add(keyword);
-			
-			Set<String> keywordForEngineList;
-			if(engineKeywordMap.containsKey(engine)) {
-				keywordForEngineList = engineKeywordMap.get(engine);
-				keywordForEngineList.add(keyword);
-			} else {
-				keywordForEngineList = new HashSet<String>();
-				keywordForEngineList.add(keyword);
-				engineKeywordMap.put(engine, keywordForEngineList);
+		if(masterEngine != null)
+		{
+			ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
+			String[] names = sjsw.getVariables();
+			while(sjsw.hasNext()) {
+				ISelectStatement sjss = sjsw.next();
+				String engine = sjss.getVar(names[0]).toString();
+				String keyword = sjss.getRawVar(names[1]).toString();
+				
+				keywordSet.add(keyword);
+				
+				Set<String> keywordForEngineList;
+				if(engineKeywordMap.containsKey(engine)) {
+					keywordForEngineList = engineKeywordMap.get(engine);
+					keywordForEngineList.add(keyword);
+				} else {
+					keywordForEngineList = new HashSet<String>();
+					keywordForEngineList.add(keyword);
+					engineKeywordMap.put(engine, keywordForEngineList);
+				}
 			}
-		}
-		
+		}		
 		//TODO: remove once error checking is done
 //		System.err.println(">>>>>>>>>>>>>>>>>FOUND RELATED KEYWORDS " + Utility.getInstanceName(keywordURI));
 //		System.err.println(">>>>>>>>>>>>>>>>>LIST IS: " + keywordSet);
