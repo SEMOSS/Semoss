@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -24,8 +25,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	public BTreeDataFrame() {
 		this.simpleTree = new SimpleTreeBuilder();
-		levelNames = new String[1]; //{"Director"};
-		levelNames[0] = "Director";
+		
+		//This was used for testing purposes
+		//levelNames = new String[1]; //{"Director"};
+		//levelNames[0] = "Director";
 	}
 	public BTreeDataFrame(String[] levelNames) {
 		this.simpleTree = new SimpleTreeBuilder();
@@ -79,17 +82,18 @@ public class BTreeDataFrame implements ITableDataFrame {
 				child = createNodeObject(val, null, levelNames[index]);
 
 				simpleTree.addNode(parent, child);
+				//System.out.print(parent.getValue()+ " "+child.getValue());
 				parent = child;
 			}
 
 		}
+		System.out.println();
 
 		// not one relationship found, add an empty node
 		if(!foundChild) {
 			simpleTree.createNode(parent, false);
 		}
 	}
-
 
 	private ISEMOSSNode createNodeObject(Object value, String rawValue, String level) {
 		ISEMOSSNode node;
@@ -135,6 +139,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 		LOGGER.info("Columns Passed ::: " + colNameInTable + " and " + colNameInJoiningTable);
 		LOGGER.info("Confidence Threshold :: " + confidenceThreshold);
 		LOGGER.info("Analytics Routine ::: " + routine.getName());
+		
+		
+		
 		LOGGER.info("Begining join on columns ::: " + colNameInTable + " and " + colNameInJoiningTable);
 
 		// fill the options needed for the routine
@@ -265,7 +272,45 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public void append(ITableDataFrame table) {
-		// TODO Auto-generated method stub
+
+	}
+	
+	private void append(BTreeDataFrame bTree) {
+		/*
+		 * Algorithm
+		 * 
+		 * Determine the levels of the incoming tree
+		 * if the levels are the same (type and order)
+		 * 		compare the roots of the tree
+		 * 		Simply Add different roots to the root level
+		 * 		for the same roots
+		 * 			repeat the process of each child on the next level
+		 * if the levels are not the same
+		 * 		Case 1: same types, different order
+		 * 		Case 2: appending
+		 * 
+		 * 
+		 * */
+		
+		//Determine if this BTreeDataFrame is structurally the same as bTree arguments
+		String[] tableHeaders = bTree.getColumnHeaders();
+		boolean same = true;
+		if(tableHeaders.length == levelNames.length) {
+			for(int i = 0; i < levelNames.length; i++) {
+				if(!levelNames[i].equals(tableHeaders[i])) {
+					same = false; break;
+				}
+			}
+		}
+		
+		if(same) {
+			simpleTree.append(this.simpleTree.getRoot(), bTree.getTree().getRoot());
+		} else {
+			//do something else which I don't know yet
+		}
+	}
+	private void mergeBranches(ISEMOSSNode node) {
+		
 	}
 	
 	/***
@@ -281,6 +326,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	 * no new columns will be added to this table, therefore 'List<String> levels' must be a subset of this table's levels
 	 * */
 	public void append(ITableDataFrame table, List<String> levels) {
+		
 		//create an array so that it is known where is level is located in the table
 		int columnLength = levels.size();
 		String[] tableStructure = table.getColumnHeaders();
@@ -326,7 +372,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		for(int i = 0; i < levelNames.length; i ++) {
 			if(tableLookup.containsKey(levelNames[i])) levels.add(tableLookup.get(levelNames[i]));
 		}
-		
 		this.append(table, levels);
 	}
 
@@ -431,28 +476,14 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public boolean isNumeric(String columnHeader) {
-		if(!ArrayUtilityMethods.arrayContainsValue(levelNames, columnHeader)) {
-			throw new IllegalArgumentException("Column name is not contained in the table");
-		}
-		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		ITreeKeyEvaluatable nodeEvaluator = typeRoot.getInstances().elementAt(0).leaf;
-		
-		if(nodeEvaluator instanceof IntClass || nodeEvaluator instanceof DoubleClass) {
-			return true;
-		}
-		
+		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
 	public boolean[] isNumeric() {
-		boolean[] isNumeric = new boolean[levelNames.length];
-		
-		for(int i = 0; i < levelNames.length; i++) {
-			isNumeric[i] = isNumeric(levelNames[i]);
-		}
-		
-		return isNumeric;
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override
@@ -493,12 +524,15 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public Object[] getColumn(String columnHeader) {
+
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
 		typeRoot = typeRoot.getLeft(typeRoot);
 		List<Object> table = typeRoot.flattenToArray(typeRoot, true);
+		
 
 		System.out.println("Final count for column " + columnHeader + " = " + table.size());
 		return table.toArray();
+		
 	}
 
 	@Override
@@ -556,8 +590,12 @@ public class BTreeDataFrame implements ITableDataFrame {
 		// TODO Auto-generated method stub
 	}
 
-	public void test() {
-
+	public String[] getTreeLevels() {
+		return this.levelNames;
+	}
+	
+	public SimpleTreeBuilder getTree() {
+		return simpleTree;
 	}
 	
 	public static void main(String[] args) {
