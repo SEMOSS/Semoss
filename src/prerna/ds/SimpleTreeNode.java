@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
@@ -89,6 +90,7 @@ public class SimpleTreeNode {
 		while(left != null && !found)
 		{
 			found = left.leaf.isEqual(node);
+//			System.out.println(left.parent.leaf.getValue() +  "                          " + left.leaf.getValue());//
 			left = left.rightSibling;
 		}
 		return found;
@@ -113,7 +115,7 @@ public class SimpleTreeNode {
 	
 	
 	
-	private void printNodes(SimpleTreeNode rightChild2) {
+	public void printNodes(SimpleTreeNode rightChild2) {
 		// TODO Auto-generated method stub
 		System.out.println(rightChild2.leaf.getKey());
 		if(rightChild2.rightSibling != null)
@@ -254,7 +256,7 @@ public class SimpleTreeNode {
 		{
 			SimpleTreeNode node = nodes.elementAt(nodeIndex);
 			do{
-				output += node.leaf.getKey();
+				output += node.leaf.toString();
 				if(node.leftChild != null)
 					childNodes.add(node.leftChild);
 				//else
@@ -266,7 +268,7 @@ public class SimpleTreeNode {
 				node = node.rightSibling;
 				if(node != null)
 				{
-					output += "-";
+					output += "@";
 				}
 			}while(node != null);
 			if(!parent)
@@ -279,7 +281,7 @@ public class SimpleTreeNode {
 			return output;
 	}
 	
-	public static SimpleTreeNode deserializeTree(String output)
+	public static SimpleTreeNode deserializeTree(String output, Map<String, TreeNode> indexHash)
 	{
 		SimpleTreeNode rootNode = null;
 		boolean parent = true;
@@ -296,7 +298,7 @@ public class SimpleTreeNode {
 				// next is to zoom out the pipes
 				//TreeNode curParent = parentNodes.elementAt(count);
 				SimpleTreeNode curParentNode = null;
-				System.out.println("Total number of parents " + parentNodes.size());
+//				System.out.println("Total number of parents " + parentNodes.size());
 				StringTokenizer leftRightTokens = new StringTokenizer(line, "|");
 				while(leftRightTokens.hasMoreTokens())
 				{
@@ -305,38 +307,38 @@ public class SimpleTreeNode {
 						curParentNode = parentNodes.elementAt(count);
 						count++;
 					}
-					System.out.println("[" + curParentNode + "]");
-					System.out.println("Cur Parent Node is " + curParentNode.leaf.getKey());
+//					System.out.println("[" + curParentNode + "]");
+//					System.out.println("Cur Parent Node is " + curParentNode.leaf.getKey());
 					String leftChildString = leftRightTokens.nextToken();
-					String rightChildString = leftRightTokens.nextToken();
-					Object [] stringOfNodes = createStringOfNodes(leftChildString, nextLevel);
+//					String rightChildString = leftRightTokens.nextToken();
+					Object [] stringOfNodes = createStringOfNodes(leftChildString, nextLevel, indexHash);
 					SimpleTreeNode leftNode = (SimpleTreeNode)stringOfNodes[0];
 					nextLevel = (Vector<SimpleTreeNode>)stringOfNodes[1];
 					// set the parent here
 					// do the right node only if the parent has no sibling kind of
-					stringOfNodes = createStringOfNodes(rightChildString, nextLevel);
-					SimpleTreeNode rightNode = (SimpleTreeNode)stringOfNodes[0];
-					nextLevel = (Vector<SimpleTreeNode>)stringOfNodes[1];
+//					stringOfNodes = createStringOfNodes(rightChildString, nextLevel);
+//					SimpleTreeNode rightNode = (SimpleTreeNode)stringOfNodes[0];
+//					nextLevel = (Vector<SimpleTreeNode>)stringOfNodes[1];
 
 					curParentNode.leftChild = leftNode;
 					leftNode.parent = curParentNode;
-					rightNode.parent = curParentNode;
+//					rightNode.parent = curParentNode;
 					
-					if(curParentNode.leftSibling != null)
-						curParentNode.leftSibling.rightChild = curParentNode.leftChild;
-					if(curParentNode.rightSibling == null)
-						curParentNode.rightChild = rightNode;
+//					if(curParentNode.leftSibling != null)
+//						curParentNode.leftSibling.rightChild = curParentNode.leftChild;
+//					if(curParentNode.rightSibling == null)
+//						curParentNode.rightChild = rightNode;
 					// move on next
 					curParentNode = curParentNode.rightSibling;
 				}
 			}
 			else
 			{
-				System.out.println("Parent.. ");
-				Object [] stringOfNodes = createStringOfNodes(line, nextLevel);
+//				System.out.println("Parent.. ");
+				Object [] stringOfNodes = createStringOfNodes(line, nextLevel, indexHash);
 				rootNode = (SimpleTreeNode)stringOfNodes[0];
 				nextLevel = (Vector<SimpleTreeNode>)stringOfNodes[1];
-				System.out.println("Next level is " + nextLevel.get(0).leaf.getKey());
+//				System.out.println("Next level is " + nextLevel.get(0).leaf.getKey());
 				parent = false;
 			}
 			parentNodes = nextLevel;
@@ -344,23 +346,32 @@ public class SimpleTreeNode {
 		return rootNode;
 	}
 	
-	public static Object [] createStringOfNodes(String childString, Vector <SimpleTreeNode> inVector)
+	public static Object [] createStringOfNodes(String childString, Vector <SimpleTreeNode> inVector, Map<String, TreeNode> indexHash)
 	{
 		// nasty.. I dont have a proper object eeks
 		Object [] retObject = new Object[2];
 		// final loop is the <> loop
-		StringTokenizer leftString = new StringTokenizer(childString, "-");
+		StringTokenizer leftString = new StringTokenizer(childString, "@");
 		SimpleTreeNode leftNode = null;
 		while(leftString.hasMoreElements())
 		{
 			String leftNodeKey = leftString.nextToken();
-			SimpleTreeNode node = new SimpleTreeNode(new IntClass(Integer.parseInt(leftNodeKey)));
+			ISEMOSSNode sNode = new StringClass(leftNodeKey, true);
+			SimpleTreeNode node = new SimpleTreeNode(sNode);
+			TreeNode indexNode = indexHash.get(sNode.getType());
+			
+			Vector <TreeNode> rootNodeVector = new Vector<TreeNode>();//
+			rootNodeVector.add(indexNode);
+			// find the node which has
+			TreeNode retNode = indexNode.getNode(rootNodeVector, new TreeNode(sNode), false);
+			retNode.getInstances().add(node);
+			
 			if(leftNode == null)
 			{
 				leftNode = node;
 				retObject[0] = node;
 				inVector.addElement(node);
-				System.out.println("Adding Key " + leftNodeKey);
+//				System.out.println("Adding Key " + leftNodeKey);
 				// also need to set the parent here
 			}
 			else
@@ -418,6 +429,8 @@ public class SimpleTreeNode {
 			SimpleTreeNode rightMost = getRight(this.leftChild);
 			rightMost.rightSibling = node;
 			node.leftSibling = rightMost;
+//			this.printNodes(rightMost);
+//			System.out.println(rightMost.toString() + "-" + rightMost.leaf.getValue() + " ----------- " + node.leaf.getValue() + "-" + node.toString());
 		}
 		else
 		{
@@ -425,7 +438,7 @@ public class SimpleTreeNode {
 			/*SimpleTreeNode prevLeftChild = null;
 			if(this.leftChild != null)
 				prevLeftChild = this.leftChild.leftChild; // what is this doing here
-			node.leftChild = prevLeftChild;*/
+			node.leftChild = prevLeftChild;*///
 			this.leftChild = node;			
 		}
 	}

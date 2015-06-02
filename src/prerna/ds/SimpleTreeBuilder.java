@@ -75,7 +75,56 @@ public class SimpleTreeBuilder
 	ExecutorService service = null;
 	String finalChildType = null;
 	
- 	
+
+
+	// this is for adding more than one pair of nodes at a time
+	// the node array can be thought of as a row in a table--one node for each type
+	// this assumes that the node array passed in spans the whole width of the table--every type gets a node
+	public synchronized void addNodeArray(ISEMOSSNode... nodeArray)
+	{
+		// this case is when data needs to be added to every node type and the full array of nodes is important
+		// I cannot consider each pair in the array individually as once I get to the second pair, I lose it's relationship to the first node
+		// need to keep track of the value nodes I create as I go through the array to only append to the value node I care about
+		ISEMOSSNode finalNode = nodeArray[nodeArray.length-1];
+		if(finalChildType == null || !nodeIndexHash.containsKey(finalNode.getType()))
+			finalChildType = finalNode.getType();		
+
+		SimpleTreeNode parentInstanceNode = createNode(nodeArray[0], false).getInstances().lastElement();
+		for(int nodeIdx = 0; nodeIdx < nodeArray.length - 1; nodeIdx++){
+			// check if our relationship already exists -- only need to check the last element because we are adding a continuous row so only care about the instance we just added (or got)
+			ISEMOSSNode childSEMOSSNode = nodeArray[nodeIdx+1];
+			boolean childExists = parentInstanceNode.hasChild(childSEMOSSNode);
+			if (childExists){
+				//how do i get this child instance node???
+				TreeNode childIndexNode = getNode(childSEMOSSNode);
+				List<SimpleTreeNode> childInstances = childIndexNode.getInstances();
+				boolean foundNode = false;
+				for(int childIdx = childInstances.size() - 1; childIdx >=0 && !foundNode; childIdx -- ){ // start from the back because its likely to be the last one
+					SimpleTreeNode childInst = childInstances.get(childIdx);
+					if(childInst.parent.equal(parentInstanceNode)){
+						parentInstanceNode = childInst;
+						foundNode = true;
+					}
+				}
+				continue;
+			}
+			
+			// if relationship doesn't exist, need to create a new child instance
+			TreeNode retNode = getNode(childSEMOSSNode);
+			if(retNode == null)
+			{
+				retNode = new TreeNode(childSEMOSSNode);
+			}
+			SimpleTreeNode childInstanceNode = new SimpleTreeNode(childSEMOSSNode);
+			retNode.addInstance(childInstanceNode);
+			
+			SimpleTreeNode.addLeafChild(parentInstanceNode, childInstanceNode);
+			addToNodeIndex(childSEMOSSNode.getType(), retNode);
+			
+			parentInstanceNode = childInstanceNode;
+		}
+		
+	}
 
 	// parent node
 	// and the child node
@@ -90,7 +139,6 @@ public class SimpleTreeBuilder
 		// set the final child type
 		if(finalChildType == null || !nodeIndexHash.containsKey(node.getType()))
 			finalChildType = node.getType();		
-		
 		TreeNode parentIndexNode = createNode(parentNode, false);
 		
 		// before all of this, I need to find if this parent already has this node
@@ -98,7 +146,7 @@ public class SimpleTreeBuilder
 		
 		Vector <SimpleTreeNode> parentInstances = parentIndexNode.getInstances();
 		
-		boolean childExists = false;
+		boolean childExists = false;	
 		
 		for(int instanceIndex = 0;instanceIndex < parentInstances.size() && !childExists;instanceIndex++)
 		{
@@ -107,7 +155,7 @@ public class SimpleTreeBuilder
 		}		
 		
 		if(childExists)
-			return;
+			return;	
 		
 		for(int instanceIndex = 0;instanceIndex < parentInstances.size();instanceIndex++)
 		{
@@ -123,7 +171,7 @@ public class SimpleTreeBuilder
 				{
 				SimpleTreeNode.addLeafChild(parentInstanceNode, childInstanceNode);
 				}
-				lastAddedNode = parentInstanceNode;
+				lastAddedNode = parentInstanceNode;	
 			}
 			// else go down one level and then add it
 			else if((parentInstanceNode.leftChild != null && !((ISEMOSSNode)parentInstanceNode.leftChild.leaf).getType().equalsIgnoreCase(node.getType())))
@@ -135,7 +183,7 @@ public class SimpleTreeBuilder
 					//System.err.println("Da Node is " + daNode.leaf.getKey());
 					
 					addLeafNode(daNode, node);
-					daNode = daNode.rightSibling;
+					daNode = daNode.rightSibling;	
 				}
 				//SimpleTreeNode.addLeafChild(parentInstanceNode, childInstanceNode);
 			}
@@ -401,7 +449,7 @@ public class SimpleTreeBuilder
 		Vector <SimpleTreeNode> instanceVector = new Vector<SimpleTreeNode>();
 		instanceVector.add(instanceNode);
 		//Vector output = typeRoot.getInstanceNodes(rootVector, new Vector());
-		Vector <SimpleTreeNode> output = instanceNode.getChildsOfType(instanceVector, "Activity", new Vector<SimpleTreeNode>());
+		Vector <SimpleTreeNode> output = instanceNode.getChildsOfType(instanceVector, type, new Vector<SimpleTreeNode>());
 		
 		// need to remove the duplicates
 		System.out.println("Total Number of instances are " + output.size() + output.elementAt(0).leaf.getKey());
