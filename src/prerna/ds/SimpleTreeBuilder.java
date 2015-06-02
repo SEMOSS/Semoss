@@ -890,11 +890,7 @@ public class SimpleTreeBuilder
 		
 		SimpleTreeNode rightNode = node.getRight(node);
 		SimpleTreeNode leftNode2Merge = node2merge.getLeft(node2merge);
-		
-		ISEMOSSNode n = (ISEMOSSNode)node.leaf;
-		TreeNode indexNode = nodeIndexHash.get(n.getType());
 		SimpleTreeNode rightMergeSibling = null;
-		
 		while(leftNode2Merge!=null) {
 			//find if the node exists in the tree node
 			TreeNode tn = this.getNode((ISEMOSSNode)leftNode2Merge.leaf);
@@ -922,22 +918,32 @@ public class SimpleTreeBuilder
 				SimpleTreeNode mergeInstance;
 				for(int i = 0; i < instanceList.size(); i++) {
 					instance = instanceList.get(i);
-					mergeInstance = leftNode2Merge;
+					mergeInstance = leftNode2Merge; 
 					while(!foundNode && instance.equal(mergeInstance)){
 						if(instance.parent==null) {
-							foundNode = true; break;
+							foundNode = true; 
+							break;
 						}
 						instance = instance.parent;
 						mergeInstance = mergeInstance.parent;
+					}
+					if(foundNode) {
+						break;
 					}
 				}
 				//If the node exists on the branch, append the children
 				if(foundNode) {
 					equivalentInstance = instance; 
-					//FIXME
-					if(equivalentInstance.leftChild!=null) {
+					// there is a child, recursively go through method with subset
+					if(equivalentInstance.leftChild != null) {
 						append(equivalentInstance.leftChild, leftNode2Merge.leftChild);
+					} 
+					// if no children, add new node children to found instance
+					else if(leftNode2Merge.leftChild != null){
+						equivalentInstance.leftChild = leftNode2Merge.leftChild;
+						leftNode2Merge.parent = equivalentInstance;
 					}
+					// continue for right siblings
 					rightMergeSibling = leftNode2Merge.rightSibling;
 				} 
 				//if the node doesn't exist on the branch simply add it
@@ -961,19 +967,48 @@ public class SimpleTreeBuilder
 	
 	//Recursively add a node and it's children to the appropriate index trees
 	private void appendToIndexTree(SimpleTreeNode node) {
-		ISEMOSSNode n = (ISEMOSSNode)node.leaf;
-		TreeNode indexNode = nodeIndexHash.get(n.getType());
-		if(node!=null)indexNode.addInstance(node);
-		while(node.rightSibling!=null) {
-			node = node.rightSibling;
-			
-			indexNode.insertData(new TreeNode(node.leaf));
-			
-			indexNode.addInstance(node);
-			//node = node.rightSibling;
+		if(node == null) {
+			return;
 		}
-		if(node.leftChild!=null) {
-			appendToIndexTree(node.leftChild);
+		
+		ISEMOSSNode n = (ISEMOSSNode) node.leaf;
+		TreeNode rootIndexNode = nodeIndexHash.get(n.getType());
+
+		// add node if not null
+		if(node != null) {
+			TreeNode newNode = getNode(n);
+			// search first
+			if(newNode.leaf == null) {
+				// if not found 
+				// create new node and set instances vector to the new value node
+				newNode = new TreeNode(node.leaf);
+				rootIndexNode.insertData(newNode);
+				newNode.addInstance(node);
+			} else {
+				// if found
+				// add instance to existing TreeNode
+				newNode.getInstances().add(node);
+			}
+			while(node.rightSibling != null) {
+				node = node.rightSibling;
+				TreeNode newSiblingNode = getNode( (ISEMOSSNode)node.leaf);
+				// search first
+				if(newSiblingNode.leaf == null) {
+					// if not found 
+					// create new node and set instances vector to the new value node
+					newSiblingNode = new TreeNode(node.leaf);
+					rootIndexNode.insertData(newNode);
+					newSiblingNode.addInstance(node);
+				} else {
+					// if found
+					// add instance to existing TreeNode
+					newSiblingNode.getInstances().add(node);
+				}
+			}
+			
+			if(node.leftChild != null) {
+				appendToIndexTree(node.leftChild);
+			}
 		}
 	}
 	
