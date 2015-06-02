@@ -1,5 +1,9 @@
 package prerna.ds;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -10,12 +14,16 @@ import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.ISelectStatement;
 import prerna.om.SEMOSSParam;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Utility;
 
 public class BTreeDataFrame implements ITableDataFrame {
 
@@ -50,56 +58,22 @@ public class BTreeDataFrame implements ITableDataFrame {
 				LOGGER.error("Column name " + key + " does not exist in current tree");
 			}
 		}
-
-		ISEMOSSNode parent = null;
-		int index = 0;
-		while(parent == null) { //Do we need this while loop? We should create a null parent if thats what the parent is
+		
+		ISEMOSSNode[] row = new ISEMOSSNode[levelNames.length];
+		for(int index = 0; index < levelNames.length; index++) {
 			Object val = rowData.get(levelNames[index]);
-			if(val != null) {
-				//TODO: how to deal with URI being null
-				parent = createNodeObject(val, null, levelNames[index]);
-			}
-			if(index == levelNames.length-1) {
-				break;
-			}
-			index++;
-		}
-
-		if(parent == null) {
-			LOGGER.error("No information found to add to data frame");
-			return;
-		}
-
-		boolean foundChild = false;
-		ISEMOSSNode child;
-		for(; index < levelNames.length; index++) {
-			Object val = rowData.get(levelNames[index]);
-			if(val == null) {
-				continue;
-			} else {
-				foundChild = true;
-				//TODO: how to deal with URI being null
-				child = createNodeObject(val, null, levelNames[index]);
-
-				simpleTree.addNode(parent, child);
-				//System.out.print(parent.getValue()+ " "+child.getValue());
-				parent = child;
-			}
+			row[index] = createNodeObject(val, null, levelNames[index]);
 
 		}
-		System.out.println();
+		simpleTree.addNodeArray(row);
 
-		// not one relationship found, add an empty node
-		if(!foundChild) {
-			simpleTree.createNode(parent, false);
-		}
 	}
 
 	private ISEMOSSNode createNodeObject(Object value, String rawValue, String level) {
 		ISEMOSSNode node;
 
 		if(value == null) {
-			node = new StringClass(null, level);
+			node = new StringClass(null, level); // TODO: fix this
 		} else if(value instanceof Integer) {
 			node = new IntClass((int)value, level);
 		} else if(value instanceof Number) {
@@ -175,44 +149,64 @@ public class BTreeDataFrame implements ITableDataFrame {
 			LOGGER.info("Augmenting tree");
 			joinTreeLevels(columnNames, colNameInJoiningTable); // need to add new levels to this tree's level array
 			List<Object[]> flatMatched = matched.getData();// TODO: this could be replaced with nextRow or getRow method directly on the tree
+//			Iterator<Object[]> matchedIterator = matched.iterator();
 
+			TreeNode thisRootNode = this.simpleTree.nodeIndexHash.get(colNameInTable); //TODO: is there a better way to get the type? I don't think this is reliable
+			Vector thisSearchVector = new Vector();
+			thisSearchVector.addElement(thisRootNode);
+
+			SimpleTreeBuilder passedBuilder = passedTree.getBuilder();
+			Map<String, TreeNode> passedIdxHash = passedBuilder.nodeIndexHash;
+			TreeNode passedRootNode = passedIdxHash.remove(colNameInJoiningTable); //TODO: is there a better way to get the type? I don't think this is reliable
+			Vector passedSearchVector = new Vector();
+			passedSearchVector.addElement(passedRootNode);
+			
 			// Iterate for every row in the matched table
 			for(Object[] flatMatchedRow : flatMatched) { // for each matched item
 				Object item1 = flatMatchedRow[0];
 				Object item2 = flatMatchedRow[1];
+//			while(matchedIterator.hasNext()){
+//				Object[] flatMatchedRow = matchedIterator.next();
+//				Object item1 = flatMatchedRow[0];
+//				Object item2 = flatMatchedRow[1];
+				
+				System.out.println(item1 + "           " + item2);
 
 				// search for tree node in this table and tree node in passed table
-				TreeNode thisRootNode = this.simpleTree.nodeIndexHash.get(colNameInJoiningTable); //TODO: is there a better way to get the type? I don't think this is reliable
-				TreeNode thisSearchNode = new TreeNode(createNodeObject(item1, null, colNameInJoiningTable)); //TODO: how do we generically do this...?
-				Vector thisSearchVector = new Vector();
-				thisSearchVector.addElement(thisRootNode);
+				TreeNode thisSearchNode = new TreeNode(createNodeObject(item1, null, colNameInTable)); //TODO: how do we generically do this...?
 				TreeNode thisTreeNode = thisRootNode.getNode(thisSearchVector, thisSearchNode, false);
 				Vector <SimpleTreeNode> thisInstances = thisTreeNode.getInstances();
-				System.out.println(thisInstances.size());
+//				System.out.println(thisInstances.size());
 				
-				SimpleTreeBuilder passedBuilder = passedTree.getBuilder();
-				TreeNode passedRootNode = passedBuilder.nodeIndexHash.get(colNameInJoiningTable); //TODO: is there a better way to get the type? I don't think this is reliable
 				TreeNode passedSearchNode = new TreeNode(createNodeObject(item2, null, colNameInJoiningTable)); //TODO: how do we generically do this...?
-				Vector passedSearchVector = new Vector();
-				passedSearchVector.addElement(passedRootNode);
 				TreeNode passedTreeNode = passedRootNode.getNode(passedSearchVector, passedSearchNode, false);
 				Vector <SimpleTreeNode> passedInstances = passedTreeNode.getInstances();
-				System.out.println(passedInstances.size()); // this should be 1
-				SimpleTreeNode instance2HookUp = passedInstances.get(0);
+//				System.out.println(passedInstances.size()); // this should be 1 since right now we are assuming roots
+				SimpleTreeNode instance2HookUp = passedInstances.get(0).leftChild;
 
+				String serialized = "";
+				Vector<SimpleTreeNode> vec = new Vector<SimpleTreeNode>();
+				vec.add(instance2HookUp);
+				serialized = instance2HookUp.serializeTree("", vec, true, 0);
+//				System.out.println("SERIALIZED " + instance2HookUp.leaf.getKey() + " AS " + serialized);
+					
 				// hook up passed tree node with each instance of this tree node
 				for(int instIdx = 0; instIdx < thisInstances.size(); instIdx++){
-					SimpleTreeNode hookUp = instance2HookUp;
-					if(instIdx != thisInstances.size() - 1){ // unless this is the last one, we need to make a deep copy
-						// make a deep copy of instance2HookUp
-//						hookUp = new SimpleTreeNode(instance2HookUp);
+					SimpleTreeNode myNode = thisInstances.get(instIdx);
+					SimpleTreeNode hookUp = instance2HookUp.deserializeTree(serialized, passedIdxHash);//
+					myNode.leftChild = hookUp;
+					while(hookUp!=null){
+						hookUp.parent=myNode;
+						hookUp = hookUp.rightSibling;
 					}
+//					myNode.addChild(hookUp);
+//					System.out.println("joining " + myNode.leaf.getKey() + " with " + hookUp.leaf.getKey());
 				}
 			}
-			
+			this.simpleTree.nodeIndexHash.putAll(passedIdxHash);
 			
 		}
-		else // use the flat join. This is not idea. Not sure if we will ever actually use this
+		else // use the flat join. This is not ideal. Not sure if we will ever actually use this
 		{
 			String[] columnNames = table.getColumnHeaders();
 			
@@ -599,7 +593,84 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 	
 	public static void main(String[] args) {
-		//use this as a test method
+		
+		String fileName = "C:\\Users\\bisutton\\Desktop\\BTreeTester.xlsx";
+		XSSFWorkbook workbook = null;
+		FileInputStream poiReader = null;
+		try {
+			poiReader = new FileInputStream(fileName);
+			workbook = new XSSFWorkbook(poiReader);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		// load the Loader tab to determine which sheets to load
+		XSSFSheet lSheet = workbook.getSheet("Sheet1");
+		
+		int lastRow = lSheet.getLastRowNum();
+		// first sheet name in second row
+		XSSFRow headerRow = lSheet.getRow(0);
+		String h1 = headerRow.getCell(0).getStringCellValue();
+		String h2 = headerRow.getCell(1).getStringCellValue();
+		String h3 = headerRow.getCell(2).getStringCellValue();
+		Map rowMap = new HashMap();
+		BTreeDataFrame tester = new BTreeDataFrame(new String[] {h1, h2, h3});
+		for (int rIndex = 1; rIndex <= lastRow; rIndex++) {
+			XSSFRow row = lSheet.getRow(rIndex);
+			
+			String v1 = row.getCell(0).getStringCellValue();
+			String v2 = row.getCell(1).getStringCellValue();
+			String v3 = row.getCell(2).getStringCellValue();
+			rowMap.put(h1, v1);
+			rowMap.put(h2, v2);
+			rowMap.put(h3, v3);
+			tester.addRow(rowMap);
+			System.out.println("added row " + rIndex);
+			System.out.println(v1 +"   " + v2 + "   " + v3);
+		}
+		
+		System.out.println("done fo sho");
+		
+		//TEST WRITING THE TABLE::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+		String fileNameout = "C:\\Users\\bisutton\\Desktop\\BTreeOut.xlsx";
+		XSSFWorkbook workbookout = new XSSFWorkbook();
+		XSSFSheet sheet = workbookout.createSheet("test");
+//		List<Object[]> data = tester.getData();
+		Iterator<Object[]> it = tester.iterator();
+		System.out.println("got flat data. starting to write");
+//		for(int i = 0; i<data.size(); i++){
+		int i = -1;
+		while(it.hasNext()){
+			i++;
+			XSSFRow row = sheet.createRow(i);
+			Object[] dataR = it.next();
+			row.createCell(0).setCellValue(dataR[0] + "");
+			row.createCell(1).setCellValue(dataR[1] + "");
+			row.createCell(2).setCellValue(dataR[2] + "");
+			System.out.println("wrote row " + i);
+		}
+		System.out.println("done writing");
+		
+		Utility.writeWorkbook(workbookout, fileNameout);
+		
+		//TEST SERIALIZING AND DESERIALIZING::::::::::::::::::::::::::::::::::::::::::::::
+//		TreeNode root = tester.simpleTree.nodeIndexHash.get(h1);
+//		Vector<TreeNode> roots = new Vector<TreeNode>();
+//		roots.add(root);
+//		List<SimpleTreeNode> nodes = root.getInstanceNodes(roots, new Vector<SimpleTreeNode>());
+//		for(SimpleTreeNode node : nodes){
+//			String serialized = "";
+//			Vector<SimpleTreeNode> vec = new Vector<SimpleTreeNode>();
+//			vec.add(node);
+//			serialized = node.serializeTree("", vec, true, 0);
+//			System.out.println("SERIALIZED " + node.leaf.getKey() + " AS " + serialized);
+//				
+//			SimpleTreeNode hookUp = node.deserializeTree(serialized, tester.simpleTree.nodeIndexHash);//
+//			
+//			System.out.println("success with  " + hookUp.leaf.getValue());
+//		}
 	}
 	
 	public SimpleTreeBuilder getBuilder(){
