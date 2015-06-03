@@ -76,7 +76,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			fileIn = new FileInputStream(folderToWatch + "/"  +  newFile);
 			prop.load(fileIn);
 			String engineName = prop.getProperty(Constants.ENGINE);
-			if(engines.contains(engineName)) {
+			if(engines.startsWith(engineName) || engines.contains(";"+engineName)) {
 				System.err.println("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
 			} else {
 				String fileName = folderToWatch + "/" + newFile;
