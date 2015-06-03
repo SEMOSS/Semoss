@@ -70,7 +70,7 @@ public class ImportDataProcessor {
 
 	private String baseDirectory;
 	private Hashtable<String, String>[] propHashArr;
-	private SQLQueryUtil.DB_TYPE dbDriverType = null;
+	private SQLQueryUtil.DB_TYPE dbDriverType = SQLQueryUtil.DB_TYPE.H2_DB;
 
 	public void setPropHashArr(Hashtable<String, String>[] propHashArr) {
 		this.propHashArr = propHashArr;
