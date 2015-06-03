@@ -120,7 +120,8 @@ public class SimpleTreeBuilder
 			
 			SimpleTreeNode.addLeafChild(parentInstanceNode, childInstanceNode);
 			addToNodeIndex(childSEMOSSNode.getType(), retNode);
-			
+
+			lastAddedNode = parentInstanceNode;
 			parentInstanceNode = childInstanceNode;
 		}
 		
@@ -966,6 +967,7 @@ public class SimpleTreeBuilder
 				SimpleTreeNode mergeInstance;
 				for(int i = 0; i < instanceList.size(); i++) {
 					instance = instanceList.get(i);
+					equivalentInstance = instance;
 					mergeInstance = leftNode2Merge; 
 					while(!foundNode && instance.equal(mergeInstance)){
 						if(instance.parent==null) {
@@ -980,17 +982,17 @@ public class SimpleTreeBuilder
 					}
 				}
 				//If the node exists on the branch, append the children
-				if(foundNode) {
-					equivalentInstance = instance; 
+				if(foundNode) { 
+//					equivalentInstance = instance; 
 					// there is a child, recursively go through method with subset
 					if(equivalentInstance.leftChild != null) {
 						append(equivalentInstance.leftChild, leftNode2Merge.leftChild);
 					} 
 					// if no children, add new node children to found instance
-					else if(leftNode2Merge.leftChild != null){
-						equivalentInstance.leftChild = leftNode2Merge.leftChild;
-						leftNode2Merge.parent = equivalentInstance;
-					}
+//					else if(leftNode2Merge.leftChild != null){ 
+//						equivalentInstance.leftChild = leftNode2Merge.leftChild;
+//						leftNode2Merge.parent = equivalentInstance;
+//					}
 					// continue for right siblings
 					rightMergeSibling = leftNode2Merge.rightSibling;
 				} 
@@ -1005,11 +1007,12 @@ public class SimpleTreeBuilder
 					rightNode = rightNode.rightSibling;
 
 					//Update the Index Tree
-					appendToIndexTree(leftNode2Merge);
+//					appendToIndexTree(leftNode2Merge); //TODO: can we just get the instance list of tn and append leftNode2Merge?
+					tn.getInstances().add(leftNode2Merge);
 				}
 				//append(equivalentInstance.leftChild, leftNode2Merge.leftChild);
 			}
-			leftNode2Merge = rightMergeSibling;
+			leftNode2Merge = rightMergeSibling; //TODO: can we get rid of rightMergeSibling and here just set leftNode2Merge = leftNode2Merge.rightSibling;
 		}		
 	}
 	
@@ -1021,12 +1024,26 @@ public class SimpleTreeBuilder
 		
 		ISEMOSSNode n = (ISEMOSSNode) node.leaf;
 		TreeNode rootIndexNode = nodeIndexHash.get(n.getType());
-
-		// add node if not null
-		if(node != null) {
-			TreeNode newNode = getNode(n);
+//
+//		// add node
+//		TreeNode newNode = getNode(n);
+//		// search first
+//		if(newNode == null) {
+//			// if not found 
+//			// create new node and set instances vector to the new value node
+//			newNode = new TreeNode(n);
+//			rootIndexNode.insertData(newNode);
+//			newNode.addInstance(node);
+//		} else {
+//			// if found
+//			// add instance to existing TreeNode
+//			newNode.getInstances().add(node);
+//		}
+		while(node != null) {
+//			node = node.rightSibling;
+			TreeNode newNode = getNode( (ISEMOSSNode)node.leaf);
 			// search first
-			if(newNode.leaf == null) {
+			if(newNode == null) {
 				// if not found 
 				// create new node and set instances vector to the new value node
 				newNode = new TreeNode(node.leaf);
@@ -1037,26 +1054,11 @@ public class SimpleTreeBuilder
 				// add instance to existing TreeNode
 				newNode.getInstances().add(node);
 			}
-			while(node.rightSibling != null) {
-				node = node.rightSibling;
-				TreeNode newSiblingNode = getNode( (ISEMOSSNode)node.leaf);
-				// search first
-				if(newSiblingNode.leaf == null) {
-					// if not found 
-					// create new node and set instances vector to the new value node
-					newSiblingNode = new TreeNode(node.leaf);
-					rootIndexNode.insertData(newNode);
-					newSiblingNode.addInstance(node);
-				} else {
-					// if found
-					// add instance to existing TreeNode
-					newSiblingNode.getInstances().add(node);
-				}
-			}
 			
 			if(node.leftChild != null) {
 				appendToIndexTree(node.leftChild);
 			}
+			node = node.rightSibling;
 		}
 	}
 	
