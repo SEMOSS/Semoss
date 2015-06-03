@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -559,7 +560,20 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public void removeColumn(String columnHeader) {
-		// TODO Auto-generated method stub
+		this.LOGGER.info("removing " + columnHeader);
+		this.simpleTree.removeType(columnHeader);
+		this.LOGGER.info("removed " + columnHeader);
+		String[] newNames = new String[levelNames.length-1];
+		int count = 0;
+		System.out.println("cur names  " + Arrays.toString(levelNames));
+		for(String name : levelNames){
+			if(!name.equals(columnHeader)){
+				newNames[count] = name;
+				count++;
+			}
+		}
+		levelNames = newNames;
+		System.out.println("new names  " + Arrays.toString(levelNames));
 	}
 
 	@Override
