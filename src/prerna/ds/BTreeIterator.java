@@ -23,13 +23,8 @@ public class BTreeIterator implements Iterator<Object[]> {
 		instances = currNode.getInstances();
 		
 		childrenList = new ArrayList<TreeNode>();
-		
-		if(currNode.rightChild != null) {
-			childrenList.add(0, currNode.rightChild);
-		}
-		if(currNode.leftChild != null) {
-			childrenList.add(0, currNode.leftChild);
-		}
+		// add nodes to child list
+		addToChildrenList();
 	}
 	
 	@Override
@@ -49,9 +44,13 @@ public class BTreeIterator implements Iterator<Object[]> {
 				instances = currNode.getInstances();
 				// got new instances list, set index back to zero
 				index = 0;
+
+				// add nodes to child list
+				addToChildrenList();
 				return true;
+				
 			} else {
-				// grab first child
+				// grab child to iterate over instances
 				if(!childrenList.isEmpty()) {
 					currNode = childrenList.get(0);
 					childrenList.remove(0);
@@ -61,13 +60,8 @@ public class BTreeIterator implements Iterator<Object[]> {
 					// got new instances list, set index back to zero
 					index = 0;
 					
-					// add children to children list
-					if(currNode.rightChild != null) {
-						childrenList.add(0, currNode.rightChild);
-					}
-					if(currNode.leftChild != null) {
-						childrenList.add(0, currNode.leftChild);
-					}
+					// add nodes to child list
+					addToChildrenList();
 					return true;
 				}
 			}
@@ -104,5 +98,22 @@ public class BTreeIterator implements Iterator<Object[]> {
 	@Override
 	public void remove() {
 
+	}
+	
+	/**
+	 * Index tree's siblings share left/right children except for the most left and most right
+	 * Most left has a left child that is not shared
+	 * Most right has a right child that is not shared
+	 * Using logic to only add left child and when the node does not have a right-sibling to add the right child
+	 */
+	public void addToChildrenList() {
+		// only add left children to children list to not double count
+		if(currNode.leftChild != null) {
+			childrenList.add(0, currNode.leftChild);
+		}
+		// if this is the most right node, add the right child 
+		if(currNode.rightSibling == null && currNode.rightChild != null) {
+			childrenList.add(0, currNode.rightChild);
+		}
 	}
 }
