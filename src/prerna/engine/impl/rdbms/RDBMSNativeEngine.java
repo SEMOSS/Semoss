@@ -59,6 +59,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	boolean connected = false;
 	private ResultSet rs = null;
 	private Statement stmt = null;
+	private SQLQueryUtil.DB_TYPE dbType;
 	
 	@Override
 	public void openDB(String propFile)
@@ -82,8 +83,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		String tempConnectionURL = prop.getProperty(Constants.TEMP_CONNECTION_URL);
 		String userName = prop.getProperty(Constants.USERNAME);
 		String password = "";
-		SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
 		String dbTypeString = prop.getProperty(Constants.RDBMS_TYPE);
+		dbType = dbType = SQLQueryUtil.DB_TYPE.H2_DB;
 		if (dbTypeString != null) {
 			dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
 		}
@@ -348,5 +349,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 		
 		return relation;
+	}
+	
+	public SQLQueryUtil.DB_TYPE getDbType() {
+		return this.dbType;
 	}
 }
