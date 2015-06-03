@@ -592,9 +592,58 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return simpleTree;
 	}
 	
+	public SimpleTreeBuilder getBuilder(){
+		return this.simpleTree;
+	}
+	
 	public static void main(String[] args) {
-		
 		String fileName = "C:\\Users\\bisutton\\Desktop\\BTreeTester.xlsx";
+		String fileName2 = "C:\\Users\\bisutton\\Desktop\\BTreeTester2.xlsx";
+		String fileNameout = "C:\\Users\\bisutton\\Desktop\\BTreeOut.xlsx";
+		
+//		testSerializingAndDeserialing(fileName);
+		testAppend(fileName, fileName2, fileNameout);
+//		testStoringAndWriting(fileName, fileNameout);
+	}
+	
+	private static void testSerializingAndDeserialing(String file1){
+		BTreeDataFrame tester = load2Tree4Testing(file1);
+		
+		//TEST SERIALIZING AND DESERIALIZING::::::::::::::::::::::::::::::::::::::::::::::
+		TreeNode root = tester.simpleTree.nodeIndexHash.get(tester.levelNames[0]);
+		Vector<TreeNode> roots = new Vector<TreeNode>();
+		roots.add(root);
+		List<SimpleTreeNode> nodes = root.getInstanceNodes(roots, new Vector<SimpleTreeNode>());
+		for(SimpleTreeNode node : nodes){
+			String serialized = "";
+			Vector<SimpleTreeNode> vec = new Vector<SimpleTreeNode>();
+			vec.add(node);
+			serialized = node.serializeTree("", vec, true, 0);
+			System.out.println("SERIALIZED " + node.leaf.getKey() + " AS " + serialized);
+				
+			SimpleTreeNode hookUp = node.deserializeTree(serialized, tester.simpleTree.nodeIndexHash);//
+			
+			System.out.println("success with  " + hookUp.leaf.getValue());
+		}
+	}
+	
+	private static void testAppend(String file1, String file2, String fileOut){
+		BTreeDataFrame tester = load2Tree4Testing(file1);
+		BTreeDataFrame appender = load2Tree4Testing(file2);
+		tester.append(appender);
+		
+		System.out.println("done fo sho");
+		write2Excel4Testing(tester, fileOut);
+	}
+	
+	private static void testStoringAndWriting(String file1, String fileOut){
+		BTreeDataFrame tester = load2Tree4Testing(file1);
+		
+		System.out.println("done fo sho");
+		write2Excel4Testing(tester, fileOut);
+	}
+	
+	private static BTreeDataFrame load2Tree4Testing(String fileName){
 		XSSFWorkbook workbook = null;
 		FileInputStream poiReader = null;
 		try {
@@ -606,11 +655,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 			e.printStackTrace();
 		}
 		
-		// load the Loader tab to determine which sheets to load
 		XSSFSheet lSheet = workbook.getSheet("Sheet1");
 		
 		int lastRow = lSheet.getLastRowNum();
-		// first sheet name in second row
 		XSSFRow headerRow = lSheet.getRow(0);
 		String h1 = headerRow.getCell(0).getStringCellValue();
 		String h2 = headerRow.getCell(1).getStringCellValue();
@@ -630,50 +677,31 @@ public class BTreeDataFrame implements ITableDataFrame {
 			System.out.println("added row " + rIndex);
 			System.out.println(v1 +"   " + v2 + "   " + v3);
 		}
+		System.out.println("loaded file " + fileName);
 		
-		System.out.println("done fo sho");
-		
-		//TEST WRITING THE TABLE::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-		String fileNameout = "C:\\Users\\bisutton\\Desktop\\BTreeOut.xlsx";
+		return tester;
+	}
+	
+	private static void write2Excel4Testing(BTreeDataFrame tester, String fileNameout){
 		XSSFWorkbook workbookout = new XSSFWorkbook();
 		XSSFSheet sheet = workbookout.createSheet("test");
-//		List<Object[]> data = tester.getData();
-		Iterator<Object[]> it = tester.iterator();
+		List<Object[]> data = tester.getData();
+//		Iterator<Object[]> it = tester.iterator();
 		System.out.println("got flat data. starting to write");
-//		for(int i = 0; i<data.size(); i++){
-		int i = -1;
-		while(it.hasNext()){
-			i++;
+		for(int i = 0; i<data.size(); i++){
+//		int i = -1;
+//		while(it.hasNext()){
+//			i++;
+//			Object[] dataR = it.next();
 			XSSFRow row = sheet.createRow(i);
-			Object[] dataR = it.next();
+			Object[] dataR = data.get(i);
 			row.createCell(0).setCellValue(dataR[0] + "");
 			row.createCell(1).setCellValue(dataR[1] + "");
 			row.createCell(2).setCellValue(dataR[2] + "");
 			System.out.println("wrote row " + i);
 		}
-		System.out.println("done writing");
+		System.out.println("wrote file " + fileNameout);
 		
 		Utility.writeWorkbook(workbookout, fileNameout);
-		
-		//TEST SERIALIZING AND DESERIALIZING::::::::::::::::::::::::::::::::::::::::::::::
-//		TreeNode root = tester.simpleTree.nodeIndexHash.get(h1);
-//		Vector<TreeNode> roots = new Vector<TreeNode>();
-//		roots.add(root);
-//		List<SimpleTreeNode> nodes = root.getInstanceNodes(roots, new Vector<SimpleTreeNode>());
-//		for(SimpleTreeNode node : nodes){
-//			String serialized = "";
-//			Vector<SimpleTreeNode> vec = new Vector<SimpleTreeNode>();
-//			vec.add(node);
-//			serialized = node.serializeTree("", vec, true, 0);
-//			System.out.println("SERIALIZED " + node.leaf.getKey() + " AS " + serialized);
-//				
-//			SimpleTreeNode hookUp = node.deserializeTree(serialized, tester.simpleTree.nodeIndexHash);//
-//			
-//			System.out.println("success with  " + hookUp.leaf.getValue());
-//		}
-	}
-	
-	public SimpleTreeBuilder getBuilder(){
-		return this.simpleTree;
 	}
 }
