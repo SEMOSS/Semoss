@@ -58,6 +58,7 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
+import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
@@ -96,8 +97,9 @@ public class AddToMasterDB extends ModifyMasterDB {
 		String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
 		GraphPlaySheet gps = CentralityCalculator.createMetamodel(((AbstractEngine)engine).getBaseDataEngine().getRc(), sparql);
 		Hashtable<String, SEMOSSVertex> vertStore  = gps.getGraphData().getVertStore();
+		Hashtable<String, SEMOSSEdge> edgeStore = gps.getGraphData().getEdgeStore();
 
-		addNewDBConcepts(engineName, vertStore, parentChildMapping);
+		addNewDBConcepts(engineName, vertStore, edgeStore, parentChildMapping);
 		RepositoryConnection rc = engine.getInsightDB();
 		addInsights(rc);
 
@@ -131,8 +133,9 @@ public class AddToMasterDB extends ModifyMasterDB {
 		String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
 		GraphPlaySheet gps = CentralityCalculator.createMetamodel(((AbstractEngine)engine).getBaseDataEngine().getRc(), sparql);
 		Hashtable<String, SEMOSSVertex> vertStore  = gps.getGraphData().getVertStore();
+		Hashtable<String, SEMOSSEdge> edgeStore = gps.getGraphData().getEdgeStore();
 
-		addNewDBConcepts(engineName, vertStore, parentChildMapping);
+		addNewDBConcepts(engineName, vertStore, edgeStore, parentChildMapping);
 		RepositoryConnection rc = engine.getInsightDB();
 		addInsights(rc);
 
@@ -166,8 +169,9 @@ public class AddToMasterDB extends ModifyMasterDB {
 			String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
 			GraphPlaySheet gps = CentralityCalculator.createMetamodel(((AbstractEngine)engine).getBaseDataEngine().getRc(), sparql);
 			Hashtable<String, SEMOSSVertex> vertStore  = gps.getGraphData().getVertStore();
+			Hashtable<String, SEMOSSEdge> edgeStore = gps.getGraphData().getEdgeStore();
 
-			addNewDBConcepts(engineName, vertStore, parentChildMapping);
+			addNewDBConcepts(engineName, vertStore, edgeStore, parentChildMapping);
 			RepositoryConnection rc = engine.getInsightDB();
 			addInsights(rc);
 
@@ -212,8 +216,9 @@ public class AddToMasterDB extends ModifyMasterDB {
 			String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
 			GraphPlaySheet gps = CentralityCalculator.createMetamodel(owlRC, sparql);
 			Hashtable<String, SEMOSSVertex> vertStore  = gps.getGraphData().getVertStore();
+			Hashtable<String, SEMOSSEdge> edgeStore = gps.getGraphData().getEdgeStore();
 
-			addNewDBConcepts(engineName, vertStore, parentChildMapping);
+			addNewDBConcepts(engineName, vertStore, edgeStore, parentChildMapping);
 			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.PROP_URI + "/" + "API",baseURL,true);
 
 			String insights = Utility.retrieveResult(engineAPI + "/getInsightDefinition", null);
@@ -236,7 +241,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		return successHash;
 	}	
 
-	private void addNewDBConcepts(String engineName, Hashtable<String, SEMOSSVertex> vertStore, Map<String, String> parentChildMapping) {
+	private void addNewDBConcepts(String engineName, Hashtable<String, SEMOSSVertex> vertStore, Hashtable<String, SEMOSSEdge> edgeStore, Map<String, String> parentChildMapping) {
 		MasterDatabaseForest<String> forest = new MasterDatabaseForest<String>();
 		MasterDatabaseBipartiteGraph<String> keywordConceptBipartiteGraph = new MasterDatabaseBipartiteGraph<String>();
 
@@ -250,6 +255,10 @@ public class AddToMasterDB extends ModifyMasterDB {
 
 				// update the concept-concept tree and the keyword-concept graph
 				String cleanVertName = Utility.cleanString(vertName, false);
+				String typeURI =vert.getURI();//full URI of this keyword
+				MasterDBHelper.addNode(masterEngine, typeURI);
+				MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + cleanVertName, typeURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + cleanVertName + ":" + cleanVertName);
+
 				BipartiteNode<String> biNode = new BipartiteNode<String>(cleanVertName);
 				int i = 0;
 				for(; i < numNouns; i++) {
@@ -295,6 +304,33 @@ public class AddToMasterDB extends ModifyMasterDB {
 				MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, MasterDatabaseURIs.MC_BASE_URI + "/" + cleanMC, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/ComposedOf/" + keyword + ":" + cleanMC);
 			}
 		}
+		
+		Iterator<SEMOSSEdge> edgeItr = edgeStore.values().iterator();
+		while(edgeItr.hasNext()) {
+			SEMOSSEdge edge = edgeItr.next();
+			String edgeName = edge.getProperty(Constants.EDGE_TYPE).toString();
+			String firstVertURI = edge.outVertex.getURI();
+			String firstVertName = edge.outVertex.getProperty(Constants.VERTEX_NAME).toString();
+			String secondVertURI = edge.inVertex.getURI();
+			String secondVertName = edge.inVertex.getProperty(Constants.VERTEX_NAME).toString();
+			
+			String edgeConcat = engineName + ":" + firstVertName + ":" + edgeName + ":" + secondVertName;
+
+			//add a node representing the engine-relation
+			//add property on the engine relation node with the name
+			//add a relation connecting the engine to the engine-relation node
+			//add a relation connecting the in vert to the engine-relation node
+			//add a relation connecting the engine-relation node to the out vert
+
+			MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.ENGINE_RELATION_BASE_URI + "/" + edgeConcat);
+			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.ENGINE_RELATION_BASE_URI + "/" + edgeConcat, MasterDatabaseURIs.PROP_URI + "/Name", edgeName, false);
+			MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.ENGINE_RELATION_BASE_URI + "/" + edgeConcat, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + engineName + ":" + edgeConcat);
+			MasterDBHelper.addRelationship(masterEngine, firstVertURI, MasterDatabaseURIs.ENGINE_RELATION_BASE_URI + "/" + edgeConcat, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Provides/" + firstVertName + ":" + edgeConcat);
+			MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.ENGINE_RELATION_BASE_URI + "/" + edgeConcat, secondVertURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Consumes/" + edgeConcat + ":" + secondVertName);
+
+		}
+
+		
 	}
 
 	public RepositoryConnection getNewRepository() {
@@ -322,18 +358,6 @@ public class AddToMasterDB extends ModifyMasterDB {
 					obj = ( (Value)obj).stringValue();
 				}
 				this.masterEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{s.getSubject(), s.getPredicate(), obj, concept});
-				if(s.getPredicate().toString().equals("PARAM:TYPE")) {
-					//TODO discuss the relationships
-					if(s.getObject() instanceof MemURI) {
-						String typeURI = ((MemURI) s.getObject()).stringValue();
-						String keyword = typeURI.substring(typeURI.lastIndexOf("/")+1);
-						MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, typeURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + keyword + ":" + keyword);
-//						this.masteerEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{keyword, RDF.TYPE, MasterDatabaseURIs.KEYWORD_BASE_URI, true});
-					}
-					else {
-						logger.info("error adding param to keyword relationship for "+s.getSubject().stringValue()+">>>"+s.getPredicate().stringValue()+">>>"+s.getObject().stringValue());
-					}
-				}
 			}
 		} catch (RepositoryException e) {
 			logger.info("Repository Error adding insights");
