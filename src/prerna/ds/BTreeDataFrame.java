@@ -21,6 +21,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.impl.ExactStringMatcher;
 import prerna.engine.api.ISelectStatement;
 import prerna.om.SEMOSSParam;
 import prerna.util.ArrayUtilityMethods;
@@ -157,8 +158,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 			thisSearchVector.addElement(thisRootNode);
 
 			SimpleTreeBuilder passedBuilder = passedTree.getBuilder();
-			Map<String, TreeNode> passedIdxHash = passedBuilder.nodeIndexHash;
-			TreeNode passedRootNode = passedIdxHash.remove(colNameInJoiningTable); //TODO: is there a better way to get the type? I don't think this is reliable
+			Map<String, TreeNode> newIdxHash = new HashMap<String, TreeNode>();
+			TreeNode passedRootNode = passedBuilder.nodeIndexHash.remove(colNameInJoiningTable); //TODO: is there a better way to get the type? I don't think this is reliable
 			Vector passedSearchVector = new Vector();
 			passedSearchVector.addElement(passedRootNode);
 			
@@ -194,7 +195,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 				// hook up passed tree node with each instance of this tree node
 				for(int instIdx = 0; instIdx < thisInstances.size(); instIdx++){
 					SimpleTreeNode myNode = thisInstances.get(instIdx);
-					SimpleTreeNode hookUp = instance2HookUp.deserializeTree(serialized, passedIdxHash);//
+					SimpleTreeNode hookUp = instance2HookUp.deserializeTree(serialized, newIdxHash);//
 					myNode.leftChild = hookUp;
 					while(hookUp!=null){
 						hookUp.parent=myNode;
@@ -204,7 +205,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 //					System.out.println("joining " + myNode.leaf.getKey() + " with " + hookUp.leaf.getKey());
 				}
 			}
-			this.simpleTree.nodeIndexHash.putAll(passedIdxHash);
+			this.simpleTree.nodeIndexHash.putAll(newIdxHash);
 			
 		}
 		else // use the flat join. This is not ideal. Not sure if we will ever actually use this
@@ -614,11 +615,13 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public static void main(String[] args) {
 		String fileName = "C:\\Users\\bisutton\\Desktop\\BTreeTester.xlsx";
 		String fileName2 = "C:\\Users\\bisutton\\Desktop\\BTreeTester2.xlsx";
+		String fileName3 = "C:\\Users\\bisutton\\Desktop\\BTreeTester3.xlsx";
 		String fileNameout = "C:\\Users\\bisutton\\Desktop\\BTreeOut.xlsx";
 		
 //		testSerializingAndDeserialing(fileName);
-		testAppend(fileName, fileName2, fileNameout);
+//		testAppend(fileName, fileName2, fileNameout);
 //		testStoringAndWriting(fileName, fileNameout);
+		testJoin(fileName, fileName2, fileName3, fileNameout);
 	}
 	
 	private static void testSerializingAndDeserialing(String file1){
@@ -651,6 +654,37 @@ public class BTreeDataFrame implements ITableDataFrame {
 		write2Excel4Testing(tester, fileOut);
 	}
 	
+	private static void testJoin(String file1, String file2, String file3, String fileOut){
+		BTreeDataFrame tester = load2Tree4Testing(file1);
+		String[] names1 = tester.getColumnHeaders();
+		
+		BTreeDataFrame joiner = load2Tree4Testing(file2);
+		String[] names2 = joiner.getColumnHeaders();
+		tester.join(joiner, names1[names1.length-1], names2[0], 1, new ExactStringMatcher());
+
+		names1 = tester.getColumnHeaders();
+		System.out.println("done fo sho");
+		write2Excel4Testing(tester, fileOut);
+		System.out.println("my column...........................................");
+		Object[] col = tester.getColumn(names1[names1.length - 1]);
+		for(Object row : col){
+			System.out.println(row);
+		}
+		
+		BTreeDataFrame joiner3 = load2Tree4Testing(file3);
+		String[] names3 = joiner3.getColumnHeaders();
+		tester.join(joiner3, names1[names1.length-1], names3[0], 1, new ExactStringMatcher());
+
+		names1 = tester.getColumnHeaders();
+		System.out.println("done fo sho");
+		write2Excel4Testing(tester, fileOut);
+		System.out.println("my column...........................................");
+		Object[] col1 = tester.getColumn(names1[names1.length - 1]);
+		for(Object row : col1){
+			System.out.println(row);
+		}
+	}
+	
 	private static void testStoringAndWriting(String file1, String fileOut){
 		BTreeDataFrame tester = load2Tree4Testing(file1);
 		
@@ -674,23 +708,24 @@ public class BTreeDataFrame implements ITableDataFrame {
 		
 		int lastRow = lSheet.getLastRowNum();
 		XSSFRow headerRow = lSheet.getRow(0);
-		String h1 = headerRow.getCell(0).getStringCellValue();
-		String h2 = headerRow.getCell(1).getStringCellValue();
-		String h3 = headerRow.getCell(2).getStringCellValue();
+		List<String> headerList = new ArrayList<String>();
+		int totalCols = 0;
+		while(headerRow.getCell(totalCols)!=null){
+			headerList.add(headerRow.getCell(totalCols).getStringCellValue());
+			totalCols++;
+		}
 		Map rowMap = new HashMap();
-		BTreeDataFrame tester = new BTreeDataFrame(new String[] {h1, h2, h3});
+		BTreeDataFrame tester = new BTreeDataFrame(headerList.toArray(new String[headerList.size()]));
 		for (int rIndex = 1; rIndex <= lastRow; rIndex++) {
 			XSSFRow row = lSheet.getRow(rIndex);
-			
-			String v1 = row.getCell(0).getStringCellValue();
-			String v2 = row.getCell(1).getStringCellValue();
-			String v3 = row.getCell(2).getStringCellValue();
-			rowMap.put(h1, v1);
-			rowMap.put(h2, v2);
-			rowMap.put(h3, v3);
+			for(int cIndex = 0; cIndex<totalCols ; cIndex++)
+			{
+				String v1 = row.getCell(cIndex).getStringCellValue();
+				rowMap.put(headerList.get(cIndex), v1);
+			}
 			tester.addRow(rowMap);
 			System.out.println("added row " + rIndex);
-			System.out.println(v1 +"   " + v2 + "   " + v3);
+			System.out.println(rowMap.toString());
 		}
 		System.out.println("loaded file " + fileName);
 		
@@ -710,9 +745,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 //			Object[] dataR = it.next();
 			XSSFRow row = sheet.createRow(i);
 			Object[] dataR = data.get(i);
-			row.createCell(0).setCellValue(dataR[0] + "");
-			row.createCell(1).setCellValue(dataR[1] + "");
-			row.createCell(2).setCellValue(dataR[2] + "");
+			for(int c = 0; c < dataR.length; c++){
+				row.createCell(0).setCellValue(dataR[c] + "");
+			}
 			System.out.println("wrote row " + i);
 		}
 		System.out.println("wrote file " + fileNameout);
