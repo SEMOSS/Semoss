@@ -358,13 +358,27 @@ public class SimpleTreeNode {
 			String leftNodeKey = leftString.nextToken();
 			ISEMOSSNode sNode = new StringClass(leftNodeKey, true);
 			SimpleTreeNode node = new SimpleTreeNode(sNode);
-			TreeNode indexNode = indexHash.get(sNode.getType());
-			
-			Vector <TreeNode> rootNodeVector = new Vector<TreeNode>();//
-			rootNodeVector.add(indexNode);
-			// find the node which has
-			TreeNode retNode = indexNode.getNode(rootNodeVector, new TreeNode(sNode), false);
-			retNode.getInstances().add(node);
+			TreeNode rootNode = indexHash.get(sNode.getType());
+			if(rootNode == null){
+				rootNode = new TreeNode(sNode);
+				indexHash.put(sNode.getType(), rootNode);
+				rootNode.getInstances().add(node);
+			}
+			else{
+				Vector <TreeNode> rootNodeVector = new Vector<TreeNode>();//
+				rootNodeVector.add(rootNode);
+				// find the node which has
+				TreeNode retNode = rootNode.getNode(rootNodeVector, new TreeNode(sNode), false);
+				if(retNode==null){
+					// if not found 
+					// create new node and set instances vector to the new value node
+					retNode = new TreeNode(node.leaf);
+					rootNode = rootNode.insertData(retNode);
+					indexHash.put(sNode.getType(), rootNode);
+					retNode.addInstance(node);
+				}
+				retNode.getInstances().add(node);
+			}
 			
 			if(leftNode == null)
 			{
