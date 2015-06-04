@@ -115,12 +115,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		if(!useOuterJoins){
 			query = queryUtil.getDialectDistinctInnerJoinQuery(selectors, froms, joins, limit);
 		} else {
-			if(filters.length() > 0){
-					query = queryUtil.getDialectDistinctFullOuterJoinQuery(selectors,rightJoinsArr,leftJoinsArr,joinsArr,filters,limit);
-			} else {
-				int dualLimit = 0;
-				query = queryUtil.getDialectDistinctFromDual(nullSelectors,dualLimit);
-			}
+			query = queryUtil.getDialectDistinctFullOuterJoinQuery(selectors,rightJoinsArr,leftJoinsArr,joinsArr,filters,limit);
 		}
 	}
 	
