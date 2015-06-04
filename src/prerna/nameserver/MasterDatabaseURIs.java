@@ -43,6 +43,8 @@ public class MasterDatabaseURIs {
 	public static final String RESOURCE_URI = "http://www.w3.org/2000/01/rdf-schema#Resource";
 	public static final String MC_BASE_URI = SEMOSS_CONCEPT_URI+"/MasterConcept";
 	public static final String KEYWORD_BASE_URI = SEMOSS_CONCEPT_URI+"/Keyword";
+	public static final String PARAM_BASE_URI = SEMOSS_CONCEPT_URI+"/Param";
+	public static final String ENGINE_RELATION_BASE_URI = SEMOSS_CONCEPT_URI+"/EngineRelation";
 	public static final String ENGINE_BASE_URI = SEMOSS_CONCEPT_URI+"/Engine";
 	
 	public static final String USER_BASE_URI = SEMOSS_CONCEPT_URI + "/User";
