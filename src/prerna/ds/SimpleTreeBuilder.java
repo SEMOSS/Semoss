@@ -871,23 +871,34 @@ public class SimpleTreeBuilder
 				}
 			}
 		}
-		else
+		else // this is the case when the type is the root
 		{
-			// need to remove the parentage of them childs
-			// the child become the new parent
-			// this case needs to be tested with 
-			if(typeRoot.rightSibling == null) // if it is != null // I am not sure what to do
-			{
-				SimpleTreeNode rootNode = typeRoot.instanceNode.firstElement();
-				SimpleTreeNode targetNode = rootNode.leftChild;
-				while(targetNode != null)
-				{
-					targetNode.parent = null;
-					targetNode = targetNode.rightSibling;
+			typeInstanceNode = typeInstanceNode.getLeft(typeInstanceNode);
+			if(typeInstanceNode != null) {
+				
+				SimpleTreeNode leftMostNode = typeInstanceNode.leftChild;
+				SimpleTreeNode rightMostSibling = leftMostNode.getRight(leftMostNode);
+				
+				while(typeInstanceNode != null) {
+					// need to make sure new root are all siblings
+					
+					SimpleTreeNode targetNode = typeInstanceNode.leftChild;
+					if(targetNode != leftMostNode) { // this occurs for the first iteration
+						rightMostSibling.rightSibling = targetNode;
+						targetNode.leftSibling = rightMostSibling;
+					}
+					rightMostSibling = targetNode.getRight(targetNode); // update the new most right sibling
+
+					while(targetNode != null) {
+						targetNode.parent = null;
+						targetNode = targetNode.rightSibling;
+					}
+					
+					typeInstanceNode = typeInstanceNode.rightSibling;
 				}
 			}
-			
 		}
+		
 		// if I take it off the main hashtable
 		// it will get GC'ed. I am not sure I need to travel individually and do it
 		nodeIndexHash.remove(type);
