@@ -560,9 +560,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public void removeColumn(String columnHeader) {
-		this.LOGGER.info("removing " + columnHeader);
+		LOGGER.info("removing " + columnHeader);
 		this.simpleTree.removeType(columnHeader);
-		this.LOGGER.info("removed " + columnHeader);
+		LOGGER.info("removed " + columnHeader);
+		
 		String[] newNames = new String[levelNames.length-1];
 		int count = 0;
 		System.out.println("cur names  " + Arrays.toString(levelNames));
@@ -572,7 +573,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 				count++;
 			}
 		}
-		levelNames = newNames;
+		this.levelNames = newNames;
 		System.out.println("new names  " + Arrays.toString(levelNames));
 	}
 
