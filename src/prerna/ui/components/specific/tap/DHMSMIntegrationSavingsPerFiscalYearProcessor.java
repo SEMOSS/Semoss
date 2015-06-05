@@ -231,7 +231,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 												}
 											}
 											if(data) {
-												double inflatedSavings = costs[position] * inflationArr[sustainmentIndex-position+1];
+												double savingsIn2015 = costs[position] / inflationArr[position];
+												double inflatedSavings = savingsIn2015 * inflationArr[sustainmentIndex+1];
 												savings += inflatedSavings / numSites;
 											}
 										} else {
@@ -269,25 +270,27 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 								// The logic to determine if a system is centrally located is performed earleir and stored in a relationship, which we access directly
 								// Centrally located systems only realize their savings after TOC
 								if(centrallyLocatedSys.contains(system)) {
-									yearlySystemSavings[yearlySystemSavings.length - 1] += savings * inflationArr[yearlySystemSavings.length - index];
-									yearlySiteSavings[yearlySiteSavings.length - 1] += savings * inflationArr[yearlySiteSavings.length - index];
+									double savingsIn2015 = savings / inflationArr[index];
+									yearlySystemSavings[yearlySystemSavings.length - 1] += savingsIn2015 * inflationArr[yearlySystemSavings.length];
+									yearlySiteSavings[yearlySiteSavings.length - 1] += savingsIn2015 * inflationArr[yearlySiteSavings.length];
 
 									break;
 								} else {
-									double inflatedSavings = savings * inflationArr[index+1];
+									double savingsIn2015 = savings / inflationArr[sustainmentIndex + counter];
+									double inflatedSavings = savingsIn2015 * inflationArr[index+1];
 									if(takePercentage) {
 										double realizedSavings = inflatedSavings * percentRealized;
 										
 										yearlySystemSavings[index] += realizedSavings;
 										yearlySiteSavings[index] += realizedSavings;
 
-										if(index == outputYear) {
+										if(index == outputYear) {  //TODO: why does this only happen once???
 											if(locallyDeployedSavingsHash.containsKey(system)) {
 												double currentDelayedSavings = locallyDeployedSavingsHash.get(system);
-												currentDelayedSavings += inflatedSavings * (1 - percentRealized) * inflationArr[yearlySystemSavings.length - index];
+												currentDelayedSavings += savingsIn2015 * (1 - percentRealized) * inflationArr[yearlySystemSavings.length];
 												locallyDeployedSavingsHash.put(system, currentDelayedSavings);
 											} else {
-												locallyDeployedSavingsHash.put(system, inflatedSavings * (1 - percentRealized) * inflationArr[yearlySystemSavings.length - index]);
+												locallyDeployedSavingsHash.put(system, savingsIn2015 * (1 - percentRealized) * inflationArr[yearlySystemSavings.length]);
 											}
 										}
 									} else {
@@ -406,7 +409,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 					costs = (Double[]) ArrayUtilityMethods.removeAllNulls(costs);
 					int numSites = numSitesForSysHash.get(system);
 					int numSitesNotIncluded = numSitesNotInWaveForSysHash.get(system);
-					double otherSiteCost = costs[costs.length - 1] * numSitesNotIncluded/numSites  * inflationArr[inflationArr.length - costs.length];
+					double otherSiteCost2015 = costs[costs.length - 1] * numSitesNotIncluded/numSites / inflationArr[costs.length];
+					double otherSiteCost = otherSiteCost2015 * inflationArr[inflationArr.length - 1];
 					if(sysSavings.containsKey(system)) {
 						double currSiteSavings = sysSavings.get(system);
 						currSiteSavings += otherSiteCost * percentRealized;
@@ -437,7 +441,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			if(costs != null) {
 				costs = (Double[]) ArrayUtilityMethods.removeAllNulls(costs);
 				if(costs[costs.length-1] != 0) {
-					double systemNotIncludedCost = costs[costs.length - 1] * inflationArr[inflationArr.length - costs.length];
+					double systemNotIncludedCost2015 = costs[costs.length - 1] / inflationArr[costs.length];
+					double systemNotIncludedCost = systemNotIncludedCost2015 * inflationArr[inflationArr.length - 1];
 					totalSystemsNotIncludedCost += systemNotIncludedCost;
 				}
 			} else {
@@ -492,7 +497,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 					double inflatedSavings = savings;
 					// add inflation to savings if appropriate
 					if(index - position + 1 > 1) {
-						inflatedSavings *= inflationArr[index-position+1];
+						inflatedSavings /= inflationArr[position];
+						inflatedSavings *= inflationArr[index+1];
 					}
 					yearlySavings[index] += inflatedSavings - currSiteSavings;
 				}
@@ -580,7 +586,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 						costs = (Double[]) ArrayUtilityMethods.removeAllNulls(costs);
 						int numSites = numSitesForSysHash.get(system);
 						int numSitesNotIncluded = numSitesNotInWaveForSysHash.get(system);
-						double additionalSavings = costs[costs.length - 1] * numSitesNotIncluded/numSites * inflationArr[inflationArr.length - costs.length];
+						double savingsIn2015 = costs[costs.length-1] * numSitesNotIncluded/numSites / inflationArr[costs.length];
+						double additionalSavings = savingsIn2015 * inflationArr[inflationArr.length - 1];
 						values[values.length - 1] += additionalSavings;
 //						values[values.length - 1] += additionalSavings * percentRealized;
 						if(sysSavings.containsKey(system)) {
@@ -621,7 +628,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 								}
 							}
 							double savings = costArr[position]; 
-							double inflatedSavings = savings * inflationArr[index-position+1];
+							double savingsIn2015 = savings / inflationArr[position];
+							double inflatedSavings = savingsIn2015 * inflationArr[index+1];
 	
 							value += inflatedSavings - currSysSavings;
 						}
@@ -669,7 +677,8 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			double inflatedSavings = 0;
 			if(costArr != null) {
 				costArr = (Double[]) ArrayUtilityMethods.removeAllNulls(costArr);
-				inflatedSavings = costArr[costArr.length - 1] * inflationArr[inflationArr.length - costArr.length];
+				double savingsIn2015 = costArr[costArr.length - 1] / inflationArr[costArr.length];
+				inflatedSavings = savingsIn2015 * inflationArr[inflationArr.length - 1];
 			}
 			if(inflatedSavings == 0) {
 				row[row.length - 2] = "No Cost Information";
