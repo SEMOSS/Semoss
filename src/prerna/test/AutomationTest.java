@@ -14,6 +14,8 @@ import org.junit.runners.Suite.SuiteClasses;
 * 	c) Overriding/Replacing an existing Database
 * 3) WekaAprioriAlgorithTest
 * 	a) Execute Method
+*   b) generateDecisionRuleVizualization
+*	c) generateDecisionRuleTable
 *
 * @author  August Bender
 * @version 1.0
