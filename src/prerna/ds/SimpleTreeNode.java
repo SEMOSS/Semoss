@@ -375,7 +375,7 @@ public class SimpleTreeNode {
 					retNode = new TreeNode(node.leaf);
 					rootNode = rootNode.insertData(retNode);
 					indexHash.put(sNode.getType(), rootNode);
-					retNode.addInstance(node);
+//					retNode.addInstance(node);
 				}
 				retNode.getInstances().add(node);
 			}
@@ -448,12 +448,18 @@ public class SimpleTreeNode {
 		}
 		else
 		{
-			// what kind of cookie logic is this
+			// what kind of cookie logic is this//
 			/*SimpleTreeNode prevLeftChild = null;
 			if(this.leftChild != null)
 				prevLeftChild = this.leftChild.leftChild; // what is this doing here
 			node.leftChild = prevLeftChild;*///
 			this.leftChild = node;			
+		}
+
+		node = node.rightSibling;
+		while (node != null){
+			node.parent = this;
+			node = node.rightSibling;
 		}
 	}
 
@@ -476,7 +482,7 @@ public class SimpleTreeNode {
 				do
 				{
 					addLeafChild(targetNode, node); // move on to this node
-					targetNode = targetNode.rightSibling;// move to the next node on the sibling list
+					targetNode = targetNode.rightSibling;// move to the next node on the sibling list//
 				}while(targetNode != null);
 			}
 		}
