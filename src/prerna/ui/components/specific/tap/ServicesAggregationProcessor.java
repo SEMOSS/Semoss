@@ -36,6 +36,7 @@ import java.util.LinkedList;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
+import org.openrdf.model.vocabulary.RDF;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
@@ -469,6 +470,8 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 
 		ISelectWrapper sjswCore = Utility.processQuery(coreDB, propTAPCoreQuery);
 		processServiceSystemProperties(sjswCore, true);
+		Object[] propDefTriple = new String[]{semossPropertyBaseURI + "Component_Of", RDF.TYPE.toString(), "http://semoss.org/ontologies/Relation/Contains"};
+        addToDataHash(propDefTriple);
 
 		// processing modifies class variable dataHash directly
 		deleteData(coreDB, removeDataHash);
@@ -559,12 +562,18 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 				}
 				else if(prop.equals(semossPropertyBaseURI + "Transactional"))
 				{
-					returnTriple = processTransactional(sub, prop, value);
+					
+					returnTriple = processTransactionalAndComponentOf(sub, prop, value);
 					aggregatedProp = true;
 				}
 				else if(prop.equals(semossPropertyBaseURI + "Comments"))
 				{
 					returnTriple = processConcatString(sub, prop, value, user);
+					aggregatedProp = true;
+				}
+				else if(prop.equals(semossPropertyBaseURI + "Component_Of"))
+				{
+					returnTriple = processTransactionalAndComponentOf(sub, prop, value);
 					aggregatedProp = true;
 				}
 
@@ -1289,13 +1298,16 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		return new Object[]{sub, prop, value};
 	}
 
-	private Object[] processTransactional(String sub, String prop, Object value)
+	private Object[] processTransactionalAndComponentOf(String sub, String prop, Object value)
 	{
 		value = value.toString().replaceAll("\"", "");
 		HashMap<String, Object> innerHash = new HashMap<String, Object>();
 		if(!dataHash.containsKey(sub) || !dataHash.get(sub).containsKey(prop))
 		{
-			LOGGER.debug("ADDING TRANSACTIONAL:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			if( prop.contains("Component_Of") )
+				LOGGER.debug("ADDING Component_Of:     " + sub + " -----> {" + prop + " --- " + value + "}");
+			else
+				LOGGER.debug("ADDING TRANSACTIONAL:     " + sub + " -----> {" + prop + " --- " + value + "}");
 		}
 		//Different SystemServices should not be sending different transactional value
 		//perform check to make sure data is correct
@@ -1307,7 +1319,6 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 			{
 				this.errorMessage = "Error Processing Transactional!  Conflicting report from systems. " 
 						+ "Error occured processing: " + sub + " >>>> " + prop + " >>>> " + value;				
-				return new Object[]{""};
 			}
 		}
 		return new Object[]{sub, prop, value};
