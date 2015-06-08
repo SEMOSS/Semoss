@@ -644,8 +644,8 @@ public class Utility {
 		retString = retString.replaceAll("'", "");//remove apostrophe
 		if(replaceForRDF){
 			retString = retString.replaceAll("\"", "'");//replace double quotes with single quotes
-			retString = retString.replaceAll(" ", "_");//replace spaces with underscores
 		}
+		retString = retString.replaceAll(" ", "_");//replace spaces with underscores
 		if(replaceForwardSlash) {
 			retString = retString.replaceAll("/", "-");//replace forward slashes with dashes
 		}
