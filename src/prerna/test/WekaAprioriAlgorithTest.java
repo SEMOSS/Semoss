@@ -81,7 +81,7 @@ public class WekaAprioriAlgorithTest {
 	//Execute
 	@Test
 	public void Test_execute() throws Exception{
-		String propFile = workingDir + "//db//" + "MOVIE_DB.smss";
+		String propFile = workingDir + "//db//" + "Movie_DB.smss";
 		
 		//Run Execute
 		//BigDataEngine engine = loadEngine(propFile);
