@@ -196,12 +196,13 @@ public class BTreeDataFrame implements ITableDataFrame {
 				for(int instIdx = 0; instIdx < thisInstances.size(); instIdx++){
 					SimpleTreeNode myNode = thisInstances.get(instIdx);
 					SimpleTreeNode hookUp = instance2HookUp.deserializeTree(serialized, newIdxHash);//
+//					SimpleTreeNode.addLeafChild(myNode, hookUp);
 					myNode.leftChild = hookUp;
 					while(hookUp!=null){
-						hookUp.parent=myNode;
+//						SimpleTreeNode.addLeafChild(myNode, hookUp);
+						hookUp.parent = myNode;
 						hookUp = hookUp.rightSibling;
 					}
-//					myNode.addChild(hookUp);
 //					System.out.println("joining " + myNode.leaf.getKey() + " with " + hookUp.leaf.getKey());
 				}
 			}
@@ -660,7 +661,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		
 		BTreeDataFrame joiner = load2Tree4Testing(file2);
 		String[] names2 = joiner.getColumnHeaders();
-		tester.join(joiner, names1[names1.length-1], names2[0], 1, new ExactStringMatcher());
+		tester.join(joiner, names1[names1.length-2], names2[0], 1, new ExactStringMatcher());
 
 		names1 = tester.getColumnHeaders();
 		System.out.println("done fo sho");
@@ -670,19 +671,22 @@ public class BTreeDataFrame implements ITableDataFrame {
 		for(Object row : col){
 			System.out.println(row);
 		}
-		
-		BTreeDataFrame joiner3 = load2Tree4Testing(file3);
-		String[] names3 = joiner3.getColumnHeaders();
-		tester.join(joiner3, names1[names1.length-1], names3[0], 1, new ExactStringMatcher());
-
-		names1 = tester.getColumnHeaders();
-		System.out.println("done fo sho");
-		write2Excel4Testing(tester, fileOut);
-		System.out.println("my column...........................................");
-		Object[] col1 = tester.getColumn(names1[names1.length - 1]);
-		for(Object row : col1){
-			System.out.println(row);
-		}
+		//remove column
+//		tester.removeColumn(names1[names1.length - 1]);
+//		names1 = tester.getColumnHeaders();
+//		
+//		BTreeDataFrame joiner3 = load2Tree4Testing(file3);
+//		String[] names3 = joiner3.getColumnHeaders();
+//		tester.join(joiner3, names1[names1.length-1], names3[0], 1, new ExactStringMatcher());
+//
+//		names1 = tester.getColumnHeaders();
+//		System.out.println("done fo sho");
+//		write2Excel4Testing(tester, fileOut);
+//		System.out.println("my column...........................................");
+//		Object[] col1 = tester.getColumn(names1[names1.length - 1]);
+//		for(Object row : col1){
+//			System.out.println(row);
+//		}
 	}
 	
 	private static void testStoringAndWriting(String file1, String fileOut){
@@ -710,7 +714,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		XSSFRow headerRow = lSheet.getRow(0);
 		List<String> headerList = new ArrayList<String>();
 		int totalCols = 0;
-		while(headerRow.getCell(totalCols)!=null){
+		while(headerRow.getCell(totalCols)!=null && !headerRow.getCell(totalCols).getStringCellValue().isEmpty()){
 			headerList.add(headerRow.getCell(totalCols).getStringCellValue());
 			totalCols++;
 		}
@@ -746,7 +750,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 			XSSFRow row = sheet.createRow(i);
 			Object[] dataR = data.get(i);
 			for(int c = 0; c < dataR.length; c++){
-				row.createCell(0).setCellValue(dataR[c] + "");
+				row.createCell(c).setCellValue(dataR[c] + "");
 			}
 			System.out.println("wrote row " + i);
 		}
