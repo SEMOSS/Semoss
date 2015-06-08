@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Set;
 
 import org.supercsv.cellprocessor.Optional;
 import org.supercsv.cellprocessor.ift.CellProcessor;
@@ -70,6 +71,9 @@ public class DataStructureFromTable {
 		//process through the ordered engines to add any exact matches from master db.
 		System.out.println("\nFinding relationships in Master DB that are exact matches to columns... ");
 		findExactMatchRelationshipsInMasterDB(orderedEnginesList);
+		
+//		//testing the hierarchical
+//		findRelationshipsForHierarchical();
 		
 		//find matches based upon the unique instances
 		System.out.println("\nFinding relationships based upon unique identifier analysis... ");
@@ -159,28 +163,56 @@ public class DataStructureFromTable {
 		}
 	}
 	
-//	private void findRelationshipsForHierarchical() {
-//
-//		
-//	}
-//	
-//	private void buildColumnConcatSet() {
-//		//i dont think we need this?
-//		boolean datasetProcessed = false;
-//		
-//	}
-//
-//	private void buildColumnConcat(ArrayList<String> dataHeaders, ArrayList<Object[]> data, ArrayList<String> colList) {
-//		
-//		int dataLength = dataHeaders.size();
-//		for(int i = 0; i < dataLength; i++) {
-//			if(!colList.contains(dataHeaders.get(i))) {
-//				ArrayList<Object []> filteredData = ArrayListUtilityMethods.removeColumnFromList(data, i);
-//				if()
-//			}
-//		}
-//		
-//	}
+	private void findRelationshipsForHierarchical() {
+		buildColumnConcatSet();		
+	}
+	
+	private void buildColumnConcatSet() {
+		
+		ArrayList<Integer> colIndexList = new ArrayList<Integer>();
+
+		//else block of algorithm
+		ArrayList<Integer> colConcat = buildColumnConcat(headers, table, colIndexList);
+		List<ArrayList<Integer>> colConcatProcessingList = new ArrayList<ArrayList<Integer>>();
+		colConcatProcessingList.add(colConcat);
+		Set<ArrayList<Integer>> colConcatResultSet = new HashSet<ArrayList<Integer>>();
+		colConcatResultSet.add(colConcat);
+		
+		//if block of algorithm
+		while(!colConcatProcessingList.isEmpty()) {
+			colConcat = colConcatProcessingList.get(0);
+			int numColsInConcat = colConcat.size();
+			for(int i = 0; i < numColsInConcat; i++) {
+				ArrayList<Object[]> filteredData = ArrayListUtilityMethods.removeColumnFromList(table, colConcat.get(i));
+				ArrayList<Integer> newColConcat = buildColumnConcat(headers,filteredData,colIndexList);
+				colConcatProcessingList.add(newColConcat);
+				colConcatResultSet.add(newColConcat);
+			}
+			colConcatProcessingList.remove(0);
+			colIndexList.addAll(colConcat);
+		}
+
+	}
+
+	//TODO, does order matter? can this be a set instead? also should be name or indicies?
+	private ArrayList<Integer> buildColumnConcat(String[] headers, ArrayList<Object[]> data, ArrayList<Integer> colIndexList) {
+		
+		int numHeaders = headers.length;
+		int dataIndex = 0;
+		for(int i = 0; i < numHeaders; i++) {
+			if(!colIndexList.contains(i)) {
+				ArrayList<Object []> filteredData = ArrayListUtilityMethods.removeColumnFromList(data, dataIndex);
+				if(!isUniqueDataSet(data)) {
+					colIndexList.add(i);
+					data = filteredData; //TODO make sure data is reset properly
+				} else {
+					dataIndex ++;
+				}
+			}
+		}
+		
+		return colIndexList;
+	}
 	
 	private void findRelationshipsBasedOnUniqueIdentifier() {
 		
@@ -262,7 +294,7 @@ public class DataStructureFromTable {
             // dont compare column to itself
             if(firstColIndex != secondColIndex) {
     			// need to make sure second column does not have first column as a property already and second column is not a property of something else
-                if(!(matchedColsHash.containsKey(secondColName)) || !(matchedColsHash.get(secondColName).contains(firstColName))) {
+            	if((!matchedColsHash.containsKey(secondColName) || !matchedColsHash.get(secondColName).contains(firstColName)) && (!matchedColsHash.containsKey(firstColName) || !matchedColsHash.get(firstColName).contains(secondColName))) {
                     if(!colAlreadyProperty[secondColIndex] && compareCols(firstColIndex, secondColIndex)) {
                         // we have a match!!!
                         boolean useInverse = false;
