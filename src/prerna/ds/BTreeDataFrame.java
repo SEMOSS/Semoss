@@ -196,13 +196,13 @@ public class BTreeDataFrame implements ITableDataFrame {
 				for(int instIdx = 0; instIdx < thisInstances.size(); instIdx++){
 					SimpleTreeNode myNode = thisInstances.get(instIdx);
 					SimpleTreeNode hookUp = instance2HookUp.deserializeTree(serialized, newIdxHash);//
-//					SimpleTreeNode.addLeafChild(myNode, hookUp);
-					myNode.leftChild = hookUp;
-					while(hookUp!=null){
+					SimpleTreeNode.addLeafChild(myNode, hookUp);
+//					myNode.leftChild = hookUp;
+//					while(hookUp!=null){
 //						SimpleTreeNode.addLeafChild(myNode, hookUp);
-						hookUp.parent = myNode;
-						hookUp = hookUp.rightSibling;
-					}
+//						hookUp.parent = myNode;
+//						hookUp = hookUp.rightSibling;
+//					}
 //					System.out.println("joining " + myNode.leaf.getKey() + " with " + hookUp.leaf.getKey());
 				}
 			}
