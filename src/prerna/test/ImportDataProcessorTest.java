@@ -126,7 +126,9 @@ public class ImportDataProcessorTest {
 		replacementExcel = testFolder + "ExcelReplace.xlsm";
 		
 		System.out.println("Cleaning...");
-		clean();
+		if(new File(dbDirectory+newDBnameCSV).exists()){
+			clean();
+		}
 	}
 
 	@Before
