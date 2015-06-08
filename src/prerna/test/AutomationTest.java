@@ -12,10 +12,12 @@ import org.junit.runners.Suite.SuiteClasses;
 * 	a) Creating a new Database
 * 	b) Adding to and existing Database
 * 	c) Overriding/Replacing an existing Database
+* 3) WekaAprioriAlgorithTest
+* 	a) Execute Method
 *
 * @author  August Bender
 * @version 1.0
-* @since   03-24-2015 
+* @since   05-29-2015 
 * Questions? Email abender@deloitte.com
 */
 
