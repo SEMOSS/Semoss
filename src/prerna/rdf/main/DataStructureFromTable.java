@@ -21,6 +21,7 @@ import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.error.FileReaderException;
 import prerna.nameserver.MasterDatabaseQueries;
 import prerna.nameserver.MasterDatabaseURIs;
+import prerna.util.ArrayListUtilityMethods;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -157,7 +158,30 @@ public class DataStructureFromTable {
 			}
 		}
 	}
-
+	
+//	private void findRelationshipsForHierarchical() {
+//
+//		
+//	}
+//	
+//	private void buildColumnConcatSet() {
+//		//i dont think we need this?
+//		boolean datasetProcessed = false;
+//		
+//	}
+//
+//	private void buildColumnConcat(ArrayList<String> dataHeaders, ArrayList<Object[]> data, ArrayList<String> colList) {
+//		
+//		int dataLength = dataHeaders.size();
+//		for(int i = 0; i < dataLength; i++) {
+//			if(!colList.contains(dataHeaders.get(i))) {
+//				ArrayList<Object []> filteredData = ArrayListUtilityMethods.removeColumnFromList(data, i);
+//				if()
+//			}
+//		}
+//		
+//	}
+	
 	private void findRelationshipsBasedOnUniqueIdentifier() {
 		
 		//determine the column types for the data
@@ -200,8 +224,6 @@ public class DataStructureFromTable {
 		//keep track of the columns that have already been used as properties.
 		//cannot use the same column as a property for multiple nodes
 		colAlreadyProperty = new boolean[numCol];
-
-		matchedColsHash = new Hashtable<String, List<String>>();
 		
 		//iterating through all string/integer columns
 		//going through in min to max order, but need to use the original column index
@@ -279,6 +301,20 @@ public class DataStructureFromTable {
         }
 	}
 
+	private boolean isUniqueDataSet(ArrayList<Object[]> data) {
+		int[] countArray = getUniqueCounts(data);
+		
+		int numInstances = data.size();
+		int numCols = countArray.length;
+		
+		for(int col = 0; col < numCols; col++) {
+			if(countArray[col] == numInstances) {
+				return true;
+			}
+		}
+		return false;	
+	}
+	
 	private int[] getUniqueCounts(ArrayList<Object[]> data) {
 		List<HashSet<Object>> colValues = new ArrayList<HashSet<Object>>();
 
