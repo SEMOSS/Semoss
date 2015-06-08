@@ -3,10 +3,11 @@ package prerna.test;
 import static org.junit.Assert.*;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Map;
 import java.util.Properties;
 
@@ -21,31 +22,29 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.ui.components.ImportDataProcessor;
-import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import weka.associations.Item;
 
+
 /**
- * WekaAprioriAlgorithmtTest checks the execute method of the WekaAprioriAlgorithm Class
- * 
- * 1) Testing execute()
- *
- * @author  Betrand T.
- * @version 1.0
- * @since   05-19-2015
- * Questions? Email btamunang@deloitte.com
- */
+* WekaAprioriAlgorithmTest checks the 3 main methods of the WekaAprioriAlgorithm class
+* 1)Checking if the WekaAprioriAlgorithm works against Movie_DB 
+* 2)Generate Decision Rule Visualization.
+* 3)Generate Decision Rule Table
+*
+* @author  Betrand Tamunang
+* @version 1.0
+* @since   06-08-2015 
+* Questions? Email btamunang@deloitte.com
+*/
 public class WekaAprioriAlgorithTest {
 
 	private static String workingDir = System.getProperty("user.dir");
-	private BigDataEngine engine;
 	//Directories
 	private static String semossDirectory;
 	private static String dbDirectory;
-	private static ImportDataProcessor processor;
-	private ISelectWrapper wrapper;
-
+	
 	private WekaAprioriAlgorithm wekaAprioriAlgorithm;
 	
 	static int testCounter;
@@ -56,9 +55,8 @@ public class WekaAprioriAlgorithTest {
 		semossDirectory = System.getProperty("user.dir");
 		semossDirectory = semossDirectory.replace("\\", "\\\\");
 		dbDirectory = semossDirectory + "\\db\\";
-
-
 	}
+	
 	@Before
 	public void setUp() throws Exception{
 		testCounter++;
@@ -75,16 +73,24 @@ public class WekaAprioriAlgorithTest {
 
 	@After
 	public void tearDown() throws Exception {
-		System.out.println("Test Completed..");
+		System.out.println("Tear Down ...");
 	}
 
-	//Execute
+	/**execute Unit Test
+	 * 
+	 * 1) Open Engine and run query for WekaAprioriAlgorithm
+	 * 2) Get Actual Results
+	 * 3) Compare actual results data with pseudo data. 
+	 * 
+	 * @param Movie_DB, setPremises(), setConsequences(), setCounts(), execute()
+	 * 
+	 * @throws Exception
+	 */
 	@Test
 	public void Test_execute() throws Exception{
-		String propFile = workingDir + "//db//" + "Movie_DB.smss";
+		String propFile = workingDir + "//db//" + "MOVIE_DB.smss";
 		
-		//Run Execute
-		//BigDataEngine engine = loadEngine(propFile);
+		//Open Engine and Run Execute
 		BigDataEngine engine = new BigDataEngine();
 		Properties prop = new Properties();
 		FileInputStream fileIn = null;
@@ -103,6 +109,7 @@ public class WekaAprioriAlgorithTest {
 			}
 		}
 		engine = (BigDataEngine) Utility.loadEngine(propFile, prop);
+		
 		ArrayList<Object[]> list = null;
 		String [] names = null;
 
@@ -122,7 +129,6 @@ public class WekaAprioriAlgorithTest {
 				+ "{?Title <http://semoss.org/ontologies/Relation/BelongsTo> ?Genre}"
 				+ "{?Title <http://semoss.org/ontologies/Relation/Was> ?Nominated}"
 				+ "{?Title <http://semoss.org/ontologies/Relation/DirectedAt> ?Studio}} ORDER BY ?Title  LIMIT 2";
-
 
 		list = new ArrayList<Object[]>();
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);
@@ -149,9 +155,8 @@ public class WekaAprioriAlgorithTest {
 		Map<Integer, Integer> countsResult = wekaAprioriAlgorithm.getCounts();
 		Map<Integer, Double> confidenceIntervalsResult = wekaAprioriAlgorithm.getConfidenceIntervals();
 		
-		 //Asserts 
-		
-		//Case#1
+		//Assertions 
+		//Scenario#1
 		Boolean tester = false;
 		int n = 3;
 		if(premisesResult.get(n).toArray()[0].toString().contains("Director=Danny_Boyle")
@@ -162,8 +167,9 @@ public class WekaAprioriAlgorithTest {
 		}
 		assertTrue("Information is incorrect: ", tester);
 		tester = false;
+		System.err.println("Successfully run execute assertion Scenario# 1");
 		
-		//Case#2
+		//Scenario#2
 		n = 6;
 		if(premisesResult.get(n).toArray()[0].toString().contains("Studio=Fox")
 				&& consequencesResult.get(n).toArray()[0].toString().contains("Title=127_Hours")
@@ -173,8 +179,9 @@ public class WekaAprioriAlgorithTest {
 		}
 		assertTrue("Information is incorrect: ", tester);
 		tester = false;
+		System.err.println("Successfully run execute assertion Scenario# 2");
 		
-		//Case#3
+		//Scenario#3
 		n = 8;
 		if(premisesResult.get(n).toArray()[0].toString().contains("DomesticRevenue=1.833523E7")
 				&& consequencesResult.get(n).toArray()[0].toString().contains("Title=127_Hours")
@@ -184,8 +191,9 @@ public class WekaAprioriAlgorithTest {
 		}
 		assertTrue("Information is incorrect: ", tester);
 		tester = false;
+		System.err.println("Successfully run execute assertion Scenario# 3");
 		
-		//Case#4
+		//Scenario#4
 		n = 10;
 		if(premisesResult.get(n).toArray()[0].toString().contains("InternationalRevenue=0.0")
 				&& consequencesResult.get(n).toArray()[0].toString().contains("Title=127_Hours")
@@ -195,8 +203,9 @@ public class WekaAprioriAlgorithTest {
 		}
 		assertTrue("Information is incorrect: ", tester);
 		tester = false;
+		System.err.println("Successfully run execute assertion Scenario# 4");
 		
-		//Case#5
+		//Scenario#5
 		n = 12;
 		if(premisesResult.get(n).toArray()[0].toString().contains("Budget=1.8E7")
 				&& consequencesResult.get(n).toArray()[0].toString().contains("Title=127_Hours")
@@ -206,9 +215,9 @@ public class WekaAprioriAlgorithTest {
 		}
 		assertTrue("Information is incorrect: ", tester);
 		tester = false;
-		
+		System.err.println("Successfully run execute assertion Scenario# 5");
 
-		//Case#6
+		//Scenario#6
 		n = 39;
 		if(premisesResult.get(n).toArray()[0].toString().contains("DomesticRevenue=4.8352E7")
 				&& consequencesResult.get(n).toArray()[0].toString().contains("Genre=Drama")
@@ -218,8 +227,9 @@ public class WekaAprioriAlgorithTest {
 		}
 		assertTrue("Information is incorrect: ", tester);
 		tester = false;
+		System.err.println("Successfully run execute assertion Scenario# 6");
 		
-		//Case#7
+		//Scenario#7
 		n = 60;
 		if(premisesResult.get(n).toArray()[0].toString().contains("Director=Steve_McQueen")
 				&& consequencesResult.get(n).toArray()[0].toString().contains("RottenTomatoesAudience=0.92")
@@ -229,8 +239,9 @@ public class WekaAprioriAlgorithTest {
 		}
 		assertTrue("Information is incorrect: ", tester);
 		tester = false;
+		System.err.println("Successfully run execute assertion Scenario# 7");
 		
-		//Case#8
+		//Scenario#8
 		n = 75;
 		if(premisesResult.get(n).toArray()[0].toString().contains("Studio=Fox")
 				&& consequencesResult.get(n).toArray()[0].toString().contains("Nominated=Y")
@@ -240,9 +251,10 @@ public class WekaAprioriAlgorithTest {
 		}
 		assertTrue("Information is incorrect: ", tester);
 		tester = false;
+		System.err.println("Successfully run execute assertion Scenario# 8");
 		
 		
-		//Case#9
+		//Scenario#9
 		n = 87;
 		if(premisesResult.get(n).toArray()[0].toString().contains("Studio=Fox_Searchlight")
 				&& consequencesResult.get(n).toArray()[0].toString().contains("DomesticRevenue=4.8352E7")
@@ -252,8 +264,9 @@ public class WekaAprioriAlgorithTest {
 		}
 		assertTrue("Information is incorrect: ", tester);
 		tester = false;
+		System.err.println("Successfully run execute assertion Scenario# 9");
 		
-		//Case#10
+		//Scenario#10
 		n = 96;
 		if(premisesResult.get(n).toArray()[0].toString().contains("DomesticRevenue=1.833523E7")
 				&& consequencesResult.get(n).toArray()[0].toString().contains("Studio=Fox")
@@ -263,75 +276,272 @@ public class WekaAprioriAlgorithTest {
 		}
 		assertTrue("Information is incorrect: ", tester);
 		tester = false;
+		System.err.println("Successfully run execute assertion Scenario# 10");
 		
+		engine.commitOWL();
 		engine.commit();
 		engine.closeDB();
-		System.out.println("Test " + testCounter + " complete");
+		System.out.println("Test " + testCounter + " Complete");
 	}
-
-
-
-
-	private BigDataEngine loadEngine(String engineLocation){
+	
+	/**generateDecisionRuleVizualization Unit Test
+	 * 
+	 * 1) Get input data from execute()
+	 * 2) Get Actual generateDecisionRuleVizualization Results
+	 * 3) Compare actual results data with pseudo data. 
+	 * 
+	 * @param Movie_DB, setPremises(), setConsequences(), setCounts(), execute()
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void Test_generateDecisionRuleVizualization() throws Exception {
+		//PART 1
+		ArrayList<Object[]> list = new ArrayList<Object[]>();
+		String [] names = new String[0];
+		
+		wekaAprioriAlgorithm = new WekaAprioriAlgorithm(list, names);
+		wekaAprioriAlgorithm.setPremises( new HashMap<Integer, Collection<Item>>());
+		wekaAprioriAlgorithm.setConsequences(new HashMap<Integer, Collection<Item>>());
+		wekaAprioriAlgorithm.setCounts(new HashMap<Integer, Integer>());
+		//Testing catch
+		assertEquals("Check is incorrect",  new Hashtable<String, Object>(), wekaAprioriAlgorithm.generateDecisionRuleVizualization());
+		
+		//PART 2
+		String propFile = workingDir + "//db//" + "Movie_DB.smss";
+		
+		//Run Execute
 		BigDataEngine engine = new BigDataEngine();
-		FileInputStream fileIn;
 		Properties prop = new Properties();
+		FileInputStream fileIn = null;
 		try {
-			fileIn = new FileInputStream(engineLocation);
-			prop.load(fileIn);
-			//SEP
-			try {
-				String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
-
-				String engineName = prop.getProperty(Constants.ENGINE);
-				String engineClass = prop.getProperty(Constants.ENGINE_TYPE);
-				//TEMPORARY
-				// TODO: remove this
-				if(engineClass.equals("prerna.rdf.engine.impl.RDBMSNativeEngine")){
-					engineClass = "prerna.engine.impl.rdbms.RDBMSNativeEngine";
-				}
-				else if(engineClass.startsWith("prerna.rdf.engine.impl.")){
-					engineClass = engineClass.replace("prerna.rdf.engine.impl.", "prerna.engine.impl.rdf.");
-				}
-				engine = (BigDataEngine)Class.forName(engineClass).newInstance();
-				engine.setEngineName(engineName);
-				if(prop.getProperty("MAP") != null) {
-					engine.addProperty("MAP", prop.getProperty("MAP"));
-				}
-				engine.openDB(engineLocation);
-				engine.setDreamer(prop.getProperty(Constants.DREAMER));
-				engine.setOntology(prop.getProperty(Constants.ONTOLOGY));
-
-				// set the core prop
-				if(prop.containsKey(Constants.DREAMER))
-					DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.DREAMER, prop.getProperty(Constants.DREAMER));
-				if(prop.containsKey(Constants.ONTOLOGY))
-					DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.ONTOLOGY, prop.getProperty(Constants.ONTOLOGY));
-				if(prop.containsKey(Constants.OWL)) {
-					DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.OWL, prop.getProperty(Constants.OWL));
-					engine.setOWL(prop.getProperty(Constants.OWL));
-				}
-
-				// set the engine finally
-				engines = engines + ";" + engineName;
-				DIHelper.getInstance().setLocalProperty(engineName, engine);
-				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engines);
-			} catch (InstantiationException e) {
-				e.printStackTrace();
-			} catch (IllegalAccessException e) {
-				e.printStackTrace();
-			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
-			}
-			//SEP
-			fileIn.close();
-			prop.clear();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			fileIn = new FileInputStream(propFile);
+			prop.load(fileIn);			
 		} catch (IOException e) {
 			e.printStackTrace();
+			
+		} finally {
+			try {
+				if(fileIn != null) {
+					fileIn.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
-		return engine;
+		engine = (BigDataEngine) Utility.loadEngine(propFile, prop);
+
+		//Preprepared Query for this test
+		String query = "SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience "
+				+ "WHERE {{?Title <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Title>}"
+				+ "{?Title <http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic> ?DomesticRevenue }"
+				+ "{?Title <http://semoss.org/ontologies/Relation/Contains/Revenue-International> ?InternationalRevenue}"
+				+ "{?Title <http://semoss.org/ontologies/Relation/Contains/MovieBudget> ?Budget}"
+				+ "{?Title <http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics> ?RottenTomatoesCritics }"
+				+ "{?Title <http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience> ?RottenTomatoesAudience }"
+				+ "{?Director <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Director>}"
+				+ "{?Genre <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Genre>}"
+				+ "{?Nominated <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Nominated>}"
+				+ "{?Studio <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Studio>}"
+				+ "{?Title <http://semoss.org/ontologies/Relation/DirectedBy> ?Director}"
+				+ "{?Title <http://semoss.org/ontologies/Relation/BelongsTo> ?Genre}"
+				+ "{?Title <http://semoss.org/ontologies/Relation/Was> ?Nominated}"
+				+ "{?Title <http://semoss.org/ontologies/Relation/DirectedAt> ?Studio}} ORDER BY ?Title  LIMIT 2";
+
+		list = new ArrayList<Object[]>();
+		ISelectWrapper sjsw = Utility.processQuery(engine, query);
+		names = sjsw.getVariables();
+		int length = names.length;
+		while(sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			Object[] row = new Object[length];
+			int i = 0;
+			for(; i < length; i++) {
+				row[i] = sjss.getVar(names[i]);
+			}
+			list.add(row);
+		}	
+		
+		wekaAprioriAlgorithm = new WekaAprioriAlgorithm(list, names);
+		wekaAprioriAlgorithm.execute(); 
+		
+		//Get Actual generateDecisionRuleVizualization Results
+		Hashtable<String, Object> hashActual = wekaAprioriAlgorithm.generateDecisionRuleVizualization();
+		String[] headers =  (String[]) hashActual.get("headers");
+		
+		//Assertions
+		//Scenario# 1
+		Boolean tester = false;
+		if(headers[0].contains("Count") && hashActual.get("data").toString().contains("2, 1.00, Nominated = Y, Genre = Drama")){
+			tester = true;
+		}
+		assertTrue("Information is incorrect: ", tester);
+		tester = false;
+		System.err.println("Successfully run GenerateDecisionRuleVizualization Test Scenario# 1");
+		
+		//Scenario# 2
+		if(headers[1].contains("Confidence") && hashActual.get("data").toString().contains("2, 1.00, Genre = Drama, Nominated = Y")){
+			tester = true;
+		}
+		assertTrue("Information is incorrect: ", tester);
+		tester = false;
+		System.err.println("Successfully run GenerateDecisionRuleVizualization Test Scenario# 2");
+		
+		//Scenario# 3
+		if(headers[2].contains("Premises") && hashActual.get("data").toString().contains("1, 1.00, Title = 127_Hours, Genre = Drama")){
+			tester = true;
+		}
+		assertTrue("Information is incorrect: ", tester);
+		tester = false;
+		System.err.println("Successfully run GenerateDecisionRuleVizualization Test Scenario# 3");
+		
+		//Scenario# 4
+		if(headers[3].contains("Consequence") && hashActual.get("data").toString().contains("1, 1.00, Director = Danny_Boyle, Title = 127_Hours")){
+			tester = true;
+		}
+		assertTrue("Information is incorrect: ", tester);
+		tester = false;
+		System.err.println("Successfully run GenerateDecisionRuleVizualization Test Scenario# 4");
+		
+		//Close Engine
+		engine.commitOWL();
+		engine.commit();
+		engine.closeDB();
+		System.out.println("Test " + testCounter + " Complete");
+	}
+	
+	
+	/**generateDecisionRuleTable Unit Test
+	 * 
+	 * 1) Run query using the execute() to get input data.
+	 * 2) Get Actual generateDecisionRuleTable Results by calling generateDecisionRuleTable()
+	 * 3) Compare actual results data with pseudo data.
+	 * 
+	 * @param Movie_DB, setPremises(), setConsequences(), setCounts(), execute()
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void Test_generateDecisionRuleTable() throws Exception{
+		// PART 1
+		ArrayList<Object[]> list = new ArrayList<Object[]>();
+		String[] names = new String[0];
+
+		wekaAprioriAlgorithm = new WekaAprioriAlgorithm(list, names);
+		wekaAprioriAlgorithm.setPremises(new HashMap<Integer, Collection<Item>>());
+		wekaAprioriAlgorithm.setConsequences(new HashMap<Integer, Collection<Item>>());
+		wekaAprioriAlgorithm.setCounts(new HashMap<Integer, Integer>());
+		// Testing catch
+		wekaAprioriAlgorithm.generateDecisionRuleTable();
+		assertEquals("Check is incorrect", new Hashtable<String, Object>(), wekaAprioriAlgorithm.getPremises());
+		assertEquals("Check is incorrect", new Hashtable<String, Object>(), wekaAprioriAlgorithm.getConsequences());
+		assertEquals("Check is incorrect", new Hashtable<String, Object>(), wekaAprioriAlgorithm.getCounts());
+		
+		//PART 2
+		String propFile = workingDir + "//db//" + "Movie_DB.smss";
+		
+		//Run Execute
+		BigDataEngine engine = new BigDataEngine();
+		Properties prop = new Properties();
+		FileInputStream fileIn = null;
+		try {
+			fileIn = new FileInputStream(propFile);
+			prop.load(fileIn);			
+		} catch (IOException e) {
+			e.printStackTrace();
+			
+		} finally {
+			try {
+				if(fileIn != null) {
+					fileIn.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		engine = (BigDataEngine) Utility.loadEngine(propFile, prop);
+
+		//Preprepared Query for this test
+		String query = "SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience "
+				+ "WHERE {{?Title <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Title>}"
+				+ "{?Title <http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic> ?DomesticRevenue }"
+				+ "{?Title <http://semoss.org/ontologies/Relation/Contains/Revenue-International> ?InternationalRevenue}"
+				+ "{?Title <http://semoss.org/ontologies/Relation/Contains/MovieBudget> ?Budget}"
+				+ "{?Title <http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics> ?RottenTomatoesCritics }"
+				+ "{?Title <http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience> ?RottenTomatoesAudience }"
+				+ "{?Director <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Director>}"
+				+ "{?Genre <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Genre>}"
+				+ "{?Nominated <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Nominated>}"
+				+ "{?Studio <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Studio>}"
+				+ "{?Title <http://semoss.org/ontologies/Relation/DirectedBy> ?Director}"
+				+ "{?Title <http://semoss.org/ontologies/Relation/BelongsTo> ?Genre}"
+				+ "{?Title <http://semoss.org/ontologies/Relation/Was> ?Nominated}"
+				+ "{?Title <http://semoss.org/ontologies/Relation/DirectedAt> ?Studio}} ORDER BY ?Title ";
+
+
+		list = new ArrayList<Object[]>();
+		ISelectWrapper sjsw = Utility.processQuery(engine, query);
+		names = sjsw.getVariables();
+		int length = names.length;
+		while(sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			Object[] row = new Object[length];
+			for(int i = 0; i < length; i++) {
+				row[i] = sjss.getVar(names[i]);
+			}
+			list.add(row);
+		}	
+
+		wekaAprioriAlgorithm = new WekaAprioriAlgorithm(list, names);
+		wekaAprioriAlgorithm.execute();
+		wekaAprioriAlgorithm.generateDecisionRuleTable();
+		
+		ArrayList<Object[]> retListResult = wekaAprioriAlgorithm.getRetList();
+		String[] retNamesResult = wekaAprioriAlgorithm.getRetNames();
+							
+		//Assertions
+		//Scenario# 1
+		Boolean testResult = false;
+		for(int i = 0; i < retListResult.size(); i++ ){
+		if(retNamesResult[0].contains("Genre") 
+				&& retListResult.get(i)[9].toString().contains("99")
+				&& retListResult.get(i)[10].toString().contains("1.00")){
+			testResult = true;
+			}
+		}
+		assertTrue("Information is incorrect: ", testResult);
+		testResult = false;
+		System.err.println("Successfully run GenerateDecisionRuleTable Scenario# 1");
+		
+		//Scenario# 2
+		for(int i = 0; i < retListResult.size(); i++ ){
+		if(retNamesResult[3].contains("Studio") &&
+				retListResult.get(i)[9].toString().contains("52") &&
+				retListResult.get(i)[10].toString().contains("0.96")){
+			testResult = true;
+			}
+		}
+		assertTrue("Information is incorrect: ", testResult);
+		testResult = false;
+		System.err.println("Successfully run GenerateDecisionRuleTable Scenario# 2");
+		
+		//Scenario# 3
+		for(int i = 0; i < retListResult.size(); i++ ){
+			if(retNamesResult[9].contains("Count") && 
+					retListResult.get(i)[9].toString().contains("51") &&
+					retListResult.get(i)[10].toString().contains("0.96")
+					){
+				testResult = true;
+				}
+			}
+		assertTrue("Information is incorrect: ", testResult);
+		testResult = false;
+		System.err.println("Successfully run GenerateDecisionRuleTable Scenario# 3");
+			
+		engine.commitOWL();
+		engine.commit();
+		engine.closeDB();
+		System.out.println("Test " + testCounter + " Complete");
 	}
 	
 }
