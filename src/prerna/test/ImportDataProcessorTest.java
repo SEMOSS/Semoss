@@ -69,7 +69,7 @@ public class ImportDataProcessorTest {
 	private static String dbPropFileCSV;
 	private static String CSVsmss; 
 	//CSV Replace 
-	private String repoCSV = newDBnameCSV;
+	private static String repoCSV = newDBnameCSV;
 	private static String replacementCSV;
 	private static String replacementMapFileCSV;
 	private static String replacementdbPropFileCSV;
