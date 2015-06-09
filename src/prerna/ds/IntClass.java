@@ -5,7 +5,7 @@ public class IntClass implements ISEMOSSNode{
 
 	int value;
 	String type = null;
-	int rawValue;
+	Object rawValue;
 	
 	public IntClass(int value)
 	{
@@ -18,7 +18,7 @@ public class IntClass implements ISEMOSSNode{
 		this.type = type;
 	}
 	
-	public IntClass(int value, int rawValue, String type) {
+	public IntClass(int value, Object rawValue, String type) {
 		this.value = value;
 		this.type = type;
 		this.rawValue = rawValue;
@@ -44,7 +44,7 @@ public class IntClass implements ISEMOSSNode{
 	}
 
 	@Override
-	public Integer getRawValue() {
+	public Object getRawValue() {
 		return this.rawValue;
 	}
 

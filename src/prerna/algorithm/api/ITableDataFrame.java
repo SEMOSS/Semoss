@@ -16,9 +16,10 @@ public interface ITableDataFrame {
 	
 	/**
 	 * Adds a row to the data-frame
-	 * @param row					The map between the column and the value for the row being added
+	 * @param rowCleanData			The map between the column and the clean value for the row being added
+	 * @param rowRawData			The map between the column and the raw value for the row being added
 	 */
-	void addRow(Map<String, Object> row);
+	void addRow(Map<String, Object> rowCleanData, Map<String, Object> rowRawData);
 	
 	/**
 	 * Gets the most similar columns given threshold and routine between this and the passed in table.
@@ -228,6 +229,13 @@ public interface ITableDataFrame {
 	Object[] getColumn(String columnHeader);
 	
 	/**
+	 * Get the raw values for a specific column in the data-frame
+	 * @param columnHeader			The column header to get the values for
+	 * @return						The raw values for the specific column header in the data-frame
+	 */
+	Object[] getRawColumn(String columnHeader);
+	
+	/**
 	 * Get the unique column values for a specific column in the data-frame
 	 * @param columnHeader			The column header to get the values for
 	 * @return						The unique values for the specific column header in the data-frame
@@ -299,4 +307,10 @@ public interface ITableDataFrame {
 	 * @return						An ArrayList of Object arrays containing all the data
 	 */
 	List<Object[]> getData();
+	
+	/**
+	 * Get all the raw data contained in the data-frame
+	 * @return						An ArrayList of Object arrays containing all the raw data
+	 */
+	List<Object[]> getRawData();
 }
