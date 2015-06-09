@@ -1213,6 +1213,38 @@ public class TreeNode {
 
 		}
 	}
+	
+	public void flattenRawTree2Array(List<Object> table, TreeNode node)
+	{
+		table.add(node.leaf.getRawValue());
+		if(node.leftChild != null && node.rightChild != null)
+		{
+			if(node.leftChild != null)
+			{
+				TreeNode leftChild = node.leftChild;
+				while(leftChild != null)
+				{
+					flattenRawTree2Array(table, leftChild);
+					leftChild = leftChild.rightSibling;
+				}
+			}
+			if(node.rightChild != null && node.rightSibling == null)
+			{
+				TreeNode leftChild = node.rightChild;
+				while(leftChild != null)
+				{
+					flattenRawTree2Array(table, leftChild);
+					leftChild = leftChild.rightSibling;
+				}
+			}
+		}
+		else
+		{			
+			System.err.print("Reached the else. Here is my leaf");
+			System.err.println("----");
+
+		}
+	}
 
 	public void flattenUnBalancedTree(Vector<TreeNode> parentNodeList, TreeNode node)
 	{
@@ -1258,6 +1290,26 @@ public class TreeNode {
 	
 			}
 	}
+	
+	public void flattenRawUnBalancedTree2Array(List<Object> table, TreeNode node)
+	{
+			if(node.leftChild != null)
+			{
+				table.add(node.leaf.getRawValue());
+				TreeNode leftChild = node.leftChild;
+				while(leftChild != null)
+				{
+					flattenRawUnBalancedTree2Array(table, leftChild);
+					leftChild = leftChild.rightSibling;
+				}
+			}
+			else
+			{
+				System.err.print(node.leaf.getKey());
+				System.err.println("----");
+	
+			}
+	}
 
 	public void flattenRoots(TreeNode node, boolean balanced)
 	{
@@ -1280,6 +1332,20 @@ public class TreeNode {
 				flattenTree2Array(list, node);
 			else
 				flattenUnBalancedTree2Array(list, node);
+			node = node.rightSibling;
+		}
+		return list;
+	}
+	
+	public List<Object> flattenRawToArray(TreeNode node, boolean balanced)
+	{
+		List<Object> list = new Vector<Object>();
+		while(node != null)
+		{
+			if(balanced)
+				flattenRawTree2Array(list, node);
+			else
+				flattenRawUnBalancedTree2Array(list, node);
 			node = node.rightSibling;
 		}
 		return list;

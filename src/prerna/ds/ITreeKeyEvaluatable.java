@@ -9,4 +9,6 @@ public interface ITreeKeyEvaluatable {
 	public boolean isEqual(ITreeKeyEvaluatable object); // evaluates if it is equal
 	
 	public Object getValue();
+	
+	public Object getRawValue();
 }
