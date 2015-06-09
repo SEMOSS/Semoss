@@ -41,9 +41,6 @@ import weka.associations.Item;
 public class WekaAprioriAlgorithTest {
 
 	private static String workingDir = System.getProperty("user.dir");
-	//Directories
-	private static String semossDirectory;
-	private static String dbDirectory;
 	
 	private WekaAprioriAlgorithm wekaAprioriAlgorithm;
 	
@@ -52,9 +49,6 @@ public class WekaAprioriAlgorithTest {
 	@BeforeClass
 	public static void setupOnce(){
 		System.out.println("Test Started..");
-		semossDirectory = System.getProperty("user.dir");
-		semossDirectory = semossDirectory.replace("\\", "\\\\");
-		dbDirectory = semossDirectory + "\\db\\";
 	}
 	
 	@Before
@@ -88,7 +82,7 @@ public class WekaAprioriAlgorithTest {
 	 */
 	@Test
 	public void Test_execute() throws Exception{
-		String propFile = workingDir + "//db//" + "MOVIE_DB.smss";
+		String propFile = workingDir + "//db//" + "Movie_DB.smss";
 		
 		//Open Engine and Run Execute
 		BigDataEngine engine = new BigDataEngine();
