@@ -162,11 +162,8 @@
                             } else {
                                 var tempvar = "Site: " + d.site + "</br>" + "Total Site Cost: " + d['Total Site Cost'];
                             }
-                            for(var system in d.Systems) {
-                                tempvar = tempvar + "</br>" + "&nbsp &nbsp" + system;
-                                for (var prop in d.Systems[system]) {
-                                    tempvar = tempvar + "</br>" + "&nbsp &nbsp &nbsp &nbsp" + prop + ": " + d.Systems[system][prop];
-                                }
+                            for(var systemIndex in d.Systems) {
+                                tempvar = tempvar + "</br>" + "&nbsp &nbsp" + d.Systems[systemIndex];                                
                             }
                             return (tempvar);
                         };
