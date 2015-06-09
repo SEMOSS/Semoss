@@ -176,7 +176,7 @@ public class ApproximateObjectMatcher implements IAnalyticRoutine {
 					Map<String, Object> row = new HashMap<String, Object>();
 					row.put(table1ValueKey , table1ColVal);
 					row.put(table2ValueKey, table2ColVal);
-					bTree.addRow(row);
+					bTree.addRow(row, row); //TODO: adding values as both raw and clean
 //					matched[j] = true;
 					success++;
 				}

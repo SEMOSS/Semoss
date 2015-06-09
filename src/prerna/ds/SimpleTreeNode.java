@@ -891,6 +891,53 @@ public class SimpleTreeNode {
 		}
 	}
 	
+	/**
+	 * Will flatten the data based on all the right siblings and children of the node input
+	 * Will add the flattened raw data into the table List<Object[]> input
+ 	 * @param table						The List<Object[]> that will contain the flattened raw data
+	 * @param node						The node to grab all right siblings and children to get the flattened data
+	 * @param parentNodeList			A Vector used to recursively store all the parent-child relationships in a row of the data
+	 * @param levels					The number of levels to place null values such that the data is not a jagged matrix
+	 */
+	public void flattenRawTreeFromRoot(SimpleTreeNode node, Vector<Object> parentNodeList, List<Object[]> table, int levels)
+	{
+		while(node != null)
+		{
+			flattenRawTree(table, parentNodeList, node, levels);
+			node = node.rightSibling;
+		}
+	}
+	
+	/**
+	 * Recursive method to flattened out the tree with raw values
+ 	 * @param table						The List<Object[]> that will store the flattened raw data
+	 * @param parentNodeList			The Vector used to store all the parent-child relationship in a row of the data
+	 * @param node						The node in the recursive step of iterating through the tree
+	 * @param levels					The number of levels to place null values such that the data is not a jagged matrix
+	 */
+	public void flattenRawTree(List<Object[]> table, Vector<Object> parentNodeList, SimpleTreeNode node, int levels)
+	{
+		if(node.leftChild != null)
+		{
+			Vector<Object> newList = getNewVector(parentNodeList);
+			newList.add(node.leaf.getValue());
+			SimpleTreeNode leftChild = node.leftChild;
+			while(leftChild != null)
+			{
+				flattenRawTree(table, newList, leftChild, levels);
+				leftChild = leftChild.rightSibling;
+			}
+		}
+		else {
+			Vector<Object> newList = getNewVector(parentNodeList);
+			newList.add(node.leaf.getRawValue());
+			while(newList.size() < levels) {
+				newList.add(null);
+			}
+			table.add(newList.toArray());
+		}
+	}
+	
 	// need to accomodate rows to fill
 	public void flattenRoots(SimpleTreeNode node, Vector outputVector)
 	{
