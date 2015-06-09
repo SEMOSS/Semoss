@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -88,6 +89,26 @@ public class DataStructureFromTable {
 		System.out.println("\nTime(s) to run algorithm (excluding reading the excel) = " + (endT - startT)/1000);
 	}
 	
+	public void createHierarchicalMetamodel(String fileLoc) {
+		try {
+			readCSVFile(fileLoc);
+		} catch (FileReaderException e) {
+			e.printStackTrace();
+			return;
+		}
+
+		long startT = System.currentTimeMillis();
+		
+		matchedColsHash = new Hashtable<String, List<String>>();
+		matchesList = new ArrayList<String[]>();
+		
+		//testing the hierarchical
+		findRelationshipsForHierarchical();
+		
+		long endT = System.currentTimeMillis();
+		System.out.println("\nTime(s) to run algorithm (excluding reading the excel) = " + (endT - startT)/1000);
+	}
+	
 	
 	/**
 	 * Prioritizing the dbs based on the number of columns they support. ones that support more, have lower indicies
@@ -164,18 +185,50 @@ public class DataStructureFromTable {
 	}
 	
 	private void findRelationshipsForHierarchical() {
-		buildColumnConcatSet();		
+		int[] numUniqueInstanceArr = getUniqueCounts(table);
+		Set<ArrayList<String>> colConcatResultSet = buildColumnConcatSet();
+		Set<Integer[]> colConcatPrioritizedResultSet = new HashSet<Integer[]>();
+		Iterator<ArrayList<String>> itr = colConcatResultSet.iterator();
+		while(itr.hasNext()) {
+			ArrayList<String> colConcat = itr.next();
+			
+			int numCols = colConcat.size();
+			Integer[] orderedColConcatIndicies = new Integer[numCols];
+			for(int i = 0; i < numCols; i++) {
+				orderedColConcatIndicies[i] = ArrayUtilityMethods.calculateIndexOfArray(headers, colConcat.get(i));
+			}
+			
+			boolean change = true;
+			while(change) {
+				change = false;
+				for(int i = 0; i < numCols-1; i++) {
+					if(numUniqueInstanceArr[orderedColConcatIndicies[i]] > numUniqueInstanceArr[orderedColConcatIndicies[i+1]]) {
+						change = true;
+						int valTemp = orderedColConcatIndicies[i];
+						orderedColConcatIndicies[i] = orderedColConcatIndicies[i+1];
+						orderedColConcatIndicies[i+1] = valTemp;
+					}
+				}
+			}
+			colConcatPrioritizedResultSet.add(orderedColConcatIndicies);
+		}
+		
+		System.out.println("\nColumns necessary to make unique identifier");
+		for(Integer[] columns : colConcatPrioritizedResultSet) {
+			for(Integer col : columns) {
+				System.out.print(headers[col]+ "  -  " );
+			}
+			System.out.println();
+		}
 	}
 	
-	private void buildColumnConcatSet() {
+	private Set<ArrayList<String>> buildColumnConcatSet() {
 		
-		ArrayList<Integer> colIndexList = new ArrayList<Integer>();
-
 		//else block of algorithm
-		ArrayList<Integer> colConcat = buildColumnConcat(headers, table, colIndexList);
-		List<ArrayList<Integer>> colConcatProcessingList = new ArrayList<ArrayList<Integer>>();
+		ArrayList<String> colConcat = buildColumnConcat(headers, table);
+		List<ArrayList<String>> colConcatProcessingList = new ArrayList<ArrayList<String>>();
 		colConcatProcessingList.add(colConcat);
-		Set<ArrayList<Integer>> colConcatResultSet = new HashSet<ArrayList<Integer>>();
+		Set<ArrayList<String>> colConcatResultSet = new HashSet<ArrayList<String>>();
 		colConcatResultSet.add(colConcat);
 		
 		//if block of algorithm
@@ -183,35 +236,35 @@ public class DataStructureFromTable {
 			colConcat = colConcatProcessingList.get(0);
 			int numColsInConcat = colConcat.size();
 			for(int i = 0; i < numColsInConcat; i++) {
-				ArrayList<Object[]> filteredData = ArrayListUtilityMethods.removeColumnFromList(table, colConcat.get(i));
-				ArrayList<Integer> newColConcat = buildColumnConcat(headers,filteredData,colIndexList);
+				int index = ArrayUtilityMethods.calculateIndexOfArray(headers, colConcat.get(i));
+				ArrayList<Object[]> filteredData = ArrayListUtilityMethods.removeColumnFromList(table, index);
+				String[] filteredHeaders = ArrayUtilityMethods.removeNameFromList(headers, index);
+				ArrayList<String> newColConcat = buildColumnConcat(filteredHeaders,filteredData);
 				colConcatProcessingList.add(newColConcat);
 				colConcatResultSet.add(newColConcat);
 			}
 			colConcatProcessingList.remove(0);
-			colIndexList.addAll(colConcat);
 		}
-
+		
+		return colConcatResultSet;
+		
 	}
 
-	//TODO, does order matter? can this be a set instead? also should be name or indicies?
-	private ArrayList<Integer> buildColumnConcat(String[] headers, ArrayList<Object[]> data, ArrayList<Integer> colIndexList) {
-		
+	private ArrayList<String> buildColumnConcat(String[] headers, ArrayList<Object[]> data) {
+	
 		int numHeaders = headers.length;
-		int dataIndex = 0;
+		ArrayList<String> colConcat = new ArrayList<String>();
+		if(!isUniqueDataSet(data))
+			return colConcat;
+		
 		for(int i = 0; i < numHeaders; i++) {
-			if(!colIndexList.contains(i)) {
-				ArrayList<Object []> filteredData = ArrayListUtilityMethods.removeColumnFromList(data, dataIndex);
-				if(!isUniqueDataSet(data)) {
-					colIndexList.add(i);
-					data = filteredData; //TODO make sure data is reset properly
-				} else {
-					dataIndex ++;
-				}
+			ArrayList<Object []> filteredData = ArrayListUtilityMethods.removeColumnFromList(data, i);
+			if(!isUniqueDataSet(filteredData)) {
+				colConcat.add(headers[i]);
 			}
 		}
 		
-		return colIndexList;
+		return colConcat;
 	}
 	
 	private void findRelationshipsBasedOnUniqueIdentifier() {
@@ -334,17 +387,20 @@ public class DataStructureFromTable {
 	}
 
 	private boolean isUniqueDataSet(ArrayList<Object[]> data) {
-		int[] countArray = getUniqueCounts(data);
-		
-		int numInstances = data.size();
-		int numCols = countArray.length;
-		
-		for(int col = 0; col < numCols; col++) {
-			if(countArray[col] == numInstances) {
-				return true;
+		Set<String> rowConcatSet = new HashSet<String>();
+
+		int numRows = data.size();
+		int numCols = data.get(0).length;
+		for(int row = 0; row < numRows; row ++) {
+			String concat = "";
+			for(int col = 0; col < numCols; col++) {
+				concat = concat.concat(data.get(row)[col].toString());
 			}
+			rowConcatSet.add(concat);
 		}
-		return false;	
+		if(rowConcatSet.size() < data.size())
+			return false;
+		return true;	
 	}
 	
 	private int[] getUniqueCounts(ArrayList<Object[]> data) {
@@ -471,13 +527,27 @@ public class DataStructureFromTable {
 				List<Object> headerList = listReader.executeProcessors(processors);
 				headers = new String[numCols];
 				for(int i=0; i<numCols; i++) {
-					headers[i] = headerList.get(i).toString();
+					headers[i] = Utility.cleanString(headerList.get(i).toString(), true);
 				}
 				
+				Set<String> tableSet = new HashSet<String>();
 				List<Object> rowList;
 				while( (rowList = listReader.read(processors)) != null ) {
-					table.add(rowList.toArray());
+					int size = rowList.size();
+					String concat = "";
+					for(int col = 0; col < size; col++) {
+						concat = concat.concat(rowList.get(col).toString()).concat("~");
+					}
+					if(!tableSet.contains(concat)) {
+						tableSet.add(concat);
+						table.add(rowList.toArray());
+					}
+//					else {
+//						//to print the duplicates in the dataset
+//						System.out.println(concat);
+//					}
 				}
+
 			}
 
 		}catch(FileNotFoundException e) {
