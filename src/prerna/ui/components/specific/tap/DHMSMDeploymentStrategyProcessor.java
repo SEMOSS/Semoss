@@ -301,18 +301,13 @@ public class DHMSMDeploymentStrategyProcessor {
 					} else {
 						double latVal = latLongHash.get("Lat");
 						double longVal = latLongHash.get("Long");
-						ArrayList<String> systemsForSite = systemsForSiteHash.get(site);
-						Hashtable<String,Hashtable> systemHash = new Hashtable<String,Hashtable>();
-						for(String system : systemsForSite) {
-							systemHash.put(system,new Hashtable());
-						}
-						
+						ArrayList<String> systemsForSite = systemsForSiteHash.get(site);						
 						Hashtable<String, Object> siteElement = new Hashtable<String, Object>();
 						siteElement.put("Lat", latVal);
 						siteElement.put("Long", longVal);
 						siteElement.put("Status",status);
 						siteElement.put("TCostSite", savings);
-						siteElement.put("SystemForSite", systemHash);
+						siteElement.put("SystemForSite", systemsForSite);
 						//TODO only systems that are included in my list?
 						Hashtable<String, Hashtable> yearHash = (Hashtable<String, Hashtable>)dataHash.get(year);
 						if(yearHash.containsKey("site")) {
