@@ -2,6 +2,7 @@ package prerna.nameserver;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import prerna.engine.api.IEngine;
 
@@ -72,14 +73,14 @@ public interface INameServer {
 	 * @param concept						The concept to determine what other concepts can be traversed from it
 	 * @return								A map from engine to the strings "upstream" or "downstream" (to determine directionality of relationship) to a list of concepts as strings  
 	 */
-	Map<String, Map<String, List<String>>> searchConnectedConcepts(String concept);
+	Map<String, Map<String, Set<String>>> searchConnectedConcepts(String concept);
 	
 	/**
 	 * Return a map between engine to a map of upstream/downstream to the list of concepts directly connected to the input concept 
 	 * @param concept						The concept to determine what other concepts can be traversed from it
 	 * @return								A map from engine to the strings "upstream" or "downstream" (to determine directionality of relationship) to a list of concepts as strings  
 	 */
-	Map<String, Map<String, List<String>>> searchDirectlyConnectedConcepts(String concept);
+	Map<String, Map<String, Set<String>>> searchDirectlyConnectedConcepts(String concept);
 	
 	/**
 	 * Return a list of question URLs related to the instances list
