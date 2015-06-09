@@ -824,5 +824,54 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		timeTransitionLbl.setText("N/A");
 		costLbl.setText("$0");
 	}
+	
+	/**
+	 * Functions for web dashboard calls.
+	 */
+	public Hashtable getOverviewPageData(Hashtable webDataHash) {
+		Hashtable retHash = new Hashtable();
+		String type = (String) webDataHash.get("type");
+        if (type.equals("info"))
+        	retHash = this.getOverviewInfoData();
+        if (type.equals("cost"))
+        	retHash = this.getOverviewCostData();
+        if (type.equals("map"))
+        	retHash = this.getOverviewSiteMapData("");
+        if (type.equals("healthGrid"))
+        	retHash = this.getHealthGrid("");
+		return retHash;
+	}
+	
+	public Hashtable getCapabilityPageData(Hashtable webDataHash) {
+		Hashtable retHash = new Hashtable();
+        String type = (String) webDataHash.get("type");
+        String capability = (String) webDataHash.get("cap");
+        if (type.equals("info"))
+        	retHash = this.getCapabilityInfoData(capability);
+        if (type.equals("map"))
+        	retHash = this.getOverviewSiteMapData(capability);
+        if (type.equals("coverage"))
+        	retHash = this.getCapabilityCoverageData(capability);
+        if (type.equals("healthGrid"))
+        	retHash = this.getHealthGrid(capability);
+		return retHash;
+	}
+	
+	public Hashtable getSystemPageData(Hashtable webDataHash) {
+		Hashtable retHash = new Hashtable();
+        String type = (String) webDataHash.get("type");
+        String system = (String) webDataHash.get("system");
+        String ind = (String) webDataHash.get("ind");
+        Boolean isModernized = false;
+        if (ind.equals("Modernize")) 
+        	isModernized = true;        
+        if (type.equals("info"))
+        	retHash = this.getSystemInfoData(system, isModernized);
+        if (type.equals("map"))
+        	retHash = this.getSystemSiteMapData(system, isModernized);
+        if (type.equals("coverage"))
+        	retHash = this.getSystemCoverageData(system, isModernized);
+		return retHash;
+	}
 }
 
