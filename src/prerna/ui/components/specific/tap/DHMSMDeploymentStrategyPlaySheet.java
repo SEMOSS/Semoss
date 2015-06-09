@@ -47,6 +47,9 @@ import javax.swing.border.BevelBorder;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import prerna.engine.api.IEngine;
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.main.listener.specific.tap.DHMSMDeploymentStrategyRestoreDefaultsListener;
@@ -844,4 +847,14 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 			returnHash.put("data", dataHash);
 		return returnHash;		
 	};
+	
+	public Hashtable refreshDataRegion(Hashtable<String, Object> webDataHash) {
+        Hashtable retHash = this.refreshReport(webDataHash, false);
+		return retHash;
+	}
+	
+	public Hashtable refreshDataDeployment(Hashtable<String, Object> webDataHash) {
+        Hashtable retHash = this.refreshReport(webDataHash, true);
+		return retHash;
+	}
 }

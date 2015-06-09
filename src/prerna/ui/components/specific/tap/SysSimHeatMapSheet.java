@@ -35,12 +35,12 @@ import java.util.Iterator;
 
 import org.openrdf.model.Literal;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import prerna.engine.api.ISelectStatement;
 import prerna.ui.main.listener.specific.tap.SysSimHealthGridListener;
 import prerna.util.Utility;
-
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
 
 /**
@@ -331,6 +331,29 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 				var = sjss.getVar(varName);
 			} 
 		return var;
+	}
+	
+	//web function for refreshing the heat map data given parameters
+	public Hashtable refreshSysSimData(Hashtable webDataHash) {
+		Gson gson = new Gson();
+		Hashtable retHash = new Hashtable();
+		ArrayList<String> selectedVarsList = (ArrayList<String>) webDataHash.get("selectedVars");
+		Hashtable<String, Double> specifiedWeights = gson.fromJson(gson.toJson(webDataHash.get("specifiedWeights")), new TypeToken<Hashtable<String, Double>>() {}.getType());
+		ArrayList<Hashtable<String, Hashtable<String, Double>>> calculatedHash = this.calculateHash(selectedVarsList, specifiedWeights);
+		ArrayList<Object[]> table = this.flattenData(calculatedHash, false);
+		retHash.put("data", table);
+		return retHash;
+	}
+	
+	//web function for bar chart data
+	public Hashtable getSysSimBarData(Hashtable webDataHash) {
+		Gson gson = new Gson();
+		Hashtable retHash = new Hashtable();
+		ArrayList<String> categoryArray = (ArrayList<String>) webDataHash.get("categoryArray");
+		Hashtable<String, Double> thresh = gson.fromJson(gson.toJson(webDataHash.get("thresh")), new TypeToken<Hashtable<String, Double>>() {}.getType());
+		String cellKey = (String) webDataHash.get("cellKey");
+		retHash.put("barData", this.getSimBarChartData(cellKey, categoryArray, thresh));
+		return retHash;
 	}
 
 }
