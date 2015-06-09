@@ -2,7 +2,6 @@ package prerna.ds;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,7 +9,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -47,15 +45,13 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public void addRow(ISelectStatement rowData) {
-		//Map rowHash = rowData.getPropHash(); //cleaned data
-		//Map rowRawHash = rowData.getRPropHash(); //raw data
-		addRow(rowData.getPropHash());
+		addRow(rowData.getPropHash(), rowData.getRPropHash());
 	}
 
 	@Override
-	public void addRow(Map<String, Object> rowData) {
+	public void addRow(Map<String, Object> rowCleanData, Map<String, Object> rowRawData) {
 		// keys that are not in current tree level will not be used
-		for(String key : rowData.keySet()) {
+		for(String key : rowCleanData.keySet()) {
 			if(!ArrayUtilityMethods.arrayContainsValue(levelNames, key)) {
 				LOGGER.error("Column name " + key + " does not exist in current tree");
 			}
@@ -63,25 +59,25 @@ public class BTreeDataFrame implements ITableDataFrame {
 		
 		ISEMOSSNode[] row = new ISEMOSSNode[levelNames.length];
 		for(int index = 0; index < levelNames.length; index++) {
-			Object val = rowData.get(levelNames[index]);
-			row[index] = createNodeObject(val, null, levelNames[index]);
+			Object val = rowCleanData.get(levelNames[index]);
+			Object rawVal = rowRawData.get(levelNames[index]);
+			row[index] = createNodeObject(val, rawVal, levelNames[index]);
 
 		}
 		simpleTree.addNodeArray(row);
-
 	}
 
-	private ISEMOSSNode createNodeObject(Object value, String rawValue, String level) {
+	private ISEMOSSNode createNodeObject(Object value, Object rawValue, String level) {
 		ISEMOSSNode node;
 
 		if(value == null) {
 			node = new StringClass(null, level); // TODO: fix this
 		} else if(value instanceof Integer) {
-			node = new IntClass((int)value, level);
+			node = new IntClass((int)value, rawValue.toString(), level);
 		} else if(value instanceof Number) {
-			node = new DoubleClass((double)value, level);
+			node = new DoubleClass((double)value, rawValue.toString(), level);
 		} else if(value instanceof String) {
-			node = new StringClass((String)value, level);
+			node = new StringClass((String)value, (String) rawValue.toString(), level);
 		}
 //		else if(value instanceof Boolean) {
 //			node = new BooleanClass((boolean)value, level);
@@ -100,6 +96,18 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 		List<Object[]> table = new ArrayList<Object[]>();
 		leftRootNode.flattenTreeFromRoot(leftRootNode, new Vector<Object>(), table, levelNames.length);
+
+		return table;
+	}
+	
+	@Override
+	public List<Object[]> getRawData() {
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[0]);
+		SimpleTreeNode leftRootNode = typeRoot.getInstances().elementAt(0);
+		leftRootNode = leftRootNode.getLeft(leftRootNode);
+
+		List<Object[]> table = new ArrayList<Object[]>();
+		leftRootNode.flattenRawTreeFromRoot(leftRootNode, new Vector<Object>(), table, levelNames.length);
 
 		return table;
 	}
@@ -211,13 +219,14 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 		else // use the flat join. This is not ideal. Not sure if we will ever actually use this
 		{
+			//TODO: CURRENTLY ADDING THE RAW VALUES IN FLATTENED-TABLE AS BOTH RAW AND CLEAN DATA IN JOIN
+
 			String[] columnNames = table.getColumnHeaders();
-			
 			// add the new data to this tree
 			LOGGER.info("Augmenting tree");
 			joinTreeLevels(columnNames, colNameInJoiningTable);
-			List<Object[]> flatMatched = matched.getData();
-			List<Object[]> flatTable = table.getData();
+			List<Object[]> flatMatched = matched.getRawData();
+			List<Object[]> flatTable = table.getRawData();
 			// loop through all rows
 			// TODO: this is terrible logic that is extremely inefficient. If we want to join something that is not a btree, revist this for sure
 			for(Object[] flatMatchedRow : flatMatched) { // for each matched item
@@ -237,7 +246,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 								row.put(colName, flatRow[i]);
 							}
 						}
-						this.addRow(row);
+						this.addRow(row, row);
 					}
 				}
 			}
@@ -529,9 +538,20 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 		System.out.println("Final count for column " + columnHeader + " = " + table.size());
 		return table.toArray();
-		
 	}
 
+	@Override
+	public Object[] getRawColumn(String columnHeader) {
+
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		typeRoot = typeRoot.getLeft(typeRoot);
+		List<Object> table = typeRoot.flattenToArray(typeRoot, true);
+		
+
+		System.out.println("Final count for column " + columnHeader + " = " + table.size());
+		return table.toArray();
+	}
+	
 	@Override
 	public Object[] getUniqueValues(String columnHeader) {
 		// TODO Auto-generated method stub
@@ -727,7 +747,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 				String v1 = row.getCell(cIndex).getStringCellValue();
 				rowMap.put(headerList.get(cIndex), v1);
 			}
-			tester.addRow(rowMap);
+			tester.addRow(rowMap, rowMap);
 			System.out.println("added row " + rIndex);
 			System.out.println(rowMap.toString());
 		}

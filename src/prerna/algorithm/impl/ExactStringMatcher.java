@@ -99,7 +99,7 @@ public class ExactStringMatcher implements IAnalyticRoutine {
 					Map<String, Object> row = new HashMap<String, Object>();
 					row.put(table1ValueKey , table1Col[i]);
 					row.put(table2ValueKey, table2Col[j]);
-					bTree.addRow(row);
+					bTree.addRow(row, row); //TODO: adding values as both raw and clean
 					success++;
 				}
 				total++;

@@ -4,12 +4,12 @@ public class DoubleClass implements ISEMOSSNode {
 
 	double value;
 	String type = null;
-	double rawValue;
+	Object rawValue;
 	
-	public DoubleClass(double d, String t, double r) {
+	public DoubleClass(double d, Object r, String t) {
 		value = d;
-		type = t;
 		rawValue = r;
+		type = t;
 	}
 	
 	public DoubleClass(double d, String t) {
@@ -39,7 +39,7 @@ public class DoubleClass implements ISEMOSSNode {
 	}
 
 	@Override
-	public Double getRawValue() {
+	public Object getRawValue() {
 		return this.rawValue;
 	}
 
