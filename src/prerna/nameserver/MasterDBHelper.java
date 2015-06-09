@@ -201,7 +201,7 @@ public final class MasterDBHelper {
 	 * @param masterEngine		The engine to query
 	 * @param engineURLHash		The hashtable to add all the engine URLs to
 	 */
-	public static void fillAPIHash(IEngine masterEngine, Hashtable<String, String> engineURLHash){
+	public static void fillAPIHash(IEngine masterEngine, Map<String, String> engineURLHash){
 		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.ENGINE_API_QUERY);
 		// get the bindings from it
 		String[] names = wrapper.getVariables();
