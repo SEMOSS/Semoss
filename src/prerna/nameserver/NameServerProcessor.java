@@ -111,9 +111,11 @@ public class NameServerProcessor extends AbstractNameServer {
 		String originalKeywordURI = MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + Utility.getInstanceName(concept);
 		Set<String> keywordSet = new HashSet<String>();
 		Map<String, Set<String>> engineKeywordMap = new HashMap<String, Set<String>>();
+		Map<String, String> engineURLHash = new HashMap<String, String>();
 		if(masterEngine != null)
 		{
 			MasterDBHelper.findRelatedKeywordsToSpecificURI(masterEngine, originalKeywordURI, keywordSet, engineKeywordMap);
+			MasterDBHelper.fillAPIHash(masterEngine, engineURLHash);
 			for(String engine : engineKeywordMap.keySet()) {
 				String engineURL = MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engine;
 				Set<String> keywordList = engineKeywordMap.get(engine);
@@ -130,6 +132,11 @@ public class NameServerProcessor extends AbstractNameServer {
 					if(!retHash.containsKey(engine)) {
 						if(!connections.isEmpty()) {
 							retHash.put(engine, connections);
+							if(engineURLHash.containsKey(engine)) {
+								Set<String> api = new HashSet<String>();
+								api.add(engineURLHash.get(engine));
+								connections.put("api", api);
+							}
 						}
 					} else {
 						Map<String, Set<String>> innerHash = retHash.get(engine);
