@@ -33,11 +33,11 @@ import org.apache.log4j.Logger;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.util.DIHelper;
 
-public class ModifyMasterDB {
+public abstract class ModifyMasterDB {
 	
 	protected static final Logger logger = LogManager.getLogger(ModifyMasterDB.class.getName());
 
-	protected String masterDBName = "LocalMasterDatabase";
+	protected String masterDBName = "MasterDatabase";
 	protected BigDataEngine masterEngine;
 	
 	public ModifyMasterDB() {
