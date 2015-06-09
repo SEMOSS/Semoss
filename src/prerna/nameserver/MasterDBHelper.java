@@ -359,4 +359,35 @@ public final class MasterDBHelper {
 		}
 		return keywordConceptBipartiteGraph.getMcMapping();
 	}
+	
+	public static Map<String, Set<String>> getRelationshipsForConcept(IEngine masterEngine, String conceptURI, String engineURI) {
+		Map<String, Set<String>> relationshipsMap = new Hashtable<String, Set<String>>();
+		
+		// add downstream connections, if any
+		Set<String> downstreamSet = new HashSet<String>();
+		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_SUBJECTS_OF_RELATIONSHIP.replace("@CONCEPT@", conceptURI).replace("@ENGINE@", engineURI));
+		addQueryResultToSet(wrapper, downstreamSet);
+		if(!downstreamSet.isEmpty()) {
+			relationshipsMap.put("downstream", downstreamSet);
+		}
+		
+		// add upstream connections, if any
+		Set<String> upstreamSet = new HashSet<String>();
+		wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_OBJECTS_OF_RELATIONSHIP.replace("@CONCEPT@", conceptURI).replace("@ENGINE@", engineURI));
+		addQueryResultToSet(wrapper, upstreamSet);
+		if(!upstreamSet.isEmpty()) {
+			relationshipsMap.put("upstream", upstreamSet);
+		}
+
+		return relationshipsMap;
+	}
+	
+	private static void addQueryResultToSet(ISelectWrapper wrapper, Set<String> resultSet) {
+		String[] names = wrapper.getVariables();
+		while(wrapper.hasNext()) {
+			ISelectStatement sjss = wrapper.next();
+			resultSet.add(sjss.getRawVar(names[0]).toString()); 
+		}
+	}
+	
 }
