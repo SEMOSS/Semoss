@@ -4,6 +4,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
+import prerna.algorithm.learning.unsupervised.clustering.PartitionedClusteringAlgorithm;
+
 /**
 *
 * @author  August Bender
@@ -13,13 +15,23 @@ import org.junit.runners.Suite.SuiteClasses;
 */
 
 @RunWith(Suite.class)
-@SuiteClasses({ ClusteringAlgorithmTest.class, WekaAprioriAlgorithTest.class })
+@SuiteClasses({ 
+				ClusteringAlgorithmTest.class, 
+				PartitionedClusteringAlgorithm.class,
+				WekaAprioriAlgorithTest.class 
+				})
 public class SuiteAlgorithm {
 
 /* 1) ClusteringAlgorithmTest
  * 	 a) Run
  * 	 b) Execute
- * 2) WekaAprioriAlgorithTest
+ * 
+ * 2) PartitionedClusteringAlgorithm
+ * 	 a) generateBaseClusterInformation
+ * 	 b) generateInitialClusters
+ *   c) execute
+ *   
+ * 3) WekaAprioriAlgorithTest
  * 	 a) Execute
  *   b) generateDecisionRuleVizualization
  *	 c) generateDecisionRuleTable
