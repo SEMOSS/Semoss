@@ -600,6 +600,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 		if(!colExists){
 			LOGGER.error("Unable to remove column " + columnHeader + ". Column does not exist in table");
+			return;
 		}
 		this.levelNames = newNames;
 		
