@@ -545,7 +545,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
 		typeRoot = typeRoot.getLeft(typeRoot);
-		List<Object> table = typeRoot.flattenToArray(typeRoot, true);
+		List<Object> table = typeRoot.flattenRawToArray(typeRoot, true);
 		
 
 		System.out.println("Final count for column " + columnHeader + " = " + table.size());
