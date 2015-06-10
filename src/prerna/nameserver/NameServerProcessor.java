@@ -97,16 +97,14 @@ public class NameServerProcessor extends AbstractNameServer {
 	}
 
 	@Override
-	public Map<String, Map<String, Set<String>>> searchConnectedConcepts(String concept) {
+	public ConnectedConcepts searchConnectedConcepts(String concept) {
 		//TODO: need to stop using the keyword as a parameter in master db
 		/*
 		 * Logic
-		 * 1) Find list of engines and tags related to input concept
-		 * 2) For each engine, find all upstream and downstream relationships for the keywords
-		 * 3) Done 
+		 * 1) find all keywords related to concept
+		 * 2) for each keyword related, find upstream and downstream relationships (and store relationship name)
 		 */
-		
-		Map<String, Map<String, Set<String>>> retHash = new Hashtable<String, Map<String, Set<String>>>();
+		ConnectedConcepts combineResults = new ConnectedConcepts();
 		
 		String originalKeywordURI = MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + Utility.getInstanceName(concept);
 		Set<String> keywordSet = new HashSet<String>();
@@ -121,41 +119,26 @@ public class NameServerProcessor extends AbstractNameServer {
 				Set<String> keywordList = engineKeywordMap.get(engine);
 				for(String keyword : keywordList) {
 					// make sure the keyword connected is within similarity range
-					if(!wnComp.isSimilar(originalKeywordURI, keyword)) {
+					double simScore = wnComp.compareKeywords(originalKeywordURI, keyword);
+					if(!wnComp.isSimilar(simScore)) {
 						continue;
 					}
 					// need to change this since it is returning 
 					keyword = keyword.replace("/Keyword", "");
-					Map<String, Set<String>> connections = MasterDBHelper.getRelationshipsForConcept(masterEngine, keyword, engineURL);
+					Map<String, Map<String, Set<String>>> connections = MasterDBHelper.getRelationshipsForConcept(masterEngine, keyword, engineURL);
 					
-					// if engine is not there, just add to retHash
-					if(!retHash.containsKey(engine)) {
-						if(!connections.isEmpty()) {
-							retHash.put(engine, connections);
-							if(engineURLHash.containsKey(engine)) {
-								Set<String> api = new HashSet<String>();
-								api.add(engineURLHash.get(engine));
-								connections.put("api", api);
-							}
-						}
-					} else {
-						Map<String, Set<String>> innerHash = retHash.get(engine);
-						// check if previous upstream/downstream values have been found
-						for(String key : connections.keySet()) {
-							if(innerHash.containsKey(key)) {
-								// if found, add to existing set of possible connections
-								innerHash.get(key).addAll(connections.get(key));
-							} else {
-								// if not found, just add upstream/downstream and values
-								innerHash.put(key, connections.get(key));
-							}
+					if(!connections.isEmpty()) {
+						combineResults.addData(engine, keyword, connections);
+						combineResults.addSimilarity(engine, keyword, 1-simScore);
+						if(engineURLHash.containsKey(engine)) {
+							combineResults.addAPI(engine, engineURLHash.get(engine));
 						}
 					}
 				}
 			}
 		}
 		
-		return retHash;
+		return combineResults;
 	}
 
 	@Override

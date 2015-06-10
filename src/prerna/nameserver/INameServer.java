@@ -69,11 +69,11 @@ public interface INameServer {
 	List<String> searchTags(List<INameServerTag> tags);
 	
 	/**
-	 * Return a map between engine to a map of upstream/downstream to the list of concepts connected to the input concept via contextual meaning 
+	 * Return a ConnectedConcepts object
 	 * @param concept						The concept to determine what other concepts can be traversed from it
-	 * @return								A map from engine to the strings "upstream" or "downstream" (to determine directionality of relationship) to a list of concepts as strings  
+	 * @return								An object containing all the relevant information for the connection  
 	 */
-	Map<String, Map<String, Set<String>>> searchConnectedConcepts(String concept);
+	ConnectedConcepts searchConnectedConcepts(String concept);
 	
 	/**
 	 * Return a map between engine to a map of upstream/downstream to the list of concepts directly connected to the input concept 
