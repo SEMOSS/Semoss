@@ -372,7 +372,7 @@ public final class MasterDBHelper {
 			relMap.put("upstream", queryMap);
 		}
 		
-		queryMap.clear();
+		queryMap = new Hashtable<String, Set<String>>();
 		// add upstream connections, if any
 		wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_OBJECTS_OF_RELATIONSHIP.replace("@CONCEPT@", conceptURI).replace("@ENGINE@", engineURI));
 		addQueryResultToSet(wrapper, queryMap);
