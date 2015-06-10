@@ -360,33 +360,45 @@ public final class MasterDBHelper {
 		return keywordConceptBipartiteGraph.getMcMapping();
 	}
 	
-	public static Map<String, Set<String>> getRelationshipsForConcept(IEngine masterEngine, String conceptURI, String engineURI) {
-		Map<String, Set<String>> relationshipsMap = new Hashtable<String, Set<String>>();
+	// will return a map of relName to upstream/downstream to a set of nodes
+	public static Map<String, Map<String, Set<String>>> getRelationshipsForConcept(IEngine masterEngine, String conceptURI, String engineURI) {
 		
+		Map<String, Map<String, Set<String>>> relMap = new Hashtable<String, Map<String, Set<String>>>();
+		Map<String, Set<String>> queryMap = new Hashtable<String, Set<String>>();
 		// add downstream connections, if any
-		Set<String> downstreamSet = new HashSet<String>();
 		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_SUBJECTS_OF_RELATIONSHIP.replace("@CONCEPT@", conceptURI).replace("@ENGINE@", engineURI));
-		addQueryResultToSet(wrapper, downstreamSet);
-		if(!downstreamSet.isEmpty()) {
-			relationshipsMap.put("downstream", downstreamSet);
+		addQueryResultToSet(wrapper, queryMap);
+		if(!queryMap.isEmpty()) {
+			relMap.put("upstream", queryMap);
 		}
 		
+		queryMap.clear();
 		// add upstream connections, if any
-		Set<String> upstreamSet = new HashSet<String>();
 		wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_OBJECTS_OF_RELATIONSHIP.replace("@CONCEPT@", conceptURI).replace("@ENGINE@", engineURI));
-		addQueryResultToSet(wrapper, upstreamSet);
-		if(!upstreamSet.isEmpty()) {
-			relationshipsMap.put("upstream", upstreamSet);
+		addQueryResultToSet(wrapper, queryMap);
+		if(!queryMap.isEmpty()) {
+			relMap.put("downstream", queryMap);
 		}
 
-		return relationshipsMap;
+		return relMap;
 	}
 	
-	private static void addQueryResultToSet(ISelectWrapper wrapper, Set<String> resultSet) {
+	private static void addQueryResultToSet(ISelectWrapper wrapper, Map<String, Set<String>> resultMap) {
 		String[] names = wrapper.getVariables();
 		while(wrapper.hasNext()) {
 			ISelectStatement sjss = wrapper.next();
-			resultSet.add(sjss.getRawVar(names[0]).toString()); 
+			String relURI = MasterDatabaseURIs.SEMOSS_RELATION_URI + "/" + sjss.getVar(names[0]).toString();
+			String conceptURI = sjss.getRawVar(names[1]).toString();
+			
+			Set<String> values;
+			if(resultMap.containsKey(relURI)) {
+				values = resultMap.get(relURI);
+				values.add(conceptURI);
+			} else {
+				values = new HashSet<String>();
+				values.add(conceptURI);
+				resultMap.put(relURI, values);
+			}
 		}
 	}
 	
