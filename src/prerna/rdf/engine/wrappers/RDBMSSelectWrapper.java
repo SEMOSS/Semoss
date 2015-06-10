@@ -47,32 +47,32 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 	boolean hasMore = false;
 	Hashtable columnTypes = new Hashtable();
 	Hashtable columnTables = new Hashtable();
-	private int currentQueryIndex = 0;
-	private boolean distinct = false;
-	private int limitNum = -1; //-1 default (is not set)
-	private static final String SELECT_DISTINCT = "SELECT DISTINCT ";
-	private static final String LIMIT = " LIMIT ";
-	private HashSet<ISelectStatement> uniqueValues = new HashSet<>();
 	private ISelectStatement curStmt = null;
 		
 	@Override
 	public void execute() {
 		// TODO Auto-generated method stub
-		query = query.replaceAll("\\s+", " "); //normalize spaces
+		try{
+			query = query.replaceAll("\\s+", " "); //normalize spaces
 
-		rs = (ResultSet)engine.execQuery(query);
-		setVariables(); //get the variables
-		
+			rs = (ResultSet)engine.execQuery(query);
+			setVariables(); //get the variables
+		} catch (Exception e){
+			e.printStackTrace();
+			//in case query times out, close rs object..
+			ConnectionUtils.closeResultSet(rs);
+		}
 	}
 
 	@Override
 	public boolean hasNext() {
 		boolean hasMore = false;
 		curStmt = populateQueryResults();
-		if(curStmt != null)
+		if(curStmt != null) {
 				hasMore = true;
-		else
+		} else {
 			ConnectionUtils.closeResultSet(rs);
+		}
 		return hasMore;
 	}
 	
@@ -108,12 +108,17 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 							qualifiedValue = uri + "/" + toCamelCase(columnTables.get(var[colIndex]) + "") + "/" + value;
 							stmt.setRawVar(var[colIndex], qualifiedValue);
 						}
-						else if (type == Types.BIGINT){
-							//a bit of a hack but this converts the big int object into double,
+						else if (type == Types.BIGINT ){
+							//this converts the big int object into double,
 							//we had issues in the heatmapplaysheet with conversion of long to double
 							Long valueLong = (long) value;
 							double valueDouble = valueLong.doubleValue();
 							stmt.setRawVar(var[colIndex], valueDouble); 
+						} else if (type == Types.REAL){
+							//this converts float to double as needed for the parcords play sheet
+							Float valueFloat = (float) value;
+							double valueDouble = valueFloat.doubleValue();
+							stmt.setRawVar(var[colIndex], valueDouble);
 						} else {
 							stmt.setRawVar(var[colIndex], value);
 						}
