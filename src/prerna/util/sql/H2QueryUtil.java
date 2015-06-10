@@ -56,27 +56,26 @@ public class H2QueryUtil extends SQLQueryUtil {
 	public String getDefaultOuterJoins(){
 		return SQLQueryUtil.USE_OUTER_JOINS_NO;
 	}
-	
 	@Override
 	public String getConnectionURL(String baseFolder, String dbname){
 		String engineDirectoryName = "db" + System.getProperty("file.separator") + dbname;
 		return "jdbc:h2:" + baseFolder + System.getProperty("file.separator") + engineDirectoryName
 				+ System.getProperty("file.separator") + "database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
 	}
-	
 	@Override
 	public String getDatabaseDriverClassName(){
 		return DATABASE_DRIVER;
 	}
-	
 	@Override
 	public String getDialectIndexInfo(String indexName, String dbName){
 		return super.getDialectIndexInfo() + "'" + indexName+ "'"; //h2 doesnt need the dbName 
 	}
 	
+	
 	//"full outer join"
-	public String getDialectDistinctFullOuterJoinQuery(String selectors, ArrayList<String> rightJoinsArr, ArrayList<String> leftJoinsArr, 
-			ArrayList<String> joinsArr, String filters, int limit){
+	//this is definetly going to be db specific, (so abstracting)
+	public String getDialectFullOuterJoinQuery(boolean distinct, String selectors, ArrayList<String> rightJoinsArr, ArrayList<String> leftJoinsArr, 
+			ArrayList<String> joinsArr, String filters, int limit, String groupBy){
 		String joins = "";
 		String rightOuterJoins = "";
 		String leftOuterJoins = "";
@@ -101,12 +100,22 @@ public class H2QueryUtil extends SQLQueryUtil {
 		if(joins.length() > 0)
 			joins = " WHERE " + joins;
 		
-		String query = "SELECT DISTINCT " + selectors + "  FROM  " + leftOuterJoins + joins;
+		String selectStr = super.dialectSelect;
+		if(distinct) selectStr+= super.dialectDistinct;
+		
+		String query = selectStr + selectors + "  FROM  " + leftOuterJoins + joins; //+ " LIMIT " + limit ;
+		if(groupBy !=null && groupBy.length()>0)
+			query += " GROUP BY " + groupBy;
 		query += " UNION ";
-		query += "SELECT DISTINCT " + selectors + "  FROM  " + rightOuterJoins + joins;
+		query += selectStr + selectors + "  FROM  " + rightOuterJoins + joins; //+ " LIMIT " + limit ;
+		
+		if(groupBy !=null && groupBy.length()>0)
+			query += " GROUP BY " + groupBy;
+		
 		if(limit!=-1){
 			query += " LIMIT " + limit;
 		}
+
 		return query;
 	}	
 	
