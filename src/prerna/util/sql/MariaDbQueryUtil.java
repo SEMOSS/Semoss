@@ -51,6 +51,8 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 		super.setDefaultDbPassword("");
 	}
 	
+
+	
 	@Override
 	public SQLQueryUtil.DB_TYPE getDatabaseType(){
 		return SQLQueryUtil.DB_TYPE.MARIA_DB;
@@ -71,25 +73,29 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 		return DATABASE_DRIVER;
 	}
 	@Override
-	public String getDialectDropIndex(String indexName, String tableName){
-		return super.getDialectDropIndex() + indexName + " ON " + tableName;
-	}
-	@Override
 	public String getDialectIndexInfo(String indexName, String dbName){
 		String qry =  super.getDialectIndexInfo().replace("{indexName}", "'" + indexName + "'");
 		qry =  qry.replace("{dbName}", "'" + dbName + "'");
 		return qry;
 	}
 	
-	//"full outer join"
+	
 	@Override
-	public String getDialectDistinctFullOuterJoinQuery(String selectors, ArrayList<String> rightJoinsArr, 
-			ArrayList<String> leftJoinsArr, ArrayList<String> joinsArr, String filters, int limit){
+	public String getDialectDropIndex(String indexName, String tableName){
+		return super.getDialectDropIndex() + indexName + " ON " + tableName;
+	}
+	
+	//"full outer join"
+	//this is definetly going to be db specific, (so abstracting)
+	@Override
+	public String getDialectFullOuterJoinQuery(boolean distinct, String selectors, ArrayList<String> rightJoinsArr, 
+			ArrayList<String> leftJoinsArr, ArrayList<String> joinsArr, String filters, int limit, String groupBy){
 		
 		String rightOuterJoins = "";
 		String leftOuterJoins = "";
+		String joins = "";
 		
-		if(rightJoinsArr.size() == leftJoinsArr.size() && rightJoinsArr.size() == (joinsArr.size()-1)){
+		if(rightJoinsArr.size() == leftJoinsArr.size() && (rightJoinsArr.size()-1) <= joinsArr.size()){
 			System.out.println("getDialectDistinctFullOuterJoinQuery: can continue");
 		} else {
 			System.out.println("getDialectDistinctFullOuterJoinQuery: cant continue");
@@ -103,13 +109,41 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 				leftOuterJoins += " ON " + joinsArr.get(i-1);
 			}
 		}
+		// if the joinsArray still has more
+		if((rightJoinsArr.size()-1) < joinsArr.size()){
+			for(int i = rightJoinsArr.size()-1; i < joinsArr.size(); i++){
+				if(joins.length()>0) joins += " AND ";
+				joins += joinsArr.get(i);
+			}
+		}
 		
-		if(filters.length() > 0)
-			filters = " WHERE " + filters;
+		String queryJoinsAndFilters = "";
+		if(joins.length() > 0 && filters.length() > 0)
+			queryJoinsAndFilters = joins + " AND " + filters;
+		else if(joins.length() > 0){
+			queryJoinsAndFilters = joins;
+		}
+		else if(filters.length() > 0){
+			queryJoinsAndFilters = filters;
+		}
+		if(queryJoinsAndFilters.length() > 0)
+			queryJoinsAndFilters = " WHERE " + queryJoinsAndFilters;
 		
-		String query = super.dialectSelectDistinct + selectors + "  FROM  " + leftOuterJoins + filters;
+		String selectStr = super.dialectSelect;
+		if(distinct) selectStr+= super.dialectDistinct;
+		
+		String query = selectStr + selectors + "  FROM  " + leftOuterJoins + queryJoinsAndFilters; //+ " LIMIT " + limit ;
+		if(groupBy !=null && groupBy.length()>0){
+			query += " GROUP BY " + groupBy;
+		}
+		
 		query += " UNION ";
-		query += super.dialectSelectDistinct + selectors + "  FROM  " + rightOuterJoins + filters;
+		query += selectStr + selectors + "  FROM  " + rightOuterJoins + queryJoinsAndFilters; //+ " LIMIT " + limit ;
+		
+		if(groupBy !=null && groupBy.length()>0){
+			query += " GROUP BY " + groupBy;
+		}
+		
 		if(limit!=-1){
 			query += " LIMIT " + limit;
 		}

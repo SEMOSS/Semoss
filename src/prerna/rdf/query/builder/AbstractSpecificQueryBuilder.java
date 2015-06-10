@@ -37,6 +37,7 @@ import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SPARQLAbstractReturnModifier;
 import prerna.util.Utility;
+import prerna.util.sql.SQLQueryUtil;
 
 public abstract class AbstractSpecificQueryBuilder {
 	protected ArrayList<Hashtable<String, String>> parameters;
@@ -48,6 +49,9 @@ public abstract class AbstractSpecificQueryBuilder {
 	String tableString =  "";
 	String joinString = "";
 	String groupBy = "";
+	ArrayList<String> joinsArr = new ArrayList();
+	ArrayList<String> leftJoinsArr = new ArrayList();
+	ArrayList<String> rightJoinsArr = new ArrayList();
 	
 	public AbstractSpecificQueryBuilder(ArrayList<Hashtable<String, String>> parameters, SEMOSSQuery baseQuery) {
 		this.baseQuery = baseQuery;
@@ -64,7 +68,7 @@ public abstract class AbstractSpecificQueryBuilder {
 	}
 	
 	protected void createSQLQuery() {
-		baseQuery.createSQLQuery(paramString , tableString, joinString, groupBy);
+		baseQuery.createSQLQuery(paramString , tableString, joinString, groupBy, joinsArr, leftJoinsArr, rightJoinsArr);
 		query = baseQuery.getQuery();
 	}
 	
@@ -217,10 +221,12 @@ public abstract class AbstractSpecificQueryBuilder {
 				addToTableString(tableName);
 				String qualifiedColName = getAlias(tableName) + "." + colName;
 				String condition = qualifiedColName + " = '@" + colName + "-" + tableName + ":" + colName + "@'";
+				
 				if(joinString.length() > 0)
 					joinString = joinString + " AND " + condition;
 				else
 					joinString = condition;
+				joinsArr.add(condition);
 			}
 		}
 	}
@@ -248,6 +254,7 @@ public abstract class AbstractSpecificQueryBuilder {
 			
 			String join = getAlias(fromTable) + "." + fromColumn + "=" + getAlias(toTable) + "." + toColumn;
 			
+			joinsArr.add(join);
 			if(joinString.length() > 0)
 				joinString = joinString + " AND " + join;
 			else
@@ -263,11 +270,18 @@ public abstract class AbstractSpecificQueryBuilder {
 	{
 		if(!tablesProcessed.containsKey(tableName.toUpperCase()))
 		{
+			SQLQueryUtil queryUtil = baseQuery.getQueryUtil();
 			String alias = getAlias(tableName);
-			if(tableString.length() > 0)
-				tableString = tableString + ", " + tableName + " " + alias;			
-			else
-				tableString = tableName + " " + alias;	
+			String fromText = tableName + " " + alias;
+			if(tableString.length() > 0){
+				tableString = tableString + ", " + fromText;		
+				rightJoinsArr.add(queryUtil.getDialectOuterJoinRight(fromText));
+				leftJoinsArr.add(queryUtil.getDialectOuterJoinLeft(fromText));
+			} else {
+				tableString = fromText;
+				rightJoinsArr.add(fromText);
+				leftJoinsArr.add(fromText);
+			}
 			tablesProcessed.put(tableName.toUpperCase(), tableName.toUpperCase());
 		}
 	}
