@@ -583,19 +583,28 @@ public class BTreeDataFrame implements ITableDataFrame {
 	@Override
 	public void removeColumn(String columnHeader) {
 		LOGGER.info("removing " + columnHeader);
-		this.simpleTree.removeType(columnHeader);
-		LOGGER.info("removed " + columnHeader);
 		
+		LOGGER.info("adujsting names");
 		String[] newNames = new String[levelNames.length-1];
 		int count = 0;
 		System.out.println("cur names  " + Arrays.toString(levelNames));
+		boolean colExists = false;
 		for(String name : levelNames){
 			if(!name.equals(columnHeader)){
 				newNames[count] = name;
 				count++;
 			}
+			else {
+				colExists = true;
+			}
+		}
+		if(!colExists){
+			LOGGER.error("Unable to remove column " + columnHeader + ". Column does not exist in table");
 		}
 		this.levelNames = newNames;
+		
+		this.simpleTree.removeType(columnHeader);
+		LOGGER.info("removed " + columnHeader);
 		System.out.println("new names  " + Arrays.toString(levelNames));
 	}
 
