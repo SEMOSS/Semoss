@@ -77,7 +77,12 @@ public class ParallelSetsPlaySheet extends BrowserPlaySheet {
 					}
 					elementHash.put(colName, text);
 				}
-				else 
+				else if(listElement[j] instanceof java.lang.Float){
+					Float valueFloat = (float) listElement[j];
+					value = valueFloat.doubleValue();
+					elementHash.put(colName, value);
+					
+				} else 
 				{
 					value = (Double) listElement[j];	
 					elementHash.put(colName, value);

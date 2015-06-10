@@ -52,7 +52,7 @@ public abstract class SQLQueryUtil {
 	
 	public final String dialectSelectAllFrom = " SELECT * FROM ";
 	
-	private String dialectSelectRowCountFrom = " SELECT COUNT(*) as ROW_COUNT FROM ";  
+	private String dialectSelectRowCountFrom = " SELECT COUNT(*) as ROW_COUNT FROM ";
 	private String resultSelectRowCountFromRowCount = "ROW_COUNT";
 
 	//create
@@ -70,7 +70,8 @@ public abstract class SQLQueryUtil {
 	private String resultAllIndexesInDBTableName = "TABLE_NAME";
 	private String dialectCreateIndex = "";
 	private String dialectDropIndex = "DROP INDEX ";
-	public final String dialectSelectDistinct = "SELECT DISTINCT ";
+	public final String dialectSelect = "SELECT ";
+	public final String dialectDistinct = " DISTINCT ";
 	
 	
 	//"full outer join"
@@ -95,11 +96,12 @@ public abstract class SQLQueryUtil {
 	public abstract String getDatabaseDriverClassName();
 	
 	public abstract String getDialectIndexInfo(String indexName, String dbName);
+
 	
 	//"full outer join"
-	//this is definitely going to be db specific
-	public abstract String getDialectDistinctFullOuterJoinQuery(String selectors, ArrayList<String> rightJoinsArr, 
-			ArrayList<String> leftJoinsArr, ArrayList<String> joinsArr, String filters, int limit);
+	//this is definetly going to be db specific
+	public abstract String getDialectFullOuterJoinQuery(boolean distinct, String selectors, ArrayList<String> rightJoinsArr, 
+			ArrayList<String> leftJoinsArr, ArrayList<String> joinsArr, String filters, int limit, String groupBy);
 	
 	public String getDefaultDBUserName(){
 		return this.defaultDbUserName;
@@ -186,17 +188,29 @@ public abstract class SQLQueryUtil {
 		return createIndexText;
 	}
 	
-	//full outer join is abstract (see above...)
+	//full outer join abstract above...
 	
 	//inner join
-	public String getDialectDistinctInnerJoinQuery(String selectors, String froms, String joins){
-		return getDialectDistinctInnerJoinQuery(selectors, froms, joins, -1);
-	}
-	public String getDialectDistinctInnerJoinQuery(String selectors, String froms, String joins, int limit){
-		String query = this.dialectSelectDistinct + selectors + "  FROM  " + froms + joins;
+	public String getDialectInnerJoinQuery(boolean distinct, String selectors, String froms, String joins, String filters, int limit, String groupBy){
+		
+		if(joins.length() > 0 && filters.length() > 0)
+			joins = joins + " AND " + filters;
+		else if(filters.length() > 0)
+			joins = filters;
+		if(joins.length() > 0)
+			joins = " WHERE " + joins;
+		
+		String query = this.dialectSelect;
+		if(distinct) query+= this.dialectDistinct;
+		query += selectors + "  FROM  " + froms + joins;
+		if(groupBy != null && groupBy.length()>0){
+			query += " GROUP BY " + groupBy;
+		}
+		
 		if(limit != -1){
 			query += " LIMIT " + limit;
 		}
+
 		return query;
 	}
 	//just get the right and left outer join syntax
@@ -212,12 +226,13 @@ public abstract class SQLQueryUtil {
 		return getDialectDistinctFromDual(selectors, -1);
 	}
 	public String getDialectDistinctFromDual(String selectors, int limit){
-		String query = this.dialectSelectDistinct + selectors + " FROM DUAL ";
+		String query = this.dialectSelect + this.dialectDistinct + selectors + " FROM DUAL ";
 		if(limit != -1){
 			query += " LIMIT " + limit;
 		}
 		return query;
 	}
+
 	
 	public String getDialectRemoveDuplicates(String tableName, String fullColumnNameList){
 		String createTable = "CREATE TABLE " + tableName + "_TEMP AS ";
@@ -237,9 +252,8 @@ public abstract class SQLQueryUtil {
 	}
 	
 	public String getDialectAlterTableName(String fromName, String toName){
-		return this.dialectAlterTable + fromName + " RENAME TO " + toName; 
+		return this.dialectAlterTable + fromName + " RENAME TO " + toName; //alterTableName = "ALTER TABLE " + tableName + "_TEMP RENAME TO " + tableName;
 	}
-
 	public String getDialectMergeStatement(String tableKey, String insertIntoClause, String insertValuesClause, String whereClause){
 		String query = "INSERT INTO " + tableKey + " ("+ insertIntoClause + ") SELECT DISTINCT " + insertValuesClause +
 				   " FROM " + tableKey + " WHERE " + whereClause ;
@@ -300,6 +314,5 @@ public abstract class SQLQueryUtil {
 	}
 	public void setDialectOuterJoinRight(String dialectOuterJoinRight){
 		this.dialectOuterJoinRight = dialectOuterJoinRight;
-	}
-	
+	}	
 }

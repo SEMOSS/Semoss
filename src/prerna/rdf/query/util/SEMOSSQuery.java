@@ -32,6 +32,7 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 
 import prerna.util.Utility;
+import prerna.util.sql.SQLQueryUtil;
 
 public class SEMOSSQuery {
 	private static final String main = "Main";
@@ -51,7 +52,9 @@ public class SEMOSSQuery {
 	private String query;
 	private String queryID;
 	private String SQLFilter = "";
-	
+	private SQLQueryUtil queryUtil = null;
+	private boolean useOuterJoins = false;
+
 	public SEMOSSQuery()
 	{
 	}
@@ -86,20 +89,15 @@ public class SEMOSSQuery {
 		String wherePatternString = createPatternClauses();
 		String postWhereString = createPostPatternString();
 		query=query+retVarString + wherePatternString +postWhereString;
-		
 	}
 	
-	public void createSQLQuery(String selectorsString, String tableString, String joinString, String groupBy){
+	public void createSQLQuery(String selectorsString, String tableString, String joinString, String groupBy,
+			ArrayList<String> joinsArr, ArrayList<String> leftJoinsArr, ArrayList<String> rightJoinsArr){
+		int nolimit = -1;
 		String joins = "";
-		query = queryType + " "; //Should be select, will be an issue if not
-		if(distinct)
-			query= query+ "DISTINCT ";
-		
 		if(selectorsString.length() == 0){
 			selectorsString = createReturnVariableSQLString();
 		}
-		
-		query=query + selectorsString + " FROM " + tableString;
 		
 		if(joinString.length() > 0 && SQLFilter.length() > 0)
 			joins += joinString + " AND " + SQLFilter;
@@ -108,15 +106,11 @@ public class SEMOSSQuery {
 		else if(joinString.length() > 0)
 			joins = joinString;
 		
-		if(joins.length() > 0){
-			joins = " WHERE " + joins;
+		if(!useOuterJoins){
+			query = queryUtil.getDialectInnerJoinQuery(distinct,selectorsString, tableString, joins, SQLFilter, nolimit, groupBy);//query = "SELECT DISTINCT " + selectors + "  FROM  " + froms + joins + " LIMIT " + limit ;
+		} else {
+			query = queryUtil.getDialectFullOuterJoinQuery(distinct, selectorsString,rightJoinsArr, leftJoinsArr, joinsArr, SQLFilter, nolimit, groupBy);
 		}
-		
-		if(groupBy.length() > 0 ){
-			groupBy = " GROUP BY " + groupBy;
-		}
-		
-		query += joins + groupBy;
 	}
 	
 	public String getCountQuery(int maxCount)
@@ -549,5 +543,17 @@ public class SEMOSSQuery {
 	}
 	public void setSQLFilter(String filter){
 		this.SQLFilter = filter;
+	}
+	public SQLQueryUtil getQueryUtil() {
+		return queryUtil;
+	}
+	public void setQueryUtil(SQLQueryUtil queryUtil) {
+		this.queryUtil = queryUtil;
+	}
+	public boolean isUseOuterJoins() {
+		return useOuterJoins;
+	}
+	public void setUseOuterJoins(boolean useOuterJoins) {
+		this.useOuterJoins = useOuterJoins;
 	}
 }
