@@ -92,6 +92,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 	@Override
 	public List<Object[]> getData() {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[0]);
+		if(typeRoot == null){
+			return null;
+		}
 		SimpleTreeNode leftRootNode = typeRoot.getInstances().elementAt(0);
 		leftRootNode = leftRootNode.getLeft(leftRootNode);
 
@@ -120,12 +123,11 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable, double confidenceThreshold, IAnalyticRoutine routine) {
+	public void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable, double confidenceThreshold, IAnalyticRoutine routine) 
+			throws Exception {
 		LOGGER.info("Columns Passed ::: " + colNameInTable + " and " + colNameInJoiningTable);
 		LOGGER.info("Confidence Threshold :: " + confidenceThreshold);
 		LOGGER.info("Analytics Routine ::: " + routine.getName());
-		
-		
 		
 		LOGGER.info("Begining join on columns ::: " + colNameInTable + " and " + colNameInJoiningTable);
 
@@ -143,6 +145,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 		// let the routine run
 		LOGGER.info("Begining matching routine");
 		ITableDataFrame matched = routine.runAlgorithm(this, table);
+		if(matched == null){
+			throw new Exception("No matching elements found");
+		}
 
 		if(table instanceof BTreeDataFrame){
 			BTreeDataFrame passedTree = (BTreeDataFrame) table;
@@ -688,7 +693,12 @@ public class BTreeDataFrame implements ITableDataFrame {
 		
 		BTreeDataFrame joiner = load2Tree4Testing(file2);
 		String[] names2 = joiner.getColumnHeaders();
-		tester.join(joiner, names1[names1.length-2], names2[0], 1, new ExactStringMatcher());
+		try {
+			tester.join(joiner, names1[names1.length-2], names2[0], 1, new ExactStringMatcher());
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 		names1 = tester.getColumnHeaders();
 		System.out.println("done fo sho");
