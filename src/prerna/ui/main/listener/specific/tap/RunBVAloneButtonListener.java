@@ -37,7 +37,7 @@ import javax.swing.JTextField;
 import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.api.IChakraListener;
-import prerna.ui.components.specific.tap.BVCalculationPerformer;
+import prerna.ui.components.specific.tap.BusinessValueInserter;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -92,19 +92,31 @@ public class RunBVAloneButtonListener implements IChakraListener{
 				upProc.setQuery("DELETE {?s ?contains ?prop} WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} BIND(<http://semoss.org/ontologies/Relation/Contains/BusinessValue> AS ?contains) {?s ?contains ?prop ;} }");
 				upProc.processQuery();
 				
-				BVCalculationPerformer bv = new BVCalculationPerformer();
-				String type = "System";
-				bv.setType(type);
-				bv.setsoaAlphaValue(soaAlphaValue);
-				bv.runCalculation();
+				// BVCalculationPerformer bv = new BVCalculationPerformer();
+				// String type = "System";
+				// bv.setType(type);
+				// bv.setsoaAlphaValue(soaAlphaValue);
+				// bv.runCalculation();
+				BusinessValueInserter bvInserter = new BusinessValueInserter();
+				bvInserter.setsoaAlphaValue(soaAlphaValue);
+				bvInserter.runCalculationsAndInsertions();
+				
+				Utility.showMessage("Business Function has been successfully added!");
+
 			}
 		}
 		else{
-			BVCalculationPerformer bv = new BVCalculationPerformer();
-			String type = "System";
-			bv.setType(type);
-			bv.setsoaAlphaValue(soaAlphaValue);
-			bv.runCalculation();
+			// BVCalculationPerformer bv = new BVCalculationPerformer();
+			// String type = "System";
+			// bv.setType(type);
+			// bv.setsoaAlphaValue(soaAlphaValue);
+			// bv.runCalculation();
+			BusinessValueInserter bvInserter = new BusinessValueInserter();
+			bvInserter.setsoaAlphaValue(soaAlphaValue);
+			bvInserter.runCalculationsAndInsertions();
+			
+			Utility.showMessage("Business Function has been successfully added!");
+
 		}
 	}
 	
