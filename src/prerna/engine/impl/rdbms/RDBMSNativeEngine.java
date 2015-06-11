@@ -154,9 +154,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		String column; // column of table in RDBMS
 		String query;
 		if(type.contains(":")) {
-			int tableStartIndex = type.indexOf("-") + 1;
 			int columnStartIndex = type.indexOf(":") + 1;
-			table = type.substring(tableStartIndex, columnStartIndex - 1);
+			table = type.substring(0, columnStartIndex - 1);
 			column = type.substring(columnStartIndex);
 			query = "SELECT DISTINCT " + column + " FROM " + table;
 		} else {
