@@ -19,21 +19,27 @@ public class BTreeIterator implements Iterator<Object[]> {
 	 */
 	public BTreeIterator(TreeNode typeRoot) {
 		currNode = typeRoot;
-		currNode = currNode.getLeft(currNode);
-		instances = currNode.getInstances();
-		
-		childrenList = new ArrayList<TreeNode>();
-		// add nodes to child list
-		addToChildrenList();
+		if(currNode!=null){
+			currNode = currNode.getLeft(currNode);
+			instances = currNode.getInstances();
+			
+			childrenList = new ArrayList<TreeNode>();
+			// add nodes to child list
+			addToChildrenList();
+		}
 	}
 	
-	@Override
 	/**
 	 * Perform a non-recursive depth-first-search (DFS)
 	 * Must also take into consideration the number of instances associated with each node
 	 * Must also take into consideration the fan-out of the btree for siblings of node
 	 */
+	@Override
 	public boolean hasNext() {
+		// if curNode is null, that means the table is empty--always return false
+		if(currNode == null){
+			return false;
+		}
 		// if more instances associated with current node still need to be 
 		if(index < instances.size()) {
 			return true;
