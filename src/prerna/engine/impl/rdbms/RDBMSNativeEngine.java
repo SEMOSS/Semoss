@@ -150,9 +150,18 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	@Override
 	public Vector<String> getEntityOfType(String type)
 	{
-		if(type.contains(":"))
-			type = Utility.getInstanceName(type);
-		String query = "SELECT DISTINCT " + type + " FROM " + type;
+		String table; // table in RDBMS
+		String column; // column of table in RDBMS
+		String query;
+		if(type.contains(":")) {
+			int tableStartIndex = type.indexOf("-") + 1;
+			int columnStartIndex = type.indexOf(":") + 1;
+			table = type.substring(tableStartIndex, columnStartIndex - 1);
+			column = type.substring(columnStartIndex);
+			query = "SELECT DISTINCT " + column + " FROM " + table;
+		} else {
+			query = "SELECT DISTINCT " + type + " FROM " + type;
+		}
 		try {
 			return getColumnsFromResultSet(1, getResults(query));
 		} catch (Exception e) {
