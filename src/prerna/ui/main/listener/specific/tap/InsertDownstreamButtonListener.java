@@ -40,8 +40,8 @@ import prerna.engine.api.IEngine;
 import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.api.IChakraListener;
-import prerna.ui.components.specific.tap.BVCalculationPerformer;
-import prerna.ui.components.specific.tap.FillTMHash;
+import prerna.ui.components.specific.tap.BusinessValueInserter;
+import prerna.ui.components.specific.tap.TechnicalMaturityInserter;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -49,15 +49,17 @@ import prerna.util.Utility;
 //TODO: should change name to RunBVTMButtonListner to be consistent with other naming
 
 /**
- * Listener for btnInsertDownstream
- * Determines business value and technical maturity calculations for a selected database based on hardware and software data 
+ * Listener for btnInsertDownstream Determines business value and technical maturity calculations for a selected database based on hardware and
+ * software data
  */
-public class InsertDownstreamButtonListener implements IChakraListener{
-
+public class InsertDownstreamButtonListener implements IChakraListener {
+	
 	/**
-	 * Performs business value and technical maturity calculations when btnInsertDownstream is pressed by the user
-	 * Calls BVCalculationPerformer and FillTMHash to insert business value and technical maturity calculations, respectively, into the selected database
-	 * @param arg0 ActionEvent
+	 * Performs business value and technical maturity calculations when btnInsertDownstream is pressed by the user Calls BVCalculationPerformer and
+	 * FillTMHash to insert business value and technical maturity calculations, respectively, into the selected database
+	 * 
+	 * @param arg0
+	 *            ActionEvent
 	 */
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
@@ -70,42 +72,37 @@ public class InsertDownstreamButtonListener implements IChakraListener{
 		JTextField deptextField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.DEPRECIATION_TEXT_BOX);
 		String depTextValue = deptextField.getText();
 		Double depValue = 0.0;
-		try{
+		try {
 			soaAlphaValue = Double.parseDouble(soaTextValue);
 			appValue = Double.parseDouble(appTextValue);
 			depValue = Double.parseDouble(depTextValue);
-		}catch(RuntimeException e){
+		} catch (RuntimeException e) {
 			Utility.showError("All text values must be numbers");
 			return;
 		}
 		
-		/*The steps that this class will take:
-		 * Check if sys-IO weights exist
-		 * (maybe popup to see if you want to recalculate weights)
-		 * Delete existing weights
-		 * Insert sys-IO weights
-		 * Run Business Calc
-		 * Insert Business Calc
-		 * Run Tech Maturity
-		 * Insert Tech Maturity
-		*/
-
-		//Pass it to DistanceDownstreamInserter who will use DistanceDownstreamProcessor
+		/*
+		 * The steps that this class will take: Check if sys-IO weights exist (maybe popup to see if you want to recalculate weights) Delete existing
+		 * weights Insert sys-IO weights Run Business Calc Insert Business Calc Run Tech Maturity Insert Tech Maturity
+		 */
+		
+		// Pass it to DistanceDownstreamInserter who will use DistanceDownstreamProcessor
 		String distanceQuery = "ASK WHERE { {?o <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?s ?p ?o ;} BIND(<http://semoss.org/ontologies/Relation/Contains/DistanceDownstream> AS ?contains) {?p ?contains ?prop ;} }";
 		BooleanProcessor proc = new BooleanProcessor();
 		proc.setQuery(distanceQuery);
 		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
 		boolean distanceExists = proc.processQuery();
-		if(distanceExists){
-			//display message
-			//if they want to continue--delete
-			Object[] buttons = {"Cancel Calculation", "Continue With Calculation"};
-			int response = JOptionPane.showOptionDialog(playPane, "The selected RDF store already " +
-					"contains inserted values.  Would you like to recalculate?", 
-					"Warning", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE, null, buttons, buttons[1]);
-
-			if (response == 1){
+		if (distanceExists) {
+			// display message
+			// if they want to continue--delete
+			Object[] buttons = { "Cancel Calculation", "Continue With Calculation" };
+			int response = JOptionPane.showOptionDialog(playPane, "The selected RDF store already "
+					+ "contains inserted values.  Would you like to recalculate?", "Warning", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE,
+					null, buttons, buttons[1]);
+			
+			if (response == 1) {
 				UpdateProcessor upProc = new UpdateProcessor();
+				//TODO UPDATE DELETES SUCH THAT THEY WORK WITH THE NEW BUSINESS FUNCTION AND TECH MATURITY CALCULATORS
 				upProc.setQuery("DELETE {?p ?contains ?prop} WHERE { {?o <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} BIND (<http://semoss.org/ontologies/Relation/Contains/DistanceDownstream> AS ?contains) {?s ?p ?o ;} {?p ?contains ?prop ;} }");
 				upProc.processQuery();
 				upProc.setQuery("DELETE {?p ?contains ?prop} WHERE { {?o <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;} {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} BIND (<http://semoss.org/ontologies/Relation/Contains/weight> AS ?contains) {?s ?p ?o ;} {?p ?contains ?prop ;} }");
@@ -114,11 +111,11 @@ public class InsertDownstreamButtonListener implements IChakraListener{
 				upProc.processQuery();
 				
 				DistanceDownstreamInserter inserter = new DistanceDownstreamInserter();
-				String eng = (String) ((JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST)).getSelectedValues()[0];
+				String eng = (String) ((JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST)).getSelectedValues()[0];
 				inserter.setEngine((IEngine) DIHelper.getInstance().getLocalProp(eng));
 				inserter.setAppAndDep(appValue, depValue);
 				inserter.insertAllDataDownstream();
-
+				
 				upProc.setQuery("DELETE {?s ?contains ?prop} WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} BIND(<http://semoss.org/ontologies/Relation/Contains/BusinessValue> AS ?contains) {?s ?contains ?prop ;} }");
 				upProc.processQuery();
 				upProc.setQuery("DELETE {?s ?contains ?prop} WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} BIND(<http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM> AS ?contains) {?s ?contains ?prop ;} }");
@@ -126,46 +123,46 @@ public class InsertDownstreamButtonListener implements IChakraListener{
 				upProc.setQuery("DELETE {?s ?contains ?prop} WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} BIND(<http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM> AS ?contains) {?s ?contains ?prop ;} }");
 				upProc.processQuery();
 				upProc.processQuery();
-			
-				BVCalculationPerformer bv = new BVCalculationPerformer();
-				String type = "System";
-				bv.setType(type);
-				bv.setsoaAlphaValue(soaAlphaValue);
-				bv.runCalculation();
-
-				FillTMHash tmPlaysheet = new FillTMHash();
-				tmPlaysheet.runQueries();
 				
-				bv=null;
-				tmPlaysheet=null;
+
+				BusinessValueInserter bvInserter = new BusinessValueInserter();
+				bvInserter.setsoaAlphaValue(soaAlphaValue);
+				bvInserter.runCalculationsAndInsertions();
+				
+				
+				TechnicalMaturityInserter tmInserter = new TechnicalMaturityInserter();
+				tmInserter.runCalculationsAndInsertions();
+				
 				System.gc();
+				Utility.showMessage("Business Function and Technical Maturity have been successfully added!");
 			}
-		}
-		else{
+		} else {
 			DistanceDownstreamInserter inserter = new DistanceDownstreamInserter();
-			String eng = (String) ((JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST)).getSelectedValues()[0];
+			String eng = (String) ((JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST)).getSelectedValues()[0];
 			inserter.setEngine((IEngine) DIHelper.getInstance().getLocalProp(eng));
 			inserter.setAppAndDep(appValue, depValue);
 			inserter.insertAllDataDownstream();
 			
-			BVCalculationPerformer bv = new BVCalculationPerformer();
-			String type = "System";
-			bv.setType(type);
-			bv.setsoaAlphaValue(soaAlphaValue);
-			bv.runCalculation();
-			FillTMHash tmPlaysheet = new FillTMHash();
-			tmPlaysheet.runQueries();
+			BusinessValueInserter bvInserter = new BusinessValueInserter();
+			bvInserter.setsoaAlphaValue(soaAlphaValue);
+			bvInserter.runCalculationsAndInsertions();
+		
+			TechnicalMaturityInserter tmInserter = new TechnicalMaturityInserter();
+			tmInserter.runCalculationsAndInsertions();
 			
-			bv=null;
-			tmPlaysheet=null;
+			bvInserter = null;
+			tmInserter = null;
 			System.gc();
+			Utility.showMessage("Business Function and Technical Maturity have been successfully added!");
 		}
 		
 	}
-
+	
 	/**
 	 * Override method from IChakraListener
-	 * @param view JComponent
+	 * 
+	 * @param view
+	 *            JComponent
 	 */
 	@Override
 	public void setView(JComponent view) {

@@ -151,7 +151,14 @@ public class QueryProcessor {
 		return finalMap;
 	}
 	
-	public static HashMap<String, ArrayList<String[]>> getStringListArrayMap(String query, String engineName) {
+	/**
+	 * Processes query so that first column is key, while second and third columns are placed into String array
+	 * 
+	 * @param query
+	 * @param engineName
+	 * @return
+	 */
+	public static HashMap<String, ArrayList<String[]>> getStringListTwoArrayMap(String query, String engineName) {
 		HashMap<String, ArrayList<String[]>> finalMap = new HashMap<String, ArrayList<String[]>>();
 		try {
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
@@ -173,6 +180,14 @@ public class QueryProcessor {
 		return finalMap;
 	}
 	
+	/**
+	 * Processes query so that first column is key to outer hashmap and second column is key to the inner hashmap.
+	 *  The value of the inner hashmap is a double.
+	 * 
+	 * @param query
+	 * @param engineName
+	 * @return HashMap<String, HashMap<String, Double>> 
+	 */
 	public static HashMap<String, HashMap<String, Double>> getDoubleMap(String query, String engineName) {
 		HashMap<String, HashMap<String, Double>> finalMap = new HashMap<String, HashMap<String, Double>>();
 		try {
@@ -195,27 +210,69 @@ public class QueryProcessor {
 		return finalMap;
 	}
 	
-	public static HashMap<String, ArrayList<String[]>> getStringTwoArrayListMap(String query, String engineName) {
-		HashMap<String, ArrayList<String[]>> finalMap = new HashMap<String, ArrayList<String[]>>();
+	/**
+	 * Processes query so that first column is key to outer hashmap and second column is key to the inner hashmap.
+	 *  The value of the inner hashmap is a double.
+	 * 
+	 * @param query
+	 * @param engineName
+	 * @return HashMap<String, HashMap<String, Double>> 
+	 */
+	public static HashMap<String, Double> getDoubleVector(String query, String engineName) 
+	{
+		HashMap<String, Double> finalMap = new HashMap<String, Double>();
 		try {
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 			ISelectWrapper sjsw = Utility.processQuery(engine, query);
 			String[] values = sjsw.getVariables();
 			while (sjsw.hasNext()) {
 				ISelectStatement sjss = sjsw.next();
-				
-				String key = sjss.getVar(values[0]).toString();
-				String valueOne = sjss.getVar(values[1]).toString();
-				String valueTwo = sjss.getVar(values[2]).toString();
-				if (!finalMap.containsKey(key)) {
-					finalMap.put(key, new ArrayList<String[]>());
-				}
-				String[] temp = { valueOne, valueTwo };
-				finalMap.get(key).add(temp);
+				String oneKey = sjss.getVar(values[0]).toString();
+				finalMap.put(oneKey, Double.parseDouble(sjss.getVar(values[1]).toString()));
 			}
 		} catch (RuntimeException e) {
 			Utility.showError("Cannot find engine: " + engineName);
 		}
 		return finalMap;
 	}
+	
+	public static HashMap<String, String[]> getStringTwoParameterMap(String query, String engineName) {
+		HashMap<String, String[]> finalMap = new HashMap<String, String[]>();
+		try {
+			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+			ISelectWrapper sjsw = Utility.processQuery(engine, query);
+			String[] values = sjsw.getVariables();
+			while (sjsw.hasNext()) {
+				ISelectStatement sjss = sjsw.next();
+				String key = sjss.getVar(values[0]).toString();
+				String[] temp = { sjss.getVar(values[1]).toString(), sjss.getVar(values[2]).toString() };
+				finalMap.put(key, temp);
+			}
+		} catch (RuntimeException e) {
+			Utility.showError("Cannot find engine: " + engineName);
+		}
+		return finalMap;
+	}
+	
+	/**
+	 * Processes query that returns one numerical value
+	 * 
+	 * @param query
+	 * @param engine
+	 * @return
+	 */
+	public static Double getSingleCount(String query, String engineName) {
+		Double total = 0.0;
+		try {
+			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+			ISelectWrapper sjsw = Utility.processQuery(engine, query);
+			String[] values = sjsw.getVariables();
+			ISelectStatement sjss = sjsw.next();
+			total = Double.parseDouble(sjss.getVar(values[0]).toString());
+		} catch (RuntimeException e) {
+			Utility.showError("Cannot find engine: " + engineName);
+		}
+		return total;
+	}
+
 }
