@@ -98,7 +98,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		String useOuterJoinsStr = engine.getProperty(Constants.USE_OUTER_JOINS);
 		
 		if(useOuterJoinsStr!=null && (useOuterJoinsStr.equalsIgnoreCase("TRUE") || useOuterJoinsStr.equalsIgnoreCase("YES")))
-			useOuterJoins = true;//for NIH NIAID usecase TODO add logic to search through prop file to determine if we have the NIAID logic
+			useOuterJoins = true;
 		
 		semossQuery.setQueryType(SQLConstants.SELECT);
 		semossQuery.setDisctinct(useDistinct);
