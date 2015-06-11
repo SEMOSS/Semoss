@@ -91,14 +91,15 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	@Override
 	public List<Object[]> getData() {
+		List<Object[]> table = new ArrayList<Object[]>();
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[0]);
 		if(typeRoot == null){
-			return null;
+			LOGGER.info("Table is empty............................");
+			return table;
 		}
 		SimpleTreeNode leftRootNode = typeRoot.getInstances().elementAt(0);
 		leftRootNode = leftRootNode.getLeft(leftRootNode);
 
-		List<Object[]> table = new ArrayList<Object[]>();
 		leftRootNode.flattenTreeFromRoot(leftRootNode, new Vector<Object>(), table, levelNames.length);
 
 		return table;
@@ -106,11 +107,15 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	@Override
 	public List<Object[]> getRawData() {
+		List<Object[]> table = new ArrayList<Object[]>();
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[0]);
+		if(typeRoot == null){
+			LOGGER.info("Table is empty............................");
+			return table;
+		}
 		SimpleTreeNode leftRootNode = typeRoot.getInstances().elementAt(0);
 		leftRootNode = leftRootNode.getLeft(leftRootNode);
 
-		List<Object[]> table = new ArrayList<Object[]>();
 		leftRootNode.flattenRawTreeFromRoot(leftRootNode, new Vector<Object>(), table, levelNames.length);
 
 		return table;
@@ -123,8 +128,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable, double confidenceThreshold, IAnalyticRoutine routine) 
-			throws Exception {
+	public void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable, double confidenceThreshold, IAnalyticRoutine routine) {
 		LOGGER.info("Columns Passed ::: " + colNameInTable + " and " + colNameInJoiningTable);
 		LOGGER.info("Confidence Threshold :: " + confidenceThreshold);
 		LOGGER.info("Analytics Routine ::: " + routine.getName());
@@ -145,10 +149,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		// let the routine run
 		LOGGER.info("Begining matching routine");
 		ITableDataFrame matched = routine.runAlgorithm(this, table);
-		if(matched == null){
-			throw new Exception("No matching elements found");
-		}
-
+		
 		if(table instanceof BTreeDataFrame){
 			BTreeDataFrame passedTree = (BTreeDataFrame) table;
 			
@@ -203,13 +204,13 @@ public class BTreeDataFrame implements ITableDataFrame {
 				String serialized = "";
 				Vector<SimpleTreeNode> vec = new Vector<SimpleTreeNode>();
 				vec.add(instance2HookUp);
-				serialized = instance2HookUp.serializeTree("", vec, true, 0);
+				serialized = SimpleTreeNode.serializeTree("", vec, true, 0);
 //				System.out.println("SERIALIZED " + instance2HookUp.leaf.getKey() + " AS " + serialized);
 					
 				// hook up passed tree node with each instance of this tree node
 				for(int instIdx = 0; instIdx < thisInstances.size(); instIdx++){
 					SimpleTreeNode myNode = thisInstances.get(instIdx);
-					SimpleTreeNode hookUp = instance2HookUp.deserializeTree(serialized, newIdxHash);//
+					SimpleTreeNode hookUp = SimpleTreeNode.deserializeTree(serialized, newIdxHash);//
 					SimpleTreeNode.addLeafChild(myNode, hookUp);
 //					myNode.leftChild = hookUp;
 //					while(hookUp!=null){
@@ -529,7 +530,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	@Override
 	public Iterator<Object[]> iterator() {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);	
-		typeRoot = typeRoot.getLeft(typeRoot);
+//		typeRoot = typeRoot.getLeft(typeRoot);
 		Iterator<Object[]> it = new BTreeIterator(typeRoot);
 		return it;
 	}
