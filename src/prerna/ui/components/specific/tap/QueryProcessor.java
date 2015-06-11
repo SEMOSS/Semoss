@@ -158,7 +158,7 @@ public class QueryProcessor {
 	 * @param engineName
 	 * @return
 	 */
-	public static HashMap<String, ArrayList<String[]>> getStringListTwoArrayMap(String query, String engineName) {
+	public static HashMap<String, ArrayList<String[]>> getStringTwoArrayListMap(String query, String engineName) {
 		HashMap<String, ArrayList<String[]>> finalMap = new HashMap<String, ArrayList<String[]>>();
 		try {
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
@@ -180,14 +180,6 @@ public class QueryProcessor {
 		return finalMap;
 	}
 	
-	/**
-	 * Processes query so that first column is key to outer hashmap and second column is key to the inner hashmap.
-	 *  The value of the inner hashmap is a double.
-	 * 
-	 * @param query
-	 * @param engineName
-	 * @return HashMap<String, HashMap<String, Double>> 
-	 */
 	public static HashMap<String, HashMap<String, Double>> getDoubleMap(String query, String engineName) {
 		HashMap<String, HashMap<String, Double>> finalMap = new HashMap<String, HashMap<String, Double>>();
 		try {
@@ -203,32 +195,6 @@ public class QueryProcessor {
 					finalMap.put(oneKey, new HashMap<String, Double>());
 				}
 				finalMap.get(oneKey).put(twoKey, Double.parseDouble(sjss.getVar(values[2]).toString()));
-			}
-		} catch (RuntimeException e) {
-			Utility.showError("Cannot find engine: " + engineName);
-		}
-		return finalMap;
-	}
-	
-	/**
-	 * Processes query so that first column is key to outer hashmap and second column is key to the inner hashmap.
-	 *  The value of the inner hashmap is a double.
-	 * 
-	 * @param query
-	 * @param engineName
-	 * @return HashMap<String, HashMap<String, Double>> 
-	 */
-	public static HashMap<String, Double> getDoubleVector(String query, String engineName) 
-	{
-		HashMap<String, Double> finalMap = new HashMap<String, Double>();
-		try {
-			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-			ISelectWrapper sjsw = Utility.processQuery(engine, query);
-			String[] values = sjsw.getVariables();
-			while (sjsw.hasNext()) {
-				ISelectStatement sjss = sjsw.next();
-				String oneKey = sjss.getVar(values[0]).toString();
-				finalMap.put(oneKey, Double.parseDouble(sjss.getVar(values[1]).toString()));
 			}
 		} catch (RuntimeException e) {
 			Utility.showError("Cannot find engine: " + engineName);
@@ -273,6 +239,32 @@ public class QueryProcessor {
 			Utility.showError("Cannot find engine: " + engineName);
 		}
 		return total;
+	}
+	
+		/**
+	 * Processes query so that first column is key to outer hashmap and second column is key to the inner hashmap.
+	 *  The value of the inner hashmap is a double.
+	 * 
+	 * @param query
+	 * @param engineName
+	 * @return HashMap<String, HashMap<String, Double>> 
+	 */
+	public static HashMap<String, Double> getDoubleVector(String query, String engineName) 
+	{
+		HashMap<String, Double> finalMap = new HashMap<String, Double>();
+		try {
+			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+			ISelectWrapper sjsw = Utility.processQuery(engine, query);
+			String[] values = sjsw.getVariables();
+			while (sjsw.hasNext()) {
+				ISelectStatement sjss = sjsw.next();
+				String oneKey = sjss.getVar(values[0]).toString();
+				finalMap.put(oneKey, Double.parseDouble(sjss.getVar(values[1]).toString()));
+			}
+		} catch (RuntimeException e) {
+			Utility.showError("Cannot find engine: " + engineName);
+		}
+		return finalMap;
 	}
 
 }

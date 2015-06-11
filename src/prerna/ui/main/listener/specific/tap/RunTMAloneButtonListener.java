@@ -36,9 +36,10 @@ import javax.swing.JOptionPane;
 import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.api.IChakraListener;
-import prerna.ui.components.specific.tap.FillTMHash;
+import prerna.ui.components.specific.tap.TechnicalMaturityInserter;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Listener for btnRunTMAlone
@@ -80,13 +81,15 @@ public class RunTMAloneButtonListener implements IChakraListener {
 				upProc.processQuery();
 				upProc.setQuery("DELETE {?s ?contains ?prop} WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} BIND(<http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM> AS ?contains) {?s ?contains ?prop ;} }");
 				upProc.processQuery();
-				FillTMHash tmPlaysheet = new FillTMHash();
-				tmPlaysheet.runQueries();
+				TechnicalMaturityInserter tmInserter = new TechnicalMaturityInserter();
+				tmInserter.runCalculationsAndInsertions();
+				Utility.showMessage("Technical Maturity has been successfully added!");
 			}
 		}
 		else{
-			FillTMHash tmPlaysheet = new FillTMHash();
-			tmPlaysheet.runQueries();
+			TechnicalMaturityInserter tmInserter = new TechnicalMaturityInserter();
+			tmInserter.runCalculationsAndInsertions();
+			Utility.showMessage("Technical Maturity has been successfully added!");
 		}
 	}
 
