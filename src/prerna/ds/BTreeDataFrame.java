@@ -539,6 +539,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public Object[] getColumn(String columnHeader) {
 
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		if(typeRoot == null){ // TODO this null check shouldn't be needed. When we join, we need to add empty nodes--need to call balance at somepoint or something like that
+			LOGGER.info("Table is empty............................");
+			return new Object[0];
+		}
 		typeRoot = typeRoot.getLeft(typeRoot);
 		List<Object> table = typeRoot.flattenToArray(typeRoot, true);
 		
@@ -551,6 +555,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public Object[] getRawColumn(String columnHeader) {
 
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		if(typeRoot == null){ // TODO this null check shouldn't be needed. When we join, we need to add empty nodes--need to call balance at somepoint or something like that
+			LOGGER.info("Table is empty............................");
+			return new Object[0];
+		}
 		typeRoot = typeRoot.getLeft(typeRoot);
 		List<Object> table = typeRoot.flattenRawToArray(typeRoot, true);
 		
