@@ -268,13 +268,13 @@ public class SimpleTreeNode {
 				node = node.rightSibling;
 				if(node != null)
 				{
-					output += "@";
+					output += "@@@";
 				}
 			}while(node != null);
 			if(!parent)
-				output += "|";
+				output += "|||";
 		}
-		output += "/";
+		output += "///";
 		if(childNodes.size() > 0)
 			return serializeTree(output, childNodes, false, level+1);
 		else
@@ -287,11 +287,11 @@ public class SimpleTreeNode {
 		boolean parent = true;
 		Vector <SimpleTreeNode> parentNodes = new Vector();
 		// each one of this is a new line
-		StringTokenizer mainTokens = new StringTokenizer(output, "/");
-		while(mainTokens.hasMoreTokens())
+		String[] mainTokens = output.split("/{3}");
+		for(String line: mainTokens)
 		{
 			Vector <SimpleTreeNode> nextLevel = new Vector();
-			String line = mainTokens.nextToken();
+//			String line = mainTokens.nextToken();
 			int count = 0;
 			if(!parent)
 			{
@@ -299,8 +299,9 @@ public class SimpleTreeNode {
 				//TreeNode curParent = parentNodes.elementAt(count);
 				SimpleTreeNode curParentNode = null;
 //				System.out.println("Total number of parents " + parentNodes.size());
-				StringTokenizer leftRightTokens = new StringTokenizer(line, "|");
-				while(leftRightTokens.hasMoreTokens())
+//				StringTokenizer leftRightTokens = new StringTokenizer(line, "|");
+				String[] leftRightTokens = line.split("|{3}");
+				for(String leftChildString: leftRightTokens)
 				{
 					if(curParentNode == null)
 					{
@@ -309,7 +310,7 @@ public class SimpleTreeNode {
 					}
 //					System.out.println("[" + curParentNode + "]");
 //					System.out.println("Cur Parent Node is " + curParentNode.leaf.getKey());
-					String leftChildString = leftRightTokens.nextToken();
+//					String leftChildString = leftRightTokens.nextToken();
 //					String rightChildString = leftRightTokens.nextToken();
 					Object [] stringOfNodes = createStringOfNodes(leftChildString, nextLevel, indexHash);
 					SimpleTreeNode leftNode = (SimpleTreeNode)stringOfNodes[0];
@@ -351,11 +352,12 @@ public class SimpleTreeNode {
 		// nasty.. I dont have a proper object eeks
 		Object [] retObject = new Object[2];
 		// final loop is the <> loop
-		StringTokenizer leftString = new StringTokenizer(childString, "@");
+//		StringTokenizer leftString = new StringTokenizer(childString, "@");
+		String[] leftString = childString.split("@{3}");
 		SimpleTreeNode leftNode = null;
-		while(leftString.hasMoreElements())
+		for(String leftNodeKey: leftString)
 		{
-			String leftNodeKey = leftString.nextToken();
+//			String leftNodeKey = leftString.nextToken();
 			ISEMOSSNode sNode = new StringClass(leftNodeKey, true);
 			SimpleTreeNode node = new SimpleTreeNode(sNode);
 			TreeNode rootNode = indexHash.get(sNode.getType());
