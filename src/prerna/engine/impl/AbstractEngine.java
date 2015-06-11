@@ -52,10 +52,8 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
-import org.openrdf.model.Value;
 import org.openrdf.model.impl.LiteralImpl;
 import org.openrdf.model.vocabulary.RDF;
-import org.openrdf.query.Binding;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
@@ -1221,16 +1219,17 @@ public abstract class AbstractEngine implements IEngine {
 			String type = ourParam.getType();
 			// RDBMS right now does type:type... need to get just the second type. This will be fixed once insights don't store generic query
 			// TODO: fix this logic. need to decide how to store param type for rdbms
-			if(this.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)){
-				if (type.contains(":")) {
-					String[] typeArray = type.split(":");
-					String table = typeArray[0];
-					type = typeArray[1];
-					//if(paramQuery != null)
-					//	paramQuery = paramQuery.substring(0, paramQuery.lastIndexOf("@entity@")) + table;
+			
+			if (paramQuery != null) {
+				if (this.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
+					if (type.contains(":")) {
+						String[] typeArray = type.split(":");
+						String table = typeArray[0];
+						type = typeArray[1];
+						if (type != null && table != null && !type.equalsIgnoreCase(table)) // Parameter structure: '@ParamName-Table:Column@'
+							paramQuery = paramQuery.substring(0, paramQuery.lastIndexOf("@entity@")) + table;
+					}
 				}
-			}
-			if(paramQuery != null){
 				Hashtable<String, Object> paramTable = new Hashtable<String, Object>();
 				paramTable.put(Constants.ENTITY, type);
 				paramQuery = Utility.fillParam(paramQuery, paramTable);
