@@ -77,6 +77,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		} else if(value instanceof Number) {
 			node = new DoubleClass((double)value, rawValue.toString(), level);
 		} else if(value instanceof String) {
+			System.out.println(rawValue);
 			node = new StringClass((String)value, (String) rawValue.toString(), level);
 		}
 //		else if(value instanceof Boolean) {
@@ -183,12 +184,12 @@ public class BTreeDataFrame implements ITableDataFrame {
 				System.out.println(item1 + "           " + item2);
 
 				// search for tree node in this table and tree node in passed table
-				TreeNode thisSearchNode = new TreeNode(createNodeObject(item1, null, colNameInTable)); //TODO: how do we generically do this...?
+				TreeNode thisSearchNode = new TreeNode(createNodeObject(item1, item1, colNameInTable)); //TODO: how do we generically do this...?
 				TreeNode thisTreeNode = thisRootNode.getNode(thisSearchVector, thisSearchNode, false);
 				Vector <SimpleTreeNode> thisInstances = thisTreeNode.getInstances();
 //				System.out.println(thisInstances.size());
 				
-				TreeNode passedSearchNode = new TreeNode(createNodeObject(item2, null, colNameInJoiningTable)); //TODO: how do we generically do this...?
+				TreeNode passedSearchNode = new TreeNode(createNodeObject(item2, item2, colNameInJoiningTable)); //TODO: how do we generically do this...?
 				TreeNode passedTreeNode = passedRootNode.getNode(passedSearchVector, passedSearchNode, false);
 				Vector <SimpleTreeNode> passedInstances = passedTreeNode.getInstances();
 //				System.out.println(passedInstances.size()); // this should be 1 since right now we are assuming roots
@@ -588,19 +589,15 @@ public class BTreeDataFrame implements ITableDataFrame {
 		String[] newNames = new String[levelNames.length-1];
 		int count = 0;
 		System.out.println("cur names  " + Arrays.toString(levelNames));
-		boolean colExists = false;
 		for(String name : levelNames){
+			if (count >= newNames.length) { // this means a column header was passed in that doesn't exist in the tree
+				LOGGER.error("Unable to remove column " + columnHeader + ". Column does not exist in table");
+				return;
+			}
 			if(!name.equals(columnHeader)){
 				newNames[count] = name;
 				count++;
 			}
-			else {
-				colExists = true;
-			}
-		}
-		if(!colExists){
-			LOGGER.error("Unable to remove column " + columnHeader + ". Column does not exist in table");
-			return;
 		}
 		this.levelNames = newNames;
 		
