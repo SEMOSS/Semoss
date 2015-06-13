@@ -2,6 +2,7 @@ package prerna.ds;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.lang.reflect.InvocationTargetException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -12,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.Vector;
-
 
 public class SimpleTreeNode {
 	
@@ -357,8 +357,34 @@ public class SimpleTreeNode {
 		SimpleTreeNode leftNode = null;
 		for(String leftNodeKey: leftString)
 		{
+			String[] classString = leftNodeKey.split("#{3}");
+			ISEMOSSNode sNode = null;
+			try {
+				sNode = (ISEMOSSNode) Class.forName(classString[0]).getConstructor(null).newInstance(classString[1], true);
+			} catch (InstantiationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalArgumentException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoSuchMethodException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (SecurityException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 //			String leftNodeKey = leftString.nextToken();
-			ISEMOSSNode sNode = new StringClass(leftNodeKey, true);
+//			ISEMOSSNode sNode = new StringClass(leftNodeKey, true);
 			SimpleTreeNode node = new SimpleTreeNode(sNode);
 			TreeNode rootNode = indexHash.get(sNode.getType());
 			if(rootNode == null){
