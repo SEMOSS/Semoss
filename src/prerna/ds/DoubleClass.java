@@ -12,7 +12,7 @@ public class DoubleClass implements ISEMOSSNode {
 		type = t;
 	}
 
-	public DoubleClass(String string, boolean serialized){
+	public DoubleClass(String string, Boolean serialized){
 		if(!serialized){
 			this.value = Double.parseDouble(string);
 		}
