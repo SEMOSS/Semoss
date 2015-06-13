@@ -37,7 +37,15 @@ public class StringClass implements ISEMOSSNode {
 	
 	@Override
 	public String toString(){
-		String ret = "innerString==="+this.innerString +
+		String className = "";
+		Class<?> enclosingClass = getClass().getEnclosingClass();
+		if (enclosingClass != null) {
+			className = enclosingClass.getName();
+		} else {
+			className = getClass().getName();
+		}
+		String ret = className + "###" + 
+				"innerString==="+this.innerString +
 				"&&&type==="+this.type +
 				"&&&rawValue==="+this.rawValue;
 		return ret;
