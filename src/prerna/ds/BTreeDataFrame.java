@@ -604,7 +604,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		int count = 0;
 		System.out.println("cur names  " + Arrays.toString(levelNames));
 		for(String name : levelNames){
-			if (count >= newNames.length) { // this means a column header was passed in that doesn't exist in the tree
+			if (count >= newNames.length && (!name.equals(columnHeader))) { // this means a column header was passed in that doesn't exist in the tree
 				LOGGER.error("Unable to remove column " + columnHeader + ". Column does not exist in table");
 				return;
 			}
