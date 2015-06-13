@@ -12,6 +12,15 @@ public class IntClass implements ISEMOSSNode{
 		this.value = value;
 	}
 	
+	public IntClass(String string, boolean serialized){
+		if(!serialized){
+			this.value = Integer.parseInt(string);
+		}
+		else{
+			fromString(string);
+		}
+	}
+	
 	public IntClass(int value, String type)
 	{
 		this.value = value;
