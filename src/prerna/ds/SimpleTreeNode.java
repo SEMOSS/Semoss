@@ -948,7 +948,7 @@ public class SimpleTreeNode {
 		if(node.leftChild != null)
 		{
 			Vector<Object> newList = getNewVector(parentNodeList);
-			newList.add(node.leaf.getValue());
+			newList.add(node.leaf.getRawValue());
 			SimpleTreeNode leftChild = node.leftChild;
 			while(leftChild != null)
 			{
@@ -959,10 +959,12 @@ public class SimpleTreeNode {
 		else {
 			Vector<Object> newList = getNewVector(parentNodeList);
 			newList.add(node.leaf.getRawValue());
-			while(newList.size() < levels) {
-				newList.add(null);
+//			while(newList.size() < levels) {
+//				newList.add(null);
+//			}
+			if(newList.size() == levels){
+				table.add(newList.toArray());
 			}
-			table.add(newList.toArray());
 		}
 	}
 	

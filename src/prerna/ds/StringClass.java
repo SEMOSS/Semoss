@@ -9,7 +9,7 @@ public class StringClass implements ISEMOSSNode {
 	String type = null;
 	String rawValue = null;
 	
-	public StringClass(String string, boolean serialized){
+	public StringClass(String string, Boolean serialized){
 		if(!serialized){
 			this.innerString = innerString;
 		}
