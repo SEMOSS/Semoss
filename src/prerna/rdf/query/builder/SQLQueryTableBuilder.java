@@ -184,8 +184,6 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		assimilateProperties();
 		createSelectors();
 		
-		
-		
 		for(int predIndex = 0;predIndex < predV.size();predIndex++)
 		{
 			// get the predicate
