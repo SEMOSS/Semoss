@@ -360,7 +360,7 @@ public class SimpleTreeNode {
 			String[] classString = leftNodeKey.split("#{3}");
 			ISEMOSSNode sNode = null;
 			try {
-				sNode = (ISEMOSSNode) Class.forName(classString[0]).getConstructor(null).newInstance(classString[1], true);
+				sNode = (ISEMOSSNode) Class.forName(classString[0]).getConstructor(String.class, Boolean.class).newInstance(classString[1], true);
 			} catch (InstantiationException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
