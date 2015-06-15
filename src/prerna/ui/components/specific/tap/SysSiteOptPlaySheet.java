@@ -139,7 +139,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		return returnHash;
 	}
 	
-	public Hashtable getCapabilities() {
+	public Hashtable getCapabilities(Hashtable hash) {
 		Hashtable returnHash = (Hashtable) super.getData();
 		returnHash.put("data", sysUpdater.getDHMSMCapabilityList());
 		return returnHash;
@@ -184,7 +184,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 	
 	@Override
 	public void createData() {
-		sysUpdater = new SysOptCheckboxListUpdater(engine, true, false, false, true);
+		sysUpdater = new SysOptCheckboxListUpdater(engine, true, true, false, true);
 		
 	}
 	@Override
