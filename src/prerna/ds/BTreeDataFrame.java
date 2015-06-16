@@ -73,9 +73,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 		if(value == null) {
 			node = new StringClass(null, level); // TODO: fix this
 		} else if(value instanceof Integer) {
-			node = new IntClass((int)value, rawValue.toString(), level);
+			node = new IntClass((int)value, (int)value, level);
 		} else if(value instanceof Number) {
-			node = new DoubleClass((double)value, rawValue.toString(), level);
+			node = new DoubleClass((double)value, (double)value, level);
 		} else if(value instanceof String) {
 			System.out.println(rawValue);
 			node = new StringClass((String)value, (String) rawValue.toString(), level);
