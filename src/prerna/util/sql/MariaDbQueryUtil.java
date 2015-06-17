@@ -34,6 +34,10 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 	
 	public static final String DATABASE_DRIVER = "org.mariadb.jdbc.Driver";
 	private static String connectionBase = "jdbc:mysql://localhost:3306";
+	private static String indexNameBind = "{indexName}";
+	private static String dbNameBind = "{dbName}";
+	private static String dialectForceGraphMaria = "SELECT DISTINCT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = " + dbNameBind;
+
 	
 	public MariaDbQueryUtil(){
 		super.setDialectAllTables(" SHOW TABLES ");
@@ -41,8 +45,10 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 		super.setResultAllColumnsColumnName("Field");
 		super.setResultAllColumnsColumnType("Type");
 		super.setDialectAllIndexesInDB("SELECT DISTINCT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = ");
-		super.setDialectIndexInfo("SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE INDEX_NAME = {indexName} "
-				+ "and TABLE_SCHEMA = {dbName} ");  
+		super.setDialectIndexInfo("SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE INDEX_NAME = " + indexNameBind
+				+ " and TABLE_SCHEMA = " + dbNameBind);  
+		super.setDialectForceGraph(dialectForceGraphMaria);
+
 		//super.setResultAllIndexesInDBColumnName("Column_name");
 		//super.setResultAllIndexesInDBTableName("Table");
 		super.setDialectOuterJoinLeft(" LEFT JOIN ");
@@ -74,8 +80,13 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 	}
 	@Override
 	public String getDialectIndexInfo(String indexName, String dbName){
-		String qry =  super.getDialectIndexInfo().replace("{indexName}", "'" + indexName + "'");
-		qry =  qry.replace("{dbName}", "'" + dbName + "'");
+		String qry =  super.getDialectIndexInfo().replace(indexNameBind, "'" + indexName + "'");
+		qry =  qry.replace(dbNameBind, "'" + dbName + "'");
+		return qry;
+	}
+	@Override 
+	public String getDialectForceGraph(String dbName){
+		String qry = dialectForceGraphMaria.replace(dbNameBind, "'" + dbName + "'");
 		return qry;
 	}
 	

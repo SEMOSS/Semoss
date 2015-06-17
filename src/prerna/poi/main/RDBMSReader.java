@@ -566,7 +566,7 @@ public class RDBMSReader {
 		prop.put("GQ" + tableIndex +"_QUERY", "SELECT @Concept-Concept:Concept@, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://semoss.org/ontologies/Concept' "
 						+ "From @Concept-Concept:Concept@ WHERE @Concept-Concept:Concept@='@Instance-Instance:Instance@'");
 		prop.put("GQ" + tableIndex + "_Instance_DEPEND", "Concept");
-		prop.put("GQ" + tableIndex + "_Concept_QUERY", "select Distinct Table_name from information_schema.tables where table_schema='PUBLIC'"); // I recognize.. I need to work this for MariaDB
+		prop.put("GQ" + tableIndex + "_Concept_QUERY", queryUtil.getDialectForceGraph(engineName)); // I recognize.. I need to work this for MariaDB
 		prop.put("GQ" + tableIndex + "_Instance_QUERY", "SELECT Distinct @Concept@ FROM @Concept@");
 		
 		prop.put("Generic-Perspective", genericQueries);
