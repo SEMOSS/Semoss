@@ -535,7 +535,10 @@ public class RDBMSReader {
 		Properties prop = new Properties();
 		
 		int newTableSeq = allTables.size() - tables.size();
+		boolean addtoExisting = false;
 		if(newTableSeq != 0 ){ //ie you are doing add to existing logic
+			addtoExisting = true;
+			newTableSeq += 1; //pad for that one concept question we added below for the initial run through when we created the questions.xml
 			try{
 				prop = ((AbstractEngine)engine).loadProp(fileName);
 			} catch (Exception e){
@@ -547,9 +550,11 @@ public class RDBMSReader {
 		
 		int questionOrder = 0;
 		int tableIndex = 0;
+
 		for(;tableIndex < tables.size();tableIndex++)
 		{
 			questionOrder = newTableSeq + tableIndex;
+
 			String key = tables.elementAt(tableIndex);
 			key = realClean(key);
 			if(tableIndex == 0)
@@ -560,25 +565,27 @@ public class RDBMSReader {
 			prop.put("GQ" + questionOrder +"_LAYOUT", "prerna.ui.components.playsheets.GridPlaySheet");
 			prop.put("GQ" + questionOrder +"_QUERY", "SELECT * FROM " + key);
 		}
-		genericQueries = genericQueries + ";" + "GQ" + tableIndex;
-		prop.put("GQ" + tableIndex, "Explore a concept from the database");
-		prop.put("GQ" + tableIndex + "_LAYOUT", "prerna.ui.components.playsheets.GraphPlaySheet");
-		prop.put("GQ" + tableIndex +"_QUERY", "SELECT @Concept-Concept:Concept@, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://semoss.org/ontologies/Concept' "
-						+ "From @Concept-Concept:Concept@ WHERE @Concept-Concept:Concept@='@Instance-Instance:Instance@'");
-		prop.put("GQ" + tableIndex + "_Instance_DEPEND", "Concept");
-		prop.put("GQ" + tableIndex + "_Concept_QUERY", queryUtil.getDialectForceGraph(engineName)); // I recognize.. I need to work this for MariaDB
-		prop.put("GQ" + tableIndex + "_Instance_QUERY", "SELECT Distinct @Concept@ FROM @Concept@");
-		
-		prop.put("Generic-Perspective", genericQueries);
+		if(!addtoExisting){ 
+			genericQueries = genericQueries + ";" + "GQ" + tableIndex;
+			prop.put("GQ" + tableIndex, "Explore a concept from the database");
+			prop.put("GQ" + tableIndex + "_LAYOUT", "prerna.ui.components.playsheets.GraphPlaySheet");
+			prop.put("GQ" + tableIndex +"_QUERY", "SELECT @Concept-Concept:Concept@, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://semoss.org/ontologies/Concept' "
+							+ "From @Concept-Concept:Concept@ WHERE @Concept-Concept:Concept@='@Instance-Instance:Instance@'");
+			prop.put("GQ" + tableIndex + "_Instance_DEPEND", "Concept");
+			prop.put("GQ" + tableIndex + "_Concept_QUERY", queryUtil.getDialectForceGraph(engineName)); // I recognize.. I need to work this for MariaDB	
+			prop.put("GQ" + tableIndex + "_Instance_QUERY", "SELECT Distinct @Concept@ FROM @Concept@");
+			
+			prop.put("Generic-Perspective", genericQueries);
+		}
 		//prop.put("PERSPECTIVE", "Generic-Perspective");
 
-		if(newTableSeq != 0 ){
+		if(addtoExisting ){
 			String savedGenericQueries = (String) prop.get(GENERIC_PERSPECTIVE);
 			genericQueries = savedGenericQueries + ";" + genericQueries;
 			prop.remove(GENERIC_PERSPECTIVE); //remove so it can be recreated
 		}
 		prop.put(GENERIC_PERSPECTIVE, genericQueries);
-		if(newTableSeq == 0 )
+		if(!addtoExisting )
 			prop.put("PERSPECTIVE", GENERIC_PERSPECTIVE);
 		
 		try {
@@ -601,6 +608,7 @@ public class RDBMSReader {
 
 		//determine the # where the new questions should start
 		int newTableSeq = allTables.size() - tables.size();
+		newTableSeq = newTableSeq + 1; //we need to add 1 to the question order to account for  the explore a concept question
 		String questionOrder = "", question = "", sql = "", layout = "", questionDescription = ""; 
 		
 		try {
@@ -684,7 +692,10 @@ public class RDBMSReader {
 		
 		//try to open the script file
 		openScriptFile(engineName);
+		
 		scriptFile.println("-- ********* begin load process ********* ");
+		String smssFile = dbBaseFolder + "/db/" + engineName + ".smss" ;
+		engine.openDB(smssFile); //open up database connection
 		//first find all indexes, drop current ones, store off those current ones to recreate them when the process completes
 		findIndexes(engineName);
 		
@@ -720,6 +731,7 @@ public class RDBMSReader {
 		}
 		cleanUpDBTables(engineName);
 		runDBModTransactions(recreateIndexesArr); 
+		closeDB();
 		cleanAll(); //clean again because we reset the values for availableTables and availableTablesInfo
 		writeDefaultQuestionSheet(engineName);
 		updateDefaultQuestionSheet(engineName);
