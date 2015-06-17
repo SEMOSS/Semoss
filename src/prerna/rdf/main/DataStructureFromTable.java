@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -21,6 +20,7 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.error.FileReaderException;
+import prerna.math.StatisticsUtilityMethods;
 import prerna.nameserver.MasterDatabaseQueries;
 import prerna.nameserver.MasterDatabaseURIs;
 import prerna.util.ArrayListUtilityMethods;
@@ -30,6 +30,11 @@ import prerna.util.Utility;
 
 public class DataStructureFromTable {
 
+	//TODO change if desired. Will need to dynamically calculate or adjust based upon dataset
+	private int p = 10;
+	private int N = 200;
+	private int m = 20;
+	
 	private ArrayList<Object[]> table = new ArrayList<Object[]>();
 	private String[] headers;
 	private String[] columnTypes;
@@ -172,6 +177,8 @@ public class DataStructureFromTable {
 
 		//determine the column types for the data
 		columnTypes = determineColumnTypes(table);
+		
+		System.out.println("\nColumn Types are "+Arrays.toString(columnTypes));
 		//determine how many unique instances there are for each column
 		int[] numUniqueInstanceArr = getUniqueCounts(table);
 
@@ -188,7 +195,7 @@ public class DataStructureFromTable {
 			int colIndex = colIndexMinToMax[i];
 			String colName = headers[colIndex];
 			
-			if(columnTypes[colIndex].equals("STRING")) {
+			if(columnTypes[colIndex].equals("STRING") || columnTypes[colIndex].equals("UNIQUE-ID-INTEGER")) {
 				runAllComparisons(colIndexMinToMax, colName, colIndex);
 			}
 		}
@@ -202,7 +209,7 @@ public class DataStructureFromTable {
 		//do the hierarchical part for numbers
 		for(int i = 0; i < numCol; i++) {
 			int colIndex = colIndexMinToMax[i];
-			if(!colAlreadyProperty[colIndex]&&!columnTypes[colIndex].equals("STRING")) {
+			if(!colAlreadyProperty[colIndex]&&!columnTypes[colIndex].equals("STRING") && !columnTypes[colIndex].equals("UNIQUE-ID-INTEGER")) {
 				List<Integer> parentConcatIndicies = findHierarchicalParent(colIndex, deepCopy(notUsedList));
 				if(!parentConcatIndicies.isEmpty()) {
 					addHierarchicalParent(colIndex, notUsedList, parentConcatIndicies);
@@ -220,7 +227,7 @@ public class DataStructureFromTable {
 			int colIndex = colIndexMinToMax[i];
 			String colName = headers[colIndex];
 			
-			if(!columnTypes[colIndex].equals("STRING")) {
+			if(!columnTypes[colIndex].equals("STRING")&& !columnTypes[colIndex].equals("UNIQUE-ID-INTEGER")) {
 //			if(columnTypes[colIndex].equals("INTEGER") || columnTypes[colIndex].equals("DOUBLE") || columnTypes[colIndex].equals("DATE") || columnTypes[colIndex].equals("SIMPLEDATE")) {
 				if(!colAlreadyProperty[colIndex]) {
 					runAllComparisons(colIndexMinToMax, colName, colIndex);
@@ -237,7 +244,7 @@ public class DataStructureFromTable {
 		//do the hierarchical part for strings
 		for(int i = 0; i < numCol; i++) {
 			int colIndex = colIndexMinToMax[i];
-			if(!colAlreadyProperty[colIndex]&&columnTypes[colIndex].equals("STRING")) {
+			if(!colAlreadyProperty[colIndex]&&columnTypes[colIndex].equals("STRING") || columnTypes[colIndex].equals("UNIQUE-ID-INTEGER")) {
 				List<Integer> parentConcatIndicies = findHierarchicalParent(colIndex, deepCopy(notUsedList));
 				if(!parentConcatIndicies.isEmpty()) {
 					addHierarchicalParent(colIndex, notUsedList, parentConcatIndicies);
@@ -268,7 +275,7 @@ public class DataStructureFromTable {
                         if(firstColIndex > secondColIndex) {
                             // try to see if inverse order is better
                             // but first, check to make sure the second column is not a double/date
-                            if(columnTypes[secondColIndex].equals("STRING")) {
+                            if(columnTypes[secondColIndex].equals("STRING") || columnTypes[secondColIndex].equals("UNIQUE-ID-INTEGER")) {
                                 if(!colAlreadyProperty[firstColIndex] && compareCols(secondColIndex, firstColIndex)) {
                                     // use reverse order
                                     useInverse = true;
@@ -468,13 +475,41 @@ public class DataStructureFromTable {
 		if(numDouble > numCategorical && numDouble > numInteger && numDouble > numDate && numDouble > numSimpleDate ) {
 			return "DOUBLE";
 		} else if(numInteger > numCategorical && numInteger > numDouble && numInteger > numDate && numInteger > numSimpleDate ) {
-			return "INTEGER";
+			if(isIntegerColUniqueID(column)) {
+				return "UNIQUE-ID-INTEGER";
+			}else {
+				return "INTEGER";
+			}
 		} else if(numDate > numCategorical && numDate > numDouble && numDate > numInteger && numDate > numSimpleDate ) {
 			return "DATE";
 		} else if(numSimpleDate > numCategorical && numSimpleDate > numDouble && numSimpleDate > numDate && numSimpleDate > numInteger ) {
 			return "SIMPLEDATE";
 		} else {
 			return "STRING";
+		}
+	}
+	
+	private boolean isIntegerColUniqueID(int column) {
+		try{
+
+			long startT = System.currentTimeMillis();
+			System.out.println("\nDetermining if column " + column + " is unique id...");
+			
+			Object[] colArr = ArrayListUtilityMethods.getColumnFromList(table, column);
+			int[] colIntegerArr = ArrayUtilityMethods.convertObjArrToIntArr(colArr);
+			//TODO need to dynamically calculate the params based upon the dataset
+			if(StatisticsUtilityMethods.areValuesUniformlyDistributed(colIntegerArr, p, N, m, 0.05)) {
+				long endT = System.currentTimeMillis();
+				System.out.println("Column " + column + " is unique id!\nTime(s) to determine was = " + (endT - startT)/1000);
+				return true;
+			}else {
+				long endT = System.currentTimeMillis();
+				System.out.println("Column " + column + " is not unique id.\nTime(s) to determine was = " + (endT - startT)/1000);
+				return false;
+			}
+		}catch (NumberFormatException  e) {
+			System.out.println("Integer column has non-integer values. Not unique identifier.");
+			return false;
 		}
 	}
 	
@@ -635,207 +670,5 @@ public class DataStructureFromTable {
 			}
 		}
 	}
-//	
-//	private void findHierarchicalStructure() {
-//		//determine the column types for the data
-//		columnTypes = determineColumnTypes(table);
-//		int[] numUniqueInstanceArr = getUniqueCounts(table);
-//		List<Set<String>> colConcatResultSet = buildColumnConcatSet();
-//		
-//		if(colConcatResultSet.isEmpty()) {
-//			return;
-//		}
-//		
-//		Set<String> colConcatSet = chooseBestColumnConcat(colConcatResultSet);
-//
-//		Iterator<String> colNameItr = colConcatSet.iterator();
-//		while(colNameItr.hasNext()) {
-//			String colName = colNameItr.next();
-//			if(matchedColsHash.containsKey(colName)) {
-//				List<String> matchList = matchedColsHash.get(colName);
-//				Iterator<String> matchItr = matchList.iterator();
-//				while(matchItr.hasNext()) {
-//					String match = matchItr.next();
-//					if(colConcatSet.contains(match)) {
-//						return;
-//					}
-//				}
-//			}
-//		}
-//		
-//		//order the columns by increasing indicies
-//		int numCols = colConcatSet.size();
-//		Integer[] orderedColConcatIndicies = new Integer[numCols];
-//		
-//		int i=0;
-//		colNameItr = colConcatSet.iterator();
-//		while(colNameItr.hasNext()) {
-//			String colName = colNameItr.next();
-//			orderedColConcatIndicies[i] = ArrayUtilityMethods.calculateIndexOfArray(headers, colName);
-//			i++;
-//		}
-//		
-//		boolean change = true;
-//		while(change) {
-//			change = false;
-//			for(i = 0; i < numCols-1; i++) {
-//				if(numUniqueInstanceArr[orderedColConcatIndicies[i]] < numUniqueInstanceArr[orderedColConcatIndicies[i+1]]) {
-//					change = true;
-//					int valTemp = orderedColConcatIndicies[i];
-//					orderedColConcatIndicies[i] = orderedColConcatIndicies[i+1];
-//					orderedColConcatIndicies[i+1] = valTemp;
-//				}
-//			}
-//		}
-//		
-//		//create the concatenation header
-//		String concatColName = "";
-//		for(i = 0; i < numCols; i++) {
-//			concatColName = concatColName.concat(headers[orderedColConcatIndicies[i]].toString()).concat(":");
-//		}
-//		concatColName = concatColName.substring(0,concatColName.length() - 1);
-//		
-//		int numOldCols = headers.length;
-//		String[] newHeaders = new String[numOldCols + 1];
-//		for(i = 0; i < numOldCols; i++) {
-//			newHeaders[i] = headers[i];
-//		}
-//		newHeaders[numOldCols] = concatColName;
-//		headers = newHeaders;
-//		
-//		//update table with concatenated column
-//		for(int row = 0; row < table.size(); row ++) {
-//			Object[] oldRow = table.get(row);
-//			Object[] newRow = new Object[numOldCols + 1];
-//			String concatInstance = "";
-//			for(i = 0; i < numCols; i++) {
-//				concatInstance = concatInstance.concat(oldRow[orderedColConcatIndicies[i]].toString()).concat(":");
-//			}
-//			concatInstance = concatInstance.substring(0,concatInstance.length() - 1);
-//			
-//			for(i = 0; i < numOldCols; i++) {
-//				newRow[i] = oldRow[i];
-//			}
-//			newRow[numOldCols] = concatInstance;
-//			table.set(row,newRow);
-//		}
-//		
-//		System.out.println("\nUnique identifier :"+concatColName);
-//
-//	}
-//	
-//	private List<Set<String>> buildColumnConcatSet() {
-//		
-//		//else block of algorithm
-//		Set<String> colConcat = buildColumnConcat(headers, table);
-//		List<Set<String>> colConcatResultSet = new ArrayList<Set<String>>();
-//		if(colConcat.isEmpty())
-//			return new ArrayList<Set<String>>();
-//		
-//		colConcatResultSet.add(colConcat);
-//		
-//		//if block of algorithm
-//		for(int i = 0; i < colConcatResultSet.size(); i++)  {
-//			Iterator<String> colNameItr = colConcatResultSet.get(i).iterator();
-//			while(colNameItr.hasNext()) {
-//				String colName = colNameItr.next();
-//				int index = ArrayUtilityMethods.calculateIndexOfArray(headers, colName);
-//				ArrayList<Object[]> filteredData = ArrayListUtilityMethods.removeColumnFromList(table, index);
-//				String[] filteredHeaders = ArrayUtilityMethods.removeNameFromList(headers, index);
-//				Set<String> newColConcat = buildColumnConcat(filteredHeaders,filteredData);
-//				if(!newColConcat.isEmpty() && !colConcatResultSet.contains(newColConcat)) {
-//					colConcatResultSet.add(newColConcat);
-//				}
-//			}
-//		}
-//		
-//		return colConcatResultSet;
-//		
-//	}
-//	
-//	private Set<String> chooseBestColumnConcat(List<Set<String>> colConcatSet) {
-//		//best identifier is the one with least number of columns needed
-//		List<Set<String>> tiedColConcats = new ArrayList<Set<String>>();
-//		int minSize = headers.length;
-//
-//		for(Set<String> colConcat : colConcatSet) {
-//			if(colConcat.size() < minSize) {
-//				tiedColConcats = new ArrayList<Set<String>>();
-//				tiedColConcats.add(colConcat);
-//				minSize = colConcat.size();
-//			}else if(colConcat.size() == minSize) {
-//				tiedColConcats.add(colConcat);
-//			}
-//		}
-//		
-//		if(tiedColConcats.size() == 1)
-//			return tiedColConcats.get(0);
-//		
-//		//choose the unique identifier that has the lowest index
-//		int minSum = headers.length * headers.length;
-//		int minIndex = -1;
-//		for(int i = 0; i < tiedColConcats.size(); i++) {
-//			Iterator<String> colNameItr = tiedColConcats.get(i).iterator();
-//			int currSum = 0;
-//			while(colNameItr.hasNext()) {
-//				String colName = colNameItr.next();
-//				currSum += ArrayUtilityMethods.calculateIndexOfArray(headers, colName);
-//			}
-//			if(currSum < minSum) {
-//				currSum = minSum;
-//				minIndex = i;
-//			}
-//		}
-//		
-//		return tiedColConcats.get(minIndex);
-//		
-//	}
-//
-//	private Set<String> buildColumnConcat(String[] headers, ArrayList<Object[]> data) {
-//	
-//		int numHeaders = headers.length;
-//		Set<String> colConcat = new HashSet<String>();
-//		if(!isUniqueDataSet(data))
-//			return colConcat;
-//		
-//		int index = 0;
-//		for(int i = 0; i < numHeaders; i++) {
-////			if(columnTypes[i].equals("STRING") || columnTypes[i].equals("INTEGER")) {
-//				ArrayList<Object []> filteredData = ArrayListUtilityMethods.removeColumnFromList(data, index);
-//				
-//				//if the data is no longer unique, must keep this column and continue
-////				if(columnTypes[i].equals("STRING") && !isUniqueDataSet(filteredData)) {
-//				if(!isUniqueDataSet(filteredData)) {
-//					colConcat.add(headers[i]);
-//					index++;
-//				}else {//if data is still unique, then remove column
-//					data = filteredData;
-//				}
-////			}
-//			if(colConcat.size() > concatThreshold)
-//				return new HashSet<String>();
-//		}
-//		
-//		return colConcat;
-//	}
-//
-//	private boolean isUniqueDataSet(ArrayList<Object[]> data) {
-//		Set<String> rowConcatSet = new HashSet<String>();
-//
-//		int numRows = data.size();
-//		int numCols = data.get(0).length;
-//		for(int row = 0; row < numRows; row ++) {
-//			String concat = "";
-//			for(int col = 0; col < numCols; col++) {
-//				if(columnTypes[col].equals("STRING")) {
-//					concat = concat.concat(data.get(row)[col].toString()).concat("~");
-//				}
-//			}
-//			rowConcatSet.add(concat);
-//		}
-//		if(rowConcatSet.size() < data.size())
-//			return false;
-//		return true;	
-//	}
 
 }
