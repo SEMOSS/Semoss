@@ -16,6 +16,7 @@
 package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -33,7 +34,6 @@ import prerna.rdf.query.util.SQLConstants;
 import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.util.Constants;
 import prerna.util.Utility;
-
 import prerna.util.sql.SQLQueryUtil;
 
 import com.google.gson.Gson;
@@ -511,6 +511,20 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		}
 	}
 	
+	public static String getTableNameByAlias(String alias){
+		alias = alias.toUpperCase();
+		String returnTable = "";
+		Enumeration<String> allTables = aliases.keys();
+		while(allTables.hasMoreElements()){
+			String currentTable = allTables.nextElement();
+			String currentTableAlias = aliases.get(currentTable);
+			if(currentTableAlias.equals(alias)){
+				returnTable = currentTable;
+				break;
+			}
+		}
+		return returnTable;
+	}
 	
 	public static String getAlias(String tableName)
 	{
