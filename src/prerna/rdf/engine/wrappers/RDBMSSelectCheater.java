@@ -40,8 +40,11 @@ import org.openrdf.model.vocabulary.RDFS;
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.ISelectStatement;
+import prerna.rdf.query.builder.SQLQueryTableBuilder;
 import prerna.util.ConnectionUtils;
+import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.sql.SQLQueryUtil;
 
 public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWrapper {
 
@@ -171,6 +174,14 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 	
 	private void setVariables(){
 		try {
+			
+			//get rdbms type
+			SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
+			String dbTypeString = engine.getProperty(Constants.RDBMS_TYPE);
+			if (dbTypeString != null) {
+				dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
+			}
+			
 			ResultSetMetaData rsmd = rs.getMetaData();
 			int numColumns = rsmd.getColumnCount();
 			
@@ -182,6 +193,15 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 				int type = rsmd.getColumnType(colIndex);
 				columnTypes.put(var[colIndex-1], type);
 				String tableName = rsmd.getTableName(colIndex);
+				//getTableName doesnt work in maria or mysql, it gets the table alias instead
+				//known bug, reference: https://bugs.mysql.com/bug.php?id=36327
+				if(dbType == SQLQueryUtil.DB_TYPE.MARIA_DB){
+					String tableNameFromAlias = SQLQueryTableBuilder.getTableNameByAlias(tableName);
+					if(tableNameFromAlias.length()>0){
+						tableName = tableNameFromAlias;
+					}
+				}
+				
 				columnTypes.put(var[colIndex-1], type);
 
 				if(tableName != null && tableName.length() != 0) // will use this to find what is the type to strap it together
