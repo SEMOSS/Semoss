@@ -30,6 +30,8 @@ package prerna.math;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 import prerna.util.ArrayUtilityMethods;
 
@@ -742,6 +744,80 @@ public final class StatisticsUtilityMethods {
 		}
 		
 		return percDiffArr;
+	}
+	
+	public static boolean areValuesUniformlyDistributed(final int[] valueArr, final int p, final int N, final int m, final double alpha) {
+		
+		double totalKSStat = 0.0;
+		int numValues = valueArr.length;
+		if(numValues < N) {
+			System.out.println("\nERROR: N is less than the number of values in the dataset. Please increase N.");
+		}
+			
+		for(int i = 0; i < p; i++) {
+			int startIndex = (int)(Math.random() * (numValues - N));
+			int[] randomStartValueArr = Arrays.copyOfRange(valueArr,startIndex,startIndex + N);
+			Arrays.sort(randomStartValueArr);
+			double ksStat = calculateAverageKSStat(randomStartValueArr,m);
+			totalKSStat += ksStat;
+
+			System.out.println("Starting at index " + startIndex + " the average KSStat for all subsets is " + ksStat);
+		
+		}
+		
+		double averageKSStat = totalKSStat / p;
+		System.out.println("Overall KSStat for randomly generated starts is " + averageKSStat);
+		
+		if(alpha == 0.05) {
+			if(averageKSStat < 0.40925) {
+				return true;
+			}else {
+				return false;
+			}
+		}else {
+			System.out.println("Alpha is not valid. Please enter either 0.05.");
+			return false;
+		}
+	}
+	
+	//m is number of values in the set
+	public static double calculateAverageKSStat(final int[] valueArr, final int m) {
+		
+		double totalKSStat = 0.0;
+		int numValues = valueArr.length;
+		int numSets = (int)Math.ceil(numValues / m * 1.0);
+		for(int i = 0; i < numSets; i++){
+			int[] subsetValueArr = Arrays.copyOfRange(valueArr,i*m,(i+1)*m);
+			totalKSStat += calculateKSStat(subsetValueArr);
+		}
+		
+		return totalKSStat / numSets;
+	}
+	
+	public static double calculateKSStat(final int[] valueArr) {
+
+		// Normalize all values
+		int numValues = valueArr.length;
+		double minValue = valueArr[0];
+		double maxValue = valueArr[numValues - 1];
+		if(minValue == maxValue) {
+			return 1.0 * Math.sqrt(numValues);
+		}
+		double[] normalizedValueArr = new double[numValues];
+		for(int i = 0; i < numValues; i++) {
+			normalizedValueArr[i] = (valueArr[i] - minValue) / (maxValue - minValue);
+		}
+		
+		double maxDistance = 0;
+		for(int i = 0; i < numValues; i++) {
+			double distance = Math.abs(normalizedValueArr[i] - (i / (numValues - 1.0)));
+			if(distance > maxDistance) {
+				maxDistance = distance;
+			}
+		}
+		
+		return maxDistance * Math.sqrt(numValues);
+		
 	}
 	
 }
