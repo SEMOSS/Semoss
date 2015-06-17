@@ -358,7 +358,7 @@ public final class ArrayUtilityMethods {
 			try {
 				val = Integer.valueOf(obj.toString());
 			} catch(NumberFormatException ex) {
-				throw new NumberFormatException("Value in Object array cannot be converted to double");
+				throw new NumberFormatException("Value in Object array cannot be converted to integer");
 			}
 			retArr[index] = val;
 		}
