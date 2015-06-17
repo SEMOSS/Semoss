@@ -38,6 +38,7 @@ public class H2QueryUtil extends SQLQueryUtil {
 		super.setResultAllTablesTableName("TABLE_NAME");
 		super.setDialectAllIndexesInDB("SELECT DISTINCT INDEX_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_SCHEMA = 'PUBLIC' ORDER BY INDEX_NAME");
 		super.setDialectIndexInfo("SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_SCHEMA = 'PUBLIC' AND INDEX_NAME = ");
+		super.setDialectForceGraph("SELECT DISTINCT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'PUBLIC'");
 		super.setDialectOuterJoinLeft(" LEFT OUTER JOIN ");
 		super.setDialectOuterJoinRight(" RIGHT OUTER JOIN ");
 		super.setDefaultDbUserName("sa");

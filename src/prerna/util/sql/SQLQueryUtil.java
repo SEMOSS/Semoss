@@ -73,6 +73,8 @@ public abstract class SQLQueryUtil {
 	public final String dialectSelect = "SELECT ";
 	public final String dialectDistinct = " DISTINCT ";
 	
+	//traverse freely/force graph
+	private String dialectForceGraph = "";
 	
 	//"full outer join"
 	private String dialectOuterJoinLeft = "";
@@ -260,6 +262,10 @@ public abstract class SQLQueryUtil {
 		return query;
 	}
 
+	public String getDialectForceGraph(String dbName){
+		return dialectForceGraph;
+	}
+
 	//SETTERS
 	public void setDefaultDbUserName(String defaultDbUserName){
 		this.defaultDbUserName = defaultDbUserName;
@@ -315,4 +321,7 @@ public abstract class SQLQueryUtil {
 	public void setDialectOuterJoinRight(String dialectOuterJoinRight){
 		this.dialectOuterJoinRight = dialectOuterJoinRight;
 	}	
+	public void setDialectForceGraph(String dialectForceGraph){
+		this.dialectForceGraph = dialectForceGraph;
+	}
 }
