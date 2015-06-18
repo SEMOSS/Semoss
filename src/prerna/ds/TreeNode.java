@@ -23,6 +23,7 @@ public class TreeNode {
 	
 	ITreeKeyEvaluatable leaf = null;
 	Vector <SimpleTreeNode> instanceNode = new Vector<SimpleTreeNode>();
+	public Vector <SimpleTreeNode> filteredInstanceNode = new Vector<SimpleTreeNode>();
 	
 	int fanout = 5;
 	
@@ -142,7 +143,7 @@ public class TreeNode {
 	}
 
 	
-	public synchronized TreeNode  insertData(TreeNode node)
+	public synchronized TreeNode insertData(TreeNode node)
 	{
 		TreeNode root = node;
 		if(this.rightChild == null && this.leftChild == null) // basically means it is the base node
@@ -1208,8 +1209,8 @@ public class TreeNode {
 		}
 		else
 		{			
-			System.err.print("Reached the else. Here is my leaf");
-			System.err.println("----");
+			//System.err.print("Reached the else. Here is my leaf");
+			//System.err.println("----");
 
 		}
 	}
@@ -1240,8 +1241,8 @@ public class TreeNode {
 		}
 		else
 		{			
-			System.err.print("Reached the else. Here is my leaf");
-			System.err.println("----");
+			//System.err.print("Reached the else. Here is my leaf");
+			//System.err.println("----");
 
 		}
 	}
