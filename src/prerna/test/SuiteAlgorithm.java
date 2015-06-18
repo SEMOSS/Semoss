@@ -17,14 +17,20 @@ import prerna.algorithm.learning.unsupervised.clustering.PartitionedClusteringAl
 @RunWith(Suite.class)
 @SuiteClasses({ 
 				ClusteringAlgorithmTest.class, 
-				PartitionedClusteringAlgorithm.class,
-				WekaAprioriAlgorithTest.class 
+				LocalOutlierFactorAlgorithmTest.class,
+				PartitionedClusteringAlgorithmTest.class,
+				WekaAprioriAlgorithTest.class ,
+				MatrixRegressionAlgorithmTest.class
 				})
 public class SuiteAlgorithm {
 
 /* 1) ClusteringAlgorithmTest
  * 	 a) Run
  * 	 b) Execute
+ * 
+ * 2) LocalOutlierFactorAlgorithmTest
+ * 	 a) Execute_withListAndNames
+ * 	 b) Execute_withMasterTableAndMasterNames
  * 
  * 2) PartitionedClusteringAlgorithm
  * 	 a) generateBaseClusterInformation
