@@ -241,19 +241,19 @@ public class DataStructureFromTable {
 				notUsedList.add(i);
 		}
 		
-		//do the hierarchical part for strings
-		for(int i = 0; i < numCol; i++) {
-			int colIndex = colIndexMinToMax[i];
-			if(!colAlreadyProperty[colIndex]&&columnTypes[colIndex].equals("STRING") || columnTypes[colIndex].equals("UNIQUE-ID-INTEGER")) {
-				List<Integer> parentConcatIndicies = findHierarchicalParent(colIndex, deepCopy(notUsedList));
-				if(!parentConcatIndicies.isEmpty()) {
-					addHierarchicalParent(colIndex, notUsedList, parentConcatIndicies);
-					if(notUsedList.contains(colIndex)) {
-						notUsedList.remove(notUsedList.indexOf(colIndex));
-					}
-				}
-			}
-		}
+//		//do the hierarchical part for strings
+//		for(int i = 0; i < numCol; i++) {
+//			int colIndex = colIndexMinToMax[i];
+//			if(!colAlreadyProperty[colIndex]&&columnTypes[colIndex].equals("STRING") || columnTypes[colIndex].equals("UNIQUE-ID-INTEGER")) {
+//				List<Integer> parentConcatIndicies = findHierarchicalParent(colIndex, deepCopy(notUsedList));
+//				if(!parentConcatIndicies.isEmpty()) {
+//					addHierarchicalParent(colIndex, notUsedList, parentConcatIndicies);
+//					if(notUsedList.contains(colIndex)) {
+//						notUsedList.remove(notUsedList.indexOf(colIndex));
+//					}
+//				}
+//			}
+//		}
 
 	}
 
@@ -488,17 +488,23 @@ public class DataStructureFromTable {
 			return "STRING";
 		}
 	}
-	
+
 	private boolean isIntegerColUniqueID(int column) {
 		try{
 
 			long startT = System.currentTimeMillis();
 			System.out.println("\nDetermining if column " + column + " is unique id...");
-			
 			Object[] colArr = ArrayListUtilityMethods.getColumnFromList(table, column);
 			int[] colIntegerArr = ArrayUtilityMethods.convertObjArrToIntArr(colArr);
+			int[] uniqueColArr = ArrayUtilityMethods.getUniqueArray(colIntegerArr);
+			int[] sortedUniqueColArr = ArrayUtilityMethods.sortIntWrapperArr(uniqueColArr);
+
 			//TODO need to dynamically calculate the params based upon the dataset
-			if(StatisticsUtilityMethods.areValuesUniformlyDistributed(colIntegerArr, p, N, m, 0.05)) {
+			int N = this.N;
+			if(uniqueColArr.length < N) {
+				N = m;
+			}
+			if(StatisticsUtilityMethods.areValuesUniformlyDistributed(sortedUniqueColArr, p, N, m, 0.05)) {
 				long endT = System.currentTimeMillis();
 				System.out.println("Column " + column + " is unique id!\nTime(s) to determine was = " + (endT - startT)/1000);
 				return true;

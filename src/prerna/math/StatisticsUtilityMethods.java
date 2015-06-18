@@ -750,6 +750,10 @@ public final class StatisticsUtilityMethods {
 		
 		double totalKSStat = 0.0;
 		int numValues = valueArr.length;
+		if(numValues <= m) {
+			System.out.println("\nNumber of values is less than m, could be parent.");
+			return true;
+		}
 		if(numValues < N) {
 			System.out.println("\nERROR: N is less than the number of values in the dataset. Please increase N.");
 		}
@@ -785,7 +789,7 @@ public final class StatisticsUtilityMethods {
 		
 		double totalKSStat = 0.0;
 		int numValues = valueArr.length;
-		int numSets = (int)Math.ceil(numValues / m * 1.0);
+		int numSets = (int)Math.floor(numValues * 1.0 /m);
 		for(int i = 0; i < numSets; i++){
 			int[] subsetValueArr = Arrays.copyOfRange(valueArr,i*m,(i+1)*m);
 			totalKSStat += calculateKSStat(subsetValueArr);
@@ -800,22 +804,34 @@ public final class StatisticsUtilityMethods {
 		int numValues = valueArr.length;
 		double minValue = valueArr[0];
 		double maxValue = valueArr[numValues - 1];
+		
+		//TODO what happens when min and max are equal. is it fine?
 		if(minValue == maxValue) {
-			return 1.0 * Math.sqrt(numValues);
+			return 0.0;
 		}
-		double[] normalizedValueArr = new double[numValues];
-		for(int i = 0; i < numValues; i++) {
-			normalizedValueArr[i] = (valueArr[i] - minValue) / (maxValue - minValue);
+		
+		double minDiff = maxValue - minValue;
+		for(int i = 1; i < numValues; i++) {
+			int diff = valueArr[i] - valueArr[i-1];
+			if(diff < minDiff) {
+				minDiff = diff;
+			}
 		}
+
+//		System.out.println("Minimum Difference " + minDiff);
 		
 		double maxDistance = 0;
 		for(int i = 0; i < numValues; i++) {
-			double distance = Math.abs(normalizedValueArr[i] - (i / (numValues - 1.0)));
+			double firstVal = (valueArr[i] - minValue + minDiff) / (maxValue- minValue + minDiff);
+			double dist1 = Math.abs(firstVal - ((i * 1.0) / numValues));
+			double dist2 = Math.abs(firstVal - ((i + 1.0) / numValues));
+			double distance = Math.max(dist1,dist2);
+//			System.out.println(firstVal + "..." + dist1 + "..." + dist2);
 			if(distance > maxDistance) {
 				maxDistance = distance;
 			}
 		}
-		
+//		System.out.println("Max Distance "+maxDistance);
 		return maxDistance * Math.sqrt(numValues);
 		
 	}
