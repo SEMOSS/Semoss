@@ -18,6 +18,7 @@ public class ValueTreeColumnIterator implements Iterator<SimpleTreeNode>{
 	public ValueTreeColumnIterator(TreeNode typeRoot) {
 		iterator = new IndexTreeIterator(typeRoot);
 		instances = new LinkedList<>();
+		addInstances();
 	}
 	
 	@Override
@@ -27,22 +28,25 @@ public class ValueTreeColumnIterator implements Iterator<SimpleTreeNode>{
 	 * Must also take into consideration the fan-out of the btree for siblings of node
 	 */
 	public boolean hasNext() {
-		return (!instances.isEmpty() || iterator.hasNext());
+		return (!instances.isEmpty());
 	}
 	
 	@Override
 	public SimpleTreeNode next() {
 		
-		
 		if(!instances.isEmpty()) {
-			return instances.remove();
+			SimpleTreeNode returnNode = instances.remove();
+			addInstances();
+			return returnNode;
 		}
 		else {
-			if(!iterator.hasNext()) {
-				throw new IndexOutOfBoundsException("No more nodes in the Column.");
-			}
-			instances.addAll(iterator.next().instanceNode); 
-			return instances.remove();
+			throw new IndexOutOfBoundsException("No more values in the column");
+		}
+	}
+	
+	private void addInstances() {
+		while(instances.size() < 2 && iterator.hasNext()) {
+			instances.addAll(iterator.next().instanceNode);
 		}
 	}
 

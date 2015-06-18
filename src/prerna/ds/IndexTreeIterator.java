@@ -13,7 +13,8 @@ public class IndexTreeIterator implements Iterator<TreeNode> {
 	 * @param typeRoot			
 	 */
 	public IndexTreeIterator(TreeNode typeRoot) {
-		nodeStack.push(typeRoot.getLeft(typeRoot));
+		nodeStack = new Stack<>();
+		nodeStack.push(typeRoot);
 	}
 	
 	@Override
