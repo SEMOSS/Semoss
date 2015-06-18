@@ -270,8 +270,44 @@ public class SimpleTreeBuilder
 			}
 			if(recurse && newNode)
 				adjustType(childType, recurse);
-		}	
-		
+		}			
+	}
+	
+	public void balanceLevel(String level) {
+		TreeNode rootNode = nodeIndexHash.get(level);
+		if(rootNode != null)
+		{
+			String parentLevel = ((ISEMOSSNode)rootNode.instanceNode.firstElement().parent.leaf).getType();
+			Vector nodeGetter = new Vector();
+			
+			TreeNode parent = nodeIndexHash.get(parentLevel);
+			nodeGetter.addElement(parent);
+			Vector <SimpleTreeNode> typeInstances = parent.getInstanceNodes(nodeGetter, new Vector<SimpleTreeNode>());
+
+			for(int i = 0; i < typeInstances.size(); i++) {
+				SimpleTreeNode parentNode = typeInstances.get(i);
+				
+				if(parentNode.leftChild==null) {
+					
+				}
+				StringClass dummySEMOSSNode = new StringClass(SimpleTreeNode.EMPTY, level);
+				TreeNode dummyIndexNode = getNode(dummySEMOSSNode);
+				if(dummyIndexNode == null) {
+					dummyIndexNode = createNode(dummySEMOSSNode, true);
+					TreeNode root = nodeIndexHash.get(level);
+					root = root.insertData(dummyIndexNode);
+					nodeIndexHash.put(level, root);
+				}
+
+				else
+				{
+					SimpleTreeNode instanceNode = new SimpleTreeNode(dummySEMOSSNode);
+					parentNode.leftChild = instanceNode;
+					instanceNode.parent = parentNode;
+					dummyIndexNode.addInstance(instanceNode);
+				}
+			}
+		}
 	}
 	
 	public void addLeafNode(SimpleTreeNode parentNode, ISEMOSSNode node)
@@ -908,6 +944,164 @@ public class SimpleTreeBuilder
 		nodeIndexHash.remove(type);
 	}
 	
+	/**
+	 * 
+	 * @param type
+	 */
+	public void removeDuplicates(String type) {
+		//Basic Idea
+		//Consider all nodes to be individual trees, consolidate them together to remove duplicates
+		//reattach new children to proper parents
+		//Need to figure out how to  properly update the index tree
+			
+		if(!nodeIndexHash.containsKey(type)) return;
+		
+		//Iterate through the nodes on the level above the level we are removing duplicates
+		//this is done so we don't append nodes from different branches on the same level
+		SimpleTreeNode simpleTreeNode = nodeIndexHash.get(type).instanceNode.get(0);
+		ISEMOSSNode parentNode;
+		
+		if(simpleTreeNode.parent != null) {
+			parentNode = (ISEMOSSNode)simpleTreeNode.parent.leaf;
+			type = parentNode.getType();
+		}
+		
+		ValueTreeColumnIterator iterator = new ValueTreeColumnIterator(nodeIndexHash.get(type));
+		
+		while(iterator.hasNext()) {
+			
+			//TODO: fix the sibling relationships
+			SimpleTreeNode currParent = iterator.next();
+			SimpleTreeNode firstNode = currParent.leftChild;
+			SimpleTreeNode node = firstNode.rightSibling;
+			firstNode.rightSibling = null;
+			
+			while(node!=null) {
+				consolidate(firstNode, node);
+				node = node.rightSibling;
+			}
+		}
+	}
+	
+	/**
+	 * Calls removeDuplicates for every level in the BTree, in order from leaf to root
+	 */
+	public void removeAllDuplicates() {
+		Vector<String> levels = this.findLevels();
+		Collections.reverse(levels);
+		//call remove duplicates in order from leaf to root
+		for(String level: levels) {
+			this.removeDuplicates(level);
+		}
+	}
+	
+	/**
+	 * Combines subtrees within the BTree to remove duplicates.  The logic is identical to append, except
+	 * consolidate removes from the index trees as opposed to adding to them
+	 * @param node
+	 * @param node2consolidate
+	 */
+	private void consolidate(SimpleTreeNode node, SimpleTreeNode node2consolidate) {
+		
+		SimpleTreeNode rightNode = node.getRight(node);
+		SimpleTreeNode leftNode2Merge = node2consolidate.getLeft(node2consolidate);
+		SimpleTreeNode rightMergeSibling = null;
+		while(leftNode2Merge!=null) {
+			//find if the node exists in the tree node
+			TreeNode tn = this.getNode((ISEMOSSNode)leftNode2Merge.leaf);
+			
+			//If the node doesn't exist in the tree, take the node, sever connection from right sibling and add node to level, repeat for right sibling
+			if(tn == null) {
+				//Add to the Value Tree
+				rightNode.rightSibling = leftNode2Merge;
+				leftNode2Merge.leftSibling = rightNode;
+				rightMergeSibling = leftNode2Merge.rightSibling;
+				
+				leftNode2Merge.rightSibling = null;
+				rightNode = rightNode.rightSibling;
+				
+				//Update the Index Tree
+				removeFromIndexTree(leftNode2Merge);
+			} 
+			//If the node does exist in the tree, determine if the node exists on this branch
+			else {				
+				List<SimpleTreeNode> instanceList = tn.getInstances();
+				SimpleTreeNode equivalentInstance = null;
+				
+				boolean foundNode = false;
+				SimpleTreeNode instance = null;
+				SimpleTreeNode mergeInstance;
+				for(int i = 0; i < instanceList.size(); i++) {
+					instance = instanceList.get(i);
+					equivalentInstance = instance;
+					mergeInstance = leftNode2Merge; 
+					while(!foundNode && instance.equal(mergeInstance)){
+						if(instance.parent==null) {
+							foundNode = true; 
+							break;
+						}
+						instance = instance.parent;
+						mergeInstance = mergeInstance.parent;
+					}
+					if(foundNode) {
+						break;
+					}
+				}
+				//If the node exists on the branch, append the children
+				if(foundNode) { 
+//					equivalentInstance = instance; 
+					// there is a child, recursively go through method with subset
+					if(equivalentInstance.leftChild != null) {
+						consolidate(equivalentInstance.leftChild, leftNode2Merge.leftChild);
+					} 
+					// continue for right siblings
+					rightMergeSibling = leftNode2Merge.rightSibling;
+				} 
+				//if the node doesn't exist on the branch simply add it
+				else {
+					//Add to the Value Tree
+					rightNode.rightSibling = leftNode2Merge;
+					leftNode2Merge.leftSibling = rightNode;
+					rightMergeSibling = leftNode2Merge.rightSibling;
+					
+					leftNode2Merge.rightSibling = null;
+					rightNode = rightNode.rightSibling;
+
+					//Recursively Update the Index Tree with leftNode2Merge and it's children
+					removeFromIndexTree(leftNode2Merge); 
+				}
+				//append(equivalentInstance.leftChild, leftNode2Merge.leftChild);
+			}
+			leftNode2Merge = rightMergeSibling;
+		}
+	}
+	
+	/**
+	 * Finds the TreeNode in the index tree with the value of @param n, 
+	 * and removes the instance of n from the index tree
+	 * 
+	 * @param n		The instance to be removed from the index tree
+	 */
+	private void removeFromIndexTree(SimpleTreeNode n) {
+		//get the appropriate index tree
+		ISEMOSSNode isn = (ISEMOSSNode)n.leaf;
+		TreeNode treeNode = nodeIndexHash.get(isn.getType());
+		
+		//find the proper corresponding TreeNode in the index tree
+		TreeNode searchNode = new TreeNode(n.leaf);
+		TreeNode foundNode = treeNode.getLeaf(searchNode, true);
+		
+		//remove n from the instance list
+		Vector<SimpleTreeNode> instanceList = foundNode.getInstances();
+		if(instanceList.size()==0) {
+			//TODO: figure out if I need to rebalance the tree after removing a node
+			this.removeNode(isn);
+		} else {
+			instanceList.remove(n);
+		}
+	}
+	
+	
 	// add a filter so that it is not kept when flattening is done
 	public void addFilter(String nodeType, String filter)
 	{
@@ -936,20 +1130,132 @@ public class SimpleTreeBuilder
 		nodeTypeFilters.put(nodeType, filters);
 	}
 	
+	//TODO: figure out how to filter roots
+	public void filterTree(String column, List<ITreeKeyEvaluatable> objectsToFilter) {
+		for(ITreeKeyEvaluatable i: objectsToFilter) {
+			filterTree(column, i);
+		}
+	}
+	
+	public void filterTree(String column, ITreeKeyEvaluatable objectToFilter) {
+		TreeNode filterIndexTree = nodeIndexHash.get(column);
+		TreeNode treeNode = new TreeNode(objectToFilter);
+		TreeNode foundNode = filterIndexTree.getLeaf(treeNode, true);
+		for(SimpleTreeNode n: foundNode.instanceNode) {
+			filterSimpleTreeNode(n);
+			filterTreeNode(n);
+			//foundNode.instanceNode.remove(n);
+			//foundNode.filteredInstanceNode.add(n);
+		}
+	}
+
+	private void filterSimpleTreeNode(SimpleTreeNode node2filter) {
+		SimpleTreeNode parentNode = node2filter.parent;
+		SimpleTreeNode nodeRightSibling = node2filter.rightSibling;
+		SimpleTreeNode nodeLeftSibling = node2filter.leftSibling;
+		
+		//isolate node2filter from siblings and rewire the connections
+		if(node2filter.rightSibling != null && node2filter.leftSibling != null) {
+			//in the middle
+			nodeRightSibling.leftSibling = nodeLeftSibling;
+			nodeLeftSibling.rightSibling = nodeRightSibling;
+		} 
+		else if(node2filter.rightSibling == null && node2filter.leftSibling != null) {
+			//right most
+			nodeLeftSibling.rightSibling = null;
+		} 
+		else if(node2filter.rightSibling != null && node2filter.leftSibling == null) {
+			//left most
+			parentNode.leftChild = nodeRightSibling;
+			nodeRightSibling.leftSibling = null;
+		}
+		
+		//put the node2filter on the right side
+		if(parentNode.rightChild == null) {
+			parentNode.rightChild = node2filter;
+		} else {
+			SimpleTreeNode rightFilteredChild = parentNode.rightChild;
+			rightFilteredChild = rightFilteredChild.getRight(rightFilteredChild);
+			rightFilteredChild.rightSibling = node2filter;
+			node2filter.leftSibling = rightFilteredChild;
+		}
+	}
+	
+	private void filterTreeNode(SimpleTreeNode instance2filter) {
+		String type = ((ISEMOSSNode)instance2filter.leaf).getType();
+		TreeNode filterIndexTree = nodeIndexHash.get(type);
+		TreeNode treeNode = new TreeNode(instance2filter.leaf);
+		TreeNode foundNode = filterIndexTree.getLeaf(treeNode, true);
+		
+		foundNode.instanceNode.remove(instance2filter);
+		foundNode.filteredInstanceNode.add(instance2filter);
+		
+		if(instance2filter.rightSibling!=null) {
+			filterTreeNode(instance2filter.rightChild);
+		}
+		if(instance2filter.leftChild!=null) {
+			filterTreeNode(instance2filter.leftChild);
+		}
+		/*
+		if(treeNode.instanceNode.contains(instance2filter)) {
+			treeNode.instanceNode.remove(instance2filter);
+			treeNode.filteredInstanceNode.add(instance2filter);
+		}
+		*/
+	}
+	
+	public void unfilterSimpleTree(String column) {
+		//TODO
+	}
+	public void unfilterColumn(String column) {
+		TreeNode unfilterIndexTree = nodeIndexHash.get(column);
+		ITreeKeyEvaluatable l = unfilterIndexTree.instanceNode.get(0).parent.leaf;
+		ISEMOSSNode parent = (ISEMOSSNode)l;
+		String parentType = parent.getType();
+		
+		TreeNode parentIndexTree = nodeIndexHash.get(parentType);
+		ValueTreeColumnIterator iterator = new ValueTreeColumnIterator(parentIndexTree);
+		
+		while(iterator.hasNext()) {
+			SimpleTreeNode simpleTree = iterator.next();
+			if(simpleTree.rightChild!=null) {
+				SimpleTreeNode leftChild = simpleTree.leftChild;
+				SimpleTreeNode rightChild = simpleTree.rightChild;
+				
+				if(leftChild==null) {
+					simpleTree.leftChild = rightChild;
+				} else {
+					SimpleTreeNode rightMostLeftChild = leftChild.getRight(leftChild);
+					rightMostLeftChild.rightSibling = rightChild;
+					rightChild.leftSibling = rightMostLeftChild;
+				}
+				simpleTree.rightChild = null;
+			}
+		}
+		//unfilter the TreeNode as well
+		//transfer all right children of parent column back to the left child
+	}
+	
+	public void unfilterTreeNode(TreeNode treeNode, SimpleTreeNode instance) {
+		if(treeNode.filteredInstanceNode.contains(instance)) {
+			treeNode.filteredInstanceNode.remove(instance);
+			treeNode.instanceNode.add(instance);
+		}
+	}
+	/**
+	 * 
+	 * */
 	public void append(SimpleTreeNode node, SimpleTreeNode node2merge) {
 		//Recursive Algorithm for merging
 		//Use in the case node and node2merge come from structurally identical Simple Trees
-		//Not sure yet how adding nodes affects the index tree and assumes right child does not matter/get used in a SimpleTree
+		//assumes right child does not matter/get used in a SimpleTree
+		
 		/*
-		 * Vector<Node> siblings = node.allSiblings
-		 * Vector<Node> mSiblings = node2merge.allSiblings
-		 * For each sNode in mSiblings
-		 * 		If sNode !exist in siblings
-		 * 			append sNode to siblings
-		 * 		Else
-		 * 			Merge(siblings.get(sNode).leftChild, sNode.leftChild)
-		 * 
-		 * 
+		 * Need to adapt  this to also take into account join
+		 * empty node checks 
+		 * null checks
+		 * different types of appends
+		 * append with duplicates, without duplicates, etc.
 		 * */
 		
 		SimpleTreeNode rightNode = node.getRight(node);
@@ -1021,17 +1327,21 @@ public class SimpleTreeBuilder
 					leftNode2Merge.rightSibling = null;
 					rightNode = rightNode.rightSibling;
 
-					//Update the Index Tree
-//					appendToIndexTree(leftNode2Merge); //TODO: can we just get the instance list of tn and append leftNode2Merge?
-					tn.getInstances().add(leftNode2Merge);
+					//Recursively Update the Index Tree with leftNode2Merge and it's children
+					appendToIndexTree(leftNode2Merge); 
 				}
 				//append(equivalentInstance.leftChild, leftNode2Merge.leftChild);
 			}
-			leftNode2Merge = rightMergeSibling; //TODO: can we get rid of rightMergeSibling and here just set leftNode2Merge = leftNode2Merge.rightSibling;
+			leftNode2Merge = rightMergeSibling;
 		}		
 	}
 	
-	//Recursively add a node and it's children to the appropriate index trees
+	/**
+	 * This method recursively adds a node and it's children to the appropriate index trees
+	 * 
+	 * 
+	 * 
+	 * */
 	private void appendToIndexTree(SimpleTreeNode node) {
 		if(node == null) {
 			return;
@@ -1039,30 +1349,16 @@ public class SimpleTreeBuilder
 		
 		ISEMOSSNode n = (ISEMOSSNode) node.leaf;
 		TreeNode rootIndexNode = nodeIndexHash.get(n.getType());
-//
-//		// add node
-//		TreeNode newNode = getNode(n);
-//		// search first
-//		if(newNode == null) {
-//			// if not found 
-//			// create new node and set instances vector to the new value node
-//			newNode = new TreeNode(n);
-//			rootIndexNode.insertData(newNode);
-//			newNode.addInstance(node);
-//		} else {
-//			// if found
-//			// add instance to existing TreeNode
-//			newNode.getInstances().add(node);
-//		}
+
 		while(node != null) {
-//			node = node.rightSibling;
 			TreeNode newNode = getNode( (ISEMOSSNode)node.leaf);
 			// search first
 			if(newNode == null) {
 				// if not found 
 				// create new node and set instances vector to the new value node
 				newNode = new TreeNode(node.leaf);
-				rootIndexNode.insertData(newNode);
+				TreeNode newRoot = rootIndexNode.insertData(newNode);
+				nodeIndexHash.put(n.getType(), newRoot);
 				newNode.addInstance(node);
 			} else {
 				// if found
@@ -1077,13 +1373,11 @@ public class SimpleTreeBuilder
 		}
 	}
 	
+	//TODO: make this better, not sure if lastAddedNode is reliable
 	public SimpleTreeNode getRoot() {
 		SimpleTreeNode root = lastAddedNode;
 		while(root.parent!=null) root = root.parent;
 		while(root.leftSibling!=null) root = root.leftSibling;
 		return root;
 	}
-	
-	
-
 }
