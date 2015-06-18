@@ -401,6 +401,31 @@ public final class ArrayUtilityMethods {
 		return retArr;
 	}
 
+	public static int[] sortIntWrapperArr(int[] arr) {
+		int size = arr.length;
+		int index;
+
+		int tempVal;
+
+		boolean flag = true;
+		while(flag) {
+			flag = false;
+			for(index = 0; index < size - 1; index++) {
+
+				if(arr[index] > arr[index+1]){
+					tempVal = arr[index+1];
+					arr[index+1] = arr[index];
+					arr[index] = tempVal;
+
+					flag = true;
+				}
+			}
+		}
+
+		return arr;
+	}
+
+	
 	public static Double[] sortDoubleWrapperArr(Double[] arr) {
 		int size = arr.length;
 		int index;
@@ -483,6 +508,23 @@ public final class ArrayUtilityMethods {
 			}
 		}
 		String[] uniqueArray = new String[counter];
+		System.arraycopy(temp, 0, uniqueArray, 0, uniqueArray.length);
+
+		return uniqueArray;
+	}
+	
+	public static int[] getUniqueArray(final int[] arr) {
+		int size = arr.length;
+		int[] temp = new int[size];
+
+		int counter = 0;
+		int index;
+		for (index = 0; index < size; index++) {
+			if(!arrayContainsValue(temp, arr[index])) {
+				temp[counter++] = arr[index];
+			}
+		}
+		int[] uniqueArray = new int[counter];
 		System.arraycopy(temp, 0, uniqueArray, 0, uniqueArray.length);
 
 		return uniqueArray;
