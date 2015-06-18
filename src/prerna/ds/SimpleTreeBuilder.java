@@ -244,11 +244,15 @@ public class SimpleTreeBuilder
 				{
 					// reset it to something useful
 					System.err.println("Adjusting... " + ((ISEMOSSNode)typeInstances.elementAt(instanceIndex).leaf).getType() + " Adding " + type + "  Child Type  " + childType);
-					StringClass dummySEMOSSNode = new StringClass(SimpleTreeNode.EMPTY, childType);
+					StringClass dummySEMOSSNode = new StringClass(SimpleTreeNode.EMPTY, SimpleTreeNode.EMPTY, childType);
 					TreeNode dummyIndexNode = getNode(dummySEMOSSNode);
-					if(dummyIndexNode == null)
+					if(dummyIndexNode == null) {
 						dummyIndexNode = createNode(dummySEMOSSNode, true);
-					// do the create routine here
+						// do the create routine here
+						TreeNode root = nodeIndexHash.get(childType);
+						root = root.insertData(dummyIndexNode);
+						nodeIndexHash.put(childType, root);
+					}
 					else
 					{
 						SimpleTreeNode instanceNode = new SimpleTreeNode(dummySEMOSSNode);
