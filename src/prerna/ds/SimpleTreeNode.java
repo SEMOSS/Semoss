@@ -8,10 +8,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.StringTokenizer;
 import java.util.Vector;
 
 public class SimpleTreeNode {
@@ -498,7 +498,7 @@ public class SimpleTreeNode {
 		// I will get to this later
 		// use type comparison for siblings vs. ultimate child
 
-		if(parentNode.leftChild != null && !parentNode.leftChild.leaf.getKey().equalsIgnoreCase(SimpleTreeNode.EMPTY))
+		if(parentNode.leftChild != null /*&& !parentNode.leftChild.leaf.getKey().equalsIgnoreCase(SimpleTreeNode.EMPTY)*/)
 		{
 			//System.err.println("The value of the node is " +parentNode.leftChild.leaf.getKey() );
 
@@ -509,13 +509,18 @@ public class SimpleTreeNode {
 				SimpleTreeNode targetNode = parentNode.leftChild;
 				do
 				{
-					addLeafChild(targetNode, node); // move on to this node
+					Vector<SimpleTreeNode> vec = new Vector<SimpleTreeNode>();
+					vec.add(node);
+					String serialized = SimpleTreeNode.serializeTree("", vec, true, 0);
+					SimpleTreeNode newNode = SimpleTreeNode.deserializeTree(serialized, new HashMap<String, TreeNode>()); //TODO: index tree??? wtf do we do :(
+					addLeafChild(targetNode, newNode); // move on to this node
 					targetNode = targetNode.rightSibling;// move to the next node on the sibling list//
 				}while(targetNode != null);
 			}
 		}
-		else
+		else {
 			parentNode.addChild(node);
+		}
 	}
 		
 	public static void deleteNode(SimpleTreeNode node)

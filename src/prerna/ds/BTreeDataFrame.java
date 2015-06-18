@@ -132,7 +132,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		LOGGER.info("Columns Passed ::: " + colNameInTable + " and " + colNameInJoiningTable);
 		LOGGER.info("Confidence Threshold :: " + confidenceThreshold);
 		LOGGER.info("Analytics Routine ::: " + routine.getName());
-		
 		LOGGER.info("Begining join on columns ::: " + colNameInTable + " and " + colNameInJoiningTable);
 
 		// fill the options needed for the routine
@@ -152,7 +151,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		
 		if(table instanceof BTreeDataFrame){
 			BTreeDataFrame passedTree = (BTreeDataFrame) table;
-			
 			//Here is the logic that this should use.
 			// Iterate for every row in the matched table
 			// search for tree node in this table and tree node in passed table
@@ -166,7 +164,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 			LOGGER.info("Augmenting tree");
 			joinTreeLevels(columnNames, colNameInJoiningTable); // need to add new levels to this tree's level array
 			List<Object[]> flatMatched = matched.getData();// TODO: this could be replaced with nextRow or getRow method directly on the tree
-//			Iterator<Object[]> matchedIterator = matched.iterator();
 
 			TreeNode thisRootNode = this.simpleTree.nodeIndexHash.get(colNameInTable); //TODO: is there a better way to get the type? I don't think this is reliable
 			Vector thisSearchVector = new Vector();
@@ -177,18 +174,12 @@ public class BTreeDataFrame implements ITableDataFrame {
 			TreeNode passedRootNode = passedBuilder.nodeIndexHash.remove(colNameInJoiningTable); //TODO: is there a better way to get the type? I don't think this is reliable
 			Vector passedSearchVector = new Vector();
 			passedSearchVector.addElement(passedRootNode);
-			
+
 			// Iterate for every row in the matched table
 			for(Object[] flatMatchedRow : flatMatched) { // for each matched item
 				Object item1 = flatMatchedRow[0];
 				Object item2 = flatMatchedRow[1];
-//			while(matchedIterator.hasNext()){
-//				Object[] flatMatchedRow = matchedIterator.next();
-//				Object item1 = flatMatchedRow[0];
-//				Object item2 = flatMatchedRow[1];
-				
 				System.out.println(item1 + "           " + item2);
-
 				// search for tree node in this table and tree node in passed table
 				TreeNode thisSearchNode = new TreeNode(createNodeObject(item1, item1, colNameInTable)); //TODO: how do we generically do this...?
 				TreeNode thisTreeNode = thisRootNode.getNode(thisSearchVector, thisSearchNode, false);
@@ -201,28 +192,21 @@ public class BTreeDataFrame implements ITableDataFrame {
 //				System.out.println(passedInstances.size()); // this should be 1 since right now we are assuming roots
 				SimpleTreeNode instance2HookUp = passedInstances.get(0).leftChild;
 
-				String serialized = "";
 				Vector<SimpleTreeNode> vec = new Vector<SimpleTreeNode>();
 				vec.add(instance2HookUp);
-				serialized = SimpleTreeNode.serializeTree("", vec, true, 0);
+				String serialized = SimpleTreeNode.serializeTree("", vec, true, 0);
 //				System.out.println("SERIALIZED " + instance2HookUp.leaf.getKey() + " AS " + serialized);
 					
 				// hook up passed tree node with each instance of this tree node
 				for(int instIdx = 0; instIdx < thisInstances.size(); instIdx++){
 					SimpleTreeNode myNode = thisInstances.get(instIdx);
-					SimpleTreeNode hookUp = SimpleTreeNode.deserializeTree(serialized, newIdxHash);//
+					SimpleTreeNode hookUp = SimpleTreeNode.deserializeTree(serialized, newIdxHash);
 					SimpleTreeNode.addLeafChild(myNode, hookUp);
-//					myNode.leftChild = hookUp;
-//					while(hookUp!=null){
-//						SimpleTreeNode.addLeafChild(myNode, hookUp);
-//						hookUp.parent = myNode;
-//						hookUp = hookUp.rightSibling;
-//					}
-//					System.out.println("joining " + myNode.leaf.getKey() + " with " + hookUp.leaf.getKey());
 				}
 			}
 			this.simpleTree.nodeIndexHash.putAll(newIdxHash);
-			
+			// adjust all levels with the new addition
+			// this.simpleTree.adjustType(this.levelNames[levelNames.length-1], true);
 		}
 		else // use the flat join. This is not ideal. Not sure if we will ever actually use this
 		{
