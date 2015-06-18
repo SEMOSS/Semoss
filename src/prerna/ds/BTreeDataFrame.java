@@ -206,7 +206,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 			}
 			this.simpleTree.nodeIndexHash.putAll(newIdxHash);
 			// adjust all levels with the new addition
-			// this.simpleTree.adjustType(this.levelNames[levelNames.length-1], true);
+			 this.simpleTree.adjustType(this.levelNames[levelNames.length-2], true);
 		}
 		else // use the flat join. This is not ideal. Not sure if we will ever actually use this
 		{
