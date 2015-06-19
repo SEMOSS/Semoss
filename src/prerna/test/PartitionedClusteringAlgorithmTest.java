@@ -13,12 +13,9 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import prerna.algorithm.learning.unsupervised.clustering.ClusteringAlgorithm;
 import prerna.algorithm.learning.unsupervised.clustering.PartitionedClusteringAlgorithm;
-import prerna.algorithm.learning.unsupervised.clustering.WekaClassification;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
