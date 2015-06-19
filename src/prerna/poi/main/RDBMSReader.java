@@ -1098,14 +1098,14 @@ public class RDBMSReader {
 	{
 		String [] subPredObj = new String[3];
 		
-		if(fromTable.contains("+"))
+		if(fromTable.contains("+")){
 			fromTable = processAutoConcat(fromTable);
-		if(toTable.contains("+"))
-			toTable = processAutoConcat(toTable);
-		if(fromProp.contains("+"))
 			fromProp = processAutoConcat(fromTable);
-		if(toProp.contains("+"))
+		}
+		if(toTable.contains("+")){
+			toTable = processAutoConcat(toTable);
 			toProp = processAutoConcat(toTable);
+		}
 		
 		fromTable = realClean(fromTable);
 		toTable = realClean(toTable);
@@ -1365,7 +1365,7 @@ public class RDBMSReader {
 			String column = columnKeys.nextElement();
 			System.out.println("Table: " +tableKey + " column: "+column);
 			column = realClean(column); //,true);
-			if(!fieldHash.containsKey(column))
+			if(!fieldHash.containsKey(column.toUpperCase()))
 			{
 				String type = (String)columns.get(column);
 				type = sqlHash.get(type);
