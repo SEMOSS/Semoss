@@ -36,7 +36,6 @@ import java.util.LinkedList;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
-import org.openrdf.model.vocabulary.RDF;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
@@ -470,8 +469,6 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 
 		ISelectWrapper sjswCore = Utility.processQuery(coreDB, propTAPCoreQuery);
 		processServiceSystemProperties(sjswCore, true);
-		Object[] propDefTriple = new String[]{semossPropertyBaseURI + "Component_Of", RDF.TYPE.toString(), "http://semoss.org/ontologies/Relation/Contains"};
-        addToDataHash(propDefTriple);
 
 		// processing modifies class variable dataHash directly
 		deleteData(coreDB, removeDataHash);
