@@ -491,13 +491,14 @@ public class SimpleTreeNode {
 		}
 	}
 
-	public static void addLeafChild(SimpleTreeNode parentNode, SimpleTreeNode node)
+	public static Map<String, TreeNode> addLeafChild(SimpleTreeNode parentNode, SimpleTreeNode node)
 	{
 		// the idea here is it will go to the ultimate child of this node and add it there
 		// this is useful when there is a non-linear join that will happen
 		// I will get to this later
 		// use type comparison for siblings vs. ultimate child
 
+		Map<String, TreeNode> returnMap = new HashMap<String, TreeNode>();
 		if(parentNode.leftChild != null /*&& !parentNode.leftChild.leaf.getKey().equalsIgnoreCase(SimpleTreeNode.EMPTY)*/)
 		{
 			//System.err.println("The value of the node is " +parentNode.leftChild.leaf.getKey() );
@@ -512,7 +513,19 @@ public class SimpleTreeNode {
 					Vector<SimpleTreeNode> vec = new Vector<SimpleTreeNode>();
 					vec.add(node);
 					String serialized = SimpleTreeNode.serializeTree("", vec, true, 0);
-					SimpleTreeNode newNode = SimpleTreeNode.deserializeTree(serialized, new HashMap<String, TreeNode>()); //TODO: index tree??? wtf do we do :(
+					Map<String, TreeNode> nextMap = new HashMap<String, TreeNode>();
+					SimpleTreeNode newNode = SimpleTreeNode.deserializeTree(serialized, nextMap); //TODO: index tree??? wtf do we do :(
+					returnMap.putAll(nextMap);
+//					for(String key: nextMap.keySet()) {
+//						TreeNode t2 = nextMap.get(key);
+//						TreeNode t = returnMap.get(key);
+//						if(t2==null || t==null) continue;
+//						IndexTreeIterator iterator = new IndexTreeIterator(t2);
+//						while(iterator.hasNext()) {
+//							t = t.insertData(iterator.next());
+//							returnMap.put(key, t);
+//						}
+//					}
 					addLeafChild(targetNode, newNode); // move on to this node
 					targetNode = targetNode.rightSibling;// move to the next node on the sibling list//
 				}while(targetNode != null);
@@ -521,6 +534,8 @@ public class SimpleTreeNode {
 		else {
 			parentNode.addChild(node);
 		}
+		
+		return returnMap;
 	}
 		
 	public static void deleteNode(SimpleTreeNode node)
