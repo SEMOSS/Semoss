@@ -13,11 +13,9 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import prerna.algorithm.learning.unsupervised.clustering.ClusteringAlgorithm;
-import prerna.algorithm.learning.unsupervised.clustering.WekaClassification;
+import prerna.algorithm.learning.unsupervised.som.SelfOrganizingMap;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -29,31 +27,28 @@ import prerna.util.Utility;
 *
 * @author  August Bender
 * @version 1.0
-* @since   06-09-2015 
+* @since   06-11-2015 
 * Questions? Email abender@deloitte.com
 */
-public class PartitionedClusteringAlgorithmTest {
+public class SelfOrganizingMapTest {
 
 	private static String workingDir = System.getProperty("user.dir");
 	static int testCounter;
 	
-	private static WekaClassification cluster;
-	private static ArrayList<Object[]> masterTable;
-	private static String[] varNames;
+	private static SelfOrganizingMap alg;
 	
-	private static int numOfClusters = 2;
+	private static ArrayList<Object[]> list;
+	private static String [] names;
+	final private static int LIMIT_NUM = 10; 
 	
 	@BeforeClass 
 	public static void setUpOnce(){
+		System.out.println("Test Started..");
 		//Set the Sudo-Prop
 		System.setProperty("file.separator", "/");
 		String propFile = workingDir + "/RDF_Map.prop";
 		DIHelper.getInstance().loadCoreProp(propFile);
 		PropertyConfigurator.configure(workingDir + "/log4j.prop");
-		
-		System.out.println("Test Started..");
-		ArrayList<Object[]> list = null;
-		String [] names = null;
 		
 		String engineLocation = workingDir + "//db//Movie_DB.smss";
 		String query = "SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience "
@@ -70,7 +65,7 @@ public class PartitionedClusteringAlgorithmTest {
 				+ "{?Title <http://semoss.org/ontologies/Relation/DirectedBy> ?Director}"
 				+ "{?Title <http://semoss.org/ontologies/Relation/BelongsTo> ?Genre}"
 				+ "{?Title <http://semoss.org/ontologies/Relation/Was> ?Nominated}"
-				+ "{?Title <http://semoss.org/ontologies/Relation/DirectedAt> ?Studio}} ORDER BY ?Title  LIMIT 10";
+				+ "{?Title <http://semoss.org/ontologies/Relation/DirectedAt> ?Studio}} ORDER BY ?Title  LIMIT "+LIMIT_NUM;
 		
 		BigDataEngine engine = loadEngine(engineLocation);
 		
@@ -87,8 +82,6 @@ public class PartitionedClusteringAlgorithmTest {
 			}
 			list.add(row);
 		}	
-		masterTable = list;
-		varNames = names;
 		
 		engine.commitOWL();
 		engine.commit();
@@ -99,7 +92,6 @@ public class PartitionedClusteringAlgorithmTest {
 	public void setUp(){
 		testCounter++;
 		System.out.println("Test " + testCounter + " starting..");
-		cluster = new WekaClassification(masterTable, varNames);
 	}
 	
 	@After
@@ -113,30 +105,50 @@ public class PartitionedClusteringAlgorithmTest {
 	}
 	
 	@Test
-	public void generateBaseClusterInformationTest(){
-		cluster.setDataVariables();
-		cluster.generateBaseClusterInformation(numOfClusters);
-		assertTrue("Execute Successful..", true);
-		//No public way to see change in data without relying on other methods.
-		//If the method throws an error the test will fail.
-	}
-	
-	@Test
-	public void generateInitialClustersTest(){
-		cluster.setDataVariables();
-		cluster.generateInitialClusters();
-		assertTrue("Execute Successful..", true);
-		//No public way to see change in data without relying on other methods.
-		//If the method throws an error the test will fail.
-	}
-	
-	@Test
-	public void executeTest(){
-		cluster.setDataVariables();
-		cluster.generateBaseClusterInformation(numOfClusters);
-		cluster.generateInitialClusters();
+	public void executeTest_withNoDataConstructor(){
+		alg = new SelfOrganizingMap();
+		try {
+			alg.execute();
+		} catch (ArrayIndexOutOfBoundsException e){
+			
+		}
+		
+		// grid size is correct
+		System.out.println();
+		assertTrue("Grid Height", (alg.getGrid().getHeight() == 0));
+		assertTrue("Grid Height", (alg.getHeight() == 0));
+		assertTrue("Grid Length", (alg.getGrid().getLength() == 0));
+		assertTrue("Grid Length", (alg.getLength() == 0));
 
-		assertTrue("Execute Successful..", cluster.execute());
+		// the z-axis across the grid adds up to the number of instances in the
+		// data set; z is the number of instances in that grid
+		assertTrue("z-axis = num of instances.. ",
+				(alg.getNumInstances() == 0));
+	}
+	
+	@Test
+	public void executeTest_withDataConstructor(){
+		alg = new SelfOrganizingMap(list, names);
+		
+		//grid size is correct
+		assertTrue("Grid Height", (alg.getGrid().getHeight() == 1));
+		assertTrue("Grid Height",(alg.getHeight() == 1));
+		assertTrue("Grid Length", (alg.getGrid().getLength() == 2));
+		assertTrue("Grid Length",(alg.getLength() == 2));
+		
+		// the z-axis across the grid adds up to the number of instances in the data set; z is the number of instances in that grid
+		assertTrue("z-axis = num of instances.. ", (alg.getNumInstances() == LIMIT_NUM));
+		
+		//check if there are two instances that are exactly the same values;  they should be in the same cell
+		boolean check = false;
+		
+		//TODO
+		for(int i = 0; i < alg.getNumInstances(); i++){
+			//alg.getGrid().
+		}
+		
+		//assertTrue("Instances with duplicate values expected", check);
+		
 	}
 	
 	/** Loads an Engine based on it's .smss file path
@@ -159,7 +171,6 @@ public class PartitionedClusteringAlgorithmTest {
 				String engineName = prop.getProperty(Constants.ENGINE);
 				String engineClass = prop.getProperty(Constants.ENGINE_TYPE);
 				//TEMPORARY
-				// TODO: remove this
 				if(engineClass.equals("prerna.rdf.engine.impl.RDBMSNativeEngine")){
 					engineClass = "prerna.engine.impl.rdbms.RDBMSNativeEngine";
 				}
@@ -206,5 +217,4 @@ public class PartitionedClusteringAlgorithmTest {
 		}
 		return engine;
 	}
-	
 }
