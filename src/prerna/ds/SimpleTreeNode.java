@@ -281,7 +281,7 @@ public class SimpleTreeNode {
 			return output;
 	}
 	
-	public static SimpleTreeNode deserializeTree(String output, Map<String, TreeNode> indexHash)
+	public static SimpleTreeNode deserializeTree(String output)
 	{
 		SimpleTreeNode rootNode = null;
 		boolean parent = true;
@@ -312,7 +312,7 @@ public class SimpleTreeNode {
 //					System.out.println("Cur Parent Node is " + curParentNode.leaf.getKey());
 //					String leftChildString = leftRightTokens.nextToken();
 //					String rightChildString = leftRightTokens.nextToken();
-					Object [] stringOfNodes = createStringOfNodes(leftChildString, nextLevel, indexHash);
+					Object [] stringOfNodes = createStringOfNodes(leftChildString, nextLevel);
 					SimpleTreeNode leftNode = (SimpleTreeNode)stringOfNodes[0];
 					nextLevel = (Vector<SimpleTreeNode>)stringOfNodes[1];
 					// set the parent here
@@ -336,7 +336,7 @@ public class SimpleTreeNode {
 			else
 			{
 //				System.out.println("Parent.. ");
-				Object [] stringOfNodes = createStringOfNodes(line, nextLevel, indexHash);
+				Object [] stringOfNodes = createStringOfNodes(line, nextLevel);
 				rootNode = (SimpleTreeNode)stringOfNodes[0];
 				nextLevel = (Vector<SimpleTreeNode>)stringOfNodes[1];
 //				System.out.println("Next level is " + nextLevel.get(0).leaf.getKey());
@@ -347,7 +347,7 @@ public class SimpleTreeNode {
 		return rootNode;
 	}
 	
-	public static Object [] createStringOfNodes(String childString, Vector <SimpleTreeNode> inVector, Map<String, TreeNode> indexHash)
+	public static Object [] createStringOfNodes(String childString, Vector <SimpleTreeNode> inVector)
 	{
 		// nasty.. I dont have a proper object eeks
 		Object [] retObject = new Object[2];
@@ -386,27 +386,6 @@ public class SimpleTreeNode {
 //			String leftNodeKey = leftString.nextToken();
 //			ISEMOSSNode sNode = new StringClass(leftNodeKey, true);
 			SimpleTreeNode node = new SimpleTreeNode(sNode);
-			TreeNode rootNode = indexHash.get(sNode.getType());
-			if(rootNode == null){
-				rootNode = new TreeNode(sNode);
-				indexHash.put(sNode.getType(), rootNode);
-				rootNode.getInstances().add(node);
-			}
-			else{
-				Vector <TreeNode> rootNodeVector = new Vector<TreeNode>();//
-				rootNodeVector.add(rootNode);
-				// find the node which has
-				TreeNode retNode = rootNode.getNode(rootNodeVector, new TreeNode(sNode), false);
-				if(retNode==null){
-					// if not found 
-					// create new node and set instances vector to the new value node
-					retNode = new TreeNode(node.leaf);
-					rootNode = rootNode.insertData(retNode);
-					indexHash.put(sNode.getType(), rootNode);
-//					retNode.addInstance(node);
-				}
-				retNode.getInstances().add(node);
-			}
 			
 			if(leftNode == null)
 			{
@@ -497,9 +476,8 @@ public class SimpleTreeNode {
 		// this is useful when there is a non-linear join that will happen
 		// I will get to this later
 		// use type comparison for siblings vs. ultimate child
-
-		Map<String, TreeNode> returnMap = new HashMap<String, TreeNode>();
-		if(parentNode.leftChild != null /*&& !parentNode.leftChild.leaf.getKey().equalsIgnoreCase(SimpleTreeNode.EMPTY)*/)
+		
+		if(parentNode.leftChild != null)
 		{
 			//System.err.println("The value of the node is " +parentNode.leftChild.leaf.getKey() );
 
@@ -508,27 +486,16 @@ public class SimpleTreeNode {
 			else
 			{
 				SimpleTreeNode targetNode = parentNode.leftChild;
+				
 				do
 				{
 					Vector<SimpleTreeNode> vec = new Vector<SimpleTreeNode>();
 					vec.add(node);
 					String serialized = SimpleTreeNode.serializeTree("", vec, true, 0);
-					Map<String, TreeNode> nextMap = new HashMap<String, TreeNode>();
-					SimpleTreeNode newNode = SimpleTreeNode.deserializeTree(serialized, nextMap); //TODO: index tree??? wtf do we do :(
-					returnMap.putAll(nextMap);
-//					for(String key: nextMap.keySet()) {
-//						TreeNode t2 = nextMap.get(key);
-//						TreeNode t = returnMap.get(key);
-//						if(t2==null || t==null) continue;
-//						IndexTreeIterator iterator = new IndexTreeIterator(t2);
-//						while(iterator.hasNext()) {
-//							t = t.insertData(iterator.next());
-//							returnMap.put(key, t);
-//						}
-//					}
+					SimpleTreeNode newNode = SimpleTreeNode.deserializeTree(serialized);
 					addLeafChild(targetNode, newNode); // move on to this node
 					targetNode = targetNode.rightSibling;// move to the next node on the sibling list//
-				}while(targetNode != null);
+				} while(targetNode != null);
 			}
 		}
 		else {

@@ -30,6 +30,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	private static final Logger LOGGER = LogManager.getLogger(BTreeDataFrame.class.getName());
 	private SimpleTreeBuilder simpleTree;
 	private String[] levelNames;
+	private static int testnum=0;
 
 	public BTreeDataFrame() {
 		this.simpleTree = new SimpleTreeBuilder();
@@ -148,8 +149,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 		// let the routine run
 		LOGGER.info("Begining matching routine");
 		ITableDataFrame matched = routine.runAlgorithm(this, table);
-		
+	
 		if(table instanceof BTreeDataFrame){
+			String type = null;
 			BTreeDataFrame passedTree = (BTreeDataFrame) table;
 			//Here is the logic that this should use.
 			// Iterate for every row in the matched table
@@ -162,15 +164,16 @@ public class BTreeDataFrame implements ITableDataFrame {
 			String[] columnNames = passedTree.getColumnHeaders();
 			// add the new data to this tree
 			LOGGER.info("Augmenting tree");
-			joinTreeLevels(columnNames, colNameInJoiningTable); // need to add new levels to this tree's level array
+			String[] newLevels = joinTreeLevels(columnNames, colNameInJoiningTable); // need to add new levels to this tree's level array
 			List<Object[]> flatMatched = matched.getData();// TODO: this could be replaced with nextRow or getRow method directly on the tree
 
 			TreeNode thisRootNode = this.simpleTree.nodeIndexHash.get(colNameInTable); //TODO: is there a better way to get the type? I don't think this is reliable
+			//this.simpleTree.adjustType(colNameInTable, true);
+
 			Vector thisSearchVector = new Vector();
 			thisSearchVector.addElement(thisRootNode);
 
 			SimpleTreeBuilder passedBuilder = passedTree.getBuilder();
-			Map<String, TreeNode> newIdxHash = new HashMap<String, TreeNode>();
 			Map<String, TreeNode> newIdxHash2 = new HashMap<String, TreeNode>();
 			TreeNode passedRootNode = passedBuilder.nodeIndexHash.remove(colNameInJoiningTable); //TODO: is there a better way to get the type? I don't think this is reliable
 			Vector passedSearchVector = new Vector();
@@ -180,7 +183,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 			this.simpleTree.adjustType(colNameInTable, true);
 
 			// Iterate for every row in the matched table
+			boolean matches = false;
 			for(Object[] flatMatchedRow : flatMatched) { // for each matched item
+				matches = true;
 				Object item1 = flatMatchedRow[0];
 				Object item2 = flatMatchedRow[1];
 				System.out.println(item1 + "           " + item2);
@@ -202,42 +207,40 @@ public class BTreeDataFrame implements ITableDataFrame {
 //				System.out.println("SERIALIZED " + instance2HookUp.leaf.getKey() + " AS " + serialized);
 					
 				// hook up passed tree node with each instance of this tree node
+				
 				for(int instIdx = 0; instIdx < thisInstances.size(); instIdx++){
+					
 					SimpleTreeNode myNode = thisInstances.get(instIdx);
-					SimpleTreeNode hookUp = SimpleTreeNode.deserializeTree(serialized, newIdxHash2);
-					newIdxHash.putAll(SimpleTreeNode.addLeafChild(myNode, hookUp));
+					SimpleTreeNode hookUp = SimpleTreeNode.deserializeTree(serialized);
+					SimpleTreeNode.addLeafChild(myNode, hookUp);
+					
 				}
 			}
-			this.simpleTree.nodeIndexHash.putAll(newIdxHash2);
-			this.simpleTree.nodeIndexHash.putAll(newIdxHash);
-//			for(String key: newIdxHash2.keySet()) {
-//				TreeNode t2 = newIdxHash.get(key);
-//				if(t2==null) continue;
-//				TreeNode t = this.simpleTree.nodeIndexHash.get(key);
-//				IndexTreeIterator iterator = new IndexTreeIterator(t2);
-//				while(iterator.hasNext()) {
-//					t = t.insertData(iterator.next());
-//					this.simpleTree.nodeIndexHash.put(key, t);
-//				}
-//			}
-//			for(String key: newIdxHash.keySet()) {
-//				TreeNode t2 = newIdxHash.get(key);
-//				if(t2==null) continue;
-//				TreeNode t = this.simpleTree.nodeIndexHash.get(key);
-//				IndexTreeIterator iterator = new IndexTreeIterator(t2);
-//				while(iterator.hasNext()) {
-//					t = t.insertData(iterator.next());
-//					this.simpleTree.nodeIndexHash.put(key, t);
-//				}
-//			}
-			// adjust all levels with the new addition
-			this.simpleTree.adjustType(levelNames[levelNames.length-2], true);
+
+            // need to make sure at least one node has been added for each level
+            // if no nodes have been added, add an empty node--adjust type will add the rest
+            String levelAbove = colNameInTable;
+            if(!matches) {
+	            for(int nameIdx = 0; nameIdx < newLevels.length; nameIdx++){
+	                 String newLevel = newLevels[nameIdx];            
+	                 TreeNode prevNode = this.simpleTree.nodeIndexHash.get(levelAbove);
+	                 this.simpleTree.addNode((ISEMOSSNode)prevNode.leaf, new StringClass(SimpleTreeNode.EMPTY, newLevel));     
+	                 levelAbove = newLevel;
+	            }
+            }
+            // adjust the types as its possible not all names matched.
+            // if no names matched, need to add one empty for each level first
+            this.simpleTree.adjustType(colNameInTable, true);
 			
-//			List<Object[]> da = this.getData();
-//			for(Object[] d : da) {
-//				System.out.println(Arrays.toString(d));
-//			}
-		}
+			
+			//Update the Index Tree
+			TreeNode treeRoot = this.simpleTree.nodeIndexHash.get(colNameInTable);
+			ValueTreeColumnIterator iterator = new ValueTreeColumnIterator(treeRoot);
+			while(iterator.hasNext()) {
+				this.simpleTree.appendToIndexTree(iterator.next().leftChild);
+			}
+			
+		}//EMPTY
 		else // use the flat join. This is not ideal. Not sure if we will ever actually use this
 		{
 			//TODO: CURRENTLY ADDING THE RAW VALUES IN FLATTENED-TABLE AS BOTH RAW AND CLEAN DATA IN JOIN
@@ -274,23 +277,27 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 	}
 
-	private void joinTreeLevels(String[] joinLevelNames, String colNameInJoiningTable) {
-		String[] newLevelNames = new String[this.levelNames.length + joinLevelNames.length - 1];
-		// copy old values to new
-		System.arraycopy(levelNames, 0, newLevelNames, 0, levelNames.length);
-		int newNameIdx = levelNames.length;
-		for(int i = 0; i < joinLevelNames.length; i++) {
-			String name = joinLevelNames[i];
-			if(name.equals(colNameInJoiningTable)) {
-				//skip this since the column is being joined
-			} else {
-				newLevelNames[newNameIdx] = joinLevelNames[i];
-				newNameIdx ++;
-			}
-		}
+    private String[] joinTreeLevels(String[] joinLevelNames, String colNameInJoiningTable) {
+        String[] newLevelNames = new String[this.levelNames.length + joinLevelNames.length - 1];
+        // copy old values to new
+        System.arraycopy(levelNames, 0, newLevelNames, 0, levelNames.length);
+        int newNameIdx = 0;
+        String[] onlyNewNames = new String[joinLevelNames.length - 1];
+        for(int i = 0; i < joinLevelNames.length; i++) {
+               String name = joinLevelNames[i];
+               if(name.equals(colNameInJoiningTable)) {
+                     //skip this since the column is being joined
+               } else {
+                     newLevelNames[newNameIdx + levelNames.length] = joinLevelNames[i];
+                     onlyNewNames[newNameIdx] = joinLevelNames[i];
+                     newNameIdx ++;
+               }
+        }
 
-		this.levelNames = newLevelNames;
-	}
+        this.levelNames = newLevelNames;
+        return onlyNewNames;
+ }
+
 
 	@Override
 	public void undoJoin() {
@@ -318,26 +325,43 @@ public class BTreeDataFrame implements ITableDataFrame {
 		 * 
 		 * 
 		 * */
-		
-		//Determine if this BTreeDataFrame is structurally the same as bTree arguments
+		int levelCase = 1;
+		//Determine how this BTreeDataFrame's structure compares with bTree argument's structure
 		String[] tableHeaders = bTree.getColumnHeaders();
-		boolean same = true;
 		if(tableHeaders.length == levelNames.length) {
 			for(int i = 0; i < levelNames.length; i++) {
 				if(!levelNames[i].equals(tableHeaders[i])) {
-					same = false; break;
+					levelCase = 0; break;
 				}
 			}
-		}
-		
-		if(same) {
-			simpleTree.append(this.simpleTree.getRoot(), bTree.getTree().getRoot());
 		} else {
-			//do something else which I don't know yet
-		}
-	}
-	private void mergeBranches(ISEMOSSNode node) {
+			//find which if any columns match the table
+			//should this use IAnalyticRoutine?
+		} 
 		
+		switch(levelCase) {
+			case 1: {
+				//structurally identical
+				simpleTree.append(this.simpleTree.getRoot(), bTree.getTree().getRoot()); break;
+			}
+			case 2: {
+				//subset of what to append is structurally identical
+				//find the top level of what needs to append, append each 'subTree' in a for loop
+				break;
+			}
+			case 3: {
+				//what to append is full but jumbled version of structure to append to
+				break;
+			}
+			case 4: {
+				//what to append is a jumbled subset of the structure
+				break;
+			}
+			default: {
+				//completely different, can't append
+				break;
+			}
+		}
 	}
 	
 	/***
@@ -611,9 +635,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public void removeColumn(String columnHeader) {
-		LOGGER.info("removing " + columnHeader);
-		
+		LOGGER.info("removing " + columnHeader);	
 		LOGGER.info("adujsting names");
+		
 		String[] newNames = new String[levelNames.length-1];
 		int count = 0;
 		System.out.println("cur names  " + Arrays.toString(levelNames));
@@ -675,15 +699,21 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 	
 	public static void main(String[] args) {
-		String fileName = "C:\\Users\\bisutton\\Desktop\\BTreeTester.xlsx";
-		String fileName2 = "C:\\Users\\bisutton\\Desktop\\BTreeTester2.xlsx";
-		String fileName3 = "C:\\Users\\bisutton\\Desktop\\BTreeTester3.xlsx";
-		String fileNameout = "C:\\Users\\bisutton\\Desktop\\BTreeOut.xlsx";
+//		String fileName = "C:\\Users\\bisutton\\Desktop\\BTreeTester.xlsx";
+//		String fileName2 = "C:\\Users\\bisutton\\Desktop\\BTreeTester2.xlsx";
+//		String fileName3 = "C:\\Users\\bisutton\\Desktop\\BTreeTester3.xlsx";
+//		String fileNameout = "C:\\Users\\bisutton\\Desktop\\BTreeOut.xlsx";
 		
 //		testSerializingAndDeserialing(fileName);
 //		testAppend(fileName, fileName2, fileNameout);
 //		testStoringAndWriting(fileName, fileNameout);
-		testJoin(fileName, fileName2, fileName3, fileNameout);
+		//testJoin(fileName, fileName2, fileName3, fileNameout);
+
+		TreeNode newTreeNode = new TreeNode(new StringClass("","",""));
+		BTreeIterator it = new BTreeIterator(newTreeNode);
+		while(it.hasNext()) {
+			it.next();
+		}
 	}
 	
 	private static void testSerializingAndDeserialing(String file1){
@@ -701,7 +731,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 			serialized = node.serializeTree("", vec, true, 0);
 			System.out.println("SERIALIZED " + node.leaf.getKey() + " AS " + serialized);
 				
-			SimpleTreeNode hookUp = node.deserializeTree(serialized, tester.simpleTree.nodeIndexHash);//
+			SimpleTreeNode hookUp = node.deserializeTree(serialized);//
 			
 			System.out.println("success with  " + hookUp.leaf.getValue());
 		}
@@ -804,7 +834,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	private static void write2Excel4Testing(BTreeDataFrame tester, String fileNameout){
 		XSSFWorkbook workbookout = new XSSFWorkbook();
-		XSSFSheet sheet = workbookout.createSheet("test");
+		XSSFSheet sheet = workbookout.createSheet("test"+testnum);
 		List<Object[]> data = tester.getData();
 //		Iterator<Object[]> it = tester.iterator();
 		System.out.println("got flat data. starting to write");
@@ -823,5 +853,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		System.out.println("wrote file " + fileNameout);
 		
 		Utility.writeWorkbook(workbookout, fileNameout);
+		testnum++;
 	}
 }
