@@ -20,7 +20,8 @@ import org.junit.runners.Suite.SuiteClasses;
 				WekaAprioriAlgorithTest.class,
 				WekaClassificationTest.class,
 				MatrixRegressionAlgorithmTest.class,
-				SelfOrganizingMapTest.class
+				SelfOrganizingMapTest.class,
+				CorrelationAlgorithmTest.class
 				})
 public class SuiteAlgorithm {
 
@@ -52,5 +53,8 @@ public class SuiteAlgorithm {
  * 6) SelfOrganizingMapTest
  * 	 a) executeTest_withNoDataConstructor
  * 	 b) executeTest_withDataConstructor
+ * 
+ * 7) CorrelationAlgorithmTest
+ * 	a) Execute
  */
 }

@@ -1,6 +1,5 @@
 package prerna.test;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.FileInputStream;
@@ -17,7 +16,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import prerna.algorithm.learning.supervized.CorrelationAlgorithm;
-import prerna.algorithm.learning.unsupervised.clustering.ClusteringAlgorithm;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -28,8 +26,8 @@ import prerna.util.Utility;
 /**
 *
 * @author  August Bender
-* @version 1.0
-* @since   06-09-2015 
+* @version 1.1
+* @since   06-19-2015 
 * Questions? Email abender@deloitte.com
 */
 public class CorrelationAlgorithmTest {
@@ -115,9 +113,24 @@ public class CorrelationAlgorithmTest {
 	public void executeTest(){
 		alg.execute();
 		alg.getCorrelation();
-		/*DBUG*/System.out.println("Correlation: "+alg.getCorrelation());
-		/*DBUG*/System.out.println("Covariance: "+alg.getCovariance());
-		/*DBUG*/System.out.println("getStandardDev: "+alg.getStandardDev());
+		
+		//Correlation:
+		for(int x = 0; x < alg.getCorrelation().length; x++){
+			for(int y = 0; y < alg.getCorrelation()[x].length; y++){
+					assertTrue("Correlation Vals: ", (alg.getCorrelation()[x][y] <= 1));
+			}	
+		}
+		
+		//Covariance:
+		for(int x = 0; x < alg.getCovariance().length; x++){
+			for(int y = 0; y < alg.getCovariance()[x].length; y++){
+					assertTrue("Correlation Vals: ", (alg.getCovariance()[x][y] <= 1));
+			}	
+		}
+		
+		for(int x = 0; x < alg.getStandardDev().length; x++){
+					assertTrue("Correlation Vals: ", (alg.getStandardDev()[x] <= 1));
+		}
 	}
 	
 	/** Loads an Engine based on it's .smss file path
