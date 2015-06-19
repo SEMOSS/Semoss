@@ -15,6 +15,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import prerna.algorithm.learning.unsupervised.clustering.LocalOutlierFactorAlgorithm;
 import prerna.algorithm.learning.unsupervised.clustering.SelfOrganizingMap;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -35,7 +36,7 @@ public class LocalOutlierFactorAlgorithmTest {
 	private static String workingDir = System.getProperty("user.dir");
 	static int testCounter;
 	
-	private static SelfOrganizingMap alg;
+	private static LocalOutlierFactorAlgorithm alg;
 	
 	private static ArrayList<Object[]> list;
 	private static String [] names;
@@ -113,7 +114,7 @@ public class LocalOutlierFactorAlgorithmTest {
 	
 	@Test
 	public void executeTest_withListAndNames(){
-		alg = new SelfOrganizingMap(list, names);
+		alg = new LocalOutlierFactorAlgorithm(list, names);
 		try {
 			alg.execute();
 		} catch (ArrayIndexOutOfBoundsException e){
@@ -135,11 +136,11 @@ public class LocalOutlierFactorAlgorithmTest {
 	
 	@Test
 	public void executeTest_withMasterTableAndMasterNames(){
-		alg = new SelfOrganizingMap(list, names);
+		alg = new LocalOutlierFactorAlgorithm(list, names);
 		
 		masterTable = alg.getMasterTable();
 		varNames = alg.getNames();
-		alg = new SelfOrganizingMap(masterTable, varNames);
+		alg = new LocalOutlierFactorAlgorithm(masterTable, varNames);
 		try {
 			alg.execute();
 		} catch (ArrayIndexOutOfBoundsException e){
