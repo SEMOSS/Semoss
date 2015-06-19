@@ -1342,27 +1342,36 @@ public class SimpleTreeBuilder
 	 * 
 	 * 
 	 * */
-	private void appendToIndexTree(SimpleTreeNode node) {
+	public void appendToIndexTree(SimpleTreeNode node) {
 		if(node == null) {
 			return;
 		}
 		
 		ISEMOSSNode n = (ISEMOSSNode) node.leaf;
 		TreeNode rootIndexNode = nodeIndexHash.get(n.getType());
+		
+		//If the index tree for the level does not exist, add it
+		if(rootIndexNode==null) {
+			rootIndexNode = new TreeNode(n);
+			nodeIndexHash.put(n.getType(), rootIndexNode);
+			System.err.println("Creating first index node " + n.getValue());
+		}
 
+		//loop through node and all siblings
 		while(node != null) {
 			TreeNode newNode = getNode( (ISEMOSSNode)node.leaf);
 			// search first
 			if(newNode == null) {
 				// if not found 
-				// create new node and set instances vector to the new value node
+				// create new node and set instances vector to the new value node and update the new root
 				newNode = new TreeNode(node.leaf);
 				TreeNode newRoot = rootIndexNode.insertData(newNode);
 				nodeIndexHash.put(n.getType(), newRoot);
+				rootIndexNode = newRoot;
 				newNode.addInstance(node);
+				System.err.println("Creating new index node " + node.leaf.getValue());
 			} else {
-				// if found
-				// add instance to existing TreeNode
+				// if found add instance to existing TreeNode 
 				newNode.getInstances().add(node);
 			}
 			
