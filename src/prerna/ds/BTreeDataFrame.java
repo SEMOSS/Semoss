@@ -171,9 +171,13 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 			SimpleTreeBuilder passedBuilder = passedTree.getBuilder();
 			Map<String, TreeNode> newIdxHash = new HashMap<String, TreeNode>();
+			Map<String, TreeNode> newIdxHash2 = new HashMap<String, TreeNode>();
 			TreeNode passedRootNode = passedBuilder.nodeIndexHash.remove(colNameInJoiningTable); //TODO: is there a better way to get the type? I don't think this is reliable
 			Vector passedSearchVector = new Vector();
 			passedSearchVector.addElement(passedRootNode);
+
+			// TODO: is this necessary prior to join? 
+			this.simpleTree.adjustType(colNameInTable, true);
 
 			// Iterate for every row in the matched table
 			for(Object[] flatMatchedRow : flatMatched) { // for each matched item
@@ -200,13 +204,39 @@ public class BTreeDataFrame implements ITableDataFrame {
 				// hook up passed tree node with each instance of this tree node
 				for(int instIdx = 0; instIdx < thisInstances.size(); instIdx++){
 					SimpleTreeNode myNode = thisInstances.get(instIdx);
-					SimpleTreeNode hookUp = SimpleTreeNode.deserializeTree(serialized, newIdxHash);
-					SimpleTreeNode.addLeafChild(myNode, hookUp);
+					SimpleTreeNode hookUp = SimpleTreeNode.deserializeTree(serialized, newIdxHash2);
+					newIdxHash.putAll(SimpleTreeNode.addLeafChild(myNode, hookUp));
 				}
 			}
+			this.simpleTree.nodeIndexHash.putAll(newIdxHash2);
 			this.simpleTree.nodeIndexHash.putAll(newIdxHash);
+//			for(String key: newIdxHash2.keySet()) {
+//				TreeNode t2 = newIdxHash.get(key);
+//				if(t2==null) continue;
+//				TreeNode t = this.simpleTree.nodeIndexHash.get(key);
+//				IndexTreeIterator iterator = new IndexTreeIterator(t2);
+//				while(iterator.hasNext()) {
+//					t = t.insertData(iterator.next());
+//					this.simpleTree.nodeIndexHash.put(key, t);
+//				}
+//			}
+//			for(String key: newIdxHash.keySet()) {
+//				TreeNode t2 = newIdxHash.get(key);
+//				if(t2==null) continue;
+//				TreeNode t = this.simpleTree.nodeIndexHash.get(key);
+//				IndexTreeIterator iterator = new IndexTreeIterator(t2);
+//				while(iterator.hasNext()) {
+//					t = t.insertData(iterator.next());
+//					this.simpleTree.nodeIndexHash.put(key, t);
+//				}
+//			}
 			// adjust all levels with the new addition
-			 this.simpleTree.adjustType(this.levelNames[levelNames.length-2], true);
+			this.simpleTree.adjustType(levelNames[levelNames.length-2], true);
+			
+//			List<Object[]> da = this.getData();
+//			for(Object[] d : da) {
+//				System.out.println(Arrays.toString(d));
+//			}
 		}
 		else // use the flat join. This is not ideal. Not sure if we will ever actually use this
 		{
@@ -587,6 +617,12 @@ public class BTreeDataFrame implements ITableDataFrame {
 		String[] newNames = new String[levelNames.length-1];
 		int count = 0;
 		System.out.println("cur names  " + Arrays.toString(levelNames));
+		
+//		if(ArrayUtilityMethods.arrayContainsValue(levelNames, columnHeader)) {
+//			LOGGER.error("Unable to remove column " + columnHeader + ". Column does not exist in table");
+//			return;
+//		}
+		
 		for(String name : levelNames){
 			if (count >= newNames.length && (!name.equals(columnHeader))) { // this means a column header was passed in that doesn't exist in the tree
 				LOGGER.error("Unable to remove column " + columnHeader + ". Column does not exist in table");
