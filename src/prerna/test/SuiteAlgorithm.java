@@ -4,13 +4,13 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
-import prerna.algorithm.learning.unsupervised.clustering.PartitionedClusteringAlgorithm;
+import prerna.algorithm.learning.unsupervised.clustering.WekaClassification;
 
 /**
 *
 * @author  August Bender
 * @version 1.0
-* @since   06-09-2015 
+* @since   06-19-2015 
 * Questions? Email abender@deloitte.com
 */
 
@@ -19,8 +19,10 @@ import prerna.algorithm.learning.unsupervised.clustering.PartitionedClusteringAl
 				ClusteringAlgorithmTest.class, 
 				LocalOutlierFactorAlgorithmTest.class,
 				PartitionedClusteringAlgorithmTest.class,
-				WekaAprioriAlgorithTest.class ,
-				MatrixRegressionAlgorithmTest.class
+				WekaAprioriAlgorithTest.class,
+				WekaClassificationTest.class,
+				MatrixRegressionAlgorithmTest.class,
+				SelfOrganizingMapTest.class
 				})
 public class SuiteAlgorithm {
 
@@ -41,5 +43,16 @@ public class SuiteAlgorithm {
  * 	 a) Execute
  *   b) generateDecisionRuleVizualization
  *	 c) generateDecisionRuleTable
+ *
+ * 4) WekaClassificationTest
+ * 	 a) Execute
+ *   b) processTreeString
+ *   
+ * 5) MatrixRegressionAlgorithmTest
+ * 	 a) Execute
+ * 
+ * 6) SelfOrganizingMapTest
+ * 	 a) executeTest_withNoDataConstructor
+ * 	 b) executeTest_withDataConstructor
  */
 }
