@@ -470,7 +470,7 @@ public class SimpleTreeNode {
 		}
 	}
 
-	public static Map<String, TreeNode> addLeafChild(SimpleTreeNode parentNode, SimpleTreeNode node)
+	public static void addLeafChild(SimpleTreeNode parentNode, SimpleTreeNode node)
 	{
 		// the idea here is it will go to the ultimate child of this node and add it there
 		// this is useful when there is a non-linear join that will happen
@@ -502,7 +502,6 @@ public class SimpleTreeNode {
 			parentNode.addChild(node);
 		}
 		
-		return returnMap;
 	}
 		
 	public static void deleteNode(SimpleTreeNode node)
