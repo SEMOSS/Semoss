@@ -17,6 +17,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import prerna.algorithm.learning.unsupervised.clustering.ClusteringAlgorithm;
+import prerna.algorithm.learning.unsupervised.clustering.PartitionedClusteringAlgorithm;
 import prerna.algorithm.learning.unsupervised.clustering.WekaClassification;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -37,7 +38,7 @@ public class PartitionedClusteringAlgorithmTest {
 	private static String workingDir = System.getProperty("user.dir");
 	static int testCounter;
 	
-	private static WekaClassification cluster;
+	private static PartitionedClusteringAlgorithm cluster;
 	private static ArrayList<Object[]> masterTable;
 	private static String[] varNames;
 	
@@ -99,7 +100,7 @@ public class PartitionedClusteringAlgorithmTest {
 	public void setUp(){
 		testCounter++;
 		System.out.println("Test " + testCounter + " starting..");
-		cluster = new WekaClassification(masterTable, varNames);
+		cluster = new PartitionedClusteringAlgorithm(masterTable, varNames);
 	}
 	
 	@After
