@@ -15,7 +15,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import prerna.algorithm.learning.unsupervised.som.SelfOrganizingMap;
+import prerna.algorithm.learning.unsupervised.som.*;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
