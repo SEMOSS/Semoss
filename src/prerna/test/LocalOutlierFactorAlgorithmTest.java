@@ -16,7 +16,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import prerna.algorithm.learning.unsupervised.clustering.LocalOutlierFactorAlgorithm;
-import prerna.algorithm.learning.unsupervised.clustering.SelfOrganizingMap;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
