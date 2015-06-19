@@ -16,8 +16,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import prerna.algorithm.learning.unsupervised.clustering.ClusteringAlgorithm;
-import prerna.algorithm.learning.unsupervised.clustering.WekaClassification;
+import prerna.algorithm.learning.weka.WekaClassification;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -29,19 +28,20 @@ import prerna.util.Utility;
 *
 * @author  August Bender
 * @version 1.0
-* @since   06-09-2015 
+* @since   06-19-2015 
 * Questions? Email abender@deloitte.com
 */
-public class PartitionedClusteringAlgorithmTest {
+public class WekaClassificationTest {
 
 	private static String workingDir = System.getProperty("user.dir");
-	static int testCounter;
-	
-	private static WekaClassification cluster;
+	private int testCounter;
+
+	WekaClassification alg;
 	private static ArrayList<Object[]> masterTable;
 	private static String[] varNames;
 	
-	private static int numOfClusters = 2;
+	private String modelName; 
+	private int classIndex = 0;
 	
 	@BeforeClass 
 	public static void setUpOnce(){
@@ -70,7 +70,7 @@ public class PartitionedClusteringAlgorithmTest {
 				+ "{?Title <http://semoss.org/ontologies/Relation/DirectedBy> ?Director}"
 				+ "{?Title <http://semoss.org/ontologies/Relation/BelongsTo> ?Genre}"
 				+ "{?Title <http://semoss.org/ontologies/Relation/Was> ?Nominated}"
-				+ "{?Title <http://semoss.org/ontologies/Relation/DirectedAt> ?Studio}} ORDER BY ?Title  LIMIT 10";
+				+ "{?Title <http://semoss.org/ontologies/Relation/DirectedAt> ?Studio}} ORDER BY ?Title  LIMIT 20";
 		
 		BigDataEngine engine = loadEngine(engineLocation);
 		
@@ -99,12 +99,13 @@ public class PartitionedClusteringAlgorithmTest {
 	public void setUp(){
 		testCounter++;
 		System.out.println("Test " + testCounter + " starting..");
-		cluster = new WekaClassification(masterTable, varNames);
+		
 	}
 	
 	@After
 	public void tearDown(){
 		System.out.println("Test " + testCounter + " ended..");
+		alg = null;
 	}
 	
 	@AfterClass
@@ -113,30 +114,60 @@ public class PartitionedClusteringAlgorithmTest {
 	}
 	
 	@Test
-	public void generateBaseClusterInformationTest(){
-		cluster.setDataVariables();
-		cluster.generateBaseClusterInformation(numOfClusters);
-		assertTrue("Execute Successful..", true);
-		//No public way to see change in data without relying on other methods.
-		//If the method throws an error the test will fail.
-	}
-	
-	@Test
-	public void generateInitialClustersTest(){
-		cluster.setDataVariables();
-		cluster.generateInitialClusters();
-		assertTrue("Execute Successful..", true);
-		//No public way to see change in data without relying on other methods.
-		//If the method throws an error the test will fail.
+	public void processTreeStringTest(){
+		modelName = "J48";
+		alg = new WekaClassification(masterTable, varNames, modelName, classIndex);
+		
+		try {
+			alg.execute();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		alg.processTreeString();
+
+		//Accuracy 
+		assertTrue("Accuracy...", (alg.getAccuracy() == 0.0));
+
+		for (int i = 0; i < alg.getAccuracyArr().size(); i++) {
+			assertTrue("Accuracy...", (alg.getAccuracyArr().get(i) == 0.0));
+		}
+
+		// Precision
+		assertTrue("Precision...", (alg.getPrecision() == 0.0));
+
+		for (int i = 0; i < alg.getPrecisionArr().size(); i++) {
+			assertTrue("Accuracy...", (alg.getPrecisionArr().get(i) == 0.0));
+		}
 	}
 	
 	@Test
 	public void executeTest(){
-		cluster.setDataVariables();
-		cluster.generateBaseClusterInformation(numOfClusters);
-		cluster.generateInitialClusters();
+		modelName = "J48";
+		alg = new WekaClassification(masterTable, varNames, modelName, classIndex);
+		
+		try {
+			alg.execute();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
-		assertTrue("Execute Successful..", cluster.execute());
+		//Assertions
+		//Accuracy 
+		assertTrue("Accuracy...", (alg.getAccuracy() == 0.0));
+		
+		for(int i =0; i < alg.getAccuracyArr().size(); i++){
+			assertTrue("Accuracy...", (alg.getAccuracyArr().get(i) == 0.0));
+		}
+		
+		//Precision
+		assertTrue("Precision...", (alg.getPrecision() == 0.0));
+		
+		for(int i =0; i < alg.getPrecisionArr().size(); i++){
+			assertTrue("Accuracy...", (alg.getPrecisionArr().get(i) == 0.0));
+		}
+		
+
 	}
 	
 	/** Loads an Engine based on it's .smss file path
