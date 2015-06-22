@@ -951,6 +951,9 @@ public class SimpleTreeNode {
 			if(newList.size() == levels){
 				table.add(newList.toArray());
 			}
+			else {
+				System.err.println("not a complete row " + newList.toString());
+			}
 		}
 	}
 	
