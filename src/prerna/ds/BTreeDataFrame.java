@@ -78,7 +78,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		} else if(value instanceof Number) {
 			node = new DoubleClass((double)value, (double)value, level);
 		} else if(value instanceof String) {
-			System.out.println(rawValue);
 			node = new StringClass((String)value, (String) rawValue.toString(), level);
 		}
 //		else if(value instanceof Boolean) {
@@ -151,7 +150,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		ITableDataFrame matched = routine.runAlgorithm(this, table);
 	
 		if(table instanceof BTreeDataFrame){
-			String type = null;
 			BTreeDataFrame passedTree = (BTreeDataFrame) table;
 			//Here is the logic that this should use.
 			// Iterate for every row in the matched table
@@ -164,6 +162,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 			String[] columnNames = passedTree.getColumnHeaders();
 			// add the new data to this tree
 			LOGGER.info("Augmenting tree");
+			int origLength = this.levelNames.length;
 			String[] newLevels = joinTreeLevels(columnNames, colNameInJoiningTable); // need to add new levels to this tree's level array
 			List<Object[]> flatMatched = matched.getData();// TODO: this could be replaced with nextRow or getRow method directly on the tree
 
@@ -188,7 +187,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 				matches = true;
 				Object item1 = flatMatchedRow[0];
 				Object item2 = flatMatchedRow[1];
-				System.out.println(item1 + "           " + item2);
+//				System.out.println(item1 + "           " + item2);//
 				// search for tree node in this table and tree node in passed table
 				TreeNode thisSearchNode = new TreeNode(createNodeObject(item1, item1, colNameInTable)); //TODO: how do we generically do this...?
 				TreeNode thisTreeNode = thisRootNode.getNode(thisSearchVector, thisSearchNode, false);
@@ -230,7 +229,8 @@ public class BTreeDataFrame implements ITableDataFrame {
             }
             // adjust the types as its possible not all names matched.
             // if no names matched, need to add one empty for each level first
-            this.simpleTree.adjustType(colNameInTable, true);
+            System.err.println("Adjusting on type "+this.levelNames[origLength - 1]);
+            this.simpleTree.adjustType(this.levelNames[origLength - 1], true);
 			
 			
 			//Update the Index Tree
@@ -753,7 +753,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		BTreeDataFrame joiner = load2Tree4Testing(file2);
 		String[] names2 = joiner.getColumnHeaders();
 		try {
-			tester.join(joiner, names1[names1.length-2], names2[0], 1, new ExactStringMatcher());
+			tester.join(joiner, names1[names1.length-1], names2[0], 1, new ExactStringMatcher());
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

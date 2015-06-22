@@ -4,11 +4,9 @@ public class DoubleClass implements ISEMOSSNode {
 
 	double value;
 	String type = null;
-	double rawValue;
 	
 	public DoubleClass(double d, double r, String t) {
 		value = d;
-		rawValue = r;
 		type = t;
 	}
 
@@ -37,8 +35,7 @@ public class DoubleClass implements ISEMOSSNode {
 		}
 		String ret = className + "###" + 
 				"innerString==="+this.value +
-				"&&&type==="+this.type +
-				"&&&rawValue==="+this.rawValue;
+				"&&&type==="+this.type;
 		return ret;
 	}
 	
@@ -56,9 +53,6 @@ public class DoubleClass implements ISEMOSSNode {
 				}
 				else if(name.equals("type")){
 					this.type = value;
-				}
-				else if(name.equals("rawValue")){
-					this.rawValue = Double.parseDouble(value);
 				}
 			}
 		}
@@ -103,7 +97,7 @@ public class DoubleClass implements ISEMOSSNode {
 
 	@Override
 	public Object getRawValue() {
-		return this.rawValue;
+		return this.value;
 	}
 
 	@Override

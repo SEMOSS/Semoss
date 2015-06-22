@@ -1074,7 +1074,7 @@ public class TreeNode {
 		
 		//root.printRecords(root);
 		//root.flattenRoots(root, true);
-		System.out.println("----");
+//		System.out.println("----");
 		String serializedOutput = root.serializeTree("", nodes, true, 1);
 		System.out.println("Output of serialized ..  "  + serializedOutput);
 		
@@ -1178,7 +1178,7 @@ public class TreeNode {
 			for(int idx = 0;idx < parentNodeList.size();idx++)
 				System.err.print(">>" + parentNodeList.get(idx).leaf.getKey() + ":");
 			System.err.print(node.leaf.getKey());
-			System.err.println("----");
+//			System.err.println("----");
 
 		}
 	}
@@ -1209,8 +1209,8 @@ public class TreeNode {
 		}
 		else
 		{			
-			//System.err.print("Reached the else. Here is my leaf");
-			//System.err.println("----");
+//			System.err.print("Reached the else. Here is my leaf");
+//			System.err.println("----");
 
 		}
 	}
@@ -1241,8 +1241,8 @@ public class TreeNode {
 		}
 		else
 		{			
-			//System.err.print("Reached the else. Here is my leaf");
-			//System.err.println("----");
+//			System.err.print("Reached the else. Here is my leaf");
+//			System.err.println("----");
 
 		}
 	}
@@ -1267,7 +1267,7 @@ public class TreeNode {
 				for(int idx = 0;idx < parentNodeList.size();idx++)
 					System.err.print(">>" + parentNodeList.get(idx).leaf.getKey() + ":");
 				System.err.print(node.leaf.getKey());
-				System.err.println("----");
+//				System.err.println("----");
 	
 			}
 	}
@@ -1287,7 +1287,7 @@ public class TreeNode {
 			else
 			{
 				System.err.print(node.leaf.getKey());
-				System.err.println("----");
+//				System.err.println("----");
 	
 			}
 	}
@@ -1307,7 +1307,7 @@ public class TreeNode {
 			else
 			{
 				System.err.print(node.leaf.getKey());
-				System.err.println("----");
+//				System.err.println("----");
 	
 			}
 	}
