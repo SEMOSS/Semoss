@@ -1,7 +1,6 @@
 package prerna.algorithm.impl;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,10 +17,12 @@ import prerna.om.SEMOSSParam;
 public class ExactStringMatcher implements IAnalyticRoutine {
 
 	private static final Logger LOGGER = LogManager.getLogger(ExactStringMatcher.class.getName());
-	private List<SEMOSSParam> options;
+	
 	public final String COLUMN_ONE_KEY = "table1Col";
 	public final String COLUMN_TWO_KEY = "table2Col";
-	private Map<String, Object> resultMetadata = new HashMap<String, Object>();
+	
+	protected List<SEMOSSParam> options;
+	protected Map<String, Object> resultMetadata = new HashMap<String, Object>();
 	
 	public ExactStringMatcher(){
 		this.options = new ArrayList<SEMOSSParam>();
@@ -84,7 +85,7 @@ public class ExactStringMatcher implements IAnalyticRoutine {
 		return results;
 	}
 
-	private ITableDataFrame performMatch(Object[] table1Col, Object[] table2Col) {
+	protected ITableDataFrame performMatch(Object[] table1Col, Object[] table2Col) {
 		String table1ValueKey = "Table1Value";
 		String table2ValueKey = "Table2Value";
 		
@@ -112,7 +113,7 @@ public class ExactStringMatcher implements IAnalyticRoutine {
 		return bTree;
 	}
 	
-	private boolean match(Object obj1, Object obj2){
+	protected boolean match(Object obj1, Object obj2){
 		return obj1.equals(obj2);
 	}
 
