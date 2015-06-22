@@ -8,9 +8,9 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 
-public class BTreeStore extends Hashtable<String, ITableDataFrame> {
+public class ITableDataFrameStore extends Hashtable<String, ITableDataFrame> {
 
-	private static final Logger LOGGER = LogManager.getLogger(BTreeStore.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(ITableDataFrameStore.class.getName());
 
 	/**
 	 * If we serialize all table data frames currently held in memory
@@ -20,18 +20,18 @@ public class BTreeStore extends Hashtable<String, ITableDataFrame> {
 	/**
 	 * Singleton for the class
 	 */
-	private static BTreeStore store;
+	private static ITableDataFrameStore store;
 	
 	/**
 	 * Constructor for class
 	 */
-	private BTreeStore() {
+	private ITableDataFrameStore() {
 		// do nothing
 	}
 
-	public static BTreeStore getInstance() {
+	public static ITableDataFrameStore getInstance() {
 		if(store == null) {
-			store = new BTreeStore();
+			store = new ITableDataFrameStore();
 		}
 		return store; 
 	}
