@@ -5,7 +5,6 @@ public class IntClass implements ISEMOSSNode{
 
 	int value;
 	String type = null;
-	int rawValue;
 	
 	public IntClass(int value)
 	{
@@ -30,7 +29,6 @@ public class IntClass implements ISEMOSSNode{
 	public IntClass(int value, int rawValue, String type) {
 		this.value = value;
 		this.type = type;
-		this.rawValue = rawValue;
 	}
 	
 	@Override
@@ -44,8 +42,7 @@ public class IntClass implements ISEMOSSNode{
 		}
 		String ret = className + "###" + 
 				"innerString==="+this.value +
-				"&&&type==="+this.type +
-				"&&&rawValue==="+this.rawValue;
+				"&&&type==="+this.type ;
 		return ret;
 	}
 	
@@ -63,9 +60,6 @@ public class IntClass implements ISEMOSSNode{
 				}
 				else if(name.equals("type")){
 					this.type = value;
-				}
-				else if(name.equals("rawValue")){
-					this.rawValue = Integer.parseInt(value);
 				}
 			}
 		}
@@ -109,7 +103,7 @@ public class IntClass implements ISEMOSSNode{
 
 	@Override
 	public Object getRawValue() {
-		return this.rawValue;
+		return this.value;
 	}
 
 	@Override
