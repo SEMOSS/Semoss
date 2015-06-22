@@ -196,6 +196,70 @@ public class SimpleTreeBuilder
 		return getSInstanceNodes(nodeType).size();
 	}
 	
+	/**
+	 * 
+	 * @param level
+	 * @param height - distance from @param to leaf level in the simple tree
+	 * 
+	 * removes branches that do not reach to the leaf level
+	 */
+	public void removeBranchesWithoutMaxTreeHeight(String level, int height) {
+		TreeNode rootNodeForType = nodeIndexHash.get(level);
+		if(rootNodeForType == null) return;
+		
+		ValueTreeColumnIterator it = new ValueTreeColumnIterator(rootNodeForType);
+		while(it.hasNext()) {
+			SimpleTreeNode nextNode = it.next();
+			removeEmptyRows(nextNode, 0, height);
+		}
+	}
+	
+	private void removeEmptyRows(SimpleTreeNode n, int start, int height) {
+		if(start < height) {
+			if (n.leftChild == null) {
+				//remove this node, and go up the tree
+				removeRow(n);
+			} else {
+				removeEmptyRows(n.leftChild, ++start, height);
+				if(n.rightSibling!=null) {
+					removeEmptyRows(n.rightSibling, start, height);
+				}
+			}
+		}
+	}
+	
+	private void removeRow(SimpleTreeNode leafNode2remove) {
+		
+		SimpleTreeNode parentNode = leafNode2remove.parent;
+		SimpleTreeNode nodeRightSibling = leafNode2remove.rightSibling;
+		SimpleTreeNode nodeLeftSibling = leafNode2remove.leftSibling;
+		
+		//isolate node2filter from siblings and rewire the connections
+		if(nodeRightSibling != null && nodeLeftSibling != null) {
+			//in the middle
+			nodeRightSibling.leftSibling = nodeLeftSibling;
+			nodeLeftSibling.rightSibling = nodeRightSibling;
+		} 
+		else if(nodeRightSibling == null && nodeLeftSibling != null) {
+			//right most
+			nodeLeftSibling.rightSibling = null;
+		} 
+		else if(nodeRightSibling != null && nodeLeftSibling == null) {
+			//left most
+			if(parentNode!=null) {
+				parentNode.leftChild = nodeRightSibling;
+			}
+			nodeRightSibling.leftSibling = null;
+		} else {
+			//only child
+			if(parentNode!=null) {
+				removeRow(parentNode);
+			}
+		}
+		
+		leafNode2remove = null;
+	}
+	
 	public void adjustType(String type, boolean recurse)
 	{
 		// the point here is to ensure that the type is being adjusted so that the levels are taken care of
@@ -1338,7 +1402,7 @@ public class SimpleTreeBuilder
 	}
 	
 	/**
-	 * This method recursively adds a node and it's children to the appropriate index trees
+	 * This method recursively adds a SimpleTreeNode and it's children to the appropriate index trees
 	 * 
 	 * 
 	 * 
@@ -1355,7 +1419,6 @@ public class SimpleTreeBuilder
 		if(rootIndexNode==null) {
 			rootIndexNode = new TreeNode(n);
 			nodeIndexHash.put(n.getType(), rootIndexNode);
-			System.err.println("Creating first index node " + n.getValue());
 		}
 
 		//loop through node and all siblings
@@ -1370,7 +1433,7 @@ public class SimpleTreeBuilder
 				nodeIndexHash.put(n.getType(), newRoot);
 				rootIndexNode = newRoot;
 				newNode.addInstance(node);
-				System.err.println("Creating new index node " + node.leaf.getValue());
+
 			} else {
 				// if found add instance to existing TreeNode 
 				newNode.getInstances().add(node);
