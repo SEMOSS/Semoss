@@ -78,11 +78,28 @@ public class IntClass implements ISEMOSSNode{
 
 	@Override
 	public boolean isLeft(ITreeKeyEvaluatable object) {
-		return this.value > ((IntClass)object).value;
+		boolean val = false;
+		try {
+			val = this.value > ((IntClass)object).value;
+		} catch (ClassCastException e) {
+			try {
+				val = this.value > ((DoubleClass)object).value;
+			} catch (ClassCastException e2) {
+				return false;
+			}
+		}
+		return val;
 	}
+	
 	@Override
 	public boolean isEqual(ITreeKeyEvaluatable object) {
-		return this.value == ((IntClass)object).value;
+		boolean val = false;
+		try {
+			val = this.value == ((IntClass)object).value;
+		} catch (ClassCastException e) {
+			return false;
+		}
+		return val;
 	}
 
 	@Override
