@@ -220,9 +220,11 @@ public class SimpleTreeBuilder
 				//remove this node, and go up the tree
 				removeRow(n);
 			} else {
-				removeEmptyRows(n.leftChild, ++start, height);
+				SimpleTreeNode child = n.leftChild;
+				SimpleTreeNode sibling = n.rightSibling;
+				removeEmptyRows(child, ++start, height);
 				if(n.rightSibling!=null) {
-					removeEmptyRows(n.rightSibling, start, height);
+					removeEmptyRows(sibling, start, height);
 				}
 			}
 		}
