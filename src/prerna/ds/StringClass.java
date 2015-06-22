@@ -1,8 +1,5 @@
 package prerna.ds;
 
-import java.lang.reflect.Field;
-import java.util.StringTokenizer;
-
 public class StringClass implements ISEMOSSNode {
 	
 	String innerString = null;

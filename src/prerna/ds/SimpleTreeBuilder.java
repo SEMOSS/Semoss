@@ -229,7 +229,8 @@ public class SimpleTreeBuilder
 			// if they do
 			// we then pick that type and create an empty node and attach it to those that do not have a children
 			SimpleTreeNode child = null;
-			for(int instanceIndex = 0;instanceIndex < typeInstances.size() && (child == null || (child != null && child.leaf.getKey().equalsIgnoreCase(SimpleTreeNode.EMPTY)));instanceIndex++)
+//			for(int instanceIndex = 0;instanceIndex < typeInstances.size() && (child == null || (child != null && child.leaf.getKey().equalsIgnoreCase(SimpleTreeNode.EMPTY)));instanceIndex++)
+			for(int instanceIndex = 0;instanceIndex < typeInstances.size() && (child == null );instanceIndex++)
 				child = typeInstances.elementAt(instanceIndex).leftChild;
 
 			if(child == null) // nothing to do here 
