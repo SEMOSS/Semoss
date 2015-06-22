@@ -81,40 +81,46 @@ public class StringClass implements ISEMOSSNode {
 
 	@Override
 	public boolean isLeft(ITreeKeyEvaluatable object) {
-		// TODO Auto-generated method stub
-		return ((((StringClass)object).innerString.compareTo(innerString)) > 0);
+		boolean val = false;
+		try {
+			val = ((((StringClass)object).innerString.compareTo(innerString)) > 0);
+		} catch (ClassCastException e) {
+			return true;
+		}
+		return val;
 	}
 
 	@Override
 	public boolean isEqual(ITreeKeyEvaluatable object) {
-		// TODO Auto-generated method stub
-		return ((StringClass)object).innerString.compareTo(innerString) == 0;
+		boolean val = false;
+		try {
+			val = ((StringClass)object).innerString.compareTo(innerString) == 0;
+		} catch (ClassCastException e) {
+			return false;
+		}
+		return val;
 	}
 
 
 	@Override
 	public String getValue() {
-		// TODO Auto-generated method stub
 		return this.innerString;
 	}
 
 
 	@Override
 	public String getType() {
-		// TODO Auto-generated method stub
 		return this.type;
 	}
 
 
 	@Override
 	public VALUE_TYPE getValueType() {
-		// TODO Auto-generated method stub
 		return ISEMOSSNode.VALUE_TYPE.NOMINAL;
 	}
 
 	@Override
 	public String getRawValue() {
-		// TODO Auto-generated method stub
 		return this.rawValue;
 	}
 }
