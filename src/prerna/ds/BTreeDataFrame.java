@@ -92,7 +92,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 	@Override
 	public List<Object[]> getData() {
 		List<Object[]> table = new ArrayList<Object[]>();
+		
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[0]);
+		//TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);
 		if(typeRoot == null){
 			LOGGER.info("Table is empty............................");
 			return table;
@@ -101,7 +103,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		leftRootNode = leftRootNode.getLeft(leftRootNode);
 
 		leftRootNode.flattenTreeFromRoot(leftRootNode, new Vector<Object>(), table, levelNames.length);
-
+		
 		return table;
 	}
 	
@@ -215,23 +217,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 					
 				}
 			}
-
-            // need to make sure at least one node has been added for each level
-            // if no nodes have been added, add an empty node--adjust type will add the rest
-            String levelAbove = colNameInTable;
-            if(!matches) {
-	            for(int nameIdx = 0; nameIdx < newLevels.length; nameIdx++){
-	                 String newLevel = newLevels[nameIdx];            
-	                 TreeNode prevNode = this.simpleTree.nodeIndexHash.get(levelAbove);
-	                 this.simpleTree.addNode((ISEMOSSNode)prevNode.leaf, new StringClass(SimpleTreeNode.EMPTY, newLevel));     
-	                 levelAbove = newLevel;
-	            }
-            }
-            // adjust the types as its possible not all names matched.
-            // if no names matched, need to add one empty for each level first
-            System.err.println("Adjusting on type "+this.levelNames[origLength - 1]);
-            this.simpleTree.adjustType(this.levelNames[origLength - 1], true);
 			
+			this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[origLength - 1], (levelNames.length-origLength-1));
 			
 			//Update the Index Tree
 			TreeNode treeRoot = this.simpleTree.nodeIndexHash.get(colNameInTable);
