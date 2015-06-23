@@ -18,11 +18,13 @@ public class StringClass implements ISEMOSSNode {
 	public StringClass(String innerString)
 	{
 		this.innerString = innerString;
+		this.rawValue = innerString;
 	}
 	
 	public StringClass(String innerString, String type)
 	{
 		this.innerString = innerString;
+		this.rawValue = innerString;
 		this.type = type;
 	}
 	
