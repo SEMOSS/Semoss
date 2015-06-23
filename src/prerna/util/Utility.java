@@ -653,7 +653,6 @@ public class Utility {
 		retString = retString.replaceAll("\n", " ");
 		retString = retString.replaceAll("<", "(");
 		retString = retString.replaceAll(">", ")");
-		retString = retString.replaceAll(",", "");
 
 		return retString;
 	}
