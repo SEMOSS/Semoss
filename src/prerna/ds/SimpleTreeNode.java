@@ -944,6 +944,12 @@ public class SimpleTreeNode {
 		}
 		else {
 			Vector<Object> newList = getNewVector(parentNodeList);
+			
+			try {
+				node.leaf.getRawValue();
+			} catch (NullPointerException e) {
+				e.printStackTrace();
+			}
 			newList.add(node.leaf.getRawValue());
 //			while(newList.size() < levels) {
 //				newList.add(null);
