@@ -62,6 +62,13 @@ public class BTreeDataFrame implements ITableDataFrame {
 		for(int index = 0; index < levelNames.length; index++) {
 			Object val = rowCleanData.get(levelNames[index]);
 			Object rawVal = rowRawData.get(levelNames[index]);
+			//TODO: better way of doing this????
+			if(val.toString().isEmpty()) {
+				val = SimpleTreeNode.EMPTY;
+			}
+			if(rawVal.toString().isEmpty()) {
+				rawVal = SimpleTreeNode.EMPTY;
+			}
 			row[index] = createNodeObject(val, rawVal, levelNames[index]);
 
 		}
@@ -184,37 +191,61 @@ public class BTreeDataFrame implements ITableDataFrame {
 			this.simpleTree.adjustType(colNameInTable, true);
 
 			// Iterate for every row in the matched table
-			boolean matches = false;
 			for(Object[] flatMatchedRow : flatMatched) { // for each matched item
-				matches = true;
 				Object item1 = flatMatchedRow[0];
 				Object item2 = flatMatchedRow[1];
-//				System.out.println(item1 + "           " + item2);//
+				
+				System.out.println(item1 + "           " + item2);//
 				// search for tree node in this table and tree node in passed table
 				TreeNode thisSearchNode = new TreeNode(createNodeObject(item1, item1, colNameInTable)); //TODO: how do we generically do this...?
 				TreeNode thisTreeNode = thisRootNode.getNode(thisSearchVector, thisSearchNode, false);
 				Vector <SimpleTreeNode> thisInstances = thisTreeNode.getInstances();
 //				System.out.println(thisInstances.size());
 				
-				TreeNode passedSearchNode = new TreeNode(createNodeObject(item2, item2, colNameInJoiningTable)); //TODO: how do we generically do this...?
-				TreeNode passedTreeNode = passedRootNode.getNode(passedSearchVector, passedSearchNode, false);
-				Vector <SimpleTreeNode> passedInstances = passedTreeNode.getInstances();
-//				System.out.println(passedInstances.size()); // this should be 1 since right now we are assuming roots
-				SimpleTreeNode instance2HookUp = passedInstances.get(0).leftChild;
+				// in the case of a partial outer join
+				if(item2.equals(SimpleTreeNode.EMPTY)) {
+					ITreeKeyEvaluatable emptyVal = new StringClass(SimpleTreeNode. EMPTY,SimpleTreeNode.EMPTY, columnNames[1]);
+					SimpleTreeNode instance2HookUp = new SimpleTreeNode(emptyVal);
+					SimpleTreeNode dummy = instance2HookUp;
+					int i = 1;
+					while(i < columnNames.length-1) {
+						ITreeKeyEvaluatable newEmptyVal = new StringClass(SimpleTreeNode. EMPTY,SimpleTreeNode.EMPTY, columnNames[i+1]);
+						SimpleTreeNode newEmpty = new SimpleTreeNode(newEmptyVal);
+						dummy.leftChild = newEmpty;
+						newEmpty.parent = dummy;
+						dummy = newEmpty;
+						i++;
+					}
 
-				Vector<SimpleTreeNode> vec = new Vector<SimpleTreeNode>();
-				vec.add(instance2HookUp);
-				String serialized = SimpleTreeNode.serializeTree("", vec, true, 0);
-//				System.out.println("SERIALIZED " + instance2HookUp.leaf.getKey() + " AS " + serialized);
+					Vector<SimpleTreeNode> vec = new Vector<SimpleTreeNode>();
+					vec.add(instance2HookUp);
+					String serialized = SimpleTreeNode.serializeTree("", vec, true, 0);
 					
-				// hook up passed tree node with each instance of this tree node
-				
-				for(int instIdx = 0; instIdx < thisInstances.size(); instIdx++){
+					for(int instIdx = 0; instIdx < thisInstances.size(); instIdx++){
+						SimpleTreeNode myNode = thisInstances.get(instIdx);
+						SimpleTreeNode hookUp = SimpleTreeNode.deserializeTree(serialized);
+						SimpleTreeNode.addLeafChild(myNode, hookUp);
+					}
 					
-					SimpleTreeNode myNode = thisInstances.get(instIdx);
-					SimpleTreeNode hookUp = SimpleTreeNode.deserializeTree(serialized);
-					SimpleTreeNode.addLeafChild(myNode, hookUp);
-					
+				} else {
+//					
+					TreeNode passedSearchNode = new TreeNode(createNodeObject(item2, item2, colNameInJoiningTable)); //TODO: how do we generically do this...?
+					TreeNode passedTreeNode = passedRootNode.getNode(passedSearchVector, passedSearchNode, false);
+					Vector <SimpleTreeNode> passedInstances = passedTreeNode.getInstances();
+//					System.out.println(passedInstances.size()); // this should be 1 since right now we are assuming roots
+					SimpleTreeNode instance2HookUp = passedInstances.get(0).leftChild;
+	
+					Vector<SimpleTreeNode> vec = new Vector<SimpleTreeNode>();
+					vec.add(instance2HookUp);
+					String serialized = SimpleTreeNode.serializeTree("", vec, true, 0);
+//					System.out.println("SERIALIZED " + instance2HookUp.leaf.getKey() + " AS " + serialized);
+						
+					// hook up passed tree node with each instance of this tree node
+					for(int instIdx = 0; instIdx < thisInstances.size(); instIdx++){
+						SimpleTreeNode myNode = thisInstances.get(instIdx);
+						SimpleTreeNode hookUp = SimpleTreeNode.deserializeTree(serialized);
+						SimpleTreeNode.addLeafChild(myNode, hookUp);
+					}
 				}
 			}
 			
@@ -224,9 +255,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 			TreeNode treeRoot = this.simpleTree.nodeIndexHash.get(colNameInTable);
 			ValueTreeColumnIterator iterator = new ValueTreeColumnIterator(treeRoot);
 			while(iterator.hasNext()) {
-				this.simpleTree.appendToIndexTree(iterator.next().leftChild);
+				SimpleTreeNode t = iterator.next();
+				this.simpleTree.appendToIndexTree(t.leftChild);
 			}
-			
+
 		}//EMPTY
 		else // use the flat join. This is not ideal. Not sure if we will ever actually use this
 		{
