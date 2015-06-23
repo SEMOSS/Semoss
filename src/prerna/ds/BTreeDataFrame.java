@@ -218,7 +218,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 				}
 			}
 			
-			this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[origLength - 1], (levelNames.length-origLength-1));
+			this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[origLength - 1], (levelNames.length-origLength));
 			
 			//Update the Index Tree
 			TreeNode treeRoot = this.simpleTree.nodeIndexHash.get(colNameInTable);
