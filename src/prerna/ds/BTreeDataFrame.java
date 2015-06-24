@@ -187,22 +187,115 @@ public class BTreeDataFrame implements ITableDataFrame {
 			Vector passedSearchVector = new Vector();
 			passedSearchVector.addElement(passedRootNode);
 
-
+			boolean needAdjusting = false;
 			// Iterate for every row in the matched table
 			for(Object[] flatMatchedRow : flatMatched) { // for each matched item
 				Object item1 = flatMatchedRow[0];
 				Object item2 = flatMatchedRow[1];
+				System.out.println(item1 + "           " + item2);
 				
-				System.out.println(item1 + "           " + item2);//
 				// search for tree node in this table and tree node in passed table
 				TreeNode thisSearchNode = new TreeNode(createNodeObject(item1, item1, colNameInTable)); //TODO: how do we generically do this...?
 				TreeNode thisTreeNode = thisRootNode.getNode(thisSearchVector, thisSearchNode, false);
-				Vector <SimpleTreeNode> thisInstances = thisTreeNode.getInstances();
-//				System.out.println(thisInstances.size());
 				
-				// in the case of a partial outer join
-				if(item2.equals(SimpleTreeNode.EMPTY)) {
-					ITreeKeyEvaluatable emptyVal = new StringClass(SimpleTreeNode. EMPTY,SimpleTreeNode.EMPTY, columnNames[1]);
+				TreeNode passedSearchNode = new TreeNode(createNodeObject(item2, item2, colNameInJoiningTable)); //TODO: how do we generically do this...?
+				TreeNode passedTreeNode = passedRootNode.getNode(passedSearchVector, passedSearchNode, false);
+				
+				if(item1.equals(SimpleTreeNode.EMPTY) && item2.equals(SimpleTreeNode.EMPTY)) {
+					continue;
+				}
+				
+				if(item1.equals(SimpleTreeNode.EMPTY)) {
+					/*
+					 * Logic is to create (or find) a trail of empty nodes from the root and then connect to the values of item2
+					 */
+					needAdjusting = true;
+					Vector <SimpleTreeNode> passedInstances = passedTreeNode.getInstances();
+					
+					// see if empty node is at root
+					int currLevel = 0;
+					ITreeKeyEvaluatable emptyVal = new StringClass(SimpleTreeNode.EMPTY, SimpleTreeNode.EMPTY, levelNames[currLevel]);
+					TreeNode emptyNode = new TreeNode(emptyVal);
+					
+					TreeNode rootOfRoots = this.simpleTree.nodeIndexHash.get(levelNames[currLevel]);
+					Vector<TreeNode> searchForEmpty = new Vector<TreeNode>();
+					searchForEmpty.add(rootOfRoots);
+					TreeNode foundEmpty = rootOfRoots.getNode(searchForEmpty, emptyNode, false);
+					
+					SimpleTreeNode joiningNode = null;
+					// found empty node at root
+					if(foundEmpty != null) {
+						currLevel++;
+						// loop through instances and see if any children are blanks
+						Vector<SimpleTreeNode> emptyInstances = foundEmpty.getInstances();
+						for(int i = 0; i < emptyInstances.size(); i++) {
+							joiningNode = findLastConnectedEmptyNode(emptyInstances.get(i), currLevel);
+							if(joiningNode != null) {
+								break;
+							}
+						}
+						String type = ((ISEMOSSNode) joiningNode.leaf).getType();
+						currLevel = ArrayUtilityMethods.arrayContainsValueAtIndex(levelNames, type);
+					} 
+					else { // found no empty nodes, need to construct trail from root
+						// define first level node
+						joiningNode = new SimpleTreeNode(emptyVal);
+						
+						// connect via value true
+						SimpleTreeNode firstInstance = rootOfRoots.getInstances().get(0);
+						SimpleTreeNode previousLeftMost = firstInstance.getLeft(firstInstance);
+						previousLeftMost.leftSibling = joiningNode;
+						joiningNode.rightSibling = previousLeftMost;
+						
+						// connect via index tree
+						emptyNode.getInstances().add(joiningNode);
+						TreeNode root = rootOfRoots.insertData(emptyNode);
+						this.simpleTree.nodeIndexHash.put(levelNames[currLevel], root);
+					}
+					
+					currLevel++;
+					// build tree to desired length
+					for(int i = currLevel; i < origLength; i++) {
+						emptyVal = new StringClass(SimpleTreeNode.EMPTY, SimpleTreeNode.EMPTY, levelNames[i]);
+						emptyNode = new TreeNode(emptyVal);
+						SimpleTreeNode newEmpty = new SimpleTreeNode(emptyVal);
+						emptyNode.getInstances().add(newEmpty);
+
+						if(joiningNode.leftChild == null) {
+							joiningNode.leftChild = newEmpty;
+							newEmpty.parent = joiningNode;
+						} else {
+							SimpleTreeNode joiningChild = joiningNode.leftChild;
+							// adjust sibling rel
+							joiningChild.leftSibling = newEmpty;
+							newEmpty.rightSibling = joiningChild;
+							// adjust parent child rel
+							joiningNode.leftChild = newEmpty;
+							newEmpty.parent = joiningNode;
+						}
+						joiningNode = newEmpty;
+						
+						// update index tree
+						TreeNode previousRoot = this.simpleTree.nodeIndexHash.get(levelNames[i]);
+						TreeNode newRoot = previousRoot.insertData(emptyNode);
+						this.simpleTree.nodeIndexHash.put(levelNames[i], newRoot);
+					}
+					
+					SimpleTreeNode instance2HookUp = passedInstances.get(0).leftChild;
+					Vector<SimpleTreeNode> vec = new Vector<SimpleTreeNode>();
+					vec.add(instance2HookUp);
+					String serialized = SimpleTreeNode.serializeTree("", vec, true, 0);
+					SimpleTreeNode hookUp = SimpleTreeNode.deserializeTree(serialized);
+					SimpleTreeNode.addLeafChild(joiningNode, hookUp);
+					
+				} else if(item2.equals(SimpleTreeNode.EMPTY)) {
+					/*
+					 * Logic is for the item1 node, to add a trail of empty nodes after it equal to the length of what would be added
+					 */
+					
+					Vector <SimpleTreeNode> thisInstances = thisTreeNode.getInstances();
+					
+					ITreeKeyEvaluatable emptyVal = new StringClass(SimpleTreeNode.EMPTY, SimpleTreeNode.EMPTY, columnNames[1]);
 					SimpleTreeNode instance2HookUp = new SimpleTreeNode(emptyVal);
 					SimpleTreeNode dummy = instance2HookUp;
 					int i = 1;
@@ -226,13 +319,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 					}
 					
 				} else {
-//					
-					TreeNode passedSearchNode = new TreeNode(createNodeObject(item2, item2, colNameInJoiningTable)); //TODO: how do we generically do this...?
-					TreeNode passedTreeNode = passedRootNode.getNode(passedSearchVector, passedSearchNode, false);
+					Vector <SimpleTreeNode> thisInstances = thisTreeNode.getInstances();
 					Vector <SimpleTreeNode> passedInstances = passedTreeNode.getInstances();
-//					System.out.println(passedInstances.size()); // this should be 1 since right now we are assuming roots
+
 					SimpleTreeNode instance2HookUp = passedInstances.get(0).leftChild;
-	
 					Vector<SimpleTreeNode> vec = new Vector<SimpleTreeNode>();
 					vec.add(instance2HookUp);
 					String serialized = SimpleTreeNode.serializeTree("", vec, true, 0);
@@ -247,8 +337,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 				}
 			}
 			
-			//this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[origLength - 1], (levelNames.length-origLength));
-			
+			if(needAdjusting) {
+				this.simpleTree.adjustType(levelNames[origLength - 1], true);
+			}
 			//Update the Index Tree
 			TreeNode treeRoot = this.simpleTree.nodeIndexHash.get(colNameInTable);
 			ValueTreeColumnIterator iterator = new ValueTreeColumnIterator(treeRoot);
@@ -294,6 +385,22 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 	}
 
+	private SimpleTreeNode findLastConnectedEmptyNode(SimpleTreeNode emptyNode, int currLevel) {
+		StringClass emptyVal = new StringClass(SimpleTreeNode.EMPTY, SimpleTreeNode.EMPTY, levelNames[currLevel]);
+		SimpleTreeNode joiningNode = emptyNode.leftChild;
+		
+		while(joiningNode != null && !joiningNode.leaf.isEqual(emptyVal)) {
+			joiningNode = joiningNode.rightSibling;
+		}
+		
+		if(joiningNode == null) {
+			return emptyNode;
+		} else {
+			SimpleTreeNode retNode = findLastConnectedEmptyNode(joiningNode, ++currLevel);
+			return retNode;
+		}
+	}
+	
     private String[] joinTreeLevels(String[] joinLevelNames, String colNameInJoiningTable) {
         String[] newLevelNames = new String[this.levelNames.length + joinLevelNames.length - 1];
         // copy old values to new
@@ -851,7 +958,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	private static void write2Excel4Testing(BTreeDataFrame tester, String fileNameout){
 		XSSFWorkbook workbookout = new XSSFWorkbook();
-		XSSFSheet sheet = workbookout.createSheet("test"+testnum);
+		XSSFSheet sheet = workbookout.createSheet("test");
 		List<Object[]> data = tester.getData();
 //		Iterator<Object[]> it = tester.iterator();
 		System.out.println("got flat data. starting to write");
