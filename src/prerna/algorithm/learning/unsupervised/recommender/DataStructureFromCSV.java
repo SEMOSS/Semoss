@@ -1,10 +1,11 @@
-package prerna.rdf.main;
+package prerna.algorithm.learning.unsupervised.recommender;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
@@ -28,55 +29,75 @@ import prerna.util.ArrayUtilityMethods;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class DataStructureFromTable {
+public class DataStructureFromCSV {
 
 	//TODO change if desired. Will need to dynamically calculate or adjust based upon dataset
 	private int p = 10;
 	private int N = 200;
 	private int m = 20;
 	
+	public String[] getHeaders() {
+		return headers;
+	}
+
+	public HashMap<String, String[]> getAllPossibleTypesHash() {
+		return allPossibleTypesHash;
+	}
+
 	private ArrayList<Object[]> table = new ArrayList<Object[]>();
 	private String[] headers;
+	private HashMap<String,String[]> allPossibleTypesHash;
 	private String[] columnTypes;
 
-	private int concatThreshold;
+	private int concatThreshold = 3;
 	
 	private boolean[] colAlreadyProperty;
 	
-	private Hashtable<String, List<String>> matchedColsHash;
-	private ArrayList<String[]> matchesList;
+	private HashMap<String, List<String>> matchedColsHash;
+	private ArrayList<HashMap<String,Object>> relList;
 	
-	private final String RELATION_UNKNOWN = "Relationship is TBD";
 	private final String RELATION_CONCAT = "Has";
 
-	private String masterDBName = "LocalMasterDatabase";
+	private String masterDBName = "MasterDatabase";
 	private BigDataEngine masterEngine;
 
-	public void setMasterDB(String localMasterDbName) {
+	//generally "LocalMasterDatabase" is passed here
+	public DataStructureFromCSV(String localMasterDbName) {
 		this.masterDBName = localMasterDbName;
 		this.masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 	}
-
-	public void setMasterDB() {
-		this.masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
+	
+	public DataStructureFromCSV() {
+		this.masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);		
 	}
+	
+//	//generally "LocalMasterDatabase" is passed here
+//	public void setMasterDB(String localMasterDbName) {
+//		this.masterDBName = localMasterDbName;
+//		this.masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
+//	}
+//
+//	//for central name server
+//	public void setMasterDB() {
+//		this.masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
+//	}
 	
 	public void setConcatThreshold(int concatThreshold) {
 		this.concatThreshold = concatThreshold;
 	}
 	
-	public void createMetamodel(String fileLoc) {
+	public ArrayList<HashMap<String,Object>> createMetamodel(String fileLoc) {
 		try {
 			readCSVFile(fileLoc);
 		} catch (FileReaderException e) {
 			e.printStackTrace();
-			return;
+			return null;
 		}
 
 		long startT = System.currentTimeMillis();
 		
-		matchedColsHash = new Hashtable<String, List<String>>();
-		matchesList = new ArrayList<String[]>();
+		matchedColsHash = new HashMap<String, List<String>>();
+		relList = new ArrayList<HashMap<String,Object>>();
 		
 		//ordering the engines by the ones that contain the most number of columns 
 		List<String> orderedEnginesList = prioritizeDBs();
@@ -90,12 +111,14 @@ public class DataStructureFromTable {
 		findRelationshipsBasedOnUniqueIdentifier();
 		
 		System.out.println("\nResults!!!");
-		for(String[] match : matchesList) {
-			System.out.println(match[0] + "..." + match[1] + "..." + match[2]);
+		for(HashMap<String, Object> relHash : relList) {
+			System.out.println(relHash.get("sub").toString() + "..." + relHash.get("pred") + "..." + relHash.get("obj").toString());
 		}
 		
 		long endT = System.currentTimeMillis();
 		System.out.println("\nTime(s) to run algorithm (excluding reading the excel) = " + (endT - startT)/1000);
+		
+		return relList;
 	}
 	
 	/**
@@ -146,7 +169,10 @@ public class DataStructureFromTable {
 				//filter to only include relationships between the columns in my headers array
 				if(vertOneIndex > -1 && vertTwoIndex > -1) {
 					
-					String[] relationshipArr = new String[]{vertOne,relationship,vertTwo};
+					HashMap<String, Object> relHash = new HashMap<String, Object>();
+					relHash.put("sub", Arrays.asList(vertOne));
+					relHash.put("pred", relationship);
+					relHash.put("obj", Arrays.asList(vertTwo));
 					
 					//if colOne hasnt been matched to anything, just add
 					if(!matchedColsHash.containsKey(vertOne)) {
@@ -155,7 +181,7 @@ public class DataStructureFromTable {
 						matchedCols.add(vertTwo);
 						matchedColsHash.put(vertOne, matchedCols);
 						
-						matchesList.add(relationshipArr);
+						relList.add(relHash);
 						System.out.println("Found " + vertOne + "..." + relationship + "..." + vertTwo + " in " + engine);
 					}
 					//if colOne has been matched but not to colTwo, add
@@ -164,7 +190,7 @@ public class DataStructureFromTable {
 						matchedCols.add(vertTwo);
 						matchedColsHash.put(vertOne, matchedCols);
 						
-						matchesList.add(relationshipArr);
+						relList.add(relHash);
 						System.out.println("Found " + vertOne + "..." + relationship + "..." + vertTwo + " in " + engine);
 					}
 				}
@@ -284,8 +310,13 @@ public class DataStructureFromTable {
                                     	matchedColsHash.put(secondColName,new ArrayList<String>());
                                     }
                                     matchedColsHash.get(secondColName).add(firstColName);
-                                	String[] matchArr = new String[]{secondColName,RELATION_UNKNOWN,firstColName};
-                                	matchesList.add(matchArr);
+                                    HashMap<String, Object> relHash = new HashMap<String, Object>();
+                    				relHash.put("sub", Arrays.asList(secondColName));
+                    				relHash.put("pred", secondColName.concat(":").concat(firstColName));
+                    				relHash.put("obj", Arrays.asList(firstColName));
+                    				
+                          //      	String[] matchArr = new String[]{secondColName,RELATION_UNKNOWN,firstColName};
+                                	relList.add(relHash);
 
                                     colAlreadyProperty[firstColIndex] = true;
                                 }
@@ -296,8 +327,14 @@ public class DataStructureFromTable {
                         		matchedColsHash.put(firstColName,new ArrayList<String>());
                             }
                         	matchedColsHash.get(firstColName).add(secondColName);
-                            String[] matchArr = new String[]{firstColName,RELATION_UNKNOWN,secondColName};
-                        	matchesList.add(matchArr);
+                        	
+                        	HashMap<String, Object> relHash = new HashMap<String, Object>();
+            				relHash.put("sub", Arrays.asList(firstColName));
+            				relHash.put("pred", firstColName.concat(":").concat(secondColName));
+            				relHash.put("obj", Arrays.asList(secondColName));
+            				
+                           //String[] matchArr = new String[]{firstColName,RELATION_UNKNOWN,secondColName};
+                        	relList.add(relHash);
                             
                             colAlreadyProperty[secondColIndex] = true;
                         }
@@ -360,13 +397,22 @@ public class DataStructureFromTable {
 		if(!matchedColsHash.containsKey(concat)) {
          	matchedColsHash.put(concat,parentConcatNames);
          	for(String parent : parentConcatNames) {
-            	String[] matchArr = new String[]{concat,RELATION_CONCAT,parent};
-            	matchesList.add(matchArr);
+         		HashMap<String, Object> relHash = new HashMap<String, Object>();
+				relHash.put("sub", parentConcatNames);
+				relHash.put("pred", RELATION_CONCAT);
+				relHash.put("obj", Arrays.asList(parent));
+ //           	String[] matchArr = new String[]{concat,RELATION_CONCAT,parent};
+            	relList.add(relHash);
          	}
         }
 		
-    	String[] matchArr = new String[]{concat,RELATION_UNKNOWN,headers[colIndex]};
-    	matchesList.add(matchArr);
+		HashMap<String, Object> relHash = new HashMap<String, Object>();
+		relHash.put("sub", parentConcatNames);
+		relHash.put("pred", concat.concat(":").concat(headers[colIndex]));
+		relHash.put("obj", headers[colIndex]);
+		
+ //   	String[] matchArr = new String[]{concat,RELATION_UNKNOWN,headers[colIndex]};
+    	relList.add(relHash);
 		colAlreadyProperty[colIndex] = true;
 
 	}
@@ -435,6 +481,7 @@ public class DataStructureFromTable {
 	}
 	
 	private String[] determineColumnTypes(ArrayList<Object []> list) {
+		allPossibleTypesHash = new HashMap<String, String[]>();
 		int numCols = list.get(0).length;
 		String[] columnTypes = new String[numCols];
 		//iterate through columns
@@ -472,6 +519,24 @@ public class DataStructureFromTable {
 				}
 			}
 		}
+		
+		String[] possibleTypes;
+		if(numCategorical > 0 || (numSimpleDate + numDate > 0 && numDouble + numInteger > 0)) {
+			possibleTypes = new String[]{"STRING"};
+		}else if(numDouble > 0) {
+			possibleTypes = new String[]{"STRING","DOUBLE"};
+		}else if(numInteger > 0) {
+			possibleTypes = new String[]{"STRING","DOUBLE","INTEGER"};
+		}else if(numDate > 0) {
+			possibleTypes = new String[]{"STRING","DATE"};
+		}else if(numSimpleDate > 0) {
+			possibleTypes = new String[]{"STRING","SIMPLEDATE"};
+		}else {
+			possibleTypes = new String[]{"STRING"};			
+		}
+		
+		allPossibleTypesHash.put(headers[column], possibleTypes);
+		
 		if(numDouble > numCategorical && numDouble > numInteger && numDouble > numDate && numDouble > numSimpleDate ) {
 			return "DOUBLE";
 		} else if(numInteger > numCategorical && numInteger > numDouble && numInteger > numDate && numInteger > numSimpleDate ) {
