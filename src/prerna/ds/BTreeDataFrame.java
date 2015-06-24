@@ -187,8 +187,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 			Vector passedSearchVector = new Vector();
 			passedSearchVector.addElement(passedRootNode);
 
-			// TODO: is this necessary prior to join? 
-			this.simpleTree.adjustType(colNameInTable, true);
 
 			// Iterate for every row in the matched table
 			for(Object[] flatMatchedRow : flatMatched) { // for each matched item
@@ -209,7 +207,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 					SimpleTreeNode dummy = instance2HookUp;
 					int i = 1;
 					while(i < columnNames.length-1) {
-						ITreeKeyEvaluatable newEmptyVal = new StringClass(SimpleTreeNode. EMPTY,SimpleTreeNode.EMPTY, columnNames[i+1]);
+						ITreeKeyEvaluatable newEmptyVal = new StringClass(SimpleTreeNode.EMPTY, SimpleTreeNode.EMPTY, columnNames[i+1]);
 						SimpleTreeNode newEmpty = new SimpleTreeNode(newEmptyVal);
 						dummy.leftChild = newEmpty;
 						newEmpty.parent = dummy;
@@ -249,7 +247,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 				}
 			}
 			
-			this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[origLength - 1], (levelNames.length-origLength));
+			//this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[origLength - 1], (levelNames.length-origLength));
 			
 			//Update the Index Tree
 			TreeNode treeRoot = this.simpleTree.nodeIndexHash.get(colNameInTable);
