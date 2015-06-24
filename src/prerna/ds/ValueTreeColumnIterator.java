@@ -1,9 +1,7 @@
 package prerna.ds;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Queue;
 
 public class ValueTreeColumnIterator implements Iterator<SimpleTreeNode>{
