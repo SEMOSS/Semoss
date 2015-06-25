@@ -48,4 +48,17 @@ public class ITableDataFrameStore extends Hashtable<String, ITableDataFrame> {
 		return uniqueID;
 	}
 	
+	/**
+	 * Returns a boolean true/false if data was successfully remove using the key
+	 * @param key					The unique id for the data-frame
+	 * @return						boolean true if the key was successful at removing data, false otherwise
+	 */
+	public boolean remove(String key) {
+		ITableDataFrame data = super.remove(key);
+		if(data != null) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 }

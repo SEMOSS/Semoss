@@ -191,7 +191,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 			for(Object[] flatMatchedRow : flatMatched) { // for each matched item
 				Object item1 = flatMatchedRow[0];
 				Object item2 = flatMatchedRow[1];
-				System.out.println(item1 + "           " + item2);
+//				System.out.println(item1 + "           " + item2);
 				
 				// search for tree node in this table and tree node in passed table
 				TreeNode thisSearchNode = new TreeNode(createNodeObject(item1, item1, colNameInTable)); //TODO: how do we generically do this...?

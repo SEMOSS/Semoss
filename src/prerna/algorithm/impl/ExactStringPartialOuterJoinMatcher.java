@@ -37,7 +37,7 @@ public class ExactStringPartialOuterJoinMatcher extends ExactStringMatcher {
 					// update boolean for partial outer join
 					matchFound = true;
 					
-					System.out.println("MATCHED::::::::::::::::: " + table1Col[i] + "      " +   table2Col[j]  );
+//					System.out.println("MATCHED::::::::::::::::: " + table1Col[i] + "      " +   table2Col[j]  );
 					Map<String, Object> row = new HashMap<String, Object>();
 					row.put(table1ValueKey , table1Col[i]);
 					row.put(table2ValueKey, table2Col[j]);
@@ -49,7 +49,7 @@ public class ExactStringPartialOuterJoinMatcher extends ExactStringMatcher {
 
 			// if no match found, add to a blank node
 			if(!matchFound) {
-				System.out.println("OUTER JOIN MATCHED::::::::::::::::: " + table1Col[i] + "       NULL ");
+//				System.out.println("OUTER JOIN MATCHED::::::::::::::::: " + table1Col[i] + "       NULL ");
 				Map<String, Object> row = new HashMap<String, Object>();
 				row.put(table1ValueKey , table1Col[i]);
 				row.put(table2ValueKey, SimpleTreeNode.EMPTY);

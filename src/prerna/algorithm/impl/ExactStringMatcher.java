@@ -96,7 +96,7 @@ public class ExactStringMatcher implements IAnalyticRoutine {
 		for(int i = 0; i < table1Col.length; i++) {
 			for(int j = 0; j < table2Col.length; j++) {
 				if(match(table1Col[i],table2Col[j])) {
-					System.out.println("MATCHED::::::::::::::::: " + table1Col[i] + "      " +   table2Col[j]  );
+//					System.out.println("MATCHED::::::::::::::::: " + table1Col[i] + "      " +   table2Col[j]  );
 					Map<String, Object> row = new HashMap<String, Object>();
 					row.put(table1ValueKey , table1Col[i]);
 					row.put(table2ValueKey, table2Col[j]);
