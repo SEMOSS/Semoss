@@ -37,7 +37,7 @@ public class ExactStringOuterJoinMatcher extends ExactStringMatcher {
 					matchFound = true;
 					fullOuter[j] = true;
 					
-					System.out.println("MATCHED::::::::::::::::: " + table1Col[i] + "      " +   table2Col[j]  );
+//					System.out.println("MATCHED::::::::::::::::: " + table1Col[i] + "      " +   table2Col[j]  );
 					Map<String, Object> row = new HashMap<String, Object>();
 					row.put(table1ValueKey , table1Col[i]);
 					row.put(table2ValueKey, table2Col[j]);
@@ -49,7 +49,7 @@ public class ExactStringOuterJoinMatcher extends ExactStringMatcher {
 
 			// if no match found, add to a blank node
 			if(!matchFound) {
-				System.out.println("OUTER JOIN MATCHED::::::::::::::::: " + table1Col[i] + "       NULL ");
+//				System.out.println("OUTER JOIN MATCHED::::::::::::::::: " + table1Col[i] + "       NULL ");
 				Map<String, Object> row = new HashMap<String, Object>();
 				row.put(table1ValueKey , table1Col[i]);
 				row.put(table2ValueKey, SimpleTreeNode.EMPTY);
@@ -59,7 +59,7 @@ public class ExactStringOuterJoinMatcher extends ExactStringMatcher {
 
 		for(int i = 0; i < table2Col.length; i++) {
 			if(!fullOuter[i]) {
-				System.out.println("OUTER JOIN MATCHED::::::::::::::::: NULL        " + table2Col[i]);
+//				System.out.println("OUTER JOIN MATCHED::::::::::::::::: NULL        " + table2Col[i]);
 				Map<String, Object> row = new HashMap<String, Object>();
 				row.put(table1ValueKey , SimpleTreeNode.EMPTY);
 				row.put(table2ValueKey, table2Col[i]);
