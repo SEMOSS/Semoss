@@ -29,15 +29,17 @@ package prerna.ui.main.listener.impl;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Hashtable;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.DistanceDownstreamProcessor;
+import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.playsheets.GraphPlaySheet;
-import edu.uci.ics.jung.graph.DelegateForest;
 
 /**
  * When the distance downstream algorithm is selected, calls the algorithm processor to run the algorithm.
@@ -67,11 +69,12 @@ public class DistanceDownstreamListener implements ActionListener {
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		//get the forest
-		DelegateForest forest = ps.forest;
+		GraphDataModel gdm = ps.gdm;
 		
 		DistanceDownstreamProcessor pro = new DistanceDownstreamProcessor();
-		pro.setForest(forest);
-		pro.setSelectedNodes(pickedVertex);
+		pro.setGraphDataModel(gdm);
+		ArrayList<SEMOSSVertex> verts = new ArrayList<SEMOSSVertex>(Arrays.asList(pickedVertex));
+		pro.setSelectedNodes(verts);
 		pro.setPlaySheet(ps);
 	
 		pro.execute();

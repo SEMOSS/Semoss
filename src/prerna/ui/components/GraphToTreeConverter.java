@@ -107,7 +107,7 @@ public class GraphToTreeConverter extends DistanceDownstreamProcessor{
 	@Override
 	public void execute() {
 		resetConverter();
-		this.forest=playSheet.forest;
+		this.gdm = playSheet.gdm;
 		setSelectedNodes();
 		ArrayList<SEMOSSVertex> currentNodes = setRoots();
 		performDownstreamProcessing(currentNodes);
@@ -125,7 +125,7 @@ public class GraphToTreeConverter extends DistanceDownstreamProcessor{
 	@Override
 	public ArrayList<SEMOSSVertex> traverseDownward(SEMOSSVertex vert, int levelIndex, ArrayList<SEMOSSVertex> parentPath, ArrayList<SEMOSSEdge> parentEdgePath){
 		ArrayList<SEMOSSVertex> vertArray = new ArrayList<SEMOSSVertex>();
-		Collection<SEMOSSEdge> edgeArray = forest.getOutEdges(vert);
+		Collection<SEMOSSEdge> edgeArray = vert.getOutEdges();
 		for (SEMOSSEdge edge: edgeArray){
 			SEMOSSVertex inVert = edge.inVertex;
 			if(!masterHash.containsKey(inVert)){
