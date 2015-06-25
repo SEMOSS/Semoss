@@ -40,6 +40,7 @@ import org.openrdf.model.URI;
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
+import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -48,7 +49,6 @@ import prerna.ui.helpers.EntityFiller;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import edu.uci.ics.jung.graph.DelegateForest;
 
 /**
  * This class collects the information that is used in DistanceDownstreamProcessor.
@@ -91,12 +91,12 @@ public class DistanceDownstreamInserter {
 			Hashtable<String, String> paramHash = new Hashtable<String, String>();
 			paramHash.put("Data-Data", dataObjectString);
 			String query = Utility.fillParam(unfilledQuery, paramHash);
-			DelegateForest<SEMOSSVertex, SEMOSSEdge> dataForest = new DelegateForest<SEMOSSVertex, SEMOSSEdge>();
-			dataForest = createForest(query);
+			GraphDataModel g = new GraphDataModel();
+			g = createGraphDataModel(query);
 
 			DistanceDownstreamProcessor processor = new DistanceDownstreamProcessor();
 			//now set everything in DistanceDownstreamProcessor and let that buddy run
-			processor.setForest(dataForest);
+			processor.setGraphDataModel(g);
 			processor.setRootNodesAsSelected();
 
 			System.out.println("SET SELECTED ::::::::::::::::::::::::::::::::::::::::: " + processor.addSelectedNode(dataObjectString, 0));	//need to make sure that creators first have the chance to go from data object directly
@@ -300,12 +300,12 @@ public class DistanceDownstreamInserter {
 	
 	/**
 	 * Creates the forest.
-	 * @param query String								Query needed to create the forest
+	 * @param query String								Query needed to create the GraphDataModel
 	
-	 * @return DelegateForest<DBCMVertex,DBCMEdge>		Forest, comprised of vertices and edges. */
-	public DelegateForest<SEMOSSVertex, SEMOSSEdge> createForest(String query) {
+	 * @return GraphDataModel		Forest, comprised of vertices and edges. */
+	public GraphDataModel createGraphDataModel(String query) {
 		//run query
-		
+		GraphDataModel gdm = new GraphDataModel();
 		IConstructWrapper sjw = WrapperManager.getInstance().getCWrapper(engine, query);
 
 		/*SesameJenaConstructWrapper sjw = new SesameJenaConstructWrapper();
@@ -317,7 +317,7 @@ public class DistanceDownstreamInserter {
 		//this is pretty much directly from GraphPlaySheet CreateForest().  I removed Jena Model and Control Data though
 		logger.info("Creating Forest >>>>>");
 
-		DelegateForest<SEMOSSVertex, SEMOSSEdge> forest = new DelegateForest<SEMOSSVertex, SEMOSSEdge>();
+		//DelegateForest<SEMOSSVertex, SEMOSSEdge> forest = new DelegateForest<SEMOSSVertex, SEMOSSEdge>();
 		Properties rdfMap = DIHelper.getInstance().getRdfMap();
 
 		createBaseURIs();
@@ -326,57 +326,55 @@ public class DistanceDownstreamInserter {
 		
 		logger.debug(" Adding graph to forest " );
 		int count = 0;
-		while(sjw.hasNext())
-		{
+		while(sjw.hasNext()) {
 			//logger.warn("Iterating " + count);
 			count++;
 
 			IConstructStatement sct = sjw.next();
 			String predicateName = sct.getPredicate();
 
-					// get the subject, predicate and object
-					// look for the appropriate vertices etc and paint it
-					SEMOSSVertex vert1 = vertStore.get(sct.getSubject()+"");
-					if(vert1 == null)
-					{
-						vert1 = new SEMOSSVertex(sct.getSubject());
-						vertStore.put(sct.getSubject()+"", vert1);
-					}
-					SEMOSSVertex vert2 = vertStore.get(sct.getObject()+"");
-					if(vert2 == null )//|| forest.getInEdges(vert2).size()>=1)
-					{
-						if(sct.getObject() instanceof URI)
-							vert2 = new SEMOSSVertex(sct.getObject()+"");
-						else // ok this is a literal
-							vert2 = new SEMOSSVertex(sct.getPredicate(), sct.getObject());
-						vertStore.put(sct.getObject()+"", vert2);
-					}
-					// create the edge now
-					SEMOSSEdge edge = edgeStore.get(sct.getPredicate()+"");
-					// check to see if this is another type of edge
-					if(sct.getPredicate().indexOf(vert1.getProperty(Constants.VERTEX_NAME)+"") < 0 && sct.getPredicate().indexOf(vert2.getProperty(Constants.VERTEX_NAME)+"") < 0)
-						predicateName = sct.getPredicate() + "/" + vert1.getProperty(Constants.VERTEX_NAME) + ":" + vert2.getProperty(Constants.VERTEX_NAME);
-					if(edge == null)
-						edge = edgeStore.get(predicateName);
-					if(edge == null)
-					{
-						// need to create the predicate at runtime I think
-						/*edge = new DBCMEdge(vert1, vert2, sct.getPredicate());
-						System.err.println("Predicate plugged is " + predicateName);
-						edgeStore.put(sct.getPredicate()+"", edge);*/
+			// get the subject, predicate and object
+			// look for the appropriate vertices etc and paint it
+			SEMOSSVertex vert1 = vertStore.get(sct.getSubject()+"");
+			if(vert1 == null) {
+				vert1 = new SEMOSSVertex(sct.getSubject());
+				vertStore.put(sct.getSubject()+"", vert1);
+			}
+			SEMOSSVertex vert2 = vertStore.get(sct.getObject()+"");
+			if(vert2 == null )//|| forest.getInEdges(vert2).size()>=1)
+			{
+				if(sct.getObject() instanceof URI)
+					vert2 = new SEMOSSVertex(sct.getObject()+"");
+				else // ok this is a literal
+					vert2 = new SEMOSSVertex(sct.getPredicate(), sct.getObject());
+				vertStore.put(sct.getObject()+"", vert2);
+			}
+			// create the edge now
+			SEMOSSEdge edge = edgeStore.get(sct.getPredicate()+"");
+			// check to see if this is another type of edge
+			if(sct.getPredicate().indexOf(vert1.getProperty(Constants.VERTEX_NAME)+"") < 0 && sct.getPredicate().indexOf(vert2.getProperty(Constants.VERTEX_NAME)+"") < 0)
+				predicateName = sct.getPredicate() + "/" + vert1.getProperty(Constants.VERTEX_NAME) + ":" + vert2.getProperty(Constants.VERTEX_NAME);
+			if(edge == null)
+				edge = edgeStore.get(predicateName);
+			if(edge == null) {
+				// need to create the predicate at runtime I think
+				/*edge = new DBCMEdge(vert1, vert2, sct.getPredicate());
+				System.err.println("Predicate plugged is " + predicateName);
+				edgeStore.put(sct.getPredicate()+"", edge);*/
 
-						// the logic works only when the predicates dont have the vertices on it.. 
-						edge = new SEMOSSEdge(vert1, vert2, predicateName);
-						edgeStore.put(predicateName, edge);
-					}
-					
-					// add the edge now if the edge does not exist
-					// need to handle the duplicate issue again
-					forest.addEdge(edge, vertStore.get(sct.getSubject()+""),
-						vertStore.get(sct.getObject()+""));
+				// the logic works only when the predicates dont have the vertices on it.. 
+				edge = new SEMOSSEdge(vert1, vert2, predicateName);
+				edgeStore.put(predicateName, edge);
+			}
+			
+			// add the edge now if the edge does not exist
+			// need to handle the duplicate issue again
+			//forest.addEdge(edge, vertStore.get(sct.getSubject()+""), vertStore.get(sct.getObject()+""));
 		}
+		gdm.setEdgeStore(edgeStore);
+		gdm.setVertStore(vertStore);
 		logger.info("Creating Forest Complete >>>>>> ");
-		return forest;
+		return gdm;
 	}
 	
 	/**

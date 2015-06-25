@@ -985,6 +985,14 @@ public class GraphDataModel {
 	public Hashtable<String, SEMOSSEdge> getEdgeStore(){
 		return this.edgeStore;
 	}
+	
+	public void setVertStore(Hashtable<String, SEMOSSVertex> vs){
+		this.vertStore = vs;
+	}
+
+	public void setEdgeStore(Hashtable<String, SEMOSSEdge> es){
+		this.edgeStore = es;
+	}
 
 	public Hashtable<String, SEMOSSVertex> getIncrementalVertStore(){
 		return this.incrementalVertStore;

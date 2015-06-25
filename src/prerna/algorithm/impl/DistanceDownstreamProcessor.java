@@ -37,6 +37,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
 import prerna.algorithm.api.IAlgorithm;
+import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.GridFilterData;
@@ -45,14 +46,13 @@ import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
-import edu.uci.ics.jung.graph.DelegateForest;
 
 /**
  * This class uses the information from DistanceDownstreamInserter in order to actually perform the distance downstream calculation.
  */
 public class DistanceDownstreamProcessor implements IAlgorithm {
 
-	protected DelegateForest forest = null;
+	protected GraphDataModel gdm = null;
 	protected ArrayList<SEMOSSVertex> selectedVerts = new ArrayList<SEMOSSVertex>();
 	GridFilterData gfd = new GridFilterData();
 	protected GraphPlaySheet playSheet;
@@ -93,7 +93,7 @@ public class DistanceDownstreamProcessor implements IAlgorithm {
 		}
 		else{
 			selectedNodes = "All";
-			currentNodes.addAll(forest.getRoots());
+			currentNodes.addAll(gdm.getVertStore().values());
 		}
 		
 		
@@ -147,18 +147,18 @@ public class DistanceDownstreamProcessor implements IAlgorithm {
 	
 	/**
 	 * Traverses downward from the nodes.
-	 * @param vert DBCMVertex						A single vertex.
+	 * @param vert SEMOSSVertex						A single vertex.
 	 * @param levelIndex int						Level index.
-	 * @param parentPath ArrayList<DBCMVertex>		List of path distances.
-	 * @param parentEdgePath ArrayList<DBCMEdge>	List of edge paths.
+	 * @param parentPath ArrayList<SEMOSSVertex>		List of path distances.
+	 * @param parentEdgePath ArrayList<SEMOSSVertex>	List of edge paths.
 	
 	 * @return ArrayList<DBCMVertex> 				Vert array. Used to calculate network value in DistanceDownstreamInserter. */
 	public ArrayList<SEMOSSVertex> traverseDownward(SEMOSSVertex vert, int levelIndex, ArrayList<SEMOSSVertex> parentPath, ArrayList<SEMOSSEdge> parentEdgePath){
 		ArrayList<SEMOSSVertex> vertArray = new ArrayList<SEMOSSVertex>();
-		Collection<SEMOSSEdge> edgeArray = forest.getOutEdges(vert);
+		Collection<SEMOSSEdge> edgeArray = vert.getOutEdges();
 		for (SEMOSSEdge edge: edgeArray){
 			SEMOSSVertex inVert = edge.inVertex;
-			if(!masterHash.containsKey(inVert)){
+			if(!masterHash.containsKey(inVert)) {
 				vertArray.add(inVert);//this is going to be the returned array, so this is all set
 				
 				//now I have to add this new vertex to masterHash.  This requires using the vertHash of the parent child to get path
@@ -189,25 +189,23 @@ public class DistanceDownstreamProcessor implements IAlgorithm {
 	 * Sets the forest.
 	 * @param f DelegateForest		Forest that is set.
 	 */
-	public void setForest(DelegateForest f){
-		forest = f;
+	public void setGraphDataModel(GraphDataModel g){
+		gdm = g;
 	}
 	
 	/**
 	 * Sets selected nodes.
 	 * @param pickedVertices DBCMVertex[]		Array of picked vertices to be set.
 	 */
-	public void setSelectedNodes(SEMOSSVertex[] pickedVertices){
-		for (int idx = 0; idx< pickedVertices.length ; idx++){
-			selectedVerts.add(pickedVertices[idx]);
-		}
+	public void setSelectedNodes(ArrayList<SEMOSSVertex> pickedVertices) {
+		selectedVerts.addAll(pickedVertices);
 	}
 	
 	/**
 	 * Iterates through the roots and adds them to the array list of selected vertices.
 	 */
 	public void setRootNodesAsSelected(){
-		Collection roots = forest.getRoots();
+		Collection roots = gdm.getVertStore().values();
 		Iterator<SEMOSSVertex> rootsIt = roots.iterator();
 		while (rootsIt.hasNext()){
 			selectedVerts.add(rootsIt.next());
@@ -221,7 +219,7 @@ public class DistanceDownstreamProcessor implements IAlgorithm {
 	
 	 * @return boolean					True if the picked vertex matches */
 	public boolean addSelectedNode(String pickedVertex, int position){
-		Collection<SEMOSSVertex> vertices = forest.getVertices();
+		Collection<SEMOSSVertex> vertices = gdm.getVertStore().values();
 		for(SEMOSSVertex vert : vertices){
 			if(pickedVertex.equals(vert.uri)){
 				selectedVerts.add(position, vert);

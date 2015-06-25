@@ -40,6 +40,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -68,6 +71,11 @@ import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import prerna.algorithm.impl.DistanceDownstreamProcessor;
+import prerna.algorithm.impl.LoopIdentifierProcessor;
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
@@ -1308,5 +1316,159 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 	public Hashtable<String, String> getDataTableAlign() {
 		// Need to figure out how graph will align to table....
 		return null;
-	}	
+	}
+	
+	public Hashtable runHighlightAdjacent(Hashtable webDataHash) {
+        Hashtable retHash = new Hashtable();
+        Gson gson = new Gson();
+        boolean web = (boolean) webDataHash.get("web");
+        String buttonName = (String) webDataHash.get("type");
+        ArrayList vertices = null;
+        SEMOSSVertex [] verts = null;
+        
+        if (!web) {
+        	verts = (SEMOSSVertex[]) webDataHash.get("vertices");
+        	vertices = new ArrayList<SEMOSSVertex>(Arrays.asList(verts));
+        } else {
+        	vertices = (ArrayList<Object>) webDataHash.get("vertices");
+        }
+        
+        // Get the DBCM edges from vertices and then add the edge	
+ 		Collection<Vector> allPlaySheetEdges = this.filterData.edgeTypeHash.values();
+ 		Vector allEdgesVect = new Vector();
+ 		for(Vector v: allPlaySheetEdges) allEdgesVect.addAll(v);
+ 		logger.debug("Getting the base graph");
+
+ 		//Get what edges are already highlighted so that we can just add to it
+ 		//Get what vertices are already painted so we can just add to it
+ 		EdgeStrokeTransformer tx = null;
+ 		Hashtable <String, SEMOSSEdge> edgeHash = null;
+ 		VertexPaintTransformer vtx = null;
+ 		Hashtable <String, String> vertHash = null;
+ 		PickedState state = null; 		
+ 		
+ 		if (!web) {
+			tx = (EdgeStrokeTransformer) this.getView().getRenderContext().getEdgeStrokeTransformer();
+	 		edgeHash = tx.getEdges();
+	 		if(edgeHash==null) edgeHash = new Hashtable<String, SEMOSSEdge>();
+	 			
+	 		vtx = (VertexPaintTransformer) this.getView().getRenderContext().getVertexFillPaintTransformer();
+	 		vertHash = vtx.getVertHash();
+	 		if(vertHash == null) vertHash = new Hashtable<String, String>();
+	 		
+	 		state = this.getView().getPickedVertexState();
+	 		state.clear();
+ 		} else {
+ 			edgeHash = new Hashtable();
+ 			vertHash = new Hashtable();
+ 		}
+
+ 		//if it is All, must use distance downstream processor to get all of the edges
+ 		if(!buttonName.equals("All")) {
+ 			for(int vertIndex = 0; vertIndex < vertices.size(); vertIndex++) {
+ 				SEMOSSVertex vert = null;
+ 				if (!web)
+ 					vert = (SEMOSSVertex) vertices.get(vertIndex);
+ 				else {
+ 					vert = gson.fromJson(gson.toJson(vertices.get(vertIndex)), new TypeToken<SEMOSSVertex>() {}.getType());
+ 				}
+ 					
+ 				logger.debug("In Edges count is " + vert.getInEdges().size());
+ 				logger.debug("Out Edges count is " + vert.getOutEdges().size());
+ 				vertHash.put(vert.getURI(), vert.getURI());
+ 				
+ 				//if the button name contains upstream, get the upstream edges and vertices
+ 				if(buttonName.contains("Downstream")) {
+ 					edgeHash = putEdgesInHash(vert.getOutEdges(), edgeHash);
+ 					for (SEMOSSEdge edge : vert.getOutEdges()) {
+ 						if (allEdgesVect.contains(edge)) {
+ 							vertHash.put(edge.inVertex.getURI(), edge.inVertex.getURI());
+ 							state.pick(edge.inVertex, true);
+ 						}
+ 					}
+ 				}
+ 				
+ 				//if the button name contains downstream, get the downstream edges and vertices
+ 				if(buttonName.contains("Upstream")) {
+ 					edgeHash = putEdgesInHash(vert.getInEdges(), edgeHash);
+ 					for (SEMOSSEdge edge : vert.getInEdges()) {
+ 						if (allEdgesVect.contains(edge)) {
+ 							vertHash.put(edge.outVertex.getURI(), edge.outVertex.getURI());
+ 							state.pick(edge.outVertex, true);
+ 						}
+ 					}
+ 				} 				
+ 			}
+ 		} else if(buttonName.equals("All")) {
+ 			DistanceDownstreamProcessor ddp = new DistanceDownstreamProcessor();
+ 			if (!web)
+ 				ddp.setSelectedNodes(vertices);
+ 			else {
+ 				ArrayList<SEMOSSVertex> newVertices = new ArrayList<SEMOSSVertex>();
+ 				for(int vertIndex = 0; vertIndex < vertices.size(); vertIndex++) {
+	 				SEMOSSVertex vert = gson.fromJson(gson.toJson(vertices.get(vertIndex)), new TypeToken<SEMOSSVertex>() {}.getType());
+	 				newVertices.add(vert);
+	 			}
+ 				ddp.setSelectedNodes(newVertices);
+ 			}
+ 			ddp.setGraphDataModel(this.gdm);
+ 			ddp.execute();
+ 			//use the master hash to set the nodes and edges
+ 			Hashtable masterHash = ddp.masterHash;
+ 			Iterator masterIt = masterHash.keySet().iterator();
+ 			while(masterIt.hasNext()) {
+ 				SEMOSSVertex vert = (SEMOSSVertex) masterIt.next();
+ 				Hashtable vHash = (Hashtable) masterHash.get(vert);
+ 				ArrayList<SEMOSSVertex> parentPath = (ArrayList<SEMOSSVertex>) vHash.get(ddp.pathString);
+ 				ArrayList<SEMOSSEdge> parentEdgePath = (ArrayList<SEMOSSEdge>) vHash.get(ddp.edgePathString);
+ 				edgeHash = putEdgesInHash(new Vector(parentEdgePath), edgeHash);
+ 				for (SEMOSSEdge edge : parentEdgePath) {
+ 					if (allEdgesVect.contains(edge)) {
+ 						vertHash.put(edge.outVertex.getURI(), edge.outVertex.getURI());
+ 						vertHash.put(edge.inVertex.getURI(), edge.inVertex.getURI());
+ 						if (!web) {
+ 							state.pick(edge.outVertex, true);
+ 							state.pick(edge.inVertex, true);
+ 						}
+ 					}
+ 				}
+ 			} 			
+ 		}
+ 		
+ 		if (web) {
+ 			retHash.put("vertHash", vertHash);
+			retHash.put("edgeHash", edgeHash);
+ 		} else {
+	 		this.getView().setPickedVertexState(state);
+	 	
+	 		tx.setEdges(edgeHash);
+	 		vtx.setVertHash(vertHash);
+	 		VertexLabelFontTransformer vlft = (VertexLabelFontTransformer) this.getView().getRenderContext().getVertexFontTransformer();
+	 		vlft.setVertHash(vertHash);
+	 		ArrowDrawPaintTransformer atx = (ArrowDrawPaintTransformer) this.getView().getRenderContext().getArrowDrawPaintTransformer();
+	 		atx.setEdges(edgeHash);
+	 		EdgeArrowStrokeTransformer stx = (EdgeArrowStrokeTransformer) this.getView().getRenderContext().getEdgeArrowStrokeTransformer();
+	 		stx.setEdges(edgeHash);
+	 			
+	 		// repaint it
+	 		this.getView().repaint();
+	 		return null;
+ 		}
+ 		
+		return retHash;
+	}
+
+	/**
+	 * Method putEdgesInHash.  Puts the new relationships in the in-memory graph hashtable.
+	 * @param edges Vector<DBCMEdge>  The Vector of new edges.
+	 * @param hash Hashtable<String,DBCMEdge>  The hashtable to be updated.
+	
+	 * @return Hashtable<String,DBCMEdge> The updated hashtable.*/
+	private Hashtable <String, SEMOSSEdge> putEdgesInHash(Vector <SEMOSSEdge> edges, Hashtable <String, SEMOSSEdge> hash)	{
+		for(int edgeIndex = 0; edgeIndex < edges.size(); edgeIndex++)	{
+			SEMOSSEdge edge = edges.elementAt(edgeIndex);
+			hash.put((String) edge.getProperty(Constants.URI), edge);
+		}
+		return hash;
+	}
 }
