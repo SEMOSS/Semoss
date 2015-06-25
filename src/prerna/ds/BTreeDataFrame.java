@@ -187,7 +187,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 			Vector passedSearchVector = new Vector();
 			passedSearchVector.addElement(passedRootNode);
 
-			boolean needAdjusting = false;
 			// Iterate for every row in the matched table
 			for(Object[] flatMatchedRow : flatMatched) { // for each matched item
 				Object item1 = flatMatchedRow[0];
@@ -209,7 +208,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 					/*
 					 * Logic is to create (or find) a trail of empty nodes from the root and then connect to the values of item2
 					 */
-					needAdjusting = true;
 					Vector <SimpleTreeNode> passedInstances = passedTreeNode.getInstances();
 					
 					// see if empty node is at root
@@ -337,9 +335,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 				}
 			}
 			
-			if(needAdjusting) {
-				this.simpleTree.adjustType(levelNames[origLength - 1], true);
-			}
+			this.simpleTree.adjustType(levelNames[origLength - 1], true);
+			
 			//Update the Index Tree
 			TreeNode treeRoot = this.simpleTree.nodeIndexHash.get(colNameInTable);
 			ValueTreeColumnIterator iterator = new ValueTreeColumnIterator(treeRoot);
