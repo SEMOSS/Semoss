@@ -64,7 +64,6 @@ public class MasterDatabaseURIs {
 	public static final String ENGINEROLEGROUP_ROLE_REL_URI = SEMOSS_RELATION_URI + "/IsRole";
 	public static final String ROLEGROUP_USERGROUP_REL_URI = SEMOSS_RELATION_URI + "/HasUserGroup";
 	public static final String USERGROUP_USER_REL_URI = SEMOSS_RELATION_URI + "/HasUser";
-	public static final String USER_USERINSIGHT_REL_URI = SEMOSS_RELATION_URI + "/PartOf";
 	public static final String USER_NAME_PROP_URI = PROP_URI + "/Name";
 	public static final String USER_EMAIL_PROP_URI = PROP_URI + "/Email";
 	public static final String EXPLORE_PERMISSION_PROP_URI = "/ExplorePermission";
@@ -81,4 +80,12 @@ public class MasterDatabaseURIs {
 	public static final String ENGINE_NAME_REQUESTED_PROP_URI = PROP_URI + "/EngineNameRequested";
 	public static final String ENGINE_ACCESS_REQUESTOR_PROP_URI = PROP_URI + "/EngineAccessRequestor";
 	public static final String ENGINE_ACCESS_PERMISSIONS_PROP_URI = PROP_URI + "/EngineAccessPermissions";
+	
+	//User activity tracking URIs
+	public static final String USERINSIGHT_URI = SEMOSS_CONCEPT_URI + "/UserInsight";
+	public static final String USERINSIGHT_INSIGHT_LABEL = PROP_URI + "/InsightLabel";
+	public static final String USERINSIGHT_EXECUTION_COUNT_PROP_URI = PROP_URI + "/ExecutionCount";
+	public static final String USERINSIGHT_LAST_EXECUTED_DATE_PROP_URI = PROP_URI + "/LastExecutedDate";
+	public static final String USER_USERINSIGHT_REL_URI = SEMOSS_RELATION_URI + "/RunsInsight";
+	public static final String INSIGHT_USERINSIGHT_REL_URI = SEMOSS_RELATION_URI + "/ExecutedBy";
 }
