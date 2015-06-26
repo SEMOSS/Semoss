@@ -469,7 +469,7 @@ public class Constants {
 	// Security
 	public static final String SECURITY_ENABLED = "security-enabled";
 	public static final String SESSION_USER = "user";
-	public static final String ANONYMOUS_USER_ID = "1";
+	public static final String ANONYMOUS_USER_ID = "-1";
 	
 	//RDBMS specific
 	public static final String USE_OUTER_JOINS = "USE_OUTER_JOINS";// if present and true use outer joins instead of inner joins
