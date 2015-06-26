@@ -1,6 +1,7 @@
 package prerna.algorithm.learning.util;
 
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.LogManager;
@@ -9,6 +10,9 @@ import org.apache.log4j.Logger;
 public class CategoricalCluster extends Hashtable<String, Map<String, Double>> implements ICategoricalCluster {
 
 	private static final Logger LOGGER = LogManager.getLogger(CategoricalCluster.class.getName());
+	
+	private Map<String, Double> entropyValues;
+	private Map<String, Double> weights;
 	
 	/**
 	 * serialization id
@@ -71,6 +75,31 @@ public class CategoricalCluster extends Hashtable<String, Map<String, Double>> i
 		else { 
 			throw new NullPointerException("Attribute " + attributeName + " cannot be found in cluster to remove...");
 		} 
+	}
+
+	@Override
+	public void setWeights(Map<String, Double> categoricalWeights) {
+		this.weights = categoricalWeights;
+	}
+
+	@Override
+	public void addToCluster(List<String> attributeNames, List<String> attributeInstances, List<Double> values) {
+		
+	}
+
+	@Override
+	public void removeFromCluster(List<String> attributeNames, List<String> attributeInstances, List<Double> values) {
+		
+	}
+
+	@Override
+	public Double getSimilarity(String attributeName, String attributeInstance) {
+		return 0.0;
+	}
+
+	@Override
+	public Double getSimilarity(List<String> attributeNames, List<String> attributeInstances) {
+		return 0.0;
 	}
 
 }
