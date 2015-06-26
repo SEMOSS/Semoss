@@ -30,6 +30,7 @@ package prerna.nameserver;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -52,11 +53,15 @@ import org.openrdf.sail.memory.MemoryStore;
 
 import prerna.algorithm.impl.CentralityCalculator;
 import prerna.algorithm.nlp.TextHelper;
+import prerna.auth.User;
+import prerna.auth.UserPermissionsMasterDB;
+import prerna.auth.User.LOGIN_TYPES;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
+import prerna.om.Insight;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.playsheets.GraphPlaySheet;
@@ -361,6 +366,38 @@ public class AddToMasterDB extends ModifyMasterDB {
 		} catch (RepositoryException e) {
 			logger.info("Repository Error adding insights");
 		}
+	}
+	
+	public boolean processInsightExecutionForUser(String userId, Insight insight) {
+		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
+		final String userInsight = userId + "-" + insight.getId();
+		
+		UserPermissionsMasterDB up = new UserPermissionsMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+		up.addUser(new User(Constants.ANONYMOUS_USER_ID, "Anonymous", LOGIN_TYPES.anonymous, "Anonymous"));
+		
+		ISelectWrapper sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_USER_INSIGHT.replace("@USERINSIGHT@", userInsight));
+		if(!sjsw.hasNext()) {
+			MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight);
+			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_INSIGHT_LABEL, insight.getLabel(), false);
+			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_EXECUTION_COUNT_PROP_URI, new Double(1), false);
+			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_LAST_EXECUTED_DATE_PROP_URI, new Date(), false);
+			MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.USER_BASE_URI + "/" + userId, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USER_USERINSIGHT_REL_URI);
+			MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.INSIGHT_BASE_URI + "/" + insight.getId(), MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.INSIGHT_USERINSIGHT_REL_URI);
+		} else {
+			Double count = 1.0;
+			sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_USER_INSIGHT_EXECUTED_COUNT.replace("@USERINSIGHT@", userInsight));
+			if(sjsw.hasNext()) {
+				String[] names = sjsw.getVariables();
+				count = Double.parseDouble(sjsw.next().getVar(names[0]).toString());
+			}
+			MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userId + "-" + insight.getId(), MasterDatabaseURIs.USERINSIGHT_EXECUTION_COUNT_PROP_URI, count, false);
+			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userId + "-" + insight.getId(), MasterDatabaseURIs.USERINSIGHT_EXECUTION_COUNT_PROP_URI, ++count, false);
+		}
+		
+		masterEngine.commit();
+		masterEngine.infer();
+		
+		return true;
 	}
 
 	public String getWordnetPath() {

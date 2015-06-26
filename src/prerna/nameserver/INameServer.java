@@ -20,10 +20,10 @@ public interface INameServer {
 	
 	/**
 	 * Removes a question (insight) from the name server
-	 * @param quesitonURL					The unique URL for the question
+	 * @param questionURL					The unique URL for the question
 	 * @return								boolean if removing the question was a success
 	 */
-	boolean unIndexQuestion(String quesitonURL);
+	boolean unIndexQuestion(String questionURL);
 	
 	/**
 	 * Indexes an engine and all of its concepts/relationships into the name server

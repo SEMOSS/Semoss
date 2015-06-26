@@ -48,6 +48,10 @@ public class SearchMasterDB extends ModifyMasterDB {
 	
 	private WordnetComparison wnComp;
 	
+	public SearchMasterDB(String localMasterDbName) {
+		super(localMasterDbName);
+	}
+	
 	public SearchMasterDB(String localMasterDbName, String wordnetDir, String lpDir) {
 		super(localMasterDbName);
 		wnComp = new WordnetComparison(wordnetDir, lpDir);
@@ -236,4 +240,38 @@ public class SearchMasterDB extends ModifyMasterDB {
 		return typeAndInstance;
 	}
 	
+	public HashMap<String, Object> getTopInsights(String engine) {
+		HashMap<String, Object> ret = new HashMap<String, Object>();
+		HashMap<String, HashMap<String, String>> insights = new HashMap<String, HashMap<String, String>>();
+		String query = MasterDatabaseQueries.GET_USER_INSIGHTS_FOR_ENGINE.replace("@ENGINE@", engine);
+		if(engine.isEmpty()) {
+			query = MasterDatabaseQueries.GET_ALL_USER_INSIGHTS;
+		}
+		
+		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
+		String[] names = sjsw.getVariables();
+		Double totalClicks = 0.0;
+		while(sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			String insight = sjss.getVar(names[0]).toString();
+			String insightLabel = sjss.getVar(names[1]).toString();
+			String engineName = sjss.getVar(names[2]).toString().split(":")[0];
+			String perspective = sjss.getVar(names[2]).toString().split(":")[1];
+			String execCount = sjss.getVar(names[3]).toString();
+			totalClicks += Double.parseDouble(execCount);
+			
+			HashMap<String, String> insightMetadata = new HashMap<String, String>();
+			insightMetadata.put("insight", insightLabel);
+			insightMetadata.put("engine", engineName);
+			insightMetadata.put("perspective", perspective);
+			insightMetadata.put("count", execCount);
+			
+			insights.put(insight, insightMetadata);
+		}
+		
+		ret.put("insights", insights);
+		ret.put("totalcount", totalClicks);
+		
+		return ret;
+	}
 }

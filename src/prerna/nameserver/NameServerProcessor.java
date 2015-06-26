@@ -2,12 +2,14 @@ package prerna.nameserver;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import prerna.engine.api.IEngine;
+import prerna.om.Insight;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class NameServerProcessor extends AbstractNameServer {
@@ -158,5 +160,14 @@ public class NameServerProcessor extends AbstractNameServer {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
+	
+	public boolean addUserInsightCount(String userId, Insight insight) {
+		AddToMasterDB masterDB = new AddToMasterDB(DIHelper.getInstance().getProperty(Constants.LOCAL_MASTER_DB_NAME));
+		return masterDB.processInsightExecutionForUser(userId, insight);
+	}
+	
+	public HashMap<String, Object> getTopInsights(String engine) {
+		SearchMasterDB masterDB = new SearchMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+		return masterDB.getTopInsights(engine);
+	}
 }
