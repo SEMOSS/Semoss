@@ -1,11 +1,15 @@
 package prerna.algorithm.learning.util;
 
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 
 public class NumericalCluster extends Hashtable<String, Double> implements INumericalCluster {
 
 	private Map<String, IClusterDistanceMode> distanceMeasureForAttribute;
+	private Map<String, Double> entropyValues;
+	private Map<String, Double> weights;
+
 	
 	/**
 	 * serialization id
@@ -20,6 +24,32 @@ public class NumericalCluster extends Hashtable<String, Double> implements INume
 	}
 	
 	@Override
+	public Double getSimilarity(List<String> attributeName, List<Double> value) {
+		
+		for(int i = 0; i < attributeName.size(); i++) {
+			
+			String attribute = attributeName.get(i);
+			IClusterDistanceMode distanceMeasure = distanceMeasureForAttribute.get(attribute);
+			Double weight = weights.get(attribute);
+			
+		}
+		
+		return 0.0;
+	}
+	
+	@Override
+	public Double getSimilarity(String attributeName, Double value) {
+		return 0.0;
+	}
+	
+	@Override
+	public void addToCluster(List<String> attributeName, List<Double> value) {
+		for(int i = 0; i < attributeName.size(); i++) {
+			this.addToCluster(attributeName.get(i), value.get(i));
+		}
+	}
+	
+	@Override
 	public void addToCluster(String attributeName, Double value) {
 		IClusterDistanceMode distanceMeasure = distanceMeasureForAttribute.get(attributeName);
 		distanceMeasure.addToCentroidValue(value);
@@ -31,6 +61,12 @@ public class NumericalCluster extends Hashtable<String, Double> implements INume
 		}
 	}
 
+	@Override
+	public void removeFromCluster(List<String> attributeName, List<Double> value) {
+		for(int i = 0; i < attributeName.size(); i++) {
+			this.removeFromCluster(attributeName.get(i), value.get(i));
+		}	
+	}
 	@Override
 	public void removeFromCluster(String attributeName, Double value) {
 		IClusterDistanceMode distanceMeasure = distanceMeasureForAttribute.get(attributeName);
@@ -49,4 +85,8 @@ public class NumericalCluster extends Hashtable<String, Double> implements INume
 		distanceMeasureForAttribute.put(attributeName, distanceMeasure);
 	}
 
+	@Override
+	public void setWeights(Map<String, Double> numericalWeights) {
+		weights = numericalWeights;
+	}
 }
