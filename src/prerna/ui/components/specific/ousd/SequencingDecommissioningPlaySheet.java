@@ -32,24 +32,26 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.StringTokenizer;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class SequencingDecommissioningPlaySheet extends BasicProcessingPlaySheet {
 
 	private static final Logger LOGGER = LogManager.getLogger(SequencingDecommissioningPlaySheet.class.getName());
 	Map dataHash = new Hashtable();
 
-	List<String> dataObjectList;
+	String INTERFACE_QUERY = "SELECT DISTINCT ?System2 ?System3 WHERE { {?System2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?System3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payloads>;} {?icd1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Interface_Control_Document>;} {?upstream1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provides>;}{?downstream1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consumes>;} {?System2 ?upstream1 ?icd1 ;}{?icd1 ?downstream1 ?System3;}{?icd1 ?carries ?Data1;} } BINDINGS ?Data1 {@Data-Data@}";
 	List<String> systemList;
 	
 	String dataListQuery;
+	String dataBindingsString;
 	String sysListQuery;
 	
 	public SequencingDecommissioningPlaySheet() {
@@ -59,20 +61,29 @@ public class SequencingDecommissioningPlaySheet extends BasicProcessingPlaySheet
 	@Override
 	public void createData() {
 		// populate data object list with list of all data objects (query should be passed in)
-		this.dataObjectList = new ArrayList<String>();
-//		this.dataListQuery;
+		ISelectWrapper dataWrap = WrapperManager.getInstance().getSWrapper(this.engine, this.dataListQuery);
 		//wrapper manager, etc. to fill data obj list
+		String[] dataNames = dataWrap.getVariables();
+		dataBindingsString = "";
+		while(dataWrap.hasNext()){
+			String thisData = dataWrap.next().getRawVar(dataNames[0])+"";
+			dataBindingsString = dataBindingsString + "(<"+thisData + ">)";
+		}
 		
 		// populate system list with list of all systems (query should also be passed in)
 		this.systemList = new ArrayList<String>();
-//		this.sysListQuery;
+		ISelectWrapper sysWrap = WrapperManager.getInstance().getSWrapper(this.engine, this.sysListQuery);
 		//wrapper manager, etc. to fill sys list
+		String[] sysNames = sysWrap.getVariables();
+		while(sysWrap.hasNext()){
+			this.systemList.add(sysWrap.next().getRawVar(sysNames[0])+"");
+		}
 		
-		Map<String, Integer[][]> dependMatrices = createDependencyMatrices();
-		createDecommissioningGroups(dependMatrices);
+		Integer[][] dependMatrix = createDependencyMatrices();
+		createDecommissioningGroups(dependMatrix);
 	}
 	
-	private Map<String, Integer[][]> createDependencyMatrices(){
+	private Integer[][] createDependencyMatrices(){
 		// iterate through list and for each:
 		// create the data network of systems
 		// iterate down through the network, capturing :
@@ -81,24 +92,36 @@ public class SequencingDecommissioningPlaySheet extends BasicProcessingPlaySheet
 		// (is it possible that we have islands? can a system exist outside of the main network?)
 		
 		Integer[][] sysDependMatrix = new Integer[systemList.size()][systemList.size()];
-		Integer[][] dataDependMatrix = new Integer[systemList.size()][dataObjectList.size()];
+		String unfilledQuery = this.INTERFACE_QUERY;
+		Hashtable<String, String> paramHash = new Hashtable<String, String>();
+		paramHash.put("Data-Data", dataBindingsString);
+		String query = Utility.fillParam(unfilledQuery, paramHash);
 		
-		
-		//iterate through list and for each:
-		for (String dataObj : this.dataObjectList){
-			// construct data network
-			//iterate down
-			//populate matrix
-			// LOOK TO LEVERAGE DistanceDownstreamProcessor
+		ISelectWrapper icdWrap = WrapperManager.getInstance().getSWrapper(this.engine, query);
+		//wrapper manager, etc. to fill sys list
+		String[] icdNames = icdWrap.getVariables();
+		while(icdWrap.hasNext()){
+			ISelectStatement ss = icdWrap.next();
+			String sys1 = ss.getRawVar(icdNames[0])+"";
+			String sys2 = ss.getRawVar(icdNames[1])+"";
+			LOGGER.info(" Found relation:::: " + sys1 + " depends on " + sys2);
+			
+			int sys1loc = this.systemList.indexOf(sys1);
+			int sys2loc = this.systemList.indexOf(sys2);
+			LOGGER.info(" Found location:::: " + sys1loc + " and " + sys2loc);
+			
+			if(sys1loc >= 0 && sys2loc >= 0){
+				sysDependMatrix[sys1loc][sys2loc] = 1;
+			}
+			else{
+				LOGGER.error("Exluding systems " + sys1 + " and " + sys2);
+			}
 		}
 		
-		Map<String, Integer[][]> returnObj = new HashMap<String, Integer[][]>();
-		returnObj.put("sysDepend", sysDependMatrix);
-		returnObj.put("dataDepend", dataDependMatrix);
-		return returnObj;
+		return sysDependMatrix;
 	}
 	
-	private void createDecommissioningGroups(Map<String, Integer[][]> dependMatrices){
+	private void createDecommissioningGroups(Integer[][] dependMatrices){
 		// check for zeroes
 		// identify best rows based on maximums in dataDepend
 		// iterate through best rows
@@ -109,12 +132,12 @@ public class SequencingDecommissioningPlaySheet extends BasicProcessingPlaySheet
 	@Override
 	public void setQuery(String query) {
 
-		String[] items = query.split("+{3}");
+		String[] items = query.split("\\+{3}");
 
 		LOGGER.info("Setting system query as " + items[0]);
 		this.sysListQuery = items[0];
 
-		LOGGER.info("Setting system query as " + items[1]);
+		LOGGER.info("Setting data query as " + items[1]);
 		this.dataListQuery = items[1];
 	}
 	
