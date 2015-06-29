@@ -83,7 +83,6 @@ public class MasterDatabaseURIs {
 	
 	//User activity tracking URIs
 	public static final String USERINSIGHT_URI = SEMOSS_CONCEPT_URI + "/UserInsight";
-	public static final String USERINSIGHT_INSIGHT_LABEL = PROP_URI + "/InsightLabel";
 	public static final String USERINSIGHT_EXECUTION_COUNT_PROP_URI = PROP_URI + "/ExecutionCount";
 	public static final String USERINSIGHT_LAST_EXECUTED_DATE_PROP_URI = PROP_URI + "/LastExecutedDate";
 	public static final String USER_USERINSIGHT_REL_URI = SEMOSS_RELATION_URI + "/RunsInsight";

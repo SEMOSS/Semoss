@@ -372,13 +372,9 @@ public class AddToMasterDB extends ModifyMasterDB {
 		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 		final String userInsight = userId + "-" + insight.getId();
 		
-		UserPermissionsMasterDB up = new UserPermissionsMasterDB(Constants.LOCAL_MASTER_DB_NAME);
-		up.addUser(new User(Constants.ANONYMOUS_USER_ID, "Anonymous", LOGIN_TYPES.anonymous, "Anonymous"));
-		
 		ISelectWrapper sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_USER_INSIGHT.replace("@USERINSIGHT@", userInsight));
 		if(!sjsw.hasNext()) {
 			MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight);
-			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_INSIGHT_LABEL, insight.getLabel(), false);
 			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_EXECUTION_COUNT_PROP_URI, new Double(1), false);
 			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_LAST_EXECUTED_DATE_PROP_URI, new Date(), false);
 			MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.USER_BASE_URI + "/" + userId, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USER_USERINSIGHT_REL_URI);

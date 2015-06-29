@@ -257,13 +257,15 @@ public class SearchMasterDB extends ModifyMasterDB {
 			String insightLabel = sjss.getVar(names[1]).toString();
 			String engineName = sjss.getVar(names[2]).toString().split(":")[0];
 			String perspective = sjss.getVar(names[2]).toString().split(":")[1];
-			String execCount = sjss.getVar(names[3]).toString();
+			String layout = sjss.getVar(names[3]).toString();
+			String execCount = sjss.getVar(names[4]).toString();
 			totalClicks += Double.parseDouble(execCount);
 			
 			HashMap<String, String> insightMetadata = new HashMap<String, String>();
 			insightMetadata.put("insight", insightLabel);
 			insightMetadata.put("engine", engineName);
 			insightMetadata.put("perspective", perspective);
+			insightMetadata.put("layout", layout);
 			insightMetadata.put("count", execCount);
 			
 			insights.put(insight, insightMetadata);
