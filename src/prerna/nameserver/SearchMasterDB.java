@@ -240,12 +240,12 @@ public class SearchMasterDB extends ModifyMasterDB {
 		return typeAndInstance;
 	}
 	
-	public HashMap<String, Object> getTopInsights(String engine) {
+	public HashMap<String, Object> getTopInsights(String engine, String limit) {
 		HashMap<String, Object> ret = new HashMap<String, Object>();
-		HashMap<String, HashMap<String, String>> insights = new HashMap<String, HashMap<String, String>>();
-		String query = MasterDatabaseQueries.GET_USER_INSIGHTS_FOR_ENGINE.replace("@ENGINE@", engine);
+		ArrayList<HashMap<String, String>> insights = new ArrayList<HashMap<String, String>>();
+		String query = MasterDatabaseQueries.GET_USER_INSIGHTS_FOR_ENGINE.replace("@ENGINE@", engine).replace("@LIMIT@", limit);
 		if(engine.isEmpty()) {
-			query = MasterDatabaseQueries.GET_ALL_USER_INSIGHTS;
+			query = MasterDatabaseQueries.GET_ALL_USER_INSIGHTS.replace("@LIMIT@", limit);
 		}
 		
 		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
@@ -268,7 +268,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 			insightMetadata.put("layout", layout);
 			insightMetadata.put("count", execCount);
 			
-			insights.put(insight, insightMetadata);
+			insights.add(insightMetadata);
 		}
 		
 		ret.put("insights", insights);

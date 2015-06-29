@@ -166,8 +166,8 @@ public class NameServerProcessor extends AbstractNameServer {
 		return masterDB.processInsightExecutionForUser(userId, insight);
 	}
 	
-	public HashMap<String, Object> getTopInsights(String engine) {
+	public HashMap<String, Object> getTopInsights(String engine, String limit) {
 		SearchMasterDB masterDB = new SearchMasterDB(Constants.LOCAL_MASTER_DB_NAME);
-		return masterDB.getTopInsights(engine);
+		return masterDB.getTopInsights(engine, limit);
 	}
 }
