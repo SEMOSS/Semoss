@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +22,8 @@ import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.impl.ExactStringMatcher;
 import prerna.engine.api.ISelectStatement;
+import prerna.math.BarChart;
+import prerna.math.StatisticsUtilityMethods;
 import prerna.om.SEMOSSParam;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
@@ -619,26 +622,130 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	@Override
 	public Double getEntropy(String columnHeader) {
-		// TODO Auto-generated method stub
-		return null;
+		double entropy = 0;
+		if(isNumeric(columnHeader)) {
+			//TODO: need to make barchart class better
+			//TODO: need to make barchart class better
+			Double[] dataRow = (Double[]) getColumn(columnHeader);
+			int numRows = dataRow.length;
+			Hashtable<String, Object>[] bins = null;
+			BarChart chart = new BarChart(dataRow);
+			
+			if(chart.isUseCategoricalForNumericInput()) {
+				chart.calculateCategoricalBins("NaN", true, true);
+				chart.generateJSONHashtableCategorical();
+				bins = chart.getRetHashForJSON();
+			} else {
+				chart.generateJSONHashtableNumerical();
+				bins = chart.getRetHashForJSON();
+			}
+			
+			int i = 0;
+			int uniqueValues = bins.length;
+			for(; i < uniqueValues; i++) {
+				int count = (int) bins[i].get("y");
+				if(count != 0) {
+					double prob = (double) count / numRows;
+					entropy += prob * StatisticsUtilityMethods.logBase2(prob);
+				}
+			}
+			
+		} else {
+			Map<String, Integer> uniqueValuesAndCount = getUniqueValuesAndCount(columnHeader);
+			Integer[] counts = (Integer[]) uniqueValuesAndCount.values().toArray();
+			
+			// if only one value, then entropy is 0
+			if(counts.length == 1) {
+				return entropy;
+			}
+			
+			double sum = StatisticsUtilityMethods.getSum(counts);
+			int index;
+			for(index = 0; index < counts.length; index++) {
+				double val = counts[index];
+				if(val != 0) {
+					double prob = val / sum;
+					entropy += prob * StatisticsUtilityMethods.logBase2(prob);
+				}
+			}		
+		}
+		
+		return entropy;
 	}
 
 	@Override
 	public Double[] getEntropy() {
-		// TODO Auto-generated method stub
-		return null;
+		Double[] entropyValues = new Double[levelNames.length];
+		for(int i = 0; i < levelNames.length; i++) {
+			entropyValues[i] = getEntropy(levelNames[i]);
+		}
+		return entropyValues;
 	}
 
 	@Override
 	public Double getEntropyDensity(String columnHeader) {
-		// TODO Auto-generated method stub
-		return null;
+		double entropyDensity = 0;
+		
+		if(isNumeric(columnHeader)) {
+			//TODO: need to make barchart class better
+			Double[] dataRow = (Double[]) getColumn(columnHeader);
+			int numRows = dataRow.length;
+			Hashtable<String, Object>[] bins = null;
+			BarChart chart = new BarChart(dataRow);
+			
+			if(chart.isUseCategoricalForNumericInput()) {
+				chart.calculateCategoricalBins("NaN", true, true);
+				chart.generateJSONHashtableCategorical();
+				bins = chart.getRetHashForJSON();
+			} else {
+				chart.generateJSONHashtableNumerical();
+				bins = chart.getRetHashForJSON();
+			}
+			
+			double entropy = 0;
+			int i = 0;
+			int uniqueValues = bins.length;
+			for(; i < uniqueValues; i++) {
+				int count = (int) bins[i].get("y");
+				if(count != 0) {
+					double prob = (double) count / numRows;
+					entropy += prob * StatisticsUtilityMethods.logBase2(prob);
+				}
+			}
+			entropyDensity = (double) entropy / uniqueValues;
+			
+		} else {
+			Map<String, Integer> uniqueValuesAndCount = getUniqueValuesAndCount(columnHeader);
+			Integer[] counts = (Integer[]) uniqueValuesAndCount.values().toArray();
+			
+			// if only one value, then entropy is 0
+			if(counts.length == 1) {
+				return entropyDensity;
+			}
+			
+			double entropy = 0;
+			double sum = StatisticsUtilityMethods.getSum(counts);
+			int index;
+			for(index = 0; index < counts.length; index++) {
+				double val = counts[index];
+				if(val != 0) {
+					double prob = val / sum;
+					entropy += prob * StatisticsUtilityMethods.logBase2(prob);
+				}
+			}
+			entropyDensity = entropy / uniqueValuesAndCount.keySet().size();
+		}
+		
+		return entropyDensity;
 	}
 
 	@Override
 	public Double[] getEntropyDensity() {
-		// TODO Auto-generated method stub
-		return null;
+		Double[] entropyDensityValues = new Double[levelNames.length];
+		for(int i = 0; i < levelNames.length; i++) {
+			entropyDensityValues[i] = getEntropyDensity(levelNames[i]);
+		}
+		return entropyDensityValues;
 	}
 
 	@Override

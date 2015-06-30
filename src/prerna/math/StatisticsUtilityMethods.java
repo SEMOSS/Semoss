@@ -30,8 +30,6 @@ package prerna.math;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 
 import prerna.util.ArrayUtilityMethods;
 
@@ -241,6 +239,21 @@ public final class StatisticsUtilityMethods {
 		int index;
 		int size = values.length;
 		double sum = values[0];
+		for(index = 1; index < size; index++) {
+			sum += values[index];
+		}
+		
+		return sum;
+	}
+	
+	public static int getSum(final Integer[] values) {
+		if( values == null || values.length == 0) {
+			throw new IllegalArgumentException(ILLEGAL_ARGS_ERR);
+		}
+		
+		int index;
+		int size = values.length;
+		int sum = values[0];
 		for(index = 1; index < size; index++) {
 			sum += values[index];
 		}
@@ -835,5 +848,4 @@ public final class StatisticsUtilityMethods {
 		return maxDistance * Math.sqrt(numValues);
 		
 	}
-	
 }
