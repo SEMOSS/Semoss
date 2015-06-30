@@ -63,5 +63,5 @@ public interface ICategoricalCluster {
 	 * 
 	 * @param categoricalWeights
 	 */
-	void setWeights(Map<String, Map<String, Double>> categoricalWeights);
+	void setWeights(Map<String, Double> categoricalWeights);
 }
