@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Vector;
 
 public class ClusterIterator implements Iterator<List<Object[]>>{
 
@@ -13,6 +12,7 @@ public class ClusterIterator implements Iterator<List<Object[]>>{
 	ClusterIterator(TreeNode columnRoot) {
 		iterator = new IndexTreeIterator(columnRoot);
 	}
+	
 	@Override
 	public boolean hasNext() {
 		return iterator.hasNext();
@@ -22,15 +22,18 @@ public class ClusterIterator implements Iterator<List<Object[]>>{
 	public List<Object[]> next() {
 		
 		List<Object[]> retList = new ArrayList<Object[]>();
-		
-		TreeNode treenode = iterator.next();
-		Vector<SimpleTreeNode> instances = treenode.instanceNode;
-		
-		for(SimpleTreeNode node: instances) {
+	
+		TreeNode treenode = iterator.next();	
+		for(SimpleTreeNode node: treenode.instanceNode) {
 			retList.addAll(getInstanceRows(node));
 		}
 		
 		return retList;
+	}
+	
+	@Override
+	public void remove() {
+		
 	}
 	
 	private List<Object[]> getInstanceRows(SimpleTreeNode node) {
