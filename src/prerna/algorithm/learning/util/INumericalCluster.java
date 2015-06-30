@@ -47,12 +47,12 @@ public interface INumericalCluster {
 	 */
 	Double getSimilarity(String attributeName, Double value);
 	
-	/**
-	 * Get similarity for the instance passed in to this cluster
-	 * @param numericalValues				the values
-	 * @param numericalAttributeValues
-	 */
-	Double getSimilarity(List<String> attributeName, List<Double> value);
+//	/**
+//	 * Get similarity for the instance passed in to this cluster
+//	 * @param numericalValues				the values
+//	 * @param numericalAttributeValues
+//	 */
+//	Double getSimilarity(List<String> attributeName, List<Double> value);
 	
 	/**
 	 * 
@@ -69,10 +69,10 @@ public interface INumericalCluster {
 	 */
 	boolean isEmpty();
 
-	/**
-	 * 
-	 * @param numericalWeights
-	 */
-	void setWeights(Map<String, Double> numericalWeights);
+//	/**
+//	 * 
+//	 * @param numericalWeights
+//	 */
+//	void setWeights(Map<String, Double> numericalWeights);
 	
 }

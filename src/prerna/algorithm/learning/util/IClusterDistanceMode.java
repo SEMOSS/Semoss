@@ -6,7 +6,11 @@ public interface IClusterDistanceMode {
 	
 	double getCentroidValue();
 	
-	void addToCentroidValue(double newValue);
+	void addToCentroidValue(Double newValue);
 	
-	void removeFromCentroidValue(double newValue);
+	void removeFromCentroidValue(Double newValue);
+	
+	double getNullRatio();
+	
+	void reset();
 }

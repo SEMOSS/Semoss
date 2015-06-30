@@ -11,10 +11,10 @@ public class ValueTreeColumnIterator implements Iterator<SimpleTreeNode>{
 	/**
 	 * Constructor for the BTreeIterator
 	 * Uses the leaves in the tree to traverse up and get the data corresponding to a row if the tree was flattened
-	 * @param typeRoot			A list of nodes corresponding to the leaves in the tree
+	 * @param rootLevel			A list of nodes corresponding to the leaves in the tree
 	 */
-	public ValueTreeColumnIterator(TreeNode typeRoot) {
-		iterator = new IndexTreeIterator(typeRoot);
+	public ValueTreeColumnIterator(TreeNode rootLevel) {
+		iterator = new IndexTreeIterator(rootLevel);
 		instances = new LinkedList<>();
 		addInstances();
 	}
