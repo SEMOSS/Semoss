@@ -132,16 +132,4 @@ public abstract class AbstractClusteringRoutine implements IClustering, IAnalyti
 		changedCols.add(this.clusterColumnID);
 		return changedCols;
 	}
-
-	@Override
-	public Map<String, Object> getResultMetadata() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public String getResultDescription() {
-		// TODO Auto-generated method stub
-		return null;
-	}
 }
