@@ -38,6 +38,10 @@ import java.util.Hashtable;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.util.ConnectionUtils;
+import prerna.rdf.query.builder.SQLQueryTableBuilder;
+import prerna.util.Constants;
+import prerna.util.Utility;
+import prerna.util.sql.SQLQueryUtil;
 
 public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrapper {
 
@@ -141,6 +145,14 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 
 	private void setVariables(){
 		try {
+			
+			//get rdbms type
+			SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
+			String dbTypeString = engine.getProperty(Constants.RDBMS_TYPE);
+			if (dbTypeString != null) {
+				dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
+			}
+			
 			ResultSetMetaData rsmd = rs.getMetaData();
 			int numColumns = rsmd.getColumnCount();
 			
@@ -148,7 +160,8 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 			
 			for(int colIndex = 1;colIndex <= numColumns;colIndex++)
 			{
-				var[colIndex-1] = rsmd.getColumnLabel(colIndex);
+				String columnLabel = rsmd.getColumnLabel(colIndex);
+				var[colIndex-1] = columnLabel;
 				
 				int type = rsmd.getColumnType(colIndex);
 				columnTypes.put(var[colIndex-1], type);
@@ -156,6 +169,35 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 				String tableName = rsmd.getTableName(colIndex);
 				//columnTypes.put(var[colIndex-1], type);
 
+				if(dbType == SQLQueryUtil.DB_TYPE.MARIA_DB){
+					//Maria db is having trouble getting the table name using the result set metadata method getTableName, 
+					//this logic is for us to work around this issue
+					boolean getTableNameFromColumn = tableName.equals("");
+					if(!getTableNameFromColumn){
+						//first see if this really is a table name, so if an alias exists then you can use this tableName
+						String tableAlias = SQLQueryTableBuilder.getAlias(tableName);
+						if(tableAlias.length()==0){
+							//if no alias was returned, assume that maybe the value you got was an alias, 
+							//so try to use the alias to get the tableName
+							String tableNameFromAlias = SQLQueryTableBuilder.getTableNameByAlias(tableName);
+							if(tableNameFromAlias.length()>0){
+								tableName = tableNameFromAlias;
+							} else {
+								getTableNameFromColumn = true;//if you still have no tableName, try to use the columnLabel to get your tableName
+							}
+						}
+					}
+					
+					//use columnName to derive table name
+					if(getTableNameFromColumn){
+						tableName = columnLabel;
+						if(columnLabel.contains("__")){
+							String[] splitColAndTable = tableName.split("__");
+							tableName = splitColAndTable[0];
+						}
+					}
+				}
+				
 				if(tableName != null && tableName.length() != 0) // will use this to find what is the type to strap it together
 				{
 					tableName = toCamelCase(tableName);
