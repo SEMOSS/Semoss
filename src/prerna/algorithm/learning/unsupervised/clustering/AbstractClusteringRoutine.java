@@ -1,7 +1,6 @@
 package prerna.algorithm.learning.unsupervised.clustering;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -9,14 +8,19 @@ import java.util.Set;
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.util.Cluster;
+import prerna.algorithm.learning.util.IClusterDistanceMode;
 import prerna.math.SimilarityWeighting;
 import prerna.om.SEMOSSParam;
 
 public abstract class AbstractClusteringRoutine implements IClustering, IAnalyticRoutine {
 
+	protected boolean success;
+	
 	protected List<SEMOSSParam> options;
 	protected final String NUM_CLUSTERS_KEY = "numClusters";
 	protected final String INSTANCE_INDEX_KEY = "instanceIdx";
+	protected final String DISTANCE_MEASURE	= "distanceMeasure";
+	
 	protected String clusterColumnID = "";
 	
 	// keeping track of cluster information
@@ -31,10 +35,12 @@ public abstract class AbstractClusteringRoutine implements IClustering, IAnalyti
 	// defined in SEMOSS options
 	protected int numClusters;
 	protected int instanceIndex;
+	protected Map<String, IClusterDistanceMode.DistanceMeasure> distanceMeasure;
 
 	protected Map<String, Double> numericalWeights;
 	protected Map<String, Double> categoricalWeights;
 	
+	// set distance mode
 	public AbstractClusteringRoutine() {
 		this.options = new ArrayList<SEMOSSParam>();
 
@@ -45,6 +51,10 @@ public abstract class AbstractClusteringRoutine implements IClustering, IAnalyti
 		SEMOSSParam p2 = new SEMOSSParam();
 		p2.setName(this.INSTANCE_INDEX_KEY);
 		options.add(1, p2);
+		
+		SEMOSSParam p3 = new SEMOSSParam();
+		p3.setName(this.DISTANCE_MEASURE);
+		options.add(2, p3);
 	}
 	
 	// potentially move the calculating weights logic into the ITableDataFrame
@@ -83,58 +93,6 @@ public abstract class AbstractClusteringRoutine implements IClustering, IAnalyti
 			categoricalWeights.put(categoricalNames.get(i), categoricalWeightsArr[i]);
 		}
 	}
-	
-	/**
-	 * Will generate the clusters by picking the most different instances
-	 */
-	public void initializeClusters() {
-		Iterator<Object[]> it = dataFrame.iterator();
-		Object[] values = it.next();
-		
-		Cluster firstCluster = new Cluster(categoricalWeights, numericalWeights);
-		firstCluster.addToCluster(values, attributeNames, isNumeric);
-		clusters.add(firstCluster);
-		// update cluster instance count
-		numInstancesInCluster.add(1);
-		
-		// create a cluster to serve as a combination of all the starting seeds
-		Cluster combinedInstances = new Cluster(categoricalWeights, numericalWeights);
-		combinedInstances.addToCluster(values, attributeNames, isNumeric);
-		
-		
-		for(int i = 1; i < numClusters; i++) {
-			double simVal = 2;
-			Object[] bestInstance = null;
-			while(it.hasNext()) {
-				Object[] instance = it.next();
-				double val = combinedInstances.getSimilarityForInstance(instance, attributeNames, isNumeric, instanceIndex);
-				if(val < simVal) {
-					bestInstance = instance;
-				}
-				if(val == 0) {
-					break;
-				}
-			}
-			// update combined cluster
-			combinedInstances.addToCluster(bestInstance, attributeNames, isNumeric);
-			
-			// create new cluster and add as a seed
-			Cluster newCluster = new Cluster(categoricalWeights, numericalWeights);
-			newCluster.addToCluster(bestInstance, attributeNames, isNumeric);
-			clusters.add(newCluster);
-			// update cluster instance count
-			numInstancesInCluster.add(1);
-			
-			// generate new iterator
-			it = dataFrame.iterator();
-		}
-	}
-	
-	
-	
-	
-	
-	
 	
 	@Override
 	public String getName() {
