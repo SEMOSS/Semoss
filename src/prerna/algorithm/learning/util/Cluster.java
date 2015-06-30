@@ -89,7 +89,7 @@ public class Cluster {
 	 * @param isNumeric					The boolean representing if value of i in the array is numeric
 	 * @return
 	 */
-	public double getSimilarityForInstance(Object[] instanceValues, String[] attributeNames, boolean[] isNumeric) {
+	public double getSimilarityForInstance(Object[] instanceValues, String[] attributeNames, boolean[] isNumeric, int indexToSkip) {
 		List<String> categoricalValues = new Vector<String>();
 		List<String> categoricalValueNames = new Vector<String>();
 		List<Double> numericalValues = new Vector<Double>();
@@ -100,21 +100,32 @@ public class Cluster {
 		for(; i < size; i++) {
 			if(isNumeric[i]) {
 				numericalValues.add((Double) instanceValues[i]);
-				numericalValueNames.add((String) attributeNames[i]);	
+				numericalValueNames.add((String) attributeNames[i]);
+				if(i==indexToSkip) indexToSkip = numericalValueNames.size()-1;
 			} else {
 				categoricalValues.add((String) instanceValues[i]);
 				categoricalValueNames.add((String) attributeNames[i]);
+				if(i==indexToSkip) indexToSkip = categoricalValueNames.size()-1;
 			}
 		}
 		
 		double similarityValue = 0;
 		
+		
 		if(!categoricalValues.isEmpty()) {
-			similarityValue += getSimilarityFromCategoricalValues(categoricalValues, categoricalValueNames);
+			if(isNumeric[indexToSkip]) {
+				similarityValue += getSimilarityFromCategoricalValues(categoricalValues, categoricalValueNames);
+			} else {
+				similarityValue += getSimilarityFromCategoricalValues(categoricalValues, categoricalValueNames, indexToSkip);
+			}
 		}
 		
 		if(!numericalValues.isEmpty()) {
-			similarityValue += getSimilarityFromNumericalValues(numericalValues, numericalValueNames);
+			if(isNumeric[indexToSkip]) {
+				similarityValue += getSimilarityFromNumericalValues(numericalValues, numericalValueNames, indexToSkip);
+			} else {
+				similarityValue += getSimilarityFromNumericalValues(numericalValues, numericalValueNames);
+			}
 		}
 		
 		return similarityValue;
@@ -124,7 +135,15 @@ public class Cluster {
 		return numericalCluster.getSimilarity(numericalValueNames, numericalValues);
 	}
 
+	private double getSimilarityFromNumericalValues(List<Double> numericalValues, List<String> numericalValueNames, int index) {
+		return numericalCluster.getSimilarity(numericalValueNames, numericalValues, index);
+	}
+	
 	private double getSimilarityFromCategoricalValues(List<String> categoricalValues, List<String> categoricalValueNames) {
 		return categoricalCluster.getSimilarity(categoricalValues, categoricalValueNames);
+	}
+	
+	private double getSimilarityFromCategoricalValues(List<String> categoricalValues, List<String> categoricalValueNames, int index) {
+		return categoricalCluster.getSimilarity(categoricalValues, categoricalValueNames, index);
 	}
 }
