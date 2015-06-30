@@ -1,5 +1,6 @@
 package prerna.algorithm.learning.unsupervised.clustering;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -9,6 +10,43 @@ import prerna.om.SEMOSSParam;
 
 public class ClusteringRoutine extends AbstractClusteringRoutine {
 
+	public ClusteringRoutine() {
+		super();
+	}
+	
+	@Override
+	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
+		// values defined in options
+		this.numClusters = (int) options.get(0).getSelected();
+		this.instanceIndex = (int) options.get(1).getSelected();
+		
+		this.dataFrame = data[0];
+		this.isNumeric = dataFrame.isNumeric();
+		this.attributeNames = dataFrame.getColumnHeaders();
+		
+		int numRows = dataFrame.getNumRows();
+		if(numClusters > numRows) {
+			throw new IllegalArgumentException("Cannot have more clusters than instances");
+		}
+		
+		calculateWeights();
+		initializeClusters();
+		int maxIt = 100_000;
+		boolean go = true;
+		int currIt = 0;
+		while(go) {
+			
+			
+			
+			// break if taking too many iterations
+			if(currIt > maxIt) {
+				go = false;
+			}
+		}
+		
+		return null;
+	}
+	
 	@Override
 	public int findBestClusterForInstance(Object[] instance, List<Cluster> clusters) {
 		// TODO Auto-generated method stub
@@ -22,49 +60,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 	}
 
 	@Override
-	public String getName() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public String getResultDescription() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void setSelectedOptions(Map<String, Object> selected) {
-		// TODO Auto-generated method stub
-		
-	}
-	
-	@Override
-	public List<SEMOSSParam> getOptions() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public String getDefaultViz() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<String> getChangedColumns() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Map<String, Object> getResultMetadata() {
 		// TODO Auto-generated method stub
 		return null;
 	}
