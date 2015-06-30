@@ -1,10 +1,10 @@
 package prerna.algorithm.learning.unsupervised.clustering;
 
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.ITableDataFrame;
@@ -14,22 +14,38 @@ import prerna.om.SEMOSSParam;
 
 public abstract class AbstractClusteringRoutine implements IClustering, IAnalyticRoutine {
 
-	private ITableDataFrame data;
-	private String[] attributeNames;
-	private boolean[] isNumeric;
+	protected List<SEMOSSParam> options;
+	protected final String NUM_CLUSTERS_KEY = "numClusters";
+	protected final String INSTANCE_INDEX_KEY = "instanceIdx";
+	protected String clusterColumnID = "";
 	
-	private int numClusters;
-	private int numInstances;
-	private int instanceIndex;
+	// keeping track of cluster information
+	protected List<Cluster> clusters;
+	protected List<Integer> numInstancesInCluster;
 
+	// values from data
+	protected ITableDataFrame dataFrame;
+	protected String[] attributeNames;
+	protected boolean[] isNumeric;
 	
-	private int[] numInstancesInCluster;
-	private int[] clusterAssignmentForInstance;
+	// defined in SEMOSS options
+	protected int numClusters;
+	protected int instanceIndex;
+
+	protected Map<String, Double> numericalWeights;
+	protected Map<String, Double> categoricalWeights;
 	
-	private List<Cluster> clusters;
-	
-	private Map<String, Double> numericalWeights;
-	private Map<String, Double> categoricalWeights;
+	public AbstractClusteringRoutine() {
+		this.options = new ArrayList<SEMOSSParam>();
+
+		SEMOSSParam p1 = new SEMOSSParam();
+		p1.setName(this.NUM_CLUSTERS_KEY);
+		options.add(0, p1);
+
+		SEMOSSParam p2 = new SEMOSSParam();
+		p2.setName(this.INSTANCE_INDEX_KEY);
+		options.add(1, p2);
+	}
 	
 	// potentially move the calculating weights logic into the ITableDataFrame
 	public void calculateWeights() {
@@ -46,10 +62,10 @@ public abstract class AbstractClusteringRoutine implements IClustering, IAnalyti
 			String attribute = attributeNames[i];
 			if(isNumeric[i]) {
 				numericalNames.add(attribute);
-				numericalEntropy.add(data.getEntropyDensity(attribute));
+				numericalEntropy.add(dataFrame.getEntropyDensity(attribute));
 			} else {
 				categoricalNames.add(attribute);
-				categoricalEntropy.add(data.getEntropyDensity(attribute));
+				categoricalEntropy.add(dataFrame.getEntropyDensity(attribute));
 			}
 		}
 		
@@ -72,17 +88,26 @@ public abstract class AbstractClusteringRoutine implements IClustering, IAnalyti
 	 * Will generate the clusters by picking the most different instances
 	 */
 	public void initializeClusters() {
-		Cluster allInitial = new Cluster(categoricalWeights, numericalWeights);
-		Iterator<Object[]> it = data.iterator();
-		allInitial.addToCluster(it.next(), attributeNames, isNumeric);
-		clusters.add(allInitial);
+		Iterator<Object[]> it = dataFrame.iterator();
+		Object[] values = it.next();
+		
+		Cluster firstCluster = new Cluster(categoricalWeights, numericalWeights);
+		firstCluster.addToCluster(values, attributeNames, isNumeric);
+		clusters.add(firstCluster);
+		// update cluster instance count
+		numInstancesInCluster.add(1);
+		
+		// create a cluster to serve as a combination of all the starting seeds
+		Cluster combinedInstances = new Cluster(categoricalWeights, numericalWeights);
+		combinedInstances.addToCluster(values, attributeNames, isNumeric);
+		
 		
 		for(int i = 1; i < numClusters; i++) {
 			double simVal = 2;
 			Object[] bestInstance = null;
 			while(it.hasNext()) {
 				Object[] instance = it.next();
-				double val = allInitial.getSimilarityForInstance(instance, attributeNames, isNumeric);
+				double val = combinedInstances.getSimilarityForInstance(instance, attributeNames, isNumeric, instanceIndex);
 				if(val < simVal) {
 					bestInstance = instance;
 				}
@@ -90,14 +115,26 @@ public abstract class AbstractClusteringRoutine implements IClustering, IAnalyti
 					break;
 				}
 			}
-			allInitial.addToCluster(bestInstance, attributeNames, isNumeric);
+			// update combined cluster
+			combinedInstances.addToCluster(bestInstance, attributeNames, isNumeric);
 			
+			// create new cluster and add as a seed
 			Cluster newCluster = new Cluster(categoricalWeights, numericalWeights);
 			newCluster.addToCluster(bestInstance, attributeNames, isNumeric);
 			clusters.add(newCluster);
-			it = data.iterator();
+			// update cluster instance count
+			numInstancesInCluster.add(1);
+			
+			// generate new iterator
+			it = dataFrame.iterator();
 		}
 	}
+	
+	
+	
+	
+	
+	
 	
 	@Override
 	public String getName() {
@@ -106,38 +143,46 @@ public abstract class AbstractClusteringRoutine implements IClustering, IAnalyti
 
 	@Override
 	public void setSelectedOptions(Map<String, Object> selected) {
-		this.numClusters = (int) selected.get("numClusters");
-		this.instanceIndex = (int) selected.get("selectedInstance");
-		
-		
+		Set<String> keySet = selected.keySet();
+		for(String key : keySet) {
+			for(SEMOSSParam param : options) {
+				if(param.getName().equals(key)){
+					param.setSelected(selected.get(key));
+					// set cluster id name based on the instance selected
+					if(param.getName().equals(INSTANCE_INDEX_KEY)) {
+						this.clusterColumnID = selected.get(key).toString().toUpperCase() + "_CLUSTER_ID";
+					}
+					break;
+				}
+			}
+		}
 	}
 
 	@Override
 	public List<SEMOSSParam> getOptions() {
-		// TODO Auto-generated method stub
-		return null;
+		return this.options;
 	}
-
-	@Override
-	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
+	
 	@Override
 	public String getDefaultViz() {
-		// TODO Auto-generated method stub
-		return null;
+		return "prerna.ui.components.playsheets.ClusteringVizPlaySheet";
 	}
 
 	@Override
 	public List<String> getChangedColumns() {
-		// TODO Auto-generated method stub
-		return null;
+		List<String> changedCols = new ArrayList<String>();
+		changedCols.add(this.clusterColumnID);
+		return changedCols;
 	}
 
 	@Override
 	public Map<String, Object> getResultMetadata() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public String getResultDescription() {
 		// TODO Auto-generated method stub
 		return null;
 	}
