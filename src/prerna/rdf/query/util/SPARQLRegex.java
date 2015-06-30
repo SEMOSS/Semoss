@@ -32,10 +32,11 @@ public class SPARQLRegex {
 	TriplePart var, value;
 	Boolean isValueString;
 	String regexString;
+	Boolean isCaseSensitive;
 	
 	//TODO: incorporate having clauses inside of a regex
 
-	public SPARQLRegex(TriplePart var, TriplePart value, boolean isValueString)
+	public SPARQLRegex(TriplePart var, TriplePart value, boolean isValueString, boolean isCaseSensitive)
 	{
 		if(!var.getType().equals(TriplePart.VARIABLE))
 		{
@@ -48,17 +49,22 @@ public class SPARQLRegex {
 		this.var = var;
 		this.value = value;
 		this.isValueString = isValueString;
+		this.isCaseSensitive = isCaseSensitive;
 	}
 	
 	public void createString()
 	{
 		String subjectString = SPARQLQueryHelper.createComponentString(var);
 		String objectString = SPARQLQueryHelper.createComponentString(value);
+		String caseSensitivityClause = "";
 		if(!isValueString)
 		{
 			subjectString = "STR(" + subjectString + ")";
 		}
-		regexString = "REGEX(" + subjectString + ", " + objectString + " )";
+		if(!isCaseSensitive){
+			caseSensitivityClause = ", 'i' ";
+		}
+		regexString = "REGEX(" + subjectString + ", " + objectString + " " + caseSensitivityClause +" )";
 	}
 	
 	public String getRegexString()
