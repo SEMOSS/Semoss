@@ -276,4 +276,38 @@ public class SearchMasterDB extends ModifyMasterDB {
 		
 		return ret;
 	}
+	
+	public HashMap<String, Object> getFeedInsights(String user, String visibility, String limit) {
+		HashMap<String, Object> ret = new HashMap<String, Object>();
+		ArrayList<HashMap<String, String>> insights = new ArrayList<HashMap<String, String>>();
+		String query = MasterDatabaseQueries.GET_USER_INSIGHTS_FOR_FEED.replace("@VISIBILITY@", visibility).replace("@LIMIT@", limit);
+		
+		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
+		String[] names = sjsw.getVariables();
+		Double totalClicks = 0.0;
+		while(sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			String insight = sjss.getVar(names[0]).toString();
+			String insightLabel = sjss.getVar(names[1]).toString();
+			String engineName = sjss.getVar(names[2]).toString().split(":")[0];
+			String perspective = sjss.getVar(names[2]).toString().split(":")[1];
+			String layout = sjss.getVar(names[3]).toString();
+			String execCount = sjss.getVar(names[4]).toString();
+			totalClicks += Double.parseDouble(execCount);
+			
+			HashMap<String, String> insightMetadata = new HashMap<String, String>();
+			insightMetadata.put("insight", insightLabel);
+			insightMetadata.put("engine", engineName);
+			insightMetadata.put("perspective", perspective);
+			insightMetadata.put("layout", layout);
+			insightMetadata.put("count", execCount);
+			
+			insights.add(insightMetadata);
+		}
+		
+		ret.put("insights", insights);
+		ret.put("totalcount", totalClicks);
+		
+		return ret;
+	}
 }
