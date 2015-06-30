@@ -673,6 +673,14 @@ public class BTreeDataFrame implements ITableDataFrame {
 		while(typeRoot.leftChild != null) {
 			typeRoot = typeRoot.leftChild;
 		}
+		
+		if(typeRoot.leaf.isEqual(new StringClass(SimpleTreeNode.EMPTY))) {
+			if(typeRoot.rightSibling != null) {
+				typeRoot = typeRoot.rightSibling;
+			} else {
+				typeRoot = typeRoot.parent;
+			}
+		}
 		return (Double) typeRoot.leaf.getValue();
 	}
 
@@ -687,25 +695,26 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public Double getAverage(String columnHeader) {
-		if(!isNumeric(columnHeader)) {
-			return Double.NaN;
-		}
-		
 		double sum = 0;
 		double count = 0;
-		
+
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
 		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
 		StringClass empty = new StringClass(SimpleTreeNode.EMPTY);
 		while(it.hasNext()) {
 			TreeNode node = it.next();
-			if(node.leaf.isEqual(empty)) {
-				continue;
+			ITreeKeyEvaluatable val = node.leaf;
+			if(val instanceof StringClass) {
+				if(val.isEqual(empty)) {
+					continue;
+				} else {
+					return Double.NaN;
+				}
 			}
 			sum += (Double) node.leaf.getValue() * node.getInstances().size();
 			count++;
 		}
-		
+
 		return sum / count;
 	}
 
@@ -720,20 +729,21 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public Double getSum(String columnHeader) {
-		if(!isNumeric(columnHeader)) {
-			return Double.NaN;
-		}
 		double sum = 0;
-		
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
 		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
 		StringClass empty = new StringClass(SimpleTreeNode.EMPTY);
 		while(it.hasNext()) {
 			TreeNode node = it.next();
-			if(node.leaf.isEqual(empty)) {
-				continue;
+			ITreeKeyEvaluatable val = node.leaf;
+			if(val instanceof StringClass) {
+				if(val.isEqual(empty)) {
+					continue;
+				} else {
+					return Double.NaN;
+				}
 			}
-			sum += (Double) node.leaf.getValue() * node.getInstances().size();
+			sum += (Double) val.getValue() * node.getInstances().size();
 		}
 		
 		return sum;
@@ -750,14 +760,34 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public boolean isNumeric(String columnHeader) {
-		// TODO Auto-generated method stub
-		return false;
+		boolean isNumeric = false;
+		
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
+		StringClass empty = new StringClass(SimpleTreeNode.EMPTY);
+		while(it.hasNext()) {
+			ITreeKeyEvaluatable val = it.next().leaf;
+			if(val instanceof StringClass) {
+				if(val.isEqual(empty)) {
+					continue;
+				} else {
+					isNumeric = false;
+					return isNumeric;
+				}
+			}
+			isNumeric = true;
+		}
+		
+		return isNumeric;
 	}
 
 	@Override
 	public boolean[] isNumeric() {
-		// TODO Auto-generated method stub
-		return null;
+		boolean[] isNumeric = new boolean[levelNames.length];
+		for(int i = 0; i < levelNames.length; i++) {
+			isNumeric[i] = isNumeric(levelNames[i]);
+		}
+		return isNumeric;
 	}
 
 	@Override
