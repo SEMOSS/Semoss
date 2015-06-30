@@ -11,9 +11,7 @@ import org.apache.log4j.Logger;
 public class CategoricalCluster extends Hashtable<String, Hashtable<String, Double>> implements ICategoricalCluster {
 
 	private static final Logger LOGGER = LogManager.getLogger(CategoricalCluster.class.getName());
-	
 	private Map<String, Double> weights;
-	private static final String EMPTY = "_____";
 	
 	/**
 	 * serialization id
@@ -132,6 +130,7 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 //		return similarity;
 //	}
 	
+	@Override
 	public Double getSimilarity(List<String> attributeNames, List<String> attributeInstances, int indexToSkip) {
 		double similarity = 0.0;
 		// loop through all the categorical properties (each weight corresponds to one categorical property)
@@ -160,6 +159,7 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 		return similarity;
 	}
 	
+	@Override
 	public void reset() {
 		for(String key: this.keySet()) {
 			Hashtable<String, Double> table = this.get(key);

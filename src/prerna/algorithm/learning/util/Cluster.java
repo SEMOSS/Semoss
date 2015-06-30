@@ -191,4 +191,9 @@ public class Cluster {
 	private double getSimilarityFromCategoricalValues(List<String> categoricalValues, List<String> categoricalValueNames, int index) {
 		return categoricalCluster.getSimilarity(categoricalValues, categoricalValueNames, index);
 	}
+	
+	public void reset() {
+		categoricalCluster.reset();
+		numericalCluster.reset();
+	}
 }

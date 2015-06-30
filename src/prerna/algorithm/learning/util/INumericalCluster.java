@@ -69,6 +69,11 @@ public interface INumericalCluster {
 	 */
 	boolean isEmpty();
 
+	/*
+	 * Resets the cluster
+	 */
+	void reset();
+
 //	/**
 //	 * 
 //	 * @param numericalWeights
