@@ -405,23 +405,23 @@ public class SEMOSSQuery {
 		clauseHash.put(clauseName,  clause);
 	}
 	
-	public void addRegexFilter(TriplePart var, ArrayList<TriplePart> filterData, boolean isValueString, boolean or)
+	public void addRegexFilter(TriplePart var, ArrayList<TriplePart> filterData, boolean isValueString, boolean or, boolean isCaseSensitive)
 	{
 		ArrayList<Object> addToFilter = new ArrayList<Object>();
 		for(TriplePart bindVar : filterData)
 		{
-			SPARQLRegex regex = new SPARQLRegex(var, bindVar, isValueString);
+			SPARQLRegex regex = new SPARQLRegex(var, bindVar, isValueString, isCaseSensitive);
 			addToFilter.add(regex);
 		}
 		addFilter(addToFilter, or);
 	}
 	
-	public void addRegexFilter(TriplePart var, ArrayList<TriplePart> filterData, boolean isValueString, boolean or,  String clauseName)
+	public void addRegexFilter(TriplePart var, ArrayList<TriplePart> filterData, boolean isValueString, boolean or,  String clauseName, boolean isCaseSensitive)
 	{
 		ArrayList<Object> addToFilter = new ArrayList<Object>();
 		for(TriplePart bindVar : filterData)
 		{
-			SPARQLRegex regex = new SPARQLRegex(var, bindVar, isValueString);
+			SPARQLRegex regex = new SPARQLRegex(var, bindVar, isValueString, isCaseSensitive);
 			addToFilter.add(regex);
 		}
 		addFilter(addToFilter, or, clauseName);
