@@ -73,6 +73,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 
 	String queryBindAndNoLimit = "";
 	private static final String SQL_SELECTOR_BIND = "{selectorBind}";
+	private static final String SQL_FILTER_BIND = "{filterBind}";
 	private boolean useDistinct = true;
 	private String groupBy = "";
 
@@ -112,23 +113,17 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	
 	public void makeQuery(){
 	
-	
+		String tempQueryFilter = filters + " AND " + SQL_FILTER_BIND;
+		//used by search filter logic off of the explorer table (enter a filter value and hit the server)
+		if(searchFilter.size()>0){
+			tempQueryFilter = SQL_FILTER_BIND;
+		}
+		
 		if(!useOuterJoins){
 			query = queryUtil.getDialectInnerJoinQuery(useDistinct, selectors, froms, joins, filters, limit, groupBy);
-			String tempQueryFilter = filters;
-			//used by search filter logic off of the explorer table (enter a filter value and hit the server)
-			if(searchFilter.size()>0){
-				tempQueryFilter = "";
-			}
 			queryBindAndNoLimit = queryUtil.getDialectInnerJoinQuery(useDistinct, SQL_SELECTOR_BIND, froms, joins, tempQueryFilter, -1, groupBy);
-			
 		} else {
 			query = queryUtil.getDialectFullOuterJoinQuery(useDistinct,selectors,rightJoinsArr,leftJoinsArr,joinsArr,filters, limit, groupBy);
-			String tempQueryFilter = filters;
-			//used by search filter logic off of the explorer table (enter a filter value and hit the server)
-			if(searchFilter.size()>0){
-				tempQueryFilter = "";
-			}
 			queryBindAndNoLimit = queryUtil.getDialectFullOuterJoinQuery(useDistinct,SQL_SELECTOR_BIND,rightJoinsArr,leftJoinsArr,joinsArr,tempQueryFilter, -1, groupBy);
 		}
 	}
@@ -243,6 +238,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			{
 				String currentFilters = "";
 				String columnValue = keys.next(); // this gets me title above
+				String asColumnValue = columnValue;
 				String simpleColumnValue = columnValue;
 				// need to split when there are underscores
 				// for now keeping it simple
@@ -267,7 +263,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 					
 					instance.replaceAll("'", "''");		
 					String filterSyntax = getFilterSyntax(columnValue,instance);
-					searchFilter.put(tableValue.toUpperCase(),filterSyntax);
+					searchFilter.put(asColumnValue.toUpperCase(),filterSyntax);
 				}
 
 			}
@@ -300,8 +296,13 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 				String simpleColumnValue = columnValue;
 				// need to split when there are underscores
 				// for now keeping it simple
-				
 				String tableValue = columnValue;
+				
+				//we should skip adding a column to the filter if the column is not part of the selector
+				if(!columnProcessed.containsKey(columnValue.toUpperCase())){
+					continue;
+				}
+				
 				//if the value passed into this method still has the tablename__column name syntax, need to pull out JUST the table name
 				if(columnValue.contains("__")){
 					String[] splitColAndTable = tableValue.split("__");
@@ -336,6 +337,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 
 		}
 		semossQuery.setSQLFilter(filters);
+		
 	}
 	
 	//clear filter logic 
@@ -348,6 +350,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			{
 				String currentFilters = "";
 				String columnValue = keys.next(); // this gets me title above
+				String asColumnValue = columnValue; // this really the alias of the column 
 				String simpleColumnValue = columnValue;
 				// need to split when there are underscores
 				// for now keeping it simple
@@ -372,7 +375,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 					
 					instance.replaceAll("'", "''");
 					Boolean clearFilterValue = Boolean.valueOf(instance);
-					clearFilter.put(tableValue.toUpperCase(),clearFilterValue);
+					clearFilter.put(asColumnValue.toUpperCase(),clearFilterValue);
 				}
 
 			}
@@ -584,26 +587,29 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			}
 			String tableAlias = getAlias(tableName);
 			String singleSelector = tableAlias + "." + colName + " AS " + varName;
+			String columnForFilter = tableAlias + "." + colName ;
 			String tempSearchFilter = "";
 			boolean clearFilterResults = false;
-			if(searchFilter.size()>0 && searchFilter.containsKey(tableName.toUpperCase())){
-				tempSearchFilter = searchFilter.get(tableName.toUpperCase()).replaceAll("%", "%25");//encode percent..
+			if(searchFilter.size()>0 && searchFilter.containsKey(varName.toUpperCase())){
+				tempSearchFilter = searchFilter.get(varName.toUpperCase()).replaceAll("%", "%25");//encode percent..
 			}
-			if(clearFilter.size()>0 && clearFilter.containsKey(tableName.toUpperCase())){
-				if(clearFilter.get(tableName.toUpperCase())){
+			if(clearFilter.size()>0 && clearFilter.containsKey(varName.toUpperCase())){
+				if(clearFilter.get(varName.toUpperCase())){
 					tempSearchFilter = "";//overwrite the searchfilter logic (if it was set..), both shouldnt be coming in anyway.
 					clearFilterResults = true;
 				}
 			}
 			
-			if(filters.length() > 0 && !clearFilterResults){ //&& (tempjoins.length() >0)
+			if(filters.length() > 0 && !clearFilterResults){ 
 				//filter that query down even further, make sure you are showing the distinct values for that query.
-				String tempQuery = queryBindAndNoLimit.replace(SQL_SELECTOR_BIND, singleSelector);
-				tempQuery = tempQuery.replaceAll("=", "%3D");
-				filterQuery = "SELECT DISTINCT " + singleSelector + " FROM " + tableName + " " + tableAlias + " WHERE " + tableAlias+"."+colName + 
-						" in (" + tempQuery + " ) ";
-				if(tempSearchFilter.length() > 0) 
-					filterQuery+= " AND " + tempSearchFilter;
+				String filterAddition = columnForFilter + " IS NOT NULL ";//dont start with "AND" since we already appended it when adding the SQL_FILTER_BIND to the query
+				if(tempSearchFilter.length() > 0 && !clearFilterResults) 
+					filterAddition += " AND " + tempSearchFilter;
+				
+				filterQuery = queryBindAndNoLimit.replace(SQL_SELECTOR_BIND, singleSelector);
+				filterQuery = filterQuery.replace(SQL_FILTER_BIND, filterAddition);
+				filterQuery = filterQuery.replaceAll("=", "%3D");
+
 			} else {
 				filterQuery = "SELECT DISTINCT " + singleSelector + " FROM " + tableName + " " + tableAlias ;
 				if(tempSearchFilter.length() > 0) 
