@@ -5,11 +5,11 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-public class ClusterIterator implements Iterator<List<Object[]>>{
+public class UniqueBTreeIterator implements Iterator<List<Object[]>>{
 
 	private IndexTreeIterator iterator;
 	
-	ClusterIterator(TreeNode columnRoot) {
+	public UniqueBTreeIterator(TreeNode columnRoot) {
 		iterator = new IndexTreeIterator(columnRoot);
 	}
 	

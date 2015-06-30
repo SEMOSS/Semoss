@@ -222,6 +222,13 @@ public interface ITableDataFrame {
 	Iterator<Object[]> iterator();
 	
 	/**
+	 * Iterator to go through all the rows in the data-frame and return all the values in unique-valued groups based on a specific column
+	 * The iterator will return a List<Object[]> corresponding to the data in a row of the data-frame
+	 * @return						The iterator to go through all the rows
+	 */
+	Iterator<List<Object[]>> uniqueIterator(String columnHeader);
+	
+	/**
 	 * Get the values for a specific column in the data-frame
 	 * @param columnHeader			The column header to get the values for
 	 * @return						The values for the specific column header in the data-frame

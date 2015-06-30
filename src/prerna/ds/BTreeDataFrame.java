@@ -689,9 +689,15 @@ public class BTreeDataFrame implements ITableDataFrame {
 	@Override
 	public Iterator<Object[]> iterator() {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);	
-//		typeRoot = typeRoot.getLeft(typeRoot);
 		Iterator<Object[]> it = new BTreeIterator(typeRoot);
 		return it;
+	}
+	
+	@Override
+	public Iterator<List<Object[]>> uniqueIterator(String columnHeader) {
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);	
+		Iterator<List<Object[]>> uniqueIterator = new UniqueBTreeIterator(typeRoot);
+		return uniqueIterator;
 	}
 
 	@Override
