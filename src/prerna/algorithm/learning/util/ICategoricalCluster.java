@@ -1,7 +1,6 @@
 package prerna.algorithm.learning.util;
 
 import java.util.List;
-import java.util.Map;
 
 public interface ICategoricalCluster {
 
@@ -67,6 +66,10 @@ public interface ICategoricalCluster {
 	 */
 	boolean isEmpty();
 
+	/**
+	 * Resets the clusters
+	 */
+	void reset();
 //	/**
 //	 * 
 //	 * @param categoricalWeights
