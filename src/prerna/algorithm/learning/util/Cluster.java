@@ -9,11 +9,11 @@ public class Cluster {
 	private ICategoricalCluster categoricalCluster;
 	private INumericalCluster numericalCluster;
 	
-	private final Map<String, Map<String, Double>> categoricalWeights;
+	private final Map<String, Double> categoricalWeights;
 	private final Map<String, Double> numericalWeights;
 	
 	
-	public Cluster(Map<String, Map<String, Double>> categoricalWeights, Map<String, Double> numericalWeights) {
+	public Cluster(Map<String, Double> categoricalWeights, Map<String, Double> numericalWeights) {
 		this.categoricalCluster = new CategoricalCluster(categoricalWeights);
 		this.numericalCluster = new NumericalCluster(numericalWeights);
 		this.categoricalWeights = categoricalWeights;

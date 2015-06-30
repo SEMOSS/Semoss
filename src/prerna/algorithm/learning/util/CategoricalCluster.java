@@ -1,6 +1,5 @@
 package prerna.algorithm.learning.util;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -14,7 +13,7 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 	private static final Logger LOGGER = LogManager.getLogger(CategoricalCluster.class.getName());
 	
 	private Map<String, Double> entropyValues;
-	private Map<String, Map<String, Double>> weights;
+	private Map<String, Double> weights;
 	
 	/**
 	 * serialization id
@@ -24,7 +23,7 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 	/**
 	 * Default constructor
 	 */
-	public CategoricalCluster(Map<String, Map<String, Double>> categoricalWeights) {
+	public CategoricalCluster(Map<String, Double> categoricalWeights) {
 		weights = categoricalWeights;
 		entropyValues = new Hashtable<>();
 	}
@@ -99,12 +98,12 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 	}
 
 	@Override
-	public void setWeights(Map<String, Map<String, Double>> categoricalWeights) {
+	public void setWeights(Map<String, Double> categoricalWeights) {
 		this.weights = categoricalWeights;
 	}
 
-	public void addWeight(String attributeName, String attributeInstance, Double weight) {
-		weights.get(attributeName).put(attributeInstance, weight);
+	public void addWeight(String attributeName, Double weight) {
+		weights.put(attributeName, weight);
 	}
 	
 	@Override
@@ -130,9 +129,10 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 			if(propertyHash.contains(attributeInstances.get(i))) {
 				numOccuranceInCluster = propertyHash.get(attributeInstances.get(i));
 			}
-			Hashtable<String, Double> allWeights = (Hashtable<String, Double>) weights.get(attributeNames.get(i));
-			double weight = allWeights.get(attributeInstances.get(i));
-			similarity += weight * (double) numOccuranceInCluster / sumProperties;
+			//TODO: need to fix this
+//			Hashtable<String, Double> allWeights = (Hashtable<String, Double>) weights.get(attributeNames.get(i));
+//			double weight = allWeights.get(attributeInstances.get(i));
+//			similarity += weight * (double) numOccuranceInCluster / sumProperties;
 		}
 		
 		// categorical similarity value is normalized based on the ratio of categorical variables to the total number of variables
