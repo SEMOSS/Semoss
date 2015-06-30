@@ -129,4 +129,32 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 
 		return similarity;
 	}
+	
+	public Double getSimilarity(List<String> attributeNames, List<String> attributeInstances, int indexToSkip) {
+		double similarity = 0.0;
+		// loop through all the categorical properties (each weight corresponds to one categorical property)
+		for(int i = 0; i < attributeNames.size(); i++) {
+			if(i==indexToSkip) {
+				continue;
+			}
+			// sumProperties contains the total number of instances for the property
+			double sumProperties = 0;
+			Hashtable<String, Double> propertyHash = this.get(attributeNames.get(i));//categoryClusterInfo.get(i);
+			Collection<Double> valueCollection = propertyHash.values();
+			for(Double val : valueCollection) {
+				sumProperties += val;
+			}
+
+			// numOccuranceInCluster contains the number of instances in the cluster that contain the same prop value as the instance
+			double numOccuranceInCluster = 0;
+			if(propertyHash.contains(attributeInstances.get(i))) {
+				numOccuranceInCluster = propertyHash.get(attributeInstances.get(i));
+			}
+			
+			double weight = weights.get(attributeNames.get(i));
+			similarity += weight * numOccuranceInCluster / sumProperties;
+		}
+
+		return similarity;
+	}
 }
