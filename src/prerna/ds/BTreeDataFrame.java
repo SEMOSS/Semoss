@@ -625,7 +625,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		double entropy = 0;
 		if(isNumeric(columnHeader)) {
 			//TODO: need to make barchart class better
-			//TODO: need to make barchart class better
 			Double[] dataRow = (Double[]) getColumn(columnHeader);
 			int numRows = dataRow.length;
 			Hashtable<String, Object>[] bins = null;
