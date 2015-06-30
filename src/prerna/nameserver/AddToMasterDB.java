@@ -368,17 +368,24 @@ public class AddToMasterDB extends ModifyMasterDB {
 		}
 	}
 	
+	public void createUserInsight(String userId, String insightId) {
+		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
+		String userInsight = userId + "-" + insightId;
+		
+		MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight);
+		MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_EXECUTION_COUNT_PROP_URI, new Double(1), false);
+		MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_LAST_EXECUTED_DATE_PROP_URI, new Date(), false);
+		MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.USER_BASE_URI + "/" + userId, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USER_USERINSIGHT_REL_URI);
+		MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.INSIGHT_BASE_URI + "/" + insightId, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.INSIGHT_USERINSIGHT_REL_URI);
+	}
+	
 	public boolean processInsightExecutionForUser(String userId, Insight insight) {
 		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
-		final String userInsight = userId + "-" + insight.getId();
+		String userInsight = userId + "-" + insight.getId();
 		
 		ISelectWrapper sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_USER_INSIGHT.replace("@USERINSIGHT@", userInsight));
 		if(!sjsw.hasNext()) {
-			MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight);
-			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_EXECUTION_COUNT_PROP_URI, new Double(1), false);
-			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_LAST_EXECUTED_DATE_PROP_URI, new Date(), false);
-			MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.USER_BASE_URI + "/" + userId, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USER_USERINSIGHT_REL_URI);
-			MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.INSIGHT_BASE_URI + "/" + insight.getId(), MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.INSIGHT_USERINSIGHT_REL_URI);
+			createUserInsight(userId, insight.getId());
 		} else {
 			Double count = 1.0;
 			sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_USER_INSIGHT_EXECUTED_COUNT.replace("@USERINSIGHT@", userInsight));
@@ -389,6 +396,23 @@ public class AddToMasterDB extends ModifyMasterDB {
 			MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userId + "-" + insight.getId(), MasterDatabaseURIs.USERINSIGHT_EXECUTION_COUNT_PROP_URI, count, false);
 			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userId + "-" + insight.getId(), MasterDatabaseURIs.USERINSIGHT_EXECUTION_COUNT_PROP_URI, ++count, false);
 		}
+		
+		masterEngine.commit();
+		masterEngine.infer();
+		
+		return true;
+	}
+	
+	public boolean publishInsightToFeed(String userId, Insight insight, String visibility) {
+		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
+		final String userInsight = userId + "-" + insight.getId();
+		
+		ISelectWrapper sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_USER_INSIGHT.replace("@USERINSIGHT@", userInsight));
+		if(!sjsw.hasNext()) {
+			createUserInsight(userId, insight.getId());
+		}
+		
+		MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_PUBLISH_VISIBILITY_PROP_URI, visibility, false);
 		
 		masterEngine.commit();
 		masterEngine.infer();
