@@ -79,7 +79,27 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 		}
 		
 		Integer[][] dependMatrix = createDependencyMatrices();
-		createDecommissioningGroups(dependMatrix);
+        HashMap<Integer, List<ArrayList<Integer>>> groups = createDecommissioningGroups(dependMatrix);
+        int groupCounter = 0;
+        
+        list = new ArrayList<Object[]>();
+        //key is counter for one level above group
+        for(Integer key: groups.keySet()){
+              for(ArrayList<Integer> depGroup: groups.get(key)){
+                    for(Integer compObj: depGroup){
+                          String keyToGroupCounter = new String(key.toString()+"."+groupCounter);
+                          double location = Double.parseDouble(keyToGroupCounter);
+                          Object[] depObj = new Object[]{compObjList.get(compObj), location};
+                          list.add(depObj);
+                          System.out.println("added object "+depObj);
+                    }
+                    groupCounter++;
+              }
+              groupCounter = 0;
+        }
+        
+		// set the names
+		this.names = new String[]{"Comparison Object", "Group Value"};
 	}
 	
 	private Integer[][] createDependencyMatrices(){
@@ -120,7 +140,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 	/**
 	 * @param systemMatrix
 	 */
-	private static void createDecommissioningGroups(Integer[][] dependMatrix){
+	private static HashMap<Integer, List<ArrayList<Integer>>> createDecommissioningGroups(Integer[][] dependMatrix){
 
 		//retrieve matrices
 		List<Integer> procRows = new ArrayList<Integer>();
@@ -169,6 +189,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			System.out.println(groups.get(key));
 		}
 
+		return groups;
 		// check for zeroes
 
 		// run recursive method
@@ -346,17 +367,6 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 		testData[4][1] = 3;
 		
 		createDecommissioningGroups(testSystems);
-	}
-	
-	@Override
-	public void createView(){
-		// create the list
-		// SPENCER's METHOD GOES HERE
-		
-		// set the names
-		this.names = new String[]{"Comparison Object", "Group Value"};
-		
-		super.createView();
 	}
 	
 	@Override
