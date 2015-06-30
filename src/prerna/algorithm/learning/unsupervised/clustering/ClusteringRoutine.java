@@ -8,6 +8,7 @@ import java.util.Map;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.util.Cluster;
 import prerna.algorithm.learning.util.IClusterDistanceMode.DistanceMeasure;
+import prerna.ds.BTreeDataFrame;
 
 public class ClusteringRoutine extends AbstractClusteringRoutine {
 
@@ -92,7 +93,14 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 			}
 		}
 
-		return null;
+		ITableDataFrame returnTable = new BTreeDataFrame(new String[]{attributeNames[instanceIndex], clusterColumnID});
+		for(String instance : results.keySet()) {
+			Map<String, Object> row = new HashMap<String, Object>();
+			row.put(instance, results.get(instance));
+			returnTable.addRow(row, row);
+		}
+		
+		return returnTable;
 	}
 
 	private void calculateRanges() {
@@ -195,4 +203,9 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 		return null;
 	}
 
+	@Override
+	public Map<String, Object> getResultMetadata() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
