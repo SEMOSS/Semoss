@@ -13,6 +13,7 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 	private static final Logger LOGGER = LogManager.getLogger(CategoricalCluster.class.getName());
 	
 	private Map<String, Double> weights;
+	private static final String EMPTY = "_____";
 	
 	/**
 	 * serialization id
@@ -35,6 +36,7 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 	
 	@Override
 	public void addToCluster(String attributeName, String attributeInstance, Double value) {
+		
 		Hashtable<String, Double> valCount = null;
 		
 		if(this.contains(attributeName)) 
@@ -90,45 +92,45 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 		} 
 	}
 
-	@Override
-	public void setWeights(Map<String, Double> categoricalWeights) {
-		this.weights = categoricalWeights;
-	}
+//	@Override
+//	public void setWeights(Map<String, Double> categoricalWeights) {
+//		this.weights = categoricalWeights;
+//	}
 
-	public void addWeight(String attributeName, Double weight) {
-		weights.put(attributeName, weight);
-	}
+//	public void addWeight(String attributeName, Double weight) {
+//		weights.put(attributeName, weight);
+//	}
 	
 	@Override
 	public Double getSimilarity(String attributeName, String attributeInstance) {
 		return 0.0;
 	}
 
-	@Override
-	public Double getSimilarity(List<String> attributeNames, List<String> attributeInstances) {
-		double similarity = 0.0;
-		// loop through all the categorical properties (each weight corresponds to one categorical property)
-		for(int i = 0; i < attributeNames.size(); i++) {
-			// sumProperties contains the total number of instances for the property
-			double sumProperties = 0;
-			Hashtable<String, Double> propertyHash = this.get(attributeNames.get(i));//categoryClusterInfo.get(i);
-			Collection<Double> valueCollection = propertyHash.values();
-			for(Double val : valueCollection) {
-				sumProperties += val;
-			}
-
-			// numOccuranceInCluster contains the number of instances in the cluster that contain the same prop value as the instance
-			double numOccuranceInCluster = 0;
-			if(propertyHash.contains(attributeInstances.get(i))) {
-				numOccuranceInCluster = propertyHash.get(attributeInstances.get(i));
-			}
-			
-			double weight = weights.get(attributeNames.get(i));
-			similarity += weight * numOccuranceInCluster / sumProperties;
-		}
-
-		return similarity;
-	}
+//	@Override
+//	public Double getSimilarity(List<String> attributeNames, List<String> attributeInstances) {
+//		double similarity = 0.0;
+//		// loop through all the categorical properties (each weight corresponds to one categorical property)
+//		for(int i = 0; i < attributeNames.size(); i++) {
+//			// sumProperties contains the total number of instances for the property
+//			double sumProperties = 0;
+//			Hashtable<String, Double> propertyHash = this.get(attributeNames.get(i));//categoryClusterInfo.get(i);
+//			Collection<Double> valueCollection = propertyHash.values();
+//			for(Double val : valueCollection) {
+//				sumProperties += val;
+//			}
+//
+//			// numOccuranceInCluster contains the number of instances in the cluster that contain the same prop value as the instance
+//			double numOccuranceInCluster = 0;
+//			if(propertyHash.contains(attributeInstances.get(i))) {
+//				numOccuranceInCluster = propertyHash.get(attributeInstances.get(i));
+//			}
+//			
+//			double weight = weights.get(attributeNames.get(i));
+//			similarity += weight * numOccuranceInCluster / sumProperties;
+//		}
+//
+//		return similarity;
+//	}
 	
 	public Double getSimilarity(List<String> attributeNames, List<String> attributeInstances, int indexToSkip) {
 		double similarity = 0.0;
@@ -157,4 +159,14 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 
 		return similarity;
 	}
+	
+	public void reset() {
+		for(String key: this.keySet()) {
+			Hashtable<String, Double> table = this.get(key);
+			for(String key2: table.keySet()) {
+				table.put(key2, 0.0);
+			}
+		}
+	}
+	
 }

@@ -4,38 +4,42 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-public class NumericalCluster extends Hashtable<String, Double> implements INumericalCluster {
+public class NumericalCluster implements INumericalCluster {
 
+	//TODO: consolidate these maps to save memory since Keys for all maps are identical
 	private Map<String, IClusterDistanceMode> distanceMeasureForAttribute;
 	private Map<String, Double> weights;
-
-	/**
-	 * serialization id
-	 */
-	private static final long serialVersionUID = -4280174932550461526L;
+	private Map<String, Double> ranges;
 	
 	/**
 	 * Default constructor
 	 */
-	public NumericalCluster(Map<String, Double> w) {
+	public NumericalCluster(Map<String, Double> w, Map<String, Double> r) {
 		distanceMeasureForAttribute = new Hashtable<String, IClusterDistanceMode>();
 		weights = w;
+		ranges = r;
 	}
 	
-	@Override
-	public Double getSimilarity(List<String> attributeName, List<Double> value) {
-		double similarity = 0.0;
-		for(int i = 0; i < attributeName.size(); i++) {
-			String attribute = attributeName.get(i);
-			double v = value.get(i);
-			double center = distanceMeasureForAttribute.get(attribute).getCentroidValue();
-			Double weight = weights.get(attribute);
-			
-			//using euclidean distance
-			similarity = similarity + (Math.pow(Math.abs(v-center), 2))*weight;
-		}
-		return Math.sqrt(similarity);
-	}
+//	//TODO: reduce code redundancy in getSimilarity  Methods
+//	@Override
+//	public Double getSimilarity(List<String> attributeName, List<Double> value) {
+//		double similarity = 0.0;
+//		for(int i = 0; i < attributeName.size(); i++) {
+//			String attribute = attributeName.get(i);
+//			Double v = value.get(i);
+//			if(v==null) {
+//				v = distanceMeasureForAttribute.get(attribute).getNullRatio();
+//			}
+//			Double center = distanceMeasureForAttribute.get(attribute).getCentroidValue();
+//			Double weight = weights.get(attribute);
+//			Double range = ranges.get(attribute);
+//			center = center/range;
+//			
+//			//using euclidean distance
+//			similarity = similarity + (Math.pow(Math.abs(v-center), 2))*weight;
+//		}
+//		return Math.sqrt(similarity);
+//	}
 	
 	@Override
 	public Double getSimilarity(List<String> attributeName, List<Double> value, int indexToSkip) {
@@ -46,9 +50,14 @@ public class NumericalCluster extends Hashtable<String, Double> implements INume
 				continue;
 			}
 			String attribute = attributeName.get(i);
-			double v = value.get(i);
-			double center = distanceMeasureForAttribute.get(attribute).getCentroidValue();
+			Double v = value.get(i);
+			if(v==null) {
+				v = distanceMeasureForAttribute.get(attribute).getNullRatio();
+			}
+			Double center = distanceMeasureForAttribute.get(attribute).getCentroidValue();
 			Double weight = weights.get(attribute);
+			Double range = ranges.get(attribute);
+			center = center/range;
 			
 			//using euclidean distance
 			similarity = similarity + (Math.pow(Math.abs(v-center), 2))*weight;
@@ -58,13 +67,7 @@ public class NumericalCluster extends Hashtable<String, Double> implements INume
 	
 	@Override
 	public Double getSimilarity(String attributeName, Double value) {
-		/*
-		List<String> a = new ArrayList<>(1);
-		List<Double> v = new ArrayList<>(1);
-		a.add(attributeName);
-		v.add(value);
-		return getSimilarity(a, v);
-		*/
+		//TODO: return similarity score for one dimension
 		return 0.0;
 	}
 	
@@ -80,11 +83,12 @@ public class NumericalCluster extends Hashtable<String, Double> implements INume
 		IClusterDistanceMode distanceMeasure = distanceMeasureForAttribute.get(attributeName);
 		distanceMeasure.addToCentroidValue(value);
 
-		if(this.containsKey(attributeName)) { // old instance value for property
-			this.put(attributeName, distanceMeasure.getCentroidValue());
-		} else { // new instance value for property
-			this.put(attributeName, value);
-		}
+		
+//		if(this.containsKey(attributeName)) { // old instance value for property
+//			this.put(attributeName, distanceMeasure.getCentroidValue());
+//		} else { // new instance value for property
+//			this.put(attributeName, value);
+//		}
 	}
 
 	@Override
@@ -93,16 +97,17 @@ public class NumericalCluster extends Hashtable<String, Double> implements INume
 			this.removeFromCluster(attributeName.get(i), value.get(i));
 		}	
 	}
+	
 	@Override
 	public void removeFromCluster(String attributeName, Double value) {
 		IClusterDistanceMode distanceMeasure = distanceMeasureForAttribute.get(attributeName);
 		distanceMeasure.removeFromCentroidValue(value);
 
-		if(this.containsKey(attributeName)) { // old instance value for property
-			this.put(attributeName, distanceMeasure.getCentroidValue());
-		} else { // new instance value for property
-			throw new NullPointerException("Attribute " + attributeName + " cannot be found in cluster to remove...");
-		}
+//		if(this.containsKey(attributeName)) { // old instance value for property
+//			this.put(attributeName, distanceMeasure.getCentroidValue());
+//		} else { // new instance value for property
+//			throw new NullPointerException("Attribute " + attributeName + " cannot be found in cluster to remove...");
+//		}
 	}
 
 	@Override
@@ -110,8 +115,19 @@ public class NumericalCluster extends Hashtable<String, Double> implements INume
 		distanceMeasureForAttribute.put(attributeName, distanceMeasure);
 	}
 
+//	@Override
+//	public void setWeights(Map<String, Double> numericalWeights) {
+//		weights = numericalWeights;
+//	}
+	
+	public void reset() {
+		for(String key: distanceMeasureForAttribute.keySet()) {
+			distanceMeasureForAttribute.get(key).reset();
+		}
+	}
+
 	@Override
-	public void setWeights(Map<String, Double> numericalWeights) {
-		weights = numericalWeights;
+	public boolean isEmpty() {
+		return distanceMeasureForAttribute.isEmpty();
 	}
 }

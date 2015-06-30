@@ -100,7 +100,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 		Iterator<Object[]> it = dataFrame.iterator();
 		Object[] firstInstance = it.next();
 		
-		Cluster firstCluster = new Cluster(categoricalWeights, numericalWeights);
+		Cluster firstCluster = new Cluster(categoricalWeights, numericalWeights, categoricalWeights);
 		firstCluster.addToCluster(firstInstance, attributeNames, isNumeric);
 		firstCluster.setDistanceMode(this.distanceMeasure);
 		clusters.add(firstCluster);
@@ -109,7 +109,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 		numInstancesInCluster.add(1);
 		
 		// create a cluster to serve as a combination of all the starting seeds
-		Cluster combinedInstances = new Cluster(categoricalWeights, numericalWeights);
+		Cluster combinedInstances = new Cluster(categoricalWeights, numericalWeights, categoricalWeights);
 		combinedInstances.addToCluster(firstInstance, attributeNames, isNumeric);
 		
 		for(int i = 1; i < numClusters; i++) {
@@ -129,7 +129,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 			combinedInstances.addToCluster(bestInstance, attributeNames, isNumeric);
 			
 			// create new cluster and add as a seed
-			Cluster newCluster = new Cluster(categoricalWeights, numericalWeights);
+			Cluster newCluster = new Cluster(categoricalWeights, numericalWeights, categoricalWeights);
 			newCluster.addToCluster(bestInstance, attributeNames, isNumeric);
 			newCluster.setDistanceMode(this.distanceMeasure);
 			clusters.add(newCluster);
