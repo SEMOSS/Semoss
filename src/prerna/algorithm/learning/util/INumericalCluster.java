@@ -60,5 +60,9 @@ public interface INumericalCluster {
 	 */
 	boolean isEmpty();
 
+	/**
+	 * 
+	 * @param numericalWeights
+	 */
 	void setWeights(Map<String, Double> numericalWeights);
 }
