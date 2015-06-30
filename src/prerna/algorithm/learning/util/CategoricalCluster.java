@@ -1,9 +1,9 @@
 package prerna.algorithm.learning.util;
 
+import java.util.Collection;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -12,7 +12,6 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 
 	private static final Logger LOGGER = LogManager.getLogger(CategoricalCluster.class.getName());
 	
-	private Map<String, Double> entropyValues;
 	private Map<String, Double> weights;
 	
 	/**
@@ -25,7 +24,6 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 	 */
 	public CategoricalCluster(Map<String, Double> categoricalWeights) {
 		weights = categoricalWeights;
-		entropyValues = new Hashtable<>();
 	}
 	
 	@Override
@@ -39,9 +37,6 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 	public void addToCluster(String attributeName, String attributeInstance, Double value) {
 		Hashtable<String, Double> valCount = null;
 		
-		//int index = this.indexOf(attributeName);
-		
-
 		if(this.contains(attributeName)) 
 		{ 
 			valCount = this.get(attributeName);
@@ -72,8 +67,6 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 	@Override
 	public void removeFromCluster(String attributeName, String attributeInstance, Double value) {
 		Hashtable<String, Double> valCount = null;
-		
-		//int index = this.indexOf(attributeName);
 		
 		if(this.contains(attributeName)) {
 			valCount = this.get(attributeName);
@@ -114,31 +107,26 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 	@Override
 	public Double getSimilarity(List<String> attributeNames, List<String> attributeInstances) {
 		double similarity = 0.0;
-		
 		// loop through all the categorical properties (each weight corresponds to one categorical property)
 		for(int i = 0; i < attributeNames.size(); i++) {
 			// sumProperties contains the total number of instances for the property
 			double sumProperties = 0;
 			Hashtable<String, Double> propertyHash = this.get(attributeNames.get(i));//categoryClusterInfo.get(i);
-			Set<String> propKeySet = propertyHash.keySet();
-			for(String propName : propKeySet) {
-				sumProperties += propertyHash.get(propName);
+			Collection<Double> valueCollection = propertyHash.values();
+			for(Double val : valueCollection) {
+				sumProperties += val;
 			}
+
 			// numOccuranceInCluster contains the number of instances in the cluster that contain the same prop value as the instance
 			double numOccuranceInCluster = 0;
 			if(propertyHash.contains(attributeInstances.get(i))) {
 				numOccuranceInCluster = propertyHash.get(attributeInstances.get(i));
 			}
-			//TODO: need to fix this
-//			Hashtable<String, Double> allWeights = (Hashtable<String, Double>) weights.get(attributeNames.get(i));
-//			double weight = allWeights.get(attributeInstances.get(i));
-//			similarity += weight * (double) numOccuranceInCluster / sumProperties;
+			
+			double weight = weights.get(attributeNames.get(i));
+			similarity += weight * numOccuranceInCluster / sumProperties;
 		}
-		
-		// categorical similarity value is normalized based on the ratio of categorical variables to the total number of variables
-		//double coeff = 1.0 * propNum / totalPropNum;
 
-		//		LOGGER.info("Calculated similarity score for categories: " + coeff * similarity);
 		return similarity;
 	}
 }
