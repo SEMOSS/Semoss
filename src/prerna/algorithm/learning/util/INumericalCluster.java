@@ -55,6 +55,15 @@ public interface INumericalCluster {
 	Double getSimilarity(List<String> attributeName, List<Double> value);
 	
 	/**
+	 * 
+	 * @param attributeName
+	 * @param value
+	 * @param indexToSkip
+	 * @return
+	 */
+	Double getSimilarity(List<String> attributeName, List<Double> value, int indexToSkip);
+	
+	/**
 	 * Determine if the cluster is empty
 	 * @return								boolean true if object is empty, false otherwise
 	 */
@@ -65,4 +74,5 @@ public interface INumericalCluster {
 	 * @param numericalWeights
 	 */
 	void setWeights(Map<String, Double> numericalWeights);
+	
 }

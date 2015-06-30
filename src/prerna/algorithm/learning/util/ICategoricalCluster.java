@@ -49,9 +49,17 @@ public interface ICategoricalCluster {
 	 * 
 	 * @param attributeNames
 	 * @param attributeInstances
-	 * @param values
 	 */
 	Double getSimilarity(List<String> attributeNames, List<String> attributeInstances);
+	
+	/**
+	 * 
+	 * @param attributeNames
+	 * @param attributeInstances
+	 * @param indexToSkip
+	 * @return
+	 */
+	Double getSimilarity(List<String> attributeNames, List<String> attributeInstances, int indexToSkip);
 	
 	/**
 	 * Determine if the cluster is empty
@@ -64,4 +72,5 @@ public interface ICategoricalCluster {
 	 * @param categoricalWeights
 	 */
 	void setWeights(Map<String, Double> categoricalWeights);
+	
 }
