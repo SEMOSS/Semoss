@@ -120,6 +120,7 @@ public class NumericalCluster implements INumericalCluster {
 //		weights = numericalWeights;
 //	}
 	
+	@Override
 	public void reset() {
 		for(String key: distanceMeasureForAttribute.keySet()) {
 			distanceMeasureForAttribute.get(key).reset();
