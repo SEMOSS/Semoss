@@ -463,7 +463,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		switch(levelCase) {
 			case 1: {
 				//structurally identical
-				simpleTree.append(this.simpleTree.getRoot(), bTree.getTree().getRoot()); break;
+				simpleTree.append(this.simpleTree.getRoot(), bTree.getBuilder().getRoot()); break;
 			}
 			case 2: {
 				//subset of what to append is structurally identical
@@ -563,6 +563,61 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
+	public Integer getUniqueInstanceCount(String columnHeader) {
+		int count = 0;
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
+		while(it.hasNext()) {
+			it.next();
+			count++;
+		}
+		return count;
+	}
+
+	@Override
+	public Integer[] getUniqueInstanceCount() {
+		Integer[] counts = new Integer[levelNames.length];
+		for(int i = 0; i < levelNames.length; i++) {
+			counts[i] = getUniqueInstanceCount(levelNames[i]);
+		}
+		return counts;
+	}
+	
+	@Override
+	public Object[] getUniqueValues(String columnHeader) {
+		List<Object> uniqueValues = new ArrayList<Object>();
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
+		while(it.hasNext()) {
+			uniqueValues.add(it.next().leaf.getValue());
+		}
+		
+		return uniqueValues.toArray();
+	}
+
+	@Override
+	public Map<String, Integer> getUniqueValuesAndCount(String columnHeader) {
+		Map<String, Integer> valueCount = new HashMap<String, Integer>();
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
+		while(it.hasNext()) {
+			TreeNode node = it.next();
+			valueCount.put(node.leaf.getValue().toString(), node.getInstances().size());
+		}
+		return valueCount;
+	}
+
+	@Override
+	public Map<String, Map<String, Integer>> getUniqueColumnValuesAndCount() {
+		Map<String, Map<String, Integer>> uniqueColsAndValueCount = new HashMap<String, Map<String, Integer>>();
+		for(String colName : levelNames) {
+			Map<String, Integer> uniqueValuesAndCount = getUniqueValuesAndCount(colName);
+			uniqueColsAndValueCount.put(colName, uniqueValuesAndCount);
+		}
+		return uniqueColsAndValueCount;
+	}
+	
+	@Override
 	public Double getEntropy(String columnHeader) {
 		// TODO Auto-generated method stub
 		return null;
@@ -587,63 +642,110 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public Integer getUniqueInstanceCount(String columnHeader) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Integer[] getUniqueInstanceCount() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public Double getMax(String columnHeader) {
-		// TODO Auto-generated method stub
-		return null;
+		if(!isNumeric(columnHeader)) {
+			return Double.NaN;
+		}
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		typeRoot = typeRoot.getRight(typeRoot);
+		while(typeRoot.rightChild != null) {
+			typeRoot = typeRoot.rightChild;
+			typeRoot = typeRoot.getRight(typeRoot);
+		}
+		return (Double) typeRoot.leaf.getValue();
 	}
 
 	@Override
 	public Double[] getMax() {
-		// TODO Auto-generated method stub
-		return null;
+		Double[] maxValues = new Double[levelNames.length];
+		for(int i = 0; i < levelNames.length; i++) {
+			maxValues[i] = getMax(levelNames[i]);
+		}
+		return maxValues;
 	}
 
 	@Override
 	public Double getMin(String columnHeader) {
-		// TODO Auto-generated method stub
-		return null;
+		if(!isNumeric(columnHeader)) {
+			return Double.NaN;
+		}
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		while(typeRoot.leftChild != null) {
+			typeRoot = typeRoot.leftChild;
+		}
+		return (Double) typeRoot.leaf.getValue();
 	}
 
 	@Override
 	public Double[] getMin() {
-		// TODO Auto-generated method stub
-		return null;
+		Double[] minValues = new Double[levelNames.length];
+		for(int i = 0; i < levelNames.length; i++) {
+			minValues[i] = getMin(levelNames[i]);
+		}
+		return minValues;
 	}
 
 	@Override
 	public Double getAverage(String columnHeader) {
-		// TODO Auto-generated method stub
-		return null;
+		if(!isNumeric(columnHeader)) {
+			return Double.NaN;
+		}
+		
+		double sum = 0;
+		double count = 0;
+		
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
+		StringClass empty = new StringClass(SimpleTreeNode.EMPTY);
+		while(it.hasNext()) {
+			TreeNode node = it.next();
+			if(node.leaf.isEqual(empty)) {
+				continue;
+			}
+			sum += (Double) node.leaf.getValue() * node.getInstances().size();
+			count++;
+		}
+		
+		return sum / count;
 	}
 
 	@Override
 	public Double[] getAverage() {
-		// TODO Auto-generated method stub
-		return null;
+		Double[] averageValues = new Double[levelNames.length];
+		for(int i = 0; i < levelNames.length; i++) {
+			averageValues[i] = getAverage(levelNames[i]);
+		}
+		return averageValues;
 	}
 
 	@Override
 	public Double getSum(String columnHeader) {
-		// TODO Auto-generated method stub
-		return null;
+		if(!isNumeric(columnHeader)) {
+			return Double.NaN;
+		}
+		double sum = 0;
+		
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
+		StringClass empty = new StringClass(SimpleTreeNode.EMPTY);
+		while(it.hasNext()) {
+			TreeNode node = it.next();
+			if(node.leaf.isEqual(empty)) {
+				continue;
+			}
+			sum += (Double) node.leaf.getValue() * node.getInstances().size();
+		}
+		
+		return sum;
 	}
 
 	@Override
 	public Double[] getSum() {
-		// TODO Auto-generated method stub
-		return null;
+		Double[] sumValues = new Double[levelNames.length];
+		for(int i = 0; i < levelNames.length; i++) {
+			sumValues[i] = getSum(levelNames[i]);
+		}
+		return sumValues;
 	}
 
 	@Override
@@ -670,8 +772,13 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public int getNumRows() {
-		// TODO Auto-generated method stub
-		return 0;
+		int numRows = 0;
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);
+		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
+		while(it.hasNext()) {
+			numRows += it.next().getInstances().size();
+		}
+		return numRows;
 	}
 
 	@Override
@@ -732,24 +839,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return table.toArray();
 	}
 	
-	@Override
-	public Object[] getUniqueValues(String columnHeader) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Map<String, Integer> getUniqueValuesAndCount(String columnHeader) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Map<String, Map<String, Integer>> getUniqueColumnValuesAndCount() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 	@Override
 	public void refresh() {
 		// TODO Auto-generated method stub
@@ -815,10 +904,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	public String[] getTreeLevels() {
 		return this.levelNames;
-	}
-	
-	public SimpleTreeBuilder getTree() {
-		return simpleTree;
 	}
 	
 	public SimpleTreeBuilder getBuilder(){
