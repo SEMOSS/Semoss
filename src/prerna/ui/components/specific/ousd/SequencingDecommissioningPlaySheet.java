@@ -140,7 +140,8 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 	/**
 	 * @param systemMatrix
 	 */
-	private static HashMap<Integer, List<ArrayList<Integer>>> createDecommissioningGroups(Integer[][] dependMatrix){
+	private static HashMap<Integer, List<ArrayList<Integer>>> createDecommissioningGroups(Integer[][] dependMatrix)
+	{
 
 		//retrieve matrices
 		List<Integer> procRows = new ArrayList<Integer>();
@@ -166,6 +167,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			//find next group
 			List<Integer> currentGroup = findNextGroup(rowSums, procRows, dependMatrix);
 			
+			//BILLS BEAUTIFUL METHOD
 			//recursive method through group and assign group number
 			List<ArrayList<Integer>> group = new ArrayList<ArrayList<Integer>>();
 			for(Integer row: currentGroup){
@@ -178,7 +180,21 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			}
 			groups.put(groupNumber, group);
 			groupNumber++;
+			/////////////// END BILL
 			
+			/* 
+			////////////SPENCER'S CRAPPY METHOD
+			for(Integer row: currentGroup){
+                  System.out.println("adding row "+row+" to processed list");
+            }
+            //recursive method through group and assign group number
+            ArrayList<Integer> systemRows = new ArrayList<Integer>();
+            List<ArrayList<Integer>> sysGroup = new ArrayList<ArrayList<Integer>>();
+            groups.put(groupNumber, assembleGroup(currentGroup, procRows, dependMatrix, systemRows, sysGroup));
+            groupNumber++;
+            //////////////END SPENCER
+            */
+            
 			//update map
 			rowSums = updateRowTotals(rowSums, procRows, dependMatrix);
 			System.out.println("-----------------------");
@@ -280,7 +296,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 	 * @param sysGroup
 	 * @return
 	 */
-	/*private static List<ArrayList<Integer>> assembleGroup(List<Integer> levelGroup, List<Integer> procRows, Integer[][] systemMatrix, ArrayList<Integer> systemRows, List<ArrayList<Integer>> sysGroup){
+	private static List<ArrayList<Integer>> assembleGroup(List<Integer> levelGroup, List<Integer> procRows, Integer[][] systemMatrix, ArrayList<Integer> systemRows, List<ArrayList<Integer>> sysGroup){
 
 		for(Integer row: levelGroup){
 			ArrayList<Integer> dependencies = new ArrayList<Integer>();
@@ -323,7 +339,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 		}
 		System.out.println(sysGroup);
 		return sysGroup;
-	}*/
+	}
 	
 	public static void main(String args[]){
 		Integer[][] testData = new Integer[5][2];
