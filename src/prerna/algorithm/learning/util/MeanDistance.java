@@ -2,8 +2,15 @@ package prerna.algorithm.learning.util;
 
 public class MeanDistance implements IClusterDistanceMode {
 
-	private double centroidValue = 0;
-	private int numInstances = 0;
+	private double centroidValue;
+	private int numInstances;
+	private int emptyInstances;
+	
+	public MeanDistance() {
+		centroidValue = 0;
+		numInstances = 0;
+		emptyInstances = 0;
+	}
 	
 	@Override
 	public double getCentroidValue() {
@@ -11,19 +18,42 @@ public class MeanDistance implements IClusterDistanceMode {
 	}
 
 	@Override
-	public void addToCentroidValue(double newValue) {
+	public void addToCentroidValue(Double newValue) {
 		double currValue = centroidValue * numInstances;
-		currValue += newValue;
-		numInstances++;
-		centroidValue = currValue / numInstances;
+		
+		if(newValue != null) {
+			currValue += newValue;
+			numInstances++;
+		} else {
+			emptyInstances++;
+		}
+		
+		centroidValue = currValue / (numInstances+emptyInstances);
 	}
 
 	@Override
-	public void removeFromCentroidValue(double newValue) {
+	public void removeFromCentroidValue(Double newValue) {
 		double currValue = centroidValue * numInstances;
 		currValue -= newValue;
 		numInstances--;
 		centroidValue = currValue / numInstances;
 	}
+	
+	public double getNullRatio() {
+		double e = (double)emptyInstances;
+		double i = (double)numInstances;
+		double total = e+i;
+		if(total == 0) {
+			return 0;
+		} else {
+			return e/(e+i);
+		}
+	}
 
+	@Override
+	public void reset() {
+		centroidValue = 0;
+		numInstances = 0;
+		emptyInstances = 0;
+	}
 }
