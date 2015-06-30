@@ -9,15 +9,10 @@ public class Cluster {
 	private ICategoricalCluster categoricalCluster;
 	private INumericalCluster numericalCluster;
 	
-//	private final Map<String, Double> categoricalWeights;
-//	private final Map<String, Double> numericalWeights;
-	
+	//TODO: take into consideration null values
 	public Cluster(Map<String, Double> categoricalWeights, Map<String, Double> numericalWeights) {
 		this.categoricalCluster = new CategoricalCluster(categoricalWeights);
 		this.numericalCluster = new NumericalCluster(numericalWeights);
-		
-//		this.categoricalWeights = categoricalWeights;
-//		this.numericalWeights = numericalWeights;
 	}
 	
 	public void addToCluster(Object[] values, String[] names, boolean[] isNumeric) {
@@ -75,6 +70,21 @@ public class Cluster {
 	public void setDistanceMode(String[] levelNames, IClusterDistanceMode[] distanceMeasures) {
 		for(int i = 0; i < levelNames.length; i++) {
 			setDistanceMode(levelNames[i], distanceMeasures[i]);
+		}
+	}
+	
+	public void setDistanceMode(Map<String, IClusterDistanceMode.DistanceMeasure> distanceMeasures) {
+		for(String attribute : distanceMeasures.keySet()) {
+			IClusterDistanceMode distance = null;
+			IClusterDistanceMode.DistanceMeasure measure = distanceMeasures.get(attribute);
+			if(measure == IClusterDistanceMode.DistanceMeasure.MEAN) {
+				distance = new MeanDistance();
+			} 
+			//TODO: add other classes once they are done being implemented
+//			else if(measure == IClusterDistanceMode.DistanceMeasure.MAX) {
+//				
+//			}
+			setDistanceMode(attribute, distance);
 		}
 	}
 	
