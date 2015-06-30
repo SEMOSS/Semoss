@@ -38,6 +38,25 @@ public class NumericalCluster extends Hashtable<String, Double> implements INume
 	}
 	
 	@Override
+	public Double getSimilarity(List<String> attributeName, List<Double> value, int indexToSkip) {
+
+		double similarity = 0.0;
+		for(int i = 0; i < attributeName.size(); i++) {
+			if(i==indexToSkip) {
+				continue;
+			}
+			String attribute = attributeName.get(i);
+			double v = value.get(i);
+			double center = distanceMeasureForAttribute.get(attribute).getCentroidValue();
+			Double weight = weights.get(attribute);
+			
+			//using euclidean distance
+			similarity = similarity + (Math.pow(Math.abs(v-center), 2))*weight;
+		}
+		return Math.sqrt(similarity);
+	}
+	
+	@Override
 	public Double getSimilarity(String attributeName, Double value) {
 		/*
 		List<String> a = new ArrayList<>(1);
@@ -94,9 +113,5 @@ public class NumericalCluster extends Hashtable<String, Double> implements INume
 	@Override
 	public void setWeights(Map<String, Double> numericalWeights) {
 		weights = numericalWeights;
-	}
-	
-	public void setWeights(List<String> names, List<Double> weights) {
-		
 	}
 }
