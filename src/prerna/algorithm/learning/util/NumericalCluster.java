@@ -1,6 +1,5 @@
 package prerna.algorithm.learning.util;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -8,10 +7,8 @@ import java.util.Map;
 public class NumericalCluster extends Hashtable<String, Double> implements INumericalCluster {
 
 	private Map<String, IClusterDistanceMode> distanceMeasureForAttribute;
-	private Map<String, Double> entropyValues;
 	private Map<String, Double> weights;
 
-	
 	/**
 	 * serialization id
 	 */
@@ -27,11 +24,8 @@ public class NumericalCluster extends Hashtable<String, Double> implements INume
 	
 	@Override
 	public Double getSimilarity(List<String> attributeName, List<Double> value) {
-		
 		double similarity = 0.0;
-		
 		for(int i = 0; i < attributeName.size(); i++) {
-			
 			String attribute = attributeName.get(i);
 			double v = value.get(i);
 			double center = distanceMeasureForAttribute.get(attribute).getCentroidValue();
@@ -39,7 +33,6 @@ public class NumericalCluster extends Hashtable<String, Double> implements INume
 			
 			//using euclidean distance
 			similarity = similarity + (Math.pow(Math.abs(v-center), 2))*weight;
-			
 		}
 		return Math.sqrt(similarity);
 	}
@@ -91,7 +84,6 @@ public class NumericalCluster extends Hashtable<String, Double> implements INume
 		} else { // new instance value for property
 			throw new NullPointerException("Attribute " + attributeName + " cannot be found in cluster to remove...");
 		}
-		
 	}
 
 	@Override

@@ -9,34 +9,16 @@ public class Cluster {
 	private ICategoricalCluster categoricalCluster;
 	private INumericalCluster numericalCluster;
 	
-	private final Map<String, Double> categoricalWeights;
-	private final Map<String, Double> numericalWeights;
-	
+//	private final Map<String, Double> categoricalWeights;
+//	private final Map<String, Double> numericalWeights;
 	
 	public Cluster(Map<String, Double> categoricalWeights, Map<String, Double> numericalWeights) {
 		this.categoricalCluster = new CategoricalCluster(categoricalWeights);
 		this.numericalCluster = new NumericalCluster(numericalWeights);
-		this.categoricalWeights = categoricalWeights;
-		this.numericalWeights = numericalWeights;
-	}
-	
-	/*
-	public Cluster(String[] levelNames, Double[] weights, boolean[] isNumeric) {
-		this.categoricalCluster = new CategoricalCluster();
-		this.numericalCluster = new NumericalCluster();
-		categoricalCluster.setWeights(categoricalWeights);
-		numericalCluster.setWeights(numericalWeights);
-		this.categoricalWeights = categoricalWeights;
-		this.numericalWeights = numericalWeights;
 		
-		for(int i = 0; i < values.length; i++){
-			if(isNumeric[i]) {
-				addToNumericalCluster(names[i], (Double)values[i]);
-			} else {
-				addToCategoricalCluster(names[i], (String)values[i]);
-			}
-		}
-	}*/
+//		this.categoricalWeights = categoricalWeights;
+//		this.numericalWeights = numericalWeights;
+	}
 	
 	public void addToCluster(Object[] values, String[] names, boolean[] isNumeric) {
 		for(int i = 0; i < values.length; i++){
@@ -108,7 +90,6 @@ public class Cluster {
 	 * @return
 	 */
 	public double getSimilarityForInstance(Object[] instanceValues, String[] attributeNames, boolean[] isNumeric) {
-		
 		List<String> categoricalValues = new Vector<String>();
 		List<String> categoricalValueNames = new Vector<String>();
 		List<Double> numericalValues = new Vector<Double>();
@@ -140,12 +121,10 @@ public class Cluster {
 	}
 
 	private double getSimilarityFromNumericalValues(List<Double> numericalValues, List<String> numericalValueNames) {
-		// TODO Auto-generated method stub
 		return numericalCluster.getSimilarity(numericalValueNames, numericalValues);
 	}
 
 	private double getSimilarityFromCategoricalValues(List<String> categoricalValues, List<String> categoricalValueNames) {
-		// TODO Auto-generated method stub
 		return categoricalCluster.getSimilarity(categoricalValues, categoricalValueNames);
 	}
 }
