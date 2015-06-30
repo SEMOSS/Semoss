@@ -362,7 +362,7 @@ public abstract class SEMOSSQueryHelper {
 		seQuery.addBind(subjectBindPart, objectBindPart, clauseName);
 	}
 	
-	public static void addRegexFilterPhrase(String var, TriplePartConstant varType, ArrayList<Object> filterData, TriplePartConstant filterDataType, boolean isValueString, boolean or, SEMOSSQuery seQuery)
+	public static void addRegexFilterPhrase(String var, TriplePartConstant varType, ArrayList<Object> filterData, TriplePartConstant filterDataType, boolean isValueString, boolean or, SEMOSSQuery seQuery, boolean isCaseSensitive)
 	{
 		TriplePart varBindPart = new TriplePart(var, varType);
 		ArrayList<TriplePart> filterDataPart = new ArrayList<TriplePart>();
@@ -371,10 +371,10 @@ public abstract class SEMOSSQueryHelper {
 			TriplePart filterElemPart = new TriplePart(filterElem, filterDataType);
 			filterDataPart.add(filterElemPart);
 		}
-		seQuery.addRegexFilter(varBindPart, filterDataPart, isValueString, or);
+		seQuery.addRegexFilter(varBindPart, filterDataPart, isValueString, or, isCaseSensitive);
 	}
 	
-	public static void addRegexFilterPhrase(String var, TriplePartConstant varType, ArrayList<Object> filterData, TriplePartConstant filterDataType, boolean isValueString, boolean or, SEMOSSQuery seQuery, String clauseName)
+	public static void addRegexFilterPhrase(String var, TriplePartConstant varType, ArrayList<Object> filterData, TriplePartConstant filterDataType, boolean isValueString, boolean or, SEMOSSQuery seQuery, String clauseName, boolean isCaseSensitive)
 	{
 		TriplePart varBindPart = new TriplePart(var, varType);
 		ArrayList<TriplePart> filterDataPart = new ArrayList<TriplePart>();
@@ -383,7 +383,7 @@ public abstract class SEMOSSQueryHelper {
 			TriplePart filterElemPart = new TriplePart(filterElem, filterDataType);
 			filterDataPart.add(filterElemPart);
 		}
-		seQuery.addRegexFilter(varBindPart, filterDataPart, isValueString, or, clauseName);
+		seQuery.addRegexFilter(varBindPart, filterDataPart, isValueString, or, clauseName, isCaseSensitive);
 	}
 	
 	public static void addGroupByToQuery(ArrayList<String> list, SEMOSSQuery seQuery)

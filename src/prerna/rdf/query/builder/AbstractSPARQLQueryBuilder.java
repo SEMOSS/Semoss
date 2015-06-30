@@ -1,7 +1,9 @@
 package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -28,6 +30,8 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 	Hashtable<String, Object> bindDataHash = new Hashtable<String, Object>();
 	Hashtable<String, SEMOSSQuery> headerFilterHash = new Hashtable<String, SEMOSSQuery>();
 	static final Logger logger = LogManager.getLogger(AbstractSPARQLQueryBuilder.class.getName());
+	HashMap<String,Boolean> clearFilter = new HashMap();
+	HashMap<String,ArrayList<Object>> searchFilter = new HashMap();
 	
 	protected void parsePath(){
 		Hashtable<String, ArrayList> parsedPath = QueryBuilderHelper.parsePath(allJSONHash);
@@ -77,7 +81,11 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 	protected void configureQuery(){ 
 		// TODO Auto-generated method stub
 
+		searchFilterData();
+
 		buildFilter();
+		
+		clearFilterData();
 		
 		// use nodeV, predV, and propV (as determined from parsing path and properties) to add necessary pieces to query
 		// the rule is that all path variables must be included (otherwise we have a disconnected query) but properties are optional
@@ -107,6 +115,47 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 		return q;
 	}
 
+	protected void searchFilterData(){
+		StringMap<String> searchFilterResults = (StringMap<String>) allJSONHash.get(searchFilterKey);
+		if(searchFilterResults != null){
+			Iterator <String> keys = searchFilterResults.keySet().iterator();
+			for(int colIndex = 0;keys.hasNext();colIndex++) // process one column at a time. At this point my key is title on the above
+			{
+				String varName = keys.next(); // this gets me title above
+			
+				String filterValue = searchFilterResults.get(varName);
+				ArrayList<Object> filterValueArr = new ArrayList();
+				filterValueArr.add(filterValue);
+				if(filterValue.length()>0 ){
+					searchFilter.put(varName,filterValueArr);
+				}
+
+			}
+		
+		}
+	}
+	protected void clearFilterData(){
+		StringMap<String> clearFilterResults = (StringMap<String>) allJSONHash.get(clearFilterKey);
+		if(clearFilterResults != null){
+			Iterator <String> keys = clearFilterResults.keySet().iterator();
+			for(int colIndex = 0;keys.hasNext();colIndex++) // process one column at a time. At this point my key is title on the above
+			{
+				String varName = keys.next(); // this gets me title above
+				// need to split when there are underscores
+				// for now keeping it simple
+
+				// get the list
+				String clearValues = clearFilterResults.get(varName);
+				if(clearValues.length()>0 ){
+					Boolean clearFilterValue = Boolean.valueOf(clearValues);
+					clearFilter.put(varName,clearFilterValue);
+				}
+
+			}
+		
+		}
+	}
+	
 	protected void buildFilter()
 	{
 		StringMap<ArrayList<Object>> filterResults = (StringMap<ArrayList<Object>>) allJSONHash.get(filterKey);
@@ -140,10 +189,22 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 				}
 			}
 		}
+		
+		if(!searchFilter.isEmpty()){
+			for(String key: searchFilter.keySet()){
+				if(bindDataHash.containsKey(key)){
+					bindDataHash.remove(key);
+				}
+				if(bindingsDataHash.containsKey(key)){
+					bindingsDataHash.remove(key);
+				}
+			}
+		}
 	}
 	
 	protected void addFilter(){
 		// add filtering
+		boolean caseSensitiveFilter = true;
 		for(String s : bindDataHash.keySet())
 		{
 			String bindValue = bindDataHash.get(s).toString();
@@ -162,6 +223,7 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 //			}
 			SEMOSSQueryHelper.addBindPhrase(bindValue, triplePartC, s, semossQuery);
 		}
+	
 		for(String s : bindingsDataHash.keySet())
 		{
 			String bindValue = bindingsDataHash.get(s).get(0).toString();
@@ -181,6 +243,7 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 //			}
 			SEMOSSQueryHelper.addBindingsToQuery(bindingsDataHash.get(s), triplePartC, s.toString(), this.semossQuery);
 		}
+		
 		for(String s : filterDataHash.keySet())
 		{
 			ArrayList<Object> filterOptions = filterDataHash.get(s);
@@ -191,7 +254,13 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 //					SEMOSSQueryHelper.addRegexFilterPhrase(s, TriplePart.VARIABLE, filterOptions, TriplePart.LITERAL, false, true, q);
 //				}
 //			}
-			SEMOSSQueryHelper.addRegexFilterPhrase(s, TriplePart.VARIABLE, filterOptions, TriplePart.LITERAL, false, true, semossQuery);
+			caseSensitiveFilter = true;
+			SEMOSSQueryHelper.addRegexFilterPhrase(s, TriplePart.VARIABLE, filterOptions, TriplePart.LITERAL, false, true, semossQuery, caseSensitiveFilter);
+		}
+		for(String s: searchFilter.keySet()){
+			caseSensitiveFilter = false;
+			ArrayList<Object> filterOptions = searchFilter.get(s);
+			SEMOSSQueryHelper.addRegexFilterPhrase(s, TriplePart.VARIABLE, filterOptions, TriplePart.LITERAL, false, true, semossQuery, caseSensitiveFilter);
 		}
 	}
 
@@ -209,7 +278,15 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 		for(Hashtable<String, String> headerHash : retArray){
 			String varName = headerHash.get(QueryBuilderHelper.varKey);
 			String filterQuery = "";
-			if(this.headerFilterHash.containsKey(varName)){
+			
+			boolean clearFilterResults = false;
+			if(clearFilter.size()>0 && clearFilter.containsKey(varName)){
+				if(clearFilter.get(varName)){
+					clearFilterResults = true;
+				}
+			}
+			
+			if(clearFilterResults && this.headerFilterHash.containsKey(varName)){
 				SEMOSSQuery q = headerFilterHash.get(varName);
 				q.createQuery();
 				filterQuery = q.getQuery();
