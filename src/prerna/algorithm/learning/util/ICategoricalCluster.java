@@ -59,5 +59,9 @@ public interface ICategoricalCluster {
 	 */
 	boolean isEmpty();
 
-	void setWeights(Map<String, Double> categoricalWeights);
+	/**
+	 * 
+	 * @param categoricalWeights
+	 */
+	void setWeights(Map<String, Map<String, Double>> categoricalWeights);
 }

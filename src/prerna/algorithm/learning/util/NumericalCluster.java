@@ -1,5 +1,6 @@
 package prerna.algorithm.learning.util;
 
+import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -19,26 +20,39 @@ public class NumericalCluster extends Hashtable<String, Double> implements INume
 	/**
 	 * Default constructor
 	 */
-	public NumericalCluster() {
+	public NumericalCluster(Map<String, Double> w) {
 		distanceMeasureForAttribute = new Hashtable<String, IClusterDistanceMode>();
+		weights = w;
 	}
 	
 	@Override
 	public Double getSimilarity(List<String> attributeName, List<Double> value) {
 		
+		double similarity = 0.0;
+		
 		for(int i = 0; i < attributeName.size(); i++) {
 			
 			String attribute = attributeName.get(i);
-			IClusterDistanceMode distanceMeasure = distanceMeasureForAttribute.get(attribute);
+			double v = value.get(i);
+			double center = distanceMeasureForAttribute.get(attribute).getCentroidValue();
 			Double weight = weights.get(attribute);
 			
+			//using euclidean distance
+			similarity = similarity + (Math.pow(Math.abs(v-center), 2))*weight;
+			
 		}
-		
-		return 0.0;
+		return Math.sqrt(similarity);
 	}
 	
 	@Override
 	public Double getSimilarity(String attributeName, Double value) {
+		/*
+		List<String> a = new ArrayList<>(1);
+		List<Double> v = new ArrayList<>(1);
+		a.add(attributeName);
+		v.add(value);
+		return getSimilarity(a, v);
+		*/
 		return 0.0;
 	}
 	
@@ -88,5 +102,9 @@ public class NumericalCluster extends Hashtable<String, Double> implements INume
 	@Override
 	public void setWeights(Map<String, Double> numericalWeights) {
 		weights = numericalWeights;
+	}
+	
+	public void setWeights(List<String> names, List<Double> weights) {
+		
 	}
 }
