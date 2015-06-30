@@ -555,9 +555,11 @@ public class BTreeDataFrame implements ITableDataFrame {
 		// TODO Auto-generated method stub
 	}
 
+	//TODO: need to think this through....
 	@Override
 	public void performAction(IAnalyticRoutine routine) {
-		// TODO Auto-generated method stub
+		ITableDataFrame newTable = routine.runAlgorithm(this);
+		this.join(newTable, newTable.getColumnHeaders()[0], newTable.getColumnHeaders()[0], 1, new ExactStringMatcher());
 	}
 
 	@Override
