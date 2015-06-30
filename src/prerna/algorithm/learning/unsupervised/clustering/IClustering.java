@@ -16,7 +16,7 @@ public interface IClustering {
 	 * @param clusters						The list of clusters to compare the instance to
 	 * @return								The index corresponding to the best cluster
 	 */
-	int findBestClusterForInstance(Object[] instance, String[] attributeNames, boolean[] isNumeric, int instanceIndex, List<Cluster> clusters);
+	int findBestClusterForInstance(List<Object[]> instance, String[] attributeNames, boolean[] isNumeric, int instanceIndex, List<Cluster> clusters);
 	
 	/**
 	 * Update the cluster center with the given instance
@@ -25,7 +25,7 @@ public interface IClustering {
 	 * @param isNumeric						boolean array saying which parameters are numeric vs. string
 	 * @param clusterToAdd					The cluster center that will have the instance added
 	 */
-	void updateInstanceIndex(Object[] instance, String[] attributeNames, boolean[] isNumeric, Cluster clusterToAdd);
+	void updateInstanceIndex(List<Object[]> instance, String[] attributeNames, boolean[] isNumeric, Cluster clusterToAdd);
 	
 	/**
 	 * Determine if the inputed instance has changed clusters in current iteration

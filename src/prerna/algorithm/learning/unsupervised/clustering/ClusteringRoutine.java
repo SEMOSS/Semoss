@@ -12,11 +12,12 @@ import prerna.algorithm.learning.util.IClusterDistanceMode.DistanceMeasure;
 public class ClusteringRoutine extends AbstractClusteringRoutine {
 
 	private Map<String, Integer> results = new HashMap<String, Integer>();
-	
+	private Map<String, Double> ranges = new HashMap<String, Double>();
+
 	public ClusteringRoutine() {
 		super();
 	}
-	
+
 	@Override
 	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
 		// values defined in options
@@ -26,7 +27,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 		this.dataFrame = data[0];
 		this.isNumeric = dataFrame.isNumeric();
 		this.attributeNames = dataFrame.getColumnHeaders();
-		
+
 		// set the type of distance measure to be used for each numerical property - default is using mean
 		if(this.distanceMeasure == null) {
 			for(int i = 0; i < attributeNames.length; i++) {
@@ -41,23 +42,24 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 				}
 			}
 		}
-		
+
 		int numRows = dataFrame.getNumRows();
 		if(numClusters > numRows) {
 			throw new IllegalArgumentException("Cannot have more clusters than instances");
 		}
-		
+
 		calculateWeights();
+		calculateRanges();
 		initializeClusters();
 		int maxIt = 100_000;
 		boolean go = true;
 		int currIt = 0;
 		while(go) {
 			go = false;
-			Iterator<Object[]> it = dataFrame.iterator();
+			Iterator<List<Object[]>> it = dataFrame.uniqueIterator(attributeNames[instanceIndex]);
 			while(it.hasNext()) {
-				Object[] instance = it.next();
-				String instanceName = instance[instanceIndex].toString();
+				List<Object[]> instance = it.next();
+				String instanceName = instance.get(0)[instanceIndex].toString();
 				int bestCluster = findBestClusterForInstance(instance, attributeNames, isNumeric, instanceIndex, clusters);
 				boolean instanceChangeCluster = isInstanceChangedCluster(results, instanceName, bestCluster);
 				if(instanceChangeCluster) {
@@ -70,18 +72,18 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 				// update cluster centers
 				for(int i = 0; i < numClusters; i++) {
 					// clear values in clusters
-					clusters.get(i);
+					clusters.get(i).reset();
 				}
-				it = dataFrame.iterator();
+				it = dataFrame.uniqueIterator(attributeNames[instanceIndex]);
 				while(it.hasNext()) {
-					Object[] instance = it.next();
-					int clusterIndex = results.get(instance[instanceIndex]);
+					List<Object[]> instance = it.next();
+					int clusterIndex = results.get(instance.get(0)[instanceIndex]);
 					updateInstanceIndex(instance, attributeNames, isNumeric, clusters.get(clusterIndex));
 				}
 			} else {
 				success = true;
 			}
-			
+
 			currIt++;
 			// break if taking too many iterations
 			if(currIt > maxIt) {
@@ -89,29 +91,39 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 				success = false;
 			}
 		}
-		
+
 		return null;
 	}
-	
+
+	private void calculateRanges() {
+		for(int i = 0; i < attributeNames.length; i++) {
+			if(isNumeric[i]) {
+				double min = dataFrame.getMin(attributeNames[i]);
+				double max = dataFrame.getMin(attributeNames[i]);
+				ranges.put(attributeNames[i], max-min);
+			}
+		}
+	}
+
 	/**
 	 * Will generate the clusters by picking the most different instances
 	 */
 	private void initializeClusters() {
 		Iterator<Object[]> it = dataFrame.iterator();
 		Object[] firstInstance = it.next();
-		
-		Cluster firstCluster = new Cluster(categoricalWeights, numericalWeights, categoricalWeights);
+
+		Cluster firstCluster = new Cluster(categoricalWeights, numericalWeights, ranges);
 		firstCluster.addToCluster(firstInstance, attributeNames, isNumeric);
 		firstCluster.setDistanceMode(this.distanceMeasure);
 		clusters.add(firstCluster);
 		results.put(firstInstance[instanceIndex].toString(), 1);
 		// update cluster instance count
 		numInstancesInCluster.add(1);
-		
+
 		// create a cluster to serve as a combination of all the starting seeds
-		Cluster combinedInstances = new Cluster(categoricalWeights, numericalWeights, categoricalWeights);
+		Cluster combinedInstances = new Cluster(categoricalWeights, numericalWeights, ranges);
 		combinedInstances.addToCluster(firstInstance, attributeNames, isNumeric);
-		
+
 		for(int i = 1; i < numClusters; i++) {
 			double simVal = 2;
 			Object[] bestInstance = null;
@@ -127,23 +139,23 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 			}
 			// update combined cluster
 			combinedInstances.addToCluster(bestInstance, attributeNames, isNumeric);
-			
+
 			// create new cluster and add as a seed
-			Cluster newCluster = new Cluster(categoricalWeights, numericalWeights, categoricalWeights);
+			Cluster newCluster = new Cluster(categoricalWeights, numericalWeights, ranges);
 			newCluster.addToCluster(bestInstance, attributeNames, isNumeric);
 			newCluster.setDistanceMode(this.distanceMeasure);
 			clusters.add(newCluster);
 			results.put(bestInstance[instanceIndex].toString(), i);
 			// update cluster instance count
 			numInstancesInCluster.add(1);
-			
+
 			// generate new iterator
 			it = dataFrame.iterator();
 		}
 	}
-	
+
 	@Override
-	public int findBestClusterForInstance(Object[] instance, String[] attributeNames, boolean[] isNumeric, int instanceIndex, List<Cluster> clusters) {
+	public int findBestClusterForInstance(List<Object[]> instance, String[] attributeNames, boolean[] isNumeric, int instanceIndex, List<Cluster> clusters) {
 		int bestIndex = -1;
 		double simVal = -1;
 
@@ -169,9 +181,9 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 		}
 		return true;
 	}
-	
+
 	@Override
-	public void updateInstanceIndex(Object[] instance, String[] attributeNames, boolean[] isNumeric, Cluster clusterToAdd) {
+	public void updateInstanceIndex(List<Object[]> instance, String[] attributeNames, boolean[] isNumeric, Cluster clusterToAdd) {
 		clusterToAdd.addToCluster(instance, attributeNames, isNumeric);
 	}
 
