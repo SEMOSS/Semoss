@@ -324,4 +324,19 @@ public class SearchMasterDB extends ModifyMasterDB {
 		
 		return ret;
 	}
+	
+	public String getVisibilityForInsight(String userId, String insightId) {
+		String visibility = "me";
+		String userInsight = userId + "-" + insightId;
+		String query = MasterDatabaseQueries.GET_VISIBILITY_FOR_USERINSIGHT.replace("@USERINSIGHT@", userInsight);
+		
+		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
+		String[] names = sjsw.getVariables();
+		if(sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			visibility = sjss.getVar(names[0]).toString();
+		}
+		
+		return visibility;
+	}
 }
