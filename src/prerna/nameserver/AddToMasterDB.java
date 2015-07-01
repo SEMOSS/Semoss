@@ -407,9 +407,13 @@ public class AddToMasterDB extends ModifyMasterDB {
 		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 		final String userInsight = userId + "-" + insight.getId();
 		
-		ISelectWrapper sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_USER_INSIGHT.replace("@USERINSIGHT@", userInsight));
+		ISelectWrapper sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_VISIBILITY_FOR_USERINSIGHT.replace("@USERINSIGHT@", userInsight));
 		if(!sjsw.hasNext()) {
 			createUserInsight(userId, insight.getId());
+		} else {
+			String[] names = sjsw.getVariables();
+			String oldVisibility = sjsw.next().getVar(names[0]).toString();
+			MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_PUBLISH_VISIBILITY_PROP_URI, oldVisibility, false);
 		}
 		
 		MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_PUBLISH_VISIBILITY_PROP_URI, visibility, false);
