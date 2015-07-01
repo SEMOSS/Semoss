@@ -1,6 +1,7 @@
 package prerna.algorithm.learning.unsupervised.clustering;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,8 +25,8 @@ public abstract class AbstractClusteringRoutine implements IClustering, IAnalyti
 	protected String clusterColumnID = "";
 	
 	// keeping track of cluster information
-	protected List<Cluster> clusters;
-	protected List<Integer> numInstancesInCluster;
+	protected List<Cluster> clusters = new ArrayList<Cluster>();
+	protected List<Integer> numInstancesInCluster = new ArrayList<Integer>();
 
 	// values from data
 	protected ITableDataFrame dataFrame;
@@ -37,8 +38,8 @@ public abstract class AbstractClusteringRoutine implements IClustering, IAnalyti
 	protected int instanceIndex;
 	protected Map<String, IClusterDistanceMode.DistanceMeasure> distanceMeasure;
 
-	protected Map<String, Double> numericalWeights;
-	protected Map<String, Double> categoricalWeights;
+	protected Map<String, Double> numericalWeights = new HashMap<String, Double>();
+	protected Map<String, Double> categoricalWeights = new HashMap<String, Double>();
 	
 	// set distance mode
 	public AbstractClusteringRoutine() {
@@ -79,18 +80,22 @@ public abstract class AbstractClusteringRoutine implements IClustering, IAnalyti
 			}
 		}
 		
-		double[] numericalWeightsArr = SimilarityWeighting.generateWeighting((Double[]) numericalEntropy.toArray());
-		i = 0;
-		int numNumeric = numericalNames.size();
-		for(; i < numNumeric; i++) {
-			numericalWeights.put(numericalNames.get(i), numericalWeightsArr[i]);
+		//TODO: dont call this if there are no numeric values
+		if(!numericalEntropy.isEmpty()){
+			double[] numericalWeightsArr = SimilarityWeighting.generateWeighting(numericalEntropy.toArray(new Double[0]));
+			i = 0;
+			int numNumeric = numericalNames.size();
+			for(; i < numNumeric; i++) {
+				numericalWeights.put(numericalNames.get(i), numericalWeightsArr[i]);
+			}
 		}
-		
-		double[] categoricalWeightsArr = SimilarityWeighting.generateWeighting((Double[]) categoricalEntropy.toArray());
-		i = 0;
-		int numCategorical = categoricalNames.size();
-		for(; i < numCategorical; i++) {
-			categoricalWeights.put(categoricalNames.get(i), categoricalWeightsArr[i]);
+		if(!categoricalEntropy.isEmpty()){
+			double[] categoricalWeightsArr = SimilarityWeighting.generateWeighting(categoricalEntropy.toArray(new Double[0]));
+			i = 0;
+			int numCategorical = categoricalNames.size();
+			for(; i < numCategorical; i++) {
+				categoricalWeights.put(categoricalNames.get(i), categoricalWeightsArr[i]);
+			}
 		}
 	}
 	

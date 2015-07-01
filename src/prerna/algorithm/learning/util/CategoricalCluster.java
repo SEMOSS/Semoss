@@ -37,7 +37,7 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 		
 		Hashtable<String, Double> valCount = null;
 		
-		if(this.contains(attributeName)) 
+		if(this.containsKey(attributeName)) 
 		{ 
 			valCount = this.get(attributeName);
 			if(valCount.containsKey(attributeInstance)) { // old instance value for property
@@ -68,7 +68,7 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 	public void removeFromCluster(String attributeName, String attributeInstance, Double value) {
 		Hashtable<String, Double> valCount = null;
 		
-		if(this.contains(attributeName)) {
+		if(this.containsKey(attributeName)) {
 			valCount = this.get(attributeName);
 			if(valCount.containsKey(attributeInstance)) { // reduce count by value
 				double currValue = valCount.get(attributeInstance);
@@ -119,7 +119,7 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 //
 //			// numOccuranceInCluster contains the number of instances in the cluster that contain the same prop value as the instance
 //			double numOccuranceInCluster = 0;
-//			if(propertyHash.contains(attributeInstances.get(i))) {
+//			if(propertyHash.containsKey(attributeInstances.get(i))) {
 //				numOccuranceInCluster = propertyHash.get(attributeInstances.get(i));
 //			}
 //			
@@ -148,7 +148,7 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 
 			// numOccuranceInCluster contains the number of instances in the cluster that contain the same prop value as the instance
 			double numOccuranceInCluster = 0;
-			if(propertyHash.contains(attributeInstances.get(i))) {
+			if(propertyHash.containsKey(attributeInstances.get(i))) {
 				numOccuranceInCluster = propertyHash.get(attributeInstances.get(i));
 			}
 			
