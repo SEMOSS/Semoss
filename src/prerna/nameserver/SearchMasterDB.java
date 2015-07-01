@@ -251,6 +251,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
 		String[] names = sjsw.getVariables();
 		Double totalClicks = 0.0;
+		Double maxClicks = 0.0;
 		while(sjsw.hasNext()) {
 			ISelectStatement sjss = sjsw.next();
 			String insight = sjss.getVar(names[0]).toString();
@@ -259,7 +260,12 @@ public class SearchMasterDB extends ModifyMasterDB {
 			String perspective = sjss.getVar(names[2]).toString().split(":")[1];
 			String layout = sjss.getVar(names[3]).toString();
 			String execCount = sjss.getVar(names[4]).toString();
-			totalClicks += Double.parseDouble(execCount);
+			Double clickCount = Double.parseDouble(execCount);
+			totalClicks += clickCount;
+			
+			if(maxClicks < clickCount){
+				maxClicks = clickCount;
+			}
 			
 			HashMap<String, String> insightMetadata = new HashMap<String, String>();
 			insightMetadata.put("insight", insightLabel);
@@ -273,6 +279,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 		
 		ret.put("insights", insights);
 		ret.put("totalcount", totalClicks);
+		ret.put("maxcount", maxClicks);
 		
 		return ret;
 	}
@@ -285,6 +292,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
 		String[] names = sjsw.getVariables();
 		Double totalClicks = 0.0;
+		Double maxClicks = 0.0;
 		while(sjsw.hasNext()) {
 			ISelectStatement sjss = sjsw.next();
 			String insight = sjss.getVar(names[0]).toString();
@@ -293,7 +301,12 @@ public class SearchMasterDB extends ModifyMasterDB {
 			String perspective = sjss.getVar(names[2]).toString().split(":")[1];
 			String layout = sjss.getVar(names[3]).toString();
 			String execCount = sjss.getVar(names[4]).toString();
-			totalClicks += Double.parseDouble(execCount);
+			Double clickCount = Double.parseDouble(execCount);
+			totalClicks += clickCount;
+			
+			if(maxClicks < clickCount){
+				maxClicks = clickCount;
+			}
 			
 			HashMap<String, String> insightMetadata = new HashMap<String, String>();
 			insightMetadata.put("insight", insightLabel);
@@ -307,6 +320,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 		
 		ret.put("insights", insights);
 		ret.put("totalcount", totalClicks);
+		ret.put("maxcount", maxClicks);
 		
 		return ret;
 	}
