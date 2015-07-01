@@ -18,6 +18,7 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import edu.stanford.nlp.util.ArrayUtils;
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.impl.ExactStringMatcher;
@@ -34,6 +35,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	private SimpleTreeBuilder simpleTree;
 	private String[] levelNames;
 	private static int testnum=0;
+	private static final String directory = "C:\\users\\rluthar\\Deskotp\\Folder\\";
 
 	public BTreeDataFrame() {
 		this.simpleTree = new SimpleTreeBuilder();
@@ -383,6 +385,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 				}
 			}
 		}
+		
+//		write2Excel4Testing(this, directory+"join"+testnum+"10.xlsx");
 	}
 
 	private SimpleTreeNode findLastConnectedEmptyNode(SimpleTreeNode emptyNode, int currLevel) {
@@ -671,7 +675,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 			}		
 		}
 		
-		return entropy;
+		return -1.0 *entropy;
 	}
 
 	@Override
@@ -689,7 +693,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		
 		if(isNumeric(columnHeader)) {
 			//TODO: need to make barchart class better
-			Double[] dataRow = (Double[]) getColumn(columnHeader);
+			Double[] dataRow = getColumnAsNumeric(columnHeader);
 			int numRows = dataRow.length;
 			Hashtable<String, Object>[] bins = null;
 			BarChart chart = new BarChart(dataRow);
@@ -717,7 +721,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 			
 		} else {
 			Map<String, Integer> uniqueValuesAndCount = getUniqueValuesAndCount(columnHeader);
-			Integer[] counts = (Integer[]) uniqueValuesAndCount.values().toArray();
+			Integer[] counts = uniqueValuesAndCount.values().toArray(new Integer[]{});
 			
 			// if only one value, then entropy is 0
 			if(counts.length == 1) {
@@ -737,7 +741,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 			entropyDensity = entropy / uniqueValuesAndCount.keySet().size();
 		}
 		
-		return entropyDensity;
+		return -1.0 * entropyDensity;
 	}
 
 	@Override
@@ -956,11 +960,31 @@ public class BTreeDataFrame implements ITableDataFrame {
 		typeRoot = typeRoot.getLeft(typeRoot);
 		List<Object> table = typeRoot.flattenToArray(typeRoot, true);
 		
-
 		System.out.println("Final count for column " + columnHeader + " = " + table.size());
 		return table.toArray();
 	}
 
+	@Override
+	public Double[] getColumnAsNumeric(String columnHeader) {
+		if(!isNumeric(columnHeader)) {
+			return null;
+		}
+		
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		ValueTreeColumnIterator it = new ValueTreeColumnIterator(typeRoot);
+		List<Double> retList = new ArrayList<Double>();
+		while(it.hasNext()) {
+			Object value = it.next().leaf.getValue();
+			if(value instanceof String) {
+				retList.add(null);
+			}
+			else {
+				retList.add((Double)value);
+			}
+		}
+		return retList.toArray(new Double[0]);
+	}
+	
 	@Override
 	public Object[] getRawColumn(String columnHeader) {
 
