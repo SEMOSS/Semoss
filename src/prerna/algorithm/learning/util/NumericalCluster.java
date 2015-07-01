@@ -51,14 +51,15 @@ public class NumericalCluster implements INumericalCluster {
 			}
 			String attribute = attributeName.get(i);
 			Double v = value.get(i);
+			Double weight = weights.get(attribute);
 			if(v==null) {
 				v = distanceMeasureForAttribute.get(attribute).getNullRatio();
+				return weight*v;
 			}
 			Double center = distanceMeasureForAttribute.get(attribute).getCentroidValue();
-			Double weight = weights.get(attribute);
 			Double range = ranges.get(attribute);
 			center = center/range;
-			
+			v = v/range;
 			//using euclidean distance
 			similarity = similarity + (Math.pow(Math.abs(v-center), 2))*weight;
 		}

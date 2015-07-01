@@ -90,20 +90,22 @@ public class Cluster {
 	}
 	
 	public void setDistanceMode(Map<String, IClusterDistanceMode.DistanceMeasure> distanceMeasures) {
-		for(String attribute : distanceMeasures.keySet()) {
-			IClusterDistanceMode distance = null;
-			IClusterDistanceMode.DistanceMeasure measure = distanceMeasures.get(attribute);
-			if(measure == IClusterDistanceMode.DistanceMeasure.MEAN) {
-				distance = new MeanDistance();
-			} 
-			//TODO: add other classes once they are done being implemented
-//			else if(measure == IClusterDistanceMode.DistanceMeasure.MAX) {
-//				
-//			}
-//			else if(measure == IClusterDistanceMode.DistanceMeasure.MEDIAN) {
-//				
-//			}
-			setDistanceMode(attribute, distance);
+		if(distanceMeasures != null) {
+			for(String attribute : distanceMeasures.keySet()) {
+				IClusterDistanceMode distance = null;
+				IClusterDistanceMode.DistanceMeasure measure = distanceMeasures.get(attribute);
+				if(measure == IClusterDistanceMode.DistanceMeasure.MEAN) {
+					distance = new MeanDistance();
+				} 
+				//TODO: add other classes once they are done being implemented
+	//			else if(measure == IClusterDistanceMode.DistanceMeasure.MAX) {
+	//				
+	//			}
+	//			else if(measure == IClusterDistanceMode.DistanceMeasure.MEDIAN) {
+	//				
+	//			}
+				setDistanceMode(attribute, distance);
+			}
 		}
 	}
 	
@@ -159,20 +161,23 @@ public class Cluster {
 		
 		if(!categoricalValues.isEmpty()) {
 			if(isNumeric[indexToSkip]) {
-				similarityValue += getSimilarityFromCategoricalValues(categoricalValues, categoricalValueNames, -1);
+				similarityValue += ((double) categoricalValues.size()/attributeNames.length) * getSimilarityFromCategoricalValues(categoricalValues, categoricalValueNames, -1);
 			} else {
-				similarityValue += getSimilarityFromCategoricalValues(categoricalValues, categoricalValueNames, indexToSkip);
+				similarityValue += ((double) categoricalValues.size()/attributeNames.length) * getSimilarityFromCategoricalValues(categoricalValues, categoricalValueNames, indexToSkip);
 			}
 		}
 		
 		if(!numericalValues.isEmpty()) {
 			if(isNumeric[indexToSkip]) {
-				similarityValue += getSimilarityFromNumericalValues(numericalValues, numericalValueNames, indexToSkip);
+				similarityValue += ((double) numericalValues.size()/attributeNames.length) * getSimilarityFromNumericalValues(numericalValues, numericalValueNames, indexToSkip);
 			} else {
-				similarityValue += getSimilarityFromNumericalValues(numericalValues, numericalValueNames, -1);
+				similarityValue += ((double) numericalValues.size()/attributeNames.length) * getSimilarityFromNumericalValues(numericalValues, numericalValueNames, -1);
 			}
 		}
 		
+		if(similarityValue > 1) {
+			System.out.println("ERROR: CHECK WHY");
+		}
 		return similarityValue;
 	}
 
@@ -189,7 +194,7 @@ public class Cluster {
 //	}
 	
 	private double getSimilarityFromCategoricalValues(List<String> categoricalValues, List<String> categoricalValueNames, int index) {
-		return categoricalCluster.getSimilarity(categoricalValues, categoricalValueNames, index);
+		return categoricalCluster.getSimilarity(categoricalValueNames, categoricalValues, index);
 	}
 	
 	public void reset() {

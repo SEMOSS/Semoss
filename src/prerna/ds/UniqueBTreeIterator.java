@@ -39,11 +39,11 @@ public class UniqueBTreeIterator implements Iterator<List<Object[]>>{
 	private List<Object[]> getInstanceRows(SimpleTreeNode node) {
 		List<Object[]> instanceRows = new ArrayList<>();
 		//populate list recursively
-		getRow(instanceRows, node);
+		getRow(instanceRows, node, true);
 		return instanceRows;
 	}
 	
-	private void getRow(List<Object[]> list, SimpleTreeNode node) {
+	private void getRow(List<Object[]> list, SimpleTreeNode node, boolean firstIt) {
 		if(node.leftChild == null) {
 			List<Object> arraylist = new ArrayList<>();
 			SimpleTreeNode n = node;
@@ -56,11 +56,11 @@ public class UniqueBTreeIterator implements Iterator<List<Object[]>>{
 			list.add(arraylist.toArray());
 			
 		} else {
-			getRow(list, node.leftChild);
+			getRow(list, node.leftChild, false);
 		}
 		
-		if(node.rightSibling!=null) {
-			getRow(list, node.rightSibling);
+		if(node.rightSibling!=null && !firstIt) {
+			getRow(list, node.rightSibling, false);
 		}
 	}
 
