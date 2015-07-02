@@ -554,7 +554,7 @@ public class Utility {
 		System.out.println("In Utility file name is " + fileName);
 		try {
 			String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
-
+			boolean closeDB = false;
 			String engineName = prop.getProperty(Constants.ENGINE);
 			String engineClass = prop.getProperty(Constants.ENGINE_TYPE);
 			//TEMPORARY
@@ -564,6 +564,9 @@ public class Utility {
 			}
 			else if(engineClass.startsWith("prerna.rdf.engine.impl.")){
 				engineClass = engineClass.replace("prerna.rdf.engine.impl.", "prerna.engine.impl.rdf.");
+			}
+			if(engineClass.contains("RDBMSNativeEngine")){
+				closeDB = true; //close db
 			}
 			engine = (IEngine)Class.forName(engineClass).newInstance();
 			engine.setEngineName(engineName);
@@ -603,6 +606,8 @@ public class Utility {
 			engines = engines + ";" + engineName;
 			DIHelper.getInstance().setLocalProperty(engineName, engine);
 			DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engines);
+			if(closeDB)
+				engine.closeDB();
 		} catch (InstantiationException e) {
 			e.printStackTrace();
 		} catch (IllegalAccessException e) {
