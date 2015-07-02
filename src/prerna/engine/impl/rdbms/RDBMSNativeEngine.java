@@ -35,9 +35,16 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
+import javax.sql.DataSource;
+
+import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
@@ -54,71 +61,115 @@ import prerna.util.sql.SQLQueryUtil;
 
 public class RDBMSNativeEngine extends AbstractEngine {
 	
+	public static final String STATEMENT_OBJECT = "STATEMENT_OBJECT";
+	public static final String RESULTSET_OBJECT = "RESULTSET_OBJECT";
+	public static final String CONNECTION_OBJECT = "CONNECTION_OBJECT";
+	public static final String ENGINE_CONNECTION_OBJECT = "ENGINE_CONNECTION_OBJECT";
+	
+	static final Logger logger = LogManager.getLogger(RDBMSNativeEngine.class.getName());
 	DriverManager manager = null;
-	Connection conn = null;
-	boolean connected = false;
-	private ResultSet rs = null;
-	private Statement stmt = null;
+	boolean engineConnected = false;
+	boolean datasourceConnected = false;
 	private SQLQueryUtil.DB_TYPE dbType;
+	private BasicDataSource dataSource = null;
+	Connection engineConn = null;
 	
 	@Override
 	public void openDB(String propFile)
 	{
-		// will mostly be sent the connection string and I will connect here
-		// I need to see if the connection pool has been initiated
-		// if not initiate the connection pool
-		try {
-			prop = loadProp(propFile);
-			if(!prop.containsKey("TEMP"))
-				super.openDB(propFile);
-		} catch (FileNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		String connectionURL = prop.getProperty(Constants.CONNECTION_URL);
-		String tempEngineName = "";
-		String tempConnectionURL = prop.getProperty(Constants.TEMP_CONNECTION_URL);
-		String userName = prop.getProperty(Constants.USERNAME);
-		String password = "";
-		String dbTypeString = prop.getProperty(Constants.RDBMS_TYPE);
-		dbType = dbType = SQLQueryUtil.DB_TYPE.H2_DB;
-		if (dbTypeString != null) {
-			dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
-		}
-		//special treatment for mariadb
-		if(dbType == SQLQueryUtil.DB_TYPE.MARIA_DB){
-			String splitConnectionURL[] = connectionURL.split("/");
-			tempEngineName = splitConnectionURL[splitConnectionURL.length - 1];
-		}
-		if(prop.containsKey(Constants.PASSWORD))
-			password = prop.getProperty(Constants.PASSWORD);
-		String driver = prop.getProperty(Constants.DRIVER);
-        try {
-			Class.forName(driver);
-			//if the tempConnectionURL is set, connect to mysql, create the database, disconnect then reconnect to the database you created
-			if(this.conn == null && dbType == SQLQueryUtil.DB_TYPE.MARIA_DB && (tempConnectionURL != null && tempConnectionURL.length()>0)){
-				conn = DriverManager.getConnection(tempConnectionURL, userName, password);
-				//create database
-				createDatabase(tempEngineName);
-				closeDB();
-				this.conn = null; //reset back to null;
+		if(dataSource!= null){
+			try{
+				engineConn = getConnection();
+				this.engineConnected = true;
+			} catch (Exception e){
+				logger.error("error RDBMS opening database", e);
 			}
-			if(this.conn == null)
-				conn = DriverManager.getConnection(connectionURL, userName, password);
-			connected = true;
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			this.connected = false;
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} else {
+		
+			// will mostly be sent the connection string and I will connect here
+			// I need to see if the connection pool has been initiated
+			// if not initiate the connection pool
+			try {
+				prop = loadProp(propFile);
+				if(!prop.containsKey("TEMP"))
+					super.openDB(propFile);
+			} catch (FileNotFoundException e1) {
+				// TODO Auto-generated catch block
+				logger.error("error in RDBMS openDB processing prop file", e1);
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				logger.error("error in RDBMS openDB processing prop file", e1);
+			}
+			String connectionURL = prop.getProperty(Constants.CONNECTION_URL);
+			String tempEngineName = "";
+			String tempConnectionURL = prop.getProperty(Constants.TEMP_CONNECTION_URL);
+			String userName = prop.getProperty(Constants.USERNAME);
+			String password = "";
+			String dbTypeString = prop.getProperty(Constants.RDBMS_TYPE);
+			dbType = dbType = SQLQueryUtil.DB_TYPE.H2_DB;
+			if (dbTypeString != null) {
+				dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
+			}
+			//special treatment for mariadb
+			if(dbType == SQLQueryUtil.DB_TYPE.MARIA_DB){
+				String splitConnectionURL[] = connectionURL.split("/");
+				tempEngineName = splitConnectionURL[splitConnectionURL.length - 1];
+			}
+			if(prop.containsKey(Constants.PASSWORD))
+				password = prop.getProperty(Constants.PASSWORD);
+			String driver = prop.getProperty(Constants.DRIVER);
+			try {
+				Class.forName(driver);
+				//if the tempConnectionURL is set, connect to mysql, create the database, disconnect then reconnect to the database you created
+				if(dbType == SQLQueryUtil.DB_TYPE.MARIA_DB && (tempConnectionURL != null && tempConnectionURL.length()>0)){
+					dataSource = setupDataSource(driver, tempConnectionURL, userName, password);
+					engineConn = getConnection();
+					this.engineConnected = true;
+					//create database
+					createDatabase(tempEngineName);
+					closeDB();
+					closeDataSource();
+				}
+				if(!isConnected()){
+					dataSource = setupDataSource(driver, connectionURL, userName, password);
+					engineConn = getConnection();
+					this.engineConnected = true;
+				}
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				logger.error("Database driver class not found", e);
+				this.engineConnected = false;
+			}
 		}
 	}
-
+	
+	public Connection getConnection(){
+		Connection connObj = null;
+		if(isConnected()){
+			return engineConn;
+		}
+		if(this.dataSource!=null){
+			try {
+				connObj= dataSource.getConnection();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		return connObj;
+	}
+	
+    private BasicDataSource setupDataSource(String driver, String connectURI, String userName, String password) {
+    	//System.out.println("setupDataSource:: driver [" + driver +"] connectURI [" +  connectURI + "] userName ["+ userName+"] password [" + password + "]");
+        BasicDataSource ds = new BasicDataSource();
+        ds.setDriverClassName(driver);
+        ds.setUrl(connectURI);
+        ds.setUsername(userName);
+        ds.setPassword(password);
+        ds.setDefaultAutoCommit(true);//set autocommits to true...
+        this.datasourceConnected = true;
+        return ds;
+    }
+    
 	private void createDatabase(String engineName){
 		String createDB = "CREATE DATABASE " + engineName;
 		insertData(createDB);
@@ -128,8 +179,11 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	// need to clean up the exception it will never be thrown
 	public void insertData(String query) 
 	{
+		Connection conn = null;
+		Statement stmt = null;
 		try {
-			Statement stmt = conn.createStatement();
+			conn = getConnection();
+			stmt = conn.createStatement();
 			if(query.startsWith("CREATE") && !(query.startsWith("CREATE DATABASE"))){ // this is create statement"
 				stmt.execute(query);
 			} else {
@@ -138,7 +192,16 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}catch(Exception ex)
 		{
 			ex.printStackTrace();
+		} finally {
+			closeConnections(conn,null,stmt);
 		}
+	}
+	
+	private void closeConnections(Connection conn, ResultSet rs, Statement stmt){
+		if(isConnected()){
+			conn = null;
+		}
+		ConnectionUtils.closeAllConnections(conn, null, stmt);
 	}
 	
 	@Override
@@ -150,61 +213,105 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	@Override
 	public Vector<String> getEntityOfType(String type)
 	{
-		String table; // table in RDBMS
-		String column; // column of table in RDBMS
-		String query;
-		if(type.contains(":")) {
-			int columnStartIndex = type.indexOf(":") + 1;
-			table = type.substring(0, columnStartIndex - 1);
-			column = type.substring(columnStartIndex);
-			query = "SELECT DISTINCT " + column + " FROM " + table;
-		} else {
-			query = "SELECT DISTINCT " + type + " FROM " + type;
-		}
-		try {
-			return getColumnsFromResultSet(1, getResults(query));
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return null;
+        String table; // table in RDBMS
+        String column; // column of table in RDBMS
+        String query;
+
+        if(type.contains(":")) {
+            int tableStartIndex = type.indexOf("-") + 1;
+            int columnStartIndex = type.indexOf(":") + 1;
+            table = type.substring(tableStartIndex, columnStartIndex - 1);
+            column = type.substring(columnStartIndex);
+               query = "SELECT DISTINCT " + column + " FROM " + table;
+        } else {
+               query = "SELECT DISTINCT " + type + " FROM " + type;
+        }
+		Connection conn = null;
+        ResultSet rs = null;
+		Statement stmt = null;
+        try {
+			conn = getConnection();
+			stmt = conn.createStatement();
+        	rs = getResults(conn, stmt, query);
+        	Vector<String> columnsFromResult = getColumnsFromResultSet(1, rs);
+        	return columnsFromResult;
+        } catch (Exception e) {
+               // TODO Auto-generated catch block
+               e.printStackTrace();
+        } finally {
+        	closeConnections(conn,rs,stmt);
+        }
+        return null;
+
 	}
 	
 	public Vector<String> getCleanSelect(String query){
+		Connection conn = null;
+        ResultSet rs = null;
+		Statement stmt = null;
 		try {
-			return getColumnsFromResultSet(1, getResults(query));
+			conn = getConnection();
+			stmt = conn.createStatement();
+			rs = getResults(conn, stmt, query);
+    		Vector<String> columnsFromResult = getColumnsFromResultSet(1, rs);
+    		return columnsFromResult;
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			closeConnections(conn,rs,stmt);	
 		}
 		return null;
 	}
 
-	public Object execQuery(String query)
+	public Map<String, Object> execQuery(String query)
 	{
+		Connection conn = null;
+		Statement stmt = null;
+		ResultSet rs = null;
 		try {
-			rs = getResults(query);
-			return rs;
+			conn = getConnection();
+			stmt = conn.createStatement();
+			Map<String, Object> map = new HashMap();
+			rs = getResults(conn, stmt, query);
+			//normally would use instance.getClass() but when we retrieve the 
+			//references from the object we can't guarantee that they will not be null
+			//this makes it cleaner and less error prone.
+			map.put(RDBMSNativeEngine.RESULTSET_OBJECT, rs);
+			if(isConnected()){
+				map.put(RDBMSNativeEngine.CONNECTION_OBJECT, null);
+				map.put(RDBMSNativeEngine.ENGINE_CONNECTION_OBJECT, conn);
+			} else {
+				map.put(RDBMSNativeEngine.CONNECTION_OBJECT, conn);
+				map.put(RDBMSNativeEngine.ENGINE_CONNECTION_OBJECT, null);
+			}
+			map.put(RDBMSNativeEngine.STATEMENT_OBJECT, stmt);
+			return map;
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return null;
 	}
-	
 
+	
 	@Override
 	public boolean isConnected()
 	{
-		return connected;
+		return engineConn!=null && this.engineConnected;
 	}
 
 	@Override
 	public void closeDB() {
-		// do nothing
-		try {
-			conn.commit();
-			ConnectionUtils.closeAllConnections(conn, rs, stmt);
+		this.engineConnected = false;
+		ConnectionUtils.closeConnection(engineConn);
+		//closeDataSource();
+	}
+	
+	private void closeDataSource(){
+        try {
+			dataSource.close();
+			this.datasourceConnected = false;
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -242,36 +349,36 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	 * Private method that returns a ResultSet object. If you choose to make this method public it make it harder to keep track of the Result set
 	 * object and where you need to explicity close it
 	 * 
+	 * @param conn
+	 * @param stmt
 	 * @param query
 	 * @return ResultSet object
 	 * @throws Exception
 	 */
-	private ResultSet getResults(String query) throws Exception {
-		stmt = conn.createStatement();
-		rs = stmt.executeQuery(query);
+
+	private ResultSet getResults(Connection conn, Statement stmt, String query) throws Exception {
+		ResultSet rs = null;
+		try {
+			rs = stmt.executeQuery(query);
+			// return to pool
+		} catch (Exception e) {
+			logger.error("Error occured in getResults method of RDBMSNativeEngine", e);
+		}
 		return rs;
 	}
 	
 	public IQueryBuilder getQueryBuilder(){
-		//return new SQLQueryBuilder();
 		return new SQLQueryTableBuilder(this);
 	}
 	
 	@Override
 	public void removeData(String query) {
 		//not sure here
-		
 	}
 
 	@Override
 	public void commit() {
-		try {
-			conn.commit();
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
+		//we set autocommit when we init the data source, see setupDataSource
 	}
 	
 	// traverse from a type to a type, optionally include properties
