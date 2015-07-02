@@ -27,6 +27,9 @@ public interface IClustering {
 	 */
 	void updateInstanceIndex(List<Object[]> instance, String[] attributeNames, boolean[] isNumeric, Cluster clusterToAdd);
 	
+	
+	void removeInstanceIndex(List<Object[]> instance, String[] attributeNames, boolean[] isNumeric, Cluster clusterToRemove);
+	
 	/**
 	 * Determine if the inputed instance has changed clusters in current iteration
 	 * @param results						Map containing all instance to cluster relationships
@@ -35,4 +38,5 @@ public interface IClustering {
 	 * @return								boolean of true if instance changed cluster centers, false otherwise
 	 */
 	boolean isInstanceChangedCluster(Map<String, Integer> results, String instanceName, int bestCluster);
+	
 }
