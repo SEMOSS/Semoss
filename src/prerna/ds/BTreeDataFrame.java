@@ -120,6 +120,27 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 	
 	@Override
+	public List<Object[]> getData(String columnHeader, Object value) {
+		TreeNode root = this.simpleTree.nodeIndexHash.get(columnHeader);
+		TreeNode foundNode = null;
+		
+		if(value instanceof Number) {
+			Double v = (Double)value;
+			TreeNode t = new TreeNode(new DoubleClass(v, columnHeader));
+			foundNode = root.getNode(new Vector<TreeNode>(), t, false);
+		}
+		else if(value instanceof String) {
+			String v = value.toString();
+			TreeNode t = new TreeNode(new StringClass(v, columnHeader));
+			foundNode = root.getNode(new Vector<TreeNode>(), t, false);
+		} else {
+			LOGGER.error("value must be either double or string");
+		}
+		
+		return (foundNode==null) ? null: new UniqueBTreeIterator(foundNode).next();
+	}
+	
+	@Override
 	public List<Object[]> getRawData() {
 		List<Object[]> table = new ArrayList<Object[]>();
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[0]);
