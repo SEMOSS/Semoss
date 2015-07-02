@@ -56,6 +56,7 @@ import prerna.error.FileWriterException;
 import prerna.error.InvalidUploadFormatException;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Loading data into SEMOSS using Microsoft Excel Loading Sheet files
@@ -157,15 +158,15 @@ public class POIReader extends AbstractFileReader {
 		String semossNodeURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
 		// check parent and child nodes in correct position
 		XSSFRow row = subclassSheet.getRow(0);
-		String parentNode = row.getCell(0).toString();
-		String childNode = row.getCell(1).toString();
+		String parentNode = row.getCell(0).toString().trim().toLowerCase();
+		String childNode = row.getCell(1).toString().trim().toLowerCase();
 		// check to make sure parent column is in the correct column
-		if (!parentNode.equalsIgnoreCase("Parent")) {
+		if (!parentNode.equals("parent")) {
 			JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
 			JOptionPane.showMessageDialog(playPane, "<html>Error with Subclass Sheet.<br>Error in parent node column.</html>");
 		}
 		// check to make sure child column is in the correct column
-		if (!childNode.equalsIgnoreCase("Child")) {
+		if (!childNode.equals("child")) {
 			JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
 			JOptionPane.showMessageDialog(playPane, "<html>Error with Subclass Sheet.<br>Error in child node column.</html>");
 		}
@@ -173,8 +174,8 @@ public class POIReader extends AbstractFileReader {
 		int lastRow = subclassSheet.getLastRowNum();
 		for (int i = 1; i <= lastRow; i++) {
 			row = subclassSheet.getRow(i);
-			parentNode = semossNodeURI + "/" + row.getCell(0).toString();
-			childNode = semossNodeURI + "/" + row.getCell(1).toString();
+			parentNode = semossNodeURI + "/" + Utility.cleanString(row.getCell(0).toString(), true);
+			childNode = semossNodeURI + "/" + Utility.cleanString(row.getCell(1).toString(), true);
 			// add triples to engine
 			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{childNode, pred, parentNode, true});
 			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{childNode, pred, semossNodeURI, true});
