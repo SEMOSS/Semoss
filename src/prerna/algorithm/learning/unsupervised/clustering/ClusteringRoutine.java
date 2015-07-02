@@ -32,7 +32,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 		this.isNumeric = dataFrame.isNumeric();
 		this.attributeNames = dataFrame.getColumnHeaders();
 
-		this.numClusters = 4;
+		this.numClusters = 12;
 		this.instanceIndex = 0;
 		this.clusterColumnID = "clusterID";
 		
@@ -68,7 +68,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 			//print best sim
 			//print out cluster assignment
 			//print out new clusters
-			System.out.println("Current Iteration "+currIt);
+//			System.out.println("Current Iteration "+currIt);
 			go = false;
 			Iterator<List<Object[]>> it = dataFrame.uniqueIterator(attributeNames[instanceIndex]);
 			while(it.hasNext()) {
@@ -80,24 +80,30 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 				boolean instanceChangeCluster = isInstanceChangedCluster(results, instanceName, bestCluster);
 				if(instanceChangeCluster) {
 					go = true;
+					Integer currCluster = results.get(instanceName);
+//					System.err.println("Moving " + instanceName + " from cluster " + currCluster + " to " + bestCluster);
 					results.put(instanceName, bestCluster);
+					updateInstanceIndex(instance, attributeNames, isNumeric, clusters.get(bestCluster));
+					if(currCluster != null) {
+						removeInstanceIndex(instance, attributeNames, isNumeric, clusters.get(currCluster));
+					}
 				}
 			}
 			//*****************
-			List<String> cluster1 = new ArrayList<>();
-			List<String> cluster2 = new ArrayList<>();
-			List<String> cluster3 = new ArrayList<>();
-			List<String> cluster4 = new ArrayList<>();
-			
-			for(String key: results.keySet()) {
-				int value = results.get(key);
-				if(value==0) cluster1.add(key);
-				else if(value==1) cluster2.add(key);
-				else if(value==2) cluster3.add(key);
-				else if(value==3) cluster4.add(key);
-				
-				//System.out.println("CLUSTER 1");
-			}
+//			List<String> cluster1 = new ArrayList<>();
+//			List<String> cluster2 = new ArrayList<>();
+//			List<String> cluster3 = new ArrayList<>();
+//			List<String> cluster4 = new ArrayList<>();
+//			
+////			for(String key: results.keySet()) {
+//				int value = results.get(key);
+//				if(value==0) cluster1.add(key);
+//				else if(value==1) cluster2.add(key);
+//				else if(value==2) cluster3.add(key);
+//				else if(value==3) cluster4.add(key);
+//				
+//				//System.out.println("CLUSTER 1");
+//			}
 //			
 //			Collections.sort(cluster1);
 //			Collections.sort(cluster2);
@@ -113,24 +119,21 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 //			for(int i = 0; i < cluster4.size(); i++) System.out.println(cluster4.get(i)); System.out.println();
 			//********************
 			// test convergence
-			if(go) {
-				// update cluster centers
-				for(int i = 0; i < numClusters; i++) {
-					// clear values in clusters
-					clusters.get(i).reset();
-				}
-				it = dataFrame.uniqueIterator(attributeNames[instanceIndex]);
-				while(it.hasNext()) {
-					List<Object[]> instance = it.next();
-					int clusterIndex = results.get(instance.get(0)[instanceIndex]);
-					updateInstanceIndex(instance, attributeNames, isNumeric, clusters.get(clusterIndex));
-				}
-			} else {
-				success = true;
-			}
-			
-			
-
+//			if(go) {
+//				// update cluster centers
+//				for(int i = 0; i < numClusters; i++) {
+//					// clear values in clusters
+//					clusters.get(i).reset();
+//				}
+//				it = dataFrame.uniqueIterator(attributeNames[instanceIndex]);
+//				while(it.hasNext()) {
+//					List<Object[]> instance = it.next();
+//					int clusterIndex = results.get(instance.get(0)[instanceIndex]);
+//					updateInstanceIndex(instance, attributeNames, isNumeric, clusters.get(clusterIndex));
+//				}
+//			} else {
+//				success = true;
+//			}
 			currIt++;
 			// break if taking too many iterations
 			if(currIt > maxIt) {
@@ -218,12 +221,11 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 		int i = 0;
 		for(; i < numClusters; i++) {
 			double newSimVal = clusters.get(i).getSimilarityForInstance(instance, attributeNames, isNumeric, instanceIndex);
-			
+//			System.out.println("Simval to cluster " + i + " is = " + newSimVal);
 			if(newSimVal > simVal) {
 				bestIndex = i;
 				simVal = newSimVal;
 			}
-			System.out.println("SimVal: "+simVal);
 			if(simVal == 1) {
 				break;
 			}
@@ -248,6 +250,11 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 		clusterToAdd.addToCluster(instance, attributeNames, isNumeric);
 	}
 
+	@Override
+	public void removeInstanceIndex(List<Object[]> instance, String[] attributeNames, boolean[] isNumeric, Cluster clusterToRemove) {
+		clusterToRemove.removeFromCluster(instance, attributeNames, isNumeric);
+	}
+	
 	//TODO: say it will combine non-unique values together s.t. they get the assigned to the same cluster
 	// i.e. clustering on unique values of column
 	@Override
