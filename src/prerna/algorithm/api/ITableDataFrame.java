@@ -328,4 +328,11 @@ public interface ITableDataFrame {
 	 * @return						An ArrayList of Object arrays containing all the raw data
 	 */
 	List<Object[]> getRawData();
+	
+	/**
+	 * 
+	 * @param value
+	 * @return
+	 */
+	List<Object[]> getData(String columnHeader, Object value);
 }
