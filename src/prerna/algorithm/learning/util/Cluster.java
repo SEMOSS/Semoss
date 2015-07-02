@@ -40,7 +40,12 @@ public class Cluster {
 		}
 	}
 	
-	//TODO: update to take into account empty strings and nulls
+	public void removeFromCluster(List<Object[]> valuesList, String[] names, boolean[] isNumeric) {
+		for(Object[] values : valuesList) {
+			removeFromCluster(values, names, isNumeric);
+		}
+	}
+	
 	public void removeFromCluster(Object[] values, String[] names, boolean[] isNumeric) {
 		for(int i = 0; i < values.length; i++){
 			if(isNumeric[i]) {
@@ -201,4 +206,5 @@ public class Cluster {
 		categoricalCluster.reset();
 		numericalCluster.reset();
 	}
+
 }

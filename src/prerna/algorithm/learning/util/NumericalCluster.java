@@ -45,7 +45,8 @@ public class NumericalCluster implements INumericalCluster {
 	public Double getSimilarity(List<String> attributeName, List<Double> value, int indexToSkip) {
 
 		double similarity = 0.0;
-		for(int i = 0; i < attributeName.size(); i++) {
+		int numAttr = attributeName.size();
+		for(int i = 0; i < numAttr; i++) {
 			if(i==indexToSkip) {
 				continue;
 			}
@@ -61,9 +62,9 @@ public class NumericalCluster implements INumericalCluster {
 			center = center/range;
 			v = v/range;
 			//using euclidean distance
-			similarity = similarity + (Math.pow(Math.abs(v-center), 2))*weight;
+			similarity = similarity + (Math.pow(v-center, 2))*weight;
 		}
-		return Math.sqrt(similarity);
+		return (1 - Math.sqrt(similarity));
 	}
 	
 	@Override
