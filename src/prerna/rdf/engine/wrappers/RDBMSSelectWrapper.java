@@ -27,16 +27,21 @@
  *******************************************************************************/
 package prerna.rdf.engine.wrappers;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Map;
 
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.ConnectionUtils;
 import prerna.rdf.query.builder.SQLQueryTableBuilder;
 import prerna.util.Constants;
@@ -48,23 +53,36 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 	private ArrayList<ISelectStatement> queryResults = new ArrayList();
 	public static String uri = "http://semoss.org/ontologies/Concept";
 	ResultSet rs = null;
+	Connection conn = null;
+	Statement stmt = null;
 	boolean hasMore = false;
 	Hashtable columnTypes = new Hashtable();
 	Hashtable columnTables = new Hashtable();
 	private ISelectStatement curStmt = null;
+	private boolean useEngineConnection = false;
 		
 	@Override
 	public void execute() {
 		// TODO Auto-generated method stub
 		try{
-			query = query.replaceAll("\\s+", " "); //normalize spaces
+			Map<String, Object> map = (Map<String, Object>) engine.execQuery(query);
+			stmt = (Statement) map.get(RDBMSNativeEngine.STATEMENT_OBJECT);
+			Object connObj = map.get(RDBMSNativeEngine.CONNECTION_OBJECT);
+			if(connObj==null){
+				useEngineConnection = true;
+				connObj = map.get(RDBMSNativeEngine.ENGINE_CONNECTION_OBJECT);
+			}
+			conn = (Connection) connObj;
+			rs = (ResultSet) map.get(RDBMSNativeEngine.RESULTSET_OBJECT);
 
-			rs = (ResultSet)engine.execQuery(query);
 			setVariables(); //get the variables
 		} catch (Exception e){
 			e.printStackTrace();
 			//in case query times out, close rs object..
-			ConnectionUtils.closeResultSet(rs);
+			if(useEngineConnection)
+				ConnectionUtils.closeAllConnections(null, rs, stmt);
+			else
+				ConnectionUtils.closeAllConnections(conn, rs, stmt);
 		}
 	}
 
@@ -75,7 +93,10 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 		if(curStmt != null) {
 				hasMore = true;
 		} else {
-			ConnectionUtils.closeResultSet(rs);
+			if(useEngineConnection)
+				ConnectionUtils.closeAllConnections(null, rs, stmt);
+			else
+				ConnectionUtils.closeAllConnections(conn, rs, stmt);
 		}
 		return hasMore;
 	}
