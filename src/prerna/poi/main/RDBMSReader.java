@@ -694,6 +694,7 @@ public class RDBMSReader {
 		openScriptFile(engineName);
 		
 		scriptFile.println("-- ********* begin load process ********* ");
+		engine.openDB(null);//dont need to specify file name, data source should exist at this point so we should be 
 		
 		//first find all indexes, drop current ones, store off those current ones to recreate them when the process completes
 		findIndexes(engineName);
@@ -730,6 +731,7 @@ public class RDBMSReader {
 		}
 		cleanUpDBTables(engineName);
 		runDBModTransactions(recreateIndexesArr); 
+		closeDB();
 		cleanAll(); //clean again because we reset the values for availableTables and availableTablesInfo
 		writeDefaultQuestionSheet(engineName);
 		updateDefaultQuestionSheet(engineName);

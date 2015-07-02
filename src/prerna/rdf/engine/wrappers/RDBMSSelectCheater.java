@@ -27,12 +27,14 @@
  *******************************************************************************/
 package prerna.rdf.engine.wrappers;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Types;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Map;
 
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
@@ -40,17 +42,17 @@ import org.openrdf.model.vocabulary.RDFS;
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.ISelectStatement;
-import prerna.rdf.query.builder.SQLQueryTableBuilder;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.Utility;
-import prerna.util.sql.SQLQueryUtil;
 
 public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWrapper {
 
 	private ArrayList<ISelectStatement> queryResults = new ArrayList();
 	public static String uri = "http://semoss.org/ontologies/Concept";
 	ResultSet rs = null;
+	Connection conn = null;
+	Statement stmt = null;
 	boolean hasMore = false;
 	Hashtable columnTypes = new Hashtable();
 	private int currentQueryIndex = 0;
@@ -66,14 +68,21 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 	@Override
 	public void execute() {
 		// TODO Auto-generated method stub
-		
-		curStmt = null;
-		rs = (ResultSet)engine.execQuery(query);
-		setVariables(); //get the variables
-		//populateQueryResults();
-		
-		//close the result set
-		//ConnectionUtils.closeResultSet(rs);
+		try{
+			curStmt = null;
+			Map<String, Object> map = (Map<String, Object>) engine.execQuery(query);
+			stmt = (Statement) map.get(RDBMSNativeEngine.STATEMENT_OBJECT);
+			conn = (Connection) map.get(RDBMSNativeEngine.CONNECTION_OBJECT);
+			rs = (ResultSet) map.get(RDBMSNativeEngine.RESULTSET_OBJECT);
+			setVariables(); //get the variables
+			//populateQueryResults();
+			
+			//close the result set
+			//ConnectionUtils.closeResultSet(rs);
+		} catch (Exception e){
+			e.printStackTrace();
+			ConnectionUtils.closeAllConnections(conn, rs, stmt);
+		}
 	}
 
 	@Override
@@ -86,7 +95,7 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 			if(curStmt != null)
 				hasMore = true;
 			else
-				ConnectionUtils.closeResultSet(rs);
+				ConnectionUtils.closeAllConnections(conn, rs, stmt);
 		}
 		else
 			hasMore = true;
@@ -175,13 +184,6 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 	private void setVariables(){
 		try {
 			
-			//get rdbms type
-			SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
-			String dbTypeString = engine.getProperty(Constants.RDBMS_TYPE);
-			if (dbTypeString != null) {
-				dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
-			}
-			
 			ResultSetMetaData rsmd = rs.getMetaData();
 			int numColumns = rsmd.getColumnCount();
 			
@@ -194,36 +196,6 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 				int type = rsmd.getColumnType(colIndex);
 				columnTypes.put(var[colIndex-1], type);
 				String tableName = rsmd.getTableName(colIndex);
-				//getTableName doesnt work in maria or mysql, it gets the table alias instead
-				//known bug, reference: https://bugs.mysql.com/bug.php?id=36327
-				if(dbType == SQLQueryUtil.DB_TYPE.MARIA_DB){
-					//Maria db is having trouble getting the table name using the result set metadata method getTableName, 
-					//this logic is for us to work around this issue
-					boolean getTableNameFromColumn = tableName.equals("");
-					if(!getTableNameFromColumn){
-						//first see if this really is a table name, so if an alias exists then you can use this tableName
-						String tableAlias = SQLQueryTableBuilder.getAlias(tableName);
-						if(tableAlias.length()==0){
-							//if no alias was returned, assume that maybe the value you got was an alias, 
-							//so try to use the alias to get the tableName
-							String tableNameFromAlias = SQLQueryTableBuilder.getTableNameByAlias(tableName);
-							if(tableNameFromAlias.length()>0){
-								tableName = tableNameFromAlias;
-							} else {
-								getTableNameFromColumn = true;//if you still have no tableName, try to use the columnLabel to get your tableName
-							}
-						}
-					}
-					
-					//use columnName to derive table name
-					if(getTableNameFromColumn){
-						tableName = columnLabel;
-						if(columnLabel.contains("__")){
-							String[] splitColAndTable = tableName.split("__");
-							tableName = splitColAndTable[0];
-						}
-					}
-				}
 				
 				columnTypes.put(var[colIndex-1], type);
 
