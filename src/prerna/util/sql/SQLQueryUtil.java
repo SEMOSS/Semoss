@@ -28,30 +28,27 @@
 package prerna.util.sql;
 
 import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.Hashtable;
-
-import prerna.util.Utility;
 
 public abstract class SQLQueryUtil {
-	
-	public enum DB_TYPE {H2_DB,MARIA_DB}
-	
+
+	// Added SQL Server as enum DB_TYPE
+	public enum DB_TYPE {H2_DB,MARIA_DB,SQL_SERVER}
+
 	public static final String USE_OUTER_JOINS_NO = "NO";
 	public static final String USE_OUTER_JOINS_YES = "YES";
-	
+
 	private String defaultDbUserName = "";
 	private String defaultDbPassword = "";
-	
+
 	// generic db info
 	private String dialectAllTables = "";
 	private String resultAllTablesTableName = "";
 	private String dialectAllColumns = " SHOW COLUMNS FROM ";
 	private String resultAllColumnsColumnName = "FIELD";
 	private String resultAllColumnsColumnType = "TYPE";
-	
+
 	public final String dialectSelectAllFrom = " SELECT * FROM ";
-	
+
 	private String dialectSelectRowCountFrom = " SELECT COUNT(*) as ROW_COUNT FROM ";
 	private String resultSelectRowCountFromRowCount = "ROW_COUNT";
 
@@ -59,9 +56,9 @@ public abstract class SQLQueryUtil {
 	public final String dialectCreateTable = " CREATE TABLE "; 
 	public final String dialectAlterTable = " ALTER TABLE ";
 	public final String dialectDropTable = " DROP TABLE ";
-	
+
 	//update
-	
+
 	//index
 	private String dialectAllIndexesInDB = "";
 	private String dialectIndexInfo = "";
@@ -72,47 +69,51 @@ public abstract class SQLQueryUtil {
 	private String dialectDropIndex = "DROP INDEX ";
 	public final String dialectSelect = "SELECT ";
 	public final String dialectDistinct = " DISTINCT ";
-	
+
 	//traverse freely/force graph
 	private String dialectForceGraph = "";
-	
+
 	//"full outer join"
 	private String dialectOuterJoinLeft = "";
 	private String dialectOuterJoinRight = "";
-	
 
+
+	// Add SQLServer compatibility
 	public static SQLQueryUtil initialize(SQLQueryUtil.DB_TYPE dbtype){
 		if(dbtype == SQLQueryUtil.DB_TYPE.MARIA_DB){
 			return new MariaDbQueryUtil();
-		} else {
+		} else if(dbtype == SQLQueryUtil.DB_TYPE.SQL_SERVER){
+			return new SQLServerQueryUtil();
+		}else{
 			return new H2QueryUtil();
-		}
+		}		
+
 	}
-	
+
 	public abstract SQLQueryUtil.DB_TYPE getDatabaseType();
-	
+
 	public abstract String getDefaultOuterJoins();
-	
+
 	public abstract String getConnectionURL(String baseFolder,String dbname);
-	
+
 	public abstract String getDatabaseDriverClassName();
-	
+
 	public abstract String getDialectIndexInfo(String indexName, String dbName);
 
-	
+
 	//"full outer join"
 	//this is definetly going to be db specific
 	public abstract String getDialectFullOuterJoinQuery(boolean distinct, String selectors, ArrayList<String> rightJoinsArr, 
 			ArrayList<String> leftJoinsArr, ArrayList<String> joinsArr, String filters, int limit, String groupBy);
-	
+
 	public String getDefaultDBUserName(){
 		return this.defaultDbUserName;
 	}
-	
+
 	public String getDefaultDBPassword(){
 		return this.defaultDbPassword;
 	}
-	
+
 	// generic db info getters 
 	public String getDialectAllTables(){
 		return this.dialectAllTables;
@@ -142,7 +143,7 @@ public abstract class SQLQueryUtil {
 	public String getResultSelectRowCountFromRowCount(){
 		return this.resultSelectRowCountFromRowCount;
 	}
-	
+
 	//index
 	public String getDialectAllIndexesInDB(){
 		return this.dialectAllIndexesInDB;
@@ -189,26 +190,26 @@ public abstract class SQLQueryUtil {
 		createIndexText += ")";
 		return createIndexText;
 	}
-	
+
 	//full outer join abstract above...
-	
+
 	//inner join
 	public String getDialectInnerJoinQuery(boolean distinct, String selectors, String froms, String joins, String filters, int limit, String groupBy){
-		
+
 		if(joins.length() > 0 && filters.length() > 0)
 			joins = joins + " AND " + filters;
 		else if(filters.length() > 0)
 			joins = filters;
 		if(joins.length() > 0)
 			joins = " WHERE " + joins;
-		
+
 		String query = this.dialectSelect;
 		if(distinct) query+= this.dialectDistinct;
 		query += selectors + "  FROM  " + froms + joins;
 		if(groupBy != null && groupBy.length()>0){
 			query += " GROUP BY " + groupBy;
 		}
-		
+
 		if(limit != -1){
 			query += " LIMIT " + limit;
 		}
@@ -222,7 +223,7 @@ public abstract class SQLQueryUtil {
 	public String getDialectOuterJoinRight(String fromTable){
 		return dialectOuterJoinRight + fromTable;
 	}
-	
+
 	//select from dual
 	public String getDialectDistinctFromDual(String selectors){
 		return getDialectDistinctFromDual(selectors, -1);
@@ -235,30 +236,41 @@ public abstract class SQLQueryUtil {
 		return query;
 	}
 
-	
+
 	public String getDialectRemoveDuplicates(String tableName, String fullColumnNameList){
-		String createTable = "CREATE TABLE " + tableName + "_TEMP AS ";
-		String subQuery = "(SELECT DISTINCT " + fullColumnNameList
-			+ " FROM " + tableName+" WHERE " + tableName 
-			+ " IS NOT NULL AND TRIM(" + tableName + ") <> '' )";
+		String createTable = "";
+		String subQuery = "";
+		//For SQL Server CTAS doesn't work, using select * into newTable from oldTable
+		//Also LTRIM(RTRIM(tableName)) works instead of TRIM(tableName)
+		if(this.getDatabaseType().equals(SQLQueryUtil.DB_TYPE.SQL_SERVER)){
+			createTable ="SELECT DISTINCT " + fullColumnNameList 
+					+ " INTO " + tableName + "_TEMP " 
+					+ " FROM " + tableName + " WHERE " + tableName 
+					+ " IS NOT NULL AND LTRIM(RTRIM(" + tableName + ")) <> ''";
+		}else{
+			createTable = "CREATE TABLE " + tableName + "_TEMP AS ";
+			subQuery = "(SELECT DISTINCT " + fullColumnNameList
+					+ " FROM " + tableName+" WHERE " + tableName 
+					+ " IS NOT NULL AND TRIM(" + tableName + ") <> '' )";
+		}
 		return createTable + subQuery;
 	}
-	
+
 	public String dialectVerifyTableExists(String tableName){
 		String query = getDialectSelectRowCountFrom("INFORMATION_SCHEMA.TABLES","TABLE_NAME = '" + tableName +"'");
 		return query;
 	}
-	
+
 	public String getDialectDropTable(String tableName){
 		return this.dialectDropTable + tableName;
 	}
-	
+
 	public String getDialectAlterTableName(String fromName, String toName){
 		return this.dialectAlterTable + fromName + " RENAME TO " + toName; //alterTableName = "ALTER TABLE " + tableName + "_TEMP RENAME TO " + tableName;
 	}
 	public String getDialectMergeStatement(String tableKey, String insertIntoClause, String insertValuesClause, String whereClause){
 		String query = "INSERT INTO " + tableKey + " ("+ insertIntoClause + ") SELECT DISTINCT " + insertValuesClause +
-				   " FROM " + tableKey + " WHERE " + whereClause ;
+				" FROM " + tableKey + " WHERE " + whereClause ;
 		return query;
 	}
 

@@ -115,13 +115,20 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				String splitConnectionURL[] = connectionURL.split("/");
 				tempEngineName = splitConnectionURL[splitConnectionURL.length - 1];
 			}
+			//special treatment for SQL Server
+			//connectionURL: jdbc:sqlserver://localhost:1433;databaseName=tempEngineName;user=username;Password=password;selectMethod=cursor
+			if(dbType.equals(SQLQueryUtil.DB_TYPE.SQL_SERVER)){
+				String splitConnectionURL[] = connectionURL.split("=");
+				String engineName[] = splitConnectionURL[1].split(";");
+				tempEngineName = engineName[0];
+			}
 			if(prop.containsKey(Constants.PASSWORD))
 				password = prop.getProperty(Constants.PASSWORD);
 			String driver = prop.getProperty(Constants.DRIVER);
 			try {
 				Class.forName(driver);
 				//if the tempConnectionURL is set, connect to mysql, create the database, disconnect then reconnect to the database you created
-				if(dbType == SQLQueryUtil.DB_TYPE.MARIA_DB && (tempConnectionURL != null && tempConnectionURL.length()>0)){
+				if((dbType == SQLQueryUtil.DB_TYPE.MARIA_DB || dbType == SQLQueryUtil.DB_TYPE.SQL_SERVER) && (tempConnectionURL != null && tempConnectionURL.length()>0)){
 					dataSource = setupDataSource(driver, tempConnectionURL, userName, password);
 					engineConn = getConnection();
 					this.engineConnected = true;
