@@ -82,6 +82,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.MariaDbQueryUtil;
 import prerna.util.sql.SQLQueryUtil;
+import prerna.util.sql.SQLServerQueryUtil;
 
 import com.hp.hpl.jena.vocabulary.OWL;
 
@@ -92,7 +93,7 @@ public class RDBMSReader {
 
 	private static final String GENERIC_PERSPECTIVE = "Generic-Perspective";
 	private static final Logger logger = LogManager.getLogger(RDBMSReader.class.getName());
-	
+
 	private String propFile; // the file that serves as the property file
 	private ICsvMapReader mapReader;
 	private String [] header; // array of headers
@@ -121,15 +122,15 @@ public class RDBMSReader {
 	private Hashtable <String, String> relHash = new Hashtable<String,String>(); // keeps it in the format of name of the relationship, the value being the name of the classes separated by @
 	String dbBaseFolder = null;
 	IEngine engine = null;
-	
-	
+
+
 	// stuff from abstract reader
 	protected Hashtable<String, String> rdfMap = new Hashtable<String, String>();
 	protected String bdPropFile;
 	protected Properties bdProp = new Properties(); // properties for big data
 	protected Sail bdSail;
 	protected ValueFactory vf;
-	
+
 	protected String customBaseURI = "";
 	public String basePropURI= "";
 
@@ -137,14 +138,14 @@ public class RDBMSReader {
 	protected String semossURI;
 	protected String propURI = "http://semoss.org/ontologies/property";
 	protected final static String CONTAINS = "Contains";
-	
+
 	public Hashtable<String,String> baseConceptURIHash = new Hashtable<String,String>(); 
 	public Hashtable<String,String> conceptURIHash = new Hashtable<String,String>();
 	public Hashtable<String,String> baseRelationURIHash = new Hashtable<String,String>(); 
 	public Hashtable<String,String> relationURIHash = new Hashtable<String,String>();
 	public Hashtable<String,String> basePropURIHash = new Hashtable<String,String>();
 	public Hashtable<String,String> basePropRelations = new Hashtable<String,String>();
-	
+
 	protected Hashtable<String, String[]> baseRelations = new Hashtable<String, String[]>();
 	protected Vector <String> tables = new Vector<String>();
 	protected Vector <String> allTables = new Vector<String>();
@@ -155,16 +156,16 @@ public class RDBMSReader {
 	protected ValueFactory vfOWL;
 	protected SailConnection scOWL;
 	protected String owlFile = "";
-	
+
 	protected String scriptFileName = "DBScript.sql";
 	protected PrintWriter scriptFile = null;
 
 	//reload base data
 	protected RDFFileSesameEngine baseDataEngine;
 	protected Hashtable<String, String> baseDataHash = new Hashtable<String, String>();
-	
+
 	private SQLQueryUtil queryUtil;
-	
+
 	public static void main(String [] args) throws Exception
 	{
 		RDBMSReader reader = new RDBMSReader();
@@ -180,15 +181,15 @@ public class RDBMSReader {
 		reader.importFileWithOutConnection(outputFile, fileName, reader.customBaseURI, reader.owlFile,engineName, SQLQueryUtil.DB_TYPE.MARIA_DB);
 
 		System.out.println("Trying the new one now");
-		
+
 		reader.cleanAll();
-		
+
 		fileName = "C:/Users/pkapaleeswaran/workspacej2/Data/Movie2.csv";
 		reader.propFile = "C:/Users/pkapaleeswaran/workspacej2/SemossWeb/db/MovieRDBMS/MovieRDBMS_Movie_PROP2.prop";
 		reader.importFileWithOutConnection(outputFile, fileName, reader.customBaseURI, reader.owlFile,engineName, SQLQueryUtil.DB_TYPE.H2_DB);
 
 	}
-	
+
 	private void cleanAll()
 	{
 		tableHash.clear();
@@ -197,7 +198,7 @@ public class RDBMSReader {
 		whereColumns.clear();
 		rdfMap.clear();
 	}
-	
+
 	private String writePropFile(String engineName)
 	{
 		Properties prop = new Properties();
@@ -209,9 +210,12 @@ public class RDBMSReader {
 		if(queryUtil.getDatabaseType() == SQLQueryUtil.DB_TYPE.MARIA_DB){
 			prop.put(Constants.TEMP_CONNECTION_URL, MariaDbQueryUtil.getTempConnectionURL());
 		}
+		if(queryUtil.getDatabaseType() == SQLQueryUtil.DB_TYPE.SQL_SERVER){
+			prop.put(Constants.TEMP_CONNECTION_URL, SQLServerQueryUtil.getTempConnectionURL());
+		}
 		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
 		prop.put("TEMP", "TRUE");
-		
+
 		// write this to a file
 		String tempFile = dbBaseFolder + "/db/" + engineName + "/conn.prop";
 		try {
@@ -228,12 +232,12 @@ public class RDBMSReader {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 
 		return tempFile;
-		
+
 	}
-	
+
 	/**
 	 * Open script file that contains all the sql statements run during the upload process
 	 * @param engineName name of the engine/db
@@ -247,7 +251,7 @@ public class RDBMSReader {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Loading data into SEMOSS to create a new database
 	 * @param dbName 		String grabbed from the user interface that would be used as the name for the database
@@ -263,20 +267,20 @@ public class RDBMSReader {
 	public void importFileWithOutConnection(String engineFile, String fileNames, String customBase, String owlFile, String engineName, SQLQueryUtil.DB_TYPE dbType) throws EngineException, FileWriterException, FileReaderException, HeaderClassException {
 
 		queryUtil = SQLQueryUtil.initialize(dbType);
-		
+
 		logger.setLevel(Level.WARN);
 		String[] files = fileNames.split(";"); //)prepareReader(fileNames, customBase, owlFile);
 		this.owlFile = owlFile;
-				
+
 		//openEngineWithoutConnection(engineName);
 		openOWLWithOutConnection();
 		createTypes();
 
 		if(!customBase.equals("")) customBaseURI = customBase;
-		
+
 		// check if I am in the environment
 		getBaseFolder();
-		
+
 		createSQLTypes();
 		System.out.println("Owl File is " + this.owlFile);
 		openDB(engineName); //scriptfile opened in here.
@@ -284,7 +288,7 @@ public class RDBMSReader {
 		for(int i = 0; i<files.length;i++)
 		{
 			String fileName = files[i];
-			
+
 			if(i ==0 )scriptFile.println("-- ********* begin load process ********* ");
 			scriptFile.println("-- ********* begin load " + fileName + " ********* ");
 			// find the tables
@@ -295,7 +299,7 @@ public class RDBMSReader {
 			} else {
 				rdfMap = rdfMapArr[i];
 			}
-			
+
 			// determine the type of data in each column of CSV file
 			createProcessors();
 			openCSVFile(fileName); //open further down in the process because we need variables defined in createProcessors
@@ -306,7 +310,7 @@ public class RDBMSReader {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			
+
 			recreateRelations();
 			createTables();
 			skipRows();
@@ -331,7 +335,7 @@ public class RDBMSReader {
 			e.printStackTrace();
 		}
 	}
-	
+
 	//get current indexes that are saved off.  If some exist we will reexecute them when the upload process completes
 	private void findIndexes(String engineName){
 		// this gets all the existing tables
@@ -344,7 +348,7 @@ public class RDBMSReader {
 			ISelectStatement stmt = wrapper.next();
 			String indexName = stmt.getVar(queryUtil.getResultAllIndexesInDBIndexName()) + "";
 			//only storing off custom indexes, recreating the non custom ones on the fly on the cleanUpDBTables method
-			
+
 			String indexInfoQry = queryUtil.getDialectIndexInfo(indexName, engineName);
 			ISelectWrapper indexInfo = WrapperManager.getInstance().getSWrapper(engine, indexInfoQry);
 			ArrayList<String> columnsInIndex = new ArrayList();
@@ -363,15 +367,15 @@ public class RDBMSReader {
 			singleDBModTransaction(dropCurrentIndexText);
 		}
 	}
-	
+
 	private void runDBModTransactions(ArrayList<String> itemsArray){
 		for(String eachSQL: itemsArray){
 			singleDBModTransaction(eachSQL);
 		}
 	}
-	
+
 	private void singleDBModTransaction(String sql){
-		
+
 		try {
 			if(!sql.endsWith(";")) sql+= ";";
 			scriptFile.println(sql);
@@ -381,7 +385,7 @@ public class RDBMSReader {
 		}
 		modifyDB(sql);	
 	}
-	
+
 	//remove duplicates and create standard indexes on table
 	private void cleanUpDBTables(String engineName){
 		String createTable = "", verifyTable="", dropTable = "", alterTableName = "";  //, createIndex = "";
@@ -391,10 +395,10 @@ public class RDBMSReader {
 		Hashtable availableTableColumns = null;
 		ISelectWrapper wrapper = null;
 		boolean tableAltered = false; //includes tables created/modified appended to etc.
-		
+
 		//fill up the availableTables and availableTablesInfo maps
 		findTables(engineName);
-		
+
 		allTablesEnum = availableTables.keys();
 		while(allTablesEnum.hasMoreElements()){
 			fullColumnNameList = "";
@@ -406,7 +410,7 @@ public class RDBMSReader {
 			columns = availableTableColumns.keys();
 			int indexCount = 1;
 			while(columns.hasMoreElements()){
-				
+
 				columnName = (String)columns.nextElement();
 				if(fullColumnNameList.length()==0 ) { 
 					fullColumnNameList += tableName; //put the table name column first
@@ -420,7 +424,7 @@ public class RDBMSReader {
 					indexCount++;
 				}
 			}
-			
+
 			//find out if the table was altered on this time through (or if it was new...)
 
 			for(int tableIndex = 0;tableIndex < allTablesModified.size();tableIndex++)
@@ -431,13 +435,13 @@ public class RDBMSReader {
 					break;
 				}
 			}
-			
+
 			//do this duplicates removal for only the tables that were modified
 			if(tableAltered){
 				//create new temporary table that has ONLY distinct values, also make sure you are removing those null values from the PK column
 				createTable = queryUtil.getDialectRemoveDuplicates(tableName, fullColumnNameList);
 				singleDBModTransaction(createTable);
-				
+
 				//check that the temp table was created before dropping the table.
 				verifyTable = queryUtil.dialectVerifyTableExists(tableName + "_TEMP"); //query here would return a row count 
 				//if temp table wasnt successfully created, go to the next table.
@@ -451,17 +455,17 @@ public class RDBMSReader {
 						continue;
 					}
 				}
-				
+
 				//drop existing table
 				dropTable = queryUtil.getDialectDropTable(tableName);//dropTable = "DROP TABLE " + tableName;
 				singleDBModTransaction(dropTable);
-				
-				//rename our temporary table to the new table name
+
+				//rename our temporary table to the new table name				
 				alterTableName = queryUtil.getDialectAlterTableName(tableName+"_TEMP",tableName); //alterTableName = "ALTER TABLE " + tableName + "_TEMP RENAME TO " + tableName;
 				singleDBModTransaction(alterTableName);
-				
+
 				commitDB();
-				
+
 			}
 			for(String singleIndex: createIndex){
 				//create indexs for ALL tables since we deleted all indexes before
@@ -472,7 +476,7 @@ public class RDBMSReader {
 		//availableTables.clear();
 		//availableTablesInfo.clear();
 	}
-	
+
 	private void findTables(String engineName){
 		// this gets all the existing tables
 		String query = queryUtil.getDialectAllTables();
@@ -483,7 +487,7 @@ public class RDBMSReader {
 			String tableNameVar = queryUtil.getResultAllTablesTableName();
 			if(queryUtil.getDatabaseType() == SQLQueryUtil.DB_TYPE.MARIA_DB)
 				tableNameVar += engineName.toLowerCase(); //Maria db wants a lower case table name, but the first letter is capital
-			
+
 			//tableNameVar = Utility.toCamelCase(tableNameVar);
 			String tableName = stmt.getVar(tableNameVar) + "";
 			//tableName = Utility.toCamelCase(tableName);
@@ -496,9 +500,9 @@ public class RDBMSReader {
 				availableTablesInfo.put(tableName.toUpperCase(), numberOfRows);
 			}
 		}
-		
+
 	}
-	
+
 	private void findColumns(String tableName){
 		String query = queryUtil.getDialectAllColumns(tableName);
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
@@ -514,12 +518,12 @@ public class RDBMSReader {
 			availableTables.put(tableName.toUpperCase(), fieldHash);
 		}
 	}
-	
-	
+
+
 	private void writeDefaultQuestionSheet(String engineName)
 	{		
 		// deciding whether to read it again or just pass the name
-		
+
 		// delete the file
 		try {
 			String tempFile = dbBaseFolder + "/db/" + engineName + "/conn.prop";
@@ -529,11 +533,11 @@ public class RDBMSReader {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-		
+
 		String fileName = dbBaseFolder + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + engineName + System.getProperty("file.separator") + engineName + "_Questions.properties";
-		
+
 		Properties prop = new Properties();
-		
+
 		int newTableSeq = allTables.size() - tables.size();
 		boolean addtoExisting = false;
 		if(newTableSeq != 0 ){ //ie you are doing add to existing logic
@@ -545,9 +549,9 @@ public class RDBMSReader {
 				e.printStackTrace();
 			}
 		}
-		
+
 		String genericQueries = "";
-		
+
 		int questionOrder = 0;
 		int tableIndex = 0;
 
@@ -570,11 +574,15 @@ public class RDBMSReader {
 			prop.put("GQ" + tableIndex, "Explore a concept from the database");
 			prop.put("GQ" + tableIndex + "_LAYOUT", "prerna.ui.components.playsheets.GraphPlaySheet");
 			prop.put("GQ" + tableIndex +"_QUERY", "SELECT @Concept-Concept:Concept@, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://semoss.org/ontologies/Concept' "
-							+ "From @Concept-Concept:Concept@ WHERE @Concept-Concept:Concept@='@Instance-Instance:Instance@'");
+					+ "From @Concept-Concept:Concept@ WHERE @Concept-Concept:Concept@='@Instance-Instance:Instance@'");
 			prop.put("GQ" + tableIndex + "_Instance_DEPEND", "Concept");
-			prop.put("GQ" + tableIndex + "_Concept_QUERY", queryUtil.getDialectForceGraph(engineName)); 
+			//Added for 
+			if(queryUtil.getDatabaseType().equals(SQLQueryUtil.DB_TYPE.SQL_SERVER))
+				prop.put("GQ" + tableIndex + "_Concept_QUERY", "SELECT DISTINCT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES");
+			else
+				prop.put("GQ" + tableIndex + "_Concept_QUERY", queryUtil.getDialectForceGraph(engineName)); 
 			prop.put("GQ" + tableIndex + "_Instance_QUERY", "SELECT Distinct @Concept@ FROM @Concept@");
-			
+
 			prop.put("Generic-Perspective", genericQueries);
 		}
 		//prop.put("PERSPECTIVE", "Generic-Perspective");
@@ -587,7 +595,7 @@ public class RDBMSReader {
 		prop.put(GENERIC_PERSPECTIVE, genericQueries);
 		if(!addtoExisting )
 			prop.put("PERSPECTIVE", GENERIC_PERSPECTIVE);
-		
+
 		try {
 			File file = new File(fileName);
 			FileOutputStream fo = new FileOutputStream(file);
@@ -601,16 +609,16 @@ public class RDBMSReader {
 			e.printStackTrace();
 		}
 	}
-	
+
 	private void updateDefaultQuestionSheet(String engineName){
-		
+
 		QuestionAdministrator questionAdmin = new QuestionAdministrator(((AbstractEngine)engine));
 
 		//determine the # where the new questions should start
 		int newTableSeq = allTables.size() - tables.size();
 		newTableSeq = newTableSeq + 1; //we need to add 1 to the question order to account for  the explore a concept question
 		String questionOrder = "", question = "", sql = "", layout = "", questionDescription = ""; 
-		
+
 		try {
 			String questionKey = questionAdmin.createQuestionKey(GENERIC_PERSPECTIVE);
 			for(int tableIndex = 0;tableIndex < tables.size();tableIndex++)
@@ -623,7 +631,7 @@ public class RDBMSReader {
 				questionDescription = question;
 				layout = "prerna.ui.components.playsheets.GridPlaySheet";
 				sql = "SELECT * FROM " + key;
-								
+
 				questionAdmin.cleanAddQuestion(GENERIC_PERSPECTIVE, questionKey, questionOrder,
 						question, sql, layout, questionDescription, null, null, null); // parameterDependList, parameterQueryList, parameterOptionList);
 				questionAdmin.createQuestionXMLFile();
@@ -635,9 +643,9 @@ public class RDBMSReader {
 			questionAdmin.revertQuestionXML();
 			//return Response.status(500).entity(WebUtility.getSO(e.toString().substring(0, (e.toString().length() < MAX_CHAR)?e.toString().length():MAX_CHAR))).build();
 		}
-		
+
 	}
-	
+
 	/**
 	 * Loads the prop file for the CSV file
 	 * @param fileName	Absolute path to the prop file specified in the last column of the CSV file
@@ -677,7 +685,7 @@ public class RDBMSReader {
 
 	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile,SQLQueryUtil.DB_TYPE dbType) throws EngineException, FileWriterException, FileReaderException, HeaderClassException {
 		queryUtil = SQLQueryUtil.initialize(dbType);
-		
+
 		logger.setLevel(Level.WARN);
 		this.owlFile = owlFile;
 		System.out.println("Owl File is " + this.owlFile);
@@ -685,20 +693,20 @@ public class RDBMSReader {
 		//logger.setLevel(Level.WARN);
 		openEngineWithConnection(engineName);
 		createTypes();
-		
+
 		// check if I am in the environment
 		getBaseFolder();
 		createSQLTypes();
-		
+
 		//try to open the script file
 		openScriptFile(engineName);
-		
+
 		scriptFile.println("-- ********* begin load process ********* ");
 		engine.openDB(null);//dont need to specify file name, data source should exist at this point so we should be 
 		
 		//first find all indexes, drop current ones, store off those current ones to recreate them when the process completes
 		findIndexes(engineName);
-		
+
 		for(int i = 0; i<files.length;i++)
 		{
 			String fileName = files[i];
@@ -735,7 +743,7 @@ public class RDBMSReader {
 		cleanAll(); //clean again because we reset the values for availableTables and availableTablesInfo
 		writeDefaultQuestionSheet(engineName);
 		updateDefaultQuestionSheet(engineName);
-		
+
 		createBaseRelations();
 		try{
 			scriptFile.println("-- ********* completed load process ********* ");
@@ -745,16 +753,16 @@ public class RDBMSReader {
 		}
 	}
 
-	
+
 	public void closeDB()
 	{
 		engine.closeDB();
 	}
-	
+
 	public void commitDB(){
 		engine.commit();
 	}
-	
+
 	private void getBaseFolder()
 	{
 		if(dbBaseFolder == null || dbBaseFolder.length() == 0)
@@ -765,7 +773,7 @@ public class RDBMSReader {
 			semossURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
 
 	}
-	
+
 	private void openOWLWithOutConnection() throws EngineException {
 		Repository myRepository = new SailRepository(new MemoryStore());
 		try {
@@ -780,7 +788,7 @@ public class RDBMSReader {
 		vfOWL = rcOWL.getValueFactory();
 		vf = vfOWL;
 	}
-	
+
 	private void openOWLWithConnection(IEngine engine) throws EngineException {
 		Repository myRepository = new SailRepository(new MemoryStore());
 		try {
@@ -851,7 +859,7 @@ public class RDBMSReader {
 				String predicate = strSplit[1]; // this needs to be ignored
 				String obj = strSplit[2];
 				String object = "";
-				
+
 				//guide FK creation by grabbing where the asterisk is on the predicate if one exists
 				String objTemp = obj;
 				String subTemp = sub;
@@ -861,7 +869,7 @@ public class RDBMSReader {
 				} else if(locateAsterisk > 0){ //if its anywhere else supposedly the end then the object should be the FK
 					objTemp+="*";
 				}
-								
+
 				// check if prop file entries are not in excel and if nodes are concatenations
 				// throw exception if prop file entries not in excel
 				boolean headException = true;
@@ -889,8 +897,8 @@ public class RDBMSReader {
 				if(headException == false) {
 					throw new HeaderClassException(obj + " cannot be found as a header");
 				}
-				
-				
+
+
 				// sub now has the fully qualified tableName
 				tableHash.put(sub, new Hashtable());
 				processClassMetaData(sub, semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/", baseConceptURIHash);
@@ -905,7 +913,7 @@ public class RDBMSReader {
 			}
 		}		
 	}
-	
+
 	private void processClassMetaData(String sub, String URI, Hashtable uriHash)
 	{
 		String subject = "";
@@ -931,7 +939,7 @@ public class RDBMSReader {
 			uriHash.put(subject+Constants.CLASS, idxBaseURI);
 		}
 	}
-	
+
 	private void processProperties() throws Exception
 	{
 		if(rdfMap.get("NODE_PROP") != null)
@@ -998,25 +1006,25 @@ public class RDBMSReader {
 					String type = rdfMap.get(index);
 					columnHash.put(prop, type);
 					tableHash.put(sub, columnHash);
-					
+
 					// for now I am not adding properties to it
 					processPropertyMetaData(semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/" + processAutoConcat(sub), prop);
 				}
 			}
 		}
 	}
-	
+
 	private void processPropertyMetaData(String parentNodeURI, String property)
 	{
 		// add the base property first
 		property = processAutoConcat(property);
 		String propURI = semossURI + "/" + Constants.DEFAULT_PROPERTY_CLASS + "/" + property;
 		basePropURIHash.put(propURI, propURI);
-		
+
 		// now need to add a new one for the class as well
 		basePropRelations.put(propURI, parentNodeURI);
 	}
-	
+
 	private void recreateRelations()
 	{
 		Enumeration <String> relKeys = relHash.keys();
@@ -1034,7 +1042,7 @@ public class RDBMSReader {
 			table1 = table1.replaceAll("\\*", "");
 			table2 = table2.replaceAll("\\*", "");
 			//System.out.println("table1: " +table1 + " table2: "+ table2);
-			
+
 			Hashtable columnHash1 = tableHash.get(table1);
 			Hashtable columnHash1Tmp = null;
 			//create a temp column hash to store the available table column's if the new table has 0 columns.  This is so we have an accurate check below.
@@ -1045,7 +1053,7 @@ public class RDBMSReader {
 			}
 			String rowCount1Obj = availableTablesInfo.get(table1.toUpperCase());
 			int rowCount1 = (rowCount1Obj==null)?totalrowcount:Integer.parseInt(rowCount1Obj);
-			
+
 			Hashtable columnHash2 = tableHash.get(table2);
 			Hashtable columnHash2Tmp = null;
 			//create a temp column hash to store the available table column's if the new table has 0 columns.  This is so we have an accurate check below.
@@ -1056,7 +1064,7 @@ public class RDBMSReader {
 			}
 			String rowCount2Obj = availableTablesInfo.get(table2.toUpperCase());
 			int rowCount2 = (rowCount2Obj==null)?totalrowcount:Integer.parseInt(rowCount2Obj);
-			
+
 			String commonKey = findCommon(columnHash1Tmp, columnHash2Tmp);
 			relHash.remove(relKey);
 			String newRelationName = null;
@@ -1068,8 +1076,8 @@ public class RDBMSReader {
 				String modifyingTable = table1;
 				Hashtable targetHash = columnHash1;
 				if((table1IsTheFK) || //if table 1 is the fk column
-					(!table2IsTheFK && rowCount1 < rowCount2) ||  //or if table2 is NOT the fk column and table two has more rows than table 1
-					(!table2IsTheFK && (rowCount1 == rowCount2) && (columnHash1Tmp.size() > columnHash2Tmp.size()))) //or if table 2 is NOT the fk and the table row counts are the same and table one has more columns than table two
+						(!table2IsTheFK && rowCount1 < rowCount2) ||  //or if table2 is NOT the fk column and table two has more rows than table 1
+						(!table2IsTheFK && (rowCount1 == rowCount2) && (columnHash1Tmp.size() > columnHash2Tmp.size()))) //or if table 2 is NOT the fk and the table row counts are the same and table one has more columns than table two
 				{
 					modifyingTable = table2;
 					targetHash = columnHash2;
@@ -1093,11 +1101,11 @@ public class RDBMSReader {
 			}
 		}
 	}
-	
+
 	public void createRelation(String fromTable, String toTable, String fromProp, String toProp)
 	{
 		String [] subPredObj = new String[3];
-		
+
 		if(fromTable.contains("+")){
 			fromTable = processAutoConcat(fromTable);
 			fromProp = processAutoConcat(fromTable);
@@ -1106,17 +1114,17 @@ public class RDBMSReader {
 			toTable = processAutoConcat(toTable);
 			toProp = processAutoConcat(toTable);
 		}
-		
+
 		fromTable = realClean(fromTable);
 		toTable = realClean(toTable);
 		fromProp = realClean(fromProp);
 		toProp = realClean(toProp);
 
 		String newRelationName = fromTable + "." + fromProp + "." + toTable + "." + toProp;
-		
+
 		// set the relationURI for the front end
 		String relSemossBaseURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + newRelationName + "/" + fromTable + "_" + toTable; // this is the culprit
-		
+
 		subPredObj[0] = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/" + fromTable; // turn this into URI
 		subPredObj[1] = relSemossBaseURI;
 		subPredObj[2] = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/" + toTable; // turn this into an URI
@@ -1125,7 +1133,7 @@ public class RDBMSReader {
 
 		baseRelationURIHash.put(relSemossBaseURI+Constants.CLASS, relSemossBaseURI);
 	}
-	
+
 	private String realClean(String inputString)
 	{
 		inputString = inputString.replaceAll("\\+", "_");
@@ -1133,11 +1141,11 @@ public class RDBMSReader {
 		inputString = Utility.cleanString(inputString,true,true);//should the last param (replacequotes) be true or false?
 		// finally finish it up with the replacing -
 		inputString = inputString.replaceAll("-", "_");
-		
+
 		return inputString;
-		
+
 	}
-	
+
 	private void createTables()
 	{
 		// the job here is to take the table hash and create tables
@@ -1159,7 +1167,7 @@ public class RDBMSReader {
 			}
 
 			allTablesModified.add(tableKey);
-			
+
 			if(modString.length()>0){
 				try {
 					scriptFile.println(modString + ";");
@@ -1184,21 +1192,21 @@ public class RDBMSReader {
 	 */
 	private Hashtable <String, Hashtable<String, String>> getAllColumnsHash(){
 		Hashtable <String, Hashtable<String, String>> allColsHash = new Hashtable();
-		
+
 		//for each table modified during this process, get the columns and put them into a hashtable
 		for(String table: allTablesModified){
 			if(tableHash.containsKey(table)){
 				Hashtable<String, String> cols = new Hashtable();
 				if(availableTables.containsKey(table.toUpperCase()))
 					cols=(Hashtable)availableTables.get(table.toUpperCase()).clone();//default it to hold all the columns that are existing that are being updated
-					//cols = availableTables.get(table); //default it to hold all the columns that are existing that are being updated
-				
+				//cols = availableTables.get(table); //default it to hold all the columns that are existing that are being updated
+
 				//Hashtable availableTableColumns = null;
 				//availableTableColumns = availableTables.get(table.toUpperCase());
 				Hashtable newColumnsHash = tableHash.get(table);
 				//check each column in the availableTableColumns to see if the new columnHash has a new column
 				Enumeration <String> newColumnKeys = newColumnsHash.keys();
-				
+
 				//loop through the new columns + the keys (pks, fks) and add any columns that werent already available
 				while(newColumnKeys.hasMoreElements()){
 					String column = newColumnKeys.nextElement();
@@ -1211,7 +1219,7 @@ public class RDBMSReader {
 		}
 		return allColsHash;
 	}
-	
+
 	private boolean hasNewColumns(String table) {
 		boolean hasNewColumn = false;
 		Hashtable availableTableColumns = null;
@@ -1229,7 +1237,7 @@ public class RDBMSReader {
 		}
 		return hasNewColumn;
 	}
-	
+
 	private boolean allColumnsMatch(String table){
 		boolean hasNewColumn = false;
 		Hashtable availableTableColumns = availableTables.get(table.toUpperCase());
@@ -1245,7 +1253,7 @@ public class RDBMSReader {
 			//upperAllNewCols += newColVal +",";
 			upperAllNewColsArr.add(newColVal);
 		}
-		
+
 		//check each column in the availableTableColumns to see if the new columnHash has a new column
 		newColumnKeys = newColumnsHash.keys();
 		while(newColumnKeys.hasMoreElements()){
@@ -1257,7 +1265,7 @@ public class RDBMSReader {
 			}
 		}
 		boolean allColumnsMatch = true;
-		
+
 		//check that the tables have the exact FK same columns
 		Enumeration <String> availableColumnKeys = availableTableColumns.keys();
 		while(availableColumnKeys.hasMoreElements()){
@@ -1273,21 +1281,21 @@ public class RDBMSReader {
 		else 
 			return false;
 	}
-	
+
 	private boolean alteredTableHasOnlyPk(String table){
 		boolean hasOnlyPk = false;
 		Hashtable availableTableColumns = availableTables.get(table.toUpperCase());
 		Hashtable newColumnsHash = tableHash.get(table);
-		
+
 		//if new columns is 0 for this table, and available columns is greater than 1 and the new columns has only contains the tables primary key
 		if(availableTableColumns.size()>1 && newColumnsHash.size() == 0 ){
 			hasOnlyPk = true;
 		}
-	
+
 		return hasOnlyPk;
 	}
-	
-	
+
+
 	private boolean hasNewTableKeys(String table){
 		boolean hasNewFKs = false;
 		Hashtable availableTableColumns = availableTables.get(table.toUpperCase());
@@ -1303,7 +1311,7 @@ public class RDBMSReader {
 				upperAllExistingCols += column + ",";
 			}
 		}
-		
+
 		//convert all newColumnsHash values to upper case and only store off the FK cols and PK col 
 		Enumeration <String> newColumnKeys = newColumnsHash.keys();
 		while(newColumnKeys.hasMoreElements()){
@@ -1313,19 +1321,19 @@ public class RDBMSReader {
 				break;
 			}
 		}
-	
+
 		return hasNewFKs;
 	}
-	
+
 	private String getCreateString(String tableKey)
 	{
 		//if(tableKey.contains("+"))
 		//	tableKey = processAutoConcat(tableKey);
 		String SQLCREATE = "CREATE TABLE " + realClean(tableKey) + "(";
 		SQLCREATE = SQLCREATE + " " + realClean(tableKey) + "  " + sqlHash.get("STRING"); // add its own column first as name
-		
+
 		boolean key1 = true;
-		
+
 		Hashtable columns = tableHash.get(tableKey);
 		Enumeration <String> columnKeys = columns.keys();
 		while(columnKeys.hasMoreElements())
@@ -1335,7 +1343,7 @@ public class RDBMSReader {
 				SQLCREATE = SQLCREATE + " , ";
 				key1 = false;
 			}
-			
+
 			String column = columnKeys.nextElement();
 			String type = (String)columns.get(column);
 			// clean up the + first
@@ -1348,31 +1356,35 @@ public class RDBMSReader {
 			if(columnKeys.hasMoreElements())
 				SQLCREATE = SQLCREATE + " , ";
 		}
-		
+
 		SQLCREATE = SQLCREATE + " )";
-		
+
 		//System.out.println("SQL CREATE IS " + SQLCREATE);
 		return SQLCREATE;
 	}
-	
+
 	private String getAlterTable(String tableKey)
 	{
 		//if(tableKey.contains("+"))
 		//	tableKey = processAutoConcat(tableKey);
-		String SQLALTER = "ALTER TABLE " + realClean(tableKey) + " ADD (";
+		String SQLALTER = "";
+		if(queryUtil.getDatabaseType().equals(SQLQueryUtil.DB_TYPE.SQL_SERVER))			
+			SQLALTER = "ALTER TABLE " + realClean(tableKey) + " ADD ";//For SQL Server, no "(", i.e. 'ALTER TABLE table_name ADD column_name datatype'
+		else
+			SQLALTER = "ALTER TABLE " + realClean(tableKey) + " ADD (";
 		String columnString = "";
-		
+
 		Hashtable fieldHash = availableTables.get(tableKey.toUpperCase());
-		
+
 		Hashtable columns = tableHash.get(tableKey);
-		
+
 		// create the where column hash as well
 		Hashtable whereColumnHash = new Hashtable();
 		if(whereColumns.containsKey(tableKey.toUpperCase()))
 			whereColumnHash = whereColumns.get(tableKey.toUpperCase());
 		whereColumnHash.put(tableKey, "VARCHAR");
-		
-		
+
+
 		Enumeration <String> columnKeys = columns.keys();
 		while(columnKeys.hasMoreElements())
 		{
@@ -1407,16 +1419,16 @@ public class RDBMSReader {
 		}
 		// put the list of where columns
 		whereColumns.put(tableKey.toUpperCase(), whereColumnHash);
-		
+
 		SQLALTER = SQLALTER + columnString + " )";
-		
+
 		System.out.println("SQL ALTER IS " + SQLALTER);
 		if(columnString.length() == 0){
 			return "";
 		}
 		return SQLALTER;
 	}
-	
+
 	private String getInsertString(String tableKey, Map <String, Object> jcrMap)
 	{
 		String VALUES = " (";		
@@ -1451,7 +1463,7 @@ public class RDBMSReader {
 			} else if (value.length() == 0) { //for all other data types OR when varchar and value is blank
 				value = "null";
 			} 
-				
+
 			valuesBuffer.append(value);
 			if(columnKeys.hasMoreElements())
 				valuesBuffer.append(" , ");
@@ -1460,20 +1472,20 @@ public class RDBMSReader {
 		String SQLINSERT = valuesBuffer.toString() + ")";
 		return SQLINSERT;
 	}
-	
-	
+
+
 	private String getAlterString(String tableKey, Map <String, Object> jcrMap, String insertTemplate, Hashtable <String, Hashtable<String, String>> allColumnsTableHash)
 	{
 		String VALUES = "";
 		String SQLALTER = "";		
 		Hashtable columns = tableHash.get(tableKey);
-		
+
 		Enumeration <String> columnKeys = columns.keys();
 		// generate the set portion first
 		StringBuffer valuesBuffer = new StringBuffer();
 		StringBuffer selectClauseWhereBuffer = new StringBuffer();
 		StringBuffer insertValsClauseBuffer = new StringBuffer();
-		
+
 		ArrayList<String> insertValsAliasClause = new ArrayList();
 		valuesBuffer.append(VALUES);//yes this append doesn't do anything, BUT if someone changes the value of the where variable we wont have problems
 		while(columnKeys.hasMoreElements())
@@ -1482,16 +1494,16 @@ public class RDBMSReader {
 			String tempkey = key.replace("_FK", "");
 			String value = createInstanceValue(tempkey, jcrMap);
 			String type = (String)columns.get(key);
-			
+
 			boolean string = false;
-			
+
 			if(sqlHash.get(type).contains("VARCHAR") && value.length() != 0) //check for value length != 0 here before you append the quotes 
 			{
 				value = value.replaceAll("'", "''");
 				value = "'" + value + "'" ;
 				string = true;
 			}
-			
+
 			String cleankey = realClean(key).toUpperCase();
 			if(valuesBuffer.toString().length() == 0)
 			{
@@ -1514,15 +1526,15 @@ public class RDBMSReader {
 				}					
 			}
 		}
-		
+
 		VALUES = valuesBuffer.toString();
 
 		// now generate the where
 		SQLALTER = insertTemplate + VALUES + " WHERE ";
-		
+
 		Hashtable whereHash = whereColumns.get(tableKey.toUpperCase());
 		String where  = "";
-		
+
 		Enumeration <String> whereKeys = whereHash.keys();
 		StringBuffer whereBuffer = new StringBuffer();
 		StringBuffer indexBuffer = new StringBuffer();
@@ -1534,14 +1546,14 @@ public class RDBMSReader {
 
 			String type = (String)whereHash.get(key);
 			boolean string = false;
-			
+
 			if(type.contains("VARCHAR"))
 			{
 				value = value.replaceAll("'", "''");
 				value = "'" + value + "'" ;
 				string = true;
 			}
-			
+
 			if(whereBuffer.length() == 0)
 			{
 				if(string || (value != null && value.length() != 0)){
@@ -1559,7 +1571,7 @@ public class RDBMSReader {
 		}
 
 		SQLALTER = SQLALTER + " ( " + whereBuffer.toString() + ") ";
-		
+
 		//create indexes
 		String indexOnTable =  tableKey + " ( " +  indexBuffer.toString() + " ) ";
 		String indexName = "INDX_" + tableKey + indexUniqueId;
@@ -1577,7 +1589,7 @@ public class RDBMSReader {
 					indexAlreadyExists = true;
 					break;
 				}
-					
+
 			}
 			if(!indexAlreadyExists){
 				singleDBModTransaction(createIndex);
@@ -1586,14 +1598,14 @@ public class RDBMSReader {
 				indexUniqueId++;
 			}
 		}
-		
+
 		//FIRST decide if you want to do an update or insert, run a select to figure out if you have any data where
 		//the new column you just added has any null values for the criteria that you are doing the update for
 		String whereclause = whereBuffer.toString();
 		if(selectClauseWhereBuffer.length()>0)
 			whereclause += " AND " + selectClauseWhereBuffer.toString();
 		boolean isInsert = false;
-		
+
 		String getRowCount = queryUtil.getDialectSelectRowCountFrom(tableKey,whereclause);//"SELECT COUNT(1) AS ROWCOUNT FROM " + tableKey + " WHERE " + whereclause;
 		//execute query
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, getRowCount);
@@ -1604,7 +1616,7 @@ public class RDBMSReader {
 				isInsert = true;
 			}
 		}
-		
+
 		if(isInsert){
 			String SQLINSERT = "";
 			if(VALUES.length()==0) { //this is a true insert
@@ -1615,17 +1627,17 @@ public class RDBMSReader {
 				String allColumns = ""; 
 				String insertIntoClause = "";
 				String insValsTmp[] = insertValsClauseBuffer.toString().split(",");
-				
+
 				//list of columns that we were going to update but are going to be the varying value when it comes to the insert statement
 				for(String singleClause : insertValsAliasClause){
 					if(insertIntoClause.length()>0) insertIntoClause+=" , ";
 					insertIntoClause += singleClause;
 				}
-				
+
 				//get all the columns you'll need for the insert statement
 				Hashtable tableCols = allColumnsTableHash.get(tableKey);
 				Enumeration<String> cols = tableCols.keys();
-				
+
 				//we want to pull the value columns out of the insert clause columns so that you only have the columns that are being copied
 				// and not the ones we are setting the individual values for (so pulling out the the [xyz AS columnName]  columns)
 				while(cols.hasMoreElements()){
@@ -1635,7 +1647,7 @@ public class RDBMSReader {
 						allColumns += realClean(colToAdd);
 					} 
 				}
-				
+
 				//now add the columns that you pulled out of the allColumns string back in 
 				//(doing it this way because we can control the order of the insert and select clause) since the ORDER IS VERY IMPORTANT HERE
 				String insertIntoClauseValues = "";
@@ -1643,19 +1655,19 @@ public class RDBMSReader {
 				if(allColumns.length() > 0) insertIntoClauseValues = " , " + insertValsClauseBuffer.toString(); 
 				insertIntoClause = allColumns + insertIntoClause;
 				insertIntoClauseValues = allColumns + insertIntoClauseValues;
-				
+
 				SQLINSERT = queryUtil.getDialectMergeStatement(tableKey, insertIntoClause, allColumns+ ", " +insertValsClauseBuffer.toString(), whereBuffer.toString());
 			}
 			return SQLINSERT;
 		} else {
-			
+
 			if(VALUES.length()==0) {
 				SQLALTER = "";
 			}
 			return SQLALTER;
 		}
 	}
-	
+
 	/**
 	 * count the number of times a substring exists in a string.
 	 * @param subStr the substring that you are searching/trying to get a count for
@@ -1665,7 +1677,7 @@ public class RDBMSReader {
 	private static int countSubstring(String subStr, String str){
 		return (str.length() - str.replace(subStr, "").length()) / subStr.length();
 	}
-	
+
 	/**
 	 * gets the merge statement, current unused
 	 * @param tableKey
@@ -1677,22 +1689,22 @@ public class RDBMSReader {
 	{
 		String VALUES = "";		
 		Hashtable columns = tableHash.get(tableKey);
-		
+
 		Enumeration <String> columnKeys = columns.keys();
 		// generate the set portion first
 		StringBuffer valuesBuffer = new StringBuffer();
 		StringBuffer varIntoKeysBuffer = new StringBuffer();
 		String commaStr = "";
 		valuesBuffer.append(VALUES);//yes this append doesn't do anything, BUT if someone changes the value of the where variable we wont have problems
-		
+
 		while(columnKeys.hasMoreElements())
 		{
 			String key = columnKeys.nextElement();
 			String value = createInstanceValue(key, jcrMap);
 			String type = (String)columns.get(key);
-			
+
 			boolean string = false;
-			
+
 			if(sqlHash.get(type).contains("VARCHAR"))
 			{
 				value = value.replaceAll("'", "''");
@@ -1707,7 +1719,7 @@ public class RDBMSReader {
 					commaStr = (valuesBuffer.length() != 0)? " , " : ""; 
 					valuesBuffer.append(commaStr + value);
 				}
-					
+
 			}
 			else
 			{
@@ -1720,7 +1732,7 @@ public class RDBMSReader {
 
 		Hashtable whereHash = whereColumns.get(tableKey.toUpperCase());
 		String keysStr  = "";
-		
+
 		Enumeration <String> whereKeys = whereHash.keys();
 		StringBuffer whereBuffer = new StringBuffer();
 		StringBuffer keysBuffer = new StringBuffer();
@@ -1732,60 +1744,60 @@ public class RDBMSReader {
 
 			String type = (String)whereHash.get(key);
 			boolean string = false;
-			
+
 			if(type.contains("VARCHAR"))
 			{
 				value = value.replaceAll("'", "''");
 				value = "'" + value + "'" ;
 				string = true;
 			}
-			
+
 			if(whereBuffer.length() == 0)
 			{
 				if(string || (value != null && value.length() != 0))
 					keysBuffer.append(key);
-					commaStr = (varIntoKeysBuffer.length() != 0)? " , " : ""; 
-					varIntoKeysBuffer.append(commaStr + key);
-					commaStr = (valuesBuffer.length() != 0)? " , " : ""; 
-					valuesBuffer.append(commaStr + value);
+				commaStr = (varIntoKeysBuffer.length() != 0)? " , " : ""; 
+				varIntoKeysBuffer.append(commaStr + key);
+				commaStr = (valuesBuffer.length() != 0)? " , " : ""; 
+				valuesBuffer.append(commaStr + value);
 			}
 			else
 			{
 				if(string || (value != null && value.length() != 0))
 					keysBuffer.append(" , " + key);
-					varIntoKeysBuffer.append(" , " + key); 
-					valuesBuffer.append(" , " + value);
+				varIntoKeysBuffer.append(" , " + key); 
+				valuesBuffer.append(" , " + value);
 			}			
 		}
-		
+
 		String SQLALTER = insertTemplate + "( " + varIntoKeysBuffer.toString() + " ) KEY ( "+ keysBuffer.toString() +" )";
 		SQLALTER = SQLALTER + " SELECT " + valuesBuffer.toString() + " FROM DUAL ";
 
 		return SQLALTER;
 	}
-	
-	
+
+
 	//duplicate check. unused at this time.
 	private boolean findIfRecordAvailable(String tableKey, Map <String, Object> jcrMap)
 	{
 		Hashtable columns = tableHash.get(tableKey);
-	
+
 		Enumeration <String> columnKeys = columns.keys();
 		String selfValue = createInstanceValue(tableKey, jcrMap);
 		selfValue = selfValue.replaceAll("'", "''");
 		selfValue = "'" + selfValue + "'" ;
 		String query = "SELECT * FROM " + realClean(tableKey) + " WHERE " ;
 		String VALUES = realClean(tableKey) + "=" + selfValue;
-		
+
 		// generate the set portion first
 		while(columnKeys.hasMoreElements())
 		{
 			String key = columnKeys.nextElement();
 			String value = createInstanceValue(key, jcrMap);
 			String type = (String)columns.get(key);
-			
+
 			boolean string = false;
-			
+
 			if(sqlHash.get(type).contains("VARCHAR"))
 			{
 				value = value.replaceAll("'", "''");
@@ -1794,36 +1806,36 @@ public class RDBMSReader {
 				string = true;
 			}
 			if(string || (value != null && value.length() != 0))
-			VALUES = VALUES + " AND " + realClean(key) + " = " +  value;			
+				VALUES = VALUES + " AND " + realClean(key) + " = " +  value;			
 		}
-		
+
 		query = query + VALUES;
 		ISelectWrapper sWrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-		
+
 		boolean hasNext = false;
 		hasNext = sWrapper.hasNext();
 
 		return hasNext;
-		
+
 	}
-	
+
 	private void insertRecords()
 	{
 		String [] insertTemplates = new String[tableHash.size()];
 		// the job here is to take the table hash and create tables
 		Enumeration <String> tableKeys = tableHash.keys();
-		
+
 		Hashtable <String, Hashtable<String, String>> allColumnsTableHash = getAllColumnsHash();//
-		
+
 		// get all the relation
 		// first block is for creating the templates
 		int tableIndex = 0;
 		while(tableKeys.hasMoreElements())
 		{
 			String tableKey = tableKeys.nextElement();
-			
+
 			String SQLINSERT = null;
-			
+
 			// if the table was just created 
 			// OR if the table already exists but so do all of the columns so we are actually just inserting to the existing table
 			boolean tableAlreadyExists = availableTables.containsKey(tableKey.toUpperCase());
@@ -1836,10 +1848,10 @@ public class RDBMSReader {
 			insertTemplates[tableIndex] = SQLINSERT;
 			tableIndex++;
 		}
-		
+
 		// this block is for inserting the data
 		Map<String, Object> jcrMap;
-		
+
 		// max row predetermined value
 		int maxRows = 10000;
 		// overwrite this value if user specified the max rows to load
@@ -1851,10 +1863,10 @@ public class RDBMSReader {
 		// added -1 is because of index nature
 		// the earlier rows should already have been skipped
 		int numberOfTables = tableHash.size();
-		
+
 		StringBuffer[] insertBufferSql = new StringBuffer[numberOfTables];		
 		ArrayList<String> updateBufferSqlList = new ArrayList<String>(); 
-		
+
 		int countIndividualUpdateStatements = 0, countInserts = 0, countUpdates = 0;
 		try {
 			while( (jcrMap = mapReader.read(header, processors)) != null && count<(maxRows))
@@ -1862,15 +1874,15 @@ public class RDBMSReader {
 				// for each template do the mapping
 				tableKeys = tableHash.keys();
 				int index = 0;
-				
+
 				while(tableKeys.hasMoreElements()){
 					String tableKey = tableKeys.nextElement();
 					String SQL = "";
-					
+
 					if(insertBufferSql[index] == null){//init the string buffer through the first go
 						insertBufferSql[index] = new StringBuffer();
 					}
-					
+
 					//Important note: do inserts table by table so that you can generate one long insert statement, update statements dont go 
 					//table by table, we need to search one array list for duplicate/similar update statements and make those more efficient
 					// if the table was just created 
@@ -1884,7 +1896,7 @@ public class RDBMSReader {
 						//run query to see if you can just do an update statement, if so, run the generated update sql
 						SQL = getAlterString(tableKey, jcrMap, insertTemplates[index], allColumnsTableHash);
 					}
-					
+
 					if(SQL.length() > 0 ){
 						try{
 							if(!SQL.endsWith(";")) SQL+= ";";
@@ -1894,27 +1906,27 @@ public class RDBMSReader {
 							e.printStackTrace();
 						}
 					}
-					
+
 					index++;
 				}
-				
+
 			}
-			
-			
+
+
 			// delete the indexes created and clear the arrays
 			runDBModTransactions(tempDropArrays);
 			tempDropArrays.clear();//clear the drop index sql text
 			tempIndexArray.clear();//clear the index array text
-			
-			
+
+
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
 	}
-	
+
 	private String getInsertIntoClause(String tableKey){
 		String SQLINSERT = "INSERT INTO   " + realClean(tableKey) +  "  (" + realClean(tableKey);
-		
+
 		Hashtable columns = tableHash.get(tableKey);
 		Enumeration <String> columnKeys = columns.keys();
 		boolean key1 = true;
@@ -1933,7 +1945,7 @@ public class RDBMSReader {
 		SQLINSERT = SQLINSERT + ") VALUES "; // append the text 'values' here
 		return SQLINSERT;
 	}
-	
+
 	/**
 	 * execute all queries in ArrayList queries
 	 * @param queries contains all queries that are to be execute
@@ -1943,16 +1955,16 @@ public class RDBMSReader {
 		StringBuffer queryBuffer = new StringBuffer(); 
 		String queryString = "";
 		try{
-			
+
 			for(String query : queries){
 				queryBuffer.append(query + splitString + " ");
 			}
 			queryString = queryBuffer.toString();
 			if(queryString.length()>0){
-				
+
 				scriptFile.println(queryString); 		
 				insertData(queryString); //write query to the sql file, then execute it
-					
+
 			}
 			queries.clear();
 		} catch (Exception e){
@@ -1960,7 +1972,7 @@ public class RDBMSReader {
 			System.exit(0);
 		}
 	}
-	
+
 	/**
 	 * execute all insert statements
 	 * @param insertTemplates contains the insert statement portion of the statement
@@ -1968,7 +1980,7 @@ public class RDBMSReader {
 	 */
 	private void runIncrementalInsert(String[] insertTemplates,StringBuffer[] bufferSql){
 		try{
-			
+
 			Enumeration <String> tableKeys = tableHash.keys();
 			int indexForInsert = 0;
 			while(tableKeys.hasMoreElements()){
@@ -1977,18 +1989,18 @@ public class RDBMSReader {
 				if(insertTemplates[indexForInsert] != null) {
 					insertClause = insertTemplates[indexForInsert];
 				}
-				
+
 				if(bufferSql[indexForInsert] == null || bufferSql[indexForInsert].toString().equals("")){
 					indexForInsert++;
 					continue;
 				}
 				String SQL = insertClause + bufferSql[indexForInsert].toString();
-				
+
 				SQL = SQL.substring(0,SQL.length()-1); //get rid of that last comma
-				
+
 				scriptFile.println( SQL + ";");
 				insertData(SQL); //write query to the sql file, then execute it
-				
+
 				indexForInsert++;
 			}
 		} catch (Exception e){
@@ -1996,10 +2008,10 @@ public class RDBMSReader {
 			System.exit(0);
 		}
 	}
-	
+
 	private void openDB(String engineName)
 	{
-        try {
+		try {
 			//Class.forName("org.h2.Driver");
 			String dbProp = writePropFile(engineName);
 			engine = new RDBMSNativeEngine();
@@ -2007,23 +2019,23 @@ public class RDBMSReader {
 			//conn = DriverManager.
 			//getConnection("jdbc:h2:" + dbFolder + "/" + dbName + "/database", "sa", "");
 		} catch(Exception ex)
-        {
+		{
 			ex.printStackTrace();
-        }
+		}
 	}
-	
+
 	private void insertData(String insert) throws SQLException
 	{
 		engine.insertData(insert);
 	}
-	
+
 	private void modifyDB(String tableCreate)
 	{
 		engine.insertData(tableCreate);
 	}
 
-	
-	
+
+
 	// finds a common column between hash1 and hash2
 	private String findCommon(Hashtable hash1, Hashtable hash2)
 	{
@@ -2040,8 +2052,8 @@ public class RDBMSReader {
 		}
 		return retString;
 	}
-	
-	
+
+
 
 	/**
 	 * Stores all possible variable types that the user can input from the CSV file into hashtable
@@ -2074,7 +2086,7 @@ public class RDBMSReader {
 		//		typeHash.put("INTEGER_OPTIONAL", new Optional(new ParseInt()));
 		typeHash.put("BOOLEAN_OPTIONAL", new Optional(new ParseBool()));
 	}
-	
+
 	public void createSQLTypes()
 	{
 		sqlHash.put("DECIMAL", "FLOAT");
@@ -2091,7 +2103,7 @@ public class RDBMSReader {
 
 		// not sure the optional is needed
 	}
-	
+
 
 	/**
 	 * Matches user inputed column type in prop file to the specific variable type name within Java SuperCSV API
@@ -2145,14 +2157,14 @@ public class RDBMSReader {
 				count++;
 				//logger.info("Skipping line: " + count);
 			}
-		
+
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new FileReaderException("Error processing CSV headers");
 		}
 	}
-	
-	
+
+
 	/**
 	 * count the rows in the csv file
 	 * @param fileName
@@ -2167,8 +2179,8 @@ public class RDBMSReader {
 
 			while( (jcrMap = mapReader.read(header, processors)) != null)
 				totalrowcount++;
-				
-				
+
+
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new FileReaderException("Error processing CSV headers");
@@ -2318,13 +2330,13 @@ public class RDBMSReader {
 				// also keep this in the index now
 				for(int headerIndex = 1;headerIndex <= header.length;headerIndex++)
 					typeIndices.put(header[headerIndex-1], headerIndex+"");
-				
+
 			} catch (IOException e) {
 				e.printStackTrace();
 				throw new FileReaderException("Could not close reader input stream for CSV file " + fileName);
 			}
 			if(i==0){ // first time through loop through the csv file to get the total row count, 
-					  // need to loop through a second time to reset the current line position on the csv reader back to the beginning.
+				// need to loop through a second time to reset the current line position on the csv reader back to the beginning.
 				getRowsCount(fileName);
 			}
 		}
@@ -2350,18 +2362,18 @@ public class RDBMSReader {
 		}
 	}
 
-	
+
 	protected void createBaseRelations() throws EngineException, FileWriterException {
 		// necessary triple saying Concept is a type of Class
 		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
 		String pred = RDF.TYPE.stringValue();
 		String obj = Constants.CLASS_URI;
-		
+
 		//I dont need it to go to the database
 		// create base relations for concepts
-		
+
 		storeBaseStatement(sub, pred, obj);
-		
+
 		// necessary triple saying Relation is a type of Property
 		sub =  semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
 		pred = RDF.TYPE.stringValue();
@@ -2402,7 +2414,7 @@ public class RDBMSReader {
 			// add base relationship URIs to OWL
 			storeBaseStatement(subject, predicate, object);
 		}
-		
+
 		// now write the actual relations
 		// relation instances go next
 		for(String[] relArray : baseRelations.values()){
@@ -2412,13 +2424,13 @@ public class RDBMSReader {
 
 			//			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
 			storeBaseStatement(subject, predicate, object);
-//			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
+			//			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
 		}
 		// I need to write one now for creating properties as well
 		// this is where I will do properties
 		// add the base relation first
 		storeBaseStatement(semossURI + "/" + Constants.DEFAULT_PROPERTY_CLASS, RDF.TYPE+"", semossURI + "/" + Constants.DEFAULT_RELATION_CLASS);
-		
+
 		baseHashIt = basePropURIHash.keySet().iterator();
 		while(baseHashIt.hasNext()){
 			String subjectInstance = baseHashIt.next() +"";
@@ -2431,7 +2443,7 @@ public class RDBMSReader {
 			// Relation/Contains/MovieBudget RDFS:SUBCLASSOF /Relation/Contains
 			storeBaseStatement(subject, predicate, object);
 		}
-		
+
 		// now write the actual relations
 		// relation instances go next
 		for(String relArray : basePropRelations.keySet()){
@@ -2440,7 +2452,7 @@ public class RDBMSReader {
 
 			//			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
 			storeBaseStatement(parent, OWL.DatatypeProperty+"", property);
-//			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
+			//			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
 		}
 
 		try {
@@ -2479,7 +2491,7 @@ public class RDBMSReader {
 
 		closeOWL();
 	}
-	
+
 	/**
 	 * Close the OWL engine
 	 * @throws EngineException 
@@ -2501,7 +2513,7 @@ public class RDBMSReader {
 	private String currentDate(){
 		Date dt = new Date();
 		SimpleDateFormat dtFormatter = new SimpleDateFormat("MM/dd/yy HH:mm:ss:SSS");
-		
+
 		return dtFormatter.format(dt);
 	}*/
 

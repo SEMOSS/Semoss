@@ -226,9 +226,14 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 	
 	public String toCamelCase(String input)
 	{
-		String output = input.substring(0,1).toUpperCase() + input.substring(1).toLowerCase();
-		System.out.println("Output is " + output);
-		return output;
+		if(input.length()>0){
+			String output = input.substring(0,1).toUpperCase() + input.substring(1).toLowerCase();
+			System.out.println("Output is " + output);
+			return output;
+		}
+		else {
+			return input;
+		}
 	}
 	
 }
