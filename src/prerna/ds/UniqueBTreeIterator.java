@@ -21,6 +21,10 @@ public class UniqueBTreeIterator implements Iterator<List<Object[]>>{
 	@Override
 	public List<Object[]> next() {
 		
+		if(!this.hasNext()) {
+			throw new IndexOutOfBoundsException("No more items left in interator");
+		}
+		
 		List<Object[]> retList = new ArrayList<Object[]>();
 	
 		TreeNode treenode = iterator.next();	
@@ -28,6 +32,9 @@ public class UniqueBTreeIterator implements Iterator<List<Object[]>>{
 			retList.addAll(getInstanceRows(node));
 		}
 		
+		
+		//TODO: if retList is empty, need to return next() instead but also need to make sure not to go out of bounds
+		//This will be an issue once Filter becomes functional with the BTree
 		return retList;
 	}
 	
