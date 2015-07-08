@@ -73,5 +73,9 @@ public interface ICategoricalCluster {
 	 */
 	double getClusterSimilarity(ICategoricalCluster c2, String instanceType);
 
+	/**
+	 * return the weighting for each numerical attribute
+	 * @return
+	 */
 	Map<String, Double> getWeights();
 }
