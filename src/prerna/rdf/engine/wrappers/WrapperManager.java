@@ -92,7 +92,7 @@ public class WrapperManager {
 			returnWrapper.execute();
 			//ISelectWrapper doh = (ISelectWrapper)returnWrapper;
 			returnWrapper.getVariables();
-			System.out.println("Printing variables " + Arrays.toString(returnWrapper.getVariables()));
+//			System.out.println("Printing variables " + Arrays.toString(returnWrapper.getVariables()));
 			
 			return returnWrapper;
 	}

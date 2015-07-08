@@ -131,7 +131,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 							list.add(depObj);
 						}
 					}
-					LOGGER.info("Added object "+compObj);
+					LOGGER.debug("Added object "+compObj);
 				}
 				groupCounter++;
 			}
@@ -194,11 +194,11 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			ISelectStatement ss = depWrap.next();
 			String compObj1 = ss.getRawVar(depNames[0])+"";
 			String compObj2 = ss.getRawVar(depNames[1])+"";
-			LOGGER.info("Found relation: " + compObj1 + " depends on " + compObj2);
+			LOGGER.debug("Found relation: " + compObj1 + " depends on " + compObj2);
 
 			int compObj1loc = this.compObjList.indexOf(compObj1);
 			int compObj2loc = this.compObjList.indexOf(compObj2);
-			LOGGER.info("Found location: " + compObj1loc + " and " + compObj2loc);
+			LOGGER.debug("Found location: " + compObj1loc + " and " + compObj2loc);
 
 			if(compObj1loc >= 0 && compObj2loc >= 0){
 				dependMatrix[compObj1loc][compObj2loc] = 1;
@@ -232,7 +232,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 				}
 				rowTotal = rowTotal + dependMatrix[i][j];
 			}
-			LOGGER.info("Mapping row "+i+" to total "+rowTotal);
+			LOGGER.debug("Mapping row "+i+" to total "+rowTotal);
 			rowSums.put(i, rowTotal);
 		}
 
@@ -244,7 +244,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			//recursive method through group and assign group number
 			List<ArrayList<Integer>> group = new ArrayList<ArrayList<Integer>>();
 			for(Integer row: currentGroup){
-				LOGGER.info("Adding row "+row+" to processed list");
+				LOGGER.debug("Adding row "+row+" to processed list");
 				ArrayList<Integer> systemRow = new ArrayList<Integer>();
 				assembleGroup(row, procRows, dependMatrix, systemRow);
 				if(!systemRow.isEmpty()){
@@ -281,11 +281,11 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			if(!procRows.contains(key)){
 				if(rowMap.get(key) < currentLow){
 					currentLow = rowMap.get(key);
-					LOGGER.info("New low total ("+currentLow+") for row "+key+".");
+					LOGGER.debug("New low total ("+currentLow+") for row "+key+".");
 					lowGroup.clear();
 					lowGroup.add(key);
 				}else if(rowMap.get(key) == currentLow){
-					LOGGER.info("Matching low found for row "+key+".");
+					LOGGER.debug("Matching low found for row "+key+".");
 					lowGroup.add(key);
 				}
 			}else{
@@ -305,16 +305,16 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 	private static HashMap<Integer, Integer> updateRowTotals(HashMap<Integer, Integer> rowTotals, List<Integer> procRows, Integer[][] systemMatrix){
 		for(Integer key: rowTotals.keySet()){
 			int newTotal = 0;
-			LOGGER.info("Updating row "+key);
+			LOGGER.debug("Updating row "+key);
 			for(int j=0; j < systemMatrix[key].length; j++){
 				if(systemMatrix[key][j] != null && !procRows.contains(j)){
-					LOGGER.info("Added system "+j+" to total for row "+key);
+					LOGGER.debug("Added system "+j+" to total for row "+key);
 					newTotal = newTotal + systemMatrix[key][j];
 					rowTotals.put(key, newTotal);
 				}else if(procRows.contains(j)){
-					LOGGER.info("Row "+j+" was already processed. Skipping row");
+					LOGGER.debug("Row "+j+" was already processed. Skipping row");
 				}
-				LOGGER.info("New total for row "+key+" is "+newTotal);
+				LOGGER.debug("New total for row "+key+" is "+newTotal);
 			}
 		}
 		return rowTotals;
@@ -336,7 +336,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			if(rowArray.contains(row)){
 				System.err.println("this is strange... adding "+ row +" again to " + rowArray);
 			}
-			LOGGER.info("Marked row "+row);
+			LOGGER.debug("Marked row "+row);
 			rowArray.add(row);
 
 			//mark row as processed. removes possible loops
@@ -344,45 +344,15 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			LOGGER.info("Finding dependencies of row "+row);
 			for(int j=0; j < dependMatrix[row].length; j++){
 				if(dependMatrix[row][j] != null && dependMatrix[row][j] == 1 && !procRows.contains(j)){
-					LOGGER.info("System "+j+" depends on "+row);
+					LOGGER.debug("System "+j+" depends on "+row);
 					assembleGroup(j, procRows, dependMatrix, rowArray);
 				}
 			}
 		}
 
-		LOGGER.info(rowArray);
+		LOGGER.debug(rowArray);
 		return;
 	}
-
-//	/**
-//	 * @param groupList
-//	 * @return
-//	 */
-//	private static HashMap<Double, String> createInfoMap(ArrayList<Object[]> groupList){
-//		
-//		//convert ArrayList<Object []> to a HashMap for use in retrieving more info
-//		HashMap<Double, String> groupToString = new HashMap<Double, String>();
-//		for(Object[] depObj: groupList){
-//			double groupNo = Double.parseDouble(depObj[1].toString());
-//			String compObj = depObj[0].toString();
-//			
-//			if(!groupToString.keySet().contains(groupNo)){
-//				String bindingsString = "(<"+compObj+">)";
-//				groupToString.put(groupNo, bindingsString);
-//			}else if(groupToString.keySet().contains(groupNo)){
-//				String existingBindingString = groupToString.get(groupNo);
-//				existingBindingString = existingBindingString + ",(<"+compObj+">)";
-//				groupToString.put(groupNo, existingBindingString);
-//			}
-//		}
-//		
-//		for(Double key: groupToString.keySet()){
-//			LOGGER.info("System list for group "+key+" is "+groupToString.get(key));
-//		}
-//		
-//		return groupToString;
-//	}
-	
 
 	@Override
 	public void setQuery(String query) {
@@ -469,7 +439,6 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			groupCounter = 0;
 		}
 		
-//		createInfoMap(list);
 	}
 
 }
