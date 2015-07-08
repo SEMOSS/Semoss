@@ -124,15 +124,17 @@ public class BTreeDataFrame implements ITableDataFrame {
 		TreeNode root = this.simpleTree.nodeIndexHash.get(columnHeader);
 		TreeNode foundNode = null;
 		
+		Vector<TreeNode> vec = new Vector<TreeNode>();
+		vec.add(root);
 		if(value instanceof Number) {
 			Double v = (Double)value;
 			TreeNode t = new TreeNode(new DoubleClass(v, columnHeader));
-			foundNode = root.getNode(new Vector<TreeNode>(), t, false);
+			foundNode = root.getNode(vec, t, false);
 		}
 		else if(value instanceof String) {
 			String v = value.toString();
 			TreeNode t = new TreeNode(new StringClass(v, columnHeader));
-			foundNode = root.getNode(new Vector<TreeNode>(), t, false);
+			foundNode = root.getNode(vec, t, false);
 		} else {
 			LOGGER.error("value must be either double or string");
 		}
@@ -892,6 +894,48 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
+	public Double getStandardDeviation(String columnHeader) {
+		Double mean = getAverage(columnHeader);
+		if(mean.isNaN()) {
+			return Double.NaN;
+		}
+		
+		double stdev = 0;
+		int numValues = 0;
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
+		StringClass empty = new StringClass(SimpleTreeNode.EMPTY);
+		while(it.hasNext()) {
+			TreeNode node = it.next();
+			ITreeKeyEvaluatable val = node.leaf;
+			if(val instanceof StringClass) {
+				if(val.isEqual(empty)) {
+					continue;
+				}
+			}
+			stdev += Math.pow((Double) val.getValue() - mean, 2);
+			numValues++;
+		}
+		
+		if(numValues == 1) {
+			return Double.NaN;
+		}
+		
+		return Math.pow(stdev / (--numValues), 0.5);
+	}
+	
+	@Override
+	public Double[] getStandardDeviation() {
+		Double[] standardDeviation = new Double[levelNames.length];
+		int size = levelNames.length;
+		for(int i = 0; i < size; i++) {
+			standardDeviation[i] = getStandardDeviation(levelNames[i]);
+		}
+		
+		return standardDeviation;
+	}
+	
+	@Override
 	public boolean isNumeric(String columnHeader) {
 		boolean isNumeric = false;
 		
@@ -1250,4 +1294,5 @@ public class BTreeDataFrame implements ITableDataFrame {
 		Utility.writeWorkbook(workbookout, fileNameout);
 		testnum++;
 	}
+
 }

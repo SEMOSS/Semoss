@@ -170,6 +170,21 @@ public interface ITableDataFrame {
 	Double[] getSum();
 	
 	/**
+	 * Get the standard deviation of the values for the inputed column in the data-frame
+	 * Will return null if the column is non-numeric
+	 * @param columnHeader			The column header to get the sum of all the values
+	 * @return						The standard deviation of all the values in the column
+	 */
+	Double getStandardDeviation(String columnHeader);
+
+	/**
+	 * Get the standard deviation of the values for all the inputed columns in the data-frame
+	 * Will return null in the column positions that are non-numeric
+	 * @return						The standard deviation of all the values for all columns corresponding to the ordered values in the column headers
+	 */
+	Double[] getStandardDeviation();
+	
+	/**
 	 * Determine if a column is numeric or categorical
 	 * @param columnHeader			The column header to determine if it is numeric or categorical
 	 * @return						Boolean true if the column is numerical, false if it is categorical
