@@ -333,12 +333,12 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 			{
 				if(object.getClass() == new Double(1).getClass())
 				{
-					logger.info("Found Double " + object);
+					logger.debug("Found Double " + object);
 					sc.addStatement(newSub, newPred, vf.createLiteral(((Double)object).doubleValue()));
 				}
 				else if(object.getClass() == new Date(1).getClass())
 				{
-					logger.info("Found Date " + object);
+					logger.debug("Found Date " + object);
 					DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 					String date = df.format(object);
 					URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
@@ -346,7 +346,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 				}
 				else
 				{
-					logger.info("Found String " + object);
+					logger.debug("Found String " + object);
 					String value = object + "";
 					// try to see if it already has properties then add to it
 					String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
@@ -394,12 +394,12 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 			{
 				if(object.getClass() == new Double(1).getClass())
 				{
-					logger.info("Found Double " + object);
+					logger.debug("Found Double " + object);
 					sc.removeStatements(newSub, newPred, vf.createLiteral(((Double)object).doubleValue()));
 				}
 				else if(object.getClass() == new Date(1).getClass())
 				{
-					logger.info("Found Date " + object);
+					logger.debug("Found Date " + object);
 					DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 					String date = df.format(object);
 					URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
@@ -407,7 +407,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 				}
 				else
 				{
-					logger.info("Found String " + object);
+					logger.debug("Found String " + object);
 					String value = object + "";
 					// try to see if it already has properties then add to it
 					String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
