@@ -117,14 +117,19 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 					processQuery(depGroup, addtlQuery, addtlCols, namesList);
 				}
 				for(Integer compObj: depGroup){
-					for(Object[] row : addtlCols){
-						Object[] depObj = new Object[namesList.size()];
-						depObj[0] = Utility.getInstanceName(compObjList.get(compObj));
-						depObj[1] = location;
-						for(int addtlIdx = 2 ; addtlIdx < row.length; addtlIdx++ ){
-							depObj[addtlIdx] = row[addtlIdx];
-						}
+					Object[] depObj = new Object[namesList.size()];
+					depObj[0] = Utility.getInstanceName(compObjList.get(compObj));
+					depObj[1] = location;
+					if(addtlCols.isEmpty()){
 						list.add(depObj);
+					}
+					else {
+						for(Object[] row : addtlCols){
+							for(int addtlIdx = 2 ; addtlIdx < row.length; addtlIdx++ ){
+								depObj[addtlIdx] = row[addtlIdx];
+							}
+							list.add(depObj);
+						}
 					}
 					LOGGER.info("Added object "+compObj);
 				}
@@ -180,7 +185,8 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 
 		Integer[][] dependMatrix = new Integer[compObjList.size()][compObjList.size()];
 		String query = this.depQuery.replace("~~DepObj-DepObj~~", depObjFilterString);
-
+		
+		LOGGER.info("Final dependency query :  " + query);
 		ISelectWrapper depWrap = WrapperManager.getInstance().getSWrapper(this.engine, query);
 		//wrapper manager, etc. to fill sys list
 		String[] depNames = depWrap.getVariables();
