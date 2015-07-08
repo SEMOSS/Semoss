@@ -30,15 +30,20 @@ package prerna.ui.components.specific.ousd;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
+
+import javax.swing.event.ListSelectionEvent;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
 
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.util.Utility;
 
 public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 
@@ -46,29 +51,34 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 //	Map dataHash = new Hashtable();
 
 //	String INTERFACE_QUERY = "SELECT DISTINCT ?System2 ?System3 WHERE { {?System2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?System3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payloads>;} {?icd1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Interface_Control_Document>;} {?upstream1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provides>;}{?downstream1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consumes>;} {?System2 ?upstream1 ?icd1 ;}{?icd1 ?downstream1 ?System3;}{?icd1 ?carries ?Data1;} } BINDINGS ?Data1 {@Data-Data@}";
-	List<String> compObjList;
 	
+	// Add bindings to below queries before using
+	// Query 1) SELECT DISTINCT ?Activity ?BLU WHERE { {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>;} {?BLU a <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Activity <http://semoss.org/ontologies/Relation/Needs> ?BLU} }
+	// Query 2) SELECT DISTINCT ?Activity ?BLU ?System WHERE { {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>;} {?BLU a <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?BLU}{?System <http://semoss.org/ontologies/Relation/Performs> ?BLU} }
+	List<String> compObjList;
+
 	String depQuery;
 	String compObjQuery;
-	String depObjBindingsString;
+	String depObjFilterString;
 	String depObjQuery;
-	
+	List<String> addtlQueries;
+
 	public SequencingDecommissioningPlaySheet() {
 		super();
 	}
-	
+
 	@Override
 	public void createData() {
 		// populate data object list with list of all data objects (query should be passed in)
 		ISelectWrapper depObjWrap = WrapperManager.getInstance().getSWrapper(this.engine, this.depObjQuery);
 		//wrapper manager, etc. to fill data obj list
 		String[] depObjNames = depObjWrap.getVariables();
-		depObjBindingsString = "";
+		depObjFilterString = "<"+depObjWrap.next().getRawVar(depObjNames[0])+">";
 		while(depObjWrap.hasNext()){
 			String thisDepObj = depObjWrap.next().getRawVar(depObjNames[0])+"";
-			depObjBindingsString = depObjBindingsString + "(<"+thisDepObj + ">)";
+			depObjFilterString = depObjFilterString + ", <"+thisDepObj + ">";
 		}
-		
+
 		// populate system list with list of all systems (query should also be passed in)
 		this.compObjList = new ArrayList<String>();
 		ISelectWrapper compObjWrap = WrapperManager.getInstance().getSWrapper(this.engine, this.compObjQuery);
@@ -77,31 +87,89 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 		while(compObjWrap.hasNext()){
 			this.compObjList.add(compObjWrap.next().getRawVar(compObjNames[0])+"");
 		}
-		
+
 		Integer[][] dependMatrix = createDependencyMatrices();
-        HashMap<Integer, List<ArrayList<Integer>>> groups = createDecommissioningGroups(dependMatrix);
-        int groupCounter = 0;
-        
-        list = new ArrayList<Object[]>();
-        //key is counter for one level above group
-        for(Integer key: groups.keySet()){
-              for(ArrayList<Integer> depGroup: groups.get(key)){
-                    for(Integer compObj: depGroup){
-                          String keyToGroupCounter = new String(key.toString()+"."+groupCounter);
-                          double location = Double.parseDouble(keyToGroupCounter);
-                          Object[] depObj = new Object[]{compObjList.get(compObj), location};
-                          list.add(depObj);
-                          System.out.println("added object "+depObj);
-                    }
-                    groupCounter++;
-              }
-              groupCounter = 0;
-        }
-        
-		// set the names
-		this.names = new String[]{"Comparison Object", "Group Value"};
+		HashMap<Integer, List<ArrayList<Integer>>> groups = createDecommissioningGroups(dependMatrix);
+		
+//		List<HashMap<String, List<Object[]>>> addtlCols = createAddtlCols(groups);
+		
+		createTable(groups);
 	}
 	
+	private void createTable(HashMap<Integer, List<ArrayList<Integer>>> groups){
+		int groupCounter = 0;
+
+		// build the names
+		List<String> namesList = new ArrayList<String>();
+		namesList.add("Comparison Object");
+		namesList.add("Group Value");
+
+		list = new ArrayList<Object[]>();
+		//key is counter for one level above group
+		for(Integer key: groups.keySet()){
+			List<ArrayList<Integer>> depGroups = groups.get(key);
+			for(ArrayList<Integer> depGroup: depGroups){
+				String keyToGroupCounter = new String(key.toString()+"."+groupCounter);
+				double location = Double.parseDouble(keyToGroupCounter);
+				
+				List<Object[]> addtlCols = new ArrayList<Object[]>();
+				for(String addtlQuery: this.addtlQueries){
+					processQuery(depGroup, addtlQuery, addtlCols, namesList);
+				}
+				for(Integer compObj: depGroup){
+					for(Object[] row : addtlCols){
+						Object[] depObj = new Object[namesList.size()];
+						depObj[0] = Utility.getInstanceName(compObjList.get(compObj));
+						depObj[1] = location;
+						for(int addtlIdx = 2 ; addtlIdx < row.length; addtlIdx++ ){
+							depObj[addtlIdx] = row[addtlIdx];
+						}
+						list.add(depObj);
+					}
+					LOGGER.info("Added object "+compObj);
+				}
+				groupCounter++;
+			}
+			groupCounter = 0;
+		}
+
+		// set the names
+		this.names = new String[namesList.size()];
+		this.names = namesList.toArray(this.names);
+	}
+	
+	private void processQuery(List<Integer> depGroup, String addtlQuery, List<Object[]> addtlCols, List<String> namesList){
+		String bindings = "";
+		for(Integer compObj: depGroup){
+			String name = compObjList.get(compObj);
+			bindings = bindings + "(<" + name + ">)";
+		}
+		String filledQuery = addtlQuery.replaceAll("~~GroupMembers-GroupMembers~~", bindings).replaceAll("~~DepObj-DepObj~~", this.depObjFilterString);
+		ISelectWrapper sw = WrapperManager.getInstance().getSWrapper(this.engine, filledQuery);
+		
+		String[] wrapNames = sw.getVariables();
+		Integer[] wrapIdx = new Integer[wrapNames.length]; // find if the names already exist as col headers. if they do, get the idx. if not, add and get the idx
+		for(int nIdx = 0; nIdx < wrapNames.length; nIdx++){
+			String name = wrapNames[nIdx];
+			if(!namesList.contains(name)){
+				namesList.add(name);
+			}
+			wrapIdx[nIdx] = namesList.indexOf(name);
+		}
+		
+		// process the query
+		while(sw.hasNext()){
+			Object[] row = new Object[namesList.size()];
+			ISelectStatement ss = sw.next();
+			for(int i = 0; i<wrapIdx.length; i++){
+				row[wrapIdx[i]] = ss.getRawVar(wrapNames[i]); 
+			}
+			addtlCols.add(row);
+		}
+		
+		return;
+	}
+
 	private Integer[][] createDependencyMatrices(){
 		// iterate through list and for each:
 		// create the data network of systems
@@ -109,10 +177,10 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 		//   1. the level that the system is on wrt that data object
 		//   2. the system - system dependencies
 		// (is it possible that we have islands? can a system exist outside of the main network?)
-		
+
 		Integer[][] dependMatrix = new Integer[compObjList.size()][compObjList.size()];
-		String query = this.depQuery.replace("~~DepObj-DepObj~~", depObjBindingsString);
-		
+		String query = this.depQuery.replace("~~DepObj-DepObj~~", depObjFilterString);
+
 		ISelectWrapper depWrap = WrapperManager.getInstance().getSWrapper(this.engine, query);
 		//wrapper manager, etc. to fill sys list
 		String[] depNames = depWrap.getVariables();
@@ -120,12 +188,12 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			ISelectStatement ss = depWrap.next();
 			String compObj1 = ss.getRawVar(depNames[0])+"";
 			String compObj2 = ss.getRawVar(depNames[1])+"";
-			LOGGER.info(" Found relation:::: " + compObj1 + " depends on " + compObj2);
-			
+			LOGGER.info("Found relation: " + compObj1 + " depends on " + compObj2);
+
 			int compObj1loc = this.compObjList.indexOf(compObj1);
 			int compObj2loc = this.compObjList.indexOf(compObj2);
-			LOGGER.info(" Found location:::: " + compObj1loc + " and " + compObj2loc);
-			
+			LOGGER.info("Found location: " + compObj1loc + " and " + compObj2loc);
+
 			if(compObj1loc >= 0 && compObj2loc >= 0){
 				dependMatrix[compObj1loc][compObj2loc] = 1;
 			}
@@ -133,10 +201,10 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 				LOGGER.error("Exluding systems " + compObj1 + " and " + compObj2);
 			}
 		}
-		
+
 		return dependMatrix;
 	}
-		
+
 	/**
 	 * @param systemMatrix
 	 */
@@ -148,7 +216,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 		HashMap<Integer, Integer> rowSums = new HashMap<Integer, Integer>();
 		HashMap<Integer, List<ArrayList<Integer>>> groups = new HashMap<Integer, List<ArrayList<Integer>>>();
 		int groupNumber = 0;
-		
+
 		//add all rows into map
 		for(int i=0; i < dependMatrix.length; i++){
 			int rowTotal = 0;
@@ -158,20 +226,19 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 				}
 				rowTotal = rowTotal + dependMatrix[i][j];
 			}
-			System.out.println("mapping row "+i+" to total "+rowTotal);
+			LOGGER.info("Mapping row "+i+" to total "+rowTotal);
 			rowSums.put(i, rowTotal);
 		}
-		
+
 		//loop until every system has been processed
 		while(procRows.size() != dependMatrix.length){
 			//find next group
 			List<Integer> currentGroup = findNextGroup(rowSums, procRows, dependMatrix);
-			
-			//BILLS BEAUTIFUL METHOD
+
 			//recursive method through group and assign group number
 			List<ArrayList<Integer>> group = new ArrayList<ArrayList<Integer>>();
 			for(Integer row: currentGroup){
-				System.out.println("adding row "+row+" to processed list");
+				LOGGER.info("Adding row "+row+" to processed list");
 				ArrayList<Integer> systemRow = new ArrayList<Integer>();
 				assembleGroup(row, procRows, dependMatrix, systemRow);
 				if(!systemRow.isEmpty()){
@@ -180,39 +247,20 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			}
 			groups.put(groupNumber, group);
 			groupNumber++;
-			/////////////// END BILL
-			
-			/* 
-			////////////SPENCER'S CRAPPY METHOD
-			for(Integer row: currentGroup){
-                  System.out.println("adding row "+row+" to processed list");
-            }
-            //recursive method through group and assign group number
-            ArrayList<Integer> systemRows = new ArrayList<Integer>();
-            List<ArrayList<Integer>> sysGroup = new ArrayList<ArrayList<Integer>>();
-            groups.put(groupNumber, assembleGroup(currentGroup, procRows, dependMatrix, systemRows, sysGroup));
-            groupNumber++;
-            //////////////END SPENCER
-            */
-            
+
 			//update map
 			rowSums = updateRowTotals(rowSums, procRows, dependMatrix);
-			System.out.println("-----------------------");
+			LOGGER.info("-----------------------");
 		}
-		
+
 		for(Integer key: groups.keySet()){
-			System.out.println("group is "+key);
-			System.out.println(groups.get(key));
+			LOGGER.info("Group is "+key+". Groups are: ");
+			LOGGER.info(groups.get(key));
 		}
 
 		return groups;
-		// check for zeroes
-
-		// run recursive method
-
-		// not sure what exactly we want the output to be....
 	}
-	
+
 	/**
 	 * @param rowMap
 	 * @param procRows
@@ -227,39 +275,51 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			if(!procRows.contains(key)){
 				if(rowMap.get(key) < currentLow){
 					currentLow = rowMap.get(key);
-					System.out.println("new low total ("+currentLow+") for row "+key);
+					LOGGER.info("New low total ("+currentLow+") for row "+key+".");
 					lowGroup.clear();
 					lowGroup.add(key);
 				}else if(rowMap.get(key) == currentLow){
-					System.out.println("matching low found for row "+key);
+					LOGGER.info("Matching low found for row "+key+".");
 					lowGroup.add(key);
 				}
 			}else{
 				continue;
 			}
 		}
-		System.out.println(lowGroup);
+		LOGGER.info("New lows: "+lowGroup);
 		return lowGroup;
 	}
-	
+
+	/**
+	 * @param rowTotals
+	 * @param procRows
+	 * @param systemMatrix
+	 * @return
+	 */
 	private static HashMap<Integer, Integer> updateRowTotals(HashMap<Integer, Integer> rowTotals, List<Integer> procRows, Integer[][] systemMatrix){
 		for(Integer key: rowTotals.keySet()){
 			int newTotal = 0;
-			System.out.println("updating row "+key);
+			LOGGER.info("Updating row "+key);
 			for(int j=0; j < systemMatrix[key].length; j++){
 				if(systemMatrix[key][j] != null && !procRows.contains(j)){
-					System.out.println("added system "+j+" to total for row "+key);
+					LOGGER.info("Added system "+j+" to total for row "+key);
 					newTotal = newTotal + systemMatrix[key][j];
-					System.out.println("new total for row "+key+" is "+newTotal);
 					rowTotals.put(key, newTotal);
 				}else if(procRows.contains(j)){
-					System.out.println("row "+j+" was already processed. skipping row");
+					LOGGER.info("Row "+j+" was already processed. Skipping row");
 				}
+				LOGGER.info("New total for row "+key+" is "+newTotal);
 			}
 		}
 		return rowTotals;
 	}
-	
+
+	/**
+	 * @param row
+	 * @param procRows
+	 * @param dependMatrix
+	 * @param rowArray
+	 */
 	private static void assembleGroup(Integer row, List<Integer> procRows, Integer[][] dependMatrix, ArrayList<Integer> rowArray){
 
 		//add row first time
@@ -270,83 +330,96 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			if(rowArray.contains(row)){
 				System.err.println("this is strange... adding "+ row +" again to " + rowArray);
 			}
-			System.out.println("marked row "+row);
+			LOGGER.info("Marked row "+row);
 			rowArray.add(row);
-			
+
 			//mark row as processed. removes possible loops
 			//find all dependencies of row
-			System.out.println("finding dependencies of row "+row);
+			LOGGER.info("Finding dependencies of row "+row);
 			for(int j=0; j < dependMatrix[row].length; j++){
 				if(dependMatrix[row][j] != null && dependMatrix[row][j] == 1 && !procRows.contains(j)){
-					System.out.println("system "+j+" depends on "+row);
+					LOGGER.info("System "+j+" depends on "+row);
 					assembleGroup(j, procRows, dependMatrix, rowArray);
 				}
 			}
 		}
-			
-		System.out.println(rowArray);
+
+		LOGGER.info(rowArray);
 		return;
 	}
+
+//	/**
+//	 * @param groupList
+//	 * @return
+//	 */
+//	private static HashMap<Double, String> createInfoMap(ArrayList<Object[]> groupList){
+//		
+//		//convert ArrayList<Object []> to a HashMap for use in retrieving more info
+//		HashMap<Double, String> groupToString = new HashMap<Double, String>();
+//		for(Object[] depObj: groupList){
+//			double groupNo = Double.parseDouble(depObj[1].toString());
+//			String compObj = depObj[0].toString();
+//			
+//			if(!groupToString.keySet().contains(groupNo)){
+//				String bindingsString = "(<"+compObj+">)";
+//				groupToString.put(groupNo, bindingsString);
+//			}else if(groupToString.keySet().contains(groupNo)){
+//				String existingBindingString = groupToString.get(groupNo);
+//				existingBindingString = existingBindingString + ",(<"+compObj+">)";
+//				groupToString.put(groupNo, existingBindingString);
+//			}
+//		}
+//		
+//		for(Double key: groupToString.keySet()){
+//			LOGGER.info("System list for group "+key+" is "+groupToString.get(key));
+//		}
+//		
+//		return groupToString;
+//	}
 	
-	/**
-	 * @param levelGroup
-	 * @param procRows
-	 * @param systemMatrix
-	 * @param systemRows
-	 * @param sysGroup
-	 * @return
-	 */
-	private static List<ArrayList<Integer>> assembleGroup(List<Integer> levelGroup, List<Integer> procRows, Integer[][] systemMatrix, ArrayList<Integer> systemRows, List<ArrayList<Integer>> sysGroup){
 
-		for(Integer row: levelGroup){
-			ArrayList<Integer> dependencies = new ArrayList<Integer>();
-			//add row first time
-			if(procRows.contains(row)){
-				continue;
-			}else{
-				//mark row as processed. removes possible loops
-				procRows.add(row);
-				System.out.println("marked row "+row);
-				systemRows.add(row);
-				System.out.println(dependencies);
+	@Override
+	public void setQuery(String query) {
 
-				//find all dependencies of row
-				System.out.println("finding dependencies of row "+row);
-				for(int j=0; j < systemMatrix[row].length; j++){
-					if(systemMatrix[row][j] != null && systemMatrix[row][j] == 1 && !procRows.contains(j)){
-						System.out.println("system "+j+" depends on "+row);
-						dependencies.add(j);
-						assembleGroup(dependencies, procRows, systemMatrix, systemRows, sysGroup);
-					}
-				}
-			}
-			if(!dependencies.isEmpty()){
-				for(Integer dependent: dependencies){
-					if(!procRows.contains(dependent)){
-						if(!systemRows.contains(dependent)){
-							systemRows.add(dependent);
-						}						
-					}
-					systemRows = new ArrayList<Integer>();
-				}
-			}else if(dependencies.isEmpty()){
-				System.out.println("row "+row+" had no dependencies");
-				sysGroup.add(systemRows);
-				systemRows = new ArrayList<Integer>();
-				continue;
-			}
-			dependencies.clear();
+		String[] items = query.split("\\+{3}");
+
+		LOGGER.info("Setting comparison object query as " + items[0]);
+		this.compObjQuery = items[0];
+
+		LOGGER.info("Setting dependency objects query as " + items[1]);
+		this.depObjQuery = items[1];
+
+		LOGGER.info("Setting dependency query as " + items[2]);
+		this.depQuery = items[2];
+
+		addtlQueries = new ArrayList<String>();
+		for (int qIdx = 3; qIdx < items.length; qIdx ++ ){
+			addtlQueries.add(items[qIdx]);
 		}
-		System.out.println(sysGroup);
-		return sysGroup;
 	}
-	
+
+	//	@Override
+	//	public Object getData() {
+	//		Hashtable returnHash = (Hashtable) super.getData();
+	//		if (dataHash != null)
+	//			returnHash.put("specificData", dataHash);
+	//		return returnHash;
+	//	}
+
+	@Override
+	public Hashtable<String, String> getDataTableAlign() {
+		// once we determine display, we will use this to align data to display
+		return null;
+	}
+
 	public static void main(String args[]){
-		Integer[][] testData = new Integer[5][2];
+
+		PropertyConfigurator.configure("log4j.prop");
+
 		Integer[][] testSystems = new Integer [5][5];
-		
+
 		testSystems[0][0] = null;
-		testSystems[0][1] = null;
+		testSystems[0][1] = 1;
 		testSystems[0][2] = null;
 		testSystems[0][3] = null;
 		testSystems[0][4] = null;
@@ -370,47 +443,27 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 		testSystems[4][2] = null;
 		testSystems[4][3] = 1;
 		testSystems[4][4] = null;
-	
-		testData[0][0] = 2;
-		testData[0][1] = 1;
-		testData[1][0] = 2;
-		testData[1][1] = 2;
-		testData[2][0] = 3;
-		testData[2][1] = 0;
-		testData[3][0] = 4;
-		testData[3][1] = 4;
-		testData[4][0] = 1;
-		testData[4][1] = 3;
+
+		HashMap<Integer, List<ArrayList<Integer>>> groups = createDecommissioningGroups(testSystems);
+		ArrayList <Object []> list = new ArrayList<Object[]>();
+		int groupCounter = 0;
 		
-		createDecommissioningGroups(testSystems);
+		//key is counter for one level above group
+		for(Integer key: groups.keySet()){
+			for(ArrayList<Integer> depGroup: groups.get(key)){
+				for(Integer compObj: depGroup){
+					String keyToGroupCounter = new String(key.toString()+"."+groupCounter);
+					double location = Double.parseDouble(keyToGroupCounter);
+					Object[] depObj = new Object[]{compObj, location};
+					list.add(depObj);
+					LOGGER.info("Added ["+depObj[0]+", "+depObj[1]+"]");
+				}
+				groupCounter++;
+			}
+			groupCounter = 0;
+		}
+		
+//		createInfoMap(list);
 	}
-	
-	@Override
-	public void setQuery(String query) {
 
-		String[] items = query.split("\\+{3}");
-
-		LOGGER.info("Setting comparison object query as " + items[0]);
-		this.compObjQuery = items[0];
-
-		LOGGER.info("Setting dependency objects query as " + items[1]);
-		this.depObjQuery = items[1];
-
-		LOGGER.info("Setting dependency query as " + items[2]);
-		this.depQuery = items[2];
-	}
-	
-//	@Override
-//	public Object getData() {
-//		Hashtable returnHash = (Hashtable) super.getData();
-//		if (dataHash != null)
-//			returnHash.put("specificData", dataHash);
-//		return returnHash;
-//	}
-	
-	@Override
-	public Hashtable<String, String> getDataTableAlign() {
-		// once we determine display, we will use this to align data to display
-		return null;
-	}
 }
