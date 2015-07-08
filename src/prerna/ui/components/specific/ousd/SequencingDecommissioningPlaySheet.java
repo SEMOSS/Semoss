@@ -110,7 +110,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			List<ArrayList<Integer>> depGroups = groups.get(key);
 			for(ArrayList<Integer> depGroup: depGroups){
 				String keyToGroupCounter = new String(key.toString()+"."+groupCounter);
-				double location = Double.parseDouble(keyToGroupCounter);
+//				double location = Double.parseDouble(keyToGroupCounter);
 				
 				List<Object[]> addtlCols = new ArrayList<Object[]>();
 				for(String addtlQuery: this.addtlQueries){
@@ -119,16 +119,18 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 				for(Integer compObj: depGroup){
 					Object[] depObj = new Object[namesList.size()];
 					depObj[0] = Utility.getInstanceName(compObjList.get(compObj));
-					depObj[1] = location;
+					depObj[1] = keyToGroupCounter;
 					if(addtlCols.isEmpty()){
 						list.add(depObj);
 					}
 					else {
 						for(Object[] row : addtlCols){
+							Object[] depObj2 = depObj.clone();
 							for(int addtlIdx = 2 ; addtlIdx < row.length; addtlIdx++ ){
-								depObj[addtlIdx] = row[addtlIdx];
+								System.out.println(row[addtlIdx]);
+								depObj2[addtlIdx] = row[addtlIdx];
 							}
-							list.add(depObj);
+							list.add(depObj2);
 						}
 					}
 					LOGGER.debug("Added object "+compObj);
@@ -150,6 +152,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			bindings = bindings + "(<" + name + ">)";
 		}
 		String filledQuery = addtlQuery.replaceAll("~~GroupMembers-GroupMembers~~", bindings).replaceAll("~~DepObj-DepObj~~", this.depObjFilterString);
+		LOGGER.info("col query " + filledQuery);
 		ISelectWrapper sw = WrapperManager.getInstance().getSWrapper(this.engine, filledQuery);
 		
 		String[] wrapNames = sw.getVariables();
