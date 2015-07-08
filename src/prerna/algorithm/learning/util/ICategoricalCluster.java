@@ -1,6 +1,7 @@
 package prerna.algorithm.learning.util;
 
 import java.util.List;
+import java.util.Map;
 
 public interface ICategoricalCluster {
 
@@ -44,13 +45,6 @@ public interface ICategoricalCluster {
 	 */
 	Double getSimilarity(String attributeName, String attributeInstance);
 	
-//	/**
-//	 * 
-//	 * @param attributeNames
-//	 * @param attributeInstances
-//	 */
-//	Double getSimilarity(List<String> attributeNames, List<String> attributeInstances);
-	
 	/**
 	 * 
 	 * @param attributeNames
@@ -70,10 +64,14 @@ public interface ICategoricalCluster {
 	 * Resets the clusters
 	 */
 	void reset();
-//	/**
-//	 * 
-//	 * @param categoricalWeights
-//	 */
-//	void setWeights(Map<String, Double> categoricalWeights);
 	
+	/**
+	 * Get the similarity of one cluster to the other cluster
+	 * @param c2							The second cluster to determine how similar it is
+	 * @param instanceType					The name of the instance type
+	 * @return								the similarity value
+	 */
+	double getClusterSimilarity(ICategoricalCluster c2, String instanceType);
+
+	Map<String, Double> getWeights();
 }

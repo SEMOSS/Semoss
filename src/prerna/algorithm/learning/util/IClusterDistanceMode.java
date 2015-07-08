@@ -12,5 +12,9 @@ public interface IClusterDistanceMode {
 	
 	double getNullRatio();
 	
+	int getNumNull();
+	
+	int getNumInstances();
+	
 	void reset();
 }
