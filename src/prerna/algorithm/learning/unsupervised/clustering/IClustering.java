@@ -3,9 +3,10 @@ package prerna.algorithm.learning.unsupervised.clustering;
 import java.util.List;
 import java.util.Map;
 
+import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.learning.util.Cluster;
 
-public interface IClustering {
+public interface IClustering extends IAnalyticRoutine {
 	
 	/**
 	 * Calculates the best cluster for the given index
@@ -38,5 +39,7 @@ public interface IClustering {
 	 * @return								boolean of true if instance changed cluster centers, false otherwise
 	 */
 	boolean isInstanceChangedCluster(Map<String, Integer> results, String instanceName, int bestCluster);
+
+	List<Cluster> getClusters();
 	
 }

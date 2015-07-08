@@ -1,6 +1,7 @@
 package prerna.algorithm.learning.util;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -11,7 +12,7 @@ import org.apache.log4j.Logger;
 public class CategoricalCluster extends Hashtable<String, Hashtable<String, Double>> implements ICategoricalCluster {
 
 	private static final Logger LOGGER = LogManager.getLogger(CategoricalCluster.class.getName());
-	private Map<String, Double> weights;
+	private Map<String, Double> weights = new HashMap<String, Double>();
 	
 	/**
 	 * serialization id
@@ -73,7 +74,12 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 			if(valCount.containsKey(attributeInstance)) { // reduce count by value
 				double currValue = valCount.get(attributeInstance);
 				currValue -= value;
-				valCount.put(attributeInstance, currValue);
+				// remove if value is 0
+				if(currValue == 0) {
+					valCount.remove(attributeInstance);
+				} else {
+					valCount.put(attributeInstance, currValue);
+				}
 				if(currValue < 0) {
 					LOGGER.error("WARNING!!! Attribute " + attributeName + " with value " + attributeInstance + " is now a negative value...");
 				}
@@ -167,6 +173,65 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 				table.put(key2, 0.0);
 			}
 		}
+	}
+
+	@Override
+	public double getClusterSimilarity(ICategoricalCluster c2, String instanceType) {
+		double similarity = 0;
+		for(String attributeType : this.keySet()) {
+			if(attributeType.equals(instanceType)) {
+				continue;
+			}
+			
+			Hashtable<String, Double> thisTypeHash = this.get(attributeType);
+			Hashtable<String, Double> typeHash = ((CategoricalCluster) c2).get(attributeType);
+			
+			if(thisTypeHash.isEmpty() || typeHash.isEmpty()) {
+				continue;
+			}
+			
+			double normalizationCount1 = 0;
+			for(String propInstance : thisTypeHash.keySet()) {
+				normalizationCount1 += thisTypeHash.get(propInstance);
+			}
+			double normalizationCount2 = 0;
+			for(String propInstance : typeHash.keySet()) {
+				normalizationCount2 += typeHash.get(propInstance);
+			}
+
+			int possibleValues = 0;
+			double sumClusterDiff = 0;
+			for(String propInstance : thisTypeHash.keySet()) {
+				double count1 = thisTypeHash.get(propInstance);
+				if(typeHash.containsKey(propInstance)) {
+					possibleValues++;
+					// calculate difference between counts
+					double count2 = typeHash.get(propInstance);
+					sumClusterDiff += Math.abs( count1/normalizationCount1 - count2/normalizationCount2);
+				} else {
+					possibleValues++;
+					//include values that 1st cluster has and 2nd cluster doesn't have
+					sumClusterDiff += count1/normalizationCount1;
+				}
+			}
+			//now include values that 2nd cluster has that 1st cluster doesn't have
+			for(String propInstance: typeHash.keySet()) {
+				if(!thisTypeHash.containsKey(propInstance)) {
+					possibleValues++;
+					double count2 = typeHash.get(propInstance);
+					sumClusterDiff += count2/normalizationCount2;
+				}
+			}
+			
+			similarity += weights.get(attributeType) * (1 - sumClusterDiff/possibleValues);
+		}
+		
+		return similarity;
+	}
+	
+	@Override
+	public Map<String, Double> getWeights() {
+		return this.weights;
 	}
 	
 }
