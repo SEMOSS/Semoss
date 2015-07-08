@@ -25,11 +25,11 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
 		// values defined in options
 		//TODO: below is simply for ease in testing
-//		this.numClusters = 12;
-//		this.instanceIndex = 0;
-//		this.clusterColumnID = "clusterID";
-		this.numClusters = (Integer) options.get(0).getSelected();
-		this.instanceIndex = (Integer) options.get(1).getSelected();
+		this.numClusters = 12;
+		this.instanceIndex = 0;
+		this.clusterColumnID = "clusterID";
+//		this.numClusters = (Integer) options.get(0).getSelected();
+//		this.instanceIndex = (Integer) options.get(1).getSelected();
 		
 		this.distanceMeasure = (Map<String, DistanceMeasure>) options.get(2).getSelected();
 		this.dataFrame = data[0];
@@ -63,19 +63,12 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 		boolean go = true;
 		int currIt = 0;
 		while(go) {
-			//print instances
-			//print best sim
-			//print out cluster assignment
-			//print out new clusters
-//			System.out.println("Current Iteration "+currIt);
 			go = false;
 			Iterator<List<Object[]>> it = dataFrame.uniqueIterator(attributeNames[instanceIndex]);
 			while(it.hasNext()) {
 				List<Object[]> instance = it.next();
 				String instanceName = instance.get(0)[instanceIndex].toString();
-//				System.out.print("Instance Name: "+instanceName+" ");
 				int bestCluster = findBestClusterForInstance(instance, attributeNames, isNumeric, instanceIndex, clusters);
-//				System.out.println("Best Cluster: "+ bestCluster);
 				boolean instanceChangeCluster = isInstanceChangedCluster(results, instanceName, bestCluster);
 				if(instanceChangeCluster) {
 					go = true;
@@ -88,51 +81,6 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 					}
 				}
 			}
-			//*****************
-//			List<String> cluster1 = new ArrayList<>();
-//			List<String> cluster2 = new ArrayList<>();
-//			List<String> cluster3 = new ArrayList<>();
-//			List<String> cluster4 = new ArrayList<>();
-//			
-////			for(String key: results.keySet()) {
-//				int value = results.get(key);
-//				if(value==0) cluster1.add(key);
-//				else if(value==1) cluster2.add(key);
-//				else if(value==2) cluster3.add(key);
-//				else if(value==3) cluster4.add(key);
-//				
-//				//System.out.println("CLUSTER 1");
-//			}
-//			
-//			Collections.sort(cluster1);
-//			Collections.sort(cluster2);
-//			Collections.sort(cluster3);
-//			Collections.sort(cluster4);
-//			System.out.println("CLUSTER 1 "+ cluster1.size());
-//			for(int i = 0; i < cluster1.size(); i++) System.out.println(cluster1.get(i)); System.out.println();
-//			System.out.println("CLUSTER 2 "+ cluster2.size());
-//			for(int i = 0; i < cluster2.size(); i++) System.out.println(cluster2.get(i)); System.out.println();
-//			System.out.println("CLUSTER 3 "+ cluster3.size());
-//			for(int i = 0; i < cluster3.size(); i++) System.out.println(cluster3.get(i)); System.out.println();
-//			System.out.println("CLUSTER 4 "+ cluster4.size());
-//			for(int i = 0; i < cluster4.size(); i++) System.out.println(cluster4.get(i)); System.out.println();
-			//********************
-			// test convergence
-//			if(go) {
-//				// update cluster centers
-//				for(int i = 0; i < numClusters; i++) {
-//					// clear values in clusters
-//					clusters.get(i).reset();
-//				}
-//				it = dataFrame.uniqueIterator(attributeNames[instanceIndex]);
-//				while(it.hasNext()) {
-//					List<Object[]> instance = it.next();
-//					int clusterIndex = results.get(instance.get(0)[instanceIndex]);
-//					updateInstanceIndex(instance, attributeNames, isNumeric, clusters.get(clusterIndex));
-//				}
-//			} else {
-//				success = true;
-//			}
 			currIt++;
 			// break if taking too many iterations
 			if(currIt > maxIt) {
@@ -226,7 +174,6 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 		int i = 0;
 		for(; i < numClusters; i++) {
 			double newSimVal = clusters.get(i).getSimilarityForInstance(instance, attributeNames, isNumeric, instanceIndex);
-//			System.out.println("Simval to cluster " + i + " is = " + newSimVal);
 			if(newSimVal > simVal) {
 				bestIndex = i;
 				simVal = newSimVal;

@@ -83,7 +83,6 @@ public abstract class AbstractClusteringRoutine implements IClustering {
 			}
 		}
 		
-		//TODO: dont call this if there are no numeric values
 		if(!numericalEntropy.isEmpty()){
 			double[] numericalWeightsArr = SimilarityWeighting.generateWeighting(numericalEntropy.toArray(new Double[0]));
 			i = 0;
