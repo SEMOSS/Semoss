@@ -28,7 +28,6 @@ public class MultiClusteringRoutine implements IAnalyticRoutine {
 	private String instanceType;
 	private int instanceIndex;
 	private boolean[] isNumeric;
-	private int numRows;
 	
 	public MultiClusteringRoutine() {
 		this.options = new ArrayList<SEMOSSParam>();
@@ -54,19 +53,18 @@ public class MultiClusteringRoutine implements IAnalyticRoutine {
 	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
 		// values defined in options
 		//TODO: below is simply for ease in testing
-		int start = 2;
-		int end = 50;
-		this.instanceIndex = 0;
-		this.clusterColumnID = "clusterID";
-//		int start = (int) options.get(0).getSelected();
-//		int end = (int) options.get(1).getSelected();
-//		this.instanceIndex = (Integer) options.get(2).getSelected();
+//		int start = 2;
+//		int end = 50;
+//		this.instanceIndex = 0;
+//		this.clusterColumnID = "clusterID";
+		int start = (int) options.get(0).getSelected();
+		int end = (int) options.get(1).getSelected();
+		this.instanceIndex = (Integer) options.get(2).getSelected();
 		
 		
 		this.attributeNames = data[0].getColumnHeaders();
 		this.instanceType = attributeNames[instanceIndex];
 		this.isNumeric = data[0].isNumeric();
-		this.numRows = data[0].getNumRows();
 		ITableDataFrame results = runGoldenSelectionForNumberOfClusters(data[0], start, end);
 		return results;
 	}
@@ -158,19 +156,12 @@ public class MultiClusteringRoutine implements IAnalyticRoutine {
 			}
 		}
 		
-		double permutations = numRows + (double) (numClusters * (numClusters-1) /2);// + numerator;
-		double clusterScore = innerClusterSimilairty/numClusters + clusterToClusterSimilarity / ( (double) (numClusters * (numClusters-1) /2));
-		
-		System.out.println("Cluster number = " + clusters.size() + " with permutations = " + permutations);
-		System.out.println("Cluster number = " + clusters.size() + " with instance score = " + innerClusterSimilairty/numClusters);
-		System.out.println("Cluster number = " + clusters.size() + " with outer score = " + clusterToClusterSimilarity / ( (double) (numClusters * (numClusters-1) /2)));
-		System.out.println("Cluster number = " + clusters.size() + " with score = " + clusterScore);
-		return clusterScore;
+		return innerClusterSimilairty/numClusters + clusterToClusterSimilarity / ( (double) (numClusters * (numClusters-1) /2));
 	}
 	
 	private ITableDataFrame runClusteringRoutine(ITableDataFrame data, int numClusters, List<Cluster> clusters) {
 		//TODO: below is simply for ease in testing
-		this.options.get(2).setSelected(0);
+		//this.options.get(2).setSelected(0);
 		
 		IClustering clustering = new ClusteringRoutine();
 		List<SEMOSSParam> params = clustering.getOptions();

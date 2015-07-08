@@ -67,6 +67,10 @@ public interface INumericalCluster {
 	 */
 	void reset();
 
+	/**
+	 * Get the distance measure map to determine which distance measure to use
+	 * @return
+	 */
 	Map<String, IClusterDistanceMode> getDistanceMeasureForAttribute();
 
 	/**
@@ -77,6 +81,10 @@ public interface INumericalCluster {
 	 */
 	double getClusterSimilarity(INumericalCluster c2, String instanceType);
 	
+	/**
+	 * return the weighting for each numerical attribute
+	 * @return
+	 */
 	Map<String, Double> getWeights();
 	
 }

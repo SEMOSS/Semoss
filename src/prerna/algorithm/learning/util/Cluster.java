@@ -63,17 +63,9 @@ public class Cluster {
 		categoricalCluster.addToCluster(attributeName, attributeInstance, 1.0);
 	}
 	
-//	private void addToCategoricalCluster(String attributeName, String attributeInstance, Double value) {
-//		categoricalCluster.addToCluster(attributeName, attributeInstance, value);
-//	}
-	
 	private void removeFromCategoricalCluster(String attributeName, String attributeInstance) {
 		categoricalCluster.removeFromCluster(attributeName, attributeInstance, 1.0);
 	}
-	
-//	private void removeFromCategoricalCluster(String attributeName, String attributeInstance, Double value) {
-//		categoricalCluster.removeFromCluster(attributeName, attributeInstance, value);
-//	}
 	
 	private void addToNumericalCluster(String attributeName, Double value) {
 		numericalCluster.addToCluster(attributeName, value);
