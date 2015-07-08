@@ -6,23 +6,25 @@ import java.util.Vector;
 
 public class Cluster {
 
+	private int numInstances;
 	private ICategoricalCluster categoricalCluster;
 	private INumericalCluster numericalCluster;
 	
 	private static final String EMPTY = "_____";
 	
-	public Cluster(Map<String, Double> categoricalWeights, Map<String, Double> numericalWeights, Map<String, Double> range) {
+	public Cluster(Map<String, Double> categoricalWeights, Map<String, Double> numericalWeights, Map<String, Double> range, Map<String, Double> min) {
 		this.categoricalCluster = new CategoricalCluster(categoricalWeights);
-		this.numericalCluster = new NumericalCluster(numericalWeights, range);
+		this.numericalCluster = new NumericalCluster(numericalWeights, range, min);
 	}
 	
 	public void addToCluster(List<Object[]> valuesList, String[] names, boolean[] isNumeric) {
+		numInstances++;
 		for(Object[] values : valuesList) {
 			addToCluster(values, names, isNumeric);
 		}
 	}
 	
-	public void addToCluster(Object[] values, String[] names, boolean[] isNumeric) {
+	private void addToCluster(Object[] values, String[] names, boolean[] isNumeric) {
 		for(int i = 0; i < values.length; i++){
 			if(isNumeric[i]) {
 				if(values[i]==null || values[i].equals(EMPTY)) {
@@ -41,12 +43,13 @@ public class Cluster {
 	}
 	
 	public void removeFromCluster(List<Object[]> valuesList, String[] names, boolean[] isNumeric) {
+		numInstances--;
 		for(Object[] values : valuesList) {
 			removeFromCluster(values, names, isNumeric);
 		}
 	}
 	
-	public void removeFromCluster(Object[] values, String[] names, boolean[] isNumeric) {
+	private void removeFromCluster(Object[] values, String[] names, boolean[] isNumeric) {
 		for(int i = 0; i < values.length; i++){
 			if(isNumeric[i]) {
 				removeFromNumericalCluster(names[i], (Double)values[i]);
@@ -207,4 +210,32 @@ public class Cluster {
 		numericalCluster.reset();
 	}
 
+	public ICategoricalCluster getCategoricalCluster() {
+		return categoricalCluster;
+	}
+
+	public INumericalCluster getNumericalCluster() {
+		return numericalCluster;
+	}
+	
+	public double getClusterSimilarity(Cluster c2, String instanceType) {
+		int numCategorical = 0;
+		int numNumeric = 0;
+		if(this.categoricalCluster.getWeights() != null) {
+			numCategorical = this.categoricalCluster.getWeights().keySet().size();
+		}
+		if(this.numericalCluster.getWeights() != null) {
+			numNumeric = this.numericalCluster.getWeights().keySet().size();
+		}
+		int totalAttributes = numCategorical + numNumeric;
+		
+		double numericalClusterSim = ((double) numNumeric / totalAttributes) * this.numericalCluster.getClusterSimilarity(c2.getNumericalCluster(), instanceType);
+		double categoricalClusterSim = ((double) numCategorical / totalAttributes) * this.categoricalCluster.getClusterSimilarity(c2.getCategoricalCluster(), instanceType);
+		return numericalClusterSim + categoricalClusterSim;
+	}
+	
+	public int getNumInstances() {
+		return this.numInstances;
+	}
+	
 }

@@ -6,14 +6,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.util.Cluster;
 import prerna.algorithm.learning.util.IClusterDistanceMode;
 import prerna.math.SimilarityWeighting;
 import prerna.om.SEMOSSParam;
 
-public abstract class AbstractClusteringRoutine implements IClustering, IAnalyticRoutine {
+public abstract class AbstractClusteringRoutine implements IClustering {
 
 	protected boolean success;
 	
@@ -62,6 +61,7 @@ public abstract class AbstractClusteringRoutine implements IClustering, IAnalyti
 	public void calculateWeights() {
 		int i = 0;
 		int size = attributeNames.length;
+		String instanceType = attributeNames[instanceIndex];
 		
 		List<Double> numericalEntropy = new ArrayList<Double>();
 		List<String> numericalNames = new ArrayList<String>();
@@ -71,6 +71,9 @@ public abstract class AbstractClusteringRoutine implements IClustering, IAnalyti
 		
 		for(; i < size; i++) {
 			String attribute = attributeNames[i];
+			if(attribute.equals(instanceType)) {
+				continue;
+			}
 			if(isNumeric[i]) {
 				numericalNames.add(attribute);
 				numericalEntropy.add(dataFrame.getEntropyDensity(attribute));
@@ -136,5 +139,9 @@ public abstract class AbstractClusteringRoutine implements IClustering, IAnalyti
 		List<String> changedCols = new ArrayList<String>();
 		changedCols.add(this.clusterColumnID);
 		return changedCols;
+	}
+	
+	public List<Cluster> getClusters() {
+		return this.clusters;
 	}
 }

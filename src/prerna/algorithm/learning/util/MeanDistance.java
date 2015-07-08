@@ -39,6 +39,7 @@ public class MeanDistance implements IClusterDistanceMode {
 		centroidValue = currValue / numInstances;
 	}
 	
+	@Override
 	public double getNullRatio() {
 		double e = (double)emptyInstances;
 		double i = (double)numInstances;
@@ -55,5 +56,15 @@ public class MeanDistance implements IClusterDistanceMode {
 		centroidValue = 0;
 		numInstances = 0;
 		emptyInstances = 0;
+	}
+
+	@Override
+	public int getNumNull() {
+		return emptyInstances;
+	}
+
+	@Override
+	public int getNumInstances() {
+		return numInstances;
 	}
 }

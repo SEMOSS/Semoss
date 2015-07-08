@@ -47,13 +47,6 @@ public interface INumericalCluster {
 	 */
 	Double getSimilarity(String attributeName, Double value);
 	
-//	/**
-//	 * Get similarity for the instance passed in to this cluster
-//	 * @param numericalValues				the values
-//	 * @param numericalAttributeValues
-//	 */
-//	Double getSimilarity(List<String> attributeName, List<Double> value);
-	
 	/**
 	 * 
 	 * @param attributeName
@@ -69,15 +62,21 @@ public interface INumericalCluster {
 	 */
 	boolean isEmpty();
 
-	/*
+	/**
 	 * Resets the cluster
 	 */
 	void reset();
 
-//	/**
-//	 * 
-//	 * @param numericalWeights
-//	 */
-//	void setWeights(Map<String, Double> numericalWeights);
+	Map<String, IClusterDistanceMode> getDistanceMeasureForAttribute();
+
+	/**
+	 * Get the similarity of one cluster to the other cluster
+	 * @param c2							The second cluster to determine how similar it is
+	 * @param instanceType					The type of the instance
+	 * @return								the similarity value
+	 */
+	double getClusterSimilarity(INumericalCluster c2, String instanceType);
+	
+	Map<String, Double> getWeights();
 	
 }
