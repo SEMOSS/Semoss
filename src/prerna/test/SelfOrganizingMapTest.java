@@ -115,8 +115,8 @@ public class SelfOrganizingMapTest {
 		
 		// grid size is correct
 		System.out.println();
-		assertTrue("Grid Height", (alg.getGrid().getHeight() == 0));
-		assertTrue("Grid Height", (alg.getHeight() == 0));
+		assertTrue("Grid Height", (alg.getGrid().getWidth() == 0));
+		assertTrue("Grid Height", (alg.getWidth() == 0));
 		assertTrue("Grid Length", (alg.getGrid().getLength() == 0));
 		assertTrue("Grid Length", (alg.getLength() == 0));
 
@@ -131,8 +131,8 @@ public class SelfOrganizingMapTest {
 		alg = new SelfOrganizingMap(list, names);
 		
 		//grid size is correct
-		assertTrue("Grid Height", (alg.getGrid().getHeight() == 1));
-		assertTrue("Grid Height",(alg.getHeight() == 1));
+		assertTrue("Grid Height", (alg.getGrid().getWidth() == 1));
+		assertTrue("Grid Height",(alg.getWidth() == 1));
 		assertTrue("Grid Length", (alg.getGrid().getLength() == 2));
 		assertTrue("Grid Length",(alg.getLength() == 2));
 		

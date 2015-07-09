@@ -101,7 +101,7 @@ public class SelfOrganizingMap3DBarChartPlaySheet extends BrowserPlaySheet {
 		if(success == false) {
 			Utility.showError("Error occured running SOM Algorithm!");
 		} else {
-			zAxisGrid = SelfOrganizingMapGridViewer.generateZAxisGridValues(alg.getLength(), alg.getHeight(), alg.getNumInstancesInGrid());
+			zAxisGrid = SelfOrganizingMapGridViewer.generateZAxisGridValues(alg.getLength(), alg.getWidth(), alg.getNumInstancesInGrid());
 		}
 		
 		long end = System.currentTimeMillis();
