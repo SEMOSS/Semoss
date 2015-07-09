@@ -13,7 +13,7 @@ public class SelfOrganizingMap {
 
 	private SelfOrganizingMapGrid grid;
 	private int length;
-	private int height;
+	private int width;
 	private int numGrids;
 	
 	private ClusterCenterNumericalMethods cnm;
@@ -189,11 +189,11 @@ public class SelfOrganizingMap {
 			size = maxSize;
 		}
 		double x = Math.sqrt((double) size / (6*5));
-		height = (int) Math.round(2*x);
+		width = (int) Math.round(2*x);
 		length = (int) Math.round(3*x);
 		
-		this.numGrids = height*length;
-		grid.setHeight(height);
+		this.numGrids = width*length;
+		grid.setWidth(width);
 		grid.setLength(length);
 		grid.setNumGrids(numGrids);
 	}
@@ -221,12 +221,12 @@ public class SelfOrganizingMap {
 		this.length = length;
 	}
 
-	public int getHeight() {
-		return height;
+	public int getWidth() {
+		return width;
 	}
 
-	public void setHeight(int height) {
-		this.height = height;
+	public void setWidth(int width) {
+		this.width = width;
 	}
 
 	public int getNumGrids() {

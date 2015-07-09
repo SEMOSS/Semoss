@@ -12,7 +12,7 @@ public class SelfOrganizingMapGrid {
 	public static final String ADJACENT_CELLS_RADIUS_KEY = "radiusOfCells";
 
 	private int length;
-	private int height;
+	private int width;
 	private int numGrids;
 
 	public static void main(String[] args) {
@@ -26,10 +26,10 @@ public class SelfOrganizingMapGrid {
 
 	}
 
-	public SelfOrganizingMapGrid(int length, int height) {
+	public SelfOrganizingMapGrid(int length, int width) {
 		this.length = length;
-		this.height = height;
-		this.numGrids = length*height;
+		this.width = width;
+		this.numGrids = length*width;
 	}
 
 	public Map<String, List<Integer>> getAdjacentCellsInRadius(int cell, double radius) {
@@ -192,12 +192,12 @@ public class SelfOrganizingMapGrid {
 		this.length = length;
 	}
 
-	public int getHeight() {
-		return height;
+	public int getWidth() {
+		return width;
 	}
 
-	public void setHeight(int height) {
-		this.height = height;
+	public void setWidth(int width) {
+		this.width = width;
 	}
 
 	public int getNumGrids() {

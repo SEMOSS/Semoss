@@ -53,13 +53,13 @@ public class MultiClusteringRoutine implements IAnalyticRoutine {
 	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
 		// values defined in options
 		//TODO: below is simply for ease in testing
-//		int start = 2;
-//		int end = 50;
-//		this.instanceIndex = 0;
-//		this.clusterColumnID = "clusterID";
-		int start = (int) options.get(0).getSelected();
-		int end = (int) options.get(1).getSelected();
-		this.instanceIndex = (Integer) options.get(2).getSelected();
+		int start = 2;
+		int end = 50;
+		this.instanceIndex = 0;
+		this.clusterColumnID = "clusterID";
+//		int start = (int) options.get(0).getSelected();
+//		int end = (int) options.get(1).getSelected();
+//		this.instanceIndex = (Integer) options.get(2).getSelected();
 		
 		
 		this.attributeNames = data[0].getColumnHeaders();
@@ -161,7 +161,7 @@ public class MultiClusteringRoutine implements IAnalyticRoutine {
 	
 	private ITableDataFrame runClusteringRoutine(ITableDataFrame data, int numClusters, List<Cluster> clusters) {
 		//TODO: below is simply for ease in testing
-		//this.options.get(2).setSelected(0);
+		this.options.get(2).setSelected(0);
 		
 		IClustering clustering = new ClusteringRoutine();
 		List<SEMOSSParam> params = clustering.getOptions();

@@ -181,17 +181,9 @@ public class Cluster {
 		return similarityValue;
 	}
 
-//	private double getSimilarityFromNumericalValues(List<Double> numericalValues, List<String> numericalValueNames) {
-//		return numericalCluster.getSimilarity(numericalValueNames, numericalValues);
-//	}
-
 	private double getSimilarityFromNumericalValues(List<Double> numericalValues, List<String> numericalValueNames, int index) {
 		return numericalCluster.getSimilarity(numericalValueNames, numericalValues, index);
 	}
-	
-//	private double getSimilarityFromCategoricalValues(List<String> categoricalValues, List<String> categoricalValueNames) {
-//		return categoricalCluster.getSimilarity(categoricalValues, categoricalValueNames);
-//	}
 	
 	private double getSimilarityFromCategoricalValues(List<String> categoricalValues, List<String> categoricalValueNames, int index) {
 		return categoricalCluster.getSimilarity(categoricalValueNames, categoricalValues, index);
@@ -228,6 +220,10 @@ public class Cluster {
 	
 	public int getNumInstances() {
 		return this.numInstances;
+	}
+	
+	public void setNumInstances(int numInstances) {
+		this.numInstances = numInstances;
 	}
 	
 }

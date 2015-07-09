@@ -28,7 +28,12 @@ public interface IClustering extends IAnalyticRoutine {
 	 */
 	void updateInstanceIndex(List<Object[]> instance, String[] attributeNames, boolean[] isNumeric, Cluster clusterToAdd);
 	
-	
+	/**
+	 * Remove the given instance from the cluster center 
+	 * @param instance						The values for the instance
+	 * @param attributeNames				The names of all the attributes corresponding to the instance array
+	 * @param isNumeric						boolean array saying which parameters are numeric vs. string	 * @param clusterToRemove
+	 */
 	void removeInstanceIndex(List<Object[]> instance, String[] attributeNames, boolean[] isNumeric, Cluster clusterToRemove);
 	
 	/**
@@ -38,8 +43,12 @@ public interface IClustering extends IAnalyticRoutine {
 	 * @param bestCluster					The best cluster for the instance in the current algorithm iteration
 	 * @return								boolean of true if instance changed cluster centers, false otherwise
 	 */
-	boolean isInstanceChangedCluster(Map<String, Integer> results, String instanceName, int bestCluster);
+	boolean isInstanceChangedCluster(Map<Object, Integer> results, Object instanceName, int bestCluster);
 
+	/**
+	 * Returns the list of cluster centers
+	 * @return
+	 */
 	List<Cluster> getClusters();
 	
 }
