@@ -16,13 +16,24 @@ public class ActivitySystemGroupPlaySheet extends GridPlaySheet{
 
 	private static final Logger LOGGER = LogManager.getLogger(SequencingDecommissioningPlaySheet.class.getName());
 
-	String insightNameOne = "activity";
-	String insightNameTwo = "systems simple";
+	String insightNameOne;
+	String insightNameTwo;
 
 	public ActivitySystemGroupPlaySheet(){
 		super();
 	}
 
+	/* (non-Javadoc)
+	 * @see prerna.ui.components.playsheets.AbstractRDFPlaySheet#setQuery(java.lang.String)
+	 */
+	@Override
+	public void setQuery(String query){
+		String delimiters = "[,]";
+		String[] insights = query.split(delimiters);
+		insightNameOne = insights[0];
+		insightNameTwo = insights[1];
+	}
+	
 	/* (non-Javadoc)
 	 * @see prerna.ui.components.playsheets.BasicProcessingPlaySheet#createData()
 	 */

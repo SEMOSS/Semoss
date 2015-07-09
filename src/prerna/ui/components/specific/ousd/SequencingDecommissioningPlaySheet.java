@@ -84,8 +84,9 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 		ISelectWrapper compObjWrap = WrapperManager.getInstance().getSWrapper(this.engine, this.compObjQuery);
 		//wrapper manager, etc. to fill sys list
 		String[] compObjNames = compObjWrap.getVariables();
+		String compObjName = compObjNames[0];
 		while(compObjWrap.hasNext()){
-			this.compObjList.add(compObjWrap.next().getRawVar(compObjNames[0])+"");
+			this.compObjList.add(compObjWrap.next().getRawVar(compObjName)+"");
 		}
 
 		Integer[][] dependMatrix = createDependencyMatrices();
@@ -93,16 +94,16 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 		
 //		List<HashMap<String, List<Object[]>>> addtlCols = createAddtlCols(groups);
 		
-		createTable(groups);
+		createTable(groups, compObjName);
 	}
 	
-	private void createTable(HashMap<Integer, List<ArrayList<Integer>>> groups){
+	private void createTable(HashMap<Integer, List<ArrayList<Integer>>> groups, String compObjName){
 		int groupCounter = 0;
 
 		// build the names
 		List<String> namesList = new ArrayList<String>();
-		namesList.add("Comparison Object");
-		namesList.add("Group Value");
+		namesList.add(compObjName);
+		namesList.add(compObjName + " Group");
 
 		list = new ArrayList<Object[]>();
 		//key is counter for one level above group
@@ -127,7 +128,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 						for(Object[] row : addtlCols){
 							Object[] depObj2 = depObj.clone();
 							for(int addtlIdx = 2 ; addtlIdx < row.length; addtlIdx++ ){
-								System.out.println(row[addtlIdx]);
+								LOGGER.debug(row[addtlIdx]);
 								depObj2[addtlIdx] = row[addtlIdx];
 							}
 							list.add(depObj2);
@@ -152,7 +153,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			bindings = bindings + "(<" + name + ">)";
 		}
 		String filledQuery = addtlQuery.replaceAll("~~GroupMembers-GroupMembers~~", bindings).replaceAll("~~DepObj-DepObj~~", this.depObjFilterString);
-		LOGGER.info("col query " + filledQuery);
+		LOGGER.debug("col query " + filledQuery);
 		ISelectWrapper sw = WrapperManager.getInstance().getSWrapper(this.engine, filledQuery);
 		
 		String[] wrapNames = sw.getVariables();
