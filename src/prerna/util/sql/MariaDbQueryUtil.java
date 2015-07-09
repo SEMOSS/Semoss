@@ -55,6 +55,7 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 		super.setDialectOuterJoinRight(" RIGHT JOIN ");
 		super.setDefaultDbUserName("root");
 		super.setDefaultDbPassword("");
+		super.setDialectDeleteDBSchema("DROP DATABASE IF EXISTS ");
 	}
 	
 
