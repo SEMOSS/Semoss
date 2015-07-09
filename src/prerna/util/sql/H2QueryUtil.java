@@ -118,6 +118,17 @@ public class H2QueryUtil extends SQLQueryUtil {
 		}
 
 		return query;
+	}
+
+	@Override
+	public String getEngineNameFromConnectionURL(String connectionURL) {
+		int indexOfSemiColon = connectionURL.indexOf(";");
+		String connUrlSubStr = connectionURL.substring(0, indexOfSemiColon);
+		int lastIndexOfSlashAfterEngineNm = connUrlSubStr.lastIndexOf("/");
+		connUrlSubStr = connUrlSubStr.substring(0, lastIndexOfSlashAfterEngineNm);
+		int lastIndexOfSlashBeforeEngineNm = connUrlSubStr.lastIndexOf("/");
+		String engineName = connectionURL.substring(lastIndexOfSlashBeforeEngineNm+1, lastIndexOfSlashAfterEngineNm);
+		return engineName;
 	}	
 	
 }

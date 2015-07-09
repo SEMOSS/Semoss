@@ -336,4 +336,9 @@ public abstract class SQLQueryUtil {
 	public void setDialectForceGraph(String dialectForceGraph){
 		this.dialectForceGraph = dialectForceGraph;
 	}
+	
+	public String getTempConnectionURL(){
+		return "";
+	}
+	public abstract String getEngineNameFromConnectionURL(String connectionURL);
 }
