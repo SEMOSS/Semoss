@@ -76,6 +76,9 @@ public abstract class SQLQueryUtil {
 	//"full outer join"
 	private String dialectOuterJoinLeft = "";
 	private String dialectOuterJoinRight = "";
+	
+	// delete db
+	private String dialectDeleteDBSchema = "";
 
 
 	// Add SQLServer compatibility
@@ -277,6 +280,10 @@ public abstract class SQLQueryUtil {
 	public String getDialectForceGraph(String dbName){
 		return dialectForceGraph;
 	}
+	
+	public String getDialectDeleteDBSchema(String dbName) {
+		return this.dialectDeleteDBSchema + dbName;
+	}
 
 	//SETTERS
 	public void setDefaultDbUserName(String defaultDbUserName){
@@ -337,8 +344,13 @@ public abstract class SQLQueryUtil {
 		this.dialectForceGraph = dialectForceGraph;
 	}
 	
+	public void setDialectDeleteDBSchema(String dialectDeleteDBSchema) {
+		this.dialectDeleteDBSchema = dialectDeleteDBSchema;
+	}
+
 	public String getTempConnectionURL(){
 		return "";
 	}
 	public abstract String getEngineNameFromConnectionURL(String connectionURL);
+
 }
