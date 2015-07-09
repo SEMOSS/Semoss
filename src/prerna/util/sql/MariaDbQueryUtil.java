@@ -71,7 +71,8 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 	public String getConnectionURL(String baseFolder,String dbname){
 		return connectionBase + System.getProperty("file.separator") + dbname;
 	}
-	public static String getTempConnectionURL(){
+	@Override
+	public String getTempConnectionURL(){
 		return connectionBase;
 	}
 	@Override
@@ -161,5 +162,13 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 		return query;
 
 	}
+
+	@Override
+	public String getEngineNameFromConnectionURL(String connectionURL) {
+		String engineName = "";
+		String splitConnectionURL[] = connectionURL.split("/");
+		engineName = splitConnectionURL[splitConnectionURL.length - 1];
+		return engineName;
+	}	
 	
 }

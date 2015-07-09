@@ -110,17 +110,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			if (dbTypeString != null) {
 				dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
 			}
-			//special treatment for mariadb
-			if(dbType == SQLQueryUtil.DB_TYPE.MARIA_DB){
-				String splitConnectionURL[] = connectionURL.split("/");
-				tempEngineName = splitConnectionURL[splitConnectionURL.length - 1];
-			}
-			//special treatment for SQL Server
-			//connectionURL: jdbc:sqlserver://localhost:1433;databaseName=tempEngineName;user=username;Password=password;selectMethod=cursor
-			if(dbType.equals(SQLQueryUtil.DB_TYPE.SQL_SERVER)){
-				String splitConnectionURL[] = connectionURL.split("=");
-				String engineName[] = splitConnectionURL[1].split(";");
-				tempEngineName = engineName[0];
+			if(dbType.equals(SQLQueryUtil.DB_TYPE.SQL_SERVER) || dbType == SQLQueryUtil.DB_TYPE.MARIA_DB){
+				tempEngineName = SQLQueryUtil.initialize(dbType).getEngineNameFromConnectionURL(connectionURL);
 			}
 			if(prop.containsKey(Constants.PASSWORD))
 				password = prop.getProperty(Constants.PASSWORD);
