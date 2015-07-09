@@ -207,12 +207,7 @@ public class RDBMSReader {
 		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
 		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
 		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
-		if(queryUtil.getDatabaseType() == SQLQueryUtil.DB_TYPE.MARIA_DB){
-			prop.put(Constants.TEMP_CONNECTION_URL, MariaDbQueryUtil.getTempConnectionURL());
-		}
-		if(queryUtil.getDatabaseType() == SQLQueryUtil.DB_TYPE.SQL_SERVER){
-			prop.put(Constants.TEMP_CONNECTION_URL, SQLServerQueryUtil.getTempConnectionURL());
-		}
+		prop.put(Constants.TEMP_CONNECTION_URL, queryUtil.getTempConnectionURL());
 		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
 		prop.put("TEMP", "TRUE");
 

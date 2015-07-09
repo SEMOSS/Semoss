@@ -41,7 +41,9 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 	public String getConnectionURL(String baseFolder,String dbname){
 		return connectionBase + ";databaseName=" + dbname + ";user=" + super.getDefaultDBUserName() + ";Password=" + super.getDefaultDBPassword() + ";selectMethod=cursor";
 	}
-	public static String getTempConnectionURL(){
+	
+	@Override
+	public String getTempConnectionURL(){
 		return connectionBase;
 	}
 
@@ -141,6 +143,13 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 			String filters, int limit, String groupBy) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public String getEngineNameFromConnectionURL(String connectionURL) {
+		String splitConnectionURL[] = connectionURL.split("=");
+		String engineName[] = splitConnectionURL[1].split(";");
+		return engineName[0];
 	}
 
 }
