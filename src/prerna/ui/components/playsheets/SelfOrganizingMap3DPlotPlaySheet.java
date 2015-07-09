@@ -104,7 +104,7 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 		if(success == false) {
 			Utility.showError("Error occured running SOM Algorithm!");
 		} else {
-			coordinates = SelfOrganizingMapGridViewer.getGridCoordinates(alg.getLength(), alg.getHeight(), alg.getNumInstancesInGrid());
+			coordinates = SelfOrganizingMapGridViewer.getGridCoordinates(alg.getLength(), alg.getWidth(), alg.getNumInstancesInGrid());
 		}
 		
 		long end = System.currentTimeMillis();

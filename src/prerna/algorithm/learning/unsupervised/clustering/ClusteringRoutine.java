@@ -13,7 +13,7 @@ import prerna.ds.BTreeDataFrame;
 
 public class ClusteringRoutine extends AbstractClusteringRoutine {
 
-	private Map<String, Integer> results = new HashMap<String, Integer>();
+	private Map<Object, Integer> results = new HashMap<Object, Integer>();
 	private Map<String, Double> ranges = new HashMap<String, Double>();
 	private Map<String, Double> mins = new HashMap<String, Double>();
 
@@ -57,7 +57,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 		}
 
 		calculateWeights();
-		calculateRanges();
+		calculateMetricsForNormalization();
 		initializeClusters();
 		int maxIt = 100_000;
 		boolean go = true;
@@ -67,7 +67,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 			Iterator<List<Object[]>> it = dataFrame.uniqueIterator(attributeNames[instanceIndex]);
 			while(it.hasNext()) {
 				List<Object[]> instance = it.next();
-				String instanceName = instance.get(0)[instanceIndex].toString();
+				Object instanceName = instance.get(0)[instanceIndex];
 				int bestCluster = findBestClusterForInstance(instance, attributeNames, isNumeric, instanceIndex, clusters);
 				boolean instanceChangeCluster = isInstanceChangedCluster(results, instanceName, bestCluster);
 				if(instanceChangeCluster) {
@@ -90,7 +90,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 		}
 
 		ITableDataFrame returnTable = new BTreeDataFrame(new String[]{attributeNames[instanceIndex], clusterColumnID});
-		for(String instance : results.keySet()) {
+		for(Object instance : results.keySet()) {
 			Map<String, Object> row = new HashMap<String, Object>();
 			row.put(attributeNames[instanceIndex], instance);
 			row.put(clusterColumnID, results.get(instance));
@@ -100,7 +100,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 		return returnTable;
 	}
 
-	private void calculateRanges() {
+	private void calculateMetricsForNormalization() {
 		if(ranges == null || mins == null) {
 			ranges = new HashMap<String, Double>();
 			mins = new HashMap<String, Double>();
@@ -186,7 +186,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 	}
 
 	@Override
-	public boolean isInstanceChangedCluster(Map<String, Integer> results, String instanceName, int bestCluster) {
+	public boolean isInstanceChangedCluster(Map<Object, Integer> results, Object instanceName, int bestCluster) {
 		if(results.containsKey(instanceName)) {
 			if(results.get(instanceName) == bestCluster) {
 				return false;

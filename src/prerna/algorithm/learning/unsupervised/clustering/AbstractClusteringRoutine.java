@@ -17,9 +17,9 @@ public abstract class AbstractClusteringRoutine implements IClustering {
 	protected boolean success;
 	
 	protected List<SEMOSSParam> options;
-	protected final String NUM_CLUSTERS_KEY = "numClusters";
-	protected final String INSTANCE_INDEX_KEY = "instanceIdx";
-	protected final String DISTANCE_MEASURE	= "distanceMeasure";
+	protected static final String NUM_CLUSTERS_KEY = "numClusters";
+	protected static final String INSTANCE_INDEX_KEY = "instanceIdx";
+	protected static final String DISTANCE_MEASURE	= "distanceMeasure";
 	
 	protected String clusterColumnID = "";
 	
@@ -45,15 +45,15 @@ public abstract class AbstractClusteringRoutine implements IClustering {
 		this.options = new ArrayList<SEMOSSParam>();
 
 		SEMOSSParam p1 = new SEMOSSParam();
-		p1.setName(this.NUM_CLUSTERS_KEY);
+		p1.setName(NUM_CLUSTERS_KEY);
 		options.add(0, p1);
 
 		SEMOSSParam p2 = new SEMOSSParam();
-		p2.setName(this.INSTANCE_INDEX_KEY);
+		p2.setName(INSTANCE_INDEX_KEY);
 		options.add(1, p2);
 		
 		SEMOSSParam p3 = new SEMOSSParam();
-		p3.setName(this.DISTANCE_MEASURE);
+		p3.setName(DISTANCE_MEASURE);
 		options.add(2, p3);
 	}
 	
