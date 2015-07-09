@@ -40,8 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import javax.sql.DataSource;
-
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -464,6 +462,13 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		return relation;
 	}
 	
+	public void deleteDB() {
+		if (this.getDbType() != SQLQueryUtil.DB_TYPE.H2_DB) {
+			String deleteText = SQLQueryUtil.initialize(dbType).getDialectDeleteDBSchema(this.engineName);
+			insertData(deleteText);
+		}
+	}
+
 	public SQLQueryUtil.DB_TYPE getDbType() {
 		return this.dbType;
 	}
