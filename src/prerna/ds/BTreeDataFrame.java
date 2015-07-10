@@ -1013,7 +1013,29 @@ public class BTreeDataFrame implements ITableDataFrame {
 		Iterator<List<Object[]>> uniqueIterator = new UniqueBTreeIterator(typeRoot);
 		return uniqueIterator;
 	}
+	
+	public Iterator<Double> scaledIterator(String columnHeader) {
+		if(this.isNumeric(columnHeader)) {
+			TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+			double max = this.getMax(columnHeader);
+			double min = this.getMin(columnHeader);
+			return new ScaledIndexTreeIterator(typeRoot, min, max);
+		} else {
+			throw new IllegalArgumentException("Column must be numeric");
+		}
+	}
 
+	public Iterator<Double> standardizedIterator(String columnHeader) {
+		if(this.isNumeric(columnHeader)) {
+			TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+			Double stdv = this.getStandardDeviation(columnHeader);
+			Double avg = this.getAverage(columnHeader);
+			return new StandardizedIndexTreeIterator(typeRoot, avg, stdv);
+		} else {
+			throw new IllegalArgumentException("Column must be numeric");
+		}
+	}
+	
 	@Override
 	public Object[] getColumn(String columnHeader) {
 
