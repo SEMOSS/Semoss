@@ -16,5 +16,11 @@ public interface IClusterDistanceMode {
 	
 	int getNumInstances();
 	
+	double getPreviousCentroidValue();
+	
+	double getChangeToCentroidValue();
+	
 	void reset();
+
+	boolean isPreviousNull();
 }
