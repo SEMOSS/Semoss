@@ -139,7 +139,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 	}
 	
-	public Connection getConnection(){
+	private Connection getConnection(){
 		Connection connObj = null;
 		if(isConnected()){
 			return engineConn;
