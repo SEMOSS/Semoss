@@ -1008,32 +1008,33 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 	
 	@Override
+	public Iterator<Object[]> scaledIterator() {
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);
+		return new ScaledBTreeIterator(typeRoot, this.isNumeric(), this.getMin(), this.getMax());
+	}
+
+	@Override
+	public Iterator<Object[]> standardizedIterator() {
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);
+		return new ScaledBTreeIterator(typeRoot, this.isNumeric(), this.getAverage(), this.getStandardDeviation());
+	}
+	
+	@Override
 	public Iterator<List<Object[]>> uniqueIterator(String columnHeader) {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);	
 		Iterator<List<Object[]>> uniqueIterator = new UniqueBTreeIterator(typeRoot);
 		return uniqueIterator;
 	}
 	
-	public Iterator<Double> scaledIterator(String columnHeader) {
-		if(this.isNumeric(columnHeader)) {
-			TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-			double max = this.getMax(columnHeader);
-			double min = this.getMin(columnHeader);
-			return new ScaledIndexTreeIterator(typeRoot, min, max);
-		} else {
-			throw new IllegalArgumentException("Column must be numeric");
-		}
+	@Override
+	public Iterator<List<Object[]>> standardizedUniqueIterator(String columnHeader) {
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		return new StandardizedUniqueBTreeIterator(typeRoot, this.isNumeric(), this.getAverage(), this.getStandardDeviation());
 	}
-
-	public Iterator<Double> standardizedIterator(String columnHeader) {
-		if(this.isNumeric(columnHeader)) {
-			TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-			Double stdv = this.getStandardDeviation(columnHeader);
-			Double avg = this.getAverage(columnHeader);
-			return new StandardizedIndexTreeIterator(typeRoot, avg, stdv);
-		} else {
-			throw new IllegalArgumentException("Column must be numeric");
-		}
+	@Override
+	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader) {
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		return new ScaledUniqueBTreeIterator(typeRoot, this.isNumeric(), this.getMin(), this.getMax());
 	}
 	
 	@Override
