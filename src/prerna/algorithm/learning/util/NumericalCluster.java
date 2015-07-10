@@ -5,7 +5,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-public class NumericalCluster implements INumericalCluster {
+public class NumericalCluster {
 
 	//TODO: consolidate these maps to save memory since Keys for all maps are identical
 	private Map<String, IClusterDistanceMode> distanceMeasureForAttribute;
@@ -23,7 +23,6 @@ public class NumericalCluster implements INumericalCluster {
 		this.mins = m;
 	}
 	
-	@Override
 	public Double getSimilarity(List<String> attributeName, List<Double> value, int indexToSkip) {
 		double similarity = 0.0;
 		int numAttr = attributeName.size();
@@ -50,7 +49,6 @@ public class NumericalCluster implements INumericalCluster {
 		return (1 - Math.sqrt(similarity));
 	}
 	
-	@Override
 	public Double getSimilarity(String attribute, Double value) {
 		Double weight = weights.get(attribute);
 		if(value==null) {
@@ -67,54 +65,31 @@ public class NumericalCluster implements INumericalCluster {
 		return 1 - Math.sqrt((Math.pow(value-center, 2))*weight);
 	}
 	
-	@Override
 	public void addToCluster(List<String> attributeName, List<Double> value) {
 		for(int i = 0; i < attributeName.size(); i++) {
 			this.addToCluster(attributeName.get(i), value.get(i));
 		}
 	}
 	
-	@Override
 	public void addToCluster(String attributeName, Double value) {
 		IClusterDistanceMode distanceMeasure = distanceMeasureForAttribute.get(attributeName);
 		distanceMeasure.addToCentroidValue(value);
 	}
 
-	@Override
 	public void removeFromCluster(List<String> attributeName, List<Double> value) {
 		for(int i = 0; i < attributeName.size(); i++) {
 			this.removeFromCluster(attributeName.get(i), value.get(i));
 		}	
 	}
 	
-	@Override
 	public void removeFromCluster(String attributeName, Double value) {
 		IClusterDistanceMode distanceMeasure = distanceMeasureForAttribute.get(attributeName);
 		distanceMeasure.removeFromCentroidValue(value);
 	}
 
-	@Override
-	public void setDistanceMode(String attributeName, IClusterDistanceMode distanceMeasure) {
-		distanceMeasureForAttribute.put(attributeName, distanceMeasure);
-	}
-	
-	@Override
-	public void reset() {
-		for(String key: distanceMeasureForAttribute.keySet()) {
-			distanceMeasureForAttribute.get(key).reset();
-		}
-	}
-
-	@Override
-	public boolean isEmpty() {
-		return distanceMeasureForAttribute.isEmpty();
-	}
-
-	@Override
-	public double getClusterSimilarity(INumericalCluster c2, String instanceType) {
+	public double getClusterSimilarity(NumericalCluster c2, String instanceType) {
 		double similarity = 0;
-		Map<String, IClusterDistanceMode> otherDistanceMeasureForAttribute = c2.getDistanceMeasureForAttribute();
-		if(otherDistanceMeasureForAttribute.isEmpty() || this.distanceMeasureForAttribute.isEmpty()) {
+		if(c2.isEmpty() || this.isEmpty()) {
 			return similarity;
 		}
 		
@@ -124,16 +99,14 @@ public class NumericalCluster implements INumericalCluster {
 			}
 			Double weight = weights.get(attributeName);
 
-			IClusterDistanceMode thisDMeasure = this.distanceMeasureForAttribute.get(attributeName);
-			Double thisCenterValue = thisDMeasure.getCentroidValue();
-			IClusterDistanceMode dMeasure = otherDistanceMeasureForAttribute.get(attributeName);
-			Double centerValue = dMeasure.getCentroidValue();
+			Double thisCenterValue = this.getCenterValueForAttribute(attributeName);
+			Double centerValue = c2.getCenterValueForAttribute(attributeName);
 			if(thisCenterValue == null || centerValue == null) {
-				int thisNumNull = thisDMeasure.getNumNull();
-				int thisNumVals = thisDMeasure.getNumInstances();
-				int numNull = dMeasure.getNumNull();
-				int numVals = dMeasure.getNumInstances();
-				similarity = similarity + (double) (thisNumNull + numNull) / (thisNumVals + numVals) * weight;
+				int thisNumNull = this.getCenterNumNullsForAttribute(attributeName);
+				int thisNumVals = this.getCenterNumInstancesForAttribute(attributeName);
+				int numNull = c2.getCenterNumNullsForAttribute(attributeName);
+				int numVals = c2.getCenterNumInstancesForAttribute(attributeName);
+				similarity = similarity + (double) (thisNumNull + numNull) / (thisNumVals + numVals + thisNumNull + numNull) * weight;
 			}
 			
 			Double range = ranges.get(attributeName);
@@ -149,13 +122,48 @@ public class NumericalCluster implements INumericalCluster {
 		return similarity;
 	}
 
-	@Override
-	public Map<String, IClusterDistanceMode> getDistanceMeasureForAttribute() {
-		return this.distanceMeasureForAttribute;
-	}
-
-	@Override
 	public Map<String, Double> getWeights() {
 		return this.weights;
 	}
+	
+	public void setDistanceMode(String attributeName, IClusterDistanceMode distanceMeasure) {
+		distanceMeasureForAttribute.put(attributeName, distanceMeasure);
+	}
+	
+	public void reset() {
+		for(String key: distanceMeasureForAttribute.keySet()) {
+			distanceMeasureForAttribute.get(key).reset();
+		}
+	}
+
+	public boolean isEmpty() {
+		return distanceMeasureForAttribute.isEmpty();
+	}
+	
+	//////////////START METHODS TO EXTRACT INFORMATION FROM DISTANCE MEASURE//////////////
+	public Double getCenterValueForAttribute(String attributeName) {
+		return this.distanceMeasureForAttribute.get(attributeName).getCentroidValue();
+	}
+	
+	public int getCenterNumInstancesForAttribute(String attributeName) {
+		return this.distanceMeasureForAttribute.get(attributeName).getNumInstances();
+	}
+	
+	public int getCenterNumNullsForAttribute(String attributeName) {
+		return this.distanceMeasureForAttribute.get(attributeName).getNumNull();
+	}
+	
+	public double getPreviousCenterValueForAttribute(String attributeName) {
+		return this.distanceMeasureForAttribute.get(attributeName).getPreviousCentroidValue();
+	}
+	
+	public double getPreviousChangeToCenterForAttribute(String attributeName) {
+		return this.distanceMeasureForAttribute.get(attributeName).getChangeToCentroidValue();
+	}
+	
+	public boolean getIsPreviousNull(String attributeName) {
+		return this.distanceMeasureForAttribute.get(attributeName).isPreviousNull();
+	}
+	//////////////END METHODS TO EXTRACT INFORMATION FROM DISTANCE MEASURE//////////////
+	
 }

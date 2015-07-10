@@ -9,7 +9,7 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-public class CategoricalCluster extends Hashtable<String, Hashtable<String, Double>> implements ICategoricalCluster {
+public class CategoricalCluster extends Hashtable<String, Hashtable<String, Double>> {
 
 	private static final Logger LOGGER = LogManager.getLogger(CategoricalCluster.class.getName());
 	private Map<String, Double> weights = new HashMap<String, Double>();
@@ -26,14 +26,12 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 		weights = categoricalWeights;
 	}
 	
-	@Override
 	public void addToCluster(List<String> attributeNames, List<String> attributeInstances, List<Double> values) {
 		for(int i = 0; i < attributeNames.size(); i++) {
 			this.addToCluster(attributeNames.get(i), attributeInstances.get(i), values.get(i));
 		}
 	}
 	
-	@Override
 	public void addToCluster(String attributeName, String attributeInstance, Double value) {
 		
 		Hashtable<String, Double> valCount = null;
@@ -58,14 +56,12 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 		} 
 	}
 
-	@Override
 	public void removeFromCluster(List<String> attributeNames, List<String> attributeInstances, List<Double> values) {
 		for(int i = 0; i < attributeNames.size(); i++) {
 			this.removeFromCluster(attributeNames.get(i), attributeInstances.get(i), values.get(i));
 		}
 	}
 	
-	@Override
 	public void removeFromCluster(String attributeName, String attributeInstance, Double value) {
 		Hashtable<String, Double> valCount = null;
 		
@@ -96,12 +92,10 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 		} 
 	}
 
-	@Override
 	public Double getSimilarity(String attributeName, String attributeInstance) {
 		return 0.0;
 	}
 
-	@Override
 	public Double getSimilarity(List<String> attributeNames, List<String> attributeInstances, int indexToSkip) {
 		double similarity = 0.0;
 		// loop through all the categorical properties (each weight corresponds to one categorical property)
@@ -130,7 +124,6 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 		return similarity;
 	}
 	
-	@Override
 	public void reset() {
 		for(String key: this.keySet()) {
 			Hashtable<String, Double> table = this.get(key);
@@ -140,8 +133,7 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 		}
 	}
 
-	@Override
-	public double getClusterSimilarity(ICategoricalCluster c2, String instanceType) {
+	public double getClusterSimilarity(CategoricalCluster c2, String instanceType) {
 		double similarity = 0;
 		for(String attributeType : this.keySet()) {
 			if(attributeType.equals(instanceType)) {
@@ -194,7 +186,6 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 		return similarity;
 	}
 	
-	@Override
 	public Map<String, Double> getWeights() {
 		return this.weights;
 	}
