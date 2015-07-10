@@ -6,10 +6,12 @@ public class MeanDistance implements IClusterDistanceMode {
 	private int numInstances;
 	private int emptyInstances;
 	
+	private double previousCentroidValue;
+	private double changeToCentroidValue;
+	private boolean previousNull;
+	
 	public MeanDistance() {
-		centroidValue = 0;
-		numInstances = 0;
-		emptyInstances = 0;
+
 	}
 	
 	@Override
@@ -19,24 +21,32 @@ public class MeanDistance implements IClusterDistanceMode {
 
 	@Override
 	public void addToCentroidValue(Double newValue) {
-		double currValue = centroidValue * numInstances;
-		
-		if(newValue != null) {
-			currValue += newValue;
-			numInstances++;
-		} else {
+		if(newValue == null) {
+			previousNull = true;
 			emptyInstances++;
+			return;
 		}
 		
-		centroidValue = currValue / (numInstances+emptyInstances);
+		previousNull = false;
+		previousCentroidValue = centroidValue;
+		changeToCentroidValue = (newValue - previousCentroidValue) / (numInstances + 1);
+		centroidValue += changeToCentroidValue;
+		numInstances++;
 	}
-
+	
 	@Override
 	public void removeFromCentroidValue(Double newValue) {
-		double currValue = centroidValue * numInstances;
-		currValue -= newValue;
+		if(newValue == null) {
+			previousNull = true;
+			emptyInstances--;
+			return;
+		}
+		
+		previousNull = false;
+		previousCentroidValue = centroidValue;
+		changeToCentroidValue = (-1*newValue - previousCentroidValue) / (numInstances - 1);
+		centroidValue += changeToCentroidValue;
 		numInstances--;
-		centroidValue = currValue / numInstances;
 	}
 	
 	@Override
@@ -56,15 +66,32 @@ public class MeanDistance implements IClusterDistanceMode {
 		centroidValue = 0;
 		numInstances = 0;
 		emptyInstances = 0;
+		previousCentroidValue = 0;
+		changeToCentroidValue = 0;
 	}
 
 	@Override
+	public double getPreviousCentroidValue() {
+		return this.previousCentroidValue;
+	}
+
+	@Override
+	public double getChangeToCentroidValue() {
+		return this.changeToCentroidValue;
+	}
+	
+	@Override
 	public int getNumNull() {
-		return emptyInstances;
+		return this.emptyInstances;
 	}
 
 	@Override
 	public int getNumInstances() {
-		return numInstances;
+		return this.numInstances;
+	}
+	
+	@Override
+	public boolean isPreviousNull() {
+		return this.previousNull;
 	}
 }

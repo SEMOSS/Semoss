@@ -7,8 +7,10 @@ import java.util.Vector;
 public class Cluster {
 
 	private int numInstances;
-	private ICategoricalCluster categoricalCluster;
-	private INumericalCluster numericalCluster;
+	private CategoricalCluster categoricalCluster;
+	private NumericalCluster numericalCluster;
+	
+	private Map<String, IDuplicationReconciliation> dups;
 	
 	private static final String EMPTY = "_____";
 	
@@ -19,8 +21,45 @@ public class Cluster {
 	
 	public void addToCluster(List<Object[]> valuesList, String[] names, boolean[] isNumeric) {
 		numInstances++;
+		
+		// skip all the duplication logic and add directly
+		if(valuesList.size() == 1) {
+			addToCluster(valuesList.get(0), names, isNumeric);
+		}
+		
+		Double[] numVals = new Double[valuesList.get(0).length];
 		for(Object[] values : valuesList) {
-			addToCluster(values, names, isNumeric);
+			for(int i = 0; i < values.length; i++){
+				if(isNumeric[i]) {
+					if(values[i]==null || values[i].equals(EMPTY)) {
+						// do nothing, keep null
+					} else {
+						//TODO: determine if should be using Mean/Max/Min/Sum/Median
+						//implemented to always assume mean at the moment
+						if(numVals[i] == null) {
+							numVals[i] = 0.0;
+						}
+						numVals[i] += (double) values[i];
+					}
+				} else {
+					if(values[i]==null || values[i].equals(EMPTY)){
+						addToCategoricalCluster(names[i], EMPTY);
+					} else {
+						addToCategoricalCluster(names[i], (String)values[i]);
+					}
+				}
+			}
+		}
+		
+		int size = valuesList.size();
+		for(int i = 0; i < isNumeric.length; i++) {
+			if(isNumeric[i]) {
+				if(numVals[i] == null) {
+					addToNumericalCluster(names[i], null);
+				} else {
+					addToNumericalCluster(names[i], numVals[i] / size);
+				}
+			}
 		}
 	}
 	
@@ -30,7 +69,7 @@ public class Cluster {
 				if(values[i]==null || values[i].equals(EMPTY)) {
 					addToNumericalCluster(names[i], null);
 				} else {
-					addToNumericalCluster(names[i], (Double)values[i]);
+					addToNumericalCluster(names[i], (double) values[i]);
 				}
 			} else {
 				if(values[i]==null || values[i].equals(EMPTY)){
@@ -44,15 +83,52 @@ public class Cluster {
 	
 	public void removeFromCluster(List<Object[]> valuesList, String[] names, boolean[] isNumeric) {
 		numInstances--;
+
+		// skip all the duplication logic and add directly
+		if(valuesList.size() == 1) {
+			removeFromCluster(valuesList.get(0), names, isNumeric);
+		}
+		
+		Double[] numVals = new Double[valuesList.get(0).length];
 		for(Object[] values : valuesList) {
-			removeFromCluster(values, names, isNumeric);
+			for(int i = 0; i < values.length; i++){
+				if(isNumeric[i]) {
+					if(values[i]==null || values[i].equals(EMPTY)) {
+						// do nothing, keep null
+					} else {
+						//TODO: determine if should be using Mean/Max/Min/Sum/Median
+						//implemented to always assume mean at the moment
+						if(numVals[i] == null) {
+							numVals[i] = 0.0;
+						}
+						numVals[i] += (double) values[i];
+					}
+				} else {
+					removeFromCategoricalCluster(names[i], (String)values[i]);
+				}
+			}
+		}
+		
+		int size = valuesList.size();
+		for(int i = 0; i < isNumeric.length; i++) {
+			if(isNumeric[i]) {
+				if(numVals[i] == null) {
+					removeFromNumericalCluster(names[i], null);
+				} else {
+					removeFromNumericalCluster(names[i], numVals[i] / size);
+				}
+			}
 		}
 	}
 	
 	private void removeFromCluster(Object[] values, String[] names, boolean[] isNumeric) {
 		for(int i = 0; i < values.length; i++){
 			if(isNumeric[i]) {
-				removeFromNumericalCluster(names[i], (Double)values[i]);
+				if(values[i]==null || values[i].equals(EMPTY)) {
+					removeFromNumericalCluster(names[i], null);
+				} else {
+					removeFromNumericalCluster(names[i], (Double)values[i]);
+				}
 			} else {
 				removeFromCategoricalCluster(names[i], (String)values[i]);
 			}
@@ -189,19 +265,6 @@ public class Cluster {
 		return categoricalCluster.getSimilarity(categoricalValueNames, categoricalValues, index);
 	}
 	
-	public void reset() {
-		categoricalCluster.reset();
-		numericalCluster.reset();
-	}
-
-	public ICategoricalCluster getCategoricalCluster() {
-		return categoricalCluster;
-	}
-
-	public INumericalCluster getNumericalCluster() {
-		return numericalCluster;
-	}
-	
 	public double getClusterSimilarity(Cluster c2, String instanceType) {
 		int numCategorical = 0;
 		int numNumeric = 0;
@@ -218,12 +281,25 @@ public class Cluster {
 		return numericalClusterSim + categoricalClusterSim;
 	}
 	
+	public void reset() {
+		categoricalCluster.reset();
+		numericalCluster.reset();
+	}
+	
 	public int getNumInstances() {
 		return this.numInstances;
 	}
 	
 	public void setNumInstances(int numInstances) {
 		this.numInstances = numInstances;
+	}
+	
+	public CategoricalCluster getCategoricalCluster() {
+		return categoricalCluster;
+	}
+
+	public NumericalCluster getNumericalCluster() {
+		return numericalCluster;
 	}
 	
 }

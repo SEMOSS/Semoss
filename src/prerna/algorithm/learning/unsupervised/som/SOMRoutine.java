@@ -10,7 +10,6 @@ import java.util.Set;
 
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.algorithm.learning.similarity.ClusterCenter;
 import prerna.algorithm.learning.util.Cluster;
 import prerna.math.SimilarityWeighting;
 import prerna.om.SEMOSSParam;
@@ -57,9 +56,6 @@ public class SOMRoutine implements IAnalyticRoutine {
 	
 	// in order to keep the grid size reasonable
 	private int maxInstanceSize = 3000;
-	
-	// algorithm variables
-	
 	
 	public SOMRoutine() {
 		this.options = new ArrayList<SEMOSSParam>();
@@ -142,7 +138,6 @@ public class SOMRoutine implements IAnalyticRoutine {
 		while(currIt < maxIterations && go) {
 			System.out.println("Current Iteration: " + currIt);
 			go = false;
-			int i = 0;
 			// determine radius of influence for this iteration
 			double radiusOfInfluence = initalRadius * Math.exp( -1.0 * currIt / tau);
 			// determine learning rate for this iteration
@@ -175,9 +170,8 @@ public class SOMRoutine implements IAnalyticRoutine {
 						int effected_grid = adjacentCells.get(adjIdx);
 						int effect_radius = adjacentCellsRadius.get(adjIdx);
 						double adaption_effect = Math.exp( -1.0 * Math.pow(effect_radius, 2) / ( 2 * Math.pow(radiusOfInfluence, 2) ));
-//						gridCenters.get(effected_grid).addToCluster(instance, attributeNames, isNumeric, adaption_effect);
+//						gridCenters.get(effected_grid).addToCluster(instance, attributeNames, isNumeric, learningInfluence * adaption_effect);
 					}
-					
 				}
 				currIt++;
 			}
