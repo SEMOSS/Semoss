@@ -300,7 +300,7 @@ public class SimpleTreeNode {
 				SimpleTreeNode curParentNode = null;
 //				System.out.println("Total number of parents " + parentNodes.size());
 //				StringTokenizer leftRightTokens = new StringTokenizer(line, "|");
-				String[] leftRightTokens = line.split("|{3}");
+				String[] leftRightTokens = line.split("\\|{3}");
 				for(String leftChildString: leftRightTokens)
 				{
 					if(curParentNode == null)
