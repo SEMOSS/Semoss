@@ -28,6 +28,7 @@
 package prerna.ui.components.specific.ousd;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -88,6 +89,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 		while(compObjWrap.hasNext()){
 			this.compObjList.add(compObjWrap.next().getRawVar(compObjName)+"");
 		}
+//		Collections.sort(this.compObjList);
 
 		Integer[][] dependMatrix = createDependencyMatrices();
 		HashMap<Integer, List<ArrayList<Integer>>> groups = createDecommissioningGroups(dependMatrix);
