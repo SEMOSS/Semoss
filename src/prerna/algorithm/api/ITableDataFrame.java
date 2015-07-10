@@ -249,15 +249,29 @@ public interface ITableDataFrame {
 	 * @param columnHeader
 	 * @return
 	 */
-	Iterator<Double> standardizedIterator(String columnHeader);
+	Iterator<Object[]> standardizedIterator();
 	
 	/**
 	 * 	 * Returns the iterator that will iterate through a numeric column
-	 * the iterator will return the each unique value in the column as a function -> x' = (x - min(columnHeader))/(max(columnHeader) - min(columnHeader))
+	 * the iterator will return the each unique value in the column as a function -> x' = (x - min(columnHeader))/(max(columnHeader) - min(columnHeader))	 * @param columnHeader
+	 * @return
+	 */
+	Iterator<Object[]> scaledIterator();
+	
+	/**
+	 * Returns the iterator that will iterate through a numeric column
+	 * the iterator will return the each unique value in the column as a function -> x' = (x - average(columnHeader))/stdv(columnHeader)
 	 * @param columnHeader
 	 * @return
 	 */
-	Iterator<Double> scaledIterator(String columnHeader);
+	Iterator<List<Object[]>> standardizedUniqueIterator(String columnHeader);
+	
+	/**
+	 * 	 * Returns the iterator that will iterate through a numeric column
+	 * the iterator will return the each unique value in the column as a function -> x' = (x - min(columnHeader))/(max(columnHeader) - min(columnHeader))	 * @param columnHeader
+	 * @return
+	 */
+	Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader);
 	
 	/**
 	 * Get the values for a specific column in the data-frame
