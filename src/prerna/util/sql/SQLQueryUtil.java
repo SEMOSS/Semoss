@@ -78,7 +78,7 @@ public abstract class SQLQueryUtil {
 	private String dialectOuterJoinRight = "";
 	
 	// delete db
-	private String dialectDeleteDBSchema = "";
+	private String dialectDeleteDBSchema = "DROP DATABASE ";
 
 
 	// Add SQLServer compatibility
