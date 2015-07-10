@@ -14,6 +14,7 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.QuestionAdministrator;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Utility;
 
 public class AutoInsightCallable implements Callable<List<Object[]>> {
 
@@ -430,7 +431,7 @@ public class AutoInsightCallable implements Callable<List<Object[]>> {
 			String varClean;
 			if(classType.equals(InsightRuleConstants.PROPERTY_VALUE)) {
 				var = names[assignments.get(i)];
-				varClean = var.replaceAll("-","_");
+				varClean = Utility.cleanVariableString(var);
 
 				triplesString += PROPERTY_TRIPLE.replaceAll("@CONCEPT@",concept).replaceAll("@PROP@", var).replaceAll("@PROPCLEAN@", varClean);
 
@@ -438,7 +439,7 @@ public class AutoInsightCallable implements Callable<List<Object[]>> {
 
 			} else {
 				var = relatedConcepts.get(assignments.get(i));
-				varClean = var.replaceAll("-","_");
+				varClean = Utility.cleanVariableString(var);
 
 				String direction = conceptDirectionList.get(assignments.get(i));
 				if(direction.equals(DOWNSTREAM))
