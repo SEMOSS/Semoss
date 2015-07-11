@@ -28,13 +28,12 @@
 package prerna.ui.components.specific.ousd;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
-
-import javax.swing.event.ListSelectionEvent;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -92,14 +91,66 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 //		Collections.sort(this.compObjList);
 
 		Integer[][] dependMatrix = createDependencyMatrices();
-		HashMap<Integer, List<ArrayList<Integer>>> groups = createDecommissioningGroups(dependMatrix);
+		List<List<Integer>> groups = createGroups(dependMatrix);
+		Map<Integer, List<List<Integer>>> decomGroups = createDecommissioningGroups(groups); 
 		
 //		List<HashMap<String, List<Object[]>>> addtlCols = createAddtlCols(groups);
 		
-		createTable(groups, compObjName);
+		createTable(decomGroups, compObjName);
 	}
 	
-	private void createTable(HashMap<Integer, List<ArrayList<Integer>>> groups, String compObjName){
+	private static Map<Integer, List<List<Integer>>> createDecommissioningGroups(List<List<Integer>> groups){
+		Map<Integer, List<List<Integer>>> decomGroups = new HashMap<Integer, List<List<Integer>>>();
+		List<Integer> procRows = new ArrayList<Integer>();
+
+		int waveInt = 0;
+		while (!groups.isEmpty()){
+			LOGGER.info("Begining processing of wave ::::::::::::::::: " + waveInt);
+			List<List<Integer>> wave = new ArrayList<List<Integer>>();
+			groupsFor: for (List<Integer> group : groups){
+				LOGGER.info("Evaluating for wave " + waveInt + " the group " + Arrays.toString(group.toArray()));
+				List<List<Integer>> overlapping = new ArrayList<List<Integer>>();
+				group.removeAll(procRows);
+				for(List<Integer> waveGroup : wave){
+					if(!Collections.disjoint(group, waveGroup)){ // this mean my group has some overlap with a wave group
+						overlapping.add(waveGroup);
+					}
+				}
+				if(overlapping.isEmpty()){
+					LOGGER.info("NO OVERLAP ::: Adding to wave and continuing");
+					wave.add(group);
+					continue groupsFor;
+				}
+				for(List<Integer> overlappingGroup: overlapping){
+					if(group.size() > overlappingGroup.size()){
+						LOGGER.info("OVERLAP FOUND and not smallest ::: skipping group");
+						continue groupsFor;
+					}
+				}
+				// if we get here, we need to remove all overlapping groups from wave array and add our new, smaller group
+				LOGGER.info("OVERLAP FOUND and IS smallest ::: removing the following overlapping groups ::: ");
+				for(List<Integer> overlappingGroup: overlapping){
+					LOGGER.info("removing " + Arrays.toString(overlappingGroup.toArray()));
+					wave.remove(overlappingGroup);
+				}
+				
+				wave.add(group);
+			}
+
+			LOGGER.info("DONE PROCESSING WAVE ::::::: " + waveInt);
+			for(List<Integer> thegroup: wave){
+				LOGGER.info("WAVE ::::::: " + waveInt + " :::::::: CONTAINS ::::::::::" + Arrays.toString(thegroup.toArray()));
+				procRows.addAll(thegroup);
+				groups.remove(thegroup);
+			}
+			decomGroups.put(waveInt, wave);
+			waveInt ++;
+		}
+		
+		return decomGroups;
+	}
+	
+	private void createTable(Map<Integer, List<List<Integer>>> groups, String compObjName){
 		int groupCounter = 0;
 
 		// build the names
@@ -110,8 +161,8 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 		list = new ArrayList<Object[]>();
 		//key is counter for one level above group
 		for(Integer key: groups.keySet()){
-			List<ArrayList<Integer>> depGroups = groups.get(key);
-			for(ArrayList<Integer> depGroup: depGroups){
+			List<List<Integer>> depGroups = groups.get(key);
+			for(List<Integer> depGroup: depGroups){
 				String keyToGroupCounter = new String(key.toString()+"."+groupCounter);
 //				double location = Double.parseDouble(keyToGroupCounter);
 				
@@ -220,110 +271,21 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 	/**
 	 * @param systemMatrix
 	 */
-	private static HashMap<Integer, List<ArrayList<Integer>>> createDecommissioningGroups(Integer[][] dependMatrix)
+	private static List<List<Integer>> createGroups(Integer[][] dependMatrix)
 	{
 
-		//retrieve matrices
-		List<Integer> procRows = new ArrayList<Integer>();
-		HashMap<Integer, Integer> rowSums = new HashMap<Integer, Integer>();
-		HashMap<Integer, List<ArrayList<Integer>>> groups = new HashMap<Integer, List<ArrayList<Integer>>>();
-		int groupNumber = 0;
-
-		//add all rows into map
-		for(int i=0; i < dependMatrix.length; i++){
-			int rowTotal = 0;
-			for(int j=0; j < dependMatrix[i].length; j++){
-				if(dependMatrix[i][j]==null){
-					continue;
-				}
-				rowTotal = rowTotal + dependMatrix[i][j];
-			}
-			LOGGER.debug("Mapping row "+i+" to total "+rowTotal);
-			rowSums.put(i, rowTotal);
-		}
-
-		//loop until every system has been processed
-		while(procRows.size() != dependMatrix.length){
+		Map<String, ArrayList<Integer>> groups = new HashMap<String, ArrayList<Integer>>();
+		for( int idx = 0; idx < dependMatrix.length ; idx++  ) {
 			//find next group
-			List<Integer> currentGroup = findNextGroup(rowSums, procRows, dependMatrix);
-
-			//recursive method through group and assign group number
-			List<ArrayList<Integer>> group = new ArrayList<ArrayList<Integer>>();
-			for(Integer row: currentGroup){
-				LOGGER.debug("Adding row "+row+" to processed list");
-				ArrayList<Integer> systemRow = new ArrayList<Integer>();
-				assembleGroup(row, procRows, dependMatrix, systemRow);
-				if(!systemRow.isEmpty()){
-					group.add(systemRow);
-				}
-			}
-			groups.put(groupNumber, group);
-			groupNumber++;
-
-			//update map
-			rowSums = updateRowTotals(rowSums, procRows, dependMatrix);
-			LOGGER.info("-----------------------");
+			List<Integer> procRows = new ArrayList<Integer>();
+			LOGGER.debug("Adding row "+idx+" to processed list");
+			ArrayList<Integer> systemRow = new ArrayList<Integer>();
+			assembleGroup(idx, procRows, dependMatrix, systemRow);
+			Collections.sort(systemRow);
+			groups.put(Arrays.toString(systemRow.toArray()), systemRow);
 		}
 
-		for(Integer key: groups.keySet()){
-			LOGGER.info("Group is "+key+". Groups are: ");
-			LOGGER.info(groups.get(key));
-		}
-
-		return groups;
-	}
-
-	/**
-	 * @param rowMap
-	 * @param procRows
-	 * @param systemMatrix
-	 * @return
-	 */
-	private static List<Integer> findNextGroup(HashMap<Integer, Integer> rowMap, List<Integer> procRows, Integer[][] systemMatrix){
-		//finds lowest row total
-		List<Integer> lowGroup = new ArrayList<Integer>();
-		int currentLow = Integer.MAX_VALUE;
-		for(Integer key: rowMap.keySet()){
-			if(!procRows.contains(key)){
-				if(rowMap.get(key) < currentLow){
-					currentLow = rowMap.get(key);
-					LOGGER.debug("New low total ("+currentLow+") for row "+key+".");
-					lowGroup.clear();
-					lowGroup.add(key);
-				}else if(rowMap.get(key) == currentLow){
-					LOGGER.debug("Matching low found for row "+key+".");
-					lowGroup.add(key);
-				}
-			}else{
-				continue;
-			}
-		}
-		LOGGER.info("New lows: "+lowGroup);
-		return lowGroup;
-	}
-
-	/**
-	 * @param rowTotals
-	 * @param procRows
-	 * @param systemMatrix
-	 * @return
-	 */
-	private static HashMap<Integer, Integer> updateRowTotals(HashMap<Integer, Integer> rowTotals, List<Integer> procRows, Integer[][] systemMatrix){
-		for(Integer key: rowTotals.keySet()){
-			int newTotal = 0;
-			LOGGER.debug("Updating row "+key);
-			for(int j=0; j < systemMatrix[key].length; j++){
-				if(systemMatrix[key][j] != null && !procRows.contains(j)){
-					LOGGER.debug("Added system "+j+" to total for row "+key);
-					newTotal = newTotal + systemMatrix[key][j];
-					rowTotals.put(key, newTotal);
-				}else if(procRows.contains(j)){
-					LOGGER.debug("Row "+j+" was already processed. Skipping row");
-				}
-				LOGGER.debug("New total for row "+key+" is "+newTotal);
-			}
-		}
-		return rowTotals;
+		return new ArrayList(groups.values());
 	}
 
 	/**
@@ -347,7 +309,6 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 
 			//mark row as processed. removes possible loops
 			//find all dependencies of row
-			LOGGER.info("Finding dependencies of row "+row);
 			for(int j=0; j < dependMatrix[row].length; j++){
 				if(dependMatrix[row][j] != null && dependMatrix[row][j] == 1 && !procRows.contains(j)){
 					LOGGER.debug("System "+j+" depends on "+row);
@@ -405,34 +366,37 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 		testSystems[0][2] = null;
 		testSystems[0][3] = null;
 		testSystems[0][4] = null;
-		testSystems[1][0] = 1;
+		testSystems[1][0] = null;
 		testSystems[1][1] = null;
-		testSystems[1][2] = null;
-		testSystems[1][3] = null;
-		testSystems[1][4] = null;
+		testSystems[1][2] = 1;
+		testSystems[1][3] = 1;
+		testSystems[1][4] = 1;
 		testSystems[2][0] = null;
 		testSystems[2][1] = null;
 		testSystems[2][2] = null;
-		testSystems[2][3] = null;
-		testSystems[2][4] = null;
+		testSystems[2][3] = 1;
+		testSystems[2][4] = 1;
 		testSystems[3][0] = null;
 		testSystems[3][1] = null;
-		testSystems[3][2] = null;
+		testSystems[3][2] = 1;
 		testSystems[3][3] = null;
 		testSystems[3][4] = 1;
 		testSystems[4][0] = null;
 		testSystems[4][1] = null;
-		testSystems[4][2] = null;
+		testSystems[4][2] = 1;
 		testSystems[4][3] = 1;
 		testSystems[4][4] = null;
 
-		HashMap<Integer, List<ArrayList<Integer>>> groups = createDecommissioningGroups(testSystems);
+
+		List<List<Integer>> groups = createGroups(testSystems);
+		Map<Integer, List<List<Integer>>> decomGroups = createDecommissioningGroups(groups); 
+		
 		ArrayList <Object []> list = new ArrayList<Object[]>();
 		int groupCounter = 0;
 		
 		//key is counter for one level above group
-		for(Integer key: groups.keySet()){
-			for(ArrayList<Integer> depGroup: groups.get(key)){
+		for(Integer key: decomGroups.keySet()){
+			for(List<Integer> depGroup: decomGroups.get(key)){
 				for(Integer compObj: depGroup){
 					String keyToGroupCounter = new String(key.toString()+"."+groupCounter);
 					double location = Double.parseDouble(keyToGroupCounter);
