@@ -8,10 +8,17 @@ import java.util.List;
 public class UniqueBTreeIterator implements Iterator<List<Object[]>>{
 
 	private IndexTreeIterator iterator;
+	private boolean useRawData;
 	
 	public UniqueBTreeIterator(TreeNode columnRoot) {
-		iterator = new IndexTreeIterator(columnRoot);
+		this(columnRoot, false);
 	}
+	
+	public UniqueBTreeIterator(TreeNode columnRoot, boolean getRawData) {
+		iterator = new IndexTreeIterator(columnRoot);
+		useRawData = getRawData;
+	}
+	
 	
 	@Override
 	public boolean hasNext() {
@@ -55,7 +62,8 @@ public class UniqueBTreeIterator implements Iterator<List<Object[]>>{
 			List<Object> arraylist = new ArrayList<>();
 			SimpleTreeNode n = node;
 			while(n!=null) {
-				arraylist.add(((ISEMOSSNode)n.leaf).getValue());
+				Object value = useRawData ? n.leaf.getRawValue() : n.leaf.getValue();
+				arraylist.add(value);
 				n = n.parent;
 			}
 			

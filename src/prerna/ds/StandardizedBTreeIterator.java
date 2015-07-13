@@ -10,7 +10,11 @@ public class StandardizedBTreeIterator implements Iterator<Object[]>{
 	private Double[] stdv;
 	
 	public StandardizedBTreeIterator(TreeNode typeRoot, boolean[] isNum, Double[] average, Double[] standardDeviation) {
-		iterator = new BTreeIterator(typeRoot);
+		this(typeRoot, isNum, average, standardDeviation, false);
+	}
+	
+	public StandardizedBTreeIterator(TreeNode typeRoot, boolean[] isNum, Double[] average, Double[] standardDeviation, boolean getRawData) {
+		iterator = new BTreeIterator(typeRoot, getRawData);
 		isNumeric = isNum;
 		avg = average;
 		stdv = standardDeviation;
