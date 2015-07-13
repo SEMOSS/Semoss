@@ -5,14 +5,17 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.util.Cluster;
+import prerna.algorithm.learning.util.IClusterDistanceMode;
+import prerna.algorithm.learning.util.IClusterDistanceMode.DistanceMeasure;
+import prerna.ds.BTreeDataFrame;
 import prerna.math.SimilarityWeighting;
 import prerna.om.SEMOSSParam;
+import prerna.util.ArrayUtilityMethods;
 
 public class SOMRoutine implements IAnalyticRoutine {
 	
@@ -24,7 +27,12 @@ public class SOMRoutine implements IAnalyticRoutine {
 	private static final String GRID_WIDTH = "gridWidth";
 	private static final String GRID_LENGTH = "gridLength";
 	
-	protected List<SEMOSSParam> options;
+	private String somGridID = "";
+	private String somHeightID = "";
+	private String somXPositionID = "";
+	private String somYPositionID = "";
+	
+	private List<SEMOSSParam> options;
 	// values set from options
 	private int instanceIndex;
 	private double initalRadius;
@@ -33,7 +41,8 @@ public class SOMRoutine implements IAnalyticRoutine {
 	private int maxIterations;
 	private Integer gridLength;
 	private Integer gridWidth;
-	
+	private Map<String, IClusterDistanceMode.DistanceMeasure> distanceMeasure;
+
 	// variables used throughout routine
 	private ITableDataFrame dataFrame;
 	private String[] attributeNames;
@@ -47,9 +56,6 @@ public class SOMRoutine implements IAnalyticRoutine {
 	// results of algorithm
 	private Map<Object, Integer> results = new HashMap<Object, Integer>();
 
-	// for normalization of numeric values
-	private Map<String, Double> ranges = new HashMap<String, Double>();
-	private Map<String, Double> mins = new HashMap<String, Double>();
 	// for calculation of weights
 	protected Map<String, Double> numericalWeights = new HashMap<String, Double>();
 	protected Map<String, Double> categoricalWeights = new HashMap<String, Double>();
@@ -91,14 +97,25 @@ public class SOMRoutine implements IAnalyticRoutine {
 	
 	@Override
 	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
-		this.instanceIndex = (int) options.get(0).getSelected();
-		this.initalRadius = (double) options.get(1).getSelected();
-		this.learningRate = (double) options.get(2).getSelected();
-		this.tau = (double) options.get(3).getSelected();
-		this.maxIterations = (int) options.get(4).getSelected();
-		this.gridWidth = (Integer) options.get(5).getSelected();
-		this.gridLength = (Integer) options.get(6).getSelected();
-
+		//TODO: this is for ease in testing
+		this.instanceIndex = 0;
+		this.initalRadius = 2.0;
+		this.learningRate = 0.07;
+		this.tau = 7.5;
+		this.maxIterations = 15;
+		this.somGridID = "gridID";
+		this.somHeightID = "height";
+		this.somXPositionID = "x";
+		this.somYPositionID = "y";
+		
+//		this.instanceIndex = (int) options.get(0).getSelected();
+//		this.initalRadius = (double) options.get(1).getSelected();
+//		this.learningRate = (double) options.get(2).getSelected();
+//		this.tau = (double) options.get(3).getSelected();
+//		this.maxIterations = (int) options.get(4).getSelected();
+//		this.gridWidth = (Integer) options.get(5).getSelected();
+//		this.gridLength = (Integer) options.get(6).getSelected();
+		
 		this.dataFrame = data[0];
 		this.attributeNames = this.dataFrame.getColumnHeaders();
 		this.isNumeric = this.dataFrame.isNumeric();
@@ -114,17 +131,32 @@ public class SOMRoutine implements IAnalyticRoutine {
 		grid.setLength(gridLength);
 		grid.setNumGrids(numGrids);
 		
+		// set the type of distance measure to be used for each numerical property - default is using mean
+		if(this.distanceMeasure == null) {
+			distanceMeasure = new HashMap<String, IClusterDistanceMode.DistanceMeasure>();
+			for(int i = 0; i < attributeNames.length; i++) {
+				if(isNumeric[i]) {
+					distanceMeasure.put(attributeNames[i], DistanceMeasure.MEAN);
+				}
+			}
+		} else {
+			for(int i = 0; i < attributeNames.length; i++) {
+				if(!distanceMeasure.containsKey(attributeNames[i])) {
+					distanceMeasure.put(attributeNames[i], DistanceMeasure.MEAN);
+				}
+			}
+		}
+				
 		calculateWeights();
-		calculateMetricsForNormalization();
 		
 		// initialize the grid
-		Random randomGenerator = new Random();
 		int idx = 0;
 		Iterator<List<Object[]>> it = dataFrame.uniqueIterator(attributeNames[instanceIndex]);
 		for(; idx < numGrids; idx++) {
 			List<Object[]> instance = it.next();
 			// add value to cluster
-			Cluster c = new Cluster(categoricalWeights, numericalWeights, ranges, mins);
+			Cluster c = new Cluster(categoricalWeights, numericalWeights);
+			c.setDistanceMode(distanceMeasure);
 			c.addToCluster(instance, attributeNames, isNumeric);
 			// add cluster to grid
 			gridCenters.add(c);
@@ -160,6 +192,15 @@ public class SOMRoutine implements IAnalyticRoutine {
 					results.put(instanceName, gridIndex);
 					gridCenters.get(gridIndex).addToCluster(instance, attributeNames, isNumeric);
 					
+					// modify instance to contain appropriate numerical values when performing area-of-effect changes
+					Map<String, Double> numericalChanges = gridCenters.get(gridIndex).getNumericClusterChangesForAllAttributes();
+					for(String attirubte : numericalChanges.keySet()) {
+						int index = ArrayUtilityMethods.arrayContainsValueAtIndex(attributeNames, attirubte);
+						for(int i = 0; i < instance.size(); i++) {
+							instance.get(i)[index] = numericalChanges.get(attirubte);
+						}
+					}
+					
 					// update the cells surrounding the main cell
 					Map<String, List<Integer>> neighborhoodEffectHash = grid.getAdjacentCellsInRadius(gridIndex, radiusOfInfluence);
 					List<Integer> adjacentCells = neighborhoodEffectHash.get(SelfOrganizingMapGrid.ADJACENT_CELLS_KEY);
@@ -170,14 +211,27 @@ public class SOMRoutine implements IAnalyticRoutine {
 						int effected_grid = adjacentCells.get(adjIdx);
 						int effect_radius = adjacentCellsRadius.get(adjIdx);
 						double adaption_effect = Math.exp( -1.0 * Math.pow(effect_radius, 2) / ( 2 * Math.pow(radiusOfInfluence, 2) ));
-//						gridCenters.get(effected_grid).addToCluster(instance, attributeNames, isNumeric, learningInfluence * adaption_effect);
+						gridCenters.get(effected_grid).addToCluster(instance, attributeNames, isNumeric, learningInfluence * adaption_effect);
 					}
 				}
-				currIt++;
 			}
+			currIt++;
 		}
 		
-		return null;
+		ITableDataFrame returnTable = new BTreeDataFrame(new String[]{attributeNames[instanceIndex], somGridID, somHeightID, somXPositionID, somYPositionID});
+		for(Object instance : results.keySet()) {
+			Map<String, Object> row = new HashMap<String, Object>();
+			row.put(attributeNames[instanceIndex], instance);
+			int gridNum = results.get(instance);
+			row.put(somGridID, gridNum);
+			row.put(somHeightID, gridCenters.get(gridNum).getNumInstances());
+			int[] coordinates = SelfOrganizingMapGrid.getCoordinatesOfCell(gridNum, this.gridLength);
+			row.put(somXPositionID, coordinates[0]);
+			row.put(somYPositionID, coordinates[1]);
+			returnTable.addRow(row, row);
+		}
+		
+		return returnTable;
 	}
 	
 	private int determineMostSimilarGridForInstance(List<Object[]> instanceValues, String[] attributeNames, boolean[] isNumeric, int instanceIndex, List<Cluster> clusters) {
@@ -208,24 +262,6 @@ public class SOMRoutine implements IAnalyticRoutine {
 			}
 		}
 		return true;
-	}
-	
-	//TODO: same method exists in clustering -- need to push into util. class
-	private void calculateMetricsForNormalization() {
-		if(ranges == null || mins == null) {
-			ranges = new HashMap<String, Double>();
-			mins = new HashMap<String, Double>();
-		}
-		if(ranges.isEmpty() || mins.isEmpty()) { // check in case ranges is set from a different operation
-			for(int i = 0; i < attributeNames.length; i++) {
-				if(isNumeric[i]) {
-					double min = dataFrame.getMin(attributeNames[i]);
-					double max = dataFrame.getMax(attributeNames[i]);
-					ranges.put(attributeNames[i], max-min);
-					mins.put(attributeNames[i], min);
-				}
-			}
-		}
 	}
 	
 	//TODO: same method exists in clustering -- need to push into util. class
@@ -300,6 +336,13 @@ public class SOMRoutine implements IAnalyticRoutine {
 			for(SEMOSSParam param : options) {
 				if(param.getName().equals(key)){
 					param.setSelected(selected.get(key));
+					if(param.getName().equals(INSTANCE_INDEX_KEY)) {
+						String select = selected.get(key).toString().toUpperCase();
+						this.somGridID = select + "_SOM_GRID_NUM";
+						this.somHeightID = select + "_SOM_GRID_HEIGHT";
+						this.somXPositionID = select + "_SOM_X_POSITION";
+						this.somYPositionID = select + "_SOM_Y_POSITION";
+					}
 					break;
 				}
 			}

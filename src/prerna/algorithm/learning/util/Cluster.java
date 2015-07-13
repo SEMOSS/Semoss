@@ -1,7 +1,9 @@
 package prerna.algorithm.learning.util;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 public class Cluster {
@@ -14,9 +16,54 @@ public class Cluster {
 	
 	private static final String EMPTY = "_____";
 	
-	public Cluster(Map<String, Double> categoricalWeights, Map<String, Double> numericalWeights, Map<String, Double> range, Map<String, Double> min) {
+	public Cluster(Map<String, Double> categoricalWeights, Map<String, Double> numericalWeights) {
 		this.categoricalCluster = new CategoricalCluster(categoricalWeights);
-		this.numericalCluster = new NumericalCluster(numericalWeights, range, min);
+		this.numericalCluster = new NumericalCluster(numericalWeights);
+	}
+
+	public void addToCluster(List<Object[]> valuesList, String[] names, boolean[] isNumeric, double factor) {
+		//numInstances++; do not increase with incomplete additions
+		
+		// skip all the duplication logic and add directly
+		if(valuesList.size() == 1) {
+			addToCluster(valuesList.get(0), names, isNumeric);
+		}
+		
+		Double[] numVals = new Double[valuesList.get(0).length];
+		for(Object[] values : valuesList) {
+			for(int i = 0; i < values.length; i++){
+				if(isNumeric[i]) {
+					if(values[i]==null || values[i].equals(EMPTY)) {
+						// do nothing, keep null
+					} else {
+						//TODO: determine if should be using Mean/Max/Min/Sum/Median
+						//implemented to always assume mean at the moment
+						if(numVals[i] == null) {
+							numVals[i] = 0.0;
+						}
+						numVals[i] += (double) values[i];
+					}
+				} else {
+					if(values[i]==null || values[i].equals(EMPTY)){
+						addToCategoricalCluster(names[i], EMPTY, factor);
+					} else {
+						addToCategoricalCluster(names[i], (String)values[i], factor);
+					}
+				}
+			}
+		}
+		
+		int size = valuesList.size();
+		for(int i = 0; i < isNumeric.length; i++) {
+			if(isNumeric[i]) {
+				if(numVals[i] == null) {
+					addToNumericalCluster(names[i], null, factor);
+				} else {
+					addToNumericalCluster(names[i], numVals[i] / size, factor);
+				}
+			}
+		}
+		
 	}
 	
 	public void addToCluster(List<Object[]> valuesList, String[] names, boolean[] isNumeric) {
@@ -81,6 +128,46 @@ public class Cluster {
 		}
 	}
 	
+	public void removeFromCluster(List<Object[]> valuesList, String[] names, boolean[] isNumeric, double factor) {
+		//numInstances--; do not decrease with incomplete additions
+
+		// skip all the duplication logic and add directly
+		if(valuesList.size() == 1) {
+			removeFromCluster(valuesList.get(0), names, isNumeric);
+		}
+		
+		Double[] numVals = new Double[valuesList.get(0).length];
+		for(Object[] values : valuesList) {
+			for(int i = 0; i < values.length; i++){
+				if(isNumeric[i]) {
+					if(values[i]==null || values[i].equals(EMPTY)) {
+						// do nothing, keep null
+					} else {
+						//TODO: determine if should be using Mean/Max/Min/Sum/Median
+						//implemented to always assume mean at the moment
+						if(numVals[i] == null) {
+							numVals[i] = 0.0;
+						}
+						numVals[i] += (double) values[i];
+					}
+				} else {
+					removeFromCategoricalCluster(names[i], (String)values[i], factor);
+				}
+			}
+		}
+		
+		int size = valuesList.size();
+		for(int i = 0; i < isNumeric.length; i++) {
+			if(isNumeric[i]) {
+				if(numVals[i] == null) {
+					removeFromNumericalCluster(names[i], null, factor);
+				} else {
+					removeFromNumericalCluster(names[i], numVals[i] / size, factor);
+				}
+			}
+		}
+	}
+	
 	public void removeFromCluster(List<Object[]> valuesList, String[] names, boolean[] isNumeric) {
 		numInstances--;
 
@@ -135,12 +222,28 @@ public class Cluster {
 		}
 	}
 	
+	private void addToCategoricalCluster(String attributeName, String attributeInstance, double factor) {
+		categoricalCluster.addToCluster(attributeName, attributeInstance, factor);
+	}
+	
+	private void removeFromCategoricalCluster(String attributeName, String attributeInstance, double factor) {
+		categoricalCluster.removeFromCluster(attributeName, attributeInstance, factor);
+	}
+	
 	private void addToCategoricalCluster(String attributeName, String attributeInstance) {
 		categoricalCluster.addToCluster(attributeName, attributeInstance, 1.0);
 	}
 	
 	private void removeFromCategoricalCluster(String attributeName, String attributeInstance) {
 		categoricalCluster.removeFromCluster(attributeName, attributeInstance, 1.0);
+	}
+	
+	private void addToNumericalCluster(String attributeName, Double value, double factor) {
+		numericalCluster.addToCluster(attributeName, value, factor);
+	}
+	
+	private void removeFromNumericalCluster(String attributeName, Double value, double factor) {
+		numericalCluster.removeFromCluster(attributeName, value, factor);
 	}
 	
 	private void addToNumericalCluster(String attributeName, Double value) {
@@ -279,6 +382,28 @@ public class Cluster {
 		double numericalClusterSim = ((double) numNumeric / totalAttributes) * this.numericalCluster.getClusterSimilarity(c2.getNumericalCluster(), instanceType);
 		double categoricalClusterSim = ((double) numCategorical / totalAttributes) * this.categoricalCluster.getClusterSimilarity(c2.getCategoricalCluster(), instanceType);
 		return numericalClusterSim + categoricalClusterSim;
+	}
+	
+	public Map<String, Double> getNumericClusterChangesForAllAttributes() {
+		Map<String, Double> retMap = new HashMap<String, Double>();
+
+		Set<String> attributeNames = numericalCluster.getAttributes();
+		for(String attributeName : attributeNames) {
+			retMap.put(attributeName, numericalCluster.getChangeToCenterForAttribute(attributeName));
+		}
+		
+		return retMap;
+	}
+	
+	public Map<String, Boolean> getIsPreviousNullForAllAttributes() {
+		Map<String, Boolean> retMap = new HashMap<String, Boolean>();
+
+		Set<String> attributeNames = numericalCluster.getAttributes();
+		for(String attributeName : attributeNames) {
+			retMap.put(attributeName, numericalCluster.getIsPreviousNull(attributeName));
+		}
+		
+		return retMap;
 	}
 	
 	public void reset() {

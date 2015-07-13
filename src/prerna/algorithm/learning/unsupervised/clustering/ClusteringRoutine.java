@@ -14,8 +14,6 @@ import prerna.ds.BTreeDataFrame;
 public class ClusteringRoutine extends AbstractClusteringRoutine {
 
 	private Map<Object, Integer> results = new HashMap<Object, Integer>();
-	private Map<String, Double> ranges = new HashMap<String, Double>();
-	private Map<String, Double> mins = new HashMap<String, Double>();
 
 	public ClusteringRoutine() {
 		super();
@@ -57,14 +55,13 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 		}
 
 		calculateWeights();
-		calculateMetricsForNormalization();
 		initializeClusters();
 		int maxIt = 100_000;
 		boolean go = true;
 		int currIt = 0;
 		while(go) {
 			go = false;
-			Iterator<List<Object[]>> it = dataFrame.uniqueIterator(attributeNames[instanceIndex]);
+			Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex]);
 			while(it.hasNext()) {
 				List<Object[]> instance = it.next();
 				Object instanceName = instance.get(0)[instanceIndex];
@@ -100,23 +97,6 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 		return returnTable;
 	}
 
-	private void calculateMetricsForNormalization() {
-		if(ranges == null || mins == null) {
-			ranges = new HashMap<String, Double>();
-			mins = new HashMap<String, Double>();
-		}
-		if(ranges.isEmpty() || mins.isEmpty()) { // check in case ranges is set from a different operation
-			for(int i = 0; i < attributeNames.length; i++) {
-				if(isNumeric[i]) {
-					double min = dataFrame.getMin(attributeNames[i]);
-					double max = dataFrame.getMax(attributeNames[i]);
-					ranges.put(attributeNames[i], max-min);
-					mins.put(attributeNames[i], min);
-				}
-			}
-		}
-	}
-
 	/**
 	 * Will generate the clusters by picking the most different instances
 	 */
@@ -124,7 +104,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 		Iterator<List<Object[]>> it = dataFrame.uniqueIterator(attributeNames[instanceIndex]);
 		List<Object[]> firstInstance = it.next();
 
-		Cluster firstCluster = new Cluster(categoricalWeights, numericalWeights, ranges, mins);
+		Cluster firstCluster = new Cluster(categoricalWeights, numericalWeights);
 		firstCluster.setDistanceMode(this.distanceMeasure);
 		firstCluster.addToCluster(firstInstance, attributeNames, isNumeric);
 		clusters.add(firstCluster);
@@ -133,7 +113,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 		numInstancesInCluster.add(1);
 
 		// create a cluster to serve as a combination of all the starting seeds
-		Cluster combinedInstances = new Cluster(categoricalWeights, numericalWeights, ranges, mins);
+		Cluster combinedInstances = new Cluster(categoricalWeights, numericalWeights);
 		combinedInstances.setDistanceMode(this.distanceMeasure);
 		combinedInstances.addToCluster(firstInstance, attributeNames, isNumeric);
 
@@ -154,7 +134,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 			combinedInstances.addToCluster(bestInstance, attributeNames, isNumeric);
 
 			// create new cluster and add as a seed
-			Cluster newCluster = new Cluster(categoricalWeights, numericalWeights, ranges, mins);
+			Cluster newCluster = new Cluster(categoricalWeights, numericalWeights);
 			newCluster.setDistanceMode(this.distanceMeasure);
 			newCluster.addToCluster(bestInstance, attributeNames, isNumeric);
 			clusters.add(newCluster);
