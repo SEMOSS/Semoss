@@ -10,7 +10,11 @@ public class ScaledBTreeIterator implements Iterator<Object[]>{
 	private Double[] max;
 	
 	public ScaledBTreeIterator(TreeNode typeRoot, boolean[] isNum, Double[] min, Double[] max) {
-		iterator = new BTreeIterator(typeRoot);
+		this(typeRoot, isNum, min, max, false);
+	}
+	
+	public ScaledBTreeIterator(TreeNode typeRoot, boolean[] isNum, Double[] min, Double[] max, boolean getRawData) {
+		iterator = new BTreeIterator(typeRoot, getRawData);
 		isNumeric = isNum;
 		this.min = min;
 		this.max = max;

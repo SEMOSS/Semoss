@@ -8,6 +8,7 @@ import java.util.List;
 public class BTreeIterator implements Iterator<Object[]> {
 
 	private ValueTreeColumnIterator iterator;
+	private boolean useRawData;
 	
 	/**
 	 * Constructor for the BTreeIterator
@@ -15,8 +16,12 @@ public class BTreeIterator implements Iterator<Object[]> {
 	 * @param typeRoot			A list of nodes corresponding to the leaves in the tree
 	 */
 	public BTreeIterator(TreeNode typeRoot) {
-		//should default this to be the leaf type (last level)
+		this(typeRoot, false);
+	}
+	
+	public BTreeIterator(TreeNode typeRoot, boolean getRawData) {
 		iterator = new ValueTreeColumnIterator(typeRoot);
+		useRawData = getRawData;
 	}
 	
 	/**
@@ -39,7 +44,8 @@ public class BTreeIterator implements Iterator<Object[]> {
 		retRow.add(currValueNode.leaf.getValue());
 		while(currValueNode.parent != null) {
 			currValueNode = currValueNode.parent;
-			retRow.add(currValueNode.leaf.getValue());
+			Object value = useRawData ? currValueNode.leaf.getRawValue() : currValueNode.leaf.getValue();
+			retRow.add(value);
 		}
 		
 		// reverse the values to be from parent to leaf
