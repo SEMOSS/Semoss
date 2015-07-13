@@ -428,6 +428,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 	}
 	
+	//TODO: need to ensure there are not two names that match 
     private String[] joinTreeLevels(String[] joinLevelNames, String colNameInJoiningTable) {
         String[] newLevelNames = new String[this.levelNames.length + joinLevelNames.length - 1];
         // copy old values to new
@@ -447,7 +448,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 
         this.levelNames = newLevelNames;
         return onlyNewNames;
- }
+    }
 
 
 	@Override

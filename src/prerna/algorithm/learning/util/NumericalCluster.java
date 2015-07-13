@@ -1,26 +1,27 @@
 package prerna.algorithm.learning.util;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class NumericalCluster {
 
-	//TODO: consolidate these maps to save memory since Keys for all maps are identical
+	private Set<String> attributes = new HashSet<String>();
+	
 	private Map<String, IClusterDistanceMode> distanceMeasureForAttribute;
 	private Map<String, Double> weights = new HashMap<String, Double>();
-	private Map<String, Double> ranges = new HashMap<String, Double>();
-	private Map<String, Double> mins = new HashMap<String, Double>();
 
 	/**
 	 * Default constructor
 	 */
-	public NumericalCluster(Map<String, Double> w, Map<String, Double> r, Map<String, Double> m) {
+	public NumericalCluster(Map<String, Double> w) {
 		this.distanceMeasureForAttribute = new Hashtable<String, IClusterDistanceMode>();
 		this.weights = w;
-		this.ranges = r;
-		this.mins = m;
+		
+		this.setAttributes(distanceMeasureForAttribute.keySet());
 	}
 	
 	public Double getSimilarity(List<String> attributeName, List<Double> value, int indexToSkip) {
@@ -38,11 +39,6 @@ public class NumericalCluster {
 				similarity = similarity + v*weight;
 			}
 			Double center = distanceMeasureForAttribute.get(attribute).getCentroidValue();
-			Double range = ranges.get(attribute);
-			Double min = mins.get(attribute);
-
-			center = (center - min)/range;
-			v = (v - min)/range;
 			//using euclidean distance
 			similarity = similarity + (Math.pow(v-center, 2))*weight;
 		}
@@ -56,14 +52,32 @@ public class NumericalCluster {
 			return value*weight;
 		}
 		Double center = distanceMeasureForAttribute.get(attribute).getCentroidValue();
-		Double range = ranges.get(attribute);
-		Double min = mins.get(attribute);
-
-		center = (center - min)/range;
-		value = (value - min)/range;
 		//using euclidean distance
 		return 1 - Math.sqrt((Math.pow(value-center, 2))*weight);
 	}
+	
+	public void partialAddToCluster(List<String> attributeName, List<Double> value, double factor) {
+		for(int i = 0; i < attributeName.size(); i++) {
+			this.addToCluster(attributeName.get(i), value.get(i), factor);
+		}
+	}
+	
+	public void addToCluster(String attributeName, Double value, double factor) {
+		IClusterDistanceMode distanceMeasure = distanceMeasureForAttribute.get(attributeName);
+		distanceMeasure.addPartialToCentroidValue(value, factor);
+	}
+
+	public void partialRemoveFromCluster(List<String> attributeName, List<Double> value, double factor) {
+		for(int i = 0; i < attributeName.size(); i++) {
+			this.removeFromCluster(attributeName.get(i), value.get(i), factor);
+		}	
+	}
+	
+	public void removeFromCluster(String attributeName, Double value, double factor) {
+		IClusterDistanceMode distanceMeasure = distanceMeasureForAttribute.get(attributeName);
+		distanceMeasure.removePartialFromCentroidValue(value, factor);
+	}
+
 	
 	public void addToCluster(List<String> attributeName, List<Double> value) {
 		for(int i = 0; i < attributeName.size(); i++) {
@@ -102,18 +116,13 @@ public class NumericalCluster {
 			Double thisCenterValue = this.getCenterValueForAttribute(attributeName);
 			Double centerValue = c2.getCenterValueForAttribute(attributeName);
 			if(thisCenterValue == null || centerValue == null) {
-				int thisNumNull = this.getCenterNumNullsForAttribute(attributeName);
-				int thisNumVals = this.getCenterNumInstancesForAttribute(attributeName);
-				int numNull = c2.getCenterNumNullsForAttribute(attributeName);
-				int numVals = c2.getCenterNumInstancesForAttribute(attributeName);
-				similarity = similarity + (double) (thisNumNull + numNull) / (thisNumVals + numVals + thisNumNull + numNull) * weight;
+				double thisNumNull = this.getCenterNumNullsForAttribute(attributeName);
+				double thisNumVals = this.getCenterNumInstancesForAttribute(attributeName);
+				double numNull = c2.getCenterNumNullsForAttribute(attributeName);
+				double numVals = c2.getCenterNumInstancesForAttribute(attributeName);
+				similarity = similarity + (thisNumNull + numNull) / (thisNumVals + numVals + thisNumNull + numNull) * weight;
 			}
-			
-			Double range = ranges.get(attributeName);
-			Double min = mins.get(attributeName);
-			
-			thisCenterValue = (thisCenterValue - min)/range;
-			centerValue = (centerValue - min)/range;
+
 			//using euclidean distance
 			similarity = similarity + (Math.pow(thisCenterValue - centerValue, 2))*weight;
 		}
@@ -145,11 +154,11 @@ public class NumericalCluster {
 		return this.distanceMeasureForAttribute.get(attributeName).getCentroidValue();
 	}
 	
-	public int getCenterNumInstancesForAttribute(String attributeName) {
+	public double getCenterNumInstancesForAttribute(String attributeName) {
 		return this.distanceMeasureForAttribute.get(attributeName).getNumInstances();
 	}
 	
-	public int getCenterNumNullsForAttribute(String attributeName) {
+	public double getCenterNumNullsForAttribute(String attributeName) {
 		return this.distanceMeasureForAttribute.get(attributeName).getNumNull();
 	}
 	
@@ -157,7 +166,7 @@ public class NumericalCluster {
 		return this.distanceMeasureForAttribute.get(attributeName).getPreviousCentroidValue();
 	}
 	
-	public double getPreviousChangeToCenterForAttribute(String attributeName) {
+	public double getChangeToCenterForAttribute(String attributeName) {
 		return this.distanceMeasureForAttribute.get(attributeName).getChangeToCentroidValue();
 	}
 	
@@ -165,5 +174,19 @@ public class NumericalCluster {
 		return this.distanceMeasureForAttribute.get(attributeName).isPreviousNull();
 	}
 	//////////////END METHODS TO EXTRACT INFORMATION FROM DISTANCE MEASURE//////////////
+
+	/**
+	 * @return the attributes
+	 */
+	public Set<String> getAttributes() {
+		return attributes;
+	}
+
+	/**
+	 * @param attributes the attributes to set
+	 */
+	public void setAttributes(Set<String> attributes) {
+		this.attributes = attributes;
+	}
 	
 }
