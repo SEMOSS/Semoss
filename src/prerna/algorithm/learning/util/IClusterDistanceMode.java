@@ -12,15 +12,19 @@ public interface IClusterDistanceMode {
 	
 	double getNullRatio();
 	
-	int getNumNull();
+	double getNumNull();
 	
-	int getNumInstances();
+	double getNumInstances();
 	
 	double getPreviousCentroidValue();
 	
-	double getChangeToCentroidValue();
+	Double getChangeToCentroidValue();
 	
 	void reset();
 
 	boolean isPreviousNull();
+
+	void addPartialToCentroidValue(Double newValue, double factor);
+
+	void removePartialFromCentroidValue(Double value, double factor);
 }
