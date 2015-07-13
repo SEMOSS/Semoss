@@ -28,7 +28,11 @@ public class StandardizedUniqueBTreeIterator implements Iterator<List<Object[]>>
 		for(Object[] nextRow: nextItem) {
 			for(int i = 0; i < nextRow.length; i++) {
 				if(isNumeric[i]) {
-					nextRow[i] = ((Double)nextRow[i] - avg[i])/stdv[i];
+					if(nextRow[i] instanceof Number) {
+						nextRow[i] = ((Double)nextRow[i] - avg[i])/stdv[i];
+					} else {
+						nextRow[i] = null;
+					}
 				}
 			}
 		}
