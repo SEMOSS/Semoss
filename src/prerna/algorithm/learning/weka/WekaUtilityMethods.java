@@ -251,6 +251,28 @@ public final class WekaUtilityMethods {
 		}
 	}
 	
+	public static Instance createInstance(Instances data, Object[] dataRow, boolean[] isCategorical, int numAttr) {
+		
+		Instance dataEntry = new DenseInstance(numAttr);
+		
+		dataEntry.setDataset(data);
+		
+		for(int j = 0; j < numAttr; j++) {
+//			Object valAttr = dataRow[j + 1];
+			Object valAttr = dataRow[j];
+			if(valAttr != null && !valAttr.toString().isEmpty() && !valAttr.toString().equals("?")) {
+//				if(isCategorical[j + 1]) {
+				if(isCategorical[j]) {
+					dataEntry.setValue(j, valAttr.toString());
+				} else {			
+					dataEntry.setValue(j, (Double)valAttr); // take the numeric values to prevent re-casting
+				}
+			}
+		}
+		
+		return dataEntry;
+	}
+	
 	public static Instances[][] crossValidationSplit(Instances data, int numberOfFolds) {
 		Instances[][] split = new Instances[2][numberOfFolds];
 
