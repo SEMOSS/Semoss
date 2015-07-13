@@ -3,8 +3,8 @@ package prerna.algorithm.learning.util;
 public class MeanDistance implements IClusterDistanceMode {
 
 	private double centroidValue;
-	private int numInstances;
-	private int emptyInstances;
+	private double numInstances;
+	private double emptyInstances;
 	
 	private double previousCentroidValue;
 	private double changeToCentroidValue;
@@ -20,6 +20,21 @@ public class MeanDistance implements IClusterDistanceMode {
 	}
 
 	@Override
+	public void addPartialToCentroidValue(Double newValue, double factor) {
+		if(newValue == null) {
+			previousNull = true;
+			emptyInstances += factor;
+			return;
+		}
+		
+		previousNull = false;
+		previousCentroidValue = centroidValue;
+		changeToCentroidValue = (newValue*factor - previousCentroidValue) / (numInstances + 1);
+		centroidValue += changeToCentroidValue;
+		//numInstances++; do not increase numInstances for partial additions
+	}
+	
+	@Override
 	public void addToCentroidValue(Double newValue) {
 		if(newValue == null) {
 			previousNull = true;
@@ -32,6 +47,21 @@ public class MeanDistance implements IClusterDistanceMode {
 		changeToCentroidValue = (newValue - previousCentroidValue) / (numInstances + 1);
 		centroidValue += changeToCentroidValue;
 		numInstances++;
+	}
+	
+	@Override
+	public void removePartialFromCentroidValue(Double newValue, double factor) {
+		if(newValue == null) {
+			previousNull = true;
+			emptyInstances -= factor;
+			return;
+		}
+		
+		previousNull = false;
+		previousCentroidValue = centroidValue;
+		changeToCentroidValue = (-1*newValue*factor - previousCentroidValue) / (numInstances - 1);
+		centroidValue += changeToCentroidValue;
+		//numInstances--; do not decrease numInstances for partial additions
 	}
 	
 	@Override
@@ -76,17 +106,20 @@ public class MeanDistance implements IClusterDistanceMode {
 	}
 
 	@Override
-	public double getChangeToCentroidValue() {
+	public Double getChangeToCentroidValue() {
+		if(previousNull) {
+			return null;
+		}
 		return this.changeToCentroidValue;
 	}
 	
 	@Override
-	public int getNumNull() {
+	public double getNumNull() {
 		return this.emptyInstances;
 	}
 
 	@Override
-	public int getNumInstances() {
+	public double getNumInstances() {
 		return this.numInstances;
 	}
 	
