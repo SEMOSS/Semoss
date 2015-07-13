@@ -101,7 +101,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 	 * Will generate the clusters by picking the most different instances
 	 */
 	private void initializeClusters() {
-		Iterator<List<Object[]>> it = dataFrame.uniqueIterator(attributeNames[instanceIndex]);
+		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex]);
 		List<Object[]> firstInstance = it.next();
 
 		Cluster firstCluster = new Cluster(categoricalWeights, numericalWeights);
@@ -143,7 +143,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 			numInstancesInCluster.add(1);
 
 			// generate new iterator
-			it = dataFrame.uniqueIterator(attributeNames[instanceIndex]);
+			it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex]);
 		}
 	}
 
