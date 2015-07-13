@@ -30,7 +30,11 @@ public class ScaledBTreeIterator implements Iterator<Object[]>{
 			
 			for(int i = 0; i < nextRow.length; i++) {
 				if(isNumeric[i]) {
-					nextRow[i] = ((Double)nextRow[i] - min[i])/(max[i] - min[i]); 
+					if(nextRow[i] instanceof Number) {
+						nextRow[i] = ((Double)nextRow[i] - min[i])/(max[i] - min[i]); 
+					} else {
+						nextRow[i] = null;
+					}
 				}
 			}
 			
