@@ -180,6 +180,38 @@ public class TreeNode {
 		return root(root);
 	}
 	
+	public TreeNode deleteData(TreeNode node) {
+		TreeNode rootNode = this.root(this);
+		
+		//the case where we are deleting a root
+		if(rootNode == node) {
+			if(node.rightSibling != null) {
+				rootNode = node.rightSibling;
+			}
+			
+			else if(node.leftChild != null) {
+				rootNode = node.leftChild;
+			} 
+			
+			else if(node.rightChild != null) {
+				rootNode = node.rightSibling;
+			} 
+			
+			else {
+				return null;
+			}
+		}
+		
+		IndexTreeIterator it = new IndexTreeIterator(this.root(this));
+		while(it.hasNext()) {
+			TreeNode nextNode = it.next();
+			if(nextNode != rootNode && nextNode != node) {
+				rootNode = rootNode.insertData(nextNode);
+			}
+		}
+		return rootNode;
+	}
+	
 	public TreeNode root(TreeNode node)
 	{
 		//System.err.println("Finding root for " + node.leaf.getKey());
