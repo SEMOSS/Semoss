@@ -7,7 +7,7 @@ import java.util.List;
 
 public class BTreeIterator implements Iterator<Object[]> {
 
-	private ValueTreeColumnIterator iterator;
+	private Iterator<SimpleTreeNode> iterator;
 	private boolean useRawData;
 	
 	/**
