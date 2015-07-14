@@ -77,10 +77,10 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			prop.load(fileIn);
 			String engineName = prop.getProperty(Constants.ENGINE);
 			if(engines.startsWith(engineName) || engines.contains(";"+engineName)) {
-				System.err.println("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
+				logger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
 			} else {
 				String fileName = folderToWatch + "/" + newFile;
-				System.err.println("Loading DB " + folderToWatch + "<>" + newFile);
+				logger.debug("Loading DB " + folderToWatch + "<>" + newFile);
 				Utility.loadEngine(fileName, prop);
 			}
 		}catch(IOException e){
@@ -102,7 +102,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	@Override
 	public void loadFirst() {
 		File dir = new File(folderToWatch);
-		System.err.println("Dir... " + dir);
+		logger.debug("Dir... " + dir);
 		String [] fileNames = dir.list(this);
 		for(int fileIdx = 0;fileIdx < fileNames.length;fileIdx++)
 		{
