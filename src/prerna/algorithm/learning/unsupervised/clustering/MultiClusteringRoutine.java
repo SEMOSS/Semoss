@@ -135,7 +135,7 @@ public class MultiClusteringRoutine implements IAnalyticRoutine {
 		
 		// calculate inner-cluster similarity
 		double innerClusterSimilairty = 0;
-		Iterator<List<Object[]>> it = data.scaledUniqueIterator(instanceType);
+		Iterator<List<Object[]>> it = data.scaledUniqueIterator(instanceType, false);
 		while(it.hasNext()) {
 			List<Object[]> instance = it.next();
 			Object instanceName = instance.get(0)[instanceIndex];
