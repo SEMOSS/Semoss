@@ -98,14 +98,14 @@ public class Utility {
 
 	 * @return 	Hashtable of queries to be replaced */
 	public static Hashtable getParams(String query)	{	
-		Hashtable paramHash = new Hashtable();		
+		Hashtable paramHash = new Hashtable();
 		Pattern pattern = Pattern.compile("[@]{1}\\w+[-]*[\\w/.:]+[@]");
 
 		Matcher matcher = pattern.matcher(query);
 		while(matcher.find()) {
 			String data = matcher.group();
 			data = data.substring(1,data.length()-1);
-			System.out.println(data);
+			LOGGER.info(data);
 			// put something to strip the @
 			paramHash.put(data, Constants.EMPTY);
 		}
@@ -130,7 +130,7 @@ public class Utility {
 			String paramName = data.substring(0, data.indexOf("-"));
 			String paramValue = data.substring(data.indexOf("-") + 1);
 			
-			System.out.println(data);
+			LOGGER.info(data);
 			// put something to strip the @
 			paramHash.put(paramName, paramValue);
 		}
@@ -155,7 +155,7 @@ public class Utility {
 			String paramName = data.substring(0, data.indexOf("-"));
 			String paramValue = data.substring(data.indexOf("-") + 1);
 			
-			System.out.println(data);
+			LOGGER.info(data);
 			// put something to strip the @
 			paramHash.put(data, "@"+ paramName + "@");
 		}
@@ -173,14 +173,14 @@ public class Utility {
 	public static String fillParam(String query, Hashtable paramHash) {
 		// Hashtable is of pattern <String to be replaced> <replacement>
 		// key will be surrounded with @ just to be in sync
-		System.out.println("Param Hash is " + paramHash);
+		LOGGER.info("Param Hash is " + paramHash);
 
 		Enumeration keys = paramHash.keys();
 		while(keys.hasMoreElements()) {
 			
 			String key = (String)keys.nextElement();
 			String value = (String)paramHash.get(key);
-			System.out.println("Replacing " + key + "<<>>" + value + query.indexOf("@" + key + "@"));
+			LOGGER.info("Replacing " + key + "<<>>" + value + query.indexOf("@" + key + "@"));
 			if(!value.equalsIgnoreCase(Constants.EMPTY))
 				query = query.replace("@" + key + "@", value);
 		}
@@ -551,7 +551,6 @@ public class Utility {
 	public static IEngine loadEngine(String fileName, Properties prop) {
 		IEngine engine = null;
 
-		System.out.println("In Utility file name is " + fileName);
 		try {
 			String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
 			boolean closeDB = false;
@@ -745,8 +744,8 @@ public class Utility {
 		{
 			URIBuilder uri = new URIBuilder(api);
 			
-			System.out.println("Getting data from the API...  " + api);
-			System.out.println("Prams is " + params);
+			LOGGER.info("Getting data from the API...  " + api);
+			LOGGER.info("Prams is " + params);
 			
 			SSLContextBuilder builder = new SSLContextBuilder();
 		    builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
@@ -826,8 +825,8 @@ public class Utility {
 		{
 			URIBuilder uri = new URIBuilder(api);
 			
-			System.out.println("Getting data from the API...  " + api);
-			System.out.println("Prams is " + params);
+			LOGGER.info("Getting data from the API...  " + api);
+			LOGGER.info("Prams is " + params);
 			
 			SSLContextBuilder builder = new SSLContextBuilder();
 		    builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
@@ -879,7 +878,7 @@ public class Utility {
 	}
 	
 	public static ISelectWrapper processQuery(IEngine engine, String query) {
-		LOGGER.info("PROCESSING QUERY: " + query);
+		LOGGER.debug("PROCESSING QUERY: " + query);
 
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
@@ -1005,7 +1004,7 @@ public class Utility {
 	public static String toCamelCase(String input)
 	{
 		String output = input.substring(0,1).toUpperCase() + input.substring(1).toLowerCase();
-		System.out.println("Output is " + output);
+		LOGGER.info("Output is " + output);
 		return output;
 	}
 

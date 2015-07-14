@@ -215,7 +215,7 @@ public abstract class AbstractEngine implements IEngine {
 				String baseFolder = DIHelper.getInstance().getProperty(
 						"BaseFolder");
 				String fileName = baseFolder + "/" + propFile;
-				System.err.println("Loading file ENGINE " + fileName);
+				logger.info("Opening DB - " + engineName);
 				prop = loadProp(propFile);
 				// in here I should also load the questions and insights and
 				// everything else
@@ -227,6 +227,7 @@ public abstract class AbstractEngine implements IEngine {
 
 				engineURI2 = engineBaseURI + "/" + engineName;
 				if(questionXMLFile != null) {
+					logger.info("Loading Questions: " + questionXMLFile);
 					createBaseRelationXMLEngine(questionXMLFile);
 				}
 				//TODO: delete once xml files are stable and prop file is no longer needed
@@ -261,11 +262,14 @@ public abstract class AbstractEngine implements IEngine {
 				String ontoFile = prop.getProperty(Constants.ONTOLOGY);
 				String owlFile = prop.getProperty(Constants.OWL);
 				String genEngPropFile = prop.getProperty(Constants.ENGINE_PROPERTIES);
-				if (owlFile != null)
+				if (owlFile != null) {
+					logger.info("Loading OWL: " + owlFile);
 					setOWL(baseFolder + "/" + owlFile);
-				System.err.println("Ontology is " + ontoFile);
-				if (ontoFile != null)
+				}
+				if (ontoFile != null) {
+					logger.info("Loading Ontology: " + ontoFile);
 					setOntology(baseFolder + "/" + ontoFile);
+				}
 				if (genEngPropFile != null)
 					generalEngineProp = loadProp(baseFolder + "/" + genEngPropFile);
 
@@ -376,7 +380,7 @@ public abstract class AbstractEngine implements IEngine {
 			//System.err.println(insightBaseXML.rc);
 			insightBaseXML.getRc().export(questionXMLWriter);
 			
-			System.err.println("Created XML Question Sheet at: " + xmlFileName);
+			logger.debug("Created XML Question Sheet at: " + xmlFileName);
 		} catch (IOException | RDFHandlerException | RepositoryException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -401,7 +405,7 @@ public abstract class AbstractEngine implements IEngine {
 	public String getProperty(String key) {
 		String retProp = null;
 
-		System.err.println("Property is " + key + "]");
+		logger.debug("Property is " + key + "]");
 		if (generalEngineProp != null && generalEngineProp.containsKey(key))
 			retProp = generalEngineProp.getProperty(key);
 		if (retProp == null && ontoProp != null && ontoProp.containsKey(key))
@@ -558,7 +562,7 @@ public abstract class AbstractEngine implements IEngine {
 					questionAdmin.cleanAddQuestion(perspective, qsKey, qsOrder, qsDescr, sparql, layoutName, description, parameterDependList, parameterQueryList, parameterOptionList);
 					count++;
 				}
-				logger.info("Loaded Perspective " + key);
+				logger.debug("Loaded Perspective " + key);
 			}				
 		}
 	}
@@ -582,7 +586,7 @@ public abstract class AbstractEngine implements IEngine {
 			retProp.load(fis);
 			fis.close();
 		}
-		logger.info("Properties >>>>>>>>" + fileName);
+		logger.debug("Properties >>>>>>>>" + fileName);
 		return retProp;
 	}
 
@@ -639,7 +643,7 @@ public abstract class AbstractEngine implements IEngine {
 	public void saveConfiguration() {
 		FileOutputStream fileOut = null;
 		try {
-			System.err.println("Writing to file " + propFile);
+			logger.debug("Writing to file " + propFile);
 			fileOut = new FileOutputStream(propFile);
 			prop.store(fileOut, null);
 		} catch (IOException e) {
@@ -692,7 +696,7 @@ public abstract class AbstractEngine implements IEngine {
 	 *            Hashtable - The base data hash that this is being set to
 	 */
 	public void setBaseHash(Hashtable h) {
-		System.err.println(this.engineName + " Set the Base Data Hash ");
+		logger.debug(this.engineName + " Set the Base Data Hash ");
 		this.baseDataHash = h;
 	}
 
@@ -718,7 +722,7 @@ public abstract class AbstractEngine implements IEngine {
 		Hashtable paramHash = new Hashtable();
 		paramHash.put("engine", engine + "");
 		String query = Utility.fillParam(perspectives, paramHash);
-		System.err.println("Query is " + query);
+		logger.debug("Query is " + query);
 		return Utility.getVectorOfReturn(query, insightBaseXML);
 	}
 	public Vector<String> getPerspectivesURI() {
@@ -731,7 +735,7 @@ public abstract class AbstractEngine implements IEngine {
 		Hashtable paramHash = new Hashtable();
 		paramHash.put("engine", engine + "");
 		String query = Utility.fillParam(perspectivesURI, paramHash);
-		System.err.println("Query is " + query);
+		logger.debug("Query is " + query);
 		return Utility.getVectorOfReturn(query, insightBaseXML);
 	}
 	public Vector<String> getInsights(String perspective) {
@@ -745,7 +749,7 @@ public abstract class AbstractEngine implements IEngine {
 			Hashtable paramHash = new Hashtable();
 			paramHash.put("perspective", perspective);
 			String query = Utility.fillParam(insights, paramHash);
-			System.err.println("Query " + query);
+			logger.debug("Query " + query);
 			return Utility.getVectorOfReturn(query, insightBaseXML);
 		}
 		return null;
@@ -761,7 +765,7 @@ public abstract class AbstractEngine implements IEngine {
 			Hashtable paramHash = new Hashtable();
 			paramHash.put("perspective", perspective);
 			String query = Utility.fillParam(orderedInsightsURI, paramHash);
-			System.err.println("Query " + query);
+			logger.debug("Query " + query);
 			return Utility.getVectorOfReturn(query, insightBaseXML);
 		}
 		return null;
@@ -773,7 +777,7 @@ public abstract class AbstractEngine implements IEngine {
 			Hashtable paramHash = new Hashtable();
 			paramHash.put("perspective", perspective);
 			String query = Utility.fillParam(insightsURI, paramHash);
-			System.err.println("Query " + query);
+			logger.debug("Query " + query);
 			return Utility.getVectorOfReturn(query, insightBaseXML);
 		}
 		return null;
@@ -789,7 +793,7 @@ public abstract class AbstractEngine implements IEngine {
 				+ qPred + "> ?insightURI.}" + "{?insightURI <" + labelBaseURI
 				+ "> ?insight.}" + "}";
 
-		System.err.println("Query " + insights);
+		logger.debug("Query " + insights);
 
 		return Utility.getVectorOfReturn(insights, insightBaseXML);
 	}
@@ -851,7 +855,7 @@ public abstract class AbstractEngine implements IEngine {
 						param.setUri(bs.getRawVar("param") +"");
 	
 					retParam.addElement(param);
-					System.out.println(param.getName() + param.getQuery() + param.isDepends() + param.getType());
+					logger.debug(param.getName() + param.getQuery() + param.isDepends() + param.getType());
 				}
 				
 			}
@@ -925,8 +929,8 @@ public abstract class AbstractEngine implements IEngine {
 	{
 		Vector<Insight> insightV = new Vector<Insight>();
 
-		System.err.println("Insighter... " + insightSparql + labels);
-		System.err.println("Label is " + labels);
+		logger.debug("Insighter... " + insightSparql + labels);
+		logger.debug("Label is " + labels);
 		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightBaseXML, insightSparql);
 		wrap.execute();
 
@@ -960,7 +964,7 @@ public abstract class AbstractEngine implements IEngine {
 				in.setDescription(description);
 			}
 			insightV.add(in);
-			System.err.println(in.toString());
+			logger.debug(in.toString());
 		}
 		if (insightV.isEmpty()) {
 			// in = labelIdHash.get(label);
@@ -971,7 +975,7 @@ public abstract class AbstractEngine implements IEngine {
 			in.setId("DN");
 			in.setSparql("This will not work");
 			insightV.add(in);
-			System.err.println("Using Label ID Hash ");
+			logger.debug("Using Label ID Hash ");
 		}
 		return insightV;
 	}
@@ -987,8 +991,8 @@ public abstract class AbstractEngine implements IEngine {
 				+ "{?insightURI <" + layoutBaseURI + "> ?output.}"
 				+ "OPTIONAL {?insightURI <" + orderBaseURI + "> ?order.}"
 				+ "}";
-		System.err.println("Insighter... " + insightSparql + label);
-		System.err.println("Label is " + label);
+		logger.debug("Insighter... " + insightSparql + label);
+		logger.debug("Label is " + label);
 		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightBaseXML, insightSparql);
 		wrap.execute();
 
@@ -1004,13 +1008,13 @@ public abstract class AbstractEngine implements IEngine {
 				in.setOrder(order);
 			}
 			String label2 = bs.getRawVar("insight") + "";
-			logger.info("Getting insight... sparql for "+label2 + " is " + sparql);
+			logger.debug("Getting insight... sparql for "+label2 + " is " + sparql);
 			in.setSparql(sparql);
 			String output = bs.getRawVar("output") + "";
 			output = output.replace("\"", "");
 			in.setOutput(output);
 		}
-		logger.info("final filled insight is  "+ in);
+		logger.debug("final filled insight is  "+ in);
 		if (in == null) {
 			// in = labelIdHash.get(label);
 			in = new Insight();
@@ -1019,7 +1023,7 @@ public abstract class AbstractEngine implements IEngine {
 			in.setOutput("Unknown");
 			in.setId("DN");
 			in.setSparql("This will not work");
-			System.err.println("Using Label ID Hash ");
+			logger.debug("Using Label ID Hash ");
 		}
 		return in;
 		// return labelIdHash.get(label);
@@ -1032,7 +1036,7 @@ public abstract class AbstractEngine implements IEngine {
 
 	// sets the dreamer
 	public void setOntology(String ontology) {
-		System.err.println("Ontology file is " + ontology);
+		logger.debug("Ontology file is " + ontology);
 		this.ontology = ontology;
 
 		if (ontoProp == null) {
@@ -1172,7 +1176,7 @@ public abstract class AbstractEngine implements IEngine {
 	 * Commits the base data engine
 	 */
 	public void commitOWL() {
-		logger.info("Committing base data engine of " + this.engineName);
+		logger.debug("Committing base data engine of " + this.engineName);
 		this.baseDataEngine.commit();
 	}
 
@@ -1260,8 +1264,8 @@ public abstract class AbstractEngine implements IEngine {
 	 * Runs a select query on the base data engine of this engine
 	 */
 	public Object execOntoSelectQuery(String query) {
-		logger.info("Running select query on base data engine of " + this.engineName);
-		logger.info("Query is " + query);
+		logger.debug("Running select query on base data engine of " + this.engineName);
+		logger.debug("Query is " + query);
 		return this.baseDataEngine.execQuery(query);
 	}
 
@@ -1269,8 +1273,8 @@ public abstract class AbstractEngine implements IEngine {
 	 * Runs insert query on base data engine of this engine
 	 */
 	public void ontoInsertData(String query) {
-		logger.info("Running insert query on base data engine of " + this.engineName);
-		logger.info("Query is " + query);
+		logger.debug("Running insert query on base data engine of " + this.engineName);
+		logger.debug("Query is " + query);
 		baseDataEngine.insertData(query);
 	}
 
@@ -1278,8 +1282,8 @@ public abstract class AbstractEngine implements IEngine {
 	 * This method runs an update query on the base data engine which contains all owl and metamodel information
 	 */
 	public void ontoRemoveData(String query) {
-		logger.info("Running update query on base data engine of " + this.engineName);
-		logger.info("Query is " + query);
+		logger.debug("Running update query on base data engine of " + this.engineName);
+		logger.debug("Query is " + query);
 		baseDataEngine.removeData(query);
 	}
 	
@@ -1351,44 +1355,41 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	public void deleteDB() {
-		System.out.println("closing " + this.engineName);
+		logger.debug("closing " + this.engineName);
 		this.closeDB();
-		System.out.println("db closed");
-		System.out.println("deleting folder");
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		String insightLoc = baseFolder + "/" + this.getProperty(Constants.INSIGHTS);
-		System.out.println("insight file is  " + insightLoc);
 		File insightFile = new File(insightLoc);
 		File engineFolder = new File(insightFile.getParent());
 		String folderName = engineFolder.getName();
 		try {
-			System.out.println("checking folder " + folderName + " against db " + this.engineName);//this check is to ensure we are deleting the right folder
+			logger.debug("checking folder " + folderName + " against db " + this.engineName);//this check is to ensure we are deleting the right folder
 			if(folderName.equals(this.engineName))
 			{
-				System.out.println("folder getting deleted is " + engineFolder.getAbsolutePath());
+				logger.debug("folder getting deleted is " + engineFolder.getAbsolutePath());
 				FileUtils.deleteDirectory(engineFolder);
 			}
 			else{
 				logger.error("Cannot delete database folder as folder name does not line up with engine name");
 				//try deleting each file individually
-				System.out.println("Deleting insight file " + insightLoc);
+				logger.debug("Deleting insight file " + insightLoc);
 				insightFile.delete();
 	
 				String ontoLoc = baseFolder + "/" + this.getProperty(Constants.ONTOLOGY);
 				if(ontoLoc != null){
-					System.out.println("Deleting onto file " + ontoLoc);
+					logger.debug("Deleting onto file " + ontoLoc);
 					File ontoFile = new File(ontoLoc);
 					ontoFile.delete();
 				}
 	
 				String owlLoc = baseFolder + "/" + this.getProperty(Constants.OWL);
 				if(owlLoc != null){
-					System.out.println("Deleting owl file " + owlLoc);
+					logger.debug("Deleting owl file " + owlLoc);
 					File owlFile = new File(owlLoc);
 					owlFile.delete();
 				}
 			}
-			System.out.println("Deleting smss " + this.propFile);
+			logger.debug("Deleting smss " + this.propFile);
 			File smssFile = new File(this.propFile);
 			smssFile.delete();
 	
