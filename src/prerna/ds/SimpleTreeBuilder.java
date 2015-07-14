@@ -218,7 +218,12 @@ public class SimpleTreeBuilder
 		if(start < height) {
 			if (n.leftChild == null) {
 				//remove this node, and go up the tree
-				removeRow(n);
+				while(n!=null) {
+					SimpleTreeNode parentNode = n.parent;
+					SimpleTreeNode.deleteNode(n); //remove from value tree
+					removeFromIndexTree(n); //remove from index tree
+					n = parentNode;
+				}
 			} else {
 				SimpleTreeNode child = n.leftChild;
 				SimpleTreeNode sibling = n.rightSibling;
@@ -228,38 +233,6 @@ public class SimpleTreeBuilder
 				}
 			}
 		}
-	}
-	
-	private void removeRow(SimpleTreeNode leafNode2remove) {
-		
-		SimpleTreeNode parentNode = leafNode2remove.parent;
-		SimpleTreeNode nodeRightSibling = leafNode2remove.rightSibling;
-		SimpleTreeNode nodeLeftSibling = leafNode2remove.leftSibling;
-		
-		//isolate node2filter from siblings and rewire the connections
-		if(nodeRightSibling != null && nodeLeftSibling != null) {
-			//in the middle
-			nodeRightSibling.leftSibling = nodeLeftSibling;
-			nodeLeftSibling.rightSibling = nodeRightSibling;
-		} 
-		else if(nodeRightSibling == null && nodeLeftSibling != null) {
-			//right most
-			nodeLeftSibling.rightSibling = null;
-		} 
-		else if(nodeRightSibling != null && nodeLeftSibling == null) {
-			//left most
-			if(parentNode!=null) {
-				parentNode.leftChild = nodeRightSibling;
-			}
-			nodeRightSibling.leftSibling = null;
-		} else {
-			//only child
-			if(parentNode!=null) {
-				removeRow(parentNode);
-			}
-		}
-		
-		leafNode2remove = null;
 	}
 	
 	public void adjustType(String type, boolean recurse)
@@ -403,8 +376,7 @@ public class SimpleTreeBuilder
 			}
 			//SimpleTreeNode.addLeafChild(parentInstanceNode, childInstanceNode);
 		}
-	}
-		
+	}	
 	
 	public TreeNode getNode(ISEMOSSNode node)
 	{
@@ -766,11 +738,7 @@ public class SimpleTreeBuilder
 	{
 		
 		if(finalChildType == null) return null;
-		//{
-			//Set<String> keys = nodeIndexHash.keySet();
-			//if(keys !)
-			//return null;
-		//}
+
 		Vector <String> retVector = new Vector<String>();
 		
 		TreeNode aNode = nodeIndexHash.get(finalChildType);
@@ -815,9 +783,13 @@ public class SimpleTreeBuilder
 			{
 				// get all the instances and delete
 				Vector <SimpleTreeNode> instances = foundNode.getInstances();
-				for(int instanceIndex = 0;instanceIndex < instances.size();instanceIndex++)
-					SimpleTreeNode.deleteNode(instances.get(instanceIndex));
-				foundNode.instanceNode = null;
+				for(int instanceIndex = 0;instanceIndex < instances.size();instanceIndex++) {
+					if(instances.get(instanceIndex)!=null)
+						SimpleTreeNode.deleteNode(instances.get(instanceIndex));
+				}
+				//foundNode.instanceNode = null;
+				TreeNode newRoot = rootNode.deleteData(foundNode);
+				nodeIndexHash.put(type, newRoot);
 			}
 		}
 	}
@@ -1016,10 +988,6 @@ public class SimpleTreeBuilder
 	 * @param type
 	 */
 	public void removeDuplicates(String type) {
-		//Basic Idea
-		//Consider all nodes to be individual trees, consolidate them together to remove duplicates
-		//reattach new children to proper parents
-		//Need to figure out how to  properly update the index tree
 			
 		if(!nodeIndexHash.containsKey(type)) return;
 		
@@ -1156,13 +1124,15 @@ public class SimpleTreeBuilder
 		
 		//find the proper corresponding TreeNode in the index tree
 		TreeNode searchNode = new TreeNode(n.leaf);
-		TreeNode foundNode = treeNode.getLeaf(searchNode, true);
+		
+		//TreeNode foundNode = treeNode.getNode(new Vector<TreeNode>(), searchNode, false);
+		TreeNode foundNode = this.getNode((ISEMOSSNode)n.leaf);
 		
 		//remove n from the instance list
 		Vector<SimpleTreeNode> instanceList = foundNode.getInstances();
-		if(instanceList.size()==0) {
-			//TODO: figure out if I need to rebalance the tree after removing a node
-			this.removeNode(isn);
+		if(instanceList.size()==1 && foundNode.filteredInstanceNode.size() == 0) {
+			TreeNode root = treeNode.deleteData(foundNode);
+			nodeIndexHash.put(isn.getType(), root);
 		} else {
 			instanceList.remove(n);
 		}
@@ -1211,8 +1181,6 @@ public class SimpleTreeBuilder
 		for(SimpleTreeNode n: foundNode.instanceNode) {
 			filterSimpleTreeNode(n);
 			filterTreeNode(n);
-			//foundNode.instanceNode.remove(n);
-			//foundNode.filteredInstanceNode.add(n);
 		}
 	}
 
@@ -1249,31 +1217,29 @@ public class SimpleTreeBuilder
 	}
 	
 	private void filterTreeNode(SimpleTreeNode instance2filter) {
-		String type = ((ISEMOSSNode)instance2filter.leaf).getType();
-		TreeNode filterIndexTree = nodeIndexHash.get(type);
-		TreeNode treeNode = new TreeNode(instance2filter.leaf);
-		TreeNode foundNode = filterIndexTree.getLeaf(treeNode, true);
 		
-		foundNode.instanceNode.remove(instance2filter);
-		foundNode.filteredInstanceNode.add(instance2filter);
+		TreeNode foundNode = this.getNode((ISEMOSSNode)instance2filter.leaf);
 		
-		if(instance2filter.rightSibling!=null) {
-			filterTreeNode(instance2filter.rightChild);
+		if(foundNode != null) {
+		
+			//This should never return false
+			if(foundNode.instanceNode.remove(instance2filter)) {
+				foundNode.filteredInstanceNode.add(instance2filter);
+			}
+			
+			if(instance2filter.rightSibling!=null) {
+				filterTreeNode(instance2filter.rightChild);
+			}
+			if(instance2filter.leftChild!=null) {
+				filterTreeNode(instance2filter.leftChild);
+			}
 		}
-		if(instance2filter.leftChild!=null) {
-			filterTreeNode(instance2filter.leftChild);
-		}
-		/*
-		if(treeNode.instanceNode.contains(instance2filter)) {
-			treeNode.instanceNode.remove(instance2filter);
-			treeNode.filteredInstanceNode.add(instance2filter);
-		}
-		*/
 	}
 	
 	public void unfilterSimpleTree(String column) {
 		//TODO
 	}
+	
 	public void unfilterColumn(String column) {
 		TreeNode unfilterIndexTree = nodeIndexHash.get(column);
 		ITreeKeyEvaluatable l = unfilterIndexTree.instanceNode.get(0).parent.leaf;
@@ -1303,7 +1269,7 @@ public class SimpleTreeBuilder
 		//transfer all right children of parent column back to the left child
 	}
 	
-	public void unfilterTreeNode(TreeNode treeNode, SimpleTreeNode instance) {
+	private void unfilterTreeNode(TreeNode treeNode, SimpleTreeNode instance) {
 		if(treeNode.filteredInstanceNode.contains(instance)) {
 			treeNode.filteredInstanceNode.remove(instance);
 			treeNode.instanceNode.add(instance);
@@ -1454,5 +1420,17 @@ public class SimpleTreeBuilder
 		while(root.parent!=null) root = root.parent;
 		while(root.leftSibling!=null) root = root.leftSibling;
 		return root;
+	}
+	
+	//TODO: complete
+	public boolean isEmpty() {
+		SimpleTreeNode root = this.getRoot();
+		String type = ((ISEMOSSNode)root.leaf).getType();
+		TreeNode t = nodeIndexHash.get(type);
+		return false;
+	}
+	
+	private boolean isEmpty(TreeNode t, SimpleTreeNode s) {
+		return false;
 	}
 }

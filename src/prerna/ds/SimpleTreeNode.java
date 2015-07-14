@@ -512,7 +512,7 @@ public class SimpleTreeNode {
 		// first possibility - this has no right sibling - possibly the best scenario - delete
 		if(node.rightSibling == null && node.leftSibling == null)
 		{
-			node.parent.leftChild = null;
+			if(node.parent != null) node.parent.leftChild = null;
 			node.parent = null;
 		}
 		else if(node.leftSibling != null && node.rightSibling == null)
@@ -523,7 +523,7 @@ public class SimpleTreeNode {
 		}
 		else if(node.rightSibling != null && node.leftSibling == null)
 		{
-			node.parent.leftChild = node.rightSibling;
+			if(node.parent != null) node.parent.leftChild = node.rightSibling;
 			node.rightSibling.leftSibling = null; // nullify this node
 			node.parent = null;
 			node.rightSibling = null;
@@ -541,55 +541,55 @@ public class SimpleTreeNode {
 	}
 	public static void tryFlatten()
 	{
-		StringClass x1 = new StringClass("ROOT1");
-		StringClass x2 = new StringClass("CHILD1");
-		StringClass x3 = new StringClass("CHILD2");
-		StringClass x4 = new StringClass("CHILD_CHILD_1");
-		StringClass x5 = new StringClass("CHILD_CHILD_CHILD_1");
-		StringClass x6 = new StringClass("CHILD_CHILD_2");
-
-		SimpleTreeNode X1 = new SimpleTreeNode(x1);
-		SimpleTreeNode X2 = new SimpleTreeNode(x2);
-		SimpleTreeNode X3 = new SimpleTreeNode(x3);
-		SimpleTreeNode X4 = new SimpleTreeNode(x4);
-		SimpleTreeNode X5 = new SimpleTreeNode(x5);
-		SimpleTreeNode X6 = new SimpleTreeNode(x6);
-
-		X1.addChild(X2);
-		X1.addChild(X3);
-		X2.addChild(X4);
-		X4.addChild(X5);
-		X3.addChild(X6);
-		
-		StringClass x11 = new StringClass("ROOT2");
-		StringClass x21 = new StringClass("2_CHILD1");
-		StringClass x31 = new StringClass("2_CHILD2");
-		StringClass x41 = new StringClass("2_CHILD_CHILD_1");
-		StringClass x51 = new StringClass("2_CHILD_CHILD_CHILD_1");
-		StringClass x61 = new StringClass("2_CHILD_CHILD_2");
-
-		SimpleTreeNode X11 = new SimpleTreeNode(x11);
-		SimpleTreeNode X21 = new SimpleTreeNode(x21);
-		SimpleTreeNode X31 = new SimpleTreeNode(x31);
-		SimpleTreeNode X41 = new SimpleTreeNode(x41);
-		SimpleTreeNode X51 = new SimpleTreeNode(x51);
-		SimpleTreeNode X61 = new SimpleTreeNode(x61);
-
-		X11.addChild(X21);
-		X11.addChild(X31);
-		X21.addChild(X41);
-		X41.addChild(X51);
-		X31.addChild(X61);
-		
-		X1.rightSibling = X11;
-		int levels = 5;
-		
-		List<Object[]> table = new ArrayList<Object[]>();
-		X1.flattenTreeFromRoot(X1, new Vector(levels), table, levels);
-		
-		for(Object[] row : table) {
-			System.out.println(Arrays.toString(row));
-		}
+//		StringClass x1 = new StringClass("ROOT1");
+//		StringClass x2 = new StringClass("CHILD1");
+//		StringClass x3 = new StringClass("CHILD2");
+//		StringClass x4 = new StringClass("CHILD_CHILD_1");
+//		StringClass x5 = new StringClass("CHILD_CHILD_CHILD_1");
+//		StringClass x6 = new StringClass("CHILD_CHILD_2");
+//
+//		SimpleTreeNode X1 = new SimpleTreeNode(x1);
+//		SimpleTreeNode X2 = new SimpleTreeNode(x2);
+//		SimpleTreeNode X3 = new SimpleTreeNode(x3);
+//		SimpleTreeNode X4 = new SimpleTreeNode(x4);
+//		SimpleTreeNode X5 = new SimpleTreeNode(x5);
+//		SimpleTreeNode X6 = new SimpleTreeNode(x6);
+//
+//		X1.addChild(X2);
+//		X1.addChild(X3);
+//		X2.addChild(X4);
+//		X4.addChild(X5);
+//		X3.addChild(X6);
+//		
+//		StringClass x11 = new StringClass("ROOT2");
+//		StringClass x21 = new StringClass("2_CHILD1");
+//		StringClass x31 = new StringClass("2_CHILD2");
+//		StringClass x41 = new StringClass("2_CHILD_CHILD_1");
+//		StringClass x51 = new StringClass("2_CHILD_CHILD_CHILD_1");
+//		StringClass x61 = new StringClass("2_CHILD_CHILD_2");
+//
+//		SimpleTreeNode X11 = new SimpleTreeNode(x11);
+//		SimpleTreeNode X21 = new SimpleTreeNode(x21);
+//		SimpleTreeNode X31 = new SimpleTreeNode(x31);
+//		SimpleTreeNode X41 = new SimpleTreeNode(x41);
+//		SimpleTreeNode X51 = new SimpleTreeNode(x51);
+//		SimpleTreeNode X61 = new SimpleTreeNode(x61);
+//
+//		X11.addChild(X21);
+//		X11.addChild(X31);
+//		X21.addChild(X41);
+//		X41.addChild(X51);
+//		X31.addChild(X61);
+//		
+//		X1.rightSibling = X11;
+//		int levels = 5;
+//		
+//		List<Object[]> table = new ArrayList<Object[]>();
+//		X1.flattenTreeFromRoot(X1, new Vector(levels), table, levels);
+//		
+//		for(Object[] row : table) {
+//			System.out.println(Arrays.toString(row));
+//		}
 	}
 
 	public static void main(String [] args) throws Exception
