@@ -142,6 +142,24 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return (foundNode==null) ? null: new UniqueBTreeIterator(foundNode).next();
 	}
 	
+	public List<Object[]> getScaledData() {
+		List<Object[]> retData = new ArrayList<Object[]>();
+		Iterator<Object[]> iterator = this.scaledIterator(false);
+		while(iterator.hasNext()) {
+			retData.add(iterator.next());
+		}
+		return retData;
+	}
+	
+	public List<Object[]> getStandardizedData() {
+		List<Object[]> retData = new ArrayList<Object[]>();
+		Iterator<Object[]> iterator = this.standardizedIterator(false);
+		while(iterator.hasNext()) {
+			retData.add(iterator.next());
+		}
+		return retData;
+	}
+	
 	@Override
 	public List<Object[]> getRawData() {
 		List<Object[]> table = new ArrayList<Object[]>();
@@ -1002,40 +1020,41 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public Iterator<Object[]> iterator() {
+	public Iterator<Object[]> iterator(boolean getRawData) {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);	
-		Iterator<Object[]> it = new BTreeIterator(typeRoot);
+		Iterator<Object[]> it = new BTreeIterator(typeRoot, getRawData);
 		return it;
 	}
 	
 	@Override
-	public Iterator<Object[]> scaledIterator() {
+	public Iterator<Object[]> scaledIterator(boolean getRawData) {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);
-		return new ScaledBTreeIterator(typeRoot, this.isNumeric(), this.getMin(), this.getMax());
+		return new ScaledBTreeIterator(typeRoot, this.isNumeric(), this.getMin(), this.getMax(), getRawData);
 	}
 
 	@Override
-	public Iterator<Object[]> standardizedIterator() {
+	public Iterator<Object[]> standardizedIterator(boolean getRawData) {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);
-		return new ScaledBTreeIterator(typeRoot, this.isNumeric(), this.getAverage(), this.getStandardDeviation());
+		return new ScaledBTreeIterator(typeRoot, this.isNumeric(), this.getAverage(), this.getStandardDeviation(), getRawData);
 	}
 	
 	@Override
-	public Iterator<List<Object[]>> uniqueIterator(String columnHeader) {
+	public Iterator<List<Object[]>> uniqueIterator(String columnHeader, boolean getRawData) {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);	
-		Iterator<List<Object[]>> uniqueIterator = new UniqueBTreeIterator(typeRoot);
+		Iterator<List<Object[]>> uniqueIterator = new UniqueBTreeIterator(typeRoot, getRawData);
 		return uniqueIterator;
 	}
 	
 	@Override
-	public Iterator<List<Object[]>> standardizedUniqueIterator(String columnHeader) {
+	public Iterator<List<Object[]>> standardizedUniqueIterator(String columnHeader, boolean getRawData) {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		return new StandardizedUniqueBTreeIterator(typeRoot, this.isNumeric(), this.getAverage(), this.getStandardDeviation());
+		return new StandardizedUniqueBTreeIterator(typeRoot, this.isNumeric(), this.getAverage(), this.getStandardDeviation(), getRawData);
 	}
+	
 	@Override
-	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader) {
+	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData) {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		return new ScaledUniqueBTreeIterator(typeRoot, this.isNumeric(), this.getMin(), this.getMax());
+		return new ScaledUniqueBTreeIterator(typeRoot, this.isNumeric(), this.getMin(), this.getMax(), getRawData);
 	}
 	
 	@Override
@@ -1097,7 +1116,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public void filter(String columnHeader, List<Object> filterValues) {
-		// TODO Auto-generated method stub
+		for(Object o: filterValues) {
+			this.simpleTree.filterTree(columnHeader, this.createNodeObject(o, o, columnHeader));
+		}
 	}
 
 	@Override
@@ -1159,6 +1180,12 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	public SimpleTreeBuilder getBuilder(){
 		return this.simpleTree;
+	}
+	
+	@Override
+	public boolean isEmpty() {
+		//return this.simpleTree.isEmpty();
+		return false;
 	}
 	
 	public static void main(String[] args) {

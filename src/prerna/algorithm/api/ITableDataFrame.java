@@ -234,14 +234,14 @@ public interface ITableDataFrame {
 	 * The iterator will return an Object[] corresponding to the data in a row of the data-frame
 	 * @return						The iterator to go through all the rows
 	 */
-	Iterator<Object[]> iterator();
+	Iterator<Object[]> iterator(boolean getRawData);
 	
 	/**
 	 * Iterator to go through all the rows in the data-frame and return all the values in unique-valued groups based on a specific column
 	 * The iterator will return a List<Object[]> corresponding to the data in a row of the data-frame
 	 * @return						The iterator to go through all the rows
 	 */
-	Iterator<List<Object[]>> uniqueIterator(String columnHeader);
+	Iterator<List<Object[]>> uniqueIterator(String columnHeader, boolean getRawData);
 	
 	/**
 	 * Returns the iterator that will iterate through a numeric column
@@ -249,14 +249,14 @@ public interface ITableDataFrame {
 	 * @param columnHeader
 	 * @return
 	 */
-	Iterator<Object[]> standardizedIterator();
+	Iterator<Object[]> standardizedIterator(boolean getRawData);
 	
 	/**
 	 * 	 * Returns the iterator that will iterate through a numeric column
 	 * the iterator will return the each unique value in the column as a function -> x' = (x - min(columnHeader))/(max(columnHeader) - min(columnHeader))	 * @param columnHeader
 	 * @return
 	 */
-	Iterator<Object[]> scaledIterator();
+	Iterator<Object[]> scaledIterator(boolean getRawData);
 	
 	/**
 	 * Returns the iterator that will iterate through a numeric column
@@ -264,14 +264,14 @@ public interface ITableDataFrame {
 	 * @param columnHeader
 	 * @return
 	 */
-	Iterator<List<Object[]>> standardizedUniqueIterator(String columnHeader);
+	Iterator<List<Object[]>> standardizedUniqueIterator(String columnHeader, boolean getRawData);
 	
 	/**
 	 * 	 * Returns the iterator that will iterate through a numeric column
 	 * the iterator will return the each unique value in the column as a function -> x' = (x - min(columnHeader))/(max(columnHeader) - min(columnHeader))	 * @param columnHeader
 	 * @return
 	 */
-	Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader);
+	Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData);
 	
 	/**
 	 * Get the values for a specific column in the data-frame
@@ -369,6 +369,12 @@ public interface ITableDataFrame {
 	List<Object[]> getData();
 	
 	/**
+	 * Get all the data with numeric columns scaled
+	 * @return
+	 */
+	List<Object[]> getScaledData();
+	
+	/**
 	 * Get all the raw data contained in the data-frame
 	 * @return						An ArrayList of Object arrays containing all the raw data
 	 */
@@ -380,5 +386,11 @@ public interface ITableDataFrame {
 	 * @return
 	 */
 	List<Object[]> getData(String columnHeader, Object value);
+	
+	/**
+	 * Returns if the ITable is empty
+	 * @return
+	 */
+	boolean isEmpty();
 
 }
