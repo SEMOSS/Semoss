@@ -27,10 +27,59 @@
  *******************************************************************************/
 package prerna.math;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import prerna.algorithm.api.ITableDataFrame;
+
 public final class SimilarityWeighting {
 
 	private SimilarityWeighting() {
 		
+	}
+	
+	public static void calculateWeights(ITableDataFrame dataFrame, int instanceIndex, String[] attributeNames, boolean[] isNumeric, Map<String, Double> numericalWeights, Map<String, Double> categoricalWeights) {
+		int i = 0;
+		int size = attributeNames.length;
+		String instanceType = attributeNames[instanceIndex];
+		
+		List<Double> numericalEntropy = new ArrayList<Double>();
+		List<String> numericalNames = new ArrayList<String>();
+		
+		List<Double> categoricalEntropy = new ArrayList<Double>();
+		List<String> categoricalNames = new ArrayList<String>();
+		
+		for(; i < size; i++) {
+			String attribute = attributeNames[i];
+			if(attribute.equals(instanceType)) {
+				continue;
+			}
+			if(isNumeric[i]) {
+				numericalNames.add(attribute);
+				numericalEntropy.add(dataFrame.getEntropyDensity(attribute));
+			} else {
+				categoricalNames.add(attribute);
+				categoricalEntropy.add(dataFrame.getEntropyDensity(attribute));
+			}
+		}
+		
+		if(!numericalEntropy.isEmpty()){
+			double[] numericalWeightsArr = generateWeighting(numericalEntropy.toArray(new Double[0]));
+			i = 0;
+			int numNumeric = numericalNames.size();
+			for(; i < numNumeric; i++) {
+				numericalWeights.put(numericalNames.get(i), numericalWeightsArr[i]);
+			}
+		}
+		if(!categoricalEntropy.isEmpty()){
+			double[] categoricalWeightsArr = generateWeighting(categoricalEntropy.toArray(new Double[0]));
+			i = 0;
+			int numCategorical = categoricalNames.size();
+			for(; i < numCategorical; i++) {
+				categoricalWeights.put(categoricalNames.get(i), categoricalWeightsArr[i]);
+			}
+		}
 	}
 	
 	/**
