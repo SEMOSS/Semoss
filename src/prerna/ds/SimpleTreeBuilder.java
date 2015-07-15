@@ -55,6 +55,7 @@ public class SimpleTreeBuilder
 	
 	// actual value tree root
 	SimpleTreeNode lastAddedNode = null;
+	private SimpleTreeNode filteredRoot = null;
 	// see if the child can be a single node
 	// this means you can only add to the last child
 	// nothing before it
@@ -1185,7 +1186,9 @@ public class SimpleTreeBuilder
 	}
 
 	private void filterSimpleTreeNode(SimpleTreeNode node2filter) {
+		//TODO: simplify logic
 		SimpleTreeNode parentNode = node2filter.parent;
+		boolean root = (parentNode == null);
 		SimpleTreeNode nodeRightSibling = node2filter.rightSibling;
 		SimpleTreeNode nodeLeftSibling = node2filter.leftSibling;
 		
@@ -1194,6 +1197,8 @@ public class SimpleTreeBuilder
 			//in the middle
 			nodeRightSibling.leftSibling = nodeLeftSibling;
 			nodeLeftSibling.rightSibling = nodeRightSibling;
+			
+			
 		} 
 		else if(node2filter.rightSibling == null && node2filter.leftSibling != null) {
 			//right most
@@ -1201,18 +1206,46 @@ public class SimpleTreeBuilder
 		} 
 		else if(node2filter.rightSibling != null && node2filter.leftSibling == null) {
 			//left most
-			parentNode.leftChild = nodeRightSibling;
+			if(!root) {
+				parentNode.leftChild = nodeRightSibling;
+			}
 			nodeRightSibling.leftSibling = null;
+			
+		} 
+		
+		//put the node2filter on the right side or attach to filtered root node if root
+		if(root) {
+			if(filteredRoot == null) {
+				filteredRoot = node2filter;
+			} else {
+				SimpleTreeNode rightFilteredNode = filteredRoot;
+				while(rightFilteredNode.rightSibling != null) {
+					rightFilteredNode = rightFilteredNode.rightSibling;
+				}
+				rightFilteredNode.rightSibling = node2filter;
+			}
+		} else {
+			if(parentNode.rightChild == null) {
+				parentNode.rightChild = node2filter;
+			} else {
+				SimpleTreeNode rightFilteredChild = parentNode.rightChild;
+				rightFilteredChild = rightFilteredChild.getRight(rightFilteredChild);
+				rightFilteredChild.rightSibling = node2filter;
+				node2filter.leftSibling = rightFilteredChild;
+			}
 		}
 		
-		//put the node2filter on the right side
-		if(parentNode.rightChild == null) {
-			parentNode.rightChild = node2filter;
-		} else {
-			SimpleTreeNode rightFilteredChild = parentNode.rightChild;
-			rightFilteredChild = rightFilteredChild.getRight(rightFilteredChild);
-			rightFilteredChild.rightSibling = node2filter;
-			node2filter.leftSibling = rightFilteredChild;
+		//reset the root, doing this because not sure if root is being properly set in other methods
+		if(root) {
+			if(nodeLeftSibling != null) {
+				lastAddedNode = nodeLeftSibling; 
+				lastAddedNode = getRoot();
+			}
+			else if(nodeRightSibling != null) {
+				lastAddedNode = nodeRightSibling; 
+				lastAddedNode = getRoot();
+			}
+			else lastAddedNode = null;
 		}
 	}
 	
@@ -1417,9 +1450,16 @@ public class SimpleTreeBuilder
 	//TODO: make this better, not sure if lastAddedNode is reliable
 	public SimpleTreeNode getRoot() {
 		SimpleTreeNode root = lastAddedNode;
+		
+		if(lastAddedNode == null) return null;
+		
 		while(root.parent!=null) root = root.parent;
 		while(root.leftSibling!=null) root = root.leftSibling;
 		return root;
+	}
+	
+	public SimpleTreeNode getFilteredRoot() {
+		return filteredRoot;
 	}
 	
 	//TODO: complete
