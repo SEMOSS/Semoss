@@ -11,11 +11,15 @@ public class StandardizedUniqueBTreeIterator implements Iterator<List<Object[]>>
 	private Double[] stdv;
 	
 	public StandardizedUniqueBTreeIterator(TreeNode typeRoot, boolean[] isNum, Double[] average, Double[] standardDeviation) {
-		this(typeRoot, isNum, average, standardDeviation, false);
+		this(typeRoot, isNum, average, standardDeviation, false, null);
 	}
 	
 	public StandardizedUniqueBTreeIterator(TreeNode typeRoot, boolean[] isNum, Double[] average, Double[] standardDeviation, boolean getRawData) {
-		iterator = new UniqueBTreeIterator(typeRoot, getRawData);
+		this(typeRoot, isNum, average, standardDeviation, getRawData, null);
+	}
+	
+	public StandardizedUniqueBTreeIterator(TreeNode typeRoot, boolean[] isNum, Double[] average, Double[] standardDeviation, boolean getRawData, List<String> columns2skip) {
+		iterator = new UniqueBTreeIterator(typeRoot, getRawData, columns2skip);
 		isNumeric = isNum;
 		avg = average;
 		stdv = standardDeviation;
