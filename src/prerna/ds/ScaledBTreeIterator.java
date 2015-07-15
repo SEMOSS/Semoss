@@ -1,6 +1,7 @@
 package prerna.ds;
 
 import java.util.Iterator;
+import java.util.List;
 
 public class ScaledBTreeIterator implements Iterator<Object[]>{
 
@@ -10,11 +11,15 @@ public class ScaledBTreeIterator implements Iterator<Object[]>{
 	private Double[] max;
 	
 	public ScaledBTreeIterator(TreeNode typeRoot, boolean[] isNum, Double[] min, Double[] max) {
-		this(typeRoot, isNum, min, max, false);
+		this(typeRoot, isNum, min, max, false, null);
 	}
 	
 	public ScaledBTreeIterator(TreeNode typeRoot, boolean[] isNum, Double[] min, Double[] max, boolean getRawData) {
-		iterator = new BTreeIterator(typeRoot, getRawData);
+		this(typeRoot, isNum, min, max, getRawData, null);
+	}
+	
+	public ScaledBTreeIterator(TreeNode typeRoot, boolean[] isNum, Double[] min, Double[] max, boolean getRawData, List<String> columns2skip) {
+		iterator = new BTreeIterator(typeRoot, getRawData, columns2skip);
 		isNumeric = isNum;
 		this.min = min;
 		this.max = max;

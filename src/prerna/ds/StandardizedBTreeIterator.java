@@ -1,6 +1,7 @@
 package prerna.ds;
 
 import java.util.Iterator;
+import java.util.List;
 
 public class StandardizedBTreeIterator implements Iterator<Object[]>{
 
@@ -10,11 +11,15 @@ public class StandardizedBTreeIterator implements Iterator<Object[]>{
 	private Double[] stdv;
 	
 	public StandardizedBTreeIterator(TreeNode typeRoot, boolean[] isNum, Double[] average, Double[] standardDeviation) {
-		this(typeRoot, isNum, average, standardDeviation, false);
+		this(typeRoot, isNum, average, standardDeviation, false, null);
 	}
 	
 	public StandardizedBTreeIterator(TreeNode typeRoot, boolean[] isNum, Double[] average, Double[] standardDeviation, boolean getRawData) {
-		iterator = new BTreeIterator(typeRoot, getRawData);
+		this(typeRoot, isNum, average, standardDeviation, getRawData, null);
+	}
+	
+	public StandardizedBTreeIterator(TreeNode typeRoot, boolean[] isNum, Double[] average, Double[] standardDeviation, boolean getRawData, List<String> columns2skip) {
+		iterator = new BTreeIterator(typeRoot, getRawData, columns2skip);
 		isNumeric = isNum;
 		avg = average;
 		stdv = standardDeviation;

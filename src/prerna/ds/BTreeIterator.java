@@ -47,17 +47,15 @@ public class BTreeIterator implements Iterator<Object[]> {
 		
 		// add values into leaf from leaf to parent
 		List<Object> retRow = new ArrayList<Object>();
-		retRow.add(currValueNode.leaf.getValue());
-		while(currValueNode.parent != null) {
-			currValueNode = currValueNode.parent;
-			if(columns2skip.contains(((ISEMOSSNode)currValueNode.leaf).getType())) {
-				continue;
-			} else {
+		while(currValueNode != null) {
+			if(!columns2skip.contains(((ISEMOSSNode)currValueNode.leaf).getType())) {
 				Object value = useRawData ? currValueNode.leaf.getRawValue() : currValueNode.leaf.getValue();
 				retRow.add(value);
 			}
+			currValueNode = currValueNode.parent;
 		}
 		
+		//TODO: make more efficient by only creating an array and populating back to front thus avoid a reverse call and a toArray call
 		// reverse the values to be from parent to leaf
 		Collections.reverse(retRow);
 		
