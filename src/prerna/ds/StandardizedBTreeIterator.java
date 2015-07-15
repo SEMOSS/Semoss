@@ -40,7 +40,7 @@ public class StandardizedBTreeIterator implements Iterator<Object[]>{
 			for(int i = 0; i < nextRow.length; i++) {
 				if(isNumeric[i]) {
 					if(nextRow[i] instanceof Number) {
-						nextRow[i] = ((Double)nextRow[i] - avg[i])/stdv[i];
+						nextRow[i] = (((Number) nextRow[i]).doubleValue() - avg[i])/stdv[i];
 					} else {
 						nextRow[i] = null;
 					}

@@ -37,7 +37,7 @@ public class ScaledUniqueBTreeIterator implements Iterator<List<Object[]>> {
 			for(int i = 0; i < nextRow.length; i++) {
 				if(isNumeric[i]) {
 					if(nextRow[i] instanceof Number) {
-						nextRow[i] = ((Double)nextRow[i] - min[i])/(max[i] - min[i]);
+						nextRow[i] = ( ((Number)nextRow[i]).doubleValue() - min[i])/(max[i] - min[i]);
 					} else {
 						nextRow[i] = null;
 					}
