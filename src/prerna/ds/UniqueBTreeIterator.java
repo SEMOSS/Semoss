@@ -15,21 +15,18 @@ public class UniqueBTreeIterator implements Iterator<List<Object[]>>{
 	List<String> columns2skip;
 	
 	public UniqueBTreeIterator(TreeNode columnRoot) {
-		this(columnRoot, false);
+		this(columnRoot, false, null);
 	}
 	
 	public UniqueBTreeIterator(TreeNode columnRoot, boolean getRawData) {
-		iterator = new IndexTreeIterator(columnRoot);
-		useRawData = getRawData;
-		indexTreeNodes = new LinkedList<TreeNode>();
-		addToQueue();
+		this(columnRoot, getRawData, null);
 	}
 	
 	public UniqueBTreeIterator(TreeNode columnRoot, boolean getRawData, List<String> columns2skip) {
 		iterator = new IndexTreeIterator(columnRoot);
 		useRawData = getRawData;
 		indexTreeNodes = new LinkedList<TreeNode>();
-		columns2skip = columns2skip == null ? new ArrayList<String>() : columns2skip;
+		this.columns2skip = columns2skip == null ? new ArrayList<String>() : columns2skip;
 		addToQueue();
 	}
 	
@@ -84,7 +81,7 @@ public class UniqueBTreeIterator implements Iterator<List<Object[]>>{
 			List<Object> arraylist = new ArrayList<>();
 			SimpleTreeNode n = node;
 			while(n!=null) {
-				if(columns2skip.contains(((ISEMOSSNode)n.leaf).getType())) {
+				if(!columns2skip.contains(((ISEMOSSNode)n.leaf).getType())) {
 					Object value = useRawData ? n.leaf.getRawValue() : n.leaf.getValue();
 					arraylist.add(value);
 				}
