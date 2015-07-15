@@ -9,6 +9,7 @@ public class BTreeIterator implements Iterator<Object[]> {
 
 	private Iterator<SimpleTreeNode> iterator;
 	private boolean useRawData;
+	private List<String> columns2skip;
 	
 	/**
 	 * Constructor for the BTreeIterator
@@ -16,12 +17,17 @@ public class BTreeIterator implements Iterator<Object[]> {
 	 * @param typeRoot			A list of nodes corresponding to the leaves in the tree
 	 */
 	public BTreeIterator(TreeNode typeRoot) {
-		this(typeRoot, false);
+		this(typeRoot, false, null);
 	}
 	
 	public BTreeIterator(TreeNode typeRoot, boolean getRawData) {
+		this(typeRoot, getRawData, null);
+	}
+	
+	public BTreeIterator(TreeNode typeRoot, boolean getRawData, List<String> columns2skip) {
 		iterator = new ValueTreeColumnIterator(typeRoot);
 		useRawData = getRawData;
+		this.columns2skip = columns2skip == null ? new ArrayList<String>() : columns2skip;
 	}
 	
 	/**
@@ -44,8 +50,12 @@ public class BTreeIterator implements Iterator<Object[]> {
 		retRow.add(currValueNode.leaf.getValue());
 		while(currValueNode.parent != null) {
 			currValueNode = currValueNode.parent;
-			Object value = useRawData ? currValueNode.leaf.getRawValue() : currValueNode.leaf.getValue();
-			retRow.add(value);
+			if(columns2skip.contains(((ISEMOSSNode)currValueNode.leaf).getType())) {
+				continue;
+			} else {
+				Object value = useRawData ? currValueNode.leaf.getRawValue() : currValueNode.leaf.getValue();
+				retRow.add(value);
+			}
 		}
 		
 		// reverse the values to be from parent to leaf
