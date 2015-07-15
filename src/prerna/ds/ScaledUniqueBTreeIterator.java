@@ -11,11 +11,15 @@ public class ScaledUniqueBTreeIterator implements Iterator<List<Object[]>> {
 	private Double[] max;
 	
 	public ScaledUniqueBTreeIterator(TreeNode typeRoot, boolean[] isNum, Double[] min, Double[] max) {
-		this(typeRoot, isNum, min, max, false);
+		this(typeRoot, isNum, min, max, false, null);
 	}
 	
 	public ScaledUniqueBTreeIterator(TreeNode typeRoot, boolean[] isNum, Double[] min, Double[] max, boolean getRawData) {
-		iterator = new UniqueBTreeIterator(typeRoot, getRawData);
+		this(typeRoot, isNum, min, max, getRawData, null);
+	}
+	
+	public ScaledUniqueBTreeIterator(TreeNode typeRoot, boolean[] isNum, Double[] min, Double[] max, boolean getRawData, List<String> columns2skip) {
+		iterator = new UniqueBTreeIterator(typeRoot, getRawData, columns2skip);
 		isNumeric = isNum;
 		this.min = min;
 		this.max = max;
