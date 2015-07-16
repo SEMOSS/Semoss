@@ -31,6 +31,7 @@ import java.awt.Dimension;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.logging.Level;
 
 import prerna.ui.components.playsheets.BrowserPlaySheet;
@@ -102,14 +103,15 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 	 * Method processQueryData.  Processes the data from the SPARQL query into an appropriate format for the specific play sheet.
 	
 	 * @return Hashtable Includes the data series.*/
-	public Hashtable<String, ArrayList<String>> processQueryData()
+	public void processQueryData()
 	{
 		addPanel();
 		ArrayList<String> dataArrayList = new ArrayList<String>();
-		String[] var = wrapper.getVariables();
-		for (int i=0; i<list.size(); i++)
+		String[] var = dataFrame.getColumnHeaders();
+		Iterator<Object[]> it = dataFrame.iterator(false, null);
+		while(it.hasNext())
 		{	
-			Object[] listElement = list.get(i);
+			Object[] listElement = it.next();
 		//	for (int j = 0; j < var.length; j++) 
 		//	{	
 					String text = (String) listElement[0];
@@ -122,7 +124,7 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 
 		capabilityHash.put("dataSeries", dataArrayList);
 		
-		return capabilityHash;
+		this.dataHash = capabilityHash;
 	}
 	
 	public Hashtable processNewCapability(String capability)

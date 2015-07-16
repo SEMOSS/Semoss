@@ -377,6 +377,12 @@ public class SysToBLUDataGapsPlaySheet extends JInternalFrame implements IPlaySh
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+	@Override
+	public void processQueryData() {
+		// TODO Auto-generated method stub
+		
+	}
 	
 	
 }

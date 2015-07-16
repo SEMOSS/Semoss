@@ -292,9 +292,4 @@ public class FillTMVendorHash extends GridPlaySheet{
 	public void run() {
 		createView();
 	}	
-	
-	@Override
-	public Object getVariable(String varName, ISelectStatement sjss){
-		return sjss.getVar(varName);
-	}
 }

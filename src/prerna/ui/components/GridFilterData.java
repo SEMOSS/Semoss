@@ -29,6 +29,7 @@ package prerna.ui.components;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -52,7 +53,7 @@ public class GridFilterData {
 	Hashtable <String, Vector> typeHash = new Hashtable<String, Vector>();
 	public String [] columnNames = null;
 	
-	public ArrayList<Object []> dataList = null;
+	public List<Object []> dataList = null;
 	
 	static final Logger logger = LogManager.getLogger(GridFilterData.class.getName());
 	
@@ -73,11 +74,11 @@ public class GridFilterData {
 	
 	/**
 	 * Sets the data list.
-	 * @param dataList 	List of data.
+	 * @param tabularData 	List of data.
 	 */
-	public void setDataList(ArrayList <Object []> dataList)
+	public void setDataList(List<Object[]> tabularData)
 	{
-		this.dataList = dataList;
+		this.dataList = tabularData;
 	}
 	
 	/**

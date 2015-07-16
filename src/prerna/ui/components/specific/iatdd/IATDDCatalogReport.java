@@ -56,8 +56,8 @@ public class IATDDCatalogReport extends BasicProcessingPlaySheet {
 		super.createData();
 		//get the data from the query and send it to the writer
 		HashMap<String,Object> catalogData = new HashMap<String,Object>();
-		catalogData.put("data", list);
-		boolean success = writeReport(catalogData, names);
+		catalogData.put("data", dataFrame.getData());
+		boolean success = writeReport(catalogData, dataFrame.getColumnHeaders());
 
 		if (success) {
 			Utility.showMessage("System Export Finished! File located in:\n" + IATDDReportWriter.getFileLoc());

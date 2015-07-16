@@ -27,56 +27,48 @@
  *******************************************************************************/
 package prerna.ui.components.playsheets;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 
 import prerna.algorithm.learning.similarity.DatasetSimilarity;
-import prerna.engine.api.ISelectStatement;
-import prerna.engine.api.ISelectWrapper;
 import prerna.math.BarChart;
-import prerna.util.Utility;
+import prerna.om.SEMOSSParam;
+import prerna.util.ArrayUtilityMethods;
 
 public class DatasetSimilairtyColumnChartPlaySheet extends ColumnChartPlaySheet {
 
-	double[] simValues;
-	
+	private int instanceIndex;
+	private String changedCol;
+	private List<String> skipAttributes;
+
 	public DatasetSimilairtyColumnChartPlaySheet() {
 		super();
 	}
 	
 	@Override
-	public void createData()
-	{
-		generateData();
-		runAlgorithm();
-		dataHash = processQueryData();
+	public void createData() {
+		if(dataFrame == null || dataFrame.isEmpty())
+			super.createData();
 	}
 
-	private void generateData() {
-		list = new ArrayList<Object[]>();
+	@Override
+	public void runAnalytics() {
+		DatasetSimilarity alg = new DatasetSimilarity();
+		List<SEMOSSParam> options = alg.getOptions();
+		Map<String, Object> selectedOptions = new HashMap<String, Object>();
+		selectedOptions.put(options.get(0).getName(), instanceIndex); // default of 0 is acceptable
+		alg.setSelectedOptions(selectedOptions);
+		dataFrame.performAction(alg);
 		
-		ISelectWrapper sjsw = Utility.processQuery(engine, query);
-		names = sjsw.getVariables();
-		int length = names.length;
-		while(sjsw.hasNext()) {
-			ISelectStatement sjss = sjsw.next();
-			Object[] row = new Object[length];
-			int i = 0;
-			for(; i < length; i++) {
-				row[i] = sjss.getVar(names[i]);
-			}
-			list.add(row);
-		}
+		this.changedCol = alg.getChangedColumns().get(0);
 	}
 	
-	private void runAlgorithm() {
-		DatasetSimilarity alg = new DatasetSimilarity(list, names);
-		alg.generateClusterCenters();
-		simValues = alg.getSimilarityValuesForInstances();		
-	}
-	
-	public Hashtable<String, Object> processQueryData() {
-		BarChart chart = new BarChart(simValues, names[0]);
+	public void processQueryData() {
+		Object[] simValues = dataFrame.getColumn(changedCol);
+		Double[] dSimValues = ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(simValues);
+		BarChart chart = new BarChart(dSimValues, changedCol);
 		Hashtable<String, Object>[] bins = null;
 		if(chart.isUseCategoricalForNumericInput()) {
 			chart.calculateCategoricalBins("?", true, true);
@@ -90,9 +82,16 @@ public class DatasetSimilairtyColumnChartPlaySheet extends ColumnChartPlaySheet 
 		Hashtable<String, Object> retHash = new Hashtable<String, Object>();
 		Object[] binArr = new Object[]{bins};
 		retHash.put("dataSeries", binArr);
-		retHash.put("names", new String[]{names[0].concat(" Similarity Distribution to Dataset Center")});
+		retHash.put("names", new String[]{changedCol.concat(" Similarity Distribution to Dataset Center")});
 		
-		return retHash;
+		this.dataHash = retHash;
 	}
 	
+	public void setInstanceIndex(int instanceIndex) {
+		this.instanceIndex = instanceIndex;
+	}
+	
+	public void setSkipAttributes(List<String> skipAttributes) {
+		this.skipAttributes = skipAttributes;
+	}
 }

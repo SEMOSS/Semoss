@@ -31,9 +31,9 @@ import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 
-import prerna.engine.api.ISelectStatement;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -57,31 +57,21 @@ public class CountyHeatMapPlaySheet extends BrowserPlaySheet {
 	}
 	
 	/**
-	 * Method getVariable. Gets the variable names from the query results.
-	 * @param varName String - the variable name.
-	 * @param sjss SesameJenaSelectStatement - the associated sesame jena select statement.
-	
-	 * @return Object - results with given URI.*/
-	@Override
-	public Object getVariable(String varName, ISelectStatement sjss){
-		return sjss.getRawVar(varName);
-	}
-	
-	/**
 	 * Method processQueryData. Processes the data from the SPARQL query into an appropriate format for the specific play sheet.	
 	 * @return Hashtable - A Hashtable of the queried data to be converted into json format.  
 	 */
-	public Hashtable processQueryData()
+	public void processQueryData()
 	{
-		HashSet data = new HashSet();
-		String[] var = wrapper.getVariables(); 	
+		HashSet<LinkedHashMap<String, Object>> data = new HashSet<LinkedHashMap<String, Object>>();
+		String[] var = dataFrame.getColumnHeaders();
 		
 		//Possibly filter out all US Facilities from the query?
 		
-		for (int i=0; i<list.size(); i++)
+		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		while(it.hasNext())
 		{	
-			LinkedHashMap elementHash = new LinkedHashMap();
-			Object[] listElement = list.get(i);
+			LinkedHashMap<String, Object> elementHash = new LinkedHashMap<String, Object>();
+			Object[] listElement = it.next();
 			String colName;
 			Double value;
 			for (int j = 0; j < var.length; j++) 
@@ -150,7 +140,7 @@ public class CountyHeatMapPlaySheet extends BrowserPlaySheet {
 			data.add(elementHash);		
 		}
 		    
-		Hashtable allHash = new Hashtable();
+		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
 		allHash.put("dataSeries", data);
 		allHash.put("locationName", var[0]);
 		allHash.put("value", var[1]);
@@ -159,6 +149,6 @@ public class CountyHeatMapPlaySheet extends BrowserPlaySheet {
 			propertyName.add(var[i+2]);
 		allHash.put("propertyNames",propertyName);
 		
-		return allHash;
+		this.dataHash = allHash;
 	}
 }

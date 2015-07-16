@@ -48,7 +48,7 @@ import prerna.util.DIHelper;
 public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 
 	private static final Logger logger = LogManager.getLogger(VendorHeatMapSheetBigData.class.getName());
-	Hashtable allHash;
+	Hashtable<String, Object> allHash;
 	
 	/**
 	 * Constructor for VendorHeatMapSheet.
@@ -77,7 +77,7 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 			wrapper.setResultSet(rs);
 			wrapper.setEngineType(IEngine.ENGINE_TYPE.JENA);
 		}*/
-		names = wrapper.getVariables();
+		String[] names = wrapper.getVariables();
 		while(wrapper.hasNext())
 		{
 			ISelectStatement sjss = wrapper.next();
@@ -110,7 +110,7 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 		Hashtable<String,Object> capabilities = new Hashtable<String, Object>();
 		ArrayList<String> techReqWithStandard = new ArrayList<String>();
 		
-		list = new ArrayList<Object[]>();
+		ArrayList<Object[]> list = new ArrayList<Object[]>();
 		for(int i=0;i<queryArray.size();i++)
 		{
 			updateProgressBar((i+1)+"0%...Processing Queries", (i+1)*10);
@@ -253,7 +253,7 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 		
 		updateProgressBar("80%...Generating Heat Map from Data", 80);
 		
-		allHash = new Hashtable();
+		allHash = new Hashtable<String, Object>();
 
 		allHash.put("dataSeries",capabilities);
 		allHash.put("title", "Criteria vs. Vendors");
@@ -267,10 +267,11 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 		
 		dataHash = allHash;
 	}
+	
 	@Override
-	public Hashtable processQueryData()
+	public void processQueryData()
 	{
-		return allHash;
+		this.dataHash = allHash;
 	}
 
 }

@@ -31,6 +31,7 @@ import java.awt.BorderLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.beans.PropertyVetoException;
+import java.util.List;
 
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
@@ -40,10 +41,7 @@ import javax.swing.JTable;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.openrdf.model.Literal;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.api.ISelectStatement;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridRAWTableModel;
 import prerna.ui.components.GridTableModel;
@@ -93,9 +91,9 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 			gbl_mainPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
 			gbl_mainPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
 			mainPanel.setLayout(gbl_mainPanel);
-			
-			addScrollPanel(mainPanel);
 
+			addScrollPanel(mainPanel);
+			
 			updateProgressBar("0%...Preprocessing", 0);
 			resetProgressBar();
 			JPanel barPanel = new JPanel();
@@ -107,15 +105,15 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 			mainPanel.add(barPanel, gbc_barPanel);
 			barPanel.setLayout(new BorderLayout(0, 0));
 			barPanel.add(jBar, BorderLayout.CENTER);
-			
+
 			pane.add(this);
 			
 			this.pack();
 			this.setVisible(true);
-			this.setSelected(false);
 			this.setSelected(true);
-			logger.debug("Added the main pane");
+			this.show();
 			
+			logger.debug("Added the main pane");
 		} catch (PropertyVetoException e) {
 			e.printStackTrace();
 		}
@@ -138,20 +136,14 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 	}
 	
 	@Override
-	public Object getVariable(String varName, ISelectStatement sjss){
-		Object var = sjss.getRawVar(varName);
-			if( var != null && var instanceof Literal) {
-				var = sjss.getVar(varName);
-			} 
-			if(engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS)
-				var = sjss.getVar(varName);
-		return var;
-	}
-	
-	@Override
 	public GridRAWTableModel setGridModel(GridFilterData gfd) {
 		GridTableModel model = new GridTableModel(gfd);
 		return model;
+	}
+	
+	@Override
+	public List<Object[]> getTabularData() {
+		return dataFrame.getData();
 	}
 	
 	public void setHorizontalScrollBar(Boolean horizontalScrollBar) {

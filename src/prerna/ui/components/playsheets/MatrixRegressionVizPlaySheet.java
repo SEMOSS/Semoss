@@ -28,29 +28,47 @@
 package prerna.ui.components.playsheets;
 
 import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTable;
 
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.learning.supervized.MatrixRegressionAlgorithm;
-import prerna.util.CSSApplication;
+import prerna.om.SEMOSSParam;
+import prerna.ui.components.GridScrollPane;
+import prerna.ui.components.NewScrollBarUI;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 
 	private static final Logger LOGGER = LogManager.getLogger(MatrixRegressionVizPlaySheet.class.getName());	
+
+	private String[] columnHeaders;
+
 	private int bIndex = -1;
 	private double[][] Ab;
-	
+
 	private double standardError;
 	private double[] coeffArray;
 	private double[][] correlationArray;
 
 	private boolean includesInstance = true;
-	
+	private List<String> skipAttributes;
 
 	/**
 	 * Constructor for MatrixRegressionVizPlaySheet.
@@ -61,145 +79,178 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/scatter-plot-matrix.html";
 	}
-	
+
 	@Override
 	public void createData() {
-		if(list==null)
+		if(dataFrame == null || dataFrame.isEmpty())
 			super.createData();
-		else
-			dataHash = processQueryData();
 	}
-	
-	public void runAlgorithm() {
+
+	@Override
+	public void runAnalytics() {
+		this.columnHeaders = dataFrame.getColumnHeaders();
 
 		//the bIndex should have been provided. if not, will use the last column
 		if(bIndex==-1)
-			bIndex = names.length - 1;
-		
-		//create the b and A arrays which are used in matrix regression to determine coefficients
-		double[] b = MatrixRegressionHelper.createB(list, bIndex);
-		double[][] A;
-		if(includesInstance)
-			A = MatrixRegressionHelper.createA(list, 1, bIndex);
-		else
-			A = MatrixRegressionHelper.createA(list, 0, bIndex);
-			
-		
-		//run regression so we have coefficients and error
-		MatrixRegressionAlgorithm alg = new MatrixRegressionAlgorithm(A, b);
-		alg.execute();
-		coeffArray = alg.getCoeffArray();
-		standardError = alg.getStandardError();
-		
-		//create Ab array
-		Ab = MatrixRegressionHelper.appendB(A, b);
+			bIndex = columnHeaders.length - 1;
 
-		//run covariance 
-//		Covariance covariance = new Covariance(Ab);
-//		double[][] covarianceArray = covariance.getCovarianceMatrix().getData();
-		//run correlation
-		//TODO this can be simplified to only get correlation for the params we need
+		//create the b and A arrays which are used in matrix regression to determine coefficients
+		double[] b = MatrixRegressionHelper.createB(dataFrame, skipAttributes, bIndex);
+		double[][] A;
+		if(includesInstance) {
+			A = MatrixRegressionHelper.createA(dataFrame, skipAttributes, 1, bIndex);
+		} else {
+			A = MatrixRegressionHelper.createA(dataFrame, skipAttributes, 0, bIndex);
+		}
+
+		//run regression
+		MatrixRegressionAlgorithm alg = new MatrixRegressionAlgorithm();
+		List<SEMOSSParam> options = alg.getOptions();
+		Map<String, Object> selectedOptions = new HashMap<String, Object>();
+		selectedOptions.put(options.get(0).getName(), A);
+		selectedOptions.put(options.get(1).getName(), b);
+		alg.setSelectedOptions(selectedOptions);
+		dataFrame.performAction(alg);
+
+		this.coeffArray = alg.getCoeffArray();
+		this.standardError = alg.getStandardError();
+
+		//create Ab array
+		this.Ab = MatrixRegressionHelper.appendB(A, b);
 		PearsonsCorrelation correlation = new PearsonsCorrelation(Ab);
-		correlationArray = correlation.getCorrelationMatrix().getData();		
+		this.correlationArray = correlation.getCorrelationMatrix().getData();		
 	}
-	
+
 	@Override
-	public Hashtable processQueryData()
-	{	
-		runAlgorithm();
-		int i;
-		int j;
-		int listNumRows = list.size();
-//		int numCols = names.length;
+	public void processQueryData() {	
 		int numVariables;
-		
 		String id = "";
 		if(includesInstance) {
-			numVariables = names.length - 1;
-			id = names[0];
+			numVariables = columnHeaders.length - 1;
+			id = columnHeaders[0];
 		}else {
-			numVariables = names.length;
+			numVariables = columnHeaders.length;
+		}
+		if(skipAttributes != null) {
+			numVariables -= skipAttributes.size();
 		}
 
-		//reorder names so b is at the end
-//		names = MatrixRegressionHelper.moveNameToEnd(names, bIndex);
-		
-		//for each element/instance
-		//add its values for all independent variables to the dataSeriesHash
-		Object[][] dataSeries = new Object[listNumRows][numVariables + 1];
-		for(i=0;i<listNumRows;i++) {
-			if(includesInstance)
-				dataSeries[i][0] = list.get(i)[0];
-			else
-				dataSeries[i][0] = "";
-			
-			for(j=0;j<numVariables;j++) {
-				dataSeries[i][j + 1] = Ab[i][j];
-			}
-		}
-		
+		int i = 0;
 		Object[] stdErrors = new Object[numVariables];
 		for(i = 0; i<numVariables ; i++) {
 			stdErrors[i] = standardError;
 		}
-		
+
 		Object[] coefficients = new Object[numVariables + 1];
 		for(i = 0; i< numVariables - 1; i++) {
 			coefficients[i + 1] = coeffArray[i+1];
 		}
 		coefficients[numVariables] = coeffArray[0];
-		
+
 		Object[] correlations = new Object[numVariables + 1];
 		for(i = 0; i<numVariables-1; i++) {
 			correlations[i+1] = correlationArray[i][numVariables - 1];
 		}
 
-		dataHash = new Hashtable();
-		dataHash.put("one-row",true);
-		dataHash.put("id",id);
-		dataHash.put("names", names);
-		dataHash.put("dataSeries", dataSeries);
-		dataHash.put("shifts", stdErrors);
-		dataHash.put("coefficients", coefficients);
-		dataHash.put("correlations", correlations);
-		
-//		Gson gson = new Gson();
-//		System.out.println(gson.toJson(dataHash));
-		
-		return dataHash;
-	}
-
-	/**
-	 * Method addPanel. Creates a panel and adds the table to the panel.
-	 */
-	@Override
-	public void addPanel()
-	{
-		//if this is to be a separate playsheet, create the tab in a new window
-		//otherwise, if this is to be just a new tab in an existing playsheet,
-		if(jTab==null) {
-			super.addPanel();
-		} else {
-			String lastTabName = jTab.getTitleAt(jTab.getTabCount()-1);
-			LOGGER.info("Parsing integer out of last tab name");
-			int count = 1;
-			if(jTab.getTabCount()>1)
-				count = Integer.parseInt(lastTabName.substring(0,lastTabName.indexOf(".")))+1;
-			addPanelAsTab(count+". Regression");
-		}
-		new CSSApplication(getContentPane());
+		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
+		allHash.put("one-row",true);
+		allHash.put("id",id);
+		allHash.put("names", columnHeaders);
+		allHash.put("dataSeries", dataFrame.getData());
+		allHash.put("shifts", stdErrors);
+		allHash.put("coefficients", coefficients);
+		allHash.put("correlations", correlations);
+		this.dataHash = allHash;
 	}
 
 	public void setbColumnIndex(int bColumnIndex) {
 		this.bIndex = bColumnIndex;
 	}
-	
+
 	public int getbColumnIndex() {
 		return bIndex;
 	}
-	
+
 	public void setIncludesInstance(boolean includesInstance) {
 		this.includesInstance = includesInstance;
+	}
+
+	public void setSkipAttributes(List<String> skipAttributes) {
+		this.skipAttributes = skipAttributes;
+	}
+	
+	@Override
+	public String[] getColumnHeaders() {
+		String[] newNames;
+		if(skipAttributes == null || (skipAttributes.size() == 0)) {
+			newNames = columnHeaders;
+		} else {
+			newNames = new String[columnHeaders.length - skipAttributes.size()];
+			int counter = 0;
+			for(String name : columnHeaders) {
+				if(!skipAttributes.contains(name)) {
+					newNames[counter] = name;
+					counter++;
+				}
+			}
+		}
+		
+		return newNames;
+	}
+	
+	@Override
+	public List<Object[]> getTabularData() {
+		List<Object[]> allData = new ArrayList<Object[]>();
+		Iterator<Object[]> it = dataFrame.iterator(false, skipAttributes);
+		while(it.hasNext()) {
+			allData.add(it.next());
+		}
+		
+		return allData;
+	}
+
+	/////////////////////////////SWING DEPENDENT CODE/////////////////////////////
+	@Override
+	public void addPanel() {
+		if (jTab == null) {
+			super.addPanel();
+		} else {
+			String lastTabName = jTab.getTitleAt(jTab.getTabCount() - 1);
+			LOGGER.info("Parsing integer out of last tab name");
+			int count = 1;
+			if (jTab.getTabCount() > 1)
+				count = Integer.parseInt(lastTabName.substring(0, lastTabName.indexOf("."))) + 1;
+			addPanelAsTab(count + ". Matrix Regression Viz Data");
+			addGridTab(count + ". Matrix Regression Raw Data");
+		}
+	}
+
+	public void addGridTab(String tabName) {
+		table = new JTable();
+		GridScrollPane gsp = null;
+		gsp = new GridScrollPane(getColumnHeaders(), getTabularData());
+		gsp.addHorizontalScroll();
+		jTab.addTab(tabName, gsp);
+	}
+
+	public void addScrollPanel(JPanel panel, JComponent obj) {
+		JScrollPane scrollPane = new JScrollPane(obj);
+		scrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		scrollPane.setAutoscrolls(true);
+
+		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
+		gbc_scrollPane.fill = GridBagConstraints.BOTH;
+		gbc_scrollPane.gridx = 0;
+		gbc_scrollPane.gridy = 0;
+		panel.add(scrollPane, gbc_scrollPane);
+	}
+
+	public void setJTab(JTabbedPane jTab) {
+		this.jTab = jTab;
+	}
+
+	public void setJBar(JProgressBar jBar) {
+		this.jBar = jBar;
 	}
 
 }

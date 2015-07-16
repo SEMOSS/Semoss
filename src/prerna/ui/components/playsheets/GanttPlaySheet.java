@@ -30,6 +30,7 @@ package prerna.ui.components.playsheets;
 import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 
 import prerna.util.Constants;
@@ -54,17 +55,18 @@ public class GanttPlaySheet extends BrowserPlaySheet {
 	 * Method processQueryData.  Processes the data from the SPARQL query into an appropriate format for the specific play sheet.
 	
 	 * @return Hashtable - Processed text and numerical data accordingly for the parallel coordinates visualization.*/
-	public Hashtable processQueryData()
+	public void processQueryData()
 	{
 		String taskNameString = "taskName";
 		ArrayList dataArrayList = new ArrayList();
 		ArrayList taskNames = new ArrayList();
 		
-		String[] var = wrapper.getVariables(); 		
-		for (int i=0; i<list.size(); i++)
+		String[] var = dataFrame.getColumnHeaders();
+		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		while(it.hasNext())
 		{	
 			LinkedHashMap elementHash = new LinkedHashMap();
-			Object[] listElement = list.get(i);
+			Object[] listElement = it.next();
 			String colName;
 			Double value;
 			String elementConcatName = "";
@@ -125,7 +127,8 @@ public class GanttPlaySheet extends BrowserPlaySheet {
 		allHash.put("dataSeries", dataArrayList);
 		java.util.Collections.sort(taskNames);
 		allHash.put("dataKeys", taskNames);
-		return allHash;
+
+		this.dataHash = allHash;
 	}
 	
 }

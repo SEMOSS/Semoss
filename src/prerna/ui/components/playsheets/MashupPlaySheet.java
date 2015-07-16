@@ -78,4 +78,10 @@ public class MashupPlaySheet extends AbstractRDFPlaySheet {
 		return null;
 	}
 
+	@Override
+	public void processQueryData() {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

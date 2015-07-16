@@ -29,8 +29,13 @@ package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.swing.JDesktopPane;
+
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.ui.components.playsheets.ColumnChartPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
@@ -62,6 +67,19 @@ public class EABenefitsSchedulePlaySheet extends GridPlaySheet {
 	HashMap<String, Double> effectPercentMap;
 	HashMap<String, Double> efficiencyPercentMap;
 	HashMap<String, Double> productivityPercentMap;
+	
+	List<Object[]> list;
+	String[] names;
+	
+	@Override
+	public List<Object[]> getTabularData() {
+		return this.list;
+	}
+	
+	@Override
+	public String[] getColumnHeaders() {
+		return this.names;
+	}
 	
 	@Override
 	public void createData() {
@@ -225,11 +243,19 @@ public class EABenefitsSchedulePlaySheet extends GridPlaySheet {
 			}
 			// if (query.contains("barGraph")) {
 			ColumnChartPlaySheet graph = new ColumnChartPlaySheet();
-			graph.setNames(names);
-			graph.setList(list);
+			ITableDataFrame data = new BTreeDataFrame(names);
+			for(int i = 0; i < list.size(); i++) {
+				Map<String, Object> row = new HashMap<String, Object>();
+				Object[] elem = list.get(i);
+				for(int j = 0; j < elem.length; j++) {
+					row.put(names[j], elem[j]);
+				}
+				data.addRow(row, row);
+			}
+			graph.setDataFrame(data);
 			JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 			graph.setJDesktopPane(pane);
-			graph.setDataHash(graph.processQueryData());
+			graph.processQueryData();
 			graph.createView();
 			// }
 		} else if (query.contains("2")) {

@@ -29,6 +29,7 @@ package prerna.ui.components.specific.tap;
 
 import java.awt.Dimension;
 import java.util.Hashtable;
+import java.util.Iterator;
 
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;
@@ -50,17 +51,17 @@ public class DataProvenanceHeatMapSheet extends BrowserPlaySheet {
 	 * Method processQueryData.  Processes the data from the SPARQL query into an appropriate format for the specific play sheet.
 	
 	 * @return Hashtable - Consists of the x-value, y-value, x- and y-axis titles, and the title of the map.*/
-	public Hashtable processQueryData()
+	public void processQueryData()
 	{
-		Hashtable dataHash = new Hashtable();
-		Hashtable dataSeries = new Hashtable();
+		Hashtable<String, Object> dataHash = new Hashtable<String, Object>();
 		String[] var = wrapper.getVariables();
 		String xName = var[0];
 		String yName = var[1];
-		for (int i=0;i<list.size();i++)
-		{
-			Hashtable elementHash = new Hashtable();
-			Object[] listElement = list.get(i);			
+		
+		Iterator<Object[]> it = dataFrame.iterator(false, null);
+		while(it.hasNext()) {	
+			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
+			Object[] listElement = it.next();
 			String methodName = (String) listElement[0];
 			String groupName = (String) listElement[1];
 			methodName = methodName.replaceAll("\"", "");
@@ -82,14 +83,14 @@ public class DataProvenanceHeatMapSheet extends BrowserPlaySheet {
 			
 		}
 
-		Hashtable allHash = new Hashtable();
+		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
 		allHash.put("dataSeries", dataHash);
 		allHash.put("title",  var[0] + " vs " + var[1]);
 		allHash.put("xAxisTitle", var[0]);
 		allHash.put("yAxisTitle", var[1]);
 		allHash.put("value", var[2]);
 		
-		return allHash;
+		this.dataHash = allHash;
 	}
 	
 

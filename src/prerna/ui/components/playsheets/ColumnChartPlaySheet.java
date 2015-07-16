@@ -32,14 +32,13 @@ import java.awt.GridBagConstraints;
 import java.awt.Insets;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Iterator;
 
 import javax.swing.JButton;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.openrdf.model.Literal;
 
-import prerna.engine.api.ISelectStatement;
 import prerna.ui.components.ChartControlPanel;
 import prerna.ui.main.listener.impl.ColumnChartGroupedStackedListener;
 import prerna.util.Constants;
@@ -77,13 +76,16 @@ public class ColumnChartPlaySheet extends BrowserPlaySheet{
 		this.controlPanel.setPlaySheet(this);
 	}
 	
-	public Hashtable<String, Object> processQueryData()
+	public void processQueryData()
 	{		
 		ArrayList< ArrayList<Hashtable<String, Object>>> dataObj = new ArrayList< ArrayList<Hashtable<String, Object>>>();
+		String[] names = dataFrame.getColumnHeaders();
+
 		//series name - all objects in that series (x : ... , y : ...)
-		for( int i = 0; i < list.size(); i++)
+		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		while(it.hasNext())
 		{
-			Object[] elemValues = list.get(i);
+			Object[] elemValues = it.next();
 			for( int j = 1; j < elemValues.length; j++)
 			{
 				ArrayList<Hashtable<String,Object>> seriesArray = new ArrayList<Hashtable<String,Object>>();
@@ -103,21 +105,13 @@ public class ColumnChartPlaySheet extends BrowserPlaySheet{
 		columnChartHash.put("names", names);
 		columnChartHash.put("dataSeries", dataObj);
 		
-		return columnChartHash;
-	}
-	
-	@Override
-	public Object getVariable(String varName, ISelectStatement sjss){
-		Object var = sjss.getRawVar(varName);
-			if( var != null && var instanceof Literal) {
-				var = sjss.getVar(varName);
-			} 
-		return var;
+		this.dataHash = columnChartHash;
 	}
 	
 	@Override
 	public Hashtable<String, String> getDataTableAlign() {
 		Hashtable<String, String> alignHash = new Hashtable<String, String>();
+		String[] names = dataFrame.getColumnHeaders();
 		alignHash.put("label", names[0]);
 		for(int namesIdx = 1; namesIdx<names.length; namesIdx++){
 			alignHash.put("value " + namesIdx, names[namesIdx]);

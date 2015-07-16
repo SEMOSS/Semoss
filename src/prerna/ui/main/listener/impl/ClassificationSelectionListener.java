@@ -59,7 +59,7 @@ public class ClassificationSelectionListener extends AbstractListener {
 			String selection = bx.getSelectedItem() + "";
 			playSheet.disableCheckBox(selection,true);
 		}else if(bx.getName().equals("matrixDepVarComboBox")) {
-			playSheet.disableCheckBoxes(playSheet.categoryPropNames,false);
+			playSheet.disableCheckBoxes(playSheet.categoricalPropNames.toArray(new String[0]),false);
 			String selection = bx.getSelectedItem() + "";
 			playSheet.disableCheckBox(selection,true);
 		}else {

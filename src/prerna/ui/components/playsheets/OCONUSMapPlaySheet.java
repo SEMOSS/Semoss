@@ -30,13 +30,12 @@ package prerna.ui.components.playsheets;
 import java.awt.Dimension;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.openrdf.model.Literal;
 
-import prerna.engine.api.ISelectStatement;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -50,8 +49,8 @@ import com.teamdev.jxbrowser.chromium.JSValue;
 public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 	
 	private static final Logger logger = LogManager.getLogger(OCONUSMapPlaySheet.class.getName());
-	protected Hashtable allHash;
-	protected HashSet data;
+	protected Hashtable<String, Object> allHash;
+	protected HashSet<LinkedHashMap<String, Object>> data;
 	
 	/**
 	 * Constructor for OCONUSMapPlaySheet.
@@ -70,15 +69,15 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 	 * @return Hashtable - A Hashtable of the queried Continental United States data to be converted into json format. The
 	 *         data must be in the format lat, lon, size, and must include any relevant properties for the coordinate.
 	 */
-	public Hashtable processQueryData() {
-		data = new HashSet();
-//		String[] var = getVariableArray();
+	public void processQueryData() {
+		data = new HashSet<LinkedHashMap<String, Object>>();
+		String[] names = dataFrame.getColumnHeaders();
 		
 		// Possibly filter out all US Facilities from the query?
-		
-		for (int i = 0; i < list.size(); i++) {
-			LinkedHashMap elementHash = new LinkedHashMap();
-			Object[] listElement = list.get(i);
+		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		while(it.hasNext()) {
+			LinkedHashMap<String, Object> elementHash = new LinkedHashMap<String, Object>();
+			Object[] listElement = it.next();
 			String colName;
 			Double value;
 			for (int j = 0; j < names.length; j++) {
@@ -96,7 +95,7 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 			data.add(elementHash);
 		}
 		
-		allHash = new Hashtable();
+		allHash = new Hashtable<String, Object>();
 		allHash.put("dataSeries", data);
 		
 		allHash.put("lat", names[1]);
@@ -110,7 +109,7 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 		 * allHash.put("xAxisTitle", var[0]); allHash.put("yAxisTitle", var[1]); allHash.put("value", var[2]);
 		 */
 		
-		return allHash;
+		this.dataHash = allHash;
 	}
 	
 	public String[] getVariableArray() {
@@ -133,17 +132,10 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 	}
 	
 	@Override
-	public Object getVariable(String varName, ISelectStatement sjss){
-		Object var = sjss.getRawVar(varName);
-			if( var != null && var instanceof Literal) {
-				var = sjss.getVar(varName);
-			} 
-		return var;
-	}
-	
-	@Override
 	public Hashtable<String, String> getDataTableAlign() {
 		Hashtable<String, String> alignHash = new Hashtable<String, String>();
+		String[] names = dataFrame.getColumnHeaders();
+		
 		alignHash.put("label", names[0]);
 		alignHash.put("lat", names[1]);
 		alignHash.put("lon", names[2]);

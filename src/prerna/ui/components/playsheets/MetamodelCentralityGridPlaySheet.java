@@ -27,8 +27,9 @@
  *******************************************************************************/
 package prerna.ui.components.playsheets;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -36,6 +37,7 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.impl.CentralityCalculator;
 import prerna.algorithm.impl.PageRankCalculator;
 import prerna.algorithm.impl.SubclassingMapGenerator;
+import prerna.ds.BTreeDataFrame;
 import prerna.engine.impl.AbstractEngine;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
@@ -61,9 +63,8 @@ public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
 		vertStore = subclassGen.getVertStore();
 		edgeStore = subclassGen.getEdgeStore();
 		
-		names = new String[]{"Type","Undirected Closeness Centrality","Undirected Betweeness Centrality","Undirected Eccentricity Centrality","Undirected Page Rank"};
-
-		list = new ArrayList<Object[]>();
+		String[] names = new String[]{"Type","Undirected Closeness Centrality","Undirected Betweeness Centrality","Undirected Eccentricity Centrality","Undirected Page Rank"};
+		dataFrame = new BTreeDataFrame(names);
 		
 		Hashtable<SEMOSSVertex, Double> unDirCloseness = CentralityCalculator.calculateCloseness(vertStore, false);
 		Hashtable<SEMOSSVertex, Double> unDirBetweenness = CentralityCalculator.calculateBetweenness(vertStore, false);
@@ -82,13 +83,13 @@ public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
 		for(String node : vertStore.keySet()) {
 			SEMOSSVertex vert = vertStore.get(node);
 			String type = (String)vert.propHash.get(Constants.VERTEX_NAME);
-			Object[] row = new Object[5];
-			row[0] = type;
-			row[1] = unDirCloseness.get(vert);
-			row[2] = unDirBetweenness.get(vert);
-			row[3] = unDirEccentricity.get(vert);
-			row[4] = ranksTimesNodes.get(vert);
-			list.add(row);
+			Map<String, Object> row = new HashMap<String, Object>();
+			row.put(names[0], type);
+			row.put(names[1], unDirCloseness.get(vert));
+			row.put(names[2], unDirBetweenness.get(vert));
+			row.put(names[3], unDirEccentricity.get(vert));
+			row.put(names[4], ranksTimesNodes.get(vert));
+			dataFrame.addRow(row, row);
 		}
 	}
 }

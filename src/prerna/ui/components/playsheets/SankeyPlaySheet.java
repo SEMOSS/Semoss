@@ -30,6 +30,7 @@ package prerna.ui.components.playsheets;
 import java.awt.Dimension;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -60,18 +61,19 @@ public class SankeyPlaySheet extends BrowserPlaySheet {
 	 * note: ?target is the source for ?target2 and ?target2 is the source for ?target3...etc
 	
 	 * @return Hashtable - Consists of all the nodes and links included in the Sankey diagram.*/
-	public Hashtable processQueryData() {
-		HashSet links = new HashSet();
-		HashSet nodes = new HashSet();
+	public void processQueryData() {
+		HashSet<LinkedHashMap<String, Object>> links = new HashSet<LinkedHashMap<String, Object>>();
+		HashSet<LinkedHashMap<String, Object>> nodes = new HashSet<LinkedHashMap<String, Object>>();
 		String[] var = wrapper.getVariables();
 		int value = 1;
 		
-		for (int i=0; i<list.size(); i++) {
-			LinkedHashMap elementLinks = new LinkedHashMap();
-			LinkedHashMap elementSource = new LinkedHashMap();
-			LinkedHashMap elementTarget = new LinkedHashMap();
+		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		while(it.hasNext()) {
+			LinkedHashMap<String, Object> elementLinks = new LinkedHashMap<String, Object>();
+			LinkedHashMap<String, Object> elementSource = new LinkedHashMap<String, Object>();
+			LinkedHashMap<String, Object> elementTarget = new LinkedHashMap<String, Object>();
 			
-			Object[] listElement = list.get(i);
+			Object[] listElement = it.next();
 			elementLinks.put("source", listElement[0]);
 			elementLinks.put("target", listElement[1]);
 			elementSource.put("name", listElement[0]);
@@ -89,9 +91,9 @@ public class SankeyPlaySheet extends BrowserPlaySheet {
 			
 			if (var.length > 3) { 
 				for (int j = 1; j < (var.length - 2); j = j + 2) {	
-					LinkedHashMap newelementLinks = new LinkedHashMap();
-					LinkedHashMap newElementSource = new LinkedHashMap();
-					LinkedHashMap newElementTarget = new LinkedHashMap();
+					LinkedHashMap<String, Object> newelementLinks = new LinkedHashMap<String, Object>();
+					LinkedHashMap<String, Object> newElementSource = new LinkedHashMap<String, Object>();
+					LinkedHashMap<String, Object> newElementTarget = new LinkedHashMap<String, Object>();
 					
 					newelementLinks.put("source", listElement[j]);
 					newelementLinks.put("target", listElement[j+2]);
@@ -110,11 +112,11 @@ public class SankeyPlaySheet extends BrowserPlaySheet {
 			}		
 		}
 		
-		Hashtable allHash = new Hashtable();
+		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
 		allHash.put("nodes", nodes);
 		allHash.put("links", links);
 				
-		return allHash;
+		this.dataHash = allHash;
 	}
 	
 	/**
@@ -133,7 +135,7 @@ public class SankeyPlaySheet extends BrowserPlaySheet {
 		super.createView();
 		//BrowserServices.getInstance().setPromptService(new SilentPromptService());
 		Hashtable dataHash = new Hashtable();
-		dataHash = processQueryData();
+		processQueryData();
 		browser.loadURL(fileName);
 		while (browser.isLoading()) {
 		    try {

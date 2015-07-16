@@ -29,6 +29,7 @@ package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import javax.swing.JDesktopPane;
 
@@ -46,6 +47,19 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 	private IEngine hrCore;
 	public void setProcessor(LPInterfaceProcessor processor) {
 		this.processor = processor;
+	}
+	
+	List<Object[]> list;
+	String[] names;
+	
+	@Override
+	public List<Object[]> getTabularData() {
+		return this.list;
+	}
+	
+	@Override
+	public String[] getColumnHeaders() {
+		return this.names;
 	}
 	
 	/**

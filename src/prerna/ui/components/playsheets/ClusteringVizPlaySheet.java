@@ -34,8 +34,11 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
@@ -49,17 +52,15 @@ import javax.swing.JScrollPane;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.learning.similarity.ClusterRemoveDuplicates;
+import prerna.algorithm.api.IAnalyticRoutine;
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.similarity.DatasetSimilarity;
-import prerna.algorithm.learning.similarity.GenerateEntropyDensity;
-import prerna.algorithm.learning.unsupervised.clustering.AbstractClusteringAlgorithm;
-import prerna.algorithm.learning.unsupervised.clustering.ClusteringOptimization;
-import prerna.algorithm.learning.unsupervised.clustering.PartitionedClusteringAlgorithm;
-import prerna.engine.api.ISelectStatement;
-import prerna.engine.api.ISelectWrapper;
+import prerna.algorithm.learning.unsupervised.clustering.ClusteringRoutine;
+import prerna.algorithm.learning.unsupervised.clustering.MultiClusteringRoutine;
+import prerna.algorithm.learning.util.IClusterDistanceMode;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
-import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.om.SEMOSSParam;
 import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.components.api.IPlaySheet;
@@ -77,47 +78,256 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 
 	private static final Logger LOGGER = LogManager.getLogger(ClusteringVizPlaySheet.class.getName());
 
-	private int inputNumClusters;
+	private IAnalyticRoutine alg;
+	private String[] columnHeaders;
+	private boolean[] isNumeric;
+	
+	private int instanceIndex;
 	private int numClusters;
-	private String fullQuery;
-
-	private ArrayList<Object[]> clusterInfo;
+	private int inputNumClusters;
+	private int minNumclusters = 2;
+	private int maxNumClusters = 50;
+	
+	private String clusterIDCol;
+	private int clusterIDIndex;
+	
 	private ArrayList<JCheckBox> paramCheckboxes;
 	private ArrayList<JCheckBox> clusterCheckboxes;
 	private ArrayList<JCheckBox> paramsToCheck;
 	private JPanel clusterSelectorPanel;
-	private ArrayList<Object[]> masterListWithCluster;
-	private String[] asteriskNamesWithCluster;
-	private ArrayList<Object[]> masterList;
-	private String[] masterNames;
+	
 	private String paramSelectorTabName = "Param Selector";
 	private String rawDataTabName = "Raw Data";
 
 	private Hashtable<String, IPlaySheet> playSheetHash;
 	private JComboBox<String> drillDownTabSelectorComboBox;
-	private Hashtable<String, Hashtable<String, Object>>[] barData;
 
-	// indexing used for bar graph visualizations
-	private int[] numericalPropIndices;
+	private boolean addAsTab = false;// determines whether to add this playsheet as a tab to the jTab or to create a new playsheet
 
-	private ArrayList<Object[]> rawDataList;
-	private String[] rawDataNames;
-
-	private int[] clusterAssignment;
-	private Boolean addAsTab = false;// determines whether to add this playsheet as a tab to the jTab or to create a new playsheet
-
+	private Map<String, IClusterDistanceMode.DistanceMeasure> distanceMeasure;
+	private List<String> skipAttributes;
+	
 	public ClusteringVizPlaySheet() {
 		super();
 		this.setPreferredSize(new Dimension(800, 600));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/cluster.html";
 	}
-
+	
 	@Override
-	public void createView() {
-		super.createView();
+	public void createData() {
+		if(dataFrame == null || dataFrame.isEmpty())
+			super.createData();
 	}
 
+	@Override
+	public void runAnalytics() {
+		Map<String, Object> selectedOptions = null;
+		if (numClusters >= 2) {
+			alg = new ClusteringRoutine();
+			List<SEMOSSParam> options = alg.getOptions();
+			selectedOptions = new HashMap<String, Object>();
+			selectedOptions.put(options.get(0).getName(), numClusters); 
+			selectedOptions.put(options.get(1).getName(), instanceIndex); // default of 0 is acceptable
+			selectedOptions.put(options.get(2).getName(), distanceMeasure); 
+			selectedOptions.put(options.get(3).getName(), skipAttributes); 
+			alg.setSelectedOptions(selectedOptions);
+			dataFrame.performAction(alg);
+			this.numClusters = ((ClusteringRoutine) alg).getNumClusters();
+		} else {
+			alg = new MultiClusteringRoutine();
+			List<SEMOSSParam> options = alg.getOptions();
+			selectedOptions = new HashMap<String, Object>();
+			selectedOptions.put(options.get(0).getName(), minNumclusters); 
+			selectedOptions.put(options.get(1).getName(), maxNumClusters);
+			selectedOptions.put(options.get(2).getName(), instanceIndex); // default of 0 is acceptable
+			selectedOptions.put(options.get(3).getName(), distanceMeasure); 
+			selectedOptions.put(options.get(4).getName(), skipAttributes);
+
+			alg.setSelectedOptions(selectedOptions);
+			dataFrame.performAction(alg);
+			this.numClusters = ((MultiClusteringRoutine) alg).getNumClusters();
+		}
+		
+		columnHeaders = dataFrame.getColumnHeaders();
+		isNumeric = dataFrame.isNumeric();
+		clusterIDCol = alg.getChangedColumns().get(0);
+		clusterIDIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(columnHeaders, clusterIDCol);
+	}
+
+	@Override
+	public void processQueryData() {
+		//TODO: this is a bad format, will just use getData in future
+		List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+		Iterator<Object[]> it1 = dataFrame.iterator(false, skipAttributes);
+		//TODO: remove skipAttributes from columnHeaders
+		while(it1.hasNext()) {
+			Object[] row = it1.next();
+			Map<String, Object> hashRow = new Hashtable<String, Object>();
+			for(int i = 0; i < row.length; i++) {
+				if(i == instanceIndex) {
+					hashRow.put("NodeName", row[i]);
+					continue;
+				}
+				if(i == clusterIDIndex) {
+					hashRow.put("ClusterID", row[i]);
+					continue;
+				}
+				hashRow.put(columnHeaders[i], row[i]);
+			}
+			dataList.add(hashRow);
+		}
+
+		Hashtable<String, Hashtable<String, Object>>[] barData = new Hashtable[this.numClusters];
+		Hashtable<String, Hashtable<String, Object>> clusterDataHash = new Hashtable<String, Hashtable<String, Object>>();
+		Iterator<List<Object[]>> it = dataFrame.uniqueIterator(clusterIDCol, false, skipAttributes);
+		while(it.hasNext()) {
+			List<Object[]> clusterData = it.next();
+			int numInstancesInCluster = clusterData.size();
+			int clusterNumber = (int) clusterData.get(0)[clusterIDIndex];
+			
+			for(int i = 0; i < columnHeaders.length; i++) {
+				String propName = columnHeaders[i];
+				if(i == instanceIndex || i == clusterIDIndex) {
+					continue;
+				}
+				// get column from cluster data corresponding to ith attribute
+				List<Object> values = new ArrayList<Object>();
+				for(int j = 0; j < numInstancesInCluster; j++) {
+					values.add(clusterData.get(j)[i]);
+				}
+				Object[] noNullValues = ArrayUtilityMethods.removeAllNulls(values.toArray());
+				if(isNumeric[i]) {
+					// dealing with numerical prop - determine range, calculate IQR, determine bin-size, group
+					Double[] numValues = ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(noNullValues);
+					numValues = ArrayUtilityMethods.sortDoubleWrapperArr(numValues);
+					Hashtable<String, Object>[] propBins = null;
+					BarChart chart = new BarChart(numValues);
+					if (chart.isUseCategoricalForNumericInput()) {
+						chart.calculateCategoricalBins("?", true, true);
+						chart.generateJSONHashtableCategorical();
+						propBins = chart.getRetHashForJSON();
+					} else {
+						chart.generateJSONHashtableNumerical();
+						propBins = chart.getRetHashForJSON();
+					}
+					Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+					String[] zScore = StatisticsUtilityMethods.getZScoreRangeAsStringIgnoringNull(numValues, true);
+					// cause JS is dumb
+					Object[] propBinsArr = new Object[] { propBins };
+					innerHash.put("dataSeries", propBinsArr);
+					innerHash.put("names", new String[] { propName, "Distribution" });
+					innerHash.put("zScore", zScore);
+					clusterDataHash.put(propName, innerHash);
+				} else {
+					String[] stringValues = ArrayUtilityMethods.convertObjArrToStringArr(noNullValues);
+					BarChart chart = new BarChart(stringValues);
+					chart.calculateCategoricalBins("?", true, true);
+					chart.generateJSONHashtableCategorical();
+					Hashtable<String, Object>[] propBins = chart.getRetHashForJSON();
+					Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+					// cause JS is dumb
+					Object[] propBinsArr = new Object[] { propBins };
+					innerHash.put("dataSeries", propBinsArr);
+					innerHash.put("names", new String[] { propName, "Frequency" });
+					// need to create outerHash since bar chart takes in weird format - since it is set up to conver to stacked bar chart
+					clusterDataHash.put(propName, innerHash);
+				}
+			}
+			//TODO: is it worth it to run all these calculations? will people even understand the dataset similarity?
+			// add in similarity for cluster
+//			DatasetSimilarity simAlg = new DatasetSimilarity();
+//			List<SEMOSSParam> options = simAlg.getOptions();
+//			HashMap<String, Object> selectedOptions = new HashMap<String, Object>();
+//			selectedOptions.put(options.get(0).getName(), instanceIndex); // default of 0 is acceptable
+//			simAlg.setSelectedOptions(selectedOptions);
+//			ITableDataFrame simAlgResults = simAlg.runAlgorithm(dataFrame);
+//			Object[] simAlgResultsObj = simAlgResults.getColumn(simAlg.getChangedColumns().get(0));
+//			double[] simValues = ArrayUtilityMethods.convertObjArrToDoubleArr(simAlgResultsObj);
+//			Hashtable<String, Object>[] bins = null;
+//			BarChart chart = new BarChart(simValues, "");
+//			if (chart.isUseCategoricalForNumericInput()) {
+//				chart.calculateCategoricalBins("?", true, true);
+//				chart.generateJSONHashtableCategorical();
+//				bins = chart.getRetHashForJSON();
+//			} else {
+//				chart.generateJSONHashtableNumerical();
+//				bins = chart.getRetHashForJSON();
+//			}
+//			String[] zScore = StatisticsUtilityMethods.getZScoreRangeAsString(simValues, false);
+//
+//			Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
+//			Object[] binArr = new Object[] { bins };
+//			innerHash.put("dataSeries", binArr);
+//			innerHash.put("names", new String[] { columnHeaders[instanceIndex].concat(" Similarity Distribution to Dataset Center"), "Distribution" });
+//			innerHash.put("zScore", zScore);
+//			clusterDataHash.put("Similarity Value to Dataset Center", innerHash);
+			
+			barData[clusterNumber] = clusterDataHash;
+		}
+
+		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
+		//TODO: this is a bad format, will just use getData in future
+		allHash.put("dataSeries", dataList);
+		allHash.put("barData", barData);
+		this.dataHash = allHash;
+	}
+
+	/**
+	 * Sets the string version of the SPARQL query on the playsheet. Pulls out the number of clusters and stores them in the numClusters
+	 * @param query
+	 */
+	@Override
+	public void setQuery(String query) {
+		LOGGER.info("New Query " + query);
+		String[] querySplit = query.split("\\+\\+\\+");
+		if (querySplit.length == 1) {
+			this.query = query;
+		} else if (querySplit.length == 2) {
+			this.query = querySplit[0];
+			this.numClusters = Integer.parseInt(querySplit[1]);
+			this.inputNumClusters = numClusters;
+		}
+	}
+
+	public void setNumClusters(int numClusters) {
+		this.inputNumClusters = numClusters;
+		this.numClusters = numClusters;
+	}
+
+	public int getNumClusters() {
+		return numClusters;
+	}
+
+	public void setDistanceMeasure(
+			Map<String, IClusterDistanceMode.DistanceMeasure> distanceMeasure) {
+		this.distanceMeasure = distanceMeasure;
+	}
+
+	public void setSkipAttributes(List<String> skipAttributes) {
+		this.skipAttributes = skipAttributes;
+	}
+	
+	public String getClusterIDCol() {
+		return clusterIDCol;
+	}
+
+	public void setClusterIDCol(String clusterIDCol) {
+		this.clusterIDCol = clusterIDCol;
+	}
+
+	public int getClusterIDIndex() {
+		return clusterIDIndex;
+	}
+
+	public void setClusterIDIndex(int clusterIDIndex) {
+		this.clusterIDIndex = clusterIDIndex;
+	}
+	
+	public void setInstanceIndex(int instanceIndex) {
+		this.instanceIndex = instanceIndex;
+	}
+	
 	/**
 	 * Method addPanel. Creates a panel and adds the table to the panel.
 	 */
@@ -159,25 +369,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 		new CSSApplication(getContentPane());
 	}
 
-	public void addGridTab() {
-		GridScrollPane gsp = null;
-		if (names.length != rawDataNames.length) {
-			gsp = new GridScrollPane(names, list);
-		} else {
-			gsp = new GridScrollPane(asteriskNamesWithCluster, masterListWithCluster);
-		}
-		gsp.addHorizontalScroll();
-
-		jTab.addTab(rawDataTabName, gsp);
-	}
-
 	public void addSelectorTab() {
-		GenerateEntropyDensity test;
-		if (masterList != null) {
-			test = new GenerateEntropyDensity(masterList, true);
-		} else
-			test = new GenerateEntropyDensity(list);
-		double[] testVals = test.generateEntropy();
 		DecimalFormat formatter = new DecimalFormat("0.000E0");
 		JPanel panel = new JPanel();
 
@@ -222,10 +414,14 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 		gbc_entropyDensityLabel.gridx = 1;
 		gbc_entropyDensityLabel.gridy = 0;
 		paramSelectorPanel.add(entropyDensityLabel, gbc_entropyDensityLabel);
-		for (int i = 1; i < masterNames.length; i++) {
+		for (int i = 1; i < columnHeaders.length; i++) {
+			if(i == instanceIndex || i == clusterIDIndex) {
+				continue;
+			}
+			Double entropyDensityValue = dataFrame.getEntropyDensity(columnHeaders[i]);
 
 			JLabel entropyDensityVal = new JLabel();
-			entropyDensityVal.setText(formatter.format(testVals[i]));
+			entropyDensityVal.setText(formatter.format(entropyDensityValue));
 			GridBagConstraints gbc_entropyDensityVal = new GridBagConstraints();
 			gbc_entropyDensityVal.anchor = GridBagConstraints.NORTHWEST;
 			gbc_entropyDensityVal.fill = GridBagConstraints.NONE;
@@ -235,7 +431,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 			paramSelectorPanel.add(entropyDensityVal, gbc_entropyDensityVal);
 
 			String checkboxLabel = "";
-			checkboxLabel = masterNames[i];
+			checkboxLabel = columnHeaders[i];
 			JCheckBox checkbox = new JCheckBox(checkboxLabel);
 			checkbox.setName(checkboxLabel + "checkBox");
 			checkbox.setSelected(true);
@@ -267,7 +463,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 		ClusteringRefreshParamListener refListener = new ClusteringRefreshParamListener();
 		refListener.setPlaySheet(this);
 		refListener.setCheckBoxes(paramCheckboxes);
-		refListener.setMasterData(masterNames, masterList);
+		refListener.setColumnHeaders(columnHeaders);
 		btnRefreshParam.addActionListener(refListener);
 
 		clusterSelectorPanel = new JPanel();
@@ -312,8 +508,12 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 
 		ClusteringDrillDownListener drillDownListener = new ClusteringDrillDownListener();
 		drillDownListener.setCheckBoxes(paramCheckboxes);
-		drillDownListener.setMasterData(masterNames, masterList);
+		drillDownListener.setDataFrame(dataFrame);
 		drillDownListener.setPlaySheet(this);
+		drillDownListener.setClusterIDCol(clusterIDCol);
+		drillDownListener.setClusterIDIndex(clusterIDIndex);
+		drillDownListener.setNumClusters(inputNumClusters);
+
 		btnDrillDownCluster.addActionListener(drillDownListener);
 
 		JScrollPane scroll = new JScrollPane(panel);
@@ -321,6 +521,16 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 		jTab.setSelectedIndex(0);
 	}
 
+	public void addGridTab() {
+		GridScrollPane gsp = null;
+		if(dataFrame != null) {
+			gsp = new GridScrollPane(dataFrame.getColumnHeaders(), dataFrame.getData());
+		}
+		gsp.addHorizontalScroll();
+
+		jTab.addTab(rawDataTabName, gsp);
+	}
+	
 	private void updateClusterCheckboxes() {
 		// remove old clusters
 		for (JCheckBox checkbox : clusterCheckboxes) {
@@ -343,349 +553,8 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 		}
 	}
 
-	public void setSelectedParams(ArrayList<JCheckBox> paramCheckboxes) {
-		this.paramsToCheck = paramCheckboxes;
-	}
-
-	public void drillDownData(String[] masterNames, String[] filteredNames, ArrayList<Object[]> masterList, ArrayList<Object[]> filteredList) {
-		this.masterNames = masterNames;
-		this.names = filteredNames;
-		this.masterList = masterList;
-		this.list = filteredList;
-		numClusters = inputNumClusters;
-	}
-
-	public void filterData(String[] filteredNames, ArrayList<Object[]> filteredList) {
-		this.names = filteredNames;
-		this.list = filteredList;
-		numClusters = inputNumClusters;
-		createData();
-		createView();
-		updateClusterCheckboxes();
-	}
-
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	@Override
-	public Hashtable processQueryData() {
-		ArrayList<Hashtable<String, Object>> dataList = new ArrayList<Hashtable<String, Object>>(list.size());
-		ArrayList<Hashtable<String, Object[]>> clusterInformation = new ArrayList<Hashtable<String, Object[]>>(numClusters);
-		ArrayList<ArrayList<Object[]>> storeInstanceDataInCluster = new ArrayList<ArrayList<Object[]>>();
-		// initialize cluster information
-		for (int i = 0; i < numClusters; i++) {
-			Hashtable<String, Object[]> innerHash = new Hashtable<String, Object[]>();
-			clusterInformation.add(innerHash);
-			storeInstanceDataInCluster.add(new ArrayList<Object[]>());
-		}
-
-		// original names
-		for (Object[] dataRow : masterListWithCluster) {
-			// add name and cluster under special names first
-			int clusterID = (int) dataRow[dataRow.length - 1];
-
-			// split up instances based on cluster
-			ArrayList<Object[]> instancesInCluster = storeInstanceDataInCluster.get(clusterID);
-			instancesInCluster.add(dataRow);
-
-			Hashtable<String, Object> instanceHash = new Hashtable<String, Object>();
-			instanceHash.put("ClusterID", clusterID);
-			instanceHash.put("NodeName", dataRow[0]);
-			Hashtable<String, Object[]> clusterHash = clusterInformation.get(clusterID);
-			// loop through properties and add to innerHash
-			for (int i = 1; i < dataRow.length - 1; i++) {
-				Object value = dataRow[i];
-				String propName = asteriskNamesWithCluster[i];
-				instanceHash.put(propName, value);
-				// add properties to cluster hash
-				updateClusterHash(clusterHash, propName, value);
-			}
-			dataList.add(instanceHash);
-		}
-
-		barData = new Hashtable[numClusters];
-		for (int i = 0; i < numClusters; i++) {
-			Hashtable<String, Object[]> allClusterInfo = clusterInformation.get(i);
-			// algorithm can determine that the number of clusters should be less than the number specified by the user
-			if (!allClusterInfo.isEmpty()) {
-				Hashtable<String, Hashtable<String, Object>> clusterData = new Hashtable<String, Hashtable<String, Object>>(allClusterInfo.keySet()
-						.size());
-				for (String propName : allClusterInfo.keySet()) {
-					int idx = ArrayUtilityMethods.calculateIndexOfArray(names, propName);
-					Object[] values = allClusterInfo.get(propName);
-					values = ArrayUtilityMethods.removeAllNulls(values);
-					if (values != null) {
-						if (ArrayUtilityMethods.arrayContainsValue(numericalPropIndices, idx) & values.length > 5) {
-							// dealing with numerical prop - determine range, calculate IQR, determine bin-size, group
-							Double[] numValues = ArrayUtilityMethods.convertObjArrToDoubleWrapperArr(values);
-							numValues = ArrayUtilityMethods.sortDoubleWrapperArr(numValues);
-							Hashtable<String, Object>[] propBins = null;
-							BarChart chart = new BarChart(numValues);
-							if (chart.isUseCategoricalForNumericInput()) {
-								chart.calculateCategoricalBins("?", true, true);
-								chart.generateJSONHashtableCategorical();
-								propBins = chart.getRetHashForJSON();
-							} else {
-								chart.generateJSONHashtableNumerical();
-								propBins = chart.getRetHashForJSON();
-							}
-							Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-							String[] zScore = StatisticsUtilityMethods.getZScoreRangeAsStringIgnoringNull(numValues, true);
-							// cause JS is dumb
-							Object[] propBinsArr = new Object[] { propBins };
-							innerHash.put("dataSeries", propBinsArr);
-							innerHash.put("names", new String[] { propName, "Distribution" });
-							innerHash.put("zScore", zScore);
-							clusterData.put(propName, innerHash);
-						} else {
-							String[] stringValues = ArrayUtilityMethods.convertObjArrToStringArr(values);
-							BarChart chart = new BarChart(stringValues);
-							chart.calculateCategoricalBins("?", true, true);
-							chart.generateJSONHashtableCategorical();
-							Hashtable<String, Object>[] propBins = chart.getRetHashForJSON();
-							Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-							// cause JS is dumb
-							Object[] propBinsArr = new Object[] { propBins };
-							innerHash.put("dataSeries", propBinsArr);
-							innerHash.put("names", new String[] { propName, "Frequency" });
-							// need to create outerHash since bar chart takes in weird format - since it is set up to conver to stacked bar chart
-							clusterData.put(propName, innerHash);
-						}
-					}
-				}
-				barData[i] = clusterData;
-
-				// add in similarity for cluster
-				String[] origArr = names;
-				origArr = Arrays.copyOfRange(origArr, 0, origArr.length - 1);
-				DatasetSimilarity alg = new DatasetSimilarity(storeInstanceDataInCluster.get(i), origArr);
-				alg.generateClusterCenters();
-				double[] simValues = alg.getSimilarityValuesForInstances();
-				Hashtable<String, Object>[] bins = null;
-				BarChart chart = new BarChart(simValues, "");
-				if (chart.isUseCategoricalForNumericInput()) {
-					chart.calculateCategoricalBins("?", true, true);
-					chart.generateJSONHashtableCategorical();
-					bins = chart.getRetHashForJSON();
-				} else {
-					chart.generateJSONHashtableNumerical();
-					bins = chart.getRetHashForJSON();
-				}
-				String[] zScore = StatisticsUtilityMethods.getZScoreRangeAsString(simValues, false);
-
-				Hashtable<String, Object> innerHash = new Hashtable<String, Object>();
-				Object[] binArr = new Object[] { bins };
-				innerHash.put("dataSeries", binArr);
-				innerHash.put("names", new String[] { names[0].concat(" Similarity Distribution to Dataset Center"), "Distribution" });
-				innerHash.put("zScore", zScore);
-				clusterData.put("Similarity Value to Dataset Center", innerHash);
-			}
-		}
-
-		dataHash.put("dataSeries", dataList);
-		dataHash.put("barData", barData);
-
-		return dataHash;
-	}
-
-	public void updateClusterHash(Hashtable<String, Object[]> clusterHash, String propName, Object value) {
-		Object[] allValuesOfPropInCluster;
-		if (!clusterHash.containsKey(propName)) {
-			allValuesOfPropInCluster = new Object[10];
-			allValuesOfPropInCluster[0] = value;
-			clusterHash.put(propName, allValuesOfPropInCluster);
-		} else {
-			allValuesOfPropInCluster = clusterHash.get(propName);
-			int lastNonEmptyValIdx = ArrayUtilityMethods.determineLastNonNullValue(allValuesOfPropInCluster);
-			if (lastNonEmptyValIdx == allValuesOfPropInCluster.length - 1) {
-				// object array is full, resize it to double the size
-				allValuesOfPropInCluster = ArrayUtilityMethods.resizeArray(allValuesOfPropInCluster, 2);
-				clusterHash.put(propName, allValuesOfPropInCluster);
-			} else {
-				allValuesOfPropInCluster[lastNonEmptyValIdx + 1] = value;
-			}
-		}
-	}
-
-	@Override
-	public void createData() {
-		// if you dont have a list, then run the query
-		if (list == null) {
-			processQuery();
-			ClusterRemoveDuplicates formatter = new ClusterRemoveDuplicates(list, names);
-			list = formatter.getRetMasterTable();
-			names = formatter.getRetVarNames();
-			masterList = new ArrayList<Object[]>(list);
-			masterNames = names.clone();// TODO make sure this writes properly
-		}
-		runAlgorithm();
-		processQueryData();
-	}
-
-	public void runAlgorithm() {
-		long startTime = System.currentTimeMillis();
-
-		AbstractClusteringAlgorithm clusterAlg;
-		// if(type.equalsIgnoreCase("agglomerative")){
-		// clusterAlg = new AgglomerativeClusteringAlgorithm(list,names);
-		// clusterAlg.setNumClusters(numClusters);
-		// ((AgglomerativeClusteringAlgorithm) clusterAlg).setN(n);
-		if (numClusters >= 2) {
-			clusterAlg = new PartitionedClusteringAlgorithm(list, names);
-			clusterAlg.setNumClusters(numClusters);
-			clusterAlg.setDataVariables();
-			((PartitionedClusteringAlgorithm) clusterAlg).generateBaseClusterInformation(numClusters);
-		} else {
-			clusterAlg = new ClusteringOptimization(list, names);
-			clusterAlg.setDataVariables();
-			int minClusters = 2;
-			int maxClusters = 50;
-			((PartitionedClusteringAlgorithm) clusterAlg).generateBaseClusterInformation(maxClusters);
-			((ClusteringOptimization) clusterAlg).runGoldenSelectionForNumberOfClusters(minClusters, maxClusters);
-			// ((ClusteringOptimization) clusterAlg).determineOptimalCluster();
-			numClusters = ((ClusteringOptimization) clusterAlg).getNumClusters();
-		}
-		((PartitionedClusteringAlgorithm) clusterAlg).generateInitialClusters();
-		clusterAlg.execute();
-
-		long endTime = System.currentTimeMillis();
-		System.out.println("Total Time = " + (endTime - startTime) / 1000);
-
-		// store cluster final state information
-		clusterInfo = new ArrayList<Object[]>(numClusters);
-		clusterInfo = clusterAlg.getSummaryClusterRows();
-
-		numericalPropIndices = clusterAlg.getNumericalPropIndices();
-		clusterAssignment = clusterAlg.getClusterAssignment();
-
-		// updating our list and names to include the cluster assigned in the last column
-		ArrayList<Object[]> listWithCluster = new ArrayList<Object[]>();
-		int i;
-		int size = list.size();
-		for (i = 0; i < size; i++) {
-			Object[] dataRow = list.get(i);
-			Object[] newDataRow = new Object[dataRow.length + 1];
-			for (int j = 0; j < dataRow.length; j++) {
-				newDataRow[j] = dataRow[j];
-			}
-			int clusterNumber = clusterAssignment[i];
-			newDataRow[newDataRow.length - 1] = clusterNumber;
-			listWithCluster.add(newDataRow);
-		}
-		list = listWithCluster;
-		// updating our list and names to include the cluster assigned in the last column
-		masterListWithCluster = new ArrayList<Object[]>();
-		size = masterList.size();
-		for (i = 0; i < size; i++) {
-			Object[] dataRow = masterList.get(i);
-			Object[] newDataRow = new Object[dataRow.length + 1];
-			for (int j = 0; j < dataRow.length; j++) {
-				newDataRow[j] = dataRow[j];
-			}
-			int clusterNumber = clusterAssignment[i];
-			newDataRow[newDataRow.length - 1] = clusterNumber;
-			masterListWithCluster.add(newDataRow);
-		}
-		String[] namesWithCluster = new String[names.length + 1];
-		for (i = 0; i < names.length; i++) {
-			namesWithCluster[i] = names[i];
-		}
-		namesWithCluster[namesWithCluster.length - 1] = "ClusterID";
-		names = namesWithCluster;
-
-		asteriskNamesWithCluster = new String[masterNames.length + 1];
-		i = 0;
-		for (; i < masterNames.length; i++) {
-			String name = masterNames[i];
-			Boolean nameIncluded = false;
-			int j = 0;
-			for (; j < names.length; j++) {
-				if (names[j].equals(name))
-					nameIncluded = true;
-			}
-			if (!nameIncluded)
-				name = "*" + name;
-			asteriskNamesWithCluster[i] = name;
-		}
-
-		asteriskNamesWithCluster[asteriskNamesWithCluster.length - 1] = "ClusterID";
-
-		// update cluster info to account for filtered rows
-		int j = 0;
-		for (; j < clusterInfo.size(); j++) {
-			Object[] oldRow = clusterInfo.get(j);
-			Object[] newRow = new Object[asteriskNamesWithCluster.length];
-			int newRowIndex = 0;
-			int oldRowIndex = 0;
-			for (; newRowIndex < asteriskNamesWithCluster.length; newRowIndex++) {
-				String name = asteriskNamesWithCluster[newRowIndex];
-				if (name.contains("*")) {
-					newRow[newRowIndex] = "-";
-				} else {
-					newRow[newRowIndex] = oldRow[oldRowIndex];
-					oldRowIndex++;
-				}
-			}
-			clusterInfo.set(j, newRow);
-		}
-
-		rawDataList = new ArrayList<Object[]>(list);
-		rawDataNames = names.clone();// TODO make sure this writes properly
-	}
-
-	private void processQuery() {
-		ISelectWrapper sjsw = WrapperManager.getInstance().getSWrapper(engine, query);
-
-		/*
-		 * SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper(); //run the query against the engine provided sjsw.setEngine(engine);
-		 * sjsw.setQuery(query); sjsw.executeQuery();
-		 */
-		names = sjsw.getVariables();
-		list = new ArrayList<Object[]>();
-		while (sjsw.hasNext()) {
-			ISelectStatement sjss = sjsw.next();
-			Object[] dataRow = new Object[names.length];
-			for (int i = 0; i < names.length; i++) {
-				dataRow[i] = sjss.getVar(names[i]);
-			}
-			list.add(dataRow);
-		}
-	}
-
-	/**
-	 * Sets the string version of the SPARQL query on the playsheet. Pulls out the number of clusters and stores them in the numClusters
-	 * 
-	 * @param query
-	 *            String
-	 */
-	@Override
-	public void setQuery(String query) {
-		fullQuery = query;
-		LOGGER.info("New Query " + query);
-		String[] querySplit = query.split("\\+\\+\\+");
-		if (querySplit.length == 1) {
-			this.query = query;
-		} else if (querySplit.length == 2) {
-			this.query = querySplit[0];
-			this.inputNumClusters = Integer.parseInt(querySplit[1]);
-			this.numClusters = inputNumClusters;
-		}
-		// else if(querySplit.length == 4) {
-		// this.query = querySplit[0];
-		// this.numClusters = Integer.parseInt(querySplit[1]);
-		// this.n = Double.parseDouble(querySplit[2]);
-		// this.type = querySplit[3];
-		// }
-	}
-
-	public String getFullQuery() {
-		return fullQuery;
-	}
-
 	public ArrayList<JCheckBox> getClusterCheckboxes() {
 		return clusterCheckboxes;
-	}
-
-	public int[] getClusterAssignment() {
-		return clusterAssignment;
 	}
 
 	public void setAddAsTab(Boolean addAsTab) {
@@ -711,46 +580,28 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 		gbc_scrollPane.gridy = 0;
 		panel.add(scrollPane, gbc_scrollPane);
 	}
-
-	public void setNumClusters(int numClusters) {
-		this.numClusters = numClusters;
+	
+	public void setSelectedParams(ArrayList<JCheckBox> paramCheckboxes) {
+		this.paramsToCheck = paramCheckboxes;
 	}
-
-	public void setClusterAssignment(int[] clusterAssignment) {
-		this.clusterAssignment = clusterAssignment;
-	}
-
-	public void setInputNumClusters(int inputNumClusters) {
+	
+	public void drillDownData(ITableDataFrame dataFrame, List<String> skipColumns, int inputNumClusters) {
+		this.dataFrame = dataFrame;
+		this.skipAttributes = skipColumns;
 		this.inputNumClusters = inputNumClusters;
 		this.numClusters = inputNumClusters;
+//		reRunAlgorithm();
 	}
 
-	public int getNumClusters() {
-		return numClusters;
+	public void skipAttributes(List<String> skipAttributes) {
+		this.skipAttributes = skipAttributes;
+		reRunAlgorithm();
 	}
-
-	public ArrayList<Object[]> getMasterList() {
-		return masterList;
+	
+	private void reRunAlgorithm() {
+		runAnalytics();
+		processQueryData();
+		createView();
+		updateClusterCheckboxes();
 	}
-
-	public String[] getMasterNames() {
-		return masterNames;
-	}
-
-	public Hashtable<String, Hashtable<String, Object>>[] getBarData() {
-		return barData;
-	}
-
-	public void setBarData(Hashtable<String, Hashtable<String, Object>>[] barData) {
-		this.barData = barData;
-	}
-
-	public void setMasterList(ArrayList<Object[]> masterList) {
-		this.masterList = masterList;
-	}
-
-	public void setMasterNames(String[] masterNames) {
-		this.masterNames = masterNames;
-	}
-
 }

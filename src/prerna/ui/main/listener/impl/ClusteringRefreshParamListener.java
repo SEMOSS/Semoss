@@ -29,6 +29,7 @@ package prerna.ui.main.listener.impl;
 
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
@@ -45,48 +46,24 @@ public class ClusteringRefreshParamListener extends AbstractListener {
 	//need to pass the playsheet, the checkboxes, the names, and the master data list,
 	//sends back the updates names and data list
 	private ClusteringVizPlaySheet playSheet;
+	private String[] columnHeaders;
 	private ArrayList<JCheckBox> paramCheckboxes;
-	private String[] masterNames;
-	private ArrayList<Object []> masterList;
-	
+
 	/**
 	 * Updates the parameters to cluster on based on the params selected
 	 * @param e ActionEvent
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		Integer numberSelected = 0;
-		for(int i=0;i<paramCheckboxes.size();i++) {
-			if(paramCheckboxes.get(i).isSelected())
-				numberSelected++;
-		}
+		List<String> skipColumns = new ArrayList<String>();
 		
-		String[] filteredNames = new String[numberSelected+1];
-		filteredNames[0] = masterNames[0];
-		int colInd=1;
-		for(int i=0;i<paramCheckboxes.size();i++) {
+		for(int i = 0; i < paramCheckboxes.size(); i++) {
 			if(paramCheckboxes.get(i).isSelected()) {
-				filteredNames[colInd] = masterNames[1+i];
-				colInd++;
+				skipColumns.add(columnHeaders[i+1]);
 			}
 		}
 
-		ArrayList<Object[]> filteredList = new ArrayList<Object []>();
-		for(Object[] row : masterList) {
-			Object[] filteredRow = new Object[numberSelected+1];
-			filteredRow[0] = row[0];//whatever object name we're clustering on
-			colInd=1;
-			for(int i=0;i<paramCheckboxes.size();i++) {
-				if(paramCheckboxes.get(i).isSelected()) {
-					filteredRow[colInd] = row[1+i];
-					colInd++;
-				}
-			}
-			filteredList.add(filteredRow);
-		}
-		
-		playSheet.filterData(filteredNames,filteredList);
-
+		playSheet.skipAttributes(skipColumns);
 	}
 
 	public void setPlaySheet(ClusteringVizPlaySheet playSheet) {
@@ -97,9 +74,8 @@ public class ClusteringRefreshParamListener extends AbstractListener {
 		this.paramCheckboxes = paramCheckboxes;
 	}
 
-	public void setMasterData(String[] masterNames, ArrayList<Object[]> masterList) {
-		this.masterNames = masterNames;
-		this.masterList = masterList;
+	public void setColumnHeaders(String[] columnHeaders) {
+		this.columnHeaders = columnHeaders;
 	}
 	
 	/**

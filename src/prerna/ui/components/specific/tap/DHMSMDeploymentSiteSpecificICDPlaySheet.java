@@ -31,20 +31,33 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import prerna.engine.api.IEngine;
 import prerna.ui.components.playsheets.DualEngineGridPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
-import prerna.util.ArrayListUtilityMethods;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.DIHelper;
+import prerna.util.ListUtilityMethods;
 
 public class DHMSMDeploymentSiteSpecificICDPlaySheet extends GridPlaySheet {
 	
 	HashMap<String, ArrayList<String>> siteData;
 	Set<String> centrallyDeployedSystems;
+
+	List<Object[]> list;
+	String[] names;
 	
+	@Override
+	public List<Object[]> getTabularData() {
+		return this.list;
+	}
+	
+	@Override
+	public String[] getColumnHeaders() {
+		return this.names;
+	}
 	
 	@Override
 	public void createData() {
@@ -53,7 +66,7 @@ public class DHMSMDeploymentSiteSpecificICDPlaySheet extends GridPlaySheet {
 		DualEngineGridPlaySheet degp = new DualEngineGridPlaySheet();
 		degp.setQuery(query);
 		degp.createData();
-		ArrayList<Object[]> combinedResults = degp.getList();
+		List<Object[]> combinedResults = degp.getTabularData();
 		names = degp.getNames();
 		
 		getSysData();
@@ -77,8 +90,8 @@ public class DHMSMDeploymentSiteSpecificICDPlaySheet extends GridPlaySheet {
 			}
 		}
 		
-		list = ArrayListUtilityMethods.removeColumnFromList(retList, 1);
-		list = ArrayListUtilityMethods.removeColumnFromList(list, 1);
+		list = ListUtilityMethods.removeColumnFromList(retList, 1);
+		list = ListUtilityMethods.removeColumnFromList(list, 1);
 		names = ArrayUtilityMethods.removeNameFromList(names, 1);
 		names = ArrayUtilityMethods.removeNameFromList(names, 1);
 		

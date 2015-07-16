@@ -30,10 +30,9 @@ package prerna.ui.components.specific.tap;
 import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Iterator;
 
-import org.openrdf.model.Literal;
-
-import prerna.engine.api.ISelectStatement;
+import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
@@ -74,19 +73,17 @@ public class HealthGridSheet extends BrowserPlaySheet{
 	public void setSystemToHighlight(String system){
 		sysToHighlight = system;
 	}
-	
 
 	/**
 	 * Processes the query data to display information about the system and its associated business value, costs, and technical maturity.
 	
 	 * @return Hashtable<String,Object> */
 	@Override
-	public Hashtable<String,Object> processQueryData(){
+	public void processQueryData(){
 		//list will be of the form: system/vendor, xname, yname1, yname2 size of circle,lifecycle
 		dataHash = new Hashtable<String,Object>();
-		ArrayList allData = new ArrayList();
+		ArrayList<Hashtable<String,Object>> allData = new ArrayList<Hashtable<String,Object>>();
 		String[] names = wrapper.getVariables(); 
-		String series = names[0];//System or Vendor
 		String xName = names[1];//BusinessValue
 		String yName1 = names[2];//ExternalStability TechMaturity
 		String yName2 = names[3];//TechnicalStandards TechMaturity
@@ -94,10 +91,11 @@ public class HealthGridSheet extends BrowserPlaySheet{
 
 		double maxXAxis = 0.0;
 
-		for(int i=0;i<list.size();i++)
-		{
-			Hashtable elementHash = new Hashtable();
-			Object[] listElement = list.get(i);
+		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		int counter = 0;
+		while(it.hasNext()) {
+			Hashtable<String,Object> elementHash = new Hashtable<String,Object>();
+			Object[] listElement = it.next();
 			
 			elementHash.put("series", (listElement[5]).toString().replaceAll("\"", ""));//lifecycle
 			elementHash.put("label", listElement[0]);//system
@@ -110,11 +108,12 @@ public class HealthGridSheet extends BrowserPlaySheet{
 			if((Double)listElement[1]>maxXAxis)
 				maxXAxis=(Double)listElement[1];
 			
-			if(i==0&&listElement.length>6)
+			if(counter==0&&listElement.length>6)
 			{
 				setSystemHighlight(true);
 				setSystemToHighlight(listElement[6].toString());
 			}
+			counter++;
 		}
 		
 
@@ -150,7 +149,7 @@ public class HealthGridSheet extends BrowserPlaySheet{
 		boolean showZ = checkIfShowZ();
 		allHash.put("showZTooltip", showZ);
 		
-		return allHash;
+		this.dataHash = allHash;
 	}
 	
 	/**
@@ -210,21 +209,14 @@ public class HealthGridSheet extends BrowserPlaySheet{
 		output.clear();
 		allHash.clear();
 		dataHash.clear();
-		list.clear();
+		dataFrame = new BTreeDataFrame(dataFrame.getColumnHeaders()); //TODO: is this the best way to clear the data-frame???
 	}
 	
-	@Override
-	public Object getVariable(String varName, ISelectStatement sjss){
-		Object var = sjss.getRawVar(varName);
-			if( var != null && var instanceof Literal) {
-				var = sjss.getVar(varName);
-			} 
-		return var;
-	}
 	
 	@Override
 	public Hashtable<String, String> getDataTableAlign() {
 		Hashtable<String, String> alignHash = new Hashtable<String, String>();
+		String[] names = dataFrame.getColumnHeaders();
 		alignHash.put("label", names[0]);
 		for(int namesIdx = 1; namesIdx<names.length; namesIdx++){
 			alignHash.put("value " + namesIdx, names[namesIdx]);

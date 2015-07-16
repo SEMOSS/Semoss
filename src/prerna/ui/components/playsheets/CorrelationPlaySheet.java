@@ -28,14 +28,11 @@
 package prerna.ui.components.playsheets;
 
 import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.beans.PropertyVetoException;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.JComponent;
-import javax.swing.JMenuItem;
 import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
@@ -44,138 +41,86 @@ import javax.swing.JTable;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.impl.AlgorithmDataFormatter;
-import prerna.algorithm.learning.similarity.ClusterRemoveDuplicates;
 import prerna.algorithm.learning.supervized.CorrelationAlgorithm;
-import prerna.engine.api.ISelectStatement;
+import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.NewScrollBarUI;
-import prerna.ui.main.listener.impl.GridPlaySheetListener;
-import prerna.ui.main.listener.impl.JTableExcelExportListener;
 
 public class CorrelationPlaySheet extends GridPlaySheet{
 
 	private static final Logger LOGGER = LogManager.getLogger(CorrelationPlaySheet.class.getName());
+	
+	private int numVariables;
+	private String[] columnHeaders;
+	private double[][] correlation;
+	private List<String> skipInstances;
+	
 	protected JTabbedPane jTab;
-
-	private String[] columnTypesArr;
 	
 	@Override
 	public void createData() {
-		if(list==null) {
+		if(dataFrame == null || dataFrame.isEmpty()) {
 			super.createData();
-			//make sure that we have no duplicates in the liast and names for the analysis
-			LOGGER.info("Removing any duplicated instances...");
-			ClusterRemoveDuplicates crd = new ClusterRemoveDuplicates(list, names);
-			this.list = crd.getRetMasterTable();
-			this.names = crd.getRetVarNames();
-			
-			LOGGER.info("Formatting dataset to run algorithm...");
-			columnTypesArr = AlgorithmDataFormatter.determineColumnTypes(list);
 		}
+	}
 
+	@Override
+	public void runAnalytics() {
+		columnHeaders = dataFrame.getColumnHeaders();
+		numVariables = columnHeaders.length - 1;
+		//calculate the correlation for each pair of columns
+		CorrelationAlgorithm alg = new CorrelationAlgorithm();
+		dataFrame.performAction(alg);
+		correlation = alg.getCorrelation();
 	}
 	
 	@Override
-	public void runAnalytics() {
-		
+	public List<Object[]> getTabularData() {
+		List<Object[]> output = new ArrayList<Object []>();
 		int i;
 		int j;
-		int numVariables = names.length - 1;
-		
-		//calculate the correlation for each pair of columns
-		CorrelationAlgorithm alg = new CorrelationAlgorithm(names, list, columnTypesArr);
-		alg.execute();	
-		double[][] correlation = alg.getCorrelation();
-
-		names[0] = "-";
-		
-		ArrayList<Object []> output = new ArrayList<Object []>();
-		//create the list output
-		for(i=0; i<numVariables; i++) {
-			
+		for(i = 0; i < numVariables; i++) {
 			Object[] row = new Object[numVariables+1];
-			row[0] = names[i+1];
-			
-			for(j=0; j<numVariables; j++) {
+			row[0] = columnHeaders[i+1];
+			for(j = 0; j < numVariables; j++) {
 				row[j+1] = correlation[i][j];
 			}
 			output.add(row);
 		}
-		list = output;
+		
+		return output;
 	}
-
 	
 	@Override
-	public void addPanel()
-	{
-		if(jTab==null) {
+	public String[] getColumnHeaders() {
+		columnHeaders[0] = "-";
+		return columnHeaders;
+	}
+	
+	public void setSkipAttributes(List<String> skipInstances) {
+		this.skipInstances = skipInstances;
+	}
+	
+	/////////////////////////////SWING DEPENDENT CODE/////////////////////////////
+	@Override
+	public void addPanel() {
+		if (jTab == null) {
 			super.addPanel();
 		} else {
-			String lastTabName = jTab.getTitleAt(jTab.getTabCount()-1);
+			String lastTabName = jTab.getTitleAt(jTab.getTabCount() - 1);
 			LOGGER.info("Parsing integer out of last tab name");
 			int count = 1;
-			if(jTab.getTabCount()>1)
-				count = Integer.parseInt(lastTabName.substring(0,lastTabName.indexOf(".")))+1;
-			addPanelAsTab(count+". Correlation");
+			if (jTab.getTabCount() > 1)
+				count = Integer.parseInt(lastTabName.substring(0, lastTabName.indexOf("."))) + 1;
+			addPanelAsTab(count + ". Outliers Raw Data");
 		}
 	}
-	
 
 	public void addPanelAsTab(String tabName) {
-	//	setWindow();
-		try {
-			table = new JTable();
-			
-			//Add Excel export popup menu and menuitem
-			JPopupMenu popupMenu = new JPopupMenu();
-			JMenuItem menuItemAdd = new JMenuItem("Export to Excel");
-			String questionTitle = this.getTitle();
-			menuItemAdd.addActionListener(new JTableExcelExportListener(table, questionTitle));
-			popupMenu.add(menuItemAdd);
-			table.setComponentPopupMenu(popupMenu);
-			
-			GridPlaySheetListener gridPSListener = new GridPlaySheetListener();
-			LOGGER.debug("Created the table");
-			this.addInternalFrameListener(gridPSListener);
-			LOGGER.debug("Added the internal frame listener ");
-			//table.setAutoCreateRowSorter(true);
-			
-			JPanel panel = new JPanel();
-			panel.add(table);
-			GridBagLayout gbl_mainPanel = new GridBagLayout();
-			gbl_mainPanel.columnWidths = new int[]{0, 0};
-			gbl_mainPanel.rowHeights = new int[]{0, 0};
-			gbl_mainPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-			gbl_mainPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-			panel.setLayout(gbl_mainPanel);
-			
-			addScrollPanel(panel, table);
-			
-			jTab.addTab(tabName, panel);
-			
-			this.pack();
-			this.setVisible(true);
-			this.setSelected(false);
-			this.setSelected(true);
-			LOGGER.debug("Added new Correlation Sheet");
-			
-		} catch (PropertyVetoException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	@Override
-	public Object getVariable(String varName, ISelectStatement sjss){
-		return sjss.getVar(varName);
-	}
-	public void setJTab(JTabbedPane jTab) {
-		this.jTab = jTab;
-	}
-	public void setJBar(JProgressBar jBar) {
-		this.jBar = jBar;
-	}
-	public void setColumnTypesArr(String[] columnTypesArr) {
-		this.columnTypesArr = columnTypesArr;
+		table = new JTable();
+		GridScrollPane gsp = null;
+		gsp = new GridScrollPane(dataFrame.getColumnHeaders(), dataFrame.getData());
+		gsp.addHorizontalScroll();
+		jTab.addTab(tabName, gsp);
 	}
 
 	public void addScrollPanel(JPanel panel, JComponent obj) {
@@ -188,5 +133,13 @@ public class CorrelationPlaySheet extends GridPlaySheet{
 		gbc_scrollPane.gridx = 0;
 		gbc_scrollPane.gridy = 0;
 		panel.add(scrollPane, gbc_scrollPane);
+	}
+
+	public void setJTab(JTabbedPane jTab) {
+		this.jTab = jTab;
+	}
+
+	public void setJBar(JProgressBar jBar) {
+		this.jBar = jBar;
 	}
 }

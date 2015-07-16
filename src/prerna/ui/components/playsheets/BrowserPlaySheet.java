@@ -165,7 +165,6 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	@Override
 	public void createData() {
 		super.createData();
-		dataHash = processQueryData();
 	}
 	
 	/**
@@ -197,8 +196,8 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	 * 
 	 * @return Hashtable - the data from the SPARQL query results, formatted accordingly.
 	 */
-	public Hashtable processQueryData() {
-		return new Hashtable();
+	public void processQueryData() {
+		// to be overridden in specific playsheets
 	}
 	
 	/**
@@ -332,7 +331,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	}
 	
 	@Override
-	public Object getData() {
+	public Hashtable getData() {
 		Hashtable returnHash = (Hashtable) super.getData();
 		if (dataHash != null)
 			returnHash.put("specificData", dataHash);

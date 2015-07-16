@@ -48,7 +48,7 @@ public final class WekaUtilityMethods {
 	}
 
 	// cannot mix strings with doubles for attributes
-	public static Instances createInstancesFromQueryUsingBinNumerical(String nameDataSet, ArrayList<Object[]> dataList, String[] names) {
+	public static Instances createInstancesFromQueryUsingBinNumerical(String nameDataSet, List<Object[]> dataList, String[] names) {
 		int numInstances = dataList.size();	
 		int i;
 		int numAttr = names.length;
@@ -70,7 +70,7 @@ public final class WekaUtilityMethods {
 		for(i = 0; i < numAttr; i++ ) {
 			//special case for predictor since it must be nominal
 			if(isCategorical[i]) {
-				ArrayList<String> nominalValuesInFV = new ArrayList<String>();
+				List<String> nominalValuesInFV = new ArrayList<String>();
 				HashSet<String> allPossibleValues = nominalValues[i];
 				for(String val : allPossibleValues) {
 					nominalValuesInFV.add(val);
@@ -87,7 +87,7 @@ public final class WekaUtilityMethods {
 				counter++;
 				int numBins = binRange.length;
 				int z;
-				ArrayList<String> nominalValuesInBin = new ArrayList<String>();
+				List<String> nominalValuesInBin = new ArrayList<String>();
 				for(z = 0; z < numBins; z++) {
 					nominalValuesInBin.add(binRange[z]);
 				}
@@ -102,7 +102,7 @@ public final class WekaUtilityMethods {
 	}
 	
 	// cannot mix strings with doubles for attributes
-	public static Instances createInstancesFromQuery(String nameDataSet, ArrayList<Object[]> dataList, String[] names, int attributeIndex) {
+	public static Instances createInstancesFromQuery(String nameDataSet, List<Object[]> dataList, String[] names, int attributeIndex) {
 		int numInstances = dataList.size();	
 		int i;
 		int numAttr = names.length;
@@ -125,13 +125,13 @@ public final class WekaUtilityMethods {
 				binForInstance = chart.getAssignmentForEachObject();
 				int numBins = binRange.length;
 				int z;
-				ArrayList<String> nominalValuesInBin = new ArrayList<String>();
+				List<String> nominalValuesInBin = new ArrayList<String>();
 				for(z = 0; z < numBins; z++) {
 					nominalValuesInBin.add(binRange[z]);
 				}
 				attributeList.add(new Attribute(names[i], nominalValuesInBin));
 			} else if(isCategorical[i]) {
-				ArrayList<String> nominalValuesInFV = new ArrayList<String>();
+				List<String> nominalValuesInFV = new ArrayList<String>();
 				HashSet<String> allPossibleValues = nominalValues[i];
 				for(String val : allPossibleValues) {
 					nominalValuesInFV.add(val);
@@ -149,7 +149,7 @@ public final class WekaUtilityMethods {
 	}
 	
 	// process information to determine data types
-	private static void preProcessQueryData(ArrayList<Object[]> dataList, HashSet<String>[] nominalValues, Double[][] numericValues, boolean[] isCategorical, int numInstances, int numAttr) {
+	private static void preProcessQueryData(List<Object[]> dataList, HashSet<String>[] nominalValues, Double[][] numericValues, boolean[] isCategorical, int numInstances, int numAttr) {
 		int i;
 		int j;
 		
@@ -188,7 +188,7 @@ public final class WekaUtilityMethods {
 	}
 	
 	// fills in Instances object
-	private static void fillInstances(Instances data, ArrayList<Object[]> dataList, Double[][] numericValues, String[][] binForInstance, boolean[] isCategorical, int numInstances, int numAttr) {
+	private static void fillInstances(Instances data, List<Object[]> dataList, Double[][] numericValues, String[][] binForInstance, boolean[] isCategorical, int numInstances, int numAttr) {
 		int i;
 		int j;
 		
@@ -221,7 +221,7 @@ public final class WekaUtilityMethods {
 	}
 	
 	// fills in Instances object
-	private static void fillInstances(Instances data, ArrayList<Object[]> dataList, Double[][] numericValues, String[] binForInstance, boolean[] isCategorical, int numInstances, int numAttr, int attributeIndex) {
+	private static void fillInstances(Instances data, List<Object[]> dataList, Double[][] numericValues, String[] binForInstance, boolean[] isCategorical, int numInstances, int numAttr, int attributeIndex) {
 		int i;
 		int j;
 		

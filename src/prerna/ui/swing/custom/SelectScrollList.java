@@ -116,7 +116,7 @@ public class SelectScrollList  extends JButton {
 	 * Unselects everything and selects only the specified values
 	 * @param listToSelect
 	 */
-	public void setSelectedValues(Vector<String> listToSelect) {
+	public void setSelectedValues(List<String> listToSelect) {
 	    list.clearSelection();
 	    
 		//unselect all

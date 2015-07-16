@@ -127,7 +127,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		Vector<TreeNode> vec = new Vector<TreeNode>();
 		vec.add(root);
 		if(value instanceof Number) {
-			Double v = (Double)value;
+			Double v = ((Number) value).doubleValue();
 			TreeNode t = new TreeNode(new DoubleClass(v, columnHeader));
 			foundNode = root.getNode(vec, t, false);
 		}
@@ -144,7 +144,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	public List<Object[]> getScaledData() {
 		List<Object[]> retData = new ArrayList<Object[]>();
-		Iterator<Object[]> iterator = this.scaledIterator(false);
+		Iterator<Object[]> iterator = this.scaledIterator(false, null);
 		while(iterator.hasNext()) {
 			retData.add(iterator.next());
 		}
@@ -153,7 +153,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	public List<Object[]> getStandardizedData() {
 		List<Object[]> retData = new ArrayList<Object[]>();
-		Iterator<Object[]> iterator = this.standardizedIterator(false);
+		Iterator<Object[]> iterator = this.standardizedIterator(false, null);
 		while(iterator.hasNext()) {
 			retData.add(iterator.next());
 		}
@@ -605,7 +605,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 	@Override
 	public void performAction(IAnalyticRoutine routine) {
 		ITableDataFrame newTable = routine.runAlgorithm(this);
-		this.join(newTable, newTable.getColumnHeaders()[0], newTable.getColumnHeaders()[0], 1, new ExactStringMatcher());
+		if(newTable != null)
+			this.join(newTable, newTable.getColumnHeaders()[0], newTable.getColumnHeaders()[0], 1, new ExactStringMatcher());
 	}
 
 	@Override
@@ -806,7 +807,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 			typeRoot = typeRoot.rightChild;
 			typeRoot = typeRoot.getRight(typeRoot);
 		}
-		return (Double) typeRoot.leaf.getValue();
+		return ((Number) typeRoot.leaf.getValue()).doubleValue();
 	}
 
 	@Override
@@ -835,7 +836,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 				typeRoot = typeRoot.parent;
 			}
 		}
-		return (Double) typeRoot.leaf.getValue();
+		return ((Number) typeRoot.leaf.getValue()).doubleValue();
 	}
 
 	@Override
@@ -865,7 +866,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 					return Double.NaN;
 				}
 			}
-			sum += (Double) node.leaf.getValue() * node.getInstances().size();
+			sum += ((Number) node.leaf.getValue()).doubleValue() * node.getInstances().size();
 			count++;
 		}
 
@@ -897,7 +898,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 					return Double.NaN;
 				}
 			}
-			sum += (Double) val.getValue() * node.getInstances().size();
+			sum += ((Number) val.getValue()).doubleValue() * node.getInstances().size();
 		}
 		
 		return sum;
@@ -932,7 +933,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 					continue;
 				}
 			}
-			stdev += Math.pow((Double) val.getValue() - mean, 2);
+			stdev += Math.pow( ((Number) val.getValue()).doubleValue() - mean, 2);
 			numValues++;
 		}
 		
@@ -1020,41 +1021,132 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public Iterator<Object[]> iterator(boolean getRawData) {
+	public Iterator<Object[]> iterator(boolean getRawData, List<String> columns2skip) {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);	
-		Iterator<Object[]> it = new BTreeIterator(typeRoot, getRawData);
+		Iterator<Object[]> it = new BTreeIterator(typeRoot, getRawData, columns2skip);
 		return it;
 	}
 	
 	@Override
-	public Iterator<Object[]> scaledIterator(boolean getRawData) {
+	public Iterator<Object[]> scaledIterator(boolean getRawData, List<String> columns2skip) {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);
-		return new ScaledBTreeIterator(typeRoot, this.isNumeric(), this.getMin(), this.getMax(), getRawData);
+		
+		if(columns2skip == null || columns2skip.size()==0) {
+			return new ScaledBTreeIterator(typeRoot, this.isNumeric(), this.getMin(), this.getMax(), getRawData, columns2skip);
+		}
+		else {
+			
+			List<Double> min = new ArrayList<>();
+			List<Double> max = new ArrayList<>();
+			List<Boolean> isNum = new ArrayList<>();
+			
+			for(String level: levelNames) {
+				if(!columns2skip.contains(level)) {
+					min.add(this.getMin(level));
+					max.add(this.getMax(level));
+					isNum.add(this.isNumeric(level));
+				}
+			}
+			
+			boolean[] isnumeric = new boolean[isNum.size()];
+			for(int i = 0; i < isNum.size(); i++) {
+				isnumeric[i] = isNum.get(i);
+			}
+			
+			return new ScaledBTreeIterator(typeRoot, isnumeric, min.toArray(new Double[min.size()]), max.toArray(new Double[max.size()]), getRawData, columns2skip);
+		}
 	}
 
 	@Override
-	public Iterator<Object[]> standardizedIterator(boolean getRawData) {
+	public Iterator<Object[]> standardizedIterator(boolean getRawData, List<String> columns2skip) {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);
-		return new ScaledBTreeIterator(typeRoot, this.isNumeric(), this.getAverage(), this.getStandardDeviation(), getRawData);
+		if(columns2skip == null || columns2skip.size()==0) {
+			return new StandardizedBTreeIterator(typeRoot, this.isNumeric(), this.getAverage(), this.getStandardDeviation(), getRawData, columns2skip);
+		}
+		else {
+			
+			List<Double> avg = new ArrayList<>();
+			List<Double> stdv = new ArrayList<>();
+			List<Boolean> isNum = new ArrayList<>();
+			
+			for(String level: levelNames) {
+				if(!columns2skip.contains(level)) {
+					avg.add(this.getAverage(level));
+					stdv.add(this.getStandardDeviation(level));
+					isNum.add(this.isNumeric(level));
+				}
+			}
+			
+			boolean[] isnumeric = new boolean[isNum.size()];
+			for(int i = 0; i < isNum.size(); i++) {
+				isnumeric[i] = isNum.get(i);
+			}
+			
+			return new StandardizedBTreeIterator(typeRoot, isnumeric, avg.toArray(new Double[avg.size()]), stdv.toArray(new Double[stdv.size()]), getRawData, columns2skip);
+		}
 	}
 	
 	@Override
-	public Iterator<List<Object[]>> uniqueIterator(String columnHeader, boolean getRawData) {
+	public Iterator<List<Object[]>> uniqueIterator(String columnHeader, boolean getRawData, List<String> columns2skip) {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);	
-		Iterator<List<Object[]>> uniqueIterator = new UniqueBTreeIterator(typeRoot, getRawData);
+		Iterator<List<Object[]>> uniqueIterator = new UniqueBTreeIterator(typeRoot, getRawData, columns2skip);
 		return uniqueIterator;
 	}
 	
 	@Override
-	public Iterator<List<Object[]>> standardizedUniqueIterator(String columnHeader, boolean getRawData) {
+	public Iterator<List<Object[]>> standardizedUniqueIterator(String columnHeader, boolean getRawData, List<String> columns2skip) {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		return new StandardizedUniqueBTreeIterator(typeRoot, this.isNumeric(), this.getAverage(), this.getStandardDeviation(), getRawData);
+		if(columns2skip == null || columns2skip.size()==0) {
+			return new StandardizedUniqueBTreeIterator(typeRoot, this.isNumeric(), this.getAverage(), this.getStandardDeviation(), getRawData, columns2skip);
+		} else {
+			List<Double> avg = new ArrayList<>();
+			List<Double> stdv = new ArrayList<>();
+			List<Boolean> isNum = new ArrayList<>();
+			
+			for(String level: levelNames) {
+				if(!columns2skip.contains(level)) {
+					avg.add(this.getAverage(level));
+					stdv.add(this.getStandardDeviation(level));
+					isNum.add(this.isNumeric(level));
+				}
+			}
+			
+			boolean[] isnumeric = new boolean[isNum.size()];
+			for(int i = 0; i < isNum.size(); i++) {
+				isnumeric[i] = isNum.get(i);
+			}
+			
+			return new StandardizedUniqueBTreeIterator(typeRoot, isnumeric, avg.toArray(new Double[avg.size()]), stdv.toArray(new Double[stdv.size()]), getRawData, columns2skip);
+		}
 	}
 	
 	@Override
-	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData) {
+	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData, List<String> columns2skip) {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		return new ScaledUniqueBTreeIterator(typeRoot, this.isNumeric(), this.getMin(), this.getMax(), getRawData);
+		if(columns2skip == null || columns2skip.size()==0) {
+			return new ScaledUniqueBTreeIterator(typeRoot, this.isNumeric(), this.getMin(), this.getMax(), getRawData, columns2skip);
+		}
+		else {
+			
+			List<Double> min = new ArrayList<>();
+			List<Double> max = new ArrayList<>();
+			List<Boolean> isNum = new ArrayList<>();
+			
+			for(String level: levelNames) {
+				if(!columns2skip.contains(level)) {
+					min.add(this.getMin(level));
+					max.add(this.getMax(level));
+					isNum.add(this.isNumeric(level));
+				}
+			}
+			
+			boolean[] isnumeric = new boolean[isNum.size()];
+			for(int i = 0; i < isNum.size(); i++) {
+				isnumeric[i] = isNum.get(i);
+			}
+			
+			return new ScaledUniqueBTreeIterator(typeRoot, isnumeric, min.toArray(new Double[min.size()]), max.toArray(new Double[max.size()]), getRawData, columns2skip);
+		}
 	}
 	
 	@Override
@@ -1070,6 +1162,14 @@ public class BTreeDataFrame implements ITableDataFrame {
 		
 		System.out.println("Final count for column " + columnHeader + " = " + table.size());
 		return table.toArray();
+		
+//		Iterator<SimpleTreeNode> iterator = new ValueTreeColumnIterator(typeRoot);
+//		List<Object> column = new ArrayList<Object>();
+//		while(iterator.hasNext()) {
+//			column.add(iterator.next());
+//		}
+//		
+//		return column.toArray();
 	}
 
 	@Override
@@ -1087,7 +1187,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 				retList.add(null);
 			}
 			else {
-				retList.add((Double)value);
+				retList.add( ((Number) value).doubleValue());
 			}
 		}
 		return retList.toArray(new Double[0]);

@@ -31,8 +31,10 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Map;
 import java.util.Set;
 
 import javax.swing.JLabel;
@@ -52,6 +54,8 @@ import org.apache.commons.math3.random.Well1024a;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.ui.components.BrowserGraphPanel;
@@ -881,21 +885,20 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	
 	public Hashtable<String,Object> getOverviewCostData() {
 		String[] names = new String[]{"Year", "Build Cost","Cost Avoided"};
-		ArrayList<Object []> list = new ArrayList<Object []>();
+		ITableDataFrame data = new BTreeDataFrame(names);
 		int i;
 		int startYear = 2017;
 		for(i=0; i<maxYears; i++) {
-			Object[] row = new Object[3];
-			row[0] = startYear + i;
-			row[1] = Math.round(-1* deployCostPerYearArr[i] * 1000)/1000;
-			row[2] = Math.round(costAvoidedPerYearArr[i] * 1000)/1000;
-			list.add(row);
+			Map<String, Object> row = new HashMap<String, Object>();
+			row.put(names[0], startYear + i);
+			row.put(names[1], Math.round(-1* deployCostPerYearArr[i] * 1000)/1000);
+			row.put(names[2], Math.round(costAvoidedPerYearArr[i] * 1000)/1000);
+			data.addRow(row, row);
 		}
 		
 		ColumnChartPlaySheet ps = new ColumnChartPlaySheet();
-		ps.setNames(names);
-		ps.setList(list);
-		ps.setDataHash(ps.processQueryData());
+		ps.setDataFrame(data);
+		ps.processQueryData();
 		return (Hashtable<String,Object>)ps.getData();
 	}
 	
@@ -952,23 +955,22 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		double[] percentDiff = StatisticsUtilityMethods.calculatePercentDiff(currSiteSustainCost,futureSiteSustainCost);
 		
 		String[] names = new String[]{"DCSite", "lat", "lon", "Future Sustainment Cost", "Change in Sustainment Cost %"};
-		ArrayList<Object []> list = new ArrayList<Object []>();
+		ITableDataFrame data = new BTreeDataFrame(names);
 		int i;
 		int numSites = siteList.size();
 		for(i=0; i<numSites; i++) {
-			Object[] row = new Object[5];
-			row[0] = siteList.get(i);
-			row[1] = siteLat[i];
-			row[2] = siteLon[i];
-			row[3] = futureSiteSustainCost[i];
-			row[4] = (double) Math.round(percentDiff[i] * 1000)/1000;//positive number means it decreased in cost, negative means increased cost
-			list.add(row);
+			Map<String, Object> row = new HashMap<String, Object>();
+			row.put(names[0], siteList.get(i));
+			row.put(names[1], siteLat[i]);
+			row.put(names[2], siteLon[i]);
+			row.put(names[3], futureSiteSustainCost[i]);
+			row.put(names[4], (double) Math.round(percentDiff[i] * 1000)/1000);//positive number means it decreased in cost, negative means increased cost
+			data.addRow(row, row);
 		}
 		
 		OCONUSMapPlaySheet ps = new OCONUSMapPlaySheet();
-		ps.setNames(names);
-		ps.setList(list);
-		ps.setDataHash(ps.processQueryData());
+		ps.setDataFrame(data);
+		ps.processQueryData();
 		return (Hashtable<String,Object>)ps.getData();
 	}
 
@@ -1079,100 +1081,89 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	
 	public Hashtable<String,Object> getKeptSystemSiteMapData(String system) {
 		String[] names = new String[]{"DCSite", "lat", "lon", "Status"};
-		ArrayList<Object []> list = new ArrayList<Object []>();
-
+		ITableDataFrame data = new BTreeDataFrame(names);
+		
 		int i;
 		int numSites = siteList.size();
-
 		int sysIndex;
 
 		if(localSysList.contains(system)) {//if noncentral system
-
 			sysIndex = localSysList.indexOf(system);
 			for(i=0; i<numSites; i++) {
 				if(localSystemSiteRecMatrix[sysIndex][i]!=null) {
-					Object[] row = new Object[5];
-					row[0] = siteList.get(i);
-					row[1] = siteLat[i];
-					row[2] = siteLon[i];
-					row[3] = localSystemSiteRecMatrix[sysIndex][i];
-					list.add(row);
+					Map<String, Object> row = new HashMap<String, Object>();
+					row.put(names[0], siteList.get(i));
+					row.put(names[1], siteLat[i]);
+					row.put(names[2], siteLon[i]);
+					row.put(names[3], localSystemSiteRecMatrix[sysIndex][i]);
+					data.addRow(row, row);
 				}
 			}
 
 		}else {//if central system
 			sysIndex = centralSysList.indexOf(system);
-			
 			for(i=0; i<numSites; i++) {
-					Object[] row = new Object[5];
-					row[0] = siteList.get(i);
-					row[1] = siteLat[i];
-					row[2] = siteLon[i];
+					Map<String, Object> row = new HashMap<String, Object>();
+					row.put(names[0], siteList.get(i));
+					row.put(names[1], siteLat[i]);
+					row.put(names[2], siteLon[i]);
 					if(centralSystemSiteMatrix[sysIndex][i]==1) {
-						row[3] = "HOSTED";
+						row.put(names[3], "HOSTED");
 					}else {
-						row[3] = "ACCESSIBLE";
+						row.put(names[3], "ACCESSIBLE");
 					}
-					list.add(row);
+					data.addRow(row, row);
 				}
 		}
 
 		OCONUSMapPlaySheet ps = new OCONUSMapPlaySheet();
-		ps.setNames(names);
-		ps.setList(list);
-		ps.setDataHash(ps.processQueryData());
+		ps.setDataFrame(data);
+		ps.processQueryData();
 		return (Hashtable<String,Object>)ps.getData();
 		
 	}
 
 	public Hashtable<String,Object> getDecomSystemSiteMapData(String system) {
 		String[] names = new String[]{"DCSite", "lat", "lon", "Status","Systems at Site"};
-		ArrayList<Object []> list = new ArrayList<Object []>();
+		ITableDataFrame data = new BTreeDataFrame(names);
 
 		int i;
 		int numSites = siteList.size();
-
 		int sysIndex;
-
 		if(localSysList.contains(system)) {//if noncentral system
-
 			sysIndex = localSysList.indexOf(system);
 			for(i=0; i<numSites; i++) {
 				if(localSystemSiteMatrix[sysIndex][i] == 1) {
-					Object[] row = new Object[5];
-					row[0] = siteList.get(i);
-					row[1] = siteLat[i];
-					row[2] = siteLon[i];
-					row[3] = "CONSOLIDATED";
-					row[4] = getSystemsAtSiteList(i);
-					list.add(row);
+					Map<String, Object> row = new HashMap<String, Object>();
+					row.put(names[0], siteList.get(i));
+					row.put(names[1], siteLat[i]);
+					row.put(names[2], siteLon[i]);
+					row.put(names[3], "CONSOLIDATED");
+					row.put(names[4], getSystemsAtSiteList(i));
+					data.addRow(row, row);
 				}
 			}
-
 		}else {//if central system
 			sysIndex = centralSysList.indexOf(system);
 			for(i=0; i<numSites; i++) {
-				Object[] row = new Object[5];
-				row[0] = siteList.get(i);
-				row[1] = siteLat[i];
-				row[2] = siteLon[i];
+				Map<String, Object> row = new HashMap<String, Object>();
+				row.put(names[0], siteList.get(i));
+				row.put(names[1], siteLat[i]);
+				row.put(names[2], siteLon[i]);
 				if(centralSystemSiteMatrix[sysIndex][i]==1) {
-					row[3] = "HOSTED";
+					row.put(names[3], "HOSTED");
 				}else {
-					row[3] = "ACCESSIBLE";
+					row.put(names[3], "ACCESSIBLE");
 				}
-				row[4] = getSystemsAtSiteList(i);
-				list.add(row);
+				row.put(names[4], getSystemsAtSiteList(i));
 			}
 
 		}
 
 		OCONUSMapPlaySheet ps = new OCONUSMapPlaySheet();
-		ps.setNames(names);
-		ps.setList(list);
-		ps.setDataHash(ps.processQueryData());
+		ps.setDataFrame(data);
+		ps.processQueryData();
 		return (Hashtable<String,Object>)ps.getData();
-		
 	}
 	
 	private ArrayList<String> getSystemsAtSiteList(int siteIndex) {

@@ -28,14 +28,14 @@
 package prerna.ui.components.playsheets;
 
 import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.beans.PropertyVetoException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 import javax.swing.JComponent;
-import javax.swing.JMenuItem;
 import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
@@ -45,217 +45,204 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.learning.supervized.MatrixRegressionAlgorithm;
-import prerna.engine.api.ISelectStatement;
+import prerna.om.SEMOSSParam;
+import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.NewScrollBarUI;
-import prerna.ui.main.listener.impl.GridPlaySheetListener;
-import prerna.ui.main.listener.impl.JTableExcelExportListener;
 
 public class MatrixRegressionPlaySheet extends GridPlaySheet{
 
 	private static final Logger LOGGER = LogManager.getLogger(MatrixRegressionPlaySheet.class.getName());
-	protected JTabbedPane jTab;
+
+	private String[] columnHeaders;
+
+	private double[] b;
+	private double[][] A;
+	
 	private int bIndex = -1;
 	private double[] coeffArray;
+	private double[] coeffErrorsArray;
+	private double[] estimateArray;
+	private double[] residualArray;
 	private double standardError;
 
+	private int numIndepVariables;
+	private int variableStartIndex;
+	private int outputNumCols;
+
 	private boolean includesInstance = true;
-	
-	
+	private List<String> skipAttributes;
+
+	protected JTabbedPane jTab;
+
 	@Override
 	public void createData() {
-		if(list==null)
+		if(dataFrame == null || dataFrame.isEmpty())
 			super.createData();
 	}
-	
+
 	@Override
 	public void runAnalytics() {
-		
-		int i;
-		int j;
-		int listNumRows = list.size();
-
-		int numIndepVariables;
-		int variableStartIndex;
+		this.columnHeaders = dataFrame.getColumnHeaders();
 		if(includesInstance) {
-			numIndepVariables = names.length - 2;//-1 for instance, -1 for dep var
+			numIndepVariables = columnHeaders.length - 2;//-1 for instance, -1 for dep var
 			variableStartIndex = 1;
 		} else {
-			numIndepVariables = names.length - 1;// -1 for dep var
+			numIndepVariables = columnHeaders.length - 1;// -1 for dep var
 			variableStartIndex = 0;
 		}
-		int outputNumCols = 1 + numIndepVariables + 4;//instance, numIndVariables, and results
+		outputNumCols = 1 + numIndepVariables + 4;//instance, numIndVariables, and results
 
 		//the bIndex should have been provided. if not, will use the last column
-		if(bIndex==-1)
-			bIndex = names.length - 1;
+		if(bIndex == -1) {
+			bIndex = columnHeaders.length - 1;
+		}
 
 		//create the b and A arrays which are used in matrix regression to determine coefficients
-		double[] b = MatrixRegressionHelper.createB(list, bIndex);
-		double[][] A = MatrixRegressionHelper.createA(list, variableStartIndex, bIndex);
-		
-		//run regression
-		MatrixRegressionAlgorithm alg = new MatrixRegressionAlgorithm(A, b);
-		alg.execute();
-		coeffArray = alg.getCoeffArray();
-		double[] coeffErrorsArray = alg.getCoeffErrorsArray();
-		double[] estimateArray = alg.getEstimateArray();
-		double[] residualArray = alg.getResidualArray();
-		standardError = alg.getStandardError();
+		b = MatrixRegressionHelper.createB(dataFrame, skipAttributes, bIndex);
+		A = MatrixRegressionHelper.createA(dataFrame, skipAttributes, variableStartIndex, bIndex);
 
+		//run regression
+		MatrixRegressionAlgorithm alg = new MatrixRegressionAlgorithm();
+		List<SEMOSSParam> options = alg.getOptions();
+		Map<String, Object> selectedOptions = new HashMap<String, Object>();
+		selectedOptions.put(options.get(0).getName(), A);
+		selectedOptions.put(options.get(1).getName(), b);
+		alg.setSelectedOptions(selectedOptions);
+		dataFrame.performAction(alg);
+
+		coeffArray = alg.getCoeffArray();
+		coeffErrorsArray = alg.getCoeffErrorsArray();
+		estimateArray = alg.getEstimateArray();
+		residualArray = alg.getResidualArray();
+		standardError = alg.getStandardError();
+	}
+
+	@Override
+	public List<Object[]> getTabularData() {
 		//add in estimated and residuals for each row determined using coefficients
-		ArrayList<Object []> outputList = new ArrayList<Object []>();
-		for(i=0;i<listNumRows;i++) {
+		List<Object[]> outputList = new ArrayList<Object []>();
+		
+		Iterator<Object[]> it = dataFrame.iterator(false, skipAttributes);
+		int i = 0;
+		int j = 0;
+		while(it.hasNext()) {
+			Object[] row = it.next();
 			double actualVal = b[i];
 			double estimatedVal = estimateArray[i];
 			double residualVal = residualArray[i];
 			double withinErrorRange = Math.abs(residualVal / standardError);
-			
+
 			Object[] newRow = new Object[outputNumCols];
-			if(includesInstance)
-				newRow[0] = list.get(i)[0];
-			else
+			if(includesInstance) {
+				newRow[0] = row[0];
+			} else {
 				newRow[0] = "";
-			for(j=0;j<numIndepVariables;j++) {
+			}
+			for(j = 0; j < numIndepVariables; j++) {
 				newRow[j+1] = A[i][j];
 			}
 			newRow[j+1] = actualVal;
 			newRow[j+2] = estimatedVal;
 			newRow[j+3] = residualVal;
 			newRow[j+4] = withinErrorRange;
-
 			outputList.add(newRow);
+			i++;
 		}
-		
+
 		//create a row with coefficient values
 		Object[] coeffRow = new Object[outputNumCols];
 		coeffRow[0] = "COEFFICIENTS";
-		for(i=1;i<coeffArray.length;i++)
+		for(i=1;i<coeffArray.length;i++) {
 			coeffRow[i] = coeffArray[i];
+		}
 		coeffRow[i] = "b is " + coeffArray[0];//first spot in the coefficient array is the constant value
 		coeffRow[i+1] = "-";
 		coeffRow[i+2] = "-";
 		coeffRow[i+3] = "standard error of estimates is "+standardError;	
 		outputList.add(0,coeffRow);
-		
+
 		//create a row with coefficient errors
 		Object[] coeffErrorsRow = new Object[outputNumCols];
 		coeffErrorsRow[0] = "COEFFICIENTS ERRORS";
-		for(i=1;i<coeffErrorsArray.length;i++)
+		for(i=1;i<coeffErrorsArray.length;i++) {
 			coeffErrorsRow[i] = coeffErrorsArray[i];
+		}
 		coeffErrorsRow[i] = "b error is " + coeffErrorsArray[0];//first spot in the coefficient array is the constant value
 		coeffErrorsRow[i+1] = "-";
 		coeffErrorsRow[i+2] = "-";
 		coeffErrorsRow[i+3] = "-";	
 		outputList.add(1,coeffErrorsRow);
-		
-		list = outputList;
-		
+
+		return outputList;
+	}
+
+	@Override
+	public String[] getColumnHeaders() {
 		//update headers so that there are columns for estimated and residuals
-		names = MatrixRegressionHelper.moveNameToEnd(names, bIndex);
-		
+		columnHeaders = MatrixRegressionHelper.moveNameToEnd(columnHeaders, bIndex);
+
 		String[] namesWithEstimateAndResiduals = new String[outputNumCols];
 		if(includesInstance)
-			namesWithEstimateAndResiduals[0] = names[0];
+			namesWithEstimateAndResiduals[0] = columnHeaders[0];
 		else
 			namesWithEstimateAndResiduals[0] = "";
-		
+
 		int newIndex = 1;
-		for(i=0;i<numIndepVariables;i++) {
-			namesWithEstimateAndResiduals[newIndex] = names[i + variableStartIndex];
+		for(int i=0; i < numIndepVariables; i++) {
+			namesWithEstimateAndResiduals[newIndex] = columnHeaders[i + variableStartIndex];
 			newIndex++;
 		}
-		
-		namesWithEstimateAndResiduals[newIndex]  = "Actual- " + names[numIndepVariables + 1];
-		namesWithEstimateAndResiduals[newIndex+1] = "Estimated- " + names[numIndepVariables + 1];
-		namesWithEstimateAndResiduals[newIndex+2] = "Residual- " + names[numIndepVariables + 1];
-		namesWithEstimateAndResiduals[newIndex+3] = "Within Error Range?";
 
-		names = namesWithEstimateAndResiduals;
+		namesWithEstimateAndResiduals[newIndex]  = "Actual- " + columnHeaders[numIndepVariables + 1];
+		namesWithEstimateAndResiduals[newIndex+1] = "Estimated- " + columnHeaders[numIndepVariables + 1];
+		namesWithEstimateAndResiduals[newIndex+2] = "Residual- " + columnHeaders[numIndepVariables + 1];
+		namesWithEstimateAndResiduals[newIndex+3] = "Within Error Range?";
+		return namesWithEstimateAndResiduals;
 	}
-	
-	@Override
-	public void addPanel()
-	{
-		if(jTab==null) {
-			super.addPanel();
-		} else {
-			String lastTabName = jTab.getTitleAt(jTab.getTabCount()-1);
-			LOGGER.info("Parsing integer out of last tab name");
-			int count = 1;
-			if(jTab.getTabCount()>1)
-				count = Integer.parseInt(lastTabName.substring(0,lastTabName.indexOf(".")))+1;
-			addPanelAsTab(count+". Linear Regression Raw Data");
-		}
-	}
-	
-	public void addPanelAsTab(String tabName) {
-	//	setWindow();
-		try {
-			table = new JTable();
-			
-			//Add Excel export popup menu and menuitem
-			JPopupMenu popupMenu = new JPopupMenu();
-			JMenuItem menuItemAdd = new JMenuItem("Export to Excel");
-			String questionTitle = this.getTitle();
-			menuItemAdd.addActionListener(new JTableExcelExportListener(table, questionTitle));
-			popupMenu.add(menuItemAdd);
-			table.setComponentPopupMenu(popupMenu);
-			
-			GridPlaySheetListener gridPSListener = new GridPlaySheetListener();
-			LOGGER.debug("Created the table");
-			this.addInternalFrameListener(gridPSListener);
-			LOGGER.debug("Added the internal frame listener ");
-			//table.setAutoCreateRowSorter(true);
-			
-			JPanel panel = new JPanel();
-			panel.add(table);
-			GridBagLayout gbl_mainPanel = new GridBagLayout();
-			gbl_mainPanel.columnWidths = new int[]{0, 0};
-			gbl_mainPanel.rowHeights = new int[]{0, 0};
-			gbl_mainPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-			gbl_mainPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-			panel.setLayout(gbl_mainPanel);
-			
-			addScrollPanel(panel, table);
-			
-			jTab.addTab(tabName, panel);
-			
-			this.pack();
-			this.setVisible(true);
-			this.setSelected(false);
-			this.setSelected(true);
-			LOGGER.debug("Added new Regression Sheet");
-			
-		} catch (PropertyVetoException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	@Override
-	public Object getVariable(String varName, ISelectStatement sjss){
-		return sjss.getVar(varName);
-	}
-//	public void setMasterList(ArrayList<Object[]> masterList) {
-//		this.masterList = masterList;
-//	}
-//	public void setMasterNames(String[] masterNames) {
-//		this.masterNames = masterNames;
-//	}
+
 	public void setbColumnIndex(int bColumnIndex) {
 		this.bIndex = bColumnIndex;
 	}
-	public void setJTab(JTabbedPane jTab) {
-		this.jTab = jTab;
-	}
-	public void setJBar(JProgressBar jBar) {
-		this.jBar = jBar;
-	}
+
 	public double[] getCoeffArray() {
 		return coeffArray;
 	}
+
 	public double getStandardError() {
 		return standardError;
 	}
+
+	public void setIncludesInstance(boolean includesInstance) {
+		this.includesInstance = includesInstance;
+	}
+	
+	public void setSkipAttributes(List<String> skipAttributes) {
+		this.skipAttributes = skipAttributes;
+	}
+
+	/////////////////////////////SWING DEPENDENT CODE/////////////////////////////
+	@Override
+	public void addPanel() {
+		if (jTab == null) {
+			super.addPanel();
+		} else {
+			String lastTabName = jTab.getTitleAt(jTab.getTabCount() - 1);
+			LOGGER.info("Parsing integer out of last tab name");
+			int count = 1;
+			if (jTab.getTabCount() > 1)
+				count = Integer.parseInt(lastTabName.substring(0, lastTabName.indexOf("."))) + 1;
+			addPanelAsTab(count + ". Matrix Regression Raw Data");
+		}
+	}
+
+	public void addPanelAsTab(String tabName) {
+		table = new JTable();
+		GridScrollPane gsp = null;
+		gsp = new GridScrollPane(dataFrame.getColumnHeaders(), dataFrame.getData());
+		gsp.addHorizontalScroll();
+		jTab.addTab(tabName, gsp);
+	}
+
 	public void addScrollPanel(JPanel panel, JComponent obj) {
 		JScrollPane scrollPane = new JScrollPane(obj);
 		scrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
@@ -267,8 +254,12 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 		gbc_scrollPane.gridy = 0;
 		panel.add(scrollPane, gbc_scrollPane);
 	}
-	
-	public void setIncludesInstance(boolean includesInstance) {
-		this.includesInstance = includesInstance;
+
+	public void setJTab(JTabbedPane jTab) {
+		this.jTab = jTab;
+	}
+
+	public void setJBar(JProgressBar jBar) {
+		this.jBar = jBar;
 	}
 }

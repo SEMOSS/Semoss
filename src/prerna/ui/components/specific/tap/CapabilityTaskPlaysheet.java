@@ -30,6 +30,7 @@ package prerna.ui.components.specific.tap;
 import java.awt.Dimension;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Iterator;
 
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;
@@ -55,7 +56,7 @@ public class CapabilityTaskPlaysheet extends BrowserPlaySheet {
 	 * Method processQueryData.  Processes the data from the SPARQL query into an appropriate format for the specific play sheet.
 	
 	 * @return Hashtable - Consists of the x-value, y-value, x- and y-axis titles, and the title of the map.*/
-	public Hashtable processQueryData()
+	public void processQueryData()
 	{
 		Hashtable dataHash = new Hashtable();
 		Hashtable dataSeries = new Hashtable();
@@ -89,10 +90,10 @@ public class CapabilityTaskPlaysheet extends BrowserPlaySheet {
 		
 		
 		Hashtable <String, Integer> capHash = new Hashtable<String, Integer>();
-		for (int i=0;i<list.size();i++)
-		{
-			
-			Object[] listElement = list.get(i);
+		
+		Iterator<Object[]> it = dataFrame.iterator(false, null);
+		while(it.hasNext()) {	
+			Object[] listElement = it.next();
 			venName = (String) listElement[0];
 			
 			// since I know all of this is just one vendor, I am not going to worry much here
@@ -138,8 +139,7 @@ public class CapabilityTaskPlaysheet extends BrowserPlaySheet {
 		
 		System.err.println("> >>>>>>>>>>>>>>>>>>>>>>>>>>> " + allHash);
 		
-		return allHash;
+		this.dataHash = allHash;
 	}
-	
 
 }

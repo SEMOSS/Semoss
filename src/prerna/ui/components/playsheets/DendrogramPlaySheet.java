@@ -32,6 +32,7 @@ import java.awt.Dimension;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -47,8 +48,7 @@ public class DendrogramPlaySheet extends BrowserPlaySheet {
 		super();
 		this.setPreferredSize(new Dimension(1200, 800));
 		String workingDir = System.getProperty("user.dir");
-		fileName = "file://" + workingDir
-				+ "/html/MHS-RDFSemossCharts/app/dendrogram.html";
+		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/dendrogram.html";
 	}
 
 	/**
@@ -59,15 +59,17 @@ public class DendrogramPlaySheet extends BrowserPlaySheet {
 	 * @return Hashtable - Consists of all nodes in tree structure Dendrogram.
 	 */
 	@Override
-	public Hashtable processQueryData() {
+	public void processQueryData() {
 		Hashtable allHash = new Hashtable();
 
 		Map<String, Map<String, Map>> rootMap = new HashMap<String, Map<String, Map>>();
 		Map<String, Map> currentMap;
 
 		// loop through the list
-		for (int i = 0; i < list.size(); i++) {
-			Object[] listElements = list.get(i);
+		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		while(it.hasNext())
+		{
+			Object[] listElements = it.next();
 
 			// if there is no data, go to the next one in the list
 			if (listElements == null || listElements.length == 0) {
@@ -110,7 +112,6 @@ public class DendrogramPlaySheet extends BrowserPlaySheet {
 		System.out.println(rootMap);
 
 		HashSet hashSet = new HashSet();
-		
 		processTree(rootMap, hashSet);
 		//System.out.println(rootMap);
 		//printHashSet(hashSet);
@@ -120,7 +121,8 @@ public class DendrogramPlaySheet extends BrowserPlaySheet {
 		
 		allHash.put("name", root);
 		allHash.put("children", hashSet);
-		return allHash;
+		
+		this.dataHash = allHash;
 	}
 
 	/*

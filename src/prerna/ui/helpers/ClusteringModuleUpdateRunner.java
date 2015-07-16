@@ -27,8 +27,9 @@
  *******************************************************************************/
 package prerna.ui.helpers;
 
-import java.util.ArrayList;
+import java.util.List;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;
 
 /**
@@ -37,8 +38,9 @@ import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;
 public class ClusteringModuleUpdateRunner implements Runnable{
 
 	private ClassifyClusterPlaySheet playSheet = null;
-	private String[] names;
-	private ArrayList<Object[]> list;
+	private ITableDataFrame dataFrame;
+	private List<String> skipColumns;
+	
 	/**
 	 * Constructor for PlaysheetCreateRunner.
 	 * @param playSheet IPlaySheet
@@ -53,12 +55,12 @@ public class ClusteringModuleUpdateRunner implements Runnable{
 	 */
 	@Override
 	public void run() {
-		playSheet.recreateSimBarChart(names, list);
+		playSheet.recreateSimBarChart(dataFrame, skipColumns);
 	}
 	
-	public void setValues(String[] names, ArrayList<Object[]> list) {
-		this.names = names;
-		this.list = list;
+	public void setValues(ITableDataFrame dataFrame, List<String> skipColumns) {
+		this.dataFrame = dataFrame;
+		this.skipColumns = skipColumns;
 	}
 	
 }

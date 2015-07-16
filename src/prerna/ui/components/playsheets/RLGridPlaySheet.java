@@ -29,7 +29,9 @@ package prerna.ui.components.playsheets;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -37,6 +39,7 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.impl.rl.Action;
 import prerna.algorithm.impl.rl.State;
 import prerna.algorithm.impl.rl.ValueIterationAlgorithm;
+import prerna.ds.BTreeDataFrame;
 
 /**
  * The RLGridPlaySheet class creates the panel and table for a grid view of data from RL examples.
@@ -56,26 +59,27 @@ public class RLGridPlaySheet extends GridPlaySheet{
 		alg.findOptimalPolicy();
 		Hashtable<State,BigDecimal> optimalActionHash = alg.getOptimalPolicyValHash();
 		
-		names = new String[xSize+1];
-		names[0] = "";
+		String[] names = new String[xSize+1];
+		names[0] = "RowNumber";
 		for(int i=0;i<xSize;i++) {
 			names[i+1]="Col"+i;
 		}
 		
-		list = new ArrayList<Object []>();
-		
-		for(int row=0;row<ySize;row++) {
-			Object[] newRow = new Object[xSize+1];
-			newRow[0]="Row"+row;
+		dataFrame = new BTreeDataFrame(names);
+
+		for(int rowIdx = 0; rowIdx < ySize; rowIdx++) {
+			Map<String, Object> row = new HashMap<String, Object>();
+			row.put(names[0], "Row"+rowIdx);
 			for(int col=0;col<xSize;col++) {
 				State currState;
-				if(row==ySize - 1 && col==xSize - 1)
+				if(rowIdx==ySize - 1 && col==xSize - 1) {
 					currState = stateList.get(0);
-				else
-					currState = stateList.get(row*xSize+col);
-				newRow[col+1] = optimalActionHash.get(currState).doubleValue();
+				} else {
+					currState = stateList.get(rowIdx*xSize+col);
+				}
+				row.put(names[col+1], optimalActionHash.get(currState).doubleValue());
 			}
-			list.add(newRow);
+			dataFrame.addRow(row, row);
 		}
 	}
 	

@@ -27,8 +27,8 @@
  *******************************************************************************/
 package prerna.ui.components.playsheets;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 
 import javax.swing.JButton;
 import javax.swing.JDesktopPane;
@@ -37,6 +37,8 @@ import javax.swing.JTable;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -58,13 +60,12 @@ import com.hp.hpl.jena.query.ResultSet;
 public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 
 	private static final Logger logger = LogManager.getLogger(BasicProcessingPlaySheet.class.getName());
-	protected ResultSet rs = null;
 	protected GridFilterData gfd = new GridFilterData();
-	protected String [] names = null;
 	public JTable table = null;
-	protected ArrayList <Object []> list = null;
 	public ISelectWrapper wrapper;
-
+	protected ITableDataFrame dataFrame = null;
+	protected ResultSet rs;
+	
 	/**
 	 * This is the function that is used to create the first view 
 	 * of any play sheet.  It often uses a lot of the variables previously set on the play sheet, such as {@link #setQuery(String)},
@@ -76,12 +77,12 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 	 * sheet is to first be created, most notably in ProcessQueryListener.
 	 */
 	@Override
-	public void createView() {	
-		if(list!=null && list.isEmpty()){
+	public void createView() {
+		List<Object[]> tabularData = getTabularData();
+		String[] names = getColumnHeaders();
+		addPanel();
+		if(tabularData == null || tabularData.isEmpty()) {
 			String questionID = getQuestionID();
-			// fill the nodetype list so that they can choose from
-			// remove from store
-			// this will also clear out active sheet
 			QuestionPlaySheetStore.getInstance().remove(questionID);
 			if(QuestionPlaySheetStore.getInstance().isEmpty())
 			{
@@ -90,29 +91,53 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 			}
 			Utility.showError("Query returned no results.");
 			return;		
-		}
-
-		//		if(rs==null) {
-		//			Utility.showError("Query returned no results.");
-		//			return;
-		//		}
-		super.createView();
-		//createData();
-		if(table==null)
-			addPanel();
-
-		updateProgressBar("80%...Creating Visualization", 80);
-		if(list!=null){
+		} else {
+			updateProgressBar("80%...Creating Visualization", 80);
 			gfd.setColumnNames(names);
-			gfd.setDataList(list);
+			gfd.setDataList(tabularData);
 			GridRAWTableModel model = setGridModel(gfd);
 			table.setModel(model);
 			table.setRowSorter(new GridTableRowSorter(model));
 		}
-
 		updateProgressBar("100%...Table Generation Complete", 100);
+
+			
+		//		if(list!=null && list.isEmpty()){
+		//			String questionID = getQuestionID();
+		//			// fill the nodetype list so that they can choose from
+		//			// remove from store
+		//			// this will also clear out active sheet
+		//			QuestionPlaySheetStore.getInstance().remove(questionID);
+		//			if(QuestionPlaySheetStore.getInstance().isEmpty())
+		//			{
+		//				JButton btnShowPlaySheetsList = (JButton) DIHelper.getInstance().getLocalProp(Constants.SHOW_PLAYSHEETS_LIST);
+		//				btnShowPlaySheetsList.setEnabled(false);
+		//			}
+		//			Utility.showError("Query returned no results.");
+		//			return;		
+		//		}
+		//
+		//		//		if(rs==null) {
+		//		//			Utility.showError("Query returned no results.");
+		//		//			return;
+		//		//		}
+		//		super.createView();
+		//		//createData();
+		//		if(table==null)
+		//			addPanel();
+		//
+		//		updateProgressBar("80%...Creating Visualization", 80);
+		//		if(list!=null){
+		//			gfd.setColumnNames(names);
+		//			gfd.setDataList(list);
+		//			GridRAWTableModel model = setGridModel(gfd);
+		//			table.setModel(model);
+		//			table.setRowSorter(new GridTableRowSorter(model));
+		//		}
+		//
+		//		updateProgressBar("100%...Table Generation Complete", 100);
 	}
-	
+
 	public GridRAWTableModel setGridModel(GridFilterData gfd) {
 		GridRAWTableModel model = new GridRAWTableModel(gfd);
 		return model;
@@ -128,10 +153,8 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 	 */
 	@Override
 	public void overlayView() {
-
-		gfd.setDataList(list);
+		gfd.setDataList(dataFrame.getData());
 		((GridTableModel)table.getModel()).fireTableDataChanged();
-
 		updateProgressBar("100%...Table Generation Complete", 100);
 	}
 
@@ -141,24 +164,6 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 	public void addPanel()
 	{
 		//Fill
-	}
-
-	/**
-	 * Method setRs. Sets the result set to the results generated from the query.
-	 * @param rs ResultSet.
-	 */
-	public void setRs(ResultSet rs) {
-		this.rs = rs;
-	}
-
-	/**
-	 * Method getVariable. Gets the variable names from the query results.
-	 * @param varName String - the variable name.
-	 * @param sjss SesameJenaSelectStatement - the associated sesame jena select statement.
-
-	 * @return Object - results.*/
-	public Object getVariable(String varName, ISelectStatement sjss){
-		return sjss.getVar(varName);
 	}
 
 	/**
@@ -181,47 +186,21 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 	public void createData() {
 		// TODO Auto-generated method stub
 		// the create view needs to refactored to this
-		if(this.overlay)
-			list = gfd.dataList;
-		else list = new ArrayList();
+
 		wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-		/*if(engine!= null && rs == null){
-
-			wrapper.setQuery(query);
-			wrapper.setEngine(engine);
-			try{
-				wrapper.executeQuery();	
-			}
-			catch (RuntimeException e)
-			{
-				e.printStackTrace();
-			}		
-
+		String[] names = wrapper.getVariables();
+		// need to figure out overlay
+		if(this.overlay) {
+			// shouldn't need to do anything?
+			// list = gfd.dataList;
+		} else {
+			dataFrame = new BTreeDataFrame(names);
 		}
-		else if (engine==null && rs!=null){
-			wrapper.setResultSet(rs);
-			wrapper.setEngineType(IEngine.ENGINE_TYPE.JENA);
-		}*/
-
-		// get the bindings from it
-		names = wrapper.getVariables();
-		int count = 0;
 		// now get the bindings and generate the data
 		try {
-			while(wrapper.hasNext())
-			{
+			while(wrapper.hasNext()) {
 				ISelectStatement sjss = wrapper.next();
-				
-				Object [] values = new Object[names.length];
-				for(int colIndex = 0;colIndex < names.length;colIndex++)
-				{
-					values[colIndex] = getVariable(names[colIndex], sjss);
-					logger.debug("Binding Name " + names[colIndex]);
-					logger.debug("Binding Value " + values[colIndex]);
-				}
-				logger.debug("Creating new Value " + values);
-				list.add(count, values);
-				count++;
+				dataFrame.addRow(sjss);
 			}
 		} catch (RuntimeException e) {
 			logger.fatal(e);
@@ -229,42 +208,64 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 	}
 
 	@Override
-	public Object getData() {
+	public Hashtable getData() {
 		Hashtable dataHash = (Hashtable) super.getData();
-		if(list!=null)
-			dataHash.put("data", list);
-		if(names!=null)
-			dataHash.put("headers", names);
+		if(dataFrame!=null) {
+			dataHash.put("data", dataFrame.getData());
+			dataHash.put("headers", dataFrame.getColumnHeaders());
+		}
 		return dataHash;
 	}
 
+	//TODO: THIS IS NEEDED FOR GraphPlaySheetExportListener but was never used....
+	/**
+	 * Method setRs. Sets the result set to the results generated from the query.
+	 * @param rs ResultSet.
+	 */
+	public void setRs(ResultSet rs) {
+		this.rs = rs;
+	}
+	
 	@Override
 	public void runAnalytics() {
 		// TODO Auto-generated method stub
+	}
 
+	public ITableDataFrame getDataFrame(){
+		return this.dataFrame;
+	}
+
+	public void setDataFrame(ITableDataFrame dataFrame) {
+		this.dataFrame = dataFrame;
 	}
 	
 	public String[] getNames(){
-		return this.names;
+		return this.dataFrame.getColumnHeaders();
 	}
 	
-	public ArrayList<Object[]> getList(){
-		return this.list;
+	public List<Object[]> getTabularData() {
+		if(dataFrame == null) {
+			return null;
+		}
+		return dataFrame.getRawData();
 	}
 	
-	
-	public void setNames(String[] names) {
-		this.names = names;
-	}
-	
-	public void setList(ArrayList<Object []>list) {
-		this.list = list;
+	public String[] getColumnHeaders() {
+		if(dataFrame == null) {
+			return null;
+		}
+		return dataFrame.getColumnHeaders();
 	}
 
 	@Override
 	public Hashtable<String, String> getDataTableAlign() {
 		// will be overridden by specific playsheets
 		return null;
+	}
+
+	@Override
+	public void processQueryData() {
+		// will be overridden by specific playsheets
 	}
 
 }

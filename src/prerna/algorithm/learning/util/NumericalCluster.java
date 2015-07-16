@@ -37,12 +37,16 @@ public class NumericalCluster {
 			if(v==null) {
 				v = distanceMeasureForAttribute.get(attribute).getNullRatio();
 				similarity = similarity + v*weight;
+				continue;
 			}
 			Double center = distanceMeasureForAttribute.get(attribute).getCentroidValue();
 			//using euclidean distance
 			similarity = similarity + (Math.pow(v-center, 2))*weight;
 		}
-		return (1 - Math.sqrt(similarity));
+		
+		similarity = 1 - Math.sqrt(similarity);
+		
+		return similarity;
 	}
 	
 	public Double getSimilarity(String attribute, Double value) {

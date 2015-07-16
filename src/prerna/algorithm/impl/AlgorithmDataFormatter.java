@@ -28,6 +28,7 @@
 package prerna.algorithm.impl;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
@@ -43,7 +44,7 @@ public final class AlgorithmDataFormatter {
 	//TODO: get to work with nulls/missing data
 	//TODO: already parse through data in clustering data processor, better way to improve efficiency?
 	//TODO: this uses indexing starting at 1 because this doesn't include the actual instance node name
-	public static Object[][] manipulateValues(ArrayList<Object[]> queryData, boolean includeLastColumn) {
+	public static Object[][] manipulateValues(List<Object[]> queryData, boolean includeLastColumn) {
 		int counter = 0;
 		
 		int numProps = queryData.get(0).length;
@@ -101,7 +102,7 @@ public final class AlgorithmDataFormatter {
 	 * @param dateTypeIndices
 	 * @param simpleDateTypeIndices
 	 */
-	public static void determineColumnTypes(String[] names, ArrayList<Object []> list, String[] categoryPropNames, Integer[] categoryPropIndices, String[] numericalPropNames, Integer[] numericalPropIndices, Integer[] dateTypeIndices, Integer[] simpleDateTypeIndices) {
+	public static void determineColumnTypes(String[] names, List<Object []> list, String[] categoryPropNames, Integer[] categoryPropIndices, String[] numericalPropNames, Integer[] numericalPropIndices, Integer[] dateTypeIndices, Integer[] simpleDateTypeIndices) {
 
 		int categoryPropNamesCounter = 0;
 		int numericalPropNamesCounter = 0;
@@ -142,7 +143,7 @@ public final class AlgorithmDataFormatter {
 	 * @param list
 	 * @param columnTypes
 	 */
-	public static String[] determineColumnTypes(ArrayList<Object []> list) {
+	public static String[] determineColumnTypes(List<Object[]> list) {
 		int numCols = list.get(0).length;
 		String[] columnTypes = new String[numCols];
 		//iterate through columns
@@ -152,7 +153,7 @@ public final class AlgorithmDataFormatter {
 		return columnTypes;
 	}
 	
-	private static String determineColumnType(ArrayList<Object []> list,int column) {
+	private static String determineColumnType(List<Object[]> list,int column) {
 		//iterate through rows
 		int numCategorical = 0;
 		int numNumerical = 0;

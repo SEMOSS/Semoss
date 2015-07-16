@@ -94,16 +94,6 @@ public class RegExplorerPlaySheet extends AbstractRDFPlaySheet{
 	}
 	
 	/**
-	 * Method getVariable.
-	 * @param varName String
-	 * @param sjss SesameJenaSelectStatement
-	
-	 * @return Object */
-	public Object getVariable(String varName, SesameJenaSelectStatement sjss){
-		return sjss.getVar(varName);
-	}
-
-	/**
 	 * Method refineView.
 	 */
 	@Override
@@ -326,5 +316,12 @@ public class RegExplorerPlaySheet extends AbstractRDFPlaySheet{
 	public Hashtable<String, String> getDataTableAlign() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+
+	@Override
+	public void processQueryData() {
+		// TODO Auto-generated method stub
+		
 	}
 }

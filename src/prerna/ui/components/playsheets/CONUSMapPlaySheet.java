@@ -30,13 +30,13 @@ package prerna.ui.components.playsheets;
 import java.awt.Dimension;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.openrdf.model.Literal;
 
-import prerna.engine.api.ISelectStatement;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -49,8 +49,8 @@ import com.google.gson.Gson;
 public class CONUSMapPlaySheet extends BrowserPlaySheet {
 
 	private static final Logger logger = LogManager.getLogger(CONUSMapPlaySheet.class.getName());
-	Hashtable allHash;
-	HashSet data;
+	Hashtable<String, Object> allHash;
+	HashSet<LinkedHashMap<String, Object>> data;
 	/**
 	 * Constructor for CONUSMapPlaySheet.
 	 */
@@ -67,15 +67,16 @@ public class CONUSMapPlaySheet extends BrowserPlaySheet {
 	 * @return Hashtable - A Hashtable of the queried Continental United States data to be converted into json format.  
 	 * The data must be in the format lat, lon, size, and must include any relevant properties for the coordinate.
 	 */
-	public Hashtable processQueryData()
+	public void processQueryData()
 	{
-		data = new HashSet();
-		String[] var = wrapper.getVariables(); 	
+		data = new HashSet<LinkedHashMap<String, Object>>();
+		String[] var = dataFrame.getColumnHeaders();
+		Iterator<Object[]> it = dataFrame.iterator(true, null);
 		
-		for (int i=0; i<list.size(); i++)
+		while(it.hasNext())
 		{	
-			LinkedHashMap elementHash = new LinkedHashMap();
-			Object[] listElement = list.get(i);
+			LinkedHashMap<String, Object> elementHash = new LinkedHashMap<String, Object>();
+			Object[] listElement = it.next();
 			String colName;
 			Double value;
 			for (int j = 0; j < var.length; j++) 
@@ -100,7 +101,7 @@ public class CONUSMapPlaySheet extends BrowserPlaySheet {
 			data.add(elementHash);			
 		}
 
-		allHash = new Hashtable();
+		allHash = new Hashtable<String, Object>();
 		allHash.put("dataSeries", data);
 		
 		allHash.put("lat", var[1]);
@@ -115,7 +116,7 @@ public class CONUSMapPlaySheet extends BrowserPlaySheet {
 //		allHash.put("value", var[2]);
 		
 		
-		return allHash;
+		this.dataHash = allHash;
 	}
 	
 	@Override
@@ -137,17 +138,10 @@ public class CONUSMapPlaySheet extends BrowserPlaySheet {
 	}
 	
 	@Override
-	public Object getVariable(String varName, ISelectStatement sjss){
-		Object var = sjss.getRawVar(varName);
-			if( var != null && var instanceof Literal) {
-				var = sjss.getVar(varName);
-			} 
-		return var;
-	}
-	
-	@Override
 	public Hashtable<String, String> getDataTableAlign() {
 		Hashtable<String, String> alignHash = new Hashtable<String, String>();
+		String[] names = dataFrame.getColumnHeaders();
+		
 		alignHash.put("label", names[0]);
 		alignHash.put("lat", names[1]);
 		alignHash.put("lon", names[2]);

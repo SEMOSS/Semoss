@@ -243,10 +243,5 @@ public class LifeCycleSliderChart extends GridPlaySheet{
 		
 	}
 	
-	@Override
-	public Object getVariable(String varName, ISelectStatement sjss){
-		return sjss.getVar(varName);
-	}
-	
 }
 

@@ -29,6 +29,7 @@ package prerna.ui.components.specific.tap;
 
 import java.awt.Dimension;
 import java.util.Hashtable;
+import java.util.Iterator;
 
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;
@@ -53,13 +54,16 @@ public class GridScatterWithLinesSheet extends BrowserPlaySheet{
 	 * Processes the query data necessary to create the grid scatter playsheet.
 	
 	 * @return Hashtable<String,Hashtable>	Hashtable containing information about values for the axes, titles, and legends for the display. */
-	public Hashtable<String,Hashtable> processQueryData()
+	public void processQueryData()
 	{
 		Hashtable<String,Object[][]> dataHash = new Hashtable<String,Object[][]>();
-		Object[][] dataSeries = new Object[list.size()][4];
-		for (int i=0;i<list.size();i++)
+		Object[][] dataSeries = new Object[dataFrame.getNumRows()][4];
+		Iterator<Object[]> it = dataFrame.iterator(false, null);
+		
+		int counter = 0;
+		while(it.hasNext())
 		{
-			Object[] listElement = list.get(i);
+			Object[] listElement = it.next();
 			Object[] dataSet = new Object[4];
 			dataSet[0]=(Double) listElement[1];
 			dataSet[1]=(Double) listElement[2];
@@ -69,12 +73,13 @@ public class GridScatterWithLinesSheet extends BrowserPlaySheet{
 			}
 			dataSet[2]=(Double) listElement[3];
 			dataSet[3]=(String) listElement[0];
-			dataSeries[i]=dataSet;
+			dataSeries[counter]=dataSet;
+			counter++;
 		}
 
 		dataHash.put("Series", dataSeries);
 		
-		Hashtable allHash = new Hashtable();
+		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
 		allHash.put("dataSeries", dataHash);
 		allHash.put("type",  "bubble");
 		String[] var = wrapper.getVariables();
@@ -99,7 +104,7 @@ public class GridScatterWithLinesSheet extends BrowserPlaySheet{
 		allHash.put("xLineLegend",lineLegend);
 		allHash.put("yLineLegend",lineLegend);
 
-		return allHash;
+		this.dataHash = allHash;
 	}
 	
 }

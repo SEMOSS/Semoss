@@ -29,11 +29,17 @@ package prerna.ui.main.listener.impl;
 
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
 
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.BTreeDataFrame;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
 import prerna.ui.helpers.PlaysheetCreateRunner;
 import prerna.util.Constants;
@@ -48,13 +54,12 @@ import prerna.util.Utility;
  */
 public class ClusteringDrillDownListener extends AbstractListener {
 	
-	//need to pass the checkboxes, the names, and the master data list,
-	//filters master data list to only include elements that were in the clusters marked in the checkbox list
-	
-	private ArrayList<JCheckBox> paramCheckboxes;
-	private String[] masterNames;
-	private ArrayList<Object []> masterList;
 	private ClusteringVizPlaySheet playSheet;
+	private ITableDataFrame dataFrame;
+	private ArrayList<JCheckBox> paramCheckboxes;
+	private String clusterIDCol;
+	private int clusterIDIndex;
+	private int inputNumClusters;
 	
 	/**
 	 * Updates the parameters to cluster on based on the params selected
@@ -62,27 +67,18 @@ public class ClusteringDrillDownListener extends AbstractListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
+		String[] columnHeaders = dataFrame.getColumnHeaders();
 		
-		int i;
-		Integer numberSelected = 0;
-		for(i = 0; i < paramCheckboxes.size(); i++) {
-			if(paramCheckboxes.get(i).isSelected())
-				numberSelected++;
-		}
-		
-		String[] filteredNames = new String[numberSelected+1];
-		filteredNames[0] = masterNames[0];
-		int colInd=1;
-		for(i = 0; i < paramCheckboxes.size(); i++) {
-			if(paramCheckboxes.get(i).isSelected()) {
-				filteredNames[colInd] = masterNames[1+i];
-				colInd++;
+		List<String> skipColumns = new ArrayList<String>();
+		for(int i = 0; i < paramCheckboxes.size(); i++) {
+			if(!paramCheckboxes.get(i).isSelected()) {
+				skipColumns.add(columnHeaders[i+1]);
 			}
 		}
 		
 		ArrayList<JCheckBox> clusterCheckboxes = playSheet.getClusterCheckboxes();
-		ArrayList<Integer> clustersToInclude = new ArrayList<Integer>();
-		for(i = 0; i < clusterCheckboxes.size(); i++) {
+		List<Integer> clustersToInclude = new ArrayList<Integer>();
+		for(int i = 0; i < clusterCheckboxes.size(); i++) {
 			JCheckBox checkbox = clusterCheckboxes.get(i);
 			if(checkbox.isSelected()) {
 				clustersToInclude.add(Integer.parseInt(checkbox.getText()));
@@ -94,42 +90,49 @@ public class ClusteringDrillDownListener extends AbstractListener {
 			return;
 		}
 		
-		int[] clusterAssigned  = playSheet.getClusterAssignment();
-		ArrayList<Object[]> newList = new ArrayList<Object[]>();
-		for(i = 0; i < clusterAssigned.length; i++) {
-			Object[] instanceRow = masterList.get(i);
-			int cluster = clusterAssigned[i];
-			//check if cluster is to be included
-			if(clustersToInclude.contains(cluster)) {
-				newList.add(instanceRow);
+		List<Object[]> subsetValues = new ArrayList<Object[]>();
+		Iterator<List<Object[]>> it = dataFrame.uniqueIterator(clusterIDCol, false, null);
+		while(it.hasNext()) {
+			List<Object[]> clusterData = it.next();
+			int clusterNumber = (int) clusterData.get(0)[clusterIDIndex];
+			
+			if(clustersToInclude.contains(clusterNumber)) {
+				subsetValues.addAll(clusterData);
 			}
 		}
 		
-		//take out the clusters we dont care about from the master list...
-		//then do the filtering after that.
-		ArrayList<Object[]> filteredList = new ArrayList<Object []>();
-		for(Object[] row : newList) {
-			Object[] filteredRow = new Object[numberSelected+1];
-			filteredRow[0] = row[0];//whatever object name we're clustering on
-			colInd=1;
-			for(i = 0; i < paramCheckboxes.size(); i++) {
-				if(paramCheckboxes.get(i).isSelected()) {
-					filteredRow[colInd] = row[1+i];
-					colInd++;
+		// colNames without the previous cluster index
+		String[] newColNames = new String[columnHeaders.length - 1];
+		int counter = 0;
+		for(int i = 0; i < columnHeaders.length; i++) {
+			if(i != clusterIDIndex) {
+				newColNames[counter] = columnHeaders[i];
+				counter++;
+			}
+		}
+		
+		ITableDataFrame newDataFrame = new BTreeDataFrame(newColNames);
+		for(int i = 0; i < subsetValues.size(); i++) {
+			Map<String, Object> hashRow = new HashMap<String, Object>();
+			Object[] row = subsetValues.get(i);
+			for(int j = 0; j < columnHeaders.length; j++) {
+				if(j != clusterIDIndex) {
+					hashRow.put(columnHeaders[j], row[j]);
 				}
 			}
-			filteredList.add(filteredRow);
+			newDataFrame.addRow(hashRow, hashRow);
 		}
 		
 		ClusteringVizPlaySheet drillDownPlaySheet = new ClusteringVizPlaySheet();
+		drillDownPlaySheet.setJDesktopPane(playSheet.pane);
 		String insightID = QuestionPlaySheetStore.getInstance().getIDCount()+". "+playSheet.getTitle();
 		QuestionPlaySheetStore.getInstance().put(insightID,  drillDownPlaySheet);
-		drillDownPlaySheet.setQuery(playSheet.getFullQuery());
+		drillDownPlaySheet.setQuery(playSheet.getQuery());
 		drillDownPlaySheet.setRDFEngine(playSheet.engine);
 		drillDownPlaySheet.setQuestionID(insightID);
 		drillDownPlaySheet.setTitle(playSheet.getTitle());
-		drillDownPlaySheet.drillDownData(masterNames, filteredNames, newList, filteredList);
 		drillDownPlaySheet.setSelectedParams(paramCheckboxes);
+		drillDownPlaySheet.drillDownData(newDataFrame, skipColumns, inputNumClusters);
 		
 		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 		drillDownPlaySheet.setJDesktopPane(pane);
@@ -146,9 +149,16 @@ public class ClusteringDrillDownListener extends AbstractListener {
 		this.paramCheckboxes = paramCheckboxes;
 	}
 
-	public void setMasterData(String[] masterNames, ArrayList<Object[]> masterList) {
-		this.masterNames = masterNames;
-		this.masterList = masterList;
+	public void setDataFrame(ITableDataFrame dataFrame) {
+		this.dataFrame = dataFrame;
+	}
+	
+	public void setClusterIDCol(String clusterIDCol) {
+		this.clusterIDCol = clusterIDCol;
+	}
+
+	public void setClusterIDIndex(int clusterIDIndex) {
+		this.clusterIDIndex = clusterIDIndex;
 	}
 	
 	/**
@@ -159,4 +169,8 @@ public class ClusteringDrillDownListener extends AbstractListener {
 	public void setView(JComponent view) {
 
 	}
+	public void setNumClusters(int inputNumClusters) {
+		this.inputNumClusters = inputNumClusters;
+	}
+	
 }

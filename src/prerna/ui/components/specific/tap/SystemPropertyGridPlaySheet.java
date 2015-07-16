@@ -30,6 +30,7 @@ package prerna.ui.components.specific.tap;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 
 import javax.swing.JButton;
 import javax.swing.SwingConstants;
@@ -64,6 +65,9 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 	
 	private boolean useAccountingFormat = true;
 	
+	private String[] names;
+	private ArrayList<Object[]> list;
+	
 	public void setAccountingFormat(boolean useAccountingFormat) {
 		this.useAccountingFormat = useAccountingFormat;
 	}
@@ -86,11 +90,6 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 		}
 		
 		ISelectWrapper runQuery = WrapperManager.getInstance().getSWrapper(engine, query);
-		
-		/*
-		 * SesameJenaSelectWrapper runQuery = new SesameJenaSelectWrapper(); runQuery.setQuery(this.query); runQuery.setEngine(this.engine);
-		 * runQuery.executeQuery();
-		 */
 		varNames = runQuery.getVariables();
 		
 		this.names = new String[varNames.length + costDataLength];
@@ -143,11 +142,6 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 		Hashtable<String, Hashtable<String, Double>> costHash = new Hashtable<String, Hashtable<String, Double>>();
 		
 		ISelectWrapper costWrapper = WrapperManager.getInstance().getSWrapper(engine, costQuery);
-		
-		/*
-		 * SesameJenaSelectWrapper costWrapper = new SesameJenaSelectWrapper(); costWrapper.setQuery(costQuery); costWrapper.setEngine(engine);
-		 * costWrapper.executeQuery();
-		 */
 		costDataVarNames = costWrapper.getVariables();
 		costDataLength = costDataVarNames.length - 1;
 		while (costWrapper.hasNext()) {
@@ -157,7 +151,6 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 			costHash.put(sys, innerHash);
 			for (int i = 1; i < costDataVarNames.length; i++) {
 				if (sjss.getVar(costDataVarNames[i]) != null && !sjss.getVar(costDataVarNames[i]).toString().equals("")) {
-					System.out.println(sjss.getVar(costDataVarNames[i]));
 					innerHash.put(costDataVarNames[i], (Double) sjss.getVar(costDataVarNames[i]));
 				}
 			}
@@ -168,9 +161,7 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 	
 	/**
 	 * Sets the string version of the SPARQL query on the playsheet.
-	 * 
 	 * @param query
-	 *            String
 	 */
 	@Override
 	public void setQuery(String query) {
@@ -226,6 +217,16 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 			this.query = retString;
 		}
 	}
+	
+	@Override
+	public List<Object[]> getTabularData() {
+		return this.list;
+	}
+	
+	@Override 
+	public String[] getColumnHeaders() {
+		return this.names;
+	};
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override

@@ -33,6 +33,7 @@ import java.awt.GridBagLayout;
 import java.beans.PropertyVetoException;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Set;
 
 import javax.swing.JPanel;
@@ -70,6 +71,18 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 	ChartControlPanel controlPanel;
 	SysToBLUDataGapsPlaySheet playSheet;
 
+	List<Object[]> list;
+	String[] names;
+	
+	@Override
+	public List<Object[]> getTabularData() {
+		return this.list;
+	}
+	
+	@Override
+	public String[] getColumnHeaders() {
+		return this.names;
+	}
 
 	/**
 	 * Constructor for CapSimHeatMapSheet.
@@ -163,7 +176,6 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 		allHash.put("yAxisTitle", "System");
 		allHash.put("value", "Score");
 		allHash.put("sysDup", false);
-		
 	}
 	
 	private void processWrapper(ISelectWrapper sjw, String[] names, ArrayList<String> BLUNames, ArrayList<String> sysNames){

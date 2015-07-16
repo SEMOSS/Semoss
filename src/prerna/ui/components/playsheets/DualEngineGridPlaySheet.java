@@ -30,9 +30,11 @@ package prerna.ui.components.playsheets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 
@@ -41,11 +43,16 @@ import javax.swing.JDesktopPane;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.IAnalyticRoutine;
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.impl.ExactStringMatcher;
+import prerna.algorithm.impl.ExactStringOuterJoinMatcher;
+import prerna.algorithm.impl.ExactStringPartialOuterJoinMatcher;
+import prerna.ds.BTreeDataFrame;
+import prerna.ds.SimpleTreeNode;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.util.ArrayListUtilityMethods;
 import prerna.util.DIHelper;
 
 /**
@@ -55,30 +62,16 @@ import prerna.util.DIHelper;
  */
 public class DualEngineGridPlaySheet extends GridPlaySheet {
 
-	private static final Logger logger = LogManager.getLogger(DualEngineGridPlaySheet.class.getName());
-	String query1;
-	String query2;
-	String engineName1;
-	String engineName2;
-	IEngine engine1;
-	IEngine engine2;
-	LinkedHashMap<Object, ArrayList<Object[]>> dataHash1 = new LinkedHashMap<Object, ArrayList<Object[]>>();
-	LinkedHashMap<Object, ArrayList<Object[]>> dataHash2 = new LinkedHashMap<Object, ArrayList<Object[]>>();
-	private int names1size;
-	private int names2size;
-	private Set<String> uniqueNames = new LinkedHashSet<String>();
-	private Integer[] index;
-	private boolean match1 = true;
-	private boolean match2 = true;
+	private static final Logger LOGGER = LogManager.getLogger(DualEngineGridPlaySheet.class.getName());
+	private String query1;
+	private String query2;
+	private String engineName1;
+	private String engineName2;
+	private IEngine engine1;
+	private IEngine engine2;
+	private boolean partialOuterJoinTable1 = true;
+	private boolean partialOuterJoinTable2 = true;
 
-	public ArrayList<Object[]> getList(){
-		return list;
-	}
-	
-	public String[] getNames() {
-		return names;
-	}
-	
 	/**
 	 * This is the function that is used to create the first view 
 	 * of any play sheet.  It often uses a lot of the variables previously set on the play sheet, such as {@link #setQuery(String)},
@@ -92,186 +85,132 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 	@Override
 	public void createData() {
 
-		list = new ArrayList<Object[]>();
-
 		ISelectWrapper wrapper1 = WrapperManager.getInstance().getSWrapper(engine1, query1);
-
-		//Process query 1
-		/*SesameJenaSelectWrapper wrapper1 = new SesameJenaSelectWrapper();
-		if(engine1!= null){
-			wrapper1.setQuery(query1);
-			updateProgressBar("10%...Querying RDF Repository", 10);
-			wrapper1.setEngine(engine1);
-			updateProgressBar("20%...Querying RDF Repository", 30);
-			wrapper1.executeQuery();
-			updateProgressBar("30%...Processing RDF Statements	", 60);
-		}*/
-		// get the bindings from it
 		String [] names1 = wrapper1.getVariables();
-		names1size = names1.length;
+		ITableDataFrame tree1 = new BTreeDataFrame(names1);
+		while(wrapper1.hasNext()) {
+			tree1.addRow(wrapper1.next());
+		}
 
-		//process query 2
 		ISelectWrapper wrapper2 = WrapperManager.getInstance().getSWrapper(engine2, query2);
-	
-		/*SesameJenaSelectWrapper wrapper2 = new SesameJenaSelectWrapper();
-
-		if(engine2!= null){
-			wrapper2.setQuery(query2);
-			updateProgressBar("40%...Querying RDF Repository", 10);
-			wrapper2.setEngine(engine2);
-			updateProgressBar("50%...Querying RDF Repository", 30);
-			wrapper2.executeQuery();
-			updateProgressBar("60%...Processing RDF Statements	", 60);
-		}*/
-		// get the bindings from it
 		String[] names2 = wrapper2.getVariables();
-		names2size = names2.length;
+		ITableDataFrame tree2 = new BTreeDataFrame(names2);
+		while(wrapper2.hasNext()) {
+			tree2.addRow(wrapper2.next());
+		}
 
 		//find the common variable in the wrapper names (this will be the hashtable key)
-		Set<String> setNames1 = new LinkedHashSet<String> (Arrays.asList(names1));
-		Set<String> setNames2 = new LinkedHashSet<String> (Arrays.asList(names2));
+		Set<String> setNames1 = new HashSet<String> (Arrays.asList(names1));
+		Set<String> setNames2 = new HashSet<String> (Arrays.asList(names2));
 
+		Set<String> uniqueNames = new HashSet<String>();
 		uniqueNames.addAll(setNames1);
 		uniqueNames.addAll(setNames2);
-		names = uniqueNames.toArray(new String[uniqueNames.size()]);
-
-		index = new Integer[uniqueNames.size()];
-		for(int i = 0; i < names1size; i++) {
-			index[i] = i;
-		}
-		int counter = names1size;
-		for(int i = 0; i < names2size; i++) {
-			if(!setNames1.contains(names2[i])) {
-				index[counter] = i + names1size;
-				counter++;
-			}
-		}
-
 		Set<String> setDifference = new LinkedHashSet<String>();
 		setDifference.addAll(setNames1);
 		setDifference.retainAll(setNames2);
 		String commonVar = setDifference.iterator().next();
 
-		processWrapper(commonVar, wrapper1, dataHash1, names1);
-		processWrapper(commonVar, wrapper2, dataHash2, names2);
-
-		updateProgressBar("60%...Preparing List", 80);
-
-		prepareList(dataHash1, dataHash2);		
-		
-		list = ArrayListUtilityMethods.orderQuery(list);
-
-	}
-
-	/**
-	 * Method prepareList.  This method essentially combines the results of two separate query results.
-	 * Iterates through hash1, gets the list associated with each key, then combines each array in the list with each array in the list of hash2.
-	 * @param hash1 Hashtable<Object,ArrayList<Object[]>> - The results from processWrapper() on the first query
-	 * @param hash2 Hashtable<Object,ArrayList<Object[]>> - The results from processWrapper() on the second query
-	 */
-	private void prepareList(HashMap<Object, ArrayList<Object[]>> hash1, HashMap<Object, ArrayList<Object[]>> hash2)
-	{
-		ArrayList<Object[]> combinedList = new ArrayList<Object[]>();
-
-		Iterator<Object> hash1it = hash1.keySet().iterator();
-		while (hash1it.hasNext()){
-			Object key = hash1it.next();
-			ArrayList<Object[]> hash1list = hash1.get(key);
-			ArrayList<Object[]> hash2list = hash2.remove(key);
-			for(Object[] hash1array : hash1list){
-				if(hash2list != null){
-					for(Object[] hash2array : hash2list){
-						Object[] fullRow = new Object[names1size + names2size];
-
-						//combine the two arrays into one row
-						for(int i = 0; i<fullRow.length; i++){
-							if(i < names1size) {
-								fullRow[i] = hash1array[i];
-							} else {
-								fullRow[i] = hash2array[i-names1size];
+		if(names1.length > 1 && names2.length > 1) {
+			IAnalyticRoutine matcher = null;
+			if(partialOuterJoinTable1 && partialOuterJoinTable2) {
+				matcher = new ExactStringOuterJoinMatcher();
+				tree1.join(tree2, commonVar, commonVar, 1.0, matcher);
+				dataFrame = tree1;
+				
+			} else if(partialOuterJoinTable1) {
+				matcher = new ExactStringPartialOuterJoinMatcher();
+				tree1.join(tree2, commonVar, commonVar, 1.0, matcher);
+				dataFrame = tree1;
+				
+			} else if(partialOuterJoinTable2) {
+				matcher = new ExactStringPartialOuterJoinMatcher();
+				tree2.join(tree1, commonVar, commonVar, 1.0, matcher);
+				dataFrame = tree2;
+				
+			} else {
+				matcher = new ExactStringMatcher();
+				tree1.join(tree2, commonVar, commonVar, 1.0, matcher);
+				dataFrame = tree1;
+			}
+		} else {
+			// not performing a join, but a filter/append
+			if(names2.length == 1) {
+				Iterator<Object[]> it = tree2.iterator(false, null);
+				if(partialOuterJoinTable2) {
+					// this is an append on tree1
+					while(it.hasNext()) {
+						Object[] row = it.next();
+						Map<String, Object> hashRow = new HashMap<String, Object>();
+						hashRow.put(commonVar, row[0]);
+						for(int i = 0; i < names1.length; i++) {
+							if(names1[i].equals(commonVar)) {
+								continue;
 							}
+							hashRow.put(names1[i], SimpleTreeNode.EMPTY);
 						}
-						// add to the list
-						combinedList.add(fullRow);
+						tree1.addRow(hashRow, hashRow);
 					}
+					dataFrame = tree1;
+
+				} else {
+					// this is a filter on tree1
+					//TODO: need to add filter in BTREE!!!!!!!!!!!!!!!
+					Object[] col1 = tree1.getUniqueValues(commonVar);
+					Object[] col2 = tree2.getUniqueValues(commonVar);
+
+					List<Object> filterValues = findDisjointInFirstCol(col1, col2);
+					tree1.filter(commonVar, filterValues);
+					dataFrame = tree1;
+
 				}
-				else if(match1){
-					Object[] fullRow = new Object[names1size + names2size];
-					//combine the two arrays into one row
-					for(int i = 0; i < names1size; i++){
-						if(i < names1size){
-							fullRow[i] = hash1array[i];
+			} else {
+				Iterator<Object[]> it = tree1.iterator(false, null);
+				if(partialOuterJoinTable2 ) {
+					// this is an append on tree2
+					while(it.hasNext()) {
+						Object[] row = it.next();
+						Map<String, Object> hashRow = new HashMap<String, Object>();
+						hashRow.put(commonVar, row[0]);
+						for(int i = 0; i < names2.length; i++) {
+							if(names2[i].equals(commonVar)) {
+								continue;
+							}
+							hashRow.put(names2[i], SimpleTreeNode.EMPTY);
 						}
+						tree2.addRow(hashRow, hashRow);
 					}
-					// add to the list
-					combinedList.add(fullRow);
+					dataFrame = tree2;
+
+				} else {
+					// this is a filter on tree2
+					//TODO: need to add filter in BTREE!!!!!!!!!!!!!!!
+					Object[] col1 = tree1.getUniqueValues(commonVar);
+					Object[] col2 = tree2.getUniqueValues(commonVar);
+
+					List<Object> filterValues = findDisjointInFirstCol(col2, col1);
+					tree2.filter(commonVar, filterValues);
+					dataFrame = tree2;
 				}
 			}
-		}
-		if(match2)
-		{
-			// now add any results that were returned from the second query but don't match with the first
-			Iterator<Object> hash2it = hash2.keySet().iterator();
-			while(hash2it.hasNext()) {
-				Object key = hash2it.next();
-				ArrayList<Object[]> hash2list = hash2.get(key);
-				for(Object[] hash2array : hash2list){
-					Object[] fullRow = new Object[names1size + names2size];
-	
-					for(int i = names1size; i<fullRow.length; i++){
-						fullRow[i] = hash2array[i-names1size];
-					}
-	
-					// add to the list
-					combinedList.add(fullRow);
-				}
-			}
-		}
-		// remove the duplicated columns
-		Iterator<Object[]> removeDuplicateColumnsIt = combinedList.iterator();
-		while(removeDuplicateColumnsIt.hasNext()) {
-			Object[] fullRow = removeDuplicateColumnsIt.next();
-			Object[] reducedList = new Object[uniqueNames.size()];
-			for(int i = 0; i < index.length; i++) {
-				reducedList[i] = fullRow[index[i]];
-			}
-			list.add(reducedList);
 		}
 	}
-
-	/**
-	 * Method processWrapper.  Processes the wrapper for the results of a query to a specific database, and adds the results to a Hashtable.
-	 * @param commonVar String - the variable name that the two queries have in common.
-	 * @param sjw SesameJenaSelectWrapper - the wrapper for the query
-	 * @param hash Hashtable<Object,ArrayList<Object[]>> - The data structure where the data from the query will be stored.
-	 * @param names String[] - An array consisting of all the variables from the query.
-	 */
-	private void processWrapper(String commonVar, ISelectWrapper sjw, HashMap<Object, ArrayList<Object[]>> hash, String[] names){
-		// now get the bindings and generate the data
-		try {
-			while(sjw.hasNext())
-			{
-				ISelectStatement sjss = sjw.next();
-
-				Object [] values = new Object[names.length];
-				Object commonVal = null;
-				for(int colIndex = 0;colIndex < names.length;colIndex++)
-				{
-					values[colIndex] = sjss.getVar(names[colIndex]);
-					if(names[colIndex].equals(commonVar)){ 
-						commonVal = sjss.getVar(names[colIndex]);
-					}
+	
+	public List<Object> findDisjointInFirstCol(Object[] col1, Object[] col2) {
+		List<Object> vals = new ArrayList<Object>();
+		for(Object val1 : col1) {
+			boolean found = false;
+			for(Object val2 : col2) {
+				if(val1.equals(val2)) {
+					found = true;
+					break;
 				}
-				ArrayList<Object[]> overallArray = new ArrayList<Object[]>();
-				if(hash.containsKey(commonVal))
-					overallArray = hash.get(commonVal);
-
-				overallArray.add(values);
-				hash.put(commonVal, overallArray);
 			}
-		} catch (RuntimeException e) {
-			logger.fatal(e);
+			if(!found) {
+				vals.add(val1);
+			}
 		}
+		return vals;
 	}
 
 	/**
@@ -302,9 +241,9 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 			else if (queryIdx == 3)
 				this.query2 = token;
 			else if (queryIdx == 4)
-				this.match1 = Boolean.parseBoolean(token);
+				this.partialOuterJoinTable1 = Boolean.parseBoolean(token);
 			else if (queryIdx == 5)
-				this.match2 = Boolean.parseBoolean(token);
+				this.partialOuterJoinTable2 = Boolean.parseBoolean(token);
 		}
 	}
 }

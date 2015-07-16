@@ -26,11 +26,8 @@ public class SOMRoutine implements IAnalyticRoutine {
 	private static final String INSTANCE_INDEX_KEY = "instanceIndex";
 	private static final String GRID_WIDTH = "gridWidth";
 	private static final String GRID_LENGTH = "gridLength";
-	
-	private String somGridID = "";
-	private String somHeightID = "";
-	private String somXPositionID = "";
-	private String somYPositionID = "";
+	private static final String DISTANCE_MEASURE = "distanceMeasure";
+	private static final String SKIP_ATTRIBUTES	= "skipAttributes";
 	
 	private List<SEMOSSParam> options;
 	// values set from options
@@ -42,6 +39,7 @@ public class SOMRoutine implements IAnalyticRoutine {
 	private Integer gridLength;
 	private Integer gridWidth;
 	private Map<String, IClusterDistanceMode.DistanceMeasure> distanceMeasure;
+	private List<String> skipAttributes;
 
 	// variables used throughout routine
 	private ITableDataFrame dataFrame;
@@ -52,6 +50,11 @@ public class SOMRoutine implements IAnalyticRoutine {
 	private SelfOrganizingMapGrid grid;
 	private List<Cluster> gridCenters = new ArrayList<Cluster>();
 	private int numGrids;
+	
+	private String somGridID;
+	private String somHeightID;
+	private String somXPositionID;
+	private String somYPositionID;
 	
 	// results of algorithm
 	private Map<Object, Integer> results = new HashMap<Object, Integer>();
@@ -93,29 +96,35 @@ public class SOMRoutine implements IAnalyticRoutine {
 		SEMOSSParam p7 = new SEMOSSParam();
 		p7.setName(GRID_LENGTH);
 		options.add(6, p7);
+		
+		SEMOSSParam p8 = new SEMOSSParam();
+		p8.setName(DISTANCE_MEASURE);
+		options.add(7, p8);
+		
+		SEMOSSParam p9 = new SEMOSSParam();
+		p9.setName(SKIP_ATTRIBUTES);
+		options.add(8, p9);
 	}
 	
 	@Override
 	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
 		//TODO: this is for ease in testing
-		this.instanceIndex = 0;
-		this.initalRadius = 2.0;
-		this.learningRate = 0.07;
-		this.tau = 7.5;
-		this.maxIterations = 15;
-		this.somGridID = "gridID";
-		this.somHeightID = "height";
-		this.somXPositionID = "x";
-		this.somYPositionID = "y";
+//		this.instanceIndex = 0;
+//		this.initalRadius = 2.0;
+//		this.learningRate = 0.07;
+//		this.tau = 7.5;
+//		this.maxIterations = 15;
 		
-//		this.instanceIndex = (int) options.get(0).getSelected();
-//		this.initalRadius = (double) options.get(1).getSelected();
-//		this.learningRate = (double) options.get(2).getSelected();
-//		this.tau = (double) options.get(3).getSelected();
-//		this.maxIterations = (int) options.get(4).getSelected();
-//		this.gridWidth = (Integer) options.get(5).getSelected();
-//		this.gridLength = (Integer) options.get(6).getSelected();
-		
+		this.instanceIndex = (int) options.get(0).getSelected();
+		this.initalRadius = (double) options.get(1).getSelected();
+		this.learningRate = (double) options.get(2).getSelected();
+		this.tau = (double) options.get(3).getSelected();
+		this.maxIterations = (int) options.get(4).getSelected();
+		this.gridWidth = (Integer) options.get(5).getSelected();
+		this.gridLength = (Integer) options.get(6).getSelected();
+		this.distanceMeasure = (Map<String, DistanceMeasure>) options.get(7).getSelected();
+		this.skipAttributes = (List<String>) options.get(8).getSelected();
+
 		this.dataFrame = data[0];
 		this.attributeNames = this.dataFrame.getColumnHeaders();
 		this.isNumeric = this.dataFrame.isNumeric();
@@ -147,11 +156,12 @@ public class SOMRoutine implements IAnalyticRoutine {
 			}
 		}
 				
-		calculateWeights();
+		// fills in numericalWeights and categoricalWeights maps
+		SimilarityWeighting.calculateWeights(dataFrame, instanceIndex, attributeNames, isNumeric, numericalWeights, categoricalWeights);
 		
 		// initialize the grid
 		int idx = 0;
-		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false);
+		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false, skipAttributes);
 		for(; idx < numGrids; idx++) {
 			List<Object[]> instance = it.next();
 			// add value to cluster
@@ -174,7 +184,7 @@ public class SOMRoutine implements IAnalyticRoutine {
 			double radiusOfInfluence = initalRadius * Math.exp( -1.0 * currIt / tau);
 			// determine learning rate for this iteration
 			double learningInfluence = learningRate * Math.exp( -1.0 * currIt / tau);
-			it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false);
+			it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false, skipAttributes);
 			while(it.hasNext()) {
 				List<Object[]> instance = it.next();
 				Object instanceName = instance.get(0)[instanceIndex];
@@ -218,6 +228,11 @@ public class SOMRoutine implements IAnalyticRoutine {
 			currIt++;
 		}
 		
+		String attributeName = attributeNames[instanceIndex];
+		this.somGridID = attributeName + "_SOM_GRID_NUM";
+		this.somHeightID = attributeName + "_SOM_GRID_HEIGHT";
+		this.somXPositionID = attributeName + "_SOM_X_POSITION";
+		this.somYPositionID = attributeName + "_SOM_Y_POSITION";
 		ITableDataFrame returnTable = new BTreeDataFrame(new String[]{attributeNames[instanceIndex], somGridID, somHeightID, somXPositionID, somYPositionID});
 		for(Object instance : results.keySet()) {
 			Map<String, Object> row = new HashMap<String, Object>();
@@ -263,50 +278,6 @@ public class SOMRoutine implements IAnalyticRoutine {
 		return true;
 	}
 	
-	//TODO: same method exists in clustering -- need to push into util. class
-	public void calculateWeights() {
-		int i = 0;
-		int size = attributeNames.length;
-		String instanceType = attributeNames[instanceIndex];
-		
-		List<Double> numericalEntropy = new ArrayList<Double>();
-		List<String> numericalNames = new ArrayList<String>();
-		
-		List<Double> categoricalEntropy = new ArrayList<Double>();
-		List<String> categoricalNames = new ArrayList<String>();
-		
-		for(; i < size; i++) {
-			String attribute = attributeNames[i];
-			if(attribute.equals(instanceType)) {
-				continue;
-			}
-			if(isNumeric[i]) {
-				numericalNames.add(attribute);
-				numericalEntropy.add(dataFrame.getEntropyDensity(attribute));
-			} else {
-				categoricalNames.add(attribute);
-				categoricalEntropy.add(dataFrame.getEntropyDensity(attribute));
-			}
-		}
-		
-		if(!numericalEntropy.isEmpty()){
-			double[] numericalWeightsArr = SimilarityWeighting.generateWeighting(numericalEntropy.toArray(new Double[0]));
-			i = 0;
-			int numNumeric = numericalNames.size();
-			for(; i < numNumeric; i++) {
-				numericalWeights.put(numericalNames.get(i), numericalWeightsArr[i]);
-			}
-		}
-		if(!categoricalEntropy.isEmpty()){
-			double[] categoricalWeightsArr = SimilarityWeighting.generateWeighting(categoricalEntropy.toArray(new Double[0]));
-			i = 0;
-			int numCategorical = categoricalNames.size();
-			for(; i < numCategorical; i++) {
-				categoricalWeights.put(categoricalNames.get(i), categoricalWeightsArr[i]);
-			}
-		}
-	}
-	
 	private void setGridSize(int numInstances) {
 		int size = numInstances;
 		if(size > maxInstanceSize) {
@@ -335,13 +306,6 @@ public class SOMRoutine implements IAnalyticRoutine {
 			for(SEMOSSParam param : options) {
 				if(param.getName().equals(key)){
 					param.setSelected(selected.get(key));
-					if(param.getName().equals(INSTANCE_INDEX_KEY)) {
-						String select = selected.get(key).toString().toUpperCase();
-						this.somGridID = select + "_SOM_GRID_NUM";
-						this.somHeightID = select + "_SOM_GRID_HEIGHT";
-						this.somXPositionID = select + "_SOM_X_POSITION";
-						this.somYPositionID = select + "_SOM_Y_POSITION";
-					}
 					break;
 				}
 			}
@@ -361,14 +325,35 @@ public class SOMRoutine implements IAnalyticRoutine {
 
 	@Override
 	public List<String> getChangedColumns() {
-		// TODO Auto-generated method stub
-		return null;
+		List<String> changedCols = new ArrayList<String>();
+		changedCols.add(somGridID);
+		changedCols.add(somHeightID);
+		changedCols.add(somXPositionID);
+		changedCols.add(somYPositionID);
+		return changedCols;
 	}
 
 	@Override
 	public Map<String, Object> getResultMetadata() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	public Integer getGridLength() {
+		return gridLength;
+	}
+
+	public Integer getGridWidth() {
+		return gridWidth;
+	}
+
+	public int[] getNumInstancesInGrid() {
+		int size = gridCenters.size();
+		int[] numInstances = new int[size];
+		for(int i = 0; i < size; i++) {
+			numInstances[i] = gridCenters.get(i).getNumInstances();
+		}
+		return numInstances;
 	}
 
 }

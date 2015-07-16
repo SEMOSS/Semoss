@@ -440,6 +440,12 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+	@Override
+	public void processQueryData() {
+		// TODO Auto-generated method stub
+		
+	}
 	
 	
 }

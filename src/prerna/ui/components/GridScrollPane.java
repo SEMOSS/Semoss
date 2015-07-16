@@ -29,6 +29,7 @@ package prerna.ui.components;
 
 import java.awt.Dimension;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -47,7 +48,7 @@ public class GridScrollPane extends JScrollPane{
 	 * @param colNames 	List of column names.
 	 * @param list 		List of data.
 	 */
-	public GridScrollPane(String[] colNames, ArrayList <Object []> list)
+	public GridScrollPane(String[] colNames, List<Object []> list)
 	{
 		GridFilterData gfd = new GridFilterData();
 		gfd.setColumnNames(colNames);
