@@ -55,7 +55,7 @@ public class H2QueryUtil extends SQLQueryUtil {
 	}
 	@Override
 	public String getDefaultOuterJoins(){
-		return SQLQueryUtil.USE_OUTER_JOINS_NO;
+		return SQLQueryUtil.USE_OUTER_JOINS_FALSE;
 	}
 	@Override
 	public String getConnectionURL(String baseFolder, String dbname){

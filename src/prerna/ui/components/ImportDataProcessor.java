@@ -70,7 +70,6 @@ public class ImportDataProcessor {
 
 	private String baseDirectory;
 	private Hashtable<String, String>[] propHashArr;
-	private SQLQueryUtil.DB_TYPE dbDriverType = SQLQueryUtil.DB_TYPE.H2_DB;
 
 	public void setPropHashArr(Hashtable<String, String>[] propHashArr) {
 		this.propHashArr = propHashArr;
@@ -80,14 +79,11 @@ public class ImportDataProcessor {
 		this.baseDirectory = baseDirectory;
 	}
 	
-	public void setRDBMSType(SQLQueryUtil.DB_TYPE dbDriverType){
-		this.dbDriverType = dbDriverType;
-	}
 
 	//This method will take in all possible required information
 	//After determining the desired import method and type, process with the subset of information that that processing requires.
 	public void runProcessor(IMPORT_METHOD importMethod, IMPORT_TYPE importType, String fileNames, String customBaseURI, 
-			String newDBname, String mapFile, String dbPropFile, String questionFile, String repoName, DB_TYPE dbType) throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException {
+			String newDBname, String mapFile, String dbPropFile, String questionFile, String repoName, DB_TYPE dbType, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException {
 		if(importMethod == null) {
 			String errorMessage = "Import method is not supported";
 			throw new FileReaderException(errorMessage);
@@ -99,9 +95,9 @@ public class ImportDataProcessor {
 		}
 		
 		if(importMethod == IMPORT_METHOD.CREATE_NEW) {
-			processCreateNew(importType, customBaseURI, fileNames, newDBname, mapFile, dbPropFile, questionFile, dbType);
+			processCreateNew(importType, customBaseURI, fileNames, newDBname, mapFile, dbPropFile, questionFile, dbType, dbDriverType, allowDuplicates);
 		} else if(importMethod == IMPORT_METHOD.ADD_TO_EXISTING) {
-			processAddToExisting(importType, customBaseURI, fileNames, repoName, dbType);
+			processAddToExisting(importType, customBaseURI, fileNames, repoName, dbType, dbDriverType, allowDuplicates);
 		}
 		else if(importMethod == IMPORT_METHOD.OVERRIDE) {
 			processOverride(importType, customBaseURI, fileNames, repoName);
@@ -109,7 +105,7 @@ public class ImportDataProcessor {
 	}
 
 	// need to add a dbtype here
-	public void processAddToExisting(IMPORT_TYPE importType, String customBaseURI, String fileNames, String repoName, DB_TYPE dbType) throws EngineException, FileReaderException, HeaderClassException, FileWriterException {
+	public void processAddToExisting(IMPORT_TYPE importType, String customBaseURI, String fileNames, String repoName, DB_TYPE dbType, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws EngineException, FileReaderException, HeaderClassException, FileWriterException {
 		//get the engine information
 		//DB_TYPE dbType = DB_TYPE.RDF;// to be removed when enabling the csv wire
 		String mapPath = baseDirectory + "/" + DIHelper.getInstance().getProperty(repoName+"_"+Constants.ONTOLOGY);
@@ -156,7 +152,7 @@ public class ImportDataProcessor {
 				csvReader.setRdfMapArr(propHashArr);
 			}
 			//run the reader
-			csvReader.importFileWithConnection(repoName, fileNames, customBaseURI, owlPath, dbDriverType);
+			csvReader.importFileWithConnection(repoName, fileNames, customBaseURI, owlPath, dbDriverType, allowDuplicates);
 			//run the ontology augmentor
 			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
 			ontologyWriter.runAugment(mapPath, csvReader.conceptURIHash, csvReader.baseConceptURIHash, 
@@ -166,12 +162,12 @@ public class ImportDataProcessor {
 		
 	}
 
-	public void processCreateNew(IMPORT_TYPE importType, String customBaseURI, String fileNames, String dbName, String mapFile, String dbPropFile, String questionFile, DB_TYPE dbType) throws EngineException, FileWriterException, FileReaderException, HeaderClassException, NLPException {
+	public void processCreateNew(IMPORT_TYPE importType, String customBaseURI, String fileNames, String dbName, String mapFile, String dbPropFile, String questionFile, DB_TYPE dbType, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws EngineException, FileWriterException, FileReaderException, HeaderClassException, NLPException {
 		//Replace spaces in db name with underscores
 		//DB_TYPE dbType = DB_TYPE.RDF; // uncomment once wired
 		dbName = dbName.replace(" ", "_");
 		//first write the prop file for the new engine
-		PropFileWriter propWriter = runPropWriter(dbName, mapFile, dbPropFile, questionFile, importType, dbType);
+		PropFileWriter propWriter = runPropWriter(dbName, mapFile, dbPropFile, questionFile, importType, dbType, dbDriverType);
 
 		String ontoPath = baseDirectory + "/" + propWriter.ontologyFileName;
 		String owlPath = baseDirectory + "/" + propWriter.owlFile;
@@ -305,7 +301,7 @@ public class ImportDataProcessor {
 				csvReader.setRdfMapArr(propHashArr);
 			}
 			
-			csvReader.importFileWithOutConnection(propWriter.propFileName , fileNames, customBaseURI, owlPath, dbName, dbDriverType);
+			csvReader.importFileWithOutConnection(propWriter.propFileName , fileNames, customBaseURI, owlPath, dbName, dbDriverType, allowDuplicates);
 
 			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
 			ontologyWriter.runAugment(ontoPath, csvReader.conceptURIHash, csvReader.baseConceptURIHash, 
@@ -524,7 +520,7 @@ public class ImportDataProcessor {
 		return success;
 	}
 
-	private PropFileWriter runPropWriter(String dbName, String mapFile, String dbPropFile, String questionFile, IMPORT_TYPE importType, DB_TYPE dbType) throws FileReaderException, EngineException{
+	private PropFileWriter runPropWriter(String dbName, String mapFile, String dbPropFile, String questionFile, IMPORT_TYPE importType, DB_TYPE dbType, SQLQueryUtil.DB_TYPE dbDriverType) throws FileReaderException, EngineException{
 		PropFileWriter propWriter = new PropFileWriter();
 
 		//DB_TYPE dbType = DB_TYPE.RDF;

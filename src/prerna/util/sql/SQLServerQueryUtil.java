@@ -33,7 +33,7 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 	//SQL Server - USE_OUTER_JOINS_NO
 	@Override
 	public String getDefaultOuterJoins(){
-		return SQLQueryUtil.USE_OUTER_JOINS_YES;
+		return SQLQueryUtil.USE_OUTER_JOINS_TRUE;
 	}
 
 	//jdbc:sqlserver://localhost:1433;databaseName=dbname;user=username;Password=password;selectMethod=cursor
