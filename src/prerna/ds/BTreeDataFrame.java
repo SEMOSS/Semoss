@@ -17,8 +17,8 @@ import org.apache.log4j.Logger;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.openrdf.model.Literal;
 
-import edu.stanford.nlp.util.ArrayUtils;
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.impl.ExactStringMatcher;
@@ -90,7 +90,11 @@ public class BTreeDataFrame implements ITableDataFrame {
 		} else if(value instanceof Number) {
 			node = new DoubleClass((double)value, (double)value, level);
 		} else if(value instanceof String) {
-			node = new StringClass((String)value, (String) rawValue.toString(), level);
+			if(rawValue instanceof Literal) {
+				node = new StringClass((String)value, (String) value, level);
+			} else {
+				node = new StringClass((String)value, (String) rawValue.toString(), level);
+			}
 		}
 //		else if(value instanceof Boolean) {
 //			node = new BooleanClass((boolean)value, level);
