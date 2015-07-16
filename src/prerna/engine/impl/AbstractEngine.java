@@ -1215,31 +1215,33 @@ public abstract class AbstractEngine implements IEngine {
 			if (options != null && !options.isEmpty()) {
 				uris.addAll(options);
 			}
-			
-			// if options are not defined, need to get uris either from custom sparql or type
-			// need to use custom query if it has been specified in the xml
-			// otherwise use generic fill query
-			String paramQuery = ourParam.getQuery();
-			String type = ourParam.getType();
-			// RDBMS right now does type:type... need to get just the second type. This will be fixed once insights don't store generic query
-			// TODO: fix this logic. need to decide how to store param type for rdbms
-			
-			if (paramQuery != null) {
-				if (this.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
-					if (type.contains(":")) {
-						String[] typeArray = type.split(":");
-						String table = typeArray[0];
-						type = typeArray[1];
-						if (type != null && table != null && !type.equalsIgnoreCase(table)) // Parameter structure: '@ParamName-Table:Column@'
-							paramQuery = paramQuery.substring(0, paramQuery.lastIndexOf("@entity@")) + table;
+			else{
+				
+				// if options are not defined, need to get uris either from custom sparql or type
+				// need to use custom query if it has been specified in the xml
+				// otherwise use generic fill query
+				String paramQuery = ourParam.getQuery();
+				String type = ourParam.getType();
+				// RDBMS right now does type:type... need to get just the second type. This will be fixed once insights don't store generic query
+				// TODO: fix this logic. need to decide how to store param type for rdbms
+				
+				if (paramQuery != null) {
+					if (this.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
+						if (type.contains(":")) {
+							String[] typeArray = type.split(":");
+							String table = typeArray[0];
+							type = typeArray[1];
+							if (type != null && table != null && !type.equalsIgnoreCase(table)) // Parameter structure: '@ParamName-Table:Column@'
+								paramQuery = paramQuery.substring(0, paramQuery.lastIndexOf("@entity@")) + table;
+						}
 					}
+					Hashtable<String, Object> paramTable = new Hashtable<String, Object>();
+					paramTable.put(Constants.ENTITY, type);
+					paramQuery = Utility.fillParam(paramQuery, paramTable);
+					uris = this.getCleanSelect(paramQuery);
+				}else { 
+					uris = this.getEntityOfType(type);
 				}
-				Hashtable<String, Object> paramTable = new Hashtable<String, Object>();
-				paramTable.put(Constants.ENTITY, type);
-				paramQuery = Utility.fillParam(paramQuery, paramTable);
-				uris = this.getCleanSelect(paramQuery);
-			}else { 
-				uris = this.getEntityOfType(type);
 			}
 		}
 		return uris;
