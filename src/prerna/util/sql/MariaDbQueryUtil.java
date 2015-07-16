@@ -112,7 +112,7 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 		//	System.out.println("getDialectDistinctFullOuterJoinQuery: can continue");
 		//} else {
 		//	System.out.println("getDialectDistinctFullOuterJoinQuery: cant continue");
-		}
+		//}
 		
 		for(int i = 0; i < rightJoinsArr.size(); i++){
 			rightOuterJoins += rightJoinsArr.get(i);
