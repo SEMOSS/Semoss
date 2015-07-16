@@ -119,34 +119,4 @@ public class SankeyPlaySheet extends BrowserPlaySheet {
 		this.dataHash = allHash;
 	}
 	
-	/**
-	 * This is the function that is used to create the first view 
-	 * of any play sheet.  It often uses a lot of the variables previously set on the play sheet, such as {@link #setQuery(String)},
-	 * {@link #setJDesktopPane(JDesktopPane)}, {@link #setRDFEngine(IEngine)}, and {@link #setTitle(String)} so that the play 
-	 * sheet is displayed correctly when the view is first created.  It generally creates the model for visualization from 
-	 * the specified engine, then creates the visualization, and finally displays it on the specified desktop pane
-	 * 
-	 * <p>This is the function called by the PlaysheetCreateRunner.  PlaysheetCreateRunner is the runner used whenever a play 
-	 * sheet is to first be created, most notably in ProcessQueryListener.
-	 */
-	@Override
-	public void createView()
-	{
-		super.createView();
-		//BrowserServices.getInstance().setPromptService(new SilentPromptService());
-		Hashtable dataHash = new Hashtable();
-		processQueryData();
-		browser.loadURL(fileName);
-		while (browser.isLoading()) {
-		    try {
-				TimeUnit.MILLISECONDS.sleep(50);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}	
-		
-		callIt(dataHash);
-	}
-
 }
