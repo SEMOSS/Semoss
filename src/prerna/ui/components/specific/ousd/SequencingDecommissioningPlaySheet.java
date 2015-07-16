@@ -176,7 +176,6 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 		namesList.add(compObjName + " Group");
 		namesList.add(compObjName + " Group Dependencies");
 
-		this.dataFrame = new BTreeDataFrame(namesList.toArray(new String[0]));
 		//key is counter for one level above group
 		for(Integer key: groups.keySet()){
 			List<List<Integer>> depGroups = groups.get(key);
@@ -188,27 +187,32 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 				for(String addtlQuery: this.addtlQueries){
 					processQuery(depGroup, addtlQuery, addtlCols, namesList);
 				}
+				if(this.dataFrame == null){
+					this.dataFrame = new BTreeDataFrame(namesList.toArray(new String[0]));
+				}
 				for(Integer compObj: depGroup) {
 					Object[] depObj = new Object[namesList.size()];
 					depObj[0] = Utility.getInstanceName(compObjList.get(compObj));
+					if(depObj[0].toString().equals("Manage_Execution_Fund_Account")){
+						System.out.println("hey");
+					}
 					depObj[1] = keyToGroupCounter;
 					depObj[2] = this.dependMap.get(depGroup.toString());
+					Map<String, Object> row = new HashMap<String, Object>();
+					row.put(namesList.get(0), depObj[0]);
+					row.put(namesList.get(1), depObj[1]);
+					row.put(namesList.get(2), depObj[2]==null ? null: depObj[2] + "");
+					
 					if(addtlCols.isEmpty()){
-						Map<String, Object> row = new HashMap<String, Object>();
-						row.put(namesList.get(0), depObj[0]);
-						row.put(namesList.get(1), depObj[1]);
 						dataFrame.addRow(row, row);
 					}
 					else {
-						for(Object[] row : addtlCols){
-							Object[] depObj2 = depObj.clone();
-							for(int addtlIdx = 2 ; addtlIdx < row.length; addtlIdx++ ){
-								LOGGER.debug(row[addtlIdx]);
-								depObj2[addtlIdx] = row[addtlIdx];
+						for(Object[] addtlCol : addtlCols){
+							Map<String, Object> hashRow = new HashMap<String, Object>(row);
+							for(int addtlIdx = 3 ; addtlIdx < addtlCol.length; addtlIdx++ ){
+								LOGGER.debug(addtlCol[addtlIdx]);
+								hashRow.put(namesList.get(addtlIdx), addtlCol[addtlIdx]);
 							}
-							Map<String, Object> hashRow = new HashMap<String, Object>();
-							hashRow.put(namesList.get(0), depObj[0]);
-							hashRow.put(namesList.get(1), depObj[1]);
 							dataFrame.addRow(hashRow, hashRow);
 						}
 					}
@@ -243,7 +247,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			Object[] row = new Object[namesList.size()];
 			ISelectStatement ss = sw.next();
 			for(int i = 0; i<wrapIdx.length; i++){
-				row[wrapIdx[i]] = ss.getRawVar(wrapNames[i]); 
+				row[wrapIdx[i]] = ss.getVar(wrapNames[i]); 
 			}
 			addtlCols.add(row);
 		}
