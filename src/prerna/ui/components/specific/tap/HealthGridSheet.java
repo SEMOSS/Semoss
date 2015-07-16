@@ -100,7 +100,7 @@ public class HealthGridSheet extends BrowserPlaySheet{
 
 		double maxXAxis = 0.0;
 
-		Iterator<Object[]> it = dataFrame.iterator(false, null);
+		Iterator<Object[]> it = dataFrame.iterator(true, null);
 		int counter = 0;
 		while(it.hasNext()) {
 			Hashtable<String,Object> elementHash = new Hashtable<String,Object>();
