@@ -229,7 +229,7 @@
       /* Initialize tooltip */
       var tip = d3.tip().attr('class', 'd3-tip')
             .html(function(d) {
-                var title = convertURItoString(d.label.uriString),
+                var title = convertURItoString(d.label),
                 businessValue = 0, xValue = 0, zValue = 0;
 
 	            if(d["y-external stability"]) {
@@ -367,7 +367,7 @@
            //draw circles
            var nodes = svg.selectAll(".node")
                .data(dataSeriesArray, function(d) {
-                   return convertURItoString(d["label"]["uriString"]);
+                   return convertURItoString(d["label"]);
                });
 
            //update
