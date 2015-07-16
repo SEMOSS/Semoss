@@ -108,10 +108,10 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 		String leftOuterJoins = "";
 		String joins = "";
 		
-		if(rightJoinsArr.size() == leftJoinsArr.size() && (rightJoinsArr.size()-1) <= joinsArr.size()){
-			System.out.println("getDialectDistinctFullOuterJoinQuery: can continue");
-		} else {
-			System.out.println("getDialectDistinctFullOuterJoinQuery: cant continue");
+		//if(rightJoinsArr.size() == leftJoinsArr.size() && (rightJoinsArr.size()!=0 && (rightJoinsArr.size()-1) <= joinsArr.size())){
+		//	System.out.println("getDialectDistinctFullOuterJoinQuery: can continue");
+		//} else {
+		//	System.out.println("getDialectDistinctFullOuterJoinQuery: cant continue");
 		}
 		
 		for(int i = 0; i < rightJoinsArr.size(); i++){
@@ -123,7 +123,7 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 			}
 		}
 		// if the joinsArray still has more
-		if((rightJoinsArr.size()-1) < joinsArr.size()){
+		if(rightJoinsArr.size()!=0 && ((rightJoinsArr.size()-1) < joinsArr.size())){
 			for(int i = rightJoinsArr.size()-1; i < joinsArr.size(); i++){
 				if(joins.length()>0) joins += " AND ";
 				joins += joinsArr.get(i);
