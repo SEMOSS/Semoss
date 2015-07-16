@@ -101,9 +101,7 @@ function start(dataString) {
     var tempDatum = {};
     for(var key in data[datum]){
       var uri;
-      if(data[datum][key].uriString) {
-        uri = '' + data[datum][key].uriString;
-      } else {
+      if(data[datum][key]) {
         uri = '' + data[datum][key];
       }
       tempDatum[replaceUnderscores(key)] = shortenAndReplaceUnderscores(uri);
