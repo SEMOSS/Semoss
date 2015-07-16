@@ -68,10 +68,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 			Object val = rowCleanData.get(levelNames[index]);
 			Object rawVal = rowRawData.get(levelNames[index]);
 			//TODO: better way of doing this????
-			if(val.toString().isEmpty()) {
+			if(val==null || val.toString().isEmpty()) {
 				val = SimpleTreeNode.EMPTY;
 			}
-			if(rawVal.toString().isEmpty()) {
+			if(rawVal==null || rawVal.toString().isEmpty()) {
 				rawVal = SimpleTreeNode.EMPTY;
 			}
 			row[index] = createNodeObject(val, rawVal, levelNames[index]);
@@ -100,7 +100,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 //			node = new BooleanClass((boolean)value, level);
 //		}
 		else {
-			node = new StringClass(null, level);
+			node = new StringClass(value.toString(), level);
 		}
 		return node;
 	}
