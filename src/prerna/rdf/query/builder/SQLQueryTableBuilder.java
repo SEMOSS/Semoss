@@ -123,6 +123,9 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			query = queryUtil.getDialectInnerJoinQuery(useDistinct, selectors, froms, joins, filters, limit, groupBy);
 			queryBindAndNoLimit = queryUtil.getDialectInnerJoinQuery(useDistinct, SQL_SELECTOR_BIND, froms, joins, tempQueryFilter, -1, groupBy);
 		} else {
+			if(filters.length() == 0){ 
+				limit = 20;//smaller limit so that the query loads quicker.
+			}
 			query = queryUtil.getDialectFullOuterJoinQuery(useDistinct,selectors,rightJoinsArr,leftJoinsArr,joinsArr,filters, limit, groupBy);
 			queryBindAndNoLimit = queryUtil.getDialectFullOuterJoinQuery(useDistinct,SQL_SELECTOR_BIND,rightJoinsArr,leftJoinsArr,joinsArr,tempQueryFilter, -1, groupBy);
 		}

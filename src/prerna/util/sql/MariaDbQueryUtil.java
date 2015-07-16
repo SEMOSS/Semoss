@@ -66,7 +66,7 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 	}
 	@Override
 	public String getDefaultOuterJoins(){
-		return SQLQueryUtil.USE_OUTER_JOINS_YES;
+		return SQLQueryUtil.USE_OUTER_JOINS_TRUE;
 	}
 	@Override
 	public String getConnectionURL(String baseFolder,String dbname){

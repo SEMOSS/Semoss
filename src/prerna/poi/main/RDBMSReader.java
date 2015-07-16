@@ -178,7 +178,7 @@ public class RDBMSReader {
 		reader.customBaseURI = "http://semoss.org/ontologies";
 		reader.owlFile = "C:/Users/pkapaleeswaran/workspacej2/SemossWeb/db/MovieRDBMS/Movie_DB_OWL2.OWL";
 		String outputFile = reader.writePropFile(engineName);
-		reader.importFileWithOutConnection(outputFile, fileName, reader.customBaseURI, reader.owlFile,engineName, SQLQueryUtil.DB_TYPE.MARIA_DB);
+		reader.importFileWithOutConnection(outputFile, fileName, reader.customBaseURI, reader.owlFile,engineName, SQLQueryUtil.DB_TYPE.MARIA_DB, true);
 
 		System.out.println("Trying the new one now");
 
@@ -186,7 +186,7 @@ public class RDBMSReader {
 
 		fileName = "C:/Users/pkapaleeswaran/workspacej2/Data/Movie2.csv";
 		reader.propFile = "C:/Users/pkapaleeswaran/workspacej2/SemossWeb/db/MovieRDBMS/MovieRDBMS_Movie_PROP2.prop";
-		reader.importFileWithOutConnection(outputFile, fileName, reader.customBaseURI, reader.owlFile,engineName, SQLQueryUtil.DB_TYPE.H2_DB);
+		reader.importFileWithOutConnection(outputFile, fileName, reader.customBaseURI, reader.owlFile,engineName, SQLQueryUtil.DB_TYPE.H2_DB, true);
 
 	}
 
@@ -259,7 +259,7 @@ public class RDBMSReader {
 	 * @throws FileWriterException 
 	 * @throws HeaderClassException 
 	 */
-	public void importFileWithOutConnection(String engineFile, String fileNames, String customBase, String owlFile, String engineName, SQLQueryUtil.DB_TYPE dbType) throws EngineException, FileWriterException, FileReaderException, HeaderClassException {
+	public void importFileWithOutConnection(String engineFile, String fileNames, String customBase, String owlFile, String engineName, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates) throws EngineException, FileWriterException, FileReaderException, HeaderClassException {
 
 		queryUtil = SQLQueryUtil.initialize(dbType);
 
@@ -316,7 +316,7 @@ public class RDBMSReader {
 			commitDB();
 			scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
 		}
-		cleanUpDBTables(engineName);
+		cleanUpDBTables(engineName,allowDuplicates);
 		closeDB();
 		cleanAll(); //do it again because we reset availableTables and availableTablesInfo
 		writeDefaultQuestionSheet(engineName);
@@ -382,7 +382,7 @@ public class RDBMSReader {
 	}
 
 	//remove duplicates and create standard indexes on table
-	private void cleanUpDBTables(String engineName){
+	private void cleanUpDBTables(String engineName, boolean allowDuplicates){
 		String createTable = "", verifyTable="", dropTable = "", alterTableName = "";  //, createIndex = "";
 		String tableName = "", currentTable ="", columnName = "", fullColumnNameList = "";
 		ArrayList<String> createIndex = new ArrayList();
@@ -433,9 +433,11 @@ public class RDBMSReader {
 
 			//do this duplicates removal for only the tables that were modified
 			if(tableAltered){
-				//create new temporary table that has ONLY distinct values, also make sure you are removing those null values from the PK column
-				createTable = queryUtil.getDialectRemoveDuplicates(tableName, fullColumnNameList);
-				singleDBModTransaction(createTable);
+				if(!allowDuplicates){
+					//create new temporary table that has ONLY distinct values, also make sure you are removing those null values from the PK column
+					createTable = queryUtil.getDialectRemoveDuplicates(tableName, fullColumnNameList);
+					singleDBModTransaction(createTable);
+				}
 
 				//check that the temp table was created before dropping the table.
 				verifyTable = queryUtil.dialectVerifyTableExists(tableName + "_TEMP"); //query here would return a row count 
@@ -451,14 +453,15 @@ public class RDBMSReader {
 					}
 				}
 
-				//drop existing table
-				dropTable = queryUtil.getDialectDropTable(tableName);//dropTable = "DROP TABLE " + tableName;
-				singleDBModTransaction(dropTable);
-
-				//rename our temporary table to the new table name				
-				alterTableName = queryUtil.getDialectAlterTableName(tableName+"_TEMP",tableName); //alterTableName = "ALTER TABLE " + tableName + "_TEMP RENAME TO " + tableName;
-				singleDBModTransaction(alterTableName);
-
+				if(!allowDuplicates){
+					//drop existing table
+					dropTable = queryUtil.getDialectDropTable(tableName);//dropTable = "DROP TABLE " + tableName;
+					singleDBModTransaction(dropTable);
+	
+					//rename our temporary table to the new table name				
+					alterTableName = queryUtil.getDialectAlterTableName(tableName+"_TEMP",tableName); //alterTableName = "ALTER TABLE " + tableName + "_TEMP RENAME TO " + tableName;
+					singleDBModTransaction(alterTableName);
+				}
 				commitDB();
 
 			}
@@ -678,7 +681,7 @@ public class RDBMSReader {
 	}
 
 
-	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile,SQLQueryUtil.DB_TYPE dbType) throws EngineException, FileWriterException, FileReaderException, HeaderClassException {
+	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile,SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates) throws EngineException, FileWriterException, FileReaderException, HeaderClassException {
 		queryUtil = SQLQueryUtil.initialize(dbType);
 
 		logger.setLevel(Level.WARN);
@@ -732,7 +735,7 @@ public class RDBMSReader {
 			commitDB();
 			scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
 		}
-		cleanUpDBTables(engineName);
+		cleanUpDBTables(engineName,allowDuplicates);
 		runDBModTransactions(recreateIndexesArr); 
 		closeDB();
 		cleanAll(); //clean again because we reset the values for availableTables and availableTablesInfo
@@ -908,6 +911,7 @@ public class RDBMSReader {
 			}
 		}		
 	}
+	
 
 	private void processClassMetaData(String sub, String URI, Hashtable uriHash)
 	{
@@ -1125,7 +1129,7 @@ public class RDBMSReader {
 		subPredObj[2] = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/" + toTable; // turn this into an URI
 
 		baseRelations.put(newRelationName, subPredObj);	
-
+		
 		baseRelationURIHash.put(relSemossBaseURI+Constants.CLASS, relSemossBaseURI);
 	}
 
@@ -2449,7 +2453,6 @@ public class RDBMSReader {
 			storeBaseStatement(parent, OWL.DatatypeProperty+"", property);
 			//			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
 		}
-
 		try {
 			scOWL.commit();
 		} catch (SailException e) {

@@ -34,8 +34,10 @@ public abstract class SQLQueryUtil {
 	// Added SQL Server as enum DB_TYPE
 	public enum DB_TYPE {H2_DB,MARIA_DB,SQL_SERVER}
 
-	public static final String USE_OUTER_JOINS_NO = "NO";
-	public static final String USE_OUTER_JOINS_YES = "YES";
+	public static final String USE_OUTER_JOINS_FALSE = "false";
+	public static final String USE_OUTER_JOINS_TRUE = "true";
+	public static final String CONNECTION_POOLING_OFF = "false";
+	public static final String CONNECTION_POOLING_ON = "true";
 
 	private String defaultDbUserName = "";
 	private String defaultDbPassword = "";
@@ -109,6 +111,11 @@ public abstract class SQLQueryUtil {
 	public abstract String getDialectFullOuterJoinQuery(boolean distinct, String selectors, ArrayList<String> rightJoinsArr, 
 			ArrayList<String> leftJoinsArr, ArrayList<String> joinsArr, String filters, int limit, String groupBy);
 
+	//depending on what you need you can override this in your child class, for now default to on but it's also defaulted to commented out
+	public String getDefaultConnectionPooling(){
+		return CONNECTION_POOLING_ON;
+	}
+	
 	public String getDefaultDBUserName(){
 		return this.defaultDbUserName;
 	}

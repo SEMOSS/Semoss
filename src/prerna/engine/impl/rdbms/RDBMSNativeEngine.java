@@ -71,6 +71,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	private SQLQueryUtil.DB_TYPE dbType;
 	private BasicDataSource dataSource = null;
 	Connection engineConn = null;
+	private boolean useConnectionPooling = false;
 	
 	@Override
 	public void openDB(String propFile)
@@ -104,6 +105,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			String userName = prop.getProperty(Constants.USERNAME);
 			String password = "";
 			String dbTypeString = prop.getProperty(Constants.RDBMS_TYPE);
+			useConnectionPooling = Boolean.valueOf(prop.getProperty(Constants.USE_CONNECTION_POOLING));
 			dbType = dbType = SQLQueryUtil.DB_TYPE.H2_DB;
 			if (dbTypeString != null) {
 				dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
@@ -118,22 +120,34 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				Class.forName(driver);
 				//if the tempConnectionURL is set, connect to mysql, create the database, disconnect then reconnect to the database you created
 				if((dbType == SQLQueryUtil.DB_TYPE.MARIA_DB || dbType == SQLQueryUtil.DB_TYPE.SQL_SERVER) && (tempConnectionURL != null && tempConnectionURL.length()>0)){
-					dataSource = setupDataSource(driver, tempConnectionURL, userName, password);
-					engineConn = getConnection();
+					if(useConnectionPooling){
+						dataSource = setupDataSource(driver, tempConnectionURL, userName, password);
+						engineConn = getConnection();
+					} else {
+						engineConn = DriverManager.getConnection(tempConnectionURL, userName, password);
+					}
+
 					this.engineConnected = true;
 					//create database
 					createDatabase(tempEngineName);
-					closeDB();
-					closeDataSource();
+					//
+					closeEngine();
+					if(useConnectionPooling){
+						closeDataSource();
+					}
 				}
 				if(!isConnected()){
-					dataSource = setupDataSource(driver, connectionURL, userName, password);
-					engineConn = getConnection();
+					if(useConnectionPooling){
+						dataSource = setupDataSource(driver, connectionURL, userName, password);
+						engineConn = getConnection();
+					} else {
+						engineConn = DriverManager.getConnection(connectionURL, userName, password);
+					}
 					this.engineConnected = true;
 				}
-			} catch (ClassNotFoundException e) {
+			} catch (ClassNotFoundException | SQLException e) {
 				// TODO Auto-generated catch block
-				logger.error("Database driver class not found", e);
+				logger.error("Exception occured opening database", e);
 				this.engineConnected = false;
 			}
 		}
@@ -142,6 +156,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	private Connection getConnection(){
 		Connection connObj = null;
 		if(isConnected()){
+			//System.out.println("use engine connection");
 			return engineConn;
 		}
 		if(this.dataSource!=null){
@@ -151,6 +166,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				e.printStackTrace();
 			}
 		}
+		//System.out.println("use datasource connection");
 		return connObj;
 	}
 	
@@ -228,7 +244,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
         try {
 			conn = getConnection();
 			stmt = conn.createStatement();
-        	rs = getResults(conn, stmt, query);
+        	rs = getResults(stmt, query);
         	Vector<String> columnsFromResult = getColumnsFromResultSet(1, rs);
         	return columnsFromResult;
         } catch (Exception e) {
@@ -248,7 +264,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		try {
 			conn = getConnection();
 			stmt = conn.createStatement();
-			rs = getResults(conn, stmt, query);
+			rs = getResults(stmt, query);
     		Vector<String> columnsFromResult = getColumnsFromResultSet(1, rs);
     		return columnsFromResult;
 		} catch (Exception e) {
@@ -269,7 +285,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			conn = getConnection();
 			stmt = conn.createStatement();
 			Map<String, Object> map = new HashMap();
-			rs = getResults(conn, stmt, query);
+			rs = getResults(stmt, query);
 			//normally would use instance.getClass() but when we retrieve the 
 			//references from the object we can't guarantee that they will not be null
 			//this makes it cleaner and less error prone.
@@ -299,9 +315,14 @@ public class RDBMSNativeEngine extends AbstractEngine {
 
 	@Override
 	public void closeDB() {
+		if(useConnectionPooling){
+			closeEngine();
+		}
+	}
+	
+	private void closeEngine(){
 		this.engineConnected = false;
 		ConnectionUtils.closeConnection(engineConn);
-		//closeDataSource();
 	}
 	
 	private void closeDataSource(){
@@ -352,7 +373,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	 * @throws Exception
 	 */
 
-	private ResultSet getResults(Connection conn, Statement stmt, String query) throws Exception {
+	private ResultSet getResults(Statement stmt, String query) throws Exception {
 		ResultSet rs = null;
 		try {
 			rs = stmt.executeQuery(query);

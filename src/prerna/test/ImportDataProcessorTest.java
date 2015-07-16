@@ -168,9 +168,11 @@ public class ImportDataProcessorTest {
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.CREATE_NEW;
 		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.CSV;
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
+		prerna.util.sql.SQLQueryUtil.DB_TYPE rdbmsType = prerna.util.sql.SQLQueryUtil.DB_TYPE.H2_DB;//set for RDBMS
+		boolean allowDuplicates = true;
 		
 		//Run Processor
-		processor.runProcessor(testMethod, testType, fileNameCSV, customBaseURI, newDBnameCSV, mapFileCSV, "", "", "", dbType);
+		processor.runProcessor(testMethod, testType, fileNameCSV, customBaseURI, newDBnameCSV, mapFileCSV, "", "", "", dbType, rdbmsType, allowDuplicates);
 		System.out.println("	CSV Db proccesor ran successfully. CSV DB Created.");
 		
 		//TESTING ASSERTIONS
@@ -227,9 +229,11 @@ public class ImportDataProcessorTest {
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.CREATE_NEW;
 		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.EXCEL;	
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
+		prerna.util.sql.SQLQueryUtil.DB_TYPE rdbmsType = prerna.util.sql.SQLQueryUtil.DB_TYPE.H2_DB;//set for RDBMS
+		boolean allowDuplicates = true;//used by RDBMS
 		
 		//Run Processor
-		processor.runProcessor(testMethod, testType, fileNameEXCEL, customBaseURI , newDBnameEXCEL, mapFileEXCEL, "", "", "", dbType);
+		processor.runProcessor(testMethod, testType, fileNameEXCEL, customBaseURI , newDBnameEXCEL, mapFileEXCEL, "", "", "", dbType, rdbmsType, allowDuplicates);
 		System.out.println("	EXCEL Db proccesor ran successfully. Excel DB created.");
 		
 		//TESTING ASSERTIONS
@@ -288,6 +292,8 @@ public class ImportDataProcessorTest {
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.ADD_TO_EXISTING;
 		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.CSV;
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
+		prerna.util.sql.SQLQueryUtil.DB_TYPE rdbmsType = prerna.util.sql.SQLQueryUtil.DB_TYPE.H2_DB;//set for RDBMS
+		boolean allowDuplicates = true;
 		
 		//TESTING ASSERTIONS
 		//Files Created and in the right place
@@ -310,7 +316,7 @@ public class ImportDataProcessorTest {
 		BigDataEngine engine = loadEngine(CSVsmss);
 
 		//Run Processor
-		processor.runProcessor(testMethod, testType, replacementCSV, customBaseURI, "", "", "", "", newDBnameCSV, dbType);
+		processor.runProcessor(testMethod, testType, replacementCSV, customBaseURI, "", "", "", "", newDBnameCSV, dbType, rdbmsType, allowDuplicates);
 		System.out.println("CSV Db proccesor ran successfully. CSV DB Altered.");
 		engine.commitOWL();
 		engine.commit();
@@ -353,6 +359,8 @@ public class ImportDataProcessorTest {
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.ADD_TO_EXISTING;
 		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.EXCEL;
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
+		prerna.util.sql.SQLQueryUtil.DB_TYPE rdbmsType = prerna.util.sql.SQLQueryUtil.DB_TYPE.H2_DB;//set for RDBMS
+		boolean allowDuplicates = true;
 		
 		//TESTING ASSERTIONS
 		//Files Created and in the right place
@@ -374,7 +382,7 @@ public class ImportDataProcessorTest {
 		BigDataEngine engine = loadEngine(EXCELsmss);
 
 		//Run Processor
-		processor.runProcessor(testMethod, testType, replacementExcel, customBaseURI , "", "", "", "", newDBnameEXCEL, dbType);
+		processor.runProcessor(testMethod, testType, replacementExcel, customBaseURI , "", "", "", "", newDBnameEXCEL, dbType, rdbmsType, allowDuplicates);
 		System.out.println("	EXCEL Db proccesor ran successfully. Excel DB created.");
 		engine.commitOWL();
 		engine.commit();
@@ -418,6 +426,8 @@ public class ImportDataProcessorTest {
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.OVERRIDE;
 		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.CSV;
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
+		prerna.util.sql.SQLQueryUtil.DB_TYPE rdbmsType = prerna.util.sql.SQLQueryUtil.DB_TYPE.H2_DB;//set for RDBMS
+		boolean allowDuplicates = true;
 		
 		//TESTING ASSERTIONS
 		//Files Created and in the right place
@@ -454,7 +464,7 @@ public class ImportDataProcessorTest {
 		}
 
 		//Run Processor
-		processor.runProcessor(testMethod, testType, replacementCSV, customBaseURI, "", "", "", "", newDBnameCSV, dbType);
+		processor.runProcessor(testMethod, testType, replacementCSV, customBaseURI, "", "", "", "", newDBnameCSV, dbType, rdbmsType, allowDuplicates);
 		System.out.println("CSV Db proccesor ran successfully. CSV DB Replaced.");
 	}
 		
@@ -467,7 +477,9 @@ public class ImportDataProcessorTest {
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.OVERRIDE;
 		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.EXCEL;
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
-			
+		prerna.util.sql.SQLQueryUtil.DB_TYPE rdbmsType = prerna.util.sql.SQLQueryUtil.DB_TYPE.H2_DB;//set for RDBMS
+		boolean allowDuplicates = true;
+		
 		String SudoSmss = dbDirectory+newDBnameEXCEL+".smss";
 		
 		//TESTING ASSERTIONS
@@ -505,7 +517,7 @@ public class ImportDataProcessorTest {
 			}
 		
 		//Run Processor
-		processor.runProcessor(testMethod, testType, replacementExcel, customBaseURI , "", "", "", "", newDBnameEXCEL, dbType);
+		processor.runProcessor(testMethod, testType, replacementExcel, customBaseURI , "", "", "", "", newDBnameEXCEL, dbType, rdbmsType, allowDuplicates);
 		System.out.println("	EXCEL Db proccesor ran successfully. Excel DB replaced.");
 		engine.closeDB();
 	}
@@ -521,9 +533,11 @@ public class ImportDataProcessorTest {
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.CREATE_NEW;
 		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.EXCEL;	
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
+		prerna.util.sql.SQLQueryUtil.DB_TYPE rdbmsType = prerna.util.sql.SQLQueryUtil.DB_TYPE.H2_DB;//set for RDBMS
+		boolean allowDuplicates = true;
 		
 		//Run Processor
-		processor.runProcessor(testMethod, testType, fileNameEXCEL, customBaseURI , newDBnameEXCEL, mapFileEXCEL, "", "", "", dbType);
+		processor.runProcessor(testMethod, testType, fileNameEXCEL, customBaseURI , newDBnameEXCEL, mapFileEXCEL, "", "", "", dbType, rdbmsType, allowDuplicates);
 		System.out.println("	EXCEL Db proccesor ran successfully. Excel DB created.");
 	}
 	
@@ -531,9 +545,11 @@ public class ImportDataProcessorTest {
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.CREATE_NEW;
 		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.CSV;
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
-	
+		prerna.util.sql.SQLQueryUtil.DB_TYPE rdbmsType = prerna.util.sql.SQLQueryUtil.DB_TYPE.H2_DB;//set for RDBMS
+		boolean allowDuplicates = true;
+		
 		//Run Processor
-		processor.runProcessor(testMethod, testType, fileNameCSV, customBaseURI, newDBnameCSV, mapFileCSV, "", "", "", dbType);
+		processor.runProcessor(testMethod, testType, fileNameCSV, customBaseURI, newDBnameCSV, mapFileCSV, "", "", "", dbType, rdbmsType, allowDuplicates);
 		System.out.println("	CSV Db proccesor ran successfully. CSV DB Created.");
 	}
 	
