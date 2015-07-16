@@ -17,11 +17,11 @@ import org.junit.runners.Suite.SuiteClasses;
 				ClusteringAlgorithmTest.class, 
 				LocalOutlierFactorAlgorithmTest.class,
 				PartitionedClusteringAlgorithmTest.class,
-				//WekaAprioriAlgorithTest.class,
-				//WekaClassificationTest.class,
-				//MatrixRegressionAlgorithmTest.class,
+				WekaAprioriAlgorithTest.class,
+				WekaClassificationTest.class,
+				MatrixRegressionAlgorithmTest.class,
 				SelfOrganizingMapTest.class,
-				//CorrelationAlgorithmTest.class
+				CorrelationAlgorithmTest.class
 				})
 public class SuiteAlgorithm {
 
