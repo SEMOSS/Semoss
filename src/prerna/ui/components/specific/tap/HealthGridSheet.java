@@ -46,8 +46,7 @@ public class HealthGridSheet extends BrowserPlaySheet{
 
 	private Boolean highlight=false;
 	private String sysToHighlight="";
-	Hashtable<String,Object> allHash;// = new HashTable();
-	Hashtable<String,Object> dataHash;// = new HashTable();
+	Hashtable<String,Object> allHash;
 	/**
 	 * Constructor for HealthGridSheet.
 	 */
@@ -80,8 +79,18 @@ public class HealthGridSheet extends BrowserPlaySheet{
 	 * @return Hashtable<String,Object> */
 	@Override
 	public void processQueryData(){
+		if(dataFrame == null || dataFrame.isEmpty()) {
+			return;
+		}
+		
+		//TODO: remove this logic once dataFrame.isEmpty() is implemented
+		try {
+			Iterator<Object[]> it = dataFrame.iterator(true, null);
+		} catch(NullPointerException e) {
+			return;
+		}
+		
 		//list will be of the form: system/vendor, xname, yname1, yname2 size of circle,lifecycle
-		dataHash = new Hashtable<String,Object>();
 		ArrayList<Hashtable<String,Object>> allData = new ArrayList<Hashtable<String,Object>>();
 		String[] names = wrapper.getVariables(); 
 		String xName = names[1];//BusinessValue
@@ -91,7 +100,7 @@ public class HealthGridSheet extends BrowserPlaySheet{
 
 		double maxXAxis = 0.0;
 
-		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		Iterator<Object[]> it = dataFrame.iterator(false, null);
 		int counter = 0;
 		while(it.hasNext()) {
 			Hashtable<String,Object> elementHash = new Hashtable<String,Object>();
