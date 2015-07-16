@@ -267,6 +267,8 @@ public class PropFileWriter {
 				pw.write(Constants.CONNECTION_URL + "\t" + queryUtil.getConnectionURL(baseFolder,dbname) + "\n");
 				//pw.write(Constants.RDBMS_QUERY_CLASS + "\t" +  H2QueryUtil.class.getCanonicalName() + "\n");
 				pw.write(Constants.USE_OUTER_JOINS + "\t" + queryUtil.getDefaultOuterJoins()+ "\n");
+				//commenting out this item below by default
+				pw.write("# " + Constants.USE_CONNECTION_POOLING + "\t" + queryUtil.getDefaultConnectionPooling());
 			}
 			if (this.hasMap) {
 				pw.write("MAP" + "\t" + "db/" + dbname + "/" + dbname + "_Mapping.ttl" + "\n");
