@@ -3,6 +3,8 @@ package prerna.test;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Properties;
 
 import org.openrdf.query.GraphQueryResult;
@@ -10,12 +12,28 @@ import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.BTreeDataFrame;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class BendersTools {
 
+	public BTreeDataFrame createBTree(String[] columnHeaders, ArrayList<Object[]> data){
+		BTreeDataFrame result = new BTreeDataFrame(columnHeaders);
+		for(int l = 0; l < data.size();l++){
+			HashMap<String, Object> tempHash = new HashMap<String, Object>();
+			for(int i = 0; i < columnHeaders.length; i++){
+				for(int k = 0; k < data.get(l).length; k++){
+					tempHash.put(columnHeaders[i], data.get(l)[k]);
+				}
+			}
+			result.addRow(tempHash, tempHash);
+		}
+		return result;
+	}
+	
 	public BigDataEngine loadEngine(String engineLocation){
 		BigDataEngine engine = new BigDataEngine();
 		FileInputStream fileIn;
