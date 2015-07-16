@@ -31,6 +31,7 @@ import java.awt.GridBagConstraints;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Vector;
 
 import javax.swing.JPanel;
@@ -50,6 +51,20 @@ import prerna.ui.components.playsheets.GridPlaySheet;
 public class GenericXGridPlaySheet extends GridPlaySheet {
 
 	private static final Logger logger = LogManager.getLogger(GenericXGridPlaySheet.class.getName());
+	
+	List<Object[]> list;
+	String[] names;
+	
+	@Override
+	public List<Object[]> getTabularData() {
+		return this.list;
+	}
+	
+	@Override
+	public String[] getColumnHeaders() {
+		return this.names;
+	}
+	
 	@Override
 	public void createData() {
 		list = new ArrayList<Object[]>();

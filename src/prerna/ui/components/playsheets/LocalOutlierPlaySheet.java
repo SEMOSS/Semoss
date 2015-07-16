@@ -28,7 +28,9 @@
 package prerna.ui.components.playsheets;
 
 import java.awt.GridBagConstraints;
-import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.swing.JComponent;
 import javax.swing.JPanel;
@@ -40,114 +42,69 @@ import javax.swing.JTable;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.learning.unsupervised.clustering.LocalOutlierFactorAlgorithm;
-import prerna.engine.api.ISelectStatement;
+import prerna.algorithm.learning.unsupervised.outliers.LOF;
+import prerna.om.SEMOSSParam;
 import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.NewScrollBarUI;
 
 public class LocalOutlierPlaySheet extends GridPlaySheet {
 
-	private ArrayList<Object[]> masterList;
-	private String[] masterNames;
-
-	private double[] lop;
-	private double[] lrd;
-	private double[] lof;
-
 	private static final Logger LOGGER = LogManager.getLogger(LocalOutlierPlaySheet.class.getName());
-	protected JTabbedPane jTab;
+
+	private LOF alg;
+	private int instanceIndex;
 	private int k;
+	
+	protected JTabbedPane jTab;
 
 	@Override
 	public void createData() {
-		if (list == null || list.isEmpty())
+		if (dataFrame == null || dataFrame.isEmpty())
 			super.createData();
 	}
 
 	@Override
 	public void runAnalytics() {
-		LocalOutlierFactorAlgorithm alg = new LocalOutlierFactorAlgorithm(list, names);
-		alg.setK(k);
-		alg.execute();
-
-		list = alg.getMasterTable();
-		names = alg.getNames();
-
-		lrd = alg.getLrd();
-		lof = alg.getLof();
-		// double[] zScore = alg.getZScore();
-		lop = alg.getLop();
-
-		if (masterNames != null) {
-			// asterisk the columns that have not been included in analysis
-			String[] asteriskMasterNames = new String[masterNames.length];
-			int i;
-			int j;
-			for (i = 0; i < masterNames.length; i++) {
-				String name = masterNames[i];
-				Boolean inFilteredSet = false;
-				for (j = 0; j < names.length; j++) {
-					// see if the column is used in the filtered set
-					// if not then asterisk
-					if (names[j].equals(name)) {
-						inFilteredSet = true;
-					}
-				}
-				if (!inFilteredSet)
-					name = "*" + name;
-				asteriskMasterNames[i] = name;
-			}
-			list = masterList;
-			names = asteriskMasterNames;
-		}
-
-		ArrayList<Object[]> newList = new ArrayList<Object[]>();
-		int numRows = list.size();
-		int numCols = names.length;
-		int newNumCols = numCols + 3;
-		int i;
-		int j;
-		for (i = 0; i < numRows; i++) {
-			Object[] newRow = new Object[newNumCols];
-			Object[] row = list.get(i);
-			for (j = 0; j <= numCols; j++) {
-				if (j == numCols) {
-					// newRow[j] = lrd[i];
-					newRow[j] = Math.round(lrd[i] * 100) / 100.0;
-					if (Double.isInfinite(lof[i])) {
-						newRow[j + 1] = "Inf";
-					} else {
-						// newRow[j+1] = lof[i];
-						newRow[j + 1] = Math.round(lof[i] * 100) / 100.0;
-					}
-					if (Double.isNaN(lop[i])) {
-						newRow[j + 2] = "NaN";
-					} else {
-						// newRow[j+2] = zScore[i];
-						// newRow[j+2] = Math.round(zScore[i] * 100) / 100.0;
-						newRow[j + 2] = String.format("%.0f%%", lop[i] * 100);
-					}
-				} else {
-					newRow[j] = row[j];
-				}
-			}
-			newList.add(newRow);
-		}
-		list = newList;
-
-		String[] newNames = new String[newNumCols];
-		for (i = 0; i <= numCols; i++) {
-			if (i == numCols) {
-				newNames[i] = "LRD";
-				newNames[i + 1] = "LOF";
-				newNames[i + 2] = "LOP";
-			} else {
-				newNames[i] = names[i];
-			}
-		}
-		names = newNames;
+		alg = new LOF();
+		List<SEMOSSParam> options = alg.getOptions();
+		Map<String, Object> selectedOptions = new HashMap<String, Object>();
+		selectedOptions.put(options.get(0).getName(), instanceIndex); // default of 0 is acceptable
+		if(k == 0) {
+			k = 25;
+		} 
+		selectedOptions.put(options.get(1).getName(), k);
+		alg.setSelectedOptions(selectedOptions);
+		dataFrame.performAction(alg);
 	}
 
+	@Override
+	public void setQuery(String query) {
+		if (query.matches(".*\\+\\+\\+[0-9]+")) {
+			String[] querySplit = query.split("\\+\\+\\+");
+			this.query = querySplit[0];
+			this.k = Integer.parseInt(querySplit[1].trim());
+		} else {
+			this.query = query;
+		}
+	}
+
+	public int getInstanceIndex() {
+		return instanceIndex;
+	}
+
+	public void setInstanceIndex(int instanceIndex) {
+		this.instanceIndex = instanceIndex;
+	}
+
+	public int getK() {
+		return k;
+	}
+
+	public void setK(int k) {
+		this.k = k;
+	}
+
+	/////////////////////////////SWING DEPENDENT CODE/////////////////////////////
 	@Override
 	public void addPanel() {
 		if (jTab == null) {
@@ -165,45 +122,9 @@ public class LocalOutlierPlaySheet extends GridPlaySheet {
 	public void addPanelAsTab(String tabName) {
 		table = new JTable();
 		GridScrollPane gsp = null;
-		gsp = new GridScrollPane(names, list);
+		gsp = new GridScrollPane(dataFrame.getColumnHeaders(), dataFrame.getData());
 		gsp.addHorizontalScroll();
 		jTab.addTab(tabName, gsp);
-	}
-
-	@Override
-	public void setQuery(String query) {
-		if (query.matches(".*\\+\\+\\+[0-9]+")) {
-			String[] querySplit = query.split("\\+\\+\\+");
-			this.query = querySplit[0];
-			this.k = Integer.parseInt(querySplit[1].trim());
-		} else {
-			this.query = query;
-		}
-	}
-
-	@Override
-	public Object getVariable(String varName, ISelectStatement sjss) {
-		return sjss.getVar(varName);
-	}
-
-	public void setMasterList(ArrayList<Object[]> masterList) {
-		this.masterList = masterList;
-	}
-
-	public void setMasterNames(String[] masterNames) {
-		this.masterNames = masterNames;
-	}
-
-	public void setJTab(JTabbedPane jTab) {
-		this.jTab = jTab;
-	}
-
-	public void setJBar(JProgressBar jBar) {
-		this.jBar = jBar;
-	}
-
-	public void setKNeighbors(int k) {
-		this.k = k;
 	}
 
 	public void addScrollPanel(JPanel panel, JComponent obj) {
@@ -218,27 +139,12 @@ public class LocalOutlierPlaySheet extends GridPlaySheet {
 		panel.add(scrollPane, gbc_scrollPane);
 	}
 
-	public double[] getLop() {
-		return lop;
+	public void setJTab(JTabbedPane jTab) {
+		this.jTab = jTab;
 	}
 
-	public void setLop(double[] lop) {
-		this.lop = lop;
+	public void setJBar(JProgressBar jBar) {
+		this.jBar = jBar;
 	}
 
-	public double[] getLrd() {
-		return lrd;
-	}
-
-	public void setLrd(double[] lrd) {
-		this.lrd = lrd;
-	}
-
-	public double[] getLof() {
-		return lof;
-	}
-
-	public void setLof(double[] lof) {
-		this.lof = lof;
-	}
 }

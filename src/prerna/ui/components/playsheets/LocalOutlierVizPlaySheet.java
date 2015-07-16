@@ -28,26 +28,39 @@
 package prerna.ui.components.playsheets;
 
 import java.awt.Dimension;
-import java.util.ArrayList;
+import java.awt.GridBagConstraints;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
+
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTable;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.learning.unsupervised.clustering.LocalOutlierFactorAlgorithm;
-import prerna.util.CSSApplication;
+import prerna.algorithm.learning.unsupervised.outliers.LOF;
+import prerna.om.SEMOSSParam;
+import prerna.ui.components.GridScrollPane;
+import prerna.ui.components.NewScrollBarUI;
+import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class LocalOutlierVizPlaySheet extends BrowserPlaySheet {
 	
-	private static final Logger LOGGER = LogManager.getLogger(LocalOutlierVizPlaySheet.class.getName());
-	private ArrayList<Object[]> masterList;
-	private String[] masterNames;
-	private double[] lop;
-	private int k = 25;
-	
+	private static final Logger LOGGER = LogManager.getLogger(LocalOutlierPlaySheet.class.getName());
+
+	private LOF alg;
+	private int instanceIndex;
+	private int k;
+	private List<String> skipAttributes;
+
 	/**
 	 * Constructor for LocalOutlierVizPlaySheet. TODO needs to be changed to correct playsheet name when created
 	 */
@@ -60,64 +73,69 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet {
 	
 	@Override
 	public void createData() {
-		if (list == null || list.isEmpty())
+		if (dataFrame == null || dataFrame.isEmpty())
 			super.createData();
-		else {
-			dataHash = processQueryData();
-		}
 	}
-	
-	//TODO: change to runAnalytics when playsheet gets changed to run analytics before processingQueryData
-	public void runAlgorithm() {
-		LocalOutlierFactorAlgorithm alg = new LocalOutlierFactorAlgorithm(list, names);
-		alg.setK(k);
-		alg.execute();
-		
-		list = alg.getMasterTable();
-		names = alg.getNames();
-		lop = alg.getLop();
+
+	@Override
+	public void runAnalytics() {
+		alg = new LOF();
+		List<SEMOSSParam> options = alg.getOptions();
+		Map<String, Object> selectedOptions = new HashMap<String, Object>();
+		selectedOptions.put(options.get(0).getName(), instanceIndex); // default of 0 is acceptable
+		if(k == 0) {
+			k = 25;
+		} 
+		selectedOptions.put(options.get(1).getName(), k);
+		selectedOptions.put(options.get(2).getName(), skipAttributes);
+
+		alg.setSelectedOptions(selectedOptions);
+		dataFrame.performAction(alg);
 	}
 	
 	@Override
-	public Hashtable processQueryData() {
-		runAlgorithm(); // TODO: remove this once playsheet stop sucking
-		int i;
-		int j;
-		int numInstances = list.size();
-		int numCols = names.length;
-		int newNumCols = numCols + 1;
-		
-		List<List<Object>> retItemList = new ArrayList<List<Object>>();
-		for (i = 0; i < numInstances; i++) {
-			Object[] instanceRow = list.get(i);
-			List<Object> item = new ArrayList<Object>();
-			for (j = 0; j < numCols; j++) {
-				item.add(instanceRow[j]);
-			}
-			
-			if (Double.isNaN(lop[i])) {
-				item.add("NaN");
-			} else {
-				item.add(lop[i]);
-			}
-			retItemList.add(item);
-		}
-		
-		String[] headers = new String[newNumCols];
-		for (i = 0; i < numCols; i++) {
-			headers[i] = names[i];
-		}
-		headers[i] = "LOP";
-		
+	public void processQueryData() {
 		Hashtable<String, Object> dataHash = new Hashtable<String, Object>();
+		String[] headers = dataFrame.getColumnHeaders();
 		dataHash.put("headers", headers);
-		dataHash.put("data", retItemList);
-		
-		return dataHash;
+		dataHash.put("data", dataFrame.getData());
+		dataHash.put("changedColIndex", ArrayUtilityMethods.calculateIndexOfArray(headers, alg.getChangedColumns().get(0)));
+		this.dataHash = dataHash;
+	}
+
+	@Override
+	public void setQuery(String query) {
+		if (query.matches(".*\\+\\+\\+[0-9]+")) {
+			String[] querySplit = query.split("\\+\\+\\+");
+			this.query = querySplit[0];
+			this.k = Integer.parseInt(querySplit[1].trim());
+		} else {
+			this.query = query;
+		}
+	}
+
+	public int getInstanceIndex() {
+		return instanceIndex;
+	}
+
+	public void setInstanceIndex(int instanceIndex) {
+		this.instanceIndex = instanceIndex;
+	}
+
+	public int getK() {
+		return k;
+	}
+
+	public void setK(int k) {
+		this.k = k;
+	}
+
+	public void setSkipAttributes(List<String> skipAttributes) {
+		this.skipAttributes = skipAttributes;
 	}
 	
 	@Override
-	public Object getData() {
+	public Hashtable getData() {
 		//TODO: remove this from getData() to call the super method
 		dataHash.put("id", this.questionNum==null? "": this.questionNum);
 		String className = "";
@@ -137,6 +155,7 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet {
 		return dataHash;
 	}
 	
+	/////////////////////////////SWING DEPENDENT CODE/////////////////////////////
 	@Override
 	public void addPanel() {
 		if (jTab == null) {
@@ -147,36 +166,36 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet {
 			int count = 1;
 			if (jTab.getTabCount() > 1)
 				count = Integer.parseInt(lastTabName.substring(0, lastTabName.indexOf("."))) + 1;
-			addPanelAsTab(count + ". Outliers");
-		}
-		
-		new CSSApplication(getContentPane());
-	}
-	
-	public void setMasterList(ArrayList<Object[]> masterList) {
-		this.masterList = masterList;
-	}
-	
-	public void setMasterNames(String[] masterNames) {
-		this.masterNames = masterNames;
-	}
-	
-	public void setKNeighbors(int k) {
-		this.k = k;
-	}
-	
-	@Override
-	public void setQuery(String query) {
-		if (query.matches(".*\\+\\+\\+[0-9]+")) {
-			String[] querySplit = query.split("\\+\\+\\+");
-			this.query = querySplit[0];
-			this.k = Integer.parseInt(querySplit[1].trim());
-		} else {
-			this.query = query;
+			addPanelAsTab(count + ". Outliers Viz Data");
+			addGridTab(count + ". Outliers Raw Data");
 		}
 	}
 	
-	public double[] getLop() {
-		return this.lop;
+	public void addGridTab(String tabName) {
+		table = new JTable();
+		GridScrollPane gsp = null;
+		gsp = new GridScrollPane(dataFrame.getColumnHeaders(), dataFrame.getData());
+		gsp.addHorizontalScroll();
+		jTab.addTab(tabName, gsp);
+	}
+
+	public void addScrollPanel(JPanel panel, JComponent obj) {
+		JScrollPane scrollPane = new JScrollPane(obj);
+		scrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		scrollPane.setAutoscrolls(true);
+
+		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
+		gbc_scrollPane.fill = GridBagConstraints.BOTH;
+		gbc_scrollPane.gridx = 0;
+		gbc_scrollPane.gridy = 0;
+		panel.add(scrollPane, gbc_scrollPane);
+	}
+
+	public void setJTab(JTabbedPane jTab) {
+		this.jTab = jTab;
+	}
+
+	public void setJBar(JProgressBar jBar) {
+		this.jBar = jBar;
 	}
 }

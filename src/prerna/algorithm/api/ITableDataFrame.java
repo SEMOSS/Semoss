@@ -234,14 +234,14 @@ public interface ITableDataFrame {
 	 * The iterator will return an Object[] corresponding to the data in a row of the data-frame
 	 * @return						The iterator to go through all the rows
 	 */
-	Iterator<Object[]> iterator(boolean getRawData);
+	Iterator<Object[]> iterator(boolean getRawData, List<String> columns2skip);
 	
 	/**
 	 * Iterator to go through all the rows in the data-frame and return all the values in unique-valued groups based on a specific column
 	 * The iterator will return a List<Object[]> corresponding to the data in a row of the data-frame
 	 * @return						The iterator to go through all the rows
 	 */
-	Iterator<List<Object[]>> uniqueIterator(String columnHeader, boolean getRawData);
+	Iterator<List<Object[]>> uniqueIterator(String columnHeader, boolean getRawData, List<String> columns2skip);
 	
 	/**
 	 * Returns the iterator that will iterate through a numeric column
@@ -249,14 +249,14 @@ public interface ITableDataFrame {
 	 * @param columnHeader
 	 * @return
 	 */
-	Iterator<Object[]> standardizedIterator(boolean getRawData);
+	Iterator<Object[]> standardizedIterator(boolean getRawData, List<String> columns2skip);
 	
 	/**
 	 * 	 * Returns the iterator that will iterate through a numeric column
 	 * the iterator will return the each unique value in the column as a function -> x' = (x - min(columnHeader))/(max(columnHeader) - min(columnHeader))	 * @param columnHeader
 	 * @return
 	 */
-	Iterator<Object[]> scaledIterator(boolean getRawData);
+	Iterator<Object[]> scaledIterator(boolean getRawData, List<String> columns2skip);
 	
 	/**
 	 * Returns the iterator that will iterate through a numeric column
@@ -264,14 +264,14 @@ public interface ITableDataFrame {
 	 * @param columnHeader
 	 * @return
 	 */
-	Iterator<List<Object[]>> standardizedUniqueIterator(String columnHeader, boolean getRawData);
+	Iterator<List<Object[]>> standardizedUniqueIterator(String columnHeader, boolean getRawData, List<String> columns2skip);
 	
 	/**
 	 * 	 * Returns the iterator that will iterate through a numeric column
 	 * the iterator will return the each unique value in the column as a function -> x' = (x - min(columnHeader))/(max(columnHeader) - min(columnHeader))	 * @param columnHeader
 	 * @return
 	 */
-	Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData);
+	Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData, List<String> columns2skip);
 	
 	/**
 	 * Get the values for a specific column in the data-frame

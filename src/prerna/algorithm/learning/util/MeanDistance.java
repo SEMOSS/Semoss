@@ -63,7 +63,7 @@ public class MeanDistance implements IClusterDistanceMode {
 			changeToCentroidValue = -1*centroidValue;
 			centroidValue = 0;
 		} else {
-			changeToCentroidValue = (-1*newValue*factor - previousCentroidValue) / (numInstances - 1);
+			changeToCentroidValue = (-1*newValue*factor + previousCentroidValue) / (numInstances - 1);
 			centroidValue += changeToCentroidValue;
 		}
 		//numInstances--; do not decrease numInstances for partial additions
@@ -83,7 +83,7 @@ public class MeanDistance implements IClusterDistanceMode {
 			changeToCentroidValue = -1*centroidValue;
 			centroidValue = 0;
 		} else {
-			changeToCentroidValue = (-1*newValue - previousCentroidValue) / (numInstances - 1);
+			changeToCentroidValue = (-1*newValue + previousCentroidValue) / (numInstances - 1);
 			centroidValue += changeToCentroidValue;
 		}
 		numInstances--;

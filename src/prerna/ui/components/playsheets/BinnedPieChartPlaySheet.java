@@ -30,6 +30,7 @@ package prerna.ui.components.playsheets;
 import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 
 import prerna.algorithm.impl.AlgorithmDataFormatter;
 import prerna.math.BarChart;
@@ -48,8 +49,11 @@ public class BinnedPieChartPlaySheet extends BrowserPlaySheet{
 	}
 	
 	
-	public Hashtable<String, Object> processQueryData()
+	public void processQueryData()
 	{	
+		List<Object[]> list = dataFrame.getData();
+		String[] names = dataFrame.getColumnHeaders();
+		
 		Object[][] data = AlgorithmDataFormatter.manipulateValues(list,true);	
 		String[] columnTypes = AlgorithmDataFormatter.determineColumnTypes(list);
 		
@@ -109,7 +113,6 @@ public class BinnedPieChartPlaySheet extends BrowserPlaySheet{
 		pieChartHash.put("type", "pie");
 		pieChartHash.put("dataSeries", dataObj);
 		
-		return pieChartHash;
+		this.dataHash = pieChartHash;
 	}
-	
 }
