@@ -20,6 +20,12 @@ import prerna.util.DIHelper;
 
 public class BendersTools {
 
+	/** Creates a BTree from old data types: Used as a temporary conversion tool
+	 * 
+	 * @param columnHeaders
+	 * @param data
+	 * @return
+	 */
 	public BTreeDataFrame createBTree(String[] columnHeaders, ArrayList<Object[]> data){
 		BTreeDataFrame result = new BTreeDataFrame(columnHeaders);
 		for(int l = 0; l < data.size();l++){
