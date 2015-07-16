@@ -211,8 +211,8 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 	public Hashtable getData() {
 		Hashtable dataHash = (Hashtable) super.getData();
 		if(dataFrame!=null) {
-			dataHash.put("data", getTabularData());
-			dataHash.put("headers", getColumnHeaders());
+			dataHash.put("data", dataFrame.getRawData());
+			dataHash.put("headers", dataFrame.getColumnHeaders());
 		}
 		return dataHash;
 	}
