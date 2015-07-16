@@ -293,7 +293,7 @@ public class Cluster {
 	}
 	
 	/**
-	 * Returns the similarity score for an instance with the this cluster
+	 * Returns the similarity score for an instance with this cluster
 	 * @param instanceValues			The values for the instance for each column
 	 * @param attributeNames			The names of associated for each value the instanceValues array, essentially the 'column name'
 	 * @param isNumeric					The boolean representing if value of i in the array is numeric
@@ -335,29 +335,25 @@ public class Cluster {
 			}
 		}
 		
-		double similarityValue = 0;
-		
-		
+		double categoricalSimVal = 0;
 		if(!categoricalValues.isEmpty()) {
 			if(isNumeric[indexToSkip]) {
-				similarityValue += ((double) categoricalValues.size()/attributeNames.length) * getSimilarityFromCategoricalValues(categoricalValues, categoricalValueNames, -1);
+				categoricalSimVal = ((double) categoricalValues.size()/attributeNames.length) * getSimilarityFromCategoricalValues(categoricalValues, categoricalValueNames, -1);
 			} else {
-				similarityValue += ((double) categoricalValues.size()/attributeNames.length) * getSimilarityFromCategoricalValues(categoricalValues, categoricalValueNames, indexToSkip);
+				categoricalSimVal = ((double) categoricalValues.size()/attributeNames.length) * getSimilarityFromCategoricalValues(categoricalValues, categoricalValueNames, indexToSkip);
 			}
 		}
 		
+		double numericalSimVal = 0;
 		if(!numericalValues.isEmpty()) {
 			if(isNumeric[indexToSkip]) {
-				similarityValue += ((double) numericalValues.size()/attributeNames.length) * getSimilarityFromNumericalValues(numericalValues, numericalValueNames, indexToSkip);
+				numericalSimVal = ((double) numericalValues.size()/attributeNames.length) * getSimilarityFromNumericalValues(numericalValues, numericalValueNames, indexToSkip);
 			} else {
-				similarityValue += ((double) numericalValues.size()/attributeNames.length) * getSimilarityFromNumericalValues(numericalValues, numericalValueNames, -1);
+				numericalSimVal = ((double) numericalValues.size()/attributeNames.length) * getSimilarityFromNumericalValues(numericalValues, numericalValueNames, -1);
 			}
 		}
 		
-		if(similarityValue > 1) {
-			System.out.println("ERROR: CHECK WHY");
-		}
-		return similarityValue;
+		return categoricalSimVal + numericalSimVal;
 	}
 
 	private double getSimilarityFromNumericalValues(List<Double> numericalValues, List<String> numericalValueNames, int index) {

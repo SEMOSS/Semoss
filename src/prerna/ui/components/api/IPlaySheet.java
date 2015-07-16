@@ -183,5 +183,7 @@ public interface IPlaySheet extends Runnable{
 	
 	// Interim call to run analytics
 	public Object doMethod(String methodName, Hashtable argHash);
+
+	public void processQueryData();
 		
 }

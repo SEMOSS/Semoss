@@ -30,6 +30,7 @@ package prerna.ui.components.playsheets;
 import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -42,7 +43,7 @@ import prerna.util.DIHelper;
 
 public class BinnedColumnChartPlaySheet extends BrowserPlaySheet{
 
-	private static final Logger logger = LogManager.getLogger(ColumnChartPlaySheet.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(ColumnChartPlaySheet.class.getName());
 
 	public BinnedColumnChartPlaySheet() 
 	{
@@ -53,8 +54,11 @@ public class BinnedColumnChartPlaySheet extends BrowserPlaySheet{
 	}
 	
 	@Override
-	public Hashtable<String, Object> processQueryData()
+	public void processQueryData()
 	{
+		List<Object[]> list = dataFrame.getData();
+		String[] names = dataFrame.getColumnHeaders();
+		
 		Object[][] data = AlgorithmDataFormatter.manipulateValues(list,true);		
 		String[] columnTypes = AlgorithmDataFormatter.determineColumnTypes(list);
 		
@@ -113,7 +117,6 @@ public class BinnedColumnChartPlaySheet extends BrowserPlaySheet{
 		columnChartHash.put("names", names);
 		columnChartHash.put("dataSeries", dataObj);
 		
-		return columnChartHash;
+		this.dataHash = columnChartHash;
 	}
-	
 }

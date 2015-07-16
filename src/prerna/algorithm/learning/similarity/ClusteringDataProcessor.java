@@ -32,6 +32,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Locale;
 
 import org.apache.log4j.LogManager;
@@ -49,7 +50,7 @@ public class ClusteringDataProcessor {
 	private static final Logger LOGGER = LogManager.getLogger(ClusteringDataProcessor.class.getName());
 
 	// table containing all the information - assumes the first column contains the instance name
-	private ArrayList<Object[]> masterTable;
+	private List<Object[]> masterTable;
 	// array list containing the variable names for the entire query 
 	private String[] varNames;
 
@@ -85,8 +86,8 @@ public class ClusteringDataProcessor {
 	int numericProps;
 	int categoricalProps;
 
-	public ClusteringDataProcessor(ArrayList<Object[]> masterTable, String[] varNames) {
-		this.masterTable = masterTable;
+	public ClusteringDataProcessor(List<Object[]> data, String[] varNames) {
+		this.masterTable = data;
 		this.varNames = varNames;
 
 		totalProps = varNames.length;

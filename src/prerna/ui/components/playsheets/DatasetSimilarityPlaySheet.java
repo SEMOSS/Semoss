@@ -27,51 +27,39 @@
  *******************************************************************************/
 package prerna.ui.components.playsheets;
 
-import java.text.DecimalFormat;
-import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import prerna.algorithm.learning.similarity.DatasetSimilarity;
+import prerna.om.SEMOSSParam;
 
 public class DatasetSimilarityPlaySheet extends GridPlaySheet {
-	
-	double[] simValues;
-	
+
+	private int instanceIndex;
+	private List<String> skipAttributes;
+
+	@Override
+	public void createData() {
+		if(dataFrame == null || dataFrame.isEmpty())
+			super.createData();
+	}
+
 	@Override
 	public void runAnalytics() {
-		DatasetSimilarity alg = new DatasetSimilarity(list, names);
-		alg.generateClusterCenters();
-		list = alg.getMasterTable();
-		names = alg.getMasterNames();
-		simValues = alg.getSimilarityValuesForInstances();
-		
-		int i = 0;
-		int size = list.size();
-		int props = list.get(0).length;
-		ArrayList<Object[]> newList = new ArrayList<Object[]>();
-		DecimalFormat df = new DecimalFormat("#%");
-		for (; i < size; i++) {
-			Object[] newRow = new Object[props + 1];
-			Object[] oldRow = list.get(i);
-			System.arraycopy(oldRow, 0, newRow, 0, props);
-			newRow[props] = df.format(simValues[i]);
-			newList.add(newRow);
-		}
-		
-		i = 0;
-		size = names.length;
-		String[] newNames = new String[size + 1];
-		System.arraycopy(names, 0, newNames, 0, size);
-		newNames[size] = "Similaritity To Dataset";
-		
-		list = newList;
-		names = newNames;
+		DatasetSimilarity alg = new DatasetSimilarity();
+		List<SEMOSSParam> options = alg.getOptions();
+		Map<String, Object> selectedOptions = new HashMap<String, Object>();
+		selectedOptions.put(options.get(0).getName(), instanceIndex); // default of 0 is acceptable
+		alg.setSelectedOptions(selectedOptions);
+		dataFrame.performAction(alg);
 	}
-	
-	public double[] getSimValues() {
-		return simValues;
+
+	public void setInstanceIndex(int instanceIndex) {
+		this.instanceIndex = instanceIndex;
 	}
-	
-	public void setSimValues(double[] simValues) {
-		this.simValues = simValues;
+
+	public void setSkipAttributes(List<String> skipAttributes) {
+		this.skipAttributes = skipAttributes;
 	}
 }

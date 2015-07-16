@@ -31,40 +31,48 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.IAnalyticRoutine;
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.om.SEMOSSParam;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.core.Instances;
 
-public class WekaClassification {
+public class WekaClassification implements IAnalyticRoutine {
 
 	private static final Logger LOGGER = LogManager.getLogger(WekaClassification.class.getName());
 
-	private Instances data;
-	
+	private static final String MODEL_NAME = "modelName";
+	private static final String CLASS_INDEX = "classIndex";
+	private static final String SKIP_ATTRIBUTES = "skipAttributes";
+
+	private Instances instancesData;
 	private String[] names;
-	private ArrayList<Object[]> list;
+	
+	private List<SEMOSSParam> options;
+
+	private String modelName;
+	private int classIndex;
+	
 	private Classifier model;
 	private String treeAsString;
-	
-	private double accuracy;
-	private double precision;
-	
-	private double bestAccuracy = -1;
-	private double bestPrecision = -1;
 	
 	private String[] treeStringArr = null;
 	private Map<String, Map> treeMap = new HashMap<String, Map>();
 	int index; 
 	
-	private String modelName;
-	private int classIndex;
-	
+	private double bestAccuracy; // currently using model with best accuracy
+	private double avgAccuracy;
+	private double avgPrecision;
 	private List<Double> accuracyArr = new ArrayList<Double>();
 	private List<Double> precisionArr = new ArrayList<Double>();
+
+	private List<String> skipAttributes;
 	
 	/**
 	 * Constructor to run classification algorithms in WEKA package
@@ -82,32 +90,48 @@ public class WekaClassification {
 	 * 		These algorithms can be used to classify real number values
 	 * 	 	5) REPTree - Regression Tree algorithm. For more information visit:    
 	 */
-	public WekaClassification(ArrayList<Object[]> list, String[] names, String modelName, int classIndex) {
-		this.list = list;
-		this.names = names;
-		this.model = ClassificationFactory.createClassifier(modelName);
-		this.modelName = model.getClass().toString();
-		this.classIndex = classIndex;
+	public WekaClassification() {
+		this.options = new ArrayList<SEMOSSParam>();
+
+		SEMOSSParam p1 = new SEMOSSParam();
+		p1.setName(MODEL_NAME);
+		options.add(0, p1);
+
+		SEMOSSParam p2 = new SEMOSSParam();
+		p2.setName(CLASS_INDEX);
+		options.add(1, p2);
 		
-		LOGGER.info("Starting classification algorithm using " + modelName + " to predict variable " + names[classIndex] + "...");
+		SEMOSSParam p3 = new SEMOSSParam();
+		p3.setName(SKIP_ATTRIBUTES);
+		options.add(2, p3);
+	
 	}
 
-	//error will be thrown when trying to classify a variable that is always the same value
-	public void execute() throws Exception{
+	@Override
+	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
+		this.modelName = (String) options.get(0).getSelected();
+		this.classIndex = (int) options.get(1).getSelected();
+		this.skipAttributes = (List<String>) options.get(2).getSelected();
+
+		ITableDataFrame dataFrame = data[0];
+		this.names = dataFrame.getColumnHeaders();
+		this.model = ClassificationFactory.createClassifier(modelName);
+
+		LOGGER.info("Starting classification algorithm using " + modelName + " to predict variable " + names[classIndex] + "...");
 		LOGGER.info("Generating Weka Instances object...");
-		this.data = WekaUtilityMethods.createInstancesFromQuery("Classification dataset using " + modelName, list, names, classIndex);
-		data.setClassIndex(classIndex);
+		this.instancesData = WekaUtilityMethods.createInstancesFromQueryUsingBinNumerical("Apriori dataset", dataFrame.getData(), names);
+		instancesData.setClassIndex(classIndex);
 		
 		// cannot classify when only one value
-		if(data.numDistinctValues(classIndex) == 1) {
+		if(instancesData.numDistinctValues(classIndex) == 1) {
 			LOGGER.info("There is only one distinct value for column " + names[classIndex]);
-			accuracy = 100;
-			precision = 100;
-			return;
+			avgAccuracy = 100;
+			avgPrecision = 100;
+			return null;
 		}
 		
 		LOGGER.info("Performing 10-fold cross-validation split of data...");
-		Instances[][] split = WekaUtilityMethods.crossValidationSplit(data, 10);
+		Instances[][] split = WekaUtilityMethods.crossValidationSplit(instancesData, 10);
 
 		// Separate split into training and testing arrays
 		Instances[] trainingSplits = split[0];
@@ -117,7 +141,12 @@ public class WekaClassification {
 		int j;
 		for(j = 0; j < trainingSplits.length; j++) {
 			LOGGER.info("Running classification on training and test set number " + j + "...");
-			Evaluation validation = WekaUtilityMethods.classify(model, trainingSplits[j], testingSplits[j]);
+			Evaluation validation = null;
+			try {
+				validation = WekaUtilityMethods.classify(model, trainingSplits[j], testingSplits[j]);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 			double newPctCorrect = validation.pctCorrect();
 			// ignore when weka gives a NaN for accuracy -> occurs when every instance in training set is unknown for variable being classified
 			if(Double.isNaN(newPctCorrect)) {
@@ -126,7 +155,6 @@ public class WekaClassification {
 				if(newPctCorrect > bestAccuracy) {
 					treeAsString = model.toString();
 					bestAccuracy = newPctCorrect;
-					bestPrecision = validation.precision(1)*100;
 				}
 				
 				// keep track of accuracy and precision of each test
@@ -136,16 +164,18 @@ public class WekaClassification {
 			}
 		}
 		
-		accuracy = WekaUtilityMethods.calculateAverage(accuracyArr);
-		precision = WekaUtilityMethods.calculateAverage(precisionArr);
+		avgAccuracy = WekaUtilityMethods.calculateAverage(accuracyArr);
+		avgPrecision = WekaUtilityMethods.calculateAverage(precisionArr);
+		
+		return null;
 	}
 	
 	public void processTreeString() {
 		LOGGER.info("Generating Tree Map from classification tree string...");
 		if(treeAsString == null) {
-			if(data.numDistinctValues(classIndex) == 1) {
+			if(instancesData.numDistinctValues(classIndex) == 1) {
 				treeMap = new HashMap<String, Map>();
-				treeMap.put(data.get(0).attribute(classIndex).value(classIndex), new HashMap());
+				treeMap.put(instancesData.get(0).attribute(classIndex).value(classIndex), new HashMap());
 				return;
 			}
 		}
@@ -293,6 +323,51 @@ public class WekaClassification {
 			}
 		}
 	}
+
+	@Override
+	public String getName() {
+		return "Classification Routine";
+	}
+
+	@Override
+	public String getResultDescription() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void setSelectedOptions(Map<String, Object> selected) {
+		Set<String> keySet = selected.keySet();
+		for(String key : keySet) {
+			for(SEMOSSParam param : options) {
+				if(param.getName().equals(key)){
+					param.setSelected(selected.get(key));
+					break;
+				}
+			}
+		}
+	}
+
+	@Override
+	public List<SEMOSSParam> getOptions() {
+		return this.options;
+	}
+
+	@Override
+	public String getDefaultViz() {
+		return "prerna.ui.components.playsheets.WekaAprioriVizPlaySheet";
+	}
+
+	@Override
+	public List<String> getChangedColumns() {
+		return null;
+	}
+
+	@Override
+	public Map<String, Object> getResultMetadata() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 	
 	public List<Double> getAccuracyArr() {
 		return accuracyArr;
@@ -303,11 +378,11 @@ public class WekaClassification {
 	}
 	
 	public double getAccuracy() {
-		return accuracy;
+		return avgAccuracy;
 	}
 	
 	public double getPrecision() {
-		return precision;
+		return avgPrecision;
 	}
 	
 	public String getTreeAsString() {
@@ -316,13 +391,5 @@ public class WekaClassification {
 	
 	public Map<String, Map> getTreeMap() {
 		return treeMap;
-	}
-
-	public double getBestPrecision() {
-		return bestPrecision;
-	}
-	
-	public double getBestAccuracy() {
-		return bestAccuracy;
 	}
 }

@@ -28,21 +28,26 @@
 package prerna.algorithm.learning.supervized;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.impl.AlgorithmDataFormatter;
+import prerna.algorithm.api.IAnalyticRoutine;
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.math.BarChart;
-import prerna.util.ArrayListUtilityMethods;
+import prerna.om.SEMOSSParam;
 import prerna.util.ArrayUtilityMethods;
 
-public class CorrelationAlgorithm{
+public class CorrelationAlgorithm implements IAnalyticRoutine {
 
+	//TODO: this approach was never finished!!!
 	private static final Logger LOGGER = LogManager.getLogger(CorrelationAlgorithm.class.getName());
+	
+	private ITableDataFrame dataFrame;
 	private String[] names;
-	private ArrayList<Object[]> list;
-	private String[] columnTypesArr;
+	private boolean[] isNumeric;
 	
 	private ArrayList<String[]> valuesList = new ArrayList<String[]>();
 	private ArrayList<String[]> uniqueValuesList = new ArrayList<String[]>();
@@ -52,53 +57,30 @@ public class CorrelationAlgorithm{
 	private double[][] covariance;
 	private double[][] correlation;
 	
-	/**
-	 * Creates a CorrelationAlgorithm object
-	 * @param names	String array that lists the name of each column
-	 * @param list	ArrayList of object arrays that contain values for each instance
-	 * @param includeFirstColumn	Boolean that states whether the first column should be included in analysis, as it may be an identifier for some datasets
-	 */
-	public CorrelationAlgorithm(String[] names, ArrayList<Object []> list) {
-		this.names = names;
-		this.list = list;
-		this.columnTypesArr = AlgorithmDataFormatter.determineColumnTypes(list);
+	public CorrelationAlgorithm() {
+
 	}
 
-	/**
-	 * Creates a CorrelationAlgorithm object
-	 * @param names	String array that lists the name of each column
-	 * @param list	ArrayList of object arrays that contain values for each instance
-	 * @param isCategoricalArr	Boolean array that says whether each column is categorical
-	 * @param includeFirstColumn	Boolean that states whether the first column should be included in analysis, as it may be an identifier for some datasets
-	 */
-	public CorrelationAlgorithm(String[] names, ArrayList<Object []> list, String[] columnTypesArr) {
-		this.names = names;
-		this.list = list;
-		this.columnTypesArr = columnTypesArr;
-	}
-
-	/**
-	 * Determines the coefficients, errors in the coefficients, estimates, and residuals.
-	 */
-	public void execute() {
-
-		long startTime = System.currentTimeMillis();
+	@Override
+	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
+		dataFrame = data[0];
+		this.names = dataFrame.getColumnHeaders();
+		this.isNumeric = dataFrame.isNumeric();
+		
 		int i;
 		int j;
 		int namesLength = names.length;
 		int numVariables = namesLength - 1;
 		
 		//go through all variables and get the outputs for each		
-		for(i=1;i<namesLength;i++) {
-			
+		for(i = 1; i < namesLength; i++) {
 			String[] values;
 			String[] uniqueValues;
 			int[] uniqueValueCount;
 			
 			//calculate the number of times each value corresponds to one of the instances
-			if(columnTypesArr[i].equals(AlgorithmDataFormatter.STRING_KEY)) {
-				
-				Object[] valuesObj = ArrayListUtilityMethods.getColumnFromList(list,i);
+			if(!isNumeric[i]) {
+				Object[] valuesObj = dataFrame.getColumn(names[i]);
 				String[] valuesArr = ArrayUtilityMethods.convertObjArrToStringArr(valuesObj);
 				BarChart chart = new BarChart(valuesArr);
 				chart.calculateCategoricalBins("?", true, true);
@@ -107,8 +89,7 @@ public class CorrelationAlgorithm{
 				uniqueValueCount = chart.getStringUniqueCounts();
 				
 			}else {
-				
-				Object[] valuesObj = ArrayListUtilityMethods.getColumnFromList(list,i);
+				Object[] valuesObj = dataFrame.getColumn(names[i]);
 				double[] valuesArr = ArrayUtilityMethods.convertObjArrToDoubleArr(valuesObj);
 				BarChart chart = new BarChart(valuesArr);
 				if(chart.isUseCategoricalForNumericInput()) {
@@ -155,10 +136,9 @@ public class CorrelationAlgorithm{
 			}
 		}
 				
-		long endTime = System.currentTimeMillis();
-		System.out.println("Total Time = " + (endTime-startTime)/1000 );
+		return null;
 	}
-
+	
 	/**
 	 * Calculate the variance in column x
 	 * @param x
@@ -167,7 +147,7 @@ public class CorrelationAlgorithm{
 	private double calculateVariance(int x) {
 		
 		int i;
-		double numInstances = list.size()*1.0;
+		double numInstances = dataFrame.getNumRows()*1.0;
 		int[] uniqueValueCounts = uniqueValueCountsList.get(x);
 		int numUniqueValueCounts = uniqueValueCounts.length;
 		
@@ -189,7 +169,7 @@ public class CorrelationAlgorithm{
 		
 		int i;
 		int j;
-		double numInstances = list.size();
+		double numInstances = dataFrame.getNumRows()*1.0;
 		int[] xUniqueValueCounts = uniqueValueCountsList.get(x);
 		int[] yUniqueValueCounts = uniqueValueCountsList.get(y);
 		int numXUniqueValueCounts = xUniqueValueCounts.length;
@@ -208,8 +188,7 @@ public class CorrelationAlgorithm{
 	}
 	
 	private double[][] calculateOccurence(int x, int y) {
-		
-		int numInstances = list.size();
+		int numInstances = dataFrame.getNumRows();
 		String[] xValues = valuesList.get(x);
 		String[] yValues = valuesList.get(y);
 		if(numInstances!=xValues.length || numInstances !=yValues.length) {
@@ -253,6 +232,48 @@ public class CorrelationAlgorithm{
 		}
 
 		return probArr;
+	}
+	
+	@Override
+	public String getName() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String getResultDescription() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void setSelectedOptions(Map<String, Object> selected) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public List<SEMOSSParam> getOptions() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String getDefaultViz() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<String> getChangedColumns() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Map<String, Object> getResultMetadata() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 	public double[] getStandardDev() {

@@ -10,6 +10,7 @@ import prerna.algorithm.learning.util.Cluster;
 import prerna.algorithm.learning.util.IClusterDistanceMode;
 import prerna.algorithm.learning.util.IClusterDistanceMode.DistanceMeasure;
 import prerna.ds.BTreeDataFrame;
+import prerna.math.SimilarityWeighting;
 
 public class ClusteringRoutine extends AbstractClusteringRoutine {
 
@@ -23,13 +24,13 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
 		// values defined in options
 		//TODO: below is simply for ease in testing
-		this.numClusters = 12;
-		this.instanceIndex = 0;
-		this.clusterColumnID = "clusterID";
-//		this.numClusters = (Integer) options.get(0).getSelected();
-//		this.instanceIndex = (Integer) options.get(1).getSelected();
-		
+//		this.numClusters = 12;
+//		this.instanceIndex = 0;
+		this.numClusters = (Integer) options.get(0).getSelected();
+		this.instanceIndex = (Integer) options.get(1).getSelected();
 		this.distanceMeasure = (Map<String, DistanceMeasure>) options.get(2).getSelected();
+		this.skipAttributes = (List<String>) options.get(3).getSelected();
+
 		this.dataFrame = data[0];
 		this.isNumeric = dataFrame.isNumeric();
 		this.attributeNames = dataFrame.getColumnHeaders();
@@ -54,14 +55,16 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 			throw new IllegalArgumentException("Cannot have more clusters than instances");
 		}
 
-		calculateWeights();
+		// fills in numericalWeights and categoricalWeights maps
+		SimilarityWeighting.calculateWeights(dataFrame, instanceIndex, attributeNames, isNumeric, numericalWeights, categoricalWeights);
+		
 		initializeClusters();
 		int maxIt = 100_000;
 		boolean go = true;
 		int currIt = 0;
 		while(go) {
 			go = false;
-			Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false);
+			Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false, skipAttributes);
 			while(it.hasNext()) {
 				List<Object[]> instance = it.next();
 				Object instanceName = instance.get(0)[instanceIndex];
@@ -86,11 +89,13 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 			}
 		}
 
-		ITableDataFrame returnTable = new BTreeDataFrame(new String[]{attributeNames[instanceIndex], clusterColumnID});
+		String attributeName = attributeNames[instanceIndex];
+		this.clusterColName = attributeName + "_CLUSTER";
+		ITableDataFrame returnTable = new BTreeDataFrame(new String[]{attributeName, clusterColName});
 		for(Object instance : results.keySet()) {
 			Map<String, Object> row = new HashMap<String, Object>();
-			row.put(attributeNames[instanceIndex], instance);
-			row.put(clusterColumnID, results.get(instance));
+			row.put(attributeName, instance);
+			row.put(clusterColName, results.get(instance));
 			returnTable.addRow(row, row);
 		}
 		
@@ -101,7 +106,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 	 * Will generate the clusters by picking the most different instances
 	 */
 	private void initializeClusters() {
-		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false);
+		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false, skipAttributes);
 		List<Object[]> firstInstance = it.next();
 
 		Cluster firstCluster = new Cluster(categoricalWeights, numericalWeights);
@@ -143,7 +148,7 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 			numInstancesInCluster.add(1);
 
 			// generate new iterator
-			it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false);
+			it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false, skipAttributes);
 		}
 	}
 
@@ -199,5 +204,10 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 	public Map<String, Object> getResultMetadata() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	@Override
+	public int getNumClusters() {
+		return this.numClusters;
 	}
 }

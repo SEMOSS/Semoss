@@ -37,7 +37,9 @@ import java.awt.Insets;
 import java.beans.PropertyVetoException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.List;
 
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
@@ -56,11 +58,10 @@ import javax.swing.border.BevelBorder;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.impl.AlgorithmDataFormatter;
-import prerna.algorithm.learning.similarity.ClusterRemoveDuplicates;
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.similarity.DatasetSimilarity;
-import prerna.algorithm.learning.similarity.GenerateEntropyDensity;
 import prerna.math.BarChart;
+import prerna.om.SEMOSSParam;
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.components.api.IPlaySheet;
@@ -90,7 +91,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	private JPanel variableSelectorPanel;
 
 	//independent variable panel
-	private double[] entropyArr;
+	private Double[] entropyArr;
 	private ArrayList<JCheckBox> ivCheckboxes;
 	private ArrayList<JLabel> entropyLabels;
 	private ArrayList<JLabel> accuracyLabels;
@@ -99,11 +100,6 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	private JCheckBox checkboxSelectAllIVs;
 	private SelectCheckboxesListener selectAllIVsList;
 	public JPanel indVariablesPanel;
-	// lists of all the categorical and numerical property names 
-	public String[] categoryPropNames;
-	private String[] columnTypesArr;
-
-	private String[] numericalPropNames;
 	
 	//data set similarity chart
 	private BrowserGraphPanel simBarChartPanel;
@@ -161,45 +157,57 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	private JCheckBox checkboxSelectAllClusters;
 	private SelectCheckboxesListener selectAllClustersList;
 	private ArrayList<JCheckBox> clusterCheckboxes = new ArrayList<JCheckBox>();
-		
-	public void setData(String[] names, ArrayList<Object[]> list) {
-		this.list = list;
-		this.names=names;
-	}
+	
+	public int instanceIndex = 0;
+	public String[] columnHeaders;
+	public boolean[] isNumeric;
+	public List<String> numericalPropNames;
+	public List<String> categoricalPropNames;
+	
 	@Override
 	public void createData() {
-		if(list==null)
+		if(dataFrame == null || dataFrame.isEmpty())
 			super.createData();
 		
-		//make sure that we have no duplicates in the liast and names for the analysis
-		LOGGER.info("Removing any duplicated instances...");
-		ClusterRemoveDuplicates crd = new ClusterRemoveDuplicates(list, names);
-		this.list = crd.getRetMasterTable();
-		this.names = crd.getRetVarNames();
-		
-		LOGGER.info("Formatting dataset to run algorithm...");
-		columnTypesArr = AlgorithmDataFormatter.determineColumnTypes(list);
-		categoryPropNames = AlgorithmDataFormatter.determineColumnNamesOfType(names, columnTypesArr, AlgorithmDataFormatter.STRING_KEY);
-		numericalPropNames = AlgorithmDataFormatter.determineColumnNamesOfType(names, columnTypesArr, AlgorithmDataFormatter.DOUBLE_KEY);
-		
-	}
-	@Override
-	public void runAnalytics() {
-		if(list==null)
-			return;
-		
-		GenerateEntropyDensity test = new GenerateEntropyDensity(list,true);
-		entropyArr = test.generateEntropy();
-		fillSimBarChartHash(names,list);
+		columnHeaders = dataFrame.getColumnHeaders();
+		isNumeric = dataFrame.isNumeric();
+		numericalPropNames = new ArrayList<String>();
+		categoricalPropNames = new ArrayList<String>();
+		for(int i = 0; i < columnHeaders.length; i++) {
+			if(i == instanceIndex) {
+				continue;
+			}
+			if(isNumeric[i]) {
+				numericalPropNames.add(columnHeaders[i]);
+			} else {
+				categoricalPropNames.add(columnHeaders[i]);
+			}
+		}
 	}
 	
-	public void fillSimBarChartHash(String[] names, ArrayList<Object[]> list) {
+	@Override
+	public void runAnalytics() {
+		if(dataFrame == null || dataFrame.isEmpty())
+			return;
+		
+		entropyArr = dataFrame.getEntropyDensity();
+		fillSimBarChartHash(dataFrame, new ArrayList<String>());
+	}
+	
+	public void fillSimBarChartHash(ITableDataFrame data, List<String> skipColumns) {
 		//run the algorithms for similarity bar chart to create hash.
-		DatasetSimilarity alg = new DatasetSimilarity(list, names);
-		alg.generateClusterCenters();
-		double[] simBarChartValues = alg.getSimilarityValuesForInstances();	
+		DatasetSimilarity alg = new DatasetSimilarity();
+		List<SEMOSSParam> options = alg.getOptions();
+		HashMap<String, Object> selectedOptions = new HashMap<String, Object>();
+		selectedOptions.put(options.get(0).getName(), instanceIndex); // default of 0 is acceptable
+		selectedOptions.put(options.get(2).getName(), skipColumns); // TODO: add skipColumns to all algorithms
+
+		alg.setSelectedOptions(selectedOptions);
+		ITableDataFrame simAlgResults = alg.runAlgorithm(dataFrame);
+		
+		Double[] values = simAlgResults.getColumnAsNumeric(simAlgResults.getColumnHeaders()[1]);
 		Hashtable<String, Object>[] bins = null;
-		BarChart chart = new BarChart(simBarChartValues, names[0]);
+		BarChart chart = new BarChart(values, simAlgResults.getColumnHeaders()[1]);
 		if(chart.isUseCategoricalForNumericInput()) {
 			chart.calculateCategoricalBins("?", true, true);
 			chart.generateJSONHashtableCategorical();
@@ -212,17 +220,13 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		simBarChartHash = new Hashtable<String, Object>();
 		Object[] binArr = new Object[]{bins};
 		simBarChartHash.put("dataSeries", binArr);
-		simBarChartHash.put("names", new String[]{names[0].concat(" Similarity Distribution to Dataset Center")});
-		
+		simBarChartHash.put("names", new String[]{dataFrame.getColumnHeaders()[instanceIndex].concat(" Similarity Distribution to Dataset Center")});
 	}
 
 	@Override
 	public void createView() {	
-		if(list!=null && list.isEmpty()){
+		if(dataFrame == null || dataFrame.isEmpty()){
 			String questionID = getQuestionID();
-			// fill the nodetype list so that they can choose from
-			// remove from store
-			// this will also clear out active sheet
 			QuestionPlaySheetStore.getInstance().remove(questionID);
 			if(QuestionPlaySheetStore.getInstance().isEmpty())
 			{
@@ -234,9 +238,9 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		}
 		addPanel();
 
-		if(list!=null){
-			gfd.setColumnNames(names);
-			gfd.setDataList(list);
+		if(dataFrame != null){
+			gfd.setColumnNames(dataFrame.getColumnHeaders());
+			gfd.setDataList(dataFrame.getData());
 		}
 
 		updateProgressBar("100%...Selector Panel Complete", 100);
@@ -511,9 +515,9 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		variableSelectorPanel.add(simBarChartPanel, gbc_simBarChartPanel);
 	}
 	
-	public void recreateSimBarChart(String[] names, ArrayList<Object[]> list) {
+	public void recreateSimBarChart(ITableDataFrame dataFrame, List<String> skipColumns) {
 		BrowserGraphPanel oldSimBarChartPanel = simBarChartPanel;
-		fillSimBarChartHash(names, list);
+		fillSimBarChartHash(dataFrame, skipColumns);
 		addSimBarChart();
 		variableSelectorPanel.remove(oldSimBarChartPanel);
 		
@@ -599,8 +603,11 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 
 		DecimalFormat formatter = new DecimalFormat("#0.00");
 		
-		for(int i=1;i<names.length;i++) {
-			String checkboxLabel = names[i];
+		for(int i = 1; i < columnHeaders.length; i++) {
+			if(i == instanceIndex) {
+				continue;
+			}
+			String checkboxLabel = columnHeaders[i];
 			JCheckBox checkbox = new JCheckBox(checkboxLabel);
 			checkbox.setName(checkboxLabel+checkboxName);
 			checkbox.setSelected(true);
@@ -630,8 +637,8 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		selectAllIVsList.setCheckboxes(ivCheckboxes);
 		checkboxSelectAllIVs.addActionListener(selectAllIVsList);
 		
-		accuracyLabels = new ArrayList<JLabel>(names.length);
-		precisionLabels = new ArrayList<JLabel>(names.length);
+		accuracyLabels = new ArrayList<JLabel>(columnHeaders.length);
+		precisionLabels = new ArrayList<JLabel>(columnHeaders.length);
 	}
 	
 	public void fillAccuracyAndPrecision(double[] accuracyArr, double[] precisionArr) {
@@ -644,7 +651,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 			includeColArr[i] = checkbox.isSelected();
 		}
 
-		for(int i = 0; i < names.length - 1; i++) {
+		for(int i = 0; i < columnHeaders.length - 1; i++) {
 			if(includeColArr[i]) {
 				try {
 					// try to remove old values if present
@@ -783,9 +790,16 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		classComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		classComboBox.setBackground(Color.GRAY);
 		classComboBox.setPreferredSize(new Dimension(250, 25));
-		String[] cols = new String[names.length-1];
-		for(int i=1;i<names.length;i++)
-			cols[i-1] = names[i];
+		String[] cols = new String[columnHeaders.length-1];
+		
+		int counter = 0;
+		for(int i = 0; i < columnHeaders.length; i++) {
+			if(i == instanceIndex) {
+				continue;
+			}
+			cols[counter] = columnHeaders[i];
+			counter++;
+		}
 		classComboBox.setModel(new DefaultComboBoxModel<String>(cols));
 		GridBagConstraints gbc_classComboBox = new GridBagConstraints();
 		gbc_classComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
@@ -885,8 +899,9 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		matrixDepVarComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		matrixDepVarComboBox.setBackground(Color.GRAY);
 		matrixDepVarComboBox.setPreferredSize(new Dimension(250, 25));
-		if(numericalPropNames!=null)
-			matrixDepVarComboBox.setModel(new DefaultComboBoxModel<String>(numericalPropNames));
+		if(!numericalPropNames.isEmpty()) {
+			matrixDepVarComboBox.setModel(new DefaultComboBoxModel<String>(numericalPropNames.toArray(new String[0])));
+		}
 		GridBagConstraints gbc_matrixDepVarComboBox = new GridBagConstraints();
 		gbc_matrixDepVarComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_matrixDepVarComboBox.fill = GridBagConstraints.NONE;
@@ -907,7 +922,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbl_somPanel.rowWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
 		somPanel.setLayout(gbl_somPanel);
 		
-		double x = Math.sqrt((double) list.size() / (6*5));
+		double x = Math.sqrt((double) dataFrame.getNumCols() / (6*5));
 		som_height = (int) Math.round(2*x);
 		som_length = (int) Math.round(3*x);
 		
@@ -1250,7 +1265,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		matrixDepVarComboBox.setVisible(show);
 		enableAllCheckboxes();
 		if(show) {
-			disableCheckBoxes(categoryPropNames,false);
+			disableCheckBoxes(categoricalPropNames.toArray(new String[0]),false);
 			String selection = matrixDepVarComboBox.getSelectedItem() + "";
 			disableCheckBox(selection,true);
 		}
@@ -1258,7 +1273,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	public void showNumericalCorrelation(Boolean show) {
 		enableAllCheckboxes();
 		if(show) {
-			disableCheckBoxes(categoryPropNames,false);
+			disableCheckBoxes(categoricalPropNames.toArray(new String[0]),false);
 		}
 	}
 	public void enableDrillDown() {
@@ -1407,12 +1422,6 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	public JToggleButton getShowDrillDownBtn() {
 		return showDrillDownBtn;
 	}
-	public String[] getNames() {
-		return names;
-	}
-	public ArrayList<Object[]> getList() {
-		return list;
-	}
 	public JTabbedPane getJTab() {
 		return jTab;
 	}
@@ -1434,9 +1443,6 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	public JTextField getEnterMaxSupportTextField() {
 		return enterMaxSupportTextField;
 	}
-	public String[] getColumnTypesArr() {
-		return columnTypesArr;
-	}
 	public JTextField getEnterR0TextField() {
 		return enterR0TextField;
 	}
@@ -1445,6 +1451,9 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	}
 	public JTextField getEnterTauTextField() {
 		return enterTauTextField;
+	}
+	public boolean[] getIsNumeric() {
+		return isNumeric;
 	}
 	
 }

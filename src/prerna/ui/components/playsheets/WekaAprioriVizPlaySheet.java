@@ -1,13 +1,26 @@
 package prerna.ui.components.playsheets;
 
 import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
+
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTable;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.learning.weka.WekaAprioriAlgorithm;
-import prerna.util.CSSApplication;
+import prerna.om.SEMOSSParam;
+import prerna.ui.components.GridScrollPane;
+import prerna.ui.components.NewScrollBarUI;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -17,10 +30,11 @@ public class WekaAprioriVizPlaySheet extends BrowserPlaySheet{
 
 	private WekaAprioriAlgorithm alg;
 
-	private int numRules = 100; // number of rules to output
-	private double confPer = -1; // min confidence lvl (percentage)
-	private double minSupport = -1; // min number of rows required for rule (percentage of total rows of data)
-	private double maxSupport = -1; // max number of rows required for rule (percentage of total rows of data)
+	private int numRules = 10; // number of rules to output
+	private double confPer = 0.9; // min confidence lvl (percentage)
+	private double minSupport = 0.1; // min number of rows required for rule (percentage of total rows of data)
+	private double maxSupport = 1.0; // max number of rows required for rule (percentage of total rows of data)	
+	private List<String> skipAttributes;
 	
 	public WekaAprioriVizPlaySheet() {
 		super();
@@ -31,21 +45,33 @@ public class WekaAprioriVizPlaySheet extends BrowserPlaySheet{
 	
 	@Override
 	public void createData() {
-		if (list == null || list.isEmpty())
+		if(dataFrame == null || dataFrame.isEmpty())
 			super.createData();
-		else {
-			dataHash = processQueryData();
-		}
 	}
 
 	@Override
-	public Hashtable processQueryData() {
-		runAlgorithm();
-		return (dataHash = alg.generateDecisionRuleVizualization());
+	public void processQueryData() {
+		this.dataHash = alg.generateDecisionRuleVizualization();
 	}
 	
 	@Override
-	public Object getData() {
+	public void runAnalytics() {
+		alg = new WekaAprioriAlgorithm();
+		List<SEMOSSParam> options = alg.getOptions();
+		Map<String, Object> selectedOptions = new HashMap<String, Object>();
+		selectedOptions.put(options.get(0).getName(), numRules);
+		selectedOptions.put(options.get(1).getName(), confPer);
+		selectedOptions.put(options.get(2).getName(), minSupport);
+		selectedOptions.put(options.get(3).getName(), maxSupport);
+		selectedOptions.put(options.get(4).getName(), skipAttributes);
+		alg.setSelectedOptions(selectedOptions);
+		dataFrame.performAction(alg);
+		
+		alg.generateDecisionRuleTable();
+	}
+	
+	@Override
+	public Hashtable getData() {
 		//TODO: remove this from getData() to call the super method
 		dataHash.put("id", this.questionNum==null? "": this.questionNum);
 		String className = "";
@@ -65,47 +91,14 @@ public class WekaAprioriVizPlaySheet extends BrowserPlaySheet{
 		return dataHash;
 	}
 	
-	public void runAlgorithm() {
-		LOGGER.info("Creating apriori algorithm for instance: " + names[0]);
-		alg = new WekaAprioriAlgorithm(list, names);
-		if(numRules > 0) {
-			alg.setNumRules(numRules);
-		}
-		if(confPer >= 0 && confPer <= 1.0) {
-			alg.setConfPer(confPer);
-		}
-		if(minSupport >= 0 && minSupport < 1) {
-			alg.setMinSupport(minSupport);
-		}
-		if(maxSupport > 0 && maxSupport <=1) {
-			alg.setMaxSupport(maxSupport);
-		}
-		try {
-			alg.execute();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+	@Override
+	public List<Object[]> getTabularData() {
+		return alg.getTabularData();
 	}
 	
-	/**
-	 * Method addPanel. Creates a panel and adds the table to the panel.
-	 */
 	@Override
-	public void addPanel()
-	{
-		//if this is to be a separate playsheet, create the tab in a new window
-		//otherwise, if this is to be just a new tab in an existing playsheet,
-		if(jTab==null) {
-			super.addPanel();
-		} else {
-			String lastTabName = jTab.getTitleAt(jTab.getTabCount()-1);
-			LOGGER.info("Parsing integer out of last tab name");
-			int count = 1;
-			if(jTab.getTabCount()>1)
-				count = Integer.parseInt(lastTabName.substring(0,lastTabName.indexOf(".")))+1;
-			addPanelAsTab(count+". Association Learning");
-		}
-		new CSSApplication(getContentPane());
+	public String[] getColumnHeaders() {
+		return alg.getColumnHeaders();
 	}
 	
 	public int getNumRules() {
@@ -127,7 +120,7 @@ public class WekaAprioriVizPlaySheet extends BrowserPlaySheet{
 	public double getMinSupport() {
 		return minSupport;
 	}
-	
+
 	public void setMinSupport(double minSupport) {
 		this.minSupport = minSupport;
 	}
@@ -138,5 +131,53 @@ public class WekaAprioriVizPlaySheet extends BrowserPlaySheet{
 
 	public void setMaxSupport(double maxSupport) {
 		this.maxSupport = maxSupport;
+	}
+	
+	public void setSkipAttributes(List<String> skipAttributes) {
+		this.skipAttributes = skipAttributes;
+	}
+
+	/////////////////////////////SWING DEPENDENT CODE/////////////////////////////
+	@Override
+	public void addPanel() {
+		if (jTab == null) {
+			super.addPanel();
+		} else {
+			String lastTabName = jTab.getTitleAt(jTab.getTabCount() - 1);
+			LOGGER.info("Parsing integer out of last tab name");
+			int count = 1;
+			if (jTab.getTabCount() > 1)
+				count = Integer.parseInt(lastTabName.substring(0, lastTabName.indexOf("."))) + 1;
+			addPanelAsTab(count + ". Apriori Data");
+			addGridTab(count + ". Apriori Raw Data");
+		}
+	}
+
+	public void addGridTab(String tabName) {
+		table = new JTable();
+		GridScrollPane gsp = null;
+		gsp = new GridScrollPane(alg.getColumnHeaders(), alg.getTabularData());
+		gsp.addHorizontalScroll();
+		jTab.addTab(tabName, gsp);
+	}
+
+	public void addScrollPanel(JPanel panel, JComponent obj) {
+		JScrollPane scrollPane = new JScrollPane(obj);
+		scrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		scrollPane.setAutoscrolls(true);
+
+		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
+		gbc_scrollPane.fill = GridBagConstraints.BOTH;
+		gbc_scrollPane.gridx = 0;
+		gbc_scrollPane.gridy = 0;
+		panel.add(scrollPane, gbc_scrollPane);
+	}
+
+	public void setJTab(JTabbedPane jTab) {
+		this.jTab = jTab;
+	}
+
+	public void setJBar(JProgressBar jBar) {
+		this.jBar = jBar;
 	}
 }

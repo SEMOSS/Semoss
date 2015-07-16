@@ -6,10 +6,14 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.IAnalyticRoutine;
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.om.SEMOSSParam;
 import weka.associations.Apriori;
 import weka.associations.AssociationRule;
 import weka.associations.AssociationRules;
@@ -19,47 +23,78 @@ import weka.core.Instances;
 
 import com.ibm.icu.text.DecimalFormat;
 
-public class WekaAprioriAlgorithm {
+public class WekaAprioriAlgorithm implements IAnalyticRoutine {
 
 	private static final Logger LOGGER = LogManager.getLogger(WekaAprioriAlgorithm.class.getName());
 
-	private Instances data;
+	private static final String NUM_RULES = "numRules";
+	private static final String CONFIDENCE_LEVEL = "confPer";
+	private static final String MIN_SUPPORT = "minSupport";
+	private static final String MAX_SUPPORT = "maxSupport";
+	private static final String SKIP_ATTRIBUTES	= "skipAttributes";
+
+	private Instances instancesData;
 	private String[] names;
-	private ArrayList<Object[]> list;
+	
+	private List<SEMOSSParam> options;
 	
 	private Map<Integer, Collection<Item>> premises;
 	private Map<Integer, Collection<Item>> consequences;
 	private Map<Integer, Integer> counts;
 	private Map<Integer, Double> confidenceIntervals;
 	
-	private String[] retNames;
-	private ArrayList<Object[]> retList;
+	private String[] columnHeaders;
+	private ArrayList<Object[]> tabularData;
 	
-	private int numRules = 100; // number of rules to output
-	private double confPer = 0.9; // min confidence lvl (percentage)
-	private double minSupport = 0.1; // min number of rows required for rule (percentage of total rows of data)
-	private double maxSupport = 1.0; // max number of rows required for rule (percentage of total rows of data)
+	private int numRules; // number of rules to output
+	private double confPer; // min confidence lvl (percentage)
+	private double minSupport; // min number of rows required for rule (percentage of total rows of data)
+	private double maxSupport; // max number of rows required for rule (percentage of total rows of data)
+	private List<String> skipAttributes;
 	
 	public WekaAprioriAlgorithm() {
+		this.options = new ArrayList<SEMOSSParam>();
+
+		SEMOSSParam p1 = new SEMOSSParam();
+		p1.setName(NUM_RULES);
+		options.add(0, p1);
+
+		SEMOSSParam p2 = new SEMOSSParam();
+		p2.setName(CONFIDENCE_LEVEL);
+		options.add(1, p2);
 		
+		SEMOSSParam p3 = new SEMOSSParam();
+		p3.setName(MIN_SUPPORT);
+		options.add(2, p3);
+		
+		SEMOSSParam p4 = new SEMOSSParam();
+		p4.setName(MAX_SUPPORT);
+		options.add(3, p4);
+		
+		SEMOSSParam p5 = new SEMOSSParam();
+		p5.setName(SKIP_ATTRIBUTES);
+		options.add(4, p5);
 	}
 	
-	public WekaAprioriAlgorithm(ArrayList<Object[]> list, String[] names) {
-		this.list = list;
-		this.names = names;
+	@Override
+	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
+		this.numRules = (int) options.get(0).getSelected();
+		this.confPer = (double) options.get(1).getSelected();
+		this.minSupport = (double) options.get(2).getSelected();
+		this.maxSupport = (double) options.get(3).getSelected();
+		this.skipAttributes = (List<String>) options.get(4).getSelected();
 
+		ITableDataFrame dataFrame = data[0];
+		LOGGER.info("Generating Weka Instances object...");
+		this.names = dataFrame.getColumnHeaders();
+		this.instancesData = WekaUtilityMethods.createInstancesFromQueryUsingBinNumerical("Apriori dataset", dataFrame.getData(), names);
 		LOGGER.info("Starting apriori algorithm using... ");
-	}
-
-	public void execute() throws Exception {
+		
 		premises = new HashMap<Integer, Collection<Item>>();
 		consequences = new HashMap<Integer, Collection<Item>>();
 		counts = new HashMap<Integer, Integer>();
 		confidenceIntervals = new HashMap<Integer, Double>();
 		
-		LOGGER.info("Generating Weka Instances object...");
-		this.data = WekaUtilityMethods.createInstancesFromQueryUsingBinNumerical("Apriori dataset", list, names);
-
 		Apriori apriori = new Apriori();
 		apriori.setNumRules(numRules);
 		apriori.setMinMetric(confPer);
@@ -67,10 +102,12 @@ public class WekaAprioriAlgorithm {
 		apriori.setUpperBoundMinSupport(maxSupport);
 		
 		LOGGER.info("Running Apriori Algorithm...");
-		apriori.buildAssociations( data );
+		try {
+			apriori.buildAssociations(instancesData);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		LOGGER.info("Finished Running Algorithm...");
-		
-//		System.out.println(apriori.toString());
 		
 		// get and store rules
 		AssociationRules rules = apriori.getAssociationRules();
@@ -83,8 +120,10 @@ public class WekaAprioriAlgorithm {
 			confidenceIntervals.put(numRule, rule.getPrimaryMetricValue());
 			numRule++;
 		}
+		
+		return null;
 	}
-	
+
 	public Hashtable<String, Object> generateDecisionRuleVizualization() {
 		// return if no rules found
 		if(premises.isEmpty() && consequences.isEmpty() && counts.isEmpty()) {
@@ -135,7 +174,6 @@ public class WekaAprioriAlgorithm {
 		return retVal;
 	}
 	
-	
 	public void generateDecisionRuleTable() {
 		// return if no rules found
 		if(premises.isEmpty() && consequences.isEmpty() && counts.isEmpty()) {
@@ -144,15 +182,15 @@ public class WekaAprioriAlgorithm {
 		
 		LOGGER.info("Generating Decision Table...");
 		int numCols = names.length;
-		retNames = new String[numCols + 1];
+		columnHeaders = new String[numCols + 1];
 		int i = 1;
 		for(; i < numCols; i++) {
-			retNames[i-1] = names[i];
+			columnHeaders[i-1] = names[i];
 		}
-		retNames[numCols-1] = "Count";
-		retNames[numCols] = "Confidence";
+		columnHeaders[numCols-1] = "Count";
+		columnHeaders[numCols] = "Confidence";
 		
-		retList = new ArrayList<Object[]>();
+		tabularData = new ArrayList<Object[]>();
 
 		// generate hashmap to prevent constantly looking up indicies
 		Map<String, Integer> indexMap = new HashMap<String, Integer>();
@@ -176,7 +214,7 @@ public class WekaAprioriAlgorithm {
 			tableRow[numCols-1] = count;
 			tableRow[numCols] = format.format(confidence);
 
-			retList.add(tableRow);
+			tabularData.add(tableRow);
 		}
 	}
 	
@@ -200,108 +238,57 @@ public class WekaAprioriAlgorithm {
 		}
 	}
 	
-	public Instances getData() {
-		return data;
+	@Override
+	public String getName() {
+		return "Aprirori Algorithm";
 	}
 
-	public void setData(Instances data) {
-		this.data = data;
+	@Override
+	public String getResultDescription() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
-	public String[] getNames() {
-		return names;
+	@Override
+	public void setSelectedOptions(Map<String, Object> selected) {
+		Set<String> keySet = selected.keySet();
+		for(String key : keySet) {
+			for(SEMOSSParam param : options) {
+				if(param.getName().equals(key)){
+					param.setSelected(selected.get(key));
+					break;
+				}
+			}
+		}
 	}
 
-	public void setNames(String[] names) {
-		this.names = names;
+	@Override
+	public List<SEMOSSParam> getOptions() {
+		return this.options;
 	}
 
-	public ArrayList<Object[]> getList() {
-		return list;
+	@Override
+	public String getDefaultViz() {
+		return "prerna.ui.components.playsheets.WekaAprioriVizPlaySheet";
 	}
 
-	public void setList(ArrayList<Object[]> list) {
-		this.list = list;
+	@Override
+	public List<String> getChangedColumns() {
+		return null;
 	}
 
-	public Map<Integer, Collection<Item>> getPremises() {
-		return premises;
-	}
-
-	public void setPremises(Map<Integer, Collection<Item>> premises) {
-		this.premises = premises;
-	}
-
-	public Map<Integer, Collection<Item>> getConsequences() {
-		return consequences;
-	}
-
-	public void setConsequences(Map<Integer, Collection<Item>> consequences) {
-		this.consequences = consequences;
-	}
-
-	public Map<Integer, Integer> getCounts() {
-		return counts;
-	}
-
-	public void setCounts(Map<Integer, Integer> counts) {
-		this.counts = counts;
-	}
-
-	public Map<Integer, Double> getConfidenceIntervals() {
-		return confidenceIntervals;
-	}
-
-	public void setConfidenceIntervals(Map<Integer, Double> confidenceIntervals) {
-		this.confidenceIntervals = confidenceIntervals;
-	}
-	
-	public int getNumRules() {
-		return numRules;
-	}
-
-	public void setNumRules(int numRules) {
-		this.numRules = numRules;
-	}
-
-	public double getConfPer() {
-		return confPer;
-	}
-
-	public void setConfPer(double confPer) {
-		this.confPer = confPer;
-	}
-
-	public double getMinSupport() {
-		return minSupport;
-	}
-
-	public void setMinSupport(double minSupport) {
-		this.minSupport = minSupport;
-	}
-	
-	public double getMaxSupport() {
-		return maxSupport;
-	}
-
-	public void setMaxSupport(double maxSupport) {
-		this.maxSupport = maxSupport;
-	}
-	
-	public String[] getRetNames() {
-		return retNames;
-	}
-
-	public void setRetNames(String[] retNames) {
-		this.retNames = retNames;
-	}
-
-	public ArrayList<Object[]> getRetList() {
-		return retList;
-	}
-
-	public void setRetList(ArrayList<Object[]> retList) {
-		this.retList = retList;
+	@Override
+	public Map<String, Object> getResultMetadata() {
+		// TODO Auto-generated method stub
+		return null;
 	} 
+	
+	public List<Object[]> getTabularData() {
+		return this.tabularData;
+	}
+	
+	public String[] getColumnHeaders() {
+		return this.columnHeaders;
+	}
 
 }
