@@ -169,7 +169,7 @@ circle.hidden {
             var i, n, dirtyData, cleanedData = [],
                 originalData,
                 splitData, splitDataHidden, splitDataKeys,
-                xVar, yVar, zVar;
+                xVar, yVar, zVar, changedColIndex;
 
             //For Viz
             var containerObj = {},
@@ -198,8 +198,8 @@ circle.hidden {
                 cleanedData.push(cleanedObjectHolder);
             }
 
-
-            xVar = "LOP";
+            changedColIndex = jsonData.changedColIndex
+            xVar = jsonData.headers[changedColIndex];
             yVar = "y";
             zVar = "Count";
 
@@ -461,7 +461,7 @@ circle.hidden {
                     .html(function(d) {
                         params=[];
                         for (keys in d){
-                            if (keys === "LOP"){
+                            if (keys === "xVar"){
                                 tempkey = Math.round(d[keys]*10000)/10000;
                             } else {
                                 tempkey = d[keys];
