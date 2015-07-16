@@ -3,10 +3,12 @@ package prerna.ui.components.specific.ousd;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.List;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
@@ -48,7 +50,8 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 
 		//createData makes the table...
 		activitySheet.createData();
-		ArrayList<Object[]> homeTable = activitySheet.getList();
+		ITableDataFrame frame =  activitySheet.getDataFrame();
+		List<Object[]> homeTable = frame.getData();
 		String[] names = activitySheet.getNames();
 
 		HashMap<String, Integer> namesMap = new HashMap<String, Integer>();
@@ -67,15 +70,10 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 			columnNames[2] = "System Group";
 		}
 
-		this.names = columnNames;
-
 		procActivityGroups = new ArrayList<String>();
 		procSystemGroups = new ArrayList<String>();
 
 		findSequence(homeTable, namesMap, new ArrayList<ArrayList<String>>(), 0, procActivityGroups, procSystemGroups);
-
-		list = new ArrayList<Object[]>();
-		list = groupList;
 
 	}
 
@@ -126,7 +124,7 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 	 * @param procActivityGroups
 	 * @param procSystemGroups
 	 */
-	private static void findSequence(ArrayList<Object[]> homeTable, HashMap<String, Integer> nameMap, ArrayList<ArrayList<String>> columns, Integer groupNumber, ArrayList<String> procActivityGroups, ArrayList<String> procSystemGroups){
+	private static void findSequence(List<Object[]> homeTable, HashMap<String, Integer> nameMap, ArrayList<ArrayList<String>> columns, Integer groupNumber, ArrayList<String> procActivityGroups, ArrayList<String> procSystemGroups){
 
 		homeTable = tableCleanup(homeTable, nameMap);
 
@@ -246,7 +244,7 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 	 * @param nameMap
 	 * @return
 	 */
-	private static ArrayList<ArrayList<String>> findMatchingSet(ArrayList<ArrayList<String>> columns, boolean isActivity, ArrayList<Object[]> homeTable, ArrayList<String> procActivityGroups, ArrayList<String> procSystemGroups, HashMap<String, Integer> nameMap){
+	private static ArrayList<ArrayList<String>> findMatchingSet(ArrayList<ArrayList<String>> columns, boolean isActivity, List<Object[]> homeTable, ArrayList<String> procActivityGroups, ArrayList<String> procSystemGroups, HashMap<String, Integer> nameMap){
 
 		int highestWave = 0;
 		ArrayList<String> currentGroup = new ArrayList<String>();
@@ -348,7 +346,7 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 	 * @param nameMap
 	 * @return
 	 */
-	private static ArrayList<Object[]> tableCleanup(ArrayList<Object[]> homeTable, HashMap<String,Integer> nameMap){
+	private static ArrayList<Object[]> tableCleanup(List<Object[]> homeTable, HashMap<String,Integer> nameMap){
 
 		ArrayList<Object[]> updatedHomeTable = new ArrayList<Object[]>();
 
@@ -426,6 +424,17 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 		for(Object[] row: groupList){
 			System.out.println("ROW: "+row[0]+" | "+row[1]+" | "+row[2]);
 		}
+	}
+	
+
+	@Override
+	public Hashtable getData() {
+		Hashtable dataHash = (Hashtable) super.getData();
+		if(dataFrame!=null) {
+			dataHash.put("data", groupList);
+			dataHash.put("headers", new String[]{"Activity Group", "System Group"});
+		}
+		return dataHash;
 	}
 
 }
