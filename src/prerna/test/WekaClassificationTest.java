@@ -13,9 +13,11 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import prerna.algorithm.learning.weka.WekaClassification;
+import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -26,8 +28,8 @@ import prerna.util.Utility;
 /**
 *
 * @author  August Bender
-* @version 1.0
-* @since   06-19-2015 
+* @version 1.1
+* @since   07-16-2015 
 * Questions? Email abender@deloitte.com
 */
 public class WekaClassificationTest {
@@ -38,6 +40,9 @@ public class WekaClassificationTest {
 	WekaClassification alg;
 	private static ArrayList<Object[]> masterTable;
 	private static String[] varNames;
+	
+	private static BendersTools bTools;
+	private static BTreeDataFrame bTree;
 	
 	private String modelName; 
 	private int classIndex = 0;
@@ -92,6 +97,10 @@ public class WekaClassificationTest {
 		engine.commitOWL();
 		engine.commit();
 		engine.closeDB();
+		
+		bTools = new BendersTools();
+		bTree = bTools.createBTree(varNames, masterTable);
+		
 	}
 	
 	@Before
@@ -112,13 +121,14 @@ public class WekaClassificationTest {
 		System.out.println("Class Tear Down ...");
 	}
 	
+	@Ignore
 	@Test
 	public void processTreeStringTest(){
 		modelName = "J48";
-		alg = new WekaClassification(masterTable, varNames, modelName, classIndex);
+		alg = new WekaClassification();
 		
 		try {
-			alg.execute();
+			alg.runAlgorithm(bTree);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -143,10 +153,10 @@ public class WekaClassificationTest {
 	@Test
 	public void executeTest(){
 		modelName = "J48";
-		alg = new WekaClassification(masterTable, varNames, modelName, classIndex);
+		alg = new WekaClassification();
 		
 		try {
-			alg.execute();
+			alg.runAlgorithm(bTree);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

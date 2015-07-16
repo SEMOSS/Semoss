@@ -16,6 +16,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import prerna.algorithm.learning.supervized.CorrelationAlgorithm;
+import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -39,6 +40,9 @@ public class CorrelationAlgorithmTest {
 	private static ArrayList<Object[]> masterTable;
 	private static String[] varNames;
 	private static String[] columnTypesArr;
+	
+	private static BendersTools bTools;
+	private static BTreeDataFrame bTree;
 	
 	@BeforeClass 
 	public static void setUpOnce(){
@@ -84,8 +88,8 @@ public class CorrelationAlgorithmTest {
 			}
 			list.add(row);
 		}	
-		masterTable = list;
-		varNames = names;
+		
+		bTree = bTools.createBTree(names, list);
 		
 		engine.commitOWL();
 		engine.commit();
@@ -96,7 +100,7 @@ public class CorrelationAlgorithmTest {
 	public void setUp(){
 		testCounter++;
 		System.out.println("Test " + testCounter + " starting..");
-		alg = new CorrelationAlgorithm(varNames, masterTable);
+		alg = new CorrelationAlgorithm();
 	}
 	
 	@After
@@ -111,7 +115,7 @@ public class CorrelationAlgorithmTest {
 	
 	@Test
 	public void executeTest(){
-		alg.execute();
+		alg.runAlgorithm(bTree);
 		alg.getCorrelation();
 		
 		//Correlation:
