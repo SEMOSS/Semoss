@@ -132,18 +132,6 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 						{
 							qualifiedValue = uri + "/" + toCamelCase(columnTables.get(var[colIndex]) + "") + "/" + value;
 							stmt.setRawVar(var[colIndex], qualifiedValue);
-						}
-						else if (type == Types.BIGINT ){
-							//this converts the big int object into double,
-							//we had issues in the heatmapplaysheet with conversion of long to double
-							Long valueLong = (long) value;
-							double valueDouble = valueLong.doubleValue();
-							stmt.setRawVar(var[colIndex], valueDouble); 
-						} else if (type == Types.REAL){
-							//this converts float to double as needed for the parcords play sheet
-							Float valueFloat = (float) value;
-							double valueDouble = valueFloat.doubleValue();
-							stmt.setRawVar(var[colIndex], valueDouble);
 						} else {
 							stmt.setRawVar(var[colIndex], value);
 						}
@@ -254,7 +242,7 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 	public String toCamelCase(String input)
 	{
 		String output = input.substring(0,1).toUpperCase() + input.substring(1).toLowerCase();
-		System.out.println("Output is " + output);
+		//System.out.println("Output is " + output);
 		return output;
 	}
 
