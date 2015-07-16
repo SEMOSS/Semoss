@@ -242,6 +242,13 @@ public abstract class AbstractSpecificQueryBuilder {
 		for(int joinIndex = 0;joinIndex < relTriples.size();joinIndex++)
 		{
 			ArrayList <String> thisList = relTriples.get(joinIndex);
+			if(thisList.size()==1){
+				String tableNameURI = thisList.get(0);
+				int lastSlash = tableNameURI.lastIndexOf("/");
+				String tableName = tableNameURI.substring(lastSlash+1);
+				addToTableString(tableName);
+				continue;
+			}
 			String predicate = thisList.get(1);
 			if(predicate.contains(":"))
 				predicate = Utility.getInstanceName(predicate);
