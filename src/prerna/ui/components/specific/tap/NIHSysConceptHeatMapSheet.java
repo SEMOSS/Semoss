@@ -29,6 +29,7 @@ package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Set;
 
 import prerna.engine.api.ISelectStatement;
@@ -52,7 +53,19 @@ public class NIHSysConceptHeatMapSheet extends SimilarityHeatMapSheet{
 	ArrayList<String> conceptNames = new ArrayList<String>();
 	ArrayList<String> sysNames = new ArrayList<String>();
 
-
+	List<Object[]> list;
+	String[] names;
+	
+	@Override
+	public List<Object[]> getTabularData() {
+		return this.list;
+	}
+	
+	@Override
+	public String[] getColumnHeaders() {
+		return this.names;
+	}
+	
 	/**
 	 * Constructor for CapSimHeatMapSheet.
 	 */

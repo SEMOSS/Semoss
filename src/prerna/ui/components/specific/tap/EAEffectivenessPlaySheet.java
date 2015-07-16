@@ -29,6 +29,7 @@ package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import prerna.engine.api.IEngine;
 import prerna.ui.components.playsheets.GridPlaySheet;
@@ -82,6 +83,19 @@ public class EAEffectivenessPlaySheet extends GridPlaySheet {
 	private HashMap<String, ArrayList<String[]>> activityBP;
 	private HashMap<String, HashMap<String, Double>> yearFCCCost;
 	HashMap<String, Double> effectPercent = new HashMap<String, Double>();
+	
+	List<Object[]> list;
+	String[] names;
+	
+	@Override
+	public List<Object[]> getTabularData() {
+		return this.list;
+	}
+	
+	@Override
+	public String[] getColumnHeaders() {
+		return this.names;
+	}
 	
 	/**
 	 * Gathers data from all queries to be used in Effectiveness calculation

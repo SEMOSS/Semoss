@@ -128,4 +128,10 @@ public class SystemTransitionReport extends AbstractRDFPlaySheet{
 		return null;
 	}
 
+	@Override
+	public void processQueryData() {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

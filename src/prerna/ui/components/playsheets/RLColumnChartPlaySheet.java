@@ -28,7 +28,9 @@
 package prerna.ui.components.playsheets;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -38,6 +40,7 @@ import prerna.algorithm.impl.rl.GamblerAction;
 import prerna.algorithm.impl.rl.NumericalState;
 import prerna.algorithm.impl.rl.State;
 import prerna.algorithm.impl.rl.ValueIterationAlgorithm;
+import prerna.ds.BTreeDataFrame;
 
 public class RLColumnChartPlaySheet extends ColumnChartPlaySheet{
 
@@ -57,8 +60,8 @@ public class RLColumnChartPlaySheet extends ColumnChartPlaySheet{
 		alg.findOptimalPolicy();
 		Hashtable<State, ArrayList<Action>> optimalActionHash = alg.getOptimalActionHash();
 		
-		names = new String[]{"Dollar Amount","Suggested Bid Amount"};
-		list = new ArrayList<Object []>();
+		String[] names = new String[]{"Dollar Amount","Suggested Bid Amount"};
+		dataFrame = new BTreeDataFrame(names);
 		
 		for(State state : stateList) {
 			int dollarAmt = ((NumericalState)state).getX();
@@ -74,10 +77,11 @@ public class RLColumnChartPlaySheet extends ColumnChartPlaySheet{
 				GamblerAction action = (GamblerAction)optimalActionHash.get(state).get(0);
 				betAmt = action.getBetAmount();
 			}
-			Object[] row = new Object[]{dollarAmt,betAmt};
-			list.add(row);
+			Map<String, Object> row = new HashMap<String, Object>();
+			row.put(names[0], dollarAmt);
+			row.put(names[1], betAmt);
+			dataFrame.addRow(row, row);
 		}
-		dataHash = processQueryData();
 	}
 	
 	public void setStateList(ArrayList<State> stateList) {

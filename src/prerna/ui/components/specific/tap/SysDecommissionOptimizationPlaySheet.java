@@ -28,6 +28,7 @@
 package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
@@ -42,6 +43,19 @@ public class SysDecommissionOptimizationPlaySheet extends GridPlaySheet{
 
 	public int resource;
 	public double time;
+	
+	List<Object[]> list;
+	String[] names;
+	
+	@Override
+	public List<Object[]> getTabularData() {
+		return this.list;
+	}
+	
+	@Override
+	public String[] getColumnHeaders() {
+		return this.names;
+	}
 	
 	@Override
 	public void createData() {

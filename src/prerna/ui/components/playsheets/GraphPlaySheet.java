@@ -1275,6 +1275,12 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		
 	}
 	
+	@Override
+	public void processQueryData() {
+		// TODO Auto-generated method stub
+
+	}
+	
 	protected void processControlData(SEMOSSEdge edge){
 		String edgeType = edge.getProperty(Constants.EDGE_TYPE).toString();
 		for(String prop : edge.getPropertyKeys()){
@@ -1471,4 +1477,5 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		}
 		return hash;
 	}
+
 }

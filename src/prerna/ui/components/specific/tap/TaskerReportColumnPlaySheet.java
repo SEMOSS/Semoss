@@ -50,11 +50,11 @@ public class TaskerReportColumnPlaySheet extends BrowserPlaySheet{
 	 * Method processQueryData.  Processes the data from the SPARQL query into an appropriate format for the specific play sheet.
 
 	 * @return Hashtable Includes the data series, graph title, and the x- and y-axis titles.*/
-	public Hashtable processQueryData()
+	public void processQueryData()
 	{
 		Hashtable allHash = new Hashtable();
 		//assume only one return
-		Object[] listElement = list.get(0);
+		Object[] listElement = dataFrame.iterator(false, null).next();
 		String serviceName = (String) listElement[0];
 		//assume three numbers to report
 		
@@ -90,7 +90,7 @@ public class TaskerReportColumnPlaySheet extends BrowserPlaySheet{
 		allHash.put("dataSeries",  seriesHash);
 		allHash.put("colorSeries", colorHash);
 		
-		return allHash;
+		this.dataHash = allHash;
 	}
 
 }

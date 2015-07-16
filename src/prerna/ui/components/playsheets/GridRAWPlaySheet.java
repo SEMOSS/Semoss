@@ -27,7 +27,8 @@
  *******************************************************************************/
 package prerna.ui.components.playsheets;
 
-import prerna.engine.api.ISelectStatement;
+import java.util.List;
+
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridRAWTableModel;
 
@@ -35,20 +36,14 @@ import prerna.ui.components.GridRAWTableModel;
  */
 public class GridRAWPlaySheet extends GridPlaySheet {
 	
-	/**
-	 * Method getVariable. Gets the variable names from the query results.
-	 * @param varName String - the variable name.
-	 * @param sjss SesameJenaSelectStatement - the associated sesame jena select statement.
-	
-	 * @return Object - results with given URI.*/
-	@Override
-	public Object getVariable(String varName, ISelectStatement sjss){
-		return sjss.getRawVar(varName).toString();
-	}
-	
 	@Override
 	public GridRAWTableModel setGridModel(GridFilterData gfd) {
 		GridRAWTableModel model = new GridRAWTableModel(gfd);
 		return model;
+	}
+	
+	@Override
+	public List<Object[]> getTabularData() {
+		return dataFrame.getRawData();
 	}
 }

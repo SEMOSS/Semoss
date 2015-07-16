@@ -32,15 +32,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 
-import org.openrdf.model.Literal;
+import prerna.ui.main.listener.specific.tap.SysSimHealthGridListener;
+import prerna.util.Utility;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-
-import prerna.engine.api.ISelectStatement;
-import prerna.ui.main.listener.specific.tap.SysSimHealthGridListener;
-import prerna.util.Utility;
 
 
 /**
@@ -48,6 +46,19 @@ import prerna.util.Utility;
 public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	boolean createSystemBindings = true;
 	String systemListBindings = "BINDINGS ?System ";
+	
+	List<Object[]> list;
+	String[] names;
+	
+	@Override
+	public List<Object[]> getTabularData() {
+		return this.list;
+	}
+	
+	@Override
+	public String[] getColumnHeaders() {
+		return this.names;
+	}
 	
 	/**
 	 * Constructor for SysSimeHeatMapSheet.
@@ -87,6 +98,9 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	{
 		if (!(this.query).equals("NULL") || this.query.isEmpty()) {
 			super.createData();
+			list = this.dataFrame.getData();
+			names = this.dataFrame.getColumnHeaders();
+			
 			if (list!=null && list.isEmpty()) {
 				Utility.showError("Query returned no results.");
 				return;
@@ -242,7 +256,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	}*/
 
 	@Override
-	public Object getData() {
+	public Hashtable getData() {
 		ArrayList args = prepareOrderedVars();
 		Hashtable testHash = new Hashtable();
 		ArrayList<Hashtable<String, Hashtable<String, Double>>> list = calculateHash(args, testHash);
@@ -322,15 +336,6 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 			String paramKey = it.next();
 			paramDataHash.get(paramKey).remove(key);
 		}
-	}
-	
-	@Override
-	public Object getVariable(String varName, ISelectStatement sjss){
-		Object var = sjss.getRawVar(varName);
-			if( var != null && var instanceof Literal) {
-				var = sjss.getVar(varName);
-			} 
-		return var;
 	}
 	
 	//web function for refreshing the heat map data given parameters

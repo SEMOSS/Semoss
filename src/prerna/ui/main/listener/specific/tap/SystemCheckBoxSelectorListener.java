@@ -29,12 +29,11 @@ package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.Vector;
+import java.util.List;
 
 import javax.swing.JCheckBox;
 
 import prerna.ui.components.specific.tap.SysOptCheckboxListUpdater;
-import prerna.engine.api.IEngine;
 import prerna.ui.swing.custom.SelectScrollList;
 
 public class SystemCheckBoxSelectorListener implements ActionListener {
@@ -73,7 +72,7 @@ public class SystemCheckBoxSelectorListener implements ActionListener {
 		else
 			ehrCore = ehrCoreCheckBox.isSelected();
 		
-		Vector<String> systemsToSelect = checkboxListUpdater.getSelectedSystemList(intDHMSMSysCheckBox.isSelected(), notIntDHMSMSysCheckBox.isSelected(), theaterSysCheckBox.isSelected(), garrisonSysCheckBox.isSelected(), lowProbCheckBox.isSelected(), highProbCheckBox.isSelected(), mhsSpecific, ehrCore);
+		List<String> systemsToSelect = checkboxListUpdater.getSelectedSystemList(intDHMSMSysCheckBox.isSelected(), notIntDHMSMSysCheckBox.isSelected(), theaterSysCheckBox.isSelected(), garrisonSysCheckBox.isSelected(), lowProbCheckBox.isSelected(), highProbCheckBox.isSelected(), mhsSpecific, ehrCore);
 		scrollList.setSelectedValues(systemsToSelect);
 	}
 }

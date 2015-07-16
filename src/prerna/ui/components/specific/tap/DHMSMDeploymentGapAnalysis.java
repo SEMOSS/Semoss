@@ -27,8 +27,11 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
-import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
+import prerna.ds.BTreeDataFrame;
 import prerna.ui.components.playsheets.DualEngineGridPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
@@ -42,15 +45,15 @@ public class DHMSMDeploymentGapAnalysis extends GridPlaySheet{
 		DualEngineGridPlaySheet dugp1 = new DualEngineGridPlaySheet();
 		dugp1.setQuery(sitesInPlanWithHPSystemQuery);
 		dugp1.createData();
-		ArrayList<Object[]> sitesInPlanWithHPSystems = dugp1.getList();
+		List<Object[]> sitesInPlanWithHPSystems = dugp1.getTabularData();
 		
 		DualEngineGridPlaySheet dugp2 = new DualEngineGridPlaySheet();
 		dugp2.setQuery(sitesWithHPSystemQuery);
 		dugp2.createData();
-		ArrayList<Object[]> sitesWithHPSystems = dugp2.getList();
+		List<Object[]> sitesWithHPSystems = dugp2.getTabularData();
 		
-		list = new ArrayList<Object[]>();
-		names = new String[]{"HostSite","System"};
+		String[] names = new String[]{"HostSite","System"};
+		this.dataFrame = new BTreeDataFrame(names);
 		
 		int i;
 		int j;
@@ -74,12 +77,15 @@ public class DHMSMDeploymentGapAnalysis extends GridPlaySheet{
 			}
 			
 			if(!match) {
-				list.add(values1);
+				Map<String, Object> row = new HashMap<String, Object>();
+				row.put(names[0], values1[0]);
+				row.put(names[1], values1[1]);
+				dataFrame.addRow(row, row);
 			}
 		}
 	}
 	
-	public ArrayList<Object[]> getList() {
-		return list;
+	public List<Object[]> getList() {
+		return dataFrame.getData();
 	}
 }

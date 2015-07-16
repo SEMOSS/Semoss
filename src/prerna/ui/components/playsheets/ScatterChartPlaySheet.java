@@ -30,10 +30,8 @@ package prerna.ui.components.playsheets;
 import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Iterator;
 
-import org.openrdf.model.Literal;
-
-import prerna.engine.api.ISelectStatement;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -58,29 +56,28 @@ public class ScatterChartPlaySheet extends BrowserPlaySheet{
 	 * Method processQueryData.  Processes the data from the SPARQL query into an appropriate format for the specific play sheet.
 	
 	 * @return Hashtable Includes the data series, graph title, and the x- and y-axis titles.*/
-	public Hashtable processQueryData()
+	public void processQueryData()
 	{
-		if(list == null || list.isEmpty()) {
-			return null;
-		}
-		ArrayList allData = new ArrayList();
-		String[] var = wrapper.getVariables();
-		String name = var[0];
+		String[] names = dataFrame.getColumnHeaders();
+		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		
+		String name = names[0];
 		boolean hasType = true;
 		try {
-			Double.parseDouble(list.get(0)[1].toString());
+			Double.parseDouble(it.next()[1].toString());
 			hasType = false;
 		} catch (NumberFormatException ex) {
-			// do nothing, hasType is alreayd true
+			// do nothing, hasType is already true
 		}
 		if(hasType) {
 			offset = 1;
 		}
 		
-		for (int i=0;i<list.size();i++)
+		ArrayList<Hashtable<String, Object>> allData = new ArrayList<Hashtable<String, Object>>();
+		while(it.hasNext())
 		{
-			Hashtable elementHash = new Hashtable();
-			Object[] listElement = list.get(i);
+			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
+			Object[] listElement = it.next();
 			
 			if(hasType) {
 				name = listElement[0].toString();
@@ -110,7 +107,7 @@ public class ScatterChartPlaySheet extends BrowserPlaySheet{
 //			dataSet[3]=(String) listElement[0];//
 			allData.add(elementHash);
 		}
-		Hashtable allHash = new Hashtable();
+		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
 		allHash.put("dataSeries", allData);
 		allHash.put("title",  names[1 + offset] + " vs " + names[2 + offset]);
 		allHash.put("labelHeader", names[0 + offset]);
@@ -119,22 +116,15 @@ public class ScatterChartPlaySheet extends BrowserPlaySheet{
 			allHash.put("yAxisTitle", names[2 + offset]);
 		if(names.length > 3 + offset)
 			allHash.put("zAxisTitle", names[3 + offset]);
-		return allHash;
-	}
-	
-	
-	@Override
-	public Object getVariable(String varName, ISelectStatement sjss){
-		Object var = sjss.getRawVar(varName);
-			if( var != null && var instanceof Literal) {
-				var = sjss.getVar(varName);
-			} 
-		return var;
+
+		this.dataHash = allHash;
 	}
 	
 	@Override
 	public Hashtable<String, String> getDataTableAlign() {
 		Hashtable<String, String> alignHash = new Hashtable<String, String>();
+		String[] names = dataFrame.getColumnHeaders();
+		
 		if(offset != 0)
 			alignHash.put("series", names[0]);
 		alignHash.put("label", names[0 + offset]);

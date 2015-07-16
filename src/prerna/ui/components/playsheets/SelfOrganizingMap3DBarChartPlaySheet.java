@@ -2,14 +2,15 @@ package prerna.ui.components.playsheets;
 
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 import javax.swing.JComponent;
-import javax.swing.JMenuItem;
 import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
@@ -18,33 +19,30 @@ import javax.swing.JTable;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.learning.unsupervised.som.SelfOrganizingMap;
+import prerna.algorithm.learning.unsupervised.som.SOMRoutine;
 import prerna.algorithm.learning.unsupervised.som.SelfOrganizingMapGridViewer;
-import prerna.engine.api.ISelectStatement;
-import prerna.engine.api.ISelectWrapper;
-import prerna.ui.components.GridFilterData;
-import prerna.ui.components.GridTableModel;
-import prerna.ui.components.GridTableRowSorter;
+import prerna.om.SEMOSSParam;
+import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.NewScrollBarUI;
-import prerna.ui.main.listener.impl.GridPlaySheetListener;
-import prerna.ui.main.listener.impl.JTableExcelExportListener;
-import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 public class SelfOrganizingMap3DBarChartPlaySheet extends BrowserPlaySheet {
 
 	private static final Logger LOGGER = LogManager.getLogger(SelfOrganizingMap3DBarChartPlaySheet.class.getName());
 
-	private SelfOrganizingMap alg;
-	
-	private Double l0;
-	private Double r0;
-	private Double tau;
-	private Integer maxIt;
-	
+	private SOMRoutine alg;
+	private String[] columnHeaders;
 	private double[][] zAxisGrid;
+
+	private int instanceIndex = 0;
+	private double initalRadius = 2.0;
+	private double learningRate = 0.07;
+	private double tau = 7.5;
+	private int maxIterations = 15;
+	private int gridWidth;
+	private int gridLength;
+	private List<String> skipAttributes;
 	
 	public SelfOrganizingMap3DBarChartPlaySheet() {
 		super();
@@ -55,76 +53,40 @@ public class SelfOrganizingMap3DBarChartPlaySheet extends BrowserPlaySheet {
 	
 	@Override
 	public void createData() {
-		generateData();
-		runAlgorithm();
-		dataHash = processQueryData();
+		if(dataFrame == null || dataFrame.isEmpty())
+			super.createData();
 	}
 
-	private void generateData() {
-		if(query!=null) {
-			list = new ArrayList<Object[]>();
-
-			ISelectWrapper sjsw = Utility.processQuery(engine, query);
-			names = sjsw.getVariables();
-			int length = names.length;
-			while(sjsw.hasNext()) {
-				ISelectStatement sjss = sjsw.next();
-				Object[] row = new Object[length];
-				int i = 0;
-				for(; i < length; i++) {
-					row[i] = sjss.getVar(names[i]);
-				}
-				list.add(row);
-			}
+	@Override
+	public void runAnalytics() {
+		alg = new SOMRoutine();
+		List<SEMOSSParam> options = alg.getOptions();
+		Map<String, Object> selectedOptions = new HashMap<String, Object>();
+		selectedOptions.put(options.get(0).getName(), instanceIndex); // default of 0 is acceptable
+		selectedOptions.put(options.get(1).getName(), initalRadius);
+		selectedOptions.put(options.get(2).getName(), learningRate);
+		selectedOptions.put(options.get(3).getName(), tau);
+		selectedOptions.put(options.get(4).getName(), maxIterations);
+		if(gridWidth > 0) {
+			selectedOptions.put(options.get(5).getName(), gridWidth);
 		}
-	}
-
-	public void runAlgorithm() {
-		
-		long start = System.currentTimeMillis();
-		
-		LOGGER.info("Creating apriori algorithm for instance: " + names[0]);
-		alg = new SelfOrganizingMap(list, names);
-		if(l0 != null) {
-			alg.setL0(l0);
+		if(gridLength > 0) {
+			selectedOptions.put(options.get(6).getName(), gridLength);
 		}
-		if(tau != null) {
-			alg.setTau(tau);
-		}
-		if(r0 != null) {
-			alg.setR0(r0);
-		}
-		if(maxIt != null) {
-			alg.setMaxIt(maxIt);
-		}
-		boolean success = alg.execute();
-		if(success == false) {
-			Utility.showError("Error occured running SOM Algorithm!");
-		} else {
-			zAxisGrid = SelfOrganizingMapGridViewer.generateZAxisGridValues(alg.getLength(), alg.getWidth(), alg.getNumInstancesInGrid());
-		}
-		
-		long end = System.currentTimeMillis();
-
-		System.out.println("Time in (s): " + (end-start)/1000);
+		selectedOptions.put(options.get(7).getName(), skipAttributes);
+		alg.setSelectedOptions(selectedOptions);
+		dataFrame.performAction(alg);
+		this.columnHeaders = dataFrame.getColumnHeaders();
+		zAxisGrid = SelfOrganizingMapGridViewer.generateZAxisGridValues(alg.getGridLength(), alg.getGridWidth(), alg.getNumInstancesInGrid());
 	}
 	
 	@Override 
-	public Hashtable processQueryData() {
-		SelfOrganizingMapPlaySheet tablePS = new SelfOrganizingMapPlaySheet();
-		tablePS.setList(list);
-		tablePS.setNames(names);
-		tablePS.setAlg(alg);
-		tablePS.processAlgorithm();
-		list = tablePS.getList();
-		names = tablePS.getNames();
-		
-		dataHash = new Hashtable();
-		dataHash.put("specificData", zAxisGrid);
-		dataHash.put("data", list);
-		dataHash.put("headers", names);
-		
-		return dataHash;
+	public void processQueryData() {
+		Hashtable<String, Object> data = new Hashtable<String, Object>();
+		data.put("specificData", zAxisGrid);
+		data.put("data", dataFrame.getData());
+		data.put("headers", dataFrame.getColumnHeaders());
+		this.dataHash = data ;
 	}
 	
 	@Override
@@ -144,103 +106,118 @@ public class SelfOrganizingMap3DBarChartPlaySheet extends BrowserPlaySheet {
 		return dataHash;
 	}
 	
-	public SelfOrganizingMap getAlg() {
-		return alg;
-	}
-	public void setAlg(SelfOrganizingMap alg) {
-		this.alg = alg;
-	}
-	public Integer getMaxIt() {
-		return maxIt;
-	}
-	public void setMaxIt(Integer maxIt) {
-		this.maxIt = maxIt;
+	public int getInstanceIndex() {
+		return instanceIndex;
 	}
 
-	@Override
-	public void addPanel()
-	{
-		if(jTab==null) {
-			super.addPanel();
-			addGridTab(1);
-		} else {
-			String lastTabName = jTab.getTitleAt(jTab.getTabCount()-1);
-			LOGGER.info("Parsing integer out of last tab name");
-			int count = 1;
-			if(jTab.getTabCount()>1)
-				count = Integer.parseInt(lastTabName.substring(0,lastTabName.indexOf(".")))+1;
-			addPanelAsTab(count+". Self Organizing Map");
-			addGridTab(count);
-		}
-		
-		new CSSApplication(getContentPane());
-	}
-	
-	public void addGridTab(int count) {
-		JTable table = new JTable();
-		// Add Excel export popup menu and menuitem
-		JPopupMenu popupMenu = new JPopupMenu();
-		JMenuItem menuItemAdd = new JMenuItem("Export to Excel");
-		String questionTitle = this.getTitle();
-		menuItemAdd.addActionListener(new JTableExcelExportListener(table, questionTitle));
-		popupMenu.add(menuItemAdd);
-		table.setComponentPopupMenu(popupMenu);
-		
-		GridPlaySheetListener gridPSListener = new GridPlaySheetListener();
-		LOGGER.debug("Created the table");
-		this.addInternalFrameListener(gridPSListener);
-		LOGGER.debug("Added the internal frame listener ");
-		// table.setAutoCreateRowSorter(true);
-		
-		GridFilterData gfd = new GridFilterData();
-		gfd.setColumnNames(names);
-		// append cluster information to list data
-		gfd.setDataList(list);
-		GridTableModel model = new GridTableModel(gfd);
-		table.setModel(model);
-		table.setRowSorter(new GridTableRowSorter(model));
-
-		JPanel panel = new JPanel();
-		panel.add(table);
-		GridBagLayout gbl_mainPanel = new GridBagLayout();
-		gbl_mainPanel.columnWidths = new int[] { 0, 0 };
-		gbl_mainPanel.rowHeights = new int[] { 0, 0 };
-		gbl_mainPanel.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
-		gbl_mainPanel.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
-		panel.setLayout(gbl_mainPanel);
-		
-		addScrollPanel(panel, table);
-		jTab.addTab(count + ". SOM Raw Data", panel);
+	public void setInstanceIndex(int instanceIndex) {
+		this.instanceIndex = instanceIndex;
 	}
 
-	public Double getL0() {
-		return l0;
+	public double getInitalRadius() {
+		return initalRadius;
 	}
-	public void setL0(Double l0) {
-		this.l0 = l0;
+
+	public void setInitalRadius(double initalRadius) {
+		this.initalRadius = initalRadius;
 	}
-	public Double getR0() {
-		return r0;
+
+	public double getLearningRate() {
+		return learningRate;
 	}
-	public void setR0(Double r0) {
-		this.r0 = r0;
+
+	public void setLearningRate(double learningRate) {
+		this.learningRate = learningRate;
 	}
-	public Double getTau() {
+
+	public double getTau() {
 		return tau;
 	}
-	public void setTau(Double tau) {
+
+	public void setTau(double tau) {
 		this.tau = tau;
 	}
 
+	public int getMaxIterations() {
+		return maxIterations;
+	}
+
+	public void setMaxIterations(int maxIterations) {
+		this.maxIterations = maxIterations;
+	}
+
+	public int getGridWidth() {
+		return gridWidth;
+	}
+
+	public void setGridWidth(int gridWidth) {
+		this.gridWidth = gridWidth;
+	}
+
+	public int getGridLength() {
+		return this.gridLength;
+	}
+
+	public void setGridLength(int gridLength) {
+		this.gridLength = gridLength;
+	}
+	
+	public void setSkipAttributes(List<String> skipAttributes) {
+		this.skipAttributes = skipAttributes;
+	}
+	
 	@Override
-	public Object getVariable(String varName, ISelectStatement sjss){
-		return sjss.getVar(varName);
+	public String[] getColumnHeaders() {
+		String[] newNames;
+		if(skipAttributes == null || (skipAttributes.size() == 0)) {
+			newNames = columnHeaders;
+		} else {
+			newNames = new String[columnHeaders.length - skipAttributes.size()];
+			int counter = 0;
+			for(String name : columnHeaders) {
+				if(!skipAttributes.contains(name)) {
+					newNames[counter] = name;
+					counter++;
+				}
+			}
+		}
+		
+		return newNames;
 	}
-	public void setJTab(JTabbedPane jTab) {
-		this.jTab = jTab;
+	
+	@Override
+	public List<Object[]> getTabularData() {
+		List<Object[]> allData = new ArrayList<Object[]>();
+		Iterator<Object[]> it = dataFrame.iterator(false, skipAttributes);
+		while(it.hasNext()) {
+			allData.add(it.next());
+		}
+		
+		return allData;
 	}
-	public void setJBar(JProgressBar jBar) {
-		this.jBar = jBar;
+	
+	/////////////////////////////SWING DEPENDENT CODE/////////////////////////////
+	@Override
+	public void addPanel() {
+		if (jTab == null) {
+			super.addPanel();
+		} else {
+			String lastTabName = jTab.getTitleAt(jTab.getTabCount() - 1);
+			LOGGER.info("Parsing integer out of last tab name");
+			int count = 1;
+			if (jTab.getTabCount() > 1)
+				count = Integer.parseInt(lastTabName.substring(0, lastTabName.indexOf("."))) + 1;
+			addPanelAsTab(count + ". SOM Viz Data");
+			addGridTab(count + ". SOM Raw Data");
+		}
+	}
+
+	public void addGridTab(String tabName) {
+		table = new JTable();
+		GridScrollPane gsp = null;
+		gsp = new GridScrollPane(dataFrame.getColumnHeaders(), dataFrame.getData());
+		gsp.addHorizontalScroll();
+		jTab.addTab(tabName, gsp);
 	}
 
 	public void addScrollPanel(JPanel panel, JComponent obj) {
@@ -253,6 +230,14 @@ public class SelfOrganizingMap3DBarChartPlaySheet extends BrowserPlaySheet {
 		gbc_scrollPane.gridx = 0;
 		gbc_scrollPane.gridy = 0;
 		panel.add(scrollPane, gbc_scrollPane);
+	}
+
+	public void setJTab(JTabbedPane jTab) {
+		this.jTab = jTab;
+	}
+
+	public void setJBar(JProgressBar jBar) {
+		this.jBar = jBar;
 	}
 	
 }

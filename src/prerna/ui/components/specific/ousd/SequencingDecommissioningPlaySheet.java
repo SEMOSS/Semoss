@@ -39,6 +39,8 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -158,11 +160,11 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 		namesList.add(compObjName);
 		namesList.add(compObjName + " Group");
 
-		list = new ArrayList<Object[]>();
+		this.dataFrame = new BTreeDataFrame(namesList.toArray(new String[0]));
 		//key is counter for one level above group
 		for(Integer key: groups.keySet()){
 			List<List<Integer>> depGroups = groups.get(key);
-			for(List<Integer> depGroup: depGroups){
+			for(List<Integer> depGroup: depGroups) {
 				String keyToGroupCounter = new String(key.toString()+"."+groupCounter);
 //				double location = Double.parseDouble(keyToGroupCounter);
 				
@@ -170,12 +172,15 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 				for(String addtlQuery: this.addtlQueries){
 					processQuery(depGroup, addtlQuery, addtlCols, namesList);
 				}
-				for(Integer compObj: depGroup){
+				for(Integer compObj: depGroup) {
 					Object[] depObj = new Object[namesList.size()];
 					depObj[0] = Utility.getInstanceName(compObjList.get(compObj));
 					depObj[1] = keyToGroupCounter;
 					if(addtlCols.isEmpty()){
-						list.add(depObj);
+						Map<String, Object> row = new HashMap<String, Object>();
+						row.put(namesList.get(0), depObj[0]);
+						row.put(namesList.get(1), depObj[1]);
+						dataFrame.addRow(row, row);
 					}
 					else {
 						for(Object[] row : addtlCols){
@@ -184,7 +189,10 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 								LOGGER.debug(row[addtlIdx]);
 								depObj2[addtlIdx] = row[addtlIdx];
 							}
-							list.add(depObj2);
+							Map<String, Object> hashRow = new HashMap<String, Object>();
+							hashRow.put(namesList.get(0), depObj[0]);
+							hashRow.put(namesList.get(1), depObj[1]);
+							dataFrame.addRow(hashRow, hashRow);
 						}
 					}
 					LOGGER.debug("Added object "+compObj);
@@ -193,10 +201,6 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			}
 			groupCounter = 0;
 		}
-
-		// set the names
-		this.names = new String[namesList.size()];
-		this.names = namesList.toArray(this.names);
 	}
 	
 	private void processQuery(List<Integer> depGroup, String addtlQuery, List<Object[]> addtlCols, List<String> namesList){

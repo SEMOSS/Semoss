@@ -30,7 +30,9 @@ package prerna.ui.components.playsheets;
 import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.Map;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -54,14 +56,16 @@ public class ParallelSetsPlaySheet extends BrowserPlaySheet {
 	 * Method processQueryData.  Processes the data from the SPARQL query into an appropriate format for the specific play sheet.
 	
 	 * @return Hashtable - Processed text and numerical data accordingly for the parallel sets visualization.*/
-	public Hashtable processQueryData()
+	public void processQueryData()
 	{
-		ArrayList dataArrayList = new ArrayList();
-		String[] var = wrapper.getVariables(); 		
-		for (int i=0; i<list.size(); i++)
+		ArrayList<Map<String, Object>> dataArrayList = new ArrayList<Map<String, Object>>();
+		String[] var = dataFrame.getColumnHeaders();
+
+		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		while(it.hasNext())
 		{	
-			LinkedHashMap elementHash = new LinkedHashMap();
-			Object[] listElement = list.get(i);
+			LinkedHashMap<String, Object> elementHash = new LinkedHashMap<String, Object>();
+			Object[] listElement = it.next();
 			String colName;
 			Double value;
 			for (int j = 0; j < var.length; j++) 
@@ -90,15 +94,18 @@ public class ParallelSetsPlaySheet extends BrowserPlaySheet {
 			}
 				dataArrayList.add(elementHash);			
 		}
-		Hashtable allHash = new Hashtable();
+		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
 		allHash.put("dataSeries", dataArrayList);
 		allHash.put("headers", var);
 		
-		return allHash;
+		this.dataHash = allHash;
 	}
+	
 	@Override
 	public Hashtable<String, String> getDataTableAlign() {
 		Hashtable<String, String> alignHash = new Hashtable<String, String>();
+		String[] names = dataFrame.getColumnHeaders();
+
 		for(int namesIdx = 0; namesIdx<names.length; namesIdx++){
 			alignHash.put("dim " + namesIdx, names[namesIdx]);
 		}

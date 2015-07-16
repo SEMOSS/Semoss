@@ -660,4 +660,9 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	public Hashtable<String, String> getDataTableAlign() {
 		return null;
 	}
+
+	@Override
+	public void processQueryData() {
+
+	}
 }

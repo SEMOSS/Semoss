@@ -29,6 +29,7 @@ package prerna.ui.components.specific.cbp;
 
 import java.awt.Dimension;
 import java.util.Hashtable;
+import java.util.Iterator;
 
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;
@@ -55,14 +56,15 @@ public class HeatMapPlaySheet extends BrowserPlaySheet{
 	
 	 * @return 	Hashtable with data from the SPARQL query results in correct format. */
 	@Override
-	public Hashtable processQueryData()
+	public void processQueryData()
 	{
-		Hashtable dataHash = new Hashtable();
-		Hashtable dataSeries = new Hashtable();
-		for (int i=0;i<list.size();i++)
+		Hashtable<String, Hashtable<String, Object>> dataHash = new Hashtable<String, Hashtable<String, Object>>();
+		
+		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		while(it.hasNext())
 		{
-			Hashtable elementHash = new Hashtable();
-			Object[] listElement = list.get(i);
+			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
+			Object[] listElement = it.next();
 
 			if (!((String)listElement[3]).contains("blank") && !((String)listElement[1]).contains("blank") 
 					&& !((String)listElement[1]).contains("#N-A")&& !((String)listElement[1]).contains("#VALUE!") )
@@ -79,13 +81,13 @@ public class HeatMapPlaySheet extends BrowserPlaySheet{
 				}
 				else
 				{
-					elementHash = (Hashtable) dataHash.get(key);
+					elementHash = (Hashtable<String, Object>) dataHash.get(key);
 					double count = (Double) elementHash.get("value");
 					elementHash.put("value", count+1);
 				}
 			}
 		}
-		return dataHash;
+		this.dataHash = dataHash;
 	}
 
 }

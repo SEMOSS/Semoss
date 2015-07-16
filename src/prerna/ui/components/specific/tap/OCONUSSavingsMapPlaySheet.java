@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
@@ -58,9 +59,22 @@ public class OCONUSSavingsMapPlaySheet extends OCONUSMapPlaySheet {
 	// Query used for single functional gap loss
 	private final String getFGActivityWeightQuery = "SELECT DISTINCT ?fg ?activity ?weight WHERE {{?fg a <http://semoss.org/ontologies/Concept/FError>}{?activity a <http://semoss.org/ontologies/Concept/Activity>}{?assigned <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Assigned>}{?assigned <http://semoss.org/ontologies/Relation/Contains/weight> ?weight}{?activity ?assigned ?fg}}";
 	
+	List<Object[]> list;
+	String[] names;
+	
+	@Override
+	public List<Object[]> getTabularData() {
+		return this.list;
+	}
+	
+	@Override
+	public String[] getColumnHeaders() {
+		return this.names;
+	}
+	
 	@SuppressWarnings("unchecked")
 	@Override
-	public Hashtable processQueryData() {
+	public void processQueryData() {
 		EAFunctionalGapHelper helper = new EAFunctionalGapHelper();
 		list = getInitialList(getInitialQuery, tapSite);
 		
@@ -228,7 +242,7 @@ public class OCONUSSavingsMapPlaySheet extends OCONUSMapPlaySheet {
 		 * allHash.put("xAxisTitle", var[0]); allHash.put("yAxisTitle", var[1]); allHash.put("value", var[2]);
 		 */
 		
-		return allHash;
+		this.dataHash = allHash;
 	}
 	
 	private ArrayList<Object[]> getInitialList(String query, IEngine engine) {

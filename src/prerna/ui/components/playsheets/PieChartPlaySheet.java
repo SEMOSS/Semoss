@@ -30,17 +30,14 @@ package prerna.ui.components.playsheets;
 import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Iterator;
 
-import org.openrdf.model.Literal;
-
-import prerna.engine.api.ISelectStatement;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class PieChartPlaySheet extends BrowserPlaySheet{
 
-	public PieChartPlaySheet() 
-	{
+	public PieChartPlaySheet() {
 		super();
 		this.setPreferredSize(new Dimension(800,600));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
@@ -48,13 +45,15 @@ public class PieChartPlaySheet extends BrowserPlaySheet{
 	}
 	
 	
-	public Hashtable<String, Object> processQueryData()
+	public void processQueryData()
 	{		
 		ArrayList< ArrayList<Hashtable<String, Object>>> dataObj = new ArrayList< ArrayList<Hashtable<String, Object>>>();
-
-		for( int i = 0; i < list.size(); i++)
+		String[] names = dataFrame.getColumnHeaders();
+		
+		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		while(it.hasNext())
 		{
-			Object[] elemValues = list.get(i);
+			Object[] elemValues = it.next();
 			for( int j = 1; j < elemValues.length; j++)
 			{
 				ArrayList<Hashtable<String,Object>> seriesArray = new ArrayList<Hashtable<String,Object>>();
@@ -62,7 +61,7 @@ public class PieChartPlaySheet extends BrowserPlaySheet{
 					seriesArray = dataObj.get(j-1);
 				else
 					dataObj.add(j-1, seriesArray);
-				Hashtable<String, Object> elementHash = new Hashtable();
+				Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
 				elementHash.put("pieCat", elemValues[0].toString());
 				elementHash.put("pieVal", elemValues[j]);
 				seriesArray.add(elementHash);
@@ -74,21 +73,14 @@ public class PieChartPlaySheet extends BrowserPlaySheet{
 		pieChartHash.put("type", "pie");
 		pieChartHash.put("dataSeries", dataObj);
 		
-		return pieChartHash;
-	}
-	
-	@Override
-	public Object getVariable(String varName, ISelectStatement sjss){
-		Object var = sjss.getRawVar(varName);
-			if( var != null && var instanceof Literal) {
-				var = sjss.getVar(varName);
-			} 
-		return var;
+		this.dataHash = pieChartHash;
 	}
 	
 	@Override
 	public Hashtable<String, String> getDataTableAlign() {
 		Hashtable<String, String> alignHash = new Hashtable<String, String>();
+		String[] names = dataFrame.getColumnHeaders();
+		
 		alignHash.put("label", names[0]);
 		for(int namesIdx = 1; namesIdx<names.length; namesIdx++){
 			alignHash.put("value " + namesIdx, names[namesIdx]);

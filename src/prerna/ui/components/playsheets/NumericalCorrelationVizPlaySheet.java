@@ -28,24 +28,39 @@
 package prerna.ui.components.playsheets;
 
 import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.List;
+
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTable;
 
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.util.CSSApplication;
+import prerna.ui.components.GridScrollPane;
+import prerna.ui.components.NewScrollBarUI;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 
 	private static final Logger LOGGER = LogManager.getLogger(NumericalCorrelationVizPlaySheet.class.getName());		
+	
+	private String[] columnHeaders;
 	private double[][] correlationArray;
-
+	
 	private boolean includesInstance = true;
-	
-	
+	private List<String> skipAttributes;
+
+
 	/**
 	 * Constructor for MatrixRegressionVizPlaySheet.
 	 */
@@ -55,123 +70,144 @@ public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/scatter-plot-matrix.html";
 	}
-	
+
 	@Override
 	public void createData() {
-		if(list==null)
+		if(dataFrame == null || dataFrame.isEmpty())
 			super.createData();
-		else
-			dataHash = processQueryData();
 	}
-	
-	public void runAlgorithm() {
 
-		int numCols = names.length;
-		
+	@Override
+	public void runAnalytics() {
+		this.columnHeaders = dataFrame.getColumnHeaders();
+		int numCols = columnHeaders.length;
+
 		//create the b and A arrays which are used in matrix regression to determine coefficients
 		double[][] dataArr;
-		if(includesInstance)
-			dataArr = MatrixRegressionHelper.createA(list, 1, numCols);
-		else
-			dataArr = MatrixRegressionHelper.createA(list, 0, numCols);
-
-		//run covariance 
-//		Covariance covariance = new Covariance(dataArr);
-//		double[][] covarianceArray = covariance.getCovarianceMatrix().getData();
-		//run correlation
-		//TODO this can be simplified to only get correlation for the params we need
+		if(includesInstance) {
+			dataArr = MatrixRegressionHelper.createA(dataFrame, skipAttributes, 1, numCols);
+		} else {
+			dataArr = MatrixRegressionHelper.createA(dataFrame, skipAttributes, 0, numCols);
+		}
+		
 		PearsonsCorrelation correlation = new PearsonsCorrelation(dataArr);
 		correlationArray = correlation.getCorrelationMatrix().getData();		
 	}
-	
+
 	@Override
-	public Hashtable processQueryData()
-	{
-		runAlgorithm();
-		int i;
-		int j;
-		int listNumRows = list.size();
+	public void processQueryData() {
 		int numVariables;
-		int variableStartCol;
 		String id;
-		
 		if(includesInstance) {
-			numVariables = names.length - 1;
-			variableStartCol = 1;
-			id = names[0];
+			numVariables = columnHeaders.length - 1;
+			id = columnHeaders[0];
 		}else {
-			numVariables = names.length;
-			variableStartCol = 0;
+			numVariables = columnHeaders.length;
 			id = "";
 		}
-		
-		//for each element/instance
-		//add its values for all independent variables to the dataSeriesHash
-		Object[][] dataSeries = new Object[listNumRows][numVariables + 1];
-		
-		//set the first value to either be the instance, or null
-		if(includesInstance) {
-			for(i=0;i<listNumRows;i++) {
-				dataSeries[i][0] = list.get(i)[0];
-			}
-		}//not sure if i need the below?
-//		else {
-//			for(i=0;i<listNumRows;i++) {
-//				dataSeries[i][0] = "";
-//			}
-//		}
-
-		for(i=0;i<listNumRows;i++) {
-			for(j=0; j<numVariables; j++) {
-				dataSeries[i][j+1] = list.get(i)[j+variableStartCol];
-			}
+		if(skipAttributes != null) {
+			numVariables -= skipAttributes.size();
 		}
-
+		
 		// reversing values since it is being painted by JS in reverse order
 		double[][] correlations = new double[numVariables][numVariables];
+		int i = 0;
+		int j = 0;
 		for(i = 0; i<numVariables; i++) {
 			for(j = 0; j<numVariables; j++) {
 				correlations[numVariables-i-1][numVariables-j-1] = correlationArray[i][j];
 			}
 		}
 
-		dataHash = new Hashtable();
-		dataHash.put("one-row",false);
-		dataHash.put("id",id);
-		dataHash.put("names", names);
-		dataHash.put("dataSeries", dataSeries);
-		dataHash.put("correlations", correlations);
+		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
+		allHash.put("one-row",false);
+		allHash.put("id",id);
+		allHash.put("names", getColumnHeaders());
+		allHash.put("dataSeries", getTabularData());
+		allHash.put("correlations", correlations);
+
+		this.dataHash= allHash;
+	}
+
+	@Override
+	public String[] getColumnHeaders() {
+		String[] newNames;
+		if(skipAttributes == null || (skipAttributes.size() == 0)) {
+			newNames = columnHeaders;
+		} else {
+			newNames = new String[columnHeaders.length - skipAttributes.size()];
+			int counter = 0;
+			for(String name : columnHeaders) {
+				if(!skipAttributes.contains(name)) {
+					newNames[counter] = name;
+					counter++;
+				}
+			}
+		}
 		
-//		Gson gson = new Gson();
-//		System.out.println(gson.toJson(dataHash));
-		
-		return dataHash;
+		return newNames;
 	}
 	
-	/**
-	 * Method addPanel. Creates a panel and adds the table to the panel.
-	 */
 	@Override
-	public void addPanel()
-	{
-		//if this is to be a separate playsheet, create the tab in a new window
-		//otherwise, if this is to be just a new tab in an existing playsheet,
-		
-		if(jTab==null) {
-			super.addPanel();
-		} else {
-			String lastTabName = jTab.getTitleAt(jTab.getTabCount()-1);
-			LOGGER.info("Parsing integer out of last tab name");
-			int count = 1;
-			if(jTab.getTabCount()>1)
-				count = Integer.parseInt(lastTabName.substring(0,lastTabName.indexOf(".")))+1;
-			addPanelAsTab(count+". Correlation");
+	public List<Object[]> getTabularData() {
+		List<Object[]> allData = new ArrayList<Object[]>();
+		Iterator<Object[]> it = dataFrame.iterator(false, skipAttributes);
+		while(it.hasNext()) {
+			allData.add(it.next());
 		}
-		new CSSApplication(getContentPane());
+		
+		return allData;
 	}
 	
 	public void setIncludesInstance(boolean includesInstance) {
 		this.includesInstance = includesInstance;
 	}
+	
+	public void setSkipAttributes(List<String> skipAttributes) {
+		this.skipAttributes = skipAttributes;
+	}
 
+	/////////////////////////////SWING DEPENDENT CODE/////////////////////////////
+	@Override
+	public void addPanel() {
+		if (jTab == null) {
+			super.addPanel();
+		} else {
+			String lastTabName = jTab.getTitleAt(jTab.getTabCount() - 1);
+			LOGGER.info("Parsing integer out of last tab name");
+			int count = 1;
+			if (jTab.getTabCount() > 1)
+				count = Integer.parseInt(lastTabName.substring(0, lastTabName.indexOf("."))) + 1;
+			addPanelAsTab(count + ". Correlation Viz Data");
+			addGridTab(count + ". Correlation Raw Data");
+		}
+	}
+
+	public void addGridTab(String tabName) {
+		table = new JTable();
+		GridScrollPane gsp = null;
+		gsp = new GridScrollPane(getColumnHeaders(), getTabularData());
+		gsp.addHorizontalScroll();
+		jTab.addTab(tabName, gsp);
+	}
+
+	public void addScrollPanel(JPanel panel, JComponent obj) {
+		JScrollPane scrollPane = new JScrollPane(obj);
+		scrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
+		scrollPane.setAutoscrolls(true);
+
+		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
+		gbc_scrollPane.fill = GridBagConstraints.BOTH;
+		gbc_scrollPane.gridx = 0;
+		gbc_scrollPane.gridy = 0;
+		panel.add(scrollPane, gbc_scrollPane);
+	}
+
+	public void setJTab(JTabbedPane jTab) {
+		this.jTab = jTab;
+	}
+
+	public void setJBar(JProgressBar jBar) {
+		this.jBar = jBar;
+	}
 }

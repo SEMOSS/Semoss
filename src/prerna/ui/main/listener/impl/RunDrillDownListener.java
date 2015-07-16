@@ -29,7 +29,11 @@ package prerna.ui.main.listener.impl;
 
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -39,6 +43,8 @@ import javax.swing.JDesktopPane;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.BTreeDataFrame;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
@@ -55,9 +61,14 @@ public class RunDrillDownListener extends AbstractListener {
 	private static final Logger LOGGER = LogManager.getLogger(RunDrillDownListener.class.getName());
 	
 	private ClassifyClusterPlaySheet playSheet;
+	
+	private ITableDataFrame dataFrame;
 	private Hashtable<String, IPlaySheet> playSheetHash;
 	private JComboBox<String> drillDownTabSelectorComboBox;
 	private ArrayList<JCheckBox> columnCheckboxes;
+
+	private String clusterIDCol;
+	private int clusterIDIndex;
 	
 	/**
 	 * Method actionPerformed.
@@ -69,64 +80,63 @@ public class RunDrillDownListener extends AbstractListener {
 		//use tabName to get the playSheetSelected
 		String tabName = drillDownTabSelectorComboBox.getSelectedItem() + "";
 		ClusteringVizPlaySheet clusteringPlaySheet = (ClusteringVizPlaySheet) playSheetHash.get(tabName);
-		String[] masterNames = clusteringPlaySheet.getMasterNames();
-		ArrayList<Object []> masterList = clusteringPlaySheet.getMasterList();
+		this.dataFrame = clusteringPlaySheet.getDataFrame();
+		this.clusterIDCol = clusteringPlaySheet.getClusterIDCol();
+		this.clusterIDIndex = clusteringPlaySheet.getClusterIDIndex();
 		
-		int i;
-		Integer numberSelected = 0;
-		for(i = 0; i < columnCheckboxes.size(); i++) {
-			if(columnCheckboxes.get(i).isSelected())
-				numberSelected++;
-		}
-		
-		String[] filteredNames = new String[numberSelected+1];
-		filteredNames[0] = masterNames[0];
-		int colInd=1;
-		for(i = 0; i < columnCheckboxes.size(); i++) {
+		String[] columnHeaders = dataFrame.getColumnHeaders();
+		List<String> skipColumns = new ArrayList<String>();
+		for(int i = 0; i < columnCheckboxes.size(); i++) {
 			if(columnCheckboxes.get(i).isSelected()) {
-				filteredNames[colInd] = masterNames[1+i];
-				colInd++;
+				skipColumns.add(columnHeaders[i+1]);
 			}
 		}
 		
 		ArrayList<JCheckBox> clusterCheckboxes = playSheet.getClusterCheckboxes();
-		ArrayList<Integer> clustersToInclude = new ArrayList<Integer>();
-		for(i = 0; i < clusterCheckboxes.size(); i++) {
+		List<Integer> clustersToInclude = new ArrayList<Integer>();
+		for(int i = 0; i < clusterCheckboxes.size(); i++) {
 			JCheckBox checkbox = clusterCheckboxes.get(i);
 			if(checkbox.isSelected()) {
 				clustersToInclude.add(Integer.parseInt(checkbox.getText()));
 			}
 		}
+		
 		if(clustersToInclude.isEmpty()) {
 			Utility.showError("No clusters were selected to drill down on. Please select at least one and retry.");
 			return;
 		}
 		
-		int[] clusterAssigned  = clusteringPlaySheet.getClusterAssignment();
-		ArrayList<Object[]> newList = new ArrayList<Object[]>();
-		for(i = 0; i < clusterAssigned.length; i++) {
-			Object[] instanceRow = masterList.get(i);
-			int cluster = clusterAssigned[i];
-			//check if cluster is to be included
-			if(clustersToInclude.contains(cluster)) {
-				newList.add(instanceRow);
+		List<Object[]> subsetValues = new ArrayList<Object[]>();
+		Iterator<List<Object[]>> it = dataFrame.uniqueIterator(clusterIDCol, false, null);
+		while(it.hasNext()) {
+			List<Object[]> clusterData = it.next();
+			int clusterNumber = (int) clusterData.get(0)[clusterIDIndex];
+			
+			if(clustersToInclude.contains(clusterNumber)) {
+				subsetValues.addAll(clusterData);
 			}
 		}
 		
-		//take out the clusters we dont care about from the master list...
-		//then do the filtering after that.
-		ArrayList<Object[]> filteredList = new ArrayList<Object []>();
-		for(Object[] row : newList) {
-			Object[] filteredRow = new Object[numberSelected+1];
-			filteredRow[0] = row[0];//whatever object name we're clustering on
-			colInd=1;
-			for(i = 0; i < columnCheckboxes.size(); i++) {
-				if(columnCheckboxes.get(i).isSelected()) {
-					filteredRow[colInd] = row[1+i];
-					colInd++;
+		// colNames without the previous cluster index
+		String[] newColNames = new String[columnHeaders.length - 1];
+		int counter = 0;
+		for(int i = 0; i < columnHeaders.length; i++) {
+			if(i != clusterIDIndex) {
+				newColNames[counter] = columnHeaders[i];
+				counter++;
+			}
+		}
+		
+		ITableDataFrame newDataFrame = new BTreeDataFrame(newColNames);
+		for(int i = 0; i < subsetValues.size(); i++) {
+			Map<String, Object> hashRow = new HashMap<String, Object>();
+			Object[] row = subsetValues.get(i);
+			for(int j = 0; j < columnHeaders.length; j++) {
+				if(j != clusterIDIndex) {
+					hashRow.put(columnHeaders[j], row[j]);
 				}
 			}
-			filteredList.add(filteredRow);
+			newDataFrame.addRow(hashRow, hashRow);
 		}
 		
 		ClassifyClusterPlaySheet drillDownPlaySheet = new ClassifyClusterPlaySheet();
@@ -136,7 +146,7 @@ public class RunDrillDownListener extends AbstractListener {
 		drillDownPlaySheet.setRDFEngine(playSheet.engine);
 		drillDownPlaySheet.setQuestionID(insightID);
 		drillDownPlaySheet.setTitle(playSheet.getTitle());
-		drillDownPlaySheet.setData(masterNames, newList);
+		drillDownPlaySheet.setDataFrame(newDataFrame);
 		
 		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 		drillDownPlaySheet.setJDesktopPane(pane);
@@ -158,5 +168,4 @@ public class RunDrillDownListener extends AbstractListener {
 		this.drillDownTabSelectorComboBox = playSheet.getDrillDownTabSelectorComboBox();
 		this.playSheetHash = playSheet.getPlaySheetHash();
 	}
-
 }

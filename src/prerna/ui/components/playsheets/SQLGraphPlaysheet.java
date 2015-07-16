@@ -125,6 +125,13 @@ public class SQLGraphPlaysheet extends AbstractRDFPlaySheet {
 		// TODO Auto-generated method stub
 		
 	}
+	
+	@Override
+	public void processQueryData() {
+		// TODO Auto-generated method stub
+		
+	}
+	
 	@Override
 	public Hashtable<String, String> getDataTableAlign() {
 		// TODO Auto-generated method stub
@@ -151,6 +158,4 @@ public class SQLGraphPlaysheet extends AbstractRDFPlaySheet {
 			
 		}		
 	}
-
-
 }

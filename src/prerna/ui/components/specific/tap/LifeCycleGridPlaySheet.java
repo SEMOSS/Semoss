@@ -30,6 +30,7 @@ package prerna.ui.components.specific.tap;
 import java.text.DateFormatSymbols;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -47,6 +48,19 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 	private static final Logger logger = LogManager.getLogger(LifeCycleGridPlaySheet.class.getName());
 	private int year, month;
 
+	List<Object[]> list;
+	String[] names;
+	
+	@Override
+	public List<Object[]> getTabularData() {
+		return this.list;
+	}
+	
+	@Override
+	public String[] getColumnHeaders() {
+		return this.names;
+	}
+	
 	@Override
 	public void createData() {
 		list = new ArrayList<Object[]>();

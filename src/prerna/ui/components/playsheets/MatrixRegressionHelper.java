@@ -27,22 +27,114 @@
  *******************************************************************************/
 package prerna.ui.components.playsheets;
 
-import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.util.ArrayUtilityMethods;
 
 public final class MatrixRegressionHelper{
 
 	private static final Logger LOGGER = LogManager.getLogger(MatrixRegressionHelper.class.getName());
 
-	
-	/*
+	/**
 	 * Creates the A array
 	 * Start index tells what column to start at
 	 * If bIndex is less than the number of columns, bIndex will be removed
 	 */
-	public static double[][] createA(ArrayList<Object[]> list, int variableStartCol, int bIndex) {
+	public static double[][] createA(ITableDataFrame data, List<String> skipAttribute, int variableStartCol, int bIndex) {
+		String[] dataCols = data.getColumnHeaders();
+		int offset = 0;
+		for(int i = 0; i < dataCols.length; i++) {
+			if(skipAttribute.contains(dataCols[i])) {
+				if(ArrayUtilityMethods.arrayContainsValueAtIndex(dataCols, dataCols[i]) < bIndex) {
+					offset++;
+				}
+			}
+		}
+		bIndex -= offset;
+		
+		int listNumRows = data.getNumRows();
+		offset = 0;
+		if(skipAttribute != null) {
+			offset = skipAttribute.size();
+		}
+		int listNumCols = data.getNumCols() - offset;
+		
+		int outNumCols;
+		if(bIndex<listNumCols) {
+			outNumCols = listNumCols - variableStartCol - 1;
+		} else {
+			outNumCols = listNumCols - variableStartCol;
+		}
+		double[][] A = new double[listNumRows][outNumCols];
+
+		Iterator<Object[]> it = data.iterator(false, skipAttribute);
+		int i = 0;
+		int j = 0;
+		while(it.hasNext()) {
+			Object[] oldRow = it.next();
+			int outIndex = 0;
+			for(j = variableStartCol; j< listNumCols; j++) {
+				if(j != bIndex) {
+					if(oldRow[j] != null && !oldRow[j].toString().trim().isEmpty()) {
+						A[i][outIndex] = (double)oldRow[j];
+					} else {
+						A[i][outIndex] = 0.0;
+					}
+					outIndex++;
+				}
+			}
+			i++;
+		}
+
+		return A;
+	}
+
+	/**
+	 * create the b array by pulling the appropriate column
+	 * @param list
+	 * @param bIndex
+	 * @return
+	 */
+	public static double[] createB(ITableDataFrame data, List<String> skipAttribute, int bIndex) {
+		String[] dataCols = data.getColumnHeaders();
+		int offset = 0;
+		for(int i = 0; i < dataCols.length; i++) {
+			if(skipAttribute.contains(dataCols[i])) {
+				if(ArrayUtilityMethods.arrayContainsValueAtIndex(dataCols, dataCols[i]) < bIndex) {
+					offset++;
+				}
+			}
+		}
+		bIndex -= offset;
+		
+		int listNumRows = data.getNumRows();
+		double[] b = new double[listNumRows];
+
+		Iterator<Object[]> it = data.iterator(false, skipAttribute);
+		int i = 0;
+		while(it.hasNext()) {
+			Object[] row = it.next();
+			if(row[bIndex] != null && !row[bIndex].toString().trim().isEmpty()) {
+				b[i] = (Double) row[bIndex];
+			} else {
+				b[i] = 0;
+			}
+			i++;
+		}
+		return b;
+	}
+	
+	/**
+	 * Creates the A array
+	 * Start index tells what column to start at
+	 * If bIndex is less than the number of columns, bIndex will be removed
+	 */
+	public static double[][] createA(List<Object[]> list, int variableStartCol, int bIndex) {
 		int i;
 		int j;
 		int listNumRows = list.size();
@@ -79,7 +171,7 @@ public final class MatrixRegressionHelper{
 	 * @param bIndex
 	 * @return
 	 */
-	public static double[] createB(ArrayList<Object[]> list,int bIndex) {
+	public static double[] createB(List<Object[]> list,int bIndex) {
 		int i;
 		int listNumRows = list.size();
 		double[] b = new double[listNumRows];
@@ -114,7 +206,7 @@ public final class MatrixRegressionHelper{
 		return Ab;
 	}
 
-	public static String[] moveNameToEnd(String[] names,int bIndex) {
+	public static String[] moveNameToEnd(String[] names, int bIndex) {
 		int i;
 		int numNames =names.length;
 		

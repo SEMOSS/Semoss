@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Set;
 
 import prerna.engine.api.IEngine;
@@ -29,13 +30,26 @@ public class DataDuplicationMapPlaySheet extends OCONUSMapPlaySheet {
 	private final String getSystemDataQuery = "SELECT DISTINCT ?System ?DataObject WHERE {{?System a <http://semoss.org/ontologies/Concept/System>}{?DataObject a <http://semoss.org/ontologies/Concept/DataObject>}{?DOS a <http://semoss.org/ontologies/Concept/DataObjectSource>}{?SourceType a <http://semoss.org/ontologies/Concept/SourceType>}{?System <http://semoss.org/ontologies/Relation/Designated> ?DOS}{?DOS <http://semoss.org/ontologies/Relation/LabeledAs> ?SourceType}{?DOS <http://semoss.org/ontologies/Relation/Delivers> ?DataObject} BIND( <http://health.mil/ontologies/Concept/SourceType/MigrationReference> AS ?SourceType)}";
 	private final String getDataDuplicateQuery = "SELECT DISTINCT ?System ?DataObject WHERE {{?System a <http://semoss.org/ontologies/Concept/System>}{?System2 a <http://semoss.org/ontologies/Concept/System>}{?DOS2 a <http://semoss.org/ontologies/Concept/DataObjectSource>}{?DataObject a <http://semoss.org/ontologies/Concept/DataObject>}{?DOS a <http://semoss.org/ontologies/Concept/DataObjectSource>}{?SourceType a <http://semoss.org/ontologies/Concept/SourceType>}{?System <http://semoss.org/ontologies/Relation/Designated> ?DOS}{?System2 <http://semoss.org/ontologies/Relation/Designated> ?DOS2}{?DOS <http://semoss.org/ontologies/Relation/LabeledAs> ?SourceType}{?DOS <http://semoss.org/ontologies/Relation/Delivers> ?DataObject} {?DOS2 <http://semoss.org/ontologies/Relation/LabeledAs> ?SourceType}{?DOS2 <http://semoss.org/ontologies/Relation/Delivers> ?DataObject} BIND( <http://health.mil/ontologies/Concept/SourceType/MigrationReference> AS ?SourceType)}";
 	
+	List<Object[]> list;
+	String[] names;
+	
+	@Override
+	public List<Object[]> getTabularData() {
+		return this.list;
+	}
+	
+	@Override
+	public String[] getColumnHeaders() {
+		return this.names;
+	}
+	
 	/**
 	 * Performs logic to fill in size that will be displayed on geospatial map
 	 * 
 	 * @return Hashtable in JSON format
 	 */
 	@Override
-	public Hashtable processQueryData() {
+	public void processQueryData() {
 		// Create engines that will be queried on
 		IEngine tapCore = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		IEngine tapSite = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
@@ -124,7 +138,7 @@ public class DataDuplicationMapPlaySheet extends OCONUSMapPlaySheet {
 		allHash.put("size", "size");
 		allHash.put("locationName", var[0]);
 		
-		return allHash;
+		this.dataHash = allHash;
 	}
 	
 	/**

@@ -764,7 +764,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		numSitesNotInWaveForSysHash = new HashMap<String, Integer>();
 		DHMSMDeploymentGapAnalysis gap = new DHMSMDeploymentGapAnalysis();
 		gap.createData();
-		ArrayList<Object[]> gapList = gap.getList();
+		List<Object[]> gapList = gap.getList();
 		int size = gapList.size();
 		int i = 0;
 		for(; i < size; i++) {
@@ -830,7 +830,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			//Use Dual Engine Grid to process the dual query that gets cost info
 			dualQueries.setQuery(query);
 			dualQueries.createData();
-			ArrayList<Object[]> deploymentInfo = dualQueries.getList();
+			List<Object[]> deploymentInfo = dualQueries.getTabularData();
 			int i;
 			int size = deploymentInfo.size();
 			for(i = 0; i < size; i++) {

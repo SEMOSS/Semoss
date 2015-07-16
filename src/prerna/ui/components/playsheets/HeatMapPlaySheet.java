@@ -29,10 +29,8 @@ package prerna.ui.components.playsheets;
 
 import java.awt.Dimension;
 import java.util.Hashtable;
+import java.util.Iterator;
 
-import org.openrdf.model.Literal;
-
-import prerna.engine.api.ISelectStatement;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -55,17 +53,19 @@ public class HeatMapPlaySheet extends BrowserPlaySheet {
 	 * Method processQueryData.  Processes the data from the SPARQL query into an appropriate format for the specific play sheet.
 	
 	 * @return Hashtable - Consists of the x-value, y-value, x- and y-axis titles, and the title of the map.*/
-	public Hashtable processQueryData()
+	public void processQueryData()
 	{
-		Hashtable dataHash = new Hashtable();
-		Hashtable dataSeries = new Hashtable();
-		String[] var = wrapper.getVariables();
+		Hashtable<String, Object> dataHash = new Hashtable<String, Object>();
+		Hashtable<String, Object> dataSeries = new Hashtable<String, Object>();
+		String[] var = dataFrame.getColumnHeaders();
 		String xName = var[0];
 		String yName = var[1];
-		for (int i=0;i<list.size();i++)
+		
+		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		while(it.hasNext())
 		{
-			Hashtable elementHash = new Hashtable();
-			Object[] listElement = list.get(i);			
+			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
+			Object[] listElement = it.next();		
 			String methodName = listElement[0].toString();
 			String groupName = listElement[1].toString();
 			String key = methodName +"-"+groupName;
@@ -77,7 +77,7 @@ public class HeatMapPlaySheet extends BrowserPlaySheet {
 			
 		}
 
-		Hashtable allHash = new Hashtable();
+		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
 		allHash.put("dataSeries", dataHash);
 		String[] var1 = wrapper.getVariables();
 		allHash.put("title",  var1[0] + " vs " + var1[1]);
@@ -85,21 +85,14 @@ public class HeatMapPlaySheet extends BrowserPlaySheet {
 		allHash.put("yAxisTitle", var1[1]);
 		allHash.put("value", var1[2]);
 		
-		return allHash;
-	}
-	
-	@Override
-	public Object getVariable(String varName, ISelectStatement sjss){
-		Object var = sjss.getRawVar(varName);
-			if( var != null && var instanceof Literal) {
-				var = sjss.getVar(varName);
-			} 
-		return var;
+		this.dataHash = allHash;
 	}
 	
 	@Override
 	public Hashtable<String, String> getDataTableAlign() {
 		Hashtable<String, String> alignHash = new Hashtable<String, String>();
+		String[] names = dataFrame.getColumnHeaders();
+		
 		alignHash.put("x", names[0]);
 		alignHash.put("y", names[1]);
 		alignHash.put("heat", names[2]);

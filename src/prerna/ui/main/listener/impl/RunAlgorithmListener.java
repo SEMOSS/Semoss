@@ -29,7 +29,14 @@ package prerna.ui.main.listener.impl;
 
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -43,26 +50,24 @@ import javax.swing.JToggleButton;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.weka.WekaClassification;
 import prerna.engine.api.IEngine;
+import prerna.om.SEMOSSParam;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
 import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
 import prerna.ui.components.playsheets.CorrelationPlaySheet;
-import prerna.ui.components.playsheets.LocalOutlierPlaySheet;
 import prerna.ui.components.playsheets.LocalOutlierVizPlaySheet;
 import prerna.ui.components.playsheets.MatrixRegressionPlaySheet;
 import prerna.ui.components.playsheets.MatrixRegressionVizPlaySheet;
 import prerna.ui.components.playsheets.NumericalCorrelationVizPlaySheet;
 import prerna.ui.components.playsheets.SelfOrganizingMap3DBarChartPlaySheet;
-import prerna.ui.components.playsheets.SelfOrganizingMap3DPlotPlaySheet;
-import prerna.ui.components.playsheets.WekaAprioriPlaySheet;
 import prerna.ui.components.playsheets.WekaAprioriVizPlaySheet;
 import prerna.ui.components.playsheets.WekaClassificationPlaySheet;
 import prerna.ui.helpers.ClusteringModuleUpdateRunner;
 import prerna.ui.helpers.PlaysheetCreateRunner;
-import prerna.util.ArrayListUtilityMethods;
 import prerna.util.Utility;
 
 /**
@@ -92,19 +97,16 @@ public class RunAlgorithmListener extends AbstractListener {
 	//matrix regression
 	private JComboBox<String> matrixDepVarComboBox;
 	
-	//correlation
-	private String[] columnTypesArr;
-	
 	private JToggleButton showDrillDownBtn;
 	private JComboBox<String> drillDownTabSelectorComboBox;
 	private ArrayList<JCheckBox> columnCheckboxes;
-	private String[] names;
-	private ArrayList<Object[]> list;
 	private IEngine engine;
 	private String title;
 
-	private double[] entropyArr;
+	private Double[] entropyArr;
 
+	private ITableDataFrame dataFrame;
+	private String[] attributeNames;
 	
 	/**
 	 * Method actionPerformed.
@@ -124,29 +126,37 @@ public class RunAlgorithmListener extends AbstractListener {
 		
 		//filter the names array and list of data based on the independent variables selected
 		//must make sure that we include the first col, even though there is no checkbox
-		boolean[] includeColArr = new boolean[columnCheckboxes.size()+1];
-		includeColArr[0] = true; //this is the "title" or "name"
-		Boolean noIVsSelected = true;
-		for(int i=0;i<columnCheckboxes.size();i++) {
-			JCheckBox checkbox = columnCheckboxes.get(i);
-			includeColArr[i+1] = checkbox.isSelected();
-			if(checkbox.isSelected())
-				noIVsSelected = false;
+		
+		//Revert back to the original data frame structure
+		List<String> newColumnHeaders = Arrays.asList(dataFrame.getColumnHeaders());
+		System.out.println("NEW COLUMN HEADERS");
+		System.out.println(newColumnHeaders.toString());
+		List<String> originalColumnHeaders = Arrays.asList(playSheet.columnHeaders);
+		Set<String> setDifference = new HashSet<String>(newColumnHeaders);
+		setDifference.removeAll(originalColumnHeaders);
+		for(Iterator<String> it = setDifference.iterator(); it.hasNext(); ) {
+			String column2delete = it.next();
+			dataFrame.removeColumn(column2delete);
 		}
-		if(noIVsSelected) {
+		System.out.println("BACK TO ORIGINAL");
+		System.out.println(Arrays.toString(dataFrame.getColumnHeaders()));
+		
+		
+		List<String> skipColumns = new ArrayList<String>();
+		for(int i = 0; i < columnCheckboxes.size(); i++) {
+			if(!columnCheckboxes.get(i).isSelected()) {
+				skipColumns.add(attributeNames[i+1]);
+			}
+		}
+		if(skipColumns.size() == attributeNames.length) {
 			Utility.showError("No variables were selected. Please select at least one and retry.");
 			return;
 		}
 		
-		String[] filteredNames = Utility.filterNames(names, includeColArr);
-		ArrayList<Object[]> filteredList = ArrayListUtilityMethods.filterList(list,includeColArr);
-
 		String algorithm = algorithmComboBox.getSelectedItem() + "";
 		if(algorithm.equals("Similarity")) {
-			
 			ClusteringModuleUpdateRunner runner = new ClusteringModuleUpdateRunner(playSheet);
-			runner.setValues(filteredNames, filteredList);
-			
+			runner.setValues(dataFrame, skipColumns);
 			Thread playThread = new Thread(runner);
 			playThread.start();
 			return;
@@ -175,10 +185,12 @@ public class RunAlgorithmListener extends AbstractListener {
 
 			newPlaySheet = new ClusteringVizPlaySheet();
 			if(numClusters>=2) {
-				((ClusteringVizPlaySheet)newPlaySheet).setInputNumClusters(numClusters);
+				((ClusteringVizPlaySheet)newPlaySheet).setNumClusters(numClusters);
 			}
 			((ClusteringVizPlaySheet)newPlaySheet).setAddAsTab(true);
-			((ClusteringVizPlaySheet)newPlaySheet).drillDownData(names,filteredNames,list,filteredList);
+			((ClusteringVizPlaySheet)newPlaySheet).setDataFrame(dataFrame);
+			((ClusteringVizPlaySheet)newPlaySheet).setNumClusters(numClusters);
+			((ClusteringVizPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((ClusteringVizPlaySheet)newPlaySheet).setDrillDownTabSelectorComboBox(drillDownTabSelectorComboBox);
 			((ClusteringVizPlaySheet)newPlaySheet).setPlaySheetHash(playSheetHash);
 			((ClusteringVizPlaySheet)newPlaySheet).setJTab(jTab);
@@ -191,8 +203,8 @@ public class RunAlgorithmListener extends AbstractListener {
 			
 			//determine the column index and name to classify on
 			String classifier = classComboBox.getSelectedItem() + "";
-			int classifierIndex = filteredNames.length-1;
-			while(classifierIndex>-1&&!filteredNames[classifierIndex].equals(classifier)) {
+			int classifierIndex = attributeNames.length - 1;
+			while(classifierIndex > -1 && !attributeNames[classifierIndex].equals(classifier)) {
 				classifierIndex--;
 			}
 			
@@ -202,34 +214,20 @@ public class RunAlgorithmListener extends AbstractListener {
 			}
 			
 			newPlaySheet = new WekaClassificationPlaySheet();
-			newPlaySheet.setList(filteredList);
-			newPlaySheet.setNames(filteredNames);
+			newPlaySheet.setDataFrame(dataFrame);
 			((WekaClassificationPlaySheet)newPlaySheet).setModelName(classMethod);
+			((WekaClassificationPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((WekaClassificationPlaySheet)newPlaySheet).setClassColumn(classifierIndex);
 			((WekaClassificationPlaySheet)newPlaySheet).setJTab(jTab);
 			((WekaClassificationPlaySheet)newPlaySheet).setJBar(jBar);
 		
 		} else if(algorithm.equals("Outliers")) {
 			int kneighbors = enterKNeighborsSlider.getValue();
-			LocalOutlierPlaySheet gridPlaySheet = new LocalOutlierPlaySheet();
-			gridPlaySheet.setList(filteredList);
-			gridPlaySheet.setNames(filteredNames);
-			gridPlaySheet.setMasterList(list);
-			gridPlaySheet.setMasterNames(names);
-			gridPlaySheet.setKNeighbors(kneighbors);
-			gridPlaySheet.setJTab(jTab);
-			gridPlaySheet.setJBar(jBar);
-			gridPlaySheet.setRDFEngine(engine);
-			gridPlaySheet.setTitle(title);
-			gridPlaySheet.runAnalytics();
-			gridPlaySheet.createView();
 			
 			newPlaySheet = new LocalOutlierVizPlaySheet();
-			newPlaySheet.setList(filteredList);
-			newPlaySheet.setNames(filteredNames);
-			((LocalOutlierVizPlaySheet)newPlaySheet).setMasterList(list);
-			((LocalOutlierVizPlaySheet)newPlaySheet).setMasterNames(names);
-			((LocalOutlierVizPlaySheet)newPlaySheet).setKNeighbors(kneighbors);
+			newPlaySheet.setDataFrame(dataFrame);
+			((LocalOutlierVizPlaySheet)newPlaySheet).setK(kneighbors);
+			((LocalOutlierVizPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((LocalOutlierVizPlaySheet)newPlaySheet).setJTab(jTab);
 			((LocalOutlierVizPlaySheet)newPlaySheet).setJBar(jBar);			
 		
@@ -238,12 +236,18 @@ public class RunAlgorithmListener extends AbstractListener {
 			double[] accuracyArr = new double[columnCheckboxes.size()];
 			double[] precisionArr = new double[columnCheckboxes.size()];
 			
-			for(int i=1; i < names.length; i++) {
-				if(includeColArr[i]) {
+			for(int i=1; i < attributeNames.length; i++) {
+				if(!skipColumns.contains(attributeNames[i])) {
 					if(entropyArr[i] != 0) {
-						WekaClassification weka = new WekaClassification(list, names, "J48", i);
+						WekaClassification weka = new WekaClassification();
+						List<SEMOSSParam> options = weka.getOptions();
+						Map<String, Object> selectedOptions = new HashMap<String, Object>();
+						selectedOptions.put(options.get(0).getName(), "J48");
+						selectedOptions.put(options.get(1).getName(), i);
+						selectedOptions.put(options.get(2).getName(), skipColumns);
+						weka.setSelectedOptions(selectedOptions);
 						try {
-							weka.execute();
+							weka.runAlgorithm(dataFrame);
 							// both stored as percents
 							accuracyArr[i-1] = weka.getAccuracy(); 
 							precisionArr[i-1] = weka.getPrecision(); 
@@ -315,34 +319,20 @@ public class RunAlgorithmListener extends AbstractListener {
 			if(!errorMessage.isEmpty()) {
 				Utility.showError(errorMessage);
 			}
-			WekaAprioriPlaySheet gridPlaySheet = new WekaAprioriPlaySheet();
-			gridPlaySheet.setList(filteredList);
-			gridPlaySheet.setNames(filteredNames);
-			gridPlaySheet.setNumRules(numRule);
-			gridPlaySheet.setConfPer(confPer);
-			gridPlaySheet.setMinSupport(minSupport);
-			gridPlaySheet.setMaxSupport(maxSupport);
-			gridPlaySheet.setJTab(jTab);
-			gridPlaySheet.setRDFEngine(engine);
-			gridPlaySheet.setTitle(title);
-			gridPlaySheet.createData();
-			gridPlaySheet.runAnalytics();
-			gridPlaySheet.createView();
-			
-			
 			newPlaySheet = new WekaAprioriVizPlaySheet();
-			newPlaySheet.setList(filteredList);
-			newPlaySheet.setNames(filteredNames);
+			newPlaySheet.setDataFrame(dataFrame);
 			((WekaAprioriVizPlaySheet)newPlaySheet).setJTab(jTab);
 			((WekaAprioriVizPlaySheet)newPlaySheet).setNumRules(numRule);
 			((WekaAprioriVizPlaySheet)newPlaySheet).setConfPer(confPer);
 			((WekaAprioriVizPlaySheet)newPlaySheet).setMinSupport(minSupport);
 			((WekaAprioriVizPlaySheet)newPlaySheet).setMaxSupport(maxSupport);
+			((WekaAprioriVizPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
+
 		} else if(algorithm.equals("Linear Regression")) {
 			//column to use as dependent variable
 			String depVar = matrixDepVarComboBox.getSelectedItem() + "";
-			int depVarIndex = filteredNames.length-1;
-			while(depVarIndex>-1&&!filteredNames[depVarIndex].equals(depVar)) {
+			int depVarIndex = attributeNames.length - 1;
+			while(depVarIndex > -1 && !attributeNames[depVarIndex].equals(depVar)) {
 				depVarIndex--;
 			}
 			
@@ -353,45 +343,36 @@ public class RunAlgorithmListener extends AbstractListener {
 			
 			//create grid view
 			MatrixRegressionPlaySheet gridPlaySheet = new MatrixRegressionPlaySheet();
-			gridPlaySheet.setList(filteredList);
-			gridPlaySheet.setNames(filteredNames);
-			gridPlaySheet.setbColumnIndex(depVarIndex);
-			gridPlaySheet.setJTab(jTab);
-			gridPlaySheet.setJBar(jBar);
-			gridPlaySheet.setRDFEngine(engine);
-			gridPlaySheet.setTitle(title);
-			gridPlaySheet.runAnalytics();
-			gridPlaySheet.createView();
 			
 			newPlaySheet = new MatrixRegressionVizPlaySheet();
-			newPlaySheet.setList(filteredList);
-			newPlaySheet.setNames(filteredNames);
+			newPlaySheet.setDataFrame(dataFrame);
+			((MatrixRegressionVizPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((MatrixRegressionVizPlaySheet)newPlaySheet).setbColumnIndex(depVarIndex);
 			((MatrixRegressionVizPlaySheet)newPlaySheet).setJTab(jTab);
 			((MatrixRegressionVizPlaySheet)newPlaySheet).setJBar(jBar);
 			
 		}  else if(algorithm.equals("Numerical Correlation")) {			
 			newPlaySheet = new NumericalCorrelationVizPlaySheet();
-			newPlaySheet.setList(filteredList);
-			newPlaySheet.setNames(filteredNames);
+			newPlaySheet.setDataFrame(dataFrame);
+
+			((NumericalCorrelationVizPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((NumericalCorrelationVizPlaySheet)newPlaySheet).setJTab(jTab);
 			((NumericalCorrelationVizPlaySheet)newPlaySheet).setJBar(jBar);
 			
 		} else if(algorithm.equals("Correlation")) {
 			
 			newPlaySheet = new CorrelationPlaySheet();
-			newPlaySheet.setList(filteredList);
-			newPlaySheet.setNames(filteredNames);
+			newPlaySheet.setDataFrame(dataFrame);
 
-			((CorrelationPlaySheet)newPlaySheet).setColumnTypesArr(columnTypesArr);
+			((CorrelationPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((CorrelationPlaySheet)newPlaySheet).setJTab(jTab);
 			((CorrelationPlaySheet)newPlaySheet).setJBar(jBar);
 			
 		} else if(algorithm.equals("Self Organizing Map")) {
 			newPlaySheet = new SelfOrganizingMap3DBarChartPlaySheet();
-			newPlaySheet.setList(filteredList);
-			newPlaySheet.setNames(filteredNames);
+			newPlaySheet.setDataFrame(dataFrame);
 			
+			((SelfOrganizingMap3DBarChartPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((SelfOrganizingMap3DBarChartPlaySheet)newPlaySheet).setJTab(jTab);
 			((SelfOrganizingMap3DBarChartPlaySheet)newPlaySheet).setJBar(jBar);
 			
@@ -402,7 +383,7 @@ public class RunAlgorithmListener extends AbstractListener {
 			if(l0Text != null && !l0Text.isEmpty()) {
 				try {
 					double l0 = Double.parseDouble(l0Text);
-					((SelfOrganizingMap3DBarChartPlaySheet)newPlaySheet).setL0(l0);
+					((SelfOrganizingMap3DBarChartPlaySheet)newPlaySheet).setLearningRate(l0);
 				} catch(NumberFormatException ex) {
 					Utility.showError("Entered value for l0, " + l0Text + ", is not a valid numerical input.\nWill use default value.");
 				}
@@ -411,7 +392,7 @@ public class RunAlgorithmListener extends AbstractListener {
 			if(r0Text != null && !r0Text.isEmpty()) {
 				try {
 					double r0 = Double.parseDouble(r0Text);
-					((SelfOrganizingMap3DBarChartPlaySheet)newPlaySheet).setR0(r0);
+					((SelfOrganizingMap3DBarChartPlaySheet)newPlaySheet).setInitalRadius(r0);
 				} catch(NumberFormatException ex) {
 					Utility.showError("Entered value for r0, " + r0Text + ", is not a valid numerical input.\nWill use default value.");
 				}
@@ -460,10 +441,8 @@ public class RunAlgorithmListener extends AbstractListener {
 		//matrix regression
 		this.matrixDepVarComboBox = playSheet.getMatrixDepVarComboBox();
 		//correlation
-		this.columnTypesArr = playSheet.getColumnTypesArr();
-		
-		this.names = playSheet.getNames();
-		this.list = playSheet.getList();
+		this.dataFrame = playSheet.getDataFrame();
+		this.attributeNames = dataFrame.getColumnHeaders();
 		this.jTab = playSheet.getJTab();
 		this.jBar = playSheet.getJBar();
 		this.engine = playSheet.engine;
@@ -473,7 +452,7 @@ public class RunAlgorithmListener extends AbstractListener {
 		this.title = playSheet.getTitle();
 	}
 
-	public void setEntropyArr(double[] entropyArr) {
+	public void setEntropyArr(Double[] entropyArr) {
 		this.entropyArr = entropyArr;
 	}
 

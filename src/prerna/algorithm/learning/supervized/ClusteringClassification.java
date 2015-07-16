@@ -29,6 +29,7 @@ package prerna.algorithm.learning.supervized;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 
 import prerna.algorithm.learning.similarity.ClusterRemoveDuplicates;
 import prerna.algorithm.learning.similarity.ClusteringDataProcessor;
@@ -37,8 +38,8 @@ import prerna.algorithm.learning.unsupervised.clustering.ClusterUtilityMethods;
 import prerna.algorithm.learning.unsupervised.clustering.ClusteringOptimization;
 import prerna.algorithm.learning.unsupervised.clustering.PartitionedClusteringAlgorithm;
 import prerna.math.StatisticsUtilityMethods;
-import prerna.util.ArrayListUtilityMethods;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.ListUtilityMethods;
 
 /**
  * Algorithm logic:
@@ -98,7 +99,7 @@ public class ClusteringClassification {
 			originalClusterAssignedIndices[i] = alg.getClusterAssignment();
 			int[] numInstancesInCluster = alg.getNumInstancesInCluster();
 			
-			ArrayList<Object[]> data = ArrayListUtilityMethods.removeColumnFromList(masterTable, i);
+			List<Object[]> data = ListUtilityMethods.removeColumnFromList(masterTable, i);
 			String[] names = ArrayUtilityMethods.removeNameFromList(masterNames, i);
 			// process through data
 			ClusteringDataProcessor cdp = new ClusteringDataProcessor(data, names);

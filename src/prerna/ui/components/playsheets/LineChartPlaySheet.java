@@ -30,10 +30,8 @@ package prerna.ui.components.playsheets;
 import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Iterator;
 
-import org.openrdf.model.Literal;
-
-import prerna.engine.api.ISelectStatement;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -47,12 +45,14 @@ public class LineChartPlaySheet extends BrowserPlaySheet{
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/c3linechart.html";
 	}	
 	
-	public Hashtable<String, Object> processQueryData()
+	public void processQueryData()
 	{
 		ArrayList<Hashtable<String, Object>> dataObj = new ArrayList<Hashtable<String, Object>>();
-		
-		for(int i = 0; i < list.size(); i++) {
-			Object[] elemValues = list.get(i);
+		String[] names = dataFrame.getColumnHeaders();
+
+		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		while(it.hasNext()) {
+			Object[] elemValues = it.next();
 			
 			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
 			elementHash.put("xAxis",  "");
@@ -68,21 +68,14 @@ public class LineChartPlaySheet extends BrowserPlaySheet{
 		lineChartHash.put("dataSeries", dataObj);
 		lineChartHash.put("type", "line");
 		
-		return lineChartHash;
-	}
-	
-	@Override
-	public Object getVariable(String varName, ISelectStatement sjss){
-		Object var = sjss.getRawVar(varName);
-			if( var != null && var instanceof Literal) {
-				var = sjss.getVar(varName);
-			} 
-		return var;
+		this.dataHash = lineChartHash;
 	}
 	
 	@Override
 	public Hashtable<String, String> getDataTableAlign() {
 		Hashtable<String, String> alignHash = new Hashtable<String, String>();
+		String[] names = dataFrame.getColumnHeaders();
+		
 		alignHash.put("label", names[0]);
 		for(int namesIdx = 1; namesIdx<names.length; namesIdx++){
 			alignHash.put("value " + namesIdx, names[namesIdx]);

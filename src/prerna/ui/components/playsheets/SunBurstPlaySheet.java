@@ -23,6 +23,7 @@ import java.awt.Dimension;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -58,15 +59,16 @@ public class SunBurstPlaySheet extends BrowserPlaySheet {
 	 * @return Hashtable - Consists of all nodes in tree structure SunBurst.
 	 */
 
-	public Hashtable processQueryData() {
-		Hashtable allHash = new Hashtable();
+	public void processQueryData() {
+		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
 
 		Map<String, Map<String, Map>> rootMap = new HashMap<String, Map<String, Map>>();
 		Map<String, Map> currentMap;
 
+		Iterator<Object[]> it = dataFrame.iterator(true, null);
 		// loop through the list
-		for (int i = 0; i < list.size(); i++) {
-			Object[] listElements = list.get(i);
+		while(it.hasNext()) {
+			Object[] listElements = it.next();
 
 			// if there is no data, go to the next one in the list
 			if (listElements == null || listElements.length == 0) {
@@ -139,7 +141,8 @@ public class SunBurstPlaySheet extends BrowserPlaySheet {
 		
 		allHash.put("name", root);
 		allHash.put("children", hashSet);
-		return allHash;
+		
+		this.dataHash = allHash;
 	}
 
 	/*

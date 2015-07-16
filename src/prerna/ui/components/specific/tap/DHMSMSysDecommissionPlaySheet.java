@@ -30,6 +30,7 @@ package prerna.ui.components.specific.tap;
 import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;
@@ -40,6 +41,18 @@ public class DHMSMSysDecommissionPlaySheet extends BrowserPlaySheet{
 
 	private DHMSMSysDecommissionReport data;
 	
+	List<Object[]> list;
+	String[] names;
+	
+	@Override
+	public List<Object[]> getTabularData() {
+		return this.list;
+	}
+	
+	@Override
+	public String[] getColumnHeaders() {
+		return this.names;
+	}
 	
 	//TODO: this class should not extend BrowserPlaySheet and should create new methods to send information to JS
 	public void setData(DHMSMSysDecommissionReport data) {

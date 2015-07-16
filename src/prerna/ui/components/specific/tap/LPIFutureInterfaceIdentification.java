@@ -29,6 +29,7 @@ package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
@@ -60,6 +61,19 @@ public class LPIFutureInterfaceIdentification extends GridPlaySheet {
 	String dataKey = "Data";
 	String statusCheck = "Needed but not Present";
 
+	List<Object[]> list;
+	String[] names;
+	
+	@Override
+	public List<Object[]> getTabularData() {
+		return this.list;
+	}
+	
+	@Override
+	public String[] getColumnHeaders() {
+		return this.names;
+	}
+	
 	/**
 	 * This is the function that is used to create the first view 
 	 * of any play sheet.  It often uses a lot of the variables previously set on the play sheet, such as {@link #setQuery(String)},

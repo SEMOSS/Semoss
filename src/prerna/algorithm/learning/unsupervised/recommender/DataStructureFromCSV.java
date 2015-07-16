@@ -24,9 +24,9 @@ import prerna.error.FileReaderException;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.nameserver.MasterDatabaseQueries;
 import prerna.nameserver.MasterDatabaseURIs;
-import prerna.util.ArrayListUtilityMethods;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.DIHelper;
+import prerna.util.ListUtilityMethods;
 import prerna.util.Utility;
 
 public class DataStructureFromCSV {
@@ -346,7 +346,7 @@ public class DataStructureFromCSV {
 	
 	private List<Integer> findHierarchicalParent(int childColIndex, List<Integer> notUsedList) {
 
-		Object[] childCol = ArrayListUtilityMethods.getColumnFromList(table,childColIndex);
+		Object[] childCol = ListUtilityMethods.getColumnFromList(table,childColIndex);
 
 		notUsedList.remove(notUsedList.indexOf(childColIndex));
 		int numColsInConcat = 2;
@@ -559,7 +559,7 @@ public class DataStructureFromCSV {
 
 			long startT = System.currentTimeMillis();
 			System.out.println("\nDetermining if column " + column + " is unique id...");
-			Object[] colArr = ArrayListUtilityMethods.getColumnFromList(table, column);
+			Object[] colArr = ListUtilityMethods.getColumnFromList(table, column);
 			int[] colIntegerArr = ArrayUtilityMethods.convertObjArrToIntArr(colArr);
 			int[] uniqueColArr = ArrayUtilityMethods.getUniqueArray(colIntegerArr);
 			int[] sortedUniqueColArr = ArrayUtilityMethods.sortIntWrapperArr(uniqueColArr);

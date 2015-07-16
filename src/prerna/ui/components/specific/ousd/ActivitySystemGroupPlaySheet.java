@@ -1,13 +1,14 @@
 package prerna.ui.components.specific.ousd;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.ds.BTreeDataFrame;
 import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.Utility;
@@ -46,13 +47,13 @@ public class ActivitySystemGroupPlaySheet extends GridPlaySheet{
 		SequencingDecommissioningPlaySheet activitySheet = (SequencingDecommissioningPlaySheet) proc.getPlaySheet();
 		//createData makes the table...
 		activitySheet.createData();
-		ArrayList<Object[]> actTable = activitySheet.getList();
+		List<Object[]> actTable = activitySheet.getDataFrame().getData();
 		String[] names = activitySheet.getNames();
 
 		proc.processQuestionQuery(this.engine, insightNameTwo, emptyTable);
 		SequencingDecommissioningPlaySheet systemSheet = (SequencingDecommissioningPlaySheet) proc.getPlaySheet();
 		systemSheet.createData();
-		ArrayList<Object[]> systemTable = systemSheet.getList();
+		List<Object[]> systemTable = systemSheet.getDataFrame().getData();
 
 		combineTables(actTable, systemTable, names);
 	}
@@ -60,7 +61,7 @@ public class ActivitySystemGroupPlaySheet extends GridPlaySheet{
 	/**
 	 * @param actTable
 	 */
-	private void combineTables(ArrayList<Object[]> activities, ArrayList<Object[]> systems, String[] columnNames){
+	private void combineTables(List<Object[]> activities, List<Object[]> systems, String[] columnNames){
 
 		String[] updatedNames = new String[6];
 		updatedNames[0] = columnNames[0];
@@ -69,27 +70,28 @@ public class ActivitySystemGroupPlaySheet extends GridPlaySheet{
 		updatedNames[3] = columnNames[3];
 		updatedNames[4] = columnNames[4];
 		updatedNames[5] = "System Group";
-		this.names = updatedNames;
 
-		list = new ArrayList<Object[]>();
+		this.dataFrame = new BTreeDataFrame(updatedNames);
+
 		for(Object[] row: activities){
-			Object[] newRow = new Object[6];
-			newRow[0] = row[0];
-			newRow[1] = row[1];
-			newRow[2] = row[2];
-			newRow[3] = row[3];
-			newRow[4] = row[4];
+			Map<String, Object> hashRow = new HashMap<String, Object>();
+			hashRow.put(updatedNames[0], row[0]);
+			hashRow.put(updatedNames[1], row[1]);
+			hashRow.put(updatedNames[2], row[2]);
+			hashRow.put(updatedNames[3], row[3]);
+			hashRow.put(updatedNames[4], row[4]);
+
 			for(Object[] system: systems){
-				if(newRow[3] != null){
-					if(Utility.getInstanceName(newRow[3].toString()).equals(system[0].toString())){
-						newRow[5] = system[1];
+				if(row[3] != null){
+					if(Utility.getInstanceName(row[3].toString()).equals(system[0].toString())){
+						hashRow.put(updatedNames[5], system[1]);
 						break;
 					}else{
-						newRow[5] = "";
+						hashRow.put(updatedNames[5], "");
 					}							
 				}
 			}
-			list.add(newRow);
+			dataFrame.addRow(hashRow, hashRow);
 		}
 	}
 }

@@ -31,6 +31,8 @@ import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.List;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -41,7 +43,8 @@ import prerna.util.DIHelper;
 
 public class ComparisonLineBarPlaySheet extends ColumnChartPlaySheet{
 
-	private static final Logger logger = LogManager.getLogger(ComparisonLineBarPlaySheet.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(ComparisonLineBarPlaySheet.class.getName());
+	
 	GraphDataModel gdm = new GraphDataModel();
 	
 	public ComparisonLineBarPlaySheet() 
@@ -52,16 +55,19 @@ public class ComparisonLineBarPlaySheet extends ColumnChartPlaySheet{
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/columnchart.html";
 	}
 	
-	public Hashtable<String, Object> processQueryData()
+	public void processQueryData()
 	{		
 		Hashtable<String, ArrayList<Hashtable<String, Object>>> barObj = new Hashtable<String, ArrayList<Hashtable<String, Object>>>();
 		Hashtable<String, ArrayList<Hashtable<String, Object>>> lineObj = new Hashtable<String, ArrayList<Hashtable<String, Object>>>();
 		// format of the return will be ?barSeriesName ?yBarVal ?line1SeriesName ?yLine1Val ?line2SeriesName ?yLine2Val ?xValue etc.
+		String[] names = dataFrame.getColumnHeaders();
 		int lastCol = names.length - 1 ;
 		ArrayList<String> usedList = new ArrayList<String>();
-		for( int i = 0; i < list.size(); i++)
+		
+		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		while(it.hasNext())
 		{
-			Object[] elemValues = list.get(i);
+			Object[] elemValues = it.next();
 			for( int seriesVal = 1; seriesVal <= elemValues.length / 2; seriesVal++)
 			{
 				
@@ -104,7 +110,6 @@ public class ComparisonLineBarPlaySheet extends ColumnChartPlaySheet{
 		columnChartHash.put("names", names);
 		columnChartHash.put("dataSeries", dataObj);
 		
-		return columnChartHash;
+		this.dataHash = columnChartHash;
 	}
-	
 }

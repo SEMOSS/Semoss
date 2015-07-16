@@ -63,6 +63,7 @@ import prerna.util.DIHelper;
  */
 @SuppressWarnings("serial")
 public class InputPanelPlaySheet extends AbstractRDFPlaySheet implements IPlaySheet{
+	
 	protected String title = null;
 	public JComponent pane = null;
 	
@@ -358,6 +359,11 @@ public class InputPanelPlaySheet extends AbstractRDFPlaySheet implements IPlaySh
 	protected void displayCheckBoxError() {
 		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
 		JOptionPane.showMessageDialog(playPane, "Mozilla15 engine doesn't support the current environment. Please switch to 32-bit Java.", "Error", JOptionPane.ERROR_MESSAGE);
+	}
+
+	@Override
+	public void processQueryData() {
+		
 	}
 
 }

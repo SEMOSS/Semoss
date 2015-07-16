@@ -31,6 +31,7 @@ import java.awt.Toolkit;
 import java.beans.PropertyVetoException;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.StringTokenizer;
 
 import org.apache.log4j.LogManager;
@@ -143,7 +144,7 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 	}
 	
 	@Override
-	public Object getData() {
+	public Hashtable getData() {
 		Hashtable returnHash = (Hashtable) super.getData();
 		returnHash.put("nodes", gdm.getVertStore());
 		returnHash.put("edges", gdm.getEdgeStore().values());
@@ -222,7 +223,6 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 			} catch (RuntimeException e) {
 				logger.fatal(e);
 			}
-
 		}
 		logger.info("Done with forest creation");
 									
@@ -246,7 +246,25 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 			fullTimeHash.putAll(timeHash);
 			vert.setProperty("timeHash", fullTimeHash);
 		}
-		
 	}
+	
+	@Override
+	public List<Object[]> getTabularData() {
+		if(gdm != null) {
+			List<Object[]> retList = new ArrayList<Object[]>();
+			retList.add(new Object[0]);
+			return retList;
+		}
+		return null; 
+	}
+	
+	@Override
+	public String[] getColumnHeaders() {
+		if(gdm != null) {
+			return new String[0];
+		}
+		return null; 
+	}
+
 
 }

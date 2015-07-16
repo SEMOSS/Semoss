@@ -29,6 +29,7 @@ package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -53,6 +54,19 @@ public class SysDHMSMInfoAtSitePlaySheet extends GridPlaySheet {
 
 	private Hashtable<String, Hashtable<String, Integer>> dataToAdd = new Hashtable<String, Hashtable<String, Integer>>();
 
+	List<Object[]> list;
+	String[] names;
+	
+	@Override
+	public List<Object[]> getTabularData() {
+		return this.list;
+	}
+	
+	@Override
+	public String[] getColumnHeaders() {
+		return this.names;
+	}
+	
 	@Override
 	public void createData() {
 		list = new ArrayList<Object[]>();

@@ -33,6 +33,7 @@ import java.awt.Insets;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
@@ -235,13 +236,13 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 		sysBudgetSheet.setRDFEngine(engine);
 		sysBudgetSheet.setAccountingFormat(false);
 	    sysBudgetSheet.createData();
-	    processSysBudgetHash(sysBudgetSheet.getList());
+	    processSysBudgetHash(sysBudgetSheet.getTabularData());
 	    
         printDataToConsole();
        	addTextToConsole("\nData Collection Complete!");
 	}
 	
-	public void processSysBudgetHash(ArrayList<Object[]> sysBudgetList)
+	public void processSysBudgetHash(List<Object[]> sysBudgetList)
 	{
 		sysToBudgetHash = new Hashtable<String,Double[]>();
 		for(int sysInd=0;sysInd<sysBudgetList.size();sysInd++)

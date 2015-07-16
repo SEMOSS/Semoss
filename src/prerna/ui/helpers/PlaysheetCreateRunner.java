@@ -58,6 +58,7 @@ public class PlaysheetCreateRunner implements Runnable{
 	{
 		playSheet.createData();
 		playSheet.runAnalytics();
+		playSheet.processQueryData();
 	}
 	
 	/**

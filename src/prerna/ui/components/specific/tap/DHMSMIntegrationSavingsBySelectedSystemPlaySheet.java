@@ -27,10 +27,26 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.util.List;
+
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.Utility;
 
 public class DHMSMIntegrationSavingsBySelectedSystemPlaySheet extends GridPlaySheet{
+	
+	List<Object[]> list;
+	String[] names;
+	
+	@Override
+	public List<Object[]> getTabularData() {
+		return this.list;
+	}
+	
+	@Override
+	public String[] getColumnHeaders() {
+		return this.names;
+	}
+	
 	@Override
 	public void createData(){
 		DHMSMIntegrationSavingsPerFiscalYearProcessor processor = new DHMSMIntegrationSavingsPerFiscalYearProcessor();
