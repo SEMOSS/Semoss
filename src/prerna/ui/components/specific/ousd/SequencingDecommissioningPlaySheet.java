@@ -64,6 +64,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 	String depObjFilterString;
 	String depObjQuery;
 	List<String> addtlQueries;
+	Map<String, List<String>> dependMap;
 
 	public SequencingDecommissioningPlaySheet() {
 		super();
@@ -90,29 +91,30 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 		while(compObjWrap.hasNext()){
 			this.compObjList.add(compObjWrap.next().getRawVar(compObjName)+"");
 		}
-//		Collections.sort(this.compObjList);
+		Collections.sort(this.compObjList);
+
+		this.dependMap = new HashMap<String, List<String>>();
 
 		Integer[][] dependMatrix = createDependencyMatrices();
 		List<List<Integer>> groups = createGroups(dependMatrix);
-		Map<Integer, List<List<Integer>>> decomGroups = createDecommissioningGroups(groups); 
+		Map<Integer, List<List<Integer>>> decomGroups = createDecommissioningGroups(groups, this.dependMap); 
 		
 //		List<HashMap<String, List<Object[]>>> addtlCols = createAddtlCols(groups);
 		
 		createTable(decomGroups, compObjName);
 	}
 	
-	private static Map<Integer, List<List<Integer>>> createDecommissioningGroups(List<List<Integer>> groups){
+	private static Map<Integer, List<List<Integer>>> createDecommissioningGroups(List<List<Integer>> groups, Map<String, List<String>> dependMap){
 		Map<Integer, List<List<Integer>>> decomGroups = new HashMap<Integer, List<List<Integer>>>();
-		List<Integer> procRows = new ArrayList<Integer>();
-
+				
 		int waveInt = 0;
 		while (!groups.isEmpty()){
 			LOGGER.info("Begining processing of wave ::::::::::::::::: " + waveInt);
 			List<List<Integer>> wave = new ArrayList<List<Integer>>();
 			groupsFor: for (List<Integer> group : groups){
-				LOGGER.info("Evaluating for wave " + waveInt + " the group " + Arrays.toString(group.toArray()));
 				List<List<Integer>> overlapping = new ArrayList<List<Integer>>();
-				group.removeAll(procRows);
+//				group.removeAll(procRows);
+				LOGGER.info("Evaluating for wave " + waveInt + " the group " + Arrays.toString(group.toArray()));
 				for(List<Integer> waveGroup : wave){
 					if(!Collections.disjoint(group, waveGroup)){ // this mean my group has some overlap with a wave group
 						overlapping.add(waveGroup);
@@ -141,9 +143,23 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 
 			LOGGER.info("DONE PROCESSING WAVE ::::::: " + waveInt);
 			for(List<Integer> thegroup: wave){
-				LOGGER.info("WAVE ::::::: " + waveInt + " :::::::: CONTAINS ::::::::::" + Arrays.toString(thegroup.toArray()));
-				procRows.addAll(thegroup);
+				LOGGER.info("WAVE ::::::: " + waveInt + " :::::::: CONTAINS ::::::::::" + thegroup.toString());
+//				procRows.addAll(thegroup);
+				String thegroupsname = new String(waveInt+"."+wave.indexOf(thegroup));
+				List<String> thegroupsdependencies = dependMap.get(thegroup);
+				if(thegroupsdependencies!=null){
+					LOGGER.info("NAMED ::::: " + thegroupsname + " :::::: DEPENDS ON :::::: " + thegroupsdependencies.toString());
+				}
 				groups.remove(thegroup);
+				for(List<Integer> group: groups){
+					String groupName = group.toString();
+					if(group.removeAll(thegroup)){
+						List<String> depends = dependMap.remove(groupName);
+						if(depends == null) depends = new ArrayList<String>();
+						depends.add(thegroupsname);
+						dependMap.put(group.toString(), depends);
+					}
+				}
 			}
 			decomGroups.put(waveInt, wave);
 			waveInt ++;
@@ -153,19 +169,19 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 	}
 	
 	private void createTable(Map<Integer, List<List<Integer>>> groups, String compObjName){
-		int groupCounter = 0;
 
 		// build the names
 		List<String> namesList = new ArrayList<String>();
 		namesList.add(compObjName);
 		namesList.add(compObjName + " Group");
+		namesList.add(compObjName + " Group Dependencies");
 
 		this.dataFrame = new BTreeDataFrame(namesList.toArray(new String[0]));
 		//key is counter for one level above group
 		for(Integer key: groups.keySet()){
 			List<List<Integer>> depGroups = groups.get(key);
 			for(List<Integer> depGroup: depGroups) {
-				String keyToGroupCounter = new String(key.toString()+"."+groupCounter);
+				String keyToGroupCounter = new String(key.toString()+"."+depGroups.indexOf(depGroup));
 //				double location = Double.parseDouble(keyToGroupCounter);
 				
 				List<Object[]> addtlCols = new ArrayList<Object[]>();
@@ -176,6 +192,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 					Object[] depObj = new Object[namesList.size()];
 					depObj[0] = Utility.getInstanceName(compObjList.get(compObj));
 					depObj[1] = keyToGroupCounter;
+					depObj[2] = this.dependMap.get(depGroup.toString());
 					if(addtlCols.isEmpty()){
 						Map<String, Object> row = new HashMap<String, Object>();
 						row.put(namesList.get(0), depObj[0]);
@@ -197,9 +214,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 					}
 					LOGGER.debug("Added object "+compObj);
 				}
-				groupCounter++;
 			}
-			groupCounter = 0;
 		}
 	}
 	
@@ -393,7 +408,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 
 
 		List<List<Integer>> groups = createGroups(testSystems);
-		Map<Integer, List<List<Integer>>> decomGroups = createDecommissioningGroups(groups); 
+		Map<Integer, List<List<Integer>>> decomGroups = createDecommissioningGroups(groups, new HashMap()); 
 		
 		ArrayList <Object []> list = new ArrayList<Object[]>();
 		int groupCounter = 0;
