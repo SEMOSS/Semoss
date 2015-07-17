@@ -392,5 +392,12 @@ public interface ITableDataFrame {
 	 * @return
 	 */
 	boolean isEmpty();
+	
+	/**
+	 * 
+	 * @param columnHeaders
+	 */
+	public void setColumnsToSkip(List<String> columnHeaders);
+	
 
 }

@@ -114,6 +114,7 @@ public class WekaClassification implements IAnalyticRoutine {
 		this.skipAttributes = (List<String>) options.get(2).getSelected();
 
 		ITableDataFrame dataFrame = data[0];
+		dataFrame.setColumnsToSkip(skipAttributes);
 		this.names = dataFrame.getColumnHeaders();
 		this.model = ClassificationFactory.createClassifier(modelName);
 
