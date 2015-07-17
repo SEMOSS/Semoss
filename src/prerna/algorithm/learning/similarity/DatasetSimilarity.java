@@ -87,6 +87,7 @@ public class DatasetSimilarity implements IAnalyticRoutine {
 		this.skipAttributes = (List<String>) options.get(2).getSelected();
 		
 		this.dataFrame = data[0];
+		dataFrame.setColumnsToSkip(skipAttributes);
 		this.attributeNames = dataFrame.getColumnHeaders();
 		this.isNumeric = dataFrame.isNumeric();
 		// set the type of distance measure to be used for each numerical property - default is using mean
