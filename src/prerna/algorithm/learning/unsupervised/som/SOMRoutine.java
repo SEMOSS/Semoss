@@ -126,6 +126,7 @@ public class SOMRoutine implements IAnalyticRoutine {
 		this.skipAttributes = (List<String>) options.get(8).getSelected();
 
 		this.dataFrame = data[0];
+		this.dataFrame.setColumnsToSkip(skipAttributes);
 		this.attributeNames = this.dataFrame.getColumnHeaders();
 		this.isNumeric = this.dataFrame.isNumeric();
 		this.numInstances = this.dataFrame.getUniqueInstanceCount(attributeNames[instanceIndex]);

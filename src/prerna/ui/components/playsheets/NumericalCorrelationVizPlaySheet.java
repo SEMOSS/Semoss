@@ -105,9 +105,9 @@ public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 			numVariables = columnHeaders.length;
 			id = "";
 		}
-		if(skipAttributes != null) {
-			numVariables -= skipAttributes.size();
-		}
+//		if(skipAttributes != null) {
+//			numVariables -= skipAttributes.size();
+//		}
 		
 		// reversing values since it is being painted by JS in reverse order
 		double[][] correlations = new double[numVariables][numVariables];
@@ -129,35 +129,35 @@ public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 		this.dataHash= allHash;
 	}
 
-	@Override
-	public String[] getColumnHeaders() {
-		String[] newNames;
-		if(skipAttributes == null || (skipAttributes.size() == 0)) {
-			newNames = columnHeaders;
-		} else {
-			newNames = new String[columnHeaders.length - skipAttributes.size()];
-			int counter = 0;
-			for(String name : columnHeaders) {
-				if(!skipAttributes.contains(name)) {
-					newNames[counter] = name;
-					counter++;
-				}
-			}
-		}
-		
-		return newNames;
-	}
+//	@Override
+//	public String[] getColumnHeaders() {
+//		String[] newNames;
+//		if(skipAttributes == null || (skipAttributes.size() == 0)) {
+//			newNames = columnHeaders;
+//		} else {
+//			newNames = new String[columnHeaders.length - skipAttributes.size()];
+//			int counter = 0;
+//			for(String name : columnHeaders) {
+//				if(!skipAttributes.contains(name)) {
+//					newNames[counter] = name;
+//					counter++;
+//				}
+//			}
+//		}
+//		
+//		return newNames;
+//	}
 	
-	@Override
-	public List<Object[]> getTabularData() {
-		List<Object[]> allData = new ArrayList<Object[]>();
-		Iterator<Object[]> it = dataFrame.iterator(false, skipAttributes);
-		while(it.hasNext()) {
-			allData.add(it.next());
-		}
-		
-		return allData;
-	}
+//	@Override
+//	public List<Object[]> getTabularData() {
+//		List<Object[]> allData = new ArrayList<Object[]>();
+//		Iterator<Object[]> it = dataFrame.iterator(false, skipAttributes);
+//		while(it.hasNext()) {
+//			allData.add(it.next());
+//		}
+//		
+//		return allData;
+//	}
 	
 	public void setIncludesInstance(boolean includesInstance) {
 		this.includesInstance = includesInstance;

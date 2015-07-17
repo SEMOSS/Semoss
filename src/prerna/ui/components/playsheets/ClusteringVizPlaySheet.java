@@ -306,6 +306,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 
 	public void setSkipAttributes(List<String> skipAttributes) {
 		this.skipAttributes = skipAttributes;
+		dataFrame.setColumnsToSkip(skipAttributes);
 	}
 	
 	public String getClusterIDCol() {
@@ -590,11 +591,13 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 		this.skipAttributes = skipColumns;
 		this.inputNumClusters = inputNumClusters;
 		this.numClusters = inputNumClusters;
+		this.dataFrame.setColumnsToSkip(skipColumns);
 //		reRunAlgorithm();
 	}
 
 	public void skipAttributes(List<String> skipAttributes) {
 		this.skipAttributes = skipAttributes;
+		this.dataFrame.setColumnsToSkip(skipAttributes);
 		reRunAlgorithm();
 	}
 	

@@ -85,12 +85,12 @@ public class RunDrillDownListener extends AbstractListener {
 		this.clusterIDIndex = clusteringPlaySheet.getClusterIDIndex();
 		
 		String[] columnHeaders = dataFrame.getColumnHeaders();
-		List<String> skipColumns = new ArrayList<String>();
-		for(int i = 0; i < columnCheckboxes.size(); i++) {
-			if(columnCheckboxes.get(i).isSelected()) {
-				skipColumns.add(columnHeaders[i+1]);
-			}
-		}
+//		List<String> skipColumns = new ArrayList<String>();
+//		for(int i = 0; i < columnCheckboxes.size(); i++) {
+//			if(columnCheckboxes.get(i).isSelected()) {
+//				skipColumns.add(columnHeaders[i+1]);
+//			}
+//		}
 		
 		ArrayList<JCheckBox> clusterCheckboxes = playSheet.getClusterCheckboxes();
 		List<Integer> clustersToInclude = new ArrayList<Integer>();

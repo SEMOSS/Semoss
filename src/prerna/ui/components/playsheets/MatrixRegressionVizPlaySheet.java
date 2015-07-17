@@ -131,9 +131,9 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 		}else {
 			numVariables = columnHeaders.length;
 		}
-		if(skipAttributes != null) {
-			numVariables -= skipAttributes.size();
-		}
+//		if(skipAttributes != null) {
+//			numVariables -= skipAttributes.size();
+//		}
 
 		int i = 0;
 		Object[] stdErrors = new Object[numVariables];
@@ -177,37 +177,39 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 
 	public void setSkipAttributes(List<String> skipAttributes) {
 		this.skipAttributes = skipAttributes;
+		this.dataFrame.setColumnsToSkip(skipAttributes);
 	}
 	
-	@Override
-	public String[] getColumnHeaders() {
-		String[] newNames;
-		if(skipAttributes == null || (skipAttributes.size() == 0)) {
-			newNames = columnHeaders;
-		} else {
-			newNames = new String[columnHeaders.length - skipAttributes.size()];
-			int counter = 0;
-			for(String name : columnHeaders) {
-				if(!skipAttributes.contains(name)) {
-					newNames[counter] = name;
-					counter++;
-				}
-			}
-		}
-		
-		return newNames;
-	}
+//	@Override
+//	public String[] getColumnHeaders() {
+////		String[] newNames;
+////		if(skipAttributes == null || (skipAttributes.size() == 0)) {
+////			newNames = columnHeaders;
+////		} else {
+////			newNames = new String[columnHeaders.length - skipAttributes.size()];
+////			int counter = 0;
+////			for(String name : columnHeaders) {
+////				if(!skipAttributes.contains(name)) {
+////					newNames[counter] = name;
+////					counter++;
+////				}
+////			}
+////		}
+////		
+////		return newNames;
+//		return columnHeaders;
+//	}
 	
-	@Override
-	public List<Object[]> getTabularData() {
-		List<Object[]> allData = new ArrayList<Object[]>();
-		Iterator<Object[]> it = dataFrame.iterator(false, skipAttributes);
-		while(it.hasNext()) {
-			allData.add(it.next());
-		}
-		
-		return allData;
-	}
+//	@Override
+//	public List<Object[]> getTabularData() {
+//		List<Object[]> allData = new ArrayList<Object[]>();
+//		Iterator<Object[]> it = dataFrame.iterator(false, skipAttributes);
+//		while(it.hasNext()) {
+//			allData.add(it.next());
+//		}
+//		
+//		return allData;
+//	}
 
 	/////////////////////////////SWING DEPENDENT CODE/////////////////////////////
 	@Override
