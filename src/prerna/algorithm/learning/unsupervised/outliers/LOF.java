@@ -93,12 +93,13 @@ public class LOF implements IAnalyticRoutine {
 
 		// get number of rows and cols
 		this.dataFrame = data[0];
+		this.dataFrame.setColumnsToSkip(skipAttributes);
 		this.attributeNames = dataFrame.getColumnHeaders();
 		this.numInstances = dataFrame.getUniqueInstanceCount(attributeNames[instanceIndex]); 
 		if(skipAttributes == null) {
 			skipAttributes = new ArrayList<String>();
 		}
-		this.dimensions = dataFrame.getNumCols() - 1 - skipAttributes.size();
+		this.dimensions = dataFrame.getNumCols() - 1;// - skipAttributes.size();
 
 		// double check that all info is numerical
 		boolean[] isNumeric = dataFrame.isNumeric();

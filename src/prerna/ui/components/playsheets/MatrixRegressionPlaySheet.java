@@ -218,6 +218,7 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 	
 	public void setSkipAttributes(List<String> skipAttributes) {
 		this.skipAttributes = skipAttributes;
+		this.dataFrame.setColumnsToSkip(skipAttributes);
 	}
 
 	/////////////////////////////SWING DEPENDENT CODE/////////////////////////////

@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -129,18 +130,18 @@ public class RunAlgorithmListener extends AbstractListener {
 		
 		//Revert back to the original data frame structure
 		List<String> newColumnHeaders = Arrays.asList(dataFrame.getColumnHeaders());
-		System.out.println("NEW COLUMN HEADERS");
-		System.out.println(newColumnHeaders.toString());
 		List<String> originalColumnHeaders = Arrays.asList(playSheet.columnHeaders);
-		Set<String> setDifference = new HashSet<String>(newColumnHeaders);
+		Set<String> setDifference = new LinkedHashSet<String>(newColumnHeaders);
 		setDifference.removeAll(originalColumnHeaders);
-		for(Iterator<String> it = setDifference.iterator(); it.hasNext(); ) {
-			String column2delete = it.next();
-			dataFrame.removeColumn(column2delete);
+		String[] removeSet = setDifference.toArray(new String[setDifference.size()]);
+		for(int i = removeSet.length - 1; i >=0; i--) {
+			dataFrame.removeColumn(removeSet[i]);
 		}
-		System.out.println("BACK TO ORIGINAL");
-		System.out.println(Arrays.toString(dataFrame.getColumnHeaders()));
 		
+
+		
+		dataFrame.setColumnsToSkip(null);
+		//attributeNames = dataFrame.getColumnHeaders();
 		
 		List<String> skipColumns = new ArrayList<String>();
 		for(int i = 0; i < columnCheckboxes.size(); i++) {
@@ -152,6 +153,9 @@ public class RunAlgorithmListener extends AbstractListener {
 			Utility.showError("No variables were selected. Please select at least one and retry.");
 			return;
 		}
+		
+		dataFrame.setColumnsToSkip(skipColumns);
+		//attributeNames = dataFrame.getColumnHeaders();
 		
 		String algorithm = algorithmComboBox.getSelectedItem() + "";
 		if(algorithm.equals("Similarity")) {
@@ -235,9 +239,9 @@ public class RunAlgorithmListener extends AbstractListener {
 			
 			double[] accuracyArr = new double[columnCheckboxes.size()];
 			double[] precisionArr = new double[columnCheckboxes.size()];
-			
-			for(int i=1; i < attributeNames.length; i++) {
-				if(!skipColumns.contains(attributeNames[i])) {
+			String[] at = this.dataFrame.getColumnHeaders();
+			for(int i=1; i < at.length; i++) {
+				if(!skipColumns.contains(at[i])) {
 					if(entropyArr[i] != 0) {
 						WekaClassification weka = new WekaClassification();
 						List<SEMOSSParam> options = weka.getOptions();
@@ -331,8 +335,9 @@ public class RunAlgorithmListener extends AbstractListener {
 		} else if(algorithm.equals("Linear Regression")) {
 			//column to use as dependent variable
 			String depVar = matrixDepVarComboBox.getSelectedItem() + "";
-			int depVarIndex = attributeNames.length - 1;
-			while(depVarIndex > -1 && !attributeNames[depVarIndex].equals(depVar)) {
+			String[] at = dataFrame.getColumnHeaders();
+			int depVarIndex = at.length - 1;
+			while(depVarIndex > -1 && !at[depVarIndex].equals(depVar)) {
 				depVarIndex--;
 			}
 			

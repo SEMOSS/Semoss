@@ -47,22 +47,22 @@ public final class MatrixRegressionHelper{
 	 */
 	public static double[][] createA(ITableDataFrame data, List<String> skipAttribute, int variableStartCol, int bIndex) {
 		String[] dataCols = data.getColumnHeaders();
-		int offset = 0;
-		for(int i = 0; i < dataCols.length; i++) {
-			if(skipAttribute.contains(dataCols[i])) {
-				if(ArrayUtilityMethods.arrayContainsValueAtIndex(dataCols, dataCols[i]) < bIndex) {
-					offset++;
-				}
-			}
-		}
-		bIndex -= offset;
+//		int offset = 0;
+//		for(int i = 0; i < dataCols.length; i++) {
+//			if(skipAttribute.contains(dataCols[i])) {
+//				if(ArrayUtilityMethods.arrayContainsValueAtIndex(dataCols, dataCols[i]) < bIndex) {
+//					offset++;
+//				}
+//			}
+//		}
+//		bIndex -= offset;
 		
 		int listNumRows = data.getNumRows();
-		offset = 0;
-		if(skipAttribute != null) {
-			offset = skipAttribute.size();
-		}
-		int listNumCols = data.getNumCols() - offset;
+//		offset = 0;
+//		if(skipAttribute != null) {
+//			offset = skipAttribute.size();
+//		}
+		int listNumCols = data.getNumCols();// - offset;
 		
 		int outNumCols;
 		if(bIndex<listNumCols) {
@@ -102,15 +102,15 @@ public final class MatrixRegressionHelper{
 	 */
 	public static double[] createB(ITableDataFrame data, List<String> skipAttribute, int bIndex) {
 		String[] dataCols = data.getColumnHeaders();
-		int offset = 0;
-		for(int i = 0; i < dataCols.length; i++) {
-			if(skipAttribute.contains(dataCols[i])) {
-				if(ArrayUtilityMethods.arrayContainsValueAtIndex(dataCols, dataCols[i]) < bIndex) {
-					offset++;
-				}
-			}
-		}
-		bIndex -= offset;
+//		int offset = 0;
+//		for(int i = 0; i < dataCols.length; i++) {
+//			if(skipAttribute.contains(dataCols[i])) {
+//				if(ArrayUtilityMethods.arrayContainsValueAtIndex(dataCols, dataCols[i]) < bIndex) {
+//					offset++;
+//				}
+//			}
+//		}
+//		bIndex -= offset;
 		
 		int listNumRows = data.getNumRows();
 		double[] b = new double[listNumRows];
