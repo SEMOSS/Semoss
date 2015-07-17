@@ -1231,8 +1231,8 @@ public abstract class AbstractEngine implements IEngine {
 							String[] typeArray = type.split(":");
 							String table = typeArray[0];
 							type = typeArray[1];
-							if (type != null && table != null && !type.equalsIgnoreCase(table)) // Parameter structure: '@ParamName-Table:Column@'
-								paramQuery = paramQuery.substring(0, paramQuery.lastIndexOf("@entity@")) + table;
+							//if (type != null && table != null && !type.equalsIgnoreCase(table)) // Parameter structure: '@ParamName-Table:Column@'
+								//paramQuery = paramQuery.substring(0, paramQuery.lastIndexOf("@entity@")) + table;
 						}
 					}
 					Hashtable<String, Object> paramTable = new Hashtable<String, Object>();
