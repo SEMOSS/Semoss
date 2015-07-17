@@ -74,7 +74,7 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 		if(gridLength > 0) {
 			selectedOptions.put(options.get(6).getName(), gridLength);
 		}
-		selectedOptions.put(options.get(7).getName(), skipAttributes);
+		selectedOptions.put(options.get(8).getName(), skipAttributes);
 		alg.setSelectedOptions(selectedOptions);
 		dataFrame.performAction(alg);
 		this.columnHeaders = dataFrame.getColumnHeaders();
