@@ -343,7 +343,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		algorithmComboBox.setBackground(Color.GRAY);
 		algorithmComboBox.setPreferredSize(new Dimension(150, 25));
 		algorithmComboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"Cluster", "Classify","Local Outlier Factor","Association Learning","Similarity",
-				"Predictability","Linear Regression","Numerical Correlation", "Correlation", "Self Organizing Map"}));
+				"Predictability","Linear Regression","Numerical Correlation", /*"Correlation", */ "Self Organizing Map"}));
 		GridBagConstraints gbc_algorithmComboBox = new GridBagConstraints();
 		gbc_algorithmComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_algorithmComboBox.fill = GridBagConstraints.NONE;
