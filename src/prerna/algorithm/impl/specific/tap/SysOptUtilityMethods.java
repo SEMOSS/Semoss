@@ -324,15 +324,7 @@ public final class SysOptUtilityMethods {
 		
 	}
 	
-	public static double[] addArrays(double[] a1, double[] a2) {
-		int size = a1.length;
-		int i;
-		double[] newArray = new double[size];
-		for(i=0; i<size; i++) {
-			newArray[i] = a1[i] + a2[i];
-		}
-		return newArray;
-	}
+
 	
 	public static double calculateAdjustedTotalSavings(double mu, double yearsToComplete, double totalYrs, double savingsForYear) {
 

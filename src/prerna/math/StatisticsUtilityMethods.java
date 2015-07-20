@@ -742,22 +742,7 @@ public final class StatisticsUtilityMethods {
 		return Math.log(x) / Math.log(2);
 	}
 	
-	public static double[] calculatePercentDiff(final double[] values1, final double[] values2) {
 
-		int i;
-		int length = values1.length;
-		double[] percDiffArr = new double[length];
-
-		for(i=0; i<length; i++) {
-			if(values1[i] == 0)
-				percDiffArr[i] = Double.NaN;
-			else
-				percDiffArr[i] = (values2[i] / values1[i] - 1) * 100;
-
-		}
-		
-		return percDiffArr;
-	}
 	
 	public static boolean areValuesUniformlyDistributed(final int[] valueArr, final int p, final int N, final int m, final double alpha) {
 		
