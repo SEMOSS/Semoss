@@ -97,7 +97,7 @@ public class WekaAprioriVizPlaySheet extends BrowserPlaySheet{
 	}
 	
 	@Override
-	public String[] getColumnHeaders() {
+	public String[] getNames() {
 		return alg.getColumnHeaders();
 	}
 	

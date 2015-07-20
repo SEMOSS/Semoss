@@ -59,7 +59,7 @@ public class WekaAprioriPlaySheet extends GridPlaySheet{
 	}
 	
 	@Override
-	public String[] getColumnHeaders() {
+	public String[] getNames() {
 		return alg.getColumnHeaders();
 	}
 	

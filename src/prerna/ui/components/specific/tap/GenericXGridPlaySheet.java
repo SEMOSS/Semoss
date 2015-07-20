@@ -61,7 +61,7 @@ public class GenericXGridPlaySheet extends GridPlaySheet {
 	}
 	
 	@Override
-	public String[] getColumnHeaders() {
+	public String[] getNames() {
 		return this.names;
 	}
 	
