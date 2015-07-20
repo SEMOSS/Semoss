@@ -80,7 +80,7 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 	}
 	
 	@Override
-	public String[] getColumnHeaders() {
+	public String[] getNames() {
 		return this.names;
 	}
 

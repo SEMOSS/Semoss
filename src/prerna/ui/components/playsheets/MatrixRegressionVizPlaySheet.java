@@ -230,7 +230,7 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 	public void addGridTab(String tabName) {
 		table = new JTable();
 		GridScrollPane gsp = null;
-		gsp = new GridScrollPane(getColumnHeaders(), getTabularData());
+		gsp = new GridScrollPane(getNames(), getTabularData());
 		gsp.addHorizontalScroll();
 		jTab.addTab(tabName, gsp);
 	}

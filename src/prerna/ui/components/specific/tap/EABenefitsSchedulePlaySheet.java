@@ -77,7 +77,7 @@ public class EABenefitsSchedulePlaySheet extends GridPlaySheet {
 	}
 	
 	@Override
-	public String[] getColumnHeaders() {
+	public String[] getNames() {
 		return this.names;
 	}
 	

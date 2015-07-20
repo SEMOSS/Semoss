@@ -259,7 +259,7 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 	}
 	
 	@Override
-	public String[] getColumnHeaders() {
+	public String[] getNames() {
 		if(gdm != null) {
 			return new String[0];
 		}

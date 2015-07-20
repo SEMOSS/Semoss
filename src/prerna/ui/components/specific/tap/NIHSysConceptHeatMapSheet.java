@@ -62,7 +62,7 @@ public class NIHSysConceptHeatMapSheet extends SimilarityHeatMapSheet{
 	}
 	
 	@Override
-	public String[] getColumnHeaders() {
+	public String[] getNames() {
 		return this.names;
 	}
 	

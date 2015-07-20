@@ -93,7 +93,7 @@ public class EAEffectivenessPlaySheet extends GridPlaySheet {
 	}
 	
 	@Override
-	public String[] getColumnHeaders() {
+	public String[] getNames() {
 		return this.names;
 	}
 	

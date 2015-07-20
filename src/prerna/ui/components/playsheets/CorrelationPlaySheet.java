@@ -91,7 +91,7 @@ public class CorrelationPlaySheet extends GridPlaySheet{
 	}
 	
 	@Override
-	public String[] getColumnHeaders() {
+	public String[] getNames() {
 		columnHeaders[0] = "-";
 		return columnHeaders;
 	}
@@ -111,7 +111,7 @@ public class CorrelationPlaySheet extends GridPlaySheet{
 			int count = 1;
 			if (jTab.getTabCount() > 1)
 				count = Integer.parseInt(lastTabName.substring(0, lastTabName.indexOf("."))) + 1;
-			addPanelAsTab(count + ". Outliers Raw Data");
+			addPanelAsTab(count + ". Corretaion Raw Data");
 		}
 	}
 

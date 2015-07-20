@@ -39,7 +39,7 @@ public class DataDuplicationMapPlaySheet extends OCONUSMapPlaySheet {
 	}
 	
 	@Override
-	public String[] getColumnHeaders() {
+	public String[] getNames() {
 		return this.names;
 	}
 	

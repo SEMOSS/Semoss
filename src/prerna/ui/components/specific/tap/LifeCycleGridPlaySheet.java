@@ -57,7 +57,7 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 	}
 	
 	@Override
-	public String[] getColumnHeaders() {
+	public String[] getNames() {
 		return this.names;
 	}
 	
@@ -151,7 +151,7 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 
 		return processedList;
 	}
-
+	
 	/**
 	 * Sets the string version of the SPARQL query on the playsheet. 
 	 * @param query String

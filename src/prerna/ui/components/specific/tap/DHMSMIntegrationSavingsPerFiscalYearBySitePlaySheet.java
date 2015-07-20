@@ -43,7 +43,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearBySitePlaySheet extends GridPla
 	}
 	
 	@Override
-	public String[] getColumnHeaders() {
+	public String[] getNames() {
 		return this.names;
 	}
 	

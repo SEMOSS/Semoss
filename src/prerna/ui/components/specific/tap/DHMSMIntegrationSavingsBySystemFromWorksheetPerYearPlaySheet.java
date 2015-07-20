@@ -45,7 +45,7 @@ public class DHMSMIntegrationSavingsBySystemFromWorksheetPerYearPlaySheet extend
 	}
 	
 	@Override
-	public String[] getColumnHeaders() {
+	public String[] getNames() {
 		return this.names;
 	}
 	

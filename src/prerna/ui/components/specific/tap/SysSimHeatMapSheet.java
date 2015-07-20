@@ -56,7 +56,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	}
 	
 	@Override
-	public String[] getColumnHeaders() {
+	public String[] getNames() {
 		return this.names;
 	}
 	
