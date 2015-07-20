@@ -41,14 +41,12 @@ import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
-import javax.swing.JTable;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.learning.weka.WekaClassification;
 import prerna.om.SEMOSSParam;
-import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.NewScrollBarUI;
 
 public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
