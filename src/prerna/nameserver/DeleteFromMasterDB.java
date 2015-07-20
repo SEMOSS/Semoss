@@ -34,8 +34,6 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.openrdf.model.vocabulary.RDF;
-import org.openrdf.repository.sail.SailRepositoryConnection;
-import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
 
 import prerna.engine.api.ISelectStatement;
