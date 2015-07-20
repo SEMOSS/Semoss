@@ -68,6 +68,7 @@ public class LPOptimizer extends AbstractOptimizer{
 			setConstraints();
 			solver.setAddRowmode(false);
 		} catch (LpSolveException e1) {
+			e1.printStackTrace();
 			LOGGER.error("Failed to set up LP Solve model.");
 			throw new LpSolveException("Failed to set up LP Solve model" + e1.getMessage());
 		}
