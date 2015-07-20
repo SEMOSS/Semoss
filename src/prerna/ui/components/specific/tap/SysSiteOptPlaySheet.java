@@ -145,14 +145,14 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		return returnHash;
 	}
 	
-	public Hashtable<String,Object> runOpt(Hashtable<String, Object> webDataHash) {
+	public ArrayList<Hashtable<String,String>> runOpt(Hashtable<String, Object> webDataHash) {
 
 		//check to make sure site engine is loaded
 		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 		IEngine costEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
 		if(siteEngine == null || costEngine == null) {
 			//TODO error here
-			return new Hashtable<String,Object>();
+			return new ArrayList<Hashtable<String,String>>();
 		}
 
 		Gson gson = new Gson();
@@ -179,7 +179,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		opt.setSysHashList(sysHashList);
 		opt.setCapList(capList);
 		opt.executeWeb();
-		return opt.getSysCapHash();
+		return opt.getSysResultList();
 	}
 	
 	@Override
@@ -757,52 +757,6 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		else
 			return rdbtnProfit.getName();
 	}
-	
-	public Hashtable<String,Object> getOverviewInfoData() {
-		
-		return opt.getOverviewInfoData();
-	}
-	
-	
-	public Hashtable<String,Object> getOverviewCostData() {
-		
-		return opt.getOverviewCostData();
-	}
-	
-	public Hashtable<String,Object> getHealthGrid(String capability) {
-		return opt.getHealthGrid(capability);
-	}
-	
-	//returns overview site map OR capability site map depending on whether capability is null or an actual capability
-	public Hashtable<String,Object> getOverviewSiteMapData(String capability) {
-		return opt.getOverviewSiteMapData(capability);
-	}
-	
-	public Hashtable<String,Object> getSystemInfoData(String system, Boolean isModernizedPage) {
-		return opt.getSystemInfoData(system, isModernizedPage);
-	}
-	
-	public Hashtable<String,Object> getSystemCoverageData(String system, Boolean isModernizedPage) {
-		if(isModernizedPage)
-			return opt.getKeptSystemCoverageData(system);
-		else
-			return opt.getDecomSystemCoverageData(system);
-	}
-	
-	public Hashtable<String,Object> getSystemSiteMapData(String system, Boolean isModernizedPage) {
-		if(isModernizedPage)
-			return opt.getKeptSystemSiteMapData(system);
-		else
-			return opt.getDecomSystemSiteMapData(system);
-	}
-	
-	public Hashtable<String,Object> getCapabilityInfoData(String capability) {
-		return opt.getCapabilityInfoData(capability);
-	}
-	
-	public Hashtable<String,Object> getCapabilityCoverageData(String capability) {
-		return opt.getCapabilityCoverageData(capability);
-	}
 
 	/**
 	 * Clears panels within the playsheet
@@ -832,28 +786,13 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		Hashtable retHash = new Hashtable();
 		String type = (String) webDataHash.get("type");
         if (type.equals("info"))
-        	retHash = this.getOverviewInfoData();
-        if (type.equals("cost"))
-        	retHash = this.getOverviewCostData();
+        	retHash = opt.getOverviewInfoData();
         if (type.equals("map"))
-        	retHash = this.getOverviewSiteMapData("");
+        	retHash = opt.getOverviewSiteMapData();
         if (type.equals("healthGrid"))
-        	retHash = this.getHealthGrid("");
-		return retHash;
-	}
-	
-	public Hashtable getCapabilityPageData(Hashtable webDataHash) {
-		Hashtable retHash = new Hashtable();
-        String type = (String) webDataHash.get("type");
-        String capability = (String) webDataHash.get("cap");
-        if (type.equals("info"))
-        	retHash = this.getCapabilityInfoData(capability);
-        if (type.equals("map"))
-        	retHash = this.getOverviewSiteMapData(capability);
+        	retHash = opt.getHealthGrid();
         if (type.equals("coverage"))
-        	retHash = this.getCapabilityCoverageData(capability);
-        if (type.equals("healthGrid"))
-        	retHash = this.getHealthGrid(capability);
+        	retHash = opt.getSystemCoverageData("");
 		return retHash;
 	}
 	
@@ -866,11 +805,13 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
         if (ind.equals("Modernize")) 
         	isModernized = true;        
         if (type.equals("info"))
-        	retHash = this.getSystemInfoData(system, isModernized);
+        	retHash = opt.getSystemInfoData(system, isModernized);
         if (type.equals("map"))
-        	retHash = this.getSystemSiteMapData(system, isModernized);
+        	retHash = opt.getSystemSiteMapData(system);
+        if (type.equals("healthGrid"))
+        	retHash = opt.getHealthGrid();
         if (type.equals("coverage"))
-        	retHash = this.getSystemCoverageData(system, isModernized);
+        	retHash = opt.getSystemCoverageData(system);
 		return retHash;
 	}
 }
