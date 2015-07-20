@@ -56,7 +56,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 		String selection = bx.getSelectedItem() + "";
 		if(selection.equals("Cluster") ) {
 			playSheet.showClassify(false);
-			playSheet.showOutlier(false);
+			playSheet.showLocalOutlierFactor(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showMatrixRegression(false);
 			playSheet.showNumericalCorrelation(false);
@@ -64,32 +64,32 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showCluster(true);
 		} else if(selection.equals("Classify")){
 			playSheet.showCluster(false);
-			playSheet.showOutlier(false);
+			playSheet.showLocalOutlierFactor(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showMatrixRegression(false);
 			playSheet.showNumericalCorrelation(false);
 			playSheet.showSelfOrganizingMap(false);
 			playSheet.showClassify(true);
-		} else if(selection.equals("Outliers")) {
+		} else if(selection.equals("Local Outlier Factor")) {
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showMatrixRegression(false);
 			playSheet.showNumericalCorrelation(false);
 			playSheet.showSelfOrganizingMap(false);
-			playSheet.showOutlier(true);
+			playSheet.showLocalOutlierFactor(true);
 		} else if(selection.equals("Association Learning")) {
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
 			playSheet.showMatrixRegression(false);
-			playSheet.showOutlier(false);
+			playSheet.showLocalOutlierFactor(false);
 			playSheet.showNumericalCorrelation(false);
 			playSheet.showSelfOrganizingMap(false);
 			playSheet.showAssociationLearning(true);
 		} else if(selection.equals("Linear Regression")) {
 			playSheet.showClassify(false);
 			playSheet.showCluster(false);
-			playSheet.showOutlier(false);
+			playSheet.showLocalOutlierFactor(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showNumericalCorrelation(false);
 			playSheet.showSelfOrganizingMap(false);
@@ -97,7 +97,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 		} else if(selection.equals("Numerical Correlation")) {
 			playSheet.showClassify(false);
 			playSheet.showCluster(false);
-			playSheet.showOutlier(false);
+			playSheet.showLocalOutlierFactor(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showMatrixRegression(false);
 			playSheet.showSelfOrganizingMap(false);
@@ -105,7 +105,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 		} else if(selection.equals("Self Organizing Map")) { //TODO: need to expose values for SOM
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
-			playSheet.showOutlier(false);
+			playSheet.showLocalOutlierFactor(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showMatrixRegression(false);
 			playSheet.showNumericalCorrelation(false);
@@ -113,7 +113,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 		} else if(selection.equals("Similarity") || selection.equals("Predictability") || selection.equals("Correlation")) {
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
-			playSheet.showOutlier(false);
+			playSheet.showLocalOutlierFactor(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showMatrixRegression(false);
 			playSheet.showNumericalCorrelation(false);

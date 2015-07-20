@@ -126,8 +126,8 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 	private JComboBox<String> classComboBox;
 	private JLabel lblSelectClass, lblSelectClassMethod;
 	
-	//outlier panel components
-	private JPanel outlierPanel;
+	//local outlier factor panel components
+	private JPanel localOutlierFactorPanel;
 	private JLabel lblEnterKNeighbors;
 	private JSlider enterKNeighborsSlider;
 	
@@ -342,7 +342,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		algorithmComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		algorithmComboBox.setBackground(Color.GRAY);
 		algorithmComboBox.setPreferredSize(new Dimension(150, 25));
-		algorithmComboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"Cluster", "Classify","Outliers","Association Learning","Similarity",
+		algorithmComboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"Cluster", "Classify","Local Outlier Factor","Association Learning","Similarity",
 				"Predictability","Linear Regression","Numerical Correlation", "Correlation", "Self Organizing Map"}));
 		GridBagConstraints gbc_algorithmComboBox = new GridBagConstraints();
 		gbc_algorithmComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
@@ -378,7 +378,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		variableSelectorPanel.add(classifyPanel, gbc_classifyPanel);
 		classifyPanel.setVisible(false);
 		
-		outlierPanel = new JPanel();
+		localOutlierFactorPanel = new JPanel();
 		GridBagConstraints gbc_outlierPanel = new GridBagConstraints();
 		gbc_outlierPanel.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_outlierPanel.fill = GridBagConstraints.NONE;
@@ -386,8 +386,8 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbc_outlierPanel.insets = new Insets(5, 15, 0, 0);
 		gbc_outlierPanel.gridx = 1;
 		gbc_outlierPanel.gridy = 3;
-		variableSelectorPanel.add(outlierPanel, gbc_outlierPanel);
-		outlierPanel.setVisible(false);
+		variableSelectorPanel.add(localOutlierFactorPanel, gbc_outlierPanel);
+		localOutlierFactorPanel.setVisible(false);
 		
 		associationLearningPanel = new JPanel();
 		GridBagConstraints gbc_frequentSetsPanel = new GridBagConstraints();
@@ -424,7 +424,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		
 		fillClusterPanel(clusterPanel);
 		fillClassifyPanel(classifyPanel);
-		fillOutlierPanel(outlierPanel);
+		fillLocalOutlierFactorPanel(localOutlierFactorPanel);
 		fillFrequentSetsPanel(associationLearningPanel);
 		fillMatrixRegPanel(matrixRegPanel);
 		fillSOMPanel(somPanel);
@@ -838,7 +838,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 
 	}
 	
-	private void fillOutlierPanel(JPanel outlierPanel) {
+	private void fillLocalOutlierFactorPanel(JPanel outlierPanel) {
 		GridBagLayout gbl_outlierPanel = new GridBagLayout();
 		gbl_outlierPanel.columnWidths = new int[]{0, 0, 0};
 		gbl_outlierPanel.rowHeights = new int[]{0, 0, 0};
@@ -1254,8 +1254,8 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 			disableCheckBox(selection,true);
 		}
 	}
-	public void showOutlier(Boolean show) {
-		outlierPanel.setVisible(show);
+	public void showLocalOutlierFactor(Boolean show) {
+		localOutlierFactorPanel.setVisible(show);
 		lblEnterKNeighbors.setVisible(show);
 		enterKNeighborsSlider.setVisible(show);
 		if(show) {
