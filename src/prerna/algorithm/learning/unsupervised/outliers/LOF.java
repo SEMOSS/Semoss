@@ -120,7 +120,7 @@ public class LOF implements IAnalyticRoutine {
 		dataFormatted = new double[numInstances][dimensions];
 
 		// This code flattens out instances, incase there are repeat appearances of an identifier
-		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false, skipAttributes);
+		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false);
 		int counter = 0;
 		while(it.hasNext()) {
 			List<Object[]> instance = it.next();
