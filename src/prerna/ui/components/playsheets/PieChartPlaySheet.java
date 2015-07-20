@@ -50,7 +50,7 @@ public class PieChartPlaySheet extends BrowserPlaySheet{
 		ArrayList< ArrayList<Hashtable<String, Object>>> dataObj = new ArrayList< ArrayList<Hashtable<String, Object>>>();
 		String[] names = dataFrame.getColumnHeaders();
 		
-		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		Iterator<Object[]> it = dataFrame.iterator(true);
 		while(it.hasNext())
 		{
 			Object[] elemValues = it.next();

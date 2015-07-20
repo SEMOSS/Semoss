@@ -58,7 +58,7 @@ public class DataProvenanceHeatMapSheet extends BrowserPlaySheet {
 		String xName = var[0];
 		String yName = var[1];
 		
-		Iterator<Object[]> it = dataFrame.iterator(false, null);
+		Iterator<Object[]> it = dataFrame.iterator(false);
 		while(it.hasNext()) {	
 			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
 			Object[] listElement = it.next();

@@ -74,7 +74,7 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 		String[] names = dataFrame.getColumnHeaders();
 		
 		// Possibly filter out all US Facilities from the query?
-		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		Iterator<Object[]> it = dataFrame.iterator(true);
 		while(it.hasNext()) {
 			LinkedHashMap<String, Object> elementHash = new LinkedHashMap<String, Object>();
 			Object[] listElement = it.next();

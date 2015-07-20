@@ -67,7 +67,7 @@ public class CountyHeatMapPlaySheet extends BrowserPlaySheet {
 		
 		//Possibly filter out all US Facilities from the query?
 		
-		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		Iterator<Object[]> it = dataFrame.iterator(true);
 		while(it.hasNext())
 		{	
 			LinkedHashMap<String, Object> elementHash = new LinkedHashMap<String, Object>();

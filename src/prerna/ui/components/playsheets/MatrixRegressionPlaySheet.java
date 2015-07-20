@@ -82,6 +82,7 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 
 	@Override
 	public void runAnalytics() {
+		dataFrame.setColumnsToSkip(skipAttributes);
 		this.columnHeaders = dataFrame.getColumnHeaders();
 		if(includesInstance) {
 			numIndepVariables = columnHeaders.length - 2;//-1 for instance, -1 for dep var
@@ -98,8 +99,8 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 		}
 
 		//create the b and A arrays which are used in matrix regression to determine coefficients
-		b = MatrixRegressionHelper.createB(dataFrame, skipAttributes, bIndex);
-		A = MatrixRegressionHelper.createA(dataFrame, skipAttributes, variableStartIndex, bIndex);
+		b = MatrixRegressionHelper.createB(dataFrame, bIndex);
+		A = MatrixRegressionHelper.createA(dataFrame, variableStartIndex, bIndex);
 
 		//run regression
 		MatrixRegressionAlgorithm alg = new MatrixRegressionAlgorithm();
@@ -119,10 +120,11 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 
 	@Override
 	public List<Object[]> getTabularData() {
+		dataFrame.setColumnsToSkip(skipAttributes);
 		//add in estimated and residuals for each row determined using coefficients
 		List<Object[]> outputList = new ArrayList<Object []>();
 		
-		Iterator<Object[]> it = dataFrame.iterator(false, skipAttributes);
+		Iterator<Object[]> it = dataFrame.iterator(false);
 		int i = 0;
 		int j = 0;
 		while(it.hasNext()) {

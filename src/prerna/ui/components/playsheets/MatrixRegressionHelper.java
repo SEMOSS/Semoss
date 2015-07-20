@@ -34,7 +34,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.util.ArrayUtilityMethods;
 
 public final class MatrixRegressionHelper{
 
@@ -45,24 +44,9 @@ public final class MatrixRegressionHelper{
 	 * Start index tells what column to start at
 	 * If bIndex is less than the number of columns, bIndex will be removed
 	 */
-	public static double[][] createA(ITableDataFrame data, List<String> skipAttribute, int variableStartCol, int bIndex) {
-		String[] dataCols = data.getColumnHeaders();
-//		int offset = 0;
-//		for(int i = 0; i < dataCols.length; i++) {
-//			if(skipAttribute.contains(dataCols[i])) {
-//				if(ArrayUtilityMethods.arrayContainsValueAtIndex(dataCols, dataCols[i]) < bIndex) {
-//					offset++;
-//				}
-//			}
-//		}
-//		bIndex -= offset;
-		
+	public static double[][] createA(ITableDataFrame data, int variableStartCol, int bIndex) {
 		int listNumRows = data.getNumRows();
-//		offset = 0;
-//		if(skipAttribute != null) {
-//			offset = skipAttribute.size();
-//		}
-		int listNumCols = data.getNumCols();// - offset;
+		int listNumCols = data.getNumCols();
 		
 		int outNumCols;
 		if(bIndex<listNumCols) {
@@ -72,7 +56,7 @@ public final class MatrixRegressionHelper{
 		}
 		double[][] A = new double[listNumRows][outNumCols];
 
-		Iterator<Object[]> it = data.iterator(false, skipAttribute);
+		Iterator<Object[]> it = data.iterator(false);
 		int i = 0;
 		int j = 0;
 		while(it.hasNext()) {
@@ -100,22 +84,11 @@ public final class MatrixRegressionHelper{
 	 * @param bIndex
 	 * @return
 	 */
-	public static double[] createB(ITableDataFrame data, List<String> skipAttribute, int bIndex) {
-		String[] dataCols = data.getColumnHeaders();
-//		int offset = 0;
-//		for(int i = 0; i < dataCols.length; i++) {
-//			if(skipAttribute.contains(dataCols[i])) {
-//				if(ArrayUtilityMethods.arrayContainsValueAtIndex(dataCols, dataCols[i]) < bIndex) {
-//					offset++;
-//				}
-//			}
-//		}
-//		bIndex -= offset;
-		
+	public static double[] createB(ITableDataFrame data, int bIndex) {
 		int listNumRows = data.getNumRows();
 		double[] b = new double[listNumRows];
 
-		Iterator<Object[]> it = data.iterator(false, skipAttribute);
+		Iterator<Object[]> it = data.iterator(false);
 		int i = 0;
 		while(it.hasNext()) {
 			Object[] row = it.next();
@@ -171,7 +144,7 @@ public final class MatrixRegressionHelper{
 	 * @param bIndex
 	 * @return
 	 */
-	public static double[] createB(List<Object[]> list,int bIndex) {
+	public static double[] createB(List<Object[]> list, int bIndex) {
 		int i;
 		int listNumRows = list.size();
 		double[] b = new double[listNumRows];

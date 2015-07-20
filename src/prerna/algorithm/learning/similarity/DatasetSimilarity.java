@@ -130,7 +130,7 @@ public class DatasetSimilarity implements IAnalyticRoutine {
 	}
 	
 	private void generateClusterCenters() {
-		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false, skipAttributes);
+		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false);
 		while(it.hasNext()) {
 			cluster.addToCluster(it.next(), attributeNames, isNumeric);
 		}
@@ -138,7 +138,7 @@ public class DatasetSimilarity implements IAnalyticRoutine {
 	
 	
 	public void getSimilarityValuesForInstances() {
-		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false, skipAttributes);
+		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false);
 		while(it.hasNext()) {
 			List<Object[]> instance = it.next();
 			String instanceName = (String) instance.get(0)[instanceIndex];

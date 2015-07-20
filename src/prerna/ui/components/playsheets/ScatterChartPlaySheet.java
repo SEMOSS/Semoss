@@ -59,20 +59,16 @@ public class ScatterChartPlaySheet extends BrowserPlaySheet{
 	public void processQueryData()
 	{
 		String[] names = dataFrame.getColumnHeaders();
-		Iterator<Object[]> it = dataFrame.iterator(true, null);
-		
 		String name = names[0];
 		boolean hasType = true;
-		try {
-			Double.parseDouble(it.next()[1].toString());
+
+		if(dataFrame.isNumeric(names[1])) {
 			hasType = false;
-		} catch (NumberFormatException ex) {
-			// do nothing, hasType is already true
-		}
-		if(hasType) {
+		} else {
 			offset = 1;
 		}
 		
+		Iterator<Object[]> it = dataFrame.iterator(true);
 		ArrayList<Hashtable<String, Object>> allData = new ArrayList<Hashtable<String, Object>>();
 		while(it.hasNext())
 		{
@@ -93,18 +89,6 @@ public class ScatterChartPlaySheet extends BrowserPlaySheet{
 			if(offset == 0 && listElement.length > 4)
 				elementHash.put("heat", listElement[4]);
 			
-//			Object[] dataSet = new Object[4];
-//			dataSet[0]=(Double) listElement[1];
-//			dataSet[1]=(Double) listElement[2];
-//			if (listElement.length<4)
-//			{
-//				dataSet[2]=0.0;
-//			}
-//			else
-//			{
-//			dataSet[2]=(Double) listElement[3];
-//			}
-//			dataSet[3]=(String) listElement[0];//
 			allData.add(elementHash);
 		}
 		Hashtable<String, Object> allHash = new Hashtable<String, Object>();

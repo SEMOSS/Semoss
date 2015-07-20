@@ -82,7 +82,7 @@ public class ColumnChartPlaySheet extends BrowserPlaySheet{
 		String[] names = dataFrame.getColumnHeaders();
 
 		//series name - all objects in that series (x : ... , y : ...)
-		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		Iterator<Object[]> it = dataFrame.iterator(true);
 		while(it.hasNext())
 		{
 			Object[] elemValues = it.next();
