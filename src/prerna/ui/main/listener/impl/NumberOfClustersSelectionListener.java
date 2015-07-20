@@ -35,7 +35,7 @@ import javax.swing.JComponent;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;
+import prerna.ui.components.playsheets.MachineLearningModulePlaySheet;
 
 /**
  * Controls the attribute to classify on. Tied to a JComboBox in the ClassifyClusterPlaySheet.
@@ -45,7 +45,7 @@ public class NumberOfClustersSelectionListener extends AbstractListener {
 	static final Logger logger = LogManager.getLogger(ClassificationSelectionListener.class.getName());
 	
 	//shows or hides the JTextField for inputting a number of clusters depending on if the JComboBox is set to manually select
-	private ClassifyClusterPlaySheet playSheet;
+	private MachineLearningModulePlaySheet playSheet;
 	
 	/**
 	 * Method actionPerformed.
@@ -68,7 +68,7 @@ public class NumberOfClustersSelectionListener extends AbstractListener {
 	 */
 	@Override
 	public void setView(JComponent view) {
-		this.playSheet = (ClassifyClusterPlaySheet)view;
+		this.playSheet = (MachineLearningModulePlaySheet) view;
 	}
 	
 

@@ -160,6 +160,7 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet {
 	public void addPanel() {
 		if (jTab == null) {
 			super.addPanel();
+			addGridTab("Outliers Raw Data");
 		} else {
 			String lastTabName = jTab.getTitleAt(jTab.getTabCount() - 1);
 			LOGGER.info("Parsing integer out of last tab name");

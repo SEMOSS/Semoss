@@ -31,9 +31,7 @@ import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -57,10 +55,10 @@ import prerna.engine.api.IEngine;
 import prerna.om.SEMOSSParam;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
-import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
 import prerna.ui.components.playsheets.CorrelationPlaySheet;
 import prerna.ui.components.playsheets.LocalOutlierVizPlaySheet;
+import prerna.ui.components.playsheets.MachineLearningModulePlaySheet;
 import prerna.ui.components.playsheets.MatrixRegressionPlaySheet;
 import prerna.ui.components.playsheets.MatrixRegressionVizPlaySheet;
 import prerna.ui.components.playsheets.NumericalCorrelationVizPlaySheet;
@@ -77,7 +75,7 @@ import prerna.util.Utility;
 public class RunAlgorithmListener extends AbstractListener {
 	private static final Logger LOGGER = LogManager.getLogger(RunAlgorithmListener.class.getName());
 	
-	private ClassifyClusterPlaySheet playSheet;
+	private MachineLearningModulePlaySheet playSheet;
 	private JTabbedPane jTab;
 	private JProgressBar jBar;
 	private Hashtable<String, IPlaySheet> playSheetHash;
@@ -430,7 +428,7 @@ public class RunAlgorithmListener extends AbstractListener {
 	 */
 	@Override
 	public void setView(JComponent view) {
-		this.playSheet = (ClassifyClusterPlaySheet)view;
+		this.playSheet = (MachineLearningModulePlaySheet) view;
 		this.columnCheckboxes = playSheet.getColumnCheckboxes();
 		this.algorithmComboBox = playSheet.getAlgorithmComboBox();
 		

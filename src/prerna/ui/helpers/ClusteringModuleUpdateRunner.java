@@ -30,14 +30,14 @@ package prerna.ui.helpers;
 import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;
+import prerna.ui.components.playsheets.MachineLearningModulePlaySheet;
 
 /**
  * This class helps with running the create view method for a playsheet.
  */
 public class ClusteringModuleUpdateRunner implements Runnable{
 
-	private ClassifyClusterPlaySheet playSheet = null;
+	private MachineLearningModulePlaySheet playSheet = null;
 	private ITableDataFrame dataFrame;
 	private List<String> skipColumns;
 	
@@ -45,7 +45,7 @@ public class ClusteringModuleUpdateRunner implements Runnable{
 	 * Constructor for PlaysheetCreateRunner.
 	 * @param playSheet IPlaySheet
 	 */
-	public ClusteringModuleUpdateRunner(ClassifyClusterPlaySheet playSheet)
+	public ClusteringModuleUpdateRunner(MachineLearningModulePlaySheet playSheet)
 	{
 		this.playSheet = playSheet;
 	}

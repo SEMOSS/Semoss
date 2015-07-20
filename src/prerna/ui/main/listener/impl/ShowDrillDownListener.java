@@ -35,7 +35,7 @@ import javax.swing.JToggleButton;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;
+import prerna.ui.components.playsheets.MachineLearningModulePlaySheet;
 
 /**
  * Runs the algorithm selected on the Cluster/Classify playsheet and shows the drill down panel. Tied to the button to the ClassifyClusterPlaySheet.
@@ -43,7 +43,7 @@ import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;
 public class ShowDrillDownListener extends AbstractListener {
 	private static final Logger LOGGER = LogManager.getLogger(ShowDrillDownListener.class.getName());
 	
-	private ClassifyClusterPlaySheet playSheet;
+	private MachineLearningModulePlaySheet playSheet;
 	
 	/**
 	 * Method actionPerformed.
@@ -61,7 +61,7 @@ public class ShowDrillDownListener extends AbstractListener {
 	 */
 	@Override
 	public void setView(JComponent view) {
-		this.playSheet = (ClassifyClusterPlaySheet)view;
+		this.playSheet = (MachineLearningModulePlaySheet) view;
 	}
 
 }
