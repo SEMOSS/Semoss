@@ -225,7 +225,7 @@ public class RunAlgorithmListener extends AbstractListener {
 			((WekaClassificationPlaySheet)newPlaySheet).setJTab(jTab);
 			((WekaClassificationPlaySheet)newPlaySheet).setJBar(jBar);
 		
-		} else if(algorithm.equals("Outliers")) {
+		} else if(algorithm.equals("Local Outlier Factor")) {
 			int kneighbors = enterKNeighborsSlider.getValue();
 			
 			newPlaySheet = new LocalOutlierVizPlaySheet();
