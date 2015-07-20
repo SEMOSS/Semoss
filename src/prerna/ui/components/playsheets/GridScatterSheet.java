@@ -62,18 +62,13 @@ public class GridScatterSheet extends BrowserPlaySheet{
 		String name = var[0];
 		boolean hasType = true;
 		int offset = 0;
-		Iterator<Object[]> it = dataFrame.iterator(true, null);
-		try {
-			Double.parseDouble(it.next()[1].toString());
+		if(dataFrame.isNumeric(var[1])) {
 			hasType = false;
-		} catch (NumberFormatException ex) {
-			// do nothing, hasType is alreayd true
-		}
-		if(hasType) {
+		} else {
 			offset = 1;
 		}
 		
-		it = dataFrame.iterator(true, null);
+		Iterator<Object[]> it = dataFrame.iterator(true);
 		while(it.hasNext())
 		{
 			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();

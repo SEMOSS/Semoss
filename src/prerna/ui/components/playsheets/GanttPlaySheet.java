@@ -62,7 +62,7 @@ public class GanttPlaySheet extends BrowserPlaySheet {
 		ArrayList taskNames = new ArrayList();
 		
 		String[] var = dataFrame.getColumnHeaders();
-		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		Iterator<Object[]> it = dataFrame.iterator(true);
 		while(it.hasNext())
 		{	
 			LinkedHashMap elementHash = new LinkedHashMap();

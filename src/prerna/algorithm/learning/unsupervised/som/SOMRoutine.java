@@ -162,7 +162,7 @@ public class SOMRoutine implements IAnalyticRoutine {
 		
 		// initialize the grid
 		int idx = 0;
-		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false, skipAttributes);
+		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false);
 		for(; idx < numGrids; idx++) {
 			List<Object[]> instance = it.next();
 			// add value to cluster
@@ -185,7 +185,7 @@ public class SOMRoutine implements IAnalyticRoutine {
 			double radiusOfInfluence = initalRadius * Math.exp( -1.0 * currIt / tau);
 			// determine learning rate for this iteration
 			double learningInfluence = learningRate * Math.exp( -1.0 * currIt / tau);
-			it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false, skipAttributes);
+			it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false);
 			while(it.hasNext()) {
 				List<Object[]> instance = it.next();
 				Object instanceName = instance.get(0)[instanceIndex];

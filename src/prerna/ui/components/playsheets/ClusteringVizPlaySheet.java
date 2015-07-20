@@ -159,7 +159,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 	public void processQueryData() {
 		//TODO: this is a bad format, will just use getData in future
 		List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
-		Iterator<Object[]> it1 = dataFrame.iterator(false, skipAttributes);
+		Iterator<Object[]> it1 = dataFrame.iterator(false);
 		//TODO: remove skipAttributes from columnHeaders
 		while(it1.hasNext()) {
 			Object[] row = it1.next();
@@ -180,7 +180,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 
 		Hashtable<String, Hashtable<String, Object>>[] barData = new Hashtable[this.numClusters];
 		Hashtable<String, Hashtable<String, Object>> clusterDataHash = new Hashtable<String, Hashtable<String, Object>>();
-		Iterator<List<Object[]>> it = dataFrame.uniqueIterator(clusterIDCol, false, skipAttributes);
+		Iterator<List<Object[]>> it = dataFrame.uniqueIterator(clusterIDCol, false);
 		while(it.hasNext()) {
 			List<Object[]> clusterData = it.next();
 			int numInstancesInCluster = clusterData.size();

@@ -71,7 +71,7 @@ public class CONUSMapPlaySheet extends BrowserPlaySheet {
 	{
 		data = new HashSet<LinkedHashMap<String, Object>>();
 		String[] var = dataFrame.getColumnHeaders();
-		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		Iterator<Object[]> it = dataFrame.iterator(true);
 		
 		while(it.hasNext())
 		{	

@@ -92,7 +92,7 @@ public class VendorCapabilityTaskPlaysheet extends BrowserPlaySheet {
 		// vendor capability task fullfillment level
 		Hashtable <String,Hashtable> vendorHash = new Hashtable<String, Hashtable>();
 		
-		Iterator<Object[]> it = dataFrame.iterator(false, null);
+		Iterator<Object[]> it = dataFrame.iterator(false);
 		while(it.hasNext())
 		{
 			Object[] listElement = it.next();

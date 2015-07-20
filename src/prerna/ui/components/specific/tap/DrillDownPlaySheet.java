@@ -58,7 +58,7 @@ public class DrillDownPlaySheet extends BrowserPlaySheet {
 		for(int i = 1;i<var.length;i++) {
 			Hashtable<String,ArrayList<String>> elementHash = new Hashtable<String,ArrayList<String>>();
 			
-			Iterator<Object[]> it = dataFrame.iterator(false, null);
+			Iterator<Object[]> it = dataFrame.iterator(false);
 			while(it.hasNext()) {
 				ArrayList<String> listElementArray = new ArrayList<String>();
 				Object[] listElement = it.next();

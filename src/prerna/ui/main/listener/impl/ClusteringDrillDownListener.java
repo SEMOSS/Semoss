@@ -91,7 +91,7 @@ public class ClusteringDrillDownListener extends AbstractListener {
 		}
 		
 		List<Object[]> subsetValues = new ArrayList<Object[]>();
-		Iterator<List<Object[]>> it = dataFrame.uniqueIterator(clusterIDCol, false, null);
+		Iterator<List<Object[]>> it = dataFrame.uniqueIterator(clusterIDCol, false);
 		while(it.hasNext()) {
 			List<Object[]> clusterData = it.next();
 			int clusterNumber = (int) clusterData.get(0)[clusterIDIndex];

@@ -67,7 +67,7 @@ public class CirclePackPlaySheet extends BrowserPlaySheet {
 		Map<String, Map> currentMap;
 
 		// loop through the list
-		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		Iterator<Object[]> it = dataFrame.iterator(true);
 		while(it.hasNext()) {
 			Object[] listElements = it.next();
 

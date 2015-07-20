@@ -64,7 +64,7 @@ public class ComparisonLineBarPlaySheet extends ColumnChartPlaySheet{
 		int lastCol = names.length - 1 ;
 		ArrayList<String> usedList = new ArrayList<String>();
 		
-		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		Iterator<Object[]> it = dataFrame.iterator(true);
 		while(it.hasNext())
 		{
 			Object[] elemValues = it.next();

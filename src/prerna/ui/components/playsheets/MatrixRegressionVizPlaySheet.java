@@ -88,6 +88,7 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 
 	@Override
 	public void runAnalytics() {
+		dataFrame.setColumnsToSkip(skipAttributes);
 		this.columnHeaders = dataFrame.getColumnHeaders();
 
 		//the bIndex should have been provided. if not, will use the last column
@@ -95,12 +96,12 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 			bIndex = columnHeaders.length - 1;
 
 		//create the b and A arrays which are used in matrix regression to determine coefficients
-		double[] b = MatrixRegressionHelper.createB(dataFrame, skipAttributes, bIndex);
+		double[] b = MatrixRegressionHelper.createB(dataFrame, bIndex);
 		double[][] A;
 		if(includesInstance) {
-			A = MatrixRegressionHelper.createA(dataFrame, skipAttributes, 1, bIndex);
+			A = MatrixRegressionHelper.createA(dataFrame, 1, bIndex);
 		} else {
-			A = MatrixRegressionHelper.createA(dataFrame, skipAttributes, 0, bIndex);
+			A = MatrixRegressionHelper.createA(dataFrame, 0, bIndex);
 		}
 
 		//run regression
@@ -131,9 +132,6 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 		}else {
 			numVariables = columnHeaders.length;
 		}
-//		if(skipAttributes != null) {
-//			numVariables -= skipAttributes.size();
-//		}
 
 		int i = 0;
 		Object[] stdErrors = new Object[numVariables];
@@ -180,37 +178,6 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 		this.dataFrame.setColumnsToSkip(skipAttributes);
 	}
 	
-//	@Override
-//	public String[] getColumnHeaders() {
-////		String[] newNames;
-////		if(skipAttributes == null || (skipAttributes.size() == 0)) {
-////			newNames = columnHeaders;
-////		} else {
-////			newNames = new String[columnHeaders.length - skipAttributes.size()];
-////			int counter = 0;
-////			for(String name : columnHeaders) {
-////				if(!skipAttributes.contains(name)) {
-////					newNames[counter] = name;
-////					counter++;
-////				}
-////			}
-////		}
-////		
-////		return newNames;
-//		return columnHeaders;
-//	}
-	
-//	@Override
-//	public List<Object[]> getTabularData() {
-//		List<Object[]> allData = new ArrayList<Object[]>();
-//		Iterator<Object[]> it = dataFrame.iterator(false, skipAttributes);
-//		while(it.hasNext()) {
-//			allData.add(it.next());
-//		}
-//		
-//		return allData;
-//	}
-
 	/////////////////////////////SWING DEPENDENT CODE/////////////////////////////
 	@Override
 	public void addPanel() {

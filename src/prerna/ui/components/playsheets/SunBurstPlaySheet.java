@@ -65,7 +65,7 @@ public class SunBurstPlaySheet extends BrowserPlaySheet {
 		Map<String, Map<String, Map>> rootMap = new HashMap<String, Map<String, Map>>();
 		Map<String, Map> currentMap;
 
-		Iterator<Object[]> it = dataFrame.iterator(true, null);
+		Iterator<Object[]> it = dataFrame.iterator(true);
 		// loop through the list
 		while(it.hasNext()) {
 			Object[] listElements = it.next();

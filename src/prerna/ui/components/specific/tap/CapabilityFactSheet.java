@@ -108,7 +108,7 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 		addPanel();
 		ArrayList<String> dataArrayList = new ArrayList<String>();
 		String[] var = dataFrame.getColumnHeaders();
-		Iterator<Object[]> it = dataFrame.iterator(false, null);
+		Iterator<Object[]> it = dataFrame.iterator(false);
 		while(it.hasNext())
 		{	
 			Object[] listElement = it.next();
