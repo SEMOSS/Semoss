@@ -76,12 +76,16 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	@Override
 	public void openDB(String propFile)
 	{
-		if(dataSource!= null){
-			try{
-				engineConn = getConnection();
-				this.engineConnected = true;
-			} catch (Exception e){
-				logger.error("error RDBMS opening database", e);
+		if(propFile==null){
+			if(dataSource!= null){
+				try{
+					engineConn = getConnection();
+					this.engineConnected = true;
+				} catch (Exception e){
+					logger.error("error RDBMS opening database", e);
+				}
+			} else {
+				logger.info("using engine connection");
 			}
 		} else {
 		
