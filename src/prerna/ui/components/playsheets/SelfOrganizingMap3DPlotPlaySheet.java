@@ -174,7 +174,7 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 	}
 	
 	@Override
-	public String[] getColumnHeaders() {
+	public String[] getNames() {
 		String[] newNames;
 		if(skipAttributes == null || (skipAttributes.size() == 0)) {
 			newNames = columnHeaders;

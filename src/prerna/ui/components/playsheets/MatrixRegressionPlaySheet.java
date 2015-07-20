@@ -177,7 +177,7 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 	}
 
 	@Override
-	public String[] getColumnHeaders() {
+	public String[] getNames() {
 		//update headers so that there are columns for estimated and residuals
 		columnHeaders = MatrixRegressionHelper.moveNameToEnd(columnHeaders, bIndex);
 

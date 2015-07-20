@@ -79,10 +79,6 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 		return list;
 	}
 	
-	public String[] getNames() {
-		return names;
-	}
-	
 	/**
 	 * This is the function that is used to create the first view 
 	 * of any play sheet.  It often uses a lot of the variables previously set on the play sheet, such as {@link #setQuery(String)},
@@ -260,7 +256,7 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 	}
 	
 	@Override
-	public String[] getColumnHeaders() {
+	public String[] getNames() {
 		return this.names;
 	}
 	

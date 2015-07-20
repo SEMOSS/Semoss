@@ -43,7 +43,7 @@ public class DHMSMIntegrationSavingsBySelectedSystemPlaySheet extends GridPlaySh
 	}
 	
 	@Override
-	public String[] getColumnHeaders() {
+	public String[] getNames() {
 		return this.names;
 	}
 	
