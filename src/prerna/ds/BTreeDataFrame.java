@@ -370,7 +370,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 						SimpleTreeNode.addLeafChild(myNode, hookUp);
 					}
 					
-					this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[0], levelNames.length);	
+//					this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[0], levelNames.length);	
 				}
 			}
 			
@@ -1082,7 +1082,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		Iterator<SimpleTreeNode> iterator = new ValueTreeColumnIterator(typeRoot);
 		List<Object> column = new ArrayList<Object>();
 		while(iterator.hasNext()) {
-			column.add(iterator.next());
+			column.add(iterator.next().leaf.getValue());
 		}
 		
 		return column.toArray();
