@@ -46,8 +46,8 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.BTreeDataFrame;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
+import prerna.ui.components.playsheets.MachineLearningModulePlaySheet;
 import prerna.ui.helpers.PlaysheetCreateRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -60,7 +60,7 @@ import prerna.util.Utility;
 public class RunDrillDownListener extends AbstractListener {
 	private static final Logger LOGGER = LogManager.getLogger(RunDrillDownListener.class.getName());
 	
-	private ClassifyClusterPlaySheet playSheet;
+	private MachineLearningModulePlaySheet playSheet;
 	
 	private ITableDataFrame dataFrame;
 	private Hashtable<String, IPlaySheet> playSheetHash;
@@ -139,7 +139,7 @@ public class RunDrillDownListener extends AbstractListener {
 			newDataFrame.addRow(hashRow, hashRow);
 		}
 		
-		ClassifyClusterPlaySheet drillDownPlaySheet = new ClassifyClusterPlaySheet();
+		MachineLearningModulePlaySheet drillDownPlaySheet = new MachineLearningModulePlaySheet();
 		String insightID = QuestionPlaySheetStore.getInstance().getIDCount()+". "+playSheet.getTitle();
 		QuestionPlaySheetStore.getInstance().put(insightID,  drillDownPlaySheet);
 		drillDownPlaySheet.setQuery(playSheet.getQuery());
@@ -163,7 +163,7 @@ public class RunDrillDownListener extends AbstractListener {
 	 */
 	@Override
 	public void setView(JComponent view) {
-		this.playSheet = (ClassifyClusterPlaySheet)view;
+		this.playSheet = (MachineLearningModulePlaySheet) view;
 		this.columnCheckboxes = playSheet.getColumnCheckboxes();
 		this.drillDownTabSelectorComboBox = playSheet.getDrillDownTabSelectorComboBox();
 		this.playSheetHash = playSheet.getPlaySheetHash();

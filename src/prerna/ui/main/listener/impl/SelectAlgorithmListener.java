@@ -35,7 +35,7 @@ import javax.swing.JComponent;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ui.components.playsheets.ClassifyClusterPlaySheet;
+import prerna.ui.components.playsheets.MachineLearningModulePlaySheet;
 
 /**
  * Controls the algorithm to use, whether clustering or classifying. Tied to the JComboBox in the ClassifyClusterPlaySheet.
@@ -44,7 +44,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 	static final Logger logger = LogManager.getLogger(SelectAlgorithmListener.class.getName());
 	
 	//given two panels, the cluster panel and the classify panel and determines which one to show based on what is clicked.
-	private ClassifyClusterPlaySheet playSheet;
+	private MachineLearningModulePlaySheet playSheet;
 	
 	/**
 	 * Method actionPerformed.
@@ -127,7 +127,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 	 */
 	@Override
 	public void setView(JComponent view) {
-		this.playSheet = (ClassifyClusterPlaySheet)view;
+		this.playSheet = (MachineLearningModulePlaySheet) view;
 	}
 
 }

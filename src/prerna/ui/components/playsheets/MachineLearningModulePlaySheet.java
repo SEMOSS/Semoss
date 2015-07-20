@@ -82,9 +82,9 @@ import prerna.util.QuestionPlaySheetStore;
 import prerna.util.Utility;
 import aurelienribon.ui.css.Style;
 
-public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
+public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 
-	private static final Logger LOGGER = LogManager.getLogger(ClassifyClusterPlaySheet.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(MachineLearningModulePlaySheet.class.getName());
 	
 	private JTabbedPane jTab;
 	private Hashtable<String, IPlaySheet> playSheetHash = new Hashtable<String,IPlaySheet>();
