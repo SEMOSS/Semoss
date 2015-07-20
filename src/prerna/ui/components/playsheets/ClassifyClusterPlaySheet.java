@@ -922,7 +922,7 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		gbl_somPanel.rowWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
 		somPanel.setLayout(gbl_somPanel);
 		
-		double x = Math.sqrt((double) dataFrame.getNumCols() / (6*5));
+		double x = Math.sqrt((double) dataFrame.getNumRows() / (6*5));
 		som_height = (int) Math.round(2*x);
 		som_length = (int) Math.round(3*x);
 		
@@ -1258,6 +1258,9 @@ public class ClassifyClusterPlaySheet extends BasicProcessingPlaySheet{
 		outlierPanel.setVisible(show);
 		lblEnterKNeighbors.setVisible(show);
 		enterKNeighborsSlider.setVisible(show);
+		if(show) {
+			disableCheckBoxes(categoricalPropNames.toArray(new String[0]),false);
+		}
 	}
 	public void showMatrixRegression(Boolean show) {
 		matrixRegPanel.setVisible(show);
