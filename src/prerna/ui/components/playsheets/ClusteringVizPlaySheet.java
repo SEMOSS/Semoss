@@ -54,7 +54,6 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.algorithm.learning.similarity.DatasetSimilarity;
 import prerna.algorithm.learning.unsupervised.clustering.ClusteringRoutine;
 import prerna.algorithm.learning.unsupervised.clustering.MultiClusteringRoutine;
 import prerna.algorithm.learning.util.IClusterDistanceMode;

@@ -40,7 +40,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -71,11 +70,7 @@ import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
 import prerna.algorithm.impl.DistanceDownstreamProcessor;
-import prerna.algorithm.impl.LoopIdentifierProcessor;
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
@@ -118,6 +113,10 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.QuestionPlaySheetStore;
 import prerna.util.Utility;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.graph.DelegateForest;
 import edu.uci.ics.jung.visualization.GraphZoomScrollPane;
