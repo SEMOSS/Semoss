@@ -192,7 +192,6 @@ public class RunAlgorithmListener extends AbstractListener {
 			((ClusteringVizPlaySheet)newPlaySheet).setJBar(jBar);
 			
 			showDrillDownBtn.setVisible(true);			
-			playSheet.showDrillDownPanel(false);
 			
 		} else if(algorithm.equals("Classify")) {
 			skipColumns.add(attributeNames[0]);
