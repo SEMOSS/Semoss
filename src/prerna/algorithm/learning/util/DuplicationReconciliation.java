@@ -63,13 +63,13 @@ public class DuplicationReconciliation {
 					size -= 1.0;
 					continue;
 				} else {
-					total += (Double)value;
+					total += ((Number)value).doubleValue();
 				}
 			} else {
 				if(value == null || !(value instanceof Number)) {
 					return Double.NaN;
 				} else {
-					total += (Double)value;
+					total += ((Number)value).doubleValue();
 				}
 			}
 		}
@@ -82,14 +82,14 @@ public class DuplicationReconciliation {
 			if(ignoreEmpty) {
 				if(val instanceof Number) {
 					Integer freq = freqs.get((Double)val);
-					freqs.put((Double)val, (freq == null ? 1 : freq+1));
+					freqs.put(((Number)val).doubleValue(), (freq == null ? 1 : freq+1));
 				}
 			} else {
 				if(val == null || !(val instanceof Number)) {
 					val = Double.NaN;
 				}
 				Integer freq = freqs.get((Double)val);
-				freqs.put((Double)val, (freq == null ? 1 : freq+1));
+				freqs.put(((Number)val).doubleValue(), (freq == null ? 1 : freq+1));
 			}
 		}
 			
@@ -144,7 +144,9 @@ public class DuplicationReconciliation {
 		Arrays.sort(row, new Comparator<Object>() {
 			public int compare(Object o1, Object o2) {
 				if(o1 instanceof Number && o2 instanceof Number) {
-					return ((Double)o1).compareTo((Double)o2);
+					Double d1 = ((Number)o1).doubleValue();
+					Double d2 = ((Number)o2).doubleValue();
+					return (d1).compareTo(d2);
 				} 
 				else if(o1 instanceof Number) return 1;
 				else if(o2 instanceof Number) return -1;
@@ -178,13 +180,13 @@ public class DuplicationReconciliation {
 			if(medianIndex2 == startIndex) {
 				return (Double)row[medianIndex];
 			} else {
-				Double median1 = (Double)row[medianIndex];
-				Double median2 = (Double)row[medianIndex2];
+				Double median1 = ((Number)row[medianIndex]).doubleValue();
+				Double median2 = ((Number)row[medianIndex2]).doubleValue();
 				return (median1+median2)/2.0;
 			}
 		} else {
 			if(row[medianIndex] instanceof Number) {
-				return (Double)row[medianIndex];
+				return ((Number)row[medianIndex]).doubleValue();
 			} else {
 				return Double.NaN;
 			}
