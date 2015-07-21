@@ -110,17 +110,27 @@ public class WekaClassification implements IAnalyticRoutine {
 	@Override
 	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
 		this.modelName = (String) options.get(0).getSelected();
-		this.classIndex = (int) options.get(1).getSelected();
+		String className = (String) options.get(1).getSelected();
 		this.skipAttributes = (List<String>) options.get(2).getSelected();
-
+		
 		ITableDataFrame dataFrame = data[0];
 		dataFrame.setColumnsToSkip(skipAttributes);
 		this.names = dataFrame.getColumnHeaders();
 		this.model = ClassificationFactory.createClassifier(modelName);
 
+		this.classIndex = names.length - 1;
+		while(classIndex > -1 && !names[classIndex].equals(className)) {
+			classIndex--;
+		}
+		
+		if(classIndex < 0){
+			LOGGER.error("Cannot match classifier selected in drop down to list of classifiers");
+			return null;
+		}
+		
 		LOGGER.info("Starting classification algorithm using " + modelName + " to predict variable " + names[classIndex] + "...");
 		LOGGER.info("Generating Weka Instances object...");
-		this.instancesData = WekaUtilityMethods.createInstancesFromQueryUsingBinNumerical("Apriori dataset", dataFrame.getData(), names);
+		this.instancesData = WekaUtilityMethods.createInstancesFromQuery("Apriori dataset", dataFrame.getData(), names, classIndex);
 		instancesData.setClassIndex(classIndex);
 		
 		// cannot classify when only one value
@@ -259,6 +269,7 @@ public class WekaClassification implements IAnalyticRoutine {
 					rootMap.put(keyVal[0].trim(), endMap);
 				} else {
 					String newRow = row.trim();
+					currTree = new HashMap<String, Map>();
 					rootMap.put(newRow, currTree);
 					startKey = newRow;
 					subTreeIndex = 0;
@@ -303,6 +314,7 @@ public class WekaClassification implements IAnalyticRoutine {
 					rootMap.put(keyVal[0].trim(), endMap);
 				} else {
 					String newRow = row.trim();
+					currTree = new HashMap<String, Map>();
 					rootMap.put(newRow, currTree);
 					startKey = newRow;
 					subTreeIndex = 0;
