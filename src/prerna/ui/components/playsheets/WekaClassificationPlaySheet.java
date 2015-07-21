@@ -55,7 +55,7 @@ public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
 	
 	private String modelName;
 	private WekaClassification alg = null;
-	private int classColumn = -1;
+	private String className = "";
 	
 	private List<String> skipAttributes;
 
@@ -75,10 +75,11 @@ public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
 		List<SEMOSSParam> options = alg.getOptions();
 		Map<String, Object> selectedOptions = new HashMap<String, Object>();
 		selectedOptions.put(options.get(0).getName(), modelName); // default of 0 is acceptable
-		if(classColumn == -1) {
-			classColumn = dataFrame.getNumCols() - 1;
+		if(className.equals("")) {
+			String[] colNames = dataFrame.getColumnHeaders();
+			className = colNames[colNames.length - 1];
 		} 
-		selectedOptions.put(options.get(1).getName(), classColumn);
+		selectedOptions.put(options.get(1).getName(), className);
 		selectedOptions.put(options.get(2).getName(), skipAttributes);
 		alg.setSelectedOptions(selectedOptions);
 		dataFrame.performAction(alg);
@@ -129,12 +130,12 @@ public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
 		this.modelName = modelName;
 	}
 	
-	public void setClassColumn(int classColumn){
-		this.classColumn = classColumn;
+	public void setClassColumn(String className){
+		this.className = className;
 	}
 	
-	public int getClassColumn() {
-		return classColumn;
+	public String getClassColumn() {
+		return className;
 	}
 	
 	public void setSkipAttributes(List<String> skipColumns) {

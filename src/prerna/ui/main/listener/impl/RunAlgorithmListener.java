@@ -202,21 +202,12 @@ public class RunAlgorithmListener extends AbstractListener {
 			
 			//determine the column index and name to classify on
 			String classifier = classComboBox.getSelectedItem() + "";
-			int classifierIndex = attributeNames.length - 1;
-			while(classifierIndex > -1 && !attributeNames[classifierIndex].equals(classifier)) {
-				classifierIndex--;
-			}
-			
-			if(classifierIndex<0){
-				LOGGER.error("Cannot match classifier selected in drop down to list of classifiers");
-				return;
-			}
 			
 			newPlaySheet = new WekaClassificationPlaySheet();
 			newPlaySheet.setDataFrame(dataFrame);
 			((WekaClassificationPlaySheet)newPlaySheet).setModelName(classMethod);
 			((WekaClassificationPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
-			((WekaClassificationPlaySheet)newPlaySheet).setClassColumn(classifierIndex);
+			((WekaClassificationPlaySheet)newPlaySheet).setClassColumn(classifier);
 			((WekaClassificationPlaySheet)newPlaySheet).setJTab(jTab);
 			((WekaClassificationPlaySheet)newPlaySheet).setJBar(jBar);
 		
