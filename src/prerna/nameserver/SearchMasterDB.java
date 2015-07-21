@@ -242,17 +242,18 @@ public class SearchMasterDB extends ModifyMasterDB {
 	
 	public HashMap<String, Object> getAllInsights(String groupBy, String orderBy) {
 		HashMap<String, Object> ret = new HashMap<String, Object>();
-		ArrayList<HashMap<String, String>> groupedInsights = new ArrayList<HashMap<String, String>>();
-		HashMap<String, ArrayList<HashMap<String, String>>> insights = new HashMap<String, ArrayList<HashMap<String, String>>>();
+		ArrayList<HashMap<String, Object>> groupedInsights = new ArrayList<HashMap<String, Object>>();
+		HashMap<String, ArrayList<HashMap<String, Object>>> insights = new HashMap<String, ArrayList<HashMap<String, Object>>>();
 		
 		String query = MasterDatabaseQueries.GET_ALL_INSIGHTS_FOR_BROWSE;
 		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
 		String[] names = sjsw.getVariables();
-		Double totalClicks = 0.0;
-		Double maxClicks = 0.0;
+		Integer totalClicks = 0;
+		Integer maxClicks = 0;
 		String groupValue = "";
 		
 		while(sjsw.hasNext()) {
+			HashMap<String, String> engineMetaData = new HashMap<String, String>();
 			ISelectStatement sjss = sjsw.next();
 			String insight = sjss.getVar(names[0]).toString();
 			String insightLabel = sjss.getVar(names[1]).toString();
@@ -260,31 +261,34 @@ public class SearchMasterDB extends ModifyMasterDB {
 			String layout = sjss.getVar(names[2]).toString();
 			String vis = sjss.getVar(names[3]).toString();
 			String execCount = sjss.getVar(names[4]).toString();
-			Double clickCount = Double.parseDouble(execCount);
+			Integer clickCount = (new Double(Double.parseDouble(execCount))).intValue();
 			totalClicks += clickCount;
 			
 			if(maxClicks < clickCount){
 				maxClicks = clickCount;
 			}
 			
-			HashMap<String, String> insightMetadata = new HashMap<String, String>();
+			engineMetaData.put("name", engineName);
+			
+			HashMap<String, Object> insightMetadata = new HashMap<String, Object>();
 			insightMetadata.put("label", insightLabel);
-			insightMetadata.put("engine", engineName);
+			insightMetadata.put("engine", engineMetaData);
 			insightMetadata.put("layout", layout);
 			insightMetadata.put("visibility", vis);
-			insightMetadata.put("count", execCount);
+			insightMetadata.put("count", clickCount);
+
 			
 			if(groupBy.equals("database")) {
 				if(!groupValue.isEmpty() && !groupValue.equals(engineName)) {
 					insights.put(groupValue, groupedInsights);
-					groupedInsights = new ArrayList<HashMap<String, String>>();
+					groupedInsights = new ArrayList<HashMap<String, Object>>();
 				}
 				
 				groupValue = engineName;
 			} else if (groupBy.equals("network")) {
 				if(!groupValue.isEmpty() && !groupValue.equals(vis)) {
 					insights.put(groupValue, groupedInsights);
-					groupedInsights = new ArrayList<HashMap<String, String>>();
+					groupedInsights = new ArrayList<HashMap<String, Object>>();
 				}
 				
 				groupValue = vis;
