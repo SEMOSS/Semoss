@@ -138,7 +138,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		String dwQuery = "SELECT DISTINCT ?System ?Trans WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?System <http://semoss.org/ontologies/Relation/Contains/Transactional> ?Trans}{?System ?UsedBy ?SystemUser}}";
 		dwQuery = addBindings(dwQuery);
 		updateProgressBar("40%...Evaluating System Transactional Score", 40);
-		Hashtable dwHash = sdf.stringCompareBinaryResultGetter(this.engine.getEngineName(), dwQuery, "'Yes'", "'No'", "Both");
+		Hashtable dwHash = sdf.stringCompareBinaryResultGetter(this.engine.getEngineName(), dwQuery, "Yes", "No", "Both");
 		dwHash = processHashForCharting(dwHash);
 		//dataHash = processOverallScore(dataHash, dwHash);
 		
