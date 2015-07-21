@@ -86,6 +86,7 @@ public class MasterDatabaseURIs {
 	public static final String USERINSIGHT_EXECUTION_COUNT_PROP_URI = PROP_URI + "/ExecutionCount";
 	public static final String USERINSIGHT_LAST_EXECUTED_DATE_PROP_URI = PROP_URI + "/LastExecutedDate";
 	public static final String USERINSIGHT_PUBLISH_VISIBILITY_PROP_URI = PROP_URI + "/PublishVisibility";
+	public static final String USERINSIGHT_PUBLISH_DATE_PROP_URI = PROP_URI + "/PublishDate";
 	public static final String USERINSIGHT_FAVORITED_PROP_URI = PROP_URI + "/Favorited";
 	public static final String USER_USERINSIGHT_REL_URI = SEMOSS_RELATION_URI + "/RunsInsight";
 	public static final String INSIGHT_USERINSIGHT_REL_URI = SEMOSS_RELATION_URI + "/ExecutedBy";
