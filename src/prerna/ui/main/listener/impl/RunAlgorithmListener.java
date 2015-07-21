@@ -135,12 +135,7 @@ public class RunAlgorithmListener extends AbstractListener {
 		for(int i = removeSet.length - 1; i >=0; i--) {
 			dataFrame.removeColumn(removeSet[i]);
 		}
-		
 
-		
-		dataFrame.setColumnsToSkip(null);
-		//attributeNames = dataFrame.getColumnHeaders();
-		
 		List<String> skipColumns = new ArrayList<String>();
 		for(int i = 0; i < columnCheckboxes.size(); i++) {
 			if(!columnCheckboxes.get(i).isSelected()) {
@@ -153,7 +148,6 @@ public class RunAlgorithmListener extends AbstractListener {
 		}
 		
 		dataFrame.setColumnsToSkip(skipColumns);
-		//attributeNames = dataFrame.getColumnHeaders();
 		
 		String algorithm = algorithmComboBox.getSelectedItem() + "";
 		if(algorithm.equals("Similarity")) {
@@ -163,7 +157,6 @@ public class RunAlgorithmListener extends AbstractListener {
 			playThread.start();
 			return;
 		}
-		
 		
 		BasicProcessingPlaySheet newPlaySheet;
 		if(algorithm.equals("Cluster") ) {
@@ -197,9 +190,14 @@ public class RunAlgorithmListener extends AbstractListener {
 			((ClusteringVizPlaySheet)newPlaySheet).setPlaySheetHash(playSheetHash);
 			((ClusteringVizPlaySheet)newPlaySheet).setJTab(jTab);
 			((ClusteringVizPlaySheet)newPlaySheet).setJBar(jBar);
+			
 			showDrillDownBtn.setVisible(true);			
-	
+			playSheet.showDrillDownPanel(false);
+			
 		} else if(algorithm.equals("Classify")) {
+			skipColumns.add(attributeNames[0]);
+			dataFrame.setColumnsToSkip(skipColumns);
+
 			//method of classification to use
 			String classMethod = classificationMethodComboBox.getSelectedItem() + "";
 			

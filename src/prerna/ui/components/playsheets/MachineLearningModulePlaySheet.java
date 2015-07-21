@@ -1241,6 +1241,7 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		selectNumClustersComboBox.setVisible(show);
 		selectNumClustersTextField.setVisible(show);
 		selectNumClustersComboBox.setSelectedItem(automaticallySelectNumClustersText);
+		showDrillDownPanel(show);
 	}
 	public void showClassify(Boolean show) {
 		classifyPanel.setVisible(show);
@@ -1288,14 +1289,14 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		drillDownTabSelectorComboBox.setVisible(show);
 		checkboxSelectAllClusters.setVisible(show);
 		//button to run drill down
-		if(show){
-			drillDownTabSelectorComboBox.setSelectedIndex(0);
-			String tabName = (String) drillDownTabSelectorComboBox.getSelectedItem();
-			ClusteringVizPlaySheet playSheet = (ClusteringVizPlaySheet) playSheetHash.get(tabName);
-			int clusters = playSheet.getNumClusters();			
-			updateClusterCheckboxes(clusters);
-			resetClusterCheckboxesListener();
-		} else {
+		int lastTab = drillDownTabSelectorComboBox.getItemCount() - 1;
+		drillDownTabSelectorComboBox.setSelectedIndex(lastTab);
+		String tabName = (String) drillDownTabSelectorComboBox.getSelectedItem();
+		ClusteringVizPlaySheet playSheet = (ClusteringVizPlaySheet) playSheetHash.get(tabName);
+		int clusters = playSheet.getNumClusters();			
+		updateClusterCheckboxes(clusters);
+		resetClusterCheckboxesListener();
+		if(!show) {
 			updateClusterCheckboxes(0); //remove all the checkboxes
 		}
 		
