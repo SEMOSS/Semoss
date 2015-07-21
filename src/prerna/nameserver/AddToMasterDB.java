@@ -29,12 +29,15 @@ package prerna.nameserver;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -385,13 +388,23 @@ public class AddToMasterDB extends ModifyMasterDB {
 			createUserInsight(userId, insight.getId());
 		} else {
 			Double count = 1.0;
+			Date oldDate = new Date();
 			sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_USER_INSIGHT_EXECUTED_COUNT.replace("@USERINSIGHT@", userInsight));
 			if(sjsw.hasNext()) {
 				String[] names = sjsw.getVariables();
-				count = Double.parseDouble(sjsw.next().getVar(names[0]).toString());
+				ISelectStatement iss = sjsw.next();
+				count = Double.parseDouble(iss.getVar(names[0]).toString());
+				SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+				try {
+					oldDate = df.parse(iss.getVar(names[1]).toString());
+				} catch (ParseException e) {
+					e.printStackTrace();
+				}
 			}
 			MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userId + "-" + insight.getId(), MasterDatabaseURIs.USERINSIGHT_EXECUTION_COUNT_PROP_URI, count, false);
 			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userId + "-" + insight.getId(), MasterDatabaseURIs.USERINSIGHT_EXECUTION_COUNT_PROP_URI, ++count, false);
+			MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userId + "-" + insight.getId(), MasterDatabaseURIs.USERINSIGHT_LAST_EXECUTED_DATE_PROP_URI, oldDate, false);
+			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userId + "-" + insight.getId(), MasterDatabaseURIs.USERINSIGHT_LAST_EXECUTED_DATE_PROP_URI, new Date(), false);
 		}
 		
 		masterEngine.commit();
@@ -400,20 +413,29 @@ public class AddToMasterDB extends ModifyMasterDB {
 		return true;
 	}
 	
-	public boolean publishInsightToFeed(String userId, Insight insight, String visibility) {
+	public boolean publishInsightToFeed(String userId, Insight insight, String newVisibility) {
 		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 		final String userInsight = userId + "-" + insight.getId();
 		
+		String oldVisibility = "";
+		String pubDate = "";
 		ISelectWrapper sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_VISIBILITY_FOR_USERINSIGHT.replace("@USERINSIGHT@", userInsight));
 		if(!sjsw.hasNext()) {
 			createUserInsight(userId, insight.getId());
 		} else {
 			String[] names = sjsw.getVariables();
-			String oldVisibility = sjsw.next().getVar(names[0]).toString();
+			ISelectStatement iss = sjsw.next();
+			oldVisibility = iss.getVar(names[0]).toString();
+			pubDate = iss.getVar(names[1]).toString();
 			MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_PUBLISH_VISIBILITY_PROP_URI, oldVisibility, false);
 		}
 		
-		MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_PUBLISH_VISIBILITY_PROP_URI, visibility, false);
+		MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_PUBLISH_VISIBILITY_PROP_URI, newVisibility, false);
+		
+		if(oldVisibility.isEmpty() || (oldVisibility.equals("me") && !newVisibility.equals("me"))) {
+			MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_PUBLISH_DATE_PROP_URI, pubDate, false);
+			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_PUBLISH_DATE_PROP_URI, new Date(), false);
+		}
 		
 		masterEngine.commit();
 		masterEngine.infer();
