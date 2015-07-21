@@ -909,6 +909,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		ps.setQuery(query);
 		ps.setRDFEngine(systemEngine);
 		ps.createData();
+		ps.runAnalytics();
+		ps.processQueryData();
 		return (Hashtable<String,Object>)ps.getData();
 	}
 
