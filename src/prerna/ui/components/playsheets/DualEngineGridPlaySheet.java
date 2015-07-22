@@ -69,15 +69,12 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 	private int names2size;
 	private Set<String> uniqueNames = new LinkedHashSet<String>();
 	private Integer[] index;
-	private boolean match1 = true;
-	private boolean match2 = true;
+	private Integer[] names2Idx;
+	protected boolean match1 = true;
+	protected boolean match2 = true;
 
 	private List<Object[]> list;
 	private String[] names;
-	
-	public List<Object[]> getList(){
-		return list;
-	}
 	
 	/**
 	 * This is the function that is used to create the first view 
@@ -104,7 +101,8 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 		names2size = names2.length;
 
 		//find the common variable in the wrapper names (this will be the hashtable key)
-		Set<String> setNames1 = new LinkedHashSet<String> (Arrays.asList(names1));
+		List<String> names1List = Arrays.asList(names1);
+		Set<String> setNames1 = new LinkedHashSet<String> (names1List);
 		Set<String> setNames2 = new LinkedHashSet<String> (Arrays.asList(names2));
 
 		uniqueNames.addAll(setNames1);
@@ -116,10 +114,15 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 			index[i] = i;
 		}
 		int counter = names1size;
+		this.names2Idx = new Integer[names1size + names2size];
 		for(int i = 0; i < names2size; i++) {
 			if(!setNames1.contains(names2[i])) {
 				index[counter] = i + names1size;
+				names2Idx[i + names1size] = i + names1size;
 				counter++;
+			}
+			else{
+				names2Idx[i + names1size] = names1List.indexOf(names2[i]);
 			}
 		}
 
@@ -134,8 +137,6 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 		updateProgressBar("60%...Preparing List", 80);
 
 		prepareList(dataHash1, dataHash2);		
-		
-		list = ListUtilityMethods.orderQuery(list);
 
 	}
 
@@ -195,9 +196,9 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 					Object[] fullRow = new Object[names1size + names2size];
 	
 					for(int i = names1size; i<fullRow.length; i++){
-						fullRow[i] = hash2array[i-names1size];
+						fullRow[this.names2Idx[i]] = hash2array[i-names1size];
 					}
-	
+
 					// add to the list
 					combinedList.add(fullRow);
 				}
