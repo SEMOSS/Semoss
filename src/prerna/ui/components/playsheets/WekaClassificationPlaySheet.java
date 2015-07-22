@@ -95,7 +95,7 @@ public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
 		
 		processTree(rootMap, hashSet);
 
-		String root = engine.getEngineName();
+		String root = "Decision Tree For " + className;
 		
 		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
 		allHash.put("name", root);

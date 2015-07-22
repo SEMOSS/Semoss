@@ -85,6 +85,7 @@ public class WekaAprioriAlgorithm implements IAnalyticRoutine {
 		this.skipAttributes = (List<String>) options.get(4).getSelected();
 
 		ITableDataFrame dataFrame = data[0];
+		dataFrame.setColumnsToSkip(skipAttributes);
 		LOGGER.info("Generating Weka Instances object...");
 		this.names = dataFrame.getColumnHeaders();
 		this.instancesData = WekaUtilityMethods.createInstancesFromQueryUsingBinNumerical("Apriori dataset", dataFrame.getData(), names);
