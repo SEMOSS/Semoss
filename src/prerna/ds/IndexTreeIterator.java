@@ -14,7 +14,9 @@ public class IndexTreeIterator implements Iterator<TreeNode> {
 	 */
 	public IndexTreeIterator(TreeNode typeRoot) {
 		nodeStack = new Stack<>();
-		nodeStack.push(typeRoot.getLeft(typeRoot));
+		if(typeRoot!=null) 
+			nodeStack.push(typeRoot.getLeft(typeRoot));
+		
 	}
 	
 	@Override

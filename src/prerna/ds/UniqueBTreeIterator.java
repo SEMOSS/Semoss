@@ -23,6 +23,7 @@ public class UniqueBTreeIterator implements Iterator<List<Object[]>>{
 	}
 	
 	public UniqueBTreeIterator(TreeNode columnRoot, boolean getRawData, List<String> columns2skip) {
+
 		iterator = new IndexTreeIterator(columnRoot);
 		useRawData = getRawData;
 		indexTreeNodes = new LinkedList<TreeNode>();
