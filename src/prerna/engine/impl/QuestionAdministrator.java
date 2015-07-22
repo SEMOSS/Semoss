@@ -198,13 +198,13 @@ public class QuestionAdministrator {
 	 * @param perspective			String for the perspective instance
 	 */
 	private void addPerspective(String perspectivePred, String perspectiveURI, String perspective) {
-		logger.info("Adding perspective " + perspective + "      " + perspectivePred + "     " + perspectiveURI);
+		logger.debug("Adding perspective " + perspective + "      " + perspectivePred + "     " + perspectiveURI);
 		ArrayList<Object[]> masterList = getEngine2PerspectiveTriples(perspectivePred, perspectiveURI, perspective);
 		add2XML(insightBaseXML, masterList);
 	}
 
 	private void removePerspective(String perspectivePred, String perspectiveURI, String perspective) {
-		logger.info("Removing perspective " + perspective + "      " + perspectivePred + "     " + perspectiveURI);
+		logger.debug("Removing perspective " + perspective + "      " + perspectivePred + "     " + perspectiveURI);
 		ArrayList<Object[]> masterList = getEngine2PerspectiveTriples(perspectivePred, perspectiveURI, perspective);
 		removeFromXML(insightBaseXML, masterList);
 	}
@@ -213,38 +213,38 @@ public class QuestionAdministrator {
 
 		// add the question to the engine; if perspective change, the qURI will
 		// need to change as well
-		logger.info("Adding question " + qURI + "      " + perspective + "     " + qsKey);
+		logger.debug("Adding question " + qURI + "      " + perspective + "     " + qsKey);
 		ArrayList<Object[]> masterList = getQuestionTriples(ePred, qURI, perspectiveURI, perspective, qPred, qsKey);
 		add2XML(insightBaseXML, masterList);
 	}
 
 	private void removeQuestionID(String ePred, String qURI, String perspectiveURI, String perspective, String qPred, String qsKey) 
 	{
-		logger.info("Removing question " + qURI + "      " + perspective + "     " + qsKey);
+		logger.debug("Removing question " + qURI + "      " + perspective + "     " + qsKey);
 		ArrayList<Object[]> masterList = getQuestionTriples(ePred, qURI, perspectiveURI, perspective, qPred, qsKey);
 		removeFromXML(insightBaseXML, masterList);
 	}
 
 	private void addQuestionProperties(String qURI, String qsOrder, String question, String qsKey, String sparql, String layoutName, String description) {
-		logger.info("Add question properties:: order " + qURI + "      " + qsOrder + "     question  " + question);
+		logger.debug("Add question properties:: order " + qURI + "      " + qsOrder + "     question  " + question);
 		ArrayList<Object[]> masterList = getQuestionPropTriples(qURI, qsOrder, question, qsKey, sparql, layoutName, description);
 		add2XML(insightBaseXML, masterList);
 	}
 
 	private void removeQuestionProperties(String qURI, String qsOrder, String question, String qsKey, String sparql, String layoutName, String description) {
-		logger.info("Removing question properties order " + qURI + "      " + qsOrder + "     Descr  " + question);
+		logger.debug("Removing question properties order " + qURI + "      " + qsOrder + "     Descr  " + question);
 		ArrayList<Object[]> masterList = getQuestionPropTriples(qURI, qsOrder, question, qsKey, sparql, layoutName, description);
 		removeFromXML(insightBaseXML, masterList);
 	}
 
 	private void addQuestionParam(Enumeration<String> paramKeys, String perspective, String qsKey, String qURI, HashMap<String, String> parameterProperties) {
-		logger.info("Add question params " + qURI + "      " + paramKeys.toString()  + "     properties  " + parameterProperties.toString());
+		logger.debug("Add question params " + qURI + "      " + paramKeys.toString()  + "     properties  " + parameterProperties.toString());
 		ArrayList<Object[]> masterList = getParamTriples(paramKeys, perspective, qsKey, qURI, parameterProperties);
 		add2XML(insightBaseXML, masterList);
 	}
 
 	private void removeQuestionParam(Enumeration<String> paramKeys, String perspective, String qsKey, String qURI, HashMap<String, String> parameterProperties) {
-		logger.info("Remove question params " + qURI + "      " + paramKeys.toString()  + "     properties  " + parameterProperties.toString());
+		logger.debug("Remove question params " + qURI + "      " + paramKeys.toString()  + "     properties  " + parameterProperties.toString());
 		ArrayList<Object[]> masterList = getParamTriples(paramKeys, perspective, qsKey, qURI, parameterProperties);
 		removeFromXML(insightBaseXML, masterList);
 	}
@@ -355,7 +355,7 @@ public class QuestionAdministrator {
 		} else {
 			questionKey = perspective + "_" + "1";
 		}
-		logger.info("New question key created: " + questionKey);
+		logger.debug("New question key created: " + questionKey);
 		return questionKey;
 	}
 
@@ -376,13 +376,13 @@ public class QuestionAdministrator {
 			}
 		}
 		
-		logger.info("CLEAN add of question with the following information: perspective=" + perspective + "; questionKey=" + questionKey + "; questionOrder="+ questionOrder+ "; questionLabel="+ question+ "; sparql="+ sparql+ "; layout="+ layout+ "; questionDescription="+ questionDescription+ "; parameterDependList="+ parameterDependList+ "; parameterQueryList="+ parameterQueryList+ "; parameterOptionList=" + parameterOptionList);
+		logger.debug("CLEAN add of question with the following information: perspective=" + perspective + "; questionKey=" + questionKey + "; questionOrder="+ questionOrder+ "; questionLabel="+ question+ "; sparql="+ sparql+ "; layout="+ layout+ "; questionDescription="+ questionDescription+ "; parameterDependList="+ parameterDependList+ "; parameterQueryList="+ parameterQueryList+ "; parameterOptionList=" + parameterOptionList);
 
 		//get current order of insights in this perspective
 		String perspectiveURI = getPerspectiveURI(perspective);
 		Vector<String> currentQuestionOrderVector = engine.getOrderedInsightsURI(perspectiveURI);
 		if(currentQuestionOrderVector == null ) currentQuestionOrderVector = new Vector<String>();
-		System.out.println("questions currenlty ordered as " + currentQuestionOrderVector);
+		logger.debug("questions currently ordered as " + currentQuestionOrderVector);
 
 		//now add the question
 		String questionURI = addQuestion( perspective, questionKey, questionOrder, question, sparql, layout, questionDescription, parameterDependList, parameterQueryList, parameterOptionList);
@@ -392,7 +392,7 @@ public class QuestionAdministrator {
 		newQuestionOrderVector.addAll(currentQuestionOrderVector);
 		int order = Integer.parseInt(questionOrder);
 		newQuestionOrderVector.add(order-1, questionURI);
-		System.out.println("new order of questions : " + newQuestionOrderVector);
+		logger.debug("new order of questions : " + newQuestionOrderVector);
 
 		// now reorder
 		reorderPerspective2(currentQuestionOrderVector, newQuestionOrderVector);
@@ -406,7 +406,7 @@ public class QuestionAdministrator {
 			String layout, String questionDescription, Vector<String> parameterDependList,
 			Vector<String> parameterQueryList, Vector<String> parameterOptionList) {
 
-		logger.info("Adding question with the following information: perspective=" + perspective + "; questionKey=" + questionKey + "; questionOrder="+ questionOrder+ "; questionLabel="+ question+ "; sparql="+ sparql+ "; layout="+ layout+ "; questionDescription="+ questionDescription+ "; parameterDependList="+ parameterDependList+ "; parameterQueryList="+ parameterQueryList+ "; parameterOptionList=" + parameterOptionList);
+		logger.debug("Adding question with the following information: perspective=" + perspective + "; questionKey=" + questionKey + "; questionOrder="+ questionOrder+ "; questionLabel="+ question+ "; sparql="+ sparql+ "; layout="+ layout+ "; questionDescription="+ questionDescription+ "; parameterDependList="+ parameterDependList+ "; parameterQueryList="+ parameterQueryList+ "; parameterOptionList=" + parameterOptionList);
 
 		HashMap<String, String> parameterProperties = new HashMap<String, String>();
 
@@ -476,14 +476,14 @@ public class QuestionAdministrator {
 		//get current order of insights in the perspective getting the delete
 		String deletedPerspectiveURI = getPerspectiveURI(currentPerspective);
 		Vector<String> currentDelQuestionOrderVector = engine.getOrderedInsightsURI(deletedPerspectiveURI);
-		System.out.println("questions currenlty ordered in deleted as " + currentDelQuestionOrderVector);
+		logger.debug("questions currently ordered in deleted as " + currentDelQuestionOrderVector);
 
 		Vector<String> currentAddQuestionOrderVector = null;
 		String addPerspectiveURI = null;
 		if(!perspective.equals(currentPerspective)){
 			addPerspectiveURI = getPerspectiveURI(perspective);
 			currentAddQuestionOrderVector = engine.getOrderedInsightsURI(addPerspectiveURI);
-			System.out.println("questions currenlty ordered in add as " + currentAddQuestionOrderVector);
+			logger.debug("questions currently ordered in add as " + currentAddQuestionOrderVector);
 		}
 
 		deleteQuestion(currentPerspective, currentQuestionKey,
@@ -511,7 +511,7 @@ public class QuestionAdministrator {
 		//get current order of insights in this perspective
 		String perspectiveURI = getPerspectiveURI(perspective);
 		Vector<String> currentQuestionOrderVector = engine.getOrderedInsightsURI(perspectiveURI);
-		System.out.println("questions currenlty ordered as " + currentQuestionOrderVector);
+		logger.debug("questions currently ordered as " + currentQuestionOrderVector);
 
 		//now delete the questions
 		for(String questionTitle : questionTitles){
@@ -545,7 +545,7 @@ public class QuestionAdministrator {
 		// else get the new order of the insights and reorder
 		else
 		{
-			System.out.println("new order of questions : " + newQuestionOrderVector);
+			logger.debug("new order of questions : " + newQuestionOrderVector);
 
 			// now reorder
 			reorderPerspective2(currentQuestionOrderVector, newQuestionOrderVector);
@@ -574,7 +574,7 @@ public class QuestionAdministrator {
 			Vector<String> parameterQueryList,
 			Vector<String> parameterOptionList) {
 
-		logger.info("Deleting question: perspective=" + perspective
+		logger.debug("Deleting question: perspective=" + perspective
 				+ "; questionKey=" + questionKey + "; questionOrder="
 				+ questionOrder + "; questionLabel=" + question + "; sparql="
 				+ sparql + "; layout=" + layout + "; questionDescription="
@@ -586,7 +586,7 @@ public class QuestionAdministrator {
 		//get current order of insights in this perspective
 		String perspectiveURI = getPerspectiveURI(perspective);
 		Vector<String> currentQuestionOrderVector = engine.getOrderedInsightsURI(perspectiveURI);
-		System.out.println("questions currenlty ordered as " + currentQuestionOrderVector);
+		logger.debug("questions currently ordered as " + currentQuestionOrderVector);
 
 		//now delete the question
 		String questionURI = deleteQuestion( perspective, questionKey, questionOrder, question, sparql, layout, questionDescription, parameterDependList, parameterQueryList, parameterOptionList);
@@ -605,7 +605,7 @@ public class QuestionAdministrator {
 			newQuestionOrderVector.addAll(currentQuestionOrderVector);
 			int order = Integer.parseInt(questionOrder);
 			newQuestionOrderVector.remove(order-1);
-			System.out.println("new order of questions : " + newQuestionOrderVector);
+			logger.debug("new order of questions : " + newQuestionOrderVector);
 
 			// now reorder
 			reorderPerspective2(currentQuestionOrderVector, newQuestionOrderVector);
@@ -622,7 +622,7 @@ public class QuestionAdministrator {
 			Vector<String> parameterQueryList,
 			Vector<String> parameterOptionList) {
 
-		logger.info("Deleting question: perspective=" + perspective
+		logger.debug("Deleting question: perspective=" + perspective
 				+ "; questionKey=" + questionKey + "; questionOrder="
 				+ questionOrder + "; questionLabel=" + question + "; sparql="
 				+ sparql + "; layout=" + layout + "; questionDescription="
@@ -693,7 +693,7 @@ public class QuestionAdministrator {
 	}
 
 	public void deleteAllFromPerspective(String perspectiveURI) {
-		logger.info("Deleting all questions from perspective with this URI: "
+		logger.debug("Deleting all questions from perspective with this URI: "
 				+ perspectiveURI);
 
 		Vector<String> questionsVector = engine
@@ -711,7 +711,7 @@ public class QuestionAdministrator {
 			Insight in = engine.getInsight2URI(question2)
 					.get(0);
 
-			System.out.println("Removing question " + question2);
+			logger.debug("Removing question " + question2);
 
 			String questionOrder = in.getOrder();
 			String question = in.getLabel();
@@ -795,11 +795,11 @@ public class QuestionAdministrator {
 
 	public void reorderPerspective2(String perspective, Vector<String> orderedInsightIDs) {
 		String perspectiveURI = getPerspectiveURI(perspective);
-		logger.info("Reordering all questions from perspective with this URI: "
+		logger.debug("Reordering all questions from perspective with this URI: "
 				+ perspectiveURI);
 		Vector<String> questionsVector = engine
 				.getOrderedInsightsURI(perspectiveURI);
-		System.out.println("questions currenlty ordered as " + questionsVector);
+		logger.debug("questions currently ordered as " + questionsVector);
 
 		reorderPerspective2(questionsVector, orderedInsightIDs);
 	}
@@ -841,7 +841,7 @@ public class QuestionAdministrator {
 
 			Insight in = engine.getInsight2URI(qURI).get(0);
 
-			System.out.println("Removing order question " + qURI);
+			logger.debug("Removing order question " + qURI);
 			String questionOrder = in.getOrder();
 			String newOrder = newOrderOfInsightsIDs.indexOf(key)+1 + "";
 			reorderQuestion(qURI, newOrder, questionOrder);
@@ -852,18 +852,18 @@ public class QuestionAdministrator {
 	private void reorderQuestion(String questionURI, String newQuestionOrder, String oldQuestionOrder){
 		if(!newQuestionOrder.equals(oldQuestionOrder)){
 			if (oldQuestionOrder != null) {
-				System.out.println("Removing order " + oldQuestionOrder
+				logger.debug("Removing order " + oldQuestionOrder
 						+ " from question " + questionURI);
 				insightBaseXML.removeStatement(new Object[]{questionURI, orderBaseURI,
 						oldQuestionOrder, false});
 			}
 
-			System.out.println("Changing order for " + questionURI + " from " + oldQuestionOrder + " to question "
+			logger.debug("Changing order for " + questionURI + " from " + oldQuestionOrder + " to question "
 					+ newQuestionOrder );
 			insightBaseXML.addStatement(new Object[]{questionURI, orderBaseURI, newQuestionOrder, false});
 		}
 		else 
-			System.out.println("the order has not been updtaed for " + questionURI);
+			logger.debug("the order has not been updtaed for " + questionURI);
 
 	}
 
