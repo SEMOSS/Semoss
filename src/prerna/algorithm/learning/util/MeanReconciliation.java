@@ -6,13 +6,17 @@ public class MeanReconciliation implements IDuplicationReconciliation {
 
 	boolean ignoreEmptyValues = true;
 
+	public MeanReconciliation() {
+		
+	}
+	
 	@Override
 	public Double[] reconciliatedValues(List<Object[]> duplicatedValues) {
 		Double[] reconciliatedValues = new Double[duplicatedValues.get(0).length];
 		for(Object[] values : duplicatedValues) {
 			for(int i = 0; i < values.length; i++) {
 				try {
-					reconciliatedValues[i] += (double) values[i];
+					reconciliatedValues[i] += ((Number) values[i]).doubleValue();
 				} catch (ClassCastException e) {
 					if(!ignoreEmptyValues) {
 						reconciliatedValues[i]  = Double.NaN;
@@ -30,7 +34,7 @@ public class MeanReconciliation implements IDuplicationReconciliation {
 			for(int i = 0; i < values.length; i++) {
 				if(columnsToReconcile[i]) {
 					try {
-						reconciliatedValues[i] += (double) values[i];
+						reconciliatedValues[i] += ((Number) values[i]).doubleValue();
 					} catch (ClassCastException e) {
 						if(!ignoreEmptyValues) {
 							reconciliatedValues[i]  = Double.NaN;
