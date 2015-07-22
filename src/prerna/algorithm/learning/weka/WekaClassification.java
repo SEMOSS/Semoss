@@ -56,7 +56,7 @@ public class WekaClassification implements IAnalyticRoutine {
 	
 	private List<SEMOSSParam> options;
 
-	private String modelName;
+	private String modelName = "J48"; // default to J48
 	private int classIndex;
 	
 	private Classifier model;
@@ -109,7 +109,9 @@ public class WekaClassification implements IAnalyticRoutine {
 
 	@Override
 	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
-		this.modelName = (String) options.get(0).getSelected();
+		if(options.get(0).getSelected() != null && ! ((String) options.get(0).getSelected()).isEmpty()) {
+			this.modelName = (String) options.get(0).getSelected();
+		}
 		String className = (String) options.get(1).getSelected();
 		this.skipAttributes = (List<String>) options.get(2).getSelected();
 		
