@@ -14,7 +14,8 @@ public class FilteredIndexTreeIterator implements Iterator<TreeNode>{
 	 */
 	public FilteredIndexTreeIterator(TreeNode typeRoot) {
 		nodeStack = new Stack<>();
-		nodeStack.push(typeRoot.getLeft(typeRoot));
+		if(typeRoot!=null) 
+			nodeStack.push(typeRoot.getLeft(typeRoot));
 	}
 	
 	@Override

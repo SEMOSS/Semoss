@@ -7,6 +7,7 @@ import java.util.Queue;
 public class ValueTreeColumnIterator implements Iterator<SimpleTreeNode>{
 	private Queue<SimpleTreeNode> instances;
 	private Iterator<TreeNode> iterator;
+	private boolean iterateAll;
 	
 	/**
 	 * Constructor for the BTreeIterator
@@ -14,7 +15,12 @@ public class ValueTreeColumnIterator implements Iterator<SimpleTreeNode>{
 	 * @param rootLevel			A list of nodes corresponding to the leaves in the tree
 	 */
 	public ValueTreeColumnIterator(TreeNode rootLevel) {
-		iterator = new FilteredIndexTreeIterator(rootLevel);
+		this(rootLevel, false);
+	}
+	
+	public ValueTreeColumnIterator(TreeNode rootLevel, boolean iterateAll) {
+		this.iterateAll = iterateAll;
+		iterator = new IndexTreeIterator(rootLevel);
 		instances = new LinkedList<>();
 		addInstances();
 	}
@@ -44,7 +50,11 @@ public class ValueTreeColumnIterator implements Iterator<SimpleTreeNode>{
 	
 	private void addInstances() {
 		while(instances.size() < 2 && iterator.hasNext()) {
-			instances.addAll(iterator.next().instanceNode);
+			TreeNode nextNode = iterator.next();
+			instances.addAll(nextNode.instanceNode);
+			if(iterateAll) {
+				instances.addAll(nextNode.filteredInstanceNode);
+			}
 		}
 	}
 
