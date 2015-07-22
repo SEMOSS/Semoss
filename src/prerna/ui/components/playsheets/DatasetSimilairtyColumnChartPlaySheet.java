@@ -38,7 +38,9 @@ import prerna.om.SEMOSSParam;
 import prerna.util.ArrayUtilityMethods;
 
 public class DatasetSimilairtyColumnChartPlaySheet extends ColumnChartPlaySheet {
-
+	
+	private DatasetSimilarity alg;
+	
 	private int instanceIndex;
 	private String changedCol;
 	private List<String> skipAttributes;
@@ -55,7 +57,7 @@ public class DatasetSimilairtyColumnChartPlaySheet extends ColumnChartPlaySheet 
 
 	@Override
 	public void runAnalytics() {
-		DatasetSimilarity alg = new DatasetSimilarity();
+		alg = new DatasetSimilarity();
 		List<SEMOSSParam> options = alg.getOptions();
 		Map<String, Object> selectedOptions = new HashMap<String, Object>();
 		selectedOptions.put(options.get(0).getName(), instanceIndex); // default of 0 is acceptable
@@ -85,6 +87,10 @@ public class DatasetSimilairtyColumnChartPlaySheet extends ColumnChartPlaySheet 
 		retHash.put("names", new String[]{changedCol.concat(" Similarity Distribution to Dataset Center")});
 		
 		this.dataHash = retHash;
+	}
+	
+	public List<String> getChangedCol() {
+		return alg.getChangedColumns();
 	}
 	
 	public void setInstanceIndex(int instanceIndex) {
