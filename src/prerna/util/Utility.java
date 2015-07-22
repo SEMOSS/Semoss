@@ -105,7 +105,7 @@ public class Utility {
 		while(matcher.find()) {
 			String data = matcher.group();
 			data = data.substring(1,data.length()-1);
-			LOGGER.info(data);
+			LOGGER.debug(data);
 			// put something to strip the @
 			paramHash.put(data, Constants.EMPTY);
 		}
@@ -130,7 +130,7 @@ public class Utility {
 			String paramName = data.substring(0, data.indexOf("-"));
 			String paramValue = data.substring(data.indexOf("-") + 1);
 			
-			LOGGER.info(data);
+			LOGGER.debug(data);
 			// put something to strip the @
 			paramHash.put(paramName, paramValue);
 		}
@@ -155,7 +155,7 @@ public class Utility {
 			String paramName = data.substring(0, data.indexOf("-"));
 			String paramValue = data.substring(data.indexOf("-") + 1);
 			
-			LOGGER.info(data);
+			LOGGER.debug(data);
 			// put something to strip the @
 			paramHash.put(data, "@"+ paramName + "@");
 		}
@@ -173,14 +173,14 @@ public class Utility {
 	public static String fillParam(String query, Hashtable paramHash) {
 		// Hashtable is of pattern <String to be replaced> <replacement>
 		// key will be surrounded with @ just to be in sync
-		LOGGER.info("Param Hash is " + paramHash);
+		LOGGER.debug("Param Hash is " + paramHash);
 
 		Enumeration keys = paramHash.keys();
 		while(keys.hasMoreElements()) {
 			
 			String key = (String)keys.nextElement();
 			String value = (String)paramHash.get(key);
-			LOGGER.info("Replacing " + key + "<<>>" + value + query.indexOf("@" + key + "@"));
+			LOGGER.debug("Replacing " + key + "<<>>" + value + query.indexOf("@" + key + "@"));
 			if(!value.equalsIgnoreCase(Constants.EMPTY))
 				query = query.replace("@" + key + "@", value);
 		}
@@ -744,8 +744,8 @@ public class Utility {
 		{
 			URIBuilder uri = new URIBuilder(api);
 			
-			LOGGER.info("Getting data from the API...  " + api);
-			LOGGER.info("Prams is " + params);
+			LOGGER.debug("Getting data from the API...  " + api);
+			LOGGER.debug("Params is " + params);
 			
 			SSLContextBuilder builder = new SSLContextBuilder();
 		    builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
