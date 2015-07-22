@@ -271,6 +271,10 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 		allHash.put("barData", barData);
 		this.dataHash = allHash;
 	}
+	
+	public List<String> getChangedCol() {
+		return alg.getChangedColumns();
+	}
 
 	/**
 	 * Sets the string version of the SPARQL query on the playsheet. Pulls out the number of clusters and stores them in the numClusters
