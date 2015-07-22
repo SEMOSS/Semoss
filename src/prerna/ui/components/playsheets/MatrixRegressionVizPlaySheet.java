@@ -29,6 +29,9 @@ package prerna.ui.components.playsheets;
 
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
@@ -124,14 +127,28 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 	public void processQueryData() {	
 		int numVariables;
 		String id = "";
+		int offset = 0;
 		if(includesInstance) {
 			numVariables = columnHeaders.length - 1;
 			id = columnHeaders[0];
+			offset = 1;
 		}else {
 			numVariables = columnHeaders.length;
 		}
 
 		int i = 0;
+		List<String> names = new ArrayList<String>();
+		for(i = 0 + offset; i < columnHeaders.length; i++) {
+			if(i != bIndex) {
+				names.add(columnHeaders[i]);
+			}
+		}
+		names.add(0, columnHeaders[bIndex]);
+		Collections.reverse(names);
+		if(includesInstance) {
+			names.add(0, id);
+		}
+		
 		Object[] stdErrors = new Object[numVariables];
 		for(i = 0; i<numVariables ; i++) {
 			stdErrors[i] = standardError;
@@ -147,15 +164,21 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 		for(i = 0; i<numVariables-1; i++) {
 			correlations[i+1] = correlationArray[i][numVariables - 1];
 		}
+		
+		List<Object> corrList = Arrays.asList(correlations);
+		Collections.reverse(corrList);
+
+		List<Object> coeffList = Arrays.asList(coefficients);
+		Collections.reverse(coeffList);
 
 		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
 		allHash.put("one-row",true);
 		allHash.put("id",id);
-		allHash.put("names", columnHeaders);
+		allHash.put("names", names);
 		allHash.put("dataSeries", dataFrame.getData());
 		allHash.put("shifts", stdErrors);
-		allHash.put("coefficients", coefficients);
-		allHash.put("correlations", correlations);
+		allHash.put("coefficients", coeffList);
+		allHash.put("correlations", corrList);
 		this.dataHash = allHash;
 	}
 
@@ -195,7 +218,7 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 	public void addGridTab(String tabName) {
 		table = new JTable();
 		GridScrollPane gsp = null;
-		gsp = new GridScrollPane(getNames(), getTabularData());
+		gsp = new GridScrollPane(getNames(), dataFrame.getData());
 		gsp.addHorizontalScroll();
 		jTab.addTab(tabName, gsp);
 	}
