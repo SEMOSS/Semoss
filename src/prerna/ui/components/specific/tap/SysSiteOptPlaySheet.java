@@ -71,7 +71,7 @@ import com.google.gson.reflect.TypeToken;
 @SuppressWarnings("serial")
 public class SysSiteOptPlaySheet extends OptPlaySheet{
 	
-	private ArrayList<String> capList;
+	private String capability;
 	
 	private JPanel systemSelectPanel, systemModDecomSelectPanel;	
 	public DHMSMSystemSelectPanel sysSelectPanel, systemModernizePanel, systemDecomissionPanel;
@@ -125,13 +125,14 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 			ehrCore = gson.fromJson(gson.toJson(webDataHash.get("ehrcore")), Boolean.class);
 
 		ArrayList<String> sysList;
-		capList = gson.fromJson(gson.toJson(webDataHash.get("capList")), new TypeToken<ArrayList<String>>() {}.getType());
-		if(capList!=null && !capList.isEmpty()) {
-			sysList = new ArrayList<String>(sysUpdater.getSelectedSystemList(new Vector<String>(capList),intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore));
-		}else {
+		if(webDataHash.get("capability") == null || gson.fromJson(gson.toJson(webDataHash.get("capability")), String.class).isEmpty()) {
+			capability = null;
 			sysList = new ArrayList<String>(sysUpdater.getSelectedSystemList(intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore));
+		}else {
+			capability = gson.fromJson(gson.toJson(webDataHash.get("capability")), String.class);
+			sysList = new ArrayList<String>(sysUpdater.getSelectedSystemForCapabilityList(capability,intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore));
 		}
-		
+
 		dataHash.put("systems",sysList);
 		
 		if (dataHash != null)
@@ -177,7 +178,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		opt.setOptimizationType(optType); //eventually will be savings, roi, or irr
 		opt.setIsOptimizeBudget(false); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
 		opt.setSysHashList(sysHashList);
-		opt.setCapList(capList);
+		opt.setCapability(capability);
 		opt.executeWeb();
 		return opt.getSysResultList();
 	}
@@ -788,7 +789,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
         if (type.equals("info"))
         	retHash = opt.getOverviewInfoData();
         if (type.equals("map"))
-        	retHash = opt.getOverviewSiteMapData();
+        	retHash = opt.getOverviewSiteSavingsMapData();
         if (type.equals("healthGrid"))
         	retHash = opt.getHealthGrid();
         if (type.equals("coverage"))

@@ -127,12 +127,12 @@ public class SysOptCheckboxListUpdater {
 		return recdSysList;
 	}
 	
-	public List<String> getSelectedSystemList(Vector<String> capList, Boolean intDHMSM, Boolean notIntDHMSM, Boolean theater, Boolean garrison, Boolean low, Boolean high, Boolean mhsSpecific, Boolean ehrCore) {
+	public List<String> getSelectedSystemForCapabilityList(String capability, Boolean intDHMSM, Boolean notIntDHMSM, Boolean theater, Boolean garrison, Boolean low, Boolean high, Boolean mhsSpecific, Boolean ehrCore) {
 		List<String> checkboxSysList = getSelectedSystemList(intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore);
 		if(checkboxSysList == null || checkboxSysList.isEmpty())
 			checkboxSysList = recdSysList;
 		
-		List<String> capabilitySysList = SysOptUtilityMethods.getList(engine,"Capability","SELECT DISTINCT ?entity WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?entity <http://semoss.org/ontologies/Relation/Supports> ?Capability}} BINDINGS ?Capability {" + SysOptUtilityMethods.makeBindingString("Capability",new ArrayList<String>(capList)) + "}");	
+		List<String> capabilitySysList = SysOptUtilityMethods.getList(engine,"Capability","SELECT DISTINCT ?entity WHERE { BIND(<http://health.mil/ontologies/Concept/Capability/"+capability+"> AS ?Capability){?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?entity <http://semoss.org/ontologies/Relation/Supports> ?Capability}}");	
 		
 		return ListUtilityMethods.createAndUnionIfBothFilled(checkboxSysList, capabilitySysList);
 	}
