@@ -19,24 +19,25 @@ public class SimpleTreeNode {
 	// gets the sibling tree
 	SimpleTreeNode leftSibling = null;
 	SimpleTreeNode rightSibling = null;
-	SimpleTreeNode eldestLeftSibling = null; // some performance to make sure this is fast enough
+	//SimpleTreeNode2 eldestLeftSibling = null; // some performance to make sure this is fast enough
 	SimpleTreeNode parent = null;
 	SimpleTreeNode rightChild = null;
 	SimpleTreeNode leftChild = null;
-	static String numberList = "";
+	//static String numberList = "";
 	public static final String EMPTY = "_____";
 	
 	ITreeKeyEvaluatable leaf = null;
 	
-	int fanout = 4;
+	//int fanout = 4;
 	
-	boolean root = true;
+	//boolean root = true;
 	
 	public SimpleTreeNode(ITreeKeyEvaluatable leaf)
 	{
 		this.leaf = leaf;
 	}
 	
+	//This should be a depth first search, double check if that is the case
 	public boolean search(Vector <SimpleTreeNode> nodes, SimpleTreeNode searchNode, boolean found)
 	{
 		Vector <SimpleTreeNode> childNodes = new Vector<SimpleTreeNode>();
@@ -76,9 +77,7 @@ public class SimpleTreeNode {
 		}
 		if(!found && childNodes.size() > 0)
 			return search(childNodes, searchNode, false);
-		else
-		{
-			//System.err.println("found ?  " + found + searchNode.leaf.getKey());
+		else {
 			return found;
 		}
 	}
@@ -90,24 +89,21 @@ public class SimpleTreeNode {
 		while(left != null && !found)
 		{
 			found = left.leaf.isEqual(node);
-//			System.out.println(left.parent.leaf.getValue() +  "                          " + left.leaf.getValue());//
 			left = left.rightSibling;
 		}
 		return found;
 	}
 	
 	
-	
-	public SimpleTreeNode root(SimpleTreeNode node)
+	/**
+	 * 
+	 * @param node
+	 * @return
+	 */
+	public static SimpleTreeNode root(SimpleTreeNode node)
 	{
-		//System.err.println("Finding root for " + node.leaf.getKey());
 		if(node.parent != null)
 		{
-			if(node.parent.equal(node))
-			{
-				System.err.println("Fishy..  " + node.leaf.getKey());
-				return getLeft(node);
-			}
 			return root(node.parent);
 		}
 		else return getLeft(node);
@@ -115,17 +111,16 @@ public class SimpleTreeNode {
 	
 	
 	
-	public void printNodes(SimpleTreeNode rightChild2) {
-		// TODO Auto-generated method stub
-		System.out.println(rightChild2.leaf.getKey());
-		if(rightChild2.rightSibling != null)
-			printNodes(rightChild2.rightSibling);
-		else
-			System.out.println("=====");
-	}
+//	public void printNodes(SimpleTreeNode2 rightChild2) {
+//		// TODO Auto-generated method stub
+//		System.out.println(rightChild2.leaf.getKey());
+//		if(rightChild2.rightSibling != null)
+//			printNodes(rightChild2.rightSibling);
+//		else
+//			System.out.println("=====");
+//	}
 
 	public boolean equal(SimpleTreeNode node2Embed) {
-		// TODO Auto-generated method stub
 		return this.leaf.isEqual(node2Embed.leaf);
 	}
 
@@ -172,29 +167,22 @@ public class SimpleTreeNode {
 		}
 		return has;
 	}
-
-	public void printList(SimpleTreeNode node)
-	{
-		//System.out.print(node.leaf.getKey());
-		if(node.rightSibling != null)
-		{
-			//System.out.print("--");
-			printList(node.rightSibling);
-		}
+	
+	public boolean hasChild() {
+		return this.leftChild != null || this.rightChild != null;
 	}
 
-	public void setParent(SimpleTreeNode leftList, SimpleTreeNode parent)
-	{
-		if(leftList != null && !leftList.equal(parent))
-		{
+	public void setParent(SimpleTreeNode leftList, SimpleTreeNode parent) {
+		//should i put a check to make sure leftList does not equal parent?
+		if(leftList == parent) return;
+		
+		while(leftList != null) {
 			leftList.parent = parent;
-			//System.err.println("Setting parent for " + leftList.leaf.getKey() + " ..... " + parent.leaf.getKey());
+			leftList = leftList.rightSibling;
 		}
-		if(leftList.rightSibling != null)
-			setParent(leftList.rightSibling, parent);
 	}
 	
-	public SimpleTreeNode getLeft(SimpleTreeNode node)
+	public static SimpleTreeNode getLeft(SimpleTreeNode node)
 	{
 		while(node.leftSibling != null)
 		{
@@ -203,7 +191,7 @@ public class SimpleTreeNode {
 		return node;
 	}
 
-	public SimpleTreeNode getRight(SimpleTreeNode node)
+	public static SimpleTreeNode getRight(SimpleTreeNode node)
 	{
 		while(node.rightSibling != null)
 		{
@@ -213,72 +201,46 @@ public class SimpleTreeNode {
 	}
 	
 
-	public boolean left(SimpleTreeNode node)
-	{
+	public boolean left(SimpleTreeNode node) {
 		return this.leaf.isLeft(node.leaf);
 	}
 		
 	
-	public void printNode(Vector <SimpleTreeNode> nodes, boolean parent, int level)
-	{
-		Vector childNodes = new Vector();
-		System.out.print("Level " + level);
-		System.out.println();
-		for(int nodeIndex = 0;nodeIndex < nodes.size();nodeIndex++)
-		{
-			SimpleTreeNode node = nodes.elementAt(nodeIndex);
-			do{
-				System.out.print(node.leaf.getKey());
-				if(node.leftChild != null)
-					childNodes.add(node.leftChild);
-				//else
-				//	childNodes.add(new TreeNode(new IntClass(0)));
-				if(node.rightChild != null)
-					childNodes.add(node.rightChild);
-				//else
-				//	childNodes.add(new TreeNode(new IntClass(0)));
-				node = node.rightSibling;
-				if(node != null)
-					System.out.print("<>");
-			}while(node != null);
-			if(!parent)
-				System.out.print("|");
-		}
-		System.out.println();
-		if(childNodes.size() > 0)
-			printNode(childNodes, false, level+1);
+	public static String serializeTree(String output, Vector<SimpleTreeNode> nodes, boolean parent, int level) {
+		return serializeTree(new StringBuilder(output), nodes, parent, level);
 	}
 	
-	public static String serializeTree(String output, Vector <SimpleTreeNode> nodes, boolean parent, int level)
+	private static String serializeTree(StringBuilder output, Vector <SimpleTreeNode> nodes, boolean parent, int level)
 	{
 		Vector childNodes = new Vector();
 		for(int nodeIndex = 0;nodeIndex < nodes.size();nodeIndex++)
 		{
 			SimpleTreeNode node = nodes.elementAt(nodeIndex);
-			do{
-				output += node.leaf.toString();
-				if(node.leftChild != null)
+			do {
+				output.append(node.leaf.toString());
+				if(node.leftChild != null) {
 					childNodes.add(node.leftChild);
-				//else
-				//	childNodes.add(new TreeNode(new IntClass(0)));
-				if(node.rightChild != null)
-					childNodes.add(node.rightChild);
-				//else
-				//	childNodes.add(new TreeNode(new IntClass(0)));
-				node = node.rightSibling;
-				if(node != null)
-				{
-					output += "@@@";
 				}
-			}while(node != null);
-			if(!parent)
-				output += "|||";
+
+				if(node.rightChild != null) {
+					childNodes.add(node.rightChild);
+				}
+				
+				node = node.rightSibling;
+				if(node != null) {
+					output.append("@@@");
+				}
+				
+			} while(node != null);
+			if(!parent) {
+				output.append("|||");
+			}
 		}
-		output += "///";
+		output.append("///");
 		if(childNodes.size() > 0)
 			return serializeTree(output, childNodes, false, level+1);
 		else
-			return output;
+			return output.toString();
 	}
 	
 	public static SimpleTreeNode deserializeTree(String output)
@@ -408,38 +370,38 @@ public class SimpleTreeNode {
 	}
 	
 	
-	public static SimpleTreeNode join(Vector <SimpleTreeNode> fromNodes, Vector <SimpleTreeNode> toNodeRoot,boolean parent, SimpleTreeNode resNodeRoot)
-	{
-		Vector childNodes = new Vector();
-		for(int nodeIndex = 0;nodeIndex < fromNodes.size();nodeIndex++)
-		{
-			SimpleTreeNode node = fromNodes.elementAt(nodeIndex);
-			do{
-				//output += node.leaf.getKey();
-				if(toNodeRoot.get(0).search(toNodeRoot, node, false))
-				{
-					SimpleTreeNode newNode = new SimpleTreeNode(node.leaf);
-					if(resNodeRoot == null)
-						resNodeRoot = newNode;
-					//else
-					//	resNodeRoot = resNodeRoot.insertData(newNode);
-				}
-				if(node.leftChild != null)
-					childNodes.add(node.leftChild);
-				//else
-				//	childNodes.add(new TreeNode(new IntClass(0)));
-				if(node.rightChild != null)
-					childNodes.add(node.rightChild);
-				//else
-				//	childNodes.add(new TreeNode(new IntClass(0)));
-				node = node.rightSibling;
-			}while(node != null);
-		}
-		if(childNodes.size() > 0)
-			return join(childNodes, toNodeRoot, false, resNodeRoot);
-		else
-			return resNodeRoot;
-	}
+//	public static SimpleTreeNode2 join(Vector <SimpleTreeNode2> fromNodes, Vector <SimpleTreeNode2> toNodeRoot,boolean parent, SimpleTreeNode2 resNodeRoot)
+//	{
+//		Vector childNodes = new Vector();
+//		for(int nodeIndex = 0;nodeIndex < fromNodes.size();nodeIndex++)
+//		{
+//			SimpleTreeNode2 node = fromNodes.elementAt(nodeIndex);
+//			do{
+//				//output += node.leaf.getKey();
+//				if(toNodeRoot.get(0).search(toNodeRoot, node, false))
+//				{
+//					SimpleTreeNode2 newNode = new SimpleTreeNode2(node.leaf);
+//					if(resNodeRoot == null)
+//						resNodeRoot = newNode;
+//					//else
+//					//	resNodeRoot = resNodeRoot.insertData(newNode);
+//				}
+//				if(node.leftChild != null)
+//					childNodes.add(node.leftChild);
+//				//else
+//				//	childNodes.add(new TreeNode(new IntClass(0)));
+//				if(node.rightChild != null)
+//					childNodes.add(node.rightChild);
+//				//else
+//				//	childNodes.add(new TreeNode(new IntClass(0)));
+//				node = node.rightSibling;
+//			}while(node != null);
+//		}
+//		if(childNodes.size() > 0)
+//			return join(childNodes, toNodeRoot, false, resNodeRoot);
+//		else
+//			return resNodeRoot;
+//	}
 	
 	public void addChild(SimpleTreeNode node)
 	{
@@ -504,6 +466,7 @@ public class SimpleTreeNode {
 		
 	}
 		
+	//TODO: need to take into account filtered values
 	public static void deleteNode(SimpleTreeNode node)
 	{
 		// realign parents
@@ -539,120 +502,13 @@ public class SimpleTreeNode {
 		}		
 
 	}
-	public static void tryFlatten()
-	{
-//		StringClass x1 = new StringClass("ROOT1");
-//		StringClass x2 = new StringClass("CHILD1");
-//		StringClass x3 = new StringClass("CHILD2");
-//		StringClass x4 = new StringClass("CHILD_CHILD_1");
-//		StringClass x5 = new StringClass("CHILD_CHILD_CHILD_1");
-//		StringClass x6 = new StringClass("CHILD_CHILD_2");
-//
-//		SimpleTreeNode X1 = new SimpleTreeNode(x1);
-//		SimpleTreeNode X2 = new SimpleTreeNode(x2);
-//		SimpleTreeNode X3 = new SimpleTreeNode(x3);
-//		SimpleTreeNode X4 = new SimpleTreeNode(x4);
-//		SimpleTreeNode X5 = new SimpleTreeNode(x5);
-//		SimpleTreeNode X6 = new SimpleTreeNode(x6);
-//
-//		X1.addChild(X2);
-//		X1.addChild(X3);
-//		X2.addChild(X4);
-//		X4.addChild(X5);
-//		X3.addChild(X6);
-//		
-//		StringClass x11 = new StringClass("ROOT2");
-//		StringClass x21 = new StringClass("2_CHILD1");
-//		StringClass x31 = new StringClass("2_CHILD2");
-//		StringClass x41 = new StringClass("2_CHILD_CHILD_1");
-//		StringClass x51 = new StringClass("2_CHILD_CHILD_CHILD_1");
-//		StringClass x61 = new StringClass("2_CHILD_CHILD_2");
-//
-//		SimpleTreeNode X11 = new SimpleTreeNode(x11);
-//		SimpleTreeNode X21 = new SimpleTreeNode(x21);
-//		SimpleTreeNode X31 = new SimpleTreeNode(x31);
-//		SimpleTreeNode X41 = new SimpleTreeNode(x41);
-//		SimpleTreeNode X51 = new SimpleTreeNode(x51);
-//		SimpleTreeNode X61 = new SimpleTreeNode(x61);
-//
-//		X11.addChild(X21);
-//		X11.addChild(X31);
-//		X21.addChild(X41);
-//		X41.addChild(X51);
-//		X31.addChild(X61);
-//		
-//		X1.rightSibling = X11;
-//		int levels = 5;
-//		
-//		List<Object[]> table = new ArrayList<Object[]>();
-//		X1.flattenTreeFromRoot(X1, new Vector(levels), table, levels);
-//		
-//		for(Object[] row : table) {
-//			System.out.println(Arrays.toString(row));
-//		}
-	}
 
-	public static void main(String [] args) throws Exception
-	{
-		
-		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-		
-		Vector rootNodes = new Vector();
-		IntClass val = new IntClass(20);
-		SimpleTreeNode root = new SimpleTreeNode((ITreeKeyEvaluatable)val);
-		
-		tryFlatten();
-		
-		//wait(reader, root);
-		
-		
-		//root = root.insertData(node);
-		//rootNodes.add(root);
-		//root.printNode(rootNodes, true);
-		
-		/*
-		Vector rootNodes = new Vector();
-		rootNodes.add(root);
-		root.printNode(rootNodes, true);
-
-		//System.out.println("Root is " + root.leaf.getKey());
-		//System.out.println("Root is Final" + root.printTree(root, ""));
-		*/
-	}
-	
-	public static void searchIt(Vector <SimpleTreeNode> nodes, BufferedReader reader) throws Exception
-	{
-		String data = null;
-		SimpleTreeNode root = nodes.elementAt(0);
-		while(!((data = reader.readLine()).equalsIgnoreCase("stop")))
-		{
-			Vector <SimpleTreeNode> vec = new Vector();
-			vec.add(root);
-			DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-			Date date = new Date();
-			long time1 = System.nanoTime();
-			long mtime1 = System.currentTimeMillis();
-			//System.out.println("Start >> Nano " + dateFormat.format(date));
-			System.out.println("Start >> Nano " + time1);
-			System.out.println(" Finding  " + data + "    result " + root.search(vec, new SimpleTreeNode(new IntClass(Integer.parseInt(data))), false));
-			date = new Date();
-			long mtime2= System.currentTimeMillis();
-			long time2 = System.nanoTime();
-			//System.out.println("End  " + dateFormat.format(date));
-			System.out.println("Available memory...  " + Runtime.getRuntime().freeMemory());
-			System.out.println("Start >> Nano " + time2);
-			System.out.println("Time Spent... Milliseconds " + (time2 - time1) / 1000000);
-			System.out.println("Time Spent... seconds " + (mtime2 - mtime1)/1000);
-			System.out.print("Enter : ");
-		}
-	}
-	
 	public SimpleTreeNode getLeaf(SimpleTreeNode node, boolean left)
 	{
 		if(node.leftChild != null && left)
 			return getLeaf(node.leftChild, true);
-		if(node.rightSibling == null && node.rightChild != null && !left)
-			return getLeaf(node.rightChild, false);
+//		if(node.rightSibling == null && node.rightChild != null && !left)
+//			return getLeaf(node.rightChild, false);
 		else return node;
 	}
 		
@@ -1025,14 +881,15 @@ public class SimpleTreeNode {
 		return retVec;
 	}
 	
-	public static void wait(BufferedReader reader, SimpleTreeNode node) throws Exception
-	{
-		System.out.println(">>");
-		//reader.readLine();
-		Vector rootNodes = new Vector();
-		rootNodes.add(node);
-		node.printNode(rootNodes, true, 1);
-		System.out.println("Numbers >>  " + numberList);
-
-	}
+//	public static void wait(BufferedReader reader, SimpleTreeNode2 node) throws Exception
+//	{
+//		System.out.println(">>");
+//		//reader.readLine();
+//		Vector rootNodes = new Vector();
+//		rootNodes.add(node);
+//		node.printNode(rootNodes, true, 1);
+//		System.out.println("Numbers >>  " + numberList);
+//
+//	}
 }
+
