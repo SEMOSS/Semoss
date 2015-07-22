@@ -36,6 +36,7 @@ import prerna.om.SEMOSSParam;
 
 public class DatasetSimilarityPlaySheet extends GridPlaySheet {
 
+	private DatasetSimilarity alg;
 	private int instanceIndex;
 	private List<String> skipAttributes;
 
@@ -47,7 +48,7 @@ public class DatasetSimilarityPlaySheet extends GridPlaySheet {
 
 	@Override
 	public void runAnalytics() {
-		DatasetSimilarity alg = new DatasetSimilarity();
+		alg = new DatasetSimilarity();
 		List<SEMOSSParam> options = alg.getOptions();
 		Map<String, Object> selectedOptions = new HashMap<String, Object>();
 		selectedOptions.put(options.get(0).getName(), instanceIndex); // default of 0 is acceptable
@@ -61,5 +62,9 @@ public class DatasetSimilarityPlaySheet extends GridPlaySheet {
 
 	public void setSkipAttributes(List<String> skipAttributes) {
 		this.skipAttributes = skipAttributes;
+	}
+
+	public Object getChangedCol() {
+		return alg.getChangedColumns();
 	}
 }

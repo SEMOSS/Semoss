@@ -102,6 +102,10 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet {
 		dataHash.put("changedColIndex", ArrayUtilityMethods.calculateIndexOfArray(headers, alg.getChangedColumns().get(0)));
 		this.dataHash = dataHash;
 	}
+	
+	public List<String> getChangedCol() {
+		return alg.getChangedColumns();
+	}
 
 	@Override
 	public void setQuery(String query) {
@@ -199,4 +203,5 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet {
 	public void setJBar(JProgressBar jBar) {
 		this.jBar = jBar;
 	}
+
 }
