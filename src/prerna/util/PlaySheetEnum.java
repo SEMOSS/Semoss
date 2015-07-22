@@ -46,6 +46,7 @@ public enum PlaySheetEnum {
 	Binned_Column_Chart("Binned Column Chart", "prerna.ui.components.playsheets.BinnedColumnChartPlaySheet", "BinnedColumnChartPlaySheet Hint: SELECT ?id ?value (where id is a unique identifier and value is its given value) WHERE { ... }"),
 	Pie_Chart("Pie Chart", "prerna.ui.components.playsheets.PieChartPlaySheet", "PieChartPlaySheet Hint: SELECT ?wedgeName ?wedgeValue WHERE { ... }"),
 	Binned_Pie_Chart("Binned Pie Chart", "prerna.ui.components.playsheets.BinnedPieChartPlaySheet", "BinnedPieChartPlaySheet Hint: SELECT ?id ?value (where id is a unique identifier and value is its given value) WHERE { ... }"),
+	DualEngine("Dual Engine", "prerna.ui.components.playsheets.DualEngineGenericPlaySheet", "DualEngineGenericPlaySheet Hint: psName&engine1&engine2&query1&query2&outer1&outer2"),
 	
 	Machine_Learning_Module("Machine Learning Module", "prerna.ui.components.playsheets.MachineLearningModulePlaySheet", "MachineLearningModulePlaySheet Hint: SELECT ?instance ?categoricalProp ?numericalProp WHERE { ... }"),
 	Clustering("Clustering", "prerna.ui.components.playsheets.ClusteringVizPlaySheet", "ClusteringVizPlaySheet Hint: SELECT ?instance ?categoricalProp ?numericalProp WHERE { ... }+++(OPTIONAL)numClusters"),
