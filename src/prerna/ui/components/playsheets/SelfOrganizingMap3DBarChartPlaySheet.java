@@ -87,6 +87,10 @@ public class SelfOrganizingMap3DBarChartPlaySheet extends BrowserPlaySheet {
 		this.dataHash = data ;
 	}
 	
+	public List<String> getChangedCol() {
+		return alg.getChangedColumns();
+	}
+	
 	@Override
 	public Hashtable getData() {
 		//TODO: remove this from getData() to call the super method
@@ -237,5 +241,5 @@ public class SelfOrganizingMap3DBarChartPlaySheet extends BrowserPlaySheet {
 	public void setJBar(JProgressBar jBar) {
 		this.jBar = jBar;
 	}
-	
+
 }
