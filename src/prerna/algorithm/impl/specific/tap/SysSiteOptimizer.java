@@ -70,7 +70,9 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	
 	private IEngine systemEngine, costEngine, siteEngine;
 	
-	private ArrayList<String> localSysList, centralSysList, dataList, bluList, siteList, capList;
+	private ArrayList<String> localSysList, centralSysList, dataList, bluList, siteList;
+	
+	private String capability;
 	
 	//user must select these
 	private double budgetForYear;
@@ -100,10 +102,6 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	private double[] centralSystemMaintenanceCostArr, centralSystemInterfaceCostArr;
 	private double[] centralSystemNumSiteArr;
 	private double[][] centralSystemSiteMatrix;
-
-	//capability
-//	private int[][] localSystemCapMatrix, centralSystemCapMatrix;
-//	private int[][] capBLUMatrix, capDataMatrix;
 	
 	//results of the algorithm
 	private SysSiteOptFunction optFunc;
@@ -123,7 +121,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	
 	private final String RECOMMENDED_SUSTAIN = "Recommended Sustain";
 	private final String RECOMMENDED_CONSOLIDATION = "Recommended Consolidation";
-	private final String SUSTAINED_SYSTEMS = "Sustained Systems";
+	private final String SUSTAINED_AND_DEPLOYED_SYSTEMS = "Sustained and Deployed Systems";
 	private final String CONSOLIDATED_SYSTEMS = "Consolidated Systems";
 
 	private final String SUSTAINED_HOST_SITE = "Sustained Host Site";
@@ -285,10 +283,10 @@ public class SysSiteOptimizer extends UnivariateOpt {
 				
 				centralSysList.add(sys);
 				
-				if(status.equals("Modernize")) {
+				if(status.equals("Sustain")) {
 					centralSystemIsModArr[centralIndex] = 1;
 					centralSystemIsDecomArr[centralIndex] = 0;
-				} else if(status.equals("Decommission")) {
+				} else if(status.equals("Consolidate")) {
 					centralSystemIsModArr[centralIndex] = 0;
 					centralSystemIsDecomArr[centralIndex] = 1;
 				} else {
@@ -302,10 +300,10 @@ public class SysSiteOptimizer extends UnivariateOpt {
 				
 				localSysList.add(sys);
 				
-				if(status.equals("Modernize")) {
+				if(status.equals("Sustain")) {
 					localSystemIsModArr[nonCentralIndex] = 1;
 					localSystemIsDecomArr[nonCentralIndex] = 0;	
-				} else if(status.equals("Decommission")) {
+				} else if(status.equals("Consolidate")) {
 					localSystemIsModArr[nonCentralIndex] = 0;
 					localSystemIsDecomArr[nonCentralIndex] = 1;
 				} else {
@@ -331,8 +329,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		this.isOptimizeBudget = isOptimizeBudget;
 	}
 	
-	public void setCapList(ArrayList<String> capList) {
-		this.capList = capList;
+	public void setCapability(String capability) {
+		this.capability = capability;
 	}
 	
 	private void createSiteDataBLULists() {
@@ -343,43 +341,37 @@ public class SysSiteOptimizer extends UnivariateOpt {
 
 		//any data and any blu is being selected
 		String dataQuery, bluQuery;
-		if(useDHMSMFunctionality) {
+		if(capability != null && !capability.isEmpty()) {
+			dataQuery = "SELECT DISTINCT ?Data WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/" + capability + "> as ?Capability){?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}{ ?Capability <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess.}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?Data.}}";
+			bluQuery = "SELECT DISTINCT ?BLU WHERE {BIND(<http://health.mil/ontologies/Concept/Capability/" + capability + "> as ?Capability){?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;}{ ?Capability <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess.}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?BLU.}}";
+		}else if(useDHMSMFunctionality) {
 			dataQuery = "SELECT DISTINCT ?Data WHERE {BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> as ?DHMSM){?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> ;}{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}{?DHMSM <http://semoss.org/ontologies/Relation/TaggedBy> ?Capability}{ ?Capability <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess.}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?Data.}}";
 			bluQuery = "SELECT DISTINCT ?BLU WHERE {BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> as ?DHMSM){?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> ;}{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;}{?DHMSM <http://semoss.org/ontologies/Relation/TaggedBy> ?Capability}{ ?Capability <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess.}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?BLU.}}";
 		}else {
 			dataQuery = "SELECT DISTINCT ?Data WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}{?System <http://semoss.org/ontologies/Relation/Provide> ?Data}} ORDER BY ?Data BINDINGS ?System " + sysBindings;
 			bluQuery = "SELECT DISTINCT ?BLU WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;}{?System <http://semoss.org/ontologies/Relation/Provide> ?BLU}} ORDER BY ?BLU BINDINGS ?System " + sysBindings;
 		}
-		
-		String capQuery = "SELECT DISTINCT ?Capability WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> ;}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?System <http://semoss.org/ontologies/Relation/Supports> ?Capability}} ORDER BY ?Capability BINDINGS ?System " + sysBindings;
 
 		siteList = SysOptUtilityMethods.runListQuery(siteEngine, siteQuery);
 		dataList = SysOptUtilityMethods.runListQuery(systemEngine, dataQuery);
 		bluList = SysOptUtilityMethods.runListQuery(systemEngine, bluQuery);
-		if(capList == null || capList.isEmpty())
-			capList = SysOptUtilityMethods.runListQuery(systemEngine, capQuery);
 		
 		printMessage("Sites are..." + SysOptUtilityMethods.createPrintString(siteList));
 		printMessage("Data are..." + SysOptUtilityMethods.createPrintString(dataList));
 		printMessage("BLU are..." + SysOptUtilityMethods.createPrintString(bluList));
-		printMessage("Capabilities are..." + SysOptUtilityMethods.createPrintString(capList));
 	}
 	
 	private void getData() {
 
 		ResidualSystemOptFillData resFunc = new ResidualSystemOptFillData();
 		resFunc.setHourlyRate(hourlyCost);
-		resFunc.setSysSiteLists(localSysList, dataList, bluList, siteList, capList);
+		resFunc.setSysSiteLists(localSysList, dataList, bluList, siteList);
 		resFunc.setEngines(systemEngine, costEngine, siteEngine);
 		resFunc.fillSysSiteOptDataStores(true);
-		
-//		capBLUMatrix = resFunc.capabilityBLUMatrix;
-//		capDataMatrix = resFunc.capabilityDataMatrix;
 		
 		localSystemDataMatrix = resFunc.systemDataMatrix;
 		localSystemBLUMatrix = resFunc.systemBLUMatrix;
 		localSystemSiteMatrix = resFunc.systemSiteMatrix;
-//		localSystemCapMatrix = resFunc.systemCapabilityMatrix;
 		
 		localSystemIsTheaterArr = resFunc.systemTheater;
 		localSystemIsGarrisonArr = resFunc.systemGarrison;
@@ -415,7 +407,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		
 		localSystemSiteInterfaceCostArr = resFunc.systemCostOfDataConsumeArr;
 		
-		resFunc.setSysSiteLists(centralSysList,dataList,bluList,siteList, capList);
+		resFunc.setSysSiteLists(centralSysList,dataList,bluList,siteList);
 		resFunc.fillSysSiteOptDataStores(false);
 		
 		centralSystemDataMatrix = resFunc.systemDataMatrix;
@@ -423,7 +415,6 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		centralSystemSiteMatrix = resFunc.centralSystemSiteMatrix;
 		centralSystemNumSiteArr = resFunc.centralSystemNumSite;
 
-//		centralSystemCapMatrix = resFunc.systemCapabilityMatrix;
 		centralSystemIsTheaterArr = resFunc.systemTheater;
 		centralSystemIsGarrisonArr = resFunc.systemGarrison;
 
@@ -863,7 +854,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		return overviewInfoHash;
 	}
 	
-	public Hashtable<String,Object> getOverviewSiteMapData() {
+	public Hashtable<String,Object> getOverviewSiteSavingsMapData() {
 		double[] currSiteSustainCost;
 		double[] futureSiteSustainCost;
 
@@ -871,7 +862,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 
 		futureSiteSustainCost = calculateSiteCostsForLocalSystems(localSystemSiteResultMatrix, localSystemSiteMaintenaceCostArr);
 		
-		String[] names = new String[]{"DCSite", "lat", "lon", "Site Savings", SUSTAINED_SYSTEMS, CONSOLIDATED_SYSTEMS};
+		String[] names = new String[]{"DCSite", "lat", "lon", "Site Savings", SUSTAINED_AND_DEPLOYED_SYSTEMS, CONSOLIDATED_SYSTEMS};
 		ITableDataFrame data = new BTreeDataFrame(names);
 		int i;
 		int numSites = siteList.size();
@@ -883,6 +874,64 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			row.put(names[3], futureSiteSustainCost[i] - currSiteSustainCost[i]);
 			row.put(names[4], getSustainedSystemsAtSiteList(i));
 			row.put(names[5], getConsolidatedSystemsAtSiteList(i));
+			data.addRow(row, row);
+		}
+		
+		OCONUSMapPlaySheet ps = new OCONUSMapPlaySheet();
+		ps.setDataFrame(data);
+		ps.processQueryData();
+		return (Hashtable<String,Object>)ps.getData();
+	}
+	
+	public Hashtable<String,Object> getOverviewCapCoverageMapData() {
+		
+		//all the data and blu for each of the kept systems
+		Hashtable<Integer,Set<String>> doBLUForKeptLocalSystemsHash = new Hashtable<Integer, Set<String>>();
+
+		int numLocalSys = localSysKeptArr.length;
+		Set<String> doBLUForSys;
+		for(int i=0; i<numLocalSys; i++) {
+			if(localSysKeptArr[i] == 1) {
+				doBLUForSys = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(dataList,localSystemDataMatrix[i]));
+				doBLUForSys.addAll(SysOptUtilityMethods.createNonZeroList(bluList,localSystemBLUMatrix[i]));
+				doBLUForKeptLocalSystemsHash.put(i,doBLUForSys);
+			}
+		}
+		
+		Set<String> doBLUForKeptCentralSystemsSet = new HashSet<String>();
+		int numCentralSys = centralSysKeptArr.length;
+		for(int i=0; i<numCentralSys; i++) {
+			if(centralSysKeptArr[i] == 1) {
+				doBLUForKeptCentralSystemsSet.addAll(SysOptUtilityMethods.createNonZeroList(dataList,centralSystemDataMatrix[i]));
+				doBLUForKeptCentralSystemsSet.addAll(SysOptUtilityMethods.createNonZeroList(bluList,centralSystemBLUMatrix[i]));
+			}
+		}
+		
+		String[] names = new String[]{"DCSite", "lat", "lon", "Percent DOs and BLUs covered", SUSTAINED_AND_DEPLOYED_SYSTEMS};
+		ITableDataFrame data = new BTreeDataFrame(names);
+		int i;
+		int j;
+		int numSites = siteList.size();
+		int totalDOBLU = dataList.size() + bluList.size();
+		Set<String> doBLUForSiteSet;
+		for(i=0; i<numSites; i++) {
+			
+			//get the data and BLU for each system at the site in future
+			doBLUForSiteSet = new HashSet<String>(doBLUForKeptCentralSystemsSet);
+			for(j=0; j<numLocalSys; j++) {
+				if(localSystemSiteResultMatrix[j][i] == 1) {
+					doBLUForSiteSet.addAll(doBLUForKeptLocalSystemsHash.get(j));
+				}
+			}
+			
+			double percent = doBLUForSiteSet.size() / totalDOBLU;
+			
+			Map<String, Object> row = new HashMap<String, Object>();
+			row.put(names[0], siteList.get(i));
+			row.put(names[1], siteLat[i]);
+			row.put(names[2], siteLon[i]);
+			row.put(names[3], percent);
+			row.put(names[4], getSustainedSystemsAtSiteList(i));
 			data.addRow(row, row);
 		}
 		
@@ -972,7 +1021,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			
 			if(numHostedSites == 1) {
 				hosting = "Central";
-			}else if(numHostedSites > 1 && numHostedSites < 5 ) {
+			}else if(numHostedSites > 1) {
 				hosting = "Regional";
 			}else {
 				hosting = "TBD";
@@ -1108,164 +1157,137 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	
 	public Hashtable<String,Object> getSystemCoverageData(String system) {
 
-		Hashtable<String,Object> systemCoverageHash = new Hashtable<String,Object>();
-		Hashtable<String, Hashtable<String,Object>> dataHash = new Hashtable<String, Hashtable<String,Object>> ();
-		Set<String> uncoveredDataSet = new HashSet<String>();
-		Set<String> uncoveredBLUSet = new HashSet<String>();
-
+		Hashtable<String,Object> dataHash = new Hashtable<String,Object>();
+		Hashtable<String, Hashtable<String,Object>> coverageHash = new Hashtable<String, Hashtable<String,Object>> ();
+		
+		//all the data and blu that will be in the coverage visual
+		Set<String> dataSet;
+		Set<String> bluSet;
+		
+		//all the data and blu that has been covered by at least one system
+		Set<String> coveredDataSet = new HashSet<String>();
+		Set<String> coveredBLUSet = new HashSet<String>();
 		
 		if(system.equals(null) || system.isEmpty()) {
 
-			//find the coverage hash for all systems included in the analysis
-			uncoveredDataSet.addAll(dataList);
-			uncoveredBLUSet.addAll(bluList);
+			dataSet = new HashSet<String>(dataList);
+			bluSet = new HashSet<String>(bluList);
+			
+			processCoverage(coverageHash, coveredDataSet, coveredBLUSet, localSysList, localSystemDataMatrix, localSystemBLUMatrix, dataList, bluList, localSysKeptArr);
+			processCoverage(coverageHash, coveredDataSet, coveredBLUSet, centralSysList, centralSystemDataMatrix, centralSystemBLUMatrix, dataList, bluList, centralSysKeptArr);
 
-			uncoveredDataSet = processCoverage(dataHash, uncoveredDataSet, localSystemDataMatrix, localSysList, dataList, localSysKeptArr, "Data");
-			uncoveredDataSet = processCoverage(dataHash, uncoveredDataSet, centralSystemDataMatrix, centralSysList, dataList, centralSysKeptArr, "Data");
+		}else if(localSysList.contains(system)) {
+			int sysIndex = localSysList.indexOf(system);
 			
-			uncoveredBLUSet = processCoverage(dataHash, uncoveredBLUSet, localSystemBLUMatrix, localSysList, bluList, localSysKeptArr, "BLU");
-			uncoveredBLUSet = processCoverage(dataHash, uncoveredBLUSet, centralSystemBLUMatrix, centralSysList, bluList, centralSysKeptArr, "BLU");
+			dataSet = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(dataList, localSystemDataMatrix[sysIndex]));
+			bluSet = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(bluList, localSystemBLUMatrix[sysIndex]));
 			
+			Set<String> dataToIgnoreSet = new HashSet<String>(dataList);
+			dataToIgnoreSet.removeAll(dataSet);
+			Set<String> bluToIgnoreSet = new HashSet<String>(bluList);
+			bluToIgnoreSet.removeAll(bluList);
+			
+			processCoverage(coverageHash, coveredDataSet, coveredBLUSet, localSysList, localSystemDataMatrix, localSystemBLUMatrix, dataList, bluList, dataToIgnoreSet, bluToIgnoreSet, localSysKeptArr, sysIndex);
+			processCoverage(coverageHash, coveredDataSet, coveredBLUSet, centralSysList, centralSystemDataMatrix, centralSystemBLUMatrix, dataList, bluList, dataToIgnoreSet, bluToIgnoreSet, centralSysKeptArr, -1);
+
+
 		}else {
-			//find the coverage hash for a specific system. Which means filtering the data and blu lists to be JUST those for that system
-			int sysIndex;
+			int sysIndex = centralSysList.indexOf(system);
 			
-			//get the correct list of data and blu
-			if(localSysList.contains(system)) {
-				sysIndex = localSysList.indexOf(system);
+			dataSet = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(dataList, centralSystemDataMatrix[sysIndex]));
+			bluSet = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(bluList, centralSystemBLUMatrix[sysIndex]));
+			
+			Set<String> dataToIgnoreSet = new HashSet<String>(dataList);
+			dataToIgnoreSet.removeAll(dataSet);
+			Set<String> bluToIgnoreSet = new HashSet<String>(bluList);
+			bluToIgnoreSet.removeAll(bluList);
+			
+			processCoverage(coverageHash, coveredDataSet, coveredBLUSet, localSysList, localSystemDataMatrix, localSystemBLUMatrix, dataList, bluList, dataToIgnoreSet, bluToIgnoreSet, localSysKeptArr, -1);
+			processCoverage(coverageHash, coveredDataSet, coveredBLUSet, centralSysList, centralSystemDataMatrix, centralSystemBLUMatrix, dataList, bluList, dataToIgnoreSet, bluToIgnoreSet, centralSysKeptArr, sysIndex);
 				
-				uncoveredDataSet = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(dataList, localSystemDataMatrix[sysIndex]));
-				uncoveredBLUSet = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(bluList, localSystemBLUMatrix[sysIndex]));
-				
-				uncoveredDataSet = processCoverage(dataHash, uncoveredDataSet, localSystemDataMatrix[sysIndex], localSystemDataMatrix, localSysKeptArr, localSysList, dataList, sysIndex, "Data");
-				uncoveredDataSet = processCoverage(dataHash, uncoveredDataSet, localSystemDataMatrix[sysIndex], centralSystemDataMatrix, centralSysKeptArr, centralSysList, dataList, -1, "Data");
-				uncoveredBLUSet = processCoverage(dataHash, uncoveredBLUSet, localSystemBLUMatrix[sysIndex], localSystemBLUMatrix, localSysKeptArr, localSysList, bluList, sysIndex, "BLU");
-				uncoveredBLUSet = processCoverage(dataHash, uncoveredBLUSet, localSystemBLUMatrix[sysIndex], centralSystemBLUMatrix, centralSysKeptArr, centralSysList, bluList, -1, "BLU");			
-
-			}else {
-				sysIndex = centralSysList.indexOf(system);
-				
-				uncoveredDataSet = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(dataList, centralSystemDataMatrix[sysIndex]));
-				uncoveredBLUSet = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(bluList, centralSystemBLUMatrix[sysIndex]));
-				
-				uncoveredDataSet = processCoverage(dataHash, uncoveredDataSet, centralSystemDataMatrix[sysIndex], localSystemDataMatrix, localSysKeptArr, localSysList, dataList, -1, "Data");
-				uncoveredDataSet = processCoverage(dataHash, uncoveredDataSet, centralSystemDataMatrix[sysIndex], centralSystemDataMatrix, centralSysKeptArr, centralSysList, dataList, sysIndex, "Data");
-				uncoveredBLUSet = processCoverage(dataHash, uncoveredBLUSet, centralSystemBLUMatrix[sysIndex], localSystemBLUMatrix, localSysKeptArr, localSysList, bluList, -1, "BLU");
-				uncoveredBLUSet = processCoverage(dataHash, uncoveredBLUSet, centralSystemBLUMatrix[sysIndex], centralSystemBLUMatrix, centralSysKeptArr, centralSysList, bluList, sysIndex, "BLU");
-			}
 		}
-			
-
+		
+		//all the data and blu that has not been covered by any system
+		dataSet.removeAll(coveredDataSet);
+		bluSet.removeAll(coveredBLUSet);
 		
 		Hashtable<String,Object> uncoveredFuncHash;
 		uncoveredFuncHash = new Hashtable<String,Object>();
-		uncoveredFuncHash.put("Data", uncoveredDataSet);
-		uncoveredFuncHash.put("BLU", uncoveredBLUSet);
-		dataHash.put("Uncovered", uncoveredFuncHash);
+		uncoveredFuncHash.put("Data", dataSet);
+		uncoveredFuncHash.put("BLU", bluSet);
+		coverageHash.put("Uncovered", uncoveredFuncHash);
 	
-		systemCoverageHash.put("data",dataHash);
+		dataHash.put("data",coverageHash);
 
-		return systemCoverageHash;
+		return dataHash;
 	}
 
-	private Set<String> processCoverage(Hashtable<String, Hashtable<String,Object>> coverageHash,Set<String> uncoveredFuncSet, int[][] systemFuncMatrix, ArrayList<String> sysList, ArrayList<String> funcList, double[] sysKeptArr, String dataOrBLU) {
+	private void processCoverage(Hashtable<String, Hashtable<String,Object>> coverageHash, Set<String> coveredData, Set<String> coveredBLU, ArrayList<String> sysList, int[][] systemDataMatrix, int[][] systemBLUMatrix, ArrayList<String> dataList, ArrayList<String> bluList, double[] sysKeptArr) {
 		
 		int i;
-		int j;
-		int numFunc = funcList.size();
 		int numSys = sysList.size();
-		String func;
 		String system;
+		String rec;
 
-		for(i=0; i<numFunc; i++) {
-			func = funcList.get(i);
+		for(i=0; i<numSys; i++) {
 			
-			for(j=0; j<numSys; j++) {
-				
-				if(systemFuncMatrix[j][i] == 1) {//another system provides the same functionality and is kept
-					system = sysList.get(j);
-					Hashtable<String,Object> systemHash;
-					if(coverageHash.containsKey(system)) {
-						systemHash = coverageHash.get(system);
-					}else {
-						String rec;
-						if(sysKeptArr[j] == 0) {
-							rec = RECOMMENDED_CONSOLIDATION;
-						}else {
-							rec = RECOMMENDED_SUSTAIN;
-						}						
-						systemHash = new Hashtable<String,Object>();
-						systemHash.put("Data", new HashSet<String>());
-						systemHash.put("BLU", new HashSet<String>());
-						systemHash.put("Recommendation",rec);
-						coverageHash.put(system, systemHash);
-					}
-					Set<String> funcSet = (Set<String>)systemHash.get(dataOrBLU);
-					funcSet.add(func);
-					uncoveredFuncSet.remove(func);
-				}
+			system = sysList.get(i);
+			if(sysKeptArr[i] == 0) {
+				rec = RECOMMENDED_CONSOLIDATION;
+			}else {
+				rec = RECOMMENDED_SUSTAIN;
 			}
 			
+			Hashtable<String,Object> systemHash = new Hashtable<String,Object>();
+			coveredData.addAll(SysOptUtilityMethods.createNonZeroList(dataList,systemDataMatrix[i]));
+			coveredBLU.addAll(SysOptUtilityMethods.createNonZeroList(bluList,systemBLUMatrix[i]));
+			
+			systemHash.put("Data", new HashSet<String>(SysOptUtilityMethods.createNonZeroList(dataList,systemDataMatrix[i])));
+			systemHash.put("BLU", new HashSet<String>(SysOptUtilityMethods.createNonZeroList(bluList,systemBLUMatrix[i])));
+			systemHash.put("Recommendation",rec);
+
+			coverageHash.put(system, systemHash);
 		}
-		return uncoveredFuncSet;
+		
 	}	
-
-	/**
-	 * Coverage for a single system, filtered out data and and system
-	 * @param coverageHash
-	 * @param uncoveredFuncSet
-	 * @param desiredFunc
-	 * @param systemFuncMatrix
-	 * @param sysKeptArr
-	 * @param sysList
-	 * @param funcList
-	 * @param ignoreIndex
-	 * @return
-	 */
-	private Set<String> processCoverage(Hashtable<String, Hashtable<String,Object>> coverageHash,Set<String> uncoveredFuncSet, int[] desiredFunc, int[][] systemFuncMatrix, double[] sysKeptArr, ArrayList<String> sysList, ArrayList<String> funcList, int ignoreIndex, String dataOrBLU) {
+	
+	private void processCoverage(Hashtable<String, Hashtable<String,Object>> coverageHash, Set<String> coveredDataSet, Set<String> coveredBLUSet, ArrayList<String> sysList, int[][] systemDataMatrix, int[][] systemBLUMatrix, ArrayList<String> dataList, ArrayList<String> bluList, Set<String> dataToIgnoreSet, Set<String> bluToIgnoreSet, double[] sysKeptArr, int sysIndex) {
 		
 		int i;
-		int j;
-		int numFunc = funcList.size();
 		int numSys = sysList.size();
-		String func;
 		String system;
-
-		for(i=0; i<numFunc; i++) {
-			if(desiredFunc[i] == 1) {//system provides the functionality
-				func = funcList.get(i);
+		String rec;
+		
+		for(i=0; i<numSys; i++) {
+			if(i != sysIndex) {
+				system = sysList.get(i);
 				
-				for(j=0; j<numSys; j++) {
-					
-					if(j!=ignoreIndex && systemFuncMatrix[j][i] == 1 && (sysKeptArr == null || sysKeptArr[j] == 1)) {//another system provides the same functionality and is kept
-						system = sysList.get(j);
-						Hashtable<String,Object> systemHash;
-						if(coverageHash.containsKey(system)) {
-							systemHash = coverageHash.get(system);
-						}else {
-							String rec;
-							if(sysKeptArr[j] == 0) {
-								rec = RECOMMENDED_CONSOLIDATION;
-							}else {
-								rec = RECOMMENDED_SUSTAIN;
-							}						
-							systemHash = new Hashtable<String,Object>();
-							systemHash.put("Data", new HashSet<String>());
-							systemHash.put("BLU", new HashSet<String>());
-							systemHash.put("Recommendation",rec);
-							coverageHash.put(system, systemHash);
-						}
-						Set<String> funcSet = (Set<String>)systemHash.get(dataOrBLU);
-						funcSet.add(func);
-						uncoveredFuncSet.remove(func);
-					}
+				if(sysKeptArr[i] == 0) {
+					rec = RECOMMENDED_CONSOLIDATION;
+				}else {
+					rec = RECOMMENDED_SUSTAIN;
 				}
+				
+				//filter the sys lists to only those we care about
+				Set<String> sysDataSet = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(dataList,systemDataMatrix[i]));
+				sysDataSet.removeAll(dataToIgnoreSet);
+				Set<String> sysBLUSet = new HashSet<String>(SysOptUtilityMethods.createNonZeroList(bluList,systemBLUMatrix[i]));
+				sysBLUSet.removeAll(bluToIgnoreSet);
+				
+				coveredDataSet.addAll(sysDataSet);
+				coveredBLUSet.addAll(sysBLUSet);
+				
+				Hashtable<String,Object> systemHash = new Hashtable<String,Object>();
+				
+				systemHash.put("Data", sysDataSet);
+				systemHash.put("BLU", sysBLUSet);
+				systemHash.put("Recommendation",rec);
 
+				coverageHash.put(system, systemHash);
 			}
-			
 		}
-		return uncoveredFuncSet;
-	}
+		
+	}	
 	
 	private ArrayList<String> getSustainedSystemsAtSiteList(int siteIndex) {
 
@@ -1306,6 +1328,28 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	}
 	
 	private double[] calculateSiteCostsForLocalSystems(double[][] sysSiteMatrix, double[] sysSiteCost) {
+		int i;
+		int j;
+		int numSys = sysSiteMatrix.length;
+		int numSite = sysSiteMatrix[0].length;
+		double[] siteCostArr = new double[numSite];
+		
+		for(i=0; i<numSite; i++) {
+			
+			double siteCost = 0.0;
+			for(j=0; j<numSys; j++) {
+				
+					siteCost += sysSiteMatrix[j][i] * sysSiteCost[j];
+					
+			}
+			siteCostArr[i] = siteCost;
+		}
+		
+		return siteCostArr;
+	}
+	
+	
+	private double[] calculateDOBLUCoverageAtSites(double[][] sysSiteMatrix, double[] sysSiteCost) {
 		int i;
 		int j;
 		int numSys = sysSiteMatrix.length;

@@ -48,7 +48,6 @@ public class ResidualSystemOptFillData{
 	ArrayList<String> dataList, bluList;
 	ArrayList<String> regionList;
 	ArrayList<String> siteList;
-	ArrayList<String> capList;
 	
 	ArrayList<String> systemMustModernize;
 	ArrayList<String> systemMustDecommission;
@@ -117,7 +116,7 @@ public class ResidualSystemOptFillData{
 	IEngine costEngine;// = "TAP_Cost_Data";
 	IEngine siteEngine;// = "TAP_Site_Data";
 	
-	String sysListBindings, capListBindings;
+	String sysListBindings;//, capListBindings;
 	double maxYears;
 	double hourlyRate = 150.0;
 	
@@ -133,13 +132,12 @@ public class ResidualSystemOptFillData{
 		this.systemMustDecommission = systemMustDecommission;	
 	}
 
-	public void setSysSiteLists(ArrayList<String> sysList,ArrayList<String> dataList,ArrayList<String> bluList,ArrayList<String> siteList, ArrayList<String> capList)
+	public void setSysSiteLists(ArrayList<String> sysList,ArrayList<String> dataList,ArrayList<String> bluList,ArrayList<String> siteList)
 	{
 		this.sysList = sysList;
 		this.dataList = dataList;
 		this.bluList = bluList;
 		this.siteList = siteList;
-		this.capList = capList;
 	}
 	
 	public void setPlaySheet(SysOptPlaySheet playSheet)
@@ -302,14 +300,12 @@ public class ResidualSystemOptFillData{
 
 	public void fillSysSiteOptDataStores(Boolean nonCentralSystems) {
 		sysListBindings = "{" + SysOptUtilityMethods.makeBindingString("System",sysList) + "}";
-		capListBindings = "{" + SysOptUtilityMethods.makeBindingString("Capability",capList) + "}";
+//		capListBindings = "{" + SysOptUtilityMethods.makeBindingString("Capability",capList) + "}";
 		fillSystemFunctionality();
-		fillSystemCapabilityMatrix();
 		fillSystemTheaterGarrison(true,true);
 		if(nonCentralSystems) {
 			fillSystemSite();
 			fillSystemNumOfSites();
-			fillCapabilityFunctionality();
 		}else{
 			fillCentralSystemSite();
 		}
@@ -354,26 +350,17 @@ public class ResidualSystemOptFillData{
 
 	}
 	
-	private void fillSystemCapabilityMatrix() {
-		systemCapabilityMatrix = SysOptUtilityMethods.createEmptyMatrix(systemDataMatrix,sysList.size(),capList.size());
-
-		String capQuery = "SELECT DISTINCT ?System ?Capability WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?System <http://semoss.org/ontologies/Relation/Supports> ?Capability}} BINDINGS ?System @SYSTEM-BINDINGS@";
-		capQuery = capQuery.replace("@SYSTEM-BINDINGS@",sysListBindings);
-		systemCapabilityMatrix = fillMatrixFromQuery(systemEngine,capQuery,systemCapabilityMatrix,sysList,capList);
-
-	}
-	
-	private void fillCapabilityFunctionality() {
-		capabilityDataMatrix = SysOptUtilityMethods.createEmptyMatrix(capabilityDataMatrix,capList.size(),dataList.size());
-		capabilityBLUMatrix = SysOptUtilityMethods.createEmptyMatrix(capabilityBLUMatrix,capList.size(),bluList.size());
-		
-		String dataQuery = "SELECT DISTINCT ?Capability ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> ;}{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}{ ?Capability <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess.}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?Data.}} BINDINGS ?Capability " + capListBindings;
-		String bluQuery = "SELECT DISTINCT ?Capability ?BLU WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> ;}{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;}{ ?Capability <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess.}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?BLU.}} BINDINGS ?Capability " + capListBindings;
-		
-		capabilityDataMatrix = fillMatrixFromQuery(systemEngine,dataQuery,capabilityDataMatrix,capList,dataList);
-		capabilityBLUMatrix = fillMatrixFromQuery(systemEngine,bluQuery,capabilityBLUMatrix,capList,bluList);
-
-	}
+//	private void fillCapabilityFunctionality() {
+//		capabilityDataMatrix = SysOptUtilityMethods.createEmptyMatrix(capabilityDataMatrix,capList.size(),dataList.size());
+//		capabilityBLUMatrix = SysOptUtilityMethods.createEmptyMatrix(capabilityBLUMatrix,capList.size(),bluList.size());
+//		
+//		String dataQuery = "SELECT DISTINCT ?Capability ?Data WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> ;}{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}{ ?Capability <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess.}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?Data.}} BINDINGS ?Capability " + capListBindings;
+//		String bluQuery = "SELECT DISTINCT ?Capability ?BLU WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> ;}{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;}{ ?Capability <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess.}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?BLU.}} BINDINGS ?Capability " + capListBindings;
+//		
+//		capabilityDataMatrix = fillMatrixFromQuery(systemEngine,dataQuery,capabilityDataMatrix,capList,dataList);
+//		capabilityBLUMatrix = fillMatrixFromQuery(systemEngine,bluQuery,capabilityBLUMatrix,capList,bluList);
+//
+//	}
 	
 	private void fillSystemCostOfData() {
 		systemCostOfDataMatrix = SysOptUtilityMethods.createEmptyMatrix(systemCostOfDataMatrix,sysList.size(),dataList.size());
