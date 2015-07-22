@@ -4,7 +4,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -374,7 +373,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 				}
 			}
 			
-			this.simpleTree.adjustType(levelNames[origLength - 1], true);
+			//this.simpleTree.adjustType(levelNames[origLength - 1], true);
+			this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[0], levelNames.length);
+			
 			
 			//Update the Index Tree
 			TreeNode treeRoot = this.simpleTree.nodeIndexHash.get(colNameInTable);
@@ -384,6 +385,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 				this.simpleTree.appendToIndexTree(t.leftChild);
 			}
 
+			//this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[0], levelNames.length);
 		}//EMPTY
 		else // use the flat join. This is not ideal. Not sure if we will ever actually use this
 		{
@@ -796,6 +798,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 		if(!isNumeric(columnHeader)) {
 			return Double.NaN;
 		}
+		//Object maxValue = this.simpleTree.getMax(columnHeader);
+		//return ((Number) maxValue).doubleValue();
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
 		typeRoot = typeRoot.getRight(typeRoot);
 		while(typeRoot.rightChild != null) {
@@ -1157,8 +1161,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 		this.adjustFilteredColumns();
 		this.simpleTree.removeType(columnHeader);
 		isNumericalMap.remove(columnHeader);
-		LOGGER.info("removed " + columnHeader);
-		System.out.println("new names  " + Arrays.toString(levelNames));
+		//LOGGER.info("removed " + columnHeader);
+		//System.out.println("new names  " + Arrays.toString(levelNames));
 		
 	}
 
@@ -1184,6 +1188,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		// TODO Auto-generated method stub
 	}
 
+	//TODO: is this necessary
 	public String[] getTreeLevels() {
 		return this.filteredLevelNames;
 	}
@@ -1194,8 +1199,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	@Override
 	public boolean isEmpty() {
-		//return this.simpleTree.isEmpty();
-		return false;
+		return !this.iterator(false).hasNext();
 	}
 	
 	@Override
@@ -1207,6 +1211,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public String[] getColumnsToSkip() {
 		return columnsToSkip.toArray(new String[columnsToSkip.size()]);
 	}
+	
 	
 	private void adjustFilteredColumns() {
 		
