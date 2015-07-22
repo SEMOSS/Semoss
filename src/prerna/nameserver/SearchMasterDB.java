@@ -112,7 +112,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 					if(typeAndInstance != null && typeAndInstance.containsKey(typeURI)) {
 						Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
 						insightHash.put(MasterDatabaseConstants.DB_KEY, engine);
-						insightHash.put(MasterDatabaseConstants.QUESITON_KEY, insightLabel);
+						insightHash.put(MasterDatabaseConstants.QUESTION_KEY, insightLabel);
 						insightHash.put(MasterDatabaseConstants.TYPE_KEY, typeURI);
 						insightHash.put(MasterDatabaseConstants.PERSPECTIVE_KEY, perspectiveLabel);
 						insightHash.put(MasterDatabaseConstants.VIZ_TYPE_KEY, viz);
@@ -177,7 +177,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 				if(typeAndInstance != null && typeAndInstance.containsKey(typeURI)) {
 					Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
 					insightHash.put(MasterDatabaseConstants.DB_KEY, engine);
-					insightHash.put(MasterDatabaseConstants.QUESITON_KEY, insightLabel);
+					insightHash.put(MasterDatabaseConstants.QUESTION_KEY, insightLabel);
 					insightHash.put(MasterDatabaseConstants.TYPE_KEY, typeURI);
 					insightHash.put(MasterDatabaseConstants.PERSPECTIVE_KEY, perspectiveLabel);
 					insightHash.put(MasterDatabaseConstants.VIZ_TYPE_KEY, viz);
@@ -258,6 +258,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 			String insight = sjss.getVar(names[0]).toString();
 			String insightLabel = sjss.getVar(names[1]).toString();
 			String engineName = insight.split(":")[0];
+			String perspective= insight.split(":")[1];
 			String layout = sjss.getVar(names[2]).toString();
 			String vis = sjss.getVar(names[3]).toString();
 			String execCount = sjss.getVar(names[4]).toString();
@@ -273,6 +274,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 			HashMap<String, Object> insightMetadata = new HashMap<String, Object>();
 			insightMetadata.put("label", insightLabel);
 			insightMetadata.put("engine", engineMetaData);
+			insightMetadata.put("perspective", perspective);
 			insightMetadata.put("layout", layout);
 			insightMetadata.put("visibility", vis);
 			insightMetadata.put("count", clickCount);

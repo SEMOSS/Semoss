@@ -98,7 +98,7 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 				if(typeAndInstance != null && typeAndInstance.containsKey(typeURI)) {
 					Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
 					insightHash.put(MasterDatabaseConstants.DB_KEY, engine);
-					insightHash.put(MasterDatabaseConstants.QUESITON_KEY, insightLabel);
+					insightHash.put(MasterDatabaseConstants.QUESTION_KEY, insightLabel);
 					insightHash.put(MasterDatabaseConstants.TYPE_KEY, typeURI);
 					insightHash.put(MasterDatabaseConstants.PERSPECTIVE_KEY, perspectiveLabel);
 					insightHash.put(MasterDatabaseConstants.VIZ_TYPE_KEY, viz);
@@ -138,7 +138,7 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 				if(engineInstancesMap == null) {
 					Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
 					insightHash.put(MasterDatabaseConstants.DB_KEY, engine);
-					insightHash.put(MasterDatabaseConstants.QUESITON_KEY, insightLabel);
+					insightHash.put(MasterDatabaseConstants.QUESTION_KEY, insightLabel);
 					insightHash.put(MasterDatabaseConstants.TYPE_KEY, typeURI);
 					insightHash.put(MasterDatabaseConstants.PERSPECTIVE_KEY, perspectiveLabel);
 					insightHash.put(MasterDatabaseConstants.VIZ_TYPE_KEY, viz);
@@ -149,7 +149,7 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 					if(typeAndInstance != null && typeAndInstance.containsKey(typeURI)) {
 						Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
 						insightHash.put(MasterDatabaseConstants.DB_KEY, engine);
-						insightHash.put(MasterDatabaseConstants.QUESITON_KEY, insightLabel);
+						insightHash.put(MasterDatabaseConstants.QUESTION_KEY, insightLabel);
 						insightHash.put(MasterDatabaseConstants.TYPE_KEY, typeURI);
 						insightHash.put(MasterDatabaseConstants.PERSPECTIVE_KEY, perspectiveLabel);
 						insightHash.put(MasterDatabaseConstants.VIZ_TYPE_KEY, viz);
@@ -198,7 +198,7 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 				if(typeAndInstance != null && typeAndInstance.containsKey(typeURI)) {
 					Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
 					insightHash.put(MasterDatabaseConstants.DB_KEY, engine);
-					insightHash.put(MasterDatabaseConstants.QUESITON_KEY, insightLabel);
+					insightHash.put(MasterDatabaseConstants.QUESTION_KEY, insightLabel);
 					insightHash.put(MasterDatabaseConstants.TYPE_KEY, typeURI);
 					insightHash.put(MasterDatabaseConstants.PERSPECTIVE_KEY, perspectiveLabel);
 					insightHash.put(MasterDatabaseConstants.VIZ_TYPE_KEY, viz);
@@ -238,7 +238,7 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 				if(engineInstancesMap.isEmpty()) {
 					Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
 					insightHash.put(MasterDatabaseConstants.DB_KEY, engine);
-					insightHash.put(MasterDatabaseConstants.QUESITON_KEY, insightLabel);
+					insightHash.put(MasterDatabaseConstants.QUESTION_KEY, insightLabel);
 					insightHash.put(MasterDatabaseConstants.TYPE_KEY, typeURI);
 					insightHash.put(MasterDatabaseConstants.PERSPECTIVE_KEY, perspectiveLabel);
 					insightHash.put(MasterDatabaseConstants.VIZ_TYPE_KEY, viz);
@@ -249,7 +249,7 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 					if(typeAndInstance != null && typeAndInstance.containsKey(typeURI)) {
 						Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
 						insightHash.put(MasterDatabaseConstants.DB_KEY, engine);
-						insightHash.put(MasterDatabaseConstants.QUESITON_KEY, insightLabel);
+						insightHash.put(MasterDatabaseConstants.QUESTION_KEY, insightLabel);
 						insightHash.put(MasterDatabaseConstants.TYPE_KEY, typeURI);
 						insightHash.put(MasterDatabaseConstants.PERSPECTIVE_KEY, perspectiveLabel);
 						insightHash.put(MasterDatabaseConstants.VIZ_TYPE_KEY, viz);
