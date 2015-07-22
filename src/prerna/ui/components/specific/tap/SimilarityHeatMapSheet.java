@@ -56,8 +56,8 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 	protected static final Logger logger = LogManager.getLogger(SimilarityHeatMapSheet.class.getName());
 	public ArrayList<String> comparisonObjectList = new ArrayList<String>();
 	final String crmKey = "!CRM!";
-	String comparisonObjectTypeX = "";
-	String comparisonObjectTypeY = "";
+	protected String comparisonObjectTypeX = "";
+	protected String comparisonObjectTypeY = "";
 	public Hashtable allHash = new Hashtable();
 	public Hashtable<String, Hashtable<String, Hashtable<String, Object>>> paramDataHash = new Hashtable<String, Hashtable<String, Hashtable<String, Object>>>();
 	public Hashtable keyHash = new Hashtable();

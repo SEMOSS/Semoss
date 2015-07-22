@@ -100,20 +100,6 @@ public class BLUSystemOptimizationPlaySheet extends GridPlaySheet{
 				maxBudget = budget;
 			}
 		}
-//		
-//		Double[] budList = new Double[budgetMap.size()];
-//		Iterator<String> sysIt = budgetMap.keySet().iterator();
-//		int idx = 0;
-//		while(sysIt.hasNext()){
-//			String sys = sysIt.next();
-//			sysList[idx] = sys;
-//			double budget =budgetMap.get(sys); 
-//			budList[idx] = budget;
-//			if(budget > maxBudget){
-//				maxBudget = budget;
-//			}
-//			idx++;
-//		}
 		
 		Object[] retArray = new Object[]{budList, maxBudget};
 		return retArray;
