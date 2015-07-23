@@ -32,7 +32,6 @@ public class MultiClusteringRoutine implements IAnalyticRoutine {
 	private boolean[] isNumeric;
 	
 	private int optimalNumClusters;
-	private List<String> skipAttributes;
 	
 	public MultiClusteringRoutine() {
 		this.options = new ArrayList<SEMOSSParam>();
@@ -69,7 +68,6 @@ public class MultiClusteringRoutine implements IAnalyticRoutine {
 		int start = (int) options.get(0).getSelected();
 		int end = (int) options.get(1).getSelected();
 		this.instanceIndex = (int) options.get(2).getSelected();
-		this.skipAttributes = (List<String>) this.options.get(4).getSelected();
 		
 		this.attributeNames = data[0].getColumnHeaders();
 		this.instanceType = attributeNames[instanceIndex];
@@ -100,6 +98,20 @@ public class MultiClusteringRoutine implements IAnalyticRoutine {
 		double endVal = computeClusteringScore(data, endClusterResult, endClusterList, previousResults, x2);
 		previousResults.put(x2, endVal);
 
+		if(startVal > endVal) {
+			if(startVal > bestVal) {
+				bestVal = startVal;
+				bestResults = startClusterResult;
+				this.optimalNumClusters = x1;
+			}
+		} else {
+			if(endVal > bestVal) {
+				bestVal = endVal;
+				bestResults = endClusterResult;
+				this.optimalNumClusters = x2;
+			}
+		}
+		
 		while(Math.abs(b - a) > 1) {
 			if(startVal < endVal) {
 				a = x1;
@@ -124,13 +136,17 @@ public class MultiClusteringRoutine implements IAnalyticRoutine {
 			if(startVal > endVal) {
 				if(startVal > bestVal) {
 					bestVal = startVal;
-					bestResults = startClusterResult;
+					if(startClusterResult != null) { // if null, its alreayd stored
+						bestResults = startClusterResult;
+					}
 					this.optimalNumClusters = x1;
 				}
 			} else {
 				if(endVal > bestVal) {
 					bestVal = endVal;
-					bestResults = endClusterResult;
+					if(endClusterResult != null) { // if null, its already stored
+						bestResults = endClusterResult;
+					}
 					this.optimalNumClusters = x2;
 				}
 			}
