@@ -42,6 +42,7 @@ import prerna.algorithm.learning.util.IClusterDistanceMode.DistanceMeasure;
 import prerna.ds.BTreeDataFrame;
 import prerna.math.SimilarityWeighting;
 import prerna.om.SEMOSSParam;
+import prerna.util.ArrayUtilityMethods;
 
 public class DatasetSimilarity implements IAnalyticRoutine {
 
@@ -117,7 +118,14 @@ public class DatasetSimilarity implements IAnalyticRoutine {
 		getSimilarityValuesForInstances();
 		
 		String attributeName = attributeNames[instanceIndex];
-		this.changedColumn = attributeName + "_SIMILARITY";
+		
+		// to avoid adding columns with same name
+		int counter = 0;
+		this.changedColumn = attributeName + "_SIMILARITY_" + counter;
+		while(ArrayUtilityMethods.arrayContainsValue(attributeNames, changedColumn)) {
+			counter++;
+			this.changedColumn = attributeName + "_SIMILARITY_" + counter;
+		}
 		ITableDataFrame returnTable = new BTreeDataFrame(new String[]{attributeName, changedColumn});
 		for(Object instance : results.keySet()) {
 			Map<String, Object> row = new HashMap<String, Object>();
