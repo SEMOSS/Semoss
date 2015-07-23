@@ -37,7 +37,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.Vector;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -70,8 +69,9 @@ import com.google.gson.reflect.TypeToken;
  */
 @SuppressWarnings("serial")
 public class SysSiteOptPlaySheet extends OptPlaySheet{
-	
-	private String capability;
+
+	private Boolean defaultSettings;
+	private String capabilityURI;
 	
 	private JPanel systemSelectPanel, systemModDecomSelectPanel;	
 	public DHMSMSystemSelectPanel sysSelectPanel, systemModernizePanel, systemDecomissionPanel;
@@ -92,6 +92,29 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 	 * Method addPanel.  Creates a panel and adds the table to the panel.
 	 */
 	private static final Logger LOGGER = LogManager.getLogger(SysSiteOptPlaySheet.class.getName());
+	
+	
+	public Boolean defaultSettings() {
+		return defaultSettings;
+	}
+	
+	public Hashtable getSystems() {
+		Hashtable returnHash = (Hashtable) super.getData();
+		Hashtable dataHash = new Hashtable();
+		
+		ArrayList<String> sysList;
+		if(capabilityURI == null || capabilityURI.isEmpty()) {
+			sysList= new ArrayList<String>(sysUpdater.getSelectedSystemList(false, false, true, true, false, false, false, false));
+		}else {
+			sysList= new ArrayList<String>(sysUpdater.getSelectedSystemListForCapability(capabilityURI,false, false, true, true, false, false, false, false));
+		}
+		
+		dataHash.put("systems",sysList);
+		
+		if (dataHash != null)
+			returnHash.put("data", dataHash);
+		return returnHash;
+	}
 	
 	public Hashtable getSystems(Hashtable<String, Object> webDataHash) {
 		Hashtable returnHash = (Hashtable) super.getData();
@@ -124,15 +147,8 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		else
 			ehrCore = gson.fromJson(gson.toJson(webDataHash.get("ehrcore")), Boolean.class);
 
-		ArrayList<String> sysList;
-		if(webDataHash.get("capability") == null || gson.fromJson(gson.toJson(webDataHash.get("capability")), String.class).isEmpty()) {
-			capability = null;
-			sysList = new ArrayList<String>(sysUpdater.getSelectedSystemList(intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore));
-		}else {
-			capability = gson.fromJson(gson.toJson(webDataHash.get("capability")), String.class);
-			sysList = new ArrayList<String>(sysUpdater.getSelectedSystemForCapabilityList(capability,intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore));
-		}
-
+		ArrayList<String> sysList = new ArrayList<String>(sysUpdater.getSelectedSystemList(intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore));
+		
 		dataHash.put("systems",sysList);
 		
 		if (dataHash != null)
@@ -140,13 +156,17 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		return returnHash;
 	}
 	
-	public Hashtable getCapabilities(Hashtable hash) {
-		Hashtable returnHash = (Hashtable) super.getData();
-		returnHash.put("data", sysUpdater.getDHMSMCapabilityList());
-		return returnHash;
+	public void setUpOpt(IEngine costEngine, IEngine siteEngine, double yearBudget, int years, double infl, double disc, double trainingRate, int hourlyRate, int numPts, boolean useDHMSMCap, String optType, String capabilityURI) {
+		opt = new SysSiteOptimizer();
+		opt.setEngines(engine, costEngine, siteEngine); //likely hr core and tap site
+		opt.setVariables(yearBudget,years, infl/100, disc/100, 0.80, trainingRate, hourlyRate, numPts, 0.05, 0.20); //budget per year and the number of years
+		opt.setUseDHMSMFunctionality(useDHMSMCap); //whether the data objects will come from the list of systems or the dhmsm provided capabilities
+		opt.setOptimizationType(optType); //eventually will be savings, roi, or irr
+		opt.setIsOptimizeBudget(false); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
+		opt.setCapabilityURI(capabilityURI);
 	}
 	
-	public ArrayList<Hashtable<String,String>> runOpt(Hashtable<String, Object> webDataHash) {
+	public ArrayList<Hashtable<String,String>> runDefaultOpt() {
 
 		//check to make sure site engine is loaded
 		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
@@ -156,6 +176,33 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 			return new ArrayList<Hashtable<String,String>>();
 		}
 
+		ArrayList<String> sysList;
+		if(capabilityURI == null || capabilityURI.isEmpty()) {
+			sysList= new ArrayList<String>(sysUpdater.getSelectedSystemList(false, false, true, true, false, false, false, false));
+		}else {
+			sysList= new ArrayList<String>(sysUpdater.getSelectedSystemListForCapability(capabilityURI,false, false, true, true, false, false, false, false));
+		}
+		
+		ArrayList<String> modList= new ArrayList<String>(sysUpdater.getSelectedSystemList(true, false, false, false, true, false, false, false));
+		ArrayList<String> decomList= new ArrayList<String>(sysUpdater.getSelectedSystemList(false, false, false, false, false, false, false, true));
+		
+		setUpOpt(costEngine, siteEngine, 1000000000, 10, 1.5/100, 2.5/100, 15, 150, 1, false, "Savings", capabilityURI);
+		opt.setSysList(sysList,modList,decomList);
+		opt.executeWeb();
+		return opt.getSysResultList();
+	}
+	
+	public ArrayList<Hashtable<String,String>> runOpt(Hashtable<String, Object> webDataHash) {
+
+
+		//check to make sure site engine is loaded
+		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
+		IEngine costEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+		if(siteEngine == null || costEngine == null) {
+			//TODO error here
+			return new ArrayList<Hashtable<String,String>>();
+		}
+		
 		Gson gson = new Gson();
 		//general params
 		ArrayList<Hashtable<String, String>> sysHashList = gson.fromJson(gson.toJson(webDataHash.get("systemList")), new TypeToken<ArrayList<Hashtable<String, String>>>() {}.getType());
@@ -171,22 +218,17 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		int hourlyRate = gson.fromJson(gson.toJson(webDataHash.get("hbc")), Integer.class);
 		double trainingRate = gson.fromJson(gson.toJson(webDataHash.get("training")), Double.class);
 		
-		opt = new SysSiteOptimizer();
-		opt.setEngines(engine, costEngine, siteEngine); //likely hr core and tap site
-		opt.setVariables(yearBudget,years, infl/100, disc/100, 0.80, trainingRate, hourlyRate, numPts, 0.05, 0.20); //budget per year and the number of years
-		opt.setUseDHMSMFunctionality(useDHMSMCap); //whether the data objects will come from the list of systems or the dhmsm provided capabilities
-		opt.setOptimizationType(optType); //eventually will be savings, roi, or irr
-		opt.setIsOptimizeBudget(false); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
+		setUpOpt(costEngine, siteEngine, yearBudget, years, infl/100, disc/100, trainingRate, hourlyRate, numPts, useDHMSMCap, optType, capabilityURI);
 		opt.setSysHashList(sysHashList);
-		opt.setCapability(capability);
 		opt.executeWeb();
 		return opt.getSysResultList();
 	}
 	
+	
 	@Override
 	public void createData() {
 		sysUpdater = new SysOptCheckboxListUpdater(engine, true, true, false, true);
-		
+
 	}
 	@Override
 	public void runAnalytics() {
@@ -778,6 +820,24 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		irrLbl.setText("N/A");
 		timeTransitionLbl.setText("N/A");
 		costLbl.setText("$0");
+	}
+	
+	@Override
+	public void setQuery(String query) {
+		LOGGER.info("New Query " + query);
+		query = query.trim();
+		this.query = query;
+		String[] querySplit = query.split("\\+\\+\\+");
+		if(querySplit[0].toLowerCase().equals("null")) {
+			this.capabilityURI = "";
+		}else {
+			this.capabilityURI = querySplit[0];
+		}
+		if(querySplit[1].toLowerCase().contains("default")) {
+			this.defaultSettings = true;
+		}else {
+			this.defaultSettings = false;
+		}
 	}
 	
 	/**
