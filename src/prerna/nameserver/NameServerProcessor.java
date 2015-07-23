@@ -185,4 +185,9 @@ public class NameServerProcessor extends AbstractNameServer {
 		SearchMasterDB masterDB = new SearchMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 		return masterDB.getAllInsights(groupBy, orderBy);
 	}
+	
+	public HashMap<String, Object> getInsightDetails(String insight, String user) {
+		SearchMasterDB masterDB = new SearchMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+		return masterDB.getInsightDetails(insight, user);
+	}
 }
