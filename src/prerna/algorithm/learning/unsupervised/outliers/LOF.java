@@ -30,6 +30,8 @@ import org.apache.commons.math3.special.Erf;
 
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.learning.util.DuplicationReconciliation;
+import prerna.algorithm.learning.util.DuplicationReconciliation.ReconciliationMode;
 import prerna.ds.BTreeDataFrame;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.om.SEMOSSParam;
@@ -40,6 +42,7 @@ public class LOF implements IAnalyticRoutine {
 	private static final String K_NEIGHBORS = "k";
 	private static final String INSTANCE_INDEX = "instanceIndex";
 	private static final String SKIP_ATTRIBUTES	= "skipAttributes";
+	private static final String DUPLICATION_RECONCILIATION	= "dupReconciliation";
 
 	private List<SEMOSSParam> options;
 
@@ -53,7 +56,8 @@ public class LOF implements IAnalyticRoutine {
 	private String changedColumn;
 
 	private List<String> skipAttributes;
-
+	private Map<String, DuplicationReconciliation> dups;
+	
 	private Object[] index;
 	private int k;                    // How many neighbors to examine?
 	public KDTree Tree;               // Points in dataset are put into KDTree to help find nearest neighbors
@@ -78,6 +82,10 @@ public class LOF implements IAnalyticRoutine {
 		SEMOSSParam p3 = new SEMOSSParam();
 		p3.setName(SKIP_ATTRIBUTES);
 		options.add(2, p3);
+		
+		SEMOSSParam p4 = new SEMOSSParam();
+		p4.setName(DUPLICATION_RECONCILIATION);
+		options.add(3, p4);
 	}
 
 	/**
@@ -91,17 +99,17 @@ public class LOF implements IAnalyticRoutine {
 		this.instanceIndex = (int) options.get(0).getSelected();
 		this.k = (int) options.get(1).getSelected();
 		this.skipAttributes = (List<String>) options.get(2).getSelected();
-
+		this.dups = (Map<String, DuplicationReconciliation>) options.get(3).getSelected();
+		
 		// get number of rows and cols
 		this.dataFrame = data[0];
-		this.dataFrame.setColumnsToSkip(skipAttributes);
 		this.attributeNames = dataFrame.getColumnHeaders();
 		this.numInstances = dataFrame.getUniqueInstanceCount(attributeNames[instanceIndex]); 
+		this.dimensions = dataFrame.getNumCols() - 1;
+
 		if(skipAttributes == null) {
 			skipAttributes = new ArrayList<String>();
 		}
-		this.dimensions = dataFrame.getNumCols() - 1;// - skipAttributes.size();
-
 		// double check that all info is numerical
 		boolean[] isNumeric = dataFrame.isNumeric();
 		for(int i = 0; i < isNumeric.length; i++) {
@@ -110,7 +118,15 @@ public class LOF implements IAnalyticRoutine {
 						+ "Column "+ attributeNames[i] + " is not all numbers!");
 			};
 		}
+		dataFrame.setColumnsToSkip(skipAttributes);
 
+		if(dups == null) {
+			dups = new HashMap<String, DuplicationReconciliation>();
+			for(int i = 0; i < attributeNames.length; i++) {
+				dups.put(attributeNames[i], new DuplicationReconciliation(ReconciliationMode.MEAN));
+			}
+		}
+		
 		// Initialize arrays
 		kDistance = new double[numInstances];
 		LRD = new double[numInstances];
@@ -120,38 +136,45 @@ public class LOF implements IAnalyticRoutine {
 		index = new Object[numInstances];
 		dataFormatted = new double[numInstances][dimensions];
 
+		this.Tree = new KDTree(dimensions);
 		// This code flattens out instances, incase there are repeat appearances of an identifier
 		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false);
-		int counter = 0;
+		int numInstance = 0;
 		while(it.hasNext()) {
 			List<Object[]> instance = it.next();
-			double[] instanceValues = new double[dimensions];
-			int already_crossed = 0;
 			for(int i = 0; i < instance.size(); i++) {
-				Object[] row = instance.get(i);
-				for(int j = 0; j < dimensions+1; j++) {
-					if (j != instanceIndex && !row.toString().isEmpty())
-						instanceValues[j-already_crossed] += ((Number) row[j]).doubleValue();
-					else already_crossed = 1;
+				Object[] instanceRow = instance.get(i);
+				for(int j = 0; j < attributeNames.length; j++) {
+					if(j == instanceIndex) {
+						continue;
+					}
+					dups.get(attributeNames[j]).addValue(instanceRow[j]);
 				}
 			}
-			dataFormatted[counter] = instanceValues;
-			index[counter] = instance.get(0)[instanceIndex];
-			counter++;
+			
+			double[] recRow = new double[attributeNames.length - 1];
+			int counter = 0;
+			for(int i = 0; i < attributeNames.length; i++) {
+				if(i == instanceIndex) {
+					continue;
+				}
+				recRow[counter] = dups.get(attributeNames[i]).getReconciliatedValue();
+				counter++;
+			}
+			
+			index[numInstance] = instance.get(0)[instanceIndex];
+			dataFormatted[numInstance] = recRow;
+			// add to tree!
+			Tree.add(recRow, numInstance);
+			numInstance++;
 		}
 
-		// add to tree!
-		this.Tree = new KDTree(dimensions);
-		for (int i = 0; i < numInstances; i++) {
-			Tree.add(dataFormatted[i], i); 
-		}
-		
 		// run scoring algorithm
 		Hashtable<Object, Double> results = score(k);
 
 		String attributeName = attributeNames[instanceIndex];
 		// to avoid adding columns with same name
-		counter = 0;
+		int counter = 0;
 		this.changedColumn = attributeName + "_LOP_" + counter;
 		while(ArrayUtilityMethods.arrayContainsValue(attributeNames, changedColumn)) {
 			counter++;

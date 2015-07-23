@@ -30,10 +30,15 @@ public class DuplicationReconciliation {
 		if(recValue == null) {
 			switch(mode) {
 				case MEAN: recValue = getMean(values.toArray());
+				break;
 				case MODE: recValue = getMode(values.toArray());
+				break;
 				case MEDIAN: recValue = getMedian(values.toArray());
-				case MAX: recValue = getMax(values.toArray()); 
+				break;
+				case MAX: recValue = getMax(values.toArray());
+				break;
 				case MIN: recValue = getMin(values.toArray());
+				break;
 				default: recValue = getMean(values.toArray());
 			}
 		}

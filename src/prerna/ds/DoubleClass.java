@@ -83,6 +83,10 @@ public class DoubleClass implements ISEMOSSNode {
 	public boolean isEqual(ITreeKeyEvaluatable object) {
 		boolean val = false;
 		try {
+			if( ((Double) value).isNaN() && ((Double) ((DoubleClass)object).value).isNaN() ) {
+				return true;
+			} // alternative cases will return false either way
+			
 			val = this.value == ((DoubleClass)object).value;
 		} catch (ClassCastException e) {
 			return false;
