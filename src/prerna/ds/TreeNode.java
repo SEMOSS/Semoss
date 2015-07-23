@@ -209,8 +209,12 @@ public class TreeNode {
 	 * @param node
 	 * @return
 	 */
-	public TreeNode root(TreeNode node) {		
-		return node.parent != null ? root(node.parent) : getLeft(node);
+	public TreeNode root(TreeNode node) {	
+		while(node.parent != null) {
+			node = node.parent;
+		}
+		node = getLeft(node);
+		return node;
 	}
 	
 	public void addChild(TreeNode node)
