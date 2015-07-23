@@ -115,7 +115,9 @@ public class SearchMasterDB extends ModifyMasterDB {
 					String typeURI = MasterDatabaseURIs.SEMOSS_CONCEPT_URI.concat("/").concat(Utility.getInstanceName(keyword));
 					if(typeAndInstance != null && typeAndInstance.containsKey(typeURI)) {
 						Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
-						insightHash.put(MasterDatabaseConstants.DB_KEY, engine);
+						HashMap<String, String> engineHash = new HashMap<String, String>();
+						engineHash.put("name", engine);
+						insightHash.put(MasterDatabaseConstants.DB_KEY, engineHash);
 						insightHash.put(MasterDatabaseConstants.QUESTION_KEY, insightLabel);
 						insightHash.put(MasterDatabaseConstants.TYPE_KEY, typeURI);
 						insightHash.put(MasterDatabaseConstants.PERSPECTIVE_KEY, perspectiveLabel);
@@ -180,7 +182,9 @@ public class SearchMasterDB extends ModifyMasterDB {
 				String typeURI = MasterDatabaseURIs.SEMOSS_CONCEPT_URI.concat("/").concat(Utility.getInstanceName(keyword));
 				if(typeAndInstance != null && typeAndInstance.containsKey(typeURI)) {
 					Hashtable<String, Object> insightHash = new Hashtable<String, Object>();
-					insightHash.put(MasterDatabaseConstants.DB_KEY, engine);
+					HashMap<String, String> engineHash = new HashMap<String, String>();
+					engineHash.put("name", engine);
+					insightHash.put(MasterDatabaseConstants.DB_KEY, engineHash);
 					insightHash.put(MasterDatabaseConstants.QUESTION_KEY, insightLabel);
 					insightHash.put(MasterDatabaseConstants.TYPE_KEY, typeURI);
 					insightHash.put(MasterDatabaseConstants.PERSPECTIVE_KEY, perspectiveLabel);
