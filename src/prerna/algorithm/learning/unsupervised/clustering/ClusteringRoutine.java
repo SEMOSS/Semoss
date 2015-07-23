@@ -11,6 +11,7 @@ import prerna.algorithm.learning.util.IClusterDistanceMode;
 import prerna.algorithm.learning.util.IClusterDistanceMode.DistanceMeasure;
 import prerna.ds.BTreeDataFrame;
 import prerna.math.SimilarityWeighting;
+import prerna.util.ArrayUtilityMethods;
 
 public class ClusteringRoutine extends AbstractClusteringRoutine {
 
@@ -90,7 +91,13 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 		}
 
 		String attributeName = attributeNames[instanceIndex];
-		this.clusterColName = attributeName + "_CLUSTER";
+		// to avoid adding columns with same name
+		int counter = 0;
+		this.clusterColName = attributeName + "_CLUSTER_" + counter;
+		while(ArrayUtilityMethods.arrayContainsValue(attributeNames, clusterColName)) {
+			counter++;
+			this.clusterColName = attributeName + "_CLUSTER_" + counter;
+		}
 		ITableDataFrame returnTable = new BTreeDataFrame(new String[]{attributeName, clusterColName});
 		for(Object instance : results.keySet()) {
 			Map<String, Object> row = new HashMap<String, Object>();

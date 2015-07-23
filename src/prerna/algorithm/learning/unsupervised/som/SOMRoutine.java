@@ -230,10 +230,19 @@ public class SOMRoutine implements IAnalyticRoutine {
 		}
 		
 		String attributeName = attributeNames[instanceIndex];
-		this.somGridID = attributeName + "_SOM_GRID_NUM";
-		this.somHeightID = attributeName + "_SOM_GRID_HEIGHT";
-		this.somXPositionID = attributeName + "_SOM_X_POSITION";
-		this.somYPositionID = attributeName + "_SOM_Y_POSITION";
+		// to avoid adding columns with same name
+		int counter = 0;
+		this.somGridID = attributeName + "_SOM_GRID_NUM_" + counter;
+		this.somHeightID = attributeName + "_SOM_GRID_HEIGHT_" + counter;
+		this.somXPositionID = attributeName + "_SOM_X_POSITION_" + counter;
+		this.somYPositionID = attributeName + "_SOM_Y_POSITION_" + counter;
+		while(ArrayUtilityMethods.arrayContainsValue(attributeNames, somGridID)) {
+			counter++;
+			this.somGridID = attributeName + "_SOM_GRID_NUM_" + counter;
+			this.somHeightID = attributeName + "_SOM_GRID_HEIGHT_" + counter;
+			this.somXPositionID = attributeName + "_SOM_X_POSITION_" + counter;
+			this.somYPositionID = attributeName + "_SOM_Y_POSITION_" + counter;
+		}
 		ITableDataFrame returnTable = new BTreeDataFrame(new String[]{attributeNames[instanceIndex], somGridID, somHeightID, somXPositionID, somYPositionID});
 		for(Object instance : results.keySet()) {
 			Map<String, Object> row = new HashMap<String, Object>();
