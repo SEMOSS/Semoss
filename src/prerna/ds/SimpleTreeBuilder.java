@@ -479,7 +479,11 @@ public class SimpleTreeBuilder
 		//If the index tree for the level does not exist, add it
 		if(rootIndexNode==null) {
 			rootIndexNode = new TreeNode(n);
+			rootIndexNode.instanceNode.add(node);
 			nodeIndexHash.put(n.getType(), rootIndexNode);
+			appendToIndexTree(node.leftChild);
+			appendToIndexTree(node.rightSibling);
+			return;
 		}
 
 		//loop through node and all siblings
@@ -607,11 +611,11 @@ public class SimpleTreeBuilder
 		ValueTreeColumnIterator it = new ValueTreeColumnIterator(rootNodeForType);
 		while(it.hasNext()) {
 			SimpleTreeNode nextNode = it.next();
-			removeEmptyRows(nextNode, 0, height);
+			removeEmptyRows(nextNode, 0, height, true);
 		}
 	}
 	
-	private void removeEmptyRows(SimpleTreeNode n, int start, int height) {
+	private void removeEmptyRows(SimpleTreeNode n, int start, int height, boolean first) {
 		if(start < height-1) {
 			if (n.leftChild == null) {
 				//remove this node, and go up the tree
@@ -626,9 +630,9 @@ public class SimpleTreeBuilder
 			} else {
 				SimpleTreeNode child = n.leftChild;
 				SimpleTreeNode sibling = n.rightSibling;
-				removeEmptyRows(child, ++start, height);
-				if(n.rightSibling!=null) {
-					removeEmptyRows(sibling, start, height);
+				removeEmptyRows(child, ++start, height, false);
+				if(n.rightSibling!=null && !first) {
+					removeEmptyRows(sibling, start, height, false);
 				}
 			}
 		}
@@ -643,6 +647,7 @@ public class SimpleTreeBuilder
 		if(!nodeIndexHash.containsKey(type))
 			return;
 		
+		//Determine if the column is a root column
 		TreeNode typeRoot = nodeIndexHash.get(type);
 		if(typeRoot==null) return;
 		SimpleTreeNode typeInstanceNode = new ValueTreeColumnIterator(typeRoot, true).next();//typeRoot.instanceNode.firstElement();		
@@ -669,7 +674,7 @@ public class SimpleTreeBuilder
 					if(parentNode.leftChild == null) {
 						parentNode.leftChild = grandChildNode;
 					} else {
-						SimpleTreeNode newLeftSibling = parentNode.getRight(parentNode.leftChild);
+						SimpleTreeNode newLeftSibling = SimpleTreeNode.getRight(parentNode.leftChild);
 						newLeftSibling.rightSibling = grandChildNode;
 						grandChildNode.leftSibling = newLeftSibling;
 					}
@@ -682,11 +687,11 @@ public class SimpleTreeBuilder
 		}
 		else // this is the case when the type is the root
 		{
-			typeInstanceNode = typeInstanceNode.getLeft(typeInstanceNode);
+			typeInstanceNode = SimpleTreeNode.getLeft(typeInstanceNode);
 			if(typeInstanceNode != null) {
 				
 				SimpleTreeNode leftMostNode = typeInstanceNode.leftChild;
-				SimpleTreeNode rightMostSibling = leftMostNode.getRight(leftMostNode);
+				SimpleTreeNode rightMostSibling = SimpleTreeNode.getRight(leftMostNode);
 				
 				while(typeInstanceNode != null) {
 					// need to make sure new root are all siblings
@@ -696,7 +701,7 @@ public class SimpleTreeBuilder
 						rightMostSibling.rightSibling = targetNode;
 						targetNode.leftSibling = rightMostSibling;
 					}
-					rightMostSibling = targetNode.getRight(targetNode); // update the new most right sibling
+					rightMostSibling = SimpleTreeNode.getRight(targetNode); // update the new most right sibling
 
 					while(targetNode != null) {
 						targetNode.parent = null;
@@ -768,8 +773,8 @@ public class SimpleTreeBuilder
 	 */
 	private void consolidate(SimpleTreeNode node, SimpleTreeNode node2consolidate) {
 		
-		SimpleTreeNode rightNode = node.getRight(node);
-		SimpleTreeNode leftNode2Merge = node2consolidate.getLeft(node2consolidate);
+		SimpleTreeNode rightNode = SimpleTreeNode.getRight(node);
+		SimpleTreeNode leftNode2Merge = SimpleTreeNode.getLeft(node2consolidate);
 		SimpleTreeNode rightMergeSibling = null;
 		while(leftNode2Merge!=null) {
 			//find if the node exists in the tree node
@@ -1067,10 +1072,15 @@ public class SimpleTreeBuilder
 		TreeNode retNode = null;
 		if(typeIndexRoot != null)
 		{
-			Vector <TreeNode> rootNodeVector = new Vector<TreeNode>();
-			rootNodeVector.add(typeIndexRoot);
-			// find the node which has
-			retNode = typeIndexRoot.getNode(rootNodeVector, new TreeNode(node), false);
+			if(typeIndexRoot.leaf.isEqual(node)) {
+				return typeIndexRoot;
+			}
+			else {
+				Vector <TreeNode> rootNodeVector = new Vector<TreeNode>();
+				rootNodeVector.add(typeIndexRoot);
+				// find the node which has
+				retNode = typeIndexRoot.getNode(rootNodeVector, new TreeNode(node), false);
+			}
 		}
 		return retNode;
 	}
