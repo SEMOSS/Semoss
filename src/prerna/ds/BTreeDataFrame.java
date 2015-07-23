@@ -164,6 +164,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		while(it.hasNext()) {
 			table.add(it.next());
 		}
+
 		return table;
 	}
 
@@ -240,7 +241,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 				if(item1.equals(SimpleTreeNode.EMPTY) && item2.equals(SimpleTreeNode.EMPTY)) {
 					continue;
 				}
-				
+
 				if(item1.equals(SimpleTreeNode.EMPTY)) {
 					/*
 					 * Logic is to create (or find) a trail of empty nodes from the root and then connect to the values of item2
@@ -375,7 +376,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 			
 			//this.simpleTree.adjustType(levelNames[origLength - 1], true);
 			this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[0], levelNames.length);
-			
+			//this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[0], levelNames.length);
 			
 			//Update the Index Tree
 			TreeNode treeRoot = this.simpleTree.nodeIndexHash.get(colNameInTable);
@@ -384,8 +385,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 				SimpleTreeNode t = iterator.next();
 				this.simpleTree.appendToIndexTree(t.leftChild);
 			}
-
 			//this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[0], levelNames.length);
+			
 		}//EMPTY
 		else // use the flat join. This is not ideal. Not sure if we will ever actually use this
 		{
