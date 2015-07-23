@@ -33,6 +33,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.BTreeDataFrame;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.om.SEMOSSParam;
+import prerna.util.ArrayUtilityMethods;
 
 public class LOF implements IAnalyticRoutine {
 
@@ -149,7 +150,13 @@ public class LOF implements IAnalyticRoutine {
 		Hashtable<Object, Double> results = score(k);
 
 		String attributeName = attributeNames[instanceIndex];
-		this.changedColumn = attributeName + "_LOP";
+		// to avoid adding columns with same name
+		counter = 0;
+		this.changedColumn = attributeName + "_LOP_" + counter;
+		while(ArrayUtilityMethods.arrayContainsValue(attributeNames, changedColumn)) {
+			counter++;
+			this.changedColumn = attributeName + "_LOP_" + counter;
+		}
 		ITableDataFrame returnTable = new BTreeDataFrame(new String[]{attributeName, changedColumn});
 		for(Object instance : results.keySet()) {
 			Map<String, Object> row = new HashMap<String, Object>();
