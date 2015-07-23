@@ -1246,7 +1246,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Outlier-Perspective:O1">
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Run Local Outlier for Movies and All Properties</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Run Local Outlier for Movies and Numerical Properties</Label>
 	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">1</Order>
 </rdf:Description>
 
@@ -1255,7 +1255,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Outlier-Perspective:O1">
-	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }{?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;}{?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;}{?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director}{?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre}{?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio}} ORDER BY ?Title+++@KNeighbors-K@</SPARQL>
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience } } ORDER BY ?Title+++@KNeighbors-K@</SPARQL>
 	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.LocalOutlierPlaySheet</Layout>
 	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Outlier-Perspective:O1:KNeighbors"/>
 </rdf:Description>
@@ -1379,7 +1379,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Cluster-Perspective:C6">
-	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.ClassifyClusterPlaySheet</Layout>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.MachineLearningModulePlaySheet</Layout>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Perspective:Insight/Movie_DB:Cluster-Perspective:Movie_DB:Cluster-Perspective:C6">
@@ -1925,9 +1925,9 @@
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Outlier-Perspective:Outlier-Perspective_1">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Concept"/>
 	<rdf:type rdf:resource="http://www.w3.org/2000/01/rdf-schema#Resource"/>
-	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Show Local Outlier Viz for Movies and All properties</Label>
+	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Run Local Outlier Factor for Movies and Numerical Properties</Label>
 	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">Outlier-Perspective_1</IDLabel>
-	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }{?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;}{?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;}{?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;}{?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director}{?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre}{?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated}{?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio}} ORDER BY ?Title+++@KNeighbors-K@</SPARQL>
+	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }} ORDER BY ?Title+++@KNeighbors-K@</SPARQL>
 	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.LocalOutlierVizPlaySheet</Layout>
 	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
 	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Outlier-Perspective:Outlier-Perspective_1:KNeighbors"/>
@@ -3507,7 +3507,6 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
 	<SOM-Perspective_2 xmlns="http://semoss.org/ontologies/Relation/Engine:Insight/Movie_DB:Movie_DB:SOM-Perspective:" rdf:resource="http://semoss.org/ontologies/Concept/Insight/Movie_DB:SOM-Perspective:SOM-Perspective_2"/>
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-13T17:18:48</TimeStamp>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:SOM-Perspective:SOM-Perspective_3">
@@ -3550,7 +3549,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Engine/Movie_DB">
-	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-04-28T16:20:34</TimeStamp>
+	<TimeStamp xmlns="http://semoss.org/ontologies/Relation/Contains/" rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-07-20T17:08:39</TimeStamp>
 </rdf:Description>
 
 </rdf:RDF>
