@@ -42,7 +42,7 @@ import javax.swing.JTable;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.learning.moa.MOAPerceptronRunner2;
+import prerna.algorithm.learning.moa.MOAPerceptronRunner;
 import prerna.om.SEMOSSParam;
 import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.NewScrollBarUI;
@@ -73,7 +73,7 @@ public class PerceptronPlaySheet extends GridPlaySheet {
 
 	@Override
 	public void runAnalytics() {
-		MOAPerceptronRunner2 alg = new MOAPerceptronRunner2();
+		MOAPerceptronRunner alg = new MOAPerceptronRunner();
 		List<SEMOSSParam> options = alg.getOptions();
 		Map<String, Object> selectedOptions = new HashMap<String, Object>();
 
