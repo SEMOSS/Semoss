@@ -27,12 +27,16 @@
  *******************************************************************************/
 package prerna.nameserver;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -272,6 +276,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 			engineMetaData.put("name", engineName);
 			
 			HashMap<String, Object> insightMetadata = new HashMap<String, Object>();
+			insightMetadata.put("insight", insight);
 			insightMetadata.put("label", insightLabel);
 			insightMetadata.put("engine", engineMetaData);
 			insightMetadata.put("perspective", perspective);
@@ -308,6 +313,33 @@ public class SearchMasterDB extends ModifyMasterDB {
 		
 		ret.put("insights", insights);
 		ret.put("settings", settings);
+		
+		return ret;
+	}
+	
+	public HashMap<String, Object> getInsightDetails(String insight, String user) {
+		HashMap<String, Object> ret = new HashMap<String, Object>();
+		
+		ISelectWrapper sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_INSIGHT_DETAILS.replace("@INSIGHT@", insight).replace("@USER@", user));
+		String[] names = sjsw.getVariables();
+		if(sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			String description = sjss.getVar(names[0]).toString();
+			String tags = sjss.getVar(names[1]).toString();
+			Date lastViewed = null;
+			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+			try {
+				if(!sjss.getVar(names[2]).toString().isEmpty()) {
+					lastViewed = df.parse(sjss.getVar(names[2]).toString());
+				}
+			} catch (ParseException e) {
+				e.printStackTrace();
+			}
+			
+			ret.put("description", description);
+			ret.put("tags", tags);
+			ret.put("lastViewed", lastViewed);
+		}
 		
 		return ret;
 	}
