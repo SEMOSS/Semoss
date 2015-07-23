@@ -158,6 +158,9 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 	private SelectCheckboxesListener selectAllClustersList;
 	private ArrayList<JCheckBox> clusterCheckboxes = new ArrayList<JCheckBox>();
 	
+	//perceptron panel components
+	private JPanel perceptronPanel;
+	
 	public int instanceIndex = 0;
 	public String[] columnHeaders;
 	public boolean[] isNumeric;
@@ -343,7 +346,7 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		algorithmComboBox.setBackground(Color.GRAY);
 		algorithmComboBox.setPreferredSize(new Dimension(150, 25));
 		algorithmComboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"Cluster", "Classify","Local Outlier Factor","Association Learning","Similarity",
-				"Predictability","Linear Regression","Numerical Correlation", /*"Correlation", */ "Self Organizing Map"}));
+				"Predictability","Linear Regression","Numerical Correlation", /*"Correlation", */ "Self Organizing Map", "Perceptron"}));
 		GridBagConstraints gbc_algorithmComboBox = new GridBagConstraints();
 		gbc_algorithmComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_algorithmComboBox.fill = GridBagConstraints.NONE;
@@ -422,12 +425,24 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		variableSelectorPanel.add(somPanel, gbc_somPanel);
 		somPanel.setVisible(false);
 		
+		perceptronPanel = new JPanel();
+		GridBagConstraints gbc_perceptronPanel = new GridBagConstraints();
+		gbc_perceptronPanel.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_perceptronPanel.fill = GridBagConstraints.NONE;
+		gbc_perceptronPanel.gridwidth = 3;
+		gbc_perceptronPanel.insets = new Insets(5, 15, 0, 0);
+		gbc_perceptronPanel.gridx = 1;
+		gbc_perceptronPanel.gridy = 3;
+		variableSelectorPanel.add(perceptronPanel, gbc_perceptronPanel);
+		perceptronPanel.setVisible(false);
+		
 		fillClusterPanel(clusterPanel);
 		fillClassifyPanel(classifyPanel);
 		fillLocalOutlierFactorPanel(localOutlierFactorPanel);
 		fillFrequentSetsPanel(associationLearningPanel);
 		fillMatrixRegPanel(matrixRegPanel);
 		fillSOMPanel(somPanel);
+		fillPerceptronPanel(perceptronPanel);
 
 		runAlgorithm = new CustomButton("Run Algorithm");
 		runAlgorithm.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -1211,6 +1226,77 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		
 	}
 	
+	public void fillPerceptronPanel(JPanel perceptronPanel) {
+		
+		GridBagLayout gbl_perceptronPanel = new GridBagLayout();
+		gbl_perceptronPanel.columnWidths = new int[]{0, 0, 0};
+		gbl_perceptronPanel.rowHeights = new int[]{0, 0, 0};
+		gbl_perceptronPanel.columnWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
+		gbl_perceptronPanel.rowWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
+		perceptronPanel.setLayout(gbl_perceptronPanel);
+		
+		lblSelectClass = new JLabel("Select class:");
+		lblSelectClass.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_lblSelectClass = new GridBagConstraints();
+		gbc_lblSelectClass.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_lblSelectClass.fill = GridBagConstraints.NONE;
+		gbc_lblSelectClass.insets = new Insets(10, 5, 0, 0);
+		gbc_lblSelectClass.gridx = 0;
+		gbc_lblSelectClass.gridy = 0;
+		perceptronPanel.add(lblSelectClass, gbc_lblSelectClass);
+
+		classComboBox = new JComboBox<String>();
+		classComboBox.setName("classComboBox");
+		classComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		classComboBox.setBackground(Color.GRAY);
+		classComboBox.setPreferredSize(new Dimension(250, 25));
+		String[] cols = new String[columnHeaders.length-1];
+		
+		int counter = 0;
+		for(int i = 0; i < columnHeaders.length; i++) {
+			if(i == instanceIndex) {
+				continue;
+			}
+			cols[counter] = columnHeaders[i];
+			counter++;
+		}
+		classComboBox.setModel(new DefaultComboBoxModel<String>(cols));
+		GridBagConstraints gbc_classComboBox = new GridBagConstraints();
+		gbc_classComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_classComboBox.fill = GridBagConstraints.NONE;
+		gbc_classComboBox.insets = new Insets(5, 5, 0, 0);
+		gbc_classComboBox.gridx = 1;
+		gbc_classComboBox.gridy = 0;
+		perceptronPanel.add(classComboBox, gbc_classComboBox);
+		ClassificationSelectionListener classSelectList = new ClassificationSelectionListener();
+		classSelectList.setView(this);
+		classComboBox.addActionListener(classSelectList);
+		
+		lblSelectClassMethod = new JLabel("Select classification Method:");
+		lblSelectClassMethod.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_lblSelectClassMethod = new GridBagConstraints();
+		gbc_lblSelectClassMethod.anchor = GridBagConstraints.FIRST_LINE_END;
+		gbc_lblSelectClassMethod.fill = GridBagConstraints.NONE;
+		gbc_lblSelectClassMethod.insets = new Insets(10, 5, 0, 0);
+		gbc_lblSelectClassMethod.gridx = 0;
+		gbc_lblSelectClassMethod.gridy = 1;
+		perceptronPanel.add(lblSelectClassMethod, gbc_lblSelectClassMethod);
+
+//		classificationMethodComboBox = new JComboBox<String>();
+//		classificationMethodComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+//		classificationMethodComboBox.setBackground(Color.GRAY);
+//		classificationMethodComboBox.setPreferredSize(new Dimension(250, 25));
+//		String[] classTypes = new String[] {"J48","J48GRAFT","SIMPLECART","REPTREE","BFTREE"};
+//		classificationMethodComboBox.setModel(new DefaultComboBoxModel<String>(classTypes));
+//		GridBagConstraints gbc_classificationMethodComboBox = new GridBagConstraints();
+//		gbc_classificationMethodComboBox.anchor = GridBagConstraints.FIRST_LINE_END;
+//		gbc_classificationMethodComboBox.fill = GridBagConstraints.NONE;
+//		gbc_classificationMethodComboBox.insets = new Insets(5, 5, 0, 0);
+//		gbc_classificationMethodComboBox.gridx = 1;
+//		gbc_classificationMethodComboBox.gridy = 1;
+//		classifyPanel.add(classificationMethodComboBox, gbc_classificationMethodComboBox);
+	}
+	
 	public void showSelfOrganizingMap(Boolean show) {
 		somPanel.setVisible(show);
 		lblEnterR0.setVisible(show);
@@ -1277,6 +1363,16 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		enableAllCheckboxes();
 		if(show) {
 			disableCheckBoxes(categoricalPropNames.toArray(new String[0]),false);
+		}
+	}
+	public void showPerceptron(Boolean show) {
+		perceptronPanel.setVisible(show);
+		lblSelectClass.setVisible(show);
+		classComboBox.setVisible(show);
+		enableAllCheckboxes();
+		if(show) {
+			String selection = classComboBox.getSelectedItem() + "";
+			disableCheckBox(selection,true);
 		}
 	}
 	public void enableDrillDown() {
@@ -1361,7 +1457,7 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		}
 	}
 	
-	public void disableCheckBoxes(String[] checkboxesToDisable,Boolean selected){
+	public void disableCheckBoxes(String[] checkboxesToDisable,Boolean selected) {
 		if(checkboxesToDisable==null) {
 			LOGGER.info("No checkboxes to disable");
 			return;

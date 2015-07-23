@@ -62,6 +62,7 @@ import prerna.ui.components.playsheets.MachineLearningModulePlaySheet;
 import prerna.ui.components.playsheets.MatrixRegressionPlaySheet;
 import prerna.ui.components.playsheets.MatrixRegressionVizPlaySheet;
 import prerna.ui.components.playsheets.NumericalCorrelationVizPlaySheet;
+import prerna.ui.components.playsheets.PerceptronPlaySheet;
 import prerna.ui.components.playsheets.SelfOrganizingMap3DBarChartPlaySheet;
 import prerna.ui.components.playsheets.WekaAprioriVizPlaySheet;
 import prerna.ui.components.playsheets.WekaClassificationPlaySheet;
@@ -397,6 +398,20 @@ public class RunAlgorithmListener extends AbstractListener {
 					Utility.showError("Entered value for tau, " + tauText + ", is not a valid numerical input.\nWill use default value.");
 				}
 			}
+		} else if(algorithm.equals("Perceptron")) {
+			//skipColumns.add(attributeNames[0]);
+			dataFrame.setColumnsToSkip(skipColumns);
+			
+			//determine the column index and name to classify on
+			String classifier = classComboBox.getSelectedItem() + "";
+			
+			newPlaySheet = new PerceptronPlaySheet();
+			newPlaySheet.setDataFrame(dataFrame);
+			((PerceptronPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
+			((PerceptronPlaySheet)newPlaySheet).setClassColumn(classifier);
+			((PerceptronPlaySheet)newPlaySheet).setJTab(jTab);
+			//((PerceptronPlaySheet)newPlaySheet).setJBar(jBar);
+			
 		} else {
 			LOGGER.error("Cannot find algorithm");
 			return;
