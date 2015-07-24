@@ -232,6 +232,10 @@ public class TreeNode {
 	
 	public synchronized TreeNode insertData(TreeNode node)
 	{
+		if(node.instanceNode.size()+node.filteredInstanceNode.size() == 0) {
+			throw new IllegalArgumentException("Node has no SimpleTreeNodes");
+		}
+		
 		TreeNode root = node;
 		if(this.rightChild == null && this.leftChild == null) // basically means it is the base node
 		{

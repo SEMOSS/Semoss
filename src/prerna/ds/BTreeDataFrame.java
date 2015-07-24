@@ -411,6 +411,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 				this.simpleTree.appendToIndexTree(t.leftChild);
 			}
 			
+			//this.simpleTree.quickRefresh();
+
+			//this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[0], levelNames.length);
+			
 		}//EMPTY
 		else // use the flat join. This is not ideal. Not sure if we will ever actually use this
 		{
@@ -1055,6 +1059,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	@Override
 	public int getRowCount(String columnHeader) {
 		// TODO Auto-generated method stub
+		
 		return 0;
 	}
 
@@ -1115,6 +1120,18 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 		
 		return column.toArray();
+	}
+	
+	public String[] getColumnAsString(String columnHeader) {
+		
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		ValueTreeColumnIterator it = new ValueTreeColumnIterator(typeRoot);
+		List<String> retList = new ArrayList<String>();
+		while(it.hasNext()) {
+			String value = it.next().leaf.getValue().toString();
+			retList.add(value);
+		}
+		return retList.toArray(new String[0]);
 	}
 
 	@Override
