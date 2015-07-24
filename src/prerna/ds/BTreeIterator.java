@@ -55,11 +55,15 @@ public class BTreeIterator implements Iterator<Object[]> {
 			currValueNode = currValueNode.parent;
 		}
 		
-		//TODO: make more efficient by only creating an array and populating back to front thus avoid a reverse call and a toArray call
-		// reverse the values to be from parent to leaf
-		Collections.reverse(retRow);
+		//reverse the order of the list and store in an array
+		Object[] nextRow = new Object[retRow.size()];
+		int counter = nextRow.length-1;
+		for(Object value: retRow) {
+			nextRow[counter] = value;
+			counter--;
+		}
 		
-		return retRow.toArray();
+		return nextRow;
 	}
 
 	// Note: when updating to Java 8, no longer need to override remove() method
