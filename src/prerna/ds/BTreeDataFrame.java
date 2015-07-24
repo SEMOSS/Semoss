@@ -54,6 +54,28 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
+	public void addRow(Object[] rowCleanData, Object[] rowRawData) {
+		if(rowCleanData.length != levelNames.length && rowRawData.length != levelNames.length) {
+			throw new IllegalArgumentException("Input row must have same dimensions as levels in dataframe.");
+		}
+		ISEMOSSNode[] row = new ISEMOSSNode[levelNames.length];
+		for(int index = 0; index < levelNames.length; index++) {
+			Object val = rowCleanData[index];
+			Object rawVal = rowRawData[index]);
+			//TODO: better way of doing this????
+			if(val==null || val.toString().isEmpty()) {
+				val = SimpleTreeNode.EMPTY;
+			}
+			if(rawVal==null || rawVal.toString().isEmpty()) {
+				rawVal = SimpleTreeNode.EMPTY;
+			}
+			row[index] = createNodeObject(val, rawVal, levelNames[index]);
+
+		}
+		simpleTree.addNodeArray(row);
+	}
+	
+	@Override
 	public void addRow(Map<String, Object> rowCleanData, Map<String, Object> rowRawData) {
 		// keys that are not in current tree level will not be used
 		for(String key : rowCleanData.keySet()) {
