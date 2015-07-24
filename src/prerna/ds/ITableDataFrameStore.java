@@ -1,6 +1,9 @@
 package prerna.ds;
 
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.log4j.LogManager;
@@ -11,7 +14,8 @@ import prerna.algorithm.api.ITableDataFrame;
 public class ITableDataFrameStore extends Hashtable<String, ITableDataFrame> {
 
 	private static final Logger LOGGER = LogManager.getLogger(ITableDataFrameStore.class.getName());
-
+	private Map<String, Set<String>> sessionIdHash = new Hashtable<String, Set<String>>();
+	
 	/**
 	 * If we serialize all table data frames currently held in memory
 	 */
@@ -60,5 +64,39 @@ public class ITableDataFrameStore extends Hashtable<String, ITableDataFrame> {
 		} else {
 			return false;
 		}
+	}
+	
+	public void addToSessionHash(String sessionID, String tableID) {
+		Set<String> tableIDs = null;
+		
+		if(sessionIdHash.containsKey(sessionID)) {
+			tableIDs = sessionIdHash.get(sessionID);
+			if(tableIDs == null) {
+				tableIDs = new HashSet<String>();
+			}
+			tableIDs.add(tableID);
+		} else {
+			tableIDs = new HashSet<String>();
+			tableIDs.add(tableID);
+		}
+		
+		sessionIdHash.put(sessionID, tableIDs);
+	}
+	
+	public boolean removeFromSessionHash(String sessionID, String tableID) {
+		if(!sessionIdHash.containsKey(sessionID)) {
+			return false;
+		}
+		Set<String> tableIDs = sessionIdHash.get(sessionID);
+		if(tableIDs.contains(tableID)) {
+			tableIDs.remove(tableID);
+			return true;
+		} 
+
+		return false;
+	}
+	
+	public Set<String> getTableIDsForSession(String sessionID) {
+		return sessionIdHash.get(sessionID);
 	}
 }
