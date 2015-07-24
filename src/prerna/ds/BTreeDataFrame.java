@@ -209,8 +209,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 			String[] columnNames = passedTree.getColumnHeaders();
 			// add the new data to this tree
 			LOGGER.info("Augmenting tree");
-			int origLength = this.levelNames.length;
-			String[] newLevels = joinTreeLevels(columnNames, colNameInJoiningTable); // need to add new levels to this tree's level array
+			int origLength = this.levelNames.length;	
+			joinTreeLevels(columnNames, colNameInJoiningTable); // need to add new levels to this tree's level array
 			List<Object[]> flatMatched = matched.getData();// TODO: this could be replaced with nextRow or getRow method directly on the tree
 
 			TreeNode thisRootNode = this.simpleTree.nodeIndexHash.get(colNameInTable); //TODO: is there a better way to get the type? I don't think this is reliable
@@ -225,6 +225,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 			Vector passedSearchVector = new Vector();
 			passedSearchVector.addElement(passedRootNode);
 
+			boolean innerJoin = true;
 			// Iterate for every row in the matched table
 			for(Object[] flatMatchedRow : flatMatched) { // for each matched item
 				Object item1 = flatMatchedRow[0];
@@ -243,6 +244,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 				}
 
 				if(item1.equals(SimpleTreeNode.EMPTY)) {
+					innerJoin = false;
 					/*
 					 * Logic is to create (or find) a trail of empty nodes from the root and then connect to the values of item2
 					 */
@@ -325,6 +327,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 					SimpleTreeNode.addLeafChild(joiningNode, hookUp);
 					
 				} else if(item2.equals(SimpleTreeNode.EMPTY)) {
+					innerJoin = false;
 					/*
 					 * Logic is for the item1 node, to add a trail of empty nodes after it equal to the length of what would be added
 					 */
@@ -369,14 +372,14 @@ public class BTreeDataFrame implements ITableDataFrame {
 						SimpleTreeNode hookUp = SimpleTreeNode.deserializeTree(serialized);
 						SimpleTreeNode.addLeafChild(myNode, hookUp);
 					}
-					
-//					this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[0], levelNames.length);	
 				}
 			}
 			
-			//this.simpleTree.adjustType(levelNames[origLength - 1], true);
-			this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[0], levelNames.length);
-			//this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[0], levelNames.length);
+			if(innerJoin) {
+				this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[0], levelNames.length);
+			} else {
+				this.simpleTree.adjustType(levelNames[origLength - 1], true);
+			}
 			
 			//Update the Index Tree
 			TreeNode treeRoot = this.simpleTree.nodeIndexHash.get(colNameInTable);
@@ -385,7 +388,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 				SimpleTreeNode t = iterator.next();
 				this.simpleTree.appendToIndexTree(t.leftChild);
 			}
-			//this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[0], levelNames.length);
 			
 		}//EMPTY
 		else // use the flat join. This is not ideal. Not sure if we will ever actually use this
