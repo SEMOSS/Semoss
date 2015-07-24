@@ -9,26 +9,44 @@ public final class InstanceSimilarity {
 		
 	}
 	
-	public static double getInstanceSimilarity(List<Object[]> instance1, List<Object[]> instance2, boolean[] isNumeric, String[] attributeNames, Map<String, IDuplicationReconciliation> dups) {
+	public static double getInstanceSimilarity(List<Object[]> instance1, List<Object[]> instance2, boolean[] isNumeric, String[] attributeNames, Map<String, DuplicationReconciliation> dups) {
 		double categoricalSim = calculateInstanceCategoricalSim(instance1, instance2, isNumeric);
 		double numericalSim = calculateNumericalSim(instance1, instance2, isNumeric, attributeNames, dups);
 		
 		return categoricalSim + numericalSim;
 	}
 
-	private static double calculateNumericalSim(List<Object[]> instance1, List<Object[]> instance2, boolean[] isNumeric, String[] attributeNames, Map<String, IDuplicationReconciliation> dups) {
+	private static double calculateNumericalSim(List<Object[]> instance1, List<Object[]> instance2, boolean[] isNumeric, String[] attributeNames, Map<String, DuplicationReconciliation> dups) {
 		double sim = 0;
 		int numNumeric = 0;
 		for(int i = 0; i < isNumeric.length; i++) {
 			if(isNumeric[i]) {
 				numNumeric++;
-				IDuplicationReconciliation dupSolver = dups.get(attributeNames[i]);
-				Double[] values1 = dupSolver.reconciliatedValues(instance1, isNumeric);
-				Double[] values2 = dupSolver.reconciliatedValues(instance2, isNumeric);
-
-				for(int j = 0; j < values1.length; j++) {
-					sim += Math.pow(values1[j] - values2[j], 2);
+				DuplicationReconciliation dupSolver = dups.get(attributeNames[i]);
+				
+				Double instance1Val = 0.0;
+				if(instance1.size() > 1) {
+					for(int j = 0; j < instance1.size(); j++) {
+						dupSolver.addValue(instance1.get(j)[i]);
+					}
+					instance1Val = dupSolver.getReconciliatedValue();
+					dupSolver.clearValue();
+				} else {
+					instance1Val = ((Number) instance1.get(0)[i]).doubleValue();
 				}
+				
+				Double instance2Val = 0.0;
+				if(instance2.size() > 1) {
+					for(int j = 0; j < instance2.size(); j++) {
+						dupSolver.addValue(instance2.get(j)[i]);
+					}
+					instance2Val = dupSolver.getReconciliatedValue();
+					dupSolver.clearValue();
+				} else {
+					instance2Val = ((Number) instance2.get(0)[i]).doubleValue();
+				}
+				
+				sim += Math.pow(instance1Val - instance2Val, 2);
 			}
 		}
 		
