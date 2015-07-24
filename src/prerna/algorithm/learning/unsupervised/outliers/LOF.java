@@ -201,14 +201,12 @@ public class LOF implements IAnalyticRoutine {
 		// 1. Get the K-distance for each point in our array 
 		//    (using KDTree's nearest k-neighbors method)
 		for (int i=0; i<numInstances; i++) {
-			double kdistance = 0;
 			// returns IDs for each of k nearest neighbors
 			Object[] neighborIDs = Tree.getNearestNeighbors(dataFormatted[i], k).returnData();
-			// calculate distances to nearest neighbors, and avg them
-			for (int j=0; j<neighborIDs.length; j++)
-				kdistance += dist(dataFormatted[i], dataFormatted[(int)neighborIDs[j]]);
-
-			kDistance[i] = kdistance/k;
+			kDistance[i] = dist(dataFormatted[i], dataFormatted[(int)neighborIDs[neighborIDs.length - 1]]);
+			if(kDistance[i] == 0) {
+				kDistance[i] = .0000001;
+			}
 		}
 
 		// 2. Fill out ReachDistance[][]. 
@@ -219,8 +217,11 @@ public class LOF implements IAnalyticRoutine {
 			double kdistance = kDistance[i];
 			for (int j=0; j<this.numInstances; j++) {
 				double distance = dist(dataFormatted[i], dataFormatted[j]);
-				if (kdistance > distance) {this.reachDistance[i][j] = kdistance;}
-				else                      {this.reachDistance[i][j] = distance; };
+				if (kdistance > distance) {
+					this.reachDistance[i][j] = kdistance;
+				} else {
+					this.reachDistance[i][j] = distance; 
+				}
 			}
 		}
 
@@ -236,7 +237,6 @@ public class LOF implements IAnalyticRoutine {
 			for (int j=0; j<neighborIDs.length; j++) {
 				sum_reachDistance += reachDistance[i][(int)neighborIDs[j]];
 			}
-
 			LRD[i] = k/sum_reachDistance;
 		}
 
