@@ -160,6 +160,7 @@ public class LOF implements IAnalyticRoutine {
 				}
 				recRow[counter] = dups.get(attributeNames[i]).getReconciliatedValue();
 				counter++;
+				dups.get(attributeNames[i]).clearValue();
 			}
 			
 			index[numInstance] = instance.get(0)[instanceIndex];

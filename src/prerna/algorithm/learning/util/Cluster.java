@@ -12,8 +12,6 @@ public class Cluster {
 	private CategoricalCluster categoricalCluster;
 	private NumericalCluster numericalCluster;
 	
-	private Map<String, IDuplicationReconciliation> dups;
-	
 	private static final String EMPTY = "_____";
 	
 	public Cluster(Map<String, Double> categoricalWeights, Map<String, Double> numericalWeights) {
