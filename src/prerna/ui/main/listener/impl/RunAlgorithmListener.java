@@ -89,7 +89,7 @@ public class RunAlgorithmListener extends AbstractListener {
 
 	//classify
 	private JComboBox<String> classificationMethodComboBox;
-	private JComboBox<String> classComboBox;
+	private JComboBox<String> classifyClassComboBox;
 	
 	//outlier
 	private JSlider enterKNeighborsSlider;
@@ -107,6 +107,9 @@ public class RunAlgorithmListener extends AbstractListener {
 
 	private ITableDataFrame dataFrame;
 	private String[] attributeNames;
+
+	private JComboBox<String> perceptronClassComboBox;
+
 	
 	/**
 	 * Method actionPerformed.
@@ -202,7 +205,7 @@ public class RunAlgorithmListener extends AbstractListener {
 			String classMethod = classificationMethodComboBox.getSelectedItem() + "";
 			
 			//determine the column index and name to classify on
-			String classifier = classComboBox.getSelectedItem() + "";
+			String classifier = classifyClassComboBox.getSelectedItem() + "";
 			
 			newPlaySheet = new WekaClassificationPlaySheet();
 			newPlaySheet.setDataFrame(dataFrame);
@@ -234,7 +237,7 @@ public class RunAlgorithmListener extends AbstractListener {
 						List<SEMOSSParam> options = weka.getOptions();
 						Map<String, Object> selectedOptions = new HashMap<String, Object>();
 						selectedOptions.put(options.get(0).getName(), "J48");
-						selectedOptions.put(options.get(1).getName(), i);
+						selectedOptions.put(options.get(1).getName(), attributeNames[i]);
 						selectedOptions.put(options.get(2).getName(), skipColumns);
 						weka.setSelectedOptions(selectedOptions);
 						try {
@@ -403,7 +406,7 @@ public class RunAlgorithmListener extends AbstractListener {
 			dataFrame.setColumnsToSkip(skipColumns);
 			
 			//determine the column index and name to classify on
-			String classifier = classComboBox.getSelectedItem() + "";
+			String classifier = perceptronClassComboBox.getSelectedItem() + "";
 			
 			newPlaySheet = new PerceptronPlaySheet();
 			newPlaySheet.setDataFrame(dataFrame);
@@ -441,7 +444,8 @@ public class RunAlgorithmListener extends AbstractListener {
 		this.selectNumClustersTextField = playSheet.getSelectNumClustersTextField();
 		//classification
 		this.classificationMethodComboBox = playSheet.getClassificationMethodComboBox();
-		this.classComboBox = playSheet.getClassComboBox();
+		this.classifyClassComboBox = playSheet.getClassifyClassComboBox();
+		this.perceptronClassComboBox = playSheet.getPerceptronClassComboBox();
 		//outlier
 		this.enterKNeighborsSlider = playSheet.getEnterKNeighborsSlider();
 		//matrix regression

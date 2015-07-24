@@ -123,7 +123,7 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 	//classification panel components
 	private JPanel classifyPanel;
 	private JComboBox<String> classificationMethodComboBox;
-	private JComboBox<String> classComboBox;
+	private JComboBox<String> classifyClassComboBox;
 	private JLabel lblSelectClass, lblSelectClassMethod;
 	
 	//local outlier factor panel components
@@ -160,7 +160,8 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 	
 	//perceptron panel components
 	private JPanel perceptronPanel;
-	
+	private JComboBox<String> perceptronClassComboBox;
+
 	public int instanceIndex = 0;
 	public String[] columnHeaders;
 	public boolean[] isNumeric;
@@ -800,11 +801,11 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		gbc_lblSelectClass.gridy = 0;
 		classifyPanel.add(lblSelectClass, gbc_lblSelectClass);
 
-		classComboBox = new JComboBox<String>();
-		classComboBox.setName("classComboBox");
-		classComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		classComboBox.setBackground(Color.GRAY);
-		classComboBox.setPreferredSize(new Dimension(250, 25));
+		classifyClassComboBox = new JComboBox<String>();
+		classifyClassComboBox.setName("classComboBox");
+		classifyClassComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		classifyClassComboBox.setBackground(Color.GRAY);
+		classifyClassComboBox.setPreferredSize(new Dimension(250, 25));
 		String[] cols = new String[columnHeaders.length-1];
 		
 		int counter = 0;
@@ -815,17 +816,17 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 			cols[counter] = columnHeaders[i];
 			counter++;
 		}
-		classComboBox.setModel(new DefaultComboBoxModel<String>(cols));
+		classifyClassComboBox.setModel(new DefaultComboBoxModel<String>(cols));
 		GridBagConstraints gbc_classComboBox = new GridBagConstraints();
 		gbc_classComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_classComboBox.fill = GridBagConstraints.NONE;
 		gbc_classComboBox.insets = new Insets(5, 5, 0, 0);
 		gbc_classComboBox.gridx = 1;
 		gbc_classComboBox.gridy = 0;
-		classifyPanel.add(classComboBox, gbc_classComboBox);
+		classifyPanel.add(classifyClassComboBox, gbc_classComboBox);
 		ClassificationSelectionListener classSelectList = new ClassificationSelectionListener();
 		classSelectList.setView(this);
-		classComboBox.addActionListener(classSelectList);
+		classifyClassComboBox.addActionListener(classSelectList);
 		
 		lblSelectClassMethod = new JLabel("Select classification Method:");
 		lblSelectClassMethod.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -1245,11 +1246,11 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		gbc_lblSelectClass.gridy = 0;
 		perceptronPanel.add(lblSelectClass, gbc_lblSelectClass);
 
-		classComboBox = new JComboBox<String>();
-		classComboBox.setName("classComboBox");
-		classComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		classComboBox.setBackground(Color.GRAY);
-		classComboBox.setPreferredSize(new Dimension(250, 25));
+		perceptronClassComboBox = new JComboBox<String>();
+		perceptronClassComboBox.setName("classComboBox");
+		perceptronClassComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		perceptronClassComboBox.setBackground(Color.GRAY);
+		perceptronClassComboBox.setPreferredSize(new Dimension(250, 25));
 		String[] cols = new String[columnHeaders.length-1];
 		
 		int counter = 0;
@@ -1260,17 +1261,17 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 			cols[counter] = columnHeaders[i];
 			counter++;
 		}
-		classComboBox.setModel(new DefaultComboBoxModel<String>(cols));
+		perceptronClassComboBox.setModel(new DefaultComboBoxModel<String>(cols));
 		GridBagConstraints gbc_classComboBox = new GridBagConstraints();
 		gbc_classComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
 		gbc_classComboBox.fill = GridBagConstraints.NONE;
 		gbc_classComboBox.insets = new Insets(5, 5, 0, 0);
 		gbc_classComboBox.gridx = 1;
 		gbc_classComboBox.gridy = 0;
-		perceptronPanel.add(classComboBox, gbc_classComboBox);
+		perceptronPanel.add(perceptronClassComboBox, gbc_classComboBox);
 		ClassificationSelectionListener classSelectList = new ClassificationSelectionListener();
 		classSelectList.setView(this);
-		classComboBox.addActionListener(classSelectList);
+		perceptronClassComboBox.addActionListener(classSelectList);
 		
 		lblSelectClassMethod = new JLabel("Select classification Method:");
 		lblSelectClassMethod.setFont(new Font("Tahoma", Font.BOLD, 11));
@@ -1332,11 +1333,11 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		classifyPanel.setVisible(show);
 		lblSelectClass.setVisible(show);
 		lblSelectClassMethod.setVisible(show);
-		classComboBox.setVisible(show);
+		classifyClassComboBox.setVisible(show);
 		classificationMethodComboBox.setVisible(show);
 		enableAllCheckboxes();
 		if(show) {
-			String selection = classComboBox.getSelectedItem() + "";
+			String selection = classifyClassComboBox.getSelectedItem() + "";
 			disableCheckBox(selection,true);
 		}
 	}
@@ -1368,10 +1369,10 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 	public void showPerceptron(Boolean show) {
 		perceptronPanel.setVisible(show);
 		lblSelectClass.setVisible(show);
-		classComboBox.setVisible(show);
+		perceptronClassComboBox.setVisible(show);
 		enableAllCheckboxes();
 		if(show) {
-			String selection = classComboBox.getSelectedItem() + "";
+			String selection = perceptronClassComboBox.getSelectedItem() + "";
 			disableCheckBox(selection,true);
 		}
 	}
@@ -1487,8 +1488,11 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 	public JComboBox<String> getClassificationMethodComboBox() {
 		return classificationMethodComboBox;
 	}
-	public JComboBox<String> getClassComboBox() {
-		return classComboBox;
+	public JComboBox<String> getClassifyClassComboBox() {
+		return classifyClassComboBox;
+	}
+	public JComboBox<String> getPerceptronClassComboBox() {
+		return perceptronClassComboBox;
 	}
 	public ArrayList<JCheckBox> getColumnCheckboxes() {
 		return ivCheckboxes;
