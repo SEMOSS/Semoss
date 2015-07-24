@@ -27,7 +27,9 @@
  *******************************************************************************/
 package prerna.util;
 
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.LogManager;
@@ -38,36 +40,22 @@ import prerna.ui.components.api.IPlaySheet;
 /**
  * This class is used to store question playsheets. 
  */
-@SuppressWarnings("serial")
 public class QuestionPlaySheetStore extends Hashtable<String, IPlaySheet> {
-	
-	static final Logger logger = LogManager.getLogger(QuestionPlaySheetStore.class.getName());
 
-	public static QuestionPlaySheetStore store = null;
-	//public Vector 
+	private static final long serialVersionUID = 6959842357268983932L;
+	private static final Logger LOGGER = LogManager.getLogger(QuestionPlaySheetStore.class.getName());
+	private Map<String, Set<String>> sessionIdHash = new Hashtable<String, Set<String>>();
+
+	private static QuestionPlaySheetStore store;
+
 	public int idCount = 0;
 	public int customIDcount = 0;
 	public static IPlaySheet activeSheet = null;
 
 	/**
-	 * Constructor for QuestionPlaySheetStore.
-	 */
-	protected QuestionPlaySheetStore() {
-		// do nothing
-	}
-
-	/**
-	 * Checks whether there are more playsheets.
-	
-	 * @return 	False. */
-	public boolean hasMorePlaySheet() {
-		return false;
-	}
-
-	/**
 	 * Gets an instance from a specific playsheet.
-	
-	 * @return QuestionPlaySheetStore */
+	 * @return QuestionPlaySheetStore 
+	 */
 	public static QuestionPlaySheetStore getInstance() {
 		if(store == null) {
 			store = new QuestionPlaySheetStore();
@@ -75,21 +63,29 @@ public class QuestionPlaySheetStore extends Hashtable<String, IPlaySheet> {
 		return store; 
 	}
 
-
 	/**
 	 * Puts into a hashtable the question as the key and the playsheet as the mapped value.
 	 * @param 	Question
 	 * @param 	Specified playsheet for a question.
-	
-	 * @return 	Playsheet. */
+	 * @return 	Playsheet
+	 */
 	public IPlaySheet put(String question, IPlaySheet sheet) {
 		IPlaySheet ret = super.put(question, sheet);
 		return ret;
 	}
 
 	/**
+	 * Checks whether there are more playsheets.
+	 * @return 	False. 
+	 */
+	public boolean hasMorePlaySheet() {
+		return false;
+	}
+
+
+	/**
 	 * Sets the active playsheet for the internal frame.
-	 * @param 	Active playsheet.
+	 * @param 	Active playsheet
 	 */
 	public void setActiveSheet(IPlaySheet sheet) {
 		activeSheet = sheet;
@@ -97,8 +93,8 @@ public class QuestionPlaySheetStore extends Hashtable<String, IPlaySheet> {
 
 	/**
 	 * Gets the active sheet.
-	
-	 * @return 	Active sheet */
+	 * @return 	Active sheet 
+	 */
 	public IPlaySheet getActiveSheet() {
 		// need to clear when the internal frame is closed
 		return activeSheet;
@@ -107,8 +103,8 @@ public class QuestionPlaySheetStore extends Hashtable<String, IPlaySheet> {
 	/**
 	 * Gets a playsheet based on the question (key) from the store.
 	 * @param 	Question
-	
-	 * @return 	Returned playsheet */
+	 * @return 	Returned playsheet 
+	 */
 	public IPlaySheet get(String question) {
 		return super.get(question);
 	}
@@ -126,28 +122,61 @@ public class QuestionPlaySheetStore extends Hashtable<String, IPlaySheet> {
 
 	/**
 	 * Gets the count of all the sheets in the question store.	
-	 * @return Count */
+	 * @return Count 
+	 */
 	public int getIDCount() {
 		int total = idCount + customIDcount;
 		return total;
 	}
-	
+
 	/**
 	 * Gets the count of all the custom-query sheets in the question store.
-	
-	 * @return The number of custom sheets in the question store */
+	 * @return The number of custom sheets in the question store 
+	 */
 	public int getCustomCount() {
 		return customIDcount;
 	}
-	
+
 	/**
 	 * Gets a set of all the sheets in the question sheet store.
-	 * 
-	 * @return Set of strings. */
+	 * @return Set of strings. 
+	 */
 	public Set<String> getAllSheets() {
 		return store.keySet();
-		
 	}
 	
+	public void addToSessionHash(String sessionID, String tableID) {
+		Set<String> tableIDs = null;
+		
+		if(sessionIdHash.containsKey(sessionID)) {
+			tableIDs = sessionIdHash.get(sessionID);
+			if(tableIDs == null) {
+				tableIDs = new HashSet<String>();
+			}
+			tableIDs.add(tableID);
+		} else {
+			tableIDs = new HashSet<String>();
+			tableIDs.add(tableID);
+		}
+		
+		sessionIdHash.put(sessionID, tableIDs);
+	}
 	
+	public boolean removeFromSessionHash(String sessionID, String tableID) {
+		if(!sessionIdHash.containsKey(sessionID)) {
+			return false;
+		}
+		Set<String> tableIDs = sessionIdHash.get(sessionID);
+		if(tableIDs.contains(tableID)) {
+			tableIDs.remove(tableID);
+			return true;
+		} 
+
+		return false;
+	}
+	
+	public Set<String> getPlaySheetIDsForSession(String sessionID) {
+		return sessionIdHash.get(sessionID);
+	}
+
 }
