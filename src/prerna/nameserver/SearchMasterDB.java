@@ -251,7 +251,8 @@ public class SearchMasterDB extends ModifyMasterDB {
 	public HashMap<String, Object> getAllInsights(String groupBy, String orderBy) {
 		HashMap<String, Object> ret = new HashMap<String, Object>();
 		ArrayList<HashMap<String, Object>> groupedInsights = new ArrayList<HashMap<String, Object>>();
-		HashMap<String, ArrayList<HashMap<String, Object>>> insights = new HashMap<String, ArrayList<HashMap<String, Object>>>();
+		HashMap<String, Object> groupData = new HashMap<String, Object>();
+		HashMap<String, Object> insights = new HashMap<String, Object>();
 		
 		String query = MasterDatabaseQueries.GET_ALL_INSIGHTS_FOR_BROWSE;
 		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
@@ -291,31 +292,42 @@ public class SearchMasterDB extends ModifyMasterDB {
 			
 			if(groupBy.equals("database")) {
 				if(!groupValue.isEmpty() && !groupValue.equals(engineName)) {
-					insights.put(groupValue, groupedInsights);
+					groupData.put("maxcount", maxClicks);
+					groupData.put("totalcount", totalClicks);
+					insights.put(groupValue, groupData);
 					groupedInsights = new ArrayList<HashMap<String, Object>>();
+					groupData = new HashMap<String, Object>();
+					totalClicks = 0;
+					maxClicks = 0;
 				}
 				
 				groupValue = engineName;
 			} else if (groupBy.equals("network")) {
 				if(!groupValue.isEmpty() && !groupValue.equals(vis)) {
-					insights.put(groupValue, groupedInsights);
+					groupData.put("maxcount", maxClicks);
+					groupData.put("totalcount", totalClicks);
+					insights.put(groupValue, groupData);
 					groupedInsights = new ArrayList<HashMap<String, Object>>();
+					groupData = new HashMap<String, Object>();
+					totalClicks = 0;
+					maxClicks = 0;
 				}
 				
 				groupValue = vis;
 			}
 			
 			groupedInsights.add(insightMetadata);
+			groupData.put("insights", groupedInsights);
 		}
-		insights.put(groupValue, groupedInsights);
+		groupData.put("maxcount", maxClicks);
+		groupData.put("totalcount", totalClicks);
+		insights.put(groupValue, groupData);
 		
 		HashMap<String, String> settings = new HashMap<String, String>();
-		settings.put("totalcount", totalClicks.toString());
-		settings.put("maxcount", maxClicks.toString());
 		settings.put("groupBy", groupBy);
 		settings.put("orderBy", orderBy);
 		
-		ret.put("insights", insights);
+		ret.put("data", insights);
 		ret.put("settings", settings);
 		
 		return ret;
