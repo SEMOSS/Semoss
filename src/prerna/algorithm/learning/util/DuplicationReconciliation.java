@@ -58,6 +58,11 @@ public class DuplicationReconciliation {
 		recValue = null;
 	}
 	
+	public void clearValue() {
+		values.clear();
+		recValue = null;
+	}
+	
 	private Double getMean(Object[] row) {
 		Double total = 0.0;
 		double size = row.length;
@@ -197,37 +202,5 @@ public class DuplicationReconciliation {
 			}
 		}
 	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	
 }
