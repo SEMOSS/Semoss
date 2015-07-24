@@ -254,7 +254,7 @@ public final class WekaUtilityMethods {
 	public static Instance createInstance(Instances data, Object[] dataRow, boolean[] isCategorical, int numAttr) {
 		
 		Instance dataEntry = new DenseInstance(numAttr);
-		
+
 		dataEntry.setDataset(data);
 		
 		for(int j = 0; j < numAttr; j++) {
@@ -264,8 +264,12 @@ public final class WekaUtilityMethods {
 //				if(isCategorical[j + 1]) {
 				if(isCategorical[j]) {
 					dataEntry.setValue(j, valAttr.toString());
-				} else {			
-					dataEntry.setValue(j, (Double)valAttr); // take the numeric values to prevent re-casting
+				} else {
+					if(valAttr instanceof Number) {
+						dataEntry.setValue(j, ((Number)valAttr).doubleValue());
+					} else {
+						//What to do?
+					}
 				}
 			}
 		}

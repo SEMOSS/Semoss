@@ -5,6 +5,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -103,11 +104,17 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 		//need to set weights
 		//need to set learningRatioOption
 
+//		List<Object[]> dataTable = table.getScaledData();
+//		Collections.shuffle(dataTable);
 
 		ITableDataFrame table = data[0];
 		int numAttributes = table.getNumCols();
 		String[] names = table.getColumnHeaders();		
 
+		List<Object[]> dataTable = table.getScaledData();
+		Collections.shuffle(dataTable);
+		
+		
 		String[] newNames = {names[0], "Correctly_Classified"};
 		ITableDataFrame newTable = new BTreeDataFrame(newNames);
 		
@@ -130,7 +137,7 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 
 		Iterator<Object[]> iterator = table.scaledIterator(false);
 		//Iterator<Object[]> iterator = table.iterator(false);
-		Instances instanceData = WekaUtilityMethods.createInstancesFromQuery("DataSet", (ArrayList<Object[]>)table.getScaledData(), names, classIndex);
+		Instances instanceData = WekaUtilityMethods.createInstancesFromQuery("DataSet", dataTable, names, classIndex);
 		instanceData.setClassIndex(classIndex);
 
 		//make a header
@@ -138,8 +145,20 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 		learner.setModelContext(header);
 		learner.prepareForUse();
 
-		while(iterator.hasNext()) {
-			Object[] newRow = iterator.next();
+//		List<Object[]> dataTable = table.getScaledData();
+//		Collections.shuffle(dataTable);
+		
+		for(int i = 0; i < dataTable.size(); i++) {
+			
+//			if(i <=300) {
+//				Object[] trainRow = dataTable.get(i);
+//				Instance nextInst = WekaUtilityMethods.createInstance(instanceData, trainRow,  isCategorical,  numAttributes - 1);
+//				learner.trainOnInstance(nextInst);
+//				continue;
+//			}
+
+			
+			Object[] newRow = dataTable.get(i);//iterator.next();
 			Instance nextInst = WekaUtilityMethods.createInstance(instanceData, newRow, isCategorical, numAttributes - 1);
 			//Instance nextInst = WekaUtilityMethods.createInstance(null, iterator.next(), isCategorical, numAttributes - 1);
 			//double[] votes = learner.getVotesForInstance(nextInst);
