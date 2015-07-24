@@ -22,6 +22,13 @@ public interface ITableDataFrame {
 	void addRow(Map<String, Object> rowCleanData, Map<String, Object> rowRawData);
 	
 	/**
+	 * Adds a row to the data-frame
+	 * @param rowCleanData			The array of clean values where indices match the columns in the data-frame
+	 * @param rowRawData			The array of raw values where indices match the columns in the data-frame
+	 */
+	void addRow(Object[] rowCleanData, Object[] rowRawData);
+	
+	/**
 	 * Gets the most similar columns given threshold and routine between this and the passed in table.
 	 * This can be used before calling join to better understand the two tables
 	 * @param table					The data-frame to join with the current data-frame
@@ -398,6 +405,5 @@ public interface ITableDataFrame {
 	 * @param columnHeaders
 	 */
 	public void setColumnsToSkip(List<String> columnHeaders);
-	
 
 }
