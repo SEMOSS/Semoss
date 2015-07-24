@@ -52,8 +52,7 @@ public class QuestionPlaySheetStore extends Hashtable<String, IPlaySheet> {
 	/**
 	 * Constructor for QuestionPlaySheetStore.
 	 */
-	protected QuestionPlaySheetStore()
-	{
+	protected QuestionPlaySheetStore() {
 		// do nothing
 	}
 
@@ -61,8 +60,7 @@ public class QuestionPlaySheetStore extends Hashtable<String, IPlaySheet> {
 	 * Checks whether there are more playsheets.
 	
 	 * @return 	False. */
-	public boolean hasMorePlaySheet()
-	{
+	public boolean hasMorePlaySheet() {
 		return false;
 	}
 
@@ -70,10 +68,8 @@ public class QuestionPlaySheetStore extends Hashtable<String, IPlaySheet> {
 	 * Gets an instance from a specific playsheet.
 	
 	 * @return QuestionPlaySheetStore */
-	public static QuestionPlaySheetStore getInstance()
-	{
-		if(store == null)
-		{
+	public static QuestionPlaySheetStore getInstance() {
+		if(store == null) {
 			store = new QuestionPlaySheetStore();
 		}
 		return store; 
@@ -86,12 +82,8 @@ public class QuestionPlaySheetStore extends Hashtable<String, IPlaySheet> {
 	 * @param 	Specified playsheet for a question.
 	
 	 * @return 	Playsheet. */
-	public IPlaySheet put(String question, IPlaySheet sheet)
-	{
+	public IPlaySheet put(String question, IPlaySheet sheet) {
 		IPlaySheet ret = super.put(question, sheet);
-		//count++;
-		//if (question.equals("custom"))
-			//customcount++;
 		return ret;
 	}
 
@@ -99,9 +91,7 @@ public class QuestionPlaySheetStore extends Hashtable<String, IPlaySheet> {
 	 * Sets the active playsheet for the internal frame.
 	 * @param 	Active playsheet.
 	 */
-	public void setActiveSheet(IPlaySheet sheet)
-	{
-		// need to clear when the internal frame is closed
+	public void setActiveSheet(IPlaySheet sheet) {
 		activeSheet = sheet;
 	}
 
@@ -109,8 +99,7 @@ public class QuestionPlaySheetStore extends Hashtable<String, IPlaySheet> {
 	 * Gets the active sheet.
 	
 	 * @return 	Active sheet */
-	public IPlaySheet getActiveSheet()
-	{
+	public IPlaySheet getActiveSheet() {
 		// need to clear when the internal frame is closed
 		return activeSheet;
 	}
@@ -120,8 +109,7 @@ public class QuestionPlaySheetStore extends Hashtable<String, IPlaySheet> {
 	 * @param 	Question
 	
 	 * @return 	Returned playsheet */
-	public IPlaySheet get(String question)
-	{
+	public IPlaySheet get(String question) {
 		return super.get(question);
 	}
 
@@ -129,61 +117,12 @@ public class QuestionPlaySheetStore extends Hashtable<String, IPlaySheet> {
 	 * Removes a question from the store.
 	 * @param 	Question to be removed.
 	 */
-	public void remove(String question)
-	{
+	public void remove(String question) {
 		super.remove(question);
-		//count = count - 1;
-		//System.err.println("Into the part for selecting the active sheet");
-		if(activeSheet != null && activeSheet.getQuestionID().equalsIgnoreCase(question))
-		{
+		if(activeSheet != null && activeSheet.getQuestionID().equalsIgnoreCase(question)) {
 			activeSheet = null;
 		}
-//		JDesktopPane pane = (JDesktopPane)DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
-//		//System.err.println("Into the part for selecting the active sheet    ");
-//
-//		JInternalFrame [] frames = pane.getAllFrames();
-//		boolean foundFrame = false;
-//		for(int frameIndex = 0;frameIndex < frames.length;frameIndex++)
-//		{
-//			try {
-//				if(frames[frameIndex].isVisible() && frames[frameIndex] instanceof IPlaySheet)
-//				{
-//					//logger.info("Frame is visible");
-//					activeSheet = (IPlaySheet)frames[frameIndex];
-//					frames[frameIndex].setSelected(false);
-//					frames[frameIndex].setSelected(true);
-//					foundFrame = true;
-//					break;
-//				}
-//			} catch (PropertyVetoException e) {
-//				e.printStackTrace();
-//			}
-//		}
-//		if(!foundFrame)
-//		{
-//			
-//			SwingUtilities.invokeLater(new Runnable(){
-//				public void run() {
-//					try 
-//					{
-//						JToggleButton append = (JToggleButton)DIHelper.getInstance().getLocalProp(Constants.APPEND);
-//						//append.doClick();
-//						append.setSelected(false);
-//						
-//						append.setEnabled(false);
-//						CSSApplication css = new CSSApplication(append, ".toggleButtonDisabled");
-//					}
-//
-//					catch (Exception e1) {
-//						// TODO: Specify exception
-//						e1.printStackTrace();
-//					}
-//				}
-//			});
-//
-//		}
 	}
-
 
 	/**
 	 * Gets the count of all the sheets in the question store.	
@@ -205,8 +144,7 @@ public class QuestionPlaySheetStore extends Hashtable<String, IPlaySheet> {
 	 * Gets a set of all the sheets in the question sheet store.
 	 * 
 	 * @return Set of strings. */
-	public Set<String> getAllSheets()
-	{
+	public Set<String> getAllSheets() {
 		return store.keySet();
 		
 	}
