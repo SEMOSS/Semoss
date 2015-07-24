@@ -872,8 +872,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			row.put(names[1], siteLat[i]);
 			row.put(names[2], siteLon[i]);
 			row.put(names[3], futureSiteSustainCost[i] - currSiteSustainCost[i]);
-			row.put(names[4], getSustainedSystemsAtSiteList(i));
-			row.put(names[5], getConsolidatedSystemsAtSiteList(i));
+			row.put(names[4], makeString(getSustainedSystemsAtSiteList(i)));
+			row.put(names[5], makeString(getConsolidatedSystemsAtSiteList(i)));
 			data.addRow(row, row);
 		}
 		
@@ -931,7 +931,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			row.put(names[1], siteLat[i]);
 			row.put(names[2], siteLon[i]);
 			row.put(names[3], percent);
-			row.put(names[4], getSustainedSystemsAtSiteList(i));
+			row.put(names[4], makeString(getSustainedSystemsAtSiteList(i)));
 			data.addRow(row, row);
 		}
 		
@@ -1348,26 +1348,12 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		return siteCostArr;
 	}
 	
-	
-	private double[] calculateDOBLUCoverageAtSites(double[][] sysSiteMatrix, double[] sysSiteCost) {
-		int i;
-		int j;
-		int numSys = sysSiteMatrix.length;
-		int numSite = sysSiteMatrix[0].length;
-		double[] siteCostArr = new double[numSite];
-		
-		for(i=0; i<numSite; i++) {
-			
-			double siteCost = 0.0;
-			for(j=0; j<numSys; j++) {
-				
-					siteCost += sysSiteMatrix[j][i] * sysSiteCost[j];
-					
-			}
-			siteCostArr[i] = siteCost;
+	private String makeString(ArrayList<String> list) {
+		String ret = "";
+		for(String ele : list) {
+			ret = ret.concat(ele+"\n");
 		}
-		
-		return siteCostArr;
+		return ret;
 	}
 	
 	private String makeSysKeptQueryString() {
