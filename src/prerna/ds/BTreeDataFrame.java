@@ -61,7 +61,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		ISEMOSSNode[] row = new ISEMOSSNode[levelNames.length];
 		for(int index = 0; index < levelNames.length; index++) {
 			Object val = rowCleanData[index];
-			Object rawVal = rowRawData[index]);
+			Object rawVal = rowRawData[index];
 			//TODO: better way of doing this????
 			if(val==null || val.toString().isEmpty()) {
 				val = SimpleTreeNode.EMPTY;
