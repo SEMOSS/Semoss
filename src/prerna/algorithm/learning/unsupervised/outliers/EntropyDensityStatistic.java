@@ -44,6 +44,8 @@ public class EntropyDensityStatistic implements IAnalyticRoutine {
 	private List<String> addedCols = new ArrayList<String>(); 
 	private String outlierVal;
 	
+	Map<Object, Double> retHash;
+	
 	public EntropyDensityStatistic() {
 		options = new ArrayList<SEMOSSParam>();
 
@@ -139,9 +141,10 @@ public class EntropyDensityStatistic implements IAnalyticRoutine {
 		return returnTable;
 	}
 
-
 	public Map<Object, Double> score(Map<String, Map<String, Integer>> frequencyCounts) {
-		Map<Object, Double> retHash = new HashMap<Object, Double>();
+		retHash = new HashMap<Object, Double>();
+		double max = 0;
+		double min = Double.POSITIVE_INFINITY;
 		
 		Iterator<List<Object[]>> it = dataFrame.uniqueIterator(attributeNames[instanceIndex], false);
 		int numInstances = dataFrame.getNumRows();
@@ -166,7 +169,21 @@ public class EntropyDensityStatistic implements IAnalyticRoutine {
 				entropyVal += rowEntropy;
 			}
 			
+			if(entropyVal > max) {
+				max = entropyVal;
+			}
+			if(entropyVal < min) {
+				min = entropyVal;
+			}
+			
 			retHash.put(instanceName, entropyVal);
+		}
+		
+		double range = max-min;
+		// normalize
+		for(Object key : retHash.keySet()) {
+			Double value = (retHash.get(key) - min) / range; 
+			retHash.put(key, value);
 		}
 		
 		return retHash;
@@ -176,7 +193,7 @@ public class EntropyDensityStatistic implements IAnalyticRoutine {
 	public String getName() {
 		return "Entropy Density Outlier Statistic";
 	}
-
+	
 	@Override
 	public String getResultDescription() {
 		// TODO Auto-generated method stub
@@ -216,5 +233,9 @@ public class EntropyDensityStatistic implements IAnalyticRoutine {
 	public Map<String, Object> getResultMetadata() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	public Map<Object, Double> getResults() {
+		return this.retHash;
 	}
 }
