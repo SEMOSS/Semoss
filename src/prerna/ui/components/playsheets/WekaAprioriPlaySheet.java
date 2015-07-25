@@ -54,7 +54,7 @@ public class WekaAprioriPlaySheet extends GridPlaySheet{
 	}
 
 	@Override
-	public List<Object[]> getTabularData() {
+	public List<Object[]> getList() {
 		return alg.getTabularData();
 	}
 	

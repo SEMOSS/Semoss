@@ -119,7 +119,7 @@ public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 		allHash.put("one-row",false);
 		allHash.put("id",id);
 		allHash.put("names", getNames());
-		allHash.put("dataSeries", getTabularData());
+		allHash.put("dataSeries", getList());
 		allHash.put("correlations", correlations);
 
 		this.dataHash= allHash;
@@ -152,7 +152,7 @@ public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 	public void addGridTab(String tabName) {
 		table = new JTable();
 		GridScrollPane gsp = null;
-		gsp = new GridScrollPane(getNames(), getTabularData());
+		gsp = new GridScrollPane(getNames(), getList());
 		gsp.addHorizontalScroll();
 		jTab.addTab(tabName, gsp);
 	}

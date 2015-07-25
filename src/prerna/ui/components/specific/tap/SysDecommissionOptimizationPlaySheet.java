@@ -48,7 +48,7 @@ public class SysDecommissionOptimizationPlaySheet extends GridPlaySheet{
 	String[] names;
 	
 	@Override
-	public List<Object[]> getTabularData() {
+	public List<Object[]> getList() {
 		return this.list;
 	}
 	

@@ -93,7 +93,7 @@ public class DualEngineGenericPlaySheet extends DualEngineGridPlaySheet {
 		playSheet.setDataFrame(f);
 		playSheet.setQuestionID(this.questionNum);
 		Hashtable retHash = playSheet.getData();
-		retHash.put("data", this.getTabularData());
+		retHash.put("data", this.getList());
 		return retHash;
 	}
 	

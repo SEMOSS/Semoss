@@ -119,7 +119,7 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 	}
 
 	@Override
-	public List<Object[]> getTabularData() {
+	public List<Object[]> getList() {
 		dataFrame.setColumnsToSkip(skipAttributes);
 		//add in estimated and residuals for each row determined using coefficients
 		List<Object[]> outputList = new ArrayList<Object []>();

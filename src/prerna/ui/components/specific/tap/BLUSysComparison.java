@@ -75,7 +75,7 @@ public class BLUSysComparison extends SimilarityHeatMapSheet{
 	String[] names;
 	
 	@Override
-	public List<Object[]> getTabularData() {
+	public List<Object[]> getList() {
 		return this.list;
 	}
 	

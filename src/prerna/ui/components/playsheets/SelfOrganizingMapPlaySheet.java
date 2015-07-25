@@ -149,7 +149,7 @@ public class SelfOrganizingMapPlaySheet extends GridPlaySheet{
 	}
 	
 	@Override
-	public List<Object[]> getTabularData() {
+	public List<Object[]> getList() {
 		List<Object[]> allData = new ArrayList<Object[]>();
 		Iterator<Object[]> it = dataFrame.iterator(false);
 		while(it.hasNext()) {

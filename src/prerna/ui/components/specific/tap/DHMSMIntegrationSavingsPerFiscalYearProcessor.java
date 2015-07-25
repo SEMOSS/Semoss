@@ -830,7 +830,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 			//Use Dual Engine Grid to process the dual query that gets cost info
 			dualQueries.setQuery(query);
 			dualQueries.createData();
-			List<Object[]> deploymentInfo = dualQueries.getTabularData();
+			List<Object[]> deploymentInfo = dualQueries.getList();
 			int i;
 			int size = deploymentInfo.size();
 			for(i = 0; i < size; i++) {

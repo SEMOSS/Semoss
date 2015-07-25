@@ -45,12 +45,12 @@ public class DHMSMDeploymentGapAnalysis extends GridPlaySheet{
 		DualEngineGridPlaySheet dugp1 = new DualEngineGridPlaySheet();
 		dugp1.setQuery(sitesInPlanWithHPSystemQuery);
 		dugp1.createData();
-		List<Object[]> sitesInPlanWithHPSystems = dugp1.getTabularData();
+		List<Object[]> sitesInPlanWithHPSystems = dugp1.getList();
 		
 		DualEngineGridPlaySheet dugp2 = new DualEngineGridPlaySheet();
 		dugp2.setQuery(sitesWithHPSystemQuery);
 		dugp2.createData();
-		List<Object[]> sitesWithHPSystems = dugp2.getTabularData();
+		List<Object[]> sitesWithHPSystems = dugp2.getList();
 		
 		String[] names = new String[]{"HostSite","System"};
 		this.dataFrame = new BTreeDataFrame(names);
