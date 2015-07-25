@@ -142,7 +142,7 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 	}
 	
 	@Override
-	public List<Object[]> getTabularData() {
+	public List<Object[]> getList() {
 		return dataFrame.getData();
 	}
 	

@@ -236,7 +236,7 @@ public class SysDecommissionScheduleOptimizer implements IAlgorithm{
 		sysBudgetSheet.setRDFEngine(engine);
 		sysBudgetSheet.setAccountingFormat(false);
 	    sysBudgetSheet.createData();
-	    processSysBudgetHash(sysBudgetSheet.getTabularData());
+	    processSysBudgetHash(sysBudgetSheet.getList());
 	    
         printDataToConsole();
        	addTextToConsole("\nData Collection Complete!");

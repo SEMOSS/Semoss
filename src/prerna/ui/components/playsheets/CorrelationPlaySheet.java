@@ -74,7 +74,7 @@ public class CorrelationPlaySheet extends GridPlaySheet{
 	}
 	
 	@Override
-	public List<Object[]> getTabularData() {
+	public List<Object[]> getList() {
 		List<Object[]> output = new ArrayList<Object []>();
 		int i;
 		int j;

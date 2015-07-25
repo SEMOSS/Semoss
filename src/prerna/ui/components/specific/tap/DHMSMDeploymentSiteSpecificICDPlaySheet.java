@@ -50,7 +50,7 @@ public class DHMSMDeploymentSiteSpecificICDPlaySheet extends GridPlaySheet {
 	String[] names;
 	
 	@Override
-	public List<Object[]> getTabularData() {
+	public List<Object[]> getList() {
 		return this.list;
 	}
 	
@@ -66,7 +66,7 @@ public class DHMSMDeploymentSiteSpecificICDPlaySheet extends GridPlaySheet {
 		DualEngineGridPlaySheet degp = new DualEngineGridPlaySheet();
 		degp.setQuery(query);
 		degp.createData();
-		List<Object[]> combinedResults = degp.getTabularData();
+		List<Object[]> combinedResults = degp.getList();
 		names = degp.getNames();
 		
 		getSysData();

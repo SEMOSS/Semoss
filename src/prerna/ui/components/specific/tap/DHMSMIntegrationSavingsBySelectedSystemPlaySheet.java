@@ -38,7 +38,7 @@ public class DHMSMIntegrationSavingsBySelectedSystemPlaySheet extends GridPlaySh
 	String[] names;
 	
 	@Override
-	public List<Object[]> getTabularData() {
+	public List<Object[]> getList() {
 		return this.list;
 	}
 	

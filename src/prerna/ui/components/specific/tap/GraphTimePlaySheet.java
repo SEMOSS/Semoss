@@ -249,7 +249,7 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 	}
 	
 	@Override
-	public List<Object[]> getTabularData() {
+	public List<Object[]> getList() {
 		if(gdm != null) {
 			List<Object[]> retList = new ArrayList<Object[]>();
 			retList.add(new Object[0]);
