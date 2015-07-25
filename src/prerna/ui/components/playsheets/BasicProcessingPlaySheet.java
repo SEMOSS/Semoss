@@ -78,7 +78,7 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 	 */
 	@Override
 	public void createView() {
-		List<Object[]> tabularData = getTabularData();
+		List<Object[]> tabularData = getList();
 		String[] names = getNames();
 		addPanel();
 		if(tabularData == null || tabularData.isEmpty()) {
@@ -239,7 +239,7 @@ public class BasicProcessingPlaySheet extends AbstractRDFPlaySheet {
 		this.dataFrame = dataFrame;
 	}
 	
-	public List<Object[]> getTabularData() {
+	public List<Object[]> getList() {
 		if(dataFrame == null) {
 			return null;
 		}
