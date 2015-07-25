@@ -54,7 +54,7 @@ public class FastOutlierDetection implements IAnalyticRoutine {
 	private String changedColumn;
 	private List<String> skipAttributes;
 
-	private int numSampleSize;                  // How many neighbors to examine?
+	private int numSubsetSize;                  // How many neighbors to examine?
 	private HashMap<Object, Double> results;    // This stores the FastDistance for each point in dataset
 
 	public FastOutlierDetection() {
@@ -65,11 +65,11 @@ public class FastOutlierDetection implements IAnalyticRoutine {
 		options.add(0, p1);
 
 		SEMOSSParam p2 = new SEMOSSParam();
-		p2.setName(NUM_SAMPLE_SIZE);
+		p2.setName(SKIP_ATTRIBUTES);
 		options.add(1, p2);
 
 		SEMOSSParam p3 = new SEMOSSParam();
-		p3.setName(SKIP_ATTRIBUTES);
+		p3.setName(NUM_SAMPLE_SIZE);
 		options.add(2, p3);
 
 		SEMOSSParam p4 = new SEMOSSParam();
@@ -86,7 +86,7 @@ public class FastOutlierDetection implements IAnalyticRoutine {
 	@Override
 	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
 		this.instanceIndex = 0;//(int) options.get(0).getSelected();
-		this.numSampleSize = 10;//(int) options.get(1).getSelected();
+		this.numSubsetSize = 10;//(int) options.get(1).getSelected();
 		this.skipAttributes = null;//(List<String>) options.get(2).getSelected();
 		this.dups = (Map<String, DuplicationReconciliation>) options.get(2).getSelected();
 
@@ -108,18 +108,18 @@ public class FastOutlierDetection implements IAnalyticRoutine {
 		}
 
 		// make sure numSampleSize isn't too big.
-		if (numSampleSize > numInstances/3) {
+		if (numSubsetSize > numInstances/3) {
 			System.out.println("R is too big!");
-			numSampleSize = numInstances/3;
+			numSubsetSize = numInstances/3;
 		}
 
-		int random_skip = numInstances/numSampleSize; // won't be smaller than 3.
+		int random_skip = numInstances/numSubsetSize; // won't be smaller than 3.
 
 		results = new HashMap<Object, Double>();
 		// grab R random rows
 		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false);
 		List<List<Object[]>> rSubset = new ArrayList<List<Object[]>>();
-		for (int i = 0; i < numSampleSize; i++) {
+		for (int i = 0; i < numSubsetSize; i++) {
 			// skip over a number between 0 and random_skip rows
 			int skip = random.nextInt(random_skip);
 			for (int j = 0; j < skip - 1; j++) {
@@ -134,7 +134,7 @@ public class FastOutlierDetection implements IAnalyticRoutine {
 			List<Object[]> instance = it.next();
 			Object instanceName = instance.get(0)[instanceIndex];
 			double minSim = 2;
-			for(int i= 0; i < numSampleSize; i++) {
+			for(int i= 0; i < numSubsetSize; i++) {
 				List<Object[]> subsetInstance = rSubset.get(i);
 				if(subsetInstance.get(0)[instanceIndex].equals(instance.get(0)[instanceIndex])) {
 					continue;
@@ -160,11 +160,11 @@ public class FastOutlierDetection implements IAnalyticRoutine {
 		System.out.println(results);
 		return returnTable;
 	}
-	
+
 	public HashMap<Object, Double> getResults() {
 		return results;
 	}
-	
+
 	@Override
 	public String getName() {
 		return "Local Outlier Factor Algorithm";
