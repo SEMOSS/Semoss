@@ -1256,7 +1256,7 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Movie_DB:Outlier-Perspective:O1">
 	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience } } ORDER BY ?Title+++@KNeighbors-K@</SPARQL>
-	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.LocalOutlierPlaySheet</Layout>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.OutlierPlaySheet</Layout>
 	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Outlier-Perspective:O1:KNeighbors"/>
 </rdf:Description>
 
@@ -1928,7 +1928,7 @@
 	<Label xmlns="http://semoss.org/ontologies/Relation/Contains/">Run Local Outlier Factor for Movies and Numerical Properties</Label>
 	<IDLabel xmlns="http://semoss.org/ontologies/Relation/Contains/">Outlier-Perspective_1</IDLabel>
 	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">SELECT DISTINCT ?Title ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience WHERE {{?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?DomesticRevenue }{?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?InternationalRevenue}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Budget}{?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?RottenTomatoesCritics } {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?RottenTomatoesAudience }} ORDER BY ?Title+++@KNeighbors-K@</SPARQL>
-	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.LocalOutlierVizPlaySheet</Layout>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.OutlierVizPlaySheet</Layout>
 	<Order xmlns="http://semoss.org/ontologies/Relation/Contains/">2</Order>
 	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Movie_DB:Outlier-Perspective:Outlier-Perspective_1:KNeighbors"/>
 </rdf:Description>
