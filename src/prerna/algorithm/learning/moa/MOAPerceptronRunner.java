@@ -112,11 +112,9 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 		String[] names = table.getColumnHeaders();		
 
 		List<Object[]> dataTable = table.getScaledData();
-		Collections.shuffle(dataTable);
+		//Collections.shuffle(dataTable);
 		
 		
-		String[] newNames = {names[0], "Correctly_Classified"};
-		ITableDataFrame newTable = new BTreeDataFrame(newNames);
 		
 		int classIndex;
 		for(classIndex = 0; classIndex < names.length; classIndex++) {
@@ -147,30 +145,46 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 
 //		List<Object[]> dataTable = table.getScaledData();
 //		Collections.shuffle(dataTable);
+		int numIterations = 10;
+		Boolean[] correctArray = new Boolean[dataTable.size()];
 		
+		//for(int x = 1; x <= numIterations; x++) {
+			int correct = 0;
+			int total = dataTable.size();
+			double ratio;
+			for(int i = 0; i < dataTable.size(); i++) {
+	
+				Object[] newRow = dataTable.get(i);//iterator.next();
+				Instance nextInst = WekaUtilityMethods.createInstance(instanceData, newRow, isCategorical, numAttributes - 1);
+				//Instance nextInst = WekaUtilityMethods.createInstance(null, iterator.next(), isCategorical, numAttributes - 1);
+				//double[] votes = learner.getVotesForInstance(nextInst);
+				//System.out.println(Arrays.toString(votes));
+				//System.out.println(Arrays.toString(newRow));
+				Boolean correctlyClassified = learner.correctlyClassifies(nextInst);
+				correctArray[i] = correctlyClassified;
+				if(correctlyClassified) {
+					correct++;
+				}
+
+//				Map<String, Object> nextRow = new HashMap<>();
+//				nextRow.put(newNames[0], newRow[0]);
+//				nextRow.put("Correctly_Classified", correctlyClassified.toString());
+//				newTable.addRow(nextRow, nextRow);
+
+				learner.trainOnInstance(nextInst);
+			}
+			ratio = 100.0*(double)correct/(double)total;
+	//}
+		String columnName = "Correctly_Classified -- "+(int)ratio+"%";
+		String[] newNames = {names[0], columnName};
+		ITableDataFrame newTable = new BTreeDataFrame(newNames);
 		for(int i = 0; i < dataTable.size(); i++) {
-			
-//			if(i <=300) {
-//				Object[] trainRow = dataTable.get(i);
-//				Instance nextInst = WekaUtilityMethods.createInstance(instanceData, trainRow,  isCategorical,  numAttributes - 1);
-//				learner.trainOnInstance(nextInst);
-//				continue;
-//			}
-
-			
-			Object[] newRow = dataTable.get(i);//iterator.next();
-			Instance nextInst = WekaUtilityMethods.createInstance(instanceData, newRow, isCategorical, numAttributes - 1);
-			//Instance nextInst = WekaUtilityMethods.createInstance(null, iterator.next(), isCategorical, numAttributes - 1);
-			//double[] votes = learner.getVotesForInstance(nextInst);
-			//System.out.println(Arrays.toString(votes));
-			Boolean correctlyClassified = learner.correctlyClassifies(nextInst);
 			Map<String, Object> nextRow = new HashMap<>();
-			nextRow.put(newNames[0], newRow[0]);
-			nextRow.put("Correctly_Classified", correctlyClassified.toString());
+			nextRow.put(newNames[0], dataTable.get(i)[0]);
+			nextRow.put(columnName, correctArray[i]);
 			newTable.addRow(nextRow, nextRow);
-			learner.trainOnInstance(nextInst);
 		}
-
+		
 		return newTable;
 	}
 
