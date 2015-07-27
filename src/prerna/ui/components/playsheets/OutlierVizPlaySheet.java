@@ -44,6 +44,9 @@ import javax.swing.JTable;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.IAnalyticRoutine;
+import prerna.algorithm.learning.unsupervised.outliers.EntropyDensityStatistic;
+import prerna.algorithm.learning.unsupervised.outliers.FastOutlierDetection;
 import prerna.algorithm.learning.unsupervised.outliers.LOF;
 import prerna.om.SEMOSSParam;
 import prerna.ui.components.GridScrollPane;
@@ -52,19 +55,29 @@ import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
-public class LocalOutlierVizPlaySheet extends BrowserPlaySheet {
+public class OutlierVizPlaySheet extends BrowserPlaySheet {
 	
-	private static final Logger LOGGER = LogManager.getLogger(LocalOutlierPlaySheet.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(OutlierVizPlaySheet.class.getName());
 
-	private LOF alg;
+	public static final String LOF = "localOutlierFactor"; // local outlier factor
+	public static final String EDS = "entropyDensityStatistic"; // entropy density statistic
+	public static final String FOD = "fastOutlierDetection"; // fast outlier detection
+	
+	private String algorithmSelected = LOF;
+	private IAnalyticRoutine alg;
 	private int instanceIndex;
+	
+	// used for lof
 	private int k;
+	// used for fast outlier detection
+	private int numSubsetSize;
+	
 	private List<String> skipAttributes;
-
+	
 	/**
 	 * Constructor for LocalOutlierVizPlaySheet. TODO needs to be changed to correct playsheet name when created
 	 */
-	public LocalOutlierVizPlaySheet() {
+	public OutlierVizPlaySheet() {
 		super();
 		this.setPreferredSize(new Dimension(800, 600));
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
@@ -79,15 +92,37 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet {
 
 	@Override
 	public void runAnalytics() {
-		alg = new LOF();
-		List<SEMOSSParam> options = alg.getOptions();
 		Map<String, Object> selectedOptions = new HashMap<String, Object>();
-		selectedOptions.put(options.get(0).getName(), instanceIndex); // default of 0 is acceptable
-		if(k == 0) {
-			k = 25;
-		} 
-		selectedOptions.put(options.get(1).getName(), k);
-		selectedOptions.put(options.get(2).getName(), skipAttributes);
+
+		if(algorithmSelected.equalsIgnoreCase(EDS)) {
+			alg = new EntropyDensityStatistic();
+			List<SEMOSSParam> options = alg.getOptions();
+			selectedOptions.put(options.get(0).getName(), instanceIndex); // default of 0 is acceptable
+			selectedOptions.put(options.get(1).getName(), skipAttributes);
+			
+		} else if(algorithmSelected.equalsIgnoreCase(FOD)) {
+			alg = new FastOutlierDetection();
+			List<SEMOSSParam> options = alg.getOptions();
+			selectedOptions.put(options.get(0).getName(), instanceIndex); // default of 0 is acceptable
+			if(numSubsetSize == 0) {
+				numSubsetSize = 10;
+			}
+			selectedOptions.put(options.get(1).getName(), numSubsetSize);
+			selectedOptions.put(options.get(2).getName(), skipAttributes);
+
+		} else if(algorithmSelected.equalsIgnoreCase(LOF)){
+			alg = new LOF();
+			List<SEMOSSParam> options = alg.getOptions();
+			selectedOptions.put(options.get(0).getName(), instanceIndex); // default of 0 is acceptable
+			if(k == 0) {
+				k = 25;
+			} 
+			selectedOptions.put(options.get(1).getName(), k);
+			selectedOptions.put(options.get(2).getName(), skipAttributes);
+			
+		} else {
+			throw new IllegalArgumentException("Outlier method does not exist.");
+		}
 
 		alg.setSelectedOptions(selectedOptions);
 		dataFrame.performAction(alg);
@@ -132,6 +167,28 @@ public class LocalOutlierVizPlaySheet extends BrowserPlaySheet {
 
 	public void setK(int k) {
 		this.k = k;
+	}
+	
+	public String getAlgorithmSelected() {
+		return algorithmSelected;
+	}
+
+	public void setAlgorithmSelected(String algorithmSelected) {
+		this.algorithmSelected = algorithmSelected;
+	}
+
+	/**
+	 * @return the numSubsetSize
+	 */
+	public int getNumSubsetSize() {
+		return numSubsetSize;
+	}
+
+	/**
+	 * @param numSubsetSize the numSubsetSize to set
+	 */
+	public void setNumSubsetSize(int numSubsetSize) {
+		this.numSubsetSize = numSubsetSize;
 	}
 
 	public void setSkipAttributes(List<String> skipAttributes) {

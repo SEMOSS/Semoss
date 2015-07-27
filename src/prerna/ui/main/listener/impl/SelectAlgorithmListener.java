@@ -126,7 +126,11 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showNumericalCorrelation(false);
 			playSheet.showSelfOrganizingMap(false);
 			playSheet.showPerceptron(true);
-		} else if(selection.equals("Similarity") || selection.equals("Predictability") || selection.equals("Correlation")) {
+		} else if(selection.equals("Similarity") || 
+				selection.equals("Predictability") || 
+				selection.equals("Correlation") || 
+				selection.equals("Entropy Density Factor") ||
+				selection.equals("Fast Outlier Detection")) {
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
 			playSheet.showLocalOutlierFactor(false);

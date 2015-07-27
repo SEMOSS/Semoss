@@ -173,6 +173,10 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		if(dataFrame == null || dataFrame.isEmpty())
 			super.createData();
 		
+		if(dataFrame == null || dataFrame.isEmpty()) {
+			return;
+		}
+		
 		columnHeaders = dataFrame.getColumnHeaders();
 		isNumeric = dataFrame.isNumeric();
 		numericalPropNames = new ArrayList<String>();
@@ -349,8 +353,8 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		algorithmComboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"Cluster", 
 				"Classify",
 				"Local Outlier Factor",
-				/*"Entropy Density Statistic Outlier Factor",
-				"Fast Outlier Detection", */
+				"Entropy Density Factor",
+				"Fast Outlier Detection",
 				"Association Learning","Similarity",
 				"Predictability",
 				"Linear Regression",
