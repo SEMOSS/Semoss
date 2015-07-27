@@ -54,7 +54,7 @@ public final class InstanceSimilarity {
 			return sim;
 		}
 		
-		return Math.sqrt(sim) / numNumeric * ( (double) numNumeric / isNumeric.length);
+		return (1 - Math.sqrt(sim)) * ( (double) numNumeric / isNumeric.length);
 	}
 
 	private static double calculateInstanceCategoricalSim(List<Object[]> instance1, List<Object[]> instance2, boolean[] isNumeric) {
