@@ -125,10 +125,10 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	private final String CONSOLIDATED_SYSTEMS = "Consolidated Systems";
 
 	private final String SUSTAINED_HOST_SITE = "Sustained Host Site";
-	private final String PREVIOUSLY_HOSTED_SITE = "Previoulsy Hosted Site";
+	private final String PREVIOUSLY_HOSTED_SITE = "Previously Hosted Site";
 	private final String SUSTAINED_ACCESSIBLE_SITE = "Sustained Accessible Site";
 	private final String DEPLOYED_ACCESSIBLE_SITE = "Deployed Accessible Site";
-	private final String PREVIOUSLY_ACCESSIBLE_SITE = "Previoulsy Accessible Site";
+	private final String PREVIOUSLY_ACCESSIBLE_SITE = "Previously Accessible Site";
 	
 	public int startYear = 2015;
 	
