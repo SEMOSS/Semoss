@@ -50,7 +50,7 @@ public enum PlaySheetEnum {
 	
 	Machine_Learning_Module("Machine Learning Module", "prerna.ui.components.playsheets.MachineLearningModulePlaySheet", "MachineLearningModulePlaySheet Hint: SELECT ?instance ?categoricalProp ?numericalProp WHERE { ... }"),
 	Clustering("Clustering", "prerna.ui.components.playsheets.ClusteringVizPlaySheet", "ClusteringVizPlaySheet Hint: SELECT ?instance ?categoricalProp ?numericalProp WHERE { ... }+++(OPTIONAL)numClusters"),
-	Local_Outlier_Factor("Local_Outlier_Factor","prerna.ui.components.playsheets.LocalOutlierVizPlaySheet", "LocalOutlierPlaySheet Hint: SELECT ?instance ?prop1... ?propN WHERE{ ... }+++NeighborhoodCount"),
+	Local_Outlier_Factor("Outlier","prerna.ui.components.playsheets.OutlierVizPlaySheet", "OutlierPlaySheet Hint: SELECT ?instance ?prop1... ?propN WHERE{ ... }+++NeighborhoodCount"),
 	Classification("Classifier","prerna.ui.components.playsheets.WekaClassificationPlaySheet", "WekaClassificationPlaySheet Hint: SELECT ?instance ?prop1... ?propN ?classificationProp WHERE{ ... }+++ClassificationAlgorithm"),
 	DatasetSimilarity("Similarity", "prerna.ui.components.playsheets.DatasetSimilarityPlaySheet", "DatasetSimilarityPlaySheet Hint: SELECT ?instance ?prop1... ?propN WHERE{ ... }"),
 	DatasetSimilarityColumnChart("Similarity Column Chart", "prerna.ui.components.playsheets.DatasetSimilairtyColumnChartPlaySheet", "DatasetSimilairtyColumnChartPlaySheet Hint: SELECT ?instance ?prop1... ?propN WHERE{ ... }"),
