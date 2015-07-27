@@ -14,8 +14,9 @@ public class IndexTreeIterator implements Iterator<TreeNode> {
 	 */
 	public IndexTreeIterator(TreeNode typeRoot) {
 		nodeStack = new Stack<>();
-		if(typeRoot!=null) 
+		if(typeRoot!=null) {
 			nodeStack.push(typeRoot.getLeft(typeRoot));
+		}
 		
 	}
 	
@@ -29,7 +30,7 @@ public class IndexTreeIterator implements Iterator<TreeNode> {
 	
 	@Override
 	public TreeNode next() {
-		if(nodeStack.isEmpty()) {
+		if(!hasNext()) {
 			throw new IndexOutOfBoundsException("No more nodes in Index Tree.");
 		}
 		TreeNode returnNode = nodeStack.pop();
