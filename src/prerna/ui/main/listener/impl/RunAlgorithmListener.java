@@ -57,11 +57,11 @@ import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
 import prerna.ui.components.playsheets.CorrelationPlaySheet;
-import prerna.ui.components.playsheets.LocalOutlierVizPlaySheet;
 import prerna.ui.components.playsheets.MachineLearningModulePlaySheet;
 import prerna.ui.components.playsheets.MatrixRegressionPlaySheet;
 import prerna.ui.components.playsheets.MatrixRegressionVizPlaySheet;
 import prerna.ui.components.playsheets.NumericalCorrelationVizPlaySheet;
+import prerna.ui.components.playsheets.OutlierVizPlaySheet;
 import prerna.ui.components.playsheets.PerceptronPlaySheet;
 import prerna.ui.components.playsheets.SelfOrganizingMap3DBarChartPlaySheet;
 import prerna.ui.components.playsheets.WekaAprioriVizPlaySheet;
@@ -75,13 +75,13 @@ import prerna.util.Utility;
  */
 public class RunAlgorithmListener extends AbstractListener {
 	private static final Logger LOGGER = LogManager.getLogger(RunAlgorithmListener.class.getName());
-	
+
 	private MachineLearningModulePlaySheet playSheet;
 	private JTabbedPane jTab;
 	private JProgressBar jBar;
 	private Hashtable<String, IPlaySheet> playSheetHash;
 	private JComboBox<String> algorithmComboBox;
-	
+
 	//cluster
 	private JComboBox<String> selectNumClustersComboBox;
 	private String manuallySelectNumClustersText;
@@ -90,13 +90,13 @@ public class RunAlgorithmListener extends AbstractListener {
 	//classify
 	private JComboBox<String> classificationMethodComboBox;
 	private JComboBox<String> classifyClassComboBox;
-	
+
 	//outlier
 	private JSlider enterKNeighborsSlider;
-	
+
 	//matrix regression
 	private JComboBox<String> matrixDepVarComboBox;
-	
+
 	private JToggleButton showDrillDownBtn;
 	private JComboBox<String> drillDownTabSelectorComboBox;
 	private ArrayList<JCheckBox> columnCheckboxes;
@@ -110,7 +110,7 @@ public class RunAlgorithmListener extends AbstractListener {
 
 	private JComboBox<String> perceptronClassComboBox;
 
-	
+
 	/**
 	 * Method actionPerformed.
 	 * @param e ActionEvent
@@ -126,10 +126,10 @@ public class RunAlgorithmListener extends AbstractListener {
 		//need to put chart/grid on correct tabs, updating if necessary
 		//if outlier.... figure out the kneighbors and run the outlier method
 		//TODO add logger statements
-		
+
 		//filter the names array and list of data based on the independent variables selected
 		//must make sure that we include the first col, even though there is no checkbox
-		
+
 		//Revert back to the original data frame structure
 		List<String> newColumnHeaders = Arrays.asList(dataFrame.getColumnHeaders());
 		List<String> originalColumnHeaders = Arrays.asList(playSheet.columnHeaders);
@@ -150,9 +150,9 @@ public class RunAlgorithmListener extends AbstractListener {
 			Utility.showError("No variables were selected. Please select at least one and retry.");
 			return;
 		}
-		
+
 		dataFrame.setColumnsToSkip(skipColumns);
-		
+
 		String algorithm = algorithmComboBox.getSelectedItem() + "";
 		if(algorithm.equals("Similarity")) {
 			ClusteringModuleUpdateRunner runner = new ClusteringModuleUpdateRunner(playSheet);
@@ -161,7 +161,7 @@ public class RunAlgorithmListener extends AbstractListener {
 			playThread.start();
 			return;
 		}
-		
+
 		BasicProcessingPlaySheet newPlaySheet;
 		if(algorithm.equals("Cluster") ) {
 			int numClusters = 0;
@@ -194,19 +194,19 @@ public class RunAlgorithmListener extends AbstractListener {
 			((ClusteringVizPlaySheet)newPlaySheet).setPlaySheetHash(playSheetHash);
 			((ClusteringVizPlaySheet)newPlaySheet).setJTab(jTab);
 			((ClusteringVizPlaySheet)newPlaySheet).setJBar(jBar);
-			
+
 			showDrillDownBtn.setVisible(true);			
-			
+
 		} else if(algorithm.equals("Classify")) {
 			skipColumns.add(attributeNames[0]);
 			dataFrame.setColumnsToSkip(skipColumns);
 
 			//method of classification to use
 			String classMethod = classificationMethodComboBox.getSelectedItem() + "";
-			
+
 			//determine the column index and name to classify on
 			String classifier = classifyClassComboBox.getSelectedItem() + "";
-			
+
 			newPlaySheet = new WekaClassificationPlaySheet();
 			newPlaySheet.setDataFrame(dataFrame);
 			((WekaClassificationPlaySheet)newPlaySheet).setModelName(classMethod);
@@ -214,19 +214,37 @@ public class RunAlgorithmListener extends AbstractListener {
 			((WekaClassificationPlaySheet)newPlaySheet).setClassColumn(classifier);
 			((WekaClassificationPlaySheet)newPlaySheet).setJTab(jTab);
 			((WekaClassificationPlaySheet)newPlaySheet).setJBar(jBar);
-		
+
 		} else if(algorithm.equals("Local Outlier Factor")) {
 			int kneighbors = enterKNeighborsSlider.getValue();
-			
-			newPlaySheet = new LocalOutlierVizPlaySheet();
+
+			newPlaySheet = new OutlierVizPlaySheet();
 			newPlaySheet.setDataFrame(dataFrame);
-			((LocalOutlierVizPlaySheet)newPlaySheet).setK(kneighbors);
-			((LocalOutlierVizPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
-			((LocalOutlierVizPlaySheet)newPlaySheet).setJTab(jTab);
-			((LocalOutlierVizPlaySheet)newPlaySheet).setJBar(jBar);			
-		
+			((OutlierVizPlaySheet)newPlaySheet).setAlgorithmSelected(OutlierVizPlaySheet.LOF);
+			((OutlierVizPlaySheet)newPlaySheet).setK(kneighbors);
+			((OutlierVizPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
+			((OutlierVizPlaySheet)newPlaySheet).setJTab(jTab);
+			((OutlierVizPlaySheet)newPlaySheet).setJBar(jBar);			
+
+		} else if(algorithm.equals("Entropy Density Factor")) {
+			newPlaySheet = new OutlierVizPlaySheet();
+			newPlaySheet.setDataFrame(dataFrame);
+			((OutlierVizPlaySheet)newPlaySheet).setAlgorithmSelected(OutlierVizPlaySheet.EDS);
+			((OutlierVizPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
+			((OutlierVizPlaySheet)newPlaySheet).setJTab(jTab);
+			((OutlierVizPlaySheet)newPlaySheet).setJBar(jBar);		
+
+		} else if(algorithm.equals("Fast Outlier Detection")) {
+			newPlaySheet = new OutlierVizPlaySheet();
+			newPlaySheet.setDataFrame(dataFrame);
+			((OutlierVizPlaySheet)newPlaySheet).setAlgorithmSelected(OutlierVizPlaySheet.FOD);
+			//			((OutlierVizPlaySheet)newPlaySheet).setNumSubsetSize(numSubsetSize); //TODO: create field for input
+			((OutlierVizPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
+			((OutlierVizPlaySheet)newPlaySheet).setJTab(jTab);
+			((OutlierVizPlaySheet)newPlaySheet).setJBar(jBar);		
+
 		} else if(algorithm.equals("Predictability")) {
-			
+
 			double[] accuracyArr = new double[columnCheckboxes.size()];
 			double[] precisionArr = new double[columnCheckboxes.size()];
 			String[] at = this.dataFrame.getColumnHeaders();
@@ -257,15 +275,15 @@ public class RunAlgorithmListener extends AbstractListener {
 			}
 			playSheet.fillAccuracyAndPrecision(accuracyArr, precisionArr);
 			return;
-			
+
 		} else if(algorithm.equals("Association Learning")) { 
 			String numRuleString = playSheet.getEnterNumRulesTextField().getText();
 			String confIntervalString = playSheet.getEnterConfIntervalTextField().getText();
 			String minSupportString = playSheet.getEnterMinSupportTextField().getText();
 			String maxSupportString = playSheet.getEnterMaxSupportTextField().getText();
-			
+
 			String errorMessage = "";
-			
+
 			int numRule = -1;
 			try {
 				numRule = Integer.parseInt(numRuleString);
@@ -273,7 +291,7 @@ public class RunAlgorithmListener extends AbstractListener {
 				errorMessage += "Number of Rules must be a integer value.  Using default value of 10. \n";
 				numRule = 10;
 			}
-			
+
 			double confPer = -1;
 			try {
 				confPer = Double.parseDouble(confIntervalString);
@@ -285,7 +303,7 @@ public class RunAlgorithmListener extends AbstractListener {
 				errorMessage += "Conf Interval must be a value between 0 and 1.  Using default value of 0.9. \n";
 				confPer = 0.9;
 			}
-			
+
 			double minSupport = -1;
 			try {
 				minSupport = Double.parseDouble(minSupportString);
@@ -297,7 +315,7 @@ public class RunAlgorithmListener extends AbstractListener {
 				errorMessage += "Min Support must be a value between 0 and 1.  Using default value of 0.1. \n";
 				minSupport = 0.1;
 			}
-			
+
 			double maxSupport = -1.0;
 			try {
 				maxSupport = Double.parseDouble(maxSupportString);
@@ -309,7 +327,7 @@ public class RunAlgorithmListener extends AbstractListener {
 				errorMessage += "Max Support must be a value between 0 and 1.  Using default value of 1.0. \n";
 				maxSupport = 1.0;
 			}
-			
+
 			if(!errorMessage.isEmpty()) {
 				Utility.showError(errorMessage);
 			}
@@ -330,22 +348,22 @@ public class RunAlgorithmListener extends AbstractListener {
 			while(depVarIndex > -1 && !at[depVarIndex].equals(depVar)) {
 				depVarIndex--;
 			}
-			
+
 			if(depVarIndex<0){
 				LOGGER.error("Cannot match dependent variable selected in drop down to list of columns");
 				return;
 			}
-			
+
 			//create grid view
 			MatrixRegressionPlaySheet gridPlaySheet = new MatrixRegressionPlaySheet();
-			
+
 			newPlaySheet = new MatrixRegressionVizPlaySheet();
 			newPlaySheet.setDataFrame(dataFrame);
 			((MatrixRegressionVizPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((MatrixRegressionVizPlaySheet)newPlaySheet).setbColumnIndex(depVarIndex);
 			((MatrixRegressionVizPlaySheet)newPlaySheet).setJTab(jTab);
 			((MatrixRegressionVizPlaySheet)newPlaySheet).setJBar(jBar);
-			
+
 		}  else if(algorithm.equals("Numerical Correlation")) {			
 			newPlaySheet = new NumericalCorrelationVizPlaySheet();
 			newPlaySheet.setDataFrame(dataFrame);
@@ -353,28 +371,28 @@ public class RunAlgorithmListener extends AbstractListener {
 			((NumericalCorrelationVizPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((NumericalCorrelationVizPlaySheet)newPlaySheet).setJTab(jTab);
 			((NumericalCorrelationVizPlaySheet)newPlaySheet).setJBar(jBar);
-			
+
 		} else if(algorithm.equals("Correlation")) {
-			
+
 			newPlaySheet = new CorrelationPlaySheet();
 			newPlaySheet.setDataFrame(dataFrame);
 
 			((CorrelationPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((CorrelationPlaySheet)newPlaySheet).setJTab(jTab);
 			((CorrelationPlaySheet)newPlaySheet).setJBar(jBar);
-			
+
 		} else if(algorithm.equals("Self Organizing Map")) {
 			newPlaySheet = new SelfOrganizingMap3DBarChartPlaySheet();
 			newPlaySheet.setDataFrame(dataFrame);
-			
+
 			((SelfOrganizingMap3DBarChartPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((SelfOrganizingMap3DBarChartPlaySheet)newPlaySheet).setJTab(jTab);
 			((SelfOrganizingMap3DBarChartPlaySheet)newPlaySheet).setJBar(jBar);
-			
+
 			String l0Text = playSheet.getEnterL0TextField().getText();
 			String r0Text = playSheet.getEnterR0TextField().getText();
 			String tauText = playSheet.getEnterTauTextField().getText();
-			
+
 			if(l0Text != null && !l0Text.isEmpty()) {
 				try {
 					double l0 = Double.parseDouble(l0Text);
@@ -383,7 +401,7 @@ public class RunAlgorithmListener extends AbstractListener {
 					Utility.showError("Entered value for l0, " + l0Text + ", is not a valid numerical input.\nWill use default value.");
 				}
 			}
-			
+
 			if(r0Text != null && !r0Text.isEmpty()) {
 				try {
 					double r0 = Double.parseDouble(r0Text);
@@ -392,7 +410,7 @@ public class RunAlgorithmListener extends AbstractListener {
 					Utility.showError("Entered value for r0, " + r0Text + ", is not a valid numerical input.\nWill use default value.");
 				}
 			}
-			
+
 			if(tauText != null && !tauText.isEmpty()) {
 				try {
 					double tau = Double.parseDouble(tauText);
@@ -404,17 +422,17 @@ public class RunAlgorithmListener extends AbstractListener {
 		} else if(algorithm.equals("Perceptron")) {
 			//skipColumns.add(attributeNames[0]);
 			dataFrame.setColumnsToSkip(skipColumns);
-			
+
 			//determine the column index and name to classify on
 			String classifier = perceptronClassComboBox.getSelectedItem() + "";
-			
+
 			newPlaySheet = new PerceptronPlaySheet();
 			newPlaySheet.setDataFrame(dataFrame);
 			((PerceptronPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((PerceptronPlaySheet)newPlaySheet).setClassColumn(classifier);
 			((PerceptronPlaySheet)newPlaySheet).setJTab(jTab);
 			//((PerceptronPlaySheet)newPlaySheet).setJBar(jBar);
-			
+
 		} else {
 			LOGGER.error("Cannot find algorithm");
 			return;
@@ -422,7 +440,7 @@ public class RunAlgorithmListener extends AbstractListener {
 
 		newPlaySheet.setRDFEngine(engine);
 		newPlaySheet.setTitle(title);
-		
+
 		PlaysheetCreateRunner runner = new PlaysheetCreateRunner(newPlaySheet);
 		Thread playThread = new Thread(runner);
 		playThread.start();
@@ -437,7 +455,7 @@ public class RunAlgorithmListener extends AbstractListener {
 		this.playSheet = (MachineLearningModulePlaySheet) view;
 		this.columnCheckboxes = playSheet.getColumnCheckboxes();
 		this.algorithmComboBox = playSheet.getAlgorithmComboBox();
-		
+
 		//cluster
 		this.selectNumClustersComboBox = playSheet.getSelectNumClustersComboBox();
 		this.manuallySelectNumClustersText = playSheet.getManuallySelectNumClustersText();
