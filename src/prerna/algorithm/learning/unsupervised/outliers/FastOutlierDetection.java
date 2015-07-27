@@ -88,7 +88,7 @@ public class FastOutlierDetection implements IAnalyticRoutine {
 		this.instanceIndex = 0;//(int) options.get(0).getSelected();
 		this.numSubsetSize = 10;//(int) options.get(1).getSelected();
 		this.skipAttributes = null;//(List<String>) options.get(2).getSelected();
-		this.dups = (Map<String, DuplicationReconciliation>) options.get(2).getSelected();
+		this.dups = (Map<String, DuplicationReconciliation>) options.get(3).getSelected();
 
 		// get number of rows and cols
 		this.dataFrame = data[0];
@@ -157,7 +157,6 @@ public class FastOutlierDetection implements IAnalyticRoutine {
 			returnTable.addRow(row, row);
 		}
 
-		System.out.println(results);
 		return returnTable;
 	}
 
