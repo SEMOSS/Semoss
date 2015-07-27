@@ -354,9 +354,6 @@ public class RunAlgorithmListener extends AbstractListener {
 				return;
 			}
 
-			//create grid view
-			MatrixRegressionPlaySheet gridPlaySheet = new MatrixRegressionPlaySheet();
-
 			newPlaySheet = new MatrixRegressionVizPlaySheet();
 			newPlaySheet.setDataFrame(dataFrame);
 			((MatrixRegressionVizPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
