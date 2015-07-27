@@ -133,18 +133,18 @@ public class FastOutlierDetection implements IAnalyticRoutine {
 		while(it.hasNext()) {
 			List<Object[]> instance = it.next();
 			Object instanceName = instance.get(0)[instanceIndex];
-			double minSim = 2;
+			double maxSim = 0;
 			for(int i= 0; i < numSubsetSize; i++) {
 				List<Object[]> subsetInstance = rSubset.get(i);
 				if(subsetInstance.get(0)[instanceIndex].equals(instance.get(0)[instanceIndex])) {
 					continue;
 				}
 				double sim = InstanceSimilarity.getInstanceSimilarity(instance, subsetInstance, isNumeric, attributeNames, dups);
-				if(minSim > sim) {
-					minSim = sim;
+				if(maxSim < sim) {
+					maxSim = sim;
 				}
 			}
-			results.put(instanceName, minSim);
+			results.put(instanceName, maxSim);
 		}
 
 		String attributeName = attributeNames[instanceIndex];
