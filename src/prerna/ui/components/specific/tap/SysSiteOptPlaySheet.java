@@ -98,24 +98,6 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		return defaultSettings;
 	}
 	
-	public Hashtable getSystems() {
-		Hashtable returnHash = (Hashtable) super.getData();
-		Hashtable dataHash = new Hashtable();
-		
-		ArrayList<String> sysList;
-		if(capabilityURI == null || capabilityURI.isEmpty()) {
-			sysList= new ArrayList<String>(sysUpdater.getSelectedSystemList(false, false, true, true, false, false, false, false));
-		}else {
-			sysList= new ArrayList<String>(sysUpdater.getSelectedSystemListForCapability(capabilityURI,false, false, true, true, false, false, false, false));
-		}
-		
-		dataHash.put("systems",sysList);
-		
-		if (dataHash != null)
-			returnHash.put("data", dataHash);
-		return returnHash;
-	}
-	
 	public Hashtable getSystems(Hashtable<String, Object> webDataHash) {
 		Hashtable returnHash = (Hashtable) super.getData();
 		Hashtable dataHash = new Hashtable();
@@ -147,7 +129,11 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		else
 			ehrCore = gson.fromJson(gson.toJson(webDataHash.get("ehrcore")), Boolean.class);
 
-		ArrayList<String> sysList = new ArrayList<String>(sysUpdater.getSelectedSystemList(intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore));
+		ArrayList<String> sysList;
+		if(capabilityURI == null || capabilityURI.isEmpty()) {sysList = new ArrayList<String>(sysUpdater.getSelectedSystemList(intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore));
+		}else {
+			sysList = new ArrayList<String>(sysUpdater.getSelectedSystemListForCapability(capabilityURI,intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore));
+		}
 		
 		dataHash.put("systems",sysList);
 		
@@ -166,7 +152,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		opt.setCapabilityURI(capabilityURI);
 	}
 	
-	public ArrayList<Hashtable<String,String>> runDefaultOpt() {
+	public ArrayList<Hashtable<String,String>> runDefaultOpt(Hashtable<String, Object> webDataHash) {
 
 		//check to make sure site engine is loaded
 		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
@@ -846,14 +832,21 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 	public Hashtable getOverviewPageData(Hashtable webDataHash) {
 		Hashtable retHash = new Hashtable();
 		String type = (String) webDataHash.get("type");
-        if (type.equals("info"))
+        if (type.equals("info")) {
         	retHash = opt.getOverviewInfoData();
-        if (type.equals("map"))
-        	retHash = opt.getOverviewSiteSavingsMapData();
-        if (type.equals("healthGrid"))
+        }
+        if (type.equals("map")) {
+        	retHash.put("Savings", opt.getOverviewSiteSavingsMapData());
+        	if(capabilityURI!=null && !capabilityURI.isEmpty()) {
+        		retHash.put("CapCoverage", opt.getOverviewCapCoverageMapData());
+        	}
+        }
+        if (type.equals("healthGrid")) {
         	retHash = opt.getHealthGrid();
-        if (type.equals("coverage"))
+        }
+        if (type.equals("coverage")) {
         	retHash = opt.getSystemCoverageData("");
+        }
 		return retHash;
 	}
 	
