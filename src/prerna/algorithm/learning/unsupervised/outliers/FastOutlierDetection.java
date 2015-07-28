@@ -153,7 +153,7 @@ public class FastOutlierDetection implements IAnalyticRoutine {
 		for(Object instance : results.keySet()) {
 			Map<String, Object> row = new HashMap<String, Object>();
 			row.put(attributeName, instance);
-			row.put(changedColumn, results.get(instance));
+			row.put(changedColumn, 1.0 - results.get(instance));
 			returnTable.addRow(row, row);
 		}
 
