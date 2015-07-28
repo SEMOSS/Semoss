@@ -856,7 +856,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
         String system = (String) webDataHash.get("system");
         String ind = (String) webDataHash.get("ind");
         Boolean isModernized = false;
-        if (ind.equals("Modernize")) 
+        if (ind.equals("Recommended Sustain")) 
         	isModernized = true;        
         if (type.equals("info"))
         	retHash = opt.getSystemInfoData(system, isModernized);
