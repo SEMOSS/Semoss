@@ -134,7 +134,7 @@ public class SysOptCheckboxListUpdater {
 		
 		List<String> capabilitySysList = SysOptUtilityMethods.getList(engine,"Capability","SELECT DISTINCT ?entity WHERE { BIND("+capabilityURI+" AS ?Capability){?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?entity <http://semoss.org/ontologies/Relation/Supports> ?Capability}}");	
 		
-		return ListUtilityMethods.createAndUnionIfBothFilled(checkboxSysList, capabilitySysList);
+		return ListUtilityMethods.createAndUnion(checkboxSysList, capabilitySysList);
 	}
 	
 	public List<String> getSelectedSystemList(Boolean intDHMSM, Boolean notIntDHMSM, Boolean theater, Boolean garrison, Boolean low, Boolean high, Boolean mhsSpecific, Boolean ehrCore) {
