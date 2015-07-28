@@ -42,7 +42,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class OCONUSSavingsMapPlaySheet extends OCONUSMapPlaySheet {
-	private IEngine hrCore = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
+	private IEngine hrCore = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 	private IEngine tapSite = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 	
 	// Queries used for savings

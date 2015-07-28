@@ -35,7 +35,7 @@ import java.util.Hashtable;
  */
 public class CapSimHeatMapSheet extends SimilarityHeatMapSheet{
 
-	String hrCoreDB = "HR_Core";
+	String hrCoreDB = "TAP_Core_Data";
 	
 	/**
 	 * Constructor for CapSimHeatMapSheet.

@@ -38,17 +38,17 @@ import prerna.util.DIHelper;
 
 public class AllLegacySystemsDispositionProcessor {
 
-	private IEngine hr_Core;
+	private IEngine TAP_Core_Data;
 
 	public void processReports() throws EngineException, FileReaderException
 	{
-		hr_Core = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
-		if(hr_Core == null) {
-			throw new EngineException("Could not find HR_Core db");
+		TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+		if(TAP_Core_Data == null) {
+			throw new EngineException("Could not find TAP_Core_Data db");
 		}
 
 		TAPLegacySystemDispositionReportWriter indiviudalSysWriter = new TAPLegacySystemDispositionReportWriter();
-		HashMap<String,String> reportTypeHash = DHMSMTransitionUtility.processReportTypeQuery(hr_Core);
+		HashMap<String,String> reportTypeHash = DHMSMTransitionUtility.processReportTypeQuery(TAP_Core_Data);
 		indiviudalSysWriter.setReportTypeHash(reportTypeHash);
 
 		for(String s : reportTypeHash.keySet()) {

@@ -158,7 +158,7 @@ public class SOAAnalysisPerformer implements Runnable {
 		newPlaySheet.updateProgressBar("20%...Extending Services", 20);
 		logger.info("Repository is " + repos);
 		
-		String extendQuery = "CONSTRUCT {?system1 ?build ?service.?build ?subprop ?relation. ?system2 ?build2 ?service.?build2 ?subprop ?relation.  ?system3 ?build3 ?service2. ?build3 ?subprop ?relation. ?service ?exposes ?data. ?service2 ?exposes2 ?blu} WHERE {BIND(<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> AS ?subprop) BIND(<http://semoss.org/ontologies/Relation> AS ?relation){{?service <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;}{?exposes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Exposes>;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>;}{?system1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?system2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type><http://semoss.org/ontologies/Concept/System>;} BIND(URI(CONCAT(\"http://health.mil/ontologies/Relation/\", SUBSTR(STR(?system1), 45), \":\", SUBSTR(STR(?service), 46))) AS ?build) BIND(URI(CONCAT(\"http://health.mil/ontologies/Relation/\", SUBSTR(STR(?system2), 45), \":\", SUBSTR(STR(?service), 46))) AS ?build2){?icd <http://semoss.org/ontologies/Relation/Payload> ?data;}{?system1 <http://semoss.org/ontologies/Relation/Provide> ?icd;}{?icd <http://semoss.org/ontologies/Relation/Consume> ?system2;}{?service ?exposes ?data;} {?data ?label ?name1;}Filter (?name1 in (FILTER_VALUES))}UNION{{?system3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?service2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;}{?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?exposes2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf><http://semoss.org/ontologies/Relation/Exposes>;}BIND(URI(CONCAT(\"http://health.mil/ontologies/Relation/\", SUBSTR(STR(?system3), 45), \":\", SUBSTR(STR(?service2), 46))) AS ?build3){?system3 <http://semoss.org/ontologies/Relation/Provide> ?blu}{?service2 ?exposes2 ?blu}.BIND( <http://health.mil/ontologies/Concept/System/> AS ?system3)}}BINDINGS ?icd {BINDINGS_VALUE}";
+		String extendQuery = "CONSTRUCT {?system1 ?build ?service.?build ?subprop ?relation. ?system2 ?build2 ?service.?build2 ?subprop ?relation.  ?system3 ?build3 ?service2. ?build3 ?subprop ?relation. ?service ?exposes ?data. ?service2 ?exposes2 ?blu} WHERE {BIND(<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> AS ?subprop) BIND(<http://semoss.org/ontologies/Relation> AS ?relation){{?service <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;}{?exposes <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Exposes>;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>;}{?system1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?system2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type><http://semoss.org/ontologies/Concept/System>;} BIND(URI(CONCAT(\"http://health.mil/ontologies/Relation/\", SUBSTR(STR(?system1), 45), \":\", SUBSTR(STR(?service), 46))) AS ?build) BIND(URI(CONCAT(\"http://health.mil/ontologies/Relation/\", SUBSTR(STR(?system2), 45), \":\", SUBSTR(STR(?service), 46))) AS ?build2){?icd <http://semoss.org/ontologies/Relation/Payload> ?data;}{?system1 <http://semoss.org/ontologies/Relation/Provide> ?icd;}{?icd <http://semoss.org/ontologies/Relation/Consume> ?system2;}{?service ?exposes ?data;} {?data ?label ?name1;}Filter (?name1 in (FILTER_VALUES))}UNION{{?system3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?service2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service> ;}{?blu <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?exposes2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf><http://semoss.org/ontologies/Relation/Exposes>;}BIND(URI(CONCAT(\"http://health.mil/ontologies/Relation/\", SUBSTR(STR(?system3), 45), \":\", SUBSTR(STR(?service2), 46))) AS ?build3){?system3 <http://semoss.org/ontologies/Relation/Provide> ?blu}{?service2 ?exposes2 ?blu}.BIND( <http://health.mil/ontologies/Concept/System/> AS ?system3)}}BINDINGS ?icd {BINDINGS_VALUE}";
 		
 		//replacing alot of params into the query
 		for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
@@ -166,7 +166,7 @@ public class SOAAnalysisPerformer implements Runnable {
 			// use the layout to load the sheet later
 			// see if the append is on
 			VertexFilterData vfd = newPlaySheet.getFilterData();
-			Vector  nodeList = (Vector) retValues.get("InterfaceControlDocument");
+			Vector  nodeList = (Vector) retValues.get("SystemInterface");
 			Vector  nodeList2 = (Vector) retValues.get("DataObject");
 			Vector  nodeList3 = (Vector) retValues.get("BusinessLogicUnit");
 			// convert this into a filter list
@@ -174,7 +174,7 @@ public class SOAAnalysisPerformer implements Runnable {
 			String filter = "";
 			for(int nodeIndex = 0;nodeIndex < nodeList.size();nodeIndex++)
 			{
-				filter = filter + "(<http://health.mil/ontologies/Concept/InterfaceControlDocument/" + nodeList.get(nodeIndex) + ">)";
+				filter = filter + "(<http://health.mil/ontologies/Concept/SystemInterface/" + nodeList.get(nodeIndex) + ">)";
 					
 			}
 			extendQuery = extendQuery.replace("BINDINGS_VALUE", filter);
@@ -213,15 +213,15 @@ public class SOAAnalysisPerformer implements Runnable {
 		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		Object [] repos = (Object [])list.getSelectedValues();
 		newPlaySheet.updateProgressBar("20%...Removing SOA Replaced Interfaces", 20);
-		String removeQuery = "CONSTRUCT {?system1 ?upstream ?icd. ?icd ?downstream ?system2. ?icd ?carries ?data. ?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept>.?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>.} WHERE {{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>;}{?system1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide> ;}{?downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;}{?system2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?system1 ?upstream ?icd;}{?icd ?downstream ?system2;}{?icd ?carries ?data;} }BINDINGS ?icd {FILTER_VALUES}";
+		String removeQuery = "CONSTRUCT {?system1 ?upstream ?icd. ?icd ?downstream ?system2. ?icd ?carries ?data. ?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept>.?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>.} WHERE {{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>;}{?system1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide> ;}{?downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;}{?system2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?system1 ?upstream ?icd;}{?icd ?downstream ?system2;}{?icd ?carries ?data;} }BINDINGS ?icd {FILTER_VALUES}";
 		for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
 		{
 
-			Vector nodeList = (Vector) retValues.get("InterfaceControlDocument");
+			Vector nodeList = (Vector) retValues.get("SystemInterface");
 			String filter = "";
 			for(int nodeIndex = 0;nodeIndex < nodeList.size();nodeIndex++)
 			{
-				filter = filter + "(<http://health.mil/ontologies/Concept/InterfaceControlDocument/" + nodeList.get(nodeIndex)+">)";
+				filter = filter + "(<http://health.mil/ontologies/Concept/SystemInterface/" + nodeList.get(nodeIndex)+">)";
 					
 			}
 			removeQuery = removeQuery.replace("FILTER_VALUES", filter);
@@ -250,7 +250,7 @@ public class SOAAnalysisPerformer implements Runnable {
 
 		VertexFilterData vfd = oldPlaySheet.getFilterData();
 		Vector <SEMOSSVertex> nodeList = vfd.getNodes("System");
-		Vector <SEMOSSVertex> nodeList1 = vfd.getNodes("InterfaceControlDocument");
+		Vector <SEMOSSVertex> nodeList1 = vfd.getNodes("SystemInterface");
 		Vector <SEMOSSVertex> nodeList2 = vfd.getNodes("DataObject");
 		
 		try
@@ -298,7 +298,7 @@ public class SOAAnalysisPerformer implements Runnable {
 			icdNameVec.addElement(nodeList1.elementAt(nodeIndex).getProperty(Constants.VERTEX_NAME));
 				
 		}
-		retValues.put("InterfaceControlDocument", icdNameVec);
+		retValues.put("SystemInterface", icdNameVec);
 		
 		for(int nodeIndex = 0;nodeIndex < nodeList2.size();nodeIndex++)
 		{
@@ -319,7 +319,7 @@ public class SOAAnalysisPerformer implements Runnable {
 		VertexFilterData vfd = oldPlaySheet.getFilterData();
 		Vector<SEMOSSEdge> serEdgeList = vfd.getEdges("Expose");
 		Vector <SEMOSSVertex> nodeList = vfd.getNodes("System");
-		Vector <SEMOSSVertex> nodeList1 = vfd.getNodes("InterfaceControlDocument");
+		Vector <SEMOSSVertex> nodeList1 = vfd.getNodes("SystemInterface");
 		Vector <SEMOSSVertex> nodeList2 = vfd.getNodes("DataObject");
 		
 		try
@@ -365,7 +365,7 @@ public class SOAAnalysisPerformer implements Runnable {
 			icdNameVec.addElement(nodeList1.elementAt(nodeIndex).getProperty(Constants.VERTEX_NAME));
 				
 		}
-		retValues.put("InterfaceControlDocument", icdNameVec);
+		retValues.put("SystemInterface", icdNameVec);
 		
 		for(int nodeIndex = 0;nodeIndex < nodeList2.size();nodeIndex++)
 		{

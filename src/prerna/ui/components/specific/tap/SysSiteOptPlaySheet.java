@@ -144,7 +144,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 	
 	public void setUpOpt(IEngine costEngine, IEngine siteEngine, double yearBudget, int years, double infl, double disc, double trainingRate, int hourlyRate, int numPts, boolean useDHMSMCap, String optType, String capabilityURI) {
 		opt = new SysSiteOptimizer();
-		opt.setEngines(engine, costEngine, siteEngine); //likely hr core and tap site
+		opt.setEngines(engine, costEngine, siteEngine); //likely TAP Core Data and tap site
 		opt.setVariables(yearBudget,years, infl/100, disc/100, 0.80, trainingRate, hourlyRate, numPts, 0.05, 0.20); //budget per year and the number of years
 		opt.setUseDHMSMFunctionality(useDHMSMCap); //whether the data objects will come from the list of systems or the dhmsm provided capabilities
 		opt.setOptimizationType(optType); //eventually will be savings, roi, or irr

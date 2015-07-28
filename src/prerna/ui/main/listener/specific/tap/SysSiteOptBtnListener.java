@@ -90,7 +90,7 @@ public class SysSiteOptBtnListener implements IChakraListener {
 			
 			//actually running the algorithm
 			optimizer = new SysSiteOptimizer();
-			optimizer.setEngines(playSheet.engine, costEngine, siteEngine); //likely hr core and tap site
+			optimizer.setEngines(playSheet.engine, costEngine, siteEngine); //likely TAP Core Data and tap site
 			optimizer.setVariables(maxBudget, maxYears, infRate, disRate, centralPercOfBudget, trainingPerc, hourlyRate, noOfPts, relConvergence, absConvergence); //budget per year, the number of years, infl rate, discount rate, training perc, number of points
 			optimizer.setUseDHMSMFunctionality(playSheet.useDHMSMFuncCheckbox.isSelected()); //whether the data objects will come from the list of systems or the dhmsm provided capabilities
 			optimizer.setOptimizationType(playSheet.getOptType()); //eventually will be Savings, ROI, or IRR

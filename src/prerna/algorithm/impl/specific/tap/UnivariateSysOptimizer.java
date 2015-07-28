@@ -637,7 +637,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 			public void actionPerformed(ActionEvent e) {
 				String capSystemQuery = "SELECT ?Capability ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>} {?System ?Supports ?Capability}{?Supports <http://semoss.org/ontologies/Relation/Contains/Calculated> \"Yes\"}}";
 				HashMap<String, TreeSet<String>> capSystemMap = new HashMap<String, TreeSet<String>>();
-				capSystemMap = QueryProcessor.getStringSetMap(capSystemQuery, "HR_Core");
+				capSystemMap = QueryProcessor.getStringSetMap(capSystemQuery, "TAP_Core_Data");
 				SysOptPlaySheet.sysComboBox.removeAllItems();
 				
 				capability = SysOptPlaySheet.capComboBox.getSelectedItem().toString();
@@ -670,7 +670,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 				
 				String capSystemQuery = "SELECT ?Capability ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>} {?System ?Supports ?Capability}{?Supports <http://semoss.org/ontologies/Relation/Contains/Calculated> \"Yes\"}}";
 				HashMap<String, TreeSet<String>> capSystemMap = new HashMap<String, TreeSet<String>>();
-				capSystemMap = QueryProcessor.getStringSetMap(capSystemQuery, "HR_Core");
+				capSystemMap = QueryProcessor.getStringSetMap(capSystemQuery, "TAP_Core_Data");
 				
 				for (int i = 0; i < resFunc.sysList.size(); i++) {
 					if (resFunc.systemCapability[i].equalsIgnoreCase(capability)) {
@@ -692,7 +692,7 @@ public class UnivariateSysOptimizer extends UnivariateOpt {
 		TreeSet<String> systemSet = new TreeSet<String>();
 		
 		String capSystemQuery = "SELECT ?Capability ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Supports <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Supports>} {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>} {?System ?Supports ?Capability}{?Supports <http://semoss.org/ontologies/Relation/Contains/Calculated> \"Yes\"}}";
-		capSystemMap = QueryProcessor.getStringSetMap(capSystemQuery, "HR_Core");
+		capSystemMap = QueryProcessor.getStringSetMap(capSystemQuery, "TAP_Core_Data");
 		
 		int selectSysIndex = -1;
 		if (system.contains("*")) {

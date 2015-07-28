@@ -52,7 +52,7 @@ public class DHMSMSystemSORAccessTypeReportProcessor {
 	static final Logger logger = LogManager.getLogger(DHMSMSystemSORAccessTypeReportProcessor.class.getName());
 	Hashtable<String,String> dataLatencyTypeHash = new Hashtable<String,String>();
 	Hashtable<String,String> dataAccessTypeHash = new Hashtable<String,String>();
-	String hrCoreEngine = "HR_Core";
+	String hrCoreEngine = "TAP_Core_Data";
 	String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 	Hashtable<String,Hashtable<String,Object>> masterHash;
 	ArrayList<String> sysList;

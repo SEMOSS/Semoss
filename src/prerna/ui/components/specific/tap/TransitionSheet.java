@@ -539,7 +539,7 @@ public class TransitionSheet extends JPanel {
 	public void setValues()
 	{
 		Vector sysV = (Vector) inputValues.get("System");
-		Vector icdV = (Vector) inputValues.get("InterfaceControlDocument");
+		Vector icdV = (Vector) inputValues.get("SystemInterface");
 		Vector dataV = (Vector) inputValues.get("DataObject");
 		Vector dataGenV = (Vector) inputValues.get("dataGeneric");
 		Vector bluGenV = (Vector) inputValues.get("bluGeneric");

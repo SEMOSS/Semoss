@@ -42,7 +42,7 @@ public class CapabilityFactSheetCapSimCalculator {
 	static final Logger logger = LogManager.getLogger(CapabilityFactSheetCapSimCalculator.class.getName());
 
 	ArrayList<String> capList = new ArrayList<String>();
-	String hrCoreDB = "HR_Core";
+	String hrCoreDB = "TAP_Core_Data";
 	Hashtable<String, Hashtable<String, ArrayList<Object>>> allDataHash = new Hashtable<String, Hashtable<String, ArrayList<Object>>>();
 	public ArrayList<String> criteriaList = new ArrayList<String>();
 	public Hashtable<String, ArrayList<ArrayList<Object>>> priorityAllDataHash = new Hashtable<String, ArrayList<ArrayList<Object>>>();

@@ -42,7 +42,7 @@ import prerna.util.Utility;
 
 public class DataCriticalityHeatMapSheet extends SimilarityHeatMapSheet {
 	
-	String hrCoreDB = "HR_Core";
+	String hrCoreDB = "TAP_Core_Data";
 	private IEngine coreDB = (IEngine) DIHelper.getInstance().getLocalProp(hrCoreDB);
 	String capabilityQuery = "SELECT DISTINCT ?DHMSMCapability WHERE { {?DHMSM <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DHMSM>} {?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>} {?DHMSMCapability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>} {?DHMSM ?TaggedBy ?DHMSMCapability} }";
 	Hashtable<String, Hashtable<String, Double>> dataHash = new Hashtable<String, Hashtable<String, Double>>();

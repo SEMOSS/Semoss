@@ -78,7 +78,7 @@ public class FactSheetListener implements IChakraListener {
 		
 		DHMSMHelper dhelp = new DHMSMHelper();
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(
-				"HR_Core");
+				"TAP_Core_Data");
 		dhelp.runData(engine);
 		
 		if (reportType.contains("Services")) {

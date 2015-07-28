@@ -99,7 +99,7 @@ public class ServiceICDProcessor {
 		 * Runs the query via the Sesame wrapper.
 		 */
 		private void runQuery(){
-			String query = "SELECT ?ser (COUNT(?icd) AS ?ICDcount) WHERE { {?ser ?exposes ?data } {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>;} BIND(<http://semoss.org/ontologies/Relation/Exposes> AS ?exposes) {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument>;} BIND(<http://semoss.org/ontologies/Relation/Payload> AS ?payload) {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?icd ?payload ?data}} GROUP BY ?ser";
+			String query = "SELECT ?ser (COUNT(?icd) AS ?ICDcount) WHERE { {?ser ?exposes ?data } {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>;} BIND(<http://semoss.org/ontologies/Relation/Exposes> AS ?exposes) {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>;} BIND(<http://semoss.org/ontologies/Relation/Payload> AS ?payload) {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?icd ?payload ?data}} GROUP BY ?ser";
 			//sjw.setQuery(query);
 			JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 			// get the selected repository

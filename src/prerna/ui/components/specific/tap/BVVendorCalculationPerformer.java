@@ -129,7 +129,7 @@ public class BVVendorCalculationPerformer extends BVCalculationPerformer impleme
 		StringTokenizer queryTokens = new StringTokenizer(MultipleQueries, "+++");
 		while(queryTokens.hasMoreElements()){
 			String query = (String) queryTokens.nextElement();
-			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("HR_Core");
+			IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 			if(query.toLowerCase().contains("vendor"))
 				engine = (IEngine)DIHelper.getInstance().getLocalProp("VendorSelection");
 			logger.info("Repository is " + engine);

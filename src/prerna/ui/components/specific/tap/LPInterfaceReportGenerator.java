@@ -93,7 +93,7 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 			tapCostData = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
 		}
 		if(hrCore == null) {
-			hrCore = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
+			hrCore = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		}
 		if(processor == null) {
 			processor = new LPInterfaceProcessor();

@@ -46,16 +46,16 @@ public class InsertInterfaceModernizationProperty {
 	private final String sysURIPrefix = "http://health.mil/ontologies/Concept/System/";
 	private final String costPropertyURI = "http://semoss.org/ontologies/Relation/Contains/InterfaceModernizationCost";
 
-	private IEngine HR_Core;
+	private IEngine TAP_Core_Data;
 
 	public void insert() throws EngineException
 	{
 		try{
-			HR_Core = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
-			if(HR_Core==null)
+			TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+			if(TAP_Core_Data==null)
 				throw new EngineException("Database not found");
 		} catch(EngineException e) {
-			Utility.showError("Could not find necessary database: HR_Core. Cannot generate report.");
+			Utility.showError("Could not find necessary database: TAP_Core_Data. Cannot generate report.");
 			return;
 		}
 		getCostFromInterfaceReport();
@@ -63,7 +63,7 @@ public class InsertInterfaceModernizationProperty {
 
 	private void getCostFromInterfaceReport() throws EngineException 
 	{
-		HashMap<String,String> reportTypeHash = DHMSMTransitionUtility.processReportTypeQuery(HR_Core);
+		HashMap<String,String> reportTypeHash = DHMSMTransitionUtility.processReportTypeQuery(TAP_Core_Data);
 		LPInterfaceProcessor processor = new LPInterfaceProcessor();
 
 		IEngine TAP_Cost_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
@@ -71,7 +71,7 @@ public class InsertInterfaceModernizationProperty {
 			throw new EngineException("TAP_Cost_Data Database not found");
 		}
 		
-		processor.setEngine(HR_Core);
+		processor.setEngine(TAP_Core_Data);
 		processor.getCostInfo(TAP_Cost_Data);
 		for(String sysName : reportTypeHash.keySet()){
 			sysName = sysName.replaceAll("\\(", "\\\\\\\\\\(").replaceAll("\\)", "\\\\\\\\\\)");
@@ -90,8 +90,8 @@ public class InsertInterfaceModernizationProperty {
 
 	private void addProperty(String sub, String pred, Object obj, boolean concept_triple) 
 	{
-		( (BigDataEngine) HR_Core).addStatement(new Object[]{sub, pred, obj, concept_triple});
-		( (BigDataEngine) HR_Core).commit();
+		( (BigDataEngine) TAP_Core_Data).addStatement(new Object[]{sub, pred, obj, concept_triple});
+		( (BigDataEngine) TAP_Core_Data).commit();
 		System.out.println(sub + " >>> " + pred + " >>> " + obj);
 	}
 }

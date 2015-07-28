@@ -2973,7 +2973,7 @@ public class PlayPane extends JFrame {
 		gbc_lblCreateFutureInterfaceDB.gridy = 0;
 		createFutureInterfaceDB.add(lblCreateFutureInterfaceDB, gbc_lblCreateFutureInterfaceDB);
 		
-		JLabel lblSelectHRCoreForFutureInterfaceDBComboBox = new JLabel("Select HR Core Database:");
+		JLabel lblSelectHRCoreForFutureInterfaceDBComboBox = new JLabel("Select TAP Core Data Database:");
 		GridBagConstraints gbc_lblSelectHRCoreForFutureInterfaceDBComboBox = new GridBagConstraints();
 		gbc_lblSelectHRCoreForFutureInterfaceDBComboBox.anchor = GridBagConstraints.WEST;
 		gbc_lblSelectHRCoreForFutureInterfaceDBComboBox.insets = new Insets(0, 20, 5, 5);
@@ -3222,7 +3222,7 @@ public class PlayPane extends JFrame {
 		gbc_eaPropertySeparator.gridy = 13;
 		eaPropertyPanel.add(eaPropertySeparator, gbc_eaPropertySeparator);
 		
-		JLabel addEAPropertyLabel = new JLabel("Add Economic Analysis Properties to HR_Core");
+		JLabel addEAPropertyLabel = new JLabel("Add Economic Analysis Properties to TAP_Core_Data");
 		addEAPropertyLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
 		addEAPropertyLabel.setBackground(Color.WHITE);
 		GridBagConstraints gbc_addEAPropertyLabel = new GridBagConstraints();
@@ -3233,7 +3233,7 @@ public class PlayPane extends JFrame {
 		gbc_addEAPropertyLabel.gridy = 14;
 		eaPropertyPanel.add(addEAPropertyLabel, gbc_addEAPropertyLabel);
 		
-		addEAPropertyButton = new CustomButton("Add Economic Analysis Properties to HR_Core");
+		addEAPropertyButton = new CustomButton("Add Economic Analysis Properties to TAP_Core_Data");
 		addEAPropertyButton.setFont(new Font("Tahoma", Font.BOLD, 11));
 		GridBagConstraints gbc_addEAPropertyButton = new GridBagConstraints();
 		gbc_addEAPropertyButton.anchor = GridBagConstraints.NORTHWEST;
