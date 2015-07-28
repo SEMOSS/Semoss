@@ -89,9 +89,9 @@ public class DHMSMIntegrationTransitionCostWriter {
 		if(TAP_Cost_Data==null) {
 			throw new EngineException("TAP_Cost_Data database not found");
 		}
-		hrCore = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
+		hrCore = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		if(hrCore==null) {
-				throw new EngineException("HR_Core database not found");
+				throw new EngineException("TAP_Core_Data database not found");
 		}
 		FutureDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureDB");
 		if(FutureDB==null) {

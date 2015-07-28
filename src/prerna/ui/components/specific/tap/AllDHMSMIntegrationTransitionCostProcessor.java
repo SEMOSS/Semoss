@@ -38,7 +38,7 @@ import prerna.util.DIHelper;
 public class AllDHMSMIntegrationTransitionCostProcessor {
 
 	public void runAllReports() throws EngineException, FileReaderException{
-		IEngine hrCore = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
+		IEngine hrCore = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		if(hrCore==null) {
 				throw new EngineException("Database not found");
 		}

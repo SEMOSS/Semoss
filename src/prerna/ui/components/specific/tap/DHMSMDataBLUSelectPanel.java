@@ -167,7 +167,7 @@ public class DHMSMDataBLUSelectPanel extends JPanel {
 	
 	public Vector<String> makeListFromQuery(String type, String query)
 	{
-		engine = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
+		engine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		EntityFiller filler = new EntityFiller();
 		filler.engineName = engine.getEngineName();
 		filler.type = "Capability";

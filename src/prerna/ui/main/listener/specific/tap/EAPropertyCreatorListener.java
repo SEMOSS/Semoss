@@ -46,7 +46,7 @@ import prerna.util.Utility;
 public class EAPropertyCreatorListener extends AbstractListener {
 	static final Logger LOGGER = LogManager.getLogger(EAPropertyCreatorListener.class.getName());
 	
-	public final String hrCoreDBName = "HR_Core";
+	public final String hrCoreDBName = "TAP_Core_Data";
 	
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
@@ -65,9 +65,9 @@ public class EAPropertyCreatorListener extends AbstractListener {
 		EAPropertyCreator creator = new EAPropertyCreator(hrCoreDB);
 		try {
 			creator.addProperties();
-			Utility.showMessage("EA properties have been added to HR_Core!");
+			Utility.showMessage("EA properties have been added to TAP_Core_Data!");
 		} catch (EngineException e) {
-			Utility.showError("Error with generating new DB. Make sure HR_Core properly defined.");
+			Utility.showError("Error with generating new DB. Make sure TAP_Core_Data properly defined.");
 			e.printStackTrace();
 		} catch (RepositoryException e) {
 			Utility.showError("Error with generating new DB");

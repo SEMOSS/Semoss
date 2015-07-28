@@ -94,7 +94,7 @@ public class SystToBLUHeatmapFunction implements IAlgorithm {
 		
 		playSheet.HeatPanel.add(bsc);
 		
-		bsc.setRDFEngine((IEngine)DIHelper.getInstance().getLocalProp("HR_Core"));
+		bsc.setRDFEngine((IEngine)DIHelper.getInstance().getLocalProp("TAP_Core_Data"));
 		bsc.setPlaySheet(playSheet);
 //		bsc.setJDesktopPane(jdp);
 //		bsc.setQuestionID("Graph Analysis PlaySheet");

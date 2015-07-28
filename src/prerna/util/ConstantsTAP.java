@@ -180,7 +180,7 @@ public final class ConstantsTAP {
 	// Relationship Insert Constants
 	public static final String LOGIC_TYPE = "relInferLogicTypeComboBox";
 	
-	// EA Properties to HR_Core
+	// EA Properties to TAP_Core_Data
 	public static final String TAP_EA_PROPERTY_CREATOR_BUTTON = "addEAPropertyButton";
 	
 }

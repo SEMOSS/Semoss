@@ -53,7 +53,7 @@ import prerna.util.Utility;
 public class DHMSMSystemCapabilityOverlapProcessor {
 	
 	static final Logger logger = LogManager.getLogger(DHMSMSystemCapabilityOverlapProcessor.class.getName());
-	String hrCoreEngine = "HR_Core";
+	String hrCoreEngine = "TAP_Core_Data";
 	Hashtable<String,String> capToFunctionalAreaHash = new Hashtable<String,String> ();
 	Hashtable<String,Hashtable> masterHash=  new Hashtable<String,Hashtable>();
 	ArrayList<String> headersList = new ArrayList<String>();

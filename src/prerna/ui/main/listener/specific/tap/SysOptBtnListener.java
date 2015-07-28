@@ -82,7 +82,7 @@ public class SysOptBtnListener implements IChakraListener {
 		if (validInputs)
 		{	
 			//check to make sure site engine is loaded
-			IEngine systemEngine = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
+			IEngine systemEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 			IEngine costEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
 			IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 			

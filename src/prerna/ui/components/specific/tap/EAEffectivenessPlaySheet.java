@@ -36,13 +36,13 @@ import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.DIHelper;
 
 /**
- * Used in EA perspective of HR_Core to display Effectiveness calculations for Economic Analysis
+ * Used in EA perspective of TAP_Core_Data to display Effectiveness calculations for Economic Analysis
  * 
  * @author kepark
  * 
  */
 public class EAEffectivenessPlaySheet extends GridPlaySheet {
-	private IEngine hrCore = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
+	private IEngine hrCore = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 	private EAFunctionalGapHelper helper = new EAFunctionalGapHelper();
 	
 	// Commented out queries are used for Chrissy's effectiveness calculation

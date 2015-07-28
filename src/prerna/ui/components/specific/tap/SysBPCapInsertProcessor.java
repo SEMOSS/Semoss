@@ -126,8 +126,8 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 		HashMap<String, Set<String>> systemBLUHash = getQueryResultHash(coreDB, SYSTEM_BLU_QUERY);				
 		HashMap<String, Set<String>> capDataHash = getQueryResultHash(coreDB, CAPABILITY_DATA_QUERY);
 		HashMap<String, Set<String>> capBLUHash = getQueryResultHash(coreDB, CAPABILITY_BLU_QUERY);		
-			if (!(coreDB.getEngineName().equals("HR_Core"))) {
-				this.errorMessage = "Select the HR_Core database.";
+			if (!(coreDB.getEngineName().equals("TAP_Core_Data"))) {
+				this.errorMessage = "Select the TAP_Core_Data database.";
 				return false;
 			}				
 			if (bpDataHash.isEmpty() || bpBLUHash.isEmpty() || systemDataHash.isEmpty() || systemBLUHash.isEmpty() || capDataHash.isEmpty() || capBLUHash.isEmpty()) {

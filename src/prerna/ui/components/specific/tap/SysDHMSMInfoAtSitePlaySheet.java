@@ -50,7 +50,7 @@ public class SysDHMSMInfoAtSitePlaySheet extends GridPlaySheet {
 	private String siteEngineName = "TAP_Site_Data";
 
 	private String GET_SYSTEM_INFO = "SELECT DISTINCT ?System ?Probability ?Integrate WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?System <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> ?Integrate} {?System <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'} }";
-	private String hrCoreEngineName = "HR_Core";
+	private String hrCoreEngineName = "TAP_Core_Data";
 
 	private Hashtable<String, Hashtable<String, Integer>> dataToAdd = new Hashtable<String, Hashtable<String, Integer>>();
 
@@ -222,7 +222,7 @@ public class SysDHMSMInfoAtSitePlaySheet extends GridPlaySheet {
 			}
 			return hrCoreData;
 		}  else {
-			Utility.showError("Cannot find HR_Core database");
+			Utility.showError("Cannot find TAP_Core_Data database");
 		}
 		return hrCoreData;
 	}

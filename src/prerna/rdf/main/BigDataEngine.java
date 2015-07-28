@@ -639,7 +639,7 @@ public void testTemp()
 			String systemSytemInterface = "CONSTRUCT {?system1 ?upstream ?icd. ?icd ?downstream ?system2.} WHERE" + " { " +
 		    "{?system1 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
 	 		"{?upstream <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
-	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}" +
+	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
 	 		"{?system1 <" + RDFS.LABEL + "> \"CHCS\"; }" +
 	 		"{?downstream <"+RDFS.SUBPROPERTYOF +"> <http://semoss.org/ontologies/Relation/Consume>;}" +
 	 		"{?system2 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +

@@ -83,7 +83,7 @@ public class SysDecommissionOptimizationFunctions {
 	
 //	private static String systemSustainmentCostQuery = "SELECT DISTINCT ?System ?SustainmentBudget WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?SustainmentBudget}}";
 	
-	private static String coreDB = "HR_Core";
+	private static String coreDB = "TAP_Core_Data";
 	private static String systemProbQuery = "SELECT DISTINCT ?System ?Prob WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob}}";
 	private static String systemArchiveQuery = "SELECT DISTINCT ?System ?Archive WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;}OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/Archive_Req> ?Archive}}";
 	private static String systemOwnerQuery = "SELECT DISTINCT ?System (GROUP_CONCAT(?OwnerName ; SEPARATOR = ', ') AS ?Owner) WHERE { SELECT DISTINCT ?System (COALESCE(SUBSTR(STR(?Own),50),'') AS ?OwnerName) WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} OPTIONAL{?System <http://semoss.org/ontologies/Relation/OwnedBy> ?Own} }}  GROUP BY ?System";

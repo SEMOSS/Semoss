@@ -53,9 +53,9 @@ public class DHMSMIntegrationTransitionBySystemOwnerPlaySheet extends BasicProce
 		int counter = 0;
 		String sysOwner = this.query;
 		lpiSysQuery = lpiSysQuery.replace("@SYS_OWNER@", sysOwner);
-		IEngine HR_Core = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
-		if(HR_Core == null) {
-			Utility.showError("Could not find HR_Core database.\nPlease load the appropriate database to produce report");
+		IEngine TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+		if(TAP_Core_Data == null) {
+			Utility.showError("Could not find TAP_Core_Data database.\nPlease load the appropriate database to produce report");
 		}
 		
 		DHMSMIntegrationTransitionCostWriter generateData = null;
@@ -66,7 +66,7 @@ public class DHMSMIntegrationTransitionBySystemOwnerPlaySheet extends BasicProce
 		} 
 		DHMSMIntegrationTransitionBySystemOwnerWriter writer = new DHMSMIntegrationTransitionBySystemOwnerWriter();
 		
-		ISelectWrapper sjsw = Utility.processQuery(HR_Core, lpiSysQuery);
+		ISelectWrapper sjsw = Utility.processQuery(TAP_Core_Data, lpiSysQuery);
 		String[] names = sjsw.getVariables();
 		while(sjsw.hasNext()) {
 			ISelectStatement sjss = sjsw.next();

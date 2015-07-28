@@ -153,7 +153,7 @@ public class QueryTests {
 									|| query.contains("Null")
 									|| query.contains("$LPI")
 									|| query.contains("$LPNI")
-									|| query.contains("HR_Core$")
+									|| query.contains("TAP_Core_Data$")
 									|| query.contains("$HPI")
 									|| query.contains("$HPNI")
 							// || query.contains("") == true

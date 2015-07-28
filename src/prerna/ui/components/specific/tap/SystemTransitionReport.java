@@ -48,16 +48,16 @@ import com.bigdata.rdf.model.BigdataURIImpl;
 public class SystemTransitionReport extends AbstractRDFPlaySheet{
 
 	static final Logger logger = LogManager.getLogger(SystemTransitionReport.class.getName());
-	private IEngine hr_Core;
+	private IEngine TAP_Core_Data;
 
 	@Override
 	public void createData() {
 		try{
-			hr_Core = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
-			if(hr_Core==null)
+			TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+			if(TAP_Core_Data==null)
 				throw new NullPointerException();
 		} catch(RuntimeException e) {
-			Utility.showError("Could not find necessary database: HR_Core. Cannot generate report.");
+			Utility.showError("Could not find necessary database: TAP_Core_Data. Cannot generate report.");
 			return;
 		}
 
@@ -65,7 +65,7 @@ public class SystemTransitionReport extends AbstractRDFPlaySheet{
 		this.query = systemAndReport[0];
 		String reportType = systemAndReport[1];
 
-		ISelectWrapper sjsw = processQuery(hr_Core, systemAndReport[0]);
+		ISelectWrapper sjsw = processQuery(TAP_Core_Data, systemAndReport[0]);
 
 		String[] names = sjsw.getVariables();
 		ArrayList<String> systemList = new ArrayList<String>();

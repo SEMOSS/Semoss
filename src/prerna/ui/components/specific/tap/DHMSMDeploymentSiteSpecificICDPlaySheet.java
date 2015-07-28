@@ -108,7 +108,7 @@ public class DHMSMDeploymentSiteSpecificICDPlaySheet extends GridPlaySheet {
 			siteData = DHMSMDeploymentHelper.getSysAtSitesInDeploymentPlan(engine);
 		}
 		if(centrallyDeployedSystems == null) {
-			IEngine hrCore = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
+			IEngine hrCore = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 			centrallyDeployedSystems = DHMSMDeploymentHelper.getCentrallyDeployedSystems(hrCore);
 		}
 	}

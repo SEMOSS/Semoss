@@ -43,7 +43,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class EABenefitsSchedulePlaySheet extends GridPlaySheet {
-	private IEngine hrCore = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
+	private IEngine hrCore = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 	private IEngine tapSite = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 	private EAFunctionalGapHelper helper = new EAFunctionalGapHelper();
 	

@@ -265,7 +265,7 @@ public class SOATransitionCalculator {
 	public double[] processICDMaintenance(VertexFilterData oldFilterData)
 	{
 
-		Vector<SEMOSSVertex> icdV = oldFilterData.getNodes("InterfaceControlDocument");
+		Vector<SEMOSSVertex> icdV = oldFilterData.getNodes("SystemInterface");
 		
 		double[] retDouble = new double[7];
 		double totalMainCost = icdV.size()*interfaceCostPerYear;		
@@ -288,7 +288,7 @@ public class SOATransitionCalculator {
 	public double[] processSOAICDMaintenance(VertexFilterData oldFilterData, VertexFilterData newFilterData)
 	{
 
-		Vector<SEMOSSVertex> icdV = oldFilterData.getNodes("InterfaceControlDocument");
+		Vector<SEMOSSVertex> icdV = oldFilterData.getNodes("SystemInterface");
 		Vector<SEMOSSEdge> icdDataEdgeV = oldFilterData.getEdges("Payload");
 		Vector<SEMOSSEdge> dataSerEdgeV = newFilterData.getEdges("Exposes");
 		Vector<String> icdNameV = createStringVectorFromVertexVector(icdV);

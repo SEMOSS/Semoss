@@ -49,7 +49,7 @@ import prerna.util.Utility;
  */
 public class SysCapSimHeatMapSheet extends SimilarityHeatMapSheet {
 
-	private final String hrCoreDB = "HR_Core";
+	private final String hrCoreDB = "TAP_Core_Data";
 	private String fileLoc;
 	private IEngine coreDB = (IEngine) DIHelper.getInstance().getLocalProp(hrCoreDB);
 	private final String capabilityQuery = "SELECT DISTINCT ?Capability WHERE {{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>}}";

@@ -96,7 +96,7 @@ public class TAPLegacySystemDispositionReportWriter {
 	private final String numProductKey = "numProducts";
 	private final String updateCostKey = "upgradeCostKey";
 
-	private IEngine HR_Core;
+	private IEngine TAP_Core_Data;
 	private IEngine TAP_Portfolio;
 
 	private XSSFWorkbook wb;
@@ -112,11 +112,11 @@ public class TAPLegacySystemDispositionReportWriter {
 	private IndividualSystemTransitionReport report;
 	
 	public TAPLegacySystemDispositionReportWriter() throws EngineException {
-		HR_Core = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
+		TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		TAP_Portfolio = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Portfolio");
 
-		if(HR_Core == null) {
-			throw new EngineException("Could not find HR_Core database.\nPlease load the appropriate database to produce report");
+		if(TAP_Core_Data == null) {
+			throw new EngineException("Could not find TAP_Core_Data database.\nPlease load the appropriate database to produce report");
 		}
 		if(TAP_Portfolio == null){
 			throw new EngineException("Could not find TAP_Portfolio database.\nPlease load the appropriate database to produce report");
@@ -127,11 +127,11 @@ public class TAPLegacySystemDispositionReportWriter {
 		this.sysURI = sysURI.replace(">", "").replace("<", "");
 		this.sysName = Utility.getInstanceName(this.sysURI);
 
-		HR_Core = (IEngine) DIHelper.getInstance().getLocalProp("HR_Core");
+		TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		TAP_Portfolio = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Portfolio");
 
-		if(HR_Core == null) {
-			throw new EngineException("Could not find HR_Core database.\nPlease load the appropriate database to produce report");
+		if(TAP_Core_Data == null) {
+			throw new EngineException("Could not find TAP_Core_Data database.\nPlease load the appropriate database to produce report");
 		}
 		if(TAP_Portfolio == null){
 			throw new EngineException("Could not find TAP_Portfolio database.\nPlease load the appropriate database to produce report");
@@ -375,7 +375,7 @@ public class TAPLegacySystemDispositionReportWriter {
 
 	public void generateModernizationActivitiesData() {
 		if(sysSWHash.isEmpty()){
-			ISelectWrapper sjsw = Utility.processQuery(HR_Core, sysSWCostQuery);
+			ISelectWrapper sjsw = Utility.processQuery(TAP_Core_Data, sysSWCostQuery);
 			String[] varNames = sjsw.getVariables();
 			while(sjsw.hasNext()){
 				ISelectStatement sjss = sjsw.next();
@@ -389,7 +389,7 @@ public class TAPLegacySystemDispositionReportWriter {
 			}
 		}
 		if(sysHWHash.isEmpty()){
-			ISelectWrapper sjsw = Utility.processQuery(HR_Core, sysHWCostQuery);
+			ISelectWrapper sjsw = Utility.processQuery(TAP_Core_Data, sysHWCostQuery);
 			String[] varNames = sjsw.getVariables();
 			while(sjsw.hasNext()){
 				ISelectStatement sjss = sjsw.next();
@@ -403,7 +403,7 @@ public class TAPLegacySystemDispositionReportWriter {
 			}
 		}
 		if(sysInterfaceModHash.isEmpty()){
-			ISelectWrapper sjsw = Utility.processQuery(HR_Core, sysInterfaceModCostQuery);
+			ISelectWrapper sjsw = Utility.processQuery(TAP_Core_Data, sysInterfaceModCostQuery);
 			String[] varNames = sjsw.getVariables();
 			while(sjsw.hasNext()){
 				ISelectStatement sjss = sjsw.next();
@@ -421,7 +421,7 @@ public class TAPLegacySystemDispositionReportWriter {
 		String hpniDescription = "HPNI systems were designated by the Functional Advisory Council (FAC) as having a high probability of being replaced by the DHMSM EHR solution and were also designated as not requiring integration with DHMSM.";
 		
 		if(reportTypeHash.isEmpty())
-			reportTypeHash = DHMSMTransitionUtility.processReportTypeQuery(HR_Core);
+			reportTypeHash = DHMSMTransitionUtility.processReportTypeQuery(TAP_Core_Data);
 		String reportType = reportTypeHash.get(sysName).replaceAll("\"", "");
 		if(reportType.equals("LPI")) {
 			reportSheet.getRow(8).getCell(4).setCellValue("Low Probability with Integration (LPI)");
@@ -468,7 +468,7 @@ public class TAPLegacySystemDispositionReportWriter {
 
 	public void processBasisSysInfo() {
 		String query = basicSysInfoQuery.replace(bindingsKey, "<" + sysURI + ">");
-		ISelectWrapper sjsw = Utility.processQuery(HR_Core, query);
+		ISelectWrapper sjsw = Utility.processQuery(TAP_Core_Data, query);
 		String[] varNames = sjsw.getVariables();
 		// output binds to a single system - query should only return one line
 		// if query returns nothing, never executed

@@ -357,7 +357,7 @@ public class SimpleGraphNodePopup extends JPopupMenu {
 		if(nodeTypeArray==null) return false;
 		for (int i=0; i<nodeTypeArray.length;i++)
 		{
-			if (nodeTypeArray[i].equals("InterfaceControlDocument"))
+			if (nodeTypeArray[i].equals("SystemInterface"))
 			{
 				icdCheck=true;
 				return icdCheck;
