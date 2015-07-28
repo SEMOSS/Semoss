@@ -185,7 +185,7 @@
 
                     function hasICD(collection, type) {
                         for (var item in collection) {
-                            if (collection[item].propHash[type] == "InterfaceControlDocument") {
+                            if (collection[item].propHash[type] == "SystemInterface") {
                                 return true;
                             }
                         }
@@ -214,7 +214,7 @@
 
                         for (var item in itemArray) {
 
-                            if (itemArray[item].propHash.timeHash && itemArray[item].propHash[type] == "InterfaceControlDocument") {
+                            if (itemArray[item].propHash.timeHash && itemArray[item].propHash[type] == "SystemInterface") {
                                 if (itemArray[item].propHash.timeHash["Decommissioned"]) { //decommissioned
                                     //new item data model
                                     newItem = {
@@ -282,7 +282,7 @@
 
                                     tableData.push(newItem);
                                 }
-                            } else if (!itemArray[item].propHash.timeHash && itemArray[item].propHash[type] == "InterfaceControlDocument") {
+                            } else if (!itemArray[item].propHash.timeHash && itemArray[item].propHash[type] == "SystemInterface") {
                                 //new item data modelcreateedge
                                 var newItem = {
                                     name: itemArray[item].propHash[name],

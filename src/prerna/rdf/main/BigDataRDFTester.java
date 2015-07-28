@@ -590,7 +590,7 @@ public class BigDataRDFTester {
 		}
 		
 		String tester = "Hello @pk@ haha @dumb@ this is cool";
-		tester = "\"@pktemp     haha@\" ?system1 ?upstream ?icd. ?icd ?downstream ?system2.} WHERE { {?system1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide> ;}{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}{?system1 <http://www.w3.org/2000/01/rdf-schema#label> \"@system1@\"; }{?downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;}{?system2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?system2 <http://www.w3.org/2000/01/rdf-schema#label> \"[System2]\";}{?system1 ?upstream ?icd ;}{?icd ?downstream ?system2 .}}";
+		tester = "\"@pktemp     haha@\" ?system1 ?upstream ?icd. ?icd ?downstream ?system2.} WHERE { {?system1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide> ;}{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;}{?system1 <http://www.w3.org/2000/01/rdf-schema#label> \"@system1@\"; }{?downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;}{?system2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?system2 <http://www.w3.org/2000/01/rdf-schema#label> \"[System2]\";}{?system1 ?upstream ?icd ;}{?icd ?downstream ?system2 .}}";
 		
 		//Pattern pattern = Pattern.compile("[@]{1}\\w+\\s*@");
 		Pattern pattern = Pattern.compile("[@]{1}\\w+[-]*[ ]*\\w+@");
@@ -647,7 +647,7 @@ public class BigDataRDFTester {
 			String systemNeighbors = "CONSTRUCT {?system1 ?upstream ?icd. ?icd ?carries ?data} WHERE" + " { " +
 		    "{?system1 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
 	 		"{?upstream <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
-	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}" +
+	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
 	 		"{?system1 <" + RDFS.LABEL + "> \"ABTS\"; }" +
 	 		"{?system1 ?upstream ?icd ;}" +
 	 		"{?icd ?downstream ?system2 ;}" +
@@ -668,7 +668,7 @@ public class BigDataRDFTester {
 			String systemSytemInterface = "PREFIX dbcmConcept:	<http://semoss.org/ontologies/Concept/System> CONSTRUCT {?system1 ?upstream ?icd. ?icd ?downstream ?system2.} WHERE" + " { " +
 		    "{?system1 <" + RDF.TYPE + "> " +	"dbcmConcept:System ;} " +
 	 		"{?upstream <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
-	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}" +
+	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
 	 		"{?system1 <" + RDFS.LABEL + "> \"DMLSS\"; }" +
 	 		"{?downstream <"+RDFS.SUBPROPERTYOF +"> <http://semoss.org/ontologies/Relation/Consume>;}" +
 	 		"{?system2 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
@@ -682,7 +682,7 @@ public class BigDataRDFTester {
 			String systemSytemInterface2 = "CONSTRUCT {?system1 ?upstream ?icd. ?icd ?downstream ?system2. ?icd ?carries ?data} WHERE" + " { " +
 		    "{?system1 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
 	 		"{?upstream <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
-	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}" +
+	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
 	 		"{?system1 <" + RDFS.LABEL + "> \"CHCS\"; }" +
 	 		"{?downstream <"+RDFS.SUBPROPERTYOF +"> <http://semoss.org/ontologies/Relation/Consume>;}" +
 	 		"{?system2 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
@@ -700,8 +700,8 @@ public class BigDataRDFTester {
 		    "{?system3 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
 	 		"{?upstream <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
 	 		"{?upstream2 <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
-	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}" +
-	 		"{?icd2 <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}" +
+	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
+	 		"{?icd2 <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
 	 		"{?system1 <" + RDFS.LABEL + "> \"DMLSS\"; }" +
 	 		"{?downstream <"+RDFS.SUBPROPERTYOF +"> <http://semoss.org/ontologies/Relation/Consume>;}" +
 	 		"{?downstream2 <"+RDFS.SUBPROPERTYOF +"> <http://semoss.org/ontologies/Relation/Consume>;}" +
@@ -722,8 +722,8 @@ public class BigDataRDFTester {
 		    "{?system3 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
 	 		"{?upstream <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
 	 		"{?upstream2 <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
-	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}" +
-	 		"{?icd2 <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}" +
+	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
+	 		"{?icd2 <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
 	 		"{?system1 <" + RDFS.LABEL + "> \"CHCS\"; }" +
 	 		"{?downstream <"+RDFS.SUBPROPERTYOF +"> <http://semoss.org/ontologies/Relation/Consume>;}" +
 	 		"{?downstream2 <"+RDFS.SUBPROPERTYOF +"> <http://semoss.org/ontologies/Relation/Consume>;}" +
@@ -738,7 +738,7 @@ public class BigDataRDFTester {
 	 		"{?icd2 ?carries ?data2;}" +
 	 		"}";
 			
-			String systemProp = "CONSTRUCT {?system1 ?upstream ?icd. ?icd ?downstream ?system2. ?icd ?carries ?data1. ?system1 ?contains 								?attribute1. ?system2 ?contains2 ?attribute2. ?icd ?contains3 ?attribute3} \n WHERE { {?system1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} \n {?system2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} \n {?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} \n {?downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} \n {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} \n {?system1 <http://www.w3.org/2000/01/rdf-schema#label> \"ABTS\"; } {?contains <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>;}{?contains2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>;}{?contains3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>;}{?system1 ?upstream ?icd ;}{?icd ?downstream ?system2 ;} \n {?icd ?carries ?data1;} \n  \n  {?system1 ?contains ?attribute1;} \n {?system2 ?contains2 ?attribute2;} OPTIONAL {?icd ?contains3 ?attribute3.}   }";
+			String systemProp = "CONSTRUCT {?system1 ?upstream ?icd. ?icd ?downstream ?system2. ?icd ?carries ?data1. ?system1 ?contains 								?attribute1. ?system2 ?contains2 ?attribute2. ?icd ?contains3 ?attribute3} \n WHERE { {?system1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} \n {?system2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} \n {?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} \n {?downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} \n {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} \n {?system1 <http://www.w3.org/2000/01/rdf-schema#label> \"ABTS\"; } {?contains <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>;}{?contains2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>;}{?contains3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>;}{?system1 ?upstream ?icd ;}{?icd ?downstream ?system2 ;} \n {?icd ?carries ?data1;} \n  \n  {?system1 ?contains ?attribute1;} \n {?system2 ?contains2 ?attribute2;} OPTIONAL {?icd ?contains3 ?attribute3.}   }";
 			
 			String icdProp = "CONSTRUCT {?icd ?contains3 ?attribute3} \n WHERE {{?icd <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> " +
 					"<http://semoss.org/ontologies/Relation> ;} {?contains3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +
@@ -750,15 +750,15 @@ public class BigDataRDFTester {
 			String url2Encode = URLEncoder.encode("ABTS-CHCS-Patient ID", "UTF-8");
 			String typeQuery = "SELECT ?entity WHERE {?entity <" + RDF.TYPE + ">  <http://semoss.org/ontologies/Concept/System>;}";
 			
-			String icdDataQuery = "CONSTRUCT {?interface ?carries ?data. ?interface ?label ?name} WHERE { {?interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?interface ?carries ?data;} {?interface ?label ?name;}" + "FILTER regex(?name, \"CHCS\") }";
+			String icdDataQuery = "CONSTRUCT {?interface ?carries ?data. ?interface ?label ?name} WHERE { {?interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?interface ?carries ?data;} {?interface ?label ?name;}" + "FILTER regex(?name, \"CHCS\") }";
 					//"Filter (?name in (\"ABTS-CHCS-Order Information\",\"ABTS-CHCS-Patient Demographics and Information\",\"ABTS-CHCS-Patient ID\",\"ABTS-CHCS-Patient Test Results\"))}";
 			
 			
 			
 			
 			String icdDataQuery2 = "CONSTRUCT {?interface ?carries ?data.} WHERE { " +
-					"{?interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} " +
-					"{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?interface ?carries ?data;} Filter (?interface in (<http://semoss.org/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Order Information>,<http://semoss.org/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient Demographics and Information>,<http://semoss.org/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient ID>,<http://semoss.org/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient Test Results>))}";
+					"{?interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} " +
+					"{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?interface ?carries ?data;} Filter (?interface in (<http://semoss.org/ontologies/Concept/SystemInterface/ABTS-CHCS-Order Information>,<http://semoss.org/ontologies/Concept/SystemInterface/ABTS-CHCS-Patient Demographics and Information>,<http://semoss.org/ontologies/Concept/SystemInterface/ABTS-CHCS-Patient ID>,<http://semoss.org/ontologies/Concept/SystemInterface/ABTS-CHCS-Patient Test Results>))}";
 			
 			String systemBLData = "CONSTRUCT {?system ?provide ?data.  ?system ?provide2 ?BL} WHERE {" +
 				"{?system <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
@@ -831,7 +831,7 @@ public class BigDataRDFTester {
 					" {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}" +
 					"{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}" +
 					"{?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Upstream> ;}" +
-					"{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}" +
+					"{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
 					"{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>}" +
 			 		//"{?system <" + RDFS.LABEL + "> \"DMLSS\"; }" +
 			 		"{?system ?upstream ?icd;}" + 
@@ -850,7 +850,7 @@ public class BigDataRDFTester {
 			" {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>}" +
 			"{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}" +
 			"{?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide> ;}" +
-			"{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}" +
+			"{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
 			"{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>}" +
 	 		"{?service <" + RDFS.LABEL + "> \"Equipment Monitoring Service\"; }" +
 	 		"{?system ?upstream ?icd;}" + 
@@ -873,10 +873,10 @@ public class BigDataRDFTester {
 											"WHERE" + " { " +
 											"{?businessprocess <" + RDFS.LABEL + "> " +	"<http://semoss.org/ontologies/Concept/BusinessProcess/>;} " +
 									 		"{?upstream <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
-									 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}" +
+									 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
 			"{?system1 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
 	 		"{?upstream <"+RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation/Provide> ;}" +
-	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;}" +
+	 		"{?icd <"+RDF.TYPE + "> <http://semoss.org/ontologies/Concept/SystemInterface> ;}" +
 	 		"{?system1 <" + RDFS.LABEL + "> \"CHCS\"; }" +
 	 		"{?downstream <"+RDFS.SUBPROPERTYOF +"> <http://semoss.org/ontologies/Relation/Consume>;}" +
 	 		"{?system2 <" + RDF.TYPE + "> " +	"<http://semoss.org/ontologies/Concept/System>;} " +
@@ -899,7 +899,7 @@ public class BigDataRDFTester {
 
 			String bindQ2 = "SELECT ?upstream   WHERE { BIND (<http://semoss.org/ontologies/Concept/System/ABTS>  AS ?sys ). " +
 					"{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " +
-					"<http://semoss.org/ontologies/Concept/InterfaceControlDocument> ;} " +
+					"<http://semoss.org/ontologies/Concept/SystemInterface> ;} " +
 					"{?upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> " +
 					"<http://semoss.org/ontologies/Relation/Provide>;} {?sys ?upstream ?icd .} }";
 			
@@ -928,7 +928,7 @@ public class BigDataRDFTester {
 			tester.testTemp();
 
 			
-			//SELECT  DISTINCT ?predicate WHERE {BIND (<http://semoss.org/ontologies/Concept/InterfaceControlDocument/ABTS-CHCS-Patient ID> AS ?subject). {?subject ?predicate ?object.}}
+			//SELECT  DISTINCT ?predicate WHERE {BIND (<http://semoss.org/ontologies/Concept/SystemInterface/ABTS-CHCS-Patient ID> AS ?subject). {?subject ?predicate ?object.}}
 		} catch (Exception ignored) {
 			System.err.println("Exception " + ignored);
 			ignored.printStackTrace();
