@@ -29,6 +29,8 @@ package prerna.rdf.query.util;
 
 import java.util.Date;
 
+import prerna.util.Utility;
+
 public class TriplePart {
 
 	TriplePartConstant type;
@@ -39,15 +41,22 @@ public class TriplePart {
 	
 	public TriplePart (Object value, TriplePartConstant type)
 	{	
-		if (type == TriplePart.VARIABLE || type == TriplePart.URI || type == TriplePart.LITERAL)
+		if(type == TriplePart.VARIABLE) {
+			this.type = type;
+			this.value = Utility.cleanVariableString(value.toString());
+		}
+		
+		if (type == TriplePart.URI || type == TriplePart.LITERAL)
 		{
 			this.type = type;
 			this.value = value;
 		}
+		
 		if (!(value instanceof String) && (type ==TriplePart.VARIABLE || type ==TriplePart.URI))
 		{
 			throw new IllegalArgumentException("Non-String values cannot be used as a variable part or URI part");
 		}
+		
 		if (!(value instanceof String) && !(value instanceof Integer) && !(value instanceof Double)&& !(value instanceof Date))
 		{
 			throw new IllegalArgumentException("Value can only be String, Integer, Double or Date at this moment");
