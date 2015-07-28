@@ -168,6 +168,10 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		}else {
 			sysList= new ArrayList<String>(sysUpdater.getSelectedSystemListForCapability(capabilityURI,false, false, true, true, false, false, false, false));
 		}
+		if(sysList.isEmpty()) {
+			System.out.println("There are no systems that fit requirements.");
+			return null;
+		}
 		
 		ArrayList<String> modList= new ArrayList<String>(sysUpdater.getSelectedSystemList(true, false, false, false, true, false, false, false));
 		ArrayList<String> decomList= new ArrayList<String>(sysUpdater.getSelectedSystemList(false, false, false, false, false, false, false, true));

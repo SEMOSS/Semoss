@@ -912,7 +912,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		int i;
 		int j;
 		int numSites = siteList.size();
-		int totalDOBLU = dataList.size() + bluList.size();
+		double totalDOBLU = dataList.size() + bluList.size();
 		Set<String> doBLUForSiteSet;
 		for(i=0; i<numSites; i++) {
 			
@@ -924,7 +924,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 				}
 			}
 			
-			double percent = doBLUForSiteSet.size() / totalDOBLU;
+			double percent = doBLUForSiteSet.size() / totalDOBLU * 100;
 			
 			Map<String, Object> row = new HashMap<String, Object>();
 			row.put(names[0], siteList.get(i));
