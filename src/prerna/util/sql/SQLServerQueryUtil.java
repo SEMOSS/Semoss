@@ -1,6 +1,7 @@
 package prerna.util.sql;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class SQLServerQueryUtil extends SQLQueryUtil {	
 	public static final String DATABASE_DRIVER = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
@@ -73,8 +74,8 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 
 	//"full outer join"
 	//For SQL server, TOP is used instead of LIMIT (last parameter)
-	public String getDialectFullOuterJoinQuery(boolean distinct, String selectors, ArrayList<String> rightJoinsArr, 
-			ArrayList<String> leftJoinsArr, ArrayList<String> joinsArr, String filters, int top, String groupBy){
+	public String getDialectFullOuterJoinQuery(boolean distinct, String selectors, List<String> rightJoinsArr, 
+			List<String> leftJoinsArr, List<String> joinsArr, String filters, int top, String groupBy){
 
 		String rightOuterJoins = "";
 		String leftOuterJoins = "";
