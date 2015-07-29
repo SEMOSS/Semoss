@@ -58,6 +58,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showClassify(false);
 			playSheet.showLocalOutlierFactor(false);
 			playSheet.showAssociationLearning(false);
+			playSheet.showFastOutlierDetection(false);
 			playSheet.showMatrixRegression(false);
 			playSheet.showNumericalCorrelation(false);
 			playSheet.showSelfOrganizingMap(false);
@@ -67,6 +68,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showCluster(false);
 			playSheet.showLocalOutlierFactor(false);
 			playSheet.showAssociationLearning(false);
+			playSheet.showFastOutlierDetection(false);
 			playSheet.showMatrixRegression(false);
 			playSheet.showNumericalCorrelation(false);
 			playSheet.showSelfOrganizingMap(false);
@@ -76,6 +78,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
 			playSheet.showAssociationLearning(false);
+			playSheet.showFastOutlierDetection(false);
 			playSheet.showMatrixRegression(false);
 			playSheet.showNumericalCorrelation(false);
 			playSheet.showSelfOrganizingMap(false);
@@ -87,6 +90,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showMatrixRegression(false);
 			playSheet.showLocalOutlierFactor(false);
 			playSheet.showNumericalCorrelation(false);
+			playSheet.showFastOutlierDetection(false);
 			playSheet.showSelfOrganizingMap(false);
 			playSheet.showPerceptron(false);
 			playSheet.showAssociationLearning(true);
@@ -95,6 +99,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showCluster(false);
 			playSheet.showLocalOutlierFactor(false);
 			playSheet.showAssociationLearning(false);
+			playSheet.showFastOutlierDetection(false);
 			playSheet.showNumericalCorrelation(false);
 			playSheet.showSelfOrganizingMap(false);
 			playSheet.showPerceptron(false);
@@ -104,6 +109,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showCluster(false);
 			playSheet.showLocalOutlierFactor(false);
 			playSheet.showAssociationLearning(false);
+			playSheet.showFastOutlierDetection(false);
 			playSheet.showMatrixRegression(false);
 			playSheet.showSelfOrganizingMap(false);
 			playSheet.showPerceptron(false);
@@ -114,6 +120,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showLocalOutlierFactor(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showMatrixRegression(false);
+			playSheet.showFastOutlierDetection(false);
 			playSheet.showNumericalCorrelation(false);
 			playSheet.showPerceptron(false);
 			playSheet.showSelfOrganizingMap(true);
@@ -123,17 +130,28 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showLocalOutlierFactor(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showMatrixRegression(false);
+			playSheet.showFastOutlierDetection(false);
 			playSheet.showNumericalCorrelation(false);
 			playSheet.showSelfOrganizingMap(false);
 			playSheet.showPerceptron(true);
-		} else if(selection.equals("Similarity") || 
-				selection.equals("Predictability") || 
-				selection.equals("Correlation") || 
-				selection.equals("Entropy Density Factor") ||
-				selection.equals("Fast Outlier Detection")) {
+		} else if(selection.equals("Fast Outlier Detection")){
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
 			playSheet.showLocalOutlierFactor(false);
+			playSheet.showAssociationLearning(false);
+			playSheet.showMatrixRegression(false);
+			playSheet.showNumericalCorrelation(false);
+			playSheet.showSelfOrganizingMap(false);
+			playSheet.showPerceptron(false);
+			playSheet.showFastOutlierDetection(true);
+		} else if(selection.equals("Similarity") || 
+				selection.equals("Predictability") || 
+				selection.equals("Correlation") || 
+				selection.equals("Entropy Density Factor")) {
+			playSheet.showCluster(false);
+			playSheet.showClassify(false);
+			playSheet.showLocalOutlierFactor(false);
+			playSheet.showFastOutlierDetection(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showMatrixRegression(false);
 			playSheet.showNumericalCorrelation(false);

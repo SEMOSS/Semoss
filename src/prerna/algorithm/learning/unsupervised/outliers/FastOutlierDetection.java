@@ -39,7 +39,8 @@ public class FastOutlierDetection implements IAnalyticRoutine {
 	private static final String NUM_SAMPLE_SIZE = "numSampleSize";
 	private static final String INSTANCE_INDEX = "instanceIndex";
 	private static final String SKIP_ATTRIBUTES	= "skipAttributes";
-	private static final String DUPLICAITON_RECONCILIATION	= "dupReconciliation";
+	private static final String NUMBER_OF_RUNS	= "numRuns";
+	private static final String DUPLICATION_RECONCILIATION	= "dupReconciliation";
 
 	private static Random random = new Random();
 
@@ -56,6 +57,7 @@ public class FastOutlierDetection implements IAnalyticRoutine {
 
 	private int numSubsetSize;                  // How many neighbors to examine?
 	private HashMap<Object, Double> results;    // This stores the FastDistance for each point in dataset
+	int numRuns;								// number of Runs to make
 
 	public FastOutlierDetection() {
 		options = new ArrayList<SEMOSSParam>();
@@ -65,16 +67,20 @@ public class FastOutlierDetection implements IAnalyticRoutine {
 		options.add(0, p1);
 
 		SEMOSSParam p2 = new SEMOSSParam();
-		p2.setName(SKIP_ATTRIBUTES);
+		p2.setName(NUM_SAMPLE_SIZE);
 		options.add(1, p2);
-
+		
 		SEMOSSParam p3 = new SEMOSSParam();
-		p3.setName(NUM_SAMPLE_SIZE);
+		p3.setName(NUMBER_OF_RUNS);
 		options.add(2, p3);
-
+		
 		SEMOSSParam p4 = new SEMOSSParam();
-		p4.setName(DUPLICAITON_RECONCILIATION);
+		p4.setName(SKIP_ATTRIBUTES);
 		options.add(3, p4);
+
+		SEMOSSParam p5 = new SEMOSSParam();
+		p5.setName(DUPLICATION_RECONCILIATION);
+		options.add(4, p5);
 	}
 
 	/**
@@ -85,10 +91,11 @@ public class FastOutlierDetection implements IAnalyticRoutine {
 	 */
 	@Override
 	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
-		this.instanceIndex = 0;//(int) options.get(0).getSelected();
-		this.numSubsetSize = 10;//(int) options.get(1).getSelected();
-		this.skipAttributes = null;//(List<String>) options.get(2).getSelected();
-		this.dups = (Map<String, DuplicationReconciliation>) options.get(3).getSelected();
+		this.instanceIndex = (int) options.get(0).getSelected();
+		this.numSubsetSize = (int) options.get(1).getSelected();
+		this.numRuns = (int) options.get(2).getSelected();
+		this.skipAttributes = (List<String>) options.get(3).getSelected();
+		this.dups = (Map<String, DuplicationReconciliation>) options.get(4).getSelected();
 
 		// get number of rows and cols
 		this.dataFrame = data[0];
@@ -116,35 +123,44 @@ public class FastOutlierDetection implements IAnalyticRoutine {
 		int random_skip = numInstances/numSubsetSize; // won't be smaller than 3.
 
 		results = new HashMap<Object, Double>();
-		// grab R random rows
-		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false);
-		List<List<Object[]>> rSubset = new ArrayList<List<Object[]>>();
-		for (int i = 0; i < numSubsetSize; i++) {
-			// skip over a number between 0 and random_skip rows
-			int skip = random.nextInt(random_skip);
-			for (int j = 0; j < skip - 1; j++) {
-				it.next();
-			}
-			rSubset.add(it.next());
-		}
-
-		// for row in dataTable, grab R random rows
-		it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false);
-		while(it.hasNext()) {
-			List<Object[]> instance = it.next();
-			Object instanceName = instance.get(0)[instanceIndex];
-			double maxSim = 0;
-			for(int i= 0; i < numSubsetSize; i++) {
-				List<Object[]> subsetInstance = rSubset.get(i);
-				if(subsetInstance.get(0)[instanceIndex].equals(instance.get(0)[instanceIndex])) {
-					continue;
+		
+		for (int k = 0; k < numRuns; k++) {
+			// grab R random rows
+			Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false);
+			List<List<Object[]>> rSubset = new ArrayList<List<Object[]>>();
+			for (int i = 0; i < numSubsetSize; i++) {
+				// skip over a number between 0 and random_skip rows
+				int skip = random.nextInt(random_skip);
+				for (int j = 0; j < skip - 1; j++) {
+					it.next();
 				}
-				double sim = InstanceSimilarity.getInstanceSimilarity(instance, subsetInstance, isNumeric, attributeNames, dups);
-				if(maxSim < sim) {
-					maxSim = sim;
+				rSubset.add(it.next());
+			}
+	
+			// for row in dataTable, grab R random rows
+			it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], false);
+			while(it.hasNext()) {
+				List<Object[]> instance = it.next();
+				Object instanceName = instance.get(0)[instanceIndex];
+				double maxSim = 0;
+				for(int i= 0; i < numSubsetSize; i++) {
+					List<Object[]> subsetInstance = rSubset.get(i);
+					if(subsetInstance.get(0)[instanceIndex].equals(instance.get(0)[instanceIndex])) {
+						continue;
+					}
+					double sim = InstanceSimilarity.getInstanceSimilarity(instance, subsetInstance, isNumeric, attributeNames, dups);
+					if(maxSim < sim) {
+						maxSim = sim;
+					}
+				}
+				if (results.get(instanceName) == null) {
+					results.put(instanceName, maxSim);
+				}
+				else {
+					double oldVal = results.get(instanceName);
+					results.put(instanceName, oldVal+maxSim);
 				}
 			}
-			results.put(instanceName, maxSim);
 		}
 
 		String attributeName = attributeNames[instanceIndex];
@@ -153,7 +169,7 @@ public class FastOutlierDetection implements IAnalyticRoutine {
 		for(Object instance : results.keySet()) {
 			Map<String, Object> row = new HashMap<String, Object>();
 			row.put(attributeName, instance);
-			row.put(changedColumn, 1.0 - results.get(instance));
+			row.put(changedColumn, (numRuns-results.get(instance))/numRuns); // reformat to a value between 0 and 1
 			returnTable.addRow(row, row);
 		}
 

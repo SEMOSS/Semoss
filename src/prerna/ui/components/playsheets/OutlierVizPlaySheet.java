@@ -70,7 +70,8 @@ public class OutlierVizPlaySheet extends BrowserPlaySheet {
 	// used for lof
 	private int k;
 	// used for fast outlier detection
-	private int numSubsetSize;
+	private int numSubsetSize = 20;
+	private int numRuns = 10;
 	
 	private List<String> skipAttributes;
 	
@@ -105,10 +106,14 @@ public class OutlierVizPlaySheet extends BrowserPlaySheet {
 			List<SEMOSSParam> options = alg.getOptions();
 			selectedOptions.put(options.get(0).getName(), instanceIndex); // default of 0 is acceptable
 			if(numSubsetSize == 0) {
-				numSubsetSize = 10;
+				numSubsetSize = 20;
+			}
+			if(numRuns == 0) {
+				numRuns = 10;
 			}
 			selectedOptions.put(options.get(1).getName(), numSubsetSize);
-			selectedOptions.put(options.get(2).getName(), skipAttributes);
+			selectedOptions.put(options.get(2).getName(), numRuns);
+			selectedOptions.put(options.get(3).getName(), skipAttributes);
 
 		} else if(algorithmSelected.equalsIgnoreCase(LOF)){
 			alg = new LOF();
@@ -143,7 +148,7 @@ public class OutlierVizPlaySheet extends BrowserPlaySheet {
 	}
 
 	@Override
-	public void setQuery(String query) {
+	public void setQuery(String query) { //TODO: can only run LOF from playsheet
 		if (query.matches(".*\\+\\+\\+[0-9]+")) {
 			String[] querySplit = query.split("\\+\\+\\+");
 			this.query = querySplit[0];

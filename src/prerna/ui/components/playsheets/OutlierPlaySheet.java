@@ -65,7 +65,8 @@ public class OutlierPlaySheet extends GridPlaySheet {
 	// used for lof
 	private int k;
 	// used for fast outlier detection
-	private int numSubsetSize;
+	private int numSubsetSize = 20;
+	private int numRuns = 10;	
 	
 	private List<String> skipAttributes;
 	
@@ -91,11 +92,15 @@ public class OutlierPlaySheet extends GridPlaySheet {
 			alg = new FastOutlierDetection();
 			List<SEMOSSParam> options = alg.getOptions();
 			selectedOptions.put(options.get(0).getName(), instanceIndex); // default of 0 is acceptable
-			selectedOptions.put(options.get(1).getName(), skipAttributes);
 			if(numSubsetSize == 0) {
-				numSubsetSize = 10;
+				numSubsetSize = 20;
 			}
-			selectedOptions.put(options.get(2).getName(), skipAttributes);
+			if(numRuns == 0) {
+				numRuns = 10;
+			}
+			selectedOptions.put(options.get(1).getName(), numSubsetSize);
+			selectedOptions.put(options.get(2).getName(), numRuns);
+			selectedOptions.put(options.get(3).getName(), skipAttributes);
 
 		} else if(algorithmSelected.equalsIgnoreCase(LOF)){
 			alg = new LOF();

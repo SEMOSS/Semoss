@@ -131,6 +131,13 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 	private JLabel lblEnterKNeighbors;
 	private JSlider enterKNeighborsSlider;
 	
+	//fast outlier detection components
+	private JPanel FastOutlierDetectionPanel;
+	private JLabel lblSubsetSize;
+	private JLabel lblNumberRuns;
+	private JTextField enterSubsetSize;
+	private JTextField enterNumberRuns;
+	
 	//association learning panel combonents
 	private JPanel associationLearningPanel;
 	private JLabel lblEnterNumRules, lblEnterMinSupport, lblEnterMaxSupport, lblEnterConfInterval;
@@ -407,6 +414,17 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		variableSelectorPanel.add(localOutlierFactorPanel, gbc_outlierPanel);
 		localOutlierFactorPanel.setVisible(false);
 		
+		FastOutlierDetectionPanel = new JPanel();
+		GridBagConstraints gbc_outlierPanel2 = new GridBagConstraints();
+		gbc_outlierPanel2.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_outlierPanel2.fill = GridBagConstraints.NONE;
+		gbc_outlierPanel2.gridwidth = 3;
+		gbc_outlierPanel2.insets = new Insets(5, 15, 0, 0);
+		gbc_outlierPanel2.gridx = 1;
+		gbc_outlierPanel2.gridy = 3;
+		variableSelectorPanel.add(FastOutlierDetectionPanel, gbc_outlierPanel2);
+		FastOutlierDetectionPanel.setVisible(false);
+		
 		associationLearningPanel = new JPanel();
 		GridBagConstraints gbc_frequentSetsPanel = new GridBagConstraints();
 		gbc_frequentSetsPanel.anchor = GridBagConstraints.FIRST_LINE_START;
@@ -454,6 +472,7 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		fillClusterPanel(clusterPanel);
 		fillClassifyPanel(classifyPanel);
 		fillLocalOutlierFactorPanel(localOutlierFactorPanel);
+		fillFastOutlierDetectionPanel(FastOutlierDetectionPanel);
 		fillFrequentSetsPanel(associationLearningPanel);
 		fillMatrixRegPanel(matrixRegPanel);
 		fillSOMPanel(somPanel);
@@ -906,6 +925,57 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		outlierPanel.add(enterKNeighborsSlider, gbc_getEnterKNeighborsSlider);
 	}
 	
+	private void fillFastOutlierDetectionPanel(JPanel outlierPanel) {
+		GridBagLayout gbl_fodPanel = new GridBagLayout();
+		gbl_fodPanel.columnWidths = new int[]{0, 0, 0};
+		gbl_fodPanel.rowHeights = new int[]{0, 0, 0};
+		gbl_fodPanel.columnWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
+		gbl_fodPanel.rowWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
+		FastOutlierDetectionPanel.setLayout(gbl_fodPanel);
+		
+		lblSubsetSize = new JLabel("Subset Size: ");
+		lblSubsetSize.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_lblSubsetSize = new GridBagConstraints();
+		gbc_lblSubsetSize.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_lblSubsetSize.fill = GridBagConstraints.NONE;
+		gbc_lblSubsetSize.insets = new Insets(10, 5, 0, 0);
+		gbc_lblSubsetSize.gridx = 0;
+		gbc_lblSubsetSize.gridy = 0;
+		FastOutlierDetectionPanel.add(lblSubsetSize, gbc_lblSubsetSize);
+		
+		enterSubsetSize = new JTextField();
+		enterSubsetSize.setColumns(4);
+		enterSubsetSize.setText("20");
+		GridBagConstraints gbc_enterSubsetSize = new GridBagConstraints();
+		gbc_enterSubsetSize.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_enterSubsetSize.fill = GridBagConstraints.NONE;
+		gbc_enterSubsetSize.insets = new Insets(10, 5, 0, 0);
+		gbc_enterSubsetSize.gridx = 1;
+		gbc_enterSubsetSize.gridy = 0;
+		FastOutlierDetectionPanel.add(enterSubsetSize, gbc_enterSubsetSize);
+		
+		lblNumberRuns = new JLabel("Enter Number of Runs: ");
+		lblNumberRuns.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_lblNumberRuns = new GridBagConstraints();
+		gbc_lblNumberRuns.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_lblNumberRuns.fill = GridBagConstraints.NONE;
+		gbc_lblNumberRuns.insets = new Insets(10, 5, 0, 0);
+		gbc_lblNumberRuns.gridx = 0;
+		gbc_lblNumberRuns.gridy = 1;
+		FastOutlierDetectionPanel.add(lblNumberRuns, gbc_lblNumberRuns);
+		
+		enterNumberRuns = new JTextField();
+		enterNumberRuns.setColumns(4);
+		enterNumberRuns.setText("10");
+		GridBagConstraints gbc_enterNumberRuns = new GridBagConstraints();
+		gbc_enterNumberRuns.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_enterNumberRuns.fill = GridBagConstraints.NONE;
+		gbc_enterNumberRuns.insets = new Insets(10, 5, 0, 0);
+		gbc_enterNumberRuns.gridx = 1;
+		gbc_enterNumberRuns.gridy = 1;
+		FastOutlierDetectionPanel.add(enterNumberRuns, gbc_enterNumberRuns);		
+	}
+	
 	private void fillMatrixRegPanel(JPanel matrixRegPanel) {
 		GridBagLayout gbl_matrixRegPanel = new GridBagLayout();
 		gbl_matrixRegPanel.columnWidths = new int[]{0, 0, 0};
@@ -1355,6 +1425,14 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 			disableCheckBox(selection,true);
 		}
 	}
+	public void showFastOutlierDetection(Boolean show) {
+		FastOutlierDetectionPanel.setVisible(show);
+		lblSubsetSize.setVisible(show);
+		enterSubsetSize.setVisible(show);
+		lblNumberRuns.setVisible(show);
+		enterNumberRuns.setVisible(show);
+	}
+	
 	public void showLocalOutlierFactor(Boolean show) {
 		localOutlierFactorPanel.setVisible(show);
 		lblEnterKNeighbors.setVisible(show);
