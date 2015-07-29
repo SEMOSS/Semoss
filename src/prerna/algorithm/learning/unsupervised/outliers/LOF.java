@@ -103,6 +103,7 @@ public class LOF implements IAnalyticRoutine {
 		
 		// get number of rows and cols
 		this.dataFrame = data[0];
+		this.attributeNames = dataFrame.getColumnHeaders();
 		this.numInstances = dataFrame.getUniqueInstanceCount(attributeNames[instanceIndex]); 
 		if(skipAttributes == null) {
 			skipAttributes = new ArrayList<String>();
