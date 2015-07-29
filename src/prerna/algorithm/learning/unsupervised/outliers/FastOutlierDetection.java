@@ -33,6 +33,7 @@ import prerna.algorithm.learning.util.DuplicationReconciliation.ReconciliationMo
 import prerna.algorithm.learning.util.InstanceSimilarity;
 import prerna.ds.BTreeDataFrame;
 import prerna.om.SEMOSSParam;
+import prerna.util.ArrayUtilityMethods;
 
 public class FastOutlierDetection implements IAnalyticRoutine {
 
@@ -164,7 +165,13 @@ public class FastOutlierDetection implements IAnalyticRoutine {
 		}
 
 		String attributeName = attributeNames[instanceIndex];
-		this.changedColumn = attributeName + "_FastOutlier";
+		// to avoid adding columns with same name
+		int counter = 0;
+		this.changedColumn = attributeName + "_FastOutlier_" + counter;
+		while(ArrayUtilityMethods.arrayContainsValue(attributeNames, changedColumn)) {
+			counter++;
+			this.changedColumn = attributeName + "_FastOutlier_" + counter;
+		}
 		ITableDataFrame returnTable = new BTreeDataFrame(new String[]{attributeName, changedColumn});
 		for(Object instance : results.keySet()) {
 			Map<String, Object> row = new HashMap<String, Object>();

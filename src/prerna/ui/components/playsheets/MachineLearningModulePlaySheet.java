@@ -133,10 +133,8 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 	
 	//fast outlier detection components
 	private JPanel FastOutlierDetectionPanel;
-	private JLabel lblSubsetSize;
-	private JLabel lblNumberRuns;
-	private JTextField enterSubsetSize;
-	private JTextField enterNumberRuns;
+	private JLabel lblSubsetSize, lblNumberRuns;
+	private JTextField enterSubsetSize, enterNumberRuns;
 	
 	//association learning panel combonents
 	private JPanel associationLearningPanel;
@@ -1645,6 +1643,12 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 	}
 	public JTextField getEnterTauTextField() {
 		return enterTauTextField;
+	}
+	public JTextField getEnterSubsetSizeTextField() {
+		return enterSubsetSize;
+	}
+	public JTextField getNumRunsTextField() {
+		return enterNumberRuns;
 	}
 	public boolean[] getIsNumeric() {
 		return isNumeric;
