@@ -237,11 +237,34 @@ public class RunAlgorithmListener extends AbstractListener {
 		} else if(algorithm.equals("Fast Outlier Detection")) {
 			newPlaySheet = new OutlierVizPlaySheet();
 			newPlaySheet.setDataFrame(dataFrame);
+			
+			String subsetSizeText = playSheet.getEnterSubsetSizeTextField().getText();
+			String numRunsText = playSheet.getNumRunsTextField().getText();
+
+			int numRuns = 10;
+			int numSubsetSize = 20;
+			if(numRunsText != null && !numRunsText.isEmpty()) {
+				try {
+					numRuns = Integer.parseInt(numRunsText);
+				} catch(NumberFormatException ex) {
+					Utility.showError("Entered value for Number of Runs, " + numRunsText + ", is not a valid numerical input.\nWill use default value of " + numRuns + ".");
+				}
+			}
+			
+			if(subsetSizeText != null && !subsetSizeText.isEmpty()) {
+				try {
+					numSubsetSize = Integer.parseInt(subsetSizeText);
+				} catch(NumberFormatException ex) {
+					Utility.showError("Entered value for Subset Size, " + subsetSizeText + ", is not a valid numerical input.\nWill use default value of " + 20 + ".");
+				}
+			}
+			
 			((OutlierVizPlaySheet)newPlaySheet).setAlgorithmSelected(OutlierVizPlaySheet.FOD);
-			//			((OutlierVizPlaySheet)newPlaySheet).setNumSubsetSize(numSubsetSize); //TODO: create field for input
+			((OutlierVizPlaySheet)newPlaySheet).setNumSubsetSize(numSubsetSize);
+			((OutlierVizPlaySheet)newPlaySheet).setNumRuns(numRuns);
 			((OutlierVizPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((OutlierVizPlaySheet)newPlaySheet).setJTab(jTab);
-			((OutlierVizPlaySheet)newPlaySheet).setJBar(jBar);		
+			((OutlierVizPlaySheet)newPlaySheet).setJBar(jBar);	
 
 		} else if(algorithm.equals("Predictability")) {
 
