@@ -139,7 +139,12 @@ public class OutlierVizPlaySheet extends BrowserPlaySheet {
 		String[] headers = dataFrame.getColumnHeaders();
 		dataHash.put("headers", headers);
 		dataHash.put("data", dataFrame.getData());
-		dataHash.put("changedColIndex", ArrayUtilityMethods.calculateIndexOfArray(headers, alg.getChangedColumns().get(0)));
+		List<String> changedCols = alg.getChangedColumns();
+		if(algorithmSelected.equalsIgnoreCase(EDS)) {
+			dataHash.put("changedColIndex", ArrayUtilityMethods.calculateIndexOfArray(headers, changedCols.get(changedCols.size() - 1)));
+		} else {
+			dataHash.put("changedColIndex", ArrayUtilityMethods.calculateIndexOfArray(headers, changedCols.get(0)));
+		}
 		this.dataHash = dataHash;
 	}
 	
