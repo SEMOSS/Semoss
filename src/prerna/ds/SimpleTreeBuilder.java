@@ -979,6 +979,15 @@ public class SimpleTreeBuilder
 		//TODO: simplify logic
 		SimpleTreeNode parentNode = node2filter.parent;
 		boolean root = (parentNode == null);
+		
+		if(!root) {
+			int numChildrenForParent = node2filter.countChildren(node2filter);
+			if(numChildrenForParent == 1) {
+				filterSimpleTreeNode(node2filter);
+			}
+		}
+		
+		
 		SimpleTreeNode nodeRightSibling = node2filter.rightSibling;
 		SimpleTreeNode nodeLeftSibling = node2filter.leftSibling;
 		
