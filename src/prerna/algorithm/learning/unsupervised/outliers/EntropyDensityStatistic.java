@@ -128,7 +128,7 @@ public class EntropyDensityStatistic implements IAnalyticRoutine {
 		this.outlierVal = attributeName + "_EntropyBasedOutlier_" + counter;
 		while(ArrayUtilityMethods.arrayContainsValue(attributeNames, outlierVal)) {
 			counter++;
-			this.outlierVal = attributeName + "_CLUSTER_" + counter;
+			this.outlierVal = attributeName + "_EntropyBasedOutlier_" + counter;
 		}
 		ITableDataFrame returnTable = new BTreeDataFrame(new String[]{attributeName, outlierVal});
 		for(Object instance : results.keySet()) {
