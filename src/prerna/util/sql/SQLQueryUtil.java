@@ -28,6 +28,7 @@
 package prerna.util.sql;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public abstract class SQLQueryUtil {
 
@@ -108,8 +109,8 @@ public abstract class SQLQueryUtil {
 
 	//"full outer join"
 	//this is definetly going to be db specific
-	public abstract String getDialectFullOuterJoinQuery(boolean distinct, String selectors, ArrayList<String> rightJoinsArr, 
-			ArrayList<String> leftJoinsArr, ArrayList<String> joinsArr, String filters, int limit, String groupBy);
+	public abstract String getDialectFullOuterJoinQuery(boolean distinct, String selectors, List<String> rightJoinsArr, 
+			List<String> leftJoinsArr, List<String> joinsArr, String filters, int limit, String groupBy);
 
 	//depending on what you need you can override this in your child class, for now default to on but it's also defaulted to commented out
 	public String getDefaultConnectionPooling(){
@@ -183,11 +184,11 @@ public abstract class SQLQueryUtil {
 		return this.dialectDropIndex + indexName;
 	}
 	public String getDialectCreateIndex(String indexName, String tablename, String columnInIndex){
-		ArrayList<String> columnsInIndexArr = new ArrayList();
+		List<String> columnsInIndexArr = new ArrayList<String>();
 		columnsInIndexArr.add(columnInIndex);
 		return getDialectCreateIndex(indexName, tablename, columnsInIndexArr);
 	}
-	public String getDialectCreateIndex(String indexName, String tablename, ArrayList<String> columnsInIndex){
+	public String getDialectCreateIndex(String indexName, String tablename, List<String> columnsInIndex){
 		String createIndexText = "";
 		for(String columnName: columnsInIndex){
 			if(createIndexText.length() == 0){

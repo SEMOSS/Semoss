@@ -30,15 +30,16 @@ package prerna.rdf.query.util;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.List;
 
 import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
 
 public class SEMOSSQuery {
 	private static final String main = "Main";
-	private ArrayList<SPARQLTriple> triples = new ArrayList<SPARQLTriple>();
-	private ArrayList<TriplePart> retVars = new ArrayList<TriplePart>();
-	private ArrayList<ArrayList<String>> returnTripleArray = new ArrayList<ArrayList<String>>();
+	private List<SPARQLTriple> triples = new ArrayList<SPARQLTriple>();
+	private List<TriplePart> retVars = new ArrayList<TriplePart>();
+	private List<List<String>> returnTripleArray = new ArrayList<List<String>>();
 	private Hashtable<TriplePart, ISPARQLReturnModifier> retModifyPhrase = new Hashtable<TriplePart,ISPARQLReturnModifier>();
 	private Hashtable<String, SPARQLPatternClause> clauseHash = new Hashtable<String, SPARQLPatternClause>();
 	private SPARQLGroupBy groupBy = null;
@@ -221,7 +222,7 @@ public class SEMOSSQuery {
 		final int objId = 2;
 		
 		for(int i = 0; i < returnTripleArray.size(); i++){
-			ArrayList<String> thisTripleArray = returnTripleArray.get(i);
+			List<String> thisTripleArray = returnTripleArray.get(i);
 			String subjectURI = thisTripleArray.get(subjId);
 			String subjectName = Utility.getInstanceName(subjectURI);
 			
@@ -405,9 +406,9 @@ public class SEMOSSQuery {
 		clauseHash.put(clauseName,  clause);
 	}
 	
-	public void addRegexFilter(TriplePart var, ArrayList<TriplePart> filterData, boolean isValueString, boolean or, boolean isCaseSensitive)
+	public void addRegexFilter(TriplePart var, List<TriplePart> filterData, boolean isValueString, boolean or, boolean isCaseSensitive)
 	{
-		ArrayList<Object> addToFilter = new ArrayList<Object>();
+		List<Object> addToFilter = new ArrayList<Object>();
 		for(TriplePart bindVar : filterData)
 		{
 			SPARQLRegex regex = new SPARQLRegex(var, bindVar, isValueString, isCaseSensitive);
@@ -416,9 +417,9 @@ public class SEMOSSQuery {
 		addFilter(addToFilter, or);
 	}
 	
-	public void addRegexFilter(TriplePart var, ArrayList<TriplePart> filterData, boolean isValueString, boolean or,  String clauseName, boolean isCaseSensitive)
+	public void addRegexFilter(TriplePart var, List<TriplePart> filterData, boolean isValueString, boolean or,  String clauseName, boolean isCaseSensitive)
 	{
-		ArrayList<Object> addToFilter = new ArrayList<Object>();
+		List<Object> addToFilter = new ArrayList<Object>();
 		for(TriplePart bindVar : filterData)
 		{
 			SPARQLRegex regex = new SPARQLRegex(var, bindVar, isValueString, isCaseSensitive);
@@ -427,7 +428,7 @@ public class SEMOSSQuery {
 		addFilter(addToFilter, or, clauseName);
 	}
 	
-	public void addFilter(ArrayList<Object> filterData, boolean or)
+	public void addFilter(List<Object> filterData, boolean or)
 	{
 		SPARQLPatternClause clause;
 		if(clauseHash.containsKey(main))
@@ -443,7 +444,7 @@ public class SEMOSSQuery {
 		clauseHash.put(main, clause);
 	}
 	
-	public void addFilter(ArrayList<Object> filterData, boolean or, String clauseName)
+	public void addFilter(List<Object> filterData, boolean or, String clauseName)
 	{
 		SPARQLPatternClause clause;
 		if(clauseHash.containsKey(clauseName))
@@ -484,21 +485,21 @@ public class SEMOSSQuery {
 		this.queryType = queryType;
 	}
 	
-	public ArrayList<SPARQLTriple> getTriples()
+	public List<SPARQLTriple> getTriples()
 	{
 		return triples;
 	}
 	
-	public ArrayList<TriplePart> getRetVars()
+	public List<TriplePart> getRetVars()
 	{
 		return retVars;
 	}
 	
-	public void setReturnTripleArray(ArrayList<ArrayList<String>> tripleArray) {
+	public void setReturnTripleArray(List<List<String>> tripleArray) {
 		this.returnTripleArray = tripleArray;
 	}
 	
-	public ArrayList<ArrayList<String>> getTripleArray() {
+	public List<List<String>> getTripleArray() {
 		return returnTripleArray;
 	}
 	

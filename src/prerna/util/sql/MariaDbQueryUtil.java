@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.util.sql;
 
-import java.util.ArrayList;
+import java.util.List;
 
 //interchangable with mysql
 public class MariaDbQueryUtil extends SQLQueryUtil {
@@ -101,8 +101,8 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 	//"full outer join"
 	//this is definetly going to be db specific, (so abstracting)
 	@Override
-	public String getDialectFullOuterJoinQuery(boolean distinct, String selectors, ArrayList<String> rightJoinsArr, 
-			ArrayList<String> leftJoinsArr, ArrayList<String> joinsArr, String filters, int limit, String groupBy){
+	public String getDialectFullOuterJoinQuery(boolean distinct, String selectors, List<String> rightJoinsArr, 
+			List<String> leftJoinsArr, List<String> joinsArr, String filters, int limit, String groupBy){
 		
 		String rightOuterJoins = "";
 		String leftOuterJoins = "";
