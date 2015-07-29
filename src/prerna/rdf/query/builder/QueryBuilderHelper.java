@@ -29,6 +29,7 @@ package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -79,7 +80,7 @@ public class QueryBuilderHelper {
 		return totalSize;
 	}
 	
-	private static ArrayList<Hashtable<String,String>> parsePropertiesFromPath(IEngine coreEngine, ArrayList<Hashtable<String,String>> nodeV, ArrayList<String> totalVarList)
+	private static ArrayList<Hashtable<String,String>> parsePropertiesFromPath(IEngine coreEngine, List<Hashtable<String,String>> nodeV, List<String> totalVarList)
 	{
 		/**
 		 * What really is in that structure of total Var List
@@ -121,7 +122,7 @@ public class QueryBuilderHelper {
 		return nodePropV;
 	}
 
-	private static ArrayList<Hashtable<String,String>> parsePropertiesFromPathR(IEngine coreEngine, ArrayList<Hashtable<String,String>> nodeV, ArrayList<String> totalVarList)
+	private static ArrayList<Hashtable<String,String>> parsePropertiesFromPathR(IEngine coreEngine, List<Hashtable<String,String>> nodeV, List<String> totalVarList)
 	{
 		/**
 		 * What really is in that structure of total Var List
@@ -198,15 +199,15 @@ public class QueryBuilderHelper {
 
 	
 	
-	public static Hashtable<String, ArrayList> parsePath(Hashtable allJSONHash)
+	public static Hashtable<String, List> parsePath(Hashtable allJSONHash)
 	{
-		ArrayList<String> totalVarList = new ArrayList<String>();
-		ArrayList<Hashtable<String,String>> nodeV = new ArrayList<Hashtable<String,String>>();
-		ArrayList<Hashtable<String,String>> predV = new ArrayList<Hashtable<String,String>>();
-		ArrayList<ArrayList<String>> tripleArray = (ArrayList<ArrayList<String>>) allJSONHash.get(relArrayKey);
+		List<String> totalVarList = new ArrayList<String>();
+		List<Hashtable<String,String>> nodeV = new ArrayList<Hashtable<String,String>>();
+		List<Hashtable<String,String>> predV = new ArrayList<Hashtable<String,String>>();
+		List<List<String>> tripleArray = (List<List<String>>) allJSONHash.get(relArrayKey);
 		for (int tripleIdx = 0; tripleIdx<tripleArray.size(); tripleIdx++)
 		{
-			ArrayList<String> thisTripleArray = tripleArray.get(tripleIdx);
+			List<String> thisTripleArray = tripleArray.get(tripleIdx);
 			String subjectURI = thisTripleArray.get(subIdx);
 			String subjectName = Utility.getInstanceName(subjectURI);
 			// store node/rel info
@@ -251,7 +252,7 @@ public class QueryBuilderHelper {
 				}
 			}
 		}
-		Hashtable<String, ArrayList> parsedPath = new Hashtable<String, ArrayList>();
+		Hashtable<String, List> parsedPath = new Hashtable<String, List>();
 		parsedPath.put(totalVarListKey, totalVarList);
 		parsedPath.put(nodeVKey, nodeV);
 		parsedPath.put(predVKey, predV);
@@ -266,14 +267,14 @@ public class QueryBuilderHelper {
 	// uriKey - the URI of the item
 	// varKey - the var Key which is a stripped version of uriKey
 	
-	public static Hashtable<String, ArrayList<Hashtable<String,String>>> getPropsFromPath(IEngine engine, Hashtable allJSONHash) 
+	public static Hashtable<String, List<Hashtable<String,String>>> getPropsFromPath(IEngine engine, Hashtable allJSONHash) 
 	{
-		Hashtable<String, ArrayList<Hashtable<String,String>>> propsHash = new Hashtable<String, ArrayList<Hashtable<String,String>>>();
-			Hashtable<String, ArrayList> parsedPath = parsePath(allJSONHash);
+		Hashtable<String, List<Hashtable<String,String>>> propsHash = new Hashtable<String, List<Hashtable<String,String>>>();
+			Hashtable<String, List> parsedPath = parsePath(allJSONHash);
 			// revisit the property logic later
 			if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.JENA || engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 			{			
-				ArrayList<Hashtable<String,String>> nodePropV = parsePropertiesFromPath(engine, parsedPath.get(nodeVKey), parsedPath.get(totalVarListKey));				
+				List<Hashtable<String,String>> nodePropV = parsePropertiesFromPath(engine, parsedPath.get(nodeVKey), parsedPath.get(totalVarListKey));				
 				propsHash.put("nodes", nodePropV);
 			}
 			else if (engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS)
@@ -284,7 +285,7 @@ public class QueryBuilderHelper {
 				 * {SubjectVar=Title, uriKey=http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic, varKey=Title__Revenue_Domestic}, 
 				 * {SubjectVar=Title, uriKey=http://semoss.org/ontologies/Relation/Contains/Revenue-International, varKey=Title__Revenue_International}, {SubjectVar=Title, uriKey=http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience, varKey=Title__RottenTomatoes_Audience}, {SubjectVar=Title, uriKey=http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics, varKey=Title__RottenTomatoes_Critics}]
 				 */
-				ArrayList<Hashtable<String,String>> nodePropV = parsePropertiesFromPathR(engine, parsedPath.get(nodeVKey), parsedPath.get(totalVarListKey));				
+				List<Hashtable<String,String>> nodePropV = parsePropertiesFromPathR(engine, parsedPath.get(nodeVKey), parsedPath.get(totalVarListKey));				
 				propsHash.put("nodes", nodePropV);
 			}
 		return propsHash;

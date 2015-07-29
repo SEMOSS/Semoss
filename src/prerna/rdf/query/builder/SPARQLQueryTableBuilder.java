@@ -15,8 +15,8 @@
  *******************************************************************************/
 package prerna.rdf.query.builder;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -38,7 +38,7 @@ public class SPARQLQueryTableBuilder extends AbstractSPARQLQueryBuilder{
 		configureQuery();	
 	}
 	
-	protected void addRelationshipTriples (ArrayList<Hashtable<String,String>> predV) {
+	protected void addRelationshipTriples (List<Hashtable<String,String>> predV) {
 		for(Hashtable<String, String> predHash : predV){
 			String predName = predHash.get(QueryBuilderHelper.varKey);
 			String predURI = predHash.get(QueryBuilderHelper.uriKey);
@@ -50,8 +50,7 @@ public class SPARQLQueryTableBuilder extends AbstractSPARQLQueryBuilder{
 	}
 
 	@Override
-	protected void addReturnVariables(
-			ArrayList<Hashtable<String, String>> predV2) {
+	protected void addReturnVariables(List<Hashtable<String, String>> predV2) {
 		// TODO Auto-generated method stub
 		
 	}

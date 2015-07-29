@@ -27,13 +27,13 @@
  *******************************************************************************/
 package prerna.rdf.query.util;
 
-import java.util.ArrayList;
-
-
+import java.util.List;
 
 public class SPARQLOrderBy {
-	ArrayList<TriplePart> vars;
-	public SPARQLOrderBy (ArrayList<TriplePart> vars)
+	
+	List<TriplePart> vars;
+	
+	public SPARQLOrderBy (List<TriplePart> vars)
 	{
 		for(int gIdx = 0; gIdx < vars.size(); gIdx++)
 		{
@@ -46,12 +46,12 @@ public class SPARQLOrderBy {
 		setVariables(vars);
 	}
 	
-	public ArrayList<TriplePart> getVariables()
+	public List<TriplePart> getVariables()
 	{
 		return vars;
 	}
 	
-	public void setVariables(ArrayList<TriplePart> vars)
+	public void setVariables(List<TriplePart> vars)
 	{
 		this.vars = vars;
 	}

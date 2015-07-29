@@ -28,6 +28,7 @@
 package prerna.rdf.query.util;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class SPARQLFilter {
 
@@ -39,7 +40,7 @@ public class SPARQLFilter {
 	//TODO: figure out logic to have both and and or logic in filter
 	//TODO: add clauses within filter
 	
-	public SPARQLFilter(ArrayList<Object> filterArr, boolean or)
+	public SPARQLFilter(List<Object> filterArr, boolean or)
 	{
 		for(Object filterElem : filterArr)
 		{

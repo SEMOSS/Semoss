@@ -27,14 +27,15 @@
  *******************************************************************************/
 package prerna.rdf.query.util;
 
-import java.util.ArrayList;
+import java.util.List;
 
 public class SPARQLBindings {
-	ArrayList<TriplePart> bindSubject;
+	
+	List<TriplePart> bindSubject;
 	TriplePart bindObject;
 	String bindingsString;
 	
-	public SPARQLBindings(ArrayList<TriplePart> bindSubject, TriplePart bindObject)
+	public SPARQLBindings(List<TriplePart> bindSubject, TriplePart bindObject)
 	{
 		if(!bindObject.getType().equals(TriplePart.VARIABLE))
 		{

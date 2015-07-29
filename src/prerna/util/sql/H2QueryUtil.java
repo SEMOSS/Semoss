@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.util.sql;
 
-import java.util.ArrayList;
+import java.util.List;
 
 public class H2QueryUtil extends SQLQueryUtil {
 	
@@ -75,8 +75,8 @@ public class H2QueryUtil extends SQLQueryUtil {
 	
 	//"full outer join"
 	//this is definetly going to be db specific, (so abstracting)
-	public String getDialectFullOuterJoinQuery(boolean distinct, String selectors, ArrayList<String> rightJoinsArr, ArrayList<String> leftJoinsArr, 
-			ArrayList<String> joinsArr, String filters, int limit, String groupBy){
+	public String getDialectFullOuterJoinQuery(boolean distinct, String selectors, List<String> rightJoinsArr, List<String> leftJoinsArr, 
+			List<String> joinsArr, String filters, int limit, String groupBy){
 		String joins = "";
 		String rightOuterJoins = "";
 		String leftOuterJoins = "";
