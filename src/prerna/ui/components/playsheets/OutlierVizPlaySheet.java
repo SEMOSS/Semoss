@@ -182,18 +182,20 @@ public class OutlierVizPlaySheet extends BrowserPlaySheet {
 		this.algorithmSelected = algorithmSelected;
 	}
 
-	/**
-	 * @return the numSubsetSize
-	 */
 	public int getNumSubsetSize() {
 		return numSubsetSize;
 	}
 
-	/**
-	 * @param numSubsetSize the numSubsetSize to set
-	 */
 	public void setNumSubsetSize(int numSubsetSize) {
 		this.numSubsetSize = numSubsetSize;
+	}
+	
+	public int getNumRuns() {
+		return numRuns;
+	}
+
+	public void setNumRuns(int numRuns) {
+		this.numRuns = numRuns;
 	}
 
 	public void setSkipAttributes(List<String> skipAttributes) {

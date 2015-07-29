@@ -155,20 +155,26 @@ public class OutlierPlaySheet extends GridPlaySheet {
 		this.algorithmSelected = algorithmSelected;
 	}
 	
-	/**
-	 * @return the numSubsetSize
-	 */
 	public int getNumSubsetSize() {
 		return numSubsetSize;
 	}
 
-	/**
-	 * @param numSubsetSize the numSubsetSize to set
-	 */
 	public void setNumSubsetSize(int numSubsetSize) {
 		this.numSubsetSize = numSubsetSize;
 	}
+	
+	public int getNumRuns() {
+		return numRuns;
+	}
 
+	public void setNumRuns(int numRuns) {
+		this.numRuns = numRuns;
+	}
+
+	public void setSkipAttributes(List<String> skipAttributes) {
+		this.skipAttributes = skipAttributes;
+	}
+	
 	/////////////////////////////SWING DEPENDENT CODE/////////////////////////////
 	@Override
 	public void addPanel() {
