@@ -32,6 +32,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.log4j.LogManager;
@@ -362,10 +363,10 @@ public abstract class SEMOSSQueryHelper {
 		seQuery.addBind(subjectBindPart, objectBindPart, clauseName);
 	}
 	
-	public static void addRegexFilterPhrase(String var, TriplePartConstant varType, ArrayList<Object> filterData, TriplePartConstant filterDataType, boolean isValueString, boolean or, SEMOSSQuery seQuery, boolean isCaseSensitive)
+	public static void addRegexFilterPhrase(String var, TriplePartConstant varType, List<Object> filterData, TriplePartConstant filterDataType, boolean isValueString, boolean or, SEMOSSQuery seQuery, boolean isCaseSensitive)
 	{
 		TriplePart varBindPart = new TriplePart(var, varType);
-		ArrayList<TriplePart> filterDataPart = new ArrayList<TriplePart>();
+		List<TriplePart> filterDataPart = new ArrayList<TriplePart>();
 		for(Object filterElem : filterData)
 		{
 			TriplePart filterElemPart = new TriplePart(filterElem, filterDataType);
@@ -374,10 +375,10 @@ public abstract class SEMOSSQueryHelper {
 		seQuery.addRegexFilter(varBindPart, filterDataPart, isValueString, or, isCaseSensitive);
 	}
 	
-	public static void addRegexFilterPhrase(String var, TriplePartConstant varType, ArrayList<Object> filterData, TriplePartConstant filterDataType, boolean isValueString, boolean or, SEMOSSQuery seQuery, String clauseName, boolean isCaseSensitive)
+	public static void addRegexFilterPhrase(String var, TriplePartConstant varType, List<Object> filterData, TriplePartConstant filterDataType, boolean isValueString, boolean or, SEMOSSQuery seQuery, String clauseName, boolean isCaseSensitive)
 	{
 		TriplePart varBindPart = new TriplePart(var, varType);
-		ArrayList<TriplePart> filterDataPart = new ArrayList<TriplePart>();
+		List<TriplePart> filterDataPart = new ArrayList<TriplePart>();
 		for(Object filterElem : filterData)
 		{
 			TriplePart filterElemPart = new TriplePart(filterElem, filterDataType);
@@ -406,9 +407,9 @@ public abstract class SEMOSSQueryHelper {
 		seQuery.setGroupBy(groupBy);
 	}
 	
-	public static void addBindingsToQuery(ArrayList<Object> subjectList, TriplePartConstant bindSubjectType, String bindObject, SEMOSSQuery seQuery)
+	public static void addBindingsToQuery(List<Object> subjectList, TriplePartConstant bindSubjectType, String bindObject, SEMOSSQuery seQuery)
 	{
-		ArrayList<TriplePart> bindList = new ArrayList<TriplePart>();
+		List<TriplePart> bindList = new ArrayList<TriplePart>();
 		for(int bindIdx = 0; bindIdx < subjectList.size(); bindIdx++)
 		{
 			TriplePart bind = new TriplePart(subjectList.get(bindIdx), bindSubjectType);

@@ -1,7 +1,7 @@
 package prerna.rdf.query.builder;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -10,9 +10,10 @@ import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SPARQLConstants;
 
 public class SPARQLQueryGraphBuilder extends AbstractSPARQLQueryBuilder {
+	
 	static final Logger logger = LogManager.getLogger(SPARQLQueryGraphBuilder.class.getName());
 
-	protected void addRelationshipTriples (ArrayList<Hashtable<String,String>> predV) {
+	protected void addRelationshipTriples (List<Hashtable<String,String>> predV) {
 		for(Hashtable<String, String> predHash : predV){
 			String predName = predHash.get(QueryBuilderHelper.varKey);
 			String predURI = predHash.get(QueryBuilderHelper.uriKey);
@@ -27,7 +28,7 @@ public class SPARQLQueryGraphBuilder extends AbstractSPARQLQueryBuilder {
 	{
 		semossQuery.setQueryType(SPARQLConstants.CONSTRUCT);
 		semossQuery.setDisctinct(false);
-		semossQuery.setReturnTripleArray((ArrayList<ArrayList<String>>) allJSONHash.get(QueryBuilderHelper.relArrayKey));
+		semossQuery.setReturnTripleArray((List<List<String>>) allJSONHash.get(QueryBuilderHelper.relArrayKey));
 		parsePath();
 		// we are assuming properties are passed in now based on user selection
 //		parsePropertiesFromPath(); 
@@ -35,8 +36,7 @@ public class SPARQLQueryGraphBuilder extends AbstractSPARQLQueryBuilder {
 	}
 
 	@Override
-	protected void addReturnVariables(
-			ArrayList<Hashtable<String, String>> predV2) {
+	protected void addReturnVariables(List<Hashtable<String, String>> predV2) {
 		// TODO Auto-generated method stub
 		
 	}

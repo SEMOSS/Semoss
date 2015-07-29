@@ -20,6 +20,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -29,9 +30,9 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SQLConstants;
-import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
@@ -47,10 +48,10 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	private static Hashtable <String,String> aliases = new Hashtable<String,String>();
 	Hashtable <String, String> tableProcessed = new Hashtable<String, String>();
 	Hashtable <String, String> columnProcessed = new Hashtable<String,String>();
-	ArrayList<String> totalVarList = new ArrayList<String>();
-	ArrayList<Hashtable<String,String>> nodeV = new ArrayList<Hashtable<String,String>>();
-	ArrayList<Hashtable<String,String>> predV = new ArrayList<Hashtable<String,String>>();
-	ArrayList<Hashtable<String,String>> nodePropV = new ArrayList<Hashtable<String,String>>();
+	List<String> totalVarList = new ArrayList<String>();
+	List<Hashtable<String,String>> nodeV = new ArrayList<Hashtable<String,String>>();
+	List<Hashtable<String,String>> predV = new ArrayList<Hashtable<String,String>>();
+	List<Hashtable<String,String>> nodePropV = new ArrayList<Hashtable<String,String>>();
 	String variableSequence = "";
 	int limit = 500;
 	int limitFilter = 100;
@@ -62,9 +63,9 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	String leftOuterJoins = "";
 	String rightOuterJoins = "";
 	String selectors = "";
-	ArrayList<String> joinsArr = new ArrayList();
-	ArrayList<String> leftJoinsArr = new ArrayList();
-	ArrayList<String> rightJoinsArr = new ArrayList();
+	List<String> joinsArr = new ArrayList<String>();
+	List<String> leftJoinsArr = new ArrayList<String>();
+	List<String> rightJoinsArr = new ArrayList<String>();
 	String nullSelectors = "";
 	String froms = "";
 	String filters = "";
@@ -138,7 +139,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	
 	
 	protected void parsePath(){
-		Hashtable<String, ArrayList> parsedPath = QueryBuilderHelper.parsePath(allJSONHash);
+		Hashtable<String, List> parsedPath = QueryBuilderHelper.parsePath(allJSONHash);
 		totalVarList = parsedPath.get(QueryBuilderHelper.totalVarListKey);
 		nodeV = parsedPath.get(QueryBuilderHelper.nodeVKey);
 		predV = parsedPath.get(QueryBuilderHelper.predVKey);
