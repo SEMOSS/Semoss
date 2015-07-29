@@ -310,6 +310,13 @@ public interface ITableDataFrame {
 	Object[] getUniqueValues(String columnHeader);
 	
 	/**
+	 * Get the unique raw column values for a specific column in the data-frame
+	 * @param columnHeader			The column header to get the values for
+	 * @return						The unique raw values for the specific column header in the data-frame
+	 */
+	Object[] getUniqueRawValues(String columnHeader);
+
+	/**
 	 * Get the counts for each unique value in a specific column in the data-frame
 	 * @param columnHeader			The column header to get the values and counts for
 	 * @return						A mapping between the unique instance values and the count of the value
@@ -405,5 +412,4 @@ public interface ITableDataFrame {
 	 * @param columnHeaders
 	 */
 	public void setColumnsToSkip(List<String> columnHeaders);
-
 }

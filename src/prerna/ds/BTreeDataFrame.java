@@ -672,6 +672,18 @@ public class BTreeDataFrame implements ITableDataFrame {
 		
 		return uniqueValues.toArray();
 	}
+	
+	@Override
+	public Object[] getUniqueRawValues(String columnHeader) {
+		List<Object> uniqueValues = new ArrayList<Object>();
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
+		while(it.hasNext()) {
+			uniqueValues.add(it.next().leaf.getRawValue());
+		}
+		
+		return uniqueValues.toArray();
+	}
 
 	@Override
 	public Map<String, Integer> getUniqueValuesAndCount(String columnHeader) {
