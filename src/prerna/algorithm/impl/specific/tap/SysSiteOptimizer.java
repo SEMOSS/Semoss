@@ -842,7 +842,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		
 		DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
 		symbols.setGroupingSeparator(',');
-		NumberFormat formatter = new DecimalFormat("'$' ###,##0.00", symbols);
+		NumberFormat formatter = new DecimalFormat("'$' ###,###", symbols);
 
 		budgetInfoHash.put("formattedCurrentSustVal", formatter.format(currentSustainmentCost));
 		budgetInfoHash.put("formattedFutureSustVal", formatter.format(futureSustainmentCost));
@@ -871,7 +871,10 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			row.put(names[0], siteList.get(i));
 			row.put(names[1], siteLat[i]);
 			row.put(names[2], siteLon[i]);
-			row.put(names[3], futureSiteSustainCost[i] - currSiteSustainCost[i]);
+			DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
+			symbols.setGroupingSeparator(',');
+			NumberFormat formatter = new DecimalFormat("'$' ###,###", symbols);
+			row.put(names[3], formatter.format(futureSiteSustainCost[i] - currSiteSustainCost[i]));
 			row.put(names[4], makeString(getSustainedSystemsAtSiteList(i)));
 			row.put(names[5], makeString(getConsolidatedSystemsAtSiteList(i)));
 			data.addRow(row, row);
@@ -1076,7 +1079,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		
 		DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
 		symbols.setGroupingSeparator(',');
-		NumberFormat formatter = new DecimalFormat("'$' ###,##0.00", symbols);
+		NumberFormat formatter = new DecimalFormat("'$' ###,###", symbols);
 
 		//create what is needed for budget panel
 		budgetInfoHash.put("formattedCurrentSustVal", formatter.format(sysCurrSustainCost));
