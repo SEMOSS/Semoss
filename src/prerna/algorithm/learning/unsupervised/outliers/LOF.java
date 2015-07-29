@@ -103,22 +103,22 @@ public class LOF implements IAnalyticRoutine {
 		
 		// get number of rows and cols
 		this.dataFrame = data[0];
-		this.attributeNames = dataFrame.getColumnHeaders();
 		this.numInstances = dataFrame.getUniqueInstanceCount(attributeNames[instanceIndex]); 
-		this.dimensions = dataFrame.getNumCols() - 1;
-
 		if(skipAttributes == null) {
 			skipAttributes = new ArrayList<String>();
 		}
+		
+		dataFrame.setColumnsToSkip(skipAttributes);
+		this.dimensions = dataFrame.getNumCols() - 1;
+		this.attributeNames = dataFrame.getColumnHeaders();
 		// double check that all info is numerical
 		boolean[] isNumeric = dataFrame.isNumeric();
 		for(int i = 0; i < isNumeric.length; i++) {
-			if(i != instanceIndex && !isNumeric[i] && !skipAttributes.contains(attributeNames[i])) {
+			if(i != instanceIndex && !isNumeric[i]) {
 				throw new IllegalArgumentException("All columns must be numbers! \n"
 						+ "Column "+ attributeNames[i] + " is not all numbers!");
 			};
 		}
-		dataFrame.setColumnsToSkip(skipAttributes);
 
 		if(dups == null) {
 			dups = new HashMap<String, DuplicationReconciliation>();
