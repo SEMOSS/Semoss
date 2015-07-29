@@ -1227,7 +1227,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public void unfilter(String columnHeader) {
-		// TODO Auto-generated method stub
+		this.simpleTree.unfilterColumn(columnHeader);
 	}
 
 	//TODO: is this necessary
