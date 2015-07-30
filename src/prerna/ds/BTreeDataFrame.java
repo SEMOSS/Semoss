@@ -644,7 +644,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public Integer getUniqueInstanceCount(String columnHeader) {
 		int count = 0;
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
+		FilteredIndexTreeIterator it = new FilteredIndexTreeIterator(typeRoot);
 		while(it.hasNext()) {
 			it.next();
 			count++;
@@ -665,7 +665,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public Object[] getUniqueValues(String columnHeader) {
 		List<Object> uniqueValues = new ArrayList<Object>();
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
+		FilteredIndexTreeIterator it = new FilteredIndexTreeIterator(typeRoot);
 		while(it.hasNext()) {
 			uniqueValues.add(it.next().leaf.getValue());
 		}
@@ -677,7 +677,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public Object[] getUniqueRawValues(String columnHeader) {
 		List<Object> uniqueValues = new ArrayList<Object>();
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
+		FilteredIndexTreeIterator it = new FilteredIndexTreeIterator(typeRoot);
 		while(it.hasNext()) {
 			uniqueValues.add(it.next().leaf.getRawValue());
 		}
@@ -689,7 +689,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public Map<String, Integer> getUniqueValuesAndCount(String columnHeader) {
 		Map<String, Integer> valueCount = new HashMap<String, Integer>();
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
+		FilteredIndexTreeIterator it = new FilteredIndexTreeIterator(typeRoot);
 		while(it.hasNext()) {
 			TreeNode node = it.next();
 			valueCount.put(node.leaf.getValue().toString(), node.getInstances().size());
