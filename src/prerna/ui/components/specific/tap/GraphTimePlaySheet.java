@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2015 SEMOSS.ORG
+ * Copyright 2015 Defense Health Agency (DHA)
  *
  * If your use of this software does not include any GPLv2 components:
  * 	Licensed under the Apache License, Version 2.0 (the "License");
@@ -160,8 +160,6 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 		}
 		Hashtable retHash = (Hashtable) this.getData();
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
-		
-		System.err.println(gson.toJson(retHash));
 	}
 	
 	/**
