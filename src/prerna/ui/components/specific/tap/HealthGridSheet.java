@@ -94,9 +94,8 @@ public class HealthGridSheet extends BrowserPlaySheet{
 		ArrayList<Hashtable<String,Object>> allData = new ArrayList<Hashtable<String,Object>>();
 		String[] names = wrapper.getVariables(); 
 		String xName = names[1];//BusinessValue
-		String yName1 = names[2];//ExternalStability TechMaturity
-		String yName2 = names[3];//TechnicalStandards TechMaturity
-		String zName = names[4];//Cost
+		String yName = names[2] + names[3] + names[4] + names[5];//Technical Maturity components
+		String zName = names[6];//Cost
 
 		double maxXAxis = 0.0;
 
@@ -106,21 +105,23 @@ public class HealthGridSheet extends BrowserPlaySheet{
 			Hashtable<String,Object> elementHash = new Hashtable<String,Object>();
 			Object[] listElement = it.next();
 			
-			elementHash.put("series", (listElement[5]).toString().replaceAll("\"", ""));//lifecycle
 			elementHash.put("label", listElement[0]);//system
 			elementHash.put("x", listElement[1]);//xvalue business value
-			elementHash.put("y-external stability", listElement[2]);//yvalue1 external stability technical maturity
-			elementHash.put("y-tech standards", listElement[3]);//yvalue2 tech standards technical maturity
-			elementHash.put("z", listElement[4]);//size cost
+			elementHash.put("y-external stability", listElement[2]);//yvalue1 
+			elementHash.put("y-architectural complexity", listElement[3]);//yvalue2
+			elementHash.put("y-information assurance", listElement[4]);//yvalue3
+			elementHash.put("y-nonfunctional requirements", listElement[5]);//yvalue4
+			elementHash.put("z", listElement[6]);//size cost
+			elementHash.put("series", (listElement[7]).toString().replaceAll("\"", ""));//lifecycle
 			allData.add(elementHash);
 
 			if((Double)listElement[1]>maxXAxis)
 				maxXAxis=(Double)listElement[1];
 			
-			if(counter==0&&listElement.length>6)
+			if(counter==0&&listElement.length>8)
 			{
 				setSystemHighlight(true);
-				setSystemToHighlight(listElement[6].toString());
+				setSystemToHighlight(listElement[8].toString());
 			}
 			counter++;
 		}
@@ -130,7 +131,7 @@ public class HealthGridSheet extends BrowserPlaySheet{
 		allHash.put("dataSeries", allData);
 		allHash.put("title", "Health Grid");
 		allHash.put("xAxisTitle", xName);
-		allHash.put("yAxisTitle", yName1+" and "+yName2);
+		allHash.put("yAxisTitle", yName);
 		allHash.put("zAxisTitle",zName);
 		
 		if(highlight)
@@ -139,7 +140,9 @@ public class HealthGridSheet extends BrowserPlaySheet{
 		}
 		
 		allHash.put("xAxisMin", 0.01);
-		if(xName.toLowerCase().contains("score")||yName1.toLowerCase().contains("score"))
+		
+		//not sure if this is used?
+		if(xName.toLowerCase().contains("score")||yName.toLowerCase().contains("score"))
 		{
 			allHash.put("xAxisMax", 10);
 			allHash.put("xLineVal", 5);
