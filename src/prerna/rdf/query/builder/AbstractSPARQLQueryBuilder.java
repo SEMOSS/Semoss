@@ -183,7 +183,7 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 						}
 					} else {
 						// this means there is only 1 element so we use bind for sparql efficiency
-						String bindValue = (String) results.get(0);
+						Object bindValue = results.get(0);
 						bindDataHash.put(varName, bindValue);
 					}
 				}
@@ -207,9 +207,10 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 		boolean caseSensitiveFilter = true;
 		for(String s : bindDataHash.keySet())
 		{
-			String bindValue = bindDataHash.get(s).toString();
+			Object bindValue = bindDataHash.get(s);
 			TriplePartConstant triplePartC;
-			if(bindValue.startsWith("http")) {
+			if(bindValue.toString().startsWith("http")) {
+				bindValue = bindValue.toString();
 				triplePartC = TriplePart.URI;
 			} else {
 				triplePartC = TriplePart.LITERAL;
