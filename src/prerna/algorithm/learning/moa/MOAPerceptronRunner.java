@@ -39,6 +39,7 @@ import weka.core.Attribute;
 import weka.core.DenseInstance;
 import weka.core.Instance;
 import weka.core.Instances;
+import weka.core.Utils;
 
 public class MOAPerceptronRunner implements IAnalyticRoutine {
 	protected List<SEMOSSParam> options;
@@ -147,7 +148,7 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 //		List<Object[]> dataTable = table.getScaledData();
 //		Collections.shuffle(dataTable);
 		int numIterations = 10;
-		Boolean[] correctArray = new Boolean[dataTable.size()];
+		String[] correctArray = new String[dataTable.size()];
 		
 		//for(int x = 1; x <= numIterations; x++) {
 			int correct = 0;
@@ -157,15 +158,41 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 	
 				Object[] newRow = dataTable.get(i);//iterator.next();
 				Instance nextInst = WekaUtilityMethods.createInstance(instanceData, newRow, isCategorical, numAttributes);
+				Instance abc = nextInst;
+				//System.out.println(nextInst.toString());
 				//Instance nextInst = WekaUtilityMethods.createInstance(null, iterator.next(), isCategorical, numAttributes - 1);
 				//double[] votes = learner.getVotesForInstance(nextInst);
 				//System.out.println(Arrays.toString(votes));
 				//System.out.println(Arrays.toString(newRow));
+				
 				Boolean correctlyClassified = learner.correctlyClassifies(nextInst);
-				correctArray[i] = correctlyClassified;
 				if(correctlyClassified) {
+					correctArray[i] = correctlyClassified.toString();
 					correct++;
+				} else {
+					int index = Utils.maxIndex(learner.getVotesForInstance(nextInst));
+					String className = learner.getClassLabelString(index);
+					className = className.substring(1, className.length()-1);
+					int beginIndex = className.indexOf(":");
+					className = className.substring(beginIndex+1);
+					correctArray[i] = className;
 				}
+				
+				//System.out.println("AttributeNameString"+learner.getAttributeNameString(classIndex));
+				//System.out.println("ClassLabelString"+learner.getClassLabelString(0));
+				
+				//System.out.println(nextInst.classValue());
+				//System.out.println(nextInst.value(0));
+				//System.out.println(nextInst.stringValue(0));
+				//Attribute a = System.out.println(nextInst.)
+				
+//				if(correctlyClassified) {
+//					correct++;
+//				} else {
+//					int index = Utils.maxIndex(learner.getVotesForInstance(nextInst));
+//					String className = learner.getClassLabelString(index);
+//					System.out.println(className);
+//				}
 
 //				Map<String, Object> nextRow = new HashMap<>();
 //				nextRow.put(newNames[0], newRow[0]);
