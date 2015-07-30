@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2015 SEMOSS.ORG
+ * Copyright 2015 Defense Health Agency (DHA)
  *
  * If your use of this software does not include any GPLv2 components:
  * 	Licensed under the Apache License, Version 2.0 (the "License");
