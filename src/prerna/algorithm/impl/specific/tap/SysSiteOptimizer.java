@@ -871,10 +871,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			row.put(names[0], siteList.get(i));
 			row.put(names[1], siteLat[i]);
 			row.put(names[2], siteLon[i]);
-			DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance();
-			symbols.setGroupingSeparator(',');
-			NumberFormat formatter = new DecimalFormat("'$' ###,###", symbols);
-			row.put(names[3], formatter.format(futureSiteSustainCost[i] - currSiteSustainCost[i]));
+			row.put(names[3], futureSiteSustainCost[i] - currSiteSustainCost[i]);
 			row.put(names[4], makeString(getSustainedSystemsAtSiteList(i)));
 			row.put(names[5], makeString(getConsolidatedSystemsAtSiteList(i)));
 			data.addRow(row, row);
