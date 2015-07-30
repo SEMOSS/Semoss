@@ -297,7 +297,7 @@ public abstract class SEMOSSQueryHelper {
 		seQuery.addTriple(subjectPart, predicatePart, objectPart, clauseName);
 	}
 	
-	public static void addBindPhrase(String bindSubject, TriplePartConstant bindSubjectType, String bindObject, SEMOSSQuery seQuery)
+	public static void addBindPhrase(Object bindSubject, TriplePartConstant bindSubjectType, String bindObject, SEMOSSQuery seQuery)
 	{
 		addBindToQueryFromCall(bindSubject, bindSubjectType, bindObject, seQuery);
 	}
@@ -323,7 +323,7 @@ public abstract class SEMOSSQueryHelper {
 		addBindToQueryFromCall(bindSubject, bindSubjectType, bindObject, seQuery);
 	}
 
-	public static void addBindPhrase(String bindSubject, TriplePartConstant bindSubjectType, String bindObject, SEMOSSQuery seQuery, String clauseName)
+	public static void addBindPhrase(Object bindSubject, TriplePartConstant bindSubjectType, String bindObject, SEMOSSQuery seQuery, String clauseName)
 	{
 		addBindToQueryFromCall(bindSubject, bindSubjectType, bindObject, seQuery, clauseName);
 	}
