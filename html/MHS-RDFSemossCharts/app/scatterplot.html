@@ -87,7 +87,7 @@
       container = {width: 0, height: 0}, width = 0, height = 0,
       dataSeriesArray = [], legendArray = [], type = "", LINEGUIDEOPACITY = .45,
       xAxisMin = 0, xAxisMax = 0, yAxisMin = 0, yAxisMax = 0, xLineVal = 0, yLineVal = 0,
-      xAxisText = "", yAxisText = "", zAxisText = "", BUSINESS_VALUE_MULTIPLIER = .33;
+      xAxisText = "", yAxisText = "", zAxisText = "",  TM_EXTERNAL_STABILITY_MULTIPLIER = 0.3, 			TM_ARCHITECTURAL_COMPLEXITY_MULTIPLIER = 0.1, 				TM_INFORMATION_ASSURANCE_MULTIPLIER = 0.3, 				TM_NONFUNCTIONAL_REQUIREMENTS_MULTIPLIER = 0.3;
   		
   	  function containerSize(containerClass, containerObj, marginObj) {
 		    containerObj.width = parseInt(d3.select(containerClass).style('width'));
@@ -213,7 +213,7 @@
       //setup y
       var yValue = function(d) {
               if(type !== "scatter") {
-                  return d["y-external stability"] * BUSINESS_VALUE_MULTIPLIER + (1 - BUSINESS_VALUE_MULTIPLIER) * d["y-tech standards"];
+                  return d["y-external stability"] * TM_EXTERNAL_STABILITY_MULTIPLIER + d["y-architectural complexity"] * TM_ARCHITECTURAL_COMPLEXITY_MULTIPLIER + d["y-information assurance"] * TM_INFORMATION_ASSURANCE_MULTIPLIER + d["y-nonfunctional requirements"] * TM_NONFUNCTIONAL_REQUIREMENTS_MULTIPLIER;
               } else {
                   return d["y"];
               }
@@ -233,7 +233,7 @@
                 businessValue = 0, xValue = 0, zValue = 0;
 
 	            if(d["y-external stability"]) {
-	                businessValue = d["y-external stability"] * BUSINESS_VALUE_MULTIPLIER + (1 - BUSINESS_VALUE_MULTIPLIER) * d["y-tech standards"];
+	                businessValue = d["y-external stability"] * TM_EXTERNAL_STABILITY_MULTIPLIER + d["y-architectural complexity"] * TM_ARCHITECTURAL_COMPLEXITY_MULTIPLIER + d["y-information assurance"] * TM_INFORMATION_ASSURANCE_MULTIPLIER + d["y-nonfunctional requirements"] * TM_NONFUNCTIONAL_REQUIREMENTS_MULTIPLIER;
 	                xValue = d.x;
 	                zValue = d.z || 0;
 	            } else {
