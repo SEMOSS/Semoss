@@ -111,7 +111,8 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 		int numAttributes = table.getNumCols();
 		String[] names = table.getColumnHeaders();		
 
-		List<Object[]> dataTable = table.getScaledData();
+		//List<Object[]> dataTable = table.getScaledData();
+		List<Object[]> dataTable = table.getData();
 		//Collections.shuffle(dataTable);
 		
 		
@@ -155,7 +156,7 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 			for(int i = 0; i < dataTable.size(); i++) {
 	
 				Object[] newRow = dataTable.get(i);//iterator.next();
-				Instance nextInst = WekaUtilityMethods.createInstance(instanceData, newRow, isCategorical, numAttributes - 1);
+				Instance nextInst = WekaUtilityMethods.createInstance(instanceData, newRow, isCategorical, numAttributes);
 				//Instance nextInst = WekaUtilityMethods.createInstance(null, iterator.next(), isCategorical, numAttributes - 1);
 				//double[] votes = learner.getVotesForInstance(nextInst);
 				//System.out.println(Arrays.toString(votes));
