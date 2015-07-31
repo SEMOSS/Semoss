@@ -1007,6 +1007,8 @@ public class SimpleTreeBuilder
 				filterSimpleTreeNode(n);
 				filterTreeNode(n, true);
 			}
+			foundNode.filteredInstanceNode.addAll(foundNode.instanceNode);
+			foundNode.instanceNode.clear();
 		}
 	}
 
@@ -1022,8 +1024,6 @@ public class SimpleTreeBuilder
 				return;
 			}
 		}
-		
-		
 		
 		SimpleTreeNode nodeRightSibling = node2filter.rightSibling;
 		SimpleTreeNode nodeLeftSibling = node2filter.leftSibling;
@@ -1045,7 +1045,10 @@ public class SimpleTreeBuilder
 				parentNode.leftChild = nodeRightSibling;
 			}
 			nodeRightSibling.leftSibling = null;
-		} 
+		}
+		
+		node2filter.rightSibling = null;
+		node2filter.leftSibling = null;
 		
 		//put the node2filter on the right side or attach to filtered root node if root
 		if(root) {
@@ -1089,9 +1092,11 @@ public class SimpleTreeBuilder
 		
 		if(foundNode != null) {
 		
-			//This should never return false
-			if(foundNode.instanceNode.remove(instance2filter)) {
-				foundNode.filteredInstanceNode.add(instance2filter);
+			//Need to manually clear the instannceNode list for the first level to avoid concurrentModificationException
+			if(!firstLevel) {
+				if(foundNode.instanceNode.remove(instance2filter)) {
+					foundNode.filteredInstanceNode.add(instance2filter);
+				}
 			}
 			
 			if(!firstLevel && instance2filter.rightSibling!=null) {
