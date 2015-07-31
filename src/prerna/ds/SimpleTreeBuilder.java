@@ -1016,9 +1016,9 @@ public class SimpleTreeBuilder
 		boolean root = (parentNode == null);
 		
 		if(!root) {
-			int numChildrenForParent = node2filter.countChildren(node2filter);
+			int numChildrenForParent = parentNode.countChildren(parentNode);
 			if(numChildrenForParent == 1) {
-				filterSimpleTreeNode(node2filter);
+				filterSimpleTreeNode(parentNode);
 			}
 		}
 		
