@@ -1019,8 +1019,10 @@ public class SimpleTreeBuilder
 			int numChildrenForParent = parentNode.countChildren(parentNode);
 			if(numChildrenForParent == 1) {
 				filterSimpleTreeNode(parentNode);
+				return;
 			}
 		}
+		
 		
 		
 		SimpleTreeNode nodeRightSibling = node2filter.rightSibling;
