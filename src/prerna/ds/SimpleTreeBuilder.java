@@ -1004,7 +1004,7 @@ public class SimpleTreeBuilder
 		TreeNode foundNode = this.getNode((ISEMOSSNode)objectToFilter);
 		if(foundNode != null) {
 			for(SimpleTreeNode n: foundNode.instanceNode) {
-				filterSimpleTreeNode(n);
+				filterSimpleTreeNode(n, column);
 				filterTreeNode(n, true);
 			}
 			foundNode.filteredInstanceNode.addAll(foundNode.instanceNode);
@@ -1012,18 +1012,10 @@ public class SimpleTreeBuilder
 		}
 	}
 
-	private void filterSimpleTreeNode(SimpleTreeNode node2filter) {
+	private void filterSimpleTreeNode(SimpleTreeNode node2filter, String column) {
 		//TODO: simplify logic
 		SimpleTreeNode parentNode = node2filter.parent;
 		boolean root = (parentNode == null);
-		
-		if(!root) {
-			int numChildrenForParent = parentNode.countChildren(parentNode);
-			if(numChildrenForParent == 1) {
-				filterSimpleTreeNode(parentNode);
-				return;
-			}
-		}
 		
 		SimpleTreeNode nodeRightSibling = node2filter.rightSibling;
 		SimpleTreeNode nodeLeftSibling = node2filter.leftSibling;
@@ -1075,19 +1067,6 @@ public class SimpleTreeBuilder
 				node2filter.leftSibling = rightFilteredChild;
 			}
 		}
-		
-		//reset the root, doing this because not sure if root is being properly set in other methods
-//		if(root) {
-//			if(nodeLeftSibling != null) {
-//				lastAddedNode = nodeLeftSibling; 
-//				lastAddedNode = getRoot();
-//			}
-//			else if(nodeRightSibling != null) {
-//				lastAddedNode = nodeRightSibling; 
-//				lastAddedNode = getRoot();
-//			}
-//			else lastAddedNode = null;
-//		}
 	}
 	
 	private void filterTreeNode(SimpleTreeNode instance2filter, boolean firstLevel) {
