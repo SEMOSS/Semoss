@@ -1045,6 +1045,9 @@ public class SimpleTreeBuilder
 				parentNode.leftChild = nodeRightSibling;
 			}
 			nodeRightSibling.leftSibling = null;
+		} else {
+			//only child
+			parentNode.leftChild = null;
 		}
 		
 		node2filter.rightSibling = null;
@@ -1074,17 +1077,17 @@ public class SimpleTreeBuilder
 		}
 		
 		//reset the root, doing this because not sure if root is being properly set in other methods
-		if(root) {
-			if(nodeLeftSibling != null) {
-				lastAddedNode = nodeLeftSibling; 
-				lastAddedNode = getRoot();
-			}
-			else if(nodeRightSibling != null) {
-				lastAddedNode = nodeRightSibling; 
-				lastAddedNode = getRoot();
-			}
-			else lastAddedNode = null;
-		}
+//		if(root) {
+//			if(nodeLeftSibling != null) {
+//				lastAddedNode = nodeLeftSibling; 
+//				lastAddedNode = getRoot();
+//			}
+//			else if(nodeRightSibling != null) {
+//				lastAddedNode = nodeRightSibling; 
+//				lastAddedNode = getRoot();
+//			}
+//			else lastAddedNode = null;
+//		}
 	}
 	
 	private void filterTreeNode(SimpleTreeNode instance2filter, boolean firstLevel) {
