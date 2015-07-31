@@ -426,24 +426,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 					SimpleTreeNode instance2HookUp = passedInstances.get(0).leftChild;
 					//TODO: need to make generic logic
 					//TODO: assuming that we are only joining right to left, left child will never be null
-					//TODO: if left child is null, we will go up and add all the parents
 					//TODO: need to revisit logic for when joining columns both to the left and right
 					if(instance2HookUp == null) {
 						break;
 					}
-//						instance2HookUp = passedInstances.get(0).parent;
-//						instance2HookUp = SimpleTreeNode.getLeft(instance2HookUp);
-//						instance2HookUp.leftChild = null; // kill child relationship
-//						while(instance2HookUp.rightSibling != null) {
-//							instance2HookUp = instance2HookUp.rightSibling;
-//							instance2HookUp.leftChild = null;
-//						}
-//						while(instance2HookUp.parent != null) {
-//							instance2HookUp = instance2HookUp.parent;
-//						}
-//					}
-//					instance2HookUp = SimpleTreeNode.getLeft(instance2HookUp);
-					
 					Vector<SimpleTreeNode> vec = new Vector<SimpleTreeNode>();
 					vec.add(instance2HookUp);
 					String serialized = SimpleTreeNode.serializeTree("", vec, true, 0);
