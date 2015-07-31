@@ -1,3 +1,31 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
+
 package prerna.ds;
 
 
@@ -59,6 +87,7 @@ public class SimpleTreeBuilder
 	// actual value tree root
 	private SimpleTreeNode lastAddedNode = null;
 	private SimpleTreeNode filteredRoot = null;
+	private final String rootLevel;
 	// see if the child can be a single node
 	// this means you can only add to the last child
 	// nothing before it
@@ -80,9 +109,13 @@ public class SimpleTreeBuilder
 	ExecutorService service = null;
 	String finalChildType = null;
 	//****************************
-	
+//	public SimpleTreeBuilder() {
+//		
+//	}
 
-
+	public SimpleTreeBuilder(String rootLevel) {
+		this.rootLevel = rootLevel;
+	}
 	
 	public void adjustType(String type, boolean recurse)
 	{
@@ -969,9 +1002,11 @@ public class SimpleTreeBuilder
 	
 	public void filterTree(String column, ITreeKeyEvaluatable objectToFilter) {
 		TreeNode foundNode = this.getNode((ISEMOSSNode)objectToFilter);
-		for(SimpleTreeNode n: foundNode.instanceNode) {
-			filterSimpleTreeNode(n);
-			filterTreeNode(n, true);
+		if(foundNode != null) {
+			for(SimpleTreeNode n: foundNode.instanceNode) {
+				filterSimpleTreeNode(n);
+				filterTreeNode(n, true);
+			}
 		}
 	}
 
@@ -1141,13 +1176,21 @@ public class SimpleTreeBuilder
 	
 	//TODO: make this better, not sure if lastAddedNode is reliable
 	public SimpleTreeNode getRoot() {
-		SimpleTreeNode root = lastAddedNode;
+		TreeNode root = nodeIndexHash.get(this.rootLevel);
 		
-		if(lastAddedNode == null) return null;
-		
-		while(root.parent!=null) root = root.parent;
-		while(root.leftSibling!=null) root = root.leftSibling;
-		return root;
+		ValueTreeColumnIterator it = new ValueTreeColumnIterator(root);
+		SimpleTreeNode rootNode = null;
+		if(it.hasNext()) {
+			rootNode = it.next();
+			return SimpleTreeNode.getLeft(rootNode);
+		} else {
+			return null;
+		}
+//		if(lastAddedNode == null) return null;
+//		
+//		while(root.parent!=null) root = root.parent;
+//		while(root.leftSibling!=null) root = root.leftSibling;
+//		return root;
 	}
 	
 	public SimpleTreeNode getFilteredRoot() {
