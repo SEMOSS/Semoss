@@ -43,6 +43,7 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.nameserver.MasterDBHelper;
+import prerna.nameserver.MasterDatabaseURIs;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
 import prerna.util.Constants;
@@ -912,11 +913,16 @@ public class QuestionAdministrator {
 		masterList.add(new Object[] {perspectiveURI, labelBaseURI, perspective, false});
 
 		//define the predicate
+		masterList.add(new Object[] {perspectivePred, RDF.TYPE.stringValue(), Constants.DEFAULT_PROPERTY_URI, true});
+		masterList.add(new Object[] {perspectivePred, RDF.TYPE.stringValue(), resourceURI, true});
+		masterList.add(new Object[] {perspectivePred, RDFS.SUBPROPERTYOF.stringValue(), relationBaseURI, true});
 		masterList.add(new Object[] {perspectivePred, RDFS.SUBPROPERTYOF.stringValue(), enginePerspectiveBaseURI, true});
 		masterList.add(new Object[] {perspectivePred, RDFS.LABEL.stringValue(), selectedEngine + Constants.RELATION_URI_CONCATENATOR + selectedEngine + ":" + perspective, false});
 
 		//define the relationship
 		masterList.add(new Object[] {engineURI2, perspectivePred, perspectiveURI, true});
+		masterList.add(new Object[] {engineURI2, relationBaseURI, perspectiveURI, true});
+		masterList.add(new Object[] {engineURI2, enginePerspectiveBaseURI, perspectiveURI, true});
 
 		// remove the resource and concept uris
 		masterList.add(new Object[] {perspectiveURI, RDF.TYPE.stringValue(), conceptBaseURI, true});
@@ -934,6 +940,7 @@ public class QuestionAdministrator {
 		masterList.add(new Object[] {qURI, RDFS.LABEL.stringValue(), selectedEngine + ":" + perspective + ":" + qsKey, false});
 
 		// remove the engine to the question triples
+		masterList.add(new Object[] {ePred, RDFS.SUBPROPERTYOF.stringValue(), relationBaseURI, true});
 		masterList.add(new Object[] {ePred, RDFS.SUBPROPERTYOF.stringValue(), engineInsightBaseURI, true});
 		masterList.add(new Object[] {ePred, RDFS.LABEL.stringValue(), selectedEngine + Constants.RELATION_URI_CONCATENATOR + selectedEngine + ":" + perspective + ":" + qsKey, false});
 		masterList.add(new Object[] {engineURI2, ePred, qURI, true});
