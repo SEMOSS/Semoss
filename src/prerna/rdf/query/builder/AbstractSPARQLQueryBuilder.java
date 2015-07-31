@@ -307,7 +307,11 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 	public List<Hashtable<String, String>> getPredV(){
 		return this.predV;
 	}
-
+	
+	public List<Hashtable<String, String>> getNodePropV(){
+		return this.nodePropV;
+	}
+	
 	@Override
 	public String getQuery() {
 		semossQuery.createQuery();

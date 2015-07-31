@@ -753,4 +753,17 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			selectors = selectors + " , " + colName;
 	}
 	
+	public List<Hashtable<String, String>> getNodeV(){
+		return this.nodeV;
+	}
+	
+	public List<Hashtable<String, String>> getPredV(){
+		return this.predV;
+	}
+	
+	public List<Hashtable<String, String>> getNodePropV(){
+		return this.nodePropV;
+	}
+
+	
 }
