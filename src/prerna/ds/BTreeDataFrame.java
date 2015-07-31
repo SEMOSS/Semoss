@@ -64,7 +64,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	private List<String> columnsToSkip;
 	private String[] filteredLevelNames;
 	private Map<String, Boolean> isNumericalMap;
-	private Map<String, String> UriMap;
+	private Map<String, String> uriMap = new HashMap<String, String>();
 	
 //	public BTreeDataFrame() {
 //		this.simpleTree = new SimpleTreeBuilder();
@@ -83,7 +83,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		this.filteredLevelNames = levelNames;
 		this.isNumericalMap = new HashMap<String, Boolean>();
 		for(int i = 0; i < levelNames.length; i++) {
-			UriMap.put(levelNames[i], uriLevelNames[i]);
+			uriMap.put(levelNames[i], uriLevelNames[i]);
 		}
 	}
 
@@ -268,10 +268,11 @@ public class BTreeDataFrame implements ITableDataFrame {
 			///// Also need to grab index trees of passed table and add to my index hash
 
 			String[] columnNames = passedTree.getColumnHeaders();
+			String[] uriColumnNames = passedTree.getURIColumnHeaders();
 			// add the new data to this tree
 			LOGGER.info("Augmenting tree");
 			int origLength = this.levelNames.length;	
-			joinTreeLevels(columnNames, colNameInJoiningTable); // need to add new levels to this tree's level array
+			joinTreeLevels(columnNames, uriColumnNames, colNameInJoiningTable); // need to add new levels to this tree's level array
 			List<Object[]> flatMatched = matched.getData();// TODO: this could be replaced with nextRow or getRow method directly on the tree
 
 			TreeNode thisRootNode = this.simpleTree.nodeIndexHash.get(colNameInTable); //TODO: is there a better way to get the type? I don't think this is reliable
@@ -480,9 +481,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 			//TODO: CURRENTLY ADDING THE RAW VALUES IN FLATTENED-TABLE AS BOTH RAW AND CLEAN DATA IN JOIN
 
 			String[] columnNames = table.getColumnHeaders();
+			String[] uriColumnNames = table.getURIColumnHeaders();
 			// add the new data to this tree
 			LOGGER.info("Augmenting tree");
-			joinTreeLevels(columnNames, colNameInJoiningTable);
+			joinTreeLevels(columnNames, uriColumnNames, colNameInJoiningTable);
 			List<Object[]> flatMatched = matched.getRawData();
 			List<Object[]> flatTable = table.getRawData();
 			// loop through all rows
@@ -531,7 +533,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 	
 	//TODO: need to ensure there are not two names that match 
-    private String[] joinTreeLevels(String[] joinLevelNames, String colNameInJoiningTable) {
+    private String[] joinTreeLevels(String[] joinLevelNames, String[] uriJoinLevelNames, String colNameInJoiningTable) {
         String[] newLevelNames = new String[this.levelNames.length + joinLevelNames.length - 1];
         // copy old values to new
         System.arraycopy(levelNames, 0, newLevelNames, 0, levelNames.length);
@@ -544,6 +546,7 @@ public class BTreeDataFrame implements ITableDataFrame {
                } else {
                      newLevelNames[newNameIdx + levelNames.length] = joinLevelNames[i];
                      onlyNewNames[newNameIdx] = joinLevelNames[i];
+                     uriMap.put(joinLevelNames[i], uriJoinLevelNames[i]);
                      newNameIdx ++;
                }
         }
@@ -1108,7 +1111,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public String[] getURIColumnHeaders() {
 		String[] uriLevelNames = new String[this.filteredLevelNames.length];
 		for(int i = 0; i < filteredLevelNames.length; i++) {
-			uriLevelNames[i] = this.UriMap.get(filteredLevelNames[i]);
+			uriLevelNames[i] = this.uriMap.get(filteredLevelNames[i]);
 		}
 		return uriLevelNames;
 	}
