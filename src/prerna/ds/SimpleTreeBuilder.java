@@ -1055,11 +1055,12 @@ public class SimpleTreeBuilder
 			if(filteredRoot == null) {
 				filteredRoot = node2filter;
 			} else {
-				SimpleTreeNode rightFilteredNode = filteredRoot;
-				while(rightFilteredNode.rightSibling != null) {
-					rightFilteredNode = rightFilteredNode.rightSibling;
-				}
+				SimpleTreeNode rightFilteredNode = SimpleTreeNode.getRight(filteredRoot);
+//				while(rightFilteredNode.rightSibling != null) {
+//					rightFilteredNode = rightFilteredNode.rightSibling;
+//				}
 				rightFilteredNode.rightSibling = node2filter;
+				node2filter.leftSibling = rightFilteredNode;
 			}
 		} else {
 			if(parentNode.rightChild == null) {
@@ -1128,7 +1129,14 @@ public class SimpleTreeBuilder
 			
 			TreeNode unfilterIndexTree = nodeIndexHash.get(column);
 			
-			ITreeKeyEvaluatable l = unfilterIndexTree.instanceNode.get(0).parent.leaf;
+			ValueTreeColumnIterator it = new ValueTreeColumnIterator(unfilterIndexTree, true);
+			ITreeKeyEvaluatable l;
+			if(it.hasNext()) {
+				l = it.next().parent.leaf;
+			} else {
+				return;
+			}
+
 			ISEMOSSNode parent = (ISEMOSSNode)l;
 			String parentType = parent.getType();
 			
@@ -1142,6 +1150,8 @@ public class SimpleTreeBuilder
 					SimpleTreeNode leftChild = simpleTree.leftChild;
 					SimpleTreeNode rightChild = simpleTree.rightChild;
 					
+					unfilterTreeNode(simpleTree.rightChild);
+					
 					if(leftChild==null) {
 						simpleTree.leftChild = rightChild;
 					} else {
@@ -1149,7 +1159,6 @@ public class SimpleTreeBuilder
 						rightMostLeftChild.rightSibling = rightChild;
 						rightChild.leftSibling = rightMostLeftChild;
 					}
-					unfilterTreeNode(simpleTree.rightChild);
 					simpleTree.rightChild = null;
 				}
 			}
@@ -1163,7 +1172,7 @@ public class SimpleTreeBuilder
 		
 			//This should never return false
 			if(foundNode.filteredInstanceNode.remove(instance)) {
-				foundNode.filteredInstanceNode.add(instance);
+				foundNode.instanceNode.add(instance);
 			}
 			
 			if(instance.rightSibling!=null) {

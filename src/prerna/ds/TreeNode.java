@@ -70,7 +70,7 @@ public class TreeNode {
 			do {
 				
 				if(node.equal(searchNode)) {
-					if(node.instanceNode.size() > 0) {
+					if(node.instanceNode.size() + node.filteredInstanceNode.size() > 0) {
 						return true;
 					} else {
 						return false;
@@ -109,6 +109,9 @@ public class TreeNode {
 	}
 	
 
+//	public TreeNode getNode(ISEMOSSNode value) {
+//		return null;
+//	}
 	/**
 	 * 
 	 * @param nodes
@@ -127,7 +130,7 @@ public class TreeNode {
 			do {
 				
 				if(node.equal(searchNode)) {
-					if(node.instanceNode.size() > 0) {
+					if(node.instanceNode.size() + node.filteredInstanceNode.size() > 0) {
 						return node;
 					} else {
 						return null;
@@ -233,7 +236,7 @@ public class TreeNode {
 	public synchronized TreeNode insertData(TreeNode node)
 	{
 		if(node.instanceNode.size()+node.filteredInstanceNode.size() == 0) {
-			throw new IllegalArgumentException("Node has no SimpleTreeNodes");
+			throw new IllegalArgumentException("TreeNode has no SimpleTreeNodes");
 		}
 		
 		TreeNode root = node;
@@ -620,6 +623,13 @@ public class TreeNode {
 		return TreeNode.serializeTree(new StringBuilder(output), nodes, parent, level);
 	}
 	
+	/*
+	private static String serializeTree(TreeNode rootNode) {
+		Vector<TreeNode> nodes = new Vector<>();
+		nodes.add(rootNode);
+		return TreeNode.serializeTree(new StringBuilder(""), nodes, false, 0);
+	}
+	 * */
 	/**
 	 * 
 	 * @param output
@@ -667,13 +677,13 @@ public class TreeNode {
 		}
 	}
 	
-	public static TreeNode deserializeTree(String output)
+	public static TreeNode deserializeTree(String serializedTree)
 	{
 		TreeNode rootNode = null;
 		boolean parent = true;
 		Vector <TreeNode> parentNodes = new Vector();
 		// each one of this is a new line
-		StringTokenizer mainTokens = new StringTokenizer(output, "/");
+		StringTokenizer mainTokens = new StringTokenizer(serializedTree, "/");
 		while(mainTokens.hasMoreTokens())
 		{
 			Vector <TreeNode> nextLevel = new Vector();
