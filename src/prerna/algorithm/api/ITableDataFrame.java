@@ -211,6 +211,12 @@ public interface ITableDataFrame {
 	String[] getColumnHeaders();
 	
 	/**
+	 * Get the URI values for each corresponding level name
+	 * @return					The URIs for each column header 
+	 */
+	String[] getURIColumnHeaders();
+	
+	/**
 	 * Get the total number of columns in the data-frame
 	 * @return						The count of the number of columns in the data-frame
 	 */
