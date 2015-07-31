@@ -1,20 +1,30 @@
-/**
- *  This code computes a Local Outlier Factor score for each point in the dataset.
- *  This score refers to how much a point deviates from others in the dataset,
- *     and can be a function of as many dimensions as is desired.
- *     
- *  Technically, this goes a step further, and computes a LOoP, or probability of 
- *  Local Outlier, which is just a measure between 0 and 1 of how much something is
- *  an outlier. 0 is in a cluster, and 1 is an outlier.
- *     
- *  For more documentation about how it works, see the original paper here:
- *  http://www.dbs.ifi.lmu.de/Publikationen/Papers/LOF.pdf
- *  
- *  This algorithm uses a KD-Tree to speed up computations.
- *  
- *  
- *  @author Jason Adleberg, Rishi Luthar, Maher Ashraf Khalil
- */
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 
 package prerna.algorithm.learning.unsupervised.outliers;
 
