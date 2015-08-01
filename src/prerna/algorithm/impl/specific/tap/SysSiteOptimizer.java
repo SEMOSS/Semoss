@@ -855,12 +855,12 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	}
 	
 	public Hashtable<String,Object> getOverviewSiteSavingsMapData() {
-		double[] currSiteSustainCost;
-		double[] futureSiteSustainCost;
+		double[] siteSavingsFromLocalSystems;
+		double[] siteSavingsFromCentralSystems;
 
-		currSiteSustainCost = calculateSiteCostsForLocalSystems(localSystemSiteMatrix, localSystemSiteMaintenaceCostArr);
+		siteSavingsFromLocalSystems = calculateSiteSavingsForLocalSystems(localSystemSiteMatrix, localSystemSiteResultMatrix, localSystemSiteMaintenaceCostArr);
 
-		futureSiteSustainCost = calculateSiteCostsForLocalSystems(localSystemSiteResultMatrix, localSystemSiteMaintenaceCostArr);
+		siteSavingsFromCentralSystems = calculateSiteSavingsForCentralSystems(centralSystemSiteMatrix, centralSystemMaintenanceCostArr, centralSystemNumSiteArr, centralSysKeptArr);
 		
 		String[] names = new String[]{"DCSite", "lat", "lon", "Site Savings", SUSTAINED_AND_DEPLOYED_SYSTEMS, CONSOLIDATED_SYSTEMS};
 		ITableDataFrame data = new BTreeDataFrame(names);
@@ -871,7 +871,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			row.put(names[0], siteList.get(i));
 			row.put(names[1], siteLat[i]);
 			row.put(names[2], siteLon[i]);
-			row.put(names[3], futureSiteSustainCost[i] - currSiteSustainCost[i]);
+			row.put(names[3], siteSavingsFromLocalSystems[i] + siteSavingsFromCentralSystems[i]);
 			row.put(names[4], makeString(getSustainedSystemsAtSiteList(i)));
 			row.put(names[5], makeString(getConsolidatedSystemsAtSiteList(i)));
 			data.addRow(row, row);
@@ -1157,6 +1157,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	
 	public Hashtable<String,Object> getSystemCoverageData(String system) {
 
+		ArrayList<String> dataList = convertToURIs(this.dataList,"http://health.mil/ontologies/Concept/DataObject/");
+		ArrayList<String> bluList = convertToURIs(this.bluList,"http://health.mil/ontologies/Concept/BusinessLogicUnit/");
 		Hashtable<String,Object> dataHash = new Hashtable<String,Object>();
 		Hashtable<String, Hashtable<String,Object>> coverageHash = new Hashtable<String, Hashtable<String,Object>> ();
 		
@@ -1185,7 +1187,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			Set<String> dataToIgnoreSet = new HashSet<String>(dataList);
 			dataToIgnoreSet.removeAll(dataSet);
 			Set<String> bluToIgnoreSet = new HashSet<String>(bluList);
-			bluToIgnoreSet.removeAll(bluList);
+			bluToIgnoreSet.removeAll(bluSet);
 			
 			processCoverage(coverageHash, coveredDataSet, coveredBLUSet, localSysList, localSystemDataMatrix, localSystemBLUMatrix, dataList, bluList, dataToIgnoreSet, bluToIgnoreSet, localSysKeptArr, sysIndex);
 			processCoverage(coverageHash, coveredDataSet, coveredBLUSet, centralSysList, centralSystemDataMatrix, centralSystemBLUMatrix, dataList, bluList, dataToIgnoreSet, bluToIgnoreSet, centralSysKeptArr, -1);
@@ -1200,7 +1202,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			Set<String> dataToIgnoreSet = new HashSet<String>(dataList);
 			dataToIgnoreSet.removeAll(dataSet);
 			Set<String> bluToIgnoreSet = new HashSet<String>(bluList);
-			bluToIgnoreSet.removeAll(bluList);
+			bluToIgnoreSet.removeAll(bluSet);
 			
 			processCoverage(coverageHash, coveredDataSet, coveredBLUSet, localSysList, localSystemDataMatrix, localSystemBLUMatrix, dataList, bluList, dataToIgnoreSet, bluToIgnoreSet, localSysKeptArr, -1);
 			processCoverage(coverageHash, coveredDataSet, coveredBLUSet, centralSysList, centralSystemDataMatrix, centralSystemBLUMatrix, dataList, bluList, dataToIgnoreSet, bluToIgnoreSet, centralSysKeptArr, sysIndex);
@@ -1231,7 +1233,9 @@ public class SysSiteOptimizer extends UnivariateOpt {
 
 		for(i=0; i<numSys; i++) {
 			
-			system = sysList.get(i);
+			system = "http://health.mil/ontologies/Concept/System/"+sysList.get(i);
+			//system = sysList.get(i);
+
 			if(sysKeptArr[i] == 0) {
 				rec = RECOMMENDED_CONSOLIDATION;
 			}else {
@@ -1260,8 +1264,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		
 		for(i=0; i<numSys; i++) {
 			if(i != sysIndex) {
-				system = sysList.get(i);
-				
+				system = "http://health.mil/ontologies/Concept/System/"+sysList.get(i);
+				//system = sysList.get(i);
 				if(sysKeptArr[i] == 0) {
 					rec = RECOMMENDED_CONSOLIDATION;
 				}else {
@@ -1339,13 +1343,68 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			double siteCost = 0.0;
 			for(j=0; j<numSys; j++) {
 				
-					siteCost += sysSiteMatrix[j][i] * sysSiteCost[j];
+					siteCost += sysSiteMatrix[j][i] * sysSiteCost[j] / (1-centralPercOfBudget);
 					
 			}
 			siteCostArr[i] = siteCost;
 		}
 		
 		return siteCostArr;
+	}
+
+	
+	private double[] calculateSiteSavingsForLocalSystems(double[][] sysSiteMatrix, double[][] sysSiteResultMatrix, double[] sysSiteCost) {
+		int i;
+		int j;
+		int numSys = sysSiteMatrix.length;
+		int numSite = sysSiteMatrix[0].length;
+		double[] siteSavingsArr = new double[numSite];
+		
+		for(i=0; i<numSite; i++) {
+			
+			double siteSavings = 0.0;
+			for(j=0; j<numSys; j++) {
+				
+				//if the system was decommissioned.... savings!!!!
+				if(sysSiteMatrix[j][i] == 1 && sysSiteResultMatrix[j][i] == 0) {
+					siteSavings += sysSiteCost[j] / (1-centralPercOfBudget);
+				}
+				else if(sysSiteMatrix[j][i] == 0 && sysSiteResultMatrix[j][i] == 1){
+					siteSavings += sysSiteCost[j];
+				}
+					
+			}
+			siteSavingsArr[i] = siteSavings;
+		}
+		
+		return siteSavingsArr;
+	}
+	
+	private double[] calculateSiteSavingsForCentralSystems(double[][] sysSiteMatrix, double[] sysSiteCostArr, double[] sysNumSitesArr, double[] centralSysKeptArr) {
+		int i;
+		int j;
+		int numSys = sysSiteMatrix.length;
+		int numSite = sysSiteMatrix[0].length;
+		double[] siteSavingsArr = new double[numSite];
+		
+		for(i=0; i<numSite; i++) {
+			
+			double siteSavings = 0.0;
+			for(j=0; j<numSys; j++) {
+				//if the system is kept.. there are no savings. cost stays the same
+				//if the system is not kept... there are savings!
+				double numSites;
+				if(sysNumSitesArr[j] == 0.0) {
+					numSites = 1.0;
+				}else {
+					numSites = sysNumSitesArr[j];
+				}
+				siteSavings += (1 - centralSysKeptArr[j]) * sysSiteMatrix[j][i] * sysSiteCostArr[j] / numSites;
+			}
+			siteSavingsArr[i] = siteSavings;
+		}
+		
+		return siteSavingsArr;
 	}
 	
 	private String makeString(ArrayList<String> list) {
@@ -1375,6 +1434,13 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		return query;
 	}
 	
+	private ArrayList<String> convertToURIs(ArrayList<String> list, String uri) {
+		ArrayList<String> uriList = new ArrayList<String>();
+		for(String ele : list) {
+			uriList.add(uri+ele);
+		}
+		return uriList;
+	}
 	private void printMessage(String message) {
 		if(playSheet == null)
 			System.out.println(message);
