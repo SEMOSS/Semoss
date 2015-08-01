@@ -51,9 +51,9 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 			}
 		}
 
-		int numRows = dataFrame.getNumRows();
-		if(numClusters > numRows) {
-			throw new IllegalArgumentException("Cannot have more clusters than instances");
+		int numInstances = dataFrame.getUniqueInstanceCount(attributeNames[instanceIndex]);
+		if(numClusters > numInstances) {
+			throw new IllegalArgumentException("There are " + numClusters + " number of clusters while only " + numInstances + " unique instances.\nNumber of instances must be larger than number of clusters.");
 		}
 
 		// fills in numericalWeights and categoricalWeights maps

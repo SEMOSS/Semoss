@@ -60,11 +60,6 @@ public class MultiClusteringRoutine implements IAnalyticRoutine {
 	@Override
 	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
 		// values defined in options
-		//TODO: below is simply for ease in testing
-//		int start = 2;
-//		int end = 50;
-//		this.instanceIndex = 0;
-//		this.clusterColumnID = "clusterID";
 		int start = (int) options.get(0).getSelected();
 		int end = (int) options.get(1).getSelected();
 		this.instanceIndex = (int) options.get(2).getSelected();
@@ -72,6 +67,12 @@ public class MultiClusteringRoutine implements IAnalyticRoutine {
 		this.attributeNames = data[0].getColumnHeaders();
 		this.instanceType = attributeNames[instanceIndex];
 		this.isNumeric = data[0].isNumeric();
+		
+		int numInstances = data[0].getUniqueInstanceCount(attributeNames[instanceIndex]);
+		if(end > numInstances) {
+			end = numInstances;
+		}
+		
 		ITableDataFrame results = runGoldenSelectionForNumberOfClusters(data[0], start, end);
 		this.clusterColumnID = results.getColumnHeaders()[1];
 		return results;
@@ -89,15 +90,35 @@ public class MultiClusteringRoutine implements IAnalyticRoutine {
 		Map<Integer, Double> previousResults = new Hashtable<Integer, Double>();
 		
 		List<Cluster> startClusterList = new ArrayList<Cluster>();
-		ITableDataFrame startClusterResult = runClusteringRoutine(data, x1, startClusterList, previousResults);
-		double startVal = computeClusteringScore(data, startClusterResult, startClusterList, previousResults, x1);
-		previousResults.put(x1, startVal);
-
+		double startVal = 0;
+		ITableDataFrame startClusterResult = null;
+		String errorMessage1 = null;
+		try {
+			startClusterResult = runClusteringRoutine(data, x1, startClusterList, previousResults);
+			startVal = computeClusteringScore(data, startClusterResult, startClusterList, previousResults, x1);
+			previousResults.put(x1, startVal);
+		} catch (IllegalArgumentException ex) {
+			// do nothing
+			errorMessage1 = ex.getMessage();
+		}
+		
 		List<Cluster> endClusterList = new ArrayList<Cluster>();
-		ITableDataFrame endClusterResult = runClusteringRoutine(data, x2, endClusterList, previousResults);
-		double endVal = computeClusteringScore(data, endClusterResult, endClusterList, previousResults, x2);
-		previousResults.put(x2, endVal);
-
+		double endVal = 0;
+		ITableDataFrame endClusterResult = null;
+		String errorMessage2 = null;
+		try {
+			endClusterResult = runClusteringRoutine(data, x2, endClusterList, previousResults);
+			endVal = computeClusteringScore(data, endClusterResult, endClusterList, previousResults, x2);
+			previousResults.put(x2, endVal);
+		} catch (IllegalArgumentException ex) {
+			// do nothing
+			errorMessage2 = ex.getMessage();
+		}
+		
+		if(startClusterResult == null && endClusterResult == null) {
+			throw new IllegalArgumentException(errorMessage1 + ".\n" + errorMessage2);
+		}
+		
 		if(startVal > endVal) {
 			if(startVal > bestVal) {
 				bestVal = startVal;
@@ -123,20 +144,28 @@ public class MultiClusteringRoutine implements IAnalyticRoutine {
 				x1 = (int) Math.round((phi-1)*a + (2-phi)*b);
 			}
 			
-			startClusterList.clear();
-			startClusterResult = runClusteringRoutine(data, x1, startClusterList, previousResults);
-			startVal = computeClusteringScore(data, startClusterResult, startClusterList, previousResults, x1);
-			previousResults.put(x1, startVal);
+			try {
+				startClusterList.clear();
+				startClusterResult = runClusteringRoutine(data, x1, startClusterList, previousResults);
+				startVal = computeClusteringScore(data, startClusterResult, startClusterList, previousResults, x1);
+				previousResults.put(x1, startVal);
+			} catch (IllegalArgumentException ex) {
+				// do nothing
+			}
 			
-			endClusterList.clear();
-			endClusterResult = runClusteringRoutine(data, x2, endClusterList, previousResults);
-			endVal = computeClusteringScore(data, endClusterResult, endClusterList, previousResults, x2);
-			previousResults.put(x2, endVal);
+			try {
+				endClusterList.clear();
+				endClusterResult = runClusteringRoutine(data, x2, endClusterList, previousResults);
+				endVal = computeClusteringScore(data, endClusterResult, endClusterList, previousResults, x2);
+				previousResults.put(x2, endVal);
+			} catch (IllegalArgumentException ex) {
+				//do nothing
+			}
 			
 			if(startVal > endVal) {
 				if(startVal > bestVal) {
 					bestVal = startVal;
-					if(startClusterResult != null) { // if null, its alreayd stored
+					if(startClusterResult != null) { // if null, its already stored
 						bestResults = startClusterResult;
 					}
 					this.optimalNumClusters = x1;
@@ -201,7 +230,6 @@ public class MultiClusteringRoutine implements IAnalyticRoutine {
 		selectedOptions.put(params.get(3).getName(), this.options.get(4).getSelected());
 
 		clustering.setSelectedOptions(selectedOptions);
-		
 		ITableDataFrame results = clustering.runAlgorithm(data);
 		clusters.addAll(clustering.getClusters());
 		
