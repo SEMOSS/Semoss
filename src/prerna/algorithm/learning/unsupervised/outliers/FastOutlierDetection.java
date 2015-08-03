@@ -107,6 +107,11 @@ public class FastOutlierDetection implements IAnalyticRoutine {
 		if(skipAttributes == null) {
 			skipAttributes = new ArrayList<String>();
 		}
+		
+		if(numSubsetSize > numInstances) {
+			throw new IllegalArgumentException("Subset size is larger than the number of instances.");
+		}
+		
 		if(dups == null) {
 			dups = new HashMap<String, DuplicationReconciliation>();
 			for(int i = 0; i < attributeNames.length; i++) {
