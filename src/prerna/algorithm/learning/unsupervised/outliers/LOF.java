@@ -122,6 +122,11 @@ public class LOF implements IAnalyticRoutine {
 		dataFrame.setColumnsToSkip(skipAttributes);
 		this.dimensions = dataFrame.getNumCols() - 1;
 		this.attributeNames = dataFrame.getColumnHeaders();
+		
+		if(k > dataFrame.getUniqueInstanceCount(attributeNames[instanceIndex])) {
+			throw new IllegalArgumentException("Number of instances is less than the selected K value.");
+		}
+
 		// double check that all info is numerical
 		boolean[] isNumeric = dataFrame.isNumeric();
 		for(int i = 0; i < isNumeric.length; i++) {
