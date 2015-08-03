@@ -73,7 +73,13 @@ public class MultiClusteringRoutine implements IAnalyticRoutine {
 			end = numInstances;
 		}
 		
-		ITableDataFrame results = runGoldenSelectionForNumberOfClusters(data[0], start, end);
+		ITableDataFrame results = null;
+		if(start != end) {
+			results = runGoldenSelectionForNumberOfClusters(data[0], start, end);
+		} else { // usually occurs when there is too few data points
+			results = runClusteringRoutine(data[0], start, new ArrayList<Cluster>(), new HashMap<Integer, Double>());
+			this.optimalNumClusters = start;
+		}
 		this.clusterColumnID = results.getColumnHeaders()[1];
 		return results;
 	}
