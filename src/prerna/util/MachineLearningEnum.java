@@ -9,6 +9,6 @@ public enum MachineLearningEnum {
 	Classify, 
 	MatrixRegression, 
 	NumericalCorrelation, 
-	SOM, 
+	//SOM, 
 	//Perceptron,
 }
