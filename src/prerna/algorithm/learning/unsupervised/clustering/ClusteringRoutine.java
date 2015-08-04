@@ -52,6 +52,9 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 		}
 
 		int numInstances = dataFrame.getUniqueInstanceCount(attributeNames[instanceIndex]);
+		if(numInstances == 1) {
+			throw new IllegalArgumentException("Instance column only contains one unqiue value.");
+		}
 		if(numClusters > numInstances) {
 			throw new IllegalArgumentException("There are " + numClusters + " number of clusters while only " + numInstances + " unique instances.\nNumber of instances must be larger than number of clusters.");
 		}
