@@ -558,7 +558,19 @@ public class SysSiteLPSolver extends LPOptimizer{
 					index++;
 				}
 				
-				totalDeploymentCost = solver.getVarPrimalresult(budgetRow);	
+				totalDeploymentCost = 0.0;
+		        for(i=0; i<numLocalSystems; i++) {
+					for(j=0; j<siteLength; j++) {
+						totalDeploymentCost += ((1 - localSystemSiteMatrix[i][j]) * localSystemSiteDeploymentCostArr[i] + (1+trainingPerc) * localSystemSiteInterfaceCostArr[i]) * localSystemSiteResultMatrix[i][j];
+					}
+		        }
+		 
+		        for(i=0; i<numCentralSystems; i++) {
+		        	totalDeploymentCost += (1+trainingPerc) * centralSystemInterfaceCostArr[i] * centralSysKeptArr[i];
+		 			index++;
+		        }
+		        
+				//totalDeploymentCost = solver.getVarPrimalresult(budgetRow);	
 			} catch(LpSolveException e) {
 				LOGGER.error("Unable to get solution. Take no action.");
 				setNoSolution();
