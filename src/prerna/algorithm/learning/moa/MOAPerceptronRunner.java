@@ -1,5 +1,19 @@
 package prerna.algorithm.learning.moa;
 
+import gov.sandia.cognition.learning.algorithm.perceptron.KernelizableBinaryCategorizerOnlineLearner;
+import gov.sandia.cognition.learning.algorithm.perceptron.OnlinePerceptron;
+import gov.sandia.cognition.learning.algorithm.perceptron.kernel.KernelBinaryCategorizerOnlineLearnerAdapter;
+import gov.sandia.cognition.learning.data.DefaultInputOutputPair;
+import gov.sandia.cognition.learning.data.InputOutputPair;
+import gov.sandia.cognition.learning.function.categorization.DefaultKernelBinaryCategorizer;
+import gov.sandia.cognition.learning.function.categorization.LinearBinaryCategorizer;
+import gov.sandia.cognition.learning.function.kernel.LinearKernel;
+import gov.sandia.cognition.learning.function.kernel.PolynomialKernel;
+import gov.sandia.cognition.math.matrix.Vector;
+import gov.sandia.cognition.math.matrix.VectorFactory;
+import gov.sandia.cognition.math.matrix.mtj.DenseVector;
+import gov.sandia.cognition.math.matrix.mtj.Vector2;
+
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
@@ -11,6 +25,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import moa.classifiers.Classifier;
@@ -108,6 +123,7 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 //		List<Object[]> dataTable = table.getScaledData();
 //		Collections.shuffle(dataTable);
 
+		
 		ITableDataFrame table = data[0];
 		int numAttributes = table.getNumCols();
 		String[] names = table.getColumnHeaders();		
@@ -149,7 +165,7 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 //		Collections.shuffle(dataTable);
 		int numIterations = 10;
 		String[] correctArray = new String[dataTable.size()];
-		
+		this.testKernelPerceptron(dataTable, instanceData, isCategorical, numAttributes);
 		//for(int x = 1; x <= numIterations; x++) {
 			int correct = 0;
 			int total = dataTable.size();
@@ -157,8 +173,10 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 			for(int i = 0; i < dataTable.size(); i++) {
 	
 				Object[] newRow = dataTable.get(i);//iterator.next();
-				Instance nextInst = WekaUtilityMethods.createInstance(instanceData, newRow, isCategorical, numAttributes);
+				Instance nextInst = WekaUtilityMethods.createInstance(instanceData, newRow, isCategorical, numAttributes);	
 				Instance abc = nextInst;
+				//System.out.println(Arrays.toString(nextInst.toDoubleArray()));
+				//System.out.println(newRow[classIndex]);
 				//System.out.println(nextInst.toString());
 				//Instance nextInst = WekaUtilityMethods.createInstance(null, iterator.next(), isCategorical, numAttributes - 1);
 				//double[] votes = learner.getVotesForInstance(nextInst);
@@ -232,11 +250,93 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 
 		Iterator<Object[]> iterator = trainingSet.scaledIterator(false);
 		while(iterator.hasNext()) {
-			Instance trainInst = WekaUtilityMethods.createInstance(instanceData, iterator.next(), isCategorical, trainingSet.getColumnHeaders().length - 1);
+			Object[] row = iterator.next();
+			Instance trainInst = WekaUtilityMethods.createInstance(instanceData, row, isCategorical, trainingSet.getColumnHeaders().length - 1);
+			System.out.println(trainInst.toDoubleArray());
+			System.out.println(row[classIndex]);
 			learner.trainOnInstanceImpl(trainInst);
 		}
 	}
 
+    private void testKernelPerceptron(List<Object[]> allData, Instances instanceData, boolean[] isCategorical, int numAttributes) {
+    	
+    	KernelBinaryCategorizerOnlineLearnerAdapter<Vector> instance0 = new KernelBinaryCategorizerOnlineLearnerAdapter<Vector>(new PolynomialKernel(3, 1.0), new OnlinePerceptron());
+        KernelBinaryCategorizerOnlineLearnerAdapter<Vector> instance = new KernelBinaryCategorizerOnlineLearnerAdapter<Vector>(new PolynomialKernel(2, 1.0), new OnlinePerceptron());
+        KernelBinaryCategorizerOnlineLearnerAdapter<Vector> instance2 = new KernelBinaryCategorizerOnlineLearnerAdapter<Vector>(new LinearKernel(), new OnlinePerceptron());
+        
+        DefaultKernelBinaryCategorizer<Vector> learned0 = instance0.createInitialLearnedObject();
+        DefaultKernelBinaryCategorizer<Vector> learned = instance.createInitialLearnedObject();
+        DefaultKernelBinaryCategorizer<Vector> learned2 = instance2.createInitialLearnedObject();
+        
+        int correctCount0 = 0;
+        int correctCount = 0;
+        int correctCount2 = 0;
+        
+        int total = 100;
+        Collections.shuffle(allData);
+    	for(int z = 0; z < allData.size(); z++) {
+    		
+			Object[] newRow = allData.get(z);
+			Instance nextInst = WekaUtilityMethods.createInstance(instanceData, newRow, isCategorical, numAttributes);
+	    	double[] array = nextInst.toDoubleArray();
+	    	double[] array2 = new double[array.length-1];
+	    	int b = 0;
+	    	for(int a = 0; a < array.length; a++) {
+	    		if(a!=3) {
+	    			array2[b] = array[a];
+	    			b++;
+	    		}
+	    	}
+	
+	    	Vector v = VectorFactory.getDenseDefault().copyArray(array2);
+	    	boolean bool = newRow[3].toString().equalsIgnoreCase("Y") ? true : false;
+	    	InputOutputPair<Vector, Boolean> example = DefaultInputOutputPair.create(v, bool);
+
+	        if(z < total) {
+	        	this.applyUpdate(instance0, learned0, example);
+	            this.applyUpdate(instance, learned, example);
+	            this.applyUpdate(instance2, learned2, example);
+	        } else {
+
+	        	//polynomial degree 3
+	        	boolean actual0 = example.getOutput();
+	        	boolean predicted0 = learned0.evaluate(example.getInput());
+	        	if(actual0==predicted0) {
+	        		correctCount0++;
+	        	}
+	        	
+	        	//polynomial degree 2
+	            boolean actual = example.getOutput();
+	            boolean predicted = learned.evaluate(example.getInput());
+	            if (actual == predicted) {
+	                correctCount++;
+	            }
+
+	            //linear
+	            boolean actual2 = example.getOutput();
+	            boolean predicted2 = learned2.evaluate(example.getInput());
+	            if (actual2 == predicted2) {
+	                correctCount2++;
+	            }
+	        }
+    	}
+    	double accuracy0 = (double) correctCount0 / (allData.size() - total);
+        double accuracy = (double) correctCount / (allData.size()-total);
+        double accuracy2 = (double) correctCount2/(allData.size()-total);
+        
+        System.out.println("Accuracy for polynomial perceptron, degree 3: "+accuracy0);
+        System.out.println("Accuracy for polynomial perceptron, degree 2: " + accuracy);
+        System.out.println("Accuracy for linear perceptron: " + accuracy2);
+        System.out.println();
+    }
+	
+    protected void applyUpdate(final KernelizableBinaryCategorizerOnlineLearner learner, final LinearBinaryCategorizer target, final InputOutputPair<Vector, Boolean> example) {
+    	learner.update(target, example);
+    }
+
+    protected void applyUpdate(final KernelBinaryCategorizerOnlineLearnerAdapter<Vector> learner, final DefaultKernelBinaryCategorizer<Vector> target, final InputOutputPair<Vector, Boolean> example) {
+    	learner.update(target, example);
+    }
 	@Override
 	public String getDefaultViz() {
 		// TODO Auto-generated method stub
