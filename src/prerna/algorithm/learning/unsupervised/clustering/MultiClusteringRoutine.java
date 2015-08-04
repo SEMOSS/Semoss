@@ -69,6 +69,9 @@ public class MultiClusteringRoutine implements IAnalyticRoutine {
 		this.isNumeric = data[0].isNumeric();
 		
 		int numInstances = data[0].getUniqueInstanceCount(attributeNames[instanceIndex]);
+		if(numInstances == 1) {
+			throw new IllegalArgumentException("Instance column only contains one unqiue value.");
+		}
 		if(end > numInstances) {
 			end = numInstances;
 		}
