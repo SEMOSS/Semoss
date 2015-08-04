@@ -176,7 +176,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		ArrayList<String> modList= new ArrayList<String>(sysUpdater.getSelectedSystemList(true, false, false, false, true, false, false, false));
 		ArrayList<String> decomList= new ArrayList<String>(sysUpdater.getSelectedSystemList(false, false, false, false, false, false, false, true));
 		
-		setUpOpt(costEngine, siteEngine, 1000000000, 10, 1.5/100, 2.5/100, 15, 150, 1, false, "Savings", capabilityURI);
+		setUpOpt(costEngine, siteEngine, 1000000000, 10, 1.5/100, 2.5/100, 15/100.0, 150, 1, false, "Savings", capabilityURI);
 		opt.setSysList(sysList,modList,decomList);
 		opt.executeWeb();
 		return opt.getSysResultList();
@@ -208,7 +208,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		int hourlyRate = gson.fromJson(gson.toJson(webDataHash.get("hbc")), Integer.class);
 		double trainingRate = gson.fromJson(gson.toJson(webDataHash.get("training")), Double.class);
 		
-		setUpOpt(costEngine, siteEngine, yearBudget, years, infl/100, disc/100, trainingRate, hourlyRate, numPts, useDHMSMCap, optType, capabilityURI);
+		setUpOpt(costEngine, siteEngine, yearBudget, years, infl/100.0, disc/100.0, trainingRate/100.0, hourlyRate, numPts, useDHMSMCap, optType, capabilityURI);
 		opt.setSysHashList(sysHashList);
 		opt.executeWeb();
 		return opt.getSysResultList();
