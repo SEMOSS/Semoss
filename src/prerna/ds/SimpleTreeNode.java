@@ -181,7 +181,7 @@ public class SimpleTreeNode {
 		return count;
 	}
 	
-	public int countNodeChildren(SimpleTreeNode counterNode)
+	public static int countNodeChildren(SimpleTreeNode counterNode)
 	{
 		int count = 0;
 		SimpleTreeNode leftChild = counterNode.leftChild;
