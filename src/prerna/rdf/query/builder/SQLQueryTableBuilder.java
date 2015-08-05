@@ -315,7 +315,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 				}
 				String alias = getAlias(tableValue);
 				// get the list
-				ArrayList <Object> filterValues = (ArrayList<Object>)filterResults.get(columnValue);
+				List<Object> filterValues = (List<Object>)filterResults.get(columnValue);
 				
 				//transform the column value
 				columnValue = alias + "." + simpleColumnValue;
