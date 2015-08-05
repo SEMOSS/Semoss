@@ -176,6 +176,16 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return table;
 	}
 	
+	public List<Object[]> getAllData() {
+		List<Object[]> table = new ArrayList<Object[]>();
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);	
+		Iterator<Object[]> it = new BTreeIterator(typeRoot, false, columnsToSkip, true);
+		while(it.hasNext()) {
+			table.add(it.next());
+		}
+		return table;
+	}
+	
 	@Override
 	public List<Object[]> getData(String columnHeader, Object value) {
 		TreeNode root = this.simpleTree.nodeIndexHash.get(columnHeader);
@@ -455,8 +465,14 @@ public class BTreeDataFrame implements ITableDataFrame {
 			while(iterator.hasNext()) {
 				SimpleTreeNode t = iterator.next();
 				this.simpleTree.appendToIndexTree(t.leftChild);
+				//this.simpleTree.appendToFilteredIndexTree(t.rightChild);
 			}
 			
+//			FilteredValueTreeColumnIterator fiterator = new FilteredValueTreeColumnIterator(treeRoot);
+//			while(fiterator.hasNext()) {
+//				this.simpleTree.appendToFilteredIndexTree(fiterator.next().leftChild);
+//				this.simpleTree.appendToFilteredIndexTree(fiterator.next().rightChild);
+//			}
 			//this.simpleTree.quickRefresh();
 
 			//this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[0], levelNames.length);
@@ -1191,6 +1207,27 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return column.toArray();
 	}
 	
+	public Object[] getAllColumn(String columnHeader) {
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		if(typeRoot == null){ // TODO this null check shouldn't be needed. When we join, we need to add empty nodes--need to call balance at somepoint or something like that
+			LOGGER.info("Table is empty............................");
+			return new Object[0];
+		}
+//		typeRoot = typeRoot.getLeft(typeRoot);
+//		List<Object> table = typeRoot.flattenToArray(typeRoot, true);
+//		
+//		System.out.println("Final count for column " + columnHeader + " = " + table.size());
+//		return table.toArray();
+		
+		Iterator<SimpleTreeNode> iterator = new ValueTreeColumnIterator(typeRoot, true);
+		List<Object> column = new ArrayList<Object>();
+		while(iterator.hasNext()) {
+			column.add(iterator.next().leaf.getValue());
+		}
+		
+		return column.toArray();
+	}
+	
 	public String[] getColumnAsString(String columnHeader) {
 		
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
@@ -1294,6 +1331,12 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return null;
 	}
 
+	public void unfilter() {
+		for(String column: levelNames) {
+			this.unfilter(column);
+		}
+	}
+	
 	@Override
 	public void unfilter(String columnHeader) {
 		this.simpleTree.unfilterColumn(columnHeader);
