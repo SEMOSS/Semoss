@@ -30,6 +30,12 @@ public class BTreeIterator implements Iterator<Object[]> {
 		this.columns2skip = columns2skip == null ? new ArrayList<String>() : columns2skip;
 	}
 	
+	public BTreeIterator(TreeNode typeRoot, boolean getRawData, List<String> columns2skip, boolean getAll) {
+		iterator = new ValueTreeColumnIterator(typeRoot, getAll);
+		useRawData = getRawData;
+		this.columns2skip = columns2skip == null ? new ArrayList<String>() : columns2skip;
+	}
+	
 	/**
 	 * Perform a non-recursive depth-first-search (DFS)
 	 * Must also take into consideration the number of instances associated with each node
