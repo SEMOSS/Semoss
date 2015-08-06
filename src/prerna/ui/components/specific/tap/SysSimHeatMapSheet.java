@@ -98,7 +98,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	{
 		if (!(this.query).equals("NULL") || this.query.isEmpty()) {
 			super.createData();
-			list = this.dataFrame.getData();
+			list = this.dataFrame.getRawData();
 			names = this.dataFrame.getColumnHeaders();
 			
 			if (list!=null && list.isEmpty()) {
