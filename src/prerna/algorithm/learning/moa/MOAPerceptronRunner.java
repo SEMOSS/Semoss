@@ -125,8 +125,12 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 
 		
 		ITableDataFrame table = data[0];
+		ArrayList<String> skip = new ArrayList<>();
+		skip.add(table.getColumnHeaders()[0]);
+		table.setColumnsToSkip(skip);
 		int numAttributes = table.getNumCols();
-		String[] names = table.getColumnHeaders();		
+		String[] names = table.getColumnHeaders();
+
 
 		//List<Object[]> dataTable = table.getScaledData();
 		List<Object[]> dataTable = table.getData();
@@ -274,9 +278,11 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
         
         int total = 100;
         Collections.shuffle(allData);
+        
     	for(int z = 0; z < allData.size(); z++) {
     		
 			Object[] newRow = allData.get(z);
+			
 			Instance nextInst = WekaUtilityMethods.createInstance(instanceData, newRow, isCategorical, numAttributes);
 	    	double[] array = nextInst.toDoubleArray();
 	    	double[] array2 = new double[array.length-1];
@@ -289,37 +295,40 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 	    	}
 	
 	    	Vector v = VectorFactory.getDenseDefault().copyArray(array2);
-	    	boolean bool = newRow[3].toString().equalsIgnoreCase("Y") ? true : false;
+	    	boolean bool = newRow[3].toString().equalsIgnoreCase("MASS") ? true : false;
 	    	InputOutputPair<Vector, Boolean> example = DefaultInputOutputPair.create(v, bool);
 
-	        if(z < total) {
-	        	this.applyUpdate(instance0, learned0, example);
-	            this.applyUpdate(instance, learned, example);
-	            this.applyUpdate(instance2, learned2, example);
-	        } else {
+	        //if(z < total) {
+	        //	this.applyUpdate(instance0, learned0, example);
+	        //    this.applyUpdate(instance, learned, example);
+	        //   this.applyUpdate(instance2, learned2, example);
+	        //} else {
 
 	        	//polynomial degree 3
 	        	boolean actual0 = example.getOutput();
 	        	boolean predicted0 = learned0.evaluate(example.getInput());
-	        	if(actual0==predicted0) {
+	        	if(actual0==predicted0 && z > total) {
 	        		correctCount0++;
 	        	}
+	        	this.applyUpdate(instance0, learned0, example);
 	        	
 	        	//polynomial degree 2
 	            boolean actual = example.getOutput();
 	            boolean predicted = learned.evaluate(example.getInput());
-	            if (actual == predicted) {
+	            if (actual == predicted && z > total) {
 	                correctCount++;
 	            }
+	            this.applyUpdate(instance, learned, example);
 
 	            //linear
 	            boolean actual2 = example.getOutput();
 	            boolean predicted2 = learned2.evaluate(example.getInput());
-	            if (actual2 == predicted2) {
+	            if (actual2 == predicted2 && z > total) {
 	                correctCount2++;
 	            }
+	            this.applyUpdate(instance2, learned2, example);
 	        }
-    	}
+    	//}
     	double accuracy0 = (double) correctCount0 / (allData.size() - total);
         double accuracy = (double) correctCount / (allData.size()-total);
         double accuracy2 = (double) correctCount2/(allData.size()-total);
