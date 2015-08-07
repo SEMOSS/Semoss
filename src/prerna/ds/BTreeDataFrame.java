@@ -258,7 +258,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		selectedOptions.put(params.get(0).getName(), colNameInTable);
 		selectedOptions.put(params.get(1).getName(), colNameInJoiningTable);
 		//if the routine takes in confidence threshold, must pass that in as well
-		if(params.size()>2){
+		if(params.size()>2) {
 			selectedOptions.put(params.get(2).getName(), confidenceThreshold);
 		}
 		routine.setSelectedOptions(selectedOptions);
@@ -353,7 +353,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 						
 						// connect via value true
 						SimpleTreeNode firstInstance = rootOfRoots.getInstances().get(0);
-						SimpleTreeNode previousLeftMost = firstInstance.getLeft(firstInstance);
+						SimpleTreeNode previousLeftMost = SimpleTreeNode.getLeft(firstInstance);
 						previousLeftMost.leftSibling = joiningNode;
 						joiningNode.rightSibling = previousLeftMost;
 						
