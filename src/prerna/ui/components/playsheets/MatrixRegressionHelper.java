@@ -65,7 +65,7 @@ public final class MatrixRegressionHelper{
 			for(j = variableStartCol; j< listNumCols; j++) {
 				if(j != bIndex) {
 					if(oldRow[j] != null && !oldRow[j].toString().trim().isEmpty()) {
-						A[i][outIndex] = (double)oldRow[j];
+						A[i][outIndex] = ((Number)oldRow[j]).doubleValue();
 					} else {
 						A[i][outIndex] = 0.0;
 					}
@@ -93,7 +93,7 @@ public final class MatrixRegressionHelper{
 		while(it.hasNext()) {
 			Object[] row = it.next();
 			if(row[bIndex] != null && !row[bIndex].toString().trim().isEmpty()) {
-				b[i] = (Double) row[bIndex];
+				b[i] = ((Number)row[bIndex]).doubleValue();
 			} else {
 				b[i] = 0;
 			}
@@ -127,7 +127,7 @@ public final class MatrixRegressionHelper{
 			for(j=variableStartCol; j<listNumCols; j++) {
 				if(j!=bIndex) {
 					if(oldRow[j] != null && !oldRow[j].toString().trim().isEmpty()) {
-						A[i][outIndex] = (double)oldRow[j];
+						A[i][outIndex] = ((Number)oldRow[j]).doubleValue();
 					} else {
 						A[i][outIndex] = 0.0;
 					}
@@ -150,7 +150,7 @@ public final class MatrixRegressionHelper{
 		double[] b = new double[listNumRows];
 		for(i=0;i<listNumRows;i++)
 			if(list.get(i)[bIndex] != null && !list.get(i)[bIndex].toString().trim().isEmpty()) {
-				b[i] = (Double)list.get(i)[bIndex];
+				b[i] = ((Number)list.get(i)[bIndex]).doubleValue();
 			} else {
 				b[i] = 0;
 			}
