@@ -34,6 +34,8 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.beans.PropertyVetoException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -96,10 +98,13 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 	private ArrayList<JLabel> entropyLabels;
 	private ArrayList<JLabel> accuracyLabels;
 	private ArrayList<JLabel> precisionLabels;
+	private JButton calculateEntropy;
+	
 	//independent variable panel - select all
 	private JCheckBox checkboxSelectAllIVs;
 	private SelectCheckboxesListener selectAllIVsList;
 	public JPanel indVariablesPanel;
+	
 	
 	//data set similarity chart
 	private BrowserGraphPanel simBarChartPanel;
@@ -166,6 +171,9 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 	//perceptron panel components
 	private JPanel perceptronPanel;
 	private JComboBox<String> perceptronClassComboBox;
+	private JComboBox<String> perceptronTypeComboBox;
+	private JLabel lblSelectKernel;
+	private JTextField selectDegreeTextField;
 
 	public int instanceIndex = 0;
 	public String[] columnHeaders;
@@ -203,10 +211,34 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		if(dataFrame == null || dataFrame.isEmpty())
 			return;
 		
-		entropyArr = dataFrame.getEntropyDensity();
-		fillSimBarChartHash(dataFrame, new ArrayList<String>());
+		entropyArr = new Double[dataFrame.getNumCols()];
+//		
+//		entropyArr = dataFrame.getEntropyDensity();
+//		fillSimBarChartHash(dataFrame, new ArrayList<String>());
 	}
 	
+	public void displayEntropyDensity(List<String> skipColumns) {
+		if(dataFrame == null || dataFrame.isEmpty()) return;		
+		entropyArr = new Double[dataFrame.getNumCols()];
+		//dataFrame.setColumnsToSkip(skipColumns);
+		entropyArr = dataFrame.getEntropyDensity();
+		
+		DecimalFormat formatter = new DecimalFormat("#0.00");
+		for(int i = 1; i < columnHeaders.length; i++) {
+			JLabel entropyVal = new JLabel();
+			entropyVal.setText(formatter.format(entropyArr[i]));
+			GridBagConstraints gbc_entropyVal = new GridBagConstraints();
+			gbc_entropyVal.anchor = GridBagConstraints.FIRST_LINE_START;
+			gbc_entropyVal.fill = GridBagConstraints.NONE;
+			gbc_entropyVal.insets = new Insets(5, 20, 0, 0);
+			gbc_entropyVal.gridx = 2;
+			gbc_entropyVal.gridy = i+1;
+			indVariablesPanel.add(entropyVal, gbc_entropyVal);
+			entropyLabels.add(entropyVal);
+		}
+		
+		dataFrame.setColumnsToSkip(null);
+	}
 	public void fillSimBarChartHash(ITableDataFrame data, List<String> skipColumns) {
 		//run the algorithms for similarity bar chart to create hash.
 		DatasetSimilarity alg = new DatasetSimilarity();
@@ -668,16 +700,16 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 			indVariablesPanel.add(checkbox, gbc_checkbox);
 			ivCheckboxes.add(checkbox);
 				
-			JLabel entropyVal = new JLabel();
-			entropyVal.setText(formatter.format(entropyArr[i]));
-			GridBagConstraints gbc_entropyVal = new GridBagConstraints();
-			gbc_entropyVal.anchor = GridBagConstraints.FIRST_LINE_START;
-			gbc_entropyVal.fill = GridBagConstraints.NONE;
-			gbc_entropyVal.insets = new Insets(5, 20, 0, 0);
-			gbc_entropyVal.gridx = 2;
-			gbc_entropyVal.gridy = i+1;
-			indVariablesPanel.add(entropyVal, gbc_entropyVal);
-			entropyLabels.add(entropyVal);
+//			JLabel entropyVal = new JLabel();
+//			//entropyVal.setText(formatter.format(entropyArr[i]));
+//			GridBagConstraints gbc_entropyVal = new GridBagConstraints();
+//			gbc_entropyVal.anchor = GridBagConstraints.FIRST_LINE_START;
+//			gbc_entropyVal.fill = GridBagConstraints.NONE;
+//			gbc_entropyVal.insets = new Insets(5, 20, 0, 0);
+//			gbc_entropyVal.gridx = 2;
+//			gbc_entropyVal.gridy = i+1;
+//			indVariablesPanel.add(entropyVal, gbc_entropyVal);
+//			entropyLabels.add(entropyVal);
 		}
 		
 		selectAllIVsList = new SelectCheckboxesListener();
@@ -686,6 +718,30 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		
 		accuracyLabels = new ArrayList<JLabel>(columnHeaders.length);
 		precisionLabels = new ArrayList<JLabel>(columnHeaders.length);
+		
+		calculateEntropy = new CustomButton("Calculate Entropy");
+		calculateEntropy.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				ArrayList<String> skipColumns = new ArrayList<String>();
+				for(int i = 1; i < columnHeaders.length; i++) {
+					if(!ivCheckboxes.get(i-1).isSelected()) {
+						skipColumns.add(columnHeaders[i]);
+					}
+				}
+				displayEntropyDensity(skipColumns);
+			}
+		});
+		calculateEntropy.setFont(new Font("Tahoma", Font.BOLD, 11));
+		calculateEntropy.setPreferredSize(new Dimension(150, 25));
+		GridBagConstraints gbc_calculateEntropy = new GridBagConstraints();
+		gbc_calculateEntropy.insets = new Insets(10, 15, 0, 0);
+		gbc_calculateEntropy.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_calculateEntropy.fill = GridBagConstraints.NONE;
+		gbc_calculateEntropy.gridx = 2;
+		gbc_calculateEntropy.gridy = 0;
+		indVariablesPanel.add(calculateEntropy, gbc_calculateEntropy);
+		Style.registerTargetClassName(calculateEntropy,  ".createBtn");
 	}
 	
 	public void fillAccuracyAndPrecision(double[] accuracyArr, double[] precisionArr) {
@@ -1328,6 +1384,22 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		gbc_lblSelectClass.gridy = 0;
 		perceptronPanel.add(lblSelectClass, gbc_lblSelectClass);
 
+		perceptronTypeComboBox = new JComboBox<String>();
+		perceptronTypeComboBox.setName("typeComboBox");
+		perceptronTypeComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		perceptronTypeComboBox.setBackground(Color.GRAY);
+		perceptronTypeComboBox.setPreferredSize(new Dimension(250, 25));
+		String[] types = new String[]{"MOA linear","Polynomial"};
+		perceptronTypeComboBox.setModel(new DefaultComboBoxModel<String>(types));
+		GridBagConstraints gbc_typeComboBox = new GridBagConstraints();
+		gbc_typeComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_typeComboBox.fill = GridBagConstraints.NONE;
+		gbc_typeComboBox.insets = new Insets(5, 5, 0, 0);
+		gbc_typeComboBox.gridx = 1;
+		gbc_typeComboBox.gridy = 1;
+		perceptronPanel.add(perceptronTypeComboBox, gbc_typeComboBox);
+		
+		
 		perceptronClassComboBox = new JComboBox<String>();
 		perceptronClassComboBox.setName("classComboBox");
 		perceptronClassComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
@@ -1364,20 +1436,29 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		gbc_lblSelectClassMethod.gridx = 0;
 		gbc_lblSelectClassMethod.gridy = 1;
 		perceptronPanel.add(lblSelectClassMethod, gbc_lblSelectClassMethod);
+		
+		lblSelectKernel = new JLabel("Select Kernel:");
+		lblSelectKernel.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_lblSelectKernel = new GridBagConstraints();
+		gbc_lblSelectKernel.anchor = GridBagConstraints.FIRST_LINE_END;
+		gbc_lblSelectKernel.fill = GridBagConstraints.NONE;
+		gbc_lblSelectKernel.insets = new Insets(10, 5, 0, 0);
+		gbc_lblSelectKernel.gridx = 0;
+		gbc_lblSelectKernel.gridy = 1;
+		perceptronPanel.add(lblSelectKernel, gbc_lblSelectKernel);
 
-//		classificationMethodComboBox = new JComboBox<String>();
-//		classificationMethodComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
-//		classificationMethodComboBox.setBackground(Color.GRAY);
-//		classificationMethodComboBox.setPreferredSize(new Dimension(250, 25));
-//		String[] classTypes = new String[] {"J48","J48GRAFT","SIMPLECART","REPTREE","BFTREE"};
-//		classificationMethodComboBox.setModel(new DefaultComboBoxModel<String>(classTypes));
-//		GridBagConstraints gbc_classificationMethodComboBox = new GridBagConstraints();
-//		gbc_classificationMethodComboBox.anchor = GridBagConstraints.FIRST_LINE_END;
-//		gbc_classificationMethodComboBox.fill = GridBagConstraints.NONE;
-//		gbc_classificationMethodComboBox.insets = new Insets(5, 5, 0, 0);
-//		gbc_classificationMethodComboBox.gridx = 1;
-//		gbc_classificationMethodComboBox.gridy = 1;
-//		classifyPanel.add(classificationMethodComboBox, gbc_classificationMethodComboBox);
+		selectDegreeTextField = new JTextField();
+		selectDegreeTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		selectDegreeTextField.setText("2");
+		selectDegreeTextField.setColumns(4);
+		selectDegreeTextField.setVisible(false);
+		GridBagConstraints gbc_selectDegreeTextField = new GridBagConstraints();
+		gbc_selectDegreeTextField.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_selectDegreeTextField.fill = GridBagConstraints.NONE;
+		gbc_selectDegreeTextField.insets = new Insets(5, 5, 0, 0);
+		gbc_selectDegreeTextField.gridx = 2;
+		gbc_selectDegreeTextField.gridy = 1;
+		perceptronPanel.add(selectDegreeTextField, gbc_selectDegreeTextField);
 	}
 	
 	public void showSelfOrganizingMap(Boolean show) {
@@ -1459,6 +1540,8 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 	public void showPerceptron(Boolean show) {
 		perceptronPanel.setVisible(show);
 		lblSelectClass.setVisible(show);
+		lblSelectKernel.setVisible(show);
+		selectDegreeTextField.setVisible(show);
 		perceptronClassComboBox.setVisible(show);
 		enableAllCheckboxes();
 		if(show) {
@@ -1567,6 +1650,10 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 	public void showSelectNumClustersTextField(Boolean show) {
 		selectNumClustersTextField.setVisible(show);
 	}
+	
+	public void showPolynomialDegreeTextField(Boolean show) {
+		selectDegreeTextField.setVisible(show);
+	}
 	@Override
 	public void setQuery(String query) {
 		String[] querySplit = query.split("\\+\\+\\+");
@@ -1583,6 +1670,12 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 	}
 	public JComboBox<String> getPerceptronClassComboBox() {
 		return perceptronClassComboBox;
+	}
+	public JComboBox<String> getPerceptronTypeComboBox() {
+		return perceptronTypeComboBox;
+	}
+	public JTextField getPerceptronDegree() {
+		return selectDegreeTextField;
 	}
 	public ArrayList<JCheckBox> getColumnCheckboxes() {
 		return ivCheckboxes;

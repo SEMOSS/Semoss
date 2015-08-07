@@ -1056,7 +1056,9 @@ public class SimpleTreeBuilder
 			nodeRightSibling.leftSibling = null;
 		} else {
 			//only child
-			parentNode.leftChild = null;
+			if(!root) {
+				parentNode.leftChild = null;
+			}
 		}
 		
 		node2filter.rightSibling = null;

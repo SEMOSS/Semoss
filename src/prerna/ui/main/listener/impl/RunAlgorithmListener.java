@@ -109,6 +109,8 @@ public class RunAlgorithmListener extends AbstractListener {
 	private String[] attributeNames;
 
 	private JComboBox<String> perceptronClassComboBox;
+	private JComboBox<String> perceptronTypeComboBox;
+	private JTextField selectDegreeTextField;
 
 
 	/**
@@ -440,16 +442,28 @@ public class RunAlgorithmListener extends AbstractListener {
 				}
 			}
 		} else if(algorithm.equals("Perceptron")) {
-			//skipColumns.add(attributeNames[0]);
 			dataFrame.setColumnsToSkip(skipColumns);
 
 			//determine the column index and name to classify on
 			String classifier = perceptronClassComboBox.getSelectedItem() + "";
-
+			String type = perceptronTypeComboBox.getSelectedItem()+"";
+			int degree = 1;
+			
+			String degreeText = selectDegreeTextField.getText();
+			try {
+				degree = Integer.parseInt(degreeText);
+			} catch(NumberFormatException exception) {
+				Utility.showError("Number of clusters must be an integer greater than 0. Please fix and rerun.");
+				return;
+			}
+			
 			newPlaySheet = new PerceptronPlaySheet();
 			newPlaySheet.setDataFrame(dataFrame);
 			((PerceptronPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((PerceptronPlaySheet)newPlaySheet).setClassColumn(classifier);
+			((PerceptronPlaySheet)newPlaySheet).setDegree(degree);
+			((PerceptronPlaySheet)newPlaySheet).setKernel(type);
+			//((PerceptronPlaySheet)newPlaySheet).setClassColumn(classifier);
 			((PerceptronPlaySheet)newPlaySheet).setJTab(jTab);
 			//((PerceptronPlaySheet)newPlaySheet).setJBar(jBar);
 
@@ -483,7 +497,11 @@ public class RunAlgorithmListener extends AbstractListener {
 		//classification
 		this.classificationMethodComboBox = playSheet.getClassificationMethodComboBox();
 		this.classifyClassComboBox = playSheet.getClassifyClassComboBox();
+		
+		//perceptron
 		this.perceptronClassComboBox = playSheet.getPerceptronClassComboBox();
+		this.perceptronTypeComboBox = playSheet.getPerceptronTypeComboBox();
+		this.selectDegreeTextField = playSheet.getPerceptronDegree();
 		//outlier
 		this.enterKNeighborsSlider = playSheet.getEnterKNeighborsSlider();
 		//matrix regression
@@ -500,8 +518,8 @@ public class RunAlgorithmListener extends AbstractListener {
 		this.title = playSheet.getTitle();
 	}
 
-	public void setEntropyArr(Double[] entropyArr) {
-		this.entropyArr = entropyArr;
+	public void setEntropyArr(Double[] entropyArr2) {
+		this.entropyArr = entropyArr2;
 	}
 
 }
