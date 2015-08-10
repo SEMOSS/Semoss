@@ -1103,8 +1103,6 @@ public class RDBMSReader {
 
 	public void createRelation(String fromTable, String toTable, String fromProp, String toProp)
 	{
-		String OLD = fromTable + "." + fromProp + "." + toTable + "." + toProp;
-
 		String [] subPredObj = new String[3];
 
 		if(fromTable.contains("+"))
@@ -1116,14 +1114,12 @@ public class RDBMSReader {
 		if(toProp.contains("+"))
 			toProp = processAutoConcat(toProp);
 		
-
 		fromTable = realClean(fromTable);
 		toTable = realClean(toTable);
 		fromProp = realClean(fromProp);
 		toProp = realClean(toProp);
 
 		String newRelationName = fromTable + "." + fromProp + "." + toTable + "." + toProp;
-		System.out.println("OLD [" + OLD + "] newRelationName [" + newRelationName + "]" );
 		// set the relationURI for the front end
 		String relSemossBaseURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + newRelationName + "/" + fromTable + "_" + toTable; // this is the culprit
 
