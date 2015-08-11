@@ -56,6 +56,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 		String selection = bx.getSelectedItem() + "";
 		if(selection.equals("Cluster") ) {
 			playSheet.showClassify(false);
+			playSheet.showHOFClassify(false);
 			playSheet.showLocalOutlierFactor(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showFastOutlierDetection(false);
@@ -66,6 +67,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showCluster(true);
 		} else if(selection.equals("Classify")){
 			playSheet.showCluster(false);
+			playSheet.showHOFClassify(false);
 			playSheet.showLocalOutlierFactor(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showFastOutlierDetection(false);
@@ -74,9 +76,21 @@ public class SelectAlgorithmListener extends AbstractListener {
 			playSheet.showSelfOrganizingMap(false);
 			playSheet.showPerceptron(false);
 			playSheet.showClassify(true);
+		} else if(selection.equals("Hoeffding Tree")){
+			playSheet.showCluster(false);
+			playSheet.showHOFClassify(true);
+			playSheet.showLocalOutlierFactor(false);
+			playSheet.showAssociationLearning(false);
+			playSheet.showFastOutlierDetection(false);
+			playSheet.showMatrixRegression(false);
+			playSheet.showNumericalCorrelation(false);
+			playSheet.showSelfOrganizingMap(false);
+			playSheet.showPerceptron(false);
+			playSheet.showClassify(false);
 		} else if(selection.equals("Local Outlier Factor")) {
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
+			playSheet.showHOFClassify(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showFastOutlierDetection(false);
 			playSheet.showMatrixRegression(false);
@@ -87,6 +101,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 		} else if(selection.equals("Association Learning")) {
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
+			playSheet.showHOFClassify(false);
 			playSheet.showMatrixRegression(false);
 			playSheet.showLocalOutlierFactor(false);
 			playSheet.showNumericalCorrelation(false);
@@ -97,6 +112,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 		} else if(selection.equals("Linear Regression")) {
 			playSheet.showClassify(false);
 			playSheet.showCluster(false);
+			playSheet.showHOFClassify(false);
 			playSheet.showLocalOutlierFactor(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showFastOutlierDetection(false);
@@ -107,6 +123,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 		} else if(selection.equals("Numerical Correlation")) {
 			playSheet.showClassify(false);
 			playSheet.showCluster(false);
+			playSheet.showHOFClassify(false);
 			playSheet.showLocalOutlierFactor(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showFastOutlierDetection(false);
@@ -117,6 +134,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 		} else if(selection.equals("Self Organizing Map")) { 
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
+			playSheet.showHOFClassify(false);
 			playSheet.showLocalOutlierFactor(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showMatrixRegression(false);
@@ -127,6 +145,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 		} else if(selection.equals("Perceptron")){
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
+			playSheet.showHOFClassify(false);
 			playSheet.showLocalOutlierFactor(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showMatrixRegression(false);
@@ -137,6 +156,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 		} else if(selection.equals("Fast Outlier Detection")){
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
+			playSheet.showHOFClassify(false);
 			playSheet.showLocalOutlierFactor(false);
 			playSheet.showAssociationLearning(false);
 			playSheet.showMatrixRegression(false);
@@ -150,6 +170,7 @@ public class SelectAlgorithmListener extends AbstractListener {
 				selection.equals("Entropy Density Factor")) {
 			playSheet.showCluster(false);
 			playSheet.showClassify(false);
+			playSheet.showHOFClassify(false);
 			playSheet.showLocalOutlierFactor(false);
 			playSheet.showFastOutlierDetection(false);
 			playSheet.showAssociationLearning(false);
