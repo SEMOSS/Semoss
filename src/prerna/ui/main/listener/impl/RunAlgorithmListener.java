@@ -60,6 +60,7 @@ import prerna.ui.components.playsheets.CorrelationPlaySheet;
 import prerna.ui.components.playsheets.MachineLearningModulePlaySheet;
 import prerna.ui.components.playsheets.MatrixRegressionPlaySheet;
 import prerna.ui.components.playsheets.MatrixRegressionVizPlaySheet;
+import prerna.ui.components.playsheets.MOAClassificationPlaySheet;
 import prerna.ui.components.playsheets.NumericalCorrelationVizPlaySheet;
 import prerna.ui.components.playsheets.OutlierVizPlaySheet;
 import prerna.ui.components.playsheets.PerceptronPlaySheet;
@@ -90,10 +91,20 @@ public class RunAlgorithmListener extends AbstractListener {
 	//classify
 	private JComboBox<String> classificationMethodComboBox;
 	private JComboBox<String> classifyClassComboBox;
-
+	
+	//hoeffding tree
+	private JComboBox<String> HOFclassifyClassComboBox;
+	private JSlider enterHOFConfidenceSlider;
+	private JSlider enterHOFGracePercent;
+	private JSlider enterTieThresholdSlider;
+	
 	//outlier
 	private JSlider enterKNeighborsSlider;
 
+	// fast outlier
+	private JTextField enterSubsetSize;
+	private JTextField enterNumberRuns;
+	
 	//matrix regression
 	private JComboBox<String> matrixDepVarComboBox;
 
@@ -200,7 +211,6 @@ public class RunAlgorithmListener extends AbstractListener {
 			showDrillDownBtn.setVisible(true);			
 
 		} else if(algorithm.equals("Classify")) {
-			skipColumns.add(attributeNames[0]);
 			dataFrame.setColumnsToSkip(skipColumns);
 
 			//method of classification to use
@@ -216,6 +226,29 @@ public class RunAlgorithmListener extends AbstractListener {
 			((WekaClassificationPlaySheet)newPlaySheet).setClassColumn(classifier);
 			((WekaClassificationPlaySheet)newPlaySheet).setJTab(jTab);
 			((WekaClassificationPlaySheet)newPlaySheet).setJBar(jBar);
+
+		} else if(algorithm.equals("Hoeffding Tree")) {
+			//skipColumns.add(attributeNames[0]);
+			dataFrame.setColumnsToSkip(skipColumns);
+
+			//determine the column index and name to classify on
+			String classifier = HOFclassifyClassComboBox.getSelectedItem() + "";
+			// get grace period
+			int gracePeriod = enterHOFGracePercent.getValue();
+			// get confidence 
+			int ConfidenceValue = enterHOFConfidenceSlider.getValue();
+			
+			int tieThreshold = enterTieThresholdSlider.getValue();
+
+			newPlaySheet = new MOAClassificationPlaySheet();
+			newPlaySheet.setDataFrame(dataFrame);
+			((MOAClassificationPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
+			((MOAClassificationPlaySheet)newPlaySheet).setClassColumn(classifier);
+			((MOAClassificationPlaySheet)newPlaySheet).setGracePeriod(gracePeriod);
+			((MOAClassificationPlaySheet)newPlaySheet).setConfValue(ConfidenceValue);
+			((MOAClassificationPlaySheet)newPlaySheet).setTieThreshold(tieThreshold);
+			((MOAClassificationPlaySheet)newPlaySheet).setJTab(jTab);
+			((MOAClassificationPlaySheet)newPlaySheet).setJBar(jBar);
 
 		} else if(algorithm.equals("Local Outlier Factor")) {
 			int kneighbors = enterKNeighborsSlider.getValue();
@@ -245,11 +278,12 @@ public class RunAlgorithmListener extends AbstractListener {
 
 			int numRuns = 10;
 			int numSubsetSize = 20;
+			
 			if(numRunsText != null && !numRunsText.isEmpty()) {
 				try {
 					numRuns = Integer.parseInt(numRunsText);
 				} catch(NumberFormatException ex) {
-					Utility.showError("Entered value for Number of Runs, " + numRunsText + ", is not a valid numerical input.\nWill use default value of " + numRuns + ".");
+					Utility.showError("Entered value for Number of Runs, " + numRunsText + ", is not a valid numerical input.\nWill use default value.");
 				}
 			}
 			
@@ -257,13 +291,13 @@ public class RunAlgorithmListener extends AbstractListener {
 				try {
 					numSubsetSize = Integer.parseInt(subsetSizeText);
 				} catch(NumberFormatException ex) {
-					Utility.showError("Entered value for Subset Size, " + subsetSizeText + ", is not a valid numerical input.\nWill use default value of " + 20 + ".");
+					Utility.showError("Entered value for Subset Size, " + subsetSizeText + ", is not a valid numerical input.\nWill use default value.");
 				}
 			}
 			
 			((OutlierVizPlaySheet)newPlaySheet).setAlgorithmSelected(OutlierVizPlaySheet.FOD);
-			((OutlierVizPlaySheet)newPlaySheet).setNumSubsetSize(numSubsetSize);
-			((OutlierVizPlaySheet)newPlaySheet).setNumRuns(numRuns);
+			((OutlierVizPlaySheet)newPlaySheet).setNumSubsetSize(numSubsetSize); //TODO: create field for input
+			((OutlierVizPlaySheet)newPlaySheet).setNumRuns(numRuns); //TODO: create field for input
 			((OutlierVizPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((OutlierVizPlaySheet)newPlaySheet).setJTab(jTab);
 			((OutlierVizPlaySheet)newPlaySheet).setJBar(jBar);	
@@ -497,7 +531,11 @@ public class RunAlgorithmListener extends AbstractListener {
 		//classification
 		this.classificationMethodComboBox = playSheet.getClassificationMethodComboBox();
 		this.classifyClassComboBox = playSheet.getClassifyClassComboBox();
-		
+		//hoeffding tree
+		this.HOFclassifyClassComboBox = playSheet.getHOFClassifyClassComboBox();
+		this.enterHOFGracePercent = playSheet.getenterHOFGracePercent();
+		this.enterHOFConfidenceSlider = playSheet.getenterHOFConfidenceSlider();
+		this.enterTieThresholdSlider = playSheet.getenterTieThresholdSlider();
 		//perceptron
 		this.perceptronClassComboBox = playSheet.getPerceptronClassComboBox();
 		this.perceptronTypeComboBox = playSheet.getPerceptronTypeComboBox();

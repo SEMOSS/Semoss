@@ -84,6 +84,7 @@ import prerna.util.QuestionPlaySheetStore;
 import prerna.util.Utility;
 import aurelienribon.ui.css.Style;
 
+@SuppressWarnings("serial")
 public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 
 	private static final Logger LOGGER = LogManager.getLogger(MachineLearningModulePlaySheet.class.getName());
@@ -130,6 +131,15 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 	private JComboBox<String> classificationMethodComboBox;
 	private JComboBox<String> classifyClassComboBox;
 	private JLabel lblSelectClass, lblSelectClassMethod;
+	
+	//Hoeffding classification panel components
+	private JPanel HOFclassifyPanel;
+	private JComboBox<String> HOFclassifyClassComboBox;
+	private JLabel HOFlblSelectClass, lblEnterHOFGracePercent, lblenterHOFConfidence, lblHOFWarning;
+	private JSlider enterHOFConfidenceSlider;
+	private JSlider enterTieThresholdSlider; 
+	private JSlider enterHOFGracePercent;
+	private JLabel lblEnterTieThreshold;
 	
 	//local outlier factor panel components
 	private JPanel localOutlierFactorPanel;
@@ -389,6 +399,7 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		algorithmComboBox.setPreferredSize(new Dimension(150, 25));
 		algorithmComboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"Cluster", 
 				"Classify",
+				"Hoeffding Tree",
 				"Local Outlier Factor",
 				"Entropy Density Factor",
 				"Fast Outlier Detection",
@@ -432,6 +443,17 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		gbc_classifyPanel.gridy = 3;
 		variableSelectorPanel.add(classifyPanel, gbc_classifyPanel);
 		classifyPanel.setVisible(false);
+		
+		HOFclassifyPanel = new JPanel();
+		GridBagConstraints gbc_HOFclassifyPanel = new GridBagConstraints();
+		gbc_HOFclassifyPanel.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_HOFclassifyPanel.fill = GridBagConstraints.NONE;
+		gbc_HOFclassifyPanel.gridwidth = 3;
+		gbc_HOFclassifyPanel.insets = new Insets(5, 15, 0, 0);
+		gbc_HOFclassifyPanel.gridx = 1;
+		gbc_HOFclassifyPanel.gridy = 3;
+		variableSelectorPanel.add(HOFclassifyPanel, gbc_HOFclassifyPanel);
+		HOFclassifyPanel.setVisible(false);
 		
 		localOutlierFactorPanel = new JPanel();
 		GridBagConstraints gbc_outlierPanel = new GridBagConstraints();
@@ -501,6 +523,7 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		
 		fillClusterPanel(clusterPanel);
 		fillClassifyPanel(classifyPanel);
+		fillHOFclassifyPanel(HOFclassifyPanel);
 		fillLocalOutlierFactorPanel(localOutlierFactorPanel);
 		fillFastOutlierDetectionPanel(FastOutlierDetectionPanel);
 		fillFrequentSetsPanel(associationLearningPanel);
@@ -940,6 +963,146 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		classifyPanel.add(classificationMethodComboBox, gbc_classificationMethodComboBox);
 
 	}
+	
+	private void fillHOFclassifyPanel(JPanel HOFclassifyPanel) {
+		
+		GridBagLayout gbl_HOFclassifyPanel = new GridBagLayout();
+		gbl_HOFclassifyPanel.columnWidths = new int[]{0, 0, 0};
+		gbl_HOFclassifyPanel.rowHeights = new int[]{0, 0, 0};
+		gbl_HOFclassifyPanel.columnWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
+		gbl_HOFclassifyPanel.rowWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
+		HOFclassifyPanel.setLayout(gbl_HOFclassifyPanel);
+		
+		HOFlblSelectClass = new JLabel("Select variable to classify:");
+		HOFlblSelectClass.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_HOFlblSelectClass = new GridBagConstraints();
+		gbc_HOFlblSelectClass.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_HOFlblSelectClass.fill = GridBagConstraints.NONE;
+		gbc_HOFlblSelectClass.insets = new Insets(10, 5, 0, 0);
+		gbc_HOFlblSelectClass.gridx = 0;
+		gbc_HOFlblSelectClass.gridy = 0;
+		HOFclassifyPanel.add(HOFlblSelectClass, gbc_HOFlblSelectClass);
+
+		HOFclassifyClassComboBox = new JComboBox<String>();
+		HOFclassifyClassComboBox.setName("classComboBox");
+		HOFclassifyClassComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		HOFclassifyClassComboBox.setBackground(Color.GRAY);
+		HOFclassifyClassComboBox.setPreferredSize(new Dimension(250, 25));
+		String[] cols = new String[columnHeaders.length-1];
+		
+		int counter = 0;
+		for(int i = 0; i < columnHeaders.length; i++) {
+			if(i == instanceIndex) {
+				continue;
+			}
+			cols[counter] = columnHeaders[i];
+			counter++;
+		}
+		HOFclassifyClassComboBox.setModel(new DefaultComboBoxModel<String>(cols));
+		GridBagConstraints gbc_classComboBox = new GridBagConstraints();
+		gbc_classComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_classComboBox.fill = GridBagConstraints.NONE;
+		gbc_classComboBox.insets = new Insets(5, 5, 0, 0);
+		gbc_classComboBox.gridx = 0;
+		gbc_classComboBox.gridy = 1;
+		HOFclassifyPanel.add(HOFclassifyClassComboBox, gbc_classComboBox);
+		ClassificationSelectionListener classSelectList = new ClassificationSelectionListener();
+		classSelectList.setView(this);
+		HOFclassifyClassComboBox.addActionListener(classSelectList);
+
+		lblenterHOFConfidence = new JLabel("Enter Confidence %:");
+		lblenterHOFConfidence.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_lblenterHOFConfidence = new GridBagConstraints();
+		gbc_lblenterHOFConfidence.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_lblenterHOFConfidence.fill = GridBagConstraints.NONE;
+		gbc_lblenterHOFConfidence.insets = new Insets(10, 5, 0, 0);
+		gbc_lblenterHOFConfidence.gridx = 0;
+		gbc_lblenterHOFConfidence.gridy = 2;
+		HOFclassifyPanel.add(lblenterHOFConfidence, gbc_lblenterHOFConfidence);
+		
+		enterHOFConfidenceSlider = new JSlider(10,95,80);
+		enterHOFConfidenceSlider.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		enterHOFConfidenceSlider.setMajorTickSpacing(10);
+		enterHOFConfidenceSlider.setMinorTickSpacing(1);
+		enterHOFConfidenceSlider.setPaintLabels(true);
+		enterHOFConfidenceSlider.setPaintTicks(true);
+		enterHOFConfidenceSlider.setPreferredSize(new Dimension(400,40));
+		enterHOFConfidenceSlider.setVisible(false);
+		GridBagConstraints gbc_getenterHOFConfidenceSlider = new GridBagConstraints();
+		gbc_getenterHOFConfidenceSlider.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_getenterHOFConfidenceSlider.fill = GridBagConstraints.NONE;
+		gbc_getenterHOFConfidenceSlider.insets = new Insets(5, 5, 0, 0);
+		gbc_getenterHOFConfidenceSlider.gridx = 0;
+		gbc_getenterHOFConfidenceSlider.gridy = 3;
+		HOFclassifyPanel.add(enterHOFConfidenceSlider, gbc_getenterHOFConfidenceSlider);
+		
+		lblEnterHOFGracePercent = new JLabel("Enter % of rows to look over first before classifying:");
+		lblEnterHOFGracePercent.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_lblEnterHOFGracePercent = new GridBagConstraints();
+		gbc_lblEnterHOFGracePercent.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_lblEnterHOFGracePercent.fill = GridBagConstraints.NONE;
+		gbc_lblEnterHOFGracePercent.insets = new Insets(10, 5, 0, 0);
+		gbc_lblEnterHOFGracePercent.gridx = 0;
+		gbc_lblEnterHOFGracePercent.gridy = 4;
+		HOFclassifyPanel.add(lblEnterHOFGracePercent, gbc_lblEnterHOFGracePercent);
+		
+		enterHOFGracePercent = new JSlider(0,50,20);
+		enterHOFGracePercent.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		enterHOFGracePercent.setMajorTickSpacing(10);
+		enterHOFGracePercent.setMinorTickSpacing(5);
+		enterHOFGracePercent.setPaintLabels(true);
+		enterHOFGracePercent.setPaintTicks(true);
+		enterHOFGracePercent.setPreferredSize(new Dimension(400,40));
+		//enterKNeighborsSlider.set
+//		enterKNeighborsTextField.setText("5");
+//		enterKNeighborsTextField.setColumns(4);
+		enterHOFGracePercent.setVisible(false);
+		GridBagConstraints gbc_getenterHOFGracePercent = new GridBagConstraints();
+		gbc_getenterHOFGracePercent.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_getenterHOFGracePercent.fill = GridBagConstraints.NONE;
+		gbc_getenterHOFGracePercent.insets = new Insets(5, 5, 0, 0);
+		gbc_getenterHOFGracePercent.gridx = 0;
+		gbc_getenterHOFGracePercent.gridy = 5;
+		HOFclassifyPanel.add(enterHOFGracePercent, gbc_getenterHOFGracePercent);
+		
+		lblEnterTieThreshold = new JLabel("% threshold to break ties:");
+		lblEnterTieThreshold.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_lblEnterTieThreshold = new GridBagConstraints();
+		gbc_lblEnterTieThreshold.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_lblEnterTieThreshold.fill = GridBagConstraints.NONE;
+		gbc_lblEnterTieThreshold.insets = new Insets(10, 5, 0, 0);
+		gbc_lblEnterTieThreshold.gridx = 0;
+		gbc_lblEnterTieThreshold.gridy = 6;
+		HOFclassifyPanel.add(lblEnterTieThreshold, gbc_lblEnterTieThreshold);
+		
+		enterTieThresholdSlider = new JSlider(0,15,5);
+		enterTieThresholdSlider.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		enterTieThresholdSlider.setMajorTickSpacing(5);
+		enterTieThresholdSlider.setMinorTickSpacing(1);
+		enterTieThresholdSlider.setPaintLabels(true);
+		enterTieThresholdSlider.setPaintTicks(true);
+		enterTieThresholdSlider.setPreferredSize(new Dimension(400,40));
+		enterTieThresholdSlider.setVisible(false);
+		GridBagConstraints gbc_getenterTieThresholdSlider = new GridBagConstraints();
+		gbc_getenterTieThresholdSlider.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_getenterTieThresholdSlider.fill = GridBagConstraints.NONE;
+		gbc_getenterTieThresholdSlider.insets = new Insets(5, 5, 0, 0);
+		gbc_getenterTieThresholdSlider.gridx = 0;
+		gbc_getenterTieThresholdSlider.gridy = 7;
+		HOFclassifyPanel.add(enterTieThresholdSlider, gbc_getenterTieThresholdSlider);
+		
+		lblHOFWarning = new JLabel("[Warning: If sliders are too high, you will probably get poor results.]:");
+		lblHOFWarning.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_HOFWarning = new GridBagConstraints();
+		gbc_HOFWarning.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_HOFWarning.fill = GridBagConstraints.NONE;
+		gbc_HOFWarning.insets = new Insets(10, 5, 0, 0);
+		gbc_HOFWarning.gridx = 0;
+		gbc_HOFWarning.gridy = 8;
+		HOFclassifyPanel.add(lblHOFWarning, gbc_HOFWarning);
+		
+	}
+	
 	
 	private void fillLocalOutlierFactorPanel(JPanel outlierPanel) {
 		GridBagLayout gbl_outlierPanel = new GridBagLayout();
@@ -1504,6 +1667,22 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 			disableCheckBox(selection,true);
 		}
 	}
+	public void showHOFClassify(Boolean show) {
+		HOFclassifyPanel.setVisible(show);
+		HOFlblSelectClass.setVisible(show);
+		HOFclassifyClassComboBox.setVisible(show);
+		lblEnterHOFGracePercent.setVisible(show);
+		lblEnterTieThreshold.setVisible(show);
+		enterTieThresholdSlider.setVisible(show);
+		lblenterHOFConfidence.setVisible(show);
+		enterHOFConfidenceSlider.setVisible(show); 
+		enterHOFGracePercent.setVisible(show);
+		enableAllCheckboxes();
+		if(show) {
+			String selection = HOFclassifyClassComboBox.getSelectedItem() + "";
+			disableCheckBox(selection,true);
+		}
+	}
 	public void showFastOutlierDetection(Boolean show) {
 		FastOutlierDetectionPanel.setVisible(show);
 		lblSubsetSize.setVisible(show);
@@ -1668,6 +1847,15 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 	public JComboBox<String> getClassifyClassComboBox() {
 		return classifyClassComboBox;
 	}
+	public JComboBox<String> getHOFClassifyClassComboBox() {
+		return HOFclassifyClassComboBox;
+	}
+	public JSlider getenterHOFGracePercent() {
+		return enterHOFGracePercent;
+	}
+	public JSlider getenterHOFConfidenceSlider() {
+		return enterHOFConfidenceSlider;
+	}
 	public JComboBox<String> getPerceptronClassComboBox() {
 		return perceptronClassComboBox;
 	}
@@ -1688,6 +1876,9 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 	}
 	public JComboBox<String> getSelectNumClustersComboBox() {
 		return selectNumClustersComboBox;
+	}
+	public JSlider getenterTieThresholdSlider() {
+		return enterTieThresholdSlider; 
 	}
 	public String getAutomaticallySelectNumClustersText() {
 		return automaticallySelectNumClustersText;
