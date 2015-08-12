@@ -37,6 +37,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.StringTokenizer;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -87,6 +88,8 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 	
 	private SysOptCheckboxListUpdater sysUpdater;
 	private SysSiteOptimizer opt;
+	private String costEngineName;
+	private String siteEngineName;
 	
 	/**
 	 * Method addPanel.  Creates a panel and adds the table to the panel.
@@ -155,8 +158,8 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 	public ArrayList<Hashtable<String,String>> runDefaultOpt(Hashtable<String, Object> webDataHash) {
 
 		//check to make sure site engine is loaded
-		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
-		IEngine costEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp(siteEngineName);
+		IEngine costEngine = (IEngine) DIHelper.getInstance().getLocalProp(costEngineName);
 		if(siteEngine == null || costEngine == null) {
 			//TODO error here
 			return new ArrayList<Hashtable<String,String>>();
@@ -186,8 +189,8 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 
 
 		//check to make sure site engine is loaded
-		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
-		IEngine costEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+		IEngine siteEngine = (IEngine) DIHelper.getInstance().getLocalProp(siteEngineName);
+		IEngine costEngine = (IEngine) DIHelper.getInstance().getLocalProp(costEngineName);	
 		if(siteEngine == null || costEngine == null) {
 			//TODO error here
 			return new ArrayList<Hashtable<String,String>>();
@@ -827,6 +830,13 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 			this.defaultSettings = true;
 		}else {
 			this.defaultSettings = false;
+		}
+		if(querySplit.length < 4) {
+			this.costEngineName = "TAP_Cost_Data";
+			this.siteEngineName = "TAP_Site_Data";
+		}else {
+			this.costEngineName = querySplit[2];
+			this.siteEngineName = querySplit[3];
 		}
 	}
 	

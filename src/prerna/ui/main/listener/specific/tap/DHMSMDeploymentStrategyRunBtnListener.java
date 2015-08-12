@@ -200,7 +200,7 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		DHMSMIntegrationSavingsPerFiscalYearProcessor processor = new DHMSMIntegrationSavingsPerFiscalYearProcessor();
 		boolean success = true;
 		try {
-			processor.runSupportQueries();
+			processor.runSupportQueries(ps.portfolioEngineName,ps.siteEngineName,ps.coreEngineName);
 		} catch(NullPointerException ex) {
 			Utility.showError(ex.getMessage());
 		}
@@ -220,7 +220,7 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		success = true;
 		processor = new DHMSMIntegrationSavingsPerFiscalYearProcessor();
 		try {
-			processor.runSupportQueries();
+			processor.runSupportQueries(ps.portfolioEngineName,ps.siteEngineName,ps.coreEngineName);
 		} catch(NullPointerException ex) {
 			Utility.showError(ex.getMessage());
 		}
@@ -380,7 +380,7 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		
 		boolean success = true;
 		try {
-			processor.runSupportQueries();
+			processor.runSupportQueries(ps.portfolioEngineName,ps.siteEngineName,ps.coreEngineName);
 		} catch(NullPointerException ex) {
 			Utility.showError(ex.getMessage());
 		}
@@ -420,7 +420,7 @@ public class DHMSMDeploymentStrategyRunBtnListener implements ActionListener {
 		success = true;
 		processor = new DHMSMIntegrationSavingsPerFiscalYearProcessor();
 		try {
-			processor.runSupportQueries();
+			processor.runSupportQueries(ps.portfolioEngineName,ps.siteEngineName,ps.coreEngineName);
 		} catch(NullPointerException ex) {
 			Utility.showError(ex.getMessage());
 		}

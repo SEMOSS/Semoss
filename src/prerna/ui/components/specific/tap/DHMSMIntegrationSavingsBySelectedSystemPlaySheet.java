@@ -52,7 +52,7 @@ public class DHMSMIntegrationSavingsBySelectedSystemPlaySheet extends GridPlaySh
 		DHMSMIntegrationSavingsPerFiscalYearProcessor processor = new DHMSMIntegrationSavingsPerFiscalYearProcessor();
 		boolean success = true;
 		try {
-			processor.runSupportQueries();
+			processor.runSupportQueries("TAP_Portfolio","TAP_Site_Data","TAP_Core_Data");
 		} catch(NullPointerException ex) {
 			success = false;
 			Utility.showError(ex.getMessage());
