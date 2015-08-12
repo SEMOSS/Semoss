@@ -12,9 +12,11 @@ import gov.sandia.cognition.learning.function.categorization.BinaryVersusCategor
 import gov.sandia.cognition.learning.function.categorization.BinaryVersusCategorizer.Learner;
 import gov.sandia.cognition.learning.function.categorization.DefaultKernelBinaryCategorizer;
 import gov.sandia.cognition.learning.function.categorization.LinearBinaryCategorizer;
+import gov.sandia.cognition.learning.function.kernel.ExponentialKernel;
 import gov.sandia.cognition.learning.function.kernel.Kernel;
 import gov.sandia.cognition.learning.function.kernel.LinearKernel;
 import gov.sandia.cognition.learning.function.kernel.PolynomialKernel;
+import gov.sandia.cognition.learning.function.kernel.SigmoidKernel;
 import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.math.matrix.VectorFactory;
 import gov.sandia.cognition.math.matrix.mtj.DenseVector;
@@ -161,12 +163,19 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 		Instances instanceData = WekaUtilityMethods.createInstancesFromQuery("DataSet", dataTable, names, classIndex);
 		instanceData.setClassIndex(classIndex);
 	
-		String[] correctArray;
+		String[] correctArray = null;
 		if(kernelType.equalsIgnoreCase("MOA Linear")) {
 			correctArray = this.runMOALinearPerceptron(dataTable, instanceData, isCategorical, numAttributes);
-		} else {
-			correctArray = this.runMultiClassPolynomialKernelPerceptron(dataTable, instanceData, isCategorical, numAttributes, degree, 1.0);
-			//correctArray = this.runMultiClassPolynomialKernelPerceptron(allData, instanceData, isCategorical, numAttributes, degree, 1.0);
+		} else if(kernelType.equalsIgnoreCase("Polynomial")) {
+			Kernel kernel = new PolynomialKernel(degree, 1.0);
+			correctArray = this.runMultiClassKernelPerceptron(dataTable, instanceData, isCategorical, numAttributes, kernel);
+			//correctArray = this.runPolynomialKernelPerceptron(dataTable, instanceData, isCategorical, numAttributes, degree, 1.0);
+		} else if(kernelType.equalsIgnoreCase("Exponential")) {
+			Kernel kernel = new ExponentialKernel(LinearKernel.getInstance());
+			correctArray = this.runMultiClassKernelPerceptron(dataTable, instanceData, isCategorical, numAttributes, kernel);
+		} else if(kernelType.equalsIgnoreCase("Sigmoid")) {
+			Kernel kernel = new SigmoidKernel(degree, 1.0);
+			correctArray = this.runMultiClassKernelPerceptron(dataTable, instanceData, isCategorical, numAttributes, kernel);
 		}
 		
 		String columnName = "Correctly_Classified -- "+(int)accuracy+"%";
@@ -243,10 +252,11 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 	}
     private String[] runPolynomialKernelPerceptron(List<Object[]> allData, Instances instanceData, boolean[] isCategorical, int numAttributes, int degree, double constant) {
     			
-    	this.runMultiClassPolynomialKernelPerceptron(allData, instanceData, isCategorical, numAttributes, degree, constant);
+    	//this.runMultiClassPolynomialKernelPerceptron(allData, instanceData, isCategorical, numAttributes, degree, constant);
     			
         KernelBinaryCategorizerOnlineLearnerAdapter<Vector> instance = new KernelBinaryCategorizerOnlineLearnerAdapter<Vector>(new PolynomialKernel(degree, constant), new OnlinePerceptron());
         DefaultKernelBinaryCategorizer<Vector> learned = instance.createInitialLearnedObject();    
+       
         int correctCount = 0;
         String[] correctArray = new String[allData.size()];
         
@@ -260,7 +270,7 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 	    	double[] array2 = new double[array.length-1];
 	    	int b = 0;
 	    	for(int a = 0; a < array.length; a++) {
-	    		if(a!=3) {
+	    		if(a!=classIndex) {
 	    			array2[b] = array[a];
 	    			b++;
 	    		}
@@ -295,9 +305,9 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
     	learner.update(target, example);
     }
     
-    private String[] runMultiClassPolynomialKernelPerceptron(List<Object[]> allData, Instances instanceData, boolean[] isCategorical, int numAttributes, int degree, double constant) {
+    private String[] runMultiClassKernelPerceptron(List<Object[]> allData, Instances instanceData, boolean[] isCategorical, int numAttributes, Kernel kernel) {
 		
-        KernelBinaryCategorizerOnlineLearnerAdapter<Vector> instance = new KernelBinaryCategorizerOnlineLearnerAdapter<Vector>(new PolynomialKernel(degree, constant), new OnlinePerceptron());
+        KernelBinaryCategorizerOnlineLearnerAdapter<Vector> instance = new KernelBinaryCategorizerOnlineLearnerAdapter<Vector>(kernel, new OnlinePerceptron());
         DefaultKernelBinaryCategorizer<Vector> learned = instance.createInitialLearnedObject();    
         int correctCount = 0;
         String[] correctArray = new String[allData.size()];
@@ -321,15 +331,19 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 	
 	    	Vector v = VectorFactory.getDenseDefault().copyArray(array2);
 	    	String attribute = newRow[classIndex].toString();
+	    	if(!isCategorical[classIndex]) {
+	    		attribute = determineBucket(((Number)newRow[classIndex]).doubleValue(), instanceData.attribute(classIndex));
+	    	}
 	    	InputOutputPair<Vector, String> example = DefaultInputOutputPair.create(v, attribute);
 	    	collection.add(example);
 		}
 
 		Learner<Vector, String> categorizer = new BinaryVersusCategorizer.Learner<Vector, String>();
-		OnlineKernelPerceptron<Vector> p = new OnlineKernelPerceptron<Vector>(new PolynomialKernel(degree, constant));
+		//OnlineKernelPerceptron<Vector> p = new OnlineKernelPerceptron<Vector>(new PolynomialKernel(degree, constant));
 		
-		categorizer.setLearner(new OnlineKernelPerceptron<Vector>(new PolynomialKernel(degree, constant)));	
+		categorizer.setLearner(new OnlineKernelPerceptron<Vector>(kernel));	
 		BinaryVersusCategorizer<Vector, String> b = categorizer.learn(collection);
+		
 		
 		
 		for(int i = 0; i < collection.size(); i++) {
@@ -352,6 +366,21 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 		//System.out.println(correctCount);
 		accuracy = (double) correctCount / (allData.size())*100;
 		return correctArray;
+    }
+    
+    private String determineBucket(double value, Attribute buckets) {
+    
+    	for(int i = 0; i < buckets.numValues(); i++) {
+    		String s = buckets.value(i);
+    		String[] values = s.split(" - ");
+    		Double min = Double.parseDouble(values[0]);
+    		Double max = Double.parseDouble(values[1]);
+    		if(value >= min && value <= max) {
+    			return s;
+    		}
+    	}
+    	
+    	return "";
     }
 	@Override
 	public String getDefaultViz() {
