@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.StringTokenizer;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -120,16 +121,37 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	private ArrayList<Object[]> systemYearlySavings;
 	
 	private IEngine coreEngine;
+	public String portfolioEngineName;
+	public String siteEngineName;
+	public String coreEngineName;
 	
 	public DHMSMDeploymentStrategyPlaySheet(){
 		super();
 		overallAnalysisTitle = "System Analysis";
 		titleText = "Set Deployment Time Frame";
-
-		coreEngine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
-
 	}
 
+	@Override
+	public void setQuery(String query) {
+		query = query.trim();
+		this.query = query;
+
+		String[] querySplit = query.split("\\+\\+\\+");
+		if(query.toUpperCase().equals("NULL") || querySplit.length < 3) {
+			
+			this.coreEngineName = "TAP_Core_Data";
+			this.portfolioEngineName = "TAP_Portfolio";
+			this.siteEngineName = "TAP_Site_Data";
+			
+		}else {
+			this.coreEngineName = querySplit[0];
+			this.portfolioEngineName = querySplit[1];
+			this.siteEngineName = querySplit[2];
+		}
+		coreEngine = (IEngine) DIHelper.getInstance().getLocalProp(coreEngineName);
+
+	}
+	
 	/**
 	 * Sets up the Param panel at the top of the split pane
 	 */

@@ -56,7 +56,7 @@ public class DHMSMIntegrationSavingsBySystemFromWorksheetPerYearPlaySheet extend
 		
 		boolean success = true;
 		try {
-			processor.runSupportQueries();
+			processor.runSupportQueries("TAP_Portfolio","TAP_Site_Data","TAP_Core_Data");
 		} catch(NullPointerException ex) {
 			Utility.showError(ex.getMessage());
 			success = false;

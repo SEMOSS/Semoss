@@ -871,7 +871,11 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			row.put(names[0], siteList.get(i));
 			row.put(names[1], siteLat[i]);
 			row.put(names[2], siteLon[i]);
-			row.put(names[3], siteSavingsFromLocalSystems[i] + siteSavingsFromCentralSystems[i]);
+			if(siteSavingsFromCentralSystems == null) {
+				row.put(names[3], siteSavingsFromLocalSystems[i]);
+			}else {
+				row.put(names[3], siteSavingsFromLocalSystems[i] + siteSavingsFromCentralSystems[i]);
+			}
 			row.put(names[4], makeString(getSustainedSystemsAtSiteList(i)));
 			row.put(names[5], makeString(getConsolidatedSystemsAtSiteList(i)));
 			data.addRow(row, row);
@@ -1383,6 +1387,9 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	private double[] calculateSiteSavingsForCentralSystems(double[][] sysSiteMatrix, double[] sysSiteCostArr, double[] sysNumSitesArr, double[] centralSysKeptArr) {
 		int i;
 		int j;
+		if(sysSiteMatrix.length == 0) {
+			return null;
+		}
 		int numSys = sysSiteMatrix.length;
 		int numSite = sysSiteMatrix[0].length;
 		double[] siteSavingsArr = new double[numSite];
