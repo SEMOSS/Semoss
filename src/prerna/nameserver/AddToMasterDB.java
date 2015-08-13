@@ -93,8 +93,11 @@ public class AddToMasterDB extends ModifyMasterDB {
 			ISelectStatement sjss = wrapper.next();
 			parentChildMapping.put(sjss.getVar(names[0]).toString(), sjss.getVar(names[1]).toString());
 		}
-		
-		hypernymGenerator = new HypernymListGenerator(wordnetPath);
+		if(wordnetPath != null) {
+			hypernymGenerator = new HypernymListGenerator(wordnetPath);
+		} else {
+			hypernymGenerator = new HypernymListGenerator();
+		}
 		hypernymGenerator.addMappings(parentChildMapping);
 
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName + "");
@@ -131,7 +134,11 @@ public class AddToMasterDB extends ModifyMasterDB {
 			parentChildMapping.put(sjss.getVar(names[0]).toString(), sjss.getVar(names[1]).toString());
 		}
 		
-		hypernymGenerator = new HypernymListGenerator(wordnetPath);
+		if(wordnetPath != null) {
+			hypernymGenerator = new HypernymListGenerator(wordnetPath);
+		} else {
+			hypernymGenerator = new HypernymListGenerator();
+		}
 		hypernymGenerator.addMappings(parentChildMapping);
 
 		String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
@@ -165,7 +172,11 @@ public class AddToMasterDB extends ModifyMasterDB {
 			parentChildMapping.put(sjss.getVar(names[0]).toString(), sjss.getVar(names[1]).toString());
 		}
 		
-		hypernymGenerator = new HypernymListGenerator(wordnetPath);
+		if(wordnetPath != null) {
+			hypernymGenerator = new HypernymListGenerator(wordnetPath);
+		} else {
+			hypernymGenerator = new HypernymListGenerator();
+		}
 		hypernymGenerator.addMappings(parentChildMapping);
 
 		for(String engineName : dbArray) {
@@ -208,7 +219,11 @@ public class AddToMasterDB extends ModifyMasterDB {
 			parentChildMapping.put(sjss.getVar(names[0]).toString(), sjss.getVar(names[1]).toString());
 		}
 
-		hypernymGenerator = new HypernymListGenerator(wordnetPath);
+		if(wordnetPath != null) {
+			hypernymGenerator = new HypernymListGenerator(wordnetPath);
+		} else {
+			hypernymGenerator = new HypernymListGenerator();
+		}
 		hypernymGenerator.addMappings(parentChildMapping);
 		
 		for(String engineName : dbArray) {
