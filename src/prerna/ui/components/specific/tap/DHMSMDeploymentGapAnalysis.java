@@ -37,18 +37,26 @@ import prerna.ui.components.playsheets.GridPlaySheet;
 
 public class DHMSMDeploymentGapAnalysis extends GridPlaySheet{
 
-	private final String sitesInPlanWithHPSystemQuery = "TAP_Site_Data&TAP_Core_Data&SELECT DISTINCT ?HostSite ?System WHERE { {?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>} {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Region <http://semoss.org/ontologies/Relation/Deploys> ?Wave} {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSite} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSite} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } ORDER BY ?Region ?Wave ?System &SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> }{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}} ORDER BY ?System BINDINGS ?Probability {('High') ('Question')}&false&false";
-	private final String sitesWithHPSystemQuery = "TAP_Site_Data&TAP_Core_Data&SELECT DISTINCT ?HostSite ?System WHERE { {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSite} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } ORDER BY ?System &SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> }{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}} ORDER BY ?System BINDINGS ?Probability {('High') ('Question')}&false&false";
+	private final String sitesInPlanWithHPSystemQuery = "SELECT DISTINCT ?HostSite ?System WHERE { {?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Region>} {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?Region <http://semoss.org/ontologies/Relation/Deploys> ?Wave} {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSite} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSite} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } ORDER BY ?Region ?Wave ?System &SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> }{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}} ORDER BY ?System BINDINGS ?Probability {('High') ('Question')}&false&false";
+	private final String sitesWithHPSystemQuery = "SELECT DISTINCT ?HostSite ?System WHERE { {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSite} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } ORDER BY ?System &SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> }{?System <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability}} ORDER BY ?System BINDINGS ?Probability {('High') ('Question')}&false&false";
+	
+	private String mainEngineName = "TAP_Core_Data";
+	private String siteEngineName = "TAP_Site_Data";
+	
+	public void setEngineNames(String mainEngineName, String siteEngineName) {
+		this.mainEngineName = mainEngineName;
+		this.siteEngineName = siteEngineName;
+	}
 	
 	@Override
 	public void createData() {
 		DualEngineGridPlaySheet dugp1 = new DualEngineGridPlaySheet();
-		dugp1.setQuery(sitesInPlanWithHPSystemQuery);
+		dugp1.setQuery(siteEngineName + "&" + mainEngineName + "&" + sitesInPlanWithHPSystemQuery);
 		dugp1.createData();
 		List<Object[]> sitesInPlanWithHPSystems = dugp1.getList();
 		
 		DualEngineGridPlaySheet dugp2 = new DualEngineGridPlaySheet();
-		dugp2.setQuery(sitesWithHPSystemQuery);
+		dugp2.setQuery(siteEngineName + "&" + mainEngineName + "&" + sitesWithHPSystemQuery);
 		dugp2.createData();
 		List<Object[]> sitesWithHPSystems = dugp2.getList();
 		
