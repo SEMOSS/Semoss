@@ -208,7 +208,7 @@ public class ImportDataListener implements IChakraListener {
 	
 	public void loadEngineIntoLocalMasterDB(String engineName, String baseURL) {
 		String localMasterDbName = Constants.LOCAL_MASTER_DB_NAME;
-		String wordNetDir = DIHelper.getInstance().getProperty("BaseFolder") + System.getProperty("file.separator") + "RDFGraphLib" + System.getProperty("file.separator") + "WordNet-3.1";
+		String wordNetDir = DIHelper.getInstance().getProperty("BaseFolder") + System.getProperty("file.separator") + "WordNet-3.1";
 		AddToMasterDB creater = new AddToMasterDB(localMasterDbName);
 		creater.setWordnetPath(wordNetDir);
 		creater.registerEngineLocal(engineName);
