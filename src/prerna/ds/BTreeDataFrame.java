@@ -66,10 +66,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 	private Map<String, Boolean> isNumericalMap;
 	private Map<String, String> uriMap = new HashMap<String, String>();
 	
-//	public BTreeDataFrame() {
-//		this.simpleTree = new SimpleTreeBuilder();
-//	}
-	
 	public BTreeDataFrame(String[] levelNames) {
 		this.simpleTree = new SimpleTreeBuilder(levelNames[0]);
 		this.levelNames = levelNames;
@@ -176,6 +172,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return table;
 	}
 	
+	//includes filtered values
 	public List<Object[]> getAllData() {
 		List<Object[]> table = new ArrayList<Object[]>();
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);	
@@ -252,6 +249,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		LOGGER.info("Analytics Routine ::: " + routine.getName());
 		LOGGER.info("Begining join on columns ::: " + colNameInTable + " and " + colNameInJoiningTable);
 
+		
 		// fill the options needed for the routine
 		List<SEMOSSParam> params = routine.getOptions();
 		Map<String, Object> selectedOptions = new HashMap<String, Object>();
@@ -293,7 +291,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 			SimpleTreeBuilder passedBuilder = passedTree.getBuilder();
 			Map<String, TreeNode> newIdxHash2 = new HashMap<String, TreeNode>();
-			TreeNode passedRootNode = passedBuilder.nodeIndexHash.remove(colNameInJoiningTable); //TODO: is there a better way to get the type? I don't think this is reliable
+			TreeNode passedRootNode = passedBuilder.nodeIndexHash.get(colNameInJoiningTable); //TODO: is there a better way to get the type? I don't think this is reliable
 			Vector passedSearchVector = new Vector();
 			passedSearchVector.addElement(passedRootNode);
 
@@ -460,7 +458,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 			}
 			
 			//Update the Index Tree
-			TreeNode treeRoot = this.simpleTree.nodeIndexHash.get(colNameInTable);
+			TreeNode treeRoot = this.simpleTree.nodeIndexHash.get(levelNames[origLength-1]);
 			ValueTreeColumnIterator iterator = new ValueTreeColumnIterator(treeRoot);
 			while(iterator.hasNext()) {
 				SimpleTreeNode t = iterator.next();
@@ -1185,6 +1183,12 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 	
 	@Override
+	public Iterator<Object> uniqueValueIterator(String columnHeader, boolean getRawData, boolean iterateAll) {
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		return new UniqueValueIterator(typeRoot, getRawData, iterateAll);
+	}
+	
+	@Override
 	public Object[] getColumn(String columnHeader) {
 
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
@@ -1192,11 +1196,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 			LOGGER.info("Table is empty............................");
 			return new Object[0];
 		}
-//		typeRoot = typeRoot.getLeft(typeRoot);
-//		List<Object> table = typeRoot.flattenToArray(typeRoot, true);
-//		
-//		System.out.println("Final count for column " + columnHeader + " = " + table.size());
-//		return table.toArray();
 		
 		Iterator<SimpleTreeNode> iterator = new ValueTreeColumnIterator(typeRoot);
 		List<Object> column = new ArrayList<Object>();
@@ -1210,14 +1209,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public Object[] getAllColumn(String columnHeader) {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
 		if(typeRoot == null){ // TODO this null check shouldn't be needed. When we join, we need to add empty nodes--need to call balance at somepoint or something like that
-			LOGGER.info("Table is empty............................");
 			return new Object[0];
 		}
-//		typeRoot = typeRoot.getLeft(typeRoot);
-//		List<Object> table = typeRoot.flattenToArray(typeRoot, true);
-//		
-//		System.out.println("Final count for column " + columnHeader + " = " + table.size());
-//		return table.toArray();
 		
 		Iterator<SimpleTreeNode> iterator = new ValueTreeColumnIterator(typeRoot, true);
 		List<Object> column = new ArrayList<Object>();
@@ -1265,7 +1258,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public Object[] getRawColumn(String columnHeader) {
 
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		if(typeRoot == null){ // TODO this null check shouldn't be needed. When we join, we need to add empty nodes--need to call balance at somepoint or something like that
+		if(typeRoot == null){ 
 			LOGGER.info("Table is empty............................");
 			return new Object[0];
 		}
@@ -1534,12 +1527,11 @@ public class BTreeDataFrame implements ITableDataFrame {
 			for(int c = 0; c < dataR.length; c++){
 				row.createCell(c).setCellValue(dataR[c] + "");
 			}
-			System.out.println("wrote row " + i);
+			//System.out.println("wrote row " + i);
 		}
-		System.out.println("wrote file " + fileNameout);
+		//System.out.println("wrote file " + fileNameout);
 		
 		Utility.writeWorkbook(workbookout, fileNameout);
 		//testnum++;
 	}
-
 }
