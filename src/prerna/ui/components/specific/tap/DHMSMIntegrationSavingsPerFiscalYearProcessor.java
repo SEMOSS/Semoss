@@ -760,6 +760,7 @@ public class DHMSMIntegrationSavingsPerFiscalYearProcessor {
 		
 		numSitesNotInWaveForSysHash = new HashMap<String, Integer>();
 		DHMSMDeploymentGapAnalysis gap = new DHMSMDeploymentGapAnalysis();
+		gap.setEngineNames(tapCore.getEngineName(),tapSite.getEngineName());
 		gap.createData();
 		List<Object[]> gapList = gap.getList();
 		int size = gapList.size();
