@@ -134,16 +134,17 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 
 	@Override
 	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
+		accuracy = 0.0;
 		className = (String)this.options.get(0).getSelected();
 		String kernelType = (String)this.options.get(2).getSelected();
 		Integer degree = (Integer)this.options.get(3).getSelected();
 		//Double constant = (Double)this.options.get(4).getSelected();
 		
 		ITableDataFrame table = data[0];
-		ArrayList<String> skip = new ArrayList<>();
-		skip.add(table.getColumnHeaders()[0]);
-		table.setColumnsToSkip(skip);
-		int numAttributes = table.getNumCols();
+		//ArrayList<String> skip = new ArrayList<>();
+		//skip.add(table.getColumnHeaders()[0]);
+		//table.setColumnsToSkip(skip);
+		int numAttributes = table.getNumCols() - 1;
 		String[] names = table.getColumnHeaders();
 
 		List<Object[]> dataTable = table.getData();
@@ -179,6 +180,7 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 		}
 		
 		String columnName = "Correctly_Classified -- "+(int)accuracy+"%";
+		//table.setColumnsToSkip(null);
 		String[] newNames = {names[0], columnName};
 		ITableDataFrame newTable = new BTreeDataFrame(newNames);
 		for(int i = 0; i < dataTable.size(); i++) {
@@ -246,7 +248,7 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 
 			learner.trainOnInstance(nextInst);
 		}
-		accuracy = 100.0*(double)correct/(double)total;
+		accuracy = 100.0*((double)correct/(double)total);
 		
 		return correctArray;
 	}
@@ -288,10 +290,18 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 	    	
 	    	String attribute = newRow[classIndex].toString();
 	    	for(int i = 0; i < numCategories; i++) {
-	    		if(attribute.equalsIgnoreCase(classes[i])) {
-	    			example[i] = DefaultInputOutputPair.create(v, true);
+	    		if(isCategorical[classIndex]) {
+		    		if(attribute.equalsIgnoreCase(classes[i])) {
+		    			example[i] = DefaultInputOutputPair.create(v, true);
+		    		} else {
+		    			example[i] = DefaultInputOutputPair.create(v, false);
+		    		}
 	    		} else {
-	    			example[i] = DefaultInputOutputPair.create(v, false);
+	    			if(inBucket(newRow[classIndex], classes[i])) {
+	    				example[i] = DefaultInputOutputPair.create(v, true);
+	    			} else {
+	    				example[i] = DefaultInputOutputPair.create(v, false);
+	    			}
 	    		}
 	    		
 	    		outputValues[i] = learned[i].evaluateAsDouble(v);
@@ -315,7 +325,7 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 	    	
 	        this.applyUpdate(instance, learned, example);
 		}
-		accuracy = (double) correctCount / (allData.size())*100;
+		accuracy =  100.0 * ((double)correctCount / (double)(allData.size()));
 		return correctArray;
     }
 	
@@ -356,7 +366,7 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 	    	Vector v = VectorFactory.getDenseDefault().copyArray(array2);
 	    	String attribute = newRow[classIndex].toString();
 	    	if(!isCategorical[classIndex]) {
-	    		attribute = determineBucket(((Number)newRow[classIndex]).doubleValue(), instanceData.attribute(classIndex));
+	    		attribute = determineBucket(newRow[classIndex], instanceData.attribute(classIndex));
 	    	}
 	    	InputOutputPair<Vector, String> example = DefaultInputOutputPair.create(v, attribute);
 	    	collection.add(example);
@@ -392,8 +402,13 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 		return correctArray;
     }
     
-    private String determineBucket(double value, Attribute buckets) {
-    
+    private String determineBucket(Object objValue, Attribute buckets) {
+    	double value = 0.0;
+    	try {
+    		value = ((Number)objValue).doubleValue();
+    	} catch(Exception e) {
+    		return buckets.value(0);
+    	}
     	for(int i = 0; i < buckets.numValues(); i++) {
     		String s = buckets.value(i);
     		String[] values = s.split(" - ");
@@ -405,6 +420,23 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
     	}
     	
     	return "";
+    }
+    
+    private boolean inBucket(Object objValue, String bucket) {
+    	double value = 0.0;
+    	try {
+    		value = ((Number)objValue).doubleValue();
+    	} catch(Exception e) {
+    		return false;
+    	}
+    	boolean returnVal = false;
+    	String[] values = bucket.split(" - ");
+		Double min = Double.parseDouble(values[0]);
+		Double max = Double.parseDouble(values[1]);
+		if(value >= min && value <= max) {
+			returnVal = true;
+		} 
+		return returnVal;
     }
 	@Override
 	public String getDefaultViz() {
