@@ -52,9 +52,7 @@ public class HypernymListGenerator {
 	 * Defines the wordnet library
 	 */
 	public HypernymListGenerator() {
-		String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String wordNet = "RDFGraphLib" + System.getProperty("file.separator") + "WordNet-3.1";
-		String wordNetDir  = baseDirectory + System.getProperty("file.separator") + wordNet;
+		String wordNetDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + System.getProperty("file.separator") + "WordNet-3.1";
 		wordnet = new RiWordNet(wordNetDir, false, true); // params: wordnetInstallDir, ignoreCompoundWords, ignoreUppercaseWords
 		mappings = new HashMap<String, String>();
 	}

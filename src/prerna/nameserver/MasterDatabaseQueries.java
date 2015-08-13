@@ -51,6 +51,7 @@ public final class MasterDatabaseQueries extends MasterDatabaseURIs {
 	public static final String INSTANCE_EXISTS_QUERY = "SELECT DISTINCT ?keyword ?s WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?keyword ;} } BINDINGS ?s {@BINDINGS@}";
 	public static final String ENGINE_API_QUERY = "SELECT DISTINCT ?Engine ?API WHERE { {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?Engine <http://semoss.org/ontologies/Relation/Contains/API> ?API}}";
 	public static final String ENGINE_LIST_QUERY = "SELECT DISTINCT ?Engine WHERE { {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} }";
+	public static final String ENGINE_TIMESTAMP_QUERY = "SELECT DISTINCT ?engine ?time WHERE { {?engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine>} {?engine <http://semoss.org/ontologies/Relation/Contains/TimeStamp> ?time } }";
 	
 	public static final String GET_ALL_KEYWORDS = "SELECT DISTINCT ?keyword WHERE { {?keyword <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Keyword>} }";
 	public static final String GET_ALL_MASTER_CONCEPTS = "SELECT DISTINCT ?mc WHERE { {?mc <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MasterConcept>} }";
