@@ -27,9 +27,17 @@
  *******************************************************************************/
 package prerna.nameserver;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -41,6 +49,7 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.error.EngineException;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -49,6 +58,33 @@ public final class MasterDBHelper {
 
 	private MasterDBHelper() {
 		
+	}
+	
+	public static Map<String, Date> getEngineTimestamps(IEngine masterEngine) {
+		DateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ENGLISH);
+		
+		Map<String, Date> engines = new HashMap<String, Date>();
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(masterEngine, MasterDatabaseQueries.ENGINE_TIMESTAMP_QUERY);
+		String[] names = wrapper.getVariables();
+		while(wrapper.hasNext()) {
+			ISelectStatement iss = wrapper.next();
+			try {
+				engines.put(iss.getVar(names[0]).toString(), format.parse(iss.getVar(names[1]).toString()) );
+			} catch (ParseException e) {
+				e.printStackTrace();
+			}
+		}
+		return engines;
+	}
+	
+	public static List<String> getAllEngines(IEngine masterEngine) {
+		List<String> engines = new ArrayList<String>();
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(masterEngine, MasterDatabaseQueries.ENGINE_LIST_QUERY);
+		String[] names = wrapper.getVariables();
+		while(wrapper.hasNext()) {
+			engines.add(wrapper.next().getVar(names[0]).toString());
+		}
+		return engines;
 	}
 	
 	public static void removeInsightStatementToMasterDBs(IEngine masterEngine, String selectedEngineName, String sub, String pred, String obj, Boolean concept) {
@@ -110,6 +146,7 @@ public final class MasterDBHelper {
 		String relInst = relationURI.substring(relIndex+1);
 
 		addToMaster(masterEngine, relationURI, RDFS.SUBPROPERTYOF.stringValue(), relBaseURI,true);
+		addToMaster(masterEngine, relationURI, RDFS.SUBPROPERTYOF.stringValue(), MasterDatabaseURIs.SEMOSS_RELATION_URI,true);
 		addToMaster(masterEngine, relBaseURI, RDFS.SUBPROPERTYOF.stringValue(), MasterDatabaseURIs.SEMOSS_RELATION_URI,true);
 		addToMaster(masterEngine, relationURI, RDFS.LABEL.stringValue(), relInst,false);
 		addToMaster(masterEngine, node1URI, relationURI, node2URI,true);

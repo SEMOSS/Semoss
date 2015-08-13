@@ -30,6 +30,13 @@ package prerna.util;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.swing.DefaultComboBoxModel;
@@ -37,6 +44,16 @@ import javax.swing.DefaultListModel;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JList;
+
+import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.nameserver.AddToMasterDB;
+import prerna.nameserver.DeleteFromMasterDB;
+import prerna.nameserver.MasterDBHelper;
+import prerna.nameserver.MasterDatabaseURIs;
+import prerna.rdf.engine.wrappers.WrapperManager;
 
 /**
  * This class opens a thread and watches a specific SMSS file.
@@ -51,26 +68,14 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 	 */
 	@Override
 	public void process(String fileName) {
-		loadNewDB(fileName);
+		loadNewDB(fileName, true);
 	}
 
 	/**
 	 * Returns an array of strings naming the files in the directory. Goes through list and loads an existing database.
 	 */
-	public void loadExistingDB() {
-		File dir = new File(folderToWatch);
-		String[] fileNames = dir.list(this);
-		for (int fileIdx = 0; fileIdx < fileNames.length; fileIdx++) {
-			try {
-				String fileName = folderToWatch + "/" + fileNames[fileIdx];
-				loadNewDB(fileNames[fileIdx]);
-				// Utility.loadEngine(fileName, prop);
-			} catch (RuntimeException ex) {
-				ex.printStackTrace();
-				logger.fatal("Engine Failed " + "./db/" + fileNames[fileIdx]);
-			}
-		}
-
+	public void loadExistingDB(String fileName, boolean checkForLocalMaster) {
+		loadNewDB(fileName, checkForLocalMaster);
 	}
 
 	/**
@@ -79,7 +84,7 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 	 * @param Specifies
 	 *            properties to load
 	 */
-	public void loadNewDB(String newFile) {
+	public void loadNewDB(String newFile, boolean checkForLocalMaster) {
 		FileInputStream fileIn = null;
 		try {
 			Properties prop = new Properties();
@@ -89,8 +94,7 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 			Utility.loadEngine(folderToWatch + "/" + newFile, prop);
 			String engineName = prop.getProperty(Constants.ENGINE);
 			// check if hidden database
-			boolean hidden = (prop.getProperty(Constants.HIDDEN_DATABASE) != null && Boolean
-					.parseBoolean(prop.getProperty(Constants.HIDDEN_DATABASE)));
+			boolean hidden = (prop.getProperty(Constants.HIDDEN_DATABASE) != null && Boolean.parseBoolean(prop.getProperty(Constants.HIDDEN_DATABASE)));
 			if (!hidden) {
 				JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 				DefaultListModel listModel = (DefaultListModel) list.getModel();
@@ -98,6 +102,11 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 				// list.setModel(listModel);
 				list.setSelectedIndex(0);
 				list.repaint();
+				
+				addToLocalMaster(engineName);
+			} else {
+				DeleteFromMasterDB deleter = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+				deleter.deleteEngine(engineName);
 			}
 
 			// initialize combo box for cost db update
@@ -199,6 +208,52 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 		}
 	}
 
+	private void addToLocalMaster(String engineName) {
+		if(engineName.equals(Constants.LOCAL_MASTER_DB_NAME)) {
+			return;
+		}
+		// first check if local master contains engine
+		IEngine localMaster = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
+		if(localMaster == null) {
+			throw new NullPointerException("Unable to find local master database in DIHelper.");
+		}
+		IEngine engineToAdd = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+		if(engineToAdd == null) {
+			throw new NullPointerException("Unable to find engine " + engineName + " in DIHelper.");
+		}
+		
+		Map<String, Date> engines = MasterDBHelper.getEngineTimestamps(localMaster);
+		if(engines.containsKey(engineName)) {
+			DateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ENGLISH);
+
+			// engine present, check xml if changes exist
+			String engineTimeStampQuery = "SELECT DISTINCT ?Time WHERE { {<" + MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName + "> <http://semoss.org/ontologies/Relation/Contains/TimeStamp> ?Time} }";
+			RDFFileSesameEngine insightXML = ((AbstractEngine) engineToAdd).getInsightBaseXML();
+			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(insightXML, engineTimeStampQuery);
+			String[] timeVar = wrapper.getVariables();
+			Date timeInXML = null;
+			while(wrapper.hasNext()) {
+				try {
+					timeInXML = format.parse(wrapper.next().getVar(timeVar[0]).toString());
+				} catch (ParseException e) {
+					e.printStackTrace();
+				}
+			}
+			// if dates not equal, add
+			if(engines.get(engineName).getTime() != timeInXML.getTime()) {
+				DeleteFromMasterDB deleter = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+				deleter.deleteEngine(engineName); //TODO: enable adding the IEngine directly like AddToMasterDB
+				
+				AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+				adder.registerEngineLocal(engineToAdd);
+			}
+		} else {
+			// engine not present, add to local master
+			AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+			adder.registerEngineLocal(engineToAdd);
+		}
+	}
+
 	/**
 	 * Used in the starter class for processing SMSS files.
 	 */
@@ -206,13 +261,36 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 	public void loadFirst() {
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
+		String localMasterDBName = Constants.LOCAL_MASTER_DB_NAME + ".smss";
+		int localMasterIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, localMasterDBName);
+		if(localMasterIndex != -1) {
+			String temp = fileNames[0];
+			fileNames[0] = localMasterDBName;
+			fileNames[localMasterIndex] = temp;
+			localMasterIndex = 0;
+		}
+		boolean addToLocal = true;
 		for (int fileIdx = 0; fileIdx < fileNames.length; fileIdx++) {
+			if(fileIdx == localMasterIndex) {
+				addToLocal = false;
+			}
 			try {
-				String fileName = folderToWatch + fileNames[fileIdx];
-				Properties prop = new Properties();
-				process(fileNames[fileIdx]);
+				loadExistingDB(fileNames[fileIdx], addToLocal);
 			} catch (RuntimeException ex) {
+				ex.printStackTrace();
 				logger.fatal("Engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
+			}
+		}
+		
+		if(localMasterIndex == 0) {
+			// remove unused databases
+			IEngine localMaster = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
+			List<String> engines = MasterDBHelper.getAllEngines(localMaster);
+			DeleteFromMasterDB remover = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+			for(String engine : engines) {
+				if(!ArrayUtilityMethods.arrayContainsValue(fileNames, engine + ".smss")) {
+					remover.deleteEngine(engine);
+				}
 			}
 		}
 	}
