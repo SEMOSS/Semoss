@@ -287,6 +287,15 @@ public interface ITableDataFrame {
 	Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData);
 	
 	/**
+	 * Returns the iterator that iterates through unique values of a column
+	 * @param columnHeader 		Name of column to iterate through
+	 * @param getRawData		get the raw data value if true, value otherwise
+	 * @param iterateAll		iterate through filtered and unfiltered values if true, just unfiltered values otherwise
+	 * @return
+	 */
+	Iterator<Object> uniqueValueIterator(String columnHeader, boolean getRawData, boolean iterateAll);
+	
+	/**
 	 * Get the values for a specific column in the data-frame
 	 * @param columnHeader			The column header to get the values for
 	 * @return						The values for the specific column header in the data-frame
@@ -328,7 +337,7 @@ public interface ITableDataFrame {
 	 * @return						The unique raw values for the specific column header in the data-frame
 	 */
 	Object[] getUniqueRawValues(String columnHeader);
-
+	
 	/**
 	 * Get the counts for each unique value in a specific column in the data-frame
 	 * @param columnHeader			The column header to get the values and counts for
@@ -436,4 +445,6 @@ public interface ITableDataFrame {
 	 * @param columnHeaders
 	 */
 	public void setColumnsToSkip(List<String> columnHeaders);
+
+	
 }
