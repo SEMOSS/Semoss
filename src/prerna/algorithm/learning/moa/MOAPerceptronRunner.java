@@ -72,6 +72,7 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 	private double[][] weights;
 	private double accuracy;
 	private int classIndex;
+	private boolean isNumericBucket;
 	//private double[][] weightAttribute;
 	//private FloatOption learningRatioOption = new FloatOption("learningRatio", 'r', "Learning ratio", 1);
 
@@ -143,6 +144,7 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 	@Override
 	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
 		accuracy = 0.0;
+		isNumericBucket = false;
 		className = (String)this.options.get(0).getSelected();
 		String kernelType = (String)this.options.get(2).getSelected();
 		Integer degree = (Integer)this.options.get(3).getSelected();
@@ -155,7 +157,12 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 		int numAttributes = table.getNumCols();
 		String[] names = table.getColumnHeaders();
 
-		List<Object[]> dataTable = table.getData();
+		List<Object[]> dataTable;
+		if(kernelType.equalsIgnoreCase("Exponential")) {
+			dataTable = table.getScaledData();
+		} else {
+			dataTable = table.getData();//Data();
+		}
 		Collections.shuffle(dataTable);
 		
 		
@@ -166,6 +173,10 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 		}
 
 		boolean[] isCategorical = table.isNumeric();
+		if(isCategorical[classIndex]) {
+			isNumericBucket = true;
+		}
+		
 //		for(int i = 0; i < isCategorical.length; i++) {
 //			isCategorical[i] = !isCategorical[i]; 
 //		}
@@ -182,6 +193,9 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 		String[] correctArray = null;
 		if(kernelType.equalsIgnoreCase("MOA Linear")) {
 			correctArray = this.runMOALinearPerceptron(dataTable, instanceData, isCategorical, numAttributes);
+		} else if(kernelType.equalsIgnoreCase("Linear")) {
+			Kernel kernel = new LinearKernel().getInstance();
+			correctArray = this.runKernelPerceptron(dataTable, instanceData, isCategorical, numAttributes, kernel);
 		} else if(kernelType.equalsIgnoreCase("Polynomial")) {
 			Kernel kernel = new PolynomialKernel(degree, 1.0);
 			correctArray = this.runKernelPerceptron(dataTable, instanceData, isCategorical, numAttributes, kernel);
@@ -281,6 +295,7 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
         for(int i = 0; i < numCategories; i++) {
         	instance[i] = new KernelBinaryCategorizerOnlineLearnerAdapter<Vector>(kernel, new OnlinePerceptron());
         	learned[i] = instance[i].createInitialLearnedObject();
+        	//instance[i].
         }
         
         int correctCount = 0;
@@ -319,6 +334,8 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 	    		}
 	    		
 	    		outputValues[i] = learned[i].evaluateAsDouble(v);
+	    		Boolean val = learned[i].evaluate(v);
+	    		//String val2 = learned[i].evaluate(v);
 	    	}
 	        
 	    	int maxIndex = 0;
@@ -330,7 +347,7 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 	    		}
 	    	}
 	    	
-	    	if(isCategorical[classIndex]) {
+	    	if(isCategorical[classIndex] && !isNumericBucket) {
 		    	if(classes[maxIndex].equalsIgnoreCase(attribute)) {
 		    		correctCount++;
 		    		correctArray[z] = "true";
