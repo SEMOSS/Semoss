@@ -61,6 +61,8 @@ public class PerceptronPlaySheet extends GridPlaySheet {
 	protected JTabbedPane jTab;
 	private String kernelType;
 	private int degree;
+	private double kappa;
+	private double constant;
 
 	/**
 	 * Method addPanel.  Creates a panel and adds the table to the panel.
@@ -88,6 +90,8 @@ public class PerceptronPlaySheet extends GridPlaySheet {
 		selectedOptions.put(options.get(1).getName(), skipAttributes);
 		selectedOptions.put(options.get(2).getName(), kernelType);
 		selectedOptions.put(options.get(3).getName(), degree);
+		selectedOptions.put(options.get(4).getName(), kappa);
+		selectedOptions.put(options.get(5).getName(), constant);
 		
 		alg.setSelectedOptions(selectedOptions);
 		dataFrame.performAction(alg);
