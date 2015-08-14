@@ -80,9 +80,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.util.sql.MariaDbQueryUtil;
 import prerna.util.sql.SQLQueryUtil;
-import prerna.util.sql.SQLServerQueryUtil;
 
 import com.hp.hpl.jena.vocabulary.OWL;
 
@@ -2089,7 +2087,7 @@ public class RDBMSReader {
 	{
 		sqlHash.put("DECIMAL", "FLOAT");
 		sqlHash.put("DOUBLE", "FLOAT");
-		sqlHash.put("STRING", "VARCHAR(400)");
+		sqlHash.put("STRING", "VARCHAR(8000)");
 		sqlHash.put("DATE", "TIME");
 		sqlHash.put("SIMPLEDATE", "DATE");
 		// currently only add in numbers as doubles
