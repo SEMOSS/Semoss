@@ -25,10 +25,42 @@ public class DegreeSelectionListener extends AbstractListener{
 		JComboBox<String> bx = (JComboBox<String>)e.getSource();
 		String selection = bx.getSelectedItem() + "";
 		//if manually select need to show text field, otherwise hide it
-		if(!selection.equals("Polynomial") && !selection.equals("Sigmoid"))
-			playSheet.showPolynomialDegreeTextField(false);
-		else 
+		if(selection.equals("Polynomial")) {
+			//playSheet.setKernelLabel("Degree");
+			
 			playSheet.showPolynomialDegreeTextField(true);
+			//playSheet.setPolynomialDegreeTextField("2");
+			
+			//playSheet.showKappaTextField(false);
+			//playSheet.setKappaTextField("1");
+			
+			//playSheet.showConstantTextField(true);
+			//playSheet.setConstantTextField("1");
+			//playSheet.showConstantLabel(true);
+			
+		} else if(selection.equals("Sigmoid")) {
+			//playSheet.setKernelLabel("Kappa");
+			
+			playSheet.showPolynomialDegreeTextField(false);
+			//playSheet.setPolynomialDegreeTextField("2");
+			
+			//playSheet.showKappaTextField(true);
+			//playSheet.setKappaTextField("1");
+			
+			//playSheet.showConstantTextField(true);
+			//playSheet.setConstantTextField("1");
+			//playSheet.showConstantLabel(true);
+		} else {
+			playSheet.showPolynomialDegreeTextField(false);
+			//playSheet.setPolynomialDegreeTextField("2");
+			
+			//playSheet.showKappaTextField(false);
+			//playSheet.setKappaTextField("1");
+			
+			//playSheet.showConstantTextField(false);
+			//playSheet.setConstantTextField("1");
+			//playSheet.showConstantLabel(false);
+		}
 	}
 
 	/**

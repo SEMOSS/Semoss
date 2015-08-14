@@ -164,20 +164,23 @@ public class RunAlgorithmListener extends AbstractListener {
 		for(int i = removeSet.length - 1; i >=0; i--) {
 			dataFrame.removeColumn(removeSet[i]);
 		}
-//		Iterator<Object[]> it2 = dataFrame.iterator(false);
-//		for(int i = 0; i < 5; i++) {
-//			System.out.println(Arrays.toString(it2.next()));
-//		}
-		//System.out.println("After: "+dataFrame.getNumRows());
-		//System.out.println();
-		//BTreeDataFrame.write2Excel4Testing((BTreeDataFrame)dataFrame, "C:\\Users\\rluthar\\Desktop\\TestData\\btree_After"+num+".xlsx");
 		
-		List<String> skipColumns = new ArrayList<String>();
+		//List<String> skipColumns = Arrays.asList(dataFrame.getColumnHeaders());
+		dataFrame.setColumnsToSkip(null);
+		Set<String> skipSet = new LinkedHashSet<String>(Arrays.asList(dataFrame.getColumnHeaders()));
+		
+		List<String> checkedColumns = new ArrayList<String>();
 		for(int i = 0; i < columnCheckboxes.size(); i++) {
-			if(!columnCheckboxes.get(i).isSelected()) {
-				skipColumns.add(attributeNames[i+1]);
+			if(columnCheckboxes.get(i).isSelected()) {
+				checkedColumns.add(attributeNames[i+1]);
 			}
 		}
+		skipSet.removeAll(checkedColumns);
+		List<String> skipColumns = new ArrayList<String>(skipSet.size());
+		for(String s : skipSet) {
+			skipColumns.add(s);
+		}
+		
 		if(skipColumns.size() == attributeNames.length) {
 			Utility.showError("No variables were selected. Please select at least one and retry.");
 			return;

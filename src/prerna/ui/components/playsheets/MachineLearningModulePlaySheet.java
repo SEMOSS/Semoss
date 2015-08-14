@@ -1553,7 +1553,7 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		perceptronTypeComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		perceptronTypeComboBox.setBackground(Color.GRAY);
 		perceptronTypeComboBox.setPreferredSize(new Dimension(250, 25));
-		String[] types = new String[]{"MOA linear","Polynomial", "Exponential", "Sigmoid"};
+		String[] types = new String[]{"MOA linear","Linear","Polynomial", "Exponential", "Sigmoid"};
 		perceptronTypeComboBox.setModel(new DefaultComboBoxModel<String>(types));
 		GridBagConstraints gbc_typeComboBox = new GridBagConstraints();
 		gbc_typeComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
@@ -1726,6 +1726,8 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		lblSelectClass.setVisible(show);
 		lblSelectKernel.setVisible(show);
 		selectDegreeTextField.setVisible(show);
+		//selectKappaTextField.setVisible(show);
+		//selectConstantTextField.setVisible(show);
 		perceptronClassComboBox.setVisible(show);
 		enableAllCheckboxes();
 		if(show) {
