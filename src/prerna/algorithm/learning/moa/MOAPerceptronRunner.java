@@ -95,6 +95,14 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 		SEMOSSParam p4 = new SEMOSSParam();
 		p4.setName("degree");
 		options.add(3, p4);
+		
+		SEMOSSParam p5 = new SEMOSSParam();
+		p5.setName("kappa");
+		options.add(4, p5);
+		
+		SEMOSSParam p6 = new SEMOSSParam();
+		p6.setName("constant");
+		options.add(5, p6);
 		//add weights option
 	}
 
@@ -144,7 +152,7 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 		//ArrayList<String> skip = new ArrayList<>();
 		//skip.add(table.getColumnHeaders()[0]);
 		//table.setColumnsToSkip(skip);
-		int numAttributes = table.getNumCols() - 1;
+		int numAttributes = table.getNumCols();
 		String[] names = table.getColumnHeaders();
 
 		List<Object[]> dataTable = table.getData();
@@ -158,11 +166,17 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 		}
 
 		boolean[] isCategorical = table.isNumeric();
-		for(int i = 0; i < isCategorical.length; i++) {
-			isCategorical[i] = !isCategorical[i]; 
-		}
-
+//		for(int i = 0; i < isCategorical.length; i++) {
+//			isCategorical[i] = !isCategorical[i]; 
+//		}
+		
+		boolean classIndexCategorical = !table.isNumeric(names[classIndex]);
 		Instances instanceData = WekaUtilityMethods.createInstancesFromQuery("DataSet", dataTable, names, classIndex);
+		for(int i = 0; i < instanceData.numAttributes(); i++) {
+			isCategorical[i] = !instanceData.attribute(i).isNumeric();
+		}
+		isCategorical[classIndex] = classIndexCategorical;
+		
 		instanceData.setClassIndex(classIndex);
 	
 		String[] correctArray = null;
@@ -308,7 +322,7 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 	    	}
 	        
 	    	int maxIndex = 0;
-	    	double maxValue = -9999999;
+	    	Double maxValue = Double.NEGATIVE_INFINITY;//-9999999;
 	    	for(int i = 0; i < numCategories; i++) {
 	    		if(outputValues[i] > maxValue) {
 	    			maxIndex = i;
@@ -316,11 +330,20 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 	    		}
 	    	}
 	    	
-	    	if(classes[maxIndex].equalsIgnoreCase(attribute)) {
-	    		correctCount++;
-	    		correctArray[z] = "true";
+	    	if(isCategorical[classIndex]) {
+		    	if(classes[maxIndex].equalsIgnoreCase(attribute)) {
+		    		correctCount++;
+		    		correctArray[z] = "true";
+		    	} else {
+		    		correctArray[z] = classes[maxIndex];
+		    	}
 	    	} else {
-	    		correctArray[z] = classes[maxIndex];
+		    	if(inBucket(attribute, classes[maxIndex])) {
+		    		correctCount++;
+		    		correctArray[z] = "true";
+		    	} else {
+		    		correctArray[z] = classes[maxIndex];
+		    	}
 	    	}
 	    	
 	        this.applyUpdate(instance, learned, example);
@@ -425,7 +448,11 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
     private boolean inBucket(Object objValue, String bucket) {
     	double value = 0.0;
     	try {
-    		value = ((Number)objValue).doubleValue();
+    		if(objValue instanceof String) {
+    			value = Double.parseDouble((String)objValue);
+    		} else {
+    			value = ((Number)objValue).doubleValue();
+    		}
     	} catch(Exception e) {
     		return false;
     	}

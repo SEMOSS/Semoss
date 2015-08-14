@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +52,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.weka.WekaClassification;
+import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.om.SEMOSSParam;
 import prerna.ui.components.api.IPlaySheet;
@@ -123,7 +125,7 @@ public class RunAlgorithmListener extends AbstractListener {
 	private JComboBox<String> perceptronTypeComboBox;
 	private JTextField selectDegreeTextField;
 
-
+	//static int num = 0;
 	/**
 	 * Method actionPerformed.
 	 * @param e ActionEvent
@@ -144,6 +146,16 @@ public class RunAlgorithmListener extends AbstractListener {
 		//must make sure that we include the first col, even though there is no checkbox
 
 		//Revert back to the original data frame structure
+//		Iterator<Object[]> it = dataFrame.iterator(false);
+//		for(int i = 0; i < 5; i++) {
+//			System.out.println(Arrays.toString(it.next()));
+//		}
+		//System.out.println("Before: "+dataFrame.getNumRows());
+		//num++;
+		//BTreeDataFrame.write2Excel4Testing((BTreeDataFrame)dataFrame, "C:\\Users\\rluthar\\Desktop\\TestData\\btree_Before_All"+num+".xlsx");
+		//BTreeDataFrame.write2Excel4Testing(((BTreeDataFrame)dataFrame).getData2(), "C:\\Users\\rluthar\\Desktop\\TestData\\btree_Before_Part"+num+".xlsx");
+		//num++;
+		//System.out.println();
 		List<String> newColumnHeaders = Arrays.asList(dataFrame.getColumnHeaders());
 		List<String> originalColumnHeaders = Arrays.asList(playSheet.columnHeaders);
 		Set<String> setDifference = new LinkedHashSet<String>(newColumnHeaders);
@@ -152,7 +164,14 @@ public class RunAlgorithmListener extends AbstractListener {
 		for(int i = removeSet.length - 1; i >=0; i--) {
 			dataFrame.removeColumn(removeSet[i]);
 		}
-
+//		Iterator<Object[]> it2 = dataFrame.iterator(false);
+//		for(int i = 0; i < 5; i++) {
+//			System.out.println(Arrays.toString(it2.next()));
+//		}
+		//System.out.println("After: "+dataFrame.getNumRows());
+		//System.out.println();
+		//BTreeDataFrame.write2Excel4Testing((BTreeDataFrame)dataFrame, "C:\\Users\\rluthar\\Desktop\\TestData\\btree_After"+num+".xlsx");
+		
 		List<String> skipColumns = new ArrayList<String>();
 		for(int i = 0; i < columnCheckboxes.size(); i++) {
 			if(!columnCheckboxes.get(i).isSelected()) {
@@ -482,14 +501,31 @@ public class RunAlgorithmListener extends AbstractListener {
 			String classifier = perceptronClassComboBox.getSelectedItem() + "";
 			String type = perceptronTypeComboBox.getSelectedItem()+"";
 			int degree = 1;
+			double kappa = 1.0;
+			double constant = 1.0;
 			
 			String degreeText = selectDegreeTextField.getText();
+//			String kappaText = selectKappaTextField.getText();
+//			String constantText = selectConstantTextField.getText();
+			
 			try {
-				degree = Integer.parseInt(degreeText);
+				degree = Integer.parseInt(degreeText);//Double.parseDouble(degreeText);
 			} catch(NumberFormatException exception) {
-				Utility.showError("Number of clusters must be an integer greater than 0. Please fix and rerun.");
+				Utility.showError("Degree must be an integer! Try again");
 				return;
 			}
+			
+//			try {
+//				kappa = Double.parseDouble(kappaText);
+//			} catch(NumberFormatException exception) {
+//				Utility.showError("Kappa must be a number! Try again");
+//			}
+//			
+//			try {
+//				constant = Double.parseDouble(constantText);
+//			} catch(NumberFormatException exception) {
+//				Utility.showError("Constant must be a number! Try again");
+//			}
 			
 			newPlaySheet = new PerceptronPlaySheet();
 			newPlaySheet.setDataFrame(dataFrame);
