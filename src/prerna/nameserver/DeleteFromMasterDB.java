@@ -271,40 +271,41 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 			String keyword = (String)sjss.getVar(names[0]);
 			keywordsWithoutEnginesList.add(keyword);
 			bindingsStr = bindingsStr.concat("(<").concat(MasterDatabaseURIs.KEYWORD_BASE_URI).concat("/").concat(keyword).concat(">)");
-
 		}
 		
-		//delete the keyword type relationships
-		String boundKeywordTypeQuery = MasterDatabaseQueries.KEYWORDS_TYPE_QUERY.replaceAll("@BINDINGS@", bindingsStr);
-		ISelectWrapper wrapper2 = Utility.processQuery(masterEngine,boundKeywordTypeQuery);
-		String[] names2 = wrapper2.getVariables();
-		while(wrapper2.hasNext())
-		{
-			ISelectStatement sjss = wrapper2.next();
-			String keyword = (String)sjss.getVar(names2[0]);
-			String typeURI = sjss.getRawVar(names2[1]).toString();
-			MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, typeURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + keyword + ":" + keyword);
-			masterEngine.removeStatement(new Object[]{typeURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.RESOURCE_URI, true});
-		}
-		
-		//delete the mc keyword relationships
-		String boundMCKeywordsQuery = MasterDatabaseQueries.MC_KEYWORDS_QUERY.replaceAll("@BINDINGS@", bindingsStr);
-		ISelectWrapper wrapper3 = Utility.processQuery(masterEngine,boundMCKeywordsQuery);
-		String[] names3 = wrapper3.getVariables();
-		while(wrapper3.hasNext())
-		{
-			//grab query results
-			ISelectStatement sjss = wrapper3.next();
-			String mc = (String)sjss.getVar(names3[0]);
-			String keyword = (String)sjss.getVar(names3[1]);
-			MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, MasterDatabaseURIs.MC_BASE_URI + "/" + mc, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/ComposedOf/" + keyword + ":" +mc);
-		}
-		
-		//delete the keywords
-		Iterator<String> keywordIt = keywordsWithoutEnginesList.iterator();
-		while(keywordIt.hasNext()) {
-			String keyword = keywordIt.next();
-			MasterDBHelper.removeNode(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword);
+		if(!bindingsStr.isEmpty()) {
+			//delete the keyword type relationships
+			String boundKeywordTypeQuery = MasterDatabaseQueries.KEYWORDS_TYPE_QUERY.replaceAll("@BINDINGS@", bindingsStr);
+			ISelectWrapper wrapper2 = Utility.processQuery(masterEngine,boundKeywordTypeQuery);
+			String[] names2 = wrapper2.getVariables();
+			while(wrapper2.hasNext())
+			{
+				ISelectStatement sjss = wrapper2.next();
+				String keyword = (String)sjss.getVar(names2[0]);
+				String typeURI = sjss.getRawVar(names2[1]).toString();
+				MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, typeURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + keyword + ":" + keyword);
+				masterEngine.removeStatement(new Object[]{typeURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.RESOURCE_URI, true});
+			}
+			
+			//delete the mc keyword relationships
+			String boundMCKeywordsQuery = MasterDatabaseQueries.MC_KEYWORDS_QUERY.replaceAll("@BINDINGS@", bindingsStr);
+			ISelectWrapper wrapper3 = Utility.processQuery(masterEngine,boundMCKeywordsQuery);
+			String[] names3 = wrapper3.getVariables();
+			while(wrapper3.hasNext())
+			{
+				//grab query results
+				ISelectStatement sjss = wrapper3.next();
+				String mc = (String)sjss.getVar(names3[0]);
+				String keyword = (String)sjss.getVar(names3[1]);
+				MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, MasterDatabaseURIs.MC_BASE_URI + "/" + mc, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/ComposedOf/" + keyword + ":" +mc);
+			}
+			
+			//delete the keywords
+			Iterator<String> keywordIt = keywordsWithoutEnginesList.iterator();
+			while(keywordIt.hasNext()) {
+				String keyword = keywordIt.next();
+				MasterDBHelper.removeNode(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword);
+			}
 		}
 	}
 
