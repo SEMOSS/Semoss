@@ -121,7 +121,7 @@ public class HoeffdingTreeAlgorithm implements IAnalyticRoutine {
 		this.tieThreshold = Double.toString(tieThresholdPercent);
 		dataFrame.setColumnsToSkip(skipAttributes);
 		// Create Instances and a datastream from our query: these are data objects that MOA requires.
-		Instances instanceData = WekaUtilityMethods.createInstancesFromQuery("DataSet", dataFrame.getData(), dataFrame.getColumnHeaders(), dataFrame.getNumCols()-1);
+		Instances instanceData = WekaUtilityMethods.createInstancesFromQuery("DataSet", dataFrame.getData(), dataFrame.getColumnHeaders(), classifierIndex);
 
 		// compute Tree
 		computeTree(instanceData);

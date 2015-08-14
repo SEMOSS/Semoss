@@ -73,7 +73,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 
 	private String wordnetPath;
 	private HypernymListGenerator hypernymGenerator;
-	
+
 	public AddToMasterDB(String localMasterDbName) {
 		super(localMasterDbName);
 	}
@@ -118,12 +118,12 @@ public class AddToMasterDB extends ModifyMasterDB {
 
 		return success;
 	}
-	
+
 	public boolean registerEngineLocal(IEngine engine) {
 		boolean success = false;
 		String engineName = engine.getEngineName();
-		
-//		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
+
+		//		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 
 		Map<String, String> parentChildMapping = new HashMap<String, String>();
 		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.MC_PARENT_CHILD_QUERY);
@@ -133,7 +133,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 			ISelectStatement sjss = wrapper.next();
 			parentChildMapping.put(sjss.getVar(names[0]).toString(), sjss.getVar(names[1]).toString());
 		}
-		
+
 		if(wordnetPath != null) {
 			hypernymGenerator = new HypernymListGenerator(wordnetPath);
 		} else {
@@ -158,10 +158,10 @@ public class AddToMasterDB extends ModifyMasterDB {
 
 		return success;
 	}
-	
+
 	public Hashtable<String, Boolean> registerEngineLocal(ArrayList<String> dbArray) {
 		Hashtable<String, Boolean> successHash = new Hashtable<String, Boolean>();
-//		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
+		//		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 
 		Map<String, String> parentChildMapping = new HashMap<String, String>();
 		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.MC_PARENT_CHILD_QUERY);
@@ -171,7 +171,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 			ISelectStatement sjss = wrapper.next();
 			parentChildMapping.put(sjss.getVar(names[0]).toString(), sjss.getVar(names[1]).toString());
 		}
-		
+
 		if(wordnetPath != null) {
 			hypernymGenerator = new HypernymListGenerator(wordnetPath);
 		} else {
@@ -194,13 +194,13 @@ public class AddToMasterDB extends ModifyMasterDB {
 			successHash.put(engineName, true);
 		}
 
-//		for(String parent : parentChildMapping.keySet()) {
-//			logger.info("Parent: " + parent + ". Child: " + parentChildMapping.get(parent));
-//		}
+		//		for(String parent : parentChildMapping.keySet()) {
+		//			logger.info("Parent: " + parent + ". Child: " + parentChildMapping.get(parent));
+		//		}
 
 		masterEngine.commit();
 		masterEngine.infer();
-
+		
 		return successHash;
 	}
 
@@ -208,7 +208,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 
 		Hashtable<String, Boolean> successHash = new Hashtable<String, Boolean>();
 
-//		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
+		//		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 
 		Map<String, String> parentChildMapping = new HashMap<String, String>();
 		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.MC_PARENT_CHILD_QUERY);
@@ -225,7 +225,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 			hypernymGenerator = new HypernymListGenerator();
 		}
 		hypernymGenerator.addMappings(parentChildMapping);
-		
+
 		for(String engineName : dbArray) {
 			String engineAPI = baseURL + "/s-"+engineName;
 			String owl = Utility.retrieveResult(engineAPI + "/getOWLDefinition", null);
@@ -250,9 +250,9 @@ public class AddToMasterDB extends ModifyMasterDB {
 			successHash.put(engineName, true);
 		}
 
-//		for(String parent : parentChildMapping.keySet()) {
-//			logger.info("Parent: " + parent + ". Child: " + parentChildMapping.get(parent));
-//		}
+		//		for(String parent : parentChildMapping.keySet()) {
+		//			logger.info("Parent: " + parent + ". Child: " + parentChildMapping.get(parent));
+		//		}
 
 		masterEngine.commit();
 		masterEngine.infer();
@@ -309,7 +309,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 				}
 			}
 		}
-
+		
 		MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName);
 		// add keyword to mc information to db
 		Map<String, Set<String>> keywordMapping = keywordConceptBipartiteGraph.getKeywordMapping();
@@ -323,7 +323,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 				MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, MasterDatabaseURIs.MC_BASE_URI + "/" + cleanMC, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/ComposedOf/" + keyword + ":" + cleanMC);
 			}
 		}
-		
+
 		Iterator<SEMOSSEdge> edgeItr = edgeStore.values().iterator();
 		while(edgeItr.hasNext()) {
 			SEMOSSEdge edge = edgeItr.next();
@@ -332,7 +332,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 			String firstVertName = edge.outVertex.getProperty(Constants.VERTEX_NAME).toString();
 			String secondVertURI = edge.inVertex.getURI();
 			String secondVertName = edge.inVertex.getProperty(Constants.VERTEX_NAME).toString();
-			
+
 			String edgeConcat = engineName + ":" + firstVertName + ":" + edgeName + ":" + secondVertName;
 
 			//add a node representing the engine-relation
@@ -346,10 +346,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 			MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.ENGINE_RELATION_BASE_URI + "/" + edgeConcat, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + engineName + ":" + edgeConcat);
 			MasterDBHelper.addRelationship(masterEngine, firstVertURI, MasterDatabaseURIs.ENGINE_RELATION_BASE_URI + "/" + edgeConcat, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Provides/" + firstVertName + ":" + edgeConcat);
 			MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.ENGINE_RELATION_BASE_URI + "/" + edgeConcat, secondVertURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Consumes/" + edgeConcat + ":" + secondVertName);
-
 		}
-
-		
 	}
 
 	public RepositoryConnection getNewRepository() {
@@ -382,22 +379,22 @@ public class AddToMasterDB extends ModifyMasterDB {
 			logger.info("Repository Error adding insights");
 		}
 	}
-	
+
 	public void createUserInsight(String userId, String insightId) {
 		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 		String userInsight = userId + "-" + insightId;
-		
+
 		MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight);
 		MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_EXECUTION_COUNT_PROP_URI, new Double(1), false);
 		MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_LAST_EXECUTED_DATE_PROP_URI, new Date(), false);
 		MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.USER_BASE_URI + "/" + userId, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USER_USERINSIGHT_REL_URI);
 		MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.INSIGHT_BASE_URI + "/" + insightId, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.INSIGHT_USERINSIGHT_REL_URI);
 	}
-	
+
 	public boolean processInsightExecutionForUser(String userId, Insight insight) {
 		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 		String userInsight = userId + "-" + insight.getId();
-		
+
 		ISelectWrapper sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_USER_INSIGHT.replace("@USERINSIGHT@", userInsight));
 		if(!sjsw.hasNext()) {
 			createUserInsight(userId, insight.getId());
@@ -421,17 +418,17 @@ public class AddToMasterDB extends ModifyMasterDB {
 			MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userId + "-" + insight.getId(), MasterDatabaseURIs.USERINSIGHT_LAST_EXECUTED_DATE_PROP_URI, oldDate, false);
 			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userId + "-" + insight.getId(), MasterDatabaseURIs.USERINSIGHT_LAST_EXECUTED_DATE_PROP_URI, new Date(), false);
 		}
-		
+
 		masterEngine.commit();
 		masterEngine.infer();
-		
+
 		return true;
 	}
-	
+
 	public boolean publishInsightToFeed(String userId, Insight insight, String newVisibility) {
 		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 		final String userInsight = userId + "-" + insight.getId();
-		
+
 		String oldVisibility = "";
 		String pubDate = "";
 		ISelectWrapper sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_VISIBILITY_FOR_USERINSIGHT.replace("@USERINSIGHT@", userInsight));
@@ -444,17 +441,17 @@ public class AddToMasterDB extends ModifyMasterDB {
 			pubDate = iss.getVar(names[1]).toString();
 			MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_PUBLISH_VISIBILITY_PROP_URI, oldVisibility, false);
 		}
-		
+
 		MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_PUBLISH_VISIBILITY_PROP_URI, newVisibility, false);
-		
+
 		if(oldVisibility.isEmpty() || (oldVisibility.equals("me") && !newVisibility.equals("me"))) {
 			MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_PUBLISH_DATE_PROP_URI, pubDate, false);
 			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_PUBLISH_DATE_PROP_URI, new Date(), false);
 		}
-		
+
 		masterEngine.commit();
 		masterEngine.infer();
-		
+
 		return true;
 	}
 
