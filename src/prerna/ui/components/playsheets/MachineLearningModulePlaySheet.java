@@ -1732,7 +1732,7 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 			String selection = perceptronClassComboBox.getSelectedItem() + "";
 			disableCheckBox(selection,true);
 		}
-		perceptronClassComboBox.setSelectedItem("MOA linear");
+		perceptronTypeComboBox.setSelectedItem("MOA linear");
 	}
 	public void enableDrillDown() {
 		showDrillDownBtn.setEnabled(true);
