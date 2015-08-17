@@ -183,6 +183,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		
 		while(iterator.hasNext() && end > 0) {
 			returnList.add(iterator.next());
+			end--;
 		}
 		return returnList;
 	}
