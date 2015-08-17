@@ -369,7 +369,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 						joiningNode = new SimpleTreeNode(emptyVal);
 						
 						// connect via value true
-						SimpleTreeNode firstInstance = rootOfRoots.getInstances().get(0);
+						SimpleTreeNode firstInstance = new ValueTreeColumnIterator(rootOfRoots).next();
 						SimpleTreeNode previousLeftMost = SimpleTreeNode.getLeft(firstInstance);
 						previousLeftMost.leftSibling = joiningNode;
 						joiningNode.rightSibling = previousLeftMost;
@@ -477,12 +477,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 			}
 			
 			//Update the Index Tree
-			TreeNode treeRoot;
-			if(innerJoin) {
-				treeRoot = this.simpleTree.nodeIndexHash.get(levelNames[origLength-1]);
-			} else {
-				treeRoot = this.simpleTree.nodeIndexHash.get(colNameInTable);
-			}
+			TreeNode treeRoot = this.simpleTree.nodeIndexHash.get(levelNames[origLength-1]);
 			ValueTreeColumnIterator iterator = new ValueTreeColumnIterator(treeRoot);
 			while(iterator.hasNext()) {
 				SimpleTreeNode t = iterator.next();
@@ -496,8 +491,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 //				this.simpleTree.appendToFilteredIndexTree(fiterator.next().rightChild);
 //			}
 			//this.simpleTree.quickRefresh();
-
-			//this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[0], levelNames.length);
 			
 		}//EMPTY
 		else // use the flat join. This is not ideal. Not sure if we will ever actually use this
