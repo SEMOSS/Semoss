@@ -24,7 +24,7 @@ import prerna.ui.components.NewScrollBarUI;
 
 public class MOAClassificationPlaySheet extends DendrogramPlaySheet {
 
-	private static final Logger LOGGER = LogManager.getLogger(WekaClassificationPlaySheet.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(MOAClassificationPlaySheet.class.getName());
 	
 	private String modelName;
 	private HoeffdingTreeAlgorithm alg = null;
@@ -61,10 +61,9 @@ public class MOAClassificationPlaySheet extends DendrogramPlaySheet {
 					System.out.println(i);
 				}
 			}
-			
-			selectedOptions.put(options.get(0).getName(), confValue);        // split confidence
-			selectedOptions.put(options.get(1).getName(), gracePeriod);      // grace pd
-			selectedOptions.put(options.get(2).getName(), classIndex);       // last index
+			selectedOptions.put(options.get(0).getName(), classIndex);       // last index
+			selectedOptions.put(options.get(1).getName(), confValue);        // split confidence
+			selectedOptions.put(options.get(2).getName(), gracePeriod);      // grace pd
 			selectedOptions.put(options.get(3).getName(), tieThreshold);       // last index
 			selectedOptions.put(options.get(4).getName(), skipAttributes);   // skip attributes
 			alg.setSelectedOptions(selectedOptions);
