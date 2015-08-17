@@ -215,6 +215,25 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return retData;
 	}
 	
+	@Override
+	public List<Object[]> getScaledData(List<String> exceptionColumns) {
+		List<Object[]> retData = new ArrayList<Object[]>();
+		boolean[] exceptCol = new boolean[levelNames.length];
+		for(int i = 0; i < exceptCol.length; i++) {
+			if(exceptionColumns.contains(levelNames)) {
+				exceptCol[i] = true;
+			} else {
+				exceptCol[i] = false;
+			}
+		}
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);
+		Iterator<Object[]> iterator = new ScaledBTreeIterator(typeRoot, this.isNumeric(), this.getMin(), this.getMax(), false, columnsToSkip, exceptCol);
+		while(iterator.hasNext()) {
+			retData.add(iterator.next());
+		}
+		return retData;
+	}
+	
 	public List<Object[]> getStandardizedData() {
 		List<Object[]> retData = new ArrayList<Object[]>();
 		Iterator<Object[]> iterator = this.standardizedIterator(false);
@@ -458,7 +477,12 @@ public class BTreeDataFrame implements ITableDataFrame {
 			}
 			
 			//Update the Index Tree
-			TreeNode treeRoot = this.simpleTree.nodeIndexHash.get(levelNames[origLength-1]);
+			TreeNode treeRoot;
+			if(innerJoin) {
+				treeRoot = this.simpleTree.nodeIndexHash.get(levelNames[origLength-1]);
+			} else {
+				treeRoot = this.simpleTree.nodeIndexHash.get(colNameInTable);
+			}
 			ValueTreeColumnIterator iterator = new ValueTreeColumnIterator(treeRoot);
 			while(iterator.hasNext()) {
 				SimpleTreeNode t = iterator.next();
@@ -1157,6 +1181,12 @@ public class BTreeDataFrame implements ITableDataFrame {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);
 		return new ScaledBTreeIterator(typeRoot, this.isNumeric(), this.getMin(), this.getMax(), getRawData, columnsToSkip);
 	}
+	
+//	public Iterator<Object[]> scaledIterator(boolean getRawData, List<String> exceptionColumns) {
+//		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);
+//		int[] exceptionIndex = new int[exceptionColumns.size()];		
+//		return new ScaledBTreeIterator(typeRoot, this.isNumeric(), this.getMin(), this.getMax(), getRawData, columnsToSkip, ExceptionIndex);
+//	}
 
 	@Override
 	public Iterator<Object[]> standardizedIterator(boolean getRawData) {

@@ -9,6 +9,7 @@ public class ScaledBTreeIterator implements Iterator<Object[]>{
 	private boolean[] isNumeric;
 	private Double[] min;
 	private Double[] max;
+	private boolean[] exceptionColumns;
 	
 	public ScaledBTreeIterator(TreeNode typeRoot, boolean[] isNum, Double[] min, Double[] max) {
 		this(typeRoot, isNum, min, max, false, null);
@@ -23,6 +24,18 @@ public class ScaledBTreeIterator implements Iterator<Object[]>{
 		isNumeric = isNum;
 		this.min = min;
 		this.max = max;
+		exceptionColumns = new boolean[isNumeric.length];
+//		for(int i = 0; i < exceptionColumns.length; i++) {
+//			exceptionColumns[i] = false;
+//		}
+	}
+	
+	public ScaledBTreeIterator(TreeNode typeRoot, boolean[] isNum, Double[] min, Double[] max, boolean getRawData, List<String> columns2skip, boolean[] exceptionColumns) {
+		iterator = new BTreeIterator(typeRoot, getRawData, columns2skip);
+		isNumeric = isNum;
+		this.min = min;
+		this.max = max;
+		this.exceptionColumns = exceptionColumns;
 	}
 
 	@Override
@@ -38,7 +51,7 @@ public class ScaledBTreeIterator implements Iterator<Object[]>{
 			Object[] nextRow = iterator.next();
 			
 			for(int i = 0; i < nextRow.length; i++) {
-				if(isNumeric[i]) {
+				if(isNumeric[i] && !exceptionColumns[i]) {
 					if(nextRow[i] instanceof Number) {
 						nextRow[i] = ((Double)nextRow[i] - min[i])/(max[i] - min[i]); 
 					} else {
@@ -54,7 +67,7 @@ public class ScaledBTreeIterator implements Iterator<Object[]>{
 	}
 	
 	@Override
-	public void remove(){
+	public void remove() {
 		
 	}
 	

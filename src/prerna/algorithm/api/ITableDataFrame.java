@@ -422,6 +422,12 @@ public interface ITableDataFrame {
 	List<Object[]> getScaledData();
 	
 	/**
+	 * Get all the data with numeric columns scaled with exceptions
+	 * @param exceptionColumns
+	 * @return
+	 */
+	List<Object[]> getScaledData(List<String> exceptionColumns);
+	/**
 	 * Get all the raw data contained in the data-frame
 	 * @return						An ArrayList of Object arrays containing all the raw data
 	 */
@@ -445,6 +451,7 @@ public interface ITableDataFrame {
 	 * @param columnHeaders
 	 */
 	public void setColumnsToSkip(List<String> columnHeaders);
+
 
 	
 }

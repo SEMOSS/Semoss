@@ -60,9 +60,9 @@ public class PerceptronPlaySheet extends GridPlaySheet {
 	private List<String> skipAttributes;
 	protected JTabbedPane jTab;
 	private String kernelType;
-	private int degree;
-	private double kappa;
-	private double constant;
+	private Integer degree;
+	private Double kappa;
+	private Double constant;
 
 	/**
 	 * Method addPanel.  Creates a panel and adds the table to the panel.
@@ -124,6 +124,14 @@ public class PerceptronPlaySheet extends GridPlaySheet {
 	
 	public void setKernel(String kernel) {
 		this.kernelType = kernel;
+	}
+	
+	public void setConstant(Double constant) {
+		this.constant = constant;
+	}
+	
+	public void setKappa(Double kappa) {
+		this.kappa = kappa;
 	}
 
 

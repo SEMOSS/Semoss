@@ -114,9 +114,12 @@ public class RunAlgorithmListener extends AbstractListener {
 	private ITableDataFrame dataFrame;
 	private String[] attributeNames;
 
+	//perceptron
 	private JComboBox<String> perceptronClassComboBox;
 	private JComboBox<String> perceptronTypeComboBox;
 	private JTextField selectDegreeTextField;
+	private JTextField selectConstantTextField;
+	private JComboBox<String> perceptronKernel;
 
 	//static int num = 0;
 	/**
@@ -164,7 +167,7 @@ public class RunAlgorithmListener extends AbstractListener {
 		
 		List<String> checkedColumns = new ArrayList<String>();
 		for(int i = 0; i < columnCheckboxes.size(); i++) {
-			if(columnCheckboxes.get(i).isSelected()) {
+			if(!columnCheckboxes.get(i).isSelected()) {
 				checkedColumns.add(attributeNames[i+1]);
 			}
 		}
@@ -174,12 +177,14 @@ public class RunAlgorithmListener extends AbstractListener {
 			skipColumns.add(s);
 		}
 		
-		if(skipColumns.size() == attributeNames.length) {
+		if(checkedColumns.size() == attributeNames.length-1) {
+//		if(skipColumns.size() == attributeNames.length) {
 			Utility.showError("No variables were selected. Please select at least one and retry.");
 			return;
 		}
 
-		dataFrame.setColumnsToSkip(skipColumns);
+		//dataFrame.setColumnsToSkip(skipColumns);
+		dataFrame.setColumnsToSkip(checkedColumns);
 
 		String algorithm = algorithmComboBox.getSelectedItem() + "";
 		if(algorithm.equals("Similarity")) {
@@ -491,7 +496,7 @@ public class RunAlgorithmListener extends AbstractListener {
 				}
 			}
 		} else if(algorithm.equals("Perceptron")) {
-			dataFrame.setColumnsToSkip(skipColumns);
+			//dataFrame.setColumnsToSkip(skipColumns);
 
 			//determine the column index and name to classify on
 			String classifier = perceptronClassComboBox.getSelectedItem() + "";
@@ -501,27 +506,29 @@ public class RunAlgorithmListener extends AbstractListener {
 			double constant = 1.0;
 			
 			String degreeText = selectDegreeTextField.getText();
-//			String kappaText = selectKappaTextField.getText();
-//			String constantText = selectConstantTextField.getText();
+			String constantText = selectConstantTextField.getText();
+			String kernelType = perceptronKernel.getSelectedItem().toString();
 			
-			try {
-				degree = Integer.parseInt(degreeText);//Double.parseDouble(degreeText);
-			} catch(NumberFormatException exception) {
-				Utility.showError("Degree must be an integer! Try again");
-				return;
+			if(kernelType.equalsIgnoreCase("Polynomial")) {
+				try {
+					degree = Integer.parseInt(degreeText);//Double.parseDouble(degreeText);
+				} catch(NumberFormatException exception) {
+					Utility.showError("Degree must be an integer! Try again");
+					return;
+				}
+			} else {
+				try {
+					kappa = Double.parseDouble(degreeText);
+				} catch(NumberFormatException exception) {
+					Utility.showError("Kappa must be a number! Try again");
+				}
 			}
 			
-//			try {
-//				kappa = Double.parseDouble(kappaText);
-//			} catch(NumberFormatException exception) {
-//				Utility.showError("Kappa must be a number! Try again");
-//			}
-//			
-//			try {
-//				constant = Double.parseDouble(constantText);
-//			} catch(NumberFormatException exception) {
-//				Utility.showError("Constant must be a number! Try again");
-//			}
+			try {
+				constant = Double.parseDouble(constantText);
+			} catch(NumberFormatException exception) {
+				Utility.showError("Constant must be a number! Try again");
+			}
 			
 			newPlaySheet = new PerceptronPlaySheet();
 			newPlaySheet.setDataFrame(dataFrame);
@@ -529,6 +536,8 @@ public class RunAlgorithmListener extends AbstractListener {
 			((PerceptronPlaySheet)newPlaySheet).setClassColumn(classifier);
 			((PerceptronPlaySheet)newPlaySheet).setDegree(degree);
 			((PerceptronPlaySheet)newPlaySheet).setKernel(type);
+			((PerceptronPlaySheet)newPlaySheet).setKappa(kappa);
+			((PerceptronPlaySheet)newPlaySheet).setConstant(constant);
 			//((PerceptronPlaySheet)newPlaySheet).setClassColumn(classifier);
 			((PerceptronPlaySheet)newPlaySheet).setJTab(jTab);
 			//((PerceptronPlaySheet)newPlaySheet).setJBar(jBar);
@@ -572,6 +581,8 @@ public class RunAlgorithmListener extends AbstractListener {
 		this.perceptronClassComboBox = playSheet.getPerceptronClassComboBox();
 		this.perceptronTypeComboBox = playSheet.getPerceptronTypeComboBox();
 		this.selectDegreeTextField = playSheet.getPerceptronDegree();
+		this.selectConstantTextField = playSheet.getPerceptronConstant();
+		this.perceptronKernel = playSheet.getPerceptronTypeComboBox();
 		//outlier
 		this.enterKNeighborsSlider = playSheet.getEnterKNeighborsSlider();
 		//matrix regression
