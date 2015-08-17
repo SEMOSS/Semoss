@@ -71,6 +71,7 @@ import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.main.listener.impl.ClassificationSelectionListener;
 import prerna.ui.main.listener.impl.ClusterTabSelectionListener;
+import prerna.ui.main.listener.impl.DegreeSelectionListener;
 import prerna.ui.main.listener.impl.NumberOfClustersSelectionListener;
 import prerna.ui.main.listener.impl.RunAlgorithmListener;
 import prerna.ui.main.listener.impl.RunDrillDownListener;
@@ -1719,7 +1720,7 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		DegreeSelectionListener degreeSelectList = new DegreeSelectionListener();
 		degreeSelectList.setView(this);
 		perceptronTypeComboBox.addActionListener(degreeSelectList);
-		*/
+		
 	}
 	
 	public void showSelfOrganizingMap(Boolean show) {
