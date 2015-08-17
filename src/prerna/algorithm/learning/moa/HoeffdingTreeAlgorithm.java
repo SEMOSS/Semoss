@@ -35,7 +35,6 @@ import prerna.algorithm.learning.weka.WekaUtilityMethods;
 import prerna.om.SEMOSSParam;
 import weka.core.Instance;
 import weka.core.Instances;
-import weka.core.converters.ConverterUtils.DataSource;
 
 public class HoeffdingTreeAlgorithm implements IAnalyticRoutine {
 
@@ -65,15 +64,15 @@ public class HoeffdingTreeAlgorithm implements IAnalyticRoutine {
 		options = new ArrayList<SEMOSSParam>();
 
 		SEMOSSParam p1 = new SEMOSSParam();
-		p1.setName(SPLIT_CONFIDENCE);
+		p1.setName(CLASSIFIER_INDEX);
 		options.add(0, p1);
-
+		
 		SEMOSSParam p2 = new SEMOSSParam();
-		p2.setName(GRACE_PERIOD);
+		p2.setName(SPLIT_CONFIDENCE);
 		options.add(1, p2);
 
 		SEMOSSParam p3 = new SEMOSSParam();
-		p3.setName(CLASSIFIER_INDEX);
+		p3.setName(GRACE_PERIOD);
 		options.add(2, p3);
 		
 		SEMOSSParam p4 = new SEMOSSParam();
@@ -100,9 +99,9 @@ public class HoeffdingTreeAlgorithm implements IAnalyticRoutine {
 		int numInstances = dataFrame.getNumRows();
 
 		// set options
-		double invConfidence = (double) options.get(0).getSelected();
-		double gracePercentage = (double) options.get(1).getSelected();
-		this.classifierIndex = (int) options.get(2).getSelected();
+		this.classifierIndex = (int) options.get(0).getSelected();
+		double invConfidence = (double) options.get(1).getSelected();
+		double gracePercentage = (double) options.get(2).getSelected();
 		double tieThresholdPercent = (double) options.get(3).getSelected();
 		this.skipAttributes = (List<String>) options.get(4).getSelected();
 
@@ -175,18 +174,19 @@ public class HoeffdingTreeAlgorithm implements IAnalyticRoutine {
 		learner.setModelContext(metadata);
 		learner.prepareForUse();
 		
-		
-		//TODO: should we go through all the data twice, or create a training vs. testing set
-		//TODO: potentially do a cross-validation
-
 		// build the tree
+		int numSampleCorrect = 0;
 		int numberSamples = 0;
 		while (stream.hasMoreInstances() && numberSamples < numInstances) {
 			Instance trainInst = stream.nextInstance();
 			learner.trainOnInstance(trainInst);
 			numberSamples++;
+			if(learner.correctlyClassifies(trainInst)) {
+				numSampleCorrect++;
+			}
 		}
 
+		/*
 		// reiterate through instances and score them on our tree
 		stream = new CachedInstancesStream(instanceData);
 		numberSamples = 0;
@@ -199,6 +199,7 @@ public class HoeffdingTreeAlgorithm implements IAnalyticRoutine {
 			}
 			numberSamples++;
 		}
+		*/
 
 		// Output accuracy
 		accuracy = 100.0 * (double)numSampleCorrect / (double)numberSamples;
@@ -280,7 +281,7 @@ public class HoeffdingTreeAlgorithm implements IAnalyticRoutine {
 
 	@Override
 	public String getDefaultViz() {
-		return "prerna.ui.components.playsheets.WekaClassificationPlaySheet";
+		return "prerna.ui.components.playsheets.MOAClassificationPlaySheet";
 	}
 
 	@Override
@@ -385,7 +386,6 @@ public class HoeffdingTreeAlgorithm implements IAnalyticRoutine {
 	 * @param strArray				string representation of tree
 	 * @return						hashtable representation of tree.
 	 */
-	@SuppressWarnings("rawtypes")
 	public Map<String, Map> getDictionary(String[] strArray) {
 		Map<String, Map> dictionary = new HashMap<String, Map>();
 
@@ -412,7 +412,6 @@ public class HoeffdingTreeAlgorithm implements IAnalyticRoutine {
 	 * @param indentLevel			level of tree (3 spaces = one level)
 	 * @return						hashtable representation of tree.
 	 */
-	@SuppressWarnings("rawtypes")
 	public HashMap recurse(int i, String[] strArray, int indentLevel) {	
 		//ArrayList<Hashtable> innerArray = new ArrayList<Hashtable>();
 		HashMap<String, HashMap> innerDict = new HashMap<String, HashMap>();
@@ -433,28 +432,4 @@ public class HoeffdingTreeAlgorithm implements IAnalyticRoutine {
 		// break recursion if at last row in string's representation.
 		return innerDict;
 	}
-
-	/**
-	 * Testing method, using .arff file.
-	 * See prerna.test for more test code.
-	 */
-	public static void main(String[] args) {
-
-		HoeffdingTreeAlgorithm alg = new HoeffdingTreeAlgorithm();
-		DataSource source = null;
-		try { source = new DataSource("C:\\Users\\jadleberg\\Desktop\\iris.arff");} 
-		catch (Exception e) { e.printStackTrace(); }
-
-		Instances instanceData = null;
-		try { instanceData = source.getDataSet();} 
-		catch (Exception e) { e.printStackTrace(); }
-
-		alg.setGracePd("10");
-		alg.setConfidence(".95");
-		alg.setClassifierIndex("4");
-		alg.setTieThreshold("0.8");
-		alg.computeTree(instanceData);
-		System.out.println(alg.processTreeString());
-	}
-
 }

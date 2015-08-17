@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -52,17 +51,15 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.weka.WekaClassification;
-import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.om.SEMOSSParam;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
 import prerna.ui.components.playsheets.CorrelationPlaySheet;
-import prerna.ui.components.playsheets.MachineLearningModulePlaySheet;
-import prerna.ui.components.playsheets.MatrixRegressionPlaySheet;
-import prerna.ui.components.playsheets.MatrixRegressionVizPlaySheet;
 import prerna.ui.components.playsheets.MOAClassificationPlaySheet;
+import prerna.ui.components.playsheets.MachineLearningModulePlaySheet;
+import prerna.ui.components.playsheets.MatrixRegressionVizPlaySheet;
 import prerna.ui.components.playsheets.NumericalCorrelationVizPlaySheet;
 import prerna.ui.components.playsheets.OutlierVizPlaySheet;
 import prerna.ui.components.playsheets.PerceptronPlaySheet;
@@ -97,16 +94,12 @@ public class RunAlgorithmListener extends AbstractListener {
 	//hoeffding tree
 	private JComboBox<String> HOFclassifyClassComboBox;
 	private JSlider enterHOFConfidenceSlider;
-	private JSlider enterHOFGracePercent;
+	private JSlider enterHOFGraceRows;
 	private JSlider enterTieThresholdSlider;
 	
 	//outlier
 	private JSlider enterKNeighborsSlider;
 
-	// fast outlier
-	private JTextField enterSubsetSize;
-	private JTextField enterNumberRuns;
-	
 	//matrix regression
 	private JComboBox<String> matrixDepVarComboBox;
 
@@ -255,8 +248,8 @@ public class RunAlgorithmListener extends AbstractListener {
 
 			//determine the column index and name to classify on
 			String classifier = HOFclassifyClassComboBox.getSelectedItem() + "";
-			// get grace period
-			int gracePeriod = enterHOFGracePercent.getValue();
+			// get number of rows and convert to a percentage (sorry this is messy)
+			int gracePeriod = (int)(((double)enterHOFGraceRows.getValue() / dataFrame.getNumRows())*100);
 			// get confidence 
 			int ConfidenceValue = enterHOFConfidenceSlider.getValue();
 			
@@ -572,7 +565,7 @@ public class RunAlgorithmListener extends AbstractListener {
 		this.classifyClassComboBox = playSheet.getClassifyClassComboBox();
 		//hoeffding tree
 		this.HOFclassifyClassComboBox = playSheet.getHOFClassifyClassComboBox();
-		this.enterHOFGracePercent = playSheet.getenterHOFGracePercent();
+		this.enterHOFGraceRows = playSheet.getenterHOFGraceRows();
 		this.enterHOFConfidenceSlider = playSheet.getenterHOFConfidenceSlider();
 		this.enterTieThresholdSlider = playSheet.getenterTieThresholdSlider();
 		//perceptron
