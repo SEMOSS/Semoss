@@ -26,40 +26,11 @@ public class DegreeSelectionListener extends AbstractListener{
 		String selection = bx.getSelectedItem() + "";
 		//if manually select need to show text field, otherwise hide it
 		if(selection.equals("Polynomial")) {
-			//playSheet.setKernelLabel("Degree");
-			
-			playSheet.showPolynomialDegreeTextField(true);
-			//playSheet.setPolynomialDegreeTextField("2");
-			
-			//playSheet.showKappaTextField(false);
-			//playSheet.setKappaTextField("1");
-			
-			//playSheet.showConstantTextField(true);
-			//playSheet.setConstantTextField("1");
-			//playSheet.showConstantLabel(true);
-			
+			playSheet.showPerceptronParams(true, "Degree");
 		} else if(selection.equals("Sigmoid")) {
-			//playSheet.setKernelLabel("Kappa");
-			
-			playSheet.showPolynomialDegreeTextField(false);
-			//playSheet.setPolynomialDegreeTextField("2");
-			
-			//playSheet.showKappaTextField(true);
-			//playSheet.setKappaTextField("1");
-			
-			//playSheet.showConstantTextField(true);
-			//playSheet.setConstantTextField("1");
-			//playSheet.showConstantLabel(true);
+			playSheet.showPerceptronParams(true, "Kappa");
 		} else {
-			playSheet.showPolynomialDegreeTextField(false);
-			//playSheet.setPolynomialDegreeTextField("2");
-			
-			//playSheet.showKappaTextField(false);
-			//playSheet.setKappaTextField("1");
-			
-			//playSheet.showConstantTextField(false);
-			//playSheet.setConstantTextField("1");
-			//playSheet.showConstantLabel(false);
+			playSheet.showPerceptronParams(false, "");
 		}
 	}
 

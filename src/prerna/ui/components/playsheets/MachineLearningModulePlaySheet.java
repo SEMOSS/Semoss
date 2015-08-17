@@ -186,6 +186,10 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 	private JComboBox<String> perceptronTypeComboBox;
 	private JLabel lblSelectKernel;
 	private JTextField selectDegreeTextField;
+	private JLabel lblSelectDegree;
+	//private JTextField selectKappaTextField;
+	private JTextField selectConstantTextField;
+	private JLabel lblSelectConstant;
 
 	public int instanceIndex = 0;
 	public String[] columnHeaders;
@@ -1595,7 +1599,7 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		perceptronTypeComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		perceptronTypeComboBox.setBackground(Color.GRAY);
 		perceptronTypeComboBox.setPreferredSize(new Dimension(250, 25));
-		String[] types = new String[]{"MOA linear","Linear","Polynomial", "Exponential", "Sigmoid"};
+		String[] types = new String[]{"Linear","Polynomial", "Exponential", "Sigmoid"};
 		perceptronTypeComboBox.setModel(new DefaultComboBoxModel<String>(types));
 		GridBagConstraints gbc_typeComboBox = new GridBagConstraints();
 		gbc_typeComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
@@ -1653,6 +1657,16 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		gbc_lblSelectKernel.gridy = 1;
 		perceptronPanel.add(lblSelectKernel, gbc_lblSelectKernel);
 
+		lblSelectDegree = new JLabel("Degree");
+		lblSelectKernel.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_lblSelectDegree = new GridBagConstraints();
+		gbc_lblSelectDegree.anchor = GridBagConstraints.FIRST_LINE_END;
+		gbc_lblSelectDegree.fill = GridBagConstraints.NONE;
+		gbc_lblSelectDegree.insets = new Insets(10, 5, 0, 0);
+		gbc_lblSelectDegree.gridx = 2;
+		gbc_lblSelectDegree.gridy = 0;
+		perceptronPanel.add(lblSelectDegree, gbc_lblSelectDegree);
+		
 		selectDegreeTextField = new JTextField();
 		selectDegreeTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		selectDegreeTextField.setText("2");
@@ -1666,7 +1680,42 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 		gbc_selectDegreeTextField.gridy = 1;
 		perceptronPanel.add(selectDegreeTextField, gbc_selectDegreeTextField);
 		
-		/*
+//		selectKappaTextField = new JTextField();
+//		selectKappaTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+//		selectKappaTextField.setText("1");
+//		selectKappaTextField.setColumns(4);
+//		selectKappaTextField.setVisible(false);
+//		GridBagConstraints gbc_selectKappaTextField = new GridBagConstraints();
+//		gbc_selectKappaTextField.anchor = GridBagConstraints.FIRST_LINE_START;
+//		gbc_selectKappaTextField.fill = GridBagConstraints.NONE;
+//		gbc_selectKappaTextField.insets = new Insets(5, 5, 0, 0);
+//		gbc_selectKappaTextField.gridx = 2;
+//		gbc_selectKappaTextField.gridy = 1;
+//		perceptronPanel.add(selectKappaTextField, gbc_selectDegreeTextField);
+		
+		lblSelectConstant = new JLabel("Constant");
+		lblSelectKernel.setFont(new Font("Tahoma", Font.BOLD, 11));
+		GridBagConstraints gbc_lblSelectConstant = new GridBagConstraints();
+		gbc_lblSelectConstant.anchor = GridBagConstraints.FIRST_LINE_END;
+		gbc_lblSelectConstant.fill = GridBagConstraints.NONE;
+		gbc_lblSelectConstant.insets = new Insets(10, 5, 0, 0);
+		gbc_lblSelectConstant.gridx = 3;
+		gbc_lblSelectConstant.gridy = 0;
+		perceptronPanel.add(lblSelectConstant, gbc_lblSelectConstant);
+		
+		selectConstantTextField = new JTextField();
+		selectConstantTextField.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		selectConstantTextField.setText("1");
+		selectConstantTextField.setColumns(4);
+		selectConstantTextField.setVisible(false);
+		GridBagConstraints gbc_selectConstantTextField = new GridBagConstraints();
+		gbc_selectConstantTextField.anchor = GridBagConstraints.FIRST_LINE_START;
+		gbc_selectConstantTextField.fill = GridBagConstraints.NONE;
+		gbc_selectConstantTextField.insets = new Insets(5, 5, 0, 0);
+		gbc_selectConstantTextField.gridx = 3;
+		gbc_selectConstantTextField.gridy = 1;
+		perceptronPanel.add(selectConstantTextField, gbc_selectConstantTextField);
+		
 		DegreeSelectionListener degreeSelectList = new DegreeSelectionListener();
 		degreeSelectList.setView(this);
 		perceptronTypeComboBox.addActionListener(degreeSelectList);
@@ -1778,8 +1827,28 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 			String selection = perceptronClassComboBox.getSelectedItem() + "";
 			disableCheckBox(selection,true);
 		}
-		perceptronTypeComboBox.setSelectedItem("MOA linear");
+		perceptronTypeComboBox.setSelectedItem("Linear");
 	}
+	
+	public void showPerceptronParams(boolean show, String name) {
+		
+		if(name.equalsIgnoreCase("Degree")) {
+			lblSelectDegree.setText("Degree");
+			selectDegreeTextField.setText("2");
+		} else if(name.equalsIgnoreCase("Kappa")) {	
+			lblSelectDegree.setText("Kappa");
+			selectDegreeTextField.setText("1");
+		} else {
+			selectDegreeTextField.setText("2");
+		}
+		
+		selectConstantTextField.setText("1");
+		lblSelectDegree.setVisible(show);
+		selectDegreeTextField.setVisible(show);
+		lblSelectConstant.setVisible(show);
+		selectConstantTextField.setVisible(show);
+	}
+	
 	public void enableDrillDown() {
 		showDrillDownBtn.setEnabled(true);
 	}
@@ -1916,6 +1985,9 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 	}
 	public JTextField getPerceptronDegree() {
 		return selectDegreeTextField;
+	}
+	public JTextField getPerceptronConstant() {
+		return selectConstantTextField;
 	}
 	public ArrayList<JCheckBox> getColumnCheckboxes() {
 		return ivCheckboxes;
