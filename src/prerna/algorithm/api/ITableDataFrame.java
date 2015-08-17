@@ -410,6 +410,15 @@ public interface ITableDataFrame {
 	List<Object[]> getData();
 	
 	/**
+	 * Get the portion of the data between start and end
+	 * @param start
+	 * @param end
+	 * @param rawData
+	 * @return
+	 */
+	List<Object[]> getData(int start, int end, boolean rawData);
+	
+	/**
 	 * Get all the data contained in the data-frame including filteredData
 	 * @return					An ArrayList of Object arrays containing all the data
 	 */
