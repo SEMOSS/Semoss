@@ -148,7 +148,10 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 		className = (String)this.options.get(0).getSelected();
 		String kernelType = (String)this.options.get(2).getSelected();
 		Integer degree = (Integer)this.options.get(3).getSelected();
-		//Double constant = (Double)this.options.get(4).getSelected();
+		if(degree==null) degree = 2;
+		Double kappa = (Double)this.options.get(4).getSelected();
+		if(kappa == null) kappa = 1.0;
+		Double constant = (Double)this.options.get(5).getSelected();
 		
 		ITableDataFrame table = data[0];
 		//ArrayList<String> skip = new ArrayList<>();
@@ -159,11 +162,13 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 
 		List<Object[]> dataTable;
 		if(kernelType.equalsIgnoreCase("Exponential")) {
-			dataTable = table.getScaledData();
+			List<String> exceptionColumns = new ArrayList<String>();
+			exceptionColumns.add(names[classIndex]);
+			dataTable = table.getScaledData(exceptionColumns);
 		} else {
 			dataTable = table.getData();//Data();
 		}
-		Collections.shuffle(dataTable);
+		//Collections.shuffle(dataTable);
 		
 		
 		for(classIndex = 0; classIndex < names.length; classIndex++) {
@@ -197,13 +202,13 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 			Kernel kernel = new LinearKernel().getInstance();
 			correctArray = this.runKernelPerceptron(dataTable, instanceData, isCategorical, numAttributes, kernel);
 		} else if(kernelType.equalsIgnoreCase("Polynomial")) {
-			Kernel kernel = new PolynomialKernel(degree, 1.0);
+			Kernel kernel = new PolynomialKernel(degree, constant);
 			correctArray = this.runKernelPerceptron(dataTable, instanceData, isCategorical, numAttributes, kernel);
 		} else if(kernelType.equalsIgnoreCase("Exponential")) {
 			Kernel kernel = new ExponentialKernel(LinearKernel.getInstance());
 			correctArray = this.runKernelPerceptron(dataTable, instanceData, isCategorical, numAttributes, kernel);
 		} else if(kernelType.equalsIgnoreCase("Sigmoid")) {
-			Kernel kernel = new SigmoidKernel(degree, 1.0);
+			Kernel kernel = new SigmoidKernel(kappa, constant);
 			correctArray = this.runKernelPerceptron(dataTable, instanceData, isCategorical, numAttributes, kernel);
 		}
 		
@@ -307,9 +312,9 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 			Object[] newRow = allData.get(z);		
 			Instance nextInst = WekaUtilityMethods.createInstance(instanceData, newRow, isCategorical, numAttributes);
 	    	double[] array = nextInst.toDoubleArray();
-	    	double[] array2 = new double[array.length-1];
+	    	double[] array2 = new double[array.length-2];
 	    	int b = 0;
-	    	for(int a = 0; a < array.length; a++) {
+	    	for(int a = 1; a < array.length; a++) {
 	    		if(a!=classIndex) {
 	    			array2[b] = array[a];
 	    			b++;
@@ -334,12 +339,12 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 	    		}
 	    		
 	    		outputValues[i] = learned[i].evaluateAsDouble(v);
-	    		Boolean val = learned[i].evaluate(v);
+	    		//Boolean val = learned[i].evaluate(v);
 	    		//String val2 = learned[i].evaluate(v);
 	    	}
 	        
 	    	int maxIndex = 0;
-	    	Double maxValue = Double.NEGATIVE_INFINITY;//-9999999;
+	    	Double maxValue = Double.NEGATIVE_INFINITY;
 	    	for(int i = 0; i < numCategories; i++) {
 	    		if(outputValues[i] > maxValue) {
 	    			maxIndex = i;
@@ -394,10 +399,10 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 			
 			Instance nextInst = WekaUtilityMethods.createInstance(instanceData, newRow, isCategorical, numAttributes);
 	    	double[] array = nextInst.toDoubleArray();
-	    	double[] array2 = new double[array.length-1];
+	    	double[] array2 = new double[array.length-2];
 	    	int b = 0;
-	    	for(int a = 0; a < array.length; a++) {
-	    		if(a!=3) {
+	    	for(int a = 1; a < array.length; a++) {
+	    		if(a!=classIndex) {
 	    			array2[b] = array[a];
 	    			b++;
 	    		}
@@ -417,7 +422,6 @@ public class MOAPerceptronRunner implements IAnalyticRoutine {
 		
 		categorizer.setLearner(new OnlineKernelPerceptron<Vector>(kernel));	
 		BinaryVersusCategorizer<Vector, String> b = categorizer.learn(collection);
-		
 		
 		
 		for(int i = 0; i < collection.size(); i++) {
