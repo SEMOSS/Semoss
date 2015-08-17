@@ -176,14 +176,16 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public List<Object[]> getData(int start, int end, boolean rawData) {
 		List<Object[]> returnList = new ArrayList<Object[]>();
 		Iterator<Object[]> iterator = this.iterator(rawData);
+		int numRows = end - start;
+		
 		while(iterator.hasNext() && start > 0) {
 			iterator.next();
 			start--;
 		}
 		
-		while(iterator.hasNext() && end > 0) {
+		while(iterator.hasNext() && numRows > 0) {
 			returnList.add(iterator.next());
-			end--;
+			numRows--;
 		}
 		return returnList;
 	}
