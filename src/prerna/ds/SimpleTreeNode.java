@@ -217,7 +217,7 @@ public class SimpleTreeNode {
 		return this.leftChild != null || this.rightChild != null;
 	}
 
-	public void setParent(SimpleTreeNode leftList, SimpleTreeNode parent) {
+	public static void setParent(SimpleTreeNode leftList, SimpleTreeNode parent) {
 		//should i put a check to make sure leftList does not equal parent?
 		if(leftList == parent) return;
 		

@@ -382,6 +382,11 @@ public interface ITableDataFrame {
 	void removeColumn(String columnHeader);
 	
 	/**
+	 * 
+	 */
+	void removeDuplicateRows();
+	
+	/**
 	 * Removes a row from the data-frame
 	 * @param rowIdx				The row to remove from the data-frame
 	 */
@@ -460,6 +465,7 @@ public interface ITableDataFrame {
 	 * @param columnHeaders
 	 */
 	public void setColumnsToSkip(List<String> columnHeaders);
+
 
 
 	
