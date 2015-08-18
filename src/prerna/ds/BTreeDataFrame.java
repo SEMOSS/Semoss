@@ -1334,7 +1334,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 				LOGGER.error("Unable to remove column " + columnHeader + ". Column does not exist in table");
 				return;
 			}
-			if(!name.equals(columnHeader)){
+			if(!name.equals(columnHeader)) {
 				newNames[count] = name;
 				count++;
 			}
@@ -1345,7 +1345,12 @@ public class BTreeDataFrame implements ITableDataFrame {
 		isNumericalMap.remove(columnHeader);
 		//LOGGER.info("removed " + columnHeader);
 		//System.out.println("new names  " + Arrays.toString(levelNames));
-		
+	}
+	
+	@Override
+	public void removeDuplicateRows() {
+		for(String s : levelNames)
+			this.simpleTree.removeDuplicates(s);
 	}
 
 	@Override
