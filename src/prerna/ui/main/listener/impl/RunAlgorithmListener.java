@@ -185,6 +185,7 @@ public class RunAlgorithmListener extends AbstractListener {
 
 		//dataFrame.setColumnsToSkip(skipColumns);
 		dataFrame.setColumnsToSkip(checkedColumns);
+		skipColumns = checkedColumns;
 
 		String algorithm = algorithmComboBox.getSelectedItem() + "";
 		if(algorithm.equals("Similarity")) {
