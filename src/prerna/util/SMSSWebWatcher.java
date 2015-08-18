@@ -146,6 +146,10 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				
 				AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 				adder.registerEngineLocal(engineToAdd);
+				
+				// reset the time
+				localMaster.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.TIME_STAMP_URI, engines.get(engineName), false});
+				localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.TIME_STAMP_URI, timeInXML, false});
 			}
 		} else {
 			// engine not present, add to local master

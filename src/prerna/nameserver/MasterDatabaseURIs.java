@@ -90,4 +90,8 @@ public class MasterDatabaseURIs {
 	public static final String USERINSIGHT_FAVORITED_PROP_URI = PROP_URI + "/Favorited";
 	public static final String USER_USERINSIGHT_REL_URI = SEMOSS_RELATION_URI + "/RunsInsight";
 	public static final String INSIGHT_USERINSIGHT_REL_URI = SEMOSS_RELATION_URI + "/ExecutedBy";
+
+
+	public static final String TIME_STAMP_URI = PROP_URI + "/TimeStamp";
 }
+
