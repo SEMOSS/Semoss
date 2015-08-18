@@ -64,6 +64,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.nameserver.MasterDatabaseURIs;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -111,7 +112,6 @@ public abstract class AbstractEngine implements IEngine {
 	private static final String sparqlBaseURI = containsBaseURI + "/SPARQL";
 	private static final String tagBaseURI = containsBaseURI + "/Tag";
 	private static final String descriptionBaseURI = containsBaseURI + "/Description";
-	private static final String TIME_STAMP_URI = containsBaseURI + "/TimeStamp";
 
 	private static final String perspectives = "SELECT DISTINCT ?perspective WHERE {"
 			+ "{?enginePerspective <"+Constants.SUBPROPERTY_URI +"> <"+enginePerspectiveBaseURI+"> }"
@@ -309,14 +309,14 @@ public abstract class AbstractEngine implements IEngine {
 		if(dateList.size() > 1) {
 			// remove all old dates
 			for(Date d : dateList) {
-				insightBaseXML.removeStatement(new Object[]{engineBaseURI + "/" + engineName, TIME_STAMP_URI, d, false});
+				insightBaseXML.removeStatement(new Object[]{engineBaseURI + "/" + engineName, MasterDatabaseURIs.TIME_STAMP_URI, d, false});
 			}
 			// add new date
 			Date currentTime = Utility.getCurrentTime();
-			insightBaseXML.addStatement(new Object[]{engineBaseURI + "/" + engineName, TIME_STAMP_URI, currentTime, false});
+			insightBaseXML.addStatement(new Object[]{engineBaseURI + "/" + engineName, MasterDatabaseURIs.TIME_STAMP_URI, currentTime, false});
 		} else if(!hasTime) {
 			Date currentTime = Utility.getCurrentTime();
-			insightBaseXML.addStatement(new Object[]{engineBaseURI + "/" + engineName, TIME_STAMP_URI, currentTime, false});
+			insightBaseXML.addStatement(new Object[]{engineBaseURI + "/" + engineName, MasterDatabaseURIs.TIME_STAMP_URI, currentTime, false});
 		}
 		createQuestionXMLFile(questionXMLFile, workingDir);
 	}
