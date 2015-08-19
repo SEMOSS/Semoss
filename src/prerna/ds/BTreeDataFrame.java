@@ -32,6 +32,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -465,6 +466,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 					}
 					
 				} else {
+//					if(thisTreeNode == null) {
+//						System.out.println("here");
+//					}
 					Vector <SimpleTreeNode> thisInstances = thisTreeNode.getInstances();
 					Vector <SimpleTreeNode> passedInstances = passedTreeNode.getInstances();
 
@@ -1334,7 +1338,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 				LOGGER.error("Unable to remove column " + columnHeader + ". Column does not exist in table");
 				return;
 			}
-			if(!name.equals(columnHeader)) {
+			if(!name.equalsIgnoreCase(columnHeader)) {
 				newNames[count] = name;
 				count++;
 			}
@@ -1343,8 +1347,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 		this.adjustFilteredColumns();
 		this.simpleTree.removeType(columnHeader);
 		isNumericalMap.remove(columnHeader);
-		//LOGGER.info("removed " + columnHeader);
-		//System.out.println("new names  " + Arrays.toString(levelNames));
+		this.simpleTree.setRootLevel(levelNames[0]);
+//		LOGGER.info("removed " + columnHeader);
+//		System.out.println("new names  " + Arrays.toString(levelNames));
 	}
 	
 	@Override
