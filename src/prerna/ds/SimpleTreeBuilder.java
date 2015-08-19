@@ -88,7 +88,7 @@ public class SimpleTreeBuilder
 	// actual value tree root
 	private SimpleTreeNode lastAddedNode = null;
 	private SimpleTreeNode filteredRoot = null;
-	private final String rootLevel;
+	private String rootLevel;
 	// see if the child can be a single node
 	// this means you can only add to the last child
 	// nothing before it
@@ -750,7 +750,7 @@ public class SimpleTreeBuilder
 					}	
 					nodeToDelete = nodeToDelete.rightSibling;
 				}
-				parentNode.setParent(parentNode.leftChild, parentNode);
+				SimpleTreeNode.setParent(parentNode.leftChild, parentNode);
 				
 				
 				//DELETE THE RIGHT SIDE
@@ -783,7 +783,7 @@ public class SimpleTreeBuilder
 					}
 					nodeToDelete = nodeToDelete.rightSibling;
 				}
-				parentNode.setParent(parentNode.rightChild, parentNode);
+				SimpleTreeNode.setParent(parentNode.rightChild, parentNode);
 				
 			}
 		}
@@ -860,7 +860,7 @@ public class SimpleTreeBuilder
 				nextNode.leftSibling = null;
 				branchList.add(nextNode);
 			}
-			sortBranch(branchList, simpleTreeComparator);
+			sortBranch(branchList, simpleTreeComparator, root);
 		} else {
 			while(iterator.hasNext()) {
 				SimpleTreeNode node = iterator.next().leftChild;
@@ -873,12 +873,12 @@ public class SimpleTreeBuilder
 					branchList.add(node);
 					node = nextNode;
 				}
-				sortBranch(branchList, simpleTreeComparator);
+				sortBranch(branchList, simpleTreeComparator, root);
 			}
 		}
 	}
 	
-	private void sortBranch(List<SimpleTreeNode> branchList, Comparator<SimpleTreeNode> simpleTreeComparator) {
+	private void sortBranch(List<SimpleTreeNode> branchList, Comparator<SimpleTreeNode> simpleTreeComparator, boolean root) {
 		Collections.sort(branchList, simpleTreeComparator);
 		
 		boolean keepGoing = (branchList.size() > 1);
@@ -894,8 +894,15 @@ public class SimpleTreeBuilder
 				i++;
 			}
 			
-			if(i == branchList.size() - 1) {
-				keepGoing = false;
+			keepGoing = i < branchList.size() - 1;
+		}
+		
+		if(root) {
+			for(i = 0; i < branchList.size()-1; i++) {	
+				SimpleTreeNode n1 = branchList.get(i);
+				SimpleTreeNode n2 = branchList.get(i+1);
+				n1.rightSibling = n2;
+				n2.leftSibling = n1;
 			}
 		}
 	}
@@ -1334,11 +1341,11 @@ public class SimpleTreeBuilder
 	
 	public Vector <String> findLevels()	{
 		
-		if(finalChildType == null) return null;
+		//if(finalChildType == null) return null;
 
 		Vector <String> retVector = new Vector<String>();
 		
-		TreeNode aNode = nodeIndexHash.get(finalChildType);
+		TreeNode aNode = nodeIndexHash.get(rootLevel);
 		SimpleTreeNode sNode = new ValueTreeColumnIterator(aNode).next();//aNode.instanceNode.elementAt(0);
 		while(sNode != null)
 		{
@@ -1346,6 +1353,12 @@ public class SimpleTreeBuilder
 			sNode = sNode.parent;
 		}
 		Collections.reverse(retVector);
+		
+		sNode = new ValueTreeColumnIterator(aNode).next().leftChild;
+		while(sNode != null) {
+			retVector.add(((ISEMOSSNode)sNode.leaf).getType());
+			sNode = sNode.leftChild;
+		}
 		return retVector;
 	}
 	
@@ -1360,6 +1373,10 @@ public class SimpleTreeBuilder
 			retVector.add((ISEMOSSNode)it.next().leaf);
 		}
 		return retVector;
+	}
+	
+	public void setRootLevel(String root) {
+		this.rootLevel = root;
 	}
 	
 //	public Hashtable<SimpleTreeNode, Vector<SimpleTreeNode>> getPath(String fromType, String toType)
