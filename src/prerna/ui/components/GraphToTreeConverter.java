@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -125,8 +126,9 @@ public class GraphToTreeConverter extends DistanceDownstreamProcessor{
 	@Override
 	public ArrayList<SEMOSSVertex> traverseDownward(SEMOSSVertex vert, int levelIndex, ArrayList<SEMOSSVertex> parentPath, ArrayList<SEMOSSEdge> parentEdgePath){
 		ArrayList<SEMOSSVertex> vertArray = new ArrayList<SEMOSSVertex>();
-		Collection<SEMOSSEdge> edgeArray = vert.getOutEdges();
-		for (SEMOSSEdge edge: edgeArray){
+		Collection<SEMOSSEdge> edgeArray = new Vector();
+		edgeArray.addAll(vert.getOutEdges());
+		for (SEMOSSEdge edge: edgeArray) {
 			SEMOSSVertex inVert = edge.inVertex;
 			if(!masterHash.containsKey(inVert)){
 				vertArray.add(inVert);//this is going to be the returned array, so this is all set
@@ -148,8 +150,7 @@ public class GraphToTreeConverter extends DistanceDownstreamProcessor{
 			//This is the key piece for creating a tree
 			//if the node has already been added, but has been added on this level, I need to duplicate the node and add it
 			else if (masterHash.containsKey(inVert) && nextNodes.contains(inVert)){
-				addEdges(edge, vert, inVert);
-				
+				addEdges(edge, vert, inVert);				
 			}
 		}
 		
