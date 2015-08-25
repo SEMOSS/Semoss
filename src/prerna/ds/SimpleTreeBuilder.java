@@ -264,7 +264,12 @@ public class SimpleTreeBuilder
 			if(newNode && !child &&  typeIndexRoot != null && typeIndexRoot.getInstances() != null && typeIndexRoot.getInstances().elementAt(0).parent == null)
 			{
 				SimpleTreeNode rightMostNode = typeIndexRoot.getInstances().elementAt(0);
-				rightMostNode = SimpleTreeNode.getRight(rightMostNode);
+				//rightMostNode = SimpleTreeNode.getRight(rightMostNode);
+				SimpleTreeNode rightSibling = rightMostNode.rightSibling;
+				if(rightSibling != null) {
+					rightSibling.leftSibling = instanceNode;
+					instanceNode.rightSibling = rightSibling;
+				}
 				rightMostNode.rightSibling = instanceNode;
 				instanceNode.leftSibling = rightMostNode;
 			}
@@ -420,8 +425,8 @@ public class SimpleTreeBuilder
 		 * append with duplicates, without duplicates, etc.
 		 * */
 		
-		SimpleTreeNode rightNode = node.getRight(node);
-		SimpleTreeNode leftNode2Merge = node2merge.getLeft(node2merge);
+		SimpleTreeNode rightNode = SimpleTreeNode.getRight(node);
+		SimpleTreeNode leftNode2Merge = SimpleTreeNode.getLeft(node2merge);
 		SimpleTreeNode rightMergeSibling = null;
 		while(leftNode2Merge!=null) {
 			//find if the node exists in the tree node
@@ -506,6 +511,8 @@ public class SimpleTreeBuilder
 
 		if(node == null) {
 			return;
+		} else if(node.leaf == null) {
+			throw new IllegalArgumentException("node has null leaf");
 		}
 		
 		ISEMOSSNode n = (ISEMOSSNode) node.leaf;
@@ -926,6 +933,10 @@ public class SimpleTreeBuilder
 			nodeLeftChild = SimpleTreeNode.getRight(nodeLeftChild);
 			nodeLeftChild.rightSibling = cNodeLeftChild;
 			cNodeLeftChild.leftSibling = nodeLeftChild;
+			
+//			cNodeLeftChild.leftSibling = null;
+//			SimpleTreeNode.getRight(cNodeLeftChild).rightSibling = nodeLeftChild;d
+//			node.leftChild = cNodeLeftChild;
 		
 		}
 			
