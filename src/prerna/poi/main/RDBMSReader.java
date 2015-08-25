@@ -25,9 +25,11 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 //import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 //import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
@@ -1428,12 +1430,13 @@ public class RDBMSReader {
 	private String getInsertString(String tableKey, Map <String, Object> jcrMap)
 	{
 		String VALUES = " (";		
-		String value = createInstanceValue(tableKey, jcrMap);
+		Hashtable columns = tableHash.get(tableKey);
+		String type = (String) columns.get(tableKey);
+		String value = createInstanceValue(tableKey, jcrMap, type);
 		value = value.replaceAll("'", "''");	
 		value = "'" +  value + "'"; // would the value be always string ?
 		VALUES = VALUES + value;
 		boolean key1 = true;
-		Hashtable columns = tableHash.get(tableKey);
 		Enumeration <String> columnKeys = columns.keys();
 		StringBuffer valuesBuffer = new StringBuffer();
 		valuesBuffer.append(VALUES);
@@ -1446,13 +1449,14 @@ public class RDBMSReader {
 				key1 = false;
 			}
 			String key = columnKeys.nextElement();
-			String type = (String)columns.get(key);
+			type = (String) columns.get(key);
 			key = key.replace("_FK", "");
-			value = createInstanceValue(key, jcrMap);
+			
+			value = createInstanceValue(key, jcrMap, type);
 			//if(!sqlHash.get(type).contains("FLOAT"))
 			//	value = realClean(value);
 			// escape SQL Values
-			if(sqlHash.get(type).contains("VARCHAR") && value.length() != 0)
+			if ((sqlHash.get(type).contains("VARCHAR") || sqlHash.get(type).contains("DATE")) && value.length() != 0)
 			{
 				value = value.replaceAll("'", "''");
 				value = "'" + value + "'" ;
@@ -1488,8 +1492,8 @@ public class RDBMSReader {
 		{
 			String key = columnKeys.nextElement();
 			String tempkey = key.replace("_FK", "");
-			String value = createInstanceValue(tempkey, jcrMap);
 			String type = (String)columns.get(key);
+			String value = createInstanceValue(tempkey, jcrMap, type);
 
 			boolean string = false;
 
@@ -1538,9 +1542,9 @@ public class RDBMSReader {
 		while(whereKeys.hasMoreElements())
 		{
 			String key = whereKeys.nextElement();
-			String value = createInstanceValue(key, jcrMap);
+			String type = (String) whereHash.get(key);
+			String value = createInstanceValue(key, jcrMap, type);
 
-			String type = (String)whereHash.get(key);
 			boolean string = false;
 
 			if(type.contains("VARCHAR"))
@@ -1696,8 +1700,8 @@ public class RDBMSReader {
 		while(columnKeys.hasMoreElements())
 		{
 			String key = columnKeys.nextElement();
-			String value = createInstanceValue(key, jcrMap);
 			String type = (String)columns.get(key);
+			String value = createInstanceValue(key, jcrMap, type);
 
 			boolean string = false;
 
@@ -1736,9 +1740,9 @@ public class RDBMSReader {
 		while(whereKeys.hasMoreElements())
 		{
 			String key = whereKeys.nextElement();
-			String value = createInstanceValue(key, jcrMap);
+			String type = (String) whereHash.get(key);
+			String value = createInstanceValue(key, jcrMap, type);
 
-			String type = (String)whereHash.get(key);
 			boolean string = false;
 
 			if(type.contains("VARCHAR"))
@@ -1779,7 +1783,8 @@ public class RDBMSReader {
 		Hashtable columns = tableHash.get(tableKey);
 
 		Enumeration <String> columnKeys = columns.keys();
-		String selfValue = createInstanceValue(tableKey, jcrMap);
+		String selfType = (String) columns.get(tableKey);
+		String selfValue = createInstanceValue(tableKey, jcrMap, selfType);
 		selfValue = selfValue.replaceAll("'", "''");
 		selfValue = "'" + selfValue + "'" ;
 		String query = "SELECT * FROM " + realClean(tableKey) + " WHERE " ;
@@ -1789,8 +1794,8 @@ public class RDBMSReader {
 		while(columnKeys.hasMoreElements())
 		{
 			String key = columnKeys.nextElement();
-			String value = createInstanceValue(key, jcrMap);
 			String type = (String)columns.get(key);
+			String value = createInstanceValue(key, jcrMap, type);
 
 			boolean string = false;
 
@@ -2087,7 +2092,7 @@ public class RDBMSReader {
 	{
 		sqlHash.put("DECIMAL", "FLOAT");
 		sqlHash.put("DOUBLE", "FLOAT");
-		sqlHash.put("STRING", "VARCHAR(8000)");
+		sqlHash.put("STRING", "VARCHAR(2000)"); // 8000 was chosen because this is the max for SQL Server; needs more permanent fix
 		sqlHash.put("DATE", "TIME");
 		sqlHash.put("SIMPLEDATE", "DATE");
 		// currently only add in numbers as doubles
@@ -2229,7 +2234,7 @@ public class RDBMSReader {
 	 * @param jcrMap 		Map containing the data in the CSV file
 	 * @return retString 	String containing the instance level name
 	 */
-	public String createInstanceValue(String subject, Map <String, Object> jcrMap)
+	public String createInstanceValue(String subject, Map <String, Object> jcrMap, String type)
 	{
 		String retString ="";
 		// if node is a concatenation
@@ -2239,9 +2244,18 @@ public class RDBMSReader {
 			for (int i = 0; i<elements.length; i++)
 			{
 				String subjectElement = elements[i];
+				
 				if(jcrMap.containsKey(subjectElement) && jcrMap.get(subjectElement)!= null)
 				{
 					String value = jcrMap.get(subjectElement) + "";
+					if (type != null && type.contains("DATE")) {
+						try {
+							Date date = new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy").parse(value);
+							value = new SimpleDateFormat("yyyy/MM/dd").format(date);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
 					value = realClean(value); //, true);
 
 					retString = retString  + value + "-";
@@ -2261,11 +2275,19 @@ public class RDBMSReader {
 			{
 				// clean it only if the type happens to be something other than number
 				String value = jcrMap.get(subject) + "";
+				if (type != null && type.contains("DATE")) {
+					try {
+						Date date = new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy").parse(value);
+						value = new SimpleDateFormat("yyyy/MM/dd").format(date);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
 				//value = realClean(value);
 				retString = value;
 			}
 		}
-		return Utility.cleanString(retString,true,false); //clean string 
+			return Utility.cleanString(retString, true, false); // clean string
 	}
 
 	/**
