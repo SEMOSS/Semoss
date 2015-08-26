@@ -38,7 +38,7 @@ public class ValueTreeColumnIterator implements Iterator<SimpleTreeNode>{
 	@Override
 	public SimpleTreeNode next() {
 		
-		if(!instances.isEmpty()) {
+		if(hasNext()) {
 			SimpleTreeNode returnNode = instances.remove();
 			addInstances();
 			return returnNode;

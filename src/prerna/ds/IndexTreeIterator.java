@@ -15,14 +15,13 @@ public class IndexTreeIterator implements Iterator<TreeNode> {
 	public IndexTreeIterator(TreeNode typeRoot) {
 		nodeStack = new Stack<>();
 		if(typeRoot!=null) {
-			nodeStack.push(typeRoot.getLeft(typeRoot));
+			addNextNodesToStack(typeRoot.getLeft(typeRoot));
 		}
-		
 	}
 	
 	@Override
 	/**
-	 * Perform a non-recursive depth-first-search (DFS)
+	 * Perform an In-Order depth-first-search (DFS)
 	 */
 	public boolean hasNext() {
 		return !nodeStack.isEmpty();
@@ -33,8 +32,15 @@ public class IndexTreeIterator implements Iterator<TreeNode> {
 		if(!hasNext()) {
 			throw new IndexOutOfBoundsException("No more nodes in Index Tree.");
 		}
+
 		TreeNode returnNode = nodeStack.pop();
-		addNextNodesToStack(returnNode);
+		
+		if(returnNode.rightSibling != null) {
+			addNextNodesToStack(returnNode.rightSibling);
+		} else if(returnNode.rightChild != null) {
+			addNextNodesToStack(returnNode.rightChild);
+		}
+
 		return returnNode;
 	}
 
@@ -51,20 +57,9 @@ public class IndexTreeIterator implements Iterator<TreeNode> {
 	 * Using logic to only add left child and when the node does not have a right-sibling to add the right child
 	 */
 	private void addNextNodesToStack(TreeNode parentNode) {
-		
-		//add the right sibling if there is one
-		if (parentNode.rightSibling != null) {
-			nodeStack.push(parentNode.rightSibling);
-		}
-		
-		// if this is the most right node, add the right child 
-		else if(parentNode.rightSibling == null && parentNode.rightChild != null) {
-			nodeStack.push(parentNode.rightChild);
-		}
-		
-		// only add left children to children list to not double count
+		nodeStack.push(parentNode);
 		if(parentNode.leftChild != null) {
-			nodeStack.push(parentNode.leftChild);
+			addNextNodesToStack(parentNode.leftChild);
 		}
 	}
 }
