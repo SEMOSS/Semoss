@@ -8,7 +8,7 @@ public class StringClass implements ISEMOSSNode {
 	
 	public StringClass(String string, Boolean serialized){
 		if(!serialized){
-			this.innerString = innerString;
+			this.innerString = string;
 		}
 		else{
 			fromString(string);
@@ -82,7 +82,7 @@ public class StringClass implements ISEMOSSNode {
 	public boolean isLeft(ITreeKeyEvaluatable object) {
 		boolean val = false;
 		try {
-			val = ((((StringClass)object).innerString.compareTo(innerString)) > 0);
+			val = ((((StringClass)object).innerString.compareTo(innerString)) < 0);
 		} catch (ClassCastException e) {
 			return true;
 		}
