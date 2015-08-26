@@ -27,9 +27,11 @@
  *******************************************************************************/
 package prerna.poi.main;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -315,12 +317,13 @@ public abstract class AbstractFileReader {
 	}
 
 	protected void openEngineWithoutConnection(String dbName) throws FileReaderException, EngineException {
-		createNewEngine();
+		createNewEngine(dbName);
 		openOWLWithOutConnection();
 	}
 	
-	private void createNewEngine() {
+	private void createNewEngine(String dbName) {
 		engine = new BigDataEngine();
+		engine.setEngineName(dbName);
 		engine.openDB(bdPropFile);
 	}
 

@@ -118,9 +118,9 @@ public class POIReader extends AbstractFileReader {
 	 * @throws FileWriterException
 	 * @throws InvalidUploadFormatException
 	 */
-	public void importFileWithOutConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile)
+	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String customMap, String owlFile)
 			throws FileReaderException, EngineException, FileWriterException, InvalidUploadFormatException {
-		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
+		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
 		openEngineWithoutConnection(engineName);
 		
 		// load map file for db if user wants to use specific URIs
