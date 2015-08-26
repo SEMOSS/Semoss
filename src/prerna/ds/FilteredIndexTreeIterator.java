@@ -1,11 +1,13 @@
 package prerna.ds;
 
 import java.util.Iterator;
-import java.util.Stack;
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class FilteredIndexTreeIterator implements Iterator<TreeNode>{
 
-	private Stack<TreeNode> nodeStack;
+	private Queue<TreeNode> treeNodes;
+	private Iterator<TreeNode> indexTreeIterator;
 	
 	/**
 	 * Constructor for the IndexTreeIterator
@@ -13,14 +15,9 @@ public class FilteredIndexTreeIterator implements Iterator<TreeNode>{
 	 * @param typeRoot			
 	 */
 	public FilteredIndexTreeIterator(TreeNode typeRoot) {
-		nodeStack = new Stack<>();
-		if(typeRoot!=null) {
-			if(typeRoot.instanceNode.size() > 0) {
-				nodeStack.push(typeRoot.getLeft(typeRoot));
-			} else {
-				this.addNextNodesToStack(typeRoot);
-			}
-		}
+		indexTreeIterator = new IndexTreeIterator(typeRoot);
+		treeNodes = new LinkedList<TreeNode>();
+		addTreeNodes();
 	}
 	
 	@Override
@@ -28,16 +25,17 @@ public class FilteredIndexTreeIterator implements Iterator<TreeNode>{
 	 * Perform a non-recursive depth-first-search (DFS)
 	 */
 	public boolean hasNext() {
-		return !nodeStack.isEmpty();
+		return !treeNodes.isEmpty();
 	}
 	
 	@Override
 	public TreeNode next() {
-		if(nodeStack.isEmpty()) {
-			throw new IndexOutOfBoundsException("No more nodes in Index Tree.");
+		if(!hasNext()) {
+			throw new IndexOutOfBoundsException("No more nodes in Index Tree");
 		}
-		TreeNode returnNode = nodeStack.pop();
-		addNextNodesToStack(returnNode);
+		
+		TreeNode returnNode = treeNodes.remove();
+		addTreeNodes();
 		return returnNode;
 	}
 
@@ -47,41 +45,12 @@ public class FilteredIndexTreeIterator implements Iterator<TreeNode>{
 
 	}
 	
-	/**
-	 * Index tree's siblings share left/right children except for the most left and most right
-	 * Most left has a left child that is not shared
-	 * Most right has a right child that is not shared
-	 * Using logic to only add left child and when the node does not have a right-sibling to add the right child
-	 */
-	private void addNextNodesToStack(TreeNode parentNode) {
-		
-		//add the right sibling if there is one
-		if (parentNode.rightSibling != null) {
-			if(parentNode.rightSibling.instanceNode.isEmpty()) {
-				addNextNodesToStack(parentNode.rightSibling);
-			} else {
-				nodeStack.push(parentNode.rightSibling);
+	private void addTreeNodes() {
+		while(treeNodes.size() < 2 && indexTreeIterator.hasNext()) {
+			TreeNode nextNode = indexTreeIterator.next();
+			if(nextNode.instanceNode.size() > 0) {
+				treeNodes.add(nextNode);
 			}
-		}
-		
-		// if this is the most right node, add the right child 
-		else if(parentNode.rightSibling == null && parentNode.rightChild != null) {
-			if(parentNode.rightChild.instanceNode.isEmpty()) {
-				addNextNodesToStack(parentNode.rightChild);
-			} else {
-				nodeStack.push(parentNode.rightChild);
-			}
-			
-		}
-		
-		// only add left children to children list to not double count
-		if(parentNode.leftChild != null) {
-			if(parentNode.leftChild.instanceNode.isEmpty()) {
-				addNextNodesToStack(parentNode.leftChild);
-			} else {
-				nodeStack.push(parentNode.leftChild);
-			}
-
 		}
 	}
 }
