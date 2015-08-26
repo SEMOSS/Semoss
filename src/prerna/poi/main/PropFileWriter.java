@@ -34,6 +34,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.Reader;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
@@ -121,6 +122,27 @@ public class PropFileWriter {
 			engineDirectory.mkdir();
 			// define the owlFile location
 			this.owlFile = "db" + System.getProperty("file.separator") + engineName + System.getProperty("file.separator") + engineName + "_OWL.OWL";
+			// if owlFile is null (which it is upon loading a new engine, create a new one
+			File owlF = new File(baseDirectory + System.getProperty("file.separator") + owlFile);
+			if(!owlF.exists()) { 
+				PrintWriter writer = null;
+				//input default parameters s.t. it is loaded and doesn't produce errors
+				try {
+					owlF.createNewFile();
+					writer = new PrintWriter(baseDirectory + System.getProperty("file.separator") + owlFile);
+					writer.println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+					writer.println("<rdf:RDF");
+					writer.println("\txmlns:rdfs=\"http://www.w3.org/2000/01/rdf-schema#\"");
+					writer.println("\txmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">");
+					writer.println("</rdf:RDF>");
+				} catch (IOException e) {
+					e.printStackTrace();
+				} finally {
+					if(writer != null) {
+						writer.close();
+					}
+				}
+			}
 			// if question sheet was not specified, we need to make a copy of the default questions
 			if ((questionFile == null || questionFile.equals(""))) {
 				questionFileName = defaultQuestionProp.replaceAll("Default", dbName);

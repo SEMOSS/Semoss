@@ -105,17 +105,17 @@ public class ImportDataProcessor {
 	}
 
 	// need to add a dbtype here
-	public void processAddToExisting(IMPORT_TYPE importType, String customBaseURI, String fileNames, String repoName, DB_TYPE dbType, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws EngineException, FileReaderException, HeaderClassException, FileWriterException {
+	public void processAddToExisting(IMPORT_TYPE importType, String customBaseURI, String fileNames, String dbName, DB_TYPE dbType, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws EngineException, FileReaderException, HeaderClassException, FileWriterException {
 		//get the engine information
 		//DB_TYPE dbType = DB_TYPE.RDF;// to be removed when enabling the csv wire
-		String mapPath = baseDirectory + "/" + DIHelper.getInstance().getProperty(repoName+"_"+Constants.ONTOLOGY);
-		String owlPath = baseDirectory + "/" + DIHelper.getInstance().getProperty(repoName+"_"+Constants.OWL);
+		String mapPath = baseDirectory + "/" + DIHelper.getInstance().getProperty(dbName+"_"+Constants.ONTOLOGY);
+		String owlPath = baseDirectory + "/" + DIHelper.getInstance().getProperty(dbName+"_"+Constants.OWL);
 		if(importType == IMPORT_TYPE.EXCEL)
 		{
 			POIReader reader = new POIReader();
 			//run the reader
 			try {
-				reader.importFileWithConnection(repoName, fileNames, customBaseURI, mapPath, owlPath);
+				reader.importFileWithConnection(dbName, fileNames, customBaseURI, mapPath, owlPath);
 			} catch (InvalidUploadFormatException ex) {
 				ex.printStackTrace();
 				throw new FileReaderException(ex.getMessage());
@@ -135,7 +135,7 @@ public class ImportDataProcessor {
 				csvReader.setRdfMapArr(propHashArr);
 			}
 			//run the reader
-			csvReader.importFileWithConnection(repoName, fileNames, customBaseURI, owlPath);
+			csvReader.importFileWithConnection(dbName, fileNames, customBaseURI, owlPath);
 			//run the ontology augmentor
 			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
 			ontologyWriter.runAugment(mapPath, csvReader.conceptURIHash, csvReader.baseConceptURIHash, 
@@ -152,7 +152,7 @@ public class ImportDataProcessor {
 				csvReader.setRdfMapArr(propHashArr);
 			}
 			//run the reader
-			csvReader.importFileWithConnection(repoName, fileNames, customBaseURI, owlPath, dbDriverType, allowDuplicates);
+			csvReader.importFileWithConnection(dbName, fileNames, customBaseURI, owlPath, dbDriverType, allowDuplicates);
 			//run the ontology augmentor
 			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
 			ontologyWriter.runAugment(mapPath, csvReader.conceptURIHash, csvReader.baseConceptURIHash, 
@@ -177,7 +177,7 @@ public class ImportDataProcessor {
 		{
 			POIReader reader = new POIReader();
 			try {
-				reader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, mapFile, owlPath);
+				reader.importFileWithOutConnection(propWriter.propFileName, dbName, fileNames, customBaseURI, mapFile, owlPath);
 			} catch (InvalidUploadFormatException ex) {
 				ex.printStackTrace();
 				try {
@@ -233,7 +233,7 @@ public class ImportDataProcessor {
 			if(propHashArr != null) {
 				csvReader.setRdfMapArr(propHashArr);
 			}
-			csvReader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, owlPath);
+			csvReader.importFileWithOutConnection(propWriter.propFileName, dbName,fileNames, customBaseURI, owlPath);
 
 			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
 			ontologyWriter.runAugment(ontoPath, csvReader.conceptURIHash, csvReader.baseConceptURIHash, 

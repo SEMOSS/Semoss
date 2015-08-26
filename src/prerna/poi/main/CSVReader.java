@@ -93,9 +93,9 @@ public class CSVReader extends AbstractFileReader {
 	 * @throws FileWriterException 
 	 * @throws HeaderClassException 
 	 */
-	public void importFileWithOutConnection(String engineName, String fileNames, String customBase, String owlFile) throws EngineException, FileWriterException, FileReaderException, HeaderClassException {
+	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile) throws EngineException, FileWriterException, FileReaderException, HeaderClassException {
 		logger.setLevel(Level.WARN);
-		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
+		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
 		openEngineWithoutConnection(engineName);
 		createTypes();
 
