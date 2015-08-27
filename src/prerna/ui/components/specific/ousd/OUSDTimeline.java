@@ -121,10 +121,15 @@ public class OUSDTimeline {
 
 	public List<Integer> getFiscalYears(){
 		List<Integer> fiscalYears = new ArrayList<Integer>();
-		for(Integer year: fyIndexArray){
-			fiscalYears.add((year+2014));
+		if(!fyIndexArray.contains(1)){
+			return this.fyIndexArray;
 		}
-		return fiscalYears;
+		else {
+			for(Integer year: fyIndexArray){
+				fiscalYears.add((year+2014));
+			}
+			return fiscalYears;
+		}
 	}
 	
 	public int getFyIndexFiscalYear(Integer year){
@@ -132,8 +137,13 @@ public class OUSDTimeline {
 			LOGGER.error("Cannot add specific fy before setting fy index array");
 			return -1;
 		}
-		int idx = fyIndexArray.indexOf(year-2014);
-		return idx;
+		if(!fyIndexArray.contains(1)){
+			return fyIndexArray.indexOf(year);
+		}
+		else {
+			int idx = fyIndexArray.indexOf(year-2014);
+			return idx;
+		}
 	}
 	
 	public List<String> getSystems(){
