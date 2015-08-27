@@ -822,7 +822,6 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		Collection<SEMOSSVertex> verts = vertStore.values();
 		for(SEMOSSVertex vert : verts)
 		{
-			System.out.println("\"" + vert.getProperty(Constants.VERTEX_NAME) + "\", ");
 			if((filteredNodes == null) || (filteredNodes != null && !filteredNodes.containsKey(vert.getURI()))){
 				processControlData(vert);
 				filterData.addVertex(vert);
