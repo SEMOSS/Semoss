@@ -27,6 +27,9 @@ public class BLUSystemOptimizer extends LPOptimizer{
 	double maxSysCost;
 	int maxWave;
 	int sysListSize;
+	double[] results;
+	List<String> keptSystems;
+	
 	
 	/**
 	 * 
@@ -138,7 +141,8 @@ public class BLUSystemOptimizer extends LPOptimizer{
 		int index = 0;
 		int nConstraints = solver.getNorigRows();
 		
-		double[] result = new double[sysListSize];
+		this.results = new double[sysListSize];
+		this.keptSystems = new ArrayList<String>();
 		
 		if(solved == LpSolve.OPTIMAL) {
 			try {
@@ -146,8 +150,11 @@ public class BLUSystemOptimizer extends LPOptimizer{
 				System.out.println("objective val::::::::::::::::::: " + objectiveVal);
 				
 				for(int i = 0; i < sysListSize; i++ ) {
-					result[i] = solver.getVarPrimalresult(nConstraints + index + 1);
-					System.out.println("result " + i + " is " + result[i]);
+					this.results[i] = solver.getVarPrimalresult(nConstraints + index + 1);
+					System.out.println("result " + i + " is " + this.results[i]);
+					if(this.results[i] == 1.0){
+						this.keptSystems.add(this.sysList[i]);
+					}
 					index++;
 				}
 			} catch(LpSolveException e) {
@@ -158,6 +165,14 @@ public class BLUSystemOptimizer extends LPOptimizer{
 			LOGGER.error("Solution is not optimal. Take no action.");
 		}
 
+	}
+	
+	public double[] getResults(){
+		return this.results;
+	}
+	
+	public List<String> getKeptSystems(){
+		return this.keptSystems;
 	}
 	
 	public void setSystemData(String[] sysNames, Double[] budgets, Double maxBudget, List<Object[]> bluTable, Map<String, Integer> waves){

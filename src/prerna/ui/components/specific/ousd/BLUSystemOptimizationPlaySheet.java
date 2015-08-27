@@ -76,8 +76,16 @@ public class BLUSystemOptimizationPlaySheet extends GridPlaySheet{
 			e.printStackTrace();
 		}
 		opt.execute();
+		List<String> keptSystems = opt.getKeptSystems();
+		List<String> bluSystemsPlusSupporters = getSupportingSystems(keptSystems);
 		
 		opt.deleteModel();
+	}
+	
+	private List<String> getSupportingSystems(List<String> bluSystems){
+		
+		
+		return new ArrayList<String>();
 	}
 	
 	private Object[] getBudgetData(String[] sysList){
