@@ -751,7 +751,7 @@ public class CSVReader extends AbstractFileReader {
 					}
 
 					propURI = basePropURI+"/" + property;
-					engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE, basePropURI, true});
+					engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE, Utility.cleanString(basePropURI, false), true});
 //					createStatement(vf.createURI(propURI),RDF.TYPE,vf.createURI(basePropURI));
 					//TODO: no longer needed since added in processNodeProperties method in AbstractFileReader s.t. POIReader also
 					//adds properties to OWL files.  However, that method is less efficient since this only adds once while that one
@@ -829,7 +829,7 @@ public class CSVReader extends AbstractFileReader {
 					}
 
 					propURI = basePropURI+"/" + property;
-					engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE, basePropURI, true});
+					engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE,  Utility.cleanString(basePropURI, false), true});
 //					createStatement(vf.createURI(propURI),RDF.TYPE,vf.createURI( basePropURI));
 					//basePropURIHash.put(propURI,  propURI);
 					//basePropRelations.put(propURI,  parentURI); // would need this if we were doing edge properties... but we are not any longer
