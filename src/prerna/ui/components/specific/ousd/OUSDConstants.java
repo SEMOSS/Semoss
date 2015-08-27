@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2015 Defense Health Agency (DHA)
+ * Copyright 2015 SEMOSS.ORG
  *
  * If your use of this software does not include any GPLv2 components:
  * 	Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +32,23 @@ package prerna.ui.components.specific.ousd;
  */
 public class OUSDConstants {
 
+	// COST CONSTANTS
 	public static final String COST_ENGINE_NAME = "COST_ENGINE_NAME";
 	public static final String SYSTEM_SUSTAINMENT_BUDGET_QUERY = "SYSTEM_SUSTAINMENT_BUDGET_QUERY";
+	
+	// QUERY HELPER CONSTANTS::::::::::::::::
+	public static final String ACTIVITY_DATA_SYSTEM_QUERY = "ACTIVITY_DATA_SYSTEM_QUERY";
+	public static final String ACTIVITY_BLU_SYSTEM_QUERY = "ACTIVITY_BLU_SYSTEM_QUERY";
+	public static final String ACTIVITY_GRANULAR_BLU = "ACTIVITY_GRANULAR_BLU";
+	public static final String SYSTEMS_BY_OWNERS_QUERY = "SYSTEMS_BY_OWNERS_QUERY";
+	public static final String SYSTEM_TO_SYSTEM_DATA_QUERY = "SYSTEM_TO_SYSTEM_DATA_QUERY";
+	public static final String SYSTEM_TO_SYSTEM_DATA_QUERY_WTIH_SYSTEM_BIND = "SYSTEM_TO_SYSTEM_DATA_QUERY_WTIH_SYSTEM_BIND";
+	public static final String BLU_SYSTEM_QUERY = "BLU_SYSTEM_QUERY";
+	public static final String RETIREMENT_TYPE_QUERY = "RETIREMENT_TYPE_QUERY";
+	public static final String DATA_CONSUMED_BY_BLU_QUERY = "DATA_CONSUMED_BY_BLU_QUERY";
+	public static final String DATA_CREATED_BY_SYSTEM_QUERY = "DATA_CREATED_BY_SYSTEM_QUERY";
+	public static final String ENDURING_SYSTEM_QUERY = "ENDURING_SYSTEM_QUERY";
+	
+	public static final String ROADMAP_QUERY = "ROADMAP_QUERY";
 	
 }

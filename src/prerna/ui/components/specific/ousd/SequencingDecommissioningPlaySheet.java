@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2015 Defense Health Agency (DHA)
+ * Copyright 2015 SEMOSS.ORG
  *
  * If your use of this software does not include any GPLv2 components:
  * 	Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.ui.components.specific.ousd;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,12 +40,12 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.util.PlaySheetEnum;
 import prerna.util.Utility;
 
 public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
@@ -63,15 +64,15 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 	String compObjQuery;
 	String depObjFilterString;
 	String depObjQuery;
+	String compObjName;
 	List<String> addtlQueries;
 	Map<String, List<String>> dependMap;
 
 	public SequencingDecommissioningPlaySheet() {
 		super();
 	}
-
-	@Override
-	public void createData() {
+	
+	public Map<Integer, List<List<Integer>>> collectData(){
 		// populate data object list with list of all data objects (query should be passed in)
 		ISelectWrapper depObjWrap = WrapperManager.getInstance().getSWrapper(this.engine, this.depObjQuery);
 		//wrapper manager, etc. to fill data obj list
@@ -87,7 +88,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 		ISelectWrapper compObjWrap = WrapperManager.getInstance().getSWrapper(this.engine, this.compObjQuery);
 		//wrapper manager, etc. to fill sys list
 		String[] compObjNames = compObjWrap.getVariables();
-		String compObjName = compObjNames[0];
+		this.compObjName = compObjNames[0];
 		while(compObjWrap.hasNext()){
 			this.compObjList.add(compObjWrap.next().getRawVar(compObjName)+"");
 		}
@@ -97,11 +98,17 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 
 		Integer[][] dependMatrix = createDependencyMatrices();
 		List<List<Integer>> groups = createGroups(dependMatrix);
-		Map<Integer, List<List<Integer>>> decomGroups = createDecommissioningGroups(groups, this.dependMap); 
+		Map<Integer, List<List<Integer>>> decomGroups = createDecommissioningGroups(groups, this.dependMap);
+		return decomGroups;
+	}
+
+	@Override
+	public void createData() {
 		
 //		List<HashMap<String, List<Object[]>>> addtlCols = createAddtlCols(groups);
-		
-		createTable(decomGroups, compObjName);
+		Map<Integer, List<List<Integer>>> decomGroups = collectData();
+		Object[] res = getResults(decomGroups);
+		createTable((Map<String, List<String>>)res[0], (Map<String, List<String>>)res[1], (List<String>)res[2], this.compObjName);
 	}
 	
 	private static Map<Integer, List<List<Integer>>> createDecommissioningGroups(List<List<Integer>> groups, Map<String, List<String>> dependMap){
@@ -168,7 +175,44 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 		return decomGroups;
 	}
 	
-	private void createTable(Map<Integer, List<List<Integer>>> groups, String compObjName){
+	public Object[] getResults(Map<Integer, List<List<Integer>>> groups){
+		Map<String, List<String>> group2ActMap = new HashMap<String, List<String>>();
+		Map<String, List<String>> group2DependActsMap = new HashMap<String, List<String>>();
+		List<String> masterGroupList = new ArrayList<String>();
+		
+		//key is counter for one level above group
+		for(Integer key: groups.keySet()){
+			List<List<Integer>> depGroups = groups.get(key);
+			for(List<Integer> depGroup: depGroups) {
+				String keyToGroupCounter = new String(key.toString()+"."+depGroups.indexOf(depGroup));
+				
+				List<String> items = new ArrayList<String>();
+				for(Integer compObj: depGroup) {
+					// add to group2Act array
+					String depName = Utility.getInstanceName(compObjList.get(compObj));
+					items.add(depName);
+				}
+				// add array to group2Act map
+				group2ActMap.put(keyToGroupCounter, items);
+
+				// add to group2DependActsMap
+				List<String> dependsArray = this.dependMap.get(depGroup.toString());
+				group2DependActsMap.put(keyToGroupCounter, dependsArray);
+
+				// add to master array
+				masterGroupList.add(0, keyToGroupCounter);
+			}
+		}
+		
+		Object[] res = new Object[3];
+		res[0] = group2ActMap; // group #s to activities
+		res[1] = group2DependActsMap; // group #s to dependecy arrays
+		res[2] = masterGroupList; // array of ordered group #s
+		
+		return res;
+	}
+	
+	private void createTable(Map<String, List<String>> group2ActMap, Map<String, List<String>> group2DependActsMap, List<String> masterArray, String compObjName){
 
 		// build the names
 		List<String> namesList = new ArrayList<String>();
@@ -176,57 +220,57 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 		namesList.add(compObjName + " Group");
 		namesList.add(compObjName + " Group Dependencies");
 
+//		list = new ArrayList<Object[]>();
 		//key is counter for one level above group
-		for(Integer key: groups.keySet()){
-			List<List<Integer>> depGroups = groups.get(key);
-			for(List<Integer> depGroup: depGroups) {
-				String keyToGroupCounter = new String(key.toString()+"."+depGroups.indexOf(depGroup));
+//		for(Integer key: groups.keySet()){
+		for(String depGroup: masterArray) {
+//			List<List<Integer>> depGroups = groups.get(key);
+//			for(List<Integer> depGroup: depGroups) {
+//				String keyToGroupCounter = new String(key.toString()+"."+depGroups.indexOf(depGroup));
 //				double location = Double.parseDouble(keyToGroupCounter);
-				
+//				
+				List<String> acts = group2ActMap.get(depGroup);
 				List<Object[]> addtlCols = new ArrayList<Object[]>();
 				for(String addtlQuery: this.addtlQueries){
-					processQuery(depGroup, addtlQuery, addtlCols, namesList);
+					processQuery(acts, addtlQuery, addtlCols, namesList, compObjName);
 				}
 				if(this.dataFrame == null){
-					this.dataFrame = new BTreeDataFrame(namesList.toArray(new String[0]));
+					String[] names = new String[namesList.size()];
+					names = namesList.toArray(names);
+					this.dataFrame = new BTreeDataFrame(names);
 				}
-				for(Integer compObj: depGroup) {
+				for(String act: acts) {
 					Object[] depObj = new Object[namesList.size()];
-					depObj[0] = Utility.getInstanceName(compObjList.get(compObj));
-					if(depObj[0].toString().equals("Manage_Execution_Fund_Account")){
-						System.out.println("hey");
-					}
-					depObj[1] = keyToGroupCounter;
-					depObj[2] = this.dependMap.get(depGroup.toString());
-					Map<String, Object> row = new HashMap<String, Object>();
-					row.put(namesList.get(0), depObj[0]);
-					row.put(namesList.get(1), depObj[1]);
-					row.put(namesList.get(2), depObj[2]==null ? null: depObj[2] + "");
+					depObj[0] = act;
+					depObj[1] = depGroup;
+					depObj[2] = group2DependActsMap.get(depGroup);
 					
 					if(addtlCols.isEmpty()){
-						dataFrame.addRow(row, row);
+						this.dataFrame.addRow(depObj, depObj);
 					}
 					else {
-						for(Object[] addtlCol : addtlCols){
-							Map<String, Object> hashRow = new HashMap<String, Object>(row);
-							for(int addtlIdx = 3 ; addtlIdx < addtlCol.length; addtlIdx++ ){
-								LOGGER.debug(addtlCol[addtlIdx]);
-								hashRow.put(namesList.get(addtlIdx), addtlCol[addtlIdx]);
+						for(Object[] row : addtlCols){
+							Object[] depObj2 = depObj.clone();
+							for(int addtlIdx = 3 ; addtlIdx < row.length; addtlIdx++ ){
+								LOGGER.debug(row[addtlIdx]);
+								depObj2[addtlIdx] = row[addtlIdx];
 							}
-							dataFrame.addRow(hashRow, hashRow);
+							this.dataFrame.addRow(depObj2, depObj2);
 						}
 					}
-					LOGGER.debug("Added object "+compObj);
+					LOGGER.debug("Added object "+depGroup);
 				}
-			}
+//			}
 		}
+		// set the names
+//		this.names = new String[namesList.size()];
+//		this.names = namesList.toArray(this.names);
 	}
 	
-	private void processQuery(List<Integer> depGroup, String addtlQuery, List<Object[]> addtlCols, List<String> namesList){
+	private void processQuery(List<String> depGroup, String addtlQuery, List<Object[]> addtlCols, List<String> namesList, String compObj){
 		String bindings = "";
-		for(Integer compObj: depGroup){
-			String name = compObjList.get(compObj);
-			bindings = bindings + "(<" + name + ">)";
+		for(String name: depGroup){
+			bindings = bindings + "(<http://semoss.org/ontologies/Concept/" + compObj + "/"+ name + ">)";
 		}
 		String filledQuery = addtlQuery.replaceAll("~~GroupMembers-GroupMembers~~", bindings).replaceAll("~~DepObj-DepObj~~", this.depObjFilterString);
 		LOGGER.debug("col query " + filledQuery);
@@ -432,6 +476,58 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			groupCounter = 0;
 		}
 		
+	}
+	
+	@Override
+	public Hashtable getData(){
+		List<Object[]> theList = new ArrayList<Object[]>();
+		String playSheetClassName = PlaySheetEnum.getClassFromName("Grid");
+		GridPlaySheet playSheet = null;
+		try {
+			playSheet = (GridPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
+		} catch (ClassNotFoundException ex) {
+			ex.printStackTrace();
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+		} catch (IllegalAccessException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (NoSuchMethodException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		}
+		playSheet.setTitle(this.title);
+		playSheet.setQuestionID(this.questionNum);//
+		Hashtable retHash = (Hashtable) playSheet.getData();
+		List<Object[]> myList = this.dataFrame.getData();
+		if(myList.size() > 1001){
+			theList = myList.subList(0, 1000);
+		}else{
+			theList = myList;
+		}
+		for(Object[] myRow : theList){
+			for(int i = 0; i < myRow.length; i++){
+				if(myRow[i] == null){
+					myRow[i] = "";
+				}
+				else {
+					myRow[i] = myRow[i].toString();
+				}
+			}
+		}
+		retHash.put("data", theList);
+		return retHash;
 	}
 
 }

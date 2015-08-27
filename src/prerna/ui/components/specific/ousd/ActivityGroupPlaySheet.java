@@ -1,5 +1,6 @@
 package prerna.ui.components.specific.ousd;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -9,10 +10,10 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.BTreeDataFrame;
 import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.util.PlaySheetEnum;
 
 public class ActivityGroupPlaySheet extends GridPlaySheet{
 
@@ -20,9 +21,7 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 	String insightName;
 	private static List<String> procActivityGroups;
 	private static List<String> procSystemGroups;
-	private static String[] columnNames;
-	private static Map<String, List<String>> actGroupMap = new HashMap<String, List<String>>();
-	private static Map<String, List<String>> sysGroupMap = new HashMap<String, List<String>>();
+	private static ArrayList<Object[]> groupList = new ArrayList<Object[]>();
 
 	/**
 	 * 
@@ -54,18 +53,17 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 
 		//createData makes the table...
 		activitySheet.createData();
-		ITableDataFrame frame =  activitySheet.getDataFrame();
-		List<Object[]> homeTable = frame.getData();
+		List<Object[]> homeTable = activitySheet.getList();
 		String[] names = activitySheet.getNames();
 
 		Map<String, Integer> namesMap = new HashMap<String, Integer>();
 
 		for(int i=0; i < names.length; i++){
 			namesMap.put(names[i], i);
-			System.out.println(names[i]+"--"+i);
+			LOGGER.info(names[i]+"--"+i);
 		}
 
-		columnNames = new String[3];
+		String[] columnNames = new String[3];
 		columnNames[0] = "Group";
 		if(namesMap.containsKey("Activity")){
 			columnNames[1] = "Activity Group";
@@ -80,30 +78,51 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 		findSequence(homeTable, namesMap, new ArrayList<String>(), new ArrayList<String>(), 0, procActivityGroups, procSystemGroups);
 
 		this.dataFrame = new BTreeDataFrame(columnNames);
-
-		createTable();
-
-	}
-
-	private void createTable(){
-		this.dataFrame = new BTreeDataFrame(columnNames);
-
-		for(String key: actGroupMap.keySet()){
-			Map<String, Object> hashRow = new HashMap<String, Object>();
-			for(String act: actGroupMap.get(key)){
-				hashRow.put(columnNames[0], key);
-				hashRow.put(columnNames[1], act);
-				hashRow.put(columnNames[2], "");
-				dataFrame.addRow(hashRow, hashRow);
-			}
-			for(String sys: sysGroupMap.get(key)){
-				hashRow.put(columnNames[0], key);
-				hashRow.put(columnNames[1], "");
-				hashRow.put(columnNames[2], sys);
-				dataFrame.addRow(hashRow, hashRow);
-			}
+		for(Object[] row : groupList){
+			this.dataFrame.addRow(row, row);
 		}
+//		this.names = columnNames;
+//		this.list = groupList;
 	}
+
+	//	/**
+	//	 * @param homeTable
+	//	 */
+	//	private void processActivityGroups(ArrayList<Object[]> homeTable){
+	//
+	//		list = new ArrayList<Object[]>();
+	//		HashMap<String, String> systemGroupToHighest = new HashMap<String, String>();
+	//		for(Object[] row: homeTable){
+	//			if(row[5]==null || row[5].toString().isEmpty()){
+	//				continue;
+	//			}else{
+	//				systemGroupToHighest.put(row[5].toString(), "");
+	//			}
+	//		}
+	//
+	//
+	//		double activityGroup = 0.0;
+	//		for(String key: systemGroupToHighest.keySet()){
+	//			Object[] newRow = new Object[2];
+	//			for(Object[] row: homeTable){
+	//				if(row[1]==null){
+	//					continue;
+	//				}else if(!(row[5]==null)){
+	//					if(row[5].toString().equals(key)){
+	//						if(Double.parseDouble(row[1].toString()) >= activityGroup){
+	//							activityGroup = Double.parseDouble(row[1].toString());
+	//						}
+	//					}
+	//				}
+	//			}
+	//			systemGroupToHighest.put(key, new String(""+activityGroup));
+	//			newRow[0] = key;
+	//			newRow[1] = systemGroupToHighest.get(key);
+	//			list.add(newRow);
+	//			activityGroup = 0.0;
+	//		}
+	//
+	//	}
 
 	/**
 	 * @param homeTable
@@ -126,7 +145,7 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 			}
 
 			if(actGroup.isEmpty()){
-				System.out.println("No current group. Adding "+activityGroup);
+				LOGGER.info("No current group. Adding "+activityGroup);
 				actGroup.add(activityGroup);
 			}
 
@@ -190,7 +209,7 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 					}
 				}
 				if(!actSubGroup.isEmpty()){
-					System.out.println("::::::Missing systems");
+					LOGGER.info("::::::Missing systems");
 					findSequence(homeTable, nameMap, actGroup, sysGroup, groupNumber, procActivityGroups, procSystemGroups);
 				}
 			}
@@ -209,7 +228,7 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 					}
 				}
 				if(!sysSubGroup.isEmpty()){
-					System.out.println("::::::Missing activities");
+					LOGGER.info("::::::Missing activities");
 					findSequence(homeTable, nameMap, actGroup, sysGroup, groupNumber, procActivityGroups, procSystemGroups);
 				}
 			}			
@@ -217,10 +236,24 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 			//mark new groups added after running
 			updateProcessedGroups(actGroup, sysGroup, procActivityGroups, procSystemGroups);
 
-			mapBuilder(actGroup, sysGroup, groupNumber);
-			
+
+
+			for(String activity: actGroup){
+				Object[] activityRow = new Object[3];
+				activityRow[0] = groupNumber;
+				activityRow[1] = activity;
+				activityRow[2] = "";
+				groupList.add(activityRow);
+			}
+			for(String system: sysGroup){
+				Object[] systemRow = new Object[3];
+				systemRow[0] = groupNumber;
+				systemRow[1] = "";
+				systemRow[2] = system;
+				groupList.add(systemRow);
+			}
+
 			groupNumber++;
-			System.out.println("Updated group number: "+groupNumber);
 			actGroup.clear();
 			sysGroup.clear();
 		}
@@ -244,6 +277,7 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 		List<String> alreadyProcessed = new ArrayList<String>();
 		List<String> alreadyDiscProcessed = new ArrayList<String>();
 		List<String> dependencies = new ArrayList<String>();
+		List<String> foundDep = new ArrayList<String>();
 		int procIdx = 0;
 		int discIdx = 0;
 		String logging = "";
@@ -267,16 +301,18 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 			alreadyProcessed = procSystemGroups;
 		}
 
-		System.out.println(logging);
-		System.out.println("Current group size is: "+currentGroup.size());
+		LOGGER.info(logging);
+		LOGGER.info("Current group size is: "+currentGroup.size());
 
 		for(String groupNo: currentGroup){
 			for(Object[] row: homeTable){				
 				if(row[procIdx].toString().equals(groupNo)){
-					List<String> foundDep = dependencyStringParser(row[procIdx+1].toString());
+					if(row[procIdx+1] != null){
+						foundDep = dependencyStringParser(row[procIdx+1].toString());
+					}
 					for(String dep: foundDep){
 						if(!dep.equals("___") && !dependencies.contains(dep)){
-							System.out.println(logging+"Adding dependency "+dep+" for group "+groupNo);
+							LOGGER.info(logging+"Adding dependency "+dep+" for group "+groupNo);
 							dependencies.add(dep);
 						}
 					}
@@ -295,9 +331,9 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 		for(String groupNo: currentGroup){
 			processingGroup.add(groupNo);
 			if(isActivity){
-				System.out.println("Current activity is: "+groupNo);
+				LOGGER.info("Current activity is: "+groupNo);
 			}else{
-				System.out.println("Current system is: "+groupNo);
+				LOGGER.info("Current system is: "+groupNo);
 			}
 
 			for(Object[] row: homeTable){
@@ -307,7 +343,7 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 					if(!rowProcValue.contains("_")){
 						//don't add processed groups
 						if(!alreadyProcessed.contains(rowProcValue)){
-							System.out.println(logging+rowProcValue+" has not been processed.");
+							LOGGER.info(logging+rowProcValue+" has not been processed.");
 							processingGroup.add(rowProcValue);
 							if(rowDiscValue.contains("_")){
 								continue;
@@ -356,12 +392,12 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 	 * @param activity
 	 */
 	private static void dependencyLocator(List<String> groups, List<Object[]> homeTable, Map<String, Integer> nameMap, List<String> groupDependencies, List<String> actGroup, List<String> sysGroup, boolean activity){
-		
+
 		String groupValue ="";
 		String groupDependency = "";
 		List<String> newGroup = new ArrayList<String>();
 		List<String> processedGroup = new ArrayList<String>();
-		
+
 		if(activity){
 			groupValue = "Activity Group";
 			groupDependency = "Activity Group Dependencies";
@@ -373,13 +409,15 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 			newGroup = sysGroup;
 			processedGroup = procSystemGroups;
 		}
-		
+
 		//build list of dependencies for activities
 		for(String group: groups){
 			for(Object[] potentialDependencyMatch: homeTable){
 				String rowMatch = potentialDependencyMatch[nameMap.get(groupValue)].toString();
 				if(rowMatch.equals(group)){
-					groupDependencies = dependencyStringParser(potentialDependencyMatch[nameMap.get(groupDependency)].toString()); 							
+					if(potentialDependencyMatch[nameMap.get(groupDependency)] != null){
+						groupDependencies = dependencyStringParser(potentialDependencyMatch[nameMap.get(groupDependency)].toString());
+					}
 				}else{
 					continue;
 				}
@@ -388,7 +426,7 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 						for(String potentialMatch: groupDependencies){
 							if(!newGroup.contains(potentialMatch)){
 								if(!processedGroup.contains(potentialMatch)){
-									System.out.println("::::::Found missing dependency: "+potentialMatch);
+									LOGGER.info("::::::Found missing dependency: "+potentialMatch);
 									newGroup.add(potentialMatch);
 								}
 							}
@@ -399,38 +437,6 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 		}
 	}
 
-	private static void mapBuilder(List<String> actGroup, List<String> sysGroup, Integer groupNumber){
-		System.out.println("-----Updating map!-----");
-		List<String> actGroupClone = new ArrayList<String>();
-		for(String act: actGroup){
-			actGroupClone.add(act);
-		}
-		List<String> sysGroupClone = new ArrayList<String>();
-		for(String sys: sysGroup){
-			sysGroupClone.add(sys);
-		}
-
-		if(actGroupMap.containsKey(groupNumber.toString())){
-			for(String act: actGroupMap.get(groupNumber.toString())){
-				if(!actGroupClone.contains(act)){
-					actGroupClone.add(act);
-				}
-			}
-		}
-		actGroupMap.put(groupNumber.toString(), actGroupClone);
-
-
-		if(sysGroupMap.containsKey(groupNumber.toString())){
-			for(String sys: sysGroupMap.get(groupNumber.toString())){
-				if(!sysGroupClone.contains(sys)){
-					sysGroupClone.add(sys);
-				}
-			}
-		}
-		sysGroupMap.put(groupNumber.toString(), sysGroupClone);
-
-	}
-	
 	/**
 	 * @param columns
 	 * @param procActivityGroups
@@ -439,14 +445,14 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 	private static void updateProcessedGroups(List<String> actGroup, List<String> sysGroup, List<String> procActivityGroups, List<String> procSystemGroups){
 		for(String activity: actGroup){
 			if(!procActivityGroups.contains(activity)){
-				System.out.println("Added activity group "+activity+" to processed list");
+				LOGGER.info("Added activity group "+activity+" to processed list");
 				procActivityGroups.add(activity);
 			}
 		}
 
 		for(String system: sysGroup){
 			if(!procSystemGroups.contains(system)){
-				System.out.println("Added system group "+system+" to processed list");
+				LOGGER.info("Added system group "+system+" to processed list");
 				procSystemGroups.add(system);
 			}
 		}
@@ -493,112 +499,142 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 		return updatedHomeTable;
 	}
 
-	public static void main(String args[]){
+	/**
+	 * @param homeTable
+	 * @param nameMap
+	 * @return
+	 */
+	private static ArrayList<Object[]> tableCleanup(List<Object[]> homeTable, HashMap<String,Integer> nameMap){
 
-		ArrayList<Object[]> test = new ArrayList<Object[]>();
+		ArrayList<Object[]> updatedHomeTable = new ArrayList<Object[]>();
 
-		Object[] rowOne = new Object[7];
-		rowOne[1] = 0.0;
-		rowOne[2] = "";
-		rowOne[5] = 4.0;
-		rowOne[6] = "";
-		test.add(rowOne);
-
-		Object[] rowTwo = new Object[7];
-		rowTwo[1] = 0.1;
-		rowTwo[2] = "";
-		rowTwo[5] = 0.1;
-		rowTwo[6] = "";
-		test.add(rowTwo);
-
-		Object[] rowThree = new Object[7];
-		rowThree[1] = 0.2;
-		rowThree[2] = "";
-		rowThree[5] = 0.2;
-		rowThree[6] = "[0.1]";
-		test.add(rowThree);
-
-		Object[] rowFour = new Object[7];
-		rowFour[1] = 0.3;
-		rowFour[2] = "";
-		rowFour[5] = 0.3;
-		rowFour[6] = "[0.2]";
-		test.add(rowFour);
-
-		Object[] rowFive = new Object[7];
-		rowFive[1] = 4.0;
-		rowFive[2] = "";
-		rowFive[5] = 4.0;
-		rowFive[6] = "[0.3]";
-		test.add(rowFive);
-
-		Object[] rowSix = new Object[7];
-		rowSix[1] = 6.6;
-		rowSix[2] = "";
-		rowSix[5] = 6.3;
-		rowSix[6] = "";
-		test.add(rowSix);
-
-		HashMap<String, Integer> names = new HashMap<String, Integer>();
-		names.put("Activity Group", 1);
-		names.put("System Group", 5);
-		names.put("Activity Group Dependencies", 2);
-		names.put("System Group Dependencies", 6);
-
-		procActivityGroups = new ArrayList<String>();
-		procSystemGroups = new ArrayList<String>();
-
-		findSequence(test, names, new ArrayList<String>(), new ArrayList<String>(), 0, procActivityGroups, procSystemGroups);
-
-		System.out.println("---------------");
-		for(String key: actGroupMap.keySet()){
-			for(String act: actGroupMap.get(key)){
-				System.out.println("group is: "+key+". act is: "+act);
+		for(Object[] row: homeTable){
+			if(row[nameMap.get("System Group")] != null && !row[nameMap.get("System Group")].toString().isEmpty()){
+				updatedHomeTable.add(row);
 			}
-			for(String sys: sysGroupMap.get(key)){
-				System.out.println("group is: "+key+". sys is: "+sys);
-			}
-			System.out.println("---------------");
 		}
+
+		return updatedHomeTable;
 	}
 
-	//	/**
-	//	 * @param homeTable
-	//	 */
-	//	private void processActivityGroups(ArrayList<Object[]> homeTable){
+	/**
+	 * @param group
+	 * @return
+	 */
+	private static int waveFinder(ArrayList<String> group){
+
+		int highestWave = 0;
+
+		for(String groupNo: group){
+			int groupInt = (int)Double.parseDouble(groupNo);
+			if(groupInt > highestWave){
+				highestWave = groupInt;
+			}
+		}
+
+		return highestWave;
+
+	}
+
+	//	public static void main(String args[]){
 	//
-	//		list = new ArrayList<Object[]>();
-	//		HashMap<String, String> systemGroupToHighest = new HashMap<String, String>();
-	//		for(Object[] row: homeTable){
-	//			if(row[5]==null || row[5].toString().isEmpty()){
-	//				continue;
-	//			}else{
-	//				systemGroupToHighest.put(row[5].toString(), "");
-	//			}
+	//		ArrayList<Object[]> test = new ArrayList<Object[]>();
+	//
+	//		Object[] rowOne = new Object[6];
+	//		rowOne[1] = 0.0;
+	//		rowOne[5] = 0.1;
+	//		test.add(rowOne);
+	//
+	//		Object[] rowTwo = new Object[6];
+	//		rowTwo[1] = 1.1;
+	//		rowTwo[5] = 1.1;
+	//		test.add(rowTwo);
+	//
+	//		Object[] rowThree = new Object[6];
+	//		rowThree[1] = 2.2;
+	//		rowThree[5] = 2.2;
+	//		test.add(rowThree);
+	//
+	//		Object[] rowFour = new Object[6];
+	//		rowFour[1] = 3.3;
+	//		rowFour[5] = 3.3;
+	//		test.add(rowFour);
+	//
+	//		Object[] rowFive = new Object[6];
+	//		rowFive[1] = 4.4;
+	//		rowFive[5] = 2.4;
+	//		test.add(rowFive);
+	//
+	//		Object[] rowSix = new Object[6];
+	//		rowSix[1] = 2.3;
+	//		rowSix[5] = "";
+	//		test.add(rowSix);
+	//
+	//		HashMap<String, Integer> names = new HashMap<String, Integer>();
+	//		names.put("Activity Group", 1);
+	//		names.put("System Group", 5);
+	//
+	//		procActivityGroups = new ArrayList<String>();
+	//		procSystemGroups = new ArrayList<String>();
+	//
+	//		findSequence(test, names, new ArrayList<ArrayList<String>>(), 0, procActivityGroups, procSystemGroups);
+	//
+	//		for(Object[] row: groupList){
+	//			LOGGER.info("ROW: "+row[0]+" | "+row[1]+" | "+row[2]);
 	//		}
-	//
-	//
-	//		double activityGroup = 0.0;
-	//		for(String key: systemGroupToHighest.keySet()){
-	//			Object[] newRow = new Object[2];
-	//			for(Object[] row: homeTable){
-	//				if(row[1]==null){
-	//					continue;
-	//				}else if(!(row[5]==null)){
-	//					if(row[5].toString().equals(key)){
-	//						if(Double.parseDouble(row[1].toString()) >= activityGroup){
-	//							activityGroup = Double.parseDouble(row[1].toString());
-	//						}
-	//					}
-	//				}
-	//			}
-	//			systemGroupToHighest.put(key, new String(""+activityGroup));
-	//			newRow[0] = key;
-	//			newRow[1] = systemGroupToHighest.get(key);
-	//			list.add(newRow);
-	//			activityGroup = 0.0;
-	//		}
-	//
 	//	}
+
+	@Override
+	public Hashtable getData(){
+		List<Object[]> theList = new ArrayList<Object[]>();
+		String playSheetClassName = PlaySheetEnum.getClassFromName("Grid");
+		GridPlaySheet playSheet = null;
+		try {
+			playSheet = (GridPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
+		} catch (ClassNotFoundException ex) {
+			ex.printStackTrace();
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+		} catch (IllegalAccessException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (NoSuchMethodException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		}
+		playSheet.setTitle(this.title);
+		playSheet.setQuestionID(this.questionNum);//
+		Hashtable retHash = (Hashtable) playSheet.getData();
+		ArrayList<Object[]> myList = groupList;
+		if(myList.size() > 1001){
+			theList = myList.subList(0, 1000);
+		}else{
+			theList = myList;
+		}
+		for(Object[] myRow : theList){
+			for(int i = 0; i < myRow.length; i++){
+				if(myRow[i] == null){
+					myRow[i] = "";
+				}
+				else {
+					myRow[i] = myRow[i].toString();
+				}
+			}
+		}
+		retHash.put("data", theList);
+		retHash.put("headers", new String[]{"Group", "Activity Group", "System Group"});
+		return retHash;
+	}
 
 }

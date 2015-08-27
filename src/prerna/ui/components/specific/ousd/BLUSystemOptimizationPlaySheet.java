@@ -13,6 +13,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.BTreeDataFrame;
 import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
@@ -21,6 +22,7 @@ public class BLUSystemOptimizationPlaySheet extends GridPlaySheet{
 	protected static final Logger LOGGER = LogManager.getLogger(BLUSystemOptimizationPlaySheet.class.getName());
 	
 	String sysGroupingInsight;
+	String systemColumnName = "System";
 	
 	public BLUSystemOptimizationPlaySheet(){
 		super();
@@ -43,8 +45,7 @@ public class BLUSystemOptimizationPlaySheet extends GridPlaySheet{
 
 		//createData makes the table...
 		activitySheet.createData();
-		ITableDataFrame frame =  activitySheet.getDataFrame();
-		List<Object[]> sysGroupTable = frame.getData();
+		List<Object[]> sysGroupTable = activitySheet.getList();
 		String[] names = activitySheet.getNames();
 		int sysIdx = -1;
 		int groupIdx = -1;
@@ -79,7 +80,45 @@ public class BLUSystemOptimizationPlaySheet extends GridPlaySheet{
 		List<String> keptSystems = opt.getKeptSystems();
 		List<String> bluSystemsPlusSupporters = getSupportingSystems(keptSystems);
 		
+		addResultsToTable(keptSystems);
+		
 		opt.deleteModel();
+	}
+	
+	private void addResultsToTable(List<String> keptSystems){
+		ArrayList<Object[]> newList = new ArrayList<Object[]>();
+		
+		int sysCol = 0;
+		String[] names = this.dataFrame.getColumnHeaders();
+		for(String colHeader: names){
+			if(colHeader.equals(this.systemColumnName)) {
+				break;
+			}
+			sysCol++;
+		}
+		
+		String[] newNames = new String[names.length+1];
+		for(int i = 0; i < names.length; i++){
+			newNames[i] = names[i];
+		}
+		newNames[names.length] = "Kept";
+		ITableDataFrame newFrame = new BTreeDataFrame(newNames);
+		
+//		for(Object[] curRow : this.list){
+		Iterator<Object[]> rowIt = this.dataFrame.iterator(false);
+		while (rowIt.hasNext()){
+			Object[] curRow = rowIt.next();
+			Object[] newRow = new Object[curRow.length+1];
+			String sysName = curRow[sysCol] + "";
+			int i = 0;
+			for( ; i < curRow.length; i++){
+				newRow[i] = curRow[i];
+			}
+			boolean kept = keptSystems.contains(sysName);
+			newRow[i] = kept;
+			newFrame.addRow(newRow, newRow);
+		}
+		this.dataFrame = newFrame;
 	}
 	
 	private List<String> getSupportingSystems(List<String> bluSystems){
@@ -89,7 +128,8 @@ public class BLUSystemOptimizationPlaySheet extends GridPlaySheet{
 	}
 	
 	private Object[] getBudgetData(String[] sysList){
-		Map<String, Double> budgetMap = OUSDPlaysheetHelper.getBudgetData();
+		//retrieve the budget numbers from the helper class
+		Map<String, Double> budgetMap = OUSDQueryHelper.getBudgetData(this.engine, null);
 
 		Double[] budList = new Double[sysList.length];
 		double maxBudget = -1.;
