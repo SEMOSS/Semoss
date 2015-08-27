@@ -18,9 +18,6 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 	String roadmapName;
 	String comparatorName;
 	
-	boolean timelineShift = false;
-	boolean comparatorShift = false;
-
 	@Override
 	public void setQuery(String query){
 		String delimiters = "[;]";
@@ -44,16 +41,9 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 			e.printStackTrace();
 		}
 
-		List<Integer> fyList = timeline.getFyIdxArray();
-		if(fyList.get(0)==1){
-			fyList = timeline.getFiscalYears();
-			timelineShift = true;
-		}
-		List<Integer> comparatorFyList = comparatorTimeline.getFyIdxArray();
-		if(comparatorFyList.get(0)==1){
-			comparatorFyList = comparatorTimeline.getFiscalYears();
-			comparatorShift = true;
-		}
+		List<Integer> fyList = timeline.getFiscalYears();
+			
+		List<Integer> comparatorFyList = comparatorTimeline.getFiscalYears();
 		
 		List<Integer> yearList = new ArrayList<Integer>();
 		yearList.addAll(fyList);
@@ -65,7 +55,7 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		}
 		Collections.sort(yearList);
 		
-		String[] columns = new String[fyList.size() + 1];
+		String[] columns = new String[yearList.size() + 1];
 		columns[0] = "System";
 		int count = 1;
 		for (Integer year : yearList){
@@ -110,12 +100,7 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		for(int i = names.length-1; i>0; i--){
 			int year = yearList.get(i-1);
 			if(fyList.contains(year)){
-				int yearIdx;
-				if(timelineShift){
-					yearIdx = timeline.getFyIndexFiscalYear(year);	
-				}else{
-					yearIdx = timeline.getFyIndex(year);
-				}
+				int yearIdx = timeline.getFyIndexFiscalYear(year);	
 				double yearTotal = 0.0;
 				
 				Map<String, List<String>> yearMap = systemYears.get(yearIdx);
@@ -129,12 +114,7 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 				row[i] = formattedTotal;
 			}
 			if(comparatorFyList.contains(year)){
-				int yearIdx;
-				if(comparatorShift){
-					yearIdx = comparatorTimeline.getFyIndexFiscalYear(year);	
-				}else{
-					yearIdx = comparatorTimeline.getFyIndex(year);					
-				}
+				int yearIdx = comparatorTimeline.getFyIndexFiscalYear(year);	
 				double yearTotal = 0.0;
 				
 				Map<String, List<String>> yearMap = comparatorYears.get(yearIdx);

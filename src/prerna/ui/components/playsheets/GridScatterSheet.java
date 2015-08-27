@@ -58,7 +58,7 @@ public class GridScatterSheet extends BrowserPlaySheet{
 	public void processQueryData()
 	{
 		ArrayList<Hashtable<String, Object>> allData = new ArrayList<Hashtable<String, Object>>();
-		String[] var = wrapper.getVariables();
+		String[] var = this.dataFrame.getColumnHeaders();
 		String name = var[0];
 		boolean hasType = true;
 		int offset = 0;
@@ -106,12 +106,12 @@ public class GridScatterSheet extends BrowserPlaySheet{
 		allHash.put("dataSeries", allData);
 		allHash.put("title",  var[2+offset] + " vs " + var[1+offset]);
 		allHash.put("xAxisTitle", var[1+offset]);
-		if(var.length>2)
+		if(var.length > 2 + offset)
 			allHash.put("yAxisTitle", var[2+offset]);
-		if(var.length>3)
+		if(var.length > 3 + offset)
 			allHash.put("zAxisTitle", var[3+offset]);
-		if(offset == 0 && var.length>4)
-			allHash.put("heatTitle", var[4+offset]);
+		if(offset == 0 && var.length > 4)
+			allHash.put("heat", var[4]);
 
 		this.dataHash = allHash;
 	}

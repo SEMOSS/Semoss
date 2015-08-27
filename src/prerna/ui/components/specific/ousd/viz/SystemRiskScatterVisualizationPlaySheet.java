@@ -160,7 +160,7 @@ public class SystemRiskScatterVisualizationPlaySheet extends GridScatterSheet{
 
 	private void createTable(Map<String, Double> bluSysResults, Map<String, Double> dataSysResults, Map<String, Double> bluDataSysResults, Map<String, List<String>> criticalSysMap){
 //		this.list = new ArrayList<Object[]>();
-		this.dataFrame = new BTreeDataFrame(new String[]{"Series", "System", "BLU-Data Percent Difference", "Sustainment Budget"});
+		this.dataFrame = new BTreeDataFrame(new String[]{"Series", "System", "Enterprise Risk Score", "Sustainment Budget"});
 
 		Map<String, Double> sysBudget = OUSDQueryHelper.getBudgetData(engine, null);
 		List<String> enduringSys = OUSDQueryHelper.getEnduringSystems(engine);
