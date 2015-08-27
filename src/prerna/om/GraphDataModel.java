@@ -842,7 +842,7 @@ public class GraphDataModel {
 					// create the edge now
 					SEMOSSEdge edge = edgeStore.get(sct.getPredicate()+"");
 					// check to see if this is another type of edge
-					if(!sct.getPredicate().contains(vert1.getProperty(Constants.VERTEX_NAME).toString()) &&  !sct.getPredicate().contains(vert2.getProperty(Constants.VERTEX_NAME).toString()))
+					if(!sct.getPredicate().contains(vert1.getProperty(Constants.VERTEX_NAME) + ":" + vert2.getProperty(Constants.VERTEX_NAME)))
 						predicateName = sct.getPredicate() + "/" + vert1.getProperty(Constants.VERTEX_NAME) + ":" + vert2.getProperty(Constants.VERTEX_NAME);
 					if(edge == null)
 						edge = edgeStore.get(predicateName);
