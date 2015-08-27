@@ -1,5 +1,6 @@
 package prerna.ui.components.specific.ousd;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -13,6 +14,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.BTreeDataFrame;
 import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.util.PlaySheetEnum;
 
 public class BudgetDecommissioningPlaySheet extends GridPlaySheet{
 
@@ -57,12 +59,12 @@ public class BudgetDecommissioningPlaySheet extends GridPlaySheet{
 
 		//getting the table from the retrieved sheet
 		sdSheet.createData();
-		ITableDataFrame frame =  sdSheet.getDataFrame();
-		List<Object[]> sequence = frame.getData();
+//		ITableDataFrame frame =  sdSheet.getDataFrame();
+		List<Object[]> sequence = sdSheet.getList();
 		String[] names = sdSheet.getNames();
-
+		
 		//retrieve the budget numbers from the helper class
-		budgets = OUSDPlaysheetHelper.getBudgetData();
+		budgets = OUSDQueryHelper.getBudgetData(this.engine, null);
 
 		createTable(sequence, budgets, names);
 	}
@@ -78,6 +80,8 @@ public class BudgetDecommissioningPlaySheet extends GridPlaySheet{
 		List<Object[]> budgetSystemList = new ArrayList<Object[]>();
 
 		this.dataFrame = new BTreeDataFrame(updatedNames);
+//		this.names = updatedNames;
+//		this.list = new ArrayList<Object[]>();
 
 		for(Object[] row : sequenceList){
 			Object[] updatedRow = new Object[names.length+2];
@@ -101,11 +105,8 @@ public class BudgetDecommissioningPlaySheet extends GridPlaySheet{
 		List<Object[]> orderedSystems = orderBudgetList(budgetSystemList, namesMap);
 
 		for(Object[] row: orderedSystems){
-			Map<String, Object> hashRow = new HashMap<String, Object>();
-			for(int i=0; i<updatedNames.length; i++){
-				hashRow.put(updatedNames[i], row[i]);
-			}
-			dataFrame.addRow(hashRow, hashRow);
+			this.dataFrame.addRow(row, row);
+//			list.add(row);
 		}		
 	}
 
@@ -235,13 +236,16 @@ public class BudgetDecommissioningPlaySheet extends GridPlaySheet{
 	private static Map<String, List<String>> createDependencyArrays(List<Object[]> systemList, Map<String, Integer> namesMap){
 
 		Map<String, List<String>> dependencyMap = new HashMap<String, List<String>>();
-
+		String dependencies = "";
+	
 		LOGGER.debug("Converting dependecy strings to dependency arrays");
 
 		for(Object[] row: systemList){
 			List<String> deps = new ArrayList<String>();
 			String systemName = row[systemGroup].toString();
-			String dependencies = row[systemDependencies].toString();
+			if(row[systemDependencies] != null && !row[systemDependencies].toString().isEmpty()){
+				dependencies = row[systemDependencies].toString();
+			}
 			if(dependencies != null && !dependencies.isEmpty()){
 				if(!dependencies.contains("_")){
 					dependencies = dependencies.substring(1);
@@ -381,4 +385,51 @@ public class BudgetDecommissioningPlaySheet extends GridPlaySheet{
 	//
 	//	}
 
+	@Override
+	public Hashtable getData(){
+		String playSheetClassName = PlaySheetEnum.getClassFromName("Grid");
+		GridPlaySheet playSheet = null;
+		try {
+			playSheet = (GridPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
+		} catch (ClassNotFoundException ex) {
+			ex.printStackTrace();
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+		} catch (IllegalAccessException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (NoSuchMethodException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		}
+//		playSheet.setNames(this.names);
+		playSheet.setTitle(this.title);
+		playSheet.setQuestionID(this.questionNum);//
+		Hashtable retHash = (Hashtable) playSheet.getData();
+		List<Object[]> myList = this.dataFrame.getData();
+		for(Object[] myRow : myList){
+			for(int i = 0; i < myRow.length; i++){
+				if(myRow[i] == null){
+					myRow[i] = "";
+				}
+				else {
+					myRow[i] = myRow[i].toString();
+				}
+			}
+		}
+		retHash.put("data", myList);
+		return retHash;
+	}
+	
 }

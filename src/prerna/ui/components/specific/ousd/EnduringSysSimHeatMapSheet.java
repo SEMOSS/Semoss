@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 
 import prerna.ui.components.specific.tap.SimilarityFunctions;
 import prerna.ui.components.specific.tap.SimilarityHeatMapSheet;
@@ -45,7 +46,7 @@ import com.google.gson.reflect.TypeToken;
 
 /**
  */
-public class OUSDSysSimHeatMapSheet extends SimilarityHeatMapSheet{
+public class EnduringSysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	boolean createSystemBindings = true;
 	String systemListBindings = "BINDINGS ?System ";
 	
@@ -60,10 +61,10 @@ public class OUSDSysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	/**
 	 * Constructor for SysSimeHeatMapSheet.
 	 */
-	public OUSDSysSimHeatMapSheet() {
+	public EnduringSysSimHeatMapSheet() {
 		super();
 		this.setPreferredSize(new Dimension(800,600));
-		setComparisonObjectTypes("System1", "System2");
+		setComparisonObjectTypes("System1", "EnduringSystem");
 	}
 
 //	/**
@@ -152,11 +153,12 @@ public class OUSDSysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		fsQuery = addBindings(fsQuery);
 		Hashtable fsHash = sdf.compareObjectParameterScore(this.engine.getEngineName(), fsQuery, SimilarityFunctions.VALUE);
 		fsHash = processHashForCharting(fsHash);
-
+		
 		ArrayList<Hashtable> hashArray = new ArrayList<Hashtable>();
 		
 		boolean allQueriesAreEmpty = true;
 		updateProgressBar("80%...Creating Heat Map Visualization", 80);
+
 		if (dataProvidedHash != null && !dataProvidedHash.isEmpty()) {
 			paramDataHash.put("Data_Provided", dataProvidedHash);
 			allQueriesAreEmpty = false;
@@ -184,8 +186,54 @@ public class OUSDSysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		allHash.put("xAxisTitle", comparisonObjectTypeX);
 		allHash.put("yAxisTitle", comparisonObjectTypeY);
 		allHash.put("value", "Score");
-		allHash.put("sysDup", true);
+		allHash.put("sysDup", false);
 
+	}
+	
+	/**
+	 * Formats data hashtable into proper format needed for charting.
+	 * 
+	 * @param dataHash Hashtable<String,Hashtable<String,Double>>	Hashtable of data to be formatted
+	 * 
+	 * @return Hashtable	Formatted hashtable of data
+	 */
+	public Hashtable processHashForCharting(Hashtable<String, Hashtable<String,Double>>dataHash)
+	{
+		List<String> enduringSys = OUSDQueryHelper.getEnduringSystems(engine);
+		
+		//first create hashtable of arraylist with comparisonObject as key and corresponding data + blu as the values
+		Hashtable<String, Hashtable<String,String>> dataRetHash = new Hashtable<String, Hashtable<String,String>>();
+
+		for(Entry<String, Hashtable<String, Double>> comparisonObjectEntry : dataHash.entrySet()) 
+		{
+			String comparisonObjectName = comparisonObjectEntry.getKey();
+		    Hashtable<String,Double> comparisonObjectDataHash = comparisonObjectEntry.getValue();
+		    for(Entry<String, Double> comparisonObjectCompEntry : comparisonObjectDataHash.entrySet()) 
+			{
+				String comparisonObjectName2 = comparisonObjectCompEntry.getKey();
+				if(enduringSys.contains(comparisonObjectName2)){
+				    double comparisonObjectCompValue = comparisonObjectCompEntry.getValue();
+				    if (!comparisonObjectName.equals(comparisonObjectName2))
+				    {
+						Hashtable elementHash = new Hashtable();
+						elementHash.put("Score", comparisonObjectCompValue*100);
+						String key = comparisonObjectName +"-"+comparisonObjectName2;
+						dataRetHash.put(key, elementHash);
+						if(!keyHash.containsKey(key)){
+							Hashtable keyElementHash = new Hashtable();
+							keyElementHash.put(comparisonObjectTypeX, comparisonObjectName);
+							keyElementHash.put(comparisonObjectTypeY, comparisonObjectName2);
+							keyHash.put(key, keyElementHash);
+						}
+				    }
+				}
+				else {
+					System.out.println("Skipping because not enduring ::::: " + comparisonObjectName2);
+				}
+
+			}
+		}
+		return dataRetHash;
 	}
 	
 	public String addBindings(String sysSimQuery) {
@@ -267,6 +315,9 @@ public class OUSDSysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	
 	public ArrayList<Object[]> flattenData(ArrayList<Hashtable<String, Hashtable<String, Double>>> list, boolean initialLoad)
 	{
+
+		List<String> enduringSys = OUSDQueryHelper.getEnduringSystems(engine);
+		
 		logger.info("Starting to flatten data");
 		ArrayList<Object[]> returnTable = new ArrayList<Object[]>();
 		for(Hashtable<String,Hashtable<String, Double>> hash : list){
@@ -278,20 +329,22 @@ public class OUSDSysSimHeatMapSheet extends SimilarityHeatMapSheet{
 			while(it.hasNext()){
 				String key = it.next();
 				Hashtable value = hash.get(key);
-				Double score = (Double) value.get("Score");
-//				if(score > 50){
-					Object[] row = new Object[3];
-					row[0] = value.get(comparisonObjectTypeX);
-					row[1] = value.get(comparisonObjectTypeY);
-					row[2] = score;//
-					returnTable.add(row);
-//				}
-//				else{ 
-//					if (initialLoad) {    // remove it so we don't store unnecessary data on the back-end
-//						hash.remove(key);
-//						clearParamDataHash(key);
-//					}
-//				}
+				if(enduringSys.contains(value.get(comparisonObjectTypeY))){
+					Double score = (Double) value.get("Score");
+	//				if(score > 50){
+						Object[] row = new Object[3];
+						row[0] = value.get(comparisonObjectTypeX);
+						row[1] = value.get(comparisonObjectTypeY);
+						row[2] = score;//
+						returnTable.add(row);
+	//				}
+	//				else{ 
+	//					if (initialLoad) {    // remove it so we don't store unnecessary data on the back-end
+	//						hash.remove(key);
+	//						clearParamDataHash(key);
+	//					}
+	//				}
+				}
 			}
 			logger.info("done flattening one hash");
 		}

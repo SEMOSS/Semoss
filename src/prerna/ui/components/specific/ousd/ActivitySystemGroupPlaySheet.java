@@ -1,9 +1,9 @@
 package prerna.ui.components.specific.ousd;
 
-import java.util.HashMap;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -11,7 +11,7 @@ import org.apache.log4j.Logger;
 import prerna.ds.BTreeDataFrame;
 import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.playsheets.GridPlaySheet;
-import prerna.util.Utility;
+import prerna.util.PlaySheetEnum;
 
 public class ActivitySystemGroupPlaySheet extends GridPlaySheet{
 
@@ -47,13 +47,13 @@ public class ActivitySystemGroupPlaySheet extends GridPlaySheet{
 		SequencingDecommissioningPlaySheet activitySheet = (SequencingDecommissioningPlaySheet) proc.getPlaySheet();
 		//createData makes the table...
 		activitySheet.createData();
-		List<Object[]> actTable = activitySheet.getDataFrame().getData();
+		List<Object[]> actTable = activitySheet.getList();
 		String[] actNames = activitySheet.getNames();
 
 		proc.processQuestionQuery(this.engine, insightNameTwo, emptyTable);
 		SequencingDecommissioningPlaySheet systemSheet = (SequencingDecommissioningPlaySheet) proc.getPlaySheet();
 		systemSheet.createData();
-		List<Object[]> systemTable = systemSheet.getDataFrame().getData();
+		List<Object[]> systemTable = systemSheet.getList();
 		String[] sysNames = systemSheet.getNames();
 
 		combineTables(actTable, systemTable, actNames, sysNames);
@@ -91,12 +91,16 @@ public class ActivitySystemGroupPlaySheet extends GridPlaySheet{
         	idx++;
         }
 
+//		this.names = updatedNames;
+//		this.list = new ArrayList<Object[]>();
 		this.dataFrame = new BTreeDataFrame(updatedNames);
 
 		for(Object[] row: activities){
-			Map<String, Object> hashRow = new HashMap<String, Object>();
-	        for(int i = 0; i < actNames.length; i++){
-    			hashRow.put(actNames[i], row[i]);
+			Object[] newRow = new Object[8];
+//			Map<String, Object> hashRow = new HashMap<String, Object>();
+			int colIdx = 0;
+	        for(; colIdx < actNames.length; colIdx++){
+				newRow[colIdx] = row[colIdx];
 	        }
 	        
 	        Object actSystem = row[actMatchIdx];
@@ -107,7 +111,7 @@ public class ActivitySystemGroupPlaySheet extends GridPlaySheet{
 			        	if(sysSystem.toString().equals(actSystem.toString())){
 			        		for(int x = 0; x < sysNames.length; x++){
 			    	        	if(x!=sysMatchIdx){
-			    	        		hashRow.put(sysNames[x], system[x]);
+			    	        		newRow[colIdx+x-1] = system[x];
 			    	        	}
 			        		}
 			        		break;
@@ -115,7 +119,55 @@ public class ActivitySystemGroupPlaySheet extends GridPlaySheet{
 					}							
 				}
 			}
-			dataFrame.addRow(hashRow, hashRow);
+	        this.dataFrame.addRow(newRow, newRow);
 		}
 	}
+	
+	@Override
+	public Hashtable getData(){
+		String playSheetClassName = PlaySheetEnum.getClassFromName("Grid");
+		GridPlaySheet playSheet = null;
+		try {
+			playSheet = (GridPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
+		} catch (ClassNotFoundException ex) {
+			ex.printStackTrace();
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+		} catch (IllegalAccessException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (NoSuchMethodException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		}
+		playSheet.setTitle(this.title);
+		playSheet.setQuestionID(this.questionNum);//
+		Hashtable retHash = (Hashtable) playSheet.getData();
+		List<Object[]> myList = this.getList();
+		List<Object[]> theList = myList.subList(0, 1000);
+		for(Object[] myRow : theList){
+			for(int i = 0; i < myRow.length; i++){
+				if(myRow[i] == null){
+					myRow[i] = "";
+				}
+				else {
+					myRow[i] = myRow[i].toString();
+				}
+			}
+		}
+		retHash.put("data", theList);
+		return retHash;
+	}
+
 }
