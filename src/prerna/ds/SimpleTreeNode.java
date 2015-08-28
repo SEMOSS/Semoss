@@ -28,18 +28,9 @@
 
 package prerna.ds;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
 import java.util.Vector;
 
 public class SimpleTreeNode {
@@ -52,7 +43,7 @@ public class SimpleTreeNode {
 	SimpleTreeNode rightChild = null;
 	SimpleTreeNode leftChild = null;
 	//static String numberList = "";
-	public static final String EMPTY = "_____";
+	public static final String EMPTY = "";
 	
 	ITreeKeyEvaluatable leaf = null;
 	

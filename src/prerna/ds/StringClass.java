@@ -57,7 +57,10 @@ public class StringClass implements ISEMOSSNode {
 			String element = mainParts[idx];
 			String[] parts = element.split("={3}");
 			String name = parts[0];
-			String value = parts[1];
+			String value = "";
+			if(parts.length > 1) {
+				value = parts[1];
+			}
 			if(!value.equals("null")){
 				if(name.equals("innerString")){
 					this.innerString = value;
