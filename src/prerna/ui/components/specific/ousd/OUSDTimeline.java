@@ -276,6 +276,14 @@ public class OUSDTimeline {
 		return new String[] {"Decommissioned System", "Start Transition Year", "End Transition Year", "Target System"};
 	}
 	
+	public String getGanttTitle(){
+		return "Transition Timeline";
+	}
+	
+	public String getGanttPlaySheet(){
+		return "OUSDGantt";
+	}
+	
 	public List<Object[]> getCostSavingsData(){
 		List<Object[]> costSavingsData = new ArrayList<Object[]>();
 		
@@ -304,6 +312,14 @@ public class OUSDTimeline {
 		return new String[] {"Transition Year", "Savings"};
 	}
 	
+	public String getCostSavingsTitle(){
+		return "Cost Savings";
+	}
+	
+	public String getCostSavingsPlaySheet(){
+		return "OUSDCombo";
+	}
+	
 	public Map<String, Object> getDashboardData(){
 		List<Map<String,Object>> charts = new ArrayList<Map<String,Object>>();
 		
@@ -311,12 +327,16 @@ public class OUSDTimeline {
 		Map<String, Object> ganttMap = new HashMap<String, Object>();
 		ganttMap.put("data", getGanttData());
 		ganttMap.put("headers", getGanttHeaders());
+		ganttMap.put("title", getGanttTitle());
+		ganttMap.put("playsheet", getGanttPlaySheet());
 		charts.add(ganttMap);
 		
 		// then to make the cost savings chart data
 		Map<String, Object> costSavingsData = new HashMap<String, Object>();
 		costSavingsData.put("data", getCostSavingsData());
 		costSavingsData.put("headers", getCostSavingsHeaders());
+		costSavingsData.put("title", getCostSavingsTitle());
+		costSavingsData.put("playsheet", getCostSavingsPlaySheet());
 		charts.add(costSavingsData);
 		
 		// then to layout the joins.
