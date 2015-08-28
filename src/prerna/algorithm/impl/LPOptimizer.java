@@ -75,8 +75,12 @@ public class LPOptimizer extends AbstractOptimizer{
 
 		LOGGER.info("Successfully set up LP Solve model");
 		
+		writeLp("model.lp");
+	}
+	
+	public void writeLp(String filename){
 		try{
-			solver.writeLp("model.lp");
+			solver.writeLp(filename);
 		}catch (LpSolveException e) {
 			LOGGER.error("Could not write LP Solve model to file. Continuing anyways...");
 		}

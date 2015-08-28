@@ -155,6 +155,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 				try {
 					//SETS UP THE OPTIMIZATION MODEL
 					opt.setupModel();
+					opt.writeLp("OUSD Optimization year " + year + ".lp");
 				} catch (LpSolveException e) {
 					e.printStackTrace();
 				}
