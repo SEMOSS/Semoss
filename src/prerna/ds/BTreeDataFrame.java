@@ -334,7 +334,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 			boolean innerJoin = true;
 			// Iterate for every row in the matched table
-			for(Object[] flatMatchedRow : flatMatched) { // for each matched item
+			MATCHES : for(Object[] flatMatchedRow : flatMatched) { // for each matched item
 				Object item1 = flatMatchedRow[0];
 				Object item2 = flatMatchedRow[1];
 //				System.out.println(item1 + "           " + item2);
@@ -427,6 +427,18 @@ public class BTreeDataFrame implements ITableDataFrame {
 					}
 					
 					SimpleTreeNode instance2HookUp = passedInstances.get(0).leftChild;
+					if(joiningNode.leftChild != null) {
+						SimpleTreeNode joiningNodeChild = joiningNode.leftChild;
+						if(joiningNodeChild.leaf.isEqual(instance2HookUp.leaf)) {
+							continue; // continue for next flat matched
+						}
+						while(joiningNodeChild.rightSibling != null) {
+							joiningNodeChild = joiningNodeChild.rightSibling;
+							if(joiningNodeChild.leaf.isEqual(instance2HookUp.leaf)) {
+								continue MATCHES; // continue for next flat matched
+							}
+						}
+					}
 					Vector<SimpleTreeNode> vec = new Vector<SimpleTreeNode>();
 					vec.add(instance2HookUp);
 					String serialized = SimpleTreeNode.serializeTree("", vec, true, 0);
