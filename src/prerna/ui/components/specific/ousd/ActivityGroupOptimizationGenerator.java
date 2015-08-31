@@ -23,8 +23,8 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 
 	protected static final Logger LOGGER = LogManager.getLogger(BLUSystemOptimizationPlaySheet.class.getName());
 
-	boolean limit = true;
 	boolean completed = true;
+	boolean constraints = false;
 	
 	OUSDTimeline timeline = new OUSDTimeline();
 	IEngine roadmapEngine;
@@ -37,7 +37,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	int interfaceCount = 0;
 	double interfaceSustainmentPercent = 0.18;
 	double budgetConstraint = 0;
-	private double failureRate = 0.05;
+	private double failureRate = 0.001;
 
 
 	List<List<String>> previousValues = new ArrayList<List<String>>();
@@ -54,6 +54,8 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 
 	Map<String, Map<String, List<String>>> bluDataSystemMap = new HashMap<String, Map<String, List<String>>>(); //activity -> list of maps of blu/data -> system where blu/data supports activity, system supports blu/data	
 	Map<String, List<String>> retirementMap = new HashMap<String, List<String>>();
+	Map<String, List<String>> dataSystemMap = new HashMap<String, List<String>>();
+	Map<String, List<String>> granularBLUMap = new HashMap<String, List<String>>();
 	Map<String, List<String>> interfaceCountMap = new HashMap<String, List<String>>(); //down system -> list of upstream systems where an interface exists between the two systems
 	Map<String, List<List<String>>> sdsMap; //systems -> list of data obj that are provided
 
@@ -64,7 +66,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	@Override
 	public void createTimeline(IEngine engine){
 		roadmapEngine = engine;
-		runOptimization(limit);
+		runOptimization();
 	}
 
 	@Override
@@ -72,7 +74,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 		return timeline;
 	}
 
-	public void runOptimization(boolean limit){
+	public void runOptimization(){
 		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
 		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
 		proc.processQuestionQuery(roadmapEngine, cleanActInsightString, emptyTable);
@@ -97,21 +99,40 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 		sysBudget = OUSDQueryHelper.getBudgetData(roadmapEngine, sysList);
 
 		interfaceCountMap = OUSDQueryHelper.getSystemToSystemDataWithSystemBind(roadmapEngine, sysBindingsString);
-
+		dataSystemMap = OUSDQueryHelper.getDataCreatedBySystem(roadmapEngine, sysBindingsString);
+		
 		retirementMap = OUSDQueryHelper.getSystemsByRetirementType(roadmapEngine, sysBindingsString);	
 		sdsMap = OUSDQueryHelper.getSystemToSystemData(roadmapEngine);
 
-		//TODO 
 		Map<String, Map<String, List<String>>> activityDataSystemMap = OUSDQueryHelper.getActivityDataSystemMap(roadmapEngine, sysBindingsString);
 		Map<String, Map<String, List<String>>> activityBluSystemMap = OUSDQueryHelper.getActivityGranularBluSystemMap(roadmapEngine, sysBindingsString);
 
+		for(String activity: activityBluSystemMap.keySet()){
+			Map<String, List<String>> bluMap = activityBluSystemMap.get(activity);
+			for(String blu: bluMap.keySet()){
+				if(granularBLUMap.containsKey(blu)){
+					for(String system: bluMap.get(blu)){
+						if(granularBLUMap.get(blu).contains(system)){
+							continue;
+						}else{
+							List<String> systemList = granularBLUMap.get(blu);
+							systemList.add(system);
+							granularBLUMap.put(blu, systemList);
+						}
+					}
+				}else{
+					granularBLUMap.put(blu, bluMap.get(blu));
+				}
+			}
+		}
+		
 		bluDataSystemMap = OUSDPlaysheetHelper.combineMaps(activityDataSystemMap, activityBluSystemMap);		
 		calc.setBluMap(bluDataSystemMap);
 
 		timeline.setRetirementMap(retirementMap);
-		//TODO timeline.setDataSystemMap(dataSystemMap);
+		timeline.setDataSystemMap(dataSystemMap);
 		timeline.setBudgetMap(sysBudget);
-		///TODO timeline.setGranularBLUMap(granularBLUMap);
+		timeline.setGranularBLUMap(granularBLUMap);
 		timeline.setSystemDownstream(sdsMap);
 
 
@@ -150,8 +171,8 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 
 				//SETS SYSTEM DATA FOR THE OPTIMIZER
 				System.out.println("SETTING SYSTEM DATA");
-				opt.setSystemData(sysList, sysBudget, retirementMap, maxFIHT, upstreamInterfaceCount, currentDownstreamInterfaceCount);
-				opt.setOptimizationConstants(totalSystemCount, limit, treeMax, budgetConstraint, interfaceSustainmentPercent, interfaceCost);
+				opt.setSystemData(sysList, sysBudget, dataSystemMap, retirementMap, granularBLUMap, maxFIHT, upstreamInterfaceCount, currentDownstreamInterfaceCount);
+				opt.setOptimizationConstants(totalSystemCount, constraints, treeMax, budgetConstraint, interfaceSustainmentPercent, interfaceCost);
 				try {
 					//SETS UP THE OPTIMIZATION MODEL
 					opt.setupModel();
@@ -180,6 +201,9 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 			updateSystemList(keptSystems);
 			updateInterfaceCounts(keptSystems, decomList);
 			updateBudgetConstraint(decomList);
+			updateGranularBLUMap(decomList);
+			updateDataSystemMap(decomList);
+			constraints = false;
 			year++;
 		}
 	}
@@ -221,8 +245,13 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 			decomList.addAll(keptSystems);
 			completed = false;
 			return false;
+		}else if(year == 1){
+			System.out.println("Completed optimization.");
+			previousValues.add(decomList);
+			return true;
 		}else{
 			System.out.println("Re-running iteration.");
+			constraints = true;
 			previousValues.add(decomList);
 			return true;
 		}
@@ -256,6 +285,46 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 
 	}
 
+	private void updateDataSystemMap(List<String> decomList){
+		
+		Map<String, List<String>> tempMap = new HashMap<String, List<String>>();
+		
+		for(String data: dataSystemMap.keySet()){
+			List<String> supportingSystems = dataSystemMap.get(data);
+			List<String> remainingSystems = new ArrayList<String>();
+			for(String system: supportingSystems){
+				if(decomList.contains(system)){
+					continue;
+				}else{
+					remainingSystems.add(system);
+				}
+			}
+			tempMap.put(data, supportingSystems);
+		}
+		
+		dataSystemMap = tempMap;
+	}
+	
+	private void updateGranularBLUMap(List<String> decomList){
+		
+		Map<String, List<String>> tempMap = new HashMap<String, List<String>>();
+		
+		for(String blu: granularBLUMap.keySet()){
+			List<String> supportingSystems = granularBLUMap.get(blu);
+			List<String> remainingSystems = new ArrayList<String>();
+			for(String system: supportingSystems){
+				if(decomList.contains(system)){
+					continue;
+				}else{
+					remainingSystems.add(system);
+				}
+			}
+			tempMap.put(blu, remainingSystems);
+		}
+		
+		granularBLUMap = tempMap;
+	}
+	
 	/**
 	 * @param removedSystems
 	 */
