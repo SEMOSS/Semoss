@@ -18,13 +18,15 @@ public class ActivityGroupOptimizer extends LPOptimizer{
 	protected static final Logger LOGGER = LogManager.getLogger(BLUSystemOptimizer.class.getName());
 
 	String[] sysList;
-	boolean limit;
+	boolean additionalConstraints;
 	int year;
 	int totalYears;
 	int totalSystemCount;
 	Map<String, Double> sysBudgets;
 	Map<String, Integer> upstreamInterfaceCount = new HashMap<String, Integer>();
 	Map<String, Integer> downstreamInterfaceCount = new HashMap<String, Integer>();
+	Map<String, List<String>> dataSystemMap = new HashMap<String, List<String>>();
+	Map<String, List<String>> granularBLUMap = new HashMap<String, List<String>>();
 	Map<String, List<String>> retirementMap; //retirement type -> systems that have that retirementType
 	Map<String, Double> riskScoreMap;
 	int sysListSize;
@@ -112,10 +114,6 @@ public class ActivityGroupOptimizer extends LPOptimizer{
 		for(int j=0; j<sysListSize; j++) {				
 
 			colno[j] = j + 1;
-			
-			if(sysList[j].equals("BAM")){
-				System.out.println("BAM");
-			}
 			row[j] = interfaceCost*(downstreamInterfaceCount.get(sysList[j]) - (interfaceSustainmentPercent * upstreamInterfaceCount.get(sysList[j])));
 		}
 		try {
@@ -123,55 +121,57 @@ public class ActivityGroupOptimizer extends LPOptimizer{
 		} catch (LpSolveException e) {
 			e.printStackTrace();
 		}
-		
-//		for(String granularBlu: granularBluMap.keySet()){
-//			List<String> supportingSysList = granularBluMap.get(granularBlu);
-//
-//			int[] colno = new int[sysListSize];
-//			double[] row = new double[sysListSize];
-//			for(int j=0; j<sysListSize; j++) {
-//
-//				colno[j] = j + 1;
-//				if(supportingSysList.contains(sysList[j])){
-//					row[j] = 1;
-//				}
-//				else {
-//					row[j] = 0;
-//				}
-//			}
-//
-//			try {
-//				if(constraintCalculator(granularBlu, granularBluMap, false) >0){
-//					solver.addConstraintex(sysListSize, row, colno, LpSolve.GE, constraintCalculator(granularBlu, granularBluMap, true));
-//				}
-//			} catch (LpSolveException e) {
-//				e.printStackTrace();
-//			}
-//		}
-//
-//		for(String dataObj: dataMap.keySet()){
-//			List<String> supportingSysList = dataMap.get(dataObj);
-//
-//			int[] colno = new int[sysListSize];
-//			double[] row = new double[sysListSize];
-//			for(int j=0; j<sysListSize; j++) {
-//
-//				colno[j] = j + 1;
-//				if(supportingSysList.contains(sysList[j])){
-//					row[j] = 1;
-//				}
-//				else {
-//					row[j] = 0;
-//				}
-//			}
-//
-//			try {
-//				solver.addConstraintex(sysListSize, row, colno, LpSolve.GE, constraintCalculator(dataObj, dataMap, true));
-//			} catch (LpSolveException e) {
-//				e.printStackTrace();
-//			}
-//		}
 
+		if(additionalConstraints){
+			for(String granularBlu: granularBLUMap.keySet()){
+				List<String> supportingSysList = granularBLUMap.get(granularBlu);
+
+				colno = new int[sysListSize];
+				row = new double[sysListSize];
+				for(int j=0; j<sysListSize; j++) {
+
+					colno[j] = j + 1;
+					if(supportingSysList.contains(sysList[j])){
+						row[j] = -1;
+					}
+					else {
+						row[j] = 0;
+					}
+				}
+
+				try {
+					if(constraintCalculator(granularBlu, granularBLUMap, false) >0){
+						solver.addConstraintex(sysListSize, row, colno, LpSolve.GE, constraintCalculator(granularBlu, granularBLUMap, true));
+					}
+				} catch (LpSolveException e) {
+					e.printStackTrace();
+				}
+			}
+
+			for(String dataObj: dataSystemMap.keySet()){
+				List<String> supportingSysList = dataSystemMap.get(dataObj);
+
+				colno = new int[sysListSize];
+				row = new double[sysListSize];
+				for(int j=0; j<sysListSize; j++) {
+
+					colno[j] = j + 1;
+					if(supportingSysList.contains(sysList[j])){
+						row[j] = -1;
+					}
+					else {
+						row[j] = 0;
+					}
+				}
+
+				try {
+					solver.addConstraintex(sysListSize, row, colno, LpSolve.GE, constraintCalculator(dataObj, dataSystemMap, true));
+				} catch (LpSolveException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
 		System.out.println("ENDURING TOTAL:::"+enduringSystems.size());
 		for(int j=0; j<sysListSize; j++){
 			colno = new int[sysListSize];
@@ -188,7 +188,6 @@ public class ActivityGroupOptimizer extends LPOptimizer{
 				}
 			}
 		}
-
 	}
 
 	private int constraintCalculator(String constraintVariable, Map<String, List<String>> constraintVariables, boolean shouldLog){
@@ -197,19 +196,20 @@ public class ActivityGroupOptimizer extends LPOptimizer{
 		int variableMax = systems.size();
 
 		if(shouldLog){
-			//			System.out.println("Constraint for "+constraintVariable+" has max value of "+variableMax);
+			//System.out.println("Constraint for "+constraintVariable+" has max value of "+variableMax);
 		}
 
-		int constraintValue = Math.max(variableMax, 1); 
-
+		int constraintValue = Math.min(variableMax, 1); 
+		constraintValue = constraintValue - systems.size();
+		
 		if(shouldLog){
-			//			System.out.println("Determined value is of "+constraintVariable+" is "+constraintValue);
-			//			System.out.println();
+			//System.out.println("Determined value is of "+constraintVariable+" is "+constraintValue);
+			//System.out.println();
 		}
 
 		return constraintValue;
 	}
-	
+
 	/**
 	 * Executes the optimization.
 	 */
@@ -259,7 +259,7 @@ public class ActivityGroupOptimizer extends LPOptimizer{
 	 * @param totalYears
 	 * @param replacementPercent
 	 */
-	public void setSystemData(String[] sysNames, Map<String, Double> budgets, Map<String, List<String>> retirementMap, Map<String, Double> riskScoreMap, Map<String, Integer> upstreamInterfaceCount, Map<String, Integer> downstreamInterfaceCount){
+	public void setSystemData(String[] sysNames, Map<String, Double> budgets, Map<String, List<String>> dataMap, Map<String, List<String>> retirementMap, Map<String, List<String>> bluMap, Map<String, Double> riskScoreMap, Map<String, Integer> upstreamInterfaceCount, Map<String, Integer> downstreamInterfaceCount){
 
 		for(String system: sysNames){
 			boolean contained =  false;
@@ -273,6 +273,8 @@ public class ActivityGroupOptimizer extends LPOptimizer{
 			}
 		}
 
+		this.granularBLUMap = bluMap;
+		this.dataSystemMap = dataMap;
 		this.sysListSize = sysNames.length;
 		this.sysList = sysNames;
 		this.sysBudgets = budgets;
@@ -286,13 +288,13 @@ public class ActivityGroupOptimizer extends LPOptimizer{
 	 * @param totalYears
 	 * @param replacementPercent
 	 */
-	public void setOptimizationConstants(int totalSystemCount, boolean limit, double treeMax, double budgetConstraint, double interfaceSustainmentPercent, double interfaceCost){ 
+	public void setOptimizationConstants(int totalSystemCount, boolean additionalConstraintsNeeded, double treeMax, double budgetConstraint, double interfaceSustainmentPercent, double interfaceCost){ 
 		this.interfaceSustainmentPercent = interfaceSustainmentPercent;
 		this.interfaceCost = interfaceCost;
 		this.treeMaxConstant = treeMax;
 		this.budgetConstraint = budgetConstraint;
 		this.totalSystemCount = totalSystemCount;
-		this.limit = limit;
+		this.additionalConstraints = additionalConstraintsNeeded;
 	}
 
 	public double[] getResults(){
