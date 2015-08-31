@@ -298,8 +298,9 @@ public class SimpleTreeBuilder
 	// this is for adding more than one pair of nodes at a time
 	// the node array can be thought of as a row in a table--one node for each type
 	// this assumes that the node array passed in spans the whole width of the table--every type gets a node
-	public synchronized void addNodeArray(ISEMOSSNode... nodeArray)
+	public synchronized SimpleTreeNode addNodeArray(ISEMOSSNode... nodeArray)
 	{
+		SimpleTreeNode leafNode = null;
 		// this case is when data needs to be added to every node type and the full array of nodes is important
 		// I cannot consider each pair in the array individually as once I get to the second pair, I lose it's relationship to the first node
 		// need to keep track of the value nodes I create as I go through the array to only append to the value node I care about
@@ -334,6 +335,7 @@ public class SimpleTreeBuilder
 				retNode = new TreeNode(childSEMOSSNode);
 			}
 			SimpleTreeNode childInstanceNode = new SimpleTreeNode(childSEMOSSNode);
+			leafNode = childInstanceNode;
 			retNode.addInstance(childInstanceNode);
 			
 			SimpleTreeNode.addLeafChild(parentInstanceNode, childInstanceNode);
@@ -342,7 +344,7 @@ public class SimpleTreeBuilder
 			lastAddedNode = parentInstanceNode;
 			parentInstanceNode = childInstanceNode;
 		}
-		
+		return leafNode;
 	}
 
 	// parent node
