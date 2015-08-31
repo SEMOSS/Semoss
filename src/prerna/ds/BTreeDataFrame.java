@@ -59,12 +59,12 @@ import prerna.util.Utility;
 public class BTreeDataFrame implements ITableDataFrame {
 
 	private static final Logger LOGGER = LogManager.getLogger(BTreeDataFrame.class.getName());
-	private SimpleTreeBuilder simpleTree;
-	private String[] levelNames;
-	private List<String> columnsToSkip;
-	private String[] filteredLevelNames;
-	private Map<String, Boolean> isNumericalMap;
-	private Map<String, String> uriMap = new HashMap<String, String>();
+	protected SimpleTreeBuilder simpleTree;
+	protected String[] levelNames;
+	protected List<String> columnsToSkip;
+	protected String[] filteredLevelNames;
+	protected Map<String, Boolean> isNumericalMap;
+	protected Map<String, String> uriMap = new HashMap<String, String>();
 	
 	public BTreeDataFrame(String[] levelNames) {
 		this.simpleTree = new SimpleTreeBuilder(levelNames[0]);
@@ -87,6 +87,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public void addRow(ISelectStatement rowData) {
 		addRow(rowData.getPropHash(), rowData.getRPropHash());
 	}
+	
+	protected void storeRowInTree(ISEMOSSNode[] row){
+		simpleTree.addNodeArray(row);
+	}
 
 	@Override
 	public void addRow(Object[] rowCleanData, Object[] rowRawData) {
@@ -107,7 +111,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 			row[index] = createNodeObject(val, rawVal, levelNames[index]);
 
 		}
-		simpleTree.addNodeArray(row);
+		storeRowInTree(row);
 	}
 	
 	@Override
@@ -133,10 +137,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 			row[index] = createNodeObject(val, rawVal, levelNames[index]);
 
 		}
-		simpleTree.addNodeArray(row);
+		storeRowInTree(row);
 	}
 
-	private ISEMOSSNode createNodeObject(Object value, Object rawValue, String level) {
+	protected ISEMOSSNode createNodeObject(Object value, Object rawValue, String level) {
 		ISEMOSSNode node;
 
 		if(value == null) {
@@ -175,8 +179,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 	//includes filtered values
 	public List<Object[]> getAllData() {
 		List<Object[]> table = new ArrayList<Object[]>();
-		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);	
-		Iterator<Object[]> it = new BTreeIterator(typeRoot, false, columnsToSkip, true);
+//		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);	
+		Iterator<Object[]> it = iteratorAll(false);
 		while(it.hasNext()) {
 			table.add(it.next());
 		}
@@ -1179,6 +1183,11 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public Iterator<Object[]> iterator(boolean getRawData) {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);	
 		return new BTreeIterator(typeRoot, getRawData, columnsToSkip);
+	}
+	
+	public Iterator<Object[]> iteratorAll(boolean getRawData){
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);	
+		return new BTreeIterator(typeRoot, getRawData, columnsToSkip, true);
 	}
 	
 	@Override
