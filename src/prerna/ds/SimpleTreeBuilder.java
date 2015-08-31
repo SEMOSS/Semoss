@@ -1009,13 +1009,13 @@ public class SimpleTreeBuilder
 //******************** FILTER METHODS **************************//
 	
 	
-	public void filterTree(String column, List<ITreeKeyEvaluatable> objectsToFilter) {
+	public void filterTree(List<ITreeKeyEvaluatable> objectsToFilter) {
 		for(ITreeKeyEvaluatable i: objectsToFilter) {
-			filterTree(column, i);
+			filterTree(i);
 		}
 	}
 	
-	public void filterTree(String column, ITreeKeyEvaluatable objectToFilter) {
+	public void filterTree(ITreeKeyEvaluatable objectToFilter) {
 		TreeNode foundNode = this.getNode((ISEMOSSNode)objectToFilter);
 		if(foundNode != null) {
 			List<SimpleTreeNode> nodeList = new ArrayList<SimpleTreeNode>();

@@ -172,24 +172,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return table;
 	}
 	
-	@Override
-	public List<Object[]> getData(int start, int end, boolean rawData) {
-		List<Object[]> returnList = new ArrayList<Object[]>();
-		Iterator<Object[]> iterator = this.iterator(rawData);
-		int numRows = end - start;
-		
-		while(iterator.hasNext() && start > 0) {
-			iterator.next();
-			start--;
-		}
-		
-		while(iterator.hasNext() && numRows > 0) {
-			returnList.add(iterator.next());
-			numRows--;
-		}
-		return returnList;
-	}
-	
 	//includes filtered values
 	public List<Object[]> getAllData() {
 		List<Object[]> table = new ArrayList<Object[]>();
@@ -477,9 +459,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 					}
 					
 				} else {
-//					if(thisTreeNode == null) {
-//						System.out.println("here");
-//					}
 					Vector <SimpleTreeNode> thisInstances = thisTreeNode.getInstances();
 					Vector <SimpleTreeNode> passedInstances = passedTreeNode.getInstances();
 
@@ -1334,7 +1313,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	@Override
 	public void filter(String columnHeader, List<Object> filterValues) {
 		for(Object o: filterValues) {
-			this.simpleTree.filterTree(columnHeader, this.createNodeObject(o, o, columnHeader));
+			this.simpleTree.filterTree(this.createNodeObject(o, o, columnHeader));
 		}
 	}
 
