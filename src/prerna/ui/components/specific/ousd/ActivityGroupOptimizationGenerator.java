@@ -25,7 +25,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 
 	boolean completed = true;
 	boolean constraints = false;
-	
+
 	OUSDTimeline timeline = new OUSDTimeline();
 	IEngine roadmapEngine;
 	ActivityGroupRiskCalculator calc = new ActivityGroupRiskCalculator();
@@ -63,6 +63,8 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	Map<String, Double> maxFIHT = new HashMap<String, Double>();
 	double treeMax = 0.0;
 
+	Map<Integer, Map<String, Double>> investmentMap = new HashMap<Integer, Map<String, Double>>();
+	
 	@Override
 	public void createTimeline(IEngine engine){
 		roadmapEngine = engine;
@@ -100,7 +102,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 
 		interfaceCountMap = OUSDQueryHelper.getSystemToSystemDataWithSystemBind(roadmapEngine, sysBindingsString);
 		dataSystemMap = OUSDQueryHelper.getDataCreatedBySystem(roadmapEngine, sysBindingsString);
-		
+
 		retirementMap = OUSDQueryHelper.getSystemsByRetirementType(roadmapEngine, sysBindingsString);	
 		sdsMap = OUSDQueryHelper.getSystemToSystemData(roadmapEngine);
 
@@ -125,7 +127,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 				}
 			}
 		}
-		
+
 		bluDataSystemMap = OUSDPlaysheetHelper.combineMaps(activityDataSystemMap, activityBluSystemMap);		
 		calc.setBluMap(bluDataSystemMap);
 
@@ -198,6 +200,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 					timeline.addSystemTransition(year, system, "");
 				}
 			}
+			buildInvestmentMap(decomList);
 			updateSystemList(keptSystems);
 			updateInterfaceCounts(keptSystems, decomList);
 			updateBudgetConstraint(decomList);
@@ -286,9 +289,9 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	}
 
 	private void updateDataSystemMap(List<String> decomList){
-		
+
 		Map<String, List<String>> tempMap = new HashMap<String, List<String>>();
-		
+
 		for(String data: dataSystemMap.keySet()){
 			List<String> supportingSystems = dataSystemMap.get(data);
 			List<String> remainingSystems = new ArrayList<String>();
@@ -301,14 +304,14 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 			}
 			tempMap.put(data, supportingSystems);
 		}
-		
+
 		dataSystemMap = tempMap;
 	}
-	
+
 	private void updateGranularBLUMap(List<String> decomList){
-		
+
 		Map<String, List<String>> tempMap = new HashMap<String, List<String>>();
-		
+
 		for(String blu: granularBLUMap.keySet()){
 			List<String> supportingSystems = granularBLUMap.get(blu);
 			List<String> remainingSystems = new ArrayList<String>();
@@ -321,10 +324,10 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 			}
 			tempMap.put(blu, remainingSystems);
 		}
-		
+
 		granularBLUMap = tempMap;
 	}
-	
+
 	/**
 	 * @param removedSystems
 	 */
@@ -413,6 +416,25 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	public Object getVariable(String varName, ISelectStatement sjss){
 		Object var = sjss.getVar(varName);
 		return var;
+	}
+
+	/**
+	 * @param decomList
+	 */
+	public void buildInvestmentMap(List<String> decomList){
+
+		for(String system: decomList){
+			if(investmentMap.keySet().contains(year)){
+				Map<String, Double> yearMap = investmentMap.get(year);
+				yearMap.put(system, currentDownstreamInterfaceCount.get(system)*interfaceCost);
+				investmentMap.put(year, yearMap);
+			}else{
+				Map<String, Double> newYearMap = new HashMap<String, Double>();
+				newYearMap.put(system, currentDownstreamInterfaceCount.get(system)*interfaceCost);
+				investmentMap.put(year, newYearMap);
+			}
+		}
+		timeline.setSystemInvestmentMap(investmentMap);
 	}
 
 	@Override

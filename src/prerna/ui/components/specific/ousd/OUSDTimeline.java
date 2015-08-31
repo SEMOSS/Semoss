@@ -21,6 +21,15 @@ public class OUSDTimeline {
 	private Map<String, List<String>> dataSystemMap = new HashMap<String, List<String>>(); //map of data objects to supporting systems
 	private Map<String, List<String>> granularBLUMap = new HashMap<String, List<String>>(); //map of granular blu to supporting systems
 	private Map<String, List<String>> retirementMap = new HashMap<String, List<String>>(); //map of granular blu to supporting systems
+	private Map<Integer, Map<String, Double>> systemInvestmentMap = new HashMap<Integer, Map<String, Double>>();//map of year->map of system->investment amount (new interface cost)
+	
+	public void setSystemInvestmentMap (Map<Integer, Map<String, Double>> investmentMap){
+		this.systemInvestmentMap = investmentMap;
+	}
+	
+	public Map<Integer, Map<String, Double>> getSystemInvestmentMap(){
+		return this.systemInvestmentMap;
+	}
 	
 	public void setTimeData(List<Map<String, List<String>>> timeData){
 		this.timeData = timeData;
@@ -294,14 +303,19 @@ public class OUSDTimeline {
 			
 			Iterator<String> fyDataIt = fyData.keySet().iterator();
 			Double savings = 0.0;
+			Double cost = 0.0;
 			while(fyDataIt.hasNext()){
 				String decoSys = fyDataIt.next();
 				Double sysSavings = this.systemBudgetMap.get(decoSys);
 				savings = savings + sysSavings;
+				
+				Double investmentCost = this.systemInvestmentMap.get(year).get(decoSys);
+				cost = cost + investmentCost;
 			}
-			Object[] row = new Object[2];
+			Object[] row = new Object[3];
 			row[0] = year;
 			row[1] = savings;
+			row[2] = cost;
 			costSavingsData.add(row);
 		}
 		
@@ -309,7 +323,7 @@ public class OUSDTimeline {
 	}
 	
 	public String[] getCostSavingsHeaders(){
-		return new String[] {"Transition Year", "Savings"};
+		return new String[] {"Transition Year", "Savings", "Investment Cost"};
 	}
 	
 	public String getCostSavingsTitle(){
@@ -351,6 +365,3 @@ public class OUSDTimeline {
 	}
 	
 }
-
-
-
