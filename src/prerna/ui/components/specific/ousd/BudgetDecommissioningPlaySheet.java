@@ -11,7 +11,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.OrderedBTreeDataFrame;
 import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.PlaySheetEnum;
@@ -79,7 +79,7 @@ public class BudgetDecommissioningPlaySheet extends GridPlaySheet{
 		String[] updatedNames = updateColumnNames(names);
 		List<Object[]> budgetSystemList = new ArrayList<Object[]>();
 
-		this.dataFrame = new BTreeDataFrame(updatedNames);
+		this.dataFrame = new OrderedBTreeDataFrame(updatedNames);
 //		this.names = updatedNames;
 //		this.list = new ArrayList<Object[]>();
 

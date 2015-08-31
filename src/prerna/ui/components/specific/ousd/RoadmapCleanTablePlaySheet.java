@@ -5,7 +5,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.OrderedBTreeDataFrame;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
 public class RoadmapCleanTablePlaySheet extends GridPlaySheet{
@@ -43,7 +43,7 @@ public class RoadmapCleanTablePlaySheet extends GridPlaySheet{
 		}
 		columns[count] = "Total";
 
-		this.dataFrame = new BTreeDataFrame(columns);
+		this.dataFrame = new OrderedBTreeDataFrame(columns);
 
 		createTable(timeline, systemYears, budgets, sdsMap);
 	}

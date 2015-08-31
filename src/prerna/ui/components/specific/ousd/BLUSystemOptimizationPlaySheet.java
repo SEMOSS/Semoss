@@ -13,7 +13,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.OrderedBTreeDataFrame;
 import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
@@ -102,7 +102,7 @@ public class BLUSystemOptimizationPlaySheet extends GridPlaySheet{
 			newNames[i] = names[i];
 		}
 		newNames[names.length] = "Kept";
-		ITableDataFrame newFrame = new BTreeDataFrame(newNames);
+		ITableDataFrame newFrame = new OrderedBTreeDataFrame(newNames);
 		
 //		for(Object[] curRow : this.list){
 		Iterator<Object[]> rowIt = this.dataFrame.iterator(false);

@@ -11,7 +11,7 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.OrderedBTreeDataFrame;
 import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
@@ -155,7 +155,7 @@ public class SystemRiskVisualizationPlaySheet extends GridPlaySheet{
 
 	private void createTable(Map<String, Double> bluSysResults, Map<String, Double> dataSysResults, Map<String, Double> bluDataSysResults, Map<String, List<String>> criticalSysMap){
 //		this.list = new ArrayList<Object[]>();
-		this.dataFrame = new BTreeDataFrame(new String[]{"System", "BLU Risk Score", "BLU Percent Difference", "Data Risk Score", "Data Percent Difference", "BLU-Data Risk Score", "BLU-Data Percent Difference", "Lost BLU / Data"});
+		this.dataFrame = new OrderedBTreeDataFrame(new String[]{"System", "BLU Risk Score", "BLU Percent Difference", "Data Risk Score", "Data Percent Difference", "BLU-Data Risk Score", "BLU-Data Percent Difference", "Lost BLU / Data"});
 		Iterator<String> keyIt = bluSysResults.keySet().iterator();
 		while(keyIt.hasNext()){
 			String myGroup = keyIt.next();

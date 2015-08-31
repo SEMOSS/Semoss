@@ -5,7 +5,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.OrderedBTreeDataFrame;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
 public class RoadmapPlaySheet extends GridPlaySheet{
@@ -29,7 +29,7 @@ public class RoadmapPlaySheet extends GridPlaySheet{
 		columns[3] = "Affected System";
 		columns[4] = "Lost Data";
 
-		this.dataFrame = new BTreeDataFrame(columns);
+		this.dataFrame = new OrderedBTreeDataFrame(columns);
 
 		try{
 			timeline = OUSDPlaysheetHelper.buildTimeline(this.engine, roadmapName);
