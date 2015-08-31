@@ -70,14 +70,8 @@ public class OrderedBTreeDataFrame extends BTreeDataFrame {
 	public Iterator<Object[]> iterator(boolean getRawData) {
 		return new OrderedBTreeIterator(this.orderedLeafs, getRawData, columnsToSkip);
 	}
-
-	//includes filtered values
-	public List<Object[]> getAllData() {
-		List<Object[]> table = new ArrayList<Object[]>();
-		Iterator<Object[]> it = new OrderedBTreeIterator(this.orderedLeafs, false, columnsToSkip, true);
-		while(it.hasNext()) {
-			table.add(it.next());
-		}
-		return table;
+	
+	public Iterator<Object[]> iteratorAll(boolean getRawData){
+		return new OrderedBTreeIterator(this.orderedLeafs, getRawData, columnsToSkip, true);
 	}
 }
