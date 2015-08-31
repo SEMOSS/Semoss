@@ -227,7 +227,7 @@ public class ImportDataProcessorTest {
 	@Test
 	public void Test_CreateNew_EXCEL() throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException{
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.CREATE_NEW;
-		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.EXCEL;	
+		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.EXCEL_POI;	
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
 		prerna.util.sql.SQLQueryUtil.DB_TYPE rdbmsType = prerna.util.sql.SQLQueryUtil.DB_TYPE.H2_DB;//set for RDBMS
 		boolean allowDuplicates = true;//used by RDBMS
@@ -357,7 +357,7 @@ public class ImportDataProcessorTest {
 		makeExcel();
 		
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.ADD_TO_EXISTING;
-		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.EXCEL;
+		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.EXCEL_POI;
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
 		prerna.util.sql.SQLQueryUtil.DB_TYPE rdbmsType = prerna.util.sql.SQLQueryUtil.DB_TYPE.H2_DB;//set for RDBMS
 		boolean allowDuplicates = true;
@@ -475,7 +475,7 @@ public class ImportDataProcessorTest {
 		makeExcel();
 		
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.OVERRIDE;
-		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.EXCEL;
+		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.EXCEL_POI;
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
 		prerna.util.sql.SQLQueryUtil.DB_TYPE rdbmsType = prerna.util.sql.SQLQueryUtil.DB_TYPE.H2_DB;//set for RDBMS
 		boolean allowDuplicates = true;
@@ -531,7 +531,7 @@ public class ImportDataProcessorTest {
 	 */
 	private void makeExcel() throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException{
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.CREATE_NEW;
-		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.EXCEL;	
+		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.EXCEL_POI;	
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
 		prerna.util.sql.SQLQueryUtil.DB_TYPE rdbmsType = prerna.util.sql.SQLQueryUtil.DB_TYPE.H2_DB;//set for RDBMS
 		boolean allowDuplicates = true;

@@ -109,8 +109,10 @@ public class ImportDataListener implements IChakraListener {
 		String typeSelection = typeBox.getSelectedItem() +"";
 		if(typeSelection.equals("CSV format"))
 			importType = ImportDataProcessor.IMPORT_TYPE.CSV;
-		else if(typeSelection.equals("Microsoft Excel format"))
+		else if(typeSelection.equals("Microsoft Excel Table Format"))
 			importType = ImportDataProcessor.IMPORT_TYPE.EXCEL;
+		else if(typeSelection.equals("Microsoft Excel Loader Sheet Format"))
+			importType = ImportDataProcessor.IMPORT_TYPE.EXCEL_POI;
 		else if(typeSelection.equals("Natural Language Processing"))
 			importType = ImportDataProcessor.IMPORT_TYPE.NLP;
 		else if(typeSelection.equals("Optical Character Recognition + NLP"))

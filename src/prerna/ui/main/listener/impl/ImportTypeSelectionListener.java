@@ -91,7 +91,7 @@ public class ImportTypeSelectionListener extends AbstractListener {
 		if(selection.equals("Add to existing database engine") )
 		{
 			typeBox.setVisible(true);
-			typeBox.setModel(new DefaultComboBoxModel(new String[] {"Microsoft Excel format", "CSV format"}));
+			typeBox.setModel(new DefaultComboBoxModel(new String[] {"Microsoft Excel Table Format", "CSV format", "Microsoft Excel Loader Sheet Format"}));
 			typeLbl.setVisible(true);
 			importPanel.setVisible(true);
 			lblDBName.setVisible(false);
@@ -116,7 +116,7 @@ public class ImportTypeSelectionListener extends AbstractListener {
 		{
 			typeBox.setVisible(true);
 			typeBox.removeAll();
-			typeBox.setModel(new DefaultComboBoxModel(new String[] {"Microsoft Excel format"}));
+			typeBox.setModel(new DefaultComboBoxModel(new String[] {"Microsoft Excel Loader Sheet Format"}));
 			typeBox.setSelectedIndex(0);
 			typeLbl.setVisible(true);
 			importPanel.setVisible(true);
@@ -141,7 +141,7 @@ public class ImportTypeSelectionListener extends AbstractListener {
 		else if (selection.equals("Create new database engine"))
 		{
 			typeBox.setVisible(true);
-			typeBox.setModel(new DefaultComboBoxModel(new String[] {"Microsoft Excel format", "CSV format", "Natural Language Processing", "Optical Character Recognition + NLP"}));
+			typeBox.setModel(new DefaultComboBoxModel(new String[] {"Microsoft Excel Table Format", "CSV format", "Microsoft Excel Loader Sheet Format", "Natural Language Processing", "Optical Character Recognition + NLP"}));
 			typeLbl.setVisible(true);
 			importPanel.setVisible(true);
 			lblDBName.setVisible(true);
@@ -166,7 +166,7 @@ public class ImportTypeSelectionListener extends AbstractListener {
 		else if (selection.equals("Create new RDBMS connection")) {
 			typeBox.setVisible(true);
 			typeBox.removeAll();
-			typeBox.setModel(new DefaultComboBoxModel(new String[] {"Microsoft Excel format"}));
+			typeBox.setModel(new DefaultComboBoxModel(new String[] {"Microsoft Excel Format"}));
 			typeLbl.setVisible(true);
 			importPanel.setVisible(true);
 			lblDBName.setVisible(true);
