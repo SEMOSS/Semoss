@@ -57,7 +57,9 @@ public class IndexTreeIterator implements Iterator<TreeNode> {
 	 * Using logic to only add left child and when the node does not have a right-sibling to add the right child
 	 */
 	private void addNextNodesToStack(TreeNode parentNode) {
-		nodeStack.push(parentNode);
+		if (parentNode.instanceNode.size() + parentNode.filteredInstanceNode.size() > 0) {
+			nodeStack.push(parentNode);
+		}
 		if(parentNode.leftChild != null) {
 			addNextNodesToStack(parentNode.leftChild);
 		}
