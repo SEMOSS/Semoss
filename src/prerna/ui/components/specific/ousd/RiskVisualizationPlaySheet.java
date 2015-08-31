@@ -10,7 +10,7 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.OrderedBTreeDataFrame;
 import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
@@ -76,7 +76,7 @@ public class RiskVisualizationPlaySheet extends GridPlaySheet{
 	}
 	
 	private void createTable(Map<String, Double> results, Map<String, List<String>> activityMap){
-		this.dataFrame = new BTreeDataFrame(new String[]{"Activity", "Activity Group", "Risk Score"});
+		this.dataFrame = new OrderedBTreeDataFrame(new String[]{"Activity", "Activity Group", "Risk Score"});
 //		this.list = new ArrayList<Object[]>();
 		Iterator<String> keyIt = results.keySet().iterator();
 		while(keyIt.hasNext()){
@@ -94,7 +94,7 @@ public class RiskVisualizationPlaySheet extends GridPlaySheet{
 	}
 	
 	private void createTable(Map<String, Double> bluSysResults, Map<String, Double> dataSysResults, Map<String, Double> bluDataSysResults, Map<String, List<String>> activityMap){
-		this.dataFrame = new BTreeDataFrame(new String[]{"Activity", "Activity Group", "BLU Risk Score", "Data Risk Score", "BLU-Data Risk Score"});
+		this.dataFrame = new OrderedBTreeDataFrame(new String[]{"Activity", "Activity Group", "BLU Risk Score", "Data Risk Score", "BLU-Data Risk Score"});
 		Iterator<String> keyIt = bluSysResults.keySet().iterator();
 		while(keyIt.hasNext()){
 			String myGroup = keyIt.next();

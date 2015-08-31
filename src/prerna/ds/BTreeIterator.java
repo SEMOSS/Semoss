@@ -6,7 +6,7 @@ import java.util.List;
 
 public class BTreeIterator implements Iterator<Object[]> {
 
-	private Iterator<SimpleTreeNode> iterator;
+	protected Iterator<SimpleTreeNode> iterator;
 	private boolean useRawData;
 	private List<String> columns2skip;
 	

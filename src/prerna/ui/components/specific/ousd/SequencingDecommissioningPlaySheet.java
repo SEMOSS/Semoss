@@ -40,7 +40,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.OrderedBTreeDataFrame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -237,7 +237,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 				if(this.dataFrame == null){
 					String[] names = new String[namesList.size()];
 					names = namesList.toArray(names);
-					this.dataFrame = new BTreeDataFrame(names);
+					this.dataFrame = new OrderedBTreeDataFrame(names);
 				}
 				for(String act: acts) {
 					Object[] depObj = new Object[namesList.size()];

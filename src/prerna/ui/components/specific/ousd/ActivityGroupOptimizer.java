@@ -84,7 +84,7 @@ public class ActivityGroupOptimizer extends LPOptimizer{
 		 */
 		for(String system: sysList){
 			colno[i] = i + 1;
-			row[i] = treeMaxConstant * (double) (1-riskScoreMap.get(system)) * (double) sysBudgets.get(system);
+			row[i] = treeMaxConstant * (1-riskScoreMap.get(system)) * sysBudgets.get(system);
 			i++;
 		}
 

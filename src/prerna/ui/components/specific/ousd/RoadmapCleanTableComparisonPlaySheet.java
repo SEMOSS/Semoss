@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.OrderedBTreeDataFrame;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
 public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
@@ -62,7 +62,7 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 			columns[count] = year+"";
 			count++;
 		}
-		this.dataFrame = new BTreeDataFrame(columns);
+		this.dataFrame = new OrderedBTreeDataFrame(columns);
 
 		createTable(yearList, timeline, fyList, comparatorTimeline, comparatorFyList);
 	}
