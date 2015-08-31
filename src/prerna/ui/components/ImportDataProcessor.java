@@ -49,6 +49,7 @@ import prerna.error.HeaderClassException;
 import prerna.error.InvalidUploadFormatException;
 import prerna.error.NLPException;
 import prerna.poi.main.CSVReader;
+import prerna.poi.main.RdfExcelTableReader;
 import prerna.poi.main.NLPReader;
 import prerna.poi.main.OntologyFileWriter;
 import prerna.poi.main.POIReader;
@@ -65,7 +66,7 @@ public class ImportDataProcessor {
 	static final Logger logger = LogManager.getLogger(ImportDataProcessor.class.getName());
 
 	public enum IMPORT_METHOD {CREATE_NEW, ADD_TO_EXISTING, OVERRIDE, RDBMS};
-	public enum IMPORT_TYPE {CSV, NLP, EXCEL, OCR};
+	public enum IMPORT_TYPE {CSV, NLP, EXCEL_POI, EXCEL, OCR};
 	public enum DB_TYPE {RDF,RDBMS};
 
 	private String baseDirectory;
@@ -104,13 +105,14 @@ public class ImportDataProcessor {
 		}
 	}
 
+	
 	// need to add a dbtype here
 	public void processAddToExisting(IMPORT_TYPE importType, String customBaseURI, String fileNames, String dbName, DB_TYPE dbType, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws EngineException, FileReaderException, HeaderClassException, FileWriterException {
 		//get the engine information
 		//DB_TYPE dbType = DB_TYPE.RDF;// to be removed when enabling the csv wire
 		String mapPath = baseDirectory + "/" + DIHelper.getInstance().getProperty(dbName+"_"+Constants.ONTOLOGY);
 		String owlPath = baseDirectory + "/" + DIHelper.getInstance().getProperty(dbName+"_"+Constants.OWL);
-		if(importType == IMPORT_TYPE.EXCEL)
+		if(importType == IMPORT_TYPE.EXCEL_POI)
 		{
 			POIReader reader = new POIReader();
 			//run the reader
@@ -126,6 +128,28 @@ public class ImportDataProcessor {
 					reader.relationURIHash,  reader.baseRelationURIHash, 
 					reader.basePropURI);
 		}
+		
+		else if (importType == IMPORT_TYPE.EXCEL && dbType == DB_TYPE.RDF)
+		{
+			RdfExcelTableReader excelReader = new RdfExcelTableReader();
+			//If propHash has not been set, we are coming from semoss and need to read the propFile
+			//If propHash has been set, we are coming from monolith and are pulling propHash from the metamodel builder
+			if(propHashArr != null) {
+				excelReader.setRdfMapArr(propHashArr);
+			}
+			//run the reader
+			try {
+				excelReader.importFileWithConnection(dbName, fileNames, customBaseURI, owlPath);
+			} catch (InvalidUploadFormatException e) {
+				e.printStackTrace();
+			}
+			//run the ontology augmentor
+			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
+			ontologyWriter.runAugment(mapPath, excelReader.conceptURIHash, excelReader.baseConceptURIHash, 
+					excelReader.relationURIHash,  excelReader.baseRelationURIHash, 
+					excelReader.basePropURI);
+		}
+		
 		else if (importType == IMPORT_TYPE.CSV && dbType == DB_TYPE.RDF)
 		{
 			CSVReader csvReader = new CSVReader();
@@ -173,7 +197,7 @@ public class ImportDataProcessor {
 		String owlPath = baseDirectory + "/" + propWriter.owlFile;
 
 		//then process based on what type of file
-		if(importType == IMPORT_TYPE.EXCEL && dbType == DB_TYPE.RDF)
+		if(importType == IMPORT_TYPE.EXCEL_POI && dbType == DB_TYPE.RDF)
 		{
 			POIReader reader = new POIReader();
 			try {
@@ -195,6 +219,41 @@ public class ImportDataProcessor {
 			ontologyWriter.runAugment(ontoPath, reader.conceptURIHash, reader.baseConceptURIHash, 
 					reader.relationURIHash, reader.baseRelationURIHash,
 					reader.basePropURI);
+
+			File propFile = new File(propWriter.propFileName);
+			File newProp = new File(propWriter.propFileName.replace("temp", "smss"));
+			try {
+				FileUtils.copyFile(propFile, newProp);
+				newProp.setReadable(true);
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw new FileWriterException("Could not create .smss file for new database");
+			}
+			try {
+				FileUtils.forceDelete(propFile);
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw new FileWriterException("Could not delete .temp file for new database");
+			}
+		}
+		else if (importType == IMPORT_TYPE.EXCEL && dbType == DB_TYPE.RDF)
+		{
+			RdfExcelTableReader ExcelReader = new RdfExcelTableReader();
+			//If propHash has not been set, we are coming from semoss and need to read the propFile
+			//If propHash has been set, we are coming from monolith and are pulling propHash from the metamodel builder
+			if(propHashArr != null) {
+				ExcelReader.setRdfMapArr(propHashArr);
+			}
+			try {
+				ExcelReader.importFileWithOutConnection(propWriter.propFileName, dbName,fileNames, customBaseURI, owlPath);
+			} catch (InvalidUploadFormatException e1) {
+				e1.printStackTrace();
+			}
+
+			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
+			ontologyWriter.runAugment(ontoPath, ExcelReader.conceptURIHash, ExcelReader.baseConceptURIHash, 
+					ExcelReader.relationURIHash, ExcelReader.baseRelationURIHash, 
+					ExcelReader.basePropURI);
 
 			File propFile = new File(propWriter.propFileName);
 			File newProp = new File(propWriter.propFileName.replace("temp", "smss"));
@@ -336,7 +395,7 @@ public class ImportDataProcessor {
 	 * @param owlFile String
 	 */
 	public boolean processOverride(IMPORT_TYPE importType, String customBaseURI, String fileNames, String repoName) {
-		if(importType == IMPORT_TYPE.EXCEL){
+		if(importType == IMPORT_TYPE.EXCEL_POI){
 			boolean success = true;
 			POIReader reader = new POIReader();
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(repoName);
