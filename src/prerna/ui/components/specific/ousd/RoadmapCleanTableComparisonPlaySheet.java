@@ -89,7 +89,7 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		Object[] row = new Object[names.length];
 		row[0] = this.roadmapName;
 		Object[] rowCost = new Object[names.length];
-		rowCost[0] = this.roadmapName + " Cost";
+		rowCost[0] = this.roadmapName + " Build Cost";
 		Object[] rowSustainCost = new Object[names.length];
 		rowSustainCost[0] = this.roadmapName + " Sustainment Cost";
 
@@ -98,7 +98,7 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		Object[] comparatorRow = new Object[names.length];
 		comparatorRow[0] = this.comparatorName;
 		Object[] rowCostComp = new Object[names.length];
-		rowCostComp[0] = this.comparatorName + " Cost";
+		rowCostComp[0] = this.comparatorName + " Build Cost";
 		Object[] rowSustainCostComp = new Object[names.length];
 		rowSustainCostComp[0] = this.comparatorName + " Sustainment Cost";
 		Object[] cumulativeSavingComp = new Object[names.length];
