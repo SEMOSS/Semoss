@@ -41,6 +41,10 @@ public class IndexTreeIterator implements Iterator<TreeNode> {
 			addNextNodesToStack(returnNode.rightChild);
 		}
 
+		if(returnNode.instanceNode.size() + returnNode.filteredInstanceNode.size() == 0) {
+			//FIXME: this will cause an error in the event the last node in the Index Tree is 'logically deleted'
+			return next();
+		}
 		return returnNode;
 	}
 
@@ -57,9 +61,8 @@ public class IndexTreeIterator implements Iterator<TreeNode> {
 	 * Using logic to only add left child and when the node does not have a right-sibling to add the right child
 	 */
 	private void addNextNodesToStack(TreeNode parentNode) {
-		if (parentNode.instanceNode.size() + parentNode.filteredInstanceNode.size() > 0) {
-			nodeStack.push(parentNode);
-		}
+		nodeStack.push(parentNode);
+		
 		if(parentNode.leftChild != null) {
 			addNextNodesToStack(parentNode.leftChild);
 		}
