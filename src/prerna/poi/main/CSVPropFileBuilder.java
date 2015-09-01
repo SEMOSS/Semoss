@@ -35,16 +35,10 @@ public class CSVPropFileBuilder{
 
 	private StringBuilder relationships = new StringBuilder();
 	private StringBuilder node_properties = new StringBuilder();	
-	
 	private Hashtable<String, String> propHash = new Hashtable<String, String>();
 	private Hashtable<String, String> dataTypeHash = new Hashtable<String, String>();
 	
 	private StringBuilder propFile = new StringBuilder();
-	
-	public CSVPropFileBuilder(){
-		propFile.append("START_ROW\t2\n");
-		propFile.append("END_ROW\t100000\n");
-	}
 	
 	public void addProperty(ArrayList<String> sub, ArrayList<String> obj, String dataType) {
 		Iterator<String> subIt = sub.iterator();
@@ -107,6 +101,8 @@ public class CSVPropFileBuilder{
 		propHash.put("NODE_PROP", node_properties.toString());
 		propHash.put("RELATION_PROP", "");
 		
+		propFile.append("START_ROW\t" + startRowNumAsString + "\n");
+		propFile.append("END_ROW\t" + endRowNumAsString + "\n");
 		propFile.append("RELATION\t" + relationships.toString() + "\n");
 		propFile.append("NODE_PROP\t" + node_properties.toString() + "\n");
 		propFile.append("RELATION_PROP\t \n");
