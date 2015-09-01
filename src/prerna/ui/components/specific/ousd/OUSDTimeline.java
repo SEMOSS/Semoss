@@ -22,7 +22,17 @@ public class OUSDTimeline {
 	private Map<String, List<String>> granularBLUMap = new HashMap<String, List<String>>(); //map of granular blu to supporting systems
 	private Map<String, List<String>> retirementMap = new HashMap<String, List<String>>(); //map of granular blu to supporting systems
 	private List<Map<String, Double>> systemInvestmentMap;//map of year->map of system->investment amount (new interface cost)
+	private List<Map<String, Double>> interfaceSustainmentMap;//map of year->map of system->investment amount (new interface cost)
 	
+	public List<Map<String, Double>> getInterfaceSustainmentMap() {
+		return interfaceSustainmentMap;
+	}
+
+	public void setInterfaceSustainmentMap(
+			List<Map<String, Double>> interfaceSustainmentMap) {
+		this.interfaceSustainmentMap = interfaceSustainmentMap;
+	}
+
 	public void setSystemInvestmentMap (List<Map<String, Double>> investmentMap){
 		this.systemInvestmentMap = investmentMap;
 	}

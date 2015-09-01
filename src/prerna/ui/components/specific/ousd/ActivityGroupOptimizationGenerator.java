@@ -63,6 +63,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	double treeMax = 0.0;
 
 	List<Map<String, Double>> investmentMap = new ArrayList<Map<String, Double>>();
+	List<Map<String, Double>> sustainmentMap = new ArrayList<Map<String, Double>>();
 	
 	@Override
 	public void createTimeline(IEngine engine){
@@ -200,6 +201,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 				}
 			}
 			buildInvestmentMap(decomList);
+			buildSustainmentMap(keptSystems);
 			updateSystemList(keptSystems);
 			updateInterfaceCounts(keptSystems, decomList);
 			updateBudgetConstraint(decomList, keptSystems);
@@ -340,15 +342,17 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	 * @param removedSystems
 	 */
 	private void updateInterfaceCounts(List<String> keptSystems, List<String> decomList){
-
-		//this method calculates the alpha
-		Map<String, Integer> values = new HashMap<String, Integer>();
-
+		
+		//remove decommissioning systems
+		for(String decomSystem: decomList){
+			if(upstreamInterfaceCount.keySet().contains(decomSystem)){
+				upstreamInterfaceCount.remove(decomSystem);
+			}
+		}
+		
+		//update list for remaining systems
 		for(String system: keptSystems){
 			int localInterfaceCount = 0;
-			if(values.keySet().contains(system)){
-				continue;
-			}
 
 			if(interfaceCountMap.keySet().contains(system) && !decommissionedSystems.contains(system)){
 				//list of enduring systems
@@ -363,6 +367,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 			}
 			upstreamInterfaceCount.put(system, localInterfaceCount);
 		}
+		
 	}
 
 	/**
@@ -437,6 +442,17 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 		}
 		investmentMap.add(newYearMap);
 		timeline.setSystemInvestmentMap(investmentMap);
+	}
+	
+	public void buildSustainmentMap(List<String> keptSystems){
+		
+		Map<String, Double> newYearMap = new HashMap<String, Double>();
+		for(String system: keptSystems){
+			newYearMap.put(system, (upstreamInterfaceCount.get(system))*interfaceCost*interfaceSustainmentPercent);
+		}
+		
+		sustainmentMap.add(newYearMap);
+		timeline.setInterfaceSustainmentMap(sustainmentMap);
 	}
 
 	@Override
