@@ -189,7 +189,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 				keptSystems = opt.getKeptSystems();
 
 				decomList = getDecommissionedSystems(keptSystems);
-				replacementThresholdReached = determineCostPenalties(decomList, keptSystems);
+				replacementThresholdReached = determineExitStrategy(decomList, keptSystems);
 
 				//DELETES THE MODEL
 				opt.deleteModel();
@@ -215,8 +215,10 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	/**
 	 * @param decomList
 	 */
-	private boolean determineCostPenalties(List<String> decomList, List<String> keptSystems){
+	private boolean determineExitStrategy(List<String> decomList, List<String> keptSystems){
 
+		boolean fullExit = true;
+		
 		for(String system: keptSystems){
 			List<List<String>> downstreams = sdsMap.get(system);
 			int removedSystemCount = 0;
@@ -237,7 +239,22 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 			}
 		}
 
-
+		for(String system: decomList){
+			if(retirementMap.get("F").contains(system) || retirementMap.get("P").contains(system) || retirementMap.get("TBD").contains(system)){
+				continue;
+			}else{
+				fullExit=false;
+			}
+		}
+		
+		for(String system: keptSystems){
+			if(!retirementMap.get("F").contains(system) && !retirementMap.get("P").contains(system) && !retirementMap.get("TBD").contains(system)){
+				continue;
+			}else{
+				fullExit=false;
+			}
+		}
+		
 		Collections.sort(decomList);
 
 		if(previousValues.contains(decomList)){
@@ -245,8 +262,13 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 			previousValues.clear();
 			this.originalDownstreamInterfaceCount.putAll(this.currentDownstreamInterfaceCount);
 			return false;
+		}else if(fullExit){
+			System.out.println("Optimization kept everything. All remaining system provide unique BLU/Data. Decommissioning everything except enduring systems.");
+			previousValues.clear();
+			completed = false;
+			return false;
 		}else if(decomList.size()==0){
-			System.err.println("Optimization kept everything. All remaining system provide unique BLU/Data. Decommissioning everything except enduring systems.");
+			System.err.println("No systems to decommission? Something may be wrong. Decommissioning everything.");
 			for(String system: keptSystems){
 				if(retirementMap.get("F").contains(system) || retirementMap.get("P").contains(system) || retirementMap.get("TBD").contains(system)){
 					decomList.add(system);
