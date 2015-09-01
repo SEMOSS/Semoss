@@ -446,8 +446,8 @@ public class CSVReader extends AbstractFileReader {
 			}
 		} catch(SuperCsvCellProcessorException e) {
 			e.printStackTrace();
-			String errorMessage = "Error processing row number " + count + ".\n";
-			errorMessage += e.getMessage() + "\n";
+			String errorMessage = "Error processing row number " + count + ". ";
+			errorMessage += e.getMessage();
 			throw new FileReaderException(errorMessage);
 		} catch (IOException e) {
 			e.printStackTrace();
