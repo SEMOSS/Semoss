@@ -88,15 +88,21 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		Map<String, Double> budgets = timeline.getBudgetMap();
 		Object[] row = new Object[names.length];
 		row[0] = this.roadmapName;
+		Object[] rowCost = new Object[names.length];
+		rowCost[0] = this.roadmapName + " Cost";
 
 		List<Map<String, List<String>>> comparatorYears = comparatorTimeline.getTimeData();
 		Map<String, Double> comparatorBudgets = comparatorTimeline.getBudgetMap();
 		Object[] comparatorRow = new Object[names.length];
 		comparatorRow[0] = this.comparatorName;
+		Object[] rowCostComp = new Object[names.length];
+		rowCostComp[0] = this.comparatorName + " Cost";
 
 		
 		NumberFormat formatter = NumberFormat.getCurrencyInstance(Locale.US);
-		
+
+		List<Map<String, Double>> invest = timeline.getSystemInvestmentMap();
+		List<Map<String, Double>> investComparator = comparatorTimeline.getSystemInvestmentMap();
 		for(int i = names.length-1; i>0; i--){
 			int year = yearList.get(i-1);
 			if(fyList.contains(year)){
@@ -112,6 +118,15 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 				}
 				String formattedTotal = formatter.format(yearTotal);
 				row[i] = formattedTotal;
+				
+				if(invest!=null){
+					Map<String, Double> yearInvest = invest.get(yearIdx);
+					double totalInvest = 0.;
+					for(Double val : yearInvest.values()){
+						totalInvest = totalInvest + val;
+					}
+					rowCost[i] = formatter.format(totalInvest);
+				}
 			}
 			if(comparatorFyList.contains(year)){
 				int yearIdx = comparatorTimeline.getFyIndexFiscalYear(year);	
@@ -126,9 +141,20 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 				}
 				String formattedTotal = formatter.format(yearTotal);
 				comparatorRow[i] = formattedTotal;
+
+				if(investComparator!=null){
+					Map<String, Double> yearInvest = investComparator.get(yearIdx);
+					double totalInvest = 0.;
+					for(Double val : yearInvest.values()){
+						totalInvest = totalInvest + val;
+					}
+					rowCostComp[i] = formatter.format(totalInvest);
+				}
 			}
 		}
 		this.dataFrame.addRow(row, row);
+		this.dataFrame.addRow(rowCost, rowCost);
 		this.dataFrame.addRow(comparatorRow, comparatorRow);
+		this.dataFrame.addRow(rowCostComp, rowCostComp);
 	}
 }

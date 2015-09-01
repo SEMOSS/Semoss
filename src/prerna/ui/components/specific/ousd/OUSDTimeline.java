@@ -21,13 +21,13 @@ public class OUSDTimeline {
 	private Map<String, List<String>> dataSystemMap = new HashMap<String, List<String>>(); //map of data objects to supporting systems
 	private Map<String, List<String>> granularBLUMap = new HashMap<String, List<String>>(); //map of granular blu to supporting systems
 	private Map<String, List<String>> retirementMap = new HashMap<String, List<String>>(); //map of granular blu to supporting systems
-	private Map<Integer, Map<String, Double>> systemInvestmentMap = new HashMap<Integer, Map<String, Double>>();//map of year->map of system->investment amount (new interface cost)
+	private List<Map<String, Double>> systemInvestmentMap;//map of year->map of system->investment amount (new interface cost)
 	
-	public void setSystemInvestmentMap (Map<Integer, Map<String, Double>> investmentMap){
+	public void setSystemInvestmentMap (List<Map<String, Double>> investmentMap){
 		this.systemInvestmentMap = investmentMap;
 	}
 	
-	public Map<Integer, Map<String, Double>> getSystemInvestmentMap(){
+	public List<Map<String, Double>> getSystemInvestmentMap(){
 		return this.systemInvestmentMap;
 	}
 	

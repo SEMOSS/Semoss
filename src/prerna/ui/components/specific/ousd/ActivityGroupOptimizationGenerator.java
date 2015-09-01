@@ -34,7 +34,6 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	//optimization values
 	int year = 1;
 	double interfaceCost = 350000.0;
-	int interfaceCount = 0;
 	double interfaceSustainmentPercent = 0.18;
 	double budgetConstraint = 0;
 	private double failureRate = 0.001;
@@ -63,7 +62,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	Map<String, Double> maxFIHT = new HashMap<String, Double>();
 	double treeMax = 0.0;
 
-	Map<Integer, Map<String, Double>> investmentMap = new HashMap<Integer, Map<String, Double>>();
+	List<Map<String, Double>> investmentMap = new ArrayList<Map<String, Double>>();
 	
 	@Override
 	public void createTimeline(IEngine engine){
@@ -203,7 +202,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 			buildInvestmentMap(decomList);
 			updateSystemList(keptSystems);
 			updateInterfaceCounts(keptSystems, decomList);
-			updateBudgetConstraint(decomList);
+			updateBudgetConstraint(decomList, keptSystems);
 			updateGranularBLUMap(decomList);
 			updateDataSystemMap(decomList);
 			constraints = false;
@@ -216,7 +215,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	 */
 	private boolean determineCostPenalties(List<String> decomList, List<String> keptSystems){
 
-		for(String system: decomList){
+		for(String system: keptSystems){
 			List<List<String>> downstreams = sdsMap.get(system);
 			int removedSystemCount = 0;
 			if(downstreams == null){
@@ -242,10 +241,10 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 		if(previousValues.contains(decomList)){
 			System.out.println("Repeated set found. Exiting loop.");
 			previousValues.clear();
+			this.originalDownstreamInterfaceCount.putAll(this.currentDownstreamInterfaceCount);
 			return false;
 		}else if(decomList.size()==0){
 			System.err.println("No systems to decommission? Optimization completed.");
-			decomList.addAll(keptSystems);
 			completed = false;
 			return false;
 		}else if(year == 1){
@@ -278,13 +277,17 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	/**
 	 * 
 	 */
-	private void updateBudgetConstraint(List<String> decomList){
+	private void updateBudgetConstraint(List<String> decomList, List<String> keptSystems){
 
 		for(String system: decomList){
 			budgetConstraint = budgetConstraint + sysBudget.get(system);
 		}
+		int localCount = 0;
+		for(String system : keptSystems){
+			localCount = localCount + upstreamInterfaceCount.get(system);
+		}
 
-		budgetConstraint = budgetConstraint - (interfaceCost*interfaceSustainmentPercent)*interfaceCount;
+		budgetConstraint = budgetConstraint - (interfaceCost*interfaceSustainmentPercent)*localCount;
 
 	}
 
@@ -337,7 +340,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 		Map<String, Integer> values = new HashMap<String, Integer>();
 
 		for(String system: keptSystems){
-			int interfaceCount = 0;
+			int localInterfaceCount = 0;
 			if(values.keySet().contains(system)){
 				continue;
 			}
@@ -348,12 +351,12 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 					//list of interfaces for this system
 					for(String upstreamSystem: interfaceCountMap.get(system)){
 						if(upstreamSystem.equals(sys)){
-							interfaceCount++;
+							localInterfaceCount++;
 						}
 					}
 				}
 			}
-			upstreamInterfaceCount.put(system, interfaceCount);
+			upstreamInterfaceCount.put(system, localInterfaceCount);
 		}
 	}
 
@@ -423,17 +426,11 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	 */
 	public void buildInvestmentMap(List<String> decomList){
 
+		Map<String, Double> newYearMap = new HashMap<String, Double>();
 		for(String system: decomList){
-			if(investmentMap.keySet().contains(year)){
-				Map<String, Double> yearMap = investmentMap.get(year);
-				yearMap.put(system, currentDownstreamInterfaceCount.get(system)*interfaceCost);
-				investmentMap.put(year, yearMap);
-			}else{
-				Map<String, Double> newYearMap = new HashMap<String, Double>();
-				newYearMap.put(system, currentDownstreamInterfaceCount.get(system)*interfaceCost);
-				investmentMap.put(year, newYearMap);
-			}
+			newYearMap.put(system, currentDownstreamInterfaceCount.get(system)*interfaceCost);
 		}
+		investmentMap.add(newYearMap);
 		timeline.setSystemInvestmentMap(investmentMap);
 	}
 

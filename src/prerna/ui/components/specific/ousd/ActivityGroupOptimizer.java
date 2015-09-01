@@ -140,7 +140,7 @@ public class ActivityGroupOptimizer extends LPOptimizer{
 				}
 
 				try {
-					if(constraintCalculator(granularBlu, granularBLUMap, false) >0){
+					if(constraintCalculator(granularBlu, granularBLUMap, false) + granularBLUMap.get(granularBlu).size() >0){
 						solver.addConstraintex(sysListSize, row, colno, LpSolve.GE, constraintCalculator(granularBlu, granularBLUMap, true));
 					}
 				} catch (LpSolveException e) {
