@@ -47,6 +47,7 @@ import org.supercsv.cellprocessor.ParseDate;
 import org.supercsv.cellprocessor.ParseDouble;
 import org.supercsv.cellprocessor.constraint.NotNull;
 import org.supercsv.cellprocessor.ift.CellProcessor;
+import org.supercsv.exception.SuperCsvCellProcessorException;
 import org.supercsv.io.CsvMapReader;
 import org.supercsv.io.ICsvMapReader;
 import org.supercsv.prefs.CsvPreference;
@@ -443,6 +444,11 @@ public class CSVReader extends AbstractFileReader {
 					addNodeProperties(subject, subjectValue, nodePropHash);
 				}
 			}
+		} catch(SuperCsvCellProcessorException e) {
+			e.printStackTrace();
+			String errorMessage = "Error processing row number " + count + ".\n";
+			errorMessage += e.getMessage() + "\n";
+			throw new FileReaderException(errorMessage);
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new FileReaderException("Error processing CSV headers");
