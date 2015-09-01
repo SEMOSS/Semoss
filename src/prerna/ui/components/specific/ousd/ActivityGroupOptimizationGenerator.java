@@ -64,7 +64,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 
 	List<Map<String, Double>> investmentMap = new ArrayList<Map<String, Double>>();
 	List<Map<String, Double>> sustainmentMap = new ArrayList<Map<String, Double>>();
-	
+
 	@Override
 	public void createTimeline(IEngine engine){
 		roadmapEngine = engine;
@@ -194,12 +194,6 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 				//DELETES THE MODEL
 				opt.deleteModel();
 			}
-			for(String system: decomList){
-				if(!decommissionedSystems.contains(system)){
-					decommissionedSystems.add(system);
-					timeline.addSystemTransition(year, system, "");
-				}
-			}
 			buildInvestmentMap(decomList);
 			buildSustainmentMap(keptSystems);
 			updateSystemList(keptSystems);
@@ -208,6 +202,14 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 			updateGranularBLUMap(decomList);
 			updateDataSystemMap(decomList);
 			constraints = false;
+
+			for(String system: decomList){
+				if(!decommissionedSystems.contains(system)){
+					decommissionedSystems.add(system);
+					timeline.addSystemTransition(year, system, "");
+				}
+			}
+
 			year++;
 		}
 	}
@@ -218,7 +220,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	private boolean determineExitStrategy(List<String> decomList, List<String> keptSystems){
 
 		boolean fullExit = true;
-		
+
 		for(String system: keptSystems){
 			List<List<String>> downstreams = sdsMap.get(system);
 			int removedSystemCount = 0;
@@ -246,7 +248,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 				fullExit=false;
 			}
 		}
-		
+
 		for(String system: keptSystems){
 			if(!retirementMap.get("F").contains(system) && !retirementMap.get("P").contains(system) && !retirementMap.get("TBD").contains(system)){
 				continue;
@@ -254,7 +256,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 				fullExit=false;
 			}
 		}
-		
+
 		Collections.sort(decomList);
 
 		if(previousValues.contains(decomList)){
@@ -364,22 +366,14 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	 * @param removedSystems
 	 */
 	private void updateInterfaceCounts(List<String> keptSystems, List<String> decomList){
-		
-		//remove decommissioning systems
-		for(String decomSystem: decomList){
-			if(upstreamInterfaceCount.keySet().contains(decomSystem)){
-				upstreamInterfaceCount.remove(decomSystem);
-			}
-		}
-		
+
 		//update list for remaining systems
 		for(String system: keptSystems){
 			int localInterfaceCount = 0;
 
 			if(interfaceCountMap.keySet().contains(system) && !decommissionedSystems.contains(system)){
-				//list of enduring systems
 				for(String sys: decomList){
-					//list of interfaces for this system
+					//list of upstream interfaces for this system
 					for(String upstreamSystem: interfaceCountMap.get(system)){
 						if(upstreamSystem.equals(sys)){
 							localInterfaceCount++;
@@ -389,7 +383,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 			}
 			upstreamInterfaceCount.put(system, localInterfaceCount);
 		}
-		
+
 	}
 
 	/**
@@ -465,14 +459,26 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 		investmentMap.add(newYearMap);
 		timeline.setSystemInvestmentMap(investmentMap);
 	}
-	
+
 	public void buildSustainmentMap(List<String> keptSystems){
-		
+
 		Map<String, Double> newYearMap = new HashMap<String, Double>();
-		for(String system: keptSystems){
-			newYearMap.put(system, (upstreamInterfaceCount.get(system))*interfaceCost*interfaceSustainmentPercent);
+		//		for(String system: keptSystems){
+		//			newYearMap.put(system, (upstreamInterfaceCount.get(system))*interfaceCost*interfaceSustainmentPercent);
+		//		}
+
+		for(String system: decommissionedSystems){
+			int localDownstreamCount = 0;
+			if(sdsMap.keySet().contains(system)){
+				for(List<String> downstreamInterface: sdsMap.get(system)){
+					if(!decommissionedSystems.contains(downstreamInterface.get(0))){
+						localDownstreamCount++;
+					}
+				}
+				newYearMap.put(system, localDownstreamCount*interfaceCost*interfaceSustainmentPercent);
+			}
 		}
-		
+
 		sustainmentMap.add(newYearMap);
 		timeline.setInterfaceSustainmentMap(sustainmentMap);
 	}
