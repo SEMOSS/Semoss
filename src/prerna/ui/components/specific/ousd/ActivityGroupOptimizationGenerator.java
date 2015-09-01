@@ -244,15 +244,20 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 			this.originalDownstreamInterfaceCount.putAll(this.currentDownstreamInterfaceCount);
 			return false;
 		}else if(decomList.size()==0){
-			System.err.println("No systems to decommission? Optimization completed.");
+			System.err.println("Optimization kept everything. All remaining system provide unique BLU/Data. Decommissioning everything except enduring systems.");
+			for(String system: keptSystems){
+				if(retirementMap.get("F").contains(system) || retirementMap.get("P").contains(system) || retirementMap.get("TBD").contains(system)){
+					decomList.add(system);
+				}
+			}
 			completed = false;
 			return false;
 		}else if(year == 1){
-			System.out.println("Completed optimization.");
+			System.out.println("Completed optimization for first year. Decommissioning only systems with no downstream interfaces.");
 			previousValues.add(decomList);
-			return true;
+			return false;
 		}else{
-			System.out.println("Re-running iteration.");
+			System.out.println("Repeating iteration with additional constraints.");
 			constraints = true;
 			previousValues.add(decomList);
 			return true;
