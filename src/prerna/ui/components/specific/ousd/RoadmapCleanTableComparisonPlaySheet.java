@@ -90,6 +90,8 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		row[0] = this.roadmapName;
 		Object[] rowCost = new Object[names.length];
 		rowCost[0] = this.roadmapName + " Cost";
+		Object[] rowSustainCost = new Object[names.length];
+		rowSustainCost[0] = this.roadmapName + " Sustainment Cost";
 
 		List<Map<String, List<String>>> comparatorYears = comparatorTimeline.getTimeData();
 		Map<String, Double> comparatorBudgets = comparatorTimeline.getBudgetMap();
@@ -97,12 +99,25 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		comparatorRow[0] = this.comparatorName;
 		Object[] rowCostComp = new Object[names.length];
 		rowCostComp[0] = this.comparatorName + " Cost";
-
+		Object[] rowSustainCostComp = new Object[names.length];
+		rowSustainCostComp[0] = this.comparatorName + " Sustainment Cost";
+		Object[] cumulativeSavingComp = new Object[names.length];
+		cumulativeSavingComp[0] = this.comparatorName + " Cumulative Savings";
+		Object[] cumulativeCostComp = new Object[names.length];
+		cumulativeCostComp[0] = this.comparatorName + " Cumulative Cost";
+		Object[] roiCostComp = new Object[names.length];
+		roiCostComp[0] = this.comparatorName + " ROI";
 		
+		
+
 		NumberFormat formatter = NumberFormat.getCurrencyInstance(Locale.US);
 
 		List<Map<String, Double>> invest = timeline.getSystemInvestmentMap();
 		List<Map<String, Double>> investComparator = comparatorTimeline.getSystemInvestmentMap();
+		
+		List<Map<String, Double>> sustain = timeline.getInterfaceSustainmentMap();
+		List<Map<String, Double>> sustainComparator = comparatorTimeline.getInterfaceSustainmentMap();
+		
 		for(int i = names.length-1; i>0; i--){
 			int year = yearList.get(i-1);
 			if(fyList.contains(year)){
@@ -127,6 +142,14 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 					}
 					rowCost[i] = formatter.format(totalInvest);
 				}
+				if(sustain!=null){
+					Map<String, Double> yearSustain = sustain.get(yearIdx);
+					double totalSustain = 0.;
+					for(Double val : yearSustain.values()){
+						totalSustain = totalSustain + val;
+					}
+					rowSustainCost[i] = formatter.format(totalSustain);
+				}
 			}
 			if(comparatorFyList.contains(year)){
 				int yearIdx = comparatorTimeline.getFyIndexFiscalYear(year);	
@@ -150,11 +173,80 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 					}
 					rowCostComp[i] = formatter.format(totalInvest);
 				}
-			}
+				if(sustainComparator!=null){
+					Map<String, Double> yearSustain = sustainComparator.get(yearIdx);
+					double totalSustain = 0.;
+					for(Double val : yearSustain.values()){
+						totalSustain = totalSustain + val;
+					}
+					rowSustainCostComp[i] = formatter.format(totalSustain);
+				}
+			}else{				
+				int tempYear = year-1;
+				while(!comparatorFyList.contains(tempYear) && tempYear >2000){
+					tempYear--;
+				}
+				if(tempYear != 2000){
+					int yearIdx = comparatorTimeline.getFyIndexFiscalYear(tempYear);
+					
+					if(sustainComparator!=null){
+						Map<String, Double> yearSustain = sustainComparator.get(yearIdx);
+						double totalSustain = 0.;
+						for(Double val : yearSustain.values()){
+							totalSustain = totalSustain + val;
+						}
+						rowSustainCostComp[i] = formatter.format(totalSustain);
+					}
+				}
+			}			
 		}
+		
+		double cumulativeCost=0.0;
+		double cumulativeSavings=0.0;
+		
+		for(int i=2; i<names.length; i++){
+			if(rowSustainCostComp[i] != null){
+				String sustainmentCost = rowSustainCostComp[i].toString().replace("$", "").replace(",", "");
+				cumulativeCost = cumulativeCost + Double.parseDouble(sustainmentCost);
+			}
+			if(rowCostComp[i] != null){
+				String cost = rowCostComp[i].toString().replace("$", "").replace(",", "");
+				cumulativeCost = cumulativeCost + Double.parseDouble(cost);
+			}
+			cumulativeCostComp[i] = formatter.format(cumulativeCost);
+		}
+		
+		for(int i=2; i<names.length; i++){
+			if(comparatorRow[i] != null){
+				String savings = comparatorRow[i].toString().replace("$", "").replace(",", "");
+				cumulativeSavings = cumulativeSavings + Double.parseDouble(savings);
+			}
+			cumulativeSavingComp[i] = formatter.format(cumulativeSavings);
+		}
+		
+		for(int i=2; i<names.length; i++){
+			double netSavings = 0.0;
+			double investment = 0.0;
+			if(cumulativeCostComp[i] != null){
+				String cost = cumulativeCostComp[i].toString().replace("$", "").replace(",", "");
+				investment = Double.parseDouble(cost);
+			}
+			if(cumulativeSavingComp[i] != null){
+				String savings = cumulativeSavingComp[i].toString().replace("$", "").replace(",", "");
+				netSavings = Double.parseDouble(savings) - investment; 
+			}
+			double roi = netSavings/investment;
+			roiCostComp[i] = roi;
+		}
+		
 		this.dataFrame.addRow(row, row);
 		this.dataFrame.addRow(rowCost, rowCost);
 		this.dataFrame.addRow(comparatorRow, comparatorRow);
 		this.dataFrame.addRow(rowCostComp, rowCostComp);
+		this.dataFrame.addRow(rowSustainCost, rowSustainCost);
+		this.dataFrame.addRow(rowSustainCostComp, rowSustainCostComp);
+		this.dataFrame.addRow(cumulativeSavingComp, cumulativeSavingComp);
+		this.dataFrame.addRow(cumulativeCostComp, cumulativeCostComp);
+		this.dataFrame.addRow(roiCostComp, roiCostComp);
 	}
 }
