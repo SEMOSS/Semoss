@@ -319,13 +319,18 @@ public class OUSDTimeline {
 				Double sysSavings = this.systemBudgetMap.get(decoSys);
 				savings = savings + sysSavings;
 				
-				Double investmentCost = this.systemInvestmentMap.get(year).get(decoSys);
-				cost = cost + investmentCost;
+				if(this.systemInvestmentMap != null && this.systemInvestmentMap.size()>year){
+					Double investmentCost = this.systemInvestmentMap.get(fyIdx).get(decoSys);
+					if(investmentCost!=null) {
+						cost = cost + investmentCost;
+					}
+				}
 			}
-			Object[] row = new Object[3];
+			Object[] row = new Object[4];
 			row[0] = year;
 			row[1] = savings;
 			row[2] = cost;
+			row[3] = savings - cost;
 			costSavingsData.add(row);
 		}
 		
@@ -333,7 +338,7 @@ public class OUSDTimeline {
 	}
 	
 	public String[] getCostSavingsHeaders(){
-		return new String[] {"Transition Year", "Savings", "Investment Cost"};
+		return new String[] {"Transition Year", "Savings", "Investment Cost", "Net Savings"};
 	}
 	
 	public String getCostSavingsTitle(){
