@@ -151,9 +151,7 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 					rowSustainCost[i] = formatter.format(totalSustain);
 				}
 			}else{				
-				if(year<fyList.get(0)){
-					continue;
-				}else if(year>fyList.get(fyList.size()-1)){
+				if(year>fyList.get(fyList.size()-1)){
 					if(sustainMap!=null){
 						Map<String, Double> yearSustain = sustainMap.get(sustainMap.size()-1);
 						double totalSustain = 0.;
@@ -197,9 +195,7 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 					compRowSustainCost[i] = formatter.format(totalSustain);
 				}
 			}else{				
-				if(year<comparatorFyList.get(0)){
-					continue;
-				}else if(year>comparatorFyList.get(comparatorFyList.size()-1)){
+				if(year>comparatorFyList.get(comparatorFyList.size()-1)){
 					if(sustainComparatorMap!=null){
 						Map<String, Double> yearSustain = sustainComparatorMap.get(sustainComparatorMap.size()-1);
 						double totalSustain = 0.;
