@@ -415,7 +415,8 @@ public abstract class AbstractFileReader {
 //		createStatement(vf.createURI(objectNodeURI), RDFS.LABEL, vf.createLiteral(instanceObjectName));
 
 		// generate URIs for the relationship
-		relName = Utility.cleanString(relName, true);
+		relName = Utility.cleanString(relName, true).replaceAll("[()]", "").replaceAll(",", "");
+		
 		String relSemossBaseURI = baseRelationURIHash.get(subjectNodeType + "_"+ relName + "_" + objectNodeType+Constants.CLASS);
 		// check to see if user specified URI in custom map file
 		if(relSemossBaseURI == null){
