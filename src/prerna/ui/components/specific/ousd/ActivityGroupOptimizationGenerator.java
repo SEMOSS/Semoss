@@ -195,7 +195,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 				opt.deleteModel();
 			}
 			buildInvestmentMap(decomList);
-			buildSustainmentMap(keptSystems);
+			buildSustainmentMap();
 			updateSystemList(keptSystems);
 			updateInterfaceCounts(keptSystems, decomList);
 			updateBudgetConstraint(decomList, keptSystems);
@@ -212,6 +212,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 
 			year++;
 		}
+		buildSustainmentMap();
 	}
 
 	/**
@@ -460,12 +461,9 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 		timeline.setSystemInvestmentMap(investmentMap);
 	}
 
-	public void buildSustainmentMap(List<String> keptSystems){
+	public void buildSustainmentMap(){
 
 		Map<String, Double> newYearMap = new HashMap<String, Double>();
-		//		for(String system: keptSystems){
-		//			newYearMap.put(system, (upstreamInterfaceCount.get(system))*interfaceCost*interfaceSustainmentPercent);
-		//		}
 
 		for(String system: decommissionedSystems){
 			int localDownstreamCount = 0;

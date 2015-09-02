@@ -109,8 +109,8 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		List<Map<String, Double>> invest = timeline.getSystemInvestmentMap();
 		List<Map<String, Double>> investComparator = comparatorTimeline.getSystemInvestmentMap();
 
-		List<Map<String, Double>> sustain = timeline.getInterfaceSustainmentMap();
-		List<Map<String, Double>> sustainComparator = comparatorTimeline.getInterfaceSustainmentMap();
+		List<Map<String, Double>> sustainMap = timeline.getInterfaceSustainmentMap();
+		List<Map<String, Double>> sustainComparatorMap = comparatorTimeline.getInterfaceSustainmentMap();
 
 		for(int i = names.length-1; i>0; i--){
 			int year = yearList.get(i-1);
@@ -136,8 +136,8 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 					}
 					rowBuildCost[i] = formatter.format(totalInvest);
 				}
-				if(sustain!=null){
-					Map<String, Double> yearSustain = sustain.get(yearIdx);
+				if(sustainMap!=null){
+					Map<String, Double> yearSustain = sustainMap.get(yearIdx);
 					double totalSustain = 0.;
 					for(Double val : yearSustain.values()){
 						totalSustain = totalSustain + val;
@@ -145,15 +145,11 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 					rowSustainCost[i] = formatter.format(totalSustain);
 				}
 			}else{				
-				int tempYear = year-1;
-				while(!fyList.contains(tempYear) && tempYear >2000){
-					tempYear--;
-				}
-				if(tempYear != 2000){
-					int yearIdx = timeline.getFyIndexFiscalYear(tempYear);
-
-					if(sustain!=null){
-						Map<String, Double> yearSustain = sustain.get(yearIdx);
+				if(year<fyList.get(0)){
+					continue;
+				}else if(year>fyList.get(fyList.size()-1)){
+					if(sustainMap!=null){
+						Map<String, Double> yearSustain = sustainMap.get(sustainMap.size()-1);
 						double totalSustain = 0.;
 						for(Double val : yearSustain.values()){
 							totalSustain = totalSustain + val;
@@ -184,8 +180,8 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 					}
 					compRowBuildCost[i] = formatter.format(totalInvest);
 				}
-				if(sustainComparator!=null){
-					Map<String, Double> yearSustain = sustainComparator.get(yearIdx);
+				if(sustainComparatorMap!=null){
+					Map<String, Double> yearSustain = sustainComparatorMap.get(yearIdx);
 					double totalSustain = 0.;
 					for(Double val : yearSustain.values()){
 						totalSustain = totalSustain + val;
@@ -193,15 +189,11 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 					compRowSustainCost[i] = formatter.format(totalSustain);
 				}
 			}else{				
-				int tempYear = year-1;
-				while(!comparatorFyList.contains(tempYear) && tempYear >2000){
-					tempYear--;
-				}
-				if(tempYear != 2000){
-					int yearIdx = comparatorTimeline.getFyIndexFiscalYear(tempYear);
-
-					if(sustainComparator!=null){
-						Map<String, Double> yearSustain = sustainComparator.get(yearIdx);
+				if(year<comparatorFyList.get(0)){
+					continue;
+				}else if(year>comparatorFyList.get(comparatorFyList.size()-1)){
+					if(sustainComparatorMap!=null){
+						Map<String, Double> yearSustain = sustainComparatorMap.get(sustainComparatorMap.size()-1);
 						double totalSustain = 0.;
 						for(Double val : yearSustain.values()){
 							totalSustain = totalSustain + val;
@@ -235,7 +227,7 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		cumulativeTotalCostRow[0] = name + " Cumulative Cost";
 		Object[] roiRow = new Object[names.length];
 		roiRow[0] = name + " ROI";
-		
+
 		for(int i=2; i<names.length; i++){
 
 			//cumulative savings
@@ -275,7 +267,7 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 			double roi = netSavings/investment;
 			roiRow[i] = percentFormat.format(roi);
 		}
-		
+
 		this.dataFrame.addRow(cumulativeSavingsRow, cumulativeSavingsRow);
 		this.dataFrame.addRow(cumulativeTotalCostRow, cumulativeTotalCostRow);
 		this.dataFrame.addRow(roiRow, roiRow);
