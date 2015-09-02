@@ -55,6 +55,8 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		}
 		Collections.sort(yearList);
 
+		yearList.add(yearList.get(yearList.size()-1)+1);
+
 		String[] columns = new String[yearList.size() + 1];
 		columns[0] = "System";
 		int count = 1;
@@ -62,6 +64,7 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 			columns[count] = year+"";
 			count++;
 		}
+
 		this.dataFrame = new OrderedBTreeDataFrame(columns);
 
 		createTable(yearList, timeline, fyList, comparatorTimeline, comparatorFyList);
@@ -87,7 +90,7 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		List<Map<String, List<String>>> systemYears = timeline.getTimeData();
 		Map<String, Double> budgets = timeline.getBudgetMap();
 		Object[] row = new Object[names.length];
-		row[0] = this.roadmapName + " Annual Savings";
+		row[0] = this.roadmapName + " New Savings this year";
 		Object[] rowBuildCost = new Object[names.length];
 		rowBuildCost[0] = this.roadmapName + " Build Cost";
 		Object[] rowSustainCost = new Object[names.length];
@@ -96,7 +99,7 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		List<Map<String, List<String>>> comparatorYears = comparatorTimeline.getTimeData();
 		Map<String, Double> comparatorBudgets = comparatorTimeline.getBudgetMap();
 		Object[] comparatorRow = new Object[names.length];
-		comparatorRow[0] = this.comparatorName + " Annual Savings";
+		comparatorRow[0] = this.comparatorName + " New Savings this year";
 		Object[] compRowBuildCost = new Object[names.length];
 		compRowBuildCost[0] = this.comparatorName + " Build Cost";
 		Object[] compRowSustainCost = new Object[names.length];
@@ -126,7 +129,10 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 					}
 				}
 				String formattedTotal = formatter.format(yearTotal);
-				row[i] = formattedTotal;
+				if(year == fyList.get(0)){
+					row[i] = formatter.format(0.0);
+				}
+				row[i+1] = formattedTotal;
 
 				if(invest!=null){
 					Map<String, Double> yearInvest = invest.get(yearIdx);
@@ -169,8 +175,10 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 						comparatorProcessedSystems.add(system);
 					}
 				}
-				String formattedTotal = formatter.format(yearTotal);
-				comparatorRow[i] = formattedTotal;
+				if(year == comparatorFyList.get(0)){
+					comparatorRow[i] = formatter.format(0.0);
+				}
+				comparatorRow[i+1] = formatter.format(yearTotal);
 
 				if(investComparator!=null){
 					Map<String, Double> yearInvest = investComparator.get(yearIdx);
@@ -225,6 +233,8 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 
 		Object[] cumulativeSavingsRow = new Object[names.length];
 		cumulativeSavingsRow[0] = name + " Cumulative Savings";
+		Object[] savingsRow = new Object[names.length];
+		savingsRow[0] = name + " Previous Decommissioning Savings";
 		Object[] cumulativeTotalCostRow = new Object[names.length];
 		cumulativeTotalCostRow[0] = name + " Cumulative Cost";
 		Object[] roiRow = new Object[names.length];
@@ -236,7 +246,7 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 			if(year<yearList.get(0)){
 				continue;
 			}
-			
+
 			//cumulative savings
 			if(baseRow[i] != null){
 				String savings = baseRow[i].toString().replace("$", "").replace(",", "");
@@ -245,8 +255,13 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 			for(Double value: annualSavings){
 				cumulativeSavings = cumulativeSavings + value;
 			}
-			cumulativeSavingsRow[i] = formatter.format(cumulativeSavings);				
-			
+			cumulativeSavingsRow[i] = formatter.format(cumulativeSavings);							
+
+			if(cumulativeSavingsRow[i-1] != null && cumulativeSavingsRow[i-1].toString().contains("$") && baseRow[i] != null){
+				savingsRow[i] = formatter.format(Double.parseDouble(cumulativeSavingsRow[i].toString().replace("$", "").replace(",", ""))
+						-Double.parseDouble(cumulativeSavingsRow[i-1].toString().replace("$", "").replace(",", ""))
+						-Double.parseDouble(baseRow[i].toString().replace("$", "").replace(",", "")));				
+			}
 
 			//row sustainment cost and cumulative total cost
 			if(sustainRow[i] != null){
@@ -271,10 +286,14 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 				String savings = cumulativeSavingsRow[i].toString().replace("$", "").replace(",", "");
 				netSavings = Double.parseDouble(savings) - investment; 
 			}
-			double roi = netSavings/investment;
-			roiRow[i] = percentFormat.format(roi);
+			if(investment != 0){
+				double roi = netSavings/investment;
+				roiRow[i] = percentFormat.format(roi);
+			}else{
+				roiRow[i] = percentFormat.format(0);
+			}
 		}
-
+		this.dataFrame.addRow(savingsRow, savingsRow);
 		this.dataFrame.addRow(cumulativeSavingsRow, cumulativeSavingsRow);
 		this.dataFrame.addRow(cumulativeTotalCostRow, cumulativeTotalCostRow);
 		this.dataFrame.addRow(roiRow, roiRow);
