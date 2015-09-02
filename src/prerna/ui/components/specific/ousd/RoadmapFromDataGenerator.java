@@ -17,7 +17,9 @@ public class RoadmapFromDataGenerator implements ITimelineGenerator{
 
 	String systemBindings;
 	String[] sysList;
-	
+	double interfaceCost = 350000;
+	double interfaceSustainmentPercent = 0.18;
+
 	@Override
 	public void createTimeline(IEngine engine){
 		roadmapEngine = engine;
@@ -66,6 +68,12 @@ public class RoadmapFromDataGenerator implements ITimelineGenerator{
 			timeline.addSystemTransition(fy, decomSys, endureSys);
 		}
 
+		Map<String, List<List<String>>> sdsMap = OUSDQueryHelper.getSystemToSystemData(roadmapEngine);
+		timeline.setSystemDownstream(sdsMap);
+		
+		buildInvestmentMap();
+		buildSustainmentCostMap();
+		
 		return timeline;
 
 	}
@@ -80,25 +88,95 @@ public class RoadmapFromDataGenerator implements ITimelineGenerator{
 		Map<String, List<String>> dataSystemMap = new HashMap<String, List<String>>();
 		Map<String, List<String>> granularBLUMap = new HashMap<String, List<String>>();
 		Map<String, List<List<String>>> sdsMap = new HashMap<String, List<List<String>>>();
-		
+
 		sysBudget = OUSDQueryHelper.getBudgetData(roadmapEngine, sysList);
 		dataSystemMap = OUSDQueryHelper.getDataCreatedBySystem(roadmapEngine, sysBindingsString);
 		bluMap = OUSDQueryHelper.getBLUtoSystem(roadmapEngine, sysBindingsString);
 		sdsMap = OUSDQueryHelper.getSystemToSystemData(roadmapEngine);
-		
+
 		String bluBindings = OUSDPlaysheetHelper.bluBindingStringMaker(bluMap);
 
 		List<Object[]> bluDataList = OUSDQueryHelper.getDataConsumedByBLU(roadmapEngine, bluBindings);
 		granularBLUMap = OUSDPlaysheetHelper.systemToGranularBLU(bluDataList, dataSystemMap, bluMap);
-		
+
 		timeline.setBudgetMap(sysBudget);
 		timeline.setDataSystemMap(dataSystemMap);
 		timeline.setGranularBLUMap(granularBLUMap);
 		timeline.setSystemDownstream(sdsMap);
 	}
-	
+
+	private void buildInvestmentMap(){
+		List<Map<String, Double>> investmentMap = new ArrayList<Map<String, Double>>();
+		List<String> decommissionedSystems = new ArrayList<String>();
+		Map<String, List<List<String>>> sdsMap = timeline.getSystemDownstreamMap();
+
+		for(Map<String, List<String>> yearMap: timeline.getTimeData()){
+			Map<String, Double> newYearMap = new HashMap<String, Double>();
+			for(String system: yearMap.keySet()){
+				decommissionedSystems.add(system);
+			}
+			for(String system: yearMap.keySet()){
+				double systemIntCount = 0;
+				List<List<String>> downstream = new ArrayList<List<String>>();
+				if(sdsMap.keySet().contains(system)){
+					downstream = sdsMap.get(system);
+				}else{
+					newYearMap.put(system, systemIntCount);
+					continue;
+				}
+
+				for(List<String> downstreamInterface: downstream){
+					if(decommissionedSystems.contains(downstreamInterface.get(0))){
+						continue;
+					}else{
+						systemIntCount++;
+					}
+				}
+				newYearMap.put(system, systemIntCount*interfaceCost);
+			}
+			investmentMap.add(newYearMap);
+		}
+		
+		timeline.setSystemInvestmentMap(investmentMap);
+	}
+
+	private void buildSustainmentCostMap(){
+
+		List<String> decommissionedSystems = new ArrayList<String>();
+		Map<String, List<List<String>>> sdsMap = timeline.getSystemDownstreamMap();
+		List<Map<String, Double>> sustainmentMap = new ArrayList<Map<String, Double>>();
+
+		sustainmentMap.add(new HashMap<String, Double>());
+
+		for(Map<String, List<String>> yearMap: timeline.getTimeData()){
+
+			for(String system: yearMap.keySet()){
+				decommissionedSystems.add(system);
+			}
+
+			Map<String, Double> newYearMap = new HashMap<String, Double>();
+
+			for(String system: decommissionedSystems){
+				int localDownstreamCount = 0;
+				if(sdsMap.keySet().contains(system)){
+					for(List<String> downstreamInterface: sdsMap.get(system)){
+						if(!decommissionedSystems.contains(downstreamInterface.get(0))){
+							localDownstreamCount++;
+						}
+					}
+					newYearMap.put(system, localDownstreamCount*interfaceCost*interfaceSustainmentPercent);
+				}
+			}
+
+			sustainmentMap.add(newYearMap);
+		}
+
+		timeline.setInterfaceSustainmentMap(sustainmentMap);
+
+	}
+
 	@Override
 	public void createTimeline(){
-		
+
 	}
 }
