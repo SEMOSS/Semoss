@@ -207,11 +207,12 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		this.dataFrame.addRow(rowBuildCost, rowBuildCost);
 		this.dataFrame.addRow(rowSustainCost, rowSustainCost);
 
+		additionalRowBuilder(fyList, row, rowSustainCost, rowBuildCost, names, formatter, percentFormat, this.roadmapName);
+
 		this.dataFrame.addRow(comparatorRow, comparatorRow);
 		this.dataFrame.addRow(compRowBuildCost, compRowBuildCost);
 		this.dataFrame.addRow(compRowSustainCost, compRowSustainCost);
 
-		additionalRowBuilder(fyList, row, rowSustainCost, rowBuildCost, names, formatter, percentFormat, this.roadmapName);
 		additionalRowBuilder(comparatorFyList, comparatorRow, compRowSustainCost, compRowBuildCost, names, formatter, percentFormat, this.comparatorName);
 	}
 
