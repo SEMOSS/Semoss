@@ -31,6 +31,8 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
 
+import prerna.util.Utility;
+
 public class CSVPropFileBuilder{
 
 	private StringBuilder relationships = new StringBuilder();
@@ -70,6 +72,8 @@ public class CSVPropFileBuilder{
 			object = object + "+" + objIt.next();
 		}
 
+		pred = Utility.cleanString(pred, true).replaceAll("[()]", "").replaceAll(",", "");
+		
 		relationships.append(subject+"@"+pred+"@"+object+";");
 	}
 
