@@ -211,10 +211,11 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		this.dataFrame.addRow(compRowBuildCost, compRowBuildCost);
 		this.dataFrame.addRow(compRowSustainCost, compRowSustainCost);
 
-		additionalRowBuilder(comparatorRow, compRowSustainCost, compRowBuildCost, names, formatter, percentFormat, this.comparatorName);
+		additionalRowBuilder(fyList, row, rowSustainCost, rowBuildCost, names, formatter, percentFormat, this.roadmapName);
+		additionalRowBuilder(comparatorFyList, comparatorRow, compRowSustainCost, compRowBuildCost, names, formatter, percentFormat, this.comparatorName);
 	}
 
-	private void additionalRowBuilder(Object[] baseRow, Object[] sustainRow, Object[] buildCostRow, String[] names, NumberFormat formatter, NumberFormat percentFormat, String name){
+	private void additionalRowBuilder(List<Integer> yearList, Object[] baseRow, Object[] sustainRow, Object[] buildCostRow, String[] names, NumberFormat formatter, NumberFormat percentFormat, String name){
 
 		double cumulativeCost=0.0;
 		double cumulativeSavings=0.0;
@@ -228,8 +229,13 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		Object[] roiRow = new Object[names.length];
 		roiRow[0] = name + " ROI";
 
-		for(int i=2; i<names.length; i++){
+		for(int i=1; i<names.length; i++){
 
+			double year = Double.parseDouble(names[i].toString());
+			if(year<yearList.get(0)){
+				continue;
+			}
+			
 			//cumulative savings
 			if(baseRow[i] != null){
 				String savings = baseRow[i].toString().replace("$", "").replace(",", "");
@@ -238,8 +244,8 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 			for(Double value: annualSavings){
 				cumulativeSavings = cumulativeSavings + value;
 			}
-			cumulativeSavingsRow[i] = formatter.format(cumulativeSavings);
-
+			cumulativeSavingsRow[i] = formatter.format(cumulativeSavings);				
+			
 
 			//row sustainment cost and cumulative total cost
 			if(sustainRow[i] != null){
