@@ -87,7 +87,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 				String getUsableInstancesQuery = formUsableInsightsQuery(keywordList,instanceURIList);
 				
 				IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-				if(engine != null)
+				if(engine != null && !engine.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) //TODO: how to efficiently get this from RDBMS
 				{
 					ISelectWrapper sjsw = Utility.processQuery(engine, getUsableInstancesQuery);
 				
