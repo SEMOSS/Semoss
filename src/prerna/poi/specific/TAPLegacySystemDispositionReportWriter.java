@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2015 Defense Health Agency (DHA)
+ * Copyright 2015 SEMOSS.ORG
  *
  * If your use of this software does not include any GPLv2 components:
  * 	Licensed under the Apache License, Version 2.0 (the "License");
@@ -493,27 +493,22 @@ public class TAPLegacySystemDispositionReportWriter {
 		if(sysOwner == null){
 			sysOwner = "Data Not Received";
 		}
-		if(ato == null || ato.equals("") || ato.equals("NA") || ato.equals("Data Not Received")){
-			// no ato information -> assume ato date is year 2015
-			ato = "Data Not Received";
-			atoYear = 2015;
-			atoRenewalYear = 2018;
-		} else {
+		if(ato !=null && !ato.equals("NA")){
 			DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-			Date atoDate;
+		    Date atoDate;
 			try {
 				atoDate = df.parse(ato);
 				Calendar c = Calendar.getInstance();
 				c.setTime(atoDate);
 				atoYear = c.get(Calendar.YEAR);
 				atoRenewalYear = atoYear + 3;
-				// if ato is very old
-				if(atoYear+3 < 2015) {
+//				System.err.println("YEAR TESTING " + year);
+				if(atoYear < 2012) {
 					atoRenewalDate = "REQUIRES IMMEDIATE ACCREDITATION";
 					// set ato to be year 2015
 					atoYear = 2015;
 					atoRenewalYear = atoYear + 3;
-				} else { // set ato renewal date to be exactly 3 years from ato date
+				}else {
 					String month = "";
 					String day = "";
 					if((c.get(Calendar.MONTH) + 1) < 10) {
@@ -529,10 +524,16 @@ public class TAPLegacySystemDispositionReportWriter {
 					atoRenewalDate = (c.get(Calendar.YEAR) + 3) + "-" + month + "-" + day;
 				}
 			} catch (ParseException e) {
-				//ignore
+				ato = "Data Not Received";
+				atoYear = 2015;
+				atoRenewalYear = 2018;
 			}
+		}else {
+			ato = "Data Not Received";
+			atoYear = 2015;
+			atoRenewalYear = 2018;
 		}
-		
+
 		atoDateList = new int[]{atoYear, atoRenewalYear};
 		if(atoDateList[0] < 2015) {
 			atoDateList[0] = atoDateList[1];
