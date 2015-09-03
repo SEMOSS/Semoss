@@ -6,6 +6,7 @@ import java.util.Stack;
 public class IndexTreeIterator implements Iterator<TreeNode> {
 
 	private Stack<TreeNode> nodeStack;
+	private TreeNode returnNode;
 	
 	/**
 	 * Constructor for the IndexTreeIterator
@@ -24,7 +25,7 @@ public class IndexTreeIterator implements Iterator<TreeNode> {
 	 * Perform an In-Order depth-first-search (DFS)
 	 */
 	public boolean hasNext() {
-		return !nodeStack.isEmpty();
+		return (returnNode!=null);
 	}
 	
 	@Override
@@ -32,26 +33,33 @@ public class IndexTreeIterator implements Iterator<TreeNode> {
 		if(!hasNext()) {
 			throw new IndexOutOfBoundsException("No more nodes in Index Tree.");
 		}
-
-		TreeNode returnNode = nodeStack.pop();
 		
-		if(returnNode.rightSibling != null) {
-			addNextNodesToStack(returnNode.rightSibling);
-		} else if(returnNode.rightChild != null) {
-			addNextNodesToStack(returnNode.rightChild);
-		}
-
-		if(returnNode.instanceNode.size() + returnNode.filteredInstanceNode.size() == 0) {
-			//FIXME: this will cause an error in the event the last node in the Index Tree is 'logically deleted'
-			return next();
-		}
-		return returnNode;
+		TreeNode rNode = returnNode;
+		returnNode = null;
+		findNextInstance();
+		return rNode;
 	}
 
 	// Note: when updating to Java 8, no longer need to override remove() method
 	@Override
 	public void remove() {
 
+	}
+	
+	private void findNextInstance() {
+		while(returnNode==null && nodeStack.isEmpty()) {
+			TreeNode nextNode = nodeStack.pop();
+			
+			if(nextNode.rightSibling != null) {
+				addNextNodesToStack(nextNode.rightSibling);
+			} else if(nextNode.rightChild != null) {
+				addNextNodesToStack(nextNode.rightChild);
+			}
+
+			if(nextNode.instanceNode.size() + nextNode.filteredInstanceNode.size() > 0) {
+				returnNode = nextNode;
+			}
+		}
 	}
 	
 	/**
