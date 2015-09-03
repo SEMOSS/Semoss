@@ -1007,6 +1007,7 @@ public class RDBMSReader {
 					tableHash.put(sub, columnHash);
 
 					// for now I am not adding properties to it
+					prop = realClean(prop); // need this because we are using the prop in terms of the explore table
 					processPropertyMetaData(semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/" + processAutoConcat(sub), prop);
 				}
 			}
@@ -1121,7 +1122,7 @@ public class RDBMSReader {
 
 		String newRelationName = fromTable + "." + fromProp + "." + toTable + "." + toProp;
 		// set the relationURI for the front end
-		String relSemossBaseURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + newRelationName + "/" + fromTable + "_" + toTable; // this is the culprit
+		String relSemossBaseURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + newRelationName;// + "/" + fromTable + "_" + toTable; // this is the culprit
 
 		subPredObj[0] = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/" + fromTable; // turn this into URI
 		subPredObj[1] = relSemossBaseURI;
