@@ -1082,18 +1082,30 @@ public class SimpleTreeBuilder
 			if(filteredRoot == null) {
 				filteredRoot = node2filter;
 			} else {
-				SimpleTreeNode rightFilteredNode = SimpleTreeNode.getRight(filteredRoot);
-				rightFilteredNode.rightSibling = node2filter;
-				node2filter.leftSibling = rightFilteredNode;
+//				SimpleTreeNode rightFilteredNode = SimpleTreeNode.getRight(filteredRoot);
+//				rightFilteredNode.rightSibling = node2filter;
+//				node2filter.leftSibling = rightFilteredNode;
+				
+				filteredRoot.leftSibling = node2filter;
+				node2filter.rightChild = filteredRoot;
+				filteredRoot = node2filter;
 			}
 		} else {
 			if(parentNode.rightChild == null) {
 				parentNode.rightChild = node2filter;
 			} else {
+//				SimpleTreeNode rightFilteredChild = parentNode.rightChild;
+//				rightFilteredChild = SimpleTreeNode.getRight(rightFilteredChild);
+//				rightFilteredChild.rightSibling = node2filter;
+//				node2filter.leftSibling = rightFilteredChild;
+				
 				SimpleTreeNode rightFilteredChild = parentNode.rightChild;
-				rightFilteredChild = SimpleTreeNode.getRight(rightFilteredChild);
-				rightFilteredChild.rightSibling = node2filter;
 				node2filter.leftSibling = rightFilteredChild;
+				SimpleTreeNode nextRight = rightFilteredChild.rightSibling;
+				if(nextRight != null) {
+					nextRight.leftSibling = node2filter;
+					node2filter.rightSibling = nextRight;
+				}
 			}
 		}
 		
@@ -1268,7 +1280,6 @@ public class SimpleTreeBuilder
 			return null;
 		}
 	}
-	
 	
 	private void unfilterTreeNode(SimpleTreeNode instance) {
 		TreeNode foundNode = this.getNode((ISEMOSSNode)instance.leaf);
