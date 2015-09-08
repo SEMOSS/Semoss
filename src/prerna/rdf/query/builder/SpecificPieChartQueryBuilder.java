@@ -57,7 +57,7 @@ public class SpecificPieChartQueryBuilder extends AbstractSpecificQueryBuilder {
 		
 		//add label to query
 		logger.info("Adding label: " + label + " with name: " + varNames.get(0));
-		addReturnVariable(label, varNames.get(0), baseQuery, "false");
+		addReturnVariable(label, varNames.get(0), baseQuery, "");
 		
 		// add the heat value
 		logger.info("Adding value math function " + valueMathFunc + " on column " + valueName);
@@ -85,7 +85,7 @@ public class SpecificPieChartQueryBuilder extends AbstractSpecificQueryBuilder {
 
 		//add label to query
 		logger.info("Adding label: " + label + " with name: " + colAliases.get(0));
-		//addReturnVariable(label, colAliases.get(0), baseQuery, "false");
+		//addReturnVariable(label, colAliases.get(0), baseQuery, "");
 		
 		// add the heat value
 		logger.info("Adding value math function " + valueMathFunc + " on column " + valueName);
