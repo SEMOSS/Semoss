@@ -66,8 +66,11 @@ public class SpecificPieChartQueryBuilder extends AbstractSpecificQueryBuilder {
 		//add them as group by
 		ArrayList<String> groupList = new ArrayList<String>();
 		groupList.add(label);
-		logger.info("Query will GroupBy: " + groupList);
-		SEMOSSQueryHelper.addGroupByToQuery(groupList, baseQuery);
+		
+		if(!valueMathFunc.isEmpty()) {
+			logger.info("Query will GroupBy: " + groupList);
+			SEMOSSQueryHelper.addGroupByToQuery(groupList, baseQuery);
+		}
 		
 		if(!parameters.isEmpty()) {
 			logger.info("Adding parameters: " + parameters);
