@@ -17,6 +17,7 @@ public class IndexTreeIterator implements Iterator<TreeNode> {
 		nodeStack = new Stack<>();
 		if(typeRoot!=null) {
 			addNextNodesToStack(typeRoot.getLeft(typeRoot));
+			findNextInstance();
 		}
 	}
 	
@@ -47,7 +48,7 @@ public class IndexTreeIterator implements Iterator<TreeNode> {
 	}
 	
 	private void findNextInstance() {
-		while(returnNode==null && nodeStack.isEmpty()) {
+		while(returnNode==null && !nodeStack.isEmpty()) {
 			TreeNode nextNode = nodeStack.pop();
 			
 			if(nextNode.rightSibling != null) {
@@ -66,7 +67,6 @@ public class IndexTreeIterator implements Iterator<TreeNode> {
 	 * Index tree's siblings share left/right children except for the most left and most right
 	 * Most left has a left child that is not shared
 	 * Most right has a right child that is not shared
-	 * Using logic to only add left child and when the node does not have a right-sibling to add the right child
 	 */
 	private void addNextNodesToStack(TreeNode parentNode) {
 		nodeStack.push(parentNode);
