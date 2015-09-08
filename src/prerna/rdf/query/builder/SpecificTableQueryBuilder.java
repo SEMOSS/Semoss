@@ -54,7 +54,7 @@ public class SpecificTableQueryBuilder extends AbstractSpecificQueryBuilder{
 			String varName = labelList.get(i);
 			
 			logger.info("Adding variable: " + varName);
-			addReturnVariable(varName, varNames.get(i), baseQuery, "false");
+			addReturnVariable(varName, varNames.get(i), baseQuery, "");
 		}
 		
 		if(!parameters.isEmpty()) {

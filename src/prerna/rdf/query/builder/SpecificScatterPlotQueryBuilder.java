@@ -69,13 +69,13 @@ public class SpecificScatterPlotQueryBuilder extends AbstractSpecificQueryBuilde
         // start with series
         if(seriesColName != null){
         	logger.info("Adding series: " + seriesColName);
-        	addReturnVariable(seriesColName, varNames.get(4), baseQuery, "false");
+        	addReturnVariable(seriesColName, varNames.get(4), baseQuery, "");
             groupList.add(seriesColName);
         }
         
         //label
         logger.info("Adding label: " + labelColName);
-        addReturnVariable(labelColName, varNames.get(0), baseQuery, "false");
+        addReturnVariable(labelColName, varNames.get(0), baseQuery, "");
         groupList.add(labelColName);
 
 
