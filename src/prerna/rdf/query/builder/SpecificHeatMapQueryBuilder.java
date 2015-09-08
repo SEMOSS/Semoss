@@ -74,9 +74,10 @@ public class SpecificHeatMapQueryBuilder extends AbstractSpecificQueryBuilder {
 			groupList.add(heatName);
 		}*/
 		//add them as group by
-		logger.info("Query will GROUPBY: " + groupList);
-		SEMOSSQueryHelper.addGroupByToQuery(groupList, baseQuery);
-		
+		if(!heatMathFunc.isEmpty()) {
+			logger.info("Query will GROUPBY: " + groupList);
+			SEMOSSQueryHelper.addGroupByToQuery(groupList, baseQuery);
+		}
 		if(!parameters.isEmpty()) {
 			logger.info("Adding parameters: " + parameters);
 			addParam("Main");
