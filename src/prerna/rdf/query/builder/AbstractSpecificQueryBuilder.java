@@ -73,7 +73,7 @@ public abstract class AbstractSpecificQueryBuilder {
 	}
 	
 	protected void addReturnVariable(String colName, String varName, SEMOSSQuery semossQuery, String mathFunc){
-		if(!mathFunc.equals("false")){
+		if(!mathFunc.isEmpty()){
 			SEMOSSQueryHelper.addMathFuncToQuery(mathFunc, colName, semossQuery, varName); // add one to account for label
 		}
 		else if (colName.equals(varName)){
@@ -128,7 +128,7 @@ public abstract class AbstractSpecificQueryBuilder {
 			if(selectorsString.length() > 0)  selectorsString += " , ";
 			selectorsString +=  alias + "." + columnName + " AS " + asName;
 			//logger.info("Adding variable: " + columnName);
-			//addReturnVariable(varName, varNames.get(i), baseQuery, "false");
+			//addReturnVariable(varName, varNames.get(i), baseQuery, "");
 		}
 		return selectorsString;
 	}

@@ -60,17 +60,17 @@ public class SpecificHeatMapQueryBuilder extends AbstractSpecificQueryBuilder {
 
 		//add x axis to query
 		logger.info("Adding X-Axis: " + xAxisColName + " with name: " + varNames.get(0));
-		addReturnVariable(xAxisColName, varNames.get(0), baseQuery, "false");
+		addReturnVariable(xAxisColName, varNames.get(0), baseQuery, "");
 		groupList.add(xAxisColName);
 
 		//add y axis to query
 		logger.info("Adding Y-Axis: " + yAxisColName + " with name: " + varNames.get(1));
-		addReturnVariable(yAxisColName, varNames.get(1), baseQuery, "false");
+		addReturnVariable(yAxisColName, varNames.get(1), baseQuery, "");
 		groupList.add(yAxisColName);
 
 		logger.info("Adding heat math function " + heatMathFunc + " on column " + heatName);
 		addReturnVariable(heatName, varNames.get(2), baseQuery, heatMathFunc);//SEMOSSQueryHelper.addMathFuncToQuery(heatMathFunc, heatName, baseQuery, varNames.get(2));
-		/*if(heatMathFunc.equals("false")){
+		/*if(heatMathFunc.equals("")){
 			groupList.add(heatName);
 		}*/
 		//add them as group by

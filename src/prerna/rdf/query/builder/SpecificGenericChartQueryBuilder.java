@@ -55,13 +55,15 @@ public class SpecificGenericChartQueryBuilder extends AbstractSpecificQueryBuild
 		ArrayList<String> groupList = new ArrayList<String>();
 		allColNames.add(labelColName);
 		allColNames.addAll(valueColNames);
+		int mathCount = 0;
 		
 		ArrayList<String> allVarNames = uniqifyColNames(allColNames );
 		logger.info("Unique variables are: " + allVarNames);
 		
 		//first add the label as return var to query
 		logger.info("Adding Return Variable: " + labelColName);
-		addReturnVariable(labelColName, allVarNames.get(0), baseQuery, "false");
+		addReturnVariable(labelColName, allVarNames.get(0), baseQuery, "");
+		
 		groupList.add(labelColName);
 		
 		//now iterate through to all series values with their math functions
@@ -72,13 +74,19 @@ public class SpecificGenericChartQueryBuilder extends AbstractSpecificQueryBuild
 			logger.info("Adding Return Variable: " + seriesColName);
 			addReturnVariable(seriesColName, allVarNames.get(seriesIdx+1), baseQuery, mathFunc);
 			
-			/*if(mathFunc.equals("false")){
+			if(!mathFunc.isEmpty()) {
+				mathCount++;
+			}
+			/*if(mathFunc.equals("")){
 				groupList.add(seriesColName);
 			}*/
 		}
 
-		logger.info("Adding GROUPBY to query: " + allColNames);
-		SEMOSSQueryHelper.addGroupByToQuery(groupList, baseQuery);
+		//adding groupby only if there are math functions
+		if(mathCount > 0) {
+			logger.info("Adding GROUPBY to query: " + allColNames);
+			SEMOSSQueryHelper.addGroupByToQuery(groupList, baseQuery);
+		}
 		
 		if(!parameters.isEmpty()) {
 			logger.info("Adding parameters: " + parameters);
