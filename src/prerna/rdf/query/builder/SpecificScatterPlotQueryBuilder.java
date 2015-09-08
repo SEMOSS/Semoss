@@ -94,7 +94,7 @@ public class SpecificScatterPlotQueryBuilder extends AbstractSpecificQueryBuilde
         }
 
         //add them as group by
-        if(!groupList.isEmpty()){
+        if(!xAxisMathFunc.isEmpty() && !yAxisMathFunc.isEmpty() && (zAxisMathFunc != null || !zAxisMathFunc.isEmpty())){
         	logger.info("Adding GroupBy to query: " + groupList);
         	SEMOSSQueryHelper.addGroupByToQuery(groupList, baseQuery);
         }
