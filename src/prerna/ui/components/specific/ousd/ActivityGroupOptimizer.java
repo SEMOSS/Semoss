@@ -123,6 +123,7 @@ public class ActivityGroupOptimizer extends LPOptimizer{
 		}
 
 		if(additionalConstraints){
+			int count = 2;
 			for(String granularBlu: granularBLUMap.keySet()){
 				List<String> supportingSysList = granularBLUMap.get(granularBlu);
 
@@ -141,20 +142,21 @@ public class ActivityGroupOptimizer extends LPOptimizer{
 
 				try {
 					if(constraintCalculator(granularBlu, granularBLUMap, false) + granularBLUMap.get(granularBlu).size() >0){
+						solver.setRowName(count, granularBlu);
 						solver.addConstraintex(sysListSize, row, colno, LpSolve.GE, constraintCalculator(granularBlu, granularBLUMap, true));
 					}
 				} catch (LpSolveException e) {
 					e.printStackTrace();
 				}
+				count++;
 			}
 
 			for(String dataObj: dataSystemMap.keySet()){
 				List<String> supportingSysList = dataSystemMap.get(dataObj);
-
+				
 				colno = new int[sysListSize];
 				row = new double[sysListSize];
 				for(int j=0; j<sysListSize; j++) {
-
 					colno[j] = j + 1;
 					if(supportingSysList.contains(sysList[j])){
 						row[j] = -1;
@@ -165,10 +167,12 @@ public class ActivityGroupOptimizer extends LPOptimizer{
 				}
 
 				try {
+					solver.setRowName(count, dataObj);
 					solver.addConstraintex(sysListSize, row, colno, LpSolve.GE, constraintCalculator(dataObj, dataSystemMap, true));
 				} catch (LpSolveException e) {
 					e.printStackTrace();
 				}
+				count++;
 			}
 		}
 		
