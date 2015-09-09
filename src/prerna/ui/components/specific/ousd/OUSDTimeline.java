@@ -23,6 +23,15 @@ public class OUSDTimeline {
 	private Map<String, List<String>> retirementMap = new HashMap<String, List<String>>(); //map of granular blu to supporting systems
 	private List<Map<String, Double>> systemInvestmentMap;//map of year->map of system->investment amount (new interface cost)
 	private List<Map<String, Double>> interfaceSustainmentMap;//map of year->map of system->investment amount (new interface cost)
+	private List<Double> treeMaxList;
+	
+	public List<Double> getTreeMaxList() {
+		return treeMaxList;
+	}
+
+	public void setTreeMaxList(List<Double> treeMaxList) {
+		this.treeMaxList = treeMaxList;
+	}
 	
 	public List<Map<String, Double>> getInterfaceSustainmentMap() {
 		return interfaceSustainmentMap;
