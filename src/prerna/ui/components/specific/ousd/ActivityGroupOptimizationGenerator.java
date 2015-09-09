@@ -1,6 +1,7 @@
 package prerna.ui.components.specific.ousd;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -77,6 +78,8 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	}
 
 	public void runOptimization(){
+		List<Double> treeList = new ArrayList<Double>();
+
 		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
 		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
 		proc.processQuestionQuery(roadmapEngine, cleanActInsightString, emptyTable);
@@ -109,6 +112,9 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 		Map<String, Map<String, List<String>>> activityDataSystemMap = OUSDQueryHelper.getActivityDataSystemMap(roadmapEngine, sysBindingsString);
 		Map<String, Map<String, List<String>>> activityBluSystemMap = OUSDQueryHelper.getActivityGranularBluSystemMap(roadmapEngine, sysBindingsString);
 
+		bluDataSystemMap = OUSDPlaysheetHelper.combineMaps(activityDataSystemMap, activityBluSystemMap);
+		calc.setBluMap(bluDataSystemMap);
+
 		for(String activity: activityBluSystemMap.keySet()){
 			Map<String, List<String>> bluMap = activityBluSystemMap.get(activity);
 			for(String blu: bluMap.keySet()){
@@ -128,15 +134,23 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 			}
 		}
 
-		bluDataSystemMap = OUSDPlaysheetHelper.combineMaps(activityDataSystemMap, activityBluSystemMap);		
-		calc.setBluMap(bluDataSystemMap);
-
 		timeline.setRetirementMap(retirementMap);
 		timeline.setDataSystemMap(dataSystemMap);
 		timeline.setBudgetMap(sysBudget);
 		timeline.setGranularBLUMap(granularBLUMap);
 		timeline.setSystemDownstream(sdsMap);
 
+
+		for(String key: sdsMap.keySet()){
+			List<List<String>> downstreams = sdsMap.get(key);
+			for(List<String> downstream: downstreams){
+				if(upstreamInterfaceCount.keySet().contains(downstream.get(0))){
+					continue;
+				}else{
+					upstreamInterfaceCount.put(downstream.get(0), 0);
+				}
+			}
+		}
 
 		//first year setup stuff
 		for(String system: sysList){
@@ -160,7 +174,9 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 				sysList = this.sysList;
 			}
 
-			findTreeMax();
+			calc.setData(Arrays.asList(sysList));
+
+			findTreeMax(treeList);
 			updateMaxList();
 
 			List<String> keptSystems = new ArrayList<String>();
@@ -197,10 +213,11 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 			buildInvestmentMap(decomList);
 			buildSustainmentMap();
 			updateSystemList(keptSystems);
-			updateInterfaceCounts(keptSystems, decomList);
+			updateInterfaceCounts(decomList);
 			updateBudgetConstraint(decomList, keptSystems);
 			updateGranularBLUMap(decomList);
 			updateDataSystemMap(decomList);
+			updateBluDataSystemMap(decomList);
 			constraints = false;
 
 			for(String system: decomList){
@@ -221,26 +238,6 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	private boolean determineExitStrategy(List<String> decomList, List<String> keptSystems){
 
 		boolean fullExit = true;
-
-		for(String system: keptSystems){
-			List<List<String>> downstreams = sdsMap.get(system);
-			int removedSystemCount = 0;
-			if(downstreams == null){
-				currentDownstreamInterfaceCount.put(system, 0);
-			}else{
-				for(List<String> downstreamSystem: downstreams){
-					String downSystem = downstreamSystem.get(0);
-					if(decomList.contains(downSystem)){
-						removedSystemCount++;
-					}
-				}
-				if(originalDownstreamInterfaceCount.get(system)-removedSystemCount <= 0){
-					currentDownstreamInterfaceCount.put(system, 0);
-				}else{
-					currentDownstreamInterfaceCount.put(system, originalDownstreamInterfaceCount.get(system)-removedSystemCount);
-				}
-			}
-		}
 
 		for(String system: decomList){
 			if(retirementMap.get("F").contains(system) || retirementMap.get("P").contains(system) || retirementMap.get("TBD").contains(system)){
@@ -263,7 +260,6 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 		if(previousValues.contains(decomList)){
 			System.out.println("Repeated set found. Exiting loop.");
 			previousValues.clear();
-			this.originalDownstreamInterfaceCount.putAll(this.currentDownstreamInterfaceCount);
 			return false;
 		}else if(fullExit){
 			System.out.println("Optimization kept everything. All remaining system provide unique BLU/Data. Decommissioning everything except enduring systems.");
@@ -284,6 +280,27 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 			previousValues.add(decomList);
 			return false;
 		}else{
+			
+			for(String system: keptSystems){
+				List<List<String>> downstreams = sdsMap.get(system);
+				int removedSystemCount = 0;
+				if(downstreams == null){
+					currentDownstreamInterfaceCount.put(system, 0);
+				}else{
+					for(List<String> downstreamSystem: downstreams){
+						String downSystem = downstreamSystem.get(0);
+						if(decomList.contains(downSystem) || decommissionedSystems.contains(downSystem)){
+							removedSystemCount++;
+						}
+					}
+					if(originalDownstreamInterfaceCount.get(system)-removedSystemCount <= 0){
+						currentDownstreamInterfaceCount.put(system, 0);
+					}else{
+						currentDownstreamInterfaceCount.put(system, originalDownstreamInterfaceCount.get(system)-removedSystemCount);
+					}
+				}
+			}
+			
 			System.out.println("Repeating iteration with additional constraints.");
 			constraints = true;
 			previousValues.add(decomList);
@@ -311,12 +328,19 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	 */
 	private void updateBudgetConstraint(List<String> decomList, List<String> keptSystems){
 
+		budgetConstraint = 0;
+		
 		for(String system: decomList){
 			budgetConstraint = budgetConstraint + sysBudget.get(system);
 		}
+		for(String system: decommissionedSystems){
+			budgetConstraint = budgetConstraint + sysBudget.get(system);
+		}
 		int localCount = 0;
-		for(String system : keptSystems){
-			localCount = localCount + upstreamInterfaceCount.get(system);
+		for(String system: upstreamInterfaceCount.keySet()){
+			if(!decommissionedSystems.contains(system) && !decomList.contains(system)){
+				localCount = localCount + upstreamInterfaceCount.get(system);				
+			}
 		}
 
 		budgetConstraint = budgetConstraint - (interfaceCost*interfaceSustainmentPercent)*localCount;
@@ -366,15 +390,24 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	/**
 	 * @param removedSystems
 	 */
-	private void updateInterfaceCounts(List<String> keptSystems, List<String> decomList){
+	private void updateInterfaceCounts(List<String> decomList){
 
 		//update list for remaining systems
-		for(String system: keptSystems){
+		for(String system: upstreamInterfaceCount.keySet()){
 			int localInterfaceCount = 0;
-
-			if(interfaceCountMap.keySet().contains(system) && !decommissionedSystems.contains(system)){
+			if(system.equals("STARS-HCM")){
+				System.out.println();
+			}
+			if(interfaceCountMap.keySet().contains(system) && !decommissionedSystems.contains(system) && !decomList.contains(system)){
 				for(String sys: decomList){
 					//list of upstream interfaces for this system
+					for(String upstreamSystem: interfaceCountMap.get(system)){
+						if(upstreamSystem.equals(sys)){
+							localInterfaceCount++;
+						}
+					}
+				}
+				for(String sys: decommissionedSystems){
 					for(String upstreamSystem: interfaceCountMap.get(system)){
 						if(upstreamSystem.equals(sys)){
 							localInterfaceCount++;
@@ -385,6 +418,25 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 			upstreamInterfaceCount.put(system, localInterfaceCount);
 		}
 
+	}
+
+	private void updateBluDataSystemMap(List<String> decomList){
+		for(String activity: bluDataSystemMap.keySet()){
+			Map<String, List<String>> bluDataSystem = bluDataSystemMap.get(activity);
+			for(String bluData: bluDataSystem.keySet()){
+				List<String> systems = bluDataSystem.get(bluData);
+				for(String system: systems){
+					if(decomList.contains(system)){
+						List<String> updatedSystems = new ArrayList<String>(systems);
+						updatedSystems.remove(system);
+						systems = updatedSystems;
+						bluDataSystem.put(bluData, updatedSystems);
+					}
+				}
+			}
+			bluDataSystemMap.put(activity, bluDataSystem);
+		}
+		calc.setBluMap(bluDataSystemMap);
 	}
 
 	/**
@@ -404,7 +456,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 		}
 	}
 
-	private void findTreeMax(){
+	private void findTreeMax(List<Double> treeList){
 
 		Map<String, Double> systemResults = calc.runRiskCalculations();
 		double treeMax = 0.0;
@@ -414,8 +466,9 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 				treeMax = value;
 			}
 		}
-
 		this.treeMax = (double) ((1)/(1 - treeMax));
+		treeList.add(treeMax);
+		timeline.setTreeMaxList(treeList);
 	}
 
 	private void updateMaxList(){
@@ -455,7 +508,17 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 
 		Map<String, Double> newYearMap = new HashMap<String, Double>();
 		for(String system: decomList){
-			newYearMap.put(system, currentDownstreamInterfaceCount.get(system)*interfaceCost);
+			int interfaceToDecomSystem = 0;
+			if(sdsMap.keySet().contains(system)){
+				List<List<String>> downstreams = sdsMap.get(system);
+				for(List<String> downstreamInterface: downstreams){
+					if(decommissionedSystems.contains(downstreamInterface.get(0)) || decomList.contains(downstreamInterface.get(0))){
+						interfaceToDecomSystem++;
+					}
+
+				}
+				newYearMap.put(system, (originalDownstreamInterfaceCount.get(system)-interfaceToDecomSystem)*interfaceCost);
+			}
 		}
 		investmentMap.add(newYearMap);
 		timeline.setSystemInvestmentMap(investmentMap);
