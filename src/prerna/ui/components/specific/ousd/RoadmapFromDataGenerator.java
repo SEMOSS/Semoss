@@ -1,7 +1,9 @@
 package prerna.ui.components.specific.ousd;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
@@ -9,6 +11,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.ui.components.ExecuteQueryProcessor;
 
 public class RoadmapFromDataGenerator implements ITimelineGenerator{
 
@@ -19,7 +22,12 @@ public class RoadmapFromDataGenerator implements ITimelineGenerator{
 	String[] sysList;
 	double interfaceCost = 350000;
 	double interfaceSustainmentPercent = 0.18;
-
+	
+	ActivityGroupRiskCalculator calc = new ActivityGroupRiskCalculator();
+	double failureRate = 0.001;
+	
+	private String cleanActInsightString = "What clean groups can activities be put in?";
+	
 	@Override
 	public void createTimeline(IEngine engine){
 		roadmapEngine = engine;
@@ -73,6 +81,8 @@ public class RoadmapFromDataGenerator implements ITimelineGenerator{
 		
 		buildInvestmentMap();
 		buildSustainmentCostMap();
+		
+		buildRiskList(sysList);
 		
 		return timeline;
 
@@ -175,6 +185,75 @@ public class RoadmapFromDataGenerator implements ITimelineGenerator{
 
 	}
 
+	private void buildRiskList(String[] sysList){
+		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
+		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
+		proc.processQuestionQuery(roadmapEngine, cleanActInsightString, emptyTable);
+		SequencingDecommissioningPlaySheet activitySheet = (SequencingDecommissioningPlaySheet) proc.getPlaySheet();
+
+		Map<Integer, List<List<Integer>>> decomGroups = activitySheet.collectData();
+		Object[] groupData = activitySheet.getResults(decomGroups);
+
+		calc.setGroupData((Map<String, List<String>>)groupData[0], (Map<String, List<String>>)groupData[1], (List<String>)groupData[2]);
+		calc.setFailure(this.failureRate);
+		
+		List<String> systemList = new ArrayList<String>();
+		for(String system: sysList){
+			systemList.add(system);
+		}
+		
+		Map<String, Map<String, List<String>>> activityDataSystemMap = OUSDQueryHelper.getActivityDataSystemMap(roadmapEngine, systemBindings);
+		Map<String, Map<String, List<String>>> activityBluSystemMap = OUSDQueryHelper.getActivityGranularBluSystemMap(roadmapEngine, systemBindings);
+
+		Map<String, Map<String, List<String>>> bluDataSystemMap = OUSDPlaysheetHelper.combineMaps(activityDataSystemMap, activityBluSystemMap);
+		
+		List<String> decomList = new ArrayList<String>();
+		List<Double> treeList = new ArrayList<Double>();
+		calc.setBluMap(bluDataSystemMap);
+		calc.setData(systemList);
+		
+		for(Map<String, List<String>> yearMap: timeline.getTimeData()){
+			Map<String, Double> systemResults = calc.runRiskCalculations();
+			double treeMax = 0.0;
+			for(String key: systemResults.keySet()){
+				double value = systemResults.get(key);
+				if(value > treeMax){
+					treeMax = value;
+				}
+			}
+//			this.treeMax = (double) ((1)/(1 - treeMax));
+			treeList.add(treeMax);
+			timeline.setTreeMaxList(treeList);
+			List<String> updatedSystems = systemList;
+			for(String system: yearMap.keySet()){
+				decomList.add(system);
+				updatedSystems.remove(system);
+			}
+			systemList = updatedSystems;
+			updateBluDataSystemMap(decomList, bluDataSystemMap);
+		}
+		
+	}
+	
+	private void updateBluDataSystemMap(List<String> decomList, Map<String, Map<String, List<String>>> bluDataSystemMap){
+		for(String activity: bluDataSystemMap.keySet()){
+			Map<String, List<String>> bluDataSystem = bluDataSystemMap.get(activity);
+			for(String bluData: bluDataSystem.keySet()){
+				List<String> systems = bluDataSystem.get(bluData);
+				for(String system: systems){
+					if(decomList.contains(system)){
+						List<String> updatedSystems = new ArrayList<String>(systems);
+						updatedSystems.remove(system);
+						systems = updatedSystems;
+						bluDataSystem.put(bluData, updatedSystems);
+					}
+				}
+			}
+			bluDataSystemMap.put(activity, bluDataSystem);
+		}
+		calc.setBluMap(bluDataSystemMap);
+	}
+	
 	@Override
 	public void createTimeline(){
 
