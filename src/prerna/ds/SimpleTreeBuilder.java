@@ -1102,6 +1102,7 @@ public class SimpleTreeBuilder
 				SimpleTreeNode rightFilteredChild = parentNode.rightChild;
 				node2filter.leftSibling = rightFilteredChild;
 				SimpleTreeNode nextRight = rightFilteredChild.rightSibling;
+				rightFilteredChild.rightSibling = node2filter;
 				if(nextRight != null) {
 					nextRight.leftSibling = node2filter;
 					node2filter.rightSibling = nextRight;
