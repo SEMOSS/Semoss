@@ -280,27 +280,29 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 			previousValues.add(decomList);
 			return false;
 		}else{
-			
-			for(String system: keptSystems){
-				List<List<String>> downstreams = sdsMap.get(system);
-				int removedSystemCount = 0;
-				if(downstreams == null){
-					currentDownstreamInterfaceCount.put(system, 0);
-				}else{
-					for(List<String> downstreamSystem: downstreams){
-						String downSystem = downstreamSystem.get(0);
-						if(decomList.contains(downSystem) || decommissionedSystems.contains(downSystem)){
-							removedSystemCount++;
-						}
-					}
-					if(originalDownstreamInterfaceCount.get(system)-removedSystemCount <= 0){
+
+			if(constraints){
+				for(String system: keptSystems){
+					List<List<String>> downstreams = sdsMap.get(system);
+					int removedSystemCount = 0;
+					if(downstreams == null){
 						currentDownstreamInterfaceCount.put(system, 0);
 					}else{
-						currentDownstreamInterfaceCount.put(system, originalDownstreamInterfaceCount.get(system)-removedSystemCount);
+						for(List<String> downstreamSystem: downstreams){
+							String downSystem = downstreamSystem.get(0);
+							if(decomList.contains(downSystem) || decommissionedSystems.contains(downSystem)){
+								removedSystemCount++;
+							}
+						}
+						if(originalDownstreamInterfaceCount.get(system)-removedSystemCount <= 0){
+							currentDownstreamInterfaceCount.put(system, 0);
+						}else{
+							currentDownstreamInterfaceCount.put(system, originalDownstreamInterfaceCount.get(system)-removedSystemCount);
+						}
 					}
 				}
 			}
-			
+
 			System.out.println("Repeating iteration with additional constraints.");
 			constraints = true;
 			previousValues.add(decomList);
@@ -329,7 +331,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	private void updateBudgetConstraint(List<String> decomList, List<String> keptSystems){
 
 		budgetConstraint = 0;
-		
+
 		for(String system: decomList){
 			budgetConstraint = budgetConstraint + sysBudget.get(system);
 		}
