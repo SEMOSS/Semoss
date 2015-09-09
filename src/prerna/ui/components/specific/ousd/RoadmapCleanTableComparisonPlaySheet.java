@@ -89,22 +89,35 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 
 		List<Map<String, List<String>>> systemYears = timeline.getTimeData();
 		Map<String, Double> budgets = timeline.getBudgetMap();
+		Object[] rowSystemCount = new Object[names.length];
+		rowSystemCount[0] = this.roadmapName + " System Decommission Count";
 		Object[] row = new Object[names.length];
 		row[0] = this.roadmapName + " New Savings this year";
+		Object[] rowBuildCount = new Object[names.length];
+		rowBuildCount[0] = this.roadmapName + " Build Count";
 		Object[] rowBuildCost = new Object[names.length];
 		rowBuildCost[0] = this.roadmapName + " Build Cost";
 		Object[] rowSustainCost = new Object[names.length];
 		rowSustainCost[0] = this.roadmapName + " Sustainment Cost";
-
+		Object[] rowRisk = new Object[names.length];
+		rowRisk[0] = this.roadmapName + " Enterprise Risk";
+		
 		List<Map<String, List<String>>> comparatorYears = comparatorTimeline.getTimeData();
 		Map<String, Double> comparatorBudgets = comparatorTimeline.getBudgetMap();
+		Object[] compRowSystemCount = new Object[names.length];
+		compRowSystemCount[0] = this.comparatorName + " System Decommission Count";
 		Object[] comparatorRow = new Object[names.length];
 		comparatorRow[0] = this.comparatorName + " New Savings this year";
+		Object[] compRowBuildCount = new Object[names.length];
+		compRowBuildCount[0] = this.comparatorName + " Build Count";
 		Object[] compRowBuildCost = new Object[names.length];
 		compRowBuildCost[0] = this.comparatorName + " Build Cost";
 		Object[] compRowSustainCost = new Object[names.length];
 		compRowSustainCost[0] = this.comparatorName + " Sustainment Cost";
+		Object[] compRowRisk = new Object[names.length];
+		compRowRisk[0] = this.comparatorName + " Enterprise Risk";
 
+		
 		NumberFormat formatter = NumberFormat.getCurrencyInstance(Locale.US);
 		NumberFormat percentFormat = NumberFormat.getPercentInstance();
 		percentFormat.setMinimumFractionDigits(1);
@@ -122,12 +135,15 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 				double yearTotal = 0.0;
 
 				Map<String, List<String>> yearMap = systemYears.get(yearIdx);
+				int count = 0;
 				for(String system: yearMap.keySet()){
 					if(!processedSystems.contains(system)){
+						count++;
 						yearTotal = yearTotal + budgets.get(system);
 						processedSystems.add(system);
 					}
 				}
+				rowSystemCount[i]=count;
 				String formattedTotal = formatter.format(yearTotal);
 				if(year == fyList.get(0)){
 					row[i] = formatter.format(0.0);
@@ -135,11 +151,15 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 				row[i+1] = formattedTotal;
 
 				if(invest!=null){
+					double buildCount = 0;
 					Map<String, Double> yearInvest = invest.get(yearIdx);
 					double totalInvest = 0.;
 					for(Double val : yearInvest.values()){
+						double intCount = val/350000;
+						buildCount = buildCount + intCount;
 						totalInvest = totalInvest + val;
 					}
+					rowBuildCount[i] = (int) buildCount;
 					rowBuildCost[i] = formatter.format(totalInvest);
 				}
 				if(sustainMap!=null){
@@ -150,6 +170,7 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 					}
 					rowSustainCost[i] = formatter.format(totalSustain);
 				}
+				rowRisk[i] = percentFormat.format(timeline.getTreeMaxList().get(yearIdx));
 			}else{				
 				if(year>fyList.get(fyList.size()-1)){
 					if(sustainMap!=null){
@@ -167,23 +188,30 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 				double yearTotal = 0.0;
 
 				Map<String, List<String>> yearMap = comparatorYears.get(yearIdx);
+				int count = 0;
 				for(String system: yearMap.keySet()){
 					if(!comparatorProcessedSystems.contains(system)){
+						count++;
 						yearTotal = yearTotal + comparatorBudgets.get(system);
 						comparatorProcessedSystems.add(system);
 					}
 				}
+				compRowSystemCount[i]=count;
 				if(year == comparatorFyList.get(0)){
 					comparatorRow[i] = formatter.format(0.0);
 				}
 				comparatorRow[i+1] = formatter.format(yearTotal);
 
 				if(investComparator!=null){
+					double compBuildCount = 0;
 					Map<String, Double> yearInvest = investComparator.get(yearIdx);
 					double totalInvest = 0.;
 					for(Double val : yearInvest.values()){
+						double intCount = val/350000;
+						compBuildCount = compBuildCount + intCount;
 						totalInvest = totalInvest + val;
 					}
+					compRowBuildCount[i] = (int) compBuildCount;
 					compRowBuildCost[i] = formatter.format(totalInvest);
 				}
 				if(sustainComparatorMap!=null){
@@ -194,6 +222,7 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 					}
 					compRowSustainCost[i] = formatter.format(totalSustain);
 				}
+				compRowRisk[i] = percentFormat.format(comparatorTimeline.getTreeMaxList().get(yearIdx));
 			}else{				
 				if(year>comparatorFyList.get(comparatorFyList.size()-1)){
 					if(sustainComparatorMap!=null){
@@ -207,15 +236,22 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 				}
 			}			
 		}
+		this.dataFrame.addRow(rowSystemCount, rowSystemCount);
 		this.dataFrame.addRow(row, row);
+		this.dataFrame.addRow(rowBuildCount, rowBuildCount);
 		this.dataFrame.addRow(rowBuildCost, rowBuildCost);
 		this.dataFrame.addRow(rowSustainCost, rowSustainCost);
+		this.dataFrame.addRow(rowRisk, rowRisk);
 
+		
 		additionalRowBuilder(fyList, row, rowSustainCost, rowBuildCost, names, formatter, percentFormat, this.roadmapName);
 
+		this.dataFrame.addRow(compRowSystemCount, compRowSystemCount);
 		this.dataFrame.addRow(comparatorRow, comparatorRow);
+		this.dataFrame.addRow(compRowBuildCount, compRowBuildCount);
 		this.dataFrame.addRow(compRowBuildCost, compRowBuildCost);
 		this.dataFrame.addRow(compRowSustainCost, compRowSustainCost);
+		this.dataFrame.addRow(compRowRisk, compRowRisk);
 
 		additionalRowBuilder(comparatorFyList, comparatorRow, compRowSustainCost, compRowBuildCost, names, formatter, percentFormat, this.comparatorName);
 	}
