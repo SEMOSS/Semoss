@@ -29,7 +29,7 @@ package prerna.ui.components.specific.tap;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -71,7 +71,7 @@ public class DHMSMIntegrationTransitionBySystemOwnerWriter {
 	private double atoCost;
 	private double sumHWSWCost;
 	private String systemName;
-	private HashMap<String, Double> consolidatedSysCostInfo;
+	private Map<String, Map<String, Double>> sysData;
 	
 	private final int OFFSET = 19;
 	private final int START_ROW = 1;
@@ -83,7 +83,7 @@ public class DHMSMIntegrationTransitionBySystemOwnerWriter {
 	}
 	
 	public void setDataSource(DHMSMIntegrationTransitionCostWriter data){
-		this.consolidatedSysCostInfo = data.getData();
+		this.sysData = data.getData();
 		this.atoCost = data.getAtoCost();
 		this.sumHWSWCost = data.getSumHWSWCost();
 		this.costPerHr = data.getCostPerHr();
@@ -222,13 +222,15 @@ public class DHMSMIntegrationTransitionBySystemOwnerWriter {
 				rowToOutput = providerStart;
 			}
 			for(j = 0; j < numPhases; j++) {
-				String key = tags[i].concat("+").concat(phases[j]);
 				XSSFRow rowToWriteOn = reportSheet.getRow(rowToOutput);
-				if(consolidatedSysCostInfo.containsKey(key)) {
-					double cost = consolidatedSysCostInfo.get(key)*costPerHr;
-					totalCost[i] += cost;
-					XSSFCell cellToWriteOn = rowToWriteOn.getCell(3);
-					cellToWriteOn.setCellValue(Math.round(cost));
+				if(sysData.containsKey(tags[i])) {
+					Map<String, Double> costAtPhases = sysData.get(tags[i]);
+					if(costAtPhases.containsKey(phases[j])) {
+						double cost = costAtPhases.get(phases[j])*costPerHr;
+						totalCost[i] += cost;
+						XSSFCell cellToWriteOn = rowToWriteOn.getCell(3);
+						cellToWriteOn.setCellValue(Math.round(cost));
+					}
 				}
 				rowToOutput++;
 			}

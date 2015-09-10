@@ -29,6 +29,7 @@ package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -37,13 +38,13 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.error.EngineException;
 import prerna.poi.specific.ConsolidatedSystemReportWriter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.BooleanProcessor;
-import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -55,11 +56,11 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 
 	static final Logger logger = LogManager.getLogger(ConsolidatedSystemReportPlaySheet.class.getName());
 	
-	private static String modernizationProp = "InterfaceModernizationCost";
+	private static String MODERNIZATION_PROP = "InterfaceModernizationCost";
 	
-	private String checkModPropQuery = "ASK WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} BIND(<http://semoss.org/ontologies/Relation/Contains/" + modernizationProp + "> AS ?contains) {?p ?contains ?prop ;} }";
-	private String modPropDeleteQuery = "DELETE { ?system ?contains ?prop } WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} BIND(<http://semoss.org/ontologies/Relation/Contains/" + modernizationProp + "> AS ?contains) {?p ?contains ?prop ;} }";
-	
+	private String checkModPropQuery = "ASK WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} BIND(<http://semoss.org/ontologies/Relation/Contains/" + MODERNIZATION_PROP + "> AS ?contains) {?system ?contains ?prop ;} }";
+	private String modPropDeleteQuery = "SELECT DISTINCT ?system ?contains ?prop WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} BIND(<http://semoss.org/ontologies/Relation/Contains/" + MODERNIZATION_PROP + "> AS ?contains) {?system ?contains ?prop} }";
+			
 	private String lpiSystemListQuery = "SELECT DISTINCT ?entity WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?entity <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?entity <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y' }} ORDER BY ?entity BINDINGS ?Probability {('Low')('Medium')('Medium-High')}";
 	private String lpniSystemListQuery = "SELECT DISTINCT ?entity WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?entity <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?entity <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'N' }} ORDER BY ?entity BINDINGS ?Probability {('Low')('Medium')('Medium-High')}";
 	private String systemOwnerQuery = "SELECT DISTINCT ?system (GROUP_CONCAT(DISTINCT ?Owner; SEPARATOR = ', ') AS ?sys_owner) WHERE { SELECT DISTINCT ?system (SUBSTR(STR(?owner),50) AS ?Owner) WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?owner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>} {?system <http://semoss.org/ontologies/Relation/OwnedBy> ?owner} } BINDINGS ?system {@BINDINGS_STRING@} } GROUP BY ?system";
@@ -261,10 +262,23 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 	
 	private void deleteModernizationProp(){
 		logger.info("Deleting modernization prop");
-		UpdateProcessor upProc = new UpdateProcessor();
-		upProc.setEngine(this.engine);
-		upProc.setQuery(modPropDeleteQuery);
-		upProc.processQuery();
+		List<Object[]> triples = new ArrayList<Object[]>();
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, modPropDeleteQuery);
+		String[] names = wrapper.getVariables();
+		while(wrapper.hasNext()) {
+			ISelectStatement ss = wrapper.next();
+			Object[] row = new Object[4];
+			row[0] = ss.getRawVar(names[0]).toString();
+			row[1] = ss.getRawVar(names[1]).toString();
+			row[2] = (Double) ss.getVar(names[2]);
+			row[3] = false;
+			triples.add(row);
+		}
+		
+		for(int i = 0; i < triples.size(); i++) {
+			engine.doAction(ACTION_TYPE.REMOVE_STATEMENT, triples.get(i));
+		}
+		engine.commit();
 	}
 
 	private boolean checkModernizationProp(){

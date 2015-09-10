@@ -30,66 +30,68 @@ package prerna.util;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.rdf.engine.wrappers.WrapperManager;
 
 public final class DHMSMTransitionUtility {
-	
+
+
 	private DHMSMTransitionUtility() {
-		
+
 	}
-	// string to modify for LP Interface processor
-	// change @SYSTEMNAME@ 
-//	public static String lpSystemInterfacesQuery = "SELECT DISTINCT ?System ?InterfaceType ?InterfacingSystem ?Probability (COALESCE(?interface,'') AS ?Interface) ?Data (COALESCE(?format,'') AS ?Format) (COALESCE(?Freq,'') AS ?Frequency) (COALESCE(?Prot,'') AS ?Protocol) ?DHMSM ?Recommendation WHERE { {SELECT DISTINCT (IF(BOUND(?y),?DownstreamSys,IF(BOUND(?x),?UpstreamSys,'')) AS ?System) (IF(BOUND(?y),'Upstream',IF(BOUND(?x),'Downstream','')) AS ?InterfaceType) (IF(BOUND(?y),?UpstreamSys,IF(BOUND(?x),?DownstreamSys,'')) AS ?InterfacingSystem)  (COALESCE(IF(BOUND(?y),IF(?UpstreamSysProb1 != 'High' && ?UpstreamSysProb1 != 'Question','Low','High'),IF(BOUND(?x),IF(?DownstreamSysProb1 != 'High' &&?DownstreamSysProb1 != 'Question','Low','High'),'')), '') AS ?Probability) ?interface ?Data ?format ?Freq ?Prot (IF((STRLEN(?DHMSMcrm)<1),'',IF((REGEX(STR(?DHMSMcrm),'C')),'Provider','Consume')) AS ?DHMSM) (COALESCE(?HIEsys, '') AS ?HIE) ?DHMSMcrm WHERE { {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} BIND('N' AS ?InterfaceYN) LET(?d := 'd') OPTIONAL{ { {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?UpstreamSysProb;} OPTIONAL{{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;}} OPTIONAL{{?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/HIE> ?HIEsys;}{?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?DownstreamSysProb1;}} OPTIONAL{{?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;}} {?interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?interface ?carries ?Data;} {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?UpstreamSys ?Upstream ?interface ;}{?interface ?Downstream ?DownstreamSys ;} { {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?format ;}{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Freq ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Prot ;} } LET(?x :=REPLACE(str(?d), 'd', 'x')) } UNION {{?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} OPTIONAL{{?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;}} {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?DownstreamSysProb;}OPTIONAL{{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/HIE> ?HIEsys;}{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?UpstreamSysProb1;}} OPTIONAL{{?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;}} {?interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?interface ?carries ?Data;} {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?UpstreamSys ?Upstream ?interface ;}{?interface ?Downstream ?DownstreamSys ;} { {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?format ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Freq ;}{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Prot ;} } LET(?y :=REPLACE(str(?d), 'd', 'y')) } } {SELECT DISTINCT ?Data (GROUP_CONCAT(DISTINCT ?Crm ; separator = ',') AS ?DHMSMcrm) WHERE {{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} OPTIONAL{BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> AS ?DHMSM ){?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;}{?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;}{?DHMSM ?TaggedBy ?Capability.}{?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;}{?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;}{?Capability ?Consists ?Task.}{?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;}{?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?Crm;}{?Task ?Needs ?Data.}} } GROUP BY ?Data} }} FILTER(REGEX(STR(?System), '^http://health.mil/ontologies/Concept/System/@SYSTEMNAME@$')) } ORDER BY ?System ?InterfacingSystem ?Data";
-	public static String lpSystemDownstreamInterfaceQuery = "SELECT DISTINCT ?System ?InterfaceType ?InterfacingSystem ?Probability (COALESCE(?interface,'') AS ?Interface) ?Data (COALESCE(?format,'') AS ?Format) (COALESCE(?Freq,'') AS ?Frequency) (COALESCE(?Prot,'') AS ?Protocol) ?DHMSM ?Recommendation WHERE { { SELECT DISTINCT (?UpstreamSys AS ?System) ('Downstream' AS ?InterfaceType) (?DownstreamSys AS ?InterfacingSystem) (COALESCE(IF(?DownstreamSysProb1!='High' && ?DownstreamSysProb1!='Question','Low','High'),'') AS ?Probability) ?interface ?Data ?format ?Freq ?Prot (IF((STRLEN(?DHMSMcrm)<1),'',IF((REGEX(STR(?DHMSMcrm),'C')),'Provides','Consumes')) AS ?DHMSM) ?Recommendation WHERE { {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} BIND('N' AS ?InterfaceYN) BIND('Y' AS ?InterfaceDHMSM) BIND('Y' AS ?ReceivedInformation) OPTIONAL{ {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;} {?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> ?InterfaceDHMSM;} {?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?UpstreamSysProb;} OPTIONAL{ {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?DownstreamSysProb1;} } {?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Received_Information> ?ReceivedInformation;} FILTER(?Prob in ('Low','Medium','Medium-High')) {?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob;} {?interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?interface ?carries ?Data;} {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?UpstreamSys ?Upstream ?interface ;} {?interface ?Downstream ?DownstreamSys ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?format ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Freq ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Prot ;} } { SELECT DISTINCT ?Data (GROUP_CONCAT(DISTINCT ?Crm ; separator = ',') AS ?DHMSMcrm) WHERE { {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} OPTIONAL{ BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> AS ?dhmsm ) {?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;} {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;} {?dhmsm ?TaggedBy ?Capability.} {?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Capability ?Consists ?Task.} {?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?Crm;} {?Task ?Needs ?Data.} } } GROUP BY ?Data} } } FILTER(REGEX(STR(?System), '^http://health.mil/ontologies/Concept/System/@SYSTEMNAME@$')) } ORDER BY ?System ?InterfacingSystem ?Data";
-	public static String lpSystemUpstreamInterfaceQuery = "SELECT DISTINCT ?System ?InterfaceType ?InterfacingSystem ?Probability (COALESCE(?interface,'') AS ?Interface) ?Data (COALESCE(?format,'') AS ?Format) (COALESCE(?Freq,'') AS ?Frequency) (COALESCE(?Prot,'') AS ?Protocol) ?DHMSM ?Recommendation WHERE { { SELECT DISTINCT (?DownstreamSys AS ?System) ('Upstream' AS ?InterfaceType) (?UpstreamSys AS ?InterfacingSystem) (COALESCE(IF((?UpstreamSysProb1 != 'High' && ?UpstreamSysProb1 != 'Question'),'Low','High'),'') AS ?Probability) ?interface ?Data ?format ?Freq ?Prot (IF((STRLEN(?DHMSMcrm)<1),'',IF((REGEX(STR(?DHMSMcrm),'C')),'Provides','Consumes')) AS ?DHMSM) ?Recommendation WHERE { {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} BIND('N' AS ?InterfaceYN) BIND('Y' AS ?InterfaceDHMSM) BIND('Y' AS ?ReceivedInformation) OPTIONAL{ {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> ?InterfaceYN;} {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> ?InterfaceDHMSM;} {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?DownstreamSysProb;} OPTIONAL{ {?UpstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?UpstreamSysProb1;} } {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Received_Information> ?ReceivedInformation;} FILTER(?Prob in ('Low','Medium','Medium-High')) {?DownstreamSys <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob;} {?interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?interface ?carries ?Data;} {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?UpstreamSys ?Upstream ?interface ;} {?interface ?Downstream ?DownstreamSys ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?format ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Freq ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Prot ;} } { SELECT DISTINCT ?Data (GROUP_CONCAT(DISTINCT ?Crm ; separator = ',') AS ?DHMSMcrm) WHERE { {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} OPTIONAL{ BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> AS ?dhmsm ) {?TaggedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/TaggedBy>;} {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>;} {?dhmsm ?TaggedBy ?Capability.} {?Consists <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consists>;} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Capability ?Consists ?Task.} {?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>;} {?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> ?Crm;} {?Task ?Needs ?Data.} } } GROUP BY ?Data} } } FILTER(REGEX(STR(?System), '^http://health.mil/ontologies/Concept/System/@SYSTEMNAME@$')) } ORDER BY ?System ?InterfacingSystem ?Data";
-	
+
 	public static final String HEADER_KEY = "headers";
 	public static final String DATA_KEY = "data";
 	public static final String TOTAL_DIRECT_COST_KEY = "directCost";
 	public static final String TOTAL_INDIRECT_COST_KEY = "indirectCost";
 	public static final String SYS_URI_PREFIX = "http://health.mil/ontologies/Concept/System/";
-	
+
 	public static final String LOE_SYS_GLITEM_QUERY = "SELECT DISTINCT ?sys ?data ?ser (SUM(?loe) AS ?Loe) ?gltag1 WHERE { SELECT DISTINCT ?sys ?data ?ser ?loe (SUBSTR(STR(?gltag), 44) AS ?gltag1) ?phase WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?sys <http://semoss.org/ontologies/Relation/Provide> ?data} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?gltag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser} {?data <http://semoss.org/ontologies/Relation/Input> ?GLitem} } } GROUP BY ?sys ?data ?ser ?gltag1";
 	public static final String LOE_GENERIC_GLITEM_QUERY = "SELECT DISTINCT ?data ?ser (SUM(?loe) AS ?Loe) WHERE { BIND(<http://health.mil/ontologies/Concept/GLTag/Generic> AS ?gltag) {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?gltag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser} {?data <http://semoss.org/ontologies/Relation/Input> ?GLitem} } GROUP BY ?data ?ser";
 	public static final String AVG_LOE_SYS_GLITEM_QUERY = "SELECT DISTINCT ?data ?ser (SUM(?loe)/COUNT(DISTINCT ?sys) AS ?Loe) ?gltag1 WHERE { SELECT DISTINCT ?sys ?data ?ser ?loe (SUBSTR(STR(?gltag), 44) AS ?gltag1) ?phase WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?sys <http://semoss.org/ontologies/Relation/Provide> ?data} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?gltag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser} {?data <http://semoss.org/ontologies/Relation/Input> ?GLitem} } } GROUP BY ?data ?ser ?gltag1";
 	public static final String SERVICE_TO_DATA_LIST_QUERY = "SELECT DISTINCT ?data (GROUP_CONCAT(?Ser; SEPARATOR = '; ') AS ?service) WHERE { {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?ser <http://semoss.org/ontologies/Relation/Exposes> ?data } BIND(SUBSTR(STR(?ser),46) AS ?Ser) } GROUP BY ?data";
 	public static final String DATA_TO_SERVICE_QUERY = "SELECT DISTINCT ?data  ?Ser WHERE { {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?ser <http://semoss.org/ontologies/Relation/Exposes> ?data } BIND(SUBSTR(STR(?ser),46) AS ?Ser) }";
-	
-	public static final String SYS_SPECIFIC_LOE_AND_PHASE_QUERY = "SELECT DISTINCT ?sys ?data ?ser ?loe (SUBSTR(STR(?gltag), 44) AS ?gltag1) (SUBSTR(STR(?phase), 48) AS ?Phase) WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?sys <http://semoss.org/ontologies/Relation/Provide> ?data} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?gltag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser} {?data <http://semoss.org/ontologies/Relation/Input> ?GLitem} } ORDER BY ?sys ?ser ?gltag1";
-	public static final String GENERIC_LOE_AND_PHASE_QUERY = "SELECT DISTINCT ?data ?ser ?loe (SUBSTR(STR(?phase), 48) AS ?Phase) WHERE { BIND(<http://health.mil/ontologies/Concept/GLTag/Generic> AS ?gltag) {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?gltag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser} {?data <http://semoss.org/ontologies/Relation/Input> ?GLitem} }";
-	public static final String AVERAGE_LOE_AND_PHASE_QUERY = "SELECT DISTINCT ?data ?ser (SUM(?loe)/COUNT(DISTINCT ?sys) AS ?Loe) ?gltag1 ?Phase WHERE { SELECT DISTINCT ?sys ?data ?ser ?loe (SUBSTR(STR(?gltag), 44) AS ?gltag1) (SUBSTR(STR(?phase), 48) AS ?Phase) WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?sys <http://semoss.org/ontologies/Relation/Provide> ?data} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?gltag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser} {?data <http://semoss.org/ontologies/Relation/Input> ?GLitem} } } GROUP BY ?data ?ser ?gltag1 ?Phase";
-	
+
+	public static final String SYS_SPECIFIC_LOE_AND_PHASE_QUERY = "SELECT DISTINCT ?sys ?data ?ser ?loe ?gltag ?phase WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?sys <http://semoss.org/ontologies/Relation/Provide> ?data} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?gltag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser} {?data <http://semoss.org/ontologies/Relation/Input> ?GLitem} } ORDER BY ?sys ?ser ?gltag1";
+	public static final String GENERIC_LOE_AND_PHASE_QUERY = "SELECT DISTINCT ?data ?ser ?loe ?phase WHERE { BIND(<http://health.mil/ontologies/Concept/GLTag/Generic> AS ?gltag) {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?gltag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser} {?data <http://semoss.org/ontologies/Relation/Input> ?GLitem} }";
+	public static final String AVERAGE_LOE_AND_PHASE_QUERY = "SELECT DISTINCT ?data ?ser (SUM(?loe)/COUNT(DISTINCT ?sys) AS ?Loe) ?gltag ?phase WHERE { SELECT DISTINCT ?sys ?data ?ser ?loe ?gltag ?phase WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?sys <http://semoss.org/ontologies/Relation/Provide> ?data} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?gltag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser} {?data <http://semoss.org/ontologies/Relation/Input> ?GLitem} } } GROUP BY ?data ?ser ?gltag ?phase";
+
+	public static final String SYS_SPECIFIC_LOE_AND_PHASE_AVG_SERVICE_QUERY = "SELECT DISTINCT ?sys ?data (AVG(?loe) AS ?loe) ?gltag ?phase WHERE { SELECT DISTINCT ?sys ?data ?ser ?loe ?gltag ?phase WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?sys <http://semoss.org/ontologies/Relation/Provide> ?data} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?gltag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser} {?data <http://semoss.org/ontologies/Relation/Input> ?GLitem} } ORDER BY ?sys ?ser ?gltag1 } GROUP BY ?sys ?data ?gltag ?phase";
+	public static final String AVERAGE_LOE_AND_PHASE_AVG_SERVICE_QUERY = "SELECT DISTINCT ?data (AVG(?Loe) AS ?Loe) ?gltag ?phase WHERE { SELECT DISTINCT ?data ?ser (SUM(?loe)/COUNT(DISTINCT ?sys) AS ?Loe) ?gltag ?phase WHERE { SELECT DISTINCT ?sys ?data ?ser ?loe ?gltag ?phase WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?sys <http://semoss.org/ontologies/Relation/Provide> ?data} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?gltag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser} {?data <http://semoss.org/ontologies/Relation/Input> ?GLitem} } } GROUP BY ?data ?ser ?gltag ?phase } GROUP BY ?data ?gltag ?phase";
+
 	public static final String DHMSM_SOR_QUERY = "SELECT DISTINCT ?Data WHERE { BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> AS ?DHMSM) {?DHMSM <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DHMSM>} {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>} {?DHMSM <http://semoss.org/ontologies/Relation/TaggedBy> ?Capability} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task} {?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>} {?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'} {?Task ?Needs ?Data} }";
 
 	public static final String LPI_SYS_QUERY = "SELECT DISTINCT ?entity WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?entity <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?entity <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> 'Y' }} BINDINGS ?Probability {('Low')('Medium')('Medium-High')}";
 	public static final String SYS_TYPE_QUERY = "SELECT DISTINCT ?entity (IF((?Probability='Low'||?Probability='Medium'||?Probability='Medium-High'), IF(?interface='Y','LPI','LPNI'), IF(?interface='Y','HPI','HPNI')) AS ?ReportType) WHERE { {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?entity <http://semoss.org/ontologies/Relation/Contains/Received_Information> 'Y'} {?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Probability} {?entity <http://semoss.org/ontologies/Relation/Contains/Interface_Needed_w_DHMSM> ?interface}} BINDINGS ?Probability {('Low')('Medium')('Medium-High')('High')('Question')}";
 
-	public static final String SYS_SOR_DATA_CONCAT_QUERY = "SELECT DISTINCT (CONCAT(STR(?system), STR(?data)) AS ?sysDataKey) WHERE { { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> } {?provideData <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd} {?provideData <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm} filter( !regex(str(?crm),'R')) {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} {?system ?provideData ?data} } UNION { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd } {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} OPTIONAL{ {?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?icd2 <http://semoss.org/ontologies/Relation/Consume> ?system} {?icd2 <http://semoss.org/ontologies/Relation/Payload> ?data} } FILTER(!BOUND(?icd2)) } } ORDER BY ?data ?system";
-
+	//	public static final String SYS_SOR_DATA_CONCAT_QUERY = "SELECT DISTINCT (CONCAT(STR(?system), STR(?data)) AS ?sysDataKey) WHERE { { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> } {?provideData <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd} {?provideData <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm} filter( !regex(str(?crm),'R')) {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} {?system ?provideData ?data} } UNION { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd } {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} OPTIONAL{ {?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?icd2 <http://semoss.org/ontologies/Relation/Consume> ?system} {?icd2 <http://semoss.org/ontologies/Relation/Payload> ?data} } FILTER(!BOUND(?icd2)) } } ORDER BY ?data ?system";
+	public static final String SYS_SOR_DATA_CONCAT_QUERY = "SELECT DISTINCT (CONCAT(STR(?System), STR(?Data)) AS ?sysDataKey) WHERE { SELECT DISTINCT (SUBSTR(STR(?system),45) AS ?System) (SUBSTR(STR(?data),49) AS ?Data) WHERE { { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> } {?provideData <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd} {?provideData <http://semoss.org/ontologies/Relation/Contains/CRM> ?crm} filter( !regex(str(?crm),'R')) {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} {?system ?provideData ?data} } UNION { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> ;} {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?system <http://semoss.org/ontologies/Relation/Provide> ?icd } {?icd <http://semoss.org/ontologies/Relation/Payload> ?data} OPTIONAL{ {?icd2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?icd2 <http://semoss.org/ontologies/Relation/Consume> ?system} {?icd2 <http://semoss.org/ontologies/Relation/Payload> ?data} } FILTER(!BOUND(?icd2)) } } ORDER BY ?Data ?System }";
 	public static final String ALL_SELF_REPORTED_ICD_QUERY = "SELECT DISTINCT ?ICD WHERE { {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?Carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?ICD ?Carries ?Data} {?Carries <http://semoss.org/ontologies/Relation/Contains/Recommendation> 'Self_Reported'} }";
 	public static final String ALL_SELF_REPORTED_SYSTEMS = "SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} { {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>} {?System <http://semoss.org/ontologies/Relation/Provide> ?ICD} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?Carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?ICD ?Carries ?Data} {?Carries <http://semoss.org/ontologies/Relation/Contains/Recommendation> 'Self_Reported'} } UNION { {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>} {?ICD <http://semoss.org/ontologies/Relation/Consume> ?System} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?Carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?ICD ?Carries ?Data} {?Carries <http://semoss.org/ontologies/Relation/Contains/Recommendation> 'Self_Reported'} } }";
-	
+
 	public static final String DETERMINE_PROVIDER_FUTURE_ICD_PROPERTIES = "SELECT DISTINCT ?System ?Data (GROUP_CONCAT(DISTINCT ?format; SEPARATOR = ';') AS ?Format) (GROUP_CONCAT(DISTINCT ?frequency; SEPARATOR = ';') AS ?Frequency) (GROUP_CONCAT(DISTINCT ?protocol; SEPARATOR = ';') AS ?Protocol) WHERE{ {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>} {?System <http://semoss.org/ontologies/Relation/Provide> ?ICD} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?ICD ?carries ?Data} {?carries <http://www.w3.org/2000/01/rdf-schema#label> ?label} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?format} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?frequency} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?protocol} } GROUP BY ?System ?Data ORDER BY ?System ?Data";
 	public static final String DETERMINE_CONSUMER_FUTURE_ICD_PROPERTIES = "SELECT DISTINCT ?System ?Data (GROUP_CONCAT(DISTINCT ?format; SEPARATOR = ';') AS ?Format) (GROUP_CONCAT(DISTINCT ?frequency; SEPARATOR = ';') AS ?Frequency) (GROUP_CONCAT(DISTINCT ?protocol; SEPARATOR = ';') AS ?Protocol) WHERE{ {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>} {?ICD <http://semoss.org/ontologies/Relation/Consume> ?System} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?ICD ?carries ?Data} {?carries <http://www.w3.org/2000/01/rdf-schema#label> ?label} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?format} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?frequency} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?protocol} } GROUP BY ?System ?Data ORDER BY ?System ?Data";
-	
+
+	public static final String SELF_REPORTED_SYSTEM_P2P_INTERFACE_COST = "SELECT DISTINCT ?System (SUM(?loe) AS ?Cost) WHERE { {?System a <http://semoss.org/ontologies/Concept/System>} {?GLItem a <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?System <http://semoss.org/ontologies/Relation/Influences> ?GLItem} {?GLItem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} } GROUP BY ?System";
+	public static final String SELF_REPORTED_SYSTEM_P2P_INTERFACE_COST_BY_TAG_AND_PHASE = "SELECT DISTINCT ?System ?GLTag ?Phase (SUM(?loe) AS ?Cost) WHERE { {?System a <http://semoss.org/ontologies/Concept/System>} {?GLItem a <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?System <http://semoss.org/ontologies/Relation/Influences> ?GLItem} {?GLItem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?Phase a <http://semoss.org/ontologies/Concept/SDLCPhase>} {?GLItem <http://semoss.org/ontologies/Relation/BelongsTo> ?Phase} {?GLTag a <http://semoss.org/ontologies/Concept/GLTag>} {?GLItem <http://semoss.org/ontologies/Relation/TaggedBy> ?GLTag} } GROUP BY ?System ?GLTag ?Phase";
 	
 	public static HashMap<String, ArrayList<String>> getDataToServiceHash(IEngine engine) {
 		HashMap<String, ArrayList<String>> retHash = new HashMap<String, ArrayList<String>>();
-		
-		
+
+
 		ISelectWrapper sjsw = Utility.processQuery(engine, DATA_TO_SERVICE_QUERY);
-		
+
 		String[] varName = sjsw.getVariables();
 		while(sjsw.hasNext()) {
 			ISelectStatement sjss = sjsw.next();
 			String data = sjss.getVar(varName[0]).toString();
 			String ser = sjss.getVar(varName[1]).toString();
-			
+
 			ArrayList<String> innerList;
 			if(retHash.containsKey(data)) {
 				innerList = retHash.get(data);
@@ -100,22 +102,70 @@ public final class DHMSMTransitionUtility {
 				retHash.put(data, innerList);
 			}
 		}
-		
+
 		return retHash;
 	}
 	
+	public static Map<String, Map<String, Map<String, Double>>> getSystemSelfReportedP2PCostByTagAndPhase(IEngine engine) {
+		Map<String, Map<String, Map<String, Double>>> retHash = new HashMap<String, Map<String, Map<String, Double>>>();
+		ISelectWrapper sjsw = Utility.processQuery(engine, SELF_REPORTED_SYSTEM_P2P_INTERFACE_COST_BY_TAG_AND_PHASE);
+
+		String[] varName = sjsw.getVariables();
+		while(sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			String system = sjss.getVar(varName[0]).toString();
+			String glTag = sjss.getVar(varName[1]).toString();
+			String phase = sjss.getVar(varName[2]).toString();
+			Double p2pCost = (Double) sjss.getVar(varName[3]);
+			
+			if(retHash.containsKey(system)) {
+				Map<String, Map<String, Double>> innerMap1 = retHash.get(system);
+				if(innerMap1.containsKey(glTag)) {
+					Map<String, Double> innerMap2 = innerMap1.get(glTag);
+					innerMap2.put(phase, p2pCost);
+				} else {
+					Map<String, Double> innerMap2 = new HashMap<String, Double>();
+					innerMap2.put(phase, p2pCost);
+					innerMap1.put(glTag, innerMap2);
+				}
+			} else {
+				Map<String, Double> innerMap2 = new HashMap<String, Double>();
+				innerMap2.put(phase, p2pCost);
+				Map<String, Map<String, Double>> innerMap1 = new HashMap<String, Map<String, Double>>();
+				innerMap1.put(glTag, innerMap2);
+				retHash.put(system, innerMap1);
+			}
+		}
+
+		return retHash;
+	}
+
+	public static Map<String, Double> getSystemSelfReportedP2PCost(IEngine engine) {
+		Map<String, Double> retHash = new HashMap<String, Double>();
+		ISelectWrapper sjsw = Utility.processQuery(engine, SELF_REPORTED_SYSTEM_P2P_INTERFACE_COST);
+
+		String[] varName = sjsw.getVariables();
+		while(sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			String system = sjss.getVar(varName[0]).toString();
+			Double p2pCost = (Double) sjss.getVar(varName[1]);
+			retHash.put(system, p2pCost);
+		}
+
+		return retHash;
+	}
 	
-	public static HashMap<String, HashMap<String, String[]>> getProviderFutureICDProperties(IEngine engine) {
+	public static Map<String, Map<String, String[]>> getProviderFutureICDProperties(IEngine engine) {
 		return runFutureICDProp(engine, DETERMINE_PROVIDER_FUTURE_ICD_PROPERTIES);
 	}
-	
-	public static HashMap<String, HashMap<String, String[]>> getConsumerFutureICDProperties(IEngine engine) {
+
+	public static Map<String, Map<String, String[]>> getConsumerFutureICDProperties(IEngine engine) {
 		return runFutureICDProp(engine, DETERMINE_CONSUMER_FUTURE_ICD_PROPERTIES);
 	}
-	
-	public static HashMap<String, HashMap<String, String[]>> runFutureICDProp(IEngine engine, String query) {
-		HashMap<String, HashMap<String, String[]>> retHash = new HashMap<String, HashMap<String, String[]>>();
-		
+
+	public static Map<String, Map<String, String[]>> runFutureICDProp(IEngine engine, String query) {
+		Map<String, Map<String, String[]>> retHash = new HashMap<String, Map<String, String[]>>();
+
 		ISelectWrapper sjsw = Utility.processQuery(engine, query);
 		String[] varName = sjsw.getVariables();
 		while(sjsw.hasNext()) {
@@ -125,11 +175,11 @@ public final class DHMSMTransitionUtility {
 			String format = sjss.getVar(varName[2]).toString();
 			String frequency = sjss.getVar(varName[3]).toString();
 			String protocol = sjss.getVar(varName[4]).toString();
-			
+
 			frequency = determineHighestFrequency(frequency);
-			
+
 			String[] valArr = new String[]{format, frequency, protocol};
-			HashMap<String, String[]> innerHash = new HashMap<String, String[]>();
+			Map<String, String[]> innerHash = new HashMap<String, String[]>();
 			if(retHash.containsKey(system)) {
 				innerHash = retHash.get(system);
 				innerHash.put(data, valArr);
@@ -138,10 +188,10 @@ public final class DHMSMTransitionUtility {
 				retHash.put(system, innerHash);
 			}
 		}
-		
+
 		return retHash;
 	}
-	
+
 	private static String determineHighestFrequency(String frequencyConcat) {
 		if(frequencyConcat.contains("Real-time (user-initiated)")) return "Real-time (user-initiated)";
 		else if(frequencyConcat.contains("Real-time")) return "Real-time";
@@ -167,7 +217,7 @@ public final class DHMSMTransitionUtility {
 		else if(frequencyConcat.contains("user upload")) return "user upload";
 		else if(frequencyConcat.contains("Each user login instance")) return "Each user login instance";
 		else if(frequencyConcat.contains("DVD")) return "DVD";
-		
+
 		else if(frequencyConcat.contains("1/hour (KML)/On demand (HTML)")) return "1/hour (KML)/On demand (HTML)";
 		else if(frequencyConcat.contains("event-driven (Minutes-hours)")) return "event-driven (Minutes-hours)";
 		else if(frequencyConcat.contains("Event Driven (Minutes-hours)")) return "Event Driven (Minutes-hours)";
@@ -176,9 +226,9 @@ public final class DHMSMTransitionUtility {
 		else if(frequencyConcat.contains("Batch (12/day)")) return "Batch (12/day)";
 
 		else if(frequencyConcat.contains("Batch (4/day)")) return "Batch (4/day)";
-		
+
 		else if(frequencyConcat.contains("Every 8 hours (KML)/On demand (HTML)")) return "Every 8 hours (KML)/On demand (HTML)";
-		
+
 		else if(frequencyConcat.contains("daily")) return "daily";
 		else if(frequencyConcat.contains("Daily")) return "Daily";
 		else if(frequencyConcat.contains("Batch (daily)")) return "Batch (daily)";
@@ -201,14 +251,14 @@ public final class DHMSMTransitionUtility {
 		else if(frequencyConcat.contains("Bi-Weekly")) return "Bi-Weekly";
 
 		else if(frequencyConcat.contains("Batch (twice monthly)")) return "Batch (twice monthly)";
-		
+
 		else if(frequencyConcat.contains("Monthly")) return "Monthly";
 		else if(frequencyConcat.contains("Batch (monthly)")) return "Batch (monthly)";
 		else if(frequencyConcat.contains("Batch(Monthly)")) return "Batch(Monthly)";
 		else if(frequencyConcat.contains("Batch(Daily/Monthly)")) return "Batch(Daily/Monthly)";
 		else if(frequencyConcat.contains("Monthly at beginning of month, or as user initiated")) return "Monthly at beginning of month, or as user initiated";
 		else if(frequencyConcat.contains("Monthly Bi-Monthly Weekly Weekly")) return "Monthly Bi-Monthly Weekly Weekly";
-		
+
 		else if(frequencyConcat.contains("Batch (bi-monthly)")) return "Batch (bi-monthly)";
 
 		else if(frequencyConcat.contains("Quarterly")) return "Quarterly";
@@ -217,16 +267,15 @@ public final class DHMSMTransitionUtility {
 		else if(frequencyConcat.contains("Weekly Quarterly")) return "Weekly Quarterly";
 
 		else if(frequencyConcat.contains("Batch (semiannually)")) return "Batch (semiannually)";
-		
+
 		else if(frequencyConcat.contains("Batch (yearly)")) return "Batch (yearly)";
 		else if(frequencyConcat.contains("Annually")) return "Annually";
 		else if(frequencyConcat.contains("Annual")) return "Annual";
-		
+
 		return frequencyConcat;
 	}
-	
-	
-	public static Set<String> getAllSelfReportedSystems(IEngine engine) {
+
+	public static Set<String> getAllSelfReportedSystemURIs(IEngine engine) {
 		Set<String> retList = new HashSet<String>();
 
 		ISelectWrapper sjsw = Utility.processQuery(engine, ALL_SELF_REPORTED_SYSTEMS);
@@ -234,12 +283,26 @@ public final class DHMSMTransitionUtility {
 		while(sjsw.hasNext()) {
 			ISelectStatement sjss = sjsw.next();
 			String system = sjss.getRawVar(varName[0]).toString();
+			if(!system.endsWith("DHMSM")) // note this is a URI
+				retList.add(system);
+		}
+		return retList;
+	}
+
+	public static Set<String> getAllSelfReportedSystemNames(IEngine engine) {
+		Set<String> retList = new HashSet<String>();
+
+		ISelectWrapper sjsw = Utility.processQuery(engine, ALL_SELF_REPORTED_SYSTEMS);
+		String[] varName = sjsw.getVariables();
+		while(sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			String system = sjss.getVar(varName[0]).toString();
 			if(!system.equals("DHMSM"))
 				retList.add(system);
 		}
 		return retList;
 	}
-	
+
 	public static Set<String> getAllSelfReportedICDs(IEngine engine) {
 		Set<String> retList = new HashSet<String>();
 
@@ -265,9 +328,9 @@ public final class DHMSMTransitionUtility {
 		}
 		return retList;
 	}
-	
-	public static HashMap<String,String> processReportTypeQuery(IEngine engine) {
-		HashMap<String,String> retList = new HashMap<String,String>();
+
+	public static Map<String,String> processReportTypeQuery(IEngine engine) {
+		Map<String,String> retMap = new HashMap<String,String>();
 
 		ISelectWrapper sjsw = Utility.processQuery(engine, SYS_TYPE_QUERY);
 		String[] varName = sjsw.getVariables();
@@ -275,34 +338,24 @@ public final class DHMSMTransitionUtility {
 			ISelectStatement sjss = sjsw.next();
 			String instance = sjss.getVar(varName[0]).toString();
 			String reportType = sjss.getVar(varName[1]).toString();
-			retList.put(instance,reportType);
+			retMap.put(instance,reportType);
 		}
 
-		return retList;
+		return retMap;
 	}
-	
-	public static HashSet<String> processSysDataSOR(IEngine engine){
-		String[] names = new String[1];
 
-		ISelectWrapper sorWrapper = WrapperManager.getInstance().getSWrapper(engine, SYS_SOR_DATA_CONCAT_QUERY);
-
-		/*SesameJenaSelectWrapper sorWrapper = new SesameJenaSelectWrapper();
-		sorWrapper.setQuery(SYS_SOR_DATA_CONCAT_QUERY);
-		sorWrapper.setEngine(engine);
-		sorWrapper.executeQuery();*/
-		names = sorWrapper.getVariables();
-
-		HashSet<String> retSet = new HashSet<String>();
-		while(sorWrapper.hasNext())
-		{
+	public static Set<String> processSysDataSOR(IEngine engine){
+		ISelectWrapper sorWrapper = Utility.processQuery(engine, SYS_SOR_DATA_CONCAT_QUERY);
+		String[] names = sorWrapper.getVariables();
+		Set<String> retSet = new HashSet<String>();
+		while(sorWrapper.hasNext()) {
 			ISelectStatement sjss = sorWrapper.next();
-			int colIndex = 0;
-			String val = sjss.getVar(names[colIndex]).toString();
+			String val = sjss.getVar(names[0]).toString();
 			retSet.add(val);
 		}
 		return retSet;
 	}
-	
+
 	public static HashMap<String, HashMap<String, Double>> getSysGLItem(IEngine engine)
 	{
 		HashMap<String, HashMap<String, Double>> dataHash = new HashMap<String, HashMap<String, Double>>();
@@ -387,9 +440,9 @@ public final class DHMSMTransitionUtility {
 		return dataHash;
 	}
 
-	public static HashMap<String, String> getServiceToData(IEngine engine)
+	public static Map<String, String> getServiceToData(IEngine engine)
 	{
-		HashMap<String, String> dataHash = new HashMap<String, String>();
+		Map<String, String> dataHash = new HashMap<String, String>();
 
 		ISelectWrapper sjsw = Utility.processQuery(engine, SERVICE_TO_DATA_LIST_QUERY);
 		String[] names = sjsw.getVariables();
@@ -404,14 +457,13 @@ public final class DHMSMTransitionUtility {
 		}
 		return dataHash;
 	}
-	
-	public static HashMap<String, HashMap<String, HashMap<String, Double>>> getSysGLItemAndPhase(IEngine engine)
+
+	public static Map<String, Map<String, Map<String, Map<String, Map<String, Double>>>>> getSysGLItemAndPhase(IEngine engine)
 	{
-		HashMap<String, HashMap<String, HashMap<String, Double>>> dataHash = new HashMap<String, HashMap<String, HashMap<String, Double>>>();
+		Map<String, Map<String, Map<String, Map<String, Map<String, Double>>>>> dataHash = new HashMap<String, Map<String, Map<String, Map<String, Map<String, Double>>>>>();
 
 		ISelectWrapper sjsw = Utility.processQuery(engine, SYS_SPECIFIC_LOE_AND_PHASE_QUERY);
 		String[] names = sjsw.getVariables();
-
 		while(sjsw.hasNext())
 		{
 			ISelectStatement sjss = sjsw.next();
@@ -421,31 +473,61 @@ public final class DHMSMTransitionUtility {
 			Double loe = (Double) sjss.getVar(names[3]);
 			String glTag = sjss.getVar(names[4]).toString().replace("\"", "");
 			String phase = sjss.getVar(names[5]).toString().replace("\"", "");
-			
-			HashMap<String, HashMap<String, Double>> outerHash = new HashMap<String, HashMap<String, Double>>();
-			HashMap<String, Double> innerHash = new HashMap<String, Double>();
 
-			if(!dataHash.containsKey(data)) {
-				innerHash.put(phase, loe);
-				outerHash.put(sys + "+++" + ser + "+++" + glTag, innerHash);
-				dataHash.put(data, outerHash);
-			} else {
-				outerHash = dataHash.get(data);
-				if(outerHash.containsKey(sys + "+++" + ser + "+++" + glTag)) {
-					innerHash = outerHash.get(sys + "+++" + ser + "+++" + glTag);
-					innerHash.put(phase, loe);
+			if(dataHash.containsKey(ser)) {
+				Map<String, Map<String, Map<String, Map<String, Double>>>> innerHash1 = dataHash.get(ser);
+				if(innerHash1.containsKey(data)) {
+					Map<String, Map<String, Map<String, Double>>> innerHash2 = innerHash1.get(data);
+					if(innerHash2.containsKey(sys)) {
+						Map<String, Map<String, Double>> innerHash3 = innerHash2.get(sys);
+						if(innerHash3.containsKey(glTag)) {
+							Map<String, Double> innerHash4 = innerHash3.get(glTag);
+							if(innerHash4.containsKey(phase)) {
+								// this code block should never be entered as there should only be one loe value per sys-data-ser-glTag-phase combination
+								System.err.println("Multiple LOEs found for a given system-data-service-gltag-phase combination");
+								System.err.println("Combination is: " + sys + "-" + data + "-" + ser + "-" + glTag + "-" + phase);	
+							} else {
+								innerHash4.put(phase, loe);
+							}
+						} else {
+							Map<String, Double> innerHash4 = new HashMap<String, Double>();
+							innerHash4.put(phase, loe);
+							innerHash3.put(glTag, innerHash4);
+						}
+					} else {
+						Map<String, Double> innerHash4 = new HashMap<String, Double>();
+						innerHash4.put(phase, loe);
+						Map<String, Map<String, Double>> innerHash3 = new HashMap<String, Map<String, Double>>();
+						innerHash3.put(glTag, innerHash4);
+						innerHash2.put(sys, innerHash3);
+					}
 				} else {
-					innerHash.put(phase, loe);
-					outerHash.put(sys + "+++" + ser + "+++" + glTag, innerHash);
+					Map<String, Double> innerHash4 = new HashMap<String, Double>();
+					innerHash4.put(phase, loe);
+					Map<String, Map<String, Double>> innerHash3 = new HashMap<String, Map<String, Double>>();
+					innerHash3.put(glTag, innerHash4);
+					Map<String, Map<String, Map<String, Double>>> innerHash2 = new HashMap<String, Map<String, Map<String, Double>>>();
+					innerHash2.put(sys, innerHash3);
+					innerHash1.put(data, innerHash2);
 				}
+			} else {
+				Map<String, Double> innerHash4 = new HashMap<String, Double>();
+				innerHash4.put(phase, loe);
+				Map<String, Map<String, Double>> innerHash3 = new HashMap<String, Map<String, Double>>();
+				innerHash3.put(glTag, innerHash4);
+				Map<String, Map<String, Map<String, Double>>> innerHash2 = new HashMap<String, Map<String, Map<String, Double>>>();
+				innerHash2.put(sys, innerHash3);
+				Map<String, Map<String, Map<String, Map<String, Double>>>> innerHash1 = new HashMap<String, Map<String, Map<String, Map<String, Double>>>>();
+				innerHash1.put(data, innerHash2);
+				dataHash.put(ser, innerHash1);
 			}
 		}
 		return dataHash;
 	}
 
-	public static HashMap<String, HashMap<String, HashMap<String, Double>>> getAvgSysGLItemAndPhase(IEngine engine)
+	public static Map<String, Map<String, Map<String, Map<String, Double>>>> getAvgSysGLItemAndPhase(IEngine engine)
 	{
-		HashMap<String, HashMap<String, HashMap<String, Double>>> dataHash = new HashMap<String, HashMap<String, HashMap<String, Double>>>();
+		Map<String, Map<String, Map<String, Map<String, Double>>>> dataHash = new HashMap<String, Map<String, Map<String, Map<String, Double>>>>();
 
 		ISelectWrapper sjsw = Utility.processQuery(engine, AVERAGE_LOE_AND_PHASE_QUERY);
 		String[] names = sjsw.getVariables();
@@ -459,30 +541,47 @@ public final class DHMSMTransitionUtility {
 			String glTag = sjss.getVar(names[3]).toString().replace("\"", "");
 			String phase = sjss.getVar(names[4]).toString().replace("\"", "");
 
-			HashMap<String, HashMap<String, Double>> outerHash = new HashMap<String, HashMap<String, Double>>();
-			HashMap<String, Double> innerHash = new HashMap<String, Double>();
-
-			if(!dataHash.containsKey(data)) {
-				innerHash.put(phase, loe);
-				outerHash.put(ser + "+++" + glTag, innerHash);
-				dataHash.put(data, outerHash);
-			} else {
-				outerHash = dataHash.get(data);
-				if(outerHash.containsKey(ser + "+++" + glTag)) {
-					innerHash = outerHash.get(ser + "+++" + glTag);
-					innerHash.put(phase, loe);
+			if(dataHash.containsKey(ser)) {
+				Map<String, Map<String, Map<String, Double>>> innerHash1 = dataHash.get(ser);
+				if(innerHash1.containsKey(data)) {
+					Map<String, Map<String, Double>> innerHash2 = innerHash1.get(data);
+					if(innerHash2.containsKey(glTag)) {
+						Map<String, Double> innerHash3 = innerHash2.get(glTag);
+						if(innerHash3.containsKey(phase)) {
+							// this code block should never be entered as there should only be one loe value per sys-data-ser-glTag-phase combination
+							System.err.println("Multiple LOEs found for a given data-service-gltag-phase combination");
+							System.err.println("Combination is: " + data + "-" + ser + "-" + glTag + "-" + phase);
+						} else {
+							innerHash3.put(phase, loe);
+						}
+					} else {
+						Map<String, Double> innerHash3 = new HashMap<String, Double>();
+						innerHash3.put(phase, loe);
+						innerHash2.put(glTag, innerHash3);
+					}
 				} else {
-					innerHash.put(phase, loe);
-					outerHash.put(ser + "+++" + glTag, innerHash);
+					Map<String, Double> innerHash3 = new HashMap<String, Double>();
+					innerHash3.put(phase, loe);
+					Map<String, Map<String, Double>> innerHash2 = new HashMap<String, Map<String, Double>>();
+					innerHash2.put(glTag, innerHash3);
+					innerHash1.put(data, innerHash2);
 				}
+			} else {
+				Map<String, Double> innerHash3 = new HashMap<String, Double>();
+				innerHash3.put(phase, loe);
+				Map<String, Map<String, Double>> innerHash2 = new HashMap<String, Map<String, Double>>();
+				innerHash2.put(glTag, innerHash3);
+				Map<String, Map<String, Map<String, Double>>> innerHash1 = new HashMap<String, Map<String, Map<String, Double>>>();
+				innerHash1.put(data, innerHash2);
+				dataHash.put(ser, innerHash1);
 			}
 		}
 		return dataHash;
 	}
 
-	public static HashMap<String, HashMap<String, HashMap<String, Double>>> getGenericGLItemAndPhase(IEngine engine)
+	public static Map<String, Map<String, Map<String, Double>>> getGenericGLItemAndPhase(IEngine engine)
 	{
-		HashMap<String, HashMap<String, HashMap<String, Double>>> dataHash = new HashMap<String, HashMap<String, HashMap<String, Double>>>();
+		Map<String, Map<String, Map<String, Double>>> dataHash = new HashMap<String, Map<String, Map<String, Double>>>();
 
 		ISelectWrapper sjsw = Utility.processQuery(engine, GENERIC_LOE_AND_PHASE_QUERY);
 		String[] names = sjsw.getVariables();
@@ -495,22 +594,123 @@ public final class DHMSMTransitionUtility {
 			Double loe = (Double) sjss.getVar(names[2]);
 			String phase = sjss.getVar(names[3]).toString().replace("\"", "");
 
-			HashMap<String, HashMap<String, Double>> outerHash = new HashMap<String, HashMap<String, Double>>();
-			HashMap<String, Double> innerHash = new HashMap<String, Double>();
-
-			if(!dataHash.containsKey(data)) {
-				innerHash.put(phase, loe);
-				outerHash.put(ser, innerHash);
-				dataHash.put(data, outerHash);
-			} else {
-				outerHash = dataHash.get(data);
-				if(outerHash.containsKey(ser)) {
-					innerHash = outerHash.get(ser);
-					innerHash.put(phase, loe);
+			if(dataHash.containsKey(ser)) {
+				Map<String, Map<String, Double>> innerHash1 = dataHash.get(ser);
+				if(innerHash1.containsKey(data)) {
+					Map<String, Double> innerHash2 = innerHash1.get(data);
+					if(innerHash2.containsKey(phase)) {
+						// this code block should never be entered as there should only be one loe value per sys-data-ser-glTag-phase combination
+						System.err.println("Multiple LOEs found for a given data-service-phase combination");
+						System.err.println("Combination is: " + data + "-" + ser + "-" + phase);
+					} else {
+						innerHash2.put(phase, loe);
+					}
 				} else {
-					innerHash.put(phase, loe);
-					outerHash.put(ser, innerHash);
+					Map<String, Double> innerHash2 = new HashMap<String, Double>();
+					innerHash2.put(phase, loe);
+					innerHash1.put(data, innerHash2);
 				}
+			} else {
+				Map<String, Double> innerHash2 = new HashMap<String, Double>();
+				innerHash2.put(phase, loe);
+				Map<String, Map<String, Double>> innerHash1 = new HashMap<String, Map<String, Double>>();
+				innerHash1.put(data, innerHash2);
+				dataHash.put(ser, innerHash1);
+			}
+		}
+		return dataHash;
+	}
+
+	public static Map<String, Map<String, Map<String, Map<String, Double>>>> getSysGLItemAndPhaseByAvgServ(IEngine engine)
+	{
+		Map<String, Map<String, Map<String, Map<String, Double>>>> dataHash = new HashMap<String, Map<String, Map<String, Map<String, Double>>>>();
+
+		ISelectWrapper sjsw = Utility.processQuery(engine, SYS_SPECIFIC_LOE_AND_PHASE_AVG_SERVICE_QUERY);
+		String[] names = sjsw.getVariables();
+		while(sjsw.hasNext())
+		{
+			ISelectStatement sjss = sjsw.next();
+			String sys = sjss.getVar(names[0]).toString().replace("\"", "");
+			String data = sjss.getVar(names[1]).toString().replace("\"", "");
+			Double loe = (Double) sjss.getVar(names[2]);
+			String glTag = sjss.getVar(names[3]).toString().replace("\"", "");
+			String phase = sjss.getVar(names[4]).toString().replace("\"", "");
+
+			if(dataHash.containsKey(data)) {
+				Map<String, Map<String, Map<String, Double>>> innerHash1 = dataHash.get(data);
+				if(innerHash1.containsKey(sys)) {
+					Map<String, Map<String, Double>> innerHash2 = innerHash1.get(sys);
+					if(innerHash2.containsKey(glTag)) {
+						Map<String, Double> innerHash3 = innerHash2.get(glTag);
+						if(innerHash3.containsKey(phase)) {
+							// this code block should never be entered as there should only be one loe value per sys-data-ser-glTag-phase combination
+							System.err.println("Multiple LOEs found for a given system-data-service-gltag-phase combination");
+							System.err.println("Combination is: " + sys + "-" + data + "-" + glTag + "-" + phase);
+						} else {
+							innerHash3.put(phase, loe);
+						}
+					} else {
+						Map<String, Double> innerHash3 = new HashMap<String, Double>();
+						innerHash3.put(phase, loe);
+						innerHash2.put(glTag, innerHash3);
+					}
+				} else {
+					Map<String, Double> innerHash3 = new HashMap<String, Double>();
+					innerHash3.put(phase, loe);
+					Map<String, Map<String, Double>> innerHash2 = new HashMap<String, Map<String, Double>>();
+					innerHash2.put(glTag, innerHash3);
+					innerHash1.put(sys, innerHash2);
+				}
+			} else {
+				Map<String, Double> innerHash3 = new HashMap<String, Double>();
+				innerHash3.put(phase, loe);
+				Map<String, Map<String, Double>> innerHash2 = new HashMap<String, Map<String, Double>>();
+				innerHash2.put(glTag, innerHash3);
+				Map<String, Map<String, Map<String, Double>>> innerHash1 = new HashMap<String, Map<String, Map<String, Double>>>();
+				innerHash1.put(sys, innerHash2);
+				dataHash.put(data, innerHash1);
+			}
+		}
+		return dataHash;
+	}
+
+	public static Map<String, Map<String, Map<String, Double>>> getAvgSysGLItemAndPhaseByAvgServ(IEngine engine)
+	{
+		Map<String, Map<String, Map<String, Double>>> dataHash = new HashMap<String, Map<String, Map<String, Double>>>();
+
+		ISelectWrapper sjsw = Utility.processQuery(engine, AVERAGE_LOE_AND_PHASE_AVG_SERVICE_QUERY);
+		String[] names = sjsw.getVariables();
+
+		while(sjsw.hasNext())
+		{
+			ISelectStatement sjss = sjsw.next();
+			String data = sjss.getVar(names[0]).toString().replace("\"", "");
+			Double loe = (Double) sjss.getVar(names[1]);
+			String glTag = sjss.getVar(names[2]).toString().replace("\"", "");
+			String phase = sjss.getVar(names[3]).toString().replace("\"", "");
+
+			if(dataHash.containsKey(data)) {
+				Map<String, Map<String, Double>> innerHash1 = dataHash.get(data);
+				if(innerHash1.containsKey(glTag)) {
+					Map<String, Double> innerHash2 = innerHash1.get(glTag);
+					if(innerHash2.containsKey(phase)) {
+						// this code block should never be entered as there should only be one loe value per sys-data-ser-glTag-phase combination
+						System.err.println("Multiple LOEs found for a given data-service-gltag-phase combination");
+						System.err.println("Combination is: " + data + "-" + glTag + "-" + phase);
+					} else {
+						innerHash2.put(phase, loe);
+					}
+				} else {
+					Map<String, Double> innerHash2 = new HashMap<String, Double>();
+					innerHash2.put(phase, loe);
+					innerHash1.put(glTag, innerHash2);
+				}
+			} else {
+				Map<String, Double> innerHash2 = new HashMap<String, Double>();
+				innerHash2.put(phase, loe);
+				Map<String, Map<String, Double>> innerHash1 = new HashMap<String, Map<String, Double>>();
+				innerHash1.put(glTag, innerHash2);
+				dataHash.put(data, innerHash1);
 			}
 		}
 		return dataHash;
@@ -531,7 +731,7 @@ public final class DHMSMTransitionUtility {
 
 		return dataSet;
 	}
-	
+
 	public static HashSet<String> runRawVarListQuery(IEngine engine, String query) 
 	{
 		HashSet<String> dataSet = new HashSet<String>();
@@ -547,7 +747,7 @@ public final class DHMSMTransitionUtility {
 
 		return dataSet;
 	}
-	
+
 	public static String[] removeSystemFromStringArray(String[] names)
 	{
 		String[] retArray = new String[names.length-1];
@@ -556,14 +756,14 @@ public final class DHMSMTransitionUtility {
 		return retArray;
 	}
 
-	public static ArrayList<Object[]> removeSystemFromArrayList(ArrayList<Object[]> dataRow)
+	public static List<Object[]> removeSystemFromArrayList(List<Object[]> newData)
 	{
-		ArrayList<Object[]> retList = new ArrayList<Object[]>();
-		for(int i=0;i<dataRow.size();i++)
+		List<Object[]> retList = new ArrayList<Object[]>();
+		for(int i=0;i<newData.size();i++)
 		{
-			Object[] row = new Object [dataRow.get(i).length-1];
+			Object[] row = new Object [newData.get(i).length-1];
 			for(int j=0;j<row.length;j++)
-				row[j] = dataRow.get(i)[j+1];
+				row[j] = newData.get(i)[j+1];
 			retList.add(row);
 		}
 		return retList;

@@ -27,31 +27,25 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.JDesktopPane;
 
 import prerna.engine.api.IEngine;
-import prerna.error.EngineException;
 import prerna.ui.components.playsheets.GridPlaySheet;
-import prerna.util.DHMSMTransitionUtility;
-import prerna.util.DIHelper;
 
-@SuppressWarnings("serial")
 public class LPInterfaceReportGenerator extends GridPlaySheet {
 
 	private LPInterfaceProcessor processor;
-	private IEngine tapCostData;
-	private IEngine hrCore;
+	
+	private List<Object[]> list;
+	private String[] names;
+	
 	public void setProcessor(LPInterfaceProcessor processor) {
 		this.processor = processor;
 	}
-	
-	List<Object[]> list;
-	String[] names;
-	
+
 	@Override
 	public List<Object[]> getList() {
 		return this.list;
@@ -74,60 +68,13 @@ public class LPInterfaceReportGenerator extends GridPlaySheet {
 	 */
 	@Override
 	public void createData() {
-
-		list = new ArrayList<Object[]>();
-		
 		if(processor == null) {
 			processor = new LPInterfaceProcessor();
 		}
 		processor.setEngine(engine);
 		
-		list = processor.generateReport();
-		names = processor.getNames();
-		
-	}
-	
-	// requires the cost information to already be created and set in the processor
-	public HashMap<String, Object> getSysInterfaceWithCostData(String systemName, String reportType) throws EngineException {
-		if(tapCostData == null) {
-			tapCostData = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
-		}
-		if(hrCore == null) {
-			hrCore = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
-		}
-		if(processor == null) {
-			processor = new LPInterfaceProcessor();
-		}
-		
-		systemName = systemName.replaceAll("\\(", "\\\\\\\\\\(").replaceAll("\\)", "\\\\\\\\\\)");
-		processor.setDownstreamQuery(DHMSMTransitionUtility.lpSystemDownstreamInterfaceQuery.replace("@SYSTEMNAME@", systemName));
-		processor.setUpstreamQuery(DHMSMTransitionUtility.lpSystemUpstreamInterfaceQuery.replace("@SYSTEMNAME@", systemName));
-		
-		processor.isGenerateCost(true);
-		processor.setEngine(hrCore);
-		processor.getCostInfo(tapCostData);
-		ArrayList<Object[]> newData = processor.generateReport();
-		
-		HashMap<String, Object> dataHash = new HashMap<String, Object>();
-		String[] oldHeaders = processor.getNames();
-		String[] newHeaders = new String[oldHeaders.length + 3];
-		for(int i = 0; i < oldHeaders.length; i++)
-		{
-			if(i < oldHeaders.length - 1) {
-				newHeaders[i] = oldHeaders[i];
-			} else {
-				newHeaders[i] = "Services";
-				newHeaders[i+1] = "Recommendation";
-				newHeaders[i+2] = "Direct Cost";
-				newHeaders[i+3] = "Indirect Cost";
-			}
-		}
-		
-		dataHash.put(DHMSMTransitionUtility.DATA_KEY, DHMSMTransitionUtility.removeSystemFromArrayList(newData));
-		dataHash.put(DHMSMTransitionUtility.HEADER_KEY, DHMSMTransitionUtility.removeSystemFromStringArray(newHeaders));
-		dataHash.put(DHMSMTransitionUtility.TOTAL_DIRECT_COST_KEY, processor.getTotalDirectCost());
-		dataHash.put(DHMSMTransitionUtility.TOTAL_INDIRECT_COST_KEY, processor.getTotalIndirectCost());
-		
-		return dataHash;
+		Map<String, Object> retMap = processor.generateGridReport();
+		names = (String[]) retMap.get("headers");
+		list = (List<Object[]>) retMap.get("data");
 	}
 }

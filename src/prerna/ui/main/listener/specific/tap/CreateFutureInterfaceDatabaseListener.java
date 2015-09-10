@@ -81,7 +81,7 @@ public class CreateFutureInterfaceDatabaseListener extends AbstractListener{
 			GLItemGeneratorSelfReportedFutureInterfaces glGen = new GLItemGeneratorSelfReportedFutureInterfaces(hrCoreDB, futureDB, futureCostDB);
 			glGen.genData();
 			
-			CreateFutureStateDHMSMDatabase futureStateCreator = new CreateFutureStateDHMSMDatabase(hrCoreDB, futureDB, futureCostDB, tapCost);
+			CreateFutureStateDHMSMDatabase futureStateCreator = new CreateFutureStateDHMSMDatabase(hrCoreDB, futureDB, futureCostDB);
 			futureStateCreator.addTriplesToExistingICDs();
 			futureStateCreator.generateData();
 			futureStateCreator.createDBs();

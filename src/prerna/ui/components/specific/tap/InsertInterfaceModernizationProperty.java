@@ -27,14 +27,16 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
-import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.openrdf.model.vocabulary.RDF;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.error.EngineException;
+import prerna.ui.components.specific.tap.AbstractFutureInterfaceCostProcessor.COST_FRAMEWORK;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -46,52 +48,63 @@ public class InsertInterfaceModernizationProperty {
 	private final String sysURIPrefix = "http://health.mil/ontologies/Concept/System/";
 	private final String costPropertyURI = "http://semoss.org/ontologies/Relation/Contains/InterfaceModernizationCost";
 
-	private IEngine TAP_Core_Data;
+	private IEngine tapCore;
+	double costPerHr = 150.0;
 
 	public void insert() throws EngineException
 	{
 		try{
-			TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
-			if(TAP_Core_Data==null)
+			tapCore = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+			if(tapCore==null)
 				throw new EngineException("Database not found");
 		} catch(EngineException e) {
 			Utility.showError("Could not find necessary database: TAP_Core_Data. Cannot generate report.");
 			return;
 		}
-		getCostFromInterfaceReport();
+		generateCost();
 	}
 
-	private void getCostFromInterfaceReport() throws EngineException 
+	private void generateCost() throws EngineException 
 	{
-		HashMap<String,String> reportTypeHash = DHMSMTransitionUtility.processReportTypeQuery(TAP_Core_Data);
-		LPInterfaceProcessor processor = new LPInterfaceProcessor();
-
-		IEngine TAP_Cost_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
-		if(TAP_Cost_Data == null) {
+		Map<String,String> reportTypeHash = DHMSMTransitionUtility.processReportTypeQuery(tapCore);
+		IEngine tapCost = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
+		if(tapCost == null) {
 			throw new EngineException("TAP_Cost_Data Database not found");
 		}
-		
-		processor.setEngine(TAP_Core_Data);
-		processor.getCostInfo(TAP_Cost_Data);
-		for(String sysName : reportTypeHash.keySet()){
-			sysName = sysName.replaceAll("\\(", "\\\\\\\\\\(").replaceAll("\\)", "\\\\\\\\\\)");
-			processor.setDownstreamQuery(DHMSMTransitionUtility.lpSystemDownstreamInterfaceQuery.replace("@SYSTEMNAME@", sysName));
-			processor.setUpstreamQuery(DHMSMTransitionUtility.lpSystemUpstreamInterfaceQuery.replace("@SYSTEMNAME@", sysName));
-			processor.isGenerateCost(true);
-			processor.generateReport();
-			
-			Object cost = (Double) processor.getTotalDirectCost();
-			if(cost == null) {
-				cost = "NA";
-			}
-			addProperty(sysURIPrefix.concat(sysName), costPropertyURI, cost, false);
+
+		IEngine futureDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureDB");
+		if(futureDB == null) {
+			throw new EngineException("FutureDB Database not found");
 		}
+		
+		IEngine futureCostDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureCostDB");
+		if(futureCostDB == null) {
+			throw new EngineException("FutureDB Database not found");
+		}
+		
+		Map<String, Double> selfReportedSysCost = DHMSMTransitionUtility.getSystemSelfReportedP2PCost(futureCostDB);
+		Set<String> selfReportedSystems = DHMSMTransitionUtility.getAllSelfReportedSystemNames(futureDB);
+		Set<String> sorV = DHMSMTransitionUtility.processSysDataSOR(tapCore);
+		Map<String, String> sysTypeHash = DHMSMTransitionUtility.processReportTypeQuery(tapCore);
+		
+		LPInterfaceCostProcessor processor = new LPInterfaceCostProcessor();
+		processor.setEngine(tapCore);
+		for(String sysName : reportTypeHash.keySet()){
+			double loe = 0.0;
+			if(selfReportedSystems.contains(sysName)) {
+				loe = selfReportedSysCost.get(sysName);
+			} else {
+				loe = processor.generateSystemCost(sysName, selfReportedSystems, sorV, sysTypeHash, COST_FRAMEWORK.P2P); //TODO: pass in p2p
+			}
+			loe = loe * costPerHr;
+			addProperty(sysURIPrefix.concat(sysName), costPropertyURI, loe, false);
+		}
+		tapCore.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{costPropertyURI, RDF.TYPE, "http://semoss.org/ontolgoies/Relation/Contains"});
+		tapCore.commit();
 	}
 
-	private void addProperty(String sub, String pred, Object obj, boolean concept_triple) 
-	{
-		( (BigDataEngine) TAP_Core_Data).addStatement(new Object[]{sub, pred, obj, concept_triple});
-		( (BigDataEngine) TAP_Core_Data).commit();
+	private void addProperty(String sub, String pred, Object obj, boolean concept_triple) {
+		tapCore.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, pred, obj, concept_triple});
 		System.out.println(sub + " >>> " + pred + " >>> " + obj);
 	}
 }

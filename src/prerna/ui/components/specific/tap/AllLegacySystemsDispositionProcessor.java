@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
-import java.util.HashMap;
+import java.util.Map;
 
 import prerna.engine.api.IEngine;
 import prerna.error.EngineException;
@@ -48,7 +48,7 @@ public class AllLegacySystemsDispositionProcessor {
 		}
 
 		TAPLegacySystemDispositionReportWriter indiviudalSysWriter = new TAPLegacySystemDispositionReportWriter();
-		HashMap<String,String> reportTypeHash = DHMSMTransitionUtility.processReportTypeQuery(TAP_Core_Data);
+		Map<String,String> reportTypeHash = DHMSMTransitionUtility.processReportTypeQuery(TAP_Core_Data);
 		indiviudalSysWriter.setReportTypeHash(reportTypeHash);
 
 		for(String s : reportTypeHash.keySet()) {

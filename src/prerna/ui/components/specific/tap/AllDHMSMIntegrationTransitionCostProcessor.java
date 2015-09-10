@@ -38,12 +38,12 @@ import prerna.util.DIHelper;
 public class AllDHMSMIntegrationTransitionCostProcessor {
 
 	public void runAllReports() throws EngineException, FileReaderException{
-		IEngine hrCore = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
-		if(hrCore==null) {
-				throw new EngineException("Database not found");
+		IEngine TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+		if(TAP_Core_Data == null) {
+			throw new EngineException("Database not found");
 		}
 		
-		HashSet<String> lpiSystemList = DHMSMTransitionUtility.runRawVarListQuery(hrCore, DHMSMTransitionUtility.LPI_SYS_QUERY);
+		HashSet<String> lpiSystemList = DHMSMTransitionUtility.runRawVarListQuery(TAP_Core_Data, DHMSMTransitionUtility.LPI_SYS_QUERY);
 		DHMSMIntegrationTransitionCostWriter writer = new DHMSMIntegrationTransitionCostWriter();
 		for(String sysURI: lpiSystemList) {
 			writer.setSysURI(sysURI);

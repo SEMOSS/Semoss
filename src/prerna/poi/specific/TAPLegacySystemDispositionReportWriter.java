@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -75,7 +76,7 @@ public class TAPLegacySystemDispositionReportWriter {
 
 	private String sysName;
 	private String sysURI;
-	private HashMap<String,String> reportTypeHash = new HashMap<String,String>();
+	private Map<String,String> reportTypeHash = new HashMap<String,String>();
 
 	//query for basic sys information
 	private String basicSysInfoQuery = "SELECT DISTINCT (COALESCE(?description,'') AS ?Description) (GROUP_CONCAT(?Owner ; SEPARATOR = ', ') AS ?SysOwner) (COALESCE(?Ato,'') AS ?ATO) WHERE { SELECT DISTINCT ?sys (COALESCE(?des,'') AS ?description) (SUBSTR(STR(?owner),50) AS ?Owner) (COALESCE(SUBSTR(STR(?ato),0,10),'') AS ?Ato) WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?sys <http://semoss.org/ontologies/Relation/OwnedBy> ?owner} OPTIONAL{ {?sys <http://semoss.org/ontologies/Relation/Contains/Description> ?des} } OPTIONAL{ {?sys <http://semoss.org/ontologies/Relation/Contains/ATO_Date> ?ato} } } } GROUP BY ?description ?Ato BINDINGS ?sys {(@BINDING_STRING@)}";
@@ -228,7 +229,7 @@ public class TAPLegacySystemDispositionReportWriter {
 		}
 		report.setSystemName(sysName);
 		//pass in empty hashmap and method automatically creates the required hash
-		HashMap<String, Object> barHash = new HashMap<String, Object>();
+		Map<String, Object> barHash = new HashMap<String, Object>();
 		barHash = report.createInterfaceBarChart(barHash);
 		
 		String replaceSysName = reportSheet.getRow(24).getCell(10).getStringCellValue();
@@ -541,7 +542,7 @@ public class TAPLegacySystemDispositionReportWriter {
 		}
 	}
 
-	public void setReportTypeHash(HashMap<String,String> reportTypeHash) {
+	public void setReportTypeHash(Map<String, String> reportTypeHash) {
 		this.reportTypeHash = reportTypeHash;
 	}
 	
