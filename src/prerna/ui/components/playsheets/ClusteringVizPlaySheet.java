@@ -610,4 +610,25 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 		createView();
 		updateClusterCheckboxes();
 	}
+	
+	@Override
+	public Hashtable<String, String> getDataTableAlign() {
+		Hashtable<String, String> alignHash = new Hashtable<String, String>();
+		String[] names = dataFrame.getColumnHeaders();
+		String instance = "";
+		if(alg instanceof ClusteringRoutine) {
+			instance = names[(Integer) alg.getOptions().get(1).getSelected()];
+		} else if(alg instanceof MultiClusteringRoutine) {
+			instance = names[(Integer) alg.getOptions().get(2).getSelected()];
+		}
+		String clusterID = alg.getChangedColumns().get(0);
+		alignHash.put("nodeName", instance);
+		alignHash.put("clusterID", clusterID);
+		for(int namesIdx = 0; namesIdx<names.length; namesIdx++){
+			if(!names[namesIdx].equals(instance) && !names[namesIdx].equals(clusterID) ) {
+				alignHash.put("value " + namesIdx, names[namesIdx]);
+			}
+		}
+		return alignHash;
+	}
 }
