@@ -1464,24 +1464,24 @@ public class BTreeDataFrame implements ITableDataFrame {
 //		testStoringAndWriting(fileName, fileNameout);
 		//testJoin(fileName, fileName2, fileName3, fileNameout);
 
-		String fileName = "C:\\Users\\rluthar\\Desktop\\NIH.xlsx";
-		BTreeDataFrame tree = load2Tree4Testing(fileName);
-		String[] columnHeaders = tree.getColumnHeaders();
-		boolean[] numeric = tree.isNumeric();
-		DuplicationReconciliation.ReconciliationMode[] array = new DuplicationReconciliation.ReconciliationMode[4];
-		array[0] = DuplicationReconciliation.ReconciliationMode.COUNT;
-		array[1] = DuplicationReconciliation.ReconciliationMode.MEAN;
-		array[2] = DuplicationReconciliation.ReconciliationMode.MEDIAN;
-		array[3] = DuplicationReconciliation.ReconciliationMode.COUNT;
-		
-		long startTime = System.currentTimeMillis();
-		TreeNode root = tree.simpleTree.nodeIndexHash.get("Source_Integer");
-		CompressionIterator iterator = new CompressionIterator(root, array);
-		List<Object[]> data = new ArrayList<Object[]>();
-		while(iterator.hasNext()) {
-			data.add(iterator.next());
-		}
-		System.out.println(System.currentTimeMillis() - startTime);
+//		String fileName = "C:\\Users\\rluthar\\Desktop\\NIH.xlsx";
+//		BTreeDataFrame tree = load2Tree4Testing(fileName);
+//		String[] columnHeaders = tree.getColumnHeaders();
+//		boolean[] numeric = tree.isNumeric();
+//		DuplicationReconciliation.ReconciliationMode[] array = new DuplicationReconciliation.ReconciliationMode[4];
+//		array[0] = DuplicationReconciliation.ReconciliationMode.COUNT;
+//		array[1] = DuplicationReconciliation.ReconciliationMode.MEAN;
+//		array[2] = DuplicationReconciliation.ReconciliationMode.MEDIAN;
+//		array[3] = DuplicationReconciliation.ReconciliationMode.COUNT;
+//		
+//		long startTime = System.currentTimeMillis();
+//		TreeNode root = tree.simpleTree.nodeIndexHash.get("Source_Integer");
+//		CompressionIterator iterator = new CompressionIterator(root, array);
+//		List<Object[]> data = new ArrayList<Object[]>();
+//		while(iterator.hasNext()) {
+//			data.add(iterator.next());
+//		}
+//		System.out.println(System.currentTimeMillis() - startTime);
 		
 //		startTime = System.currentTimeMillis();
 //		root = tree.simpleTree.nodeIndexHash.get("Source_Integer");
