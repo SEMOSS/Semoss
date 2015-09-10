@@ -1087,7 +1087,7 @@ public class SimpleTreeBuilder
 //				node2filter.leftSibling = rightFilteredNode;
 				
 				filteredRoot.leftSibling = node2filter;
-				node2filter.rightChild = filteredRoot;
+				node2filter.rightSibling = filteredRoot;
 				filteredRoot = node2filter;
 			}
 		} else {
@@ -1138,15 +1138,28 @@ public class SimpleTreeBuilder
 	
 	public void unfilterColumn(String column) {
 		
-		if(((ISEMOSSNode)(this.getRoot().leaf)).getType().equals(column)) {
+		//what happens when you try to filter out everything and unfilter?
+		SimpleTreeNode root = this.getRoot();
+		boolean check = true;
+		if(root == null) {
+			root = this.getFilteredRoot();
+			check = false;
+			if(root == null) return;
+		}
+		
+		
+		if(((ISEMOSSNode)(root.leaf)).getType().equals(column) && check) {
 			if(filteredRoot != null) {
-				SimpleTreeNode root = this.getRoot();
+				///SimpleTreeNode root = this.getRoot();
 				root = SimpleTreeNode.getRight(root);
 				root.rightSibling = filteredRoot;
 				filteredRoot.leftSibling = root;
 				unfilterTreeNode(filteredRoot);
 				filteredRoot = null;
 			}
+		} else if(((ISEMOSSNode)(root.leaf)).getType().equals(column) && !check) {
+			unfilterTreeNode(filteredRoot);
+			filteredRoot = null;
 		} else {
 			
 			TreeNode unfilterIndexTree = nodeIndexHash.get(column);
