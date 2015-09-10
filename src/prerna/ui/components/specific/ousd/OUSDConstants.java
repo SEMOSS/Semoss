@@ -48,6 +48,7 @@ public class OUSDConstants {
 	public static final String DATA_CONSUMED_BY_BLU_QUERY = "DATA_CONSUMED_BY_BLU_QUERY";
 	public static final String DATA_CREATED_BY_SYSTEM_QUERY = "DATA_CREATED_BY_SYSTEM_QUERY";
 	public static final String ENDURING_SYSTEM_QUERY = "ENDURING_SYSTEM_QUERY";
+	public static final String SYSTEM_TO_TARGET_QUERY = "SYSTEM_TO_TARGET_QUERY";
 	
 	public static final String ROADMAP_QUERY = "ROADMAP_QUERY";
 	
