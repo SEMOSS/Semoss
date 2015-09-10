@@ -197,6 +197,22 @@ public class OUSDQueryHelper {
 		return getSingleLevelMap(db, bluSystemQuery);
 	}
 
+
+	/**
+	 * @param db
+	 * @param systemBindingsString
+	 * @return
+	 */
+	public static Map<String, List<String>> getSystemToTarget(IEngine db, String systemBindingsString){
+		String systemTargetQuery = db.getProperty(OUSDConstants.SYSTEM_TO_TARGET_QUERY);
+		systemTargetQuery = systemTargetQuery.replace("!SYSTEMS!", systemBindingsString);
+		System.out.println(systemBindingsString);
+
+		LOGGER.info("QUERYING FOR ALL SYSTEMS::::::: db is " + db.getEngineName() + " and query is " + systemTargetQuery);
+		
+		return getSingleLevelMap(db, systemTargetQuery);
+	}
+	
 	/**
 	 * @param dbName
 	 * @param dataBLUQuery
