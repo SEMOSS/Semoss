@@ -101,7 +101,7 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		rowSustainCost[0] = this.roadmapName + " Sustainment Cost";
 		Object[] rowRisk = new Object[names.length];
 		rowRisk[0] = this.roadmapName + " Enterprise Risk";
-		
+
 		List<Map<String, List<String>>> comparatorYears = comparatorTimeline.getTimeData();
 		Map<String, Double> comparatorBudgets = comparatorTimeline.getBudgetMap();
 		Object[] compRowSystemCount = new Object[names.length];
@@ -117,7 +117,7 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		Object[] compRowRisk = new Object[names.length];
 		compRowRisk[0] = this.comparatorName + " Enterprise Risk";
 
-		
+
 		NumberFormat formatter = NumberFormat.getCurrencyInstance(Locale.US);
 		NumberFormat percentFormat = NumberFormat.getPercentInstance();
 		percentFormat.setMinimumFractionDigits(1);
@@ -243,8 +243,8 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		this.dataFrame.addRow(rowSustainCost, rowSustainCost);
 		this.dataFrame.addRow(rowRisk, rowRisk);
 
-		
-		additionalRowBuilder(fyList, row, rowSustainCost, rowBuildCost, names, formatter, percentFormat, this.roadmapName);
+
+		additionalRowBuilder(timeline, fyList, row, rowSustainCost, rowBuildCost, names, formatter, percentFormat, this.roadmapName);
 
 		this.dataFrame.addRow(compRowSystemCount, compRowSystemCount);
 		this.dataFrame.addRow(comparatorRow, comparatorRow);
@@ -253,15 +253,23 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		this.dataFrame.addRow(compRowSustainCost, compRowSustainCost);
 		this.dataFrame.addRow(compRowRisk, compRowRisk);
 
-		additionalRowBuilder(comparatorFyList, comparatorRow, compRowSustainCost, compRowBuildCost, names, formatter, percentFormat, this.comparatorName);
+		additionalRowBuilder(comparatorTimeline, comparatorFyList, comparatorRow, compRowSustainCost, compRowBuildCost, names, formatter, percentFormat, this.comparatorName);
 	}
 
-	private void additionalRowBuilder(List<Integer> yearList, Object[] baseRow, Object[] sustainRow, Object[] buildCostRow, String[] names, NumberFormat formatter, NumberFormat percentFormat, String name){
+	private void additionalRowBuilder(OUSDTimeline timeline, List<Integer> yearList, Object[] baseRow, Object[] sustainRow, Object[] buildCostRow, String[] names, NumberFormat formatter, NumberFormat percentFormat, String name){
 
 		double cumulativeCost=0.0;
 		double cumulativeSavings=0.0;
 
 		List<Double> annualSavings = new ArrayList<Double>();
+
+		Map<String, Double> timelineBudgets = timeline.getBudgetMap();
+		double totalBudget = 0.0;
+		//		for(Map<String, List<String>> year: timeline.getTimeData()){
+		//			for(String key: year.keySet()){
+		for(String system: timelineBudgets.keySet()){
+			totalBudget = totalBudget + timelineBudgets.get(system);
+		}
 
 		Object[] cumulativeSavingsRow = new Object[names.length];
 		cumulativeSavingsRow[0] = name + " Cumulative Savings";
@@ -271,6 +279,8 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		cumulativeTotalCostRow[0] = name + " Cumulative Cost";
 		Object[] roiRow = new Object[names.length];
 		roiRow[0] = name + " ROI";
+		Object[] remainingSystemBudgets = new Object[names.length];
+		remainingSystemBudgets[0] = name + " Operational Cost";
 
 		for(int i=1; i<names.length; i++){
 
@@ -282,8 +292,10 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 			//cumulative savings
 			if(baseRow[i] != null){
 				String savings = baseRow[i].toString().replace("$", "").replace(",", "");
-				annualSavings.add(Double.parseDouble(savings));				
+				annualSavings.add(Double.parseDouble(savings));
+				totalBudget = totalBudget - Double.parseDouble(savings);
 			}
+			remainingSystemBudgets[i] = formatter.format(totalBudget);
 			for(Double value: annualSavings){
 				cumulativeSavings = cumulativeSavings + value;
 			}
@@ -324,10 +336,13 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 			}else{
 				roiRow[i] = percentFormat.format(0);
 			}
+
+
 		}
 		this.dataFrame.addRow(savingsRow, savingsRow);
 		this.dataFrame.addRow(cumulativeSavingsRow, cumulativeSavingsRow);
 		this.dataFrame.addRow(cumulativeTotalCostRow, cumulativeTotalCostRow);
 		this.dataFrame.addRow(roiRow, roiRow);
+		this.dataFrame.addRow(remainingSystemBudgets, remainingSystemBudgets);
 	}
 }
