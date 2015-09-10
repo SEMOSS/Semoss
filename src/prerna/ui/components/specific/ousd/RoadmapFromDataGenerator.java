@@ -26,7 +26,7 @@ public class RoadmapFromDataGenerator implements ITimelineGenerator{
 	ActivityGroupRiskCalculator calc = new ActivityGroupRiskCalculator();
 	double failureRate = 0.001;
 	
-	private String cleanActInsightString = "What clean groups can activities be put in?";
+	private String cleanActInsightString = "What clean groups can activities supporting the E2E Business Flow be put into?";
 	
 	@Override
 	public void createTimeline(IEngine engine){
