@@ -457,6 +457,9 @@ public interface ITableDataFrame {
 	 */
 	public void setColumnsToSkip(List<String> columnHeaders);
 
+	//temporary hack for build...delete later
+	public Object[] getFilteredUniqueRawValues(String columnHeader);
+
 
 
 	

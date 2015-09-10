@@ -1,4 +1,5 @@
 /*******************************************************************************
+
  * Copyright 2015 Defense Health Agency (DHA)
  *
  * If your use of this software does not include any GPLv2 components:
@@ -49,6 +50,7 @@ import org.openrdf.model.Literal;
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.impl.ExactStringMatcher;
+import prerna.algorithm.learning.util.DuplicationReconciliation;
 import prerna.engine.api.ISelectStatement;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
@@ -781,6 +783,21 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
+	public Object[] getFilteredUniqueRawValues(String columnHeader) {
+		List<Object> uniqueValues = new ArrayList<Object>();
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
+		while(it.hasNext()) {
+			TreeNode t = it.next();
+			if(t.instanceNode.size() == 0) {
+				uniqueValues.add(t.leaf.getRawValue());
+			}
+		}
+		
+		return uniqueValues.toArray();
+	}
+	
+	@Override
 	public Map<String, Integer> getUniqueValuesAndCount(String columnHeader) {
 		Map<String, Integer> valueCount = new HashMap<String, Integer>();
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
@@ -934,8 +951,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		if(!isNumeric(columnHeader)) {
 			return Double.NaN;
 		}
-		//Object maxValue = this.simpleTree.getMax(columnHeader);
-		//return ((Number) maxValue).doubleValue();
+		
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
 		typeRoot = typeRoot.getRight(typeRoot);
 		while(typeRoot.rightChild != null) {
@@ -943,6 +959,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 			typeRoot = typeRoot.getRight(typeRoot);
 		}
 		return ((Number) typeRoot.leaf.getValue()).doubleValue();
+		
 	}
 
 	@Override
@@ -959,19 +976,28 @@ public class BTreeDataFrame implements ITableDataFrame {
 		if(!isNumeric(columnHeader)) {
 			return Double.NaN;
 		}
-		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		while(typeRoot.leftChild != null) {
-			typeRoot = typeRoot.leftChild;
+		
+		//first value returned by iterator is the 'least' value
+		Iterator<Object> iterator = this.uniqueValueIterator(columnHeader, false, false);
+		if(iterator.hasNext()) {
+			Object value = this.uniqueValueIterator(columnHeader, false, false).next();
+			return ((Number) value).doubleValue();
 		}
 		
-		if(typeRoot.leaf.isEqual(new StringClass(SimpleTreeNode.EMPTY))) {
-			if(typeRoot.rightSibling != null) {
-				typeRoot = typeRoot.rightSibling;
-			} else {
-				typeRoot = typeRoot.parent;
-			}
-		}
-		return ((Number) typeRoot.leaf.getValue()).doubleValue();
+		return Double.NaN;
+//		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+//		while(typeRoot.leftChild != null) {
+//			typeRoot = typeRoot.leftChild;
+//		}
+//		
+//		if(typeRoot.leaf.isEqual(new StringClass(SimpleTreeNode.EMPTY))) {
+//			if(typeRoot.rightSibling != null) {
+//				typeRoot = typeRoot.rightSibling;
+//			} else {
+//				typeRoot = typeRoot.parent;
+//			}
+//		}
+//		return ((Number) typeRoot.leaf.getValue()).doubleValue();
 	}
 
 	@Override
@@ -989,7 +1015,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		double count = 0;
 
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
+		FilteredIndexTreeIterator it = new FilteredIndexTreeIterator(typeRoot);
 		StringClass empty = new StringClass(SimpleTreeNode.EMPTY);
 		while(it.hasNext()) {
 			TreeNode node = it.next();
@@ -1021,7 +1047,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public Double getSum(String columnHeader) {
 		double sum = 0;
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
+		FilteredIndexTreeIterator it = new FilteredIndexTreeIterator(typeRoot);
 		StringClass empty = new StringClass(SimpleTreeNode.EMPTY);
 		while(it.hasNext()) {
 			TreeNode node = it.next();
@@ -1058,7 +1084,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		double stdev = 0;
 		int numValues = 0;
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
+		FilteredIndexTreeIterator it = new FilteredIndexTreeIterator(typeRoot);
 		StringClass empty = new StringClass(SimpleTreeNode.EMPTY);
 		while(it.hasNext()) {
 			TreeNode node = it.next();
@@ -1159,7 +1185,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public int getNumRows() {
 		int numRows = 0;
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);
-		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
+		FilteredIndexTreeIterator it = new FilteredIndexTreeIterator(typeRoot);
 		while(it.hasNext()) {
 			numRows += it.next().getInstances().size();
 		}
@@ -1438,11 +1464,77 @@ public class BTreeDataFrame implements ITableDataFrame {
 //		testStoringAndWriting(fileName, fileNameout);
 		//testJoin(fileName, fileName2, fileName3, fileNameout);
 
-		TreeNode newTreeNode = new TreeNode(new StringClass("","",""));
-		BTreeIterator it = new BTreeIterator(newTreeNode);
-		while(it.hasNext()) {
-			it.next();
+		String fileName = "C:\\Users\\rluthar\\Desktop\\NIH.xlsx";
+		BTreeDataFrame tree = load2Tree4Testing(fileName);
+		String[] columnHeaders = tree.getColumnHeaders();
+		boolean[] numeric = tree.isNumeric();
+		DuplicationReconciliation.ReconciliationMode[] array = new DuplicationReconciliation.ReconciliationMode[4];
+		array[0] = DuplicationReconciliation.ReconciliationMode.COUNT;
+		array[1] = DuplicationReconciliation.ReconciliationMode.MEAN;
+		array[2] = DuplicationReconciliation.ReconciliationMode.MEDIAN;
+		array[3] = DuplicationReconciliation.ReconciliationMode.COUNT;
+		
+		long startTime = System.currentTimeMillis();
+		TreeNode root = tree.simpleTree.nodeIndexHash.get("Source_Integer");
+		CompressionIterator iterator = new CompressionIterator(root, array);
+		List<Object[]> data = new ArrayList<Object[]>();
+		while(iterator.hasNext()) {
+			data.add(iterator.next());
 		}
+		System.out.println(System.currentTimeMillis() - startTime);
+		
+//		startTime = System.currentTimeMillis();
+//		root = tree.simpleTree.nodeIndexHash.get("Source_Integer");
+//		iterator = new CompressionIterator(root, array);
+//		data = new ArrayList<Object[]>();
+//		while(iterator.hasNext()) {
+//			data.add(iterator.next());
+//		}
+//		System.out.println(System.currentTimeMillis() - startTime);
+		
+//		System.out.println("Start Median Test");
+//		for(int i = 0; i < columnHeaders.length; i++) {
+//			if(numeric[i]) {
+//				long startTime = System.currentTimeMillis();
+//				Double d = DuplicationReconciliation.getMedian(tree.getColumn(columnHeaders[i]), true);
+//				System.out.println("time for column "+columnHeaders[i]+": "+(System.currentTimeMillis() - startTime));
+//				System.out.println(columnHeaders[i]+ " Avg: "+d);
+//			}
+//		}
+//		System.out.println("End Median Test\n");
+//		
+//		System.out.println("Start Mean Test");
+//		for(int i = 0; i < columnHeaders.length; i++) {
+//			if(numeric[i]) {
+//				long startTime = System.currentTimeMillis();
+//				Double d = DuplicationReconciliation.getMean(tree.getColumn(columnHeaders[i]), true);
+//				System.out.println("time for column "+columnHeaders[i]+": "+(System.currentTimeMillis() - startTime));
+//				System.out.println(columnHeaders[i]+ " Avg: "+d);
+//			}
+//		}
+//		System.out.println("End Mean Test\n");
+//		
+//		System.out.println("Start Max Test");
+//		for(int i = 0; i < columnHeaders.length; i++) {
+//			if(numeric[i]) {
+//				long startTime = System.currentTimeMillis();
+//				Double d = DuplicationReconciliation.getMax(tree.getColumn(columnHeaders[i]), true);
+//				System.out.println("time for column "+columnHeaders[i]+": "+(System.currentTimeMillis() - startTime));
+//				System.out.println(columnHeaders[i]+ " Avg: "+d);
+//			}
+//		}
+//		System.out.println("End Max Test\n");
+//		
+//		System.out.println("Start Mode Test");
+//		for(int i = 0; i < columnHeaders.length; i++) {
+//			if(numeric[i]) {
+//				long startTime = System.currentTimeMillis();
+//				Double d = DuplicationReconciliation.getMode(tree.getColumn(columnHeaders[i]), true);
+//				System.out.println("time for column "+columnHeaders[i]+": "+(System.currentTimeMillis() - startTime));
+//				System.out.println(columnHeaders[i]+ " Avg: "+d);
+//			}
+//		}
+//		System.out.println("End Mode Test\n");
 	}
 	
 	private static void testSerializingAndDeserialing(String file1){
@@ -1549,7 +1641,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 			XSSFRow row = lSheet.getRow(rIndex);
 			for(int cIndex = 0; cIndex<totalCols ; cIndex++)
 			{
-				String v1 = row.getCell(cIndex).getStringCellValue();
+				//String v1 = row.getCell(cIndex).getStringCellValue();
+				double v1 = row.getCell(cIndex).getNumericCellValue();
 				rowMap.put(headerList.get(cIndex), v1);
 			}
 			tester.addRow(rowMap, rowMap);
