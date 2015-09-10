@@ -180,6 +180,7 @@ public final class OUSDPlaysheetHelper {
 		Map<String, List<String>> dataSystemMap = new HashMap<String, List<String>>();
 		Map<String, List<String>> granularBLUMap = new HashMap<String, List<String>>();
 		Map<String, List<List<String>>> sdsMap = new HashMap<String, List<List<String>>>();
+		Map<String, List<String>> targetMap = new HashMap<String, List<String>>();
 		
 		//create data types for query methods
 		for(Map<String, List<String>> yearMap: timeline.getTimeData()){
@@ -214,6 +215,13 @@ public final class OUSDPlaysheetHelper {
 			granularBLUMap = OUSDPlaysheetHelper.systemToGranularBLU(bluDataList, dataSystemMap, bluMap);
 			
 			timeline.setGranularBLUMap(granularBLUMap);
+		}
+
+		if(timeline.getTargetMap().isEmpty()){
+			targetMap = OUSDQueryHelper.getSystemToTarget(engine, sysBindingsString);
+			timeline.setTargetMap(targetMap);
+			timeline.updateTargetSystems();
+			
 		}
 		
 		return timeline;
