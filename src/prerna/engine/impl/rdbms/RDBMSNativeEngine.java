@@ -445,7 +445,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 
 		String toTableName = Utility.getInstanceName(toType);
 		// get the relation name for this from and to
-		String relationClassName = Utility.getClassName(relationName);
+		String relationClassName = Utility.getInstanceName(relationName);
 		builder.addRelation(relationClassName,relationName, " AND ", true);
 		builder.addTable(fromTableName, properties, properties);
 		
