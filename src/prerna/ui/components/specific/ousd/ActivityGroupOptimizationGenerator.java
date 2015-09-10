@@ -30,7 +30,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	OUSDTimeline timeline = new OUSDTimeline();
 	IEngine roadmapEngine;
 	ActivityGroupRiskCalculator calc = new ActivityGroupRiskCalculator();
-	private String cleanActInsightString = "What clean groups can activities be put in?";
+	private String cleanActInsightString = "What clean groups can activities supporting the E2E Business Flow be put into?";
 
 	//optimization values
 	int year = 1;
