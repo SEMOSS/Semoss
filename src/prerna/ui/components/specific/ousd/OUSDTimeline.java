@@ -24,7 +24,17 @@ public class OUSDTimeline {
 	private List<Map<String, Double>> systemInvestmentMap;//map of year->map of system->investment amount (new interface cost)
 	private List<Map<String, Double>> interfaceSustainmentMap;//map of year->map of system->investment amount (new interface cost)
 	private List<Double> treeMaxList;
-	
+
+	private Map<String, List<String>> targetMap = new HashMap<String, List<String>>();	
+
+	public Map<String, List<String>> getTargetMap() {
+		return targetMap;
+	}
+
+	public void setTargetMap(Map<String, List<String>> targetList) {
+		this.targetMap = targetList;
+	}
+
 	public List<Double> getTreeMaxList() {
 		return treeMaxList;
 	}
@@ -32,7 +42,7 @@ public class OUSDTimeline {
 	public void setTreeMaxList(List<Double> treeMaxList) {
 		this.treeMaxList = treeMaxList;
 	}
-	
+
 	public List<Map<String, Double>> getInterfaceSustainmentMap() {
 		return interfaceSustainmentMap;
 	}
@@ -45,11 +55,11 @@ public class OUSDTimeline {
 	public void setSystemInvestmentMap (List<Map<String, Double>> investmentMap){
 		this.systemInvestmentMap = investmentMap;
 	}
-	
+
 	public List<Map<String, Double>> getSystemInvestmentMap(){
 		return this.systemInvestmentMap;
 	}
-	
+
 	public void setTimeData(List<Map<String, List<String>>> timeData){
 		this.timeData = timeData;
 	}
@@ -73,23 +83,23 @@ public class OUSDTimeline {
 	public List<Integer> getFyIdxArray(){
 		return this.fyIndexArray;
 	}
-	
+
 	public void setBudgetMap(Map<String, Double> budgetMap){
 		this.systemBudgetMap = budgetMap;
 	}
-	
+
 	public Map<String, Double> getBudgetMap(){
 		return this.systemBudgetMap;
 	}
-	
+
 	public void setSystemDownstream(Map<String, List<List<String>>> systemDownstreamMap){
 		this.systemDownstreamMap = systemDownstreamMap;
 	}
-	
+
 	public Map<String, List<List<String>>> getSystemDownstreamMap(){
 		return this.systemDownstreamMap;
 	}
-	
+
 	public void setGranularBLUMap(Map<String, List<String>> granularBLUMap){
 		this.granularBLUMap = granularBLUMap;
 	}
@@ -97,19 +107,37 @@ public class OUSDTimeline {
 	public Map<String, List<String>> getGranularBLUMap(){
 		return this.granularBLUMap;
 	}
-	
+
 	public void setDataSystemMap(Map<String, List<String>> dataSystemMap) {
 		this.dataSystemMap = dataSystemMap;
 	}
-	
+
 	public Map<String, List<String>> getDataSystemMap() {
 		return dataSystemMap;
 	}
-	
+
 	public void setFyMap(Map<String, List<String>> timeData, Integer fy){
 		int idx = getFyIndex(fy);
 		this.timeData.remove(idx);
 		this.timeData.add(idx, timeData);
+	}
+
+	public void updateTargetSystems(){
+		if(!targetMap.isEmpty() && !timeData.isEmpty()){
+			for(Map<String, List<String>> yearData: timeData){
+				for(String system: yearData.keySet()){
+					if(targetMap.keySet().contains(system)){
+						List<String> targets = new ArrayList<String>();
+						for(String target: targetMap.get(system)){
+							targets.add(target);
+						}
+						yearData.put(system, targets);
+					}else{
+						yearData.put(system, new ArrayList<String>());
+					}
+				}
+			}
+		}
 	}
 
 	public void addSystemTransition(Integer fy, String decomSys, String endureSys){
@@ -159,7 +187,7 @@ public class OUSDTimeline {
 			return fiscalYears;
 		}
 	}
-	
+
 	public int getFyIndexFiscalYear(Integer year){
 		if(fyIndexArray == null){
 			LOGGER.error("Cannot add specific fy before setting fy index array");
@@ -173,7 +201,7 @@ public class OUSDTimeline {
 			return idx;
 		}
 	}
-	
+
 	public List<String> getSystems(){
 		List<String> systems = new ArrayList<String>();
 		for(Map<String, List<String>> map: timeData){
@@ -189,7 +217,7 @@ public class OUSDTimeline {
 	public Integer getYearFromIdx(Integer index){
 		return fyIndexArray.get(index);
 	}
-	
+
 	public void insertFy(Integer fy){
 		int i = 0;
 		for (; i < fyIndexArray.size(); i++) {
@@ -204,7 +232,7 @@ public class OUSDTimeline {
 		fyIndexArray.add(i, fy);
 		timeData.add(i, new HashMap<String, List<String>>());
 	}
-	
+
 	//Flattens all timeline data into most logical table
 	//We may need variations on this for certain situations
 	public void getTable(){
@@ -221,7 +249,7 @@ public class OUSDTimeline {
 		}
 		String[] tableNames = new String[names.size()];
 		tableNames = names.toArray(tableNames);
-		
+
 		List<Integer> fys = this.fyIndexArray;
 		if(fys == null){
 			fys = new ArrayList<Integer>();
@@ -229,13 +257,13 @@ public class OUSDTimeline {
 				fys.add(i, i);
 			}
 		}
-		
+
 		for(int yearIdx = 0 ; yearIdx < fys.size(); yearIdx ++){
-			
+
 			//add basic system information
 			Map<String, List<String>> fyMap = this.timeData.get(yearIdx);
 			Iterator<String> sysIt = fyMap.keySet().iterator();
-			
+
 			// for each system getting decommissioned
 			while(sysIt.hasNext()){
 				String decomSystem = sysIt.next();
@@ -246,20 +274,20 @@ public class OUSDTimeline {
 					newRow[0] = fys.get(yearIdx);
 					newRow[1] = decomSystem;
 					newRow[2] = replacingSystem;
-					
+
 					int offset = 0;
 					// get any additional information we have about this system getting decommissioned
 					if(this.systemDownstreamMap != null){
 						flattenDownstreamData(newRow, offset, decomSystem);
 					}
-//					else if (budgetData != null){
-//						flattenBudgetData(newRow, offset + 2, decomSystem);
-//					}
+					//					else if (budgetData != null){
+					//						flattenBudgetData(newRow, offset + 2, decomSystem);
+					//					}
 				}
 			}
 		}
 	}
-	
+
 	private void flattenDownstreamData(Object[] newRow, int offset, String decomSystem){
 		List<List<String>> sysMap = this.systemDownstreamMap.get(decomSystem);
 		if(sysMap != null) { // if we have downstream info for this specific system
@@ -267,21 +295,21 @@ public class OUSDTimeline {
 				Object[] newRow2 = Arrays.copyOf(newRow, newRow.length);
 				newRow2[3 + offset] = icd.get(0);
 				newRow2[4 + offset] = icd.get(1);
-//				if(budgetData != null){
-//					flattenBudgetData(newRow2, offset + 2, decomSystem);
-//				}
+				//				if(budgetData != null){
+				//					flattenBudgetData(newRow2, offset + 2, decomSystem);
+				//				}
 			}
 		}
 	}
-	
+
 	public List<Object[]> getGanttData(){
 		List<Object[]> ganttData = new ArrayList<Object[]>();
-		
+
 		for(int fyIdx = 0; fyIdx <  this.timeData.size(); fyIdx ++ ){
-			
+
 			Map<String, List<String>> fyData = this.timeData.get(fyIdx);
 			Integer year = this.fyIndexArray.get(fyIdx);
-			
+
 			Iterator<String> fyDataIt = fyData.keySet().iterator();
 			while(fyDataIt.hasNext()){
 				String decoSys = fyDataIt.next();
@@ -296,30 +324,30 @@ public class OUSDTimeline {
 				}
 			}
 		}
-		
+
 		return ganttData;
 	}
-	
+
 	public String[] getGanttHeaders(){
 		return new String[] {"Decommissioned System", "Start Transition Year", "End Transition Year", "Target System"};
 	}
-	
+
 	public String getGanttTitle(){
 		return "Transition Timeline";
 	}
-	
+
 	public String getGanttPlaySheet(){
 		return "OUSDGantt";
 	}
-	
+
 	public List<Object[]> getCostSavingsData(){
 		List<Object[]> costSavingsData = new ArrayList<Object[]>();
-		
+
 		for(int fyIdx = 0; fyIdx <  this.timeData.size(); fyIdx ++ ){
-			
+
 			Map<String, List<String>> fyData = this.timeData.get(fyIdx);
 			Integer year = this.fyIndexArray.get(fyIdx);
-			
+
 			Iterator<String> fyDataIt = fyData.keySet().iterator();
 			Double savings = 0.0;
 			Double cost = 0.0;
@@ -327,8 +355,8 @@ public class OUSDTimeline {
 				String decoSys = fyDataIt.next();
 				Double sysSavings = this.systemBudgetMap.get(decoSys);
 				savings = savings + sysSavings;
-				
-				if(this.systemInvestmentMap != null && this.systemInvestmentMap.size()>year){
+
+				if(this.systemInvestmentMap != null && this.systemInvestmentMap.size()>fyIdx){
 					Double investmentCost = this.systemInvestmentMap.get(fyIdx).get(decoSys);
 					if(investmentCost!=null) {
 						cost = cost + investmentCost;
@@ -342,25 +370,25 @@ public class OUSDTimeline {
 			row[3] = savings - cost;
 			costSavingsData.add(row);
 		}
-		
+
 		return costSavingsData;
 	}
-	
+
 	public String[] getCostSavingsHeaders(){
 		return new String[] {"Transition Year", "Savings", "Investment Cost", "Net Savings"};
 	}
-	
+
 	public String getCostSavingsTitle(){
 		return "Cost Savings";
 	}
-	
+
 	public String getCostSavingsPlaySheet(){
 		return "OUSDCombo";
 	}
-	
+
 	public Map<String, Object> getDashboardData(){
 		List<Map<String,Object>> charts = new ArrayList<Map<String,Object>>();
-		
+
 		// first to make the gantt chart data
 		Map<String, Object> ganttMap = new HashMap<String, Object>();
 		ganttMap.put("data", getGanttData());
@@ -368,7 +396,7 @@ public class OUSDTimeline {
 		ganttMap.put("title", getGanttTitle());
 		ganttMap.put("playsheet", getGanttPlaySheet());
 		charts.add(ganttMap);
-		
+
 		// then to make the cost savings chart data
 		Map<String, Object> costSavingsData = new HashMap<String, Object>();
 		costSavingsData.put("data", getCostSavingsData());
@@ -376,7 +404,7 @@ public class OUSDTimeline {
 		costSavingsData.put("title", getCostSavingsTitle());
 		costSavingsData.put("playsheet", getCostSavingsPlaySheet());
 		charts.add(costSavingsData);
-		
+
 		// then to layout the joins.
 		List<String[]> joins = new ArrayList<String[]>();
 		joins.add(new String[] {"Tranisition Year" , "Transition Year"});
@@ -384,8 +412,8 @@ public class OUSDTimeline {
 		Map<String, Object> vizMap = new HashMap<String, Object>();
 		vizMap.put("charts", charts);
 		vizMap.put("joins", joins);
-		
+
 		return vizMap;
 	}
-	
+
 }
