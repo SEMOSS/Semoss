@@ -63,6 +63,7 @@ public final class DHMSMTransitionUtility {
 
 	public static final String SYS_SPECIFIC_LOE_AND_PHASE_AVG_SERVICE_QUERY = "SELECT DISTINCT ?sys ?data (AVG(?loe) AS ?loe) ?gltag ?phase WHERE { SELECT DISTINCT ?sys ?data ?ser ?loe ?gltag ?phase WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?sys <http://semoss.org/ontologies/Relation/Provide> ?data} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?gltag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser} {?data <http://semoss.org/ontologies/Relation/Input> ?GLitem} } ORDER BY ?sys ?ser ?gltag1 } GROUP BY ?sys ?data ?gltag ?phase";
 	public static final String AVERAGE_LOE_AND_PHASE_AVG_SERVICE_QUERY = "SELECT DISTINCT ?data (AVG(?Loe) AS ?Loe) ?gltag ?phase WHERE { SELECT DISTINCT ?data ?ser (SUM(?loe)/COUNT(DISTINCT ?sys) AS ?Loe) ?gltag ?phase WHERE { SELECT DISTINCT ?sys ?data ?ser ?loe ?gltag ?phase WHERE { {?sys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?sys <http://semoss.org/ontologies/Relation/Provide> ?data} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?gltag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?sys <http://semoss.org/ontologies/Relation/Influences> ?GLitem} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser} {?data <http://semoss.org/ontologies/Relation/Input> ?GLitem} } } GROUP BY ?data ?ser ?gltag ?phase } GROUP BY ?data ?gltag ?phase";
+	public static final String LOE_GENERIC_AND_PHASE_AVG_SERVICE_QUERY = "SELECT DISTINCT ?data (AVG(?loe) as ?avgLoe) ?phase WHERE { SELECT DISTINCT ?data ?ser ?loe ?phase WHERE { BIND(<http://health.mil/ontologies/Concept/GLTag/Generic> AS ?gltag) {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?gltag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?ser <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Service>} {?GLitem <http://semoss.org/ontologies/Relation/TaggedBy> ?gltag} {?GLitem <http://semoss.org/ontologies/Relation/BelongsTo> ?phase} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?GLitem <http://semoss.org/ontologies/Relation/Output> ?ser} {?data <http://semoss.org/ontologies/Relation/Input> ?GLitem} } } GROUP BY ?data ?phase";
 
 	public static final String DHMSM_SOR_QUERY = "SELECT DISTINCT ?Data WHERE { BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> AS ?DHMSM) {?DHMSM <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DHMSM>} {?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability>} {?DHMSM <http://semoss.org/ontologies/Relation/TaggedBy> ?Capability} {?Task <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Task>;} {?Capability <http://semoss.org/ontologies/Relation/Consists> ?Task} {?Needs <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Needs>} {?Needs <http://semoss.org/ontologies/Relation/Contains/CRM> 'C'} {?Task ?Needs ?Data} }";
 
@@ -79,7 +80,7 @@ public final class DHMSMTransitionUtility {
 
 	public static final String SELF_REPORTED_SYSTEM_P2P_INTERFACE_COST = "SELECT DISTINCT ?System (SUM(?loe) AS ?Cost) WHERE { {?System a <http://semoss.org/ontologies/Concept/System>} {?GLItem a <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?System <http://semoss.org/ontologies/Relation/Influences> ?GLItem} {?GLItem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} } GROUP BY ?System";
 	public static final String SELF_REPORTED_SYSTEM_P2P_INTERFACE_COST_BY_TAG_AND_PHASE = "SELECT DISTINCT ?System ?GLTag ?Phase (SUM(?loe) AS ?Cost) WHERE { {?System a <http://semoss.org/ontologies/Concept/System>} {?GLItem a <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?System <http://semoss.org/ontologies/Relation/Influences> ?GLItem} {?GLItem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?Phase a <http://semoss.org/ontologies/Concept/SDLCPhase>} {?GLItem <http://semoss.org/ontologies/Relation/BelongsTo> ?Phase} {?GLTag a <http://semoss.org/ontologies/Concept/GLTag>} {?GLItem <http://semoss.org/ontologies/Relation/TaggedBy> ?GLTag} } GROUP BY ?System ?GLTag ?Phase";
-	
+
 	public static HashMap<String, ArrayList<String>> getDataToServiceHash(IEngine engine) {
 		HashMap<String, ArrayList<String>> retHash = new HashMap<String, ArrayList<String>>();
 
@@ -105,7 +106,7 @@ public final class DHMSMTransitionUtility {
 
 		return retHash;
 	}
-	
+
 	public static Map<String, Map<String, Map<String, Double>>> getSystemSelfReportedP2PCostByTagAndPhase(IEngine engine) {
 		Map<String, Map<String, Map<String, Double>>> retHash = new HashMap<String, Map<String, Map<String, Double>>>();
 		ISelectWrapper sjsw = Utility.processQuery(engine, SELF_REPORTED_SYSTEM_P2P_INTERFACE_COST_BY_TAG_AND_PHASE);
@@ -117,7 +118,7 @@ public final class DHMSMTransitionUtility {
 			String glTag = sjss.getVar(varName[1]).toString();
 			String phase = sjss.getVar(varName[2]).toString();
 			Double p2pCost = (Double) sjss.getVar(varName[3]);
-			
+
 			if(retHash.containsKey(system)) {
 				Map<String, Map<String, Double>> innerMap1 = retHash.get(system);
 				if(innerMap1.containsKey(glTag)) {
@@ -154,7 +155,7 @@ public final class DHMSMTransitionUtility {
 
 		return retHash;
 	}
-	
+
 	public static Map<String, Map<String, String[]>> getProviderFutureICDProperties(IEngine engine) {
 		return runFutureICDProp(engine, DETERMINE_PROVIDER_FUTURE_ICD_PROPERTIES);
 	}
@@ -694,7 +695,7 @@ public final class DHMSMTransitionUtility {
 				if(innerHash1.containsKey(glTag)) {
 					Map<String, Double> innerHash2 = innerHash1.get(glTag);
 					if(innerHash2.containsKey(phase)) {
-						// this code block should never be entered as there should only be one loe value per sys-data-ser-glTag-phase combination
+						// this code block should never be entered as there should only be one loe value per data-ser-glTag-phase combination
 						System.err.println("Multiple LOEs found for a given data-service-gltag-phase combination");
 						System.err.println("Combination is: " + data + "-" + glTag + "-" + phase);
 					} else {
@@ -710,6 +711,37 @@ public final class DHMSMTransitionUtility {
 				innerHash2.put(phase, loe);
 				Map<String, Map<String, Double>> innerHash1 = new HashMap<String, Map<String, Double>>();
 				innerHash1.put(glTag, innerHash2);
+				dataHash.put(data, innerHash1);
+			}
+		}
+		return dataHash;
+	}
+
+	public static Map<String, Map<String, Double>> getGenericGLItemAndPhaseByAvgServ(IEngine engine) {
+		Map<String, Map<String, Double>> dataHash = new HashMap<String, Map<String, Double>>();
+
+		ISelectWrapper sjsw = Utility.processQuery(engine, LOE_GENERIC_AND_PHASE_AVG_SERVICE_QUERY);
+		String[] names = sjsw.getVariables();
+
+		while(sjsw.hasNext())
+		{
+			ISelectStatement sjss = sjsw.next();
+			String data = sjss.getVar(names[0]).toString().replace("\"", "");
+			Double loe = (Double) sjss.getVar(names[1]);
+			String phase = sjss.getVar(names[2]).toString().replace("\"", "");
+
+			if(dataHash.containsKey(data)) {
+				Map<String, Double> innerHash1 = dataHash.get(data);
+				if(innerHash1.containsKey(phase)) {
+					// this code block should never be entered as there should only be one loe value per data-phase combination
+					System.err.println("Multiple LOEs found for a given data-service-gltag-phase combination");
+					System.err.println("Combination is: " + data + "-" + phase);
+				} else {
+					innerHash1.put(phase, loe);
+				}
+			} else {
+				Map<String, Double> innerHash1= new HashMap<String, Double>();
+				innerHash1.put(phase, loe);
 				dataHash.put(data, innerHash1);
 			}
 		}

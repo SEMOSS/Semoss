@@ -2,7 +2,6 @@ package prerna.ui.components.specific.tap;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 public class FutureStateInterfaceCost {
 
@@ -30,7 +29,8 @@ public class FutureStateInterfaceCost {
 			String system,
 			String tag,
 			Map<String, Map<String, Map<String, Map<String, Double>>>> loeForSysGlItemAndPhaseHashByAvgSer,
-			Map<String, Map<String, Map<String, Double>>> avgLoeForSysGLItemAndPhaseHashByAvgSer)
+			Map<String, Map<String, Map<String, Double>>> avgLoeForSysGLItemAndPhaseHashByAvgSer,
+			Map<String, Map<String, Double>> genericGLItemAndPhaseByAvgServ)
 	{
 		Map<String, Double> loeByPhase = new HashMap<String, Double>();
 
@@ -86,6 +86,25 @@ public class FutureStateInterfaceCost {
 							}
 						}
 					}
+				}
+			}
+		}
+		
+		// include generic cost
+		if(tag.equals("Provider")) {
+			Map<String, Double> phaseInfo = genericGLItemAndPhaseByAvgServ.get(dataObject);
+			for(String phase : phaseInfo.keySet()) {
+				Double loe = phaseInfo.get(phase);
+				if(loeByPhase.containsKey(phase)) {
+					Double currLOE = loeByPhase.get(phase);
+					if(loe != null && loe > 0) {
+						currLOE += loe;
+						loeByPhase.put(phase, currLOE);
+					}
+				} else {
+					if(loe != null && loe > 0) {
+						loeByPhase.put(phase, loe);
+					}				
 				}
 			}
 		}
