@@ -29,9 +29,9 @@ package prerna.ui.components.specific.tap;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -43,25 +43,22 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.api.ISelectStatement;
-import prerna.engine.api.ISelectWrapper;
 import prerna.error.EngineException;
 import prerna.error.FileReaderException;
 import prerna.poi.specific.TAPLegacySystemDispositionReportWriter;
+import prerna.ui.components.specific.tap.AbstractFutureInterfaceCostProcessor.COST_FRAMEWORK;
 import prerna.util.Constants;
+import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class DHMSMIntegrationTransitionCostWriter {
 	
 	private static final Logger LOGGER = LogManager.getLogger(DHMSMIntegrationTransitionCostWriter.class.getName());
-	private final String sysProposedICDQuery = "SELECT DISTINCT ?System ?Data ?ICD ?Type WHERE { {SELECT DISTINCT ?System ?ICD ?Data ?Type WHERE { BIND('Provider' AS ?Type)  FILTER(?System != <http://health.mil/ontologies/Concept/System/DHMSM>) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ProposedSystemInterface>} {?System <http://semoss.org/ontologies/Relation/Provide> ?ICD} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?ICD ?Payload ?Data} } } UNION { SELECT DISTINCT ?System ?ICD ?Data ?Type WHERE{ BIND('Consumer' AS ?Type) FILTER(?System != <http://health.mil/ontologies/Concept/System/DHMSM>) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ProposedSystemInterface>} {?ICD <http://semoss.org/ontologies/Relation/Consume> ?System} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?Payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?ICD ?Payload ?Data} } } }";
 	
-	private HashMap<String, ArrayList<String[]>> sysICDDataList = new HashMap<String, ArrayList<String[]>>();
-	
-	public HashMap<String, Double> consolidatedSysCostInfo = new HashMap<String, Double>();
+	private Map<String, Map<String, Double>> sysCost = new HashMap<String, Map<String, Double>>();
 
-	private IEngine hrCore;
+	private IEngine TAP_Core_Data;
 	private IEngine TAP_Cost_Data;
 	private IEngine FutureDB;
 	private IEngine FutureCostDB;
@@ -73,7 +70,7 @@ public class DHMSMIntegrationTransitionCostWriter {
 	int[] atoDateList = new int[2];
 
 	private TAPLegacySystemDispositionReportWriter diacapReport;
-	private LPInterfaceProcessor processor;
+	private LPInterfaceCostProcessor processor;
 	
 	final String[] phases = new String[]{"Requirements","Design","Develop","Test","Deploy"};
 	final String[] tags1 = new String[]{"Consume", "Provide"};
@@ -84,14 +81,15 @@ public class DHMSMIntegrationTransitionCostWriter {
 	final String sysKey = "@SYSTEM@";
 	double atoCost;
 	
+	private Set<String> selfReportedSystems;
+	private Set<String> sorV;
+	private Map<String, String> sysTypeHash;
+	private Map<String, Map<String, Map<String, Double>>> selfReportedSystemCostByPhase;
+	
 	public DHMSMIntegrationTransitionCostWriter() throws EngineException{
 		TAP_Cost_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
 		if(TAP_Cost_Data==null) {
 			throw new EngineException("TAP_Cost_Data database not found");
-		}
-		hrCore = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
-		if(hrCore==null) {
-				throw new EngineException("TAP_Core_Data database not found");
 		}
 		FutureDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureDB");
 		if(FutureDB==null) {
@@ -99,8 +97,15 @@ public class DHMSMIntegrationTransitionCostWriter {
 		}
 		FutureCostDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureCostDB");
 		if(FutureCostDB==null) {
-				throw new EngineException("FutureCostDB database not found");
+			throw new EngineException("FutureCostDB database not found");
 		}
+		TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+		if(TAP_Core_Data==null) {
+			throw new EngineException("TAP_Core_Data database not found");
+		}
+		selfReportedSystems = DHMSMTransitionUtility.getAllSelfReportedSystemNames(FutureDB);
+		sorV = DHMSMTransitionUtility.processSysDataSOR(TAP_Core_Data);
+		sysTypeHash = DHMSMTransitionUtility.processReportTypeQuery(TAP_Core_Data);
 	}
 	
 	public void setCostPerHr(double costPerHr) {
@@ -115,14 +120,18 @@ public class DHMSMIntegrationTransitionCostWriter {
 	public void calculateValuesForReport() throws EngineException 
 	{
 		if(processor == null) {
-			processor = new LPInterfaceProcessor();
-			processor.getCostInfoAtPhaseLevel(TAP_Cost_Data);
+			processor = new LPInterfaceCostProcessor();
+			processor.setEngine(TAP_Core_Data);
 		}
-		processor.setSysCostInfo(new HashMap<Integer, HashMap<String, Double>>());
-		processor.setConsolidatedSysCostInfo(new HashMap<String, Double>());
-		consolidatedSysCostInfo.clear();
-		generateAllCost();
-		getCostForSys(systemName);
+		if(selfReportedSystemCostByPhase == null) {
+			selfReportedSystemCostByPhase = DHMSMTransitionUtility.getSystemSelfReportedP2PCostByTagAndPhase(FutureCostDB);
+		}
+		sysCost.clear();
+		if(selfReportedSystems.contains(systemName)) {
+			sysCost = selfReportedSystemCostByPhase.get(systemName);
+		} else {
+			sysCost = processor.generateSystemCostByTagPhase(systemName, selfReportedSystems, sorV, sysTypeHash, COST_FRAMEWORK.P2P);
+		}
 		
 		if(diacapReport == null) {
 			diacapReport = new TAPLegacySystemDispositionReportWriter(sysURI);
@@ -140,55 +149,6 @@ public class DHMSMIntegrationTransitionCostWriter {
 		atoDateList =  diacapReport.getAtoDateList();
 	} 
 	
-	private void generateAllCost() {
-		if(sysICDDataList.isEmpty()) {
-			ISelectWrapper sjsw = Utility.processQuery(FutureDB, sysProposedICDQuery);
-			String[] names = sjsw.getVariables();
-			while(sjsw.hasNext()) {
-				ISelectStatement sjss = sjsw.next();
-				String sysName = sjss.getVar(names[0]).toString();
-				String dataName = sjss.getVar(names[1]).toString();
-				String icdName = sjss.getVar(names[2]).toString();
-				String type = sjss.getVar(names[3]).toString();
-				ArrayList<String[]> icdList;
-				if(sysICDDataList.containsKey(sysName)) {
-					icdList = sysICDDataList.get(sysName);
-					icdList.add(new String[]{icdName, dataName, type});
-				} else {
-					icdList = new ArrayList<String[]>();
-					icdList.add(new String[]{icdName, dataName, type});
-					sysICDDataList.put(sysName, icdList);
-				}
-			}
-		}
-	}
-	
-	private void getCostForSys(String systemName) {
-		ArrayList<String[]> icdDataList = sysICDDataList.get(systemName);
-		
-		HashSet<String> serProvideList = new HashSet<String>();
-		HashSet<String> serConsumeList = new HashSet<String>();
-		if(icdDataList != null) {
-			int size = icdDataList.size();
-			int i = 0;
-			for(; i < size; i++) {
-				String[] icdArr = icdDataList.get(i);
-				String dataObject = icdArr[1];
-				String tag = icdArr[2];
-				boolean includeGenericCost = false;
-				if(tag.contains("Provide")) {
-					includeGenericCost = true;
-					processor.calculateCost(dataObject, systemName, tag, includeGenericCost, serProvideList, i);
-				} else {
-					processor.calculateCost(dataObject, systemName, tag, includeGenericCost, serConsumeList, i);
-				}
-			}
-		}
-		processor.consolodateCostHash();
-		consolidatedSysCostInfo = processor.getConsolidatedSysCostInfo();
-	}
-
-
 	public void writeToExcel() throws FileReaderException {
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator");
@@ -220,26 +180,32 @@ public class DHMSMIntegrationTransitionCostWriter {
 				String key = tags[i].concat("+").concat(phases[j]);
 				String key1 = tags1[i].concat("+").concat(phases[j]);
 				XSSFRow rowToWriteOn = reportSheet.getRow(rowToOutput);
-				if(consolidatedSysCostInfo.containsKey(key)) {
-					Double cost = consolidatedSysCostInfo.get(key);
-					if(cost == null) {
-						cost = (double) 0;
-					} else {
-						cost *= costPerHr;
+				if(sysCost.containsKey(tags[i])) {
+					Map<String, Double> costAtPhases = sysCost.get(tags[i]);
+					if(costAtPhases.containsKey(phases[j])) {
+						Double cost = costAtPhases.get(phases[j]);
+						if(cost == null) {
+							cost = (double) 0;
+						} else {
+							cost *= costPerHr;
+						}
+						totalCost[i] += cost;
+						XSSFCell cellToWriteOn = rowToWriteOn.getCell(2);
+						cellToWriteOn.setCellValue(Math.round(cost));
 					}
-					totalCost[i] += cost;
-					XSSFCell cellToWriteOn = rowToWriteOn.getCell(2);
-					cellToWriteOn.setCellValue(Math.round(cost));
-				} else if(consolidatedSysCostInfo.containsKey(key1)) {
-					Double cost = consolidatedSysCostInfo.get(key1);
-					if(cost == null) {
-						cost = (double) 0;
-					} else {
-						cost *= costPerHr;
+				} else if(sysCost.containsKey(tags1)) {
+					Map<String, Double> costAtPhases = sysCost.get(tags[i]);
+					if(costAtPhases.containsKey(phases[j])) {
+						Double cost = costAtPhases.get(phases[j]);
+						if(cost == null) {
+							cost = (double) 0;
+						} else {
+							cost *= costPerHr;
+						}
+						totalCost[i] += cost;
+						XSSFCell cellToWriteOn = rowToWriteOn.getCell(2);
+						cellToWriteOn.setCellValue(Math.round(cost));
 					}
-					totalCost[i] += cost;
-					XSSFCell cellToWriteOn = rowToWriteOn.getCell(2);
-					cellToWriteOn.setCellValue(Math.round(cost));
 				}
 				rowToOutput++;
 			}
@@ -266,7 +232,7 @@ public class DHMSMIntegrationTransitionCostWriter {
 			}
 		}
 		
-		//sum accross columns
+		//sum across columns
 		int k;
 		for(k = 2; k < 7; k++) {
 			for(i = 0; i < 2; i++) {
@@ -284,7 +250,7 @@ public class DHMSMIntegrationTransitionCostWriter {
 				reportSheet.getRow(startRow+7).getCell(k).setCellValue(sumColumn);
 			}
 		}
-		//sum accross rows
+		//sum across rows
 		for(k = 0; k < 8; k++) {
 			for(i = 0; i < 2; i++) {
 				int startRow;
@@ -362,8 +328,8 @@ public class DHMSMIntegrationTransitionCostWriter {
 		
 	}
 
-	public  HashMap<String, Double> getData(){
-		return consolidatedSysCostInfo;
+	public  Map<String, Map<String, Double>> getData(){
+		return sysCost;
 	}
 	
 	public double getCostPerHr(){

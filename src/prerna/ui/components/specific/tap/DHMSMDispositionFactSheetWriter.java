@@ -35,6 +35,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -524,35 +525,40 @@ public class DHMSMDispositionFactSheetWriter {
 			int numPhases = costWriter.phases.length;
 			int rowToOutput = 15;
 			
+			Map<String, Map<String, Double>> sysCost = costWriter.getData();
 			double[] totalCost = new double[2];
 			for(i = 0; i < numTags; i++) {
 				if(costWriter.tags[i].contains("Provide")){
 					rowToOutput = 23;
 				}
 				for(j = 0; j < numPhases; j++) {
-					String key = costWriter.tags[i].concat("+").concat(costWriter.phases[j]);
-					String key1 = costWriter.tags1[i].concat("+").concat(costWriter.phases[j]);
 					XSSFRow rowToWriteOn = reportSheet.getRow(rowToOutput);
-					if(costWriter.consolidatedSysCostInfo.containsKey(key)) {
-						Double cost = costWriter.consolidatedSysCostInfo.get(key);
-						if(cost == null) {
-							cost = (double) 0;
-						} else {
-							cost *= costWriter.costPerHr;
+					if(sysCost.containsKey(costWriter.tags[i])) {
+						Map<String, Double> costAtPhases = sysCost.get(costWriter.tags[i]);
+						if(costAtPhases.containsKey(costWriter.phases[j])) {
+							Double cost = costAtPhases.get(costWriter.phases[j]);
+							if(cost == null) {
+								cost = (double) 0;
+							} else {
+								cost *= costWriter.costPerHr;
+							}
+							totalCost[i] += cost;
+							XSSFCell cellToWriteOn = rowToWriteOn.getCell(3);
+							cellToWriteOn.setCellValue(Math.round(cost));
 						}
-						totalCost[i] += cost;
-						XSSFCell cellToWriteOn = rowToWriteOn.getCell(3);
-						cellToWriteOn.setCellValue(Math.round(cost));
-					} else if(costWriter.consolidatedSysCostInfo.containsKey(key1)) {
-						Double cost = costWriter.consolidatedSysCostInfo.get(key1);
-						if(cost == null) {
-							cost = (double) 0;
-						} else {
-							cost *= costWriter.costPerHr;
+					} else if(sysCost.containsKey(costWriter.tags1[i])) {
+						Map<String, Double> costAtPhases = sysCost.get(costWriter.tags[i]);
+						if(costAtPhases.containsKey(costWriter.phases[j])) {
+							Double cost = costAtPhases.get(costWriter.phases[j]);
+							if(cost == null) {
+								cost = (double) 0;
+							} else {
+								cost *= costWriter.costPerHr;
+							}
+							totalCost[i] += cost;
+							XSSFCell cellToWriteOn = rowToWriteOn.getCell(3);
+							cellToWriteOn.setCellValue(Math.round(cost));
 						}
-						totalCost[i] += cost;
-						XSSFCell cellToWriteOn = rowToWriteOn.getCell(3);
-						cellToWriteOn.setCellValue(Math.round(cost));
 					}
 					rowToOutput++;
 				}

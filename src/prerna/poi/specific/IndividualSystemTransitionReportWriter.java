@@ -31,6 +31,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -125,7 +126,7 @@ public class IndividualSystemTransitionReportWriter {
 		return fileLoc;
 	}
 	
-	public void writeBarChartData(String sheetName,int rowToStart,HashMap<String,Object> barHash) {
+	public void writeBarChartData(String sheetName,int rowToStart, Map<String,Object> barHash) {
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 		int[] dataList = (int[])barHash.get("data");
 		
@@ -137,7 +138,7 @@ public class IndividualSystemTransitionReportWriter {
 		}
 	}
 
-	public void writeSORSheet(String sheetName, HashMap<String,Object> result){
+	public void writeSORSheet(String sheetName, Map<String,Object> result){
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 		String[] headersList = (String[])result.get("headers");
 
@@ -165,7 +166,7 @@ public class IndividualSystemTransitionReportWriter {
 		addConditionalFormatting(sheetName,result,rowToStart,rowToStart+dataList.size(),3,headersList.length);
 	}
 
-	public void addConditionalFormatting(String sheetName, HashMap<String,Object> result,int startRow, int lastRow, int firstCol, int lastCol)
+	public void addConditionalFormatting(String sheetName, Map<String,Object> result,int startRow, int lastRow, int firstCol, int lastCol)
 	{
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 	    XSSFSheetConditionalFormatting sheetCF = sheetToWriteOver.getSheetConditionalFormatting();
@@ -186,7 +187,7 @@ public class IndividualSystemTransitionReportWriter {
 	 * @param sheetName	String containing the name of the sheet to populate
 	 * @param results	ArrayList containing the output of the query
 	 */
-	public void writeListSheet(String sheetName, HashMap<String,Object> result){
+	public void writeListSheet(String sheetName, Map<String,Object> result){
 
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 		ArrayList<Object[]> dataList = (ArrayList<Object[]>)result.get("data");
@@ -263,7 +264,7 @@ public class IndividualSystemTransitionReportWriter {
 		}
 	}
 
-	public void writeHWSWSheet(String sheetName, HashMap<String,Object> resultBeforeIOC,HashMap<String,Object> resultIOC,HashMap<String,Object> resultFOC){
+	public void writeHWSWSheet(String sheetName, Map<String,Object> resultBeforeIOC, Map<String,Object> resultIOC, Map<String,Object> resultFOC){
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 		
 		fillStringInText(sheetToWriteOver,2,0,null,systemName);
@@ -443,7 +444,7 @@ public class IndividualSystemTransitionReportWriter {
 	}
 	
 
-	public void writeSystemInfoSheet(String sheetName, HashMap<String,Object> result){
+	public void writeSystemInfoSheet(String sheetName, Map<String,Object> result){
 
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 		ArrayList<Object[]> dataList = (ArrayList<Object[]>)result.get("data");
@@ -481,7 +482,7 @@ public class IndividualSystemTransitionReportWriter {
 		
 	}
 	
-	public void writeSystemSiteDetails(String sheetName, HashMap<String,Object> result){
+	public void writeSystemSiteDetails(String sheetName, Map<String,Object> result){
 
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 		ArrayList<Object[]> dataList = (ArrayList<Object[]>)result.get("data");

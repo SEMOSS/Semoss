@@ -101,15 +101,11 @@ public class ConsolidatedSystemReportWriter {
 		int rowCount = 1;
 		for(String lpiSystem: systemList) {
 			rowCount = writeBudgetRow(worksheet, rowCount, lpiSystem);
-			
-			int totalCostRow = rowCount++; // save a row for total costs
 			Double[] totalCostArray = new Double[5];
-
 			rowCount = writeHwSwRow(worksheet, rowCount, lpiSystem, totalCostArray);
 			rowCount = writeInterfaceModernizationRow(worksheet, rowCount, lpiSystem, totalCostArray);
 			rowCount = writeDiacapRow(worksheet, rowCount, lpiSystem, totalCostArray);
-			
-			writeTotalCostsRow(worksheet, totalCostRow, lpiSystem, totalCostArray);
+			rowCount = writeTotalCostsRow(worksheet, rowCount, lpiSystem, totalCostArray);
 		}
 	}
 	
@@ -148,7 +144,7 @@ public class ConsolidatedSystemReportWriter {
 		}
 	}
 	
-	private void writeTotalCostsRow(XSSFSheet worksheet, int rowCount, String systemName, Double[] totalArray)
+	private int writeTotalCostsRow(XSSFSheet worksheet, int rowCount, String systemName, Double[] totalArray)
 	{
 		XSSFRow row = writeIntro(worksheet, rowCount, systemName, "Total Expected Modernization Costs");
 		int cellCount = 3;
@@ -157,18 +153,12 @@ public class ConsolidatedSystemReportWriter {
 			cellCount++;
 		}
 
-		return;
+		return rowCount+1;
 	}
 	
 	private int writeDiacapRow(XSSFSheet worksheet, int rowCount, String systemName, Double[] totalArray)
 	{
-//		System.out.println("Diacap row " + rowCount);
 		XSSFRow row = writeIntro(worksheet, rowCount, systemName, "System DIACAP");
-		
-		if(systemName.contains("ISITE")){
-			System.out.println("ere");
-		}
-
 		String atoDateStr = (String) diacapHashtable.get(systemName);
 		int year = 0;
 		if(atoDateStr !=null && !atoDateStr.equals("NA")){
@@ -232,7 +222,7 @@ public class ConsolidatedSystemReportWriter {
 
 		Object costObj = interfaceModHashtable.get(systemName);
 		if(costObj instanceof Double){
-			setCostCell(row, 3, (Double)costObj, totalArray);
+			setCostCell(row, 3, (Double)costObj * 1.15, totalArray); //1.15 is to take into consideration the training cost
 		}
 		return rowCount + 1;
 	}
@@ -278,7 +268,7 @@ public class ConsolidatedSystemReportWriter {
 	
 	private void setCell(XSSFRow row, int index, Double value)
 	{
-		if(value != null){
+		if(value != null && value != 0){
 			XSSFCell cell = row.createCell(index);
 			cell.setCellValue(value);
 		}

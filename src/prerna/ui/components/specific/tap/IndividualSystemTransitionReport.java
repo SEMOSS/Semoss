@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Vector;
 
 import prerna.engine.api.IEngine;
@@ -41,6 +42,7 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.error.EngineException;
 import prerna.poi.specific.IndividualSystemTransitionReportWriter;
 import prerna.ui.components.playsheets.AbstractRDFPlaySheet;
+import prerna.ui.components.specific.tap.AbstractFutureInterfaceCostProcessor.COST_FRAMEWORK;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -64,8 +66,8 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	//hpi requires site/region information
 	private String siteQuery = "SELECT DISTINCT (COUNT(DISTINCT ?DCSite) AS ?SiteCount) (SAMPLE(?DCSite) AS ?ExampleSite) (GROUP_CONCAT(DISTINCT ?Reg ; SEPARATOR = ', ') AS ?Regions) WHERE { SELECT DISTINCT ?System ?DCSite (CONCAT(SUBSTR(STR(?Region),58)) AS ?Reg) WHERE { BIND(@SYSTEM@ AS ?System) {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?DCSite} OPTIONAL{ {?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>} {?DCSite <http://semoss.org/ontologies/Relation/Includes> ?MTF} {?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HealthServiceRegion>} {?MTF <http://semoss.org/ontologies/Relation/Located> ?Region} }} ORDER BY ?Region} GROUP BY ?System";
 	// future db queries
-	private String proposedFutureICDQuery = "SELECT DISTINCT (COALESCE(?UpstreamSys, ?System) AS ?UpstreamSystem) (COALESCE(?DownstreamSys, ?System) AS ?DownstreamSystem) ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation WHERE { {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ProposedInterfaceControlDocument> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?Interface ?carries ?Data;} {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Frequency ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Recommendation> ?Recommendation;} BIND(@SYSTEM@ AS ?System) { {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?DownstreamSys ;} } UNION { {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?UpstreamSys <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?System ;} } } ";
-	private String decommissionedFutureICDQuery = "SELECT DISTINCT (COALESCE(?UpstreamSys, ?System) AS ?UpstreamSystem) (COALESCE(?DownstreamSys, ?System) AS ?DownstreamSystem) ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation WHERE { {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ProposedDecommissionedInterfaceControlDocument> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?Interface ?carries ?Data;} {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Frequency ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Recommendation> ?Recommendation;} BIND(@SYSTEM@ AS ?System) { {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?DownstreamSys ;} } UNION { {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?UpstreamSys <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?System ;} } }";
+	private String proposedFutureICDQuery = "SELECT DISTINCT (COALESCE(?UpstreamSys, ?System) AS ?UpstreamSystem) (COALESCE(?DownstreamSys, ?System) AS ?DownstreamSystem) ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation WHERE { {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ProposedSystemInterface> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?Interface ?carries ?Data;} {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Frequency ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Recommendation> ?Recommendation;} BIND(@SYSTEM@ AS ?System) { {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?DownstreamSys ;} } UNION { {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?UpstreamSys <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?System ;} } } ";
+	private String decommissionedFutureICDQuery = "SELECT DISTINCT (COALESCE(?UpstreamSys, ?System) AS ?UpstreamSystem) (COALESCE(?DownstreamSys, ?System) AS ?DownstreamSystem) ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation WHERE { {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ProposedDecommissionedSystemInterface> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?Interface ?carries ?Data;} {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Frequency ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Recommendation> ?Recommendation;} BIND(@SYSTEM@ AS ?System) { {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?DownstreamSys ;} } UNION { {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?UpstreamSys <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?System ;} } }";
 	private String allPresentICDQuery = "SELECT DISTINCT (COALESCE(?UpstreamSys, ?System) AS ?UpstreamSystem) (COALESCE(?DownstreamSys, ?System) AS ?DownstreamSystem) ?Interface ?Data ?Format ?Frequency ?Protocol WHERE { {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?Interface ?carries ?Data;} {?carries <http://www.w3.org/2000/01/rdf-schema#label> ?label} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Frequency ;} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;} BIND(@SYSTEM@ AS ?System) { {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?DownstreamSys ;} } UNION { {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?UpstreamSys <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?System ;} } } ORDER BY ?Interface";	//store interface query results
 	HashMap<String, Object> sysLPInterfaceWithCostHash = new HashMap<String, Object>();
 	
@@ -82,8 +84,6 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	private String systemName = "";
 	private String reportType = "";
 
-	private LPInterfaceProcessor processor;
-	
 	private boolean showMessages = true;
 
 	public void setTAP_Cost_Data(IEngine TAP_Cost_Data) {
@@ -155,7 +155,6 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 
 		processQueryParts(query);
 		specifySysInQueriesForReport();
-		processor = new LPInterfaceProcessor();
 		
 		boolean includeCosts = true;
 		String exceptionError = "Could not find database:";
@@ -175,37 +174,35 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			includeCosts=false;
 		}
 
-		HashMap<String, Object> hwSWBudgetHash = new HashMap<String, Object>();
-		if(includeCosts)
-		{
-			processor.getCostInfo(TAP_Cost_Data);
+		Map<String, Object> hwSWBudgetHash = new HashMap<String, Object>();
+		if(includeCosts) {
 			hwSWBudgetHash = getHWSWCostInfo();
 		}
 
-		HashMap<String, Object> sysInfoHash = getSysInfo();
-		HashMap<String, Object> sysSiteHash = new HashMap<String,Object>();
+		Map<String, Object> sysInfoHash = getSysInfo();
+		Map<String, Object> sysSiteHash = new HashMap<String,Object>();
 		if(reportType.equals("HPI") || reportType.equals("HPNI")) {
 			siteQuery = siteQuery.replace("@SYSTEM@", systemURI);
 			sysSiteHash = getQueryDataWithHeaders(TAP_Site_Data, siteQuery);
 		}
 
-		HashMap<String, Object> sysSORDataWithDHMSMHash = getQueryDataWithHeaders(TAP_Core_Data, sysSORDataWithDHMSMQuery);
-		HashMap<String, Object> sysSORDataWithDHMSMCapHash = getQueryDataWithHeaders(TAP_Core_Data, sysSORDataWithDHMSMCapQuery);
-		HashMap<String, Object> sysSORTableHash = getSysSORTableWithHeaders(TAP_Core_Data,sysSORDataQuery,otherSysSORDataQuery);
-		HashMap<String, Object> sysBLUHash = getQueryDataWithHeaders(TAP_Core_Data,sysBLUQuery);
-		HashMap<String, Object> sysDataHash = getQueryDataWithHeaders(TAP_Core_Data,sysDataQuery);
+		Map<String, Object> sysSORDataWithDHMSMHash = getQueryDataWithHeaders(TAP_Core_Data, sysSORDataWithDHMSMQuery);
+		Map<String, Object> sysSORDataWithDHMSMCapHash = getQueryDataWithHeaders(TAP_Core_Data, sysSORDataWithDHMSMCapQuery);
+		Map<String, Object> sysSORTableHash = getSysSORTableWithHeaders(TAP_Core_Data,sysSORDataQuery,otherSysSORDataQuery);
+		Map<String, Object> sysBLUHash = getQueryDataWithHeaders(TAP_Core_Data,sysBLUQuery);
+		Map<String, Object> sysDataHash = getQueryDataWithHeaders(TAP_Core_Data,sysDataQuery);
 		
-		HashMap<String, Object> sysProposedFutureICD = getQueryDataWithHeaders(FutureDB, proposedFutureICDQuery);
-		HashMap<String, Object> sysDecommissionedFutureICD = getQueryDataWithHeaders(FutureDB, decommissionedFutureICDQuery);
-		HashMap<String, Object> sysPersistentICD = determinePersistentICDs(sysDecommissionedFutureICD);
+		Map<String, Object> sysProposedFutureICD = getQueryDataWithHeaders(FutureDB, proposedFutureICDQuery);
+		Map<String, Object> sysDecommissionedFutureICD = getQueryDataWithHeaders(FutureDB, decommissionedFutureICDQuery);
+		Map<String, Object> sysPersistentICD = determinePersistentICDs(sysDecommissionedFutureICD);
 		
-		HashMap<Integer, HashMap<String, Object>> storeSoftwareData = processHWSWData(softwareLifeCycleQuery);
-		HashMap<Integer, HashMap<String, Object>> storeHardwareData = processHWSWData(hardwareLifeCycleQuery);
-		HashMap<String, Object> softwareBarHash = createHWSWBarHash(storeSoftwareData.get(0));
-		HashMap<String, Object> hardwareBarHash = createHWSWBarHash(storeHardwareData.get(0));
+		Map<Integer, Map<String, Object>> storeSoftwareData = processHWSWData(softwareLifeCycleQuery);
+		Map<Integer, Map<String, Object>> storeHardwareData = processHWSWData(hardwareLifeCycleQuery);
+		Map<String, Object> softwareBarHash = createHWSWBarHash(storeSoftwareData.get(0));
+		Map<String, Object> hardwareBarHash = createHWSWBarHash(storeHardwareData.get(0));
 
-		HashMap<String, Object> sysLPInterfaceWithCostHash = new HashMap<String, Object>();
-		HashMap<String, Object> interfaceBarHash = new HashMap<String, Object>();
+		Map<String, Object> sysLPInterfaceWithCostHash = new HashMap<String, Object>();
+		Map<String, Object> interfaceBarHash = new HashMap<String, Object>();
 		try {
 			sysLPInterfaceWithCostHash = calculateInterfaceModernizationCost();
 			// perform after the above to improve performance
@@ -241,22 +238,22 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		}
 	}
 
-	private boolean writeReport(HashMap<String, Object> sysInfoHash,
-			HashMap<String, Object> sysSiteHash,
-			HashMap<Integer, HashMap<String, Object>> storeSoftwareData,
-			HashMap<Integer, HashMap<String, Object>> storeHardwareData,
-			HashMap<String, Object> hwSWBudgetHash,
-			HashMap<String, Object> sysSORDataWithDHMSMHash,
-			HashMap<String, Object> sysSORDataWithDHMSMCapHash,
-			HashMap<String, Object> sysBLUHash,
-			HashMap<String, Object> sysSORTableHash,
-			HashMap<String, Object> softwareBarHash,
-			HashMap<String, Object> hardwareBarHash,
-			HashMap<String, Object> interfaceBarHash,
-			HashMap<String, Object> sysDataHash,
-			HashMap<String, Object> sysFutureICDDeployment,
-			HashMap<String, Object> sysFutureICDDecommission,
-			HashMap<String, Object> sysICDSustainment) {
+	private boolean writeReport(Map<String, Object> sysInfoHash,
+			Map<String, Object> sysSiteHash,
+			Map<Integer, Map<String, Object>> storeSoftwareData,
+			Map<Integer, Map<String, Object>> storeHardwareData,
+			Map<String, Object> hwSWBudgetHash,
+			Map<String, Object> sysSORDataWithDHMSMHash,
+			Map<String, Object> sysSORDataWithDHMSMCapHash,
+			Map<String, Object> sysBLUHash,
+			Map<String, Object> sysSORTableHash,
+			Map<String, Object> softwareBarHash,
+			Map<String, Object> hardwareBarHash,
+			Map<String, Object> interfaceBarHash,
+			Map<String, Object> sysDataHash,
+			Map<String, Object> sysProposedFutureICD,
+			Map<String, Object> sysDecommissionedFutureICD,
+			Map<String, Object> sysPersistentICD) {
 		IndividualSystemTransitionReportWriter writer = new IndividualSystemTransitionReportWriter();
 		String templateFileName = "";
 		if(reportType.equals("LPI"))
@@ -278,9 +275,9 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 //		writer.writeListSheet("DHMSM Data Requirements", sysSORDataWithDHMSMCapHash);
 //		writer.writeListSheet("System Interfaces", sysLPInterfaceWithCostHash);
 		writer.writeListSheet("System BLU", sysBLUHash);
-		writer.writeListSheet("Future Interface Development", sysFutureICDDeployment);
-		writer.writeListSheet("Future Interface Decommission", sysFutureICDDecommission);
-		writer.writeListSheet("Future Interface Sustainment", sysICDSustainment);
+		writer.writeListSheet("Future Interface Development", sysProposedFutureICD);
+		writer.writeListSheet("Future Interface Decommission", sysDecommissionedFutureICD);
+		writer.writeListSheet("Future Interface Sustainment", sysPersistentICD);
 
 		writer.writeSORSheet("System Data",sysDataHash);
 		writer.writeBarChartData("Summary Charts",3,softwareBarHash);
@@ -290,10 +287,10 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		return writer.writeWorkbook();
 	}
 
-	private HashMap<String, Object> determinePersistentICDs(HashMap<String, Object> decommissionedFutureICDs) {
-		HashMap<String, Object> retHash = new HashMap<String, Object>();
+	private Map<String, Object> determinePersistentICDs(Map<String, Object> decommissionedFutureICDs) {
+		Map<String, Object> retHash = new HashMap<String, Object>();
 		
-		HashMap<String, Object> allICDs = getQueryDataWithHeaders(TAP_Core_Data, allPresentICDQuery);
+		Map<String, Object> allICDs = getQueryDataWithHeaders(TAP_Core_Data, allPresentICDQuery);
 		ArrayList<Object[]> allData = (ArrayList<Object[]>) allICDs.get(DHMSMTransitionUtility.DATA_KEY);
 		ArrayList<Object[]> removedData = (ArrayList<Object[]>) decommissionedFutureICDs.get(DHMSMTransitionUtility.DATA_KEY);
 		
@@ -314,9 +311,9 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		return retHash;
 	}
 
-	private HashMap<Integer, HashMap<String, Object>> processHWSWData(String query) 
+	private Map<Integer, Map<String, Object>> processHWSWData(String query) 
 	{
-		HashMap<Integer, HashMap<String, Object>> storeData = new HashMap<Integer, HashMap<String, Object>>();
+		Map<Integer, Map<String, Object>> storeData = new HashMap<Integer, Map<String, Object>>();
 
 		LifeCycleGridPlaySheet getSoftwareHardwareData = new LifeCycleGridPlaySheet();
 		for(int i = 0; i < dates.length; i++)
@@ -336,11 +333,11 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		return storeData;
 	}
 
-	public HashMap<String, Object> calculateInterfaceModernizationCost() throws EngineException 
+	public Map<String, Object> calculateInterfaceModernizationCost() throws EngineException 
 	{
-		LPInterfaceReportGenerator sysInterfaceData = new LPInterfaceReportGenerator();
-		sysInterfaceData.setProcessor(processor);
-		return sysInterfaceData.getSysInterfaceWithCostData(systemName, reportType);
+		LPInterfaceCostProcessor sysInterfaceData = new LPInterfaceCostProcessor();
+		sysInterfaceData.setEngine(TAP_Core_Data);
+		return sysInterfaceData.generateSystemTransitionReport(systemName, COST_FRAMEWORK.P2P);
 	}
 
 	public HashMap<String, Object> getSysInfo()
@@ -360,12 +357,12 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	}
 
 	@SuppressWarnings("unchecked")
-	public HashMap<String, Object> createInterfaceBarChart(HashMap<String,Object> sysLPIInterfaceHash) throws EngineException
+	public Map<String, Object> createInterfaceBarChart(Map<String,Object> sysLPIInterfaceHash) throws EngineException
 	{
 		// run interface report if object passed in is empty
 		if(sysLPIInterfaceHash == null || sysLPIInterfaceHash.isEmpty()) {
-			LPInterfaceReportGenerator sysLPInterfaceData = new LPInterfaceReportGenerator();
-			sysLPIInterfaceHash = sysLPInterfaceData.getSysInterfaceWithCostData(systemName, reportType);
+			LPInterfaceCostProcessor sysInterfaceData = new LPInterfaceCostProcessor();
+			sysLPIInterfaceHash = sysInterfaceData.generateSystemTransitionReport(systemName, COST_FRAMEWORK.P2P);
 		}
 
 		HashMap<String, Object> barHash = new HashMap<String, Object>();
@@ -433,9 +430,9 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 
 
 	@SuppressWarnings("unchecked")
-	private HashMap<String, Object> createHWSWBarHash(HashMap<String, Object> storeData)
+	private Map<String, Object> createHWSWBarHash(Map<String, Object> storeData)
 	{
-		HashMap<String, Object> barHash = new HashMap<String, Object>();
+		Map<String, Object> barHash = new HashMap<String, Object>();
 		String[] headers = new String[]{"Retired (Not Supported)","Supported","GA (Generally Available)","TBD"};
 		int[] barChartVals = new int[]{0,0,0,0};
 

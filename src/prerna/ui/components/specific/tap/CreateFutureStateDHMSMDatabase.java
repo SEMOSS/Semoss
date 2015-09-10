@@ -29,6 +29,9 @@ package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.openrdf.repository.RepositoryException;
@@ -40,65 +43,67 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.error.EngineException;
+import prerna.util.DHMSMTransitionUtility;
 import prerna.util.Utility;
 
 public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
-	
+
 	private final String CURR_ICD_AND_WEIGHT_QUERY = "SELECT DISTINCT ?icd ?weight WHERE{ {?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?payload <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?icd ?payload ?data} {?payload <http://semoss.org/ontologies/Relation/Contains/TypeWeight> ?weight} }";
-	
-	private final String NEW_ICD_TYPE = "http://semoss.org/ontologies/Concept/ProposedInterfaceControlDocument";
-	private final String REMOVED_ICD_TYPE = "http://semoss.org/ontologies/Concept/ProposedDecommissionedInterfaceControlDocument";
+	private final String SYSTEM_QUERY = "SELECT DISTINCT ?System WHERE{ {?System a <http://semoss.org/ontologies/Concept/System>}}";
+
+	private final String NEW_ICD_TYPE = "http://semoss.org/ontologies/Concept/ProposedSystemInterface";
+	private final String REMOVED_ICD_TYPE = "http://semoss.org/ontologies/Concept/ProposedDecommissionedSystemInterface";
 	private final String ICD_TYPE = "http://semoss.org/ontologies/Concept/SystemInterface";
-	
-	private IEngine hrCore;
+
+	private IEngine tapCore;
 	private IEngine futureState;
 	private IEngine futureCostState;
-	private IEngine tapCost;
-	
-	private ArrayList<Object[]> relList;
-	private ArrayList<Object[]> relPropList;
-	private ArrayList<String> addedInterfaces;
-	private ArrayList<String> removedInterfaces;
+
+	private List<Object[]> relList;
+	private List<Object[]> relPropList;
+	private List<String> addedInterfaces;
+	private List<String> removedInterfaces;
 	private Set<String> sysList;
+	private List<Object[]> trainingGLPropList;
 	
-	private ArrayList<Object[]> relCostList;
-	private ArrayList<Object[]> loeList;
+	private List<Object[]> relCostList;
+	private List<Object[]> loeList;
 	private Set<String> sysCostList;
 	private Set<String> glItemList;
 	private Set<String> labelList;
 	private Set<String> labelCostList;
-	
+	private Set<String> getSysTrainingList;
+
 	private HashMap<String, HashMap<String, Set<String>>> baseFutureRelations;
 	private HashMap<String, HashMap<String, Set<String>>> baseFutureCostRelations;
-	
+
 	public CreateFutureStateDHMSMDatabase() {
-		
+
 	}
-	
-	public CreateFutureStateDHMSMDatabase(IEngine hrCore, IEngine futureState, IEngine futureCostDB, IEngine tapCost) {
-		this.hrCore = hrCore;
+
+	public CreateFutureStateDHMSMDatabase(IEngine tapCore, IEngine futureState, IEngine futureCostState) {
+		this.tapCore = tapCore;
 		this.futureState = futureState;
-		this.futureCostState = futureCostDB;
-		this.tapCost = tapCost;
+		this.futureCostState = futureCostState;
 	}
-	
-	public void setHrCore(IEngine hrCore) {
-		this.hrCore = hrCore;
+
+	public void setTapCore(IEngine tapCore) {
+		this.tapCore = tapCore;
 	}
-	
+
 	public void setFutureState(IEngine futureState) {
 		this.futureState = futureState;
 	}
-	
+
 	public void setFutureCostState(IEngine futureCostState) {
 		this.futureCostState = futureCostState;
 	}
-	
+
 	public void createDBs() throws RepositoryException, RDFHandlerException, EngineException {
 		createFutureStateDB();
 		createFutureStateCostDB();
 	}
-	
+
 	public void createFutureStateCostDB() throws EngineException, RepositoryException, RDFHandlerException {
 		if (relCostList == null || loeList == null || sysCostList == null || glItemList == null) {
 			generateData();
@@ -107,33 +112,39 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		allConcepts.clear();
 		allRelations.clear();
 		allLabels.clear();
+
+		Set<String> currSys = addActiveSystems();
+		sysCostList.addAll(currSys);
+		getSysTrainingList.addAll(currSys);
 		
 		baseFutureCostRelations = new HashMap<String, HashMap<String, Set<String>>>();
+		generateTrainingGLItems();
 		processInstanceDataRelations(relCostList, baseFutureCostRelations);
 		processInstancePropOnNodeData(loeList, futureCostState);
+		processInstancePropOnNodeData(trainingGLPropList, futureCostState);
 		processData(futureCostState, dataHash);
 		// process the high lvl node data
 		processAllConceptTypeTriples(futureCostState);
 		// process the high lvl rel data
 		processAllRelationshipSubpropTriples(futureCostState);
-		
+
 		// add subclassing for systems
 		processActiveSystemSubclassing(futureCostState, sysCostList);
 		// add subclassing for glitems
 		processGlItemsSubclassing(futureCostState, glItemList);
-		
+
 		for (String instance : labelCostList) {
 			addToAllLabel(instance);
 		}
 		processLabel(futureCostState);
-		
+
 		((BigDataEngine) futureCostState).commit();
 		((BigDataEngine) futureCostState).infer();
 		writeToOWL(futureCostState, baseFutureCostRelations);
 		// update base filter hash
 		((AbstractEngine) futureCostState).createBaseRelationEngine();
 	}
-	
+
 	public void createFutureStateDB() throws EngineException, RepositoryException, RDFHandlerException {
 		if (relList == null || relPropList == null || addedInterfaces == null || removedInterfaces == null) {
 			generateData();
@@ -142,19 +153,20 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		allConcepts.clear();
 		allRelations.clear();
 		allLabels.clear();
-		
+
 		baseFutureRelations = new HashMap<String, HashMap<String, Set<String>>>();
 		processInstanceDataRelations(relList, baseFutureRelations);
 		processInstancePropOnRelationshipData(relPropList, futureState);
+
 		processData(futureState, dataHash);
 		// process the high lvl node data
 		processAllConceptTypeTriples(futureState);
 		// process the high lvl rel data
 		processAllRelationshipSubpropTriples(futureState);
-		
+
 		// add sub-classing for systems
 		processActiveSystemSubclassing(futureState, sysList);
-		
+
 		// add sub-classing of icd's
 		processNewSubclass(futureState, ICD_TYPE, NEW_ICD_TYPE);
 		processNewSubclass(futureState, ICD_TYPE, REMOVED_ICD_TYPE);
@@ -164,19 +176,19 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		for (String removedICD : removedInterfaces) {
 			processNewConceptsAtInstanceLevel(futureState, removedICD, REMOVED_ICD_TYPE);
 		}
-		
+
 		for (String instance : labelList) {
 			addToAllLabel(instance);
 		}
 		processLabel(futureState);
-		
+
 		((BigDataEngine) futureState).commit();
 		((BigDataEngine) futureState).infer();
 		writeToOWL(futureState, baseFutureRelations);
 		// update base filter hash
 		((AbstractEngine) futureState).createBaseRelationEngine();
 	}
-	
+
 	public void processGlItemsSubclassing(IEngine engine, Set<String> data) {
 		processNewConcepts(engine, "http://semoss.org/ontologies/Concept/GLItem");
 		processNewConcepts(engine, "http://semoss.org/ontologies/Concept/TransitionGLItem");
@@ -190,31 +202,33 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 			processNewConceptsAtInstanceLevel(engine, glItemURI, "http://semoss.org/ontologies/Concept/TransitionGLItem");
 		}
 	}
-	
+
 	public void generateData() throws EngineException {
-		LPInterfaceProcessor processor = new LPInterfaceProcessor();
-		processor.setEngine(hrCore);
-		// processor.isGenerateCost(true);
-		// processor.setUsePhase(true);
-		processor.setGenerateNewTriples(true);
-		
-		processor.getCostInfoAtPhaseLevel(tapCost);
-		processor.generateReport();
+		LPInterfaceDBModProcessor processor = new LPInterfaceDBModProcessor();
+		processor.setEngine(tapCore);
+
+		Map<String, Map<String, String[]>> providerFutureICDProp = DHMSMTransitionUtility.getProviderFutureICDProperties(tapCore);
+		Map<String, Map<String, String[]>> consumerFutureICDProp = DHMSMTransitionUtility.getConsumerFutureICDProperties(tapCore);
+		processor.setProviderFutureICDProp(providerFutureICDProp);
+		processor.setConsumerFutureICDProp(consumerFutureICDProp);
+
+		processor.generateTriples();
 		relList = processor.getRelList();
-		relPropList = processor.getPropList();
+		relPropList = processor.getRelPropList();
 		addedInterfaces = processor.getAddedInterfaces();
 		removedInterfaces = processor.getRemovedInterfaces();
 		sysList = processor.getSysList();
-		
+
 		relCostList = processor.getCostRelList();
 		loeList = processor.getLoeList();
 		sysCostList = processor.getSysCostList();
 		glItemList = processor.getGlItemList();
+		getSysTrainingList = processor.getSysTrainingList();
 		
 		labelList = processor.getLabelList();
 		labelCostList = processor.getLabelCostList();
 	}
-	
+
 	public void addTriplesToExistingICDs() {
 		ISelectWrapper sjsw = Utility.processQuery(futureState, CURR_ICD_AND_WEIGHT_QUERY);
 		String[] varNames = sjsw.getVariables();
@@ -229,5 +243,72 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 			}
 		}
 	}
-	
+
+	// add all systems to active system
+	private Set<String> addActiveSystems() {
+		ISelectWrapper wrapper = Utility.processQuery(futureCostState, SYSTEM_QUERY);
+		String[] names = wrapper.getVariables();
+		Set<String> retSet = new HashSet<String>();
+		while (wrapper.hasNext()) {
+			retSet.add(wrapper.next().getRawVar(names[0]).toString());
+		}
+		return retSet;
+	}
+
+
+	public void generateTrainingGLItems() {
+		String trainingGLItemURI = "http://semoss.org/ontologies/Concept/TrainingGLItem";
+		String instanceGLItemURIBase = "http://health.mil/ontologies/Concept/TrainingGLItem";
+
+		// create GLtag and say its a type of concept
+		String trainingGLTag = "http://health.mil/ontologies/Concept/GLTag/Training"; //"use health.mil";
+		String baseTrainingGLTag = "http://semoss.org/ontologies/Concept/GLTag";  //"use semoss.org";
+
+		// only adding GLTag of type training
+		Set<String> trainingGLTagSet = new HashSet<String>();
+		trainingGLTagSet.add(trainingGLTag);
+		allConcepts.put(baseTrainingGLTag, trainingGLTagSet);
+		addToAllLabel(trainingGLTag);
+
+		Set<String> instanceTrainingGLITems = new HashSet<String>();
+		Set<String> instanceInfluenceRelationships = new HashSet<String>();
+		Set<String> instanceTaggedByRelationships = new HashSet<String>();
+
+		trainingGLPropList = new ArrayList<Object[]>();
+		for (String system : getSysTrainingList) {
+			String sysName = Utility.getInstanceName(system);
+
+			String trainingGLItemName = "Training%Training%" + sysName + "%Training";
+			String trainingGLItemInstanceURI = instanceGLItemURIBase + "/" + trainingGLItemName;
+			instanceTrainingGLITems.add(trainingGLItemInstanceURI);
+
+			String influencePredicateString =  "http://health.mil/ontologies/Relation/Influences/" + sysName + ":" + trainingGLItemName;
+			instanceInfluenceRelationships.add(influencePredicateString);
+
+			String taggedPredicateString =  "http://health.mil/ontologies/Relation/TaggedBy/" + sysName + ":" + trainingGLItemName;
+			instanceTaggedByRelationships.add(taggedPredicateString);
+
+			relCostList.add(new Object[]{system, influencePredicateString, trainingGLItemInstanceURI});
+			relCostList.add(new Object[]{trainingGLItemInstanceURI, taggedPredicateString, trainingGLTag});
+			trainingGLPropList.add(new Object[]{trainingGLItemInstanceURI, "http://semoss.org/ontologies/Relation/Contains/Rate", 0.15});
+			
+			addToAllLabel(trainingGLItemInstanceURI);
+			addToAllLabel(influencePredicateString);
+			addToAllLabel(taggedPredicateString);
+		}
+		allConcepts.put(trainingGLItemURI, instanceTrainingGLITems);
+		if(allRelations.containsKey("http://semoss.org/ontologies/Relation/Influences")) {
+			allRelations.get("http://semoss.org/ontologies/Relation/Influences").addAll(instanceInfluenceRelationships);
+		} else {
+			allRelations.put("http://semoss.org/ontologies/Relation/Influences", instanceInfluenceRelationships);
+		}
+
+		if(allRelations.containsKey("http://semoss.org/ontologies/Relation/TaggedBy")) {
+			allRelations.get("http://semoss.org/ontologies/Relation/TaggedBy").addAll(instanceInfluenceRelationships);
+		} else {
+			allRelations.put("http://semoss.org/ontologies/Relation/TaggedBy", instanceInfluenceRelationships);
+		}
+	}
+
+
 }
