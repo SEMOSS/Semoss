@@ -16,6 +16,7 @@ public class FutureInterfaceCostProcessor extends AbstractFutureInterfaceCostPro
 
 	private Map<String, Map<String, Map<String, Map<String, Double>>>> loeForSysGlItemAndPhaseHashByAvgSer;
 	private Map<String, Map<String, Map<String, Double>>> avgLoeForSysGLItemAndPhaseHashByAvgSer;
+	private Map<String, Map<String, Double>> genericGLItemAndPhaseHashByAvgServ;
 	
 	private IEngine[] engines;
 	
@@ -38,7 +39,8 @@ public class FutureInterfaceCostProcessor extends AbstractFutureInterfaceCostPro
 					system,
 					tag,
 					loeForSysGlItemAndPhaseHashByAvgSer,
-					avgLoeForSysGLItemAndPhaseHashByAvgSer
+					avgLoeForSysGLItemAndPhaseHashByAvgSer,
+					genericGLItemAndPhaseHashByAvgServ
 					);
 		} else {
 			throw new IllegalArgumentException("Must select a valid cost framework... Please choose either SOA or P2P.");
@@ -66,6 +68,9 @@ public class FutureInterfaceCostProcessor extends AbstractFutureInterfaceCostPro
 			}
 			if(avgLoeForSysGLItemAndPhaseHashByAvgSer == null || avgLoeForSysGLItemAndPhaseHashByAvgSer.isEmpty()) {
 				avgLoeForSysGLItemAndPhaseHashByAvgSer = DHMSMTransitionUtility.getAvgSysGLItemAndPhaseByAvgServ(engines[0]);
+			}
+			if(genericGLItemAndPhaseHashByAvgServ == null || genericGLItemAndPhaseHashByAvgServ.isEmpty()) {
+				genericGLItemAndPhaseHashByAvgServ = DHMSMTransitionUtility.getGenericGLItemAndPhaseByAvgServ(engines[0]);
 			}
 		} else {
 			throw new IllegalArgumentException("Must select a valid cost framework... Please choose either SOA or P2P.");
