@@ -8,7 +8,7 @@ import java.util.Map;
 
 public class DuplicationReconciliation {
 
-	public enum ReconciliationMode {MEAN, MODE, MEDIAN, MAX, MIN}
+	public enum ReconciliationMode {MEAN, MODE, MEDIAN, MAX, MIN, COUNT}
 
 	ReconciliationMode mode;
 	private boolean ignoreEmpty;
@@ -29,17 +29,18 @@ public class DuplicationReconciliation {
 	public Double getReconciliatedValue() {
 		if(recValue == null) {
 			switch(mode) {
-				case MEAN: recValue = getMean(values.toArray());
+				case MEAN: recValue = getMean(values.toArray(), ignoreEmpty);
 				break;
-				case MODE: recValue = getMode(values.toArray());
+				case MEDIAN: recValue = getMedian(values.toArray(), ignoreEmpty);
 				break;
-				case MEDIAN: recValue = getMedian(values.toArray());
+				case MODE: recValue = getMode(values.toArray(), ignoreEmpty);
 				break;
-				case MAX: recValue = getMax(values.toArray());
+				case MAX: recValue = getMax(values.toArray(), ignoreEmpty);
 				break;
-				case MIN: recValue = getMin(values.toArray());
+				case MIN: recValue = getMin(values.toArray(), ignoreEmpty);
 				break;
-				default: recValue = getMean(values.toArray());
+				case COUNT: break;
+				default: recValue = getMean(values.toArray(), ignoreEmpty);
 			}
 		}
 		return recValue;
@@ -54,8 +55,12 @@ public class DuplicationReconciliation {
 	}
 	
 	public void addValue(Object o) {
-		values.add(o);
-		recValue = null;
+		if(mode == ReconciliationMode.COUNT) {
+			recValue += 1.0;
+		} else {
+			values.add(o);
+			recValue = null;
+		}
 	}
 	
 	public void clearValue() {
@@ -63,7 +68,7 @@ public class DuplicationReconciliation {
 		recValue = null;
 	}
 	
-	private Double getMean(Object[] row) {
+	public static Double getMean(Object[] row, boolean ignoreEmpty) {
 		Double total = 0.0;
 		double size = row.length;
 		
@@ -85,8 +90,8 @@ public class DuplicationReconciliation {
 		}
 		return total/size;
 	}
-	
-	private Double getMode(Object[] row) {
+	//TODO: change so that mode can include non-numeric values
+	public static Double getMode(Object[] row, boolean ignoreEmpty) {
 		HashMap<Double,Integer> freqs = new HashMap<Double,Integer>();
 		for (Object val : row) {
 			if(ignoreEmpty) {
@@ -115,7 +120,7 @@ public class DuplicationReconciliation {
 		return mode;
 	}
 	
-	private Double getMax(Object[] row) {
+	public static Double getMax(Object[] row, boolean ignoreEmpty) {
 		Double max = null;
 		for(Object value: row) {
 			if(value instanceof Number) {
@@ -132,7 +137,7 @@ public class DuplicationReconciliation {
 		return (max == null) ? Double.NaN : max;
 	}
 	
-	private Double getMin(Object[] row) {
+	public static Double getMin(Object[] row, boolean ignoreEmpty) {
 		Double min = null;
 		for(Object value: row) {
 			if(value instanceof Number) {
@@ -149,7 +154,7 @@ public class DuplicationReconciliation {
 		return (min == null) ? Double.NaN : min;
 	}
 	
-	private Double getMedian(Object[] row) {
+	public static Double getMedian(Object[] row, boolean ignoreEmpty) {
 		//Sort the Array with non numeric values at the beginning
 		Arrays.sort(row, new Comparator<Object>() {
 			public int compare(Object o1, Object o2) {
