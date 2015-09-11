@@ -46,7 +46,7 @@ public enum PlaySheetEnum {
 	Binned_Column_Chart("Binned Column Chart", "prerna.ui.components.playsheets.BinnedColumnChartPlaySheet", "BinnedColumnChartPlaySheet Hint: SELECT ?id ?value (where id is a unique identifier and value is its given value) WHERE { ... }"),
 	Pie_Chart("Pie Chart", "prerna.ui.components.playsheets.PieChartPlaySheet", "PieChartPlaySheet Hint: SELECT ?wedgeName ?wedgeValue WHERE { ... }"),
 	Binned_Pie_Chart("Binned Pie Chart", "prerna.ui.components.playsheets.BinnedPieChartPlaySheet", "BinnedPieChartPlaySheet Hint: SELECT ?id ?value (where id is a unique identifier and value is its given value) WHERE { ... }"),
-	DualEngine("Dual Engine", "prerna.ui.components.playsheets.DualEngineGenericPlaySheet", "DualEngineGenericPlaySheet Hint: psName&engine1&engine2&query1&query2&outer1&outer2"),
+	DualEngine("Dual Engine", "prerna.ui.components.playsheets.DualEngineGenericPlaySheet", "DualEngineGenericPlaySheet Hint: variables&math&engine2&query1&query2&playsheetname&outer1&outer2"),
 	
 	Machine_Learning_Module("Machine Learning Module", "prerna.ui.components.playsheets.MachineLearningModulePlaySheet", "MachineLearningModulePlaySheet Hint: SELECT ?instance ?categoricalProp ?numericalProp WHERE { ... }"),
 	Clustering("Clustering", "prerna.ui.components.playsheets.ClusteringVizPlaySheet", "ClusteringVizPlaySheet Hint: SELECT ?instance ?categoricalProp ?numericalProp WHERE { ... }+++(OPTIONAL)numClusters"),
@@ -58,6 +58,7 @@ public enum PlaySheetEnum {
 	Sankey_Diagram("Sankey Diagram","prerna.ui.components.playsheets.SankeyPlaySheet", "SankeyPlaySheet Hint: SELECT ?source ?target ?value ?target2 ?value2 ?target3 ?value3...etc  Note: ?target is the source for ?target2 and ?target2 is the source for ?target3...etc WHERE{ ... }"),
 	World_Map("World Map","prerna.ui.components.playsheets.OCONUSMapPlaySheet", "OCONUSMapPlaySheet Hint: SELECT ?label ?latitude ?longitude WHERE{ ... }"),
 	World_Heat_Map("World Heat Map","prerna.ui.components.playsheets.WorldHeatMapPlaySheet", "WorldHeatMapPlaySheet Hint: SELECT ?country ?numericHeatValue WHERE{ ... }"),
+	US_Map("US Map","prerna.ui.components.playsheets.CONUSMapPlaySheet", "CONUSMapPlaySheet Hint: SELECT ?label ?latitude ?longitude WHERE{ ... }"),
 	US_Heat_Map("US Heat Map","prerna.ui.components.playsheets.USHeatMapPlaySheet", "USHeatMapPlaySheet Hint: SELECT ?state ?numericHeatValue WHERE{ ... }"),
 	Circle_Pack("Circle Pack","prerna.ui.components.playsheets.CirclePackPlaySheet", "CirclePackPlaySheet Hint: SELECT ?level1 ?level2 ... ?size WHERE{ ... }"),
 	Parallel_Sets("Parallel Sets","prerna.ui.components.playsheets.ParallelSetsPlaySheet", "ParallelSetsPlaySheet Hint: SELECT ?axis1 ?axis2 ?axis3 WHERE{ ... }"),
