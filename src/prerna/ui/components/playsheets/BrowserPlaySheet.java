@@ -66,7 +66,7 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	public Boolean empty = false;
 	public Browser browser;
 	public BrowserView browserView;
-	protected String fileName;
+	public String fileName;
 	JSplitPane splitPane;
 	protected JTabbedPane jTab;
 	public Hashtable output = null;
