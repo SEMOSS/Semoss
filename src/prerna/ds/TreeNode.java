@@ -220,6 +220,32 @@ public class TreeNode {
 		return node;
 	}
 	
+	public static TreeNode getMin(TreeNode typeRoot) {
+		while(typeRoot.leftChild != null) {
+			typeRoot = typeRoot.leftChild;
+		}
+		
+		if(typeRoot.leaf.isEqual(new StringClass(SimpleTreeNode.EMPTY))) {
+			if(typeRoot.rightSibling != null) {
+				typeRoot = typeRoot.rightSibling;
+			} else {
+				typeRoot = typeRoot.parent;
+			}
+		}
+		
+		return typeRoot;
+	}
+	
+	public static TreeNode getMax(TreeNode typeRoot) {
+		typeRoot = typeRoot.getRight(typeRoot);
+		while(typeRoot.rightChild != null) {
+			typeRoot = typeRoot.rightChild;
+			typeRoot = typeRoot.getRight(typeRoot);
+		}
+		
+		return typeRoot;
+	}
+	
 	public void addChild(TreeNode node)
 	{
 		node.parent = this;
