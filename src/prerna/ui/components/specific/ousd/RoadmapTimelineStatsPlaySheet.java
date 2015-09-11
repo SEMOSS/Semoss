@@ -92,7 +92,7 @@ public class RoadmapTimelineStatsPlaySheet extends GridPlaySheet {
 		Object[] rowBuildCount = new Object[names.length];
 		rowBuildCount[0] = this.roadmapName + " Build Count";
 		Object[] rowBuildCost = new Object[names.length];
-		rowBuildCost[0] = this.roadmapName + " Build Cost";
+		rowBuildCost[0] = this.roadmapName + " Investment Count";
 		Object[] rowSustainCost = new Object[names.length];
 		rowSustainCost[0] = this.roadmapName + " Sustainment Cost";
 		Object[] rowRisk = new Object[names.length];
