@@ -17,6 +17,20 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 	OUSDTimeline comparatorTimeline;
 	String roadmapName;
 	String comparatorName;
+	
+	// NAMING
+	protected final String decomCount = " System Decommission Count";
+	protected final String savingThisYear = " New Savings this year";
+	protected final String buildCount = " New Interface Count";
+	protected final String investmentCost = " Interface Development Cost";
+	protected final String sustainCost = " Interface Sustainment Cost";
+	protected final String risk = " Enterprise Risk";
+	
+	protected final String cumSavings = " Cumulative Savings";
+	protected final String prevSavings = " Previous Decommissioning Savings";
+	protected final String cumCost = " Cumulative Cost";
+	protected final String roi = " ROI";
+	protected final String opCost = " Operational Cost";
 
 	@Override
 	public void setQuery(String query){
@@ -90,32 +104,32 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		List<Map<String, List<String>>> systemYears = timeline.getTimeData();
 		Map<String, Double> budgets = timeline.getBudgetMap();
 		Object[] rowSystemCount = new Object[names.length];
-		rowSystemCount[0] = this.roadmapName + " System Decommission Count";
+		rowSystemCount[0] = this.roadmapName + this.decomCount;
 		Object[] row = new Object[names.length];
-		row[0] = this.roadmapName + " New Savings this year";
+		row[0] = this.roadmapName + this.savingThisYear;
 		Object[] rowBuildCount = new Object[names.length];
-		rowBuildCount[0] = this.roadmapName + " Build Count";
+		rowBuildCount[0] = this.roadmapName + this.buildCount;
 		Object[] rowBuildCost = new Object[names.length];
-		rowBuildCost[0] = this.roadmapName + " Build Cost";
+		rowBuildCost[0] = this.roadmapName + this.investmentCost;
 		Object[] rowSustainCost = new Object[names.length];
-		rowSustainCost[0] = this.roadmapName + " Sustainment Cost";
+		rowSustainCost[0] = this.roadmapName + this.sustainCost;
 		Object[] rowRisk = new Object[names.length];
-		rowRisk[0] = this.roadmapName + " Enterprise Risk";
+		rowRisk[0] = this.roadmapName + this.risk;
 
 		List<Map<String, List<String>>> comparatorYears = comparatorTimeline.getTimeData();
 		Map<String, Double> comparatorBudgets = comparatorTimeline.getBudgetMap();
 		Object[] compRowSystemCount = new Object[names.length];
-		compRowSystemCount[0] = this.comparatorName + " System Decommission Count";
+		compRowSystemCount[0] = this.comparatorName + this.decomCount;
 		Object[] comparatorRow = new Object[names.length];
-		comparatorRow[0] = this.comparatorName + " New Savings this year";
+		comparatorRow[0] = this.comparatorName + this.savingThisYear;
 		Object[] compRowBuildCount = new Object[names.length];
-		compRowBuildCount[0] = this.comparatorName + " Build Count";
+		compRowBuildCount[0] = this.comparatorName + this.buildCount;
 		Object[] compRowBuildCost = new Object[names.length];
-		compRowBuildCost[0] = this.comparatorName + " Build Cost";
+		compRowBuildCost[0] = this.comparatorName + this.investmentCost;
 		Object[] compRowSustainCost = new Object[names.length];
-		compRowSustainCost[0] = this.comparatorName + " Sustainment Cost";
+		compRowSustainCost[0] = this.comparatorName + this.sustainCost;
 		Object[] compRowRisk = new Object[names.length];
-		compRowRisk[0] = this.comparatorName + " Enterprise Risk";
+		compRowRisk[0] = this.comparatorName + this.risk;
 
 
 		NumberFormat formatter = NumberFormat.getCurrencyInstance(Locale.US);
@@ -272,15 +286,15 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		}
 
 		Object[] cumulativeSavingsRow = new Object[names.length];
-		cumulativeSavingsRow[0] = name + " Cumulative Savings";
+		cumulativeSavingsRow[0] = name + this.cumSavings;
 		Object[] savingsRow = new Object[names.length];
-		savingsRow[0] = name + " Previous Decommissioning Savings";
+		savingsRow[0] = name + this.prevSavings;
 		Object[] cumulativeTotalCostRow = new Object[names.length];
-		cumulativeTotalCostRow[0] = name + " Cumulative Cost";
+		cumulativeTotalCostRow[0] = name + this.cumCost;
 		Object[] roiRow = new Object[names.length];
-		roiRow[0] = name + " ROI";
+		roiRow[0] = name + this.roi;
 		Object[] remainingSystemBudgets = new Object[names.length];
-		remainingSystemBudgets[0] = name + " Operational Cost";
+		remainingSystemBudgets[0] = name + this.opCost;
 
 		for(int i=1; i<names.length; i++){
 
