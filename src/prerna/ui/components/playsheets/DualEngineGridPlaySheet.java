@@ -73,8 +73,8 @@ public class DualEngineGridPlaySheet extends GridPlaySheet {
 	protected boolean match1 = true;
 	protected boolean match2 = true;
 
-	private List<Object[]> list;
-	private String[] names;
+	protected List<Object[]> list;
+	protected String[] names;
 	
 	/**
 	 * This is the function that is used to create the first view 

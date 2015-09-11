@@ -28,7 +28,11 @@
 package prerna.ui.components.playsheets;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 import java.util.StringTokenizer;
 
 import org.apache.log4j.LogManager;
@@ -49,11 +53,64 @@ public class DualEngineGenericPlaySheet extends DualEngineGridPlaySheet {
 
 	private static final Logger logger = LogManager.getLogger(DualEngineGenericPlaySheet.class.getName());
 	String playsheetName;
+	String[] finalNames;
+	String[] mathFunctions;
 	BasicProcessingPlaySheet playSheet = null;
 
 	@Override
 	public Hashtable<String, String> getDataTableAlign() {
 		return playSheet.getDataTableAlign();
+	}
+	
+	@Override
+	public void createData(){
+		this.engine1 = this.engine;
+		this.engineName1 = this.engine.getEngineName();
+		super.createData();
+		createFinalList(finalNames);
+	}
+	
+	@Override
+	public void createView(){
+		String playSheetClassName = PlaySheetEnum.getClassFromName(playsheetName);
+		try {
+			playSheet = (BasicProcessingPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
+		} catch (ClassNotFoundException ex) {
+			ex.printStackTrace();
+			logger.fatal("No such PlaySheet: "+ playSheetClassName);
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+			logger.fatal("No such PlaySheet: "+ playSheetClassName);
+		} catch (IllegalAccessException e) {
+			logger.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			logger.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			logger.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (NoSuchMethodException e) {
+			logger.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			logger.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		}
+		Hashtable hash = new Hashtable();
+		finalNames = this.getNames();
+		for(String name : finalNames){
+			hash.put(name, name);
+		}
+		ITableDataFrame f = new BTreeDataFrame(finalNames);
+		f.addRow(hash, hash);
+		playSheet.setDataFrame(f);
+		playSheet.setQuestionID(this.questionNum);
+		playSheet.setTitle(this.title);
+		playSheet.pane = this.pane;
+		playSheet.dataFrame = this.dataFrame;
+		playSheet.processQueryData();
+		playSheet.createView();
 	}
 	
 	@Override
@@ -84,17 +141,91 @@ public class DualEngineGenericPlaySheet extends DualEngineGridPlaySheet {
 			e.printStackTrace();
 		}
 		Hashtable hash = new Hashtable();
-		String[] names = this.getNames();
-		for(String name : names){
+		finalNames = this.getNames();
+		for(String name : finalNames){
 			hash.put(name, name);
 		}
-		ITableDataFrame f = new BTreeDataFrame(names);
+		ITableDataFrame f = new BTreeDataFrame(finalNames);
 		f.addRow(hash, hash);
 		playSheet.setDataFrame(f);
 		playSheet.setQuestionID(this.questionNum);
 		Hashtable retHash = playSheet.getData();
 		retHash.put("data", this.getList());
 		return retHash;
+	}
+	
+	private void createFinalList(String[] myNames){
+		this.dataFrame = new BTreeDataFrame(myNames);
+		int groupIdx = -1;
+		for(int i = 0; i<this.mathFunctions.length; i++){
+			if (this.mathFunctions[i].equals("GROUP")){
+				groupIdx = i;
+				break;
+			}
+		}
+		// create the name mapping
+		// for each new name, where does it sit in orig names?
+		Integer[] nameMapping = new Integer[myNames.length];
+		String[] origNames = this.getNames();
+		for(int nmIdx = 0; nmIdx < myNames.length; nmIdx++){
+			String myName = myNames[nmIdx];
+			for(int origIdx = 0; origIdx < origNames.length; origIdx++){
+				if(origNames[origIdx].equals(myName)){
+					nameMapping[nmIdx] = origIdx;
+					continue;
+				}
+			}
+		}
+		
+		// do the grouping and the cutting of columns that aren't specified
+		// for each row, get the group value
+		Map<Object, Object[]> groupedRows = new HashMap<Object, Object[]>();
+		List<Object[]> table = this.getList();
+		for(Object[] origRow : table){
+			Object groupVal = origRow[groupIdx];
+			Object[] newRow = new Object[myNames.length];
+			if(groupedRows.containsKey(groupVal)){
+				newRow = groupedRows.get(groupVal);
+			}
+			else{
+				groupedRows.put(groupVal, newRow);
+			}
+			addToRow(origRow, newRow, nameMapping);
+		}
+		
+		//add it to the list
+		List<Object[]> finalList = new ArrayList<Object[]>();
+		for(Object[] finalRow : groupedRows.values()){
+			this.dataFrame.addRow(finalRow, finalRow);
+			finalList.add(finalRow);
+		}
+		this.list = finalList;
+		this.names = myNames;
+	}
+	
+	private void addToRow(Object[] origRow, Object[] newRow, Integer[] nameMapping){
+//		Object[] updatedRow = new Object[newRow.length];
+		//need to do the math and call it a day
+		for(int colIdx = 0; colIdx < nameMapping.length; colIdx ++){
+			Object origVal = origRow[nameMapping[colIdx]];
+			Object existingVal = newRow[colIdx];
+			String mathFunc = this.mathFunctions[colIdx];
+			if(origVal == null){
+				continue;
+			}
+			else if(existingVal == null){
+				newRow[colIdx] = origVal;
+			}
+			else if (mathFunc.equals("GROUP")){
+				newRow[colIdx] = origVal;
+			}
+			else if (mathFunc.equals("SAMPLE")){
+				newRow[colIdx] = origVal;
+			}
+			else if (mathFunc.equals("SUM")){
+				newRow[colIdx] = (Double) origVal + (Double) existingVal;
+			}
+		}
 	}
 	
 	/**
@@ -113,22 +244,32 @@ public class DualEngineGenericPlaySheet extends DualEngineGridPlaySheet {
 		for (int queryIdx = 0; queryTokens.hasMoreTokens(); queryIdx++){
 			String token = queryTokens.nextToken();
 			if (queryIdx == 0){
-				this.engineName1 = token;
-				this.engine1 = (IEngine) DIHelper.getInstance().getLocalProp(engineName1);
+				StringTokenizer tokenTokens = new StringTokenizer(token, ",");
+				finalNames = new String[tokenTokens.countTokens()];
+				for (int i = 0; tokenTokens.hasMoreTokens(); i++){
+					finalNames[i] = tokenTokens.nextToken();
+				}
 			}
 			else if (queryIdx == 1){
+				StringTokenizer tokenTokens = new StringTokenizer(token, ",");
+				mathFunctions = new String[tokenTokens.countTokens()];
+				for (int i = 0; tokenTokens.hasMoreTokens(); i++){
+					mathFunctions[i] = tokenTokens.nextToken();
+				}
+			}
+			else if (queryIdx == 2){
 				this.engineName2 = token;
 				this.engine2 = (IEngine) DIHelper.getInstance().getLocalProp(engineName2);
 			}
-			else if (queryIdx == 2)
-				this.query1 = token;
 			else if (queryIdx == 3)
-				this.query2 = token;
+				this.query1 = token;
 			else if (queryIdx == 4)
-				this.playsheetName = token;
+				this.query2 = token;
 			else if (queryIdx == 5)
-				this.match1 = Boolean.parseBoolean(token);
+				this.playsheetName = token;
 			else if (queryIdx == 6)
+				this.match1 = Boolean.parseBoolean(token);
+			else if (queryIdx == 7)
 				this.match2 = Boolean.parseBoolean(token);
 		}
 	}
