@@ -171,6 +171,21 @@ public final class OUSDPlaysheetHelper {
 		return timeline;
 	}
 
+	public static OUSDTimeline buildTimeline(IEngine engine, String timelineName, String owner) throws ClassNotFoundException, InstantiationException, IllegalAccessException{
+
+		String timelineClassName = (String) engine.getProperty(timelineName);
+
+		Class<?> timeClass = Class.forName(timelineClassName);
+		ITimelineGenerator time = (ITimelineGenerator) timeClass.newInstance();
+
+		time.createTimeline(engine, owner);
+		OUSDTimeline timeline = time.getTimeline();
+
+		timeline = fillTimeline(timeline, engine);
+
+		return timeline;
+	}
+	
 	private static OUSDTimeline fillTimeline(OUSDTimeline timeline, IEngine engine){
 
 		List<String> systemList = new ArrayList<String>();
