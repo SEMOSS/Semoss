@@ -22,6 +22,7 @@ public class SystemRoadmapOptimizationGenerator implements ITimelineGenerator{
 	boolean limit = true;
 	
 	OUSDTimeline timeline = new OUSDTimeline();
+	String sysOwner;
 	IEngine roadmapEngine;
 	
 	//optimization values
@@ -48,8 +49,9 @@ public class SystemRoadmapOptimizationGenerator implements ITimelineGenerator{
 	ArrayList<Object[]> outputList = new ArrayList<Object[]>();
 
 	@Override
-	public void createTimeline(IEngine engine){
+	public void createTimeline(IEngine engine, String owner){
 		roadmapEngine = engine;
+		sysOwner = owner;
 		runOptimization(limit);
 	}
 	
@@ -60,7 +62,7 @@ public class SystemRoadmapOptimizationGenerator implements ITimelineGenerator{
 
 	public void runOptimization(boolean limit){
 		List<String> owners = new ArrayList<String>();
-		owners.add("DFAS");
+		owners.add(sysOwner);
 		List<String> osystems = OUSDQueryHelper.getSystemsByOwners(roadmapEngine, owners);
 
 		Object[] systemReturn = OUSDPlaysheetHelper.createSysLists(osystems);
@@ -293,6 +295,12 @@ public class SystemRoadmapOptimizationGenerator implements ITimelineGenerator{
 	@Override
 	public void createTimeline() {
 		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public void createTimeline(IEngine engine) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

@@ -8,6 +8,8 @@ public interface ITimelineGenerator {
 	
 	public void createTimeline(IEngine engine);
 	
+	public void createTimeline(IEngine engine, String owner);
+	
 	public OUSDTimeline getTimeline();
 	
 }

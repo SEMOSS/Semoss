@@ -26,9 +26,10 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 
 	boolean completed = true;
 	boolean constraints = false;
-
+	
 	OUSDTimeline timeline = new OUSDTimeline();
 	IEngine roadmapEngine;
+	String sysOwner;
 	ActivityGroupRiskCalculator calc = new ActivityGroupRiskCalculator();
 	private String cleanActInsightString = "What clean groups can activities supporting the E2E Business Flow be put into?";
 
@@ -67,8 +68,9 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	List<Map<String, Double>> sustainmentMap = new ArrayList<Map<String, Double>>();
 
 	@Override
-	public void createTimeline(IEngine engine){
+	public void createTimeline(IEngine engine, String owner){
 		roadmapEngine = engine;
+		sysOwner = owner;
 		runOptimization();
 	}
 
@@ -92,7 +94,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 		calc.setFailure(this.failureRate);
 
 		List<String> owners = new ArrayList<String>();
-		owners.add("DFAS");
+		owners.add(sysOwner);
 		List<String> osystems = OUSDQueryHelper.getSystemsByOwners(roadmapEngine, owners);
 
 		Object[] systemReturn = OUSDPlaysheetHelper.createSysLists(osystems);
@@ -549,6 +551,12 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	@Override
 	public void createTimeline() {
 
+	}
+
+	@Override
+	public void createTimeline(IEngine engine) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

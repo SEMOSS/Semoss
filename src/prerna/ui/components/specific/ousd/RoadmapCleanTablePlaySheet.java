@@ -12,19 +12,28 @@ public class RoadmapCleanTablePlaySheet extends GridPlaySheet{
 
 	OUSDTimeline timeline;
 	String roadmapName;
+	String owner;
 
 	@Override
 	public void setQuery(String query){
 		String delimiters = "[,]";
 		String[] insights = query.split(delimiters);
 		roadmapName = insights[0];
+		if(insights.length>1){
+			owner = insights[1];
+		}
 	}
 
 	@Override
 	public void createData(){
 
 		try{
-			timeline = OUSDPlaysheetHelper.buildTimeline(this.engine, roadmapName);
+			if(owner == null){
+				owner = "DFAS";
+				timeline = OUSDPlaysheetHelper.buildTimeline(this.engine, roadmapName, owner);				
+			}else{
+				timeline = OUSDPlaysheetHelper.buildTimeline(engine, roadmapName, owner);
+			}
 		}catch (ClassNotFoundException | InstantiationException | IllegalAccessException e){
 			e.printStackTrace();
 		}

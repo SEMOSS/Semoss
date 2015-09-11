@@ -7,8 +7,9 @@ public class SystemRoadmapNoLimitOptimization extends SystemRoadmapOptimizationG
 	private boolean limit = false;
 	
 	@Override
-	public void createTimeline(IEngine engine){
+	public void createTimeline(IEngine engine, String owner){
 		roadmapEngine = engine;
+		sysOwner = owner;
 		runOptimization(limit);
 	}
 }
