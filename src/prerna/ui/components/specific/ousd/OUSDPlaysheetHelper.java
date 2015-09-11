@@ -239,6 +239,8 @@ public final class OUSDPlaysheetHelper {
 			
 		}
 		
+		timeline.verifyYears();
+		
 		return timeline;
 	}
 	

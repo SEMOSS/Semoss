@@ -27,6 +27,18 @@ public class OUSDTimeline {
 
 	private Map<String, List<String>> targetMap = new HashMap<String, List<String>>();	
 
+	public void verifyYears(){
+		for(int i = 0; i< fyIndexArray.size()-1; i++){
+			if(fyIndexArray.get(i) != fyIndexArray.get(i+1)-1){
+				fyIndexArray.add(i+1, fyIndexArray.get(i)+1);
+				timeData.add(i+1,  new HashMap<String, List<String>>());
+				systemInvestmentMap.add(i+1, new HashMap<String, Double>());
+				interfaceSustainmentMap.add(i+1, new HashMap<String, Double>());
+				treeMaxList.add(i+1, 0.0);
+			}
+		}
+	}
+	
 	public Map<String, List<String>> getTargetMap() {
 		return targetMap;
 	}
