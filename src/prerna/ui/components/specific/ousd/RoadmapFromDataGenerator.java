@@ -17,20 +17,22 @@ public class RoadmapFromDataGenerator implements ITimelineGenerator{
 
 	OUSDTimeline timeline = new OUSDTimeline();
 	IEngine roadmapEngine;
+	String sysOwner;
 
 	String systemBindings;
 	String[] sysList;
 	double interfaceCost = 350000;
 	double interfaceSustainmentPercent = 0.18;
-	
+
 	ActivityGroupRiskCalculator calc = new ActivityGroupRiskCalculator();
 	double failureRate = 0.001;
-	
+
 	private String cleanActInsightString = "What clean groups can activities supporting the E2E Business Flow be put into?";
-	
+
 	@Override
-	public void createTimeline(IEngine engine){
+	public void createTimeline(IEngine engine, String owner){
 		roadmapEngine = engine;
+		sysOwner = owner;			
 		queryForRoadmap();
 		queryForMissingInformation(sysList, systemBindings);
 	}
@@ -47,7 +49,7 @@ public class RoadmapFromDataGenerator implements ITimelineGenerator{
 
 		//query for systems owned by whoever
 		List<String> owners = new ArrayList<String>();
-		owners.add("DFAS");
+		owners.add(sysOwner);
 		List<String> systemList = OUSDQueryHelper.getSystemsByOwners(this.roadmapEngine, owners);
 
 		Object[] systemReturn = OUSDPlaysheetHelper.createSysLists(systemList);
@@ -78,12 +80,12 @@ public class RoadmapFromDataGenerator implements ITimelineGenerator{
 
 		Map<String, List<List<String>>> sdsMap = OUSDQueryHelper.getSystemToSystemData(roadmapEngine);
 		timeline.setSystemDownstream(sdsMap);
-		
+
 		buildInvestmentMap();
 		buildSustainmentCostMap();
-		
+
 		buildRiskList(sysList);
-		
+
 		return timeline;
 
 	}
@@ -120,33 +122,51 @@ public class RoadmapFromDataGenerator implements ITimelineGenerator{
 		List<String> decommissionedSystems = new ArrayList<String>();
 		Map<String, List<List<String>>> sdsMap = timeline.getSystemDownstreamMap();
 
-		for(Map<String, List<String>> yearMap: timeline.getTimeData()){
+		for(int i = 0; i<timeline.getTimeData().size(); i++){
+			Map<String, List<String>> yearMap = timeline.getTimeData().get(i);
 			Map<String, Double> newYearMap = new HashMap<String, Double>();
-			for(String system: yearMap.keySet()){
-				decommissionedSystems.add(system);
-			}
-			for(String system: yearMap.keySet()){
-				double systemIntCount = 0;
-				List<List<String>> downstream = new ArrayList<List<String>>();
-				if(sdsMap.keySet().contains(system)){
-					downstream = sdsMap.get(system);
-				}else{
-					newYearMap.put(system, systemIntCount);
-					continue;
-				}
 
-				for(List<String> downstreamInterface: downstream){
-					if(decommissionedSystems.contains(downstreamInterface.get(0))){
-						continue;
-					}else{
-						systemIntCount++;
+			for(String system: yearMap.keySet()){
+				boolean lastYear = true;
+
+				for(int j = i+1; j<timeline.getTimeData().size(); j++){
+					Map<String, List<String>> futureYearMap = timeline.getTimeData().get(j);
+					if(futureYearMap.keySet().contains(system)){
+						lastYear = false;
+						break;
 					}
 				}
-				newYearMap.put(system, systemIntCount*interfaceCost);
+				double systemIntCount = 0;
+
+				if(!lastYear){
+					continue;
+				}else{
+
+					decommissionedSystems.add(system);
+
+					List<List<String>> downstream = new ArrayList<List<String>>();
+					if(sdsMap.keySet().contains(system)){
+						downstream = sdsMap.get(system);
+					}else{
+						newYearMap.put(system, systemIntCount);
+						continue;
+					}
+
+					for(List<String> downstreamInterface: downstream){
+						if(decommissionedSystems.contains(downstreamInterface.get(0)) || yearMap.keySet().contains(downstreamInterface.get(0))){
+							continue;
+						}else{
+							systemIntCount++;
+						}
+					}
+				}
+				if(lastYear){
+					newYearMap.put(system, systemIntCount*interfaceCost);
+				}
 			}
 			investmentMap.add(newYearMap);
 		}
-		
+
 		timeline.setSystemInvestmentMap(investmentMap);
 	}
 
@@ -158,10 +178,27 @@ public class RoadmapFromDataGenerator implements ITimelineGenerator{
 
 		sustainmentMap.add(new HashMap<String, Double>());
 
-		for(Map<String, List<String>> yearMap: timeline.getTimeData()){
+		for(int i=0; i<timeline.getTimeData().size(); i++){
+			Map<String, List<String>> yearMap = timeline.getTimeData().get(i);
 
 			for(String system: yearMap.keySet()){
-				decommissionedSystems.add(system);
+
+				boolean lastYear = true;
+
+				for(int j = i+1; j<timeline.getTimeData().size(); j++){
+					Map<String, List<String>> futureYearMap = timeline.getTimeData().get(j);
+					if(futureYearMap.keySet().contains(system)){
+						lastYear = false;
+						break;
+					}
+				}
+
+				if(!lastYear){
+					continue;
+				}else{
+					decommissionedSystems.add(system);			
+				}
+
 			}
 
 			Map<String, Double> newYearMap = new HashMap<String, Double>();
@@ -196,22 +233,22 @@ public class RoadmapFromDataGenerator implements ITimelineGenerator{
 
 		calc.setGroupData((Map<String, List<String>>)groupData[0], (Map<String, List<String>>)groupData[1], (List<String>)groupData[2]);
 		calc.setFailure(this.failureRate);
-		
+
 		List<String> systemList = new ArrayList<String>();
 		for(String system: sysList){
 			systemList.add(system);
 		}
-		
+
 		Map<String, Map<String, List<String>>> activityDataSystemMap = OUSDQueryHelper.getActivityDataSystemMap(roadmapEngine, systemBindings);
 		Map<String, Map<String, List<String>>> activityBluSystemMap = OUSDQueryHelper.getActivityGranularBluSystemMap(roadmapEngine, systemBindings);
 
 		Map<String, Map<String, List<String>>> bluDataSystemMap = OUSDPlaysheetHelper.combineMaps(activityDataSystemMap, activityBluSystemMap);
-		
+
 		List<String> decomList = new ArrayList<String>();
 		List<Double> treeList = new ArrayList<Double>();
 		calc.setBluMap(bluDataSystemMap);
 		calc.setData(systemList);
-		
+
 		for(Map<String, List<String>> yearMap: timeline.getTimeData()){
 			Map<String, Double> systemResults = calc.runRiskCalculations();
 			double treeMax = 0.0;
@@ -221,7 +258,7 @@ public class RoadmapFromDataGenerator implements ITimelineGenerator{
 					treeMax = value;
 				}
 			}
-//			this.treeMax = (double) ((1)/(1 - treeMax));
+			//			this.treeMax = (double) ((1)/(1 - treeMax));
 			treeList.add(treeMax);
 			timeline.setTreeMaxList(treeList);
 			List<String> updatedSystems = systemList;
@@ -232,9 +269,9 @@ public class RoadmapFromDataGenerator implements ITimelineGenerator{
 			systemList = updatedSystems;
 			updateBluDataSystemMap(decomList, bluDataSystemMap);
 		}
-		
+
 	}
-	
+
 	private void updateBluDataSystemMap(List<String> decomList, Map<String, Map<String, List<String>>> bluDataSystemMap){
 		for(String activity: bluDataSystemMap.keySet()){
 			Map<String, List<String>> bluDataSystem = bluDataSystemMap.get(activity);
@@ -253,9 +290,14 @@ public class RoadmapFromDataGenerator implements ITimelineGenerator{
 		}
 		calc.setBluMap(bluDataSystemMap);
 	}
-	
+
 	@Override
 	public void createTimeline(){
+
+	}
+
+	@Override
+	public void createTimeline(IEngine engine){
 
 	}
 }
