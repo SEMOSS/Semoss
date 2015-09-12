@@ -60,6 +60,7 @@
 <script type="text/javascript" src="lib/d3.v3_new.js"></script>
 <script type="text/javascript" src="lib/c3.min.js"></script>
 <script type="text/javascript" src="lib/underscore.js"></script>
+<script src="lib/jquery/jquery-1.8.3.min.js"></script>
 <div id="chartContainer">
     <div id="chart"></div>
 </div>
@@ -82,44 +83,27 @@
             yCord = [],
             graphType,
             sort;
+    //var dataString = {"data":{"types":{"Cumulative Net Savings":"line"},"columns":[["Annual Savings",0.0,6805000.0,2.4256E7,6.31715E7,9.8965E7,1.58148001E8,0.0],["Annual Expenses",0.0,5950000.0,2.3121E7,5.6651E7,6.2993E7,2.0034E7,2.0034E7],["Annual Cash Flow",0.0,1.2755E7,4.7377E7,1.198225E8,1.61958E8,1.78182001E8,2.0034E7],["Cumulative Net Savings",0.0,1.2755E7,6.0132E7,1.799545E8,3.419125E8,5.20094501E8,5.40128501E8]],"type":"bar"}};
+
+    //start(dataString);
 
     function start(dataString){
-        data = JSON.parse(dataString);
-        dataStream = [];
-        yCord = [];
-        for (var i=0; i < data.dataSeries.length; i++) {
-            data.dataSeries[i].xAxis = shortenValueFilter(data.dataSeries[i].uriString);
-        }
-
-        graphType = data.type;
-        dataStream = data.dataSeries;
-
-        for (var j=1; j < data.names.length; j++) {
-            yCord.push(data.names[j]);
-        }
-        xCord = 'xAxis';
-
+        //data = dataString;
+        data = jQuery.parseJSON(dataString);
 
         containerSize('#chartContainer', container, margin);
-
-        update(dataStream, xCord, yCord, graphType);
+        update(data);
 
         d3.select(window).on("resize", resize);
 
-        function update(dataStream, xCord, yCord, graphType) {
+        function update(dataStream) {
             chart = c3.generate({
                 bindto: '#chart',
-                data: {
-                    json: dataStream,
-                    keys: {
-                        x: xCord,
-                        value: yCord
-                    },
-                    type: graphType
-                },
+                data: dataStream.data,
                 axis: {
                     x: {
-                        type: 'category'
+                        type: 'category',
+                        categories: dataStream.ticks
                     }
                 },
                 size: {
@@ -134,26 +118,6 @@
                 }
             });
         }
-
-        function shortenValueFilter(str) {
-            //convert to string
-            str = String(str);
-            var returnStr = "",
-                    shortStr = "",
-                    myRe;
-            if (str.indexOf('"') === 0) {
-                shortStr = str.substring(1, str.length);
-                returnStr = shortStr.substring(0, shortStr.indexOf('"'));
-                return returnStr;
-            }
-            if (str.indexOf('http://') !== -1) {
-                myRe = new RegExp("([^/]*)$");
-                returnStr = myRe.exec(str);
-                return returnStr[0];
-            }
-
-            return str;
-        };
 
         function resize() {
             containerSize('#chartContainer', container, margin);
