@@ -1,14 +1,18 @@
 package prerna.ui.components.specific.ousd;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.BTreeDataFrame;
-import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -18,7 +22,67 @@ import prerna.util.PlaySheetEnum;
 public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlaySheet {
 
 	private static final Logger logger = LogManager.getLogger(RoadmapTimelineComboChartPlaySheet.class.getName());
+	String[] newHeaders = new String[]{"Fiscal Year", "Annual Savings", "Annual Expenses", "Annual Cash Flow", "Cumulative Net Savings"};
+	List<Object[]> myList = new ArrayList<Object[]>();
 
+	protected Hashtable dataHash = new Hashtable();
+	
+
+	public void processQueryData()
+	{		
+		ArrayList< ArrayList<Hashtable<String, Object>>> dataObj = new ArrayList< ArrayList<Hashtable<String, Object>>>();
+		String[] names = dataFrame.getColumnHeaders();
+
+		//series name - all objects in that series (x : ... , y : ...)
+//		Iterator<Object[]> it = dataFrame.iterator(true);
+		Iterator<Object[]> it = myList.iterator();
+		List<Object> annlSavingsSeries = new ArrayList<Object>();
+		annlSavingsSeries.add(this.newHeaders[1]);
+		List<Object> annlExpensesSeries = new ArrayList<Object>();
+		annlExpensesSeries.add(this.newHeaders[2]);
+		List<Object> annlCashFlowSeries = new ArrayList<Object>();
+		annlCashFlowSeries.add(this.newHeaders[3]);
+		List<Object> cumNetSavingsSeries = new ArrayList<Object>();
+		cumNetSavingsSeries.add(this.newHeaders[4]);
+		List<Object> ticks = new ArrayList<Object>();
+		while(it.hasNext())
+		{
+			Object[] elemValues = it.next();
+			ticks.add(elemValues[0]);
+			
+			annlSavingsSeries.add(elemValues[1]);
+			
+			annlExpensesSeries.add(elemValues[2]);
+			
+			annlCashFlowSeries.add(elemValues[3]);
+			
+			cumNetSavingsSeries.add(elemValues[4]);
+			
+		}
+		List<List<Object>> columns = new ArrayList<List<Object>>();
+		columns.add(annlSavingsSeries);
+		columns.add(annlExpensesSeries);
+		columns.add(annlCashFlowSeries);
+		columns.add(cumNetSavingsSeries);
+		Map<String, Object> myHash = new HashMap<String, Object>();
+		myHash.put("columns", columns);
+		myHash.put("type", "bar");
+		
+		Map<String, String> types = new HashMap<String, String>();
+		types.put(this.newHeaders[4], "line");
+		
+		myHash.put("types", types);
+//		myHash.put("groups", new Object[]{this.newHeaders[1], this.newHeaders[2], this.newHeaders[3]});
+		
+		
+		Hashtable<String, Object> columnChartHash = new Hashtable<String, Object>();
+		columnChartHash.put("names", names);
+		columnChartHash.put("data", myHash);
+		columnChartHash.put("ticks", ticks);
+		
+		this.dataHash = columnChartHash;
+	}
+	
 	@Override
 	public void createView(){
 		String playSheetClassName = PlaySheetEnum.getClassFromName("Column Chart");
@@ -54,7 +118,7 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 		playSheet.setTitle(this.title);
 		playSheet.pane = this.pane;
 		playSheet.setDataFrame(this.dataFrame);
-		playSheet.processQueryData();
+		playSheet.setDataHash(dataHash);
 		playSheet.createView();
 	}
 	
@@ -66,7 +130,6 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 		// we want a row for each fy
 		// FY; Annual Savings; Annual Expenses; Annual Cash Flow; Cumulative Net Savings
 		String[] prevHeaders = this.getNames();
-		String[] newHeaders = new String[]{"Fiscal Year", "Annual Savings", "Annual Expenses", "Annual Cash Flow", "Cumulative Net Savings"};
 		ITableDataFrame newFrame = new BTreeDataFrame(newHeaders);
 		Double cumNetSavings = 0.0;
 		for(int fyIdx = 1; fyIdx < prevHeaders.length; fyIdx++){
@@ -83,7 +146,7 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 						annlSavings = annlSavings + Double.parseDouble(value.toString().replace("$", "").replace(",", ""));
 					}
 					if (rowName.endsWith(this.investmentCost) || rowName.endsWith(this.sustainCost)){
-						annlExpenses = annlExpenses + Double.parseDouble(value.toString().replace("$", "").replace(",", ""));
+						annlExpenses = annlExpenses - Double.parseDouble(value.toString().replace("$", "").replace(",", ""));
 					}
 				}
 			}
@@ -96,6 +159,7 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 			newRow[3] = annlCashFlow;
 			newRow[4] = cumNetSavings;
 			newFrame.addRow(newRow, newRow);
+			myList.add(newRow);
 		}
 		this.dataFrame = newFrame;
 	}
