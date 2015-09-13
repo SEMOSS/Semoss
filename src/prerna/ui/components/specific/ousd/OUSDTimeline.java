@@ -16,7 +16,7 @@ public class OUSDTimeline {
 
 	private List<Map<String, List<String>>> timeData = new ArrayList<Map<String, List<String>>>(); // a map for each year containing decomSystem -> list of systems replacing it
 	private List<Integer> fyIndexArray = new ArrayList<Integer>(); // what fiscal years exist and what location they exist in in timeData
-	private Map<String, List<List<String>>> systemDownstreamMap; // SystemName -> a list of pairs [downstreamSystemName, dataPassed]
+	private Map<String, List<List<String>>> systemDownstreamMap = new HashMap<String, List<List<String>>>(); // SystemName -> a list of pairs [downstreamSystemName, dataPassed]
 	private Map<String, Double> systemBudgetMap = new HashMap<String, Double>(); //map of systems to their respective budgets.
 	private Map<String, List<String>> dataSystemMap = new HashMap<String, List<String>>(); //map of data objects to supporting systems
 	private Map<String, List<String>> granularBLUMap = new HashMap<String, List<String>>(); //map of granular blu to supporting systems

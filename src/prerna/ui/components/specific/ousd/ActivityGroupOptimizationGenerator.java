@@ -91,7 +91,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 		Object[] groupData = activitySheet.getResults(decomGroups);
 
 		calc.setGroupData((Map<String, List<String>>)groupData[0], (Map<String, List<String>>)groupData[1], (List<String>)groupData[2]);
-		calc.setFailure(this.failureRate);
+		calc.setFailure(this.failureRate);	
 
 		List<String> owners = new ArrayList<String>();
 		owners.add(sysOwner);
@@ -555,7 +555,8 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 
 	@Override
 	public void createTimeline(IEngine engine) {
-		// TODO Auto-generated method stub
+
+		createTimeline(engine, "DFAS");
 		
 	}
 

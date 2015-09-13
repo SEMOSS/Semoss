@@ -1,148 +1,106 @@
 package prerna.ui.components.specific.ousd;
 
+import java.lang.reflect.InvocationTargetException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.BTreeDataFrame;
 import prerna.ds.OrderedBTreeDataFrame;
-import prerna.ui.components.playsheets.ColumnChartPlaySheet;
+import prerna.ui.components.playsheets.BrowserPlaySheet;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.PlaySheetEnum;
 
-public class RoadmapCleanTableComparisonBarChartPlaySheet extends ColumnChartPlaySheet{
+public class RoadmapCleanTableComparisonBarChartPlaySheet extends RoadmapCleanTableComparisonPlaySheet{
 
-	OUSDTimeline timeline;
-	OUSDTimeline comparatorTimeline;
-	String roadmapName;
-	String comparatorName;
-
+	private static final Logger logger = LogManager.getLogger(RoadmapCleanTableComparisonBarChartPlaySheet.class.getName());
+	List<Object[]> myList = new ArrayList<Object[]>();
+	
 	@Override
-	public void setQuery(String query){
-		String delimiters = "[;]";
-		String[] insights = query.split(delimiters);
-		roadmapName = insights[0];
-		comparatorName = insights[1];
+	public void createView(){
+		String playSheetClassName = PlaySheetEnum.getClassFromName("Column Chart");
+		BrowserPlaySheet playSheet = null;
+		try {
+			playSheet = (BrowserPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
+		} catch (ClassNotFoundException ex) {
+			ex.printStackTrace();
+			logger.fatal("No such PlaySheet: "+ playSheetClassName);
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+			logger.fatal("No such PlaySheet: "+ playSheetClassName);
+		} catch (IllegalAccessException e) {
+			logger.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			logger.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			logger.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (NoSuchMethodException e) {
+			logger.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			logger.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		}
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		playSheet.setDataFrame(this.dataFrame);
+		playSheet.setQuestionID(this.questionNum);
+		playSheet.setTitle(this.title);
+		playSheet.pane = this.pane;
+		playSheet.setDataFrame(this.dataFrame);
+		playSheet.processQueryData();
+		playSheet.createView();
 	}
-
+	
 	@Override
 	public void createData(){
-
-		try{
-			timeline = OUSDPlaysheetHelper.buildTimeline(this.engine, roadmapName);
-		}catch (ClassNotFoundException | InstantiationException | IllegalAccessException e){
-			e.printStackTrace();
-		}
-
-		try{
-			comparatorTimeline = OUSDPlaysheetHelper.buildTimeline(this.engine, comparatorName);
-		}catch (ClassNotFoundException | InstantiationException | IllegalAccessException e){
-			e.printStackTrace();
-		}
-
-		List<Integer> fyList = timeline.getFiscalYears();
+		super.createData();
 		
-		List<Integer> comparatorFyList = comparatorTimeline.getFiscalYears();
+		// go through the final table and reformat to how I need
+		// we want a row for each fy
+		// FY; Annual Savings; Annual Expenses; Annual Cash Flow; Cumulative Net Savings
+		String roadmapNewSavingsString = this.roadmapName + this.savingThisYear;
+		String compRoadmapNewSavingsString = this.comparatorName + this.savingThisYear;
+		String[] newHeaders = new String[]{"Fiscal Year", roadmapNewSavingsString, compRoadmapNewSavingsString};
+		String[] prevHeaders = this.getNames();
 		
-		List<Integer> yearList = new ArrayList<Integer>();
-		yearList.addAll(fyList);
-		
-		for(Integer year: comparatorFyList){
-			if(!yearList.contains(year)){
-				yearList.add(year);
+		// get the two rows we are interested in
+		Object[] roadmapNewSavings = null;
+		Object[] compRoadmapNewSavings = null;
+		Iterator<Object[]> tableIt = this.dataFrame.iterator(false);
+		while(tableIt.hasNext()){
+			Object[] row = tableIt.next();
+			String rowName = row[0] + "";
+			if(rowName.equals(roadmapNewSavingsString)){
+				roadmapNewSavings = row;
+			}
+			else if(rowName.equals(compRoadmapNewSavingsString)){
+				compRoadmapNewSavings = row;
 			}
 		}
-		Collections.sort(yearList);
 		
-		String[] columns = new String[yearList.size() + 1];
-		columns[0] = "System";
-		int count = 1;
-		for (Integer year : yearList){
-			columns[count] = year+"";
-			count++;
+		ITableDataFrame newFrame = new OrderedBTreeDataFrame(newHeaders);
+		for(int fyIdx = 1; fyIdx < prevHeaders.length; fyIdx++){
+
+			Object[] newRow = new Object[newHeaders.length];
+			newRow[0] = prevHeaders[fyIdx];
+			newRow[1] = roadmapNewSavings[fyIdx] == null || roadmapNewSavings[fyIdx].toString().isEmpty() ? 0.0 : Double.parseDouble(roadmapNewSavings[fyIdx].toString().replace("$", "").replace(",", ""));
+			newRow[2] = compRoadmapNewSavings[fyIdx] == null || compRoadmapNewSavings[fyIdx].toString().isEmpty() ? 0.0 : Double.parseDouble(compRoadmapNewSavings[fyIdx].toString().replace("$", "").replace(",", ""));
+			newFrame.addRow(newRow, newRow);
 		}
-		this.dataFrame = new OrderedBTreeDataFrame(new String[] { "Year", this.comparatorName, this.roadmapName});
-
-
-		createTable(yearList, timeline, fyList, comparatorTimeline, comparatorFyList, columns);
-		processQueryData();
-	}
-
-	@Override
-	public Hashtable getData(){
-		Hashtable<String, Object> map = (Hashtable<String, Object>) super.getData();
-		//		map.put("data", this.timeline.getGanttData());
-		//		map.put("headers", this.timeline.getGanttHeaders());
-		map.put("data", this.timeline.getDashboardData());
-		map.put("headers", new System[0]);
-		return map;
-	}
-
-	private void createTable(List<Integer> yearList, OUSDTimeline timeline, List<Integer> fyList, OUSDTimeline comparatorTimeline, List<Integer> comparatorFyList, String[] columns){
-
-		ArrayList<Object[]> templist = new ArrayList<Object[]>();
-		
-		String[] names = this.dataFrame.getColumnHeaders();
-		List<String> processedSystems = new ArrayList<String>();
-		List<String> comparatorProcessedSystems = new ArrayList<String>();
-
-		List<Map<String, List<String>>> systemYears = timeline.getTimeData();
-		Map<String, Double> budgets = timeline.getBudgetMap();
-		Object[] row = new Object[yearList.size()+1];
-		row[0] = this.roadmapName;
-
-		List<Map<String, List<String>>> comparatorYears = comparatorTimeline.getTimeData();
-		Map<String, Double> comparatorBudgets = comparatorTimeline.getBudgetMap();
-		Object[] comparatorRow = new Object[yearList.size()+1];
-		comparatorRow[0] = this.comparatorName;
-
-		
-		NumberFormat formatter = NumberFormat.getCurrencyInstance(Locale.US);
-		
-		for(int i = yearList.size(); i>0; i--){
-			int year = yearList.get(i-1);
-			if(fyList.contains(year)){
-				int yearIdx = timeline.getFyIndexFiscalYear(year);	
-				double yearTotal = 0.0;
-				
-				Map<String, List<String>> yearMap = systemYears.get(yearIdx);
-				for(String system: yearMap.keySet()){
-					if(!processedSystems.contains(system)){
-						yearTotal = yearTotal + budgets.get(system);
-						processedSystems.add(system);
-					}
-				}
-				//String formattedTotal = formatter.format(yearTotal);
-				row[i] = yearTotal;
-			}
-			if(comparatorFyList.contains(year)){
-				int yearIdx = comparatorTimeline.getFyIndexFiscalYear(year);	
-				double yearTotal = 0.0;
-				
-				Map<String, List<String>> yearMap = comparatorYears.get(yearIdx);
-				for(String system: yearMap.keySet()){
-					if(!comparatorProcessedSystems.contains(system)){
-						yearTotal = yearTotal + comparatorBudgets.get(system);
-						comparatorProcessedSystems.add(system);
-					}
-				}
-				//String formattedTotal = formatter.format(yearTotal);
-				comparatorRow[i] = yearTotal;
-			}
-		}
-		templist.add(row);
-		templist.add(comparatorRow);
-
-		for (int i = 1; i < columns.length; i++){
-			Object[] newRow = new Object[3];
-			newRow[0] = yearList.get(i - 1);
-			Double val1 = (Double) (templist.get(0)[i] == null? (Double) 0.0 : templist.get(0)[i]);
-			Double val2 = (Double) (templist.get(1)[i] == null? (Double) 0.0 : templist.get(1)[i]);
-			newRow[1] = val2;
-			newRow[2] = val1;
-			this.dataFrame.addRow(newRow, newRow);
-		}
-
+		this.dataFrame = newFrame;
 	}
 }
