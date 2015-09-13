@@ -315,10 +315,13 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 			}
 			cumulativeSavingsRow[i] = formatter.format(cumulativeSavings);							
 
-			if(cumulativeSavingsRow[i-1] != null && cumulativeSavingsRow[i-1].toString().contains("$") && baseRow[i] != null){
-				savingsRow[i] = formatter.format(Double.parseDouble(cumulativeSavingsRow[i].toString().replace("$", "").replace(",", ""))
-						-Double.parseDouble(cumulativeSavingsRow[i-1].toString().replace("$", "").replace(",", ""))
-						-Double.parseDouble(baseRow[i].toString().replace("$", "").replace(",", "")));				
+			if(cumulativeSavingsRow[i-1] != null && cumulativeSavingsRow[i-1].toString().contains("$")){
+				savingsRow[i] = Double.parseDouble(cumulativeSavingsRow[i].toString().replace("$", "").replace(",", ""))
+						-Double.parseDouble(cumulativeSavingsRow[i-1].toString().replace("$", "").replace(",", ""));
+				if(baseRow[i] != null){
+					savingsRow[i] = (Double)savingsRow[i] - Double.parseDouble(baseRow[i].toString().replace("$", "").replace(",", ""));	
+				}
+				savingsRow[i] = formatter.format(savingsRow[i]);
 			}
 
 			//row sustainment cost and cumulative total cost
