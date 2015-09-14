@@ -78,15 +78,13 @@ public final class DHMSMTransitionUtility {
 	public static final String DETERMINE_PROVIDER_FUTURE_ICD_PROPERTIES = "SELECT DISTINCT ?System ?Data (GROUP_CONCAT(DISTINCT ?format; SEPARATOR = ';') AS ?Format) (GROUP_CONCAT(DISTINCT ?frequency; SEPARATOR = ';') AS ?Frequency) (GROUP_CONCAT(DISTINCT ?protocol; SEPARATOR = ';') AS ?Protocol) WHERE{ {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>} {?System <http://semoss.org/ontologies/Relation/Provide> ?ICD} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?ICD ?carries ?Data} {?carries <http://www.w3.org/2000/01/rdf-schema#label> ?label} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?format} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?frequency} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?protocol} } GROUP BY ?System ?Data ORDER BY ?System ?Data";
 	public static final String DETERMINE_CONSUMER_FUTURE_ICD_PROPERTIES = "SELECT DISTINCT ?System ?Data (GROUP_CONCAT(DISTINCT ?format; SEPARATOR = ';') AS ?Format) (GROUP_CONCAT(DISTINCT ?frequency; SEPARATOR = ';') AS ?Frequency) (GROUP_CONCAT(DISTINCT ?protocol; SEPARATOR = ';') AS ?Protocol) WHERE{ {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>} {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>} {?ICD <http://semoss.org/ontologies/Relation/Consume> ?System} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?ICD ?carries ?Data} {?carries <http://www.w3.org/2000/01/rdf-schema#label> ?label} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?format} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?frequency} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?protocol} } GROUP BY ?System ?Data ORDER BY ?System ?Data";
 
-	public static final String SELF_REPORTED_SYSTEM_P2P_INTERFACE_COST = "SELECT DISTINCT ?System (SUM(?loe) AS ?Cost) WHERE { {?System a <http://semoss.org/ontologies/Concept/System>} {?GLItem a <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?System <http://semoss.org/ontologies/Relation/Influences> ?GLItem} {?GLItem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} } GROUP BY ?System";
-	public static final String SELF_REPORTED_SYSTEM_P2P_INTERFACE_COST_BY_TAG_AND_PHASE = "SELECT DISTINCT ?System ?GLTag ?Phase (SUM(?loe) AS ?Cost) WHERE { {?System a <http://semoss.org/ontologies/Concept/System>} {?GLItem a <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?System <http://semoss.org/ontologies/Relation/Influences> ?GLItem} {?GLItem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?Phase a <http://semoss.org/ontologies/Concept/SDLCPhase>} {?GLItem <http://semoss.org/ontologies/Relation/BelongsTo> ?Phase} {?GLTag a <http://semoss.org/ontologies/Concept/GLTag>} {?GLItem <http://semoss.org/ontologies/Relation/TaggedBy> ?GLTag} } GROUP BY ?System ?GLTag ?Phase";
-
+	public static final String SELF_REPORTED_SYSTEM_P2P_INTERFACE_COST = "SELECT DISTINCT ?System ?Data ?GLTag (SUM(?loe) AS ?Cost) WHERE { {?System a <http://semoss.org/ontologies/Concept/System>} {?GLItem a <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?System <http://semoss.org/ontologies/Relation/Influences> ?GLItem} {?GLItem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?Data a <http://semoss.org/ontologies/Concept/DataObject>} {?Data <http://semoss.org/ontologies/Relation/Input> ?GLItem} {?GLTag a <http://semoss.org/ontologies/Concept/GLTag>} {?GLItem <http://semoss.org/ontologies/Relation/TaggedBy> ?GLTag} } GROUP BY ?System ?Data ?GLTag";
+	public static final String SELF_REPORTED_SYSTEM_P2P_INTERFACE_COST_BY_TAG_AND_PHASE = "SELECT DISTINCT ?System ?Data ?GLTag ?Phase (SUM(?loe) AS ?Cost) WHERE { {?System a <http://semoss.org/ontologies/Concept/System>} {?GLItem a <http://semoss.org/ontologies/Concept/TransitionGLItem>} {?System <http://semoss.org/ontologies/Relation/Influences> ?GLItem} {?GLItem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?loe} {?Phase a <http://semoss.org/ontologies/Concept/SDLCPhase>} {?GLItem <http://semoss.org/ontologies/Relation/BelongsTo> ?Phase} {?GLTag a <http://semoss.org/ontologies/Concept/GLTag>} {?GLItem <http://semoss.org/ontologies/Relation/TaggedBy> ?GLTag} {?Data a <http://semoss.org/ontologies/Concept/DataObject>} {?Data <http://semoss.org/ontologies/Relation/Input> ?GLItem} } GROUP BY ?System ?GLTag ?Data ?Phase";
+	
 	public static HashMap<String, ArrayList<String>> getDataToServiceHash(IEngine engine) {
 		HashMap<String, ArrayList<String>> retHash = new HashMap<String, ArrayList<String>>();
 
-
 		ISelectWrapper sjsw = Utility.processQuery(engine, DATA_TO_SERVICE_QUERY);
-
 		String[] varName = sjsw.getVariables();
 		while(sjsw.hasNext()) {
 			ISelectStatement sjss = sjsw.next();
@@ -107,50 +105,96 @@ public final class DHMSMTransitionUtility {
 		return retHash;
 	}
 
-	public static Map<String, Map<String, Map<String, Double>>> getSystemSelfReportedP2PCostByTagAndPhase(IEngine engine) {
+	public static Map<String, Map<String, Map<String, Double>>> getSystemSelfReportedP2PCostByTagAndPhase(IEngine futureCostEngine, IEngine costEngine) {
+		Map<String, Map<String, Double>> genericCosts = getGenericGLItemAndPhaseByAvgServ(costEngine);
 		Map<String, Map<String, Map<String, Double>>> retHash = new HashMap<String, Map<String, Map<String, Double>>>();
-		ISelectWrapper sjsw = Utility.processQuery(engine, SELF_REPORTED_SYSTEM_P2P_INTERFACE_COST_BY_TAG_AND_PHASE);
-
+		
+		Set<String> addedDeployCost = new HashSet<String>();
+		
+		ISelectWrapper sjsw = Utility.processQuery(futureCostEngine, SELF_REPORTED_SYSTEM_P2P_INTERFACE_COST_BY_TAG_AND_PHASE);
 		String[] varName = sjsw.getVariables();
 		while(sjsw.hasNext()) {
 			ISelectStatement sjss = sjsw.next();
 			String system = sjss.getVar(varName[0]).toString();
-			String glTag = sjss.getVar(varName[1]).toString();
-			String phase = sjss.getVar(varName[2]).toString();
-			Double p2pCost = (Double) sjss.getVar(varName[3]);
+			String data = sjss.getVar(varName[1]).toString();
+			String glTag = sjss.getVar(varName[2]).toString();
+			String phase = sjss.getVar(varName[3]).toString();
+			Double p2pCost = (Double) sjss.getVar(varName[4]);
 
+			Map<String, Map<String, Double>> innerMap1 = new HashMap<String, Map<String, Double>>();
+			Map<String, Double> innerMap2 = new HashMap<String, Double>();
 			if(retHash.containsKey(system)) {
-				Map<String, Map<String, Double>> innerMap1 = retHash.get(system);
+				innerMap1 = retHash.get(system);
 				if(innerMap1.containsKey(glTag)) {
-					Map<String, Double> innerMap2 = innerMap1.get(glTag);
-					innerMap2.put(phase, p2pCost);
+					innerMap2 = innerMap1.get(glTag);
+					if(innerMap2.containsKey(phase)) {
+						double currCost = innerMap2.get(phase);
+						currCost += p2pCost;
+						innerMap2.put(phase, currCost);
+					} else {
+						innerMap2.put(phase, p2pCost);
+					}
 				} else {
-					Map<String, Double> innerMap2 = new HashMap<String, Double>();
 					innerMap2.put(phase, p2pCost);
 					innerMap1.put(glTag, innerMap2);
 				}
 			} else {
-				Map<String, Double> innerMap2 = new HashMap<String, Double>();
 				innerMap2.put(phase, p2pCost);
-				Map<String, Map<String, Double>> innerMap1 = new HashMap<String, Map<String, Double>>();
 				innerMap1.put(glTag, innerMap2);
 				retHash.put(system, innerMap1);
+			}
+			
+			if(glTag.equals("Provider")) {
+				Map<String, Double> genericHash = genericCosts.get(data);
+				double newLOE = genericHash.get(phase);
+				newLOE += innerMap2.get(phase);
+				innerMap2.put(phase, newLOE);
+				
+				if(!addedDeployCost.contains(system)) {
+					String deployPhase = "Deploy";
+					addedDeployCost.add(system);
+					double deployLOE = genericHash.get(deployPhase);
+					innerMap2.put(deployPhase, deployLOE);
+				}
 			}
 		}
 
 		return retHash;
 	}
 
-	public static Map<String, Double> getSystemSelfReportedP2PCost(IEngine engine) {
+	public static Map<String, Double> getSystemSelfReportedP2PCost(IEngine futureCostEngine, IEngine costEngine) {
+		Map<String, Map<String, Double>> genericCosts = getGenericGLItemAndPhaseByAvgServ(costEngine);
+		
 		Map<String, Double> retHash = new HashMap<String, Double>();
-		ISelectWrapper sjsw = Utility.processQuery(engine, SELF_REPORTED_SYSTEM_P2P_INTERFACE_COST);
+		ISelectWrapper sjsw = Utility.processQuery(futureCostEngine, SELF_REPORTED_SYSTEM_P2P_INTERFACE_COST);
 
 		String[] varName = sjsw.getVariables();
 		while(sjsw.hasNext()) {
 			ISelectStatement sjss = sjsw.next();
 			String system = sjss.getVar(varName[0]).toString();
-			Double p2pCost = (Double) sjss.getVar(varName[1]);
-			retHash.put(system, p2pCost);
+			
+			if(system.equals("AERO")) {
+				System.out.println("");
+			}
+			String data = sjss.getVar(varName[1]).toString();
+			String glTag = sjss.getVar(varName[2]).toString();
+			Double p2pCost = (Double) sjss.getVar(varName[3]);
+			
+			if(glTag.equals("Provider")) {
+				Map<String, Double> genericHash = genericCosts.get(data);
+				for(String genPhase : genericHash.keySet()) {
+					double genLOE = genericHash.get(genPhase);
+					p2pCost += genLOE;
+				}
+			}
+			
+			if(retHash.containsKey(system)) {
+				double currLOE = retHash.get(system);
+				currLOE += p2pCost;
+				retHash.put(system, currLOE);
+			} else {
+				retHash.put(system, p2pCost);
+			}
 		}
 
 		return retHash;

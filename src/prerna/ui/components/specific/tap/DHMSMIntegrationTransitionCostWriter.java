@@ -124,7 +124,7 @@ public class DHMSMIntegrationTransitionCostWriter {
 			processor.setEngine(TAP_Core_Data);
 		}
 		if(selfReportedSystemCostByPhase == null) {
-			selfReportedSystemCostByPhase = DHMSMTransitionUtility.getSystemSelfReportedP2PCostByTagAndPhase(FutureCostDB);
+			selfReportedSystemCostByPhase = DHMSMTransitionUtility.getSystemSelfReportedP2PCostByTagAndPhase(FutureCostDB, TAP_Cost_Data);
 		}
 		sysCost.clear();
 		if(selfReportedSystems.contains(systemName)) {

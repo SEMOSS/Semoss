@@ -82,7 +82,7 @@ public class InsertInterfaceModernizationProperty {
 			throw new EngineException("FutureDB Database not found");
 		}
 		
-		Map<String, Double> selfReportedSysCost = DHMSMTransitionUtility.getSystemSelfReportedP2PCost(futureCostDB);
+		Map<String, Double> selfReportedSysCost = DHMSMTransitionUtility.getSystemSelfReportedP2PCost(futureCostDB, tapCost);
 		Set<String> selfReportedSystems = DHMSMTransitionUtility.getAllSelfReportedSystemNames(futureDB);
 		Set<String> sorV = DHMSMTransitionUtility.processSysDataSOR(tapCore);
 		Map<String, String> sysTypeHash = DHMSMTransitionUtility.processReportTypeQuery(tapCore);
