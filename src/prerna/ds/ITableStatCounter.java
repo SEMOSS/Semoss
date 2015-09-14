@@ -44,7 +44,7 @@ public class ITableStatCounter {
 		for(String key : functionMap.keySet()) {
 		
 			DuplicationReconciliation.ReconciliationMode mode; 
-			switch(key) {
+			switch(key.toLowerCase()) {
 				case AVG : mode = DuplicationReconciliation.ReconciliationMode.MEAN; break;
 					
 				case MAX : mode = DuplicationReconciliation.ReconciliationMode.MAX; break;
@@ -102,13 +102,13 @@ public class ITableStatCounter {
 		Map<String, String> newColHeaders = new HashMap<String, String>(colHeaders.length);
 		newColHeaders.put(columnHeader, columnHeader);
 		
-		int i = 1;
+//		int i = 1;
 		String col;
 		for(String key : functionMap.keySet()) {
 			if(!key.equals(columnHeader)) {
 				col = key+" "+functionMap.get(key)+" on "+columnHeader;
 				newColHeaders.put(key, col);
-				i++;
+//				i++;
 			}
 		}
 		return newColHeaders;
