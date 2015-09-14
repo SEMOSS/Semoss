@@ -1,5 +1,6 @@
 package prerna.ui.components.specific.ousd;
 
+import java.lang.reflect.InvocationTargetException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -8,28 +9,33 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.ds.OrderedBTreeDataFrame;
 import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.util.PlaySheetEnum;
 
 public class RoadmapTimelineStatsPlaySheet extends GridPlaySheet {
 
+	private static final Logger LOGGER = LogManager.getLogger(RoadmapTimelineStatsPlaySheet.class.getName());
 	OUSDTimeline timeline;
 	String roadmapName;
 	String owner;
 	
 	// NAMING
-	protected final String decomCount = " System Decommission Count";
-	protected final String savingThisYear = " New Savings this year";
-	protected final String buildCount = " New Interface Count";
-	protected final String investmentCost = " Interface Development Cost";
-	protected final String sustainCost = " Interface Sustainment Cost";
-	protected final String risk = " Enterprise Risk";
+	protected final String decomCount = "System Decommission Count";
+	protected final String savingThisYear = "New Savings";
+	protected final String buildCount = "New Interface Count";
+	protected final String investmentCost = "Interface Development Cost";
+	protected final String sustainCost = "Interface Sustainment Cost";
+	protected final String risk = "Enterprise Risk";
 	
-	protected final String cumSavings = " Cumulative Savings";
-	protected final String prevSavings = " Previous Decommissioning Savings";
-	protected final String cumCost = " Cumulative Cost";
-	protected final String roi = " ROI";
-	protected final String opCost = " Operational Cost";
+	protected final String cumSavings = "Cumulative Savings";
+	protected final String prevSavings = "Previous Decommissioning Savings";
+	protected final String cumCost = "Cumulative Cost";
+	protected final String roi = "ROI";
+	protected final String opCost = "Operational Cost";
 
 	@Override
 	public void setQuery(String query){
@@ -83,12 +89,37 @@ public class RoadmapTimelineStatsPlaySheet extends GridPlaySheet {
 
 	@Override
 	public Hashtable getData(){
-		Hashtable<String, Object> map = (Hashtable<String, Object>) super.getData();
-		//		map.put("data", this.timeline.getGanttData());
-		//		map.put("headers", this.timeline.getGanttHeaders());
-		map.put("data", this.timeline.getDashboardData());
-		map.put("headers", new System[0]);
-		return map;
+		String playSheetClassName = PlaySheetEnum.getClassFromName("Grid");
+		GridPlaySheet playSheet = null;
+		try {
+			playSheet = (GridPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
+		} catch (ClassNotFoundException ex) {
+			ex.printStackTrace();
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+		} catch (IllegalAccessException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (NoSuchMethodException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		}
+		playSheet.setTitle(this.title);
+		playSheet.setQuestionID(this.questionNum);
+		playSheet.setDataFrame(this.dataFrame);
+		Hashtable retHash = (Hashtable) playSheet.getData();
+		return retHash;
 	}
 
 	private void createTable(List<Integer> yearList, OUSDTimeline timeline, List<Integer> fyList){
@@ -100,17 +131,17 @@ public class RoadmapTimelineStatsPlaySheet extends GridPlaySheet {
 		List<Map<String, List<String>>> systemYears = timeline.getTimeData();
 		Map<String, Double> budgets = timeline.getBudgetMap();
 		Object[] rowSystemCount = new Object[names.length];
-		rowSystemCount[0] = this.roadmapName + this.decomCount;
+		rowSystemCount[0] = this.decomCount;
 		Object[] row = new Object[names.length];
-		row[0] = this.roadmapName + this.savingThisYear;
+		row[0] = this.savingThisYear;
 		Object[] rowBuildCount = new Object[names.length];
-		rowBuildCount[0] = this.roadmapName + this.buildCount;
+		rowBuildCount[0] = this.buildCount;
 		Object[] rowBuildCost = new Object[names.length];
-		rowBuildCost[0] = this.roadmapName + this.investmentCost;
+		rowBuildCost[0] = this.investmentCost;
 		Object[] rowSustainCost = new Object[names.length];
-		rowSustainCost[0] = this.roadmapName + this.sustainCost;
+		rowSustainCost[0] = this.sustainCost;
 		Object[] rowRisk = new Object[names.length];
-		rowRisk[0] = this.roadmapName + this.risk;
+		rowRisk[0] = this.risk;
 
 		NumberFormat formatter = NumberFormat.getCurrencyInstance(Locale.US);
 		NumberFormat percentFormat = NumberFormat.getPercentInstance();
@@ -209,15 +240,15 @@ public class RoadmapTimelineStatsPlaySheet extends GridPlaySheet {
 		}
 
 		Object[] cumulativeSavingsRow = new Object[names.length];
-		cumulativeSavingsRow[0] = name + this.cumSavings;
+		cumulativeSavingsRow[0] = this.cumSavings;
 		Object[] savingsRow = new Object[names.length];
-		savingsRow[0] = name + this.prevSavings;
+		savingsRow[0] = this.prevSavings;
 		Object[] cumulativeTotalCostRow = new Object[names.length];
-		cumulativeTotalCostRow[0] = name + this.cumCost;
+		cumulativeTotalCostRow[0] = this.cumCost;
 		Object[] roiRow = new Object[names.length];
-		roiRow[0] = name + this.roi;
+		roiRow[0] = this.roi;
 		Object[] remainingSystemBudgets = new Object[names.length];
-		remainingSystemBudgets[0] = name + this.opCost;
+		remainingSystemBudgets[0] = this.opCost;
 
 		for(int i=1; i<names.length; i++){
 
@@ -284,5 +315,43 @@ public class RoadmapTimelineStatsPlaySheet extends GridPlaySheet {
 		this.dataFrame.addRow(cumulativeTotalCostRow, cumulativeTotalCostRow);
 		this.dataFrame.addRow(roiRow, roiRow);
 		this.dataFrame.addRow(remainingSystemBudgets, remainingSystemBudgets);
+
+		addTeaserRows(names);
+	}
+	
+	private void addTeaserRows(String[] names){
+
+		Object[] migration = new Object[names.length];
+		migration[0] = "Data Migration";
+		fillWithTBD(migration);
+		this.dataFrame.addRow(migration, migration);
+
+		Object[] hw = new Object[names.length];
+		hw[0] = "Hardware Plus Ups";
+		fillWithTBD(hw);
+		this.dataFrame.addRow(hw, hw);
+
+		Object[] sw = new Object[names.length];
+		sw[0] = "Software Plus Ups";
+		fillWithTBD(sw);
+		this.dataFrame.addRow(sw, sw);
+
+		Object[] people = new Object[names.length];
+		people[0] = "People Training";
+		fillWithTBD(people);
+		this.dataFrame.addRow(people, people);
+
+		Object[] infra = new Object[names.length];
+		infra[0] = "Infrastructure";
+		fillWithTBD(infra);
+		this.dataFrame.addRow(infra, infra);
+	}
+	
+	private void fillWithTBD(Object[] row){
+		for(int i = 0; i <row.length ; i++){
+			if(row[i] == null){
+				row[i] = "TBD";
+			}
+		}
 	}
 }
