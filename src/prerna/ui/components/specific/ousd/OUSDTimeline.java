@@ -354,8 +354,9 @@ public class OUSDTimeline {
 
 	public List<Object[]> getCostSavingsData(){
 		List<Object[]> costSavingsData = new ArrayList<Object[]>();
+		List<String> usedSystems = new ArrayList<String>(); // keeps track for partial decommissioning
 
-		for(int fyIdx = 0; fyIdx <  this.timeData.size(); fyIdx ++ ){
+		for(int fyIdx = this.timeData.size() - 1; fyIdx >= 0  ; fyIdx -- ){
 
 			Map<String, List<String>> fyData = this.timeData.get(fyIdx);
 			Integer year = this.fyIndexArray.get(fyIdx);
@@ -365,14 +366,17 @@ public class OUSDTimeline {
 			Double cost = 0.0;
 			while(fyDataIt.hasNext()){
 				String decoSys = fyDataIt.next();
-				Double sysSavings = this.systemBudgetMap.get(decoSys);
-				savings = savings + sysSavings;
-
-				if(this.systemInvestmentMap != null && this.systemInvestmentMap.size()>fyIdx){
-					Double investmentCost = this.systemInvestmentMap.get(fyIdx).get(decoSys);
-					if(investmentCost!=null) {
-						cost = cost + investmentCost;
+				if(!usedSystems.contains(decoSys)){
+					Double sysSavings = this.systemBudgetMap.get(decoSys);
+					savings = savings + sysSavings;
+	
+					if(this.systemInvestmentMap != null && this.systemInvestmentMap.size()>fyIdx){
+						Double investmentCost = this.systemInvestmentMap.get(fyIdx).get(decoSys);
+						if(investmentCost!=null) {
+							cost = cost + investmentCost;
+						}
 					}
+					usedSystems.add(decoSys);
 				}
 			}
 			Object[] row = new Object[4];
@@ -380,7 +384,7 @@ public class OUSDTimeline {
 			row[1] = savings;
 			row[2] = cost;
 			row[3] = savings - cost;
-			costSavingsData.add(row);
+			costSavingsData.add(0, row);
 		}
 
 		return costSavingsData;
