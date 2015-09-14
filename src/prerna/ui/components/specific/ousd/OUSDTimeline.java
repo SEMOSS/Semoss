@@ -355,11 +355,12 @@ public class OUSDTimeline {
 	public List<Object[]> getCostSavingsData(){
 		List<Object[]> costSavingsData = new ArrayList<Object[]>();
 		List<String> usedSystems = new ArrayList<String>(); // keeps track for partial decommissioning
-
+		Integer year = 0;
+		Double newCost = 0.0;
 		for(int fyIdx = this.timeData.size() - 1; fyIdx >= 0  ; fyIdx -- ){
 
 			Map<String, List<String>> fyData = this.timeData.get(fyIdx);
-			Integer year = this.fyIndexArray.get(fyIdx);
+			year = this.fyIndexArray.get(fyIdx);
 
 			Iterator<String> fyDataIt = fyData.keySet().iterator();
 			Double savings = 0.0;
@@ -378,20 +379,31 @@ public class OUSDTimeline {
 					}
 					usedSystems.add(decoSys);
 				}
+				else {
+					LOGGER.info("SKIPPING SYSTEM BECAUSE PARTIAL DECOMMISSIONING :::::" + decoSys);
+				}
 			}
 			Object[] row = new Object[4];
-			row[0] = year;
+			row[0] = year + 1;
 			row[1] = savings;
-			row[2] = cost;
-			row[3] = savings - cost;
+			row[2] = newCost;
+			row[3] = savings - newCost;
 			costSavingsData.add(0, row);
+			newCost = cost;
 		}
+		// add first year row
+		Object[] row = new Object[4];
+		row[0] = year;
+		row[1] = 0.0;
+		row[2] = newCost;
+		row[3] = 0.0 - newCost;
+		costSavingsData.add(0, row);
 
 		return costSavingsData;
 	}
 
 	public String[] getCostSavingsHeaders(){
-		return new String[] {"Transition Year", "Savings", "Investment Cost", "Net Savings"};
+		return new String[] {"Transition Year", "New Savings", "Interface Development Cost", "Net Annual Savings"};
 	}
 
 	public String getCostSavingsTitle(){
