@@ -1,10 +1,13 @@
 package prerna.ui.components.specific.ousd;
 
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.log4j.LogManager;
@@ -12,6 +15,20 @@ import org.apache.log4j.Logger;
 
 public class OUSDTimeline {
 
+	// NAMING
+	protected final String decomCount = " System Decommission Count";
+	protected final String savingThisYear = " New Savings this year";
+	protected final String buildCount = " New Interface Count";
+	protected final String investmentCost = " Interface Development Cost";
+	protected final String sustainCost = " Interface Sustainment Cost";
+	protected final String risk = " Enterprise Risk";
+	
+	protected final String cumSavings = " Cumulative Savings";
+	protected final String prevSavings = " Previous Decommissioning Savings";
+	protected final String cumCost = " Cumulative Cost";
+	protected final String roi = " ROI";
+	protected final String opCost = " Operational Cost";
+	
 	private static final Logger LOGGER = LogManager.getLogger(OUSDTimeline.class.getName());
 
 	private List<Map<String, List<String>>> timeData = new ArrayList<Map<String, List<String>>>(); // a map for each year containing decomSystem -> list of systems replacing it
@@ -25,6 +42,10 @@ public class OUSDTimeline {
 	private List<Map<String, Double>> interfaceSustainmentMap;//map of year->map of system->investment amount (new interface cost)
 	private List<Double> treeMaxList;
 
+	private List<Object[]> outputLists = new ArrayList<Object[]>();
+
+	
+	
 	private Map<String, List<String>> targetMap = new HashMap<String, List<String>>();	
 
 	public void verifyYears(){
@@ -444,4 +465,119 @@ public class OUSDTimeline {
 		return vizMap;
 	}
 
+	public void buildData(){
+		List<Integer> yearList = new ArrayList<Integer>();
+		yearList.addAll(this.getFiscalYears());
+		
+		Collections.sort(yearList);
+
+		if(yearList.size()!=0){
+			while(yearList.get(yearList.size()-1)<2021){
+				yearList.add(yearList.get(yearList.size()-1)+1);
+			}
+		}
+
+		String[] columns = new String[yearList.size() + 1];
+		columns[0] = "System";
+		int count = 1;
+		for (Integer year : yearList){
+			columns[count] = year+"";
+			count++;
+		}
+
+		List<String> processedSystems = new ArrayList<String>();
+
+		List<Map<String, List<String>>> systemYears = this.getTimeData();
+		Map<String, Double> budgets = this.getBudgetMap();
+		Object[] rowSystemCount = new Object[columns.length];
+		rowSystemCount[0] = this.decomCount;
+		Object[] row = new Object[columns.length];
+		row[0] = this.savingThisYear;
+		Object[] rowBuildCount = new Object[columns.length];
+		rowBuildCount[0] = this.buildCount;
+		Object[] rowBuildCost = new Object[columns.length];
+		rowBuildCost[0] = this.investmentCost;
+		Object[] rowSustainCost = new Object[columns.length];
+		rowSustainCost[0] = this.sustainCost;
+		Object[] rowRisk = new Object[columns.length];
+		rowRisk[0] = this.risk;
+
+		NumberFormat formatter = NumberFormat.getCurrencyInstance(Locale.US);
+		NumberFormat percentFormat = NumberFormat.getPercentInstance();
+		percentFormat.setMinimumFractionDigits(1);
+
+		List<Map<String, Double>> invest = this.getSystemInvestmentMap();
+
+		List<Map<String, Double>> sustainMap = this.getInterfaceSustainmentMap();
+
+		for(int i = columns.length-1; i>0; i--){
+			int year = yearList.get(i-1);
+			if(this.getFiscalYears().contains(year)){
+				int yearIdx = this.getFyIndexFiscalYear(year);	
+				double yearTotal = 0.0;
+
+				Map<String, List<String>> yearMap = systemYears.get(yearIdx);
+				int procCount = 0;
+				for(String system: yearMap.keySet()){
+					if(!processedSystems.contains(system)){
+						procCount++;
+						yearTotal = yearTotal + budgets.get(system);
+						processedSystems.add(system);
+					}
+				}
+				rowSystemCount[i]=procCount;
+				String formattedTotal = formatter.format(yearTotal);
+				if(year == this.getFiscalYears().get(0)){
+					row[i] = formatter.format(0.0);
+				}
+				row[i+1] = formattedTotal;
+
+				if(invest!=null){
+					double buildCount = 0;
+					Map<String, Double> yearInvest = invest.get(yearIdx);
+					double totalInvest = 0.;
+					for(Double val : yearInvest.values()){
+						double intCount = val/350000;
+						buildCount = buildCount + intCount;
+						totalInvest = totalInvest + val;
+					}
+					rowBuildCount[i] = (int) buildCount;
+					rowBuildCost[i] = formatter.format(totalInvest);
+				}
+				if(sustainMap!=null){
+					Map<String, Double> yearSustain = sustainMap.get(yearIdx);
+					double totalSustain = 0.;
+					for(Double val : yearSustain.values()){
+						totalSustain = totalSustain + val;
+					}
+					rowSustainCost[i] = formatter.format(totalSustain);
+				}
+
+				if(this.getTreeMaxList() != null){
+					rowRisk[i] = percentFormat.format(this.getTreeMaxList().get(yearIdx));					
+				}else{
+					rowRisk[i] = "N/A";
+				}
+			}else{				
+				if(year>this.getFiscalYears().get(this.getFiscalYears().size()-1)){
+					if(sustainMap!=null){
+						Map<String, Double> yearSustain = sustainMap.get(sustainMap.size()-1);
+						double totalSustain = 0.;
+						for(Double val : yearSustain.values()){
+							totalSustain = totalSustain + val;
+						}
+						rowSustainCost[i] = formatter.format(totalSustain);
+					}
+				}
+			}
+		}
+		
+		outputLists.add(rowSystemCount);
+		outputLists.add(row);
+		outputLists.add(rowBuildCount);
+		outputLists.add(rowBuildCost);
+		outputLists.add(rowSustainCost);
+		outputLists.add(rowRisk);
+
+	}
 }
