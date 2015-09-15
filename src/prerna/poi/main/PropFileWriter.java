@@ -36,12 +36,28 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Reader;
+import java.io.StringReader;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Result;
+import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
+import org.w3c.dom.Document;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 import prerna.error.EngineException;
 import prerna.error.FileReaderException;
@@ -55,13 +71,13 @@ import prerna.util.sql.SQLQueryUtil;
  * name of the engine This class required user.dir/db/Default folder to contain a custom map, smss and question sheet
  */
 public class PropFileWriter {
-	
+
 	private String engineDirectoryName;
 	private String defaultDBPropName;
 	private String defaultQuestionProp;
 	private String defaultOntologyProp;
 	private String baseDirectory;
-	
+
 	public String propFileName;
 	public String engineName;
 	public String questionFileName;
@@ -71,28 +87,28 @@ public class PropFileWriter {
 	public String defaultEngine = "prerna.engine.impl.rdf.BigDataEngine";
 	public String defaultRDBMSEngine = "prerna.engine.impl.rdbms.RDBMSNativeEngine";//
 	public boolean hasMap = false;
-	
+
 	private SQLQueryUtil.DB_TYPE dbDriverType = SQLQueryUtil.DB_TYPE.H2_DB;
-	
+
 	public PropFileWriter() {
 		defaultDBPropName = "db/Default/Default.properties";
 		defaultQuestionProp = "db/Default/Default_Questions.XML";
 		defaultOntologyProp = "db/Default/Default_Custom_Map.prop";
 	}
-	
+
 	public void setDefaultQuestionSheet(String defaultQuestionSheet) {
 		this.defaultQuestionProp = defaultQuestionSheet;
 	}
-	
+
 	public void setBaseDir(String baseDir) {
 		baseDirectory = baseDir;
 	}
-	
+
 	public void setRDBMSType(SQLQueryUtil.DB_TYPE dbDriverType){
 		if(dbDriverType != null)
 			this.dbDriverType = dbDriverType;
 	}
-	
+
 	// TODO Change variable names, should we change default.properties to default.smss?
 	/**
 	 * Uses the name of a new database to create the custom map, smss, and question sheet files for the engine If user does not specify specific
@@ -162,7 +178,7 @@ public class PropFileWriter {
 				if (questionFileName.contains("\\"))
 					questionFileName = questionFileName.replaceAll("\\\\", "/");
 			}
-			
+
 			// if the map was not specified, copy default map. All augmentation of the map must be done after poi reader though
 			if (ontologyName == null || ontologyName.equals("")) {
 				ontologyFileName = defaultOntologyProp.replace("Default", dbName);
@@ -190,7 +206,7 @@ public class PropFileWriter {
 					}
 				}
 			}
-			
+
 			// Now we have all of the different file required for an engine taken care of, update the map file
 			if (dbPropFile == null || dbPropFile.equals("")) {
 				propFileName = baseDirectory + System.getProperty("file.separator") + defaultDBPropName;
@@ -209,9 +225,9 @@ public class PropFileWriter {
 			e.printStackTrace();
 			throw new FileReaderException("Error copying default database files to new database");
 		}
-		
+
 	}
-	
+
 	/**
 	 * Copies all the contents of one file and sends it to another file
 	 * 
@@ -239,7 +255,7 @@ public class PropFileWriter {
 			throw new FileReaderException("Error copying default database files to new database");
 		}
 	}
-	
+
 	/**
 	 * Creates the contents of the SMSS file in a temp file for the engine Adds file locations of the database, custom map, questions, and OWl files
 	 * for the engine Adds the file locations to the contents of the default SMSS file which contains constant information about the database
@@ -257,7 +273,7 @@ public class PropFileWriter {
 		// change the name of the file from default to engine name
 		propFileName = propFileName.replace("Default", dbname);
 		propFileName = propFileName.replace("properties1", "temp");
-		
+
 		// also write the base properties
 		// ie ONTOLOGY, DREAMER, ENGINE, ENGINE CLASS
 		FileWriter pw = null;
@@ -325,7 +341,7 @@ public class PropFileWriter {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+
 		try {
 			if (pw != null)
 				pw.close();
@@ -333,7 +349,7 @@ public class PropFileWriter {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Creates the XML file containing all of the questions/insights. This takes the default XML file and replace the content with the engine name.
 	 * 
@@ -341,35 +357,48 @@ public class PropFileWriter {
 	 *            String containing the path to the new database
 	 * @param oldFilePath
 	 *            String containing the path to the Default folder
+	 * @throws ParserConfigurationException 
+	 * @throws SAXException 
 	 */
 	public void createXMLQuestionFile(String newFilePath, String oldFilePath) {
 		BufferedReader reader = null;
 		BufferedWriter writer = null;
-		
+
 		try {
 			File oldFile = new File(oldFilePath);
 			File newFile = new File(newFilePath);
-			
+
 			newFile.createNewFile();
-			
+
 			reader = new BufferedReader(new FileReader(oldFile));
 			writer = new BufferedWriter(new FileWriter(newFile));
-			
+
+			StringBuffer xmlStringBugger = new StringBuffer();
 			String line;
-			
 			while ((line = reader.readLine()) != null) {
 				if (line.contains("Default")) {
-					line = line.replace("Default", engineName);
+					line = line.replace("Default", StringEscapeUtils.escapeXml10(engineName));
 				}
-				
-				writer.write(line);
-				writer.newLine();
+				xmlStringBugger.append(line);
+				xmlStringBugger.append("\n");
 			}
+
+			// ensure encoding occurs properly for XML
+			Document doc = stringToXML(xmlStringBugger.toString());
+		    Source source = new DOMSource(doc);
+		    Result result = new StreamResult(newFile);
+		    Transformer xformer = TransformerFactory.newInstance().newTransformer();
+		    xformer.transform(source, result);
+		    
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (TransformerException e) {
+			e.printStackTrace();
+		} catch (SAXException e) {
+			e.printStackTrace();
+		} catch (ParserConfigurationException e) {
 			e.printStackTrace();
 		} finally {
 			if (reader != null) {
@@ -390,4 +419,11 @@ public class PropFileWriter {
 			}
 		}
 	}
+
+	public Document stringToXML(String xmlSource) throws SAXException, ParserConfigurationException, IOException {
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		DocumentBuilder builder = factory.newDocumentBuilder();
+		return builder.parse(new InputSource(new StringReader(xmlSource)));
+	}
+
 }
