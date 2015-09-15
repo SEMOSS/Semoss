@@ -28,7 +28,8 @@ public class SystemRoadmapOptimizationGenerator implements ITimelineGenerator{
 	//optimization values
 	int year = 1;
 	int totalYears = 5;
-	double interfaceCost = 100000.0;
+	double interfaceCost = 350000.0;
+	double interfaceSustainmentPercent = 0.18;
 	List<List<String>> previousValues = new ArrayList<List<String>>();
 	Map<String, Double> systemCostPenalty = new HashMap<String, Double>();
 
@@ -45,6 +46,9 @@ public class SystemRoadmapOptimizationGenerator implements ITimelineGenerator{
 	Map<String, List<String>> interfaceCountMap = new HashMap<String, List<String>>(); //system -> list of systems where an interface exists between the two systems
 	Map<String, List<List<String>>> sdsMap; //systems -> list of data obj that are provided
 
+	List<Map<String, Double>> investmentMap = new ArrayList<Map<String, Double>>();
+	List<Map<String, Double>> sustainmentMap = new ArrayList<Map<String, Double>>();
+	
 	//for creating a table. will be removed once we have the new class to take the timeline into the roadmap
 	ArrayList<Object[]> outputList = new ArrayList<Object[]>();
 
@@ -140,6 +144,8 @@ public class SystemRoadmapOptimizationGenerator implements ITimelineGenerator{
 					timeline.addSystemTransition(year, system, "");
 				}
 			}
+			buildInvestmentMap(decomList);
+			buildSustainmentMap();
 			updateSystemList(keptSystems);
 			updateInterfaceCounts(decomList);
 			year++;
@@ -284,6 +290,61 @@ public class SystemRoadmapOptimizationGenerator implements ITimelineGenerator{
 		}
 	}
 
+	/**
+	 * @param decomList
+	 */
+	public void buildInvestmentMap(List<String> decomList){
+
+		Map<String, Double> newYearMap = new HashMap<String, Double>();
+		for(String system: decomList){
+			int interfaceToDecomSystem = 0;
+			if(sdsMap.keySet().contains(system)){
+				List<List<String>> downstreams = sdsMap.get(system);
+				for(List<String> downstreamInterface: downstreams){
+					if(decommissionedSystems.contains(downstreamInterface.get(0)) || decomList.contains(downstreamInterface.get(0))){
+						interfaceToDecomSystem++;
+					}
+
+				}
+				if(sdsMap.keySet().contains(system)){
+					if(system.equals("CHOOSE")){
+						System.out.println();
+					}
+					if(sdsMap.get(system).size() > 0){
+						int count = sdsMap.get(system).size();
+						newYearMap.put(system, (sdsMap.get(system).size()-interfaceToDecomSystem)*interfaceCost);						
+					}else{
+						newYearMap.put(system, 0.0);
+					}
+				}else{
+					newYearMap.put(system, 0.0);
+				}
+			}
+		}
+		investmentMap.add(newYearMap);
+		timeline.setSystemInvestmentMap(investmentMap);
+	}
+
+	public void buildSustainmentMap(){
+
+		Map<String, Double> newYearMap = new HashMap<String, Double>();
+
+		for(String system: decommissionedSystems){
+			int localDownstreamCount = 0;
+			if(sdsMap.keySet().contains(system)){
+				for(List<String> downstreamInterface: sdsMap.get(system)){
+					if(!decommissionedSystems.contains(downstreamInterface.get(0))){
+						localDownstreamCount++;
+					}
+				}
+				newYearMap.put(system, localDownstreamCount*interfaceCost*interfaceSustainmentPercent);
+			}
+		}
+
+		sustainmentMap.add(newYearMap);
+		timeline.setInterfaceSustainmentMap(sustainmentMap);
+	}
+	
 	/* (non-Javadoc)
 	 * @see prerna.ui.components.playsheets.GridPlaySheet#getVariable(java.lang.String, prerna.engine.api.ISelectStatement)
 	 */
