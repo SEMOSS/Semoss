@@ -74,13 +74,13 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openrdf.model.Value;
 import org.openrdf.query.Binding;
 
+import com.ibm.icu.math.BigDecimal;
+import com.ibm.icu.text.DecimalFormat;
+
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
-
-import com.ibm.icu.math.BigDecimal;
-import com.ibm.icu.text.DecimalFormat;
 
 /**
  * The Utility class contains a variety of miscellaneous functions implemented extensively throughout SEMOSS.
@@ -662,17 +662,24 @@ public class Utility {
 	}
 	
 	public static String cleanVariableString(String original){
-        String cleaned = cleanString (original, true);
-        cleaned = cleaned.replaceAll("\\,", "");
-        cleaned = cleaned.replaceAll("\\%", "");
-        cleaned = cleaned.replaceAll("\\-", "");
-        cleaned = cleaned.replaceAll("\\(", "");
-        cleaned = cleaned.replaceAll("\\)", "");
-        cleaned = cleaned.replaceAll("\\&", "and");
-        return cleaned;
-  }
+		String cleaned = cleanString (original, true);
+		cleaned = cleaned.replaceAll("\\,", "");
+		cleaned = cleaned.replaceAll("\\%", "");
+		cleaned = cleaned.replaceAll("\\-", "");
+		cleaned = cleaned.replaceAll("\\(", "");
+		cleaned = cleaned.replaceAll("\\)", "");
+		cleaned = cleaned.replaceAll("\\&", "and");
+		return cleaned;
+	}
 
-
+	public static String cleanPredicateString(String original){
+		String cleaned = cleanString (original, true);
+		cleaned = cleaned.replaceAll("[()]", "");
+		cleaned = cleaned.replaceAll(",", "");
+		cleaned = cleaned.replaceAll("\\?", "");
+		return cleaned;
+	}
+	
 	/**
 	 * Creates an excel workbook
 	 * @param wb 		XSSFWorkbook to write to
