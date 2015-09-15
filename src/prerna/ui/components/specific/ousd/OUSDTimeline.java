@@ -16,18 +16,18 @@ import org.apache.log4j.Logger;
 public class OUSDTimeline {
 
 	// NAMING
-	protected final String decomCount = " System Decommission Count";
-	protected final String savingThisYear = " New Savings this year";
-	protected final String buildCount = " New Interface Count";
-	protected final String investmentCost = " Interface Development Cost";
-	protected final String sustainCost = " Interface Sustainment Cost";
-	protected final String risk = " Enterprise Risk";
+	protected final String decomCount = "System Decommission Count";
+	protected final String savingThisYear = "New Savings this year";
+	protected final String buildCount = "New Interface Count";
+	protected final String investmentCost = "Interface Development Cost";
+	protected final String sustainCost = "Interface Sustainment Cost";
+	protected final String risk = "Enterprise Risk";
 	
-	protected final String cumSavings = " Cumulative Savings";
-	protected final String prevSavings = " Previous Decommissioning Savings";
-	protected final String cumCost = " Cumulative Cost";
-	protected final String roi = " ROI";
-	protected final String opCost = " Operational Cost";
+	protected final String cumSavings = "Cumulative Savings";
+	protected final String prevSavings = "Previous Decommissioning Savings";
+	protected final String cumCost = "Cumulative Cost";
+	protected final String roi = "ROI";
+	protected final String opCost = "Operational Cost";
 	
 	private static final Logger LOGGER = LogManager.getLogger(OUSDTimeline.class.getName());
 
@@ -41,11 +41,7 @@ public class OUSDTimeline {
 	private List<Map<String, Double>> systemInvestmentMap;//map of year->map of system->investment amount (new interface cost)
 	private List<Map<String, Double>> interfaceSustainmentMap;//map of year->map of system->investment amount (new interface cost)
 	private List<Double> treeMaxList;
-
 	private List<Object[]> outputLists = new ArrayList<Object[]>();
-
-	
-	
 	private Map<String, List<String>> targetMap = new HashMap<String, List<String>>();	
 
 	public void verifyYears(){
@@ -58,6 +54,14 @@ public class OUSDTimeline {
 				treeMaxList.add(i+1, 0.0);
 			}
 		}
+	}
+
+	public List<Object[]> getOutputLists() {
+		return outputLists;
+	}
+	
+	public void setOutputLists(List<Object[]> outputLists) {
+		this.outputLists = outputLists;
 	}
 	
 	public Map<String, List<String>> getTargetMap() {
@@ -465,42 +469,24 @@ public class OUSDTimeline {
 		return vizMap;
 	}
 
-	public void buildData(){
-		List<Integer> yearList = new ArrayList<Integer>();
-		yearList.addAll(this.getFiscalYears());
-		
-		Collections.sort(yearList);
-
-		if(yearList.size()!=0){
-			while(yearList.get(yearList.size()-1)<2021){
-				yearList.add(yearList.get(yearList.size()-1)+1);
-			}
-		}
-
-		String[] columns = new String[yearList.size() + 1];
-		columns[0] = "System";
-		int count = 1;
-		for (Integer year : yearList){
-			columns[count] = year+"";
-			count++;
-		}
+	public void buildData(List<Integer> yearList, String[] columns, String name){
 
 		List<String> processedSystems = new ArrayList<String>();
 
 		List<Map<String, List<String>>> systemYears = this.getTimeData();
 		Map<String, Double> budgets = this.getBudgetMap();
 		Object[] rowSystemCount = new Object[columns.length];
-		rowSystemCount[0] = this.decomCount;
+		rowSystemCount[0] = name + this.decomCount;
 		Object[] row = new Object[columns.length];
-		row[0] = this.savingThisYear;
+		row[0] = name + this.savingThisYear;
 		Object[] rowBuildCount = new Object[columns.length];
-		rowBuildCount[0] = this.buildCount;
+		rowBuildCount[0] = name + this.buildCount;
 		Object[] rowBuildCost = new Object[columns.length];
-		rowBuildCost[0] = this.investmentCost;
+		rowBuildCost[0] = name + this.investmentCost;
 		Object[] rowSustainCost = new Object[columns.length];
-		rowSustainCost[0] = this.sustainCost;
+		rowSustainCost[0] = name + this.sustainCost;
 		Object[] rowRisk = new Object[columns.length];
-		rowRisk[0] = this.risk;
+		rowRisk[0] = name + this.risk;
 
 		NumberFormat formatter = NumberFormat.getCurrencyInstance(Locale.US);
 		NumberFormat percentFormat = NumberFormat.getPercentInstance();
@@ -578,6 +564,101 @@ public class OUSDTimeline {
 		outputLists.add(rowBuildCost);
 		outputLists.add(rowSustainCost);
 		outputLists.add(rowRisk);
+		
+		additionalRowBuilder(yearList, row, rowSustainCost, rowBuildCost, columns, formatter, percentFormat, name);
 
+	}
+	
+	private void additionalRowBuilder(List<Integer> yearList, Object[] baseRow, Object[] sustainRow, Object[] buildCostRow, String[] names, NumberFormat formatter, NumberFormat percentFormat, String name){
+
+		double cumulativeCost=0.0;
+		double cumulativeSavings=0.0;
+
+		List<Double> annualSavings = new ArrayList<Double>();
+
+		Map<String, Double> timelineBudgets = this.systemBudgetMap;
+		double totalBudget = 0.0;
+		//		for(Map<String, List<String>> year: timeline.getTimeData()){
+		//			for(String key: year.keySet()){
+		for(String system: timelineBudgets.keySet()){
+			totalBudget = totalBudget + timelineBudgets.get(system);
+		}
+
+		Object[] cumulativeSavingsRow = new Object[names.length];
+		cumulativeSavingsRow[0] = name + this.cumSavings;
+		Object[] savingsRow = new Object[names.length];
+		savingsRow[0] = name + this.prevSavings;
+		Object[] cumulativeTotalCostRow = new Object[names.length];
+		cumulativeTotalCostRow[0] = name + this.cumCost;
+		Object[] roiRow = new Object[names.length];
+		roiRow[0] = name + this.roi;
+		Object[] remainingSystemBudgets = new Object[names.length];
+		remainingSystemBudgets[0] = this.opCost;
+
+		for(int i=1; i<names.length; i++){
+
+			double year = Double.parseDouble(names[i].toString());
+			if(year<yearList.get(0)){
+				continue;
+			}
+
+			//cumulative savings
+			if(baseRow[i] != null){
+				String savings = baseRow[i].toString().replace("$", "").replace(",", "");
+				annualSavings.add(Double.parseDouble(savings));
+				totalBudget = totalBudget - Double.parseDouble(savings);
+			}
+			remainingSystemBudgets[i] = formatter.format(totalBudget);
+			for(Double value: annualSavings){
+				cumulativeSavings = cumulativeSavings + value;
+			}
+			cumulativeSavingsRow[i] = formatter.format(cumulativeSavings);							
+
+			if(cumulativeSavingsRow[i-1] != null && cumulativeSavingsRow[i-1].toString().contains("$")){
+				savingsRow[i] = Double.parseDouble(cumulativeSavingsRow[i].toString().replace("$", "").replace(",", ""))
+						-Double.parseDouble(cumulativeSavingsRow[i-1].toString().replace("$", "").replace(",", ""));
+				if(baseRow[i] != null){
+					savingsRow[i] = (Double)savingsRow[i] - Double.parseDouble(baseRow[i].toString().replace("$", "").replace(",", ""));	
+				}
+				savingsRow[i] = formatter.format(savingsRow[i]);
+			}
+
+			//row sustainment cost and cumulative total cost
+			if(sustainRow[i] != null){
+				String sustainmentCost = sustainRow[i].toString().replace("$", "").replace(",", "");
+				cumulativeCost = cumulativeCost + Double.parseDouble(sustainmentCost);
+			}
+			if(buildCostRow[i] != null){
+				String cost = buildCostRow[i].toString().replace("$", "").replace(",", "");
+				cumulativeCost = cumulativeCost + Double.parseDouble(cost);
+			}
+			cumulativeTotalCostRow[i] = formatter.format(cumulativeCost);
+
+
+			//ROI value for each year
+			double netSavings = 0.0;
+			double investment = 0.0;
+			if(cumulativeTotalCostRow[i] != null){
+				String cost = cumulativeTotalCostRow[i].toString().replace("$", "").replace(",", "");
+				investment = Double.parseDouble(cost);
+			}
+			if(cumulativeSavingsRow[i] != null){
+				String savings = cumulativeSavingsRow[i].toString().replace("$", "").replace(",", "");
+				netSavings = Double.parseDouble(savings) - investment; 
+			}
+			if(investment != 0){
+				double roi = netSavings/investment;
+				roiRow[i] = percentFormat.format(roi);
+			}else{
+				roiRow[i] = percentFormat.format(0);
+			}
+
+
+		}
+		outputLists.add(savingsRow);
+		outputLists.add(cumulativeSavingsRow);
+		outputLists.add(cumulativeTotalCostRow);
+		outputLists.add(roiRow);
+		outputLists.add(remainingSystemBudgets);
 	}
 }

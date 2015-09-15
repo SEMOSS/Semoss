@@ -67,13 +67,14 @@ public class RoadmapCleanTableComparisonBarChartPlaySheet extends RoadmapCleanTa
 	
 	@Override
 	public void createData(){
-		super.createData();
+		
+		buildTable(timelineNames, null);
 		
 		// go through the final table and reformat to how I need
 		// we want a row for each fy
 		// FY; Annual Savings; Annual Expenses; Annual Cash Flow; Cumulative Net Savings
-		String roadmapNewSavingsString = this.roadmapName + this.savingThisYear;
-		String compRoadmapNewSavingsString = this.comparatorName + this.savingThisYear;
+		String roadmapNewSavingsString = timelineNames.get(0) + this.savingThisYear;
+		String compRoadmapNewSavingsString = timelineNames.get(1) + this.savingThisYear;
 		String[] newHeaders = new String[]{"Fiscal Year", roadmapNewSavingsString, compRoadmapNewSavingsString};
 		String[] prevHeaders = this.getNames();
 		

@@ -124,8 +124,8 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 	
 	@Override
 	public void createData(){
-		super.createData();
-		
+		buildTable(timelineNames, null);
+				
 		// go through the final table and reformat to how I need
 		// we want a row for each fy
 		// FY; Annual Savings; Annual Expenses; Annual Cash Flow; Cumulative Net Savings
