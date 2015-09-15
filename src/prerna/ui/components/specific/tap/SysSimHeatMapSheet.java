@@ -61,7 +61,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	}
 	
 	/**
-	 * Constructor for SysSimeHeatMapSheet.
+	 * Constructor for SysSimHeatMapSheet.
 	 */
 	public SysSimHeatMapSheet() {
 		super();
