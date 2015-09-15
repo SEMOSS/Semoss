@@ -78,26 +78,46 @@ public class SpecificScatterPlotQueryBuilder extends AbstractSpecificQueryBuilde
         addReturnVariable(labelColName, varNames.get(0), baseQuery, "");
         groupList.add(labelColName);
 
-
         //x
         logger.info("Adding x-axis variable: " + xAxisColName);
         addReturnVariable(xAxisColName, varNames.get(1), baseQuery, xAxisMathFunc);
+        
+        if(xAxisMathFunc.isEmpty()) {
+        	groupList.add(xAxisColName);
+        }
         
         //y
         logger.info("Adding y-axis variable: " + yAxisColName);
         addReturnVariable(yAxisColName, varNames.get(2), baseQuery, yAxisMathFunc);
         
+        if(yAxisMathFunc.isEmpty()) {
+        	groupList.add(yAxisColName);
+        }
+        
         //z if it is not null
         if(zAxisColName != null){
         	logger.info("Adding z-axis variable: " + zAxisColName);
-        	addReturnVariable(zAxisColName, varNames.get(3), baseQuery, zAxisMathFunc);        	
+        	addReturnVariable(zAxisColName, varNames.get(3), baseQuery, zAxisMathFunc);
+        	
+        	if(zAxisMathFunc.isEmpty()) {
+        		groupList.add(zAxisColName);
+        	}
+        	
+        	//add them as group by
+            if(!xAxisMathFunc.isEmpty() || !yAxisMathFunc.isEmpty() || !zAxisMathFunc.isEmpty()){
+            	logger.info("Adding GroupBy to query: " + groupList);
+            	SEMOSSQueryHelper.addGroupByToQuery(groupList, baseQuery);
+            }
+        } else {
+        	//add them as group by
+            if(!xAxisMathFunc.isEmpty() || !yAxisMathFunc.isEmpty()){
+            	logger.info("Adding GroupBy to query: " + groupList);
+            	SEMOSSQueryHelper.addGroupByToQuery(groupList, baseQuery);
+            }
         }
+        
 
-        //add them as group by
-        if(!xAxisMathFunc.isEmpty() && !yAxisMathFunc.isEmpty() && (zAxisMathFunc != null && (zAxisMathFunc == null || !zAxisMathFunc.isEmpty()))){
-        	logger.info("Adding GroupBy to query: " + groupList);
-        	SEMOSSQueryHelper.addGroupByToQuery(groupList, baseQuery);
-        }
+        
         
 		if(!parameters.isEmpty()) {
 			logger.info("Adding parameters: " + parameters);
