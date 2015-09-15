@@ -104,6 +104,11 @@
                     x: {
                         type: 'category',
                         categories: dataStream.ticks
+                    },
+                    y : {
+                        tick: {
+                            format: d3.format(",")
+                        }
                     }
                 },
                 size: {
