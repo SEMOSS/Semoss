@@ -184,7 +184,11 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 					}
 					rowSustainCost[i] = formatter.format(totalSustain);
 				}
-				rowRisk[i] = percentFormat.format(timeline.getTreeMaxList().get(yearIdx));
+				if(timeline.getTreeMaxList() != null){
+					rowRisk[i] = percentFormat.format(timeline.getTreeMaxList().get(yearIdx));					
+				}else{
+					rowRisk[i] = "N/A";
+				}
 			}else{				
 				if(year>fyList.get(fyList.size()-1)){
 					if(sustainMap!=null){
@@ -236,7 +240,11 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 					}
 					compRowSustainCost[i] = formatter.format(totalSustain);
 				}
-				compRowRisk[i] = percentFormat.format(comparatorTimeline.getTreeMaxList().get(yearIdx));
+				if(comparatorTimeline.getTreeMaxList() != null){
+					rowRisk[i] = percentFormat.format(comparatorTimeline.getTreeMaxList().get(yearIdx));					
+				}else{
+					rowRisk[i] = "N/A";
+				}
 			}else{				
 				if(year>comparatorFyList.get(comparatorFyList.size()-1)){
 					if(sustainComparatorMap!=null){
