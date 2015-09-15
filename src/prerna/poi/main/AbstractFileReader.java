@@ -27,11 +27,9 @@
  *******************************************************************************/
 package prerna.poi.main;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -48,6 +46,8 @@ import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 
+import com.hp.hpl.jena.vocabulary.OWL;
+
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -58,8 +58,6 @@ import prerna.error.FileWriterException;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-
-import com.hp.hpl.jena.vocabulary.OWL;
 
 public abstract class AbstractFileReader {
 
@@ -415,7 +413,7 @@ public abstract class AbstractFileReader {
 //		createStatement(vf.createURI(objectNodeURI), RDFS.LABEL, vf.createLiteral(instanceObjectName));
 
 		// generate URIs for the relationship
-		relName = Utility.cleanString(relName, true).replaceAll("[()]", "").replaceAll(",", "");
+		relName = Utility.cleanPredicateString(relName);
 		
 		String relSemossBaseURI = baseRelationURIHash.get(subjectNodeType + "_"+ relName + "_" + objectNodeType+Constants.CLASS);
 		// check to see if user specified URI in custom map file
