@@ -62,14 +62,14 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	public void process(String fileName) {
 		loadNewDB(fileName, true);
 	}
-	
+
 	/**
 	 * Returns an array of strings naming the files in the directory. Goes through list and loads an existing database.
 	 */
 	public void loadExistingDB(String fileName, boolean checkForLocalMaster) {
 		loadNewDB(fileName, checkForLocalMaster);
 	}
-	
+
 	/**
 	 * Loads a new database by setting a specific engine with associated properties.
 	 * @param 	Specifies properties to load 
@@ -107,7 +107,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			}
 		}
 	}
-	
+
 	private void addToLocalMaster(String engineName) {
 		if(engineName.equals(Constants.LOCAL_MASTER_DB_NAME)) {
 			return;
@@ -121,7 +121,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		if(engineToAdd == null) {
 			throw new NullPointerException("Unable to find engine " + engineName + " in DIHelper.");
 		}
-		
+
 		Map<String, Date> engines = MasterDBHelper.getEngineTimestamps(localMaster);
 		if(engines.containsKey(engineName)) {
 			DateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ENGLISH);
@@ -143,22 +143,24 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			if(engines.get(engineName).getTime() != timeInXML.getTime()) {
 				DeleteFromMasterDB deleter = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 				deleter.deleteEngine(engineName); //TODO: enable adding the IEngine directly like AddToMasterDB
-				
-				AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
-				adder.registerEngineLocal(engineToAdd);
-				
+
 				// reset the time
 				localMaster.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.TIME_STAMP_URI, engines.get(engineName), false});
 				localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.TIME_STAMP_URI, timeInXML, false});
+
+				AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+				adder.registerEngineLocal(engineToAdd);
+
 			}
 		} else {
 			// engine not present, add to local master
 			AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 			adder.registerEngineLocal(engineToAdd);
 		}
+		localMaster.commit();
 	}
-	
-	
+
+
 	/**
 	 * Used in the starter class for processing SMSS files.
 	 */
@@ -186,7 +188,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				logger.fatal("Engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
 			}
 		}
-		
+
 		if(localMasterIndex == 0) {
 			// remove unused databases
 			IEngine localMaster = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
@@ -199,7 +201,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			}
 		}
 	}
-	
+
 	/**
 	 * Processes new SMSS files.
 	 */
