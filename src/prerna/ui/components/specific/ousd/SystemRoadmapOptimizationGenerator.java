@@ -138,18 +138,19 @@ public class SystemRoadmapOptimizationGenerator implements ITimelineGenerator{
 				//DELETES THE MODEL
 				opt.deleteModel();
 			}
+			buildInvestmentMap(decomList);
+			buildSustainmentMap();
 			for(String system: decomList){
 				if(!decommissionedSystems.contains(system)){
 					decommissionedSystems.add(system);
 					timeline.addSystemTransition(year, system, "");
 				}
 			}
-			buildInvestmentMap(decomList);
-			buildSustainmentMap();
 			updateSystemList(keptSystems);
 			updateInterfaceCounts(decomList);
 			year++;
 		}
+		buildSustainmentMap();
 		for(int i = 0; i<timeline.getTimeData().size(); i++){
 			Map<String, List<String>> yearMap = timeline.getTimeData().get(i);
 			for(String system: yearMap.keySet()){
@@ -364,5 +365,4 @@ public class SystemRoadmapOptimizationGenerator implements ITimelineGenerator{
 		createTimeline(engine, "DFAS");
 		
 	}
-
 }
