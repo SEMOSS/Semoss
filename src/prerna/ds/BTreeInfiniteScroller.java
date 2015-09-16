@@ -22,6 +22,9 @@ public class BTreeInfiniteScroller implements InfiniteScroller {
 		this.table = table;
 		returnCount = 100;
 		iteratorMap = new HashMap<String, Iterator<TreeNode>>();
+		String[] columns = table.getColumnHeaders();
+		lastColumn = columns[columns.length-1];
+		iteratorColumn = lastColumn;
 		rowIterator = new WebBTreeIterator(table.getBuilder().nodeIndexHash.get(lastColumn));
 		currentCount = 0;
 	}
@@ -78,6 +81,7 @@ public class BTreeInfiniteScroller implements InfiniteScroller {
 	
 	public List<HashMap<String, Object>> getNextData(String column) {
 		
+		if(column == null) column = iteratorColumn;
 		//Check to see if the table has changed or column has changed
 		String[] columnHeaders = table.getColumnHeaders();
 		int lastIndex = columnHeaders.length - 1;
