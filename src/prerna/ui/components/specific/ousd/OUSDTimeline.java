@@ -378,57 +378,68 @@ public class OUSDTimeline {
 	}
 
 	public List<Object[]> getCostSavingsData(){
+		LOGGER.info("Fetching cost savings data...");
 		List<Object[]> costSavingsData = new ArrayList<Object[]>();
-		List<String> usedSystems = new ArrayList<String>(); // keeps track for partial decommissioning
-		Integer year = 0;
-		Double newCost = 0.0;
-		for(int fyIdx = this.timeData.size() - 1; fyIdx >= 0  ; fyIdx -- ){
+		List<Integer> yearList = new ArrayList<Integer>();
+		
+		for(Integer year: this.getFiscalYears()){
+			yearList.add(year);
+		}
+		
+		LOGGER.info("Number of years: "+yearList.size());
+		while(yearList.get(yearList.size()-1)<2021){
+			LOGGER.info("Last year is: "+yearList.get(yearList.size()-1));
+			LOGGER.info("Adding year: "+(yearList.get(yearList.size()-1)+1));
+			yearList.add(yearList.get(yearList.size()-1)+1);
+		}
 
-			Map<String, List<String>> fyData = this.timeData.get(fyIdx);
-			year = this.fyIndexArray.get(fyIdx);
+		String[] columns = new String[yearList.size() + 1];
+		columns[0] = "System";
+		int count = 1;
+		for (Integer year : yearList){
+			columns[count] = year+"";
+			count++;
+		}
+		
+		buildData(yearList, columns, null);
 
-			Iterator<String> fyDataIt = fyData.keySet().iterator();
-			Double savings = 0.0;
-			Double cost = 0.0;
-			while(fyDataIt.hasNext()){
-				String decoSys = fyDataIt.next();
-				if(!usedSystems.contains(decoSys)){
-					Double sysSavings = this.systemBudgetMap.get(decoSys);
-					savings = savings + sysSavings;
-	
-					if(this.systemInvestmentMap != null && this.systemInvestmentMap.size()>fyIdx){
-						Double investmentCost = this.systemInvestmentMap.get(fyIdx).get(decoSys);
-						if(investmentCost!=null) {
-							cost = cost + investmentCost;
-						}
+		Double cumNetSavings = 0.0;
+		for(int fyIdx = 1; fyIdx < columns.length; fyIdx++){
+			LOGGER.info("Column is: "+columns[fyIdx]);
+			Double annlSavings = 0.0;
+			Double annlExpenses = 0.0;
+
+			Iterator<Object[]> tableIt = this.outputLists.iterator();
+			while(tableIt.hasNext()){
+				Object[] row = tableIt.next();
+				String rowName = row[0] + "";
+				LOGGER.info(rowName);
+				Object value = row[fyIdx];
+				if(value!=null && !value.toString().isEmpty()){
+					if (rowName.endsWith(this.savingThisYear) || rowName.endsWith(this.prevSavings)){
+						annlSavings = annlSavings + Double.parseDouble(value.toString().replace("$", "").replace(",", ""));
 					}
-					usedSystems.add(decoSys);
-				}
-				else {
-					LOGGER.info("SKIPPING SYSTEM BECAUSE PARTIAL DECOMMISSIONING :::::" + decoSys);
+					if (rowName.endsWith(this.investmentCost) || rowName.endsWith(this.sustainCost)){
+						annlExpenses = annlExpenses - Double.parseDouble(value.toString().replace("$", "").replace(",", ""));
+					}
 				}
 			}
-			Object[] row = new Object[4];
-			row[0] = year + 1;
-			row[1] = savings;
-			row[2] = newCost;
-			row[3] = savings - newCost;
-			costSavingsData.add(0, row);
-			newCost = cost;
+			Double annlCashFlow = annlSavings + annlExpenses;
+			cumNetSavings = cumNetSavings + annlCashFlow;
+			Object[] newRow = new Object[5];
+			newRow[0] = columns[fyIdx];
+			newRow[1] = annlSavings;
+			newRow[2] = annlExpenses;
+			newRow[3] = annlCashFlow;
+			newRow[4] = cumNetSavings;
+			costSavingsData.add(newRow);
 		}
-		// add first year row
-		Object[] row = new Object[4];
-		row[0] = year;
-		row[1] = 0.0;
-		row[2] = newCost;
-		row[3] = 0.0 - newCost;
-		costSavingsData.add(0, row);
 
 		return costSavingsData;
 	}
 
 	public String[] getCostSavingsHeaders(){
-		return new String[] {"Transition Year", "New Savings", "Interface Development Cost", "Net Annual Savings"};
+		return new String[] {"Transition Year", "Annual Savings", "Annual Expenses", "Annual Cash Flow", "Cumulative Net Savings"};
 	}
 
 	public String getCostSavingsTitle(){
