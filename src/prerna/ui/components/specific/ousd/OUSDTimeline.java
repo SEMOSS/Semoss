@@ -16,18 +16,18 @@ import org.apache.log4j.Logger;
 public class OUSDTimeline {
 
 	// NAMING
-	protected final String decomCount = "System Decommission Count";
-	protected final String savingThisYear = "New Savings this year";
-	protected final String buildCount = "New Interface Count";
-	protected final String investmentCost = "Interface Development Cost";
-	protected final String sustainCost = "Interface Sustainment Cost";
-	protected final String risk = "Enterprise Risk";
+	protected final String decomCount = " System Decommission Count";
+	protected final String savingThisYear = " New Savings this year";
+	protected final String buildCount = " New Interface Count";
+	protected final String investmentCost = " Interface Development Cost";
+	protected final String sustainCost = " Interface Sustainment Cost";
+	protected final String risk = " Enterprise Risk";
 	
-	protected final String cumSavings = "Cumulative Savings";
-	protected final String prevSavings = "Previous Decommissioning Savings";
-	protected final String cumCost = "Cumulative Cost";
-	protected final String roi = "ROI";
-	protected final String opCost = "Operational Cost";
+	protected final String cumSavings = " Cumulative Savings";
+	protected final String prevSavings = " Previous Decommissioning Savings";
+	protected final String cumCost = " Cumulative Cost";
+	protected final String roi = " ROI";
+	protected final String opCost = " Operational Cost";
 	
 	private static final Logger LOGGER = LogManager.getLogger(OUSDTimeline.class.getName());
 
@@ -604,7 +604,7 @@ public class OUSDTimeline {
 		Object[] roiRow = new Object[names.length];
 		roiRow[0] = name + this.roi;
 		Object[] remainingSystemBudgets = new Object[names.length];
-		remainingSystemBudgets[0] = this.opCost;
+		remainingSystemBudgets[0] = name + this.opCost;
 
 		for(int i=1; i<names.length; i++){
 
