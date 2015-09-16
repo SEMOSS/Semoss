@@ -20,18 +20,18 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 	boolean multiple = false;
 
 	// NAMING
-	protected final String decomCount = "System Decommission Count";
-	protected final String savingThisYear = "New Savings this year";
-	protected final String buildCount = "New Interface Count";
-	protected final String investmentCost = "Interface Development Cost";
-	protected final String sustainCost = "Interface Sustainment Cost";
-	protected final String risk = "Enterprise Risk";
-	
-	protected final String cumSavings = "Cumulative Savings";
-	protected final String prevSavings = "Previous Decommissioning Savings";
-	protected final String cumCost = "Cumulative Cost";
-	protected final String roi = "ROI";
-	protected final String opCost = "Operational Cost";
+	protected final String decomCount = " System Decommission Count";
+	protected final String savingThisYear = " New Savings this year";
+	protected final String buildCount = " New Interface Count";
+	protected final String investmentCost = " Interface Development Cost";
+	protected final String sustainCost = " Interface Sustainment Cost";
+	protected final String risk = " Enterprise Risk";
+
+	protected final String cumSavings = " Cumulative Savings";
+	protected final String prevSavings = " Previous Decommissioning Savings";
+	protected final String cumCost = " Cumulative Cost";
+	protected final String roi = " ROI";
+	protected final String opCost = " Operational Cost";
 
 	@Override
 	public void setQuery(String query){
@@ -109,7 +109,7 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		this.dataFrame = new OrderedBTreeDataFrame(columns);
 
 		for(String timelineName: timelineMap.keySet()){
-			createTable(yearList, timelineMap.get(timelineName), timelineName);				
+			createTable(yearList, timelineMap.get(timelineName), timelineName);										
 		}
 
 
