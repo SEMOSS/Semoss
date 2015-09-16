@@ -31,7 +31,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	IEngine roadmapEngine;
 	String sysOwner;
 	ActivityGroupRiskCalculator calc = new ActivityGroupRiskCalculator();
-	private String cleanActInsightString = "What clean groups can activities supporting the E2E Business Flow be put into?";
+	private String cleanActInsightString = "What clean groups can activities supporting a given E2E be put into?";
 
 	//optimization values
 	int year = 1;
