@@ -160,6 +160,8 @@ public final class OUSDPlaysheetHelper {
 
 	public static OUSDTimeline buildTimeline(IEngine engine, String timelineName) throws ClassNotFoundException, InstantiationException, IllegalAccessException{
 
+		timelineName = timelineName.toUpperCase().replaceAll(" ", "_");
+		
 		String timelineClassName = (String) engine.getProperty(timelineName);
 
 		Class<?> timeClass = Class.forName(timelineClassName);
@@ -175,6 +177,8 @@ public final class OUSDPlaysheetHelper {
 
 	public static OUSDTimeline buildTimeline(IEngine engine, String timelineName, String owner) throws ClassNotFoundException, InstantiationException, IllegalAccessException{
 
+		timelineName = timelineName.toUpperCase().replaceAll(" ", "_");
+		
 		String timelineClassName = (String) engine.getProperty(timelineName);
 
 		Class<?> timeClass = Class.forName(timelineClassName);
@@ -252,7 +256,7 @@ public final class OUSDPlaysheetHelper {
 
 	public static void buildRiskList(OUSDTimeline timeline, String[] sysList, String systemBindings, IEngine roadmapEngine){
 		ActivityGroupRiskCalculator calc = new ActivityGroupRiskCalculator();
-		String cleanActInsightString = "What clean groups can activities supporting the E2E Business Flow be put into?";
+		String cleanActInsightString = "What clean groups can activities supporting a given E2E be put into?";
 		double failureRate = 0.001;
 		
 		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
