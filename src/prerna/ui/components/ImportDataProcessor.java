@@ -292,7 +292,7 @@ public class ImportDataProcessor {
 			if(propHashArr != null) {
 				csvReader.setRdfMapArr(propHashArr);
 			}
-			csvReader.importFileWithOutConnection(propWriter.propFileName, dbName,fileNames, customBaseURI, owlPath);
+			csvReader.importFileWithOutConnection(propWriter.propFileName, dbName, fileNames, customBaseURI, owlPath);
 
 			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
 			ontologyWriter.runAugment(ontoPath, csvReader.conceptURIHash, csvReader.baseConceptURIHash, 
@@ -328,7 +328,7 @@ public class ImportDataProcessor {
 		//		}
 		else if(importType == IMPORT_TYPE.NLP && dbType == DB_TYPE.RDF){
 			NLPReader nlpreader = new NLPReader();
-			nlpreader.importFileWithOutConnection(propWriter.propFileName, fileNames, customBaseURI, mapFile, owlPath);
+			nlpreader.importFileWithOutConnection(propWriter.propFileName, dbName, fileNames, customBaseURI, mapFile, owlPath);
 
 			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
 			ontologyWriter.runAugment(ontoPath, nlpreader.conceptURIHash, nlpreader.baseConceptURIHash, 
