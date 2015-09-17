@@ -170,7 +170,7 @@ public final class OUSDPlaysheetHelper {
 		time.createTimeline(engine);
 		OUSDTimeline timeline = time.getTimeline();
 
-		timeline = fillTimeline(timeline, engine);
+		timeline = fillTimeline(timeline, engine, null);
 
 		return timeline;
 	}
@@ -187,12 +187,12 @@ public final class OUSDPlaysheetHelper {
 		time.createTimeline(engine, owner);
 		OUSDTimeline timeline = time.getTimeline();
 
-		timeline = fillTimeline(timeline, engine);
+		timeline = fillTimeline(timeline, engine, owner);
 
 		return timeline;
 	}
 	
-	private static OUSDTimeline fillTimeline(OUSDTimeline timeline, IEngine engine){
+	private static OUSDTimeline fillTimeline(OUSDTimeline timeline, IEngine engine, String owner){
 
 		List<String> systemList = new ArrayList<String>();
 
@@ -203,16 +203,16 @@ public final class OUSDPlaysheetHelper {
 		Map<String, List<List<String>>> sdsMap = new HashMap<String, List<List<String>>>();
 		Map<String, List<String>> targetMap = new HashMap<String, List<String>>();
 		
-		//create data types for query methods
-		for(Map<String, List<String>> yearMap: timeline.getTimeData()){
-			for(String system: yearMap.keySet()){
-				systemList.add(system);
-			}
+		List<String> owners = new ArrayList<String>();
+		if(owner == null){
+			owner = "DFAS";
 		}
-		
-		Object[] systems = createSysLists(systemList);
-		String[] sysList = (String[]) systems[0];
-		String sysBindingsString = (String) systems[1];
+		owners.add(owner);
+		List<String> osystems = OUSDQueryHelper.getSystemsByOwners(engine, owners);
+
+		Object[] systemReturn = OUSDPlaysheetHelper.createSysLists(osystems);
+		String[] sysList = (String[]) systemReturn[0];
+		String sysBindingsString = (String) systemReturn[1];
 
 		if(timeline.getSystemDownstreamMap().isEmpty()){
 			sdsMap = OUSDQueryHelper.getSystemToSystemData(engine);
