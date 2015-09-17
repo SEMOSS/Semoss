@@ -68,6 +68,7 @@ public class CSVReader extends AbstractFileReader {
 	private static final Logger logger = LogManager.getLogger(CSVReader.class.getName());
 	
 	private String propFile; // the file that serves as the property file
+	private FileReader readCSVFile;
 	private ICsvMapReader mapReader;
 	private String [] header;
 	private List<String> headerList;
@@ -117,6 +118,7 @@ public class CSVReader extends AbstractFileReader {
 			processRelationPropURIs();
 			skipRows();
 			processRelationShips();
+			closeCSVFile();
 		}
 		createBaseRelations();
 		closeDB();
@@ -157,6 +159,7 @@ public class CSVReader extends AbstractFileReader {
 			processRelationPropURIs();
 			skipRows();
 			processRelationShips();
+			closeCSVFile();
 		}
 		createBaseRelations();
 		commitDB();
@@ -964,7 +967,6 @@ public class CSVReader extends AbstractFileReader {
 	 * @throws FileNotFoundException 
 	 */
 	public void openCSVFile(String fileName) throws FileReaderException {
-		FileReader readCSVFile;
 		try {
 			readCSVFile = new FileReader(fileName);
 			mapReader = new CsvMapReader(readCSVFile, CsvPreference.STANDARD_PREFERENCE);
@@ -981,6 +983,20 @@ public class CSVReader extends AbstractFileReader {
 			e.printStackTrace();
 			throw new FileReaderException("Could not close reader input stream for CSV file " + fileName);
 		}
+	}
+	
+	/**
+	 * Closes the CSV file streams
+	 * @throws FileReaderException 
+	 */
+	public void closeCSVFile() throws FileReaderException {
+		try {
+			readCSVFile.close();
+			mapReader.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new FileReaderException("Could not close CSV file streams");
+		}		
 	}
 
 }

@@ -64,6 +64,7 @@ public class RdfExcelTableReader extends AbstractFileReader {
 
 	private String propFile; // the file that serves as the property file
 	private List<String> headerList;
+	private FileInputStream poiReader;
 	private XSSFWorkbook workbook; 
 
 	private ArrayList<String> relationArrayList = new ArrayList<String>();
@@ -94,7 +95,6 @@ public class RdfExcelTableReader extends AbstractFileReader {
 		{
 			String fileName = files[i];
 			openExcelWorkbook(fileName);
-
 			for(int j = 0; j < workbook.getNumberOfSheets(); j++)
 			{
 				XSSFSheet sheet = workbook.getSheetAt(j);
@@ -118,6 +118,7 @@ public class RdfExcelTableReader extends AbstractFileReader {
 				processRelationPropURIs(sheet);
 				processRelationShips(sheet);
 			}
+			closeExcelWorkbook();
 		}
 		createBaseRelations();
 		closeDB();
@@ -145,7 +146,6 @@ public class RdfExcelTableReader extends AbstractFileReader {
 		{
 			String fileName = files[i];
 			openExcelWorkbook(fileName);	
-
 			for(int j = 0; j < workbook.getNumberOfSheets(); j++)
 			{
 				XSSFSheet sheet = workbook.getSheetAt(j);
@@ -163,6 +163,7 @@ public class RdfExcelTableReader extends AbstractFileReader {
 				processRelationPropURIs(sheet);
 				processRelationShips(sheet);
 			}
+			closeExcelWorkbook();
 		}
 		createBaseRelations();
 		commitDB();
@@ -916,6 +917,20 @@ public class RdfExcelTableReader extends AbstractFileReader {
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new InvalidUploadFormatException("File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
+		}
+	}
+	
+	/**
+	 * Load the Excel workbook
+	 * @param fileName String
+	 * @throws FileReaderException 
+	 */
+	public void closeExcelWorkbook() throws FileReaderException {
+		try {
+			poiReader.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new FileReaderException("Could not close Excel file stream");
 		}
 	}
 

@@ -264,9 +264,6 @@ public class ProcessNLP {
 						tripleContainer.setObj1(formatString(subj.value(), false, true));
 						tripleContainer.setPred(formatString(pred.value(), false, true));
 						tripleContainer.setObj2(formatString(obj.value(), false, true));
-						if (obj.value().toString().equals("view")) {
-							System.out.println("k");
-						}
 
 						//FINDING EXTENSION OF SUBJECT****
 						// find if complemented
@@ -298,9 +295,9 @@ public class ProcessNLP {
 
 						//EXTENSION OF OBJECT FOUND****
 						// fulcrum on the nsubj to see if there is an NNP in the vicinity
-						if(finalObject.indexOf(predicate) < 0 && predicate.indexOf(finalObject) < 0) {
-							LOGGER.info("VERB Triple: 	" + finalSubject + "<<>>" + predicate + "<<>>" + finalObject);
-						}
+//						if(finalObject.indexOf(predicate) < 0 && predicate.indexOf(finalObject) < 0) {
+//							LOGGER.info("VERB Triple: 	" + finalSubject + "<<>>" + predicate + "<<>>" + finalObject);
+//						}
 						tripleContainer.setObj1Expanded(formatString(finalSubject.toString(), true, false));// part of future SetTriple
 						tripleContainer.setPredExpanded(formatString(predicate.toString(), true, false));
 						tripleContainer.setObj2Expanded(formatString(finalObject.toString(), true, false));
@@ -371,8 +368,8 @@ public class ProcessNLP {
 			List<CoreMap> sentences = document.get(SentencesAnnotation.class);
 			for(CoreMap sentence: sentences) {
 				for (CoreLabel token: sentence.get(TokensAnnotation.class)) {
-					LOGGER.info("lemmatized " + token.get(LemmaAnnotation.class));
-					LOGGER.info("original   " + triples.get(i).getPred()); 
+//					LOGGER.info("lemmatized " + token.get(LemmaAnnotation.class));
+//					LOGGER.info("original   " + triples.get(i).getPred()); 
 					triples.get(i).setPred(token.get(LemmaAnnotation.class));
 				}
 			}

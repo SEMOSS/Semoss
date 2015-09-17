@@ -330,7 +330,7 @@ public final class NaturalLanguageProcessingHelper {
 		{
 			if(!parentSearcher.label().toString().startsWith("NP"))
 			{
-				System.out.println(parentSearcher.label().toString());
+//				System.out.println(parentSearcher.label().toString());
 				if(parentSearcher.parent() instanceof TreeGraphNode)
 					parentSearcher = (TreeGraphNode) parentSearcher.parent();
 				else
@@ -341,7 +341,7 @@ public final class NaturalLanguageProcessingHelper {
 			}
 			else 
 			{
-				System.out.println(parentSearcher.label().toString());
+//				System.out.println(parentSearcher.label().toString());
 				npFound = true;
 				List<LabeledWord> lw = parentSearcher.labeledYield();
 				// if this is not a noun then I need find the actual proper noun
