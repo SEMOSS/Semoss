@@ -40,9 +40,9 @@ public class NLPReader extends AbstractFileReader {
 	
 	private List<TripleWrapper> triples = new ArrayList<TripleWrapper>();
 	
-	public void importFileWithOutConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile) throws FileReaderException, EngineException, FileWriterException, NLPException {	
-		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
-		openEngineWithoutConnection(engineName);
+	public void importFileWithOutConnection(String smssLocation, String engineName,  String fileNames, String customBase, String customMap, String owlFile) throws FileReaderException, EngineException, FileWriterException, NLPException {	
+		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
+		openEngineWithoutConnection(engineName);		
 		
 		if(!customMap.equals("")) 
 		{

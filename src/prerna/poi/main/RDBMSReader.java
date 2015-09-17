@@ -95,6 +95,7 @@ public class RDBMSReader {
 	private static final Logger logger = LogManager.getLogger(RDBMSReader.class.getName());
 
 	private String propFile; // the file that serves as the property file
+	private FileReader readCSVFile;
 	private ICsvMapReader mapReader;
 	private String [] header; // array of headers
 	private List<String> headerList; // list of headers
@@ -315,6 +316,7 @@ public class RDBMSReader {
 			cleanAll();
 			commitDB();
 			scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
+			closeCSVFile();
 		}
 		cleanUpDBTables(engineName,allowDuplicates);
 		closeDB();
@@ -734,6 +736,7 @@ public class RDBMSReader {
 			cleanAll();
 			commitDB();
 			scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
+			closeCSVFile();
 		}
 		cleanUpDBTables(engineName,allowDuplicates);
 		runDBModTransactions(recreateIndexesArr); 
@@ -2330,7 +2333,6 @@ public class RDBMSReader {
 	 * @throws FileNotFoundException 
 	 */
 	public void openCSVFile(String fileName) throws FileReaderException {
-		FileReader readCSVFile;
 		// loop through twice, first time open up the mapreader so we can loop through and get the rows count, then reopen it for
 		// processing in the insertrecords method
 		for(int i = 0; i < 2; i++){ 
@@ -2359,6 +2361,20 @@ public class RDBMSReader {
 				getRowsCount(fileName);
 			}
 		}
+	}
+	
+	/**
+	 * Closes the CSV file streams
+	 * @throws FileReaderException 
+	 */
+	public void closeCSVFile() throws FileReaderException {
+		try {
+			readCSVFile.close();
+			mapReader.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new FileReaderException("Could not close CSV file streams");
+		}		
 	}
 
 	protected void storeBaseStatement(String sub, String pred, String obj) throws EngineException {
