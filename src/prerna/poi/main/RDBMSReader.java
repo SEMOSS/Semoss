@@ -211,7 +211,6 @@ public class RDBMSReader {
 		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
 		prop.put(Constants.TEMP_CONNECTION_URL, queryUtil.getTempConnectionURL());
 		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
-		prop.put(Constants.USE_CONNECTION_POOLING,queryUtil.getDefaultConnectionPooling());
 		prop.put("TEMP", "TRUE");
 
 		// write this to a file
