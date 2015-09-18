@@ -13,7 +13,7 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.ui.components.ExecuteQueryProcessor;
-import prerna.ui.components.playsheets.BrowserPlaySheet;
+import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -30,9 +30,9 @@ public final class OUSDPlaysheetHelper {
 
 	public static Hashtable getData(String title, String questionNumber, ITableDataFrame dataFrame, String playsheetName){
 		String playSheetClassName = PlaySheetEnum.getClassFromName(playsheetName);
-		GridPlaySheet playSheet = null;
+		BasicProcessingPlaySheet playSheet = null;
 		try {
-			playSheet = (GridPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
+			playSheet = (BasicProcessingPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
 		} catch (ClassNotFoundException ex) {
 			ex.printStackTrace();
 			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);

@@ -9,7 +9,6 @@ import org.apache.log4j.Logger;
 public class RoadmapTimelineStatsPlaySheet extends RoadmapCleanTableComparisonPlaySheet {
 
 	private static final Logger LOGGER = LogManager.getLogger(RoadmapTimelineStatsPlaySheet.class.getName());
-	OUSDTimeline timeline;
 	String roadmap;
 	String owner;
 	
