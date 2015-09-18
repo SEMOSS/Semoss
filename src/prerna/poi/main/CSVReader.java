@@ -66,7 +66,7 @@ import prerna.util.Utility;
 public class CSVReader extends AbstractFileReader {
 
 	private static final Logger logger = LogManager.getLogger(CSVReader.class.getName());
-	
+
 	private String propFile; // the file that serves as the property file
 	private FileReader readCSVFile;
 	private ICsvMapReader mapReader;
@@ -95,33 +95,39 @@ public class CSVReader extends AbstractFileReader {
 	 * @throws FileWriterException 
 	 * @throws HeaderClassException 
 	 */
-	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile) throws EngineException, FileWriterException, FileReaderException, HeaderClassException {
+	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile) 
+			throws EngineException, FileWriterException, FileReaderException, HeaderClassException {
 		logger.setLevel(Level.WARN);
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
-		openEngineWithoutConnection(engineName);
-		createTypes();
-
-		for(int i = 0; i<files.length;i++)
-		{
-			String fileName = files[i];
-			openCSVFile(fileName);			
-			// load the prop file for the CSV file 
-			if(propFileExist){
-				openProp(propFile);
-			} else {
-				rdfMap = rdfMapArr[i];
+		try {
+			openEngineWithoutConnection(engineName);
+			createTypes();
+			for(int i = 0; i<files.length;i++)
+			{
+				try {
+					String fileName = files[i];
+					openCSVFile(fileName);			
+					// load the prop file for the CSV file 
+					if(propFileExist){
+						openProp(propFile);
+					} else {
+						rdfMap = rdfMapArr[i];
+					}
+					// determine the type of data in each column of CSV file
+					createProcessors();
+					processConceptRelationURIs();
+					processNodePropURIs();
+					processRelationPropURIs();
+					skipRows();
+					processRelationShips();
+				} finally {
+					closeCSVFile();
+				}
 			}
-			// determine the type of data in each column of CSV file
-			createProcessors();
-			processConceptRelationURIs();
-			processNodePropURIs();
-			processRelationPropURIs();
-			skipRows();
-			processRelationShips();
-			closeCSVFile();
+			createBaseRelations();
+		} finally {
+			closeDB();
 		}
-		createBaseRelations();
-		closeDB();
 	}
 
 	/**
@@ -140,27 +146,29 @@ public class CSVReader extends AbstractFileReader {
 		logger.setLevel(Level.WARN);
 		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
 		openEngineWithConnection(engineName);
-
 		createTypes();
 		for(int i = 0; i<files.length;i++)
 		{
 			String fileName = files[i];
-			openCSVFile(fileName);			
-			// load the prop file for the CSV file 
-			if(propFileExist){
-				openProp(propFile);
-			} else {
-				rdfMap = rdfMapArr[i];
+			openCSVFile(fileName);	
+			try {
+				// load the prop file for the CSV file 
+				if(propFileExist){
+					openProp(propFile);
+				} else {
+					rdfMap = rdfMapArr[i];
+				}
+				// determine the type of data in each column of CSV file
+				createProcessors();
+				processConceptRelationURIs();
+				processNodePropURIs();
+				processRelationPropURIs();
+				skipRows();
+				processRelationShips();
+			} finally {
+				closeCSVFile();
 			}
-			// determine the type of data in each column of CSV file
-			createProcessors();
-			processConceptRelationURIs();
-			processNodePropURIs();
-			processRelationPropURIs();
-			skipRows();
-			processRelationShips();
-			closeCSVFile();
-		}
+		} 
 		createBaseRelations();
 		commitDB();
 	}
@@ -647,7 +655,7 @@ public class CSVReader extends AbstractFileReader {
 				basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
 			}
 			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{basePropURI, Constants.SUBPROPERTY_URI, basePropURI, true});
-//			createStatement(vf.createURI(basePropURI),vf.createURI(),vf.createURI(basePropURI));
+			//			createStatement(vf.createURI(basePropURI),vf.createURI(),vf.createURI(basePropURI));
 
 			while(nodePropTokens.hasMoreElements())
 			{
@@ -761,12 +769,12 @@ public class CSVReader extends AbstractFileReader {
 
 					propURI = basePropURI+"/" + property;
 					engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE, Utility.cleanString(basePropURI, false), true});
-//					createStatement(vf.createURI(propURI),RDF.TYPE,vf.createURI(basePropURI));
+					//					createStatement(vf.createURI(propURI),RDF.TYPE,vf.createURI(basePropURI));
 					//TODO: no longer needed since added in processNodeProperties method in AbstractFileReader s.t. POIReader also
 					//adds properties to OWL files.  However, that method is less efficient since this only adds once while that one
 					//adds for each node instance... need to combine the logic between classes better
-//					basePropURIHash.put(propURI,  propURI);
-//					basePropRelations.put(propURI,  idxBaseURI);
+					//					basePropURIHash.put(propURI,  propURI);
+					//					basePropRelations.put(propURI,  idxBaseURI);
 				}
 			}
 		}
@@ -839,7 +847,7 @@ public class CSVReader extends AbstractFileReader {
 
 					propURI = basePropURI+"/" + property;
 					engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE,  Utility.cleanString(basePropURI, false), true});
-//					createStatement(vf.createURI(propURI),RDF.TYPE,vf.createURI( basePropURI));
+					//					createStatement(vf.createURI(propURI),RDF.TYPE,vf.createURI( basePropURI));
 					//basePropURIHash.put(propURI,  propURI);
 					//basePropRelations.put(propURI,  parentURI); // would need this if we were doing edge properties... but we are not any longer
 				}
@@ -984,7 +992,7 @@ public class CSVReader extends AbstractFileReader {
 			throw new FileReaderException("Could not close reader input stream for CSV file " + fileName);
 		}
 	}
-	
+
 	/**
 	 * Closes the CSV file streams
 	 * @throws FileReaderException 

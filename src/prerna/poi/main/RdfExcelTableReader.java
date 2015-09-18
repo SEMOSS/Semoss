@@ -86,42 +86,48 @@ public class RdfExcelTableReader extends AbstractFileReader {
 	 * @throws HeaderClassException 
 	 * @throws InvalidUploadFormatException 
 	 */
-	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile) throws EngineException, FileWriterException, FileReaderException, HeaderClassException, InvalidUploadFormatException {
+	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile) 
+			throws EngineException, FileWriterException, FileReaderException, HeaderClassException, InvalidUploadFormatException {
 		logger.setLevel(Level.WARN);
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
-		openEngineWithoutConnection(engineName);
-
-		for(int i = 0; i<files.length;i++)
-		{
-			String fileName = files[i];
-			openExcelWorkbook(fileName);
-			for(int j = 0; j < workbook.getNumberOfSheets(); j++)
+		try {
+			openEngineWithoutConnection(engineName);
+			for(int i = 0; i<files.length;i++)
 			{
-				XSSFSheet sheet = workbook.getSheetAt(j);
-				XSSFRow headRow = sheet.getRow(0);
-				headerList = new ArrayList<String>();
-				for(int k = 0; k < headRow.getLastCellNum(); k++) {
-					headerList.add(headRow.getCell(k).toString());
+				String fileName = files[i];
+				openExcelWorkbook(fileName);
+				try {
+					for(int j = 0; j < workbook.getNumberOfSheets(); j++)
+					{
+						XSSFSheet sheet = workbook.getSheetAt(j);
+						XSSFRow headRow = sheet.getRow(0);
+						headerList = new ArrayList<String>();
+						for(int k = 0; k < headRow.getLastCellNum(); k++) {
+							headerList.add(headRow.getCell(k).toString());
+						}
+						// Process your sheet here.
+						// load the prop file for the Excel file
+						if(propFileExist){
+							propFile = headerList.get(headerList.size()-1);
+							headerList.remove(headerList.size()-1);
+							openProp(propFile);
+						} else {
+							rdfMap = rdfMapArr[i];
+						}
+						// determine the type of data in each column of Excel file
+						processConceptRelationURIs(sheet);
+						processNodePropURIs(sheet);
+						processRelationPropURIs(sheet);
+						processRelationShips(sheet);
+					}
+				} finally {
+					closeExcelWorkbook();
 				}
-				// Process your sheet here.
-				// load the prop file for the Excel file
-				if(propFileExist){
-					propFile = headerList.get(headerList.size()-1);
-					headerList.remove(headerList.size()-1);
-					openProp(propFile);
-				} else {
-					rdfMap = rdfMapArr[i];
-				}
-				// determine the type of data in each column of Excel file
-				processConceptRelationURIs(sheet);
-				processNodePropURIs(sheet);
-				processRelationPropURIs(sheet);
-				processRelationShips(sheet);
 			}
-			closeExcelWorkbook();
+			createBaseRelations();
+		} finally {
+			closeDB();
 		}
-		createBaseRelations();
-		closeDB();
 	}
 
 	/**
@@ -141,28 +147,30 @@ public class RdfExcelTableReader extends AbstractFileReader {
 		logger.setLevel(Level.WARN);
 		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
 		openEngineWithConnection(engineName);
-
-		for(int i = 0; i<files.length;i++)
-		{
-			String fileName = files[i];
-			openExcelWorkbook(fileName);	
-			for(int j = 0; j < workbook.getNumberOfSheets(); j++)
-			{
-				XSSFSheet sheet = workbook.getSheetAt(j);
-				propFile = sheet.getRow(0).getCell(sheet.getRow(0).getLastCellNum()-1).toString();
-				// Process your sheet here.
-				// load the prop file for the Excel file
-				if(propFileExist){
-					openProp(propFile);
-				} else {
-					rdfMap = rdfMapArr[i];
+		
+		try {
+			for(int i = 0; i<files.length;i++) {
+				String fileName = files[i];
+				openExcelWorkbook(fileName);	
+				for(int j = 0; j < workbook.getNumberOfSheets(); j++)
+				{
+					XSSFSheet sheet = workbook.getSheetAt(j);
+					propFile = sheet.getRow(0).getCell(sheet.getRow(0).getLastCellNum()-1).toString();
+					// Process your sheet here.
+					// load the prop file for the Excel file
+					if(propFileExist){
+						openProp(propFile);
+					} else {
+						rdfMap = rdfMapArr[i];
+					}
+					// determine the type of data in each column of Excel file
+					processConceptRelationURIs(sheet);
+					processNodePropURIs(sheet);
+					processRelationPropURIs(sheet);
+					processRelationShips(sheet);
 				}
-				// determine the type of data in each column of Excel file
-				processConceptRelationURIs(sheet);
-				processNodePropURIs(sheet);
-				processRelationPropURIs(sheet);
-				processRelationShips(sheet);
 			}
+		} finally {
 			closeExcelWorkbook();
 		}
 		createBaseRelations();
@@ -882,7 +890,7 @@ public class RdfExcelTableReader extends AbstractFileReader {
 				}
 			}
 		}
-		
+
 		//TODO: look at what happens here during testing
 		return "";
 	}
@@ -919,18 +927,20 @@ public class RdfExcelTableReader extends AbstractFileReader {
 			throw new InvalidUploadFormatException("File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
 		}
 	}
-	
+
 	/**
 	 * Load the Excel workbook
 	 * @param fileName String
 	 * @throws FileReaderException 
 	 */
 	public void closeExcelWorkbook() throws FileReaderException {
-		try {
-			poiReader.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new FileReaderException("Could not close Excel file stream");
+		if(poiReader != null) {
+			try {
+				poiReader.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw new FileReaderException("Could not close Excel file stream");
+			}
 		}
 	}
 

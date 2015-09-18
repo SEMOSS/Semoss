@@ -62,9 +62,9 @@ import prerna.util.Utility;
  * Loading data into SEMOSS using Microsoft Excel Loading Sheet files
  */
 public class POIReader extends AbstractFileReader {
-	
+
 	private static final Logger logger = LogManager.getLogger(POIReader.class.getName());
-	
+
 	/**
 	 * Load data into SEMOSS into an existing database
 	 * 
@@ -88,7 +88,7 @@ public class POIReader extends AbstractFileReader {
 		logger.setLevel(Level.ERROR);
 		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
 		openEngineWithConnection(engineName);
-		
+
 		// load map file for existing db
 		if (!customMap.isEmpty()) {
 			openProp(customMap);
@@ -99,7 +99,7 @@ public class POIReader extends AbstractFileReader {
 		createBaseRelations();
 		commitDB();
 	}
-	
+
 	/**
 	 * Loading data into SEMOSS to create a new database
 	 * 
@@ -121,20 +121,22 @@ public class POIReader extends AbstractFileReader {
 	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String customMap, String owlFile)
 			throws FileReaderException, EngineException, FileWriterException, InvalidUploadFormatException {
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
-		openEngineWithoutConnection(engineName);
-		
-		// load map file for db if user wants to use specific URIs
-		if (!customMap.isEmpty()) {
-			openProp(customMap);
+		try {
+			openEngineWithoutConnection(engineName);
+			// load map file for db if user wants to use specific URIs
+			if (!customMap.isEmpty()) {
+				openProp(customMap);
+			}
+			// if user selected a map, load just as before--using the prop file to discover Excel->URI translation
+			for (String fileName : files) {
+				importFile(fileName);
+			}
+			createBaseRelations();
+		} finally {
+			closeDB();
 		}
-		// if user selected a map, load just as before--using the prop file to discover Excel->URI translation
-		for (String fileName : files) {
-			importFile(fileName);
-		}
-		createBaseRelations();
-		closeDB();
 	}
-	
+
 	/**
 	 * Load subclassing information into the db and the owl file Requires the data to be in specific excel tab labeled "Subclass", with Parent nodes
 	 * in the first column and child nodes in the second column
@@ -145,14 +147,14 @@ public class POIReader extends AbstractFileReader {
 	 * @throws SailException
 	 */
 	private void createSubClassing(XSSFSheet subclassSheet) throws EngineException {
-//		try {
-//			if (!scOWL.isActive() || !scOWL.isOpen()) {
-//				scOWL.begin();
-//			}
-//		} catch (SailException e1) {
-//			e1.printStackTrace();
-//			throw new EngineException("Error opening connection to OWL file");
-//		}
+		//		try {
+		//			if (!scOWL.isActive() || !scOWL.isOpen()) {
+		//				scOWL.begin();
+		//			}
+		//		} catch (SailException e1) {
+		//			e1.printStackTrace();
+		//			throw new EngineException("Error opening connection to OWL file");
+		//		}
 		// URI for sublcass
 		String pred = Constants.SUBCLASS_URI;
 		String semossNodeURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
@@ -187,7 +189,7 @@ public class POIReader extends AbstractFileReader {
 		}
 		baseDataEngine.commit();
 	}
-	
+
 	/**
 	 * Load the excel workbook, determine which sheets to load in workbook from the Loader tab
 	 * 
@@ -198,12 +200,50 @@ public class POIReader extends AbstractFileReader {
 	 * @throws InvalidUploadFormatException
 	 */
 	public void importFile(String fileName) throws EngineException, FileReaderException, InvalidUploadFormatException {
-		
+
 		XSSFWorkbook workbook = null;
 		FileInputStream poiReader = null;
 		try {
 			poiReader = new FileInputStream(fileName);
 			workbook = new XSSFWorkbook(poiReader);
+			// load the Loader tab to determine which sheets to load
+			XSSFSheet lSheet = workbook.getSheet("Loader");
+			if (lSheet == null) {
+				throw new FileReaderException("Could not find Loader Sheet in Excel file " + fileName);
+			}
+			// check if user is loading subclassing relationships
+			XSSFSheet subclassSheet = workbook.getSheet("Subclass");
+			if (subclassSheet != null) {
+				createSubClassing(subclassSheet);
+			}
+			// determine number of sheets to load
+			int lastRow = lSheet.getLastRowNum();
+			// first sheet name in second row
+			for (int rIndex = 1; rIndex <= lastRow; rIndex++) {
+				XSSFRow row = lSheet.getRow(rIndex);
+				// check to make sure cell is not null
+				if (row != null) {
+					XSSFCell sheetNameCell = row.getCell(0);
+					XSSFCell sheetTypeCell = row.getCell(1);
+					if (sheetNameCell != null && sheetTypeCell != null) {
+						// get the name of the sheet
+						String sheetToLoad = sheetNameCell.getStringCellValue();
+						// determine the type of load
+						String loadTypeName = sheetTypeCell.getStringCellValue();
+						if (!sheetToLoad.isEmpty() && !loadTypeName.isEmpty()) {
+							logger.debug("Cell Content is " + sheetToLoad);
+							// this is a relationship
+							if (loadTypeName.contains("Matrix")) {
+								loadMatrixSheet(sheetToLoad, workbook);
+								engine.commit();
+							} else {
+								loadSheet(sheetToLoad, workbook);
+								engine.commit();
+							}
+						}
+					}
+				}
+			}
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 			throw new FileReaderException("Could not find Excel file located at " + fileName);
@@ -213,54 +253,18 @@ public class POIReader extends AbstractFileReader {
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new InvalidUploadFormatException("File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
-		}
-		// load the Loader tab to determine which sheets to load
-		XSSFSheet lSheet = workbook.getSheet("Loader");
-		if (lSheet == null) {
-			throw new FileReaderException("Could not find Loader Sheet in Excel file " + fileName);
-		}
-		// check if user is loading subclassing relationships
-		XSSFSheet subclassSheet = workbook.getSheet("Subclass");
-		if (subclassSheet != null) {
-			createSubClassing(subclassSheet);
-		}
-		
-		// determine number of sheets to load
-		int lastRow = lSheet.getLastRowNum();
-		// first sheet name in second row
-		for (int rIndex = 1; rIndex <= lastRow; rIndex++) {
-			XSSFRow row = lSheet.getRow(rIndex);
-			// check to make sure cell is not null
-			if (row != null) {
-				XSSFCell sheetNameCell = row.getCell(0);
-				XSSFCell sheetTypeCell = row.getCell(1);
-				if (sheetNameCell != null && sheetTypeCell != null) {
-					// get the name of the sheet
-					String sheetToLoad = sheetNameCell.getStringCellValue();
-					// determine the type of load
-					String loadTypeName = sheetTypeCell.getStringCellValue();
-					if (!sheetToLoad.isEmpty() && !loadTypeName.isEmpty()) {
-						logger.debug("Cell Content is " + sheetToLoad);
-						// this is a relationship
-						if (loadTypeName.contains("Matrix")) {
-							loadMatrixSheet(sheetToLoad, workbook);
-							engine.commit();
-						} else {
-							loadSheet(sheetToLoad, workbook);
-							engine.commit();
-						}
-					}
+		} finally {
+			if(poiReader != null) {
+				try {
+					poiReader.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+					throw new FileReaderException("Could not close Excel file stream");
 				}
 			}
 		}
-		try {
-			if (poiReader != null)
-				poiReader.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
 	}
-	
+
 	/**
 	 * Load specific sheet in workbook
 	 * 
@@ -272,7 +276,7 @@ public class POIReader extends AbstractFileReader {
 	 * @throws FileReaderException
 	 */
 	public void loadSheet(String sheetToLoad, XSSFWorkbook workbook) throws EngineException, FileReaderException {
-		
+
 		XSSFSheet lSheet = workbook.getSheet(sheetToLoad);
 		if (lSheet == null) {
 			throw new FileReaderException("Could not find sheet " + sheetToLoad + " in workbook.");
@@ -280,15 +284,15 @@ public class POIReader extends AbstractFileReader {
 		logger.info("Loading Sheet: " + sheetToLoad);
 		System.out.println(">>>>>>>>>>>>>>>>> " + sheetToLoad);
 		int lastRow = lSheet.getLastRowNum() + 1;
-		
+
 		// Get the first row to get column names
 		XSSFRow row = lSheet.getRow(0);
-		
+
 		// initialize variables
 		String objectNode = "";
 		String relName = "";
 		Vector<String> propNames = new Vector<String>();
-		
+
 		// determine if relationship or property sheet
 		String sheetType = row.getCell(0).getStringCellValue();
 		String subjectNode = row.getCell(1).getStringCellValue();
@@ -298,7 +302,7 @@ public class POIReader extends AbstractFileReader {
 			// if relationship, properties start at column 2
 			currentColumn++;
 		}
-		
+
 		// determine property names for the relationship or node
 		// colIndex starts at currentColumn+1 since if relationship, the object node name is in the second column
 		int lastColumn = 0;
@@ -310,27 +314,27 @@ public class POIReader extends AbstractFileReader {
 			}
 		}
 		logger.info("Number of Columns: " + (lastColumn + 1));
-		
+
 		// processing starts
 		logger.info("Number of Rows: " + lastRow);
 		for (int rowIndex = 1; rowIndex < lastRow; rowIndex++) {
 			// first cell is the name of relationship
 			XSSFRow nextRow = lSheet.getRow(rowIndex);
-			
+
 			if (nextRow == null) {
 				continue;
 			}
-			
+
 			// get the name of the relationship
 			if (rowIndex == 1) {
 				relName = nextRow.getCell(0).getStringCellValue();
 			}
-			
+
 			// set the name of the subject instance node to be a string
 			if (nextRow.getCell(1) != null && nextRow.getCell(1).getCellType() != XSSFCell.CELL_TYPE_BLANK) {
 				nextRow.getCell(1).setCellType(XSSFCell.CELL_TYPE_STRING);
 			}
-			
+
 			// to prevent errors when java thinks there is a row of data when the row is empty
 			XSSFCell instanceSubjectNodeCell = nextRow.getCell(1);
 			String instanceSubjectNode = "";
@@ -340,7 +344,7 @@ public class POIReader extends AbstractFileReader {
 			} else {
 				continue;
 			}
-			
+
 			// get the name of the object instance node if relationship
 			String instanceObjectNode = "";
 			int startCol = 1;
@@ -357,7 +361,7 @@ public class POIReader extends AbstractFileReader {
 				startCol++;
 				offset++;
 			}
-			
+
 			Hashtable<String, Object> propHash = new Hashtable<String, Object>();
 			// process properties
 			for (int colIndex = (startCol + 1); colIndex < nextRow.getLastCellNum(); colIndex++) {
@@ -384,7 +388,7 @@ public class POIReader extends AbstractFileReader {
 					propHash.put(propName, propValue);
 				}
 			}
-			
+
 			if (sheetType.equalsIgnoreCase("Relation")) {
 				// adjust indexing since first row in java starts at 0
 				logger.info("Processing Relationship Sheet: " + sheetToLoad + ", Row: " + (rowIndex + 1));
@@ -397,7 +401,7 @@ public class POIReader extends AbstractFileReader {
 			}
 		}
 	}
-	
+
 	/**
 	 * Load excel sheet in matrix format
 	 * 
@@ -411,18 +415,18 @@ public class POIReader extends AbstractFileReader {
 		XSSFSheet lSheet = workbook.getSheet(sheetToLoad);
 		int lastRow = lSheet.getLastRowNum();
 		logger.info("Number of Rows: " + lastRow);
-		
+
 		// Get the first row to get column names
 		XSSFRow row = lSheet.getRow(0);
 		// initialize variables
 		String objectNodeType = "";
 		String relName = "";
 		boolean propExists = false;
-		
+
 		String sheetType = row.getCell(0).getStringCellValue();
 		// Get the string that contains the subject node type, object node type, and properties
 		String nodeMap = row.getCell(1).getStringCellValue();
-		
+
 		// check to see if properties exist
 		String propertyName = "";
 		StringTokenizer tokenProperties = new StringTokenizer(nodeMap, "@");
@@ -431,14 +435,14 @@ public class POIReader extends AbstractFileReader {
 			propertyName = tokenProperties.nextToken();
 			propExists = true;
 		}
-		
+
 		StringTokenizer tokenTriple = new StringTokenizer(triple, "_");
 		String subjectNodeType = tokenTriple.nextToken();
 		if (sheetType.equalsIgnoreCase("Relation")) {
 			relName = tokenTriple.nextToken();
 			objectNodeType = tokenTriple.nextToken();
 		}
-		
+
 		// determine object instance names for the relationship
 		ArrayList<String> objectInstanceArray = new ArrayList<String>();
 		int lastColumn = 0;
@@ -449,7 +453,7 @@ public class POIReader extends AbstractFileReader {
 		// fix number of columns due to data shift in excel sheet
 		lastColumn--;
 		logger.info("Number of Columns: " + lastColumn);
-		
+
 		try {
 			// process all rows (contains subject instances) in the matrix
 			for (int rowIndex = 1; rowIndex <= lastRow; rowIndex++) {
@@ -486,7 +490,7 @@ public class POIReader extends AbstractFileReader {
 							mapExists = true;
 						}
 					}
-					
+
 					if (sheetType.equalsIgnoreCase("Relation") && mapExists) {
 						logger.info("Processing" + sheetToLoad + " Row " + rowIndex + " Column " + colIndex);
 						createRelationship(subjectNodeType, objectNodeType, instanceSubjectName, instanceObjectName, relName, propHash);
@@ -501,5 +505,5 @@ public class POIReader extends AbstractFileReader {
 			logger.info("Done processing: " + sheetToLoad);
 		}
 	}
-	
+
 }

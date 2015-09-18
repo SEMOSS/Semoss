@@ -103,10 +103,10 @@ public abstract class AbstractFileReader {
 			rdfPropMap.load(fileIn);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Could not find user-specified prop file with CSV metamodel data located at: " + fileName);
+			throw new FileReaderException("Could not find user-specified prop file with CSV metamodel data located in header row in cell: " + fileName);
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Could not read user-specified prop file with CSV metamodel data located at: " + fileName);
+			throw new FileReaderException("Could not read user-specified prop file with CSV metamodel data located in header row in cell: " + fileName);
 		} finally{
 			try{
 				if(fileIn!=null)
@@ -126,8 +126,10 @@ public abstract class AbstractFileReader {
 	 */
 	public void closeDB() throws EngineException {
 		logger.warn("Closing....");
-		commitDB();
-		engine.closeDB();
+		if(engine != null) {
+			commitDB();
+			engine.closeDB();
+		}
 		//TODO: why do we do this?
 //		try {
 //			sc.close();
