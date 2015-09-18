@@ -31,6 +31,11 @@ public class SystemRiskScatterVisualizationPlaySheet extends GridScatterSheet{
 	}
 	
 	@Override
+	public Hashtable getData(){
+		return super.getData();
+	}
+	
+	@Override
 	public void setQuery(String query){
 		this.failureRate = Double.parseDouble(query);
 	}
