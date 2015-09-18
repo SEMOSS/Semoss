@@ -51,10 +51,10 @@ import prerna.util.Utility;
 public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 
 	private static final Logger LOGGER = LogManager.getLogger(SequencingDecommissioningPlaySheet.class.getName());
-//	Map dataHash = new Hashtable();
+	//	Map dataHash = new Hashtable();
 
-//	String INTERFACE_QUERY = "SELECT DISTINCT ?System2 ?System3 WHERE { {?System2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?System3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payloads>;} {?icd1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Interface_Control_Document>;} {?upstream1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provides>;}{?downstream1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consumes>;} {?System2 ?upstream1 ?icd1 ;}{?icd1 ?downstream1 ?System3;}{?icd1 ?carries ?Data1;} } BINDINGS ?Data1 {@Data-Data@}";
-	
+	//	String INTERFACE_QUERY = "SELECT DISTINCT ?System2 ?System3 WHERE { {?System2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?System3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payloads>;} {?icd1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Interface_Control_Document>;} {?upstream1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provides>;}{?downstream1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consumes>;} {?System2 ?upstream1 ?icd1 ;}{?icd1 ?downstream1 ?System3;}{?icd1 ?carries ?Data1;} } BINDINGS ?Data1 {@Data-Data@}";
+
 	// Add bindings to below queries before using
 	// Query 1) SELECT DISTINCT ?Activity ?BLU WHERE { {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>;} {?BLU a <http://semoss.org/ontologies/Concept/BusinessLogicUnit>} {?Activity <http://semoss.org/ontologies/Relation/Needs> ?BLU} }
 	// Query 2) SELECT DISTINCT ?Activity ?BLU ?System WHERE { {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity>;} {?BLU a <http://semoss.org/ontologies/Concept/BusinessLogicUnit>}{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?BLU}{?System <http://semoss.org/ontologies/Relation/Performs> ?BLU} }
@@ -71,7 +71,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 	public SequencingDecommissioningPlaySheet() {
 		super();
 	}
-	
+
 	public Map<Integer, List<List<Integer>>> collectData(){
 		// populate data object list with list of all data objects (query should be passed in)
 		ISelectWrapper depObjWrap = WrapperManager.getInstance().getSWrapper(this.engine, this.depObjQuery);
@@ -104,23 +104,23 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 
 	@Override
 	public void createData() {
-		
-//		List<HashMap<String, List<Object[]>>> addtlCols = createAddtlCols(groups);
+
+		//		List<HashMap<String, List<Object[]>>> addtlCols = createAddtlCols(groups);
 		Map<Integer, List<List<Integer>>> decomGroups = collectData();
 		Object[] res = getResults(decomGroups);
 		createTable((Map<String, List<String>>)res[0], (Map<String, List<String>>)res[1], (List<String>)res[2], this.compObjName);
 	}
-	
+
 	private static Map<Integer, List<List<Integer>>> createDecommissioningGroups(List<List<Integer>> groups, Map<String, List<String>> dependMap){
 		Map<Integer, List<List<Integer>>> decomGroups = new HashMap<Integer, List<List<Integer>>>();
-				
+
 		int waveInt = 0;
 		while (!groups.isEmpty()){
 			LOGGER.info("Begining processing of wave ::::::::::::::::: " + waveInt);
 			List<List<Integer>> wave = new ArrayList<List<Integer>>();
 			groupsFor: for (List<Integer> group : groups){
 				List<List<Integer>> overlapping = new ArrayList<List<Integer>>();
-//				group.removeAll(procRows);
+				//				group.removeAll(procRows);
 				LOGGER.info("Evaluating for wave " + waveInt + " the group " + Arrays.toString(group.toArray()));
 				for(List<Integer> waveGroup : wave){
 					if(!Collections.disjoint(group, waveGroup)){ // this mean my group has some overlap with a wave group
@@ -144,14 +144,14 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 					LOGGER.info("removing " + Arrays.toString(overlappingGroup.toArray()));
 					wave.remove(overlappingGroup);
 				}
-				
+
 				wave.add(group);
 			}
 
 			LOGGER.info("DONE PROCESSING WAVE ::::::: " + waveInt);
 			for(List<Integer> thegroup: wave){
 				LOGGER.info("WAVE ::::::: " + waveInt + " :::::::: CONTAINS ::::::::::" + thegroup.toString());
-//				procRows.addAll(thegroup);
+				//				procRows.addAll(thegroup);
 				String thegroupsname = new String(waveInt+"."+wave.indexOf(thegroup));
 				List<String> thegroupsdependencies = dependMap.get(thegroup);
 				if(thegroupsdependencies!=null){
@@ -171,21 +171,21 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			decomGroups.put(waveInt, wave);
 			waveInt ++;
 		}
-		
+
 		return decomGroups;
 	}
-	
+
 	public Object[] getResults(Map<Integer, List<List<Integer>>> groups){
 		Map<String, List<String>> group2ActMap = new HashMap<String, List<String>>();
 		Map<String, List<String>> group2DependActsMap = new HashMap<String, List<String>>();
 		List<String> masterGroupList = new ArrayList<String>();
-		
+
 		//key is counter for one level above group
 		for(Integer key: groups.keySet()){
 			List<List<Integer>> depGroups = groups.get(key);
 			for(List<Integer> depGroup: depGroups) {
 				String keyToGroupCounter = new String(key.toString()+"."+depGroups.indexOf(depGroup));
-				
+
 				List<String> items = new ArrayList<String>();
 				for(Integer compObj: depGroup) {
 					// add to group2Act array
@@ -203,15 +203,15 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 				masterGroupList.add(0, keyToGroupCounter);
 			}
 		}
-		
+
 		Object[] res = new Object[3];
 		res[0] = group2ActMap; // group #s to activities
 		res[1] = group2DependActsMap; // group #s to dependecy arrays
 		res[2] = masterGroupList; // array of ordered group #s
-		
+
 		return res;
 	}
-	
+
 	private void createTable(Map<String, List<String>> group2ActMap, Map<String, List<String>> group2DependActsMap, List<String> masterArray, String compObjName){
 
 		// build the names
@@ -220,53 +220,53 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 		namesList.add(compObjName + " Group");
 		namesList.add(compObjName + " Group Dependencies");
 
-//		list = new ArrayList<Object[]>();
+		//		list = new ArrayList<Object[]>();
 		//key is counter for one level above group
-//		for(Integer key: groups.keySet()){
+		//		for(Integer key: groups.keySet()){
 		for(String depGroup: masterArray) {
-//			List<List<Integer>> depGroups = groups.get(key);
-//			for(List<Integer> depGroup: depGroups) {
-//				String keyToGroupCounter = new String(key.toString()+"."+depGroups.indexOf(depGroup));
-//				double location = Double.parseDouble(keyToGroupCounter);
-//				
-				List<String> acts = group2ActMap.get(depGroup);
-				List<Object[]> addtlCols = new ArrayList<Object[]>();
-				for(String addtlQuery: this.addtlQueries){
-					processQuery(acts, addtlQuery, addtlCols, namesList, compObjName);
+			//			List<List<Integer>> depGroups = groups.get(key);
+			//			for(List<Integer> depGroup: depGroups) {
+			//				String keyToGroupCounter = new String(key.toString()+"."+depGroups.indexOf(depGroup));
+			//				double location = Double.parseDouble(keyToGroupCounter);
+			//				
+			List<String> acts = group2ActMap.get(depGroup);
+			List<Object[]> addtlCols = new ArrayList<Object[]>();
+			for(String addtlQuery: this.addtlQueries){
+				processQuery(acts, addtlQuery, addtlCols, namesList, compObjName);
+			}
+			if(this.dataFrame == null){
+				String[] names = new String[namesList.size()];
+				names = namesList.toArray(names);
+				this.dataFrame = new OrderedBTreeDataFrame(names);
+			}
+			for(String act: acts) {
+				Object[] depObj = new Object[namesList.size()];
+				depObj[0] = act;
+				depObj[1] = depGroup;
+				depObj[2] = group2DependActsMap.get(depGroup);
+
+				if(addtlCols.isEmpty()){
+					this.dataFrame.addRow(depObj, depObj);
 				}
-				if(this.dataFrame == null){
-					String[] names = new String[namesList.size()];
-					names = namesList.toArray(names);
-					this.dataFrame = new OrderedBTreeDataFrame(names);
-				}
-				for(String act: acts) {
-					Object[] depObj = new Object[namesList.size()];
-					depObj[0] = act;
-					depObj[1] = depGroup;
-					depObj[2] = group2DependActsMap.get(depGroup);
-					
-					if(addtlCols.isEmpty()){
-						this.dataFrame.addRow(depObj, depObj);
-					}
-					else {
-						for(Object[] row : addtlCols){
-							Object[] depObj2 = depObj.clone();
-							for(int addtlIdx = 3 ; addtlIdx < row.length; addtlIdx++ ){
-								LOGGER.debug(row[addtlIdx]);
-								depObj2[addtlIdx] = row[addtlIdx];
-							}
-							this.dataFrame.addRow(depObj2, depObj2);
+				else {
+					for(Object[] row : addtlCols){
+						Object[] depObj2 = depObj.clone();
+						for(int addtlIdx = 3 ; addtlIdx < row.length; addtlIdx++ ){
+							LOGGER.debug(row[addtlIdx]);
+							depObj2[addtlIdx] = row[addtlIdx];
 						}
+						this.dataFrame.addRow(depObj2, depObj2);
 					}
-					LOGGER.debug("Added object "+depGroup);
 				}
-//			}
+				LOGGER.debug("Added object "+depGroup);
+			}
+			//			}
 		}
 		// set the names
-//		this.names = new String[namesList.size()];
-//		this.names = namesList.toArray(this.names);
+		//		this.names = new String[namesList.size()];
+		//		this.names = namesList.toArray(this.names);
 	}
-	
+
 	private void processQuery(List<String> depGroup, String addtlQuery, List<Object[]> addtlCols, List<String> namesList, String compObj){
 		String bindings = "";
 		for(String name: depGroup){
@@ -275,7 +275,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 		String filledQuery = addtlQuery.replaceAll("~~GroupMembers-GroupMembers~~", bindings).replaceAll("~~DepObj-DepObj~~", this.depObjFilterString);
 		LOGGER.debug("col query " + filledQuery);
 		ISelectWrapper sw = WrapperManager.getInstance().getSWrapper(this.engine, filledQuery);
-		
+
 		String[] wrapNames = sw.getVariables();
 		Integer[] wrapIdx = new Integer[wrapNames.length]; // find if the names already exist as col headers. if they do, get the idx. if not, add and get the idx
 		for(int nIdx = 0; nIdx < wrapNames.length; nIdx++){
@@ -285,7 +285,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			}
 			wrapIdx[nIdx] = namesList.indexOf(name);
 		}
-		
+
 		// process the query
 		while(sw.hasNext()){
 			Object[] row = new Object[namesList.size()];
@@ -295,7 +295,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			}
 			addtlCols.add(row);
 		}
-		
+
 		return;
 	}
 
@@ -309,7 +309,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 
 		Integer[][] dependMatrix = new Integer[compObjList.size()][compObjList.size()];
 		String query = this.depQuery.replace("~~DepObj-DepObj~~", depObjFilterString);
-		
+
 		LOGGER.info("Final dependency query :  " + query);
 		ISelectWrapper depWrap = WrapperManager.getInstance().getSWrapper(this.engine, query);
 		//wrapper manager, etc. to fill sys list
@@ -457,10 +457,10 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 
 		List<List<Integer>> groups = createGroups(testSystems);
 		Map<Integer, List<List<Integer>>> decomGroups = createDecommissioningGroups(groups, new HashMap()); 
-		
+
 		ArrayList <Object []> list = new ArrayList<Object[]>();
 		int groupCounter = 0;
-		
+
 		//key is counter for one level above group
 		for(Integer key: decomGroups.keySet()){
 			for(List<Integer> depGroup: decomGroups.get(key)){
@@ -475,59 +475,13 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 			}
 			groupCounter = 0;
 		}
-		
+
 	}
-	
+
 	@Override
 	public Hashtable getData(){
-		List<Object[]> theList = new ArrayList<Object[]>();
-		String playSheetClassName = PlaySheetEnum.getClassFromName("Grid");
-		GridPlaySheet playSheet = null;
-		try {
-			playSheet = (GridPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
-		} catch (ClassNotFoundException ex) {
-			ex.printStackTrace();
-			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
-		} catch (IllegalAccessException e) {
-			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
-		} catch (IllegalArgumentException e) {
-			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
-		} catch (InvocationTargetException e) {
-			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
-		} catch (NoSuchMethodException e) {
-			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
-		} catch (SecurityException e) {
-			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
-			e.printStackTrace();
-		}
-		playSheet.setTitle(this.title);
-		playSheet.setQuestionID(this.questionNum);//
-		Hashtable retHash = (Hashtable) playSheet.getData();
-		List<Object[]> myList = this.dataFrame.getData();
-		if(myList.size() > 1001){
-			theList = myList.subList(0, 1000);
-		}else{
-			theList = myList;
-		}
-		for(Object[] myRow : theList){
-			for(int i = 0; i < myRow.length; i++){
-				if(myRow[i] == null){
-					myRow[i] = "";
-				}
-				else {
-					myRow[i] = myRow[i].toString();
-				}
-			}
-		}
-		retHash.put("data", theList);
-		return retHash;
+		Hashtable returnHash = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, "Grid");
+		return returnHash;
 	}
 
 }
