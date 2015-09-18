@@ -22,7 +22,6 @@ import prerna.util.PlaySheetEnum;
 public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlaySheet {
 
 	private static final Logger logger = LogManager.getLogger(RoadmapTimelineComboChartPlaySheet.class.getName());
-	String[] newHeaders = new String[]{"Fiscal Year", "Annual Savings", "Annual Expenses", "Annual Cash Flow", "Cumulative Net Savings"};
 	List<Object[]> myList = new ArrayList<Object[]>();
 
 	protected Hashtable dataHash = new Hashtable();
@@ -32,18 +31,18 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 	{		
 		ArrayList< ArrayList<Hashtable<String, Object>>> dataObj = new ArrayList< ArrayList<Hashtable<String, Object>>>();
 		String[] names = dataFrame.getColumnHeaders();
-
+		String[] newHeaders = this.timelines.get(0).getCostSavingsHeaders();
 		//series name - all objects in that series (x : ... , y : ...)
 //		Iterator<Object[]> it = dataFrame.iterator(true);
 		Iterator<Object[]> it = myList.iterator();
 		List<Object> annlSavingsSeries = new ArrayList<Object>();
-		annlSavingsSeries.add(this.newHeaders[1]);
+		annlSavingsSeries.add(newHeaders[1]);
 		List<Object> annlExpensesSeries = new ArrayList<Object>();
-		annlExpensesSeries.add(this.newHeaders[2]);
+		annlExpensesSeries.add(newHeaders[2]);
 		List<Object> annlCashFlowSeries = new ArrayList<Object>();
-		annlCashFlowSeries.add(this.newHeaders[3]);
+		annlCashFlowSeries.add(newHeaders[3]);
 		List<Object> cumNetSavingsSeries = new ArrayList<Object>();
-		cumNetSavingsSeries.add(this.newHeaders[4]);
+		cumNetSavingsSeries.add(newHeaders[4]);
 		List<Object> ticks = new ArrayList<Object>();
 		while(it.hasNext())
 		{
@@ -69,7 +68,7 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 		myHash.put("type", "bar");
 		
 		Map<String, String> types = new HashMap<String, String>();
-		types.put(this.newHeaders[4], "line");
+		types.put(newHeaders[4], "line");
 		
 		myHash.put("types", types);
 //		myHash.put("groups", new Object[]{this.newHeaders[1], this.newHeaders[2], this.newHeaders[3]});
@@ -124,13 +123,16 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 
 	@Override
 	public Hashtable getData(){
-		Hashtable ret = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, PlaySheetEnum.Column_Chart.name());
+		Hashtable ret = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, PlaySheetEnum.Column_Chart.getSheetName());
+		
+		ret.put("playsheet", "OUSDCombo");
 		return ret;
 	}
 	
 	@Override
 	public void createData(){
 		buildTable(timelineNames, null);
+		String[] newHeaders = this.timelines.get(0).getCostSavingsHeaders();
 				
 		// go through the final table and reformat to how I need
 		// we want a row for each fy

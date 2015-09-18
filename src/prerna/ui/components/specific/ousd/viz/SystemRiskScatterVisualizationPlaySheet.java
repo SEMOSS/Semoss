@@ -18,6 +18,7 @@ import prerna.ui.components.specific.ousd.ActivityGroupRiskCalculator;
 import prerna.ui.components.specific.ousd.OUSDPlaysheetHelper;
 import prerna.ui.components.specific.ousd.OUSDQueryHelper;
 import prerna.ui.components.specific.ousd.SequencingDecommissioningPlaySheet;
+import prerna.util.PlaySheetEnum;
 
 public class SystemRiskScatterVisualizationPlaySheet extends GridScatterSheet{
 
@@ -29,10 +30,11 @@ public class SystemRiskScatterVisualizationPlaySheet extends GridScatterSheet{
 	public SystemRiskScatterVisualizationPlaySheet(){
 		super();
 	}
-	
+
 	@Override
 	public Hashtable getData(){
-		return super.getData();
+		Hashtable ret = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, PlaySheetEnum.Grid_Scatter.getSheetName());
+		return ret;
 	}
 	
 	@Override

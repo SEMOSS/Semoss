@@ -120,11 +120,11 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 		Hashtable<String, Object> map = (Hashtable<String, Object>) super.getData();
 		//		map.put("data", this.timeline.getGanttData());
 		//		map.put("headers", this.timeline.getGanttHeaders());
-		List<Object> datas = new ArrayList<Object>();
-		for(OUSDTimeline timeline: timelines){
-			datas.add(timeline.getDashboardData());
-		}
-		map.put("data", datas);
+//		List<Object> datas = new ArrayList<Object>();
+//		for(OUSDTimeline timeline: timelines){
+//			datas.add(timeline.getDashboardData());
+//		}
+		map.put("data", timelines.get(0).getDashboardData());
 		map.put("headers", new System[0]);
 		return map;
 	}
