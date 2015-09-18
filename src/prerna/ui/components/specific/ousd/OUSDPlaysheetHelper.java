@@ -1,5 +1,6 @@
 package prerna.ui.components.specific.ousd;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -9,13 +10,13 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.ISelectStatement;
-import prerna.engine.api.ISelectWrapper;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.ExecuteQueryProcessor;
+import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.PlaySheetEnum;
 import prerna.util.Utility;
 
 public final class OUSDPlaysheetHelper {
@@ -24,6 +25,58 @@ public final class OUSDPlaysheetHelper {
 
 	private OUSDPlaysheetHelper(){
 
+	}
+
+	public static Hashtable getData(String title, String questionNumber, ITableDataFrame dataFrame, String playsheetName){
+		List<Object[]> theList = new ArrayList<Object[]>();
+		String playSheetClassName = PlaySheetEnum.getClassFromName(playsheetName);
+		GridPlaySheet playSheet = null;
+		try {
+			playSheet = (GridPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
+		} catch (ClassNotFoundException ex) {
+			ex.printStackTrace();
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+		} catch (IllegalAccessException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (NoSuchMethodException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
+			e.printStackTrace();
+		}
+		playSheet.setTitle(title);
+		playSheet.setQuestionID(questionNumber);//
+		Hashtable retHash = (Hashtable) playSheet.getData();
+		List<Object[]> myList = dataFrame.getData();
+		if(myList.size() > 1001){
+			theList = myList.subList(0, 1000);
+		}else{
+			theList = myList;
+		}
+		for(Object[] myRow : theList){
+			for(int i = 0; i < myRow.length; i++){
+				if(myRow[i] == null){
+					myRow[i] = "";
+				}
+				else {
+					myRow[i] = myRow[i].toString();
+				}
+			}
+		}
+		retHash.put("data", theList);
+		retHash.put("headers", dataFrame.getColumnHeaders());
+		return retHash;
 	}
 
 	/**
@@ -161,7 +214,7 @@ public final class OUSDPlaysheetHelper {
 	public static OUSDTimeline buildTimeline(IEngine engine, String timelineName) throws ClassNotFoundException, InstantiationException, IllegalAccessException{
 
 		timelineName = timelineName.toUpperCase().replaceAll(" ", "_");
-		
+
 		String timelineClassName = (String) engine.getProperty(timelineName);
 
 		Class<?> timeClass = Class.forName(timelineClassName);
@@ -178,7 +231,7 @@ public final class OUSDPlaysheetHelper {
 	public static OUSDTimeline buildTimeline(IEngine engine, String timelineName, String owner) throws ClassNotFoundException, InstantiationException, IllegalAccessException{
 
 		timelineName = timelineName.toUpperCase().replaceAll(" ", "_");
-		
+
 		String timelineClassName = (String) engine.getProperty(timelineName);
 
 		Class<?> timeClass = Class.forName(timelineClassName);
@@ -191,7 +244,7 @@ public final class OUSDPlaysheetHelper {
 
 		return timeline;
 	}
-	
+
 	private static OUSDTimeline fillTimeline(OUSDTimeline timeline, IEngine engine, String owner){
 
 		List<String> systemList = new ArrayList<String>();
@@ -202,7 +255,7 @@ public final class OUSDPlaysheetHelper {
 		Map<String, List<String>> granularBLUMap = new HashMap<String, List<String>>();
 		Map<String, List<List<String>>> sdsMap = new HashMap<String, List<List<String>>>();
 		Map<String, List<String>> targetMap = new HashMap<String, List<String>>();
-		
+
 		List<String> owners = new ArrayList<String>();
 		if(owner == null){
 			owner = "DFAS";
@@ -230,11 +283,11 @@ public final class OUSDPlaysheetHelper {
 			bluMap = OUSDQueryHelper.getBLUtoSystem(engine, sysBindingsString);
 			String bluBindings = OUSDPlaysheetHelper.bluBindingStringMaker(bluMap);
 
-			
+
 			List<Object[]> bluDataList = OUSDQueryHelper.getDataConsumedByBLU(engine, bluBindings);
-				
+
 			granularBLUMap = OUSDPlaysheetHelper.systemToGranularBLU(bluDataList, dataSystemMap, bluMap);
-			
+
 			timeline.setGranularBLUMap(granularBLUMap);
 		}
 
@@ -242,15 +295,15 @@ public final class OUSDPlaysheetHelper {
 			targetMap = OUSDQueryHelper.getSystemToTarget(engine, sysBindingsString);
 			timeline.setTargetMap(targetMap);
 			timeline.updateTargetSystems();
-			
+
 		}
-		
+
 		if(timeline.getTreeMaxList() == null){	
 			buildRiskList(timeline, sysList, sysBindingsString, engine);
 		}
-		
+
 		timeline.verifyYears();
-		
+
 		return timeline;
 	}
 
@@ -258,7 +311,7 @@ public final class OUSDPlaysheetHelper {
 		ActivityGroupRiskCalculator calc = new ActivityGroupRiskCalculator();
 		String cleanActInsightString = "What clean groups can activities supporting a given E2E be put into?";
 		double failureRate = 0.001;
-		
+
 		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
 		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
 		proc.processQuestionQuery(roadmapEngine, cleanActInsightString, emptyTable);
@@ -277,7 +330,7 @@ public final class OUSDPlaysheetHelper {
 
 		Map<String, Map<String, List<String>>> activityDataSystemMap = OUSDQueryHelper.getActivityDataSystemMap(roadmapEngine, systemBindings);
 		Map<String, Map<String, List<String>>> activityBluSystemMap = OUSDQueryHelper.getActivityGranularBluSystemMap(roadmapEngine, systemBindings);
-		
+
 		Map<String, Map<String, List<String>>> bluDataSystemMap = OUSDPlaysheetHelper.combineMaps(activityDataSystemMap, activityBluSystemMap);
 
 		List<String> decomList = new ArrayList<String>();
@@ -306,7 +359,7 @@ public final class OUSDPlaysheetHelper {
 			updateBluDataSystemMap(calc, decomList, bluDataSystemMap);
 		}
 	}
-	
+
 	private static void updateBluDataSystemMap(ActivityGroupRiskCalculator calc, List<String> decomList, Map<String, Map<String, List<String>>> bluDataSystemMap){
 		for(String activity: bluDataSystemMap.keySet()){
 			Map<String, List<String>> bluDataSystem = bluDataSystemMap.get(activity);
@@ -325,18 +378,18 @@ public final class OUSDPlaysheetHelper {
 		}
 		calc.setBluMap(bluDataSystemMap);
 	}
-	
+
 	public static Map<String, Map<String, List<String>>> combineMaps(Map<String, Map<String, List<String>>> mapOne, Map<String, Map<String, List<String>>> mapTwo){
 		Map<String, Map<String, List<String>>> combinedMap = new HashMap<String, Map<String, List<String>>>();
 		combinedMap.putAll(mapOne);
 		for(String key : mapTwo.keySet()) {
-		    Map<String, List<String>> subMapTwo = mapTwo.get(key);
-		    Map<String, List<String>> subMapOne = combinedMap.get(key);
-		    if(subMapOne != null) {
-		    	subMapOne.putAll(subMapTwo);
-		    } else {
-		    	combinedMap.put(key,subMapTwo);
-		    }
+			Map<String, List<String>> subMapTwo = mapTwo.get(key);
+			Map<String, List<String>> subMapOne = combinedMap.get(key);
+			if(subMapOne != null) {
+				subMapOne.putAll(subMapTwo);
+			} else {
+				combinedMap.put(key,subMapTwo);
+			}
 		}
 		return combinedMap;
 	}
