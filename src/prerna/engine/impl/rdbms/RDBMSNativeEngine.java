@@ -321,6 +321,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	public void closeDB() {
 		if(useConnectionPooling){
 			closeEngine();
+			//TODO: should this go inside or outside if statement?
+			closeDataSource();
 		}
 	}
 	
