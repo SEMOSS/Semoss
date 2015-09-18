@@ -1,13 +1,11 @@
 package prerna.test;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Hashtable;
 import java.util.Properties;
 import java.util.Vector;
 
@@ -23,14 +21,14 @@ import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.error.EngineException;
 import prerna.error.FileReaderException;
 import prerna.error.FileWriterException;
 import prerna.error.HeaderClassException;
+import prerna.error.InvalidUploadFormatException;
 import prerna.error.NLPException;
-import prerna.om.Insight;
-import prerna.engine.api.IEngine;
-import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.ui.components.ImportDataProcessor;
 import prerna.ui.components.ImportDataProcessor.DB_TYPE;
 import prerna.ui.components.ImportDataProcessor.IMPORT_METHOD;
@@ -164,7 +162,7 @@ public class ImportDataProcessorTest {
 
 	//CSV DB created
 	@Test
-	public void Test_CreateNew_CSV() throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException, NullPointerException{
+	public void Test_CreateNew_CSV() throws Exception{
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.CREATE_NEW;
 		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.CSV;
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
@@ -225,7 +223,7 @@ public class ImportDataProcessorTest {
 	
 	//EXCEL DB created
 	@Test
-	public void Test_CreateNew_EXCEL() throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException{
+	public void Test_CreateNew_EXCEL() throws Exception{
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.CREATE_NEW;
 		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.EXCEL_POI;	
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
@@ -285,7 +283,7 @@ public class ImportDataProcessorTest {
 	
 	//CSV add to existing
 	@Test
-	public void Test_AddToExisting_CSV() throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException, IOException, MalformedQueryException, NullPointerException{
+	public void Test_AddToExisting_CSV() throws Exception{
 		//Make CSV
 		makeCSV();
 		
@@ -352,7 +350,7 @@ public class ImportDataProcessorTest {
 
 	//EXCEL add to existing
 	@Test
-	public void Test_AddToExisting_EXCEL() throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException, MalformedQueryException, NullPointerException{
+	public void Test_AddToExisting_EXCEL() throws Exception{
 		//Make Test Excel
 		makeExcel();
 		
@@ -420,7 +418,7 @@ public class ImportDataProcessorTest {
 	//CSV Override
 	@Ignore
 	@Test
-	public void Test_OVERRIDE_CSV() throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException{
+	public void Test_OVERRIDE_CSV() throws Exception{
 		makeCSV();
 		
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.OVERRIDE;
@@ -471,7 +469,7 @@ public class ImportDataProcessorTest {
 	//EXCEL Override
 	@Ignore
 	@Test
-	public void Test_OVERRIDE_EXCEL() throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException{
+	public void Test_OVERRIDE_EXCEL() throws Exception{
 		makeExcel();
 		
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.OVERRIDE;
@@ -529,7 +527,7 @@ public class ImportDataProcessorTest {
 	 * prepQuery
 	 * loadEngine
 	 */
-	private void makeExcel() throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException{
+	private void makeExcel() throws Exception{
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.CREATE_NEW;
 		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.EXCEL_POI;	
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
@@ -541,7 +539,7 @@ public class ImportDataProcessorTest {
 		System.out.println("	EXCEL Db proccesor ran successfully. Excel DB created.");
 	}
 	
-	private void makeCSV() throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException{
+	private void makeCSV() throws Exception{
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.CREATE_NEW;
 		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.CSV;
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
