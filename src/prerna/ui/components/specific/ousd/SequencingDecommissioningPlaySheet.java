@@ -480,7 +480,7 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 
 	@Override
 	public Hashtable getData(){
-		Hashtable returnHash = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, "Grid");
+		Hashtable returnHash = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, PlaySheetEnum.Grid.getSheetName());
 		return returnHash;
 	}
 
