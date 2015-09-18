@@ -25,7 +25,7 @@ public class ITableStatCounter {
 
 	}
 	
-	public static void addStatsToDataFrame(ITableDataFrame table, String columnHeader, Map<String, String> functionMap) {
+	public static Map<String, Object> addStatsToDataFrame(ITableDataFrame table, String columnHeaders, Map<String, Object> functionMap) {
 //		this.columnHeader = columnHeader;
 //		this.table = (BTreeDataFrame)table;
 //		this.functionMap = functionMap;
@@ -34,17 +34,20 @@ public class ITableStatCounter {
 		}
 		
 		DuplicationReconciliation[] duprec = getDuplicationReconciliation(functionMap);
-		BTreeDataFrame newTable = createNewBTree((BTreeDataFrame)table, columnHeader, duprec, functionMap);
-		table.join(newTable, columnHeader, columnHeader, 1.0, new ExactStringMatcher());
+		BTreeDataFrame newTable = createNewBTree((BTreeDataFrame)table, columnHeaders, duprec, functionMap);
+		table.join(newTable, columnHeaders, columnHeaders, 1.0, new ExactStringMatcher());
+		return functionMap;
 	}
 	
-	private static DuplicationReconciliation[] getDuplicationReconciliation(Map<String, String> functionMap) {
+	private static DuplicationReconciliation[] getDuplicationReconciliation(Map<String, Object> functionMap) {
 		DuplicationReconciliation[] array = new DuplicationReconciliation[functionMap.keySet().size()];
 		int i = 0;
 		for(String key : functionMap.keySet()) {
 		
+			Map<String, String> mathMap = (Map<String, String>)functionMap.get(key);
+			String operation = mathMap.get("math");
 			DuplicationReconciliation.ReconciliationMode mode; 
-			switch(key.toLowerCase()) {
+			switch(operation.toLowerCase()) {
 				case AVG : mode = DuplicationReconciliation.ReconciliationMode.MEAN; break;
 					
 				case MAX : mode = DuplicationReconciliation.ReconciliationMode.MAX; break;
@@ -66,7 +69,7 @@ public class ITableStatCounter {
 		return array;
 	}
 	
-	private static BTreeDataFrame createNewBTree(BTreeDataFrame table, String columnHeader, DuplicationReconciliation[] mathModes, Map<String, String> functionMap) {
+	private static BTreeDataFrame createNewBTree(BTreeDataFrame table, String columnHeader, DuplicationReconciliation[] mathModes, Map<String, Object> functionMap) {
 		Map<String, String> columnHeaderMap = createNewColumnHeaders(table, columnHeader, functionMap);
 		String[] newColHeaders = new String[columnHeaderMap.keySet().size()];
 		newColHeaders[0] = columnHeader;
@@ -96,21 +99,26 @@ public class ITableStatCounter {
 		return statTable;
 	}
 	
-	private static Map<String, String> createNewColumnHeaders(BTreeDataFrame table, String columnHeader, Map<String, String> functionMap) {
+	//Generalize this for multiple columns
+	private static Map<String, String> createNewColumnHeaders(BTreeDataFrame table, String columnHeader, Map<String, Object> functionMap) {
 		
 		String[] colHeaders = table.getColumnHeaders();
 		Map<String, String> newColHeaders = new HashMap<String, String>(colHeaders.length);
 		newColHeaders.put(columnHeader, columnHeader);
 		
-//		int i = 1;
 		String col;
 		for(String key : functionMap.keySet()) {
-			if(!key.equals(columnHeader)) {
-				col = key+" "+functionMap.get(key)+" on "+columnHeader;
-				newColHeaders.put(key, col);
-//				i++;
+			
+			Map<String, String> map = (Map<String, String>)functionMap.get(key);
+			String name = map.get("name");
+			String math = map.get("math");
+			if(!name.equals(columnHeader)) {
+				col = math+" "+name+" on "+columnHeader;
+				newColHeaders.put(name, col);
+				map.put("name", col);
 			}
 		}
+		
 		return newColHeaders;
 	}
 }
