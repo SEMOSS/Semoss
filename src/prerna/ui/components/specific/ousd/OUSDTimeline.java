@@ -16,12 +16,14 @@ import org.apache.log4j.Logger;
 public class OUSDTimeline {
 
 	// NAMING
+	protected String name;
 	protected final String decomCount = " System Decommission Count";
 	protected final String savingThisYear = " New Savings this year";
 	protected final String buildCount = " New Interface Count";
 	protected final String investmentCost = " Interface Development Cost";
 	protected final String sustainCost = " Interface Sustainment Cost";
 	protected final String risk = " Enterprise Risk";
+	private final Integer finalYear = 2021;
 	
 	protected final String cumSavings = " Cumulative Savings";
 	protected final String prevSavings = " Previous Decommissioning Savings";
@@ -54,6 +56,14 @@ public class OUSDTimeline {
 				treeMaxList.add(i+1, 0.0);
 			}
 		}
+	}
+	
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
 	}
 
 	public List<Object[]> getOutputLists() {
@@ -387,7 +397,7 @@ public class OUSDTimeline {
 		}
 		
 		LOGGER.info("Number of years: "+yearList.size());
-		while(yearList.get(yearList.size()-1)<2021){
+		while(yearList.get(yearList.size()-1)< this.finalYear){
 			LOGGER.info("Last year is: "+yearList.get(yearList.size()-1));
 			LOGGER.info("Adding year: "+(yearList.get(yearList.size()-1)+1));
 			yearList.add(yearList.get(yearList.size()-1)+1);
@@ -401,7 +411,7 @@ public class OUSDTimeline {
 			count++;
 		}
 		
-		buildData(yearList, columns, null);
+//		buildData(yearList, columns, null);
 
 		Double cumNetSavings = 0.0;
 		for(int fyIdx = 1; fyIdx < columns.length; fyIdx++){
@@ -418,9 +428,11 @@ public class OUSDTimeline {
 				if(value!=null && !value.toString().isEmpty()){
 					if (rowName.endsWith(this.savingThisYear) || rowName.endsWith(this.prevSavings)){
 						annlSavings = annlSavings + Double.parseDouble(value.toString().replace("$", "").replace(",", ""));
+						LOGGER.info("in year " + fyIdx + " ADDING SAVINGS  " + rowName + "   new value is   " + annlSavings);
 					}
 					if (rowName.endsWith(this.investmentCost) || rowName.endsWith(this.sustainCost)){
 						annlExpenses = annlExpenses - Double.parseDouble(value.toString().replace("$", "").replace(",", ""));
+						LOGGER.info("in year " + fyIdx + " ADDING EXPENSE  " + rowName + "   new value is   " + annlSavings);
 					}
 				}
 			}

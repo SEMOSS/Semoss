@@ -27,7 +27,7 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 	protected Hashtable dataHash = new Hashtable();
 	
 
-	public void processQueryData()
+	public void processThickQueryData()
 	{		
 		ArrayList< ArrayList<Hashtable<String, Object>>> dataObj = new ArrayList< ArrayList<Hashtable<String, Object>>>();
 		String[] names = dataFrame.getColumnHeaders();
@@ -84,6 +84,7 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 	
 	@Override
 	public void createView(){
+		processThickQueryData();
 		String playSheetClassName = PlaySheetEnum.getClassFromName("Column Chart");
 		BrowserPlaySheet playSheet = null;
 		try {
@@ -116,7 +117,6 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 		playSheet.setQuestionID(this.questionNum);
 		playSheet.setTitle(this.title);
 		playSheet.pane = this.pane;
-		playSheet.setDataFrame(this.dataFrame);
 		playSheet.setDataHash(dataHash);
 		playSheet.createView();
 	}
@@ -132,43 +132,11 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 	@Override
 	public void createData(){
 		buildTable(timelineNames, null);
-		String[] newHeaders = this.timelines.get(0).getCostSavingsHeaders();
-				
-		// go through the final table and reformat to how I need
-		// we want a row for each fy
-		// FY; Annual Savings; Annual Expenses; Annual Cash Flow; Cumulative Net Savings
-		String[] prevHeaders = this.getNames();
-		ITableDataFrame newFrame = new BTreeDataFrame(newHeaders);
-		Double cumNetSavings = 0.0;
-		for(int fyIdx = 1; fyIdx < prevHeaders.length; fyIdx++){
-			Double annlSavings = 0.0;
-			Double annlExpenses = 0.0;
-
-			Iterator<Object[]> tableIt = this.dataFrame.iterator(false);
-			while(tableIt.hasNext()){
-				Object[] row = tableIt.next();
-				String rowName = row[0] + "";
-				Object value = row[fyIdx];
-				if(value!=null && !value.toString().isEmpty()){
-					if (rowName.endsWith(this.savingThisYear) || rowName.endsWith(this.prevSavings)){
-						annlSavings = annlSavings + Double.parseDouble(value.toString().replace("$", "").replace(",", ""));
-					}
-					if (rowName.endsWith(this.investmentCost) || rowName.endsWith(this.sustainCost)){
-						annlExpenses = annlExpenses - Double.parseDouble(value.toString().replace("$", "").replace(",", ""));
-					}
-				}
-			}
-			Double annlCashFlow = annlSavings + annlExpenses;
-			cumNetSavings = cumNetSavings + annlCashFlow;
-			Object[] newRow = new Object[newHeaders.length];
-			newRow[0] = prevHeaders[fyIdx];
-			newRow[1] = annlSavings;
-			newRow[2] = annlExpenses;
-			newRow[3] = annlCashFlow;
-			newRow[4] = cumNetSavings;
-			newFrame.addRow(newRow, newRow);
-			myList.add(newRow);
+		OUSDTimeline time = this.timelines.get(0);
+		List<Object[]> data = time.getCostSavingsData();
+		this.dataFrame = new BTreeDataFrame(time.getCostSavingsHeaders());
+		for(Object[] row : data){
+			this.dataFrame.addRow(row, row);
 		}
-		this.dataFrame = newFrame;
 	}
 }
