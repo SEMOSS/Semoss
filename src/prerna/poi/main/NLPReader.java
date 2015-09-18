@@ -40,20 +40,23 @@ public class NLPReader extends AbstractFileReader {
 	
 	private List<TripleWrapper> triples = new ArrayList<TripleWrapper>();
 	
-	public void importFileWithOutConnection(String smssLocation, String engineName,  String fileNames, String customBase, String customMap, String owlFile) throws FileReaderException, EngineException, FileWriterException, NLPException {	
+	public void importFileWithOutConnection(String smssLocation, String engineName,  String fileNames, String customBase, String customMap, String owlFile) 
+			throws FileReaderException, EngineException, FileWriterException, NLPException {	
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
 		openEngineWithoutConnection(engineName);		
-		
-		if(!customMap.equals("")) 
-		{
-			openProp(customMap);
+		try {
+			if(!customMap.equals("")) 
+			{
+				openProp(customMap);
+			}
+			//if user selected a map, load just as before--using the prop file to discover Excel->URI translation
+			ProcessNLP processor = new ProcessNLP();
+			triples = processor.generateTriples(files);
+			createNLPrelationships();
+			createBaseRelations();
+		} finally {
+			closeDB();
 		}
-		//if user selected a map, load just as before--using the prop file to discover Excel->URI translation
-		ProcessNLP processor = new ProcessNLP();
-		triples = processor.generateTriples(files);
-		createNLPrelationships();
-		createBaseRelations();
-		closeDB();
 	}
 
 	public void createNLPrelationships() throws EngineException {

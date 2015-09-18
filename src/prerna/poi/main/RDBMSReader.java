@@ -63,9 +63,12 @@ import org.supercsv.cellprocessor.ParseDate;
 import org.supercsv.cellprocessor.ParseDouble;
 import org.supercsv.cellprocessor.constraint.NotNull;
 import org.supercsv.cellprocessor.ift.CellProcessor;
+import org.supercsv.exception.SuperCsvCellProcessorException;
 import org.supercsv.io.CsvMapReader;
 import org.supercsv.io.ICsvMapReader;
 import org.supercsv.prefs.CsvPreference;
+
+import com.hp.hpl.jena.vocabulary.OWL;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
@@ -83,8 +86,6 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
-
-import com.hp.hpl.jena.vocabulary.OWL;
 
 /**
  * Loading data into SEMOSS using comma separated value (CSV) files
@@ -210,6 +211,7 @@ public class RDBMSReader {
 		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
 		prop.put(Constants.TEMP_CONNECTION_URL, queryUtil.getTempConnectionURL());
 		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
+		prop.put(Constants.USE_CONNECTION_POOLING,queryUtil.getDefaultConnectionPooling());
 		prop.put("TEMP", "TRUE");
 
 		// write this to a file
@@ -255,12 +257,8 @@ public class RDBMSReader {
 	 * @param customBase	String grabbed from the user interface that is used as the URI base for all instances 
 	 * @param customMap		
 	 * @param owlFile		String automatically generated within SEMOSS to determine the location of the OWL file that is produced
-	 * @throws EngineException 
-	 * @throws FileReaderException 
-	 * @throws FileWriterException 
-	 * @throws HeaderClassException 
 	 */
-	public void importFileWithOutConnection(String engineFile, String fileNames, String customBase, String owlFile, String engineName, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates) throws EngineException, FileWriterException, FileReaderException, HeaderClassException {
+	public void importFileWithOutConnection(String engineFile, String fileNames, String customBase, String owlFile, String engineName, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates) throws EngineException, FileWriterException, FileReaderException, HeaderClassException, Exception {
 
 		queryUtil = SQLQueryUtil.initialize(dbType);
 
@@ -279,58 +277,50 @@ public class RDBMSReader {
 
 		createSQLTypes();
 		System.out.println("Owl File is " + this.owlFile);
-		openDB(engineName); //scriptfile opened in here.
-
-		for(int i = 0; i<files.length;i++)
-		{
-			String fileName = files[i];
-
-			if(i ==0 )scriptFile.println("-- ********* begin load process ********* ");
-			scriptFile.println("-- ********* begin load " + fileName + " ********* ");
-			// find the tables
-			findTables(engineName);
-			// load the prop file for the CSV file 
-			if(propFileExist){
-				openProp(propFile);
-			} else {
-				rdfMap = rdfMapArr[i];
-			}
-
-			// determine the type of data in each column of CSV file
-			createProcessors();
-			openCSVFile(fileName); //open further down in the process because we need variables defined in createProcessors
-			try {
-				processConceptURIs();
-				processProperties();
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
-			recreateRelations();
-			createTables();
-			skipRows();
-			//System.out.println(currentDate() + " before insertRecords stuff, for " + fileName );
-			insertRecords();
-			//System.out.println(currentDate() + " after insertRecords stuff, for " + fileName );
-			cleanAll();
-			commitDB();
-			scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
-			closeCSVFile();
-		}
-		cleanUpDBTables(engineName,allowDuplicates);
-		closeDB();
-		cleanAll(); //do it again because we reset availableTables and availableTablesInfo
-		writeDefaultQuestionSheet(engineName);
-
-		createBaseRelations();
 		try {
-			scriptFile.println("-- ********* completed load process ********* ");
-			scriptFile.close();
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			openDB(engineName); //scriptfile opened in here.
+			for(int i = 0; i<files.length;i++)
+			{
+				String fileName = files[i];
+				if(i ==0 )scriptFile.println("-- ********* begin load process ********* ");
+				scriptFile.println("-- ********* begin load " + fileName + " ********* ");
+				// find the tables
+				findTables(engineName);
+				// load the prop file for the CSV file 
+				if(propFileExist){
+					openProp(propFile);
+				} else {
+					rdfMap = rdfMapArr[i];
+				}
+				// determine the type of data in each column of CSV file
+				createProcessors();
+				try {
+					openCSVFile(fileName); //open further down in the process because we need variables defined in createProcessors
+					processConceptURIs();
+					processProperties();
+					recreateRelations();
+					createTables();
+					skipRows();
+					//System.out.println(currentDate() + " before insertRecords stuff, for " + fileName );
+					insertRecords();
+					//System.out.println(currentDate() + " after insertRecords stuff, for " + fileName );
+					cleanAll();
+					commitDB();
+					scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
+				} finally {
+					closeCSVFile();
+				}
+			}
+			cleanUpDBTables(engineName,allowDuplicates);
+			cleanAll(); //do it again because we reset availableTables and availableTablesInfo
+			writeDefaultQuestionSheet(engineName);
+			createBaseRelations();
+		} finally {
+			closeDB();
 		}
+		
+		scriptFile.println("-- ********* completed load process ********* ");
+		scriptFile.close();
 	}
 
 	//get current indexes that are saved off.  If some exist we will reexecute them when the upload process completes
@@ -683,7 +673,7 @@ public class RDBMSReader {
 	}
 
 
-	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile,SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates) throws EngineException, FileWriterException, FileReaderException, HeaderClassException {
+	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile,SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates) throws EngineException, FileWriterException, FileReaderException, HeaderClassException, Exception {
 		queryUtil = SQLQueryUtil.initialize(dbType);
 
 		logger.setLevel(Level.WARN);
@@ -720,27 +710,24 @@ public class RDBMSReader {
 			}
 			// determine the type of data in each column of CSV file
 			createProcessors();
-			openCSVFile(fileName); //moved openCSVFile down because we need the variables that are set in createProcessors
 			try {
+				openCSVFile(fileName); //moved openCSVFile down because we need the variables that are set in createProcessors
 				processConceptURIs();
 				processProperties();
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				recreateRelations();
+				createTables();
+				skipRows();
+				insertRecords();
+				cleanAll();
+				commitDB();
+				scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
+			} finally {
+				closeCSVFile();
 			}
-
-			recreateRelations();
-			createTables();
-			skipRows();
-			insertRecords();
-			cleanAll();
-			commitDB();
-			scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
-			closeCSVFile();
 		}
 		cleanUpDBTables(engineName,allowDuplicates);
 		runDBModTransactions(recreateIndexesArr); 
-		closeDB();
+//		closeDB();
 		cleanAll(); //clean again because we reset the values for availableTables and availableTablesInfo
 		writeDefaultQuestionSheet(engineName);
 		updateDefaultQuestionSheet(engineName);
@@ -755,9 +742,10 @@ public class RDBMSReader {
 	}
 
 
-	public void closeDB()
-	{
-		engine.closeDB();
+	public void closeDB() {
+		if(engine != null) {
+			engine.closeDB();
+		}
 	}
 
 	public void commitDB(){
@@ -1824,7 +1812,7 @@ public class RDBMSReader {
 
 	}
 
-	private void insertRecords()
+	private void insertRecords() throws FileReaderException
 	{
 		String [] insertTemplates = new String[tableHash.size()];
 		// the job here is to take the table hash and create tables
@@ -1924,9 +1912,15 @@ public class RDBMSReader {
 			tempIndexArray.clear();//clear the index array text
 
 
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		}
+		} catch(SuperCsvCellProcessorException e) {
+			e.printStackTrace();
+			String errorMessage = "Error processing row number " + count + ". ";
+			errorMessage += e.getMessage();
+			throw new FileReaderException(errorMessage);
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new FileReaderException("Error processing CSV headers");
+		}	
 	}
 
 	private String getInsertIntoClause(String tableKey){
@@ -2162,7 +2156,11 @@ public class RDBMSReader {
 				count++;
 				//logger.info("Skipping line: " + count);
 			}
-
+		} catch(SuperCsvCellProcessorException e) {
+			e.printStackTrace();
+			String errorMessage = "Error processing row number " + count + ". ";
+			errorMessage += e.getMessage();
+			throw new FileReaderException(errorMessage);
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new FileReaderException("Error processing CSV headers");
@@ -2179,17 +2177,19 @@ public class RDBMSReader {
 		//get row count
 		try{
 			totalrowcount=0;//reset row count
-
 			Map<String, Object> jcrMap;
-
-			while( (jcrMap = mapReader.read(header, processors)) != null)
+			while( (jcrMap = mapReader.read(header, processors)) != null) {
 				totalrowcount++;
-
-
+			}
+		} catch(SuperCsvCellProcessorException e) {
+			e.printStackTrace();
+			String errorMessage = "Error processing row number " + totalrowcount + ". ";
+			errorMessage += e.getMessage();
+			throw new FileReaderException(errorMessage);
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new FileReaderException("Error processing CSV headers");
-		}		
+		}	
 	}
 
 	/**

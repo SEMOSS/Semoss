@@ -52,6 +52,7 @@ import prerna.error.EngineException;
 import prerna.error.FileReaderException;
 import prerna.error.FileWriterException;
 import prerna.error.HeaderClassException;
+import prerna.error.InvalidUploadFormatException;
 import prerna.error.NLPException;
 import prerna.nameserver.AddToMasterDB;
 import prerna.ui.components.ImportDataProcessor;
@@ -154,7 +155,6 @@ public class ImportDataListener implements IChakraListener {
 				String questionFile = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.QUESTION_TEXT_FIELD)).getText();
 				String dbName = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.DB_NAME_FIELD)).getText();
 				processor.processCreateNew(importType, customBaseURI, fileNames, dbName, mapFile, dbPropFile, questionFile, ImportDataProcessor.DB_TYPE.RDF, null, true);
-				
 				// add db to name server
 				loadEngineIntoLocalMasterDB(dbName, customBaseURI);
 
@@ -180,10 +180,17 @@ public class ImportDataListener implements IChakraListener {
 		} catch (FileWriterException ex) {
 			ex.printStackTrace();
 			Utility.showError("Import has failed.\n" + ex.getMessage());
+		} catch (NLPException ex) {
+			ex.printStackTrace();
+			Utility.showError("Import has failed.\n" + ex.getMessage());
+		} catch (InvalidUploadFormatException ex) {
+			ex.printStackTrace();
+			Utility.showError("Import has failed.\n" + ex.getMessage());
 		} catch (RuntimeException ex) {
 			ex.printStackTrace();
 			Utility.showError("Import has failed.\n");
-		} catch (NLPException e1) {
+		} catch (Exception ex) {
+			ex.printStackTrace();
 			Utility.showError("Import has failed.\n");
 		}
 		
