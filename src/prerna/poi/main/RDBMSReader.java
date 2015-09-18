@@ -216,21 +216,26 @@ public class RDBMSReader {
 
 		// write this to a file
 		String tempFile = dbBaseFolder + "/db/" + engineName + "/conn.prop";
+		File file = null;
+		FileOutputStream fo = null;
 		try {
-			File file = new File(tempFile);
-			FileOutputStream fo = new FileOutputStream(file);
+			file = new File(tempFile);
+			fo = new FileOutputStream(file);
 			prop.store(fo, "Temporary Properties file for the RDBMS");
-			fo.close();
 			openScriptFile(engineName);
-
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			if(fo != null) {
+				try {
+					fo.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
-
 
 		return tempFile;
 
@@ -317,10 +322,13 @@ public class RDBMSReader {
 			createBaseRelations();
 		} finally {
 			closeDB();
+			if(scriptFile != null) {
+				scriptFile.println("-- ********* completed load process ********* ");
+				scriptFile.close();
+			}
 		}
 		
-		scriptFile.println("-- ********* completed load process ********* ");
-		scriptFile.close();
+		
 	}
 
 	//get current indexes that are saved off.  If some exist we will reexecute them when the upload process completes
@@ -688,57 +696,55 @@ public class RDBMSReader {
 		getBaseFolder();
 		createSQLTypes();
 
-		//try to open the script file
-		openScriptFile(engineName);
-
-		scriptFile.println("-- ********* begin load process ********* ");
-		engine.openDB(null);//dont need to specify file name, data source should exist at this point so we should be 
+		try {
+			//try to open the script file
+			openScriptFile(engineName);
+			scriptFile.println("-- ********* begin load process ********* ");
+			engine.openDB(null);//dont need to specify file name, data source should exist at this point so we should be 
+			//first find all indexes, drop current ones, store off those current ones to recreate them when the process completes
+			findIndexes(engineName);
+			for(int i = 0; i<files.length;i++)
+			{
+				String fileName = files[i];
+				scriptFile.println("-- ********* begin load " + fileName + " ********* ");
+				findTables(engineName);		
+				// load the prop file for the CSV file 
+				if(propFileExist){
+					openProp(propFile);
+				} else {
+					rdfMap = rdfMapArr[i];
+				}
+				// determine the type of data in each column of CSV file
+				createProcessors();
+				try {
+					openCSVFile(fileName); //moved openCSVFile down because we need the variables that are set in createProcessors
+					processConceptURIs();
+					processProperties();
+					recreateRelations();
+					createTables();
+					skipRows();
+					insertRecords();
+					cleanAll();
+					commitDB();
+					scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
+				} finally {
+					closeCSVFile();
+				}
+			}
+			cleanUpDBTables(engineName,allowDuplicates);
+			runDBModTransactions(recreateIndexesArr); 
+			cleanAll(); //clean again because we reset the values for availableTables and availableTablesInfo
+			writeDefaultQuestionSheet(engineName);
+			updateDefaultQuestionSheet(engineName);
+			createBaseRelations();
+			
+		} finally {
+			if(scriptFile != null) {
+				scriptFile.println("-- ********* completed load process ********* ");
+				scriptFile.close();
+			}
+		}
 		
-		//first find all indexes, drop current ones, store off those current ones to recreate them when the process completes
-		findIndexes(engineName);
-
-		for(int i = 0; i<files.length;i++)
-		{
-			String fileName = files[i];
-			scriptFile.println("-- ********* begin load " + fileName + " ********* ");
-			findTables(engineName);		
-			// load the prop file for the CSV file 
-			if(propFileExist){
-				openProp(propFile);
-			} else {
-				rdfMap = rdfMapArr[i];
-			}
-			// determine the type of data in each column of CSV file
-			createProcessors();
-			try {
-				openCSVFile(fileName); //moved openCSVFile down because we need the variables that are set in createProcessors
-				processConceptURIs();
-				processProperties();
-				recreateRelations();
-				createTables();
-				skipRows();
-				insertRecords();
-				cleanAll();
-				commitDB();
-				scriptFile.println("-- ********* completed processing file " + fileName + " ********* ");
-			} finally {
-				closeCSVFile();
-			}
-		}
-		cleanUpDBTables(engineName,allowDuplicates);
-		runDBModTransactions(recreateIndexesArr); 
-//		closeDB();
-		cleanAll(); //clean again because we reset the values for availableTables and availableTablesInfo
-		writeDefaultQuestionSheet(engineName);
-		updateDefaultQuestionSheet(engineName);
-
-		createBaseRelations();
-		try{
-			scriptFile.println("-- ********* completed load process ********* ");
-			scriptFile.close();
-		} catch (Exception e){
-			e.printStackTrace();
-		}
 	}
 
 
