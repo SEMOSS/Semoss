@@ -23,7 +23,7 @@ public class RiskVisualizationPlaySheet extends GridPlaySheet{
 	public RiskVisualizationPlaySheet(){
 		super();
 	}
-	
+
 	@Override
 	public void setQuery(String query){
 		this.failureRate = Double.parseDouble(query);
@@ -48,13 +48,13 @@ public class RiskVisualizationPlaySheet extends GridPlaySheet{
 		owners.add("DFAS");
 		List<String> systems = OUSDQueryHelper.getSystemsByOwners(this.engine, owners);
 		calc.setData(systems);
-		
+
 		// set the blu map
 		Object[] systemReturn = OUSDPlaysheetHelper.createSysLists(systems);
 		String sysBindingsString = (String) systemReturn[1];
 		Map<String, Map<String, List<String>>> bluMap = OUSDQueryHelper.getActivityGranularBluSystemMap(this.engine, sysBindingsString);
 		calc.setBluMap(bluMap);
-		
+
 		// run the calculator
 		Map<String, Double> bluActResults = calc.runRiskCalculations();
 
@@ -70,14 +70,14 @@ public class RiskVisualizationPlaySheet extends GridPlaySheet{
 		calc.setBluMap(bluDataSystemMap);
 
 		Map<String, Double> bluDataActResults = calc.runRiskCalculations();
-		
+
 		// create table
 		createTable(bluActResults, dataActResults, bluDataActResults, (Map<String, List<String>>)groupData[0]);
 	}
-	
+
 	private void createTable(Map<String, Double> results, Map<String, List<String>> activityMap){
 		this.dataFrame = new OrderedBTreeDataFrame(new String[]{"Activity", "Activity Group", "Risk Score"});
-//		this.list = new ArrayList<Object[]>();
+		//		this.list = new ArrayList<Object[]>();
 		Iterator<String> keyIt = results.keySet().iterator();
 		while(keyIt.hasNext()){
 			String myGroup = keyIt.next();
@@ -90,9 +90,9 @@ public class RiskVisualizationPlaySheet extends GridPlaySheet{
 				this.dataFrame.addRow(newRow, newRow);
 			}
 		}
-//		this.names = new String[]{"Activity", "Activity Group", "Risk Score"};
+		//		this.names = new String[]{"Activity", "Activity Group", "Risk Score"};
 	}
-	
+
 	private void createTable(Map<String, Double> bluSysResults, Map<String, Double> dataSysResults, Map<String, Double> bluDataSysResults, Map<String, List<String>> activityMap){
 		this.dataFrame = new OrderedBTreeDataFrame(new String[]{"Activity", "Activity Group", "BLU Risk Score", "Data Risk Score", "BLU-Data Risk Score"});
 		Iterator<String> keyIt = bluSysResults.keySet().iterator();
@@ -105,7 +105,7 @@ public class RiskVisualizationPlaySheet extends GridPlaySheet{
 				BigDecimal bluRes = new BigDecimal(bluSysResults.get(myGroup)).setScale(5, BigDecimal.ROUND_HALF_UP);
 				BigDecimal dataSysRes = new BigDecimal(dataSysResults.get(myGroup)).setScale(5, BigDecimal.ROUND_HALF_UP);
 				BigDecimal bluDataSysRes = new BigDecimal(bluDataSysResults.get(myGroup)).setScale(5, BigDecimal.ROUND_HALF_UP);
-	
+
 				newRow[0] = act;
 				newRow[1] = myGroup;
 				newRow[2] = bluRes;
@@ -114,8 +114,13 @@ public class RiskVisualizationPlaySheet extends GridPlaySheet{
 				this.dataFrame.addRow(newRow, newRow);
 			}
 		}
-//		this.names = new String[]{"Activity", "Activity Group", "BLU Risk Score", "Data Risk Score", "BLU-Data Risk Score"};
+		//this.names = new String[]{"Activity", "Activity Group", "BLU Risk Score", "Data Risk Score", "BLU-Data Risk Score"};
 	}
 
+	@Override
+	public Hashtable getData(){
+		Hashtable returnHash = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, "Grid");
+		return returnHash;
+	}
 
 }

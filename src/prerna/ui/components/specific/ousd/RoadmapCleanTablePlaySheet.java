@@ -59,12 +59,8 @@ public class RoadmapCleanTablePlaySheet extends GridPlaySheet{
 	
 	@Override
 	public Hashtable getData(){
-		Hashtable<String, Object> map = (Hashtable<String, Object>) super.getData();
-//		map.put("data", this.timeline.getGanttData());
-//		map.put("headers", this.timeline.getGanttHeaders());
-		map.put("data", this.timeline.getDashboardData());
-		map.put("headers", new System[0]);
-		return map;
+		Hashtable returnHash = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, "Grid");
+		return returnHash;
 	}
 
 	private void createTable(OUSDTimeline timeline, List<Map<String, List<String>>> systemYears, Map<String, Double> budgets, Map<String, List<List<String>>> sdsMap){

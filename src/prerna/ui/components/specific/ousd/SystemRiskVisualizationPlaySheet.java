@@ -25,6 +25,12 @@ public class SystemRiskVisualizationPlaySheet extends GridPlaySheet{
 	public SystemRiskVisualizationPlaySheet(){
 		super();
 	}
+
+	@Override
+	public Hashtable getData(){
+		Hashtable returnHash = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, "Grid");
+		return returnHash;
+	}
 	
 	@Override
 	public void setQuery(String query){
