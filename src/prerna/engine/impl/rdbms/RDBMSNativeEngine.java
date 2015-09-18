@@ -110,7 +110,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			String password = "";
 			String dbTypeString = prop.getProperty(Constants.RDBMS_TYPE);
 			useConnectionPooling = Boolean.valueOf(prop.getProperty(Constants.USE_CONNECTION_POOLING));
-			dbType = dbType = SQLQueryUtil.DB_TYPE.H2_DB;
+			dbType = SQLQueryUtil.DB_TYPE.H2_DB;
 			if (dbTypeString != null) {
 				dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
 			}
@@ -143,7 +143,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				if(!isConnected()){
 					if(useConnectionPooling){
 						dataSource = setupDataSource(driver, connectionURL, userName, password);
-						engineConn = getConnection();
+//						engineConn = getConnection();
 					} else {
 						engineConn = DriverManager.getConnection(connectionURL, userName, password);
 					}
@@ -321,7 +321,14 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	public void closeDB() {
 		if(useConnectionPooling){
 			closeEngine();
-			//TODO: should this go inside or outside if statement?
+		} else {
+			if(engineConn != null) {
+				try {
+					engineConn.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
 			closeDataSource();
 		}
 	}
@@ -332,12 +339,13 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	}
 	
 	private void closeDataSource(){
-        try {
-			dataSource.close();
-			this.datasourceConnected = false;
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		if(dataSource != null) {
+			try {
+				dataSource.close();
+				this.datasourceConnected = false;
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	
