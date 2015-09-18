@@ -195,20 +195,7 @@ public final class OUSDPlaysheetHelper {
 	}
 
 	public static OUSDTimeline buildTimeline(IEngine engine, String timelineName) throws ClassNotFoundException, InstantiationException, IllegalAccessException{
-
-		timelineName = timelineName.toUpperCase().replaceAll(" ", "_");
-
-		String timelineClassName = (String) engine.getProperty(timelineName);
-
-		Class<?> timeClass = Class.forName(timelineClassName);
-		ITimelineGenerator time = (ITimelineGenerator) timeClass.newInstance();
-
-		time.createTimeline(engine);
-		OUSDTimeline timeline = time.getTimeline();
-
-		timeline = fillTimeline(timeline, engine, null);
-
-		return timeline;
+		return buildTimeline(engine, timelineName, null);
 	}
 
 	public static OUSDTimeline buildTimeline(IEngine engine, String timelineName, String owner) throws ClassNotFoundException, InstantiationException, IllegalAccessException{
@@ -220,8 +207,15 @@ public final class OUSDPlaysheetHelper {
 		Class<?> timeClass = Class.forName(timelineClassName);
 		ITimelineGenerator time = (ITimelineGenerator) timeClass.newInstance();
 
-		time.createTimeline(engine, owner);
+		if(owner==null){
+			time.createTimeline(engine, owner);
+		}
+		else {
+			time.createTimeline(engine, owner);
+		}
+		
 		OUSDTimeline timeline = time.getTimeline();
+		timeline.setName(timelineName);
 
 		timeline = fillTimeline(timeline, engine, owner);
 
