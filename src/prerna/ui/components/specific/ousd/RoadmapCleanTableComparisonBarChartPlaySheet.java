@@ -64,6 +64,12 @@ public class RoadmapCleanTableComparisonBarChartPlaySheet extends RoadmapCleanTa
 		playSheet.processQueryData();
 		playSheet.createView();
 	}
+
+	@Override
+	public Hashtable getData(){
+		Hashtable ret = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, PlaySheetEnum.Column_Chart.name());
+		return ret;
+	}
 	
 	@Override
 	public void createData(){

@@ -121,6 +121,12 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 		playSheet.setDataHash(dataHash);
 		playSheet.createView();
 	}
+
+	@Override
+	public Hashtable getData(){
+		Hashtable ret = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, PlaySheetEnum.Column_Chart.name());
+		return ret;
+	}
 	
 	@Override
 	public void createData(){

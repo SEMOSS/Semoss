@@ -7,6 +7,7 @@ import java.util.Map;
 
 import prerna.ds.OrderedBTreeDataFrame;
 import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.util.PlaySheetEnum;
 
 public class RoadmapCleanTablePlaySheet extends GridPlaySheet{
 
@@ -59,7 +60,7 @@ public class RoadmapCleanTablePlaySheet extends GridPlaySheet{
 	
 	@Override
 	public Hashtable getData(){
-		Hashtable returnHash = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, "Grid");
+		Hashtable returnHash = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, PlaySheetEnum.Grid.name());
 		return returnHash;
 	}
 

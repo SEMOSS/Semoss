@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.ui.components.ExecuteQueryProcessor;
+import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -28,7 +29,6 @@ public final class OUSDPlaysheetHelper {
 	}
 
 	public static Hashtable getData(String title, String questionNumber, ITableDataFrame dataFrame, String playsheetName){
-		List<Object[]> theList = new ArrayList<Object[]>();
 		String playSheetClassName = PlaySheetEnum.getClassFromName(playsheetName);
 		GridPlaySheet playSheet = null;
 		try {
@@ -55,28 +55,11 @@ public final class OUSDPlaysheetHelper {
 			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
 			e.printStackTrace();
 		}
+		playSheet.setDataFrame(dataFrame);
+		playSheet.setQuestionID(questionNumber);
 		playSheet.setTitle(title);
-		playSheet.setQuestionID(questionNumber);//
-		Hashtable retHash = (Hashtable) playSheet.getData();
-		List<Object[]> myList = dataFrame.getData();
-		if(myList.size() > 1001){
-			theList = myList.subList(0, 1000);
-		}else{
-			theList = myList;
-		}
-		for(Object[] myRow : theList){
-			for(int i = 0; i < myRow.length; i++){
-				if(myRow[i] == null){
-					myRow[i] = "";
-				}
-				else {
-					myRow[i] = myRow[i].toString();
-				}
-			}
-		}
-		retHash.put("data", theList);
-		retHash.put("headers", dataFrame.getColumnHeaders());
-		return retHash;
+		playSheet.processQueryData();
+		return playSheet.getData();
 	}
 
 	/**

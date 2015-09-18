@@ -14,6 +14,7 @@ import org.apache.log4j.Logger;
 import prerna.ds.OrderedBTreeDataFrame;
 import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.util.PlaySheetEnum;
 
 public class SystemRiskVisualizationPlaySheet extends GridPlaySheet{
 
@@ -28,7 +29,7 @@ public class SystemRiskVisualizationPlaySheet extends GridPlaySheet{
 
 	@Override
 	public Hashtable getData(){
-		Hashtable returnHash = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, "Grid");
+		Hashtable returnHash = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, PlaySheetEnum.Grid.name());
 		return returnHash;
 	}
 	
