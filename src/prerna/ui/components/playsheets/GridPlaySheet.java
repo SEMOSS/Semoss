@@ -55,21 +55,21 @@ import prerna.ui.main.listener.impl.JTableExcelExportListener;
  */
 @SuppressWarnings("serial")
 public class GridPlaySheet extends BasicProcessingPlaySheet{
-	
+
 	Boolean horizontalScrollBar = false;
-	
+
 	/**
 	 * Method addPanel.  Creates a panel and adds the table to the panel.
 	 */
 	private static final Logger logger = LogManager.getLogger(GridPlaySheet.class.getName());
-	
+
 	@Override
 	public void addPanel()
 	{
 		setWindow();
 		try {
 			table = new JTable();
-			
+
 			//Add Excel export popup menu and menuitem
 			JPopupMenu popupMenu = new JPopupMenu();
 			JMenuItem menuItemAdd = new JMenuItem("Export to Excel");
@@ -77,7 +77,7 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 			menuItemAdd.addActionListener(new JTableExcelExportListener(table, questionTitle));
 			popupMenu.add(menuItemAdd);
 			table.setComponentPopupMenu(popupMenu);
-			
+
 			JPanel mainPanel = new JPanel();
 			GridPlaySheetListener gridPSListener = new GridPlaySheetListener();
 			logger.debug("Created the table");
@@ -93,11 +93,11 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 			mainPanel.setLayout(gbl_mainPanel);
 
 			addScrollPanel(mainPanel);
-			
+
 			updateProgressBar("0%...Preprocessing", 0);
 			resetProgressBar();
 			JPanel barPanel = new JPanel();
-			
+
 			GridBagConstraints gbc_barPanel = new GridBagConstraints();
 			gbc_barPanel.fill = GridBagConstraints.BOTH;
 			gbc_barPanel.gridx = 0;
@@ -107,18 +107,18 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 			barPanel.add(jBar, BorderLayout.CENTER);
 
 			pane.add(this);
-			
+
 			this.pack();
 			this.setVisible(true);
 			this.setSelected(true);
 			this.show();
-			
+
 			logger.debug("Added the main pane");
 		} catch (PropertyVetoException e) {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public void addScrollPanel(JPanel mainPanel) {
 		JScrollPane scrollPane = new JScrollPane(table);
 		scrollPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
@@ -127,27 +127,27 @@ public class GridPlaySheet extends BasicProcessingPlaySheet{
 			table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 		}
 		scrollPane.setAutoscrolls(true);
-		
+
 		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
 		gbc_scrollPane.fill = GridBagConstraints.BOTH;
 		gbc_scrollPane.gridx = 0;
 		gbc_scrollPane.gridy = 0;
 		mainPanel.add(scrollPane, gbc_scrollPane);
 	}
-	
+
 	@Override
 	public GridRAWTableModel setGridModel(GridFilterData gfd) {
 		GridTableModel model = new GridTableModel(gfd);
 		return model;
 	}
-	
-	@Override
-	public List<Object[]> getList() {
-		return dataFrame.getData();
-	}
-	
+
+	//	@Override
+	//	public List<Object[]> getList() {
+	//		return dataFrame.getData();
+	//	}
+
 	public void setHorizontalScrollBar(Boolean horizontalScrollBar) {
 		this.horizontalScrollBar = horizontalScrollBar;
 	}
-	
+
 }
