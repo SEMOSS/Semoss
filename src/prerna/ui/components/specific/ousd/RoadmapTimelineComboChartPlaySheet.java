@@ -11,8 +11,7 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.BTreeDataFrame;
+import prerna.ds.OrderedBTreeDataFrame;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -22,8 +21,6 @@ import prerna.util.PlaySheetEnum;
 public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlaySheet {
 
 	private static final Logger logger = LogManager.getLogger(RoadmapTimelineComboChartPlaySheet.class.getName());
-	List<Object[]> myList = new ArrayList<Object[]>();
-
 	protected Hashtable dataHash = new Hashtable();
 	
 
@@ -34,7 +31,7 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 		String[] newHeaders = this.timelines.get(0).getCostSavingsHeaders();
 		//series name - all objects in that series (x : ... , y : ...)
 //		Iterator<Object[]> it = dataFrame.iterator(true);
-		Iterator<Object[]> it = myList.iterator();
+		Iterator<Object[]> it = this.dataFrame.iterator(false);
 		List<Object> annlSavingsSeries = new ArrayList<Object>();
 		annlSavingsSeries.add(newHeaders[1]);
 		List<Object> annlExpensesSeries = new ArrayList<Object>();
@@ -134,7 +131,7 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 		buildTable(timelineNames, null);
 		OUSDTimeline time = this.timelines.get(0);
 		List<Object[]> data = time.getCostSavingsData();
-		this.dataFrame = new BTreeDataFrame(time.getCostSavingsHeaders());
+		this.dataFrame = new OrderedBTreeDataFrame(time.getCostSavingsHeaders());
 		for(Object[] row : data){
 			this.dataFrame.addRow(row, row);
 		}
