@@ -208,7 +208,7 @@ public final class OUSDPlaysheetHelper {
 		ITimelineGenerator time = (ITimelineGenerator) timeClass.newInstance();
 
 		if(owner==null){
-			time.createTimeline(engine, owner);
+			time.createTimeline(engine);
 		}
 		else {
 			time.createTimeline(engine, owner);
