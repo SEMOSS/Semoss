@@ -129,7 +129,7 @@ public class ITableStatCounter {
 		
 		List<String> retList = new ArrayList<String>();
 		for(String column : columnHeaders) {
-			if(columnHeaderMap.containsKey(column) && !column.equals(groupByColumn)) {
+			if(!columnHeaderMap.containsKey(column)) {
 				retList.add(column);
 			}
 		}
