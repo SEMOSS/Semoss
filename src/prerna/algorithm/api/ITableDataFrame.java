@@ -303,13 +303,6 @@ public interface ITableDataFrame {
 	Object[] getColumn(String columnHeader);
 	
 	/**
-	 * Get the all values, filtered and unfiltered, for a specific column in the data-frame
-	 * @param columnHeader			The column header to get the values for
-	 * @return						The values for the specific column header in the data-frame
-	 */
-	Object[] getAllColumn(String columnHeader);
-	
-	/**
 	 * Get the values for a specific column in the data-frame
 	 * If column is non-numeric, returns null
 	 * otherwise returns an array of Doubles, with Null as the placeholder for EMPTY values
@@ -317,6 +310,7 @@ public interface ITableDataFrame {
 	 * @return						The values for the specific column header in the data-frame
 	 */
 	Double[] getColumnAsNumeric(String columnHeader);
+	
 	/**
 	 * Get the raw values for a specific column in the data-frame
 	 * @param columnHeader			The column header to get the values for
