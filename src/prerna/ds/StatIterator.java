@@ -7,15 +7,10 @@ import java.util.Map;
 import prerna.algorithm.learning.util.DuplicationReconciliation;
 
 //TODO : make this more efficient by intelligently using counts
-
-/**
- * 
- * @author rluthar
- *
- */
 public class StatIterator implements Iterator<Object[]>{
 	Iterator<List<Object[]>> iterator;
 	DuplicationReconciliation[] statArray;
+	
 	//DuplicationReconciliation.ReconciliationMode[] reconMode;
 	
 	public StatIterator(TreeNode root, DuplicationReconciliation[] stats) {
@@ -28,6 +23,11 @@ public class StatIterator implements Iterator<Object[]>{
 //			compressionArray[i] = new DuplicationReconciliation(compressionMode[i]);
 //			//}
 //		}
+	}
+	
+	public StatIterator(TreeNode root, DuplicationReconciliation[] stats, List<String> skipColumns) {
+		iterator = new UniqueBTreeIterator(root, false, skipColumns);
+		statArray = stats;
 	}
 
 	@Override
