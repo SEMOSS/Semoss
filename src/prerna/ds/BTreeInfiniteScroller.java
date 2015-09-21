@@ -9,7 +9,8 @@ import java.util.Map;
 public class BTreeInfiniteScroller implements InfiniteScroller {
 
 	private BTreeDataFrame table;
-	private static final int returnCount = 100;
+	//private static final int returnCount = 100;
+	private int returnCount;
 	private Iterator<List<HashMap<String, Object>>> rowIterator;
 	private String iteratorColumn;
 	private int currentCount;
@@ -72,6 +73,7 @@ public class BTreeInfiniteScroller implements InfiniteScroller {
 
 	
 	public List<HashMap<String, Object>> getNextData(String column, int start, int end) {
+		returnCount = end - start;
 		
 		List<HashMap<String, Object>> nextData = new ArrayList<HashMap<String, Object>>();
 		
@@ -82,14 +84,24 @@ public class BTreeInfiniteScroller implements InfiniteScroller {
 		}
 		
 		//if iterator is ahead of the start point
-		if(currentCount < start) {
+		if(currentCount > start) {
 			
 			resetTable();
 			nextData = this.getNextData(column, 0, end);
+			nextData.addAll(rowBuffer);
 			nextData = nextData.subList(start, end);
-		
-		} else if(currentCount > start) {
+			if(end < nextData.size()) {
+				rowBuffer = nextData.subList(end, nextData.size());
+			}
 			
+		} else if(currentCount < start) {
+			resetTable();
+			nextData = this.getNextData(column, 0, end);
+			nextData.addAll(rowBuffer);
+			nextData = nextData.subList(start, end);
+			if(end < nextData.size()) {
+				rowBuffer = nextData.subList(end, nextData.size());
+			}
 		} else {
 		
 			if(rowBuffer.size() > returnCount) {
@@ -110,7 +122,7 @@ public class BTreeInfiniteScroller implements InfiniteScroller {
 					nextData = nextData.subList(0, returnCount);
 				}	
 			}			
-			currentCount += end;
+			currentCount = end;
 		}
 
 		return nextData;
