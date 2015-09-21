@@ -11,22 +11,27 @@ import java.util.Queue;
 
 public class WebBTreeIterator implements Iterator<List<HashMap<String, Object>>> {
 
-	private IndexTreeIterator iterator;
+	private Iterator<TreeNode> iterator;
 	private Queue<TreeNode> indexTreeNodes;
 	private boolean useRawData;
 	List<String> columns2skip;
 	
 	public WebBTreeIterator(TreeNode columnRoot) {
-		this(columnRoot, false, null);
+		this(columnRoot, "", false, null);
 	}
 	
 	public WebBTreeIterator(TreeNode columnRoot, boolean getRawData) {
-		this(columnRoot, getRawData, null);
+		this(columnRoot, "", getRawData, null);
 	}
 	
-	public WebBTreeIterator(TreeNode columnRoot, boolean getRawData, List<String> columns2skip) {
+	public WebBTreeIterator(TreeNode columnRoot, String sort, boolean getRawData, List<String> columns2skip) {
 
-		iterator = new IndexTreeIterator(columnRoot);
+		if(sort.equals("desc")) {
+			iterator = new ReverseIndexTreeIterator(columnRoot);
+		} else {
+			iterator = new IndexTreeIterator(columnRoot);
+		}
+		
 		useRawData = getRawData;
 		indexTreeNodes = new LinkedList<TreeNode>();
 		this.columns2skip = columns2skip == null ? new ArrayList<String>() : columns2skip;
