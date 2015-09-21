@@ -653,7 +653,7 @@ public class TreeNode {
 	private static String serializeTree(TreeNode rootNode) {
 		Vector<TreeNode> nodes = new Vector<>();
 		nodes.add(rootNode);
-		return TreeNode.serializeTree(new StringBuilder(""), nodes, false, 0);
+		return TreeNode.serializeTree(new StringBuilder(""), nodes, true, 0);
 	}
 	 * */
 	/**
@@ -817,7 +817,7 @@ public class TreeNode {
 	 * @param node
 	 * @return
 	 */
-	TreeNode getLeft(TreeNode node) {
+	static TreeNode getLeft(TreeNode node) {
 		if(node != null && node.leftSibling != null) {
 			return getLeft(node.leftSibling);
 		}
@@ -826,7 +826,7 @@ public class TreeNode {
 		}
 	}
 
-	TreeNode getRight(TreeNode node) {
+	static TreeNode getRight(TreeNode node) {
 		if(node.rightSibling != null)
 			return getRight(node.rightSibling);
 		else

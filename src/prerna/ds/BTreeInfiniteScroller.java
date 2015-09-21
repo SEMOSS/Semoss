@@ -14,6 +14,7 @@ public class BTreeInfiniteScroller implements InfiniteScroller {
 	private Iterator<List<HashMap<String, Object>>> rowIterator;
 	private String iteratorColumn;
 	private int currentCount;
+	private String sort;
 	
 	private List<HashMap<String, Object>> rowBuffer;
 //	private Map<String, Iterator<TreeNode>> iteratorMap;
@@ -21,6 +22,7 @@ public class BTreeInfiniteScroller implements InfiniteScroller {
 	public BTreeInfiniteScroller(BTreeDataFrame table) {
 		this.table = table;
 		iteratorColumn = table.getColumnHeaders()[0];
+		sort = "asc";
 		resetTable();
 		
 //		iteratorMap = new HashMap<String, Iterator<TreeNode>>();
@@ -36,7 +38,7 @@ public class BTreeInfiniteScroller implements InfiniteScroller {
 		for(String column2skip : table.getColumnsToSkip()) {
 			columns2skip.add(column2skip);
 		}
-		rowIterator = new WebBTreeIterator(table.getBuilder().nodeIndexHash.get(iteratorColumn), false, columns2skip);
+		rowIterator = new WebBTreeIterator(table.getBuilder().nodeIndexHash.get(iteratorColumn), sort, false, columns2skip);
 		rowBuffer = new ArrayList<HashMap<String, Object>>();
 		currentCount = 0;
 	}
@@ -72,8 +74,12 @@ public class BTreeInfiniteScroller implements InfiniteScroller {
 	}
 
 	
-	public List<HashMap<String, Object>> getNextData(String column, int start, int end) {
+	public List<HashMap<String, Object>> getNextData(String column, String sort, int start, int end) {
 		returnCount = end - start;
+		if(!this.sort.equalsIgnoreCase(sort)) {
+			this.sort = sort;
+			resetTable();
+		}
 		
 		List<HashMap<String, Object>> nextData = new ArrayList<HashMap<String, Object>>();
 		
@@ -87,7 +93,7 @@ public class BTreeInfiniteScroller implements InfiniteScroller {
 		if(currentCount > start) {
 			
 			resetTable();
-			nextData = this.getNextData(column, 0, end);
+			nextData = this.getNextData(column, sort, 0, end);
 			nextData.addAll(rowBuffer);
 			nextData = nextData.subList(start, end);
 			if(end < nextData.size()) {
@@ -96,7 +102,7 @@ public class BTreeInfiniteScroller implements InfiniteScroller {
 			
 		} else if(currentCount < start) {
 			resetTable();
-			nextData = this.getNextData(column, 0, end);
+			nextData = this.getNextData(column, sort, 0, end);
 			nextData.addAll(rowBuffer);
 			nextData = nextData.subList(start, end);
 			if(end < nextData.size()) {
