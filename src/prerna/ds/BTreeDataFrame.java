@@ -73,6 +73,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		this.levelNames = levelNames;
 		this.filteredLevelNames = levelNames;
 		this.isNumericalMap = new HashMap<String, Boolean>();
+		columnsToSkip = new ArrayList<String>();
 	}
 	
 	public BTreeDataFrame(String[] levelNames, String[] uriLevelNames) {
@@ -83,6 +84,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		for(int i = 0; i < levelNames.length; i++) {
 			uriMap.put(levelNames[i], uriLevelNames[i]);
 		}
+		columnsToSkip = new ArrayList<String>();
 	}
 
 	@Override
@@ -762,9 +764,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 	public Object[] getUniqueValues(String columnHeader) {
 		List<Object> uniqueValues = new ArrayList<Object>();
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		FilteredIndexTreeIterator it = new FilteredIndexTreeIterator(typeRoot);
+		Iterator<Object> it = new UniqueValueIterator(typeRoot, false, false);
 		while(it.hasNext()) {
-			uniqueValues.add(it.next().leaf.getValue());
+			uniqueValues.add(it.next());
 		}
 		
 		return uniqueValues.toArray();
@@ -1267,25 +1269,12 @@ public class BTreeDataFrame implements ITableDataFrame {
 			return new Object[0];
 		}
 		
-		Iterator<SimpleTreeNode> iterator = new ValueTreeColumnIterator(typeRoot);
+		//Need to make this more efficient
+		int index = ArrayUtilityMethods.arrayContainsValueAtIndex(levelNames, columnHeader);
+		Iterator<Object[]> iterator = new BTreeIterator(typeRoot, false, null);
 		List<Object> column = new ArrayList<Object>();
 		while(iterator.hasNext()) {
-			column.add(iterator.next().leaf.getValue());
-		}
-		
-		return column.toArray();
-	}
-	
-	public Object[] getAllColumn(String columnHeader) {
-		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		if(typeRoot == null){ // TODO this null check shouldn't be needed. When we join, we need to add empty nodes--need to call balance at somepoint or something like that
-			return new Object[0];
-		}
-		
-		Iterator<SimpleTreeNode> iterator = new ValueTreeColumnIterator(typeRoot, true);
-		List<Object> column = new ArrayList<Object>();
-		while(iterator.hasNext()) {
-			column.add(iterator.next().leaf.getValue());
+			column.add(iterator.next()[index]);
 		}
 		
 		return column.toArray();
