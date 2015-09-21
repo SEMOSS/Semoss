@@ -11,5 +11,5 @@ public interface InfiniteScroller {
 	
 	List<HashMap<String, String>> getNextUniqueValues(String columnHeader);
 	
-	List<HashMap<String, Object>> getNextData(String column, int start, int end);
+	List<HashMap<String, Object>> getNextData(String column, String sort, int start, int end);
 }

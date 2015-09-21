@@ -1,9 +1,14 @@
 package prerna.ds;
 
-import java.util.List;
+import java.util.Set;
 
 import prerna.algorithm.api.ITableDataFrame;
 
+/**
+ * 
+ * @author rluthar
+ *
+ */
 public class InfiniteScrollerFactory {
 
 	public static InfiniteScroller getInfiniteScroller(ITableDataFrame table) {
@@ -14,7 +19,7 @@ public class InfiniteScrollerFactory {
 		}
 	}
 	
-	public static InfiniteScroller getInfiniteScroller(List<String> instances) {
+	public static InfiniteScroller getInfiniteScroller(Set<String> instances) {
 		return null;
 	}
 }
