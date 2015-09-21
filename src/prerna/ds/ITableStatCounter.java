@@ -1,7 +1,9 @@
 package prerna.ds;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -84,7 +86,8 @@ public class ITableStatCounter {
 		
 		BTreeDataFrame statTable = new BTreeDataFrame(newColHeaders, newColHeaders);
 		TreeNode columnRoot = table.simpleTree.nodeIndexHash.get(columnHeader);
-		Iterator<Object[]> iterator = new StatIterator(columnRoot, mathModes);
+		List<String> skipColumns = getSkipColumns(functionMap, table.getColumnHeaders());
+		Iterator<Object[]> iterator = new StatIterator(columnRoot, mathModes, skipColumns);
 		
 		String[] originalColumnHeaders = table.getColumnHeaders();
 		while(iterator.hasNext()) {
@@ -121,4 +124,21 @@ public class ITableStatCounter {
 		
 		return newColHeaders;
 	}
+	
+	private static List<String> getSkipColumns(Map<String, Object> functionMap, String[] columnHeaders) {
+		
+		List<String> retList = new ArrayList<String>();
+		for(String column : columnHeaders) {
+			retList.add(column);
+		}
+		
+		for(String key : functionMap.keySet()) {
+			Map<String, String> map = (Map<String, String>)functionMap.get(key);
+			String name = map.get("name");
+			retList.remove(name);
+		}
+		
+		return retList;
+	}
+	
 }
