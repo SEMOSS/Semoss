@@ -86,7 +86,7 @@ public class ITableStatCounter {
 		
 		BTreeDataFrame statTable = new BTreeDataFrame(newColHeaders, newColHeaders);
 		TreeNode columnRoot = table.simpleTree.nodeIndexHash.get(columnHeader);
-		List<String> skipColumns = getSkipColumns(functionMap, table.getColumnHeaders());
+		List<String> skipColumns = getSkipColumns(columnHeader, table.getColumnHeaders(), columnHeaderMap);
 		Iterator<Object[]> iterator = new StatIterator(columnRoot, mathModes, skipColumns);
 		
 		String[] originalColumnHeaders = table.getColumnHeaders();
@@ -125,17 +125,13 @@ public class ITableStatCounter {
 		return newColHeaders;
 	}
 	
-	private static List<String> getSkipColumns(Map<String, Object> functionMap, String[] columnHeaders) {
+	private static List<String> getSkipColumns(String groupByColumn, String[] columnHeaders, Map<String, String> columnHeaderMap) {
 		
 		List<String> retList = new ArrayList<String>();
 		for(String column : columnHeaders) {
-			retList.add(column);
-		}
-		
-		for(String key : functionMap.keySet()) {
-			Map<String, String> map = (Map<String, String>)functionMap.get(key);
-			String name = map.get("name");
-			retList.remove(name);
+			if(columnHeaderMap.containsKey(column) && !column.equals(groupByColumn)) {
+				retList.add(column);
+			}
 		}
 		
 		return retList;
