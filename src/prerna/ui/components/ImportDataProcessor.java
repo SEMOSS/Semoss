@@ -188,10 +188,8 @@ public class ImportDataProcessor {
 		//Replace spaces in db name with underscores
 		//DB_TYPE dbType = DB_TYPE.RDF; // uncomment once wired
 		dbName = dbName.replace(" ", "_");
-		//first write the prop file for the new engine
-		PropFileWriter propWriter = runPropWriter(dbName, mapFile, dbPropFile, questionFile, importType, dbType, dbDriverType);
-		String ontoPath = baseDirectory + "/" + propWriter.ontologyFileName;
-		String owlPath = baseDirectory + "/" + propWriter.owlFile;
+		File propFile = null;
+		File newProp = null;
 		
 		Hashtable<String, String> newURIvalues = null;
 		Hashtable<String, String> newBaseURIvalues = null;
@@ -200,6 +198,10 @@ public class ImportDataProcessor {
 		String propURI = null;
 		boolean error = false;
 		try {		
+			//first write the prop file for the new engine
+			PropFileWriter propWriter = runPropWriter(dbName, mapFile, dbPropFile, questionFile, importType, dbType, dbDriverType);
+			String ontoPath = baseDirectory + "/" + propWriter.ontologyFileName;
+			String owlPath = baseDirectory + "/" + propWriter.owlFile;
 			//then process based on what type of file
 			if(importType == IMPORT_TYPE.EXCEL_POI && dbType == DB_TYPE.RDF) {
 				POIReader reader = new POIReader();
@@ -261,20 +263,15 @@ public class ImportDataProcessor {
 			}
 			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
 			ontologyWriter.runAugment(ontoPath, newURIvalues, newBaseURIvalues,	newRelURIvalues, newBaseRelURIvalues, propURI);
-			File propFile = new File(propWriter.propFileName);
-			File newProp = new File(propWriter.propFileName.replace("temp", "smss"));
+			propFile = new File(propWriter.propFileName);
+			newProp = new File(propWriter.propFileName.replace("temp", "smss"));
+			
 			try {
 				FileUtils.copyFile(propFile, newProp);
 				newProp.setReadable(true);
 			} catch (IOException e) {
 				e.printStackTrace();
 				throw new FileWriterException("Could not create .smss file for new database");
-			}
-			try {
-				FileUtils.forceDelete(propFile);
-			} catch (IOException e) {
-				e.printStackTrace();
-				throw new FileWriterException("Could not delete .temp file for new database");
 			}
 		} catch(EngineException e) {
 			error = true;
@@ -298,6 +295,14 @@ public class ImportDataProcessor {
 			error = true;
 			throw new InvalidUploadFormatException(e.getMessage());
 		}finally {
+			if(propFile != null) {
+				try {
+					FileUtils.forceDelete(propFile);
+				} catch (IOException e) {
+					e.printStackTrace();
+					throw new FileWriterException("Could not delete .temp file for new database");
+				}
+			}
 			if(error) {
 				String tempFilePath = baseDirectory + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + dbName + ".temp";
 				File tempFile = new File(tempFilePath);
