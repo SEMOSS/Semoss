@@ -103,10 +103,10 @@ public abstract class AbstractFileReader {
 			rdfPropMap.load(fileIn);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Could not find user-specified prop file with CSV metamodel data located in header row in cell: " + fileName);
+			throw new FileReaderException("Could not find user-specified prop file located in header row in cell: " + fileName);
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Could not read user-specified prop file with CSV metamodel data located in header row in cell: " + fileName);
+			throw new FileReaderException("Could not read user-specified prop file located in header row in cell: " + fileName);
 		} finally{
 			try{
 				if(fileIn!=null)
