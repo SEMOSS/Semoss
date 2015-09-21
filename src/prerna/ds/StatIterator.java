@@ -48,17 +48,20 @@ public class StatIterator implements Iterator<Object[]>{
 		
 		for(Object[] array : nextData) {
 			for(int i = 0; i < array.length; i++) {
-				statArray[i].addValue(array[i]);
+				if(statArray[i]==null) {
+					returnRow[i] = array[i];
+				} else {
+					statArray[i].addValue(array[i]);
+				}
 			}
 		}
 		
-		for(int i = 0; i < returnRow.length; i++) {
-//			if(reconMode[i] == DuplicationReconciliation.ReconciliationMode.COUNT) {
-//				returnRow[i] = count;
-//			} else {
+//		returnRow[0] = 
+		for(int i = 1; i < returnRow.length; i++) {
+			if(statArray[i] != null) {
 				returnRow[i] = statArray[i].getReconciliatedValue();
 				statArray[i].clearValue();
-//			}
+			}
 		}
 		
 		return returnRow;
