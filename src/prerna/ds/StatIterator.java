@@ -57,7 +57,7 @@ public class StatIterator implements Iterator<Object[]>{
 		}
 		
 //		returnRow[0] = 
-		for(int i = 1; i < returnRow.length; i++) {
+		for(int i = 0; i < returnRow.length; i++) {
 			if(statArray[i] != null) {
 				returnRow[i] = statArray[i].getReconciliatedValue();
 				statArray[i].clearValue();

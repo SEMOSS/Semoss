@@ -39,17 +39,15 @@ public class ITableStatCounter {
 		this.origColHeaders = table.getColumnHeaders();
 	}
 	
-	public Map<String, Object> addStatsToDataFrame(ITableDataFrame table, String columnHeader, Map<String, Object> functionMap) {
+	public void addStatsToDataFrame(ITableDataFrame table, String columnHeader, Map<String, Object> functionMap) {
 		setVariables(table, columnHeader, functionMap);
 		
 		
 		DuplicationReconciliation[] duprec = getDuplicationReconciliation();
-		Map<String, String> columnHeaderMap = createNewColumnHeaders();
+		Map<String, String> columnHeaderMap = getNewColumnHeaders();
 		BTreeDataFrame newTable = createNewBTree(columnHeaderMap, duprec);
-		
 		table.join(newTable, columnHeader, columnHeader, 1.0, new ExactStringMatcher());
-		
-		return functionMap;
+
 	}
 	
 	private DuplicationReconciliation[] getDuplicationReconciliation() {
@@ -102,6 +100,12 @@ public class ITableStatCounter {
 	
 	private BTreeDataFrame createNewBTree(Map<String, String> columnHeaderMap, DuplicationReconciliation[] mathModes) {
 		String[] newColHeaders = new String[columnHeaderMap.keySet().size()];
+		List<String> tempColHeaders = new ArrayList<String>(newColHeaders.length);
+		for(String c : origColHeaders) {
+			if(columnHeaderMap.containsKey(c)) {
+				tempColHeaders.add(c);
+			}
+		}
 		newColHeaders[0] = columnHeader;
 		
 		int i = 1;
@@ -122,7 +126,8 @@ public class ITableStatCounter {
 			Map<String, Object> newRow = new HashMap<String, Object>();
 			for(int x = 0; x < row.length; x++) {
 //				String newColHeader = columnHeaderMap.get(newColHeaders[i]);
-				newRow.put(newColHeaders[x], row[x]);
+				
+				newRow.put(tempColHeaders.get(x), row[x]);
 			}
 			statTable.addRow(newRow, newRow);
 		}
@@ -130,22 +135,19 @@ public class ITableStatCounter {
 	}
 	
 	//Generalize this for multiple columns
-	private Map<String, String> createNewColumnHeaders() {
+	private Map<String, String> getNewColumnHeaders() {
 		
 		//Create the new column headers for the new tree
 		Map<String, String> newColHeaders = new HashMap<String, String>(origColHeaders.length);
 		newColHeaders.put(columnHeader, columnHeader);
 		
-		String col;
 		for(String key : functionMap.keySet()) {
 			
 			Map<String, String> map = (Map<String, String>)functionMap.get(key);
 			String name = map.get("name");
-			String math = map.get("math");
+			String newName = map.get("calcName");
 			if(!name.equals(columnHeader)) {
-				col = math+" "+name+" on "+columnHeader;
-				newColHeaders.put(name, col);
-				map.put("calcName", col);
+				newColHeaders.put(name, newName);
 			}
 		}
 		
