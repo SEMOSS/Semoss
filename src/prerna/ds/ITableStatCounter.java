@@ -145,7 +145,7 @@ public class ITableStatCounter {
 			if(!name.equals(columnHeader)) {
 				col = math+" "+name+" on "+columnHeader;
 				newColHeaders.put(name, col);
-				map.put("name", col);
+				map.put("calcName", col);
 			}
 		}
 		
