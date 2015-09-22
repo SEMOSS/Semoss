@@ -23,7 +23,7 @@ public class DuplicationReconciliation {
 		this.mode = mode;
 		ignoreEmpty = true;
 		values = new ArrayList<Object>();
-		recValue = null;
+		recValue = 0.0;
 	}
 	
 	public Double getReconciliatedValue() {
@@ -65,7 +65,7 @@ public class DuplicationReconciliation {
 	
 	public void clearValue() {
 		values.clear();
-		recValue = null;
+		recValue = 0.0;
 	}
 	
 	public static Double getMean(Object[] row, boolean ignoreEmpty) {
