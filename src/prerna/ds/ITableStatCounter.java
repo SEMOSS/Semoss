@@ -127,7 +127,7 @@ public class ITableStatCounter {
 			for(int x = 0; x < row.length; x++) {
 //				String newColHeader = columnHeaderMap.get(newColHeaders[i]);
 				
-				newRow.put(tempColHeaders.get(x), row[x]);
+				newRow.put(columnHeaderMap.get(tempColHeaders.get(x)), row[x]);
 			}
 			statTable.addRow(newRow, newRow);
 		}
