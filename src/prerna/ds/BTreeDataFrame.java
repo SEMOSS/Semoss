@@ -47,10 +47,10 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openrdf.model.Literal;
 
+import cern.colt.Arrays;
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.impl.ExactStringMatcher;
-import prerna.algorithm.learning.util.DuplicationReconciliation;
 import prerna.engine.api.ISelectStatement;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
@@ -193,6 +193,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	@Override
 	public List<Object[]> getData(String columnHeader, Object value) {
+		columnHeader = this.getColumnName(columnHeader);
+
 		TreeNode root = this.simpleTree.nodeIndexHash.get(columnHeader);
 		TreeNode foundNode = null;
 		
@@ -276,7 +278,13 @@ public class BTreeDataFrame implements ITableDataFrame {
 		LOGGER.info("Analytics Routine ::: " + routine.getName());
 		LOGGER.info("Begining join on columns ::: " + colNameInTable + " and " + colNameInJoiningTable);
 
-		
+		//TODO: improve logic.. add error handling
+		if(!ArrayUtilityMethods.arrayContainsValue(this.levelNames, colNameInTable)) {
+			colNameInTable = colNameInTable.toUpperCase();
+		}
+		if(!ArrayUtilityMethods.arrayContainsValue(table.getColumnHeaders(), colNameInJoiningTable)) {
+			colNameInJoiningTable = colNameInJoiningTable.toUpperCase();
+		}
 		// fill the options needed for the routine
 		List<SEMOSSParam> params = routine.getOptions();
 		Map<String, Object> selectedOptions = new HashMap<String, Object>();
@@ -550,7 +558,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 		
 		this.isNumericalMap.remove(colNameInTable);
-//		write2Excel4Testing(this, directory+"join"+testnum+"10.xlsx");
 	}
 
 	private SimpleTreeNode findLastConnectedEmptyNode(SimpleTreeNode emptyNode, int currLevel) {
@@ -594,6 +601,10 @@ public class BTreeDataFrame implements ITableDataFrame {
     }
 
 
+    public void join(ITableDataFrame table, Map<String, String> columnMap, double confidenceThreshold, IAnalyticRoutine routine) {
+    	
+    }
+    
 	@Override
 	public void undoJoin() {
 		// TODO Auto-generated method stub
@@ -741,6 +752,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public Integer getUniqueInstanceCount(String columnHeader) {
+		columnHeader = this.getColumnName(columnHeader);
+
 		int count = 0;
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
 		FilteredIndexTreeIterator it = new FilteredIndexTreeIterator(typeRoot);
@@ -762,6 +775,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	@Override
 	public Object[] getUniqueValues(String columnHeader) {
+		columnHeader = this.getColumnName(columnHeader);
+
 		List<Object> uniqueValues = new ArrayList<Object>();
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
 		Iterator<Object> it = new UniqueValueIterator(typeRoot, false, false);
@@ -774,6 +789,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	@Override
 	public Object[] getUniqueRawValues(String columnHeader) {
+		columnHeader = this.getColumnName(columnHeader);
+
 		List<Object> uniqueValues = new ArrayList<Object>();
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
 		FilteredIndexTreeIterator it = new FilteredIndexTreeIterator(typeRoot);
@@ -786,6 +803,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public Object[] getFilteredUniqueRawValues(String columnHeader) {
+		columnHeader = this.getColumnName(columnHeader);
+
 		List<Object> uniqueValues = new ArrayList<Object>();
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
 		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
@@ -801,6 +820,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	@Override
 	public Map<String, Integer> getUniqueValuesAndCount(String columnHeader) {
+		columnHeader = this.getColumnName(columnHeader);
+
 		Map<String, Integer> valueCount = new HashMap<String, Integer>();
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
 		FilteredIndexTreeIterator it = new FilteredIndexTreeIterator(typeRoot);
@@ -823,6 +844,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	@Override
 	public Double getEntropy(String columnHeader) {
+		columnHeader = this.getColumnName(columnHeader);
+
 		double entropy = 0;
 		if(isNumeric(columnHeader)) {
 			//TODO: need to make barchart class better
@@ -884,6 +907,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public Double getEntropyDensity(String columnHeader) {
+		columnHeader = this.getColumnName(columnHeader);
+
 		double entropyDensity = 0;
 		
 		if(isNumeric(columnHeader)) {
@@ -950,6 +975,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public Double getMax(String columnHeader) {
+		columnHeader = this.getColumnName(columnHeader);
+
 		if(!isNumeric(columnHeader)) {
 			return Double.NaN;
 		}
@@ -975,6 +1002,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public Double getMin(String columnHeader) {
+		columnHeader = this.getColumnName(columnHeader);
+
 		if(!isNumeric(columnHeader)) {
 			return Double.NaN;
 		}
@@ -1013,6 +1042,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public Double getAverage(String columnHeader) {
+		columnHeader = this.getColumnName(columnHeader);
+
 		double sum = 0;
 		double count = 0;
 
@@ -1047,6 +1078,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public Double getSum(String columnHeader) {
+		columnHeader = this.getColumnName(columnHeader);
+
 		double sum = 0;
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
 		FilteredIndexTreeIterator it = new FilteredIndexTreeIterator(typeRoot);
@@ -1078,6 +1111,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public Double getStandardDeviation(String columnHeader) {
+		columnHeader = this.getColumnName(columnHeader);
+
 		Double mean = getAverage(columnHeader);
 		if(mean.isNaN()) {
 			return Double.NaN;
@@ -1120,7 +1155,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	@Override
 	public boolean isNumeric(String columnHeader) {
-		
+		columnHeader = this.getColumnName(columnHeader);
+
 		if(isNumericalMap.containsKey(columnHeader)) {
 			Boolean isNum = isNumericalMap.get(columnHeader);
 			if(isNum != null) {
@@ -1202,6 +1238,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public int getRowCount(String columnHeader) {
+		columnHeader = this.getColumnName(columnHeader);
+
 		// TODO Auto-generated method stub
 		
 		return 0;
@@ -1238,30 +1276,40 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	@Override
 	public Iterator<List<Object[]>> uniqueIterator(String columnHeader, boolean getRawData) {
+		columnHeader = this.getColumnName(columnHeader);
+
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);	
 		return new UniqueBTreeIterator(typeRoot, getRawData, columnsToSkip);
 	}
 	
 	@Override
 	public Iterator<List<Object[]>> standardizedUniqueIterator(String columnHeader, boolean getRawData) {
+		columnHeader = this.getColumnName(columnHeader);
+
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
 		return new StandardizedUniqueBTreeIterator(typeRoot, this.isNumeric(), this.getAverage(), this.getStandardDeviation(), getRawData, columnsToSkip);
 	}
 	
 	@Override
 	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData) {
+		columnHeader = this.getColumnName(columnHeader);
+
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
 		return new ScaledUniqueBTreeIterator(typeRoot, this.isNumeric(), this.getMin(), this.getMax(), getRawData, columnsToSkip);
 	}
 	
 	@Override
 	public Iterator<Object> uniqueValueIterator(String columnHeader, boolean getRawData, boolean iterateAll) {
+		columnHeader = this.getColumnName(columnHeader);
+
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
 		return new UniqueValueIterator(typeRoot, getRawData, iterateAll);
 	}
 	
 	@Override
 	public Object[] getColumn(String columnHeader) {
+		columnHeader = this.getColumnName(columnHeader);
+
 
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
 		if(typeRoot == null){ // TODO this null check shouldn't be needed. When we join, we need to add empty nodes--need to call balance at somepoint or something like that
@@ -1281,7 +1329,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 	
 	public String[] getColumnAsString(String columnHeader) {
-		
+		columnHeader = this.getColumnName(columnHeader);
+
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
 		ValueTreeColumnIterator it = new ValueTreeColumnIterator(typeRoot);
 		List<String> retList = new ArrayList<String>();
@@ -1294,6 +1343,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public Double[] getColumnAsNumeric(String columnHeader) {
+		columnHeader = this.getColumnName(columnHeader);
+
 		if(!isNumeric(columnHeader)) {
 			return null;
 		}
@@ -1315,6 +1366,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	@Override
 	public Object[] getRawColumn(String columnHeader) {
+		columnHeader = this.getColumnName(columnHeader);
 
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
 		if(typeRoot == null){ 
@@ -1336,6 +1388,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public void filter(String columnHeader, List<Object> filterValues) {
+		columnHeader = this.getColumnName(columnHeader);
+		
 		for(Object o: filterValues) {
 			this.simpleTree.filterTree(this.createNodeObject(o, o, columnHeader));
 		}
@@ -1343,19 +1397,24 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public void removeColumn(String columnHeader) {
+		columnHeader = this.getColumnName(columnHeader);
 		
 		String[] newNames = new String[levelNames.length-1];
 		int count = 0;
 		
-		for(String name : levelNames) {
+		for(int i = 0; i < levelNames.length; i++) {
+			String name = levelNames[i];
 			if (count >= newNames.length && (!name.equals(columnHeader))) { // this means a column header was passed in that doesn't exist in the tree
 				LOGGER.error("Unable to remove column " + columnHeader + ". Column does not exist in table");
 				return;
 			}
-			if(!name.equalsIgnoreCase(columnHeader)) {
+			if(!name.equals(columnHeader)) {
 				newNames[count] = name;
 				count++;
-			}
+			} 
+//			else {
+//				colToRemoveName = levelNames[i];
+//			}
 		}
 		this.levelNames = newNames;
 		this.adjustFilteredColumns();
@@ -1379,6 +1438,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public ITableDataFrame[] splitTableByColumn(String colHeader) {
+
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -1397,6 +1457,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	@Override
 	public void unfilter(String columnHeader) {
+		columnHeader = this.getColumnName(columnHeader);
+
 		this.simpleTree.unfilterColumn(columnHeader);
 	}
 
@@ -1416,11 +1478,23 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	@Override
 	public void setColumnsToSkip(List<String> columnHeaders) {
-		columnsToSkip = columnHeaders;
+		List<String> newColumnHeaders = new ArrayList<String>();
+		for(String col : columnHeaders) {
+			newColumnHeaders.add(getColumnName(col));
+		}
+		columnsToSkip = newColumnHeaders;
 		adjustFilteredColumns();
 	}
 	
-	public String[] getColumnsToSkip() {
+	public void filterColumns(List<String> columnHeaders) {
+		
+	}
+	
+	public void unfilterColumns(List<String> columnHeaders) {
+		
+	}
+	
+	public String[] getFilteredColumns() {
 		return columnsToSkip.toArray(new String[columnsToSkip.size()]);
 	}
 	
@@ -1442,6 +1516,14 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 	}
 	
+	private String getColumnName(String columnHeader) {		
+		for(String level : levelNames) {
+			if(level.equalsIgnoreCase(columnHeader)) {
+				return level;
+			}
+		}
+		throw new IllegalArgumentException("Could not find match for "+columnHeader+" in level names: "+ Arrays.toString(levelNames));
+	}
 	public static void main(String[] args) {
 //		String fileName = "C:\\Users\\bisutton\\Desktop\\BTreeTester.xlsx";
 //		String fileName2 = "C:\\Users\\bisutton\\Desktop\\BTreeTester2.xlsx";
