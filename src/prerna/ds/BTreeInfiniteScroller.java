@@ -35,7 +35,8 @@ public class BTreeInfiniteScroller implements InfiniteScroller {
 	public void resetTable() {	
 		String[] columnHeaders = table.getColumnHeaders();
 		ArrayList<String> columns2skip = new ArrayList<String>(columnHeaders.length);
-		for(String column2skip : table.getColumnsToSkip()) {
+		String[] filteredColumns = table.getFilteredColumns();
+		for(String column2skip : filteredColumns) {
 			columns2skip.add(column2skip);
 		}
 		rowIterator = new WebBTreeIterator(table.getBuilder().nodeIndexHash.get(iteratorColumn), sort, false, columns2skip);
