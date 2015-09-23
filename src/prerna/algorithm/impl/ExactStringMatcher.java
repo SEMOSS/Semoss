@@ -75,10 +75,12 @@ public class ExactStringMatcher implements IAnalyticRoutine {
 		ITableDataFrame table2 = data[1];
 		
 		LOGGER.info("Getting from first table column " + table1Header);
-		Object[] table1Col = table1.getColumn(table1Header);
+//		Object[] table1Col = table1.getColumn(table1Header);
+		Object[] table1Col = table1.getUniqueValues(table1Header);
 
 		LOGGER.info("Getting from second table column " + table2Header);
-		Object[] table2Col = table2.getColumn(table2Header);
+//		Object[] table2Col = table2.getColumn(table2Header);
+		Object[] table2Col = table2.getUniqueValues(table2Header);
 
 		ITableDataFrame results = performMatch(table1Col, table2Col);
 		
@@ -106,6 +108,11 @@ public class ExactStringMatcher implements IAnalyticRoutine {
 				total++;
 			}
 		}
+		
+//		int length = table1Col.length > table2Col.length? table1Col.length : table2Col.length;
+//		for(int i = 0 ; i < length ; i++) {
+//			
+//		}
 		
 		this.resultMetadata.put("success", success);
 		this.resultMetadata.put("total", total);
