@@ -449,6 +449,16 @@ public class SimpleTreeNode {
 			SimpleTreeNode rightMost = getRight(this.leftChild);
 			rightMost.rightSibling = node;
 			node.leftSibling = rightMost;
+			
+//			SimpleTreeNode child = this.leftChild;
+//			SimpleTreeNode rightNode = child.rightSibling;
+//			
+//			child.rightSibling = node;
+//			node.leftSibling = child;
+//			if(rightNode != null) {				
+//				rightNode.leftSibling = node;
+//				node.rightSibling = rightNode;
+//			}
 //			this.printNodes(rightMost);
 //			System.out.println(rightMost.toString() + "-" + rightMost.leaf.getValue() + " ----------- " + node.leaf.getValue() + "-" + node.toString());
 		}
@@ -504,41 +514,43 @@ public class SimpleTreeNode {
 	}
 		
 	//TODO: need to take into account filtered values
-	public static void deleteNode(SimpleTreeNode node)
-	{
-		// realign parents
-		
-		// if the node the the left child, catch the parent and set the 
-		// first possibility - this has no right sibling - possibly the best scenario - delete
-		if(node.rightSibling == null && node.leftSibling == null)
-		{
-			if(node.parent != null) node.parent.leftChild = null;
-			node.parent = null;
-		}
-		else if(node.leftSibling != null && node.rightSibling == null)
-		{
-			node.parent = null;
-			node.leftSibling.rightSibling = null; // nullify this node
-			node.leftSibling = null;
-		}
-		else if(node.rightSibling != null && node.leftSibling == null)
-		{
-			if(node.parent != null) node.parent.leftChild = node.rightSibling;
-			node.rightSibling.leftSibling = null; // nullify this node
-			node.parent = null;
-			node.rightSibling = null;
-		}		
-		else if(node.rightSibling != null && node.leftSibling != null)
-		{
-			SimpleTreeNode leftSibling = node.leftSibling;
-			node.rightSibling.leftSibling = leftSibling;
-			leftSibling.rightSibling = node.rightSibling;
-			node.parent = null;
-			node.rightSibling = null;
-			node.leftSibling = null;
-		}		
+    public static void deleteNode(SimpleTreeNode node)
+    {
+          //only child
+          if(node.rightSibling == null && node.leftSibling == null)
+          {
+                 if(node.parent != null) node.parent.leftChild = null;
+                 node.parent = null;
+          }
+          //right most
+          else if(node.leftSibling != null && node.rightSibling == null)
+          {
+                 node.leftSibling.rightSibling = null; // nullify this node
+                 node.parent = null;
+                 node.leftSibling = null;
+          }
+          //left most
+          else if(node.rightSibling != null && node.leftSibling == null)
+          {
+                 if(node.parent != null) node.parent.leftChild = node.rightSibling;
+                 node.rightSibling.leftSibling = null; // nullify this node
+                 node.parent = null;
+                 node.rightSibling = null;
+          }
+          //middle
+          else if(node.rightSibling != null && node.leftSibling != null)
+          {
+                 SimpleTreeNode leftSibling = node.leftSibling;
+                 node.rightSibling.leftSibling = leftSibling;
+                 leftSibling.rightSibling = node.rightSibling;
+                 node.parent = null;
+                 node.rightSibling = null;
+                 node.leftSibling = null;
+          }
+          // kill reference to
+          node = null;
+    }
 
-	}
 
 	public SimpleTreeNode getLeaf(SimpleTreeNode node, boolean left)
 	{
