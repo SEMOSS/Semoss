@@ -54,7 +54,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	Map<String, Double> sysBudget;
 
 	Map<String, Map<String, List<String>>> bluDataSystemMap = new HashMap<String, Map<String, List<String>>>(); //activity -> list of maps of blu/data -> system where blu/data supports activity, system supports blu/data	
-	Map<String, List<String>> retirementMap = new HashMap<String, List<String>>();
+	List<String> enduringSystems = new ArrayList<String>();
 	Map<String, List<String>> dataSystemMap = new HashMap<String, List<String>>();
 	Map<String, List<String>> granularBLUMap = new HashMap<String, List<String>>();
 	Map<String, List<String>> interfaceCountMap = new HashMap<String, List<String>>(); //down system -> list of upstream systems where an interface exists between the two systems
@@ -108,7 +108,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 		interfaceCountMap = OUSDQueryHelper.getSystemToSystemDataWithSystemBind(roadmapEngine, sysBindingsString);
 		dataSystemMap = OUSDQueryHelper.getDataCreatedBySystem(roadmapEngine, sysBindingsString);
 
-		retirementMap = OUSDQueryHelper.getSystemsByRetirementType(roadmapEngine, sysBindingsString);	
+		enduringSystems = OUSDQueryHelper.getEnduringSystems(roadmapEngine);	
 		sdsMap = OUSDQueryHelper.getSystemToSystemData(roadmapEngine);
 
 		Map<String, Map<String, List<String>>> activityDataSystemMap = OUSDQueryHelper.getActivityDataSystemMap(roadmapEngine, sysBindingsString);
@@ -136,7 +136,6 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 			}
 		}
 
-		timeline.setRetirementMap(retirementMap);
 		timeline.setDataSystemMap(dataSystemMap);
 		timeline.setBudgetMap(sysBudget);
 		timeline.setGranularBLUMap(granularBLUMap);
@@ -191,7 +190,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 
 				//SETS SYSTEM DATA FOR THE OPTIMIZER
 				System.out.println("SETTING SYSTEM DATA");
-				opt.setSystemData(sysList, sysBudget, dataSystemMap, retirementMap, granularBLUMap, maxFIHT, upstreamInterfaceCount, currentDownstreamInterfaceCount);
+				opt.setSystemData(sysList, sysBudget, dataSystemMap, enduringSystems, granularBLUMap, maxFIHT, upstreamInterfaceCount, currentDownstreamInterfaceCount);
 				opt.setOptimizationConstants(totalSystemCount, constraints, treeMax, budgetConstraint, interfaceSustainmentPercent, interfaceCost);
 				try {
 					//SETS UP THE OPTIMIZATION MODEL
@@ -242,7 +241,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 		boolean fullExit = true;
 
 		for(String system: decomList){
-			if(retirementMap.get("F").contains(system) || retirementMap.get("P").contains(system) || retirementMap.get("TBD").contains(system)){
+			if(!enduringSystems.contains(system)){
 				continue;
 			}else{
 				fullExit=false;
@@ -250,7 +249,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 		}
 
 		for(String system: keptSystems){
-			if(!retirementMap.get("F").contains(system) && !retirementMap.get("P").contains(system) && !retirementMap.get("TBD").contains(system)){
+			if(enduringSystems.contains(system)){
 				continue;
 			}else{
 				fullExit=false;
@@ -271,7 +270,7 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 		}else if(decomList.size()==0){
 			System.err.println("No systems to decommission? Something may be wrong. Decommissioning everything.");
 			for(String system: keptSystems){
-				if(retirementMap.get("F").contains(system) || retirementMap.get("P").contains(system) || retirementMap.get("TBD").contains(system)){
+				if(!enduringSystems.contains(system)){
 					decomList.add(system);
 				}
 			}
