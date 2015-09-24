@@ -675,10 +675,11 @@ public class SimpleTreeBuilder
 				while(n!=null) {
 					SimpleTreeNode parentNode = n.parent;
 					removeFromIndexTree(n);
-					if(n.hasChild()) {
-						SimpleTreeNode.deleteNode(n);
-					}
+					SimpleTreeNode.deleteNode(n);
 					n = parentNode;
+					if(n != null && n.leftChild != null) {
+                        break;
+					}
 				}
 			} else {
 				SimpleTreeNode child = n.leftChild;
