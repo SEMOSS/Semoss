@@ -153,7 +153,7 @@ public class ActivityGroupOptimizer extends LPOptimizer{
 
 			for(String dataObj: dataSystemMap.keySet()){
 				List<String> supportingSysList = dataSystemMap.get(dataObj);
-				
+
 				colno = new int[sysListSize];
 				row = new double[sysListSize];
 				for(int j=0; j<sysListSize; j++) {
@@ -175,8 +175,17 @@ public class ActivityGroupOptimizer extends LPOptimizer{
 				count++;
 			}
 		}
-		
-		System.out.println("ENDURING TOTAL:::"+enduringSystems.size());
+
+		int endureCount = 0;
+
+		for(int i =0; i<sysListSize; i++){
+			if(enduringSystems.contains(sysList[i].toString())){
+				endureCount++;
+			}
+		}
+
+
+		System.out.println("ENDURING TOTAL:::"+endureCount);
 		for(int j=0; j<sysListSize; j++){
 			colno = new int[sysListSize];
 			row = new double[sysListSize];
@@ -205,7 +214,7 @@ public class ActivityGroupOptimizer extends LPOptimizer{
 
 		int constraintValue = Math.min(variableMax, 1); 
 		constraintValue = constraintValue - systems.size();
-		
+
 		if(shouldLog){
 			//System.out.println("Determined value is of "+constraintVariable+" is "+constraintValue);
 			//System.out.println();
@@ -263,20 +272,9 @@ public class ActivityGroupOptimizer extends LPOptimizer{
 	 * @param totalYears
 	 * @param replacementPercent
 	 */
-	public void setSystemData(String[] sysNames, Map<String, Double> budgets, Map<String, List<String>> dataMap, Map<String, List<String>> retirementMap, Map<String, List<String>> bluMap, Map<String, Double> riskScoreMap, Map<String, Integer> upstreamInterfaceCount, Map<String, Integer> downstreamInterfaceCount){
+	public void setSystemData(String[] sysNames, Map<String, Double> budgets, Map<String, List<String>> dataMap, List<String> endSystems, Map<String, List<String>> bluMap, Map<String, Double> riskScoreMap, Map<String, Integer> upstreamInterfaceCount, Map<String, Integer> downstreamInterfaceCount){
 
-		for(String system: sysNames){
-			boolean contained =  false;
-			for(String key: retirementMap.keySet()){
-				if(retirementMap.get(key).contains(system)){
-					contained = true;
-				}
-			}
-			if(!contained){
-				enduringSystems.add(system);
-			}
-		}
-
+		this.enduringSystems = endSystems;
 		this.granularBLUMap = bluMap;
 		this.dataSystemMap = dataMap;
 		this.sysListSize = sysNames.length;
