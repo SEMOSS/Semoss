@@ -838,6 +838,10 @@ public class SimpleTreeBuilder
 
 		SimpleTreeNode simpleTreeNode = new ValueTreeColumnIterator(nodeIndexHash.get(type)).next();
 		boolean root = (simpleTreeNode.parent == null);
+		//TODO : fix for now, make better
+		if(root) {
+			this.unfilterColumn(type);
+		}
 		ISEMOSSNode parentNode;
 		
 		Comparator<SimpleTreeNode> simpleTreeComparator = new Comparator<SimpleTreeNode>() {
