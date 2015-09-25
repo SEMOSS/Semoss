@@ -32,11 +32,13 @@ import java.util.Arrays;
 import java.util.Date;
 //import java.util.Date;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
@@ -149,8 +151,8 @@ public class RDBMSReader {
 	public Hashtable<String,String> basePropRelations = new Hashtable<String,String>();
 
 	protected Hashtable<String, String[]> baseRelations = new Hashtable<String, String[]>();
-	protected Vector <String> tables = new Vector<String>();
-	protected Vector <String> allTables = new Vector<String>();
+	protected Set <String> tables = new HashSet<String>();
+	protected Set <String> allTables = new HashSet<String>();
 	protected Vector <String> allTablesModified = new Vector<String>();
 
 	// OWL variables
@@ -552,11 +554,14 @@ public class RDBMSReader {
 		int questionOrder = 0;
 		int tableIndex = 0;
 
-		for(;tableIndex < tables.size();tableIndex++)
+		Vector<String> tablesVec = new Vector<String>();
+		tablesVec.addAll(tables);
+		
+		for(;tableIndex < tablesVec.size();tableIndex++)
 		{
 			questionOrder = newTableSeq + tableIndex;
 
-			String key = tables.elementAt(tableIndex);
+			String key = tablesVec.elementAt(tableIndex);
 			key = realClean(key);
 			if(tableIndex == 0)
 				genericQueries = genericQueries + "GQ" + questionOrder;
@@ -616,13 +621,16 @@ public class RDBMSReader {
 		newTableSeq = newTableSeq + 1; //we need to add 1 to the question order to account for  the explore a concept question
 		String questionOrder = "", question = "", sql = "", layout = "", questionDescription = ""; 
 
+		Vector<String> tablesVec = new Vector<String>();
+		tablesVec.addAll(tables);
+		
 		try {
 			String questionKey = questionAdmin.createQuestionKey(GENERIC_PERSPECTIVE);
-			for(int tableIndex = 0;tableIndex < tables.size();tableIndex++)
+			for(int tableIndex = 0;tableIndex < tablesVec.size();tableIndex++)
 			{
 				questionOrder = Integer.toString(newTableSeq + tableIndex);
 				questionKey = "GQ"+questionOrder;
-				String key = tables.elementAt(tableIndex);
+				String key = tablesVec.elementAt(tableIndex);
 				key = realClean(key);
 				question = "Show all from " + key;
 				questionDescription = question;
