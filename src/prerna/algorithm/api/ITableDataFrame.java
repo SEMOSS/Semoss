@@ -346,7 +346,7 @@ public interface ITableDataFrame {
 	Map<String, Map<String, Integer>> getUniqueColumnValuesAndCount();
 	
 	/**
-	 * Refreshes data-frame with what is in database
+	 * Refreshes data-frame with what is in database. Currently hard-deletes all rows that have been filtered.
 	 */
 	void refresh();
 	
@@ -386,6 +386,15 @@ public interface ITableDataFrame {
 	 */
 	void removeRow(int rowIdx);
 	
+	/**
+	 * Hard deletes all rows containing specified value
+	 * 
+	 * @param cleanValue
+	 * @param rawValue
+	 * @param level
+	 */
+	void removeValue(String value, String rawValue, String level);
+
 	/**
 	 * Splits the data-frame into two parts based on the inputed column header
 	 * Defaulted that the column header passed in is only included in the left partition of the split 
@@ -453,8 +462,5 @@ public interface ITableDataFrame {
 
 	//temporary hack for build...delete later
 	public Object[] getFilteredUniqueRawValues(String columnHeader);
-
-
-
 	
 }

@@ -242,7 +242,12 @@ public class SimpleTreeNode {
 		return this.leaf.isLeft(node.leaf);
 	}
 		
-	
+	public static String serializeTree(SimpleTreeNode root) {
+		Vector<SimpleTreeNode> nodes = new Vector<SimpleTreeNode>();
+		nodes.add(root);
+		return serializeTree(new StringBuilder(""), nodes, true, 0);
+	}
+
 	public static String serializeTree(String output, Vector<SimpleTreeNode> nodes, boolean parent, int level) {
 		return serializeTree(new StringBuilder(output), nodes, parent, level);
 	}
