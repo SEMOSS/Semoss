@@ -47,7 +47,6 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openrdf.model.Literal;
 
-import cern.colt.Arrays;
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.impl.ExactStringMatcher;
@@ -57,6 +56,7 @@ import prerna.math.StatisticsUtilityMethods;
 import prerna.om.SEMOSSParam;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
+import cern.colt.Arrays;
 
 public class BTreeDataFrame implements ITableDataFrame {
 
@@ -1383,7 +1383,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 	
 	@Override
 	public void refresh() {
-		// TODO Auto-generated method stub
+		simpleTree.deleteFilteredValues(simpleTree.getRoot());
+		for (String level : levelNames) {
+			simpleTree.nodeIndexHash.put(level, simpleTree.refreshIndexTree(level));
+		}
 	}
 
 	@Override
@@ -1434,6 +1437,12 @@ public class BTreeDataFrame implements ITableDataFrame {
 	@Override
 	public void removeRow(int rowIdx) {
 		// TODO Auto-generated method stub
+	}
+	
+	@Override
+	public void removeValue(String value, String rawValue, String level) {
+		ISEMOSSNode node = this.createNodeObject(value, rawValue, level);
+		this.simpleTree.removeNode(node);
 	}
 
 	@Override
@@ -1524,7 +1533,81 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 		throw new IllegalArgumentException("Could not find match for "+columnHeader+" in level names: "+ Arrays.toString(levelNames));
 	}
+
 	public static void main(String[] args) {
+
+		String fileName = "C:\\Users\\kepark\\Desktop\\MillionRows.xlsx";
+		String fileOut = "C:\\Users\\kepark\\Desktop\\Output.xlsx";
+		BTreeDataFrame newTree = load2Tree4Testing(fileName);
+		System.out.println("BTree created.");
+		List<Object> capFilter = new ArrayList<Object>();
+		List<Object> lowerFilter = new ArrayList<Object>();
+		List<Object> numFilter = new ArrayList<Object>();
+		
+		capFilter.add("A2");
+		capFilter.add("A1025");
+		capFilter.add("A1000");
+		lowerFilter.add("a3");
+		lowerFilter.add("a1998");
+		numFilter.add("1");
+		numFilter.add("1999");
+		
+		newTree.filter("Capital", capFilter);
+		newTree.filter("Lowercase", lowerFilter);
+		newTree.filter("Number", numFilter);
+		System.out.println("Values filtered");
+		
+		newTree.refresh();
+		SimpleTreeNode root = newTree.simpleTree.getRoot();
+		write2Excel4Testing(newTree, fileOut);
+		
+		// System.out.println("****OLD TREE****");
+		// Iterator<Object> oldCapIterator = newTree.uniqueValueIterator("Capital", false, true); // Change for each query
+		// while (oldCapIterator.hasNext()) {
+		// System.out.println(oldCapIterator.next().toString());
+		// }
+		// Iterator<Object> oldLowerIterator = newTree.uniqueValueIterator("Lowercase", false, true); // Change for each query
+		// while (oldLowerIterator.hasNext()) {
+		// System.out.println(oldLowerIterator.next().toString());
+		// }
+		// Iterator<Object> oldNumIterator = newTree.uniqueValueIterator("Number", false, true); // Change for each query
+		// while (oldNumIterator.hasNext()) {
+		// System.out.println(oldNumIterator.next().toString());
+		// }
+
+		// // String serial = TreeNode.serializeTree(newTree.simpleTree.nodeIndexHash.get("Capital"));
+		// // TreeNode newNode = TreeNode.deserializeTree(serial);
+		// // CompleteIndexTreeIterator it = new CompleteIndexTreeIterator(newNode);
+		// FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
+		// double start = System.currentTimeMillis();
+		// TreeNode root = newTree.simpleTree.nodeIndexHash.get("Capital");
+		// TreeNode node = conf.deepCopy(root);
+		// double end = System.currentTimeMillis();
+		// System.out.println("Time: " + ((end - start) / 1000));
+		// Map<String, Object> cleanHash = new HashMap<String, Object>();
+		// Map<String, Object> rawHash = new HashMap<String, Object>();
+		// cleanHash.put("Capital", "A0");
+		// cleanHash.put("Lowercase", "a0");
+		// cleanHash.put("Number", "0");
+		// rawHash.put("Capital", "http://semoss.org/ontologies/Concept/Capital/A0");
+		// rawHash.put("Lowercase", "http://semoss.org/ontologies/Concept/Lowercase/a0");
+		// rawHash.put("Number", "http://semoss.org/ontologies/Concept/Number/0");
+		// // secondTree.addRow(cleanHash, rawHash);
+		// System.out.println("****NEW TREE****");
+		// // Iterator<Object> capIterator = secondTree.uniqueValueIterator("Capital", false, true); // Change for each query
+		// // while (capIterator.hasNext()) {
+		// // System.out.println(capIterator.next().toString());
+		// // }
+		// // Iterator<Object> lowerIterator = secondTree.uniqueValueIterator("Lowercase", false, true); // Change for each query
+		// // while (lowerIterator.hasNext()) {
+		// // System.out.println(lowerIterator.next().toString());
+		// // }
+		// // Iterator<Object> numIterator = secondTree.uniqueValueIterator("Number", false, true); // Change for each query
+		// // while (numIterator.hasNext()) {
+		// // System.out.println(numIterator.next().toString());
+		// // }
+
+		System.out.println("done");
 //		String fileName = "C:\\Users\\bisutton\\Desktop\\BTreeTester.xlsx";
 //		String fileName2 = "C:\\Users\\bisutton\\Desktop\\BTreeTester2.xlsx";
 //		String fileName3 = "C:\\Users\\bisutton\\Desktop\\BTreeTester3.xlsx";
@@ -1535,8 +1618,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 //		testStoringAndWriting(fileName, fileNameout);
 		//testJoin(fileName, fileName2, fileName3, fileNameout);
 
-//		String fileName = "C:\\Users\\rluthar\\Desktop\\NIH.xlsx";
-//		BTreeDataFrame tree = load2Tree4Testing(fileName);
+
 //		String[] columnHeaders = tree.getColumnHeaders();
 //		boolean[] numeric = tree.isNumeric();
 //		DuplicationReconciliation.ReconciliationMode[] array = new DuplicationReconciliation.ReconciliationMode[4];
