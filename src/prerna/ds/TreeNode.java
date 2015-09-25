@@ -1,12 +1,7 @@
 package prerna.ds;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
-import java.util.StringTokenizer;
 import java.util.Vector;
 
 
@@ -51,6 +46,10 @@ public class TreeNode {
 	 */
 	public Vector<SimpleTreeNode> getInstances() {
 		return this.instanceNode;
+	}
+	
+	public Vector<SimpleTreeNode> getFilteredInstances() {
+		return this.filteredInstanceNode;
 	}
 
 	/**
@@ -218,32 +217,6 @@ public class TreeNode {
 		}
 		node = getLeft(node);
 		return node;
-	}
-	
-	public static TreeNode getMin(TreeNode typeRoot) {
-		while(typeRoot.leftChild != null) {
-			typeRoot = typeRoot.leftChild;
-		}
-		
-		if(typeRoot.leaf.isEqual(new StringClass(SimpleTreeNode.EMPTY))) {
-			if(typeRoot.rightSibling != null) {
-				typeRoot = typeRoot.rightSibling;
-			} else {
-				typeRoot = typeRoot.parent;
-			}
-		}
-		
-		return typeRoot;
-	}
-	
-	public static TreeNode getMax(TreeNode typeRoot) {
-		typeRoot = typeRoot.getRight(typeRoot);
-		while(typeRoot.rightChild != null) {
-			typeRoot = typeRoot.rightChild;
-			typeRoot = typeRoot.getRight(typeRoot);
-		}
-		
-		return typeRoot;
 	}
 	
 	public void addChild(TreeNode node)
@@ -638,25 +611,20 @@ public class TreeNode {
 
 
 	/**
+	 * Currently unuseable because Index Tree will lose all references to Value Tree when deserialized
 	 * 
-	 * @param output
-	 * @param nodes
-	 * @param parent
-	 * @param level
+	 * @param root
 	 * @return
 	 */
-	public static String serializeTree(String output, Vector<TreeNode> nodes, boolean parent, int level) {
-		return TreeNode.serializeTree(new StringBuilder(output), nodes, parent, level);
-	}
-	
-	/*
-	private static String serializeTree(TreeNode rootNode) {
-		Vector<TreeNode> nodes = new Vector<>();
-		nodes.add(rootNode);
+	public static String serializeTree(TreeNode root) {
+		Vector<TreeNode> nodes = new Vector<TreeNode>();
+		nodes.add(root);
 		return TreeNode.serializeTree(new StringBuilder(""), nodes, true, 0);
 	}
-	 * */
+	
+
 	/**
+	 * Currently unuseable because Index Tree will lose all references to Value Tree when deserialized
 	 * 
 	 * @param output
 	 * @param nodes
@@ -664,107 +632,146 @@ public class TreeNode {
 	 * @param level
 	 * @return
 	 */
-	private static String serializeTree(StringBuilder output, Vector <TreeNode> nodes, boolean parent, int level)
-	{
+	private static String serializeTree(StringBuilder output, Vector<TreeNode> nodes, boolean parent, int level) {
 		Vector<TreeNode> childNodes = new Vector<>();
 		for(int nodeIndex = 0; nodeIndex < nodes.size(); nodeIndex++) {
 			TreeNode node = nodes.elementAt(nodeIndex);
 			
 			do {
-				output.append(node.leaf.getKey());
+				output.append(node.leaf.toString());
 				if(node.leftChild != null) {
 					childNodes.add(node.leftChild);
 				}
-
 				if(node.rightChild != null) {
 					childNodes.add(node.rightChild);
 				}
-
 				node = node.rightSibling;
-				
 				if(node != null) {
-					output.append("-");
+					output.append("@@@");
 				}
-				
 			} while(node != null);
 			
 			if(!parent) {
-				output.append("|");
+				output.append("|||");
 			}
 		}
 		
-		output.append("/");
+		output.append("///");
 		
 		if(childNodes.size() > 0) {
-			return serializeTree(output, childNodes, false, level+1);
+			return serializeTree(output, childNodes, false, level + 1);
 		}
 		else {
 			return output.toString();
 		}
 	}
 	
-	public static TreeNode deserializeTree(String serializedTree)
-	{
+	/**
+	 * Deserializes Index Tree serialization. Currently unuseable because Index Tree will lose all references to Value Tree when deserialized
+	 * 
+	 * @param serializedTree
+	 * @return
+	 */
+	public static TreeNode deserializeTree(String serializedTree) {
 		TreeNode rootNode = null;
 		boolean parent = true;
-		Vector <TreeNode> parentNodes = new Vector();
+		Vector<TreeNode> parentNodes = new Vector<TreeNode>();
 		// each one of this is a new line
-		StringTokenizer mainTokens = new StringTokenizer(serializedTree, "/");
-		while(mainTokens.hasMoreTokens())
-		{
-			Vector <TreeNode> nextLevel = new Vector();
-			String line = mainTokens.nextToken();
+		String[] mainTokens = serializedTree.split("/{3}");
+		for (String line : mainTokens) {
+			Vector<TreeNode> nextLevel = new Vector<TreeNode>();
 			int count = 0;
-			if(!parent)
-			{
-				// next is to zoom out the pipes
-				//TreeNode curParent = parentNodes.elementAt(count);
+			if (!parent) {
 				TreeNode curParentNode = null;
-				//System.out.println("Total number of parents " + parentNodes.size());
-				StringTokenizer leftRightTokens = new StringTokenizer(line, "|");
-				while(leftRightTokens.hasMoreTokens())
-				{
+				String[] leftRightTokens = line.split("\\|{3}");
+				for (int i = 0; i < leftRightTokens.length; i = i + 2) {
+					// for (String leftChildString : leftRightTokens) {
 					if(curParentNode == null)
 					{
 						curParentNode = parentNodes.elementAt(count);
 						count++;
 					}
-					//System.out.println("[" + curParentNode + "]");
-					//System.out.println("Cur Parent Node is " + curParentNode.leaf.getKey());
-					String leftChildString = leftRightTokens.nextToken();
-					String rightChildString = leftRightTokens.nextToken();
-					Object [] stringOfNodes = createStringOfNodes(leftChildString, nextLevel);
-					TreeNode leftNode = (TreeNode)stringOfNodes[0];
-					nextLevel = (Vector<TreeNode>)stringOfNodes[1];
+					Object[] leftStringOfNodes = createStringOfNodes(leftRightTokens[i], nextLevel);
+					Object[] rightStringOfNodes = createStringOfNodes(leftRightTokens[i + 1], nextLevel);
+					TreeNode leftNode = (TreeNode)leftStringOfNodes[0];
+					TreeNode rightNode = (TreeNode) rightStringOfNodes[0];
+					nextLevel = (Vector<TreeNode>) leftStringOfNodes[1];
+
 					// set the parent here
 					// do the right node only if the parent has no sibling kind of
-					stringOfNodes = createStringOfNodes(rightChildString, nextLevel);
-					TreeNode rightNode = (TreeNode)stringOfNodes[0];
-					nextLevel = (Vector<TreeNode>)stringOfNodes[1];
-
 					curParentNode.leftChild = leftNode;
+					curParentNode.rightChild = rightNode;
 					leftNode.parent = curParentNode;
-					rightNode.parent = curParentNode;
-					
-					if(curParentNode.leftSibling != null)
-						curParentNode.leftSibling.rightChild = curParentNode.leftChild;
-					if(curParentNode.rightSibling == null)
-						curParentNode.rightChild = rightNode;
+
 					// move on next
 					curParentNode = curParentNode.rightSibling;
 				}
 			}
 			else
 			{
-				//System.out.println("Parent.. ");
 				Object [] stringOfNodes = createStringOfNodes(line, nextLevel);
 				rootNode = (TreeNode)stringOfNodes[0];
 				nextLevel = (Vector<TreeNode>)stringOfNodes[1];
-				//System.out.println("Next level is " + nextLevel.get(0).leaf.getKey());
 				parent = false;
 			}
 			parentNodes = nextLevel;
 		}
+		// StringTokenizer mainTokens = new StringTokenizer(serializedTree, "/");
+		// while(mainTokens.hasMoreTokens())
+		// {
+		// Vector <TreeNode> nextLevel = new Vector();
+		// String line = mainTokens.nextToken();
+		// int count = 0;
+		// if(!parent)
+		// {
+		// // next is to zoom out the pipes
+		// //TreeNode curParent = parentNodes.elementAt(count);
+		// TreeNode curParentNode = null;
+		// //System.out.println("Total number of parents " + parentNodes.size());
+		// StringTokenizer leftRightTokens = new StringTokenizer(line, "|");
+		// while(leftRightTokens.hasMoreTokens())
+		// {
+		// if(curParentNode == null)
+		// {
+		// curParentNode = parentNodes.elementAt(count);
+		// count++;
+		// }
+		// //System.out.println("[" + curParentNode + "]");
+		// //System.out.println("Cur Parent Node is " + curParentNode.leaf.getKey());
+		// String leftChildString = leftRightTokens.nextToken();
+		// String rightChildString = leftRightTokens.nextToken();
+		// Object [] stringOfNodes = createStringOfNodes(leftChildString, nextLevel);
+		// TreeNode leftNode = (TreeNode)stringOfNodes[0];
+		// nextLevel = (Vector<TreeNode>)stringOfNodes[1];
+		// // set the parent here
+		// // do the right node only if the parent has no sibling kind of
+		// stringOfNodes = createStringOfNodes(rightChildString, nextLevel);
+		// TreeNode rightNode = (TreeNode)stringOfNodes[0];
+		// nextLevel = (Vector<TreeNode>)stringOfNodes[1];
+		//
+		// curParentNode.leftChild = leftNode;
+		// leftNode.parent = curParentNode;
+		// rightNode.parent = curParentNode;
+		//
+		// if(curParentNode.leftSibling != null)
+		// curParentNode.leftSibling.rightChild = curParentNode.leftChild;
+		// if(curParentNode.rightSibling == null)
+		// curParentNode.rightChild = rightNode;
+		// // move on next
+		// curParentNode = curParentNode.rightSibling;
+		// }
+		// }
+		// else
+		// {
+		// //System.out.println("Parent.. ");
+		// Object [] stringOfNodes = createStringOfNodes(line, nextLevel);
+		// rootNode = (TreeNode)stringOfNodes[0];
+		// nextLevel = (Vector<TreeNode>)stringOfNodes[1];
+		// //System.out.println("Next level is " + nextLevel.get(0).leaf.getKey());
+		// parent = false;
+		// }
+		// parentNodes = nextLevel;
+		// }
 		return rootNode;
 	}
 
@@ -775,28 +782,67 @@ public class TreeNode {
 	private static Object [] createStringOfNodes(String childString, Vector <TreeNode> inVector)
 	{
 		// nasty.. I dont have a proper object eeks
-		Object [] retObject = new Object[2];
+		Object[] retObject = new Object[2];
 		// final loop is the <> loop
-		StringTokenizer leftString = new StringTokenizer(childString, "-");
+		String[] leftString = childString.split("@{3}");
 		TreeNode leftNode = null;
-		while(leftString.hasMoreElements())
-		{
-			String leftNodeKey = leftString.nextToken();
-			TreeNode node = new TreeNode(new IntClass(Integer.parseInt(leftNodeKey)));
-			if(leftNode == null)
-			{
+		for (String leftNodeKey : leftString) {
+			String[] classString = leftNodeKey.split("#{3}");
+			ISEMOSSNode sNode = null;
+			try {
+				sNode = (ISEMOSSNode) Class.forName(classString[0]).getConstructor(String.class, Boolean.class).newInstance(classString[1], true);
+			} catch (InstantiationException e) {
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+			} catch (IllegalArgumentException e) {
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				e.printStackTrace();
+			} catch (NoSuchMethodException e) {
+				e.printStackTrace();
+			} catch (SecurityException e) {
+				e.printStackTrace();
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+			}
+			TreeNode node = new TreeNode(sNode);
+			
+			if (leftNode == null) {
 				leftNode = node;
 				retObject[0] = node;
 				inVector.addElement(node);
-			}
-			else
-			{
+				// also need to set the parent here
+			} else {
 				leftNode.rightSibling = node;
 				node.leftSibling = leftNode;
 				leftNode = node;
 			}
-		}				
+		}
 		retObject[1] = inVector;
+		// // nasty.. I dont have a proper object eeks
+		// Object [] retObject = new Object[2];
+		// // final loop is the <> loop
+		// StringTokenizer leftString = new StringTokenizer(childString, "-");
+		// TreeNode leftNode = null;
+		// while(leftString.hasMoreElements())
+		// {
+		// String leftNodeKey = leftString.nextToken();
+		// TreeNode node = new TreeNode(new IntClass(Integer.parseInt(leftNodeKey)));
+		// if(leftNode == null)
+		// {
+		// leftNode = node;
+		// retObject[0] = node;
+		// inVector.addElement(node);
+		// }
+		// else
+		// {
+		// leftNode.rightSibling = node;
+		// node.leftSibling = leftNode;
+		// leftNode = node;
+		// }
+		// }
+		// retObject[1] = inVector;
 		return retObject;
 	}
 	
@@ -1156,6 +1202,14 @@ public class TreeNode {
 			return join(childNodes, toNodeRoot, false, resNodeRoot);
 		else
 			return resNodeRoot;
+	}
+	
+	public void cleanNode() {
+		this.parent = null;
+		this.leftChild = null;
+		this.rightChild = null;
+		this.rightSibling = null;
+		this.leftSibling = null;
 	}
 
 

@@ -42,9 +42,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
-public class SimpleTreeBuilder 
+public class SimpleTreeBuilder
 {
 	// core set of issues I am trying to solve
 	// the ability to add columns on the fly - Complete
@@ -649,7 +648,6 @@ public class SimpleTreeBuilder
 		}
 	}
 	
-	
 	/**
 	 * 
 	 * @param level
@@ -980,32 +978,212 @@ public class SimpleTreeBuilder
 		}
 	}
 	
+	/**
+	 * Currently rebuilds Index Tree with remaining TreeNodes after deletion. Can implement rebalance as an option to clean up Index Tree.
+	 * 
+	 * @param level Column header
+	 * @return TreeNode root node of rebuilt/rebalanced Index Tree
+	 */
+	public TreeNode refreshIndexTree(String level) {
+		TreeNode refreshedNode = null;
+		boolean isRebuild = true;
+		
+		ArrayList<TreeNode> nodeList = new ArrayList<TreeNode>();
+		TreeNode root = this.nodeIndexHash.get(level);
+		
+		nodeList = deleteIndexFilters(root, isRebuild);
+		
+		if (isRebuild) {
+			refreshedNode = rebuild(nodeList);
+		} else {
+			// TODO: implement rebalance under conditions where it would be faster to rebalance rather than rebuild Index Tree
+		}
+		
+		return refreshedNode;
+	}
 	
+	/**
+	 * Removes all right children in the BTree: This hard deletes all filtered values. Works recursively. Also deletes filteredRoot to remove filtered root values.
+	 * 
+	 * @param root SimpleTreeNode from Value Tree that needs to have filtered values removed
+	 */
+	public void deleteFilteredValues(SimpleTreeNode node) {
+		if (!node.hasChild()) {
+			this.filteredRoot = null;
+			return;
+		}
+		node.rightChild = null;
+		if (node.leftChild.hasChild()) {
+			if (node.leftChild != null) {
+				deleteFilteredValues(node.leftChild);
+			}
+			if (node.rightSibling != null) {
+				deleteFilteredValues(node.rightSibling);
+			}
+		}
+		this.filteredRoot = null;
+	}
+	
+	/**
+	 * Gathers list of TreeNodes that will be used to either rebuild Index Tree or contain TreeNodes that must be deleted during rebalance
+	 * 
+	 * @param isRebuild
+	 *            true if method is being used to rebuild index tree, false if used to rebalance index tree
+	 * @return ArrayList of TreeNodes that will either be kept or deleted
+	 */
+	private ArrayList<TreeNode> deleteIndexFilters(TreeNode root, boolean isRebuild) {
+		ArrayList<TreeNode> nodeList = new ArrayList<TreeNode>();
+		
+		CompleteIndexTreeIterator iterator = new CompleteIndexTreeIterator(root); // needs to iterate through logically deleted nodes, which IndexTreeIterator does not do currently
+		while (iterator.hasNext()) {
+			root = iterator.next();
+			if (root.filteredInstanceNode.size() > 0) {
+				root.filteredInstanceNode = new Vector<SimpleTreeNode>();
+			}
+			if (isRebuild) {
+				if (root.instanceNode.size() > 0) {
+					nodeList.add(root); // when rebuilding, we need nodes that will be kept
+				}
+			} else {
+				if (root.instanceNode.size() == 0) {
+					nodeList.add(root); // when rebalancing, we need nodes that will be deleted
+				}
+			}
+
+		}
+		return nodeList;
+	}
+
+	/**
+	 * Rebuilds the Index Tree with the TreeNodes contained in keepList
+	 * 
+	 * @param keepList ArrayList containing TreeNodes that are to be kept in the new Index Tree
+	 * @return TreeNode of new Index Tree
+	 */
+	private TreeNode rebuild(ArrayList<TreeNode> keepList) {
+		TreeNode newRoot = keepList.get(0);
+		newRoot.cleanNode();
+		keepList.remove(0);
+		
+		for (TreeNode node : keepList) {
+			node.cleanNode();
+			newRoot = newRoot.insertData(node);
+		}
+		
+		return newRoot;
+	}
+
+	/**
+	 * Removes all rows containing specified ISEMOSSNode
+	 * 
+	 * @param node ISEMOSSNode of value to be deleted
+	 */
 	public void removeNode(ISEMOSSNode node)
 	{
 		String type = node.getType();
 		if(nodeIndexHash.containsKey(type))
 		{
 			TreeNode rootNode = nodeIndexHash.get(type);
-			TreeNode searchNode = new TreeNode(node);
-			Vector searchVector = new Vector();
+			TreeNode searchNode = new TreeNode(node); // TreeNode without the references that rootNode has; is this necessary?
+			Vector<TreeNode> searchVector = new Vector<TreeNode>();
 			searchVector.addElement(rootNode);
-			TreeNode foundNode = rootNode.getNode(searchVector, searchNode, false);
+			TreeNode foundNode = rootNode.getNode(searchVector, searchNode, false); // can we just feed rootNode instead of searchNode?
 			
 			if(foundNode != null)
 			{
 				// get all the instances and delete
-				Vector <SimpleTreeNode> instances = foundNode.getInstances();
-				for(int instanceIndex = 0;instanceIndex < instances.size();instanceIndex++) {
-					if(instances.get(instanceIndex)!=null)
-						SimpleTreeNode.deleteNode(instances.get(instanceIndex));
+				Vector<SimpleTreeNode> instances = foundNode.getInstances();
+				Vector<SimpleTreeNode> filteredInstances = foundNode.getFilteredInstances();
+				
+				boolean hasInstances = instances.size() > 0;
+				boolean hasFilters = filteredInstances.size() > 0;
+				
+				if (hasInstances) {
+					while (instances.size() > 0) {
+						removeInstanceFromBTree(instances.get(0));
+					}
 				}
-				//foundNode.instanceNode = null;
-//				TreeNode newRoot = rootNode.deleteData(foundNode);
-//				nodeIndexHash.put(type, newRoot);
+				if (hasFilters) {
+					while (filteredInstances.size() > 0) {
+						removeInstanceFromBTree(filteredInstances.get(0));
+					}
+				}
 			}
 		}
 	}
+	
+	/**
+	 * Removes value from both Value Tree and Index Tree
+	 * 
+	 * @param n SimpleTreeNode of value to be deleted
+	 */
+	private void removeInstanceFromBTree(SimpleTreeNode n) {
+		SimpleTreeNode node = findParentWithSibling(n);
+		removeAllChildrenFromBTree(node, true);
+	}
+	
+	/**
+	 * Searches up the Value Tree recursively until it has found a node with siblings or is at root level. Once found, the parent is removed from the Value Tree, along with all its children.
+	 * 
+	 * @param n SimpleTreeNode to start searching from
+	 * @return most parent SimpleTreeNode
+	 */
+	private SimpleTreeNode findParentWithSibling(SimpleTreeNode n) {
+		SimpleTreeNode rightSibling = n.rightSibling;
+		SimpleTreeNode leftSibling = n.leftSibling;
+		SimpleTreeNode parent = n.parent;
+		
+		boolean hasParent = parent != null;
+		boolean hasRightSibling = rightSibling != null;
+		boolean hasLeftSibling = leftSibling != null;
+		
+		// rewire siblings
+		if (hasParent) {
+			if (!hasLeftSibling && hasRightSibling) {
+				parent.leftChild = rightSibling;
+				rightSibling.leftSibling = null;
+			} else {
+				n = findParentWithSibling(parent); // node has no siblings; find first parent node that does or root
+			}
+		} else if (hasLeftSibling && hasRightSibling) { // in the middle of two nodes
+			rightSibling.leftSibling = leftSibling;
+			leftSibling.rightSibling = rightSibling;
+		} else if (hasLeftSibling && !hasRightSibling) {
+			leftSibling.rightSibling = null;
+		} else { // neither parent nor left sibling, but has right sibling
+			rightSibling.leftSibling = null;
+		}
+		
+		return n;
+	}
+	
+	/**
+	 * Recursively goes through entire subtree and removes each SimpleTreeNode from the Index Tree
+	 * 
+	 * @param n
+	 * @param isFirstNode
+	 */
+	private void removeAllChildrenFromBTree(SimpleTreeNode n, boolean isFirstNode) {
+		SimpleTreeNode instanceChild = n.leftChild;
+		SimpleTreeNode filteredChild = n.rightChild;
+		SimpleTreeNode rightSibling = n.rightSibling;
+		
+		boolean hasInstances = instanceChild != null;
+		boolean hasFilters = filteredChild != null;
+		boolean hasRight = rightSibling != null;
+		
+		this.removeFromIndexTree(n);
+
+		if (hasRight && !isFirstNode) {
+			removeAllChildrenFromBTree(rightSibling, false);
+		} else if (hasFilters) {
+			removeAllChildrenFromBTree(filteredChild, false);
+		}
+		if (hasInstances) {
+			removeAllChildrenFromBTree(instanceChild, false);
+		}
+	}
+	
 	
 //*********************END REDUCTION METHODS ****************************//
 
