@@ -73,6 +73,9 @@ public class RdfExcelTableReader extends AbstractFileReader {
 	private boolean propFileExist = true;
 	private Hashtable<String, String>[] rdfMapArr;
 
+	private int startRow = 1;
+	private int maxRows = 100000;
+	
 	/**
 	 * Loading data into SEMOSS to create a new database
 	 * @param dbName 		String grabbed from the user interface that would be used as the name for the database
@@ -184,15 +187,12 @@ public class RdfExcelTableReader extends AbstractFileReader {
 	 */
 	public void processRelationShips(XSSFSheet sheet) throws EngineException, FileReaderException
 	{
-		int startRow = 1;
 		// overwrite this value if user specified the max rows to load
 		if (rdfMap.get(sheet.getSheetName() + "_START_ROW") != null)
 		{
 			startRow =  Integer.parseInt(rdfMap.get(sheet.getSheetName() + "_START_ROW"));
 		}
 		// get all the relation
-		// max row predetermined value
-		int maxRows = 10000;
 		// overwrite this value if user specified the max rows to load
 		if (rdfMap.get(sheet.getSheetName() + "_END_ROW") != null)
 		{
