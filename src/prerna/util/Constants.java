@@ -399,6 +399,8 @@ public class Constants {
 
 	public static final String XML = "XML";
 	public static final String INSIGHTS = "INSIGHTS";
+	public static final String RDBMS_INSIGHTS = "RDBMS_INSIGHTS";
+	
 	// question modification
 	public static final String LABEL_QUESTION_SELECT_PERSPECTIVE = "lblQuestionSelectPerspective";
 	public static final String QUESTION_PERSPECTIVE_SELECTOR = "questionPerspectiveSelector";
