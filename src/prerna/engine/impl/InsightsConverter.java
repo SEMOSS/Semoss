@@ -127,7 +127,8 @@ public class InsightsConverter {
 
 			String QUESTION_ID_FK = newQuestionIDMap.get(INSIGHT_KEY);
 			String NEW_PARAM_ID = QUESTION_ID_FK + "_" + PARAM_NAME;
-			
+			PARAM_QUERY = cleanString(PARAM_QUERY);
+
 //			String QUERY_MAKEUP = "";
 //			if(!PARAM_QUERY.isEmpty()) {
 //				QUERY_MAKEUP = generateQueryMakeUp(engineName, PARAM_QUERY);
@@ -173,20 +174,25 @@ public class InsightsConverter {
 				+ "PARAMETER_LABEL VARCHAR(255), "
 				+ "PARAMETER_TYPE VARCHAR(225), "
 				+ "PARAMETER_DEPENDENCY VARCHAR(225), "
-				+ "PARAMETER_MAKEUP VARCHAR(225), "
-				+ "PARAMETER_OPTIONS VARCHAR(225), "
+				+ "PARAMETER_MAKEUP VARCHAR(5000), "
+				+ "PARAMETER_OPTIONS VARCHAR(5000), "
 				+ "QUESTION_ID_FK VARCHAR(225))";
 		
 		insightRDBMSEngine.insertData(parameterTableCreate);
 	}
 	
+	private String cleanString(String s) {
+		return s.replaceAll("'", "''");
+	}
+	
 	private String generateQueryMakeUp(String engine, String query) {
+		query = cleanString(query);
 		String makeup = "<http://semoss.org/ontologies/Concept/Engine> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> .\n"
 				+ "<http://semoss.org/ontologies/Concept/Engine/" + engineName + "> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine> .\n"
 				+ "<http://semoss.org/ontologies/Concept/QueryNum> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> .\n"
 				+ "<http://semoss.org/ontologies/Concept/QueryNum/1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/QueryNum> .\n"
 				+ "<http://semoss.org/ontologies/Concept/Engine/" + engineName + "> <http://semoss.org/ontologies/Relation/Has> <http://semoss.org/ontologies/Concept/QueryNum/1> .\n"
-				+ "<http://semoss.org/ontologies/Concept/QueryNum/1> <http://semoss.org/ontologies/Relation/Contains/Query> \"" + query + "\" .\n";
+				+ "<http://semoss.org/ontologies/Concept/QueryNum/1> <http://semoss.org/ontologies/Relation/Contains/Query> \"" + query + "\" .";
 		return makeup;
 	}
 
