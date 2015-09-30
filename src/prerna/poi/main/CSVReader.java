@@ -79,9 +79,12 @@ public class CSVReader extends AbstractFileReader {
 	private ArrayList<String> relationArrayList = new ArrayList<String>();
 	private ArrayList<String> nodePropArrayList = new ArrayList<String>();
 	private ArrayList<String> relPropArrayList = new ArrayList<String>();
-	private int count = 0;
 	private boolean propFileExist = true;
 	private Hashtable<String, String>[] rdfMapArr;
+	
+	private int count = 0;
+	private int startRow = 2;
+	private int maxRows = 100000;
 
 	/**
 	 * Loading data into SEMOSS to create a new database
@@ -248,7 +251,6 @@ public class CSVReader extends AbstractFileReader {
 	public void skipRows() throws FileReaderException {
 		//start count at 1 just row 1 is the header
 		count = 1;
-		int startRow = 2;
 		if (rdfMap.get("START_ROW") != null)
 			startRow = Integer.parseInt(rdfMap.get("START_ROW")); 
 		try {
@@ -272,8 +274,6 @@ public class CSVReader extends AbstractFileReader {
 	{
 		// get all the relation
 		Map<String, Object> jcrMap;
-		// max row predetermined value
-		int maxRows = 10000;
 		// overwrite this value if user specified the max rows to load
 		if (rdfMap.get("END_ROW") != null)
 		{
