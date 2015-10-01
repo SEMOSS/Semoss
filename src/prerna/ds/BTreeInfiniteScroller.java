@@ -105,10 +105,15 @@ public class BTreeInfiniteScroller implements InfiniteScroller {
 			resetTable();
 			nextData = this.getNextData(column, sort, 0, end);
 			nextData.addAll(rowBuffer);
-			nextData = nextData.subList(start, end);
-			if(end < nextData.size()) {
+			if(end > nextData.size()) {
+				nextData = nextData.subList(start, nextData.size());
+			} else if(end < nextData.size()) {
+				nextData = nextData.subList(start, end);
 				rowBuffer = nextData.subList(end, nextData.size());
+			} else {
+				nextData = nextData.subList(start, end);
 			}
+
 		} else {
 		
 			if(rowBuffer.size() > returnCount) {
