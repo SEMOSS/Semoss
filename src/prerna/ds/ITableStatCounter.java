@@ -39,7 +39,7 @@ public class ITableStatCounter {
 		this.origColHeaders = table.getColumnHeaders();
 	}
 	
-	public Map<String, Object> addStatsToDataFrame(ITableDataFrame table, String columnHeader, Map<String, Object> functionMap) {
+	public void addStatsToDataFrame(ITableDataFrame table, String columnHeader, Map<String, Object> functionMap) {
 		setVariables(table, columnHeader, functionMap);
 		
 		
@@ -47,8 +47,6 @@ public class ITableStatCounter {
 		Map<String, String> columnHeaderMap = getNewColumnHeaders();
 		BTreeDataFrame newTable = createNewBTree(columnHeaderMap, duprec);
 		table.join(newTable, columnHeader, columnHeader, 1.0, new ExactStringMatcher());
-		
-		return functionMap;
 
 	}
 	
