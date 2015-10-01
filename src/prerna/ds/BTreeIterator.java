@@ -1,14 +1,16 @@
 package prerna.ds;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 public class BTreeIterator implements Iterator<Object[]> {
 
 	protected Iterator<SimpleTreeNode> iterator;
 	private boolean useRawData;
-	private List<String> columns2skip;
+	private Set<String> columns2skip;
 	
 	/**
 	 * Constructor for the BTreeIterator
@@ -26,13 +28,13 @@ public class BTreeIterator implements Iterator<Object[]> {
 	public BTreeIterator(TreeNode typeRoot, boolean getRawData, List<String> columns2skip) {
 		iterator = new ValueTreeColumnIterator(typeRoot);
 		useRawData = getRawData;
-		this.columns2skip = columns2skip == null ? new ArrayList<String>() : columns2skip;
+		this.columns2skip = columns2skip == null ? new HashSet<String>(0) : new HashSet<String>(columns2skip);
 	}
 	
 	public BTreeIterator(TreeNode typeRoot, boolean getRawData, List<String> columns2skip, boolean getAll) {
 		iterator = new ValueTreeColumnIterator(typeRoot, getAll);
 		useRawData = getRawData;
-		this.columns2skip = columns2skip == null ? new ArrayList<String>() : columns2skip;
+		this.columns2skip = columns2skip == null ? new HashSet<String>(0) : new HashSet<String>(columns2skip);
 	}
 	
 	/**
