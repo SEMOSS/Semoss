@@ -76,19 +76,50 @@ public class BTreeInfiniteScroller implements InfiniteScroller {
 
 	
 	public List<HashMap<String, Object>> getNextData(String column, String sort, int start, int end) {
-		returnCount = end - start + 1;
+		
+		if(!this.sort.equalsIgnoreCase(sort)) {
+			this.sort = sort;
+
+		}
+		
+		//If a new column is used to base sorting off of, reset the iterator with new column
+		if(column != null && !column.equals(iteratorColumn)) {
+			iteratorColumn = column;
+
+		}
+		
+		resetTable();
+		List<HashMap<String, Object>> nextData = new ArrayList<HashMap<String, Object>>();
+		
+		while(nextData.size() < returnCount && rowIterator.hasNext()) {
+			nextData.addAll(rowIterator.next());
+		}
+	
+		if(nextData.size() > returnCount) {
+			rowBuffer = nextData.subList(returnCount, nextData.size());
+			nextData = nextData.subList(0, returnCount);
+		}
+		
+		return nextData;
+		
+	}
+	public List<HashMap<String, Object>> getNextData2(String column, String sort, int start, int end) {
+		returnCount = end - start; //total number of rows to return
+		
+		//if switching the sort then reset the iterator
 		if(!this.sort.equalsIgnoreCase(sort)) {
 			this.sort = sort;
 			resetTable();
 		}
 		
-		List<HashMap<String, Object>> nextData = new ArrayList<HashMap<String, Object>>();
-		
-		//If a new column is used to base sorting off of, reset with new column
+		//If a new column is used to base sorting off of, reset the iterator with new column
 		if(column != null && !column.equals(iteratorColumn)) {
 			iteratorColumn = column;
 			resetTable();
 		}
+		
+		//the data that will be returned
+		List<HashMap<String, Object>> nextData = new ArrayList<HashMap<String, Object>>();
 		
 		//if iterator is ahead of the start point
 		if(currentCount > start) {
@@ -100,8 +131,11 @@ public class BTreeInfiniteScroller implements InfiniteScroller {
 			if(end < nextData.size()) {
 				rowBuffer = nextData.subList(end, nextData.size());
 			}
-			
-		} else if(currentCount < start) {
+		} 
+		
+		//if iterator is behind the start point
+		else if(currentCount < start) {
+			//need to optimize
 			resetTable();
 			nextData = this.getNextData(column, sort, 0, end);
 			nextData.addAll(rowBuffer);
@@ -134,9 +168,9 @@ public class BTreeInfiniteScroller implements InfiniteScroller {
 					nextData = nextData.subList(0, returnCount);
 				}	
 			}			
-			currentCount = end;
 		}
 
+		currentCount = end;
 		return nextData;
 	}
 }
