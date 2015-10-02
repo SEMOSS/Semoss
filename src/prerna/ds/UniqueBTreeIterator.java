@@ -2,17 +2,19 @@ package prerna.ds;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 
 public class UniqueBTreeIterator implements Iterator<List<Object[]>>{
 
 	private IndexTreeIterator iterator;
 	private Queue<TreeNode> indexTreeNodes;
 	private boolean useRawData;
-	List<String> columns2skip;
+	Set<String> columns2skip;
 	
 	public UniqueBTreeIterator(TreeNode columnRoot) {
 		this(columnRoot, false, null);
@@ -27,7 +29,7 @@ public class UniqueBTreeIterator implements Iterator<List<Object[]>>{
 		iterator = new IndexTreeIterator(columnRoot);
 		useRawData = getRawData;
 		indexTreeNodes = new LinkedList<TreeNode>();
-		this.columns2skip = columns2skip == null ? new ArrayList<String>() : columns2skip;
+		this.columns2skip = columns2skip == null ? new HashSet<String>(0) : new HashSet<String>(columns2skip);
 		addToQueue();
 	}
 	
@@ -90,8 +92,17 @@ public class UniqueBTreeIterator implements Iterator<List<Object[]>>{
 			}
 			
 			//TODO: make this more efficient by reverse populating an array thus removing need to reverse and toArray
-			Collections.reverse(arraylist);
-			list.add(arraylist.toArray());
+//			Collections.reverse(arraylist);
+//			list.add(arraylist.toArray());
+			
+			//reverse the order of the list and store in an array
+			Object[] nextRow = new Object[arraylist.size()];
+			int counter = nextRow.length-1;
+			for(Object value: arraylist) {
+				nextRow[counter] = value;
+				counter--;
+			}
+			list.add(nextRow);
 			
 		} else {
 			getRow(list, node.leftChild, false);

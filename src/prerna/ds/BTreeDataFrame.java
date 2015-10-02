@@ -33,11 +33,13 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -584,15 +586,34 @@ public class BTreeDataFrame implements ITableDataFrame {
         int newNameIdx = 0;
         String[] onlyNewNames = new String[joinLevelNames.length - 1];
         for(int i = 0; i < joinLevelNames.length; i++) {
-               String name = joinLevelNames[i];
-               if(name.equals(colNameInJoiningTable)) {
-                     //skip this since the column is being joined
-               } else {
-                     newLevelNames[newNameIdx + levelNames.length] = joinLevelNames[i];
-                     onlyNewNames[newNameIdx] = joinLevelNames[i];
-                     uriMap.put(joinLevelNames[i], uriJoinLevelNames[i]);
-                     newNameIdx ++;
-               }
+           String name = joinLevelNames[i];
+           if(!name.equals(colNameInJoiningTable)) {
+             newLevelNames[newNameIdx + levelNames.length] = joinLevelNames[i];
+             onlyNewNames[newNameIdx] = joinLevelNames[i];
+             uriMap.put(joinLevelNames[i], uriJoinLevelNames[i]);
+             newNameIdx ++;
+           }
+        }
+
+        this.levelNames = newLevelNames;
+        this.adjustFilteredColumns();
+        return onlyNewNames;
+    }
+    
+    private String[] joinTreeLevels(String[] joinLevelNames, String[] uriJoinLevelNames, String[] colNamesInJoiningTable) {
+    	String[] newLevelNames = new String[this.levelNames.length + joinLevelNames.length - 1];
+        // copy old values to new
+        System.arraycopy(levelNames, 0, newLevelNames, 0, levelNames.length);
+        int newNameIdx = 0;
+        String[] onlyNewNames = new String[joinLevelNames.length - 1];
+        for(int i = 0; i < joinLevelNames.length; i++) {
+           String name = joinLevelNames[i];
+           if(!ArrayUtilityMethods.arrayContainsValue(colNamesInJoiningTable, name)) {
+             newLevelNames[newNameIdx + levelNames.length] = joinLevelNames[i];
+             onlyNewNames[newNameIdx] = joinLevelNames[i];
+             uriMap.put(joinLevelNames[i], uriJoinLevelNames[i]);
+             newNameIdx ++;
+           }
         }
 
         this.levelNames = newLevelNames;
@@ -601,9 +622,29 @@ public class BTreeDataFrame implements ITableDataFrame {
     }
 
 
-    public void join(ITableDataFrame table, Map<String, String> columnMap, double confidenceThreshold, IAnalyticRoutine routine) {
+    public void join(ITableDataFrame table, String[] colHeadersInTable, String[] colHeadersInJoiningTable, double confidenceThreshold) {
+    	int origLength = this.levelNames.length;
+
+    	this.joinTreeLevels(table.getColumnHeaders(), table.getURIColumnHeaders(), colHeadersInJoiningTable);
+    	BTreeDataFrameJoiner.join(this, (BTreeDataFrame)table, colHeadersInTable, colHeadersInJoiningTable);
     	
+    	this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[0], levelNames.length);
+		
+    	
+    	
+    	TreeNode treeRoot = this.simpleTree.nodeIndexHash.get(levelNames[origLength-1]);
+		ValueTreeColumnIterator iterator = new ValueTreeColumnIterator(treeRoot);
+		while(iterator.hasNext()) {
+			SimpleTreeNode t = iterator.next();
+			this.simpleTree.appendToIndexTree(t.leftChild);
+			//this.simpleTree.appendToFilteredIndexTree(t.rightChild);
+		}
+		
+		for(String column : colHeadersInTable) {
+			this.isNumericalMap.remove(column);
+		}
     }
+
     
 	@Override
 	public void undoJoin() {
@@ -1467,7 +1508,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 	@Override
 	public void unfilter(String columnHeader) {
 		columnHeader = this.getColumnName(columnHeader);
-
 		this.simpleTree.unfilterColumn(columnHeader);
 	}
 
@@ -1495,12 +1535,18 @@ public class BTreeDataFrame implements ITableDataFrame {
 		adjustFilteredColumns();
 	}
 	
-	public void filterColumns(List<String> columnHeaders) {
-		
+	public void filterColumns(String[] columnHeaders) {
+		for(String column : columnHeaders) {
+			columnsToSkip.add(column);
+		}
+		adjustFilteredColumns();
 	}
 	
-	public void unfilterColumns(List<String> columnHeaders) {
-		
+	public void unfilterColumns(String[] columnHeaders) {
+		for(String column : columnHeaders) {
+			columnsToSkip.remove(column);
+		}
+		adjustFilteredColumns();
 	}
 	
 	public String[] getFilteredColumns() {
