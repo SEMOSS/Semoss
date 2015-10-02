@@ -1528,8 +1528,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 	@Override
 	public void setColumnsToSkip(List<String> columnHeaders) {
 		List<String> newColumnHeaders = new ArrayList<String>();
-		for(String col : columnHeaders) {
-			newColumnHeaders.add(getColumnName(col));
+		if(columnHeaders != null) {
+			for(String col : columnHeaders) {
+				newColumnHeaders.add(getColumnName(col));
+			}
 		}
 		columnsToSkip = newColumnHeaders;
 		adjustFilteredColumns();
