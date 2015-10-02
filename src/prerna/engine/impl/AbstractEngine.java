@@ -70,6 +70,8 @@ import prerna.om.SEMOSSParam;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryBuilder;
 import prerna.rdf.query.builder.SPARQLQueryTableBuilder;
+import prerna.rdf.util.AbstractQueryParser;
+import prerna.rdf.util.SPARQLQueryParser;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -1405,6 +1407,10 @@ public abstract class AbstractEngine implements IEngine {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public AbstractQueryParser getQueryParser() {
+		return new SPARQLQueryParser();
 	}
 
 	public static void main(String [] args) throws Exception
