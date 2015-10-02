@@ -9,8 +9,9 @@ import java.util.Map;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.impl.ExactStringMatcher;
 import prerna.algorithm.learning.util.DuplicationReconciliation;
+import prerna.util.ArrayUtilityMethods;
 
-public class ITableStatCounter {
+public class ITableStatCounter2 {
 
 	private static final String AVG = "average";
 	private static final String MAX = "max";
@@ -19,35 +20,56 @@ public class ITableStatCounter {
 	private static final String MODE = "mode";
 	private static final String COUNT = "count";
 	
-	private BTreeDataFrame table;
-	private Map<String, Object> functionMap;
-	private String[] origColHeaders;
-	private String columnHeader;
+	private BTreeDataFrame table; //the table being operated on/from
+	private Map<String, Object> functionMap; //the map that indicates which column should be evaluated with which math function
+	private String[] origColHeaders; //the original column headers from the table
+	private String[] columnHeaders; //the column headers in which the group by is based on
 	
-	public ITableStatCounter() {
+	public ITableStatCounter2() {
 		
 	}
 	
-	private void setVariables(ITableDataFrame table, String columnHeader, Map<String, Object> functionMap) {
+	//setting the variables
+	private void setVariables(ITableDataFrame table, String[] columnHeaders, Map<String, Object> functionMap) {
 		if(!(table instanceof BTreeDataFrame)) {
 			throw new IllegalArgumentException("only table types of BTreeDataFrame supported");
 		}
 		
-		this.columnHeader = columnHeader;
+		this.columnHeaders = columnHeaders;
 		this.table = (BTreeDataFrame)table;
 		this.functionMap = functionMap;
 		this.origColHeaders = table.getColumnHeaders();
 	}
 	
-	public void addStatsToDataFrame(ITableDataFrame table, String columnHeader, Map<String, Object> functionMap) {
-		setVariables(table, columnHeader, functionMap);
+	public void addStatsToDataFrame(ITableDataFrame table, String[] columnHeaders, Map<String, Object> functionMap) {
+		setVariables(table, columnHeaders, functionMap);
 		
+		//arrange column Headers in order
+		
+		//inefficient but will fix later, need to test new join logic
+		Map<Integer, String> orderMap = new HashMap<Integer, String>();
+		for(String header : columnHeaders) {
+			int x = ArrayUtilityMethods.calculateIndexOfArray(origColHeaders, header);
+			orderMap.put(x, header);
+		}
+		
+		String[] orderedColumnHeaders = new String[columnHeaders.length];
+		int x = 0;
+		for(int i = 0; i < origColHeaders.length; i++) {
+			if(orderMap.containsKey(i)) {
+				orderedColumnHeaders[x] = orderMap.get(i);
+				x++;
+			}
+		}
+		///
+		columnHeaders = orderedColumnHeaders;
 		
 		DuplicationReconciliation[] duprec = getDuplicationReconciliation();
 		Map<String, String> columnHeaderMap = getNewColumnHeaders();
 		BTreeDataFrame newTable = createNewBTree(columnHeaderMap, duprec);
-		this.table.join(newTable, columnHeader, columnHeader, 1.0, new ExactStringMatcher());
-
+		
+		
+		this.table.join(newTable, columnHeaders, columnHeaders, 1.0);
 	}
 	
 	private DuplicationReconciliation[] getDuplicationReconciliation() {
@@ -85,8 +107,7 @@ public class ITableStatCounter {
 		}
 		
 		for(String c : origColHeaders) {
-//			String c = origColHeaders[i];
-			if(c.equals(columnHeader)) {
+			if(ArrayUtilityMethods.arrayContainsValue(columnHeaders, c)) {
 				array.add(null);
 			} else {
 				DuplicationReconciliation dr = duprecMap.get(c);
@@ -95,60 +116,56 @@ public class ITableStatCounter {
 				}
 			}
 		}
+		
 		return array.toArray(new DuplicationReconciliation[array.size()]);
 	}
 	
 	private BTreeDataFrame createNewBTree(Map<String, String> columnHeaderMap, DuplicationReconciliation[] mathModes) {
 		String[] newColHeaders = new String[columnHeaderMap.keySet().size()];
-		List<String> tempColHeaders = new ArrayList<String>(newColHeaders.length);
-		for(String c : origColHeaders) {
-			if(columnHeaderMap.containsKey(c)) {
-				tempColHeaders.add(c);
-			}
+		int i;
+		for(i = 0; i < columnHeaders.length; i++) {
+			newColHeaders[i] = columnHeaders[i];
 		}
-		newColHeaders[0] = columnHeader;
 		
-		int i = 1;
 		for(String key : columnHeaderMap.keySet()) {
-			if(!key.equals(columnHeader)) {
+			if(!ArrayUtilityMethods.arrayContainsValue(columnHeaders, key)) {
 				newColHeaders[i] = columnHeaderMap.get(key);
 				i++;
 			}
 		}
 		
 		BTreeDataFrame statTable = new BTreeDataFrame(newColHeaders, newColHeaders);
-		TreeNode columnRoot = table.simpleTree.nodeIndexHash.get(columnHeader);
+		TreeNode columnRoot = table.simpleTree.nodeIndexHash.get(columnHeaders[0]);
 		List<String> skipColumns = getSkipColumns(columnHeaderMap);
-		Iterator<Object[]> iterator = new StatIterator(columnRoot, mathModes, skipColumns);
 		
+		Iterator<Object[]> iterator = new StatIterator(columnRoot, mathModes, skipColumns, columnHeaders);
+		Map<String, Object> newRow = new HashMap<String, Object>();
 		while(iterator.hasNext()) {
 			Object[] row = iterator.next();
-			Map<String, Object> newRow = new HashMap<String, Object>();
+//			Map<String, Object> newRow = new HashMap<String, Object>();
 			for(int x = 0; x < row.length; x++) {
-//				String newColHeader = columnHeaderMap.get(newColHeaders[i]);
-				
-				newRow.put(columnHeaderMap.get(tempColHeaders.get(x)), row[x]);
+				newRow.put(newColHeaders[x], row[x]);
 			}
 			statTable.addRow(newRow, newRow);
 		}
+		
 		return statTable;
 	}
 	
-	//Generalize this for multiple columns
 	private Map<String, String> getNewColumnHeaders() {
 		
 		//Create the new column headers for the new tree
 		Map<String, String> newColHeaders = new HashMap<String, String>(origColHeaders.length);
-		newColHeaders.put(columnHeader, columnHeader);
+		for(String columnHeader : columnHeaders) {
+			newColHeaders.put(columnHeader, columnHeader);
+		}
 		
 		for(String key : functionMap.keySet()) {
 			
 			Map<String, String> map = (Map<String, String>)functionMap.get(key);
 			String name = map.get("name");
 			String newName = map.get("calcName");
-			if(!name.equals(columnHeader)) {
-				newColHeaders.put(name, newName);
-			}
+			newColHeaders.put(name, newName);	
 		}
 		
 		return newColHeaders;
@@ -166,22 +183,4 @@ public class ITableStatCounter {
 		
 		return retList;
 	}
-	
-//	private String verifyColumnName(String name, int count) {
-//		
-//		String newName;
-//		if(count != 1) {
-//			newName = name+"_"+count;
-//		} else {
-//			newName = name;
-//		}
-//		
-//		for(String s : origColHeaders) {
-//			if(s.equals(newName)) {
-//				return verifyColumnName(name, ++count);
-//			}
-//		}
-//		
-//		return newName;
-//	}
 }
