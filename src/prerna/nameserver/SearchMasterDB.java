@@ -43,6 +43,7 @@ import java.util.Set;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.rdf.RemoteSemossSesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.DIHelper;
@@ -256,6 +257,7 @@ public class SearchMasterDB extends ModifyMasterDB {
 		
 		String query = MasterDatabaseQueries.GET_ALL_INSIGHTS_FOR_BROWSE;
 		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
+		
 		String[] names = sjsw.getVariables();
 		Integer totalClicks = 0;
 		Integer maxClicks = 0;
@@ -274,11 +276,14 @@ public class SearchMasterDB extends ModifyMasterDB {
 			Integer clickCount = (new Double(Double.parseDouble(execCount))).intValue();
 			totalClicks += clickCount;
 			
+			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+			
 			if(maxClicks < clickCount){
 				maxClicks = clickCount;
 			}
 			
 			engineMetaData.put("name", engineName);
+			engineMetaData.put("type", engine.getEngineType().toString());
 			
 			HashMap<String, Object> insightMetadata = new HashMap<String, Object>();
 			insightMetadata.put("insight", insight);
