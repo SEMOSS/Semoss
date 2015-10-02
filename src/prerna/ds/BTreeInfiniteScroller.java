@@ -76,7 +76,7 @@ public class BTreeInfiniteScroller implements InfiniteScroller {
 
 	
 	public List<HashMap<String, Object>> getNextData(String column, String sort, int start, int end) {
-		
+		end = end+1;
 		
 		if(!this.sort.equalsIgnoreCase(sort)) {
 			this.sort = sort;
@@ -95,10 +95,16 @@ public class BTreeInfiniteScroller implements InfiniteScroller {
 		}
 	
 		if(nextData.size() < end) {
-			end = nextData.size();
+			end = nextData.size()+1;
 		}
-		nextData = nextData.subList(start, end);
 		
+		if(nextData.size() == 0) return nextData;
+		
+		try{
+			nextData = nextData.subList(start, end);
+		} catch(Exception e) {
+			nextData = nextData.subList(start, --end);
+		}
 		return nextData;
 		
 	}
