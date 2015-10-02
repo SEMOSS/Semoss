@@ -52,6 +52,8 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.rdf.query.builder.IQueryBuilder;
 import prerna.rdf.query.builder.SQLQueryTableBuilder;
+import prerna.rdf.util.AbstractQueryParser;
+import prerna.rdf.util.SQLQueryParser;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -402,6 +404,10 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		return new SQLQueryTableBuilder(this);
 	}
 	
+	public AbstractQueryParser getQueryParser() {
+		return new SQLQueryParser();
+	}
+
 	@Override
 	public void removeData(String query) {
 		//not sure here
