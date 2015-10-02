@@ -98,120 +98,127 @@ public class OntologyFileWriter {
 	 */
 	private void insertValues(Hashtable<String, String> newURIvalues, Hashtable<String, String> newBaseURIvalues, Hashtable<String, String> relURIvalues, Hashtable<String, String> relBaseURIvalues, String propURI) throws FileReaderException, FileWriterException {
 		Scanner scNum = null;
+		int lineNum = 0, baseObjNum = 0, basePredNum = 0, baseObjClassNum = 0, basePredClassNum = 0, propUriNum = 0, ignoreUriNum = 0;
+		String currentLine, propUriLine = "", ignoreUriLine = "";
 		try {
 			scNum = new Scanner(new File (fileName));
+			// determine line number where each of the sections occurs
+			while(scNum.hasNextLine()){
+				currentLine = scNum.nextLine();
+				if(currentLine.length() >= 16 && currentLine.substring(0,16).equals("##Base Objects##"))
+				{
+					baseObjNum = lineNum;
+				}
+				if(currentLine.length() >= 19 && currentLine.substring(0,19).equals("##Base Predicates##"))
+				{
+					basePredNum = lineNum;
+				}
+				if(currentLine.length() >= 22 && currentLine.substring(0,22).equals("##Base Objects Class##"))
+				{
+					baseObjClassNum = lineNum;
+				}
+				if(currentLine.length() >= 25 && currentLine.substring(0,25).equals("##Base Predicates Class##"))
+				{
+					basePredClassNum = lineNum;
+				}
+				if(currentLine.length() >= 8 && currentLine.substring(0,8).equals(Constants.PROP_URI))
+				{
+					propUriNum = lineNum;
+					propUriLine = currentLine;
+				}
+				if(currentLine.length() >= 10 && currentLine.substring(0,10).equals("IGNORE_URI"))
+				{
+					ignoreUriNum = lineNum;
+					ignoreUriLine = currentLine;
+				}
+				lineNum++;
+			}
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 			throw new FileReaderException("Could not find CustomMap File located at: " + fileName);
+		} finally {
+			if(scNum != null) {
+				scNum.close();
+			}
 		}
-		String currentLine, propUriLine = "", ignoreUriLine = "";
-		int lineNum = 0, baseObjNum = 0, basePredNum = 0, baseObjClassNum = 0, basePredClassNum = 0, propUriNum = 0, ignoreUriNum = 0;
-		// determine line number where each of the sections occurs
-		while(scNum.hasNextLine()){
-			currentLine = scNum.nextLine();
-			if(currentLine.length() >= 16 && currentLine.substring(0,16).equals("##Base Objects##"))
-			{
-				baseObjNum = lineNum;
-			}
-			if(currentLine.length() >= 19 && currentLine.substring(0,19).equals("##Base Predicates##"))
-			{
-				basePredNum = lineNum;
-			}
-			if(currentLine.length() >= 22 && currentLine.substring(0,22).equals("##Base Objects Class##"))
-			{
-				baseObjClassNum = lineNum;
-			}
-			if(currentLine.length() >= 25 && currentLine.substring(0,25).equals("##Base Predicates Class##"))
-			{
-				basePredClassNum = lineNum;
-			}
-			if(currentLine.length() >= 8 && currentLine.substring(0,8).equals(Constants.PROP_URI))
-			{
-				propUriNum = lineNum;
-				propUriLine = currentLine;
-			}
-			if(currentLine.length() >= 10 && currentLine.substring(0,10).equals("IGNORE_URI"))
-			{
-				ignoreUriNum = lineNum;
-				ignoreUriLine = currentLine;
-			}
-			lineNum++;
-		}
-		scNum.close();
 
 		Scanner scList = null;
 		try {
 			scList = new Scanner(new File(fileName));
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String[] keyAndUri;
-		// skip rows in beginning document to get past the first header
-		for(int i = 0; i < baseObjNum + 1; i++){
+			String[] keyAndUri;
+			// skip rows in beginning document to get past the first header
+			for(int i = 0; i < baseObjNum + 1; i++){
+				scList.nextLine();
+			}
+			currentLine = "";
+			// add objects from custom map if not in hashtable 
+			for(int i = baseObjNum + 1; i < basePredNum; i++){
+				currentLine  = scList.nextLine();
+				if(currentLine != null && !currentLine.equals(""))
+				{
+					keyAndUri = currentLine.split(" ");
+					if(!newURIvalues.containsKey(keyAndUri[0]))
+					{
+						newURIvalues.put(keyAndUri[0],keyAndUri[1]);
+					}
+				}
+			}
+			// skip header row
 			scList.nextLine();
-		}
-		// add objects from custom map if not in hashtable 
-		for(int i = baseObjNum + 1; i < basePredNum; i++){
-			currentLine = scList.nextLine();
-			if(currentLine != null && !currentLine.equals(""))
-			{
-				keyAndUri = currentLine.split(" ");
-				if(!newURIvalues.containsKey(keyAndUri[0]))
+			// add predicate from custom map if not in hashtable
+			for(int i = basePredNum + 1; i < baseObjClassNum; i++){
+				currentLine = scList.nextLine();
+				if(currentLine != null && !currentLine.equals(""))
 				{
-					newURIvalues.put(keyAndUri[0],keyAndUri[1]);
+					keyAndUri = currentLine.split(" ");
+					if(!relURIvalues.containsKey(keyAndUri[0]))
+					{
+						relURIvalues.put(keyAndUri[0],keyAndUri[1]);
+					}
 				}
 			}
-		}
-		// skip header row
-		scList.nextLine();
-		// add predicate from custom map if not in hashtable
-		for(int i = basePredNum + 1; i < baseObjClassNum; i++){
-			currentLine = scList.nextLine();
-			if(currentLine != null && !currentLine.equals(""))
-			{
-				keyAndUri = currentLine.split(" ");
-				if(!relURIvalues.containsKey(keyAndUri[0]))
+			// skip header row
+			scList.nextLine();
+			// add base objects from custom map if not in hashtable
+			for(int i = baseObjClassNum + 1; i < basePredClassNum; i++){
+				currentLine = scList.nextLine();
+				if(currentLine != null && !currentLine.equals(""))
 				{
-					relURIvalues.put(keyAndUri[0],keyAndUri[1]);
+					keyAndUri = currentLine.split(" ");
+					if(!newBaseURIvalues.containsKey(keyAndUri[0]))
+					{
+						newBaseURIvalues.put(keyAndUri[0],keyAndUri[1]);
+					}
 				}
 			}
-		}
-		// skip header row
-		scList.nextLine();
-		// add base objects from custom map if not in hashtable
-		for(int i = baseObjClassNum + 1; i < basePredClassNum; i++){
-			currentLine = scList.nextLine();
-			if(currentLine != null && !currentLine.equals(""))
-			{
-				keyAndUri = currentLine.split(" ");
-				if(!newBaseURIvalues.containsKey(keyAndUri[0]))
+			// skip header row
+			scList.nextLine();
+			// In order to get last line of base predicate classes, determine if prop URI or ignore URI is present
+			int lastIndex;
+			if(propUriNum > ignoreUriNum){
+				lastIndex = basePredClassNum + lineNum - propUriNum;
+			}
+			// this takes into account that both are not present since both will be equal 0
+			else{
+				lastIndex = basePredClassNum + lineNum - ignoreUriNum;
+			}
+			// add base relationships from custom map if not in hashtable
+			for(int i = basePredClassNum + 1; i < lastIndex; i++){
+				currentLine = scList.nextLine();
+				if(currentLine != null && !currentLine.equals(""))
 				{
-					newBaseURIvalues.put(keyAndUri[0],keyAndUri[1]);
+					keyAndUri = currentLine.split(" ");
+					if(!relBaseURIvalues.containsKey(keyAndUri[0]))
+					{
+						relBaseURIvalues.put(keyAndUri[0],keyAndUri[1]);
+					}
 				}
 			}
-		}
-		// skip header row
-		scList.nextLine();
-		// In order to get last line of base predicate classes, determine if prop URI or ignore URI is present
-		int lastIndex;
-		if(propUriNum > ignoreUriNum){
-			lastIndex = basePredClassNum + lineNum - propUriNum;
-		}
-		// this takes into account that both are not present since both will be equal 0
-		else{
-			lastIndex = basePredClassNum + lineNum - ignoreUriNum;
-		}
-		// add base relationships from custom map if not in hashtable
-		for(int i = basePredClassNum + 1; i < lastIndex; i++){
-			currentLine = scList.nextLine();
-			if(currentLine != null && !currentLine.equals(""))
-			{
-				keyAndUri = currentLine.split(" ");
-				if(!relBaseURIvalues.containsKey(keyAndUri[0]))
-				{
-					relBaseURIvalues.put(keyAndUri[0],keyAndUri[1]);
-				}
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} finally {
+			if(scList != null) {
+				scList.close();
 			}
 		}
 
@@ -272,7 +279,6 @@ public class OntologyFileWriter {
 			throw new FileWriterException("Could not add additional processed information to CustomMap file");
 		}
 
-		scList.close();
 		System.gc();
 	}
 
