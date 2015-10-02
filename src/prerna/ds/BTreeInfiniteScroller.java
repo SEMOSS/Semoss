@@ -77,28 +77,27 @@ public class BTreeInfiniteScroller implements InfiniteScroller {
 	
 	public List<HashMap<String, Object>> getNextData(String column, String sort, int start, int end) {
 		
+		
 		if(!this.sort.equalsIgnoreCase(sort)) {
 			this.sort = sort;
-
 		}
 		
 		//If a new column is used to base sorting off of, reset the iterator with new column
 		if(column != null && !column.equals(iteratorColumn)) {
 			iteratorColumn = column;
-
 		}
 		
 		resetTable();
 		List<HashMap<String, Object>> nextData = new ArrayList<HashMap<String, Object>>();
 		
-		while(nextData.size() < returnCount && rowIterator.hasNext()) {
+		while(nextData.size() <= end && rowIterator.hasNext()) {
 			nextData.addAll(rowIterator.next());
 		}
 	
-		if(nextData.size() > returnCount) {
-			rowBuffer = nextData.subList(returnCount, nextData.size());
-			nextData = nextData.subList(0, returnCount);
+		if(nextData.size() < end) {
+			end = nextData.size();
 		}
+		nextData = nextData.subList(start, end);
 		
 		return nextData;
 		
