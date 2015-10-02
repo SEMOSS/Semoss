@@ -163,6 +163,17 @@ public class ImportDataProcessor {
 					csvReader.relationURIHash,  csvReader.baseRelationURIHash, 
 					csvReader.basePropURI);
 		}
+		
+		else if(importType == IMPORT_TYPE.NLP && dbType == DB_TYPE.RDF){
+			NLPReader reader = new NLPReader();
+			reader.importFileWithConnection(dbName, fileNames, customBaseURI, owlPath);
+			//run the ontology augmentor
+			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
+			ontologyWriter.runAugment(mapPath, reader.conceptURIHash, reader.baseConceptURIHash, 
+					reader.relationURIHash,  reader.baseRelationURIHash, 
+					reader.basePropURI);
+		}
+		
 		/* Code to be uncommented for RDBMS */
 		else if (importType == IMPORT_TYPE.CSV && dbType == DB_TYPE.RDBMS)
 		{

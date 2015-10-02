@@ -85,13 +85,13 @@ public class CSVPropFileBuilder{
 			if(header.get(i) != null && dataTypeHash.containsKey(header.get(i)))
 			{
 				propHash.put(Integer.toString(i+1), dataTypeHash.get(header.get(i)));
-				System.out.println(header.get(i) + ":" + Integer.toString(i+1) + ":" + dataTypeHash.get(header.get(i)));
+//				System.out.println(header.get(i) + ":" + Integer.toString(i+1) + ":" + dataTypeHash.get(header.get(i)));
 				propFile.append(Integer.toString(i+1) + "\t" + dataTypeHash.get(header.get(i)) + "\n");
 			}
 			else
 			{
 				propHash.put(Integer.toString(i+1), "STRING");
-				System.out.println(header.get(i) + ":" + Integer.toString(i+1) + ": STRING");
+//				System.out.println(header.get(i) + ":" + Integer.toString(i+1) + ": STRING");
 				propFile.append(Integer.toString(i+1) + "\tSTRING\n");
 			}
 		}
