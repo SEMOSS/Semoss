@@ -1335,9 +1335,12 @@ public class SimpleTreeBuilder
 			if(filteredRoot != null) {
 				///SimpleTreeNode root = this.getRoot();
 				root = SimpleTreeNode.getRight(root);
+				
+				unfilterTreeNode(filteredRoot);
 				root.rightSibling = filteredRoot;
 				filteredRoot.leftSibling = root;
-				unfilterTreeNode(filteredRoot);
+				
+//				unfilterTreeNode(filteredRoot);
 				filteredRoot = null;
 			}
 		} else if(((ISEMOSSNode)(root.leaf)).getType().equals(column) && !check) {
