@@ -53,6 +53,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	List<Hashtable<String,String>> predV = new ArrayList<Hashtable<String,String>>();
 	List<Hashtable<String,String>> nodePropV = new ArrayList<Hashtable<String,String>>();
 	String variableSequence = "";
+	
 	int limit = 500;
 	int limitFilter = 100;
 	private boolean useOuterJoins = false;
@@ -77,6 +78,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	private static final String SQL_FILTER_BIND = "{filterBind}";
 	private boolean useDistinct = true;
 	private String groupBy = "";
+	
 
 
 	public SQLQueryTableBuilder(IEngine engine)
@@ -109,7 +111,22 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 //		parsePropertiesFromPath(); 
 		configureQuery();	
 		makeQuery();
-
+	}
+	
+	public void addLimitOffset(){
+		if (allJSONHash.contains("limit") && allJSONHash.contains("offset")) {
+			int limit = (int) allJSONHash.get("limit");
+			int offset = (int) allJSONHash.get("offset");
+			query = query + " LIMIT " + limit + " OFFSET " + offset;
+		}
+		else if (allJSONHash.contains("limit")) {
+			int limit = (int) allJSONHash.get("limit");
+			query = query + " LIMIT " + limit;
+		}
+		else if (allJSONHash.contains("offset")) {
+			int offset = (int) allJSONHash.get("offset");
+			query = query + " OFFSET " + offset;
+		}
 	}
 	
 	public void makeQuery(){
@@ -153,6 +170,15 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			Hashtable hash = new Hashtable();
 			hash.putAll(map);
 			nodePropV.add(hash);
+		}
+		if (allJSONHash.containsKey("searchFilterKey")) {
+			this.allJSONHash.put("searchFilterKey", allJSONHash.get("searchFilterKey"));
+		}
+		if (allJSONHash.containsKey("limit")) {
+			this.allJSONHash.put("limit", allJSONHash.get("limit"));
+		}
+		if (allJSONHash.containsKey("offset")) {
+			this.allJSONHash.put("offset", allJSONHash.get("offset"));
 		}
 	}
 
@@ -232,7 +258,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	//search filter logic 
 	private void searchFilterData()
 	{
-		StringMap<String> searchFilterResults = (StringMap<String>) allJSONHash.get(searchFilterKey);
+		StringMap<String> searchFilterResults = (StringMap<String>) allJSONHash.get("searchFilterKey");
 		if(searchFilterResults != null){
 			Iterator <String> keys = searchFilterResults.keySet().iterator();
 			for(int colIndex = 0;keys.hasNext();colIndex++) // process one column at a time. At this point my key is title on the above
