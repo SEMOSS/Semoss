@@ -34,12 +34,13 @@ import java.util.List;
 import prerna.error.EngineException;
 import prerna.error.FileReaderException;
 import prerna.error.FileWriterException;
+import prerna.error.HeaderClassException;
 import prerna.error.NLPException;
 
 public class NLPReader extends AbstractFileReader {
-	
+
 	private List<TripleWrapper> triples = new ArrayList<TripleWrapper>();
-	
+
 	public void importFileWithOutConnection(String smssLocation, String engineName,  String fileNames, String customBase, String customMap, String owlFile) 
 			throws FileReaderException, EngineException, FileWriterException, NLPException {	
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
@@ -59,6 +60,17 @@ public class NLPReader extends AbstractFileReader {
 		}
 	}
 
+	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile) 
+			throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException {
+		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
+		openEngineWithConnection(engineName);
+		ProcessNLP processor = new ProcessNLP();
+		triples = processor.generateTriples(files);
+		createNLPrelationships();
+		createBaseRelations();
+		commitDB();
+	}
+
 	public void createNLPrelationships() throws EngineException {
 		String docNameConceptType = "ArticleName";
 		String sentenceConceptType = "Sentence";
@@ -68,7 +80,7 @@ public class NLPReader extends AbstractFileReader {
 		String subjectExpandedConceptType = "SubjectExpanded";
 		String predicateExpandedConceptType = "PredicateExpanded";
 		String objectExpandedConceptType = "ObjectExpanded";
-		
+
 		String subjectToPredicateRelationType = "SubjectOfPredicate";
 		String predicateToObjectRelationType = "PredicateOfObject";
 		String objectToSubjectRelationType = "ObjectOfSubject";
@@ -81,7 +93,7 @@ public class NLPReader extends AbstractFileReader {
 		String sentenceOfSubjectRelationType = "SentenceOfSubject";
 		String sentenceOfPredicateRelationType = "SentenceOfPredicate";
 		String sentenceOfObjectRelationType = "SentenceOfObject";
-		
+
 		String occurancePropKey = "occurance";
 
 		Hashtable<String, Object> emptyHash = new Hashtable<String, Object>();
