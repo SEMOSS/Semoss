@@ -22,6 +22,8 @@ import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.PlaySheetEnum;
+import prerna.util.Utility;
 import prerna.util.sql.H2QueryUtil;
 import prerna.util.sql.SQLQueryUtil;
 
@@ -101,7 +103,7 @@ public class InsightsConverter {
 			PERSPECTIVE = cleanString(PERSPECTIVE);
 			
 			String NEW_INSIGHT_KEY = engineName + "_" + counter;
-			String QUERY_MAKEUP = generateQueryMakeUp(engineName, QUERY);
+			String QUERY_MAKEUP = generateQueryMakeUp(engineName, QUERY, LAYOUT);
 			
 			String query = "INSERT INTO QUESTION_ID (QUESTION_ID, QUESTION_NAME, QUESTION_PERSPECTIVE, QUESTION_MAKEUP, QUESTION_LAYOUT, QUESTION_ORDER) VALUES("
 					+ "'" + NEW_INSIGHT_KEY + "', "
@@ -180,7 +182,8 @@ public class InsightsConverter {
 				+ "QUESTION_PERSPECTIVE VARCHAR(225), "
 				+ "QUESTION_LAYOUT VARCHAR(225), "
 				+ "QUESTION_ORDER INT, "
-				+ "QUESTION_MAKEUP CLOB)";
+				+ "QUESTION_MAKEUP CLOB, "
+				+ "DATA_TABLE_ALIGN VARCHAR(500))";
 		
 		insightRDBMSEngine.insertData(questionTableCreate);
 		
@@ -200,14 +203,57 @@ public class InsightsConverter {
 		return s.replaceAll("'", "''");
 	}
 	
-	private String generateQueryMakeUp(String engine, String query) {
+	private String generateQueryMakeUp(String engine, String query, String layout) {
 		query = cleanString(query);
-		String makeup = "<http://semoss.org/ontologies/Concept/Engine> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> .\n"
-				+ "<http://semoss.org/ontologies/Concept/Engine/" + engineName + "> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine> .\n"
-				+ "<http://semoss.org/ontologies/Concept/QueryNum> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> .\n"
-				+ "<http://semoss.org/ontologies/Concept/QueryNum/1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/QueryNum> .\n"
-				+ "<http://semoss.org/ontologies/Concept/Engine/" + engineName + "> <http://semoss.org/ontologies/Relation/Has> <http://semoss.org/ontologies/Concept/QueryNum/1> .\n"
-				+ "<http://semoss.org/ontologies/Concept/QueryNum/1> <http://semoss.org/ontologies/Relation/Contains/Query> \"" + query + "\" .";
+		layout = cleanString(layout);
+		
+		String dataMaker = "";
+		String dataMakerName = "";
+		List<String> allSheets = PlaySheetEnum.getAllSheetClasses();
+		if(allSheets.contains(layout)) {
+			if(layout.equals("prerna.ui.components.playsheets.GraphPlaySheet")) {
+				dataMaker = "GraphDataModel";
+				dataMakerName = "Graph";
+			} else if(!layout.equals("prerna.ui.components.playsheets.DualEngineGenericPlaySheet")) {
+				dataMaker = "BTreeDataFrame";
+				dataMakerName = "BTree";
+			}
+		} else {
+			dataMaker = layout;
+			dataMakerName = "1_Custom";
+		}
+		
+		String realEngineName = cleanString(engineName);
+		String cleanEngineName = Utility.cleanString(engineName, true);
+		
+		String componentDefinition = "<http://semoss.org/ontologies/Concept/Component> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> .\n";
+		String componentInstance = "<http://semoss.org/ontologies/Concept/Component/1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Component> .\n";
+		String componenetOrder = "<http://semoss.org/ontologies/Concept/Component/1> <http://semoss.org/ontologies/Relation/Contains/Order> + \"1\"^^<http://www.w3.org/2001/XMLSchema#int> .\n";
+		String componentQuery = "<http://semoss.org/ontologies/Concept/Component1/1> <http://semoss.org/ontologies/Relation/Contains/Query> \"" + query + "\" .\n";
+		String componenetLayout = "<http://semoss.org/ontologies/Concept/Component1/1> <http://semoss.org/ontologies/Relation/Contains/Layout> \"" + layout + "\" .\n";
+		String engineDefinition = "<http://semoss.org/ontologies/Concept/Engine> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> .\n";
+		String engineInstance = "<http://semoss.org/ontologies/Concept/Engine/" + cleanEngineName + "> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine> .\n";
+		String engineEngineName = "<http://semoss.org/ontologies/Concept/Engine/" + cleanEngineName + "> <http://semoss.org/ontologies/Relation/Contains/Name> \"" + realEngineName + "\" .\n";
+		String componentEngine = "<http://semoss.org/ontologies/Concept/Component/1> <Comp:Eng> <http://semoss.org/ontologies/Concept/Engine/" + cleanEngineName + "> .";
+		String dataMakerDefinition = "<http://semoss.org/ontologies/Concept/DataMaker> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> .\n";
+		String dataMakerInstance = "<http://semoss.org/ontologies/Concept/DataMaker/" + dataMakerName + "> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataMaker> .\n";
+		String dataMakerType = "<http://semoss.org/ontologies/Concept/DataMaker/" + dataMakerName + "> <http://semoss.org/ontologies/Relation/Contains/Type> \"" + dataMaker + "\" .\n";
+		String componentDataMaker = "<http://semoss.org/ontologies/Concept/Component/1> <Comp:Maker> <http://semoss.org/ontologies/Concept/DataMaker/" + dataMakerName + "> .";
+		
+		String makeup = componentDefinition + 
+				componentInstance + 
+				componenetOrder + 
+				componentQuery + 
+				componenetLayout +
+				engineDefinition +
+				engineInstance +
+				engineEngineName +
+				componentEngine +
+				dataMakerDefinition +
+				dataMakerInstance +
+				dataMakerType +
+				componentDataMaker;
+		
 		return makeup;
 	}
 
