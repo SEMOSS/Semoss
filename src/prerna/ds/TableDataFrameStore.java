@@ -11,9 +11,9 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 
-public class ITableDataFrameStore extends Hashtable<String, ITableDataFrame> {
+public class TableDataFrameStore extends Hashtable<String, ITableDataFrame> {
 
-	private static final Logger LOGGER = LogManager.getLogger(ITableDataFrameStore.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(TableDataFrameStore.class.getName());
 	private Map<String, Set<String>> sessionIdHash = new Hashtable<String, Set<String>>();
 	
 	/**
@@ -24,18 +24,18 @@ public class ITableDataFrameStore extends Hashtable<String, ITableDataFrame> {
 	/**
 	 * Singleton for the class
 	 */
-	private static ITableDataFrameStore store;
+	private static TableDataFrameStore store;
 	
 	/**
 	 * Constructor for class
 	 */
-	private ITableDataFrameStore() {
+	private TableDataFrameStore() {
 		// do nothing
 	}
 
-	public static ITableDataFrameStore getInstance() {
+	public static TableDataFrameStore getInstance() {
 		if(store == null) {
-			store = new ITableDataFrameStore();
+			store = new TableDataFrameStore();
 		}
 		return store; 
 	}
