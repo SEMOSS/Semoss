@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.io.IOException;
 import java.util.Hashtable;
 
 import javax.swing.JFrame;
@@ -35,8 +36,6 @@ import javax.swing.JOptionPane;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.error.EngineException;
-import prerna.error.FileReaderException;
 import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.UpdateProcessor;
 import prerna.ui.components.playsheets.AbstractRDFPlaySheet;
@@ -68,7 +67,7 @@ public class AllLegacySystemsDispositionPlaySheet extends AbstractRDFPlaySheet{
 			{
 				try {
 					runModernizationPropInsert();
-				} catch (EngineException e) {
+				} catch (IOException e) {
 					Utility.showError(e.getMessage());
 					e.printStackTrace();
 				}
@@ -92,7 +91,7 @@ public class AllLegacySystemsDispositionPlaySheet extends AbstractRDFPlaySheet{
 				deleteModernizationProp();
 				try {
 					runModernizationPropInsert();
-				} catch (EngineException e) {
+				} catch (IOException e) {
 					Utility.showError(e.getMessage());
 					e.printStackTrace();
 				}
@@ -100,20 +99,21 @@ public class AllLegacySystemsDispositionPlaySheet extends AbstractRDFPlaySheet{
 		}
 		
 		AllLegacySystemsDispositionProcessor processAllReports = new AllLegacySystemsDispositionProcessor();
+		boolean success = true;
 		try {
 			processAllReports.processReports();
-		} catch (EngineException e) {
-			e.printStackTrace();
-			Utility.showError(e.getMessage());
-		} catch (FileReaderException e) {
+		} catch (IOException e) {
+			success = false;
 			e.printStackTrace();
 			Utility.showError(e.getMessage());
 		}
 		
-		Utility.showMessage("Successfully created all reports!");
+		if(success) {
+			Utility.showMessage("Successfully created all reports!");
+		}
 	}
 	
-	private void runModernizationPropInsert() throws EngineException {
+	private void runModernizationPropInsert() throws IOException {
 		InsertInterfaceModernizationProperty inserter = new InsertInterfaceModernizationProperty();
 		inserter.insert();
 	}

@@ -27,22 +27,18 @@
  *******************************************************************************/
 package prerna.poi.main;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
-
-import prerna.error.EngineException;
-import prerna.error.FileReaderException;
-import prerna.error.FileWriterException;
-import prerna.error.HeaderClassException;
-import prerna.error.NLPException;
 
 public class NLPReader extends AbstractFileReader {
 
 	private List<TripleWrapper> triples = new ArrayList<TripleWrapper>();
 
 	public void importFileWithOutConnection(String smssLocation, String engineName,  String fileNames, String customBase, String customMap, String owlFile) 
-			throws FileReaderException, EngineException, FileWriterException, NLPException {	
+			throws FileNotFoundException, IOException {	
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
 		openEngineWithoutConnection(engineName);		
 		try {
@@ -61,7 +57,7 @@ public class NLPReader extends AbstractFileReader {
 	}
 
 	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile) 
-			throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException {
+			throws FileNotFoundException, IOException {
 		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
 		openEngineWithConnection(engineName);
 		ProcessNLP processor = new ProcessNLP();
@@ -71,7 +67,7 @@ public class NLPReader extends AbstractFileReader {
 		commitDB();
 	}
 
-	public void createNLPrelationships() throws EngineException {
+	public void createNLPrelationships() {
 		String docNameConceptType = "ArticleName";
 		String sentenceConceptType = "Sentence";
 		String subjectConceptType = "Subject";

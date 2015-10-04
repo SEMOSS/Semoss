@@ -28,6 +28,7 @@
 package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
+import java.io.IOException;
 import java.util.ArrayList;
 
 import javax.swing.JComboBox;
@@ -37,7 +38,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
-import prerna.error.EngineException;
 import prerna.poi.specific.FactSheetProcessor;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
@@ -86,7 +86,7 @@ public class FactSheetListener implements IChakraListener {
 		} else if (reportType.contains("DHMSM Disposition")) {
 			try {
 				processor = new DHMSMDispositionFactSheetProcessor();
-			} catch (EngineException e) {
+			} catch (IOException e) {
 				e.printStackTrace();
 				Utility.showError(e.getMessage());
 			}

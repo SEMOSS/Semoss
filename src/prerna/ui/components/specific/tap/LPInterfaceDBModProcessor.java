@@ -1,5 +1,6 @@
 package prerna.ui.components.specific.tap;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,7 +11,6 @@ import java.util.Set;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.error.EngineException;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.specific.tap.AbstractFutureInterfaceCostProcessor.COST_FRAMEWORK;
 import prerna.ui.components.specific.tap.FutureStateInterfaceResult.INTERFACE_TYPES;
@@ -61,14 +61,14 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 	private Map<String, Map<String, String[]>> consumerFutureICDProp;
 
 	//TODO: move enigne definitions outside class to keep reusable
-	public LPInterfaceDBModProcessor() throws EngineException {
+	public LPInterfaceDBModProcessor() throws IOException {
 		tapCost = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
 		if(tapCost == null) {
-			throw new EngineException("TAP Cost Data not found.");
+			throw new IOException("TAP Cost Data not found.");
 		}
 		futureDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureDB");
 		if(futureDB == null) {
-			throw new EngineException("FutureDB engine not found");
+			throw new IOException("FutureDB engine not found");
 		}
 		processor = new FutureInterfaceCostProcessor();
 		processor.setCostEngines(new IEngine[]{tapCost});
@@ -92,8 +92,8 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 
 		Map<String, Map<String, Double>> retMap = new HashMap<String, Map<String, Double>>();
 		// Process main query
-		ISelectWrapper wrapper1 = WrapperManager.getInstance().getSWrapper(engine, upstreamQuery);
-		ISelectWrapper wrapper2 = WrapperManager.getInstance().getSWrapper(engine, downstreamQuery);
+		ISelectWrapper wrapper1 = WrapperManager.getInstance().getSWrapper(engine, DEFAULT_UPSTREAM_QUERY);
+		ISelectWrapper wrapper2 = WrapperManager.getInstance().getSWrapper(engine, DEFAULT_DOWNSTREAMSTREAM_QUERY);
 
 		ISelectWrapper[] wrappers = new ISelectWrapper[]{wrapper1, wrapper2};
 		String[] headers = wrapper1.getVariables();
@@ -113,7 +113,7 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 				String freq = "";
 				String prot = "";
 				String dhmsmSOR = "";
-
+				
 				String sysProbability = sysTypeHash.get(sysName);
 				if (sysProbability == null) {
 					sysProbability = "No Probability";
@@ -163,6 +163,10 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 				}
 				if (sjss.getRawVar(DATA_KEY) != null) {
 					dataURI = sjss.getRawVar(DATA_KEY).toString();
+				}
+				
+				if(sysName.equals("CIS-Essentris") || interfacingSysName.equals("CIS-Essentris")) {
+					System.out.println("here");
 				}
 				
 				FutureStateInterfaceResult result = FutureStateInterfaceProcessor.processICD(

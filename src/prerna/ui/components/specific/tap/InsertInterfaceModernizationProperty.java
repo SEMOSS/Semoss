@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
@@ -35,7 +36,6 @@ import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 
 import prerna.engine.api.IEngine;
-import prerna.error.EngineException;
 import prerna.ui.components.specific.tap.AbstractFutureInterfaceCostProcessor.COST_FRAMEWORK;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
@@ -51,35 +51,35 @@ public class InsertInterfaceModernizationProperty {
 	private IEngine tapCore;
 	double costPerHr = 150.0;
 
-	public void insert() throws EngineException
+	public void insert() throws IOException
 	{
 		try{
 			tapCore = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 			if(tapCore==null)
-				throw new EngineException("Database not found");
-		} catch(EngineException e) {
+				throw new IOException("Database not found");
+		} catch(IOException e) {
 			Utility.showError("Could not find necessary database: TAP_Core_Data. Cannot generate report.");
 			return;
 		}
 		generateCost();
 	}
 
-	private void generateCost() throws EngineException 
+	private void generateCost() throws IOException 
 	{
 		Map<String,String> reportTypeHash = DHMSMTransitionUtility.processReportTypeQuery(tapCore);
 		IEngine tapCost = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
 		if(tapCost == null) {
-			throw new EngineException("TAP_Cost_Data Database not found");
+			throw new IOException("TAP_Cost_Data Database not found");
 		}
 
 		IEngine futureDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureDB");
 		if(futureDB == null) {
-			throw new EngineException("FutureDB Database not found");
+			throw new IOException("FutureDB Database not found");
 		}
 		
 		IEngine futureCostDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureCostDB");
 		if(futureCostDB == null) {
-			throw new EngineException("FutureDB Database not found");
+			throw new IOException("FutureDB Database not found");
 		}
 		
 		Map<String, Double> selfReportedSysCost = DHMSMTransitionUtility.getSystemSelfReportedP2PCost(futureCostDB, tapCost);

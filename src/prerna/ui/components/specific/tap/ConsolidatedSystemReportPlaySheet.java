@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
@@ -41,7 +42,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.error.EngineException;
 import prerna.poi.specific.ConsolidatedSystemReportWriter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.BooleanProcessor;
@@ -113,7 +113,7 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 			{
 				try {
 					runModernizationPropInsert();
-				} catch (EngineException e) {
+				} catch (IOException e) {
 					Utility.showError(e.getMessage());
 					e.printStackTrace();
 				}
@@ -137,7 +137,7 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 				deleteModernizationProp();
 				try {
 					runModernizationPropInsert();
-				} catch (EngineException e) {
+				} catch (IOException e) {
 					Utility.showError(e.getMessage());
 					e.printStackTrace();
 				}
@@ -183,8 +183,7 @@ public class ConsolidatedSystemReportPlaySheet extends GridPlaySheet {
 		
 	}
 	
-	private void runModernizationPropInsert() throws EngineException{
-		//mahers code
+	private void runModernizationPropInsert() throws IOException{
 		InsertInterfaceModernizationProperty inserter = new InsertInterfaceModernizationProperty();
 		inserter.insert();
 	}

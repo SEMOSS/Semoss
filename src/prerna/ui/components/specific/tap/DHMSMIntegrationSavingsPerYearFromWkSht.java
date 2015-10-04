@@ -39,39 +39,35 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import prerna.error.FileReaderException;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class DHMSMIntegrationSavingsPerYearFromWkSht {
 	private static final Logger LOGGER = LogManager.getLogger(DHMSMIntegrationSavingsPerYearFromWkSht.class.getName());
-	
+
 	private XSSFWorkbook wb;
 	private String workingDir;
 	private String folder;
 	private String templateName;
 	private ArrayList<String> systems = new ArrayList<String>();
-	
+
 	public DHMSMIntegrationSavingsPerYearFromWkSht() {
 		workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator");
 		templateName = "TAP-High Probability System Analysis.xlsx";
 	}
-	
-	public void read() throws FileReaderException {
+
+	public void read() throws IOException {
 		if(wb == null) {
 			try {
 				wb = (XSSFWorkbook) WorkbookFactory.create(new File(workingDir + folder + templateName));
 			} 
-			catch (InvalidFormatException e) {
+			catch (InvalidFormatException | IOException e) {
 				e.printStackTrace();
-				throw new FileReaderException("Could not find template for report.");
-			} catch (IOException e) {
-				e.printStackTrace();
-				throw new FileReaderException("Could not find template for report.");
+				throw new IOException("Could not find template for report.");
 			} 
 		}
-		
+
 		XSSFSheet reportSheet = wb.getSheetAt(0);
 		for(Row row : reportSheet) {
 			if(row.getCell(5).getStringCellValue().equals("Yes")) {
@@ -79,7 +75,7 @@ public class DHMSMIntegrationSavingsPerYearFromWkSht {
 			}
 		}
 	}
-	
+
 	public ArrayList<String> getSystems() {
 		return systems;
 	}

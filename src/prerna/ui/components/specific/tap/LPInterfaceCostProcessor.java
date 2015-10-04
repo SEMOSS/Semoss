@@ -1,5 +1,6 @@
 package prerna.ui.components.specific.tap;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,7 +11,6 @@ import java.util.Set;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.error.EngineException;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.specific.tap.AbstractFutureInterfaceCostProcessor.COST_FRAMEWORK;
 import prerna.ui.components.specific.tap.FutureStateInterfaceResult.COST_TYPES;
@@ -25,14 +25,14 @@ public class LPInterfaceCostProcessor extends AbstractLPInterfaceProcessor {
 	private IEngine futureDB;
 	
 	//TODO: move enigne definitions outside class to keep reusable
-	public LPInterfaceCostProcessor() throws EngineException {
+	public LPInterfaceCostProcessor() throws IOException {
 		tapCost = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
 		if(tapCost == null) {
-			throw new EngineException("TAP Cost Data not found.");
+			throw new IOException("TAP Cost Data not found.");
 		}
 		futureDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureDB");
 		if(futureDB == null) {
-			throw new EngineException("FutureDB engine not found");
+			throw new IOException("FutureDB engine not found");
 		}
 		processor = new FutureInterfaceCostProcessor();
 		processor.setCostEngines(new IEngine[]{tapCost});

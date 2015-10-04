@@ -43,8 +43,6 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.engine.api.IEngine;
-import prerna.error.EngineException;
-import prerna.error.FileReaderException;
 import prerna.poi.specific.TAPLegacySystemDispositionReportWriter;
 import prerna.ui.components.specific.tap.AbstractFutureInterfaceCostProcessor.COST_FRAMEWORK;
 import prerna.util.Constants;
@@ -86,22 +84,22 @@ public class DHMSMIntegrationTransitionCostWriter {
 	private Map<String, String> sysTypeHash;
 	private Map<String, Map<String, Map<String, Double>>> selfReportedSystemCostByPhase;
 	
-	public DHMSMIntegrationTransitionCostWriter() throws EngineException{
+	public DHMSMIntegrationTransitionCostWriter() throws IOException{
 		TAP_Cost_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
 		if(TAP_Cost_Data==null) {
-			throw new EngineException("TAP_Cost_Data database not found");
+			throw new IOException("TAP_Cost_Data database not found");
 		}
 		FutureDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureDB");
 		if(FutureDB==null) {
-			throw new EngineException("FutureDB database not found");
+			throw new IOException("FutureDB database not found");
 		}
 		FutureCostDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureCostDB");
 		if(FutureCostDB==null) {
-			throw new EngineException("FutureCostDB database not found");
+			throw new IOException("FutureCostDB database not found");
 		}
 		TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		if(TAP_Core_Data==null) {
-			throw new EngineException("TAP_Core_Data database not found");
+			throw new IOException("TAP_Core_Data database not found");
 		}
 		selfReportedSystems = DHMSMTransitionUtility.getAllSelfReportedSystemNames(FutureDB);
 		sorV = DHMSMTransitionUtility.processSysDataSOR(TAP_Core_Data);
@@ -117,7 +115,7 @@ public class DHMSMIntegrationTransitionCostWriter {
 		this.systemName = Utility.getInstanceName(sysURI);
 	}
 	
-	public void calculateValuesForReport() throws EngineException 
+	public void calculateValuesForReport() throws IOException 
 	{
 		if(processor == null) {
 			processor = new LPInterfaceCostProcessor();
@@ -149,19 +147,16 @@ public class DHMSMIntegrationTransitionCostWriter {
 		atoDateList =  diacapReport.getAtoDateList();
 	} 
 	
-	public void writeToExcel() throws FileReaderException {
+	public void writeToExcel() throws IOException {
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator");
 		String templateName = "Transition_Estimates_Template.xlsx";
 		XSSFWorkbook wb;
 		try {
 			wb = (XSSFWorkbook) WorkbookFactory.create(new File(workingDir + folder + templateName));
-		} catch (InvalidFormatException e) {
+		} catch (InvalidFormatException | IOException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Could not find template for report.");
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new FileReaderException("Could not find template for report.");
+			throw new IOException("Could not find template for report.");
 		}
 
 		XSSFSheet reportSheet = wb.getSheetAt(0);

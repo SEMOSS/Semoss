@@ -38,8 +38,6 @@ import java.util.Scanner;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.error.FileReaderException;
-import prerna.error.FileWriterException;
 import prerna.util.Constants;
 
 /**
@@ -66,11 +64,11 @@ public class OntologyFileWriter {
 	 * @param relURIvalues		Hashtable containing the added instance relationship URIs
 	 * @param relBaseURIvalues 	Hashtable containing the added SEMOSS relationship URIs
 	 * @param propURI 			String	containing the base URI for properties
-	 * @throws FileReaderException 
-	 * @throws FileWriterException 
+	 * @throws FileNotFoundException 
+	 * @throws IOException 
 	 */
 	public void runAugment(String ontologyFileName, Hashtable<String, String> newURIvalues,Hashtable<String, String> newBaseURIvalues, Hashtable<String, String> newRelURIvalues,Hashtable<String, String> newBaseRelURIvalues,
-			String propURI) throws FileReaderException, FileWriterException{
+			String propURI) throws FileNotFoundException, IOException {
 		fileName = ontologyFileName;
 		// clean the temp custom map file name if necessary
 		if(ontologyFileName.contains("/"))
@@ -93,10 +91,8 @@ public class OntologyFileWriter {
 	 * @param relURIvalues		Hashtable containing the added instance relationship URIs
 	 * @param relBaseURIvalues 	Hashtable containing the added SEMOSS relationship URIs
 	 * @param propURI 			String	containing the base URI for properties
-	 * @throws FileReaderException 
-	 * @throws FileWriterException 
 	 */
-	private void insertValues(Hashtable<String, String> newURIvalues, Hashtable<String, String> newBaseURIvalues, Hashtable<String, String> relURIvalues, Hashtable<String, String> relBaseURIvalues, String propURI) throws FileReaderException, FileWriterException {
+	private void insertValues(Hashtable<String, String> newURIvalues, Hashtable<String, String> newBaseURIvalues, Hashtable<String, String> relURIvalues, Hashtable<String, String> relBaseURIvalues, String propURI) throws FileNotFoundException, IOException {
 		Scanner scNum = null;
 		int lineNum = 0, baseObjNum = 0, basePredNum = 0, baseObjClassNum = 0, basePredClassNum = 0, propUriNum = 0, ignoreUriNum = 0;
 		String currentLine, propUriLine = "", ignoreUriLine = "";
@@ -135,7 +131,7 @@ public class OntologyFileWriter {
 			}
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Could not find CustomMap File located at: " + fileName);
+			throw new FileNotFoundException("Could not find CustomMap File located at: " + fileName);
 		} finally {
 			if(scNum != null) {
 				scNum.close();
@@ -276,7 +272,7 @@ public class OntologyFileWriter {
 			logger.info(ignoreUriLine);
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new FileWriterException("Could not add additional processed information to CustomMap file");
+			throw new IOException("Could not add additional processed information to CustomMap file");
 		}
 
 		System.gc();
@@ -288,14 +284,14 @@ public class OntologyFileWriter {
 	 * Creates a file writer for the custom map temp file
 	 * @throws FileReaderException  
 	 */
-	private void openFile() throws FileReaderException {
+	private void openFile() throws IOException {
 		file = new File(fileName);
 		tempFile = new File(tempFileName);
 		try {
 			pw = new FileWriter(tempFile);
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Could not open existing CustomMap file located at: " + fileName);
+			throw new IOException("Could not open existing CustomMap file located at: " + fileName);
 		}
 	}
 
@@ -305,13 +301,13 @@ public class OntologyFileWriter {
 	 * Rename the updated custom map temp file to the original custom map file name
 	 * @throws FileWriterException  
 	 */
-	private void closeFile() throws FileWriterException {
+	private void closeFile() throws IOException {
 		try {
 			pw.flush();
 			pw.close();
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new FileWriterException("Could not close writer for the CustomMap file");
+			throw new IOException("Could not close writer for the CustomMap file");
 		}
 		file.delete();
 		if(tempFile.exists() && !file.exists()) {

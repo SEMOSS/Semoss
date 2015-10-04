@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,7 +43,6 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
-import prerna.error.EngineException;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.Utility;
 
@@ -99,12 +99,12 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		this.futureCostState = futureCostState;
 	}
 
-	public void createDBs() throws RepositoryException, RDFHandlerException, EngineException {
+	public void createDBs() throws RepositoryException, RDFHandlerException, IOException {
 		createFutureStateDB();
 		createFutureStateCostDB();
 	}
 
-	public void createFutureStateCostDB() throws EngineException, RepositoryException, RDFHandlerException {
+	public void createFutureStateCostDB() throws IOException, RepositoryException, RDFHandlerException {
 		if (relCostList == null || loeList == null || sysCostList == null || glItemList == null) {
 			generateData();
 		}
@@ -145,7 +145,7 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		((AbstractEngine) futureCostState).createBaseRelationEngine();
 	}
 
-	public void createFutureStateDB() throws EngineException, RepositoryException, RDFHandlerException {
+	public void createFutureStateDB() throws IOException, RepositoryException, RDFHandlerException {
 		if (relList == null || relPropList == null || addedInterfaces == null || removedInterfaces == null) {
 			generateData();
 		}
@@ -203,7 +203,7 @@ public class CreateFutureStateDHMSMDatabase extends AggregationHelper {
 		}
 	}
 
-	public void generateData() throws EngineException {
+	public void generateData() throws IOException {
 		LPInterfaceDBModProcessor processor = new LPInterfaceDBModProcessor();
 		processor.setEngine(tapCore);
 

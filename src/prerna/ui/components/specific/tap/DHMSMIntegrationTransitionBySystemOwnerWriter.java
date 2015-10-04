@@ -44,7 +44,6 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import prerna.error.FileReaderException;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -91,17 +90,14 @@ public class DHMSMIntegrationTransitionBySystemOwnerWriter {
 		this.systemName = data.getSystemName();
 	}
 	
-	public void write(int count) throws FileReaderException{
+	public void write(int count) throws IOException{
 		if(wb == null) {
 			try {
 				wb = (XSSFWorkbook) WorkbookFactory.create(new File(workingDir + folder + templateName));
 			} 
-			catch (InvalidFormatException e) {
+			catch (InvalidFormatException| IOException e) {
 				e.printStackTrace();
-				throw new FileReaderException("Could not find template for report.");
-			} catch (IOException e) {
-				e.printStackTrace();
-				throw new FileReaderException("Could not find template for report.");
+				throw new IOException("Could not find template for report.");
 			}
 		}
 		

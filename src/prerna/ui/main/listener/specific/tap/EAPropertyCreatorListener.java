@@ -37,7 +37,6 @@ import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 
 import prerna.engine.api.IEngine;
-import prerna.error.EngineException;
 import prerna.ui.components.specific.tap.EAPropertyCreator;
 import prerna.ui.main.listener.impl.AbstractListener;
 import prerna.util.DIHelper;
@@ -66,9 +65,6 @@ public class EAPropertyCreatorListener extends AbstractListener {
 		try {
 			creator.addProperties();
 			Utility.showMessage("EA properties have been added to TAP_Core_Data!");
-		} catch (EngineException e) {
-			Utility.showError("Error with generating new DB. Make sure TAP_Core_Data properly defined.");
-			e.printStackTrace();
 		} catch (RepositoryException e) {
 			Utility.showError("Error with generating new DB");
 			e.printStackTrace();

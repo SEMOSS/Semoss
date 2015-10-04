@@ -27,14 +27,14 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.io.IOException;
+
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.error.EngineException;
-import prerna.error.FileReaderException;
 import prerna.poi.specific.TAPLegacySystemDispositionReportWriter;
 import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.UpdateProcessor;
@@ -72,7 +72,7 @@ public class TAPLegacySystemDispositionPlaySheet extends BasicProcessingPlayShee
 			{
 				try {
 					runModernizationPropInsert();
-				} catch (EngineException e) {
+				} catch (IOException e) {
 					Utility.showError(e.getMessage());
 					e.printStackTrace();
 				}
@@ -96,7 +96,7 @@ public class TAPLegacySystemDispositionPlaySheet extends BasicProcessingPlayShee
 				deleteModernizationProp();
 				try {
 					runModernizationPropInsert();
-				} catch (EngineException e) {
+				} catch (IOException e) {
 					Utility.showError(e.getMessage());
 					e.printStackTrace();
 				}
@@ -108,16 +108,13 @@ public class TAPLegacySystemDispositionPlaySheet extends BasicProcessingPlayShee
 		try {
 			writer = new TAPLegacySystemDispositionReportWriter(systemURI);
 			writer.writeToExcel();
-		} catch (EngineException e) {
-			e.printStackTrace();
-			Utility.showError(e.getMessage());
-		} catch (FileReaderException e) {
+		} catch (IOException e) {
 			e.printStackTrace();
 			Utility.showError(e.getMessage());
 		}
 	}
 	
-	private void runModernizationPropInsert() throws EngineException {
+	private void runModernizationPropInsert() throws IOException {
 		InsertInterfaceModernizationProperty inserter = new InsertInterfaceModernizationProperty();
 		inserter.insert();
 	}

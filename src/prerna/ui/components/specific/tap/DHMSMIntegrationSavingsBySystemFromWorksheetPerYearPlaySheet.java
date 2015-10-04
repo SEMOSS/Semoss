@@ -27,10 +27,10 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import prerna.error.FileReaderException;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.Utility;
 
@@ -71,7 +71,7 @@ public class DHMSMIntegrationSavingsBySystemFromWorksheetPerYearPlaySheet extend
 				processor.processSystemData();
 				list = processor.getSystemOutputList();
 				names = processor.getSysNames();
-			} catch (FileReaderException e) {
+			} catch (IOException e) {
 				Utility.showError(e.getMessage());
 				e.printStackTrace();
 			}

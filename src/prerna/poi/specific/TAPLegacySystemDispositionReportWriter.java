@@ -61,8 +61,6 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.error.EngineException;
-import prerna.error.FileReaderException;
 import prerna.ui.components.specific.tap.IndividualSystemTransitionReport;
 import prerna.ui.components.specific.tap.OCONUSMapExporter;
 import prerna.util.Constants;
@@ -112,19 +110,19 @@ public class TAPLegacySystemDispositionReportWriter {
 	
 	private IndividualSystemTransitionReport report;
 	
-	public TAPLegacySystemDispositionReportWriter() throws EngineException {
+	public TAPLegacySystemDispositionReportWriter() throws IOException {
 		TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		TAP_Portfolio = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Portfolio");
 
 		if(TAP_Core_Data == null) {
-			throw new EngineException("Could not find TAP_Core_Data database.\nPlease load the appropriate database to produce report");
+			throw new IOException("Could not find TAP_Core_Data database.\nPlease load the appropriate database to produce report");
 		}
 		if(TAP_Portfolio == null){
-			throw new EngineException("Could not find TAP_Portfolio database.\nPlease load the appropriate database to produce report");
+			throw new IOException("Could not find TAP_Portfolio database.\nPlease load the appropriate database to produce report");
 		}
 	}
 	
-	public TAPLegacySystemDispositionReportWriter(String sysURI) throws EngineException {
+	public TAPLegacySystemDispositionReportWriter(String sysURI) throws IOException {
 		this.sysURI = sysURI.replace(">", "").replace("<", "");
 		this.sysName = Utility.getInstanceName(this.sysURI);
 
@@ -132,10 +130,10 @@ public class TAPLegacySystemDispositionReportWriter {
 		TAP_Portfolio = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Portfolio");
 
 		if(TAP_Core_Data == null) {
-			throw new EngineException("Could not find TAP_Core_Data database.\nPlease load the appropriate database to produce report");
+			throw new IOException("Could not find TAP_Core_Data database.\nPlease load the appropriate database to produce report");
 		}
 		if(TAP_Portfolio == null){
-			throw new EngineException("Could not find TAP_Portfolio database.\nPlease load the appropriate database to produce report");
+			throw new IOException("Could not find TAP_Portfolio database.\nPlease load the appropriate database to produce report");
 		}
 	}
 
@@ -157,19 +155,16 @@ public class TAPLegacySystemDispositionReportWriter {
 		return (HashMap<String, HashMap<String, Double>>) this.sysHWHash.clone();
 	}
 	
-	public void writeToExcel() throws FileReaderException, EngineException
+	public void writeToExcel() throws IOException
 	{
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator");
 		String templateName = "TAP_Legacy_System_Dispositions_Template.xlsx";
 		try {
 			wb = (XSSFWorkbook) WorkbookFactory.create(new File(workingDir + folder + templateName));
-		} catch (InvalidFormatException e) {
+		} catch (InvalidFormatException | IOException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Could not find template for report.");
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new FileReaderException("Could not find template for report.");
+			throw new IOException("Could not find template for report.");
 		}
 
 		reportSheet = wb.getSheetAt(0);
@@ -223,7 +218,7 @@ public class TAPLegacySystemDispositionReportWriter {
 		}
 	}
 
-	private void writeInterfaceSummary() throws EngineException {
+	private void writeInterfaceSummary() throws IOException {
 		if(report == null) {
 			report = new IndividualSystemTransitionReport();
 		}

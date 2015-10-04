@@ -36,7 +36,6 @@ import org.openrdf.rio.RDFHandlerException;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
-import prerna.error.EngineException;
 
 public class EAPropertyCreator extends AggregationHelper {
 	
@@ -85,7 +84,7 @@ public class EAPropertyCreator extends AggregationHelper {
 		}
 	}
 	
-	public void addProperties() throws EngineException, RepositoryException, RDFHandlerException {
+	public void addProperties() throws RepositoryException, RDFHandlerException {
 		dataHash.clear();
 		allConcepts.clear();
 		allRelations.clear();

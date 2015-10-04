@@ -28,7 +28,6 @@
 package prerna.poi.specific;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Hashtable;
 
@@ -37,7 +36,6 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import prerna.error.FileReaderException;
 import prerna.poi.main.AbstractFileReader;
 
 /**
@@ -52,20 +50,17 @@ public class DHMSMDataAccessLatencyFileImporter extends AbstractFileReader {
 	/**
 	 * Load the excel workbook, determine which sheets to load in workbook from the Loader tab
 	 * @param fileName		String containing the absolute path to the excel workbook to load
-	 * @throws FileReaderException 
+	 * @throws IOException 
 	 */
-	public void importFile(String fileName) throws FileReaderException {
+	public void importFile(String fileName) throws IOException {
 		FileInputStream poiReader = null;
 		XSSFWorkbook workbook = null;
 		try {
 			poiReader = new FileInputStream(fileName.replace(";",""));
 			workbook = new XSSFWorkbook(poiReader);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-			throw new FileReaderException("Could not find Microsoft Excel File " + fileName.replace(";",""));
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Could not read Microsoft Excel File " + fileName.replace(";",""));
+			throw new IOException("Could not read Microsoft Excel File " + fileName.replace(";",""));
 		} finally {
 			try{
 				if(poiReader!=null)

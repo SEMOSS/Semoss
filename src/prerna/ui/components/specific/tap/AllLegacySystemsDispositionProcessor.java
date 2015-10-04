@@ -27,11 +27,10 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.io.IOException;
 import java.util.Map;
 
 import prerna.engine.api.IEngine;
-import prerna.error.EngineException;
-import prerna.error.FileReaderException;
 import prerna.poi.specific.TAPLegacySystemDispositionReportWriter;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
@@ -40,11 +39,11 @@ public class AllLegacySystemsDispositionProcessor {
 
 	private IEngine TAP_Core_Data;
 
-	public void processReports() throws EngineException, FileReaderException
+	public void processReports() throws IOException
 	{
 		TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		if(TAP_Core_Data == null) {
-			throw new EngineException("Could not find TAP_Core_Data db");
+			throw new IOException("Could not find TAP_Core_Data db");
 		}
 
 		TAPLegacySystemDispositionReportWriter indiviudalSysWriter = new TAPLegacySystemDispositionReportWriter();
