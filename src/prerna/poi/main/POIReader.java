@@ -50,10 +50,6 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openrdf.sail.SailException;
 
 import prerna.engine.api.IEngine;
-import prerna.error.EngineException;
-import prerna.error.FileReaderException;
-import prerna.error.FileWriterException;
-import prerna.error.InvalidUploadFormatException;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -84,7 +80,7 @@ public class POIReader extends AbstractFileReader {
 	 * @throws InvalidUploadFormatException
 	 */
 	public void importFileWithConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile)
-			throws EngineException, FileReaderException, FileWriterException, InvalidUploadFormatException {
+			throws FileNotFoundException, IOException {
 		logger.setLevel(Level.ERROR);
 		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
 		openEngineWithConnection(engineName);
@@ -119,7 +115,7 @@ public class POIReader extends AbstractFileReader {
 	 * @throws InvalidUploadFormatException
 	 */
 	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String customMap, String owlFile)
-			throws FileReaderException, EngineException, FileWriterException, InvalidUploadFormatException {
+			throws FileNotFoundException, IOException {
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
 		try {
 			openEngineWithoutConnection(engineName);
@@ -146,7 +142,7 @@ public class POIReader extends AbstractFileReader {
 	 * @throws EngineException
 	 * @throws SailException
 	 */
-	private void createSubClassing(XSSFSheet subclassSheet) throws EngineException {
+	private void createSubClassing(XSSFSheet subclassSheet) {
 		//		try {
 		//			if (!scOWL.isActive() || !scOWL.isOpen()) {
 		//				scOWL.begin();
@@ -192,14 +188,11 @@ public class POIReader extends AbstractFileReader {
 
 	/**
 	 * Load the excel workbook, determine which sheets to load in workbook from the Loader tab
-	 * 
-	 * @param fileName
-	 *            String containing the absolute path to the excel workbook to load
-	 * @throws EngineException
-	 * @throws FileReaderException
-	 * @throws InvalidUploadFormatException
+	 * @param fileName 					String containing the absolute path to the excel workbook to load
+	 * @throws FileNotFoundException
+	 * @throws IOException
 	 */
-	public void importFile(String fileName) throws EngineException, FileReaderException, InvalidUploadFormatException {
+	public void importFile(String fileName) throws FileNotFoundException, IOException {
 
 		XSSFWorkbook workbook = null;
 		FileInputStream poiReader = null;
@@ -209,7 +202,7 @@ public class POIReader extends AbstractFileReader {
 			// load the Loader tab to determine which sheets to load
 			XSSFSheet lSheet = workbook.getSheet("Loader");
 			if (lSheet == null) {
-				throw new FileReaderException("Could not find Loader Sheet in Excel file " + fileName);
+				throw new IOException("Could not find Loader Sheet in Excel file " + fileName);
 			}
 			// check if user is loading subclassing relationships
 			XSSFSheet subclassSheet = workbook.getSheet("Subclass");
@@ -246,20 +239,20 @@ public class POIReader extends AbstractFileReader {
 			}
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Could not find Excel file located at " + fileName);
+			throw new FileNotFoundException("Could not find Excel file located at " + fileName);
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Could not read Excel file located at " + fileName);
+			throw new IOException("Could not read Excel file located at " + fileName);
 		} catch (Exception e) {
 			e.printStackTrace();
-			throw new InvalidUploadFormatException("File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
+			throw new IOException("File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
 		} finally {
 			if(poiReader != null) {
 				try {
 					poiReader.close();
 				} catch (IOException e) {
 					e.printStackTrace();
-					throw new FileReaderException("Could not close Excel file stream");
+					throw new IOException("Could not close Excel file stream");
 				}
 			}
 		}
@@ -272,14 +265,13 @@ public class POIReader extends AbstractFileReader {
 	 *            String containing the name of the sheet to load
 	 * @param workbook
 	 *            XSSFWorkbook containing the sheet to load
-	 * @throws EngineException
-	 * @throws FileReaderException
+	 * @throws IOException
 	 */
-	public void loadSheet(String sheetToLoad, XSSFWorkbook workbook) throws EngineException, FileReaderException {
+	public void loadSheet(String sheetToLoad, XSSFWorkbook workbook) throws IOException {
 
 		XSSFSheet lSheet = workbook.getSheet(sheetToLoad);
 		if (lSheet == null) {
-			throw new FileReaderException("Could not find sheet " + sheetToLoad + " in workbook.");
+			throw new IOException("Could not find sheet " + sheetToLoad + " in workbook.");
 		}
 		logger.info("Loading Sheet: " + sheetToLoad);
 		System.out.println(">>>>>>>>>>>>>>>>> " + sheetToLoad);
@@ -411,7 +403,7 @@ public class POIReader extends AbstractFileReader {
 	 *            XSSFWorkbook containing the name of the excel workbook
 	 * @throws EngineException
 	 */
-	public void loadMatrixSheet(String sheetToLoad, XSSFWorkbook workbook) throws EngineException {
+	public void loadMatrixSheet(String sheetToLoad, XSSFWorkbook workbook) {
 		XSSFSheet lSheet = workbook.getSheet(sheetToLoad);
 		int lastRow = lSheet.getLastRowNum();
 		logger.info("Number of Rows: " + lastRow);

@@ -52,9 +52,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.error.EngineException;
-import prerna.error.FileReaderException;
-import prerna.error.FileWriterException;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -93,9 +90,9 @@ public abstract class AbstractFileReader {
 	/**
 	 * Loads the prop file for the CSV file
 	 * @param fileName	Absolute path to the prop file specified in the last column of the CSV file
-	 * @throws FileReaderException 
+	 * @throws IOException 
 	 */
-	protected void openProp(String fileName) throws FileReaderException {
+	protected void openProp(String fileName) throws IOException {
 		Properties rdfPropMap = new Properties();
 		FileInputStream fileIn = null;
 		try {
@@ -103,10 +100,10 @@ public abstract class AbstractFileReader {
 			rdfPropMap.load(fileIn);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Could not find user-specified prop file located in header row in cell: " + fileName);
+			throw new FileNotFoundException("Could not find user-specified prop file located in header row in cell: " + fileName);
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Could not read user-specified prop file located in header row in cell: " + fileName);
+			throw new IOException("Could not read user-specified prop file located in header row in cell: " + fileName);
 		} finally{
 			try{
 				if(fileIn!=null)
@@ -122,9 +119,9 @@ public abstract class AbstractFileReader {
 
 	/**
 	 * Close the database engine
-	 * @throws EngineException 
+	 * @throws IOException 
 	 */
-	public void closeDB() throws EngineException {
+	public void closeDB() throws IOException {
 		logger.warn("Closing....");
 		if(engine != null) {
 			commitDB();
@@ -140,7 +137,7 @@ public abstract class AbstractFileReader {
 //		}
 	}	
 
-	protected void commitDB() throws EngineException {
+	protected void commitDB() throws IOException {
 		logger.warn("Committing....");
 		engine.commit();
 		
@@ -153,8 +150,8 @@ public abstract class AbstractFileReader {
 				try {
 					((RDFFileSesameEngine)engine).exportDB();
 				} catch (RepositoryException | RDFHandlerException | IOException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
+					throw new IOException("Unable to commit data from file into database");
 				}
 			}
 		}
@@ -164,7 +161,7 @@ public abstract class AbstractFileReader {
 	 * Creates a repository connection to be put all the base relationship data to create the OWL file
 	 * @throws EngineException 
 	 */
-	private void openOWLWithOutConnection() throws EngineException {
+	private void openOWLWithOutConnection() {
 		baseDataEngine = new RDFFileSesameEngine();
 		baseDataEngine.openDB(null);
 		baseDataEngine.setFileName(owlFile);
@@ -176,7 +173,7 @@ public abstract class AbstractFileReader {
 	 * @throws EngineException 
 	 */
 	@SuppressWarnings("unchecked")
-	private void openOWLWithConnection(IEngine engine) throws EngineException {
+	private void openOWLWithConnection(IEngine engine) {
 		baseDataEngine = ((AbstractEngine)engine).getBaseDataEngine();
 		baseDataHash = ((AbstractEngine)engine).getBaseHash();
 		baseDataEngine.setFileName(owlFile);
@@ -186,11 +183,11 @@ public abstract class AbstractFileReader {
 	 * Close the OWL engine
 	 * @throws EngineException 
 	 */
-	protected void closeOWL() throws EngineException {
+	protected void closeOWL() {
 		baseDataEngine.commit();
 	}
 
-	protected void storeBaseStatement(String sub, String pred, String obj) throws EngineException {
+	protected void storeBaseStatement(String sub, String pred, String obj) {
 		String cleanSub = Utility.cleanString(sub, false);
 		String cleanPred = Utility.cleanString(pred, false);
 		String cleanObj = Utility.cleanString(obj, false);
@@ -199,7 +196,7 @@ public abstract class AbstractFileReader {
 		{
 			baseDataEngine.addStatement(new Object[]{cleanSub, cleanPred, cleanObj, true});
 			baseDataHash.put(cleanSub, cleanSub);
-			baseDataHash.put(cleanPred, cleanPred);
+			baseDataHash.put(cleanPred, cleanPred);	
 			baseDataHash.put(cleanObj,cleanObj);//
 		}
 	}
@@ -209,7 +206,7 @@ public abstract class AbstractFileReader {
 	 * @throws EngineException 
 	 * @throws FileWriterException 
 	 */
-	protected void createBaseRelations() throws EngineException, FileWriterException {
+	protected void createBaseRelations() {
 		// necessary triple saying Concept is a type of Class
 		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
 		String pred = RDF.TYPE.stringValue();
@@ -284,7 +281,6 @@ public abstract class AbstractFileReader {
 		for(String relArray : basePropRelations.keySet()){
 			String property = relArray;
 			String parent = basePropRelations.get(property);
-			//createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
 			storeBaseStatement(parent, OWL.DatatypeProperty+"", property);
 //			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
 		}
@@ -316,7 +312,7 @@ public abstract class AbstractFileReader {
 		return files;
 	}
 
-	protected void openEngineWithoutConnection(String dbName) throws FileReaderException, EngineException {
+	protected void openEngineWithoutConnection(String dbName) {
 		createNewEngine(dbName);
 		openOWLWithOutConnection();
 	}
@@ -327,7 +323,7 @@ public abstract class AbstractFileReader {
 		engine.openDB(bdPropFile);
 	}
 
-	protected void openEngineWithConnection(String engineName) throws EngineException {
+	protected void openEngineWithConnection(String engineName) {
 		engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
 		openOWLWithConnection(engine);
 	}
@@ -381,9 +377,8 @@ public abstract class AbstractFileReader {
 	 * @param instanceObjectName	 	String containing the name of the object instance
 	 * @param relName 					String containing the name of the relationship between the subject and object
 	 * @param propHash 					Hashtable that contains all properties
-	 * @throws EngineException 
 	 */
-	public void createRelationship(String subjectNodeType, String objectNodeType, String instanceSubjectName, String instanceObjectName, String relName, Hashtable<String, Object> propHash) throws EngineException {
+	public void createRelationship(String subjectNodeType, String objectNodeType, String instanceSubjectName, String instanceObjectName, String relName, Hashtable<String, Object> propHash) {
 		subjectNodeType = Utility.cleanString(subjectNodeType, true);
 		objectNodeType = Utility.cleanString(objectNodeType, true);
 		
@@ -403,16 +398,12 @@ public abstract class AbstractFileReader {
 		String subjectNodeURI = subjectInstanceBaseURI + "/" + instanceSubjectName;
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDF.TYPE, subjectSemossBaseURI, true});
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDFS.LABEL, instanceSubjectName, false});
-//		createStatement(vf.createURI(subjectNodeURI), RDF.TYPE, vf.createURI(subjectSemossBaseURI));
-//		createStatement(vf.createURI(subjectNodeURI), RDFS.LABEL, vf.createLiteral(instanceSubjectName));
 
 		// create the full URI for the object instance
 		// add type and label triples to database
 		String objectNodeURI = objectInstanceBaseURI + "/" + instanceObjectName;
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{objectNodeURI, RDF.TYPE, objectSemossBaseURI, true});
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{objectNodeURI, RDFS.LABEL, instanceObjectName, false});
-//		createStatement(vf.createURI(objectNodeURI), RDF.TYPE, vf.createURI(objectSemossBaseURI));
-//		createStatement(vf.createURI(objectNodeURI), RDFS.LABEL, vf.createLiteral(instanceObjectName));
 
 		// generate URIs for the relationship
 		relName = Utility.cleanPredicateString(relName);
@@ -458,21 +449,15 @@ public abstract class AbstractFileReader {
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceRelURI, RDFS.LABEL, instanceSubjectName + Constants.RELATION_URI_CONCATENATOR + instanceObjectName, false});
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, instanceRelURI, objectNodeURI, true});
 
-//		createStatement(vf.createURI(instanceRelURI), RDFS.SUBPROPERTYOF, vf.createURI(relSemossBaseURI));
-//		createStatement(vf.createURI(instanceRelURI), RDFS.LABEL, vf.createLiteral(instanceSubjectName + Constants.RELATION_URI_CONCATENATOR + instanceObjectName));
-//		createStatement(vf.createURI(subjectNodeURI), vf.createURI(instanceRelURI), vf.createURI(objectNodeURI));
-
 		addProperties(instanceRelURI, propHash);
 	}
 
-	public void addNodeProperties(String nodeType, String instanceName, Hashtable<String, Object> propHash) throws EngineException {
+	public void addNodeProperties(String nodeType, String instanceName, Hashtable<String, Object> propHash) {
 		//create the node in case its not in a relationship
 		instanceName = Utility.cleanString(instanceName, true);
 		String semossBaseURI = getBaseURI(nodeType);
 		String instanceBaseURI = getInstanceURI(nodeType);
 		String subjectNodeURI = instanceBaseURI + "/" + instanceName;
-//		createStatement(vf.createURI(subjectNodeURI), RDF.TYPE, vf.createURI(semossBaseURI));
-//		createStatement(vf.createURI(subjectNodeURI), RDFS.LABEL, vf.createLiteral(instanceName));
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDF.TYPE, semossBaseURI, true});
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDFS.LABEL, instanceName, false});
 
@@ -489,7 +474,7 @@ public abstract class AbstractFileReader {
 		}
 	}
 
-	public void addProperties(String instanceURI, Hashtable<String, Object> propHash) throws EngineException {
+	public void addProperties(String instanceURI, Hashtable<String, Object> propHash) {
 
 		// add all properties
 		Enumeration<String> propKeys = propHash.keys();
@@ -523,9 +508,7 @@ public abstract class AbstractFileReader {
 					continue;
 				}
 				engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceURI, propURI, dateFormatted, false});
-//				URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
-//				logger.info("Processing Date value " + date); 
-//				createStatement(vf.createURI(instanceURI), vf.createURI(propURI), vf.createLiteral(date, datatype));
+//				logger.info("Processing Date value " + dateFormatted); 
 			}
 			else if(propHash.get(key).getClass() == new Boolean(true).getClass())
 			{
@@ -548,7 +531,6 @@ public abstract class AbstractFileReader {
 					String cleanValue = Utility.cleanString(value, true);
 //					logger.info("Processing String value " + cleanValue); 
 					engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceURI, propURI, cleanValue, false});
-//					createStatement(vf.createURI(instanceURI), vf.createURI(propURI), vf.createLiteral(cleanValue));
 				}
 			}
 		}
@@ -561,12 +543,10 @@ public abstract class AbstractFileReader {
 	 * @param subjectNodeURI 	String containing the URI of the subject at the instance level
 	 * @throws EngineException 
 	 */
-	private void insertCurrentUser(String propURI, String basePropURI, String subjectNodeURI) throws EngineException {
+	private void insertCurrentUser(String propURI, String basePropURI, String subjectNodeURI) {
 		String cleanValue = System.getProperty("user.name");
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE, basePropURI, true});
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, propURI, cleanValue, false});
-//		createStatement(vf.createURI(propURI), RDF.TYPE, vf.createURI(basePropURI));				
-//		createStatement(vf.createURI(subjectNodeURI), vf.createURI(propURI), vf.createLiteral(cleanValue));	
 	}
 
 	/**
@@ -576,7 +556,7 @@ public abstract class AbstractFileReader {
 	 * @param subjectNodeURI 	String containing the URI of the subject at the instance level
 	 * @throws EngineException 
 	 */
-	private void insertCurrentDate(String propInstanceURI, String basePropURI, String subjectNodeURI) throws EngineException {
+	private void insertCurrentDate(String propInstanceURI, String basePropURI, String subjectNodeURI) {
 		Date dValue = new Date();
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 		String date = df.format(dValue);
@@ -588,9 +568,6 @@ public abstract class AbstractFileReader {
 		} catch (ParseException e) {
 			logger.error("ERROR: could not parse date: " + date);
 		}
-//		createStatement(vf.createURI(propInstanceURI), RDF.TYPE, vf.createURI(basePropURI));
-//		URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
-//		createStatement(vf.createURI(subjectNodeURI), vf.createURI(propInstanceURI), vf.createLiteral(date, datatype));
 	}
 
 }
