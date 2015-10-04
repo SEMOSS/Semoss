@@ -79,10 +79,6 @@ import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.QuestionAdministrator;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.error.EngineException;
-import prerna.error.FileReaderException;
-import prerna.error.FileWriterException;
-import prerna.error.HeaderClassException;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -263,8 +259,13 @@ public class RDBMSReader {
 	 * @param customBase	String grabbed from the user interface that is used as the URI base for all instances 
 	 * @param customMap		
 	 * @param owlFile		String automatically generated within SEMOSS to determine the location of the OWL file that is produced
+	 * @throws RepositoryException 
+	 * @throws IOException 
+	 * @throws FileNotFoundException 
+	 * @throws SailException 
 	 */
-	public void importFileWithOutConnection(String engineFile, String fileNames, String customBase, String owlFile, String engineName, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates) throws EngineException, FileWriterException, FileReaderException, HeaderClassException, Exception {
+	public void importFileWithOutConnection(String engineFile, String fileNames, String customBase, String owlFile, String engineName, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates) 
+			throws RepositoryException, FileNotFoundException, IOException, SailException, Exception {
 
 		queryUtil = SQLQueryUtil.initialize(dbType);
 
@@ -656,7 +657,7 @@ public class RDBMSReader {
 	 * @param fileName	Absolute path to the prop file specified in the last column of the CSV file
 	 * @throws FileReaderException 
 	 */
-	protected void openProp(String fileName) throws FileReaderException {
+	protected void openProp(String fileName) throws FileNotFoundException, IOException {
 		Properties rdfPropMap = new Properties();
 		FileInputStream fileIn = null;
 		try {
@@ -664,15 +665,15 @@ public class RDBMSReader {
 			rdfPropMap.load(fileIn);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Could not find user-specified prop file with CSV metamodel data located at: " + fileName);
+			throw new FileNotFoundException("Could not find user-specified prop file with CSV metamodel data located at: " + fileName);
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Could not read user-specified prop file with CSV metamodel data located at: " + fileName);
+			throw new IOException("Could not read user-specified prop file with CSV metamodel data located at: " + fileName);
 		} finally{
 			try{
 				if(fileIn!=null)
 					fileIn.close();
-			}catch(IOException e) {
+			} catch(IOException e) {
 				e.printStackTrace();
 			}
 		}
@@ -682,13 +683,14 @@ public class RDBMSReader {
 		}
 	}
 
-	protected void openEngineWithConnection(String engineName) throws EngineException {
+	protected void openEngineWithConnection(String engineName) throws RepositoryException {
 		engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
 		openOWLWithConnection(engine);
 	}
 
 
-	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile,SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates) throws EngineException, FileWriterException, FileReaderException, HeaderClassException, Exception {
+	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile,SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates)
+			throws RepositoryException, FileNotFoundException, IOException, SailException, Exception {
 		queryUtil = SQLQueryUtil.initialize(dbType);
 
 		logger.setLevel(Level.WARN);
@@ -776,14 +778,14 @@ public class RDBMSReader {
 
 	}
 
-	private void openOWLWithOutConnection() throws EngineException {
+	private void openOWLWithOutConnection() throws RepositoryException {
 		Repository myRepository = new SailRepository(new MemoryStore());
 		try {
 			myRepository.initialize();
 			rcOWL = myRepository.getConnection();
 		} catch (RepositoryException e) {
 			e.printStackTrace();
-			throw new EngineException("Could not create new repository connection to store OWL information");
+			throw new RepositoryException("Could not create new repository connection to store OWL information");
 		} 
 
 		scOWL = ((SailRepositoryConnection) rcOWL).getSailConnection();
@@ -791,7 +793,7 @@ public class RDBMSReader {
 		vf = vfOWL;
 	}
 
-	private void openOWLWithConnection(IEngine engine) throws EngineException {
+	private void openOWLWithConnection(IEngine engine) throws RepositoryException {
 		Repository myRepository = new SailRepository(new MemoryStore());
 		try {
 			myRepository.initialize();
@@ -802,7 +804,7 @@ public class RDBMSReader {
 			vf = vfOWL;
 		} catch (RepositoryException e) {
 			e.printStackTrace();
-			throw new EngineException("Could not create new repository connection to store OWL information");
+			throw new RepositoryException("Could not create new repository connection to store OWL information");
 		} 
 
 		baseDataEngine = ((AbstractEngine)engine).getBaseDataEngine();
@@ -822,7 +824,7 @@ public class RDBMSReader {
 			rcOWL.add(rcBaseList);
 		} catch (RepositoryException e) {
 			e.printStackTrace();
-			throw new EngineException("Could not load OWL information from existing database");
+			throw new RepositoryException("Could not load OWL information from existing database");
 		}
 	}
 
@@ -885,7 +887,7 @@ public class RDBMSReader {
 						headException = false;
 				}
 				if(headException == false) {
-					throw new HeaderClassException(sub + " cannot be found as a header");
+					throw new IOException(sub + " cannot be found as a header");
 				}
 				if(obj.contains("+"))
 				{
@@ -897,7 +899,7 @@ public class RDBMSReader {
 						headException = false;
 				}
 				if(headException == false) {
-					throw new HeaderClassException(obj + " cannot be found as a header");
+					throw new IOException(obj + " cannot be found as a header");
 				}
 
 
@@ -980,7 +982,7 @@ public class RDBMSReader {
 							headException = false;
 					}
 					if(headException == false) {
-						throw new HeaderClassException(sub + " cannot be found as a header");
+						throw new IOException(sub + " cannot be found as a header");
 					}
 					if(prop.contains("+"))
 					{
@@ -992,7 +994,7 @@ public class RDBMSReader {
 							headException = false;
 					}
 					if(headException == false) {
-						throw new HeaderClassException(prop + " cannot be found as a header");
+						throw new IOException(prop + " cannot be found as a header");
 					}
 					// add it to the subject
 					//see if the subject key exists
@@ -1825,7 +1827,7 @@ public class RDBMSReader {
 
 	}
 
-	private void insertRecords() throws FileReaderException
+	private void insertRecords() throws IOException
 	{
 		String [] insertTemplates = new String[tableHash.size()];
 		// the job here is to take the table hash and create tables
@@ -1929,10 +1931,10 @@ public class RDBMSReader {
 			e.printStackTrace();
 			String errorMessage = "Error processing row number " + count + ". ";
 			errorMessage += e.getMessage();
-			throw new FileReaderException(errorMessage);
+			throw new IOException(errorMessage);
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Error processing CSV headers");
+			throw new IOException("Error processing CSV headers");
 		}	
 	}
 
@@ -2157,7 +2159,7 @@ public class RDBMSReader {
 	 * Specifies which rows in the CSV to load based on user input in the prop file
 	 * @throws FileReaderException 
 	 */
-	public void skipRows() throws FileReaderException {
+	public void skipRows() throws IOException {
 		//start count at 1 just row 1 is the header
 		count = 1;
 		int startRow = 2;
@@ -2173,10 +2175,10 @@ public class RDBMSReader {
 			e.printStackTrace();
 			String errorMessage = "Error processing row number " + count + ". ";
 			errorMessage += e.getMessage();
-			throw new FileReaderException(errorMessage);
+			throw new IOException(errorMessage);
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Error processing CSV headers");
+			throw new IOException("Error processing CSV headers");
 		}
 	}
 
@@ -2186,7 +2188,7 @@ public class RDBMSReader {
 	 * @param fileName
 	 * @throws FileReaderException
 	 */
-	public void getRowsCount(String fileName) throws FileReaderException{
+	public void getRowsCount(String fileName) throws IOException{
 		//get row count
 		try{
 			totalrowcount=0;//reset row count
@@ -2198,10 +2200,10 @@ public class RDBMSReader {
 			e.printStackTrace();
 			String errorMessage = "Error processing row number " + totalrowcount + ". ";
 			errorMessage += e.getMessage();
-			throw new FileReaderException(errorMessage);
+			throw new IOException(errorMessage);
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Error processing CSV headers");
+			throw new IOException("Error processing CSV headers");
 		}	
 	}
 
@@ -2342,10 +2344,10 @@ public class RDBMSReader {
 	 * Load the CSV file
 	 * Gets the headers for each column and reads the property file
 	 * @param fileName String
-	 * @throws FileReaderException 
 	 * @throws FileNotFoundException 
+	 * @throws IOException 
 	 */
-	public void openCSVFile(String fileName) throws FileReaderException {
+	public void openCSVFile(String fileName) throws FileNotFoundException, IOException {
 		// loop through twice, first time open up the mapreader so we can loop through and get the rows count, then reopen it for
 		// processing in the insertrecords method
 		for(int i = 0; i < 2; i++){ 
@@ -2354,7 +2356,7 @@ public class RDBMSReader {
 				mapReader = new CsvMapReader(readCSVFile, CsvPreference.STANDARD_PREFERENCE);
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
-				throw new FileReaderException("Could not find CSV file located at " + fileName);
+				throw new FileNotFoundException("Could not find CSV file located at " + fileName);
 			}		
 			try {
 				header = mapReader.getHeader(true);
@@ -2367,7 +2369,7 @@ public class RDBMSReader {
 
 			} catch (IOException e) {
 				e.printStackTrace();
-				throw new FileReaderException("Could not close reader input stream for CSV file " + fileName);
+				throw new IOException("Could not close reader input stream for CSV file " + fileName);
 			}
 			if(i==0){ // first time through loop through the csv file to get the total row count, 
 				// need to loop through a second time to reset the current line position on the csv reader back to the beginning.
@@ -2378,19 +2380,19 @@ public class RDBMSReader {
 	
 	/**
 	 * Closes the CSV file streams
-	 * @throws FileReaderException 
+	 * @throws IOException 
 	 */
-	public void closeCSVFile() throws FileReaderException {
+	public void closeCSVFile() throws IOException {
 		try {
 			readCSVFile.close();
 			mapReader.close();
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Could not close CSV file streams");
+			throw new IOException("Could not close CSV file streams");
 		}		
 	}
 
-	protected void storeBaseStatement(String sub, String pred, String obj) throws EngineException {
+	protected void storeBaseStatement(String sub, String pred, String obj) throws SailException {
 		try {
 			if(!scOWL.isActive() || !scOWL.isOpen()) {
 				scOWL.begin();
@@ -2399,7 +2401,7 @@ public class RDBMSReader {
 			scOWL.commit();
 		} catch (SailException e) {
 			e.printStackTrace();
-			throw new EngineException("Error adding triple {<" + sub + "> <" + pred + "> <" + obj + ">}");
+			throw new SailException("Error adding triple {<" + sub + "> <" + pred + "> <" + obj + ">}");
 		}
 		if(baseDataEngine != null && baseDataHash != null)
 		{
@@ -2411,7 +2413,7 @@ public class RDBMSReader {
 	}
 
 
-	protected void createBaseRelations() throws EngineException, FileWriterException {
+	protected void createBaseRelations() throws SailException, IOException, RepositoryException {
 		// necessary triple saying Concept is a type of Class
 		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
 		String pred = RDF.TYPE.stringValue();
@@ -2505,7 +2507,7 @@ public class RDBMSReader {
 		try {
 			scOWL.commit();
 		} catch (SailException e) {
-			throw new EngineException("Could not commit base relationships into OWL database");
+			throw new SailException("Could not commit base relationships into OWL database");
 		}
 		if(baseDataEngine != null) {
 			baseDataEngine.commit();
@@ -2518,15 +2520,9 @@ public class RDBMSReader {
 			rcOWL.export(owlWriter);
 			fWrite.close();
 			owlWriter.close();
-		} catch (RepositoryException e) {
+		} catch (RepositoryException | RDFHandlerException | IOException e) {
 			e.printStackTrace();
-			throw new FileWriterException("Could not export base relationships from OWL database");
-		} catch (RDFHandlerException e) {
-			e.printStackTrace();
-			throw new FileWriterException("Could not export base relationships from OWL database");
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new FileWriterException("Could not close OWL file writer");
+			throw new IOException("Could not close OWL file writer");
 		} finally {
 			try {
 				if(fWrite!=null)
@@ -2541,18 +2537,17 @@ public class RDBMSReader {
 
 	/**
 	 * Close the OWL engine
-	 * @throws EngineException 
 	 */
-	protected void closeOWL() throws EngineException {
+	protected void closeOWL() throws SailException, RepositoryException {
 		try {
 			scOWL.close();
 			rcOWL.close();
 		} catch (SailException e1) {
 			e1.printStackTrace();
-			throw new EngineException("Could not close OWL database connection");
+			throw new SailException("Could not close OWL database connection");
 		} catch (RepositoryException e) {
 			e.printStackTrace();
-			throw new EngineException("Could not close OWL database connection");
+			throw new RepositoryException("Could not close OWL database connection");
 		}
 	}
 

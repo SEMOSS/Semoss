@@ -100,7 +100,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		}
 		hypernymGenerator.addMappings(parentChildMapping);
 
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName + "");
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 		String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
 		GraphPlaySheet gps = CentralityCalculator.createMetamodel(((AbstractEngine)engine).getBaseDataEngine().getRc(), sparql);
 		Hashtable<String, SEMOSSVertex> vertStore  = gps.getGraphData().getVertStore();

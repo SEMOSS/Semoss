@@ -41,7 +41,6 @@ import java.util.Properties;
 import org.supercsv.io.CsvListReader;
 import org.supercsv.prefs.CsvPreference;
 
-import prerna.error.FileReaderException;
 import prerna.util.Utility;
 
 public class CSVMetamodelBuilder {
@@ -64,7 +63,7 @@ public class CSVMetamodelBuilder {
 		this.propFiles = propFiles;
 	}
 
-	public Hashtable<String, ArrayList<Hashtable<String, String[]>>> returnPropFileDataResults() throws FileReaderException {
+	public Hashtable<String, ArrayList<Hashtable<String, String[]>>> returnPropFileDataResults() throws FileNotFoundException, IOException {
 		if(propFiles != null)
 		{
 			File propFile = propFiles.get(0);
@@ -74,10 +73,10 @@ public class CSVMetamodelBuilder {
 				fileIn = new FileInputStream(propFile);
 				propDataProp.load(fileIn);				
 			} catch (FileNotFoundException e) {
-				throw new FileReaderException("Could not find CSV PropFile: " + propFiles.get(0));
+				throw new FileNotFoundException("Could not find CSV PropFile: " + propFiles.get(0));
 			} catch (IOException e) {
 				e.printStackTrace();
-				throw new FileReaderException("Could not process CSV PropFile headers in " + propFiles.get(0));
+				throw new IOException("Could not process CSV PropFile headers in " + propFiles.get(0));
 			} finally {
 				try {
 					if(fileIn!=null)
@@ -149,7 +148,7 @@ public class CSVMetamodelBuilder {
 		return propFileData;
 	}
 
-	public Hashtable<String, Hashtable<String, LinkedHashSet<String>>> returnDataTypes() throws FileReaderException
+	public Hashtable<String, Hashtable<String, LinkedHashSet<String>>> returnDataTypes() throws FileNotFoundException, IOException
 	{
 		//TODO: loop through multiple files?
 
@@ -168,10 +167,10 @@ public class CSVMetamodelBuilder {
 				getAllowedDataType();
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
-				throw new FileReaderException("Could not find CSV file: " + files.get(0));
+				throw new FileNotFoundException("Could not find CSV file: " + files.get(0));
 			} catch (IOException e) {
 				e.printStackTrace();
-				throw new FileReaderException("Could not process CSV file headers in " + files.get(0));
+				throw new IOException("Could not process CSV file headers in " + files.get(0));
 			}finally{
 				try{
 					if(fileRead!=null)
@@ -212,7 +211,7 @@ public class CSVMetamodelBuilder {
 		}
 	}
 
-	private void getAllDataType(CsvListReader listReader) throws FileReaderException {
+	private void getAllDataType(CsvListReader listReader) throws IOException {
 		List<String> instances;
 		try {
 			while((instances = listReader.read()) != null)
@@ -233,7 +232,7 @@ public class CSVMetamodelBuilder {
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Error processing data in CSV");
+			throw new IOException("Error processing data in CSV");
 		}
 	}
 

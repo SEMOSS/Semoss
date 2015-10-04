@@ -28,7 +28,6 @@
 package prerna.poi.main;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -46,11 +45,6 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openrdf.model.vocabulary.RDF;
 
 import prerna.engine.api.IEngine;
-import prerna.error.EngineException;
-import prerna.error.FileReaderException;
-import prerna.error.FileWriterException;
-import prerna.error.HeaderClassException;
-import prerna.error.InvalidUploadFormatException;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -83,14 +77,9 @@ public class RdfExcelTableReader extends AbstractFileReader {
 	 * @param customBase	String grabbed from the user interface that is used as the URI base for all instances 
 	 * @param customMap		
 	 * @param owlFile		String automatically generated within SEMOSS to determine the location of the OWL file that is produced
-	 * @throws EngineException 
-	 * @throws FileReaderException 
-	 * @throws FileWriterException 
-	 * @throws HeaderClassException 
-	 * @throws InvalidUploadFormatException 
+	 * @throws IOException 
 	 */
-	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile) 
-			throws EngineException, FileWriterException, FileReaderException, HeaderClassException, InvalidUploadFormatException {
+	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile) throws IOException {
 		logger.setLevel(Level.WARN);
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
 		try {
@@ -140,13 +129,9 @@ public class RdfExcelTableReader extends AbstractFileReader {
 	 * @param customBase 	String grabbed from the user interface that is used as the URI base for all instances
 	 * @param customMap 	Absolute path specified in the Excel file that determines the location of the prop file for the data
 	 * @param owlFile 		String automatically generated within SEMOSS to determine the location of the OWL file that is produced
-	 * @throws HeaderClassException 
-	 * @throws EngineException 
-	 * @throws FileReaderException 
-	 * @throws FileWriterException 
-	 * @throws InvalidUploadFormatException 
+	 * @throws IOException 
 	 */
-	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile) throws EngineException, FileReaderException, HeaderClassException, FileWriterException, InvalidUploadFormatException {
+	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile) throws IOException {
 		logger.setLevel(Level.WARN);
 		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
 		openEngineWithConnection(engineName);
@@ -185,7 +170,7 @@ public class RdfExcelTableReader extends AbstractFileReader {
 	 * @throws EngineException 
 	 * @throws FileReaderException 
 	 */
-	public void processRelationShips(XSSFSheet sheet) throws EngineException, FileReaderException
+	public void processRelationShips(XSSFSheet sheet) throws IOException
 	{
 		// overwrite this value if user specified the max rows to load
 		if (rdfMap.get(sheet.getSheetName() + "_START_ROW") != null)
@@ -384,7 +369,7 @@ public class RdfExcelTableReader extends AbstractFileReader {
 	 * @throws HeaderClassException 
 	 * @throws Exception 
 	 */
-	public void processConceptRelationURIs(XSSFSheet sheet) throws HeaderClassException {
+	public void processConceptRelationURIs(XSSFSheet sheet) throws IOException {
 		// get the list of relationships from the prop file
 		if(rdfMap.get(sheet.getSheetName().replaceAll(" ", "_") + "_RELATION") != null)
 		{
@@ -421,7 +406,7 @@ public class RdfExcelTableReader extends AbstractFileReader {
 						headException = false;
 				}
 				if(headException == false) {
-					throw new HeaderClassException(sub + " cannot be found as a header");
+					throw new IOException(sub + " cannot be found as a header");
 				}
 				if(obj.contains("+"))
 				{
@@ -433,7 +418,7 @@ public class RdfExcelTableReader extends AbstractFileReader {
 						headException = false;
 				}
 				if(headException == false) {
-					throw new HeaderClassException(obj + " cannot be found as a header");
+					throw new IOException(obj + " cannot be found as a header");
 				}
 				// create concept uris
 				String relURI = "";
@@ -556,7 +541,7 @@ public class RdfExcelTableReader extends AbstractFileReader {
 	 * @throws HeaderClassException 
 	 * @throws EngineException 
 	 */
-	public void processNodePropURIs(XSSFSheet sheet) throws HeaderClassException, EngineException 
+	public void processNodePropURIs(XSSFSheet sheet) throws IOException
 	{
 		if(rdfMap.get(sheet.getSheetName().replaceAll(" ", "_") + "_NODE_PROP") != null)
 		{
@@ -600,7 +585,7 @@ public class RdfExcelTableReader extends AbstractFileReader {
 							headException = false;
 					}
 					if(headException == false) {
-						throw new HeaderClassException(sub + " cannot be found as a header");
+						throw new IOException(sub + " cannot be found as a header");
 					}
 					if(prop.contains("+"))
 					{
@@ -612,7 +597,7 @@ public class RdfExcelTableReader extends AbstractFileReader {
 							headException = false;
 					}
 					if(headException == false) {
-						throw new HeaderClassException(prop + " cannot be found as a header");
+						throw new IOException(prop + " cannot be found as a header");
 					}
 					// see if subject node SEMOSS base URI exists in prop file
 					if(rdfMap.containsKey(sub+Constants.CLASS))
@@ -696,7 +681,7 @@ public class RdfExcelTableReader extends AbstractFileReader {
 	 * @throws HeaderClassException 
 	 * @throws EngineException 
 	 */
-	public void processRelationPropURIs(XSSFSheet sheet) throws HeaderClassException, EngineException 
+	public void processRelationPropURIs(XSSFSheet sheet) throws IOException
 	{
 		if(rdfMap.get(sheet.getSheetName().replaceAll(" ", "_") + "_RELATION_PROP") != null)
 		{
@@ -733,7 +718,7 @@ public class RdfExcelTableReader extends AbstractFileReader {
 							headException = false;
 					}
 					if(headException == false) {
-						throw new HeaderClassException(prop + " cannot be found as a header");
+						throw new IOException(prop + " cannot be found as a header");
 					}
 					String propURI = "";
 					String property = "";
@@ -907,39 +892,34 @@ public class RdfExcelTableReader extends AbstractFileReader {
 	/**
 	 * Load the Excel workbook
 	 * @param fileName String
-	 * @throws FileReaderException 
-	 * @throws InvalidUploadFormatException 
-	 * @throws FileNotFoundException 
+	 * @throws IOException 
 	 */
-	public void openExcelWorkbook(String fileName) throws FileReaderException, InvalidUploadFormatException {
+	public void openExcelWorkbook(String fileName) throws IOException {
 		FileInputStream poiReader = null;
 		try {
 			poiReader = new FileInputStream(fileName);
 			workbook = new XSSFWorkbook(poiReader);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-			throw new FileReaderException("Could not find Excel file located at " + fileName);
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Could not read Excel file located at " + fileName);
+			throw new IOException("Could not read Excel file located at " + fileName);
 		} catch (Exception e) {
 			e.printStackTrace();
-			throw new InvalidUploadFormatException("File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
+			throw new IOException("File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
 		}
 	}
 
 	/**
 	 * Load the Excel workbook
 	 * @param fileName String
-	 * @throws FileReaderException 
+	 * @throws IOException 
 	 */
-	public void closeExcelWorkbook() throws FileReaderException {
+	public void closeExcelWorkbook() throws IOException {
 		if(poiReader != null) {
 			try {
 				poiReader.close();
 			} catch (IOException e) {
 				e.printStackTrace();
-				throw new FileReaderException("Could not close Excel file stream");
+				throw new IOException("Could not close Excel file stream");
 			}
 		}
 	}

@@ -1,17 +1,21 @@
 package prerna.algorithm.learning.moa;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import gov.sandia.cognition.learning.algorithm.perceptron.KernelizableBinaryCategorizerOnlineLearner;
 import gov.sandia.cognition.learning.algorithm.perceptron.OnlinePerceptron;
 import gov.sandia.cognition.learning.algorithm.perceptron.kernel.KernelBinaryCategorizerOnlineLearnerAdapter;
 import gov.sandia.cognition.learning.algorithm.perceptron.kernel.OnlineKernelPerceptron;
-import gov.sandia.cognition.learning.algorithm.tree.CategorizationTreeLearner;
-import gov.sandia.cognition.learning.algorithm.tree.VectorThresholdInformationGainLearner;
 import gov.sandia.cognition.learning.data.DefaultInputOutputPair;
 import gov.sandia.cognition.learning.data.InputOutputPair;
 import gov.sandia.cognition.learning.function.categorization.BinaryVersusCategorizer;
 import gov.sandia.cognition.learning.function.categorization.BinaryVersusCategorizer.Learner;
 import gov.sandia.cognition.learning.function.categorization.DefaultKernelBinaryCategorizer;
-import gov.sandia.cognition.learning.function.categorization.KernelBinaryCategorizer;
 import gov.sandia.cognition.learning.function.categorization.LinearBinaryCategorizer;
 import gov.sandia.cognition.learning.function.kernel.ExponentialKernel;
 import gov.sandia.cognition.learning.function.kernel.Kernel;
@@ -20,47 +24,14 @@ import gov.sandia.cognition.learning.function.kernel.PolynomialKernel;
 import gov.sandia.cognition.learning.function.kernel.SigmoidKernel;
 import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.math.matrix.VectorFactory;
-import gov.sandia.cognition.math.matrix.mtj.DenseVector;
-import gov.sandia.cognition.math.matrix.mtj.Vector2;
-
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-
-import moa.classifiers.Classifier;
 import moa.classifiers.functions.Perceptron;
 import moa.core.InstancesHeader;
-import moa.options.FloatOption;
-import moa.streams.ArffFileStream;
-
-import org.supercsv.cellprocessor.Optional;
-import org.supercsv.cellprocessor.ift.CellProcessor;
-import org.supercsv.io.CsvListReader;
-import org.supercsv.io.ICsvListReader;
-import org.supercsv.prefs.CsvPreference;
-
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.weka.WekaUtilityMethods;
 import prerna.ds.BTreeDataFrame;
-import prerna.ds.BTreeIterator;
-import prerna.ds.ValueTreeColumnIterator;
-import prerna.error.FileReaderException;
-import prerna.math.BarChart;
 import prerna.om.SEMOSSParam;
-import prerna.util.Utility;
 import weka.core.Attribute;
-import weka.core.DenseInstance;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.Utils;

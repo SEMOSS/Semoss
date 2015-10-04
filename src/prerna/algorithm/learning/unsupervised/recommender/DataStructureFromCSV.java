@@ -20,7 +20,6 @@ import org.supercsv.prefs.CsvPreference;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
-import prerna.error.FileReaderException;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.nameserver.MasterDatabaseQueries;
 import prerna.nameserver.MasterDatabaseURIs;
@@ -89,7 +88,7 @@ public class DataStructureFromCSV {
 	public ArrayList<HashMap<String,Object>> createMetamodel(String fileLoc) {
 		try {
 			readCSVFile(fileLoc);
-		} catch (FileReaderException e) {
+		} catch (IOException e) {
 			e.printStackTrace();
 			return null;
 		}
@@ -680,7 +679,7 @@ public class DataStructureFromCSV {
 		return colIndexMinToMax;
 	}
 
-	private void readCSVFile(String loc) throws FileReaderException {
+	private void readCSVFile(String loc) throws IOException {
 
 		ICsvListReader listReader = null;
 		try {
@@ -726,10 +725,10 @@ public class DataStructureFromCSV {
 
 		}catch(FileNotFoundException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Could not find CSV file located at " + loc);			
+			throw new FileNotFoundException("Could not find CSV file located at " + loc);			
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Could not read CSV file located at" + loc);	
+			throw new IOException("Could not read CSV file located at" + loc);	
 		}finally {
 			try{
 				if(listReader!=null) {
@@ -737,7 +736,7 @@ public class DataStructureFromCSV {
 				}
 			}catch(IOException e) {
 				e.printStackTrace();
-				throw new FileReaderException("Could not close the CSV reader");	
+				throw new IOException("Could not close the CSV reader");	
 			}
 		}
 	}
