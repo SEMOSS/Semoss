@@ -70,7 +70,6 @@ import org.openrdf.sail.memory.MemoryStore;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
-import prerna.error.FileWriterException;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -531,20 +530,19 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		try {
 			sc.commit();
 		} catch (SailException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 	
-	public void writeData(RDFXMLWriter writer) throws FileWriterException {
+	public void writeData(RDFXMLWriter writer) throws RepositoryException, RDFHandlerException {
 		try {
 			rc.export(writer);
 		} catch (RepositoryException e) {
 			e.printStackTrace();
-			throw new FileWriterException("Could not export base relationships from OWL database");
+			throw new RepositoryException("Could not export base relationships from OWL database");
 		} catch (RDFHandlerException e) {
 			e.printStackTrace();
-			throw new FileWriterException("Could not export base relationships from OWL database");
+			throw new RDFHandlerException("Could not export base relationships from OWL database");
 		}
 	}
 	

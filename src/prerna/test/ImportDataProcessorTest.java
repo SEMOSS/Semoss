@@ -23,12 +23,6 @@ import org.openrdf.query.TupleQueryResult;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
-import prerna.error.EngineException;
-import prerna.error.FileReaderException;
-import prerna.error.FileWriterException;
-import prerna.error.HeaderClassException;
-import prerna.error.InvalidUploadFormatException;
-import prerna.error.NLPException;
 import prerna.ui.components.ImportDataProcessor;
 import prerna.ui.components.ImportDataProcessor.DB_TYPE;
 import prerna.ui.components.ImportDataProcessor.IMPORT_METHOD;
@@ -94,7 +88,7 @@ public class ImportDataProcessorTest {
 	static int  testCounter = 1;
 	
 	@BeforeClass 
-	public static void setUpOnce() throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException{
+	public static void setUpOnce() {
 		
 		//Set up file paths
 		semossDirectory = System.getProperty("user.dir");

@@ -28,14 +28,14 @@
 
 package prerna.ui.components.specific.tap;
 
+import java.io.IOException;
+
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.error.EngineException;
-import prerna.error.FileReaderException;
 import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -61,7 +61,7 @@ public class DHMSMIntegrationTransitionBySystemOwnerPlaySheet extends BasicProce
 		DHMSMIntegrationTransitionCostWriter generateData = null;
 		try {
 			generateData = new DHMSMIntegrationTransitionCostWriter();
-		} catch (EngineException e1) {
+		} catch (IOException e1) {
 			e1.printStackTrace();
 		} 
 		DHMSMIntegrationTransitionBySystemOwnerWriter writer = new DHMSMIntegrationTransitionBySystemOwnerWriter();
@@ -76,12 +76,9 @@ public class DHMSMIntegrationTransitionBySystemOwnerPlaySheet extends BasicProce
 				generateData.calculateValuesForReport();
 				writer.setDataSource(generateData);
 				writer.write(counter);
-			} catch (EngineException e) {
+			} catch (IOException e) {
 				e.printStackTrace();
 				Utility.showError(e.getMessage());
-			} catch (FileReaderException e) {
-				Utility.showError(e.getMessage());
-				e.printStackTrace();
 			}
 			counter++;
 		}

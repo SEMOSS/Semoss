@@ -45,10 +45,6 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.engine.api.IEngine;
-import prerna.error.EngineException;
-import prerna.error.FileReaderException;
-import prerna.error.FileWriterException;
-import prerna.error.InvalidUploadFormatException;
 import prerna.poi.main.OntologyFileWriter;
 import prerna.poi.main.POIReader;
 import prerna.ui.components.UpdateProcessor;
@@ -104,6 +100,8 @@ public class CostDBUpdateListener extends AbstractListener {
 	 * @param customBaseURI 	String containing the instance level URI for the db inputed by the user in customBaseURIField
 	 * @param mapName 			String containing the custom map file path for the selected engine from costDBComboBox
 	 * @param owlFile 			String containing the owl file path for the selected engine from costDBComboBox
+	 * @throws IOException 
+	 * @throws FileNotFoundException 
 	 */
 	public void executeCostDBUpdate(String costDB, String file, String customBaseURI, String mapName, String owlFile) {
 		POIReader reader = new POIReader();
@@ -217,28 +215,10 @@ public class CostDBUpdateListener extends AbstractListener {
 
 				Utility.showMessage("Your database has been successfully updated!");
 			}
-		} catch (RuntimeException ex) {
+		} catch (RuntimeException | IOException ex) {
 			ex.printStackTrace();
 			Utility.showError("Load has failed. Please make sure the loads sheets in the excel file are \nformatted correctly, and objects match the map file.");
-		} catch (FileReaderException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (FileWriterException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (EngineException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InvalidUploadFormatException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}finally{
+		} finally{
 			try{
 				if(fileIn!=null)
 					fileIn.close();

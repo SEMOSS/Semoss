@@ -27,20 +27,19 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.io.IOException;
 import java.util.HashSet;
 
 import prerna.engine.api.IEngine;
-import prerna.error.EngineException;
-import prerna.error.FileReaderException;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
 
 public class AllDHMSMIntegrationTransitionCostProcessor {
 
-	public void runAllReports() throws EngineException, FileReaderException{
+	public void runAllReports() throws IOException {
 		IEngine TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		if(TAP_Core_Data == null) {
-			throw new EngineException("Database not found");
+			throw new IOException("Database not found");
 		}
 		
 		HashSet<String> lpiSystemList = DHMSMTransitionUtility.runRawVarListQuery(TAP_Core_Data, DHMSMTransitionUtility.LPI_SYS_QUERY);

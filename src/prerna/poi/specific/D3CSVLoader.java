@@ -79,18 +79,16 @@ import org.supercsv.io.CsvMapReader;
 import org.supercsv.io.ICsvMapReader;
 import org.supercsv.prefs.CsvPreference;
 
+import com.bigdata.rdf.sail.BigdataSail;
+import com.bigdata.rdf.sail.BigdataSailRepository;
+
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.error.HeaderClassException;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-
-import com.bigdata.rdf.rules.InferenceEngine;
-import com.bigdata.rdf.sail.BigdataSail;
-import com.bigdata.rdf.sail.BigdataSailRepository;
 
 /**
  * Loading data into SEMOSS using comma separated value (CSV) files
@@ -327,9 +325,8 @@ public class D3CSVLoader {
 	 * @throws RepositoryException 
 	 * @throws RDFHandlerException 
 	 * @throws SailException 
-	 * @throws HeaderClassException 
 	 */
-	public void importFileWithOutConnection(String dbName, String fileNames, String customBase, String owlFile) throws FileNotFoundException, IOException, RepositoryException, SailException, RDFHandlerException, HeaderClassException  
+	public void importFileWithOutConnection(String dbName, String fileNames, String customBase, String owlFile) throws FileNotFoundException, IOException, RepositoryException, SailException, RDFHandlerException  
 	{
 		String[] files = fileNames.split(";");
 		this.semossURI = (String) DIHelper.getInstance().getLocalProp(Constants.SEMOSS_URI);
@@ -639,7 +636,7 @@ public class D3CSVLoader {
 	 * Create and store concept and relation URIs at the SEMOSS base and instance levels
 	 * @throws HeaderClassException 
 	 */
-	public void processConceptRelationURIs() throws HeaderClassException
+	public void processConceptRelationURIs() throws IOException
 	{
 		// get the list of relationships from the prop file
 		String relationNames = rdfMap.getProperty("RELATION");
@@ -678,7 +675,7 @@ public class D3CSVLoader {
 					headException = false;
 			}
 			if(headException == false)
-				throw new HeaderClassException(subject + " cannot be found as a header");
+				throw new IOException(subject + " cannot be found as a header");
 
 			if(object.contains("+"))
 			{
@@ -690,7 +687,7 @@ public class D3CSVLoader {
 					headException = false;
 			}
 			if(headException == false)
-				throw new HeaderClassException(subject + " cannot be found as a header");
+				throw new IOException(subject + " cannot be found as a header");
 
 			// create concept uris
 			String relURI = "";
@@ -801,10 +798,9 @@ public class D3CSVLoader {
 
 	/**
 	 * Create and store node property URIs at the SEMOSS base and instance levels 
-	 * @throws SailException 
-	 * @throws HeaderClassException 
+	 * @throws IOException 
 	 */
-	public void processNodePropURIs() throws SailException, HeaderClassException
+	public void processNodePropURIs() throws IOException
 	{
 		String nodePropNames = rdfMap.getProperty("NODE_PROP");
 		StringTokenizer nodePropTokens = new StringTokenizer(nodePropNames, ";");
@@ -845,7 +841,7 @@ public class D3CSVLoader {
 						headException = false;
 				}
 				if(headException == false)
-					throw new HeaderClassException(subject + " cannot be found as a header");
+					throw new IOException(subject + " cannot be found as a header");
 
 				if(prop.contains("+"))
 				{
@@ -857,7 +853,7 @@ public class D3CSVLoader {
 						headException = false;
 				}
 				if(headException == false)
-					throw new HeaderClassException(subject + " cannot be found as a header");
+					throw new IOException(subject + " cannot be found as a header");
 
 				// see if subject node SEMOSS base URI exists in prop file
 				if(rdfMap.containsKey(subject+Constants.CLASS))
@@ -891,10 +887,9 @@ public class D3CSVLoader {
 
 	/**
 	 * Create and store relationship property URIs at the SEMOSS base and instance levels 
-	 * @throws HeaderClassException 
-	 * @throws SailException 
+	 * @throws IOException 
 	 */
-	public void processRelationPropURIs() throws HeaderClassException, SailException
+	public void processRelationPropURIs() throws IOException
 	{
 		String propNames = rdfMap.getProperty("RELATION_PROP");
 		StringTokenizer propTokens = new StringTokenizer(propNames, ";");
@@ -928,7 +923,7 @@ public class D3CSVLoader {
 						headException = false;
 				}
 				if(headException == false)
-					throw new HeaderClassException(prop + " cannot be found as a header");
+					throw new IOException(prop + " cannot be found as a header");
 
 				String propURI = "";
 				propURI = basePropURI+"/"+prop;
@@ -1021,7 +1016,7 @@ public class D3CSVLoader {
 	 * @param object		Value for the object of the triple, this param is not a URI since objects can be literals and literals do not have URIs
 	 * @throws SailException 
 	 */
-	protected void createStatement(URI subject, URI predicate, Value object) throws SailException
+	protected void createStatement(URI subject, URI predicate, Value object)
 	{
 		URI newSub;
 		URI newPred;
@@ -1105,7 +1100,7 @@ public class D3CSVLoader {
 	/**
 	 * Loading engine properties in order to create the database 
 	 * @param fileName String containing the fileName of the temp file that contains the information of the smss file
-	 * @throws FileNotFoundException 
+	 * @throws IOException 
 	 */
 	public void loadBDProperties(String fileName) throws FileNotFoundException, IOException
 	{

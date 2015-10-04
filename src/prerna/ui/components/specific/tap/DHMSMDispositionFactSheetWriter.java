@@ -54,7 +54,6 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.xssf.usermodel.extensions.XSSFHeaderFooter;
 
-import prerna.error.EngineException;
 import prerna.util.ConstantsTAP;
 import prerna.util.Utility;
 
@@ -513,9 +512,9 @@ public class DHMSMDispositionFactSheetWriter {
 	 * Writes the DHMSM Transition Cost Report Information into the fact sheet
 	 * @param wb 		XSSFWorkbook to add the headers
 	 * @param sheet 	XSSFSheet within the workbook to add the header
-	 * @throws EngineException 
+	 * @throws IOException 
 	 */
-	public void writeTransitionCosts(DHMSMIntegrationTransitionCostWriter costWriter, boolean systemProbabilityHigh) throws EngineException {
+	public void writeTransitionCosts(DHMSMIntegrationTransitionCostWriter costWriter, boolean systemProbabilityHigh) throws IOException {
 		XSSFSheet reportSheet = wb.getSheet("Financials");
 		if (!systemProbabilityHigh) {
 			costWriter.calculateValuesForReport();

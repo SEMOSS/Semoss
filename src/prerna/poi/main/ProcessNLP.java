@@ -41,9 +41,6 @@ import org.apache.log4j.Logger;
 import org.apache.tika.exception.TikaException;
 import org.xml.sax.SAXException;
 
-import prerna.algorithm.nlp.NaturalLanguageProcessingHelper;
-import prerna.error.NLPException;
-import prerna.util.DIHelper;
 import edu.stanford.nlp.ling.CoreAnnotations.LemmaAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.TokensAnnotation;
@@ -57,6 +54,8 @@ import edu.stanford.nlp.trees.GrammaticalRelation;
 import edu.stanford.nlp.trees.TreeGraphNode;
 import edu.stanford.nlp.trees.TypedDependency;
 import edu.stanford.nlp.util.CoreMap;
+import prerna.algorithm.nlp.NaturalLanguageProcessingHelper;
+import prerna.util.DIHelper;
 
 public class ProcessNLP {
 
@@ -70,7 +69,7 @@ public class ProcessNLP {
 		lp.setOptionFlags(new String[]{"-maxLength", "80", "-retainTmpSubcategories"});
 	}
 
-	public List<TripleWrapper> generateTriples(String[] files) throws NLPException {
+	public List<TripleWrapper> generateTriples(String[] files) throws IOException {
 		triples = new ArrayList<TripleWrapper>();
 		int i = 0;
 		int size = files.length;
@@ -86,9 +85,9 @@ public class ProcessNLP {
 	/**
 	 * Generates all the triples for the file or web-page
 	 * @param file				String representing the file path
-	 * @throws NLPException		
+	 * @throws IOException 
 	 */
-	private void processFile(String file) throws NLPException {
+	private void processFile(String file) throws IOException {
 		// Returns a list of all the sentences in a file/web-page
 		List<String> fileSentences = readDoc(file);
 
@@ -118,49 +117,26 @@ public class ProcessNLP {
 	 * @return					List<String> containing the sentences in the file
 	 * @throws NLPException
 	 */
-	public List<String> readDoc(String file) throws NLPException {
+	public List<String> readDoc(String file) throws IOException {
 		// Use a text extractor to grab all the sentences in a file or web-page
-
 		List<String> fileSentences = new ArrayList<String>();
-		if(file.contains("http")) {
-			LOGGER.info("Extracting text from a web-page...");
-			try {
+		try {
+			if(file.contains("http")) {
+				LOGGER.info("Extracting text from a web-page...");
 				readFile(TextExtractor.websiteTextExtractor(file), fileSentences);
-			} catch (IOException e) {
-				e.printStackTrace();
-				throw new NLPException("Error processing website");
 			}
-		}
-		if(file.endsWith(".doc") || file.endsWith(".docx")){
-			LOGGER.info("Extracting text from a word document...");
-			try {
+			if(file.endsWith(".doc") || file.endsWith(".docx")){
+				LOGGER.info("Extracting text from a word document...");
 				readFile(TextExtractor.fileTextExtractor(file), fileSentences);
-			} catch (IOException e) {
-				e.printStackTrace();
-				throw new NLPException("Error extrating text from word doc");
-			} catch (SAXException e) {
-				e.printStackTrace();
-				throw new NLPException("Error extrating text from word doc");
-			} catch (TikaException e) {
-				e.printStackTrace();
-				throw new NLPException("Error extrating text from word doc");
 			}
-		}
-		if(file.endsWith(".txt"))
-		{
-			LOGGER.info("Extracting text from a text file...");
-			try {
+			if(file.endsWith(".txt"))
+			{
+				LOGGER.info("Extracting text from a text file...");
 				readFile(TextExtractor.fileTextExtractor(file), fileSentences);
-			} catch (IOException e) {
-				e.printStackTrace();
-				throw new NLPException("Error extrating text from document");
-			} catch (SAXException e) {
-				e.printStackTrace();
-				throw new NLPException("Error extrating text from document");
-			} catch (TikaException e) {
-				e.printStackTrace();
-				throw new NLPException("Error extrating text from document");
 			}
+		} catch (IOException | SAXException | TikaException e) {
+			e.printStackTrace();
+			throw new IOException("Error extrating text from document");
 		}
 		return fileSentences;
 	}

@@ -40,14 +40,10 @@ import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.openrdf.repository.RepositoryException;
+import org.openrdf.sail.SailException;
 
 import prerna.engine.api.IEngine;
-import prerna.error.EngineException;
-import prerna.error.FileReaderException;
-import prerna.error.FileWriterException;
-import prerna.error.HeaderClassException;
-import prerna.error.InvalidUploadFormatException;
-import prerna.error.NLPException;
 import prerna.poi.main.CSVReader;
 import prerna.poi.main.NLPReader;
 import prerna.poi.main.OntologyFileWriter;
@@ -84,14 +80,14 @@ public class ImportDataProcessor {
 	//After determining the desired import method and type, process with the subset of information that that processing requires.
 	public void runProcessor(IMPORT_METHOD importMethod, IMPORT_TYPE importType, String fileNames, String customBaseURI, 
 			String newDBname, String mapFile, String dbPropFile, String questionFile, String repoName, DB_TYPE dbType, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) 
-					throws EngineException, FileReaderException, HeaderClassException, FileWriterException, NLPException, InvalidUploadFormatException, Exception {
+					throws IOException, RepositoryException, SailException, Exception {
 		if(importMethod == null) {
 			String errorMessage = "Import method is not supported";
-			throw new FileReaderException(errorMessage);
+			throw new IOException(errorMessage);
 		}
 		if(importType == null) {
 			String errorMessage = "Import type is not supported";
-			throw new FileReaderException(errorMessage);
+			throw new IOException(errorMessage);
 		}
 		if(importMethod == IMPORT_METHOD.CREATE_NEW) {
 			processCreateNew(importType, customBaseURI, fileNames, newDBname, mapFile, dbPropFile, questionFile, dbType, dbDriverType, allowDuplicates);
@@ -104,7 +100,8 @@ public class ImportDataProcessor {
 
 
 	// need to add a dbtype here
-	public void processAddToExisting(IMPORT_TYPE importType, String customBaseURI, String fileNames, String dbName, DB_TYPE dbType, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) throws EngineException, FileReaderException, HeaderClassException, FileWriterException, Exception {
+	public void processAddToExisting(IMPORT_TYPE importType, String customBaseURI, String fileNames, String dbName, DB_TYPE dbType, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) 
+			throws IOException, RepositoryException, SailException, Exception {
 		//get the engine information
 		//DB_TYPE dbType = DB_TYPE.RDF;// to be removed when enabling the csv wire
 		String mapPath = baseDirectory + "/" + DIHelper.getInstance().getProperty(dbName+"_"+Constants.ONTOLOGY);
@@ -115,9 +112,9 @@ public class ImportDataProcessor {
 			//run the reader
 			try {
 				reader.importFileWithConnection(dbName, fileNames, customBaseURI, mapPath, owlPath);
-			} catch (InvalidUploadFormatException ex) {
+			} catch (IOException ex) {
 				ex.printStackTrace();
-				throw new FileReaderException(ex.getMessage());
+				throw new IOException(ex.getMessage());
 			}
 			//run the ontology augmentor
 			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
@@ -137,7 +134,7 @@ public class ImportDataProcessor {
 			//run the reader
 			try {
 				excelReader.importFileWithConnection(dbName, fileNames, customBaseURI, owlPath);
-			} catch (InvalidUploadFormatException e) {
+			} catch (IOException e) {
 				e.printStackTrace();
 			}
 			//run the ontology augmentor
@@ -195,7 +192,7 @@ public class ImportDataProcessor {
 	}
 
 	public void processCreateNew(IMPORT_TYPE importType, String customBaseURI, String fileNames, String dbName, String mapFile, String dbPropFile, String questionFile, DB_TYPE dbType, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) 
-			throws EngineException, FileWriterException, FileReaderException, HeaderClassException, NLPException, InvalidUploadFormatException {
+			throws IOException, RepositoryException, SailException, Exception {
 		//Replace spaces in db name with underscores
 		//DB_TYPE dbType = DB_TYPE.RDF; // uncomment once wired
 		dbName = dbName.replace(" ", "_");
@@ -209,6 +206,9 @@ public class ImportDataProcessor {
 		String propURI = null;
 		boolean error = false;
 		try {		
+			if(DIHelper.getInstance().getLocalProp(dbName) != null) {
+				throw new IOException("Database name already exists. \nPlease make the database name unique \nor consider import method to \"Add To Existing\".");
+			}
 			//first write the prop file for the new engine
 			PropFileWriter propWriter = runPropWriter(dbName, mapFile, dbPropFile, questionFile, importType, dbType, dbDriverType);
 			String ontoPath = baseDirectory + "/" + propWriter.ontologyFileName;
@@ -282,36 +282,31 @@ public class ImportDataProcessor {
 				newProp.setReadable(true);
 			} catch (IOException e) {
 				e.printStackTrace();
-				throw new FileWriterException("Could not create .smss file for new database");
-			}
-		} catch(EngineException e) {
+				throw new IOException("Could not create .smss file for new database");
+			} 
+		} catch(IOException e) {
 			error = true;
-			throw new EngineException(e.getMessage());
-		} catch(FileReaderException e) {
+			e.printStackTrace();
+			throw new IOException(e.getMessage());
+		} catch(RepositoryException e) {
 			error = true;
-			throw new FileReaderException(e.getMessage());
-		} catch(HeaderClassException e) {
+			e.printStackTrace();
+			throw new RepositoryException(e.getMessage());
+		} catch(SailException e) {
 			error = true;
-			throw new HeaderClassException(e.getMessage());
-		} catch(FileWriterException e) {
-			error = true;
-			throw new FileWriterException(e.getMessage());
-		} catch(NLPException e) {
-			error = true;
-			throw new NLPException(e.getMessage());
-		} catch(InvalidUploadFormatException e) {
-			error = true;
-			throw new InvalidUploadFormatException(e.getMessage());
+			e.printStackTrace();
+			throw new SailException(e.getMessage());
 		} catch(Exception e) {
 			error = true;
-			throw new InvalidUploadFormatException(e.getMessage());
-		}finally {
+			e.printStackTrace();
+			throw new Exception(e.getMessage());
+		} finally {
 			if(propFile != null) {
 				try {
 					FileUtils.forceDelete(propFile);
 				} catch (IOException e) {
 					e.printStackTrace();
-					throw new FileWriterException("Could not delete .temp file for new database");
+					throw new IOException("Could not delete .temp file for new database");
 				}
 			}
 			if(error) {
@@ -518,7 +513,7 @@ public class ImportDataProcessor {
 		}
 	}
 
-	public boolean processNewRDBMS(String customBaseURI, String fileNames, String repoName, String type, String url, String username, char[] password) throws FileReaderException, EngineException {
+	public boolean processNewRDBMS(String customBaseURI, String fileNames, String repoName, String type, String url, String username, char[] password) throws IOException {
 		boolean success = false;
 
 		ImportRDBMSProcessor proc = new ImportRDBMSProcessor(customBaseURI, fileNames, repoName, type, url, username, password);
@@ -541,7 +536,7 @@ public class ImportDataProcessor {
 		return success;
 	}
 
-	private PropFileWriter runPropWriter(String dbName, String mapFile, String dbPropFile, String questionFile, IMPORT_TYPE importType, DB_TYPE dbType, SQLQueryUtil.DB_TYPE dbDriverType) throws FileReaderException, EngineException{
+	private PropFileWriter runPropWriter(String dbName, String mapFile, String dbPropFile, String questionFile, IMPORT_TYPE importType, DB_TYPE dbType, SQLQueryUtil.DB_TYPE dbDriverType) throws IOException {
 		PropFileWriter propWriter = new PropFileWriter();
 
 		//DB_TYPE dbType = DB_TYPE.RDF;

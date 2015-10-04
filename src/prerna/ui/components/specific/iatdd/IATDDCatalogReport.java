@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2015 Defense Health Agency (DHA)
+s * Copyright 2015 Defense Health Agency (DHA)
  *
  * If your use of this software does not include any GPLv2 components:
  * 	Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,10 +27,10 @@
  *******************************************************************************/
 package prerna.ui.components.specific.iatdd;
 
+import java.io.IOException;
 import java.util.HashMap;
 
 import prerna.engine.api.IEngine;
-import prerna.error.EngineException;
 import prerna.poi.specific.IATDDReportWriter;
 import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
 import prerna.util.DIHelper;
@@ -47,8 +47,8 @@ public class IATDDCatalogReport extends BasicProcessingPlaySheet {
 		try {
 			IATDD_DB = (IEngine) DIHelper.getInstance().getLocalProp("IATDD_DB");
 			if (IATDD_DB == null)
-				throw new EngineException("Database not found");
-		} catch (EngineException e) {
+				throw new IOException("Database not found");
+		} catch (IOException e) {
 			Utility.showError("Could not find necessary database: IATDD_DB. Cannot generate report.");
 			return;
 		}

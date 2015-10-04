@@ -28,6 +28,7 @@
 package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
+import java.io.IOException;
 
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
@@ -38,7 +39,6 @@ import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 
 import prerna.engine.api.IEngine;
-import prerna.error.EngineException;
 import prerna.ui.components.specific.tap.CreateFutureStateDHMSMDatabase;
 import prerna.ui.components.specific.tap.GLItemGeneratorSelfReportedFutureInterfaces;
 import prerna.ui.main.listener.impl.AbstractListener;
@@ -75,7 +75,7 @@ public class CreateFutureInterfaceDatabaseListener extends AbstractListener{
 			
 			IEngine tapCost = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
 			if(tapCost == null) {
-				throw new EngineException("Cost Info Not Found");
+				throw new IOException("Cost Info Not Found");
 			}
 			
 			GLItemGeneratorSelfReportedFutureInterfaces glGen = new GLItemGeneratorSelfReportedFutureInterfaces(hrCoreDB, futureDB, futureCostDB);
@@ -86,7 +86,7 @@ public class CreateFutureInterfaceDatabaseListener extends AbstractListener{
 			futureStateCreator.generateData();
 			futureStateCreator.createDBs();
 			Utility.showMessage("Finished adding triples to " + futureDBName + " and " + futureCostDBName);
-		} catch (EngineException e) {
+		} catch (IOException e) {
 			Utility.showError("Error with generting new DB. Make sure DB's are properly defined.");
 			e.printStackTrace();
 		} 

@@ -27,8 +27,8 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
-import prerna.error.EngineException;
-import prerna.error.FileReaderException;
+import java.io.IOException;
+
 import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
 import prerna.util.Utility;
 
@@ -46,10 +46,7 @@ public class AllDHMSMIntegrationTransitionPlaySheet extends BasicProcessingPlayS
 		try {
 			writer = new AllDHMSMIntegrationTransitionCostProcessor();
 			writer.runAllReports();
-		} catch (EngineException e) {
-			e.printStackTrace();
-			Utility.showError(e.getMessage());
-		} catch (FileReaderException e) {
+		} catch (IOException e) {
 			e.printStackTrace();
 			Utility.showError(e.getMessage());
 		}

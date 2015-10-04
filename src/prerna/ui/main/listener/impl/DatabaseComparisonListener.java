@@ -35,7 +35,6 @@ import javax.swing.JComponent;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.error.EngineException;
 import prerna.ui.comparison.specific.tap.GenericDBComparisonWriter;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
@@ -63,18 +62,11 @@ public class DatabaseComparisonListener implements IChakraListener
 		RDFFileSesameEngine newMetaDB = ((AbstractEngine) newDB).getBaseDataEngine();
 		RDFFileSesameEngine oldMetaDB = ((AbstractEngine) oldDB).getBaseDataEngine();
 		
-		try
-		{
-			GenericDBComparisonWriter comparisonWriter = new GenericDBComparisonWriter(newDB, oldDB, newMetaDB, oldMetaDB);
-			comparisonWriter.runAllInstanceTests();
-			comparisonWriter.runAllMetaTests();
-			comparisonWriter.writeWB();
-			
-			Utility.showMessage("All tests are finished.");
-		} catch (EngineException e)
-		{
-			e.printStackTrace();
-		}
+		GenericDBComparisonWriter comparisonWriter = new GenericDBComparisonWriter(newDB, oldDB, newMetaDB, oldMetaDB);
+		comparisonWriter.runAllInstanceTests();
+		comparisonWriter.runAllMetaTests();
+		comparisonWriter.writeWB();
+		Utility.showMessage("All tests are finished.");
 	}
 	
 	@Override

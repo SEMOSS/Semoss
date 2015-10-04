@@ -37,7 +37,6 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.engine.api.IEngine;
-import prerna.error.EngineException;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -71,7 +70,7 @@ public class GenericDBComparisonWriter {
 	
 	private String sheetName = "";
 	
-	public GenericDBComparisonWriter(IEngine newDB, IEngine oldDB, IEngine newMetaDB, IEngine oldMetaDB) throws EngineException {
+	public GenericDBComparisonWriter(IEngine newDB, IEngine oldDB, IEngine newMetaDB, IEngine oldMetaDB) {
 		comparer = new GenericDBComparer(newDB, oldDB, newMetaDB, oldMetaDB);
 		wb = new XSSFWorkbook();
 		

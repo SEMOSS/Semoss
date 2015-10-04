@@ -165,6 +165,14 @@ public class FutureStateInterfaceProcessor {
 					} else {
 						consumeSet.add("DHMSM+++" + downstreamSysName + "+++" + data);
 					}
+				} else {
+					// if upstream system is HP, remove interface
+					if (upstreamSysType.equals(HPNI_KEY) || upstreamSysType.equals(HPI_KEY)) {
+						comment = comment.concat(" Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements).");
+						results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.DECOMMISSIONED);
+						results.put(FutureStateInterfaceResult.COMMENT, comment);
+						results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.NO_COST );
+					}
 				}
 			} else {
 				if (upstreamSysType.equals(HPI_KEY) || upstreamSysType.equals(HPNI_KEY) || downstreamSysType.equals(HPI_KEY)
@@ -205,8 +213,7 @@ public class FutureStateInterfaceProcessor {
 						provideSet.add(upstreamSysName + "+++DHMSM+++" + data);
 					}
 				}
-			} 
-			if (downstreamSysType.equals(LPI_KEY) && sorV.contains(downstreamSysName + data)) { // downstream system is LPI and SOR of
+			} else if (downstreamSysType.equals(LPI_KEY) && sorV.contains(downstreamSysName + data)) { // downstream system is LPI and SOR of
 				otherwise = false;
 				if (!selfReportedSystems.contains(downstreamSysName)) {
 					comment = comment.concat("Need to add interface ").concat(downstreamSysName).concat("->DHMSM. ");
@@ -229,19 +236,28 @@ public class FutureStateInterfaceProcessor {
 					}
 				}
 			} 
-			if (otherwise) {
-				if (upstreamSysType.equals(HPI_KEY) || upstreamSysType.equals(HPNI_KEY) || downstreamSysType.equals(HPI_KEY)
-						|| downstreamSysType.equals(HPNI_KEY)) { // if either system is HP
-					comment = "Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements).";
-					results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.NO_COST );
-					results.put(FutureStateInterfaceResult.COMMENT, comment);
-					results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.DECOMMISSIONED);
+			// check if we should decommission the current interface
+			if (upstreamSysType.equals(HPI_KEY) || upstreamSysType.equals(HPNI_KEY) || downstreamSysType.equals(HPI_KEY)
+					|| downstreamSysType.equals(HPNI_KEY)) { // if either system is HP
+				comment = comment.concat("Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements).");
+				results.put(FutureStateInterfaceResult.COMMENT, comment);
+				results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.NO_COST );
+				if(results.containsKey(FutureStateInterfaceResult.RECOMMENDATION)) {
+					if(results.get(FutureStateInterfaceResult.RECOMMENDATION) == FutureStateInterfaceResult.INTERFACE_TYPES.DOWNSTREAM_PROVIDER_TO_DHMSM) {
+						results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.DOWNSTREAM_PROVIDER_TO_DHMSM_AND_DECOMMISSION);
+					} else if(results.get(FutureStateInterfaceResult.RECOMMENDATION) == FutureStateInterfaceResult.INTERFACE_TYPES.UPSTREAM_PROVIDER_TO_DHMSM) {
+						results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.UPSTREAM_PROVIDER_TO_DHMSM_AND_DECOMMISSION);
+					} else {
+						// this case cannot occur... cannot have both be adding to dhmsm and one of them being hp
+					}
 				} else {
-					comment = "Stay as-is beyond FOC.";
-					results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.NO_COST );
-					results.put(FutureStateInterfaceResult.COMMENT, comment);
-					results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.STAY_AS_IS);
+					results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.DECOMMISSIONED);
 				}
+			} else if(otherwise) {
+				comment = "Stay as-is beyond FOC.";
+				results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.NO_COST );
+				results.put(FutureStateInterfaceResult.COMMENT, comment);
+				results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.STAY_AS_IS);
 			}
 		} else { // other cases DHMSM doesn't touch data object
 			if (upstreamSysType.equals(HPI_KEY) || upstreamSysType.equals(HPNI_KEY) || downstreamSysType.equals(HPI_KEY) 

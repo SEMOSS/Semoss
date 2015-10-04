@@ -59,8 +59,6 @@ import org.w3c.dom.Document;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-import prerna.error.EngineException;
-import prerna.error.FileReaderException;
 import prerna.ui.components.ImportDataProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -122,13 +120,13 @@ public class PropFileWriter {
 	 *            String that contains the path to a user specified smss file
 	 * @param questionFile
 	 *            String that contains the path to a user specified question sheet
-	 * @throws FileReaderException
-	 * @throws EngineException
+	 * @throws FileNotFoundException
+	 * @throws IOException 
 	 */
 	public void runWriter(String dbName, String ontologyName, String dbPropFile, String questionFile, ImportDataProcessor.DB_TYPE dbType)
-			throws FileReaderException, EngineException {
+			throws IllegalArgumentException, FileNotFoundException, IOException {
 		if (dbName == null) {
-			throw new EngineException("Database name is invalid.");
+			throw new IllegalArgumentException("Database name is invalid.");
 		}
 		this.engineName = dbName;
 		engineDirectoryName = "db" + System.getProperty("file.separator") + dbName;
@@ -220,10 +218,10 @@ public class PropFileWriter {
 			}
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Could not find default database files");
+			throw new FileNotFoundException(e.getMessage());
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new FileReaderException("Error copying default database files to new database");
+			throw new IOException(e.getMessage());
 		}
 
 	}
@@ -235,10 +233,10 @@ public class PropFileWriter {
 	 *            String containing the path to the new file
 	 * @param oldFilePath
 	 *            String containing the path to the old file which is going to be copied
-	 * @throws FileReaderException
-	 * @throws EngineException
+	 * @throws FileAlreadyExistsException
+	 * @throws IOException
 	 */
-	private void copyFile(String newFilePath, String oldFilePath) throws FileReaderException, EngineException {
+	private void copyFile(String newFilePath, String oldFilePath) throws FileAlreadyExistsException, IOException {
 		try {
 			if (!oldFilePath.contains("_Questions.XML")) {
 				Path newPath = Paths.get(newFilePath);
@@ -248,11 +246,26 @@ public class PropFileWriter {
 				createXMLQuestionFile(newFilePath, oldFilePath);
 			}
 		} catch (FileAlreadyExistsException ex) {
-			ex.printStackTrace();
-			throw new EngineException("Database name already exists. Please load using a different database name.");
+			try {
+				File f = new File(newFilePath);
+				f.delete();
+				if (!oldFilePath.contains("_Questions.XML")) {
+					Path newPath = Paths.get(newFilePath);
+					Path oldPath = Paths.get(oldFilePath);
+					Files.copy(oldPath, newPath);
+				} else {
+					createXMLQuestionFile(newFilePath, oldFilePath);
+				}
+			} catch (FileAlreadyExistsException ex2) {
+				ex2.printStackTrace();
+				throw new FileAlreadyExistsException("Database folder already exists and unable to delete. \nPlease delete the folder or load using a different database name.");
+			} catch (IOException ex2) {
+				ex2.printStackTrace();
+				throw new IOException("Error copying default database files to new database");
+			}
 		} catch (IOException ex) {
 			ex.printStackTrace();
-			throw new FileReaderException("Error copying default database files to new database");
+			throw new IOException("Error copying default database files to new database");
 		}
 	}
 
@@ -266,7 +279,7 @@ public class PropFileWriter {
 	 *            String containing the name of the new database
 	 * @throws FileReaderException
 	 */
-	private void writeCustomDBProp(String defaultName, String dbname, ImportDataProcessor.DB_TYPE dbType) throws FileReaderException {
+	private void writeCustomDBProp(String defaultName, String dbname, ImportDataProcessor.DB_TYPE dbType) throws IOException {
 		String jnlName = engineDirectoryName + System.getProperty("file.separator") + dbname + ".jnl";
 		// move it outside the default directory
 		propFileName = defaultName.replace("Default/", "") + "1";
@@ -324,12 +337,9 @@ public class PropFileWriter {
 					pw.write(currentLine + "\n");
 				}
 			}
-		} catch (FileNotFoundException ex) {
-			ex.printStackTrace();
-			throw new FileReaderException("Could not find default database smss file");
 		} catch (IOException ex) {
 			ex.printStackTrace();
-			throw new FileReaderException("Could not read default database smss file");
+			throw new IOException("Could not find default database smss file");
 		}
 		try {
 			if (fileRead != null)
@@ -354,15 +364,11 @@ public class PropFileWriter {
 
 	/**
 	 * Creates the XML file containing all of the questions/insights. This takes the default XML file and replace the content with the engine name.
-	 * 
-	 * @param newFilePath
-	 *            String containing the path to the new database
-	 * @param oldFilePath
-	 *            String containing the path to the Default folder
-	 * @throws ParserConfigurationException 
-	 * @throws SAXException 
+	 * @param newFilePath			String containing the path to the new database
+	 * @param oldFilePath			String containing the path to the Default folder
+	 * @throws IOException 
 	 */
-	public void createXMLQuestionFile(String newFilePath, String oldFilePath) {
+	public void createXMLQuestionFile(String newFilePath, String oldFilePath) throws IOException {
 		BufferedReader reader = null;
 		BufferedWriter writer = null;
 
@@ -392,22 +398,14 @@ public class PropFileWriter {
 		    Transformer xformer = TransformerFactory.newInstance().newTransformer();
 		    xformer.transform(source, result);
 		    
-		} catch (FileNotFoundException e) {
+		} catch (IOException | TransformerException | SAXException | ParserConfigurationException e) {
 			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (TransformerException e) {
-			e.printStackTrace();
-		} catch (SAXException e) {
-			e.printStackTrace();
-		} catch (ParserConfigurationException e) {
-			e.printStackTrace();
+			throw new IOException("Unable to create question xml file.");
 		} finally {
 			if (reader != null) {
 				try {
 					reader.close();
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
@@ -415,7 +413,6 @@ public class PropFileWriter {
 				try {
 					writer.close();
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}

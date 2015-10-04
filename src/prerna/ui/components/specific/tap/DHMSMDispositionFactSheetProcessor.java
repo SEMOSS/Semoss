@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
+import java.io.IOException;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -40,7 +41,6 @@ import org.apache.log4j.Logger;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.error.EngineException;
 import prerna.poi.specific.FactSheetProcessor;
 import prerna.util.ConstantsTAP;
 import prerna.util.DHMSMTransitionUtility;
@@ -77,22 +77,22 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 	ArrayList<String> lpniSystemList = new ArrayList<String>();
 	ArrayList<String> highSystemList = new ArrayList<String>();	
 
-	public DHMSMDispositionFactSheetProcessor() throws EngineException{
+	public DHMSMDispositionFactSheetProcessor() throws IOException{
 		TAP_Cost_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Cost_Data");
 		if(TAP_Cost_Data==null) {
-			throw new EngineException("TAP_Cost_Data database not found");
+			throw new IOException("TAP_Cost_Data database not found");
 		}
 		TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		if(TAP_Core_Data==null) {
-				throw new EngineException("TAP_Core_Data database not found");
+				throw new IOException("TAP_Core_Data database not found");
 		}
 		FutureDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureDB");
 		if(FutureDB==null) {
-			throw new EngineException("FutureDB database not found");
+			throw new IOException("FutureDB database not found");
 		}
 		FutureCostDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureCostDB");
 		if(FutureCostDB==null) {
-				throw new EngineException("FutureCostDB database not found");
+				throw new IOException("FutureCostDB database not found");
 		}
 	}
 	
@@ -102,8 +102,8 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 		try{
 			TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 			if(TAP_Core_Data==null)
-				throw new EngineException("Database not found");
-		} catch(EngineException e) {
+				throw new IOException("Database not found");
+		} catch(IOException e) {
 			Utility.showError("Could not find necessary database: TAP_Core_Data. Cannot generate report.");
 			return false;
 		}
@@ -111,8 +111,8 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 		try{
 			FutureDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureDB");
 			if(FutureDB==null)
-				throw new EngineException("Database not found");
-		} catch(EngineException e) {
+				throw new IOException("Database not found");
+		} catch(IOException e) {
 			Utility.showError("Could not find necessary database: FutureDB. Cannot generate report.");
 			return false;
 		}
@@ -303,7 +303,7 @@ public class DHMSMDispositionFactSheetProcessor extends FactSheetProcessor {
 			costWriter = new DHMSMIntegrationTransitionCostWriter();
 			costWriter.setSysURI(systemURI);
 			writer.writeTransitionCosts(costWriter, systemProbabilityHigh);
-		} catch (EngineException e) {
+		} catch (IOException e) {
 			e.printStackTrace();
 			Utility.showError(e.getMessage());
 		}

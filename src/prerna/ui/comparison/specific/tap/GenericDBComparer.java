@@ -37,7 +37,6 @@ import org.apache.log4j.Logger;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.error.EngineException;
 import prerna.util.Utility;
 
 /**
@@ -57,7 +56,7 @@ public class GenericDBComparer
 	private String newDBName;
 	private String oldDBName;
 	
-	public GenericDBComparer(IEngine newDB, IEngine oldDB, IEngine newMetaDB, IEngine oldMetaDB) throws EngineException
+	public GenericDBComparer(IEngine newDB, IEngine oldDB, IEngine newMetaDB, IEngine oldMetaDB)
 	{
 		this.newDB = newDB;
 		this.oldDB = oldDB;
