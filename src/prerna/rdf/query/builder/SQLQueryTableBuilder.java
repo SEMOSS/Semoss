@@ -516,7 +516,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 					nullSelectors += " , " + nullSingleSelector;
 				}
 				
-				SEMOSSQueryHelper.addSingleReturnVarToQuery(singleSelector, semossQuery);
+				semossQuery.addSingleReturnVariable(singleSelector);
 				columnProcessed.put(asName.toUpperCase(), asName.toUpperCase());					
 			}
 			addFrom(tableName, alias);
