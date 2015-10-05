@@ -246,23 +246,7 @@ public class PropFileWriter {
 				createXMLQuestionFile(newFilePath, oldFilePath);
 			}
 		} catch (FileAlreadyExistsException ex) {
-			try {
-				File f = new File(newFilePath);
-				f.delete();
-				if (!oldFilePath.contains("_Questions.XML")) {
-					Path newPath = Paths.get(newFilePath);
-					Path oldPath = Paths.get(oldFilePath);
-					Files.copy(oldPath, newPath);
-				} else {
-					createXMLQuestionFile(newFilePath, oldFilePath);
-				}
-			} catch (FileAlreadyExistsException ex2) {
-				ex2.printStackTrace();
-				throw new FileAlreadyExistsException("Database folder already exists and unable to delete. \nPlease delete the folder or load using a different database name.");
-			} catch (IOException ex2) {
-				ex2.printStackTrace();
-				throw new IOException("Error copying default database files to new database");
-			}
+			throw new FileAlreadyExistsException("Database folder already exists. \nPlease delete the folder or load using a different database name.");
 		} catch (IOException ex) {
 			ex.printStackTrace();
 			throw new IOException("Error copying default database files to new database");
