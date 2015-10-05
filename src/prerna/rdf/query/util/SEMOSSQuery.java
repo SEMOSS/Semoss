@@ -39,6 +39,7 @@ public class SEMOSSQuery {
 	private static final String main = "Main";
 	private List<SPARQLTriple> triples = new ArrayList<SPARQLTriple>();
 	private List<TriplePart> retVars = new ArrayList<TriplePart>();
+	private List<String> returnVariables = new ArrayList<String>(); //string equivalent list
 	private List<List<String>> returnTripleArray = new ArrayList<List<String>>();
 	private Hashtable<TriplePart, ISPARQLReturnModifier> retModifyPhrase = new Hashtable<TriplePart,ISPARQLReturnModifier>();
 	private Hashtable<String, SPARQLPatternClause> clauseHash = new Hashtable<String, SPARQLPatternClause>();
@@ -97,7 +98,12 @@ public class SEMOSSQuery {
 		int nolimit = -1;
 		String joins = "";
 		if(selectorsString.length() == 0){
-			selectorsString = createReturnVariableSQLString();
+			for(String returnVar: returnVariables){
+				if(selectorsString.length()>0){
+					returnVar = ", "+returnVar;
+				}
+				selectorsString+= returnVar;
+			}
 		}
 		
 		if(joinString.length() > 0 && SQLFilter.length() > 0)
@@ -154,6 +160,9 @@ public class SEMOSSQuery {
 			throw new IllegalArgumentException("Cannot add non-variable parts to the return var string");
 		}
 	}
+	public void addSingleReturnVariable(String var){
+		returnVariables.add(var);
+	}
 	
 	public String createPatternClauses()
 	{
@@ -182,18 +191,6 @@ public class SEMOSSQuery {
 			}
 		}
 		return wherePatternString;
-	}
-	
-	public String createReturnVariableSQLString()
-	{
-		String retVarString = "";
-		for (int varIdx=0; varIdx<retVars.size();varIdx++)
-		{
-			if(retVarString.length() > 0 ) 
-				retVarString += " , ";
-			retVarString += SPARQLQueryHelper.createComponentString(retVars.get(varIdx)).replace('?', ' ') ;
-		}
-		return retVarString;
 	}
 	
 	public String createReturnVariableString(){
