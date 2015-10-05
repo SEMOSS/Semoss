@@ -2078,6 +2078,7 @@ public class RDBMSReader {
 		typeHash.put("DECIMAL", new ParseDouble());
 		typeHash.put("DOUBLE", new ParseDouble());
 		typeHash.put("STRING", new NotNull());
+		typeHash.put("TEXT", new NotNull());
 		typeHash.put("DATE", new ParseDate("yyyy-MM-dd hh:mm:ss"));
 		typeHash.put("SIMPLEDATE", new ParseDate("MM/dd/yyyy"));
 		// currently only add in numbers as doubles
@@ -2091,6 +2092,7 @@ public class RDBMSReader {
 		typeHash.put("DECIMAL_OPTIONAL", new Optional(new ParseDouble()));
 		typeHash.put("DOUBLE_OPTIONAL", new Optional(new ParseDouble()));
 		typeHash.put("STRING_OPTIONAL", new Optional());
+		typeHash.put("TEXT_OPTIONAL", new Optional());
 		typeHash.put("DATE_OPTIONAL", new Optional(new ParseDate("yyyy-MM-dd HH:mm:ss")));
 		typeHash.put("SIMPLEDATE_OPTIONAL", new Optional(new ParseDate("MM/dd/yyyy")));
 		// currently only add in numbers as doubles
@@ -2106,6 +2108,7 @@ public class RDBMSReader {
 		sqlHash.put("DECIMAL", "FLOAT");
 		sqlHash.put("DOUBLE", "FLOAT");
 		sqlHash.put("STRING", "VARCHAR(2000)"); // 8000 was chosen because this is the max for SQL Server; needs more permanent fix
+		sqlHash.put("TEXT", "VARCHAR(2000)"); // 8000 was chosen because this is the max for SQL Server; needs more permanent fix
 		sqlHash.put("DATE", "TIME");
 		sqlHash.put("SIMPLEDATE", "DATE");
 		// currently only add in numbers as doubles
