@@ -17,7 +17,6 @@ import prerna.rdf.query.util.TriplePartConstant;
 
 import com.google.gson.Gson;
 import com.google.gson.internal.StringMap;
-import com.google.gson.reflect.TypeToken;
 
 public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 
@@ -42,42 +41,17 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 		predV = parsedPath.get(QueryBuilderHelper.predVKey);
 	}
 	
-	public void addLimitOffset(){
-		if (allJSONHash.containsKey("limit") && allJSONHash.containsKey("offset")) {
-			int limit = (int) allJSONHash.get("limit");
-			int offset = (int) allJSONHash.get("offset");
-			query = query + " LIMIT " + limit + " OFFSET " + offset;
-		}
-		else if (allJSONHash.containsKey("limit")) {
-			int limit = (int) allJSONHash.get("limit");
-			query = query + " LIMIT " + limit;
-		}
-		else if (allJSONHash.containsKey("offset")) {
-			int offset = (int) allJSONHash.get("offset");
-			query = query + " OFFSET " + offset;
-		}
-	}
-	
 	@Override
 	public void setJSONDataHash(Hashtable<String, Object> allJSONHash) {
 		Gson gson = new Gson();
 		this.allJSONHash = new Hashtable<String, Object>();
-		if (allJSONHash.containsKey("QueryData")) {
-			this.allJSONHash.putAll((StringMap) allJSONHash.get("QueryData"));
-		}
+		this.allJSONHash.putAll((StringMap) allJSONHash.get("QueryData"));
 		ArrayList<StringMap> list = (ArrayList<StringMap>) allJSONHash.get("SelectedNodeProps") ;
 		this.nodePropV = new ArrayList<Hashtable<String, String>>();
 		for(StringMap map : list){
 			Hashtable hash = new Hashtable();
 			hash.putAll(map);
 			nodePropV.add(hash);
-		}
-		if (allJSONHash.containsKey("searchFilterKey")) {
-			// Hashtable<String, Object> dataHash = ;
-			StringMap searchFilter = (StringMap) allJSONHash.get("searchFilterKey");
-			if (!searchFilter.containsKey("null")) {
-				this.allJSONHash.put("searchFilterKey", allJSONHash.get("searchFilterKey"));
-			}
 		}
 	}
 	
@@ -142,7 +116,7 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 	}
 
 	protected void searchFilterData(){
-		StringMap<String> searchFilterResults = (StringMap<String>) allJSONHash.get("searchFilterKey");
+		StringMap<String> searchFilterResults = (StringMap<String>) allJSONHash.get(searchFilterKey);
 		if(searchFilterResults != null){
 			Iterator <String> keys = searchFilterResults.keySet().iterator();
 			for(int colIndex = 0;keys.hasNext();colIndex++) // process one column at a time. At this point my key is title on the above
