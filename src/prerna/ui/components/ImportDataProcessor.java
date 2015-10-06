@@ -299,7 +299,11 @@ public class ImportDataProcessor {
 		} catch(Exception e) {
 			error = true;
 			e.printStackTrace();
-			throw new Exception(e.getMessage());
+			String errorMessage = e.getMessage();
+			if(e.getMessage() == null) {
+				errorMessage = "Unknown error occured during data loading. Please check computer configuration.";
+			}
+			throw new Exception(errorMessage);
 		} finally {
 			if(propFile != null) {
 				try {
