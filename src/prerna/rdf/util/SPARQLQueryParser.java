@@ -143,7 +143,6 @@ public class SPARQLQueryParser extends AbstractQueryParser {
 	}
 
 	private void getURIList() {
-		String[] triple = new String[3];
 
 		Hashtable <String, Integer> dataHash = new Hashtable<String, Integer>();
 		types = new Hashtable<String, String>();
@@ -184,6 +183,7 @@ public class SPARQLQueryParser extends AbstractQueryParser {
 				addToPropVariables(nodeType, predicateVar.getValue().toString());
 			} else if(predicateVar.isConstant() && (predicateVar.getValue()+"").contains("ontologies/Relation")) {
 				//must a triple!
+				String[] triple = new String[3];
 				triple[0] = types.get(aliasTableMap.get(subjectVar.getName()));
 				triple[1] = predicateVar.getValue().toString();
 				triple[2] = types.get(aliasTableMap.get(objectVar.getName()));
@@ -272,7 +272,7 @@ public class SPARQLQueryParser extends AbstractQueryParser {
 	private static void basicParseTest(){
 		
 		String query = "SELECT DISTINCT ?Director (AVG(?Title__MovieBudget) AS ?x) WHERE { BIND(<@Studio-http://semoss.org/ontologies/Concept/Studio@> AS ?Studio) {?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;} {?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;} {?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;} {?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director} {?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Title__MovieBudget} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?Title__Revenue_International} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?Title__Revenue_Domestic} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?Title__RottenTomatoes_Audience} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?Title__RottenTomatoes_Critics}  }  GROUP BY ?Director";	
-
+		query = "SELECT DISTINCT ?Title ?Nominated ?Genre ?Title__RevenueInternational ?Title__MovieBudget WHERE { {?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;} {?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;} {?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;} {?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated} {?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?Title__RevenueInternational} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Title__MovieBudget}  }";
 		query = query.replace("&lt;", "<");
 		query = query.replace("&gt;", ">");
 				
@@ -282,6 +282,7 @@ public class SPARQLQueryParser extends AbstractQueryParser {
 		Set<String> returnVariables1 = parse.getReturnVariables();
 		Hashtable <String, String> types1 = parse.getNodesFromQuery();
 		Hashtable <String, Set<String>> props1 = parse.getPropertiesFromQuery();
-
+		List<String[]> mytrips = parse.getTriplesData();
+		
 	}
 }
