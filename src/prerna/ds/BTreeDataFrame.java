@@ -601,11 +601,11 @@ public class BTreeDataFrame implements ITableDataFrame {
     }
     
     private String[] joinTreeLevels(String[] joinLevelNames, String[] uriJoinLevelNames, String[] colNamesInJoiningTable) {
-    	String[] newLevelNames = new String[this.levelNames.length + joinLevelNames.length - 1];
+    	String[] newLevelNames = new String[this.levelNames.length + joinLevelNames.length - colNamesInJoiningTable.length];
         // copy old values to new
         System.arraycopy(levelNames, 0, newLevelNames, 0, levelNames.length);
         int newNameIdx = 0;
-        String[] onlyNewNames = new String[joinLevelNames.length - 1];
+        String[] onlyNewNames = new String[joinLevelNames.length - colNamesInJoiningTable.length];
         for(int i = 0; i < joinLevelNames.length; i++) {
            String name = joinLevelNames[i];
            if(!ArrayUtilityMethods.arrayContainsValue(colNamesInJoiningTable, name)) {
