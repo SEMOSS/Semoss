@@ -668,24 +668,30 @@ public class SimpleTreeBuilder
 	
 	private void removeEmptyRows(SimpleTreeNode n, int start, int height, boolean first) {
 		if(start < height-1) {
-			if (n.leftChild == null) {
-				//remove this node, and go up the tree
-				while(n!=null) {
-					SimpleTreeNode parentNode = n.parent;
-					removeFromIndexTree(n);
-					SimpleTreeNode.deleteNode(n);
-					n = parentNode;
-					if(n != null && n.leftChild != null) {
-                        break;
+			
+//			if(n.rightSibling!=null && !first) {
+//				removeEmptyRows(n.rightSibling, start, height, false);
+//			}
+//			
+			while(n!= null) {
+				SimpleTreeNode rightSibling = n.rightSibling;
+				if (n.leftChild == null) {
+					//remove this node, and go up the tree
+					while(n!=null) {
+						SimpleTreeNode parentNode = n.parent;
+						removeFromIndexTree(n);
+						SimpleTreeNode.deleteNode(n);
+						n = parentNode;
+						if(n != null && n.leftChild != null) {
+	                        break;
+						}
 					}
+				} else {
+					SimpleTreeNode child = n.leftChild;
+					removeEmptyRows(child, start+1, height, false);
 				}
-			} else {
-				SimpleTreeNode child = n.leftChild;
-				SimpleTreeNode sibling = n.rightSibling;
-				removeEmptyRows(child, ++start, height, false);
-				if(n.rightSibling!=null && !first) {
-					removeEmptyRows(sibling, start, height, false);
-				}
+				
+				n = rightSibling;
 			}
 		}
 	}
