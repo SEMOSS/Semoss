@@ -115,4 +115,16 @@ public class BinnedPieChartPlaySheet extends BrowserPlaySheet{
 		
 		this.dataHash = pieChartHash;
 	}
+	
+	@Override
+	public Hashtable<String, String> getDataTableAlign() {
+		Hashtable<String, String> alignHash = new Hashtable<String, String>();
+		String[] names = dataFrame.getColumnHeaders();
+		
+		alignHash.put("label", names[0]);
+		for(int namesIdx = 1; namesIdx<names.length; namesIdx++){
+			alignHash.put("value " + namesIdx, names[namesIdx]);
+		}
+		return alignHash;
+	}
 }
