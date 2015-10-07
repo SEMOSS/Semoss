@@ -54,7 +54,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	List<Hashtable<String,String>> nodePropV = new ArrayList<Hashtable<String,String>>();
 	String variableSequence = "";
 	
-	int limit = 500;
+	int limit = -1;
 	int limitFilter = 100;
 	private boolean useOuterJoins = false;
 	private SQLQueryUtil queryUtil;
