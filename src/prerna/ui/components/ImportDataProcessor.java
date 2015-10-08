@@ -195,7 +195,6 @@ public class ImportDataProcessor {
 			throws IOException, RepositoryException, SailException, Exception {
 		//Replace spaces in db name with underscores
 		//DB_TYPE dbType = DB_TYPE.RDF; // uncomment once wired
-		dbName = dbName.replace(" ", "_");
 		File propFile = null;
 		File newProp = null;
 		
