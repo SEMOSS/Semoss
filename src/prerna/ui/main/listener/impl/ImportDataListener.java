@@ -148,6 +148,7 @@ public class ImportDataListener implements IChakraListener {
 				String dbPropFile = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.DB_PROP_TEXT_FIELD)).getText();
 				String questionFile = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.QUESTION_TEXT_FIELD)).getText();
 				dbName = ((JTextField)DIHelper.getInstance().getLocalProp(Constants.DB_NAME_FIELD)).getText();
+				dbName = cleanSpaces(dbName);
 				processor.processCreateNew(importType, customBaseURI, fileNames, dbName, mapFile, dbPropFile, questionFile, ImportDataProcessor.DB_TYPE.RDF, null, true);
 			}
 			else if(importMethod == ImportDataProcessor.IMPORT_METHOD.RDBMS) {
@@ -298,5 +299,13 @@ public class ImportDataListener implements IChakraListener {
 	@Override
 	public void setView(JComponent view) {
 		this.view = (JTextField)view;
+	}
+	
+	//TODO: this cleaning will not be necessary once insights are shifted to RDBMS
+	private String cleanSpaces(String s) {
+		while (s.contains("  ")){
+			s = s.replace("  ", " ");
+		}
+		return s.replaceAll(" ", "_");
 	}
 }
