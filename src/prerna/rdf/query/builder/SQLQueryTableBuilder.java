@@ -320,7 +320,11 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 				
 				for(int filterIndex = 0;filterIndex < filterValues.size();filterIndex++)
 				{
-					String instance = Utility.getInstanceName(filterValues.get(filterIndex) + "");
+					String instance = "";
+					//if the filter value is blank we dont want to try to use utility.getinstance, it'll return a null value and cause an error
+					if(!((String) filterValues.get(filterIndex)).isEmpty()){
+						instance = Utility.getInstanceName(filterValues.get(filterIndex) + "");
+					}
 					instance.replaceAll("'", "''");
 					if(filterIndex == 0){
 						currentFilters += " ( ";
