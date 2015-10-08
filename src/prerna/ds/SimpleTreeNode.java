@@ -451,19 +451,19 @@ public class SimpleTreeNode {
 		//System.out.println("Leaf is " + node.leaf.getKey());
 		if(this.leftChild != null && !this.leftChild.leaf.getKey().equalsIgnoreCase(SimpleTreeNode.EMPTY))
 		{
-			SimpleTreeNode rightMost = getRight(this.leftChild);
-			rightMost.rightSibling = node;
-			node.leftSibling = rightMost;
+//			SimpleTreeNode rightMost = getRight(this.leftChild);
+//			rightMost.rightSibling = node;
+//			node.leftSibling = rightMost;
 			
-//			SimpleTreeNode child = this.leftChild;
-//			SimpleTreeNode rightNode = child.rightSibling;
-//			
-//			child.rightSibling = node;
-//			node.leftSibling = child;
-//			if(rightNode != null) {				
-//				rightNode.leftSibling = node;
-//				node.rightSibling = rightNode;
-//			}
+			SimpleTreeNode child = this.leftChild;
+			SimpleTreeNode rightNode = child.rightSibling;
+			
+			child.rightSibling = node;
+			node.leftSibling = child;
+			if(rightNode != null) {				
+				rightNode.leftSibling = node;
+				node.rightSibling = rightNode;
+			}
 //			this.printNodes(rightMost);
 //			System.out.println(rightMost.toString() + "-" + rightMost.leaf.getValue() + " ----------- " + node.leaf.getValue() + "-" + node.toString());
 		}

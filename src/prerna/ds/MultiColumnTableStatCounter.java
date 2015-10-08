@@ -137,16 +137,35 @@ public class MultiColumnTableStatCounter {
 		String[] newColHeaders = newHeaders.toArray(new String[newHeaders.size()]);
 		
 		
-		Map<String, Integer> indexMap = new HashMap<String, Integer>();
-		for(String column : columnHeaderMap.keySet()) {
-			String key = columnHeaderMap.get(column);
-			int index = ArrayUtilityMethods.arrayContainsValueAtIndex(origColHeaders, column);
-			indexMap.put(key, index);
-		}
+//		Map<String, Integer> indexMap = new HashMap<String, Integer>();
+//		for(String column : columnHeaderMap.keySet()) {
+//			String key = columnHeaderMap.get(column);
+//			int index = ArrayUtilityMethods.arrayContainsValueAtIndex(origColHeaders, column);
+//			indexMap.put(key, index);
+//		}
 		
 		BTreeDataFrame statTable = new BTreeDataFrame(newColHeaders, newColHeaders);
 		TreeNode columnRoot = table.simpleTree.nodeIndexHash.get(columnHeaders[0]);
 		List<String> skipColumns = getSkipColumns(columnHeaderMap);
+		
+		String[] adjustedColHeaders = new String[origColHeaders.length - skipColumns.size()];
+		String[] skipCol = skipColumns.toArray(new String[skipColumns.size()]);
+		int b = 0;
+		for(int a = 0; a < origColHeaders.length; a++) {
+			if(!ArrayUtilityMethods.arrayContainsValue(skipCol, origColHeaders[a])) {
+				adjustedColHeaders[b] = origColHeaders[a];
+				b++;
+			}
+		}
+		
+		Map<String, Integer> indexMap = new HashMap<String, Integer>();
+		for(String column : columnHeaderMap.keySet()) {
+			String key = columnHeaderMap.get(column);
+			int index = ArrayUtilityMethods.arrayContainsValueAtIndex(adjustedColHeaders, column);
+			indexMap.put(key, index);
+		}
+		
+		
 		
 		Iterator<Object[]> iterator = new MultiColumnStatIterator(columnRoot, mathModes, skipColumns, columnHeaders);
 		Map<String, Object> newRow = new HashMap<String, Object>();
