@@ -913,16 +913,21 @@ public class SimpleTreeBuilder
 			}
 			
 			keepGoing = i < branchList.size() - 1;
+			if(!keepGoing && !root) {
+				SimpleTreeNode newLeftChild = branchList.get(0);
+				SimpleTreeNode parent = newLeftChild.parent;
+				parent.leftChild = newLeftChild;
+			}
 		}
 		
-		if(root) {
+//		if(root) {
 			for(i = 0; i < branchList.size()-1; i++) {	
 				SimpleTreeNode n1 = branchList.get(i);
 				SimpleTreeNode n2 = branchList.get(i+1);
 				n1.rightSibling = n2;
 				n2.leftSibling = n1;
 			}
-		}
+//		}
 	}
 	
 	private void consolidate(SimpleTreeNode node, SimpleTreeNode node2consolidate) {
