@@ -172,4 +172,9 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 		return engineName;
 	}	
 	
+	@Override
+	public String getDialectCaseSensitiveSearchPrefix(){
+		return " BINARY ";
+	}
+	
 }
