@@ -320,10 +320,11 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 				
 				for(int filterIndex = 0;filterIndex < filterValues.size();filterIndex++)
 				{
-					String instance = "";
 					//if the filter value is blank we dont want to try to use utility.getinstance, it'll return a null value and cause an error
-					if(!((String) filterValues.get(filterIndex)).isEmpty()){
-						instance = Utility.getInstanceName(filterValues.get(filterIndex) + "");
+					
+					String instance = Utility.getInstanceName(filterValues.get(filterIndex) + "");
+					if(instance == null){
+						instance = "";
 					}
 					instance.replaceAll("'", "''");
 					if(filterIndex == 0){
@@ -549,6 +550,9 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			String tryAlias = "";
 			while(!aliasComplete)
 			{
+				if(tryAlias.length()>0){
+					tryAlias+="_";//prevent an error where you may create an alias that is a reserved word (ie, we did this with "as")
+				}
 				tryAlias = tryAlias + tableName.charAt(count);
 				aliasComplete = !aliases.containsValue(tryAlias);
 				count++;
