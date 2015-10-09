@@ -89,8 +89,17 @@ public class SPARQLQueryParser extends AbstractQueryParser {
 
 			StatementCollector collector = new StatementCollector();
 			parsedQuery.getTupleExpr().visit(collector);
+
+			FunctionCallCollector aggregateFunctionsCollector = new FunctionCallCollector();
+			parsedQuery.getTupleExpr().visit(aggregateFunctionsCollector);
+			if(aggregateFunctionsCollector.getValue() !=null){
+				hasColumnAggregatorFunction = true;
+			}
+			
 			returnVariables = parsedQuery.getTupleExpr().getBindingNames(); 
+			
 			patterns = collector.getPatterns();
+			
 			getURIList(); // populates finalHash, types, and props
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -180,7 +189,10 @@ public class SPARQLQueryParser extends AbstractQueryParser {
 				String propPlainText = Utility.getInstanceName(predicateVar.getValue().toString());
 				props.put(propPlainText  + "", predicateVar.getValue() + "");//props.put(objectVar.getName() + "", predicateVar.getValue() + "");
 				String nodeType = aliasTableMap.get(subjectVar.getName());
-				addToPropVariables(nodeType, predicateVar.getValue().toString());
+				addToVariablesMap(typePropVariables, nodeType, objectVar.getName(), predicateVar.getValue().toString());
+				if(returnVariables.contains(objectVar.getName())){
+					addToVariablesMap(typeReturnVariables, nodeType, objectVar.getName(), predicateVar.getValue().toString());
+				}
 			} else if(predicateVar.isConstant() && (predicateVar.getValue()+"").contains("ontologies/Relation")) {
 				//must a triple!
 				String[] triple = new String[3];
@@ -272,17 +284,19 @@ public class SPARQLQueryParser extends AbstractQueryParser {
 	private static void basicParseTest(){
 		
 		String query = "SELECT DISTINCT ?Director (AVG(?Title__MovieBudget) AS ?x) WHERE { BIND(<@Studio-http://semoss.org/ontologies/Concept/Studio@> AS ?Studio) {?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;} {?Director &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Director&gt;} {?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;} {?Title &lt;http://semoss.org/ontologies/Relation/DirectedBy&gt; ?Director} {?Title &lt;http://semoss.org/ontologies/Relation/DirectedAt&gt; ?Studio} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Title__MovieBudget} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?Title__Revenue_International} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?Title__Revenue_Domestic} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience&gt; ?Title__RottenTomatoes_Audience} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics&gt; ?Title__RottenTomatoes_Critics}  }  GROUP BY ?Director";	
-		query = "SELECT DISTINCT ?Title ?Nominated ?Genre ?Title__RevenueInternational ?Title__MovieBudget WHERE { {?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;} {?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;} {?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;} {?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated} {?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?Title__RevenueInternational} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Title__MovieBudget}  }";
+		//query = "SELECT DISTINCT ?Title ?Nominated ?Genre ?Title__RevenueInternational ?Title__MovieBudget WHERE { {?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;} {?Nominated &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Nominated&gt;} {?Genre &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Genre&gt;} {?Title &lt;http://semoss.org/ontologies/Relation/Was&gt; ?Nominated} {?Title &lt;http://semoss.org/ontologies/Relation/BelongsTo&gt; ?Genre} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?Title__RevenueInternational} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/MovieBudget&gt; ?Title__MovieBudget}  }";
+		//query = "SELECT DISTINCT ?Title ?Title__RevenueDomestic WHERE { {?Title &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Title&gt;} {?Studio &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; &lt;http://semoss.org/ontologies/Concept/Studio&gt;} {?Title &lt;http://semoss.org/ontologies/Relation/Title_Studio&gt; ?Studio} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic&gt; ?Title__RevenueDomestic} {?Title &lt;http://semoss.org/ontologies/Relation/Contains/Revenue-International&gt; ?Title__RevenueInternational}  }";
 		query = query.replace("&lt;", "<");
 		query = query.replace("&gt;", ">");
 				
 		SPARQLQueryParser parse = new SPARQLQueryParser(query);
 		parse.parseQuery(); // parse the query into grammar
 		
-		Set<String> returnVariables1 = parse.getReturnVariables();
+		Hashtable <String, Hashtable<String,String>> returnVariables1 = parse.getReturnVariables();
 		Hashtable <String, String> types1 = parse.getNodesFromQuery();
-		Hashtable <String, Set<String>> props1 = parse.getPropertiesFromQuery();
+		Hashtable <String, Hashtable<String,String>> props1 = parse.getPropertiesFromQuery();
 		List<String[]> mytrips = parse.getTriplesData();
-		
+		boolean hasAggregate = parse.hasAggregateFunction();
+		System.out.println("Aggregate function " + hasAggregate);
 	}
 }

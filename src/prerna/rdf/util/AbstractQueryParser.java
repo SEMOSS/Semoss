@@ -35,8 +35,10 @@ import java.util.Set;
 
 public abstract class AbstractQueryParser {
 
+	protected boolean hasColumnAggregatorFunction = false;
 	protected Set<String> returnVariables = new HashSet<String>();
-	protected Hashtable<String,Set<String>> propVariables = new Hashtable<String, Set<String>>();
+	protected Hashtable<String,Hashtable<String,String>> typePropVariables = new Hashtable<String, Hashtable<String,String>>();
+	protected Hashtable<String,Hashtable<String,String>> typeReturnVariables = new Hashtable<String, Hashtable<String,String>>();
 
 	protected Hashtable <String, String> types = new Hashtable<String, String>();
 	protected Hashtable <String, String> props = new Hashtable<String, String>();
@@ -63,24 +65,28 @@ public abstract class AbstractQueryParser {
 		return types;
 	}
 	
-	public Hashtable<String, Set<String>> getPropertiesFromQuery(){
-		return propVariables;
+	public Hashtable<String, Hashtable<String,String>> getPropertiesFromQuery(){
+		return typePropVariables;
 	}
 	
-	public Set<String> getReturnVariables(){
-		return returnVariables;
+	public Hashtable<String, Hashtable<String,String>> getReturnVariables(){
+		return typeReturnVariables;
 	}
 	
-	protected void addToPropVariables(String tableName, String columnName){
-		if(propVariables.get(tableName)!=null){
-			Set<String> returnVariablesForCurrentTable = propVariables.get(tableName);
-			returnVariablesForCurrentTable.add(columnName);
-			propVariables.put(tableName, returnVariablesForCurrentTable);
+	protected void addToVariablesMap(Hashtable<String, Hashtable<String, String>> mappingObj, String tableName, String columnAlias, String columnName){
+		if(mappingObj.get(tableName)!=null){
+			Hashtable<String,String> returnVariablesForCurrentTable = mappingObj.get(tableName);
+			returnVariablesForCurrentTable.put(columnAlias, columnName);
+			mappingObj.put(tableName, returnVariablesForCurrentTable);
 		} else {
-			Set<String> returnVariablesForCurrentTable = new HashSet<String>();
-			returnVariablesForCurrentTable.add(columnName);
-			propVariables.put(tableName, returnVariablesForCurrentTable);
+			Hashtable<String,String> returnVariablesForCurrentTable = new Hashtable<String,String>();
+			returnVariablesForCurrentTable.put(columnAlias, columnName);
+			mappingObj.put(tableName, returnVariablesForCurrentTable);
 		}
+	}
+	
+	public boolean hasAggregateFunction(){
+		return hasColumnAggregatorFunction;
 	}
 
 }

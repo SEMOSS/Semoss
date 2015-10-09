@@ -264,6 +264,9 @@ public class SQLQueryParser extends AbstractQueryParser {
 					Expression expression = se.getExpression();
 					String expressionValue = expression.toString();
 					returnVariables.add(expressionValue); 
+					if(expression instanceof Function){
+						hasColumnAggregatorFunction = true;
+					}
 					if(expression instanceof Column){
 						Column returnColumn = (Column) expression;
 						String tableAliasName = returnColumn.getTable().getName();
@@ -272,7 +275,8 @@ public class SQLQueryParser extends AbstractQueryParser {
 						String tableName = aliasTableMap.get(tableAliasName);
 						//only add the property if the column is not the same as the table name.
 						if(!tableName.equalsIgnoreCase(columnName)){
-							addToPropVariables(tableName, columnName);
+							addToVariablesMap(typePropVariables, tableName, expressionAlias, columnName);
+							addToVariablesMap(typeReturnVariables, tableName, expressionAlias, columnName);
 						}
 					}
 					//expression returned MAY contain the table name/table alias prior to the expression value.  Keeping this for now
@@ -470,13 +474,13 @@ public class SQLQueryParser extends AbstractQueryParser {
 			
 		}
 
-		Hashtable<String,Set<String>> propsVariables = qryParse.getPropertiesFromQuery();
+		Hashtable<String,Hashtable<String,String>> propsVariables = qryParse.getPropertiesFromQuery();
 
 		for(String key: propsVariables.keySet()){
 			System.out.println("Iterate through props table : " + key);
-			HashSet<String> variablesInTable = (HashSet<String>) propsVariables.get(key);
-			for(String singleVariable: variablesInTable){
-				System.out.println("props table : " + key + " column " +singleVariable);
+			Hashtable<String, String> variablesInTable = (Hashtable<String,String>) propsVariables.get(key);
+			for(String singleVariable: variablesInTable.keySet()){
+				System.out.println("props table : " + key + " column alias " +singleVariable + " column name " + variablesInTable.get(singleVariable) );
 			}
 		}
 		
@@ -485,9 +489,18 @@ public class SQLQueryParser extends AbstractQueryParser {
 			System.out.println("each Triple : " + Arrays.toString(eachItem));
 		}
 		
-		for(String singleReturnVariable: qryParse.getReturnVariables()){
-			System.out.println("singleReturnVariable : " + singleReturnVariable);
+		Hashtable<String,Hashtable<String, String>> returnVariables = qryParse.getReturnVariables();
+
+		for(String key: returnVariables.keySet()){
+			System.out.println("Iterate through returns table : " + key);
+			Hashtable<String, String> variablesInTable = (Hashtable<String,String>) returnVariables.get(key);
+			for(String singleVariable: variablesInTable.keySet()){
+				System.out.println("returns table : " + key + " column alias " +singleVariable + " column name " + variablesInTable.get(singleVariable) );
+			}
 		}
+		
+		boolean aggregate = qryParse.hasAggregateFunction();
+		System.out.println("is this an aggregate query " + aggregate);
 	}
 	
 }
