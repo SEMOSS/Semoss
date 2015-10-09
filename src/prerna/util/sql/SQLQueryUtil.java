@@ -361,4 +361,8 @@ public abstract class SQLQueryUtil {
 	}
 	public abstract String getEngineNameFromConnectionURL(String connectionURL);
 
+	public String getDialectCaseSensitiveSearchPrefix(){
+		return "";
+	}
+	
 }
