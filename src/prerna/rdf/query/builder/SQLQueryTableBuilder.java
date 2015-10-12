@@ -332,8 +332,8 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 						currentFilters += " OR ";
 					}
 					
-					String prefix = queryUtil.getDialectCaseSensitiveSearchPrefix();					
-					currentFilters += prefix + columnValue + " = '" + instance + "'";
+					//String prefix = queryUtil.getDialectCaseSensitiveSearchPrefix();					
+					currentFilters += columnValue + " = '" + instance + "'";
 				}
 				if(currentFilters.length() > 0){
 					if(filters.length() > 0)// if we already have a filter on a column, add the AND clause before appending our new filter
