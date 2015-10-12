@@ -220,21 +220,33 @@ public class SimpleTreeNode {
 	
 	public static SimpleTreeNode getLeft(SimpleTreeNode node)
 	{
-		if(node.leftSibling==null) {
-			return node;
+//		if(node.leftSibling==null) {
+//			return node;
+//		}
+//		else {
+//			return getLeft(node.leftSibling);
+//		}
+		
+		while(node.leftSibling != null) {
+			node = node.leftSibling;
 		}
-		else {
-			return getLeft(node.leftSibling);
-		}
+		
+		return node;
 	}
 
 	public static SimpleTreeNode getRight(SimpleTreeNode node)
 	{
-		if(node.rightSibling==null) {
-			return node;
-		} else {
-			return getRight(node.rightSibling);
+//		if(node.rightSibling==null) {
+//			return node;
+//		} else {
+//			return getRight(node.rightSibling);
+//		}
+		
+		while(node.rightSibling != null) {
+			node = node.rightSibling;
 		}
+		
+		return node;
 	}
 	
 
