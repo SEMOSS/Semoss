@@ -26,19 +26,18 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.internal.StringMap;
+
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.util.SEMOSSQuery;
-import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SQLConstants;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
-
-import com.google.gson.Gson;
-import com.google.gson.internal.StringMap;
 
 public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	static final Logger logger = LogManager.getLogger(SQLQueryTableBuilder.class.getName());

@@ -9,14 +9,14 @@ import java.util.List;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.internal.StringMap;
+
 import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SPARQLConstants;
 import prerna.rdf.query.util.TriplePart;
 import prerna.rdf.query.util.TriplePartConstant;
-
-import com.google.gson.Gson;
-import com.google.gson.internal.StringMap;
 
 public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 
