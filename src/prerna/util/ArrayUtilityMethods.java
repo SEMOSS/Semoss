@@ -130,6 +130,22 @@ public final class ArrayUtilityMethods {
 		}
 		return -1;
 	}
+	
+	// return -1 if no match found
+	public static int arrayContainsValueAtIndexIgnoreCase(final String[] arr, final String value) {
+		if(arr == null) {
+			throw new NullPointerException(ERROR);
+		}
+
+		int size = arr.length;
+		int index;
+		for(index = 0; index < size; index++) {
+			if(arr[index] != null && arr[index].equalsIgnoreCase(value)) {
+				return index;
+			}
+		}
+		return -1;
+	}
 
 	public static boolean arrayContainsValue(final double[] arr, final double value) {
 

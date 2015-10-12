@@ -18,7 +18,6 @@ package prerna.rdf.query.builder;
 import java.util.Hashtable;
 import java.util.List;
 
-
 public interface IQueryBuilder {
 	
 	public void setJSONDataHash(Hashtable<String,Object> allJSONHash);
@@ -36,4 +35,6 @@ public interface IQueryBuilder {
 	public List<Hashtable<String, String>> getPredV();
 	
 	public List<Hashtable<String, String>> getNodePropV();
+	
+	public List<Hashtable<String, String>> getHeaderArray();
 }
