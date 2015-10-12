@@ -1024,13 +1024,13 @@ public class SimpleTreeBuilder
 			return;
 		}
 		node.rightChild = null;
-		if (node.leftChild.hasChild()) {
-			if (node.leftChild != null) {
+		if (node.leftChild != null) {
+			if (node.leftChild.hasChild()) {
 				deleteFilteredValues(node.leftChild);
 			}
-			if (node.rightSibling != null) {
-				deleteFilteredValues(node.rightSibling);
-			}
+		}
+		if (node.rightSibling != null) {
+			deleteFilteredValues(node.rightSibling);
 		}
 		this.filteredRoot = null;
 	}
