@@ -165,10 +165,6 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 					dataURI = sjss.getRawVar(DATA_KEY).toString();
 				}
 				
-				if(sysName.equals("CIS-Essentris") || interfacingSysName.equals("CIS-Essentris")) {
-					System.out.println("here");
-				}
-				
 				FutureStateInterfaceResult result = FutureStateInterfaceProcessor.processICD(
 						sysName, 
 						interfaceType, 
