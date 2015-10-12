@@ -16,6 +16,7 @@
 package prerna.rdf.query.builder;
 
 import java.util.Hashtable;
+import java.util.List;
 
 
 public interface IQueryBuilder {
@@ -30,4 +31,9 @@ public interface IQueryBuilder {
 
 	public void setQuery(String query);
 
+	public List<Hashtable<String, String>> getNodeV();
+	
+	public List<Hashtable<String, String>> getPredV();
+	
+	public List<Hashtable<String, String>> getNodePropV();
 }
