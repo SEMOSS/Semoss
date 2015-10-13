@@ -980,7 +980,7 @@ public class SimpleTreeBuilder
 	 * 
 	 * @param n		The instance to be removed from the index tree
 	 */
-	private void removeFromIndexTree(SimpleTreeNode n) {
+	protected void removeFromIndexTree(SimpleTreeNode n) {
 		TreeNode foundNode = this.getNode((ISEMOSSNode)n.leaf);
 		if(foundNode!=null) {
 			if(!foundNode.getInstances().remove(n)) {
