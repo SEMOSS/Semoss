@@ -125,26 +125,27 @@ public class BTreeDataFrameJoiner {
 		List<String> usedKeys = new ArrayList<String>();
 		
 		TreeNode root = table1.getBuilder().nodeIndexHash.get(table1ColHeader);
-		ValueTreeColumnIterator treeLevelIterator = new ValueTreeColumnIterator(root);
+//		ValueTreeColumnIterator treeLevelIterator = new ValueTreeColumnIterator(root);
+		
+		//bucket all the values in joining tree into a map
+		IndexTreeIterator treeLevelIterator = new IndexTreeIterator(root);
 		while(treeLevelIterator.hasNext()) {
 			
-			SimpleTreeNode nextNode = treeLevelIterator.next();
+			TreeNode nextNode = treeLevelIterator.next();
 			String key = nextNode.leaf.getValue().toString();
 			
-			if(bucketMap.containsKey(key)) {
-				bucketMap.get(key).add(nextNode);
-			} else {
-				ArrayList<SimpleTreeNode> newList = new ArrayList<SimpleTreeNode>();
-				newList.add(nextNode);
-				bucketMap.put(key, newList);
-			}
+			ArrayList<SimpleTreeNode> newList = new ArrayList<SimpleTreeNode>();
+			newList.addAll(nextNode.instanceNode);
+			bucketMap.put(key, newList);
+			
 		}
 		
+		//iterate through level of the second tree, attach matching nodes to all the nodes in the map for that value
 		root = table2.getBuilder().nodeIndexHash.get(table2ColHeader);
-		treeLevelIterator = new ValueTreeColumnIterator(root);
-		while(treeLevelIterator.hasNext()) {
+		ValueTreeColumnIterator treeLevelIterator2 = new ValueTreeColumnIterator(root);
+		while(treeLevelIterator2.hasNext()) {
 			
-			SimpleTreeNode nextNode = treeLevelIterator.next();
+			SimpleTreeNode nextNode = treeLevelIterator2.next();
 			String key = nextNode.leaf.getValue().toString();
 			
 			if(bucketMap.containsKey(key)) {
@@ -154,6 +155,7 @@ public class BTreeDataFrameJoiner {
 				vec.add(nextNode.leftChild);
 				String serialized = SimpleTreeNode.serializeTree("", vec, true, 0);
 				
+				//hookup new branch
 				for(SimpleTreeNode instance : instanceList) {
 					SimpleTreeNode hookUp = SimpleTreeNode.deserializeTree(serialized);
 					SimpleTreeNode.addLeafChild(instance, hookUp);
@@ -171,6 +173,23 @@ public class BTreeDataFrameJoiner {
 		//an array list to begin with to iterate through, this means not using an IAnalyticRoutine as parameter for joins
 		for(String usedKey : usedKeys) {
 			bucketMap.remove(usedKey);
-		}	
+		}
+		
+		//for all 'unused' keys, delete the branches associated with those keys
+		SimpleTreeBuilder builder = table1.getBuilder();
+		for(String key : bucketMap.keySet()) {
+			List<SimpleTreeNode> removeNodes = bucketMap.get(key);
+			for(SimpleTreeNode n : removeNodes) {
+				while(n!=null) {
+					SimpleTreeNode parentNode = n.parent;
+					builder.removeFromIndexTree(n);
+					SimpleTreeNode.deleteNode(n);
+					n = parentNode;
+					if(n != null && n.leftChild != null) {
+                        break;
+					}
+				}
+			}
+		}
 	}
 }
