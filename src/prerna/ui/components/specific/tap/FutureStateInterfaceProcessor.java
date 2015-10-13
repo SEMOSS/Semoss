@@ -144,22 +144,34 @@ public class FutureStateInterfaceProcessor {
 			// }
 			else if (downstreamSysType.equals(LPI_KEY)) { // upstream system is not LPI and downstream system is LPI
 				if (!selfReportedSystems.contains(downstreamSysName)) {
-					comment = comment.concat("Need to add interface DHMSM->").concat(downstreamSysName).concat(".").concat(
-							" Recommend review of removing interface ").concat(upstreamSysName).concat("->").concat(downstreamSysName).concat(
-									". ");
+//					comment = comment.concat("Need to add interface DHMSM->").concat(downstreamSysName).concat(".").concat(
+//							" Recommend review of removing interface ").concat(upstreamSysName).concat("->").concat(downstreamSysName).concat(
+//									". ");
+					comment = comment.concat("Need to add interface DHMSM->").concat(downstreamSysName).concat(".");
 					// direct cost if system is downstream
 					if (sysName.equals(downstreamSysName)) {
 						directCost = true;
 					} else {
 						directCost = false;
 					}
+					if (upstreamSysType.equals(HPNI_KEY) || upstreamSysType.equals(HPI_KEY)) {
+						comment = comment.concat(" Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements).");
+						decommission = true;
+					} else {
+						decommission = false;
+					}
+					
+					results.put(FutureStateInterfaceResult.COMMENT, comment);
 					if(directCost) {
 						results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.DIRECT );
 					} else {
 						results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.INDIRECT );
 					}
-					results.put(FutureStateInterfaceResult.COMMENT, comment);
-					results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.DOWNSTREAM_CONSUMER_FROM_DHMSM_AND_DECOMMISSION);
+					if(decommission) {
+						results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.DOWNSTREAM_CONSUMER_FROM_DHMSM_AND_DECOMMISSION);
+					} else {
+						results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.DOWNSTREAM_CONSUMER_FROM_DHMSM);
+					}
 					if(consumeSet.contains("DHMSM+++" + downstreamSysName + "+++" + data)) {
 						results.setCostTakenIntoConsideration(true);
 					} else {
