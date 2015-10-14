@@ -2,21 +2,23 @@ package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-
-import com.google.gson.Gson;
-import com.google.gson.internal.StringMap;
 
 import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SPARQLConstants;
 import prerna.rdf.query.util.TriplePart;
 import prerna.rdf.query.util.TriplePartConstant;
+
+import com.google.gson.Gson;
+import com.google.gson.internal.StringMap;
 
 public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 
@@ -170,7 +172,9 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 						if(bindingsDataHash.isEmpty()) {
 							bindingsDataHash.put(varName, results);
 						} else {
-							for(String previousVarName : bindingsDataHash.keySet()) {
+							Set<String> keySet = new HashSet<String>();
+							keySet.addAll(bindingsDataHash.keySet());
+							for(String previousVarName : keySet) {
 								List<Object> previousResults = bindingsDataHash.get(previousVarName);
 								if(results.size() > previousResults.size()) {
 									filterDataHash.put(previousVarName, previousResults);
@@ -227,7 +231,18 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 	
 		for(String s : bindingsDataHash.keySet())
 		{
-			String bindValue = bindingsDataHash.get(s).get(0).toString();
+			List<Object> bindingValues = bindingsDataHash.get(s);
+			String bindValue = bindingValues.get(0).toString();
+			// if value is empty, loop through until we find a value that is not empty to determine the type
+			if(bindValue.isEmpty()) {
+				int i = 1;
+				while(i < bindingValues.size()) {
+					bindValue = bindingValues.get(i).toString();
+					if(!bindValue.isEmpty()) {
+						break;
+					}
+				}
+			}
 			// TODO: find better logic to determine if dealing with URI or Literal
 			TriplePartConstant triplePartC;
 			if(bindValue.startsWith("http")) {
@@ -242,7 +257,7 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 //					SEMOSSQueryHelper.addBindingsToQuery(bindingsDataHash.get(s), triplePartC, s.toString(), q);
 //				}
 //			}
-			SEMOSSQueryHelper.addBindingsToQuery(bindingsDataHash.get(s), triplePartC, s.toString(), this.semossQuery);
+			SEMOSSQueryHelper.addBindingsToQuery(bindingValues, triplePartC, s.toString(), this.semossQuery);
 		}
 		
 		for(String s : filterDataHash.keySet())
