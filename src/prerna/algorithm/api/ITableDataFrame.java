@@ -46,7 +46,7 @@ public interface ITableDataFrame {
 	 * @param confidenceThreshold	The confidence interval for the joining algorithm, should be in range [0,1]
 	 * @param routine				The analytical routine to perform the joining
 	 */
-	void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable, double confidenceThreshold, IAnalyticRoutine routine);
+	void join(ITableDataFrame table, String colNameInTable, String colNameInJoiningTable, double confidenceThreshold, IMatcher routine);
 	
 	/**
 	 * Undo the most recent join on the data-table
@@ -462,5 +462,5 @@ public interface ITableDataFrame {
 
 	//temporary hack for build...delete later
 	public Object[] getFilteredUniqueRawValues(String columnHeader);
-	
+
 }
