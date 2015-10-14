@@ -37,8 +37,8 @@ import java.util.Set;
 
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.algorithm.impl.ExactStringMatcher;
 import prerna.ds.BTreeDataFrame;
+import prerna.ds.ExactStringMatcher;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.om.SEMOSSParam;

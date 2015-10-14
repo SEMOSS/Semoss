@@ -43,6 +43,8 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 
+import prerna.util.ArrayUtilityMethods;
+
 public class SimpleTreeBuilder
 {
 	// core set of issues I am trying to solve
@@ -1790,6 +1792,111 @@ public class SimpleTreeBuilder
 		//System.out.println("Start >> Nano " + dateFormat.format(date));
 		System.out.println("Start >> Nano " + time1);
 		return mtime1;
+	}
+
+	//TODO: a way around passing in level names
+	//TODO: currently only keep track of root, nothing else
+	public SimpleTreeNode createTrailOfEmptyNodes(String[] levelNames, int desiredLength) {
+		// see if empty node is at root
+		int currLevel = 0;
+		TreeNode rootOfRoots = this.nodeIndexHash.get(levelNames[currLevel]);
+		ITreeKeyEvaluatable emptyVal = new StringClass(SimpleTreeNode.EMPTY, SimpleTreeNode.EMPTY, levelNames[currLevel]);
+		TreeNode emptyNode = new TreeNode(emptyVal);
+		
+		Vector<TreeNode> searchForEmpty = new Vector<TreeNode>();
+		searchForEmpty.add(rootOfRoots);
+		TreeNode foundEmpty = rootOfRoots.getNode(searchForEmpty, emptyNode, false);
+		
+		SimpleTreeNode lastEmptyNode = null;
+		// found empty node at root
+		if(foundEmpty != null) {
+			currLevel++;
+			// loop through instances and see if any children are blanks
+			Vector<SimpleTreeNode> emptyInstances = foundEmpty.getInstances();
+			for(int i = 0; i < emptyInstances.size(); i++) {
+				lastEmptyNode = findLastConnectedEmptyNode(emptyInstances.get(i), levelNames, currLevel);
+				if(lastEmptyNode != null) {
+					break;
+				}
+			}
+			String type = ((ISEMOSSNode) lastEmptyNode.leaf).getType();
+			currLevel = ArrayUtilityMethods.arrayContainsValueAtIndex(levelNames, type);
+		} 
+		else { // found no empty nodes, need to construct trail from root
+			// define first level node
+			lastEmptyNode = new SimpleTreeNode(emptyVal);
+			
+			// connect via value tree
+			SimpleTreeNode firstInstance = new ValueTreeColumnIterator(rootOfRoots).next();
+			SimpleTreeNode previousLeftMost = SimpleTreeNode.getLeft(firstInstance);
+			previousLeftMost.leftSibling = lastEmptyNode;
+			lastEmptyNode.rightSibling = previousLeftMost;
+			
+			// connect via index tree
+			emptyNode.getInstances().add(lastEmptyNode);
+			TreeNode root = rootOfRoots.insertData(emptyNode);
+			this.nodeIndexHash.put(levelNames[currLevel], root);
+		}
+		
+		currLevel++;
+		// build tree to desired length
+		for(int i = currLevel; i < desiredLength; i++) {
+			emptyVal = new StringClass(SimpleTreeNode.EMPTY, SimpleTreeNode.EMPTY, levelNames[i]);
+			emptyNode = new TreeNode(emptyVal);
+			SimpleTreeNode newEmpty = new SimpleTreeNode(emptyVal);
+			emptyNode.getInstances().add(newEmpty);
+
+			if(lastEmptyNode.leftChild == null) {
+				lastEmptyNode.leftChild = newEmpty;
+				newEmpty.parent = lastEmptyNode;
+			} else {
+				SimpleTreeNode joiningChild = lastEmptyNode.leftChild;
+				// adjust sibling rel
+				joiningChild.leftSibling = newEmpty;
+				newEmpty.rightSibling = joiningChild;
+				// adjust parent child rel
+				lastEmptyNode.leftChild = newEmpty;
+				newEmpty.parent = lastEmptyNode;
+			}
+			lastEmptyNode = newEmpty;
+			
+			// update index tree
+			TreeNode previousRoot = this.nodeIndexHash.get(levelNames[i]);
+			TreeNode newRoot = previousRoot.insertData(emptyNode);
+			this.nodeIndexHash.put(levelNames[i], newRoot);
+		}
+		
+		return lastEmptyNode;
+	}
+	
+	/**
+	 * Recursively finds the last empty node in a list of empty nodes
+	 * SimpleTreeNode passed is assumed to be an empty node
+	 * @param emptyNode				The first empty node for the start of the list
+	 * @param levelNames			The names of the types for creation of the empty nodes
+	 * @param currLevel				The current level of the emptyNode parameter
+	 * @return						The last node found in the list of empty nodes
+	 */
+	private static SimpleTreeNode findLastConnectedEmptyNode(SimpleTreeNode emptyNode, String[] levelNames, int currLevel) {
+		StringClass emptyVal = new StringClass(SimpleTreeNode.EMPTY, SimpleTreeNode.EMPTY, levelNames[currLevel]);
+		if(!emptyNode.leaf.isEqual(emptyVal)) {
+			throw new IllegalArgumentException("The node being passed in must be an empty node.");
+		}
+		// create a new empty value
+		SimpleTreeNode joiningNode = emptyNode.leftChild;
+		// loop through the child of the empty to see if a child is empty
+		while(joiningNode != null && !joiningNode.leaf.isEqual(emptyVal)) {
+			joiningNode = joiningNode.rightSibling;
+		}
+		
+		// if no empty child is found, return the last empty node
+		if(joiningNode == null) {
+			return emptyNode;
+		} else {
+			// if empty child is found, re-enter method
+			SimpleTreeNode retNode = findLastConnectedEmptyNode(joiningNode, levelNames, ++currLevel);
+			return retNode;
+		}
 	}
 
 }

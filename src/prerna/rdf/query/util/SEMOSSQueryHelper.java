@@ -412,8 +412,12 @@ public abstract class SEMOSSQueryHelper {
 		List<TriplePart> bindList = new ArrayList<TriplePart>();
 		for(int bindIdx = 0; bindIdx < subjectList.size(); bindIdx++)
 		{
-			TriplePart bind = new TriplePart(subjectList.get(bindIdx), bindSubjectType);
-			bindList.add(bindIdx, bind);
+			Object value = subjectList.get(bindIdx);
+			// SPARQL bindings will break if adding a empty string as a URI since it is invalid
+			if(bindSubjectType.equals(TriplePart.URI) && !value.toString().isEmpty()) {
+				TriplePart bind = new TriplePart(value, bindSubjectType);
+				bindList.add(bind);
+			}
 		}
 		TriplePart bindVar = new TriplePart(bindObject, TriplePart.VARIABLE);
 		SPARQLBindings bindings = new SPARQLBindings(bindList, bindVar);
