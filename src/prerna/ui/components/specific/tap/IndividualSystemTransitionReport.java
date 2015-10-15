@@ -28,8 +28,10 @@
 package prerna.ui.components.specific.tap;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -145,8 +147,8 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		try{
 			TAP_Core_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 			if(TAP_Core_Data==null)
-				throw new IOException("Database not found");
-		} catch(IOException e) {
+				throw new IllegalArgumentException("Database not found");
+		} catch(IllegalArgumentException e) {
 			Utility.showError("Could not find necessary database: TAP_Core_Data. Cannot generate report.");
 			return;
 		}
@@ -154,8 +156,8 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		try{
 			FutureDB = (IEngine) DIHelper.getInstance().getLocalProp("FutureDB");
 			if(FutureDB==null)
-				throw new IOException("Database not found");
-		} catch(IOException e) {
+				throw new IllegalArgumentException("Database not found");
+		} catch(IllegalArgumentException e) {
 			Utility.showError("Could not find necessary database: FutureDB. Cannot generate report.");
 			return;
 		}
@@ -170,13 +172,13 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 			TAP_Site_Data = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 			if(TAP_Cost_Data==null) {
 				exceptionError = exceptionError.concat("\nTAP_Cost_Data: Report will not include cost data"); 
-				throw new IOException(exceptionError);
+				throw new IllegalArgumentException(exceptionError);
 			}
 			if(TAP_Site_Data==null) {
 				exceptionError = exceptionError.concat("\nTAP_Site_Data: Report will not include site data"); 
-				throw new IOException(exceptionError);
+				throw new IllegalArgumentException(exceptionError);
 			}
-		} catch(IOException e) {
+		} catch(IllegalArgumentException e) {
 			Utility.showError(exceptionError);
 			includeCosts=false;
 		}
@@ -308,7 +310,7 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 		}
 		else
 		{
-			writer.writeSystemInfoSheet("System Overview", sysInfoHash);
+			writer.writeSystemInfoSheetShort("System Overview",sysInfoHash);
 			writer.writeListSheet("Current State Interfaces", allICDs);
 		}
 		return writer.writeWorkbook();
@@ -388,7 +390,8 @@ public class IndividualSystemTransitionReport extends AbstractRDFPlaySheet{
 	{
 		// run interface report if object passed in is empty
 		if(sysLPIInterfaceHash == null || sysLPIInterfaceHash.isEmpty()) {
-			LPInterfaceCostProcessor sysInterfaceData = new LPInterfaceCostProcessor();
+			LPInterfaceCostProcessor sysInterfaceData;
+			sysInterfaceData = new LPInterfaceCostProcessor();
 			sysLPIInterfaceHash = sysInterfaceData.generateSystemTransitionReport(systemName, COST_FRAMEWORK.P2P);
 		}
 
