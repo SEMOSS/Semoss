@@ -141,60 +141,100 @@ public class SimpleTreeBuilder
 		TreeNode rootNodeForType = nodeIndexHash.get(type);
 		if(rootNodeForType != null)
 		{
-			Vector nodeGetter = new Vector();
-			nodeGetter.addElement(rootNodeForType);
-			Vector <SimpleTreeNode> typeInstances = rootNodeForType.getInstanceNodes(nodeGetter, new Vector<SimpleTreeNode>());
+			Vector <SimpleTreeNode> typeInstances = new Vector<SimpleTreeNode>();
+			// will need to adjust these types but also need them to be filtered
+			Vector <SimpleTreeNode> filteredTypeInstances = new Vector<SimpleTreeNode>();
+			IndexTreeIterator it = new IndexTreeIterator(rootNodeForType);
+			while(it.hasNext()) {
+				TreeNode n = it.next();
+				typeInstances.addAll(n.instanceNode);
+				filteredTypeInstances.addAll(n.filteredInstanceNode);
+			}
 			
-			if(typeInstances == null)
+			// if both lists are empty, return
+			if(typeInstances.isEmpty() && filteredTypeInstances.isEmpty()) {
 				return;
+			}
 			
-			// then we methodically look to see if any of them have a left child
-			// if they do
-			// we then pick that type and create an empty node and attach it to those that do not have a children
+			// then we methodically look to see if any of them have a left child 
+			// if they do we then pick that type and create an empty node and attach it to those that do not have a children
 			SimpleTreeNode child = null;
-//			for(int instanceIndex = 0;instanceIndex < typeInstances.size() && (child == null || (child != null && child.leaf.getKey().equalsIgnoreCase(SimpleTreeNode.EMPTY)));instanceIndex++)
-			for(int instanceIndex = 0;instanceIndex < typeInstances.size() && (child == null );instanceIndex++)
+			for(int instanceIndex = 0; instanceIndex < typeInstances.size() && (child == null ); instanceIndex++) {
 				child = typeInstances.elementAt(instanceIndex).leftChild;
-
-			if(child == null) // nothing to do here 
+			}
+			for(int instanceIndex = 0; instanceIndex < filteredTypeInstances.size() && (child == null ); instanceIndex++) {
+				child = filteredTypeInstances.elementAt(instanceIndex).leftChild;
+			}
+			if(child == null) { // nothing to do here 
 				return; 
+			}
 			// the only word of caution is at a later point
 			// when we want to add a node of the same type - we will need to ensure that the left child which is empty has been taken care of
 			String childType = ((ISEMOSSNode)child.leaf).getType();
-			boolean newNode = false;
-			for(int instanceIndex = 0;instanceIndex < typeInstances.size();instanceIndex++)
+			
+			// push similar processing to external method
+			// method takes in the list of values and will append empty nodes based on if the instance is filtered or not filtered
+			boolean newInstanceNode = adjustTypeProcessing(typeInstances, childType, false);
+			boolean newFilteredNode = adjustTypeProcessing(filteredTypeInstances, childType, true);
+
+			if(recurse && (newInstanceNode || newFilteredNode)) {
+				adjustType(childType, recurse);
+			}
+		}
+	}
+	
+	/**
+	 * Used to process the list of simple tree nodes to adjust the type
+	 * @param simpleTreeNodeList				The list of simple tree nodes
+	 * @param childType							The type of the empty node to append for adjustment
+	 * @param filteredValues					boolean if the empty nodes being created should be filtered
+	 * @return									boolean if a new node was created (to determine recursion in adjustType method)
+	 */
+	private boolean adjustTypeProcessing(Vector<SimpleTreeNode> simpleTreeNodeList, String childType, boolean filteredValues) {
+		// boolean if a new node was created
+		boolean newNode = false;
+		// loop through all simple tree nodes in list
+		for(int instanceIndex = 0; instanceIndex < simpleTreeNodeList.size(); instanceIndex++)
+		{
+			// if their is no child, add an empty node
+			if(simpleTreeNodeList.elementAt(instanceIndex).leftChild == null)
 			{
-				if(typeInstances.elementAt(instanceIndex).leftChild == null)
-				{
-					// reset it to something useful
-					System.err.println("Adjusting... " + ((ISEMOSSNode)typeInstances.elementAt(instanceIndex).leaf).getType() + " Adding " + type + "  Child Type  " + childType);
-					StringClass dummySEMOSSNode = new StringClass(SimpleTreeNode.EMPTY, SimpleTreeNode.EMPTY, childType);
-					TreeNode dummyIndexNode = getNode(dummySEMOSSNode);
-					if(dummyIndexNode == null) {
-						dummyIndexNode = createNode(dummySEMOSSNode, true);
-						// do the create routine here
-						TreeNode root = nodeIndexHash.get(childType);
-						root = root.insertData(dummyIndexNode);
-						nodeIndexHash.put(childType, root);
+				// create an empty node
+				StringClass dummySEMOSSNode = new StringClass(SimpleTreeNode.EMPTY, SimpleTreeNode.EMPTY, childType);
+				// if no empty node exists in the index tree, create a new one
+				TreeNode dummyIndexNode = getNode(dummySEMOSSNode);
+				if(dummyIndexNode == null) {
+					dummyIndexNode = createNode(dummySEMOSSNode, true);
+					// do the create routine here
+					TreeNode root = nodeIndexHash.get(childType);
+					root = root.insertData(dummyIndexNode);
+					nodeIndexHash.put(childType, root);
+					// adding to nodeIndexHash automatically adds to unfilterd values
+					// set to filtered values if necessary
+					if(filteredValues) {
+						dummyIndexNode.filteredInstanceNode = dummyIndexNode.instanceNode;
+						dummyIndexNode.instanceNode = new Vector<SimpleTreeNode>();
 					}
-					else
-					{
-						SimpleTreeNode instanceNode = new SimpleTreeNode(dummySEMOSSNode);
+				} else {
+					// found an empty node, add to its filtered list of non-filtered list
+					SimpleTreeNode instanceNode = new SimpleTreeNode(dummySEMOSSNode);
+					if(filteredValues) {
+						dummyIndexNode.addFilteredInstance(instanceNode);
+					} else {
 						dummyIndexNode.addInstance(instanceNode);
 					}
-					typeInstances.elementAt(instanceIndex).addChild(dummyIndexNode.instanceNode.lastElement());
-					
-					newNode = true;
-					//typeInstances.elementAt(instanceIndex).leftChild = dummyIndexNode.instanceNode.lastElement(); // set it to the last added one
 				}
-				// if the child is null and if it is not the same type
-				// then insert a node here
-				// not sure if we will ever do this, but
-				// just setting it up
+				// add the empty node as a child to the simple tree node
+				if(filteredValues) {
+					simpleTreeNodeList.elementAt(instanceIndex).addChild(dummyIndexNode.filteredInstanceNode.lastElement());
+				} else {
+					simpleTreeNodeList.elementAt(instanceIndex).addChild(dummyIndexNode.instanceNode.lastElement());
+				}
+				newNode = true;
 			}
-			if(recurse && newNode)
-				adjustType(childType, recurse);
-		}			
+		}
+		
+		return newNode;
 	}
 	
 	public void balanceLevel(String level) {

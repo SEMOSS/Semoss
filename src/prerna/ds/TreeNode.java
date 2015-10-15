@@ -39,6 +39,14 @@ public class TreeNode {
 	public void addInstance(SimpleTreeNode node) {
 		this.instanceNode.add(node);
 	}	
+	
+	/**
+	 * 
+	 * @param node
+	 */
+	public void addFilteredInstance(SimpleTreeNode node) {
+		this.filteredInstanceNode.add(node);
+	}	
 
 	/**
 	 * 
