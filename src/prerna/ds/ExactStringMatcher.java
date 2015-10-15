@@ -174,9 +174,9 @@ public class ExactStringMatcher implements IMatcher {
 			return 0;
 		}
 		else if(obj1.leaf.isLeft(obj2.leaf)){ // this means node 2 is ahead
-			return 1;
+			return -1;
 		}
-		return -1; // else node 1 is ahead
+		return 1; // else node 1 is ahead
 	}
 
 	@Override
