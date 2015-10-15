@@ -1038,21 +1038,35 @@ public class SimpleTreeBuilder
 	 * @return TreeNode root node of rebuilt/rebalanced Index Tree
 	 */
 	public TreeNode refreshIndexTree(String level) {
-		TreeNode refreshedNode = null;
-		boolean isRebuild = true;
+		//TODO: will uncomment this once we have deleting from tree node as opposed to recreating using unfilterd values
+//		TreeNode refreshedNode = null;
+//		boolean isRebuild = true;
+//		
+//		Vector<TreeNode> nodeList = new Vector<TreeNode>();
+//		TreeNode root = this.nodeIndexHash.get(level);
+//		nodeList = deleteIndexFilters(root, isRebuild);
+//		
+//		if(isRebuild) {
+//			refreshedNode = rebuild(nodeList);
+//		} else {
+//			// TODO: implement rebalance under conditions where it would be faster to rebalance rather than rebuild Index Tree
+//		}
 		
-		ArrayList<TreeNode> nodeList = new ArrayList<TreeNode>();
+		//New logic until deleting individual nodes from index tree is set up
+		Vector<TreeNode> nodeList = new Vector<TreeNode>();
 		TreeNode root = this.nodeIndexHash.get(level);
-		
-		nodeList = deleteIndexFilters(root, isRebuild);
-		
-		if (isRebuild) {
-			refreshedNode = rebuild(nodeList);
-		} else {
-			// TODO: implement rebalance under conditions where it would be faster to rebalance rather than rebuild Index Tree
+		// create iterate for index tree that gets all instance values that are not completely filtered out
+		FilteredIndexTreeIterator it = new FilteredIndexTreeIterator(root);
+		while(it.hasNext()) {
+			// grab the next node
+			// clear out the references to Simple Tree Nodes in the filtered list
+			TreeNode node = it.next();
+			node.filteredInstanceNode.clear();
+			// add node to new list
+			nodeList.addElement(node);
 		}
-		
-		return refreshedNode;
+		// rebuild method will create a new index tree using the list of nodes and return the root
+		return rebuild(nodeList);
 	}
 	
 	/**
@@ -1084,8 +1098,8 @@ public class SimpleTreeBuilder
 	 *            true if method is being used to rebuild index tree, false if used to rebalance index tree
 	 * @return ArrayList of TreeNodes that will either be kept or deleted
 	 */
-	private ArrayList<TreeNode> deleteIndexFilters(TreeNode root, boolean isRebuild) {
-		ArrayList<TreeNode> nodeList = new ArrayList<TreeNode>();
+	private Vector<TreeNode> deleteIndexFilters(TreeNode root, boolean isRebuild) {
+		Vector<TreeNode> nodeList = new Vector<TreeNode>();
 		
 		CompleteIndexTreeIterator iterator = new CompleteIndexTreeIterator(root); // needs to iterate through logically deleted nodes, which IndexTreeIterator does not do currently
 		while (iterator.hasNext()) {
@@ -1113,8 +1127,9 @@ public class SimpleTreeBuilder
 	 * @param keepList ArrayList containing TreeNodes that are to be kept in the new Index Tree
 	 * @return TreeNode of new Index Tree
 	 */
-	private TreeNode rebuild(ArrayList<TreeNode> keepList) {
+	private TreeNode rebuild(Vector<TreeNode> keepList) {
 		TreeNode newRoot = keepList.get(0);
+		// clean node method removes the filters of the tree node
 		newRoot.cleanNode();
 		keepList.remove(0);
 		
