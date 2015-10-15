@@ -369,11 +369,12 @@ public class SimpleTreeNode {
 		Object [] retObject = new Object[2];
 		// final loop is the <> loop
 //		StringTokenizer leftString = new StringTokenizer(childString, "@");
-		String[] leftString = childString.split("@{3}");
+		
+		String[] leftString = childString.split("@{3}(?=[^@])"); //split on the LAST 3 @ signs
 		SimpleTreeNode leftNode = null;
 		for(String leftNodeKey: leftString)
 		{
-			String[] classString = leftNodeKey.split("#{3}");
+			String[] classString = leftNodeKey.split("#{3}"); 
 			ISEMOSSNode sNode = null;
 			try {
 				sNode = (ISEMOSSNode) Class.forName(classString[0]).getConstructor(String.class, Boolean.class).newInstance(classString[1], true);
