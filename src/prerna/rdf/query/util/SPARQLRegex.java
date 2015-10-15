@@ -27,24 +27,24 @@
  *******************************************************************************/
 package prerna.rdf.query.util;
 
-public class SPARQLRegex {
+public class SPARQLRegex implements ISPARQLFilterInput{
 	
+	FILTER_TYPE type = FILTER_TYPE.REGEX_MATCH;
 	TriplePart var, value;
 	Boolean isValueString;
 	String regexString;
 	Boolean isCaseSensitive;
 	
 	//TODO: incorporate having clauses inside of a regex
-
 	public SPARQLRegex(TriplePart var, TriplePart value, boolean isValueString, boolean isCaseSensitive)
 	{
 		if(!var.getType().equals(TriplePart.VARIABLE))
 		{
 			throw new IllegalArgumentException("Bind object has to be a sparql variable");
 		}
-		if(!value.getType().equals(TriplePart.LITERAL))
+		if(value.getType().equals(TriplePart.VARIABLE))
 		{
-			throw new IllegalArgumentException("Bind object has to be a sparql literal");
+			throw new IllegalArgumentException("Bind object has to be a sparql literal or uri");
 		}
 		this.var = var;
 		this.value = value;
@@ -57,8 +57,7 @@ public class SPARQLRegex {
 		String subjectString = SPARQLQueryHelper.createComponentString(var);
 		String objectString = SPARQLQueryHelper.createComponentString(value);
 		String caseSensitivityClause = "";
-		if(!isValueString)
-		{
+		if(isValueString) {
 			subjectString = "STR(" + subjectString + ")";
 		}
 		if(!isCaseSensitive){
@@ -67,20 +66,22 @@ public class SPARQLRegex {
 		regexString = "REGEX(" + subjectString + ", " + objectString + " " + caseSensitivityClause +" )";
 	}
 	
-	public String getRegexString()
-	{
-		createString();
-		return regexString;
-	}
-	
+	@Override
 	public Object getVar()
 	{
 		return var;
 	}
 	
+	@Override
 	public Object getValue()
 	{
 		return value;
+	}
+
+	@Override
+	public String getFilterInput() {
+		createString();
+		return regexString;
 	}
 
 }

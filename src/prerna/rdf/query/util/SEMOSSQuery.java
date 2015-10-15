@@ -405,7 +405,7 @@ public class SEMOSSQuery {
 	
 	public void addRegexFilter(TriplePart var, List<TriplePart> filterData, boolean isValueString, boolean or, boolean isCaseSensitive)
 	{
-		List<Object> addToFilter = new ArrayList<Object>();
+		List<ISPARQLFilterInput> addToFilter = new ArrayList<ISPARQLFilterInput>();
 		for(TriplePart bindVar : filterData)
 		{
 			SPARQLRegex regex = new SPARQLRegex(var, bindVar, isValueString, isCaseSensitive);
@@ -416,7 +416,7 @@ public class SEMOSSQuery {
 	
 	public void addRegexFilter(TriplePart var, List<TriplePart> filterData, boolean isValueString, boolean or,  String clauseName, boolean isCaseSensitive)
 	{
-		List<Object> addToFilter = new ArrayList<Object>();
+		List<ISPARQLFilterInput> addToFilter = new ArrayList<ISPARQLFilterInput>();
 		for(TriplePart bindVar : filterData)
 		{
 			SPARQLRegex regex = new SPARQLRegex(var, bindVar, isValueString, isCaseSensitive);
@@ -425,7 +425,17 @@ public class SEMOSSQuery {
 		addFilter(addToFilter, or, clauseName);
 	}
 	
-	public void addFilter(List<Object> filterData, boolean or)
+	public void addURIFilter(TriplePart var, List<TriplePart> filterData, boolean or) {
+		List<ISPARQLFilterInput> addToFilter = new ArrayList<ISPARQLFilterInput>();
+		for(TriplePart bindVar : filterData)
+		{
+			SPARQLFilterURIParam uriFilter = new SPARQLFilterURIParam(var, bindVar);
+			addToFilter.add(uriFilter);
+		}
+		addFilter(addToFilter, or);
+	}
+	
+	public void addFilter(List<ISPARQLFilterInput> filterData, boolean or)
 	{
 		SPARQLPatternClause clause;
 		if(clauseHash.containsKey(main))
@@ -441,7 +451,7 @@ public class SEMOSSQuery {
 		clauseHash.put(main, clause);
 	}
 	
-	public void addFilter(List<Object> filterData, boolean or, String clauseName)
+	public void addFilter(List<ISPARQLFilterInput> filterData, boolean or, String clauseName)
 	{
 		SPARQLPatternClause clause;
 		if(clauseHash.containsKey(clauseName))
