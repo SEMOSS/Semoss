@@ -11,14 +11,14 @@ import java.util.Set;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.internal.StringMap;
+
 import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SPARQLConstants;
 import prerna.rdf.query.util.TriplePart;
 import prerna.rdf.query.util.TriplePartConstant;
-
-import com.google.gson.Gson;
-import com.google.gson.internal.StringMap;
 
 public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 
@@ -270,10 +270,29 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 //					SEMOSSQueryHelper.addRegexFilterPhrase(s, TriplePart.VARIABLE, filterOptions, TriplePart.LITERAL, false, true, q);
 //				}
 //			}
-			caseSensitiveFilter = true;
-			SEMOSSQueryHelper.addRegexFilterPhrase(s, TriplePart.VARIABLE, filterOptions, TriplePart.LITERAL, false, true, semossQuery, caseSensitiveFilter);
+			String filterValue = filterOptions.get(0).toString();
+			// if value is empty, loop through until we find a value that is not empty to determine the type
+			if(filterValue.isEmpty()) {
+				int i = 1;
+				while(i < filterOptions.size()) {
+					filterValue = filterOptions.get(i).toString();
+					if(!filterValue.isEmpty()) {
+						break;
+					}
+				}
+			}
+			TriplePartConstant triplePartC;
+			if(filterValue.startsWith("http")) {
+				triplePartC = TriplePart.URI;
+				SEMOSSQueryHelper.addURIFilterPhrase(s, TriplePart.VARIABLE, filterOptions, triplePartC, true, semossQuery);
+			} else {
+				triplePartC = TriplePart.LITERAL;
+				caseSensitiveFilter = true;
+				SEMOSSQueryHelper.addRegexFilterPhrase(s, TriplePart.VARIABLE, filterOptions, triplePartC, false, true, semossQuery, caseSensitiveFilter);
+			}
 		}
 		for(String s: searchFilter.keySet()){
+			// since URIs are defaulted as case sensitive, we will treat URIs are string literals
 			caseSensitiveFilter = false;
 			ArrayList<Object> filterOptions = searchFilter.get(s);
 			SEMOSSQueryHelper.addRegexFilterPhrase(s, TriplePart.VARIABLE, filterOptions, TriplePart.LITERAL, false, true, semossQuery, caseSensitiveFilter);
