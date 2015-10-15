@@ -424,18 +424,22 @@ public class BTreeDataFrame implements ITableDataFrame {
 				}
 			}
 			
-			if(innerJoin) {
-				this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[0], levelNames.length);
-			} else {
-				this.simpleTree.adjustType(levelNames[origLength-1], true);
-			}
-			
 			//Update the Index Tree
 			TreeNode treeRoot = this.simpleTree.nodeIndexHash.get(levelNames[origLength-1]);
 			ValueTreeColumnIterator iterator = new ValueTreeColumnIterator(treeRoot);
 			while(iterator.hasNext()) {
 				SimpleTreeNode t = iterator.next();
 				this.simpleTree.appendToIndexTree(t.leftChild);
+			}
+			
+			if(innerJoin) {
+				this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[0], levelNames.length);
+				this.simpleTree.deleteFilteredValues(this.simpleTree.getRoot());
+				for (String level : levelNames) {
+					this.simpleTree.nodeIndexHash.put(level, this.simpleTree.refreshIndexTree(level));
+				}
+			} else {
+				this.simpleTree.adjustType(levelNames[origLength-1], true);
 			}
 		}
 		else 
@@ -445,33 +449,33 @@ public class BTreeDataFrame implements ITableDataFrame {
 		this.isNumericalMap.remove(colNameInTable);
 	}
 
-	/**
-	 * This method will return a series of simple tree nodes with empty values connected to each other
-	 * It returns the root of the series
-	 * @param columnNames				String[] containing the list of types for each simple tree node
-	 * @param startIndex				The start index of the simple tree node series, inclusive
-	 * @param endIndex					The end index of the simple tree node series, exclusive
-	 * @return							The root of the series of simple tree nodes
-	 */
-	private SimpleTreeNode getSetOfEmptyNodes(String[] columnNames, int startIndex, int endIndex) {
-		// create empty nod
-		ITreeKeyEvaluatable emptyVal = new StringClass(SimpleTreeNode.EMPTY, SimpleTreeNode.EMPTY, columnNames[startIndex]);
-		SimpleTreeNode startNode = new SimpleTreeNode(emptyVal);
-		SimpleTreeNode dummy = startNode;
-		int i = startIndex;
-		// starting at start index, loop through and add empty nodes until desired length
-		while(i < endIndex) {
-			ITreeKeyEvaluatable newEmptyVal = new StringClass(SimpleTreeNode.EMPTY, SimpleTreeNode.EMPTY, columnNames[i+1]);
-			SimpleTreeNode newEmpty = new SimpleTreeNode(newEmptyVal);
-			dummy.leftChild = newEmpty;
-			newEmpty.parent = dummy;
-			dummy = newEmpty;
-			i++;
-		}
-		
-		// return the start node
-		return startNode;
-	}
+//	/**
+//	 * This method will return a series of simple tree nodes with empty values connected to each other
+//	 * It returns the root of the series
+//	 * @param columnNames				String[] containing the list of types for each simple tree node
+//	 * @param startIndex				The start index of the simple tree node series, inclusive
+//	 * @param endIndex					The end index of the simple tree node series, exclusive
+//	 * @return							The root of the series of simple tree nodes
+//	 */
+//	private SimpleTreeNode getSetOfEmptyNodes(String[] columnNames, int startIndex, int endIndex) {
+//		// create empty nod
+//		ITreeKeyEvaluatable emptyVal = new StringClass(SimpleTreeNode.EMPTY, SimpleTreeNode.EMPTY, columnNames[startIndex]);
+//		SimpleTreeNode startNode = new SimpleTreeNode(emptyVal);
+//		SimpleTreeNode dummy = startNode;
+//		int i = startIndex;
+//		// starting at start index, loop through and add empty nodes until desired length
+//		while(i < endIndex) {
+//			ITreeKeyEvaluatable newEmptyVal = new StringClass(SimpleTreeNode.EMPTY, SimpleTreeNode.EMPTY, columnNames[i+1]);
+//			SimpleTreeNode newEmpty = new SimpleTreeNode(newEmptyVal);
+//			dummy.leftChild = newEmpty;
+//			newEmpty.parent = dummy;
+//			dummy = newEmpty;
+//			i++;
+//		}
+//		
+//		// return the start node
+//		return startNode;
+//	}
 	
 	//TODO: need to ensure there are not two names that match 
     private String[] joinTreeLevels(String[] joinLevelNames, String[] uriJoinLevelNames, String colNameInJoiningTable) {
