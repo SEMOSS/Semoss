@@ -47,6 +47,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openrdf.model.Literal;
 
+import cern.colt.Arrays;
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.ITableDataFrame;
@@ -56,7 +57,6 @@ import prerna.math.StatisticsUtilityMethods;
 import prerna.om.SEMOSSParam;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
-import cern.colt.Arrays;
 
 public class BTreeDataFrame implements ITableDataFrame {
 
@@ -354,7 +354,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 				Object thisVal = thisTreeNode.leaf.getValue();
 				Object passedVal = passedTreeNode.leaf.getValue();
 				
-				if(thisVal.equals(SimpleTreeNode.EMPTY) && passedVal.equals(SimpleTreeNode.EMPTY)) {
+				// only return empty value for passVal in outer joins
+				// this will be cleaned up when we adjust type - set innerJoin to false
+				if(passedVal.equals(SimpleTreeNode.EMPTY)) {
+					innerJoin = false;
 					continue;
 				}
 				
@@ -439,7 +442,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		{
 			LOGGER.error("Cannot join something not a btree with a btree");
 		}
-		
 		this.isNumericalMap.remove(colNameInTable);
 	}
 
