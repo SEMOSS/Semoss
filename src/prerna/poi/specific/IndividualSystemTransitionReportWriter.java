@@ -28,7 +28,9 @@
 package prerna.poi.specific;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
@@ -87,8 +89,10 @@ public class IndividualSystemTransitionReportWriter {
 		
 		fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\";
 		templateLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\" + templateName;//"Individual_System_Transition_Report_Template.xlsx";
-
-		fileLoc += systemName+"_Transition_Report.xlsx";
+		SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("MMM_dd_yyyy");
+        String date = DATE_FORMAT.format(new Date());
+   
+		fileLoc += systemName+"_Transition_Report_"+date+".xlsx";
 		wb =new XSSFWorkbook();
 
 		//if a report template exists, then create a copy of the template, otherwise create a new workbook
@@ -112,7 +116,8 @@ public class IndividualSystemTransitionReportWriter {
 		boolean success = false;
 		try{
 			wb.setForceFormulaRecalculation(true);
-			wb.setSheetHidden(wb.getSheetIndex("Summary Charts"), true);
+			if(wb.getSheetIndex("Summary Charts") != -1)
+				wb.setSheetHidden(wb.getSheetIndex("Summary Charts"), true);
 			Utility.writeWorkbook(wb, fileLoc);
 			success = true;
 		} catch (Exception ex) {
@@ -205,8 +210,9 @@ public class IndividualSystemTransitionReportWriter {
 //			fillStringInText(sheetToWriteOver, 3,3,"@SYSTEM@",systemName);
 //			rowToStart = 9;
 //		}
-
-
+		XSSFRow headerRow = sheetToWriteOver.getRow(rowToStart-1);
+		Short lastCol =headerRow.getLastCellNum();
+		
 		for (int row=0; row<dataList.size(); row++) {
 			Object[] resultRowValues = dataList.get(row);
 			XSSFRow rowToWriteOn;
@@ -220,7 +226,7 @@ public class IndividualSystemTransitionReportWriter {
 				rowToWriteOn = sheetToWriteOver.createRow(rowToStart+row);
 				rowToWriteOn.setRowStyle(rowToCopyFormat.getRowStyle());
 			}
-			for (int col=0; col< resultRowValues.length; col++) {
+			for (int col=0; col< lastCol; col++) {
 				XSSFCell cellToWriteOn;
 				if(row==0)
 					cellToWriteOn = rowToWriteOn.getCell(col);
@@ -230,16 +236,21 @@ public class IndividualSystemTransitionReportWriter {
 					XSSFCell cellToCopyFormat = rowToCopyFormat.getCell(col);
 					cellToWriteOn.setCellStyle(cellToCopyFormat.getCellStyle());
 				}
-				if(resultRowValues[col] instanceof Double) {
-					cellToWriteOn.setCellValue((Double)resultRowValues[col]);
-				}
-				else if(resultRowValues[col] instanceof Integer) {
-					cellToWriteOn.setCellValue((Integer)resultRowValues[col]);
-				}
-				else {
-					cellToWriteOn.setCellValue(((String)resultRowValues[col]).replaceAll("\"", "").replaceAll("_"," "));
+				
+				if (  col< resultRowValues.length )
+				{
+					if(resultRowValues[col] instanceof Double) {
+						cellToWriteOn.setCellValue((Double)resultRowValues[col]);
+					}
+					else if(resultRowValues[col] instanceof Integer) {
+						cellToWriteOn.setCellValue((Integer)resultRowValues[col]);
+					}
+					else {
+						cellToWriteOn.setCellValue(((String)resultRowValues[col]).replaceAll("\"", "").replaceAll("_"," "));
+					}
 				}
 			}
+			
 		}
 
 		// for System Interfaces Sheet
@@ -480,6 +491,26 @@ public class IndividualSystemTransitionReportWriter {
 		fillStringInText(sheetToWriteOver, 33, 1,"@SYSTEM@",systemName);
 		fillStringInText(sheetToWriteOver,13,1,"@DATE@",beginIOCString);
 		
+	}
+	
+	public void writeSystemInfoSheetShort(String sheetName, Map<String,Object> result){
+
+		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
+		ArrayList<Object[]> dataList = (ArrayList<Object[]>)result.get("data");
+		Object[] resultRowValues = dataList.get(0);		
+
+		fillStringInText(sheetToWriteOver,2,1,null,systemName);
+
+		String sysDescription = "";
+		if(resultRowValues[1]!=null && ((String)resultRowValues[1]).length()>0)
+			sysDescription =((String)resultRowValues[0]).replaceAll("\"", "").replaceAll("_"," ");
+		
+		String sysPOC = "";
+		if(resultRowValues[7]!=null && ((String)resultRowValues[7]).length()>0)
+			sysPOC =((String)resultRowValues[7]).replaceAll("\"", "").replaceAll("_"," ");
+		fillStringInText(sheetToWriteOver,5,3,null,sysDescription);
+		fillStringInText(sheetToWriteOver,8,1,"@SYSTEM@",systemName);
+		fillStringInText(sheetToWriteOver,12,1,null,sysPOC);
 	}
 	
 	public void writeSystemSiteDetails(String sheetName, Map<String,Object> result){
