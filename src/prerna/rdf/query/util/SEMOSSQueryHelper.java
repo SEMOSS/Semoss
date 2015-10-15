@@ -375,6 +375,18 @@ public abstract class SEMOSSQueryHelper {
 		seQuery.addRegexFilter(varBindPart, filterDataPart, isValueString, or, isCaseSensitive);
 	}
 	
+	public static void addURIFilterPhrase(String var, TriplePartConstant varType, List<Object> filterData, TriplePartConstant filterDataType, boolean or, SEMOSSQuery seQuery)
+	{
+		TriplePart varBindPart = new TriplePart(var, varType);
+		List<TriplePart> filterDataPart = new ArrayList<TriplePart>();
+		for(Object filterElem : filterData)
+		{
+			TriplePart filterElemPart = new TriplePart(filterElem, filterDataType);
+			filterDataPart.add(filterElemPart);
+		}
+		seQuery.addURIFilter(varBindPart, filterDataPart, or);
+	}
+
 	public static void addRegexFilterPhrase(String var, TriplePartConstant varType, List<Object> filterData, TriplePartConstant filterDataType, boolean isValueString, boolean or, SEMOSSQuery seQuery, String clauseName, boolean isCaseSensitive)
 	{
 		TriplePart varBindPart = new TriplePart(var, varType);
