@@ -784,7 +784,7 @@ public class TreeNode {
 		// nasty.. I dont have a proper object eeks
 		Object[] retObject = new Object[2];
 		// final loop is the <> loop
-		String[] leftString = childString.split("@{3}");
+		String[] leftString = childString.split("@{3}(?=[^@])"); //split on the LAST 3 @ signs
 		TreeNode leftNode = null;
 		for (String leftNodeKey : leftString) {
 			String[] classString = leftNodeKey.split("#{3}");
