@@ -115,6 +115,10 @@ public final class ArrayUtilityMethods {
 		return false;
 	}
 	
+	public static boolean arrayContainsValueIgnoreCase(final String[] arr, final String value) {
+		return arrayContainsValueAtIndexIgnoreCase(arr, value) != -1;
+	}
+	
 	// return -1 if no match found
 	public static int arrayContainsValueAtIndex(final String[] arr, final String value) {
 		if(arr == null) {
