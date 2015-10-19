@@ -922,10 +922,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 		
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		typeRoot = typeRoot.getRight(typeRoot);
+		typeRoot = TreeNode.getRight(typeRoot);
 		while(typeRoot.rightChild != null) {
 			typeRoot = typeRoot.rightChild;
-			typeRoot = typeRoot.getRight(typeRoot);
+			typeRoot = TreeNode.getRight(typeRoot);
 		}
 		return ((Number) typeRoot.leaf.getValue()).doubleValue();
 		
@@ -1186,11 +1186,20 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
+	/**
+	 * @Param getRawData
+	 * returns an iterator that iterates through each row of the btree of the data frame
+	 */
 	public Iterator<Object[]> iterator(boolean getRawData) {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);	
 		return new BTreeIterator(typeRoot, getRawData, columnsToSkip);
 	}
 	
+	/**
+	 * 
+	 * @param getRawData - true to get Raw Values, false to get values
+	 * @return an iterator that returns each row of the btree of the data frame, including filtered rows
+	 */
 	public Iterator<Object[]> iteratorAll(boolean getRawData){
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);	
 		return new BTreeIterator(typeRoot, getRawData, columnsToSkip, true);
@@ -1330,6 +1339,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
+	/**
+	 * @Param columnHeader - the name of the column header to filter
+	 * @Param filterValues - the list of values to filter OUT of the column
+	 */
 	public void filter(String columnHeader, List<Object> filterValues) {
 		columnHeader = this.getColumnName(columnHeader);
 		
@@ -1339,7 +1352,13 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
+	/**
+	 * @Param columnHeader - the name of the column header to remove
+	 */
 	public void removeColumn(String columnHeader) {
+		LOGGER.info("Removing Column: "+columnHeader);
+		long startTime = System.currentTimeMillis();
+		
 		columnHeader = this.getColumnName(columnHeader);
 		
 		String[] newNames = new String[levelNames.length-1];
@@ -1364,14 +1383,23 @@ public class BTreeDataFrame implements ITableDataFrame {
 		this.simpleTree.removeType(columnHeader);
 		isNumericalMap.remove(columnHeader);
 		this.simpleTree.setRootLevel(levelNames[0]);
-//		LOGGER.info("removed " + columnHeader);
-//		System.out.println("new names  " + Arrays.toString(levelNames));
+		
+		LOGGER.info("Removed column: " + columnHeader +", "+ (System.currentTimeMillis() - startTime) + "ms");
 	}
 	
 	@Override
+	/**
+	 * removes duplicate rows from the data frame
+	 */
 	public void removeDuplicateRows() {
-		for(String s : levelNames)
+		LOGGER.info("Removing Duplicate Rows...");
+		long startTime = System.currentTimeMillis();
+		
+		for(String s : levelNames) {
 			this.simpleTree.removeDuplicates(s);
+		}
+		
+		LOGGER.info("Removed Duplicate Rows: "+(System.currentTimeMillis() - startTime)+" ms");
 	}
 
 	@Override
@@ -1398,6 +1426,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return null;
 	}
 
+	/**
+	 * unfilters the entire data frame
+	 */
 	public void unfilter() {
 		for(String column: levelNames) {
 			this.unfilter(column);
@@ -1405,9 +1436,16 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 	
 	@Override
+	/**
+	 * @Param columnHeader - the columnHeader to unfilter
+	 */
 	public void unfilter(String columnHeader) {
+		long startTime = System.currentTimeMillis();
+		
 		columnHeader = this.getColumnName(columnHeader);
 		this.simpleTree.unfilterColumn(columnHeader);
+		
+		LOGGER.info("unfiltered Column: " +columnHeader+", "+ (System.currentTimeMillis() - startTime)+" ms");
 	}
 
 	//TODO: is this necessary
@@ -1420,11 +1458,21 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 	
 	@Override
+	/**
+	 * returns true if the data frame has no rows, false otherwise
+	 */
 	public boolean isEmpty() {
 		return !this.iterator(false).hasNext();
 	}
 	
 	@Override
+	/**
+	 * @Param columnHeaders - the list of columnHeaders to be 'filtered'
+	 * Sets the list of columnHeaders to skip, this list will affect operations on the 'view' of the btree
+	 * i.e. getData(), getColumnHeaders(), etc.
+	 * 
+	 * This list will not affect operations on transforming the data frame such as join, append, filter, etc.
+	 */
 	public void setColumnsToSkip(List<String> columnHeaders) {
 		List<String> newColumnHeaders = new ArrayList<String>();
 		if(columnHeaders != null) {
