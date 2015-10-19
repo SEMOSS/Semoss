@@ -17,6 +17,7 @@ public class ITableStatCounter {
 	private static final String MEDIAN = "median";
 	private static final String MODE = "mode";
 	private static final String COUNT = "count";
+	private static final String SUM = "sum";
 	
 	private BTreeDataFrame table;
 	private Map<String, Object> functionMap;
@@ -75,6 +76,8 @@ public class ITableStatCounter {
 				case MODE : mode = DuplicationReconciliation.ReconciliationMode.MODE; break;
 				
 				case COUNT : mode = DuplicationReconciliation.ReconciliationMode.COUNT; break;
+				
+				case SUM : mode = DuplicationReconciliation.ReconciliationMode.SUM; break;
 				
 				default : mode = DuplicationReconciliation.ReconciliationMode.MEAN; break;
 			}

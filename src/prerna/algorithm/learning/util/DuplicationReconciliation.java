@@ -8,7 +8,7 @@ import java.util.Map;
 
 public class DuplicationReconciliation {
 
-	public enum ReconciliationMode {MEAN, MODE, MEDIAN, MAX, MIN, COUNT}
+	public enum ReconciliationMode {MEAN, MODE, MEDIAN, MAX, MIN, COUNT, SUM}
 
 	ReconciliationMode mode;
 	private boolean ignoreEmpty;
@@ -40,6 +40,8 @@ public class DuplicationReconciliation {
 				case MIN: recValue = getMin(values.toArray(), ignoreEmpty);
 				break;
 				case COUNT: break;
+				case SUM: recValue = getSum(values.toArray(), ignoreEmpty);
+				break;
 				default: recValue = getMean(values.toArray(), ignoreEmpty);
 			}
 		}
@@ -90,6 +92,28 @@ public class DuplicationReconciliation {
 		}
 		return total/size;
 	}
+	
+	public static Double getSum(Object[] row, boolean ignoreEmpty) {
+		Double total = 0.0;
+		
+		for(Object value : row) {
+			if(ignoreEmpty) {
+				if(value == null || !(value instanceof Number)) {
+					continue;
+				} else {
+					total += ((Number)value).doubleValue();
+				}
+			} else {
+				if(value == null || !(value instanceof Number)) {
+					return Double.NaN;
+				} else {
+					total += ((Number)value).doubleValue();
+				}
+			}
+		}
+		return total;
+	}
+	
 	//TODO: change so that mode can include non-numeric values
 	public static Double getMode(Object[] row, boolean ignoreEmpty) {
 		HashMap<Double,Integer> freqs = new HashMap<Double,Integer>();
