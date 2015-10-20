@@ -239,13 +239,25 @@ public class POIReader extends AbstractFileReader {
 			}
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
-			throw new FileNotFoundException("Could not find Excel file located at " + fileName);
+			if(e.getMessage()!= null && !e.getMessage().isEmpty()) {
+				throw new FileNotFoundException(e.getMessage());
+			} else {
+				throw new FileNotFoundException("Could not find Excel file located at " + fileName);
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new IOException("Could not read Excel file located at " + fileName);
+			if(e.getMessage()!= null && !e.getMessage().isEmpty()) {
+				throw new IOException(e.getMessage());
+			} else {
+				throw new IOException("Could not read Excel file located at " + fileName);
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
-			throw new IOException("File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
+			if(e.getMessage()!= null && !e.getMessage().isEmpty()) {
+				throw new IOException(e.getMessage());
+			} else {
+				throw new IOException("File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
+			}
 		} finally {
 			if(poiReader != null) {
 				try {
