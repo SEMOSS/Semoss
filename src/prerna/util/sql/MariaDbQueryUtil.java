@@ -173,8 +173,8 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 	}	
 	
 	@Override
-	public String getDialectCaseSensitiveSearchPrefix(){
-		return " BINARY ";
+	public String getDialectCreateDatabase(String engineName){
+		return "CREATE DATABASE " + engineName +  " CHARACTER SET = 'utf8' COLLATE = 'utf8_bin'";  //allow case sensitive search, binary fastest for sort/ordering, ordering will sort upper case then lower case
 	}
 	
 }
