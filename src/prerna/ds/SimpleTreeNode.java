@@ -33,7 +33,12 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 public class SimpleTreeNode {
+	
+	private static final Logger LOGGER = LogManager.getLogger(BTreeDataFrame.class.getName());
 	
 	// gets the sibling tree
 	SimpleTreeNode leftSibling = null;
@@ -121,11 +126,16 @@ public class SimpleTreeNode {
 	 */
 	public static SimpleTreeNode root(SimpleTreeNode node)
 	{
-		if(node.parent != null)
-		{
-			return root(node.parent);
+//		if(node.parent != null)
+//		{
+//			return root(node.parent);
+//		}
+//		else return getLeft(node);
+		
+		while(node.parent != null) {
+			node = node.parent;
 		}
-		else return getLeft(node);
+		return getLeft(node);
 	}
 	
 	
@@ -188,6 +198,20 @@ public class SimpleTreeNode {
 		return count;
 	}
 
+	/**
+	 * 
+	 * @param parentNode
+	 * @return true if parentNode has one and only one child, false otherwise
+	 */
+	public static boolean hasOneChild(SimpleTreeNode parentNode) {
+		
+		SimpleTreeNode leftChild = parentNode.leftChild;
+		if(leftChild == null) {
+			return false;
+		}
+		
+		return leftChild.rightSibling == null;
+	}
 
 	public boolean hasChildren(SimpleTreeNode counterNode)
 	{
@@ -218,34 +242,27 @@ public class SimpleTreeNode {
 		}
 	}
 	
-	public static SimpleTreeNode getLeft(SimpleTreeNode node)
-	{
-//		if(node.leftSibling==null) {
-//			return node;
-//		}
-//		else {
-//			return getLeft(node.leftSibling);
-//		}
-		
+	/**
+	 * 
+	 * @param node
+	 * @return the left most sibling of the argument
+	 */
+	public static SimpleTreeNode getLeft(SimpleTreeNode node) {
 		while(node.leftSibling != null) {
 			node = node.leftSibling;
 		}
-		
 		return node;
 	}
 
-	public static SimpleTreeNode getRight(SimpleTreeNode node)
-	{
-//		if(node.rightSibling==null) {
-//			return node;
-//		} else {
-//			return getRight(node.rightSibling);
-//		}
-		
+	/**
+	 * 
+	 * @param node
+	 * @return the right most sibling of the argument
+	 */
+	public static SimpleTreeNode getRight(SimpleTreeNode node) {
 		while(node.rightSibling != null) {
 			node = node.rightSibling;
 		}
-		
 		return node;
 	}
 	
@@ -255,8 +272,13 @@ public class SimpleTreeNode {
 	}
 		
 	public static String serializeTree(SimpleTreeNode root) {
+		LOGGER.debug("Serializing tree with root value: " + root.leaf.getValue());
+		long startTime = System.currentTimeMillis();
+		
 		Vector<SimpleTreeNode> nodes = new Vector<SimpleTreeNode>();
 		nodes.add(root);
+		
+		LOGGER.debug("Finished serializing tree with root value "+ root.leaf.getValue()+", "+(System.currentTimeMillis() - startTime)+" ms");
 		return serializeTree(new StringBuilder(""), nodes, true, 0);
 	}
 
@@ -299,6 +321,9 @@ public class SimpleTreeNode {
 	
 	public static SimpleTreeNode deserializeTree(String output)
 	{
+		LOGGER.debug("Deserializing tree...");
+		long startTime = System.currentTimeMillis();
+		
 		SimpleTreeNode rootNode = null;
 		boolean parent = true;
 		Vector <SimpleTreeNode> parentNodes = new Vector();
@@ -360,6 +385,8 @@ public class SimpleTreeNode {
 			}
 			parentNodes = nextLevel;
 		}
+		
+		LOGGER.debug("Finished Deserialization with root value: "+rootNode.leaf.getValue()+", "+(System.currentTimeMillis() - startTime)+" ms");
 		return rootNode;
 	}
 	
@@ -531,9 +558,17 @@ public class SimpleTreeNode {
 		
 	}
 		
-	//TODO: need to take into account filtered values
+	/**
+	 * 
+	 * @param node - the node to be deleted from its tree
+	 * 
+	 * separates the node from its siblings and parents, and realigns the relationships
+	 * Ex: A--> B--> C
+	 * 		Deleting B would result in A--> C
+	 */
     public static void deleteNode(SimpleTreeNode node)
     {
+    	//TODO: need to take into account filtered values
           //only child
           if(node.rightSibling == null && node.leftSibling == null)
           {
@@ -572,11 +607,17 @@ public class SimpleTreeNode {
 
 	public SimpleTreeNode getLeaf(SimpleTreeNode node, boolean left)
 	{
-		if(node.leftChild != null && left)
-			return getLeaf(node.leftChild, true);
-//		if(node.rightSibling == null && node.rightChild != null && !left)
-//			return getLeaf(node.rightChild, false);
-		else return node;
+//		if(node.leftChild != null && left)
+//			return getLeaf(node.leftChild, true);
+////		if(node.rightSibling == null && node.rightChild != null && !left)
+////			return getLeaf(node.rightChild, false);
+//		
+//		else return node;
+		
+		while(node.leftChild != null) {
+			node = node.leftChild;
+		}
+		return node;
 	}
 		
 	// x the method to use

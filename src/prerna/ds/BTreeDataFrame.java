@@ -298,8 +298,11 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 		// let the routine run
 		LOGGER.info("Begining matching routine");
+		System.err.println("getting matches");
+		long startTime = System.currentTimeMillis();
 		List<TreeNode[]> matched = routine.runAlgorithm(this, table);
-	
+		System.err.println("got matches"+(System.currentTimeMillis() - startTime)+" ms");
+		
 		if(table instanceof BTreeDataFrame){
 			BTreeDataFrame passedTree = (BTreeDataFrame) table;
 			//Here is the logic that this should use.
@@ -412,9 +415,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 				}
 				
 				// this is where the actual hooking up occurs
-				Vector<SimpleTreeNode> vec = new Vector<SimpleTreeNode>();
-				vec.add(instance2HookUp);
-				String serialized = SimpleTreeNode.serializeTree("", vec, true, 0);
+//				Vector<SimpleTreeNode> vec = new Vector<SimpleTreeNode>();
+//				vec.add(instance2HookUp);
+//				String serialized = SimpleTreeNode.serializeTree("", vec, true, 0);
+				String serialized = SimpleTreeNode.serializeTree(instance2HookUp);
 
 				// hook up passed tree node with each instance of this tree node
 				for(int instIdx = 0; instIdx < thisInstances.size(); instIdx++){
@@ -425,13 +429,18 @@ public class BTreeDataFrame implements ITableDataFrame {
 			}
 			
 			//Update the Index Tree
+			System.err.println("updating index tree in join");
+			startTime = System.currentTimeMillis();
 			TreeNode treeRoot = this.simpleTree.nodeIndexHash.get(levelNames[origLength-1]);
 			ValueTreeColumnIterator iterator = new ValueTreeColumnIterator(treeRoot);
 			while(iterator.hasNext()) {
 				SimpleTreeNode t = iterator.next();
 				this.simpleTree.appendToIndexTree(t.leftChild);
 			}
+			System.err.println("updated index tree in join: "+(System.currentTimeMillis() - startTime)+" ms");
 			
+			System.err.println("trimming tree for inner join");
+			startTime = System.currentTimeMillis();
 			if(innerJoin) {
 				this.simpleTree.removeBranchesWithoutMaxTreeHeight(levelNames[0], levelNames.length);
 				this.simpleTree.deleteFilteredValues(this.simpleTree.getRoot());
@@ -441,6 +450,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 			} else {
 				this.simpleTree.adjustType(levelNames[origLength-1], true);
 			}
+			System.err.println("trimmed tree: "+(System.currentTimeMillis() - startTime)+" ms");
 		}
 		else 
 		{
@@ -1435,6 +1445,14 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 	}
 	
+	public void unfilter(String columnHeader, List<Object> filterValues) {
+		columnHeader = this.getColumnName(columnHeader);
+		
+		for(Object o: filterValues) {
+			this.simpleTree.unfilterTree(this.createNodeObject(o, o, columnHeader));
+		}
+	}
+	
 	@Override
 	/**
 	 * @Param columnHeader - the columnHeader to unfilter
@@ -1695,9 +1713,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		List<SimpleTreeNode> nodes = root.getInstanceNodes(roots, new Vector<SimpleTreeNode>());
 		for(SimpleTreeNode node : nodes){
 			String serialized = "";
-			Vector<SimpleTreeNode> vec = new Vector<SimpleTreeNode>();
-			vec.add(node);
-			serialized = node.serializeTree("", vec, true, 0);
+			serialized = node.serializeTree(node);
 			System.out.println("SERIALIZED " + node.leaf.getKey() + " AS " + serialized);
 				
 			SimpleTreeNode hookUp = node.deserializeTree(serialized);//

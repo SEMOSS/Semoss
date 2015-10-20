@@ -43,6 +43,9 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.util.ArrayUtilityMethods;
 
 public class SimpleTreeBuilder
@@ -85,6 +88,7 @@ public class SimpleTreeBuilder
 	// TreeNetworkNode extends TreeNode
 	// 
 	
+	private static final Logger LOGGER = LogManager.getLogger(SimpleTreeBuilder.class.getName());
 	
 	// actual value tree root
 	private SimpleTreeNode lastAddedNode = null;
@@ -547,7 +551,7 @@ public class SimpleTreeBuilder
 	}
 	
 	/**
-	 * This method recursively adds a SimpleTreeNode and it's children to the appropriate index trees
+	 * This method recursively adds a SimpleTreeNode and it's children (subtree) to the appropriate index trees
 	 * 
 	 * */
 	void appendToIndexTree(SimpleTreeNode node) {
@@ -570,7 +574,6 @@ public class SimpleTreeBuilder
 			appendToIndexTree(node.leftChild);
 			appendToIndexTree(node.rightSibling);
 			return;
-		
 
 		} else {
 
@@ -701,7 +704,7 @@ public class SimpleTreeBuilder
 		TreeNode rootNodeForType = nodeIndexHash.get(level);
 		if(rootNodeForType == null) return;
 		
-		ValueTreeColumnIterator it = new ValueTreeColumnIterator(rootNodeForType);
+		ValueTreeColumnIterator it = new ValueTreeColumnIterator(rootNodeForType, true);
 		while(it.hasNext()) {
 			SimpleTreeNode nextNode = it.next();
 			removeEmptyRows(nextNode, 0, height, true);
@@ -715,7 +718,7 @@ public class SimpleTreeBuilder
 //				removeEmptyRows(n.rightSibling, start, height, false);
 //			}
 //			
-			while(n!= null) {
+			while(n != null) {
 				SimpleTreeNode rightSibling = n.rightSibling;
 				if (n.leftChild == null) {
 					//remove this node, and go up the tree
@@ -740,13 +743,14 @@ public class SimpleTreeBuilder
 
 	/**
 	 * 
-	 * @param type
+	 * @param type - the column to be removed
 	 */
 	public void removeType(String type)	{
 		
-		if(!nodeIndexHash.containsKey(type))
+		if(!nodeIndexHash.containsKey(type)) {
+			LOGGER.debug(type  + " does not exist in node index hash");
 			return;
-		
+		}
 		//Determine if the column is a root column
 		TreeNode typeRoot = nodeIndexHash.get(type);
 		if(typeRoot==null) {
@@ -768,6 +772,7 @@ public class SimpleTreeBuilder
 		SimpleTreeNode parent = typeInstanceNode.parent;
 		
 		if(parent != null) {
+			LOGGER.debug(type+" is not a root level");
 			String parentType = ((ISEMOSSNode)parent.leaf).getType();
 			SimpleTreeNode FilteredNode = null;
 			
@@ -788,6 +793,7 @@ public class SimpleTreeBuilder
 						if(parentNode.leftChild == null) {
 							parentNode.leftChild = grandChildNode;
 						} else {
+							//TODO: optimize such that child is added to front of child list as opposed to end
 							SimpleTreeNode newLeftSibling = SimpleTreeNode.getRight(parentNode.leftChild);
 							newLeftSibling.rightSibling = grandChildNode;
 							grandChildNode.leftSibling = newLeftSibling;
@@ -799,6 +805,7 @@ public class SimpleTreeBuilder
 						if(parentNode.rightChild == null) {
 							parentNode.rightChild = filteredGrandChildNode;
 						} else {
+							//TODO: optimize such that filtered child is added to front of child list as opposed to end
 							SimpleTreeNode newFilteredLeftSibling = SimpleTreeNode.getRight(parentNode.rightChild);
 							newFilteredLeftSibling.rightSibling = filteredGrandChildNode;
 							filteredGrandChildNode.leftSibling = newFilteredLeftSibling;
@@ -882,7 +889,7 @@ public class SimpleTreeBuilder
 		//for each branch, sort then compress
 		if(!nodeIndexHash.containsKey(type)) return;
 
-		SimpleTreeNode simpleTreeNode = new ValueTreeColumnIterator(nodeIndexHash.get(type)).next();
+		SimpleTreeNode simpleTreeNode = new ValueTreeColumnIterator(nodeIndexHash.get(type), true).next();
 		boolean root = (simpleTreeNode.parent == null);
 		//TODO : fix for now, make better
 		if(root) {
@@ -993,7 +1000,7 @@ public class SimpleTreeBuilder
 			cNodeLeftChild.leftSibling = nodeLeftChild;
 			
 //			cNodeLeftChild.leftSibling = null;
-//			SimpleTreeNode.getRight(cNodeLeftChild).rightSibling = nodeLeftChild;d
+//			SimpleTreeNode.getRight(cNodeLeftChild).rightSibling = nodeLeftChild;
 //			node.leftChild = cNodeLeftChild;
 		
 		}
@@ -1116,7 +1123,6 @@ public class SimpleTreeBuilder
 					nodeList.add(root); // when rebalancing, we need nodes that will be deleted
 				}
 			}
-
 		}
 		return nodeList;
 	}
@@ -1261,43 +1267,73 @@ public class SimpleTreeBuilder
 	
 //******************** FILTER METHODS **************************//
 	
-	
+	/**
+	 * 
+	 * @param objectsToFilter - list of objects to be filtered OUT of the tree
+	 */
 	public void filterTree(List<ITreeKeyEvaluatable> objectsToFilter) {
 		for(ITreeKeyEvaluatable i: objectsToFilter) {
 			filterTree(i);
 		}
 	}
 	
+	/**
+	 * 
+	 * @param objectToFilter - object to filter OUT of the tree
+	 */
 	public void filterTree(ITreeKeyEvaluatable objectToFilter) {
+		//find the TreeNode associated with the object's value
 		TreeNode foundNode = this.getNode((ISEMOSSNode)objectToFilter);
 		if(foundNode != null) {
-			List<SimpleTreeNode> nodeList = new ArrayList<SimpleTreeNode>();
 			
+			//copy references to new list to prevent concurrent modification exceptions
+			List<SimpleTreeNode> nodeList = new ArrayList<SimpleTreeNode>();
 			for(SimpleTreeNode n: foundNode.instanceNode) {
 				nodeList.add(n);
 			}
 			
+			//for each SimpleTreeNode with the value of objectToFilter
+			//first filter the value tree, then filter the index tree
 			for(SimpleTreeNode n: nodeList) {
 				SimpleTreeNode filteredNode = filterSimpleTreeNode(n);
 				filterTreeNode(filteredNode, true);
 			}
-			
-			//foundNode.filteredInstanceNode.addAll(foundNode.instanceNode);
-			//foundNode.instanceNode.clear();
 		}
 	}
 
+	/**
+	 * 
+	 * @param node2filter
+	 * @return - the root of the subtree that was filtered
+	 * 
+	 * This method filters node2filter from the value tree
+	 * In the case where node2filter's parent has one child (node2filter), node2filter's parent is filtered, etc
+	 */
 	private SimpleTreeNode filterSimpleTreeNode(SimpleTreeNode node2filter) {
-		final SimpleTreeNode returnNode = node2filter;
-		//TODO: simplify logic
-		SimpleTreeNode parentNode = node2filter.parent;
-		boolean root = (parentNode == null);
 		
-		if(!root) {
-			if(SimpleTreeNode.countNodeChildren(parentNode)==1) {
-				return filterSimpleTreeNode(parentNode);
+		//grab the highest root that is necessary to filter this sub tree
+		boolean getParent = node2filter.parent != null;
+		SimpleTreeNode parentNode;
+		while(getParent) {
+			parentNode = node2filter.parent;
+			if(SimpleTreeNode.hasOneChild(parentNode)) {
+				node2filter = parentNode;
+				getParent = node2filter.parent != null;
+			} else {
+				getParent = false;
 			}
 		}
+		
+		final SimpleTreeNode returnNode = node2filter;
+		//TODO: simplify logic
+		parentNode = node2filter.parent;
+		boolean root = (parentNode == null);
+		
+//		if(!root) {
+//			if(SimpleTreeNode.countNodeChildren(parentNode)==1) {
+//				return filterSimpleTreeNode(parentNode);
+//			}
+//		}
 		
 		SimpleTreeNode nodeRightSibling = node2filter.rightSibling;
 		SimpleTreeNode nodeLeftSibling = node2filter.leftSibling;
@@ -1463,14 +1499,40 @@ public class SimpleTreeBuilder
 		}
 	}
 	
+	public void unfilterTree(ITreeKeyEvaluatable objectToFilter) {
+		//find the TreeNode associated with the object's value
+		TreeNode foundNode = this.getNode((ISEMOSSNode)objectToFilter);
+		if(foundNode != null) {
+			
+			//copy references to new list to prevent concurrent modification exceptions
+			List<SimpleTreeNode> nodeList = new ArrayList<SimpleTreeNode>();
+			for(SimpleTreeNode n: foundNode.filteredInstanceNode) {
+				nodeList.add(n);
+			}
+			
+			//for each SimpleTreeNode with the value of objectToFilter
+			//first filter the value tree, then filter the index tree
+			for(SimpleTreeNode n: nodeList) {
+				SimpleTreeNode filteredNode = unfilterSimpleTreeNode(n);
+				unfilterTreeNode(filteredNode, true);
+			}
+		}
+	}
+	
 	private SimpleTreeNode unfilterSimpleTreeNode(SimpleTreeNode node) {
 		SimpleTreeNode parentNode = node.parent;
+		//convert from recursive to iterative
+//		while(parentNode != null && SimpleTreeNode.hasOneChild(parentNode)) {
+//			node = parentNode;
+//			parentNode = parentNode.parent;
+//		}
 		boolean root = (parentNode==null);
 		
 		if(!root) {
-			if(SimpleTreeNode.countNodeChildren(parentNode)==1) {
+			if(SimpleTreeNode.hasOneChild(parentNode) && isFiltered(parentNode)) {
 				return unfilterSimpleTreeNode(parentNode);
-			} else {
+			} 
+			else {
 				
 				SimpleTreeNode nodeRightSibling = node.rightSibling;
 				SimpleTreeNode nodeLeftSibling = node.leftSibling;
@@ -1502,6 +1564,7 @@ public class SimpleTreeBuilder
 				if(parentNode.leftChild==null) {
 					parentNode.leftChild = node;
 				} else {
+					//TODO: attach to beginning of list
 					SimpleTreeNode rightMostLeftChild = SimpleTreeNode.getRight(node);
 					rightMostLeftChild.rightSibling = node;
 					node.leftSibling = rightMostLeftChild;
@@ -1541,32 +1604,67 @@ public class SimpleTreeBuilder
 			node.leftSibling = null;
 			
 			SimpleTreeNode rootNode = this.getRoot();
-			rootNode = SimpleTreeNode.getRight(rootNode);
-			rootNode.rightSibling = node;
-			node.leftSibling = rootNode;
+			if(rootNode != null) {
+				rootNode = SimpleTreeNode.getRight(rootNode);
+				rootNode.rightSibling = node;
+				node.leftSibling = rootNode;
+			}
 			
-			return null;
+			return node;
 		}
 	}
 	
 	private void unfilterTreeNode(SimpleTreeNode instance) {
-		TreeNode foundNode = this.getNode((ISEMOSSNode)instance.leaf);
+//		TreeNode foundNode = this.getNode((ISEMOSSNode)instance.leaf);
 		
-		if(foundNode != null) {
-			//This should never return false
-			if(foundNode.filteredInstanceNode.remove(instance)) {
-				foundNode.instanceNode.add(instance);
-			}
-			
-			if(instance.rightSibling!=null) {
-				unfilterTreeNode(instance.rightSibling);
-			}
-			if(instance.leftChild!=null) {
-				unfilterTreeNode(instance.leftChild);
+//		if(foundNode != null) {
+//			//This should never return false
+//			if(foundNode.filteredInstanceNode.remove(instance)) {
+//				foundNode.instanceNode.add(instance);
+//			}
+//			
+//			if(instance.rightSibling!=null) {
+//				unfilterTreeNode(instance.rightSibling);
+//			}
+//			if(instance.leftChild!=null) {
+//				unfilterTreeNode(instance.leftChild);
+//			}
+//		}
+
+		//for each simple tree node in the subtree with root 'instance'
+		//unfilter that node from the index tree
+		Iterator<SimpleTreeNode> iterator = new ValueTreeIterator(instance);
+		while(iterator.hasNext()) {
+			SimpleTreeNode nextNode = iterator.next();
+			TreeNode foundNode = this.getNode((ISEMOSSNode)nextNode.leaf);
+			if(foundNode.filteredInstanceNode.remove(nextNode)) {
+				foundNode.instanceNode.add(nextNode);
 			}
 		}
 	}
 
+	private void unfilterTreeNode(SimpleTreeNode instance, boolean firstLevel) {
+		TreeNode foundNode = this.getNode((ISEMOSSNode)instance.leaf);
+		
+		if(foundNode != null) {
+		
+			//Need to manually clear the instannceNode list for the first level to avoid concurrentModificationException
+			//if(!firstLevel) {
+				if(foundNode.filteredInstanceNode.remove(instance)) {
+					foundNode.instanceNode.add(instance);
+				}
+			//}
+			
+			if(!firstLevel && instance.rightSibling!=null) {
+				unfilterTreeNode(instance.rightSibling, false);
+			}
+			
+			if(instance.leftChild!=null) {
+				unfilterTreeNode(instance.leftChild, false);
+			}
+		}
+	}
+	
 	public boolean isFiltered(SimpleTreeNode node) {
 		TreeNode tnode = this.getNode(((ISEMOSSNode)node.leaf));
 		boolean filtered = false;
