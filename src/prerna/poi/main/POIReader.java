@@ -354,13 +354,15 @@ public class POIReader extends AbstractFileReader {
 			int startCol = 1;
 			int offset = 1;
 			if (sheetType.equalsIgnoreCase("Relation")) {
-				nextRow.getCell(2).setCellType(XSSFCell.CELL_TYPE_STRING);
-				XSSFCell instanceObjectNodeCell = nextRow.getCell(2);
-				if (instanceObjectNodeCell != null && instanceObjectNodeCell.getCellType() != XSSFCell.CELL_TYPE_BLANK
-						&& !instanceObjectNodeCell.toString().isEmpty()) {
-					instanceObjectNode = nextRow.getCell(2).getStringCellValue();
-				} else {
-					continue;
+				if(nextRow.getCell(2) != null) {
+					nextRow.getCell(2).setCellType(XSSFCell.CELL_TYPE_STRING);
+					XSSFCell instanceObjectNodeCell = nextRow.getCell(2);
+					if (instanceObjectNodeCell != null && instanceObjectNodeCell.getCellType() != XSSFCell.CELL_TYPE_BLANK
+							&& !instanceObjectNodeCell.toString().isEmpty()) {
+						instanceObjectNode = nextRow.getCell(2).getStringCellValue();
+					} else {
+						continue;
+					}
 				}
 				startCol++;
 				offset++;
