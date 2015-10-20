@@ -189,8 +189,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
     }
     
 	private void createDatabase(String engineName){
-		String createDB = "CREATE DATABASE " + engineName;
-		insertData(createDB);
+		insertData(SQLQueryUtil.initialize(dbType).getDialectCreateDatabase(engineName));
 	}
 	
 	@Override

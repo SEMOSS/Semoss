@@ -326,16 +326,21 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 						instance = "";
 					}
 					instance.replaceAll("'", "''");
-					if(filterIndex == 0){
-						currentFilters += " ( ";
+
+					if(filterIndex%1000==0){
+						if(filterIndex == 0){
+							currentFilters += " ( ";
+						} else {
+							currentFilters += " ) OR ";
+						}
+						currentFilters += columnValue + " IN ( ";
 					} else {
-						currentFilters += " OR ";
+						currentFilters += " , " ;
 					}
-					
-					//String prefix = queryUtil.getDialectCaseSensitiveSearchPrefix();					
-					currentFilters += columnValue + " = '" + instance + "'";
+					currentFilters +=  "'" + instance + "'" ;
 				}
 				if(currentFilters.length() > 0){
+					currentFilters+=")";// close your last in clause
 					if(filters.length() > 0)// if we already have a filter on a column, add the AND clause before appending our new filter
 						filters+= " AND ";
 					filters += currentFilters + " ) ";
