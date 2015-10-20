@@ -364,6 +364,7 @@ public interface ITableDataFrame {
 	 */
 	void unfilter(String columnHeader);
 
+	void unfilter(String columnHeader, List<Object> unfilterValues);
 	/**
 	 * Unfilter all columns for the data frame
 	 */
