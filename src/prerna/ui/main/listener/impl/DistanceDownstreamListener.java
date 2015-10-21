@@ -29,15 +29,13 @@ package prerna.ui.main.listener.impl;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Hashtable;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import edu.uci.ics.jung.graph.DelegateForest;
 import prerna.algorithm.impl.DistanceDownstreamProcessor;
-import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 
@@ -69,12 +67,11 @@ public class DistanceDownstreamListener implements ActionListener {
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		//get the forest
-		GraphDataModel gdm = ps.gdm;
+		DelegateForest forest = ps.forest;
 		
 		DistanceDownstreamProcessor pro = new DistanceDownstreamProcessor();
-		pro.setGraphDataModel(gdm);
-		ArrayList<SEMOSSVertex> verts = new ArrayList<SEMOSSVertex>(Arrays.asList(pickedVertex));
-		pro.setSelectedNodes(verts);
+		pro.setForest(forest);
+		pro.setSelectedNodes(pickedVertex);
 		pro.setPlaySheet(ps);
 	
 		pro.execute();

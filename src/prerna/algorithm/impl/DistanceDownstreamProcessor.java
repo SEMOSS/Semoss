@@ -36,8 +36,8 @@ import javax.swing.JInternalFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
+import edu.uci.ics.jung.graph.DelegateForest;
 import prerna.algorithm.api.IAlgorithm;
-import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.GridFilterData;
@@ -52,7 +52,7 @@ import prerna.util.Constants;
  */
 public class DistanceDownstreamProcessor implements IAlgorithm {
 
-	protected GraphDataModel gdm = null;
+	protected DelegateForest forest = null;
 	protected ArrayList<SEMOSSVertex> selectedVerts = new ArrayList<SEMOSSVertex>();
 	GridFilterData gfd = new GridFilterData();
 	protected GraphPlaySheet playSheet;
@@ -93,7 +93,7 @@ public class DistanceDownstreamProcessor implements IAlgorithm {
 		}
 		else{
 			selectedNodes = "All";
-			currentNodes.addAll(gdm.getVertStore().values());
+			currentNodes.addAll(forest.getRoots());
 		}
 		
 		
@@ -147,15 +147,15 @@ public class DistanceDownstreamProcessor implements IAlgorithm {
 	
 	/**
 	 * Traverses downward from the nodes.
-	 * @param vert SEMOSSVertex						A single vertex.
+	 * @param vert DBCMVertex						A single vertex.
 	 * @param levelIndex int						Level index.
-	 * @param parentPath ArrayList<SEMOSSVertex>		List of path distances.
-	 * @param parentEdgePath ArrayList<SEMOSSVertex>	List of edge paths.
+	 * @param parentPath ArrayList<DBCMVertex>		List of path distances.
+	 * @param parentEdgePath ArrayList<DBCMEdge>	List of edge paths.
 	
 	 * @return ArrayList<DBCMVertex> 				Vert array. Used to calculate network value in DistanceDownstreamInserter. */
 	public ArrayList<SEMOSSVertex> traverseDownward(SEMOSSVertex vert, int levelIndex, ArrayList<SEMOSSVertex> parentPath, ArrayList<SEMOSSEdge> parentEdgePath){
 		ArrayList<SEMOSSVertex> vertArray = new ArrayList<SEMOSSVertex>();
-		Collection<SEMOSSEdge> edgeArray = vert.getOutEdges();
+		Collection<SEMOSSEdge> edgeArray = forest.getOutEdges(vert);
 		for (SEMOSSEdge edge: edgeArray){
 			SEMOSSVertex inVert = edge.inVertex;
 			if(!masterHash.containsKey(inVert)) {
@@ -189,23 +189,25 @@ public class DistanceDownstreamProcessor implements IAlgorithm {
 	 * Sets the forest.
 	 * @param f DelegateForest		Forest that is set.
 	 */
-	public void setGraphDataModel(GraphDataModel g){
-		gdm = g;
+	public void setForest(DelegateForest f){
+		forest = f;
 	}
 	
 	/**
 	 * Sets selected nodes.
 	 * @param pickedVertices DBCMVertex[]		Array of picked vertices to be set.
 	 */
-	public void setSelectedNodes(ArrayList<SEMOSSVertex> pickedVertices) {
-		selectedVerts.addAll(pickedVertices);
+	public void setSelectedNodes(SEMOSSVertex[] pickedVertices){
+		for (int idx = 0; idx< pickedVertices.length ; idx++){
+			selectedVerts.add(pickedVertices[idx]);
+		}
 	}
 	
 	/**
 	 * Iterates through the roots and adds them to the array list of selected vertices.
 	 */
 	public void setRootNodesAsSelected(){
-		Collection roots = gdm.getVertStore().values();
+		Collection roots = forest.getRoots();
 		Iterator<SEMOSSVertex> rootsIt = roots.iterator();
 		while (rootsIt.hasNext()){
 			selectedVerts.add(rootsIt.next());
@@ -219,7 +221,7 @@ public class DistanceDownstreamProcessor implements IAlgorithm {
 	
 	 * @return boolean					True if the picked vertex matches */
 	public boolean addSelectedNode(String pickedVertex, int position){
-		Collection<SEMOSSVertex> vertices = gdm.getVertStore().values();
+		Collection<SEMOSSVertex> vertices = forest.getVertices();
 		for(SEMOSSVertex vert : vertices){
 			if(pickedVertex.equals(vert.uri)){
 				selectedVerts.add(position, vert);
