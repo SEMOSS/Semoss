@@ -37,10 +37,10 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.URI;
 
+import edu.uci.ics.jung.graph.DelegateForest;
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
-import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -91,12 +91,12 @@ public class DistanceDownstreamInserter {
 			Hashtable<String, String> paramHash = new Hashtable<String, String>();
 			paramHash.put("Data-Data", dataObjectString);
 			String query = Utility.fillParam(unfilledQuery, paramHash);
-			GraphDataModel g = new GraphDataModel();
-			g = createGraphDataModel(query);
+			DelegateForest<SEMOSSVertex, SEMOSSEdge> dataForest = new DelegateForest<SEMOSSVertex, SEMOSSEdge>();
+			dataForest = createForest(query);
 
 			DistanceDownstreamProcessor processor = new DistanceDownstreamProcessor();
 			//now set everything in DistanceDownstreamProcessor and let that buddy run
-			processor.setGraphDataModel(g);
+			processor.setForest(dataForest);
 			processor.setRootNodesAsSelected();
 
 			System.out.println("SET SELECTED ::::::::::::::::::::::::::::::::::::::::: " + processor.addSelectedNode(dataObjectString, 0));	//need to make sure that creators first have the chance to go from data object directly
@@ -300,12 +300,11 @@ public class DistanceDownstreamInserter {
 	
 	/**
 	 * Creates the forest.
-	 * @param query String								Query needed to create the GraphDataModel
+	 * @param query String								Query needed to create the forest
 	
-	 * @return GraphDataModel		Forest, comprised of vertices and edges. */
-	public GraphDataModel createGraphDataModel(String query) {
+	 * @return DelegateForest<SEMOSSVertex, SEMOSSEdge>		Forest, comprised of vertices and edges. */
+	public DelegateForest<SEMOSSVertex, SEMOSSEdge> createForest(String query) {
 		//run query
-		GraphDataModel gdm = new GraphDataModel();
 		IConstructWrapper sjw = WrapperManager.getInstance().getCWrapper(engine, query);
 
 		/*SesameJenaConstructWrapper sjw = new SesameJenaConstructWrapper();
@@ -317,7 +316,7 @@ public class DistanceDownstreamInserter {
 		//this is pretty much directly from GraphPlaySheet CreateForest().  I removed Jena Model and Control Data though
 		logger.info("Creating Forest >>>>>");
 
-		//DelegateForest<SEMOSSVertex, SEMOSSEdge> forest = new DelegateForest<SEMOSSVertex, SEMOSSEdge>();
+		DelegateForest<SEMOSSVertex, SEMOSSEdge> forest = new DelegateForest<SEMOSSVertex, SEMOSSEdge>();
 		Properties rdfMap = DIHelper.getInstance().getRdfMap();
 
 		createBaseURIs();
@@ -369,12 +368,10 @@ public class DistanceDownstreamInserter {
 			
 			// add the edge now if the edge does not exist
 			// need to handle the duplicate issue again
-			//forest.addEdge(edge, vertStore.get(sct.getSubject()+""), vertStore.get(sct.getObject()+""));
+			forest.addEdge(edge, vertStore.get(sct.getSubject()+""), vertStore.get(sct.getObject()+""));
 		}
-		gdm.setEdgeStore(edgeStore);
-		gdm.setVertStore(vertStore);
 		logger.info("Creating Forest Complete >>>>>> ");
-		return gdm;
+		return forest;
 	}
 	
 	/**
