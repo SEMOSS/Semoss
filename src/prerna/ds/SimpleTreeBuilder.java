@@ -1372,7 +1372,7 @@ public class SimpleTreeBuilder
 		}
 		
 		//if parent node exists and parent node has no left children, filter that parent too but just that parent
-		while(parentNode != null && SimpleTreeNode.countNodeChildren(parentNode)==0) {
+		if(parentNode != null && SimpleTreeNode.countNodeChildren(parentNode)==0) {
 			filterSimpleTreeNode(parentNode);
 			filterTreeNode(parentNode);
 			parentNode = parentNode.parent;
