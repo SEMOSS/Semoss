@@ -34,10 +34,12 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -278,6 +280,13 @@ public class BTreeDataFrame implements ITableDataFrame {
 		LOGGER.info("Analytics Routine ::: " + routine.getName());
 		LOGGER.info("Begining join on columns ::: " + colNameInTable + " and " + colNameInJoiningTable);
 
+		if(this.isEmpty()) {
+			LOGGER.info("this table is empty, join halted");
+			return;
+		} else if(table.isEmpty()) {
+			LOGGER.info("Table Argument is empty, could not join");
+			return;
+		}
 		//TODO: improve logic.. add error handling
 		if(!ArrayUtilityMethods.arrayContainsValue(this.levelNames, colNameInTable)) {
 			colNameInTable = colNameInTable.toUpperCase();
@@ -1332,7 +1341,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 			LOGGER.info("Table is empty............................");
 			return new Object[0];
 		}
-		typeRoot = typeRoot.getLeft(typeRoot);
+		typeRoot = TreeNode.getLeft(typeRoot);
 		List<Object> table = typeRoot.flattenRawToArray(typeRoot, true);
 		
 
@@ -1451,6 +1460,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		for(Object o: filterValues) {
 			this.simpleTree.unfilterTree(this.createNodeObject(o, o, columnHeader));
 		}
+
 	}
 	
 	@Override
@@ -1461,7 +1471,16 @@ public class BTreeDataFrame implements ITableDataFrame {
 		long startTime = System.currentTimeMillis();
 		
 		columnHeader = this.getColumnName(columnHeader);
-		this.simpleTree.unfilterColumn(columnHeader);
+		IndexTreeIterator iterator = new IndexTreeIterator(this.simpleTree.nodeIndexHash.get(columnHeader));
+		while(iterator.hasNext()) {
+			TreeNode t = iterator.next();
+			if(t.instanceNode.size() == 0) {
+				Object o = t.leaf.getValue();
+				this.simpleTree.unfilterTree(this.createNodeObject(o, o, columnHeader));
+			}
+		}
+
+//		this.simpleTree.unfilterColumn(columnHeader);
 		
 		LOGGER.info("unfiltered Column: " +columnHeader+", "+ (System.currentTimeMillis() - startTime)+" ms");
 	}

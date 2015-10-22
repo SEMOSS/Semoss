@@ -1295,8 +1295,8 @@ public class SimpleTreeBuilder
 			//for each SimpleTreeNode with the value of objectToFilter
 			//first filter the value tree, then filter the index tree
 			for(SimpleTreeNode n: nodeList) {
-				SimpleTreeNode filteredNode = filterSimpleTreeNode(n);
-				filterTreeNode(filteredNode, true);
+				filterSimpleTreeNode(n);
+				filterTreeNode(n, true);
 			}
 		}
 	}
@@ -1304,37 +1304,16 @@ public class SimpleTreeBuilder
 	/**
 	 * 
 	 * @param node2filter
-	 * @return - the root of the subtree that was filtered
 	 * 
 	 * This method filters node2filter from the value tree
 	 * In the case where node2filter's parent has one child (node2filter), node2filter's parent is filtered, etc
 	 */
-	private SimpleTreeNode filterSimpleTreeNode(SimpleTreeNode node2filter) {
+	private void filterSimpleTreeNode(SimpleTreeNode node2filter) {
 		
-		//grab the highest root that is necessary to filter this sub tree
-		boolean getParent = node2filter.parent != null;
-		SimpleTreeNode parentNode;
-		while(getParent) {
-			parentNode = node2filter.parent;
-			if(SimpleTreeNode.hasOneChild(parentNode)) {
-				node2filter = parentNode;
-				getParent = node2filter.parent != null;
-			} else {
-				getParent = false;
-			}
-		}
-		
-		final SimpleTreeNode returnNode = node2filter;
-		//TODO: simplify logic
-		parentNode = node2filter.parent;
+		SimpleTreeNode parentNode = node2filter.parent;
 		boolean root = (parentNode == null);
 		
-//		if(!root) {
-//			if(SimpleTreeNode.countNodeChildren(parentNode)==1) {
-//				return filterSimpleTreeNode(parentNode);
-//			}
-//		}
-		
+		//Grab the siblings
 		SimpleTreeNode nodeRightSibling = node2filter.rightSibling;
 		SimpleTreeNode nodeLeftSibling = node2filter.leftSibling;
 		
@@ -1361,31 +1340,26 @@ public class SimpleTreeBuilder
 			}
 		}
 		
+		//Isolate the node from the siblings
 		node2filter.rightSibling = null;
 		node2filter.leftSibling = null;
 		
-		//put the node2filter on the right side or attach to filtered root node if root
+		//If node is root level, attach to filteredRoot
 		if(root) {
 			if(filteredRoot == null) {
 				filteredRoot = node2filter;
 			} else {
-//				SimpleTreeNode rightFilteredNode = SimpleTreeNode.getRight(filteredRoot);
-//				rightFilteredNode.rightSibling = node2filter;
-//				node2filter.leftSibling = rightFilteredNode;
-				
 				filteredRoot.leftSibling = node2filter;
 				node2filter.rightSibling = filteredRoot;
 				filteredRoot = node2filter;
 			}
-		} else {
+		} 
+		
+		//otherwise put node2filter on the right side of the parent
+		else {
 			if(parentNode.rightChild == null) {
 				parentNode.rightChild = node2filter;
 			} else {
-//				SimpleTreeNode rightFilteredChild = parentNode.rightChild;
-//				rightFilteredChild = SimpleTreeNode.getRight(rightFilteredChild);
-//				rightFilteredChild.rightSibling = node2filter;
-//				node2filter.leftSibling = rightFilteredChild;
-				
 				SimpleTreeNode rightFilteredChild = parentNode.rightChild;
 				node2filter.leftSibling = rightFilteredChild;
 				SimpleTreeNode nextRight = rightFilteredChild.rightSibling;
@@ -1397,31 +1371,62 @@ public class SimpleTreeBuilder
 			}
 		}
 		
-		return returnNode;
+		//if parent node exists and parent node has no left children, filter that parent too but just that parent
+		while(parentNode != null && SimpleTreeNode.countNodeChildren(parentNode)==0) {
+			filterSimpleTreeNode(parentNode);
+			filterTreeNode(parentNode);
+			parentNode = parentNode.parent;
+		}
 	}
 	
+	/**
+	 * 
+	 * @param instance2filter - the root of the sub tree to filter
+	 * @param firstLevel - indicates whether the call refers to the first level call
+	 * 
+	 * filters a subtree from the value tree with root 'instance2filter' from the index trees
+	 * will not filter the siblings of instance2filter
+	 */
 	private void filterTreeNode(SimpleTreeNode instance2filter, boolean firstLevel) {
 		
 		TreeNode foundNode = this.getNode((ISEMOSSNode)instance2filter.leaf);
 		
 		if(foundNode != null) {
 		
-			//Need to manually clear the instannceNode list for the first level to avoid concurrentModificationException
-			//if(!firstLevel) {
-				if(foundNode.instanceNode.remove(instance2filter)) {
-					foundNode.filteredInstanceNode.add(instance2filter);
-				}
-			//}
+			//filter the node
+			if(foundNode.instanceNode.remove(instance2filter)) {
+				foundNode.filteredInstanceNode.add(instance2filter);
+			}
 			
+			//filter the sibling if not in the first level
 			if(!firstLevel && instance2filter.rightSibling!=null) {
 				filterTreeNode(instance2filter.rightSibling, false);
 			}
 			
+			//filter the left child
+			//filtering the right child not necessary because the right child is already filtered
 			if(instance2filter.leftChild!=null) {
 				filterTreeNode(instance2filter.leftChild, false);
 			}
 		}
 	}
+	
+	/**
+	 * 
+	 * @param instance2filter - the single node to filter
+	 * 
+	 * filters a single node from its corresponding index tree
+	 */
+	private void filterTreeNode(SimpleTreeNode instance2filter) {
+		TreeNode foundNode = this.getNode((ISEMOSSNode)instance2filter.leaf);
+		
+		if(foundNode != null) {
+			if(foundNode.instanceNode.remove(instance2filter)) {
+				foundNode.filteredInstanceNode.add(instance2filter);
+			}
+		}
+	}
+	
 	
 	public void unfilterColumn(String column) {
 		
@@ -1440,7 +1445,7 @@ public class SimpleTreeBuilder
 				///SimpleTreeNode root = this.getRoot();
 				root = SimpleTreeNode.getRight(root);
 				
-				unfilterTreeNode(filteredRoot);
+				unfilterTreeNode(filteredRoot, true);
 				root.rightSibling = filteredRoot;
 				filteredRoot.leftSibling = root;
 				
@@ -1476,7 +1481,7 @@ public class SimpleTreeBuilder
 					SimpleTreeNode leftChild = simpleTree.leftChild;
 					SimpleTreeNode rightChild = simpleTree.rightChild;
 					
-					unfilterTreeNode(simpleTree.rightChild);
+					unfilterTreeNode(simpleTree.rightChild, true);
 					
 					if(leftChild==null) {
 						simpleTree.leftChild = rightChild;
@@ -1491,14 +1496,19 @@ public class SimpleTreeBuilder
 			
 			FilteredValueTreeColumnIterator fiterator = new FilteredValueTreeColumnIterator(unfilterIndexTree);
 			while(fiterator.hasNext()) {
-				SimpleTreeNode unfilteredNode = unfilterSimpleTreeNode(fiterator.next());
+				SimpleTreeNode unfilteredNode = fiterator.next(); 
+				unfilterSimpleTreeNode(unfilteredNode);
 				if(unfilteredNode != null) {
-					unfilterTreeNode(unfilteredNode);
+					unfilterTreeNode(unfilteredNode, true);
 				}
 			}
 		}
 	}
 	
+	/**
+	 * 
+	 * @param objectToFilter - object to unfilter
+	 */
 	public void unfilterTree(ITreeKeyEvaluatable objectToFilter) {
 		//find the TreeNode associated with the object's value
 		TreeNode foundNode = this.getNode((ISEMOSSNode)objectToFilter);
@@ -1513,147 +1523,221 @@ public class SimpleTreeBuilder
 			//for each SimpleTreeNode with the value of objectToFilter
 			//first filter the value tree, then filter the index tree
 			for(SimpleTreeNode n: nodeList) {
-				SimpleTreeNode filteredNode = unfilterSimpleTreeNode(n);
-				unfilterTreeNode(filteredNode, true);
+				boolean unfilteredNode = unfilterSimpleTreeNode(n);
+				if(unfilteredNode) {
+					unfilterTreeNode(n, true);
+				}
 			}
 		}
 	}
 	
-	private SimpleTreeNode unfilterSimpleTreeNode(SimpleTreeNode node) {
-		SimpleTreeNode parentNode = node.parent;
-		//convert from recursive to iterative
-//		while(parentNode != null && SimpleTreeNode.hasOneChild(parentNode)) {
-//			node = parentNode;
-//			parentNode = parentNode.parent;
-//		}
-		boolean root = (parentNode==null);
+	private boolean unfilterSimpleTreeNode(SimpleTreeNode node2filter) {
+		SimpleTreeNode parentNode = node2filter.parent;
+		boolean root = (parentNode == null);
+		if(!root && isFiltered(parentNode)) {
+			return false;
+		}
 		
-		if(!root) {
-			if(SimpleTreeNode.hasOneChild(parentNode) && isFiltered(parentNode)) {
-				return unfilterSimpleTreeNode(parentNode);
+		//Grab the siblings
+		if(root || (parentNode.leftChild != node2filter)) {
+			SimpleTreeNode nodeRightSibling = node2filter.rightSibling;
+			SimpleTreeNode nodeLeftSibling = node2filter.leftSibling;
+			
+			//isolate node2filter from siblings and rewire the connections
+			if(node2filter.rightSibling != null && node2filter.leftSibling != null) {
+				//in the middle
+				nodeRightSibling.leftSibling = nodeLeftSibling;
+				nodeLeftSibling.rightSibling = nodeRightSibling;	
 			} 
-			else {
-				
-				SimpleTreeNode nodeRightSibling = node.rightSibling;
-				SimpleTreeNode nodeLeftSibling = node.leftSibling;
-				
-				//isolate node2filter from siblings and rewire the connections
-				if(node.rightSibling != null && node.leftSibling != null) {
-					//in the middle
-					nodeRightSibling.leftSibling = nodeLeftSibling;
-					nodeLeftSibling.rightSibling = nodeRightSibling;	
-				} 
-				else if(node.rightSibling == null && node.leftSibling != null) {
-					//right most
-					nodeLeftSibling.rightSibling = null;
-				} 
-				else if(node.rightSibling != null && node.leftSibling == null) {
-					//left most
-					if(!root) {
-						parentNode.rightChild = nodeRightSibling;
-					}
-					nodeRightSibling.leftSibling = null;
-				} else {
-					//only child
-					parentNode.leftChild = null;
-				}
-				
-				node.rightSibling = null;
-				node.leftSibling = null;
-				
-				if(parentNode.leftChild==null) {
-					parentNode.leftChild = node;
-				} else {
-					//TODO: attach to beginning of list
-					SimpleTreeNode rightMostLeftChild = SimpleTreeNode.getRight(node);
-					rightMostLeftChild.rightSibling = node;
-					node.leftSibling = rightMostLeftChild;
-				}
-				
-				if(this.isFiltered(parentNode)) {
-					return null;
-				}
-				else {
-					return parentNode;
-				}
-			}
-		} 
-		else {
-			//in the case the node is a root
-			
-			SimpleTreeNode rightSibling = node.rightSibling;
-			SimpleTreeNode leftSibling = node.leftSibling;
-			
-			if(rightSibling!=null && leftSibling != null) {
-				//middle
-				leftSibling.rightSibling = rightSibling;
-				rightSibling.leftSibling = leftSibling;
-			} else if(rightSibling==null && leftSibling != null) {
+			else if(node2filter.rightSibling == null && node2filter.leftSibling != null) {
 				//right most
-				leftSibling.rightSibling = null;
-			} else if(leftSibling==null && rightSibling != null) {
+				nodeLeftSibling.rightSibling = null;
+			} 
+			else if(node2filter.rightSibling != null && node2filter.leftSibling == null) {
 				//left most
-				filteredRoot = rightSibling;
-				rightSibling.leftSibling = null;
+				if(!root) {
+					parentNode.rightChild = nodeRightSibling;
+				}
+				nodeRightSibling.leftSibling = null;
 			} else {
-				//only one
-				filteredRoot = null;
+				//only child
+				if(!root) {
+					parentNode.rightChild = null;
+				}
 			}
 			
-			node.rightSibling = null;
-			node.leftSibling = null;
+			//Isolate the node from the siblings
+			node2filter.rightSibling = null;
+			node2filter.leftSibling = null;
 			
-			SimpleTreeNode rootNode = this.getRoot();
-			if(rootNode != null) {
-				rootNode = SimpleTreeNode.getRight(rootNode);
-				rootNode.rightSibling = node;
-				node.leftSibling = rootNode;
+			//If node is root level, attach to filteredRoot
+			if(root) {
+				
+				if(filteredRoot == node2filter) {
+					filteredRoot = nodeRightSibling;
+				}
+			} 
+			
+			//otherwise put node2filter on the right side of the parent
+			else {
+				if(parentNode.leftChild == null) {
+					parentNode.leftChild = node2filter;
+				} else {
+					SimpleTreeNode leftChild = parentNode.leftChild;
+					node2filter.leftSibling = leftChild;
+					SimpleTreeNode nextRight = leftChild.rightSibling;
+					leftChild.rightSibling = node2filter;
+					if(nextRight != null) {
+						nextRight.leftSibling = node2filter;
+						node2filter.rightSibling = nextRight;
+					}
+				}
 			}
-			
-			return node;
+		}
+		
+		//make this recursive so all children are unfiltered
+		unfilterSimpleTreeNodeChildren(node2filter, true);
+		
+		//move right children to left, repeat for each child
+		
+		return true;
+	}
+	
+	private void unfilterSimpleTreeNodeChildren(SimpleTreeNode root, boolean firstLevel) {
+		if(root.rightChild != null) {
+			if(root.leftChild == null) {
+				root.leftChild = root.rightChild;
+			} else {
+				SimpleTreeNode rightMostLeftChild = SimpleTreeNode.getRight(root.leftChild);
+				rightMostLeftChild.rightSibling = root.rightChild;
+				root.rightChild.leftSibling = rightMostLeftChild;
+			}
+			root.rightChild = null;
+		}
+		
+		if(!firstLevel && root.rightSibling != null) {
+			unfilterSimpleTreeNodeChildren(root.leftChild, false);
+		}
+		
+		if(root.leftChild != null) {
+			unfilterSimpleTreeNodeChildren(root.leftChild, false);
 		}
 	}
 	
-	private void unfilterTreeNode(SimpleTreeNode instance) {
-//		TreeNode foundNode = this.getNode((ISEMOSSNode)instance.leaf);
-		
-//		if(foundNode != null) {
-//			//This should never return false
-//			if(foundNode.filteredInstanceNode.remove(instance)) {
-//				foundNode.instanceNode.add(instance);
+//	private SimpleTreeNode unfilterSimpleTreeNode(SimpleTreeNode node) {
+//		SimpleTreeNode parentNode = node.parent;
+//		//convert from recursive to iterative
+////		while(parentNode != null && SimpleTreeNode.hasOneChild(parentNode)) {
+////			node = parentNode;
+////			parentNode = parentNode.parent;
+////		}
+//		boolean root = (parentNode==null);
+//		SimpleTreeNode nodeRightSibling = node.rightSibling;
+//		SimpleTreeNode nodeLeftSibling = node.leftSibling;
+//		
+//		if(!root) {
+//			
+//			//isolate node2filter from siblings and rewire the connections
+//			if(node.rightSibling != null && node.leftSibling != null) {
+//				//in the middle
+//				nodeRightSibling.leftSibling = nodeLeftSibling;
+//				nodeLeftSibling.rightSibling = nodeRightSibling;	
+//			} 
+//			else if(node.rightSibling == null && node.leftSibling != null) {
+//				//right most
+//				nodeLeftSibling.rightSibling = null;
+//			} 
+//			else if(node.rightSibling != null && node.leftSibling == null) {
+//				//left most
+//				if(!root) {
+//					parentNode.rightChild = nodeRightSibling;
+//				}
+//				nodeRightSibling.leftSibling = null;
+//			} else {
+//				//only child
+//				parentNode.leftChild = null;
 //			}
 //			
-//			if(instance.rightSibling!=null) {
-//				unfilterTreeNode(instance.rightSibling);
+//			node.rightSibling = null;
+//			node.leftSibling = null;
+//			
+//			if(parentNode.leftChild==null) {
+//				parentNode.leftChild = node;
+//			} else {
+//				//TODO: attach to beginning of list
+//				SimpleTreeNode rightMostLeftChild = SimpleTreeNode.getRight(node);
+//				rightMostLeftChild.rightSibling = node;
+//				node.leftSibling = rightMostLeftChild;
 //			}
-//			if(instance.leftChild!=null) {
-//				unfilterTreeNode(instance.leftChild);
+//			
+//			if(SimpleTreeNode.hasOneChild(parentNode) && isFiltered(parentNode)) {
+//				return unfilterSimpleTreeNode(parentNode);
+//			} else if(isFiltered(parentNode)) {
+//				return null;
+//			} else {
+//				return node;
 //			}
+//		} 
+//		else {
+//			//in the case the node is a root
+//			
+//			if(nodeRightSibling!=null && nodeLeftSibling != null) {
+//				//middle
+//				nodeLeftSibling.rightSibling = nodeRightSibling;
+//				nodeRightSibling.leftSibling = nodeLeftSibling;
+//			} else if(nodeRightSibling==null && nodeLeftSibling != null) {
+//				//right most
+//				nodeLeftSibling.rightSibling = null;
+//			} else if(nodeLeftSibling==null && nodeRightSibling != null) {
+//				//left most
+//				filteredRoot = nodeRightSibling;
+//				nodeRightSibling.leftSibling = null;
+//			} else {
+//				//only one
+//				filteredRoot = null;
+//			}
+//			
+//			node.rightSibling = null;
+//			node.leftSibling = null;
+//			
+//			SimpleTreeNode rootNode = this.getRoot();
+//			if(rootNode != null) {
+//				rootNode = SimpleTreeNode.getRight(rootNode);
+//				rootNode.rightSibling = node;
+//				node.leftSibling = rootNode;
+//			}
+//			
+//			return node;
 //		}
-
-		//for each simple tree node in the subtree with root 'instance'
-		//unfilter that node from the index tree
-		Iterator<SimpleTreeNode> iterator = new ValueTreeIterator(instance);
-		while(iterator.hasNext()) {
-			SimpleTreeNode nextNode = iterator.next();
-			TreeNode foundNode = this.getNode((ISEMOSSNode)nextNode.leaf);
-			if(foundNode.filteredInstanceNode.remove(nextNode)) {
-				foundNode.instanceNode.add(nextNode);
+//	}
+	
+	/**
+	 * 
+	 * @param instance
+	 */
+	private void unfilterTreeNode(SimpleTreeNode instance) {		
+		TreeNode foundNode = this.getNode((ISEMOSSNode)instance.leaf);
+		
+		if(foundNode != null) {
+			if(foundNode.filteredInstanceNode.remove(instance)) {
+				foundNode.instanceNode.add(instance);
 			}
 		}
 	}
 
+	/**
+	 * 
+	 * @param instance
+	 * @param firstLevel
+	 */
 	private void unfilterTreeNode(SimpleTreeNode instance, boolean firstLevel) {
 		TreeNode foundNode = this.getNode((ISEMOSSNode)instance.leaf);
 		
 		if(foundNode != null) {
 		
-			//Need to manually clear the instannceNode list for the first level to avoid concurrentModificationException
-			//if(!firstLevel) {
-				if(foundNode.filteredInstanceNode.remove(instance)) {
-					foundNode.instanceNode.add(instance);
-				}
-			//}
+			if(foundNode.filteredInstanceNode.remove(instance)) {
+				foundNode.instanceNode.add(instance);
+			}
 			
 			if(!firstLevel && instance.rightSibling!=null) {
 				unfilterTreeNode(instance.rightSibling, false);
@@ -1665,13 +1749,34 @@ public class SimpleTreeBuilder
 		}
 	}
 	
+	/**
+	 * 
+	 * @param node
+	 * @return true if node is filtered, false otherwise
+	 */
 	public boolean isFiltered(SimpleTreeNode node) {
+		//find the node in the index tree
 		TreeNode tnode = this.getNode(((ISEMOSSNode)node.leaf));
-		boolean filtered = false;
-		if(tnode.filteredInstanceNode.contains(node)) {
-			filtered = true;
+		
+		//Value does not exist
+		if(tnode == null) {
+			throw new IllegalArgumentException("Node with value "+node.leaf.getValue()+" does not exist");
 		}
-		return filtered;
+		
+		//if node is contained within its index tree's filteredInstanceNode vector then the node is filtered
+		if(tnode.filteredInstanceNode.contains(node)) {
+			return true;
+		} 
+		
+		//if the node is contained within its index tree's instanceNode vector then the node is NOT filtered
+		else if(tnode.instanceNode.contains(node)) {
+			return false;
+		} 
+		
+		//else node instance cannot be found
+		else {
+			throw new IllegalArgumentException("Node not found");
+		}
 	}
 	
 	
