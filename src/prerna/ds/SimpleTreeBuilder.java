@@ -1604,6 +1604,9 @@ public class SimpleTreeBuilder
 	}
 	
 	private void unfilterSimpleTreeNodeChildren(SimpleTreeNode root, boolean firstLevel) {
+		if(root == null) {
+			return;
+		}
 		if(root.rightChild != null) {
 			if(root.leftChild == null) {
 				root.leftChild = root.rightChild;
