@@ -2,7 +2,9 @@ package prerna.ds;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -48,5 +50,49 @@ public class TableDataFrameWebAdapter {
 			retData.addAll(iterator.next());
 		}
 		return retData;
+	}
+	
+	public static Object[] getRawFilterModel(ITableDataFrame table) {
+		
+		//Cast to Btree
+		BTreeDataFrame btable = (BTreeDataFrame)table;
+		
+		HashMap<String, Object[]> visibleValues = new HashMap<String, Object[]>();
+		HashMap<String, Object[]> invisibleValues = new HashMap<String, Object[]>();
+		
+		String[] levelNames = btable.getColumnHeaders();
+		
+		String root = levelNames[0];
+		visibleValues.put(root, btable.getUniqueRawValues(root));
+		invisibleValues.put(root, btable.getFilteredUniqueRawValues(root));
+		
+		for(int i = 0; i < levelNames.length - 1; i++) {
+			String column = levelNames[i];
+			
+			String grabColumn = levelNames[i+1];
+			visibleValues.put(grabColumn, btable.getUniqueRawValues(grabColumn));
+			
+			
+			ValueTreeColumnIterator iterator = new ValueTreeColumnIterator(btable.simpleTree.nodeIndexHash.get(column));
+			Set<String> invisibleValueSet = new HashSet<String>();
+			
+			while(iterator.hasNext()) {
+				SimpleTreeNode nextParent = iterator.next();
+				
+				SimpleTreeNode leftChild = nextParent.leftChild;
+				SimpleTreeNode rightChild = nextParent.rightChild;
+				
+				if(leftChild != null) {
+					while(rightChild != null) {
+						invisibleValueSet.add(rightChild.leaf.getRawValue().toString());
+						rightChild = rightChild.rightSibling;
+					}
+				}
+			}
+			
+			invisibleValues.put(grabColumn, invisibleValueSet.toArray());
+		}
+		
+		return new Object[]{visibleValues, invisibleValues};
 	}
 }
