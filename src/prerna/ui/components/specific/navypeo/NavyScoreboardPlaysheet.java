@@ -41,7 +41,7 @@ public class NavyScoreboardPlaysheet extends BrowserPlaySheet {
 			+ "BIND(<@System@> AS ?System)}";
 	
 	//Query for getting information from blank category systems
-	private static String blankCategoryQuery = "SELECT DISTINCT ?System ?CRA_Archtype ?CRA_Category ?Prefix ?Value ?Suffix ?CRA_Assessment ((?Risk)*(?Assessment) AS ?Score) WHERE{		"
+	private static String blankCategoryQuery = "SELECT DISTINCT ?System ?CRA_Archtype ?CRA_Category ?Prefix ?Value ?Suffix ?CRA_Assessment ((?Rank)*(?Assessment) AS ?Score) WHERE{		"
 			+ "{?System a <http://semoss.org/ontologies/Concept/System>}	"
 			+ "{?System <http://semoss.org/ontologies/Relation/HasCRA> ?CRA_Value}	"
 			+ "{?System <http://semoss.org/ontologies/Relation/Contains/NeedsAssessment> 'Yes'}	"
@@ -53,9 +53,9 @@ public class NavyScoreboardPlaysheet extends BrowserPlaySheet {
 			+ "{?CRA_Assessment <http://semoss.org/ontologies/Relation/Contains/Assessment_Value> ?Assessment}	"
 			+ "{?CRA_Category a <http://semoss.org/ontologies/Concept/CRA_Category>}	"
 			+ "{?CRA_Category <http://semoss.org/ontologies/Relation/Contain> ?CRA_Value}	"
-			+ "{?CRA_Risk a <http://semoss.org/ontologies/Concept/CRA_Risk>}	"
-			+ "{?CRA_Category <http://semoss.org/ontologies/Relation/AssessedAs> ?CRA_Risk}	"
-			+ "{?CRA_Risk <http://semoss.org/ontologies/Relation/Contains/Risk_Value> ?Risk}	"
+			+ "{?CRA_Rank a <http://semoss.org/ontologies/Concept/CRA_Rank>}	"
+			+ "{?CRA_Category <http://semoss.org/ontologies/Relation/AssessedAs> ?CRA_Rank}	"
+			+ "{?CRA_Rank <http://semoss.org/ontologies/Relation/Contains/Rank_Value> ?Rank}	"
 			+ "{?CRA_Category <http://semoss.org/ontologies/Relation/Contains/Prefix> ?Prefix}	"
 			+ "{?CRA_Category <http://semoss.org/ontologies/Relation/Contains/Suffix> ?Suffix}	"
 			+ "{?CRA_Value <http://semoss.org/ontologies/Relation/Contains/Value> ?Value}		"
@@ -63,7 +63,7 @@ public class NavyScoreboardPlaysheet extends BrowserPlaySheet {
 			+ "BIND(<@System@> AS ?System)}";
 
 	//Query for getting information about archtypes for systems
-	private static String archTypeQuery = "SELECT DISTINCT ?System ?CRA_Archtype ?CRA_Category ?Prefix ?Value ?Suffix ?CRA_Assessment ((?Risk)*(?Assessment) AS ?Score) WHERE"
+	private static String archTypeQuery = "SELECT DISTINCT ?System ?CRA_Archtype ?CRA_Category ?Prefix ?Value ?Suffix ?CRA_Assessment ((?Rank)*(?Assessment) AS ?Score) WHERE"
 					+"{"
 						+"{?System a <http://semoss.org/ontologies/Concept/System>}"
 						+"{?System <http://semoss.org/ontologies/Relation/HasCRA> ?CRA_Value}"
@@ -76,9 +76,9 @@ public class NavyScoreboardPlaysheet extends BrowserPlaySheet {
 						+"{?CRA_Assessment <http://semoss.org/ontologies/Relation/Contains/Assessment_Value> ?Assessment}" 
 						+"{?CRA_Category a <http://semoss.org/ontologies/Concept/CRA_Category>}"
 						+"{?CRA_Category <http://semoss.org/ontologies/Relation/Contain> ?CRA_Value}"
-						+"{?CRA_Risk a <http://semoss.org/ontologies/Concept/CRA_Risk>}"
-						+"{?CRA_Category <http://semoss.org/ontologies/Relation/AssessedAs> ?CRA_Risk}"
-						+"{?CRA_Risk <http://semoss.org/ontologies/Relation/Contains/Risk_Value> ?Risk}"
+						+"{?CRA_Rank a <http://semoss.org/ontologies/Concept/CRA_Rank>}"
+						+"{?CRA_Category <http://semoss.org/ontologies/Relation/AssessedAs> ?CRA_Rank}"
+						+"{?CRA_Rank <http://semoss.org/ontologies/Relation/Contains/Rank_Value> ?Rank}"
 						+"{?CRA_Category <http://semoss.org/ontologies/Relation/Contains/Prefix> ?Prefix}"
 						+"{?CRA_Category <http://semoss.org/ontologies/Relation/Contains/Suffix> ?Suffix}"
 						+"{?CRA_Value <http://semoss.org/ontologies/Relation/Contains/Value> ?Value}"
