@@ -36,6 +36,7 @@ import java.util.LinkedList;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
+import org.openrdf.model.vocabulary.RDF;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
@@ -107,6 +108,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 	private String TAP_CORE_AGGREGATE_DATAOBJECT_COMMENTS_QUERY = "SELECT DISTINCT ?system ?data ?provide ?pred ?prop1 WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?system ?provide ?data} BIND(<http://semoss.org/ontologies/Relation/Contains/Comments> AS ?pred) {?provide ?pred ?prop1} }";
 	
 	private String TAP_SERVICES_AGGRATE_DATAOBJECT_REPORTED_QUERY = "SELECT DISTINCT ?system ?provide ?data ?prop1 WHERE{{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?systemService <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemService>} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?system <http://semoss.org/ontologies/Relation/ConsistsOf> ?systemService} {?systemService ?provide ?data} {?provide <http://semoss.org/ontologies/Relation/Contains/Reported> ?prop1}}";
+	private String TAP_SERVICES_AGGRATE_DATAOBJECT_ICD_CARRIED_QUERY = "SELECT DISTINCT ?system ?provide ?data ?prop1 WHERE{ {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>} {?data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?system ?provide ?data} {?provide <http://semoss.org/ontologies/Relation/Contains/ICD_Carried> ?prop1}}";
 	
 	private String TAP_CORE_SOFTWARE_MODULE_LIST_QUERY = "SELECT DISTINCT ?softwareModule WHERE{{?softwareModule a <http://semoss.org/ontologies/Concept/SoftwareModule>} }";
 
@@ -201,6 +203,8 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 		runDataObjectAggregation(TAP_SERVICES_AGGREGATE_DATAOBJECT_CRM_QUERY, TAP_CORE_AGGREGATE_DATAOBJECT_CRM_QUERY);
 		LOGGER.info("PROCESSING SYSTEM DATAOBJECT RELATIONSHIP AND REPORTED COMMENT INTO TAP CORE");
 		runRelationshipAggregationWithProperties(TAP_SERVICES_AGGRATE_DATAOBJECT_REPORTED_QUERY, new String[]{"Reported"});
+		LOGGER.info("PROCESSING SYSTEM DATAOBJECT RELATIONSHIP AND ICD CARRIED PROPERTY INTO TAP CORE");
+		runRelationshipAggregationWithProperties(TAP_SERVICES_AGGRATE_DATAOBJECT_ICD_CARRIED_QUERY, new String[]{"ICD_Carried"});
 		LOGGER.info("PROCESSING SYSTEM DATAOBJECT RELATIONSHIP AND COMMENTS PROPERTY AND AGGREGATING INTO TAP CORE");
 		runCommentAggregationForRelationships(TAP_SERVICER_AGGREGATE_DATAOBJECT_COMMENTS_QUERY, TAP_CORE_AGGREGATE_DATAOBJECT_COMMENTS_QUERY);
 
@@ -283,6 +287,7 @@ public class ServicesAggregationProcessor extends AggregationHelper {
 				Object propValue = sjss.getVar(vars[i]);
 				LOGGER.debug("ADDING RELATIONSHIP PROPERTY:     " + pred + " -----> {" + propPrep + " --- " + propValue + "}");
 				addToDataHash(new Object[]{pred, propPrep, propValue});
+				addToDataHash(new Object[]{propPrep, RDF.TYPE.toString(), "http://semoss.org/ontologies/Relation/Contains"});
 			}
 		}
 		processData(coreDB, dataHash);
