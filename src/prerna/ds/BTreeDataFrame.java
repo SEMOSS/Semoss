@@ -1469,18 +1469,18 @@ public class BTreeDataFrame implements ITableDataFrame {
 	 */
 	public void unfilter(String columnHeader) {
 		long startTime = System.currentTimeMillis();
-		
-//		columnHeader = this.getColumnName(columnHeader);
-//		IndexTreeIterator iterator = new IndexTreeIterator(this.simpleTree.nodeIndexHash.get(columnHeader));
-//		while(iterator.hasNext()) {
-//			TreeNode t = iterator.next();
-//			if(t.instanceNode.size() == 0) {
-//				Object o = t.leaf.getValue();
-//				this.simpleTree.unfilterTree(this.createNodeObject(o, o, columnHeader));
-//			}
-//		}
 
-		this.simpleTree.unfilterColumn(columnHeader);
+		columnHeader = this.getColumnName(columnHeader);
+		IndexTreeIterator iterator = new IndexTreeIterator(this.simpleTree.nodeIndexHash.get(columnHeader));
+		while(iterator.hasNext()) {
+			TreeNode t = iterator.next();
+			//if(t.filteredInstanceNode.size() > 0) {
+				Object o = t.leaf.getValue();
+				this.simpleTree.unfilterTree(this.createNodeObject(o, o, columnHeader));
+			//}
+		}
+
+//		this.simpleTree.unfilterColumn(columnHeader);
 		
 		LOGGER.info("unfiltered Column: " +columnHeader+", "+ (System.currentTimeMillis() - startTime)+" ms");
 	}

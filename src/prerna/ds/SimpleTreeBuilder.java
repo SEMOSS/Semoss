@@ -36,6 +36,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -92,7 +93,9 @@ public class SimpleTreeBuilder
 	
 	// actual value tree root
 	private SimpleTreeNode lastAddedNode = null;
-	private SimpleTreeNode filteredRoot = null;
+	private SimpleTreeNode filteredRoot;
+	
+	
 	private String rootLevel;
 	// see if the child can be a single node
 	// this means you can only add to the last child
@@ -763,8 +766,7 @@ public class SimpleTreeBuilder
 		if(getFirst.hasNext()) {
 			typeInstanceNode = getFirst.next();
 			getFirst = null;
-		}
-		else {
+		} else {
 			nodeIndexHash.remove(type);
 			return;
 		}
@@ -852,7 +854,7 @@ public class SimpleTreeBuilder
 		}
 		else // this is the case when the type is the root
 		{
-			typeInstanceNode = SimpleTreeNode.getLeft(typeInstanceNode);
+			typeInstanceNode = SimpleTreeNode.getLeft(typeInstanceNode);			
 			if(typeInstanceNode != null) {
 				
 				SimpleTreeNode leftMostNode = typeInstanceNode.leftChild;
@@ -867,7 +869,7 @@ public class SimpleTreeBuilder
 						targetNode.leftSibling = rightMostSibling;
 					}
 					rightMostSibling = SimpleTreeNode.getRight(targetNode); // update the new most right sibling
-
+					
 					while(targetNode != null) {
 						targetNode.parent = null;
 						targetNode = targetNode.rightSibling;
@@ -876,6 +878,107 @@ public class SimpleTreeBuilder
 					typeInstanceNode = typeInstanceNode.rightSibling;
 				}
 			}
+			
+//			SimpleTreeNode root = this.getRoot();
+//			SimpleTreeNode filteredRoot = this.getFilteredRoot();
+//			SimpleTreeNode newFilteredRoot = null;
+//			
+//			if(root != null) {
+//				SimpleTreeNode leftMostNode = root.leftChild;
+//				SimpleTreeNode rightMostSibling = SimpleTreeNode.getRight(leftMostNode);
+//				
+//				newFilteredRoot = root.rightChild;
+//				SimpleTreeNode filteredRightMostSibling = null;
+//				if(newFilteredRoot != null) {
+//					filteredRightMostSibling = SimpleTreeNode.getRight(newFilteredRoot);
+//				}
+//				
+//				while(root != null) {
+//					
+//					SimpleTreeNode targetNode = root.leftChild;
+//					if(targetNode != leftMostNode) {
+//						rightMostSibling.rightSibling = targetNode;
+//						targetNode.leftSibling = rightMostSibling;
+//					}
+//					rightMostSibling = SimpleTreeNode.getRight(targetNode);
+//					
+//					//get the right children, add on the new filtered Root
+//					SimpleTreeNode filteredTargetNode = root.rightChild;
+//					if(filteredTargetNode != newFilteredRoot && newFilteredRoot != null) {
+//						filteredRightMostSibling.rightSibling = filteredTargetNode;
+//						filteredTargetNode.leftSibling = filteredRightMostSibling;
+//						filteredRightMostSibling = SimpleTreeNode.getRight(filteredTargetNode);
+//					} else if(newFilteredRoot == null) {
+//						newFilteredRoot = filteredTargetNode;
+//						if(newFilteredRoot != null) {
+//							filteredRightMostSibling = SimpleTreeNode.getRight(newFilteredRoot);
+//						}
+//					}
+//					
+//					//null the parents for left child list
+//					while(targetNode != null) {
+//						targetNode.parent = null;
+//						targetNode = targetNode.rightSibling;
+//					}
+//					
+//					//null the parents for the right child list
+//					while(filteredTargetNode != null) {
+//						filteredTargetNode.parent = null;
+//						filteredTargetNode = filteredTargetNode.rightSibling;
+//					}
+//					
+//					root = root.rightSibling;
+//				}
+//			}
+//			
+//			if(filteredRoot != null) {
+//				SimpleTreeNode leftMostNode = filteredRoot.leftChild;
+//				SimpleTreeNode rightMostSibling = SimpleTreeNode.getRight(leftMostNode);
+//				
+//				if(newFilteredRoot == null) {
+//					newFilteredRoot = leftMostNode;
+//				} else {
+//					newFilteredRoot.rightSibling = leftMostNode;
+//				}
+//				SimpleTreeNode filteredRightMostSibling = null;
+//				
+//				while(filteredRoot != null) {
+//					
+//					SimpleTreeNode targetNode = root.leftChild;
+//					if(targetNode != leftMostNode) {
+//						rightMostSibling.rightSibling = targetNode;
+//						targetNode.leftSibling = rightMostSibling;
+//					}
+//					rightMostSibling = SimpleTreeNode.getRight(targetNode);
+//					
+//					//get the right children, add on the new filtered Root
+//					SimpleTreeNode filteredTargetNode = root.rightChild;
+//					if(filteredTargetNode != newFilteredRoot && newFilteredRoot != null) {
+//						filteredRightMostSibling.rightSibling = filteredTargetNode;
+//						filteredTargetNode.leftSibling = filteredRightMostSibling;
+//						filteredRightMostSibling = SimpleTreeNode.getRight(filteredTargetNode);
+//					} else if(newFilteredRoot == null) {
+//						newFilteredRoot = filteredTargetNode;
+//						if(newFilteredRoot != null) {
+//							filteredRightMostSibling = SimpleTreeNode.getRight(newFilteredRoot);
+//						}
+//					}
+//					
+//					//null the parents for left child list
+//					while(targetNode != null) {
+//						targetNode.parent = null;
+//						targetNode = targetNode.rightSibling;
+//					}
+//					
+//					//null the parents for the right child list
+//					while(filteredTargetNode != null) {
+//						filteredTargetNode.parent = null;
+//						filteredTargetNode = filteredTargetNode.rightSibling;
+//					}
+//					
+//					root = root.rightSibling;
+//				}
+//			}
 		}
 		
 		// if I take it off the main hashtable
@@ -1306,7 +1409,7 @@ public class SimpleTreeBuilder
 	 * @param node2filter
 	 * 
 	 * This method filters node2filter from the value tree
-	 * In the case where node2filter's parent has one child (node2filter), node2filter's parent is filtered, etc
+	 * In the case where node2filter's parent has one child (which is node2filter), node2filter's parent is filtered, etc
 	 */
 	private void filterSimpleTreeNode(SimpleTreeNode node2filter) {
 		
@@ -1374,6 +1477,7 @@ public class SimpleTreeBuilder
 		//if parent node exists and parent node has no left children, filter that parent too but just that parent
 		if(parentNode != null && SimpleTreeNode.countNodeChildren(parentNode)==0) {
 			filterSimpleTreeNode(parentNode);
+			//transFilterSimpleTreeNode(parentNode);
 			filterTreeNode(parentNode);
 			parentNode = parentNode.parent;
 		}
@@ -1445,7 +1549,7 @@ public class SimpleTreeBuilder
 				///SimpleTreeNode root = this.getRoot();
 				root = SimpleTreeNode.getRight(root);
 				
-				unfilterTreeNode(filteredRoot, true);
+				unfilterTreeNode(filteredRoot, false);
 				root.rightSibling = filteredRoot;
 				filteredRoot.leftSibling = root;
 				
@@ -1507,7 +1611,7 @@ public class SimpleTreeBuilder
 	
 	/**
 	 * 
-	 * @param objectToFilter - object to unfilter
+	 * @param objectToFilter - object to unfilter, or bring back visibility into the tree
 	 */
 	public void unfilterTree(ITreeKeyEvaluatable objectToFilter) {
 		//find the TreeNode associated with the object's value
@@ -1520,13 +1624,17 @@ public class SimpleTreeBuilder
 				nodeList.add(n);
 			}
 			
+			for(SimpleTreeNode n: foundNode.instanceNode) {
+				nodeList.add(n);
+			}
 			//for each SimpleTreeNode with the value of objectToFilter
 			//first filter the value tree, then filter the index tree
 			for(SimpleTreeNode n: nodeList) {
-				boolean unfilteredNode = unfilterSimpleTreeNode(n);
-				if(unfilteredNode) {
-					unfilterTreeNode(n, true);
-				}
+//				boolean unfilteredNode = unfilterSimpleTreeNode(n);
+				unfilterSimpleTreeNode(n);
+//				if(unfilteredNode) {
+				unfilterTreeNode(n, true);
+//				}
 			}
 		}
 	}
@@ -1534,12 +1642,20 @@ public class SimpleTreeBuilder
 	private boolean unfilterSimpleTreeNode(SimpleTreeNode node2filter) {
 		SimpleTreeNode parentNode = node2filter.parent;
 		boolean root = (parentNode == null);
-		if(!root && isFiltered(parentNode)) {
-			return false;
+		if(!root && isFiltered(parentNode) && parentNode.leftChild != null) {
+			SimpleTreeNode leftChild = parentNode.leftChild;
+			SimpleTreeNode rightChild = parentNode.rightChild;
+			if(parentNode.rightChild == null) {
+				parentNode.rightChild = leftChild;
+			} else {
+				SimpleTreeNode rightMostRightChild = SimpleTreeNode.getRight(rightChild);
+				rightMostRightChild.rightSibling = leftChild;
+			}
+			parentNode.leftChild = null;
 		}
 		
 		//Grab the siblings
-		if(root || (parentNode.leftChild != node2filter)) {
+		if((root && isFiltered(node2filter)) || (!root && parentNode.leftChild != node2filter)) {
 			SimpleTreeNode nodeRightSibling = node2filter.rightSibling;
 			SimpleTreeNode nodeLeftSibling = node2filter.leftSibling;
 			
@@ -1572,9 +1688,14 @@ public class SimpleTreeBuilder
 			
 			//If node is root level, attach to filteredRoot
 			if(root) {
-				
 				if(filteredRoot == node2filter) {
 					filteredRoot = nodeRightSibling;
+				}
+				
+				SimpleTreeNode rootNode = this.getRoot();
+				if(rootNode != null) {
+					rootNode.leftSibling = node2filter;
+					node2filter.rightSibling = rootNode;
 				}
 			} 
 			
@@ -1598,28 +1719,123 @@ public class SimpleTreeBuilder
 		//make this recursive so all children are unfiltered
 		unfilterSimpleTreeNodeChildren(node2filter, true);
 		
+		while(!root && isFiltered(parentNode)) {
+			unfilterSingleNode(parentNode);
+			unfilterTreeNode(parentNode);
+			parentNode = parentNode.parent;
+			root = parentNode == null;
+		}
 		//move right children to left, repeat for each child
 		
 		return true;
+	}
+	
+	private void unfilterSingleNode(SimpleTreeNode node2filter) {
+		SimpleTreeNode parentNode = node2filter.parent;
+		boolean root = (parentNode == null);
+//		if(!root && isFiltered(parentNode)) {
+//			return false;
+//		}
+		if(!root && isFiltered(parentNode) && parentNode.leftChild != null) {
+			SimpleTreeNode leftChild = parentNode.leftChild;
+			SimpleTreeNode rightChild = parentNode.rightChild;
+			if(parentNode.rightChild == null) {
+				parentNode.rightChild = leftChild;
+			} else {
+				SimpleTreeNode rightMostRightChild = SimpleTreeNode.getRight(rightChild);
+				rightMostRightChild.rightSibling = leftChild;
+			}
+			parentNode.leftChild = null;
+		}
+		
+		//Grab the siblings
+		if((root && isFiltered(node2filter)) || (!root && parentNode.leftChild != node2filter)) {
+			SimpleTreeNode nodeRightSibling = node2filter.rightSibling;
+			SimpleTreeNode nodeLeftSibling = node2filter.leftSibling;
+			
+			//isolate node2filter from siblings and rewire the connections
+			if(node2filter.rightSibling != null && node2filter.leftSibling != null) {
+				//in the middle
+				nodeRightSibling.leftSibling = nodeLeftSibling;
+				nodeLeftSibling.rightSibling = nodeRightSibling;	
+			} 
+			else if(node2filter.rightSibling == null && node2filter.leftSibling != null) {
+				//right most
+				nodeLeftSibling.rightSibling = null;
+			} 
+			else if(node2filter.rightSibling != null && node2filter.leftSibling == null) {
+				//left most
+				if(!root) {
+					parentNode.rightChild = nodeRightSibling;
+				}
+				nodeRightSibling.leftSibling = null;
+			} else {
+				//only child
+				if(!root) {
+					parentNode.rightChild = null;
+				}
+			}
+			
+			//Isolate the node from the siblings
+			node2filter.rightSibling = null;
+			node2filter.leftSibling = null;
+			
+			//If node is root level, attach to filteredRoot
+			if(root) {				
+				if(filteredRoot == node2filter) {
+					filteredRoot = nodeRightSibling;
+				}
+				
+				SimpleTreeNode rootNode = this.getRoot();
+				if(rootNode != null) {
+					rootNode.leftSibling = node2filter;
+					node2filter.rightSibling = rootNode;
+				}
+			} 
+			
+			//otherwise put node2filter on the left side of the parent
+			else {
+				if(parentNode.leftChild == null) {
+					parentNode.leftChild = node2filter;
+				} else {
+					SimpleTreeNode leftChild = parentNode.leftChild;
+					node2filter.leftSibling = leftChild;
+					SimpleTreeNode nextRight = leftChild.rightSibling;
+					leftChild.rightSibling = node2filter;
+					if(nextRight != null) {
+						nextRight.leftSibling = node2filter;
+						node2filter.rightSibling = nextRight;
+					}
+				}
+			}
+		}
 	}
 	
 	private void unfilterSimpleTreeNodeChildren(SimpleTreeNode root, boolean firstLevel) {
 		if(root == null) {
 			return;
 		}
+		
+		//Move right child to left
 		if(root.rightChild != null) {
+			
+			SimpleTreeNode rightChild = root.rightChild;
+			SimpleTreeNode leftChild = root.leftChild;
+			
 			if(root.leftChild == null) {
-				root.leftChild = root.rightChild;
+				root.leftChild = rightChild;
 			} else {
-				SimpleTreeNode rightMostLeftChild = SimpleTreeNode.getRight(root.leftChild);
-				rightMostLeftChild.rightSibling = root.rightChild;
-				root.rightChild.leftSibling = rightMostLeftChild;
+				SimpleTreeNode rightMostLeftChild = SimpleTreeNode.getRight(leftChild);
+				rightMostLeftChild.rightSibling = rightChild;
+				rightChild.leftSibling = rightMostLeftChild;
 			}
 			root.rightChild = null;
+			unfilterTreeNode(rightChild, false);
 		}
 		
+		//Continue for other nodes
 		if(!firstLevel && root.rightSibling != null) {
-			unfilterSimpleTreeNodeChildren(root.leftChild, false);
+			unfilterSimpleTreeNodeChildren(root.rightSibling, false);
 		}
 		
 		if(root.leftChild != null) {
@@ -1713,20 +1929,6 @@ public class SimpleTreeBuilder
 //			return node;
 //		}
 //	}
-	
-	/**
-	 * 
-	 * @param instance
-	 */
-	private void unfilterTreeNode(SimpleTreeNode instance) {		
-		TreeNode foundNode = this.getNode((ISEMOSSNode)instance.leaf);
-		
-		if(foundNode != null) {
-			if(foundNode.filteredInstanceNode.remove(instance)) {
-				foundNode.instanceNode.add(instance);
-			}
-		}
-	}
 
 	/**
 	 * 
@@ -1748,6 +1950,21 @@ public class SimpleTreeBuilder
 			
 			if(instance.leftChild!=null) {
 				unfilterTreeNode(instance.leftChild, false);
+			}
+		}
+	}
+	
+	/**
+	 * @param instance2filter - the single node to filter
+	 * 
+	 * unfilters a single node from its corresponding index tree
+	 */
+	private void unfilterTreeNode(SimpleTreeNode instance) {		
+		TreeNode foundNode = this.getNode((ISEMOSSNode)instance.leaf);
+		
+		if(foundNode != null) {
+			if(foundNode.filteredInstanceNode.remove(instance)) {
+				foundNode.instanceNode.add(instance);
 			}
 		}
 	}
