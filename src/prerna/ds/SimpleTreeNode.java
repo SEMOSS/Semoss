@@ -328,7 +328,7 @@ public class SimpleTreeNode {
 		boolean parent = true;
 		Vector <SimpleTreeNode> parentNodes = new Vector();
 		// each one of this is a new line
-		String[] mainTokens = output.split("/{3}");
+		String[] mainTokens = output.split("/{3}(?!/)"); // preserve if instance ends in a / character
 		for(String line: mainTokens)
 		{
 			Vector <SimpleTreeNode> nextLevel = new Vector();
@@ -397,7 +397,7 @@ public class SimpleTreeNode {
 		// final loop is the <> loop
 //		StringTokenizer leftString = new StringTokenizer(childString, "@");
 		
-		String[] leftString = childString.split("@{3}(?=[^@])"); //split on the LAST 3 @ signs
+		String[] leftString = childString.split("@{3}(?!@)"); //split on the LAST 3 @ signs
 		SimpleTreeNode leftNode = null;
 		for(String leftNodeKey: leftString)
 		{
