@@ -214,6 +214,7 @@ public class TablePlaySheet extends AbstractPlaySheet implements IDataMaker{
 	// this is only being used for legacy tap playsheets
 	@Override
 	public void processDataMakerComponent(DataMakerComponent component) {
+		processPreTransformations(component, component.getPreTrans());
 		setQuery(component.getQuery());
 		setRDFEngine(component.getEngine());
 		component.setQuery(this.query);
@@ -237,8 +238,12 @@ public class TablePlaySheet extends AbstractPlaySheet implements IDataMaker{
 
 	@Override
 	public void processPreTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms) {
-		// TODO Auto-generated method stub
-		
+		logger.info("We are processing " + transforms.size() + " pre transformations");
+		for(ISEMOSSTransformation transform : transforms){
+			transform.setDataMakers(this);
+			transform.setDataMakerComponent(dmc);
+			transform.runMethod();
+		}
 	}
 
 	@Override
