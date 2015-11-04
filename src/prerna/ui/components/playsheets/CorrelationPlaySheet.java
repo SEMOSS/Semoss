@@ -69,7 +69,7 @@ public class CorrelationPlaySheet extends GridPlaySheet{
 		numVariables = columnHeaders.length - 1;
 		//calculate the correlation for each pair of columns
 		CorrelationAlgorithm alg = new CorrelationAlgorithm();
-		dataFrame.performAction(alg);
+		dataFrame.performAnalyticAction(alg);
 		correlation = alg.getCorrelation();
 	}
 	

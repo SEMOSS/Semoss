@@ -27,44 +27,35 @@
  *******************************************************************************/
 package prerna.engine.impl;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Enumeration;
+import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.openrdf.model.Literal;
-import org.openrdf.model.impl.LiteralImpl;
-import org.openrdf.model.vocabulary.RDF;
-import org.openrdf.repository.RepositoryConnection;
+import org.h2.jdbc.JdbcClob;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.RDFXMLWriter;
-import org.openrdf.sail.memory.model.MemLiteral;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.nameserver.MasterDatabaseURIs;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -77,8 +68,6 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-import com.ibm.icu.util.StringTokenizer;
-
 /**
  * An Abstract Engine that sets up the base constructs needed to create an
  * engine.
@@ -89,62 +78,49 @@ public abstract class AbstractEngine implements IEngine {
 
 	protected String engineName = null;
 	private String propFile = null;
+
 	protected Properties prop = null;
 	private Properties dreamerProp = null;
 	private Properties generalEngineProp = null;
 	private Properties ontoProp = null;
+
 	protected RDFFileSesameEngine baseDataEngine;
-	protected RDFFileSesameEngine insightBaseXML;
+	protected RDBMSNativeEngine insightRDBMS;
+	protected String insightDriver = "org.h2.Driver";
+	protected String insightRDBMSType = "H2_DB";
+	protected String connectionURLStart = "jdbc:h2:";
+	protected String connectionURLEnd = ";query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+	protected String insightUsername = "sa";
 
-	protected String engineURI2 = null;
+	private String dreamer;
+	private String ontology;
+	private String owl;
+	private String insightDatabaseLoc;
+
 	private Hashtable<String, String> baseDataHash;
-	private static final String semossURI = "http://semoss.org/ontologies/";
-	protected static final String engineBaseURI = semossURI + Constants.DEFAULT_NODE_CLASS+"/Engine";
-	private static final String perspectiveBaseURI = semossURI + Constants.DEFAULT_NODE_CLASS+"/Perspective";
-	private static final String insightBaseURI = semossURI + Constants.DEFAULT_NODE_CLASS+"/Insight";
-	private static final String paramBaseURI = semossURI + Constants.DEFAULT_NODE_CLASS+"/Param";
-	
-	private static final String enginePerspectiveBaseURI = semossURI + Constants.DEFAULT_RELATION_CLASS+"/Engine:Perspective";
-	private static final String perspectiveInsightBaseURI = semossURI + Constants.DEFAULT_RELATION_CLASS+"/Perspective:Insight";
-	private static final String engineInsightBaseURI = semossURI + Constants.DEFAULT_RELATION_CLASS+"/Engine:Insight";
-	private static final String containsBaseURI = semossURI + Constants.DEFAULT_RELATION_CLASS+"/Contains";
-	private static final String orderBaseURI = containsBaseURI + "/Order";
-	private static final String labelBaseURI = containsBaseURI + "/Label";
-	private static final String layoutBaseURI = containsBaseURI + "/Layout";
-	private static final String sparqlBaseURI = containsBaseURI + "/SPARQL";
-	private static final String tagBaseURI = containsBaseURI + "/Tag";
-	private static final String descriptionBaseURI = containsBaseURI + "/Description";
 
-	private static final String perspectives = "SELECT DISTINCT ?perspective WHERE {"
-			+ "{?enginePerspective <"+Constants.SUBPROPERTY_URI +"> <"+enginePerspectiveBaseURI+"> }"
-			+ "{<@engine@> ?enginePerspective ?perspectiveURI.}" 
-			+ "{?perspectiveURI <" + labelBaseURI + ">  ?perspective.}" + "}";
-	
-	private static final String perspectivesURI = "SELECT DISTINCT ?perspectiveURI WHERE {"
-			+ "{?enginePerspective <"+Constants.SUBPROPERTY_URI +"> <"+enginePerspectiveBaseURI+"> }"
-			+ "{<@engine@> ?enginePerspective ?perspectiveURI.}" + "}";
+	private static final String SEMOSS_URI = "http://semoss.org/ontologies/";
 
-	private static final String insights = "SELECT DISTINCT ?insight WHERE {"
-			+ "{?perspectiveURI <"+ labelBaseURI + "> ?perspective .}"
-			+ "{?perspectiveInsight <"+Constants.SUBPROPERTY_URI +"> <"+perspectiveInsightBaseURI+"> }"
-			+ "{?perspectiveURI ?perspectiveInsight ?insightURI.}"
-			+ "{?insightURI <" + labelBaseURI + "> ?insight.}"
-			+ "FILTER (regex (?perspective, \"^@perspective@$\" ,\"i\"))" + "}";
-	
-	private static final String insightsURI = "SELECT DISTINCT ?insightURI WHERE {"
-			+ "BIND(<@perspective@> AS ?perspectiveURI)"
-			+ "{?perspectiveInsight <"+Constants.SUBPROPERTY_URI +"> <"+perspectiveInsightBaseURI+"> }"
-			+ "{?perspectiveURI ?perspectiveInsight ?insightURI.}"
-			+ "}";
-	
-	private static final String orderedInsightsURI = "SELECT DISTINCT ?insightURI WHERE {"
-			+ "BIND(<@perspective@> AS ?perspectiveURI)"
-			+ "{?perspectiveInsight <"+Constants.SUBPROPERTY_URI +"> <"+perspectiveInsightBaseURI+"> }"
-			+ "{?perspectiveURI ?perspectiveInsight ?insightURI.} "
-			+ "{?insightURI <" + orderBaseURI + "> ?order } BIND(xsd:decimal(?order) AS ?orderNum)"
-			+ "} ORDER BY ?orderNum";
+	private static final String CONTAINS_BASE_URI = SEMOSS_URI + Constants.DEFAULT_RELATION_CLASS + "/Contains";
+	private static final String GET_ALL_INSIGHTS_QUERY = "SELECT DISTINCT QUESTION_ID, QUESTION_ORDER FROM QUESTION_ID ORDER BY QUESTION_ID";
+	private static final String GET_ALL_INSIGHTS_WITH_METADATA_QUERY = "SELECT DISTINCT QUESTION_ID, QUESTION_NAME, QUESTION_PERSPECTIVE, QUESTION_LAYOUT, ID FROM QUESTION_ID ORDER BY ID";
 
-	private static final String fromSparql = "SELECT DISTINCT ?entity WHERE { "
+	private static final String GET_ALL_PERSPECTIVES_QUERY = "SELECT DISTINCT QUESTION_PERSPECTIVE FROM QUESTION_ID ORDER BY QUESTION_PERSPECTIVE";
+
+	private static final String QUESTION_PARAM_KEY = "@QUESTION_VALUE@";
+	private static final String GET_INSIGHT_INFO_QUERY = "SELECT DISTINCT QUESTION_ID, QUESTION_NAME, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, QUESTION_LAYOUT, QUESTION_ORDER, DATA_TABLE_ALIGN, QUESTION_DATA_MAKER FROM QUESTION_ID WHERE QUESTION_ID IN (" + QUESTION_PARAM_KEY + ") ORDER BY QUESTION_ORDER";
+
+	private static final String PERSPECTIVE_PARAM_KEY = "@PERSPECTIVE_VALUE@";
+	private static final String GET_ALL_INSIGHTS_IN_PERSPECTIVE = "SELECT DISTINCT QUESTION_ID, QUESTION_ORDER FROM QUESTION_ID WHERE QUESTION_PERSPECTIVE = '" + PERSPECTIVE_PARAM_KEY + "' ORDER BY QUESTION_ORDER";
+
+	private static final String QUESTION_ID_FK_PARAM_KEY = "@QUESTION_ID_FK_VALUES@";
+	private static final String GET_ALL_PARAMS_FOR_QUESTION_ID = "SELECT DISTINCT PARAMETER_LABEL, PARAMETER_TYPE, PARAMETER_OPTIONS, PARAMETER_QUERY, PARAMETER_DEPENDENCY, PARAMETER_IS_DB_QUERY, PARAMETER_MULTI_SELECT, PARAMETER_COMPONENT_FILTER_ID, PARAMETER_ID FROM PARAMETER_ID WHERE QUESTION_ID_FK = '" + QUESTION_ID_FK_PARAM_KEY + "'";
+
+	private static final String PARAMETER_ID_PARAM_KEY = "@PARAMETER_ID";
+	private static final String GET_INFO_FOR_PARAM = "SELECT DISTINCT PARAMETER_LABEL, PARAMETER_TYPE, PARAMETER_OPTIONS, PARAMETER_QUERY, PARAMETER_DEPENDENCY, PARAMETER_IS_DB_QUERY, PARAMETER_MULTI_SELECT, PARAMETER_COMPONENT_FILTER_ID FROM PARAMETER_ID WHERE PARAMETER_ID = '" + PARAMETER_ID_PARAM_KEY + "'";
+	private static final String GET_INFO_FOR_PARAMS = "SELECT DISTINCT PARAMETER_LABEL, PARAMETER_TYPE, PARAMETER_OPTIONS, PARAMETER_QUERY, PARAMETER_DEPENDENCY, PARAMETER_IS_DB_QUERY, PARAMETER_MULTI_SELECT, PARAMETER_COMPONENT_FILTER_ID FROM PARAMETER_ID WHERE PARAMETER_ID IN (" + PARAMETER_ID_PARAM_KEY + ")";
+	
+	private static final String FROM_SPARQL = "SELECT DISTINCT ?entity WHERE { "
 			+ "{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} "
 			+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
 			+ "{?x ?rel  ?y} "
@@ -152,52 +128,13 @@ public abstract class AbstractEngine implements IEngine {
 			+ "{<@nodeType@> <http://www.w3.org/2000/01/rdf-schema#subClassOf>* ?y}"
 			+ "}";
 
-	private static final String toSparql = "SELECT DISTINCT ?entity WHERE { "
+	private static final String TO_SPARQL = "SELECT DISTINCT ?entity WHERE { "
 			+ "{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>} "
 			+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
 			+ "{?x ?rel ?y} "
 			+ "{<@nodeType@> <http://www.w3.org/2000/01/rdf-schema#subClassOf>* ?x}"
 			+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf>* ?y}"
-					+ "}";
-	
-	private static final String typeSparql = "SELECT ?insight WHERE {"
-			+ "{?param <" + "PARAM:TYPE" + "> <@type@>}"
-			+ "{?insightUri <" + "INSIGHT:PARAM" + "> ?param;}"
-			+ "{?insightUri <" + labelBaseURI + "> ?insight.}" + "}";
-
-	private static final String insight4TagSparql = "SELECT ?insight WHERE {"
-			+ "{?insightURI <" + tagBaseURI + "> ?tag;}"
-			+ "{?insightURI <" + labelBaseURI + "> ?insight.}"
-			+ "FILTER (regex (?tag, \"@tag@\" ,\"i\"))"
 			+ "}";
-
-	private static final String tag4InsightSparql = "SELECT ?insight WHERE {"
-			+ "{?insightURI <" + tagBaseURI + "> ?tag;}"
-			+ "{?insightURI <" + labelBaseURI + "> ?insight.}"
-			+ "FILTER (regex (?insight, \"@insight@\" ,\"i\"))" + "}";
-
-
-	// some indices for easy retrieval
-	// for a given perspective // all the various questions
-	// Hashtable<String, Vector> perspectiveInsightHash = new Hashtable<String,
-	// Vector>();
-
-	// label to id hash
-	// Hashtable<String, Insight> labelIdHash2 = new Hashtable<String,
-	// Insight>();
-
-	// entity to label hash
-	// Hashtable<String, Vector> typeLabelHash2 = new Hashtable<String,
-	// Vector>();
-
-	private String dreamer;
-
-	private String ontology;
-
-	private String owl;
-
-	private String questionXMLFile;
-	
 
 	/**
 	 * Opens a database as defined by its properties file. What is included in
@@ -212,70 +149,72 @@ public abstract class AbstractEngine implements IEngine {
 	 */
 	public void openDB(String propFile) {
 		try {
-			if (propFile != null) {
+			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+			if(propFile != null) {
 				this.propFile = propFile;
-				String baseFolder = DIHelper.getInstance().getProperty(
-						"BaseFolder");
-				String fileName = baseFolder + "/" + propFile;
 				logger.info("Opening DB - " + engineName);
 				prop = loadProp(propFile);
-				// in here I should also load the questions and insights and
-				// everything else
-				// get the questions sheet
-				// get to the working dir and load it up
-				
-				//loads the questionxmlfile if there is one, if not, get the question sheet and create an xml file and load to engine
-				questionXMLFile = prop.getProperty(Constants.INSIGHTS);
-
-				engineURI2 = engineBaseURI + "/" + engineName;
-				if(questionXMLFile != null) {
-					logger.info("Loading Questions: " + questionXMLFile);
-					createBaseRelationXMLEngine(questionXMLFile);
-				}
-				//TODO: delete once xml files are stable and prop file is no longer needed
-				else {
-					createInsightBase();
-					//need to add questionXML to the smss file
-					String questionPropFile = prop.getProperty(Constants.DREAMER);
-					questionXMLFile = "db" + System.getProperty("file.separator") +  getEngineName() + System.getProperty("file.separator") + getEngineName()	+ "_Questions.XML";
-					//addProperty(Constants.XML, questionXMLFile);
-					//saveConfiguration();
+			}
+			if(prop != null) {
+				// load the rdbms insights db
+				insightDatabaseLoc = prop.getProperty(Constants.RDBMS_INSIGHTS);
+				if(insightDatabaseLoc != null) {
+					logger.info("Loading insight rdbms database...");
+					insightRDBMS = new RDBMSNativeEngine();
+					Properties prop = new Properties();
+					prop.put(Constants.DRIVER, insightDriver);
+					prop.put(Constants.RDBMS_TYPE, insightRDBMSType);
+					String connURL = connectionURLStart + baseFolder + "/" + insightDatabaseLoc + connectionURLEnd;
+					prop.put(Constants.CONNECTION_URL, connURL);
+					prop.put(Constants.USERNAME, insightUsername);
+					insightRDBMS.setProperties(prop);
+					insightRDBMS.openDB(null);
+				} 
+				else { // RDBMS Question engine has not been made. Must do conversion
+					// set the necessary fun stuff
+					InsightsConverter converter = new InsightsConverter();
+					this.insightRDBMS = converter.generateNewInsightsRDBMS(this.engineName);
+					converter.setEngine(this);
+					converter.setEngineName(prop.getProperty(Constants.ENGINE));
+					converter.setSMSSLocation(propFile);
 					
-					if(questionPropFile != null){
-						dreamerProp = loadProp(baseFolder + "/" + questionPropFile);
-						loadAllPerspectives(engineURI2);
-						createInsightBaseRelations();
-						createQuestionXMLFile(questionXMLFile, baseFolder);
-						addPropToFile(propFile, Constants.INSIGHTS, questionXMLFile, "ENGINE_TYPE");
-						if(!prop.contains(Constants.INSIGHTS))
-							prop.put(Constants.INSIGHTS, questionXMLFile);
+					// Use the xml if the prop file has that defined
+					if (prop.containsKey(Constants.INSIGHTS)){
+						logger.info("LOADING XML QUESTIONS FOR DB ::: " + this.getEngineName());
+						String xmlFilePath = prop.getProperty(Constants.INSIGHTS);
+						converter.loadQuestionsFromXML(baseFolder + "\\" + xmlFilePath); // this does questions and parameters now
 					}
+					// else we will use the prop file
+					else if (prop.containsKey(Constants.DREAMER)){
+						String dreamerLoc = baseFolder + "/" + prop.getProperty(Constants.DREAMER);
+						logger.info("LOADING PROP FILE QUESTIONS FOR DB ::: " + this.getEngineName());
+						logger.info("question prop file loc is " + dreamerLoc);
+						Properties dreamerProps = loadProp(dreamerLoc);
+						converter.loadQuestionsFromPropFile(dreamerProps);
+					}
+					else {
+						logger.fatal("NO QUESTION SHEET DEFINED ON SMSS");
+						logger.fatal("cannot start " + this.getEngineName() + " without question file");
+					}
+					//update smss location
+					converter.updateSMSSFile();
 				}
-				
-				//TODO: delete once all XML files have a timeStamp
-				checkAndAddTimeStampToXML();
-				
-				/*String questionPropFile = prop.getProperty(Constants.DREAMER);
-				if (questionPropFile != null) {
-					createInsightBase();
-					dreamerProp = loadProp(baseFolder + "/" + questionPropFile);
-					loadAllPerspectives(engineURI2);
-				}*/
-				String ontoFile = prop.getProperty(Constants.ONTOLOGY);
+				// load the rdf owl db
 				String owlFile = prop.getProperty(Constants.OWL);
-				String genEngPropFile = prop.getProperty(Constants.ENGINE_PROPERTIES);
 				if (owlFile != null) {
 					logger.info("Loading OWL: " + owlFile);
 					setOWL(baseFolder + "/" + owlFile);
 				}
+				String ontoFile = prop.getProperty(Constants.ONTOLOGY);
 				if (ontoFile != null) {
 					logger.info("Loading Ontology: " + ontoFile);
 					setOntology(baseFolder + "/" + ontoFile);
 				}
-				if (genEngPropFile != null)
+				// load properties object for db
+				String genEngPropFile = prop.getProperty(Constants.ENGINE_PROPERTIES);
+				if (genEngPropFile != null) {
 					generalEngineProp = loadProp(baseFolder + "/" + genEngPropFile);
-
-				// need to add the logic for entityQuery
+				}
 			}
 		} catch (RuntimeException e) {
 			e.printStackTrace();
@@ -286,124 +225,19 @@ public abstract class AbstractEngine implements IEngine {
 		}
 	}
 
-	
-	//TODO: delete once all insight XML files have a timestamp
-	private void checkAndAddTimeStampToXML() {
-		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String checkTimeStamp = "SELECT DISTINCT ?Time WHERE { {<http://semoss.org/ontologies/Concept/Engine/" + engineName + "> <http://semoss.org/ontologies/Relation/Contains/TimeStamp> ?Time}}";
-		ISelectWrapper sjsw = Utility.processQuery(insightBaseXML, checkTimeStamp);
-		String[] names = sjsw.getVariables();
-		boolean hasTime = false;
-		List<Date> dateList = new ArrayList<Date>();
-		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-		while(sjsw.hasNext()) {
-			ISelectStatement sjss = sjsw.next();
-			Date d;
-			try {
-				d = df.parse(sjss.getVar(names[0]).toString());
-				dateList.add(d);
-				hasTime = true;
-			} catch (ParseException e) {
-				e.printStackTrace();
-			}
+	@Override
+	public void closeDB() {
+		if(this.baseDataEngine != null) {
+			logger.debug("closing its owl engine ");
+			this.baseDataEngine.closeDB();
 		}
-		//to fix error when multiple dates were added
-		if(dateList.size() > 1) {
-			// remove all old dates
-			for(Date d : dateList) {
-				insightBaseXML.removeStatement(new Object[]{engineBaseURI + "/" + engineName, MasterDatabaseURIs.TIME_STAMP_URI, d, false});
-			}
-			// add new date
-			Date currentTime = Utility.getCurrentTime();
-			insightBaseXML.addStatement(new Object[]{engineBaseURI + "/" + engineName, MasterDatabaseURIs.TIME_STAMP_URI, currentTime, false});
-		} else if(!hasTime) {
-			Date currentTime = Utility.getCurrentTime();
-			insightBaseXML.addStatement(new Object[]{engineBaseURI + "/" + engineName, MasterDatabaseURIs.TIME_STAMP_URI, currentTime, false});
-		}
-		createQuestionXMLFile(questionXMLFile, workingDir);
-	}
-
-	public void addPropToFile(String propFile, String key, String value, String lineLocation){
-		
-		FileOutputStream fileOut = null;
-		File file = new File(propFile);
-		ArrayList<String> content = new ArrayList<String>();
-		
-		BufferedReader reader = null;
-		FileReader fr = null;
-		
-		try{
-			fr = new FileReader(file);
-			reader = new BufferedReader(fr);
-			String line;
-			while((line = reader.readLine()) != null){
-				content.add(line);
-			}
-			
-			fileOut = new FileOutputStream(file);
-			for(int i=0; i<content.size(); i++){
-				byte[] contentInBytes = content.get(i).getBytes();
-				fileOut.write(contentInBytes);
-				fileOut.write("\n".getBytes());
-				
-				if(content.get(i).contains(lineLocation)){
-					String newProp = key + "\t" + value;
-					fileOut.write(newProp.getBytes());
-					fileOut.write("\n".getBytes());
-				}
-			}
-			
-		} catch(IOException e){
-			e.printStackTrace();
-		} finally{
-			try{
-				reader.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			
-			try{
-				fileOut.close();
-			} catch (IOException e){
-				e.printStackTrace();
-			}
-		}
-	}
-
-	public void createQuestionXMLFile(String questionXMLFile, String baseFolder){
-		FileWriter fWrite = null;
-		RDFXMLWriter questionXMLWriter = null;
-		
-		try {
-			String xmlFileName = baseFolder + "/" +questionXMLFile;
-
-			fWrite = new FileWriter(xmlFileName);
-			questionXMLWriter  = new RDFXMLWriter(fWrite);
-			//System.err.println(insightBaseXML.rc);
-			insightBaseXML.getRc().export(questionXMLWriter);
-			
-			logger.debug("Created XML Question Sheet at: " + xmlFileName);
-		} catch (IOException | RDFHandlerException | RepositoryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} finally{
-			try{
-				if(fWrite!=null){
-					fWrite.close();
-				} 
-			} catch(IOException e){
-				e.printStackTrace();
-			}
+		if(this.insightRDBMS != null) {
+			logger.debug("closing its insight engine ");
+			this.insightRDBMS.closeDB();
 		}
 	}
 	
-	public void createBaseRelationXMLEngine(String questionXMLFile){
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		insightBaseXML = new RDFFileSesameEngine();
-		insightBaseXML.setFileName(baseFolder + "/" + questionXMLFile);
-		insightBaseXML.openDB(null);
-	}
-	
+	@Override
 	public String getProperty(String key) {
 		String retProp = null;
 
@@ -417,173 +251,17 @@ public abstract class AbstractEngine implements IEngine {
 		return retProp;
 	}
 
-	public void createInsightBase() {
-		insightBaseXML = new RDFFileSesameEngine();
-		insightBaseXML.openDB(null);
-	}
-	
-	private void createInsightBaseRelations() {
-		String typePred = RDF.TYPE.stringValue();
-		String classURI = Constants.CLASS_URI;
-		String propURI = Constants.DEFAULT_PROPERTY_URI;
-		String subclassPredicate = Constants.SUBCLASS_URI;
-		String subpropertyPredicate = Constants.SUBPROPERTY_URI;
-		final String semossConceptURI = semossURI + Constants.DEFAULT_NODE_CLASS;
-		final String semossRelationURI = semossURI + Constants.DEFAULT_RELATION_CLASS;
-		
-		insightBaseXML.addStatement(new Object[]{semossConceptURI, typePred, classURI, true});
-		insightBaseXML.addStatement(new Object[]{semossRelationURI, typePred, propURI, true});
-		insightBaseXML.addStatement(new Object[]{engineBaseURI, subclassPredicate, semossConceptURI, true});
-		insightBaseXML.addStatement(new Object[]{perspectiveBaseURI, subclassPredicate, semossConceptURI, true});
-		insightBaseXML.addStatement(new Object[]{insightBaseURI, subclassPredicate, semossConceptURI, true});
-		insightBaseXML.addStatement(new Object[]{paramBaseURI, subclassPredicate, semossConceptURI, true});
-		insightBaseXML.addStatement(new Object[]{enginePerspectiveBaseURI, subpropertyPredicate, semossRelationURI, true});
-		insightBaseXML.addStatement(new Object[]{perspectiveInsightBaseURI, subpropertyPredicate, semossRelationURI, true});
-		insightBaseXML.addStatement(new Object[]{engineInsightBaseURI, subpropertyPredicate, semossRelationURI, true});
-		insightBaseXML.addStatement(new Object[]{containsBaseURI, subpropertyPredicate, semossRelationURI, true});
-		insightBaseXML.addStatement(new Object[]{orderBaseURI, RDF.TYPE.stringValue(), containsBaseURI, true});
-		insightBaseXML.addStatement(new Object[]{labelBaseURI, RDF.TYPE.stringValue(), containsBaseURI, true});
-		insightBaseXML.addStatement(new Object[]{layoutBaseURI, RDF.TYPE.stringValue(), containsBaseURI, true});
-		insightBaseXML.addStatement(new Object[]{sparqlBaseURI, RDF.TYPE.stringValue(), containsBaseURI, true});
-		//insightBase.add(insightVF.createURI(typeBaseURI), RDF.TYPE, insightVF.createURI(containsBaseURI));
-		insightBaseXML.addStatement(new Object[]{tagBaseURI, RDF.TYPE.stringValue(), containsBaseURI, true});
-		insightBaseXML.addStatement(new Object[]{descriptionBaseURI, RDF.TYPE.stringValue(), containsBaseURI, true});
-	}
-
-	/**
-	 * Load the perspectives for a specific engine.
-	 * 
-	 * @param List
-	 *            of properties
-	 */
-	public void loadAllPerspectives(String engineURI) {
-		
-		// this should load the properties from the specified as opposed to
-		// loading from core prop
-		// lastly the localprop needs to set up so that it can be swapped
-		QuestionAdministrator questionAdmin = new QuestionAdministrator(this, false);
-		String perspectives = (String) dreamerProp
-				.get(Constants.PERSPECTIVE);
-		logger.fatal("Perspectives " + perspectives);
-		StringTokenizer tokens = new StringTokenizer(perspectives, ";");
-		Hashtable perspectiveHash = new Hashtable();
-		while (tokens.hasMoreTokens()) {
-			String perspective = tokens.nextToken();
-			perspectiveHash.put(perspective, perspective);
-			String perspectiveInstanceURI = perspectiveBaseURI+"/"+engineName + ":" + perspective;
-			String perspectivePred = enginePerspectiveBaseURI +"/" + engineName
-					+ Constants.RELATION_URI_CONCATENATOR +engineName + ":" + perspective;
-
-			String key = perspective;
-			String qsList = dreamerProp.getProperty(key); // get the ; delimited
-			// questions
-
-			Hashtable qsHash = new Hashtable();
-			Hashtable layoutHash = new Hashtable();
-			if (qsList != null) {
-				int count = 1;
-				StringTokenizer qsTokens = new StringTokenizer(qsList, ";");
-				while (qsTokens.hasMoreElements()) {
-					Vector<String> parameterDependList = new Vector<String>();
-					Vector<String> parameterQueryList = new Vector<String>();
-					Vector<String> parameterOptionList = new Vector<String>();
-					// get the question
-					String qsKey = qsTokens.nextToken();
-					
-					String qsDescr = dreamerProp.getProperty(qsKey);
-					String layoutName = dreamerProp.getProperty(qsKey + "_"
-							+ Constants.LAYOUT);
-					
-					String qsOrder = count + "";
-					
-					//qsDescr = count + ". " + qsDescr;
-
-					String sparql = dreamerProp.getProperty(qsKey + "_"
-							+ Constants.QUERY);
-
-					String description = dreamerProp.getProperty(qsKey + "_"
-							+ Constants.DESCR);
-
-					Hashtable paramHash = Utility.getParams(sparql);
-
-					Enumeration<String> paramKeys = paramHash.keys();
-
-					/*if(qsKey.equals("SysP15")){
-						int x = 0;
-					}*/
-					// loops through to get all param dependencies, queries and options
-					while (paramKeys.hasMoreElements()) {
-						String param = paramKeys.nextElement();
-						String paramKey = param.substring(0, param.indexOf("-"));
-						String type = param.substring(param.indexOf("-") + 1);
-						
-						String qsParamKey = engineName + ":" + perspective + ":" + qsKey + ":" + paramKey;
-						
-						// see if the param key has a query associated with it
-						// usually it is of the form qsKey + _ + paramKey + _ + Query
-						String parameterQueryKey = qsKey + "_" + paramKey + "_" + Constants.QUERY;
-						if(dreamerProp.containsKey(parameterQueryKey))
-						{
-							String parameterQueryValue = dreamerProp.getProperty(parameterQueryKey);
-							parameterQueryKey = paramKey + "_" + Constants.QUERY;
-							parameterQueryList.add(parameterQueryKey+"_-_"+parameterQueryValue);
-						}
-						// see if there is dependency
-						// dependency is of the form qsKey + _ + paramKey + _ + Depend
-						String parameterDependKey = qsKey + "_" + paramKey + "_" + Constants.DEPEND;
-						if(dreamerProp.containsKey(parameterDependKey))
-						{
-							// record this
-							// qsKey_paramkey  - qsKey:Depends - result
-							String parameterDependValue = dreamerProp.getProperty(parameterDependKey);
-							parameterDependKey = paramKey + "_" + Constants.DEPEND;
-							StringTokenizer depTokens = new StringTokenizer(parameterDependValue, ";");
-							
-							//one parameter may have multiple dependencies separated by ;
-							while(depTokens.hasMoreElements())
-							{
-								String depToken = depTokens.nextToken();
-								parameterDependList.add(parameterDependKey+"_-_"+depToken);
-							}
-						}
-						//see if there is option
-						// dependency is of the form qsKey + _ + paramKey + _ + Depend
-						/////////String parameterOptionKey = qsKey + "_" +paramKey + "_" + Constants.OPTION;  ------ this is what it should be... oh well
-						String parameterOptionKey = type + "_" + Constants.OPTION;
-//						System.out.println("CHecking : " + parameterOptionKey);
-						/*if (qsKey.contains("T1")){
-							int x = 0;
-						}*/
-						if(dreamerProp.containsKey(parameterOptionKey))
-						{
-//							System.out.println("TRUE");
-							String parameterOptionValue = dreamerProp.getProperty(parameterOptionKey);
-							parameterOptionList.add(parameterOptionKey + "_-_" + parameterOptionValue);
-						}
-					}
-					questionAdmin.cleanAddQuestion(perspective, qsKey, qsOrder, qsDescr, sparql, layoutName, description, parameterDependList, parameterQueryList, parameterOptionList);
-					count++;
-				}
-				logger.debug("Loaded Perspective " + key);
-			}				
-		}
-	}
-
 	/**
 	 * Method loadProp. Loads the database properties from a specifed properties
 	 * file.
-	 * 
-	 * @param fileName
-	 *            String - The name of the properties file to be loaded.
-	 * 
-	 * @return Properties - The properties imported from the prop file.
+	 * @param fileName			String of the name of the properties file to be loaded.
+	 * @return Properties		The properties imported from the prop file.
 	 * @throws IOException 
 	 * @throws FileNotFoundException 
 	 */
 	public Properties loadProp(String fileName) throws FileNotFoundException, IOException {
 		Properties retProp = new Properties();
-		if(fileName != null)
-		{
+		if(fileName != null) {
 			FileInputStream fis = new FileInputStream(fileName);
 			retProp.load(fis);
 			fis.close();
@@ -608,9 +286,7 @@ public abstract class AbstractEngine implements IEngine {
 	/**
 	 * Sets the name of the engine. This may be a lot of times the same as the
 	 * Repository Name
-	 * 
-	 * @param engineName
-	 *            - Name of the engine that this is being set to
+	 * @param engineName	name of the engine that this is being set to
 	 */
 	@Override
 	public void setEngineName(String engineName) {
@@ -618,20 +294,7 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	/**
-	 * Sets the name of the engine. This may be a lot of times the same as the
-	 * Repository Name
-	 * 
-	 * @param engineName
-	 *            - Name of the engine that this is being set to
-	 */
-
-	public void setEngineURI2Name(String engineURI2) {
-		this.engineURI2 = engineURI2;
-	}
-	
-	/**
 	 * Gets the engine name for this engine
-	 * 
 	 * @return Name of the engine it is being set to
 	 */
 	@Override
@@ -662,11 +325,8 @@ public abstract class AbstractEngine implements IEngine {
 
 	/**
 	 * Adds a new property to the properties list.
-	 * 
-	 * @param name
-	 *            String - The name of the property.
-	 * @param value
-	 *            String - The value of the property.
+	 * @param name		String - The name of the property.
+	 * @param value		String - The value of the property.
 	 */
 	public void addProperty(String name, String value) {
 		prop.put(name, value);
@@ -675,8 +335,7 @@ public abstract class AbstractEngine implements IEngine {
 	/**
 	 * Sets the base data engine.
 	 * 
-	 * @param eng
-	 *            - The base data engine that this is being set to
+	 * @param eng 	The base data engine that this is being set to
 	 */
 	public void setBaseData(RDFFileSesameEngine eng) {
 		this.baseDataEngine = eng;
@@ -690,12 +349,10 @@ public abstract class AbstractEngine implements IEngine {
 	public RDFFileSesameEngine getBaseDataEngine() {
 		return this.baseDataEngine;
 	}
-	
+
 	/**
 	 * Sets the base data hash
-	 * 
-	 * @param h
-	 *            Hashtable - The base data hash that this is being set to
+	 * @param h		Hashtable - The base data hash that this is being set to
 	 */
 	public void setBaseHash(Hashtable h) {
 		logger.debug(this.engineName + " Set the Base Data Hash ");
@@ -704,331 +361,10 @@ public abstract class AbstractEngine implements IEngine {
 
 	/**
 	 * Gets the base data hash
-	 * 
 	 * @return Hashtable - The base data hash.
 	 */
 	public Hashtable getBaseHash() {
 		return this.baseDataHash;
-	}
-
-	/**
-	 * 
-	 */
-	public Vector<String> getPerspectives() {
-		return getPerspectives(engineURI2 + "");
-	}
-
-	public Vector<String> getPerspectives(String engine) {
-		Vector<String> retString = new Vector<String>();
-		// using SPARQL to do the same thing
-		Hashtable paramHash = new Hashtable();
-		paramHash.put("engine", engine + "");
-		String query = Utility.fillParam(perspectives, paramHash);
-		logger.debug("Query is " + query);
-		return Utility.getVectorOfReturn(query, insightBaseXML);
-	}
-	public Vector<String> getPerspectivesURI() {
-		return getPerspectivesURI(engineURI2 + "");
-	}
-
-	public Vector<String> getPerspectivesURI(String engine) {
-		Vector<String> retString = new Vector<String>();
-		// using SPARQL to do the same thing
-		Hashtable paramHash = new Hashtable();
-		paramHash.put("engine", engine + "");
-		String query = Utility.fillParam(perspectivesURI, paramHash);
-		logger.debug("Query is " + query);
-		return Utility.getVectorOfReturn(query, insightBaseXML);
-	}
-	public Vector<String> getInsights(String perspective) {
-
-		return getInsights(perspective, engineURI2 + "");
-	}
-
-	public Vector<String> getInsights(String perspective, String engine) {
-
-		if (perspective != null) {
-			Hashtable paramHash = new Hashtable();
-			paramHash.put("perspective", perspective);
-			String query = Utility.fillParam(insights, paramHash);
-			logger.debug("Query " + query);
-			return Utility.getVectorOfReturn(query, insightBaseXML);
-		}
-		return null;
-	}
-
-	public Vector<String> getInsightsURI(String perspective) {
-
-		return getInsightsURI(perspective, engineURI2 + "");
-	}
-
-	public Vector<String> getOrderedInsightsURI(String perspective) {
-		if (perspective != null) {
-			Hashtable paramHash = new Hashtable();
-			paramHash.put("perspective", perspective);
-			String query = Utility.fillParam(orderedInsightsURI, paramHash);
-			logger.debug("Query " + query);
-			return Utility.getVectorOfReturn(query, insightBaseXML);
-		}
-		return null;
-	}
-
-	public Vector<String> getInsightsURI(String perspective, String engine) {
-
-		if (perspective != null) {
-			Hashtable paramHash = new Hashtable();
-			paramHash.put("perspective", perspective);
-			String query = Utility.fillParam(insightsURI, paramHash);
-			logger.debug("Query " + query);
-			return Utility.getVectorOfReturn(query, insightBaseXML);
-		}
-		return null;
-	}
-
-	public Vector<String> getInsights() {
-		//URI perspectivePred = insightVF.createURI(Constants.PERSPECTIVE + ":"
-		//		+ Constants.PERSPECTIVE);
-		String qPred = Constants.PERSPECTIVE + ":" + Constants.ID;
-		//URI insightPred = labelBaseURI;
-
-		String insights = "SELECT ?insight WHERE {" + "{<" + engineURI2 + "><"
-				+ qPred + "> ?insightURI.}" + "{?insightURI <" + labelBaseURI
-				+ "> ?insight.}" + "}";
-
-		logger.debug("Query " + insights);
-
-		return Utility.getVectorOfReturn(insights, insightBaseXML);
-	}
-
-	public Vector<String> getInsight4Type(String type) {
-
-		Vector<String> retString = new Vector<String>();
-		Hashtable paramHash = new Hashtable();
-		paramHash.put("type", type);
-		// replacing with SPARQL
-		return Utility.getVectorOfReturn(Utility.fillParam(typeSparql, paramHash), insightBaseXML);
-	}
-
-	public Vector<String> getInsight4Tag(String tag) {
-
-		Vector<String> retString = new Vector<String>();
-		Hashtable paramHash = new Hashtable();
-		paramHash.put("tag", tag);
-		return Utility.getVectorOfReturn(Utility.fillParam(insight4TagSparql, paramHash),
-				insightBaseXML);
-	}
-
-	public Vector<String> getTag4Insight(String insight) {
-
-		Vector<String> retString = new Vector<String>();
-		// replacing with SPARQL
-		Hashtable paramHash = new Hashtable();
-		paramHash.put("insight", insight);
-		return Utility.getVectorOfReturn(Utility.fillParam(tag4InsightSparql, paramHash),
-				insightBaseXML);
-	}
-	
-	private Vector<SEMOSSParam> addSEMOSSParams(Vector<SEMOSSParam> retParam,String paramSparql) {
-		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightBaseXML, paramSparql);
-		wrap.execute();
-		// want only unique params. if a question name is duplicated, its possible to have multiple returned here
-		// really should switch this be insight ID based
-		Vector<String> usedLabels = new Vector<String>();
-			while(wrap.hasNext())
-			{
-				ISelectStatement bs = wrap.next();
-				String label = bs.getRawVar("paramLabel") + "";
-				if(!usedLabels.contains(label)){
-					usedLabels.add(label);
-					SEMOSSParam param = new SEMOSSParam();
-					param.setName(label);
-					
-					if(bs.getRawVar("paramType") != null)
-						param.setType(bs.getRawVar("paramType") +"");
-					if(bs.getRawVar("option") != null)
-						param.setOptions(bs.getRawVar("option") + "");
-					if(bs.getRawVar("query") != null)
-						param.setQuery(bs.getRawVar("query") + "");
-					if(bs.getRawVar("depend") != null)
-						param.setDepends(bs.getRawVar("depend") +"");
-					if(bs.getRawVar("dependVar") != null)
-						param.addDependVar(bs.getRawVar("dependVar") +"");
-					if(bs.getRawVar("param") != null)
-						param.setUri(bs.getRawVar("param") +"");
-	
-					retParam.addElement(param);
-					logger.debug(param.getName() + param.getQuery() + param.isDepends() + param.getType());
-				}
-				
-			}
-			
-		return retParam;
-	}
-	
-	public Vector<SEMOSSParam> getParams(String label)
-	{
-		Vector <SEMOSSParam> retParam = new Vector<SEMOSSParam>();
-
-		String paramPred = "INSIGHT:PARAM";
-		String paramPredLabel = "PARAM:LABEL";
-		String queryPred = "PARAM:QUERY";
-		String hasDependPred = "PARAM:HAS:DEPEND";
-		String dependPred = "PARAM:DEPEND";
-		String typePred = "PARAM:TYPE";
-		String optionPred = "PARAM:OPTION";
-
-		String queryParamSparql = "SELECT DISTINCT ?paramLabel ?query ?option ?depend ?dependVar ?paramType ?param WHERE {"
-			+ "{?insightURI <" + labelBaseURI + "> ?insight}"
-			+ "{?insightURI <" + paramPred + "> ?param } "
-			+ "{?param <" + paramPredLabel + "> ?paramLabel } "
-			+ "{?param <" + typePred + "> ?paramType } "
-			+ "OPTIONAL {?param <" + queryPred + "> ?query } "
-			+ "OPTIONAL {?param <" + optionPred + "> ?option } "
-			+ "{?param <" + hasDependPred + "> ?depend } " 
-			+ "{?param <" + dependPred + "> ?dependVar } "
-			+ "} BINDINGS ?insight {(\""+label+"\")}";
-		
-		retParam = addSEMOSSParams(retParam,queryParamSparql);
-		
-		return retParam;
-	}
-	
-	public Vector<Insight> getInsight2URI(String... labels) {
-		String bindingsSet = "";
-		for (String insight : labels){
-			bindingsSet = bindingsSet + "(<" + insight + ">)";
-		}
-		String insightSparql = "SELECT DISTINCT ?insightURI ?order ?insight ?sparql ?output ?engine ?description WHERE {"
-					+ "{?insightURI <" + labelBaseURI + "> ?insight.}"
-					+ "{?insightURI <" + sparqlBaseURI + "> ?sparql.}"
-					+ "{?insightURI <" + layoutBaseURI + "> ?output.}"
-					+ "OPTIONAL {?insightURI <" + orderBaseURI + "> ?order.}"
-					+ "OPTIONAL {?insightURI <" + descriptionBaseURI + "> ?description.}" + "}"
-					+ "BINDINGS ?insightURI {"+ bindingsSet + "}";
-		return processInsight2(insightSparql,labels);
-	}
-	
-	public Vector<Insight> getInsight2(String... labels) {
-		// replace this with the query
-		String bindingsSet = "";
-		for (String insight : labels){
-			bindingsSet = bindingsSet + "(\"" + insight + "\")";
-		}
-		String insightSparql = "SELECT DISTINCT ?insightURI ?order ?insight ?sparql ?output ?engine ?description WHERE {"
-					+ "{?insightURI <" + labelBaseURI + "> ?insight.}"
-					+ "{?insightURI <" + sparqlBaseURI + "> ?sparql.}"
-					+ "{?insightURI <" + layoutBaseURI + "> ?output.}"
-					+ "{?engineInsight <"+Constants.SUBPROPERTY_URI+"> <"+engineInsightBaseURI+">}"
-					+ "{?engine ?engineInsight ?insightURI.}"
-					+ "OPTIONAL {?insightURI <" + orderBaseURI + "> ?order.}"
-					+ "OPTIONAL {?insightURI <" + descriptionBaseURI + "> ?description.}"
-					+ "}"
-					+ "BINDINGS ?insight {"+ bindingsSet + "}";
-		return processInsight2(insightSparql,labels);
-	}
-	
-	public Vector<Insight> processInsight2(String insightSparql,String... labels)
-	{
-		Vector<Insight> insightV = new Vector<Insight>();
-
-		logger.debug("Insighter... " + insightSparql + labels);
-		logger.debug("Label is " + labels);
-		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightBaseXML, insightSparql);
-		wrap.execute();
-
-		while (wrap.hasNext()) {
-			Insight in = new Insight();
-			ISelectStatement bs = wrap.next();
-			in.setId( Utility.getInstanceName(bs.getRawVar("insightURI") + ""));
-			in.setURI( bs.getRawVar("insightURI") + "");
-			
-			Literal lit = (Literal)bs.getRawVar("sparql");
-			String sparql = lit.getLabel();
-			in.setSparql(sparql);
-			
-			if(bs.getRawVar("order") != null){
-				String order = ((MemLiteral)bs.getRawVar("order")).stringValue();
-				in.setOrder(order);
-			}
-			String label = ((LiteralImpl)bs.getRawVar("insight")).getLabel();
-			in.setLabel(label);
-
-			Literal outputlit = (Literal)bs.getRawVar("output");
-			String output = outputlit.getLabel();
-			in.setOutput(output);
-
-			String engine = bs.getRawVar("engine") + "";
-			in.setEngine(engine);
-			
-			if(bs.getRawVar("description") != null){
-				Literal descriptionlit = (Literal)bs.getRawVar("description");
-				String description = descriptionlit.getLabel();
-				in.setDescription(description);
-			}
-			insightV.add(in);
-			logger.debug(in.toString());
-		}
-		if (insightV.isEmpty()) {
-			// in = labelIdHash.get(label);
-			Insight in = new Insight();
-			in = new Insight();
-			in.setLabel("");
-			in.setOutput("Unknown");
-			in.setId("DN");
-			in.setSparql("This will not work");
-			insightV.add(in);
-			logger.debug("Using Label ID Hash ");
-		}
-		return insightV;
-	}
-	
-	public Insight getInsight(String label) {
-		// replace this with the query
-		Insight in = new Insight();
-		
-		String insightSparql = "SELECT ?insightURI ?order ?insight ?sparql ?output WHERE {"
-				+"BIND(\"" + label + "\" AS ?insight)"
-				+ "{?insightURI <" + labelBaseURI + "> ?insight.}"
-				+ "{?insightURI <" + sparqlBaseURI + "> ?sparql.}"
-				+ "{?insightURI <" + layoutBaseURI + "> ?output.}"
-				+ "OPTIONAL {?insightURI <" + orderBaseURI + "> ?order.}"
-				+ "}";
-		logger.debug("Insighter... " + insightSparql + label);
-		logger.debug("Label is " + label);
-		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightBaseXML, insightSparql);
-		wrap.execute();
-
-		if (!wrap.hasNext())
-			in = null;
-		while (wrap.hasNext()) {
-			ISelectStatement bs = wrap.next();
-			in.setId(bs.getRawVar("insightURI") + "");
-			String sparql = bs.getRawVar("sparql") + "";
-			sparql = sparql.replace("\"", "");
-			if(bs.getRawVar("order") != null){
-				String order = ((MemLiteral)bs.getRawVar("order")).stringValue();
-				in.setOrder(order);
-			}
-			String label2 = bs.getRawVar("insight") + "";
-			logger.debug("Getting insight... sparql for "+label2 + " is " + sparql);
-			in.setSparql(sparql);
-			String output = bs.getRawVar("output") + "";
-			output = output.replace("\"", "");
-			in.setOutput(output);
-		}
-		logger.debug("final filled insight is  "+ in);
-		if (in == null) {
-			// in = labelIdHash.get(label);
-			in = new Insight();
-			in.setOrder("Unknown");
-			in.setLabel(label);
-			in.setOutput("Unknown");
-			in.setId("DN");
-			in.setSparql("This will not work");
-			logger.debug("Using Label ID Hash ");
-		}
-		return in;
-		// return labelIdHash.get(label);
 	}
 
 	// sets the dreamer
@@ -1046,9 +382,7 @@ public abstract class AbstractEngine implements IEngine {
 			try {
 				ontoProp = loadProp(ontology);
 				createBaseRelationEngine();
-
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -1058,16 +392,14 @@ public abstract class AbstractEngine implements IEngine {
 		this.owl = owl;
 	}
 
-	// need to complete this
+	public void setProperties(Properties prop) {
+		this.prop = prop;
+	}
+	
 	/**
 	 * Checks for an OWL and adds it to the engine. Sets the base data hash from
 	 * the engine properties, commits the database, and creates the base
 	 * relation engine.
-	 * 
-	 * @param List
-	 *            of properties for a specific engine
-	 * @param Engine
-	 *            to set
 	 */
 	public void createBaseRelationEngine() {
 		RDFFileSesameEngine baseRelEngine = new RDFFileSesameEngine();
@@ -1086,7 +418,7 @@ public abstract class AbstractEngine implements IEngine {
 		if(prop != null) {
 			addProperty(Constants.OWL, owl);
 		}
-		
+
 		try {
 			baseHash.putAll(RDFEngineHelper.createBaseFilterHash(baseRelEngine.getRc()));
 		} catch (Exception e) {
@@ -1094,7 +426,7 @@ public abstract class AbstractEngine implements IEngine {
 			e.printStackTrace();
 		}
 		setBaseHash(baseHash);
-		
+
 		baseRelEngine.commit();
 		setBaseData(baseRelEngine);
 	}
@@ -1102,19 +434,23 @@ public abstract class AbstractEngine implements IEngine {
 	// gets the from neighborhood for a given node
 	public Vector<String> getFromNeighbors(String nodeType, int neighborHood) {
 		// this is where this node is the from node
-		Hashtable paramHash = new Hashtable();
-		paramHash.put("nodeType", nodeType);
-		return Utility.getVectorOfReturn(Utility.fillParam(fromSparql, paramHash), baseDataEngine);
+		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
+		List<Object> nodeArr = new Vector<Object>();
+		nodeArr.add(nodeType);
+		paramHash.put("nodeType", nodeArr);
+		return Utility.getVectorOfReturn(Utility.fillParam(FROM_SPARQL, paramHash), baseDataEngine, true);
 	}
 
 	// gets the to nodes
 	public Vector<String> getToNeighbors(String nodeType, int neighborHood) {
 		// this is where this node is the to node
-		Hashtable paramHash = new Hashtable();
-		paramHash.put("nodeType", nodeType);
-		return Utility.getVectorOfReturn(Utility.fillParam(toSparql, paramHash), baseDataEngine);
+		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
+		List<Object> nodeArr = new Vector<Object>();
+		nodeArr.add(nodeType);
+		paramHash.put("nodeType", nodeArr);
+		return Utility.getVectorOfReturn(Utility.fillParam(TO_SPARQL, paramHash), baseDataEngine, true);
 	}
-	
+
 	// gets the from and to nodes
 	public Vector<String> getNeighbors(String nodeType, int neighborHood) {
 		Vector<String> from = getFromNeighbors(nodeType, 0);
@@ -1123,32 +459,8 @@ public abstract class AbstractEngine implements IEngine {
 		return from;
 	}
 
-	// gets the OWL engine
-	// this needs to change later
-	// needed for cluster engine
-	public RepositoryConnection getOWL()
-	{
-		return baseDataEngine.getRc();
-	}
-	
-	public RepositoryConnection getInsightDB()
-	{
-		return this.insightBaseXML.getRc();
-	}
-	
-	public String getInsightDefinition()
-	{
-		StringWriter output = new StringWriter();
-		try {
-			insightBaseXML.getRc().export(new RDFXMLWriter(output));
-		} catch (RepositoryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (RDFHandlerException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return output.toString();
+	public String getOWL() {
+		return this.owl;
 	}
 
 	public String getOWLDefinition()
@@ -1166,14 +478,10 @@ public abstract class AbstractEngine implements IEngine {
 		return output.toString();
 	}
 
-	public RDFFileSesameEngine getInsightBaseXML() {
-		return insightBaseXML;
-	}
-	
 	public IQueryBuilder getQueryBuilder(){
 		return new SPARQLQueryTableBuilder();
 	}
-	
+
 	/**
 	 * Commits the base data engine
 	 */
@@ -1182,86 +490,19 @@ public abstract class AbstractEngine implements IEngine {
 		this.baseDataEngine.commit();
 	}
 
-	/**
-	 * Uses the uri of a parameter to get the values to show for that parameter
-	 * 
-	 */
-	public Vector<String> getParamOptions(String parameterURI) {
-		// query to get param definition based on uri.
-		Vector<SEMOSSParam> paramRet = new Vector<SEMOSSParam>();
-		String paramPredLabel = "PARAM:LABEL";
-		String queryPred = "PARAM:QUERY";
-		String hasDependPred = "PARAM:HAS:DEPEND";
-		String dependPred = "PARAM:DEPEND";
-		String typePred = "PARAM:TYPE";
-		String optionPred = "PARAM:OPTION";
-
-		String queryParamSparql = "SELECT DISTINCT ?paramLabel ?query ?option ?depend ?dependVar ?paramType ?param WHERE {"
-			+"BIND(<" + parameterURI + "> AS ?param)"
-			+ "{?param <" + paramPredLabel + "> ?paramLabel } "
-			+ "{?param <" + typePred + "> ?paramType } "
-			+ "OPTIONAL {?param <" + queryPred + "> ?query } "
-			+ "OPTIONAL {?param <" + optionPred + "> ?option } "
-			+ "{?param <" + hasDependPred + "> ?depend } " 
-			+ "{?param <" + dependPred + "> ?dependVar } "
-			+ "}";
-		
-		paramRet = addSEMOSSParams(paramRet,queryParamSparql);
-		
-		Vector<String> uris = new Vector<String>();
-		if(!paramRet.isEmpty()){
-			SEMOSSParam ourParam = paramRet.get(0); // there should only be one as we are getting the param from a specific param URI
-			//if the param has options defined, we are all set
-			//grab the options and we are good to go
-			Vector<String> options = ourParam.getOptions();
-			if (options != null && !options.isEmpty()) {
-				uris.addAll(options);
-			}
-			else{
-				
-				// if options are not defined, need to get uris either from custom sparql or type
-				// need to use custom query if it has been specified in the xml
-				// otherwise use generic fill query
-				String paramQuery = ourParam.getQuery();
-				String type = ourParam.getType();
-				// RDBMS right now does type:type... need to get just the second type. This will be fixed once insights don't store generic query
-				// TODO: fix this logic. need to decide how to store param type for rdbms
-				
-				if (paramQuery != null) {
-					if (this.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
-						if (type.contains(":")) {
-							String[] typeArray = type.split(":");
-							String table = typeArray[0];
-							type = typeArray[1];
-							//if (type != null && table != null && !type.equalsIgnoreCase(table)) // Parameter structure: '@ParamName-Table:Column@'
-								//paramQuery = paramQuery.substring(0, paramQuery.lastIndexOf("@entity@")) + table;
-						}
-					}
-					Hashtable<String, Object> paramTable = new Hashtable<String, Object>();
-					paramTable.put(Constants.ENTITY, type);
-					paramQuery = Utility.fillParam(paramQuery, paramTable);
-					uris = this.getCleanSelect(paramQuery);
-				}else { 
-					uris = this.getEntityOfType(type);
-				}
-			}
-		}
-		return uris;
-	}
-	
-	protected abstract Vector<String> getCleanSelect(String query);
+	protected abstract Vector<Object> getCleanSelect(String query);
 
 	public Vector<String> getConcepts() {
 		String query = "SELECT ?concept WHERE {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }";
-		return Utility.getVectorOfReturn(query, baseDataEngine);
+		return Utility.getVectorOfReturn(query, baseDataEngine, true);
 	}
 
 	public Vector<String> getProperties4Concept(String concept) {
 		String query = "SELECT ?property WHERE { {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
 				+ "{?concept  <http://www.w3.org/2002/07/owl#DatatypeProperty> ?property}"
-				+ "{?property a <" + containsBaseURI + ">}}"
-						+ "BINDINGS ?concept {(<"+concept+">)}";
-		return Utility.getVectorOfReturn(query, baseDataEngine);
+				+ "{?property a <" + CONTAINS_BASE_URI + ">}}"
+				+ "BINDINGS ?concept {(<"+concept+">)}";
+		return Utility.getVectorOfReturn(query, baseDataEngine, true);
 	}
 
 	/**
@@ -1290,84 +531,65 @@ public abstract class AbstractEngine implements IEngine {
 		logger.debug("Query is " + query);
 		baseDataEngine.removeData(query);
 	}
-	
+
 	public String getMethodName(IEngine.ACTION_TYPE actionType){
 		String retString = "";
-		switch(actionType)
-			{
-			case ADD_STATEMENT: {
-				retString = "addStatement";
-				break;
-			}
-			case REMOVE_STATEMENT: {
-				retString = "removeStatement";
-				break;
-			}
-			default: {
-				
-			}
+		switch(actionType) {
+		case ADD_STATEMENT: {
+			retString = "addStatement";
+			break;
+		}
+		case REMOVE_STATEMENT: {
+			retString = "removeStatement";
+			break;
+		}
+		default: {
+
+		}
 		}
 		return retString;
 	}
 
-	
-	public Object doAction(IEngine.ACTION_TYPE actionType, Object[] args){
 
+	public Object doAction(IEngine.ACTION_TYPE actionType, Object[] args){
 		// Iterate through methods on the engine -- do this on startup
 		// Find the method on the engine that matches the action type passed in
 		// pass the arguments and let it run
-		// 
+
 		// if the method does not exist on the engine
 		// look at the smss for the method (?)
 		String methodName = this.getMethodName(actionType);
-//		logger.info("Trying to run method: " + methodName + " on database: " + this.getEngineName() + " with arguments: " + args.toString());
-		
+
 		Object[] params = {args};
-    	java.lang.reflect.Method method = null;
-    	Object ret = null;
-    	try {
-    		method = this.getClass().getMethod(methodName, args.getClass());
-  			ret = method.invoke(this, params);
-    	} catch (SecurityException e) {
-    		logger.error(e);
-    	} catch (NoSuchMethodException e) {
-    		logger.error(e);
-    	} catch (IllegalArgumentException e) {
-    		logger.error(e);
-    	} catch (IllegalAccessException e) {
-    		logger.error(e);
-    	} catch (InvocationTargetException e) {
-    		logger.error(e);
-    	}
-    	return ret;
-		
-//		IDBAction action = null;
-//		switch(actionType)
-//			{
-//			case ADD_STATEMENT: {
-//				action = new AddStatementWrapper();
-//				break;
-//			}
-//			default: {
-//				
-//			}
-//		}
-//		
-//		Object returnObj = action.performAction(args, this);
-//		
-//		return returnObj;
+		java.lang.reflect.Method method = null;
+		Object ret = null;
+		try {
+			method = this.getClass().getMethod(methodName, args.getClass());
+			ret = method.invoke(this, params);
+		} catch (SecurityException e) {
+			logger.error(e);
+		} catch (NoSuchMethodException e) {
+			logger.error(e);
+		} catch (IllegalArgumentException e) {
+			logger.error(e);
+		} catch (IllegalAccessException e) {
+			logger.error(e);
+		} catch (InvocationTargetException e) {
+			logger.error(e);
+		}
+		return ret;
 	}
 
 	public void deleteDB() {
 		logger.debug("closing " + this.engineName);
 		this.closeDB();
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String insightLoc = baseFolder + "/" + this.getProperty(Constants.INSIGHTS);
+		String insightLoc = baseFolder + "/" + this.getProperty(Constants.RDBMS_INSIGHTS);
 		File insightFile = new File(insightLoc);
 		File engineFolder = new File(insightFile.getParent());
 		String folderName = engineFolder.getName();
 		try {
-			logger.debug("checking folder " + folderName + " against db " + this.engineName);//this check is to ensure we are deleting the right folder
+			logger.debug("checking folder " + folderName + " against db " + this.engineName);//this check is to ensure we are deleting the right folder.
 			if(folderName.equals(this.engineName))
 			{
 				logger.debug("folder getting deleted is " + engineFolder.getAbsolutePath());
@@ -1378,14 +600,14 @@ public abstract class AbstractEngine implements IEngine {
 				//try deleting each file individually
 				logger.debug("Deleting insight file " + insightLoc);
 				insightFile.delete();
-	
+
 				String ontoLoc = baseFolder + "/" + this.getProperty(Constants.ONTOLOGY);
 				if(ontoLoc != null){
 					logger.debug("Deleting onto file " + ontoLoc);
 					File ontoFile = new File(ontoLoc);
 					ontoFile.delete();
 				}
-	
+
 				String owlLoc = baseFolder + "/" + this.getProperty(Constants.OWL);
 				if(owlLoc != null){
 					logger.debug("Deleting owl file " + owlLoc);
@@ -1396,14 +618,12 @@ public abstract class AbstractEngine implements IEngine {
 			logger.debug("Deleting smss " + this.propFile);
 			File smssFile = new File(this.propFile);
 			smssFile.delete();
-	
-			//NEED TO REMOVE FROM SESSION IF FROM WEB
-			
-			//remove from dihelper...
+
+			//remove from DIHelper
 			String engineNames = (String)DIHelper.getInstance().getLocalProp(Constants.ENGINES);
 			engineNames = engineNames.replace(";" + engineName, "");
 			DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
-	
+
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -1439,5 +659,321 @@ public abstract class AbstractEngine implements IEngine {
 		while(!props.isEmpty()){
 			System.out.println(props.remove(0));
 		}
+	}
+
+	@Override
+	public IEngine getInsightDatabase() {
+		return this.insightRDBMS;
+	}
+
+	@Override
+	public Vector<String> getPerspectives() {
+		return Utility.getVectorOfReturn(GET_ALL_PERSPECTIVES_QUERY, insightRDBMS, false);
+	}
+
+	@Override
+	public Vector<String> getInsights(String perspective) {
+		String insightsInPerspective = GET_ALL_INSIGHTS_IN_PERSPECTIVE.replace(PERSPECTIVE_PARAM_KEY, perspective);
+		return Utility.getVectorOfReturn(insightsInPerspective, insightRDBMS, false);
+	}
+
+	@Override
+	public Vector<String> getInsights() {
+		return Utility.getVectorOfReturn(GET_ALL_INSIGHTS_QUERY, insightRDBMS, false);
+	}
+	
+	@Override
+	public List<Map<String, Object>> getAllInsightsMetaData() {
+		List<Map<String, Object>> retList = new Vector<Map<String, Object>>();
+		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRDBMS, GET_ALL_INSIGHTS_WITH_METADATA_QUERY);
+		String[] names = wrap.getVariables();
+		while(wrap.hasNext()) {
+			ISelectStatement ss = wrap.next();
+			String insight = ss.getVar(names[0]) + "";
+			String insightLabel = ss.getVar(names[1]) + "";
+			String perspective = ss.getVar(names[2]) + "";
+			String layout = ss.getVar(names[3]) + "";
+
+			// TODO: need to clean this up
+			// seems unnecessary to pass this for each insight since we know its from this engine
+			HashMap<String, String> engineMetaData = new HashMap<String, String>();
+			engineMetaData.put("name", this.engineName);
+			engineMetaData.put("type", this.getEngineType().toString());
+			
+			Map<String, Object> insightMetadata = new Hashtable<String, Object>();
+			insightMetadata.put("insight", insight);
+			insightMetadata.put("label", insightLabel);
+			insightMetadata.put("engine", engineMetaData);
+			insightMetadata.put("perspective", perspective);
+			insightMetadata.put("layout", layout);
+			insightMetadata.put("visibility", "me");
+			insightMetadata.put("count", 0);
+			
+			retList.add(insightMetadata);
+		}
+		return retList;
+	}
+
+	@Override
+	public Vector<SEMOSSParam> getParams(String... paramIds) {
+		String pIdString = "";
+		int numIDs = paramIds.length;
+		for(int i = 0; i < numIDs; i++) {
+			String id = paramIds[i];
+			pIdString = pIdString + "'" + id + "'";
+			if(i != numIDs - 1) {
+				pIdString = pIdString + ", ";
+			}
+		}
+		String query = GET_INFO_FOR_PARAMS.replace(PARAMETER_ID_PARAM_KEY, pIdString);
+		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRDBMS, query);
+		String[] names = wrap.getVariables();
+
+		Vector<SEMOSSParam> retParams = new Vector<SEMOSSParam>();
+		while(wrap.hasNext()) {
+			ISelectStatement ss = wrap.next();
+			String label = ss.getVar(names[0]) + "";
+			SEMOSSParam param = new SEMOSSParam();
+			param.setName(label);
+			if(ss.getVar(names[1]) != null)
+				param.setType(ss.getVar(names[1]) +"");
+			if(ss.getVar(names[2]) != null)
+				param.setOptions(ss.getVar(names[2]) + "");
+			if(ss.getVar(names[3]) != null)
+				param.setQuery(ss.getVar(names[3]) + "");
+			if(ss.getRawVar(names[4]) != null)
+				param.addDependVar(ss.getRawVar(names[4]) +"");
+			if(ss.getVar(names[5]) != null && ss.getVar(names[5]).toString().isEmpty())
+				param.setDbQuery((boolean) ss.getVar(names[5]));
+			if(!ss.getVar(names[6]).toString().isEmpty())
+				param.setMultiSelect((boolean) ss.getVar(names[6]));
+			if(!ss.getVar(names[7]).toString().isEmpty())
+				param.setComponentFilterId(ss.getVar(names[7]) + "");
+			if(ss.getVar(names[0]) != null)
+				param.setParamID(ss.getVar(names[0]) +"");
+			
+			retParams.addElement(param);
+		}		
+		
+		return retParams;
+	}
+
+	
+	@Override
+	public Vector<SEMOSSParam> getParams(String questionID) {
+		String query = GET_ALL_PARAMS_FOR_QUESTION_ID.replace(QUESTION_ID_FK_PARAM_KEY, questionID);
+		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRDBMS, query);
+		String[] names = wrap.getVariables();
+
+		Vector<SEMOSSParam> retParam = new Vector<SEMOSSParam>();
+		while(wrap.hasNext()) {
+			ISelectStatement ss = wrap.next();
+			String label = ss.getVar(names[0]) + "";
+			SEMOSSParam param = new SEMOSSParam();
+			param.setName(label);
+			if(!ss.getVar(names[1]).toString().isEmpty())
+				param.setType(ss.getVar(names[1]) +"");
+			if(!ss.getVar(names[2]).toString().isEmpty())
+				param.setOptions(ss.getVar(names[2]) + "");
+			if(!ss.getVar(names[3]).toString().isEmpty())
+				param.setQuery(ss.getVar(names[3]) + "");
+			if(!ss.getVar(names[4]).toString().isEmpty()) {
+				String[] vars = (ss.getVar(names[4]) +"").split(";");
+				for(String var : vars){
+					param.addDependVar(var);
+				}
+			}
+			if(!ss.getVar(names[5]).toString().isEmpty()) {
+				param.setDbQuery((boolean) ss.getVar(names[5]));
+			}
+			if(!ss.getVar(names[6]).toString().isEmpty()) {
+				param.setMultiSelect((boolean) ss.getVar(names[6]));
+			}
+			if(!ss.getVar(names[7]).toString().isEmpty())
+				param.setComponentFilterId(ss.getVar(names[7]) + "");
+			if(!ss.getRawVar(names[8]).toString().isEmpty())
+				param.setParamID(ss.getVar(names[8]) +"");
+			retParam.addElement(param);
+		}
+
+		return retParam;
+	}
+
+	@Override
+	public Vector<Object> getParamOptions(String parameterID) {
+		String query = GET_INFO_FOR_PARAM.replace(PARAMETER_ID_PARAM_KEY, parameterID);
+		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRDBMS, query);
+		String[] names = wrap.getVariables();
+
+		Vector<SEMOSSParam> retParam = new Vector<SEMOSSParam>();
+		while(wrap.hasNext()) {
+			ISelectStatement ss = wrap.next();
+			String label = ss.getVar(names[0]) + "";
+			SEMOSSParam param = new SEMOSSParam();
+			param.setName(label);
+			if(ss.getVar(names[1]) != null)
+				param.setType(ss.getVar(names[1]) +"");
+			if(ss.getVar(names[2]) != null)
+				param.setOptions(ss.getVar(names[2]) + "");
+			if(ss.getVar(names[3]) != null)
+				param.setQuery(ss.getVar(names[3]) + "");
+			if(ss.getRawVar(names[4]) != null)
+				param.addDependVar(ss.getRawVar(names[4]) +"");
+			if(ss.getVar(names[5]) != null && ss.getVar(names[5]).toString().isEmpty())
+				param.setDbQuery((boolean) ss.getVar(names[5]));
+			if(!ss.getVar(names[6]).toString().isEmpty())
+				param.setMultiSelect((boolean) ss.getVar(names[6]));
+			if(!ss.getVar(names[7]).toString().isEmpty())
+				param.setComponentFilterId(ss.getVar(names[7]) + "");
+			if(ss.getVar(names[0]) != null)
+				param.setParamID(ss.getVar(names[0]) +"");
+			retParam.addElement(param);
+		}
+
+		Vector<Object> uris = new Vector<Object>();
+		if(!retParam.isEmpty()){
+			SEMOSSParam ourParam = retParam.get(0); // there should only be one as we are getting the param from a specific param URI
+			//if the param has options defined, we are all set
+			//grab the options and we are good to go
+			Vector<String> options = ourParam.getOptions();
+			if (options != null && !options.isEmpty()) {
+				uris.addAll(options);
+			}
+			else{
+				// if options are not defined, need to get uris either from custom sparql or type
+				// need to use custom query if it has been specified in the xml
+				// otherwise use generic fill query
+				String paramQuery = ourParam.getQuery();
+				String type = ourParam.getType();
+				boolean isDbQuery = ourParam.isDbQuery();
+				// RDBMS right now does type:type... need to get just the second type. This will be fixed once insights don't store generic query
+				// TODO: fix this logic. need to decide how to store param type for rdbms
+				if(paramQuery != null && !paramQuery.isEmpty()) {
+					//TODO: rdbms has type as null... this is confusing given the other comments here....
+					if(type != null && !type.isEmpty()) {
+						if (this.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
+							if (type.contains(":")) {
+								String[] typeArray = type.split(":");
+								String table = typeArray[0];
+								type = typeArray[1];
+								//if (type != null && table != null && !type.equalsIgnoreCase(table)) // Parameter structure: '@ParamName-Table:Column@'
+								//paramQuery = paramQuery.substring(0, paramQuery.lastIndexOf("@entity@")) + table;
+							}
+						}
+						Map<String, List<Object>> paramTable = new Hashtable<String, List<Object>>();
+						List<Object> typeList = new Vector<Object>();
+						typeList.add(type);
+						paramTable.put(Constants.ENTITY, typeList);
+						paramQuery = Utility.fillParam(paramQuery, paramTable);
+					}
+					if(isDbQuery) {
+						uris = this.getCleanSelect(paramQuery);
+					} else {
+						uris = this.baseDataEngine.getCleanSelect(paramQuery);
+					}
+				}else { 
+					// anything that is get Entity of Type must be on db
+					uris = this.getEntityOfType(type);
+				}
+			}
+		}
+		return uris;
+	}
+
+	@Override
+	public Vector<Insight> getInsight(String... questionIDs) {
+		Vector<Insight> insightV = new Vector<Insight>();
+		
+		String idString = "";
+		int numIDs = questionIDs.length;
+		for(int i = 0; i < numIDs; i++) {
+			String id = questionIDs[i];
+			idString = idString + "'" + id + "'";
+			if(i != numIDs - 1) {
+				idString = idString + ", ";
+			}
+		}
+		String query = GET_INSIGHT_INFO_QUERY.replace(QUESTION_PARAM_KEY, idString);
+		logger.info("Running insights query " + query);
+		
+		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRDBMS, query);
+		wrap.execute();
+		String[] names = wrap.getVariables();
+		while (wrap.hasNext()) {
+			ISelectStatement ss = wrap.next();
+			String insightID = ss.getVar(names[0]) + "";
+			String insightName = ss.getVar(names[1]) + "";
+			
+			JdbcClob obj = (JdbcClob) ss.getRawVar(names[2]);
+			
+			InputStream insightDefinition = null;
+			try {
+				insightDefinition = obj.getAsciiStream();
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			String perspective = ss.getVar(names[3]) + "";
+			String layout = ss.getVar(names[4]) + "";
+			String order = ss.getVar(names[5]) + "";
+			String dataTableAlign = ss.getVar(names[6]) + "";
+			String dataMakerName = ss.getVar(names[7]) + "";
+
+			Insight in = new Insight(this, dataMakerName, layout);
+			in.setInsightID(insightID);
+			in.setRdbmsId(insightID);
+			in.setInsightName(insightName);
+			in.setMakeup(insightDefinition);
+			in.setPerspective(perspective);
+			in.setOrder(order);
+			in.setDataTableAlign(dataTableAlign);
+			// adding semoss parameters to insight
+			in.setInsightParameters(getParams(insightID));
+			insightV.add(in);
+			logger.debug(in.toString());
+		}
+		if(insightV.isEmpty()) {
+			System.err.println("FAILED TO GET ANY INSIGHT FOR ARRAY :::::: "+ questionIDs[0]);
+			// in = labelIdHash.get(label);
+			Insight in = new Insight(this, "Unknown", "Unknown");
+			in.setInsightID("DNE");
+			in.setRdbmsId("DNE");
+			in.setInsightName("DNE");
+//			in.setMakeup("This will not work");
+			insightV.add(in);
+			logger.debug("Using Label ID Hash ");
+		}
+		return insightV;
+	}
+
+	//TODO: currently these are never actually used in the application....
+	@Override
+	public Vector<String> getInsight4Type(String type) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	//TODO: currently these are never actually used in the application....
+	@Override
+	public Vector<String> getInsight4Tag(String tag) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String getInsightDefinition()
+	{
+		StringBuilder stringBuilder = new StringBuilder();
+		// call script command to get everything necessary to recreate rdbms engine on the other side//
+		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRDBMS, "SCRIPT");
+		String[] names = wrap.getVariables();
+
+		while(wrap.hasNext()) {
+			ISelectStatement ss = wrap.next();
+			System.out.println(ss.getRPropHash().toString());//
+			stringBuilder.append(ss.getRawVar(names[0]) + "").append("%!%");
+		}
+//		this.insightRDBMS.execQuery("SCRIPT TO 'C:\\Users\\bisutton\\workspace\\script.txt'");
+		return stringBuilder.toString();
 	}
 }

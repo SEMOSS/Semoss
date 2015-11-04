@@ -28,7 +28,8 @@
 package prerna.ui.helpers;
 
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.AbstractRDFPlaySheet;
+import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 /**
  * This class helps with running the overlay view method for a playsheet.
@@ -36,15 +37,17 @@ import prerna.ui.components.playsheets.AbstractRDFPlaySheet;
 public class PlaysheetOverlayRunner implements Runnable{
 
 	IPlaySheet playSheet = null;
+	DataMakerComponent[] dmComponents;
 	
 	
 	/**
 	 * Constructor for PlaysheetOverlayRunner.
 	 * @param playSheet IPlaySheet
 	 */
-	public PlaysheetOverlayRunner(IPlaySheet playSheet)
+	public PlaysheetOverlayRunner(IPlaySheet playSheet, DataMakerComponent[] dmComponents)
 	{
 		this.playSheet = playSheet;
+		this.dmComponents = dmComponents;
 	}
 
 	
@@ -53,20 +56,18 @@ public class PlaysheetOverlayRunner implements Runnable{
 	 */
 	@Override
 	public void run() {
-		if(playSheet instanceof AbstractRDFPlaySheet)
-			((AbstractRDFPlaySheet)playSheet).setAppend(true);
-		playSheet.createData();
+//		if(playSheet instanceof AbstractPlaySheet)
+//			((AbstractPlaySheet)playSheet).setAppend(true);
+//		playSheet.createData();
+//		playSheet.runAnalytics();
+//		playSheet.overlayView();
+		
+		IDataMaker dm = playSheet.getDataMaker();
+		for(DataMakerComponent dmc : this.dmComponents){
+			dm.processDataMakerComponent(dmc);
+		}
 		playSheet.runAnalytics();
 		playSheet.overlayView();
-	}
-	
-	/**
-	 * Method setPlaySheet. Sets the playsheet to this playsheet.
-	 * @param playSheet IPlaySheet
-	 */
-	public void setPlaySheet(IPlaySheet playSheet)
-	{
-		this.playSheet = playSheet;
 	}
 
 }

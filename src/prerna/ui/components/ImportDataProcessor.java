@@ -545,11 +545,10 @@ public class ImportDataProcessor {
 		//DB_TYPE dbType = DB_TYPE.RDF;
 
 		if(importType == IMPORT_TYPE.NLP)
-			propWriter.setDefaultQuestionSheet("db/Default/Default_NLP_Questions.XML");
+			propWriter.setDefaultQuestionSheet("db/Default/Default_NLP_Questions.properties");
 
 		// need to make provision for dbType
-		if(importType == IMPORT_TYPE.CSV && dbType == DB_TYPE.RDBMS)
-		{
+		if(importType == IMPORT_TYPE.CSV && dbType == DB_TYPE.RDBMS) {
 
 		}
 

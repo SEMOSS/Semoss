@@ -31,7 +31,10 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
+import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -43,12 +46,13 @@ import javax.swing.JTextArea;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.om.Insight;
+import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.swing.custom.ToggleButton;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.PlaySheetEnum;
+import prerna.util.PlaySheetRDFMapBasedEnum;
 import prerna.util.Utility;
 
 /**
@@ -60,14 +64,6 @@ public class ShowQuestionSparqlListener implements IChakraListener {
 	JTextArea view = null;
 
 	/**
-	 * Method setModel.  Sets the model that the query will access.
-	 * @param model JComponent
-	 */
-	public void setModel(JComponent model)
-	{
-	}
-	
-	/**
 	 * Method actionPerformed.  Dictates what actions to take when an Action Event is performed.
 	 * @param e ActionEvent - The event that triggers the actions in the method.
 	 */
@@ -78,21 +74,17 @@ public class ShowQuestionSparqlListener implements IChakraListener {
 		ToggleButton btnCustomSparql = (ToggleButton)DIHelper.getInstance().getLocalProp(Constants.CUSTOMIZE_SPARQL);
 
 		// get the selected engine
-		JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+		JList<String> list = (JList<String>) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		Object[] repos = (Object[]) list.getSelectedValues();
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(repos[0] + "");
 		// get the selected question
-		String insightString = ((JComboBox) DIHelper.getInstance().getLocalProp(Constants.QUESTION_LIST_FIELD)).getSelectedItem() + "";
-
+		Map<String, String> insightMap = (Map<String, String>) ((JComboBox<Map<String, String>>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_LIST_FIELD)).getSelectedItem();
+		String questionID = insightMap.get(MapComboBoxRenderer.KEY);
 		
 		// create insight to get sparql text
-		Insight insight = ((AbstractEngine)engine).getInsight2(insightString).get(0);
-		if(insight.getOutput().equals("Unknown")) {
-			String[] insightStringSplit = insightString.split("\\. ", 2);
-			insightString = insightStringSplit[1];
-			insight = ((AbstractEngine)engine).getInsight2(insightString).get(0);
-		}
-		String sparql = Utility.normalizeParam(insight.getSparql());
+		Insight insight = ((AbstractEngine)engine).getInsight(questionID).get(0);
+//		String sparql = Utility.normalizeParam(insight.getDataMakerComponents()[0].getQuery());
+		String sparql = Utility.normalizeParam(insight.getDataMakerComponents().get(0).getQuery());
 
 		// only allow use of get current sparql question btn when custom sparql btn is selected
 		if(btnCustomSparql.isSelected())
@@ -115,20 +107,20 @@ public class ShowQuestionSparqlListener implements IChakraListener {
 
 				// get all the param field
 				Component[] fields = curPanel.getComponents();
-				Hashtable paramHash = new Hashtable();
+				Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
 
 				for (int compIndex = 0; compIndex < fields.length; compIndex++) {
 					if (fields[compIndex] instanceof ParamComboBox) {
-						String fieldName = ((ParamComboBox) fields[compIndex])
-								.getParamName();
-						String fieldValue = ((ParamComboBox) fields[compIndex])
-								.getSelectedItem() + "";
-						String uriFill = ((ParamComboBox) fields[compIndex])
-								.getURI(fieldValue);
-						if (uriFill == null)
+						String fieldName = ((ParamComboBox) fields[compIndex]).getParamName();
+						String fieldValue = ((ParamComboBox) fields[compIndex]).getSelectedItem() + "";
+						String uriFill = ((ParamComboBox) fields[compIndex]).getURI(fieldValue);
+						if (uriFill == null) {
 							uriFill = fieldValue;
-						paramHash.put(fieldName, uriFill);
 						}
+						List<Object> uriList = new ArrayList<Object>();
+						uriList.add(uriFill);
+						paramHash.put(fieldName, uriList);
+					}
 				}
 				sparql = prerna.util.Utility.fillParam(sparql, paramHash);
 				
@@ -140,7 +132,7 @@ public class ShowQuestionSparqlListener implements IChakraListener {
 				// change the playsheet selected to the layout of the imported question query
 				String layoutValue = (String)DIHelper.getInstance().getLocalProp(Constants.CURRENT_PLAYSHEET);
 				JComboBox playSheetComboBox = (JComboBox)DIHelper.getInstance().getLocalProp(Constants.PLAYSHEET_COMBOBOXLIST);
-				playSheetComboBox.setSelectedItem(PlaySheetEnum.getNameFromClass(layoutValue));			
+				playSheetComboBox.setSelectedItem(PlaySheetRDFMapBasedEnum.getNameFromClass(layoutValue));			
 			}
 		}
 	}

@@ -116,8 +116,8 @@ public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{
 	}
 
 	@Override
-	public Hashtable getData(){
-		Hashtable<String, Object> map = (Hashtable<String, Object>) super.getData();
+	public Hashtable getDataMakerOutput(){
+		Hashtable<String, Object> map = (Hashtable<String, Object>) super.getDataMakerOutput();
 		//		map.put("data", this.timeline.getGanttData());
 		//		map.put("headers", this.timeline.getGanttHeaders());
 //		List<Object> datas = new ArrayList<Object>();

@@ -43,9 +43,15 @@ public class SysDecommissionOptimizationPlaySheet extends GridPlaySheet{
 
 	public int resource;
 	public double time;
+	IEngine engine;
 	
 	List<Object[]> list;
 	String[] names;
+	
+	
+	public void setEngine(IEngine engine){
+		this.engine = engine;
+	}
 	
 	@Override
 	public List<Object[]> getList() {

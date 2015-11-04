@@ -51,6 +51,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.WrapLayout;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.swing.custom.CustomButton;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
@@ -60,7 +61,7 @@ import com.hp.hpl.jena.query.ResultSet;
 
 /**
  */
-public class RegExplorerPlaySheet extends AbstractRDFPlaySheet{
+public class RegExplorerPlaySheet extends AbstractPlaySheet{
 
 
 	private static final Logger logger = LogManager.getLogger(RegExplorerPlaySheet.class.getName());
@@ -297,11 +298,11 @@ public class RegExplorerPlaySheet extends AbstractRDFPlaySheet{
 	}
 
 
-	@Override
-	public Object getData() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+//	@Override
+//	public Object getData() {
+//		// TODO Auto-generated method stub
+//		return null;
+//	}
 
 
 	@Override
@@ -319,8 +320,36 @@ public class RegExplorerPlaySheet extends AbstractRDFPlaySheet{
 
 
 	@Override
+	public void setQuery(String query) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void setDataMaker(IDataMaker data) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
 	public void processQueryData() {
 		// TODO Auto-generated method stub
 		
+	}
+
+
+	@Override
+	public IDataMaker getDataMaker() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public IDataMaker getDefaultDataMaker() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

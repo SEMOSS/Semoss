@@ -2,7 +2,6 @@ package prerna.ui.components.specific.ousd;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -14,7 +13,6 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OrderedBTreeDataFrame;
-import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
 public class BLUSystemOptimizationPlaySheet extends GridPlaySheet{
@@ -38,10 +36,11 @@ public class BLUSystemOptimizationPlaySheet extends GridPlaySheet{
 	
 	@Override
 	public void createData(){
-		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
-		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
-		proc.processQuestionQuery(this.engine, sysGroupingInsight, emptyTable);
-		SequencingDecommissioningPlaySheet activitySheet = (SequencingDecommissioningPlaySheet) proc.getPlaySheet();
+//		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
+//		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
+//		proc.processQuestionQuery(this.engine, sysGroupingInsight, emptyTable);
+//		SequencingDecommissioningPlaySheet activitySheet = (SequencingDecommissioningPlaySheet) proc.getPlaySheet();
+		SequencingDecommissioningPlaySheet activitySheet = (SequencingDecommissioningPlaySheet) OUSDPlaysheetHelper.getPlaySheetFromName(sysGroupingInsight, this.engine);
 
 		//createData makes the table...
 		activitySheet.createData();

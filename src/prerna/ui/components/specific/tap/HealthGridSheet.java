@@ -92,7 +92,7 @@ public class HealthGridSheet extends BrowserPlaySheet{
 		
 		//list will be of the form: system/vendor, xname, yname1, yname2 size of circle,lifecycle
 		ArrayList<Hashtable<String,Object>> allData = new ArrayList<Hashtable<String,Object>>();
-		String[] names = wrapper.getVariables(); 
+		String[] names = this.dataFrame.getColumnHeaders(); 
 		String xName = names[1];//BusinessValue
 		String yName = names[2] + names[3] + names[4] + names[5];//Technical Maturity components
 		String zName = names[6];//Cost

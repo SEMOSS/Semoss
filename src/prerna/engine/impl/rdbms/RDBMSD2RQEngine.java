@@ -27,17 +27,14 @@
  *******************************************************************************/
 package prerna.engine.impl.rdbms;
 
+import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-
-import prerna.engine.api.IEngine;
-import prerna.engine.impl.AbstractEngine;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 import com.hp.hpl.jena.query.Query;
 import com.hp.hpl.jena.query.QueryExecution;
@@ -51,6 +48,11 @@ import com.hp.hpl.jena.update.UpdateFactory;
 import com.hp.hpl.jena.update.UpdateRequest;
 
 import de.fuberlin.wiwiss.d2rq.jena.ModelD2RQ;
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.AbstractEngine;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * Connects to an RDBMS and facilitates query execution.
@@ -114,11 +116,11 @@ public class RDBMSD2RQEngine extends AbstractEngine implements IEngine {
 	 * This is important for things like param values so that we can take the returned value and fill the main query without needing modification
 	 * @param sparqlQuery the SELECT SPARQL query to be run against the engine
 	 * @return the Vector of Strings representing the full uris of all of the query results */
-	public Vector<String> getCleanSelect(String sparqlQuery)
+	public Vector<Object> getCleanSelect(String sparqlQuery)
 	{
 		logger.info("ENTITY OF TYPE QUERY: " + sparqlQuery);
 		
-		Vector <String> retString = new Vector<String>();
+		Vector <Object> retString = new Vector<Object>();
 		ResultSet rs = (ResultSet)execQuery(sparqlQuery);
 		
 		String varName = Constants.ENTITY;
@@ -135,7 +137,7 @@ public class RDBMSD2RQEngine extends AbstractEngine implements IEngine {
 	 * Uses a type URI to get the URIs of all instances of that type. These instance URIs are returned as the Vector of Strings.
 	 * @param type The full URI of the node type that we want to get the instances of
 	 * @return the Vector of Strings representing the full uris of all of the instances of the passed in type */
-	public Vector<String> getEntityOfType(String type)
+	public Vector<Object> getEntityOfType(String type)
 	{
 		// Get query from smss
 		// If the query is not there, get from RDFMap
@@ -145,8 +147,10 @@ public class RDBMSD2RQEngine extends AbstractEngine implements IEngine {
 		if(query==null){
 			query = DIHelper.getInstance().getProperty(Constants.TYPE_QUERY);
 		}
-		Hashtable paramHash = new Hashtable();
-		paramHash.put("entity", type);
+		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
+		List<Object> typeList = new ArrayList<Object>();
+		typeList.add(type);
+		paramHash.put("entity", typeList);
 		query = Utility.fillParam(query, paramHash);
 		
 		return getCleanSelect(query);

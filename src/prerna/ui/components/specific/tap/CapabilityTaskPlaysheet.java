@@ -61,7 +61,7 @@ public class CapabilityTaskPlaysheet extends BrowserPlaySheet {
 		Hashtable dataHash = new Hashtable();
 		Hashtable dataSeries = new Hashtable();
 		
-		String[] var = wrapper.getVariables();
+		String[] var = this.dataFrame.getColumnHeaders();
 		String venVar = var[0];
 		String capVar = var[1];
 		String taskVar = var[2];
@@ -131,7 +131,7 @@ public class CapabilityTaskPlaysheet extends BrowserPlaySheet {
 
 		Hashtable allHash = new Hashtable();
 		allHash.put("dataSeries", dataHash);
-		String[] var1 = wrapper.getVariables();
+//		String[] var1 = this.dataFrame.getColumnHeaders();
 		allHash.put("title",  "Vendor : " + venName + " vs Capabilities ");
 		allHash.put("xAxisTitle", capVar);
 		allHash.put("yAxisTitle", venVar);

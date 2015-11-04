@@ -60,7 +60,7 @@ public class SankeyPlaySheet extends BrowserPlaySheet {
 	public void processQueryData() {
 		HashSet<LinkedHashMap<String, Object>> links = new HashSet<LinkedHashMap<String, Object>>();
 		HashSet<LinkedHashMap<String, Object>> nodes = new HashSet<LinkedHashMap<String, Object>>();
-		String[] var = wrapper.getVariables();
+		String[] var = this.dataFrame.getColumnHeaders(); //wrapper.getVariables();
 		int value = 1;
 		
 		Iterator<Object[]> it = dataFrame.iterator(true);

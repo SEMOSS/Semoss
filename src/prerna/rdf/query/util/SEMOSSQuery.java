@@ -28,6 +28,7 @@
 package prerna.rdf.query.util;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
@@ -56,6 +57,7 @@ public class SEMOSSQuery {
 	private String SQLFilter = "";
 	private SQLQueryUtil queryUtil = null;
 	private boolean useOuterJoins = false;
+	private List<String> returnVarOrder;
 
 	public SEMOSSQuery()
 	{
@@ -98,6 +100,7 @@ public class SEMOSSQuery {
 		int nolimit = -1;
 		String joins = "";
 		if(selectorsString.length() == 0){
+			returnVariables = orderVars(returnVariables, returnVarOrder);
 			for(String returnVar: returnVariables){
 				if(selectorsString.length()>0){
 					returnVar = ", "+returnVar;
@@ -114,7 +117,7 @@ public class SEMOSSQuery {
 			joins = joinString;
 		
 		if(!useOuterJoins){
-			query = queryUtil.getDialectInnerJoinQuery(distinct,selectorsString, tableString, joins, SQLFilter, nolimit, groupBy);//query = "SELECT DISTINCT " + selectors + "  FROM  " + froms + joins + " LIMIT " + limit ;
+			query = queryUtil.getDialectInnerJoinQuery(distinct,selectorsString, tableString, joins, SQLFilter, "", nolimit, groupBy);//query = "SELECT DISTINCT " + selectors + "  FROM  " + froms + joins + " LIMIT " + limit ;
 		} else {
 			query = queryUtil.getDialectFullOuterJoinQuery(distinct, selectorsString,rightJoinsArr, leftJoinsArr, joinsArr, SQLFilter, nolimit, groupBy);
 		}
@@ -195,6 +198,7 @@ public class SEMOSSQuery {
 	
 	public String createReturnVariableString(){
 		String retVarString = "";
+		retVars = orderVars(retVars, returnVarOrder);
 		for (int varIdx=0; varIdx<retVars.size();varIdx++)
 		{
 			//space out the variables
@@ -564,4 +568,52 @@ public class SEMOSSQuery {
 	public void setUseOuterJoins(boolean useOuterJoins) {
 		this.useOuterJoins = useOuterJoins;
 	}
+	public static List orderVars(List vars, List<String> returnVarOrder){
+		if(returnVarOrder == null){
+			return vars;
+		}
+		Object[] orderedVars = new Object[vars.size()];
+		List<Integer> used = new ArrayList<Integer>();
+		for(int or = 0; or < returnVarOrder.size(); or++){
+			String orderedV  = returnVarOrder.get(or);
+			if(orderedV != null){
+				for(int x = 0; x < vars.size(); x ++ ){
+					Object var = vars.get(x);
+					String varName = var + "";
+					if(var instanceof TriplePart){
+						varName = ((TriplePart) var).getValue() + "";
+					}
+					System.out.println("does " + varName + " end with  " + orderedV);
+					if(varName.toUpperCase().endsWith(orderedV.toUpperCase())){
+						System.out.println("yes");
+						System.out.println("adding in position " + or);
+						orderedVars[or] = var;
+						used.add(x);
+						break;
+					}
+				}
+			}
+		}
+		int masterIdx = 0;
+		for(int i = 0; i < vars.size(); i++){
+			if(!used.contains(i)){
+				while(orderedVars[masterIdx] != null){
+					masterIdx++;
+				}
+				System.out.println("adding in position " + i + " return var  " + vars.get(i));
+				orderedVars[masterIdx] = vars.get(i);
+				masterIdx++;
+			}
+		}
+		
+		
+		System.err.println("ORDERED SPARQL RETURN VARS::: " +orderedVars);
+		return Arrays.asList(orderedVars);
+	}
+
+	public void setReturnVarOrder(List<String> strings) {
+		this.returnVarOrder = strings;
+		
+	}
+	
 }

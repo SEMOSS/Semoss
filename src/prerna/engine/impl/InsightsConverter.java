@@ -8,24 +8,33 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.StringTokenizer;
+import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.h2.store.fs.FileUtils;
 
+import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.om.Insight;
+import prerna.om.SEMOSSParam;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
+import prerna.ui.components.playsheets.datamakers.FilterTransformation;
+import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.PlaySheetEnum;
+import prerna.util.PlaySheetRDFMapBasedEnum;
 import prerna.util.Utility;
 import prerna.util.sql.H2QueryUtil;
-import prerna.util.sql.SQLQueryUtil;
 
 public class InsightsConverter {
 
@@ -41,227 +50,61 @@ public class InsightsConverter {
 			+ "{?INSIGHT_KEY <http://semoss.org/ontologies/Relation/Contains/Order> ?ORDER} "
 			+ "} ORDER BY ?INSIGHT_KEY";
 
-	private static final String PARAMETER_QUERY = "SELECT DISTINCT "
-			+ "?INSIGHT_KEY ?PARAM_ID ?PARAM_NAME ?PARAM_TYPE ?PARAM_DEPENDENCY ?PARAM_QUERY ?PARAM_OPTIONS WHERE {"
-			+ "{?INSIGHT_KEY <INSIGHT:PARAM> ?PARAM_ID} "
-			+ "{?PARAM_ID <PARAM:LABEL> ?PARAM_NAME} "
-			+ "{?PARAM_ID <PARAM:TYPE> ?PARAM_TYPE} "
-			+ "{?PARAM_ID <PARAM:DEPEND> ?PARAM_DEPENDENCY} "
-			+ "OPTIONAL {?PARAM_ID <PARAM:QUERY> ?PARAM_QUERY} "
-			+ "OPTIONAL {?PARAM_ID <PARAM:OPTION> ?PARAM_OPTIONS}"
-			+ "} ORDER BY ?INSIGHT_KEY ?PARAM_DEPENDENCY";
-
-	private Map<String, String> newQuestionIDMap = new HashMap<String, String>();
-
-	private String xmlPath;
-	private String baseFolder;
 	private String smssLocation;
 	private String engineName;
+	private IEngine engine;
 	private RDFFileSesameEngine insightBaseXML;
-	private RDBMSNativeEngine insightRDBMSEngine;
-	private SQLQueryUtil queryUtil;
+	private QuestionAdministrator questionAdmin;
+	
+	public void setEngine(IEngine coreEngine){
+		this.engineName = coreEngine.getEngineName();
+		this.engine = coreEngine;
+		this.questionAdmin = new QuestionAdministrator(coreEngine);
+	}
 
 	public static void main(String[] args) throws Exception {
 		Properties prop = new Properties();
 		prop.setProperty("BaseFolder", "C:/workspace/Semoss/db");
 		DIHelper.getInstance().setCoreProp(prop);
+		String engineName = "Movie_DB";
+		String smssLocation = "C:\\workspace\\Semoss\\db\\Movie_DB.smss";
+		BigDataEngine bd = new BigDataEngine();
+		bd.openDB(smssLocation); // TODO: does this work?
 		InsightsConverter test = new InsightsConverter();
 		//set paths
 		String xmlFilePath = "C:\\workspace\\Semoss\\db\\Movie_DB\\Movie_DB_Questions.XML";
-		test.createXMLEngine(xmlFilePath);
+//		test.createXMLEngine(xmlFilePath);
 		String baseFolder = "C:/workspace/Semoss/db";
-		test.setBaseFolder(baseFolder);
-		String engineName = "Movie_DB";
+//		test.setBaseFolder(baseFolder);
 		test.setEngineName(engineName);
-		String smssLocation = "C:\\workspace\\Semoss\\db\\Movie_DB.smss";
 		test.setSMSSLocation(smssLocation);
 
 		//create rdbms engine
-		test.generateNewInsightsRDBMS();
+//		test.generateNewInsightsRDBMS();
 		//query xml file
-		test.processQuestionTableFromQuery();
-		test.processParameterTableFromQuery();
+		test.loadQuestionsFromXML(xmlFilePath);
+//		test.processParameterTableFromQuery();
 		//update smss location
 		test.updateSMSSFile();
 	}
 
-	public void processQuestionTableFromQuery() {
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(insightBaseXML, QUESITON_QUERY);
-		String[] names = wrapper.getVariables();
-		int counter = 1;
-		while(wrapper.hasNext()) {
-			ISelectStatement ss = wrapper.next();
-			String INSIGHT_KEY = ss.getVar(names[0]) + "";
-			String INSIGHT_NAME = ss.getVar(names[1]) + "";
-			String PERSPECTIVE = ss.getVar(names[2]).toString().split(":")[1];
-			String QUERY = ss.getVar(names[3]) + "";
-			String LAYOUT = ss.getVar(names[4]) + "";
-			String ORDER = ss.getVar(names[5]) + "";
-
-			String dataMaker = "";
-			List<String> allSheets = PlaySheetEnum.getAllSheetClasses();
-			if(allSheets.contains(LAYOUT)) {
-				if(LAYOUT.equals("prerna.ui.components.playsheets.GraphPlaySheet")) {
-					dataMaker = "GraphDataModel";
-				} else if(!LAYOUT.equals("prerna.ui.components.playsheets.DualEngineGenericPlaySheet")) {
-					dataMaker = "BTreeDataFrame";
-				}
-			} else {
-				dataMaker = LAYOUT;
-			}
-
-			//NEED TO CLEAN UP THE SINGLE QUOTES
-			INSIGHT_NAME = cleanString(INSIGHT_NAME);
-			PERSPECTIVE = cleanString(PERSPECTIVE);
-
-			String NEW_INSIGHT_KEY = engineName + "_" + counter;
-			String QUERY_MAKEUP = generateQueryMakeUp(engineName, QUERY, LAYOUT);
-
-			String query = "INSERT INTO QUESTION_ID (ID, QUESTION_ID, QUESTION_NAME, QUESTION_PERSPECTIVE, QUESTION_MAKEUP, QUESTION_LAYOUT, QUESTION_DATA_MAKER, QUESTION_ORDER) VALUES("
-					+ counter + ", "
-					+ "'" + NEW_INSIGHT_KEY + "', "
-					+ "'" + INSIGHT_NAME + "', "
-					+ "'" + PERSPECTIVE + "', "
-					+ "'" + QUERY_MAKEUP + "', "
-					+ "'" + LAYOUT + "', "
-					+ "'" + dataMaker + "', "
-					+ ORDER + ")";
-
-			newQuestionIDMap.put(INSIGHT_KEY, NEW_INSIGHT_KEY);
-
-			//LOGGER.info(query);
-			insightRDBMSEngine.insertData(query);
-			counter++;
-		}
-	}
-
-	public void processParameterTableFromQuery() {
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(insightBaseXML, PARAMETER_QUERY);
-		String[] names = wrapper.getVariables();
-		while(wrapper.hasNext()) {
-			ISelectStatement ss = wrapper.next();
-			String INSIGHT_KEY = ss.getVar(names[0]) + "";
-			//			String PARAM_ID = ss.getVar(names[1]) + "";
-			String PARAM_NAME = ss.getVar(names[2]) + "";
-			String PARAM_TYPE = ss.getRawVar(names[3]) + "";
-			String PARAM_DEPENDENCY = ss.getVar(names[4]) + "";
-			String PARAM_QUERY = ss.getVar(names[5]) + "";
-			String PARAM_OPTIONS = ss.getVar(names[6]) + "";
-
-			String QUESTION_ID_FK = newQuestionIDMap.get(INSIGHT_KEY);
-			String NEW_PARAM_ID = QUESTION_ID_FK + "_" + PARAM_NAME;
-
-			//NEED TO CLEAN UP THE SINGLE QUOTES
-			PARAM_NAME = cleanString(PARAM_NAME);
-			PARAM_QUERY = cleanString(PARAM_QUERY);
-
-			//NEED TO CREATE APPROPRIATE PARAM DEPENDENCY ID
-			if(PARAM_DEPENDENCY.equals("None")) {
-				PARAM_DEPENDENCY = "";
-			} else if(!PARAM_DEPENDENCY.isEmpty()) {
-				PARAM_DEPENDENCY = QUESTION_ID_FK + "_" + PARAM_DEPENDENCY;
-			}
-
-			//			String QUERY_MAKEUP = "";
-			//			if(!PARAM_QUERY.isEmpty()) {
-			//				QUERY_MAKEUP = generateQueryMakeUp(engineName, PARAM_QUERY);
-			//			}
-			String query = "INSERT INTO PARAMETER_ID (PARAMETER_ID, PARAMETER_LABEL, PARAMETER_TYPE, PARAMETER_DEPENDENCY, PARAMETER_MAKEUP, PARAMETER_OPTIONS, QUESTION_ID_FK) VALUES("
-					+ "'" + NEW_PARAM_ID + "', "
-					+ "'" + PARAM_NAME + "', "
-					+ "'" + PARAM_TYPE + "', "
-					+ "'" + PARAM_DEPENDENCY + "', "
-					+ "'" + PARAM_QUERY + "', "
-					+ "'" + PARAM_OPTIONS + "', "
-					+ "'" + QUESTION_ID_FK + "')";
-
-			//LOGGER.info(query);
-			insightRDBMSEngine.insertData(query);
-		}
-	}
-
-	public void generateNewInsightsRDBMS() {
-		String dbProp = writePropFile(engineName);
-		insightRDBMSEngine = new RDBMSNativeEngine();
+	public RDBMSNativeEngine generateNewInsightsRDBMS(String engineN) {
+		String dbProp = writePropFile(engineN);
+		RDBMSNativeEngine insightRDBMSEngine = new RDBMSNativeEngine();
 		insightRDBMSEngine.openDB(dbProp);
-		generateTables();
+		generateTables(insightRDBMSEngine);
 
 		FileUtils.delete(dbProp);
+		return insightRDBMSEngine;
 	}
 
-	private void generateTables() {
-		String questionTableCreate = "CREATE TABLE QUESTION_ID ("
-				+ "ID INT, "
-				+ "QUESTION_ID VARCHAR(255), "
-				+ "QUESTION_NAME VARCHAR(255), "
-				+ "QUESTION_PERSPECTIVE VARCHAR(225), "
-				+ "QUESTION_LAYOUT VARCHAR(225), "
-				+ "QUESTION_ORDER INT, "
-				+ "QUESTION_DATA_MAKER VARCHAR(225), "
-				+ "QUESTION_MAKEUP CLOB, "
-				+ "DATA_TABLE_ALIGN VARCHAR(500))";
-
-		insightRDBMSEngine.insertData(questionTableCreate);
-
-		String parameterTableCreate = "CREATE TABLE PARAMETER_ID ("
-				+ "PARAMETER_ID VARCHAR(255), "
-				+ "PARAMETER_LABEL VARCHAR(255), "
-				+ "PARAMETER_TYPE VARCHAR(225), "
-				+ "PARAMETER_DEPENDENCY VARCHAR(225), "
-				+ "PARAMETER_MAKEUP VARCHAR(2000), "
-				+ "PARAMETER_OPTIONS VARCHAR(2000), "
-				+ "QUESTION_ID_FK VARCHAR(225))";
-
-		insightRDBMSEngine.insertData(parameterTableCreate);
-	}
-
-	private String cleanString(String s) {
-		return s.replaceAll("'", "''");
-	}
-
-	private String generateQueryMakeUp(String engine, String query, String layout) {
-		query = cleanString(query);
-		layout = cleanString(layout);
-
-		String realEngineName = cleanString(engineName);
-		String cleanEngineName = Utility.cleanString(engineName, true);
-
-		String componentDefinition = "<http://semoss.org/ontologies/Concept/Component> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> .\n";
-		String componentInstance = "<http://semoss.org/ontologies/Concept/Component/1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Component> .\n";
-		String componenetOrder = "<http://semoss.org/ontologies/Concept/Component/1> <http://semoss.org/ontologies/Relation/Contains/Order> \"1\"^^<http://www.w3.org/2001/XMLSchema#int> .\n";
-		String componentQuery = "<http://semoss.org/ontologies/Concept/Component/1> <http://semoss.org/ontologies/Relation/Contains/Query> \"" + query + "\" .\n";
-		//		String componenetLayout = "<http://semoss.org/ontologies/Concept/Component/1> <http://semoss.org/ontologies/Relation/Contains/Layout> \"" + layout + "\" .\n";
-		String engineDefinition = "<http://semoss.org/ontologies/Concept/Engine> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> .\n";
-		String engineInstance = "<http://semoss.org/ontologies/Concept/Engine/" + cleanEngineName + "> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Engine> .\n";
-		String engineEngineName = "<http://semoss.org/ontologies/Concept/Engine/" + cleanEngineName + "> <http://semoss.org/ontologies/Relation/Contains/Name> \"" + realEngineName + "\" .\n";
-		String componentEngine = "<http://semoss.org/ontologies/Concept/Component/1> <Comp:Eng> <http://semoss.org/ontologies/Concept/Engine/" + cleanEngineName + "> . \n";
-		//		String dataMakerDefinition = "<http://semoss.org/ontologies/Concept/DataMaker> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> .\n";
-		//		String dataMakerInstance = "<http://semoss.org/ontologies/Concept/DataMaker/" + dataMakerName + "> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataMaker> .\n";
-		//		String dataMakerType = "<http://semoss.org/ontologies/Concept/DataMaker/" + dataMakerName + "> <http://semoss.org/ontologies/Relation/Contains/Type> \"" + dataMaker + "\" .\n";
-		//		String componentDataMaker = "<http://semoss.org/ontologies/Concept/Component/1> <Comp:Maker> <http://semoss.org/ontologies/Concept/DataMaker/" + dataMakerName + "> .";
-
-		String makeup = componentDefinition + 
-				componentInstance + 
-				componenetOrder + 
-				componentQuery + 
-				//				componenetLayout +
-				engineDefinition +
-				engineInstance +
-				engineEngineName +
-				componentEngine;
-		//				dataMakerDefinition +
-		//				dataMakerInstance +
-		//				dataMakerType +
-		//				componentDataMaker;
-
-		return makeup;
-	}
-
+	// TODO: do we really need this?
 	public String writePropFile(String engineName) {
-		queryUtil = new H2QueryUtil();
+		H2QueryUtil queryUtil = new H2QueryUtil();
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		Properties prop = new Properties();
-		String connectionURL = "jdbc:h2:" + baseFolder + System.getProperty("file.separator") + engineName + System.getProperty("file.separator") + 
-				"database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+		String connectionURL = "jdbc:h2:" + baseFolder + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + engineName + System.getProperty("file.separator") + 
+				"insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
 		prop.put(Constants.CONNECTION_URL, connectionURL);
 		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
 		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
@@ -271,7 +114,7 @@ public class InsightsConverter {
 		prop.put("TEMP", "TRUE");
 
 		// write this to a file
-		String tempFile = baseFolder + "/" + engineName + "/conn.prop";
+		String tempFile = baseFolder + "/db/" + engineName + "/conn.prop";
 
 		File file = null;
 		FileOutputStream fo = null;
@@ -293,6 +136,115 @@ public class InsightsConverter {
 			}
 		}
 		return tempFile;
+	}
+
+
+	private void generateTables(RDBMSNativeEngine eng) {
+		String questionTableCreate = "CREATE TABLE QUESTION_ID ("
+				+ "ID INT, "
+				+ "QUESTION_ID VARCHAR(255), "
+				+ "QUESTION_NAME VARCHAR(255), "
+				+ "QUESTION_PERSPECTIVE VARCHAR(225), "
+				+ "QUESTION_LAYOUT VARCHAR(225), "
+				+ "QUESTION_ORDER INT, "
+				+ "QUESTION_DATA_MAKER VARCHAR(225), "
+				+ "QUESTION_MAKEUP CLOB, "
+				+ "QUESTION_PROPERTIES CLOB, "
+				+ "QUESTION_OWL CLOB, "
+				+ "QUESTION_IS_DB_QUERY BOOLEAN, "
+				+ "DATA_TABLE_ALIGN VARCHAR(500))";
+
+		eng.insertData(questionTableCreate);
+
+		String parameterTableCreate = "CREATE TABLE PARAMETER_ID ("
+				+ "PARAMETER_ID VARCHAR(255), "
+				+ "PARAMETER_LABEL VARCHAR(255), "
+				+ "PARAMETER_TYPE VARCHAR(225), "
+				+ "PARAMETER_DEPENDENCY VARCHAR(225), "
+				+ "PARAMETER_QUERY VARCHAR(2000), "
+				+ "PARAMETER_OPTIONS VARCHAR(2000), "
+				+ "PARAMETER_IS_DB_QUERY BOOLEAN, "
+				+ "PARAMETER_MULTI_SELECT BOOLEAN, "
+				+ "PARAMETER_COMPONENT_FILTER_ID VARCHAR(255), "
+				+ "PARAMETER_VIEW_TYPE VARCHAR(255), "
+				+ "QUESTION_ID_FK VARCHAR(225))";
+
+		eng.insertData(parameterTableCreate);
+	}
+
+	public void loadQuestionsFromXML(String xmlFileLocation) {
+		createXMLEngine(xmlFileLocation);
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(insightBaseXML, QUESITON_QUERY);
+		String[] names = wrapper.getVariables();
+//		int counter = 1;
+		List<String> allSheets = PlaySheetRDFMapBasedEnum.getAllSheetClasses();
+		while(wrapper.hasNext()) {
+			ISelectStatement ss = wrapper.next();
+//			String INSIGHT_KEY = ss.getVar(names[0]) + "";
+			String INSIGHT_NAME = ss.getVar(names[1]) + "";
+			String PERSPECTIVE = ss.getVar(names[2]).toString().split(":")[1];
+			String QUERY = ss.getVar(names[3]) + "";
+			String LAYOUT = ss.getVar(names[4]) + "";
+			String ORDER = ss.getVar(names[5]) + "";
+
+			String dataMaker = getDataMaker(LAYOUT, allSheets);
+			LAYOUT = getPSname(LAYOUT);
+
+			//NEED TO CLEAN UP THE SINGLE QUOTES
+			List<SEMOSSParam> parameters = getXMLParameters(INSIGHT_NAME);
+
+//			String NEW_INSIGHT_KEY = engineName + "_" + counter;
+			List<DataMakerComponent> comps = generateQueryComponents(this.engine, QUERY);
+			//need to add parameters as preTransformationFilters
+			appendParamsAsTransformations(comps, parameters);
+			
+			this.questionAdmin.addQuestion(INSIGHT_NAME, PERSPECTIVE, comps, LAYOUT, ORDER, dataMaker, true, null, parameters);
+		}
+	}
+	
+	private void appendParamsAsTransformations(List<DataMakerComponent> comps, List<SEMOSSParam> parameters) {
+		if(parameters != null && !parameters.isEmpty()) {
+			// assume only one component
+			DataMakerComponent dmc = comps.get(0);
+			List<ISEMOSSTransformation> preTransList = new ArrayList<ISEMOSSTransformation>();
+			for(int i = 0; i < parameters.size(); i++) {
+				SEMOSSParam p = parameters.get(i);
+				ISEMOSSTransformation preTrans = new FilterTransformation();
+				Map<String, Object> props = new HashMap<String, Object>();
+				props.put(FilterTransformation.COLUMN_HEADER_KEY, p.getName());
+				preTrans.setProperties(props);
+				preTransList.add(preTrans);
+				p.setComponentFilterId(Insight.COMP + "0:" + Insight.PRE_TRANS + i);
+			}
+			dmc.setPreTrans(preTransList);
+		}
+	}
+
+	private String getPSname(String layout){
+		String psName = getLayoutFromPlaySheet(layout);
+		return psName;
+	}
+	
+	private String getDataMaker(String layout, List<String> allSheets){
+		String dataMaker = "";
+		if(allSheets.contains(layout) || layout.equals("prerna.ui.components.specific.tap.InterfaceGraphPlaySheet")) {
+			if(layout.equals("prerna.ui.components.playsheets.GraphPlaySheet") || layout.equals("prerna.ui.components.specific.tap.InterfaceGraphPlaySheet")) {
+				dataMaker = "GraphDataModel";
+			} else if(!layout.equals("prerna.ui.components.playsheets.DualEngineGenericPlaySheet")) {
+				dataMaker = "BTreeDataFrame";
+			}
+		} else {
+			dataMaker = "";
+		}
+		return dataMaker;
+	}
+	
+	private List<DataMakerComponent> generateQueryComponents(IEngine coreEngine, String query) {
+		List<DataMakerComponent> retList = new ArrayList<DataMakerComponent>();
+		DataMakerComponent comp = new DataMakerComponent(coreEngine, query);
+		retList.add(comp);
+		
+		return retList;
 	}
 
 	public void updateSMSSFile() {
@@ -318,7 +270,7 @@ public class InsightsConverter {
 				fileOut.write("\n".getBytes());
 
 				if(content.get(i).contains(locInFile)){
-					String newProp = Constants.RDBMS_INSIGHTS + "\t" + "db/" + engineName + "/database";
+					String newProp = Constants.RDBMS_INSIGHTS + "\t" + "db/" + engineName + "/insights_database";
 					fileOut.write(newProp.getBytes());
 					fileOut.write("\n".getBytes());
 				}
@@ -341,15 +293,10 @@ public class InsightsConverter {
 		}
 	}
 
-	public void createXMLEngine(String xmlPath) {
-		this.xmlPath = xmlPath;
+	private void createXMLEngine(String xmlPath) {
 		this.insightBaseXML = new RDFFileSesameEngine();
 		insightBaseXML.setFileName(xmlPath);
 		insightBaseXML.openDB(null);
-	}
-
-	public void setBaseFolder(String baseFolder) {
-		this.baseFolder = baseFolder;
 	}
 
 	public void setEngineName(String engineName) {
@@ -360,7 +307,288 @@ public class InsightsConverter {
 		this.smssLocation = smssLocation;
 	}
 
-	public RDBMSNativeEngine getInsightRDBMSEngine() {
-		return this.insightRDBMSEngine;
+	//from old abstract engine
+	//how to get params from xml
+	private Vector<SEMOSSParam> getXMLParameters(String label)
+	{
+		Vector <SEMOSSParam> retParam = new Vector<SEMOSSParam>();
+
+		String paramPred = "INSIGHT:PARAM";
+		String paramPredLabel = "PARAM:LABEL";
+		String queryPred = "PARAM:QUERY";
+		String hasDependPred = "PARAM:HAS:DEPEND";
+		String dependPred = "PARAM:DEPEND";
+		String typePred = "PARAM:TYPE";
+		String optionPred = "PARAM:OPTION";
+
+		String queryParamSparql = "SELECT DISTINCT ?paramLabel ?query ?option ?depend ?dependVar ?paramType ?param WHERE {"
+			+ "{?insightURI <" + "http://semoss.org/ontologies/Relation/Contains/Label" + "> ?insight}"
+			+ "{?insightURI <" + paramPred + "> ?param } "
+			+ "{?param <" + paramPredLabel + "> ?paramLabel } "
+			+ "{?param <" + typePred + "> ?paramType } "
+			+ "OPTIONAL {?param <" + queryPred + "> ?query } "
+			+ "OPTIONAL {?param <" + optionPred + "> ?option } "
+			+ "{?param <" + hasDependPred + "> ?depend } " 
+			+ "{?param <" + dependPred + "> ?dependVar } "
+			+ "} BINDINGS ?insight {(\""+label+"\")}";
+		
+		retParam = addSEMOSSParams(retParam,queryParamSparql);
+		
+		return retParam;
 	}
+
+	//from old abstract engine
+	//how to get params from xml
+	private Vector<SEMOSSParam> addSEMOSSParams(Vector<SEMOSSParam> retParam,String paramSparql) {
+		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightBaseXML, paramSparql);
+		wrap.execute();
+		// want only unique params. if a question name is duplicated, its possible to have multiple returned here
+		// really should switch this be insight ID based
+		Vector<String> usedLabels = new Vector<String>();
+			while(wrap.hasNext())
+			{
+				ISelectStatement bs = wrap.next();
+				String label = bs.getRawVar("paramLabel") + "";
+				if(!usedLabels.contains(label)){
+					usedLabels.add(label);
+					SEMOSSParam param = new SEMOSSParam();
+					param.setName(label);
+					
+					if(bs.getRawVar("paramType") != null)
+						param.setType(bs.getRawVar("paramType") +"");
+					if(bs.getRawVar("option") != null)
+						param.setOptions(bs.getRawVar("option") + "");
+					if(bs.getRawVar("query") != null)
+						param.setQuery(bs.getRawVar("query") + "");
+					if(bs.getRawVar("depend") != null)
+						param.setDepends(bs.getRawVar("depend") +"");
+					if(bs.getRawVar("dependVar") != null && !(bs.getRawVar("dependVar")+"").equals("\"None\"")) // really? is this in the xml?
+						param.addDependVar(bs.getRawVar("dependVar") +"");
+					if(bs.getRawVar("param") != null)
+						param.setParamID(bs.getRawVar("param") +"");
+					
+					retParam.addElement(param);
+					LOGGER.debug(param.getName() + param.getQuery() + param.isDepends() + param.getType());
+				}
+				
+			}
+			
+		return retParam;
+	}
+	/**
+	 * Load the perspectives for a specific engine.
+	 * 
+	 * @param List
+	 *            of properties
+	 */
+	public void loadQuestionsFromPropFile(Properties dreamerProp) {
+		
+		// this should load the properties from the specified as opposed to
+		// loading from core prop
+		// lastly the localprop needs to set up so that it can be swapped
+		String perspectives = (String) dreamerProp
+				.get(Constants.PERSPECTIVE);
+		LOGGER.info("Perspectives " + perspectives);
+		StringTokenizer tokens = new StringTokenizer(perspectives, ";");
+		List<String> allSheets = PlaySheetRDFMapBasedEnum.getAllSheetClasses();
+		while (tokens.hasMoreTokens()) {
+			String perspective = tokens.nextToken();
+
+			String key = perspective;
+			String qsList = dreamerProp.getProperty(key); // get the ; delimited
+			if (qsList != null) {
+				int count = 1;
+				StringTokenizer qsTokens = new StringTokenizer(qsList, ";");
+				while (qsTokens.hasMoreElements()) {
+					Map<String, String> dependMap = new HashMap<String, String>();
+					Map<String, String> queryMap = new HashMap<String, String>();
+					Map<String, String> optionMap = new HashMap<String, String>();
+					// get the question
+					String qsKey = qsTokens.nextToken();
+					
+					String qsDescr = dreamerProp.getProperty(qsKey);
+					String layoutName = dreamerProp.getProperty(qsKey + "_"
+							+ Constants.LAYOUT);
+					
+					String qsOrder = count + "";
+					
+					//qsDescr = count + ". " + qsDescr;
+
+					String query = dreamerProp.getProperty(qsKey + "_"
+							+ Constants.QUERY);
+					
+					String isDbQueryString = dreamerProp.getProperty(qsKey + "_"
+							+ Constants.QUERY + "_" + Constants.OWL);
+					
+					boolean isDbQuery = true;
+					if(isDbQueryString != null && !isDbQueryString.isEmpty()) {
+						isDbQuery = Boolean.parseBoolean(isDbQueryString);
+					}
+					
+					String description = dreamerProp.getProperty(qsKey + "_"
+							+ Constants.DESCR);
+
+					Map<String, String> paramHash = Utility.getParams(query);
+
+					Iterator<String> paramKeyIt = paramHash.keySet().iterator();
+
+					/*if(qsKey.equals("SysP15")){
+						int x = 0;
+					}*/
+					// loops through to get all param dependencies, queries and options
+					while (paramKeyIt.hasNext()) {
+						String param = paramKeyIt.next();
+						String paramKey = param.substring(0, param.indexOf("-"));
+						String type = param.substring(param.indexOf("-") + 1);
+						
+//						String qsParamKey = engineName + ":" + perspective + ":" + qsKey + ":" + paramKey;
+						
+						// see if the param key has a query associated with it
+						// usually it is of the form qsKey + _ + paramKey + _ + Query
+						String parameterQueryKey = qsKey + "_" + paramKey + "_" + Constants.QUERY;
+						if(dreamerProp.containsKey(parameterQueryKey))
+						{
+							String parameterQueryValue = dreamerProp.getProperty(parameterQueryKey);
+							queryMap.put(paramKey, parameterQueryValue);
+							
+							// now also see if this query should be run on the OWL or DB
+							String parameterQueryIsDbQueryKey = qsKey + "_" + paramKey + "_" + Constants.QUERY + "_" + Constants.OWL;
+							String paramQueryIsDbQueryString = dreamerProp.getProperty(parameterQueryIsDbQueryKey);
+							if(paramQueryIsDbQueryString != null && !paramQueryIsDbQueryString.isEmpty()) {
+								queryMap.put(paramKey + "_" + Constants.OWL, paramQueryIsDbQueryString);
+							}
+						}
+						// see if there is dependency
+						// dependency is of the form qsKey + _ + paramKey + _ + Depend
+						String parameterDependKey = qsKey + "_" + paramKey + "_" + Constants.DEPEND;
+						if(dreamerProp.containsKey(parameterDependKey))
+						{
+							// record this
+							// qsKey_paramkey  - qsKey:Depends - result
+							String parameterDependValue = dreamerProp.getProperty(parameterDependKey);
+							parameterDependKey = paramKey + "_" + Constants.DEPEND; //TODO: really...? We change the key right here? Is this right?? (legacy code from Davy in abstract engine) Need to test
+							StringTokenizer depTokens = new StringTokenizer(parameterDependValue, ";");
+							
+							//one parameter may have multiple dependencies separated by ;
+							while(depTokens.hasMoreElements())
+							{
+								String depToken = depTokens.nextToken();
+								dependMap.put(paramKey, depToken);
+							}
+						}
+						//see if there is option
+						// dependency is of the form qsKey + _ + paramKey + _ + Depend
+						String parameterOptionKey = type + "_" + Constants.OPTION;
+						if(dreamerProp.containsKey(parameterOptionKey))
+						{
+//							System.out.println("TRUE");
+							String parameterOptionValue = dreamerProp.getProperty(parameterOptionKey);
+							optionMap.put(paramKey, parameterOptionValue);
+						}
+					}
+					List<DataMakerComponent> comps = generateQueryComponents(this.engine, query);
+					String layout = getPSname(layoutName);
+					String dataMaker = getDataMaker(layoutName, allSheets);
+					List<SEMOSSParam> parameters = getPropFileParameters(paramHash, dependMap, queryMap, optionMap);
+					appendParamsAsTransformations(comps, parameters);
+					questionAdmin.addQuestion(qsDescr, perspective, comps, layout, qsOrder, dataMaker, isDbQuery, null, parameters);
+					count++;
+				}
+				LOGGER.debug("Loaded Perspective " + key);
+			}				
+		}
+	}
+	
+	private List<SEMOSSParam> getPropFileParameters(Map<String, String> paramHash, Map<String, String> dependMap, Map<String, String> queryMap, Map<String, String> optionMap){
+		List<SEMOSSParam> retList = new ArrayList<SEMOSSParam>();
+
+		Iterator<String> paramKeyIt = paramHash.keySet().iterator();
+		// for each param, just need to set depend and/or query or option
+		// or if neither of those, set the type
+		while (paramKeyIt.hasNext()) {
+			String fullParam = paramKeyIt.next();
+			String paramKey = fullParam.substring(0, fullParam.indexOf("-"));
+			String type = fullParam.substring(fullParam.indexOf("-") + 1);
+			SEMOSSParam paramObj = new SEMOSSParam();
+			if(queryMap.containsKey(paramKey)){
+				paramObj.setQuery(queryMap.get(paramKey));
+				if(dependMap.containsKey(paramKey)){ // can only depend if it has a custom query
+					paramObj.setDepends("true");
+					paramObj.addDependVar(dependMap.get(paramKey));
+				}
+				if(queryMap.containsKey(paramKey + "_" + Constants.OWL)) {
+					paramObj.setDbQuery(Boolean.parseBoolean(queryMap.get(paramKey + "_" + Constants.OWL)));
+				}
+			}
+			else if(optionMap.containsKey(paramKey)){
+				paramObj.setOptions(optionMap.get(paramKey));
+			}
+			else {
+				paramObj.setType(type);
+			}
+			paramObj.setName(paramKey);
+			retList.add(paramObj);
+		}
+		
+		return retList;
+	}
+	
+	public String getLayoutFromPlaySheet(String playsheet){
+		String layoutID = PlaySheetRDFMapBasedEnum.getIdFromClass(playsheet);
+		
+		if(layoutID.isEmpty()){
+			switch(playsheet){
+			case "prerna.ui.components.playsheets.DatasetSimilairtyColumnChartPlaySheet":
+				layoutID = "Column";
+				break;
+			case "prerna.ui.components.playsheets.BinnedColumnChartPlaySheet":
+				layoutID = "Column";
+				break;
+			case "prerna.ui.components.playsheets.ComparisonColumnChartPlaySheet":
+				layoutID = "Column";
+				break;
+			case "prerna.ui.components.playsheets.WekaClassificationPlaySheet":
+				layoutID = "Dendrogram";
+				break;
+			case "prerna.ui.components.playsheets.GridRAWPlaySheet":
+				layoutID = "Grid";
+				break;
+			case "prerna.ui.components.specific.tap.CapabilityTaskPlaysheet":
+				layoutID = "HeatMap";
+				break;
+			case "prerna.ui.components.specific.tap.VendorCapabilityTaskPlaysheet":
+				layoutID = "HeatMap";
+				break;
+			case "prerna.ui.components.playsheets.BinnedPieChartPlaySheet":
+				layoutID = "Pie";
+				break;
+			case "prerna.ui.components.specific.tap.HealthGridSheet":
+				layoutID = "Scatter";
+				break;
+			case "prerna.ui.components.playsheets.GridScatterSheet":
+				layoutID = "Scatter";
+				break;
+			case "prerna.ui.components.playsheets.NumericalCorrelationVizPlaySheet":
+				layoutID = "ScatterplotMatrix";
+				break;
+			case "prerna.ui.components.playsheets.OutlierVizPlaySheet":
+				layoutID = "SingleAxisCluster";
+				break;
+			case "prerna.ui.components.specific.ousd.EnduringSysSimHeatMapSheet":
+				layoutID = "SystemSimilarity";
+				break;
+			case "prerna.ui.components.specific.ousd.OUSDSysSimHeatMapSheet":
+				layoutID = "SystemSimilarity";
+				break;
+			case "prerna.ui.components.specific.tap.PeoEisSysSimHeatMapSheet":
+				layoutID = "SystemSimilarity";
+				break;
+			default:
+				layoutID = playsheet;
+			}
+		}
+		
+		return layoutID;
+	}
+
 }

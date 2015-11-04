@@ -28,10 +28,8 @@
 package prerna.poi.main.insights;
 
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Vector;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -41,7 +39,6 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.QuestionAdministrator;
-import prerna.om.Insight;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.DIHelper;
 
@@ -75,25 +72,6 @@ public class AutoInsightExecutor implements Runnable{
 		long startTime = System.currentTimeMillis();
 		
 		qa = new QuestionAdministrator(engine);
-		Vector<String> perspectives = engine.getPerspectives();
-		Hashtable<String, Integer> perspectiveIDHash = new Hashtable<String, Integer>();
-		
-		for(String perspective : perspectives) {
-			// calculate the max id to use
-			int maxId = 0;
-			Vector<String> questionList = engine.getInsights(perspective);
-			for(String question : questionList) {
-				String questString = question;
-				Vector<Insight> in = engine.getInsight2(questString);
-				Insight insight = in.get(0);
-				String questionId = insight.getId();
-				int id = Integer.parseInt(questionId.split(":")[2].replaceAll("\\D", ""));
-				if(id > maxId) {
-					maxId = id;
-				}
-			}
-			perspectiveIDHash.put(perspective, maxId);
-		}
 
 		InsightTemplateProcessor templateProc = new InsightTemplateProcessor();
 		List<InsightRule> rulesList = templateProc.runGenerateInsights();
@@ -108,7 +86,7 @@ public class AutoInsightExecutor implements Runnable{
 		List<Future<List<Object[]>>> futureList = new ArrayList<Future<List<Object[]>>>();
 		ListIterator<Future<List<Object[]>>> futureListIt = futureList.listIterator();
 		for(i = 0; i < numConcepts; i++) {
-			AutoInsightCallable thread = new AutoInsightCallable(engine, qa, concepts.get(i), rulesList, perspectiveIDHash);
+			AutoInsightCallable thread = new AutoInsightCallable(engine, qa, concepts.get(i), rulesList);
 			Future<List<Object[]>> future = executor.submit(thread);
 			futureListIt.add(future);
 		}
@@ -127,10 +105,6 @@ public class AutoInsightExecutor implements Runnable{
 				success = false;
 			}
 		}
-		
-		String xmlFile = "db/" + engine.getEngineName() + "/" + engine.getEngineName() + "_Questions.XML";
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		qa.createQuestionXMLFile(xmlFile, baseFolder);
 		
 		long endTime = System.currentTimeMillis();
 		System.out.println("Time in sec: " + (endTime - startTime)/1000 );

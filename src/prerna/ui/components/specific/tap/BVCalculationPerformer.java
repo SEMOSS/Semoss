@@ -29,6 +29,8 @@ package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 import java.util.StringTokenizer;
 
 import javax.swing.JList;
@@ -154,12 +156,17 @@ public class BVCalculationPerformer implements IAlgorithm,Runnable{
 	 */
 	public void run() {
 		logger.info("Graph PlaySheet Begining Calculation");
-		Hashtable paramHash = new Hashtable();
+		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
 		if(!type.equals("vendor"))
 		{
 			double networkBetaValue = 1-soaAlphaValue;
-			paramHash.put("soaAlphaValue", Double.toString(soaAlphaValue));
-			paramHash.put("networkBetaValue", Double.toString(networkBetaValue));
+			List<Object> retList1 = new ArrayList<Object>();
+			retList1.add(Double.toString(soaAlphaValue));
+			paramHash.put("soaAlphaValue", retList1);
+			
+			List<Object> retList2 = new ArrayList<Object>();
+			retList1.add(Double.toString(networkBetaValue));
+			paramHash.put("networkBetaValue", retList2);
 		}
 		try {
 			fillHash(paramHash);
@@ -185,7 +192,7 @@ public class BVCalculationPerformer implements IAlgorithm,Runnable{
 	 * Runs the appropriate query on the set engine to calculate business value.
 	 * @param paramHash Hashtable of parameters.
 	 */
-	private void fillHash(Hashtable paramHash){
+	private void fillHash(Map<String, List<Object>> paramHash){
 		//String MultipleQueries = this.sparql.getText();
 		String MultipleQueries;
 		if(type.equals("System"))

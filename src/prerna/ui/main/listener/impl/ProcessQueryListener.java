@@ -29,13 +29,16 @@ package prerna.ui.main.listener.impl;
 
 import java.awt.Component;
 import java.awt.event.ActionEvent;
-import java.util.Hashtable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
 
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
-import javax.swing.JDesktopPane;
 import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
@@ -47,12 +50,12 @@ import org.apache.log4j.Logger;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.om.Insight;
-import prerna.ui.components.ExecuteQueryProcessor;
+import prerna.om.InsightStore;
+import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
-import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.helpers.PlaysheetCreateRunner;
-import prerna.ui.helpers.PlaysheetOverlayRunner;
+import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
+import prerna.ui.helpers.InsightCreateRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -77,101 +80,68 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 	 */
 	@Override
 	public void actionPerformed(ActionEvent actionevent) {
-		// get all the component
-		// get the current panel showing - need to do the isVisible
-		// currently assumes all queries are SPARQL, needs some filtering if
-		// there are other types of queries
-		// especially the ones that would use JGraph
-		// get the query
-
-		//initiate executeQueryProcessor
-
-		JToggleButton btnCustomSparql = (JToggleButton) DIHelper.getInstance().getLocalProp(Constants.CUSTOMIZE_SPARQL);
-		JToggleButton appendBtn = (JToggleButton) DIHelper.getInstance().getLocalProp(Constants.APPEND);
-
-		//set custom and append variables to processor
-		ExecuteQueryProcessor exQueryProcessor = new ExecuteQueryProcessor();
-		exQueryProcessor.setAppendBoolean(appendBtn.isSelected());
-		exQueryProcessor.setCustomBoolean(btnCustomSparql.isSelected());
-
-		//setting the playsheet selectiondropdown as enabled when a graph is created
-		((JButton) DIHelper.getInstance().getLocalProp(Constants.SHOW_PLAYSHEETS_LIST)).setEnabled(true);
-
-		// get the selected repository, in case someone selects multiple, it'll always use first one
-		JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-		String engineName = (String)list.getSelectedValue();
 
 		//enable the top right playsheet selector button
 		JButton btnShowPlaySheetsList = (JButton) DIHelper.getInstance().getLocalProp(Constants.SHOW_PLAYSHEETS_LIST);
 		btnShowPlaySheetsList.setEnabled(true);
 
+		//setting the playsheet selectiondropdown as enabled when a graph is created
+		((JButton) DIHelper.getInstance().getLocalProp(Constants.SHOW_PLAYSHEETS_LIST)).setEnabled(true);
+		
+		JToggleButton btnCustomSparql = (JToggleButton) DIHelper.getInstance().getLocalProp(Constants.CUSTOMIZE_SPARQL);
+		JToggleButton appendBtn = (JToggleButton) DIHelper.getInstance().getLocalProp(Constants.APPEND);
 
-		//setup playsheet depending whether its custom or not, exQueryProcessor will also take care of append or create
-		//custom query 
-		if (btnCustomSparql.isSelected()) {
-			String query = ((JTextArea) DIHelper.getInstance().getLocalProp(Constants.SPARQL_AREA_FIELD)).getText();
-			JComboBox playSheetComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.PLAYSHEET_COMBOBOXLIST);
-			String playSheetString = playSheetComboBox.getSelectedItem()+"";
-			if(playSheetString.startsWith("*"))
-			{
-				playSheetString = playSheetComboBox.getName();
-			}
-			exQueryProcessor.processCustomQuery(engineName, query, playSheetString);
+		// get the selected repository, in case someone selects multiple, it'll always use first one
+		JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+		String engineName = (String)list.getSelectedValue();
 
-		} 
-		else 
-		{
-			String insightString = ((JComboBox) DIHelper.getInstance().getLocalProp(Constants.QUESTION_LIST_FIELD)).getSelectedItem() + "";
-			String[] insightStringSplit = insightString.split("\\. ", 2);
-			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-			Insight in = ((AbstractEngine)engine).getInsight2(insightString).get(0);
-			if(((AbstractEngine)engine).getInsight2(insightString).get(0).getOutput().equals("Unknown")){
-				insightString = insightStringSplit[1];
-			}
+		Map<String, List<Object>> paramHash = new HashMap<String, List<Object>>();
+		Insight insight = null;
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+
+		// There are four options to get through here:
+		// 1. Not custom; Not overlay ---- get insight and run it
+		// 2. Not custom; Yes overlay ---- get new insight, get dmc from that insight, set dmc in stored insight
+		// 3. Yes custom; Not overlay ---- create new insight, create dmc, set in new insight
+		// 4. Yes custom; Yes overlay ---- create dmc, set in stored insight
+		Vector<DataMakerComponent> dmcList = new Vector<DataMakerComponent>();
+
+		if (appendBtn.isSelected()) { // if it is overlay, we will be setting a dmc into the stored insight to run
+			logger.debug("Appending ");
 			
-			//get Swing UI and set ParamHash";
-			JPanel panel = (JPanel) DIHelper.getInstance().getLocalProp(Constants.PARAM_PANEL_FIELD);
-			DIHelper.getInstance().setLocalProperty(Constants.UNDO_BOOLEAN,	false);
-			// get the currently visible panel
-			Component[] comps = panel.getComponents();
-			JComponent curPanel = null;
-			for (int compIndex = 0; compIndex < comps.length
-					&& curPanel == null; compIndex++)
-				if (comps[compIndex].isVisible())
-					curPanel = (JComponent) comps[compIndex];
-			// get all the param field
-			Component[] fields = curPanel.getComponents();
-			Hashtable<String, Object> paramHash = new Hashtable<String, Object>();
-			for (int compIndex = 0; compIndex < fields.length; compIndex++) {
-				if (fields[compIndex] instanceof ParamComboBox) {
-					String fieldName = ((ParamComboBox) fields[compIndex]).getParamName();
-					String fieldValue = ((ParamComboBox) fields[compIndex]).getSelectedItem() + "";
-					String uriFill = ((ParamComboBox) fields[compIndex]).getURI(fieldValue);
-					if (uriFill == null)
-						uriFill = fieldValue;
-					paramHash.put(fieldName, uriFill);
-				}
+			insight = InsightStore.getInstance().getActiveInsight();
+			insight.setAppend(true);
+			
+			if (btnCustomSparql.isSelected()) { // if it is custom, we need to create a dmc to pass in
+				DataMakerComponent dmc = createDMC(engineName);
+				dmcList.add(dmc);
 			}
-			exQueryProcessor.processQuestionQuery(engineName, insightString, paramHash);
+			else { // if it is not custom, we need to get dmc list off of selected insight
+				Insight selectedInsight = getSelectedInsight(engine);
+				dmcList.addAll(selectedInsight.getDataMakerComponents());
+				paramHash = getParamHash();
+			}
+			insight.setDataMakerComponents(dmcList);
+		}
+		
+		else { // if it is Not overlay, we'll be creating a new insight and storing it
+			if (btnCustomSparql.isSelected()) { // if it is custom, create new insight, create dmc set in new insight
+				DataMakerComponent dmc = createDMC(engineName);
+				dmcList.add(dmc);
+				String psString = getPlaySheetString();
+				insight = new Insight(engine, null, psString);
+				insight.setDataMakerComponents(dmcList);
+			}
+			else { // if it is not custom, we need to get dmc list off of selected insight
+				insight = getSelectedInsight(engine);
+				paramHash = getParamHash();
+			}
+			InsightStore.getInstance().put(insight);
 		}
 
-		//getplaysheet
-		//then figure out if its append or create and then call the right threadrunners
-		Runnable playRunner = null;	
-		IPlaySheet playSheet= exQueryProcessor.getPlaySheet();
-		if (appendBtn.isSelected()) {
-			logger.debug("Appending ");
-			playRunner = new PlaysheetOverlayRunner(playSheet);
-		} 
-		else 
-		{
-			JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
-			playSheet.setJDesktopPane(pane);
-			playRunner = new PlaysheetCreateRunner(playSheet);
-		}				
-		Thread playThread = new Thread(playRunner);
-		playThread.start();
-
+		insight.setParamHash(paramHash);
+		InsightCreateRunner runner = new InsightCreateRunner(insight);
+		runner.run();
 	}
 
 	/**
@@ -190,5 +160,59 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 	public void setView(JComponent view) {
 		this.sparql = (JTextArea) view;
 
+	}
+	
+	private Map<String, List<Object>> getParamHash(){
+		Map<String, List<Object>> paramHash = new HashMap<String, List<Object>>();
+		//get Swing UI and set ParamHash";
+		JPanel panel = (JPanel) DIHelper.getInstance().getLocalProp(Constants.PARAM_PANEL_FIELD);
+		// get the currently visible panel
+		Component[] comps = panel.getComponents();
+		JComponent curPanel = null;
+		for (int compIndex = 0; compIndex < comps.length
+				&& curPanel == null; compIndex++)
+			if (comps[compIndex].isVisible())
+				curPanel = (JComponent) comps[compIndex];
+		// get all the param field
+		Component[] fields = curPanel.getComponents();
+		for (int compIndex = 0; compIndex < fields.length; compIndex++) {
+			if (fields[compIndex] instanceof ParamComboBox) {
+				String fieldName = ((ParamComboBox) fields[compIndex]).getParamName();
+				String fieldValue = ((ParamComboBox) fields[compIndex]).getSelectedItem() + "";
+				String uriFill = ((ParamComboBox) fields[compIndex]).getURI(fieldValue);
+				if (uriFill == null)
+					uriFill = fieldValue;
+				List<Object> uriFillList = new ArrayList<Object>();
+				uriFillList.add(uriFill);
+				paramHash.put(fieldName, uriFillList);
+			}
+		}
+		return paramHash;
+	}
+	
+	private Insight getSelectedInsight(IEngine engine){
+		String insightString = ((Map<String, String>) ((JComboBox<Map<String,String>>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_LIST_FIELD)).getSelectedItem()).get(MapComboBoxRenderer.KEY);
+		String[] insightStringSplit = insightString.split("\\. ", 2);
+		if(((AbstractEngine)engine).getInsight(insightString).get(0).getOutput().equals("Unknown")){
+			insightString = insightStringSplit[1];
+		}
+		Insight selectedInsight = engine.getInsight(insightString).get(0);
+		return selectedInsight;
+	}
+	
+	private DataMakerComponent createDMC(String engineName){
+		String query = ((JTextArea) DIHelper.getInstance().getLocalProp(Constants.SPARQL_AREA_FIELD)).getText();
+		DataMakerComponent dmc = new DataMakerComponent(engineName, query);
+		return dmc;
+	}
+	
+	private String getPlaySheetString(){
+		JComboBox playSheetComboBox = (JComboBox) DIHelper.getInstance().getLocalProp(Constants.PLAYSHEET_COMBOBOXLIST);
+		String playSheetString = playSheetComboBox.getSelectedItem()+"";
+		if(playSheetString.startsWith("*"))
+		{
+			playSheetString = playSheetComboBox.getName();
+		}
+		return playSheetString;
 	}
 }

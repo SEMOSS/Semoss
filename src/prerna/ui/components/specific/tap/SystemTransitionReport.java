@@ -37,7 +37,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.ui.components.playsheets.AbstractRDFPlaySheet;
+import prerna.ui.components.playsheets.TablePlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -45,7 +45,7 @@ import prerna.util.Utility;
 import com.bigdata.rdf.model.BigdataURIImpl;
 
 @SuppressWarnings("serial")
-public class SystemTransitionReport extends AbstractRDFPlaySheet{
+public class SystemTransitionReport extends TablePlaySheet{
 
 	static final Logger logger = LogManager.getLogger(SystemTransitionReport.class.getName());
 	private IEngine TAP_Core_Data;

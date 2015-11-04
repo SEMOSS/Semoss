@@ -62,9 +62,9 @@ public class EntityFillerForSubClass implements Runnable {
 		String entityNS = DIHelper.getInstance().getProperty(parent);
 		if (entityNS != null) {
 			sparqlQuery = sparqlQuery + entityNS + "/" + parent + "> ;}";
-			names = Utility.getVectorOfReturn(sparqlQuery, engine);
+			names = Utility.getVectorOfReturn(sparqlQuery, engine, true);
 			if(engine instanceof AbstractEngine){
-				Vector<String> baseNames = Utility.getVectorOfReturn(sparqlQuery, ((AbstractEngine)engine).getBaseDataEngine());
+				Vector<String> baseNames = Utility.getVectorOfReturn(sparqlQuery, ((AbstractEngine)engine).getBaseDataEngine(), true);
 				for(String name: baseNames) 
 					if(!names.contains(name)) 
 						names.addAll(baseNames);

@@ -52,7 +52,7 @@ public class GridTableModel extends GridRAWTableModel {
 	public Object getValueAt(int arg0, int arg1) {
 		// get the value first
 		Object val = data.getValueAt(arg0, arg1);
-		if (val instanceof BigdataURIImpl) {
+		if (val instanceof String && ((String) val).contains(":") && ((String) val).contains("/")) {
 			val = Utility.getInstanceName(val.toString());
 		}
 		return val;

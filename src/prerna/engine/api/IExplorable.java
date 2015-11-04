@@ -27,10 +27,9 @@
  *******************************************************************************/
 package prerna.engine.api;
 
-import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 import java.util.Vector;
-
-import org.openrdf.repository.RepositoryConnection;
 
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
@@ -48,7 +47,7 @@ public interface IExplorable {
 	Vector<String> getInsights();
 
 	// get the insight for a given question description
-	Insight getInsight(String label);
+	Vector<Insight> getInsight(String... id);
 	
 	// gets insights for a given type of entity
 	Vector<String> getInsight4Type(String type);
@@ -65,14 +64,8 @@ public interface IExplorable {
 	// gets the from and to nodes
 	Vector<String> getNeighbors(String nodeType, int neighborHood);
 	
-	// gets the insight database
-	RepositoryConnection getInsightDB();
-	
 	// gets all the params
 	Vector<SEMOSSParam> getParams(String insightName);
-
-	// gets all the insights
-	String getInsightDefinition();
 
 	// sets the dreamer properties file
 	void setDreamer(String dreamer);
@@ -96,7 +89,7 @@ public interface IExplorable {
 	String getProperty(String key);
 	
 	// gets the param values for a parameter
-	Vector<String> getParamOptions(String parameterURI);
+	Vector<Object> getParamOptions(String parameterURI);
 
 	// gets the query builder
 	IQueryBuilder getQueryBuilder();
@@ -115,4 +108,12 @@ public interface IExplorable {
 	
 	// executes a remove query on the onotology engine
 	void ontoRemoveData(String query);
+
+	IEngine getInsightDatabase();
+
+	List<Map<String, Object>> getAllInsightsMetaData();
+	
+	String getInsightDefinition();
+
+	Vector<SEMOSSParam> getParams(String... paramIds);
 }

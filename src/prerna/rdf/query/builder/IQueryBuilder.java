@@ -17,10 +17,11 @@ package prerna.rdf.query.builder;
 
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 
 public interface IQueryBuilder {
 	
-	public void setJSONDataHash(Hashtable<String,Object> allJSONHash);
+	public void setJSONDataHash(Map<String,Object> allJSONHash);
 	
 	public Hashtable<String, Object> getJSONDataHash();
 	

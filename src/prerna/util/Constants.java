@@ -32,6 +32,7 @@ package prerna.util;
  */
 public class Constants {
 
+	public static final String PLAYSHEETS_DEFINED = "PLAYSHEETS_DEFINED";
 	public static final String SUBJECT = "SUBJECT";
 	public static final String OBJECT = "OBJECT";
 	public static final String TRANSPARENT = "TRANSPARENT";

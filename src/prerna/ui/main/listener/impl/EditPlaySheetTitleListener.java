@@ -32,20 +32,20 @@ import java.awt.event.ActionListener;
 
 import javax.swing.JOptionPane;
 
-import prerna.ui.components.playsheets.AbstractRDFPlaySheet;
+import prerna.ui.components.playsheets.AbstractPlaySheet;
 
 /**
  * Controls editing of the title of a playsheet in the internal frame.
  */
 public class EditPlaySheetTitleListener implements ActionListener {
 
-	AbstractRDFPlaySheet playSheet;
+	AbstractPlaySheet playSheet;
 	
 	/**
 	 * Method setPlaySheet.  Sets the playsheet that the listener will access.
 	 * @param playSheet AbstractRDFPlaySheet
 	 */
-	public void setPlaySheet(AbstractRDFPlaySheet playSheet){
+	public void setPlaySheet(AbstractPlaySheet playSheet){
 		this.playSheet = playSheet;
 	}
 	

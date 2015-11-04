@@ -35,6 +35,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.HeatMapPlaySheet;
 import prerna.util.Constants;
@@ -67,7 +68,7 @@ public class VendorHeatMapSheetBigData extends HeatMapPlaySheet {
 	public void createData() {
 	//	addPanel();
 		String rfi = "";
-		wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 		/*if(engine!= null && rs == null){
 			wrapper.setQuery(query);
 			wrapper.setEngine(engine);

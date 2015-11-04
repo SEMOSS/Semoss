@@ -30,6 +30,8 @@ package prerna.algorithm.impl;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
 
@@ -88,8 +90,10 @@ public class DistanceDownstreamInserter {
 			double maxCreditValue = 0.0;
 			//Create the forest for this data object
 			String unfilledQuery = (String) DIHelper.getInstance().getProperty(Constants.DISTANCE_DOWNSTREAM_QUERY);
-			Hashtable<String, String> paramHash = new Hashtable<String, String>();
-			paramHash.put("Data-Data", dataObjectString);
+			Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
+			List<Object> dataObjList = new ArrayList<Object>();
+			dataObjList.add(dataObjectString);
+			paramHash.put("Data-Data", dataObjList);
 			String query = Utility.fillParam(unfilledQuery, paramHash);
 			DelegateForest<SEMOSSVertex, SEMOSSEdge> dataForest = new DelegateForest<SEMOSSVertex, SEMOSSEdge>();
 			dataForest = createForest(query);

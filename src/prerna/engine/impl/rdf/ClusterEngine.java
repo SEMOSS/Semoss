@@ -29,19 +29,19 @@ package prerna.engine.impl.rdf;
 
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
-import org.openrdf.repository.sail.SailRepository;
-import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
-import org.openrdf.sail.memory.MemoryStore;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.util.Constants;
+import prerna.util.sql.H2QueryUtil;
 
 public class ClusterEngine extends AbstractEngine {
 
@@ -83,7 +83,7 @@ public class ClusterEngine extends AbstractEngine {
 		// get the name of the engine
 		// get the ontology / base DB for this engine
 		// load it into the in memory
-		RepositoryConnection con = engine.getOWL();
+		RepositoryConnection con = engine.getBaseDataEngine().getRc();
 		if(con != null)
 		{
 			try {
@@ -97,33 +97,37 @@ public class ClusterEngine extends AbstractEngine {
 		
 		// do the same with insights
 		initializeInsightBase();
-		con = engine.getInsightDB();
-		if(con != null)
+		
+		//TODO: after moving to RDBMS insights, this has not been tested
+		String insights = engine.getInsightDefinition();
+		logger.info("Have insights string::: " + insights);
+		String[] insightBuilderQueries = insights.split("%!%");
+		
+		for (String insightBuilderQuery : insightBuilderQueries)
 		{
-			try {
-				insightBaseXML.rc.add(con.getStatements(null, null, null, true));				
-			}catch(RepositoryException ex)
-			{
-				logger.debug(ex);
-				//ignored
-			}
-		}	
+			logger.info("running query " +  insightBuilderQuery);
+			this.insightRDBMS.insertData(insightBuilderQuery);
+		}
+		
+//		con = engine.getInsightDB();
+//		if(con != null)
+//		{
+//			try {
+//				insightBaseXML.rc.add(con.getStatements(null, null, null, true));				
+//			}catch(RepositoryException ex)
+//			{
+//				logger.debug(ex);
+//				//ignored
+//			}
+//		}	
 	}	
 	
 	public void initializeInsightBase()
 	{
-		if(insightBaseXML.rc == null)
-		{
-			try {
-				Repository myRepository = new SailRepository(
-						new ForwardChainingRDFSInferencer(new MemoryStore()));
-				myRepository.initialize();
-				insightBaseXML.rc = myRepository.getConnection();
-			} catch (RepositoryException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
+		Properties dbProp = writePropFile();
+		this.insightRDBMS = new RDBMSNativeEngine();
+		this.insightRDBMS.setProperties(dbProp);;
+		this.insightRDBMS.openDB(null);
 	}
 	
 	
@@ -175,7 +179,7 @@ public class ClusterEngine extends AbstractEngine {
 	}
 
 	@Override
-	public Vector<String> getEntityOfType(String type) {
+	public Vector<Object> getEntityOfType(String type) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -193,8 +197,23 @@ public class ClusterEngine extends AbstractEngine {
 	}
 
 	@Override
-	protected Vector<String> getCleanSelect(String query) {
+	protected Vector<Object> getCleanSelect(String query) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	// TODO: do we really need this?
+	private Properties writePropFile() {
+		H2QueryUtil queryUtil = new H2QueryUtil();
+		Properties prop = new Properties();
+		String connectionURL = "jdbc:h2:mem:temp";
+		prop.put(Constants.CONNECTION_URL, connectionURL);
+		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
+		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
+		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
+		prop.put(Constants.TEMP_CONNECTION_URL, queryUtil.getTempConnectionURL());
+		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
+		prop.put("TEMP", "TRUE");
+		return prop;
 	}
 }

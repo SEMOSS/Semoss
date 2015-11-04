@@ -42,13 +42,13 @@ import org.apache.log4j.Logger;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.om.InsightStore;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.GridTableModel;
 import prerna.ui.components.GridTableRowSorter;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.QuestionPlaySheetStore;
 import prerna.util.Utility;
 
 @SuppressWarnings("serial")
@@ -233,8 +233,8 @@ public class SystemPropertyGridPlaySheet extends GridPlaySheet {
 	public void createView() {
 		if (list.isEmpty()) {
 			String questionID = getQuestionID();
-			QuestionPlaySheetStore.getInstance().remove(questionID);
-			if (QuestionPlaySheetStore.getInstance().isEmpty()) {
+			InsightStore.getInstance().remove(questionID);
+			if (InsightStore.getInstance().isEmpty()) {
 				JButton btnShowPlaySheetsList = (JButton) DIHelper.getInstance().getLocalProp(Constants.SHOW_PLAYSHEETS_LIST);
 				btnShowPlaySheetsList.setEnabled(false);
 			}

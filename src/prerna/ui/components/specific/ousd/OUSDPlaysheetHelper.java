@@ -12,12 +12,13 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
-import prerna.ui.components.ExecuteQueryProcessor;
-import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
-import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.om.Insight;
+import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.components.playsheets.TablePlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.PlaySheetEnum;
+import prerna.util.PlaySheetRDFMapBasedEnum;
 import prerna.util.Utility;
 
 public final class OUSDPlaysheetHelper {
@@ -29,10 +30,10 @@ public final class OUSDPlaysheetHelper {
 	}
 
 	public static Hashtable getData(String title, String questionNumber, ITableDataFrame dataFrame, String playsheetName){
-		String playSheetClassName = PlaySheetEnum.getClassFromName(playsheetName);
-		BasicProcessingPlaySheet playSheet = null;
+		String playSheetClassName = PlaySheetRDFMapBasedEnum.getClassFromName(playsheetName);
+		TablePlaySheet playSheet = null;
 		try {
-			playSheet = (BasicProcessingPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
+			playSheet = (TablePlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
 		} catch (ClassNotFoundException ex) {
 			ex.printStackTrace();
 			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
@@ -55,11 +56,11 @@ public final class OUSDPlaysheetHelper {
 			LOGGER.fatal("No such PlaySheet: "+ playSheetClassName);
 			e.printStackTrace();
 		}
-		playSheet.setDataFrame(dataFrame);
+		playSheet.setDataMaker(dataFrame);
 		playSheet.setQuestionID(questionNumber);
 		playSheet.setTitle(title);
 		playSheet.processQueryData();
-		return playSheet.getData();
+		return (Hashtable) playSheet.getDataMakerOutput();
 	}
 
 	/**
@@ -289,10 +290,10 @@ public final class OUSDPlaysheetHelper {
 		String cleanActInsightString = "What clean groups can activities supporting a given E2E be put into?";
 		double failureRate = 0.001;
 
-		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
-		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
-		proc.processQuestionQuery(roadmapEngine, cleanActInsightString, emptyTable);
-		SequencingDecommissioningPlaySheet activitySheet = (SequencingDecommissioningPlaySheet) proc.getPlaySheet();
+//		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
+//		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
+//		proc.processQuestionQuery(roadmapEngine, cleanActInsightString, emptyTable);
+		SequencingDecommissioningPlaySheet activitySheet = (SequencingDecommissioningPlaySheet)  OUSDPlaysheetHelper.getPlaySheetFromName(cleanActInsightString, roadmapEngine);;
 
 		Map<Integer, List<List<Integer>>> decomGroups = activitySheet.collectData();
 		Object[] groupData = activitySheet.getResults(decomGroups);
@@ -369,5 +370,23 @@ public final class OUSDPlaysheetHelper {
 			}
 		}
 		return combinedMap;
+	}
+	
+	public static IPlaySheet getPlaySheetFromName(String insightName, IEngine mainEngine){
+		IEngine qEng = mainEngine.getInsightDatabase();
+		String query = "SELECT QUESTION_ID FROM QUESTION_ID WHERE QUESTION_NAME = '"+insightName+"'";
+		ITableDataFrame frame = WrapperManager.getInstance().getSWrapper(qEng, query).getTableDataFrame();
+		String qID = (String) frame.getAllData().get(0)[0];
+		Insight in = mainEngine.getInsight(qID).get(0);
+		
+
+//		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
+//		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
+//		proc.processQuestionQuery(roadmapEngine, cleanActInsightString, emptyTable);
+		IPlaySheet activitySheet = in.getPlaySheet();
+		activitySheet.setQuery(in.getDataMakerComponents().get(0).getQuery());
+		activitySheet.setRDFEngine(in.getDataMakerComponents().get(0).getEngine());
+		
+		return activitySheet;
 	}
 }

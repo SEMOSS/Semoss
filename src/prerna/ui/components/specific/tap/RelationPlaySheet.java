@@ -55,6 +55,7 @@ import javax.swing.event.InternalFrameEvent;
 import prerna.engine.api.IEngine;
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.main.listener.impl.PlaySheetListener;
 import prerna.ui.main.listener.specific.tap.RelationBtnListener;
 import prerna.ui.main.listener.specific.tap.UpdateDataListListener;
@@ -373,11 +374,6 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 		
 	}
 	@Override
-	public String getQuery() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
 	public void setJDesktopPane(JComponent pane) {
 		// TODO Auto-generated method stub
 		
@@ -409,20 +405,15 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 		
 	}
 	@Override
-	public IEngine getRDFEngine() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
 	public void createData() {
 		// TODO Auto-generated method stub
 		
 	}
-	@Override
-	public Object getData() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+//	@Override
+//	public Object getData() {
+//		// TODO Auto-generated method stub
+//		return null;
+//	}
 	@Override
 	public void runAnalytics() {
 		// TODO Auto-generated method stub
@@ -445,6 +436,24 @@ public class RelationPlaySheet extends JInternalFrame implements IPlaySheet {
 	public void processQueryData() {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public void setDataMaker(IDataMaker data) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public IDataMaker getDataMaker() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public IDataMaker getDefaultDataMaker() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 	

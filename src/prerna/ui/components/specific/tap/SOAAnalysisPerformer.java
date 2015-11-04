@@ -31,6 +31,8 @@ import java.beans.PropertyVetoException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import javax.swing.JDesktopPane;
@@ -43,6 +45,8 @@ import org.apache.log4j.Logger;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -50,7 +54,6 @@ import prerna.ui.components.VertexFilterData;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.QuestionPlaySheetStore;
 import prerna.util.Utility;
 
 /**
@@ -122,8 +125,8 @@ public class SOAAnalysisPerformer implements Runnable {
 		// get the selected repository
 		Object [] repos = (Object [])list.getSelectedValues();
 
-		QuestionPlaySheetStore.getInstance().idCount++;
-		String insightID = QuestionPlaySheetStore.getInstance().getIDCount()+". "+ "SOATransition";
+//		QuestionPlaySheetStore.getInstance().idCount++;
+//		String insightID = QuestionPlaySheetStore.getInstance().getIDCount()+". "+ "SOATransition";
 		DIHelper.getInstance().setLocalProperty(Constants.UNDO_BOOLEAN, false);
 		newPlaySheet = new GraphPlaySheet();
 		for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
@@ -134,11 +137,11 @@ public class SOAAnalysisPerformer implements Runnable {
 			newPlaySheet.setTitle("SOA Transition All: "+oldPlaySheet.getTitle());
 			//newPlaySheet.setQuery(query);
 			newPlaySheet.setRDFEngine((IEngine)engine);
-			newPlaySheet.setQuestionID(insightID);
-			newPlaySheet.setGraphData(oldPlaySheet.getGraphData());
+//			newPlaySheet.setQuestionID(insightID);
+			newPlaySheet.setDataMaker(oldPlaySheet.getDataMaker());
 			//newPlaySheet.setJenaModel(jenaModel);
 			JDesktopPane pane = (JDesktopPane)DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
-			QuestionPlaySheetStore.getInstance().put(insightID, newPlaySheet);
+			InsightStore.getInstance().put(new Insight(newPlaySheet));
 			newPlaySheet.setJDesktopPane(pane);
 			newPlaySheet.createView();
 		}
@@ -380,9 +383,11 @@ public class SOAAnalysisPerformer implements Runnable {
 	 */
 	public void getBLUEstimates()
 	{
-		Hashtable paramHash = new Hashtable();
+		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
 		String query = DIHelper.getInstance().getProperty(Constants.SOA_TRANSITION_ALL_BLU_QUERY);
-		paramHash.put("System",  sysName);
+		List<Object> values = new ArrayList<Object>();
+		values.add(sysName);
+		paramHash.put("System",  values);
 		query = Utility.fillParam(query, paramHash);
 		ArrayList <Object[]> list = retListFromQuery(query);
 		totalList.addAll(list);
@@ -394,7 +399,7 @@ public class SOAAnalysisPerformer implements Runnable {
 	 */
 	public void getGenericEstimates()
 	{
-		Hashtable paramHash = new Hashtable();
+		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
 		String query = DIHelper.getInstance().getProperty(Constants.SOA_TRANSITION_ALL_GENERIC_DATA_QUERY);
 	    String valueFill="";
 	    GraphPlaySheet newSheet = (GraphPlaySheet) newPlaySheet;
@@ -403,7 +408,9 @@ public class SOAAnalysisPerformer implements Runnable {
 		{
 			valueFill= valueFill + "(\"" + serV.get(i).getProperty(Constants.VERTEX_NAME) + "\")";
 		}
-		paramHash.put("FILTER_VALUES", valueFill);
+		List<Object> filterList = new ArrayList<Object>();
+		filterList.add(valueFill);
+		paramHash.put("FILTER_VALUES", filterList);
 		query = Utility.fillParam(query, paramHash);
 		ArrayList <Object[]> list = retListFromQuery(query);
 		totalList.addAll(list);
@@ -422,7 +429,7 @@ public class SOAAnalysisPerformer implements Runnable {
 	public void getDataEstimates()
 	{
 		Hashtable sysDataHash = getSysDataMappingFromICD();
-		Hashtable paramHash = new Hashtable();
+		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
 		Enumeration<String> enumKey = sysDataHash.keys();
 		retValues.put("dataFed", new Vector());
 		retValues.put("dataCon", new Vector());
@@ -439,8 +446,12 @@ public class SOAAnalysisPerformer implements Runnable {
 			{
 				valueFill= valueFill + "(\"" + dataV.get(i) + "\")";
 			}
-			paramHash.put("FILTER_VALUES", valueFill);
-			paramHash.put("System",  key);
+			List<Object> filterList = new ArrayList<Object>();
+			filterList.add(valueFill);
+			paramHash.put("FILTER_VALUES", filterList);
+			List<Object> sysList = new ArrayList<Object>();
+			sysList.add(key);
+			paramHash.put("System",  sysList);
 			query = Utility.fillParam(query, paramHash);
 			ArrayList <Object[]> list = retListFromQuery(query);
 			totalList.addAll(list);

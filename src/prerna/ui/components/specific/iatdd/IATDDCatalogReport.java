@@ -32,11 +32,11 @@ import java.util.HashMap;
 
 import prerna.engine.api.IEngine;
 import prerna.poi.specific.IATDDReportWriter;
-import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
+import prerna.ui.components.playsheets.TablePlaySheet;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class IATDDCatalogReport extends BasicProcessingPlaySheet {
+public class IATDDCatalogReport extends TablePlaySheet {
 
 	private IEngine IATDD_DB;
 	

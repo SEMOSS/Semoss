@@ -63,6 +63,7 @@ import prerna.engine.impl.rdf.SesameJenaSelectStatement;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.components.ParamComboBox;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.helpers.EntityFillerForSubClass;
 import prerna.ui.main.listener.impl.PlaySheetListener;
 import prerna.ui.main.listener.impl.RegressionAnalysisButtonListener;
@@ -77,7 +78,7 @@ import com.hp.hpl.jena.query.ResultSet;
 
 /**
  */
-public class RegressionAnalysisPlaySheet extends AbstractRDFPlaySheet{
+public class RegressionAnalysisPlaySheet extends AbstractPlaySheet{
 	private static final Logger logger = LogManager.getLogger(RegressionAnalysisPlaySheet.class.getName());
 	public RegressionAnalysisPlaySheet() {
 	}
@@ -538,11 +539,11 @@ public class RegressionAnalysisPlaySheet extends AbstractRDFPlaySheet{
 
 	}
 
-	@Override
-	public Object getData() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+//	@Override
+//	public Object getData() {
+//		// TODO Auto-generated method stub
+//		return null;
+//	}
 
 	@Override
 	public void runAnalytics() {
@@ -557,8 +558,26 @@ public class RegressionAnalysisPlaySheet extends AbstractRDFPlaySheet{
 	}
 
 	@Override
+	public void setDataMaker(IDataMaker data) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
 	public void processQueryData() {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public IDataMaker getDataMaker() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public IDataMaker getDefaultDataMaker() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

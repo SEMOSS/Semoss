@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.regex.Matcher;
@@ -68,7 +69,7 @@ public class ParamPanel extends JPanel implements ActionListener {
 	Vector<SEMOSSParam> params = null;
 	//Hashtable<String, String> paramType = null;
 	String questionId = "";
-	Hashtable knownValues = new Hashtable();
+	Map<String, List<Object>> knownValues = new Hashtable<String, List<Object>>();
 	ArrayList<ParamComboBox> dependentBoxes = new ArrayList();
 	List<String> selectedEngines;
 	
@@ -116,6 +117,7 @@ public class ParamPanel extends JPanel implements ActionListener {
 		
 		for(int i=0; i < params.size(); i++){
 			SEMOSSParam param = params.get(i);
+			String paramID = param.getParamID();
 			String paramName = param.getName();
 			String paramType = param.getType();
 			String paramQuery = param.getQuery();
@@ -132,6 +134,7 @@ public class ParamPanel extends JPanel implements ActionListener {
 			
 			ParamComboBox field = new ParamComboBox(fetching);
 			field.setFont(new Font("Tahoma", Font.PLAIN, 11));
+			field.setParamID(paramID);
 			field.setParamName(paramName);
 			field.setEditable(false);
 			field.setPreferredSize(new Dimension(100, 25));
@@ -174,7 +177,7 @@ public class ParamPanel extends JPanel implements ActionListener {
 					}
 				}
 				setSelected(field);
-				setParams.add(field.fieldName);
+				setParams.add(field.paramID);
 				field.addActionListener(this);
 			}
 			else
@@ -273,7 +276,7 @@ public class ParamPanel extends JPanel implements ActionListener {
 						}
 					}
 					setSelected(field);
-					newChangedParams.add(field.fieldName);
+					newChangedParams.add(field.paramID);
 					field.addActionListener(this);
 				}
 			}
@@ -292,7 +295,7 @@ public class ParamPanel extends JPanel implements ActionListener {
 		setSelected(source);
 		
 		ArrayList list = new ArrayList();
-		list.add(source.fieldName);
+		list.add(source.paramID);
 		fillParams(list);
 	}
 	
@@ -302,8 +305,11 @@ public class ParamPanel extends JPanel implements ActionListener {
 	 */
 	private void setSelected(ParamComboBox source){
 		String selectedValue = source.getURI(source.getSelectedItem().toString());
-		if(selectedValue!=null)
-			knownValues.put(source.getParamName(), selectedValue);
+		if(selectedValue!=null) {
+			List<Object> selectValueList = new ArrayList<Object>();
+			selectValueList.add(selectedValue);
+			knownValues.put(source.getParamName(), selectValueList);
+		}
 	}
 	
 	/**
@@ -385,6 +391,7 @@ public class ParamPanel extends JPanel implements ActionListener {
 		
 		field.setDependency(dependencies);
 		field.setQuery(query);
+		field.setParamID(param.getParamID());
 		this.dependentBoxes.add(field);
 	}
 	

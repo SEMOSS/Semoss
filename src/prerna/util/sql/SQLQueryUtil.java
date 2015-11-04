@@ -205,7 +205,7 @@ public abstract class SQLQueryUtil {
 	//full outer join abstract above...
 
 	//inner join
-	public String getDialectInnerJoinQuery(boolean distinct, String selectors, String froms, String joins, String filters, int limit, String groupBy){
+	public String getDialectInnerJoinQuery(boolean distinct, String selectors, String froms, String joins, String filters, String parameters, int limit, String groupBy){
 
 		if(joins.length() > 0 && filters.length() > 0)
 			joins = joins + " AND " + filters;
@@ -213,7 +213,13 @@ public abstract class SQLQueryUtil {
 			joins = filters;
 		if(joins.length() > 0)
 			joins = " WHERE " + joins;
-
+		
+		// add parameters if present
+		if(joins.length() > 0 && parameters.length() > 0) {
+			joins += " AND " + parameters;
+		} else if(parameters.length() > 0){
+			joins = " WHERE " + parameters;
+		}
 		String query = this.dialectSelect;
 		if(distinct) query+= this.dialectDistinct;
 		query += selectors + "  FROM  " + froms + joins;

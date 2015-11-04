@@ -1,7 +1,6 @@
 package prerna.ui.components.specific.ousd;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 
@@ -9,9 +8,8 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ds.OrderedBTreeDataFrame;
-import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.playsheets.GridPlaySheet;
-import prerna.util.PlaySheetEnum;
+import prerna.util.PlaySheetRDFMapBasedEnum;
 
 public class ActivitySystemGroupPlaySheet extends GridPlaySheet{
 
@@ -40,18 +38,17 @@ public class ActivitySystemGroupPlaySheet extends GridPlaySheet{
 	 */
 	@Override
 	public void createData(){
-
-		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
-		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
-		proc.processQuestionQuery(this.engine, insightNameOne, emptyTable);
-		SequencingDecommissioningPlaySheet activitySheet = (SequencingDecommissioningPlaySheet) proc.getPlaySheet();
+//		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
+//		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
+//		proc.processQuestionQuery(this.engine, insightNameOne, emptyTable);
+		SequencingDecommissioningPlaySheet activitySheet = (SequencingDecommissioningPlaySheet) OUSDPlaysheetHelper.getPlaySheetFromName(insightNameOne, engine);
 		//createData makes the table...
 		activitySheet.createData();
 		List<Object[]> actTable = activitySheet.getList();
 		String[] actNames = activitySheet.getNames();
 
-		proc.processQuestionQuery(this.engine, insightNameTwo, emptyTable);
-		SequencingDecommissioningPlaySheet systemSheet = (SequencingDecommissioningPlaySheet) proc.getPlaySheet();
+//		proc.processQuestionQuery(this.engine, insightNameTwo, emptyTable);
+		SequencingDecommissioningPlaySheet systemSheet = (SequencingDecommissioningPlaySheet) OUSDPlaysheetHelper.getPlaySheetFromName(insightNameTwo, engine);
 		systemSheet.createData();
 		List<Object[]> systemTable = systemSheet.getList();
 		String[] sysNames = systemSheet.getNames();
@@ -124,8 +121,8 @@ public class ActivitySystemGroupPlaySheet extends GridPlaySheet{
 	}
 	
 	@Override
-	public Hashtable getData(){
-		String playSheetClassName = PlaySheetEnum.getClassFromName("Grid");
+	public Hashtable getDataMakerOutput(){
+		String playSheetClassName = PlaySheetRDFMapBasedEnum.getClassFromName("Grid");
 		GridPlaySheet playSheet = null;
 		try {
 			playSheet = (GridPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
@@ -153,7 +150,7 @@ public class ActivitySystemGroupPlaySheet extends GridPlaySheet{
 		}
 		playSheet.setTitle(this.title);
 		playSheet.setQuestionID(this.questionNum);//
-		Hashtable retHash = (Hashtable) playSheet.getData();
+		Hashtable retHash = (Hashtable) playSheet.getDataMakerOutput();
 		List<Object[]> myList = this.getList();
 		List<Object[]> theList = myList.subList(0, 1000);
 		for(Object[] myRow : theList){

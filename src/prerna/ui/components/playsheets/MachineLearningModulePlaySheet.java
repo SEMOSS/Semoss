@@ -65,6 +65,7 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.similarity.DatasetSimilarity;
 import prerna.math.BarChart;
+import prerna.om.InsightStore;
 import prerna.om.SEMOSSParam;
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.components.NewScrollBarUI;
@@ -83,12 +84,11 @@ import prerna.ui.swing.custom.ToggleButton;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.QuestionPlaySheetStore;
 import prerna.util.Utility;
 import aurelienribon.ui.css.Style;
 
 @SuppressWarnings("serial")
-public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
+public class MachineLearningModulePlaySheet extends TablePlaySheet{
 
 	private static final Logger LOGGER = LogManager.getLogger(MachineLearningModulePlaySheet.class.getName());
 	
@@ -289,8 +289,8 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 	public void createView() {	
 		if(dataFrame == null || dataFrame.isEmpty()){
 			String questionID = getQuestionID();
-			QuestionPlaySheetStore.getInstance().remove(questionID);
-			if(QuestionPlaySheetStore.getInstance().isEmpty())
+			InsightStore.getInstance().remove(questionID);
+			if(InsightStore.getInstance().isEmpty())
 			{
 				JButton btnShowPlaySheetsList = (JButton) DIHelper.getInstance().getLocalProp(Constants.SHOW_PLAYSHEETS_LIST);
 				btnShowPlaySheetsList.setEnabled(false);
@@ -2062,7 +2062,9 @@ public class MachineLearningModulePlaySheet extends BasicProcessingPlaySheet{
 	public boolean[] getIsNumeric() {
 		return isNumeric;
 	}
-	
+	public String getQuery(){
+		return this.query;
+	}
  
 	
 }

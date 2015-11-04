@@ -1,12 +1,12 @@
 package prerna.test;
 
-import static org.junit.Assert.assertTrue;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Properties;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.PropertyConfigurator;
@@ -16,13 +16,11 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.openrdf.query.GraphQueryResult;
-import org.openrdf.query.MalformedQueryException;
-import org.openrdf.query.QueryEvaluationException;
-import org.openrdf.query.TupleQueryResult;
 
+import junit.framework.TestCase;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
+import prerna.om.Insight;
 import prerna.ui.components.ImportDataProcessor;
 import prerna.ui.components.ImportDataProcessor.DB_TYPE;
 import prerna.ui.components.ImportDataProcessor.IMPORT_METHOD;
@@ -32,72 +30,72 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
-* ImportDataProcessorTest checks the 3 main Components of the ImportDataProcessor class
-* 1) Creating a new Database
-* 2) Adding to and existing Database
-* 3) Overriding/Replacing an existing Database
-* There are two tests for each one: CSV and Excel
-*
-* @author  August Bender
-* @version 1.1
-* @since   05-26-2015 
-* Questions? Email abender@deloitte.com
-*/
-public class ImportDataProcessorTest {
+ * ImportDataProcessorTest checks the 3 main Components of the ImportDataProcessor class
+ * 1) Creating a new Database
+ * 2) Adding to and existing Database
+ * 3) Overriding/Replacing an existing Database
+ * There are two tests for each one: CSV and Excel
+ *
+ * @author  August Bender
+ * @version 1.1
+ * @since   05-26-2015 
+ * Questions? Email abender@deloitte.com
+ */
+public class ImportDataProcessorTest extends TestCase {
 
 	//Core obj
-	private static ImportDataProcessor processor;
+	private ImportDataProcessor processor;
 	@SuppressWarnings("unused")
 	private BigDataEngine engine;
-	
-	private static String semossDirectory;
-	private static String dbDirectory;
-	private static String customBaseURI = "http://theTest";
-	
+
+	private String semossDirectory;
+	private String dbDirectory;
+	private String customBaseURI = "http://theTest";
+
 	//CSV Var
-	private static String newDBnameCSV = "OneData";
-	private static String fileNameCSV;
-	private static String mapFileCSV;
-	private static String dbPropFileCSV;
-	private static String CSVsmss; 
+	private String newDBnameCSV = "OneData";
+	private String fileNameCSV;
+	private String mapFileCSV;
+	private String dbPropFileCSV;
+	private String CSVsmss; 
 	//CSV Replace 
-	private static String repoCSV = newDBnameCSV;
-	private static String replacementCSV;
-	private static String replacementMapFileCSV;
-	private static String replacementdbPropFileCSV;
-	
-	
+	private String repoCSV = newDBnameCSV;
+	private String replacementCSV;
+	private String replacementMapFileCSV;
+	private String replacementdbPropFileCSV;
+
+
 	//EXCEL Var
-	private static String newDBnameEXCEL = "ExcelTest";
-	private static String fileNameEXCEL;
-	private static String mapFileEXCEL; 
-	private static String dbPropFileEXCEL;
-	private static String EXCELsmss;
+	private String newDBnameEXCEL = "ExcelTest";
+	private String fileNameEXCEL;
+	private String mapFileEXCEL; 
+	private String dbPropFileEXCEL;
+	private String EXCELsmss;
 	//Excel Replace
-	private static String replacementExcel;
-	
+	private String replacementExcel;
+
 	//NLP Var
-	private static String fileNameNLP;
-	
+	private String fileNameNLP;
+
 	//OCR Var
-	private static String fileNameOCR;
-	
+	private String fileNameOCR;
+
 	//General Var
-	static String newDBname = "DeleteMe";
-	static String newDBnameSmss;
-	static int  testCounter = 1;
-	
+	String newDBname = "DeleteMe";
+	String newDBnameSmss;
+	int  testCounter = 1;
+
 	@BeforeClass 
-	public static void setUpOnce() {
-		
+	public void setUpOnce() {
+
 		//Set up file paths
 		semossDirectory = System.getProperty("user.dir");
 		semossDirectory = semossDirectory.replace("\\", "\\\\");
 		dbDirectory = semossDirectory + "\\db\\";
 		String testFolder = semossDirectory + "\\test\\";
-		
+
 		newDBnameSmss = dbDirectory + "\\" + newDBname + ".smss";
-		
+
 		//CSV Var
 		fileNameCSV = testFolder + "SEMOSSus-500.csv";
 		mapFileCSV = testFolder + newDBnameCSV +"_Custom_Map.prop";
@@ -107,7 +105,7 @@ public class ImportDataProcessorTest {
 		replacementCSV = testFolder + "TwoData.csv";
 		replacementMapFileCSV = testFolder + "TwoData_Custom_Map.prop";
 		replacementdbPropFileCSV = testFolder + "TwoData_Test_PROP.prop";
-		
+
 		//EXCEL Var
 		newDBnameEXCEL =				 "ExcelTest";
 		fileNameEXCEL = testFolder + newDBnameEXCEL+".xlsm";
@@ -116,7 +114,7 @@ public class ImportDataProcessorTest {
 		EXCELsmss = dbDirectory + "\\" + newDBnameEXCEL + ".smss";
 		//Excel Replace
 		replacementExcel = testFolder + "ExcelReplace.xlsm";
-		
+
 		System.out.println("Cleaning...");
 		if(new File(dbDirectory+newDBnameCSV).exists()){
 			clean();
@@ -129,14 +127,14 @@ public class ImportDataProcessorTest {
 		testCounter++;
 		processor = new ImportDataProcessor();
 		engine = new BigDataEngine();
-		
+
 		// Set the Sudo-Prop (Created in Prerna.ui.main.Starter.java)
 		System.setProperty("file.separator", "/");
 		String workingDir = System.getProperty("user.dir");
 		String propFile = workingDir + "/RDF_Map.prop";
 		DIHelper.getInstance().loadCoreProp(propFile);
 		PropertyConfigurator.configure(workingDir + "/log4j.prop");
-							
+
 		//Set BaseDirectory
 		processor.setBaseDirectory(semossDirectory);
 	}
@@ -146,12 +144,12 @@ public class ImportDataProcessorTest {
 		//After tests are run
 		clean();
 	}
-	
+
 	@AfterClass
-	public static void finalTearDown() throws Exception {
+	public void finalTearDown() throws Exception {
 		//After all tests are run
 		clean();
-		
+
 	}
 
 	//CSV DB created
@@ -162,11 +160,11 @@ public class ImportDataProcessorTest {
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
 		prerna.util.sql.SQLQueryUtil.DB_TYPE rdbmsType = prerna.util.sql.SQLQueryUtil.DB_TYPE.H2_DB;//set for RDBMS
 		boolean allowDuplicates = true;
-		
+
 		//Run Processor
 		processor.runProcessor(testMethod, testType, fileNameCSV, customBaseURI, newDBnameCSV, mapFileCSV, "", "", "", dbType, rdbmsType, allowDuplicates);
 		System.out.println("	CSV Db proccesor ran successfully. CSV DB Created.");
-		
+
 		//TESTING ASSERTIONS
 		//Files Created and in the right place
 		File f = new File(dbDirectory+newDBnameCSV);
@@ -182,39 +180,29 @@ public class ImportDataProcessorTest {
 		f = new File(dbDirectory+"\\"+newDBnameCSV+".smss");
 		assertTrue("DB smss exists.", f.exists());
 		System.out.println("	All Files Exist.");
-		
+
 		//Setup for Header Tests(asserts) & Querys
 		BigDataEngine engine = loadEngine(CSVsmss);
 		engine.commitOWL();
-		
+
 		//Checks All Generic Queries
-		Vector<String> perspec = engine.getPerspectives();
-		String currentPerspec = perspec.get(0); //get only first Perspective
-		Vector<String> insights = engine.getInsights(currentPerspec, engine.getEngineName());
+		Vector<String> insightIds = engine.getInsights();
+		Vector<Insight> insights = engine.getInsight(insightIds.toArray(new String[]{}));
+		Set<String> orders = new HashSet<String>();
 		for(int i = 0; i < insights.size(); i++){
-			String query = engine.getInsight(insights.get(i)).getSparql();
-			query = prepQuery(query);
-			String queryHome = "Engine: "+engine.getEngineName()+", Perspective: " + currentPerspec + ", Insight: "+insights.get(i);
-			try {
-				query = prepQuery(query); //Prep the Query for engine use
-				assertTrue(queryHome +": is broken...", checkQuery(engine, query));
-			} catch (MalformedQueryException e) {
-				assertTrue(queryHome +": is MALFORMED...", false);
-				e.printStackTrace();
-			} catch (NullPointerException e) {
-				assertTrue(queryHome +": is NULL...", false);
-				e.printStackTrace();
-			}
+			Insight in = insights.get(i);
+			assertTrue("Insight has an id...", in.getInsightID() != null);
+			assertTrue("Insight has a perspective...", in.getPerspective() != null);
+			assertTrue("Insight has an order...", in.getOrder() != null);
+			orders.add(in.getOrder());
+			assertTrue("Insight has a data maker...", in.getDataMakerName() != null);
+			assertTrue("Insight has a layout...", in.getOutput() != null);
 		}
-		
-		System.out.println(" Information is correct");
-		
-		//Tear down
-		engine.commitOWL();
-		engine.commit();
+		assertTrue("All orders are unique...", insights.size() == orders.size());
+
 		engine.closeDB();
 	}
-	
+
 	//EXCEL DB created
 	@Test
 	public void Test_CreateNew_EXCEL() throws Exception{
@@ -223,11 +211,11 @@ public class ImportDataProcessorTest {
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
 		prerna.util.sql.SQLQueryUtil.DB_TYPE rdbmsType = prerna.util.sql.SQLQueryUtil.DB_TYPE.H2_DB;//set for RDBMS
 		boolean allowDuplicates = true;//used by RDBMS
-		
+
 		//Run Processor
 		processor.runProcessor(testMethod, testType, fileNameEXCEL, customBaseURI , newDBnameEXCEL, mapFileEXCEL, "", "", "", dbType, rdbmsType, allowDuplicates);
 		System.out.println("	EXCEL Db proccesor ran successfully. Excel DB created.");
-		
+
 		//TESTING ASSERTIONS
 		//Files Created and in the right place
 		File f = new File(dbDirectory+newDBnameEXCEL);
@@ -244,49 +232,41 @@ public class ImportDataProcessorTest {
 		f = new File(dbDirectory+newDBnameEXCEL+".smss");
 		assertTrue("DB smss exists.", f.exists());
 		System.out.println("	All Files Exist.");
-				
+
 		//Setup for Header Tests(asserts) & Querys
 		BigDataEngine engine = loadEngine(EXCELsmss);
 		engine.commitOWL();
-				
-		//Checks All Generic Queries
-		Vector<String> perspec = engine.getPerspectives();
-		String currentPerspec = perspec.get(0); //get only first Perspective
-		Vector<String> insights = engine.getInsights(currentPerspec, engine.getEngineName());
-		for(int i = 0; i < insights.size(); i++){
-			String query = engine.getInsight(insights.get(i)).getSparql();
-			query = prepQuery(query);
-			String queryHome = "Engine: "+engine.getEngineName()+", Perspective: " + currentPerspec + ", Insight: "+insights.get(i);
-			try {
-				query = prepQuery(query); //Prep the Query for engine use
-				assertTrue(queryHome +": is BROKEN...", checkQuery(engine, query));
-			} catch (MalformedQueryException e) {
-				assertTrue(queryHome +": is MALFORMED...", false);
-				e.printStackTrace();
-			} catch (NullPointerException e) {
-				assertTrue(queryHome +": is NULL...", false);
-				e.printStackTrace();
-			}
-		}
 
-		//Tear down
-		engine.commitOWL();
-		engine.commit();
+		//Checks All Generic Queries
+		Vector<String> insightIds = engine.getInsights();
+		Vector<Insight> insights = engine.getInsight(insightIds.toArray(new String[]{}));
+		Set<String> orders = new HashSet<String>();
+		for(int i = 0; i < insights.size(); i++){
+			Insight in = insights.get(i);
+			assertTrue("Insight has an id...", in.getInsightID() != null);
+			assertTrue("Insight has a perspective...", in.getPerspective() != null);
+			assertTrue("Insight has an order...", in.getOrder() != null);
+			orders.add(in.getOrder());
+			assertTrue("Insight has a data maker...", in.getDataMakerName() != null);
+			assertTrue("Insight has a layout...", in.getOutput() != null);
+		}
+		assertTrue("All orders are unique...", insights.size() == orders.size());
+
 		engine.closeDB();
 	}
-	
+
 	//CSV add to existing
 	@Test
 	public void Test_AddToExisting_CSV() throws Exception{
 		//Make CSV
 		makeCSV();
-		
+
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.ADD_TO_EXISTING;
 		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.CSV;
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
 		prerna.util.sql.SQLQueryUtil.DB_TYPE rdbmsType = prerna.util.sql.SQLQueryUtil.DB_TYPE.H2_DB;//set for RDBMS
 		boolean allowDuplicates = true;
-		
+
 		//TESTING ASSERTIONS
 		//Files Created and in the right place
 		File f = new File(dbDirectory+newDBnameCSV);
@@ -302,7 +282,7 @@ public class ImportDataProcessorTest {
 		f = new File(dbDirectory+"\\"+newDBnameCSV+".smss");
 		assertTrue("DB smss exists.", f.exists());
 		System.out.println("	All Files Exist.");
-		
+
 		//ADD TO EXISTING
 		//Reset Prop
 		BigDataEngine engine = loadEngine(CSVsmss);
@@ -316,29 +296,7 @@ public class ImportDataProcessorTest {
 
 		//Setup for Header Tests(asserts) & Querys
 		engine = loadEngine(CSVsmss);
-				
-		//Checks All Generic Queries
-		Vector<String> perspec = engine.getPerspectives();
-		String currentPerspec = perspec.get(0); //get only first Perspective
-		Vector<String> insights = engine.getInsights(currentPerspec, engine.getEngineName());
-		for(int i = 0; i < insights.size(); i++){
-			String query = engine.getInsight(insights.get(i)).getSparql();
-			query = prepQuery(query);
-			String queryHome = "Engine: "+engine.getEngineName()+", Perspective: " + currentPerspec + ", Insight: "+insights.get(i);
-			try {
-				query = prepQuery(query); //Prep the Query for engine use
-				assertTrue(queryHome +": is BROKEN...", checkQuery(engine, query));
-			} catch (MalformedQueryException e) {
-				assertTrue(queryHome +": is MALFORMED...", false);
-				e.printStackTrace();
-			} catch (NullPointerException e) {
-				assertTrue(queryHome +": is NULL...", false);
-				e.printStackTrace();
-			}
-		}
-		
-		//Tear down
-		engine.commit();
+
 		engine.closeDB();
 	}
 
@@ -347,13 +305,13 @@ public class ImportDataProcessorTest {
 	public void Test_AddToExisting_EXCEL() throws Exception{
 		//Make Test Excel
 		makeExcel();
-		
+
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.ADD_TO_EXISTING;
 		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.EXCEL_POI;
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
 		prerna.util.sql.SQLQueryUtil.DB_TYPE rdbmsType = prerna.util.sql.SQLQueryUtil.DB_TYPE.H2_DB;//set for RDBMS
 		boolean allowDuplicates = true;
-		
+
 		//TESTING ASSERTIONS
 		//Files Created and in the right place
 		File f = new File(dbDirectory+newDBnameEXCEL);
@@ -369,7 +327,7 @@ public class ImportDataProcessorTest {
 		f = new File(dbDirectory+newDBnameEXCEL+".smss");
 		assertTrue("DB smss doesn't exists.", f.exists());
 		System.out.println("	All Files Exist.");
-			
+
 		//Reset Prop
 		BigDataEngine engine = loadEngine(EXCELsmss);
 
@@ -382,45 +340,22 @@ public class ImportDataProcessorTest {
 
 		//Setup for Header Tests(asserts) & Querys
 		engine = loadEngine(EXCELsmss);
-				
-		//Checks All Generic Queries
-		Vector<String> perspec = engine.getPerspectives();
-		String currentPerspec = perspec.get(0); //get only first Perspective
-		Vector<String> insights = engine.getInsights(currentPerspec, engine.getEngineName());
-		for(int i = 0; i < insights.size(); i++){
-			String query = engine.getInsight(insights.get(i)).getSparql();
-			query = prepQuery(query);
-			String queryHome = "Engine: "+engine.getEngineName()+", Perspective: " + currentPerspec + ", Insight: "+insights.get(i);
-			try {
-				query = prepQuery(query); //Prep the Query for engine use
-				assertTrue(queryHome +": is BROKEN...", checkQuery(engine, query));
-			} catch (MalformedQueryException e) {
-				assertTrue(queryHome +": is MALFORMED...", false);
-				e.printStackTrace();
-			} catch (NullPointerException e) {
-				assertTrue(queryHome +": is NULL...", false);
-				e.printStackTrace();
-			}
-		}
 
-		//Tear down
-		engine.commitOWL();
-		engine.commit();
 		engine.closeDB();
 	}
-	
+
 	//CSV Override
 	@Ignore
 	@Test
 	public void Test_OVERRIDE_CSV() throws Exception{
 		makeCSV();
-		
+
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.OVERRIDE;
 		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.CSV;
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
 		prerna.util.sql.SQLQueryUtil.DB_TYPE rdbmsType = prerna.util.sql.SQLQueryUtil.DB_TYPE.H2_DB;//set for RDBMS
 		boolean allowDuplicates = true;
-		
+
 		//TESTING ASSERTIONS
 		//Files Created and in the right place
 		File f = new File(dbDirectory+newDBnameCSV);
@@ -436,7 +371,7 @@ public class ImportDataProcessorTest {
 		f = new File(dbDirectory+"\\"+newDBnameCSV+".smss");
 		assertTrue("DB smss exists.", f.exists());
 		System.out.println("	All Files Exist.");
-		
+
 		//OVERRIDE
 		IEngine engine = new BigDataEngine();
 
@@ -459,21 +394,21 @@ public class ImportDataProcessorTest {
 		processor.runProcessor(testMethod, testType, replacementCSV, customBaseURI, "", "", "", "", newDBnameCSV, dbType, rdbmsType, allowDuplicates);
 		System.out.println("CSV Db proccesor ran successfully. CSV DB Replaced.");
 	}
-		
+
 	//EXCEL Override
 	@Ignore
 	@Test
 	public void Test_OVERRIDE_EXCEL() throws Exception{
 		makeExcel();
-		
+
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.OVERRIDE;
 		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.EXCEL_POI;
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
 		prerna.util.sql.SQLQueryUtil.DB_TYPE rdbmsType = prerna.util.sql.SQLQueryUtil.DB_TYPE.H2_DB;//set for RDBMS
 		boolean allowDuplicates = true;
-		
+
 		String SudoSmss = dbDirectory+newDBnameEXCEL+".smss";
-		
+
 		//TESTING ASSERTIONS
 		//Files Created and in the right place
 		File f = new File(dbDirectory+newDBnameEXCEL);
@@ -489,7 +424,7 @@ public class ImportDataProcessorTest {
 		f = new File(dbDirectory+newDBnameEXCEL+".smss");
 		assertTrue("DB smss exists.", f.exists());
 		System.out.println("	All Files Exist.");
-			
+
 		//Reset Prop
 		IEngine engine = new BigDataEngine();
 
@@ -502,18 +437,18 @@ public class ImportDataProcessorTest {
 			engine = Utility.loadEngine(SudoSmss, prop);
 			fileIn.close();
 			//engine.closeDB();
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
 		//Run Processor
 		processor.runProcessor(testMethod, testType, replacementExcel, customBaseURI , "", "", "", "", newDBnameEXCEL, dbType, rdbmsType, allowDuplicates);
 		System.out.println("	EXCEL Db proccesor ran successfully. Excel DB replaced.");
 		engine.closeDB();
 	}
-	
+
 	/* This is the tools section for this Class 
 	 * makeExcel
 	 * makeCSV
@@ -527,115 +462,22 @@ public class ImportDataProcessorTest {
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
 		prerna.util.sql.SQLQueryUtil.DB_TYPE rdbmsType = prerna.util.sql.SQLQueryUtil.DB_TYPE.H2_DB;//set for RDBMS
 		boolean allowDuplicates = true;
-		
+
 		//Run Processor
 		processor.runProcessor(testMethod, testType, fileNameEXCEL, customBaseURI , newDBnameEXCEL, mapFileEXCEL, "", "", "", dbType, rdbmsType, allowDuplicates);
 		System.out.println("	EXCEL Db proccesor ran successfully. Excel DB created.");
 	}
-	
+
 	private void makeCSV() throws Exception{
 		prerna.ui.components.ImportDataProcessor.IMPORT_METHOD testMethod = IMPORT_METHOD.CREATE_NEW;
 		prerna.ui.components.ImportDataProcessor.IMPORT_TYPE testType = IMPORT_TYPE.CSV;
 		prerna.ui.components.ImportDataProcessor.DB_TYPE dbType = DB_TYPE.RDF;
 		prerna.util.sql.SQLQueryUtil.DB_TYPE rdbmsType = prerna.util.sql.SQLQueryUtil.DB_TYPE.H2_DB;//set for RDBMS
 		boolean allowDuplicates = true;
-		
+
 		//Run Processor
 		processor.runProcessor(testMethod, testType, fileNameCSV, customBaseURI, newDBnameCSV, mapFileCSV, "", "", "", dbType, rdbmsType, allowDuplicates);
 		System.out.println("	CSV Db proccesor ran successfully. CSV DB Created.");
-	}
-	
-	private boolean checkQuery(BigDataEngine engine, String query) throws MalformedQueryException{
-		/*DBUG*/System.out.println("CHECKING "+engine.getEngineName());
-
-		Boolean result = false;
-		Object check = engine.execQuery(query);
-		
-		if(check instanceof Boolean){
-			//DO NOTHING
-		} else {
-			//Limit the results
-			if(query.contains("BINDINGS")){
-				query = query.replace("BINDINGS", "LIMIT 3 BINDINGS");
-			}
-			if(query.contains("LIMIT") || query.contains("limit")){
-				//DO Nothing
-			} else {query += " LIMIT 3";}
-		}
-		
-		System.out.println(query);
-		
-		if(check instanceof GraphQueryResult){
-			try {
-				GraphQueryResult res = (GraphQueryResult) check;
-				if(res != null){result = true;}
-				res.close();
-			} catch (NullPointerException | QueryEvaluationException e){
-				//Nothing
-			}
-		} else if(check instanceof Boolean) {
-			try {
-				result = (Boolean) check;
-			} catch (NullPointerException e){
-				//Nothing
-			}
-		} else if(check instanceof TupleQueryResult){
-			try {
-				TupleQueryResult res = (TupleQueryResult) check;
-				if(res != null){result = true;}
-				res.close();
-			} catch (NullPointerException | QueryEvaluationException e){
-				//Nothing
-			}
-		} else {
-			/*DBUG*/System.out.println("NOT A THING!");
-			result = true;
-		}
-		System.out.println("...");
-		return result;
-	}
-
-	private String prepQuery(String query){
-		//Clustering; Remove all clustering info so query can be processed
-		if(query.contains("+++")){
-			String[] clusterRemoval= {
-					"+++@NumberOfClusters-OverrideCluster@",
-					"+++J48",
-					"+++PART",
-					"+++DecisionTable", 
-					"+++DecisionStump",
-					"+++REPTree", 
-					"+++LMT", 
-					"+++SimpleLogistic", 
-					"+++@KNeighbors-K@"}; //Add new Cluster param types here
-			for(int i = 0; i < clusterRemoval.length; i++){
-				if(query.contains(clusterRemoval[i])){
-					query = query.replace(clusterRemoval[i], "");
-					System.out.println("Part Removed: "+clusterRemoval[i]);
-				}
-			}
-		}
-		
-		//Dates; removed them, they are dealt with in the play-sheet and not the engine
-		if(query.contains("CONSTRUCT") && query.contains("-Override")){
-			String[] dateRemoval = {
-					"@Year-OverrideYear@;", 
-					"@Month-OverrideMonth@;"
-					//Add more here
-					};
-			for(int i = 0; i < dateRemoval.length; i++){
-				if(query.contains(dateRemoval[i])){
-					query = query.replace(dateRemoval[i], "");
-					System.out.println("Part Removed: "+dateRemoval[i]);
-				}
-			}
-		}
-		
-		//Params; find and insert query params normally put in by the user
-		if(query.contains("@")){
-			query = Utility.fillParam(query, Utility.getParams(query));
-		}
-		return query.trim();
 	}
 
 	private BigDataEngine loadEngine(String engineLocation){
@@ -667,7 +509,7 @@ public class ImportDataProcessorTest {
 				engine.openDB(engineLocation);
 				engine.setDreamer(prop.getProperty(Constants.DREAMER));
 				engine.setOntology(prop.getProperty(Constants.ONTOLOGY));
-				
+
 				// set the core prop
 				if(prop.containsKey(Constants.DREAMER))
 					DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.DREAMER, prop.getProperty(Constants.DREAMER));
@@ -677,7 +519,7 @@ public class ImportDataProcessorTest {
 					DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.OWL, prop.getProperty(Constants.OWL));
 					engine.setOWL(prop.getProperty(Constants.OWL));
 				}
-				
+
 				// set the engine finally
 				engines = engines + ";" + engineName;
 				DIHelper.getInstance().setLocalProperty(engineName, engine);
@@ -699,40 +541,40 @@ public class ImportDataProcessorTest {
 		}
 		return engine;
 	}
-	
-	private static void clean(){
+
+	private void clean(){
 		//DeleteMe
-				//Delete Source Folder
-				File file = new File(dbDirectory+newDBname);
-				processor.deleteFile(file);
-				//Delete .temp
-				file = new File(dbDirectory+newDBname+".temp");
-				processor.deleteFile(file);
-				//Delete .SMSS
-				file = new File(dbDirectory+newDBname+".smss");
-				processor.deleteFile(file);
-						
-				//CSV
-				//Delete Source Folder
-				file = new File(dbDirectory+newDBnameCSV);
-				processor.deleteFile(file);
-				//Delete .temp
-				file = new File(dbDirectory+newDBnameCSV+".temp");
-				processor.deleteFile(file);
-				//Delete .SMSS
-				file = new File(CSVsmss);
-				processor.deleteFile(file);
-						
-				//Excel
-				//Delete Source Folder
-				file = new File(dbDirectory+newDBnameEXCEL);
-				processor.deleteFile(file);
-				//Delete .temp
-				file = new File(dbDirectory+newDBnameEXCEL+".temp");
-				processor.deleteFile(file);
-				//Delete .SMSS
-				file = new File(EXCELsmss);
-				processor.deleteFile(file);
+		//Delete Source Folder
+		File file = new File(dbDirectory+newDBname);
+		processor.deleteFile(file);
+		//Delete .temp
+		file = new File(dbDirectory+newDBname+".temp");
+		processor.deleteFile(file);
+		//Delete .SMSS
+		file = new File(dbDirectory+newDBname+".smss");
+		processor.deleteFile(file);
+
+		//CSV
+		//Delete Source Folder
+		file = new File(dbDirectory+newDBnameCSV);
+		processor.deleteFile(file);
+		//Delete .temp
+		file = new File(dbDirectory+newDBnameCSV+".temp");
+		processor.deleteFile(file);
+		//Delete .SMSS
+		file = new File(CSVsmss);
+		processor.deleteFile(file);
+
+		//Excel
+		//Delete Source Folder
+		file = new File(dbDirectory+newDBnameEXCEL);
+		processor.deleteFile(file);
+		//Delete .temp
+		file = new File(dbDirectory+newDBnameEXCEL+".temp");
+		processor.deleteFile(file);
+		//Delete .SMSS
+		file = new File(EXCELsmss);
+		processor.deleteFile(file);
 	}
 }
 

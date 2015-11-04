@@ -42,7 +42,7 @@ import prerna.ui.components.api.IChakraListener;
 import prerna.ui.helpers.EntityFillerForSubClass;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.PlaySheetEnum;
+import prerna.util.PlaySheetRDFMapBasedEnum;
 
 public class QuestionModDBComboBoxListener implements IChakraListener {
 
@@ -59,7 +59,7 @@ public class QuestionModDBComboBoxListener implements IChakraListener {
 		
 		playSheetComboBox.insertItemAt("*Custom_PlaySheet", 0);
 		
-		ArrayList playsheetArray = PlaySheetEnum.getAllSheetNames();
+		ArrayList playsheetArray = PlaySheetRDFMapBasedEnum.getAllSheetNames();
 		for(int i = 0; i < playsheetArray.size(); i++){
 			playSheetComboBox.addItem(playsheetArray.get(i));
 		}

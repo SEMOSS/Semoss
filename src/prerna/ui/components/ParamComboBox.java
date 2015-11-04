@@ -44,6 +44,7 @@ public class ParamComboBox extends JComboBox {
 	Vector<String> dependency = null;
 	String query;
 	String type;
+	String paramID;
 	
 	/**
 	 * Constructor for ParamComboBox.
@@ -63,6 +64,14 @@ public class ParamComboBox extends JComboBox {
 		this.fieldName = fieldName;
 	}
 
+	/**
+	 * Sets the id of the parameter
+	 * @param id			Parameter id
+	 */
+	public void setParamID(String paramID) {
+		this.paramID = paramID;
+	}
+	
 	/**
 	 * Gets the name of the parameter.
 	
@@ -111,4 +120,5 @@ public class ParamComboBox extends JComboBox {
 	{
 		this.query = query;
 	}
+
 }

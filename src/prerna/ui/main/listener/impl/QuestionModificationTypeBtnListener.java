@@ -30,6 +30,7 @@ package prerna.ui.main.listener.impl;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
+import java.util.Map;
 import java.util.Vector;
 
 import javax.swing.ComboBoxModel;
@@ -48,6 +49,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
+import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.ParamComboBox;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -194,14 +196,17 @@ public class QuestionModificationTypeBtnListener extends AbstractListener {
 		deleteParameterQueryButton.setEnabled(true);
 		
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-		String question = (String) questionModSelector.getSelectedItem();
+		Map qMap = (Map) questionModSelector.getSelectedItem();
+		String question = (String) qMap.get(MapComboBoxRenderer.VALUE);
+		String id = (String) qMap.get(MapComboBoxRenderer.KEY);
 		String[] questionSplit = question.split("\\. ", 2);
 		question = questionSplit[1];
 		
-		Insight in = ((AbstractEngine)engine).getInsight2(question).get(0);
+		Insight in = ((AbstractEngine)engine).getInsight(id).get(0);
 
 		// now get the SPARQL query for this id
-		String sparql = in.getSparql();
+//		String sparql = in.getDataMakerComponents()[0].getQuery();
+		String sparql = in.getDataMakerComponents().get(0).getQuery();
 		//get the layout
 		String layoutValue = in.getOutput();
 		//get the selected question
@@ -209,7 +214,7 @@ public class QuestionModificationTypeBtnListener extends AbstractListener {
 		Vector<String> parameterQueryVector = new Vector<String>();
 		Vector<String> dependVector = new Vector<String>();
 		Vector<String> optionVector = new Vector<String>();
-		Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine)engine).getParams(question);
+		Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine)engine).getParams(id);
 		
 		order = in.getOrder();
 		

@@ -28,34 +28,46 @@
 package prerna.algorithm.learning.supervized;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.math3.linear.RealVector;
+import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.IAnalyticRoutine;
+import prerna.algorithm.api.IAnalyticActionRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.SEMOSSParam;
+import prerna.ui.components.playsheets.MatrixRegressionHelper;
 
-public class MatrixRegressionAlgorithm extends OLSMultipleLinearRegression implements IAnalyticRoutine {
+public class MatrixRegressionAlgorithm extends OLSMultipleLinearRegression implements IAnalyticActionRoutine {
 
 	private static final Logger LOGGER = LogManager.getLogger(MatrixRegressionAlgorithm.class.getName());
 
-	private static final String DATA_MATRIX = "A";
-	private static final String RESPONSE_VECTOR = "y";
+	public static final String INCLUDE_INSTANCES = "includeInstances";
+	public static final String SKIP_ATTRIBUTES = "skipAttributes";
+	public static final String B_INDEX = "bIndex";
+	
+	private ITableDataFrame dataFrame;
+	private boolean includesInstance;
+	private int bIndex;
 	
 	private ArrayList<SEMOSSParam> options;
-
 	private double[] coeffArray;
 	private double[] coeffErrorsArray;
 	private double[] residualArray;
 	private double[] estimateArray;
 	private double standardError;
-
+	private double[][] A;
+	private double[] b;
+	
+	
 	/**
 	 * Creates a MatrixRegressionAlgorithm object to solve A*theta = y.
 	 */
@@ -63,20 +75,38 @@ public class MatrixRegressionAlgorithm extends OLSMultipleLinearRegression imple
 		this.options = new ArrayList<SEMOSSParam>();
 
 		SEMOSSParam p1 = new SEMOSSParam();
-		p1.setName(DATA_MATRIX);
+		p1.setName(INCLUDE_INSTANCES);
 		options.add(0, p1);
-
+		
 		SEMOSSParam p2 = new SEMOSSParam();
-		p2.setName(RESPONSE_VECTOR);
+		p2.setName(B_INDEX);
 		options.add(1, p2);
+		
+		SEMOSSParam p3 = new SEMOSSParam();
+		p3.setName(SKIP_ATTRIBUTES);
+		options.add(2, p3);
 	}
 
 	@Override
-	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
-		double[][] A = (double[][]) options.get(0).getSelected();
-		double[] y = (double[]) options.get(1).getSelected();
+	public void runAlgorithm(ITableDataFrame... data) {
+		this.dataFrame = data[0];
+		this.includesInstance = (boolean) options.get(0).getSelected();
+		int bIndex = ((Number) options.get(1).getSelected()).intValue();
+		List<String> skipAttribues = (List<String>) options.get(2).getSelected();
+		dataFrame.setColumnsToSkip(skipAttribues);
+
+		if(bIndex==-1) {
+			bIndex = dataFrame.getColumnHeaders().length - 1;
+		}
+		//create the b and A arrays which are used in matrix regression to determine coefficients
+		b = MatrixRegressionHelper.createB(dataFrame, bIndex);
+		if(includesInstance) {
+			A = MatrixRegressionHelper.createA(dataFrame, 1, bIndex);
+		} else {
+			A = MatrixRegressionHelper.createA(dataFrame, 0, bIndex);
+		}
 		
-		newSampleData(y, A);
+		newSampleData(b, A);
 		setNoIntercept(false);
 		
 		RealVector theta = calculateBeta();
@@ -89,10 +119,78 @@ public class MatrixRegressionAlgorithm extends OLSMultipleLinearRegression imple
 		
 		double residualSumOfSquares = calculateResidualSumOfSquares();
 		standardError = Math.sqrt(residualSumOfSquares / residualArray.length);
-		
-		return null;
 	}
+	
+	@Override
+	public Object getAlgorithmOutput() {
+		//create Ab array
+		double[][] Ab = MatrixRegressionHelper.appendB(A, b);
+		PearsonsCorrelation correlation = new PearsonsCorrelation(Ab);
+		double[][] correlationArray = correlation.getCorrelationMatrix().getData();		
+				
+		int numVariables;
+		String id = "";
+		int offset = 0;
+		String[] columnHeaders = dataFrame.getColumnHeaders();
+		if(includesInstance) {
+			numVariables = columnHeaders.length - 1;
+			id = columnHeaders[0];
+			offset = 1;
+		}else {
+			numVariables = columnHeaders.length;
+		}
 
+		int i = 0;
+		List<String> names = new ArrayList<String>();
+		for(i = 0 + offset; i < columnHeaders.length; i++) {
+			if(i != bIndex) {
+				names.add(columnHeaders[i]);
+			}
+		}
+		names.add(0, columnHeaders[bIndex]);
+		Collections.reverse(names);
+		if(includesInstance) {
+			names.add(0, id);
+		}
+		
+		Object[] stdErrors = new Object[numVariables];
+		for(i = 0; i<numVariables ; i++) {
+			stdErrors[i] = standardError;
+		}
+
+		Object[] coefficients = new Object[numVariables + 1];
+		for(i = 0; i< numVariables - 1; i++) {
+			coefficients[i + 1] = coeffArray[i+1];
+		}
+		coefficients[numVariables] = coeffArray[0];
+
+		Object[] correlations = new Object[numVariables + 1];
+		for(i = 0; i<numVariables-1; i++) {
+			correlations[i+1] = correlationArray[i][numVariables - 1];
+		}
+		
+		List<Object> corrList = Arrays.asList(correlations);
+		Collections.reverse(corrList);
+
+		List<Object> coeffList = Arrays.asList(coefficients);
+		Collections.reverse(coeffList);
+
+		Hashtable<String, Object> dataHash = new Hashtable<String, Object>();
+		dataHash.put("one-row",true);
+		dataHash.put("id",id);
+		dataHash.put("shifts", stdErrors);
+		dataHash.put("coefficients", coeffList);
+		dataHash.put("correlations", corrList);
+		
+		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
+		allHash.put("specificData", dataHash);
+		allHash.put("data", this.dataFrame.getRawData());
+		allHash.put("headers", names);
+		allHash.put("layout", getDefaultViz());
+		
+		return allHash;
+	}
+	
 	@Override
 	public String getName() {
 		return "Matrix Regression";
@@ -128,12 +226,6 @@ public class MatrixRegressionAlgorithm extends OLSMultipleLinearRegression imple
 	}
 
 	@Override
-	public List<String> getChangedColumns() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public Map<String, Object> getResultMetadata() {
 		// TODO Auto-generated method stub
 		return null;
@@ -159,4 +251,11 @@ public class MatrixRegressionAlgorithm extends OLSMultipleLinearRegression imple
 		return standardError;
 	}
 
+	public double[] getB() {
+		return b;
+	}
+	
+	public double[][] getA() {
+		return A;
+	}
 }

@@ -68,11 +68,24 @@ import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import edu.uci.ics.jung.algorithms.layout.Layout;
+import edu.uci.ics.jung.graph.DelegateForest;
+import edu.uci.ics.jung.visualization.GraphZoomScrollPane;
+import edu.uci.ics.jung.visualization.VisualizationViewer;
+import edu.uci.ics.jung.visualization.control.ModalGraphMouse;
+import edu.uci.ics.jung.visualization.picking.PickedState;
+import edu.uci.ics.jung.visualization.renderers.BasicRenderer;
+import edu.uci.ics.jung.visualization.renderers.Renderer;
+import prerna.algorithm.impl.DistanceDownstreamProcessor;
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.om.GraphDataModel;
+import prerna.om.InsightStore;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.wrappers.ConstructStatement;
@@ -85,6 +98,7 @@ import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.components.PropertySpecData;
 import prerna.ui.components.VertexColorShapeData;
 import prerna.ui.components.VertexFilterData;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.specific.tap.DataLatencyPlayPopup;
 import prerna.ui.main.listener.impl.GraphNodeListener;
 import prerna.ui.main.listener.impl.GraphPlaySheetListener;
@@ -108,21 +122,11 @@ import prerna.ui.transformer.VertexStrokeTransformer;
 import prerna.ui.transformer.VertexTooltipTransformer;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.QuestionPlaySheetStore;
 import prerna.util.Utility;
-
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.graph.DelegateForest;
-import edu.uci.ics.jung.visualization.GraphZoomScrollPane;
-import edu.uci.ics.jung.visualization.VisualizationViewer;
-import edu.uci.ics.jung.visualization.control.ModalGraphMouse;
-import edu.uci.ics.jung.visualization.picking.PickedState;
-import edu.uci.ics.jung.visualization.renderers.BasicRenderer;
-import edu.uci.ics.jung.visualization.renderers.Renderer;
 
 /**
  */
-public class GraphPlaySheet extends AbstractRDFPlaySheet {
+public class GraphPlaySheet extends AbstractPlaySheet {
 
 	/*
 	 * this will have references to the following a. Internal Frame that needs to be displayed b. The panel of
@@ -130,7 +134,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 	 * criterias including slider values
 	 */
 	private static final Logger logger = LogManager.getLogger(GraphPlaySheet.class.getName());
-	public GraphDataModel gdm = new GraphDataModel();
+	public GraphDataModel gdm;
 	public DelegateForest forest = null;
 	public VisualizationViewer <SEMOSSVertex, SEMOSSEdge> view = null;
 	protected String layoutName = Constants.FR;
@@ -148,7 +152,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 	public VertexColorShapeData colorShapeData = new VertexColorShapeData();
 	public VertexFilterData filterData = new VertexFilterData();
 	
-	boolean sudowl, search, prop;
+//	boolean sudowl, search, prop;
 	
 	//So that it doesn't get reset on extend and overlay etc. it must be stored
 	VertexLabelFontTransformer vlft;
@@ -165,7 +169,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 	 */
 	public GraphPlaySheet()
 	{
-		logger.info("Graph PlaySheet " + query);
+		logger.info("Graph PlaySheet ");
 	}
 	
 	/**
@@ -176,29 +180,14 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 	public void setAppend(boolean append) {
 		logger.debug("Append set to " + append);
 		//writeStatus("Append set to  : " + append);
-		this.overlay = append;
+//		this.overlay = append;
 		gdm.setOverlay(append);
 	}
 	
 	public boolean getSudowl(){
-		return sudowl;
+		return gdm.getSudowl();
 	}
 	
-	public GraphDataModel getGraphData(){
-		return gdm;
-	}
-	
-	public void setGraphData(GraphDataModel gdm){
-		this.gdm = gdm;
-	}
-	
-	private void setPropSudowlSearch(){
-		sudowl = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSudowl));
-		prop = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSProp));
-		search = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSearch));
-		gdm.setPropSudowlSearch(prop, sudowl, search);
-	}
-
 	/**
 	 * Method createView.
 	 */
@@ -208,8 +197,10 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 			// fill the nodetype list so that they can choose from
 			// remove from store
 			// this will also clear out active sheet
-			QuestionPlaySheetStore.getInstance().remove(questionID);
-			if(QuestionPlaySheetStore.getInstance().isEmpty())
+			InsightStore.getInstance().remove(questionID); //TODO: QUESTION_ID MUST MATCH INSIGHT_ID
+//			QuestionPlaySheetStore.getInstance().remove(questionID);
+//			if(QuestionPlaySheetStore.getInstance().isEmpty())
+			if(InsightStore.getInstance().isEmpty())
 			{
 				JButton btnShowPlaySheetsList = (JButton) DIHelper.getInstance().getLocalProp(
 						Constants.SHOW_PLAYSHEETS_LIST);
@@ -222,7 +213,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		
 		this.setPreferredSize(new Dimension(1000,750));
 
-		searchPanel=new ControlPanel(search);
+		searchPanel=new ControlPanel(gdm.getSearch());
 
 		try {
 			// get the graph query result and paint it
@@ -370,13 +361,13 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 	 */
 	public void removeView()
 	{
-		gdm.removeView(query, engine);
+		gdm.removeView(gdm.getQuery(), gdm.getEngine());
 		//sc.addStatement(vf.createURI("<http://semoss.org/ontologies/Concept/Service/tom2>"),vf.createURI("<http://semoss.org/ontologies/Relation/Exposes>"),vf.createURI("<http://semoss.org/ontologies/Concept/BusinessLogicUnit/tom1>"));
-		logger.debug("\nSPARQL: " + query);
+		logger.debug("\nSPARQL: " + gdm.getQuery());
 		//tq.setIncludeInferred(true /* includeInferred */);
 		//tq.evaluate();
 
-		gdm.fillStoresFromModel(engine);
+		gdm.fillStoresFromModel(gdm.getEngine());
 		updateProgressBar("80%...Creating Visualization", 80);
 
 		refineView();
@@ -393,7 +384,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 	{
 		try {
 			getForest();
-			gdm.fillStoresFromModel(engine);
+			gdm.fillStoresFromModel(gdm.getEngine());
 			createForest();
 			logger.info("Refining Forest Complete >>>>>");
 			
@@ -524,7 +515,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		try
 		{
 			// add the model to search panel
-			if (search)
+			if (gdm.getSearch())
 			{
 				searchPanel.searchCon.indexStatements(gdm.getJenaModel());
 			}
@@ -875,7 +866,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
           IEngine jenaEngine = new InMemorySesameEngine();
           ((InMemorySesameEngine)jenaEngine).setRepositoryConnection(gdm.rc);
           
-          if(query == null) {
+          if(gdm.getQuery() == null) {
         	  logger.debug("Query not set for current GraphPlaySheet");
         	  return;
           }
@@ -1230,21 +1221,22 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		return listOfChilds;
 	}
 
-	@Override
-	public Object getData() {
-		Hashtable returnHash = (Hashtable) super.getData();
-		if(overlay){
-			returnHash.put("nodes", gdm.getIncrementalVertStore());
-			returnHash.put("nodeProperties", gdm.getIncrementalVertPropStore());
-			returnHash.put("edges", gdm.getIncrementalEdgeStore().values());
-		}
-		else {
-			returnHash.put("nodes", gdm.getVertStore());
-			returnHash.put("edges", gdm.getEdgeStore().values());
-		}
-		
-		return returnHash;
-	}
+//	@Override
+//	public Object getData() {
+//		Hashtable returnHash = (Hashtable) super.getData();
+//		if(gdm.getOverlay()){
+//			returnHash.put("nodes", gdm.getIncrementalVertStore());
+//			returnHash.put("nodeProperties", gdm.getIncrementalVertPropStore());
+//			returnHash.put("edges", gdm.getIncrementalEdgeStore().values());
+//		}
+//		else {
+//			returnHash.put("nodes", gdm.getVertStore());
+//			returnHash.put("edges", gdm.getEdgeStore().values());
+//		}
+//		
+//		return returnHash;
+//		return this.gdm.getDataMakerOutput();
+//	}
 
 	/**
 	 * Method genAllData.
@@ -1254,7 +1246,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 		filterData.fillRows();
 		filterData.fillEdgeRows();
 		controlData.generateAllRows();
-		if(sudowl)
+		if(gdm.getSudowl())
 			gdm.predData.genPredList();
 		colorShapeData.setTypeHash(filterData.typeHash);
 		colorShapeData.setCount(filterData.count);
@@ -1265,12 +1257,6 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 	public void runAnalytics() {
 		// TODO Auto-generated method stub
 		
-	}
-	
-	@Override
-	public void processQueryData() {
-		// TODO Auto-generated method stub
-
 	}
 	
 	protected void processControlData(SEMOSSEdge edge){
@@ -1289,20 +1275,7 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 
 	@Override
 	public void createData() {
-		setPropSudowlSearch();
-		gdm.createModel(query, engine);  // instrumented this call
-
-		logger.info("Creating the base Graph");
-		gdm.fillStoresFromModel(engine); // < This is where the gen base graph models
 		
-		//empty incremental stores indicate no new data is available, which means the traversal is invalid. this will set the traversal back one step and remove the invalid traversal from rc and model stores.
-		if(gdm.getIncrementalVertStore() != null && gdm.getIncrementalEdgeStore() != null && gdm.getIncrementalVertStore().isEmpty() && gdm.getIncrementalEdgeStore().isEmpty() && gdm.getIncrementalVertPropStore() != null && gdm.getIncrementalVertPropStore().isEmpty() ) {
-			gdm.setUndo(true);
-			gdm.undoData();
-			gdm.fillStoresFromModel(engine);
-			gdm.rcStore.remove(gdm.rcStore.size()-1);
-			gdm.modelStore.remove(gdm.modelStore.size()-1);
-		}
 	}
 	
 	public void clearStores(){
@@ -1314,6 +1287,39 @@ public class GraphPlaySheet extends AbstractRDFPlaySheet {
 	public Hashtable<String, String> getDataTableAlign() {
 		// Need to figure out how graph will align to table....
 		return null;
+	}
+
+	@Override
+	public void setQuery(String query) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setDataMaker(IDataMaker data) {
+		if(data instanceof GraphDataModel){
+			this.gdm = (GraphDataModel) data;
+		}
+		else {
+			logger.error("Trying to set illegal data type in TablePlaySheet");
+			logger.error("Failed setting " + data.getClass() + " when only ITableDataFrames are allowed");
+		}
+	}
+
+	@Override
+	public void processQueryData() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public GraphDataModel getDataMaker() {
+		return this.gdm;
+	}
+
+	@Override
+	public IDataMaker getDefaultDataMaker() {
+		return new GraphDataModel();
 	}
 
 }

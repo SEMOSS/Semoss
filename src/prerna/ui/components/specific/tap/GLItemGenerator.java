@@ -29,6 +29,8 @@ package prerna.ui.components.specific.tap;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import javax.swing.JList;
@@ -1239,8 +1241,10 @@ public class GLItemGenerator {
                      "Influences", "Includes"};
         for (int sdlcIdx=0 ; sdlcIdx<sdlcV.size();sdlcIdx++)
         {
-               Hashtable paramHash = new Hashtable();
-               paramHash.put("Phase", sdlcV.get(sdlcIdx));
+               Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
+               List<Object> values = new ArrayList<Object>();
+               values.add(sdlcV.get(sdlcIdx));
+               paramHash.put("Phase", values);
                for(int i = 0; i<phaseTabNames.length; i++){
                      String tabName = phaseTabNames[i];
                      String header1 = phaseHeader1Names[i];

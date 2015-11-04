@@ -39,15 +39,15 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 
+import com.hp.hpl.jena.vocabulary.RDFS;
+
 import prerna.engine.impl.AbstractEngine;
+import prerna.om.InsightStore;
 import prerna.ui.components.PropertySpecData;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.QuestionPlaySheetStore;
-
-import com.hp.hpl.jena.vocabulary.RDFS;
 
 /**
  * Controls the refreshing of the OWL.
@@ -75,8 +75,7 @@ public class OWLRefreshListener implements IChakraListener {
 		// because if I did to parent everything else would become a property too
 		// however this is not attached to anything
 		// 
-
-		GraphPlaySheet ps = (GraphPlaySheet)QuestionPlaySheetStore.getInstance().getActiveSheet();
+		GraphPlaySheet ps = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
 
 		// Step 1 : Establish Concept Model
 		// converting something into a concept is fairly simple and straight forward
@@ -84,7 +83,7 @@ public class OWLRefreshListener implements IChakraListener {
 		// run through each one of them
 		// if you dont see it in the prop Hash - remove it from the jenaModel
 		// aggregate all the new concepts
-		PropertySpecData data = ps.getGraphData().getPredicateData();
+		PropertySpecData data = ps.getDataMaker().getPredicateData();
 				
 		// finish the subjects first
 		logger.warn("Removing Subjects " + data.subject2bRemoved);
@@ -148,11 +147,14 @@ public class OWLRefreshListener implements IChakraListener {
 		JToggleButton overlay = (JToggleButton)DIHelper.getInstance().getLocalProp(Constants.APPEND);
 
 		// need to see if there is a neater way to do this
-		if(overlay.isSelected())
-			QuestionPlaySheetStore.getInstance().getActiveSheet().overlayView();			
-		else{
-			((GraphPlaySheet)QuestionPlaySheetStore.getInstance().getActiveSheet()).clearStores();
-			QuestionPlaySheetStore.getInstance().getActiveSheet().refineView();
+		if(overlay.isSelected()) {
+//			QuestionPlaySheetStore.getInstance().getActiveSheet().overlayView();
+			ps.overlayView();
+		} else {
+//			((GraphPlaySheet)QuestionPlaySheetStore.getInstance().getActiveSheet()).clearStores();
+//			QuestionPlaySheetStore.getInstance().getActiveSheet().refineView();
+			ps.clearStores();
+			ps.refineView();
 		}
 	}
 	
@@ -202,7 +204,7 @@ public class OWLRefreshListener implements IChakraListener {
 	 */
 	public void saveIt()
 	{
-		GraphPlaySheet ps = (GraphPlaySheet)QuestionPlaySheetStore.getInstance().getActiveSheet();
+		GraphPlaySheet ps = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
 
 		String engineName = ps.engine.getEngineName();
 		// get the core properties

@@ -37,11 +37,12 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
+import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.ui.components.ChartControlPanel;
 import prerna.ui.main.listener.impl.ChartImageExportListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.QuestionPlaySheetStore;
 
 /**
  * This allows the application health grid to be exported.
@@ -69,18 +70,22 @@ public class HealthGridExporter {
 	{	
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		String id = "Health_Grid";
-		String question = QuestionPlaySheetStore.getInstance().getIDCount() + ". "+id;
 		String query = "SELECT ?System (COALESCE(?bv * 100, 0.0) AS ?BusinessValue)(COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?attm, 0.0) AS ?ArchitecturalComplexity) (COALESCE(?iatm, 0.0) AS ?InformationAssurance) (COALESCE(?nfrtm, 0.0) AS ?NonFunctionalRequirements) ?SustainmentBudget ?SystemStatus ?highlight WHERE {BIND(<http://health.mil/ontologies/Concept/System/ABACUS> AS ?highlight){?SystemOwner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>;} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>;}{?System ?OwnedBy ?SystemOwner}OPTIONAL {{?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv}}  OPTIONAL { ?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM>  ?estm ;} OPTIONAL { ?System <http://semoss.org/ontologies/Relation/Contains/ArchitecturalComplecxityTM>  ?attm ;}  OPTIONAL { ?System <http://semoss.org/ontologies/Relation/Contains/InformationAssuranceTM>  ?iatm ;} OPTIONAL { ?System <http://semoss.org/ontologies/Relation/Contains/NonFunctionalRequirementsTM>  ?nfrtm ;}{?System <http://semoss.org/ontologies/Relation/Phase> ?SystemStatus }BIND(1 AS ?SustainmentBudget) } BINDINGS ?SystemOwner {(<http://health.mil/ontologies/Concept/SystemOwner/Army>)(<http://health.mil/ontologies/Concept/SystemOwner/Air_Force>)(<http://health.mil/ontologies/Concept/SystemOwner/Navy>)}";
+//		String question = QuestionPlaySheetStore.getInstance().getIDCount() + ". "+id;
 		//String query = "SELECT ?System (COALESCE(?bv * 100, 0.0) AS ?BusinessValue) (COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?tstm, 0.0) AS ?TechnicalStandards) ?SustainmentBudget ?SystemStatus ?highlight WHERE {BIND(<http://health.mil/ontologies/Concept/System/ABACUS> AS ?highlight){?SystemOwner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>;} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}{?OwnedBy <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/OwnedBy>;}{?System ?OwnedBy ?SystemOwner}OPTIONAL {{?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv}} OPTIONAL{ {?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM> ?estm} } OPTIONAL {{?System <http://semoss.org/ontologies/Relation/Contains/TechnicalStandardTM> ?tstm}} {?System <http://semoss.org/ontologies/Relation/Phase> ?SystemStatus }BIND(1 AS ?SustainmentBudget) } ORDER BY ?System BINDINGS ?SystemOwner {(<http://health.mil/ontologies/Concept/SystemOwner/Central>)}"; //use if pulling central systems
 		
 		HealthGridSheet playSheet = new HealthGridSheet();					
 		playSheet.setQuery(query);
 		playSheet.setRDFEngine((IEngine) engine);
-		playSheet.setQuestionID(question);
+		playSheet.setQuestionID(id);
 		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 		playSheet.setJDesktopPane(pane);
 
-		QuestionPlaySheetStore.getInstance().put(question, playSheet);
+		Insight insight = new Insight(playSheet);
+		insight.setInsightID(id);
+		insight.setPlaySheet(playSheet);
+		InsightStore.getInstance().put(insight);		
+//		QuestionPlaySheetStore.getInstance().put(question, playSheet);
 		
 		playSheet.setSystemHighlight(true);
 		playSheet.setSystemToHighlight("ABACUS");

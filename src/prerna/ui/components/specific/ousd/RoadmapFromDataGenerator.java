@@ -11,7 +11,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.ui.components.ExecuteQueryProcessor;
 
 public class RoadmapFromDataGenerator implements ITimelineGenerator{
 

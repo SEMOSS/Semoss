@@ -55,8 +55,8 @@ public class RoadmapPlaySheet extends GridPlaySheet{
 	}
 	
 	@Override
-	public Hashtable getData(){
-		Hashtable<String, Object> map = (Hashtable<String, Object>) super.getData();
+	public Hashtable getDataMakerOutput(){
+		Hashtable<String, Object> map = (Hashtable<String, Object>) super.getDataMakerOutput();
 //		map.put("data", this.timeline.getGanttData());
 //		map.put("headers", this.timeline.getGanttHeaders());
 		map.put("data", this.timeline.getDashboardData());

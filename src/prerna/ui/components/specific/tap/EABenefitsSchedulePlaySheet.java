@@ -252,7 +252,7 @@ public class EABenefitsSchedulePlaySheet extends GridPlaySheet {
 				}
 				data.addRow(row, row);
 			}
-			graph.setDataFrame(data);
+			graph.setDataMaker(data);
 			JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 			graph.setJDesktopPane(pane);
 			graph.processQueryData();

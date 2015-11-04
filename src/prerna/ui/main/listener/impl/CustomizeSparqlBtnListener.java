@@ -40,7 +40,7 @@ import javax.swing.JToggleButton;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.PlaySheetEnum;
+import prerna.util.PlaySheetRDFMapBasedEnum;
 
 /**
  * Controls the customize SPARQL query button.
@@ -103,14 +103,14 @@ public class CustomizeSparqlBtnListener implements IChakraListener {
 			// if sparql area is empty and user switches to a different playsheet
 			else if (area.getText().isEmpty()) {
 				// set text with current playsheet hint and set font to italics and gray
-				area.setText(PlaySheetEnum.getHintFromName(selectedPlaySheet));
+				area.setText(PlaySheetRDFMapBasedEnum.getHintFromName(selectedPlaySheet));
 				area.setFont(new Font("Tahoma", Font.ITALIC, 11));
 				area.setForeground(Color.GRAY);
 			} 
 			// if sparql area currently has a hint
 			else if (area.getText().contains("Hint:")) {
 				// set text with current playsheet hint and set font to italics and gray
-				area.setText(PlaySheetEnum.getHintFromName(selectedPlaySheet));
+				area.setText(PlaySheetRDFMapBasedEnum.getHintFromName(selectedPlaySheet));
 				area.setFont(new Font("Tahoma", Font.ITALIC, 11));
 				area.setForeground(Color.GRAY);
 			}

@@ -28,6 +28,7 @@
 package prerna.ui.main.listener.impl;
 
 import java.awt.event.ActionEvent;
+import java.util.Map;
 import java.util.Vector;
 
 import javax.swing.JComboBox;
@@ -41,10 +42,11 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
+import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.PlaySheetEnum;
+import prerna.util.PlaySheetRDFMapBasedEnum;
 
 /**
  * Controls selection of the perspective.
@@ -64,47 +66,44 @@ public class QuestionModSelectorListener implements IChakraListener {
 	JComboBox<String> questionDBSelector = new JComboBox<String>();
 	JComboBox<String> questionOrderComboBox = new JComboBox<String>();
 	JComboBox<String> questionLayoutComboBox = new JComboBox<String>();
-	
+
 	String engineName = null;
 	String question = null;
+	String questionId = null;
 	String perspective = null;
+	Map<String, String> qM = null;
 	String order;
 	Vector<String> parameterQueryVector = new Vector<String>();
 	Vector<String> dependVector = new Vector<String>();
 	Vector<String> optionVector = new Vector<String>();
 
 	public void getFieldData() {
-		questionSparqlTextPane = (JTextPane) DIHelper.getInstance()
-				.getLocalProp(Constants.QUESTION_SPARQL_TEXT_PANE);
+		questionSparqlTextPane = (JTextPane) DIHelper.getInstance().getLocalProp(Constants.QUESTION_SPARQL_TEXT_PANE);
 		questionPerspectiveField = (JTextField) DIHelper.getInstance()
 				.getLocalProp(Constants.QUESTION_PERSPECTIVE_FIELD);
-		questionField = (JTextField) DIHelper.getInstance().getLocalProp(
-				Constants.QUESTION_FIELD);
-		questionLayoutField = (JTextField) DIHelper.getInstance().getLocalProp(
-				Constants.QUESTION_LAYOUT_FIELD);
+		questionField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.QUESTION_FIELD);
+		questionLayoutField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.QUESTION_LAYOUT_FIELD);
 		parameterDependList = (JList<String>) DIHelper.getInstance()
 				.getLocalProp(Constants.PARAMETER_DEPENDENCIES_JLIST);
-		parameterQueryList = (JList<String>) DIHelper.getInstance()
-				.getLocalProp(Constants.PARAMETER_QUERIES_JLIST);
-		parameterOptionList = (JList<String>) DIHelper.getInstance()
-				.getLocalProp(Constants.PARAMETER_OPTIONS_JLIST);
+		parameterQueryList = (JList<String>) DIHelper.getInstance().getLocalProp(Constants.PARAMETER_QUERIES_JLIST);
+		parameterOptionList = (JList<String>) DIHelper.getInstance().getLocalProp(Constants.PARAMETER_OPTIONS_JLIST);
 
-		questionPerspectiveSelector = (JComboBox<String>) DIHelper
-				.getInstance().getLocalProp(
-						Constants.QUESTION_PERSPECTIVE_SELECTOR);
-		addQuestionModTypeBtn = (JRadioButton) DIHelper.getInstance()
-				.getLocalProp(Constants.ADD_QUESTION_BUTTON);
+		questionPerspectiveSelector = (JComboBox<String>) DIHelper.getInstance()
+				.getLocalProp(Constants.QUESTION_PERSPECTIVE_SELECTOR);
+		addQuestionModTypeBtn = (JRadioButton) DIHelper.getInstance().getLocalProp(Constants.ADD_QUESTION_BUTTON);
 
-		questionDBSelector = (JComboBox<String>) DIHelper.getInstance()
-				.getLocalProp(Constants.QUESTION_DB_SELECTOR);
+		questionDBSelector = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_DB_SELECTOR);
 		questionOrderComboBox = (JComboBox<String>) DIHelper.getInstance()
 				.getLocalProp(Constants.QUESTION_ORDER_COMBO_BOX);
-		questionLayoutComboBox = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_MOD_PLAYSHEET_COMBOBOXLIST);
+		questionLayoutComboBox = (JComboBox<String>) DIHelper.getInstance()
+				.getLocalProp(Constants.QUESTION_MOD_PLAYSHEET_COMBOBOXLIST);
 
 		engineName = (String) questionDBSelector.getSelectedItem();
-		question = (String) questionModSelector.getSelectedItem();
-		
-		if(question != null){
+		qM = (Map) questionModSelector.getSelectedItem();
+		if (qM != null) {
+
+			question = qM.get(MapComboBoxRenderer.VALUE);
+			questionId = qM.get(MapComboBoxRenderer.KEY);
 			String[] questionSplit = question.split("\\. ", 2);
 			question = questionSplit[1];
 		}
@@ -126,18 +125,17 @@ public class QuestionModSelectorListener implements IChakraListener {
 		// gets the data based on selected perspective and question
 		getFieldData();
 
-		if (question != null && !perspective.equals("*NEW Perspective")) {
-			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(
-					engineName);
+		if (qM != null && !perspective.equals("*NEW Perspective")) {
+			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 			//if the same question is used multiple times in different perspectives, vectorInsight will contain all those insights.
 			//we need to loop through the insights and find the question that belongs to the perspective selected to get the correct order #
-			Vector<Insight> vectorInsight = ((AbstractEngine)engine).getInsight2(question);
+			Vector<Insight> vectorInsight = ((AbstractEngine)engine).getInsight(questionId);
 			Insight in = null;
 			if(vectorInsight.size() > 1){
 				for(Insight insight: vectorInsight){
-					if(insight.getId().contains(perspective)){
+//					if(insight.getId().contains(perspective)){
 						in = insight;
-					}
+//					}
 				}
 			} else {
 				in = vectorInsight.get(0);
@@ -145,29 +143,7 @@ public class QuestionModSelectorListener implements IChakraListener {
 			
 			order = in.getOrder();
 			
-			//this will get the question information using the old XML structure (without order property)
-			if(order==null){
-				question = (String) questionModSelector.getSelectedItem();
-				
-				vectorInsight = ((AbstractEngine)engine).getInsight2(question);
-				in = null;
-				if(vectorInsight.size() > 1){
-					for(Insight insight: vectorInsight){
-						if(insight.getId().contains(perspective)){
-							in = insight;
-						}
-					}
-				} else {
-					in = vectorInsight.get(0);
-				}
-				
-				String[] questionSplit = question.split("\\. ", 2);
-				
-				order = questionSplit[0];
-			}
-			
-			Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine) engine)
-					.getParams(question);
+			Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine) engine).getParams(questionId);
 			// empties the vectors so it doesn't duplicate existing elements
 			parameterQueryVector.removeAllElements();
 			dependVector.removeAllElements();
@@ -176,32 +152,20 @@ public class QuestionModSelectorListener implements IChakraListener {
 			// and store them
 			if (!paramInfoVector.isEmpty()) {
 				for (int i = 0; i < paramInfoVector.size(); i++) {
-					if (paramInfoVector.get(i).getQuery() != null
-							&& !paramInfoVector
-									.get(i)
-									.getQuery()
-									.equals(DIHelper.getInstance().getProperty(
-											"TYPE" + "_" + Constants.QUERY))) {
-						parameterQueryVector.add(paramInfoVector.get(i)
-								.getName()
-								+ "_QUERY_-_"
-								+ paramInfoVector.get(i).getQuery());
+					if (paramInfoVector.get(i).getQuery() != null && !paramInfoVector.get(i).getQuery().equals(DIHelper.getInstance().getProperty("TYPE" + "_" + Constants.QUERY))) {
+						parameterQueryVector.add(paramInfoVector.get(i).getName() + "_QUERY_-_" + paramInfoVector.get(i).getQuery());
 					}
 					
-					if (!paramInfoVector.get(i).getDependVars().isEmpty()
-							&& !paramInfoVector.get(i).getDependVars().get(0)
-									.equals("None")) {
-						for (int j = 0; j < paramInfoVector.get(i)
-								.getDependVars().size(); j++) {
-							dependVector.add(paramInfoVector.get(i).getName()
-									+ "_DEPEND_-_"
-									+ paramInfoVector.get(i).getDependVars()
-											.get(j));
+					if (!paramInfoVector.get(i).getDependVars().isEmpty() && !paramInfoVector.get(i).getDependVars().get(0).equals("None")) {
+						for (int j = 0; j < paramInfoVector.get(i).getDependVars().size(); j++) {
+							Vector<SEMOSSParam> dps = engine.getParams(paramInfoVector.get(i).getDependVars().toArray(new String[]{}));
+							for(int k = 0; k < dps.size(); k++) {
+								dependVector.add(paramInfoVector.get(i).getName() + "_DEPEND_-_" + dps.get(k).getName());
+							}
 						}
 					}
 
-					if (paramInfoVector.get(i).getOptions() != null
-							&& !paramInfoVector.get(i).getOptions().isEmpty()) {
+					if (paramInfoVector.get(i).getOptions() != null && !paramInfoVector.get(i).getOptions().isEmpty()) {
 						Vector options = paramInfoVector.get(i).getOptions();
 						String optionsConcat = "";
 						for (int j = 0; j < options.size(); j++) {
@@ -210,21 +174,21 @@ public class QuestionModSelectorListener implements IChakraListener {
 								optionsConcat += ";";
 							}
 						}
-						optionVector.add(paramInfoVector.get(i).getType()
-								+ "_OPTION_-_" + optionsConcat);
+						optionVector.add(paramInfoVector.get(i).getType() + "_OPTION_-_" + optionsConcat);
 					}
 				}
 			}
 
 			// get the sparql from insight based on selected question
-			String sparql = in.getSparql();
+//			String sparql = in.getSparql();
 			// get the layout
 			String layoutValue = in.getOutput();
+			String sparql = in.getDataMakerComponents().get(0).getQuery();
 			// get the id dbName:PERSPECTIVE:QuestionKey
-			String questionID = in.getId();
-			String[] questionIDArray = questionID.split(":");
+//			String questionID = in.getId();
+//			String[] questionIDArray = questionID.split(":");
 			// split and get the questionKey
-			String questionKey = questionIDArray[2];
+//			String questionKey = questionIDArray[2];
 
 			// sets the field data if user is editing or deleting question
 			if (!addQuestionModTypeBtn.isSelected()) {
@@ -233,8 +197,8 @@ public class QuestionModSelectorListener implements IChakraListener {
 
 				questionSparqlTextPane.setText(sparql);
 				questionLayoutField.setText(layoutValue);
-				if(PlaySheetEnum.getNameFromClass(layoutValue) != ""){
-					questionLayoutComboBox.setSelectedItem(PlaySheetEnum.getNameFromClass(layoutValue));
+				if(PlaySheetRDFMapBasedEnum.getClassFromName(layoutValue) != ""){
+					questionLayoutComboBox.setSelectedItem(layoutValue);
 				} else{
 					questionLayoutComboBox.setSelectedIndex(0);
 				}
@@ -261,8 +225,7 @@ public class QuestionModSelectorListener implements IChakraListener {
 					parameterOptionList.setListData(new String[0]);
 				}
 			} else {
-				questionOrderComboBox.setSelectedItem(questionOrderComboBox
-						.getItemCount() + "");
+				questionOrderComboBox.setSelectedItem(questionOrderComboBox.getItemCount() + "");
 			}
 		}
 	}

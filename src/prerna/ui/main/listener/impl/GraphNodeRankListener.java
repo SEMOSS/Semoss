@@ -40,11 +40,11 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.PageRankCalculator;
+import prerna.om.InsightStore;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.playsheets.GraphPlaySheet;
-import prerna.util.QuestionPlaySheetStore;
 
 /**
  * Controls the running of the node rank algorithm
@@ -70,8 +70,9 @@ public class GraphNodeRankListener implements ActionListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		GraphPlaySheet playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
-		
+//		GraphPlaySheet playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
+		GraphPlaySheet playSheet = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
+
 		PageRankCalculator calc = new PageRankCalculator();
 		Hashtable<SEMOSSVertex, Double> ranks = calc.calculatePageRank(playSheet.forest);
 

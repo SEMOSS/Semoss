@@ -38,8 +38,6 @@ import org.openrdf.sail.SailException;
 
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.engine.impl.QuestionAdministrator;
-import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.util.Utility;
 
 public class DeleteFromMasterDB extends ModifyMasterDB {
@@ -69,7 +67,7 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 			deleteEngineKeywords(engineName);
 
 			//delete the insights
-			deleteEngineInsights(engineName);
+//			deleteEngineInsights(engineName);
 
 			//delete the engine
 			MasterDBHelper.removeNode(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName);
@@ -111,7 +109,7 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 				deleteEngineKeywords(engineName);
 
 				//delete the insights
-				deleteEngineInsights(engineName);
+//				deleteEngineInsights(engineName);
 
 				//delete the engine
 				MasterDBHelper.removeNode(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName);
@@ -157,7 +155,7 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 				deleteEngineAPI(engineName);
 
 				//delete insights
-				deleteEngineInsights(engineName);
+//				deleteEngineInsights(engineName);
 
 				//delete the engine
 				MasterDBHelper.removeNode(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName);
@@ -196,48 +194,48 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 	}
 
 	//TODO refactor question administrator so we dont have to create a new engine
-	private void deleteEngineInsights(String engineName) {
-
-		String filledInsightsQuery = MasterDatabaseQueries.INSIGHTS_QUERY.replaceAll("@ENGINE@", engineName);
-		ISelectWrapper wrapper1 = Utility.processQuery(masterEngine,filledInsightsQuery);
-		String[] names1 = wrapper1.getVariables();
-		while(wrapper1.hasNext())
-		{
-			//grab query results
-			ISelectStatement sjss = wrapper1.next();
-			String insight = (String)sjss.getVar(names1[0]);
-			MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.INSIGHT_BASE_URI + "/" + insight, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Engine:Insight/" + engineName + ":" +insight);
-		}
-
-		ArrayList<String> perspectiveList = new ArrayList<String>();
-		String filledPerspectivesQuery = MasterDatabaseQueries.PERSPECTIVES_QUERY.replaceAll("@ENGINE@", engineName);
-		ISelectWrapper wrapper2 = Utility.processQuery(masterEngine,filledPerspectivesQuery);
-		String[] names2 = wrapper2.getVariables();
-		while(wrapper2.hasNext())
-		{
-			//grab query results
-			ISelectStatement sjss = wrapper2.next();
-			String perspective = (String)sjss.getVar(names2[0]);
-			MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.PERSPECTIVE_BASE_URI + "/" + perspective, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Engine:Perspective/" + engineName + ":" +perspective);
-			perspectiveList.add(perspective);
-		}
-
-		//Use question administrator to remove all the perspectives, insights, and params for this database
-		//set the engine, delete all from each perspective and then store the rc and sc.
-		///////////////////////////////
-		//TODO: FIX LOGIC UNDERNEATH FOR DELETING PERSPECTIVES IN MASTER_ENGINE
-		RDFFileSesameEngine eng = new RDFFileSesameEngine();
-		eng.setEngineName(engineName);
-		eng.setEngineURI2Name(MasterDatabaseURIs.ENGINE_BASE_URI+"/"+engineName);
-		eng.createInsightBase();
-
-		QuestionAdministrator qa = new QuestionAdministrator(eng);
-		qa.setEngineURI2(MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName);
-		for(String perspective : perspectiveList) {
-			qa.deleteAllFromPerspective(MasterDatabaseURIs.PERSPECTIVE_BASE_URI + "/" +perspective);
-		}
-
-	}
+//	private void deleteEngineInsights(String engineName) {
+//
+//		String filledInsightsQuery = MasterDatabaseQueries.INSIGHTS_QUERY.replaceAll("@ENGINE@", engineName);
+//		ISelectWrapper wrapper1 = Utility.processQuery(masterEngine,filledInsightsQuery);
+//		String[] names1 = wrapper1.getVariables();
+//		while(wrapper1.hasNext())
+//		{
+//			//grab query results
+//			ISelectStatement sjss = wrapper1.next();
+//			String insight = (String)sjss.getVar(names1[0]);
+//			MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.INSIGHT_BASE_URI + "/" + insight, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Engine:Insight/" + engineName + ":" +insight);
+//		}
+//
+//		ArrayList<String> perspectiveList = new ArrayList<String>();
+//		String filledPerspectivesQuery = MasterDatabaseQueries.PERSPECTIVES_QUERY.replaceAll("@ENGINE@", engineName);
+//		ISelectWrapper wrapper2 = Utility.processQuery(masterEngine,filledPerspectivesQuery);
+//		String[] names2 = wrapper2.getVariables();
+//		while(wrapper2.hasNext())
+//		{
+//			//grab query results
+//			ISelectStatement sjss = wrapper2.next();
+//			String perspective = (String)sjss.getVar(names2[0]);
+//			MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.PERSPECTIVE_BASE_URI + "/" + perspective, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Engine:Perspective/" + engineName + ":" +perspective);
+//			perspectiveList.add(perspective);
+//		}
+//
+//		//Use question administrator to remove all the perspectives, insights, and params for this database
+//		//set the engine, delete all from each perspective and then store the rc and sc.
+//		///////////////////////////////
+//		//TODO: FIX LOGIC UNDERNEATH FOR DELETING PERSPECTIVES IN MASTER_ENGINE
+////		RDFFileSesameEngine eng = new RDFFileSesameEngine();
+////		eng.setEngineName(engineName);
+////		eng.setEngineURI2Name(MasterDatabaseURIs.ENGINE_BASE_URI+"/"+engineName);
+////		eng.createInsightBase();
+////
+////		QuestionAdministrator qa = new QuestionAdministrator(eng);
+////		qa.setEngineURI2(MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName);
+////		for(String perspective : perspectiveList) {
+////			qa.deleteAllFromPerspective(MasterDatabaseURIs.PERSPECTIVE_BASE_URI + "/" +perspective);
+////		}
+//
+//	}
 
 	private void deleteEngineAPI(String engineName) {
 		String filledURLQuery = MasterDatabaseQueries.API_QUERY.replaceAll("@ENGINE@", engineName);

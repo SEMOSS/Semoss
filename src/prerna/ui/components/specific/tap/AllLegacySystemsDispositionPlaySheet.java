@@ -38,13 +38,13 @@ import org.apache.log4j.Logger;
 
 import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.UpdateProcessor;
-import prerna.ui.components.playsheets.AbstractRDFPlaySheet;
+import prerna.ui.components.playsheets.TablePlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 @SuppressWarnings("serial")
-public class AllLegacySystemsDispositionPlaySheet extends AbstractRDFPlaySheet{
+public class AllLegacySystemsDispositionPlaySheet extends TablePlaySheet{
 
 	static final Logger logger = LogManager.getLogger(AllLegacySystemsDispositionPlaySheet.class.getName());
 	private String checkModPropQuery = "ASK WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} BIND(<http://semoss.org/ontologies/Relation/Contains/InterfaceModernizationCost> AS ?contains) {?p ?contains ?prop ;} }";

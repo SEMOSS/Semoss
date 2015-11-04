@@ -36,11 +36,11 @@ import javax.swing.event.InternalFrameListener;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.om.InsightStore;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.QuestionPlaySheetStore;
 
 /**
  */
@@ -58,8 +58,9 @@ public class PlaySheetListener implements InternalFrameListener {
 		logger.info("Internal Frame Activated >>>> ");
 		JInternalFrame jf = e.getInternalFrame();
 		IPlaySheet ps = (IPlaySheet)jf;
-
-		QuestionPlaySheetStore.getInstance().setActiveSheet(ps);
+		
+		InsightStore.getInstance().setActiveInsight(ps.getQuestionID());
+//		QuestionPlaySheetStore.getInstance().setActiveSheet(ps);
 		//always disable append unless specific playsheets are activated
 		JToggleButton append = (JToggleButton)DIHelper.getInstance().getLocalProp(Constants.APPEND);
 		append.setEnabled(false);
@@ -86,15 +87,18 @@ public class PlaySheetListener implements InternalFrameListener {
 		// fill the nodetype list so that they can choose from
 		// remove from store
 		// this will also clear out active sheet
-		QuestionPlaySheetStore.getInstance().remove(questionID);
-		if(QuestionPlaySheetStore.getInstance().isEmpty())
+//		QuestionPlaySheetStore.getInstance().remove(questionID);
+//		if(QuestionPlaySheetStore.getInstance().isEmpty())
+		InsightStore.getInstance().remove(questionID);
+		if(InsightStore.getInstance().isEmpty())
 		{
 			JButton btnShowPlaySheetsList = (JButton) DIHelper.getInstance().getLocalProp(
 					Constants.SHOW_PLAYSHEETS_LIST);
 			btnShowPlaySheetsList.setEnabled(false);
 		}
 		//disable if lastsheet is closed
-		if(QuestionPlaySheetStore.getInstance().size()==1)
+//		if(QuestionPlaySheetStore.getInstance().size()==1)
+		if(InsightStore.getInstance().size()==1)
 		{
 			JToggleButton append = (JToggleButton)DIHelper.getInstance().getLocalProp(Constants.APPEND);
 			append.setEnabled(false);

@@ -6,7 +6,6 @@ import java.util.Map;
 import org.apache.commons.math3.linear.BlockRealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.SEMOSSParam;
 
 /*
@@ -66,19 +65,7 @@ public class VectorSimilarity implements SimilarityAnalytics{
 	}
 
 	@Override
-	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public String getDefaultViz() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<String> getChangedColumns() {
 		// TODO Auto-generated method stub
 		return null;
 	}

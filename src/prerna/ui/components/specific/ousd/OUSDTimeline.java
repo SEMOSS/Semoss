@@ -470,7 +470,7 @@ public class OUSDTimeline {
 		ganttMap.put("data", getGanttData());
 		ganttMap.put("headers", getGanttHeaders());
 		ganttMap.put("title", getGanttTitle());
-		ganttMap.put("playsheet", getGanttPlaySheet());
+		ganttMap.put("layout", getGanttPlaySheet());
 		charts.add(ganttMap);
 
 		// then to make the cost savings chart data
@@ -478,7 +478,7 @@ public class OUSDTimeline {
 		costSavingsData.put("data", getCostSavingsData());
 		costSavingsData.put("headers", getCostSavingsHeaders());
 		costSavingsData.put("title", getCostSavingsTitle());
-		costSavingsData.put("playsheet", getCostSavingsPlaySheet());
+		costSavingsData.put("layout", getCostSavingsPlaySheet());
 		charts.add(costSavingsData);
 
 		// then to layout the joins.

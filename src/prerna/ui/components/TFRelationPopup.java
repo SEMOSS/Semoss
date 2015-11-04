@@ -29,7 +29,10 @@ package prerna.ui.components;
 
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import javax.swing.JLabel;
@@ -116,7 +119,7 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 		} else {
 			typeQuery =  DIHelper.getInstance().getProperty(this.neighborQuery + prefix);
 		}
-		Hashtable<String, String> hash = new Hashtable<String, String>();
+		Map<String, List<Object>> hash = new Hashtable<String, List<Object>>();
 		String ignoreURI = engine.getProperty(Constants.IGNORE_URI);
 		int count = 0;
 		//Vector typeV = new Vector();
@@ -146,11 +149,15 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 				typeV.addElement(typeName);
 			}*/
 			String type = Utility.getClassName(uri);
-			if(prefix.equals(""))
-				hash.put("SUBJECT_TYPE", typeName);
-			else
-				hash.put("OBJECT_TYPE", typeName);
-			
+			if(prefix.equals("")) {
+				List<Object> typeList = new ArrayList<Object>();
+				typeList.add(typeName);
+				hash.put("SUBJECT_TYPE", typeList);
+			} else {
+				List<Object> typeList = new ArrayList<Object>();
+				typeList.add(typeName);
+				hash.put("OBJECT_TYPE", typeList);
+			}
 			
 			// get the filter values
 			String fileName = "";
@@ -183,7 +190,9 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 				}
 				
 				//put in param hash and fill  
-				hash.put("FILTER_VALUES", fileName);
+				List<Object> fileNameList = new ArrayList<Object>();
+				fileNameList.add(fileName);
+				hash.put("FILTER_VALUES", fileNameList);
 				String filledQuery = Utility.fillParam(query2, hash);
 				logger.debug("Found the engine for repository   " + repo);
 	
@@ -229,12 +238,19 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 						logger.debug("Adding Relation " + objClassName);
 						String instance = Utility.getInstanceName(objClassName);
 	
-						if(prefix.equals(""))
-							hash.put("OBJECT_TYPE", objClassName);
-						else
-							hash.put("SUBJECT_TYPE", objClassName);
+						if(prefix.equals("")) {
+							List<Object> typeList = new ArrayList<Object>();
+							typeList.add(objClassName);
+							hash.put("OBJECT_TYPE", typeList);
+						} else {
+							List<Object> typeList = new ArrayList<Object>();
+							typeList.add(objClassName);
+							hash.put("SUBJECT_TYPE", typeList);
+						}
 						if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
-							hash.put("PREDICATE", pred);
+							List<Object> predList = new ArrayList<Object>();
+							predList.add(pred);
+							hash.put("PREDICATE", predList);
 						}
 	
 						String nFillQuery = Utility.fillParam(typeQuery, hash);

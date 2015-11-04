@@ -7,7 +7,9 @@ import java.util.Map;
 import java.util.Set;
 
 import prerna.engine.api.IEngine;
-import prerna.om.Insight;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -161,20 +163,20 @@ public class NameServerProcessor extends AbstractNameServer {
 		return null;
 	}
 	
-	public boolean addUserInsightCount(String userId, Insight insight) {
-		AddToMasterDB masterDB = new AddToMasterDB(DIHelper.getInstance().getProperty(Constants.LOCAL_MASTER_DB_NAME));
-		return masterDB.processInsightExecutionForUser(userId, insight);
-	}
+//	public boolean addUserInsightCount(String userId, Insight insight) {
+//		AddToMasterDB masterDB = new AddToMasterDB(DIHelper.getInstance().getProperty(Constants.LOCAL_MASTER_DB_NAME));
+//		return masterDB.processInsightExecutionForUser(userId, insight);
+//	}
 	
 	public HashMap<String, Object> getTopInsights(String engine, String limit) {
 		SearchMasterDB masterDB = new SearchMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 		return masterDB.getTopInsights(engine, limit);
 	}
 	
-	public boolean publishInsightToFeed(String userId, Insight insight, String visibility) {
-		AddToMasterDB masterDB = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
-		return masterDB.publishInsightToFeed(userId, insight, visibility);
-	}
+//	public boolean publishInsightToFeed(String userId, Insight insight, String visibility) {
+//		AddToMasterDB masterDB = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+//		return masterDB.publishInsightToFeed(userId, insight, visibility);
+//	}
 	
 	public HashMap<String, Object> getFeedInsights(String userId, String visibility, String limit) {
 		SearchMasterDB masterDB = new SearchMasterDB(Constants.LOCAL_MASTER_DB_NAME);

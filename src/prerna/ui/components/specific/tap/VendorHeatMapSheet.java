@@ -36,6 +36,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.HeatMapPlaySheet;
 import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
@@ -94,7 +95,7 @@ public class VendorHeatMapSheet extends HeatMapPlaySheet {
 		for(int i=0;i<queryArray.size();i++)
 		{
 			updateProgressBar((i+1)+"0%...Processing Queries", (i+1)*10);
-			wrapper = WrapperManager.getInstance().getSWrapper(engine, query); //new SesameJenaSelectWrapper();
+			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query); //new SesameJenaSelectWrapper();
 			/*if(engine!= null && rs == null){
 				wrapper.setQuery(queryArray.get(i));
 				wrapper.setEngine(engine);

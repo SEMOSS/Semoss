@@ -89,34 +89,22 @@ public class MatrixRegressionVizPlaySheet extends BrowserPlaySheet{
 
 	@Override
 	public void runAnalytics() {
-		dataFrame.setColumnsToSkip(skipAttributes);
-		this.columnHeaders = dataFrame.getColumnHeaders();
-
-		//the bIndex should have been provided. if not, will use the last column
-		if(bIndex==-1)
-			bIndex = columnHeaders.length - 1;
-
-		//create the b and A arrays which are used in matrix regression to determine coefficients
-		double[] b = MatrixRegressionHelper.createB(dataFrame, bIndex);
-		double[][] A;
-		if(includesInstance) {
-			A = MatrixRegressionHelper.createA(dataFrame, 1, bIndex);
-		} else {
-			A = MatrixRegressionHelper.createA(dataFrame, 0, bIndex);
-		}
-
 		//run regression
 		MatrixRegressionAlgorithm alg = new MatrixRegressionAlgorithm();
 		List<SEMOSSParam> options = alg.getOptions();
 		Map<String, Object> selectedOptions = new HashMap<String, Object>();
-		selectedOptions.put(options.get(0).getName(), A);
-		selectedOptions.put(options.get(1).getName(), b);
+		selectedOptions.put(options.get(0).getName(), includesInstance);
+		selectedOptions.put(options.get(1).getName(), bIndex);
+		selectedOptions.put(options.get(2).getName(), skipAttributes);
 		alg.setSelectedOptions(selectedOptions);
-		dataFrame.performAction(alg);
+		dataFrame.performAnalyticAction(alg);
 
 		this.coeffArray = alg.getCoeffArray();
 		this.standardError = alg.getStandardError();
-
+		
+		double[][] A = alg.getA();
+		double[] b = alg.getB();
+		
 		//create Ab array
 		this.Ab = MatrixRegressionHelper.appendB(A, b);
 		PearsonsCorrelation correlation = new PearsonsCorrelation(Ab);

@@ -36,12 +36,12 @@ import org.apache.log4j.Logger;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
+import prerna.ui.components.playsheets.TablePlaySheet;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 @SuppressWarnings("serial")
-public class DHMSMIntegrationTransitionBySystemOwnerPlaySheet extends BasicProcessingPlaySheet {
+public class DHMSMIntegrationTransitionBySystemOwnerPlaySheet extends TablePlaySheet {
 	
 	private static final Logger logger = LogManager.getLogger(DHMSMIntegrationTransitionBySystemOwnerPlaySheet.class.getName());
 

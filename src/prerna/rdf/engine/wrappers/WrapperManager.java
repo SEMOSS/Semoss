@@ -88,6 +88,7 @@ public class WrapperManager {
 			}
 			}
 			returnWrapper.setEngine(engine);
+			System.err.println(query);
 			returnWrapper.setQuery(query);
 			returnWrapper.execute();
 			//ISelectWrapper doh = (ISelectWrapper)returnWrapper;

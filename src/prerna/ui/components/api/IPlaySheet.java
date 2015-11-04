@@ -33,6 +33,7 @@ import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
 
 import prerna.engine.api.IEngine;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 /**
  * This interface class is used to define the basic functionality for all play sheet classes.  A play sheet is loosely defined
@@ -55,6 +56,7 @@ public interface IPlaySheet extends Runnable{
 	 * @see #extendView()
 	 * @see #overlayView()
 	 */
+	@Deprecated
 	public void setQuery(String query);
 	
 	/**
@@ -64,7 +66,7 @@ public interface IPlaySheet extends Runnable{
 	 * @see #extendView()
 	 * @see #overlayView()
 	 * @return the SPARQL query previously set to this play sheet */
-	public String getQuery();
+//	public String getQuery();
 
 	/**
 	 * Sets the JDesktopPane to display the play sheet on. <p> This must be set before calling functions like 
@@ -148,6 +150,7 @@ public interface IPlaySheet extends Runnable{
 	 * stored in DIHelper
 	 * @param engine the active engine for the play sheet to run its query against.
 	 */
+	@Deprecated
 	public void setRDFEngine(IEngine engine);
 
 	/**
@@ -156,7 +159,7 @@ public interface IPlaySheet extends Runnable{
 	
 	
 	 * @return IEngine */
-	public IEngine getRDFEngine();
+//	public IEngine getRDFEngine();
 	
 	/**
 	 * Sets the title of the play sheet.  The title is displayed as the text on top of the internal frame that is the play sheet.
@@ -173,17 +176,23 @@ public interface IPlaySheet extends Runnable{
 		
 	
 	// Interim call to create the data
+	@Deprecated
 	public void createData();
+	public void setDataMaker(IDataMaker data);
+	public IDataMaker getDataMaker();
 	
 	// get the data
-	public Object getData();
+//	public Object getData();
 	
 	// Interim call to run analytics
 	public void runAnalytics();
-	
-	// Interim call to run analytics
+
+	// this is for custom methods called from the front end
 	public Object doMethod(String methodName, Hashtable argHash);
 
 	public void processQueryData();
+	
+	// 
+	public IDataMaker getDefaultDataMaker();
 		
 }

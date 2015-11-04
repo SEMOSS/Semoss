@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.ui.components.specific.ousd;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -45,7 +44,7 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.GridPlaySheet;
-import prerna.util.PlaySheetEnum;
+import prerna.util.PlaySheetRDFMapBasedEnum;
 import prerna.util.Utility;
 
 public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
@@ -479,8 +478,8 @@ public class SequencingDecommissioningPlaySheet extends GridPlaySheet {
 	}
 
 	@Override
-	public Hashtable getData(){
-		Hashtable returnHash = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, PlaySheetEnum.Grid.getSheetName());
+	public Hashtable getDataMakerOutput(){
+		Hashtable returnHash = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, PlaySheetRDFMapBasedEnum.getSheetName("Grid"));
 		return returnHash;
 	}
 

@@ -1,26 +1,20 @@
 package prerna.ui.components.specific.ousd;
 
 import java.lang.reflect.InvocationTargetException;
-import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.BTreeDataFrame;
 import prerna.ds.OrderedBTreeDataFrame;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.PlaySheetEnum;
+import prerna.util.PlaySheetRDFMapBasedEnum;
 
 public class RoadmapCleanTableComparisonBarChartPlaySheet extends RoadmapCleanTableComparisonPlaySheet{
 
@@ -29,7 +23,7 @@ public class RoadmapCleanTableComparisonBarChartPlaySheet extends RoadmapCleanTa
 	
 	@Override
 	public void createView(){
-		String playSheetClassName = PlaySheetEnum.getClassFromName("Column Chart");
+		String playSheetClassName = PlaySheetRDFMapBasedEnum.getClassFromName("Column Chart");
 		BrowserPlaySheet playSheet = null;
 		try {
 			playSheet = (BrowserPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
@@ -56,18 +50,18 @@ public class RoadmapCleanTableComparisonBarChartPlaySheet extends RoadmapCleanTa
 			e.printStackTrace();
 		}
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		playSheet.setDataFrame(this.dataFrame);
+		playSheet.setDataMaker(this.dataFrame);
 		playSheet.setQuestionID(this.questionNum);
 		playSheet.setTitle(this.title);
 		playSheet.pane = this.pane;
-		playSheet.setDataFrame(this.dataFrame);
+		playSheet.setDataMaker(this.dataFrame);
 		playSheet.processQueryData();
 		playSheet.createView();
 	}
 
 	@Override
-	public Hashtable getData(){
-		Hashtable ret = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, PlaySheetEnum.Column_Chart.getSheetName());
+	public Hashtable getDataMakerOutput(){
+		Hashtable ret = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, PlaySheetRDFMapBasedEnum.getSheetName("ColumnChart"));
 		return ret;
 	}
 	

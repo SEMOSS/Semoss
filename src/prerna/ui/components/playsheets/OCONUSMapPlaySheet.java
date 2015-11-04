@@ -113,7 +113,7 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 	}
 	
 	public String[] getVariableArray() {
-		return wrapper.getVariables();
+		return this.dataFrame.getColumnHeaders();
 	}
 	
 	@Override

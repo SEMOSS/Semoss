@@ -27,8 +27,11 @@
  *******************************************************************************/
 package prerna.ui.helpers;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -71,7 +74,7 @@ public class EntityFiller implements Runnable {
 		engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
 		names = new Vector<String>();
 		
-		if (box != null && type != null) {
+		if (box != null) {
 			synchronized(box) {
 				// if options for the parameter have been explicitly defined
 				// use just those
@@ -108,7 +111,7 @@ public class EntityFiller implements Runnable {
 				}*/
 				// the the param options have not been explicitly defined and the combo box has not been cached
 				// time for the main processing
-				else {//if (DIHelper.getInstance().getLocalProp(type) == null) {
+				else if (type != null || (param != null && param.isQuery()) || (extQuery != null && !extQuery.isEmpty()) ){//if (DIHelper.getInstance().getLocalProp(type) == null) {
 					//check if URI is used in param filler
 					/*if(!type.contains("http://")) {
 						names.addElement("Incorrect Param Fill");
@@ -118,14 +121,18 @@ public class EntityFiller implements Runnable {
 						return;
 					}*/
 					// use the type query defined on RDF Map unless external query has been defined
-					String sparqlQuery = DIHelper.getInstance().getProperty(
-							"TYPE" + "_" + Constants.QUERY);
-
-					Hashtable paramTable = new Hashtable();
-					paramTable.put(Constants.ENTITY, type);
-					if (extQuery!=null) {
-						sparqlQuery=extQuery;
-					} else if (param!=null && param.isQuery()) {
+					String sparqlQuery = null;
+					Map<String, List<Object>> paramTable = new Hashtable<String, List<Object>>();
+					if(type != null) {
+						sparqlQuery = DIHelper.getInstance().getProperty("TYPE" + "_" + Constants.QUERY);
+						List<Object> typeList = new ArrayList<Object>();
+						typeList.add(type);
+						paramTable.put(Constants.ENTITY, typeList);
+					} 
+					
+					if (extQuery != null) {
+						sparqlQuery = extQuery;
+					} else if (param != null && param.isQuery()) {
 						sparqlQuery = param.getQuery();
 						sparqlQuery = Utility.fillParam(sparqlQuery, paramTable);	
 					}
@@ -134,7 +141,7 @@ public class EntityFiller implements Runnable {
 					}
 
 					// get back all of the URIs that are of that type
-					names = Utility.getVectorOfReturn(sparqlQuery, engine);				
+					names = Utility.getVectorOfReturn(sparqlQuery, engine, true);				
 					// try to query for the label
 					logger.debug("Names " + names);
 					Hashtable paramHash = Utility.getInstanceNameViaQuery(names);
@@ -170,17 +177,18 @@ public class EntityFiller implements Runnable {
 		// fills the names array with all URIs of set type
 		else if (type !=null) {
 			//if (DIHelper.getInstance().getLocalProp(type) == null) {
-				String sparqlQuery = DIHelper.getInstance().getProperty(
-						"TYPE" + "_" + Constants.QUERY);
-				Hashtable paramTable = new Hashtable();
-				paramTable.put(Constants.ENTITY, type);
+				String sparqlQuery = DIHelper.getInstance().getProperty("TYPE" + "_" + Constants.QUERY);
+				Map<String, List<Object>> paramTable = new Hashtable<String, List<Object>>();
+				List<Object> typeList = new ArrayList<Object>();
+				typeList.add(type);
+				paramTable.put(Constants.ENTITY, typeList);
 				if (extQuery!=null) {
 					sparqlQuery=extQuery;
 				} else {
 					sparqlQuery = Utility.fillParam(sparqlQuery, paramTable);	
 				}
 
-				names = Utility.getVectorOfReturn(sparqlQuery, engine);
+				names = Utility.getVectorOfReturn(sparqlQuery, engine, true);
 				Collections.sort(names);
 				Hashtable paramHash = Utility.getInstanceNameViaQuery(names);
 				if (paramHash.isEmpty()) {

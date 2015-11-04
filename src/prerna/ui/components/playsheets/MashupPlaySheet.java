@@ -28,25 +28,32 @@
 package prerna.ui.components.playsheets;
 
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+
+import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
+import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 
 /**
  * The DashboardPlaySheet class is used to send individual dashboard insights back to the front-end and does not process any query.
  */
 
-public class MashupPlaySheet extends AbstractRDFPlaySheet {
+public class MashupPlaySheet extends AbstractPlaySheet implements IDataMaker {
 	static final Logger logger = LogManager.getLogger(MashupPlaySheet.class.getName());
 
-	@Override
-	public Object getData() {
-		Hashtable returnHash = (Hashtable) super.getData();
-		returnHash.put("specificData", query);
-		
-		logger.info("Dashboard data: " + query);
-		return returnHash;
-	}
+//	@Override
+//	public Object getData() {
+//		Hashtable returnHash = (Hashtable) super.getData();
+//		returnHash.put("specificData", query);
+//		
+//		logger.info("Dashboard data: " + query);
+//		return returnHash;
+//	}
 	
 	@Override
 	public void refineView() {
@@ -79,9 +86,73 @@ public class MashupPlaySheet extends AbstractRDFPlaySheet {
 	}
 
 	@Override
+	public void setQuery(String query) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
 	public void processQueryData() {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public void setDataMaker(IDataMaker data) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public IDataMaker getDataMaker() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void processDataMakerComponent(DataMakerComponent component) {
+		this.query = component.getQuery();
+	}
+
+	@Override
+	public Map getDataMakerOutput() {
+//		Hashtable returnHash = (Hashtable) super.getData();
+		Hashtable returnHash = new Hashtable();
+		returnHash.put("specificData", query);
+		logger.info("Dashboard data: " + query);
+		return returnHash;
+	}
+
+	@Override
+	public IDataMaker getDefaultDataMaker() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void processPreTransformations(DataMakerComponent dmc,
+			List<ISEMOSSTransformation> transforms) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void processPostTransformations(DataMakerComponent dmc,
+			List<ISEMOSSTransformation> transforms, IDataMaker... dataFrame) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public List<Object> processActions(DataMakerComponent dmc, List<ISEMOSSAction> actions, IDataMaker... dataMaker) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<Object> getActionOutput() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
