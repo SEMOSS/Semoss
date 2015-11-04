@@ -96,20 +96,20 @@ public class PlaySheetRDFMapBasedEnum {
 //			else{
 //				psObj.put(sheetName, "No name defined");
 //			}
-			PlaySheetRDFMapBasedEnum.masterObject.put(id, psObj);
+			masterObject.put(id, psObj);
 		}
 	}
 	
 	public String getSheetClass(String psId){
-		return PlaySheetRDFMapBasedEnum.masterObject.get(psId).get(sheetClass);
+		return masterObject.get(psId).get(sheetClass);
 	}
 	
 	public static String getSheetName(String psId){
-		return PlaySheetRDFMapBasedEnum.masterObject.get(psId).get(sheetID);
+		return masterObject.get(psId).get(sheetID);
 	}
 	
 	public String getSheetHint(String psId){
-		return PlaySheetRDFMapBasedEnum.masterObject.get(psId).get(sheetHint);
+		return masterObject.get(psId).get(sheetHint);
 	}
 	
 	public static ArrayList<String> getAllSheetNames(){
@@ -167,7 +167,7 @@ public class PlaySheetRDFMapBasedEnum {
 	}
 
 	public static String getIdFromClass(String checkClass) {
-		String match = checkClass;
+		String match = "";
 		for (Map<String, String> e : masterObject.values())
 		{
 			if(e.get(sheetClass).equals(checkClass)){
