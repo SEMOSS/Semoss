@@ -100,8 +100,8 @@ public class MutualInformation {
 				double currentValue = probabilityAB * Math.log(probabilityAB/(probabilityA * probabilityB));
 				independenceValue += currentValue;
 				
-				System.out.println("Probability of "+A+": "+probabilityA);
-				System.out.println("Probability of "+B+": "+probabilityB);
+				System.out.println(column1+": Probability of "+A+": "+probabilityA);
+				System.out.println(column2+": Probability of "+B+": "+probabilityB);
 				System.out.println("Probability of ("+A+", "+B+"):"+probabilityAB);
 				System.out.println("Current Calculation: "+ currentValue);
 				System.out.println("current Sum: "+independenceValue);
