@@ -628,7 +628,7 @@ public class Insight {
 	
 	public Map<String, Object> getWebData() {
 		Map<String, Object> retHash = new HashMap<String, Object>();
-		retHash.put("id", insightID);
+		retHash.put("insightID", insightID);
 		retHash.put("layout", propHash.get(OUTPUT_KEY));
 		retHash.put("title", propHash.get(INSIGHT_NAME));
 		// this is only because we don’t currently save data table align
