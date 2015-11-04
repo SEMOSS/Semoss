@@ -1,57 +1,37 @@
 package prerna.test;
 
-import static org.junit.Assert.*;
-
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Properties;
+import java.util.HashMap;
+import java.util.List;
 
-import org.apache.log4j.PropertyConfigurator;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import prerna.algorithm.learning.unsupervised.som.*;
-import prerna.engine.api.ISelectStatement;
+import junit.framework.TestCase;
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.learning.unsupervised.som.SOMRoutine;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
-import prerna.util.Constants;
+import prerna.math.StatisticsUtilityMethods;
+import prerna.om.SEMOSSParam;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
-/**
-*
-* @author  August Bender
-* @version 1.0
-* @since   06-11-2015 
-* Questions? Email abender@deloitte.com
-*/
-public class SelfOrganizingMapTest {
+public class SelfOrganizingMapTest extends TestCase {
 
-	private static String workingDir = System.getProperty("user.dir");
-	static int testCounter;
-	
-	private static SelfOrganizingMap alg;
-	
-	private static ArrayList<Object[]> list;
-	private static String [] names;
-	final private static int LIMIT_NUM = 10; 
-	
+	private SOMRoutine alg;
+	private ITableDataFrame dataFrame;
+
 	@BeforeClass 
-	public static void setUpOnce(){
-		System.out.println("Test Started..");
-		//Set the Sudo-Prop
-		System.setProperty("file.separator", "/");
-		String propFile = workingDir + "/RDF_Map.prop";
-		DIHelper.getInstance().loadCoreProp(propFile);
-		PropertyConfigurator.configure(workingDir + "/log4j.prop");
+	public void setUpOnce() throws IOException{
+		String engineProp = "C:\\workspace\\Semoss\\db\\Movie_DB.smss";
+		BigDataEngine movieDB = new BigDataEngine();
+		movieDB.openDB(engineProp);
+		movieDB.setEngineName("Movie_DB");
+		DIHelper.getInstance().setLocalProperty("Movie_DB", movieDB);
 		
-		String engineLocation = workingDir + "//db//Movie_DB.smss";
-		String query = "SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience "
+		String query = "SELECT DISTINCT ?Title ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience "
 				+ "WHERE {{?Title <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Title>}"
 				+ "{?Title <http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic> ?DomesticRevenue }"
 				+ "{?Title <http://semoss.org/ontologies/Relation/Contains/Revenue-International> ?InternationalRevenue}"
@@ -65,156 +45,43 @@ public class SelfOrganizingMapTest {
 				+ "{?Title <http://semoss.org/ontologies/Relation/DirectedBy> ?Director}"
 				+ "{?Title <http://semoss.org/ontologies/Relation/BelongsTo> ?Genre}"
 				+ "{?Title <http://semoss.org/ontologies/Relation/Was> ?Nominated}"
-				+ "{?Title <http://semoss.org/ontologies/Relation/DirectedAt> ?Studio}} ORDER BY ?Title  LIMIT "+LIMIT_NUM;
+				+ "{?Title <http://semoss.org/ontologies/Relation/DirectedAt> ?Studio}} ORDER BY ?Title  LIMIT 10";
 		
-		BigDataEngine engine = loadEngine(engineLocation);
-		
-		list = new ArrayList<Object[]>();
-		ISelectWrapper sjsw = Utility.processQuery(engine, query);
-		names = sjsw.getVariables();
-		int length = names.length;
-		while(sjsw.hasNext()) {
-			ISelectStatement sjss = sjsw.next();
-			Object[] row = new Object[length];
-			int i = 0;
-			for(; i < length; i++) {
-				row[i] = sjss.getVar(names[i]);
-			}
-			list.add(row);
-		}	
-		
-		engine.commitOWL();
-		engine.commit();
-		engine.closeDB();
+		System.out.println("Creating Table Data Frame...");
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(movieDB, query);
+		dataFrame = wrapper.getTableDataFrame();
+		System.out.println("Data Frame created...");
+
+		movieDB.closeDB();
 	}
 	
 	@Before
 	public void setUp(){
-		testCounter++;
-		System.out.println("Test " + testCounter + " starting..");
-	}
-	
-	@After
-	public void tearDown(){
-		System.out.println("Test " + testCounter + " ended..");
-	}
-	
-	@AfterClass
-	public static void finalTearDown(){
-		System.out.println("Class Tear Down ...");
+		alg = new SOMRoutine();
 	}
 	
 	@Test
 	public void executeTest_withNoDataConstructor(){
-		alg = new SelfOrganizingMap();
-		try {
-			alg.execute();
-		} catch (ArrayIndexOutOfBoundsException e){
-			
-		}
+		int instanceIndex = 0;
+		double initalRadius = 2.0;
+		double learningRate = 0.07;
+		double tau = 7.5;
+		int maxIterations = 15;
 		
-		// grid size is correct
-		System.out.println();
-		assertTrue("Grid Height", (alg.getGrid().getWidth() == 0));
-		assertTrue("Grid Height", (alg.getWidth() == 0));
-		assertTrue("Grid Length", (alg.getGrid().getLength() == 0));
-		assertTrue("Grid Length", (alg.getLength() == 0));
+		List<SEMOSSParam> options = alg.getOptions();
+		HashMap<String, Object> selectedOptions = new HashMap<String, Object>();
+		selectedOptions.put(options.get(0).getName(), instanceIndex); 
+		selectedOptions.put(options.get(1).getName(), initalRadius);
+		selectedOptions.put(options.get(2).getName(), learningRate);
+		selectedOptions.put(options.get(3).getName(), tau);
+		selectedOptions.put(options.get(4).getName(), maxIterations);
+		alg.setSelectedOptions(selectedOptions);
+		ITableDataFrame results = alg.runAlgorithm(dataFrame);
+		int[] numInstancesInGrids = alg.getNumInstancesInGrid();
 
-		// the z-axis across the grid adds up to the number of instances in the
-		// data set; z is the number of instances in that grid
-		assertTrue("z-axis = num of instances.. ",
-				(alg.getNumInstances() == 0));
+		int numInstancesInBtree = dataFrame.getUniqueInstanceCount(dataFrame.getColumnHeaders()[instanceIndex]);
+		int numInstances = StatisticsUtilityMethods.getSum(numInstancesInGrids);
+		assertTrue("All instances are in grids...", numInstancesInBtree == numInstances);
 	}
 	
-	@Test
-	public void executeTest_withDataConstructor(){
-		alg = new SelfOrganizingMap(list, names);
-		
-		//grid size is correct
-		assertTrue("Grid Height", (alg.getGrid().getWidth() == 1));
-		assertTrue("Grid Height",(alg.getWidth() == 1));
-		assertTrue("Grid Length", (alg.getGrid().getLength() == 2));
-		assertTrue("Grid Length",(alg.getLength() == 2));
-		
-		// the z-axis across the grid adds up to the number of instances in the data set; z is the number of instances in that grid
-		assertTrue("z-axis = num of instances.. ", (alg.getNumInstances() == LIMIT_NUM));
-		
-		//check if there are two instances that are exactly the same values;  they should be in the same cell
-		boolean check = false;
-		
-		//TODO
-		for(int i = 0; i < alg.getNumInstances(); i++){
-			//alg.getGrid().
-		}
-		
-		//assertTrue("Instances with duplicate values expected", check);
-		
-	}
-	
-	/** Loads an Engine based on it's .smss file path
-	 * 
-	 * @param engineLocation
-	 * 
-	 * @return loaded BigDataEngine
-	 */
-	private static BigDataEngine loadEngine(String engineLocation){
-		BigDataEngine engine = new BigDataEngine();
-		FileInputStream fileIn;
-		Properties prop = new Properties();
-		try {
-			fileIn = new FileInputStream(engineLocation);
-			prop.load(fileIn);
-			//SEP
-			try {
-				String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
-
-				String engineName = prop.getProperty(Constants.ENGINE);
-				String engineClass = prop.getProperty(Constants.ENGINE_TYPE);
-				//TEMPORARY
-				if(engineClass.equals("prerna.rdf.engine.impl.RDBMSNativeEngine")){
-					engineClass = "prerna.engine.impl.rdbms.RDBMSNativeEngine";
-				}
-				else if(engineClass.startsWith("prerna.rdf.engine.impl.")){
-					engineClass = engineClass.replace("prerna.rdf.engine.impl.", "prerna.engine.impl.rdf.");
-				}
-				engine = (BigDataEngine)Class.forName(engineClass).newInstance();
-				engine.setEngineName(engineName);
-				if(prop.getProperty("MAP") != null) {
-					engine.addProperty("MAP", prop.getProperty("MAP"));
-				}
-				engine.openDB(engineLocation);
-				engine.setDreamer(prop.getProperty(Constants.DREAMER));
-				engine.setOntology(prop.getProperty(Constants.ONTOLOGY));
-				
-				// set the core prop
-				if(prop.containsKey(Constants.DREAMER))
-					DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.DREAMER, prop.getProperty(Constants.DREAMER));
-				if(prop.containsKey(Constants.ONTOLOGY))
-					DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.ONTOLOGY, prop.getProperty(Constants.ONTOLOGY));
-				if(prop.containsKey(Constants.OWL)) {
-					DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.OWL, prop.getProperty(Constants.OWL));
-					engine.setOWL(prop.getProperty(Constants.OWL));
-				}
-				
-				// set the engine finally
-				engines = engines + ";" + engineName;
-				DIHelper.getInstance().setLocalProperty(engineName, engine);
-				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engines);
-			} catch (InstantiationException e) {
-				e.printStackTrace();
-			} catch (IllegalAccessException e) {
-				e.printStackTrace();
-			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
-			}
-			//SEP
-			fileIn.close();
-			prop.clear();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return engine;
-	}
 }

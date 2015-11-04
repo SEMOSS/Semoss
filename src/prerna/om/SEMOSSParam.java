@@ -37,10 +37,21 @@ public class SEMOSSParam {
 	String type = null;
 	Vector<String> options = new Vector<String>();
 	Boolean hasQuery = false;
-	String uri = null;
-	String depends = "false";
+	String paramID = null;
+	String depends = "false"; //TODO: why not boolean?
 	Vector<String> dependVars = new Vector<String>();
 	Object selected = null;
+	boolean dbQuery= true;
+	boolean multiSelect = false;
+	String componentFilterId;
+	
+	public void setParamID(String paramID) {
+		this.paramID = paramID;
+	}
+	
+	public String getParamID() {
+		return this.paramID;
+	}
 	
 	public void setSelected(Object selected){
 		this.selected = selected;
@@ -50,14 +61,6 @@ public class SEMOSSParam {
 		return this.selected;
 	}
 		
-	public void setUri(String uri){
-		this.uri = uri;
-	}
-	
-	public String getUri(){
-		return this.uri;
-	}
-	
 	public String getType() {
 		return type;
 	}
@@ -92,7 +95,27 @@ public class SEMOSSParam {
 	}
 	
 	public void addDependVar(String dependVar) {
-		dependVars.addElement(dependVar.replace("\"","").trim());
+		dependVar = dependVar.trim().replace("\"","");
+		if(!dependVar.isEmpty()) {
+			dependVars.addElement(dependVar);
+			this.depends = "true";
+		}
+	}
+	
+	public void setDbQuery(boolean dbQuery) {
+		this.dbQuery = dbQuery;
+	}
+	
+	public boolean isDbQuery() {
+		return this.dbQuery;
+	}
+	
+	public boolean isMultiSelect() {
+		return this.multiSelect;
+	}
+	
+	public void setMultiSelect(boolean multiSelect) {
+		this.multiSelect = multiSelect;
 	}
 	
 	public Vector<String> getDependVars() {
@@ -115,4 +138,11 @@ public class SEMOSSParam {
 		return hasQuery;
 	}
 	
+	public void setComponentFilterId(String componentFilterId) {
+		this.componentFilterId = componentFilterId;
+	}
+	
+	public String getComponentFilterId() {
+		return this.componentFilterId;
+	}
 }

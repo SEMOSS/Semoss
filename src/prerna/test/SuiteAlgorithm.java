@@ -4,19 +4,10 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
-/**
-*
-* @author  August Bender
-* @version 1.0
-* @since   06-19-2015 
-* Questions? Email abender@deloitte.com
-*/
-
 @RunWith(Suite.class)
 @SuiteClasses({ 
 				ClusteringAlgorithmTest.class, 
 				LocalOutlierFactorAlgorithmTest.class,
-				PartitionedClusteringAlgorithmTest.class,
 				WekaAprioriAlgorithTest.class,
 				WekaClassificationTest.class,
 				MatrixRegressionAlgorithmTest.class,

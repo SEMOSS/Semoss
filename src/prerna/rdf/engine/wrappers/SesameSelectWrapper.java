@@ -36,6 +36,8 @@ import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 import org.openrdf.query.algebra.evaluation.util.QueryEvaluationUtil;
 
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.util.Utility;
@@ -86,51 +88,46 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 		for(int colIndex = 0;colIndex < var.length;colIndex++)
 		{
 			Object val = bs.getValue(var[colIndex]);
-			Double weightVal = null;
-			String dateStr=null;
-			String stringVal = null;
-			try
-			{
-				if(val != null && val instanceof Literal)
-				{
-					if(QueryEvaluationUtil.isStringLiteral((Value) val)){
-						stringVal = ((Literal)val).getLabel();
-					}
-					else if((val.toString()).contains("http://www.w3.org/2001/XMLSchema#dateTime")){
-						dateStr = (val.toString()).substring((val.toString()).indexOf("\"")+1, (val.toString()).lastIndexOf("\""));
-					}
-					else{
-						logger.debug("This is a literal impl >>>>>> "  + ((Literal)val).doubleValue());
-						weightVal = new Double(((Literal)val).doubleValue());
-					}
-				}else if(val != null && val instanceof com.hp.hpl.jena.rdf.model.Literal)
-				{
-					logger.debug("Class is " + val.getClass());
-					weightVal = new Double(((Literal)val).doubleValue());
-				}
-			}catch(RuntimeException ex)
-			{
-				logger.debug(ex);
+			Object parsedVal = getRealValue(val);
+
+			sjss.setVar(var[colIndex], parsedVal);
+			if(val!=null){
+				sjss.setRawVar(var[colIndex], val);
 			}
-			String value = bs.getValue(var[colIndex])+"";
-			String instanceName = Utility.getInstanceName(value);
-			if(weightVal == null && dateStr==null && stringVal==null && val != null)
-				sjss.setVar(var[colIndex], instanceName);
-			else if (weightVal != null)
-				sjss.setVar(var[colIndex], weightVal);
-			else if (dateStr != null)
-				sjss.setVar(var[colIndex], dateStr);
-			else if (stringVal != null)
-				sjss.setVar(var[colIndex], stringVal);
-			else if(val == null) {
-				sjss.setVar(var[colIndex], "");
-				continue;
-			}
-			sjss.setRawVar(var[colIndex], val);
 			logger.debug("Binding Name " + var[colIndex]);
-			logger.debug("Binding Value " + value);
 		}
 		return sjss;
+	}
+	
+	private Object getRealValue(Object val){
+		try
+		{
+			if(val != null && val instanceof Literal)
+			{
+				if(QueryEvaluationUtil.isStringLiteral((Value) val)){
+					return ((Literal)val).getLabel();
+				}
+				else if((val.toString()).contains("http://www.w3.org/2001/XMLSchema#dateTime")){
+					return (val.toString()).substring((val.toString()).indexOf("\"")+1, (val.toString()).lastIndexOf("\""));
+				}
+				else{
+					logger.debug("This is a literal impl >>>>>> "  + ((Literal)val).doubleValue());
+					return new Double(((Literal)val).doubleValue());
+				}
+			}else if(val != null && val instanceof com.hp.hpl.jena.rdf.model.Literal)
+			{
+				logger.debug("Class is " + val.getClass());
+				return new Double(((Literal)val).doubleValue());
+			}
+			if(val!=null){
+				String value = val+"";
+				return Utility.getInstanceName(value);
+			}
+		}catch(RuntimeException ex)
+		{
+			logger.debug(ex);
+		}
+		return "";
 	}
 
 	@Override
@@ -148,5 +145,29 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 			}
 		}
 		return var;
+	}
+
+	@Override
+	public ITableDataFrame getTableDataFrame() {
+		BTreeDataFrame dataFrame = new BTreeDataFrame(this.var);
+		while (hasNext()){
+			try {
+				logger.debug("Adding a sesame statement ");
+				BindingSet bs = tqr.next();
+				Object[] clean = new Object[this.var.length];
+				Object[] raw = new Object[this.var.length];
+				for(int colIndex = 0;colIndex < var.length;colIndex++)
+				{
+					raw[colIndex] = bs.getValue(var[colIndex]);
+					clean[colIndex] = getRealValue(raw[colIndex]);
+				}
+				dataFrame.addRow(clean, raw);
+			} catch (QueryEvaluationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		return dataFrame;
 	}
 }

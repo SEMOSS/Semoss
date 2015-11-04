@@ -16,10 +16,10 @@ public abstract class AbstractClusteringRoutine implements IClustering {
 	protected boolean success;
 	
 	protected List<SEMOSSParam> options;
-	protected static final String NUM_CLUSTERS_KEY = "numClusters";
-	protected static final String INSTANCE_INDEX_KEY = "instanceIdx";
-	protected static final String DISTANCE_MEASURE = "distanceMeasure";
-	protected static final String SKIP_ATTRIBUTES = "skipAttributes";
+	public static final String NUM_CLUSTERS_KEY = "numClusters";
+	public static final String INSTANCE_INDEX_KEY = "instanceIdx";
+	public static final String DISTANCE_MEASURE = "distanceMeasure";
+	public static final String SKIP_ATTRIBUTES = "skipAttributes";
 
 	// keeping track of cluster information
 	protected List<Cluster> clusters = new ArrayList<Cluster>();

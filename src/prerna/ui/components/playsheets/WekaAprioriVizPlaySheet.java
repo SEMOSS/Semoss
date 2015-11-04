@@ -43,11 +43,11 @@ public class WekaAprioriVizPlaySheet extends BrowserPlaySheet{
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/singleaxisbubbleassociation.html";
 	}
 	
-	@Override
-	public void createData() {
-		if(dataFrame == null || dataFrame.isEmpty())
-			super.createData();
-	}
+//	@Override
+//	public void createData() {
+//		if(dataFrame == null || dataFrame.isEmpty())
+//			super.createData();
+//	}
 
 	@Override
 	public void processQueryData() {
@@ -65,13 +65,13 @@ public class WekaAprioriVizPlaySheet extends BrowserPlaySheet{
 		selectedOptions.put(options.get(3).getName(), maxSupport);
 		selectedOptions.put(options.get(4).getName(), skipAttributes);
 		alg.setSelectedOptions(selectedOptions);
-		dataFrame.performAction(alg);
+		dataFrame.performAnalyticAction(alg);
 		
 		alg.generateDecisionRuleTable();
 	}
 	
 	@Override
-	public Hashtable getData() {
+	public Hashtable getDataMakerOutput() {
 		//TODO: remove this from getData() to call the super method
 		dataHash.put("id", this.questionNum==null? "": this.questionNum);
 		String className = "";
@@ -81,7 +81,7 @@ public class WekaAprioriVizPlaySheet extends BrowserPlaySheet{
 		} else {
 			className = getClass().getName();
 		}
-		dataHash.put("playsheet", className);
+		dataHash.put("layout", className);
 		dataHash.put("title", this.title==null? "": this.title);
 		
 		Hashtable<String, String> specificData = new Hashtable<String, String>();

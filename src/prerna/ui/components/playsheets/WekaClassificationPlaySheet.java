@@ -82,7 +82,7 @@ public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
 		selectedOptions.put(options.get(1).getName(), className);
 		selectedOptions.put(options.get(2).getName(), skipAttributes);
 		alg.setSelectedOptions(selectedOptions);
-		dataFrame.performAction(alg);
+		dataFrame.performAnalyticAction(alg);
 		alg.processTreeString();
 	}
 	
@@ -111,7 +111,7 @@ public class WekaClassificationPlaySheet extends DendrogramPlaySheet{
 		statList.add(statHash);
 		allHash.put("stats", statList);
 		
-		this.dataHash= allHash ;
+		this.dataHash = allHash ;
 	}
 	
 	@Override

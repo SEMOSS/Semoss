@@ -5,8 +5,9 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.engine.api.ISelectStatement;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
-public interface ITableDataFrame {
+public interface ITableDataFrame extends IDataMaker {
 
 	/**
 	 * Adds a row to the data-frame
@@ -70,7 +71,14 @@ public interface ITableDataFrame {
 	 * alter/modify the existing data-frame
 	 * @param routine				The IAnalytics routine to perform onto the data-frame
 	 */
-	void performAction(IAnalyticRoutine routine);
+	void performAnalyticTransformation(IAnalyticTransformationRoutine routine);
+	
+	/**
+	 * Perform the inputed analytical routine onto the data frame. The routine does not necessarily have to 
+	 * alter/modify the existing data-frame
+	 * @param routine				The IAnalytics routine to perform onto the data-frame
+	 */
+	void performAnalyticAction(IAnalyticActionRoutine routine);
 	
 	/**
 	 * Undo the most recent analytical routine performed on the data-frame
@@ -463,5 +471,4 @@ public interface ITableDataFrame {
 
 	//temporary hack for build...delete later
 	public Object[] getFilteredUniqueRawValues(String columnHeader);
-
 }

@@ -3,10 +3,10 @@ package prerna.algorithm.learning.unsupervised.clustering;
 import java.util.List;
 import java.util.Map;
 
-import prerna.algorithm.api.IAnalyticRoutine;
+import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.learning.util.Cluster;
 
-public interface IClustering extends IAnalyticRoutine {
+public interface IClustering extends IAnalyticTransformationRoutine {
 	
 	/**
 	 * Calculates the best cluster for the given index

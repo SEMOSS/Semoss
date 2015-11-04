@@ -216,13 +216,13 @@ public class NavyScoreboardPlaysheet extends BrowserPlaySheet {
 		}
 		
 		newDataHash.put("archtypes", archtypes);
-		newDataHash.put("playsheet", "prerna.ui.components.specific.navypeo.NavyScoreboardPlaysheet");
+		newDataHash.put("layout", "prerna.ui.components.specific.navypeo.NavyScoreboardPlaysheet");
 		this.retHash = newDataHash;
 	}
 	
 	
 	@Override
-	public Hashtable getData() {		
+	public Hashtable getDataMakerOutput() {		
 		return this.retHash;
 	}
 	

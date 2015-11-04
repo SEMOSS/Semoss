@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 import prerna.algorithm.impl.AlgorithmDataFormatter;
 import prerna.poi.main.TextExtractor;
 import prerna.util.DIHelper;
-import prerna.util.PlaySheetEnum;
+import prerna.util.PlaySheetRDFMapBasedEnum;
 
 public class InsightTemplateProcessor {
 	
@@ -104,7 +104,7 @@ public class InsightTemplateProcessor {
 					} else if(rulePart.toUpperCase().startsWith(InsightRuleConstants.OUTPUT_KEY)) {
 						String[] outputRuleSplit = rulePart.split("=");
 						outputRuleSplit[1] = outputRuleSplit[1].replaceAll("_", " ").trim();
-						String psClass = PlaySheetEnum.getClassFromName(outputRuleSplit[1]);
+						String psClass = PlaySheetRDFMapBasedEnum.getClassFromName(outputRuleSplit[1]);
 						if(!psClass.isEmpty()) {
 							rule.setOutput(psClass);
 						} else {

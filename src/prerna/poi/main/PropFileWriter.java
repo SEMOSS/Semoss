@@ -28,7 +28,6 @@
 package prerna.poi.main;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -36,28 +35,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Reader;
-import java.io.StringReader;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.Result;
-import javax.xml.transform.Source;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringEscapeUtils;
-import org.w3c.dom.Document;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
 import prerna.ui.components.ImportDataProcessor;
 import prerna.util.Constants;
@@ -83,14 +66,14 @@ public class PropFileWriter {
 	public File engineDirectory;
 	public String owlFile;
 	public String defaultEngine = "prerna.engine.impl.rdf.BigDataEngine";
-	public String defaultRDBMSEngine = "prerna.engine.impl.rdbms.RDBMSNativeEngine";//
+	public String defaultRDBMSEngine = "prerna.engine.impl.rdbms.RDBMSNativeEngine";
 	public boolean hasMap = false;
 
 	private SQLQueryUtil.DB_TYPE dbDriverType = SQLQueryUtil.DB_TYPE.H2_DB;
 
 	public PropFileWriter() {
 		defaultDBPropName = "db/Default/Default.properties";
-		defaultQuestionProp = "db/Default/Default_Questions.XML";
+		defaultQuestionProp = "db/Default/Default_Questions.properties";
 		defaultOntologyProp = "db/Default/Default_Custom_Map.prop";
 	}
 
@@ -238,13 +221,13 @@ public class PropFileWriter {
 	 */
 	private void copyFile(String newFilePath, String oldFilePath) throws FileAlreadyExistsException, IOException {
 		try {
-			if (!oldFilePath.contains("_Questions.XML")) {
+//			if (!oldFilePath.contains("_Questions.XML")) {
 				Path newPath = Paths.get(newFilePath);
 				Path oldPath = Paths.get(oldFilePath);
 				Files.copy(oldPath, newPath);
-			} else {
-				createXMLQuestionFile(newFilePath, oldFilePath);
-			}
+//			} else {
+//				createXMLQuestionFile(newFilePath, oldFilePath);
+//			}
 		} catch (FileAlreadyExistsException ex) {
 			throw new FileAlreadyExistsException("Database folder already exists. \nPlease delete the folder or load using a different database name.");
 		} catch (IOException ex) {
@@ -286,7 +269,7 @@ public class PropFileWriter {
 			pw.write(Constants.ENGINE + "\t" + dbname + "\n");
 			if (dbType == ImportDataProcessor.DB_TYPE.RDF) {
 				pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultEngine + "\n");
-				pw.write(Constants.INSIGHTS + "\t" + questionFileName + "\n\n\n");
+				pw.write(Constants.DREAMER + "\t" + questionFileName + "\n\n\n");
 			}
 			if (dbType == ImportDataProcessor.DB_TYPE.RDBMS) {
 				SQLQueryUtil queryUtil = SQLQueryUtil.initialize(dbDriverType);
@@ -346,67 +329,66 @@ public class PropFileWriter {
 		}
 	}
 
-	/**
-	 * Creates the XML file containing all of the questions/insights. This takes the default XML file and replace the content with the engine name.
-	 * @param newFilePath			String containing the path to the new database
-	 * @param oldFilePath			String containing the path to the Default folder
-	 * @throws IOException 
-	 */
-	public void createXMLQuestionFile(String newFilePath, String oldFilePath) throws IOException {
-		BufferedReader reader = null;
-		BufferedWriter writer = null;
-
-		try {
-			File oldFile = new File(oldFilePath);
-			File newFile = new File(newFilePath);
-
-			newFile.createNewFile();
-
-			reader = new BufferedReader(new FileReader(oldFile));
-			writer = new BufferedWriter(new FileWriter(newFile));
-
-			StringBuffer xmlStringBugger = new StringBuffer();
-			String line;
-			while ((line = reader.readLine()) != null) {
-				if (line.contains("Default")) {
-					line = line.replace("Default", StringEscapeUtils.escapeXml10(engineName));
-				}
-				xmlStringBugger.append(line);
-				xmlStringBugger.append("\n");
-			}
-
-			// ensure encoding occurs properly for XML
-			Document doc = stringToXML(xmlStringBugger.toString());
-		    Source source = new DOMSource(doc);
-		    Result result = new StreamResult(newFile);
-		    Transformer xformer = TransformerFactory.newInstance().newTransformer();
-		    xformer.transform(source, result);
-		    
-		} catch (IOException | TransformerException | SAXException | ParserConfigurationException e) {
-			e.printStackTrace();
-			throw new IOException("Unable to create question xml file.");
-		} finally {
-			if (reader != null) {
-				try {
-					reader.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-			if (writer != null) {
-				try {
-					writer.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-	}
-
-	public Document stringToXML(String xmlSource) throws SAXException, ParserConfigurationException, IOException {
-		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-		DocumentBuilder builder = factory.newDocumentBuilder();
-		return builder.parse(new InputSource(new StringReader(xmlSource)));
-	}
-
+//	/**
+//	 * Creates the XML file containing all of the questions/insights. This takes the default XML file and replace the content with the engine name.
+//	 * @param newFilePath			String containing the path to the new database
+//	 * @param oldFilePath			String containing the path to the Default folder
+//	 * @throws IOException 
+//	 */
+//	public void createXMLQuestionFile(String newFilePath, String oldFilePath) throws IOException {
+//		BufferedReader reader = null;
+//		BufferedWriter writer = null;
+//
+//		try {
+//			File oldFile = new File(oldFilePath);
+//			File newFile = new File(newFilePath);
+//
+//			newFile.createNewFile();
+//
+//			reader = new BufferedReader(new FileReader(oldFile));
+//			writer = new BufferedWriter(new FileWriter(newFile));
+//
+//			StringBuffer xmlStringBugger = new StringBuffer();
+//			String line;
+//			while ((line = reader.readLine()) != null) {
+//				if (line.contains("Default")) {
+//					line = line.replace("Default", StringEscapeUtils.escapeXml10(engineName));
+//				}
+//				xmlStringBugger.append(line);
+//				xmlStringBugger.append("\n");
+//			}
+//
+//			// ensure encoding occurs properly for XML
+//			Document doc = stringToXML(xmlStringBugger.toString());
+//		    Source source = new DOMSource(doc);
+//		    Result result = new StreamResult(newFile);
+//		    Transformer xformer = TransformerFactory.newInstance().newTransformer();
+//		    xformer.transform(source, result);
+//		    
+//		} catch (IOException | TransformerException | SAXException | ParserConfigurationException e) {
+//			e.printStackTrace();
+//			throw new IOException("Unable to create question xml file.");
+//		} finally {
+//			if (reader != null) {
+//				try {
+//					reader.close();
+//				} catch (IOException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//			if (writer != null) {
+//				try {
+//					writer.close();
+//				} catch (IOException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		}
+//	}
+//
+//	public Document stringToXML(String xmlSource) throws SAXException, ParserConfigurationException, IOException {
+//		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+//		DocumentBuilder builder = factory.newDocumentBuilder();
+//		return builder.parse(new InputSource(new StringReader(xmlSource)));
+//	}
 }

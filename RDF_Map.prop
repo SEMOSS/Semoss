@@ -449,3 +449,51 @@ NEIGHBORHOOD_PREDICATE_ALT3_FINDER_QUERY_2	SELECT  ?predicate WHERE {?object <ht
 
 ##Concept Queries
 SEMOSS_URI	http://semoss.org/ontologies
+
+## DATA MAKERS DEFINED
+GraphDataModel	prerna.om.GraphDataModel
+BTreeDataFrame	prerna.ds.BTreeDataFrame
+
+##PLAYSHEETS DEFINED
+PLAYSHEETS_DEFINED	3dBarchart;CirclePack;Clustering;Column;Combo;Dendrogram;Gantt;Graph;Grid;HeatMap;Line;Mashup;ParallelSets;ParallelCoordinates;Pie;Sankey;Scatter;ScatterplotMatrix;SingleAxisCluster;SystemSimilarity;USHeatMap;USMap;WorldHeatMap;WorldMap;
+##3dBarchart
+CirclePack	prerna.ui.components.playsheets.CirclePackPlaySheet
+Clustering	prerna.ui.components.playsheets.ClusteringVizPlaySheet
+Column	prerna.ui.components.playsheets.ColumnChartPlaySheet
+Combo	prerna.ui.components.specific.ousd.RoadmapTimelineComboChartPlaySheet
+Dendrogram	prerna.ui.components.playsheets.DendrogramPlaySheet
+##Gantt	
+Graph	prerna.ui.components.playsheets.GraphPlaySheet
+Grid	prerna.ui.components.playsheets.GridPlaySheet
+HeatMap	prerna.ui.components.playsheets.HeatMapPlaySheet
+Line	prerna.ui.components.playsheets.LineChartPlaySheet
+##Mashup	
+ParallelSets	prerna.ui.components.playsheets.ParallelSetsPlaySheet
+ParallelCoordinates	prerna.ui.components.playsheets.ParallelCoordinatesPlaySheet
+Pie	prerna.ui.components.playsheets.PieChartPlaySheet
+Sankey	prerna.ui.components.playsheets.SankeyPlaySheet
+Scatter	prerna.ui.components.playsheets.ScatterChartPlaySheet
+ScatterplotMatrix	prerna.ui.components.playsheets.MatrixRegressionVizPlaySheet
+SingleAxisCluster	prerna.ui.components.playsheets.WekaAprioriVizPlaySheet
+SystemSimilarity	prerna.ui.components.specific.tap.SysSimHeatMapSheet
+USHeatMap	prerna.ui.components.playsheets.USHeatMapPlaySheet
+USMap	prerna.ui.components.playsheets.CONUSMapPlaySheet
+WorldHeatMap	prerna.ui.components.playsheets.WorldHeatMapPlaySheet
+WorldMap	prerna.ui.components.playsheets.OCONUSMapPlaySheet
+
+RawGrid	prerna.ui.components.playsheets.GridRAWPlaySheet
+BinnedColumnChart	prerna.ui.components.playsheets.BinnedColumnChartPlaySheet
+BinnedPieChart	prerna.ui.components.playsheets.BinnedPieChartPlaySheet
+DualEngine	prerna.ui.components.playsheets.DualEngineGenericPlaySheet
+MachineLearningModule	prerna.ui.components.playsheets.MachineLearningModulePlaySheet
+Outlier	prerna.ui.components.playsheets.OutlierVizPlaySheet
+Classifier	prerna.ui.components.playsheets.WekaClassificationPlaySheet
+Similarity	prerna.ui.components.playsheets.DatasetSimilarityPlaySheet
+SimilarityColumnChart	prerna.ui.components.playsheets.DatasetSimilairtyColumnChartPlaySheet
+
+##TRANSFORMATIONS DEFINED
+join	prerna.ui.components.playsheets.datamakers.JoinTransformation
+filter	prerna.ui.components.playsheets.datamakers.FilterTransformation
+algorithmTransformation	prerna.algorithm.learning.AlgorithmTransformation
+algorithmAction	prerna.algorithm.learning.AlgorithmAction
+math	prerna.ui.components.playsheets.datamakers.MathTransformation

@@ -29,6 +29,14 @@ package prerna.rdf.engine.wrappers;
 
 import java.util.List;
 
+import org.openrdf.model.Literal;
+import org.openrdf.model.Value;
+import org.openrdf.query.BindingSet;
+import org.openrdf.query.QueryEvaluationException;
+import org.openrdf.query.algebra.evaluation.util.QueryEvaluationUtil;
+
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.util.Utility;
@@ -52,24 +60,12 @@ public class JenaSelectWrapper extends AbstractWrapper implements ISelectWrapper
 	{
 		ISelectStatement thisSt = new SelectStatement();
 	    QuerySolution row = rs.nextSolution();
-		String [] values = new String[var.length];
 		for(int colIndex = 0;colIndex < var.length;colIndex++)
 		{
 			String value = row.get(var[colIndex])+"";
 			RDFNode node = row.get(var[colIndex]);
-			if(node.isAnon())
-			{
-				logger.debug("Ok.. an anon node");
-				String id = Utility.getNextID();
-				thisSt.setVar(var[colIndex], id);
-			}
-			else
-			{
-				
-				logger.debug("Raw data JENA For Column " +  var[colIndex]+" >>  " + value);
-				String instanceName = Utility.getInstanceName(value);
-				thisSt.setVar(var[colIndex], instanceName);
-			}
+			
+			thisSt.setVar(var[colIndex], getRealValue(node));
 			thisSt.setRawVar(var[colIndex], value);
 			logger.debug("Binding Name " + var[colIndex]);
 			logger.debug("Binding Value " + value);
@@ -88,6 +84,40 @@ public class JenaSelectWrapper extends AbstractWrapper implements ISelectWrapper
 	@Override
 	public void execute() {
 		rs = (ResultSet) engine.execQuery(query);		
+	}
+	
+	private Object getRealValue(RDFNode node){
+		if(node.isAnon())
+		{
+			logger.debug("Ok.. an anon node");
+			return Utility.getNextID();
+		}
+		else
+		{
+			logger.debug("Raw data JENA For Column ");
+			return Utility.getInstanceName(node + "");
+		}
+	}
+
+
+	@Override
+	public ITableDataFrame getTableDataFrame() {
+		BTreeDataFrame dataFrame = new BTreeDataFrame(this.var);
+		while (hasNext()){
+			logger.debug("Adding a jena statement ");
+			QuerySolution row = rs.nextSolution();
+			
+			Object[] clean = new Object[this.var.length];
+			Object[] raw = new Object[this.var.length];
+			for(int colIndex = 0;colIndex < var.length;colIndex++)
+			{
+				raw[colIndex] = row.get(var[colIndex] + "");
+				clean[colIndex] = getRealValue(row.get(var[colIndex]));
+			}
+			dataFrame.addRow(clean, raw);
+		}
+		
+		return dataFrame;
 	}
 
 }

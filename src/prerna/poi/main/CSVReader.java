@@ -126,6 +126,7 @@ public class CSVReader extends AbstractFileReader {
 			createBaseRelations();
 		} finally {
 			closeDB();
+			closeOWL();
 		}
 	}
 

@@ -32,6 +32,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -44,8 +45,10 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
@@ -74,13 +77,17 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openrdf.model.Value;
 import org.openrdf.query.Binding;
 
-import com.ibm.icu.math.BigDecimal;
-import com.ibm.icu.text.DecimalFormat;
-
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
+import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
+
+import com.ibm.icu.math.BigDecimal;
+import com.ibm.icu.text.DecimalFormat;
 
 /**
  * The Utility class contains a variety of miscellaneous functions implemented extensively throughout SEMOSS.
@@ -145,19 +152,23 @@ public class Utility {
 
 	 * @return 	Hashtable of queries to be replaced */
 	public static String normalizeParam(String query)	{	
-		Hashtable paramHash = new Hashtable();		
+		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();		
 		Pattern pattern = Pattern.compile("[@]{1}\\w+[-]*[\\w/.:]+[@]");
 
 		Matcher matcher = pattern.matcher(query);
 		while(matcher.find()) {
 			String data = matcher.group();
 			data = data.substring(1,data.length()-1);
-			String paramName = data.substring(0, data.indexOf("-"));
-			String paramValue = data.substring(data.indexOf("-") + 1);
-			
-			LOGGER.debug(data);
-			// put something to strip the @
-			paramHash.put(data, "@"+ paramName + "@");
+			if(data.contains("-")) {
+				String paramName = data.substring(0, data.indexOf("-"));
+				String paramValue = data.substring(data.indexOf("-") + 1);
+				
+				LOGGER.debug(data);
+				// put something to strip the @
+				List<Object> retList = new ArrayList<Object>();
+				retList.add("@"+ paramName + "@");
+				paramHash.put(data, retList);
+			}
 		}
 		 
 		return fillParam(query, paramHash);
@@ -170,16 +181,16 @@ public class Utility {
 	 * @param 	Hashtable of format [String to be replaced] [Replacement]
 
 	 * @return 	If applicable, returns the replaced query */
-	public static String fillParam(String query, Hashtable paramHash) {
+	public static String fillParam(String query, Map<String, List<Object>> paramHash) {
+		// NOTE: this process always assumes only one parameter is selected
 		// Hashtable is of pattern <String to be replaced> <replacement>
 		// key will be surrounded with @ just to be in sync
 		LOGGER.debug("Param Hash is " + paramHash);
 
-		Enumeration keys = paramHash.keys();
-		while(keys.hasMoreElements()) {
-			
-			String key = (String)keys.nextElement();
-			String value = (String)paramHash.get(key);
+		Iterator keys = paramHash.keySet().iterator();
+		while(keys.hasNext()) {
+			String key = (String)keys.next();
+			String value = paramHash.get(key).get(0) + "";
 			LOGGER.debug("Replacing " + key + "<<>>" + value + query.indexOf("@" + key + "@"));
 			if(!value.equalsIgnoreCase(Constants.EMPTY))
 				query = query.replace("@" + key + "@", value);
@@ -327,8 +338,10 @@ public class Utility {
 		}
 		
 		String query = DIHelper.getInstance().getProperty(Constants.SUBJECT_TYPE_QUERY);
-		Hashtable<String, String> paramHash = new Hashtable<String, String>();
-		paramHash.put("ENTITY", subjectURI);
+		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
+		List<Object> values = new ArrayList<Object>();
+		values.add(subjectURI);
+		paramHash.put("ENTITY", values);
 		query = Utility.fillParam(query,  paramHash);
 
 		ISelectWrapper sjw = WrapperManager.getInstance().getSWrapper(engine, query);
@@ -980,11 +993,12 @@ public class Utility {
 
 	/**
 	 * Gets the vector of uris from first variable returned from the query
+	 * @param raw TODO
 	 * @param sparql
 	 * @param eng
 	 * @return Vector of uris associated with first variale returned from the query
 	 */
-	public static Vector<String> getVectorOfReturn(String query,IEngine engine){
+	public static Vector<String> getVectorOfReturn(String query,IEngine engine, Boolean raw){
 		Vector<String> retString = new Vector<String>();
 		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(engine, query);
 //		wrap.execute();
@@ -993,7 +1007,12 @@ public class Utility {
 
 		while (wrap.hasNext()) {
 			ISelectStatement bs = wrap.next();
-			Object value = bs.getRawVar(names[0]);
+			Object value = null;
+			if(raw){
+				value = bs.getRawVar(names[0]);
+			} else {
+				value = bs.getVar(names[0]);
+			}
 			String val = null;
 			if(value instanceof Binding){
 				val = ((Value)((Binding) value).getValue()).stringValue();
@@ -1015,23 +1034,141 @@ public class Utility {
 		return output;
 	}
 
-	public static Hashtable<String, Object> cleanParamsForRDBMS(
-			Hashtable<String, Object> paramHash) {
+	public static Map<String, List<Object>> cleanParamsForRDBMS(Map<String, List<Object>> paramHash) {
 		// TODO Auto-generated method stub
 		// really simple, I am runnign the keys and then I will have strip the instance values out
-		Enumeration <String> keys = paramHash.keys();
-		while(keys.hasMoreElements())
+		Iterator <String> keys = paramHash.keySet().iterator();
+		while(keys.hasNext())
 		{
-			String singleKey = keys.nextElement();
-			String value = paramHash.get(singleKey) + "";
-			if(value.startsWith("http:") || value.contains(":"))
-			{
-				value = getInstanceName(value);
-				paramHash.put(singleKey, value);
+			String singleKey = keys.next();
+			List<Object> valueList = paramHash.get(singleKey);
+			List<Object> newValuesList = new Vector<Object>();
+			for(int i = 0; i < valueList.size(); i++) {
+				String value = valueList.get(i) + "";
+				if(value.startsWith("http:") || value.contains(":")) {
+					value = getInstanceName(value);
+				}
+				newValuesList.add(value);
 			}
+			paramHash.put(singleKey, newValuesList);
 		}
 		
 		return paramHash;
 	}
 	
+	public static IPlaySheet getPlaySheet(IEngine engine, String psName){
+		LOGGER.info("Trying to get playsheet for " + psName);
+		String psClassName = null;
+		if(engine != null) {
+			psClassName = engine.getProperty(psName);
+		}
+		if(psClassName == null){
+			psClassName = (String) DIHelper.getInstance().getLocalProp(psName);
+		}
+		if(psClassName == null){
+			psClassName = (String) DIHelper.getInstance().getProperty(psName);
+		}
+		if(psClassName == null){
+			psClassName = PlaySheetRDFMapBasedEnum.getClassFromName(psName);
+		}
+		if(psClassName == null || psClassName.isEmpty()){
+			psClassName = psName;
+		}
+		
+		IPlaySheet playSheet = (IPlaySheet) getClassFromString(psClassName);
+		
+		return playSheet;
+	}
+	
+	public static IDataMaker getDataMaker(IEngine engine, String dataMakerName){
+		LOGGER.info("Trying to get data maker for " + dataMakerName);
+		String dmClassName = null;
+		if(engine != null) {
+			dmClassName = engine.getProperty(dataMakerName);
+		}
+		if(dmClassName == null){
+			dmClassName = (String) DIHelper.getInstance().getLocalProp(dataMakerName);
+		}
+		if(dmClassName == null){
+			dmClassName = (String) DIHelper.getInstance().getProperty(dataMakerName);
+		}
+		if(dmClassName == null){
+			dmClassName = PlaySheetRDFMapBasedEnum.getClassFromName(dataMakerName);
+		}
+		if(dmClassName == null || dmClassName.isEmpty()){
+			dmClassName = dataMakerName;
+		}
+		
+		IDataMaker dm = (IDataMaker) getClassFromString(dmClassName);
+
+		return dm;
+	}
+	
+	public static IPlaySheet preparePlaySheet(IEngine engine, String sparql, String psName, String playSheetTitle, String insightID)
+	{
+		IPlaySheet playSheet = getPlaySheet(engine, psName);
+//		QuestionPlaySheetStore.getInstance().put(insightID,  playSheet);
+		playSheet.setQuery(sparql);
+		playSheet.setRDFEngine(engine);
+		playSheet.setQuestionID(insightID);
+		playSheet.setTitle(playSheetTitle);
+		return playSheet;
+	}
+	
+	public static ISEMOSSTransformation getTransformation(IEngine engine, String transName){
+		LOGGER.info("Trying to get transformation for " + transName);
+		String transClassName = (String) DIHelper.getInstance().getLocalProp(transName);
+		if(transClassName == null){
+			transClassName = (String) DIHelper.getInstance().getProperty(transName);
+		}
+		if(transClassName == null || transClassName.isEmpty()){
+			transClassName = transName;
+		}
+		
+		ISEMOSSTransformation transformation = (ISEMOSSTransformation) getClassFromString(transClassName);
+		return transformation;
+	}
+	
+	public static ISEMOSSAction getAction(IEngine engine, String actionName){
+		LOGGER.info("Trying to get action for " + actionName);
+		String actionClassName = (String) DIHelper.getInstance().getLocalProp(actionName);
+		if(actionClassName == null){
+			actionClassName = (String) DIHelper.getInstance().getProperty(actionName);
+		}
+		if(actionClassName == null || actionClassName.isEmpty()){
+			actionClassName = actionName;
+		}
+		
+		ISEMOSSAction action = (ISEMOSSAction) getClassFromString(actionClassName);
+		return action;
+	}
+	
+	public static Object getClassFromString(String className){
+		Object obj = null;
+		try {
+			obj = Class.forName(className).getConstructor(null).newInstance(null);
+		} catch (ClassNotFoundException ex) {
+			ex.printStackTrace();
+			LOGGER.fatal("No such class: "+ className);
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+			LOGGER.fatal("Failed instantiation: "+ className);
+		} catch (IllegalAccessException e) {
+			LOGGER.fatal("Illegal Access: "+ className);
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			LOGGER.fatal("Illegal argument: "+ className);
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			LOGGER.fatal("Invoation exception: "+ className);
+			e.printStackTrace();
+		} catch (NoSuchMethodException e) {
+			LOGGER.fatal("No constructor: "+ className);
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			LOGGER.fatal("Security exception: "+ className);
+			e.printStackTrace();
+		}
+		return obj;
+	}
 }

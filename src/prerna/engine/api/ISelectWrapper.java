@@ -27,9 +27,14 @@
  *******************************************************************************/
 package prerna.engine.api;
 
+import prerna.algorithm.api.ITableDataFrame;
+
 public interface ISelectWrapper extends IEngineWrapper {
 
 	public ISelectStatement next();
 	
 	public String [] getVariables();
+	
+	public ITableDataFrame getTableDataFrame();
+	
 }

@@ -28,8 +28,11 @@
 package prerna.ui.main.listener.specific.tap;
 
 import java.awt.event.ActionEvent;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -128,11 +131,13 @@ public class DHMSMFunctionalAreaSelectorListener extends AbstractListener {
 		Vector<String> capabilities = new Vector<String>();
 		if(sparqlQuery==null)
 			return capabilities;
-		Hashtable paramTable = new Hashtable();
+		Map<String, List<Object>> paramTable = new Hashtable<String, List<Object>>();
 		String entityNS = DIHelper.getInstance().getProperty("Capability"+Constants.CLASS);
-		paramTable.put(Constants.ENTITY, entityNS );
+		List<Object> filterList = new ArrayList<Object>();
+		filterList.add(entityNS);
+		paramTable.put(Constants.ENTITY, filterList);
 		sparqlQuery = Utility.fillParam(sparqlQuery, paramTable);	
-		capabilities = Utility.getVectorOfReturn(sparqlQuery, engine);
+		capabilities = Utility.getVectorOfReturn(sparqlQuery, engine, true);
 		Hashtable paramHash = Utility.getInstanceNameViaQuery(capabilities);
 		Set nameC = paramHash.keySet();
 		capabilities = new Vector(nameC);

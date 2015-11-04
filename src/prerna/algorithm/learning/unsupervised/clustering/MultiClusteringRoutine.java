@@ -8,19 +8,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import prerna.algorithm.api.IAnalyticRoutine;
+import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.util.Cluster;
 import prerna.om.SEMOSSParam;
 
-public class MultiClusteringRoutine implements IAnalyticRoutine {
+public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 
 	protected List<SEMOSSParam> options;
-	protected static final String MIN_NUM_CLUSTERS = "minNumClusters";
-	protected static final String MAX_NUM_CLUSTERS = "maxNumClusters";
-	protected static final String INSTANCE_INDEX_KEY = "instanceIdx";
-	protected static final String DISTANCE_MEASURE	= "distanceMeasure";
-	protected static final String SKIP_ATTRIBUTES	= "skipAttributes";
+	public static final String MIN_NUM_CLUSTERS = "minNumClusters";
+	public static final String MAX_NUM_CLUSTERS = "maxNumClusters";
+	public static final String INSTANCE_INDEX_KEY = "instanceIdx";
+	public static final String DISTANCE_MEASURE	= "distanceMeasure";
+	public static final String SKIP_ATTRIBUTES	= "skipAttributes";
 
 	protected String clusterColumnID = "";
 
@@ -60,9 +60,9 @@ public class MultiClusteringRoutine implements IAnalyticRoutine {
 	@Override
 	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
 		// values defined in options
-		int start = (int) options.get(0).getSelected();
-		int end = (int) options.get(1).getSelected();
-		this.instanceIndex = (int) options.get(2).getSelected();
+		int start = ((Number) options.get(0).getSelected()).intValue();
+		int end = ((Number) options.get(1).getSelected()).intValue();
+		this.instanceIndex = ((Number) options.get(2).getSelected()).intValue();
 		
 		this.attributeNames = data[0].getColumnHeaders();
 		this.instanceType = attributeNames[instanceIndex];

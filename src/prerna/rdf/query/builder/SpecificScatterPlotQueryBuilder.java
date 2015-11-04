@@ -29,7 +29,8 @@ package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -49,7 +50,7 @@ public class SpecificScatterPlotQueryBuilder extends AbstractSpecificQueryBuilde
 	String zAxisMathFunc;
 	String seriesColName;
 	
-	public SpecificScatterPlotQueryBuilder(String labelColName, String xAxisColName, String yAxisColName, String zAxisColName, String xAxisMathFunc, String yAxisMathFunc, String zAxisMathFunc, String seriesColName, ArrayList<Hashtable<String, String>> parameters, SEMOSSQuery baseQuery) {
+	public SpecificScatterPlotQueryBuilder(String labelColName, String xAxisColName, String yAxisColName, String zAxisColName, String xAxisMathFunc, String yAxisMathFunc, String zAxisMathFunc, String seriesColName, List<Map<String, String>> parameters, SEMOSSQuery baseQuery) {
 		super(parameters, baseQuery);
 		this.labelColName = labelColName;
 		this.xAxisColName = xAxisColName;

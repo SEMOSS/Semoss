@@ -101,7 +101,7 @@ public interface IEngine extends IExplorable{
 	 * @param type the type that which all returned instances must be
 	 * @return the Vector of Strings representing all of the instance names of that type
 	*/
-	public Vector<String> getEntityOfType(String type);
+	public Vector<Object> getEntityOfType(String type);
 	
 	/**
 	 * Returns whether or not an engine is currently connected to the data store.  The connection becomes true when {@link #openDB(String)} 

@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.ui.components.playsheets;
 
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -39,7 +38,6 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.CentralityCalculator;
 import prerna.algorithm.impl.SubclassingMapGenerator;
-import prerna.algorithm.learning.unsupervised.clustering.LocalOutlierFactorAlgorithm;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -80,7 +78,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		final String eccentricityQuery = "SELECT DISTINCT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
 
 		LOGGER.info("Getting the list of concepts...");
-		Vector<String> conceptList = Utility.getVectorOfReturn(getConceptListQuery, engine);
+		Vector<String> conceptList = Utility.getVectorOfReturn(getConceptListQuery, engine, true);
 		Hashtable<String, Hashtable<String, Object>> allData = constructDataHash(conceptList);
 
 		LOGGER.info("Getting the number of instances for each concept...");
@@ -98,10 +96,10 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		allData = addToAllData(edgeCountsHash, "y", allData);
 
 		LOGGER.info("Generating metamodel graph for centrality measures...");
-		GraphPlaySheet graphPS = CentralityCalculator.createMetamodel(baseDataEngine.getRc(), eccentricityQuery);
+		GraphPlaySheet graphPS = CentralityCalculator.createMetamodel(engine, eccentricityQuery);
 		LOGGER.info("Extending metamodel graph for subclassed concepts...");
-		Hashtable<String, SEMOSSVertex> vertStore  = graphPS.getGraphData().getVertStore();
-		subclassGen.updateVertAndEdgeStoreForSubclassing(vertStore, graphPS.getGraphData().getEdgeStore());
+		Hashtable<String, SEMOSSVertex> vertStore  = graphPS.getDataMaker().getVertStore();
+		subclassGen.updateVertAndEdgeStoreForSubclassing(vertStore, graphPS.getDataMaker().getEdgeStore());
 		vertStore = subclassGen.getVertStore();
 		
 		LOGGER.info("Calculating centrality values for each concepts...");
@@ -123,9 +121,9 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		}
 		bindings = bindings.concat(" }");
 		specificInsightQuery = specificInsightQuery.replace("@ENTITY_BINDINGS@", bindings);
-		RDFFileSesameEngine insightEngine = ((AbstractEngine)engine).getInsightBaseXML();
-		LOGGER.info("Adding number of insights for each concept...");
-		allData = addToAllData(insightEngine, specificInsightQuery, "heat", allData);
+//		RDFFileSesameEngine insightEngine = ((AbstractEngine)engine).getInsightBaseXML();
+//		LOGGER.info("Adding number of insights for each concept...");
+//		allData = addToAllData(insightEngine, specificInsightQuery, "heat", allData);
 
 		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
 		allHash.put("dataSeries", allData.values());
@@ -235,28 +233,28 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		final String getInsightsWithoutParamsQuery = "SELECT DISTINCT ?perspective ?question ?viz WHERE { BIND(<@ENGINE_NAME@> AS ?engine) {?perspective <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Perspective>} {?engine <http://semoss.org/ontologies/Relation/Engine:Perspective> ?perspective} {?insight <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Insight>} {?perspective <http://semoss.org/ontologies/Relation/Perspective:Insight> ?insight} {?insight <http://semoss.org/ontologies/Relation/Contains/Label> ?question} {?insight <http://semoss.org/ontologies/Relation/Contains/Layout> ?viz} MINUS{ {?insight <INSIGHT:PARAM> ?param} {?param <PARAM:TYPE> ?entity} } }";
 		
 		List<Hashtable<String, String>> retList = new ArrayList<Hashtable<String, String>>();
-		
-		String engineName = engine.getEngineName();
-		RDFFileSesameEngine insightEngine = ((AbstractEngine)engine).getInsightBaseXML();
-		String query = getInsightsWithoutParamsQuery.replace("@ENGINE_NAME@", "http://semoss.org/ontologies/Concept/Engine/".concat(engineName));
-				
-		ISelectWrapper sjsw = Utility.processQuery(insightEngine, query);
-		String[] names = sjsw.getVariables();
-		String param1 = names[0];
-		String param2 = names[1];
-		String param3 = names[2];
-		
-		String removeToGetPerspective = engineName.concat(":");
-		while(sjsw.hasNext()) {
-			ISelectStatement sjss = sjsw.next();
-			Hashtable<String, String> questionHash = new Hashtable<String, String>();
-			questionHash.put("database", engineName);
-			questionHash.put("keyword", ""); // no keyword since this is returning questions without parameters
-			questionHash.put("perspective", sjss.getVar(param1).toString().replace(removeToGetPerspective, ""));
-			questionHash.put("question", sjss.getVar(param2).toString());
-			questionHash.put("viz", sjss.getVar(param3).toString());
-			retList.add(questionHash);
-		}
+//		
+//		String engineName = engine.getEngineName();
+//		RDFFileSesameEngine insightEngine = ((AbstractEngine)engine).getInsightBaseXML();
+//		String query = getInsightsWithoutParamsQuery.replace("@ENGINE_NAME@", "http://semoss.org/ontologies/Concept/Engine/".concat(engineName));
+//				
+//		ISelectWrapper sjsw = Utility.processQuery(insightEngine, query);
+//		String[] names = sjsw.getVariables();
+//		String param1 = names[0];
+//		String param2 = names[1];
+//		String param3 = names[2];
+//		
+//		String removeToGetPerspective = engineName.concat(":");
+//		while(sjsw.hasNext()) {
+//			ISelectStatement sjss = sjsw.next();
+//			Hashtable<String, String> questionHash = new Hashtable<String, String>();
+//			questionHash.put("database", engineName);
+//			questionHash.put("keyword", ""); // no keyword since this is returning questions without parameters
+//			questionHash.put("perspective", sjss.getVar(param1).toString().replace(removeToGetPerspective, ""));
+//			questionHash.put("question", sjss.getVar(param2).toString());
+//			questionHash.put("viz", sjss.getVar(param3).toString());
+//			retList.add(questionHash);
+//		}
 		
 		return retList;
 	}
@@ -266,28 +264,28 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		
 		List<Hashtable<String, String>> retList = new ArrayList<Hashtable<String, String>>();
 		
-		String engineName = engine.getEngineName();
-		RDFFileSesameEngine insightEngine = ((AbstractEngine)engine).getInsightBaseXML();
-		String query = getInsightsWithParamsQuery.replace("@ENGINE_NAME@", "http://semoss.org/ontologies/Concept/Engine/".concat(engineName));
-		query = query.replace("@ENTITY_TYPE@", typeURI);
-				
-		ISelectWrapper sjsw = Utility.processQuery(insightEngine, query);
-		String[] names = sjsw.getVariables();
-		String param1 = names[0];
-		String param2 = names[1];
-		String param3 = names[2];
-
-		String removeToGetPerspective = engineName.concat(":");
-		while(sjsw.hasNext()) {
-			ISelectStatement sjss = sjsw.next();
-			Hashtable<String, String> questionHash = new Hashtable<String, String>();
-			questionHash.put("database", engineName);
-			questionHash.put("keyword", typeURI);
-			questionHash.put("perspective", sjss.getVar(param1).toString().replace(removeToGetPerspective, ""));
-			questionHash.put("question", sjss.getVar(param2).toString());
-			questionHash.put("viz", sjss.getVar(param3).toString());
-			retList.add(questionHash);
-		}
+//		String engineName = engine.getEngineName();
+//		RDFFileSesameEngine insightEngine = ((AbstractEngine)engine).getInsightBaseXML();
+//		String query = getInsightsWithParamsQuery.replace("@ENGINE_NAME@", "http://semoss.org/ontologies/Concept/Engine/".concat(engineName));
+//		query = query.replace("@ENTITY_TYPE@", typeURI);
+//				
+//		ISelectWrapper sjsw = Utility.processQuery(insightEngine, query);
+//		String[] names = sjsw.getVariables();
+//		String param1 = names[0];
+//		String param2 = names[1];
+//		String param3 = names[2];
+//
+//		String removeToGetPerspective = engineName.concat(":");
+//		while(sjsw.hasNext()) {
+//			ISelectStatement sjss = sjsw.next();
+//			Hashtable<String, String> questionHash = new Hashtable<String, String>();
+//			questionHash.put("database", engineName);
+//			questionHash.put("keyword", typeURI);
+//			questionHash.put("perspective", sjss.getVar(param1).toString().replace(removeToGetPerspective, ""));
+//			questionHash.put("question", sjss.getVar(param2).toString());
+//			questionHash.put("viz", sjss.getVar(param3).toString());
+//			retList.add(questionHash);
+//		}
 		
 		return retList;
 	}
@@ -389,58 +387,58 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 			return new ArrayList<Hashtable<String, Object>>();
 		}
 		
-		LocalOutlierFactorAlgorithm alg = new LocalOutlierFactorAlgorithm(results, names);
-		alg.setK(25);
-		alg.execute();
-		
-		results = alg.getMasterTable();
-		double[] lop = alg.getLop();
-		
-		LOGGER.info("Ordering the probabilities to get the top results...");
-		int i;
-		length = lop.length;
-		// loop through and order all values and indices
-		int[] indexOrder = new int[length];
-		for(i = 0; i < length; i++) {
-			indexOrder[i] = i;
-		}	
-		double tempProb;
-		int tempIndex;
-		boolean flag = true;
-		while(flag) {
-			flag = false;
-			for(i = 0; i < length - 1; i++) {
-				if(lop[i] < lop[i+1]){
-					tempProb = lop[i];
-					lop[i] = lop[i+1];
-					lop[i+1] = tempProb;
-					// change order of index value
-					tempIndex = indexOrder[i];
-					indexOrder[i] = indexOrder[i+1];
-					indexOrder[i+1] = tempIndex;
-					flag = true;
-				}
-			}
-		}
-		
-				
-		int numResults = 10;
+//		LocalOutlierFactorAlgorithm alg = new LocalOutlierFactorAlgorithm(results, names);
+//		alg.setK(25);
+//		alg.execute();
+//		
+//		results = alg.getMasterTable();
+//		double[] lop = alg.getLop();
+//		
+//		LOGGER.info("Ordering the probabilities to get the top results...");
+//		int i;
+//		length = lop.length;
+//		// loop through and order all values and indices
+//		int[] indexOrder = new int[length];
+//		for(i = 0; i < length; i++) {
+//			indexOrder[i] = i;
+//		}	
+//		double tempProb;
+//		int tempIndex;
+//		boolean flag = true;
+//		while(flag) {
+//			flag = false;
+//			for(i = 0; i < length - 1; i++) {
+//				if(lop[i] < lop[i+1]){
+//					tempProb = lop[i];
+//					lop[i] = lop[i+1];
+//					lop[i+1] = tempProb;
+//					// change order of index value
+//					tempIndex = indexOrder[i];
+//					indexOrder[i] = indexOrder[i+1];
+//					indexOrder[i+1] = tempIndex;
+//					flag = true;
+//				}
+//			}
+//		}
+//		
+//				
+//		int numResults = 10;
 		List<Hashtable<String, Object>> retList = new ArrayList<Hashtable<String, Object>>();
-		DecimalFormat df = new DecimalFormat("#%");
-		i = 0;
-		for(; i < numResults; i++) {
-			int index = indexOrder[i];
-			Hashtable<String, Object> instancesHash = new Hashtable<String, Object>();
-			String instanceURI = results.get(index)[0].toString();
-			instancesHash.put("NodeTypeURI", typeURI);
-			instancesHash.put("NodeTypeName", type);
-			instancesHash.put("InstanceURI", instanceURI);
-			instancesHash.put("InstanceName", Utility.getInstanceName(instanceURI));
-			instancesHash.put("Outlier_Prob", df.format(lop[i]));
-			retList.add(instancesHash);
-		}
-		
-		LOGGER.info("Passing to monolith instance...");
+//		DecimalFormat df = new DecimalFormat("#%");
+//		i = 0;
+//		for(; i < numResults; i++) {
+//			int index = indexOrder[i];
+//			Hashtable<String, Object> instancesHash = new Hashtable<String, Object>();
+//			String instanceURI = results.get(index)[0].toString();
+//			instancesHash.put("NodeTypeURI", typeURI);
+//			instancesHash.put("NodeTypeName", type);
+//			instancesHash.put("InstanceURI", instanceURI);
+//			instancesHash.put("InstanceName", Utility.getInstanceName(instanceURI));
+//			instancesHash.put("Outlier_Prob", df.format(lop[i]));
+//			retList.add(instancesHash);
+//		}
+//		
+//		LOGGER.info("Passing to monolith instance...");
 		return retList;
 	}
 	

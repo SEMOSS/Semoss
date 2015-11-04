@@ -31,12 +31,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.Calendar;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Properties;
 
 import javax.swing.DefaultComboBoxModel;
@@ -45,14 +41,17 @@ import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JList;
 
+import org.openrdf.repository.RepositoryException;
+import org.openrdf.rio.RDFHandlerException;
+
 import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
-import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.MasterDBHelper;
-import prerna.nameserver.MasterDatabaseURIs;
+import prerna.poi.main.BaseDatabaseCreator;
 import prerna.rdf.engine.wrappers.WrapperManager;
 
 /**
@@ -68,14 +67,14 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 	 */
 	@Override
 	public void process(String fileName) {
-		loadNewDB(fileName, true);
+		loadNewDB(fileName, false);
 	}
 
 	/**
 	 * Returns an array of strings naming the files in the directory. Goes through list and loads an existing database.
 	 */
-	public void loadExistingDB(String fileName, boolean checkForLocalMaster) {
-		loadNewDB(fileName, checkForLocalMaster);
+	public void loadExistingDB(String fileName, boolean isLocal) {
+		loadNewDB(fileName, isLocal);
 	}
 
 	/**
@@ -84,7 +83,7 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 	 * @param Specifies
 	 *            properties to load
 	 */
-	public void loadNewDB(String newFile, boolean checkForLocalMaster) {
+	public void loadNewDB(String newFile, boolean isLocal) {
 		FileInputStream fileIn = null;
 		try {
 			Properties prop = new Properties();
@@ -95,16 +94,22 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 			String engineName = prop.getProperty(Constants.ENGINE);
 			// check if hidden database
 			boolean hidden = (prop.getProperty(Constants.HIDDEN_DATABASE) != null && Boolean.parseBoolean(prop.getProperty(Constants.HIDDEN_DATABASE)));
-			if (!hidden) {
+			if(isLocal && !hidden) {
 				JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 				DefaultListModel listModel = (DefaultListModel) list.getModel();
 				listModel.addElement(engineName);
 				// list.setModel(listModel);
 				list.setSelectedIndex(0);
 				list.repaint();
-
+			} else if(!isLocal && !hidden) {
+				JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+				DefaultListModel listModel = (DefaultListModel) list.getModel();
+				listModel.addElement(engineName);
+				// list.setModel(listModel);
+				list.setSelectedIndex(0);
+				list.repaint();
 				addToLocalMaster(engineName);
-			} else {
+			} else if(!isLocal){ // never add local master to itself...
 				DeleteFromMasterDB deleter = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 				deleter.deleteEngine(engineName);
 			}
@@ -208,11 +213,27 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 		}
 	}
 
+//	private void clearLocalDB() {
+//		BigDataEngine localDB = (BigDataEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
+//		String query = "SELECT DISTINCT ?S ?P ?O WHERE {?S ?P ?O}";
+//		List<Object[]> results = new ArrayList<Object[]>();
+//		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(localDB, query);
+//		String[] names = wrap.getVariables();
+//		while(wrap.hasNext()) {
+//			ISelectStatement ss = wrap.next();
+//			boolean isConcept = false;
+//			if(ss.getRawVar(names[2]).toString().startsWith("http://")) {
+//				isConcept = true;
+//			}
+//			results.add(new Object[]{ss.getRawVar(names[0]).toString(), ss.getRawVar(names[1]).toString(), ss.getRawVar(names[2]).toString(), isConcept});
+//		}
+//		
+//		for(Object[] row : results) {
+//			localDB.doAction(ACTION_TYPE.REMOVE_STATEMENT, row);
+//		}
+//	}
+
 	private void addToLocalMaster(String engineName) {
-		if(engineName.equals(Constants.LOCAL_MASTER_DB_NAME)) {
-			return;
-		}
-		// first check if local master contains engine
 		IEngine localMaster = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
 		if(localMaster == null) {
 			throw new NullPointerException("Unable to find local master database in DIHelper.");
@@ -222,42 +243,64 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 			throw new NullPointerException("Unable to find engine " + engineName + " in DIHelper.");
 		}
 
-		Map<String, Date> engines = MasterDBHelper.getEngineTimestamps(localMaster);
-		if(engines.containsKey(engineName)) {
-			DateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ENGLISH);
-
-			// engine present, check xml if changes exist
-			String engineTimeStampQuery = "SELECT DISTINCT ?Time WHERE { {<" + MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName + "> <http://semoss.org/ontologies/Relation/Contains/TimeStamp> ?Time} }";
-			RDFFileSesameEngine insightXML = ((AbstractEngine) engineToAdd).getInsightBaseXML();
-			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(insightXML, engineTimeStampQuery);
-			String[] timeVar = wrapper.getVariables();
-			Date timeInXML = null;
-			while(wrapper.hasNext()) {
-				try {
-					timeInXML = format.parse(wrapper.next().getVar(timeVar[0]).toString());
-				} catch (ParseException e) {
-					e.printStackTrace();
-				}
+		String engineURL = "http://semoss.org/ontologies/Concept/Engine/" + Utility.cleanString(engineName, true);
+		String localDbQuery = "SELECT DISTINCT ?TIMESTAMP WHERE {<" + engineURL + "> <" + BaseDatabaseCreator.TIME_KEY + "> ?TIMESTAMP}";
+		String engineQuery = "SELECT DISTINCT ?TIMESTAMP WHERE {<" + BaseDatabaseCreator.TIME_URL + "> <" + BaseDatabaseCreator.TIME_KEY + "> ?TIMESTAMP}";
+		
+		String localDbTimeForEngine = null;
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(localMaster, localDbQuery);
+		String[] names = wrapper.getVariables();
+		while(wrapper.hasNext()) {
+			ISelectStatement ss = wrapper.next();
+			localDbTimeForEngine = ss.getVar(names[0]) + "";
+		}
+		
+		String engineDbTime = null;
+		ISelectWrapper wrapper2 = WrapperManager.getInstance().getSWrapper( ((AbstractEngine)engineToAdd).getBaseDataEngine(), engineQuery);
+		String[] names2 = wrapper2.getVariables();
+		while(wrapper2.hasNext()) {
+			ISelectStatement ss = wrapper2.next();
+			engineDbTime = ss.getVar(names2[0]) + "";
+		}
+		
+		if(engineDbTime == null) {
+			DateFormat dateFormat = BaseDatabaseCreator.getFormatter();
+			Calendar cal = Calendar.getInstance();
+			engineDbTime = dateFormat.format(cal.getTime());
+			((AbstractEngine)engineToAdd).getBaseDataEngine().doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{BaseDatabaseCreator.TIME_URL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
+			((AbstractEngine)engineToAdd).getBaseDataEngine().commit();
+			try {
+				((AbstractEngine)engineToAdd).getBaseDataEngine().exportDB();
+			} catch (RepositoryException e) {
+				e.printStackTrace();
+			} catch (RDFHandlerException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
-			// if dates not equal, add
-			if(engines.get(engineName).getTime() != timeInXML.getTime()) {
-				DeleteFromMasterDB deleter = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
-				deleter.deleteEngine(engineName); //TODO: enable adding the IEngine directly like AddToMasterDB
-
-				localMaster.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.TIME_STAMP_URI, engines.get(engineName), false});
-				localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.TIME_STAMP_URI, timeInXML, false});
-
-				AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
-				adder.registerEngineLocal(engineToAdd);
-			}
-		} else {
-			// engine not present, add to local master
+		}
+		
+		if(localDbTimeForEngine == null) {
+			localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
+			
+			AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+			adder.registerEngineLocal(engineToAdd);
+			localMaster.commit();
+		} else if(!localDbTimeForEngine.equals(engineDbTime)) {
+			localMaster.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, localDbTimeForEngine, false});
+			localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
+			
+			//if it has a time stamp, it means it was previously in local master
+			//need to delete current information and readd
+			DeleteFromMasterDB remover = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+			remover.deleteEngine(engineName);
+			
 			AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 			adder.registerEngineLocal(engineToAdd);
 			localMaster.commit();
 		}
 	}
-
+	
 	/**
 	 * Used in the starter class for processing SMSS files.
 	 */
@@ -273,13 +316,15 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 			fileNames[localMasterIndex] = temp;
 			localMasterIndex = 0;
 		}
-		boolean addToLocal = true;
+		boolean isLocal = false;
 		for (int fileIdx = 0; fileIdx < fileNames.length; fileIdx++) {
 			if(fileIdx == localMasterIndex) {
-				addToLocal = false;
+				isLocal = true;
+			} else {
+				isLocal = false;
 			}
 			try {
-				loadExistingDB(fileNames[fileIdx], addToLocal);
+				loadExistingDB(fileNames[fileIdx], isLocal);
 			} catch (RuntimeException ex) {
 				ex.printStackTrace();
 				logger.fatal("Engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);

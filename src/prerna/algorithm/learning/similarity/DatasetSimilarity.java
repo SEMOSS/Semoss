@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import prerna.algorithm.api.IAnalyticRoutine;
+import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.util.Cluster;
 import prerna.algorithm.learning.util.IClusterDistanceMode;
@@ -44,7 +44,7 @@ import prerna.math.SimilarityWeighting;
 import prerna.om.SEMOSSParam;
 import prerna.util.ArrayUtilityMethods;
 
-public class DatasetSimilarity implements IAnalyticRoutine {
+public class DatasetSimilarity implements IAnalyticTransformationRoutine {
 
 	private static final String INSTANCE_INDEX = "instanceIndex";
 	protected static final String DISTANCE_MEASURE = "distanceMeasure";

@@ -76,7 +76,7 @@ public class SelfOrganizingMap3DPlotPlaySheet extends BrowserPlaySheet {
 		}
 		selectedOptions.put(options.get(8).getName(), skipAttributes);
 		alg.setSelectedOptions(selectedOptions);
-		dataFrame.performAction(alg);
+		dataFrame.performAnalyticTransformation(alg);
 		this.columnHeaders = dataFrame.getColumnHeaders();
 
 		coordinates = SelfOrganizingMapGridViewer.getGridCoordinates(alg.getGridLength(), alg.getGridWidth(), alg.getNumInstancesInGrid());

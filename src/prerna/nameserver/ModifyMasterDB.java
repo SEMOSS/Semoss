@@ -47,6 +47,9 @@ public abstract class ModifyMasterDB {
 	public ModifyMasterDB(String masterDBName) {
 		this.masterDBName = masterDBName;
 		this.masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
+		if(this.masterEngine == null) {
+			throw new NullPointerException("Unable to find master database.");
+		}
 	}
 
 	public String getMasterDBName() {

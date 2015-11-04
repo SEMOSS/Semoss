@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import prerna.algorithm.api.IAnalyticRoutine;
+import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.util.DuplicationReconciliation;
 import prerna.algorithm.learning.util.DuplicationReconciliation.ReconciliationMode;
@@ -35,13 +35,13 @@ import prerna.ds.BTreeDataFrame;
 import prerna.om.SEMOSSParam;
 import prerna.util.ArrayUtilityMethods;
 
-public class FastOutlierDetection implements IAnalyticRoutine {
+public class FastOutlierDetection implements IAnalyticTransformationRoutine {
 
-	private static final String NUM_SAMPLE_SIZE = "numSampleSize";
-	private static final String INSTANCE_INDEX = "instanceIndex";
-	private static final String SKIP_ATTRIBUTES	= "skipAttributes";
-	private static final String NUMBER_OF_RUNS	= "numRuns";
-	private static final String DUPLICATION_RECONCILIATION	= "dupReconciliation";
+	public static final String NUM_SAMPLE_SIZE = "numSampleSize";
+	public static final String INSTANCE_INDEX = "instanceIndex";
+	public static final String SKIP_ATTRIBUTES	= "skipAttributes";
+	public static final String NUMBER_OF_RUNS	= "numRuns";
+	public static final String DUPLICATION_RECONCILIATION	= "dupReconciliation";
 
 	private static Random random = new Random();
 
@@ -92,9 +92,9 @@ public class FastOutlierDetection implements IAnalyticRoutine {
 	 */
 	@Override
 	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
-		this.instanceIndex = (int) options.get(0).getSelected();
-		this.numSubsetSize = (int) options.get(1).getSelected();
-		this.numRuns = (int) options.get(2).getSelected();
+		this.instanceIndex = ((Number) options.get(0).getSelected()).intValue();
+		this.numSubsetSize = ((Number) options.get(1).getSelected()).intValue();
+		this.numRuns = ((Number) options.get(2).getSelected()).intValue();
 		this.skipAttributes = (List<String>) options.get(3).getSelected();
 		this.dups = (Map<String, DuplicationReconciliation>) options.get(4).getSelected();
 

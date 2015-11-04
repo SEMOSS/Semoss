@@ -34,13 +34,13 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.IAnalyticRoutine;
+import prerna.algorithm.api.IAnalyticActionRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.math.BarChart;
 import prerna.om.SEMOSSParam;
 import prerna.util.ArrayUtilityMethods;
 
-public class CorrelationAlgorithm implements IAnalyticRoutine {
+public class CorrelationAlgorithm implements IAnalyticActionRoutine {
 
 	//TODO: this approach was never finished!!!
 	private static final Logger LOGGER = LogManager.getLogger(CorrelationAlgorithm.class.getName());
@@ -62,7 +62,7 @@ public class CorrelationAlgorithm implements IAnalyticRoutine {
 	}
 
 	@Override
-	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
+	public void runAlgorithm(ITableDataFrame... data) {
 		dataFrame = data[0];
 		this.names = dataFrame.getColumnHeaders();
 		this.isNumeric = dataFrame.isNumeric();
@@ -135,8 +135,6 @@ public class CorrelationAlgorithm implements IAnalyticRoutine {
 				correlation[i][j] = covariance[i][j] / (standardDev[i] * standardDev[j]);
 			}
 		}
-				
-		return null;
 	}
 	
 	/**
@@ -265,12 +263,6 @@ public class CorrelationAlgorithm implements IAnalyticRoutine {
 	}
 
 	@Override
-	public List<String> getChangedColumns() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public Map<String, Object> getResultMetadata() {
 		// TODO Auto-generated method stub
 		return null;
@@ -286,6 +278,12 @@ public class CorrelationAlgorithm implements IAnalyticRoutine {
 
 	public double[][] getCorrelation() {
 		return correlation;
+	}
+
+	@Override
+	public Object getAlgorithmOutput() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
