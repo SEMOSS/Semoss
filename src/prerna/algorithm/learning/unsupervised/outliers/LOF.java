@@ -38,7 +38,7 @@ import java.util.Set;
 
 import org.apache.commons.math3.special.Erf;
 
-import prerna.algorithm.api.IAnalyticRoutine;
+import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.util.DuplicationReconciliation;
 import prerna.algorithm.learning.util.DuplicationReconciliation.ReconciliationMode;
@@ -47,12 +47,12 @@ import prerna.math.StatisticsUtilityMethods;
 import prerna.om.SEMOSSParam;
 import prerna.util.ArrayUtilityMethods;
 
-public class LOF implements IAnalyticRoutine {
+public class LOF implements IAnalyticTransformationRoutine {
 
-	private static final String K_NEIGHBORS = "k";
-	private static final String INSTANCE_INDEX = "instanceIndex";
-	private static final String SKIP_ATTRIBUTES	= "skipAttributes";
-	private static final String DUPLICATION_RECONCILIATION	= "dupReconciliation";
+	public static final String K_NEIGHBORS = "k";
+	public static final String INSTANCE_INDEX = "instanceIndex";
+	public static final String SKIP_ATTRIBUTES	= "skipAttributes";
+	public static final String DUPLICATION_RECONCILIATION	= "dupReconciliation";
 
 	private List<SEMOSSParam> options;
 
@@ -106,8 +106,8 @@ public class LOF implements IAnalyticRoutine {
 	 */
 	@Override
 	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
-		this.instanceIndex = (int) options.get(0).getSelected();
-		this.k = (int) options.get(1).getSelected();
+		this.instanceIndex = ((Number) options.get(0).getSelected()).intValue();
+		this.k = ((Number) options.get(1).getSelected()).intValue();
 		this.skipAttributes = (List<String>) options.get(2).getSelected();
 		this.dups = (Map<String, DuplicationReconciliation>) options.get(3).getSelected();
 		

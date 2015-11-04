@@ -26,7 +26,7 @@ import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.math.matrix.VectorFactory;
 import moa.classifiers.functions.Perceptron;
 import moa.core.InstancesHeader;
-import prerna.algorithm.api.IAnalyticRoutine;
+import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.weka.WekaUtilityMethods;
 import prerna.ds.BTreeDataFrame;
@@ -36,7 +36,7 @@ import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.Utils;
 
-public class MOAPerceptronRunner implements IAnalyticRoutine {
+public class MOAPerceptronRunner implements IAnalyticTransformationRoutine {
 	protected List<SEMOSSParam> options;
 	private Perceptron learner;
 	private String className;

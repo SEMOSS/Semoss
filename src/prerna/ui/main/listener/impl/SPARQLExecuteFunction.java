@@ -71,7 +71,7 @@ public class SPARQLExecuteFunction extends AbstractBrowserSPARQLFunction {
 				
 				// if a playsheet has been set to this function, run this update against the playsheet so that we can refresh the graph
 				if(gps!=null)
-					gps.getGraphData().updateAllModels(query);
+					gps.getDataMaker().updateAllModels(query);
 			}
 
 			else if(query.startsWith("SELECT") ){

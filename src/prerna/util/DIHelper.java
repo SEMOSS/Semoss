@@ -631,6 +631,8 @@ public class DIHelper {
 					e.printStackTrace();
 				}
 			}
+			
+			PlaySheetRDFMapBasedEnum.getInstance().setData(((String)coreProp.get(Constants.PLAYSHEETS_DEFINED) + "").split(";"), coreProp);
 	  }
 	  
 	  

@@ -29,7 +29,10 @@ package prerna.ui.main.listener.impl;
 
 import java.awt.Component;
 import java.awt.event.ActionEvent;
+import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 
 import javax.swing.JComponent;
 import javax.swing.JPanel;
@@ -66,14 +69,17 @@ public class SparqlAreaListener extends AbstractListener {
 		
 		// get all the param field
 		Component [] fields = curPanel.getComponents();
-		Hashtable paramHash = new Hashtable();
+		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
 		for(int compIndex = 0;compIndex < fields.length;compIndex++)
 		{
 			if(fields[compIndex] instanceof ParamComboBox)
 			{	
 				String fieldName = ((ParamComboBox)fields[compIndex]).getParamName();
 				String fieldValue = ((ParamComboBox)fields[compIndex]).getSelectedItem() + "";
-				paramHash.put(fieldName, fieldValue);
+				
+				List<Object> fieldList = new ArrayList<Object>();
+				fieldList.add(fieldValue);
+				paramHash.put(fieldName, fieldList);
 			}	
 		}
 		// now get the text area

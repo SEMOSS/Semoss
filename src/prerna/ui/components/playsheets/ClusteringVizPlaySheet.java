@@ -52,17 +52,20 @@ import javax.swing.JScrollPane;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.IAnalyticRoutine;
+import aurelienribon.ui.css.Style;
+import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.unsupervised.clustering.ClusteringRoutine;
 import prerna.algorithm.learning.unsupervised.clustering.MultiClusteringRoutine;
 import prerna.algorithm.learning.util.IClusterDistanceMode;
+import prerna.ds.BTreeDataFrame;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.om.SEMOSSParam;
 import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.main.listener.impl.ClusteringDrillDownListener;
 import prerna.ui.main.listener.impl.ClusteringRefreshParamListener;
 import prerna.ui.swing.custom.CustomButton;
@@ -70,14 +73,13 @@ import prerna.util.ArrayUtilityMethods;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import aurelienribon.ui.css.Style;
 
 @SuppressWarnings("serial")
 public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 
 	private static final Logger LOGGER = LogManager.getLogger(ClusteringVizPlaySheet.class.getName());
 
-	private IAnalyticRoutine alg;
+	private IAnalyticTransformationRoutine alg;
 	private String[] columnHeaders;
 	private boolean[] isNumeric;
 	
@@ -113,11 +115,11 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/cluster.html";
 	}
 	
-	@Override
-	public void createData() {
-		if(dataFrame == null || dataFrame.isEmpty())
-			super.createData();
-	}
+//	@Override
+//	public void createData() {
+//		if(dataFrame == null || dataFrame.isEmpty())
+//			super.createData();
+//	}
 
 	@Override
 	public void runAnalytics() {
@@ -131,7 +133,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 			selectedOptions.put(options.get(2).getName(), distanceMeasure); 
 			selectedOptions.put(options.get(3).getName(), skipAttributes); 
 			alg.setSelectedOptions(selectedOptions);
-			dataFrame.performAction(alg);
+			dataFrame.performAnalyticTransformation(alg);
 			this.numClusters = ((ClusteringRoutine) alg).getNumClusters();
 		} else {
 			alg = new MultiClusteringRoutine();
@@ -144,7 +146,7 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 			selectedOptions.put(options.get(4).getName(), skipAttributes);
 
 			alg.setSelectedOptions(selectedOptions);
-			dataFrame.performAction(alg);
+			dataFrame.performAnalyticTransformation(alg);
 			this.numClusters = ((MultiClusteringRoutine) alg).getNumClusters();
 		}
 		
@@ -276,11 +278,22 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 		return alg.getChangedColumns();
 	}
 
+
+	@Override
+	public void processDataMakerComponent(DataMakerComponent component) {
+		setQuery(component.getQuery());
+		component.setQuery(this.query);
+		if(this.dataFrame == null){
+			this.dataFrame = new BTreeDataFrame();
+		}
+		this.dataFrame.processDataMakerComponent(component);
+		
+	}
+	
 	/**
 	 * Sets the string version of the SPARQL query on the playsheet. Pulls out the number of clusters and stores them in the numClusters
 	 * @param query
 	 */
-	@Override
 	public void setQuery(String query) {
 		LOGGER.info("New Query " + query);
 		String[] querySplit = query.split("\\+\\+\\+");
@@ -630,5 +643,9 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 			}
 		}
 		return alignHash;
+	}
+	
+	public String getQuery(){
+		return this.query;
 	}
 }

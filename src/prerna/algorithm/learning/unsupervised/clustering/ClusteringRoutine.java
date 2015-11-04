@@ -27,8 +27,8 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 		//TODO: below is simply for ease in testing
 //		this.numClusters = 12;
 //		this.instanceIndex = 0;
-		this.numClusters = (Integer) options.get(0).getSelected();
-		this.instanceIndex = (Integer) options.get(1).getSelected();
+		this.numClusters = ((Number) options.get(0).getSelected()).intValue();
+		this.instanceIndex = ((Number) options.get(1).getSelected()).intValue();
 		this.distanceMeasure = (Map<String, DistanceMeasure>) options.get(2).getSelected();
 		this.skipAttributes = (List<String>) options.get(3).getSelected();
 

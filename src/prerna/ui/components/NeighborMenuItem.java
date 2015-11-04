@@ -34,12 +34,13 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
+import prerna.om.InsightStore;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.playsheets.SQLGraphPlaysheet;
+import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.helpers.PlaysheetOverlayRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.QuestionPlaySheetStore;
 
 
 /**
@@ -72,9 +73,11 @@ public class NeighborMenuItem extends JMenuItem{
 	 */
 	public void paintNeighborhood()
 	{
-		if(QuestionPlaySheetStore.getInstance().getActiveSheet() instanceof GraphPlaySheet)
+//		if(QuestionPlaySheetStore.getInstance().getActiveSheet() instanceof GraphPlaySheet)
+		if(InsightStore.getInstance().getActiveInsight().getPlaySheet() instanceof GraphPlaySheet)
 		{
-			GraphPlaySheet playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
+//			GraphPlaySheet playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
+			GraphPlaySheet playSheet = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
 			logger.debug("Extending ");
 			Runnable playRunner = null;
 			// Here I need to get the active sheet
@@ -83,32 +86,33 @@ public class NeighborMenuItem extends JMenuItem{
 			// use the @filter@ to get this done / some of the 			
 	
 			// need to create playsheet extend runner
-			playRunner = new PlaysheetOverlayRunner(playSheet);
 			JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 			// get the selected repository
 			Object [] repos = (Object [])list.getSelectedValues();
 	
 			for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
 			{
-				IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
-				playSheet.setRDFEngine(engine);
-				playSheet.setQuery(query);
+				DataMakerComponent dmc = new DataMakerComponent(repos[repoIndex]+"", query);
+//				IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
+//				playSheet.setRDFEngine(engine);
+//				playSheet.setQuery(query);
 			
-			
+
+				playRunner = new PlaysheetOverlayRunner(playSheet, new DataMakerComponent[]{dmc});
 				// thread
 				Thread playThread = new Thread(playRunner);
 				playThread.start();
 			}
 		}
 		// else is where we implement our logic
-		else if(QuestionPlaySheetStore.getInstance().getActiveSheet() instanceof SQLGraphPlaysheet)
+//		else if(QuestionPlaySheetStore.getInstance().getActiveSheet() instanceof SQLGraphPlaysheet)
+		else if(InsightStore.getInstance().getActiveInsight().getPlaySheet() instanceof SQLGraphPlaysheet)
 		{
 			// this is the sql playsheet
-			SQLGraphPlaysheet playSheet = (SQLGraphPlaysheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
+//			SQLGraphPlaysheet playSheet = (SQLGraphPlaysheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
+			SQLGraphPlaysheet playSheet = (SQLGraphPlaysheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
 			playSheet.addMore(engine, query);
 			logger.debug("Extending ");
-
-			
 		}
 	}
 	

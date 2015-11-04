@@ -48,7 +48,7 @@ public class WekaAprioriPlaySheet extends GridPlaySheet{
 		selectedOptions.put(options.get(2).getName(), minSupport);
 		selectedOptions.put(options.get(3).getName(), maxSupport);
 		alg.setSelectedOptions(selectedOptions);
-		dataFrame.performAction(alg);
+		dataFrame.performAnalyticAction(alg);
 		
 		alg.generateDecisionRuleTable();
 	}

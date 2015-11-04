@@ -10,11 +10,9 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OrderedBTreeDataFrame;
-import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.playsheets.GridPlaySheet;
-import prerna.util.PlaySheetEnum;
+import prerna.util.PlaySheetRDFMapBasedEnum;
 
 public class BudgetDecommissioningPlaySheet extends GridPlaySheet{
 
@@ -52,10 +50,11 @@ public class BudgetDecommissioningPlaySheet extends GridPlaySheet{
 	@Override
 	public void createData(){
 
-		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
-		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
-		proc.processQuestionQuery(this.engine, insightName, emptyTable);
-		SequencingDecommissioningPlaySheet sdSheet = (SequencingDecommissioningPlaySheet) proc.getPlaySheet();
+//		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
+//		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
+//		proc.processQuestionQuery(this.engine, insightName, emptyTable);
+//		SequencingDecommissioningPlaySheet sdSheet = (SequencingDecommissioningPlaySheet) proc.getPlaySheet();
+		SequencingDecommissioningPlaySheet sdSheet = (SequencingDecommissioningPlaySheet) OUSDPlaysheetHelper.getPlaySheetFromName(insightName, this.engine);
 
 		//getting the table from the retrieved sheet
 		sdSheet.createData();
@@ -386,8 +385,8 @@ public class BudgetDecommissioningPlaySheet extends GridPlaySheet{
 	//	}
 
 	@Override
-	public Hashtable getData(){
-		String playSheetClassName = PlaySheetEnum.getClassFromName("Grid");
+	public Hashtable getDataMakerOutput(){
+		String playSheetClassName = PlaySheetRDFMapBasedEnum.getClassFromName("Grid");
 		GridPlaySheet playSheet = null;
 		try {
 			playSheet = (GridPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
@@ -416,7 +415,7 @@ public class BudgetDecommissioningPlaySheet extends GridPlaySheet{
 //		playSheet.setNames(this.names);
 		playSheet.setTitle(this.title);
 		playSheet.setQuestionID(this.questionNum);//
-		Hashtable retHash = (Hashtable) playSheet.getData();
+		Hashtable retHash = (Hashtable) playSheet.getDataMakerOutput();
 		List<Object[]> myList = this.dataFrame.getData();
 		for(Object[] myRow : myList){
 			for(int i = 0; i < myRow.length; i++){

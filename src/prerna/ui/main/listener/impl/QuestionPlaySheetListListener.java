@@ -28,6 +28,7 @@
 package prerna.ui.main.listener.impl;
 
 import java.awt.event.ActionEvent;
+import java.util.Map;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -35,10 +36,12 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 
+import prerna.engine.api.IEngine;
+import prerna.om.Insight;
+import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.PlaySheetEnum;
 
 public class QuestionPlaySheetListListener implements IChakraListener {
 
@@ -49,7 +52,7 @@ public class QuestionPlaySheetListListener implements IChakraListener {
 		JButton questionModButton = (JButton) DIHelper.getInstance().getLocalProp(Constants.QUESTION_MOD_BUTTON);
 
 		if(selectedLayoutName!=null){
-			String selectedLayoutClass = PlaySheetEnum.getClassFromName(selectedLayoutName);
+			String selectedLayoutClass = selectedLayoutName;
 			JTextField questionLayoutField = (JTextField) DIHelper.getInstance().getLocalProp(Constants.QUESTION_LAYOUT_FIELD);
 			JLabel questionLayoutFieldLabel = (JLabel) DIHelper.getInstance().getLocalProp(Constants.QUESTION_MOD_PLAYSHEET_COMBO_LABEL);
 			
@@ -63,6 +66,17 @@ public class QuestionPlaySheetListListener implements IChakraListener {
 				
 				if(questionModButton.getText().equals("Add Question")){
 					questionLayoutField.setText("");
+				}
+				else {
+					JComboBox<String> questionModSelector = (JComboBox<String>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_MOD_SELECTOR);
+					Map<String, String> qM = (Map) questionModSelector.getSelectedItem();
+					String questionId = qM.get(MapComboBoxRenderer.KEY);
+					JComboBox<String> questionDBSelector = (JComboBox<String>) DIHelper.getInstance()
+							.getLocalProp(Constants.QUESTION_DB_SELECTOR);
+					String engineName = (String) questionDBSelector.getSelectedItem();
+					IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+					Insight in = engine.getInsight(questionId).get(0);
+					questionLayoutField.setText(in.getOutput());
 				}
 			} else {
 				questionLayoutField.setVisible(false);

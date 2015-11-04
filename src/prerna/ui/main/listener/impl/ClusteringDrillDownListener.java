@@ -40,11 +40,12 @@ import javax.swing.JDesktopPane;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.BTreeDataFrame;
+import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
 import prerna.ui.helpers.PlaysheetCreateRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.QuestionPlaySheetStore;
 import prerna.util.Utility;
 
 /**
@@ -125,11 +126,10 @@ public class ClusteringDrillDownListener extends AbstractListener {
 		
 		ClusteringVizPlaySheet drillDownPlaySheet = new ClusteringVizPlaySheet();
 		drillDownPlaySheet.setJDesktopPane(playSheet.pane);
-		String insightID = QuestionPlaySheetStore.getInstance().getIDCount()+". "+playSheet.getTitle();
-		QuestionPlaySheetStore.getInstance().put(insightID,  drillDownPlaySheet);
+		Insight in = new Insight(drillDownPlaySheet);
+		InsightStore.getInstance().put(in);
 		drillDownPlaySheet.setQuery(playSheet.getQuery());
 		drillDownPlaySheet.setRDFEngine(playSheet.engine);
-		drillDownPlaySheet.setQuestionID(insightID);
 		drillDownPlaySheet.setTitle(playSheet.getTitle());
 		drillDownPlaySheet.setSelectedParams(paramCheckboxes);
 		drillDownPlaySheet.drillDownData(newDataFrame, skipColumns, inputNumClusters);

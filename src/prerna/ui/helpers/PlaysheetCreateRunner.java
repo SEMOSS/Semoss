@@ -58,16 +58,7 @@ public class PlaysheetCreateRunner implements Runnable{
 	{
 		playSheet.createData();
 		playSheet.runAnalytics();
-		playSheet.processQueryData();
-	}
-	
-	/**
-	 * Method setPlaySheet. Sets the playsheet to this playsheet.
-	 * @param playSheet IPlaySheet
-	 */
-	public void setPlaySheet(IPlaySheet playSheet)
-	{
-		this.playSheet = playSheet;
+//		playSheet.processQueryData();
 	}
 	
 }

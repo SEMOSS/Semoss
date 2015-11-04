@@ -256,7 +256,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	}*/
 
 	@Override
-	public Hashtable getData() {
+	public Hashtable getDataMakerOutput() {
 		ArrayList args = prepareOrderedVars();
 		Hashtable testHash = new Hashtable();
 		ArrayList<Hashtable<String, Hashtable<String, Double>>> list = calculateHash(args, testHash);
@@ -282,7 +282,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		dataHash.put("yAxisTitle", comparisonObjectTypeY);
 		dataHash.put("value", "Score");
 		dataHash.put("sysDup", true);
-		Hashtable returnHash = (Hashtable) super.getData();
+		Hashtable returnHash = (Hashtable) super.getDataMakerOutput();
 		if (dataHash != null)
 			returnHash.put("specificData", dataHash);
 		ArrayList<Object[]> tableData = flattenData(list, true);

@@ -35,7 +35,9 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import javax.swing.JCheckBox;
 import javax.swing.JList;
@@ -291,7 +293,7 @@ public class EstimationCalculationFunctions {
 				}
 			}
 		}
-		Hashtable<String, String> hash = new Hashtable<String, String>();
+		Map<String, List<Object>> hash = new Hashtable<String, List<Object>>();
 		if(query==null) {
 			Utility.showError("The selected RDF store does not contain the necessary information \nto " +
 				"generate the requested report.  Please select another financial database and try again.");
@@ -302,7 +304,9 @@ public class EstimationCalculationFunctions {
 				"generate the report.\nPlease select a different RDF store or try running the calculations above.");
 			return null;
 		}
-		hash.put("FILTER_VALUES", filterServices);
+		List<Object> filterList = new ArrayList<Object>();
+		filterList.add(filterServices);
+		hash.put("FILTER_VALUES", filterList);
 		query = Utility.fillParam(query, hash);
 		
 		return query;
@@ -319,10 +323,11 @@ public class EstimationCalculationFunctions {
 	 * @return String 	Sustainment information. */
 	public String getSysSustainData (String system)
 	{
-		Hashtable paramHash = new Hashtable();
-		paramHash.put("System", system);
 		String query = "SELECT DISTINCT ?system ?GLitem ?LOE WHERE { {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SustainmentGLItem> ;} BIND(<http://semoss.org/ontologies/Relation/Influences> AS ?influences) BIND(<http://semoss.org/ontologies/Relation/Influences> AS ?influences2) {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?system <http://www.w3.org/2000/01/rdf-schema#label> \"@System@\" ;}{?system ?influences ?GLitem ;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?LOE ;} }";
-
+		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
+		List<Object> sysList = new ArrayList<Object>();
+		sysList.add(system);
+		paramHash.put("System", sysList);
 		String filledQuery = Utility.fillParam(query, paramHash);
 		
 		ArrayList <String[]> list = retListFromQuery(filledQuery);	
@@ -347,10 +352,11 @@ public class EstimationCalculationFunctions {
 	 * @return Object[] */
 	public Object[] getSysSemData (String system)
 	{
-		Hashtable paramHash = new Hashtable();
-		paramHash.put("System", system);
 		String query = "SELECT DISTINCT ?system ?GLitem ?date ?LOE WHERE { {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SemanticsGLItem> ;} BIND(<http://semoss.org/ontologies/Relation/Influences> AS ?influences)  BIND(<http://semoss.org/ontologies/Relation/Influences> AS ?influences2) {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?system <http://www.w3.org/2000/01/rdf-schema#label> \"@System@\" ;}{?system ?influences ?GLitem ;} BIND(<http://semoss.org/ontologies/Relation/TaggedBy> AS ?taggedby) {?GLitem ?taggedby ?datetag ;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?LOE ;} {?datetag <http://semoss.org/ontologies/Relation/Contains/Date> ?date ;} }";
-
+		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
+		List<Object> sysList = new ArrayList<Object>();
+		sysList.add(system);
+		paramHash.put("System", sysList);
 		String filledQuery = Utility.fillParam(query, paramHash);
 		
 		ArrayList <Object[]> list = retListFromQuery(filledQuery);
@@ -375,10 +381,11 @@ public class EstimationCalculationFunctions {
 	 * @return Object[] 	List of returned elements from query. */
 	public Object[] getSysTrainingData (String system)
 	{
-		Hashtable paramHash = new Hashtable();
-		paramHash.put("System", system);
 		String query = "SELECT DISTINCT ?system ?GLitem ?date ?LOE WHERE { {?GLitem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/TrainingGLItem> ;} BIND(<http://semoss.org/ontologies/Relation/Influences> AS ?influences) BIND(<http://semoss.org/ontologies/Relation/Influences> AS ?influences2) {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?system <http://www.w3.org/2000/01/rdf-schema#label> \"@System@\" ;}{?system ?influences ?GLitem ;} BIND(<http://semoss.org/ontologies/Relation/TaggedBy> AS ?taggedby) {?GLitem ?taggedby ?datetag ;} {?GLitem <http://semoss.org/ontologies/Relation/Contains/LOEcalc> ?LOE ;} {?datetag <http://semoss.org/ontologies/Relation/Contains/Date> ?date ;} }";
-
+		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
+		List<Object> sysList = new ArrayList<Object>();
+		sysList.add(system);
+		paramHash.put("System", sysList);
 		String filledQuery = Utility.fillParam(query, paramHash);
 		
 		ArrayList <Object[]> list = retListFromQuery(filledQuery);
@@ -405,11 +412,12 @@ public class EstimationCalculationFunctions {
 	public ArrayList getSpecData(String system, String query)
 	{
 		ArrayList <Object[]> totalList = new ArrayList <Object[]>();
-		Hashtable paramHash = new Hashtable();
-		paramHash.put("System", system);
+		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
+		List<Object> sysList = new ArrayList<Object>();
+		sysList.add(system);
+		paramHash.put("System", sysList);
 		String filledQuery = Utility.fillParam(query, paramHash);
 		ArrayList <Object[]> list = retListFromQuery(filledQuery);
-		
 		
 		return list;
 	}

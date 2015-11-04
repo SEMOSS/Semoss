@@ -31,6 +31,7 @@ import java.awt.CardLayout;
 import java.awt.event.ActionEvent;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import javax.swing.DefaultComboBoxModel;
@@ -48,11 +49,12 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
+import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.ParamPanel;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.PlaySheetEnum;
+import prerna.util.PlaySheetRDFMapBasedEnum;
 
 /**
  *  listens for the change in questions, then refreshes the sparql area with the actual question in SPARQL
@@ -74,43 +76,35 @@ public class QuestionListener implements IChakraListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent actionevent) {
-		JComboBox questionBox = (JComboBox)actionevent.getSource();
+		JComboBox<Map<String, String>> questionBox = (JComboBox<Map<String, String>>) actionevent.getSource();
 		// get the currently selected index
-		String fullQuestion = (String)questionBox.getSelectedItem();
+		Map<String, String> selectedItem = (Map<String, String>) questionBox.getSelectedItem();
 
-		
 		// get the question Hash from the DI Helper to get the question name
 		// get the ID for the question
-		if(fullQuestion != null)
-		{
-			String[] questionSplit = fullQuestion.split("\\. ", 2);
-			String question = questionSplit[1];
+		if(selectedItem != null) {
+			String questionID = selectedItem.get(MapComboBoxRenderer.KEY);
+			String questionName = selectedItem.get(MapComboBoxRenderer.VALUE);
 			
 			JToggleButton btnCustomSparql = (JToggleButton) DIHelper.getInstance().getLocalProp(Constants.CUSTOMIZE_SPARQL);
 			btnCustomSparql.setSelected(false);
 
-			JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+			JList<String> list = (JList<String>) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 			// get the selected repository
-			List selectedValuesList = list.getSelectedValuesList();
-			String selectedVal = selectedValuesList.get(selectedValuesList.size()-1).toString();
+			List<String> selectedValuesList = list.getSelectedValuesList();
+			String selectedEngine = selectedValuesList.get(selectedValuesList.size()-1).toString();
+			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(selectedEngine);
 
-			Insight in = null;
-			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(selectedVal);
-			if(!((AbstractEngine)engine).getInsight2(question).get(0).getOutput().equals("Unknown")) {
-				in = ((AbstractEngine)engine).getInsight2(question).get(0);
-			} else {
-				question = fullQuestion;
-				in = ((AbstractEngine)engine).getInsight2(question).get(0);
-			}
-
+			Insight in = ((AbstractEngine)engine).getInsight(questionID).get(0);
 			// now get the SPARQL query for this id
-			String sparql = in.getSparql();
+//			String sparql = in.getDataMakerComponents()[0].getQuery();
+			String sparql = in.getDataMakerComponents().get(0).getQuery();
 			String layoutValue = in.getOutput();
 			// save the playsheet for the current question for modifying current query
 			JComboBox playSheetComboBox = (JComboBox)DIHelper.getInstance().getLocalProp(Constants.PLAYSHEET_COMBOBOXLIST);
 			// set the model each time a question is choosen to include playsheets that are not in PlaySheetEnum
-			playSheetComboBox.setModel(new DefaultComboBoxModel(PlaySheetEnum.getAllSheetNames().toArray()));
-			if(!PlaySheetEnum.getAllSheetClasses().contains(layoutValue))
+			playSheetComboBox.setModel(new DefaultComboBoxModel(PlaySheetRDFMapBasedEnum.getAllSheetNames().toArray()));
+			if(!PlaySheetRDFMapBasedEnum.getAllSheetNames().contains(layoutValue))
 			{
 				String addPlaySheet = layoutValue.substring(layoutValue.lastIndexOf(".") +1);
 				playSheetComboBox.addItem("*" + addPlaySheet);
@@ -118,25 +112,25 @@ public class QuestionListener implements IChakraListener {
 				playSheetComboBox.setSelectedItem("*" + addPlaySheet);
 			}
 			else{
-				playSheetComboBox.setSelectedItem(PlaySheetEnum.getNameFromClass(layoutValue));
+				playSheetComboBox.setSelectedItem(layoutValue);
 			}
 
 			logger.info("Sparql is " + sparql);
 
-			Vector<SEMOSSParam> paramInfoVector = engine.getParams(question);
+			Vector<SEMOSSParam> paramInfoVector = engine.getParams(questionID);
 			
 			ParamPanel panel = new ParamPanel();
 			panel.setParams(paramInfoVector);
 			//panel.setParamType(paramHash2);
-			panel.setQuestionId(in.getId());
+			panel.setQuestionId(in.getInsightID());
 			panel.paintParam();
 
 			// finally add the param to the core panel
 			// confused about how to add this need to revisit
 			JPanel mainPanel = (JPanel)DIHelper.getInstance().getLocalProp(Constants.PARAM_PANEL_FIELD);
-			mainPanel.add(panel, question + "_1"); // mark it to the question index
+			mainPanel.add(panel, questionName + "_1"); // mark it to the question index
 			CardLayout layout = (CardLayout)mainPanel.getLayout();
-			layout.show(mainPanel, question + "_1");
+			layout.show(mainPanel, questionName + "_1");
 		}
 	}
 

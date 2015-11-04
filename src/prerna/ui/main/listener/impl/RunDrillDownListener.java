@@ -45,13 +45,14 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.BTreeDataFrame;
+import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
 import prerna.ui.components.playsheets.MachineLearningModulePlaySheet;
 import prerna.ui.helpers.PlaysheetCreateRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.QuestionPlaySheetStore;
 import prerna.util.Utility;
 
 /**
@@ -80,7 +81,7 @@ public class RunDrillDownListener extends AbstractListener {
 		//use tabName to get the playSheetSelected
 		String tabName = drillDownTabSelectorComboBox.getSelectedItem() + "";
 		ClusteringVizPlaySheet clusteringPlaySheet = (ClusteringVizPlaySheet) playSheetHash.get(tabName);
-		this.dataFrame = clusteringPlaySheet.getDataFrame();
+		this.dataFrame = clusteringPlaySheet.getDataMaker();
 		this.clusterIDCol = clusteringPlaySheet.getClusterIDCol();
 		this.clusterIDIndex = clusteringPlaySheet.getClusterIDIndex();
 		
@@ -140,13 +141,16 @@ public class RunDrillDownListener extends AbstractListener {
 		}
 		
 		MachineLearningModulePlaySheet drillDownPlaySheet = new MachineLearningModulePlaySheet();
-		String insightID = QuestionPlaySheetStore.getInstance().getIDCount()+". "+playSheet.getTitle();
-		QuestionPlaySheetStore.getInstance().put(insightID,  drillDownPlaySheet);
+		
+		Insight in = new Insight(drillDownPlaySheet);
+		InsightStore.getInstance().put(in);
+//		String insightID = QuestionPlaySheetStore.getInstance().getIDCount()+". "+playSheet.getTitle();
+//		QuestionPlaySheetStore.getInstance().put(insightID,  drillDownPlaySheet);
 		drillDownPlaySheet.setQuery(playSheet.getQuery());
 		drillDownPlaySheet.setRDFEngine(playSheet.engine);
-		drillDownPlaySheet.setQuestionID(insightID);
+//		drillDownPlaySheet.setQuestionID(insightID);
 		drillDownPlaySheet.setTitle(playSheet.getTitle());
-		drillDownPlaySheet.setDataFrame(newDataFrame);
+		drillDownPlaySheet.setDataMaker(newDataFrame);
 		
 		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 		drillDownPlaySheet.setJDesktopPane(pane);

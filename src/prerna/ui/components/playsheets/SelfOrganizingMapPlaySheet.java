@@ -65,7 +65,7 @@ public class SelfOrganizingMapPlaySheet extends GridPlaySheet{
 		}
 		selectedOptions.put(options.get(8).getName(), skipAttributes);
 		alg.setSelectedOptions(selectedOptions);
-		dataFrame.performAction(alg);
+		dataFrame.performAnalyticTransformation(alg);
 		this.columnHeaders = dataFrame.getColumnHeaders();
 	}
 	

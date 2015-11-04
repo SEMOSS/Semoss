@@ -79,7 +79,7 @@ public class HeatMapPlaySheet extends BrowserPlaySheet {
 
 		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
 		allHash.put("dataSeries", dataHash);
-		String[] var1 = wrapper.getVariables();
+		String[] var1 = this.dataFrame.getColumnHeaders();//wrapper.getVariables();
 		allHash.put("title",  var1[0] + " vs " + var1[1]);
 		allHash.put("xAxisTitle", var1[0]);
 		allHash.put("yAxisTitle", var1[1]);

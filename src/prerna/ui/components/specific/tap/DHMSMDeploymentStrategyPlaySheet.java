@@ -68,7 +68,7 @@ import aurelienribon.ui.css.Style;
  * This is the playsheet used exclusively for TAP service optimization.
  */
 @SuppressWarnings("serial")
-public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
+public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 	private static final Logger LOGGER = LogManager.getLogger(DHMSMDeploymentStrategyPlaySheet.class.getName());
 
 	//components for single begin/end date of deployment
@@ -798,8 +798,9 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	}
 	
 	@Override
-	public Object getData() {
-		Hashtable returnHash = (Hashtable) super.getData();
+	public Hashtable getDataMakerOutput() {
+//		Hashtable returnHash = (Hashtable) super.getData();
+		Hashtable returnHash = new Hashtable();
 		Hashtable dataHash = new Hashtable();
 		//query and set the default playsheet values
 		queryRegions();
@@ -835,7 +836,8 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet{
 	}
 	
 	public Hashtable refreshReport(Hashtable webDataHash, boolean defaultValuesSelected) {
-		Hashtable returnHash = (Hashtable) super.getData();
+//		Hashtable returnHash = (Hashtable) super.getData();
+		Hashtable returnHash = getDataMakerOutput();
 		Hashtable dataHash = new Hashtable();
 		//query and set the default playsheet values
 		queryRegions();

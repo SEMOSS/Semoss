@@ -38,13 +38,13 @@ import org.apache.log4j.Logger;
 import prerna.poi.specific.TAPLegacySystemDispositionReportWriter;
 import prerna.ui.components.BooleanProcessor;
 import prerna.ui.components.UpdateProcessor;
-import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
+import prerna.ui.components.playsheets.TablePlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 @SuppressWarnings("serial")
-public class TAPLegacySystemDispositionPlaySheet extends BasicProcessingPlaySheet{
+public class TAPLegacySystemDispositionPlaySheet extends TablePlaySheet{
 
 	private static final Logger logger = LogManager.getLogger(TAPLegacySystemDispositionPlaySheet.class.getName());
 	private String checkModPropQuery = "ASK WHERE { {?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} BIND(<http://semoss.org/ontologies/Relation/Contains/InterfaceModernizationCost> AS ?contains) {?p ?contains ?prop ;} }";

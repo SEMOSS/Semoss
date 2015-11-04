@@ -882,9 +882,9 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		}
 		
 		OCONUSMapPlaySheet ps = new OCONUSMapPlaySheet();
-		ps.setDataFrame(data);
+		ps.setDataMaker(data);
 		ps.processQueryData();
-		return (Hashtable<String,Object>)ps.getData();
+		return (Hashtable<String,Object>)ps.getDataMakerOutput();
 	}
 	
 	public Hashtable<String,Object> getOverviewCapCoverageMapData() {
@@ -940,9 +940,9 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		}
 		
 		OCONUSMapPlaySheet ps = new OCONUSMapPlaySheet();
-		ps.setDataFrame(data);
+		ps.setDataMaker(data);
 		ps.processQueryData();
-		return (Hashtable<String,Object>)ps.getData();
+		return (Hashtable<String,Object>)ps.getDataMakerOutput();
 	}
 	
 	/**
@@ -964,7 +964,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		ps.createData();
 		ps.runAnalytics();
 		ps.processQueryData();
-		return (Hashtable<String,Object>)ps.getData();
+		return (Hashtable<String,Object>)ps.getDataMakerOutput();
 	}
 
 	public Hashtable<String,Object> getSystemInfoData(String system, Boolean isModernized) {
@@ -1153,9 +1153,9 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		}
 
 		OCONUSMapPlaySheet ps = new OCONUSMapPlaySheet();
-		ps.setDataFrame(data);
+		ps.setDataMaker(data);
 		ps.processQueryData();
-		return (Hashtable<String,Object>)ps.getData();
+		return (Hashtable<String,Object>)ps.getDataMakerOutput();
 		
 	}
 	

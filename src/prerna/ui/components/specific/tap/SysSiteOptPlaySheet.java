@@ -102,7 +102,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 	}
 	
 	public Hashtable getSystems(Hashtable<String, Object> webDataHash) {
-		Hashtable returnHash = (Hashtable) super.getData();
+		Hashtable returnHash = (Hashtable) super.getDataMakerOutput();
 		Hashtable dataHash = new Hashtable();
 		
 		Gson gson = new Gson();

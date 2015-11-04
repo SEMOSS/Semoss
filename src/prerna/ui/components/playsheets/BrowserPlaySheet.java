@@ -60,7 +60,7 @@ import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 /**
  * The BrowserPlaySheet creates an instance of a browser to utilize the D3 Javascript library to create visualizations.
  */
-public class BrowserPlaySheet extends BasicProcessingPlaySheet {
+public class BrowserPlaySheet extends TablePlaySheet {
 	
 	private static final Logger logger = LogManager.getLogger(BrowserPlaySheet.class.getName());
 	public Boolean empty = false;
@@ -162,10 +162,10 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 		callIt(dataHash);
 	}
 	
-	@Override
-	public void createData() {
-		super.createData();
-	}
+//	@Override
+//	public void createData() {
+//		super.createData();
+//	}
 	
 	/**
 	 * Method refreshView. Refreshes the view and re-populates the play sheet.
@@ -328,14 +328,6 @@ public class BrowserPlaySheet extends BasicProcessingPlaySheet {
 	 */
 	public BrowserView getBrowserView() {
 		return this.browserView;
-	}
-	
-	@Override
-	public Hashtable getData() {
-		Hashtable returnHash = super.getData();
-		if (dataHash != null)
-			returnHash.put("specificData", dataHash);
-		return returnHash;
 	}
 	
 	public void setJTab(JTabbedPane jTab) {

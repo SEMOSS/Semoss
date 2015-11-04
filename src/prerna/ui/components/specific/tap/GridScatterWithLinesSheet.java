@@ -82,7 +82,7 @@ public class GridScatterWithLinesSheet extends BrowserPlaySheet{
 		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
 		allHash.put("dataSeries", dataHash);
 		allHash.put("type",  "bubble");
-		String[] var = wrapper.getVariables();
+		String[] var = this.dataFrame.getColumnHeaders();
 		allHash.put("title",  var[1] + " vs " + var[2]);
 		allHash.put("xAxisTitle", var[1]);
 		allHash.put("yAxisTitle", var[2]);

@@ -29,7 +29,10 @@ package prerna.ui.components;
 
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import javax.swing.JLabel;
@@ -107,7 +110,7 @@ public class TFInstanceRelationInstancePopup extends JMenu implements MouseListe
 		// the listener should then trigger the graph play sheet possibly
 		// and for each relationship add the listener
 		String typeQuery =  DIHelper.getInstance().getProperty(this.neighborQuery + prefix);
-		Hashtable<String, String> hash = new Hashtable<String, String>();
+		Map<String, List<Object>> hash = new Hashtable<String, List<Object>>();
 		String ignoreURI = DIHelper.getInstance().getProperty(Constants.IGNORE_URI);
 		int count = 0;
 		Vector typeV = new Vector();
@@ -118,8 +121,10 @@ public class TFInstanceRelationInstancePopup extends JMenu implements MouseListe
 			String uri = thisVert.getURI();
 
 			String query2 = DIHelper.getInstance().getProperty(this.mainQuery+ prefix);
-
-			hash.put("URI", uri);
+			
+			List<Object> uriList = new ArrayList<Object>();
+			uriList.add(uri);
+			hash.put("URI", uriList);
 			
 			//put in param hash and fill  
 			String filledQuery = Utility.fillParam(query2, hash);
@@ -144,8 +149,13 @@ public class TFInstanceRelationInstancePopup extends JMenu implements MouseListe
 				String objURI = stmt.getRawVar(vars[0])+"";
 				String typeName = Utility.getConceptType(engine, objURI);
 				
-				hash.put("SUBJECT", uri);
-				hash.put("OBJECT", objURI);
+				List<Object> subList = new ArrayList<Object>();
+				subList.add(uri);
+				List<Object> objList = new ArrayList<Object>();
+				objList.add(objURI);
+				hash.put("SUBJECT", subList);
+				hash.put("OBJECT", objList);
+				
 				//logger.debug("Predicate is " + predName + "<<>> "+ predClassName);
 				
 				String nFillQuery = Utility.fillParam(typeQuery, hash);

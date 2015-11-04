@@ -35,6 +35,7 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
@@ -128,9 +129,10 @@ public class SourceReportGenButtonListener implements IChakraListener {
 			ArrayList<String[]> list = new ArrayList<String[]>();
 			String[] names=null;
 			
-			Hashtable<String, String> capHash = new Hashtable<String, String>();
-			
-			capHash.put("FillCapability", capabilityList);				
+			Map<String, List<Object>> capHash = new Hashtable<String, List<Object>>();
+			List<Object> capList = new ArrayList<Object>();
+			capList.add(capabilityList);
+			capHash.put("FillCapability", capList);				
 			String nFillQuery = Utility.fillParam(queryArray.get(ind), capHash);
 			
 			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, nFillQuery);

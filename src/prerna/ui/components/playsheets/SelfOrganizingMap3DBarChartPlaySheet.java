@@ -73,7 +73,7 @@ public class SelfOrganizingMap3DBarChartPlaySheet extends BrowserPlaySheet {
 		}
 		selectedOptions.put(options.get(8).getName(), skipAttributes);
 		alg.setSelectedOptions(selectedOptions);
-		dataFrame.performAction(alg);
+		dataFrame.performAnalyticTransformation(alg);
 		this.columnHeaders = dataFrame.getColumnHeaders();
 		zAxisGrid = SelfOrganizingMapGridViewer.generateZAxisGridValues(alg.getGridLength(), alg.getGridWidth(), alg.getNumInstancesInGrid());
 	}
@@ -92,7 +92,7 @@ public class SelfOrganizingMap3DBarChartPlaySheet extends BrowserPlaySheet {
 	}
 	
 	@Override
-	public Hashtable getData() {
+	public Hashtable getDataMakerOutput() {
 		//TODO: remove this from getData() to call the super method
 		dataHash.put("id", this.questionNum==null? "": this.questionNum);
 		String className = "";
@@ -102,7 +102,7 @@ public class SelfOrganizingMap3DBarChartPlaySheet extends BrowserPlaySheet {
 		} else {
 			className = getClass().getName();
 		}
-		dataHash.put("playsheet", className);
+		dataHash.put("layout", className);
 		dataHash.put("title", this.title==null? "": this.title);
 		
 		return dataHash;

@@ -58,7 +58,7 @@ public class TaskerReportColumnPlaySheet extends BrowserPlaySheet{
 		String serviceName = (String) listElement[0];
 		//assume three numbers to report
 		
-		String[] var = wrapper.getVariables();
+		String[] var = this.dataFrame.getColumnHeaders();
 		String[] seriesName = new String[3];
 		seriesName[0]=var[1];
 		seriesName[1]=var[2];

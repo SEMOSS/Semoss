@@ -50,13 +50,22 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openrdf.model.Literal;
 
 import cern.colt.Arrays;
+import prerna.algorithm.api.IAnalyticActionRoutine;
 import prerna.algorithm.api.IAnalyticRoutine;
+import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.om.SEMOSSParam;
+import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
+import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
@@ -69,26 +78,34 @@ public class BTreeDataFrame implements ITableDataFrame {
 	protected String[] filteredLevelNames;
 	protected Map<String, Boolean> isNumericalMap;
 	protected Map<String, String> uriMap = new HashMap<String, String>();
+	protected List<Object> algorithmOutput = new Vector<Object>();
 	
 	public BTreeDataFrame(String[] levelNames) {
-		this.simpleTree = new SimpleTreeBuilder(levelNames[0]);
-		this.levelNames = levelNames;
-		this.filteredLevelNames = levelNames;
+		setLevelNames(levelNames);
+		this.isNumericalMap = new HashMap<String, Boolean>();
+		columnsToSkip = new ArrayList<String>();
+	}
+	
+	public BTreeDataFrame(){
 		this.isNumericalMap = new HashMap<String, Boolean>();
 		columnsToSkip = new ArrayList<String>();
 	}
 	
 	public BTreeDataFrame(String[] levelNames, String[] uriLevelNames) {
-		this.simpleTree = new SimpleTreeBuilder(levelNames[0]);
-		this.levelNames = levelNames;
-		this.filteredLevelNames = levelNames;
+		setLevelNames(levelNames);
 		this.isNumericalMap = new HashMap<String, Boolean>();
 		for(int i = 0; i < levelNames.length; i++) {
 			uriMap.put(levelNames[i], uriLevelNames[i]);
 		}
 		columnsToSkip = new ArrayList<String>();
 	}
-
+	
+	protected void setLevelNames(String[] levelNames){
+		this.simpleTree = new SimpleTreeBuilder(levelNames[0]);
+		this.levelNames = levelNames;
+		this.filteredLevelNames = levelNames;
+	}
+	
 	@Override
 	public void addRow(ISelectStatement rowData) {
 		addRow(rowData.getPropHash(), rowData.getRPropHash());
@@ -696,12 +713,15 @@ public class BTreeDataFrame implements ITableDataFrame {
 		// TODO Auto-generated method stub
 	}
 
-	//TODO: need to think this through....
 	@Override
-	public void performAction(IAnalyticRoutine routine) {
+	public void performAnalyticTransformation(IAnalyticTransformationRoutine routine) {
 		ITableDataFrame newTable = routine.runAlgorithm(this);
-		if(newTable != null)
-			this.join(newTable, newTable.getColumnHeaders()[0], newTable.getColumnHeaders()[0], 1, new ExactStringMatcher());
+		this.join(newTable, newTable.getColumnHeaders()[0], newTable.getColumnHeaders()[0], 1, new ExactStringMatcher());
+	}
+	
+	@Override
+	public void performAnalyticAction(IAnalyticActionRoutine routine) {
+		routine.runAlgorithm(this);
 	}
 
 	@Override
@@ -941,10 +961,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 		
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		typeRoot = TreeNode.getRight(typeRoot);
+		typeRoot = typeRoot.getRight(typeRoot);
 		while(typeRoot.rightChild != null) {
 			typeRoot = typeRoot.rightChild;
-			typeRoot = TreeNode.getRight(typeRoot);
+			typeRoot = typeRoot.getRight(typeRoot);
 		}
 		return ((Number) typeRoot.leaf.getValue()).doubleValue();
 		
@@ -1205,20 +1225,11 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	/**
-	 * @Param getRawData
-	 * returns an iterator that iterates through each row of the btree of the data frame
-	 */
 	public Iterator<Object[]> iterator(boolean getRawData) {
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);	
 		return new BTreeIterator(typeRoot, getRawData, columnsToSkip);
 	}
 	
-	/**
-	 * 
-	 * @param getRawData - true to get Raw Values, false to get values
-	 * @return an iterator that returns each row of the btree of the data frame, including filtered rows
-	 */
 	public Iterator<Object[]> iteratorAll(boolean getRawData){
 		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length-1]);	
 		return new BTreeIterator(typeRoot, getRawData, columnsToSkip, true);
@@ -1358,10 +1369,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	/**
-	 * @Param columnHeader - the name of the column header to filter
-	 * @Param filterValues - the list of values to filter OUT of the column
-	 */
 	public void filter(String columnHeader, List<Object> filterValues) {
 		columnHeader = this.getColumnName(columnHeader);
 		
@@ -1371,13 +1378,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	/**
-	 * @Param columnHeader - the name of the column header to remove
-	 */
 	public void removeColumn(String columnHeader) {
-		LOGGER.info("Removing Column: "+columnHeader);
-		long startTime = System.currentTimeMillis();
-		
 		columnHeader = this.getColumnName(columnHeader);
 		
 		String[] newNames = new String[levelNames.length-1];
@@ -1402,23 +1403,14 @@ public class BTreeDataFrame implements ITableDataFrame {
 		this.simpleTree.removeType(columnHeader);
 		isNumericalMap.remove(columnHeader);
 		this.simpleTree.setRootLevel(levelNames[0]);
-		
-		LOGGER.info("Removed column: " + columnHeader +", "+ (System.currentTimeMillis() - startTime) + "ms");
+//		LOGGER.info("removed " + columnHeader);
+//		System.out.println("new names  " + Arrays.toString(levelNames));
 	}
 	
 	@Override
-	/**
-	 * removes duplicate rows from the data frame
-	 */
 	public void removeDuplicateRows() {
-		LOGGER.info("Removing Duplicate Rows...");
-		long startTime = System.currentTimeMillis();
-		
-		for(String s : levelNames) {
+		for(String s : levelNames)
 			this.simpleTree.removeDuplicates(s);
-		}
-		
-		LOGGER.info("Removed Duplicate Rows: "+(System.currentTimeMillis() - startTime)+" ms");
 	}
 
 	@Override
@@ -1445,9 +1437,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return null;
 	}
 
-	/**
-	 * unfilters the entire data frame
-	 */
 	public void unfilter() {
 		for(String column: levelNames) {
 			this.unfilter(column);
@@ -1464,12 +1453,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 	
 	@Override
-	/**
-	 * @Param columnHeader - the columnHeader to unfilter
-	 */
 	public void unfilter(String columnHeader) {
-		long startTime = System.currentTimeMillis();
-
 		columnHeader = this.getColumnName(columnHeader);
 		IndexTreeIterator iterator = new IndexTreeIterator(this.simpleTree.nodeIndexHash.get(columnHeader));
 		while(iterator.hasNext()) {
@@ -1481,8 +1465,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 
 //		this.simpleTree.unfilterColumn(columnHeader);
-		
-		LOGGER.info("unfiltered Column: " +columnHeader+", "+ (System.currentTimeMillis() - startTime)+" ms");
 	}
 
 	//TODO: is this necessary
@@ -1495,21 +1477,11 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 	
 	@Override
-	/**
-	 * returns true if the data frame has no rows, false otherwise
-	 */
 	public boolean isEmpty() {
 		return !this.iterator(false).hasNext();
 	}
 	
 	@Override
-	/**
-	 * @Param columnHeaders - the list of columnHeaders to be 'filtered'
-	 * Sets the list of columnHeaders to skip, this list will affect operations on the 'view' of the btree
-	 * i.e. getData(), getColumnHeaders(), etc.
-	 * 
-	 * This list will not affect operations on transforming the data frame such as join, append, filter, etc.
-	 */
 	public void setColumnsToSkip(List<String> columnHeaders) {
 		List<String> newColumnHeaders = new ArrayList<String>();
 		if(columnHeaders != null) {
@@ -1859,5 +1831,89 @@ public class BTreeDataFrame implements ITableDataFrame {
 		
 		Utility.writeWorkbook(workbookout, fileNameout);
 		//testnum++;
+	}
+
+	@Override
+	public void processDataMakerComponent(DataMakerComponent component) {
+		
+		processPreTransformations(component, component.getPreTrans());
+		
+		IEngine engine = component.getEngine();
+		// automatically created the query if stored as metamodel
+		// fills the query with selected params if required
+		// params set in insightcreatrunner
+		String query = component.fillQuery();
+		
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+		
+		ITableDataFrame newDataFrame = null;
+		if(this.levelNames == null){
+			setLevelNames(wrapper.getVariables());
+			while(wrapper.hasNext()){
+				this.addRow(wrapper.next());
+			}
+		}
+		else {
+			newDataFrame = wrapper.getTableDataFrame();
+		}
+
+		processPostTransformations(component, component.getPostTrans(), newDataFrame);
+		
+		processActions(component, component.getActions());
+	}
+	
+	public void processPreTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms){
+		LOGGER.info("We are processing " + transforms.size() + " pre transformations");
+		for(ISEMOSSTransformation transform : transforms){
+			transform.setDataMakers(this);
+			transform.setDataMakerComponent(dmc);
+			transform.runMethod();
+		}
+	}
+	
+	public void processPostTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms, IDataMaker... dataFrame){
+		LOGGER.info("We are processing " + transforms.size() + " post transformations");
+		// if other data frames present, create new array with this at position 0
+		IDataMaker[] extendedArray = new IDataMaker[]{this};
+		if(dataFrame.length > 0) {
+			extendedArray = new IDataMaker[dataFrame.length + 1];
+			extendedArray[0] =  this;
+			for(int i = 0; i < dataFrame.length; i++) {
+				extendedArray[i+1] = dataFrame[i];
+			}
+		}
+		for(ISEMOSSTransformation transform : transforms){
+			transform.setDataMakers(extendedArray);
+			transform.setDataMakerComponent(dmc);
+			transform.runMethod();
+//			this.join(dataFrame, transform.getOptions().get(0).getSelected()+"", transform.getOptions().get(1).getSelected()+"", 1.0, (IAnalyticRoutine)transform);
+//			LOGGER.info("welp... we've got our new table... ");
+		}
+	}
+	
+	@Override
+	public List<Object> processActions(DataMakerComponent dmc, List<ISEMOSSAction> actions, IDataMaker... dataMaker) {
+		LOGGER.info("We are processing " + actions.size() + " actions");
+		List<Object> outputs = new ArrayList<Object>();
+		for(ISEMOSSAction action : actions){
+			action.setDataMakers(this);
+			action.setDataMakerComponent(dmc);
+			outputs.add(action.runMethod());
+		}
+		algorithmOutput.addAll(outputs);
+		return outputs;
+	}
+
+	@Override
+	public Map getDataMakerOutput() {
+		Hashtable retHash = new Hashtable();
+		retHash.put("data", this.getRawData());
+		retHash.put("headers", this.levelNames);
+		return retHash;
+	}
+
+	@Override
+	public List<Object> getActionOutput() {
+		return this.algorithmOutput;
 	}
 }

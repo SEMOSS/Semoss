@@ -32,11 +32,11 @@ public class BudgetInflationPlaySheet extends GridPlaySheet{
 		//takes results and turns them into output
 	}
 	
-	@Override
-	public Hashtable getData(){
-		//sets up the results for the web
-		return null;
-	}
+//	@Override
+//	public Hashtable getData(){
+//		//sets up the results for the web
+//		return null;
+//	}
 
 	//main logic. creates a map that maps a system to a mapping of years-budget
 	private Map<String, Map<String, String>> costCalculator(){

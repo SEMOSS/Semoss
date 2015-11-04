@@ -35,12 +35,16 @@ import java.util.Vector;
 
 import org.openrdf.repository.RepositoryConnection;
 
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
-import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.playsheets.GraphPlaySheet;
+import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
+import prerna.util.Utility;
 import edu.uci.ics.jung.graph.DelegateForest;
 
 public final class CentralityCalculator {
@@ -316,29 +320,50 @@ public final class CentralityCalculator {
 	 * @param engine IEngine to create the metamodel from
 	 * @return GraphPlaySheet that displays the metamodel
 	 */
-	public static GraphPlaySheet createMetamodel(RepositoryConnection rc, String query){
-		ExecuteQueryProcessor exQueryProcessor = new ExecuteQueryProcessor();
-		//hard code playsheet attributes since no insight exists for this
-		//String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
-		String playSheetName = "prerna.ui.components.playsheets.GraphPlaySheet";
-		RDFFileSesameEngine sesameEngine = new RDFFileSesameEngine();
-		sesameEngine.setRC(rc);
-		sesameEngine.setEngineName("Metamodel Engine");
-		
-		sesameEngine.setBaseData(sesameEngine);
+	public static GraphPlaySheet createMetamodel(IEngine coreEngine, String query){
+		String playSheetName = "Graph";
+		String dataMakerName = "GraphDataModel";
+		String title = "Metamodel";
+		String id = coreEngine.getEngineName() + "-Metamodel";
+		AbstractEngine eng = ((AbstractEngine)coreEngine).getBaseDataEngine();
+		eng.setEngineName(id);
+		eng.setBaseData((RDFFileSesameEngine) eng);
 		Hashtable<String, String> filterHash = new Hashtable<String, String>();
 		filterHash.put("http://semoss.org/ontologies/Relation", "http://semoss.org/ontologies/Relation");
-		sesameEngine.setBaseHash(filterHash);
-		
-		exQueryProcessor.prepareQueryOutputPlaySheet(sesameEngine, query, playSheetName, "", "");
+		eng.setBaseHash(filterHash);
 
-		GraphPlaySheet playSheet= (GraphPlaySheet) exQueryProcessor.getPlaySheet();
-		playSheet.getGraphData().setSubclassCreate(true);//this makes the base queries use subclass instead of type--necessary for the metamodel query
-		playSheet.createData();
-		playSheet.runAnalytics();
-		playSheet.getForest();
-		playSheet.createForest();
+		DataMakerComponent dmc = new DataMakerComponent(eng, query);
+		GraphDataModel gdm = (GraphDataModel) Utility.getDataMaker(coreEngine, dataMakerName);
+		GraphPlaySheet playSheet= (GraphPlaySheet) Utility.preparePlaySheet(eng, query, playSheetName, title, id);
+		gdm.setSubclassCreate(true);
+		gdm.setOverlay(false);
+		gdm.processDataMakerComponent(dmc);
+		playSheet.setDataMaker(gdm);
+
 		return playSheet;
+////		ExecuteQueryProcessor exQueryProcessor = new ExecuteQueryProcessor();
+//		//hard code playsheet attributes since no insight exists for this
+//		//String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
+//		String playSheetName = "prerna.ui.components.playsheets.GraphPlaySheet";
+//		RDFFileSesameEngine sesameEngine = new RDFFileSesameEngine();
+//		sesameEngine.setRC(rc);
+//		sesameEngine.setEngineName("Metamodel Engine");
+//		
+//		sesameEngine.setBaseData(sesameEngine);
+//		Hashtable<String, String> filterHash = new Hashtable<String, String>();
+//		filterHash.put("http://semoss.org/ontologies/Relation", "http://semoss.org/ontologies/Relation");
+//		sesameEngine.setBaseHash(filterHash);
+//		
+////		exQueryProcessor.prepareQueryOutputPlaySheet(sesameEngine, query, playSheetName, "", "");
+//
+////		GraphPlaySheet playSheet= (GraphPlaySheet) exQueryProcessor.getPlaySheet();
+//		GraphPlaySheet playSheet= (GraphPlaySheet) Utility.preparePlaySheet(sesameEngine, query, playSheetName, "", "");
+//		playSheet.getDataMaker().setSubclassCreate(true);//this makes the base queries use subclass instead of type--necessary for the metamodel query
+//		playSheet.createData();
+//		playSheet.runAnalytics();
+//		playSheet.getForest();
+//		playSheet.createForest();
+//		return playSheet;
 	}
 
 	public static DelegateForest<SEMOSSVertex,SEMOSSEdge> makeForestUndirected(Hashtable<String, SEMOSSEdge> edgeStore, DelegateForest<SEMOSSVertex,SEMOSSEdge> forest) {

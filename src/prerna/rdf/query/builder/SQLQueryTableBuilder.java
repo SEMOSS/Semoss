@@ -16,11 +16,13 @@
 package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -52,6 +54,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	List<Hashtable<String,String>> predV = new ArrayList<Hashtable<String,String>>();
 	List<Hashtable<String,String>> nodePropV = new ArrayList<Hashtable<String,String>>();
 	String variableSequence = "";
+	List<String> returnVarOrder;
 	
 	int limit = -1;
 	int limitFilter = 100;
@@ -77,8 +80,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	private static final String SQL_FILTER_BIND = "{filterBind}";
 	private boolean useDistinct = true;
 	private String groupBy = "";
-	
-
+	String parameters = "";
 
 	public SQLQueryTableBuilder(IEngine engine)
 	{
@@ -121,8 +123,8 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		}
 		
 		if(!useOuterJoins){
-			query = queryUtil.getDialectInnerJoinQuery(useDistinct, selectors, froms, joins, filters, limit, groupBy);
-			queryBindAndNoLimit = queryUtil.getDialectInnerJoinQuery(useDistinct, SQL_SELECTOR_BIND, froms, joins, tempQueryFilter, -1, groupBy);
+			query = queryUtil.getDialectInnerJoinQuery(useDistinct, selectors, froms, joins, filters, parameters, limit, groupBy);
+			queryBindAndNoLimit = queryUtil.getDialectInnerJoinQuery(useDistinct, SQL_SELECTOR_BIND, froms, joins, tempQueryFilter, parameters, -1, groupBy);
 		} else {
 			query = queryUtil.getDialectFullOuterJoinQuery(useDistinct,selectors,rightJoinsArr,leftJoinsArr,joinsArr,filters, limit, groupBy);
 			queryBindAndNoLimit = queryUtil.getDialectFullOuterJoinQuery(useDistinct,SQL_SELECTOR_BIND,rightJoinsArr,leftJoinsArr,joinsArr,tempQueryFilter, -1, groupBy);
@@ -143,12 +145,17 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	}
 	
 	@Override
-	public void setJSONDataHash(Hashtable<String, Object> allJSONHash) {
+	public void setJSONDataHash(Map<String, Object> allJSONHash) {
 		Gson gson = new Gson();
 		this.allJSONHash = new Hashtable<String, Object>();
 		this.allJSONHash.putAll((StringMap) allJSONHash.get("QueryData"));
 		ArrayList<StringMap> list = (ArrayList<StringMap>) allJSONHash.get("SelectedNodeProps") ;
 		this.nodePropV = new ArrayList<Hashtable<String, String>>();
+		if(allJSONHash.containsKey("returnOrder")){
+			System.out.println("setting return order in semoss query " );
+			this.returnVarOrder = (List) allJSONHash.get("returnOrder");
+			this.semossQuery.setReturnVarOrder(this.returnVarOrder);
+		}
 		for(StringMap map : list){
 			Hashtable hash = new Hashtable();
 			hash.putAll(map);
@@ -226,9 +233,26 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		searchFilterData();
 		filterData();
 		clearFilterData();
-		
+		addParameters();
 	}
 	
+	private void addParameters() {
+		Map<String, String> params = (Map<String, String>) allJSONHash.get("Parameters");
+		if(params != null) {
+			System.out.println(params);
+			int size = params.size();
+			int counter = 0;
+			for(String pName : params.keySet()) {
+				String[] paramSplit = params.get(pName).split(":");
+				if(counter == (size - 1)) {
+					parameters += " " + getAlias(paramSplit[0]) + "." + pName + " = '@" + pName + "-" + params.get(pName) + "@'";
+				} else {
+					parameters += " " + getAlias(paramSplit[0]) + "." + pName + " = '@" + pName + "-" + params.get(pName) + "@' AND";
+				}
+			}
+		}
+	}
+
 	//search filter logic 
 	private void searchFilterData()
 	{
@@ -445,6 +469,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			{
 				String key = (String) nodePropV.get(listIndex).get("SubjectVar");
 				String prop = (String) nodePropV.get(listIndex).get("uriKey");
+				prop = Utility.getInstanceName(prop); //TODO: need to make sure FE always passes this back as URI, different from comment above
 				ArrayList <String> propList = new ArrayList<String>();
 				if(tableHash.containsKey(key))
 					propList = tableHash.get(key);
@@ -466,6 +491,9 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		// instead get this from what they sent
 	
 		String [] columns = variableSequence.split(";");
+		// order the columns based on what was in JSON
+		List<String> orderedCols = SEMOSSQuery.orderVars(Arrays.asList(columns), returnVarOrder);
+		orderedCols.toArray(columns);
 		
 		for(int colIndex = 0;colIndex < columns.length;colIndex++)
 		{
@@ -775,6 +803,5 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	public List<Hashtable<String, String>> getNodePropV(){
 		return this.nodePropV;
 	}
-
 	
 }

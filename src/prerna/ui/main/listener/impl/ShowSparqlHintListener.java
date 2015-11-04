@@ -40,7 +40,7 @@ import javax.swing.JToggleButton;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.PlaySheetEnum;
+import prerna.util.PlaySheetRDFMapBasedEnum;
 
 /**
  * Shows a hint for the custom SPARQL query upon click of the show hint button.
@@ -82,7 +82,7 @@ public class ShowSparqlHintListener implements IChakraListener {
 				}
 				else{
 					// display hint in sparql area
-					area.setText(PlaySheetEnum.getHintFromName(selectedPlaySheet));
+					area.setText(PlaySheetRDFMapBasedEnum.getHintFromName(selectedPlaySheet));
 					area.setFont(new Font("Tahoma", Font.ITALIC, 11));
 					area.setForeground(Color.GRAY);
 				}

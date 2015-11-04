@@ -41,6 +41,11 @@ import javax.swing.table.TableModel;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import edu.uci.ics.jung.algorithms.layout.GraphElementAccessor;
+import edu.uci.ics.jung.visualization.VisualizationViewer;
+import edu.uci.ics.jung.visualization.control.ModalLensGraphMouse;
+import edu.uci.ics.jung.visualization.picking.PickedState;
+import prerna.om.InsightStore;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.EdgePropertyTableModel;
@@ -51,11 +56,6 @@ import prerna.ui.transformer.VertexLabelFontTransformer;
 import prerna.ui.transformer.VertexPaintTransformer;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.QuestionPlaySheetStore;
-import edu.uci.ics.jung.algorithms.layout.GraphElementAccessor;
-import edu.uci.ics.jung.visualization.VisualizationViewer;
-import edu.uci.ics.jung.visualization.control.ModalLensGraphMouse;
-import edu.uci.ics.jung.visualization.picking.PickedState;
 
 /**
  * Controls what happens when a user clicks on a node in a graph.
@@ -98,8 +98,9 @@ public class GraphNodeListener extends ModalLensGraphMouse implements IChakraLis
     		clickedVert = (SEMOSSVertex) clickedObject;
     	}
 		
-    	GraphPlaySheet ps3 = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
-		
+//    	GraphPlaySheet ps3 = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
+    	GraphPlaySheet ps3 = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
+
 		JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.PROP_TABLE);
 		TableModel tm = new DefaultTableModel();
 		

@@ -70,7 +70,7 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 	
 	@Override
 	public void createView(){
-		this.dataHash = (Hashtable) this.getData();
+		this.dataHash = (Hashtable) this.getDataMakerOutput();
 		super.createView();
 		try {
 			this.setMaximum(true);
@@ -144,8 +144,8 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 	}
 	
 	@Override
-	public Hashtable getData() {
-		Hashtable returnHash = (Hashtable) super.getData();
+	public Hashtable getDataMakerOutput() {
+		Hashtable returnHash = (Hashtable) super.getDataMakerOutput();
 		returnHash.put("nodes", gdm.getVertStore());
 		returnHash.put("edges", gdm.getEdgeStore().values());
 		return returnHash;
@@ -158,7 +158,7 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 			String[] queryArray = this.timeQueryArray.get(qIdx);
 			processTimeData(queryArray[0], (IEngine) DIHelper.getInstance().getLocalProp(queryArray[1]));
 		}
-		Hashtable retHash = (Hashtable) this.getData();
+		Hashtable retHash = (Hashtable) this.getDataMakerOutput();
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
 	}
 	

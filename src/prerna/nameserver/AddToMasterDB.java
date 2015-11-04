@@ -27,41 +27,27 @@
  *******************************************************************************/
 package prerna.nameserver;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import org.openrdf.model.Literal;
-import org.openrdf.model.Statement;
-import org.openrdf.model.Value;
-import org.openrdf.repository.Repository;
-import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
-import org.openrdf.repository.RepositoryResult;
-import org.openrdf.repository.sail.SailRepository;
-import org.openrdf.rio.RDFFormat;
 import org.openrdf.rio.RDFParseException;
-import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
-import org.openrdf.sail.memory.MemoryStore;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.impl.CentralityCalculator;
 import prerna.algorithm.nlp.TextHelper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
-import prerna.om.Insight;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.playsheets.GraphPlaySheet;
@@ -102,13 +88,13 @@ public class AddToMasterDB extends ModifyMasterDB {
 
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 		String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
-		GraphPlaySheet gps = CentralityCalculator.createMetamodel(((AbstractEngine)engine).getBaseDataEngine().getRc(), sparql);
-		Hashtable<String, SEMOSSVertex> vertStore  = gps.getGraphData().getVertStore();
-		Hashtable<String, SEMOSSEdge> edgeStore = gps.getGraphData().getEdgeStore();
+		GraphPlaySheet gps = CentralityCalculator.createMetamodel(engine, sparql);
+		Hashtable<String, SEMOSSVertex> vertStore  = gps.getDataMaker().getVertStore();
+		Hashtable<String, SEMOSSEdge> edgeStore = gps.getDataMaker().getEdgeStore();
 
 		addNewDBConcepts(engineName, vertStore, edgeStore, parentChildMapping);
-		RepositoryConnection rc = engine.getInsightDB();
-		addInsights(rc);
+//		RepositoryConnection rc = engine.getInsightDB();
+//		addInsights(rc);
 
 		logger.info("Finished adding new engine " + engineName);
 		success = true;
@@ -142,13 +128,13 @@ public class AddToMasterDB extends ModifyMasterDB {
 		hypernymGenerator.addMappings(parentChildMapping);
 
 		String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
-		GraphPlaySheet gps = CentralityCalculator.createMetamodel(((AbstractEngine)engine).getBaseDataEngine().getRc(), sparql);
-		Hashtable<String, SEMOSSVertex> vertStore  = gps.getGraphData().getVertStore();
-		Hashtable<String, SEMOSSEdge> edgeStore = gps.getGraphData().getEdgeStore();
+		GraphPlaySheet gps = CentralityCalculator.createMetamodel(engine, sparql);
+		Hashtable<String, SEMOSSVertex> vertStore  = gps.getDataMaker().getVertStore();
+		Hashtable<String, SEMOSSEdge> edgeStore = gps.getDataMaker().getEdgeStore();
 
 		addNewDBConcepts(engineName, vertStore, edgeStore, parentChildMapping);
-		RepositoryConnection rc = engine.getInsightDB();
-		addInsights(rc);
+//		RepositoryConnection rc = engine.getInsightDB();
+//		addInsights(rc);
 
 		logger.info("Finished adding new engine " + engineName);
 		success = true;
@@ -182,13 +168,13 @@ public class AddToMasterDB extends ModifyMasterDB {
 		for(String engineName : dbArray) {
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName + "");
 			String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
-			GraphPlaySheet gps = CentralityCalculator.createMetamodel(((AbstractEngine)engine).getBaseDataEngine().getRc(), sparql);
-			Hashtable<String, SEMOSSVertex> vertStore  = gps.getGraphData().getVertStore();
-			Hashtable<String, SEMOSSEdge> edgeStore = gps.getGraphData().getEdgeStore();
+			GraphPlaySheet gps = CentralityCalculator.createMetamodel(engine, sparql);
+			Hashtable<String, SEMOSSVertex> vertStore  = gps.getDataMaker().getVertStore();
+			Hashtable<String, SEMOSSEdge> edgeStore = gps.getDataMaker().getEdgeStore();
 
 			addNewDBConcepts(engineName, vertStore, edgeStore, parentChildMapping);
-			RepositoryConnection rc = engine.getInsightDB();
-			addInsights(rc);
+//			RepositoryConnection rc = engine.getInsightDB();
+//			addInsights(rc);
 
 			logger.info("Finished adding new engine " + engineName);
 			successHash.put(engineName, true);
@@ -226,25 +212,28 @@ public class AddToMasterDB extends ModifyMasterDB {
 		}
 		hypernymGenerator.addMappings(parentChildMapping);
 
+		Gson gson = new Gson();
 		for(String engineName : dbArray) {
 			String engineAPI = baseURL + "/s-"+engineName;
-			String owl = Utility.retrieveResult(engineAPI + "/getOWLDefinition", null);
-			RepositoryConnection owlRC = getNewRepository();
-			owlRC.add(new ByteArrayInputStream(owl.getBytes("UTF-8")), "http://semoss.org", RDFFormat.RDFXML);
-
-			String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
-			GraphPlaySheet gps = CentralityCalculator.createMetamodel(owlRC, sparql);
-			Hashtable<String, SEMOSSVertex> vertStore  = gps.getGraphData().getVertStore();
-			Hashtable<String, SEMOSSEdge> edgeStore = gps.getGraphData().getEdgeStore();
-
+			String stringResults = Utility.retrieveResult(engineAPI + "/metamodel", null);
+//			RepositoryConnection owlRC = getNewRepository();
+//			owlRC.add(new ByteArrayInputStream(owl.getBytes("UTF-8")), "http://semoss.org", RDFFormat.RDFXML);
+//
+//			String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
+//			GraphPlaySheet gps = CentralityCalculator.createMetamodel(owlRC, sparql);
+			Map<String, Object> results = gson.fromJson(stringResults, new TypeToken<HashMap<String, Object>>() {}.getType());
+//			Hashtable<String, SEMOSSVertex> vertStore  = gps.getDataMaker().getVertStore();
+//			Hashtable<String, SEMOSSEdge> edgeStore = gps.getDataMaker().getEdgeStore();
+			Hashtable<String, SEMOSSVertex> vertStore  = (Hashtable<String, SEMOSSVertex>) results.get("nodes");
+			Hashtable<String, SEMOSSEdge> edgeStore = (Hashtable<String, SEMOSSEdge>) results.get("edges");
+			
 			addNewDBConcepts(engineName, vertStore, edgeStore, parentChildMapping);
 			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.PROP_URI + "/" + "API",baseURL,true);
 
-			String insights = Utility.retrieveResult(engineAPI + "/getInsightDefinition", null);
-			RepositoryConnection insightsRC = getNewRepository();
-			insightsRC.add(new ByteArrayInputStream(insights.getBytes("UTF-8")), "http://semoss.org", RDFFormat.RDFXML);
-
-			addInsights(insightsRC);
+//			String insights = Utility.retrieveResult(engineAPI + "/getInsightDefinition", null);
+//			RepositoryConnection insightsRC = getNewRepository();
+//			insightsRC.add(new ByteArrayInputStream(insights.getBytes("UTF-8")), "http://semoss.org", RDFFormat.RDFXML);
+//			addInsights(insightsRC);
 
 			logger.info("Finished adding new engine " + engineName);
 			successHash.put(engineName, true);
@@ -349,111 +338,111 @@ public class AddToMasterDB extends ModifyMasterDB {
 		}
 	}
 
-	public RepositoryConnection getNewRepository() {
-		try {
-			RepositoryConnection rc = null;
-			Repository myRepository = new SailRepository(new ForwardChainingRDFSInferencer(new MemoryStore()));
-			myRepository.initialize();
-			rc = myRepository.getConnection();
-			return rc;
-		} catch (RepositoryException e) {
-			logger.error("Could not get a new repository");
-		}
-		return null;
-	}
+//	private RepositoryConnection getNewRepository() {
+//		try {
+//			RepositoryConnection rc = null;
+//			Repository myRepository = new SailRepository(new ForwardChainingRDFSInferencer(new MemoryStore()));
+//			myRepository.initialize();
+//			rc = myRepository.getConnection();
+//			return rc;
+//		} catch (RepositoryException e) {
+//			logger.error("Could not get a new repository");
+//		}
+//		return null;
+//	}
 
-	private void addInsights(RepositoryConnection rc) {
-		try {
-			RepositoryResult<Statement> results = rc.getStatements(null, null, null, true);
-			while(results.hasNext()) {
-				Statement s = results.next();
-				boolean concept = true;
-				Object obj = s.getObject();
-				if(s.getObject() instanceof Literal) {
-					concept = false;
-					obj = ( (Value)obj).stringValue();
-				}
-				this.masterEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{s.getSubject(), s.getPredicate(), obj, concept});
-			}
-		} catch (RepositoryException e) {
-			logger.info("Repository Error adding insights");
-		}
-	}
+//	private void addInsights(RepositoryConnection rc) {
+//		try {
+//			RepositoryResult<Statement> results = rc.getStatements(null, null, null, true);
+//			while(results.hasNext()) {
+//				Statement s = results.next();
+//				boolean concept = true;
+//				Object obj = s.getObject();
+//				if(s.getObject() instanceof Literal) {
+//					concept = false;
+//					obj = ( (Value)obj).stringValue();
+//				}
+//				this.masterEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{s.getSubject(), s.getPredicate(), obj, concept});
+//			}
+//		} catch (RepositoryException e) {
+//			logger.info("Repository Error adding insights");
+//		}
+//	}
 
-	public void createUserInsight(String userId, String insightId) {
-		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
-		String userInsight = userId + "-" + insightId;
+//	public void createUserInsight(String userId, String insightId) {
+//		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
+//		String userInsight = userId + "-" + insightId;
+//
+//		MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight);
+//		MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_EXECUTION_COUNT_PROP_URI, new Double(1), false);
+//		MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_LAST_EXECUTED_DATE_PROP_URI, new Date(), false);
+//		MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.USER_BASE_URI + "/" + userId, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USER_USERINSIGHT_REL_URI);
+//		MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.INSIGHT_BASE_URI + "/" + insightId, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.INSIGHT_USERINSIGHT_REL_URI);
+//	}
 
-		MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight);
-		MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_EXECUTION_COUNT_PROP_URI, new Double(1), false);
-		MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_LAST_EXECUTED_DATE_PROP_URI, new Date(), false);
-		MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.USER_BASE_URI + "/" + userId, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USER_USERINSIGHT_REL_URI);
-		MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.INSIGHT_BASE_URI + "/" + insightId, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.INSIGHT_USERINSIGHT_REL_URI);
-	}
+//	public boolean processInsightExecutionForUser(String userId, Insight insight) {
+//		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
+//		String userInsight = userId + "-" + insight.getInsightID();
+//
+//		ISelectWrapper sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_USER_INSIGHT.replace("@USERINSIGHT@", userInsight));
+//		if(!sjsw.hasNext()) {
+//			createUserInsight(userId, insight.getInsightID());
+//		} else {
+//			Double count = 1.0;
+//			Date oldDate = new Date();
+//			sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_USER_INSIGHT_EXECUTED_COUNT.replace("@USERINSIGHT@", userInsight));
+//			if(sjsw.hasNext()) {
+//				String[] names = sjsw.getVariables();
+//				ISelectStatement iss = sjsw.next();
+//				count = Double.parseDouble(iss.getVar(names[0]).toString());
+//				SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+//				try {
+//					oldDate = df.parse(iss.getVar(names[1]).toString());
+//				} catch (ParseException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//			MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userId + "-" + insight.getInsightID(), MasterDatabaseURIs.USERINSIGHT_EXECUTION_COUNT_PROP_URI, count, false);
+//			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userId + "-" + insight.getInsightID(), MasterDatabaseURIs.USERINSIGHT_EXECUTION_COUNT_PROP_URI, ++count, false);
+//			MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userId + "-" + insight.getInsightID(), MasterDatabaseURIs.USERINSIGHT_LAST_EXECUTED_DATE_PROP_URI, oldDate, false);
+//			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userId + "-" + insight.getInsightID(), MasterDatabaseURIs.USERINSIGHT_LAST_EXECUTED_DATE_PROP_URI, new Date(), false);
+//		}
+//
+//		masterEngine.commit();
+//		masterEngine.infer();
+//
+//		return true;
+//	}
 
-	public boolean processInsightExecutionForUser(String userId, Insight insight) {
-		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
-		String userInsight = userId + "-" + insight.getId();
-
-		ISelectWrapper sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_USER_INSIGHT.replace("@USERINSIGHT@", userInsight));
-		if(!sjsw.hasNext()) {
-			createUserInsight(userId, insight.getId());
-		} else {
-			Double count = 1.0;
-			Date oldDate = new Date();
-			sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_USER_INSIGHT_EXECUTED_COUNT.replace("@USERINSIGHT@", userInsight));
-			if(sjsw.hasNext()) {
-				String[] names = sjsw.getVariables();
-				ISelectStatement iss = sjsw.next();
-				count = Double.parseDouble(iss.getVar(names[0]).toString());
-				SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
-				try {
-					oldDate = df.parse(iss.getVar(names[1]).toString());
-				} catch (ParseException e) {
-					e.printStackTrace();
-				}
-			}
-			MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userId + "-" + insight.getId(), MasterDatabaseURIs.USERINSIGHT_EXECUTION_COUNT_PROP_URI, count, false);
-			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userId + "-" + insight.getId(), MasterDatabaseURIs.USERINSIGHT_EXECUTION_COUNT_PROP_URI, ++count, false);
-			MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userId + "-" + insight.getId(), MasterDatabaseURIs.USERINSIGHT_LAST_EXECUTED_DATE_PROP_URI, oldDate, false);
-			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userId + "-" + insight.getId(), MasterDatabaseURIs.USERINSIGHT_LAST_EXECUTED_DATE_PROP_URI, new Date(), false);
-		}
-
-		masterEngine.commit();
-		masterEngine.infer();
-
-		return true;
-	}
-
-	public boolean publishInsightToFeed(String userId, Insight insight, String newVisibility) {
-		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
-		final String userInsight = userId + "-" + insight.getId();
-
-		String oldVisibility = "";
-		String pubDate = "";
-		ISelectWrapper sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_VISIBILITY_FOR_USERINSIGHT.replace("@USERINSIGHT@", userInsight));
-		if(!sjsw.hasNext()) {
-			createUserInsight(userId, insight.getId());
-		} else {
-			String[] names = sjsw.getVariables();
-			ISelectStatement iss = sjsw.next();
-			oldVisibility = iss.getVar(names[0]).toString();
-			pubDate = iss.getVar(names[1]).toString();
-			MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_PUBLISH_VISIBILITY_PROP_URI, oldVisibility, false);
-		}
-
-		MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_PUBLISH_VISIBILITY_PROP_URI, newVisibility, false);
-
-		if(oldVisibility.isEmpty() || (oldVisibility.equals("me") && !newVisibility.equals("me"))) {
-			MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_PUBLISH_DATE_PROP_URI, pubDate, false);
-			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_PUBLISH_DATE_PROP_URI, new Date(), false);
-		}
-
-		masterEngine.commit();
-		masterEngine.infer();
-
-		return true;
-	}
+//	public boolean publishInsightToFeed(String userId, Insight insight, String newVisibility) {
+//		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
+//		final String userInsight = userId + "-" + insight.getInsightID();
+//
+//		String oldVisibility = "";
+//		String pubDate = "";
+//		ISelectWrapper sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_VISIBILITY_FOR_USERINSIGHT.replace("@USERINSIGHT@", userInsight));
+//		if(!sjsw.hasNext()) {
+//			createUserInsight(userId, insight.getInsightID());
+//		} else {
+//			String[] names = sjsw.getVariables();
+//			ISelectStatement iss = sjsw.next();
+//			oldVisibility = iss.getVar(names[0]).toString();
+//			pubDate = iss.getVar(names[1]).toString();
+//			MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_PUBLISH_VISIBILITY_PROP_URI, oldVisibility, false);
+//		}
+//
+//		MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_PUBLISH_VISIBILITY_PROP_URI, newVisibility, false);
+//
+//		if(oldVisibility.isEmpty() || (oldVisibility.equals("me") && !newVisibility.equals("me"))) {
+//			MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_PUBLISH_DATE_PROP_URI, pubDate, false);
+//			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USERINSIGHT_URI + "/" + userInsight, MasterDatabaseURIs.USERINSIGHT_PUBLISH_DATE_PROP_URI, new Date(), false);
+//		}
+//
+//		masterEngine.commit();
+//		masterEngine.infer();
+//
+//		return true;
+//	}
 
 	public String getWordnetPath() {
 		return wordnetPath;

@@ -35,8 +35,8 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Set;
 
+import prerna.om.InsightStore;
 import prerna.ui.swing.custom.ButtonMenuDropDown;
-import prerna.util.QuestionPlaySheetStore;
 import prerna.util.StringNumericComparator;
 /**
  * Listener for the button that populates the list of current play sheets dropdown menu. 
@@ -61,31 +61,38 @@ public class ShowPlaySheetsButtonListener implements ActionListener{
 		ButtonMenuDropDown btn = (ButtonMenuDropDown) e.getSource();
 		btn.resetButton();		
 		Hashtable<String,String> lookUp = new Hashtable<String,String>();		
-		Set<String> playSheetIDs = QuestionPlaySheetStore.getInstance().getAllSheets();
+//		Set<String> playSheetIDs = QuestionPlaySheetStore.getInstance().getAllSheets();
+		Set<String> insightIDs = InsightStore.getInstance().getAllInsights();
+
 		List<String> sortedIDs = new ArrayList<String>();
-		sortedIDs.addAll(playSheetIDs);
+		sortedIDs.addAll(insightIDs);
 		Collections.sort(sortedIDs, new StringNumericComparator());
-		String[] IDArray = new String[playSheetIDs.size()];
+		String[] IDArray = new String[insightIDs.size()];
 		int count = 0;
 		for(String id : sortedIDs)
 		{
 			if(id.indexOf(".")>=0)	{
-				String listEntry = id.substring(0,id.indexOf("."))+". "+QuestionPlaySheetStore.getInstance().get(id).getTitle();
+//				String listEntry = id.substring(0,id.indexOf("."))+". "+QuestionPlaySheetStore.getInstance().get(id).getTitle();
 	//			else
 	//				listEntry = QuestionPlaySheetStore.getInstance().get(id).getTitle();
+				String listEntry = id.substring(0,id.indexOf("."))+". "+InsightStore.getInstance().get(id).getPlaySheet().getTitle();
 				IDArray[count] = listEntry;
 				lookUp.put(listEntry,id);
 				count++;
 			}
 			else if (id.indexOf("c")>=0) 
 			{
-				String listEntry = id.substring(0,id.indexOf("c"))+". "+QuestionPlaySheetStore.getInstance().get(id).getTitle();
+//				String listEntry = id.substring(0,id.indexOf("c"))+". "+QuestionPlaySheetStore.getInstance().get(id).getTitle();
+				String listEntry = id.substring(0,id.indexOf("c"))+". "+InsightStore.getInstance().get(id).getPlaySheet().getTitle();
+
 				IDArray[count] = listEntry;
 				lookUp.put(listEntry,id);
 				count++;
 			}
-			else
-				QuestionPlaySheetStore.getInstance().remove(id);
+			else {
+//				QuestionPlaySheetStore.getInstance().remove(id);
+				InsightStore.getInstance().remove(id);
+			}
 		}
 
 			

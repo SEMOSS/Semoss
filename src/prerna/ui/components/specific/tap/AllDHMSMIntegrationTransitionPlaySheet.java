@@ -29,11 +29,11 @@ package prerna.ui.components.specific.tap;
 
 import java.io.IOException;
 
-import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
+import prerna.ui.components.playsheets.TablePlaySheet;
 import prerna.util.Utility;
 
 @SuppressWarnings("serial")
-public class AllDHMSMIntegrationTransitionPlaySheet extends BasicProcessingPlaySheet{
+public class AllDHMSMIntegrationTransitionPlaySheet extends TablePlaySheet{
 
 	@Override
 	public void createView() {

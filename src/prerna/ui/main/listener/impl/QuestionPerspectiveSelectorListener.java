@@ -31,6 +31,8 @@ import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
 
 import javax.swing.DefaultComboBoxModel;
@@ -48,6 +50,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.om.Insight;
 import prerna.ui.components.ComboboxToolTipRenderer;
+import prerna.ui.components.MapComboBoxRenderer;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -93,42 +96,50 @@ public class QuestionPerspectiveSelectorListener extends AbstractListener {
 			questionOrderComboBox.removeAllItems();
 			
 			String selectedVal = engineName;
-			Vector<String> questionsV = new Vector<String>();
+			Vector<String> questionIds = new Vector<String>();
+			Vector<String> questionNames = null;
 
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(selectedVal);
 			try
 			{
-				questionsV = engine.getInsights(perspective);
+				questionIds = engine.getInsights(perspective);
 				
-				if(questionsV != null){
+				if(questionIds != null){
 					int newQuestionOrder = 0;
 					//recreate questionsV with appended order number
-					Vector<String> questionsVCopy = new Vector<String>(questionsV);
+					questionNames = new Vector<String>();
 					
-					questionsV.clear();
 					Vector<String> orderList = new Vector<String>();
 					
-					for(int itemIndex = 0;itemIndex < questionsVCopy.size();itemIndex++){
-						//if the same question is used multiple times in different perspectives, vectorInsight will contain all those insights.
-						//we need to loop through the insights and find the question that belongs to the perspective selected to get the correct order #
-						Vector<Insight> vectorInsight = ((AbstractEngine)engine).getInsight2((String)questionsVCopy.get(itemIndex));
-						Insight in = null;
-						if(vectorInsight.size() > 1){
-							for(Insight insight: vectorInsight){
-								if(insight.getId().contains(perspective)){
-									in = insight;
-								}
-							}
-						} else {
-							in = vectorInsight.get(0);
-						}
+					Vector<Insight> vectorInsight = ((AbstractEngine)engine).getInsight(questionIds.toArray(new String[questionIds.size()]));
+					for(int itemIndex = 0;itemIndex < vectorInsight.size();itemIndex++){
+						Insight in = vectorInsight.get(itemIndex);
+						// modify values to include the number ordering for optimal user experience <- cause we care about that
+//						newQuestionV.add(itemIndex + 1 + ". " + in.getInsightName());
+//						newQuestionID.add(in.getInsightID());
+//					}
+//					
+//					for(int itemIndex = 0;itemIndex < questionsVCopy.size();itemIndex++){
+//						//if the same question is used multiple times in different perspectives, vectorInsight will contain all those insights.
+//						//we need to loop through the insights and find the question that belongs to the perspective selected to get the correct order #
+//						Vector<Insight> vectorInsight = ((AbstractEngine)engine).getInsight((String)questionsVCopy.get(itemIndex));
+//						Insight in = null;
+//						if(vectorInsight.size() > 1){
+//							for(Insight insight: vectorInsight){
+////								if(insight.getId().contains(perspective)){
+//									in = insight;
+////								}
+//							}
+//						} else {
+//							in = vectorInsight.get(0);
+//						}
 						
 						String order = in.getOrder();
 						
 						CSSApplication css = new CSSApplication(questionModButton, ".toggleButton");
 						
 						if(order!=null) {
-							questionsV.add(order + ". " + questionsVCopy.get(itemIndex));
+							questionNames.add(order + ". " + in.getInsightName());
 							orderList.add(order);
 							warning.setVisible(false);
 							questionModButton.setEnabled(true);
@@ -138,8 +149,8 @@ public class QuestionPerspectiveSelectorListener extends AbstractListener {
 							questionModButton.setEnabled(false);
 							css = new CSSApplication(questionModButton, ".toggleButtonDisabled");
 
-							String question = (String) questionsVCopy.get(itemIndex);
-							questionsV.add(question);
+							String question = in.getInsightName();
+							questionNames.add(question);
 							
 							String[] questionsArray = question.split("\\. ", 2);
 							orderList.add(questionsArray[0]);
@@ -166,19 +177,23 @@ public class QuestionPerspectiveSelectorListener extends AbstractListener {
 			}
 			
 			
-			if(questionsV != null)
+			if(questionNames != null)
 			{
-				Collections.sort(questionsV, comparator);
-				for(int itemIndex = 0;itemIndex < questionsV.size();itemIndex++)
+				Collections.sort(questionNames, comparator);
+				for(int itemIndex = 0;itemIndex < questionNames.size();itemIndex++)
 				{
-					String question = (String) questionsV.get(itemIndex);
+					String question = (String) questionNames.get(itemIndex);
+					String id = (String) questionIds.get(itemIndex);
 
 					tTip.add(question);
-					ComboboxToolTipRenderer renderer = new ComboboxToolTipRenderer();
+					MapComboBoxRenderer renderer = new MapComboBoxRenderer();
 					qp.setRenderer(renderer);
 					renderer.setTooltips(tTip);
 					renderer.setBackground(Color.WHITE);
-					qp.addItem(question);
+					Map<String, String> comboMap = new HashMap<String, String>();
+					comboMap.put(MapComboBoxRenderer.KEY, id);
+					comboMap.put(MapComboBoxRenderer.VALUE, question);
+					qp.addItem(comboMap);
 				}
 			}
 		}

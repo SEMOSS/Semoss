@@ -44,7 +44,7 @@ import javax.swing.JTable;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.IAnalyticRoutine;
+import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.learning.unsupervised.outliers.EntropyDensityStatistic;
 import prerna.algorithm.learning.unsupervised.outliers.FastOutlierDetection;
 import prerna.algorithm.learning.unsupervised.outliers.LOF;
@@ -64,7 +64,7 @@ public class OutlierVizPlaySheet extends BrowserPlaySheet {
 	public static final String FOD = "fastOutlierDetection"; // fast outlier detection
 	
 	private String algorithmSelected = LOF;
-	private IAnalyticRoutine alg;
+	private IAnalyticTransformationRoutine alg;
 	private int instanceIndex;
 	
 	// used for lof
@@ -130,7 +130,7 @@ public class OutlierVizPlaySheet extends BrowserPlaySheet {
 		}
 
 		alg.setSelectedOptions(selectedOptions);
-		dataFrame.performAction(alg);
+		dataFrame.performAnalyticTransformation(alg);
 	}
 	
 	@Override
@@ -208,7 +208,7 @@ public class OutlierVizPlaySheet extends BrowserPlaySheet {
 	}
 	
 	@Override
-	public Hashtable getData() {
+	public Hashtable getDataMakerOutput() {
 		//TODO: remove this from getData() to call the super method
 		dataHash.put("id", this.questionNum==null? "": this.questionNum);
 		String className = "";
@@ -218,7 +218,7 @@ public class OutlierVizPlaySheet extends BrowserPlaySheet {
 		} else {
 			className = getClass().getName();
 		}
-		dataHash.put("playsheet", className);
+		dataHash.put("layout", className);
 		dataHash.put("title", this.title==null? "": this.title);
 		
 		Hashtable<String, String> specificData = new Hashtable<String, String>();

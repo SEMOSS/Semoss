@@ -20,7 +20,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -47,18 +46,10 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.ValueFactory;
 import org.openrdf.model.vocabulary.RDF;
-import org.openrdf.repository.Repository;
-import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
-import org.openrdf.repository.RepositoryResult;
-import org.openrdf.repository.sail.SailRepository;
-import org.openrdf.repository.sail.SailRepositoryConnection;
-import org.openrdf.rio.RDFHandlerException;
-import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 import org.openrdf.sail.Sail;
 import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
-import org.openrdf.sail.memory.MemoryStore;
 import org.supercsv.cellprocessor.Optional;
 import org.supercsv.cellprocessor.ParseBool;
 import org.supercsv.cellprocessor.ParseDate;
@@ -152,10 +143,11 @@ public class RDBMSReader {
 	protected Vector <String> allTablesModified = new Vector<String>();
 
 	// OWL variables
-	protected RepositoryConnection rcOWL;
-	protected ValueFactory vfOWL;
-	protected SailConnection scOWL;
+//	protected RepositoryConnection rcOWL;
+//	protected ValueFactory vfOWL;
+//	protected SailConnection scOWL;
 	protected String owlFile = "";
+	protected BaseDatabaseCreator baseEngCreator;
 
 	protected String scriptFileName = "DBScript.sql";
 	protected PrintWriter scriptFile = null;
@@ -274,7 +266,7 @@ public class RDBMSReader {
 		this.owlFile = owlFile;
 
 		//openEngineWithoutConnection(engineName);
-		openOWLWithOutConnection();
+		openOWLWithOutConnection(owlFile);
 		createTypes();
 
 		if(!customBase.equals("")) customBaseURI = customBase;
@@ -324,6 +316,7 @@ public class RDBMSReader {
 			createBaseRelations();
 		} finally {
 			closeDB();
+			closeOWL();
 			if(scriptFile != null) {
 				scriptFile.println("-- ********* completed load process ********* ");
 				scriptFile.close();
@@ -625,30 +618,30 @@ public class RDBMSReader {
 		Vector<String> tablesVec = new Vector<String>();
 		tablesVec.addAll(tables);
 		
-		try {
-			String questionKey = questionAdmin.createQuestionKey(GENERIC_PERSPECTIVE);
-			for(int tableIndex = 0;tableIndex < tablesVec.size();tableIndex++)
-			{
-				questionOrder = Integer.toString(newTableSeq + tableIndex);
-				questionKey = "GQ"+questionOrder;
-				String key = tablesVec.elementAt(tableIndex);
-				key = realClean(key);
-				question = "Show all from " + key;
-				questionDescription = question;
-				layout = "prerna.ui.components.playsheets.GridPlaySheet";
-				sql = "SELECT * FROM " + key;
-
-				questionAdmin.cleanAddQuestion(GENERIC_PERSPECTIVE, questionKey, questionOrder,
-						question, sql, layout, questionDescription, null, null, null); // parameterDependList, parameterQueryList, parameterOptionList);
-				questionAdmin.createQuestionXMLFile();
-			}
-		} catch(RuntimeException e) {
-			System.out.println("caught exception while adding question.................");
-			e.printStackTrace();
-			System.out.println("reverting xml........................");
-			questionAdmin.revertQuestionXML();
-			//return Response.status(500).entity(WebUtility.getSO(e.toString().substring(0, (e.toString().length() < MAX_CHAR)?e.toString().length():MAX_CHAR))).build();
-		}
+//		try {
+//			String questionKey = questionAdmin.createQuestionKey(GENERIC_PERSPECTIVE);
+//			for(int tableIndex = 0;tableIndex < tablesVec.size();tableIndex++)
+//			{
+//				questionOrder = Integer.toString(newTableSeq + tableIndex);
+//				questionKey = "GQ"+questionOrder;
+//				String key = tablesVec.elementAt(tableIndex);
+//				key = realClean(key);
+//				question = "Show all from " + key;
+//				questionDescription = question;
+//				layout = "prerna.ui.components.playsheets.GridPlaySheet";
+//				sql = "SELECT * FROM " + key;
+//
+//				questionAdmin.cleanAddQuestion(GENERIC_PERSPECTIVE, questionKey, questionOrder,
+//						question, sql, layout, questionDescription, null, null, null); // parameterDependList, parameterQueryList, parameterOptionList);
+//				questionAdmin.createQuestionXMLFile();
+//			}
+//		} catch(RuntimeException e) {
+//			System.out.println("caught exception while adding question.................");
+//			e.printStackTrace();
+//			System.out.println("reverting xml........................");
+//			questionAdmin.revertQuestionXML();
+//			//return Response.status(500).entity(WebUtility.getSO(e.toString().substring(0, (e.toString().length() < MAX_CHAR)?e.toString().length():MAX_CHAR))).build();
+//		}
 
 	}
 
@@ -683,9 +676,9 @@ public class RDBMSReader {
 		}
 	}
 
-	protected void openEngineWithConnection(String engineName) throws RepositoryException {
+	protected void openEngineWithConnection(String engineName, String owlFile) throws RepositoryException {
 		engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
-		openOWLWithConnection(engine);
+		openOWLWithConnection(engine, owlFile);
 	}
 
 
@@ -698,7 +691,7 @@ public class RDBMSReader {
 		System.out.println("Owl File is " + this.owlFile);
 		String[] files = fileNames.split(";"); //)prepareReader(fileNames, customBase, owlFile);
 		//logger.setLevel(Level.WARN);
-		openEngineWithConnection(engineName);
+		openEngineWithConnection(engineName, owlFile);
 		createTypes();
 
 		// check if I am in the environment
@@ -778,54 +771,57 @@ public class RDBMSReader {
 
 	}
 
-	private void openOWLWithOutConnection() throws RepositoryException {
-		Repository myRepository = new SailRepository(new MemoryStore());
-		try {
-			myRepository.initialize();
-			rcOWL = myRepository.getConnection();
-		} catch (RepositoryException e) {
-			e.printStackTrace();
-			throw new RepositoryException("Could not create new repository connection to store OWL information");
-		} 
-
-		scOWL = ((SailRepositoryConnection) rcOWL).getSailConnection();
-		vfOWL = rcOWL.getValueFactory();
-		vf = vfOWL;
+	private void openOWLWithOutConnection(String owlFile) throws RepositoryException {
+		baseEngCreator = new BaseDatabaseCreator(owlFile);
+//		Repository myRepository = new SailRepository(new MemoryStore());
+//		try {
+//			myRepository.initialize();
+//			rcOWL = myRepository.getConnection();
+//		} catch (RepositoryException e) {
+//			e.printStackTrace();
+//			throw new RepositoryException("Could not create new repository connection to store OWL information");
+//		} 
+//
+//		scOWL = ((SailRepositoryConnection) rcOWL).getSailConnection();
+//		vfOWL = rcOWL.getValueFactory();
+//		vf = vfOWL;
 	}
 
-	private void openOWLWithConnection(IEngine engine) throws RepositoryException {
-		Repository myRepository = new SailRepository(new MemoryStore());
-		try {
-			myRepository.initialize();
-			rcOWL = myRepository.getConnection();
-			rcOWL.begin();
-			scOWL = ((SailRepositoryConnection) rcOWL).getSailConnection();
-			vfOWL = rcOWL.getValueFactory();
-			vf = vfOWL;
-		} catch (RepositoryException e) {
-			e.printStackTrace();
-			throw new RepositoryException("Could not create new repository connection to store OWL information");
-		} 
+	private void openOWLWithConnection(IEngine engine, String owlFile) {
+		baseEngCreator = new BaseDatabaseCreator(engine, owlFile);
 
-		baseDataEngine = ((AbstractEngine)engine).getBaseDataEngine();
-		baseDataHash = ((AbstractEngine)engine).getBaseHash();
-
-		RepositoryConnection existingRC = ((RDFFileSesameEngine) baseDataEngine).getRc();
-		// load pre-existing base data
-		RepositoryResult<org.openrdf.model.Statement> rcBase = null;
-		try {
-			rcBase = existingRC.getStatements(null, null, null, false);
-			List<org.openrdf.model.Statement> rcBaseList = null;
-			rcBaseList = rcBase.asList();
-			Iterator<org.openrdf.model.Statement> iterator = rcBaseList.iterator();
-			while(iterator.hasNext()){
-				logger.info(iterator.next());
-			}
-			rcOWL.add(rcBaseList);
-		} catch (RepositoryException e) {
-			e.printStackTrace();
-			throw new RepositoryException("Could not load OWL information from existing database");
-		}
+//		Repository myRepository = new SailRepository(new MemoryStore());
+//		try {
+//			myRepository.initialize();
+//			rcOWL = myRepository.getConnection();
+//			rcOWL.begin();
+//			scOWL = ((SailRepositoryConnection) rcOWL).getSailConnection();
+//			vfOWL = rcOWL.getValueFactory();
+//			vf = vfOWL;
+//		} catch (RepositoryException e) {
+//			e.printStackTrace();
+//			throw new RepositoryException("Could not create new repository connection to store OWL information");
+//		} 
+//
+//		baseDataEngine = ((AbstractEngine)engine).getBaseDataEngine();
+//		baseDataHash = ((AbstractEngine)engine).getBaseHash();
+//
+//		RepositoryConnection existingRC = ((RDFFileSesameEngine) baseDataEngine).getRc();
+//		// load pre-existing base data
+//		RepositoryResult<org.openrdf.model.Statement> rcBase = null;
+//		try {
+//			rcBase = existingRC.getStatements(null, null, null, false);
+//			List<org.openrdf.model.Statement> rcBaseList = null;
+//			rcBaseList = rcBase.asList();
+//			Iterator<org.openrdf.model.Statement> iterator = rcBaseList.iterator();
+//			while(iterator.hasNext()){
+//				logger.info(iterator.next());
+//			}
+//			rcOWL.add(rcBaseList);
+//		} catch (RepositoryException e) {
+//			e.printStackTrace();
+//			throw new RepositoryException("Could not load OWL information from existing database");
+//		}
 	}
 
 
@@ -2396,23 +2392,24 @@ public class RDBMSReader {
 	}
 
 	protected void storeBaseStatement(String sub, String pred, String obj) throws SailException {
-		try {
-			if(!scOWL.isActive() || !scOWL.isOpen()) {
-				scOWL.begin();
-			}
-			scOWL.addStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj));
-			scOWL.commit();
-		} catch (SailException e) {
-			e.printStackTrace();
-			throw new SailException("Error adding triple {<" + sub + "> <" + pred + "> <" + obj + ">}");
-		}
-		if(baseDataEngine != null && baseDataHash != null)
-		{
-			baseDataEngine.addStatement(new Object[]{sub, pred, obj, true});
-			baseDataHash.put(sub, sub);
-			baseDataHash.put(pred, pred);
-			baseDataHash.put(obj,obj);
-		}
+		baseEngCreator.addToBaseEngine(new Object[]{sub, pred, obj});
+//		try {
+//			if(!scOWL.isActive() || !scOWL.isOpen()) {
+//				scOWL.begin();
+//			}
+//			scOWL.addStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj));
+//			scOWL.commit();
+//		} catch (SailException e) {
+//			e.printStackTrace();
+//			throw new SailException("Error adding triple {<" + sub + "> <" + pred + "> <" + obj + ">}");
+//		}
+//		if(baseDataEngine != null && baseDataHash != null)
+//		{
+//			baseDataEngine.addStatement(new Object[]{sub, pred, obj, true});
+//			baseDataHash.put(sub, sub);
+//			baseDataHash.put(pred, pred);
+//			baseDataHash.put(obj,obj);
+//		}
 	}
 
 
@@ -2507,51 +2504,56 @@ public class RDBMSReader {
 			storeBaseStatement(parent, OWL.DatatypeProperty+"", property);
 			//			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
 		}
-		try {
-			scOWL.commit();
-		} catch (SailException e) {
-			throw new SailException("Could not commit base relationships into OWL database");
-		}
-		if(baseDataEngine != null) {
-			baseDataEngine.commit();
-		}
+//		try {
+//			scOWL.commit();
+//		} catch (SailException e) {
+//			throw new SailException("Could not commit base relationships into OWL database");
+//		}
+//		if(baseDataEngine != null) {
+//			baseDataEngine.commit();
+//		}
+//		// create the OWL File
+//		FileWriter fWrite = null;
+//		try {
+//			fWrite = new FileWriter(owlFile);
+//			RDFXMLPrettyWriter owlWriter  = new RDFXMLPrettyWriter(fWrite); 
+//			rcOWL.export(owlWriter);
+//			fWrite.close();
+//			owlWriter.close();
+//		} catch (RepositoryException | RDFHandlerException | IOException e) {
+//			e.printStackTrace();
+//			throw new IOException("Could not close OWL file writer");
+//		} finally {
+//			try {
+//				if(fWrite!=null)
+//					fWrite.close();
+//			}catch(IOException e) {
+//				e.printStackTrace();
+//			}
+//		}
+//
+//		closeOWL();
+		
+		baseEngCreator.commit();
 		// create the OWL File
-		FileWriter fWrite = null;
-		try {
-			fWrite = new FileWriter(owlFile);
-			RDFXMLPrettyWriter owlWriter  = new RDFXMLPrettyWriter(fWrite); 
-			rcOWL.export(owlWriter);
-			fWrite.close();
-			owlWriter.close();
-		} catch (RepositoryException | RDFHandlerException | IOException e) {
-			e.printStackTrace();
-			throw new IOException("Could not close OWL file writer");
-		} finally {
-			try {
-				if(fWrite!=null)
-					fWrite.close();
-			}catch(IOException e) {
-				e.printStackTrace();
-			}
-		}
-
-		closeOWL();
+		baseEngCreator.exportBaseEng(true);
 	}
 
 	/**
 	 * Close the OWL engine
 	 */
 	protected void closeOWL() throws SailException, RepositoryException {
-		try {
-			scOWL.close();
-			rcOWL.close();
-		} catch (SailException e1) {
-			e1.printStackTrace();
-			throw new SailException("Could not close OWL database connection");
-		} catch (RepositoryException e) {
-			e.printStackTrace();
-			throw new RepositoryException("Could not close OWL database connection");
-		}
+		baseEngCreator.closeBaseEng();
+//		try {
+//			scOWL.close();
+//			rcOWL.close();
+//		} catch (SailException e1) {
+//			e1.printStackTrace();
+//			throw new SailException("Could not close OWL database connection");
+//		} catch (RepositoryException e) {
+//			e.printStackTrace();
+//			throw new RepositoryException("Could not close OWL database connection");
+//		}
 	}
 
 	/* function used for debugging, leaving it here for now 

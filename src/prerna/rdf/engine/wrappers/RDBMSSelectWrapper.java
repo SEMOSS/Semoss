@@ -39,6 +39,10 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Map;
 
+import com.hp.hpl.jena.query.QuerySolution;
+
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -115,26 +119,11 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 					for(int colIndex = 0;colIndex < var.length;colIndex++)
 					{
 						Object value = rs.getObject(var[colIndex]);
-						
-						if(value==null){
-							value = ""; //prevent null pointer exception.
+						if(value == null) {
+							value = "";
 						}
-						
 						stmt.setVar(var[colIndex], value);
-						//set the type and URI based on the type
-						int type = (int)columnTypes.get(var[colIndex]);
-						String qualifiedValue = null;
-						
-						
-						// there has to some way where I can say.. this is valid column type
-						// we dont have this at this point.. for now I am just saying if this is 
-						if(!value.toString().isEmpty() && (type == Types.LONGNVARCHAR || type == Types.VARCHAR || type == Types.CHAR || type == Types.LONGNVARCHAR || type == Types.NCHAR) && columnTables.containsKey(var[colIndex]))
-						{
-							qualifiedValue = uri + "/" + toCamelCase(columnTables.get(var[colIndex]) + "") + "/" + value;
-							stmt.setRawVar(var[colIndex], qualifiedValue);
-						} else {
-							stmt.setRawVar(var[colIndex], value);
-						}
+						stmt.setRawVar(var[colIndex], getRawValue(value, var[colIndex]));
 					}
 				}
 		} catch (SQLException e) {
@@ -244,6 +233,54 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 		String output = input.substring(0,1).toUpperCase() + input.substring(1).toLowerCase();
 		//System.out.println("Output is " + output);
 		return output;
+	}
+	
+	private Object getRawValue(Object value, String header){
+
+		if(value==null){
+			return ""; //prevent null pointer exception.
+		}
+
+		int type = (int)columnTypes.get(header);
+		Object tableObj = columnTables.get(header);
+		String table = null;
+		if(tableObj != null){
+			table = tableObj + "";
+		}
+		
+		// there has to some way where I can say.. this is valid column type
+		// we dont have this at this point.. for now I am just saying if this is 
+		if(!value.toString().isEmpty() && (type == Types.LONGNVARCHAR || type == Types.VARCHAR || type == Types.CHAR || type == Types.LONGNVARCHAR || type == Types.NCHAR) && table!=null)
+		{
+			return uri + "/" + toCamelCase(table) + "/" + value;
+		} else {
+			return value;
+		}
+	}
+
+	@Override
+	public ITableDataFrame getTableDataFrame() {
+		BTreeDataFrame dataFrame = new BTreeDataFrame(this.var);
+		try {
+			while (rs.next()){
+				logger.debug("Adding a rdbms statement ");
+				
+				Object[] clean = new Object[this.var.length];
+				Object[] raw = new Object[this.var.length];
+				for(int colIndex = 0;colIndex < var.length;colIndex++)
+				{
+					Object value = rs.getObject(var[colIndex]);
+					raw[colIndex] = getRawValue(value, var[colIndex]);
+					clean[colIndex] = value;
+				}
+				dataFrame.addRow(clean, raw);
+			} 
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return dataFrame;
 	}
 
 	

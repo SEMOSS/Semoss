@@ -37,6 +37,7 @@ import java.util.Set;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -55,7 +56,6 @@ public class ComparisonHeatMap extends BrowserPlaySheet {
 	}
 	
 	
-	@Override
 	public void createData() {
 		int i = 0;
 		int length = queryArr.length;
@@ -154,12 +154,17 @@ public class ComparisonHeatMap extends BrowserPlaySheet {
 		
 		return simValuesHash;
 	}
+
+	@Override
+	public void processDataMakerComponent(DataMakerComponent component) {
+		setQuery(component.getQuery());
+		createData();
+	}
 	
 	/**
 	 * Divides the input into db names and queries
 	 * @param query String
 	 */
-	@Override
 	public void setQuery(String query) {
 		String[] tokens = query.split("\\+\\+\\+");
 		int i = 0;

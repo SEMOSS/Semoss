@@ -34,15 +34,14 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import edu.uci.ics.jung.graph.DelegateForest;
 import prerna.algorithm.impl.CentralityCalculator;
 import prerna.algorithm.impl.PageRankCalculator;
 import prerna.algorithm.impl.SubclassingMapGenerator;
 import prerna.ds.BTreeDataFrame;
-import prerna.engine.impl.AbstractEngine;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.util.Constants;
-import edu.uci.ics.jung.graph.DelegateForest;
 
 @SuppressWarnings("serial")
 public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
@@ -51,10 +50,10 @@ public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
 		
 	@Override
 	public void createData() {
-		GraphPlaySheet graphPS = CentralityCalculator.createMetamodel(((AbstractEngine)engine).getBaseDataEngine().getRc(), query);
+		GraphPlaySheet graphPS = CentralityCalculator.createMetamodel(engine, query);
 
-		Hashtable<String, SEMOSSVertex> vertStore  = graphPS.getGraphData().getVertStore();
-		Hashtable<String, SEMOSSEdge> edgeStore = graphPS.getGraphData().getEdgeStore();
+		Hashtable<String, SEMOSSVertex> vertStore  = graphPS.getDataMaker().getVertStore();
+		Hashtable<String, SEMOSSEdge> edgeStore = graphPS.getDataMaker().getEdgeStore();
 
 		SubclassingMapGenerator subclassGen = new SubclassingMapGenerator();
 		subclassGen.processSubclassing(engine);

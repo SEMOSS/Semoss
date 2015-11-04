@@ -51,7 +51,6 @@ import prerna.ui.components.NewScrollBarUI;
  * The GridPlaySheet class creates the panel and table for a grid view of data from a SPARQL query.
  */
 
-
 @SuppressWarnings("serial")
 public class PerceptronPlaySheet extends GridPlaySheet {
 
@@ -94,12 +93,7 @@ public class PerceptronPlaySheet extends GridPlaySheet {
 		selectedOptions.put(options.get(5).getName(), constant);
 		
 		alg.setSelectedOptions(selectedOptions);
-		dataFrame.performAction(alg);
-	}
-
-	@Override
-	public void processQueryData() {
-
+		dataFrame.performAnalyticTransformation(alg);
 	}
 
 	public void setWeights(double[][] w) {

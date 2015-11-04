@@ -29,15 +29,15 @@ package prerna.engine.impl.rdf;
 
 import java.util.Vector;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.impl.AbstractEngine;
-
 import com.hp.hpl.jena.query.QueryExecution;
 import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QueryFactory;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.update.UpdateAction;
+
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.AbstractEngine;
 
 /**
  * Holds the database in memory, and uses the Jena API to facilitate querying of RDF data sources.
@@ -124,7 +124,7 @@ public class InMemoryJenaEngine extends AbstractEngine implements IEngine {
 	
 	 * @return the Vector of Strings representing the instance names of all of the query results */
 	@Override
-	public Vector<String> getEntityOfType(String sparqlQuery) {
+	public Vector<Object> getEntityOfType(String sparqlQuery) {
 		// TODO: Don't return null
 		return null;
 	}
@@ -158,7 +158,7 @@ public class InMemoryJenaEngine extends AbstractEngine implements IEngine {
 	}
 
 	@Override
-	protected Vector<String> getCleanSelect(String query) {
+	protected Vector<Object> getCleanSelect(String query) {
 		// TODO Auto-generated method stub
 		return null;
 	}

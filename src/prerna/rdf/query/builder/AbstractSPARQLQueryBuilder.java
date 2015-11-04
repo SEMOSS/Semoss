@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.LogManager;
@@ -44,12 +45,16 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 	}
 	
 	@Override
-	public void setJSONDataHash(Hashtable<String, Object> allJSONHash) {
+	public void setJSONDataHash(Map<String, Object> allJSONHash) {
 		Gson gson = new Gson();
 		this.allJSONHash = new Hashtable<String, Object>();
 		this.allJSONHash.putAll((StringMap) allJSONHash.get("QueryData"));
 		ArrayList<StringMap> list = (ArrayList<StringMap>) allJSONHash.get("SelectedNodeProps") ;
 		this.nodePropV = new ArrayList<Hashtable<String, String>>();
+		if(allJSONHash.containsKey("returnOrder")){
+			System.out.println("setting return order in semoss query " );
+			this.semossQuery.setReturnVarOrder((List) allJSONHash.get("returnOrder"));
+		}
 		for(StringMap map : list){
 			Hashtable hash = new Hashtable();
 			hash.putAll(map);
@@ -102,8 +107,19 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 		addPropsToQuery(nodePropV);
 		
 		addFilter();
+		
+		addParameters();
 	};
 	
+	private void addParameters() {
+		Map<String, String> params = (Map<String, String>) allJSONHash.get("Parameters");
+		if(params != null && !params.isEmpty()) {
+			List<Map<String, String>> parameters = new ArrayList<Map<String, String>>();
+			parameters.add(params);
+			SEMOSSQueryHelper.addParametersToQuery(parameters, semossQuery, "Main");
+		}
+	}
+
 	abstract protected void addRelationshipTriples(List<Hashtable<String, String>> predV2);
 
 	abstract protected void addReturnVariables(List<Hashtable<String, String>> predV2);

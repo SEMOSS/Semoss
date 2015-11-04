@@ -51,7 +51,7 @@ import javax.swing.event.InternalFrameEvent;
 
 import prerna.engine.api.IEngine;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.AbstractRDFPlaySheet;
+import prerna.ui.components.playsheets.TablePlaySheet;
 import prerna.ui.main.listener.impl.PlaySheetListener;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
@@ -62,7 +62,7 @@ import prerna.util.DIHelper;
  * This is the playsheet used exclusively for TAP service optimization.
  */
 @SuppressWarnings("serial")
-public class InputPanelPlaySheet extends AbstractRDFPlaySheet implements IPlaySheet{
+public class InputPanelPlaySheet extends TablePlaySheet implements IPlaySheet{
 	
 	protected String title = null;
 	public JComponent pane = null;

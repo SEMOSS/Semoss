@@ -40,13 +40,14 @@ import org.apache.log4j.Logger;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.ChartControlPanel;
 import prerna.ui.components.playsheets.CONUSMapPlaySheet;
 import prerna.ui.main.listener.impl.ChartImageExportListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.QuestionPlaySheetStore;
 
 /**
  * Creates a map of systems in the continental United States and allows the user to export the image for future use.
@@ -108,7 +109,7 @@ public class CONUSMapExporter {
 		
 		IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp("TAP_Site_Data");
 		String id = "CONUS_Map";
-		String question = QuestionPlaySheetStore.getInstance().getIDCount() + ". "+id;
+//		String question = QuestionPlaySheetStore.getInstance().getIDCount() + ". "+id;
 //		String layoutValue = "prerna.ui.components.playsheets.CONUSMapPlaySheet";
 				
 		ArrayList<String> systemsInSite = systemsInSiteDB();
@@ -126,11 +127,15 @@ public class CONUSMapExporter {
 				CONUSMapPlaySheet playSheet = new CONUSMapPlaySheet();					
 				playSheet.setQuery(query);
 				playSheet.setRDFEngine((IEngine) engine);
-				playSheet.setQuestionID(question);
+				playSheet.setQuestionID(id);
 				JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 				playSheet.setJDesktopPane(pane);
-
-				QuestionPlaySheetStore.getInstance().put(question, playSheet);
+				
+				Insight insight = new Insight(null, "", "");
+				insight.setInsightID(id);
+				insight.setPlaySheet(playSheet);
+				InsightStore.getInstance().put(insight);
+//				QuestionPlaySheetStore.getInstance().put(question, playSheet);
 				
 				playSheet.createData();
 				playSheet.runAnalytics();

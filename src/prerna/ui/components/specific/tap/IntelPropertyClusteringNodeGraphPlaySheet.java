@@ -53,8 +53,8 @@ public class IntelPropertyClusteringNodeGraphPlaySheet extends GraphPlaySheet {
 	@Override
 	public void createForest() {
 		super.createForest();
-		Hashtable<String, SEMOSSVertex> myVertStore = this.getGraphData().getVertStore();
-		Hashtable<String, SEMOSSEdge> myEdgeStore = this.getGraphData().getEdgeStore();
+		Hashtable<String, SEMOSSVertex> myVertStore = this.getDataMaker().getVertStore();
+		Hashtable<String, SEMOSSEdge> myEdgeStore = this.getDataMaker().getEdgeStore();
 		Enumeration keyList = myVertStore.keys();
 		String questionId = this.questionNum;
 		String propToCluster = DIHelper.getInstance().getProperty(questionId + "_" + "CLUSTER_PROP");

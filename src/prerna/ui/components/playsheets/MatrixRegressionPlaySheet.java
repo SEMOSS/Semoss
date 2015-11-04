@@ -109,7 +109,7 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 		selectedOptions.put(options.get(0).getName(), A);
 		selectedOptions.put(options.get(1).getName(), b);
 		alg.setSelectedOptions(selectedOptions);
-		dataFrame.performAction(alg);
+		dataFrame.performAnalyticAction(alg);
 
 		coeffArray = alg.getCoeffArray();
 		coeffErrorsArray = alg.getCoeffErrorsArray();

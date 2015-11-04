@@ -29,8 +29,11 @@ package prerna.ui.main.listener.impl;
 
 import java.awt.Component;
 import java.awt.event.ActionEvent;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
@@ -45,13 +48,13 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
+import prerna.om.InsightStore;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.SparqlArea;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.helpers.PlaysheetRemoveRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.QuestionPlaySheetStore;
 import prerna.util.Utility;
 
 /**
@@ -80,7 +83,8 @@ public class RemoveQueryListener extends SparqlAreaListener {
 		// get the current panel showing - need to do the isVisible
 		// currently assumes all queries are SPARQL, needs some filtering if there are other types of queries
 		// especially the ones that would use JGraph
-		if (QuestionPlaySheetStore.getInstance().getActiveSheet() != null)
+//		if (QuestionPlaySheetStore.getInstance().getActiveSheet() != null)
+		if (InsightStore.getInstance().getActiveInsight() != null)
 		{
 			JToggleButton btnCustomSparql = (JToggleButton)DIHelper.getInstance().getLocalProp(Constants.CUSTOMIZE_SPARQL);
 			//if (!extend.isSelected() && !spql.isSelected())
@@ -102,7 +106,7 @@ public class RemoveQueryListener extends SparqlAreaListener {
 
 			// get all the param field
 			Component [] fields = curPanel.getComponents();
-			Hashtable paramHash = new Hashtable();
+			Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
 			String title = " - ";
 			for(int compIndex = 0;compIndex < fields.length;compIndex++)
 			{			
@@ -110,7 +114,9 @@ public class RemoveQueryListener extends SparqlAreaListener {
 				{	
 					String fieldName = ((ParamComboBox)fields[compIndex]).getParamName();
 					String fieldValue = ((ParamComboBox)fields[compIndex]).getSelectedItem() + "";
-					paramHash.put(fieldName, fieldValue);
+					List<Object> fieldList = new ArrayList<Object>();
+					fieldList.add(fieldValue);
+					paramHash.put(fieldName, fieldList);
 					title = title + " " +  fieldValue;
 				}		
 			}
@@ -145,14 +151,16 @@ public class RemoveQueryListener extends SparqlAreaListener {
 			for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
 			{
 				IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
-				String question = id + QuestionPlaySheetStore.getInstance().getIDCount();
+//				String question = id + QuestionPlaySheetStore.getInstance().getIDCount();
+				String question = id + InsightStore.idCount;
 				// use the layout to load the sheet later
 				// see if the append is on
 				logger.debug("Toggle is selected");
 
 				GraphPlaySheet playSheet = null;
 				logger.debug("Appending ");
-				playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
+//				playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
+				playSheet = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
 				// need to create a playsheet append runner
 				playRunner = new PlaysheetRemoveRunner(playSheet);
 				playSheet.setQuery(this.sparql.getText());
@@ -182,9 +190,10 @@ public class RemoveQueryListener extends SparqlAreaListener {
 			String sparql = DIHelper.getInstance().getProperty(id + "_" + Constants.QUERY);	
 
 			// get all the parameters and names from the SPARQL
-			Hashtable paramHash = Utility.getParams(sparql);
+			Hashtable params = Utility.getParams(sparql);
+			Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
 			// for each of the params pick out the type now
-			Enumeration keys = paramHash.keys();
+			Enumeration keys = params.keys();
 			while(keys.hasMoreElements())
 			{	
 				String key = (String)keys.nextElement();
@@ -195,7 +204,9 @@ public class RemoveQueryListener extends SparqlAreaListener {
 				if(tokens.hasMoreTokens())
 					varType = tokens.nextToken();
 				logger.debug(varName + "<<>>" + varType);
-				paramHash.put(key,"@" + varName + "@");
+				List<Object> valList = new ArrayList<Object>();
+				valList.add("@" + varName + "@");
+				paramHash.put(key, valList);
 			}
 			sparql = Utility.fillParam(sparql, paramHash);
 			logger.debug(sparql  + "<<<");

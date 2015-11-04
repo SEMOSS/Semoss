@@ -15,7 +15,7 @@ import prerna.ds.OrderedBTreeDataFrame;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.PlaySheetEnum;
+import prerna.util.PlaySheetRDFMapBasedEnum;
 
 
 public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlaySheet {
@@ -82,7 +82,7 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 	@Override
 	public void createView(){
 		processThickQueryData();
-		String playSheetClassName = PlaySheetEnum.getClassFromName("Column Chart");
+		String playSheetClassName = PlaySheetRDFMapBasedEnum.getClassFromName("Column Chart");
 		BrowserPlaySheet playSheet = null;
 		try {
 			playSheet = (BrowserPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
@@ -110,7 +110,7 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 		}
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		playSheet.fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/ousd-combo.html";
-		playSheet.setDataFrame(this.dataFrame);
+		playSheet.setDataMaker(this.dataFrame);
 		playSheet.setQuestionID(this.questionNum);
 		playSheet.setTitle(this.title);
 		playSheet.pane = this.pane;
@@ -119,10 +119,10 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 	}
 
 	@Override
-	public Hashtable getData(){
-		Hashtable ret = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, PlaySheetEnum.Column_Chart.getSheetName());
+	public Hashtable getDataMakerOutput(){
+		Hashtable ret = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, PlaySheetRDFMapBasedEnum.getSheetName("ColumnChart"));
 		
-		ret.put("playsheet", "OUSDCombo");
+		ret.put("layout", "OUSDCombo");
 		return ret;
 	}
 	

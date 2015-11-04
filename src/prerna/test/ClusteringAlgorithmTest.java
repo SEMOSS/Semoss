@@ -1,57 +1,35 @@
 package prerna.test;
 
-import static org.junit.Assert.*;
-
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Properties;
+import java.util.HashMap;
+import java.util.List;
 
-import org.apache.log4j.PropertyConfigurator;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import prerna.algorithm.learning.unsupervised.clustering.ClusteringAlgorithm;
-import prerna.engine.api.ISelectStatement;
+import junit.framework.TestCase;
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.learning.unsupervised.clustering.ClusteringRoutine;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
-import prerna.util.Constants;
+import prerna.om.SEMOSSParam;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
-/**
-*
-* @author  August Bender
-* @version 1.0
-* @since   06-09-2015 
-* Questions? Email abender@deloitte.com
-*/
-public class ClusteringAlgorithmTest {
+public class ClusteringAlgorithmTest extends TestCase {
 
-	private static String workingDir = System.getProperty("user.dir");
-	static int testCounter;
-	
-	private static ClusteringAlgorithm cluster;
-	private static ArrayList<Object[]> masterTable;
-	private static String[] varNames;
+	private ClusteringRoutine cluster;
+	private ITableDataFrame dataFrame;
 	
 	@BeforeClass 
-	public static void setUpOnce(){
-		//Set the Sudo-Prop
-		System.setProperty("file.separator", "/");
-		String propFile = workingDir + "/RDF_Map.prop";
-		DIHelper.getInstance().loadCoreProp(propFile);
-		PropertyConfigurator.configure(workingDir + "/log4j.prop");
+	public void setUpOnce() throws IOException{
+		String engineProp = "C:\\workspace\\Semoss\\db\\Movie_DB.smss";
+		BigDataEngine movieDB = new BigDataEngine();
+		movieDB.openDB(engineProp);
+		movieDB.setEngineName("Movie_DB");
+		DIHelper.getInstance().setLocalProperty("Movie_DB", movieDB);
 		
-		System.out.println("Test Started..");
-		ArrayList<Object[]> list = null;
-		String [] names = null;
-		
-		String engineLocation = workingDir + "//db//Movie_DB.smss";
 		String query = "SELECT DISTINCT ?Title ?Genre ?Director ?Nominated ?Studio ?DomesticRevenue ?InternationalRevenue ?Budget ?RottenTomatoesCritics ?RottenTomatoesAudience "
 				+ "WHERE {{?Title <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Title>}"
 				+ "{?Title <http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic> ?DomesticRevenue }"
@@ -68,141 +46,35 @@ public class ClusteringAlgorithmTest {
 				+ "{?Title <http://semoss.org/ontologies/Relation/Was> ?Nominated}"
 				+ "{?Title <http://semoss.org/ontologies/Relation/DirectedAt> ?Studio}} ORDER BY ?Title  LIMIT 10";
 		
-		BigDataEngine engine = loadEngine(engineLocation);
-		
-		list = new ArrayList<Object[]>();
-		ISelectWrapper sjsw = Utility.processQuery(engine, query);
-		names = sjsw.getVariables();
-		int length = names.length;
-		while(sjsw.hasNext()) {
-			ISelectStatement sjss = sjsw.next();
-			Object[] row = new Object[length];
-			int i = 0;
-			for(; i < length; i++) {
-				row[i] = sjss.getVar(names[i]);
-			}
-			list.add(row);
-		}	
-		masterTable = list;
-		varNames = names;
-		
-		engine.commitOWL();
-		engine.commit();
-		engine.closeDB();
+		System.out.println("Creating Table Data Frame...");
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(movieDB, query);
+		dataFrame = wrapper.getTableDataFrame();
+		System.out.println("Data Frame created...");
+
+		movieDB.closeDB();
 	}
 	
 	@Before
 	public void setUp(){
-		testCounter++;
-		System.out.println("Test " + testCounter + " starting..");
-		cluster = new ClusteringAlgorithm(masterTable, varNames);
-	}
-	
-	@After
-	public void tearDown(){
-		System.out.println("Test " + testCounter + " ended..");
-	}
-	
-	@AfterClass
-	public static void finalTearDown(){
-		System.out.println("Class Tear Down ...");
-	}
-	
-	@Test
-	public void runTest(){
-		//This is more for threading tasks than testing
-		//TODO at another point in time.
-		//cluster.setDataVariables();
-		//cluster.setNumClusters(2);//2 clusters
-		//cluster.execute();
-		
-		//cluster.run();
+		cluster = new ClusteringRoutine();
 	}
 	
 	@Test
 	public void executeTest(){
-		cluster.setDataVariables();
-		cluster.setNumClusters(2);//2 clusters
-		cluster.execute();
+		List<SEMOSSParam> options = cluster.getOptions();
+		HashMap<String, Object> selectedOptions = new HashMap<String, Object>();
+		int numClusters = 2;
+		selectedOptions.put(options.get(0).getName(), numClusters); 
+		selectedOptions.put(options.get(1).getName(), 0);
+		cluster.setSelectedOptions(selectedOptions);
 		
-		int[] numInstClus = cluster.getNumInstancesInCluster();
-		int[] clusAssign = cluster.getClusterAssignment();
-		
-		for(int i = 0; i < numInstClus.length; i++){
-			assertEquals("NumInstancesInCluster is inncorrect..", 5, numInstClus[i]);
-		}
+		ITableDataFrame results = cluster.runAlgorithm(dataFrame);
 
-		for(int i = 0; i < clusAssign.length; i++){
-			assertTrue("NumInstancesInCluster is inncorrect..",(clusAssign[i] < 2));
-		}
-	}
-	
-	/** Loads an Engine based on it's .smss file path
-	 * 
-	 * @param engineLocation
-	 * 
-	 * @return loaded BigDataEngine
-	 */
-	private static BigDataEngine loadEngine(String engineLocation){
-		BigDataEngine engine = new BigDataEngine();
-		FileInputStream fileIn;
-		Properties prop = new Properties();
-		try {
-			fileIn = new FileInputStream(engineLocation);
-			prop.load(fileIn);
-			//SEP
-			try {
-				String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
+		// should have exactly 2 clusters
+		// every title should have a cluster
+		Integer[] counts = results.getUniqueInstanceCount();
 
-				String engineName = prop.getProperty(Constants.ENGINE);
-				String engineClass = prop.getProperty(Constants.ENGINE_TYPE);
-				//TEMPORARY
-				// TODO: remove this
-				if(engineClass.equals("prerna.rdf.engine.impl.RDBMSNativeEngine")){
-					engineClass = "prerna.engine.impl.rdbms.RDBMSNativeEngine";
-				}
-				else if(engineClass.startsWith("prerna.rdf.engine.impl.")){
-					engineClass = engineClass.replace("prerna.rdf.engine.impl.", "prerna.engine.impl.rdf.");
-				}
-				engine = (BigDataEngine)Class.forName(engineClass).newInstance();
-				engine.setEngineName(engineName);
-				if(prop.getProperty("MAP") != null) {
-					engine.addProperty("MAP", prop.getProperty("MAP"));
-				}
-				engine.openDB(engineLocation);
-				engine.setDreamer(prop.getProperty(Constants.DREAMER));
-				engine.setOntology(prop.getProperty(Constants.ONTOLOGY));
-				
-				// set the core prop
-				if(prop.containsKey(Constants.DREAMER))
-					DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.DREAMER, prop.getProperty(Constants.DREAMER));
-				if(prop.containsKey(Constants.ONTOLOGY))
-					DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.ONTOLOGY, prop.getProperty(Constants.ONTOLOGY));
-				if(prop.containsKey(Constants.OWL)) {
-					DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.OWL, prop.getProperty(Constants.OWL));
-					engine.setOWL(prop.getProperty(Constants.OWL));
-				}
-				
-				// set the engine finally
-				engines = engines + ";" + engineName;
-				DIHelper.getInstance().setLocalProperty(engineName, engine);
-				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engines);
-			} catch (InstantiationException e) {
-				e.printStackTrace();
-			} catch (IllegalAccessException e) {
-				e.printStackTrace();
-			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
-			}
-			//SEP
-			fileIn.close();
-			prop.clear();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return engine;
+		assertTrue(counts[1] == numClusters);
+		assertTrue(counts[0] == dataFrame.getUniqueInstanceCount("Title"));
 	}
-	
 }

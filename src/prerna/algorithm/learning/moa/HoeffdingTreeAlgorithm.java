@@ -1,5 +1,7 @@
 package prerna.algorithm.learning.moa;
 
+import java.text.DecimalFormat;
+
 /**
  * This code creates a Hoeffding Decision Tree, which is a probabilistic decision tree especially for large datasets.
  * 
@@ -20,6 +22,8 @@ package prerna.algorithm.learning.moa;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,14 +33,15 @@ import moa.classifiers.trees.HoeffdingAdaptiveTree;
 import moa.core.InstancesHeader;
 import moa.options.Options;
 import moa.streams.CachedInstancesStream;
-import prerna.algorithm.api.IAnalyticRoutine;
+import prerna.algorithm.api.IAnalyticActionRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.weka.WekaUtilityMethods;
 import prerna.om.SEMOSSParam;
+import prerna.ui.components.playsheets.DendrogramPlaySheet;
 import weka.core.Instance;
 import weka.core.Instances;
 
-public class HoeffdingTreeAlgorithm implements IAnalyticRoutine {
+public class HoeffdingTreeAlgorithm implements IAnalyticActionRoutine {
 
 	private static final String SPLIT_CONFIDENCE = "splitConfidence";
 	private static final String GRACE_PERIOD = "gracePeriod";
@@ -93,16 +98,16 @@ public class HoeffdingTreeAlgorithm implements IAnalyticRoutine {
 	 */
 	@SuppressWarnings("unchecked")
 	@Override
-	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
+	public void runAlgorithm(ITableDataFrame... data) {
 
 		ITableDataFrame dataFrame = data[0];
 		int numInstances = dataFrame.getNumRows();
 
 		// set options
-		this.classifierIndex = (int) options.get(0).getSelected();
-		double invConfidence = (double) options.get(1).getSelected();
-		double gracePercentage = (double) options.get(2).getSelected();
-		double tieThresholdPercent = (double) options.get(3).getSelected();
+		this.classifierIndex = ((Number) options.get(0).getSelected()).intValue();
+		double invConfidence = ((Number) options.get(1).getSelected()).doubleValue();
+		double gracePercentage = ((Number) options.get(2).getSelected()).doubleValue();
+		double tieThresholdPercent = ((Number) options.get(3).getSelected()).doubleValue();
 		this.skipAttributes = (List<String>) options.get(4).getSelected();
 
 		// confidenceValue is a value between 0 and 1: .1 represents 90% confidence.
@@ -124,8 +129,32 @@ public class HoeffdingTreeAlgorithm implements IAnalyticRoutine {
 
 		// compute Tree
 		computeTree(instanceData);
+	}
+	
+	@Override
+	public Object getAlgorithmOutput() {
+		HashSet hashSet = new HashSet();
+		DendrogramPlaySheet.processTree(processTreeString(), hashSet);
 
-		return null;
+		String root = "Dataset";
+		Hashtable<String, Object> dataHash = new Hashtable<String, Object>();
+		dataHash.put("name", root);
+		dataHash.put("children", hashSet);
+		
+		DecimalFormat df = new DecimalFormat("#%");
+		ArrayList<Hashtable<String, Object>> statList = new ArrayList<Hashtable<String, Object>>();
+		Hashtable<String, Object> statHash = new Hashtable<String, Object>();
+		statHash.put("Accuracy", df.format((double)(getResultMetadata().get("accuracy"))/100));
+		statHash.put("Number of Nodes", (getResultMetadata().get("numNodes")));
+		statHash.put("Number of Leaves", (getResultMetadata().get("numLeaves")));
+		statList.add(statHash);
+		dataHash.put("stats", statList);
+		
+		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
+		allHash.put("specificData", dataHash);
+		allHash.put("layout", getDefaultViz());
+
+		return allHash ;
 	}
 
 	/**
@@ -281,12 +310,7 @@ public class HoeffdingTreeAlgorithm implements IAnalyticRoutine {
 
 	@Override
 	public String getDefaultViz() {
-		return "prerna.ui.components.playsheets.MOAClassificationPlaySheet";
-	}
-
-	@Override
-	public List<String> getChangedColumns() {
-		return null;
+		return "Dendrogram";
 	}
 
 	@Override

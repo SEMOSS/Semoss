@@ -35,9 +35,9 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.engine.impl.AbstractEngine;
+import prerna.om.InsightStore;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.playsheets.GraphPlaySheet;
-import prerna.util.QuestionPlaySheetStore;
 
 /**
  * Controls the saving of the OWL file.
@@ -53,7 +53,8 @@ public class SaveOWLListener implements IChakraListener {
 	@Override
 	public void actionPerformed(ActionEvent actionevent) {
 		System.err.println("Saving the OWL");
-		GraphPlaySheet ps = (GraphPlaySheet)QuestionPlaySheetStore.getInstance().getActiveSheet();
+//		GraphPlaySheet ps = (GraphPlaySheet)QuestionPlaySheetStore.getInstance().getActiveSheet();
+		GraphPlaySheet ps = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
 		saveIt();		
 	}
 	
@@ -64,7 +65,8 @@ public class SaveOWLListener implements IChakraListener {
 	 */
 	public void saveIt()
 	{
-		GraphPlaySheet ps = (GraphPlaySheet)QuestionPlaySheetStore.getInstance().getActiveSheet();
+//		GraphPlaySheet ps = (GraphPlaySheet)QuestionPlaySheetStore.getInstance().getActiveSheet();
+		GraphPlaySheet ps = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
 		String engineName = ps.engine.getEngineName();
 		// get the core properties
 		ps.exportDB();

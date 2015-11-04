@@ -30,9 +30,9 @@ package prerna.ui.main.listener.impl;
 import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import javax.swing.JComboBox;
@@ -45,19 +45,18 @@ import org.apache.log4j.Logger;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.om.Insight;
-import prerna.ui.components.ComboboxToolTipRenderer;
+import prerna.ui.components.MapComboBoxRenderer;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.StringNumericComparator;
 
 /**
  * Controls selection of the perspective from the left hand pane.
  */
 public class PerspectiveSelectionListener extends AbstractListener {
-	public JComponent view = null;
-	Hashtable model = null;
-	static final Logger logger = LogManager.getLogger(PerspectiveSelectionListener.class.getName());	
 	
+	private static final Logger logger = LogManager.getLogger(PerspectiveSelectionListener.class.getName());	
+
+	public JComponent view = null;
 	// needs to find what is being selected from event
 	// based on that refresh the view of questions for that given perspective
 	
@@ -67,82 +66,50 @@ public class PerspectiveSelectionListener extends AbstractListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		JComboBox bx = (JComboBox)e.getSource();
+		JComboBox<String> bx = (JComboBox<String>)e.getSource();
 		String perspective = "";
 		if(bx.getSelectedItem() != null) {
 			perspective = bx.getSelectedItem().toString();
 		}
+		
 		if(!perspective.isEmpty()) {
 			logger.info("Selected " + perspective + " <> " + view);
-			JComboBox qp = (JComboBox)view;
-
-			ArrayList tTip = new ArrayList();
+			JComboBox<Map<String, String>> qp = (JComboBox<Map<String, String>>)view;
+			ArrayList<String> tTip = new ArrayList<String>();
 			qp.removeAllItems();
-			JList list = (JList) DIHelper.getInstance().getLocalProp(
-					Constants.REPO_LIST);
-			// get the selected repository
-			List selectedValuesList = list.getSelectedValuesList();
+			// grab the selected engine
+			JList<String> list = (JList<String>) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+			List<String> selectedValuesList = list.getSelectedValuesList();
 			String selectedVal = selectedValuesList.get(selectedValuesList.size()-1).toString();
-			Vector questionsV = new Vector();
-
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(selectedVal);
-
-			try
-			{
-				questionsV = engine.getInsights(perspective);
-				if(questionsV != null){
-					//recreate qyestionsV with appended order number
-					Vector questionsVCopy = new Vector(questionsV);
-					
-					questionsV.clear();
-					for(int itemIndex = 0;itemIndex < questionsVCopy.size();itemIndex++){
-						
-						//if the same question is used multiple times in different perspectives, vectorInsight will contain all those insights.
-						//we need to loop through the insights and find the question that belongs to the perspective selected to get the correct order #
-						Vector<Insight> vectorInsight = ((AbstractEngine)engine).getInsight2((String)questionsVCopy.get(itemIndex));
-						Insight in = null;
-						if(vectorInsight.size() > 1){
-							for(Insight insight: vectorInsight){
-								if(insight.getId().contains(perspective)){
-									in = insight;
-								}
-							}
-						} else {
-							in = vectorInsight.get(0);
-						}
-						String order = in.getOrder();
-						//check to see if user has the most up-to-date XML structure to include order property;
-						//if not, assume the question label itself has the order and add it straight to the vector
-						if(order != null) {
-							questionsV.add(order + ". " + questionsVCopy.get(itemIndex));
-						} else {
-							questionsV.add(questionsVCopy.get(itemIndex));
-						}
-					}
+			
+			// grab the list of insights in the selected engine, this list is already ordered
+			Vector<String> questionsV = engine.getInsights(perspective);
+			Vector<String> newQuestionV = new Vector<String>();
+			Vector<String> newQuestionID = new Vector<String>();
+			if(questionsV != null){
+				Vector<Insight> vectorInsight = ((AbstractEngine)engine).getInsight(questionsV.toArray(new String[questionsV.size()]));
+				for(int itemIndex = 0;itemIndex < vectorInsight.size();itemIndex++){
+					Insight in = vectorInsight.get(itemIndex);
+					// modify values to include the number ordering for optimal user experience <- cause we care about that
+					newQuestionV.add(itemIndex + 1 + ". " + in.getInsightName());
+					newQuestionID.add(in.getInsightID());
 				}
-				
-			}catch(RuntimeException ex)
-			{
-				ex.printStackTrace();
 			}
-			//Hashtable questions = DIHelper.getInstance().getQuestions(perspective);
-			StringNumericComparator comparator = new StringNumericComparator();
-			if(questionsV != null)
-			{
-				Collections.sort(questionsV, comparator);
-				for(int itemIndex = 0;itemIndex < questionsV.size();itemIndex++)
-				{
-					tTip.add(questionsV.get(itemIndex));
-					
-					ComboboxToolTipRenderer renderer = new ComboboxToolTipRenderer();
-					qp.setRenderer(renderer);
-					renderer.setTooltips(tTip);
-					renderer.setBackground(Color.WHITE);
-					qp.addItem(questionsV.get(itemIndex) );
-				}
+			
+			// paint values
+			for(int itemIndex = 0; itemIndex < newQuestionV.size(); itemIndex++) {
+				tTip.add(newQuestionV.get(itemIndex));
+				MapComboBoxRenderer renderer = new MapComboBoxRenderer();
+				qp.setRenderer(renderer);
+				renderer.setTooltips(tTip);
+				renderer.setBackground(Color.WHITE);
+				Map<String, String> comboMap = new HashMap<String, String>();
+				comboMap.put(MapComboBoxRenderer.KEY, newQuestionID.get(itemIndex));
+				comboMap.put(MapComboBoxRenderer.VALUE, newQuestionV.get(itemIndex));
+				qp.addItem(comboMap);
 			}
 		}
-
 	}
 
 	/**
@@ -153,7 +120,6 @@ public class PerspectiveSelectionListener extends AbstractListener {
 	public void setView(JComponent view) {
 		logger.debug("View is set " + view);
 		this.view = view;
-		
 	}
 
 

@@ -14,10 +14,11 @@ import lpsolve.LpSolveException;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
-import prerna.ui.components.ExecuteQueryProcessor;
-
+import prerna.om.Insight;
+import prerna.rdf.engine.wrappers.WrapperManager;
 
 public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 
@@ -82,10 +83,10 @@ public class ActivityGroupOptimizationGenerator implements ITimelineGenerator{
 	public void runOptimization(){
 		List<Double> treeList = new ArrayList<Double>();
 
-		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
-		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
-		proc.processQuestionQuery(roadmapEngine, cleanActInsightString, emptyTable);
-		SequencingDecommissioningPlaySheet activitySheet = (SequencingDecommissioningPlaySheet) proc.getPlaySheet();
+//		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
+//		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
+//		proc.processQuestionQuery(roadmapEngine, cleanActInsightString, emptyTable);
+		SequencingDecommissioningPlaySheet activitySheet = (SequencingDecommissioningPlaySheet) OUSDPlaysheetHelper.getPlaySheetFromName(cleanActInsightString, roadmapEngine);
 
 		Map<Integer, List<List<Integer>>> decomGroups = activitySheet.collectData();
 		Object[] groupData = activitySheet.getResults(decomGroups);

@@ -37,18 +37,19 @@ import javax.swing.JDesktopPane;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.engine.api.IEngine;
+import com.hp.hpl.jena.rdf.model.Model;
+
 import prerna.engine.impl.rdf.InMemoryJenaEngine;
+import prerna.om.GraphDataModel;
+import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
+import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.helpers.PlaysheetCreateRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.QuestionPlaySheetStore;
-
-import com.hp.hpl.jena.query.ResultSet;
-import com.hp.hpl.jena.rdf.model.Model;
 
 /**
  * Controls the export graph to grid feature.
@@ -77,7 +78,8 @@ public class GraphPlaySheetExportListener  extends AbstractListener{
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
 		logger.info("Export button has been pressed");
-		GraphPlaySheet playSheet=  (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
+//		GraphPlaySheet playSheet=  (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
+		GraphPlaySheet playSheet=  (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
 
 		GridPlaySheet NewplaySheet = new GridPlaySheet();
 //		try {
@@ -87,31 +89,44 @@ public class GraphPlaySheetExportListener  extends AbstractListener{
 //			ex.printStackTrace();
 //			logger.fatal(ex);
 //		}
-		playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
-		String query = playSheet.getQuery();
-		String selectQuery = convertConstructToSelect(query);
+//		playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
+//		String query = playSheet.getQuery();
+//		String selectQuery = convertConstructToSelect(query);
 		String questionID = playSheet.getQuestionID();
-		String question = QuestionPlaySheetStore.getInstance().getIDCount() + ". "+questionID;
+//		String question = QuestionPlaySheetStore.getInstance().getIDCount() + ". "+questionID;
+		String question = InsightStore.idCount + ". "+ questionID;
+
 		String title = "Grid Export - " + playSheet.getTitle();
-		IEngine engine = playSheet.getRDFEngine();
+//		IEngine engine = playSheet.getRDFEngine();
 		
 		InMemoryJenaEngine jenaEng = new InMemoryJenaEngine();
-		Model jenaModel = playSheet.getGraphData().getJenaModel();
+		Model jenaModel = playSheet.getDataMaker().getJenaModel();
 		jenaEng.setModel(jenaModel);
 		
 		
 		String sparql = "SELECT ?Subjects ?Predicates ?Objects WHERE {?Subjects ?Predicates ?Objects}";		
-		ResultSet rs = (ResultSet) jenaEng.execQuery(sparql);
-		NewplaySheet.setRs(rs);
+//		ResultSet rs = (ResultSet) jenaEng.execQuery(sparql);
+		
+		DataMakerComponent dmc = new DataMakerComponent(jenaEng, sparql);
+		GraphDataModel gdm = new GraphDataModel();
+		gdm.processDataMakerComponent(dmc);
+		NewplaySheet.setDataMaker(gdm);
+//		NewplaySheet.setRs(rs); //TODO: find a work around to this... currently this will break the listener but I don't think the listener is used
 		
 		NewplaySheet.setTitle(title);
 		NewplaySheet.setQuestionID(question);
 		JDesktopPane pane = (JDesktopPane)DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 		NewplaySheet.setJDesktopPane(pane);
 	
-		// put it into the store
-		QuestionPlaySheetStore.getInstance().put(question, playSheet);
+		Insight insight = new Insight(NewplaySheet);
+//		insight.setInsightID(question);
+//		insight.setPlaySheet(NewplaySheet);
+//		insight.setInsightName(title);
 		
+		// put it into the store
+//		QuestionPlaySheetStore.getInstance().put(question, playSheet);
+		InsightStore.getInstance().put(insight);
+
 		// thread
 		PlaysheetCreateRunner playThread = new PlaysheetCreateRunner(NewplaySheet);
 		playThread.run();

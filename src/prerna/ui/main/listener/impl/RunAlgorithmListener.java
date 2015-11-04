@@ -54,7 +54,6 @@ import prerna.algorithm.learning.weka.WekaClassification;
 import prerna.engine.api.IEngine;
 import prerna.om.SEMOSSParam;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.BasicProcessingPlaySheet;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
 import prerna.ui.components.playsheets.CorrelationPlaySheet;
 import prerna.ui.components.playsheets.MOAClassificationPlaySheet;
@@ -64,6 +63,7 @@ import prerna.ui.components.playsheets.NumericalCorrelationVizPlaySheet;
 import prerna.ui.components.playsheets.OutlierVizPlaySheet;
 import prerna.ui.components.playsheets.PerceptronPlaySheet;
 import prerna.ui.components.playsheets.SelfOrganizingMap3DBarChartPlaySheet;
+import prerna.ui.components.playsheets.TablePlaySheet;
 import prerna.ui.components.playsheets.WekaAprioriVizPlaySheet;
 import prerna.ui.components.playsheets.WekaClassificationPlaySheet;
 import prerna.ui.helpers.ClusteringModuleUpdateRunner;
@@ -196,7 +196,7 @@ public class RunAlgorithmListener extends AbstractListener {
 			return;
 		}
 
-		BasicProcessingPlaySheet newPlaySheet;
+		TablePlaySheet newPlaySheet;
 		if(algorithm.equals("Cluster") ) {
 			int numClusters = 0;
 			String selectNumClustersText = (String) selectNumClustersComboBox.getSelectedItem();
@@ -221,7 +221,7 @@ public class RunAlgorithmListener extends AbstractListener {
 				((ClusteringVizPlaySheet)newPlaySheet).setNumClusters(numClusters);
 			}
 			((ClusteringVizPlaySheet)newPlaySheet).setAddAsTab(true);
-			((ClusteringVizPlaySheet)newPlaySheet).setDataFrame(dataFrame);
+			((ClusteringVizPlaySheet)newPlaySheet).setDataMaker(dataFrame);
 			((ClusteringVizPlaySheet)newPlaySheet).setNumClusters(numClusters);
 			((ClusteringVizPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((ClusteringVizPlaySheet)newPlaySheet).setDrillDownTabSelectorComboBox(drillDownTabSelectorComboBox);
@@ -241,7 +241,7 @@ public class RunAlgorithmListener extends AbstractListener {
 			String classifier = classifyClassComboBox.getSelectedItem() + "";
 
 			newPlaySheet = new WekaClassificationPlaySheet();
-			newPlaySheet.setDataFrame(dataFrame);
+			newPlaySheet.setDataMaker(dataFrame);
 			((WekaClassificationPlaySheet)newPlaySheet).setModelName(classMethod);
 			((WekaClassificationPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((WekaClassificationPlaySheet)newPlaySheet).setClassColumn(classifier);
@@ -262,7 +262,7 @@ public class RunAlgorithmListener extends AbstractListener {
 			int tieThreshold = enterTieThresholdSlider.getValue();
 
 			newPlaySheet = new MOAClassificationPlaySheet();
-			newPlaySheet.setDataFrame(dataFrame);
+			newPlaySheet.setDataMaker(dataFrame);
 			((MOAClassificationPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((MOAClassificationPlaySheet)newPlaySheet).setClassColumn(classifier);
 			((MOAClassificationPlaySheet)newPlaySheet).setGracePeriod(gracePeriod);
@@ -275,7 +275,7 @@ public class RunAlgorithmListener extends AbstractListener {
 			int kneighbors = enterKNeighborsSlider.getValue();
 
 			newPlaySheet = new OutlierVizPlaySheet();
-			newPlaySheet.setDataFrame(dataFrame);
+			newPlaySheet.setDataMaker(dataFrame);
 			((OutlierVizPlaySheet)newPlaySheet).setAlgorithmSelected(OutlierVizPlaySheet.LOF);
 			((OutlierVizPlaySheet)newPlaySheet).setK(kneighbors);
 			((OutlierVizPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
@@ -284,7 +284,7 @@ public class RunAlgorithmListener extends AbstractListener {
 
 		} else if(algorithm.equals("Entropy Density Factor")) {
 			newPlaySheet = new OutlierVizPlaySheet();
-			newPlaySheet.setDataFrame(dataFrame);
+			newPlaySheet.setDataMaker(dataFrame);
 			((OutlierVizPlaySheet)newPlaySheet).setAlgorithmSelected(OutlierVizPlaySheet.EDS);
 			((OutlierVizPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((OutlierVizPlaySheet)newPlaySheet).setJTab(jTab);
@@ -292,7 +292,7 @@ public class RunAlgorithmListener extends AbstractListener {
 
 		} else if(algorithm.equals("Fast Outlier Detection")) {
 			newPlaySheet = new OutlierVizPlaySheet();
-			newPlaySheet.setDataFrame(dataFrame);
+			newPlaySheet.setDataMaker(dataFrame);
 			
 			String subsetSizeText = playSheet.getEnterSubsetSizeTextField().getText();
 			String numRunsText = playSheet.getNumRunsTextField().getText();
@@ -412,7 +412,7 @@ public class RunAlgorithmListener extends AbstractListener {
 				Utility.showError(errorMessage);
 			}
 			newPlaySheet = new WekaAprioriVizPlaySheet();
-			newPlaySheet.setDataFrame(dataFrame);
+			newPlaySheet.setDataMaker(dataFrame);
 			((WekaAprioriVizPlaySheet)newPlaySheet).setJTab(jTab);
 			((WekaAprioriVizPlaySheet)newPlaySheet).setNumRules(numRule);
 			((WekaAprioriVizPlaySheet)newPlaySheet).setConfPer(confPer);
@@ -435,7 +435,7 @@ public class RunAlgorithmListener extends AbstractListener {
 			}
 
 			newPlaySheet = new MatrixRegressionVizPlaySheet();
-			newPlaySheet.setDataFrame(dataFrame);
+			newPlaySheet.setDataMaker(dataFrame);
 			((MatrixRegressionVizPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((MatrixRegressionVizPlaySheet)newPlaySheet).setbColumnIndex(depVarIndex);
 			((MatrixRegressionVizPlaySheet)newPlaySheet).setJTab(jTab);
@@ -443,7 +443,7 @@ public class RunAlgorithmListener extends AbstractListener {
 
 		}  else if(algorithm.equals("Numerical Correlation")) {			
 			newPlaySheet = new NumericalCorrelationVizPlaySheet();
-			newPlaySheet.setDataFrame(dataFrame);
+			newPlaySheet.setDataMaker(dataFrame);
 
 			((NumericalCorrelationVizPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((NumericalCorrelationVizPlaySheet)newPlaySheet).setJTab(jTab);
@@ -452,7 +452,7 @@ public class RunAlgorithmListener extends AbstractListener {
 		} else if(algorithm.equals("Correlation")) {
 
 			newPlaySheet = new CorrelationPlaySheet();
-			newPlaySheet.setDataFrame(dataFrame);
+			newPlaySheet.setDataMaker(dataFrame);
 
 			((CorrelationPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((CorrelationPlaySheet)newPlaySheet).setJTab(jTab);
@@ -460,7 +460,7 @@ public class RunAlgorithmListener extends AbstractListener {
 
 		} else if(algorithm.equals("Self Organizing Map")) {
 			newPlaySheet = new SelfOrganizingMap3DBarChartPlaySheet();
-			newPlaySheet.setDataFrame(dataFrame);
+			newPlaySheet.setDataMaker(dataFrame);
 
 			((SelfOrganizingMap3DBarChartPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((SelfOrganizingMap3DBarChartPlaySheet)newPlaySheet).setJTab(jTab);
@@ -532,7 +532,7 @@ public class RunAlgorithmListener extends AbstractListener {
 			}
 			
 			newPlaySheet = new PerceptronPlaySheet();
-			newPlaySheet.setDataFrame(dataFrame);
+			newPlaySheet.setDataMaker(dataFrame);
 			((PerceptronPlaySheet)newPlaySheet).setSkipAttributes(skipColumns);
 			((PerceptronPlaySheet)newPlaySheet).setClassColumn(classifier);
 			((PerceptronPlaySheet)newPlaySheet).setDegree(degree);
@@ -589,7 +589,7 @@ public class RunAlgorithmListener extends AbstractListener {
 		//matrix regression
 		this.matrixDepVarComboBox = playSheet.getMatrixDepVarComboBox();
 		//correlation
-		this.dataFrame = playSheet.getDataFrame();
+		this.dataFrame = playSheet.getDataMaker();
 		this.attributeNames = dataFrame.getColumnHeaders();
 		this.jTab = playSheet.getJTab();
 		this.jBar = playSheet.getJBar();

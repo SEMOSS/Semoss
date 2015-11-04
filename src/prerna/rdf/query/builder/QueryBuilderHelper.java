@@ -64,7 +64,7 @@ public class QueryBuilderHelper {
 		semossQuery.setLimit(maxCount);
 		String q = semossQuery.getCountQuery(maxCount);
 		logger.info("Count query generated : " + q);
-		Vector<String> countV = Utility.getVectorOfReturn(q, coreEngine);
+		Vector<String> countV = Utility.getVectorOfReturn(q, coreEngine, true);
 		int totalSize = 0;
 		if(countV.size()>0)
 		{
@@ -105,7 +105,7 @@ public class QueryBuilderHelper {
 			String varName = vHash.get(varKey);
 			String varURI = vHash.get(uriKey);
 			String nodePropQuery = "SELECT DISTINCT ?entity WHERE {{?source <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <"+varURI+">} {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?source ?entity ?prop }}";
-			Vector<String> propVector = Utility.getVectorOfReturn(nodePropQuery, coreEngine);
+			Vector<String> propVector = Utility.getVectorOfReturn(nodePropQuery, coreEngine, true);
 			for (int propIdx=0 ; propIdx<propVector.size(); propIdx++)
 			{
 				String propURI = propVector.get(propIdx);

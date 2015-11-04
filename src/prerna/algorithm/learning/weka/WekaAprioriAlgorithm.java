@@ -11,7 +11,9 @@ import java.util.Set;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.IAnalyticRoutine;
+import com.ibm.icu.text.DecimalFormat;
+
+import prerna.algorithm.api.IAnalyticActionRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.SEMOSSParam;
 import weka.associations.Apriori;
@@ -21,17 +23,15 @@ import weka.associations.Item;
 import weka.core.Attribute;
 import weka.core.Instances;
 
-import com.ibm.icu.text.DecimalFormat;
-
-public class WekaAprioriAlgorithm implements IAnalyticRoutine {
+public class WekaAprioriAlgorithm implements IAnalyticActionRoutine {
 
 	private static final Logger LOGGER = LogManager.getLogger(WekaAprioriAlgorithm.class.getName());
 
-	private static final String NUM_RULES = "numRules";
-	private static final String CONFIDENCE_LEVEL = "confPer";
-	private static final String MIN_SUPPORT = "minSupport";
-	private static final String MAX_SUPPORT = "maxSupport";
-	private static final String SKIP_ATTRIBUTES	= "skipAttributes";
+	public static final String NUM_RULES = "numRules";
+	public static final String CONFIDENCE_LEVEL = "confPer";
+	public static final String MIN_SUPPORT = "minSupport";
+	public static final String MAX_SUPPORT = "maxSupport";
+	public static final String SKIP_ATTRIBUTES	= "skipAttributes";
 
 	private Instances instancesData;
 	private String[] names;
@@ -77,11 +77,11 @@ public class WekaAprioriAlgorithm implements IAnalyticRoutine {
 	}
 	
 	@Override
-	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
-		this.numRules = (int) options.get(0).getSelected();
-		this.confPer = (double) options.get(1).getSelected();
-		this.minSupport = (double) options.get(2).getSelected();
-		this.maxSupport = (double) options.get(3).getSelected();
+	public void runAlgorithm(ITableDataFrame... data) {
+		this.numRules = ((Number) options.get(0).getSelected()).intValue();
+		this.confPer = ((Number) options.get(1).getSelected()).doubleValue();
+		this.minSupport = ((Number) options.get(2).getSelected()).doubleValue();
+		this.maxSupport = ((Number) options.get(3).getSelected()).doubleValue();
 		this.skipAttributes = (List<String>) options.get(4).getSelected();
 
 		ITableDataFrame dataFrame = data[0];
@@ -121,8 +121,14 @@ public class WekaAprioriAlgorithm implements IAnalyticRoutine {
 			confidenceIntervals.put(numRule, rule.getPrimaryMetricValue());
 			numRule++;
 		}
-		
-		return null;
+	}
+	
+	@Override
+	public Object getAlgorithmOutput() {
+		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
+		allHash.put("specificData", generateDecisionRuleVizualization());
+		allHash.put("layout", getDefaultViz());
+		return allHash;
 	}
 
 	public Hashtable<String, Object> generateDecisionRuleVizualization() {
@@ -150,8 +156,7 @@ public class WekaAprioriAlgorithm implements IAnalyticRoutine {
 			retItemList.add(item);
 		}
 
-		String[] headers = new String[]{ "Count", "Confidence","Premises", "Consequence"};
-
+		String[] headers = new String[]{"Count", "Confidence", "Premises", "Consequence"};
 		Hashtable<String, Object> retHash = new Hashtable<String, Object>();
 		retHash.put("headers", headers);
 		retHash.put("data", retItemList);
@@ -274,11 +279,6 @@ public class WekaAprioriAlgorithm implements IAnalyticRoutine {
 	}
 
 	@Override
-	public List<String> getChangedColumns() {
-		return null;
-	}
-
-	@Override
 	public Map<String, Object> getResultMetadata() {
 		// TODO Auto-generated method stub
 		return null;
@@ -291,5 +291,4 @@ public class WekaAprioriAlgorithm implements IAnalyticRoutine {
 	public String[] getColumnHeaders() {
 		return this.columnHeaders;
 	}
-
 }

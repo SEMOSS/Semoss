@@ -67,7 +67,7 @@ public class MOAClassificationPlaySheet extends DendrogramPlaySheet {
 			selectedOptions.put(options.get(3).getName(), tieThreshold);       // last index
 			selectedOptions.put(options.get(4).getName(), skipAttributes);   // skip attributes
 			alg.setSelectedOptions(selectedOptions);
-			dataFrame.performAction(alg);
+			dataFrame.performAnalyticAction(alg);
 		} catch(Exception e) {
 		 	e.printStackTrace();
 		}

@@ -54,7 +54,7 @@ public class DataProvenanceHeatMapSheet extends BrowserPlaySheet {
 	public void processQueryData()
 	{
 		Hashtable<String, Object> dataHash = new Hashtable<String, Object>();
-		String[] var = wrapper.getVariables();
+		String[] var = this.dataFrame.getColumnHeaders();
 		String xName = var[0];
 		String yName = var[1];
 		

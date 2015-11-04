@@ -29,17 +29,18 @@ package prerna.ui.main.listener.specific.tap;
 
 import javax.swing.JDesktopPane;
 
+import com.google.gson.Gson;
+import com.teamdev.jxbrowser.chromium.JSValue;
+
 import prerna.engine.api.IEngine;
+import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.specific.tap.HealthGridSheet;
 import prerna.ui.helpers.PlaysheetCreateRunner;
 import prerna.ui.main.listener.impl.AbstractBrowserSPARQLFunction;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.QuestionPlaySheetStore;
-
-import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.JSValue;
 
 /**
  */
@@ -80,14 +81,21 @@ public class SysSimHealthGridListener extends AbstractBrowserSPARQLFunction {
 		hgs.setTitle("System Similarity HealthGrid for "+ sysOfInterest);
 		hgs.setQuery(query);
 		hgs.setRDFEngine(engine);
-		hgs.setQuestionID(question);
+//		hgs.setQuestionID(question);
 		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance()
 				.getLocalProp(Constants.DESKTOP_PANE);
 		hgs.setJDesktopPane(pane);
 		// need to create the playsheet create runner
 		Runnable playRunner = null;
 		playRunner = new PlaysheetCreateRunner(hgs);
-		QuestionPlaySheetStore.getInstance().put(question, hgs);
+//		QuestionPlaySheetStore.getInstance().put(question, hgs);
+		Insight insight = new Insight(engine, "", "");
+		insight.setInsightName(question);
+		insight.setPlaySheet(hgs);
+		String insightID = InsightStore.getInstance().put(insight);
+		insight.setInsightID(insightID);
+		hgs.setQuestionID(question);
+		
 		Thread playThread = new Thread(playRunner);
 		playThread.start();
 		return arg0[0];

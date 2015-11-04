@@ -16,6 +16,7 @@ import prerna.engine.api.IEngine;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.main.listener.impl.PlaySheetListener;
 import prerna.ui.main.listener.impl.SimpleGraphListener;
 import prerna.util.Utility;
@@ -24,7 +25,7 @@ import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.graph.DelegateForest;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 
-public class SQLGraphPlaysheet extends AbstractRDFPlaySheet {
+public class SQLGraphPlaysheet extends AbstractPlaySheet {
 	
 	Logger logger = Logger.getLogger(getClass());
 	
@@ -127,12 +128,6 @@ public class SQLGraphPlaysheet extends AbstractRDFPlaySheet {
 	}
 	
 	@Override
-	public void processQueryData() {
-		// TODO Auto-generated method stub
-		
-	}
-	
-	@Override
 	public Hashtable<String, String> getDataTableAlign() {
 		// TODO Auto-generated method stub
 		return null;
@@ -157,5 +152,29 @@ public class SQLGraphPlaysheet extends AbstractRDFPlaySheet {
 			forest.addEdge(edge, vert1, vert2);
 			
 		}		
+	}
+
+	@Override
+	public void setDataMaker(IDataMaker data) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public IDataMaker getDataMaker() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void processQueryData() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public IDataMaker getDefaultDataMaker() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

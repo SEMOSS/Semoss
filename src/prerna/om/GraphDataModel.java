@@ -28,6 +28,8 @@
 package prerna.om;
 
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -46,6 +48,11 @@ import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
+import com.hp.hpl.jena.rdf.model.Model;
+import com.hp.hpl.jena.rdf.model.ModelFactory;
+import com.hp.hpl.jena.rdf.model.Property;
+import com.hp.hpl.jena.rdf.model.Resource;
+
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
@@ -60,17 +67,16 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.GraphOWLHelper;
 import prerna.ui.components.PropertySpecData;
 import prerna.ui.components.RDFEngineHelper;
+import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
+import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.JenaSesameUtils;
 import prerna.util.Utility;
 
-import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.ModelFactory;
-import com.hp.hpl.jena.rdf.model.Property;
-import com.hp.hpl.jena.rdf.model.Resource;
-
-public class GraphDataModel {
+public class GraphDataModel implements IDataMaker {
 	/*
 	 * This contains all data that is fundamental to a SEMOSS Graph
 	 * This data mainly consists of the edgeStore and vertStore as well as models/repository connections
@@ -78,7 +84,7 @@ public class GraphDataModel {
 	private static final Logger logger = LogManager.getLogger(GraphDataModel.class.getName());
 	public enum CREATION_METHOD {CREATE_NEW, OVERLAY, UNDO};
 	CREATION_METHOD method;
-	
+
 	Hashtable <String, String> loadedOWLS = new Hashtable<String, String>();
 
 	String RELATION_URI = null;
@@ -96,11 +102,11 @@ public class GraphDataModel {
 	public PropertySpecData predData = new PropertySpecData();
 	StringBuffer subjects = new StringBuffer("");
 	StringBuffer objects = new StringBuffer("");
-	
+
 	boolean search, prop, sudowl;
-	
+
 	boolean subclassCreate = false; //this is used for our metamodel graphs. Need to be modify the base graph base and base concepts queries to use subclass of concept rather than type
-	
+
 	Hashtable<String, SEMOSSVertex> vertStore = null;
 	Hashtable<String, SEMOSSEdge> edgeStore = null;
 
@@ -108,42 +114,59 @@ public class GraphDataModel {
 	Hashtable<String, SEMOSSVertex> incrementalVertStore = null;
 	Hashtable<String, SEMOSSVertex> incrementalVertPropStore = null;
 	Hashtable<String, SEMOSSEdge> incrementalEdgeStore = null;
-	
+
+	IEngine coreEngine;
+	String coreQuery;
+
 	public GraphDataModel(){
 		vertStore = new Hashtable<String, SEMOSSVertex>();
 		edgeStore =new Hashtable<String, SEMOSSEdge>();
 		createBaseURIs();
+
+		sudowl = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSudowl));
+		prop = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSProp));
+		search = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSearch));
 	}
-	
+
+	public boolean getSudowl(){
+		return this.sudowl;
+	}
+	public boolean getProp(){
+		return this.prop;
+	}
+	public boolean getSearch(){
+		return this.search;
+	}
+
 	public void overlayData(String query, IEngine engine){
-		
+
 		subjects = new StringBuffer(""); // remove from the old one
 		objects = new StringBuffer(""); // remove fromt he old one
-		
+
 		curModel = null;
 		curRC = null;
 		incrementalVertStore = new Hashtable<String, SEMOSSVertex>();
 		incrementalVertPropStore = new Hashtable<String, SEMOSSVertex>();
 		incrementalEdgeStore = new Hashtable<String, SEMOSSEdge>();
-		
+
 		logger.info("Creating the new model");
 		try {
-				Repository myRepository2 = new SailRepository(
-			            new ForwardChainingRDFSInferencer(
-			            new MemoryStore()));
-					myRepository2.initialize();
-				
-				curRC = myRepository2.getConnection();
-				curModel = ModelFactory.createDefaultModel();
-				
+			Repository myRepository2 = new SailRepository(
+					new ForwardChainingRDFSInferencer(
+							new MemoryStore()));
+			myRepository2.initialize();
+
+			curRC = myRepository2.getConnection();
+			curModel = ModelFactory.createDefaultModel();
+
 		} catch (RepositoryException e) {
 			e.printStackTrace();
 		}
-		
+
 		processData(query, engine);
 		processTraverseCourse();
 	}
-	
+
 	public void createModel(String query, IEngine engine){
 		if(method == CREATION_METHOD.OVERLAY){
 			overlayData(query, engine);
@@ -151,7 +174,7 @@ public class GraphDataModel {
 		else 
 			processData(query, engine);
 	}
-	
+
 	//this function requires the rc to be completely full
 	//it will use the rc to create edge and node properties
 	//and then nodes and edges
@@ -164,7 +187,7 @@ public class GraphDataModel {
 				containsRelation = "<http://semoss.org/ontologies/Relation/Contains>";
 			RDFEngineHelper.genNodePropertiesLocal(rc, containsRelation, this, subclassCreate);
 			RDFEngineHelper.genEdgePropertiesLocal(rc, containsRelation, this);
-			
+
 			boolean isRDF = (engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.JENA || 
 					engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE);
 
@@ -174,19 +197,19 @@ public class GraphDataModel {
 			if(isRDF)
 			{
 				baseConceptSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
-					  //"{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;}" +
-					  "{?Subject " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
-//					  "{?Subject ?Predicate ?Object.}" +
-					  "BIND(\"\" AS ?Predicate)" + // these are only used so that I can use select cheater...
-					  "BIND(\"\" AS ?Object)" +
-					  "}";
+						//"{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;}" +
+						"{?Subject " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
+						//					  "{?Subject ?Predicate ?Object.}" +
+						"BIND(\"\" AS ?Predicate)" + // these are only used so that I can use select cheater...
+						"BIND(\"\" AS ?Object)" +
+						"}";
 				if(subclassCreate) //this is used for our metamodel graphs. Need to be subclass of concept rather than type
 					baseConceptSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
-					  "{?Subject " + "<http://www.w3.org/2000/01/rdf-schema#subClassOf>  " +  " <http://semoss.org/ontologies/Concept>;}" +
-//					  "{?Subject ?Predicate ?Object.}" +
-					  "BIND(\"\" AS ?Predicate)" + // these are only used so that I can use select cheater...
-					  "BIND(\"\" AS ?Object)" +
-					  "}";
+							"{?Subject " + "<http://www.w3.org/2000/01/rdf-schema#subClassOf>  " +  " <http://semoss.org/ontologies/Concept>;}" +
+							//					  "{?Subject ?Predicate ?Object.}" +
+							"BIND(\"\" AS ?Predicate)" + // these are only used so that I can use select cheater...
+							"BIND(\"\" AS ?Object)" +
+							"}";
 			}
 			else if(engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS)
 			{
@@ -197,33 +220,33 @@ public class GraphDataModel {
 			}
 			genBaseConcepts(baseConceptSelectQuery);
 			logger.info("Loaded Orphans");
-			
-			
+
+
 			String predicateSelectQuery = null;
 			isRDF = true;
 			if(isRDF)
 			{
 				predicateSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
-						  //"VALUES ?Subject {"  + subjects + "}"+
-						  //"VALUES ?Object {"  + subjects + "}"+
-						  //"VALUES ?Object {"  + objects + "}" +
-						  //"VALUES ?Predicate {"  + predicates + "}" +
-						  "{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;}" +
-						  "{?Subject " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
-						  //  "{?Object " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
-						  "{?Subject ?Predicate ?Object}" +
-						  "}";
+						//"VALUES ?Subject {"  + subjects + "}"+
+						//"VALUES ?Object {"  + subjects + "}"+
+						//"VALUES ?Object {"  + objects + "}" +
+						//"VALUES ?Predicate {"  + predicates + "}" +
+						"{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;}" +
+						"{?Subject " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
+						//  "{?Object " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  " +  " <http://semoss.org/ontologies/Concept>;}" +
+						"{?Subject ?Predicate ?Object}" +
+						"}";
 				if(subclassCreate) //this is used for our metamodel graphs. Need to be subclass of concept rather than type
-				predicateSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
-										  "{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;}" +
-										  "{?Subject " + "<http://www.w3.org/2000/01/rdf-schema#subClassOf>  " +  " <http://semoss.org/ontologies/Concept>;}" +
-										  "{?Subject ?Predicate ?Object}" +
-										  "}";
+					predicateSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" +
+							"{?Predicate " +"<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;}" +
+							"{?Subject " + "<http://www.w3.org/2000/01/rdf-schema#subClassOf>  " +  " <http://semoss.org/ontologies/Concept>;}" +
+							"{?Subject ?Predicate ?Object}" +
+							"}";
 
 
 
-				
-				
+
+
 			}
 			else if(engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS)
 			{
@@ -231,18 +254,18 @@ public class GraphDataModel {
 						+ "{?Subject ?Predicate ?Object} "
 						+ "} BINDINGS ?Subject {" + subjects + "}";
 			}
-			
-			
+
+
 			genBaseGraph(predicateSelectQuery);//subjects2, predicates2, subjects2);
 			logger.info("Loaded Graph");
 		}
 	}
-	
+
 	public void processData(String query, IEngine engine) {
-		
+
 		// open up the engine
 		String queryCap = query.toUpperCase();
-		
+
 		//SesameJenaConstructWrapper sjw = null;
 		IConstructWrapper sjw = null;
 
@@ -254,13 +277,13 @@ public class GraphDataModel {
 		/*logger.debug("Query is " + query);
 		sjw.setEngine(engine);
 		sjw.setQuery(query);
-		
+
 		try{
 			sjw.execute();	
 		} catch (RuntimeException e) {
 			e.printStackTrace();
 		}*/
-		
+
 		logger.info("Executed the query");
 		// need to take the base information from the base query and insert it into the jena model
 		// this is based on EXTERNAL ontology
@@ -276,9 +299,9 @@ public class GraphDataModel {
 		// properties
 		// and then paint it appropriately
 		logger.debug("creating the in memory jena model");
-		
+
 		// replacing the current logic with SPARQLParse
-		
+
 		// I am going to use the same standard query
 		/*String thisquery = "SELECT ?System1 ?Upstream ?ICD ?Downstream ?System2 ?carries ?Data1 ?contains2 ?prop2 ?System3 ?Upstream2 ?ICD2 ?contains1 ?prop ?Downstream2 ?carries2 ?Data2 ?Provide ?BLU" +
 		" WHERE { {?System1  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} BIND(<http://health.mil/ontologies/Concept/System/AHLTA> AS ?System1){{?System2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?Upstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;}{?Downstream <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;}{?Data1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;}{?System1 ?Upstream ?ICD ;}{?ICD ?Downstream ?System2 ;} {?ICD ?carries ?Data1;}{?carries ?contains2 ?prop2} {?contains2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> }} UNION {{?Upstream2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?Downstream2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;}{?System3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;}  {?ICD2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;}{?Data2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?carries2 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?System3 ?Upstream2 ?ICD2 ;}{?ICD2 ?Downstream2 ?System1 ;} {?ICD2 ?carries2 ?Data2;} {?carries2 ?contains1 ?prop} {?contains1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> }} UNION {{?Provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System1 ?Provide ?BLU}}}";
@@ -288,14 +311,14 @@ public class GraphDataModel {
 		parse.executeQuery(thisquery, engine);
 		parse.loadBaseDB(engine.getProperty(Constants.OWL));
 		this.rc = parse.rc;
-		*/
-		
+		 */
+
 		// this is where the block goes
 		//figure out if we need to index jena for search and process for SUDOWL
-		
+
 		try {
-//			boolean isError = false;
-			
+			//			boolean isError = false;
+
 			//StringBuffer subjects = new StringBuffer(""); - Moved to class scope
 			StringBuffer predicates = new StringBuffer("");
 			// StringBuffer objects = new StringBuffer(""); - moved to class scope
@@ -324,14 +347,14 @@ public class GraphDataModel {
 						subjects.append("<").append(st.getSubject()).append(">");
 					// do the block for RDBMS - For RDBMS - What I really need are the instances - actually I dont need anything
 				}
-				
+
 				if(predicates.indexOf("(<" + st.getPredicate() +">)") < 0) {
 					if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE || engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS)
 						predicates.append("(<").append(st.getPredicate()).append(">)");
 					else if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA)
 						predicates.append("<").append(st.getPredicate()).append(">");
 				}
-				
+
 				//TODO: need to find a way to do this for jena too
 				if(obj instanceof URI && !(obj instanceof com.hp.hpl.jena.rdf.model.Literal)) {			
 					if(objects.indexOf("(<" + obj +">)") < 0) {
@@ -347,7 +370,7 @@ public class GraphDataModel {
 			}			
 			logger.debug("Subjects >>> " + subjects);
 			logger.debug("Predicatss >>>> " + predicates);
-			
+
 			loadBaseData(engine); // this method will work fine too.. although I have no use for it for later
 			// load the concept linkages
 			// the concept linkages are a combination of the base relationships and what is on the file
@@ -409,30 +432,30 @@ public class GraphDataModel {
 			if(rc == null)
 			{
 				Repository myRepository = new SailRepository(
-			            new ForwardChainingRDFSInferencer(
-			            new MemoryStore()));
+						new ForwardChainingRDFSInferencer(
+								new MemoryStore()));
 				myRepository.initialize();
-				
+
 				rc = myRepository.getConnection();	
 				rc.setAutoCommit(false);
 			}
-			
+
 			// Create the subject and predicate
 			org.openrdf.model.Resource subject = new URIImpl(st.getSubject());
 			org.openrdf.model.URI predicate = new URIImpl(st.getPredicate());
-			
+
 			// figure out if this is an object later
 			//TODO: Need a way to figure out if obj from RDBMS is URI or Literal
 			Object obj = st.getObject();
 			if((overrideURI || obj instanceof URI || obj.toString().startsWith("http://")) && !(obj instanceof com.hp.hpl.jena.rdf.model.Literal))
 			{
 				org.openrdf.model.Resource object = null;
-				
+
 				if(obj instanceof org.openrdf.model.Resource)
-				 object = (org.openrdf.model.Resource) obj;
+					object = (org.openrdf.model.Resource) obj;
 				else 
 					object = new URIImpl(st.getObject()+"");
-				
+
 				if(method == CREATION_METHOD.OVERLAY) {
 					if (!rc.hasStatement(subject,predicate,object, true)) {
 						curRC.add(subject,predicate,object);
@@ -460,7 +483,7 @@ public class GraphDataModel {
 				{
 					baseRelEngine.addStatement(st.getSubject(), st.getPredicate(), obj, false);
 				}*/
-				
+
 				if(method == CREATION_METHOD.OVERLAY) {
 					//logger.info("Adding to the new model");
 					if (!rc.hasStatement(subject,predicate,(Literal)obj, true)) {
@@ -479,7 +502,7 @@ public class GraphDataModel {
 				// I need to figure out a way to convert this into sesame literal
 				Literal newObj = JenaSesameUtils.asSesameLiteral((com.hp.hpl.jena.rdf.model.Literal)obj);
 				System.err.println("Adding to sesame " + subject + predicate + rc.getValueFactory().createLiteral(obj+""));
-				
+
 				if(method == CREATION_METHOD.OVERLAY) {
 					if (!rc.hasStatement(subject,predicate,newObj, true)) {
 						curRC.add(subject,predicate,(Literal)newObj);
@@ -532,7 +555,7 @@ public class GraphDataModel {
 		{
 			jenaModel.add(jenaSt);
 		}
-		*/
+		 */
 		if (!jenaModel.contains(jenaSt))
 		{
 			jenaModel.add(jenaSt);
@@ -552,21 +575,21 @@ public class GraphDataModel {
 	 * @param predicate String
 	 */
 	public void addNodeProperty(String subject, Object object, String predicate) {
-			logger.debug("Creating property for a vertex" );
-			SEMOSSVertex vert1 = vertStore.get(subject);
-			if (vert1 == null) {
-				vert1 = new SEMOSSVertex(subject);
-			}
-			//only set property and store vertex if the property does not already exist on the node
-			String propName = Utility.getInstanceName(predicate);
-			if (vert1.getProperty(propName)==null) {
-				vert1.setProperty(propName, object);
-				storeVert(vert1);
-			}
-//			genControlData(vert1);
-			//controlData.addProperty(vert1.getProperty(Constants.VERTEX_TYPE)+"", Utility.getClassName(predicate));
+		logger.debug("Creating property for a vertex" );
+		SEMOSSVertex vert1 = vertStore.get(subject);
+		if (vert1 == null) {
+			vert1 = new SEMOSSVertex(subject);
+		}
+		//only set property and store vertex if the property does not already exist on the node
+		String propName = Utility.getInstanceName(predicate);
+		if (vert1.getProperty(propName)==null) {
+			vert1.setProperty(propName, object);
+			storeVert(vert1);
+		}
+		//			genControlData(vert1);
+		//controlData.addProperty(vert1.getProperty(Constants.VERTEX_TYPE)+"", Utility.getClassName(predicate));
 	}
-	
+
 	private void storeVert(SEMOSSVertex vert){
 		if(method == CREATION_METHOD.OVERLAY && incrementalVertStore != null){
 			if(!vertStore.containsKey(vert.getProperty(Constants.URI) + "")){
@@ -588,7 +611,7 @@ public class GraphDataModel {
 			incrementalEdgeStore.remove(edge.getProperty(Constants.URI) + "");
 		edgeStore.put(edge.getProperty(Constants.URI) + "", edge);
 	}
-			
+
 	/**
 	 * Method addEdgeProperty.
 	 * @param subject String
@@ -611,7 +634,7 @@ public class GraphDataModel {
 				vert2 = new SEMOSSVertex(inNode + "");
 				storeVert(vert2);
 			}
-			 edge = new SEMOSSEdge(vert1, vert2, edgeName);
+			edge = new SEMOSSEdge(vert1, vert2, edgeName);
 		}
 		//only set property and store edge if the property does not already exist on the edge
 		String propNameInstance = Utility.getInstanceName(propName);
@@ -620,7 +643,7 @@ public class GraphDataModel {
 			edge.setProperty(propNameInstance, value);
 			storeEdge(edge);
 		}
-//			genControlData(edge);
+		//			genControlData(edge);
 		//controlData.addProperty(edge.getProperty(Constants.EDGE_TYPE)+"", Utility.getClassName(predicate));
 	}
 
@@ -633,17 +656,17 @@ public class GraphDataModel {
 		String query2 = "SELECT DISTINCT ?Subject ?subProp ?contains WHERE { BIND( <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> AS ?subProp) BIND( <http://semoss.org/ontologies/Relation/Contains> AS ?contains) {?Subject ?subProp  ?contains}}";
 
 		String containsString = null;
-		
+
 		//SesameJenaConstructWrapper sjsc = new SesameJenaConstructWrapper();
 		IConstructWrapper sjsc = null;
-		
+
 		//IEngine jenaEngine = new InMemoryJenaEngine();
 		//((InMemoryJenaEngine)jenaEngine).setModel(jenaModel);
 
 		IEngine jenaEngine = new InMemorySesameEngine();
 		((InMemorySesameEngine)jenaEngine).setRepositoryConnection(rc);
 
-		
+
 		if(query2.toUpperCase().contains("CONSTRUCT"))
 			sjsc = WrapperManager.getInstance().getCWrapper(jenaEngine, query2);
 		else
@@ -653,8 +676,8 @@ public class GraphDataModel {
 		sjsc.setEngine(jenaEngine);
 		sjsc.setQuery(query2);
 		sjsc.execute();
-		*/
-		
+		 */
+
 		// eventually - I will not need the count
 		int count = 0;
 		while(sjsc.hasNext() && count < 1)
@@ -663,10 +686,10 @@ public class GraphDataModel {
 			containsString = "<" + st.getSubject() + ">";
 			count++;
 		}
-		
+
 		return containsString;
 	}	
-	
+
 	/**
 	 * Method createBaseURIs.
 	 */
@@ -677,11 +700,10 @@ public class GraphDataModel {
 		PROP_URI = DIHelper.getInstance()
 				.getProperty(Constants.PROP_URI);
 	}
-	
+
 	public void undoData(){
 		System.out.println("rcStore  " + rcStore.toString());
 		RepositoryConnection lastRC = rcStore.elementAt(modelCounter-2);
-		Model lastModel = modelStore.elementAt(modelCounter-2);
 		// remove undo model from repository connection
 		try {
 			logger.info("Number of undo statements " + lastRC.size());
@@ -697,7 +719,7 @@ public class GraphDataModel {
 		RDFEngineHelper.removeAllData(sesameEngine, rc);
 		//jenaModel.remove(lastModel);
 		modelCounter--;
-		
+
 		incrementalVertStore.clear();
 		incrementalVertStore.putAll(vertStore);
 		incrementalEdgeStore.clear();
@@ -705,23 +727,22 @@ public class GraphDataModel {
 		vertStore.clear();
 		edgeStore.clear();
 	}
-	
+
 	public void redoData(){
 		RepositoryConnection newRC = rcStore.elementAt(modelCounter-1);
-        Model newModel = modelStore.elementAt(modelCounter-1);
-        //add redo model from repository connection
-        
-        IEngine sesameEngine = new InMemorySesameEngine();
-        ((InMemorySesameEngine)sesameEngine).setRepositoryConnection(newRC);
-        RDFEngineHelper.addAllData(sesameEngine, rc);
-        //jenaModel.add(newModel);
-        modelCounter++;
+		//add redo model from repository connection
+
+		IEngine sesameEngine = new InMemorySesameEngine();
+		((InMemorySesameEngine)sesameEngine).setRepositoryConnection(newRC);
+		RDFEngineHelper.addAllData(sesameEngine, rc);
+		//jenaModel.add(newModel);
+		modelCounter++;
 
 		incrementalVertStore.clear();
 		incrementalVertPropStore.clear();
 		incrementalEdgeStore.clear();
 	}
-	
+
 	/**
 	 * Method removeFromJenaModel.
 	 * @param st SesameJenaConstructStatement
@@ -744,7 +765,7 @@ public class GraphDataModel {
 	{
 		// create all the relationships now
 		logger.info("ConceptSelectQuery query " + conceptSelectQuery);
-		
+
 		//IEngine jenaEngine = new InMemoryJenaEngine();
 		//((InMemoryJenaEngine)jenaEngine).setModel(jenaModel);
 
@@ -753,9 +774,9 @@ public class GraphDataModel {
 
 		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
 		sjsc.setEngine(jenaEngine);
-				
+
 		logger.debug(conceptSelectQuery);
-		
+
 		try {
 			sjsc.setQuery(conceptSelectQuery);
 			sjsc.execute();
@@ -771,15 +792,15 @@ public class GraphDataModel {
 
 				if(!baseFilterHash.containsKey(sct.getSubject()))// && !baseFilterHash.containsKey(sct.getPredicate()) && !baseFilterHash.containsKey(sct.getObject()+""))
 				{
-						SEMOSSVertex vert1 = vertStore.get(sct.getSubject()+"");
-						if(vert1 == null)
-						{
-							vert1 = new SEMOSSVertex(sct.getSubject());
-							storeVert(vert1);
-						}
-						// add my friend
-//						if(filteredNodes == null || (filteredNodes != null && !filteredNodes.containsKey(sct.getSubject()+"")))
-//							this.forest.addVertex(vertStore.get(sct.getSubject()));
+					SEMOSSVertex vert1 = vertStore.get(sct.getSubject()+"");
+					if(vert1 == null)
+					{
+						vert1 = new SEMOSSVertex(sct.getSubject());
+						storeVert(vert1);
+					}
+					// add my friend
+					//						if(filteredNodes == null || (filteredNodes != null && !filteredNodes.containsKey(sct.getSubject()+"")))
+					//							this.forest.addVertex(vertStore.get(sct.getSubject()));
 				}
 			}
 		}catch(RuntimeException ex)
@@ -787,7 +808,7 @@ public class GraphDataModel {
 			ex.printStackTrace();
 		}
 	}
-	
+
 	// executes the first SPARQL query and generates the graphs
 	/**
 	 * Method genBaseGraph.
@@ -803,9 +824,9 @@ public class GraphDataModel {
 
 		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
 		sjsc.setEngine(jenaEngine);
-				
+
 		logger.debug(predicateSelectQuery);
-		
+
 		try {
 			sjsc.setQuery(predicateSelectQuery);
 			sjsc.execute();
@@ -819,7 +840,7 @@ public class GraphDataModel {
 
 				SesameJenaConstructStatement sct = sjsc.next();
 				String predicateName = sct.getPredicate();
-				
+
 				if(!baseFilterHash.containsKey(sct.getSubject()) && !baseFilterHash.containsKey(sct.getPredicate()) && !baseFilterHash.containsKey(sct.getObject()+""))
 				{
 					// get the subject, predicate and object
@@ -852,28 +873,28 @@ public class GraphDataModel {
 						/*edge = new DBCMEdge(vert1, vert2, sct.getPredicate());
 						System.err.println("Predicate plugged is " + predicateName);
 						edgeStore.put(sct.getPredicate()+"", edge);*/
-	
+
 						// the logic works only when the predicates dont have the vertices on it.. 
 						edge = new SEMOSSEdge(vert1, vert2, predicateName);
 						storeEdge(edge);
 					}
 					//logger.warn("Found Edge " + edge.getURI() + "<<>>" + vert1.getURI() + "<<>>" + vert2.getURI());
-	
-					
+
+
 					// add the edge now if the edge does not exist
 					// need to handle the duplicate issue again
-//					try
-//					{	
-//						// try to see if the predicate here is a property
-//						// if so then add it as a property
-//						this.forest.addEdge(edge, vertStore.get(sct.getSubject()+""),
-//							vertStore.get(sct.getObject()+""));
-//					}catch (Exception ex)
-//					{
-//						ex.printStackTrace();
-//						logger.warn("Missing Edge " + edge.getURI() + "<<>>" + vert1.getURI() + "<<>>" + vert2.getURI());
-//						// ok.. I am going to ignore for now that this is a duplicate edge
-//					}
+					//					try
+					//					{	
+					//						// try to see if the predicate here is a property
+					//						// if so then add it as a property
+					//						this.forest.addEdge(edge, vertStore.get(sct.getSubject()+""),
+					//							vertStore.get(sct.getObject()+""));
+					//					}catch (Exception ex)
+					//					{
+					//						ex.printStackTrace();
+					//						logger.warn("Missing Edge " + edge.getURI() + "<<>>" + vert1.getURI() + "<<>>" + vert2.getURI());
+					//						// ok.. I am going to ignore for now that this is a duplicate edge
+					//					}
 				}
 			}
 		} catch (RuntimeException e) {
@@ -888,7 +909,7 @@ public class GraphDataModel {
 	 */
 	public void updateAllModels(String query){
 		logger.debug(query);
-		
+
 		// run query on rc
 		try{
 			rc.commit();
@@ -931,7 +952,7 @@ public class GraphDataModel {
 			logger.info("Ran update against curModel");
 		}
 	}
-	
+
 	public void setOverlay(boolean overlay){
 		if(overlay)
 			this.method = CREATION_METHOD.OVERLAY;
@@ -951,7 +972,7 @@ public class GraphDataModel {
 		this.sudowl = sudowl;
 		this.search = search;
 	}
-	
+
 	public void setSubclassCreate(boolean subclassCreate){
 		this.subclassCreate = subclassCreate;
 	}
@@ -977,7 +998,7 @@ public class GraphDataModel {
 		rcStore.addElement(curRC);
 		logger.debug("Extend : Total Models added = " + modelStore.size());
 	}
-	
+
 	public Hashtable<String, SEMOSSVertex> getVertStore(){
 		return this.vertStore;
 	}
@@ -985,7 +1006,7 @@ public class GraphDataModel {
 	public Hashtable<String, SEMOSSEdge> getEdgeStore(){
 		return this.edgeStore;
 	}
-	
+
 	public void setVertStore(Hashtable<String, SEMOSSVertex> vs){
 		this.vertStore = vs;
 	}
@@ -1005,11 +1026,11 @@ public class GraphDataModel {
 	public Hashtable<String, SEMOSSEdge> getIncrementalEdgeStore(){
 		return this.incrementalEdgeStore;
 	}
-	
+
 	public Model getJenaModel(){
 		return jenaModel;
 	}
-	
+
 	public void removeView(String query, IEngine engine){
 		// this will extend it
 		// i.e. Checks to see if the node is available
@@ -1026,9 +1047,9 @@ public class GraphDataModel {
 		sjw.setEngine(engine);
 		sjw.setQuery(query);
 		sjw.execute();
-		*/
+		 */
 		Model curModel = ModelFactory.createDefaultModel();
-		
+
 		while (sjw.hasNext()) {
 			IConstructStatement st = sjw.next();
 			org.openrdf.model.Resource subject = new URIImpl(st.getSubject());
@@ -1037,10 +1058,10 @@ public class GraphDataModel {
 			// figure out if this is an object later
 			Object obj = st.getObject();
 			delQuery=delQuery+"<"+subject+"><"+predicate+">";
-	
+
 			if((obj instanceof com.hp.hpl.jena.rdf.model.Literal) || (obj instanceof Literal))
 			{
-	
+
 				delQuery=delQuery+obj+".";
 			}
 			else 
@@ -1068,7 +1089,7 @@ public class GraphDataModel {
 		//need to reset this
 		vertStore = new Hashtable<String, SEMOSSVertex>();
 		edgeStore = new Hashtable<String, SEMOSSEdge>();
-		
+
 	}
 
 	/**
@@ -1078,7 +1099,7 @@ public class GraphDataModel {
 	public PropertySpecData getPredicateData() {
 		return predData;
 	}
-	
+
 	public void loadBaseData(IEngine engine){
 		// now add the base relationships to the metamodel
 		// this links the hierarchy that tool needs to the metamodel being queried
@@ -1092,10 +1113,100 @@ public class GraphDataModel {
 			}
 
 			this.baseFilterHash.putAll(((AbstractEngine)engine).getBaseHash());
-			
+
 			RDFEngineHelper.addAllData(baseRelEngine, rc);
 			loadedOWLS.put(engine.getEngineName(), engine.getEngineName());
 		}
 		logger.info("BaseQuery");
+	}
+
+	@Override
+	public void processDataMakerComponent(DataMakerComponent component) {
+		
+		processPreTransformations(component, component.getPreTrans());
+
+		//		setPropSudowlSearch();
+		this.coreQuery = component.fillQuery();
+		this.coreEngine = component.getEngine();
+
+		if(!vertStore.isEmpty()){ // if this is not empty, it means it is a traversal
+			setOverlay(true);
+		}
+
+		createModel(this.coreQuery, coreEngine);  // instrumented this call
+
+		logger.info("Creating the base Graph");
+		fillStoresFromModel(coreEngine); // < This is where the gen base graph models
+
+		//empty incremental stores indicate no new data is available, which means the traversal is invalid. this will set the traversal back one step and remove the invalid traversal from rc and model stores.
+		if(getIncrementalVertStore() != null && getIncrementalEdgeStore() != null && getIncrementalVertStore().isEmpty() && getIncrementalEdgeStore().isEmpty() && getIncrementalVertPropStore() != null && getIncrementalVertPropStore().isEmpty() ) {
+			setUndo(true);
+			undoData();
+			fillStoresFromModel(coreEngine);
+			rcStore.remove(rcStore.size()-1);
+			modelStore.remove(modelStore.size()-1);
+		}
+
+	}
+
+	public boolean getOverlay(){
+		if(CREATION_METHOD.OVERLAY.equals(this.method)){
+			return true;
+		}
+		return false;
+	}
+
+	public IEngine getEngine(){
+		return this.coreEngine;
+	}
+
+	public String getQuery(){
+		return this.coreQuery;
+	}
+
+	@Override
+	public void processPostTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms, IDataMaker... dataFrame) {
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void processPreTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms){
+		for(ISEMOSSTransformation transform : transforms){
+			transform.setDataMakers(this);
+			transform.setDataMakerComponent(dmc);
+			transform.runMethod();
+		}
+	}
+
+	@Override
+	public List<Object> processActions(DataMakerComponent dmc, List<ISEMOSSAction> actions, IDataMaker... dataMaker) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public List<Object> getActionOutput() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public Map getDataMakerOutput() {
+		Hashtable retHash = new Hashtable();
+		if(this.getOverlay()){
+			retHash .put("nodes", this.getIncrementalVertStore());
+			retHash.put("nodeProperties", this.getIncrementalVertPropStore());
+			retHash.put("edges", this.getIncrementalEdgeStore().values());
+		} else {
+			retHash.put("nodes", this.getVertStore());
+			retHash.put("edges", this.getEdgeStore().values());
+		}
+		return retHash;
 	}
 }

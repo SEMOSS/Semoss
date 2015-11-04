@@ -194,4 +194,8 @@ public class LifeCycleGridPlaySheet extends GridPlaySheet {
 		}
 		return -1;
 	}
+	
+	public String getQuery(){
+		return this.query;
+	}
 }

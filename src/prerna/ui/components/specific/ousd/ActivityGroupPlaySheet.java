@@ -11,9 +11,8 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ds.OrderedBTreeDataFrame;
-import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.playsheets.GridPlaySheet;
-import prerna.util.PlaySheetEnum;
+import prerna.util.PlaySheetRDFMapBasedEnum;
 
 public class ActivityGroupPlaySheet extends GridPlaySheet{
 
@@ -46,10 +45,10 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 	@Override
 	public void createData(){
 
-		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
-		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
-		proc.processQuestionQuery(this.engine, insightName, emptyTable);
-		ActivitySystemGroupPlaySheet activitySheet = (ActivitySystemGroupPlaySheet) proc.getPlaySheet();
+//		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
+//		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
+//		proc.processQuestionQuery(this.engine, insightName, emptyTable);
+		ActivitySystemGroupPlaySheet activitySheet = (ActivitySystemGroupPlaySheet)  OUSDPlaysheetHelper.getPlaySheetFromName(insightName, engine);
 
 		//createData makes the table...
 		activitySheet.createData();
@@ -585,9 +584,9 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 	//	}
 
 	@Override
-	public Hashtable getData(){
+	public Hashtable getDataMakerOutput(){
 		List<Object[]> theList = new ArrayList<Object[]>();
-		String playSheetClassName = PlaySheetEnum.getClassFromName("Grid");
+		String playSheetClassName = PlaySheetRDFMapBasedEnum.getClassFromName("Grid");
 		GridPlaySheet playSheet = null;
 		try {
 			playSheet = (GridPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
@@ -615,7 +614,7 @@ public class ActivityGroupPlaySheet extends GridPlaySheet{
 		}
 		playSheet.setTitle(this.title);
 		playSheet.setQuestionID(this.questionNum);//
-		Hashtable retHash = (Hashtable) playSheet.getData();
+		Hashtable retHash = (Hashtable) playSheet.getDataMakerOutput();
 		ArrayList<Object[]> myList = groupList;
 		if(myList.size() > 1001){
 			theList = myList.subList(0, 1000);

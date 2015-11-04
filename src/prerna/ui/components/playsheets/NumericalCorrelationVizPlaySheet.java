@@ -29,8 +29,10 @@ package prerna.ui.components.playsheets;
 
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.JComponent;
 import javax.swing.JPanel;
@@ -39,10 +41,11 @@ import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 
-import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.learning.supervized.NumericalCorrelationAlgorithm;
+import prerna.om.SEMOSSParam;
 import prerna.ui.components.GridScrollPane;
 import prerna.ui.components.NewScrollBarUI;
 import prerna.util.Constants;
@@ -77,20 +80,14 @@ public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 
 	@Override
 	public void runAnalytics() {
-		dataFrame.setColumnsToSkip(skipAttributes);
-		this.columnHeaders = dataFrame.getColumnHeaders();
-		int numCols = columnHeaders.length;
-
-		//create the b and A arrays which are used in matrix regression to determine coefficients
-		double[][] dataArr;
-		if(includesInstance) {
-			dataArr = MatrixRegressionHelper.createA(dataFrame, 1, numCols);
-		} else {
-			dataArr = MatrixRegressionHelper.createA(dataFrame, 0, numCols);
-		}
-		
-		PearsonsCorrelation correlation = new PearsonsCorrelation(dataArr);
-		correlationArray = correlation.getCorrelationMatrix().getData();		
+		NumericalCorrelationAlgorithm alg = new NumericalCorrelationAlgorithm();
+		List<SEMOSSParam> options = alg.getOptions();
+		Map<String, Object> selectedOptions = new HashMap<String, Object>();
+		selectedOptions.put(options.get(0).getName(), includesInstance);
+		selectedOptions.put(options.get(1).getName(), skipAttributes);
+		alg.setSelectedOptions(selectedOptions);
+		dataFrame.performAnalyticAction(alg);
+		correlationArray = alg.getCorrelationArray();
 	}
 
 	@Override
@@ -122,7 +119,7 @@ public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 		allHash.put("dataSeries", getList());
 		allHash.put("correlations", correlations);
 
-		this.dataHash= allHash;
+		this.dataHash = allHash;
 	}
 
 	public void setIncludesInstance(boolean includesInstance) {

@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.LogManager;
@@ -436,14 +437,13 @@ public abstract class SEMOSSQueryHelper {
 		seQuery.setBindings(bindings);
 	}
 	
-	public static void addParametersToQuery(ArrayList<Hashtable<String, String>> parameters, SEMOSSQuery seQuery, String clauseName){
+	public static void addParametersToQuery(List<Map<String, String>> parameters, SEMOSSQuery seQuery, String clauseName){
 		for(int i=0; i < parameters.size(); i++){
-			Hashtable<String, String> paramHash = parameters.get(i);
+			Map<String, String> paramHash = parameters.get(i);
 			
 			Set<String> paramKeys = paramHash.keySet();
 			for(String key : paramKeys){
 				TriplePart paramPart = new TriplePart(key, TriplePart.VARIABLE);
-
 				seQuery.addParameter(key, paramHash.get(key), paramPart, clauseName);
 			}
 		}

@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import prerna.algorithm.api.IAnalyticRoutine;
+import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.util.Cluster;
 import prerna.algorithm.learning.util.IClusterDistanceMode;
@@ -17,17 +17,17 @@ import prerna.math.SimilarityWeighting;
 import prerna.om.SEMOSSParam;
 import prerna.util.ArrayUtilityMethods;
 
-public class SOMRoutine implements IAnalyticRoutine {
+public class SOMRoutine implements IAnalyticTransformationRoutine {
 	
-	private static final String INITIAL_RADIUS = "initialRadius";
-	private static final String LEARNING_RATE = "learningRate";
-	private static final String TAU = "tau";
-	private static final String MAXIMUM_ITERATIONS = "maxIterations";
-	private static final String INSTANCE_INDEX_KEY = "instanceIndex";
-	private static final String GRID_WIDTH = "gridWidth";
-	private static final String GRID_LENGTH = "gridLength";
-	private static final String DISTANCE_MEASURE = "distanceMeasure";
-	private static final String SKIP_ATTRIBUTES	= "skipAttributes";
+	public static final String INITIAL_RADIUS = "initialRadius";
+	public static final String LEARNING_RATE = "learningRate";
+	public static final String TAU = "tau";
+	public static final String MAXIMUM_ITERATIONS = "maxIterations";
+	public static final String INSTANCE_INDEX_KEY = "instanceIndex";
+	public static final String GRID_WIDTH = "gridWidth";
+	public static final String GRID_LENGTH = "gridLength";
+	public static final String DISTANCE_MEASURE = "distanceMeasure";
+	public static final String SKIP_ATTRIBUTES	= "skipAttributes";
 	
 	private List<SEMOSSParam> options;
 	// values set from options
@@ -115,13 +115,13 @@ public class SOMRoutine implements IAnalyticRoutine {
 //		this.tau = 7.5;
 //		this.maxIterations = 15;
 		
-		this.instanceIndex = (int) options.get(0).getSelected();
-		this.initalRadius = (double) options.get(1).getSelected();
-		this.learningRate = (double) options.get(2).getSelected();
-		this.tau = (double) options.get(3).getSelected();
-		this.maxIterations = (int) options.get(4).getSelected();
-		this.gridWidth = (Integer) options.get(5).getSelected();
-		this.gridLength = (Integer) options.get(6).getSelected();
+		this.instanceIndex = ((Number) options.get(0).getSelected()).intValue();
+		this.initalRadius = ((Number) options.get(1).getSelected()).doubleValue();
+		this.learningRate = ((Number) options.get(2).getSelected()).doubleValue();
+		this.tau = ((Number) options.get(3).getSelected()).doubleValue();
+		this.maxIterations = ((Number) options.get(4).getSelected()).intValue();
+		this.gridWidth = ((Number) options.get(5).getSelected()).intValue();
+		this.gridLength = ((Number) options.get(6).getSelected()).intValue();
 		this.distanceMeasure = (Map<String, DistanceMeasure>) options.get(7).getSelected();
 		this.skipAttributes = (List<String>) options.get(8).getSelected();
 

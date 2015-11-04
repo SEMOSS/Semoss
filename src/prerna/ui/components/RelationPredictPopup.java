@@ -29,7 +29,10 @@ package prerna.ui.components;
 
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -105,7 +108,7 @@ public class RelationPredictPopup extends JMenu implements MouseListener{
 		// and the predicate selected
 		// the listener should then trigger the graph play sheet possibly
 		// and for each relationship add the listener
-		Hashtable<String, String> hash = new Hashtable<String, String>();
+		Map<String, List<Object>> hash = new Hashtable<String, List<Object>>();
 		String ignoreURI = DIHelper.getInstance().getProperty(Constants.IGNORE_URI);
 		// there should exactly be 2 vertices
 		// we try to find the predicate based on both subject and object
@@ -133,8 +136,12 @@ public class RelationPredictPopup extends JMenu implements MouseListener{
 		else if(uri2.contains("/"))
 			object = "<" + uri2 + ">";
 		
-		hash.put(Constants.SUBJECT, subject);
-		hash.put(Constants.OBJECT, object);
+		List<Object> subList = new ArrayList<Object>();
+		subList.add(subject);
+		List<Object> objList = new ArrayList<Object>();
+		objList.add(object);
+		hash.put(Constants.SUBJECT, subList);
+		hash.put(Constants.OBJECT, objList);
 		
 		if(found1 && uri.contains("/"))
 		{
@@ -152,12 +159,14 @@ public class RelationPredictPopup extends JMenu implements MouseListener{
 				query = DIHelper.getInstance().getProperty(mainQuery3);
 		}
 			
-
-		hash.put(Constants.SUBJECT, object);
-		hash.put(Constants.OBJECT, subject);
+		subList.clear();
+		subList.add(subject);
+		objList.clear();
+		objList.add(object);
+		hash.put(Constants.SUBJECT, subList);
+		hash.put(Constants.OBJECT, objList);
 		
 		String query2 = Utility.fillParam(query, hash);
-		
 		
 		JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
 		// get the selected repository

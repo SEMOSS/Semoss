@@ -31,8 +31,10 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
@@ -72,12 +74,14 @@ public class ServiceSelectPanel extends JPanel {
 		String sparqlQuery = DIHelper.getInstance().getProperty(
 				"TYPE" + "_" + Constants.QUERY);
 		
-		Hashtable<String, String> paramTable = new Hashtable<String, String>();
+		Hashtable<String, List<Object>> paramTable = new Hashtable<String, List<Object>>();
 		String entityNS = DIHelper.getInstance().getProperty("Service"+Constants.CLASS);
-		paramTable.put(Constants.ENTITY, entityNS );
+		List<Object> valueList = new ArrayList<Object>();
+		valueList.add(entityNS);
+		paramTable.put(Constants.ENTITY, valueList);
 		sparqlQuery = Utility.fillParam(sparqlQuery, paramTable);	
 		
-		names = Utility.getVectorOfReturn(sparqlQuery,engine);
+		names = Utility.getVectorOfReturn(sparqlQuery,engine, true);
 		Hashtable<String, String> paramHash = Utility.getInstanceNameViaQuery(names);
 		Set<String> nameC = paramHash.keySet();
 		names = new Vector<String>(nameC);

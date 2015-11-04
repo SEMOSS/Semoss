@@ -54,6 +54,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import javax.imageio.ImageIO;
@@ -97,6 +98,11 @@ import javax.swing.event.InternalFrameListener;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.ibm.icu.util.StringTokenizer;
+
+import aurelienribon.ui.components.Button;
+import aurelienribon.ui.css.Style;
+import aurelienribon.ui.css.swing.SwingStyle;
 import prerna.engine.api.IEngine;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.DHMSMSystemSelectPanel;
@@ -118,11 +124,6 @@ import prerna.ui.swing.custom.ToggleButton;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import aurelienribon.ui.components.Button;
-import aurelienribon.ui.css.Style;
-import aurelienribon.ui.css.swing.SwingStyle;
-
-import com.ibm.icu.util.StringTokenizer;
 
 /**
  * The playpane houses all of the components that create the user interface in SEMOSS.
@@ -323,7 +324,8 @@ public class PlayPane extends JFrame {
 	public JTextField questionPerspectiveField, questionField, questionLayoutField;
 	private JScrollPane questionSparqlScroll;
 	public JTextPane questionSparqlTextPane;
-	public JComboBox<String> questionDatabaseSelector, questionPerspectiveSelector, questionModSelector;
+	public JComboBox<String> questionDatabaseSelector, questionPerspectiveSelector;
+	public JComboBox<Map<String, String>> questionModSelector;
 	public JComboBox<String> questionOrderComboBox, questionLayoutComboBox;
 	public ParamComboBox addParameterComboBox;
 	public JRadioButton addQuestionButton, editQuestionButton, deleteQuestionButton;
@@ -1714,11 +1716,9 @@ public class PlayPane extends JFrame {
 		questionModPanel.add(lblSelectQuestion, gbc_lblSelectQuestion);
 		lblSelectQuestion.setVisible(false);
 		
-		questionModSelector = new JComboBox<String>();
+		questionModSelector = new JComboBox<Map<String, String>>();
 		questionModSelector.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		questionModSelector.setBackground(new Color(119, 136, 153));
-		// questionModSelector.setMinimumSize(new Dimension(60, 25));
-		questionModSelector.setPrototypeDisplayValue("XXXXXXXXXXXXXXXXXXXXXXXXX");
 		GridBagConstraints gbc_questionModSelector = new GridBagConstraints();
 		gbc_questionModSelector.anchor = GridBagConstraints.NORTH;
 		gbc_questionModSelector.gridwidth = 3;

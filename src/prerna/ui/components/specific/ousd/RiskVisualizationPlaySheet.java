@@ -11,9 +11,8 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ds.OrderedBTreeDataFrame;
-import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.playsheets.GridPlaySheet;
-import prerna.util.PlaySheetEnum;
+import prerna.util.PlaySheetRDFMapBasedEnum;
 
 public class RiskVisualizationPlaySheet extends GridPlaySheet{
 
@@ -32,10 +31,11 @@ public class RiskVisualizationPlaySheet extends GridPlaySheet{
 
 	@Override
 	public void createData(){
-		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
-		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
-		proc.processQuestionQuery(this.engine, cleanActInsightString, emptyTable);
-		SequencingDecommissioningPlaySheet activitySheet = (SequencingDecommissioningPlaySheet) proc.getPlaySheet();
+//		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
+//		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
+//		proc.processQuestionQuery(this.engine, cleanActInsightString, emptyTable);
+//		SequencingDecommissioningPlaySheet activitySheet = (SequencingDecommissioningPlaySheet) proc.getPlaySheet();
+		SequencingDecommissioningPlaySheet activitySheet = (SequencingDecommissioningPlaySheet) OUSDPlaysheetHelper.getPlaySheetFromName(cleanActInsightString, this.engine);
 
 		Map<Integer, List<List<Integer>>> decomGroups = activitySheet.collectData();
 		Object[] groupData = activitySheet.getResults(decomGroups);
@@ -119,8 +119,8 @@ public class RiskVisualizationPlaySheet extends GridPlaySheet{
 	}
 
 	@Override
-	public Hashtable getData(){
-		Hashtable returnHash = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, PlaySheetEnum.Grid.getSheetName());
+	public Hashtable getDataMakerOutput(){
+		Hashtable returnHash = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, PlaySheetRDFMapBasedEnum.getSheetName("Grid"));
 		return returnHash;
 	}
 

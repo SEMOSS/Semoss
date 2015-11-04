@@ -37,12 +37,13 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
+import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.specific.tap.SysDecommissionOptimizationPlaySheet;
 import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
-import prerna.util.QuestionPlaySheetStore;
 import prerna.util.Utility;
 
 
@@ -72,15 +73,20 @@ public class SysDecommissionOptimizationListener implements IChakraListener {
 		SysDecommissionOptimizationPlaySheet playsheet = new SysDecommissionOptimizationPlaySheet();
 		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 		playsheet.setJDesktopPane(pane);
-		QuestionPlaySheetStore.getInstance().customIDcount++;
-		String playSheetTitle = "Custom Query - "+QuestionPlaySheetStore.getInstance().getCustomCount();
-		String insightID = QuestionPlaySheetStore.getInstance().getIDCount()+"custom";
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+//		QuestionPlaySheetStore.getInstance().idCount++;
+//		String playSheetTitle = "Custom Query - "+QuestionPlaySheetStore.getInstance().getIDCount();
+//		String insightID = QuestionPlaySheetStore.getInstance().getIDCount()+"custom";
+//		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+//		QuestionPlaySheetStore.getInstance().put(insightID,  playsheet);
 
-		QuestionPlaySheetStore.getInstance().put(insightID,  playsheet);
-		playsheet.setRDFEngine(engine);
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
+		Insight insight = new Insight(engine, "", "");
+		insight.setPlaySheet(playsheet);
+		String insightID = InsightStore.getInstance().put(insight);
+		insight.setInsightName(insightID);
+		playsheet.setEngine(engine);
 		playsheet.setQuestionID(insightID);
-		playsheet.setTitle(playSheetTitle);
+		playsheet.setTitle(insightID);
 		
 		String query="";
 		if(resourceTextValue!=null&&resourceTextValue.length()>0)

@@ -42,7 +42,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.util.DIHelper;
-import prerna.util.PlaySheetEnum;
+import prerna.util.PlaySheetRDFMapBasedEnum;
 
 /**
  * This class is a temporary fix for queries to run across multiple databases
@@ -55,7 +55,7 @@ public class DualEngineGenericPlaySheet extends DualEngineGridPlaySheet {
 	String playsheetName;
 	String[] finalNames;
 	String[] mathFunctions;
-	BasicProcessingPlaySheet playSheet = null;
+	BrowserPlaySheet playSheet = null;
 
 	@Override
 	public Hashtable<String, String> getDataTableAlign() {
@@ -72,9 +72,9 @@ public class DualEngineGenericPlaySheet extends DualEngineGridPlaySheet {
 	
 	@Override
 	public void createView(){
-		String playSheetClassName = PlaySheetEnum.getClassFromName(playsheetName);
+		String playSheetClassName = PlaySheetRDFMapBasedEnum.getClassFromName(playsheetName);
 		try {
-			playSheet = (BasicProcessingPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
+			playSheet = (BrowserPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
 		} catch (ClassNotFoundException ex) {
 			ex.printStackTrace();
 			logger.fatal("No such PlaySheet: "+ playSheetClassName);
@@ -104,7 +104,7 @@ public class DualEngineGenericPlaySheet extends DualEngineGridPlaySheet {
 		}
 		ITableDataFrame f = new BTreeDataFrame(finalNames);
 		f.addRow(hash, hash);
-		playSheet.setDataFrame(f);
+		playSheet.setDataMaker(f);
 		playSheet.setQuestionID(this.questionNum);
 		playSheet.setTitle(this.title);
 		playSheet.pane = this.pane;
@@ -114,10 +114,10 @@ public class DualEngineGenericPlaySheet extends DualEngineGridPlaySheet {
 	}
 	
 	@Override
-	public Hashtable getData(){
-		String playSheetClassName = PlaySheetEnum.getClassFromName(playsheetName);
+	public Map getDataMakerOutput(){
+		String playSheetClassName = PlaySheetRDFMapBasedEnum.getClassFromName(playsheetName);
 		try {
-			playSheet = (BasicProcessingPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
+			playSheet = (BrowserPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
 		} catch (ClassNotFoundException ex) {
 			ex.printStackTrace();
 			logger.fatal("No such PlaySheet: "+ playSheetClassName);
@@ -147,9 +147,9 @@ public class DualEngineGenericPlaySheet extends DualEngineGridPlaySheet {
 		}
 		ITableDataFrame f = new BTreeDataFrame(finalNames);
 		f.addRow(hash, hash);
-		playSheet.setDataFrame(f);
+		playSheet.setDataMaker(f);
 		playSheet.setQuestionID(this.questionNum);
-		Hashtable retHash = playSheet.getData();
+		Map retHash = playSheet.getDataMakerOutput();
 		retHash.put("data", this.getList());
 		return retHash;
 	}

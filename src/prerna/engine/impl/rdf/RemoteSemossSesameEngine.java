@@ -27,18 +27,23 @@
  *******************************************************************************/
 package prerna.engine.impl.rdf;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.StringBufferInputStream;
+import java.io.StringReader;
 import java.util.Hashtable;
+import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.h2.store.fs.FileUtils;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryEvaluationException;
-import org.openrdf.query.QueryLanguage;
-import org.openrdf.query.TupleQuery;
-import org.openrdf.query.TupleQueryResult;
 import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
@@ -51,12 +56,16 @@ import org.openrdf.sail.memory.MemoryStore;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.InsightsConverter;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.SesameConstructWrapper;
 import prerna.rdf.engine.wrappers.SesameSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.sql.H2QueryUtil;
 
 import com.google.gson.Gson;
 
@@ -96,17 +105,31 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 				}
 				engineName = database;
 				String insights = Utility.retrieveResult(api + "/s-" + database + "/getInsightDefinition", null);
-				
-				this.createInsightBase();
-				insightBaseXML.rc = getNewRepository();
-				engineURI2 = engineBaseURI + "/" + engineName;
-				System.out.println("Engine URI is " + engineURI2);
-				
-				System.out.println("Insights is " + insights);
+				logger.info("Have insights string::: " + insights);
+				String[] insightBuilderQueries = insights.split("%!%");
 
+				Properties dbProp = writePropFile();
+				this.insightRDBMS = new RDBMSNativeEngine();
+				this.insightRDBMS.setProperties(dbProp);;
+				this.insightRDBMS.openDB(null);
+				
+				for (String insightBuilderQuery : insightBuilderQueries)
+				{
+					logger.info("running query " +  insightBuilderQuery);
+					this.insightRDBMS.insertData(insightBuilderQuery);
+				}
 
-				// add it to the core connection
-				insightBaseXML.rc.add(new StringBufferInputStream(insights), "http://semoss.org", RDFFormat.RDFXML);
+				
+//				this.createInsightBase();
+//				insightBaseXML.rc = getNewRepository();
+//				engineURI2 = engineBaseURI + "/" + engineName;
+//				System.out.println("Engine URI is " + engineURI2);
+//				
+//				System.out.println("Insights is " + insights);
+//
+//
+//				// add it to the core connection
+//				insightBaseXML.rc.add(new StringBufferInputStream(insights), "http://semoss.org", RDFFormat.RDFXML);
 				
 				// need to do the same with the owl
 				String owl = Utility.retrieveResult(api + "/s-" + database + "/getOWLDefinition", null);
@@ -140,6 +163,21 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}		
+	}
+
+	// TODO: do we really need this?
+	private Properties writePropFile() {
+		H2QueryUtil queryUtil = new H2QueryUtil();
+		Properties prop = new Properties();
+		String connectionURL = "jdbc:h2:mem:temp";
+		prop.put(Constants.CONNECTION_URL, connectionURL);
+		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
+		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
+		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
+		prop.put(Constants.TEMP_CONNECTION_URL, queryUtil.getTempConnectionURL());
+		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
+		prop.put("TEMP", "TRUE");
+		return prop;
 	}
 		
 	public RepositoryConnection getNewRepository() {
@@ -268,7 +306,7 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 	 * This is important for things like param values so that we can take the returned value and fill the main query without needing modification
 	 * @param sparqlQuery the SELECT SPARQL query to be run against the engine
 	 * @return the Vector of Strings representing the full uris of all of the query results */
-	public Vector<String> getCleanSelect(String sparqlQuery)
+	public Vector<Object> getCleanSelect(String sparqlQuery)
 	{
 		logger.debug("\nSPARQL: " + sparqlQuery);
 		SesameSelectWrapper ssw = (SesameSelectWrapper) this.execQuery(sparqlQuery);
@@ -277,7 +315,8 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 			ISelectStatement sss = ssw.next();
 			strVector.add(sss.getRawVar(Constants.ENTITY)+ "");
 		}
-
+		
+		//TODO: why is this always returning null????
 		return null;
 	}
 	
@@ -285,7 +324,7 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 	 * Uses a type URI to get the URIs of all instances of that type. These instance URIs are returned as the Vector of Strings.
 	 * @param type The full URI of the node type that we want to get the instances of
 	 * @return the Vector of Strings representing the full uris of all of the instances of the passed in type */
-	public Vector<String> getEntityOfType(String type)
+	public Vector<Object> getEntityOfType(String type)
 	{
 		Hashtable <String,String> params = new Hashtable<String, String>();
 		params.put("sparqlQuery", type);
@@ -293,7 +332,7 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 		String output = Utility.retrieveResult(api + "/s-" + database + "/getEntityOfType", params);
 
 		Gson gson = new Gson();
-		Vector <String> retVector = gson.fromJson(output, Vector.class);
+		Vector <Object> retVector = gson.fromJson(output, Vector.class);
 		
 		return retVector;
 	}
