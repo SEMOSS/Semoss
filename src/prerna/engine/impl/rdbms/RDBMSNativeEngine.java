@@ -47,9 +47,11 @@ import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
+import org.openrdf.repository.RepositoryConnection;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
+import prerna.om.SEMOSSParam;
 import prerna.rdf.query.builder.IQueryBuilder;
 import prerna.rdf.query.builder.SQLQueryTableBuilder;
 import prerna.rdf.util.AbstractQueryParser;
@@ -78,7 +80,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	@Override
 	public void openDB(String propFile)
 	{
-		if(propFile==null){
+		if(propFile == null && prop == null){
 			if(dataSource!= null){
 				try{
 					engineConn = getConnection();
@@ -90,20 +92,20 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				logger.info("using engine connection");
 			}
 		} else {
-		
 			// will mostly be sent the connection string and I will connect here
 			// I need to see if the connection pool has been initiated
 			// if not initiate the connection pool
-			try {
-				prop = loadProp(propFile);
-				if(!prop.containsKey("TEMP"))
-					super.openDB(propFile);
-			} catch (FileNotFoundException e1) {
-				// TODO Auto-generated catch block
-				logger.error("error in RDBMS openDB processing prop file", e1);
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-				logger.error("error in RDBMS openDB processing prop file", e1);
+			if(prop == null) {
+				try {
+					prop = loadProp(propFile);
+					if(!prop.containsKey("TEMP")) {
+						super.openDB(propFile);
+					}
+				} catch (FileNotFoundException e1) {
+					logger.error("error in RDBMS openDB processing prop file", e1);
+				} catch (IOException e1) {
+					logger.error("error in RDBMS openDB processing prop file", e1);
+				}
 			}
 			String connectionURL = prop.getProperty(Constants.CONNECTION_URL);
 			String tempEngineName = "";
@@ -228,7 +230,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	}
 	
 	@Override
-	public Vector<String> getEntityOfType(String type)
+	public Vector<Object> getEntityOfType(String type)
 	{
         String table; // table in RDBMS
         String column; // column of table in RDBMS
@@ -250,7 +252,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			conn = getConnection();
 			stmt = conn.createStatement();
         	rs = getResults(stmt, query);
-        	Vector<String> columnsFromResult = getColumnsFromResultSet(1, rs);
+        	Vector<Object> columnsFromResult = getColumnsFromResultSet(1, rs);
         	return columnsFromResult;
         } catch (Exception e) {
                // TODO Auto-generated catch block
@@ -262,7 +264,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 
 	}
 	
-	public Vector<String> getCleanSelect(String query){
+	public Vector<Object> getCleanSelect(String query){
 		Connection conn = null;
         ResultSet rs = null;
 		Statement stmt = null;
@@ -270,7 +272,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			conn = getConnection();
 			stmt = conn.createStatement();
 			rs = getResults(stmt, query);
-    		Vector<String> columnsFromResult = getColumnsFromResultSet(1, rs);
+    		Vector<Object> columnsFromResult = getColumnsFromResultSet(1, rs);
     		return columnsFromResult;
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -320,6 +322,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 
 	@Override
 	public void closeDB() {
+		super.closeDB();
 		if(useConnectionPooling){
 			closeEngine();
 		} else {
@@ -409,7 +412,15 @@ public class RDBMSNativeEngine extends AbstractEngine {
 
 	@Override
 	public void removeData(String query) {
-		//not sure here
+		try {
+			Connection conn = getConnection();
+			Statement stmt = conn.createStatement();
+			stmt.execute(query);
+			// return to pool
+		} catch (Exception e) {
+			logger.error("Error occured in getResults method of RDBMSNativeEngine", e);
+		}
+		return;
 	}
 
 	@Override
@@ -511,5 +522,15 @@ public class RDBMSNativeEngine extends AbstractEngine {
 
 	public SQLQueryUtil.DB_TYPE getDbType() {
 		return this.dbType;
+	}
+	
+	public void setAutoCommit(boolean autoCommit) {
+		if(engineConn != null) {
+			try {
+				engineConn.setAutoCommit(autoCommit);
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 }

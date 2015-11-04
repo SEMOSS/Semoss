@@ -29,17 +29,22 @@ package prerna.engine.impl.rdf;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Graph;
+import org.openrdf.model.Literal;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
 import org.openrdf.model.ValueFactory;
+import org.openrdf.model.impl.NumericLiteralImpl;
 import org.openrdf.model.impl.ValueFactoryImpl;
 import org.openrdf.query.BooleanQuery;
 import org.openrdf.query.GraphQuery;
@@ -62,6 +67,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
+import com.bigdata.rdf.model.BigdataLiteralImpl;
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.remote.BigdataSailRemoteRepository;
 
@@ -167,6 +173,7 @@ public class RemoteBigdataEngine extends AbstractEngine implements IEngine {
 	 */
 	@Override
 	public void closeDB() {
+		super.closeDB();
 		// ng.stopTransaction(Conclusion.SUCCESS);
 		try {
 			bdSail.shutDown();
@@ -261,18 +268,31 @@ public class RemoteBigdataEngine extends AbstractEngine implements IEngine {
 	 * This is important for things like param values so that we can take the returned value and fill the main query without needing modification
 	 * @param sparqlQuery the SELECT SPARQL query to be run against the engine
 	 * @return the Vector of Strings representing the full uris of all of the query results */
-	public Vector<String> getCleanSelect(String sparqlQuery)
+	public Vector<Object> getCleanSelect(String sparqlQuery)
 	{
 		try {
 			TupleQuery tq = rc.prepareTupleQuery(QueryLanguage.SPARQL, sparqlQuery);
 			logger.debug("\nSPARQL: " + sparqlQuery);
 //			tq.setIncludeInferred(true /* includeInferred */);
 			TupleQueryResult sparqlResults = tq.evaluate();
-			Vector<String> strVector = new Vector();
-			while(sparqlResults.hasNext())
-				strVector.add(sparqlResults.next().getValue(Constants.ENTITY)+ "");
-
-			return strVector;
+			Vector<Object> retVec = new Vector<Object>();
+			while(sparqlResults.hasNext()) {
+				Value val = sparqlResults.next().getValue(Constants.ENTITY);
+				Object next = null;
+				if (val instanceof BigdataLiteralImpl && ((BigdataLiteralImpl) val).getDatatype() != null) {
+					try {
+						next = ((BigdataLiteralImpl)val).doubleValue();
+					} catch(NumberFormatException ex) {
+						next = ((BigdataLiteralImpl) val).getLabel();
+					}
+				} else if(val instanceof Literal){
+					next = ((Literal)val).getLabel();
+				} else {
+					next = "" + val;
+				}
+				retVec.add(next);
+			}
+			return retVec;
 		} catch (RepositoryException e) {
 			e.printStackTrace();
 		} catch (MalformedQueryException e) {
@@ -287,7 +307,7 @@ public class RemoteBigdataEngine extends AbstractEngine implements IEngine {
 	 * Uses a type URI to get the URIs of all instances of that type. These instance URIs are returned as the Vector of Strings.
 	 * @param type The full URI of the node type that we want to get the instances of
 	 * @return the Vector of Strings representing the full uris of all of the instances of the passed in type */
-	public Vector<String> getEntityOfType(String type)
+	public Vector<Object> getEntityOfType(String type)
 	{
 		// Get query from smss
 		// If the query is not there, get from RDFMap
@@ -297,8 +317,10 @@ public class RemoteBigdataEngine extends AbstractEngine implements IEngine {
 		if(query==null){
 			query = DIHelper.getInstance().getProperty(Constants.TYPE_QUERY);
 		}
-		Hashtable paramHash = new Hashtable();
-		paramHash.put("entity", type);
+		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
+		List<Object> retList = new ArrayList<Object>();
+		retList.add(type);
+		paramHash.put("entity", retList);
 		query = Utility.fillParam(query, paramHash);
 		
 		return getCleanSelect(query);

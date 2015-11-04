@@ -27,8 +27,11 @@
  *******************************************************************************/
 package prerna.algorithm.learning.weka;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,20 +39,21 @@ import java.util.Set;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.IAnalyticRoutine;
+import prerna.algorithm.api.IAnalyticActionRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.SEMOSSParam;
+import prerna.ui.components.playsheets.DendrogramPlaySheet;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.core.Instances;
 
-public class WekaClassification implements IAnalyticRoutine {
+public class WekaClassification implements IAnalyticActionRoutine {
 
 	private static final Logger LOGGER = LogManager.getLogger(WekaClassification.class.getName());
 
-	private static final String MODEL_NAME = "modelName";
-	private static final String CLASS_INDEX = "classIndex";
-	private static final String SKIP_ATTRIBUTES = "skipAttributes";
+	public static final String MODEL_NAME = "modelName";
+	public static final String CLASS_NAME = "classIndex";
+	public static final String SKIP_ATTRIBUTES = "skipAttributes";
 
 	private Instances instancesData;
 	private String[] names;
@@ -98,7 +102,7 @@ public class WekaClassification implements IAnalyticRoutine {
 		options.add(0, p1);
 
 		SEMOSSParam p2 = new SEMOSSParam();
-		p2.setName(CLASS_INDEX);
+		p2.setName(CLASS_NAME);
 		options.add(1, p2);
 		
 		SEMOSSParam p3 = new SEMOSSParam();
@@ -108,7 +112,7 @@ public class WekaClassification implements IAnalyticRoutine {
 	}
 
 	@Override
-	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
+	public void runAlgorithm(ITableDataFrame... data) {
 		if(options.get(0).getSelected() != null && ! ((String) options.get(0).getSelected()).isEmpty()) {
 			this.modelName = (String) options.get(0).getSelected();
 		}
@@ -127,7 +131,7 @@ public class WekaClassification implements IAnalyticRoutine {
 		
 		if(classIndex < 0){
 			LOGGER.error("Cannot match classifier selected in drop down to list of classifiers");
-			return null;
+			return;
 		}
 		
 		LOGGER.info("Starting classification algorithm using " + modelName + " to predict variable " + names[classIndex] + "...");
@@ -140,7 +144,11 @@ public class WekaClassification implements IAnalyticRoutine {
 			LOGGER.info("There is only one distinct value for column " + names[classIndex]);
 			avgAccuracy = 100;
 			avgPrecision = 100;
-			return null;
+			return;
+		} else if(instancesData.numDistinctValues(classIndex) == instancesData.size()) {
+			String errorString = "The column to predict, " + names[classIndex] + ", is a unique identifier in this table. Does not make sense to classify it.";
+			LOGGER.info(errorString);
+			throw new IllegalArgumentException(errorString);
 		}
 		
 		LOGGER.info("Performing 10-fold cross-validation split of data...");
@@ -179,8 +187,34 @@ public class WekaClassification implements IAnalyticRoutine {
 		
 		avgAccuracy = WekaUtilityMethods.calculateAverage(accuracyArr);
 		avgPrecision = WekaUtilityMethods.calculateAverage(precisionArr);
+	}
+	
+	@Override
+	public Object getAlgorithmOutput() {
+		processTreeString();
+		HashSet hashSet = new HashSet();
+		DendrogramPlaySheet.processTree(this.treeMap, hashSet);
+
+		String root = "Decision Tree For " + names[classIndex];
+		Hashtable<String, Object> dataHash = new Hashtable<String, Object>();
+		dataHash.put("name", root);
+		dataHash.put("children", hashSet);
 		
-		return null;
+		DecimalFormat df = new DecimalFormat("#%");
+		ArrayList<Hashtable<String, Object>> statList = new ArrayList<Hashtable<String, Object>>();
+		Hashtable<String, Object> statHash = new Hashtable<String, Object>();
+		statHash.put("Accuracy", df.format(avgAccuracy/100));
+		statList.add(statHash);
+		statHash = new Hashtable<String, Object>();
+		statHash.put("Precision", df.format(avgPrecision/100));
+		statList.add(statHash);
+		dataHash.put("stats", statList);
+		
+		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
+		allHash.put("specificData", dataHash);
+		allHash.put("layout", getDefaultViz());
+
+		return allHash ;
 	}
 	
 	public void processTreeString() {
@@ -370,12 +404,7 @@ public class WekaClassification implements IAnalyticRoutine {
 
 	@Override
 	public String getDefaultViz() {
-		return "prerna.ui.components.playsheets.WekaAprioriVizPlaySheet";
-	}
-
-	@Override
-	public List<String> getChangedColumns() {
-		return null;
+		return "Dendrogram";
 	}
 
 	@Override

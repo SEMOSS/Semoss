@@ -130,6 +130,7 @@ public class POIReader extends AbstractFileReader {
 			createBaseRelations();
 		} finally {
 			closeDB();
+			closeOWL();
 		}
 	}
 
@@ -151,7 +152,7 @@ public class POIReader extends AbstractFileReader {
 		//			e1.printStackTrace();
 		//			throw new EngineException("Error opening connection to OWL file");
 		//		}
-		// URI for sublcass
+		// URI for subclass
 		String pred = Constants.SUBCLASS_URI;
 		String semossNodeURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
 		// check parent and child nodes in correct position
@@ -179,11 +180,12 @@ public class POIReader extends AbstractFileReader {
 			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{childNode, pred, semossNodeURI, true});
 			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{parentNode, pred, semossNodeURI, true});
 			// add triples to OWL
-			baseDataEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{childNode, pred, parentNode, true});
-			baseDataEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{childNode, pred, semossNodeURI, true});
-			baseDataEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{parentNode, pred, semossNodeURI, true});
+			baseEngCreator.addToBaseEngine(new Object[]{childNode, pred, parentNode, true});
+			baseEngCreator.addToBaseEngine(new Object[]{childNode, pred, semossNodeURI, true});
+			baseEngCreator.addToBaseEngine(new Object[]{parentNode, pred, semossNodeURI, true});
 		}
-		baseDataEngine.commit();
+		engine.commit();
+		baseEngCreator.commit();
 	}
 
 	/**

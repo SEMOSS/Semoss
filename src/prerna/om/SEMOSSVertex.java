@@ -63,8 +63,8 @@ public class SEMOSSVertex{
 	// also has All - which is all the vertices within it
 	transient Hashtable <String, Hashtable> navHash = null;
 	
-	Vector <SEMOSSEdge> inEdge = new Vector<SEMOSSEdge>();
-	Vector <SEMOSSEdge> outEdge = new Vector<SEMOSSEdge>();
+	transient Vector <SEMOSSEdge> inEdge = new Vector<SEMOSSEdge>();
+	transient Vector <SEMOSSEdge> outEdge = new Vector<SEMOSSEdge>();
 	
 	transient static final Logger logger = LogManager.getLogger(SEMOSSVertex.class.getName());
 	

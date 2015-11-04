@@ -28,9 +28,10 @@
 package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import prerna.rdf.query.util.ISPARQLReturnModifier;
 import prerna.rdf.query.util.SEMOSSQuery;
@@ -40,7 +41,7 @@ import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
 
 public abstract class AbstractSpecificQueryBuilder {
-	protected ArrayList<Hashtable<String, String>> parameters;
+	protected List<Map<String, String>> parameters;
 	protected SEMOSSQuery baseQuery;
 	protected String query;
 	Hashtable<String, String> aliases = new Hashtable<String, String>();
@@ -53,7 +54,7 @@ public abstract class AbstractSpecificQueryBuilder {
 	ArrayList<String> leftJoinsArr = new ArrayList();
 	ArrayList<String> rightJoinsArr = new ArrayList();
 	
-	public AbstractSpecificQueryBuilder(ArrayList<Hashtable<String, String>> parameters, SEMOSSQuery baseQuery) {
+	public AbstractSpecificQueryBuilder(List<Map<String, String>> parameters, SEMOSSQuery baseQuery) {
 		this.baseQuery = baseQuery;
 		this.parameters = parameters;
 	}
@@ -204,13 +205,12 @@ public abstract class AbstractSpecificQueryBuilder {
 		// this is supposed to append to the where
 		for(int paramIndex = 0;paramIndex < parameters.size();paramIndex++)
 		{
-			Hashtable<String, String> thisParam = parameters.get(paramIndex);
+			Map<String, String> thisParam = parameters.get(paramIndex);
 			// the key 
 			// get the value
-			Enumeration <String> keys = thisParam.keys();
-			while(keys.hasMoreElements())
+			Set<String> keys = thisParam.keySet();
+			for(String colName : keys)
 			{
-				String colName = keys.nextElement();
 				String originalColName = colName;
 				String tableName = colName;
 				if(colName.contains("__"))

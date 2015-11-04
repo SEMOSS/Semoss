@@ -14,6 +14,7 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.QuestionAdministrator;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Utility;
 
 public class AutoInsightCallable implements Callable<List<Object[]>> {
@@ -24,7 +25,6 @@ public class AutoInsightCallable implements Callable<List<Object[]>> {
 
 	//concept, perspectives + number of questions in perspective
 	private String concept;
-	private Hashtable<String, Integer> perspectiveIDHash;
 	private List<InsightRule> rulesList;
 
 	//property names and the table
@@ -70,12 +70,11 @@ public class AutoInsightCallable implements Callable<List<Object[]>> {
 	private final String CONCEPT_DOWNSTREAM_TRIPLE= "{?@RELATEDCONCEPT@ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@RELATEDCONCEPT@>}{?@CONCEPT@ <http://semoss.org/ontologies/Relation> ?@RELATEDCONCEPT@}";
 	private final String CONCEPT_UPSTREAM_TRIPLE= "{?@RELATEDCONCEPT@ <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/@RELATEDCONCEPT@>}{?@RELATEDCONCEPT@ <http://semoss.org/ontologies/Relation> ?@CONCEPT@}";
 
-	public AutoInsightCallable(AbstractEngine engine, QuestionAdministrator qa, String concept, List<InsightRule> rulesList, Hashtable<String, Integer> perspectiveIDHash) {
+	public AutoInsightCallable(AbstractEngine engine, QuestionAdministrator qa, String concept, List<InsightRule> rulesList) {
 		AutoInsightCallable.engine = engine;
 		AutoInsightCallable.qa = qa;
 		this.concept = concept;
 		this.rulesList = rulesList;
-		this.perspectiveIDHash = perspectiveIDHash;
 	}
 
 	public static void addInsightsToXML(List<Object[]> insightList) {
@@ -84,13 +83,16 @@ public class AutoInsightCallable implements Callable<List<Object[]>> {
 		for(; i < length; i++) {
 			Object[] insight = insightList.get(i);
 			String perspective = insight[0].toString();
-			String questionKey = insight[1].toString();
-			// index 2 is null
-			String filledQuestion = insight[3].toString();
-			String sparql = insight[4].toString();
-			String ruleOutput = insight[5].toString();
+			// index 1 is null
+			String filledQuestion = insight[2].toString();
+			String sparql = insight[3].toString();
+			String ruleOutput = insight[4].toString();
 
-			qa.cleanAddQuestion(perspective, questionKey, null, filledQuestion, sparql, ruleOutput, null, null, null, null);
+			List<DataMakerComponent> dmcList = new ArrayList<DataMakerComponent>();
+			DataMakerComponent dmc = new DataMakerComponent(engine, sparql);
+			dmcList.add(dmc);
+			
+			qa.addQuestion(filledQuestion, perspective, dmcList, ruleOutput, null, "BTreeDataFrame", true, null, null);
 		}
 	}
 
@@ -494,17 +496,7 @@ public class AutoInsightCallable implements Callable<List<Object[]>> {
 
 		filledQuestion = filledQuestion.replaceAll("\\$"+ centralConcept, concept);
 
-		int id;
-		if(perspectiveIDHash.containsKey(perspective)) {
-			id = perspectiveIDHash.get(perspective) + 1;
-		} else {
-			id = 1;
-		}
-
-		perspectiveIDHash.put(perspective, id);
-		String questionKey = perspective + "_" + id;
-
-		Object[] insight = new Object[]{perspective, questionKey, null, filledQuestion, sparql, ruleOutput};
+		Object[] insight = new Object[]{perspective, null, filledQuestion, sparql, ruleOutput};
 		insightList.add(insight);
 	}
 

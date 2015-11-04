@@ -53,7 +53,7 @@ public class DatasetSimilarityPlaySheet extends GridPlaySheet {
 		Map<String, Object> selectedOptions = new HashMap<String, Object>();
 		selectedOptions.put(options.get(0).getName(), instanceIndex); // default of 0 is acceptable
 		alg.setSelectedOptions(selectedOptions);
-		dataFrame.performAction(alg);
+		dataFrame.performAnalyticTransformation(alg);
 	}
 
 	public void setInstanceIndex(int instanceIndex) {

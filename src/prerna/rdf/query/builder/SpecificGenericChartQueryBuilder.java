@@ -28,7 +28,8 @@
 package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
-import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -42,7 +43,7 @@ public class SpecificGenericChartQueryBuilder extends AbstractSpecificQueryBuild
 	ArrayList<String> valueColNames;
 	ArrayList<String> valueMathFunctions;
 	
-	public SpecificGenericChartQueryBuilder (String labelColName, ArrayList<String> valueColNames, ArrayList<String> valueMathFunctions, ArrayList<Hashtable<String, String>> parameters, SEMOSSQuery baseQuery) {
+	public SpecificGenericChartQueryBuilder (String labelColName, ArrayList<String> valueColNames, ArrayList<String> valueMathFunctions, List<Map<String, String>> parameters, SEMOSSQuery baseQuery) {
 		super(parameters, baseQuery);
 		this.labelColName = labelColName;
 		this.valueColNames = valueColNames;

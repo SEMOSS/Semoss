@@ -28,7 +28,8 @@
 package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
-import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -40,7 +41,7 @@ public class SpecificTableQueryBuilder extends AbstractSpecificQueryBuilder{
 	
 	ArrayList<String> labelList;
 	
-	public SpecificTableQueryBuilder (ArrayList<String> labelList, ArrayList<Hashtable<String, String>> parameters, SEMOSSQuery baseQuery) {
+	public SpecificTableQueryBuilder (ArrayList<String> labelList, List<Map<String, String>> parameters, SEMOSSQuery baseQuery) {
 		super(parameters, baseQuery);
 		this.labelList = labelList;
 	}

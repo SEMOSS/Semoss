@@ -29,7 +29,8 @@ package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -44,7 +45,7 @@ public class SpecificPieChartQueryBuilder extends AbstractSpecificQueryBuilder {
 	String valueName;
 	String valueMathFunc;
 	
-	public SpecificPieChartQueryBuilder (String label, String valueName, String valueMathFunc, ArrayList<Hashtable<String, String>> parameters, SEMOSSQuery baseQuery) {
+	public SpecificPieChartQueryBuilder (String label, String valueName, String valueMathFunc, List<Map<String, String>> parameters, SEMOSSQuery baseQuery) {
 		super(parameters, baseQuery);
 		this.label = label;
 		this.valueName = valueName;

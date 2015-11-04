@@ -12,13 +12,12 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ds.OrderedBTreeDataFrame;
-import prerna.ui.components.ExecuteQueryProcessor;
 import prerna.ui.components.playsheets.GridScatterSheet;
 import prerna.ui.components.specific.ousd.ActivityGroupRiskCalculator;
 import prerna.ui.components.specific.ousd.OUSDPlaysheetHelper;
 import prerna.ui.components.specific.ousd.OUSDQueryHelper;
 import prerna.ui.components.specific.ousd.SequencingDecommissioningPlaySheet;
-import prerna.util.PlaySheetEnum;
+import prerna.util.PlaySheetRDFMapBasedEnum;
 
 public class SystemRiskScatterVisualizationPlaySheet extends GridScatterSheet{
 
@@ -32,8 +31,8 @@ public class SystemRiskScatterVisualizationPlaySheet extends GridScatterSheet{
 	}
 
 	@Override
-	public Hashtable getData(){
-		Hashtable ret = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, PlaySheetEnum.Grid_Scatter.getSheetName());
+	public Hashtable getDataMakerOutput(){
+		Hashtable ret = OUSDPlaysheetHelper.getData(this.title, this.questionNum, this.dataFrame, PlaySheetRDFMapBasedEnum.getSheetName("Grid_Scatter"));
 		return ret;
 	}
 	
@@ -44,10 +43,11 @@ public class SystemRiskScatterVisualizationPlaySheet extends GridScatterSheet{
 
 	@Override
 	public void createData(){
-		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
-		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
-		proc.processQuestionQuery(this.engine, cleanActInsightString, emptyTable);
-		SequencingDecommissioningPlaySheet activitySheet = (SequencingDecommissioningPlaySheet) proc.getPlaySheet();
+//		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
+//		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();
+//		proc.processQuestionQuery(this.engine, cleanActInsightString, emptyTable);
+//		SequencingDecommissioningPlaySheet activitySheet = (SequencingDecommissioningPlaySheet) proc.getPlaySheet();
+		SequencingDecommissioningPlaySheet activitySheet = (SequencingDecommissioningPlaySheet) OUSDPlaysheetHelper.getPlaySheetFromName(cleanActInsightString, this.engine);
 
 		Map<Integer, List<List<Integer>>> decomGroups = activitySheet.collectData();
 		Object[] groupData = activitySheet.getResults(decomGroups);

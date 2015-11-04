@@ -128,7 +128,7 @@ public class SearchController implements KeyListener, FocusListener, ActionListe
 			oldVLF.setVertHash(resHash);
 			target.repaint();
 			//if the search vertex state has been cleared, we need to refill it with what is in the res hash
-			Hashtable<String, SEMOSSVertex> vertStore = gps.getGraphData().getVertStore();
+			Hashtable<String, SEMOSSVertex> vertStore = gps.getDataMaker().getVertStore();
 			if(tempState.getPicked().size()==0 && !resHash.isEmpty()){
 				Iterator resIt = resHash.keySet().iterator();
 				while(resIt.hasNext())
@@ -184,7 +184,7 @@ public class SearchController implements KeyListener, FocusListener, ActionListe
 		tempState.clear();
 		menu.setSize(new Dimension(410, 60));
 		menu.add("Results to be highlighted......");
-		Hashtable<String, SEMOSSVertex> vertStore = gps.getGraphData().getVertStore();
+		Hashtable<String, SEMOSSVertex> vertStore = gps.getDataMaker().getVertStore();
 		synchronized(menu)
 		{
 			while(rs.hasNext())
