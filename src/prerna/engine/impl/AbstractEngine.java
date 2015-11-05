@@ -74,8 +74,13 @@ import prerna.util.Utility;
  */
 public abstract class AbstractEngine implements IEngine {
 
+	//THIS IS IN CASE YOU NEED TO RECREATE YOUR INSIGHTS FROM THE XML/PROP QUESTIONS FILE
+	//USE THIS INSTEAD OF GOING THROUGH EACH DB FOLDER TO DELETE THE INSIGHT_DATABASE AND SMSS RDMBS_INSIGHT LINE
+	//PLEASE REMEMBER TO TURN THIS TO FALSE AFTERWARDS!
+	private static final boolean RECREATE_INSIGHTS = false;
+		
 	private static final Logger logger = LogManager.getLogger(AbstractEngine.class.getName());
-
+	
 	protected String engineName = null;
 	private String propFile = null;
 
@@ -158,7 +163,12 @@ public abstract class AbstractEngine implements IEngine {
 			if(prop != null) {
 				// load the rdbms insights db
 				insightDatabaseLoc = prop.getProperty(Constants.RDBMS_INSIGHTS);
-				if(insightDatabaseLoc != null) {
+				// creating logic to delete file if not there
+				if(insightDatabaseLoc != null && RECREATE_INSIGHTS) {
+					String location = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + insightDatabaseLoc + ".mv.db";
+					FileUtils.forceDelete(new File(location));
+				} 
+				if(insightDatabaseLoc != null && !RECREATE_INSIGHTS) {
 					logger.info("Loading insight rdbms database...");
 					insightRDBMS = new RDBMSNativeEngine();
 					Properties prop = new Properties();
@@ -197,7 +207,9 @@ public abstract class AbstractEngine implements IEngine {
 						logger.fatal("cannot start " + this.getEngineName() + " without question file");
 					}
 					//update smss location
-					converter.updateSMSSFile();
+					if(!RECREATE_INSIGHTS) {
+						converter.updateSMSSFile();
+					}
 				}
 				// load the rdf owl db
 				String owlFile = prop.getProperty(Constants.OWL);
