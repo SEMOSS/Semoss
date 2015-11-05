@@ -71,6 +71,7 @@ import prerna.engine.impl.QuestionAdministrator;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -607,42 +608,37 @@ public class RDBMSReader {
 	}
 
 	private void updateDefaultQuestionSheet(String engineName){
-
 		QuestionAdministrator questionAdmin = new QuestionAdministrator(((AbstractEngine)engine));
 
 		//determine the # where the new questions should start
 		int newTableSeq = allTables.size() - tables.size();
 		newTableSeq = newTableSeq + 1; //we need to add 1 to the question order to account for  the explore a concept question
-		String questionOrder = "", question = "", sql = "", layout = "", questionDescription = ""; 
+		String order = "";
+		String question = ""; 
+		String sql = ""; 
+		String layout = ""; 
+		String questionDescription = ""; 
 
 		Vector<String> tablesVec = new Vector<String>();
 		tablesVec.addAll(tables);
-		
-//		try {
-//			String questionKey = questionAdmin.createQuestionKey(GENERIC_PERSPECTIVE);
-//			for(int tableIndex = 0;tableIndex < tablesVec.size();tableIndex++)
-//			{
-//				questionOrder = Integer.toString(newTableSeq + tableIndex);
-//				questionKey = "GQ"+questionOrder;
-//				String key = tablesVec.elementAt(tableIndex);
-//				key = realClean(key);
-//				question = "Show all from " + key;
-//				questionDescription = question;
-//				layout = "prerna.ui.components.playsheets.GridPlaySheet";
-//				sql = "SELECT * FROM " + key;
-//
-//				questionAdmin.cleanAddQuestion(GENERIC_PERSPECTIVE, questionKey, questionOrder,
-//						question, sql, layout, questionDescription, null, null, null); // parameterDependList, parameterQueryList, parameterOptionList);
-//				questionAdmin.createQuestionXMLFile();
-//			}
-//		} catch(RuntimeException e) {
-//			System.out.println("caught exception while adding question.................");
-//			e.printStackTrace();
-//			System.out.println("reverting xml........................");
-//			questionAdmin.revertQuestionXML();
-//			//return Response.status(500).entity(WebUtility.getSO(e.toString().substring(0, (e.toString().length() < MAX_CHAR)?e.toString().length():MAX_CHAR))).build();
-//		}
-
+		try {
+			for(int tableIndex = 0;tableIndex < tablesVec.size();tableIndex++) {
+				order = Integer.toString(newTableSeq + tableIndex);
+				String key = tablesVec.elementAt(tableIndex);
+				key = realClean(key);
+				question = "Show all from " + key;
+				questionDescription = question;
+				layout = "Grid";
+				sql = "SELECT * FROM " + key;
+				List<DataMakerComponent> dmcList = new ArrayList<DataMakerComponent>();
+				DataMakerComponent dmc = new DataMakerComponent(engine, sql);
+				dmcList.add(dmc);
+				questionAdmin.addQuestion(question, GENERIC_PERSPECTIVE, dmcList, layout, order, "BTreeDataFrame", true, null, null);
+			}
+		} catch(RuntimeException e) {
+			System.out.println("caught exception while adding question.................");
+			e.printStackTrace();
+		}
 	}
 
 	/**
