@@ -222,7 +222,7 @@ public class MatrixRegressionAlgorithm extends OLSMultipleLinearRegression imple
 
 	@Override
 	public String getDefaultViz() {
-		return "prerna.ui.components.playsheets.MatrixRegressionVizPlaySheet";
+		return "ScatterplotMatrix";
 	}
 
 	@Override
