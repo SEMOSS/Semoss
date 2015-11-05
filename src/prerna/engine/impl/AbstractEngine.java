@@ -755,7 +755,7 @@ public abstract class AbstractEngine implements IEngine {
 				param.setQuery(ss.getVar(names[3]) + "");
 			if(ss.getRawVar(names[4]) != null)
 				param.addDependVar(ss.getRawVar(names[4]) +"");
-			if(ss.getVar(names[5]) != null && ss.getVar(names[5]).toString().isEmpty())
+			if(ss.getVar(names[5]) != null && !ss.getVar(names[5]).toString().isEmpty())
 				param.setDbQuery((boolean) ss.getVar(names[5]));
 			if(!ss.getVar(names[6]).toString().isEmpty())
 				param.setMultiSelect((boolean) ss.getVar(names[6]));
