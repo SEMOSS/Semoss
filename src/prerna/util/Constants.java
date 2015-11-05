@@ -380,6 +380,7 @@ public class Constants {
 
 	public static final String GLITEM_SITE_LOADING_SHEET = "Site_HWSW_GLItems.xlsx";
 	public static final String OWL = "OWL";
+	public static final String DB = "DB";
 
 	public static final String URL_PARAM = "URL_PARAM";
 	public static final String PROPS = "PROPS";
