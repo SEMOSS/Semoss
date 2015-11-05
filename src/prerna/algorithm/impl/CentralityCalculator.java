@@ -340,6 +340,11 @@ public final class CentralityCalculator {
 		gdm.processDataMakerComponent(dmc);
 		playSheet.setDataMaker(gdm);
 
+		//TODO: this is really bad.. 
+		//undo the setting of the eng to get gdm to run
+		eng.setBaseData(null);
+		eng.setBaseHash(null);
+
 		return playSheet;
 ////		ExecuteQueryProcessor exQueryProcessor = new ExecuteQueryProcessor();
 //		//hard code playsheet attributes since no insight exists for this
