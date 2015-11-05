@@ -598,6 +598,10 @@ public class DIHelper {
 		  localProp.put(property, value);
 	  }
 	  
+	  public void removeLocalProperty(String property) {
+		  localProp.remove(property);
+	  }
+	  
 	  /**
 	   * Get the ID for a specific question.
 	   * @param String		Question.
