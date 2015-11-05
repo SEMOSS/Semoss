@@ -227,7 +227,9 @@ public class InsightsConverter {
 	
 	private String getDataMaker(String layout, List<String> allSheets){
 		String dataMaker = "";
-		if(allSheets.contains(layout) || layout.equals("prerna.ui.components.specific.tap.InterfaceGraphPlaySheet") && !layout.equals("prerna.ui.components.specific.ousd.RoadmapTimelineComboChartPlaySheet")) {
+		if(allSheets.contains(layout) || layout.equals("prerna.ui.components.specific.tap.InterfaceGraphPlaySheet") 
+				&& !layout.equals("prerna.ui.components.specific.ousd.RoadmapTimelineComboChartPlaySheet")
+				&& !layout.equals("prerna.ui.components.specific.tap.SysSimHeatMapSheet")) {
 			if(layout.equals("prerna.ui.components.playsheets.GraphPlaySheet") || layout.equals("prerna.ui.components.specific.tap.InterfaceGraphPlaySheet")) {
 				dataMaker = "GraphDataModel";
 			} else if(!layout.equals("prerna.ui.components.playsheets.DualEngineGenericPlaySheet")) {
