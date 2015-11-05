@@ -132,7 +132,7 @@ public class NumericalCorrelationAlgorithm implements IAnalyticActionRoutine {
 
 	@Override
 	public String getDefaultViz() {
-		return "prerna.ui.components.playsheets.NumericalCorrelationVizPlaySheet";
+		return "ScatterplotMatrix";
 	}
 
 	@Override
