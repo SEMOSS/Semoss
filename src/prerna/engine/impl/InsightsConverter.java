@@ -452,7 +452,7 @@ public class InsightsConverter {
 							queryMap.put(paramKey, parameterQueryValue);
 							
 							// now also see if this query should be run on the OWL or DB
-							String parameterQueryIsDbQueryKey = qsKey + "_" + paramKey + "_" + Constants.QUERY + "_" + Constants.OWL;
+							String parameterQueryIsDbQueryKey = qsKey + "_" + paramKey + "_" + Constants.DB + "_" + Constants.QUERY;
 							String paramQueryIsDbQueryString = dreamerProp.getProperty(parameterQueryIsDbQueryKey);
 							if(paramQueryIsDbQueryString != null && !paramQueryIsDbQueryString.isEmpty()) {
 								queryMap.put(paramKey + "_" + Constants.OWL, paramQueryIsDbQueryString);
