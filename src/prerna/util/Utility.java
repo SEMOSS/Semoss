@@ -586,8 +586,9 @@ public class Utility {
 				engine.addProperty("MAP", prop.getProperty("MAP"));
 			}
 			engine.openDB(fileName);
-			engine.setDreamer(prop.getProperty(Constants.DREAMER));
-			engine.setOntology(prop.getProperty(Constants.ONTOLOGY));
+			//no point in doing this... it is set in the openDB call
+//			engine.setDreamer(prop.getProperty(Constants.DREAMER));
+//			engine.setOntology(prop.getProperty(Constants.ONTOLOGY));
 			
 			// set the core prop
 			if(prop.containsKey(Constants.DREAMER))
@@ -596,7 +597,7 @@ public class Utility {
 				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.ONTOLOGY, prop.getProperty(Constants.ONTOLOGY));
 			if(prop.containsKey(Constants.OWL)) {
 				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.OWL, prop.getProperty(Constants.OWL));
-				engine.setOWL(prop.getProperty(Constants.OWL));
+//				engine.setOWL(prop.getProperty(Constants.OWL));
 			}
 			
 			//load base data engine and basefilterhash--used for graph play sheet and entity filler

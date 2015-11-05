@@ -103,7 +103,7 @@ public abstract class AbstractEngine implements IEngine {
 	private String insightDatabaseLoc;
 
 	private Hashtable<String, String> baseDataHash;
-
+	
 	private static final String SEMOSS_URI = "http://semoss.org/ontologies/";
 
 	private static final String CONTAINS_BASE_URI = SEMOSS_URI + Constants.DEFAULT_RELATION_CLASS + "/Contains";
@@ -351,6 +351,11 @@ public abstract class AbstractEngine implements IEngine {
 	 */
 	public void setBaseData(RDFFileSesameEngine eng) {
 		this.baseDataEngine = eng;
+		if(this.baseDataEngine != null) {
+			if(this.baseDataEngine.getEngineName() == null) {
+				this.baseDataEngine.setEngineName(this.engineName + "_OWL");
+			}
+		}
 	}
 
 	/**
@@ -393,7 +398,6 @@ public abstract class AbstractEngine implements IEngine {
 			ontoProp = new Properties();
 			try {
 				ontoProp = loadProp(ontology);
-				createBaseRelationEngine();
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -402,6 +406,7 @@ public abstract class AbstractEngine implements IEngine {
 
 	public void setOWL(String owl) {
 		this.owl = owl;
+		createBaseRelationEngine();
 	}
 
 	public void setProperties(Properties prop) {
@@ -547,17 +552,17 @@ public abstract class AbstractEngine implements IEngine {
 	public String getMethodName(IEngine.ACTION_TYPE actionType){
 		String retString = "";
 		switch(actionType) {
-		case ADD_STATEMENT: {
-			retString = "addStatement";
-			break;
-		}
-		case REMOVE_STATEMENT: {
-			retString = "removeStatement";
-			break;
-		}
-		default: {
-
-		}
+			case ADD_STATEMENT: {
+				retString = "addStatement";
+				break;
+			}
+			case REMOVE_STATEMENT: {
+				retString = "removeStatement";
+				break;
+			}
+			default: {
+	
+			}
 		}
 		return retString;
 	}
@@ -635,6 +640,7 @@ public abstract class AbstractEngine implements IEngine {
 			String engineNames = (String)DIHelper.getInstance().getLocalProp(Constants.ENGINES);
 			engineNames = engineNames.replace(";" + engineName, "");
 			DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
+			DIHelper.getInstance().removeLocalProperty(engineName);
 
 		} catch (IOException e) {
 			e.printStackTrace();
