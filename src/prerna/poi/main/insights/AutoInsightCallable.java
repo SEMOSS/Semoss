@@ -212,10 +212,10 @@ public class AutoInsightCallable implements Callable<List<Object[]>> {
 			names[i] = properties.get(i-1);
 		}
 
-		String retVarString = "?"+concept;
+		String retVarString = "?"+Utility.cleanVariableString(concept);
 		String triplesString = "";
 		for(String prop : properties) {
-			String propClean = prop.replaceAll("-","_");
+			String propClean = Utility.cleanVariableString(prop);
 			retVarString += " ?" + propClean;
 			triplesString += "OPTIONAL" + PROPERTY_TRIPLE.replaceAll("@CONCEPT@",concept).replaceAll("@PROP@", prop).replaceAll("@PROPCLEAN@", propClean);
 		}
