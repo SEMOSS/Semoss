@@ -90,6 +90,7 @@
             for (var i=0; i < data.dataSeries.length; i++) {
                 data.dataSeries[i].xAxis = shortenValueFilter(data.dataSeries[i].uriString);
             }
+            console.log(data);
 
             graphType = data.type;
             dataStream = data.dataSeries;
@@ -111,7 +112,7 @@
                 for(var i=0; i < labels.length; i++){
                     var option = document.createElement("option");
                     option.text = labels[i];
-                    sortLabel.add(option);
+//                    sortLabel.add(option);
                 }
             };
 
