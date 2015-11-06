@@ -3,7 +3,7 @@
 @Property-ENTROPY_D_MIN=0.3
 @Property-TYPE=STRING
 @Perspective=CentralConcept
-@Output=BinnedPieChart
+@Output=Pie
 </Question>
 
 <Question>
@@ -12,14 +12,14 @@
 @Property-ENTROPY_D_MIN=0.1
 @Property-TYPE=STRING
 @Perspective=CentralConcept
-@Output=BinnedColumnChart
+@Output=Column
 </Question>
 
 <Question>
 @Question=How is $CentralConcept distributed over $Property?
 @Property-TYPE=DOUBLE
 @Perspective=CentralConcept
-@Output=BinnedColumnChart
+@Output=Column
 </Question>
 
 <Question>
@@ -40,7 +40,7 @@
 @Property2-TYPE=DOUBLE
 @Property2-AGGREGATION=AVG
 @Perspective=CentralConcept
-@Output=ColumnChart
+@Output=Column
 </Question>
 
 <Question>
@@ -48,7 +48,7 @@
 @Property1-TYPE=DOUBLE
 @Property2-TYPE=DOUBLE
 @Perspective=CentralConcept
-@Output=GridScatter
+@Output=Scatter
 </Question>
 
 <Question>
@@ -56,7 +56,7 @@
 @CentralConcept-ENTROPY_D_MIN=0.3
 @Concept2-AGGREGATION=COUNT
 @Perspective=CentralConcept
-@Output=PieChart
+@Output=Pie
 </Question>
 
 <Question>
@@ -65,7 +65,7 @@
 @CentralConcept-ENTROPY_D_MIN=0.1
 @Concept2-AGGREGATION=COUNT
 @Perspective=CentralConcept
-@Output=ColumnChart
+@Output=Column
 </Question>
 
 <Question>
@@ -84,5 +84,5 @@
 @Property-TYPE=DOUBLE
 @Property-AGGREGATION=AVG
 @Perspective=Concept2
-@Output=ColumnChart
+@Output=Column
 </Question>
