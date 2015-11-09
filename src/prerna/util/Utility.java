@@ -1172,4 +1172,13 @@ public class Utility {
 		}
 		return obj;
 	}
+	
+	public static String getKeyFromValue(Map<String, String> hm, String value){
+	    for (String o : hm.keySet()) {
+	        if (hm.get(o).equals(value)) {
+	          return o;
+	        }
+	      }
+	      return null;
+	}
 }
