@@ -473,7 +473,7 @@ ParallelCoordinates	prerna.ui.components.playsheets.ParallelCoordinatesPlaySheet
 Pie	prerna.ui.components.playsheets.PieChartPlaySheet
 Sankey	prerna.ui.components.playsheets.SankeyPlaySheet
 Scatter	prerna.ui.components.playsheets.ScatterChartPlaySheet
-ScatterplotMatrix	prerna.ui.components.playsheets.MatrixRegressionVizPlaySheet
+ScatterplotMatrix	prerna.ui.components.playsheets.ScatterPlotMatrixPlaySheet
 SingleAxisCluster	prerna.ui.components.playsheets.WekaAprioriVizPlaySheet
 SystemSimilarity	prerna.ui.components.specific.tap.SysSimHeatMapSheet
 USHeatMap	prerna.ui.components.playsheets.USHeatMapPlaySheet
