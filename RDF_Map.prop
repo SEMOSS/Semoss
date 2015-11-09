@@ -455,19 +455,16 @@ GraphDataModel	prerna.om.GraphDataModel
 BTreeDataFrame	prerna.ds.BTreeDataFrame
 
 ##PLAYSHEETS DEFINED
-PLAYSHEETS_DEFINED	3dBarchart;CirclePack;Clustering;Column;Combo;Dendrogram;Gantt;Graph;Grid;HeatMap;Line;Mashup;ParallelSets;ParallelCoordinates;Pie;Sankey;Scatter;ScatterplotMatrix;SingleAxisCluster;SystemSimilarity;USHeatMap;USMap;WorldHeatMap;WorldMap;
-##3dBarchart
+PLAYSHEETS_DEFINED	Grid;Graph;HeatMap;Line;Combo;Dendrogram;ParallelCoordinates;ParallelSets;Scatter;Column;Pie;3dBarchart;CirclePack;Clustering;Gantt;Sankey;ScatterplotMatrix;SingleAxisCluster;SystemSimilarity;USHeatMap;USMap;WorldHeatMap;WorldMap;Mashup
 CirclePack	prerna.ui.components.playsheets.CirclePackPlaySheet
 Clustering	prerna.ui.components.playsheets.ClusteringVizPlaySheet
 Column	prerna.ui.components.playsheets.ColumnChartPlaySheet
 Combo	prerna.ui.components.specific.ousd.RoadmapTimelineComboChartPlaySheet
 Dendrogram	prerna.ui.components.playsheets.DendrogramPlaySheet
-##Gantt	
 Graph	prerna.ui.components.playsheets.GraphPlaySheet
 Grid	prerna.ui.components.playsheets.GridPlaySheet
 HeatMap	prerna.ui.components.playsheets.HeatMapPlaySheet
 Line	prerna.ui.components.playsheets.LineChartPlaySheet
-##Mashup	
 ParallelSets	prerna.ui.components.playsheets.ParallelSetsPlaySheet
 ParallelCoordinates	prerna.ui.components.playsheets.ParallelCoordinatesPlaySheet
 Pie	prerna.ui.components.playsheets.PieChartPlaySheet
@@ -481,15 +478,32 @@ USMap	prerna.ui.components.playsheets.CONUSMapPlaySheet
 WorldHeatMap	prerna.ui.components.playsheets.WorldHeatMapPlaySheet
 WorldMap	prerna.ui.components.playsheets.OCONUSMapPlaySheet
 
-RawGrid	prerna.ui.components.playsheets.GridRAWPlaySheet
-BinnedColumnChart	prerna.ui.components.playsheets.BinnedColumnChartPlaySheet
-BinnedPieChart	prerna.ui.components.playsheets.BinnedPieChartPlaySheet
-DualEngine	prerna.ui.components.playsheets.DualEngineGenericPlaySheet
-MachineLearningModule	prerna.ui.components.playsheets.MachineLearningModulePlaySheet
-Outlier	prerna.ui.components.playsheets.OutlierVizPlaySheet
-Classifier	prerna.ui.components.playsheets.WekaClassificationPlaySheet
-Similarity	prerna.ui.components.playsheets.DatasetSimilarityPlaySheet
-SimilarityColumnChart	prerna.ui.components.playsheets.DatasetSimilairtyColumnChartPlaySheet
+Grid_HINT	GridPlaySheet Hint: SELECT ?x1 ?x2 ?x3 WHERE{ ... }
+Graph_HINT	GraphPlaySheet Hint: CONSTRUCT {?subject ?predicate ?object} WHERE{ ... }
+HeatMap_HINT	HeatMapPlaySheet Hint: SELECT ?xAxisList ?yAxisList ?numericHeatValue WHERE{ ... } GROUP BY ?xAxisList ?yAxisList
+Line_HINT	LineChartPlaySheet Hint: SELECT ?xAxis ?series1 (OPTIONAL) ?series2 ?series3 ... (where all series values are numbers) WHERE { ... }
+Dendrogram_HINT	DendrogramPlaySheet Hint: SELECT ?level1 ?level2 ?level3 WHERE{ ... }
+ParallelCoordinates_HINT	ParallelCoordinatesPlaySheet Hint: SELECT ?axis1 ?axis2 ?axis3 WHERE{ ... }
+ParallelSets_HINT	ParallelSetsPlaySheet Hint: SELECT ?axis1 ?axis2 ?axis3 WHERE{ ... }
+Scatter_HINT	GridScatterSheet Hint: SELECT ?elementName ?xAxisValues ?yAxisValues (OPTIONAL)?zAxisValues WHERE{ ... }
+Column_HINT	ColumnChartPlaySheet Hint: SELECT ?xAxis ?yAxis1 (OPTIONAL) ?yAxis2 ?yAxis3 ... (where all yAxis values are numbers) WHERE { ... }
+Pie_HINT	PieChartPlaySheet Hint: SELECT ?wedgeName ?wedgeValue WHERE { ... }
+CirclePack_HINT	CirclePackPlaySheet Hint: SELECT ?level1 ?level2 ... ?size WHERE{ ... }
+Clustering_HINT	ClusteringVizPlaySheet Hint: SELECT ?instance ?categoricalProp ?numericalProp WHERE { ... }+++(OPTIONAL)numClusters
+Sankey_HINT	SankeyPlaySheet Hint: SELECT ?source ?target ?value ?target2 ?value2 ?target3 ?value3...etc  Note: ?target is the source for ?target2 and ?target2 is the source for ?target3...etc WHERE{ ... }
+SingleAxisCluster_HINT	OutlierPlaySheet Hint: SELECT ?instance ?prop1... ?propN WHERE{ ... }+++NeighborhoodCount
+USHeatMap_HINT	USHeatMapPlaySheet Hint: SELECT ?state ?numericHeatValue WHERE{ ... }
+USMap_HINT	CONUSMapPlaySheet Hint: SELECT ?label ?latitude ?longitude WHERE{ ... }
+WorldHeatMap_HINT	OCONUSMapPlaySheet Hint: SELECT ?label ?latitude ?longitude WHERE{ ... }
+WorldMap_HINT	OCONUSMapPlaySheet Hint: SELECT ?label ?latitude ?longitude WHERE{ ... }
+
+Combo_CUSTOM	FALSE
+3dBarchart_CUSTOM	FALSE
+Gantt_CUSTOM	FALSE
+ScatterplotMatrix_CUSTOM	FALSE
+SystemSimilarity_CUSTOM	FALSE
+Mashup_CUSTOM	FALSE
+
 
 ##TRANSFORMATIONS DEFINED
 join	prerna.ui.components.playsheets.datamakers.JoinTransformation
