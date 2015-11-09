@@ -70,6 +70,10 @@ public class InsightCreateRunner implements Runnable{
 		IDataMaker dm = createData();
 		IPlaySheet playSheet = insight.getPlaySheet();
 		playSheet.setDataMaker(dm);
+		Map<String, String> tableDataAlign = insight.getDataTableAlign();
+		if(playSheet instanceof AbstractPlaySheet && !(tableDataAlign == null || tableDataAlign.isEmpty())) {
+			((AbstractPlaySheet)playSheet).setTableDataAlign(tableDataAlign);
+		}
 		preparePlaySheet(playSheet, insight);
 
 		if(!insight.getAppend()){
@@ -108,7 +112,7 @@ public class InsightCreateRunner implements Runnable{
 	/**
 	 * Runs the insight and returns the data table align for FE to view
 	 */
-	public void runWeb()
+	public Map<String, Object> runWeb()
 	{
 		IDataMaker dm = createData();
 		Map<String, String> tableDataAlign = insight.getDataTableAlign();
@@ -121,6 +125,7 @@ public class InsightCreateRunner implements Runnable{
 			tableDataAlign = (Map<String, String>) (((AbstractPlaySheet) playSheet).getDataTableAlign());
 			insight.setDataTableAlign(tableDataAlign);
 		}
+		return insight.getWebData();
 	}
 	
 	private void preparePlaySheet(IPlaySheet playSheet, Insight insight){

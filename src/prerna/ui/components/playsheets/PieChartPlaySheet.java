@@ -31,12 +31,17 @@ import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Map;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class PieChartPlaySheet extends BrowserPlaySheet{
 
+	private static final String labelString = "label";
+	private static final String valueString = "value ";
+	
 	public PieChartPlaySheet() {
 		super();
 		this.setPreferredSize(new Dimension(800,600));
@@ -44,17 +49,33 @@ public class PieChartPlaySheet extends BrowserPlaySheet{
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/piechart.html";
 	}
 	
-	
 	public void processQueryData()
 	{		
 		ArrayList< ArrayList<Hashtable<String, Object>>> dataObj = new ArrayList< ArrayList<Hashtable<String, Object>>>();
 		String[] names = dataFrame.getColumnHeaders();
+
+		Map<String, String> align = getDataTableAlign();
+		int labelIdx = -1;
+		Integer[] seriesIndices = new Integer[align.size()-1];
+		for(int i = 0; i < names.length; i++){
+			String name = names[i];
+			if(align.containsValue(name)){
+				String key = Utility.getKeyFromValue(align, name);
+				if(key.contains(labelString)){
+					labelIdx = i;
+				}
+				else if(key.contains(valueString)){
+					int seriesIdx = Integer.parseInt(key.replace(valueString, ""));
+					seriesIndices[seriesIdx - 1] = i;
+				}
+			}
+		}
 		
 		Iterator<Object[]> it = dataFrame.iterator(true);
 		while(it.hasNext())
 		{
 			Object[] elemValues = it.next();
-			for( int j = 1; j < elemValues.length; j++)
+			for( int j = 0; j < seriesIndices.length; j++)
 			{
 				ArrayList<Hashtable<String,Object>> seriesArray = new ArrayList<Hashtable<String,Object>>();
 				if(dataObj.size() >= j)
@@ -62,8 +83,8 @@ public class PieChartPlaySheet extends BrowserPlaySheet{
 				else
 					dataObj.add(j-1, seriesArray);
 				Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
-				elementHash.put("pieCat", elemValues[0].toString());
-				elementHash.put("pieVal", elemValues[j]);
+				elementHash.put("pieCat", elemValues[labelIdx].toString());
+				elementHash.put("pieVal", elemValues[seriesIndices[j]]);
 				seriesArray.add(elementHash);
 			}
 		}
@@ -77,13 +98,20 @@ public class PieChartPlaySheet extends BrowserPlaySheet{
 	}
 	
 	@Override
-	public Hashtable<String, String> getDataTableAlign() {
+	public Map<String, String> getDataTableAlign() {
+		if(this.tableDataAlign == null){
+			this.tableDataAlign = getAlignHash();
+		}
+		return this.tableDataAlign;
+	}
+	
+	public Hashtable<String, String> getAlignHash() {
 		Hashtable<String, String> alignHash = new Hashtable<String, String>();
 		String[] names = dataFrame.getColumnHeaders();
 		
-		alignHash.put("label", names[0]);
+		alignHash.put(labelString, names[0]);
 		for(int namesIdx = 1; namesIdx<names.length; namesIdx++){
-			alignHash.put("value " + namesIdx, names[namesIdx]);
+			alignHash.put(valueString + namesIdx, names[namesIdx]);
 		}
 		return alignHash;
 	}

@@ -33,6 +33,8 @@ import java.awt.Insets;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 import javax.swing.JButton;
 
@@ -43,10 +45,14 @@ import prerna.ui.components.ChartControlPanel;
 import prerna.ui.main.listener.impl.ColumnChartGroupedStackedListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class ColumnChartPlaySheet extends BrowserPlaySheet{
 
 	private static final Logger logger = LogManager.getLogger(ColumnChartPlaySheet.class.getName());
+	
+	private static final String labelString = "label";
+	private static final String valueString = "value ";
 	
 	public ColumnChartPlaySheet() 
 	{
@@ -80,25 +86,55 @@ public class ColumnChartPlaySheet extends BrowserPlaySheet{
 	{		
 		ArrayList< ArrayList<Hashtable<String, Object>>> dataObj = new ArrayList< ArrayList<Hashtable<String, Object>>>();
 		String[] names = dataFrame.getColumnHeaders();
+		Map<String, String> align = getDataTableAlign();
+		int labelIdx = -1;
+		Integer[] seriesIndices = new Integer[align.size()-1];
+		for(int i = 0; i < names.length; i++){
+			String name = names[i];
+			if(align.containsValue(name)){
+				String key = Utility.getKeyFromValue(align, name);
+				if(key.contains(labelString)){
+					labelIdx = i;
+				}
+				else if(key.contains(valueString)){
+					int seriesIdx = Integer.parseInt(key.replace(valueString, ""));
+					seriesIndices[seriesIdx - 1] = i;
+				}
+			}
+		}
 
 		//series name - all objects in that series (x : ... , y : ...)
 		Iterator<Object[]> it = dataFrame.iterator(true);
 		while(it.hasNext())
 		{
 			Object[] elemValues = it.next();
-			for( int j = 1; j < elemValues.length; j++)
-			{
+			
+			for (int j = 0; j < seriesIndices.length; j++){
 				ArrayList<Hashtable<String,Object>> seriesArray = new ArrayList<Hashtable<String,Object>>();
-				if(dataObj.size() >= j)
-					seriesArray = dataObj.get(j-1);
+				if(dataObj.size() > j)
+					seriesArray = dataObj.get(j);
 				else
-					dataObj.add(j-1, seriesArray);
+					dataObj.add(j, seriesArray);
 				Hashtable<String, Object> elementHash = new Hashtable();
-				elementHash.put("x", elemValues[0].toString());
-				elementHash.put("y", elemValues[j]);
-				elementHash.put("seriesName", names[j]);
+				elementHash.put("x", elemValues[labelIdx].toString());
+				elementHash.put("y", elemValues[seriesIndices[j]]);
+				elementHash.put("seriesName", names[seriesIndices[j]]);
 				seriesArray.add(elementHash);
 			}
+			
+//			for( int j = 1; j < elemValues.length; j++)
+//			{
+//				ArrayList<Hashtable<String,Object>> seriesArray = new ArrayList<Hashtable<String,Object>>();
+//				if(dataObj.size() >= j)
+//					seriesArray = dataObj.get(j-1);
+//				else
+//					dataObj.add(j-1, seriesArray);
+//				Hashtable<String, Object> elementHash = new Hashtable();
+//				elementHash.put("x", elemValues[0].toString());
+//				elementHash.put("y", elemValues[j]);
+//				elementHash.put("seriesName", names[j]);
+//				seriesArray.add(elementHash);
+//			}
 		}
 		
 		Hashtable<String, Object> columnChartHash = new Hashtable<String, Object>();
@@ -109,12 +145,19 @@ public class ColumnChartPlaySheet extends BrowserPlaySheet{
 	}
 	
 	@Override
-	public Hashtable<String, String> getDataTableAlign() {
+	public Map<String, String> getDataTableAlign() {
+		if(this.tableDataAlign == null){
+			this.tableDataAlign = getAlignHash();
+		}
+		return this.tableDataAlign;
+	}
+	
+	public Hashtable<String, String> getAlignHash() {
 		Hashtable<String, String> alignHash = new Hashtable<String, String>();
 		String[] names = dataFrame.getColumnHeaders();
-		alignHash.put("label", names[0]);
+		alignHash.put(labelString, names[0]);
 		for(int namesIdx = 1; namesIdx<names.length; namesIdx++){
-			alignHash.put("value " + namesIdx, names[namesIdx]);
+			alignHash.put(valueString + namesIdx, names[namesIdx]);
 		}
 		return alignHash;
 	}
