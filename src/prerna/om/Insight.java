@@ -52,7 +52,6 @@ import org.openrdf.sail.memory.MemoryStore;
 
 import com.google.gson.Gson;
 
-import edu.stanford.nlp.util.logging.PrettyLoggable;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -78,33 +77,31 @@ public class Insight {
 	public enum DB_TYPE {MEMORY, FILE, REST};
 	
 	private String insightID;													// id of the question
-	private boolean multiInsightQuery;											// boolean if the query is a multi-insight query
+//	private boolean multiInsightQuery;											// boolean if the query is a multi-insight query
 	
 	private Map<String, Object> propHash = new Hashtable<String, Object>();
 	private static final String INSIGHT_NAME = "questionName";					// label of the question
 	private static final String OUTPUT_KEY = "output";							// output type of the question
-	private static final String INSIGHT_MAKEUP = "insightMakeup";				// defines how the data is created -- engines, queries, joins
+//	private static final String INSIGHT_MAKEUP = "insightMakeup";				// defines how the data is created -- engines, queries, joins
 	private static final String DESCRIPTION_KEY = "description";				// description of question
 	private static final String ORDER_KEY = "order";							// order of the question
 	private static final String PERSPECTIVE_KEY = "perspective"; 				// the perspective for the insight
 	private static final String RDBMS_ID = "rdbmsId"; 							// the original idea of insight in the rdbms engine
 	private static final String IS_DB_QUERY = "isDbQuery";						// is the query should be run on the owl or database
 
-	private transient IEngine mainEngine;
-	private transient IEngine makeupEngine;
-	private transient IPlaySheet playSheet;
-	private Map<String, String> dataTableAlign;
+	private transient IEngine mainEngine;										// the main engine where the insight is stored
+	private transient IEngine makeupEngine;										// the in-memory engine created to store the data maker components and transformations for the insight
+	private transient IPlaySheet playSheet;										// the playsheet for the insight
+	private Map<String, String> dataTableAlign;									// the data table align for the insight corresponding to the playsheet
 	private Gson gson = new Gson();
 	
-	private Boolean append = false;
+	private Boolean append = false;												// currently used to distinguish when performing overlay in gdm data maker 
 	
-	// Defines how to make the data for the insight
-	private transient IDataMaker dataMaker;
-	private String dataMakerName;
-//	private transient DataMakerComponent[] dmComponents;
-	private transient List<DataMakerComponent> dmComponents;
-	private transient Map<String, List<Object>> paramHash;
-	private transient Vector<SEMOSSParam> insightParameters;
+	private transient IDataMaker dataMaker;										// defines how to make the data for the insight
+	private String dataMakerName;												// the name of the data maker
+	private transient List<DataMakerComponent> dmComponents;					// the list of data maker components in order for creation of insight
+	private transient Map<String, List<Object>> paramHash;						// the parameters selected by user for filtering on insights
+	private transient Vector<SEMOSSParam> insightParameters;					// the SEMOSSParam objects for the insight
 	
 	// database id where this insight is
 	// this may be a URL
@@ -112,127 +109,230 @@ public class Insight {
 	// or a file
 	String databaseIDkey = "databaseID";
 	
+	/**
+	 * Constructor for the insight
+	 * @param mainEngine					The main engine which holds the insight
+	 * @param dataMakerName					The name of the data maker
+	 * @param layout						The layout to view the insight
+	 */
 	public Insight(IEngine mainEngine, String dataMakerName, String layout){
 		this.mainEngine = mainEngine;
 		this.dataMakerName = dataMakerName;
 		this.propHash.put(OUTPUT_KEY, layout);
+		// assuming all insights are being run on the database itself as default
+		// this can be changed through the setter method
 		this.propHash.put(IS_DB_QUERY, true);
-//		this.dataMaker = this.getDataMaker();
 	}
 	
+	/**
+	 * Exposed another constructor for creating insights to be stored in some MHS custom playsheets
+	 * @param playsheet
+	 */
 	public Insight(IPlaySheet playsheet){
 		this.playSheet = playsheet;
 	}
 	
+	/**
+	 * Setter for boolean to see if the insight is an append for gdm
+	 * @param append
+	 */
 	public void setAppend(Boolean append){
 		this.append = append;
 	}
 	
+	/**
+	 * Getter for boolean to see if the insight is an append for gpm
+	 * @return
+	 */
 	public Boolean getAppend(){
 		return this.append;
 	}
 	
+	/**
+	 * Get the insightID that is used to store insight in InsightStore
+	 * @return
+	 */
 	public String getInsightID() {
 		return this.insightID;
 	}
 	
+	/**
+	 * Set the insightID for the insight
+	 * @param insightID				The insightID used to store in InsightStore
+	 */
 	public void setInsightID(String insightID) {
 		this.insightID = insightID;
-		// update the playsheet id if it is not null
+		// update the playsheetID if it is not null
+		// playsheetID should match the insightID
 		if(this.playSheet != null) {
 			this.playSheet.setQuestionID(insightID);
 		}
 	}
 	
-	public void setMultiInsightQuery(boolean multiInsightQuery) {
-		this.multiInsightQuery = multiInsightQuery;
-	}
+//	public void setMultiInsightQuery(boolean multiInsightQuery) {
+//		this.multiInsightQuery = multiInsightQuery;
+//	}
+//	
+//	public boolean isMultiInsightQuery() {
+//		return this.multiInsightQuery;
+//	}
 	
-	public boolean isMultiInsightQuery() {
-		return this.multiInsightQuery;
-	}
-	
+	/**
+	 * Getter for the name of the insight (question name)
+	 * @return
+	 */
 	public String getInsightName() {
 		return (String) this.propHash.get(INSIGHT_NAME);
 	}
 	
+	/**
+	 * Setter for the name of the insight (question name)
+	 * @param insightName			The name of the insight
+	 */
 	public void setInsightName(String insightName) {
 		this.propHash.put(INSIGHT_NAME, insightName);
 	}
 	
+	/**
+	 * Getter for the perspective of the insight
+	 * @return
+	 */
 	public String getPerspective() {
 		return (String) this.propHash.get(PERSPECTIVE_KEY);
 	}
 	
+	/**
+	 * Setter for the perspective of the insight
+	 * @param perspective
+	 */
 	public void setPerspective(String perspective) {
 		this.propHash.put(PERSPECTIVE_KEY, perspective);
 	}
 	
+	/**
+	 * Setter for the original id of the insight in the mainEngine's rdbms insights engine
+	 * Note, this will be different from the insightID which is assigned during storage in the InsightStore
+	 * @param origId
+	 */
 	public void setRdbmsId(String origId){
 		this.propHash.put(RDBMS_ID, origId);
 	}
 	
+	/**
+	 * Getter for the original id of the insight in the mainEngine's rdbms insights engine
+	 * Note, this will be different from the insightID which is assigned during storage in the InsightStore
+	 * @return
+	 */
 	public String getRdbmsId(){
 		return (String) propHash.get(RDBMS_ID);
 	}
 	
+	/**
+	 * Getter for the name of the layout to view the insight
+	 * @return
+	 */
 	public String getOutput() {
 		return (String) this.propHash.get(OUTPUT_KEY);
 	}
 
-	// this returns the xml
-	public String getMakeup() {
-		return (String) this.propHash.get(INSIGHT_MAKEUP);
-	}
+//	/**
+//	 * Getter for the N-Triples string for the insight makeup
+//	 * @return
+//	 */
+//	public String getMakeup() {
+//		return (String) this.propHash.get(INSIGHT_MAKEUP);
+//	}
 
-	// this sets and then parses the xml
+	/**
+	 * Takes the input stream for the N-Triples string to create the insight makeup database
+	 * @param insightMakeup
+	 */
 	public void setMakeup(InputStream insightMakeup) {
-//		this.propHash.put(INSIGHT_MAKEUP, insightMakeup);
-		
 		if(insightMakeup != null){
 			this.makeupEngine = createMakeupEngine(insightMakeup);
-		}
-		else{
+		} else{
 			System.err.println("Invalid insight. No insight makeup available");
 		}
 	}
 
+	/**
+	 * Getter for the description of the insight
+	 * @return
+	 */
 	public String getDescription() {
 		return (String) this.propHash.get(DESCRIPTION_KEY);
 	}
 
-	public void setDescription(String descr) {
-		this.propHash.put(DESCRIPTION_KEY, descr);
+	/**
+	 * Setter for the description of the insight
+	 * @param description			
+	 */
+	public void setDescription(String description) {
+		this.propHash.put(DESCRIPTION_KEY, description);
 	}
 
+	/**
+	 * Getter for the database id of the insight
+	 * @return
+	 */
 	public String getDatabaseID() {
 		return (String) this.propHash.get(this.databaseIDkey);
 	}
 
+	/**
+	 * Setter for the database id of the insight
+	 * @param databaseID
+	 */
 	public void setDatabaseID(String databaseID) {
 		this.propHash.put(this.databaseIDkey, databaseID);
 	}
 	
+	/**
+	 * Getter for if the database is a dbQuery and should be run on the database
+	 * When false, the makeup is run on the OWL
+	 * @return
+	 */
 	public boolean isDbQuery() {
 		return (boolean) this.propHash.get(IS_DB_QUERY);
 	}
 
+	/**
+	 * Setter for if the database is a dbQuery and should be run on the database
+	 * When false, the makeup is run on the OWL
+	 * @return
+	 */
 	public void setDbQuery(boolean dbQuery) {
 		this.propHash.put(IS_DB_QUERY, dbQuery);
 	}
 	
+	/**
+	 * Sets the order the insight should show up when using current thick client UI
+	 * @param order
+	 */
 	public void setOrder (String order) {
 		this.propHash.put(ORDER_KEY, order);
 	}
 
+	/**
+	 * Gets the order the insight show should up when using current thick client UI
+	 * @return
+	 */
 	public String getOrder() {
 		return (String) this.propHash.get(ORDER_KEY);
 	}
 	
+	/**
+	 * Sets the parameters the user has selected for the insight 
+	 * @param paramHash
+	 */
 	public void setParamHash(Map<String, List<Object>> paramHash){
 		this.paramHash = paramHash;
 	}
 	
+	/**
+	 * Append the parameter filters to the correct component
+	 * Each parameter stores the component and filter number that it is affecting
+	 */
 	public void appendParamsToDataMakerComponents() {
 		if(insightParameters != null) {
 			for(int i = 0; i < insightParameters.size(); i++) {
@@ -244,38 +344,52 @@ public class Insight {
 				int filterNum = Integer.parseInt(split[1].replace(PRE_TRANS, ""));
 				Map<String, List<Object>> newPHash = new Hashtable<String, List<Object>>();
 				newPHash.put(pName, paramHash.get(pName));
+				// logic inside setParamHash in each component to append this information to a filter pre-transformation
+				// the filter transformation either appends it to the metamodel or fills a query
 				dmComponents.get(compNum).setParamHash(newPHash, filterNum);
 			}
 		}
 	}
 	
+	/**
+	 * Getter for the selected parameter values
+	 * @return
+	 */
 	public Map<String, List<Object>> getParamHash() {
 		return this.paramHash;
 	}
 	
+	/**
+	 * Setter for the SEMOSSParam objects for the insight
+	 * @param insightParameters
+	 */
 	public void setInsightParameters(Vector<SEMOSSParam> insightParameters) {
 		this.insightParameters = insightParameters;
 	}
 
+	/**
+	 * Getter for the SEMOSSParam objects for the insight
+	 * @return
+	 */
 	public Vector<SEMOSSParam> getInsightParameters() {
 		return this.insightParameters;
 	}
 	
-	public InMemorySesameEngine createMakeupEngine(InputStream xml)
+	/**
+	 * Generates an in-memory database based on the N-Triples makeup input stream for the insight
+	 * @param nTriples				The inputstream holding the N-Triples string
+	 * @return
+	 */
+	public InMemorySesameEngine createMakeupEngine(InputStream nTriples)
 	{
+		// generate the rc
 		RepositoryConnection rc = null;
-		try
-		{
-//			String nTriplesString = IOUtils.toString(xml); 
-//			System.out.println(nTriplesString);
-
-			Repository myRepository = new SailRepository(
-							new ForwardChainingRDFSInferencer(
-							new MemoryStore()));
+		try {
+			Repository myRepository = new SailRepository(new ForwardChainingRDFSInferencer(new MemoryStore()));
 				myRepository.initialize();
 			rc = myRepository.getConnection();
-			rc.add(xml, "semoss.org", RDFFormat.NTRIPLES);
-		}catch(RuntimeException ignored) {
+			rc.add(nTriples, "semoss.org", RDFFormat.NTRIPLES);
+		} catch(RuntimeException ignored) {
 			ignored.printStackTrace();
 		} catch (RDFParseException e) {
 			e.printStackTrace();
@@ -285,26 +399,20 @@ public class Insight {
 			e.printStackTrace();
 		}
 		
+		// set the rc in the in-memory engine
 		InMemorySesameEngine myEng = new InMemorySesameEngine();
 		myEng.setRepositoryConnection(rc);
 		return myEng;
 	}
 	
-	private List<DataMakerComponent> digestXML(IEngine makeupEng){
+	/**
+	 * Process the make-up engine storing the -Triples information to get the data maker components and transformations
+	 * @param makeupEng
+	 * @return
+	 */
+	private List<DataMakerComponent> digestNTriples(IEngine makeupEng){
 		System.out.println("Creating data component array from makeup engine");
 		List<DataMakerComponent> dmCompVec = new Vector<DataMakerComponent>();
-//		this.makeupArray = new Vector<Object>();
-		
-//		String initQuery = "SELECT ?s ?p ?o WHERE { ?s ?p ?o}";
-//		ISelectWrapper ss = WrapperManager.getInstance().getSWrapper(makeupEng, initQuery);
-//		while(ss.hasNext()){
-//			ISelectStatement st = ss.next();
-//			String s = st.getRawVar("s")+"";
-//			String p = st.getRawVar("p")+"";
-//			String o = st.getRawVar("o")+"";
-//			System.out.println(s + " ::::::: " + p + "  ::::::: " + o);
-//		}
-		
 		String countQuery = "SELECT (COUNT(DISTINCT(?Component)) AS ?Count) WHERE {?Component a <http://semoss.org/ontologies/Concept/Component>. BIND('x' AS ?x) } GROUP BY ?x";
 
 		ISelectWrapper countss = WrapperManager.getInstance().getSWrapper(makeupEng, countQuery);
@@ -317,11 +425,11 @@ public class Insight {
 		//TODO: need to make sure preTrans, postTrans, and actions are all ordered
 		String theQuery = "SELECT ?Component ?Engine ?Query ?Metamodel ?DataMakerType ?PreTrans ?PostTrans ?Actions WHERE { {?Component a <http://semoss.org/ontologies/Concept/Component>} {?Engine a <http://semoss.org/ontologies/Concept/Engine>} {?Component <Comp:Eng> ?Engine} OPTIONAL {?Component <http://semoss.org/ontologies/Relation/Contains/Query> ?Query} OPTIONAL {?Component <http://semoss.org/ontologies/Relation/Contains/Metamodel> ?Metamodel} {?Component <http://semoss.org/ontologies/Relation/Contains/Order> ?Order} OPTIONAL {?Component <Comp:PreTrans> ?PreTrans} OPTIONAL {?Component <Comp:PostTrans> ?PostTrans} OPTIONAL {?Component <Comp:Action> ?Actions} } ORDER BY ?Order";
 		
-//		this.dmComponents = new DataMakerComponent[total];
 		int idx = -1;
 		ISelectWrapper ss = WrapperManager.getInstance().getSWrapper(makeupEng, theQuery);
 		
 		String curComponent = null;
+		// Keeping a set of pre/post/action's that exist on each component such that they are not added twice when number of pre/post/actions is not the same
 		Set<String> preTransSet = new HashSet<String>();
 		Set<String> postTransSet = new HashSet<String>();
 		Set<String> actionSet = new HashSet<String>();
@@ -336,6 +444,7 @@ public class Insight {
 				System.out.println(engine + " ::::::: " + component +" ::::::::: " + query + " :::::::::: " + metamodelString);
 				
 				DataMakerComponent dmc = null;
+				// old insights store information in a query string while new insights store the metamodel information to construct the query
 				if (!query.isEmpty()) {
 					dmc = new DataMakerComponent(engine, query); 
 					dmCompVec.add(dmc);
@@ -348,20 +457,18 @@ public class Insight {
 				curComponent = COMP + component;
 				dmc.setId(curComponent);
 				idx++;
-//				this.dmComponents[idx] = new DataMakerComponent(engine, query);
 			}
 			
 			Object preTransURI = st.getRawVar("PreTrans");
 			Object postTransURI = st.getRawVar("PostTrans");
 			Object actionsURI = st.getRawVar("Actions");
-
+			
+			// run queries to get information on each transformation/action and append to dmc list
 			if(preTransURI!=null && !preTransSet.contains(preTransURI + "")){
-//				addPreTrans(this.dmComponents[idx], makeupEng, preTransURI);
 				preTransSet.add(preTransURI + "");
 				addPreTrans(dmCompVec.get(idx), makeupEng, preTransURI, curComponent);
 			}
 			if(postTransURI!=null && !postTransSet.contains(postTransURI + "")){
-//				addPostTrans(this.dmComponents[idx], makeupEng, postTransURI);
 				postTransSet.add(postTransURI + "");
 				addPostTrans(dmCompVec.get(idx), makeupEng, postTransURI, curComponent);
 			}
@@ -373,6 +480,13 @@ public class Insight {
 		return dmCompVec;
 	}
 	
+	/**
+	 * Add PreTransformation to the DataMakerComponent
+	 * @param dmc					The DataMakerComponent to add the preTransformation
+	 * @param makeupEng				The makeupEngine containing the N-Triples information regarding the insight
+	 * @param preTrans				The preTransformation URI
+	 * @param compId				The name of the component to make sure the preTransforamtion has the correct id
+	 */
 	private void addPreTrans(DataMakerComponent dmc, IEngine makeupEng, Object preTrans, String compId){
 		LOGGER.info("adding pre trans :::: " + preTrans);
 		Map<String, Object> props = getProperties(preTrans+"", makeupEng);
@@ -385,6 +499,13 @@ public class Insight {
 		dmc.addPreTrans(trans);
 	}
 	
+	/**
+	 * Add PostTransformation to the DataMakerComponent
+	 * @param dmc					The DataMakerComponent to add the preTransformation
+	 * @param makeupEng				The makeupEngine containing the N-Triples information regarding the insight
+	 * @param postTrans				The postTransformation URI
+	 * @param compId				The name of the component to make sure the postTransformation has the correct id
+	 */
 	private void addPostTrans(DataMakerComponent dmc, IEngine makeupEng, Object postTrans, String compId){
 		LOGGER.info("adding post trans :::: " + postTrans);
 		Map<String, Object> props = getProperties(postTrans+"", makeupEng);
@@ -397,6 +518,13 @@ public class Insight {
 		dmc.addPostTrans(trans);
 	}
 	
+	/**
+	 * Add Action to the DataMakerComponent
+	 * @param dmc					The DataMakerComponent to add the preTransformation
+	 * @param makeupEng				The makeupEngine containing the N-Triples information regarding the insight
+	 * @param preTrans				The Action URI
+	 * @param compId				The name of the component to make sure the Action has the correct id
+	 */
 	private void addAction(DataMakerComponent dmc, IEngine makeupEng, Object action, String compId){
 		LOGGER.info("adding action :::: " + action);
 		Map<String, Object> props = getProperties(action+"", makeupEng);
@@ -409,11 +537,13 @@ public class Insight {
 		dmc.addAction(actionObj);
 	}
 	
+	/**
+	 * Get the properties associated with a transformation or an action
+	 * @param uri				The URI for the transformation or action
+	 * @param makeupEng			The makeupEngine containing the N-Triples information regarding the insight
+	 * @return
+	 */
 	private Map<String, Object> getProperties(String uri, IEngine makeupEng){
-//		String propQuery = "SELECT ?Prop ?Value ?Type WHERE { BIND(<" + 
-//							transURI + 
-//							"> AS ?trans) {?Prop a <http://semoss.org/ontologies/Relation/Contains>} {?trans ?Prop ?Value}"
-//							+ "{?trans <http://semoss.org/ontologies/Relation/Contains/Type> ?Type } }";
 		String propQuery = "SELECT ?Value WHERE { BIND(<" + 
 				uri + 
 				"> AS ?obj) {?obj <http://semoss.org/ontologies/Relation/Contains/propMap> ?Value}}";
@@ -429,23 +559,16 @@ public class Insight {
 		}
 		if(wrap.hasNext()){
 			LOGGER.error("More than one prop map has shown up for uri ::::: " + uri);
+			LOGGER.error("Need to find reason why/how it was stored this way...");
 		}
 		return retMap;
 	}
 	
-	public static void main(String [] args){
-		String exampleXML = "<http://semoss.org/ontologies/Concept/Engine> <http://www.w3.org/1999/02/22-rdf-syntax-ns#subClassOf> <http://semoss.org/ontologies/Concept>.\n<http://semoss.org/ontologies/Concept/Engine/Movie_DB> <http://www.w3.org/2000/01/rdf-schema#typeOf> <http://semoss.org/ontologies/Concept/Engine>.\n<http://semoss.org/ontologies/Concept/QueryNum> <http://www.w3.org/1999/02/22-rdf-syntax-ns#subClassOf> <http://semoss.org/ontologies/Concept>.\n<http://semoss.org/ontologies/Concept/QueryNum/1> <http://www.w3.org/2000/01/rdf-schema#typeOf> <http://semoss.org/ontologies/Concept/QueryNum>.\n<http://semoss.org/ontologies/Concept/QueryNum/1> <http://semoss.org/ontolgoies/Relation/Contains/Query> \"SELECT DISTINCT  ?Genre (AVG(?Revenue_Domestic) AS ?Revenue_Domestic_AVG) WHERE {{?Title <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Title>} {?Genre <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Genre>}{?Title <http://semoss.org/ontologies/Relation> ?Genre}{?Title <http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic> ?Revenue_Domestic}} GROUP BY ?Genre ORDER BY ?Genre\".\n";
-		
-//		Insight mysite = new Insight();
-		
-//		mysite.setMakeup(exampleXML);
-		
-//		System.out.println(" Engines : " + mysite.getEngineArray());
-//		System.out.println(" Queries : " + mysite.getQueryArray());
-//		System.out.println(" Joins : " + mysite.getJoinArray());
-	}
-
-
+	/**
+	 * Get the data maker object from the dataMakerString
+	 * If cannot find specified dataMaker, get the playSheet and see if is supposed to be the data maker
+	 * @return
+	 */
 	public IDataMaker getDataMaker() {
 		if(this.dataMaker == null){
 			if(this.dataMakerName != null && !this.dataMakerName.isEmpty()) {
@@ -454,50 +577,63 @@ public class Insight {
 				if(this.playSheet == null){
 					this.playSheet = getPlaySheet();
 				}
-				if (this.playSheet instanceof IDataMaker){
-					this.dataMaker = (IDataMaker) this.playSheet;
-				}
-				else if (this.playSheet != null){
-					this.dataMaker = this.playSheet.getDefaultDataMaker();
+				if(this.playSheet != null) {
+					if (this.playSheet instanceof IDataMaker){
+						this.dataMaker = (IDataMaker) this.playSheet;
+					}
+					else {
+						this.dataMaker = this.playSheet.getDefaultDataMaker();
+					}
 				}
 			}
 		}
 		return this.dataMaker;
 	}
 
-//	public DataMakerComponent[] getDataMakerComponents() {
-//		return this.dmComponents;
-//	}
-	
+	/**
+	 * Getter for the DataMakerComponents
+	 * To prevent unnecessary creation of the dmComponents list, we call digestNTriples if it is null
+	 * @return
+	 */
 	public List<DataMakerComponent> getDataMakerComponents() {
 		if(this.dmComponents == null && this.makeupEngine != null){
-			this.dmComponents = digestXML(this.makeupEngine);
+			this.dmComponents = digestNTriples(this.makeupEngine);
 		} else if(this.dmComponents == null) {
 			this.dmComponents = new Vector<DataMakerComponent>();
 		}
 		return this.dmComponents;
 	}
 	
-//	public void setDataMaker(IDataMaker dm){
-//		this.dataMaker = dm;
-//	}
-
-//	public void setDataMakerComponents(DataMakerComponent[] dmComponents) {
-//		this.dmComponents = dmComponents;
-//	}
-
+	/**
+	 * Setter for the DataMakerComponents of the insight
+	 * @param dmComponents
+	 */
 	public void setDataMakerComponents(Vector<DataMakerComponent> dmComponents) {
 		this.dmComponents = dmComponents;
 	}
 	
+	/**
+	 * Getter for the data table align used for view
+	 * @return
+	 */
 	public Map<String, String> getDataTableAlign() {
 		return this.dataTableAlign;
 	}
 
+	/**
+	 * Setter for the data table align used for the view
+	 * Primary used when no data table align exists and need to get it based on the playsheet
+	 * @param dataTableAlign
+	 */
 	public void setDataTableAlign(Map<String, String> dataTableAlign) {
 		this.dataTableAlign = dataTableAlign;
 	}
 
+	/**
+	 * Setter for the data table align used for the view
+	 * Primarily used when data table align is stored in insight makeup
+	 * @param dataTableAlignJSON
+	 */
 	public void setDataTableAlign(String dataTableAlignJSON) {
 		if(dataTableAlignJSON != null && !dataTableAlignJSON.isEmpty()){
 			LOGGER.info("Setting json dataTableAlign " + dataTableAlignJSON);
@@ -507,11 +643,16 @@ public class Insight {
 		}
 	}
 	
+	/**
+	 * Gets the playsheet based on the layout string in the insight rdbms
+	 * @return
+	 */
 	public IPlaySheet getPlaySheet(){
 		if(this.playSheet == null){
 			String output = this.getOutput();
 			this.playSheet = Utility.getPlaySheet(this.mainEngine, output);
 			if(playSheet != null){
+				// to keep playsheet ID and insight ID in sync
 				this.playSheet.setQuestionID(this.insightID);
 			}
 			else {
@@ -521,17 +662,30 @@ public class Insight {
 		return this.playSheet;
 	}
 	
+	/**
+	 * Setter for the playsheet of the insight
+	 * @param playSheet
+	 */
 	public void setPlaySheet(IPlaySheet playSheet){
 		this.playSheet = playSheet;
 		if(this.playSheet != null) {
+			// to keep playsheet ID and insight ID in sync
 			this.playSheet.setQuestionID(insightID);
 		}
 	}
 
+	/**
+	 * Getter for the data maker name
+	 * @return
+	 */
 	public String getDataMakerName() {
 		return this.dataMakerName;
 	}
 	
+	/**
+	 * Process a data maker component on the insight
+	 * @param component
+	 */
 	public void processDataMakerComponent(DataMakerComponent component) {
 		int lastComponent = 0;
 		if(this.dmComponents != null) {
@@ -555,6 +709,11 @@ public class Insight {
 		getDataMakerComponents().add(component);
 	}
 	
+	/**
+	 * Process a list of post transformation on the last data maker component stored in cmComponents
+	 * @param postTrans					The list of post transformation to run
+	 * @param dataMaker					Additional dataMakers if required by the transformation
+	 */
 	public void processPostTransformation(List<ISEMOSSTransformation> postTrans, IDataMaker... dataMaker) {
 		DataMakerComponent dmc = getDataMakerComponents().get(this.dmComponents.size() - 1);
 		getDataMaker().processPostTransformations(dmc, postTrans, dataMaker);
@@ -566,6 +725,11 @@ public class Insight {
 		}
 	}
 	
+	/**
+	 * Process a list of actions on the last data maker component stored in cmComponents
+	 * @param postTrans					The list of actions to run
+	 * @param dataMaker					Additional dataMakers if required by the actions
+	 */
 	public List<Object> processActions(List<ISEMOSSAction> actions, IDataMaker... dataMaker) {
 		DataMakerComponent dmc = getDataMakerComponents().get(this.dmComponents.size() - 1);
 		List<Object> actionResults = getDataMaker().processActions(dmc, actions, dataMaker);
@@ -579,6 +743,10 @@ public class Insight {
 		return actionResults;
 	}
 	
+	/**
+	 * Undo a set of processes (components/transformations/actions) based on the IDs
+	 * @param processes
+	 */
 	public void undoProcesses(List<String> processes){
 		// traverse backwards and undo everything in the list
 		List<Integer> dmcListToRemove = new ArrayList<Integer>();
@@ -589,16 +757,25 @@ public class Insight {
 			List<ISEMOSSTransformation> postTrans = dmc.getPostTrans();
 			undoTransformations(postTrans, processes);
 			if(postTrans.isEmpty()) {
+				// assumption that when no transformations exist, to remove the component from the list
+				// this assumption is currently valid as first post transformation is a join
 				dmcListToRemove.add(i);
 			}
 		}
 		
-		//note dmcListToRemove is sorted from largest to smallest
+		// note dmcListToRemove is sorted from largest to smallest
 		for(int i = 0; i < dmcListToRemove.size(); i++) {
 			dmComponents.remove(dmcListToRemove.get(i));
 		}
 	}
 	
+	/**
+	 * Undo a set of actions
+	 * Actions create a new data structure to hold information and do not affect the current data maker
+	 * Thus, only need to remove them from the list of actions stored on the component
+	 * @param actions				The list of actions on a specific data maker component
+	 * @param processes				The master list of processes to udno
+	 */
 	private void undoActions(List<ISEMOSSAction> actions, List<String> processes) {
 		Iterator<ISEMOSSAction> actionsIt = actions.iterator();
 		while(actionsIt.hasNext()) {
@@ -609,8 +786,14 @@ public class Insight {
 		}
 	}
 	
+	/**
+	 * Undo a set of transformations on the data maker
+	 * @param actions				The list of transformations on a specific data maker component
+	 * @param processes				The master list of processes to udno
+	 */
 	private void undoTransformations(List<ISEMOSSTransformation> trans, List<String> processes) {
 		List<Integer> indicesToRemove = new ArrayList<Integer>();
+		// loop through and get the indices corresponding to the trans list to undo
 		for(int i = trans.size()-1; i >= 0; i--) {
 			ISEMOSSTransformation transformation = trans.get(i);
 			if(processes.contains(transformation.getId())) {
@@ -618,7 +801,8 @@ public class Insight {
 			}
 		}
 		
-		//note indicesToRemove is sorted from largest to smallest
+		// note indicesToRemove is sorted from largest to smallest
+		// remove from largest to smallest as it is most efficient way to remove from BTreeDataFrame
 		for(int i = 0; i < indicesToRemove.size(); i++) {
 			Integer indexToRemove = indicesToRemove.get(i);
 			trans.get(indexToRemove).undoTransformation();
@@ -626,13 +810,17 @@ public class Insight {
 		}
 	}
 	
+	/**
+	 * Get the information after running an insight to send to FE for viewing result
+	 * @return
+	 */
 	public Map<String, Object> getWebData() {
 		Map<String, Object> retHash = new HashMap<String, Object>();
 		retHash.put("insightID", insightID);
 		retHash.put("layout", propHash.get(OUTPUT_KEY));
 		retHash.put("title", propHash.get(INSIGHT_NAME));
 		// this is only because we don’t currently save data table align
-		// in these annoying cases, we need to use the playsheet L 
+		// in these annoying cases, we need to use the playsheet
 		if(dataTableAlign == null || dataTableAlign.isEmpty()) {
 			getPlaySheet();
 			this.playSheet.setDataMaker(getDataMaker());
