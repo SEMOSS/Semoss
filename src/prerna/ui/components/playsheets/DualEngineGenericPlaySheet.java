@@ -58,7 +58,7 @@ public class DualEngineGenericPlaySheet extends DualEngineGridPlaySheet {
 	BrowserPlaySheet playSheet = null;
 
 	@Override
-	public Hashtable<String, String> getDataTableAlign() {
+	public Map<String, String> getDataTableAlign() {
 		return playSheet.getDataTableAlign();
 	}
 	

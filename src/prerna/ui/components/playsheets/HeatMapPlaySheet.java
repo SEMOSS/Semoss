@@ -30,14 +30,20 @@ package prerna.ui.components.playsheets;
 import java.awt.Dimension;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Map;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * The Play Sheet for creating a heat map diagram.  
  */
 public class HeatMapPlaySheet extends BrowserPlaySheet {
+	
+	private static String xString = "x";
+	private static String yString = "y";
+	private static String heatString = "heat";
 	
 	/**
 	 * Constructor for HeatMapPlaySheet.
@@ -56,46 +62,70 @@ public class HeatMapPlaySheet extends BrowserPlaySheet {
 	public void processQueryData()
 	{
 		Hashtable<String, Object> dataHash = new Hashtable<String, Object>();
-		Hashtable<String, Object> dataSeries = new Hashtable<String, Object>();
 		String[] var = dataFrame.getColumnHeaders();
-		String xName = var[0];
-		String yName = var[1];
+		Map<String, String> align = getDataTableAlign();
+		int heatIdx = -1;
+		int xIdx = -1;
+		int yIdx = -1;
+		for(int i = 0; i < var.length; i++){
+			String name = var[i];
+			if(align.containsValue(name)){
+				String key = Utility.getKeyFromValue(align, name);
+				if(key.contains(xString)){
+					xIdx = i;
+				}
+				else if(key.contains(yString)){
+					yIdx = i;
+				}
+				else if(key.contains(heatString)){
+					heatIdx = i;
+				}
+			}
+		}
+		String xName = var[xIdx];
+		String yName = var[yIdx];
 		
 		Iterator<Object[]> it = dataFrame.iterator(true);
 		while(it.hasNext())
 		{
 			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
 			Object[] listElement = it.next();		
-			String methodName = listElement[0].toString();
-			String groupName = listElement[1].toString();
+			String methodName = listElement[xIdx].toString();
+			String groupName = listElement[yIdx].toString();
 			String key = methodName +"-"+groupName;
-			double count = (Double) listElement[2];
+			double count = (Double) listElement[heatIdx];
 			elementHash.put(xName, methodName);
 			elementHash.put(yName, groupName);
-			elementHash.put(var[2], count);
+			elementHash.put(var[heatIdx], count);
 			dataHash.put(key, elementHash);
 			
 		}
 
 		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
 		allHash.put("dataSeries", dataHash);
-		String[] var1 = this.dataFrame.getColumnHeaders();//wrapper.getVariables();
-		allHash.put("title",  var1[0] + " vs " + var1[1]);
-		allHash.put("xAxisTitle", var1[0]);
-		allHash.put("yAxisTitle", var1[1]);
-		allHash.put("value", var1[2]);
+		allHash.put("title",  var[xIdx] + " vs " + var[yIdx]);
+		allHash.put("xAxisTitle", var[xIdx]);
+		allHash.put("yAxisTitle", var[yIdx]);
+		allHash.put("value", var[heatIdx]);
 		
 		this.dataHash = allHash;
 	}
-	
+
 	@Override
-	public Hashtable<String, String> getDataTableAlign() {
+	public Map<String, String> getDataTableAlign() {
+		if(this.tableDataAlign == null){
+			this.tableDataAlign = getAlignHash();
+		}
+		return this.tableDataAlign;
+	}
+	
+	public Hashtable<String, String> getAlignHash() {
 		Hashtable<String, String> alignHash = new Hashtable<String, String>();
 		String[] names = dataFrame.getColumnHeaders();
 		
-		alignHash.put("x", names[0]);
-		alignHash.put("y", names[1]);
-		alignHash.put("heat", names[2]);
+		alignHash.put(xString, names[0]);
+		alignHash.put(yString, names[1]);
+		alignHash.put(heatString, names[2]);
 		return alignHash;
 	}
 }

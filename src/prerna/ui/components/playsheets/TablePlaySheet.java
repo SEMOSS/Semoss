@@ -180,7 +180,10 @@ public class TablePlaySheet extends AbstractPlaySheet implements IDataMaker{
 	}
 
 	@Override
-	public Hashtable<String, String> getDataTableAlign() {
+	public Map<String, String> getDataTableAlign() {
+		if(this.tableDataAlign != null){
+			return this.tableDataAlign;
+		}
 		// will be overridden by specific playsheets
 		return null;
 	}

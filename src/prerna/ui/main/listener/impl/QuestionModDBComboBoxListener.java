@@ -30,6 +30,7 @@ package prerna.ui.main.listener.impl;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Vector;
 
 import javax.swing.JComboBox;
@@ -59,7 +60,7 @@ public class QuestionModDBComboBoxListener implements IChakraListener {
 		
 		playSheetComboBox.insertItemAt("*Custom_PlaySheet", 0);
 		
-		ArrayList playsheetArray = PlaySheetRDFMapBasedEnum.getAllSheetNames();
+		List<String> playsheetArray = PlaySheetRDFMapBasedEnum.getAllSheetNames();
 		for(int i = 0; i < playsheetArray.size(); i++){
 			playSheetComboBox.addItem(playsheetArray.get(i));
 		}
