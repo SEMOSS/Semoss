@@ -23,11 +23,12 @@ import prerna.ui.components.playsheets.datamakers.IDataMaker;
 public class AlgorithmTransformation extends AbstractTransformation {
 
 	private static final Logger LOGGER = LogManager.getLogger(AlgorithmTransformation.class.getName());
-	private static final String TRANSFORMATION_NAME = "algorithmTransformation";
-	private static final String METHOD_NAME = "performAnalyticTransformation";
-	public static final String UNDO_METHOD_NAME = "removeColumn";
-	public static final String ALGORITHM_TYPE = "algorithmType";
+	private static final String TRANSFORMATION_NAME = "algorithmTransformation";			// the name to distinguish the the post transformation as an algorithm transformation in insight makeup
+	private static final String METHOD_NAME = "performAnalyticTransformation";				// the name of the method in all data makers to perform an algorithm transformation
+	public static final String UNDO_METHOD_NAME = "removeColumn";							// the name of the method in all data makers to perform an undo algorithm transformation
+	public static final String ALGORITHM_TYPE = "algorithmType";							// key in the properties to determine the type of algorithm being run
 
+	// the list of default algorithm transformations
 	public static final String CLUSTERING = "clustering";
 	public static final String MULTI_CLUSTERING = "multi_clustering";
 	public static final String LOCAL_OUTLIER_FACTOR = "lof";
@@ -35,9 +36,9 @@ public class AlgorithmTransformation extends AbstractTransformation {
 	public static final String SELF_ORGANIZING_MAP = "som";
 	public static final String SIMILARITY = "similarity";
 
-	List<String> addedColumns;
-	DataMakerComponent dmc;
-	ITableDataFrame dm;
+	private List<String> addedColumns;
+	private DataMakerComponent dmc;
+	private ITableDataFrame dm;
 
 	@Override
 	//TODO: need to figure out how the routines themselves will be obtained to override defaults in rdf map and engine prop
@@ -115,7 +116,6 @@ public class AlgorithmTransformation extends AbstractTransformation {
 
 	@Override
 	public void setProperties(Map<String, Object> props) {
-		//TODO: validate hash and set values
 		this.props = props;
 	}
 
@@ -123,10 +123,6 @@ public class AlgorithmTransformation extends AbstractTransformation {
 	public Map<String, Object> getProperties() {
 		props.put(TYPE, TRANSFORMATION_NAME);
 		return this.props;
-	}
-
-	public List<String> getAddedColumns() {
-		return this.addedColumns;
 	}
 
 	@Override
@@ -150,5 +146,9 @@ public class AlgorithmTransformation extends AbstractTransformation {
 		} catch (InvocationTargetException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public List<String> getAddedColumns() {
+		return this.addedColumns;
 	}
 }

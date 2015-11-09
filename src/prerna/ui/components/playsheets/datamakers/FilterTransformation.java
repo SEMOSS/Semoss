@@ -17,15 +17,14 @@ import prerna.util.Utility;
 public class FilterTransformation extends AbstractTransformation {
 
 	private static final Logger LOGGER = LogManager.getLogger(FilterTransformation.class.getName());
-	public static final String METHOD_NAME = "filter";
-	public static final String UNDO_METHOD_NAME = "unfilter";
-	public static final String COLUMN_HEADER_KEY = "colHeader";
-	public static final String VALUES_KEY = "values";
+	public static final String METHOD_NAME = "filter";						// name of the method in all data makers to perform a filter
+	public static final String UNDO_METHOD_NAME = "unfilter";				// name of the method in all data makers to perform undo filtering
+	public static final String COLUMN_HEADER_KEY = "colHeader";				// key in properties map for the type to apply the filter for
+	public static final String VALUES_KEY = "values";						// key in properties map for the list of values to filter
 
-	DataMakerComponent dmc;
-	Boolean preTrans;
-
-	IDataMaker dm;
+	private DataMakerComponent dmc;
+	private Boolean preTrans;
+	private IDataMaker dm;
 
 	@Override
 	public void setDataMakers(IDataMaker... dm){
@@ -47,13 +46,16 @@ public class FilterTransformation extends AbstractTransformation {
 		String colHeader = this.props.get(COLUMN_HEADER_KEY) +"";
 		List<Object> values = (List<Object>) this.props.get(VALUES_KEY);
 		
-		// if it is a pretransformation
-		// we just need to add the valued to the metamodel data for the component
+		// if this is a pre-transformation
 		if(preTrans){
+			// if there is metamodel data, add this as a filter and let query builder do its thing
 			Map<String, Object> metamodelData = this.dmc.getMetamodelData();
 			if(metamodelData != null) {
 				addFilterToComponentData(colHeader, values, metamodelData);
 			} else {
+				// there is no metamodel data
+				// need to fill the query with the selected value
+				// this doesn't allow for multiselect from the UI 
 				String query = this.dmc.getQuery();
 				query = Utility.normalizeParam(query);
 				Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
@@ -69,6 +71,13 @@ public class FilterTransformation extends AbstractTransformation {
 		}
 	}
 	
+	/**
+	 * Appends the filtering into the metamodel data within the component
+	 * Used when the filtering transformation is a preTransformation
+	 * @param colHeader						The name of type to filter
+	 * @param values						The list of values for the filter
+	 * @param metamodelData					The metamodel data
+	 */
 	private void addFilterToComponentData(String colHeader, List<Object> values, Map<String, Object> metamodelData){
         StringMap<List<Object>> stringMap;
         if(((StringMap) metamodelData.get("QueryData")).containsKey(AbstractQueryBuilder.filterKey)) {
@@ -80,7 +89,11 @@ public class FilterTransformation extends AbstractTransformation {
         ((StringMap) metamodelData.get("QueryData")).put(AbstractQueryBuilder.filterKey, stringMap);
 	}
 		
-	
+	/**
+	 * Runs the postTransformation filtering routine
+	 * @param colHeader					The name of the type to filter
+	 * @param values					The list of values to filter
+	 */
 	private void runFilterMethod(String colHeader, List<Object> values){
 		Method method = null;
 		try {
@@ -110,9 +123,6 @@ public class FilterTransformation extends AbstractTransformation {
 
 	@Override
 	public void undoTransformation() {
-		//TODO: currently, unfilter is all or nothing
-		//TODO: will wait until code committed to unfilter specific values
-		
 		String colHeader = this.props.get(COLUMN_HEADER_KEY) +"";
 		List<Object> values = (List<Object>) this.props.get(VALUES_KEY);
 		
