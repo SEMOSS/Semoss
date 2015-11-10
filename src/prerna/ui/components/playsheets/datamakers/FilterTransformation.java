@@ -120,32 +120,10 @@ public class FilterTransformation extends AbstractTransformation {
 		return;
 	}
 	
-//	public static void filterTableData(ITableDataFrame mainTree, Map<String, Map<String, Object>> filterValuesArrMap) {
-//		
-//		LOGGER.info("Filtering on table");
-//		long startTime = System.currentTimeMillis();
-//		
-//		for(String key : filterValuesArrMap.keySet()) {
-//			Map<String, Object> columnMap = filterValuesArrMap.get(key);
-//			List<Object> values = (List<Object>)columnMap.get("values");
-//			if(values.size() == 0) {
-//				Boolean selectAll = (Boolean)columnMap.get("selectAll");
-//				if(selectAll) {
-//					mainTree.unfilter(key);
-//				} else {
-//					filterColumn(mainTree, key, values);
-//				}
-//			} else {
-//				filterColumn(mainTree, key, values);
-//			}
-//		}
-//		LOGGER.info("Finished Filtering: "+ (System.currentTimeMillis() - startTime)+" ms");
-//	}
-	
 	public static void filterColumn(IDataMaker dm, String concept, List<Object> filterValuesArr) throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		
+		//if column is numeric convert to double
 		Method isNumericMethod = dm.getClass().getMethod("isNumeric", String.class);
-		
 		if((boolean) isNumericMethod.invoke(dm, concept)) {
 			List<Object> values = new ArrayList<Object>(filterValuesArr.size());
 			for(Object o: filterValuesArr) {
@@ -158,14 +136,16 @@ public class FilterTransformation extends AbstractTransformation {
 			filterValuesArr = values;
 		}
 		
+		//get filter and unfilter methods from data maker
 		Method filterMethod = dm.getClass().getMethod(METHOD_NAME, String.class, List.class);
 		Method unfilterMethod = dm.getClass().getMethod(UNDO_METHOD_NAME, String.class, List.class);
 		
 		if(filterValuesArr.isEmpty()) {
-			filterMethod.invoke(dm, concept, filterValuesArr);//mainTree.filter(concept, Arrays.asList(mainTree.getUniqueValues(concept)));
+			filterMethod.invoke(dm, concept, filterValuesArr);
 			return;
 		}
 
+		//determine which values to filter and which to unfilter
 		Method getUniqueValues = dm.getClass().getMethod("getUniqueValues", String.class);
 		Object[] visibleValues = (Object[]) getUniqueValues.invoke(dm, concept);
 		Set<Object> valuesToUnfilter = new HashSet<Object>(filterValuesArr);
@@ -178,9 +158,6 @@ public class FilterTransformation extends AbstractTransformation {
 		for(Object o : filterValuesArr) {
 			valuesToFilter.remove(o);
 		}
-
-//		mainTree.filter(concept, new ArrayList<Object>(valuesToFilter));
-//		mainTree.unfilter(concept, new ArrayList<Object>(valuesToUnfilter));
 		
 		filterMethod.invoke(dm, concept, new ArrayList<Object>(valuesToFilter));
 		unfilterMethod.invoke(dm, concept, new ArrayList<Object>(valuesToUnfilter));
