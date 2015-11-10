@@ -157,7 +157,7 @@ public class InsightCreateRunner implements Runnable{
 		}
 		String name = insight.getInsightName();
 		if (name == null){
-			name = insightID;
+			name = "Custom";
 		}
 		System.out.println("Param Hash is " + paramHash);
 		playSheetTitle = playSheetTitle+name.trim();
