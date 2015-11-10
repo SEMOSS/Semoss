@@ -2,15 +2,20 @@ package prerna.ui.components.playsheets.datamakers;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import com.google.gson.internal.StringMap;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.rdf.query.builder.AbstractQueryBuilder;
 import prerna.util.Utility;
 
@@ -97,12 +102,12 @@ public class FilterTransformation extends AbstractTransformation {
 	private void runFilterMethod(String colHeader, List<Object> values){
 		Method method = null;
 		try {
-			method = dm.getClass().getMethod(METHOD_NAME, String.class, List.class);
-			LOGGER.info("Successfully got method : " + METHOD_NAME);
-			
-			method.invoke(dm, colHeader, values);
-			LOGGER.info("Successfully invoked method : " + METHOD_NAME);
-
+//			method = dm.getClass().getMethod(METHOD_NAME, String.class, List.class);
+//			LOGGER.info("Successfully got method : " + METHOD_NAME);
+//			
+//			method.invoke(dm, colHeader, values);
+//			LOGGER.info("Successfully invoked method : " + METHOD_NAME);
+			filterColumn(dm, colHeader, values);
 		} catch (NoSuchMethodException | SecurityException e) {
 			e.printStackTrace();
 		} catch (IllegalAccessException e) {
@@ -113,6 +118,76 @@ public class FilterTransformation extends AbstractTransformation {
 			e.printStackTrace();
 		}
 		return;
+	}
+	
+//	public static void filterTableData(ITableDataFrame mainTree, Map<String, Map<String, Object>> filterValuesArrMap) {
+//		
+//		LOGGER.info("Filtering on table");
+//		long startTime = System.currentTimeMillis();
+//		
+//		for(String key : filterValuesArrMap.keySet()) {
+//			Map<String, Object> columnMap = filterValuesArrMap.get(key);
+//			List<Object> values = (List<Object>)columnMap.get("values");
+//			if(values.size() == 0) {
+//				Boolean selectAll = (Boolean)columnMap.get("selectAll");
+//				if(selectAll) {
+//					mainTree.unfilter(key);
+//				} else {
+//					filterColumn(mainTree, key, values);
+//				}
+//			} else {
+//				filterColumn(mainTree, key, values);
+//			}
+//		}
+//		LOGGER.info("Finished Filtering: "+ (System.currentTimeMillis() - startTime)+" ms");
+//	}
+	
+	public static void filterColumn(IDataMaker dm, String concept, List<Object> filterValuesArr) throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		
+		Method isNumericMethod = dm.getClass().getMethod("isNumeric", String.class);
+		
+		if((boolean) isNumericMethod.invoke(dm, concept)) {
+			List<Object> values = new ArrayList<Object>(filterValuesArr.size());
+			for(Object o: filterValuesArr) {
+				try {
+					values.add(Double.parseDouble(o.toString()));
+				} catch(Exception e) {
+					values.add(o);
+				}
+			}
+			filterValuesArr = values;
+		}
+		
+		Method filterMethod = dm.getClass().getMethod(METHOD_NAME, String.class, List.class);
+		Method unfilterMethod = dm.getClass().getMethod(UNDO_METHOD_NAME, String.class, List.class);
+		
+		if(filterValuesArr.isEmpty()) {
+			filterMethod.invoke(dm, concept, filterValuesArr);//mainTree.filter(concept, Arrays.asList(mainTree.getUniqueValues(concept)));
+			return;
+		}
+
+		Method getUniqueValues = dm.getClass().getMethod("getUniqueValues", String.class);
+		Object[] visibleValues = (Object[]) getUniqueValues.invoke(dm, concept);
+		Set<Object> valuesToUnfilter = new HashSet<Object>(filterValuesArr);
+		Set<Object> valuesToFilter = new HashSet<Object>(Arrays.asList(visibleValues));
+		
+		for(Object o : visibleValues) {
+			valuesToUnfilter.remove(o);
+		}
+		
+		for(Object o : filterValuesArr) {
+			valuesToFilter.remove(o);
+		}
+
+//		mainTree.filter(concept, new ArrayList<Object>(valuesToFilter));
+//		mainTree.unfilter(concept, new ArrayList<Object>(valuesToUnfilter));
+		
+		filterMethod.invoke(dm, concept, new ArrayList<Object>(valuesToFilter));
+		unfilterMethod.invoke(dm, concept, new ArrayList<Object>(valuesToUnfilter));
+		
+		if(valuesToFilter.size() + valuesToUnfilter.size() > 0) {
+			LOGGER.info("Filtered column: "+concept);
+		}
 	}
 
 	@Override
