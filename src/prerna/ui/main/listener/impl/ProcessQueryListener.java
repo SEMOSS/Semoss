@@ -136,7 +136,6 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 				insight = getSelectedInsight(engine);
 				paramHash = getParamHash();
 			}
-			InsightStore.getInstance().put(insight);
 		}
 
 		insight.setParamHash(paramHash);
