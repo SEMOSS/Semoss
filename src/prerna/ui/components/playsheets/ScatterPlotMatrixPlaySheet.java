@@ -5,6 +5,7 @@ import java.awt.GridBagConstraints;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.JComponent;
 import javax.swing.JPanel;
@@ -24,6 +25,7 @@ import prerna.util.DIHelper;
 public class ScatterPlotMatrixPlaySheet extends BrowserPlaySheet{
 
 	private static final Logger LOGGER = LogManager.getLogger(ScatterPlotMatrixPlaySheet.class.getName());	
+	private static final String dimString = "dim ";
 
 	/**
 	 * Constructor for ScatterPlotMatrixPlaySheet.
@@ -37,40 +39,53 @@ public class ScatterPlotMatrixPlaySheet extends BrowserPlaySheet{
 	
 	public void processQueryData()
 	{		
+		Map<String, String> dataAlign = getDataTableAlign();
+		List<String> ignoreCols = new ArrayList<String>();
+		String[] names = dataFrame.getColumnHeaders();
+		for(int i = 0; i < names.length; i++) {
+			if(!dataAlign.containsValue(names[i])) {
+				ignoreCols.add(names[i]);
+			}
+		}
+		dataFrame.setColumnsToSkip(ignoreCols);
+
 		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
 		allHash.put("one-row", false);
-		allHash.put("dataTableAlign", getDataTableAlign());
 		allHash.put("names", getNames());
 		allHash.put("dataSeries", getList());
-
+		allHash.put("id","");
+		
 		this.dataHash = allHash;
 	}
 	
 	@Override
-	public Hashtable<String, String> getDataTableAlign() {
+	public Map<String, String> getDataTableAlign() {
+		if(this.tableDataAlign == null){
+			this.tableDataAlign = getAlignHash();
+		}
+		return this.tableDataAlign;
+	}
+	
+	public Hashtable<String, String> getAlignHash() {
 		Hashtable<String, String> alignHash = new Hashtable<String, String>();
 		String[] names = dataFrame.getColumnHeaders();
-		for(int i = 0; i <names.length; i++){
-			alignHash.put("dim " + i, names[i]);
+		boolean[] numeric = dataFrame.isNumeric();
+		
+		int counter = 0;
+		for(int namesIdx = 0; namesIdx<names.length; namesIdx++){
+			if(numeric[namesIdx]) {
+				alignHash.put(dimString + counter, names[namesIdx]);
+				counter++;
+			}
 		}
 		return alignHash;
 	}
-
+	
 	@Override
 	public void createData() {
 		if(dataFrame == null || dataFrame.isEmpty()) {
 			super.createData();
 		}
-		
-		String[] names = dataFrame.getColumnHeaders();
-		boolean[] numeric = dataFrame.isNumeric();
-		List<String> ignoreCols = new ArrayList<String>();
-		for(int i = 0; i < names.length; i++) {
-			if(!numeric[i]) {
-				ignoreCols.add(names[i]);
-			}
-		}
-		dataFrame.setColumnsToSkip(ignoreCols);
 	}
 
 	/////////////////////////////SWING DEPENDENT CODE/////////////////////////////
