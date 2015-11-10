@@ -685,13 +685,13 @@ public class TreeNode {
 		boolean parent = true;
 		Vector<TreeNode> parentNodes = new Vector<TreeNode>();
 		// each one of this is a new line
-		String[] mainTokens = serializedTree.split("/{3}");
+		String[] mainTokens = serializedTree.split("/{3}(?!/)");
 		for (String line : mainTokens) {
 			Vector<TreeNode> nextLevel = new Vector<TreeNode>();
 			int count = 0;
 			if (!parent) {
 				TreeNode curParentNode = null;
-				String[] leftRightTokens = line.split("\\|{3}");
+				String[] leftRightTokens = line.split("\\|{3}(?!\\|)");
 				for (int i = 0; i < leftRightTokens.length; i = i + 2) {
 					// for (String leftChildString : leftRightTokens) {
 					if(curParentNode == null)
@@ -792,10 +792,10 @@ public class TreeNode {
 		// nasty.. I dont have a proper object eeks
 		Object[] retObject = new Object[2];
 		// final loop is the <> loop
-		String[] leftString = childString.split("@{3}(?=[^@])"); //split on the LAST 3 @ signs
+		String[] leftString = childString.split("@{3}(?!@)"); //split on the LAST 3 @ signs
 		TreeNode leftNode = null;
 		for (String leftNodeKey : leftString) {
-			String[] classString = leftNodeKey.split("#{3}");
+			String[] classString = leftNodeKey.split("#{3}(?!#)");
 			ISEMOSSNode sNode = null;
 			try {
 				sNode = (ISEMOSSNode) Class.forName(classString[0]).getConstructor(String.class, Boolean.class).newInstance(classString[1], true);
