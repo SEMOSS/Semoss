@@ -500,7 +500,6 @@ WorldMap_HINT	OCONUSMapPlaySheet Hint: SELECT ?label ?latitude ?longitude WHERE{
 Combo_CUSTOM	FALSE
 3dBarchart_CUSTOM	FALSE
 Gantt_CUSTOM	FALSE
-ScatterplotMatrix_CUSTOM	FALSE
 SystemSimilarity_CUSTOM	FALSE
 Mashup_CUSTOM	FALSE
 
