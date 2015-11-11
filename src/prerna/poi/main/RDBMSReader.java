@@ -371,7 +371,7 @@ public class RDBMSReader {
 			if(!sql.endsWith(";")) sql+= ";";
 			scriptFile.println(sql);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		}
 		modifyDB(sql);	
@@ -524,7 +524,7 @@ public class RDBMSReader {
 			File file2 = new File(tempFile);
 			file2.delete();
 		} catch (Exception e1) {
-			// TODO Auto-generated catch block
+			
 			e1.printStackTrace();
 		}
 
@@ -599,10 +599,9 @@ public class RDBMSReader {
 			prop.store(fo, "Questions for RDBMS");
 			fo.close();
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		}
 	}
@@ -1169,7 +1168,7 @@ public class RDBMSReader {
 				try {
 					scriptFile.println(modString + ";");
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
+					
 					e.printStackTrace();
 				}
 				modifyDB(modString);
@@ -1177,7 +1176,7 @@ public class RDBMSReader {
 				try {
 					scriptFile.println("-- no create or alter statement needed for table: "+ tableKey);
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
+					
 					e.printStackTrace();
 				}
 			} */
@@ -1431,7 +1430,8 @@ public class RDBMSReader {
 		String VALUES = " (";		
 		Hashtable columns = tableHash.get(tableKey);
 		String type = (String) columns.get(tableKey);
-		String value = createInstanceValue(tableKey, jcrMap, type);
+		boolean property = false;
+		String value = createInstanceValue(tableKey, jcrMap, type, property);
 		value = value.replaceAll("'", "''");	
 		value = "'" +  value + "'"; // would the value be always string ?
 		VALUES = VALUES + value;
@@ -1447,11 +1447,19 @@ public class RDBMSReader {
 				valuesBuffer.append( " , ");
 				key1 = false;
 			}
+			// jason's edit, 10/29
+			// determine if key is a property
 			String key = columnKeys.nextElement();
 			type = (String) columns.get(key);
+			if (type.contains("_FK") || type.contains("_PK")) {
+				property = false;
+			}
+			else {
+				property = true;
+			}
 			key = key.replace("_FK", "");
-			
-			value = createInstanceValue(key, jcrMap, type);
+								
+			value = createInstanceValue(key, jcrMap, type, property);
 			//if(!sqlHash.get(type).contains("FLOAT"))
 			//	value = realClean(value);
 			// escape SQL Values
@@ -1476,7 +1484,7 @@ public class RDBMSReader {
 	private String getAlterString(String tableKey, Map <String, Object> jcrMap, String insertTemplate, Hashtable <String, Hashtable<String, String>> allColumnsTableHash)
 	{
 		String VALUES = "";
-		String SQLALTER = "";		
+		String SQLALTER = "";
 		Hashtable columns = tableHash.get(tableKey);
 
 		Enumeration <String> columnKeys = columns.keys();
@@ -1492,7 +1500,8 @@ public class RDBMSReader {
 			String key = columnKeys.nextElement();
 			String tempkey = key.replace("_FK", "");
 			String type = (String)columns.get(key);
-			String value = createInstanceValue(tempkey, jcrMap, type);
+			boolean property = false;
+			String value = createInstanceValue(tempkey, jcrMap, type, property);
 
 			boolean string = false;
 
@@ -1542,7 +1551,8 @@ public class RDBMSReader {
 		{
 			String key = whereKeys.nextElement();
 			String type = (String) whereHash.get(key);
-			String value = createInstanceValue(key, jcrMap, type);
+			boolean property = false;
+			String value = createInstanceValue(key, jcrMap, type, property);
 
 			boolean string = false;
 
@@ -1700,7 +1710,8 @@ public class RDBMSReader {
 		{
 			String key = columnKeys.nextElement();
 			String type = (String)columns.get(key);
-			String value = createInstanceValue(key, jcrMap, type);
+			boolean property = false;
+			String value = createInstanceValue(key, jcrMap, type, property);
 
 			boolean string = false;
 
@@ -1740,7 +1751,8 @@ public class RDBMSReader {
 		{
 			String key = whereKeys.nextElement();
 			String type = (String) whereHash.get(key);
-			String value = createInstanceValue(key, jcrMap, type);
+			boolean property = false;
+			String value = createInstanceValue(key, jcrMap, type, property);
 
 			boolean string = false;
 
@@ -1783,7 +1795,8 @@ public class RDBMSReader {
 
 		Enumeration <String> columnKeys = columns.keys();
 		String selfType = (String) columns.get(tableKey);
-		String selfValue = createInstanceValue(tableKey, jcrMap, selfType);
+		boolean property = false;
+		String selfValue = createInstanceValue(tableKey, jcrMap, selfType, property);
 		selfValue = selfValue.replaceAll("'", "''");
 		selfValue = "'" + selfValue + "'" ;
 		String query = "SELECT * FROM " + realClean(tableKey) + " WHERE " ;
@@ -1794,7 +1807,8 @@ public class RDBMSReader {
 		{
 			String key = columnKeys.nextElement();
 			String type = (String)columns.get(key);
-			String value = createInstanceValue(key, jcrMap, type);
+			boolean property1 = false;
+			String value = createInstanceValue(key, jcrMap, type, property1);
 
 			boolean string = false;
 
@@ -2246,9 +2260,10 @@ public class RDBMSReader {
 	 * Constructs the node instance name
 	 * @param subject 		String containing the node type name
 	 * @param jcrMap 		Map containing the data in the CSV file
+	 * @param property 
 	 * @return retString 	String containing the instance level name
 	 */
-	public String createInstanceValue(String subject, Map <String, Object> jcrMap, String type)
+	public String createInstanceValue(String subject, Map <String, Object> jcrMap, String type, boolean property)
 	{
 		String retString ="";
 		// if node is a concatenation
@@ -2301,7 +2316,10 @@ public class RDBMSReader {
 				retString = value;
 			}
 		}
-			return Utility.cleanString(retString, true, false); // clean string
+		if (!property) {
+			retString = Utility.cleanString(retString, true, false); // clean string
+		}
+			return retString;
 	}
 
 	/**
