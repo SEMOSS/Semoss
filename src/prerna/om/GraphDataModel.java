@@ -1200,8 +1200,11 @@ public class GraphDataModel implements IDataMaker {
 	public Map getDataMakerOutput() {
 		Hashtable retHash = new Hashtable();
 		if(this.getOverlay()){
-			retHash .put("nodes", this.getIncrementalVertStore());
-			retHash.put("nodeProperties", this.getIncrementalVertPropStore());
+			Map<String, SEMOSSVertex> props = this.getIncrementalVertPropStore();
+			Map<String, SEMOSSVertex> nodes = this.getIncrementalVertStore();
+			props.keySet().removeAll(nodes.keySet());
+			retHash .put("nodes", nodes);
+			retHash.put("nodeProperties", props);
 			retHash.put("edges", this.getIncrementalEdgeStore().values());
 		} else {
 			retHash.put("nodes", this.getVertStore());
