@@ -106,7 +106,7 @@ public class InsightTemplateProcessor {
 						outputRuleSplit[1] = outputRuleSplit[1].replaceAll("_", " ").trim();
 						String psClass = PlaySheetRDFMapBasedEnum.getClassFromName(outputRuleSplit[1]);
 						if(!psClass.isEmpty()) {
-							rule.setOutput(psClass);
+							rule.setOutput(outputRuleSplit[1]);
 						} else {
 							// if output not found above, then go to next question
 							continue NEXT_QUESTION;

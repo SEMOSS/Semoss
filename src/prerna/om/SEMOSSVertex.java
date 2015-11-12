@@ -320,18 +320,6 @@ public class SEMOSSVertex{
 				tokens.nextToken();
 		}
 		uriHash.put(instanceName, propNameURI);
-		Hashtable <String, String> propUriHash = new Hashtable();
-		if(propHash.get("propUriHash") != null){
-			propUriHash = (Hashtable<String, String>) propHash.get("propUriHash");
-		}
-		
-		try {
-			propUriHash.put(instanceName, propNameURI);
-		} catch(Exception e){
-			e.printStackTrace();
-		}
-		propHash.put("propUriHash", propUriHash);
-		
 		// I need to convert these decimals and other BS into a proper value
 		// awesome !!
 		// will come to this in a bit

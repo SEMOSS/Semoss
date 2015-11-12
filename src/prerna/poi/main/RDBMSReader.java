@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2015 Defense Health Agency (DHA)
+ * Copyright 2014 SEMOSS.ORG
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -47,19 +46,10 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.ValueFactory;
 import org.openrdf.model.vocabulary.RDF;
-import org.openrdf.model.vocabulary.RDFS;
-import org.openrdf.repository.Repository;
-import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
-import org.openrdf.repository.RepositoryResult;
-import org.openrdf.repository.sail.SailRepository;
-import org.openrdf.repository.sail.SailRepositoryConnection;
-import org.openrdf.rio.RDFHandlerException;
-import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 import org.openrdf.sail.Sail;
 import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
-import org.openrdf.sail.memory.MemoryStore;
 import org.supercsv.cellprocessor.Optional;
 import org.supercsv.cellprocessor.ParseBool;
 import org.supercsv.cellprocessor.ParseDate;
@@ -80,7 +70,6 @@ import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.QuestionAdministrator;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.poi.main.DisplayNamesProcessor;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
@@ -105,6 +94,7 @@ public class RDBMSReader {
 	private static Hashtable <String, CellProcessor> typeHash = new Hashtable<String, CellProcessor>();
 	public final static String NUMCOL = "NUM_COLUMNS";
 	public final static String NOT_OPTIONAL = "NOT_OPTIONAL";
+	private ArrayList<String> relationArrayList = new ArrayList<String>();
 	private ArrayList<String> recreateIndexesArr = new ArrayList<String>(); 
 	private ArrayList<String> tempIndexArray = new ArrayList<String>();
 	private ArrayList<String> tempDropArrays = new ArrayList<String>();
@@ -145,19 +135,18 @@ public class RDBMSReader {
 	public Hashtable<String,String> conceptURIHash = new Hashtable<String,String>();
 	public Hashtable<String,String> baseRelationURIHash = new Hashtable<String,String>(); 
 	public Hashtable<String,String> relationURIHash = new Hashtable<String,String>();
-	private Hashtable<String,String> basePropURIHash = new Hashtable<String,String>();
-	private Hashtable<String,String> basePropRelations = new Hashtable<String,String>();
-	private Hashtable<String,String> displayNamesHash = new Hashtable<String,String>();
+	public Hashtable<String,String> basePropURIHash = new Hashtable<String,String>();
+	public Hashtable<String,String> basePropRelations = new Hashtable<String,String>();
 
 	protected Hashtable<String, String[]> baseRelations = new Hashtable<String, String[]>();
-	protected Set <String> tables = new HashSet<String>(); //new tables added during this process (if add to existing, only NEW tables added during the add to existing process
-	protected Set <String> allTables = new HashSet<String>(); //full set of tables stored off in the database once the upload process is complete
-	protected Vector <String> allTablesModified = new Vector<String>();//if add to existing, then this will contain the new tables added as well as existing tables that are modified
+	protected Set <String> tables = new HashSet<String>();
+	protected Set <String> allTables = new HashSet<String>();
+	protected Vector <String> allTablesModified = new Vector<String>();
 
 	// OWL variables
-	//protected RepositoryConnection rcOWL;
-	//protected ValueFactory vfOWL;
-	//protected SailConnection scOWL;
+//	protected RepositoryConnection rcOWL;
+//	protected ValueFactory vfOWL;
+//	protected SailConnection scOWL;
 	protected String owlFile = "";
 	protected BaseDatabaseCreator baseEngCreator;
 
@@ -201,10 +190,6 @@ public class RDBMSReader {
 		availableTablesInfo.clear();
 		whereColumns.clear();
 		rdfMap.clear();
-		relHash.clear();
-		recreateIndexesArr.clear();
-		tempIndexArray.clear();//should already be cleared but as a catch all clearing here as well.
-		tempDropArrays.clear();//should already be cleared but as a catch all clearing here as well.
 	}
 
 	private String writePropFile(String engineName)
@@ -313,7 +298,6 @@ public class RDBMSReader {
 					openCSVFile(fileName); //open further down in the process because we need variables defined in createProcessors
 					processConceptURIs();
 					processProperties();
-					processDisplayNames();
 					recreateRelations();
 					createTables();
 					skipRows();
@@ -341,10 +325,6 @@ public class RDBMSReader {
 		}
 		
 		
-	}
-	
-	private void processDisplayNames(){
-		displayNamesHash = DisplayNamesProcessor.generateDisplayNameMap(rdfMap);
 	}
 
 	//get current indexes that are saved off.  If some exist we will reexecute them when the upload process completes
@@ -391,7 +371,7 @@ public class RDBMSReader {
 			if(!sql.endsWith(";")) sql+= ";";
 			scriptFile.println(sql);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		}
 		modifyDB(sql);	
@@ -544,7 +524,7 @@ public class RDBMSReader {
 			File file2 = new File(tempFile);
 			file2.delete();
 		} catch (Exception e1) {
-			// TODO Auto-generated catch block
+			
 			e1.printStackTrace();
 		}
 
@@ -593,14 +573,16 @@ public class RDBMSReader {
 			prop.put("GQ" + tableIndex +"_QUERY", "SELECT @Concept-Concept:Concept@, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://semoss.org/ontologies/Concept' "
 					+ "From @Concept-Concept:Concept@ WHERE @Concept-Concept:Concept@='@Instance-Instance:Instance@'");
 			prop.put("GQ" + tableIndex + "_Instance_DEPEND", "Concept");
-			prop.put("GQ" + tableIndex + "_Concept_QUERY", "SELECT DISTINCT (COALESCE(?DisplayName, ?PhysicalName) AS ?entity) WHERE "
-					+ " { {?PhysicalName <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
-					+ " OPTIONAL{?PhysicalName <http://semoss.org/ontologies/DisplayName> ?DisplayName } }");
-			prop.put("GQ" + tableIndex + "_Concept_DB_QUERY", "FALSE"); //TODO rename to _Concept_DB_QUERY before commit
+			//Added for 
+			if(queryUtil.getDatabaseType().equals(SQLQueryUtil.DB_TYPE.SQL_SERVER))
+				prop.put("GQ" + tableIndex + "_Concept_QUERY", "SELECT DISTINCT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES");
+			else
+				prop.put("GQ" + tableIndex + "_Concept_QUERY", queryUtil.getDialectForceGraph(engineName)); 
 			prop.put("GQ" + tableIndex + "_Instance_QUERY", "SELECT Distinct @Concept@ FROM @Concept@");
 
 			prop.put("Generic-Perspective", genericQueries);
 		}
+		//prop.put("PERSPECTIVE", "Generic-Perspective");
 
 		if(addtoExisting ){
 			String savedGenericQueries = (String) prop.get(GENERIC_PERSPECTIVE);
@@ -617,15 +599,14 @@ public class RDBMSReader {
 			prop.store(fo, "Questions for RDBMS");
 			fo.close();
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		}
 	}
 
-	private void updateDefaultQuestionSheet(){
+	private void updateDefaultQuestionSheet(String engineName){
 		QuestionAdministrator questionAdmin = new QuestionAdministrator(((AbstractEngine)engine));
 
 		//determine the # where the new questions should start
@@ -696,20 +677,6 @@ public class RDBMSReader {
 	}
 
 
-	/** used for add to existing
-	 * 
-	 * @param engineName
-	 * @param fileNames
-	 * @param customBase
-	 * @param owlFile
-	 * @param dbType
-	 * @param allowDuplicates
-	 * @throws RepositoryException
-	 * @throws FileNotFoundException
-	 * @throws IOException
-	 * @throws SailException
-	 * @throws Exception
-	 */
 	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile,SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates)
 			throws RepositoryException, FileNotFoundException, IOException, SailException, Exception {
 		queryUtil = SQLQueryUtil.initialize(dbType);
@@ -750,7 +717,6 @@ public class RDBMSReader {
 					openCSVFile(fileName); //moved openCSVFile down because we need the variables that are set in createProcessors
 					processConceptURIs();
 					processProperties();
-					processDisplayNames();
 					recreateRelations();
 					createTables();
 					skipRows();
@@ -766,7 +732,7 @@ public class RDBMSReader {
 			runDBModTransactions(recreateIndexesArr); 
 			cleanAll(); //clean again because we reset the values for availableTables and availableTablesInfo
 			writeDefaultQuestionSheet(engineName);
-			updateDefaultQuestionSheet();
+			updateDefaultQuestionSheet(engineName);
 			createBaseRelations();
 			
 		} finally {
@@ -802,10 +768,55 @@ public class RDBMSReader {
 
 	private void openOWLWithOutConnection(String owlFile) throws RepositoryException {
 		baseEngCreator = new BaseDatabaseCreator(owlFile);
+//		Repository myRepository = new SailRepository(new MemoryStore());
+//		try {
+//			myRepository.initialize();
+//			rcOWL = myRepository.getConnection();
+//		} catch (RepositoryException e) {
+//			e.printStackTrace();
+//			throw new RepositoryException("Could not create new repository connection to store OWL information");
+//		} 
+//
+//		scOWL = ((SailRepositoryConnection) rcOWL).getSailConnection();
+//		vfOWL = rcOWL.getValueFactory();
+//		vf = vfOWL;
 	}
 
 	private void openOWLWithConnection(IEngine engine, String owlFile) {
 		baseEngCreator = new BaseDatabaseCreator(engine, owlFile);
+
+//		Repository myRepository = new SailRepository(new MemoryStore());
+//		try {
+//			myRepository.initialize();
+//			rcOWL = myRepository.getConnection();
+//			rcOWL.begin();
+//			scOWL = ((SailRepositoryConnection) rcOWL).getSailConnection();
+//			vfOWL = rcOWL.getValueFactory();
+//			vf = vfOWL;
+//		} catch (RepositoryException e) {
+//			e.printStackTrace();
+//			throw new RepositoryException("Could not create new repository connection to store OWL information");
+//		} 
+//
+//		baseDataEngine = ((AbstractEngine)engine).getBaseDataEngine();
+//		baseDataHash = ((AbstractEngine)engine).getBaseHash();
+//
+//		RepositoryConnection existingRC = ((RDFFileSesameEngine) baseDataEngine).getRc();
+//		// load pre-existing base data
+//		RepositoryResult<org.openrdf.model.Statement> rcBase = null;
+//		try {
+//			rcBase = existingRC.getStatements(null, null, null, false);
+//			List<org.openrdf.model.Statement> rcBaseList = null;
+//			rcBaseList = rcBase.asList();
+//			Iterator<org.openrdf.model.Statement> iterator = rcBaseList.iterator();
+//			while(iterator.hasNext()){
+//				logger.info(iterator.next());
+//			}
+//			rcOWL.add(rcBaseList);
+//		} catch (RepositoryException e) {
+//			e.printStackTrace();
+//			throw new RepositoryException("Could not load OWL information from existing database");
+//		}
 	}
 
 
@@ -825,6 +836,7 @@ public class RDBMSReader {
 		{
 			String relationNames = rdfMap.get("RELATION");
 			StringTokenizer relationTokens = new StringTokenizer(relationNames, ";");
+			relationArrayList = new ArrayList<String>();
 			// process each relationship
 			while(relationTokens.hasMoreElements())
 			{
@@ -833,13 +845,14 @@ public class RDBMSReader {
 				if(!relation.contains("@"))
 					break;
 
+				relationArrayList.add(relation);
 				logger.info("Loading relation " + relation);            	
 				String[] strSplit = relation.split("@");
 				// get the subject and object for triple (the two indexes)
-				String sub = Utility.cleanVariableString(strSplit[0]);//String sub = strSplit[0];
+				String sub = strSplit[0];
 				String subject = "";
-				String predicate = Utility.cleanVariableString(strSplit[1]); // this needs to be ignored
-				String obj = Utility.cleanVariableString(strSplit[2]); 
+				String predicate = strSplit[1]; // this needs to be ignored
+				String obj = strSplit[2];
 				String object = "";
 
 				//guide FK creation by grabbing where the asterisk is on the predicate if one exists
@@ -904,7 +917,7 @@ public class RDBMSReader {
 		// add to base concept URI
 		if(rdfMap.containsKey(sub+Constants.CLASS))
 		{
-			uriHash.put(sub,rdfMap.get(sub+Constants.CLASS));
+			uriHash.put(sub+Constants.CLASS,rdfMap.get(sub+Constants.CLASS));
 		}
 		// if no user specific URI, use generic SEMOSS base URI
 		else
@@ -919,10 +932,10 @@ public class RDBMSReader {
 				subject = sub;
 				idxBaseURI = URI + subject;
 			}
-			uriHash.put(subject, idxBaseURI);
+			uriHash.put(subject+Constants.CLASS, idxBaseURI);
 		}
 	}
-	
+
 	private void processProperties() throws Exception
 	{
 		if(rdfMap.get("NODE_PROP") != null)
@@ -943,11 +956,11 @@ public class RDBMSReader {
 				logger.info("Loading Node Prop " + relation);            	
 				String[] strSplit = relation.split("%");
 				// get the subject and object for triple (the two indexes)
-				String sub = Utility.cleanVariableString(strSplit[0]);
+				String sub = strSplit[0];
 				// loop through all properties on the node
 				for(int i = 1; i < strSplit.length; i++)
 				{
-					String prop = Utility.cleanVariableString(strSplit[i]);
+					String prop = strSplit[i];
 
 					boolean headException = true;
 					if(sub.contains("+"))
@@ -992,23 +1005,21 @@ public class RDBMSReader {
 
 					// for now I am not adding properties to it
 					prop = realClean(prop); // need this because we are using the prop in terms of the explore table
-					processPropertyMetaData(sub,  prop); //processPropertyMetaData(semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/" + processAutoConcat(sub), prop);
+					processPropertyMetaData(semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/" + processAutoConcat(sub), prop);
 				}
 			}
 		}
 	}
 
-	private void processPropertyMetaData(String sub, String property)
+	private void processPropertyMetaData(String parentNodeURI, String property)
 	{
 		// add the base property first
 		property = processAutoConcat(property);
 		String propURI = semossURI + "/" + Constants.DEFAULT_PROPERTY_CLASS + "/" + property;
-		//used for OWL generation, need to know which subject the property belongs to when generating the owl, so if there are duplicate properties
-		//on multiple nodes we can display each property for the relevant node, similarly handling this for basePropRelations. 
-		basePropURIHash.put(sub + "%" + property, propURI);
+		basePropURIHash.put(propURI, propURI);
 
 		// now need to add a new one for the class as well
-		basePropRelations.put(sub + "%" + property, sub);//so map the property to its parent node URI
+		basePropRelations.put(propURI, parentNodeURI);
 	}
 
 	private void recreateRelations()
@@ -1116,7 +1127,7 @@ public class RDBMSReader {
 
 		baseRelations.put(newRelationName, subPredObj);	
 		
-		baseRelationURIHash.put(relSemossBaseURI, relSemossBaseURI);
+		baseRelationURIHash.put(relSemossBaseURI+Constants.CLASS, relSemossBaseURI);
 	}
 
 	private String realClean(String inputString)
@@ -1157,7 +1168,7 @@ public class RDBMSReader {
 				try {
 					scriptFile.println(modString + ";");
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
+					
 					e.printStackTrace();
 				}
 				modifyDB(modString);
@@ -1165,7 +1176,7 @@ public class RDBMSReader {
 				try {
 					scriptFile.println("-- no create or alter statement needed for table: "+ tableKey);
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
+					
 					e.printStackTrace();
 				}
 			} */
@@ -1447,7 +1458,7 @@ public class RDBMSReader {
 				property = true;
 			}
 			key = key.replace("_FK", "");
-			
+								
 			value = createInstanceValue(key, jcrMap, type, property);
 			//if(!sqlHash.get(type).contains("FLOAT"))
 			//	value = realClean(value);
@@ -1473,7 +1484,7 @@ public class RDBMSReader {
 	private String getAlterString(String tableKey, Map <String, Object> jcrMap, String insertTemplate, Hashtable <String, Hashtable<String, String>> allColumnsTableHash)
 	{
 		String VALUES = "";
-		String SQLALTER = "";		
+		String SQLALTER = "";
 		Hashtable columns = tableHash.get(tableKey);
 
 		Enumeration <String> columnKeys = columns.keys();
@@ -1674,6 +1685,152 @@ public class RDBMSReader {
 	 */
 	private static int countSubstring(String subStr, String str){
 		return (str.length() - str.replace(subStr, "").length()) / subStr.length();
+	}
+
+	/**
+	 * gets the merge statement, current unused
+	 * @param tableKey
+	 * @param jcrMap
+	 * @param insertTemplate
+	 * @return
+	 */
+	private String getMergeString(String tableKey, Map <String, Object> jcrMap, String insertTemplate)
+	{
+		String VALUES = "";		
+		Hashtable columns = tableHash.get(tableKey);
+
+		Enumeration <String> columnKeys = columns.keys();
+		// generate the set portion first
+		StringBuffer valuesBuffer = new StringBuffer();
+		StringBuffer varIntoKeysBuffer = new StringBuffer();
+		String commaStr = "";
+		valuesBuffer.append(VALUES);//yes this append doesn't do anything, BUT if someone changes the value of the where variable we wont have problems
+
+		while(columnKeys.hasMoreElements())
+		{
+			String key = columnKeys.nextElement();
+			String type = (String)columns.get(key);
+			boolean property = false;
+			String value = createInstanceValue(key, jcrMap, type, property);
+
+			boolean string = false;
+
+			if(sqlHash.get(type).contains("VARCHAR"))
+			{
+				value = value.replaceAll("'", "''");
+				value = "'" + value + "'" ;
+				string = true;
+			}
+
+			if(varIntoKeysBuffer.length() == 0)
+			{
+				if(string || (value != null && value.length() != 0)){
+					varIntoKeysBuffer.append(realClean(key)); //VALUES = realClean(key) + " = " +  value;
+					commaStr = (valuesBuffer.length() != 0)? " , " : ""; 
+					valuesBuffer.append(commaStr + value);
+				}
+
+			}
+			else
+			{
+				if(string || (value != null && value.length() != 0)){
+					varIntoKeysBuffer.append(" , " + realClean(key)); //VALUES = VALUES + " , " + realClean(key) + " = " +  value;
+					valuesBuffer.append(" , " + value);
+				}
+			}
+		}
+
+		Hashtable whereHash = whereColumns.get(tableKey.toUpperCase());
+		String keysStr  = "";
+
+		Enumeration <String> whereKeys = whereHash.keys();
+		StringBuffer whereBuffer = new StringBuffer();
+		StringBuffer keysBuffer = new StringBuffer();
+		keysBuffer.append(keysStr);//yes this append doesn't do anything, BUT if someone changes the value of the where variable we wont have problems
+		while(whereKeys.hasMoreElements())
+		{
+			String key = whereKeys.nextElement();
+			String type = (String) whereHash.get(key);
+			boolean property = false;
+			String value = createInstanceValue(key, jcrMap, type, property);
+
+			boolean string = false;
+
+			if(type.contains("VARCHAR"))
+			{
+				value = value.replaceAll("'", "''");
+				value = "'" + value + "'" ;
+				string = true;
+			}
+
+			if(whereBuffer.length() == 0)
+			{
+				if(string || (value != null && value.length() != 0))
+					keysBuffer.append(key);
+				commaStr = (varIntoKeysBuffer.length() != 0)? " , " : ""; 
+				varIntoKeysBuffer.append(commaStr + key);
+				commaStr = (valuesBuffer.length() != 0)? " , " : ""; 
+				valuesBuffer.append(commaStr + value);
+			}
+			else
+			{
+				if(string || (value != null && value.length() != 0))
+					keysBuffer.append(" , " + key);
+				varIntoKeysBuffer.append(" , " + key); 
+				valuesBuffer.append(" , " + value);
+			}			
+		}
+
+		String SQLALTER = insertTemplate + "( " + varIntoKeysBuffer.toString() + " ) KEY ( "+ keysBuffer.toString() +" )";
+		SQLALTER = SQLALTER + " SELECT " + valuesBuffer.toString() + " FROM DUAL ";
+
+		return SQLALTER;
+	}
+
+
+	//duplicate check. unused at this time.
+	private boolean findIfRecordAvailable(String tableKey, Map <String, Object> jcrMap)
+	{
+		Hashtable columns = tableHash.get(tableKey);
+
+		Enumeration <String> columnKeys = columns.keys();
+		String selfType = (String) columns.get(tableKey);
+		boolean property = false;
+		String selfValue = createInstanceValue(tableKey, jcrMap, selfType, property);
+		selfValue = selfValue.replaceAll("'", "''");
+		selfValue = "'" + selfValue + "'" ;
+		String query = "SELECT * FROM " + realClean(tableKey) + " WHERE " ;
+		String VALUES = realClean(tableKey) + "=" + selfValue;
+
+		// generate the set portion first
+		while(columnKeys.hasMoreElements())
+		{
+			String key = columnKeys.nextElement();
+			String type = (String)columns.get(key);
+			boolean property1 = false;
+			String value = createInstanceValue(key, jcrMap, type, property1);
+
+			boolean string = false;
+
+			if(sqlHash.get(type).contains("VARCHAR"))
+			{
+				value = value.replaceAll("'", "''");
+				value = "'" + value + "'" ;
+				//value = realClean(value);
+				string = true;
+			}
+			if(string || (value != null && value.length() != 0))
+				VALUES = VALUES + " AND " + realClean(key) + " = " +  value;			
+		}
+
+		query = query + VALUES;
+		ISelectWrapper sWrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		boolean hasNext = false;
+		hasNext = sWrapper.hasNext();
+
+		return hasNext;
+
 	}
 
 	private void insertRecords() throws IOException
@@ -2162,7 +2319,7 @@ public class RDBMSReader {
 		if (!property) {
 			retString = Utility.cleanString(retString, true, false); // clean string
 		}
-		return retString;
+			return retString;
 	}
 
 	/**
@@ -2216,11 +2373,6 @@ public class RDBMSReader {
 			}		
 			try {
 				header = mapReader.getHeader(true);
-				//header clean up, trim spaces and replace remaining spaces with underscores
-				for(int j = 0; j < header.length; j++){
-					String singleHeader = Utility.cleanVariableString(header[j]);
-					header[j] = singleHeader;
-				}
 				headerList = Arrays.asList(header);
 				// last header in CSV file is the absolute path to the prop file
 				//propFile = header[header.length-1];
@@ -2253,13 +2405,27 @@ public class RDBMSReader {
 		}		
 	}
 
-	protected void storeBaseStatement(String sub, String pred, String obj) throws SailException  {
-		storeBaseStatement(sub,pred,obj, true);
+	protected void storeBaseStatement(String sub, String pred, String obj) throws SailException {
+		baseEngCreator.addToBaseEngine(new Object[]{sub, pred, obj});
+//		try {
+//			if(!scOWL.isActive() || !scOWL.isOpen()) {
+//				scOWL.begin();
+//			}
+//			scOWL.addStatement(vf.createURI(sub), vf.createURI(pred), vf.createURI(obj));
+//			scOWL.commit();
+//		} catch (SailException e) {
+//			e.printStackTrace();
+//			throw new SailException("Error adding triple {<" + sub + "> <" + pred + "> <" + obj + ">}");
+//		}
+//		if(baseDataEngine != null && baseDataHash != null)
+//		{
+//			baseDataEngine.addStatement(new Object[]{sub, pred, obj, true});
+//			baseDataHash.put(sub, sub);
+//			baseDataHash.put(pred, pred);
+//			baseDataHash.put(obj,obj);
+//		}
 	}
-	
-	protected void storeBaseStatement(String sub, String pred, String obj, boolean concept) throws SailException  {
-		baseEngCreator.addToBaseEngine(new Object[]{sub, pred, obj, concept});
-	}
+
 
 	protected void createBaseRelations() throws SailException, IOException, RepositoryException {
 		// necessary triple saying Concept is a type of Class
@@ -2331,8 +2497,7 @@ public class RDBMSReader {
 
 		baseHashIt = basePropURIHash.keySet().iterator();
 		while(baseHashIt.hasNext()){
-			String subjectKey = baseHashIt.next() +"";
-			String subjectInstance = basePropURIHash.get(subjectKey);
+			String subjectInstance = baseHashIt.next() +"";
 			String predicate = RDF.TYPE +"";
 			//convert instances to URIs
 			String subject = subjectInstance; //baseRelationURIHash.get(subjectInstance);// +"", false);
@@ -2346,17 +2511,42 @@ public class RDBMSReader {
 		// now write the actual relations
 		// relation instances go next
 		for(String relArray : basePropRelations.keySet()){
-			String propertyKey = relArray;
-			String parent = basePropRelations.get(propertyKey);
-			String parentURI = baseConceptURIHash.get(parent);
-			String propertyURI = basePropURIHash.get(propertyKey);
-			storeBaseStatement(parentURI, OWL.DatatypeProperty+"", propertyURI);
+			String property = relArray;
+			String parent = basePropRelations.get(property);
+
+			//			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
+			storeBaseStatement(parent, OWL.DatatypeProperty+"", property);
+			//			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
 		}
-		
-		//process logic for display naming
-		if(displayNamesHash.size()>0){
-			DisplayNamesProcessor.addDisplayNamesToOWL(displayNamesHash, basePropURIHash, baseConceptURIHash, baseEngCreator);
-		}
+//		try {
+//			scOWL.commit();
+//		} catch (SailException e) {
+//			throw new SailException("Could not commit base relationships into OWL database");
+//		}
+//		if(baseDataEngine != null) {
+//			baseDataEngine.commit();
+//		}
+//		// create the OWL File
+//		FileWriter fWrite = null;
+//		try {
+//			fWrite = new FileWriter(owlFile);
+//			RDFXMLPrettyWriter owlWriter  = new RDFXMLPrettyWriter(fWrite); 
+//			rcOWL.export(owlWriter);
+//			fWrite.close();
+//			owlWriter.close();
+//		} catch (RepositoryException | RDFHandlerException | IOException e) {
+//			e.printStackTrace();
+//			throw new IOException("Could not close OWL file writer");
+//		} finally {
+//			try {
+//				if(fWrite!=null)
+//					fWrite.close();
+//			}catch(IOException e) {
+//				e.printStackTrace();
+//			}
+//		}
+//
+//		closeOWL();
 		
 		baseEngCreator.commit();
 		// create the OWL File
@@ -2368,6 +2558,24 @@ public class RDBMSReader {
 	 */
 	protected void closeOWL() throws SailException, RepositoryException {
 		baseEngCreator.closeBaseEng();
+//		try {
+//			scOWL.close();
+//			rcOWL.close();
+//		} catch (SailException e1) {
+//			e1.printStackTrace();
+//			throw new SailException("Could not close OWL database connection");
+//		} catch (RepositoryException e) {
+//			e.printStackTrace();
+//			throw new RepositoryException("Could not close OWL database connection");
+//		}
 	}
+
+	/* function used for debugging, leaving it here for now 
+	private String currentDate(){
+		Date dt = new Date();
+		SimpleDateFormat dtFormatter = new SimpleDateFormat("MM/dd/yy HH:mm:ss:SSS");
+
+		return dtFormatter.format(dt);
+	}*/
 
 }

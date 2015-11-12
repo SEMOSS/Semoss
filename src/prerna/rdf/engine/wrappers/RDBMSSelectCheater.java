@@ -43,16 +43,13 @@ import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.rdf.query.builder.SQLQueryTableBuilder;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.Utility;
-import prerna.util.sql.SQLQueryUtil;
 
 public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWrapper {
 
 	private ArrayList<ISelectStatement> queryResults = new ArrayList();
-	//public static String uri = "http://semoss.org/ontologies/Concept";
+	public static String uri = "http://semoss.org/ontologies/Concept";
 	ResultSet rs = null;
 	Connection conn = null;
 	Statement stmt = null;
@@ -109,42 +106,23 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 		IConstructStatement stmt = null; // I know I need to run the magic of doing multiple indexes, but this is how we run it for now i.e. assumes 3 only
 		try {
 			if(rs.next()){
-				String subjectUri = Constants.CONCEPT_URI;
-				String objectUri = Constants.CONCEPT_URI;
 				stmt = new ConstructStatement();
 				subject = rs.getObject(var[0]) + "" ;
 				predicate = "" ;
-				
-				if(!var[2].equals("")){
-					object  = rs.getObject(var[2]) + "";
-				} else {
-					object = rs.getObject(3).toString();
-				}
-				
-				//if the display var is not equal to the physical var that means we are using a display name so we need to adjust the uri
-				/*if(!var[0].equalsIgnoreCase(displayVar[0])){ 
-					subjectUri = Constants.DISPLAY_URI;
-				}
-				if(!var[2].equalsIgnoreCase(displayVar[2])){ 
-					objectUri = Constants.DISPLAY_URI;
-				}*/
-				if(rs.getObject(var[0]) != null && columnTables.contains(var[0].toUpperCase()))
+				object  = rs.getObject(var[2]) + "";
+				if(rs.getObject(var[0]) != null && columnTables.contains(var[0]))
 				{
-					subject = subjectUri + var[0] + "/"  + subject + ""; 
+					subject = uri + "/" + columnTables.get(var[0]) + "/"  + subject + "";
 					subjectParent = Utility.getQualifiedClassName(subject);
 				}
-				if(rs.getObject(var[2]) != null && columnTables.contains(var[2].toUpperCase()))
+				if(rs.getObject(var[2]) != null && columnTables.contains(var[2]))
 				{
-					object = objectUri + var[2] + "/"  + rs.getObject(var[2]) + "";
+					object = uri + "/" + columnTables.get(var[2]) + "/"  + rs.getObject(var[2]) + "";
 					objectParent = Utility.getQualifiedClassName(object);
 				}
 				if(rs.getObject(var[1]) != null)
 				{
-					if(!var[1].equals("")){
-						predicate = rs.getObject(var[1]) + "";
-					} else {
-						predicate = rs.getObject(2) + "";
-					}
+					predicate = rs.getObject(var[1]) + "";
 					predParent = Utility.getQualifiedClassName(predicate);
 				}
 				stmt.setSubject(subject);
@@ -203,102 +181,34 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 		
 	}
 	
-	/**
-	 * setting variables to be used when querying for traverse freely/explore an instance of a concept.  FYI not using displaynames var 
-	 * because we actuallly do the translation later when we pass through GraphDataModel.
-	 */
 	private void setVariables(){
 		try {
 			
-			//get rdbms type
-			SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
-			String dbTypeString = engine.getProperty(Constants.RDBMS_TYPE);
-			if (dbTypeString != null) {
-				dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
-			}
-		
 			ResultSetMetaData rsmd = rs.getMetaData();
-			
 			int numColumns = rsmd.getColumnCount();
 			
 			var = new String[numColumns];
-			displayVar = new String[numColumns];
 			
 			for(int colIndex = 1;colIndex <= numColumns;colIndex++)
 			{
-				String tableName = rsmd.getTableName(colIndex);
 				String columnLabel = rsmd.getColumnLabel(colIndex);
-				String columnOnlyLabel = columnLabel;
-				String columnLabelURI = "";
-				if(tableName.isEmpty() && dbType == SQLQueryUtil.DB_TYPE.SQL_SERVER){
-					tableName = deriveTableName(tableName, columnLabel);
-				}
-				
-				boolean columnIsProperty = false;
-				if(tableName.equalsIgnoreCase(columnOnlyLabel)){
-					columnLabelURI = Constants.CONCEPT_URI;
-				} else {
-					columnLabelURI = Constants.RELATION_URI;
-					if(columnOnlyLabel.contains("__")){
-						columnIsProperty = true;
-						String[] splitColAndTable = columnOnlyLabel.split("__");
-						columnOnlyLabel = splitColAndTable[1];
-					}
-				}
-				columnLabelURI += columnOnlyLabel;
-
-				String physicalColumnLabel = Utility.getInstanceName(engine.getTransformedNodeName(columnLabelURI, false));
-				if(physicalColumnLabel.equalsIgnoreCase(columnLabel)){
-					columnLabel = physicalColumnLabel;
-				}
-				var[colIndex-1] = columnLabel;
-				
+				var[colIndex-1] = toCamelCase(columnLabel);
 				int type = rsmd.getColumnType(colIndex);
 				columnTypes.put(var[colIndex-1], type);
+				String tableName = rsmd.getTableName(colIndex);
 				
+				columnTypes.put(var[colIndex-1], type);
+
 				if(tableName != null && tableName.length() != 0) // will use this to find what is the type to strap it together
 				{
-					columnTables.put(var[colIndex-1], tableName.toUpperCase());
+					tableName = toCamelCase(tableName);
+					columnTables.put(var[colIndex-1], tableName);
 				}
 			}
-			
-			
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-	}
-	
-	private String deriveTableName(String tableName, String columnLabel){
-
-		//Originally written for Maria db as it was having trouble getting the table name using the result set metadata method getTableName, 
-		//this logic is for us to work around this issue (ie it used to get the alias and we would be able to get the table name from backtracking the alias
-		boolean getTableNameFromColumn = tableName.equals("");
-		if(!getTableNameFromColumn){
-			//first see if this really is a table name, so if an alias exists then you can use this tableName
-			String tableAlias = SQLQueryTableBuilder.getAlias(tableName);
-			if(tableAlias.length()==0){
-				//if no alias was returned, assume that maybe the value you got was an alias, 
-				//so try to use the alias to get the tableName
-				String tableNameFromAlias = SQLQueryTableBuilder.getTableNameByAlias(tableName);
-				if(tableNameFromAlias.length()>0){
-					tableName = tableNameFromAlias;
-				} else {
-					getTableNameFromColumn = true;//if you still have no tableName, try to use the columnLabel to get your tableName
-				}
-			}
-		}
-		
-		//use columnName to derive table name
-		if(getTableNameFromColumn){
-			tableName = columnLabel;
-			if(columnLabel.contains("__")){
-				String[] splitColAndTable = tableName.split("__");
-				tableName = splitColAndTable[0];
-			}
-		}
-	return tableName;
-		
 	}
 		
 	private Object typeConverter(Object input, int type)
@@ -314,9 +224,8 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 		return retObject;
 	}
 	
-	/*
 	public String toCamelCase(String input)
-	{		
+	{
 		if(input.length()>0){
 			String output = input.substring(0,1).toUpperCase() + input.substring(1).toLowerCase();
 			System.out.println("Output is " + output);
@@ -325,6 +234,6 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 		else {
 			return input;
 		}
-	}*/
+	}
 	
 }

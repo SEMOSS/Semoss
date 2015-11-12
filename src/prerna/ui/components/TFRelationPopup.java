@@ -128,8 +128,6 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 			
 			SEMOSSVertex thisVert = pickedVertex[pi];
 			String uri = thisVert.getURI();
-			String displayUri = thisVert.getURI();
-			uri = Utility.getTransformedNodeName(engine, uri, false);
 
 			String query2 = "";
 			if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
@@ -139,9 +137,9 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 			}
 			String typeName = null;
 			if(isRDF)
-				typeName = Utility.getConceptType(engine, uri);
+				typeName = Utility.getConceptType(engine, thisVert.uri);
 			else if(engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS)
-				typeName = Utility.getQualifiedClassName(uri);
+				typeName = Utility.getQualifiedClassName(thisVert.uri);
 			/*if(typeV.contains(typeName))
 			{
 				continue;
@@ -150,7 +148,7 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 			{
 				typeV.addElement(typeName);
 			}*/
-			String type = Utility.getClassName(displayUri);
+			String type = Utility.getClassName(uri);
 			if(prefix.equals("")) {
 				List<Object> typeList = new ArrayList<Object>();
 				typeList.add(typeName);
@@ -176,20 +174,18 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 				if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
 					for(int vertIndex = 0;vertIndex < vertVector.size();vertIndex++)
 					{
-						if(vertIndex == 0){
-							fileName = "<" + Utility.getTransformedNodeName(engine, vertVector.elementAt(vertIndex).getURI(), false) + ">";
-						} else {
-							fileName = fileName + "<" + Utility.getTransformedNodeName(engine, vertVector.elementAt(vertIndex).getURI(), false) + ">";
-						}
+						if(vertIndex == 0)
+							fileName = "<" + vertVector.elementAt(vertIndex).getURI() + ">";
+						else
+							fileName = fileName + "<" + vertVector.elementAt(vertIndex).getURI() + ">";
 					}
 				} else {
 					for(int vertIndex = 0;vertIndex < vertVector.size();vertIndex++)
 					{
-						if(vertIndex == 0){
-							fileName = "(<" + Utility.getTransformedNodeName(engine, vertVector.elementAt(vertIndex).getURI(), false) + ">)";
-						} else {
-							fileName = fileName + "(<" + Utility.getTransformedNodeName(engine, vertVector.elementAt(vertIndex).getURI(), false) + ">)";
-						}
+						if(vertIndex == 0)
+							fileName = "(<" + vertVector.elementAt(vertIndex).getURI() + ">)";
+						else
+							fileName = fileName + "(<" + vertVector.elementAt(vertIndex).getURI() + ">)";
 					}
 				}
 				
@@ -198,7 +194,6 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 				fileNameList.add(fileName);
 				hash.put("FILTER_VALUES", fileNameList);
 				String filledQuery = Utility.fillParam(query2, hash);
-
 				logger.debug("Found the engine for repository   " + repo);
 	
 				
@@ -241,7 +236,7 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 						count++;
 	
 						logger.debug("Adding Relation " + objClassName);
-						String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, objClassName+"", true));
+						String instance = Utility.getInstanceName(objClassName);
 	
 						if(prefix.equals("")) {
 							List<Object> typeList = new ArrayList<Object>();

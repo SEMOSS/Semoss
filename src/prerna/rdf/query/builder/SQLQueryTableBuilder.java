@@ -138,7 +138,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	
 	
 	protected void parsePath(){
-		Hashtable<String, List> parsedPath = QueryBuilderHelper.parsePath(engine, allJSONHash);
+		Hashtable<String, List> parsedPath = QueryBuilderHelper.parsePath(allJSONHash);
 		totalVarList = parsedPath.get(QueryBuilderHelper.totalVarListKey);
 		nodeV = parsedPath.get(QueryBuilderHelper.nodeVKey);
 		predV = parsedPath.get(QueryBuilderHelper.predVKey);
@@ -146,7 +146,6 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	
 	@Override
 	public void setJSONDataHash(Map<String, Object> allJSONHash) {
-		QueryBuilderHelper.cleanJSONHash(engine, allJSONHash);
 		Gson gson = new Gson();
 		this.allJSONHash = new Hashtable<String, Object>();
 		this.allJSONHash.putAll((StringMap) allJSONHash.get("QueryData"));

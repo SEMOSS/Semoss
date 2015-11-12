@@ -6,7 +6,6 @@ import java.util.List;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.engine.api.IEngine;
 import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SPARQLConstants;
 
@@ -14,13 +13,6 @@ public class SPARQLQueryGraphBuilder extends AbstractSPARQLQueryBuilder {
 	
 	static final Logger logger = LogManager.getLogger(SPARQLQueryGraphBuilder.class.getName());
 
-	IEngine engine = null;
-
-	public SPARQLQueryGraphBuilder(IEngine engine){
-		super(engine);
-		this.engine = engine;
-	}
-	
 	protected void addRelationshipTriples (List<Hashtable<String,String>> predV) {
 		for(Hashtable<String, String> predHash : predV){
 			String predName = predHash.get(QueryBuilderHelper.varKey);

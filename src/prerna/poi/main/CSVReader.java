@@ -62,7 +62,7 @@ import prerna.util.Utility;
 public class CSVReader extends AbstractFileReader {
 
 	private static final Logger logger = LogManager.getLogger(CSVReader.class.getName());
-	
+
 	private String propFile; // the file that serves as the property file
 	private FileReader readCSVFile;
 	private ICsvMapReader mapReader;
@@ -117,7 +117,6 @@ public class CSVReader extends AbstractFileReader {
 					processConceptRelationURIs();
 					processNodePropURIs();
 					processRelationPropURIs();
-					processDisplayNames();
 					skipRows();
 					processRelationShips();
 				} finally {
@@ -162,7 +161,6 @@ public class CSVReader extends AbstractFileReader {
 				processConceptRelationURIs();
 				processNodePropURIs();
 				processRelationPropURIs();
-				processDisplayNames();
 				skipRows();
 				processRelationShips();
 			} finally {
@@ -529,7 +527,7 @@ public class CSVReader extends AbstractFileReader {
 				// see if subject node SEMOSS base URI exist in prop file first
 				if(rdfMap.containsKey(sub+Constants.CLASS))
 				{
-					baseConceptURIHash.put(sub,rdfMap.get(sub+Constants.CLASS));
+					baseConceptURIHash.put(sub+Constants.CLASS,rdfMap.get(sub+Constants.CLASS));
 				}
 				// if no user specific URI, use generic SEMOSS base URI
 				else
@@ -544,7 +542,7 @@ public class CSVReader extends AbstractFileReader {
 						subject = sub;
 						idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;
 					}
-					baseConceptURIHash.put(subject, idxBaseURI);
+					baseConceptURIHash.put(subject+Constants.CLASS, idxBaseURI);
 				}
 				// see if subject node instance URI exists in prop file
 				if(rdfMap.containsKey(sub))
@@ -571,7 +569,7 @@ public class CSVReader extends AbstractFileReader {
 				// see if object node SEMOSS base URI exists in prop file
 				if(rdfMap.containsKey(obj+Constants.CLASS))
 				{
-					baseConceptURIHash.put(obj,rdfMap.get(obj+Constants.CLASS));
+					baseConceptURIHash.put(obj+Constants.CLASS,rdfMap.get(obj+Constants.CLASS));
 				}
 				// if no user specified URI, use generic SEMOSS base URI
 				else
@@ -586,7 +584,7 @@ public class CSVReader extends AbstractFileReader {
 						object = obj;
 						idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ object;
 					}
-					baseConceptURIHash.put(object, idxBaseURI);
+					baseConceptURIHash.put(object+Constants.CLASS, idxBaseURI);
 				}
 				// see if object node instance URI exists in prop file
 				if(rdfMap.containsKey(obj))
@@ -651,7 +649,7 @@ public class CSVReader extends AbstractFileReader {
 				basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
 			}
 			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{basePropURI, Constants.SUBPROPERTY_URI, basePropURI, true});
-//			createStatement(vf.createURI(basePropURI),vf.createURI(),vf.createURI(basePropURI));
+			//			createStatement(vf.createURI(basePropURI),vf.createURI(),vf.createURI(basePropURI));
 
 			while(nodePropTokens.hasMoreElements())
 			{
@@ -703,7 +701,7 @@ public class CSVReader extends AbstractFileReader {
 					if(rdfMap.containsKey(sub+Constants.CLASS))
 					{
 						idxBaseURI = rdfMap.get(sub+Constants.CLASS);
-						baseConceptURIHash.put(sub,idxBaseURI);
+						baseConceptURIHash.put(sub+Constants.CLASS,idxBaseURI);
 					}
 					// if no user specified URI, use generic SEMOSS base URI
 					else
@@ -718,7 +716,7 @@ public class CSVReader extends AbstractFileReader {
 							subject = sub;
 							idxBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ subject;						
 						}
-						baseConceptURIHash.put(subject, idxBaseURI);
+						baseConceptURIHash.put(subject+Constants.CLASS, idxBaseURI);
 					}
 					// see if subject node instance URI exists in prop file
 					if(rdfMap.containsKey(sub))
@@ -973,12 +971,6 @@ public class CSVReader extends AbstractFileReader {
 		}		
 		try {
 			header = mapReader.getHeader(true);
-			//header clean up, trim spaces and replace remaining spaces with underscores
-			//TODO Elena do you need this?
-			for(int j = 0; j < header.length; j++){
-				String singleHeader = header[j];
-				header[j] = singleHeader;
-			}
 			headerList = Arrays.asList(header);
 			// last header in CSV file is the absolute path to the prop file
 			propFile = header[header.length-1];
@@ -987,7 +979,7 @@ public class CSVReader extends AbstractFileReader {
 			throw new FileNotFoundException("Could not close reader input stream for CSV file " + fileName);
 		}
 	}
-	
+
 	/**
 	 * Closes the CSV file streams
 	 * @throws IOException 
@@ -1001,6 +993,5 @@ public class CSVReader extends AbstractFileReader {
 			throw new IOException("Could not close CSV file streams");
 		}		
 	}
-
 
 }
