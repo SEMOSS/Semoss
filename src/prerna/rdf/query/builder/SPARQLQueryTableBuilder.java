@@ -21,19 +21,12 @@ import java.util.List;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.engine.api.IEngine;
 import prerna.rdf.query.util.SPARQLConstants;
 import prerna.rdf.query.util.TriplePart;
 
 public class SPARQLQueryTableBuilder extends AbstractSPARQLQueryBuilder{
 	static final Logger logger = LogManager.getLogger(SPARQLQueryTableBuilder.class.getName());
-	IEngine engine = null;
-	
-	public SPARQLQueryTableBuilder(IEngine engine){
-		super(engine);
-		this.engine = engine;
-	}
-	
+
 	@Override
 	public void buildQuery() 
 	{

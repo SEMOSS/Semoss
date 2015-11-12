@@ -1845,10 +1845,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 		String query = component.fillQuery();
 		
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-		String[] displayNames = wrapper.getDisplayVariables(); // pulled this outside of the if/else block on purpose. 
+		
 		ITableDataFrame newDataFrame = null;
 		if(this.levelNames == null){
-			setLevelNames(displayNames);
+			setLevelNames(wrapper.getVariables());
 			while(wrapper.hasNext()){
 				this.addRow(wrapper.next());
 			}

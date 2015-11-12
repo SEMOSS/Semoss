@@ -30,6 +30,7 @@ package prerna.algorithm.learning.supervized;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -175,6 +176,11 @@ public class MatrixRegressionAlgorithm extends OLSMultipleLinearRegression imple
 		List<Object> coeffList = Arrays.asList(coefficients);
 		Collections.reverse(coeffList);
 
+		Map<String, String> dataTableAlign = new HashMap<String, String>();
+		for(i = 0; i < names.size(); i++) {
+			dataTableAlign.put("dim " + i, names.get(i));
+		}
+			
 		Hashtable<String, Object> dataHash = new Hashtable<String, Object>();
 		dataHash.put("one-row",true);
 		dataHash.put("id",id);
@@ -187,6 +193,7 @@ public class MatrixRegressionAlgorithm extends OLSMultipleLinearRegression imple
 		allHash.put("data", this.dataFrame.getRawData());
 		allHash.put("headers", names);
 		allHash.put("layout", getDefaultViz());
+		allHash.put("dataTableAlign", dataTableAlign);
 		
 		return allHash;
 	}
@@ -222,7 +229,7 @@ public class MatrixRegressionAlgorithm extends OLSMultipleLinearRegression imple
 
 	@Override
 	public String getDefaultViz() {
-		return "prerna.ui.components.playsheets.MatrixRegressionVizPlaySheet";
+		return "ScatterplotMatrix";
 	}
 
 	@Override

@@ -212,10 +212,10 @@ public class AutoInsightCallable implements Callable<List<Object[]>> {
 			names[i] = properties.get(i-1);
 		}
 
-		String retVarString = "?"+concept;
+		String retVarString = "?"+Utility.cleanVariableString(concept);
 		String triplesString = "";
 		for(String prop : properties) {
-			String propClean = prop.replaceAll("-","_");
+			String propClean = Utility.cleanVariableString(prop);
 			retVarString += " ?" + propClean;
 			triplesString += "OPTIONAL" + PROPERTY_TRIPLE.replaceAll("@CONCEPT@",concept).replaceAll("@PROP@", prop).replaceAll("@PROPCLEAN@", propClean);
 		}
@@ -278,14 +278,16 @@ public class AutoInsightCallable implements Callable<List<Object[]>> {
 				biDirectionalConceptsSet.add(relatedConcept);
 			}
 
-			String retVarString = "?" + concept + " ?" + relatedConcept;
+			String cleanConceptVar = "?" + Utility.cleanVariableString(concept);
+			String cleanRelatedConceptVar = "?" + Utility.cleanVariableString(relatedConcept);
+			String retVarString = cleanConceptVar + " " + cleanRelatedConceptVar;
 			String triplesString;
 
 			String direction = conceptDirectionList.get(i);
 			if(direction.equals(DOWNSTREAM))
-				triplesString = CONCEPT_DOWNSTREAM_TRIPLE.replaceAll("@CONCEPT@", concept).replaceAll("@RELATEDCONCEPT@", relatedConcept);
+				triplesString = CONCEPT_DOWNSTREAM_TRIPLE.replaceAll("\\?@CONCEPT@", cleanConceptVar).replaceAll("@CONCEPT@", concept).replaceAll("\\?@RELATEDCONCEPT@", cleanRelatedConceptVar).replaceAll("@RELATEDCONCEPT@", relatedConcept);
 			else
-				triplesString = CONCEPT_UPSTREAM_TRIPLE.replaceAll("@CONCEPT@", concept).replaceAll("@RELATEDCONCEPT@", relatedConcept);
+				triplesString = CONCEPT_UPSTREAM_TRIPLE.replaceAll("\\?@CONCEPT@", cleanConceptVar).replaceAll("@CONCEPT@", concept).replaceAll("\\?@RELATEDCONCEPT@", cleanRelatedConceptVar).replaceAll("@RELATEDCONCEPT@", relatedConcept);
 
 
 			String relatedConceptInstanceQuery = buildQuery(retVarString,triplesString,"");
@@ -501,7 +503,7 @@ public class AutoInsightCallable implements Callable<List<Object[]>> {
 	}
 
 	private String buildQuery(String retVarString, String triplesString, String endString) {
-		String ret = EMPTY_QUERY.replaceAll("@CONCEPT@", concept).replaceAll("@RETVARS@", retVarString).replaceAll("@TRIPLES@",triplesString).replaceAll("@ENDSTRING@",endString);
+		String ret = EMPTY_QUERY.replaceAll("\\?@CONCEPT@", "?" + Utility.cleanVariableString(concept)).replaceAll("@CONCEPT@", concept).replaceAll("@RETVARS@", retVarString).replaceAll("@TRIPLES@",triplesString).replaceAll("@ENDSTRING@",endString);
 		return ret;
 	}
 }

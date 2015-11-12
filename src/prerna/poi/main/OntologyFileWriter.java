@@ -183,7 +183,7 @@ public class OntologyFileWriter {
 					keyAndUri = currentLine.split(" ");
 					if(!newBaseURIvalues.containsKey(keyAndUri[0]))
 					{
-						newBaseURIvalues.put(keyAndUri[0] + Constants.CLASS,keyAndUri[1]);
+						newBaseURIvalues.put(keyAndUri[0],keyAndUri[1]);
 					}
 				}
 			}
@@ -250,7 +250,6 @@ public class OntologyFileWriter {
 			while(iterator.hasNext()){
 				name = iterator.next();
 				uri = newBaseURIvalues.get(name);
-				name += Constants.CLASS;
 				pw.write(name + " " + uri + "\n");
 				logger.info(name + " " + uri);
 			}

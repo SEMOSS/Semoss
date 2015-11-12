@@ -31,14 +31,12 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
 
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class CSVPropFileBuilder{
 
 	private StringBuilder relationships = new StringBuilder();
-	private StringBuilder node_properties = new StringBuilder();
-	private StringBuilder node_displaynames = new StringBuilder();	
+	private StringBuilder node_properties = new StringBuilder();	
 	private Hashtable<String, String> propHash = new Hashtable<String, String>();
 	private Hashtable<String, String> dataTypeHash = new Hashtable<String, String>();
 	
@@ -78,29 +76,6 @@ public class CSVPropFileBuilder{
 		
 		relationships.append(subject+"@"+pred+"@"+object+";");
 	}
-	
-	public void addDisplayName(ArrayList<String> node, ArrayList<String> prop, ArrayList<String> dspName){
-		Iterator<String> nodeIt = node.iterator();
-		String nodeSubject = nodeIt.next();
-		while(nodeIt.hasNext()){
-			nodeSubject = nodeSubject + "+" + nodeIt.next();
-		}
-		
-		Iterator<String> nodePropIt = prop.iterator();
-		String nodeProperty = nodePropIt.next();
-		while(nodeIt.hasNext()){
-			nodeProperty = nodeProperty + "+" + nodePropIt.next();
-		}
-		
-		Iterator<String> displayNameIt = dspName.iterator();
-		String displayName = displayNameIt.next();
-		
-		String nodes = nodeSubject;
-		if(nodeProperty.length() >0 && !nodeProperty.equals(nodeSubject)){
-			nodes += "%" + nodeProperty;
-		}
-		node_displaynames.append(nodes+":"+displayName+";");
-	}
 
 	public void columnTypes(ArrayList<String> header){
 		propHash.put("NUM_COLUMNS", Integer.toString(header.size()));
@@ -128,14 +103,12 @@ public class CSVPropFileBuilder{
 		propHash.put("NOT_OPTIONAL", ";");
 		propHash.put("RELATION", relationships.toString());
 		propHash.put("NODE_PROP", node_properties.toString());
-		propHash.put(Constants.DISPLAY_NAME, node_displaynames.toString());
 		propHash.put("RELATION_PROP", "");
 		
 		propFile.append("START_ROW\t" + startRowNumAsString + "\n");
 		propFile.append("END_ROW\t" + endRowNumAsString + "\n");
 		propFile.append("RELATION\t" + relationships.toString() + "\n");
 		propFile.append("NODE_PROP\t" + node_properties.toString() + "\n");
-		propFile.append(Constants.DISPLAY_NAME + "\t" + node_displaynames.toString() + "\n");
 		propFile.append("RELATION_PROP\t \n");
 	}
 

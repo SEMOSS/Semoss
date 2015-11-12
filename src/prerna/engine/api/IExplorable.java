@@ -114,14 +114,6 @@ public interface IExplorable {
 	List<Map<String, Object>> getAllInsightsMetaData();
 	
 	String getInsightDefinition();
-	
-	Vector<SEMOSSParam> getParams(String... paramIds);
-	
-	// gets the display or physical for a given concept
-	String getTransformedNodeName(String concept, boolean getDisplayName);
-	
-	//loads the logical and physical names
-	void loadTransformedNodeNames();
 
-	Vector<String> executeInsightQuery(String sparqlQuery, boolean isDbQuery);
+	Vector<SEMOSSParam> getParams(String... paramIds);
 }
