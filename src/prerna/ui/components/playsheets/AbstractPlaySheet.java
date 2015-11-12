@@ -29,6 +29,7 @@ package prerna.ui.components.playsheets;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Hashtable;
+import java.util.Map;
 
 import javax.swing.JComponent;
 import javax.swing.JInternalFrame;
@@ -64,6 +65,7 @@ public abstract class AbstractPlaySheet extends JInternalFrame implements IPlayS
 	public JComponent pane = null;
 	private static final Logger logger = LogManager.getLogger(AbstractPlaySheet.class.getName());
 	public JProgressBar jBar = new JProgressBar();
+	Map<String, String> tableDataAlign;
 	
 	/**
 	 * Constructor for AbstractRDFPlaySheet.
@@ -80,7 +82,11 @@ public abstract class AbstractPlaySheet extends JInternalFrame implements IPlayS
 		createView();		
 	}
 		
-	public abstract Hashtable<String, String> getDataTableAlign();
+	public abstract Map<String, String> getDataTableAlign();
+	
+	public void setTableDataAlign(Map<String, String> tableDataAlign){
+		this.tableDataAlign = tableDataAlign;
+	}
 	
 //	public Object getData(){
 //		Hashtable retHash = new Hashtable();
