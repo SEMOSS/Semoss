@@ -290,7 +290,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		ResultSet rs = null;
 		try {
 			conn = getConnection();
-			stmt = conn.createStatement();
+			stmt = conn.createStatement(); 
 			Map<String, Object> map = new HashMap();
 			rs = getResults(stmt, query);
 			//normally would use instance.getClass() but when we retrieve the 

@@ -1,7 +1,6 @@
 package prerna.algorithm.learning.supervized;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -87,11 +86,6 @@ public class NumericalCorrelationAlgorithm implements IAnalyticActionRoutine {
 				correlations[numVariables-i-1][numVariables-j-1] = correlationArray[i][j];
 			}
 		}
-		
-		Map<String, String> dataTableAlign = new HashMap<String, String>();
-		for(i = 0; i < columnHeaders.length; i++) {
-			dataTableAlign.put("dim " + i,columnHeaders[i]);
-		}
 
 		Hashtable<String, Object> dataHash = new Hashtable<String, Object>();
 		dataHash.put("one-row",false);
@@ -103,7 +97,6 @@ public class NumericalCorrelationAlgorithm implements IAnalyticActionRoutine {
 		allHash.put("data", this.dataFrame.getRawData());
 		allHash.put("headers", columnHeaders);
 		allHash.put("layout", getDefaultViz());
-		allHash.put("dataTableAlign", dataTableAlign);
 
 		return allHash;
 	}
@@ -139,7 +132,7 @@ public class NumericalCorrelationAlgorithm implements IAnalyticActionRoutine {
 
 	@Override
 	public String getDefaultViz() {
-		return "ScatterplotMatrix";
+		return "prerna.ui.components.playsheets.NumericalCorrelationVizPlaySheet";
 	}
 
 	@Override

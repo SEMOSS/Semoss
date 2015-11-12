@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.ui.helpers;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -70,10 +71,6 @@ public class InsightCreateRunner implements Runnable{
 		IDataMaker dm = createData();
 		IPlaySheet playSheet = insight.getPlaySheet();
 		playSheet.setDataMaker(dm);
-		Map<String, String> tableDataAlign = insight.getDataTableAlign();
-		if(playSheet instanceof AbstractPlaySheet && !(tableDataAlign == null || tableDataAlign.isEmpty())) {
-			((AbstractPlaySheet)playSheet).setTableDataAlign(tableDataAlign);
-		}
 		preparePlaySheet(playSheet, insight);
 
 		if(!insight.getAppend()){
@@ -96,43 +93,47 @@ public class InsightCreateRunner implements Runnable{
 	private IDataMaker createData(){
 		IDataMaker dm = insight.getDataMaker();
 		
-		// get the list of data maker components from the insight
+//		DataMakerComponent[] dmComps = insight.getDataMakerComponents();
 		List<DataMakerComponent> dmComps = insight.getDataMakerComponents();
-		// logic to append the parameter information that was selected on view into the data maker components
-		// this either fills the query if the parameter was saved as a string using @INPUT_NAME@ taxonomy or
-		// it fills in the values in a Filtering PreTransformation which appends the metamodel
 		insight.appendParamsToDataMakerComponents();
 		for(DataMakerComponent dmComp : dmComps){
-			// NOTE: this runs the data maker components directly onto the dm, not through the insight
 			dm.processDataMakerComponent(dmComp);
 		}
 		return dm;
 	}
 	
-	/**
-	 * Runs the insight and returns the data table align for FE to view
-	 */
 	public Map<String, Object> runWeb()
 	{
 		IDataMaker dm = createData();
 		Map<String, String> tableDataAlign = insight.getDataTableAlign();
 		
-		// previous insights did not save the table data align
-		// if it is not present, we get the table data align by setting the data maker in the playsheet and grabbing it
 		if(tableDataAlign == null || tableDataAlign.isEmpty()) {
 			IPlaySheet playSheet = insight.getPlaySheet();
 			playSheet.setDataMaker(dm);
 			tableDataAlign = (Map<String, String>) (((AbstractPlaySheet) playSheet).getDataTableAlign());
 			insight.setDataTableAlign(tableDataAlign);
 		}
-		return insight.getWebData();
+		
+		Map<String, Object> retHash = new HashMap<String, Object>();
+		retHash.put("insight", this.insight);
+		retHash.put("data", dm); // TODO: what should this be? getData()?
+		return retHash;
 	}
 	
 	private void preparePlaySheet(IPlaySheet playSheet, Insight insight){
 		// SET THE DESKTOP PANE
 		playSheet.setJDesktopPane((JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE));
 		
-		// CREATE INSIGHT ID AND STORE IT
+		// CREATE INSIGHT ID
+//		QuestionPlaySheetStore.getInstance().idCount++;
+//		String insightID = insight.getInsightID();
+//		if(insightID == null){
+//			insightID = "Custom";
+//		}
+//		insightID = QuestionPlaySheetStore.getInstance().getIDCount()+". "+ insightID;
+//		playSheet.setQuestionID(insightID);
+//		QuestionPlaySheetStore.getInstance().put(insightID,  playSheet);
+		
 		String insightID = InsightStore.getInstance().put(insight);
 		playSheet.setQuestionID(insightID);
 		
@@ -141,7 +142,6 @@ public class InsightCreateRunner implements Runnable{
 		Map<String, List<Object>> paramHash = insight.getParamHash();
 		if(paramHash != null && !paramHash.isEmpty())
 		{
-			// loops through and appends the selected parameters in the play sheet title
 			Iterator<String> enumKey = paramHash.keySet().iterator();
 			while (enumKey.hasNext())
 			{
@@ -149,7 +149,8 @@ public class InsightCreateRunner implements Runnable{
 				List<Object> value = paramHash.get(key);
 				for(int i = 0; i < value.size(); i++) {
 					Object val = value.get(i);
-					if(val instanceof String || val instanceof Double ) {
+					if(val instanceof String || val instanceof Double )
+					{
 						playSheetTitle = playSheetTitle + Utility.getInstanceName(value+"") + " - ";
 					}
 				}
@@ -157,7 +158,7 @@ public class InsightCreateRunner implements Runnable{
 		}
 		String name = insight.getInsightName();
 		if (name == null){
-			name = "Custom";
+			name = insightID;
 		}
 		System.out.println("Param Hash is " + paramHash);
 		playSheetTitle = playSheetTitle+name.trim();

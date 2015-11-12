@@ -31,23 +31,15 @@ import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.Map;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 /**
  * The GridScatterPlaySheet class creates the panel and table for a scatter plot view of data from a SPARQL query.
  */
 public class ScatterChartPlaySheet extends BrowserPlaySheet{
-	
-	private static final String labelString = "label";
-	private static final String seriesString = "series";
-	private static final String xString = "x";
-	private static final String yString = "y";
-	private static final String zString = "z";
-	private static final String heatString = "heat";
+	int offset = 0;
 	
 	/**
 	 * Constructor for GridScatterSheet.
@@ -67,40 +59,14 @@ public class ScatterChartPlaySheet extends BrowserPlaySheet{
 	public void processQueryData()
 	{
 		String[] names = dataFrame.getColumnHeaders();
+		String name = names[0];
+		boolean hasType = true;
 
-		Map<String, String> align = getDataTableAlign();
-		int labelIdx = -1;
-		int seriesIdx = -1;
-		int xIdx = -1;
-		int yIdx = -1;
-		int zIdx = -1;
-		int heatIdx = -1;
-		for(int i = 0; i < names.length; i++){
-			String name = names[i];
-			if(align.containsValue(name)){
-				String key = Utility.getKeyFromValue(align, name);
-				if(key.contains(labelString)){
-					labelIdx = i;
-				}
-				else if(key.contains(seriesString)){
-					seriesIdx = i;
-				}
-				else if(key.contains(xString)){
-					xIdx = i;
-				}
-				else if(key.contains(yString)){
-					yIdx = i;
-				}
-				else if(key.contains(zString)){
-					zIdx = i;
-				}
-				else if(key.contains(heatString)){
-					heatIdx = i;
-				}
-			}
+		if(dataFrame.isNumeric(names[1])) {
+			hasType = false;
+		} else {
+			offset = 1;
 		}
-
-		String name = names[labelIdx];
 		
 		Iterator<Object[]> it = dataFrame.iterator(true);
 		ArrayList<Hashtable<String, Object>> allData = new ArrayList<Hashtable<String, Object>>();
@@ -109,61 +75,48 @@ public class ScatterChartPlaySheet extends BrowserPlaySheet{
 			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
 			Object[] listElement = it.next();
 			
-			if(seriesIdx != -1) {
-				name = listElement[seriesIdx].toString();
+			if(hasType) {
+				name = listElement[0].toString();
 			}
 			
 			elementHash.put("series", name);
-			elementHash.put("label", listElement[labelIdx]);
-			elementHash.put("x", listElement[xIdx]);
-			if(yIdx != -1)
-				elementHash.put("y", listElement[yIdx]);
-			if(zIdx != -1)
-				elementHash.put("z", listElement[zIdx]);
-			if(heatIdx != -1)
-				elementHash.put("heat", listElement[heatIdx]);
+			elementHash.put("label", listElement[0+offset]);
+			elementHash.put("x", listElement[1+offset]);
+			if(listElement.length > 2 + offset)
+				elementHash.put("y", listElement[2+offset]);
+			if(listElement.length > 3 + offset)
+				elementHash.put("z", listElement[3+offset]);
+			if(offset == 0 && listElement.length > 4)
+				elementHash.put("heat", listElement[4]);
 			
 			allData.add(elementHash);
 		}
 		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
 		allHash.put("dataSeries", allData);
-		allHash.put("title",  names[xIdx] + " vs " + names[yIdx]);
-		allHash.put("labelHeader", names[labelIdx]);
-		allHash.put("xAxisTitle", names[xIdx]);
-		if(yIdx != -1)
-			allHash.put("yAxisTitle", names[yIdx]);
-		if(zIdx != -1)
-			allHash.put("zAxisTitle", names[zIdx]);
+		allHash.put("title",  names[1 + offset] + " vs " + names[2 + offset]);
+		allHash.put("labelHeader", names[0 + offset]);
+		allHash.put("xAxisTitle", names[1 + offset]);
+		if(names.length > 2 + offset)
+			allHash.put("yAxisTitle", names[2 + offset]);
+		if(names.length > 3 + offset)
+			allHash.put("zAxisTitle", names[3 + offset]);
 
 		this.dataHash = allHash;
 	}
 	
 	@Override
-	public Map<String, String> getDataTableAlign() {
-		if(this.tableDataAlign == null){
-			this.tableDataAlign = getAlignHash();
-		}
-		return this.tableDataAlign;
-	}
-	
-	public Hashtable<String, String> getAlignHash() {
+	public Hashtable<String, String> getDataTableAlign() {
 		Hashtable<String, String> alignHash = new Hashtable<String, String>();
 		String[] names = dataFrame.getColumnHeaders();
-
-		int offset = 0;
-		if(!dataFrame.isNumeric(names[1])) {
-			alignHash.put(seriesString, names[0]);
-			offset = 1;
-		}
 		
-		alignHash.put(labelString, names[0 + offset]);
-		alignHash.put(xString, names[1 + offset]);
+		if(offset != 0)
+			alignHash.put("series", names[0]);
+		alignHash.put("label", names[0 + offset]);
+		alignHash.put("x", names[1 + offset]);
 		if(names.length > 2 + offset)
-			alignHash.put(yString, names[2 + offset]);
+			alignHash.put("y", names[2 + offset]);
 		if(names.length > 3 + offset)
-			alignHash.put(zString, names[3 + offset]);
-		if(offset == 0 && names.length > 4)
-			alignHash.put(heatString, names[4 + offset]);
+			alignHash.put("z", names[3 + offset]);
 		return alignHash;
 	}
 	

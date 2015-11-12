@@ -53,10 +53,11 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 
 	private static final Logger LOGGER = LogManager.getLogger(MatrixRegressionPlaySheet.class.getName());
 
-	private MatrixRegressionAlgorithm alg;
-	
 	private String[] columnHeaders;
 
+	private double[] b;
+	private double[][] A;
+	
 	private int bIndex = -1;
 	private double[] coeffArray;
 	private double[] coeffErrorsArray;
@@ -82,19 +83,31 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 	@Override
 	public void runAnalytics() {
 		dataFrame.setColumnsToSkip(skipAttributes);
-		columnHeaders = dataFrame.getColumnHeaders();
-		numIndepVariables = dataFrame.getColumnHeaders().length - 1;
+		this.columnHeaders = dataFrame.getColumnHeaders();
+		if(includesInstance) {
+			numIndepVariables = columnHeaders.length - 2;//-1 for instance, -1 for dep var
+			variableStartIndex = 1;
+		} else {
+			numIndepVariables = columnHeaders.length - 1;// -1 for dep var
+			variableStartIndex = 0;
+		}
+		outputNumCols = 1 + numIndepVariables + 4;//instance, numIndVariables, and results
+
+		//the bIndex should have been provided. if not, will use the last column
 		if(bIndex == -1) {
 			bIndex = columnHeaders.length - 1;
 		}
-		if(includesInstance) {
-			numIndepVariables--;
-		}
-		alg = new MatrixRegressionAlgorithm();
+
+		//create the b and A arrays which are used in matrix regression to determine coefficients
+		b = MatrixRegressionHelper.createB(dataFrame, bIndex);
+		A = MatrixRegressionHelper.createA(dataFrame, variableStartIndex, bIndex);
+
+		//run regression
+		MatrixRegressionAlgorithm alg = new MatrixRegressionAlgorithm();
 		List<SEMOSSParam> options = alg.getOptions();
 		Map<String, Object> selectedOptions = new HashMap<String, Object>();
-		selectedOptions.put(options.get(0).getName(), true);
-		selectedOptions.put(options.get(1).getName(), bIndex);
+		selectedOptions.put(options.get(0).getName(), A);
+		selectedOptions.put(options.get(1).getName(), b);
 		alg.setSelectedOptions(selectedOptions);
 		dataFrame.performAnalyticAction(alg);
 
@@ -114,10 +127,6 @@ public class MatrixRegressionPlaySheet extends GridPlaySheet{
 		Iterator<Object[]> it = dataFrame.iterator(false);
 		int i = 0;
 		int j = 0;
-		
-		double[] b = alg.getB();
-		double[][] A = alg.getA();
-		outputNumCols = A[0].length + 5;
 		while(it.hasNext()) {
 			Object[] row = it.next();
 			double actualVal = b[i];
