@@ -7,6 +7,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
+
+import junit.framework.TestCase;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -17,7 +20,6 @@ import org.openrdf.rio.RDFFormat;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
-import junit.framework.TestCase;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.test.TestUtilityMethods;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -59,7 +61,7 @@ public class QuestionAdministratorTest extends TestCase {
 		DIHelper.getInstance().setLocalProperty("Movie_DB", movieDB);
 
 		QuestionAdministrator qa = new QuestionAdministrator(movieDB);
-		String retMakeUp = qa.generateXMLInsightMakeup(dmcList);
+		String retMakeUp = qa.generateXMLInsightMakeup(dmcList, new Vector());
 		//Test to make sure string produced is valid
 		Exception ex = null;
 		InputStream is = new ByteArrayInputStream(retMakeUp.getBytes() );
