@@ -40,7 +40,6 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapper {
@@ -85,25 +84,17 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 
 	protected ISelectStatement getSelectFromBinding(BindingSet bs)
 	{
-	
-		String [] variableArr = displayVar;
-		/*if(displayVar != null){
-			variableArr = displayVar;
-		} else {
-			variableArr =var;
-		}*/
-		
 		ISelectStatement sjss = new SelectStatement();
-		for(int colIndex = 0;colIndex < variableArr.length;colIndex++)
+		for(int colIndex = 0;colIndex < var.length;colIndex++)
 		{
 			Object val = bs.getValue(var[colIndex]);
 			Object parsedVal = getRealValue(val);
 
-			sjss.setVar(variableArr[colIndex], parsedVal);
+			sjss.setVar(var[colIndex], parsedVal);
 			if(val!=null){
-				sjss.setRawVar(variableArr[colIndex], val);
+				sjss.setRawVar(var[colIndex], val);
 			}
-			logger.debug("Binding Name " + variableArr[colIndex]);
+			logger.debug("Binding Name " + var[colIndex]);
 		}
 		return sjss;
 	}
@@ -141,55 +132,6 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 
 	@Override
 	public String[] getVariables() {
-		return getDisplayVariables();
-	}
-	
-	@Override
-	public String[] getDisplayVariables() {
-		if(displayVar == null){
-			try {
-
-				displayVar = new String[tqr.getBindingNames().size()];
-				List<String> names = tqr.getBindingNames();
-				for (int colIndex = 0; colIndex < names.size(); colIndex++){
-					String columnLabel = names.get(colIndex);
-					String tableLabel = names.get(colIndex);
-					boolean columnIsProperty = false;
-					String tableLabelURI = Constants.CONCEPT_URI;
-					String columnLabelURI = Constants.RELATION_URI;
-					if(columnLabel.contains("__")){
-						columnIsProperty = true;
-						String[] splitColAndTable = columnLabel.split("__");
-						tableLabel = splitColAndTable[0];
-						columnLabel = splitColAndTable[1];
-					}
-				
-					tableLabelURI += tableLabel;
-					columnLabelURI += columnLabel;
-					//now get the display name 
-					tableLabelURI = engine.getTransformedNodeName(tableLabelURI, true);
-					columnLabelURI = engine.getTransformedNodeName(columnLabelURI, true);
-					tableLabel = Utility.getInstanceName(tableLabelURI);
-					columnLabel = Utility.getInstanceName(columnLabelURI);
-					if(columnIsProperty){
-						columnLabel = tableLabel + "__" + columnLabel;
-					} else {
-						columnLabel = tableLabel;
-					}
-					
-					displayVar[colIndex] = columnLabel;
-				}
-					
-			} catch (QueryEvaluationException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		return displayVar;
-	}
-	
-	@Override
-	public String[] getPhysicalVariables() {
 		if(var == null){
 			try {
 				var = new String[tqr.getBindingNames().size()];
@@ -207,14 +149,14 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 
 	@Override
 	public ITableDataFrame getTableDataFrame() {
-		BTreeDataFrame dataFrame = new BTreeDataFrame(this.displayVar);
+		BTreeDataFrame dataFrame = new BTreeDataFrame(this.var);
 		while (hasNext()){
 			try {
 				logger.debug("Adding a sesame statement ");
 				BindingSet bs = tqr.next();
-				Object[] clean = new Object[this.displayVar.length];
-				Object[] raw = new Object[this.displayVar.length];
-				for(int colIndex = 0;colIndex < displayVar.length;colIndex++)
+				Object[] clean = new Object[this.var.length];
+				Object[] raw = new Object[this.var.length];
+				for(int colIndex = 0;colIndex < var.length;colIndex++)
 				{
 					raw[colIndex] = bs.getValue(var[colIndex]);
 					clean[colIndex] = getRealValue(raw[colIndex]);

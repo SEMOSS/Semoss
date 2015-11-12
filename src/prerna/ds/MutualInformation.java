@@ -1,6 +1,7 @@
 package prerna.ds;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -28,6 +29,7 @@ import prerna.util.DIHelper;
 public class MutualInformation {
 
 	private static final String delimiter = ":::";
+	private static final int logBase = 2;
 	private static String folderPath;
 	
 	public static void main(String[] args) {
@@ -49,11 +51,30 @@ public class MutualInformation {
 		
 		//Indicate Columns of Interest Here - MUST be exact
 		//******************************
+		
+		//Put two columns here that you need to compare
 		String column1 = "Nominated";
 		String column2 = "Genre";
+		
+		//Put n conditional columns here
+		String conditionalColumn1 = "Studio";
+		String conditionalColumn2 = "Director";
 		//******************************
 		
-		double independenceValue = getIndependenceValue(table, column1, column2);
+		/*
+		 * Arguments are 
+		 * 	1. table - do not change
+		 * 	2. first column of two to compare
+		 * 	3. second column of two to compare
+		 * 	4. add any number of conditional columns after second column below
+		 * 
+		 * Ex: 
+		 * 		independenceValue = getIndependenceValue(table, column1, column2, conditionalColumn1);
+		 * 		independenceValue = getIndependenceValue(table, column1, column2, conditionalColumn1, conditionalColumn2);
+		 * 		independenceValue = getIndependenceValue(table, column1, column2, conditionalColumn1, conditionalColumn2, conditionalColumn3);
+		 * 		etc.
+		 * */
+		double independenceValue = getIndependenceValue(table, column1, column2, conditionalColumn1);
 		System.out.println("Calculated Value: "+independenceValue);
 	}
 	
@@ -97,7 +118,7 @@ public class MutualInformation {
 				probabilityA = (double)column1Count.get(A)/numRows;
 				probabilityB = (double)column2Count.get(B)/numRows;
 				
-				double currentValue = probabilityAB * Math.log(probabilityAB/(probabilityA * probabilityB));
+				double currentValue = calculateMutualValue(probabilityAB, probabilityA, probabilityB, logBase); 
 				independenceValue += currentValue;
 				
 				System.out.println(column1+": Probability of "+A+": "+probabilityA);
@@ -113,6 +134,66 @@ public class MutualInformation {
 		return independenceValue;
 	}
 
+	public static double getIndependenceValue(BTreeDataFrame table, String column1, String column2, String... conditionalColumns) {
+		
+		double independenceValue = 0.0;
+		Map<String, Integer> CountAC = getUniqueValuesAndCount(table, column1, conditionalColumns);
+		Map<String, Integer> CountBC = getUniqueValuesAndCount(table, column2, conditionalColumns);
+		Map<String, Integer> CountC = getUniqueValuesAndCount(table, conditionalColumns);
+		Map<String, Integer> CountABC = getUniqueValuesAndCount(table, column1, column2, conditionalColumns);
+		
+		int totalRows = table.getNumRows();
+		
+		
+		for(String ABC : CountABC.keySet()) {
+			String[] keys = ABC.split(delimiter);
+			String A = delimiter+keys[1];
+			String B = delimiter+keys[2];
+			String C = "";
+			for(int i = 3; i < keys.length; i++) {
+				C = C+delimiter+keys[i];
+			}
+	
+			double probabilityABC  = (double)CountABC.get(ABC)/(double)totalRows;
+			double probabilityAC  = (double)CountAC.get(A+C)/(double)totalRows;
+			double probabilityBC  = (double)CountBC.get(B+C)/(double)totalRows;
+			double probabilityC  = (double)CountC.get(C)/(double)totalRows;
+
+			double currentCalculation = calculateConditionalMutualValue(probabilityC, probabilityABC, probabilityAC, probabilityBC);
+			independenceValue += currentCalculation;
+			
+			String[] stringC = C.split(delimiter);
+			String printC = Arrays.toString(stringC);
+			System.out.println(Arrays.toString(conditionalColumns)+": Probability of "+printC+": "+probabilityC);
+			System.out.println(column1+": Probability of "+keys[1]+" given "+printC+": "+probabilityAC);
+			System.out.println(column2+": Probability of "+keys[2]+" given "+printC+": "+probabilityBC);
+			System.out.println("Probability of ("+Arrays.toString(keys)+"):"+probabilityABC);
+			System.out.println("Current Calculation: "+ currentCalculation);
+			System.out.println("current Sum: "+independenceValue);
+			System.out.println("\n");
+		}
+		
+		System.out.println("Calculation complete between column "+column1+" and "+column2+" with conditional columns "+Arrays.toString(conditionalColumns));
+		return independenceValue;
+	}
+	
+	private static double calculateMutualValue(double probabilityAB, double probabilityA, double probabilityB, double logBase) {
+		double lnLog = Math.log(probabilityAB/(probabilityA * probabilityB));
+		double lnLog2 = Math.log(2);
+		double logValue = lnLog/lnLog2;
+		
+		return probabilityAB * logValue;
+	}
+	
+	//use this to calculate conditional probabilities
+	private static double calculateConditionalMutualValue(double probabilityC, double probabilityABC, double probabilityAC, double probabilityBC) {
+		double product = (probabilityC*probabilityABC)/(probabilityAC*probabilityBC);
+		double lnLog = Math.log(product);
+		double lnLog2 = Math.log(2);
+		double logValue = lnLog/lnLog2;
+		
+		return probabilityABC * logValue;
+	}
 	
 	private static Map<String, Integer> getUniqueValuesAndCount(BTreeDataFrame table, String columnHeader) {
 		Object[] countColumn = table.getColumn(columnHeader); //get all the objects within the column
@@ -130,6 +211,81 @@ public class MutualInformation {
 			}
 		}
 
+		return returnHash;
+	}
+
+	
+	private static Map<String, Integer> getUniqueValuesAndCount(BTreeDataFrame table, String column1, String column2, String...columnHeader) {
+		String[] tableHeaders = table.getColumnHeaders();
+		
+		//get the index values for the columns we need counts for
+		int[] indexArray = new int[columnHeader.length+2];
+		int count = 0;
+		for(int i = 2; i < indexArray.length; i++) {
+			indexArray[i] = ArrayUtilityMethods.arrayContainsValueAtIndex(tableHeaders, columnHeader[count]);
+			count++;
+		}
+		Arrays.sort(indexArray);
+		
+		indexArray[0] = ArrayUtilityMethods.arrayContainsValueAtIndex(tableHeaders, column1);
+		indexArray[1] = ArrayUtilityMethods.arrayContainsValueAtIndex(tableHeaders, column2);
+		
+		return getUniqueValuesAndCount(table, indexArray);
+	}
+	
+	private static Map<String, Integer> getUniqueValuesAndCount(BTreeDataFrame table, String column1, String...columnHeader) {
+		String[] tableHeaders = table.getColumnHeaders();
+		
+		//get the index values for the columns we need counts for
+		int[] indexArray = new int[columnHeader.length+1];
+		int count = 0;
+		for(int i = 1; i < indexArray.length; i++) {
+			indexArray[i] = ArrayUtilityMethods.arrayContainsValueAtIndex(tableHeaders, columnHeader[count]);
+			count++;
+		}
+		Arrays.sort(indexArray);
+		
+		indexArray[0] = ArrayUtilityMethods.arrayContainsValueAtIndex(tableHeaders, column1);
+		return getUniqueValuesAndCount(table, indexArray);
+	}
+	
+	private static Map<String, Integer> getUniqueValuesAndCount(BTreeDataFrame table, String...columnHeader) {
+		String[] tableHeaders = table.getColumnHeaders();
+		
+		//get the index values for the columns we need counts for
+		int[] indexArray = new int[columnHeader.length];
+		int count = 0;
+		for(int i = 0; i < indexArray.length; i++) {
+			indexArray[i] = ArrayUtilityMethods.arrayContainsValueAtIndex(tableHeaders, columnHeader[count]);			
+			count++;
+		}
+		Arrays.sort(indexArray);
+		return getUniqueValuesAndCount(table, indexArray);
+	}
+	
+	//Get the counts for conditional probability
+	private static Map<String, Integer> getUniqueValuesAndCount(BTreeDataFrame table, int[] indexArray) {
+		Map<String, Integer> returnHash = new HashMap<>();
+		List<Object[]> data = table.getData();
+		
+		int count;
+		for(int i = 0; i < data.size(); i++) {
+			Object[] nextRow = data.get(i);
+			String currentKey = "";
+			
+			for(int x = 0; x < indexArray.length; x++) {
+				int index = indexArray[x];
+				currentKey = currentKey+delimiter+nextRow[index].toString();
+			}
+			
+			if (returnHash.containsKey(currentKey)) {    //if the specific value in the object is already in a HashMap:
+				count = returnHash.get(currentKey)+1;
+				returnHash.put(currentKey, count);    //add to HashMap
+			} else {    //if specific value isn't already in a HashMap:
+				returnHash.put(currentKey, 1);    //add to HashMap
+			}
+		}
+		
 		return returnHash;
 	}
 	

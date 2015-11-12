@@ -45,7 +45,7 @@ public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrappe
 	transient Enum engineType;
 	transient String query = null;
 	String [] var = null;
-	String [] displayVar = null;
+
 
 	
 	@Override
