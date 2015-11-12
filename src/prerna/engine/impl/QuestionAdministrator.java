@@ -27,7 +27,10 @@
  *******************************************************************************/
 package prerna.engine.impl;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,17 +38,20 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
-import com.google.gson.Gson;
-
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.ISelectWrapper;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
+import prerna.ui.components.playsheets.datamakers.FilterTransformation;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
+import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.util.Utility;
+
+import com.google.gson.Gson;
 
 public class QuestionAdministrator {
 
@@ -61,7 +67,6 @@ public class QuestionAdministrator {
 		this.insightEngine = engine.getInsightDatabase();
 	}
 
-	//TODO: need to set up the update method in RDBMSEngine
 	//TODO: need to change order to int
 	public void addQuestion(
 			String insightName,
@@ -93,7 +98,7 @@ public class QuestionAdministrator {
 		insightName = escapeForSQLStatement(insightName);
 		perspective = escapeForSQLStatement(perspective);
 //		insightDefinition = escapeForSQLStatement(insightDefinition);
-		String insightDefinition = this.generateXMLInsightMakeup(comps);
+		String insightDefinition = this.generateXMLInsightMakeup(comps, parameters);
 		
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(insightEngine, GET_LAST_INSIGHT_ID);
 		String retName = wrapper.getVariables()[0];
@@ -173,7 +178,6 @@ public class QuestionAdministrator {
 		}
 	}
 	
-	//TODO: need to set up the update method in RDBMSEngine
 	public void modifyQuestion(
 			String insightID, 
 			String insightName,
@@ -184,7 +188,6 @@ public class QuestionAdministrator {
 			String dataMaker,
 			boolean isDbQuery,
 			Map<String, String> dataTableAlign,
-//			boolean multiInsightQuery,
 			List<SEMOSSParam> parameters
 			) 
 	{
@@ -193,13 +196,12 @@ public class QuestionAdministrator {
 		Insight currInsightInfo = engine.getInsight(insightID).get(0);
 		String currInsightName = currInsightInfo.getInsightName();
 		String currPerspective = currInsightInfo.getPerspective();
-		List<DataMakerComponent> curComps = currInsightInfo.getDataMakerComponents();
+//		List<DataMakerComponent> currComps = currInsightInfo.getDataMakerComponents();
 		String currLayout = currInsightInfo.getOutput();
 		String currOrder = currInsightInfo.getOrder();
 		boolean currIsDbQuery = currInsightInfo.isDbQuery();
 		Map<String, String> currDataTableAlign = currInsightInfo.getDataTableAlign();
 		String currDataTableAlignStr = gson.toJson(currDataTableAlign);
-//		boolean currMultiInsightQuery = currInsightInfo.isMultiInsightQuery();
 		
 		boolean orderChange = false;
 		boolean perspectiveChange = false;
@@ -212,9 +214,9 @@ public class QuestionAdministrator {
 			query += "QUESTION_PERSPECTIVE='" + perspective + "', ";
 			perspectiveChange = true;
 		}
-		if(!comps.equals(curComps)) {
-			query += "QUESTION_MAKEUP='" + this.generateXMLInsightMakeup(comps) + "', ";
-		}
+//		if(!comps.equals(currComps) || parameters.equals(currParams)) {
+			query += "QUESTION_MAKEUP='" + this.generateXMLInsightMakeup(comps, parameters) + "', ";
+//		}
 		if(layout != null && !layout.equals(currLayout)) {
 			query += "QUESTION_LAYOUT='" + layout + "', ";
 		}
@@ -369,7 +371,7 @@ public class QuestionAdministrator {
 		LOGGER.info("Done adding parameters");
 	}
 	
-	protected String generateXMLInsightMakeup(List<DataMakerComponent> dmcList) {
+	protected String generateXMLInsightMakeup(List<DataMakerComponent> dmcList, List<SEMOSSParam> parameters) {
 		LOGGER.info("Generating NTriples for insight makeup");
 		StringBuilder builder = new StringBuilder();
 		Set<String> engineSet = new HashSet<String>();
@@ -392,8 +394,24 @@ public class QuestionAdministrator {
 		builder.append("<http://semoss.org/ontologies/Relation/Contains/Type>  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> .\n");
 		// propMap is a type of contains - for transformations
 		builder.append("<http://semoss.org/ontologies/Relation/Contains/propMap>  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> .\n");
-		
+
+		List<SEMOSSParam> paramsAccountedFor = new Vector<SEMOSSParam>();
 		for(int i = 0; i < dmcList.size(); i++) {
+			
+			// Adding in parameter checking.......
+			// Here is the logic
+			//  If a component does not involve any of the parameters we are saving (if metamodel -- neither nodes nor properties. if query -- don't think we can check it)
+			//   Then pre trans are safe
+			//  Else
+			//   If a pre trans with the param already exists
+			//    Wipe the list because it needs to be empty when we fill the param
+			//   Else
+			//    Add a pre trans with empty list
+			//   set parameter id
+			//  Post transformations --- if its a filter and involves the parameter should be removed
+			//  Post transformations --- if its a join and involves the parameter should be type inner
+			
+			
 			LOGGER.info("Creating nTriples for compoenent:::: " + i);
 			// create component based on number "i"
 			builder.append("<http://semoss.org/ontologies/Concept/Component/" + i + "> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Component> .\n");
@@ -402,6 +420,7 @@ public class QuestionAdministrator {
 
 //			Map<String, Object> compMap = insightMakeup.get(i);
 			DataMakerComponent dmc = dmcList.get(i);
+			List<SEMOSSParam> involvedParams = new Vector<SEMOSSParam>();
 			String engineName = dmc.getEngine().getEngineName();
 			String realEngineName = escapeForSQLStatement(engineName);
 			String cleanEngineName = Utility.cleanString(engineName, true);
@@ -418,6 +437,7 @@ public class QuestionAdministrator {
 			// add query property to component if query is not null
 			
 			if(query == null) {
+				involvedParams = getInvolvedParams(dmc, parameters, paramsAccountedFor);
 				Map<String, Object> metamodel = dmc.getMetamodelData();
 				String jsonMetamodel = gson.toJson(metamodel);
 				LOGGER.info("Component " + i + " does NOT have query... instead saving metamodel::: " + jsonMetamodel);
@@ -430,34 +450,37 @@ public class QuestionAdministrator {
 			}
 
 			List<ISEMOSSTransformation> preTransformationList = dmc.getPreTrans();
+			int preIdx = 0;
 			if(preTransformationList != null && !preTransformationList.isEmpty()) {
 				LOGGER.info("Component " + i + " has pre-transformations!!");
-				int j = 0;
-				for(; j < preTransformationList.size(); j++) {
-					LOGGER.info("Component " + i + " .... building pre-transformation " + j);
-					ISEMOSSTransformation preTrans = preTransformationList.get(j);
-					// add transformation based on "j"
-					builder.append("<http://semoss.org/ontologies/Concept/PreTransformation/" + (j+numPreTransformations) + "> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/PreTransformation> .\n");
-					builder.append("<http://semoss.org/ontologies/Concept/PreTransformation/" + (j+numPreTransformations) + "> <http://semoss.org/ontologies/Relation/Contains/Order> \"" + j + "\"^^<http://www.w3.org/2001/XMLSchema#int> .\n");
-
-					// connection transformation to component
-					builder.append("<http://semoss.org/ontologies/Concept/Component/" + i + "> <Comp:PreTrans> <http://semoss.org/ontologies/Concept/PreTransformation/" + (j+numPreTransformations) + "> .\n");
-					
-					// add parameters for transformation
-					Map<String, Object> paramMap =  (Map<String, Object>) preTrans.getProperties();
-					String paramStringify = gson.toJson(paramMap);
-					paramStringify = escapeForNTripleAndSQLStatement(paramStringify);
-					builder.append("<http://semoss.org/ontologies/Concept/PreTransformation/" + (j+numPreTransformations) + "> <http://semoss.org/ontologies/Relation/Contains/propMap> \"" + paramStringify + "\" .\n");
+				for(; preIdx < preTransformationList.size(); preIdx++) {
+					LOGGER.info("Component " + i + " .... building pre-transformation " + preIdx);
+					ISEMOSSTransformation preTrans = preTransformationList.get(preIdx);
+					buildPreTransString(preTrans, preIdx, i, numPreTransformations, builder, involvedParams, gson);
 				}
-				numPreTransformations+=j;
 			}
+			while (!involvedParams.isEmpty()) { // these are the params that don't have a pretrans set up for them.
+				//    Add a pre trans with empty list
+				LOGGER.info("Component " + i + " .... building pre-transformation " + preIdx + " JUST FOR PARAM");
+				SEMOSSParam param = involvedParams.remove(0);
+				ISEMOSSTransformation newPreTrans = buildEmptyFilterTrans(param.getName());
+				param.setComponentFilterId(Insight.COMP + i + ":" + Insight.PRE_TRANS + preIdx);
+				buildPreTransString(newPreTrans, preIdx, i, numPreTransformations, builder, null, gson);
+				preIdx++;
+			}
+			numPreTransformations+=preIdx;
 			List<ISEMOSSTransformation> postTransformationList = dmc.getPostTrans();
 			if(postTransformationList != null && !postTransformationList.isEmpty()) {
 				LOGGER.info("Component " + i + " has post-transformations!!");
 				int j = 0;
-				for(; j < postTransformationList.size(); j++) {
+				int postTransListIdx = 0;
+				for(; postTransListIdx < postTransformationList.size(); postTransListIdx++) {
 					LOGGER.info("Component " + i + " .... building post-transformation " + j);
-					ISEMOSSTransformation postTrans = postTransformationList.get(j);
+					ISEMOSSTransformation postTrans = postTransformationList.get(postTransListIdx);
+					if (postTrans instanceof FilterTransformation && filterInvolvesParams(parameters, (FilterTransformation)postTrans)){
+						LOGGER.info("Component " + i + " .... skipping this trans cuz involves param... will try next");
+						continue;
+					}
 					// add transformation based on "j"
 					builder.append("<http://semoss.org/ontologies/Concept/PostTransformation/" + (j+numPostTransformations) + "> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/PostTransformation> .\n");
 					builder.append("<http://semoss.org/ontologies/Concept/PostTransformation/" + (j+numPostTransformations) + "> <http://semoss.org/ontologies/Relation/Contains/Order> \"" + j + "\"^^<http://www.w3.org/2001/XMLSchema#int> .\n");
@@ -467,9 +490,15 @@ public class QuestionAdministrator {
 					
 					// add parameters for transformation
 					Map<String, Object> paramMap =  (Map<String, Object>) postTrans.getProperties();
+					if(parameters.size() != 0){
+						if (postTrans instanceof JoinTransformation){
+							makeInnerJoin((JoinTransformation) postTrans);
+						}
+					}
 					String paramStringify = gson.toJson(paramMap);
 					paramStringify = escapeForNTripleAndSQLStatement(paramStringify);
 					builder.append("<http://semoss.org/ontologies/Concept/PostTransformation/" + (j+numPostTransformations) + "> <http://semoss.org/ontologies/Relation/Contains/propMap> \"" + paramStringify + "\" .\n");
+					j++;
 				}
 				numPostTransformations+=j;
 			}
@@ -498,11 +527,83 @@ public class QuestionAdministrator {
 		}
 		String clob = builder.toString();
 		LOGGER.info("Done building NTRIPLES");
-		LOGGER.info("CLOB to save is :: " + clob);
+		LOGGER.debug("CLOB to save is :: " + clob);
 		
 		return clob;
 	}
 	
+	private boolean filterInvolvesParams(List<SEMOSSParam> involvedParams, FilterTransformation postTrans) {
+		String postTransCol = (String) postTrans.getProperties().get(FilterTransformation.COLUMN_HEADER_KEY);
+		for(SEMOSSParam p : involvedParams){
+			if(postTransCol.equals(p.getName())){
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private void buildPreTransString(ISEMOSSTransformation preTrans, int j, int i, int numPreTransformations, StringBuilder builder, List<SEMOSSParam> involvedParamsPre, Gson gson){
+		// add transformation based on "j"
+		builder.append("<http://semoss.org/ontologies/Concept/PreTransformation/" + (j+numPreTransformations) + "> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/PreTransformation> .\n");
+		builder.append("<http://semoss.org/ontologies/Concept/PreTransformation/" + (j+numPreTransformations) + "> <http://semoss.org/ontologies/Relation/Contains/Order> \"" + j + "\"^^<http://www.w3.org/2001/XMLSchema#int> .\n");
+
+		// connection transformation to component
+		builder.append("<http://semoss.org/ontologies/Concept/Component/" + i + "> <Comp:PreTrans> <http://semoss.org/ontologies/Concept/PreTransformation/" + (j+numPreTransformations) + "> .\n");
+		
+		// add parameters for transformation
+		Map<String, Object> paramMap =  (Map<String, Object>) preTrans.getProperties();
+		if(involvedParamsPre != null && !involvedParamsPre.isEmpty() && preTrans instanceof FilterTransformation){
+			String preTransType = (String) preTrans.getProperties().get(FilterTransformation.COLUMN_HEADER_KEY);
+			//   If a pre trans with the param already exists
+			//    Wipe the list because it needs to be empty when we fill the param.
+			for(SEMOSSParam p: involvedParamsPre){
+				if(p.getType().equals(preTransType)){
+					paramMap = new HashMap<String, Object> (paramMap);
+					paramMap.remove(FilterTransformation.VALUES_KEY);
+					involvedParamsPre.remove(p);
+					p.setComponentFilterId(Insight.COMP + i + ":" + Insight.PRE_TRANS + j);
+					break;
+				}
+			}
+		}
+		String paramStringify = gson.toJson(paramMap);
+		paramStringify = escapeForNTripleAndSQLStatement(paramStringify);
+		builder.append("<http://semoss.org/ontologies/Concept/PreTransformation/" + (j+numPreTransformations) + "> <http://semoss.org/ontologies/Relation/Contains/propMap> \"" + paramStringify + "\" .\n");
+	}
+	
+	private boolean compInvolvesParam(DataMakerComponent dmc, List<SEMOSSParam> parameters) {
+		Map<String, Object> metamodel = dmc.getMetamodelData();
+		if(metamodel != null && !metamodel.isEmpty()){
+			Map<String, Object> queryData = (Map<String, Object>) metamodel.get("QueryData");
+			List<List<Object>> relTriples = (List<List<Object>>) queryData.get("relTriples");
+			List<Map<String, List<String>>> filters = (List<Map<String, List<String>>>) queryData.get("filter");
+			List<Map<String, Object>> nodeProps = (List<Map<String, Object>>) metamodel.get("SelectedNodeProps");
+			if(relTriples != null) {
+				for(int j = 0; j < relTriples.size(); j++) {
+					List<Object> triple = relTriples.get(j);
+					for(Object uri : triple) {
+						for(SEMOSSParam param : parameters){
+							if(uri.equals(param.getType())) {
+								return true;
+							}
+						}
+					}
+				}
+			}
+			if(nodeProps != null) {
+				for(int j = 0; j < nodeProps.size(); j++) {
+					Object uri = nodeProps.get(j).get("uriKey");
+					for(SEMOSSParam param : parameters){
+						if(uri.equals(param.getType())) {
+							return true;
+						}
+					}
+				}
+			}
+		}
+		return false;
+	}
+
 	private void setInsightOrder(int order, String insightId){
 		StringBuilder updateQueryBuilder = new StringBuilder();
 		updateQueryBuilder.append("UPDATE QUESTION_ID SET QUESTION_ORDER=");
@@ -532,4 +633,65 @@ public class QuestionAdministrator {
 		s = escapeForSQLStatement(s);
 		return s.replaceAll("\"", "\\\\\"");
 	}
+
+	private FilterTransformation buildEmptyFilterTrans(String paramName) {
+		FilterTransformation pFilter = new FilterTransformation();
+		Map<String, Object> props = new Hashtable<String, Object>();
+		props.put(FilterTransformation.COLUMN_HEADER_KEY, paramName);
+		pFilter.setProperties(props);
+		return pFilter;
+	}
+
+	/**
+	 * Modifies the first post transformation of a DataMakerComponent to be an inner join
+	 * @param dmc				The DataMakerComponent to modify the Join Transformation
+	 */
+	private void makeInnerJoin(JoinTransformation trans) {
+		Map<String, Object> props = trans.getProperties();
+		props.put(JoinTransformation.JOIN_TYPE, "inner");
+		trans.setProperties(props);
+	}
+	
+	/**
+	 * This method appends the parameter options to the DataMakerComponent metamodel
+	 * @param paramMapList				The list of parameters to save.  Comes as a map with the URI and the parent if it is a property
+	 * @param dmcList					The list of the DataMakerComponents for the insight
+	 * @param params					A list of SEMOSSParams to store the parameters with the correct options
+	 */
+	private List<SEMOSSParam> getInvolvedParams(DataMakerComponent dmc, List<SEMOSSParam> params, List<SEMOSSParam> paramsAccountedFor) {
+		List<SEMOSSParam> involvedParams = new Vector<SEMOSSParam>();
+		PARAMS_FOR : for(SEMOSSParam param : params) {
+			if(!paramsAccountedFor.contains(param)){
+				String paramURI = param.getType();
+				Map<String, Object> metamodel = dmc.getMetamodelData();
+				Map<String, Object> queryData = (Map<String, Object>) metamodel.get("QueryData");
+				List<List<Object>> relTriples = (List<List<Object>>) queryData.get("relTriples");
+				List<Map<String, Object>> nodeProps = (List<Map<String, Object>>) metamodel.get("SelectedNodeProps");
+				boolean containsParam =  false;
+				if(relTriples != null) {
+					for(int j = 0; j < relTriples.size(); j++) {
+						List<Object> triple = relTriples.get(j);
+						for(Object uri : triple) {
+							if(uri.equals(paramURI)) {
+								involvedParams.add(param);
+								continue PARAMS_FOR;
+							}
+						}
+					}
+				}
+				if(nodeProps != null && !containsParam) {
+					for(int j = 0; j < nodeProps.size(); j++) {
+						Object uri = nodeProps.get(j).get("uriKey");
+						if(uri != null && uri.equals(paramURI)) {
+							involvedParams.add(param);
+							continue PARAMS_FOR;
+						}
+					}
+				}
+			}
+		}
+		paramsAccountedFor.addAll(involvedParams);
+		return involvedParams;
+	}
+	
 }
