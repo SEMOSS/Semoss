@@ -31,7 +31,6 @@ import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -122,10 +121,7 @@ public class BinnedColumnChartPlaySheet extends BrowserPlaySheet{
 	}
 	
 	@Override
-	public Map<String, String> getDataTableAlign() {
-		if(this.tableDataAlign != null){
-			return this.tableDataAlign;
-		}
+	public Hashtable<String, String> getDataTableAlign() {
 		Hashtable<String, String> alignHash = new Hashtable<String, String>();
 		String[] names = dataFrame.getColumnHeaders();
 		alignHash.put("label", names[0]);
