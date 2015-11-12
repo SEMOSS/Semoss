@@ -121,7 +121,6 @@ public class ParamPanel extends JPanel implements ActionListener {
 			String paramName = param.getName();
 			String paramType = param.getType();
 			String paramQuery = param.getQuery();
-			boolean isParamQueryDb = param.isDbQuery();
 			//should be a boolean; need to change SEMOSSParam's isDepends to boolean?
 			String paramIsDepends = param.isDepends();
 			
@@ -262,8 +261,6 @@ public class ParamPanel extends JPanel implements ActionListener {
 						filler.type = entityType;
 						if(query != null && !query.isEmpty()) {
 							filler.extQuery = query;
-							filler.extQueryUnBound = field.query; 
-							filler.extQueryBindings.putAll(knownValues);
 						}
 						Thread aThread = new Thread(filler);
 						aThread.start();

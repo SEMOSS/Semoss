@@ -131,8 +131,6 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 				{		
 					SEMOSSVertex thisVert = pickedVertex[pi];
 					String uri = thisVert.getURI();
-					String displayUri = thisVert.getURI();
-					uri = Utility.getTransformedNodeName(engine, uri, false);
 					
 					String query2 = "";
 					if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
@@ -142,9 +140,9 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 					}
 					String typeName = null;
 					if(isRDF)
-						typeName = Utility.getConceptType(engine, uri);
+						typeName = Utility.getConceptType(engine, thisVert.uri);
 					else if(engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS)
-						typeName = Utility.getQualifiedClassName(uri);
+						typeName = Utility.getQualifiedClassName(thisVert.uri);
 
 					if(typeV.contains(typeName))
 					{
@@ -175,16 +173,14 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 						if(engine.getEngineType() == IEngine.ENGINE_TYPE.JENA) {
 							for(int vertIndex = 0;vertIndex < pickedVertex.length;vertIndex++)
 							{
-								if (pickedVertex[vertIndex].getProperty(Constants.VERTEX_TYPE).toString().equals(thisVert.getProperty(Constants.VERTEX_TYPE).toString())){
-									fileName = fileName + "<" + Utility.getTransformedNodeName(engine, pickedVertex[vertIndex].getURI(), false) + ">";
-								}
+								if (pickedVertex[vertIndex].getProperty(Constants.VERTEX_TYPE).toString().equals(thisVert.getProperty(Constants.VERTEX_TYPE).toString()))
+									fileName = fileName + "<" + pickedVertex[vertIndex].getURI() + ">";
 							}
 						} else {
 							for(int vertIndex = 0;vertIndex < pickedVertex.length;vertIndex++)
 							{
-								if (pickedVertex[vertIndex].getProperty(Constants.VERTEX_TYPE).toString().equals(thisVert.getProperty(Constants.VERTEX_TYPE).toString())){
-									fileName = fileName + "(<" + Utility.getTransformedNodeName(engine, pickedVertex[vertIndex].getURI(), false) + ">)";
-								}
+								if (pickedVertex[vertIndex].getProperty(Constants.VERTEX_TYPE).toString().equals(thisVert.getProperty(Constants.VERTEX_TYPE).toString()))
+									fileName = fileName + "(<" + pickedVertex[vertIndex].getURI() + ">)";
 							}
 						}
 	
@@ -230,7 +226,7 @@ public class TFInstanceRelationPopup extends JMenu implements MouseListener{
 									&& !pred.equals("http://semoss.org/ontologies/Relation")
 									&& (pred.equals("") || pred.startsWith("http://semoss.org")))
 							{
-								String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, objClassName+"", true));
+								String instance = Utility.getInstanceName(objClassName);
 								//add the to: and from: labels
 								if(count == 0){
 									if(this.getItemCount()>0)

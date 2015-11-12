@@ -227,7 +227,9 @@ public class InsightsConverter {
 	
 	private String getDataMaker(String layout, List<String> allSheets){
 		String dataMaker = "";
-		if(allSheets.contains(layout) || layout.equals("prerna.ui.components.specific.tap.InterfaceGraphPlaySheet")) {
+		if(allSheets.contains(layout) || layout.equals("prerna.ui.components.specific.tap.InterfaceGraphPlaySheet") 
+				&& !layout.equals("prerna.ui.components.specific.ousd.RoadmapTimelineComboChartPlaySheet")
+				&& !layout.equals("prerna.ui.components.specific.tap.SysSimHeatMapSheet")) {
 			if(layout.equals("prerna.ui.components.playsheets.GraphPlaySheet") || layout.equals("prerna.ui.components.specific.tap.InterfaceGraphPlaySheet")) {
 				dataMaker = "GraphDataModel";
 			} else if(!layout.equals("prerna.ui.components.playsheets.DualEngineGenericPlaySheet")) {
@@ -452,7 +454,7 @@ public class InsightsConverter {
 							queryMap.put(paramKey, parameterQueryValue);
 							
 							// now also see if this query should be run on the OWL or DB
-							String parameterQueryIsDbQueryKey = qsKey + "_" + paramKey + "_" + Constants.QUERY + "_" + Constants.OWL;
+							String parameterQueryIsDbQueryKey = qsKey + "_" + paramKey + "_" + Constants.DB + "_" + Constants.QUERY;
 							String paramQueryIsDbQueryString = dreamerProp.getProperty(parameterQueryIsDbQueryKey);
 							if(paramQueryIsDbQueryString != null && !paramQueryIsDbQueryString.isEmpty()) {
 								queryMap.put(paramKey + "_" + Constants.OWL, paramQueryIsDbQueryString);

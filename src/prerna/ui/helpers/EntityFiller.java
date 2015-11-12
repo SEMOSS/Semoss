@@ -29,7 +29,6 @@ package prerna.ui.helpers;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -41,8 +40,6 @@ import javax.swing.JComboBox;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-
-import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.IEngine;
 import prerna.om.SEMOSSParam;
@@ -64,8 +61,6 @@ public class EntityFiller implements Runnable {
 	public String engineName;
 	public Vector<String> names;
 	public String extQuery;
-	public String extQueryUnBound;
-	public Map<String, List<Object>> extQueryBindings = new HashMap<String, List<Object>>();
 	public Vector<String> nameVector;
 	public SEMOSSParam param;
 	
@@ -129,7 +124,6 @@ public class EntityFiller implements Runnable {
 					String sparqlQuery = null;
 					Map<String, List<Object>> paramTable = new Hashtable<String, List<Object>>();
 					if(type != null) {
-						type = Utility.getTransformedNodeName(engine, type, false);
 						sparqlQuery = DIHelper.getInstance().getProperty("TYPE" + "_" + Constants.QUERY);
 						List<Object> typeList = new ArrayList<Object>();
 						typeList.add(type);
@@ -137,12 +131,7 @@ public class EntityFiller implements Runnable {
 					} 
 					
 					if (extQuery != null) {
-						if(extQueryUnBound != null && extQueryBindings != null && extQueryBindings.size() > 0){
-							extQueryBindings = Utility.getTransformedNodeNamesMap(engine, extQueryBindings, false);
-							extQuery = Utility.fillParam(extQueryUnBound, extQueryBindings);
-						}
 						sparqlQuery = extQuery;
-						
 					} else if (param != null && param.isQuery()) {
 						sparqlQuery = param.getQuery();
 						sparqlQuery = Utility.fillParam(sparqlQuery, paramTable);	
@@ -150,17 +139,11 @@ public class EntityFiller implements Runnable {
 					else {
 						sparqlQuery = Utility.fillParam(sparqlQuery, paramTable);	
 					}
-					
-					boolean isDbQuery = true;
-					if(param != null){
-						isDbQuery = param.isDbQuery();
-					}
 
 					// get back all of the URIs that are of that type
-					names = engine.executeInsightQuery(sparqlQuery, isDbQuery);
+					names = Utility.getVectorOfReturn(sparqlQuery, engine, true);				
 					// try to query for the label
 					logger.debug("Names " + names);
-					
 					Hashtable paramHash = Utility.getInstanceNameViaQuery(names);
 					if (paramHash.isEmpty()) {
 						names.addElement("Concept Doesn't Exist in DB");
@@ -206,7 +189,6 @@ public class EntityFiller implements Runnable {
 				}
 
 				names = Utility.getVectorOfReturn(sparqlQuery, engine, true);
-				
 				Collections.sort(names);
 				Hashtable paramHash = Utility.getInstanceNameViaQuery(names);
 				if (paramHash.isEmpty()) {
@@ -231,5 +213,4 @@ public class EntityFiller implements Runnable {
 	{
 		this.extQuery = query;
 	}
-	
 }

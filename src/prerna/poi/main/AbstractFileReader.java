@@ -38,7 +38,6 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Properties;
-import java.util.StringTokenizer;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -46,12 +45,10 @@ import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
-import org.openrdf.sail.SailException;
 
 import com.hp.hpl.jena.vocabulary.OWL;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.util.Constants;
@@ -64,21 +61,20 @@ public abstract class AbstractFileReader {
 	protected String bdPropFile;
 	protected Properties bdProp = new Properties(); // properties for big data
 	protected IEngine engine;
-	
+
 	protected String customBaseURI = "";
-	public String basePropURI= "";
+	public String basePropURI = "";
 
 	protected String semossURI;
 	protected final static String CONTAINS = "Contains";
-	
-	public Hashtable<String,String> baseConceptURIHash = new Hashtable<String,String>(); 
-	public Hashtable<String,String> conceptURIHash = new Hashtable<String,String>();
-	public Hashtable<String,String> baseRelationURIHash = new Hashtable<String,String>(); 
-	public Hashtable<String,String> relationURIHash = new Hashtable<String,String>();
-	private Hashtable<String,String> basePropURIHash = new Hashtable<String,String>();
-	private Hashtable<String,String> basePropRelations = new Hashtable<String,String>();
-	protected Hashtable<String,String> displayNamesHash = new Hashtable<String,String>();
-	
+
+	public Hashtable<String, String> baseConceptURIHash = new Hashtable<String, String>();
+	public Hashtable<String, String> conceptURIHash = new Hashtable<String, String>();
+	public Hashtable<String, String> baseRelationURIHash = new Hashtable<String, String>();
+	public Hashtable<String, String> relationURIHash = new Hashtable<String, String>();
+	public Hashtable<String, String> basePropURIHash = new Hashtable<String, String>();
+	public Hashtable<String, String> basePropRelations = new Hashtable<String, String>();
+
 	protected Hashtable<String, String[]> baseRelations = new Hashtable<String, String[]>();
 
 	private static final Logger logger = LogManager.getLogger(AbstractFileReader.class.getName());
@@ -89,8 +85,8 @@ public abstract class AbstractFileReader {
 
 	/**
 	 * Loads the prop file for the CSV file
-	 * @param fileName	Absolute path to the prop file specified in the last column of the CSV file
-	 * @throws IOException 
+	 * @param fileName				Absolute path to the prop file specified in the last column of the CSV file
+	 * @throws IOException
 	 */
 	protected void openProp(String fileName) throws IOException {
 		Properties rdfPropMap = new Properties();
@@ -104,49 +100,50 @@ public abstract class AbstractFileReader {
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IOException("Could not read user-specified prop file located in header row in cell: " + fileName);
-		} finally{
-			try{
-				if(fileIn!=null)
+		} finally {
+			try {
+				if (fileIn != null)
 					fileIn.close();
-			}catch(IOException e) {
+			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
-		for(String name: rdfPropMap.stringPropertyNames()){
+		for (String name : rdfPropMap.stringPropertyNames()) {
 			rdfMap.put(name, rdfPropMap.getProperty(name).toString());
 		}
 	}
 
 	/**
 	 * Close the database engine
-	 * @throws IOException 
+	 * 
+	 * @throws IOException
 	 */
 	public void closeDB() throws IOException {
 		logger.warn("Closing....");
-		if(engine != null) {
+		if (engine != null) {
 			commitDB();
 			engine.closeDB();
 		}
-		//TODO: why do we do this?
-//		try {
-//			sc.close();
-//			bdSail.shutDown();
-//		} catch (SailException e) {
-//			e.printStackTrace();
-//			throw new IOException("Could not close database connection");
-//		}
-	}	
+		// TODO: why do we do this?
+		// try {
+		// sc.close();
+		// bdSail.shutDown();
+		// } catch (SailException e) {
+		// e.printStackTrace();
+		// throw new EngineException("Could not close database connection");
+		// }
+	}
 
 	protected void commitDB() throws IOException {
 		logger.warn("Committing....");
 		engine.commit();
-		
-		//TODO: how to call .infer() ?
-		if(engine!=null && engine instanceof BigDataEngine){
-			((BigDataEngine)engine).infer();
+
+		// TODO: how to call .infer() ?
+		if (engine != null && engine instanceof BigDataEngine) {
+			((BigDataEngine) engine).infer();
 		} else if (engine != null && engine instanceof RDFFileSesameEngine) {
 			try {
-				((RDFFileSesameEngine)engine).exportDB();
+				((RDFFileSesameEngine) engine).exportDB();
 			} catch (RepositoryException | RDFHandlerException | IOException e) {
 				e.printStackTrace();
 				throw new IOException("Unable to commit data from file into database");
@@ -184,106 +181,108 @@ public abstract class AbstractFileReader {
 	protected void closeOWL() {
 		baseEngCreator.closeBaseEng();
 	}
-	
-	protected void storeBaseStatement(String sub, String pred, String obj) {
-		storeBaseStatement(sub,pred,obj,true);
-	}
-	
-	protected void storeBaseStatement(String sub, String pred, String obj, boolean concept) {
-		baseEngCreator.addToBaseEngine(new Object[]{sub, pred, obj, concept});
+
+	protected void storeBaseStatement(Object[] triple) {
+		baseEngCreator.addToBaseEngine(triple);
 	}
 
 	/**
-	 * Creates all base relationships in the metamodel to add into the database and creates the OWL file
+	 * Creates all base relationships in the metamodel to add into the database
+	 * and creates the OWL file
+	 * 
+	 * @throws EngineException
+	 * @throws FileWriterException
 	 */
 	protected void createBaseRelations() {
 		// necessary triple saying Concept is a type of Class
 		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
 		String pred = RDF.TYPE.stringValue();
 		String obj = Constants.CLASS_URI;
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, pred, obj, true});
-		storeBaseStatement(sub, pred, obj);
+		String[] tripleValue = new String[] { sub, pred, obj };
+		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { sub, pred, obj, true });
+		storeBaseStatement(tripleValue);
 		// necessary triple saying Relation is a type of Property
-		sub =  semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
+		sub = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
 		pred = RDF.TYPE.stringValue();
 		obj = Constants.DEFAULT_PROPERTY_URI;
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, pred, obj, true});
-		storeBaseStatement(sub, pred, obj);
+		String[] tripleValues = new String[] { sub, pred, obj };
+		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { sub, pred, obj, true });
+		storeBaseStatement(tripleValues);
 
-		if(basePropURI.equals("")){
+		if (basePropURI.equals("")) {
 			basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
 		}
-		storeBaseStatement(basePropURI, Constants.SUBPROPERTY_URI, basePropURI);
+		String[] basePropURIArray = new String[] { basePropURI, Constants.SUBPROPERTY_URI, basePropURI };
+		storeBaseStatement(basePropURIArray);
 
 		Iterator<String> baseHashIt = baseConceptURIHash.keySet().iterator();
-		//now add all of the base relations that have been stored in the hash.
-		while(baseHashIt.hasNext()){
-			String subjectInstance = baseHashIt.next() +"";
+		// now add all of the base relations that have been stored in the hash.
+		while (baseHashIt.hasNext()) {
+			String subjectInstance = baseHashIt.next() + "";
 			String predicate = Constants.SUBCLASS_URI;
-			//convert instances to URIs
-			String subject = Utility.cleanString(baseConceptURIHash.get(subjectInstance) +"", false);
+			// convert instances to URIs
+			String subject = Utility.cleanString(baseConceptURIHash.get(subjectInstance) + "", false);
 			String object = semossURI + "/Concept";
 			// create the statement now
-			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subject, predicate, object, true});
+			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { subject, predicate, object, true });
 			// add base relations URIs to OWL
-			storeBaseStatement(subject, predicate, object);
+			String[] baseHashArray = new String[] { subject, predicate, object };
+			storeBaseStatement(baseHashArray);
 		}
 		baseHashIt = baseRelationURIHash.keySet().iterator();
-		while(baseHashIt.hasNext()){
-			String subjectInstance = baseHashIt.next() +"";
+		while (baseHashIt.hasNext()) {
+			String subjectInstance = baseHashIt.next() + "";
 			String predicate = Constants.SUBPROPERTY_URI;
-			//convert instances to URIs
-			String subject = Utility.cleanString(baseRelationURIHash.get(subjectInstance) +"", false);
+			// convert instances to URIs
+			String subject = Utility.cleanString(baseRelationURIHash.get(subjectInstance) + "", false);
 			String object = semossURI + "/Relation";
 			// create the statement now
-			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subject, predicate, object, true});
+			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { subject, predicate, object, true });
 			// add base relationship URIs to OWL//
-			storeBaseStatement(subject, predicate, object);
+			String[] baseHashArray = new String[] { subject, predicate, object };
+			storeBaseStatement(baseHashArray);
 		}
-		for(String[] relArray : baseRelations.values()){
+		for (String[] relArray : baseRelations.values()) {
 			String subject = relArray[0];
 			String predicate = relArray[1];
 			String object = relArray[2];
-			storeBaseStatement(subject, predicate, object);
-//			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
+			String[] baseHashArray = new String[] { subject, predicate, object };
+			storeBaseStatement(baseHashArray);
+			// logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +"
+			// "+ object);
 		}
 
 		// I need to write one now for creating properties as well
 		// this is where I will do properties
 		// add the base relation first
-		storeBaseStatement(semossURI + "/" + Constants.DEFAULT_PROPERTY_CLASS, RDF.TYPE+"", semossURI + "/" + Constants.DEFAULT_RELATION_CLASS);
-		
+		String[] semossURIArray = new String[] { semossURI + "/" + Constants.DEFAULT_PROPERTY_CLASS, RDF.TYPE + "",
+				semossURI + "/" + Constants.DEFAULT_RELATION_CLASS };
+		storeBaseStatement(semossURIArray);
+
 		baseHashIt = basePropURIHash.keySet().iterator();
-		while(baseHashIt.hasNext()){
-			String subjectKey = baseHashIt.next() +"";
-			String subjectInstance = basePropURIHash.get(subjectKey);//String subjectInstance = baseHashIt.next() +"";
-			String predicate = RDF.TYPE +"";
-			//convert instances to URIs
+		while (baseHashIt.hasNext()) {
+			String subjectInstance = baseHashIt.next() + "";
+			String predicate = RDF.TYPE + "";
+			// convert instances to URIs
 			String subject = subjectInstance;
 			String object = semossURI + "/" + Constants.DEFAULT_PROPERTY_CLASS;
 			// create the statement now
 			// base property uri is like
 			// Relation/Contains/MovieBudget RDFS:SUBCLASSOF /Relation/Contains
-			storeBaseStatement(subject, predicate, object);
-			String parent = basePropRelations.get(subjectKey);
-		}
-		
-		// now write the actual relations
-		// relation instances go next
-		for(String relArray : basePropRelations.keySet()){
-			String propertyKey = relArray;
-			String parent = basePropRelations.get(propertyKey);
-			String parentURI = baseConceptURIHash.get(parent);
-			String propertyURI = basePropURIHash.get(propertyKey);
-			storeBaseStatement(parentURI, OWL.DatatypeProperty+"", propertyURI);
-//			logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +" "+ object);
-		}
-		
-		//process logic for display naming
-		if(displayNamesHash.size()>0){
-			DisplayNamesProcessor.addDisplayNamesToOWL(displayNamesHash, basePropURIHash, baseConceptURIHash, baseEngCreator);
+			String[] baseHashArray = new String[] { subject, predicate, object };
+			storeBaseStatement(baseHashArray);
 		}
 
+		// now write the actual relations
+		// relation instances go next
+		for (String relArray : basePropRelations.keySet()) {
+			String property = relArray;
+			String parent = basePropRelations.get(property);
+			String[] parentArray = new String[] { parent, OWL.DatatypeProperty + "", property };
+			storeBaseStatement(parentArray);
+			// logger.info("RELATION TRIPLE:::: " + subject +" "+ predicate +"
+			// "+ object);
+		}
 		baseEngCreator.commit();
 		try {
 			baseEngCreator.exportBaseEng(true);
@@ -291,19 +290,15 @@ public abstract class AbstractFileReader {
 			ex.printStackTrace();
 		}
 	}
-	
-	protected void processDisplayNames(){
-		displayNamesHash = DisplayNamesProcessor.generateDisplayNameMap(rdfMap);
-	}
-	
-	protected String[] prepareReader(String fileNames, String customBase, String owlFile, String bdPropFile){
+
+	protected String[] prepareReader(String fileNames, String customBase, String owlFile, String bdPropFile) {
 		String[] files = fileNames.split(";");
-		//make location of the owl file in the dbname folder
-		this.owlFile = owlFile; 
+		// make location of the owl file in the dbname folder
+		this.owlFile = owlFile;
 		// location of bdPropFile
 		this.bdPropFile = bdPropFile;
 		semossURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
-		if(!customBase.equals("")) {
+		if (!customBase.equals("")) {
 			customBaseURI = customBase;
 		}
 
@@ -314,7 +309,7 @@ public abstract class AbstractFileReader {
 		createNewEngine(dbName);
 		openOWLWithOutConnection(owlFile);
 	}
-	
+
 	private void createNewEngine(String dbName) {
 		engine = new BigDataEngine();
 		engine.setEngineName(dbName);
@@ -322,24 +317,24 @@ public abstract class AbstractFileReader {
 	}
 
 	protected void openEngineWithConnection(String engineName) {
-		engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
+		engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 		openOWLWithConnection(engine, owlFile);
 	}
 
 	public String getBaseURI(String nodeType) {
 		nodeType = Utility.cleanString(nodeType, true);
 		// Generate URI for subject node at the instance and base level
-		String semossBaseURI = baseConceptURIHash.get(nodeType);
+		String semossBaseURI = baseConceptURIHash.get(nodeType + Constants.CLASS);
 		// check to see if user specified URI in custom map file
-		if(semossBaseURI == null){
-			if(rdfMap.containsKey(nodeType+Constants.CLASS)){
-				semossBaseURI = rdfMap.get(nodeType+Constants.CLASS);
+		if (semossBaseURI == null) {
+			if (rdfMap.containsKey(nodeType + Constants.CLASS)) {
+				semossBaseURI = rdfMap.get(nodeType + Constants.CLASS);
 			}
 			// if no user specified URI, use generic SEMOSS URI
-			else{
-				semossBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ nodeType;
+			else {
+				semossBaseURI = semossURI + "/" + Constants.DEFAULT_NODE_CLASS + "/" + nodeType;
 			}
-			baseConceptURIHash.put(nodeType, semossBaseURI);
+			baseConceptURIHash.put(nodeType + Constants.CLASS, semossBaseURI);
 		}
 		return semossBaseURI;
 	}
@@ -348,13 +343,13 @@ public abstract class AbstractFileReader {
 
 		String instanceBaseURI = conceptURIHash.get(nodeType);
 		// check to see if user specified URI in custom map file
-		if(instanceBaseURI == null){
-			if(rdfMap.containsKey(nodeType)){
+		if (instanceBaseURI == null) {
+			if (rdfMap.containsKey(nodeType)) {
 				instanceBaseURI = rdfMap.get(nodeType);
 			}
 			// if no user specified URI, use generic customBaseURI
 			else {
-				instanceBaseURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ nodeType;
+				instanceBaseURI = customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS + "/" + nodeType;
 			}
 			conceptURIHash.put(nodeType, instanceBaseURI);
 		}
@@ -406,7 +401,7 @@ public abstract class AbstractFileReader {
 		relName = Utility.cleanPredicateString(relName);
 
 		String relSemossBaseURI = baseRelationURIHash
-				.get(subjectNodeType + "_" + relName + "_" + objectNodeType);
+				.get(subjectNodeType + "_" + relName + "_" + objectNodeType + Constants.CLASS);
 		// check to see if user specified URI in custom map file
 		if (relSemossBaseURI == null) {
 			if (rdfMap.containsKey(subjectNodeType + "_" + relName + "_" + objectNodeType + Constants.CLASS)) {
@@ -416,7 +411,7 @@ public abstract class AbstractFileReader {
 			else {
 				relSemossBaseURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + relName;
 			}
-			baseRelationURIHash.put(subjectNodeType + "_" + relName + "_" + objectNodeType,
+			baseRelationURIHash.put(subjectNodeType + "_" + relName + "_" + objectNodeType + Constants.CLASS,
 					relSemossBaseURI);
 		}
 
@@ -455,24 +450,23 @@ public abstract class AbstractFileReader {
 	}
 
 	public void addNodeProperties(String nodeType, String instanceName, Hashtable<String, Object> propHash) {
-		//create the node in case its not in a relationship
+		// create the node in case its not in a relationship
 		instanceName = Utility.cleanString(instanceName, true);
 		String semossBaseURI = getBaseURI(nodeType);
 		String instanceBaseURI = getInstanceURI(nodeType);
 		String subjectNodeURI = instanceBaseURI + "/" + instanceName;
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDF.TYPE, semossBaseURI, true});
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDFS.LABEL, instanceName, false});
+		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { subjectNodeURI, RDF.TYPE, semossBaseURI, true });
+		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { subjectNodeURI, RDFS.LABEL, instanceName, false });
 
 		addProperties(subjectNodeURI, propHash);
 		// adding node properties to owl
-		if(basePropURI.equals(""))
-		{
+		if (basePropURI.equals("")) {
 			basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
 		}
-		for(String propName : propHash.keySet()) {
+		for (String propName : propHash.keySet()) {
 			String propURI = basePropURI + "/" + propName;
-			basePropRelations.put(nodeType + "%" + propName,nodeType);//basePropRelations.put(propURI, semossBaseURI);
-			basePropURIHash.put(nodeType + "%" + propName, propURI);//basePropURIHash.put(propURI, propURI);
+			basePropRelations.put(propURI, semossBaseURI);
+			basePropURIHash.put(propURI, propURI);
 		}
 	}
 
@@ -530,21 +524,21 @@ public abstract class AbstractFileReader {
 
 	/**
 	 * Insert the current user as a property onto a node if property is "PROCESS_CURRENT_USER"
-	 * @param propURI 			String containing the URI of the property at the instance level
-	 * @param basePropURI 		String containing the base URI of the property at SEMOSS level
-	 * @param subjectNodeURI 	String containing the URI of the subject at the instance level
+	 * @param propURI					String containing the URI of the property at the instance level
+	 * @param basePropURI				String containing the base URI of the property at SEMOSS level
+	 * @param subjectNodeURI			String containing the URI of the subject at the instance level
 	 */
 	private void insertCurrentUser(String propURI, String basePropURI, String subjectNodeURI) {
 		String cleanValue = System.getProperty("user.name");
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE, basePropURI, true});
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, propURI, cleanValue, false});
+		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { propURI, RDF.TYPE, basePropURI, true });
+		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { subjectNodeURI, propURI, cleanValue, false });
 	}
 
 	/**
 	 * Insert the current date as a property onto a node if property is "PROCESS_CURRENT_DATE"
-	 * @param propURI 			String containing the URI of the property at the instance level
-	 * @param basePropURI 		String containing the base URI of the property at SEMOSS level
-	 * @param subjectNodeURI 	String containing the URI of the subject at the instance level
+	 * @param propURI					String containing the URI of the property at the instance level
+	 * @param basePropURI				String containing the base URI of the property at SEMOSS level
+	 * @param subjectNodeURI			String containing the URI of the subject at the instance level
 	 */
 	private void insertCurrentDate(String propInstanceURI, String basePropURI, String subjectNodeURI) {
 		Date dValue = new Date();
@@ -553,8 +547,8 @@ public abstract class AbstractFileReader {
 		Date dateFormatted;
 		try {
 			dateFormatted = df.parse(date);
-			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propInstanceURI, RDF.TYPE, basePropURI, true});
-			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, propInstanceURI, dateFormatted, false});
+			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { propInstanceURI, RDF.TYPE, basePropURI, true });
+			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { subjectNodeURI, propInstanceURI, dateFormatted, false });
 		} catch (ParseException e) {
 			logger.error("ERROR: could not parse date: " + date);
 		}

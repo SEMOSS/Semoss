@@ -49,7 +49,7 @@ public class InsightStore extends Hashtable<String, Insight> {
 	public String put(Insight data) {
 		String uniqueID = data.getInsightID();
 		if(uniqueID == null || uniqueID.isEmpty()) {
-			uniqueID = UUID.randomUUID().toString();
+			uniqueID = (++idCount) + ". " + UUID.randomUUID().toString();
 		} else {
 			uniqueID = (++idCount) + ". "  + uniqueID;
 		}
@@ -128,6 +128,10 @@ public class InsightStore extends Hashtable<String, Insight> {
 	
 	public Set<String> getAllInsights() {
 		return this.keySet();
+	}
+	
+	public static int getIdCount(){
+		return idCount;
 	}
 	
 }

@@ -78,9 +78,9 @@ public abstract class AbstractEngine implements IEngine {
 	//USE THIS INSTEAD OF GOING THROUGH EACH DB FOLDER TO DELETE THE INSIGHT_DATABASE AND SMSS RDMBS_INSIGHT LINE
 	//PLEASE REMEMBER TO TURN THIS TO FALSE AFTERWARDS!
 	private static final boolean RECREATE_INSIGHTS = false;
-
+		
 	private static final Logger logger = LogManager.getLogger(AbstractEngine.class.getName());
-
+	
 	protected String engineName = null;
 	private String propFile = null;
 
@@ -103,8 +103,7 @@ public abstract class AbstractEngine implements IEngine {
 	private String insightDatabaseLoc;
 
 	private Hashtable<String, String> baseDataHash;
-	private Hashtable<String,String> transformedNodeNames = new Hashtable<String,String>();
-
+	
 	private static final String SEMOSS_URI = "http://semoss.org/ontologies/";
 
 	private static final String CONTAINS_BASE_URI = SEMOSS_URI + Constants.DEFAULT_RELATION_CLASS + "/Contains";
@@ -229,7 +228,6 @@ public abstract class AbstractEngine implements IEngine {
 					generalEngineProp = loadProp(baseFolder + "/" + genEngPropFile);
 				}
 			}
-			this.loadTransformedNodeNames();
 		} catch (RuntimeException e) {
 			e.printStackTrace();
 		} catch (FileNotFoundException e) {
@@ -498,7 +496,7 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	public IQueryBuilder getQueryBuilder(){
-		return new SPARQLQueryTableBuilder(this);
+		return new SPARQLQueryTableBuilder();
 	}
 
 	/**
@@ -523,96 +521,7 @@ public abstract class AbstractEngine implements IEngine {
 				+ "BINDINGS ?concept {(<"+concept+">)}";
 		return Utility.getVectorOfReturn(query, baseDataEngine, true);
 	}
-	
-	/**
-	 * query the owl to get the display name or the physical name
-	 */
-	public String getTransformedNodeName(String nodeURI, boolean getDisplayName){
-		//String returnNodeURI = nodeURI;
-		
-		//these validation peices are seperated out intentionally for readability.
-		if(baseDataEngine == null || nodeURI.isEmpty() ){ 
-			return nodeURI;
-		}
-		
-		//for rdbms normalize the URI... for concepts and relation uris
-		if (nodeURI.startsWith(Constants.CONCEPT_URI) || nodeURI.startsWith(Constants.RELATION_URI) && this.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
-			for(String displayName: this.transformedNodeNames.keySet()){
-				String physicalName = this.transformedNodeNames.get(displayName);
-				if(physicalName.equalsIgnoreCase(nodeURI)){
-					nodeURI = physicalName;
-					break;
-				}
-			}
-		}
-		
-		//if you are trying to get the physical name, but you came in here with out the display name uri component, exit out
-		if(!nodeURI.startsWith(Constants.DISPLAY_URI) && !getDisplayName){
-			return nodeURI;
-		}
-		//if you are trying to get a display name but you came in with out the physical URI component, exit out
-		if(getDisplayName && !(nodeURI.startsWith(Constants.CONCEPT_URI) || nodeURI.startsWith(Constants.RELATION_URI))){
-			return nodeURI;
-		}
-		
-		//if uri coming in is just a base URI...
-		if(nodeURI.equals(Constants.DISPLAY_URI) || nodeURI.equals(Constants.CONCEPT_URI) || nodeURI.equals(Constants.RELATION_URI)){
-			return nodeURI;
-		}
-		
-		//first check the Hashtable to see if its already existing, so you dont need to query any databases.
-		//the key is the logical name since those can be unique (properties names may be the same across types)
-		return findTransformedNodeName(nodeURI, getDisplayName);
 
-	}
-
-	public void setTransformedNodeNames(Hashtable transformedNodeNames){
-		this.transformedNodeNames = transformedNodeNames;
-	}
-	
-	public void loadTransformedNodeNames(){
-		String query = "SELECT DISTINCT ?object (COALESCE(?DisplayName, ?object) AS ?Display) WHERE { "
-				+ " { {?object <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
-				+ "OPTIONAL{?object <http://semoss.org/ontologies/DisplayName> ?DisplayName } } UNION { "
-				+ "{ ?object <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> } "
-				+ "OPTIONAL {?object <http://semoss.org/ontologies/DisplayName> ?DisplayName }"
-				+ "} }"; 
-		if(this.baseDataEngine!=null){
-			Vector<String[]> transformedNode = Utility.getVectorObjectOfReturn(query, this.baseDataEngine);
-		
-			if(transformedNode.size()!=0){
-				for(String[] node: transformedNode){
-					this.transformedNodeNames.put(node[1], node[0]); //map contains display name : physical name
-				}
-				this.baseDataEngine.setTransformedNodeNames(this.transformedNodeNames);
-			}
-		}
-	}
-	
-	private String findTransformedNodeName(String nodeURI, boolean getDisplayName){
-		
-		if(this.transformedNodeNames.containsKey(nodeURI) && !getDisplayName){
-			String physicalName = this.transformedNodeNames.get(nodeURI); 
-			if(!physicalName.equalsIgnoreCase(nodeURI)){ // I have to do this because of RDBMS and its inconsistency with capitalizing concepts
-				return physicalName;
-			} else {
-				return nodeURI;
-			}
-		} else if(this.transformedNodeNames.contains(nodeURI) && getDisplayName){
-			for(String displayName: this.transformedNodeNames.keySet()){
-				String physicalName = this.transformedNodeNames.get(displayName);
-				if(physicalName.equalsIgnoreCase(nodeURI)){
-					if(!displayName.equalsIgnoreCase(nodeURI)){ // I have to do this because of RDBMS and its inconsistency with capitalizing concepts
-						return displayName;
-					} else {
-						return nodeURI;
-					}
-				}
-			}
-		} 
-		return nodeURI;
-	}
-	
 	/**
 	 * Runs a select query on the base data engine of this engine
 	 */
@@ -643,17 +552,17 @@ public abstract class AbstractEngine implements IEngine {
 	public String getMethodName(IEngine.ACTION_TYPE actionType){
 		String retString = "";
 		switch(actionType) {
-		case ADD_STATEMENT: {
-			retString = "addStatement";
-			break;
-		}
-		case REMOVE_STATEMENT: {
-			retString = "removeStatement";
-			break;
-		}
-		default: {
-
-		}
+			case ADD_STATEMENT: {
+				retString = "addStatement";
+				break;
+			}
+			case REMOVE_STATEMENT: {
+				retString = "removeStatement";
+				break;
+			}
+			default: {
+	
+			}
 		}
 		return retString;
 	}
@@ -774,16 +683,6 @@ public abstract class AbstractEngine implements IEngine {
 	public IEngine getInsightDatabase() {
 		return this.insightRDBMS;
 	}
-	
-	@Override
-	public Vector<String> executeInsightQuery(String sparqlQuery, boolean isDbQuery) {
-		IEngine engine = this;
-		if(!isDbQuery){
-			engine = this.baseDataEngine;
-		} 
-			
-		return Utility.getVectorOfReturn(sparqlQuery, engine, true);
-	} 
 
 	@Override
 	public Vector<String> getPerspectives() {
