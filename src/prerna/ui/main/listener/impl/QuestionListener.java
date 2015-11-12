@@ -103,7 +103,7 @@ public class QuestionListener implements IChakraListener {
 			// save the playsheet for the current question for modifying current query
 			JComboBox playSheetComboBox = (JComboBox)DIHelper.getInstance().getLocalProp(Constants.PLAYSHEET_COMBOBOXLIST);
 			// set the model each time a question is choosen to include playsheets that are not in PlaySheetEnum
-			playSheetComboBox.setModel(new DefaultComboBoxModel(PlaySheetRDFMapBasedEnum.getCustomSheetNames().toArray()));
+			playSheetComboBox.setModel(new DefaultComboBoxModel(PlaySheetRDFMapBasedEnum.getAllSheetNames().toArray()));
 			if(!PlaySheetRDFMapBasedEnum.getAllSheetNames().contains(layoutValue))
 			{
 				String addPlaySheet = layoutValue.substring(layoutValue.lastIndexOf(".") +1);

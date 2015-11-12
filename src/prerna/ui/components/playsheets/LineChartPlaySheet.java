@@ -31,17 +31,12 @@ import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.Map;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 public class LineChartPlaySheet extends BrowserPlaySheet{
 
-	private static final String labelString = "label";
-	private static final String valueString = "value ";
-	
 	public LineChartPlaySheet() 
 	{
 		super();
@@ -54,23 +49,6 @@ public class LineChartPlaySheet extends BrowserPlaySheet{
 	{
 		ArrayList<Hashtable<String, Object>> dataObj = new ArrayList<Hashtable<String, Object>>();
 		String[] names = dataFrame.getColumnHeaders();
-		
-		Map<String, String> align = getDataTableAlign();
-		int labelIdx = -1;
-		Integer[] seriesIndices = new Integer[align.size()-1];
-		for(int i = 0; i < names.length; i++){
-			String name = names[i];
-			if(align.containsValue(name)){
-				String key = Utility.getKeyFromValue(align, name);
-				if(key.contains(labelString)){
-					labelIdx = i;
-				}
-				else if(key.contains(valueString)){
-					int seriesIdx = Integer.parseInt(key.replace(valueString, ""));
-					seriesIndices[seriesIdx - 1] = i;
-				}
-			}
-		}
 
 		Iterator<Object[]> it = dataFrame.iterator(true);
 		while(it.hasNext()) {
@@ -78,9 +56,9 @@ public class LineChartPlaySheet extends BrowserPlaySheet{
 			
 			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
 			elementHash.put("xAxis",  "");
-			elementHash.put("uriString",  Utility.getInstanceName(elemValues[labelIdx].toString()));
-			for(int j = 0; j < seriesIndices.length; j++){
-				elementHash.put(names[seriesIndices[j]], elemValues[seriesIndices[j]]);
+			elementHash.put("uriString",  elemValues[0].toString());
+			for(int j = 1; j < elemValues.length; j++){
+				elementHash.put(names[j], elemValues[j]);
 			}
 			dataObj.add(elementHash);
 		}
@@ -92,22 +70,15 @@ public class LineChartPlaySheet extends BrowserPlaySheet{
 		
 		this.dataHash = lineChartHash;
 	}
-
-	@Override
-	public Map<String, String> getDataTableAlign() {
-		if(this.tableDataAlign == null){
-			this.tableDataAlign = getAlignHash();
-		}
-		return this.tableDataAlign;
-	}
 	
-	public Hashtable<String, String> getAlignHash() {
+	@Override
+	public Hashtable<String, String> getDataTableAlign() {
 		Hashtable<String, String> alignHash = new Hashtable<String, String>();
 		String[] names = dataFrame.getColumnHeaders();
 		
-		alignHash.put(labelString, names[0]);
+		alignHash.put("label", names[0]);
 		for(int namesIdx = 1; namesIdx<names.length; namesIdx++){
-			alignHash.put(valueString + namesIdx, names[namesIdx]);
+			alignHash.put("value " + namesIdx, names[namesIdx]);
 		}
 		return alignHash;
 	}

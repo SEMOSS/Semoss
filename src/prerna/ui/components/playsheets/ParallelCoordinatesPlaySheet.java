@@ -36,14 +36,11 @@ import java.util.Map;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 /**
  * The Play Sheet for creating a Parallel Coordinates diagram.
  */
 public class ParallelCoordinatesPlaySheet extends BrowserPlaySheet {
-	
-	private static final String dimString = "dim ";
 	
 	/**
 	 * Constructor for ParallelCoordinatesPlaySheet.
@@ -63,19 +60,6 @@ public class ParallelCoordinatesPlaySheet extends BrowserPlaySheet {
 	{
 		ArrayList<Map<String, Object>> dataArrayList = new ArrayList<Map<String, Object>>();
 		String[] var = dataFrame.getColumnHeaders();
-
-		Map<String, String> align = getDataTableAlign();
-		Integer[] seriesIndices = new Integer[align.size()];
-		for(int i = 0; i < var.length; i++){
-			String name = var[i];
-			if(align.containsValue(name)){
-				String key = Utility.getKeyFromValue(align, name);
-				if(key.contains(dimString)){
-					int seriesIdx = Integer.parseInt(key.replace(dimString, ""));
-					seriesIndices[seriesIdx] = i;
-				}
-			}
-		}
 		
 		Iterator<Object[]> it = dataFrame.iterator(true);
 		while(it.hasNext())
@@ -84,23 +68,22 @@ public class ParallelCoordinatesPlaySheet extends BrowserPlaySheet {
 			Object[] listElement = it.next();
 			String colName;
 			Double value;
-			for (int j = 0; j < seriesIndices.length; j++) 
+			for (int j = 0; j < var.length; j++) 
 			{	
-				int idx = seriesIndices[j];
-				colName = var[idx];
-				if (listElement[idx] instanceof String)
+				colName = var[j];
+				if (listElement[j] instanceof String)
 				{	
-					String text = (String) listElement[idx];
+					String text = (String) listElement[j];
 					text = text.replaceAll("^\"|\"$", "");
 					elementHash.put(colName, text);
 				}
-				else if (listElement[idx] instanceof Double)
+				else if (listElement[j] instanceof Double)
 				{	
-					value = (Double) listElement[idx];	
+					value = (Double) listElement[j];	
 					elementHash.put(colName, value);
 				} 
 				else {
-					elementHash.put(colName, listElement[idx]);
+					elementHash.put(colName, listElement[j]);
 				}
 			}	
 				dataArrayList.add(elementHash);			
@@ -113,18 +96,11 @@ public class ParallelCoordinatesPlaySheet extends BrowserPlaySheet {
 	}
 	
 	@Override
-	public Map<String, String> getDataTableAlign() {
-		if(this.tableDataAlign == null){
-			this.tableDataAlign = getAlignHash();
-		}
-		return this.tableDataAlign;
-	}
-	
-	public Hashtable<String, String> getAlignHash() {
+	public Hashtable<String, String> getDataTableAlign() {
 		Hashtable<String, String> alignHash = new Hashtable<String, String>();
 		String[] names = dataFrame.getColumnHeaders();
 		for(int namesIdx = 0; namesIdx<names.length; namesIdx++){
-			alignHash.put(dimString + namesIdx, names[namesIdx]);
+			alignHash.put("dim " + namesIdx, names[namesIdx]);
 		}
 		return alignHash;
 	}

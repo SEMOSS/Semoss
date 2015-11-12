@@ -29,8 +29,6 @@ package prerna.util;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -41,19 +39,17 @@ import java.util.Properties;
 
 public class PlaySheetRDFMapBasedEnum {
 	
-	static Map<String, Map<String, Object>> masterObject; // this is rdf map key -> object containing sheet name, class name, hint
+	static Map<String, Map<String, String>> masterObject; // this is rdf map key -> object containing sheet name, class name, hint
 	private static PlaySheetRDFMapBasedEnum instance;
 	
 	// for storing in master object
 //	private final static String sheetName = "sheetName";
 	private final static String sheetClass = "sheetClass";
 	private final static String sheetHint = "sheetHint";
-	private final static String sheetCustom = "sheetCustom";
 	private final static String sheetID = "sheetID";
 	
 	// for getting off of rdf map
 	private final static String MAP_HINT = "_HINT";
-	private final static String MAP_CUSTOM = "_CUSTOM";
 	private final static String MAP_CLASS = "";
 //	private final static String MAP_NAME = "_NAME";
 	
@@ -70,17 +66,16 @@ public class PlaySheetRDFMapBasedEnum {
 	
 	
 	public void setData(String[] psIdsToLoad, Properties props) {
-		masterObject = new LinkedHashMap<String, Map<String,Object>>();
+		masterObject = new HashMap<String, Map<String,String>>();
 		// for each playsheet listed on the map
 		// grab as much information as we can about it
 		// save in our master object so we can reference 
 		for(String id : psIdsToLoad){
-			Map<String, Object> psObj = new HashMap<String, Object>();
+			Map<String, String> psObj = new HashMap<String, String>();
 			psObj.put(sheetID, id);
 			
 			String psHintKey = id + MAP_HINT;
 			String psClassKey = id + MAP_CLASS;
-			String psCustomKey = id + MAP_CUSTOM;
 //			String psNameKey = id + MAP_NAME;
 			
 			if(props.containsKey(psHintKey)){
@@ -95,58 +90,52 @@ public class PlaySheetRDFMapBasedEnum {
 			else{
 				psObj.put(sheetClass, "No class defined");
 			}
-			if(props.containsKey(psCustomKey)){
-				psObj.put(sheetCustom, Boolean.parseBoolean(props.getProperty(psCustomKey)));
-			}
-			else{
-				psObj.put(sheetCustom, true);
-			}
 //			if(props.containsKey(psNameKey)){
 //				psObj.put(sheetName, props.getProperty(psNameKey));
 //			}
 //			else{
 //				psObj.put(sheetName, "No name defined");
 //			}
-			masterObject.put(id, psObj);
+			PlaySheetRDFMapBasedEnum.masterObject.put(id, psObj);
 		}
 	}
 	
 	public String getSheetClass(String psId){
-		return (String) masterObject.get(psId).get(sheetClass);
+		return PlaySheetRDFMapBasedEnum.masterObject.get(psId).get(sheetClass);
 	}
 	
 	public static String getSheetName(String psId){
-		return (String) masterObject.get(psId).get(sheetID);
+		return PlaySheetRDFMapBasedEnum.masterObject.get(psId).get(sheetID);
 	}
 	
 	public String getSheetHint(String psId){
-		return (String) masterObject.get(psId).get(sheetHint);
+		return PlaySheetRDFMapBasedEnum.masterObject.get(psId).get(sheetHint);
 	}
 	
-	public static List<String> getAllSheetNames(){
+	public static ArrayList<String> getAllSheetNames(){
 		ArrayList<String> list = new ArrayList<String>();
-		for (Map<String, Object> e : masterObject.values())
+		for (Map<String, String> e : masterObject.values())
 		{
-			list.add((String) e.get(sheetID));
+			list.add(e.get(sheetID));
 		}
 		return list;
 	}
 	
 	public static ArrayList<String> getAllSheetClasses(){
 		ArrayList<String> list = new ArrayList<String>();
-		for (Map<String, Object> e : masterObject.values())
+		for (Map<String, String> e : masterObject.values())
 		{
-			list.add((String) e.get(sheetClass));
+			list.add(e.get(sheetClass));
 		}
 		return list;
 	}
 	
 	public static String getClassFromName(String checkName){
 		String match = "";
-		for (Map<String, Object> e : masterObject.values())
+		for (Map<String, String> e : masterObject.values())
 		{
 			if(e.get(sheetID).equals(checkName)){
-				match = (String) e.get(sheetClass);
+				match = e.get(sheetClass);
 				break;
 			}
 		}
@@ -155,10 +144,10 @@ public class PlaySheetRDFMapBasedEnum {
 	
 	public static String getHintFromName(String checkName){
 		String match = "";
-		for (Map<String, Object> e : masterObject.values())
+		for (Map<String, String> e : masterObject.values())
 		{
 			if(e.get(sheetID).equals(checkName)){
-				match = (String) e.get(sheetHint);
+				match = e.get(sheetHint);
 				break;
 			}
 		}
@@ -167,10 +156,10 @@ public class PlaySheetRDFMapBasedEnum {
 	
 	public static String getNameFromClass(String checkClass){
 		String match = "";
-		for (Map<String, Object> e : masterObject.values())
+		for (Map<String, String> e : masterObject.values())
 		{
 			if(e.get(sheetClass).equals(checkClass)){
-				match = (String) e.get(sheetID);
+				match = e.get(sheetID);
 				break;
 			}
 		}
@@ -178,25 +167,14 @@ public class PlaySheetRDFMapBasedEnum {
 	}
 
 	public static String getIdFromClass(String checkClass) {
-		String match = "";
-		for (Map<String, Object> e : masterObject.values())
+		String match = checkClass;
+		for (Map<String, String> e : masterObject.values())
 		{
 			if(e.get(sheetClass).equals(checkClass)){
-				match = (String) e.get(sheetID);
+				match = e.get(sheetID);
 				break;
 			}
 		}
 		return match;
-	}
-
-	public static List<String> getCustomSheetNames() {
-		ArrayList<String> list = new ArrayList<String>();
-		for (Map<String, Object> e : masterObject.values())
-		{
-			if((Boolean) e.get(sheetCustom)){
-				list.add((String) e.get(sheetID));
-			}
-		}
-		return list;
 	}
 }

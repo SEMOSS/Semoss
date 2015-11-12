@@ -33,7 +33,12 @@ public interface ISelectWrapper extends IEngineWrapper {
 
 	public ISelectStatement next();
 	
-	public String [] getVariables();
+	@Deprecated
+	public String [] getVariables(); //use getDisplayVariables instead
+	
+	public String [] getDisplayVariables();
+	
+	public String [] getPhysicalVariables();
 	
 	public ITableDataFrame getTableDataFrame();
 	

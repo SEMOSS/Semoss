@@ -21,21 +21,20 @@ import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 public class AlgorithmAction implements ISEMOSSAction {
 
 	private static final Logger LOGGER = LogManager.getLogger(AlgorithmAction.class.getName());
-	private static final String ACTION_NAME = "algorithmAction";				// the name to distinguish the action as an algorithm action in insight makeup
-	private static final String METHOD_NAME = "performAnalyticAction";			// the name of the method in all data makers to perform an algorithm transformation
-	public static final String ALGORITHM_TYPE = "algorithmType";				// key in the properties to determine the type of algorithm being run
+	private static final String ACTION_NAME = "algorithmAction";
+	private static final String METHOD_NAME = "performAnalyticAction";
+	public static final String ALGORITHM_TYPE = "algorithmType";
 
-	// the list of default algorithm actions
 	public static final String MATRIX_REGRESSION = "matrix_regression";
 	public static final String NUMERICAL_CORRELATION = "numerical_correlation";
 	public static final String ASSOCATION_LEARNING = "association_learning";
 	public static final String J48_CLASSIFICATION = "j48";
 	public static final String HOEFFDING_TREE_CLASSIFICATION = "hoeffding_tree";
 
-	private Map<String, Object> props;
-	private DataMakerComponent dmc;
-	private ITableDataFrame dm;
-	private String id;
+	Map<String, Object> props;
+	DataMakerComponent dmc;
+	ITableDataFrame dm;
+	String id;
 
 	@Override
 	//TODO: need to figure out how the routines themselves will be obtained to override defaults in rdf map and engine prop
@@ -101,8 +100,10 @@ public class AlgorithmAction implements ISEMOSSAction {
 		this.dmc = dmc;
 	}
 
+
 	@Override
 	public void setProperties(Map<String, Object> props) {
+		//TODO: validate hash and set values
 		this.props = props;
 	}
 
