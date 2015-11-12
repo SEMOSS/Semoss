@@ -100,6 +100,7 @@ public class Insight {
 	private transient IDataMaker dataMaker;										// defines how to make the data for the insight
 	private String dataMakerName;												// the name of the data maker
 	private transient List<DataMakerComponent> dmComponents;					// the list of data maker components in order for creation of insight
+	private transient List<DataMakerComponent> optimalComponents;
 	private transient Map<String, List<Object>> paramHash;						// the parameters selected by user for filtering on insights
 	private transient Vector<SEMOSSParam> insightParameters;					// the SEMOSSParam objects for the insight
 	
@@ -603,6 +604,20 @@ public class Insight {
 		}
 		return this.dmComponents;
 	}
+
+	public List<DataMakerComponent> getOptimalDataMakerComponents() {
+		if(this.optimalComponents == null && this.makeupEngine != null){
+			this.dmComponents = digestNTriples(this.makeupEngine);
+			this.optimalComponents = optimizeComponents(this.dmComponents);
+		} else if(this.optimalComponents == null) {
+			this.optimalComponents = new Vector<DataMakerComponent>();
+		}
+		return this.optimalComponents;
+	}
+	
+	private List<DataMakerComponent> optimizeComponents(List<DataMakerComponent> dmComponents){
+		return null;
+	}
 	
 	/**
 	 * Setter for the DataMakerComponents of the insight
@@ -687,10 +702,7 @@ public class Insight {
 	 * @param component
 	 */
 	public void processDataMakerComponent(DataMakerComponent component) {
-		int lastComponent = 0;
-		if(this.dmComponents != null) {
-			lastComponent = this.dmComponents.size();
-		}
+		int lastComponent = this.getDataMakerComponents().size();
 		String compId = COMP + lastComponent;
 		component.setId(compId);
 		List<ISEMOSSTransformation> preTrans = component.getPreTrans();
