@@ -32,12 +32,14 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 import com.google.gson.Gson;
 
@@ -50,6 +52,12 @@ public class CONUSMapPlaySheet extends BrowserPlaySheet {
 	private static final Logger logger = LogManager.getLogger(CONUSMapPlaySheet.class.getName());
 	Hashtable<String, Object> allHash;
 	HashSet<LinkedHashMap<String, Object>> data;
+	private static final String labelString = "label";
+	private static final String latString = "lat";
+	private static final String lonString = "lon";
+	private static final String sizeString = "size";
+	
+	
 	/**
 	 * Constructor for CONUSMapPlaySheet.
 	 */
@@ -70,6 +78,31 @@ public class CONUSMapPlaySheet extends BrowserPlaySheet {
 	{
 		data = new HashSet<LinkedHashMap<String, Object>>();
 		String[] var = dataFrame.getColumnHeaders();
+
+		Map<String, String> align = getDataTableAlign();
+		int labelIdx = -1;
+		int latIdx = -1;
+		int lonIdx = -1;
+		int sizeIdx = -1;
+		for(int i = 0; i < var.length; i++){
+			String name = var[i];
+			if(align.containsValue(name)){
+				String key = Utility.getKeyFromValue(align, name);
+				if(key.contains(labelString)){
+					labelIdx = i;
+				}
+				else if(key.contains(latString)){
+					latIdx = i;
+				}
+				else if(key.contains(lonString)){
+					lonIdx = i;
+				}
+				else if(key.contains(sizeString)){
+					sizeIdx = i;
+				}
+			}
+		}
+		
 		Iterator<Object[]> it = dataFrame.iterator(true);
 		
 		while(it.hasNext())
@@ -103,13 +136,13 @@ public class CONUSMapPlaySheet extends BrowserPlaySheet {
 		allHash = new Hashtable<String, Object>();
 		allHash.put("dataSeries", data);
 		
-		allHash.put("lat", var[1]);
-		allHash.put("lon", var[2]);
-		if (var.length > 3 && !var[3].equals(null))
-			allHash.put("size", var[3]);
+		allHash.put("lat", var[latIdx]);
+		allHash.put("lon", var[lonIdx]);
+		if (sizeIdx != -1)
+			allHash.put("size", var[sizeIdx]);
 		else
 			allHash.put("size", "size");
-		allHash.put("locationName", var[0]);
+		allHash.put("locationName", var[labelIdx]);
 //		allHash.put("xAxisTitle", var[0]);
 //		allHash.put("yAxisTitle", var[1]);
 //		allHash.put("value", var[2]);
@@ -137,15 +170,22 @@ public class CONUSMapPlaySheet extends BrowserPlaySheet {
 	}
 	
 	@Override
-	public Hashtable<String, String> getDataTableAlign() {
+	public Map<String, String> getDataTableAlign() {
+		if(this.tableDataAlign == null){
+			this.tableDataAlign = getAlignHash();
+		}
+		return this.tableDataAlign;
+	}
+	
+	public Hashtable<String, String> getAlignHash() {
 		Hashtable<String, String> alignHash = new Hashtable<String, String>();
 		String[] names = dataFrame.getColumnHeaders();
 		
-		alignHash.put("label", names[0]);
-		alignHash.put("lat", names[1]);
-		alignHash.put("lon", names[2]);
+		alignHash.put(labelString, names[0]);
+		alignHash.put(latString, names[1]);
+		alignHash.put(lonString, names[2]);
 		if (names.length > 3 && !names[3].equals(null))
-			alignHash.put("size", names[3]);
+			alignHash.put(sizeString, names[3]);
 		return alignHash;
 	}
 }
