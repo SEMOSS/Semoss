@@ -26,11 +26,7 @@ import weka.core.Instances;
 public class WekaAprioriAlgorithm implements IAnalyticActionRoutine {
 
 	private static final Logger LOGGER = LogManager.getLogger(WekaAprioriAlgorithm.class.getName());
-	
-	private static final String X_AXIS_NAME = "Confidence";
-	private static final String Z_AXIS_NAME = "Count";
 
-	
 	public static final String NUM_RULES = "numRules";
 	public static final String CONFIDENCE_LEVEL = "confPer";
 	public static final String MIN_SUPPORT = "minSupport";
@@ -130,9 +126,8 @@ public class WekaAprioriAlgorithm implements IAnalyticActionRoutine {
 	@Override
 	public Object getAlgorithmOutput() {
 		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
-		allHash.putAll(generateDecisionRuleVizualization());
+		allHash.put("specificData", generateDecisionRuleVizualization());
 		allHash.put("layout", getDefaultViz());
-		allHash.put("dataTableAlign", getDataTableAlign());
 		return allHash;
 	}
 
@@ -161,7 +156,7 @@ public class WekaAprioriAlgorithm implements IAnalyticActionRoutine {
 			retItemList.add(item);
 		}
 
-		String[] headers = new String[]{Z_AXIS_NAME, X_AXIS_NAME, "Premises", "Consequence"};
+		String[] headers = new String[]{"Count", "Confidence", "Premises", "Consequence"};
 		Hashtable<String, Object> retHash = new Hashtable<String, Object>();
 		retHash.put("headers", headers);
 		retHash.put("data", retItemList);
@@ -198,8 +193,8 @@ public class WekaAprioriAlgorithm implements IAnalyticActionRoutine {
 		for(; i < numCols; i++) {
 			columnHeaders[i-1] = names[i];
 		}
-		columnHeaders[numCols-1] = Z_AXIS_NAME;
-		columnHeaders[numCols] = X_AXIS_NAME;
+		columnHeaders[numCols-1] = "Count";
+		columnHeaders[numCols] = "Confidence";
 		
 		tabularData = new ArrayList<Object[]>();
 
@@ -280,7 +275,7 @@ public class WekaAprioriAlgorithm implements IAnalyticActionRoutine {
 
 	@Override
 	public String getDefaultViz() {
-		return "SingleAxisCluster";
+		return "prerna.ui.components.playsheets.WekaAprioriVizPlaySheet";
 	}
 
 	@Override
@@ -288,13 +283,6 @@ public class WekaAprioriAlgorithm implements IAnalyticActionRoutine {
 		// TODO Auto-generated method stub
 		return null;
 	} 
-	
-	public Map<String, String> getDataTableAlign() {
-		Map<String, String> dataTableAlign = new HashMap<String, String>();
-		dataTableAlign.put("x-axis", X_AXIS_NAME);
-		dataTableAlign.put("size", Z_AXIS_NAME);
-		return dataTableAlign;
-	}
 	
 	public List<Object[]> getTabularData() {
 		return this.tabularData;

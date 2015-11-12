@@ -39,6 +39,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 import com.hp.hpl.jena.query.QuerySolution;
@@ -60,13 +61,13 @@ public class JenaSelectWrapper extends AbstractWrapper implements ISelectWrapper
 	{
 		ISelectStatement thisSt = new SelectStatement();
 	    QuerySolution row = rs.nextSolution();
-		for(int colIndex = 0;colIndex < var.length;colIndex++)
+		for(int colIndex = 0;colIndex < displayVar.length;colIndex++)
 		{
 			String value = row.get(var[colIndex])+"";
 			RDFNode node = row.get(var[colIndex]);
 			
-			thisSt.setVar(var[colIndex], getRealValue(node));
-			thisSt.setRawVar(var[colIndex], value);
+			thisSt.setVar(displayVar[colIndex], getRealValue(node));
+			thisSt.setRawVar(displayVar[colIndex], value);
 			logger.debug("Binding Name " + var[colIndex]);
 			logger.debug("Binding Value " + value);
 		}	
@@ -75,6 +76,47 @@ public class JenaSelectWrapper extends AbstractWrapper implements ISelectWrapper
 
 	@Override
 	public String[] getVariables() {
+		return getDisplayVariables();
+	}
+	
+	@Override
+	public String[] getDisplayVariables() {
+		displayVar = new String[rs.getResultVars().size()];
+		List <String> names = rs.getResultVars();
+		for (int colIndex = 0; colIndex < names.size(); colIndex++){
+			String columnLabel = names.get(colIndex);
+			String tableLabel = names.get(colIndex);
+			boolean columnIsProperty = false;
+			String tableLabelURI = Constants.CONCEPT_URI;
+			String columnLabelURI = Constants.RELATION_URI;
+			if(columnLabel.contains("__")){
+				columnIsProperty = true;
+				String[] splitColAndTable = columnLabel.split("__");
+				tableLabel = splitColAndTable[0];
+				columnLabel = splitColAndTable[1];
+			}
+		
+			tableLabelURI += tableLabel;
+			columnLabelURI += columnLabel;
+			//now get the display name 
+			tableLabelURI = engine.getTransformedNodeName(tableLabelURI, true);
+			columnLabelURI = engine.getTransformedNodeName(columnLabelURI, true);
+			tableLabel = Utility.getInstanceName(tableLabelURI);
+			columnLabel = Utility.getInstanceName(columnLabelURI);
+			if(columnIsProperty){
+				columnLabel = tableLabel + "__" + columnLabel;
+			} else {
+				columnLabel = tableLabel;
+			}
+			
+			displayVar[colIndex] = columnLabel;
+		}
+		return displayVar;
+	}
+	
+	@Override
+	public String[] getPhysicalVariables() {
+		// get the result set metadata to get the column names
 		var = new String[rs.getResultVars().size()];
 		List <String> names = rs.getResultVars();
 		for(int colIndex = 0;colIndex < names.size();var[colIndex] = names.get(colIndex), colIndex++);
@@ -102,14 +144,14 @@ public class JenaSelectWrapper extends AbstractWrapper implements ISelectWrapper
 
 	@Override
 	public ITableDataFrame getTableDataFrame() {
-		BTreeDataFrame dataFrame = new BTreeDataFrame(this.var);
+		BTreeDataFrame dataFrame = new BTreeDataFrame(this.displayVar);
 		while (hasNext()){
 			logger.debug("Adding a jena statement ");
 			QuerySolution row = rs.nextSolution();
 			
-			Object[] clean = new Object[this.var.length];
-			Object[] raw = new Object[this.var.length];
-			for(int colIndex = 0;colIndex < var.length;colIndex++)
+			Object[] clean = new Object[this.displayVar.length];
+			Object[] raw = new Object[this.displayVar.length];
+			for(int colIndex = 0;colIndex < displayVar.length;colIndex++)
 			{
 				raw[colIndex] = row.get(var[colIndex] + "");
 				clean[colIndex] = getRealValue(row.get(var[colIndex]));

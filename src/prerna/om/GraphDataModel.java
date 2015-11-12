@@ -103,6 +103,8 @@ public class GraphDataModel implements IDataMaker {
 	StringBuffer subjects = new StringBuffer("");
 	StringBuffer objects = new StringBuffer("");
 
+	private boolean isPhysicalMetamodel = false;
+	
 	boolean search, prop, sudowl;
 
 	boolean subclassCreate = false; //this is used for our metamodel graphs. Need to be modify the base graph base and base concepts queries to use subclass of concept rather than type
@@ -185,6 +187,7 @@ public class GraphDataModel implements IDataMaker {
 				containsRelation = findContainsRelation();
 			if(containsRelation == null)
 				containsRelation = "<http://semoss.org/ontologies/Relation/Contains>";
+
 			RDFEngineHelper.genNodePropertiesLocal(rc, containsRelation, this, subclassCreate);
 			RDFEngineHelper.genEdgePropertiesLocal(rc, containsRelation, this);
 
@@ -327,6 +330,7 @@ public class GraphDataModel implements IDataMaker {
 			//	logger.info("Came into not having ANY data"); 
 			//	return;
 			//}
+			
 			while(sjw.hasNext())
 			{
 				// read the subject predicate object
@@ -368,6 +372,7 @@ public class GraphDataModel implements IDataMaker {
 				addToSesame(st, false, false); // and this will work fine because I am just giving out URIs
 				if (search) addToJenaModel3(st);
 			}			
+			
 			logger.debug("Subjects >>> " + subjects);
 			logger.debug("Predicatss >>>> " + predicates);
 
@@ -575,19 +580,22 @@ public class GraphDataModel implements IDataMaker {
 	 * @param predicate String
 	 */
 	public void addNodeProperty(String subject, Object object, String predicate) {
-		logger.debug("Creating property for a vertex" );
-		SEMOSSVertex vert1 = vertStore.get(subject);
-		if (vert1 == null) {
-			vert1 = new SEMOSSVertex(subject);
-		}
-		//only set property and store vertex if the property does not already exist on the node
-		String propName = Utility.getInstanceName(predicate);
-		if (vert1.getProperty(propName)==null) {
-			vert1.setProperty(propName, object);
-			storeVert(vert1);
-		}
-		//			genControlData(vert1);
-		//controlData.addProperty(vert1.getProperty(Constants.VERTEX_TYPE)+"", Utility.getClassName(predicate));
+			logger.debug("Creating property for a vertex" );
+			
+			String displayNameSubject = this.getDisplayName(subject);
+			SEMOSSVertex vert1 = vertStore.get(displayNameSubject);
+			if (vert1 == null) {
+				vert1 = new SEMOSSVertex(displayNameSubject);
+			}
+			String subjectInstance = Utility.getInstanceName(subject);
+			//only set property and store vertex if the property does not already exist on the node
+			String propName = this.getDisplayName(predicate); //Utility.getInstanceName(this.getDisplayName(subjectInstance +"%"+ predicate));
+			if (vert1.getProperty(propName)==null) {
+				vert1.setProperty(propName, object);
+				storeVert(vert1);
+			}
+//			genControlData(vert1);
+			//controlData.addProperty(vert1.getProperty(Constants.VERTEX_TYPE)+"", Utility.getClassName(predicate));
 	}
 
 	private void storeVert(SEMOSSVertex vert){
@@ -789,13 +797,14 @@ public class GraphDataModel implements IDataMaker {
 				count++;
 
 				SesameJenaConstructStatement sct = sjsc.next();
-
-				if(!baseFilterHash.containsKey(sct.getSubject()))// && !baseFilterHash.containsKey(sct.getPredicate()) && !baseFilterHash.containsKey(sct.getObject()+""))
+				String subject = this.getDisplayName(sct.getSubject());
+				
+				if(!baseFilterHash.containsKey(subject))// && !baseFilterHash.containsKey(sct.getPredicate()) && !baseFilterHash.containsKey(sct.getObject()+""))
 				{
-					SEMOSSVertex vert1 = vertStore.get(sct.getSubject()+"");
+					SEMOSSVertex vert1 = vertStore.get(subject);
 					if(vert1 == null)
 					{
-						vert1 = new SEMOSSVertex(sct.getSubject());
+						vert1 = new SEMOSSVertex(subject);
 						storeVert(vert1);
 					}
 					// add my friend
@@ -803,12 +812,14 @@ public class GraphDataModel implements IDataMaker {
 					//							this.forest.addVertex(vertStore.get(sct.getSubject()));
 				}
 			}
+
+
 		}catch(RuntimeException ex)
 		{
 			ex.printStackTrace();
 		}
 	}
-
+	
 	// executes the first SPARQL query and generates the graphs
 	/**
 	 * Method genBaseGraph.
@@ -824,9 +835,9 @@ public class GraphDataModel implements IDataMaker {
 
 		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
 		sjsc.setEngine(jenaEngine);
-
+				
 		logger.debug(predicateSelectQuery);
-
+		
 		try {
 			sjsc.setQuery(predicateSelectQuery);
 			sjsc.execute();
@@ -839,32 +850,34 @@ public class GraphDataModel implements IDataMaker {
 				count++;
 
 				SesameJenaConstructStatement sct = sjsc.next();
-				String predicateName = sct.getPredicate();
-
-				if(!baseFilterHash.containsKey(sct.getSubject()) && !baseFilterHash.containsKey(sct.getPredicate()) && !baseFilterHash.containsKey(sct.getObject()+""))
+				String predicateName = this.getDisplayName(sct.getPredicate());
+				String subjectName = this.getDisplayName(sct.getSubject());
+				String objectName = this.getDisplayName(sct.getObject()+"");
+				
+				if(!baseFilterHash.containsKey(subjectName) && !baseFilterHash.containsKey(predicateName) && !baseFilterHash.containsKey(objectName))
 				{
 					// get the subject, predicate and object
 					// look for the appropriate vertices etc and paint it
-					SEMOSSVertex vert1 = vertStore.get(sct.getSubject()+"");
+					SEMOSSVertex vert1 = vertStore.get(subjectName+"");
 					if(vert1 == null)
 					{
-						vert1 = new SEMOSSVertex(sct.getSubject());
+						vert1 = new SEMOSSVertex(subjectName);
 						storeVert(vert1);
 					}
-					SEMOSSVertex vert2 = vertStore.get(sct.getObject()+"");
+					SEMOSSVertex vert2 = vertStore.get(objectName);
 					if(vert2 == null )//|| forest.getInEdges(vert2).size()>=1)
 					{
 						if(sct.getObject() instanceof URI)
-							vert2 = new SEMOSSVertex(sct.getObject()+"");
+							vert2 = new SEMOSSVertex(objectName);
 						else // ok this is a literal
-							vert2 = new SEMOSSVertex(sct.getPredicate(), sct.getObject());
+							vert2 = new SEMOSSVertex(predicateName, sct.getObject());
 						storeVert(vert2);
 					}
 					// create the edge now
-					SEMOSSEdge edge = edgeStore.get(sct.getPredicate()+"");
-					// check to see if this is another type of edge
-					if(!sct.getPredicate().contains(vert1.getProperty(Constants.VERTEX_NAME) + ":" + vert2.getProperty(Constants.VERTEX_NAME)))
-						predicateName = sct.getPredicate() + "/" + vert1.getProperty(Constants.VERTEX_NAME) + ":" + vert2.getProperty(Constants.VERTEX_NAME);
+					SEMOSSEdge edge = edgeStore.get(predicateName+"");
+					// check to see if this is another type of edge			
+					if(!predicateName.contains(vert1.getProperty(Constants.VERTEX_NAME) + ":" + vert2.getProperty(Constants.VERTEX_NAME)))
+						predicateName = predicateName + "/" + vert1.getProperty(Constants.VERTEX_NAME) + ":" + vert2.getProperty(Constants.VERTEX_NAME);
 					if(edge == null)
 						edge = edgeStore.get(predicateName);
 					if(edge == null)
@@ -873,34 +886,43 @@ public class GraphDataModel implements IDataMaker {
 						/*edge = new DBCMEdge(vert1, vert2, sct.getPredicate());
 						System.err.println("Predicate plugged is " + predicateName);
 						edgeStore.put(sct.getPredicate()+"", edge);*/
-
+	
 						// the logic works only when the predicates dont have the vertices on it.. 
 						edge = new SEMOSSEdge(vert1, vert2, predicateName);
 						storeEdge(edge);
 					}
 					//logger.warn("Found Edge " + edge.getURI() + "<<>>" + vert1.getURI() + "<<>>" + vert2.getURI());
-
-
+	
+					
 					// add the edge now if the edge does not exist
 					// need to handle the duplicate issue again
-					//					try
-					//					{	
-					//						// try to see if the predicate here is a property
-					//						// if so then add it as a property
-					//						this.forest.addEdge(edge, vertStore.get(sct.getSubject()+""),
-					//							vertStore.get(sct.getObject()+""));
-					//					}catch (Exception ex)
-					//					{
-					//						ex.printStackTrace();
-					//						logger.warn("Missing Edge " + edge.getURI() + "<<>>" + vert1.getURI() + "<<>>" + vert2.getURI());
-					//						// ok.. I am going to ignore for now that this is a duplicate edge
-					//					}
+//					try
+//					{	
+//						// try to see if the predicate here is a property
+//						// if so then add it as a property
+//						this.forest.addEdge(edge, vertStore.get(sct.getSubject()+""),
+//							vertStore.get(sct.getObject()+""));
+//					}catch (Exception ex)
+//					{
+//						ex.printStackTrace();
+//						logger.warn("Missing Edge " + edge.getURI() + "<<>>" + vert1.getURI() + "<<>>" + vert2.getURI());
+//						// ok.. I am going to ignore for now that this is a duplicate edge
+//					}
 				}
 			}
 		} catch (RuntimeException e) {
 			e.printStackTrace();
 		}	
 	}
+	
+	public String getDisplayName(String subKey){
+		if(isPhysicalMetamodel){
+			return subKey;
+		} else {
+			return Utility.getTransformedNodeName(coreEngine, subKey, true);
+		}
+	}
+
 
 	//update all internal models associated with this playsheet with the query passed in
 	/**
@@ -975,6 +997,10 @@ public class GraphDataModel implements IDataMaker {
 
 	public void setSubclassCreate(boolean subclassCreate){
 		this.subclassCreate = subclassCreate;
+	}
+	
+	public void setIsPhysicalMetamodel(boolean physicalMetamodel){
+		this.isPhysicalMetamodel = physicalMetamodel;
 	}
 
 	/**

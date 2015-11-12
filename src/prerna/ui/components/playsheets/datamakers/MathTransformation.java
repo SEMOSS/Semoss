@@ -24,10 +24,11 @@ public class MathTransformation extends AbstractTransformation {
 	public static final String GROUPBY_COLUMNS = "groupByColumns";
 	public static final String MATH_MAP = "mathMap";
 
-	private ITableDataFrame dm;
+	ITableDataFrame dm;
 
 	@Override
 	public void setProperties(Map<String, Object> props) {
+		//TODO: validate hash and set values
 		this.props = props;
 	}
 
