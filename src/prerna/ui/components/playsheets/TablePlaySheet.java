@@ -223,6 +223,7 @@ public class TablePlaySheet extends AbstractPlaySheet implements IDataMaker{
 		component.setQuery(this.query);
 		this.dmComponent = component;
 		createData();
+		processQueryData();
 	}
 
 	// this method should not be here
@@ -230,6 +231,9 @@ public class TablePlaySheet extends AbstractPlaySheet implements IDataMaker{
 	@Override
 	@Deprecated
 	public void createData() {
+		if(this.dmComponent == null){
+			this.dmComponent = new DataMakerComponent(this.engine, this.query);
+		}
 		this.dataFrame = new BTreeDataFrame();
 		this.dataFrame.processDataMakerComponent(this.dmComponent);
 	}

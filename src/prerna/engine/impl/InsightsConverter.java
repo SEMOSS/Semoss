@@ -236,7 +236,7 @@ public class InsightsConverter {
 				dataMaker = "BTreeDataFrame";
 			}
 		} else {
-			dataMaker = "";
+			dataMaker = layout;
 		}
 		return dataMaker;
 	}
@@ -537,7 +537,6 @@ public class InsightsConverter {
 	
 	public String getLayoutFromPlaySheet(String playsheet){
 		String layoutID = PlaySheetRDFMapBasedEnum.getIdFromClass(playsheet);
-		
 		if(layoutID.isEmpty()){
 			switch(playsheet){
 			case "prerna.ui.components.playsheets.DatasetSimilairtyColumnChartPlaySheet":
@@ -564,9 +563,9 @@ public class InsightsConverter {
 			case "prerna.ui.components.playsheets.BinnedPieChartPlaySheet":
 				layoutID = "Pie";
 				break;
-			case "prerna.ui.components.specific.tap.HealthGridSheet":
-				layoutID = "Scatter";
-				break;
+//			case "prerna.ui.components.specific.tap.HealthGridSheet"://
+//				layoutID = "Scatter";
+//				break;
 			case "prerna.ui.components.playsheets.GridScatterSheet":
 				layoutID = "Scatter";
 				break;
