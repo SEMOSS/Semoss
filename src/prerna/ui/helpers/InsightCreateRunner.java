@@ -114,14 +114,13 @@ public class InsightCreateRunner implements Runnable{
 	 */
 	public Map<String, Object> runWeb()
 	{
-		IDataMaker dm = createData();
+		createData();
 		Map<String, String> tableDataAlign = insight.getDataTableAlign();
 		
 		// previous insights did not save the table data align
 		// if it is not present, we get the table data align by setting the data maker in the playsheet and grabbing it
 		if(tableDataAlign == null || tableDataAlign.isEmpty()) {
 			IPlaySheet playSheet = insight.getPlaySheet();
-			playSheet.setDataMaker(dm);
 			tableDataAlign = (Map<String, String>) (((AbstractPlaySheet) playSheet).getDataTableAlign());
 			insight.setDataTableAlign(tableDataAlign);
 		}
