@@ -92,7 +92,8 @@ public class WrapperManager {
 			returnWrapper.setQuery(query);
 			returnWrapper.execute();
 			//ISelectWrapper doh = (ISelectWrapper)returnWrapper;
-			returnWrapper.getVariables();
+			returnWrapper.getDisplayVariables();
+			returnWrapper.getPhysicalVariables();
 //			System.out.println("Printing variables " + Arrays.toString(returnWrapper.getVariables()));
 			
 			return returnWrapper;

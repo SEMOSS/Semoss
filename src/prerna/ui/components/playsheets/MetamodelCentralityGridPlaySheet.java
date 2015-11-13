@@ -50,7 +50,7 @@ public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
 		
 	@Override
 	public void createData() {
-		GraphPlaySheet graphPS = CentralityCalculator.createMetamodel(engine, query);
+		GraphPlaySheet graphPS = CentralityCalculator.createMetamodel(engine, query, true);
 
 		Hashtable<String, SEMOSSVertex> vertStore  = graphPS.getDataMaker().getVertStore();
 		Hashtable<String, SEMOSSEdge> edgeStore = graphPS.getDataMaker().getEdgeStore();

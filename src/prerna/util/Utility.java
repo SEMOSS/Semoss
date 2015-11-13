@@ -223,6 +223,30 @@ public class Utility {
 	}
 
 	/**
+	 * Splits up a URI into tokens based on "/" character and uses logic to return the node instance name for a display name of a property 
+	 * where the node's display name is prior to the property display name.
+	 * @param String		URI to be split into tokens.
+	 * @return String		Instance name. */
+	public static String getInstanceNodeName(String uri) {
+		StringTokenizer tokens = new StringTokenizer(uri + "", "/");
+		int totalTok = tokens.countTokens() - 1;
+		String instanceName = null;
+
+		for (int tokIndex = 0; tokIndex <= totalTok && tokens.hasMoreElements(); tokIndex++) {
+			if (tokIndex + 2 == totalTok) {
+				tokens.nextToken();
+			} else if (tokIndex + 1 == totalTok) {
+				instanceName = tokens.nextToken();
+			} else {
+				tokens.nextToken();
+			}
+		}
+
+		return instanceName;
+	}
+	
+	
+	/**
 	 * Splits up a URI into tokens based on "/" character and uses logic to return the base URI
 	 * @param String		URI to be split into tokens.
 	 * @return String		Base URI */
@@ -597,7 +621,7 @@ public class Utility {
 				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.ONTOLOGY, prop.getProperty(Constants.ONTOLOGY));
 			if(prop.containsKey(Constants.OWL)) {
 				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.OWL, prop.getProperty(Constants.OWL));
-//				engine.setOWL(prop.getProperty(Constants.OWL));
+				//engine.setOWL(prop.getProperty(Constants.OWL));
 			}
 			
 			//load base data engine and basefilterhash--used for graph play sheet and entity filler
@@ -1028,11 +1052,38 @@ public class Utility {
 
 	}
 	
-	public static String toCamelCase(String input)
-	{
-		String output = input.substring(0,1).toUpperCase() + input.substring(1).toLowerCase();
-		LOGGER.info("Output is " + output);
-		return output;
+	/**
+	 * Gets the vector of uris from first variable returned from the query
+	 * @param sparql
+	 * @param eng
+	 * @return Vector of uris associated with first variale returned from the query
+	 */
+	public static Vector<String[]> getVectorObjectOfReturn(String query,IEngine engine){
+		Vector<String[]> retString = new Vector<String[]>();
+		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		String[] names = wrap.getPhysicalVariables();
+		
+
+		while (wrap.hasNext()) {
+			String[] values = new String[names.length];
+			ISelectStatement bs = wrap.next();
+			for(int i = 0; i < names.length; i++){
+				Object value = bs.getRawVar(names[i]);
+				String val = null;
+				if(value instanceof Binding){
+					val = ((Value)((Binding) value).getValue()).stringValue();
+				}
+				else{
+					val = value +"";
+				}
+				val = val.replace("\"", "");
+				values[i] = val;
+			}
+			retString.addElement(values);
+		}
+		return retString;
+
 	}
 
 	public static Map<String, List<Object>> cleanParamsForRDBMS(Map<String, List<Object>> paramHash) {
@@ -1181,4 +1232,75 @@ public class Utility {
 	      }
 	      return null;
 	}
+	
+	/**
+	 * 
+	 * @param engine
+	 * @param nodesList
+	 * @param getDisplayNames
+	 * @return
+	 */
+	public static List getTransformedNodeNamesList(IEngine engine, List nodesList, boolean getDisplayNames){
+		//array, list or vector support only
+		
+		for(int i = 0; i< nodesList.size(); i++){
+			String currentUri =  nodesList.get(i).toString();
+			String finalUri = Utility.getTransformedNodeName(engine, currentUri , getDisplayNames);
+			if(!finalUri.equals(currentUri)){
+				nodesList.set(i, finalUri);
+			}
+		}
+		return nodesList;
+	}
+	
+	/**
+	 *  use for maps that map a string to a list of nodes...more commmonly used than I expected
+	 * @param engine
+	 * @param nodeMap
+	 * @param getDisplayNames
+	 * @return
+	 */
+	public static Map<String, List<Object>> getTransformedNodeNamesMap(IEngine engine, Map<String, List<Object>> nodeMap, boolean getDisplayNames){
+		if(nodeMap!= null && nodeMap.size()>0){
+			for(Map.Entry<String, List<Object>> eachMap: nodeMap.entrySet()){
+				List<Object> binding = Utility.getTransformedNodeNamesList(engine, nodeMap.get(eachMap.getKey()),false);
+			}
+		}
+		return nodeMap;
+	}
+	
+	
+	/**
+	 * returns the physical or logical/display name
+	 * loop through the first time using the qualified class name ie this assumes you got something like http://semoss.org/ontologies/Concept/Director/Clint_Eastwood
+	 *     so getting the qualified name will give you http://semoss.org/ontologies/Concept/Director
+	 * if the translated uri is the same (ie no translated name was found, so maybe you actually did come into this method with a nodeUri of http://semoss.org/ontologies/Concept/Director) 
+	 *     on the second loop use that nodeUri directly and try to find a translated Uri
+	 * 
+	 * @param engine
+	 * @param nodeUri
+	 * @param getDisplayNames
+	 * @return
+	 */
+	public static String getTransformedNodeName(IEngine engine, String nodeUri, boolean getDisplayNames){
+		String finalUri = nodeUri;
+		boolean getClassName = true;
+		for(int j = 0; j < 2; j++){
+			
+			String fullUri = nodeUri;
+			String uri = fullUri;
+			
+			if(getClassName){
+				uri = Utility.getQualifiedClassName(uri);
+				getClassName = false;
+			}
+			String physicalUri = engine.getTransformedNodeName(uri, getDisplayNames);
+			if(!uri.equals(physicalUri)){
+				finalUri = fullUri.replace(uri, physicalUri);
+				break;
+			}
+		}
+		return finalUri;
+	}
+	
 }
