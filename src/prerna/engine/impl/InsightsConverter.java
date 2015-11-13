@@ -566,6 +566,9 @@ public class InsightsConverter {
 //			case "prerna.ui.components.specific.tap.HealthGridSheet"://
 //				layoutID = "Scatter";
 //				break;
+			case "prerna.ui.components.playsheets.OutlierPlaySheet":
+				layoutID = "Grid";
+				break;
 			case "prerna.ui.components.playsheets.GridScatterSheet":
 				layoutID = "Scatter";
 				break;
