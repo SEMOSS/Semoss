@@ -96,7 +96,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		allData = addToAllData(edgeCountsHash, "y", allData);
 
 		LOGGER.info("Generating metamodel graph for centrality measures...");
-		GraphPlaySheet graphPS = CentralityCalculator.createMetamodel(engine, eccentricityQuery);
+		GraphPlaySheet graphPS = CentralityCalculator.createMetamodel(engine, eccentricityQuery,true);
 		LOGGER.info("Extending metamodel graph for subclassed concepts...");
 		Hashtable<String, SEMOSSVertex> vertStore  = graphPS.getDataMaker().getVertStore();
 		subclassGen.updateVertAndEdgeStoreForSubclassing(vertStore, graphPS.getDataMaker().getEdgeStore());

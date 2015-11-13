@@ -88,7 +88,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 		String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
-		GraphPlaySheet gps = CentralityCalculator.createMetamodel(engine, sparql);
+		GraphPlaySheet gps = CentralityCalculator.createMetamodel(engine, sparql, true);
 		Hashtable<String, SEMOSSVertex> vertStore  = gps.getDataMaker().getVertStore();
 		Hashtable<String, SEMOSSEdge> edgeStore = gps.getDataMaker().getEdgeStore();
 
@@ -128,7 +128,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		hypernymGenerator.addMappings(parentChildMapping);
 
 		String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
-		GraphPlaySheet gps = CentralityCalculator.createMetamodel(engine, sparql);
+		GraphPlaySheet gps = CentralityCalculator.createMetamodel(engine, sparql, true);
 		Hashtable<String, SEMOSSVertex> vertStore  = gps.getDataMaker().getVertStore();
 		Hashtable<String, SEMOSSEdge> edgeStore = gps.getDataMaker().getEdgeStore();
 
@@ -168,7 +168,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		for(String engineName : dbArray) {
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName + "");
 			String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
-			GraphPlaySheet gps = CentralityCalculator.createMetamodel(engine, sparql);
+			GraphPlaySheet gps = CentralityCalculator.createMetamodel(engine, sparql, true);
 			Hashtable<String, SEMOSSVertex> vertStore  = gps.getDataMaker().getVertStore();
 			Hashtable<String, SEMOSSEdge> edgeStore = gps.getDataMaker().getEdgeStore();
 

@@ -58,6 +58,7 @@ import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.helpers.InsightCreateRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * 1. Get information from the textarea for the query 2. Process the query
@@ -119,7 +120,7 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 			else { // if it is not custom, we need to get dmc list off of selected insight
 				Insight selectedInsight = getSelectedInsight(engine);
 				dmcList.addAll(selectedInsight.getDataMakerComponents());
-				paramHash = getParamHash();
+				paramHash = Utility.getTransformedNodeNamesMap(engine, getParamHash(), false);
 			}
 			insight.setDataMakerComponents(dmcList);
 		}
@@ -134,7 +135,7 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 			}
 			else { // if it is not custom, we need to get dmc list off of selected insight
 				insight = getSelectedInsight(engine);
-				paramHash = getParamHash();
+				paramHash = Utility.getTransformedNodeNamesMap(engine, getParamHash(), false);
 			}
 		}
 

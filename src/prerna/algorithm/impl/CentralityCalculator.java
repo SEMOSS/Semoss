@@ -320,7 +320,7 @@ public final class CentralityCalculator {
 	 * @param engine IEngine to create the metamodel from
 	 * @return GraphPlaySheet that displays the metamodel
 	 */
-	public static GraphPlaySheet createMetamodel(IEngine coreEngine, String query){
+	public static GraphPlaySheet createMetamodel(IEngine coreEngine, String query, boolean physicalMetamodel){
 		String playSheetName = "Graph";
 		String dataMakerName = "GraphDataModel";
 		String title = "Metamodel";
@@ -335,6 +335,7 @@ public final class CentralityCalculator {
 		DataMakerComponent dmc = new DataMakerComponent(eng, query);
 		GraphDataModel gdm = (GraphDataModel) Utility.getDataMaker(coreEngine, dataMakerName);
 		GraphPlaySheet playSheet= (GraphPlaySheet) Utility.preparePlaySheet(eng, query, playSheetName, title, id);
+		gdm.setIsPhysicalMetamodel(physicalMetamodel);
 		gdm.setSubclassCreate(true);
 		gdm.setOverlay(false);
 		gdm.processDataMakerComponent(dmc);
