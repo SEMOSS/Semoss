@@ -33,6 +33,7 @@ import java.awt.GridBagLayout;
 import java.beans.PropertyVetoException;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -341,5 +342,14 @@ public class BrowserPlaySheet extends TablePlaySheet {
 	// TODO: Remove if economic analysis creates its own dashboard or if its column chart is made into a separate playsheet
 	public void setDataHash(Hashtable dataHash) {
 		this.dataHash = dataHash;
+	}
+	
+	@Override
+	public Map<String, Object> getDataMakerOutput(){
+		Map<String, Object> data = super.getDataMakerOutput();
+		if(this.dataHash != null && !this.dataHash.isEmpty()) {
+			data.put("specificData", this.dataHash);
+		}
+		return data;
 	}
 }
