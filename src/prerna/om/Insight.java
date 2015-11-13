@@ -669,6 +669,7 @@ public class Insight {
 			if(playSheet != null){
 				// to keep playsheet ID and insight ID in sync
 				this.playSheet.setQuestionID(this.insightID);
+				this.playSheet.setDataMaker(getDataMaker());
 			}
 			else {
 				LOGGER.error("Broken insight... cannot get playsheet :: " + output);
