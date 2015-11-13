@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import prerna.engine.api.IEngine;
@@ -100,7 +101,6 @@ public class NameServerProcessor extends AbstractNameServer {
 		return null;
 	}
 
-	@Override
 	public ConnectedConcepts searchConnectedConcepts(String concept) {
 		//TODO: need to stop using the keyword as a parameter in master db
 		/*
@@ -118,9 +118,10 @@ public class NameServerProcessor extends AbstractNameServer {
 		{
 			MasterDBHelper.findRelatedKeywordsToSpecificURI(masterEngine, originalKeywordURI, keywordSet, engineKeywordMap);
 			MasterDBHelper.fillAPIHash(masterEngine, engineURLHash);
-			for(String engine : engineKeywordMap.keySet()) {
-				String engineURL = MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engine;
-				Set<String> keywordList = engineKeywordMap.get(engine);
+			for(String engineName : engineKeywordMap.keySet()) {
+				IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+				String engineURL = MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName;
+				Set<String> keywordList = engineKeywordMap.get(engineName);
 				for(String keyword : keywordList) {
 					// make sure the keyword connected is within similarity range
 					double simScore = wnComp.compareKeywords(originalKeywordURI, keyword);
@@ -132,10 +133,23 @@ public class NameServerProcessor extends AbstractNameServer {
 					Map<String, Map<String, Set<String>>> connections = MasterDBHelper.getRelationshipsForConcept(masterEngine, keyword, engineURL);
 					
 					if(!connections.isEmpty()) {
-						combineResults.addData(engine, keyword, connections);
-						combineResults.addSimilarity(engine, keyword, 1-simScore);
-						if(engineURLHash.containsKey(engine)) {
-							combineResults.addAPI(engine, engineURLHash.get(engine));
+						for(Map.Entry<String, Map<String, Set<String>>> eachMap: connections.entrySet()){
+							for(String eachRelationship: eachMap.getValue().keySet()){
+								Set<String> conceptsURI= eachMap.getValue().get(eachRelationship);
+								Set<String> newConceptsURI = new HashSet<String>();
+								for(String singleURI: conceptsURI){
+									conceptsURI.remove(singleURI);
+									singleURI = engine.getTransformedNodeName(singleURI, true);
+									conceptsURI.add(singleURI);
+								}
+							}
+						}
+						
+						String datakeyword = engine.getTransformedNodeName(keyword, true); //get the keywords display name
+						combineResults.addData(engineName, datakeyword, connections);
+						combineResults.addSimilarity(engineName, datakeyword, 1-simScore);
+						if(engineURLHash.containsKey(engineName)) {
+							combineResults.addAPI(engineName, engineURLHash.get(engineName));
 						}
 					}
 				}

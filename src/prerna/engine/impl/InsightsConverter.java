@@ -93,7 +93,7 @@ public class InsightsConverter {
 		RDBMSNativeEngine insightRDBMSEngine = new RDBMSNativeEngine();
 		insightRDBMSEngine.openDB(dbProp);
 		generateTables(insightRDBMSEngine);
-
+		
 		FileUtils.delete(dbProp);
 		return insightRDBMSEngine;
 	}

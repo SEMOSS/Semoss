@@ -47,12 +47,13 @@ public class BaseDatabaseCreator {
 		String sub = (String) triple[0];
 		String pred = (String) triple[1];
 		String obj = (String) triple[2];
+		boolean concept = Boolean.valueOf((boolean) triple[3]);
 
 		String cleanSub = Utility.cleanString(sub, false);
 		String cleanPred = Utility.cleanString(pred, false);
 		String cleanObj = Utility.cleanString(obj, false);
 
-		baseEng.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{cleanSub, cleanPred, cleanObj, true});
+		baseEng.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{cleanSub, cleanPred, cleanObj, concept});
 		baseDataHash.put(cleanSub, cleanSub);
 		baseDataHash.put(cleanPred, cleanPred);
 		baseDataHash.put(cleanObj, cleanObj);
@@ -71,6 +72,7 @@ public class BaseDatabaseCreator {
 				String cleanObj = dateFormat.format(cal.getTime());
 				baseEng.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{TIME_URL, TIME_KEY, cleanObj, false});
 			}
+			this.baseEng.loadTransformedNodeNames();
 			this.baseEng.exportDB();
 		} catch (RepositoryException | RDFHandlerException | IOException e) {
 			e.printStackTrace();

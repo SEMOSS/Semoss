@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.api;
 
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -114,6 +115,14 @@ public interface IExplorable {
 	List<Map<String, Object>> getAllInsightsMetaData();
 	
 	String getInsightDefinition();
-
+	
 	Vector<SEMOSSParam> getParams(String... paramIds);
+	
+	// gets the display or physical for a given concept
+	String getTransformedNodeName(String concept, boolean getDisplayName);
+	
+	//loads the logical and physical names
+	void loadTransformedNodeNames();
+
+	Vector<String> executeInsightQuery(String sparqlQuery, boolean isDbQuery);
 }

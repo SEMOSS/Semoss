@@ -55,7 +55,6 @@ import prerna.util.sql.SQLQueryUtil;
 public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrapper {
 
 	private ArrayList<ISelectStatement> queryResults = new ArrayList();
-	public static String uri = "http://semoss.org/ontologies/Concept";
 	ResultSet rs = null;
 	Connection conn = null;
 	Statement stmt = null;
@@ -116,14 +115,14 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 				{
 					stmt = new SelectStatement();
 	
-					for(int colIndex = 0;colIndex < var.length;colIndex++)
+					for(int colIndex = 0;colIndex < displayVar.length;colIndex++)
 					{
 						Object value = rs.getObject(var[colIndex]);
 						if(value == null) {
 							value = "";
 						}
-						stmt.setVar(var[colIndex], value);
-						stmt.setRawVar(var[colIndex], getRawValue(value, var[colIndex]));
+						stmt.setVar(displayVar[colIndex], value);
+						stmt.setRawVar(displayVar[colIndex], getRawValue(value, displayVar[colIndex]));
 					}
 				}
 		} catch (SQLException e) {
@@ -155,52 +154,50 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 			int numColumns = rsmd.getColumnCount();
 			
 			var = new String[numColumns];
+			displayVar = new String[numColumns];
 			
 			for(int colIndex = 1;colIndex <= numColumns;colIndex++)
 			{
-				String columnLabel = rsmd.getColumnLabel(colIndex);
-				var[colIndex-1] = columnLabel;
-				
-				int type = rsmd.getColumnType(colIndex);
-				columnTypes.put(var[colIndex-1], type);
-				//columnTypes.put(toCamelCase(var[colIndex-1]), type);
 				String tableName = rsmd.getTableName(colIndex);
-				//columnTypes.put(var[colIndex-1], type);
-
-				if(dbType == SQLQueryUtil.DB_TYPE.MARIA_DB){
-					//Maria db is having trouble getting the table name using the result set metadata method getTableName, 
-					//this logic is for us to work around this issue
-					boolean getTableNameFromColumn = tableName.equals("");
-					if(!getTableNameFromColumn){
-						//first see if this really is a table name, so if an alias exists then you can use this tableName
-						String tableAlias = SQLQueryTableBuilder.getAlias(tableName);
-						if(tableAlias.length()==0){
-							//if no alias was returned, assume that maybe the value you got was an alias, 
-							//so try to use the alias to get the tableName
-							String tableNameFromAlias = SQLQueryTableBuilder.getTableNameByAlias(tableName);
-							if(tableNameFromAlias.length()>0){
-								tableName = tableNameFromAlias;
-							} else {
-								getTableNameFromColumn = true;//if you still have no tableName, try to use the columnLabel to get your tableName
-							}
-						}
-					}
-					
-					//use columnName to derive table name
-					if(getTableNameFromColumn){
-						tableName = columnLabel;
-						if(columnLabel.contains("__")){
-							String[] splitColAndTable = tableName.split("__");
-							tableName = splitColAndTable[0];
-						}
+				String columnLabel = rsmd.getColumnLabel(colIndex);
+				if(tableName.isEmpty() && dbType == SQLQueryUtil.DB_TYPE.SQL_SERVER){
+					tableName = deriveTableName(tableName, columnLabel);
+				}
+				
+				String displayTableName = tableName;
+				String displayColumnLabel = columnLabel;
+				String columnLabelURI = "";
+				String tableNameURI = Constants.CONCEPT_URI;
+				var[colIndex-1] = columnLabel;
+				boolean columnIsProperty = false;
+				if(displayTableName.equalsIgnoreCase(displayColumnLabel)){
+					columnLabelURI = Constants.CONCEPT_URI;
+				} else {
+					columnLabelURI = Constants.RELATION_URI;
+					if(displayColumnLabel.contains("__")){
+						columnIsProperty = true;
+						String[] splitColAndTable = displayColumnLabel.split("__");
+						displayColumnLabel = splitColAndTable[1];
 					}
 				}
+				tableNameURI += displayTableName;
+				columnLabelURI += displayColumnLabel;
+				//now get the display name 
+				tableNameURI = engine.getTransformedNodeName(tableNameURI, true);
+				columnLabelURI = engine.getTransformedNodeName(columnLabelURI, true);
+				displayTableName = Utility.getInstanceName(tableNameURI);
+				displayColumnLabel = Utility.getInstanceName(columnLabelURI);
+				if(columnIsProperty){
+					displayColumnLabel = displayTableName + "__" + displayColumnLabel;
+				}
+				displayVar[colIndex-1] = displayColumnLabel;
+				
+				int type = rsmd.getColumnType(colIndex);
+				columnTypes.put(displayVar[colIndex-1], type);
 				
 				if(tableName != null && tableName.length() != 0) // will use this to find what is the type to strap it together
 				{
-					tableName = toCamelCase(tableName);
-					columnTables.put(var[colIndex-1], tableName);
-					//columnTables.put(toCamelCase(var[colIndex-1]), tableName);
+					columnTables.put(displayVar[colIndex-1], tableName);
 				}
 			}
 		} catch (SQLException e) {
@@ -209,8 +206,51 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 		}
 	}
 	
+	private String deriveTableName(String tableName, String columnLabel){
+
+		//Originally written for Maria db as it was having trouble getting the table name using the result set metadata method getTableName, 
+		//this logic is for us to work around this issue (ie it used to get the alias and we would be able to get the table name from backtracking the alias
+		boolean getTableNameFromColumn = tableName.equals("");
+		if(!getTableNameFromColumn){
+			//first see if this really is a table name, so if an alias exists then you can use this tableName
+			String tableAlias = SQLQueryTableBuilder.getAlias(tableName);
+			if(tableAlias.length()==0){
+				//if no alias was returned, assume that maybe the value you got was an alias, 
+				//so try to use the alias to get the tableName
+				String tableNameFromAlias = SQLQueryTableBuilder.getTableNameByAlias(tableName);
+				if(tableNameFromAlias.length()>0){
+					tableName = tableNameFromAlias;
+				} else {
+					getTableNameFromColumn = true;//if you still have no tableName, try to use the columnLabel to get your tableName
+				}
+			}
+		}
+		
+		//use columnName to derive table name
+		if(getTableNameFromColumn){
+			tableName = columnLabel;
+			if(columnLabel.contains("__")){
+				String[] splitColAndTable = tableName.split("__");
+				tableName = splitColAndTable[0];
+			}
+		}
+		return tableName;
+	}
+	
 	@Override
 	public String[] getVariables() {
+		// get the result set metadata to get the column names
+		return displayVar;
+	}
+	
+	@Override
+	public String[] getDisplayVariables() {
+		// get the result set metadata to get the column names
+		return displayVar;
+	}
+	
+	@Override
+	public String[] getPhysicalVariables() {
 		// get the result set metadata to get the column names
 		return var;
 	}
@@ -226,13 +266,6 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 		}
 		
 		return retObject;
-	}
-		
-	public String toCamelCase(String input)
-	{
-		String output = input.substring(0,1).toUpperCase() + input.substring(1).toLowerCase();
-		//System.out.println("Output is " + output);
-		return output;
 	}
 	
 	private Object getRawValue(Object value, String header){
@@ -252,7 +285,7 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 		// we dont have this at this point.. for now I am just saying if this is 
 		if(!value.toString().isEmpty() && (type == Types.LONGNVARCHAR || type == Types.VARCHAR || type == Types.CHAR || type == Types.LONGNVARCHAR || type == Types.NCHAR) && table!=null)
 		{
-			return uri + "/" + toCamelCase(table) + "/" + value;
+			return Constants.CONCEPT_URI + table + "/" + value;
 		} else {
 			return value;
 		}
@@ -260,17 +293,17 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 
 	@Override
 	public ITableDataFrame getTableDataFrame() {
-		BTreeDataFrame dataFrame = new BTreeDataFrame(this.var);
+		BTreeDataFrame dataFrame = new BTreeDataFrame(this.displayVar);
 		try {
 			while (rs.next()){
 				logger.debug("Adding a rdbms statement ");
 				
-				Object[] clean = new Object[this.var.length];
-				Object[] raw = new Object[this.var.length];
-				for(int colIndex = 0;colIndex < var.length;colIndex++)
+				Object[] clean = new Object[this.displayVar.length];
+				Object[] raw = new Object[this.displayVar.length];
+				for(int colIndex = 0;colIndex < displayVar.length;colIndex++)
 				{
 					Object value = rs.getObject(var[colIndex]);
-					raw[colIndex] = getRawValue(value, var[colIndex]);
+					raw[colIndex] = getRawValue(value, displayVar[colIndex]);
 					clean[colIndex] = value;
 				}
 				dataFrame.addRow(clean, raw);
