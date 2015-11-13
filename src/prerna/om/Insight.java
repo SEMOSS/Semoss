@@ -828,16 +828,9 @@ public class Insight {
 	 */
 	public Map<String, Object> getWebData() {
 		Map<String, Object> retHash = new HashMap<String, Object>();
-		retHash.put("insightID", insightID);
-		retHash.put("layout", propHash.get(OUTPUT_KEY));
-		retHash.put("title", propHash.get(INSIGHT_NAME));
-		// this is only because we don’t currently save data table align
-		// in these annoying cases, we need to use the playsheet
-		if(dataTableAlign == null || dataTableAlign.isEmpty()) {
-			getPlaySheet();
-			this.playSheet.setDataMaker(getDataMaker());
-			dataTableAlign = ((AbstractPlaySheet) this.playSheet).getDataTableAlign();
-		}
+		retHash.put("insightID", getInsightID());
+		retHash.put("layout", getOutput());
+		retHash.put("title", getInsightName());
 		if(dataTableAlign != null){ // some playsheets don't require data table align, like grid play sheet. Should probably change this so they all have data table align (like if i want to change the order of my columns)
 			retHash.put("dataTableAlign", dataTableAlign);
 		}
