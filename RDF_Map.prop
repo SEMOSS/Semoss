@@ -468,7 +468,6 @@ Line	prerna.ui.components.playsheets.LineChartPlaySheet
 ParallelSets	prerna.ui.components.playsheets.ParallelSetsPlaySheet
 ParallelCoordinates	prerna.ui.components.playsheets.ParallelCoordinatesPlaySheet
 Pie	prerna.ui.components.playsheets.PieChartPlaySheet
-Sankey	prerna.ui.components.playsheets.SankeyPlaySheet
 Scatter	prerna.ui.components.playsheets.ScatterChartPlaySheet
 ScatterplotMatrix	prerna.ui.components.playsheets.ScatterPlotMatrixPlaySheet
 SingleAxisCluster	prerna.ui.components.playsheets.WekaAprioriVizPlaySheet
@@ -490,7 +489,6 @@ Column_HINT	ColumnChartPlaySheet Hint: SELECT ?xAxis ?yAxis1 (OPTIONAL) ?yAxis2 
 Pie_HINT	PieChartPlaySheet Hint: SELECT ?wedgeName ?wedgeValue WHERE { ... }
 CirclePack_HINT	CirclePackPlaySheet Hint: SELECT ?level1 ?level2 ... ?size WHERE{ ... }
 Clustering_HINT	ClusteringVizPlaySheet Hint: SELECT ?instance ?categoricalProp ?numericalProp WHERE { ... }+++(OPTIONAL)numClusters
-Sankey_HINT	SankeyPlaySheet Hint: SELECT ?source ?target ?value ?target2 ?value2 ?target3 ?value3...etc  Note: ?target is the source for ?target2 and ?target2 is the source for ?target3...etc WHERE{ ... }
 SingleAxisCluster_HINT	OutlierPlaySheet Hint: SELECT ?instance ?prop1... ?propN WHERE{ ... }+++NeighborhoodCount
 USHeatMap_HINT	USHeatMapPlaySheet Hint: SELECT ?state ?numericHeatValue WHERE{ ... }
 USMap_HINT	CONUSMapPlaySheet Hint: SELECT ?label ?latitude ?longitude WHERE{ ... }
