@@ -146,6 +146,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	
 	@Override
 	public void setJSONDataHash(Map<String, Object> allJSONHash) {
+		QueryBuilderHelper.cleanJSONHash(engine, allJSONHash);
 		Gson gson = new Gson();
 		this.allJSONHash = new Hashtable<String, Object>();
 		this.allJSONHash.putAll((StringMap) allJSONHash.get("QueryData"));

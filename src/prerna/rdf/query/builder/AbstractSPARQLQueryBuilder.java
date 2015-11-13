@@ -15,6 +15,7 @@ import org.apache.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.internal.StringMap;
 
+import prerna.engine.api.IEngine;
 import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SPARQLConstants;
@@ -36,6 +37,11 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 	static final Logger logger = LogManager.getLogger(AbstractSPARQLQueryBuilder.class.getName());
 	HashMap<String,Boolean> clearFilter = new HashMap();
 	HashMap<String,ArrayList<Object>> searchFilter = new HashMap();
+	private IEngine engine = null;
+	
+	public AbstractSPARQLQueryBuilder(IEngine engine){
+		this.engine = engine;
+	}
 	
 	protected void parsePath(){
 		Hashtable<String, List> parsedPath = QueryBuilderHelper.parsePath(allJSONHash);
@@ -46,6 +52,7 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 	
 	@Override
 	public void setJSONDataHash(Map<String, Object> allJSONHash) {
+		QueryBuilderHelper.cleanJSONHash(engine, allJSONHash);
 		Gson gson = new Gson();
 		this.allJSONHash = new Hashtable<String, Object>();
 		this.allJSONHash.putAll((StringMap) allJSONHash.get("QueryData"));

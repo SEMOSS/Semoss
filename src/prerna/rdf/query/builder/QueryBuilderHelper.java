@@ -29,7 +29,9 @@ package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -41,8 +43,12 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
+
+import com.google.gson.Gson;
+import com.google.gson.internal.StringMap;
 
 public class QueryBuilderHelper {
 
@@ -57,7 +63,8 @@ public class QueryBuilderHelper {
 	public static final String totalVarListKey = "totalVarList";
 	public static final String nodeVKey = "nodeV";
 	public static final String predVKey = "predV";
-	static final String relArrayKey = "relTriples";
+	public static final String subjectVar = "SubjectVar";
+	public static final String relArrayKey = "relTriples";
 	
 	public static Integer runCountQuery(int maxCount, SEMOSSQuery semossQuery, IEngine coreEngine ){
 		Integer curLimit = semossQuery.getLimit();
@@ -95,6 +102,9 @@ public class QueryBuilderHelper {
 		 * 
 		 * 
 		 */
+
+		Vector<String> propVector = new Vector();
+		
 		ArrayList<Hashtable<String,String>> nodePropV = new ArrayList<Hashtable<String,String>>();
 		ArrayList<Hashtable<String, String>> relationVarList = new ArrayList<Hashtable<String, String>>();
 		relationVarList.addAll(nodeV);
@@ -104,18 +114,24 @@ public class QueryBuilderHelper {
 			Hashtable<String, String> vHash = relationVarList.get(i);
 			String varName = vHash.get(varKey);
 			String varURI = vHash.get(uriKey);
+			
+			
 			String nodePropQuery = "SELECT DISTINCT ?entity WHERE {{?source <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <"+varURI+">} {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} {?source ?entity ?prop }}";
-			Vector<String> propVector = Utility.getVectorOfReturn(nodePropQuery, coreEngine, true);
+			propVector = Utility.getVectorOfReturn(nodePropQuery, coreEngine, true);
+			
 			for (int propIdx=0 ; propIdx<propVector.size(); propIdx++)
 			{
 				String propURI = propVector.get(propIdx);
-				String propName = varName + "__" + Utility.getInstanceName(propURI).replace("-",  "_");
+				
+				String propURIDisplayName = coreEngine.getTransformedNodeName(propURI,true); //flip back to display name if there is one
+				String physicalVarName = Utility.getInstanceName(coreEngine.getTransformedNodeName(Constants.CONCEPT_URI + varName, true));
+				String propName = physicalVarName + "__" + Utility.getInstanceName(propURIDisplayName).replace("-",  "_");
 				totalVarList.add(propName);
 				//store node prop info
 				Hashtable<String, String> elementHash = new Hashtable<String, String>();
-				elementHash.put("SubjectVar", varName);
-				elementHash.put(varKey, propName);
-				elementHash.put(uriKey, propURI);
+				elementHash.put("SubjectVar", physicalVarName);//display
+				elementHash.put(varKey, propName);//display
+				elementHash.put(uriKey, propURIDisplayName);//display
 				nodePropV.add(elementHash);
 			}
 		}
@@ -144,25 +160,35 @@ public class QueryBuilderHelper {
 		for (int i=0;i<relationVarList.size();i++)
 		{
 			Hashtable<String, String> vHash = relationVarList.get(i);
-			String varName = vHash.get(varKey);
 			String varURI = vHash.get(uriKey);
+			String varName = vHash.get(varKey);
+			String derivedVarName = Utility.getInstanceName(varURI); //
 			
 			// for each one of these I need to process the columns
 			// eliminate those ones that have the same name as table names
 			
-			ArrayList<String> propVector = 	getColumnsFromTable(coreEngine, varName);
-			propVector.remove(varName.toUpperCase());
+			ArrayList<String> propVector = 	getColumnsFromTable(coreEngine,derivedVarName);
+			propVector.remove(derivedVarName.toUpperCase());
+			String uriPrefix = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI) + "/" + Constants.DEFAULT_PROPERTY_CLASS + "/";
 			for (int propIdx=0 ; propIdx<propVector.size(); propIdx++)
 			{
 				String propURI = propVector.get(propIdx);
-				String propName = Utility.toCamelCase(varName) + "__" + Utility.toCamelCase(propURI.replace("-",  "_"));
-				totalVarList.add(propName);
+				//since propURI isnt a URI, we need to convert it to one so that we can 
+				
+				String propURIDisplayURI = coreEngine.getTransformedNodeName(uriPrefix + propURI,true); //flip back to display name if there is one
+				String propURIDisplayName = Utility.getInstanceName(propURIDisplayURI);
+				
+				String displayVarName = Utility.getInstanceName(coreEngine.getTransformedNodeName(Constants.CONCEPT_URI + varName, true));
+				String propURIFullDisplayName =displayVarName + "__" + propURIDisplayName;
+				
+				totalVarList.add(propURIFullDisplayName); //EYI TBD
 				//store node prop info
 				Hashtable<String, String> elementHash = new Hashtable<String, String>();
-				elementHash.put("SubjectVar", Utility.toCamelCase(varName));
-				elementHash.put(varKey, propName);
+				elementHash.put("SubjectVar", displayVarName); //Utility.toCamelCase(varName))
+				elementHash.put(varKey, propURIFullDisplayName);//was propName
 				// do I need the URI key ?
-				elementHash.put(uriKey, Utility.toCamelCase(propURI));
+				propURIDisplayURI = propURIDisplayURI.replace(Utility.getInstanceName(propURIDisplayURI), propURIDisplayName);
+				elementHash.put(uriKey, propURIDisplayURI);//display
 				nodePropV.add(elementHash);
 			}
 		}
@@ -204,12 +230,14 @@ public class QueryBuilderHelper {
 		List<String> totalVarList = new ArrayList<String>();
 		List<Hashtable<String,String>> nodeV = new ArrayList<Hashtable<String,String>>();
 		List<Hashtable<String,String>> predV = new ArrayList<Hashtable<String,String>>();
-		List<List<String>> tripleArray = (List<List<String>>) allJSONHash.get(relArrayKey);
+		List<List<String>> tripleArray = (List<List<String>>) allJSONHash.get(relArrayKey);//used when display names is turned off		
+
 		for (int tripleIdx = 0; tripleIdx<tripleArray.size(); tripleIdx++)
 		{
 			List<String> thisTripleArray = tripleArray.get(tripleIdx);
 			String subjectURI = thisTripleArray.get(subIdx);
-			String subjectName = Utility.getInstanceName(subjectURI);
+			String subjectName = (Utility.getInstanceName(subjectURI));//String subjectName = Utility.toCamelCase((Utility.getInstanceName(subjectURI)));
+
 			// store node/rel info
 			if (!totalVarList.contains(subjectName))
 			{
@@ -226,6 +254,7 @@ public class QueryBuilderHelper {
 				String predURI = thisTripleArray.get(predIdx);
 				String objectURI = thisTripleArray.get(objIdx);
 				String objectName = Utility.getInstanceName(objectURI);
+
 				String predName = subjectName + "_" +Utility.getInstanceName(predURI) + "_" + objectName;
 				if (!totalVarList.contains(predName))
 				{
@@ -256,10 +285,10 @@ public class QueryBuilderHelper {
 		parsedPath.put(totalVarListKey, totalVarList);
 		parsedPath.put(nodeVKey, nodeV);
 		parsedPath.put(predVKey, predV);
+		
 		return parsedPath;
 	}
 
-	// if only we could write some F** comments on what this does.. it could be super cool
 	// so what we need here is
 	// an array list of hashtables
 	// the hashtable has the following keys
@@ -270,9 +299,11 @@ public class QueryBuilderHelper {
 	public static Hashtable<String, List<Hashtable<String,String>>> getPropsFromPath(IEngine engine, Hashtable allJSONHash) 
 	{
 		Hashtable<String, List<Hashtable<String,String>>> propsHash = new Hashtable<String, List<Hashtable<String,String>>>();
+		cleanJSONHash(engine, allJSONHash);
 			Hashtable<String, List> parsedPath = parsePath(allJSONHash);
+			
 			// revisit the property logic later
-			if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.JENA || engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
+			if((engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.JENA || engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE))
 			{			
 				List<Hashtable<String,String>> nodePropV = parsePropertiesFromPath(engine, parsedPath.get(nodeVKey), parsedPath.get(totalVarListKey));				
 				propsHash.put("nodes", nodePropV);
@@ -285,9 +316,133 @@ public class QueryBuilderHelper {
 				 * {SubjectVar=Title, uriKey=http://semoss.org/ontologies/Relation/Contains/Revenue-Domestic, varKey=Title__Revenue_Domestic}, 
 				 * {SubjectVar=Title, uriKey=http://semoss.org/ontologies/Relation/Contains/Revenue-International, varKey=Title__Revenue_International}, {SubjectVar=Title, uriKey=http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Audience, varKey=Title__RottenTomatoes_Audience}, {SubjectVar=Title, uriKey=http://semoss.org/ontologies/Relation/Contains/RottenTomatoes-Critics, varKey=Title__RottenTomatoes_Critics}]
 				 */
-				List<Hashtable<String,String>> nodePropV = parsePropertiesFromPathR(engine, parsedPath.get(nodeVKey), parsedPath.get(totalVarListKey));				
+				
+				 List<Hashtable<String,String>> nodePropV = parsePropertiesFromPathR(engine, parsedPath.get(nodeVKey), parsedPath.get(totalVarListKey));				
 				propsHash.put("nodes", nodePropV);
 			}
 		return propsHash;
 	}
+
+	public static void cleanJSONHash(IEngine engine, Map<String, Object> allJSONHash){
+		String queryDataKey = "QueryData";
+		String key = "";
+		boolean clean = false;
+		//so the clean indicator was added early on because when we used to do save we would hit clean json hash twice.
+		//I dont believe we need it anymore but it does indicate that the hash has already gone through this method so
+		//for now I am keeping it here.
+		if(allJSONHash.get("clean") != null){
+			clean = Boolean.valueOf((boolean)allJSONHash.get("clean"));
+		}
+		if(!clean){
+			// process all SelectedNodeProps
+			key = "SelectedNodeProps";
+			ArrayList<StringMap> list = (ArrayList<StringMap>) allJSONHash.get(key) ;
+			if(list!=null){
+				for(int i = 0 ; i < list.size(); i++){
+				//for(StringMap map : list){
+					StringMap map = list.get(i);
+					String uri = (String) map.get("uriKey");
+					String physicalUri = engine.getTransformedNodeName(uri, false);
+
+					if(!uri.equals(physicalUri)){
+						map.put("uriKey", physicalUri);
+						String subjectVar = Utility.getInstanceNodeName(uri);
+						String varKey = Utility.getInstanceName(physicalUri);
+						map.put("SubjectVar",subjectVar);
+						map.put("varKey", subjectVar+"__"+varKey);
+
+						list.set(i, map);
+					} else {
+						//split uri
+						String subjectVar = (String) map.get("SubjectVar");
+						String physicalSubjectVar = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI + subjectVar, false));
+						String varKey = (String) map.get("varKey");
+						String physicalVarKey = "";
+						if(varKey.contains("__")){
+							String[] splitColAndTable = varKey.split("__");
+							varKey = splitColAndTable[1]; 
+							physicalVarKey = Utility.getInstanceName(engine.getTransformedNodeName(Constants.DISPLAY_URI + subjectVar + "/" + varKey, false));
+						}
+						//translate subject var.... and mod it
+						//subjectVar = translate...
+						if(!subjectVar.equals(physicalSubjectVar)||!varKey.equals(physicalVarKey)){
+							map.put("SubjectVar",physicalSubjectVar);
+							map.put("varKey", physicalSubjectVar+"__"+ physicalVarKey);
+							list.set(i, map);
+						}
+					}
+				}
+			}
+
+			StringMap queryJSONHash = new StringMap();
+
+			if(allJSONHash.containsKey(queryDataKey)){
+				queryJSONHash.putAll((StringMap) allJSONHash.get(queryDataKey));
+			} else {
+				
+				queryJSONHash.putAll( allJSONHash);
+			}
+			//relTriples
+			//first clone relTriples, we want to keep a copy of the rawRelTriples
+			key = relArrayKey;
+			List<List<String>> tripleArray = (List<List<String>>) queryJSONHash.get(key);
+			if(tripleArray != null && tripleArray.size() >0){
+				for (int tripleIdx = 0; tripleIdx<tripleArray.size(); tripleIdx++){
+					List<String> thisTripleArray = tripleArray.get(tripleIdx);
+					
+					String physicalURI = engine.getTransformedNodeName(thisTripleArray.get(subIdx), false);
+					thisTripleArray.set(subIdx,physicalURI);
+					if(thisTripleArray.size()>1){
+						String objectURI = engine.getTransformedNodeName(thisTripleArray.get(objIdx),false);
+						thisTripleArray.set(objIdx,objectURI);
+					}
+					tripleArray.set(tripleIdx, thisTripleArray);
+				}	
+			}
+	
+			//filterKey
+			key = AbstractQueryBuilder.filterKey;
+			StringMap<List<Object>> filterResults = (StringMap<List<Object>>) queryJSONHash.get(key);
+			Iterator <String> filterKeys = null;
+			
+			if(filterResults != null ){
+				filterKeys = filterResults.keySet().iterator();
+				for(int colIndex = 0;filterKeys.hasNext();colIndex++){
+					String colValue = filterKeys.next();
+					int numberOfValues = filterResults.get(colValue).size();
+					if(filterResults.get(colValue).size() > 0 ){
+						List <Object> filterValues = (List<Object>)filterResults.get(colValue);
+						String instanceBaseUri = "";
+						for(int filterIndex = 0;filterIndex < filterValues.size();filterIndex++)
+						{
+							String instanceFullDisplayPath = filterValues.get(filterIndex).toString();
+							instanceBaseUri = instanceFullDisplayPath.substring(0,instanceFullDisplayPath.lastIndexOf("/"));
+							instanceBaseUri = engine.getTransformedNodeName(instanceBaseUri, false);
+							String instance = Utility.getInstanceName(instanceFullDisplayPath);
+							if(instanceBaseUri.length() > 0 && !instanceBaseUri.endsWith("/"))
+								instanceBaseUri+="/";
+							String instanceFullPath = instanceBaseUri + instance;
+							if(!instanceBaseUri.equals(instanceFullDisplayPath.substring(0,instanceFullDisplayPath.lastIndexOf("/")))){
+								filterValues.set(filterIndex, instanceFullPath);
+							}
+						}
+						filterResults.remove(colValue);
+						colValue = Utility.getInstanceName(instanceBaseUri); //use instanceBaseUri since it should have been the same for all of the values you translated...
+						filterResults.put(colValue, filterValues);
+						
+					}
+				}
+				queryJSONHash.put(key, filterResults);
+			}
+			
+			if(queryJSONHash != null && allJSONHash.containsKey(queryDataKey)){
+				allJSONHash.put(queryDataKey, queryJSONHash);	
+			} else if(queryJSONHash != null){
+				allJSONHash.putAll(queryJSONHash);
+			}
+
+			allJSONHash.put("clean", true);
+		}
+	}
+	
 }
