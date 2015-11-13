@@ -77,7 +77,7 @@ public abstract class AbstractEngine implements IEngine {
 	//THIS IS IN CASE YOU NEED TO RECREATE YOUR INSIGHTS FROM THE XML/PROP QUESTIONS FILE
 	//USE THIS INSTEAD OF GOING THROUGH EACH DB FOLDER TO DELETE THE INSIGHT_DATABASE AND SMSS RDMBS_INSIGHT LINE
 	//PLEASE REMEMBER TO TURN THIS TO FALSE AFTERWARDS!
-	private static final boolean RECREATE_INSIGHTS = true;
+	private static final boolean RECREATE_INSIGHTS = false;
 		
 	private static final Logger logger = LogManager.getLogger(AbstractEngine.class.getName());
 	
