@@ -2159,9 +2159,9 @@ public class RDBMSReader {
 				retString = value;
 			}
 		}
-		if (!property) {
-			retString = Utility.cleanString(retString, true, false); // clean string
-		}
+		//if (!property) {
+		retString = Utility.cleanString(retString, true, false); // clean string
+		//} //to do, if it is a property, do we want to re add or remove undersores?  if we choose to remove, we do run into errors
 		return retString;
 	}
 
