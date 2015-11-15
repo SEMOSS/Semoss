@@ -171,6 +171,7 @@ public class CSVReader extends AbstractFileReader {
 		} 
 		createBaseRelations();
 		commitDB();
+		engine.loadTransformedNodeNames();
 	}
 
 	/**
@@ -973,6 +974,11 @@ public class CSVReader extends AbstractFileReader {
 		}		
 		try {
 			header = mapReader.getHeader(true);
+			//header clean up, consistent with RDBMS headers handling
+			for(int j = 0; j < header.length; j++){
+				String singleHeader = header[j];
+				header[j] = singleHeader;
+			}
 			headerList = Arrays.asList(header);
 			// last header in CSV file is the absolute path to the prop file
 			propFile = header[header.length-1];

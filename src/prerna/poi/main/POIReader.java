@@ -94,6 +94,7 @@ public class POIReader extends AbstractFileReader {
 		}
 		createBaseRelations();
 		commitDB();
+		engine.loadTransformedNodeNames();
 	}
 
 	/**
