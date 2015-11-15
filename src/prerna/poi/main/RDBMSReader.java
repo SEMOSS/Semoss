@@ -768,7 +768,7 @@ public class RDBMSReader {
 			writeDefaultQuestionSheet(engineName);
 			updateDefaultQuestionSheet();
 			createBaseRelations();
-			
+			engine.loadTransformedNodeNames();
 		} finally {
 			if(scriptFile != null) {
 				scriptFile.println("-- ********* completed load process ********* ");

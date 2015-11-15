@@ -72,7 +72,6 @@ public class BaseDatabaseCreator {
 				String cleanObj = dateFormat.format(cal.getTime());
 				baseEng.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{TIME_URL, TIME_KEY, cleanObj, false});
 			}
-			this.baseEng.loadTransformedNodeNames();
 			this.baseEng.exportDB();
 		} catch (RepositoryException | RDFHandlerException | IOException e) {
 			e.printStackTrace();
