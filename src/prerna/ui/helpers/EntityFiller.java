@@ -45,6 +45,7 @@ import org.apache.log4j.Logger;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.om.SEMOSSParam;
 import prerna.ui.components.ParamComboBox;
 import prerna.util.Constants;
@@ -139,6 +140,16 @@ public class EntityFiller implements Runnable {
 					if (extQuery != null) {
 						if(extQueryUnBound != null && extQueryBindings != null && extQueryBindings.size() > 0){
 							extQueryBindings = Utility.getTransformedNodeNamesMap(engine, extQueryBindings, false);
+							if(engine.getEngineType() == ENGINE_TYPE.RDBMS){
+								for(String key: extQueryBindings.keySet()){
+									List<Object> valuesList = extQueryBindings.get(key);
+									int i = 0;
+									for(Object value: valuesList){
+										value = Utility.getInstanceName(value.toString());
+										valuesList.set(i++, value);
+									}
+								}
+							}
 							extQuery = Utility.fillParam(extQueryUnBound, extQueryBindings);
 						}
 						sparqlQuery = extQuery;

@@ -281,8 +281,8 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 				
 				for(int nIndex = 0;nIndex < neighbors.size();nIndex++)
 				{
-					String neighbor = neighbors.get(nIndex);					
-					String instance = Utility.getInstanceName(neighbor);
+					String neighbor = neighbors.get(nIndex);	
+					String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, neighbor, true));
 					
 					// get the query here from engine and embed it
 					// It uses three things
