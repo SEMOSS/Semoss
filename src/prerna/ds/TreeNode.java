@@ -901,13 +901,13 @@ public class TreeNode {
 	private boolean hasChildren(TreeNode counterNode) {
 		boolean has = false;
 		// expects you to give the left most node
-		while(counterNode.rightSibling != null && !has)	{
+		do{
 			if(counterNode.leftChild != null)
 				has = true;
 			if(counterNode.rightChild != null)
 				has = true;
 			counterNode = counterNode.rightSibling;
-		}
+		} while((counterNode!= null && !has));
 		return has;
 	}
 	
