@@ -403,6 +403,7 @@ public class QueryBuilderHelper {
 			//filterKey
 			key = AbstractQueryBuilder.filterKey;
 			StringMap<List<Object>> filterResults = (StringMap<List<Object>>) queryJSONHash.get(key);
+			StringMap<List<Object>> filterResultsNew = new StringMap<List<Object>>();
 			Iterator <String> filterKeys = null;
 			
 			if(filterResults != null ){
@@ -422,17 +423,16 @@ public class QueryBuilderHelper {
 							if(instanceBaseUri.length() > 0 && !instanceBaseUri.endsWith("/"))
 								instanceBaseUri+="/";
 							String instanceFullPath = instanceBaseUri + instance;
-							if(!instanceBaseUri.equals(instanceFullDisplayPath.substring(0,instanceFullDisplayPath.lastIndexOf("/")))){
-								filterValues.set(filterIndex, instanceFullPath);
-							}
+							break; //loop through only once.  we really only need that baseUri to translate the key, we dont need to go through the whole list of filterValues
+
 						}
-						filterResults.remove(colValue);
+						//filterResults.remove(colValue);
 						colValue = Utility.getInstanceName(instanceBaseUri); //use instanceBaseUri since it should have been the same for all of the values you translated...
-						filterResults.put(colValue, filterValues);
+						filterResultsNew.put(colValue, filterValues);
 						
 					}
 				}
-				queryJSONHash.put(key, filterResults);
+				queryJSONHash.put(key, filterResultsNew);
 			}
 			
 			if(queryJSONHash != null && allJSONHash.containsKey(queryDataKey)){
