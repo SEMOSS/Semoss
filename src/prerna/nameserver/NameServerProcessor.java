@@ -133,15 +133,20 @@ public class NameServerProcessor extends AbstractNameServer {
 					Map<String, Map<String, Set<String>>> connections = MasterDBHelper.getRelationshipsForConcept(masterEngine, keyword, engineURL);
 					
 					if(!connections.isEmpty()) {
+						//iterate over the connections map and translate/transform all nodes
 						for(Map.Entry<String, Map<String, Set<String>>> eachMap: connections.entrySet()){
+							Map<String, Set<String>> newMap = new HashMap<String, Set<String>>();
 							for(String eachRelationship: eachMap.getValue().keySet()){
 								Set<String> conceptsURI= eachMap.getValue().get(eachRelationship);
 								Set<String> newConceptsURI = new HashSet<String>();
 								for(String singleURI: conceptsURI){
-									conceptsURI.remove(singleURI);
 									singleURI = engine.getTransformedNodeName(singleURI, true);
-									conceptsURI.add(singleURI);
+									newConceptsURI.add(singleURI);
 								}
+								newMap.put(eachRelationship, newConceptsURI);
+							}
+							if(newMap.size()>0){
+								connections.put(eachMap.getKey(), newMap);
 							}
 						}
 						
