@@ -6,6 +6,7 @@ import java.util.StringTokenizer;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.engine.api.IEngine;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -20,7 +21,7 @@ public class DisplayNamesProcessor{
 	 * @throws EngineException 
 	 */
 	public static void addDisplayNamesToOWL(Hashtable<String,String> displayNameHash, Hashtable<String,String> basePropURIHash, 
-			Hashtable<String, String> baseConceptURIHash, BaseDatabaseCreator baseEngCreator) {	
+			Hashtable<String, String> baseConceptURIHash, BaseDatabaseCreator baseEngCreator, IEngine coreEngine) {	
 		
 		
 		for(String relArray : displayNameHash.keySet()){
@@ -49,6 +50,11 @@ public class DisplayNamesProcessor{
 			if(propertyValueURI.length() > 0){
 				String predicate = Constants.DISPLAY_URI.substring(0,(Constants.DISPLAY_URI.length()-1));//semossURI + "/" + Constants.DEFAULT_DISPLAY_NAME ;
 				String object = predicate + "/" + customValue;
+				//first try to delete it if it exists, then add the new displayName
+				String existingDisplayName = coreEngine.getTransformedNodeName(propertyValueURI, true);
+				if(!existingDisplayName.equals(propertyValueURI)){
+					baseEngCreator.removeFromBaseEngine(new Object[]{propertyValueURI, predicate, existingDisplayName, false});
+				}
 				baseEngCreator.addToBaseEngine(new Object[]{propertyValueURI, predicate, object, false});
 			} else {
 				logger.error("Unable to create label/display naming in OWL for node: " + node);
@@ -56,7 +62,7 @@ public class DisplayNamesProcessor{
 		}
 	}
 	
-	public static Hashtable<String,String> generateDisplayNameMap(Hashtable<String, String> rdfMap){
+	public static Hashtable<String,String> generateDisplayNameMap(Hashtable<String, String> rdfMap, boolean isRDBMS){
 		String displayNames = Constants.DISPLAY_NAME;
 		Hashtable<String,String> displayNamesHash = new Hashtable<String,String>();
 
@@ -73,12 +79,24 @@ public class DisplayNamesProcessor{
 				String subject = strSplit[0];
 				String node = subject;
 				String property = subject;
-				String displayName = Utility.cleanVariableString(strSplit[1]); //if we want to support special chars, then dont clean this:  strSplit[1];
+				String displayName = Utility.cleanString(strSplit[1], false, false); //if we want to support special chars, then dont clean this:  strSplit[1];
+				if(isRDBMS){
+					displayName = displayName.replaceAll("-", "_");
+				}
 				if(subject.contains("%")){
 					String[] splitSubject = subject.split("%");
-					node = Utility.cleanVariableString(splitSubject[0]);
-					property = Utility.cleanVariableString(splitSubject[1]);
+					node = Utility.cleanString(splitSubject[0], false, false);//Utility.cleanVariableString(splitSubject[0]);
+					property = Utility.cleanString(splitSubject[1], false, false);//Utility.cleanVariableString(splitSubject[1]);
+					if(isRDBMS){
+						node = node.replaceAll("-", "_");
+						property = property.replaceAll("-", "_");
+					}
 					subject = node+"%"+property;
+				} else {
+					subject = Utility.cleanString(subject, false, false);
+					if(isRDBMS){
+						subject = subject.replaceAll("-", "_");
+					}
 				}
 				
 				if(!displayNamesHash.contains(displayName)){
