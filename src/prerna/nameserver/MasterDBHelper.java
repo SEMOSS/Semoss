@@ -126,7 +126,7 @@ public final class MasterDBHelper {
 	public static void addNode(IEngine masterEngine, String nodeURI) {
 		int index = nodeURI.lastIndexOf("/");
 		String baseURI = nodeURI.substring(0,index);
-		String instance = nodeURI.substring(index+1);
+		String instance = AddToMasterDB.removeConceptUri(nodeURI);
 		addToMaster(masterEngine, nodeURI, RDF.TYPE.stringValue(), baseURI, true);
 		addToMaster(masterEngine, baseURI, RDFS.SUBCLASSOF.stringValue(), MasterDatabaseURIs.SEMOSS_CONCEPT_URI, true);
 		addToMaster(masterEngine, nodeURI, RDFS.LABEL.stringValue(), instance, false);
