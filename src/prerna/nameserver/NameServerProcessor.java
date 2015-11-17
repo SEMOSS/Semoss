@@ -110,7 +110,7 @@ public class NameServerProcessor extends AbstractNameServer {
 		 */
 		ConnectedConcepts combineResults = new ConnectedConcepts();
 		
-		String originalKeywordURI = MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + Utility.getInstanceName(concept);
+		String originalKeywordURI = MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + AddToMasterDB.removeConceptUri(concept);
 		Set<String> keywordSet = new HashSet<String>();
 		Map<String, Set<String>> engineKeywordMap = new HashMap<String, Set<String>>();
 		Map<String, String> engineURLHash = new HashMap<String, String>();
