@@ -452,7 +452,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		this.wordnetPath = wordnetPath;
 	}
 	
-	public String removeConceptUri(String s) {
+	public static String removeConceptUri(String s) {
 		return s.replaceAll(".*/Concept/", "");
 	}
 }
