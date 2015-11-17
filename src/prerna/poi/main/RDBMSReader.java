@@ -755,6 +755,7 @@ public class RDBMSReader {
 					recreateRelations();
 					createTables();
 					skipRows();
+					removeBaseRelations();//before you make any changes anything from owl that needs to be deleted before you do any processing
 					insertRecords();
 					cleanAll();
 					commitDB();
@@ -1641,7 +1642,7 @@ public class RDBMSReader {
 				// and not the ones we are setting the individual values for (so pulling out the the [xyz AS columnName]  columns)
 				while(cols.hasMoreElements()){
 					String colToAdd = cols.nextElement();
-					if(!insertValsAliasClause.contains(colToAdd.toUpperCase()) ){
+					if(!insertValsAliasClause.contains(realClean(colToAdd.toUpperCase())) ){
 						if(allColumns.length() != 0) allColumns+= " , ";
 						allColumns += realClean(colToAdd);
 					} 
@@ -2168,7 +2169,7 @@ public class RDBMSReader {
 	
 	private Hashtable addCountForTables(boolean tableNameUppercase){	
 		Vector<String> tablesVec = new Vector<String>();
-		tablesVec.addAll(tables);
+		tablesVec.addAll(allTablesModified);
 		Hashtable <String, String> tableInfo = new Hashtable();
 		for(String singleTable: tablesVec){
 			String tableCountQuery = queryUtil.getDialectSelectRowCountFrom(singleTable,"");
@@ -2282,6 +2283,18 @@ public class RDBMSReader {
 		baseEngCreator.addToBaseEngine(new Object[]{sub, pred, obj, concept});
 	}
 
+	protected void removeBaseRelations(){
+		Hashtable<String,String> countRecords = addCountForTables(false);
+		//if add to existing first remove from the owl
+		for(String tablevalue: countRecords.keySet()){
+			String subject = baseConceptURIHash.get(tablevalue);
+			String predicate = semossURI + "/" + "Count";
+			String object = countRecords.get(tablevalue);
+			Object[] triple = new Object[]{subject, predicate, object, false};
+			baseEngCreator.removeFromBaseEngine(triple);
+		}
+	}
+	
 	protected void createBaseRelations() throws SailException, IOException, RepositoryException {
 		// necessary triple saying Concept is a type of Class
 		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
@@ -2384,8 +2397,8 @@ public class RDBMSReader {
 		for(String tablevalue: countRecords.keySet()){
 			String subject = baseConceptURIHash.get(tablevalue);
 			String predicate = semossURI + "/" + "Count";
-			String object = predicate +"/" + countRecords.get(tablevalue);
-			storeBaseStatement(subject, predicate, countRecords.get(tablevalue) , false);
+			String object = countRecords.get(tablevalue);
+			storeBaseStatement(subject, predicate, object , false);
 		}
 		
 		baseEngCreator.commit();
