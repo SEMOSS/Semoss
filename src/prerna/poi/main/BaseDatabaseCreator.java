@@ -115,4 +115,8 @@ public class BaseDatabaseCreator {
 	public void closeBaseEng() {
 		this.baseEng.closeDB();
 	}
+	
+	public void removeFromBaseEngine(Object[] triple){
+		this.baseEng.removeStatement(triple);
+	}
 }
