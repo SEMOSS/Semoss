@@ -263,11 +263,12 @@ public class AddToMasterDB extends ModifyMasterDB {
 
 				// update the concept-concept tree and the keyword-concept graph
 				String typeURI = vert.getURI();//full URI of this keyword
-				String cleanVertName = removeConceptUri(Utility.cleanString(typeURI, false));
-				MasterDBHelper.addNode(masterEngine, typeURI);
-				MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + cleanVertName, typeURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + cleanVertName + ":" + cleanVertName);
+				String keyWordVertName = removeConceptUri(Utility.cleanString(typeURI, false));
+				String cleanVertName = Utility.cleanString(vertName, false);
+				MasterDBHelper.addKeywordNode(masterEngine, typeURI);
+				MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyWordVertName, typeURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + cleanVertName + ":" + cleanVertName);
 
-				BipartiteNode<String> biNode = new BipartiteNode<String>(cleanVertName);
+				BipartiteNode<String> biNode = new BipartiteNode<String>(keyWordVertName);
 				int i = 0;
 				for(; i < numNouns; i++) {
 					String noun = nouns[i].toLowerCase();
@@ -303,13 +304,17 @@ public class AddToMasterDB extends ModifyMasterDB {
 		// add keyword to mc information to db
 		Map<String, Set<String>> keywordMapping = keywordConceptBipartiteGraph.getKeywordMapping();
 		for(String keyword : keywordMapping.keySet()) {
-			MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + engineName + ":" +keyword);
+			String cleanKeyword = keyword;
+			if(keyword.contains("/")) {
+				cleanKeyword = Utility.getInstanceName(keyword);
+			}
+			MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + engineName + ":" + cleanKeyword);
 			Set<String> mcList = keywordMapping.get(keyword);
 			for(String mc : mcList) {
 				String cleanMC = Utility.cleanString(mc, false);
-				MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword);
+				// note that keywords have already been added
 				MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.MC_BASE_URI + "/" + cleanMC);
-				MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, MasterDatabaseURIs.MC_BASE_URI + "/" + cleanMC, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/ComposedOf/" + keyword + ":" + cleanMC);
+				MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, MasterDatabaseURIs.MC_BASE_URI + "/" + cleanMC, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/ComposedOf/" + cleanKeyword + ":" + cleanMC);
 			}
 		}
 
@@ -454,5 +459,9 @@ public class AddToMasterDB extends ModifyMasterDB {
 	
 	public static String removeConceptUri(String s) {
 		return s.replaceAll(".*/Concept/", "");
+	}
+	
+	public static String removeRelationUri(String s) {
+		return s.replaceAll(".*/Relation/", "");
 	}
 }
