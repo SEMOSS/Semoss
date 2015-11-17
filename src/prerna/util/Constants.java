@@ -487,4 +487,7 @@ public class Constants {
 	//RDBMS specific
 	public static final String USE_OUTER_JOINS = "USE_OUTER_JOINS";// if present and true use outer joins instead of inner joins
 	public static final String USE_CONNECTION_POOLING = "USE_CONNECTION_POOLING";
+	
+	//SOLR specific
+	public static final String SOLR_URL = "SOLR_BASE_URL";
 }
