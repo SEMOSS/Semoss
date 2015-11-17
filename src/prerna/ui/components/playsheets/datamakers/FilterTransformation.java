@@ -51,6 +51,13 @@ public class FilterTransformation extends AbstractTransformation {
 		String colHeader = this.props.get(COLUMN_HEADER_KEY) +"";
 		List<Object> values = (List<Object>) this.props.get(VALUES_KEY);
 		
+		if(values == null){
+			LOGGER.info("VALUES FOR THIS FILTER HAS NOT BEEN SET.... THIS IS MOST LIKELY A FILTER PAIRED WITH A JOIN.... GRABBING VALUES FROM DATAMAKER");
+			if(dm instanceof ITableDataFrame){
+				values = Arrays.asList( ((ITableDataFrame) dm).getUniqueRawValues(props.get(COLUMN_HEADER_KEY)+""));
+			}
+		}
+		
 		// if this is a pre-transformation
 		if(preTrans){
 			// if there is metamodel data, add this as a filter and let query builder do its thing

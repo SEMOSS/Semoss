@@ -557,7 +557,7 @@ public class QuestionAdministrator {
 			//   If a pre trans with the param already exists
 			//    Wipe the list because it needs to be empty when we fill the param.
 			for(SEMOSSParam p: involvedParamsPre){
-				if(p.getType().equals(preTransType)){
+				if(Utility.getInstanceName(p.getType()).equals(preTransType)){
 					paramMap = new HashMap<String, Object> (paramMap);
 					paramMap.remove(FilterTransformation.VALUES_KEY);
 					involvedParamsPre.remove(p);
