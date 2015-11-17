@@ -344,7 +344,7 @@ public class RDBMSReader {
 	}
 	
 	private void processDisplayNames(){
-		displayNamesHash = DisplayNamesProcessor.generateDisplayNameMap(rdfMap);
+		displayNamesHash = DisplayNamesProcessor.generateDisplayNameMap(rdfMap,true);
 	}
 
 	//get current indexes that are saved off.  If some exist we will reexecute them when the upload process completes
@@ -2389,7 +2389,7 @@ public class RDBMSReader {
 		
 		//process logic for display naming
 		if(displayNamesHash.size()>0){
-			DisplayNamesProcessor.addDisplayNamesToOWL(displayNamesHash, basePropURIHash, baseConceptURIHash, baseEngCreator);
+			DisplayNamesProcessor.addDisplayNamesToOWL(displayNamesHash, basePropURIHash, baseConceptURIHash, baseEngCreator, engine);
 		}
 		
 		Hashtable<String,String> countRecords = addCountForTables(false);
@@ -2400,6 +2400,7 @@ public class RDBMSReader {
 			String object = countRecords.get(tablevalue);
 			storeBaseStatement(subject, predicate, object , false);
 		}
+		
 		
 		baseEngCreator.commit();
 		// create the OWL File

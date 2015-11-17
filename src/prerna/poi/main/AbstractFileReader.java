@@ -285,7 +285,7 @@ public abstract class AbstractFileReader {
 		
 		//process logic for display naming
 		if(displayNamesHash.size()>0){
-			DisplayNamesProcessor.addDisplayNamesToOWL(displayNamesHash, basePropURIHash, baseConceptURIHash, baseEngCreator);
+			DisplayNamesProcessor.addDisplayNamesToOWL(displayNamesHash, basePropURIHash, baseConceptURIHash, baseEngCreator, engine);
 		}
 
 		baseEngCreator.commit();
@@ -297,7 +297,7 @@ public abstract class AbstractFileReader {
 	}
 	
 	protected void processDisplayNames(){
-		displayNamesHash = DisplayNamesProcessor.generateDisplayNameMap(rdfMap);
+		displayNamesHash = DisplayNamesProcessor.generateDisplayNameMap(rdfMap, false);
 	}
 	
 	protected String[] prepareReader(String fileNames, String customBase, String owlFile, String bdPropFile){

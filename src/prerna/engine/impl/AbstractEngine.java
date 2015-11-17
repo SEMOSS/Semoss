@@ -581,6 +581,7 @@ public abstract class AbstractEngine implements IEngine {
 			Vector<String[]> transformedNode = Utility.getVectorObjectOfReturn(query, this.baseDataEngine);
 		
 			if(transformedNode.size()!=0){
+				transformedNodeNames.clear();
 				for(String[] node: transformedNode){
 					this.transformedNodeNames.put(node[1], node[0]); //map contains display name : physical name
 				}
