@@ -262,8 +262,8 @@ public class AddToMasterDB extends ModifyMasterDB {
 				int numNouns = nouns.length;
 
 				// update the concept-concept tree and the keyword-concept graph
-				String cleanVertName = Utility.cleanString(vertName, false);
-				String typeURI =vert.getURI();//full URI of this keyword
+				String typeURI = vert.getURI();//full URI of this keyword
+				String cleanVertName = removeConceptUri(Utility.cleanString(typeURI, false));
 				MasterDBHelper.addNode(masterEngine, typeURI);
 				MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + cleanVertName, typeURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + cleanVertName + ":" + cleanVertName);
 
@@ -450,5 +450,9 @@ public class AddToMasterDB extends ModifyMasterDB {
 
 	public void setWordnetPath(String wordnetPath) {
 		this.wordnetPath = wordnetPath;
+	}
+	
+	public String removeConceptUri(String s) {
+		return s.replaceAll(".*/Concept/", "");
 	}
 }
