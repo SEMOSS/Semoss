@@ -595,6 +595,7 @@ public class RDBMSReader {
 			prop.put("GQ" + tableIndex + "_Instance_DEPEND", "Concept");
 			prop.put("GQ" + tableIndex + "_Concept_QUERY", "SELECT DISTINCT (COALESCE(?DisplayName, ?PhysicalName) AS ?entity) WHERE "
 					+ " { {?PhysicalName <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
+					+ " FILTER (?PhysicalName != <http://semoss.org/ontologies/Concept>) "
 					+ " OPTIONAL{?PhysicalName <http://semoss.org/ontologies/DisplayName> ?DisplayName } }");
 			prop.put("GQ" + tableIndex + "_Concept_DB_QUERY", "FALSE"); //TODO rename to _Concept_DB_QUERY before commit
 			prop.put("GQ" + tableIndex + "_Instance_QUERY", "SELECT Distinct @Concept@ FROM @Concept@");
@@ -836,10 +837,10 @@ public class RDBMSReader {
 				logger.info("Loading relation " + relation);            	
 				String[] strSplit = relation.split("@");
 				// get the subject and object for triple (the two indexes)
-				String sub = Utility.cleanVariableString(strSplit[0]);//String sub = strSplit[0];
+				String sub = strSplit[0]; //String sub = Utility.cleanVariableString(strSplit[0]);
 				String subject = "";
-				String predicate = Utility.cleanVariableString(strSplit[1]); // this needs to be ignored
-				String obj = Utility.cleanVariableString(strSplit[2]); 
+				String predicate =  strSplit[1];// this needs to be ignored //Utility.cleanVariableString(strSplit[1]);
+				String obj = strSplit[2]; //Utility.cleanVariableString(strSplit[2]); 
 				String object = "";
 
 				//guide FK creation by grabbing where the asterisk is on the predicate if one exists
@@ -943,11 +944,11 @@ public class RDBMSReader {
 				logger.info("Loading Node Prop " + relation);            	
 				String[] strSplit = relation.split("%");
 				// get the subject and object for triple (the two indexes)
-				String sub = Utility.cleanVariableString(strSplit[0]);
+				String sub = strSplit[0];//Utility.cleanVariableString(strSplit[0]);
 				// loop through all properties on the node
 				for(int i = 1; i < strSplit.length; i++)
 				{
-					String prop = Utility.cleanVariableString(strSplit[i]);
+					String prop = strSplit[i];//Utility.cleanVariableString(strSplit[i]);
 
 					boolean headException = true;
 					if(sub.contains("+"))
@@ -2164,6 +2165,26 @@ public class RDBMSReader {
 		//} //to do, if it is a property, do we want to re add or remove undersores?  if we choose to remove, we do run into errors
 		return retString;
 	}
+	
+	private Hashtable addCountForTables(boolean tableNameUppercase){	
+		Vector<String> tablesVec = new Vector<String>();
+		tablesVec.addAll(tables);
+		Hashtable <String, String> tableInfo = new Hashtable();
+		for(String singleTable: tablesVec){
+			String tableCountQuery = queryUtil.getDialectSelectRowCountFrom(singleTable,"");
+			ISelectWrapper tableCount = WrapperManager.getInstance().getSWrapper(engine, tableCountQuery);
+			while(tableCount.hasNext()){
+				ISelectStatement stmtTblCount = tableCount.next();
+				String numberOfRows = stmtTblCount.getVar(queryUtil.getResultSelectRowCountFromRowCount()).toString();
+				if(tableNameUppercase){
+					singleTable = singleTable.toUpperCase();
+				}
+				tableInfo.put(singleTable, numberOfRows);
+			}
+		}	
+		return tableInfo;
+	}
+	
 
 	/**
 	 * Retrieves the data in the CSV file for a specified string
@@ -2217,10 +2238,10 @@ public class RDBMSReader {
 			try {
 				header = mapReader.getHeader(true);
 				//header clean up, trim spaces and replace remaining spaces with underscores
-				for(int j = 0; j < header.length; j++){
+				/*for(int j = 0; j < header.length; j++){
 					String singleHeader = Utility.cleanVariableString(header[j]);
 					header[j] = singleHeader;
-				}
+				}*/
 				headerList = Arrays.asList(header);
 				// last header in CSV file is the absolute path to the prop file
 				//propFile = header[header.length-1];
@@ -2356,6 +2377,15 @@ public class RDBMSReader {
 		//process logic for display naming
 		if(displayNamesHash.size()>0){
 			DisplayNamesProcessor.addDisplayNamesToOWL(displayNamesHash, basePropURIHash, baseConceptURIHash, baseEngCreator);
+		}
+		
+		Hashtable<String,String> countRecords = addCountForTables(false);
+		
+		for(String tablevalue: countRecords.keySet()){
+			String subject = baseConceptURIHash.get(tablevalue);
+			String predicate = semossURI + "/" + "Count";
+			String object = predicate +"/" + countRecords.get(tablevalue);
+			storeBaseStatement(subject, predicate, countRecords.get(tablevalue) , false);
 		}
 		
 		baseEngCreator.commit();
