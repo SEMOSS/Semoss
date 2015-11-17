@@ -126,10 +126,23 @@ public final class MasterDBHelper {
 	public static void addNode(IEngine masterEngine, String nodeURI) {
 		int index = nodeURI.lastIndexOf("/");
 		String baseURI = nodeURI.substring(0,index);
-		String instance = AddToMasterDB.removeConceptUri(nodeURI);
+		String instance = nodeURI.substring(index+1);
 		addToMaster(masterEngine, nodeURI, RDF.TYPE.stringValue(), baseURI, true);
 		addToMaster(masterEngine, baseURI, RDFS.SUBCLASSOF.stringValue(), MasterDatabaseURIs.SEMOSS_CONCEPT_URI, true);
 		addToMaster(masterEngine, nodeURI, RDFS.LABEL.stringValue(), instance, false);
+	}
+	
+	public static void addKeywordNode(IEngine masterEngine, String nodeURI) {
+		String instance = AddToMasterDB.removeConceptUri(nodeURI);
+		String baseURI = nodeURI.replace("/" + instance, "");
+		addToMaster(masterEngine, nodeURI, RDF.TYPE.stringValue(), baseURI, true);
+		addToMaster(masterEngine, baseURI, RDFS.SUBCLASSOF.stringValue(), MasterDatabaseURIs.SEMOSS_CONCEPT_URI, true);
+		addToMaster(masterEngine, nodeURI, RDFS.LABEL.stringValue(), instance, false);
+		
+		String keyword = MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + instance;
+		addToMaster(masterEngine, keyword, RDF.TYPE.stringValue(), MasterDatabaseURIs.KEYWORD_BASE_URI, true);
+		addToMaster(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI, RDFS.SUBCLASSOF.stringValue(), MasterDatabaseURIs.SEMOSS_CONCEPT_URI, true);
+		addToMaster(masterEngine, keyword, RDFS.LABEL.stringValue(), instance, false);
 	}
 
 	/**
