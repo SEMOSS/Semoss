@@ -509,7 +509,7 @@ public abstract class AbstractEngine implements IEngine {
 		this.baseDataEngine.commit();
 	}
 
-	protected abstract Vector<Object> getCleanSelect(String query);
+	public abstract Vector<Object> getCleanSelect(String query);
 
 	public Vector<String> getConcepts() {
 		String query = "SELECT ?concept WHERE {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }";
