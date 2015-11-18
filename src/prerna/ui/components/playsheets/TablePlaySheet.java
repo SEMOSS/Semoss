@@ -224,6 +224,7 @@ public class TablePlaySheet extends AbstractPlaySheet implements IDataMaker{
 		this.dmComponent = component;
 		createData();
 		processQueryData();
+		runAnalytics();
 	}
 
 	// this method should not be here
