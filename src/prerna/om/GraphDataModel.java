@@ -264,6 +264,8 @@ public class GraphDataModel implements IDataMaker {
 	}
 
 	public void processData(String query, IEngine engine) {
+		this.coreEngine = engine; // right now we need this for logical names... really shouldn't be needed in this class at all
+		this.coreQuery = query;
 
 		// open up the engine
 		String queryCap = query.toUpperCase();
