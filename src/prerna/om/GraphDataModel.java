@@ -874,8 +874,12 @@ public class GraphDataModel implements IDataMaker {
 					SEMOSSEdge edge = edgeStore.get(predicateName+"");
 					// check to see if this is another type of edge			
 					//if(!predicateName.contains(vert1.getProperty(Constants.VERTEX_NAME).toString()) &&  !predicateName.contains(vert2.getProperty(Constants.VERTEX_NAME).toString()))
-					if(!predicateName.contains(vert1.getProperty(Constants.VERTEX_NAME) + ":" + vert2.getProperty(Constants.VERTEX_NAME)))
-						predicateName = predicateName + "/" + vert1.getProperty(Constants.VERTEX_NAME) + ":" + vert2.getProperty(Constants.VERTEX_NAME);
+					if(!predicateName.contains(vert1.getProperty(Constants.VERTEX_NAME) + ":" + vert2.getProperty(Constants.VERTEX_NAME))) {
+						// need to not add this check when we make concepts into edges like data network
+						if(!predicateName.contains("/ontologies/Concept/")) {
+							predicateName = predicateName + "/" + vert1.getProperty(Constants.VERTEX_NAME) + ":" + vert2.getProperty(Constants.VERTEX_NAME);
+						}
+					}
 					if(edge == null)
 						edge = edgeStore.get(predicateName);
 					if(edge == null)
