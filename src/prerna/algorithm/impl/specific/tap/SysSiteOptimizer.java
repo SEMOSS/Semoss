@@ -56,6 +56,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.BTreeDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.ui.components.playsheets.OCONUSMapPlaySheet;
+import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.specific.tap.HealthGridSheet;
 import prerna.ui.components.specific.tap.SysSiteOptGraphFunctions;
 import prerna.ui.components.specific.tap.SysSiteOptPlaySheet;
@@ -884,7 +885,11 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		OCONUSMapPlaySheet ps = new OCONUSMapPlaySheet();
 		ps.setDataMaker(data);
 		ps.processQueryData();
-		return (Hashtable<String,Object>)ps.getDataMakerOutput();
+		Hashtable<String, Object> retMap = (Hashtable<String, Object>) ps.getDataMakerOutput();
+		retMap.put("layout", "WorldMap");
+		retMap.put("dataTableAlign", ps.getDataTableAlign());
+
+		return retMap;
 	}
 	
 	public Hashtable<String,Object> getOverviewCapCoverageMapData() {
@@ -942,7 +947,12 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		OCONUSMapPlaySheet ps = new OCONUSMapPlaySheet();
 		ps.setDataMaker(data);
 		ps.processQueryData();
-		return (Hashtable<String,Object>)ps.getDataMakerOutput();
+
+		Hashtable<String, Object> retMap = (Hashtable<String, Object>) ps.getDataMakerOutput();
+		retMap.put("layout", "WorldMap");
+		retMap.put("dataTableAlign", ps.getDataTableAlign());
+
+		return retMap;
 	}
 	
 	/**
@@ -957,14 +967,14 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		String sysBindings = SysOptUtilityMethods.makeBindingString("System",localSysList) + SysOptUtilityMethods.makeBindingString("System",centralSysList);
 		
 		String query = "SELECT ?System (COALESCE(?bv * 100, 0.0) AS ?BusinessValue) (COALESCE(?estm, 0.0) AS ?ExternalStability) (COALESCE(?attm, 0.0) AS ?ArchitecturalComplexity) (COALESCE(?iatm, 0.0) AS ?InformationAssurance) (COALESCE(?nfrtm, 0.0) AS ?NonFunctionalRequirements)  (COALESCE(?SustainmentBud,0.0) AS ?SustainmentBudget) (IF(?System in (" + sysKeptQueryString + "), \""+RECOMMENDED_SUSTAIN+"\", \""+RECOMMENDED_CONSOLIDATION+"\") AS ?Recommendation) WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} OPTIONAL{?System <http://semoss.org/ontologies/Relation/Contains/SustainmentBudget> ?SustainmentBud}OPTIONAL {?System <http://semoss.org/ontologies/Relation/Contains/BusinessValue> ?bv}  OPTIONAL { ?System <http://semoss.org/ontologies/Relation/Contains/ExternalStabilityTM>  ?estm ;} OPTIONAL { ?System <http://semoss.org/ontologies/Relation/Contains/ArchitecturalComplecxityTM>  ?attm ;}  OPTIONAL { ?System <http://semoss.org/ontologies/Relation/Contains/InformationAssuranceTM>  ?iatm ;} OPTIONAL { ?System <http://semoss.org/ontologies/Relation/Contains/NonFunctionalRequirementsTM>  ?nfrtm ;}  } BINDINGS ?System {" + sysBindings + "}";
-
+		DataMakerComponent dmc = new DataMakerComponent(systemEngine, query);
 		HealthGridSheet ps = new HealthGridSheet();
-		ps.setQuery(query);
-		ps.setRDFEngine(systemEngine);
-		ps.createData();
-		ps.runAnalytics();
+		ps.processDataMakerComponent(dmc);
 		ps.processQueryData();
-		return (Hashtable<String,Object>)ps.getDataMakerOutput();
+		Hashtable<String, Object> retMap = (Hashtable<String,Object>)ps.getDataMakerOutput();
+		retMap.put("dataTableAlign", ps.getDataTableAlign());
+		retMap.put("layout", "prerna.ui.components.specific.tap.HealthGridSheetPortRat");
+		return retMap;
 	}
 
 	public Hashtable<String,Object> getSystemInfoData(String system, Boolean isModernized) {
@@ -1155,8 +1165,10 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		OCONUSMapPlaySheet ps = new OCONUSMapPlaySheet();
 		ps.setDataMaker(data);
 		ps.processQueryData();
-		return (Hashtable<String,Object>)ps.getDataMakerOutput();
-		
+		Hashtable<String, Object> retMap = (Hashtable<String, Object>) ps.getDataMakerOutput();
+		retMap.put("layout", "WorldMap");
+		retMap.put("dataTableAlign", ps.getDataTableAlign());
+		return retMap;		
 	}
 	
 	public Hashtable<String,Object> getSystemCoverageData(String system) {
