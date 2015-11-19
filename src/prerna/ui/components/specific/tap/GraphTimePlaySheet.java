@@ -208,28 +208,6 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 					SEMOSSEdge edge = edgeStore.get(uri);
 					SEMOSSVertex vert = vertStore.get(uri);
 					
-					// TODO: this is a very annoying thing to have to check :(
-					// know which query requires this based on the number of return variables...
-					if(edge == null && vert == null && timeNames.length == 6) {
-						// for system interfaces that are now edges, they get concatenated with a /startVert:endVert
-						// need to check if there is an edge
-						String glItem = sjss.getVar(timeNames[3]).toString();
-						String[] glItemSplit = glItem.split("%");
-						
-						// instance name is StartSys-EndSys-DataObject
-						String uriInstanceName = Utility.getInstanceName(uri);
-						// need to determine what the start and end sys names are
-						// the first part of the glitem concatenations is the data object
-						uriInstanceName = uriInstanceName.replace("-" + glItemSplit[0], "");
-						// the 3rd part of the glitem concatenations is the start node
-						String startSys = glItemSplit[2];
-						String endSys = uriInstanceName.replace(startSys + "-", "");
-						
-						String newUri = uri + "/" + startSys + ":" + endSys;
-						edge = edgeStore.get(newUri);
-						vert = vertStore.get(newUri);
-					}
-					
 					if(vert != null || edge != null){
 						String phaseKey = sjss.getVar(timeNames[1]).toString();
 						Hashtable<String, Hashtable<String, Object>> timeHash = new Hashtable<String, Hashtable<String, Object>>();
