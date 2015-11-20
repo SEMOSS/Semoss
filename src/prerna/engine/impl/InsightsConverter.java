@@ -142,7 +142,6 @@ public class InsightsConverter {
 	private void generateTables(RDBMSNativeEngine eng) {
 		String questionTableCreate = "CREATE TABLE QUESTION_ID ("
 				+ "ID INT, "
-				+ "QUESTION_ID VARCHAR(255), "
 				+ "QUESTION_NAME VARCHAR(255), "
 				+ "QUESTION_PERSPECTIVE VARCHAR(225), "
 				+ "QUESTION_LAYOUT VARCHAR(225), "
@@ -227,7 +226,7 @@ public class InsightsConverter {
 	
 	public static String getDataMaker(String layout, List<String> allSheets){
 		String dataMaker = "";
-		if((allSheets.contains(layout) || layout.equals("prerna.ui.components.specific.tap.InterfaceGraphPlaySheet") || layout.equals("prerna.ui.components.playsheets.GridScatterSheet") )
+		if((allSheets.contains(layout) || layout.equals("prerna.ui.components.specific.tap.InterfaceGraphPlaySheet") )
 				&& !layout.equals("prerna.ui.components.specific.ousd.RoadmapTimelineComboChartPlaySheet")
 				&& !layout.equals("prerna.ui.components.specific.tap.SysSimHeatMapSheet")) {
 			if(layout.equals("prerna.ui.components.playsheets.GraphPlaySheet") || layout.equals("prerna.ui.components.specific.tap.InterfaceGraphPlaySheet")) {
