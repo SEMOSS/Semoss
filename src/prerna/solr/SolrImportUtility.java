@@ -24,6 +24,7 @@ public final class SolrImportUtility {
 	private static final String MODIFIED_ON_FINDER = SolrIndexEngine.MODIFIED_ON + " : ";
 	private static final String LAYOUT_FINDER = SolrIndexEngine.LAYOUT + " : ";
 	private static final String CORE_ENGINE_FINDER = SolrIndexEngine.CORE_ENGINE + " : ";
+	private static final String CORE_ENGINE_ID_FINDER = SolrIndexEngine.CORE_ENGINE_ID + " : ";
 	private static final String CREATED_ON_FINDER = SolrIndexEngine.CREATED_ON + " : ";
 	private static final String USERID_FINDER = SolrIndexEngine.USER_ID + " : ";
 	private static final String ENGINES_FINDER = SolrIndexEngine.ENGINES + " : ";
@@ -88,6 +89,7 @@ public final class SolrImportUtility {
 			String modifiedDate = null;
 			String layout = null;
 			String coreEngine = null;
+			Integer coreEngineId = null;
 			String createdOnDate = null;
 			String userID = null;
 			String engineName = null;
@@ -126,6 +128,8 @@ public final class SolrImportUtility {
 					layout = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(CORE_ENGINE_FINDER)) {
 					coreEngine = currentLine.substring(currentLine.indexOf(':') + 2).trim();
+				}  else if (currentLine.startsWith(CORE_ENGINE_ID_FINDER)) {
+					coreEngineId = Integer.parseInt(currentLine.substring(currentLine.indexOf(':') + 2).trim());
 				} else if (currentLine.startsWith(CREATED_ON_FINDER)) {
 					createdOnDate = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(USERID_FINDER)) {
@@ -185,6 +189,12 @@ public final class SolrImportUtility {
 				queryResults.put(SolrIndexEngine.CORE_ENGINE, coreEngine);
 			}
 			
+			if(coreEngineId == null) {
+				throw new IOException("SolrInputDocument does not contain a coreEngineId...");
+			} else {
+				queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, coreEngineId);
+			}
+			
 			if(createdOnDate == null || createdOnDate.isEmpty()) {
 				throw new IOException("SolrInputDocument does not contain an createdOnDate or createdOnDate is empty...");
 			} else {
@@ -209,6 +219,7 @@ public final class SolrImportUtility {
 				queryResults.put(SolrIndexEngine.NAME, name);
 			}
 		
+			
 			if(annotation == null || annotation.isEmpty()) {
 				queryResults.put(SolrIndexEngine.ANNOTATION, annotation);
 			}

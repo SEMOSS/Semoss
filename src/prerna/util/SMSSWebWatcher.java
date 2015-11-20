@@ -224,6 +224,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					queryResults.put(SolrIndexEngine.ENGINES, engineList);
 					queryResults.put(SolrIndexEngine.PARAMS, paramList);
 					queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
+					queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
 					queryResults.put(SolrIndexEngine.LAYOUT, layout);
 
 					try {
