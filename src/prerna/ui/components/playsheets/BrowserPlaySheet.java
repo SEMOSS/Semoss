@@ -98,7 +98,10 @@ public class BrowserPlaySheet extends TablePlaySheet {
 		
 		// browser.executeJavaScript("start('" + gson.toJson(table) + "');");
 		// create variable val to ensure JXBrowser has the data before trying to paint
-		JSValue val = browser.executeJavaScriptAndReturnValue("start('" + gson.toJson(table) + "');");
+		String startStr = "start('" + gson.toJson(table) + "');";
+		startStr = startStr.replaceAll("\\\\", "\\\\\\\\");
+		System.out.println(startStr);
+		JSValue val = browser.executeJavaScriptAndReturnValue(startStr);
 		
 		String remoteDebuggingURL = browser.getRemoteDebuggingURL();
 		System.out.println(">>>>>>>>>>>>>>> REMOTE DEBUGGING URL: " +  remoteDebuggingURL);

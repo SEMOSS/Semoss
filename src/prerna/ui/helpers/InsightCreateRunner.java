@@ -69,7 +69,7 @@ public class InsightCreateRunner implements Runnable{
 	public void run() {
 		IDataMaker dm = createData();
 		IPlaySheet playSheet = insight.getPlaySheet();
-		playSheet.setDataMaker(dm);
+//		playSheet.setDataMaker(dm);
 		Map<String, String> tableDataAlign = insight.getDataTableAlign();
 		if(playSheet instanceof AbstractPlaySheet && !(tableDataAlign == null || tableDataAlign.isEmpty())) {
 			((AbstractPlaySheet)playSheet).setTableDataAlign(tableDataAlign);
