@@ -606,7 +606,7 @@ public class QuestionAdministrator {
 		StringBuilder updateQueryBuilder = new StringBuilder();
 		updateQueryBuilder.append("UPDATE QUESTION_ID SET QUESTION_ORDER=");
 		updateQueryBuilder.append(order);
-		updateQueryBuilder.append(" WHERE QUESTION_ID='");
+		updateQueryBuilder.append(" WHERE ID='");
 		updateQueryBuilder.append(insightId);
 		updateQueryBuilder.append("'");
 		insightEngine.insertData(updateQueryBuilder.toString());
