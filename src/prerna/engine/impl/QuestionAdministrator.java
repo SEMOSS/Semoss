@@ -57,7 +57,7 @@ public class QuestionAdministrator {
 
 	private static final Logger LOGGER = Logger.getLogger(QuestionAdministrator.class.getName());
 	private static final String GET_LAST_INSIGHT_ID = "SELECT DISTINCT ID FROM QUESTION_ID ORDER BY ID DESC";
-	private static final String GET_IDS_FOR_PERSPECTIVES = "SELECT DISTINCT QUESTION_ID FROM QUESTION_ID WHERE QUESTION_PERSPECTIVE IN ";
+	private static final String GET_IDS_FOR_PERSPECTIVES = "SELECT DISTINCT ID FROM QUESTION_ID WHERE QUESTION_PERSPECTIVE IN ";
 	
 	private IEngine engine;
 	private IEngine insightEngine;
@@ -107,7 +107,6 @@ public class QuestionAdministrator {
 			lastIdNum = wrapper.next().getVar(retName);
 		}
 		String lastIDNum = ((int)lastIdNum+1) + "";
-		String newInsightID = engine.getEngineName() + "_" + lastIDNum;
 		
 		// readjust the ordering of current insights
 		if(order == null || order.isEmpty()) {
@@ -119,11 +118,10 @@ public class QuestionAdministrator {
 		// insert into table the new record
 		StringBuilder insertQueryBuilder = new StringBuilder();
 		insertQueryBuilder.append("INSERT INTO QUESTION_ID "
-				+ "(ID, QUESTION_ID, QUESTION_NAME, QUESTION_PERSPECTIVE, "
+				+ "(ID, QUESTION_NAME, QUESTION_PERSPECTIVE, "
 				+ "QUESTION_LAYOUT, QUESTION_ORDER, QUESTION_DATA_MAKER, QUESTION_MAKEUP, "
 				+ "QUESTION_IS_DB_QUERY, DATA_TABLE_ALIGN) VALUES (");
 		insertQueryBuilder.append(lastIDNum).append(", ");
-		insertQueryBuilder.append("'").append(newInsightID).append("', ");
 		insertQueryBuilder.append("'").append(insightName).append("', ");
 		insertQueryBuilder.append("'").append(perspective).append("', ");
 		insertQueryBuilder.append("'").append(layout).append("', ");
@@ -142,7 +140,7 @@ public class QuestionAdministrator {
 
 		LOGGER.info("Done adding main part of question... now parameters");
 		//now add in parameters
-		addParameters(parameters, newInsightID);
+		addParameters(parameters, lastIDNum);
 		
 		insightEngine.commit();
 
