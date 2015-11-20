@@ -77,8 +77,8 @@ public class InsightCreateRunner implements Runnable{
 		preparePlaySheet(playSheet, insight);
 
 		if(!insight.getAppend()){
-//			playSheet.runAnalytics();
-//			playSheet.processQueryData();
+			playSheet.runAnalytics();
+			playSheet.processQueryData();
 			playSheet.createView();
 		}
 		else {
