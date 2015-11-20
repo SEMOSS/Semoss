@@ -30,7 +30,6 @@ package prerna.engine.impl;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,8 +37,9 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.ISelectWrapper;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
@@ -50,8 +50,6 @@ import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.util.Utility;
-
-import com.google.gson.Gson;
 
 public class QuestionAdministrator {
 
@@ -68,7 +66,7 @@ public class QuestionAdministrator {
 	}
 
 	//TODO: need to change order to int
-	public void addQuestion(
+	public String addQuestion(
 			String insightName,
 			String perspective,
 			List<DataMakerComponent> comps,
@@ -107,7 +105,6 @@ public class QuestionAdministrator {
 			lastIdNum = wrapper.next().getVar(retName);
 		}
 		String lastIDNum = ((int)lastIdNum+1) + "";
-		String newInsightID = engine.getEngineName() + "_" + lastIDNum;
 		
 		// readjust the ordering of current insights
 		if(order == null || order.isEmpty()) {
@@ -119,11 +116,10 @@ public class QuestionAdministrator {
 		// insert into table the new record
 		StringBuilder insertQueryBuilder = new StringBuilder();
 		insertQueryBuilder.append("INSERT INTO QUESTION_ID "
-				+ "(ID, QUESTION_ID, QUESTION_NAME, QUESTION_PERSPECTIVE, "
+				+ "(ID, QUESTION_NAME, QUESTION_PERSPECTIVE, "
 				+ "QUESTION_LAYOUT, QUESTION_ORDER, QUESTION_DATA_MAKER, QUESTION_MAKEUP, "
 				+ "QUESTION_IS_DB_QUERY, DATA_TABLE_ALIGN) VALUES (");
 		insertQueryBuilder.append(lastIDNum).append(", ");
-		insertQueryBuilder.append("'").append(newInsightID).append("', ");
 		insertQueryBuilder.append("'").append(insightName).append("', ");
 		insertQueryBuilder.append("'").append(perspective).append("', ");
 		insertQueryBuilder.append("'").append(layout).append("', ");
@@ -142,11 +138,13 @@ public class QuestionAdministrator {
 
 		LOGGER.info("Done adding main part of question... now parameters");
 		//now add in parameters
-		addParameters(parameters, newInsightID);
+		addParameters(parameters, lastIDNum);
 		
 		insightEngine.commit();
 
 		LOGGER.info("Done adding question");
+		
+		return lastIDNum;
 	}
 	
 	private int calculateDefaultOrdering(String perspective) {
@@ -236,7 +234,7 @@ public class QuestionAdministrator {
 			query += "QUESTION_ORDER=" + order + ", ";
 		}
 		query = query.substring(0, query.length() - 2);
-		query = query + " WHERE QUESTION_ID='" + insightID + "'"; 
+		query = query + " WHERE ID='" + insightID + "'"; 
 		
 		// modify order for questions in perspective question is being set to
 		if(orderChange) {
@@ -287,7 +285,7 @@ public class QuestionAdministrator {
 	
 	private void deleteInsight(String... insightIDs) {
 		String idsString = createString(insightIDs);
-		String questionQuery = "DELETE FROM QUESTION_ID WHERE QUESTION_ID IN " + idsString;
+		String questionQuery = "DELETE FROM QUESTION_ID WHERE ID IN " + idsString;
 		LOGGER.info("running remove query :::: " + questionQuery);
 		insightEngine.removeData(questionQuery);
 	}
@@ -299,9 +297,9 @@ public class QuestionAdministrator {
 		insightEngine.removeData(parameterQuery);
 	}
 	
-	private String removeTrailingZeros(String s) {
-		return s.replaceAll("\\.0*$", "");
-	}
+//	private String removeTrailingZeros(String s) {
+//		return s.replaceAll("\\.0*$", "");
+//	}
 	
 	private void addParameters(List<SEMOSSParam> parameters, String insightID) {
 		if(parameters != null) {
