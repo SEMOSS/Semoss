@@ -664,6 +664,9 @@ public class Insight {
 	 */
 	public IPlaySheet getPlaySheet(){
 		if(this.playSheet == null){
+			if(this.dataMaker != null && this.dataMaker instanceof IPlaySheet){
+				return (IPlaySheet) this.dataMaker;
+			}
 			String output = this.getOutput();
 			this.playSheet = Utility.getPlaySheet(this.mainEngine, output);
 			if(playSheet != null){
