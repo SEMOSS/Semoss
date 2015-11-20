@@ -5,6 +5,7 @@ ENGINE_WATCHER	SMSSWatcher
 ENGINE_WEB_WATCHER	SMSSWebWatcher
 
 URI_BASE	https://localhost:443/Monolith/api/engine/s-
+SOLR_BASE_URL	https://localhost:443/solr
 
 SMSSWatcher	prerna.util.SMSSFileWatcher
 SMSSWatcher_DIR	C:\\Users\\mahkhalil\\workspace\\Semoss\\db
