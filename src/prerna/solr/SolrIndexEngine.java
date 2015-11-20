@@ -61,6 +61,7 @@ public class SolrIndexEngine {
 	public static final String USER_ID = "user_id";
 	public static final String ENGINES = "engines";
 	public static final String CORE_ENGINE = "core_engine";
+	public static final String CORE_ENGINE_ID = "core_engine_id";
 	public static final String LAYOUT = "layout";
 	public static final String ANNOTATION = "annotation";
 	public static final String FAVORITES_COUNT = "favorites_count";
@@ -336,10 +337,6 @@ public class SolrIndexEngine {
 		boolean isActive = true;
 		try {
 			server.ping();
-		} catch(SolrServerException e) {
-			isActive = false;
-		} catch(IOException e) {
-			isActive = false;
 		} catch(Exception e) {
 			isActive = false;
 		}
