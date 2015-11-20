@@ -81,7 +81,7 @@ public final class SolrImportUtility {
 	
 	private static void processSolrDocumentString(String solrDocStr) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, IOException, SolrServerException {
 		try {
-			SolrIndexEngine solrE = SolrIndexEngine.getInstsance();
+			SolrIndexEngine solrE = SolrIndexEngine.getInstance();
 
 			// create all field values in schema
 			String id = null;
@@ -117,7 +117,6 @@ public final class SolrImportUtility {
 			Matcher matcher = pattern.matcher(solrDocStr);
 			while(matcher.find()) {
 				String currentLine = matcher.group();
-
 				
 				if (currentLine.startsWith(ID_FINDER)) {
 					id = currentLine.substring(currentLine.indexOf(':') + 2).trim();

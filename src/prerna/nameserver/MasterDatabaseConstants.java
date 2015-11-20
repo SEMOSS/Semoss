@@ -39,6 +39,7 @@ public final class MasterDatabaseConstants {
 	public static final double OTHER_NOUN_WEIGHT = 0.2;
 	
 	// keys for passing insights
+	public static final String QUESTION_ID = "insight";
 	public static final String DB_KEY = "engine";
 	public static final String SCORE_KEY = "similarityScore";
 	public static final String QUESTION_KEY = "label";
