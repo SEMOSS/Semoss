@@ -80,21 +80,21 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 */
 	@Override
 	public void process(String fileName) {
-		loadNewDB(fileName, false, true);
+		loadNewDB(fileName, false);
 	}
 
 	/**
 	 * Returns an array of strings naming the files in the directory. Goes through list and loads an existing database.
 	 */
 	public void loadExistingDB(String fileName, boolean isLocal) {
-		loadNewDB(fileName, isLocal, false);
+		loadNewDB(fileName, isLocal);
 	}
 
 	/**
 	 * Loads a new database by setting a specific engine with associated properties.
 	 * @param 	Specifies properties to load 
 	 */
-	public void loadNewDB(String newFile, boolean isLocal, boolean addToSolr) {
+	public void loadNewDB(String newFile, boolean isLocal) {
 		String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
 		FileInputStream fileIn = null;
 		try{
@@ -110,14 +110,11 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				boolean hidden = (prop.getProperty(Constants.HIDDEN_DATABASE) != null && Boolean.parseBoolean(prop.getProperty(Constants.HIDDEN_DATABASE)));
 				if(!isLocal && !hidden) {
 					addToLocalMaster(engineLoaded);
-					if(addToSolr || AbstractEngine.RECREATE_SOLR) {
-						addToSolr(engineLoaded);
-					} else {
-						deleteFromSolr(engineName);
-					}
+					addToSolr(engineLoaded);
 				} else if(!isLocal){ // never add local master to itself...
 					DeleteFromMasterDB deleter = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 					deleter.deleteEngine(engineName);
+					deleteFromSolr(engineName);
 				}
 			}
 		}catch(IOException e){
@@ -139,102 +136,107 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			solrE = SolrIndexEngine.getInstance();
 			if(solrE.serverActive()) {
 				String engineName = engineToAdd.getEngineName();
-				String folderPath = DIHelper.getInstance().getProperty("BaseFolder");
-				folderPath = folderPath + "\\db\\" + engineName + "\\";
-				String fileName = engineName + "_Solr.txt";
-				File file = new File(folderPath + fileName);
-				if (!file.exists()) {
-					try {
-						file.createNewFile();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				}
 
-				try {
-					writer = new SolrDocumentExportWriter(file);
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
-
-				DateFormat dateFormat = SolrIndexEngine.getDateFormat();
-				Date date = new Date();
-				String currDate = dateFormat.format(date);
-				String userID = "default";
-				String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, QUESTION_MAKEUP FROM QUESTION_ID";
-
-				solrE.deleteEngine(engineName);
-
-				// query the current insights in this db
-				ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engineToAdd.getInsightDatabase(), query);
-				while(wrapper.hasNext()){
-					ISelectStatement ss = wrapper.next();
-					int id = (int) ss.getVar("ID");
-					String name = (String) ss.getVar("QUESTION_NAME");
-					String layout = (String) ss.getVar("QUESTION_LAYOUT");
-
-					JdbcClob obj = (JdbcClob) ss.getVar("QUESTION_MAKEUP"); 
-					InputStream makeup = null;
-					try {
-						makeup = obj.getAsciiStream();
-					} catch (SQLException e) {
-						e.printStackTrace();
-					}
-
-					//load the makeup inputstream into a rc
-					RepositoryConnection rc = null;
-					try {
-						Repository myRepository = new SailRepository(new ForwardChainingRDFSInferencer(new MemoryStore()));
-						myRepository.initialize();
-						rc = myRepository.getConnection();
-						rc.add(makeup, "semoss.org", RDFFormat.NTRIPLES);
-					} catch (RuntimeException ignored) {
-						ignored.printStackTrace();
-					} catch (RDFParseException e) {
-						e.printStackTrace();
-					} catch (RepositoryException e) {
-						e.printStackTrace();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-					// set the rc in the in-memory engine
-					InMemorySesameEngine myEng = new InMemorySesameEngine();
-					myEng.setRepositoryConnection(rc);
-
-					List<String> engineList = new ArrayList<String>();
-					//Query the engine
-					String engineQuery = "SELECT DISTINCT ?EngineName WHERE {{?Engine a <http://semoss.org/ontologies/Concept/Engine>}{?Engine <http://semoss.org/ontologies/Relation/Contains/Name> ?EngineName} }";
-					ISelectWrapper engineWrapper = WrapperManager.getInstance().getSWrapper(myEng, engineQuery);
-					while(engineWrapper.hasNext()) {
-						ISelectStatement engineSS = engineWrapper.next();
-						engineList.add(engineSS.getVar("EngineName") + "");
-					}
-
-					List<String> paramList = new ArrayList<String>();
-					List<SEMOSSParam> params = engineToAdd.getParams(id + "");
-					if(params != null && !params.isEmpty()) {
-						for(SEMOSSParam p : params) {
-							paramList.add(p.getName());
+				// check if should always recreate and check if db currently exists
+				if(AbstractEngine.RECREATE_SOLR || solrE.containsEngine(engineName)) {
+				
+					String folderPath = DIHelper.getInstance().getProperty("BaseFolder");
+					folderPath = folderPath + "\\db\\" + engineName + "\\";
+					String fileName = engineName + "_Solr.txt";
+					File file = new File(folderPath + fileName);
+					if (!file.exists()) {
+						try {
+							file.createNewFile();
+						} catch (IOException e) {
+							e.printStackTrace();
 						}
 					}
-
-					// as you get each result, add the insight as a document in the solr index engine
-					Map<String, Object>  queryResults = new  HashMap<> ();
-					queryResults.put(SolrIndexEngine.NAME, name);
-					queryResults.put(SolrIndexEngine.CREATED_ON, currDate);
-					queryResults.put(SolrIndexEngine.MODIFIED_ON, currDate);
-					queryResults.put(SolrIndexEngine.USER_ID, userID);
-					queryResults.put(SolrIndexEngine.ENGINES, engineList);
-					queryResults.put(SolrIndexEngine.PARAMS, paramList);
-					queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
-					queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
-					queryResults.put(SolrIndexEngine.LAYOUT, layout);
-
+	
 					try {
-						solrE.addDocument(engineName + "_" + id, queryResults);
-						writer.writeSolrDocument(file, engineName + "_" + id, queryResults);
-					} catch (Exception e) {
-						e.printStackTrace();
+						writer = new SolrDocumentExportWriter(file);
+					} catch (IOException e1) {
+						e1.printStackTrace();
+					}
+	
+					DateFormat dateFormat = SolrIndexEngine.getDateFormat();
+					Date date = new Date();
+					String currDate = dateFormat.format(date);
+					String userID = "default";
+					String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, QUESTION_MAKEUP FROM QUESTION_ID";
+	
+					solrE.deleteEngine(engineName);
+	
+					// query the current insights in this db
+					ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engineToAdd.getInsightDatabase(), query);
+					while(wrapper.hasNext()){
+						ISelectStatement ss = wrapper.next();
+						int id = (int) ss.getVar("ID");
+						String name = (String) ss.getVar("QUESTION_NAME");
+						String layout = (String) ss.getVar("QUESTION_LAYOUT");
+	
+						JdbcClob obj = (JdbcClob) ss.getVar("QUESTION_MAKEUP"); 
+						InputStream makeup = null;
+						try {
+							makeup = obj.getAsciiStream();
+						} catch (SQLException e) {
+							e.printStackTrace();
+						}
+	
+						//load the makeup inputstream into a rc
+						RepositoryConnection rc = null;
+						try {
+							Repository myRepository = new SailRepository(new ForwardChainingRDFSInferencer(new MemoryStore()));
+							myRepository.initialize();
+							rc = myRepository.getConnection();
+							rc.add(makeup, "semoss.org", RDFFormat.NTRIPLES);
+						} catch (RuntimeException ignored) {
+							ignored.printStackTrace();
+						} catch (RDFParseException e) {
+							e.printStackTrace();
+						} catch (RepositoryException e) {
+							e.printStackTrace();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+						// set the rc in the in-memory engine
+						InMemorySesameEngine myEng = new InMemorySesameEngine();
+						myEng.setRepositoryConnection(rc);
+	
+						List<String> engineList = new ArrayList<String>();
+						//Query the engine
+						String engineQuery = "SELECT DISTINCT ?EngineName WHERE {{?Engine a <http://semoss.org/ontologies/Concept/Engine>}{?Engine <http://semoss.org/ontologies/Relation/Contains/Name> ?EngineName} }";
+						ISelectWrapper engineWrapper = WrapperManager.getInstance().getSWrapper(myEng, engineQuery);
+						while(engineWrapper.hasNext()) {
+							ISelectStatement engineSS = engineWrapper.next();
+							engineList.add(engineSS.getVar("EngineName") + "");
+						}
+	
+						List<String> paramList = new ArrayList<String>();
+						List<SEMOSSParam> params = engineToAdd.getParams(id + "");
+						if(params != null && !params.isEmpty()) {
+							for(SEMOSSParam p : params) {
+								paramList.add(p.getName());
+							}
+						}
+	
+						// as you get each result, add the insight as a document in the solr index engine
+						Map<String, Object>  queryResults = new  HashMap<> ();
+						queryResults.put(SolrIndexEngine.NAME, name);
+						queryResults.put(SolrIndexEngine.CREATED_ON, currDate);
+						queryResults.put(SolrIndexEngine.MODIFIED_ON, currDate);
+						queryResults.put(SolrIndexEngine.USER_ID, userID);
+						queryResults.put(SolrIndexEngine.ENGINES, engineList);
+						queryResults.put(SolrIndexEngine.PARAMS, paramList);
+						queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
+						queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
+						queryResults.put(SolrIndexEngine.LAYOUT, layout);
+	
+						try {
+							solrE.addDocument(engineName + "_" + id, queryResults);
+							writer.writeSolrDocument(file, engineName + "_" + id, queryResults);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
 					}
 				}
 			}
