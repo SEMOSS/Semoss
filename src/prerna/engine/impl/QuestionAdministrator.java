@@ -55,7 +55,7 @@ public class QuestionAdministrator {
 
 	private static final Logger LOGGER = Logger.getLogger(QuestionAdministrator.class.getName());
 	private static final String GET_LAST_INSIGHT_ID = "SELECT DISTINCT ID FROM QUESTION_ID ORDER BY ID DESC";
-	private static final String GET_IDS_FOR_PERSPECTIVES = "SELECT DISTINCT QUESTION_ID FROM QUESTION_ID WHERE QUESTION_PERSPECTIVE IN ";
+	private static final String GET_IDS_FOR_PERSPECTIVES = "SELECT DISTINCT ID FROM QUESTION_ID WHERE QUESTION_PERSPECTIVE IN ";
 	
 	private IEngine engine;
 	private IEngine insightEngine;
@@ -272,10 +272,12 @@ public class QuestionAdministrator {
 		}
 	}
 	
-	public void removePerspective(String... perspectives){
+	public List<String> removePerspective(String... perspectives){
 		String perspectivesString = createString(perspectives);
 		List<String> questionIds = getQuestionIds(perspectivesString);
 		removeQuestion(questionIds.toArray(new String[questionIds.size()]));
+		
+		return questionIds;
 	}
 	
 	private List<String> getQuestionIds(String perspectivesString){
