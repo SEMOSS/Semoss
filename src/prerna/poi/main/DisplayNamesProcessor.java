@@ -34,7 +34,7 @@ public class DisplayNamesProcessor{
 				//get parent node as parentValue, get its display name if one exists, append that to your display name so that you know which 
 				//properties display name goes with which node
 				String parentValue = splitNode[0];
-				customValue = parentValue + "/" + customValue;
+				customValue = parentValue + "/" + parentValue + "/" + customValue;
 				String propertyURI = basePropURIHash.get(propertyValue);
 				if(propertyURI!=null && !propertyURI.isEmpty()){
 					propertyValueURI = propertyURI;
@@ -42,6 +42,9 @@ public class DisplayNamesProcessor{
 			} else {
 			
 				String conceptURI = baseConceptURIHash.get(propertyValue);
+				if(coreEngine != null && coreEngine.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
+					conceptURI = conceptURI + conceptURI.substring(conceptURI.lastIndexOf("/"), conceptURI.length());
+				}
 				//check concept first, then property
 				if(conceptURI != null && !conceptURI.isEmpty()){
 					propertyValueURI = conceptURI;

@@ -245,7 +245,21 @@ public class Utility {
 		return instanceName;
 	}
 	
-	
+	/**
+	 * Splits up a URI into tokens based on "/" character and uses logic to return the primary key.
+	 * @param String		URI to be split into tokens. (BASE_URI/Concept/PRIMARY_KEY/INSTANCE_NAME
+
+	 * @return String		Primary Key
+	 * */
+	public static String getPrimaryKeyFromURI(String uri) {
+		String[] elements = uri.split("/");
+		if(elements.length >= 2) {
+			return elements[elements.length-2];
+		} else {
+			return uri;
+		}
+	}
+
 	/**
 	 * Splits up a URI into tokens based on "/" character and uses logic to return the base URI
 	 * @param String		URI to be split into tokens.

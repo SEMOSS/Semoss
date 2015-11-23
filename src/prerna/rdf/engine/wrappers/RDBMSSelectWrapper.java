@@ -180,8 +180,8 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 						displayColumnLabel = splitColAndTable[1];
 					}
 				}
-				tableNameURI += displayTableName;
-				columnLabelURI += displayColumnLabel;
+				tableNameURI += displayTableName + "/" + displayTableName;
+				columnLabelURI += displayColumnLabel + "/" + displayColumnLabel;
 				//now get the display name 
 				tableNameURI = engine.getTransformedNodeName(tableNameURI, true);
 				columnLabelURI = engine.getTransformedNodeName(columnLabelURI, true);
