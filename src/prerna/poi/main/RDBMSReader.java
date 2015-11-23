@@ -20,7 +20,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -145,8 +144,8 @@ public class RDBMSReader {
 	public Hashtable<String,String> conceptURIHash = new Hashtable<String,String>();
 	public Hashtable<String,String> baseRelationURIHash = new Hashtable<String,String>(); 
 	public Hashtable<String,String> relationURIHash = new Hashtable<String,String>();
-	private Hashtable<String,String> basePropURIHash = new Hashtable<String,String>();
-	private Hashtable<String,String> basePropRelations = new Hashtable<String,String>();
+	public Hashtable<String,String> basePropURIHash = new Hashtable<String,String>();
+	public Hashtable<String,String> basePropRelations = new Hashtable<String,String>();
 	private Hashtable<String,String> displayNamesHash = new Hashtable<String,String>();
 
 	protected Hashtable<String, String[]> baseRelations = new Hashtable<String, String[]>();
@@ -207,11 +206,19 @@ public class RDBMSReader {
 		tempDropArrays.clear();//should already be cleared but as a catch all clearing here as well.
 	}
 
-	private String writePropFile(String engineName)
+	public String writePropFile(String engineName)
 	{
 		Properties prop = new Properties();
-
-		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,engineName));
+		
+		if(dbBaseFolder == null || dbBaseFolder.isEmpty()) {
+			getBaseFolder();
+		}
+//		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,engineName));
+		if(queryUtil.getTempConnectionURL() == null || queryUtil.getTempConnectionURL().isEmpty()) {
+			prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,engineName));
+		} else {
+			prop.put(Constants.CONNECTION_URL, queryUtil.getTempConnectionURL());
+		}
 		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
 		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
 		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
@@ -225,6 +232,7 @@ public class RDBMSReader {
 		FileOutputStream fo = null;
 		try {
 			file = new File(tempFile);
+			file.createNewFile();
 			fo = new FileOutputStream(file);
 			prop.store(fo, "Temporary Properties file for the RDBMS");
 			openScriptFile(engineName);
@@ -534,7 +542,7 @@ public class RDBMSReader {
 	}
 
 
-	private void writeDefaultQuestionSheet(String engineName)
+	public void writeDefaultQuestionSheet(String engineName)
 	{		
 		// deciding whether to read it again or just pass the name
 
@@ -544,7 +552,6 @@ public class RDBMSReader {
 			File file2 = new File(tempFile);
 			file2.delete();
 		} catch (Exception e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 
@@ -554,11 +561,13 @@ public class RDBMSReader {
 
 		int newTableSeq = allTables.size() - tables.size();
 		boolean addtoExisting = false;
-		if(newTableSeq != 0 ){ //ie you are doing add to existing logic
+		if(newTableSeq > 0 ){ //ie you are doing add to existing logic
 			addtoExisting = true;
 			newTableSeq += 1; //pad for that one concept question we added below for the initial run through when we created the questions.xml
 			try{
-				prop = ((AbstractEngine)engine).loadProp(fileName);
+				if(engine != null) {
+					prop = ((AbstractEngine)engine).loadProp(fileName);
+				}
 			} catch (Exception e){
 				e.printStackTrace();
 			}
@@ -618,10 +627,8 @@ public class RDBMSReader {
 			prop.store(fo, "Questions for RDBMS");
 			fo.close();
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -791,7 +798,7 @@ public class RDBMSReader {
 		engine.commit();
 	}
 
-	private void getBaseFolder()
+	public void getBaseFolder()
 	{
 		if(dbBaseFolder == null || dbBaseFolder.length() == 0)
 		{
@@ -1159,7 +1166,6 @@ public class RDBMSReader {
 				try {
 					scriptFile.println(modString + ";");
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 				modifyDB(modString);
@@ -1167,7 +1173,6 @@ public class RDBMSReader {
 				try {
 					scriptFile.println("-- no create or alter statement needed for table: "+ tableKey);
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			} */
@@ -1475,7 +1480,7 @@ public class RDBMSReader {
 	private String getAlterString(String tableKey, Map <String, Object> jcrMap, String insertTemplate, Hashtable <String, Hashtable<String, String>> allColumnsTableHash)
 	{
 		String VALUES = "";
-		String SQLALTER = "";		
+		String SQLALTER = "";
 		Hashtable columns = tableHash.get(tableKey);
 
 		Enumeration <String> columnKeys = columns.keys();
@@ -2327,6 +2332,7 @@ public class RDBMSReader {
 			String predicate = Constants.SUBCLASS_URI;
 			//convert instances to URIs
 			String subject = baseConceptURIHash.get(subjectInstance); // +"", false);
+			subject = subject + subject.substring(subject.lastIndexOf("/"), subject.length());
 			String object = semossURI + "/Concept";
 			// create the statement now
 			//createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
@@ -2351,8 +2357,10 @@ public class RDBMSReader {
 		// relation instances go next
 		for(String[] relArray : baseRelations.values()){
 			String subject = relArray[0];
+			subject = subject + subject.substring(subject.lastIndexOf("/"), subject.length());
 			String predicate = relArray[1];
 			String object = relArray[2];
+			object = object + object.substring(object.lastIndexOf("/"), object.length());
 
 			//			createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
 			storeBaseStatement(subject, predicate, object);
@@ -2383,6 +2391,7 @@ public class RDBMSReader {
 			String propertyKey = relArray;
 			String parent = basePropRelations.get(propertyKey);
 			String parentURI = baseConceptURIHash.get(parent);
+			parentURI = parentURI + parentURI.substring(parentURI.lastIndexOf("/"), parentURI.length());
 			String propertyURI = basePropURIHash.get(propertyKey);
 			storeBaseStatement(parentURI, OWL.DatatypeProperty+"", propertyURI);
 		}
@@ -2401,7 +2410,6 @@ public class RDBMSReader {
 			storeBaseStatement(subject, predicate, object , false);
 		}
 		
-		
 		baseEngCreator.commit();
 		// create the OWL File
 		baseEngCreator.exportBaseEng(true);
@@ -2412,6 +2420,14 @@ public class RDBMSReader {
 	 */
 	protected void closeOWL() throws SailException, RepositoryException {
 		baseEngCreator.closeBaseEng();
+	}
+	
+	public void setQueryUtil(SQLQueryUtil queryUtil) {
+		this.queryUtil = queryUtil;
+	}
+	
+	public void setTables(Set<String> tables) {
+		this.tables = tables;
 	}
 
 }

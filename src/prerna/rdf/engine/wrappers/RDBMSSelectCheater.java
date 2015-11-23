@@ -114,6 +114,7 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 				subject = rs.getObject(var[0]) + "" ;
 				predicate = "" ;
 				
+				// var[2] might be empty String for SQL Server because of rs metadata error - if so, get the header by index instead
 				if(!var[2].equals("")){
 					object  = rs.getObject(var[2]) + "";
 				} else {

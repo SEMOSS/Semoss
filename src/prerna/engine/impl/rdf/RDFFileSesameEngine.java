@@ -321,8 +321,9 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			String pred = predicate.trim();
 			
 			//System.err.println("VF is " + vf);
-			
-			rc.begin();
+			if(!rc.isActive()) {
+				rc.begin();
+			}
 			
 			subString = Utility.cleanString(sub, false);
 			newSub = vf.createURI(subString);

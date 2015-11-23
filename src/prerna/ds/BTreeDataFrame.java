@@ -522,7 +522,7 @@ public class BTreeDataFrame implements ITableDataFrame {
         String[] onlyNewNames = new String[joinLevelNames.length - 1];
         for(int i = 0; i < joinLevelNames.length; i++) {
            String name = joinLevelNames[i];
-           if(!name.equals(colNameInJoiningTable)) {
+           if(!name.equalsIgnoreCase(colNameInJoiningTable)) {
              newLevelNames[newNameIdx + levelNames.length] = joinLevelNames[i];
              onlyNewNames[newNameIdx] = joinLevelNames[i];
              uriMap.put(joinLevelNames[i], uriJoinLevelNames[i]);

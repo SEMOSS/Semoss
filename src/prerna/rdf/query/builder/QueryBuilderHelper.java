@@ -162,6 +162,9 @@ public class QueryBuilderHelper {
 			Hashtable<String, String> vHash = relationVarList.get(i);
 			String varURI = vHash.get(uriKey);
 			String varName = vHash.get(varKey);
+			if(varName.contains("__")) {
+				varName = varName.split("__")[0];
+			}
 			String derivedVarName = Utility.getInstanceName(varURI); //
 			
 			// for each one of these I need to process the columns
@@ -200,14 +203,20 @@ public class QueryBuilderHelper {
 		String engineName = engine.getEngineName();
 		String query = "";
 		
+		SQLQueryUtil queryUtil = null;
+		
 		SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
 		String dbTypeString = engine.getProperty(Constants.RDBMS_TYPE);
 		if (dbTypeString != null) {
 			dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
+			
+			if(!engine.getProperty(Constants.USERNAME).isEmpty() && !engine.getProperty(Constants.PASSWORD).isEmpty()) {
+				queryUtil = SQLQueryUtil.initialize(dbType, engine.getProperty(Constants.CONNECTION_URL), engine.getProperty(Constants.USERNAME), engine.getProperty(Constants.PASSWORD));
+			} else {
+				queryUtil = SQLQueryUtil.initialize(dbType);
+			}
 		}
 		
-		SQLQueryUtil queryUtil = SQLQueryUtil.initialize(dbType);
-
 		query = queryUtil.getDialectAllColumns(table);
 		ISelectWrapper sWrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 		ArrayList <String> columns = new ArrayList<String>();
@@ -225,19 +234,20 @@ public class QueryBuilderHelper {
 
 	
 	
-	public static Hashtable<String, List> parsePath(Hashtable allJSONHash)
+	public static Hashtable<String, List> parsePath(Hashtable allJSONHash, IEngine engine)
 	{
 		List<String> totalVarList = new ArrayList<String>();
 		List<Hashtable<String,String>> nodeV = new ArrayList<Hashtable<String,String>>();
 		List<Hashtable<String,String>> predV = new ArrayList<Hashtable<String,String>>();
-		List<List<String>> tripleArray = (List<List<String>>) allJSONHash.get(relArrayKey);//used when display names is turned off		
-
+		List<List<String>> tripleArray = (List<List<String>>) allJSONHash.get(relArrayKey);
 		for (int tripleIdx = 0; tripleIdx<tripleArray.size(); tripleIdx++)
 		{
 			List<String> thisTripleArray = tripleArray.get(tripleIdx);
 			String subjectURI = thisTripleArray.get(subIdx);
-			String subjectName = (Utility.getInstanceName(subjectURI));//String subjectName = Utility.toCamelCase((Utility.getInstanceName(subjectURI)));
-
+			String subjectName = Utility.getInstanceName(subjectURI);
+			if(engine != null && engine.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
+				subjectName = subjectName + "__" + Utility.getInstanceName(subjectURI.substring(0, subjectURI.lastIndexOf("/" + subjectName)));
+			}
 			// store node/rel info
 			if (!totalVarList.contains(subjectName))
 			{
@@ -254,7 +264,9 @@ public class QueryBuilderHelper {
 				String predURI = thisTripleArray.get(predIdx);
 				String objectURI = thisTripleArray.get(objIdx);
 				String objectName = Utility.getInstanceName(objectURI);
-
+				if(engine != null && engine.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
+					objectName = objectName + "__" + Utility.getInstanceName(objectURI.substring(0, objectURI.lastIndexOf("/" + objectName)));
+				}
 				String predName = subjectName + "_" +Utility.getInstanceName(predURI) + "_" + objectName;
 				if (!totalVarList.contains(predName))
 				{
@@ -300,10 +312,10 @@ public class QueryBuilderHelper {
 	{
 		Hashtable<String, List<Hashtable<String,String>>> propsHash = new Hashtable<String, List<Hashtable<String,String>>>();
 		cleanJSONHash(engine, allJSONHash);
-			Hashtable<String, List> parsedPath = parsePath(allJSONHash);
+			Hashtable<String, List> parsedPath = parsePath(allJSONHash, engine);
 			
 			// revisit the property logic later
-			if((engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.JENA || engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE))
+			if(engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.JENA || engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE)
 			{			
 				List<Hashtable<String,String>> nodePropV = parsePropertiesFromPath(engine, parsedPath.get(nodeVKey), parsedPath.get(totalVarListKey));				
 				propsHash.put("nodes", nodePropV);
