@@ -80,6 +80,11 @@ public abstract class AbstractEngine implements IEngine {
 	//PLEASE REMEMBER TO TURN THIS TO FALSE AFTERWARDS!
 	private static final boolean RECREATE_INSIGHTS = false;
 
+	//THIS IS IN CASE YOU ARE MANUALLY MANIPULATING THE DB FOLDER AND WANT TO RE-ADD
+	//INSIGHTS INTO THE SOLR INSTANCE ON YOUR LOCAL MACHINE
+	//PLEASE REMEMBER TO TURN THIS TO FALSE AFTERWARDS!
+	public static final boolean RECREATE_SOLR = false;
+	
 	private static final Logger logger = LogManager.getLogger(AbstractEngine.class.getName());
 
 	protected String engineName = null;
