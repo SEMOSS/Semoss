@@ -80,21 +80,21 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 */
 	@Override
 	public void process(String fileName) {
-		loadNewDB(fileName, false);
+		loadNewDB(fileName, false, true);
 	}
 
 	/**
 	 * Returns an array of strings naming the files in the directory. Goes through list and loads an existing database.
 	 */
 	public void loadExistingDB(String fileName, boolean isLocal) {
-		loadNewDB(fileName, isLocal);
+		loadNewDB(fileName, isLocal, false);
 	}
 
 	/**
 	 * Loads a new database by setting a specific engine with associated properties.
 	 * @param 	Specifies properties to load 
 	 */
-	public void loadNewDB(String newFile, boolean isLocal) {
+	public void loadNewDB(String newFile, boolean isLocal, boolean addToSolr) {
 		String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
 		FileInputStream fileIn = null;
 		try{
@@ -110,11 +110,14 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				boolean hidden = (prop.getProperty(Constants.HIDDEN_DATABASE) != null && Boolean.parseBoolean(prop.getProperty(Constants.HIDDEN_DATABASE)));
 				if(!isLocal && !hidden) {
 					addToLocalMaster(engineLoaded);
-					addToSolr(engineLoaded);
+					if(addToSolr || AbstractEngine.RECREATE_SOLR) {
+						addToSolr(engineLoaded);
+					} else {
+						deleteFromSolr(engineName);
+					}
 				} else if(!isLocal){ // never add local master to itself...
 					DeleteFromMasterDB deleter = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 					deleter.deleteEngine(engineName);
-					deleteFromSolr(engineName);
 				}
 			}
 		}catch(IOException e){
