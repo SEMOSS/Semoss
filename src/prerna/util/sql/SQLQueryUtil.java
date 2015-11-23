@@ -33,7 +33,7 @@ import java.util.List;
 public abstract class SQLQueryUtil {
 
 	// Added SQL Server as enum DB_TYPE
-	public enum DB_TYPE {H2_DB,MARIA_DB,SQL_SERVER}
+	public enum DB_TYPE {H2_DB,MARIA_DB,SQL_SERVER,MySQL,Oracle}
 
 	public static final String USE_OUTER_JOINS_FALSE = "false";
 	public static final String USE_OUTER_JOINS_TRUE = "true";
@@ -85,15 +85,42 @@ public abstract class SQLQueryUtil {
 
 
 	// Add SQLServer compatibility
-	public static SQLQueryUtil initialize(SQLQueryUtil.DB_TYPE dbtype){
+	public static SQLQueryUtil initialize(SQLQueryUtil.DB_TYPE dbtype) {
 		if(dbtype == SQLQueryUtil.DB_TYPE.MARIA_DB){
 			return new MariaDbQueryUtil();
 		} else if(dbtype == SQLQueryUtil.DB_TYPE.SQL_SERVER){
 			return new SQLServerQueryUtil();
-		}else{
+		} else if(dbtype == SQLQueryUtil.DB_TYPE.MySQL) {
+			return new MySQLQueryUtil();
+		} else if(dbtype == SQLQueryUtil.DB_TYPE.Oracle) {
+			return new OracleQueryUtil();
+		} else {
 			return new H2QueryUtil();
-		}		
-
+		}
+	}
+	
+	public static SQLQueryUtil initialize(SQLQueryUtil.DB_TYPE dbtype, String hostname, String port, String schema, String username, String password) {
+		if(dbtype == SQLQueryUtil.DB_TYPE.SQL_SERVER){
+			return new SQLServerQueryUtil(hostname, port, schema, username, password);
+		} else if(dbtype == SQLQueryUtil.DB_TYPE.MySQL) {
+			return new MySQLQueryUtil(hostname, port, schema, username, password);
+		} else if(dbtype == SQLQueryUtil.DB_TYPE.Oracle) {
+			return new OracleQueryUtil(hostname, port, schema, username, password);
+		} else {
+			return null;
+		}
+	}
+	
+	public static SQLQueryUtil initialize(SQLQueryUtil.DB_TYPE dbtype, String connectionURL, String username, String password) {
+		if(dbtype == SQLQueryUtil.DB_TYPE.SQL_SERVER){
+			return new SQLServerQueryUtil(connectionURL, username, password);
+		} else if(dbtype == SQLQueryUtil.DB_TYPE.MySQL) {
+			return new MySQLQueryUtil(connectionURL, username, password);
+		} else if(dbtype == SQLQueryUtil.DB_TYPE.Oracle) {
+			return new OracleQueryUtil(connectionURL, username, password);
+		} else {
+			return null;
+		}
 	}
 
 	public abstract SQLQueryUtil.DB_TYPE getDatabaseType();

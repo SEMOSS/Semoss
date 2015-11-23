@@ -44,7 +44,7 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 	}
 	
 	protected void parsePath(){
-		Hashtable<String, List> parsedPath = QueryBuilderHelper.parsePath(allJSONHash);
+		Hashtable<String, List> parsedPath = QueryBuilderHelper.parsePath(allJSONHash, engine);
 		totalVarList = parsedPath.get(QueryBuilderHelper.totalVarListKey);
 		nodeV = parsedPath.get(QueryBuilderHelper.nodeVKey);
 		predV = parsedPath.get(QueryBuilderHelper.predVKey);

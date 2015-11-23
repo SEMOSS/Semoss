@@ -118,8 +118,12 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			if (dbTypeString != null) {
 				dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
 			}
-			if(dbType.equals(SQLQueryUtil.DB_TYPE.SQL_SERVER) || dbType == SQLQueryUtil.DB_TYPE.MARIA_DB){
-				tempEngineName = SQLQueryUtil.initialize(dbType).getEngineNameFromConnectionURL(connectionURL);
+			if(!dbType.equals(SQLQueryUtil.DB_TYPE.H2_DB)){
+				if(prop.getProperty(Constants.ENGINE) != null && !prop.getProperty(Constants.ENGINE).isEmpty()) {
+					tempEngineName = prop.getProperty(Constants.ENGINE);
+				} else {
+					tempEngineName = SQLQueryUtil.initialize(dbType).getEngineNameFromConnectionURL(connectionURL);
+				}
 			}
 			if(prop.containsKey(Constants.PASSWORD))
 				password = prop.getProperty(Constants.PASSWORD);
@@ -127,7 +131,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			try {
 				Class.forName(driver);
 				//if the tempConnectionURL is set, connect to mysql, create the database, disconnect then reconnect to the database you created
-				if((dbType == SQLQueryUtil.DB_TYPE.MARIA_DB || dbType == SQLQueryUtil.DB_TYPE.SQL_SERVER) && (tempConnectionURL != null && tempConnectionURL.length()>0)){
+				if((!dbType.equals(SQLQueryUtil.DB_TYPE.H2_DB)) && (tempConnectionURL != null && tempConnectionURL.length()>0)){
 					if(useConnectionPooling){
 						dataSource = setupDataSource(driver, tempConnectionURL, userName, password);
 						engineConn = getConnection();
@@ -148,8 +152,10 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					if(useConnectionPooling){
 						dataSource = setupDataSource(driver, connectionURL, userName, password);
 //						engineConn = getConnection();
-					} else {
+					} else if(userName != null && !userName.isEmpty()){
 						engineConn = DriverManager.getConnection(connectionURL, userName, password);
+					} else {
+						engineConn = DriverManager.getConnection(connectionURL);
 					}
 					this.engineConnected = true;
 				}

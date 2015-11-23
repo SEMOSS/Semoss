@@ -519,22 +519,23 @@ public class ImportDataProcessor {
 	public boolean processNewRDBMS(String customBaseURI, String fileNames, String repoName, String type, String url, String username, char[] password) throws IOException {
 		boolean success = false;
 
-		ImportRDBMSProcessor proc = new ImportRDBMSProcessor(customBaseURI, fileNames, repoName, type, url, username, password);
-		if(proc.checkConnection(type, url, username, password)) {
-			success = proc.setUpRDBMS();
-		} else {
-			return false;
-		}
-
-		File propFile = new File(proc.propWriter.propFileName);
-		File newProp = new File(proc.propWriter.propFileName.replace("temp", "smss"));
-		try {
-			FileUtils.copyFile(propFile, newProp);
-			success = true;
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		propFile.delete();
+//		ImportRDBMSProcessor proc = new ImportRDBMSProcessor();
+//		if(proc.checkConnection(type, url, username, password)) {
+//			success = proc.setUpRDBMS();
+//		} else {
+//			return false;
+//		}
+//
+//		File propFile = new File(proc.propWriter.propFileName);
+//		File newProp = new File(proc.propWriter.propFileName.replace("temp", "smss"));
+//		
+//		try {
+//			FileUtils.copyFile(propFile, newProp);
+//			success = true;
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+//		propFile.delete();
 
 		return success;
 	}

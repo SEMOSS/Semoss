@@ -5,9 +5,34 @@ import java.util.List;
 
 public class SQLServerQueryUtil extends SQLQueryUtil {	
 	public static final String DATABASE_DRIVER = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
-	private static String connectionBase = "jdbc:sqlserver://127.0.0.1:1433"; // localhost using SQL Server authentication, default port number is 1433 or use jdbc:sqlserver://127.0.0.1:1433;databaseName=TestDB;user=root;Password=root
+	private String connectionBase = "jdbc:sqlserver://HOST:PORT;databaseName=SCHEMA"; // localhost using SQL Server authentication, default port number is 1433 or use jdbc:sqlserver://127.0.0.1:1433;databaseName=TestDB;user=root;Password=root
 
 	public SQLServerQueryUtil(){
+		setDialect();
+		super.setDefaultDbUserName("root");//
+		super.setDefaultDbPassword("password");//
+	}
+	
+	public SQLServerQueryUtil(String hostname, String port, String schema, String username, String password) {
+		setDialect();
+		connectionBase = connectionBase.replace("HOST", hostname).replace("SCHEMA", schema);
+		if(port != null && !port.isEmpty()) {
+			connectionBase = connectionBase.replace(":PORT", ":" + port);
+		} else {
+			connectionBase = connectionBase.replace(":PORT", "");
+		}
+		super.setDefaultDbUserName(username);//
+		super.setDefaultDbPassword(password);//
+	}
+	
+	public SQLServerQueryUtil(String connectionURL, String username, String password) {
+		setDialect();
+		connectionBase = connectionURL;
+		super.setDefaultDbUserName(username);
+		super.setDefaultDbPassword(password);
+	}
+	
+	private void setDialect() {
 		super.setDialectAllTables(" SELECT * FROM INFORMATION_SCHEMA.TABLES ");//
 		super.setDialectAllColumns(" SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ");//
 		super.setResultAllTablesTableName("TABLE_NAME");//
@@ -16,8 +41,6 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 		super.setDialectAllIndexesInDB("SELECT DISTINCT NAME FROM SYS.INDEXES ORDER BY NAME");//
 		super.setDialectOuterJoinLeft(" LEFT OUTER JOIN ");
 		super.setDialectOuterJoinRight(" RIGHT OUTER JOIN ");
-		super.setDefaultDbUserName("root");//
-		super.setDefaultDbPassword("root");//
 	}
 
 	@Override

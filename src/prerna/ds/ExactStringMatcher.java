@@ -95,13 +95,16 @@ public class ExactStringMatcher implements IMatcher {
 		List<TreeNode[]> results = new ArrayList<TreeNode[]>();
 		
 		boolean thereAreNext = it1.hasNext() && it2.hasNext();
-		//get initial value 1
-		TreeNode nextNode1 = it1.next();
-//		String key1 = nextNode1.leaf.getValue().toString();
-		//get initial value 2
-		TreeNode nextNode2 = it2.next();
-//		String key2 = nextNode2.leaf.getValue().toString();
-		
+		TreeNode nextNode1 = null;
+		TreeNode nextNode2 = null;
+		if(thereAreNext) {
+			//get initial value 1
+			nextNode1 = it1.next();
+			//get initial value 2
+			nextNode2 = it2.next();
+			String key1 = nextNode1.leaf.getValue().toString();
+			String key2 = nextNode2.leaf.getValue().toString();
+		}
 		while(thereAreNext){
 			
 			

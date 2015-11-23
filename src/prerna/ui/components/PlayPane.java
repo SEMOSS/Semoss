@@ -675,7 +675,7 @@ public class PlayPane extends JFrame {
 		dbImportTypeComboBox.setBackground(Color.GRAY);
 		dbImportTypeComboBox.setPreferredSize(new Dimension(400, 25));
 		dbImportTypeComboBox.setModel(new DefaultComboBoxModel(new String[] { "Select a database import method", "Add to existing database engine",
-				"Modify/Replace data in existing engine", "Create new database engine", "Create new RDBMS connection" }));
+				"Modify/Replace data in existing engine", "Create new database engine" }));
 		GridBagConstraints gbc_dbImportTypeComboBox = new GridBagConstraints();
 		gbc_dbImportTypeComboBox.anchor = GridBagConstraints.NORTHWEST;
 		gbc_dbImportTypeComboBox.insets = new Insets(0, 0, 5, 5);

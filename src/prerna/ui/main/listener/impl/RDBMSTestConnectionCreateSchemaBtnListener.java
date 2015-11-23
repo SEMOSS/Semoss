@@ -73,22 +73,22 @@ public class RDBMSTestConnectionCreateSchemaBtnListener extends AbstractListener
 		
 		if(username != null &&  password != null && url != null && !username.isEmpty() && password.length > 0 && !url.isEmpty())
 		{	
-			validConnection = t.checkConnection(dbType.getSelectedItem().toString(), url, username, password);
+//			validConnection = t.checkConnection(dbType.getSelectedItem().toString(), url, username, password);
 			
 			if(validConnection && testConn) {
 				Utility.showMessage("Valid connection!");
 			} 
 			else if(validConnection && !testConn)
 			{
-				boolean excelCreated = t.processRDBMSSchema(dbType.getSelectedItem().toString(), url, username, password);
-				if(excelCreated)
-				{
-					Utility.showMessage("Excel file located in Folder: \n" + DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\rdbms");
-				}
-				else
-				{
-					Utility.showError("Error creating Loading Sheet");
-				}
+//				boolean excelCreated = t.processRDBMSSchema(dbType.getSelectedItem().toString(), url, username, password);
+//				if(excelCreated)
+//				{
+//					Utility.showMessage("Excel file located in Folder: \n" + DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\rdbms");
+//				}
+//				else
+//				{
+//					Utility.showError("Error creating Loading Sheet");
+//				}
 			}
 			else 
 			{
