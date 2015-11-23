@@ -77,6 +77,22 @@ public class SolrIndexEngine {
 		SolrIndexEngine.url = url;
 	}
 
+	public static void main(String[] args) {
+		try {
+			SolrIndexEngine.setUrl("http://localhost:8080/solr");
+			SolrIndexEngine e = SolrIndexEngine.getInstance();
+			e.deleteAllSolrData();
+		} catch (KeyManagementException e) {
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		} catch (KeyStoreException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	public static SolrIndexEngine getInstance() throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
 		if (singleton == null) {
 			singleton = new SolrIndexEngine();
@@ -327,6 +343,23 @@ public class SolrIndexEngine {
 				e1.printStackTrace();
 			}
 		}
+	}
+	
+	public boolean containsEngine(String engineName) {
+		// check if db currently exists
+		Map<String, Object> querySolr = new HashMap<String, Object>();
+		querySolr.put(SolrIndexEngine.SET_DEFAULT, engineName);
+		querySolr.put(SolrIndexEngine.SEARCH_FIELD, SolrIndexEngine.CORE_ENGINE);
+		querySolr.put(SolrIndexEngine.SET_ROWS, 1);
+		SolrDocumentList queryRet = null;
+		try {
+			queryRet = queryDocument(querySolr);
+		} catch (SolrServerException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return (queryRet.size() == 0);
 	}
 	
 	public static DateFormat getDateFormat() {
