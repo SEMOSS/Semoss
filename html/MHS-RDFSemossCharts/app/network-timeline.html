@@ -147,6 +147,8 @@
                         $scope.$apply(function () {
                             $scope.dataString = data;
                             $scope.forceData = JSON.parse(data);
+                            console.log(data);
+                            console.log($scope.forceData);
                             var tableData = [];
 
                             //check if it nodes and/or edges have timeHash
@@ -464,6 +466,7 @@
 
                             scope.$watch('data', function() {
                                 if (!_.isEmpty(scope.data)) {
+                                     console.log(scope.data);
                                     //save all the data for later
                                     allForceData = scope.data;
                                     scope.maxLoe = calculateMaxLOE();
@@ -955,6 +958,7 @@
 
                             function getInitialNodes() {
                                 var returnNodes = {};
+                                var initialEdges = getInitialEdges();
 
                                 //goes through all nodes and only return ones that don't have a timeHash or have a timeHash with Decommissioned
                                 for (var node in allForceData.nodes) {
@@ -962,17 +966,19 @@
                                         returnNodes[node] = allForceData.nodes[node];
                                     }
                                 }
-
-
 //                                //check all nodes to make sure that the edges of those nodes don't all have timeHash properties
                                 for (var node in returnNodes) {
 
                                     //set the boolean to true so we are making the assumption there is only nonTimeHash
                                     var bool = false;
-                                    for (var j=0; j< returnNodes[node].inEdge.length; j++) {
+                                    //find the set of inEdges for the given node
+                                    var inEdges = _.filter(initialEdges, function (edge) {
+                                        return (edge.target.uri === node);
+                                    });
+                                    for (var j = 0; j < inEdges.length; j++) {
                                         if (scope.timeHash == "Nodes") {
                                             //check the nodes for timeHash
-                                            var connectedNode = findNodeinAllNodes(returnNodes[node].inEdge[j].source);
+                                            var connectedNode = findNodeinAllNodes(inEdges[j].source.uri);
                                             bool = checkForNonTimeHash(connectedNode);
                                             if (bool) {
                                                 break;
@@ -981,7 +987,7 @@
 
                                         if (scope.timeHash == "Edges" || scope.timeHash == "Both") {
                                             //check edges themselves for timeHash
-                                            bool = checkForNonTimeHash(returnNodes[node].inEdge[j]);
+                                            bool = checkForNonTimeHash(inEdges[j]);
                                             if (bool) {
                                                 break;
                                             }
@@ -990,11 +996,15 @@
                                     }
 
                                     if (!bool) {
-                                        for (var j=0; j< returnNodes[node].outEdge.length; j++) {
+                                        //find the set of outEdges for the given node
+                                        var outEdges = _.filter(initialEdges, function (edge) {
+                                            return (edge.source.uri === node);
+                                        });
+                                        for (var j = 0; j < outEdges.length; j++) {
 
                                             if (scope.timeHash == "Nodes") {
                                                 //check nodes
-                                                var connectedNode = findNodeinAllNodes(returnNodes[node].outEdge[j].target);
+                                                var connectedNode = findNodeinAllNodes(outEdges[j].target.uri);
                                                 bool = checkForNonTimeHash(connectedNode);
                                                 if (bool) {
                                                     break;
@@ -1003,7 +1013,7 @@
 
                                             if (scope.timeHash == "Edges" || scope.timeHash == "Both") {
                                                 //check edges themselves for timeHash
-                                                bool = checkForNonTimeHash(returnNodes[node].outEdge[j]);
+                                                bool = checkForNonTimeHash(outEdges[j]);
                                                 if (bool) {
                                                     break;
                                                 }
@@ -1038,6 +1048,7 @@
 
                             function getFinalNodes() {
                                 var returnNodes = {};
+                                var finalEdges = getFinalEdges();
 
                                 if (scope.timeHash == "Nodes") {
                                     for (var node in allForceData.nodes) {
@@ -1047,11 +1058,13 @@
                                     }
 
                                     for (var node in returnNodes) {
-
                                         var hasNormalConnection = false;
-                                        for (var i=0; i<returnNodes[node].inEdge.length; i++) {
-
-                                            var connectedNode = findNodeinAllNodes(returnNodes[node].inEdge[i].source);
+                                        //find the set of inEdges for the given node
+                                        var inEdges = _.filter(finalEdges, function (edge) {
+                                            return (edge.target.uri === node);
+                                        });
+                                        for (var i = 0; i < inEdges.length; i++) {
+                                            var connectedNode = findNodeinAllNodes(inEdges[i].source.uri);
                                             if (connectedNode.propHash.timeHash && connectedNode.propHash.timeHash["Decommissioned"]) {
                                                 continue;
                                             }
@@ -1065,9 +1078,12 @@
 
 
                                         if (!hasNormalConnection) {
-                                            for (var i=0; i<returnNodes[node].outEdge.length; i++) {
-
-                                                var connectedNode = findNodeinAllNodes(returnNodes[node].outEdge[i].target);
+                                            //find the set of outEdges for the given node
+                                            var outEdges = _.filter(finalEdges, function (edge) {
+                                                return (edge.source.uri === node);
+                                            });
+                                            for (var i = 0; i < outEdges.length; i++) {
+                                                var connectedNode = findNodeinAllNodes(outEdges[i].target.uri);
                                                 if (connectedNode.propHash.timeHash && connectedNode.propHash.timeHash["Decommissioned"]) {
                                                     continue;
                                                 }
@@ -1092,9 +1108,12 @@
                                     for (var node in allForceData.nodes) {
 
                                         var hasNormalEdge = false;
-                                        for (var i=0; i< allForceData.nodes[node].inEdge.length; i++) {
-
-                                            if (allForceData.nodes[node].inEdge[i].propHash.timeHash && allForceData.nodes[node].inEdge[i].propHash.timeHash["Decommissioned"]) {
+                                        //find the set of inEdges for the given node
+                                        var inEdges = _.filter(finalEdges, function (edge) {
+                                            return (edge.target.uri === node);
+                                        });
+                                        for (var i = 0; i < inEdges.length; i++) {
+                                            if (inEdges[i].propHash.timeHash && inEdges[i].propHash.timeHash["Decommissioned"]) {
                                                 continue;
                                             }
                                             //assume we run into an edge that's not decommissioned
@@ -1106,9 +1125,12 @@
                                         }
 
                                         if (!hasNormalEdge) {
-                                            for (var i = 0; i < allForceData.nodes[node].outEdge.length; i++) {
-
-                                                if (allForceData.nodes[node].outEdge[i].propHash.timeHash && allForceData.nodes[node].outEdge[i].propHash.timeHash["Decommissioned"]) {
+                                            //find the set of outEdges for the given node
+                                            var outEdges = _.filter(finalEdges, function (edge) {
+                                                return (edge.source.uri === node);
+                                            });
+                                            for (var i = 0; i < outEdges.length; i++) {
+                                                if (outEdges[i].propHash.timeHash && outEdges[i].propHash.timeHash["Decommissioned"]) {
                                                     continue;
                                                 }
                                                 //assume we run into an edge that's not decommissioned
@@ -1139,12 +1161,13 @@
 
                                         var hasNormalEdge = false;
 
-                                        for (var i = 0; i < initialNodesSet[node].inEdge.length; i++) {
-
-                                            var connectedNode = findNodeinAllNodes(initialNodesSet[node].inEdge[i].source);
-
-                                            if ((initialNodesSet[node].inEdge[i].propHash.timeHash && initialNodesSet[node].inEdge[i].propHash.timeHash["Decommissioned"])
-                                                    || (connectedNode.propHash.timeHash && connectedNode.propHash.timeHash["Decommissioned"])) {
+                                        //find the set of inEdges for the given node
+                                        var inEdges = _.filter(finalEdges, function (edge) {
+                                            return (edge.target.uri === node);
+                                        });
+                                        for (var i = 0; i < inEdges.length; i++) {
+                                            var connectedNode = findNodeinAllNodes(inEdges[i].source.uri);
+                                            if ((inEdges[i].propHash.timeHash && inEdges[i].propHash.timeHash["Decommissioned"]) || (connectedNode.propHash.timeHash && connectedNode.propHash.timeHash["Decommissioned"])) {
                                                 continue;
                                             }
                                             //assume we run into an edge that's not decommissioned
@@ -1157,12 +1180,13 @@
 
                                         //if the inEdge array didn't have any normal edges check the outEdge
                                         if (!hasNormalEdge) {
-                                            for (var i = 0; i < initialNodesSet[node].outEdge.length; i++) {
-
-                                                var connectedNode = findNodeinAllNodes(initialNodesSet[node].outEdge[i].source);
-
-                                                if ((initialNodesSet[node].outEdge[i].propHash.timeHash && initialNodesSet[node].outEdge[i].propHash.timeHash["Decommissioned"])
-                                                        || (connectedNode.propHash.timeHash &&  connectedNode.propHash.timeHash["Decommissioned"])) {
+                                            //find the set of outEdges for the given node
+                                            var outEdges = _.filter(finalEdges, function (edge) {
+                                                return (edge.source.uri === node);
+                                            });
+                                            for (var i = 0; i < outEdges.length; i++) {
+                                                var connectedNode = findNodeinAllNodes(outEdges[i].source.uri);
+                                                if ((outEdges[i].propHash.timeHash && outEdges[i].propHash.timeHash["Decommissioned"]) || (connectedNode.propHash.timeHash && connectedNode.propHash.timeHash["Decommissioned"])) {
                                                     continue;
                                                 }
                                                 //assume we run into an edge that's not decommissioned
