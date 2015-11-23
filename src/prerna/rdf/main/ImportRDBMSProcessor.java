@@ -60,8 +60,7 @@ public class ImportRDBMSProcessor {
 	
 	private String connectionURL;
 	private String schema;
-//	private String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-	private String baseFolder = "C:\\\\Development\\workspace\\Semoss-dev";
+	private String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 	
 	private final String MYSQL = "MySQL";
 	private final String MYSQL_DRIVER = "com.mysql.jdbc.Driver";
@@ -276,15 +275,17 @@ public class ImportRDBMSProcessor {
 			bdc.addToBaseEngine(new Object[] {sub, pred, obj, false});
 			
 			for(String prop : nodesAndProps.get(s)) {
-				sub = basePropURI + "/" + prop;
-				pred = RDF.TYPE +"";
-				obj = semossURI + "/" + Constants.DEFAULT_PROPERTY_CLASS;
-				bdc.addToBaseEngine(new Object[] {sub, pred, obj, true});
-				
-				sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS + "/" + PK + "/" + nodeName;
-				pred = OWL.DatatypeProperty+"";
-				obj = basePropURI + "/" + prop;
-				bdc.addToBaseEngine(new Object[] {sub, pred, obj, true});
+				if(!prop.equals(PK)) {
+					sub = basePropURI + "/" + prop;
+					pred = RDF.TYPE +"";
+					obj = semossURI + "/" + Constants.DEFAULT_PROPERTY_CLASS;
+					bdc.addToBaseEngine(new Object[] {sub, pred, obj, true});
+					
+					sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS + "/" + PK + "/" + nodeName;
+					pred = OWL.DatatypeProperty+"";
+					obj = basePropURI + "/" + prop;
+					bdc.addToBaseEngine(new Object[] {sub, pred, obj, true});
+				}
 			}
 		}
 		
@@ -336,6 +337,7 @@ public class ImportRDBMSProcessor {
 					e.printStackTrace();
 				}
 			}
+			success = true;
 		}
 		
 		return success;
