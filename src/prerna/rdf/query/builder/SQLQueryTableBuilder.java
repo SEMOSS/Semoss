@@ -138,7 +138,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	
 	
 	protected void parsePath(){
-		Hashtable<String, List> parsedPath = QueryBuilderHelper.parsePath(allJSONHash);
+		Hashtable<String, List> parsedPath = QueryBuilderHelper.parsePath(allJSONHash, engine);
 		totalVarList = parsedPath.get(QueryBuilderHelper.totalVarListKey);
 		nodeV = parsedPath.get(QueryBuilderHelper.nodeVKey);
 		predV = parsedPath.get(QueryBuilderHelper.predVKey);
@@ -304,6 +304,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	private void filterData()
 	{
 		StringMap<ArrayList<Object>> filterResults = (StringMap<ArrayList<Object>>) allJSONHash.get(filterKey);
+		ArrayList<ArrayList<Object>> relTriples = (ArrayList<ArrayList<Object>>) allJSONHash.get("relTriples");
 		
 		/**
 		 * {TITLE=[http://semoss.org/ontologies/concept/TITLE/127_Hours, http://semoss.org/ontologies/concept/TITLE/12_Years_a_Slave, http://semoss.org/ontologies/concept/TITLE/16_Blocks, http://semoss.org/ontologies/concept/TITLE/17_Again]}
@@ -319,13 +320,19 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			{
 				String currentFilters = "";
 				String columnValue = keys.next(); // this gets me title above
-				String simpleColumnValue = columnValue;
-				// need to split when there are underscores
-				// for now keeping it simple
-				String tableValue = columnValue;
 				
+				for(ArrayList<Object> rel : relTriples) {
+					if(columnValue.equals(Utility.getInstanceName(rel.get(0).toString()))) {
+						columnValue = rel.get(0).toString();
+					}
+				}
+				
+				String simpleColumnValue = Utility.getPrimaryKeyFromURI(columnValue);
+				String tableValue = Utility.getInstanceName(columnValue);
+//				String simpleColumnValue = columnValue;
+//				String tableValue = columnValue;
 				//we should skip adding a column to the filter if the column is not part of the selector
-				if(!columnProcessed.containsKey(columnValue.toUpperCase())){
+				if(!columnProcessed.containsKey(columnValue.toUpperCase()) || !columnProcessed.containsKey(Utility.getPrimaryKeyFromURI(columnValue).toUpperCase())){
 					continue;
 				}
 				
@@ -337,7 +344,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 				}
 				String alias = getAlias(tableValue);
 				// get the list
-				List<Object> filterValues = (List<Object>)filterResults.get(columnValue);
+				List<Object> filterValues = (List<Object>)filterResults.get(Utility.getInstanceName(columnValue));
 				
 				//transform the column value
 				columnValue = alias + "." + simpleColumnValue;
@@ -474,8 +481,8 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 				ArrayList <String> propList = new ArrayList<String>();
 				if(tableHash.containsKey(key))
 					propList = tableHash.get(key);
-				propList.add(prop);
-				tableHash.put(key, propList);
+				propList.add(key + "__" + prop);
+				tableHash.put(key + "__" + prop, propList);
 				addToVariableSequence(key + "__" + prop);
 			}
 		}
@@ -509,7 +516,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			}
 			
 			String alias = getAlias(tableName);
-			String asName = colName;
+			String asName = tableName + "__" + colName;
 
 			if(!tableName.equalsIgnoreCase(colName)) // this is a self reference dont worry about it something like title.title
 				asName = tableName + "__" + colName;

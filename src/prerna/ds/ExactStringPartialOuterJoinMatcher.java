@@ -27,9 +27,13 @@ public class ExactStringPartialOuterJoinMatcher extends ExactStringMatcher {
 		List<TreeNode[]> results = new ArrayList<TreeNode[]>();
 		
 		boolean thereAreNext = it1.hasNext() && it2.hasNext();
+		TreeNode nextNode1 = null;
+		TreeNode nextNode2 = null;
 		//get initial value 1
-		TreeNode nextNode1 = it1.next();
-		TreeNode nextNode2 = it2.next();
+		if(thereAreNext) {
+			nextNode1 = it1.next();
+			nextNode2 = it2.next();
+		}
 		
 		while(thereAreNext){
 			

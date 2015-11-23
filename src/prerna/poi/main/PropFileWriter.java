@@ -70,6 +70,7 @@ public class PropFileWriter {
 	public boolean hasMap = false;
 
 	private SQLQueryUtil.DB_TYPE dbDriverType = SQLQueryUtil.DB_TYPE.H2_DB;
+	SQLQueryUtil queryUtil;
 
 	public PropFileWriter() {
 		defaultDBPropName = "db/Default/Default.properties";
@@ -193,7 +194,9 @@ public class PropFileWriter {
 				propFileName = baseDirectory + System.getProperty("file.separator") + defaultDBPropName;
 				writeCustomDBProp(propFileName, dbName, dbType);
 			} else {
-				FileUtils.copyFileToDirectory(new File(dbPropFile), engineDirectory, true);
+				if(((new File(dbPropFile)).getPath().contains(engineDirectory.getPath()))) {
+					FileUtils.copyFileToDirectory(new File(dbPropFile), engineDirectory, true);
+				}
 				propFileName = engineDirectoryName + dbPropFile.substring(dbPropFile.lastIndexOf("\\"));
 				if (propFileName.contains("\\")) {
 					propFileName = propFileName.replaceAll("\\\\", "/");
@@ -272,9 +275,11 @@ public class PropFileWriter {
 				pw.write(Constants.DREAMER + "\t" + questionFileName + "\n\n\n");
 			}
 			if (dbType == ImportDataProcessor.DB_TYPE.RDBMS) {
-				SQLQueryUtil queryUtil = SQLQueryUtil.initialize(dbDriverType);
+				if(this.queryUtil == null) {
+					this.queryUtil = SQLQueryUtil.initialize(dbDriverType);
+				}
 				pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultRDBMSEngine + "\n");
-				pw.write(Constants.RDBMS_TYPE + "\t" + dbDriverType.toString() + "\n");
+				pw.write(Constants.RDBMS_TYPE + "\t" + queryUtil.getDatabaseType().toString() + "\n");
 				pw.write(Constants.DREAMER + "\t" + questionFileName + "\n\n\n");
 				pw.write(Constants.DRIVER + "\t" + queryUtil.getDatabaseDriverClassName() + "\n");
 				pw.write(Constants.USERNAME + "\t" + queryUtil.getDefaultDBUserName() + "\n");
@@ -282,7 +287,11 @@ public class PropFileWriter {
 				// pw.write("TEMP"+ "\t" + "true" + "\n");
 				String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
 				System.out.println("Base Folder...  " + baseFolder);
-				pw.write(Constants.CONNECTION_URL + "\t" + queryUtil.getConnectionURL(baseFolder,dbname) + "\n");
+				if(queryUtil.getTempConnectionURL() == null || queryUtil.getTempConnectionURL().isEmpty()) {
+					pw.write(Constants.CONNECTION_URL + "\t" + queryUtil.getConnectionURL(baseFolder,dbname) + "\n");
+				} else {
+					pw.write(Constants.CONNECTION_URL + "\t" + queryUtil.getTempConnectionURL() + "\n");
+				}
 				//pw.write(Constants.RDBMS_QUERY_CLASS + "\t" +  H2QueryUtil.class.getCanonicalName() + "\n");
 				pw.write(Constants.USE_OUTER_JOINS + "\t" + queryUtil.getDefaultOuterJoins()+ "\n");
 				//commenting out this item below by default
@@ -327,6 +336,10 @@ public class PropFileWriter {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public void setSQLQueryUtil(SQLQueryUtil queryUtil) {
+		this.queryUtil = queryUtil;
 	}
 
 //	/**
