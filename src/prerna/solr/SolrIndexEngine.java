@@ -349,7 +349,7 @@ public class SolrIndexEngine {
 		// check if db currently exists
 		Map<String, Object> querySolr = new HashMap<String, Object>();
 		querySolr.put(SolrIndexEngine.SET_DEFAULT, engineName);
-		querySolr.put(SolrIndexEngine.SEARCH_FIELD, SolrIndexEngine.CORE_ENGINE);
+		querySolr.put(SolrIndexEngine.SEARCH_FIELD, SolrIndexEngine.ENGINES);
 		querySolr.put(SolrIndexEngine.SET_ROWS, 1);
 		SolrDocumentList queryRet = null;
 		try {
@@ -359,7 +359,7 @@ public class SolrIndexEngine {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		return (queryRet.size() == 0);
+		return (queryRet.size() != 0);
 	}
 	
 	public static DateFormat getDateFormat() {
