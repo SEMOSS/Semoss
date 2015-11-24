@@ -85,6 +85,10 @@ public class IndividualSystemTransitionReportWriter {
 	 */
 	public void makeWorkbook(String systemName,String templateName)
 	{
+		makeWorkbook(systemName, templateName, "Transition_Report");
+	}
+	public void makeWorkbook(String systemName,String templateName, String reportType)
+	{
 		this.systemName = systemName;
 		
 		fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\";
@@ -92,8 +96,8 @@ public class IndividualSystemTransitionReportWriter {
 		SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("MMM_dd_yyyy");
         String date = DATE_FORMAT.format(new Date());
    
-		fileLoc += systemName+"_Transition_Report_"+date+".xlsx";
-		wb =new XSSFWorkbook();
+		fileLoc += systemName+"_"+reportType+"_"+date+".xlsx";
+		wb = new XSSFWorkbook();
 
 		//if a report template exists, then create a copy of the template, otherwise create a new workbook
 		if(templateLoc!=null)
@@ -107,7 +111,49 @@ public class IndividualSystemTransitionReportWriter {
 
 		makeStyles(wb);
 	}
+	public void makeMedicalDevicesWorkbook(String templateName)
+	{
+		fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\";
+		templateLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\" + templateName;//"Individual_System_Transition_Report_Template.xlsx";
+		SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("MMM_dd_yyyy");
+        String date = DATE_FORMAT.format(new Date());
+   
+		fileLoc += "Medical Devices_Transition_Report_"+date+".xlsx";
+		wb =new XSSFWorkbook();
+		
+		//if a report template exists, then create a copy of the template, otherwise create a new workbook
+		if(templateLoc!=null)
+			try{
+				wb = (XSSFWorkbook)WorkbookFactory.create(new File(templateLoc));
+			}
+		catch(Exception e){
+			wb=new XSSFWorkbook();
+		}
+		else wb=new XSSFWorkbook();
 
+		makeStyles(wb);
+	}	
+	public void makeWorkbook(String systemName,XSSFWorkbook inputWB)
+	{
+		makeWorkbook(systemName, inputWB, "Transition_Report");
+	}	
+	public void makeWorkbook(String systemName,XSSFWorkbook inputWB, String reportType)
+	{
+		this.systemName = systemName;
+		
+		fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\export\\Reports\\";
+	
+		SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("MMM_dd_yyyy");
+        String date = DATE_FORMAT.format(new Date());
+   
+		fileLoc += systemName+"_"+reportType+"_"+date+".xlsx";
+		if( inputWB != null)
+			wb = inputWB;
+		else
+			wb=new XSSFWorkbook();
+		makeStyles(wb);
+	}
+	
 	/**
 	 * Writes the workbook to the file location.
 	 */
@@ -142,7 +188,66 @@ public class IndividualSystemTransitionReportWriter {
 			cellToWriteOn.setCellValue(dataList[i]);
 		}
 	}
-
+	/**
+	 * Writes a generic list sheet from hashtable
+	 * @param sheetName	String containing the name of the sheet to populate
+	 * @param results	ArrayList containing the output of the query
+	 */
+	public void writeArrayListSheet(String sheetName, Map<String,ArrayList<String>> GALListFinal){
+	
+		 XSSFSheet sheet = wb.getSheet(sheetName);
+		 
+		 int rownum = 1;
+	     for (String key : GALListFinal.keySet())
+	     {
+	    	 XSSFRow row;
+	    	 int rowToStart = 1;
+	    	 XSSFRow rowToCopyFormat = sheet.getRow(rowToStart);
+			 if( rownum == 1 )
+			 {
+				row = sheet.getRow(rownum);
+			 }
+			 else
+			 {
+				row = sheet.createRow(rownum);
+				row.setRowStyle(rowToCopyFormat.getRowStyle());
+			 }
+			 ArrayList <String> objArr = (ArrayList<String>) GALListFinal.get(key);
+			 int cellnum = 0;
+			
+			 rownum++;
+			 for (Object obj : objArr)	 
+			 { 
+				XSSFCell cell;
+				if( rownum == 1 )
+				{
+					cell = row.getCell(cellnum);
+				}
+				else
+				{
+					cell = row.createCell(cellnum);
+					//cell.setCellStyle((XSSFCellStyle)myStyles.get("normalStyle"));
+					
+					XSSFCell cellToCopyFormat = rowToCopyFormat.getCell(cellnum);
+					cell.setCellStyle(cellToCopyFormat.getCellStyle());
+				}
+				
+				cellnum++;
+				
+				if(obj instanceof String)
+				     cell.setCellValue((String)obj);
+				else if(obj instanceof Integer)
+				     cell.setCellValue((Integer)obj);
+	         }
+	     }
+		
+	     
+	     
+	     
+	     
+	     
+	}
+	
 	public void writeSORSheet(String sheetName, Map<String,Object> result){
 		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 		String[] headersList = (String[])result.get("headers");
@@ -187,72 +292,128 @@ public class IndividualSystemTransitionReportWriter {
 	    sheetCF.addConditionalFormatting(regions, rule1);
 
 	}
+
+
+	
+	public void replaceAll( String valueToReplace, String replacementValue)
+	{
+		
+		for( int i = 0; i < wb.getNumberOfSheets(); i++ )
+		{
+			XSSFSheet ws = wb.getSheetAt(i);
+			if( ws != null)
+			{
+				for( int j = ws.getFirstRowNum(); j < ws.getLastRowNum(); j++)
+				{
+					XSSFRow row = ws.getRow(j);
+					if( row != null)
+					{
+						for( int k = row.getFirstCellNum(); k < row.getLastCellNum(); k++)
+						{
+							XSSFCell cell = row.getCell(k);
+							if( cell != null )
+							{
+								if( cell.getCellType() == cell.CELL_TYPE_STRING)
+								{
+									String val = cell.getStringCellValue();
+									if( val != null)
+									{
+										
+										val = val.replaceAll(valueToReplace, replacementValue);
+									
+										cell.setCellValue(val);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
 	/**
 	 * Writes a generic list sheet from hashtable
 	 * @param sheetName	String containing the name of the sheet to populate
 	 * @param results	ArrayList containing the output of the query
 	 */
 	public void writeListSheet(String sheetName, Map<String,Object> result){
-
-		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
-		ArrayList<Object[]> dataList = (ArrayList<Object[]>)result.get("data");
-
-		fillStringInText(sheetToWriteOver,3,0,null,systemName);
 		
 		int rowToStart = 6;
-		
+		int colToStart = 0;
+		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
 		if(!sheetName.contains("Interface"))
 			fillStringInText(sheetToWriteOver, 3,1,"@SYSTEM@",systemName);
 		else 
 			fillStringInText(sheetToWriteOver, 3,2,"@SYSTEM@",systemName);
-//		else
-//		{
-//			fillStringInText(sheetToWriteOver, 3,3,"@SYSTEM@",systemName);
-//			rowToStart = 9;
-//		}
-		XSSFRow headerRow = sheetToWriteOver.getRow(rowToStart-1);
-		Short lastCol =headerRow.getLastCellNum();
+//			
+		writeListSheet(sheetName, result, rowToStart, colToStart);
 		
+		
+	}
+	public void writeListSheet(String sheetName, Map<String,Object> result, int rowToStart, int colToStart)
+	{
+		writeListSheet( sheetName,result, rowToStart, colToStart, -1);
+	}
+	
+	public void writeListSheet(String sheetName, Map<String,Object> result, int rowToStart, int colToStart, int colToEnd)
+	{
+		XSSFSheet sheetToWriteOver = wb.getSheet(sheetName);
+		ArrayList<Object[]> dataList = (ArrayList<Object[]>)result.get("data");
+
+		//fillStringInText(sheetToWriteOver,3,0,null,systemName);
+		
+		XSSFRow headerRow = sheetToWriteOver.getRow(rowToStart-1);
+		Short finalCol = headerRow.getLastCellNum()	;		
 		for (int row=0; row<dataList.size(); row++) {
 			Object[] resultRowValues = dataList.get(row);
 			XSSFRow rowToWriteOn;
 			XSSFRow rowToCopyFormat = sheetToWriteOver.getRow(rowToStart);
-			if(row==0)
-			{
-				rowToWriteOn = sheetToWriteOver.getRow(rowToStart+row);
-			}
-			else
+			
+			int lastCol = resultRowValues.length;
+			
+			rowToWriteOn = sheetToWriteOver.getRow(rowToStart+row);
+			if( rowToWriteOn == null )
 			{
 				rowToWriteOn = sheetToWriteOver.createRow(rowToStart+row);
 				rowToWriteOn.setRowStyle(rowToCopyFormat.getRowStyle());
 			}
-			for (int col=0; col< lastCol; col++) {
+			int endCol = 0;
+			if( colToEnd == -1)
+				endCol = Math.max( lastCol+colToStart, finalCol);
+			else
+				endCol = colToEnd;
+
+				
+			
+			for (int col=colToStart; col < endCol; col++) {
 				XSSFCell cellToWriteOn;
-				if(row==0)
-					cellToWriteOn = rowToWriteOn.getCell(col);
-				else
+				
+				cellToWriteOn = rowToWriteOn.getCell(col);
+				if( cellToWriteOn == null )
 				{
 					cellToWriteOn = rowToWriteOn.createCell(col);
 					XSSFCell cellToCopyFormat = rowToCopyFormat.getCell(col);
 					cellToWriteOn.setCellStyle(cellToCopyFormat.getCellStyle());
 				}
 				
-				if (  col< resultRowValues.length )
+				if (  col - colToStart< resultRowValues.length )
 				{
-					if(resultRowValues[col] instanceof Double) {
-						cellToWriteOn.setCellValue((Double)resultRowValues[col]);
+					if(resultRowValues[col-colToStart] instanceof Double) {
+						cellToWriteOn.setCellValue((Double)resultRowValues[col-colToStart]);
 					}
-					else if(resultRowValues[col] instanceof Integer) {
-						cellToWriteOn.setCellValue((Integer)resultRowValues[col]);
+					else if(resultRowValues[col-colToStart] instanceof Integer) {
+						cellToWriteOn.setCellValue((Integer)resultRowValues[col-colToStart]);
 					}
-					else {
-						cellToWriteOn.setCellValue(((String)resultRowValues[col]).replaceAll("\"", "").replaceAll("_"," "));
+					else if(resultRowValues[col-colToStart] instanceof String )
+					{
+						cellToWriteOn.setCellValue(((String)resultRowValues[col-colToStart]).replaceAll("\"", "").replaceAll("_"," "));
 					}
 				}
 			}
 			
 		}
-
+	
 		// for System Interfaces Sheet
 		if(result.get("directCost") != null && result.get("indirectCost") != null)
 		{
