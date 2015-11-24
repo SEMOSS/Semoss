@@ -584,6 +584,7 @@ public class Insight {
 					}
 					else {
 						this.dataMaker = this.playSheet.getDefaultDataMaker();
+						this.playSheet.setDataMaker(this.dataMaker);
 					}
 				}
 			}
