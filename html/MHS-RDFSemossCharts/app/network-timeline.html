@@ -66,14 +66,16 @@
                         </div>
                     </div>
                     <!--<textarea ng-bind="dataString"></textarea>-->
-                    <forcegraph data="forceData" max-loe="maxLOE" time-hash="timeHashLocation" slider-state="sliderState"></forcegraph>
+                    <span ng-if="contentLoaded">
+                        <forcegraph data="forceData" max-loe="maxLOE" time-hash="timeHashLocation" slider-state="sliderState"></forcegraph>
+                    </span>
                 </div>
 
             </div>
             <div id="sidebarFooter"></div>
         </div>
     </div>
-    <script src="lib/angular/angular_new.js"></script>
+    <script src="lib/angular/angular_1.4.7.js"></script>
     <script src="js/ng-table.js"></script>
 
     <script type="text/javascript" src="lib/d3.v3.js"></script>
@@ -94,10 +96,10 @@
             // calling function in controller
             ctrlScope.setJSONData(dataPassed);
 
-        };
+        }
 
-        angular.module('main', ['ngTable']).
-            controller('NetworkCtrl', function($scope, $filter, ngTableParams, $timeout, $rootScope) {
+        angular.module('main', ['ngTable'])
+                .controller('NetworkCtrl', function($scope, $filter, ngTableParams, $timeout, $rootScope) {
                     $scope.forceData = '';
                     $scope.tableData = [];
                     var tableDB;
@@ -105,50 +107,49 @@
                     $scope.timeHashLocation = '';
                     $scope.sliderState = "Initial";
 
-//                    $timeout(function () {
-//                        $scope.forceData = timeline_data;
-//
-//                        var tableData = [];
-//
-//                        //check if it nodes and/or edges have timeHash
-//                        var nodesTimeHash = hasTimeHash($scope.forceData.nodes);
-//                        var edgesTimeHash = hasTimeHash($scope.forceData.edges);
-//
-//                        if (nodesTimeHash && edgesTimeHash) {
-//                            $scope.timeHashLocation = "Both";
-//                        } else if (nodesTimeHash) {
-//                            $scope.timeHashLocation = "Nodes";
-//                        } else if (edgesTimeHash) {
-//                            $scope.timeHashLocation = "Edges";
-//                        }
-//
-//                        var nodesICD = hasICD($scope.forceData.nodes, "VERTEX_TYPE_PROPERTY");
-//                        var edgesICD = hasICD($scope.forceData.edges, "EDGE_TYPE");
-//
-//                        if (nodesICD && edgesICD) {
-//                            tableData = createTableModel($scope.forceData.nodes, "Nodes");
-//                            var edgeTableData = createTableModel($scope.forceData.edges, "Edges");
-//                            //combine tables
-//                            for (var i=0; i<edgeTableData.length; i++) {
-//                                tableData.push(edgeTableData[i]);
-//                            }
-//                        } else if (nodesICD) {
-//                            tableData = createTableModel($scope.forceData.nodes, "Nodes");
-//                        } else if (edgesICD) {
-//                            tableData = createTableModel($scope.forceData.edges, "Edges");
-//                        }
-//
-//                        tableDB = TAFFY(tableData);
-//                        setTableData(0);
-//
-//                    }, 500);
+                    /*$timeout(function () {
+                        $scope.forceData = timeline_data;
+                        $scope.contentLoaded = true;
+
+                        var tableData = [];
+
+                        //check if it nodes and/or edges have timeHash
+                        var nodesTimeHash = hasTimeHash($scope.forceData.nodes);
+                        var edgesTimeHash = hasTimeHash($scope.forceData.edges);
+
+                        if (nodesTimeHash && edgesTimeHash) {
+                            $scope.timeHashLocation = "Both";
+                        } else if (nodesTimeHash) {
+                            $scope.timeHashLocation = "Nodes";
+                        } else if (edgesTimeHash) {
+                            $scope.timeHashLocation = "Edges";
+                        }
+
+                        var nodesICD = hasICD($scope.forceData.nodes, "VERTEX_TYPE_PROPERTY");
+                        var edgesICD = hasICD($scope.forceData.edges, "EDGE_TYPE");
+
+                        if (nodesICD && edgesICD) {
+                            tableData = createTableModel($scope.forceData.nodes, "Nodes");
+                            var edgeTableData = createTableModel($scope.forceData.edges, "Edges");
+                            //combine tables
+                            for (var i=0; i<edgeTableData.length; i++) {
+                                tableData.push(edgeTableData[i]);
+                            }
+                        } else if (nodesICD) {
+                            tableData = createTableModel($scope.forceData.nodes, "Nodes");
+                        } else if (edgesICD) {
+                            tableData = createTableModel($scope.forceData.edges, "Edges");
+                        }
+
+                        tableDB = TAFFY(tableData);
+                        setTableData(0);
+
+                    }, 500);*/
 
                     $scope.setJSONData = function (data) {
                         $scope.$apply(function () {
                             $scope.dataString = data;
                             $scope.forceData = JSON.parse(data);
-                            console.log(data);
-                            console.log($scope.forceData);
                             var tableData = [];
 
                             //check if it nodes and/or edges have timeHash
@@ -301,10 +302,8 @@
                             }
 
                         }
-
                         return tableData;
-
-                    };
+                    }
 
                     function setTableData(sliderValue) {
 
@@ -431,8 +430,13 @@
                         $scope.$broadcast("unfreeze-nodes");
                     };
 
-            }).
-            directive('forcegraph', function($rootScope) {
+                    $timeout(function() {
+                        $scope.contentLoaded = true;
+                    }, 500);
+
+
+                })
+                .directive('forcegraph', function($rootScope) {
                     return {
                         restrict: 'AE',
                         scope: {
@@ -459,14 +463,11 @@
                                     previousState = "Initial";
 
                             //TODO: this needs to be refactored to use container and margin objects
-                            var width = 0;
-                            var height = 0;
-                            width = parseInt(d3.select('#sidebarContentRight').style('width'));
-                            height = parseInt(d3.select('#sidebarContentRight').style('height'));
+                            var width = parseInt(d3.select('#sidebarContentRight').style('width')),
+                                height = parseInt(d3.select('#sidebarContentRight').style('height'));
 
                             scope.$watch('data', function() {
                                 if (!_.isEmpty(scope.data)) {
-                                     console.log(scope.data);
                                     //save all the data for later
                                     allForceData = scope.data;
                                     scope.maxLoe = calculateMaxLOE();
@@ -566,10 +567,6 @@
                             });
 
                             $rootScope.$on('slider-change', function(event, v) {
-                                console.log(v);
-
-
-
                                 if (previousState == "Initial") {
                                     v = v ? v : 0;
                                     setTransitionFromInitial(v);
@@ -755,6 +752,7 @@
                                         .x(xScale)
                                         .y(yScale)
                                         .on("zoom", zoom);
+
                                 //set up legendNodes array for legend
                                 var flags = {};
                                 legendNodes = nodes.filter(function(node) {
@@ -967,7 +965,7 @@
                                     }
                                 }
 //                                //check all nodes to make sure that the edges of those nodes don't all have timeHash properties
-                                for (var node in returnNodes) {
+                                /*for (var node in returnNodes) {
 
                                     //set the boolean to true so we are making the assumption there is only nonTimeHash
                                     var bool = false;
@@ -1026,7 +1024,7 @@
                                         delete returnNodes[node];
                                     }
 
-                                }
+                                }*/
 
                                 return returnNodes;
                             }
@@ -1412,7 +1410,7 @@
                                 for (var i in nodes) {
                                     if (nodes[i]["id"] === id)
                                         return nodes[i];
-                                };
+                                }
                             }
 
                             //Please comment
@@ -1423,8 +1421,10 @@
                             //Please comment
                             function tick() {
                                 link.attr("d", linkArc);
-                                node.attr("transform", function(d) {
-                                    return "translate(" + xScale(d.x) + "," + yScale(d.y) + ")"; });
+                                node.attr("transform", "rotate(0)")
+                                    .attr("transform", function(d) {
+                                        return "translate(" + xScale(d.x) + "," + yScale(d.y) + ")";
+                                    });
                             }
 
                             //create curved paths between nodes
@@ -1436,12 +1436,8 @@
                             }
 
                             function resize() {
-                                var newWidth = 0,
-                                    newHeight = 0;
-
-                                newWidth = parseInt(d3.select('#sidebarContentRight').style('width'));
-                                newHeight = parseInt(d3.select('#sidebarContentRight').style('height'));
-
+                                var newWidth = parseInt(d3.select('#sidebarContentRight').style('width')),
+                                    newHeight = parseInt(d3.select('#sidebarContentRight').style('height'));
 
                                 svg.attr("width", newWidth)
                                         .attr("height", newHeight);
