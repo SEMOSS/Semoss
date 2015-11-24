@@ -43,11 +43,19 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.poi.specific.IndividualSystemTransitionReportWriter;
+
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
 import prerna.ui.components.playsheets.TablePlaySheet;
+
 import prerna.ui.components.specific.tap.AbstractFutureInterfaceCostProcessor.COST_FRAMEWORK;
 import prerna.util.DHMSMTransitionUtility;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+
+
+//<@System-http://semoss.org/ontologies/Concept/System@>$Non-Contract
+//prerna.ui.components.specific.tap.IndividualSystemTransitionReport
 
 @SuppressWarnings("serial")
 public class IndividualSystemTransitionReport extends TablePlaySheet{
@@ -67,14 +75,20 @@ public class IndividualSystemTransitionReport extends TablePlaySheet{
 	private String otherSysSORDataQuery = "SELECT DISTINCT ?System ?Data (COUNT(DISTINCT(?icd)) AS ?DownstreamInterfaces) WHERE { {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> }{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> }{?icd <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> } {?downstreamSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> }{?System <http://semoss.org/ontologies/Relation/Provide> ?icd}{?icd <http://semoss.org/ontologies/Relation/Consume> ?downstreamSystem} {?icd <http://semoss.org/ontologies/Relation/Payload> ?Data}}} GROUP BY ?System ?Data ORDER BY ?Data ?System";
 	//hpi requires site/region information
 	private String siteQuery = "SELECT DISTINCT (COUNT(DISTINCT ?DCSite) AS ?SiteCount) (SAMPLE(?DCSite) AS ?ExampleSite) (GROUP_CONCAT(DISTINCT ?Reg ; SEPARATOR = ', ') AS ?Regions) WHERE { SELECT DISTINCT ?System ?DCSite (CONCAT(SUBSTR(STR(?Region),58)) AS ?Reg) WHERE { BIND(@SYSTEM@ AS ?System) {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?DCSite} OPTIONAL{ {?MTF <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/MTF>} {?DCSite <http://semoss.org/ontologies/Relation/Includes> ?MTF} {?Region <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/HealthServiceRegion>} {?MTF <http://semoss.org/ontologies/Relation/Located> ?Region} }} ORDER BY ?Region} GROUP BY ?System";
+	private String deploymentQuery = "SELECT DISTINCT ?System ?DCSite ?IOCSite { BIND(@SYSTEM@ AS ?System) {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>;} {?DCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>;} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?DCSite} OPTIONAL { {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>;} BIND(<http://health.mil/ontologies/Concept/Wave/IOC> AS ?Wave) {?Wave <http://semoss.org/ontologies/Relation/Contains> ?DCSite} } BIND(IF(BOUND(?Wave),\"Yes\",\"\") AS ?IOCSite) }";
 	// future db queries
 	private String proposedFutureICDQuery = "SELECT DISTINCT (COALESCE(?UpstreamSys, ?System) AS ?UpstreamSystem) (COALESCE(?DownstreamSys, ?System) AS ?DownstreamSystem) ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation WHERE { {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ProposedSystemInterface> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?Interface ?carries ?Data;} {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Frequency ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Recommendation> ?Recommendation;} BIND(@SYSTEM@ AS ?System) { {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?DownstreamSys ;} } UNION { {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?UpstreamSys <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?System ;} } } ";
 	private String decommissionedFutureICDQuery = "SELECT DISTINCT (COALESCE(?UpstreamSys, ?System) AS ?UpstreamSystem) (COALESCE(?DownstreamSys, ?System) AS ?DownstreamSystem) ?Interface ?Data ?Format ?Frequency ?Protocol ?Recommendation WHERE { {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ProposedDecommissionedSystemInterface> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?Interface ?carries ?Data;} {?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Frequency ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;} {?carries <http://semoss.org/ontologies/Relation/Contains/Recommendation> ?Recommendation;} BIND(@SYSTEM@ AS ?System) { {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?DownstreamSys ;} } UNION { {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?UpstreamSys <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?System ;} } }";
 	private String allPresentICDQuery = "SELECT DISTINCT (COALESCE(?UpstreamSys, ?System) AS ?UpstreamSystem) (COALESCE(?DownstreamSys, ?System) AS ?DownstreamSystem) ?Interface ?Data ?Format ?Frequency ?Protocol WHERE { {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?Interface ?carries ?Data;} {?carries <http://www.w3.org/2000/01/rdf-schema#label> ?label} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Frequency ;} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;} BIND(@SYSTEM@ AS ?System) { {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?DownstreamSys ;} } UNION { {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?UpstreamSys <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?System ;} } } ORDER BY ?Interface";	//store interface query results
-	
+	private String minimalICDQuery = "SELECT DISTINCT (COALESCE(?UpstreamSys, ?System) AS ?UpstreamSystem) (COALESCE(?DownstreamSys, ?System) AS ?DownstreamSystem) ?Interface WHERE { {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?Interface ?carries ?Data;} {?carries <http://www.w3.org/2000/01/rdf-schema#label> ?label} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Frequency ;} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;} BIND(@SYSTEM@ AS ?System) { {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?DownstreamSys ;} } UNION { {?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?UpstreamSys <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?System ;} } } ORDER BY ?Interface";	//store interface query results
+	private String minimalDownstreamQuery = "SELECT DISTINCT ?DownstreamSys ?Data WHERE { {?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?Interface ?carries ?Data;} {?carries <http://www.w3.org/2000/01/rdf-schema#label> ?label} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Frequency ;} OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;} BIND(@SYSTEM@ AS ?System) {?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?DownstreamSys ;} } ORDER BY ?Interface";
 	private String allICDQuery =  "SELECT DISTINCT (COALESCE(?UpstreamSys, ?DownstreamSys) AS ?System) ?Type ?Interface ?Data ?Format ?Frequency ?Protocol (COALESCE(?UpstreamSys, ?Sys) AS ?UpstreamSystem) (COALESCE(?DownstreamSys, ?Sys) AS ?DownstreamSystem)  WHERE {   	{?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;}   	{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;}   	{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}  	{?Interface ?carries ?Data;} {?carries <http://www.w3.org/2000/01/rdf-schema#label> ?label}   	OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;}   	OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Frequency ;}   	OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;}   	BIND(@SYSTEM@ AS ?Sys)   	{   		{?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}   		{?Sys <http://semoss.org/ontologies/Relation/Provide> ?Interface ;}   		{?Interface <http://semoss.org/ontologies/Relation/Consume> ?DownstreamSys ;}   		BIND('Downstream' As ?Type)  	}   	UNION   	{   		{?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}   		{?UpstreamSys <http://semoss.org/ontologies/Relation/Provide> ?Interface ;}   		{?Interface <http://semoss.org/ontologies/Relation/Consume> ?Sys ;}   		BIND('Upstream' As ?Type)  	}   } ORDER BY ?SYSTEM ?Interface";
 	private String allICDQueryHIGH =  "SELECT DISTINCT (COALESCE(?UpstreamSys, ?DownstreamSys) AS ?System) ?Type ?Interface ?Data ?Format ?Frequency ?Protocol  WHERE {   	{?Interface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface> ;}   	{?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;}   	{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}  	{?Interface ?carries ?Data;} {?carries <http://www.w3.org/2000/01/rdf-schema#label> ?label}   	OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Format> ?Format ;}   	OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Frequency> ?Frequency ;}   	OPTIONAL{?carries <http://semoss.org/ontologies/Relation/Contains/Protocol> ?Protocol ;}   	BIND(@SYSTEM@ AS ?Sys)   	{   		{?DownstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}   		{?Sys <http://semoss.org/ontologies/Relation/Provide> ?Interface ;}   		{?Interface <http://semoss.org/ontologies/Relation/Consume> ?DownstreamSys ;}   		BIND('Downstream' As ?Type)  	}   	UNION   	{   		{?UpstreamSys <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;}   		{?UpstreamSys <http://semoss.org/ontologies/Relation/Provide> ?Interface ;}   		{?Interface <http://semoss.org/ontologies/Relation/Consume> ?Sys ;}   		BIND('Upstream' As ?Type)  	}   } ORDER BY ?SYSTEM ?Interface";
-		
+	
+	private String activityQuery = "SELECT DISTINCT ?System ?Activity WHERE { BIND(@SYSTEM@ AS ?System) {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;} {?System <http://semoss.org/ontologies/Relation/Supports> ?Activity} }";
+	private String dataElementQuery = "SELECT DISTINCT ?System ?DataObject ?DataElement WHERE { BIND(@SYSTEM@ AS ?System) {?DataObject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>} {?System <http://semoss.org/ontologies/Relation/Provide> ?DataObject } OPTIONAL { {?ICD <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>} {?Carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Carries>} {?DataElement <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataElement>} {?ICD ?Carries ?DataElement} {?BelongsTo <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/BelongsTo>} {?DataElement ?BelongsTo ?DataObject} { {?System <http://semoss.org/ontologies/Relation/Provide> ?ICD} } UNION { {?ICD <http://semoss.org/ontologies/Relation/Consume> ?System } } } BIND(IF(!BOUND(?DataElement), \"None Captured\", ?DataElement) as ?DataElement) }";
+	private String dataSMESORQuery = "SELECT DISTINCT ?System ?DataObject WHERE { BIND(@SYSTEM@ AS ?System) {?MigrationReference <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SourceType>} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?DataObjectSource <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObjectSource>;} {?DataObject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?System <http://semoss.org/ontologies/Relation/Designated> ?DataObjectSource} {?DataObjectSource <http://semoss.org/ontologies/Relation/LabeledAs> ?MigrationReference} {?DataObjectSource <http://semoss.org/ontologies/Relation/Delivers> ?DataObject} }";
+	private String dataSMESORSystemQuery = "SELECT DISTINCT ?UpstreamSystem ?DataObject WHERE { BIND(@SYSTEM@ AS ?System) {?MigrationReference <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SourceType>} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>;} {?DataObjectSource <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObjectSource>;} {?DataObject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;} {?System <http://semoss.org/ontologies/Relation/Designated> ?DataObjectSource} {?DataObjectSource <http://semoss.org/ontologies/Relation/LabeledAs> ?MigrationReference} {?DataObjectSource <http://semoss.org/ontologies/Relation/Delivers> ?DataObject} {?UpstreamSystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?UpstreamSystem <http://semoss.org/ontologies/Relation/Provide> ?Interface ;} {?Interface <http://semoss.org/ontologies/Relation/Consume> ?System ;} {?Interface <http://semoss.org/ontologies/Relation/Payload> ?DataObject } }";
 	
 	HashMap<String, Object> sysLPInterfaceWithCostHash = new HashMap<String, Object>();
 	
@@ -139,6 +153,15 @@ public class IndividualSystemTransitionReport extends TablePlaySheet{
 		allPresentICDQuery = allPresentICDQuery.replace("@SYSTEM@",systemURI);
 		allICDQuery = allICDQuery.replace("@SYSTEM@",systemURI);
 		allICDQueryHIGH = allICDQueryHIGH.replace("@SYSTEM@",systemURI);
+		minimalICDQuery = minimalICDQuery.replace("@SYSTEM@",systemURI);
+		dataElementQuery = dataElementQuery.replace("@SYSTEM@",systemURI);
+		minimalDownstreamQuery = minimalDownstreamQuery.replace("@SYSTEM@",systemURI);
+		deploymentQuery = deploymentQuery.replace("@SYSTEM@",systemURI);
+		activityQuery = activityQuery.replace("@SYSTEM@",systemURI);
+		
+		dataSMESORQuery=dataSMESORQuery.replace("@SYSTEM@",systemURI);
+		dataSMESORSystemQuery=dataSMESORSystemQuery.replace("@SYSTEM@",systemURI);
+		
 	}
 
 	@Override
@@ -213,7 +236,14 @@ public class IndividualSystemTransitionReport extends TablePlaySheet{
 		
 		Map<String, Object> sysLPInterfaceWithCostHash = new HashMap<String, Object>();
 		Map<String, Object> interfaceBarHash = new HashMap<String, Object>();
+		Map<String, Object> minimalICDHash = getQueryDataWithHeaders(TAP_Core_Data, minimalICDQuery);
+		Map<String, Object> dataElementHash = getQueryDataWithHeaders(TAP_Core_Data, dataElementQuery);
+		Map<String, Object> minimalDownstreamHash = getQueryDataWithHeaders(TAP_Core_Data, minimalDownstreamQuery);
+		Map<String, Object> deploymentHash = getQueryDataWithHeaders(TAP_Site_Data, deploymentQuery);
+		Map<String, Object> activityHash  = getQueryDataWithHeaders(TAP_Core_Data, activityQuery);
 		
+		Map<String, Object> dataSMESORSystemHash  = getQueryDataWithHeaders(TAP_Core_Data, dataSMESORSystemQuery);
+		Map<String, Object> dataSMESORHash  = getQueryDataWithHeaders(TAP_Core_Data, dataSMESORQuery);
 		
 		try {
 			sysLPInterfaceWithCostHash = calculateInterfaceModernizationCost();
@@ -239,7 +269,14 @@ public class IndividualSystemTransitionReport extends TablePlaySheet{
 				sysProposedFutureICD, 
 				sysDecommissionedFutureICD, 
 				sysPersistentICD,
-				allICDs);
+				allICDs,
+				minimalICDHash,
+				dataElementHash,
+				minimalDownstreamHash,
+				deploymentHash,
+				activityHash,
+				dataSMESORSystemHash,
+				dataSMESORHash);
 		
 		if(showMessages)
 		{
@@ -267,10 +304,18 @@ public class IndividualSystemTransitionReport extends TablePlaySheet{
 			Map<String, Object> sysProposedFutureICD,
 			Map<String, Object> sysDecommissionedFutureICD,
 			Map<String, Object> sysPersistentICD,
-			Map<String, Object> allICDs) {
+			Map<String, Object> allICDs,
+			Map<String, Object> minimalICDHash,
+			Map<String, Object> dataElementHash,
+			Map<String, Object> minimalDownstreamHash,
+			Map<String, Object> deploymentHash,
+			Map<String, Object> activityHash,
+			Map<String, Object> dataSMESORSystemHash,
+			Map<String, Object> dataSMESORHash) {
 		IndividualSystemTransitionReportWriter writer = new IndividualSystemTransitionReportWriter();
 		String templateFileName = "";
 		
+		//Grab workbook from Template
 		if(reportType.equals("LPI"))
 			templateFileName = "Individual_System_LPI_Transition_Report_Template.xlsx";
 		else if(reportType.equals("LPNI"))
@@ -281,16 +326,17 @@ public class IndividualSystemTransitionReport extends TablePlaySheet{
 			templateFileName = "Individual_System_HPNI_Transition_Report_Template.xlsx";
 		else if(reportType.equals("DeepDive"))
 			templateFileName = "Individual_System_DeepDive_Transition_Report_Template.xlsx";
+		else if(reportType.equals("Non-Contract"))
+			templateFileName = "NON-contract_workbook_Template.xlsx";
 		
 		
-		writer.makeWorkbook(Utility.getInstanceName(systemURI.replace(">", "").replace("<", "")),templateFileName);
-		writer.writeListSheet("Future Interface Development", sysProposedFutureICD);
-		writer.writeListSheet("Future Interface Decommission", sysDecommissionedFutureICD);
-		writer.writeListSheet("Future Interface Sustainment", sysPersistentICD);
 		
-		if( !reportType.equals("DeepDive"))
+		if( reportType.equals("LPI") || reportType.equals("LPNI") || reportType.equals("HPI") || reportType.equals("HPNI"))
 		{
-			
+			writer.makeWorkbook(Utility.getInstanceName(systemURI.replace(">", "").replace("<", "")),templateFileName);
+			writer.writeListSheet("Future Interface Development", sysProposedFutureICD);
+			writer.writeListSheet("Future Interface Decommission", sysDecommissionedFutureICD);
+			writer.writeListSheet("Future Interface Sustainment", sysPersistentICD);
 			writer.writeSystemInfoSheet("System Overview",sysInfoHash);
 			if(reportType.equals("HPI")||reportType.equals("HPNI"))
 				writer.writeSystemSiteDetails("System Overview",sysSiteHash);
@@ -302,17 +348,54 @@ public class IndividualSystemTransitionReport extends TablePlaySheet{
 	//		writer.writeListSheet("System Interfaces", sysLPInterfaceWithCostHash);
 			writer.writeListSheet("System BLU", sysBLUHash);
 			
-	
 			writer.writeSORSheet("System Data",sysDataHash);
 			writer.writeBarChartData("Summary Charts",3,softwareBarHash);
 			writer.writeBarChartData("Summary Charts",11,hardwareBarHash);
 			writer.writeBarChartData("Summary Charts",19,interfaceBarHash);
 		}
-		else
+		else if(reportType.equals("DeepDive"))
 		{
+			writer.makeWorkbook(Utility.getInstanceName(systemURI.replace(">", "").replace("<", "")),templateFileName);
+			writer.writeListSheet("Future Interface Development", sysProposedFutureICD);
+			writer.writeListSheet("Future Interface Decommission", sysDecommissionedFutureICD);
+			writer.writeListSheet("Future Interface Sustainment", sysPersistentICD);
 			writer.writeSystemInfoSheetShort("System Overview",sysInfoHash);
 			writer.writeListSheet("Current State Interfaces", allICDs);
 		}
+		else if(reportType.equals("Non-Contract"))
+		{
+			DHMSMIntegrationTransitionCostWriter CostWriter;
+			XSSFWorkbook wb;
+			try {
+				//Utilize DHMSMIntegrationTransitionCostWriter to fulfill it's piece
+				CostWriter = new DHMSMIntegrationTransitionCostWriter();
+				CostWriter.setSysURI(systemURI.replace(">", "").replace("<", ""));
+				CostWriter.calculateValuesForReport();
+				wb = CostWriter.generateWB(templateFileName);
+				
+				//Move to IndividualTransitionReportWriter
+				writer.makeWorkbook(Utility.getInstanceName(systemURI.replace(">", "").replace("<", "")),wb, "Non-Contract");
+				printout(deploymentHash);
+				writer.writeListSheet("Transition Cost Estimates",removeColumn(removeColumn(sysProposedFutureICD,3),6), 35, 0);
+				writer.writeListSheet("Current Interfaces", minimalICDHash,3,0);
+				writer.writeListSheet("Subset DE of System", dataElementHash,1,0,4);
+				writer.writeListSheet("Subset DE of System", minimalDownstreamHash,2,7);
+				writer.writeListSheet("Deployment", deploymentHash,1,0);
+				writer.writeListSheet("Activities", activityHash, 6,0);
+				
+				writer.writeListSheet("SOR for Data Objects", dataSMESORHash,2,0,3);
+				writer.writeListSheet("SOR for Data Objects", dataSMESORSystemHash,4,6);
+				
+				writer.replaceAll("@SYSTEM@",Utility.getInstanceName(systemURI.replace(">", "").replace("<", "")));
+			} catch (IOException e) {
+				e.printStackTrace();
+				Utility.showError(e.getMessage());
+			}
+			
+			
+		}
+		
+		
 		return writer.writeWorkbook();
 	}
 
@@ -649,7 +732,68 @@ public class IndividualSystemTransitionReport extends TablePlaySheet{
 
 		return dataHash;
 	}
+	
+	public void printout( Map<String, Object> sysProposedFutureICD )
+	{
+		String[] headers = (String[]) sysProposedFutureICD.get(DHMSMTransitionUtility.HEADER_KEY);
+		
+		for( int i = 0 ; i < headers.length-1; i++)
+		{
+			System.out.print(headers[i] +"\t");
+			
+		}
+		System.out.println();
+		ArrayList<Object[]> data = (ArrayList<Object[]>) sysProposedFutureICD.get(DHMSMTransitionUtility.DATA_KEY);
 
+		for( int i = 0 ; i < data.size(); i++)
+		{
+			Object[] row = data.get(i);
+
+			for( int j = 0 ; j < row.length-1; j++)
+			{
+				System.out.print(row[j] +"\t");
+			}
+			System.out.println();
+
+		}
+	}
+	
+	private HashMap<String, Object> removeColumn( Map<String, Object> input, int column )
+	{
+		
+		String[] headers = (String[]) input.get(DHMSMTransitionUtility.HEADER_KEY);
+		String[] newHeaders = new String[headers.length-1];
+		for( int i = 0 ; i < headers.length-1; i++)
+		{
+			if( i < column )
+				newHeaders[i] = headers[i];
+			else
+				newHeaders[i] = headers[i+1];
+		}
+		
+		ArrayList<Object[]> data = (ArrayList<Object[]>) input.get(DHMSMTransitionUtility.DATA_KEY);
+		ArrayList<Object[]> newData = new ArrayList<Object[]>();
+		for( int i = 0 ; i < data.size(); i++)
+		{
+			Object[] row = data.get(i);
+			Object[] newRow = new Object[row.length - 1];
+			for( int j = 0 ; j < row.length-1; j++)
+			{
+				if( j < column )
+					newRow[j] = row[j];
+				else
+					newRow[j] = row[j+1];
+			}
+			newData.add(newRow);
+		}
+		
+		HashMap<String, Object> output = new HashMap<String, Object>();
+		output.put(DHMSMTransitionUtility.HEADER_KEY, newHeaders);
+		output.put(DHMSMTransitionUtility.DATA_KEY, newData);
+		
+		return output;
+	}
+	
 	private ArrayList<Object[]> removeSystemFromArrayList(ArrayList<Object[]> dataRow)
 	{
 		ArrayList<Object[]> retList = new ArrayList<Object[]>();
@@ -671,25 +815,6 @@ public class IndividualSystemTransitionReport extends TablePlaySheet{
 		return retArray;
 	}
 
-	@Override
-	public void refineView() {
-	}
-
-	@Override
-	public void overlayView() {
-	}
-
-	@Override
-	public void runAnalytics() {
-	}
-
-	@Override
-	public Hashtable<String, String> getDataTableAlign() {
-		return null;
-	}
-
-	@Override
-	public void processQueryData() {
-
-	}
+	
+	
 }
