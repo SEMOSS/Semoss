@@ -147,10 +147,18 @@ public class DHMSMIntegrationTransitionCostWriter {
 		atoDateList =  diacapReport.getAtoDateList();
 	} 
 	
-	public void writeToExcel() throws IOException {
+	public void writeToExcel() throws IOException 
+	{
+		String templateName = "Transition_Estimates_Template.xlsx";
+		String fileName = "DHMSM_Transition_Estimate_" + Utility.getInstanceName(sysURI) + ".xlsx";
+		writeToExcel(templateName, fileName);
+	}
+	
+	
+	public void writeToExcel(String templateName, String fileName) throws IOException {
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator");
-		String templateName = "Transition_Estimates_Template.xlsx";
+		
 		XSSFWorkbook wb;
 		try {
 			wb = (XSSFWorkbook) WorkbookFactory.create(new File(workingDir + folder + templateName));
@@ -158,8 +166,32 @@ public class DHMSMIntegrationTransitionCostWriter {
 			e.printStackTrace();
 			throw new IOException("Could not find template for report.");
 		}
-
-		XSSFSheet reportSheet = wb.getSheetAt(0);
+		
+		wb = finishWB(wb);
+		
+		Utility.writeWorkbook(wb, workingDir + folder + fileName);
+		
+	}
+	
+	public XSSFWorkbook generateWB(String templateName) throws IOException {
+		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports" + System.getProperty("file.separator");
+		
+		XSSFWorkbook wb;
+		try {
+			wb = (XSSFWorkbook) WorkbookFactory.create(new File(workingDir + folder + templateName));
+		} catch (InvalidFormatException | IOException e) {
+			e.printStackTrace();
+			throw new IOException("Could not find template for report.");
+		}
+		
+		return finishWB(wb);
+		
+	}
+	
+	public XSSFWorkbook finishWB(XSSFWorkbook wb) throws IOException {
+		
+		XSSFSheet reportSheet = wb.getSheet("Transition Cost Estimates");
 		int i;
 		int j;
 		int numTags = tags.length;
@@ -318,10 +350,13 @@ public class DHMSMIntegrationTransitionCostWriter {
 		reportSheet.getRow(27).getCell(0).setCellValue(tabelEnd);
 		
 		
-		String fileName = "DHMSM_Transition_Estimate_" + Utility.getInstanceName(sysURI) + ".xlsx";
-		Utility.writeWorkbook(wb, workingDir + folder + fileName);
+		
+		return wb;
 		
 	}
+	
+	
+	
 
 	public  Map<String, Map<String, Double>> getData(){
 		return sysCost;
