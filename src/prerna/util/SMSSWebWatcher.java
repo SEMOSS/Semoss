@@ -138,7 +138,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				String engineName = engineToAdd.getEngineName();
 
 				// check if should always recreate and check if db currently exists
-				if(AbstractEngine.RECREATE_SOLR || solrE.containsEngine(engineName)) {
+				if(AbstractEngine.RECREATE_SOLR || !solrE.containsEngine(engineName)) {
 				
 					String folderPath = DIHelper.getInstance().getProperty("BaseFolder");
 					folderPath = folderPath + "\\db\\" + engineName + "\\";
