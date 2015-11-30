@@ -78,7 +78,7 @@ public class PieChartPlaySheet extends BrowserPlaySheet{
 			for( int j = 0; j < seriesIndices.length; j++)
 			{
 				ArrayList<Hashtable<String,Object>> seriesArray = new ArrayList<Hashtable<String,Object>>();
-				if(dataObj.size() >= j)
+				if(dataObj.size() > j)
 					seriesArray = dataObj.get(j);
 				else
 					dataObj.add(j, seriesArray);
