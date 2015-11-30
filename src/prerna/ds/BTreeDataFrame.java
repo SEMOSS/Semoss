@@ -72,11 +72,13 @@ import prerna.util.Utility;
 public class BTreeDataFrame implements ITableDataFrame {
 
 	private static final Logger LOGGER = LogManager.getLogger(BTreeDataFrame.class.getName());
+	private static final String BIN_COL_NAME_ADDED = "_Bin";
 	protected SimpleTreeBuilder simpleTree;
 	protected String[] levelNames;
 	protected List<String> columnsToSkip;
 	protected String[] filteredLevelNames;
 	protected Map<String, Boolean> isNumericalMap;
+	private Map<String, String> binMap = new HashMap<String, String>();;
 	protected Map<String, String> uriMap = new HashMap<String, String>();
 	protected List<Object> algorithmOutput = new Vector<Object>();
 	
@@ -1917,5 +1919,35 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return this.algorithmOutput;
 	}
 	
+	public void binNumericColumn(String column) {
+		if(!this.isNumeric(column)) {
+			throw new IllegalArgumentException("Column must be numeric in order to bin");
+		}
+		
+		Double[] values = this.getColumnAsNumeric(column);
+		BarChart chart = new BarChart(values);
+		String[] binValues = chart.getAssignmentForEachObject();
 
+		String[] names = new String[2];
+		names[0] = column;
+		names[1] = column + BIN_COL_NAME_ADDED;
+		ITableDataFrame table = new BTreeDataFrame(names);
+		
+		Map<String, Object> addBinValues = new HashMap<String, Object>();
+		for(int j = 0; j < values.length; j++) {
+			addBinValues.put(names[0], values[j]);
+			addBinValues.put(names[1], binValues[j]);
+			table.addRow(addBinValues, addBinValues);
+		}
+		
+		this.join(table, column, column, 1.0, new ExactStringMatcher());
+		binMap.put(column, column + BIN_COL_NAME_ADDED);
+	}
+
+	@Override
+	public void binNumericalColumns(String[] columns) {
+		for(String col : columns) {
+			binNumericColumn(col);
+		}
+	}
 }

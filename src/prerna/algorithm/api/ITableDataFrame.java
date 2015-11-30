@@ -464,6 +464,18 @@ public interface ITableDataFrame extends IDataMaker {
 	boolean isEmpty();
 	
 	/**
+	 * Bins a numeric column and adds it to the tree
+	 * @param column
+	 */
+	void binNumericColumn(String column);
+	
+	/**
+	 * Bins numeric columns and adds it to the tree
+	 * @param columns
+	 */
+	void binNumericalColumns(String[] columns);
+	
+	/**
 	 * 
 	 * @param columnHeaders
 	 */
