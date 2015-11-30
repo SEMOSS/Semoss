@@ -439,7 +439,7 @@ public class QueryBuilderHelper {
 								filterValues.set(filterIndex, instanceFullPath);
 							}
 						}
-						colValue = Utility.getInstanceName(instanceBaseUri); //use instanceBaseUri since it should have been the same for all of the values you translated...
+//						colValue = Utility.getInstanceName(instanceBaseUri); //use instanceBaseUri since it should have been the same for all of the values you translated...
 						filterResultsNew.put(colValue, filterValues);
 					}
 				}
