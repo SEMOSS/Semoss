@@ -31,6 +31,7 @@ package prerna.ds;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -49,6 +50,8 @@ public class SimpleTreeNode {
 	SimpleTreeNode leftChild = null;
 	//static String numberList = "";
 	public static final String EMPTY = "";
+	
+	Map <String, Integer> childCount = new Hashtable<String, Integer>();
 	
 	ITreeKeyEvaluatable leaf = null;
 	
@@ -488,6 +491,7 @@ public class SimpleTreeNode {
 	public void addChild(SimpleTreeNode node)
 	{
 		node.parent = this;
+		
 		//System.out.println("Leaf is " + node.leaf.getKey());
 		if(this.leftChild != null && !this.leftChild.leaf.getKey().equalsIgnoreCase(SimpleTreeNode.EMPTY))
 		{
@@ -495,14 +499,14 @@ public class SimpleTreeNode {
 //			rightMost.rightSibling = node;
 //			node.leftSibling = rightMost;
 			
-			SimpleTreeNode child = this.leftChild;
-			SimpleTreeNode rightNode = child.rightSibling;
+			SimpleTreeNode child = this.leftChild; // getting the first child
+			SimpleTreeNode rightNode = child.rightSibling; // getting the second child
 			
-			child.rightSibling = node;
-			node.leftSibling = child;
+			child.rightSibling = node; // adding it to the right of the first node
+			node.leftSibling = child; // sure setting the left node
 			if(rightNode != null) {				
-				rightNode.leftSibling = node;
-				node.rightSibling = rightNode;
+				rightNode.leftSibling = node; // insert
+				node.rightSibling = rightNode; // insert complete
 			}
 //			this.printNodes(rightMost);
 //			System.out.println(rightMost.toString() + "-" + rightMost.leaf.getValue() + " ----------- " + node.leaf.getValue() + "-" + node.toString());
@@ -516,12 +520,24 @@ public class SimpleTreeNode {
 			node.leftChild = prevLeftChild;*///
 			this.leftChild = node;			
 		}
-
+		
+		incrementCount(node.leaf); // put the count
 		node = node.rightSibling;
-		while (node != null){
+		while (node != null){ // I have no idea why this is being done ?
 			node.parent = this;
 			node = node.rightSibling;
 		}
+	}
+	
+	public void incrementCount(ITreeKeyEvaluatable node)
+	{
+		// insert the count
+		String nodeValue = node.getKey();
+		Integer childCounter = 0;
+		if(childCount.containsKey(nodeValue))
+			childCounter = childCount.get(nodeValue);
+		childCounter++;
+		childCount.put(nodeValue, childCounter);		
 	}
 
 	public static void addLeafChild(SimpleTreeNode parentNode, SimpleTreeNode node)
@@ -810,6 +826,8 @@ public class SimpleTreeNode {
 		else
 			return getChildsOfType(nextRound, type, results);
 	}
+
+
 	
 	private static Vector <SimpleTreeNode> addAllSiblings(SimpleTreeNode node, Vector <SimpleTreeNode> inVector)
 	{
@@ -988,6 +1006,411 @@ public class SimpleTreeNode {
 			retVec.addElement(vector.elementAt(idx));
 		return retVec;
 	}
+
+	
+	// new methods here >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	
+	public void addSibling(SimpleTreeNode node)
+	{
+		//SimpleTreeNode daNode = this;
+		node.leftSibling = this.rightSibling;
+		this.rightSibling.leftSibling = node;
+		this.rightSibling = node;		
+	}
+	
+	public static  Hashtable<String, Integer> getChildsOfTypeCount(Vector <SimpleTreeNode> nodes, String type, Hashtable <String, Integer> results)
+	{
+		Vector <SimpleTreeNode> nextRound = new Vector();
+		while(nodes.size() > 0)
+		{
+			SimpleTreeNode targetNode = nodes.remove(0);
+			//System.out.println("Trying... " + targetNode.leaf.getKey());
+			if(((ISEMOSSNode)targetNode.leaf).getType().equalsIgnoreCase(type))
+			{
+				//System.err.println("Into the results.. ");
+				// get to the parent
+				// get the number of nodes on this one
+				results = getAllSiblingCount(targetNode, results);
+				//results = addAllSiblings(targetNode, results);
+			}
+			else
+			{
+				//System.err.println("Adding for future");
+				if(targetNode.leftChild != null && ((ISEMOSSNode)targetNode.leftChild.leaf).getType().equalsIgnoreCase(type))
+					nextRound.addElement(targetNode.leftChild); 
+				else
+					addAllSiblings(targetNode.leftChild, nextRound);
+			}
+			//System.out.println("Results...  " + results.size());
+		}
+		if(nextRound.size() == 0)
+			return results;
+		else
+			return getChildsOfTypeCount(nextRound, type, results);
+	}
+
+	// when the parent is the same... I need to find a way to add it
+	// i.e. everytime it consolidates.. I need to add it
+	// but as I do this.. I need to keep track of which tree branch I am climbing
+	public static  Hashtable<String, Integer> getParentsOfTypeCount(Vector <SimpleTreeNode> nodes, String type, Hashtable <String, Integer> results, boolean first)
+	{
+		// I need to first get the parents of this type.. chances are all that we are looking for is parent.. ie the to type or may be not
+		// if that is the case.. I can stop the loop and return
+		// else I need to see if this is the first time
+		// if first time.. I need to get the child count values in the parent
+		// and allocate it
+		// once that is done
+		// then it is a recursive loop as I climb the branch. I am continuously trying to figure out if there is already a value and then input it. 
+		//Hashtable <String, Integer> nextCountHash = new Hashtable<String, Integer>();
+		Vector <SimpleTreeNode> nextRound = new Vector<SimpleTreeNode>();
+		String curType = null;
+		while(nodes.size() > 0)
+		{
+			SimpleTreeNode targetNode = nodes.remove(0);
+			curType = ((ISEMOSSNode)targetNode.leaf).getType();
+			
+			if(targetNode.parent != null) //  && !((ISEMOSSNode)targetNode.parent.leaf).getType().equalsIgnoreCase(type))
+			{
+				
+				int count = 0;
+				String parentKey = targetNode.parent.leaf.getKey();
+				String parentType = ((ISEMOSSNode)targetNode.parent.leaf).getType();
+
+				if(first)
+					count = targetNode.parent.childCount.get(targetNode.leaf.getKey()); // get it from the parent
+				else
+					count = results.get(targetNode.leaf.getKey());
+				
+				if(results.containsKey(parentKey))
+					count = count + results.get(parentKey);
+				
+				// now set the parent in the next count hash
+				results.put(parentKey, count);
+				
+				// remove this key
+				results.remove(targetNode.leaf.getKey());
+				
+				if(!parentType.equalsIgnoreCase(type))
+					nextRound.add(targetNode.parent);
+			}
+			else
+			{
+				// really nothing much to do
+			}
+		}
+		//results = nextCountHash;
+		if(nextRound.size() == 0)
+			return results;
+		else
+			return getParentsOfTypeCount(nextRound, type, results, false);
+	}
+
+
+
+	// this is when there are multple parent types
+	// which also need to be recorded
+	// for the final child type
+	
+	// when the parent is the same... I need to find a way to add it
+	// i.e. everytime it consolidates.. I need to add it
+	// but as I do this.. I need to keep track of which tree branch I am climbing
+	// the immediate known parent hash says which key to associate this with
+	// the value string is what it needs to go to
+	// It can never be more than one value kind of ?
+	
+	public static  Hashtable<String, Hashtable<String, Integer>> getChildOfTypeCountMulti(Vector <SimpleTreeNode> nodes, String parentTypes, String type, Hashtable <String, Hashtable<String, Integer>> results, Hashtable <String, String> immediateKnownParentHash)
+	{
+		// I need to first get the parents of this type.. chances are all that we are looking for is parent.. ie the to type or may be not
+		// if that is the case.. I can stop the loop and return
+		// else I need to see if this is the first time
+		// if first time.. I need to get the child count values in the parent
+		// and allocate it
+		// once that is done
+		// then it is a recursive loop as I climb the branch. I am continuously trying to figure out if there is already a value and then input it. 
+		//Hashtable <String, Integer> nextCountHash = new Hashtable<String, Integer>();
+		Vector <SimpleTreeNode> nextRound = new Vector<SimpleTreeNode>();
+		Hashtable <String, String> nextRoundImmediateParentHash = new Hashtable<String, String>();
+		Vector <String> keysToDrop = new Vector<String>();
+		String curType = null;
+		while(nodes.size() > 0)
+		{
+			SimpleTreeNode targetNode = nodes.remove(0);
+			curType = ((ISEMOSSNode)targetNode.leaf).getType();
+			
+			String mainParentKey = null;
+			// do the nulling process
+			if(targetNode.leftChild != null && !curType.equalsIgnoreCase(type)) //  && !((ISEMOSSNode)targetNode.parent.leaf).getType().equalsIgnoreCase(type))
+			{
+				int count = 0;
+				String thisKey = targetNode.leaf.getKey();
+				String thisType = ((ISEMOSSNode)targetNode.leaf).getType();
+				
+				// I need to find my immediate parent
+				// and then find which node is this parent a part of
+				SimpleTreeNode parent = targetNode.parent;
+				
+				if(parent == null)
+				{
+					// this is the first time... so I am going to record this at this point
+					if(parentTypes.contains(";" + thisType + ";"))
+					{
+						results.put(thisKey, new Hashtable()); // not doing much here
+						mainParentKey = thisKey;
+					}
+				}
+				else
+				{
+					//String parentKey = parent.leaf.getKey();
+					// ah interesting.. I need to break this out
+					// now I do not know why I have the stuff as a vector
+					// ok made it into a string
+					mainParentKey = immediateKnownParentHash.get(parent.leaf.getKey());
+					if(results.containsKey(mainParentKey)) // the program gets a sigh of relief here.. phew.. !!
+					{
+						// get this hashtable
+						Hashtable <String, Integer> valueHash = new Hashtable<String, Integer>();
+						if(parentTypes.contains(";" + thisType + ";"))
+						{		
+							//results.remove(mainParentKey);
+							keysToDrop.add(mainParentKey);
+							// modify the mainParent Key
+							mainParentKey = mainParentKey + "_" + thisKey;
+							// put this new key back	
+							results.put(mainParentKey, valueHash);
+						}
+					}
+					
+				}				
+				// now do the logic of adding the child to the next nodes
+				// and also do the setting up in terms of the immediateparent Hash
+				//if(parent != null && immediateKnownParentHash.containsKey(parent))
+				//	immediateKnownParentHash.remove(targetNode.parent);
+				
+				// now set the new one
+				nextRoundImmediateParentHash.put(targetNode.leaf.getKey(), mainParentKey);
+				
+				// now set all the child siblings into the nextRoung
+				SimpleTreeNode nodeRunner = targetNode.leftChild;
+				while(nodeRunner != null)
+				{
+					nextRound.add(nodeRunner);
+					nodeRunner = nodeRunner.rightSibling;
+				}
+			}
+			else
+			{
+				// we have come to the right point
+				// woo hoo.. all that need to do at this point is
+				// work through the child
+				// pick the count and then 
+				String key = targetNode.leaf.getKey();
+				int count = targetNode.parent.childCount.get(key);
+				
+				mainParentKey = immediateKnownParentHash.get(targetNode.parent.leaf.getKey());
+				// find the results
+				Hashtable <String, Integer> curHash = results.get(mainParentKey);
+				
+				// possibly they have it already ? who knows
+				if(curHash.containsKey(key))
+					count = count + curHash.get(key);
+				
+				// put it back to curHash
+				curHash.put(key, count);
+				
+				// put it back please
+				results.put(mainParentKey, curHash);
+			}
+		}// end of while I bet.. 
+		
+		for(int keyIndex = 0;keyIndex < keysToDrop.size();results.remove(keysToDrop.elementAt(keyIndex)),keyIndex++);
+		
+		//results = nextCountHash;
+		if(nextRound.size() == 0)
+			return results;
+		else
+			return getChildOfTypeCountMulti(nextRound, parentTypes, type, results, nextRoundImmediateParentHash);
+	}
+
+	// this is the piece I need to do next
+	// that is trying to walk the tree up and then finding out what are the pieces to account for
+	// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	// this is not a working function
+	// I am trying to go from X3.. X1 with the ability to say what is the count of X1 in X3
+	// Start at X3, if there is a parent
+	// I am going to take the count from the parent
+	// plot it into the function
+	public static  Hashtable<String, Hashtable<String, Integer>> getParentOfTypeCountMulti(Vector <SimpleTreeNode> nodes, String parentTypes, String type, Hashtable <String, Hashtable<String, Integer>> results, Hashtable <String, String> immediateKnownParentHash)
+	{
+		// I need to first get the parents of this type.. chances are all that we are looking for is parent.. ie the to type or may be not
+		// if that is the case.. I can stop the loop and return
+		// else I need to see if this is the first time
+		// if first time.. I need to get the child count values in the parent
+		// and allocate it
+		// once that is done
+		// then it is a recursive loop as I climb the branch. I am continuously trying to figure out if there is already a value and then input it. 
+		//Hashtable <String, Integer> nextCountHash = new Hashtable<String, Integer>();
+		Vector <SimpleTreeNode> nextRound = new Vector<SimpleTreeNode>();
+		Hashtable <String, String> nextRoundImmediateParentHash = new Hashtable<String, String>();
+		Vector <String> keysToDrop = new Vector<String>();
+		String curType = null;
+		while(nodes.size() > 0)
+		{
+			SimpleTreeNode targetNode = nodes.remove(0);
+			curType = ((ISEMOSSNode)targetNode.leaf).getType();
+			
+			String mainParentKey = null;
+			// do the nulling process
+			if(targetNode.parent != null && !curType.equalsIgnoreCase(type)) //  && !((ISEMOSSNode)targetNode.parent.leaf).getType().equalsIgnoreCase(type))
+			{
+				int count = 0;
+				String thisKey = targetNode.leaf.getKey();
+				String thisType = ((ISEMOSSNode)targetNode.leaf).getType();
+				
+				// I need to find my immediate parent
+				// and then find which node is this parent a part of
+				SimpleTreeNode parent = targetNode.parent;
+				
+				if(parent != null)
+				{
+					
+					Hashtable <String, Integer> hashToPut = new Hashtable<String, Integer>();
+					String immediateParentKey = thisKey;
+					
+					// get it from the hash
+					if(immediateKnownParentHash.containsKey(thisKey))
+						immediateParentKey = immediateKnownParentHash.get(thisKey);
+					
+					int curKeyCount = 0;
+					// now get the latest through the immediate parent key					
+					if(results.containsKey(immediateParentKey))
+					{
+						hashToPut = results.get(immediateParentKey);
+						curKeyCount = hashToPut.get("temp");
+					}
+					else
+					{
+						// get the count from the parent
+						curKeyCount = parent.childCount.get(thisKey);// so once I have the count I dont need it again
+						// I should probably use temp as the key in hashToPut and finalize it in the end
+						hashToPut.put("temp", curKeyCount); // first time set it up
+					}
+					if(parentTypes.contains(";" + thisType + ";")) // need to check for first time
+					{
+						if(!immediateParentKey.equals(thisKey))
+						{
+							mainParentKey = immediateParentKey + "_" + thisKey;
+							keysToDrop.add(immediateParentKey);
+						}
+						else
+							mainParentKey = thisKey;
+					}
+					else
+					{
+						mainParentKey = immediateParentKey; // revert it back to the previous one
+					}
+
+					hashToPut.remove(immediateParentKey); // I may not need this.. let me try
+					
+					int totalCount = 0;
+					
+					if(results.containsKey(mainParentKey)) // interestingly this is only valid if the ultimate parent is going to be the same
+					{
+						//curKeyCount = hashToPut.get("temp"); // + curKeyCount; - not sure I need this either
+						hashToPut = results.get(mainParentKey);
+					}
+					hashToPut.put("temp", curKeyCount); // put the new key back // I need a way to synchronize this to say if there is already one use that
+					// add it to the results
+					results.remove(immediateParentKey); // remove the previous one
+					results.put(mainParentKey, hashToPut); // replace with the new one
+
+					
+					nextRoundImmediateParentHash.put(parent.leaf.getKey(), mainParentKey);					
+				}
+				// now do the logic of adding the child to the next nodes
+				// and also do the setting up in terms of the immediateparent Hash
+				//if(parent != null && immediateKnownParentHash.containsKey(parent))
+				//	immediateKnownParentHash.remove(targetNode.parent);
+				
+				// now set the new one
+				//nextRoundImmediateParentHash.put(targetNode.leaf.getKey(), mainParentKey); // this where I set it for the next round // this should be done only if I did not do it previously
+				
+				// now set all the child siblings into the nextRoung
+				SimpleTreeNode nodeRunner = targetNode.parent;
+				nextRound.add(nodeRunner);
+			}
+			else
+			{
+				// we have come to the right point
+				// woo hoo.. all that need to do at this point is
+				// work through the child
+				// pick the count and then 
+				String key = targetNode.leaf.getKey();
+				//int count = targetNode.parent.childCount.get(key);
+				
+				
+				mainParentKey = immediateKnownParentHash.get(targetNode.leaf.getKey());
+				// find the results
+				Hashtable <String, Integer> curHash = results.get(mainParentKey);
+				
+				// I dont need to do much here other than just replace the key
+				// but what if 2 of them come through what happens then ? hmm.. 
+				// seems like I need to keep which child it came from too
+				// interesting.. 
+				int count = 0; // I have no idea why I need to add this.. anyways
+				// possibly they have it already ? who knows
+				if(curHash.containsKey("temp"))
+					count = curHash.get("temp");
+				
+				// need to see if the count already exists
+				// i.e. if it existed from the previous run
+				if(curHash.containsKey(key))
+					count = count + curHash.get(key);
+				
+				// remove the mainParentKey - its job is done
+				curHash.remove("temp");
+				
+				// put it back to curHash
+				curHash.put(key, count);
+				
+				// put it back please
+				results.put(mainParentKey, curHash);
+			}
+		}// end of while I bet.. 
+		
+		// keys to drop seems to be wrong - in the last run
+		for(int keyIndex = 0;keyIndex < keysToDrop.size();results.remove(keysToDrop.elementAt(keyIndex)),keyIndex++);
+		
+		//results = nextCountHash;
+		if(nextRound.size() == 0)
+			return results;
+		else
+			return getParentOfTypeCountMulti(nextRound, parentTypes, type, results, nextRoundImmediateParentHash);
+	}
+
+	
+	
+	
+	public static Hashtable<String, Integer> getAllSiblingCount(SimpleTreeNode node, Hashtable<String, Integer> results)
+	{
+		SimpleTreeNode thisNode = node;
+		while(thisNode != null)
+		{
+			String key = thisNode.leaf.getKey();
+			Integer count = thisNode.parent.childCount.get(key);
+			Integer curCounter = 0;
+			if(results.containsKey(key))
+				curCounter = results.get(key);
+			curCounter = curCounter + count;
+			results.put(key, curCounter);
+			thisNode = thisNode.rightSibling;
+		}
+		return results;
+		//results = addAllSiblings(targetNode, results);
+		
+	}
+	
+	
+	
 	
 //	public static void wait(BufferedReader reader, SimpleTreeNode2 node) throws Exception
 //	{
