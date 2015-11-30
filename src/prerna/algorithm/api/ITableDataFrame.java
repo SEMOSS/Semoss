@@ -476,6 +476,12 @@ public interface ITableDataFrame extends IDataMaker {
 	void binNumericalColumns(String[] columns);
 	
 	/**
+	 * Bins all numeric columns
+	 * @param columns
+	 */
+	void binAllNumericColumns();
+	
+	/**
 	 * 
 	 * @param columnHeaders
 	 */
