@@ -1950,4 +1950,14 @@ public class BTreeDataFrame implements ITableDataFrame {
 			binNumericColumn(col);
 		}
 	}
+	
+	@Override
+	public void binAllNumericColumns() {
+		boolean[] isNumeric = isNumeric();
+		for(int i = 0; i < filteredLevelNames.length; i++) {
+			if(isNumeric[i]) {
+				binNumericColumn(filteredLevelNames[i]);
+			}
+		}
+	}
 }
