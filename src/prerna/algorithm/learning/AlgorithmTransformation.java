@@ -130,12 +130,12 @@ public class AlgorithmTransformation extends AbstractTransformation {
 		Method method = null;
 		try {
 			method = dm.getClass().getMethod(UNDO_METHOD_NAME, String.class);
-			LOGGER.info("Successfully got method : " + METHOD_NAME);
+			LOGGER.info("Successfully got method : " + UNDO_METHOD_NAME);
 			
 			// iterate from root to top for efficiency in removing connections
 			for(int i = addedColumns.size()-1; i >= 0; i--) {
 				method.invoke(dm, addedColumns.get(i));
-				LOGGER.info("Successfully invoked method : " + METHOD_NAME);
+				LOGGER.info("Successfully invoked method : " + UNDO_METHOD_NAME);
 			}
 		} catch (NoSuchMethodException | SecurityException e) {
 			e.printStackTrace();
