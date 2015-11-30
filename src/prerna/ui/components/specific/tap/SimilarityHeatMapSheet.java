@@ -82,6 +82,7 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 	@Override
 	public void createView()
 	{
+		super.addPanel();
 		String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 
 		registerFunctions();
