@@ -36,7 +36,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.HashSet;
+import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -369,6 +369,7 @@ public class SimpleTreeBuilder
 				for(int childIdx = childInstances.size() - 1; childIdx >=0 && !foundNode; childIdx -- ){ // start from the back because its likely to be the last one
 					SimpleTreeNode childInst = childInstances.get(childIdx);
 					if(childInst.parent.equal(parentInstanceNode)){
+						parentInstanceNode.incrementCount(childInst.leaf);// increment this guy
 						parentInstanceNode = childInst;
 						foundNode = true;
 					}
@@ -421,6 +422,11 @@ public class SimpleTreeBuilder
 		{
 			SimpleTreeNode parentInstanceNode = parentInstances.elementAt(instanceIndex);
 			childExists = parentInstanceNode.hasChild(node);
+			if(childExists)
+			{
+				// update the parent instance node with this child with 1
+				parentInstanceNode.incrementCount(node);
+			}
 		}		
 		
 		if(childExists)
@@ -2377,5 +2383,275 @@ public class SimpleTreeBuilder
 		}
 	}
 
+	
+	public Hashtable<String, Hashtable<String, Integer>> getPath(String fromType, String toType)
+	{
+		return getPath(fromType, toType, null);
+	}
+
+	// gives it in the format of
+	// fromTypeKey | toType Key <> Occurences
+	// 			   | to Type Key 2 <> Occurences
+	public Hashtable<String, Hashtable<String, Integer>> getPath(String fromType, String toType, String paths)
+	{
+		Vector <String> levels = findLevels();
+		boolean flip = false;
+		if(levels.indexOf(fromType) > levels.indexOf(toType))
+			flip = true;		
+		
+		TreeNode typeRoot = nodeIndexHash.get(fromType);
+		Vector <TreeNode> searchVector = new Vector<TreeNode>();
+		searchVector.add(typeRoot);
+		// I need to write the logic to walk the tree and get all instances
+		// gets all the instances
+		Vector <SimpleTreeNode> allInstanceVector = typeRoot.getInstanceNodes(searchVector, new Vector<SimpleTreeNode>());
+		
+		Hashtable<String, Hashtable<String,Integer>> values = new Hashtable<String, Hashtable<String, Integer>>();
+		for(int instanceIndex = 0;instanceIndex < allInstanceVector.size();instanceIndex++)
+		{
+			
+			Vector <SimpleTreeNode> instanceVector = new Vector<SimpleTreeNode>();
+			SimpleTreeNode fromNode = allInstanceVector.elementAt(instanceIndex);
+			instanceVector.addElement(fromNode);
+			String key = fromNode.leaf.getKey();
+			//SimpleTreeNode instanceNode = typeRoot.getInstances().elementAt(0);
+			//instanceNode = instanceNode.getLeft(instanceNode);
+			//instanceVector.add(instanceNode);
+			//Vector output = typeRoot.getInstanceNodes(rootVector, new Vector());
+			Hashtable <String, Integer> output = new Hashtable<String, Integer>();
+			if(values.containsKey(key))
+				output = values.get(key);
+			if(paths == null)
+			{
+				if(!flip)
+					output = SimpleTreeNode.getChildsOfTypeCount(instanceVector, toType, output);
+				else
+					output = SimpleTreeNode.getParentsOfTypeCount(instanceVector, toType, output, true);
+				//System.out.println(" >> " + key + "   " + output);				
+				values.put(key, output);
+			}
+			else
+			{
+				// need to take care of flip
+				if(!flip)
+					values = SimpleTreeNode.getChildOfTypeCountMulti(instanceVector, paths, toType, values, new Hashtable <String, String>());
+				else
+					values = SimpleTreeNode.getParentOfTypeCountMulti(instanceVector, paths, toType, values, new Hashtable <String, String>());
+			}
+			
+			//System.out.println("Values...  " + values);
+			// need to remove the duplicates
+			//System.out.println("Total Number of instances are " + output.size() + output.elementAt(0).leaf.getKey());
+		}
+		//System.out.println("Output values is " + values);
+		
+		//if(flip) // I had flipped it originally
+		//	values = flipPath(values);
+		return values;
+	}
+	
+	public Hashtable<String, Hashtable<String, Integer>> flipPath(Hashtable <String, Hashtable<String, Integer>> data)
+	{
+		Hashtable <String, Hashtable<String, Integer>> retTable = new Hashtable <String, Hashtable<String, Integer>>();
+		Enumeration <String> baseKeys = data.keys();
+		
+		while(baseKeys.hasMoreElements())
+		{
+			String baseKey = baseKeys.nextElement();
+			Hashtable <String, Integer> mainData = data.get(baseKey);
+			
+			Hashtable <String, Integer> newData = new Hashtable<String, Integer>();
+			Enumeration <String> newKeys = mainData.keys();
+			
+			while(newKeys.hasMoreElements())
+			{
+				String newKey = newKeys.nextElement();
+				
+				if(retTable.containsKey(newKey)) // get the table if it is already there in the flipped table
+					newData = retTable.get(newKey);
+				
+				int count = 0;
+				if(newData.containsKey(baseKey)) // baseKey is what I am flipping if the basekey value is already there on the flip
+					count = newData.get(baseKey);
+				
+				count = count + mainData.get(newKey);
+				
+				newData.put(baseKey, count);
+				
+				retTable.put(newKey, newData);
+			}
+		}
+		
+		return retTable;
+	}
+	
+
+	// need to also do it.. when there is more than one
+	// i.e. this could be X1, X2 and X3 etc. 
+	// so it is a list of parents and with it 1 child
+	// every single time I need to do a new one
+	public Hashtable<String, Hashtable<String, Integer>> getPaths(String [] fromType, String toType)
+	{
+		// 
+		
+		TreeNode typeRoot = nodeIndexHash.get(fromType);
+		Vector <TreeNode> searchVector = new Vector<TreeNode>();
+		searchVector.add(typeRoot);
+		// I need to write the logic to walk the tree and get all instances
+		// gets all the instances
+		Vector <SimpleTreeNode> allInstanceVector = typeRoot.getInstanceNodes(searchVector, new Vector<SimpleTreeNode>());
+		
+		Hashtable<String, Hashtable<String,Integer>> values = new Hashtable<String, Hashtable<String, Integer>>();
+		for(int instanceIndex = 0;instanceIndex < allInstanceVector.size();instanceIndex++)
+		{
+			
+			Vector <SimpleTreeNode> instanceVector = new Vector<SimpleTreeNode>();
+			SimpleTreeNode fromNode = allInstanceVector.elementAt(instanceIndex);
+			instanceVector.addElement(fromNode);
+			//SimpleTreeNode instanceNode = typeRoot.getInstances().elementAt(0);
+			//instanceNode = instanceNode.getLeft(instanceNode);
+			//instanceVector.add(instanceNode);
+			//Vector output = typeRoot.getInstanceNodes(rootVector, new Vector());
+			Hashtable <String, Integer> output = SimpleTreeNode.getChildsOfTypeCount(instanceVector, toType, new Hashtable<String, Integer>());
+			values.put(fromNode.leaf.getKey(), output);
+			
+			// need to remove the duplicates
+			//System.out.println("Total Number of instances are " + output.size() + output.elementAt(0).leaf.getKey());
+		}
+		System.out.println("Output values is " + values);
+		return values;
+	}
+	
+	public Hashtable<String, Integer> getNodeConfig(String type)
+	{
+		TreeNode typeRoot = nodeIndexHash.get(type);
+		Vector <TreeNode> searchVector = new Vector<TreeNode>();
+		searchVector.add(typeRoot);
+		// I need to write the logic to walk the tree and get all instances
+		// gets all the instances
+		Vector <SimpleTreeNode> allInstanceVector = typeRoot.getInstanceNodes(searchVector, new Vector<SimpleTreeNode>());
+		
+		Hashtable<String,Integer> values = new Hashtable<String, Integer>();
+		int grandTotal = 0;
+		
+		Vector <String> levels = findLevels();
+		
+		for(int instanceIndex = 0;instanceIndex < allInstanceVector.size();instanceIndex++)
+		{
+			SimpleTreeNode thisNode = allInstanceVector.elementAt(instanceIndex);
+			String val = thisNode.leaf.getKey();
+			// get the hashtable
+			int total = 0;
+			if(values.containsKey(val))
+			{
+				total = values.get(val);
+				grandTotal = grandTotal - total;
+			}
+			
+			// I need to check if this is the last level I am looking
+			
+			if(thisNode.childCount.size() > 0)
+			{
+				Iterator <Integer> vals = thisNode.childCount.values().iterator();
+				while(vals.hasNext())
+				{
+					total = total + vals.next();
+				}
+			}
+			else if(!levels.get(levels.size()-1).equals(type))
+			{
+				// this is not the last level
+				total = 1; // atleast 1 node
+			}
+			else
+			{
+				// this is the last level run analysis for it
+				SimpleTreeNode parent = thisNode.parent;
+				if(parent.childCount.containsKey(val))
+					total = total + parent.childCount.get(val);
+				//System.out.println("To Be Determined");
+			}
+			grandTotal = grandTotal + total;
+			values.put(val, total);
+		}
+		values.put("total", grandTotal);
+		System.out.println("Output values is " + values);
+		return values;
+	}
+	
+	public void addSimple()
+	{
+		addNode(new StringClass("AnatomicPath", "BP"), new StringClass("Modify Referrals", "Activity"));
+		addNode(new StringClass("AnatomicPath", "BP"), new StringClass("Modify Referrals", "Activity"));
+		addNode(new StringClass("AnatomicPath", "BP"), new StringClass("Modify Referrals", "Activity"));
+		addNode(new StringClass("AnatomicPath", "BP"), new StringClass("Modify Orders", "Activity"));
+		addNode(new StringClass("AnatomicPath", "BP"), new StringClass("Procurement", "Activity"));
+		
+		addNode(new StringClass("Lab", "Cap"), new StringClass("AnatomicPath", "BP"));
+		addNode(new StringClass("Lab", "Cap"), new StringClass("ClinicalPath", "BP"));
+		//flattenFromType("Cap");
+		
+		//System.out.println("Number of nodes " + getSInstanceNodes("Activity").size());
+		
+		//System.err.println("-----");
+		//adjustType("BP", false);
+		//flattenFromType("Cap");
+		
+		//System.err.println("-----");
+		addNode(new StringClass("ClinicalPath", "BP"), new StringClass("Procurement", "Activity"));
+		//flattenFromType("Cap");
+		
+		//System.err.println("-----");
+		
+		addNode(new StringClass("Modify Referrals", "Activity"), new StringClass("Orders", "DO"));
+		addNode(new StringClass("Modify Referrals", "Activity"), new StringClass("Referrals", "DO"));
+		addNode(new StringClass("Modify Referrals", "Activity"), new StringClass("Patients", "DO"));
+		addNode(new StringClass("ClinicalPath", "BP"), new StringClass("Procurement2", "Activity"));
+		
+		//adjustType("Activity", false);
+		
+		//addNode(new StringClass("Procurement", "Activity"), new StringClass("Eligibility", "BLU"));
+		//addNode(new StringClass("Modify Referrals", "Activity"), new StringClass("Eligibility", "BLU"));
+		addNode(new StringClass("Patients", "DO"), new StringClass("Eligibility32", "BLUMEAWAY"));
+		adjustType("DO", false);
+		//addNode(new StringClass("Eligibility", "BLU"), new StringClass("Eligibility33", "TRY"));
+		addNode(new StringClass("Lab", "Cap"), new StringClass("HOLYCow", "TRY2"));
+		
+		//adjustType("DO", false);
+		
+		//flattenFromType("Cap");
+		//getInstances("Cap");
+		//getPath("BP", "TRY2");
+		addNode(new StringClass("Lab", "Cap"), new StringClass("PK", "BP"));
+		//adjustType("BP", true);
+		//System.err.println("After Adjustments.... for a single node");
+		//flattenFromType("Cap");
+		//removeNode(new StringClass("Referrals", "DO"));
+		//removeType("DO"); // not removing the last one
+		//addNode(new StringClass("Modify Referrals", "Activity"), new StringClass("Eligibility", "BLU"));
+		//System.out.println("Flattening ");
+		//flattenFromType("Cap");
+		//System.err.println("-----");
+		
+		//flattenFromType("Cap", "Activity");
+
+	}
+	
+	public static void main(String [] args)
+	{
+		SimpleTreeBuilder builder = new SimpleTreeBuilder("Yo");
+		//SimpleTreeBuilder builder2 = new SimpleTreeBuilder();
+		
+		//System.out.println(Runtime.getRuntime().availableProcessors());
+		
+		
+		
+		builder.addSimple();
+		builder.append(builder.getRoot(), builder.getRoot());
+		
+		//builder.addStress2();
+		//builder.multiEngineAdd();
+	}
+	
 }
 
