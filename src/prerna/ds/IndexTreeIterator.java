@@ -57,7 +57,8 @@ public class IndexTreeIterator implements Iterator<TreeNode> {
 				addNextNodesToStack(nextNode.rightChild);
 			}
 
-			if(nextNode.instanceNode.size() + nextNode.filteredInstanceNode.size() > 0) {
+			if(nextNode.getInstances().size() + nextNode.getFilteredInstances().size() > 0) {
+//			if(nextNode.instanceNode.size() + nextNode.filteredInstanceNode.size() > 0) {
 				returnNode = nextNode;
 			}
 		}
