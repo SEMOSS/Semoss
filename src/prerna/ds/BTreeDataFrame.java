@@ -1537,6 +1537,10 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return filterer.getRawFilterModel();
 	}
 	
+	public Map<String, Object[]> getFilterTransformationValues() {
+		return filterer.getFilterTransformationsValues();//getFilterTransformationValues();
+	}
+	
 	//remove M's from the filterValue nodes, decrement all their sub tree values' TM count
 	public void unfilter(String columnHeader, List<Object> filterValues) {
 		columnHeader = this.getColumnName(columnHeader);
