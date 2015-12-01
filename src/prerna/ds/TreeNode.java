@@ -1,7 +1,11 @@
 package prerna.ds;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.List;
+import java.util.Set;
+import java.util.Stack;
 import java.util.Vector;
 
 
@@ -17,8 +21,10 @@ public class TreeNode {
 	static String numberList = "";
 	
 	ITreeKeyEvaluatable leaf = null;
-	Vector <SimpleTreeNode> instanceNode = new Vector<SimpleTreeNode>();
-	Vector <SimpleTreeNode> filteredInstanceNode = new Vector<SimpleTreeNode>();
+	Vector<SimpleTreeNode> instanceNode = new Vector<SimpleTreeNode>();
+	Vector<SimpleTreeNode> filteredInstanceNode = new Vector<SimpleTreeNode>();
+	Vector<SimpleTreeNode> transFilteredInstanceNode = new Vector<SimpleTreeNode>();
+
 	
 	private static final int fanout = 5;
 	
@@ -38,12 +44,99 @@ public class TreeNode {
 	 */
 	public void addInstance(SimpleTreeNode node) {
 		this.instanceNode.add(node);
-	}	
+	}
+	
+	/**
+	 * 
+	 * @param node - SimpleTreeNode to be hard filtered
+	 * 
+	 * If the node is in the instanceNode vector it will be moved to the filteredInstanceNode vector, otherwise it will stay where it is
+	 */
+	public void hardFilter(SimpleTreeNode node) {
+		if(instanceNode.remove(node)) {
+			filteredInstanceNode.add(node);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param node - SimpleTreeNode to be put into transitively filtered vector
+	 * 
+	 * If a node is in the instanceNode vector or the filteredInstanceNode vector, it will be moved to the transitively filtered bucket
+	 */
+	public void transitivelyFilter(SimpleTreeNode node) {
+		if(instanceNode.remove(node)) {
+			transFilteredInstanceNode.add(node);
+		} else if(filteredInstanceNode.remove(node)) {
+			transFilteredInstanceNode.add(node);
+		}
+	}
 	
 	/**
 	 * 
 	 * @param node
 	 */
+	public void unfilter(SimpleTreeNode node) {
+		if(!node.hardFiltered && filteredInstanceNode.contains(node)) {
+			filteredInstanceNode.remove(node);
+			instanceNode.add(node);
+		} else if(node.hardFiltered && node.transitivelyFiltered == 0 && transFilteredInstanceNode.contains(node)) {
+			transFilteredInstanceNode.remove(node);
+			filteredInstanceNode.add(node);
+		} else if(!node.hardFiltered && node.transitivelyFiltered == 0 && transFilteredInstanceNode.contains(node)) {
+			transFilteredInstanceNode.remove(node);
+			instanceNode.add(node);
+		}
+	}
+	
+	public void removeTransitiveFilter(SimpleTreeNode node) {
+		if(transFilteredInstanceNode.remove(node)) {
+			if(node.hardFiltered) {
+				filteredInstanceNode.add(node);
+			} else {
+				instanceNode.add(node);
+			}
+		}
+	}
+	/**
+	 * 
+	 * @return
+	 */
+	public int getFilteredValue() {
+		if(instanceNode.size() > 0) {;
+			return 1;
+		} else if(filteredInstanceNode.size() > 0) {
+			return 0;
+		} else {
+			return -1;
+		}
+	}
+	
+	public void clearFilteredValues() {
+		filteredInstanceNode.clear();
+		transFilteredInstanceNode.clear();
+	}
+	
+	public void remove(SimpleTreeNode node) {
+		if(instanceNode.remove(node)) return;
+		
+		if(filteredInstanceNode.remove(node)) return;
+		
+		transFilteredInstanceNode.remove(node);
+	}
+	
+	public boolean isFiltered(SimpleTreeNode node) {
+		if(instanceNode.contains(node)) {
+			return false;
+		} else return true;
+	}
+	
+	/**
+	 * 
+	 * @param node
+	 */
+	
+	//necessary? if so how to reconcile?
 	public void addFilteredInstance(SimpleTreeNode node) {
 		this.filteredInstanceNode.add(node);
 	}	
@@ -56,8 +149,16 @@ public class TreeNode {
 		return this.instanceNode;
 	}
 	
+	//include both M and TM?
 	public Vector<SimpleTreeNode> getFilteredInstances() {
-		return this.filteredInstanceNode;
+		Vector<SimpleTreeNode> allFilteredInstances = new Vector<SimpleTreeNode>();
+		allFilteredInstances.addAll(filteredInstanceNode);
+		allFilteredInstances.addAll(transFilteredInstanceNode);
+		return allFilteredInstances;
+	}
+	
+	public Vector<SimpleTreeNode> getHardFilteredInstances() {
+		return new Vector(this.filteredInstanceNode);
 	}
 
 	/**
@@ -137,7 +238,7 @@ public class TreeNode {
 			do {
 				
 				if(node.equal(searchNode)) {
-					if(node.instanceNode.size() + node.filteredInstanceNode.size() > 0) {
+					if(node.instanceNode.size() + node.filteredInstanceNode.size() + node.transFilteredInstanceNode.size() > 0) {
 						return node;
 					} else {
 						return null;
@@ -901,13 +1002,15 @@ public class TreeNode {
 	private boolean hasChildren(TreeNode counterNode) {
 		boolean has = false;
 		// expects you to give the left most node
-		do{
+		do {
+
 			if(counterNode.leftChild != null)
 				has = true;
 			if(counterNode.rightChild != null)
 				has = true;
 			counterNode = counterNode.rightSibling;
 		} while((counterNode!= null && !has));
+
 		return has;
 	}
 	
@@ -1218,6 +1321,32 @@ public class TreeNode {
 		this.rightChild = null;
 		this.rightSibling = null;
 		this.leftSibling = null;
+	}
+
+	public static TreeNode getMax(TreeNode node) {
+		
+		return null;
+	}
+	
+	public static TreeNode getMin(TreeNode node) {
+		return null;
+	}
+	
+	public Object getValue() {
+		return leaf.getValue();
+	}
+
+	public Vector<SimpleTreeNode> getTransFilteredInstances() {
+		// TODO Auto-generated method stub
+		return new Vector(this.transFilteredInstanceNode);
+	}
+
+	public Vector<SimpleTreeNode> getAllInstances() {
+		Vector<SimpleTreeNode> allInstances = new Vector<>();
+		allInstances.addAll(filteredInstanceNode);
+		allInstances.addAll(instanceNode);
+		allInstances.addAll(transFilteredInstanceNode);
+		return allInstances;
 	}
 
 

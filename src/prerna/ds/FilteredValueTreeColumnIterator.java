@@ -52,7 +52,7 @@ public class FilteredValueTreeColumnIterator implements Iterator<SimpleTreeNode>
 	private void addInstances() {
 		while(instances.size() < 2 && iterator.hasNext()) {
 			TreeNode nextNode = iterator.next();
-			instances.addAll(nextNode.filteredInstanceNode);
+			instances.addAll(nextNode.getFilteredInstances());
 		}
 	}
 

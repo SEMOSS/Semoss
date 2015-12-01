@@ -57,7 +57,7 @@ public class ReverseIndexTreeIterator implements Iterator<TreeNode> {
 				addNextNodesToStack(TreeNode.getRight(nextNode.leftChild));
 			}
 
-			if(nextNode.instanceNode.size() + nextNode.filteredInstanceNode.size() > 0) {
+			if(nextNode.instanceNode.size() + nextNode.getFilteredInstances().size() > 0) {
 				returnNode = nextNode;
 			}
 		}

@@ -9,6 +9,7 @@ import java.util.Map;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.util.DuplicationReconciliation;
 
+//TODO: change the name
 public class ITableStatCounter {
 
 	private static final String AVG = "average";
@@ -97,6 +98,7 @@ public class ITableStatCounter {
 		return array.toArray(new DuplicationReconciliation[array.size()]);
 	}
 	
+	//creates new BTreeDataFrame with the join columns and new columns
 	private BTreeDataFrame createNewBTree(Map<String, String> columnHeaderMap, DuplicationReconciliation[] mathModes) {
 		String[] newColHeaders = new String[columnHeaderMap.keySet().size()];
 		List<String> tempColHeaders = new ArrayList<String>(newColHeaders.length);
@@ -115,11 +117,17 @@ public class ITableStatCounter {
 			}
 		}
 		
+		//instantiate the new table that will be joined with the old table
 		BTreeDataFrame statTable = new BTreeDataFrame(newColHeaders, newColHeaders);
 		TreeNode columnRoot = table.simpleTree.nodeIndexHash.get(columnHeader);
+		
+		//gather the columns to skip, we only want to operate on the columns of interest
 		List<String> skipColumns = getSkipColumns(columnHeaderMap);
+		
+		//stat iterator requires a column root, list of DuplicationReconciliation objects that correspond to how the values will be grouped (avg, median, etc.), and skip columns
 		Iterator<Object[]> iterator = new StatIterator(columnRoot, mathModes, skipColumns);
 		
+		//for all values StatIterator returns, add it to the BTreeDataFrame
 		while(iterator.hasNext()) {
 			Object[] row = iterator.next();
 			Map<String, Object> newRow = new HashMap<String, Object>();
@@ -161,8 +169,7 @@ public class ITableStatCounter {
 			if(!(columnHeaderMap.containsKey(column))) {
 				retList.add(column);
 			}
-		}
-		
+		}	
 		return retList;
 	}
 	
