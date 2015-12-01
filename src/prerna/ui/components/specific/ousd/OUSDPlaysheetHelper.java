@@ -374,10 +374,10 @@ public final class OUSDPlaysheetHelper {
 	
 	public static IPlaySheet getPlaySheetFromName(String insightName, IEngine mainEngine){
 		IEngine qEng = mainEngine.getInsightDatabase();
-		String query = "SELECT QUESTION_ID FROM QUESTION_ID WHERE QUESTION_NAME = '"+insightName+"'";
+		String query = "SELECT ID FROM QUESTION_ID WHERE QUESTION_NAME = '"+insightName+"'";
 		ITableDataFrame frame = WrapperManager.getInstance().getSWrapper(qEng, query).getTableDataFrame();
-		String qID = (String) frame.getAllData().get(0)[0];
-		Insight in = mainEngine.getInsight(qID).get(0);
+		Integer qID = (Integer) frame.getAllData().get(0)[0];
+		Insight in = mainEngine.getInsight(qID+"").get(0);
 		
 
 //		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
