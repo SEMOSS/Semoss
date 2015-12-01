@@ -921,12 +921,12 @@ public class RDBMSReader {
 			if(sub.contains("+"))
 			{
 				subject = processAutoConcat(sub);
-				idxBaseURI = URI + subject;
+				idxBaseURI = URI + subject + "/" + subject;
 			}
 			else
 			{
 				subject = sub;
-				idxBaseURI = URI + subject;
+				idxBaseURI = URI + subject + "/" + subject;
 			}
 			uriHash.put(subject, idxBaseURI);
 		}
@@ -2177,7 +2177,7 @@ public class RDBMSReader {
 		tablesVec.addAll(allTablesModified);
 		Hashtable <String, String> tableInfo = new Hashtable();
 		for(String singleTable: tablesVec){
-			String tableCountQuery = queryUtil.getDialectSelectRowCountFrom(singleTable,"");
+			String tableCountQuery = queryUtil.getDialectSelectRowCountFrom(Utility.cleanString(singleTable, true),"");
 			ISelectWrapper tableCount = WrapperManager.getInstance().getSWrapper(engine, tableCountQuery);
 			while(tableCount.hasNext()){
 				ISelectStatement stmtTblCount = tableCount.next();
@@ -2332,7 +2332,6 @@ public class RDBMSReader {
 			String predicate = Constants.SUBCLASS_URI;
 			//convert instances to URIs
 			String subject = baseConceptURIHash.get(subjectInstance); // +"", false);
-			subject = subject + subject.substring(subject.lastIndexOf("/"), subject.length());
 			String object = semossURI + "/Concept";
 			// create the statement now
 			//createStatement(vf.createURI(subject), vf.createURI(predicate), vf.createURI(object));
@@ -2391,7 +2390,6 @@ public class RDBMSReader {
 			String propertyKey = relArray;
 			String parent = basePropRelations.get(propertyKey);
 			String parentURI = baseConceptURIHash.get(parent);
-			parentURI = parentURI + parentURI.substring(parentURI.lastIndexOf("/"), parentURI.length());
 			String propertyURI = basePropURIHash.get(propertyKey);
 			storeBaseStatement(parentURI, OWL.DatatypeProperty+"", propertyURI);
 		}
