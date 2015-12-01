@@ -435,14 +435,14 @@ public class BTreeExcelFilterer implements IBtreeFilterer {
 
 					//parentCheck determines whether we should filter the parents on the tree node
 					//if root no need to filter parents
-					boolean parentCheck = false;
-					if(n.parent == null) {
-						parentCheck = false;
-					}
-					//check if parent has a left child
-					else {
-						parentCheck = n.parent.leftChild == null;
-					}
+//					boolean parentCheck = false;
+//					if(n.parent == null) {
+//						parentCheck = false;
+//					}
+//					//check if parent has a left child
+//					else {
+//						parentCheck = n.parent.leftChild == null;
+//					}
 					
 					//remove the hard filters and reduce transitive filter on children/parents
 					unfilterTreeNode(n, true);
@@ -467,13 +467,19 @@ public class BTreeExcelFilterer implements IBtreeFilterer {
 						adjustLeftChildren(n);
 					}
 					
-					if(parentCheck) {
-						parentCheck = n.parent.leftChild != null;
-					}
+//					if(parentCheck) {
+//						parentCheck = n.parent.leftChild != null;
+//					}
 					//filter parents if need be
-					if(parentCheck) {
+//					if(parentCheck) {
+//						if(n.parent.leaf.getValue().toString().equalsIgnoreCase("Summit")) {
+//							System.out.println("");
+//						}
+//						adjustLeftChildren(n.parent);
+						adjustRightChildren(n.parent);
 						unfilterTreeNodeParents(n);
-					}
+						adjustLeftChildren(n.parent);
+//					}
 				}
 			}
 		}
@@ -805,14 +811,16 @@ public class BTreeExcelFilterer implements IBtreeFilterer {
 	private void unfilterTreeNodeParents(SimpleTreeNode instance) {
 		SimpleTreeNode parentNode = instance.parent;
 		if(parentNode != null) {
-			if(SimpleTreeNode.countNodeChildren(parentNode)==0) {
-				unfilterTreeNode(parentNode);
-				unfilterTreeNodeParents(parentNode);
-			} 
-			//if the parent node has a child that is not filtered, unfilter the parent
-			else if(!isFiltered(parentNode.leftChild)) {
-				unfilterTreeNode(parentNode);
-				unfilterTreeNodeParents(parentNode);
+			if(parentNode.leftChild == null) return;
+		
+			SimpleTreeNode leftChild = parentNode.leftChild;
+			while(leftChild != null) {
+				if(!isFiltered(parentNode.leftChild)) {
+					unfilterTreeNode(parentNode);
+					unfilterTreeNodeParents(parentNode);
+					break;
+				}
+				leftChild = leftChild.rightSibling;
 			}
 		}
 	}

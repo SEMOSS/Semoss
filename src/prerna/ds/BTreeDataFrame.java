@@ -40,6 +40,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -82,15 +83,19 @@ public class BTreeDataFrame implements ITableDataFrame {
 	protected Map<String, String> uriMap = new HashMap<String, String>();
 	protected List<Object> algorithmOutput = new Vector<Object>();
 	
+	protected BTreeExcelFilterer filterer;
+	
 	public BTreeDataFrame(String[] levelNames) {
 		setLevelNames(levelNames);
 		this.isNumericalMap = new HashMap<String, Boolean>();
 		columnsToSkip = new ArrayList<String>();
+		filterer = new BTreeExcelFilterer(this);
 	}
 	
 	public BTreeDataFrame(){
 		this.isNumericalMap = new HashMap<String, Boolean>();
 		columnsToSkip = new ArrayList<String>();
+//		filterer = new BTreeExcelFilterer(this);
 	}
 	
 	public BTreeDataFrame(String[] levelNames, String[] uriLevelNames) {
@@ -100,12 +105,14 @@ public class BTreeDataFrame implements ITableDataFrame {
 			uriMap.put(levelNames[i], uriLevelNames[i]);
 		}
 		columnsToSkip = new ArrayList<String>();
+		filterer = new BTreeExcelFilterer(this);
 	}
 	
 	protected void setLevelNames(String[] levelNames){
 		this.simpleTree = new SimpleTreeBuilder(levelNames[0]);
 		this.levelNames = levelNames;
 		this.filteredLevelNames = levelNames;
+		filterer = new BTreeExcelFilterer(this);
 	}
 	
 	@Override
@@ -791,7 +798,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
 		while(it.hasNext()) {
 			TreeNode t = it.next();
-			if(t.instanceNode.size() == 0) {
+			if(t.getInstances().size() == 0) {
 				uniqueValues.add(t.leaf.getRawValue());
 			}
 		}
@@ -811,6 +818,23 @@ public class BTreeDataFrame implements ITableDataFrame {
 			valueCount.put(node.leaf.getValue().toString(), node.getInstances().size());
 		}
 		return valueCount;
+		
+//		Object[] countColumn = this.getColumn(columnHeader); //get all the objects within the column
+//		Map<String, Integer> returnHash = new HashMap<>(); //initiate new HashMap
+//		
+//		int count;
+//	
+//		for (int i = 0; i < countColumn.length; i++) {    //loop until column ends
+//			String currentKey = countColumn[i].toString();
+//			if (returnHash.containsKey(currentKey)) {    //if the specific value in the object is already in a HashMap:
+//				count = returnHash.get(currentKey)+1;
+//				returnHash.put(currentKey, count);    //add to HashMap
+//			} else {    //if specific value isn't already in a HashMap:
+//				returnHash.put(currentKey, 1);    //add to HashMap
+//			}
+//		}
+//
+//		return returnHash;
 	}
 
 	@Override
@@ -1023,29 +1047,35 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public Double getAverage(String columnHeader) {
-		columnHeader = this.getColumnName(columnHeader);
-
-		double sum = 0;
-		double count = 0;
-
-		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		FilteredIndexTreeIterator it = new FilteredIndexTreeIterator(typeRoot);
-		StringClass empty = new StringClass(SimpleTreeNode.EMPTY);
-		while(it.hasNext()) {
-			TreeNode node = it.next();
-			ITreeKeyEvaluatable val = node.leaf;
-			if(val instanceof StringClass) {
-				if(val.isEqual(empty)) {
-					continue;
-				} else {
-					return Double.NaN;
-				}
-			}
-			sum += ((Number) node.leaf.getValue()).doubleValue() * node.getInstances().size();
-			count++;
-		}
-
+//		columnHeader = this.getColumnName(columnHeader);
+//
+//		double sum = 0;
+//		double count = 0;
+//
+//		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+//		FilteredIndexTreeIterator it = new FilteredIndexTreeIterator(typeRoot);
+//		StringClass empty = new StringClass(SimpleTreeNode.EMPTY);
+//		while(it.hasNext()) {
+//			TreeNode node = it.next();
+//			ITreeKeyEvaluatable val = node.leaf;
+//			if(val instanceof StringClass) {
+//				if(val.isEqual(empty)) {
+//					continue;
+//				} else {
+//					return Double.NaN;
+//				}
+//			}
+//			sum += ((Number) node.leaf.getValue()).doubleValue() * node.getInstances().size();
+//			count++;
+//		}
+//
+//		return sum / count;
+		
+		double sum = this.getSum(columnHeader); //sum column
+		double count = this.getNumRows(); //count length of column
+		
 		return sum / count;
+
 	}
 
 	@Override
@@ -1059,26 +1089,47 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public Double getSum(String columnHeader) {
-		columnHeader = this.getColumnName(columnHeader);
+//		columnHeader = this.getColumnName(columnHeader);
+//
+//		double sum = 0;
+//		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+//		FilteredIndexTreeIterator it = new FilteredIndexTreeIterator(typeRoot);
+//		StringClass empty = new StringClass(SimpleTreeNode.EMPTY);
+//		while(it.hasNext()) {
+//			TreeNode node = it.next();
+//			ITreeKeyEvaluatable val = node.leaf;
+//			if(val instanceof StringClass) {
+//				if(val.isEqual(empty)) {
+//					continue;
+//				} else {
+//					return Double.NaN;
+//				}
+//			}
+//			sum += ((Number) val.getValue()).doubleValue() * node.getInstances().size();
+//		}
+//		
+//		return sum;
+		
+		columnHeader = this.getColumnName(columnHeader);  //get column name
+		Object[] getColumn = this.getColumn(columnHeader);  //get all objects within the colum
+		double sum = 0;  
 
-		double sum = 0;
-		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		FilteredIndexTreeIterator it = new FilteredIndexTreeIterator(typeRoot);
-		StringClass empty = new StringClass(SimpleTreeNode.EMPTY);
-		while(it.hasNext()) {
-			TreeNode node = it.next();
-			ITreeKeyEvaluatable val = node.leaf;
-			if(val instanceof StringClass) {
-				if(val.isEqual(empty)) {
+		//for the length of the column sum all number values
+		for (int i = 0; i < getColumn.length; i++) { 
+			//if object isn't a number: continue if blank or return not a number
+			if (getColumn[i] instanceof StringClass) {  
+				if (getColumn[i] == null) {
 					continue;
 				} else {
 					return Double.NaN;
 				}
+			} else {
+				double addValue = ((Number) getColumn[i]).doubleValue();
+				sum += addValue;
 			}
-			sum += ((Number) val.getValue()).doubleValue() * node.getInstances().size();
 		}
-		
 		return sum;
+
 	}
 
 	@Override
@@ -1092,35 +1143,62 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public Double getStandardDeviation(String columnHeader) {
-		columnHeader = this.getColumnName(columnHeader);
-
-		Double mean = getAverage(columnHeader);
-		if(mean.isNaN()) {
+//		columnHeader = this.getColumnName(columnHeader);
+//
+//		Double mean = getAverage(columnHeader);
+//		if(mean.isNaN()) {
+//			return Double.NaN;
+//		}
+//		
+//		double stdev = 0;
+//		int numValues = 0;
+//		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+//		FilteredIndexTreeIterator it = new FilteredIndexTreeIterator(typeRoot);
+//		StringClass empty = new StringClass(SimpleTreeNode.EMPTY);
+//		while(it.hasNext()) {
+//			TreeNode node = it.next();
+//			ITreeKeyEvaluatable val = node.leaf;
+//			if(val instanceof StringClass) {
+//				if(val.isEqual(empty)) {
+//					continue;
+//				}
+//			}
+//			stdev += Math.pow( ((Number) val.getValue()).doubleValue() - mean, 2);
+//			numValues++;
+//		}
+//		
+//		if(numValues == 1) {
+//			return Double.NaN;
+//		}
+//		
+//		return Math.pow(stdev / (--numValues), 0.5);
+		
+		columnHeader = this.getColumnName(columnHeader);  //get column name
+		Object[] getColumn = this.getColumn(columnHeader);  //get all objects within column
+		Double mean = this.getAverage(columnHeader); //use average method
+		//if mean isn't a number return
+		if (mean.isNaN()) {
 			return Double.NaN;
 		}
-		
 		double stdev = 0;
 		int numValues = 0;
-		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		FilteredIndexTreeIterator it = new FilteredIndexTreeIterator(typeRoot);
-		StringClass empty = new StringClass(SimpleTreeNode.EMPTY);
-		while(it.hasNext()) {
-			TreeNode node = it.next();
-			ITreeKeyEvaluatable val = node.leaf;
-			if(val instanceof StringClass) {
-				if(val.isEqual(empty)) {
+		//for the length of the column calculate stdev
+		for (int i = 0; i < getColumn.length; i++) {
+			if (getColumn[i] instanceof StringClass) {
+				if (getColumn[i] == null) {
 					continue;
 				}
+			} else {
+				stdev += Math.pow(((Number) getColumn[i]).doubleValue() - mean, 2);
+				numValues++;
 			}
-			stdev += Math.pow( ((Number) val.getValue()).doubleValue() - mean, 2);
-			numValues++;
 		}
-		
-		if(numValues == 1) {
+		//if numValues equals one return not a number
+		if (numValues == 1) {
 			return Double.NaN;
 		}
-		
 		return Math.pow(stdev / (--numValues), 0.5);
+
 	}
 	
 	@Override
@@ -1371,15 +1449,6 @@ public class BTreeDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public void filter(String columnHeader, List<Object> filterValues) {
-		columnHeader = this.getColumnName(columnHeader);
-		
-		for(Object o: filterValues) {
-			this.simpleTree.filterTree(this.createNodeObject(o, o, columnHeader));
-		}
-	}
-
-	@Override
 	public void removeColumn(String columnHeader) {
 		columnHeader = this.getColumnName(columnHeader);
 		
@@ -1439,34 +1508,57 @@ public class BTreeDataFrame implements ITableDataFrame {
 		return null;
 	}
 
+	@Override
+	public void filter(String columnHeader, List<Object> filterValues) {
+		columnHeader = this.getColumnName(columnHeader);
+		
+//		IndexTreeIterator iterator = new IndexTreeIterator(this.getBuilder().nodeIndexHash.get(columnHeader));
+//		while(iterator.hasNext()) {
+//			TreeNode node = iterator.next();
+//			if(node.instanceNode.size() == 0) {
+//				filterValues.add(node.getValue());
+//			}
+//		}
+//		for(Object o: filterValues) {
+//			this.filterer.filterTree(this.createNodeObject(o, o, columnHeader));
+//		}
+		
+		
+		this.filterer.filter(columnHeader, filterValues);
+	}
+	
 	public void unfilter() {
 		for(String column: levelNames) {
 			this.unfilter(column);
 		}
 	}
 	
+	public Object[] getFilterModel() {
+		return filterer.getRawFilterModel();
+	}
+	
+	//remove M's from the filterValue nodes, decrement all their sub tree values' TM count
 	public void unfilter(String columnHeader, List<Object> filterValues) {
 		columnHeader = this.getColumnName(columnHeader);
 		
 		for(Object o: filterValues) {
-			this.simpleTree.unfilterTree(this.createNodeObject(o, o, columnHeader));
+			this.filterer.unfilterTree(this.createNodeObject(o, o, columnHeader));
 		}
 
 	}
 	
 	@Override
+	//remove all M's from this column
 	public void unfilter(String columnHeader) {
 		columnHeader = this.getColumnName(columnHeader);
-		IndexTreeIterator iterator = new IndexTreeIterator(this.simpleTree.nodeIndexHash.get(columnHeader));
-		while(iterator.hasNext()) {
-			TreeNode t = iterator.next();
-			//if(t.filteredInstanceNode.size() > 0) {
-				Object o = t.leaf.getValue();
-				this.simpleTree.unfilterTree(this.createNodeObject(o, o, columnHeader));
-			//}
-		}
-
-//		this.simpleTree.unfilterColumn(columnHeader);
+		
+//		IndexTreeIterator iterator = new IndexTreeIterator(this.simpleTree.nodeIndexHash.get(columnHeader));
+//		while(iterator.hasNext()) {
+//			TreeNode t = iterator.next();
+//			Object o = t.leaf.getValue();
+//			this.filterer.unfilterTree(this.createNodeObject(o, o, columnHeader));
+//		}
+		this.filterer.unfilter(columnHeader);
 	}
 
 	//TODO: is this necessary
@@ -1542,30 +1634,27 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	public static void main(String[] args) {
 
-		String fileName = "C:\\Users\\kepark\\Desktop\\MillionRows.xlsx";
-		String fileOut = "C:\\Users\\kepark\\Desktop\\Output.xlsx";
-		BTreeDataFrame newTree = load2Tree4Testing(fileName);
-		System.out.println("BTree created.");
-		List<Object> capFilter = new ArrayList<Object>();
-		List<Object> lowerFilter = new ArrayList<Object>();
-		List<Object> numFilter = new ArrayList<Object>();
+
+//		List<Object> capFilter = new ArrayList<Object>();
+//		List<Object> lowerFilter = new ArrayList<Object>();
+//		List<Object> numFilter = new ArrayList<Object>();
 		
-		capFilter.add("A2");
-		capFilter.add("A1025");
-		capFilter.add("A1000");
-		lowerFilter.add("a3");
-		lowerFilter.add("a1998");
-		numFilter.add("1");
-		numFilter.add("1999");
-		
-		newTree.filter("Capital", capFilter);
-		newTree.filter("Lowercase", lowerFilter);
-		newTree.filter("Number", numFilter);
-		System.out.println("Values filtered");
-		
-		newTree.refresh();
-		SimpleTreeNode root = newTree.simpleTree.getRoot();
-		write2Excel4Testing(newTree, fileOut);
+//		capFilter.add("A2");
+//		capFilter.add("A1025");
+//		capFilter.add("A1000");
+//		lowerFilter.add("a3");
+//		lowerFilter.add("a1998");
+//		numFilter.add("1");
+//		numFilter.add("1999");
+//		
+//		newTree.filter("Capital", capFilter);
+//		newTree.filter("Lowercase", lowerFilter);
+//		newTree.filter("Number", numFilter);
+//		System.out.println("Values filtered");
+//		
+//		newTree.refresh();
+//		SimpleTreeNode root = newTree.simpleTree.getRoot();
+//		write2Excel4Testing(tree, fileOut);
 		
 		// System.out.println("****OLD TREE****");
 		// Iterator<Object> oldCapIterator = newTree.uniqueValueIterator("Capital", false, true); // Change for each query
@@ -1782,6 +1871,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 			e.printStackTrace();
 		}
 		
+		String sheetName = fileName.substring(0, fileName.length() - 5);
+		sheetName = fileName.substring(74);
 		XSSFSheet lSheet = workbook.getSheet("Sheet1");
 		
 		int lastRow = lSheet.getLastRowNum();
@@ -1958,6 +2049,70 @@ public class BTreeDataFrame implements ITableDataFrame {
 			if(isNumeric[i]) {
 				binNumericColumn(filteredLevelNames[i]);
 			}
+		}
+	}
+	
+	public void printTree() {
+		
+		IndexTreeIterator iterator = new IndexTreeIterator(this.simpleTree.nodeIndexHash.get(levelNames[0]));
+		while(iterator.hasNext()) {
+			TreeNode nextNode = iterator.next();
+			//System.out.print(nextNode.getValue());
+			Vector<SimpleTreeNode> nodes = nextNode.getAllInstances();
+			//printM(nextNode);
+			printBranch(nodes.get(0), 0, null);
+		}
+	}
+	
+	private void printBranch(SimpleTreeNode node, int n, Boolean left) {
+		if(node == null) return;
+		
+		String side = "RIGHT";
+		if(left != null && left) side = "LEFT";
+		
+		printTabs(n);
+		if(left == null) {
+			System.out.print(node.leaf.getValue());
+		}
+		else {
+			System.out.print(side+":"+node.leaf.getValue());
+		}
+		printM(node);
+		printBranch(node.leftChild, n+1, true);
+		printBranch(node.rightChild, n+1, false);
+		if(left!=null)	printBranch(node.rightSibling, n, left);
+	}
+	
+	private void printTabs(int n) {
+		for(int i = 0; i < n; i++)
+		System.out.print("\t");
+	}
+	
+	private void printM(SimpleTreeNode n) {
+		TreeNode foundNode = this.simpleTree.getNode((ISEMOSSNode)n.leaf);
+		if(foundNode.instanceNode.contains(n)) {
+			System.out.print(" (UM) ");
+		} else if(foundNode.filteredInstanceNode.contains(n)) {
+			System.out.print(" (M) ");
+		} else if(foundNode.transFilteredInstanceNode.contains(n)){
+			System.out.print(" (TM) ");
+		} else {
+			System.out.print(" NOT FOUND");
+		}
+		
+		System.out.println(n.hardFiltered+" "+n.transitivelyFiltered);
+	}
+	
+	private void printM(TreeNode n) {
+		TreeNode foundNode = this.simpleTree.getNode((ISEMOSSNode)n.leaf);
+		if(n.instanceNode.size() > 0) {
+			System.out.println(" (UM)");
+		} else if(foundNode.filteredInstanceNode.size()> 0) {
+			System.out.println(" (M)");
+		} else if(foundNode.transFilteredInstanceNode.size()> 0){
+			System.out.println(" (TM)");
+		} else {
+			System.out.println(" NOT FOUND");
 		}
 	}
 }
