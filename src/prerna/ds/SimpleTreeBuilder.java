@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -94,6 +95,7 @@ public class SimpleTreeBuilder
 	// actual value tree root
 	private SimpleTreeNode lastAddedNode = null;
 	private SimpleTreeNode filteredRoot;
+
 	
 	
 	private String rootLevel;
@@ -155,7 +157,7 @@ public class SimpleTreeBuilder
 			while(it.hasNext()) {
 				TreeNode n = it.next();
 				typeInstances.addAll(n.instanceNode);
-				filteredTypeInstances.addAll(n.filteredInstanceNode);
+				filteredTypeInstances.addAll(n.getFilteredInstances());
 			}
 			
 			// if both lists are empty, return
@@ -248,7 +250,7 @@ public class SimpleTreeBuilder
 		TreeNode rootNode = nodeIndexHash.get(level);
 		if(rootNode != null)
 		{
-			String parentLevel = ((ISEMOSSNode)rootNode.instanceNode.firstElement().parent.leaf).getType();
+			String parentLevel = ((ISEMOSSNode)rootNode.getInstances().firstElement().parent.leaf).getType();
 			Vector nodeGetter = new Vector();
 			
 			TreeNode parent = nodeIndexHash.get(parentLevel);
@@ -577,7 +579,8 @@ public class SimpleTreeBuilder
 		//If the index tree for the level does not exist, add it
 		if(rootIndexNode==null) {
 			rootIndexNode = new TreeNode(n);
-			rootIndexNode.instanceNode.add(node);
+//			rootIndexNode.instanceNode.add(node);
+			rootIndexNode.addInstance(node);
 			nodeIndexHash.put(n.getType(), rootIndexNode);
 		
 			appendToIndexTree(node.leftChild);
@@ -1140,11 +1143,13 @@ public class SimpleTreeBuilder
 	 */
 	protected void removeFromIndexTree(SimpleTreeNode n) {
 		TreeNode foundNode = this.getNode((ISEMOSSNode)n.leaf);
-		if(foundNode!=null) {
-			if(!foundNode.getInstances().remove(n)) {
-				foundNode.filteredInstanceNode.remove(n);
-			}
-		}
+		
+		foundNode.remove(n);
+//		if(foundNode!=null) {
+//			if(!foundNode.getInstances().remove(n)) {
+//				foundNode.filteredInstanceNode.remove(n);
+//			}
+//		}
 	}
 	
 	/**
@@ -1177,7 +1182,8 @@ public class SimpleTreeBuilder
 			// grab the next node
 			// clear out the references to Simple Tree Nodes in the filtered list
 			TreeNode node = it.next();
-			node.filteredInstanceNode.clear();
+//			node.filteredInstanceNode.clear();
+			node.clearFilteredValues();
 			// add node to new list
 			nodeList.addElement(node);
 		}
@@ -1212,23 +1218,26 @@ public class SimpleTreeBuilder
 	 * 
 	 * @param isRebuild
 	 *            true if method is being used to rebuild index tree, false if used to rebalance index tree
+	 * @param instanceNodes 
 	 * @return ArrayList of TreeNodes that will either be kept or deleted
 	 */
-	private Vector<TreeNode> deleteIndexFilters(TreeNode root, boolean isRebuild) {
+	private Vector<TreeNode> deleteIndexFilters(TreeNode root, boolean isRebuild, Hashtable<String, TreeNode> instanceNodes) {
 		Vector<TreeNode> nodeList = new Vector<TreeNode>();
 		
 		CompleteIndexTreeIterator iterator = new CompleteIndexTreeIterator(root); // needs to iterate through logically deleted nodes, which IndexTreeIterator does not do currently
 		while (iterator.hasNext()) {
 			root = iterator.next();
-			if (root.filteredInstanceNode.size() > 0) {
-				root.filteredInstanceNode = new Vector<SimpleTreeNode>();
-			}
+//			if (root.filteredInstanceNode.size() > 0) {
+//				root.filteredInstanceNode = new Vector<SimpleTreeNode>();
+//			}
+			root.clearFilteredValues();
+			Vector<SimpleTreeNode> instances = root.getInstances();
 			if (isRebuild) {
-				if (root.instanceNode.size() > 0) {
+				if (instances.size() > 0) {
 					nodeList.add(root); // when rebuilding, we need nodes that will be kept
 				}
 			} else {
-				if (root.instanceNode.size() == 0) {
+				if (instances.size() == 0) {
 					nodeList.add(root); // when rebalancing, we need nodes that will be deleted
 				}
 			}
@@ -1397,7 +1406,7 @@ public class SimpleTreeBuilder
 			
 			//copy references to new list to prevent concurrent modification exceptions
 			List<SimpleTreeNode> nodeList = new ArrayList<SimpleTreeNode>();
-			for(SimpleTreeNode n: foundNode.instanceNode) {
+			for(SimpleTreeNode n: foundNode.getInstances()) {
 				nodeList.add(n);
 			}
 			
@@ -1504,9 +1513,17 @@ public class SimpleTreeBuilder
 		if(foundNode != null) {
 		
 			//filter the node
-			if(foundNode.instanceNode.remove(instance2filter)) {
-				foundNode.filteredInstanceNode.add(instance2filter);
+			if(firstLevel) {
+				instance2filter.hardFilter();
+				foundNode.hardFilter(instance2filter);
+			} else {
+				instance2filter.incrementTransitiveFilter();
+				foundNode.transitivelyFilter(instance2filter);
 			}
+//			if(foundNode.instanceNode.remove(instance2filter)) {
+//				foundNode.filteredInstanceNode.add(instance2filter);
+//			}
+			
 			
 			//filter the sibling if not in the first level
 			if(!firstLevel && instance2filter.rightSibling!=null) {
@@ -1531,9 +1548,12 @@ public class SimpleTreeBuilder
 		TreeNode foundNode = this.getNode((ISEMOSSNode)instance2filter.leaf);
 		
 		if(foundNode != null) {
-			if(foundNode.instanceNode.remove(instance2filter)) {
-				foundNode.filteredInstanceNode.add(instance2filter);
-			}
+//			if(foundNode.instanceNode.remove(instance2filter)) {
+//				foundNode.filteredInstanceNode.add(instance2filter);
+//			}
+			
+			instance2filter.incrementTransitiveFilter();
+			foundNode.transitivelyFilter(instance2filter);
 		}
 	}
 	
@@ -1626,21 +1646,18 @@ public class SimpleTreeBuilder
 			
 			//copy references to new list to prevent concurrent modification exceptions
 			List<SimpleTreeNode> nodeList = new ArrayList<SimpleTreeNode>();
-			for(SimpleTreeNode n: foundNode.filteredInstanceNode) {
+			for(SimpleTreeNode n: foundNode.getFilteredInstances()) {
 				nodeList.add(n);
 			}
 			
-			for(SimpleTreeNode n: foundNode.instanceNode) {
+			for(SimpleTreeNode n: foundNode.getInstances()) {
 				nodeList.add(n);
 			}
 			//for each SimpleTreeNode with the value of objectToFilter
 			//first filter the value tree, then filter the index tree
 			for(SimpleTreeNode n: nodeList) {
-//				boolean unfilteredNode = unfilterSimpleTreeNode(n);
 				unfilterSimpleTreeNode(n);
-//				if(unfilteredNode) {
 				unfilterTreeNode(n, true);
-//				}
 			}
 		}
 	}
@@ -1848,93 +1865,7 @@ public class SimpleTreeBuilder
 			unfilterSimpleTreeNodeChildren(root.leftChild, false);
 		}
 	}
-	
-//	private SimpleTreeNode unfilterSimpleTreeNode(SimpleTreeNode node) {
-//		SimpleTreeNode parentNode = node.parent;
-//		//convert from recursive to iterative
-////		while(parentNode != null && SimpleTreeNode.hasOneChild(parentNode)) {
-////			node = parentNode;
-////			parentNode = parentNode.parent;
-////		}
-//		boolean root = (parentNode==null);
-//		SimpleTreeNode nodeRightSibling = node.rightSibling;
-//		SimpleTreeNode nodeLeftSibling = node.leftSibling;
-//		
-//		if(!root) {
-//			
-//			//isolate node2filter from siblings and rewire the connections
-//			if(node.rightSibling != null && node.leftSibling != null) {
-//				//in the middle
-//				nodeRightSibling.leftSibling = nodeLeftSibling;
-//				nodeLeftSibling.rightSibling = nodeRightSibling;	
-//			} 
-//			else if(node.rightSibling == null && node.leftSibling != null) {
-//				//right most
-//				nodeLeftSibling.rightSibling = null;
-//			} 
-//			else if(node.rightSibling != null && node.leftSibling == null) {
-//				//left most
-//				if(!root) {
-//					parentNode.rightChild = nodeRightSibling;
-//				}
-//				nodeRightSibling.leftSibling = null;
-//			} else {
-//				//only child
-//				parentNode.leftChild = null;
-//			}
-//			
-//			node.rightSibling = null;
-//			node.leftSibling = null;
-//			
-//			if(parentNode.leftChild==null) {
-//				parentNode.leftChild = node;
-//			} else {
-//				//TODO: attach to beginning of list
-//				SimpleTreeNode rightMostLeftChild = SimpleTreeNode.getRight(node);
-//				rightMostLeftChild.rightSibling = node;
-//				node.leftSibling = rightMostLeftChild;
-//			}
-//			
-//			if(SimpleTreeNode.hasOneChild(parentNode) && isFiltered(parentNode)) {
-//				return unfilterSimpleTreeNode(parentNode);
-//			} else if(isFiltered(parentNode)) {
-//				return null;
-//			} else {
-//				return node;
-//			}
-//		} 
-//		else {
-//			//in the case the node is a root
-//			
-//			if(nodeRightSibling!=null && nodeLeftSibling != null) {
-//				//middle
-//				nodeLeftSibling.rightSibling = nodeRightSibling;
-//				nodeRightSibling.leftSibling = nodeLeftSibling;
-//			} else if(nodeRightSibling==null && nodeLeftSibling != null) {
-//				//right most
-//				nodeLeftSibling.rightSibling = null;
-//			} else if(nodeLeftSibling==null && nodeRightSibling != null) {
-//				//left most
-//				filteredRoot = nodeRightSibling;
-//				nodeRightSibling.leftSibling = null;
-//			} else {
-//				//only one
-//				filteredRoot = null;
-//			}
-//			
-//			node.rightSibling = null;
-//			node.leftSibling = null;
-//			
-//			SimpleTreeNode rootNode = this.getRoot();
-//			if(rootNode != null) {
-//				rootNode = SimpleTreeNode.getRight(rootNode);
-//				rootNode.rightSibling = node;
-//				node.leftSibling = rootNode;
-//			}
-//			
-//			return node;
-//		}
-//	}
+
 
 	/**
 	 * 
@@ -1942,13 +1873,21 @@ public class SimpleTreeBuilder
 	 * @param firstLevel
 	 */
 	private void unfilterTreeNode(SimpleTreeNode instance, boolean firstLevel) {
+		
+		if(firstLevel) {
+			instance.removeHardFilter();
+		} else {
+			instance.decrementTransitiveFilter();
+		}
+		
 		TreeNode foundNode = this.getNode((ISEMOSSNode)instance.leaf);
 		
 		if(foundNode != null) {
 		
-			if(foundNode.filteredInstanceNode.remove(instance)) {
-				foundNode.instanceNode.add(instance);
-			}
+//			if(foundNode.filteredInstanceNode.remove(instance)) {
+//				foundNode.instanceNode.add(instance);
+//			}			
+			foundNode.unfilter(instance);
 			
 			if(!firstLevel && instance.rightSibling!=null) {
 				unfilterTreeNode(instance.rightSibling, false);
@@ -1966,12 +1905,12 @@ public class SimpleTreeBuilder
 	 * unfilters a single node from its corresponding index tree
 	 */
 	private void unfilterTreeNode(SimpleTreeNode instance) {		
+		instance.decrementTransitiveFilter();
+		
 		TreeNode foundNode = this.getNode((ISEMOSSNode)instance.leaf);
 		
-		if(foundNode != null) {
-			if(foundNode.filteredInstanceNode.remove(instance)) {
-				foundNode.instanceNode.add(instance);
-			}
+		if(foundNode != null) {		
+			foundNode.unfilter(instance);
 		}
 	}
 	
@@ -1989,20 +1928,21 @@ public class SimpleTreeBuilder
 			throw new IllegalArgumentException("Node with value "+node.leaf.getValue()+" does not exist");
 		}
 		
-		//if node is contained within its index tree's filteredInstanceNode vector then the node is filtered
-		if(tnode.filteredInstanceNode.contains(node)) {
-			return true;
-		} 
-		
-		//if the node is contained within its index tree's instanceNode vector then the node is NOT filtered
-		else if(tnode.instanceNode.contains(node)) {
-			return false;
-		} 
-		
-		//else node instance cannot be found
-		else {
-			throw new IllegalArgumentException("Node not found");
-		}
+		return tnode.isFiltered(node);
+//		//if node is contained within its index tree's filteredInstanceNode vector then the node is filtered
+//		if(tnode.filteredInstanceNode.contains(node)) {
+//			return true;
+//		} 
+//		
+//		//if the node is contained within its index tree's instanceNode vector then the node is NOT filtered
+//		else if(tnode.instanceNode.contains(node)) {
+//			return false;
+//		} 
+//		
+//		//else node instance cannot be found
+//		else {
+//			throw new IllegalArgumentException("Node not found");
+//		}
 	}
 	
 	
@@ -2387,6 +2327,10 @@ public class SimpleTreeBuilder
 	public Hashtable<String, Hashtable<String, Integer>> getPath(String fromType, String toType)
 	{
 		return getPath(fromType, toType, null);
+	}
+	
+	public Hashtable<String, Hashtable<String, Double>> getPath(String fromType, String toType, Object calculation) {
+		return null;
 	}
 
 	// gives it in the format of
