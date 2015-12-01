@@ -53,7 +53,7 @@ public class ValueTreeColumnIterator implements Iterator<SimpleTreeNode>{
 			TreeNode nextNode = iterator.next();
 			instances.addAll(nextNode.instanceNode);
 			if(iterateAll) {
-				instances.addAll(nextNode.filteredInstanceNode);
+				instances.addAll(nextNode.getFilteredInstances());
 			}
 		}
 	}
