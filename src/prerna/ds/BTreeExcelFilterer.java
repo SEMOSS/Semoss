@@ -492,9 +492,11 @@ public class BTreeExcelFilterer implements IBtreeFilterer {
 	 * move children to right from left that should be right
 	 */
 	private void adjustRightChildren(SimpleTreeNode n) {
-		Set<SimpleTreeNode> nodes = collectNodesForRightAdjustment(n, true, new HashSet<SimpleTreeNode>());
-		for(SimpleTreeNode node : nodes) {
-			moveSingleNodeToLeftChild(node);
+		if(n != null) {
+			Set<SimpleTreeNode> nodes = collectNodesForRightAdjustment(n, true, new HashSet<SimpleTreeNode>());
+			for(SimpleTreeNode node : nodes) {
+				moveSingleNodeToLeftChild(node);
+			}
 		}
 	}
 	
@@ -532,9 +534,11 @@ public class BTreeExcelFilterer implements IBtreeFilterer {
 	 * move children from right to left that should be left
 	 */
 	private void adjustLeftChildren(SimpleTreeNode n) {
-		Set<SimpleTreeNode> nodes = collectNodesForLeftAdjustment(n, true, new HashSet<SimpleTreeNode>());
-		for(SimpleTreeNode node : nodes) {
-			moveSingleNodeToRightChild(node);
+		if(n!=null) {
+			Set<SimpleTreeNode> nodes = collectNodesForLeftAdjustment(n, true, new HashSet<SimpleTreeNode>());
+			for(SimpleTreeNode node : nodes) {
+				moveSingleNodeToRightChild(node);
+			}
 		}
 	}
 	
