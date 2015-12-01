@@ -114,8 +114,7 @@ public class SolrIndexEngine {
 		System.out.println(x);
 	}
 
-	public static SolrIndexEngine getInstance()
-			throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+	public static SolrIndexEngine getInstance() throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
 		if (singleton == null) {
 			singleton = new SolrIndexEngine();
 		}
@@ -164,12 +163,7 @@ public class SolrIndexEngine {
 			Map<String, Object> queryMap = new HashMap<String, Object>();
 			queryMap.put(SET_DEFAULT, ID + ":" + uniqueID);
 			SolrDocument origDoc = queryDocument(queryMap).get(0);
-			Iterator<Entry<String, Object>> iterator = origDoc.iterator(); // iterating
-																			// through
-																			// it
-																			// modified
-																			// list
-
+			Iterator<Entry<String, Object>> iterator = origDoc.iterator();
 			SolrInputDocument doc = new SolrInputDocument();
 			doc.get(uniqueID); // getting the doc set based on the id
 
@@ -320,10 +314,8 @@ public class SolrIndexEngine {
 
 			// facet.field - calculates count of total insights
 			if (queryOptions.get(FACET_FIELD) != null) {
-				List<String> query = (List<String>) queryOptions.get(FACET_FIELD);
-				for (String fQuery : query) {
-					Q.addFacetField(fQuery);
-				}
+				String facetField = (String) queryOptions.get(FACET_FIELD);
+				Q.addFacetField(facetField);
 				// facet.prefix - Restricts the possible constraints to only
 				// indexed values with a specified prefix
 				// cannot be set to case insensitive
