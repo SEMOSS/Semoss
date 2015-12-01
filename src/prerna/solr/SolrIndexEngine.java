@@ -6,6 +6,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -19,9 +20,13 @@ import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.HttpSolrServer;
+import org.apache.solr.client.solrj.response.FacetField;
+import org.apache.solr.client.solrj.response.FacetField.Count;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
@@ -37,7 +42,7 @@ public class SolrIndexEngine {
 	private HttpSolrServer server;
 
 	public static final String SET_DEFAULT = "setDefault"; // setQuery
-	public static final String SEARCH_FIELD = "df"; 
+	public static final String SEARCH_FIELD = "df";
 	public static final String ADD_FIELD = "addField";
 	public static final String SET_START = "setStart";
 	public static final String SET_ROWS = "setRows";
@@ -53,7 +58,7 @@ public class SolrIndexEngine {
 	public static final String FACET_MISSING = "facetMissing"; // setFacetMissing
 	public static final String FIELD_SORT = "facetSort"; // setFacetSort
 
-	//schema field names
+	// schema field names
 	public static final String ID = "id";
 	public static final String NAME = "name";
 	public static final String CREATED_ON = "created_on";
@@ -72,28 +77,45 @@ public class SolrIndexEngine {
 	public static final String QUERY_PROJECTIONS = "query_projections";
 	public static final String PARAMS = "params";
 	public static final String ALGORITHMS = "algorithms";
-	
+
+	private static final Logger LOGGER = LogManager.getLogger(SolrIndexEngine.class.getName());
+
 	public static void setUrl(String url) {
 		SolrIndexEngine.url = url;
 	}
 
-	public static void main(String[] args) {
-		try {
-			SolrIndexEngine.setUrl("http://localhost:8080/solr");
-			SolrIndexEngine e = SolrIndexEngine.getInstance();
-			e.deleteAllSolrData();
-		} catch (KeyManagementException e) {
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		} catch (KeyStoreException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+	public static void main(String[] args) throws SolrServerException, IOException, KeyManagementException,
+			NoSuchAlgorithmException, KeyStoreException {
+		// try {
+		// logger.info("deleting all of solr");
+		// SolrIndexEngine.setUrl("http://localhost:8080/solr");
+		// SolrIndexEngine e = SolrIndexEngine.getInstance();
+		// e.deleteAllSolrData();
+		// logger.info("done deleting all of solr");
+		// } catch (KeyManagementException e) {
+		// e.printStackTrace();
+		// } catch (NoSuchAlgorithmException e) {
+		// e.printStackTrace();
+		// } catch (KeyStoreException e) {
+		// e.printStackTrace();
+		// } catch (IOException e) {
+		// e.printStackTrace();
+		// }
+
+		SolrIndexEngine.setUrl("http://localhost:8080/solr");
+		SolrIndexEngine e = SolrIndexEngine.getInstance();
+		Map<String, Object> queryEngine = new HashMap<>();
+		List<String> facetField = new ArrayList<>();
+		facetField.add(CORE_ENGINE);
+		queryEngine.put(FACET_FIELD, facetField);
+
+		// add all query requests to engine
+		Map<String, Long> x = e.facetDocument(queryEngine);
+		System.out.println(x);
 	}
-	
-	public static SolrIndexEngine getInstance() throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+
+	public static SolrIndexEngine getInstance()
+			throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
 		if (singleton == null) {
 			singleton = new SolrIndexEngine();
 		}
@@ -107,14 +129,14 @@ public class SolrIndexEngine {
 		CloseableHttpClient httpclient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
 
 		if (SolrIndexEngine.url == null) {
-			SolrIndexEngine.url = DIHelper.getInstance().getProperty(Constants.SOLR_URL); 
+			SolrIndexEngine.url = DIHelper.getInstance().getProperty(Constants.SOLR_URL);
 		}
 
 		server = new HttpSolrServer(SolrIndexEngine.url, httpclient);
 	}
 
 	public void addDocument(String uniqueID, Map<String, Object> fieldData) throws SolrServerException, IOException {
-		if(serverActive()) {
+		if (serverActive()) {
 			// create new Document
 			SolrInputDocument doc = new SolrInputDocument();
 			// set document ID to uniqueID
@@ -129,24 +151,29 @@ public class SolrIndexEngine {
 	}
 
 	public void removeDocument(List<String> uniqueID) throws SolrServerException, IOException {
-		if(serverActive()) {
+		if (serverActive()) {
 			// delete document based on ID
 			server.deleteById(uniqueID);
 			server.commit();
 		}
 	}
 
-	public void modifyFields(String uniqueID, Map<String, Object> fieldsToModify) throws SolrServerException, IOException {
-		if(serverActive()) {
+	public void modifyFields(String uniqueID, Map<String, Object> fieldsToModify)
+			throws SolrServerException, IOException {
+		if (serverActive()) {
 			Map<String, Object> queryMap = new HashMap<String, Object>();
 			queryMap.put(SET_DEFAULT, ID + ":" + uniqueID);
 			SolrDocument origDoc = queryDocument(queryMap).get(0);
-			Iterator<Entry<String, Object>> iterator = origDoc.iterator();  //iterating through it modified list
-	
+			Iterator<Entry<String, Object>> iterator = origDoc.iterator(); // iterating
+																			// through
+																			// it
+																			// modified
+																			// list
+
 			SolrInputDocument doc = new SolrInputDocument();
-			doc.get(uniqueID); //getting the doc set based on the id
-			
-			Set<String> currFieldNames = new HashSet<String>(); 
+			doc.get(uniqueID); // getting the doc set based on the id
+
+			Set<String> currFieldNames = new HashSet<String>();
 			while (iterator.hasNext()) {
 				// getName & getValues
 				Entry<String, Object> field = iterator.next();
@@ -166,25 +193,58 @@ public class SolrIndexEngine {
 					doc.setField(newField, fieldsToModify.get(newField));
 				}
 			}
-			// when committing, automatically overrides existing field values with the new ones
+			// when committing, automatically overrides existing field values
+			// with the new ones
 			server.add(doc);
 			server.commit();
 		}
 	}
 
-	@SuppressWarnings({ "unchecked" })
 	public SolrDocumentList queryDocument(Map<String, Object> queryOptions) throws SolrServerException, IOException {
 		SolrDocumentList results = null;
-		
-		if(serverActive()) {
+		if (serverActive()) {
+			// report number of results found from query
+			QueryResponse res = getQueryResponse(queryOptions);
+			results = res.getResults();
+		}
+		return results;
+	}
+
+	public Map<String, Long> facetDocument(Map<String, Object> queryOptions) throws SolrServerException {
+		Map<String, Long> facetFieldMap = null;
+		if (serverActive()) {
+			// report number of results found from query
+			QueryResponse res = getQueryResponse(queryOptions);
+			List<FacetField> facetFieldList = res.getFacetFields();
+			if (facetFieldList != null && facetFieldList.size() > 0) {
+				facetFieldMap = new HashMap<String, Long>();
+				for (FacetField field : facetFieldList) {
+					List<Count> facetInfo = field.getValues();
+					if (facetInfo != null) {
+						for (FacetField.Count facetInstance : facetInfo) {
+							facetFieldMap.put(facetInstance.getName(), facetInstance.getCount());
+						}
+					}
+				}
+			}
+		}
+		return facetFieldMap;
+	}
+
+	@SuppressWarnings("unchecked")
+	private QueryResponse getQueryResponse(Map<String, Object> queryOptions) throws SolrServerException {
+		QueryResponse res = null;
+		if (serverActive()) {
 
 			SolrQuery Q = new SolrQuery();
-			//Default
+			// Default
 			Q.setQuery("*:*");
-	
-			//COMMON FILTERS
-			//q & df- If query is specified, match based on relevance will be returned 
-			//Default will be set to search for everything
+			Q.setFacet(true);
+
+			// COMMON FILTERS
+			// q & df- If query is specified, match based on relevance will be
+			// returned
+			// Default will be set to search for everything
 			if (queryOptions.get(SET_DEFAULT) != null) {
 				String f = (String) queryOptions.get(SET_DEFAULT);
 				Q.set("q", f);
@@ -195,16 +255,16 @@ public class SolrIndexEngine {
 					Q.set("df", "all_text");
 				}
 			}
-	
-			//fq - filters search based on exact match
+
+			// fq - filters search based on exact match
 			if (queryOptions.get(FITLER_QUERY) != null) {
 				Map<String, String> query = (Map<String, String>) queryOptions.get(FITLER_QUERY);
 				for (String fQuery : query.keySet()) {
 					Q.addFilterQuery(fQuery + ":" + query.get(fQuery));
 				}
 			}
-	
-			//sorts - orders list asc/desc or  by relevance 
+
+			// sorts - orders list asc/desc or by relevance
 			if (queryOptions.get(FIELD_SORT) != null) {
 				Map<String, List<String>> sort = (Map<String, List<String>>) queryOptions.get(FIELD_SORT);
 				for (String fsort : sort.keySet()) {
@@ -227,47 +287,46 @@ public class SolrIndexEngine {
 					}
 				}
 			}
-	
+
 			// start - returns list of insights starting from the specified int
 			if (queryOptions.get(SET_START) != null) {
 				int numStart = (int) queryOptions.get(SET_START);
 				Q.setStart(numStart);
 			}
-	
-			// rows - returns specified int of insights 
+
+			// rows - returns specified int of insights
 			if (queryOptions.get(SET_ROWS) != null) {
 				int numRows = (int) queryOptions.get(SET_ROWS);
 				Q.setRows(numRows);
 			} else {
 				Q.setRows(200);
 			}
-	
-			// fl - this is determining which fields in the schema will be returned
+
+			// fl - this is determining which fields in the schema will be
+			// returned
 			if (queryOptions.get(ADD_FIELD) != null) {
 				List<String> fields = (List<String>) queryOptions.get(ADD_FIELD);
 				for (String f : fields) {
 					Q.addField(f);
 				}
 			}
-	
-			//FACET INFO FILTERS
-	
-			//facet.query - calculated count on any query
+
 			if (queryOptions.get(FACET_QUERY) != null) {
 				Map<String, String> query = (Map<String, String>) queryOptions.get(FACET_QUERY);
 				for (String fQuery : query.keySet()) {
-					Q.addFacetQuery(fQuery + ":" + query.get(fQuery) );
+					Q.addFacetQuery(fQuery + ":" + query.get(fQuery));
 				}
 			}
-	
-			// facet.field - calculates count of total insights 
+
+			// facet.field - calculates count of total insights
 			if (queryOptions.get(FACET_FIELD) != null) {
 				List<String> query = (List<String>) queryOptions.get(FACET_FIELD);
 				for (String fQuery : query) {
 					Q.addFacetField(fQuery);
 				}
-				// facet.prefix -  Restricts the possible constraints to only indexed values with a specified prefix
-				//cannot be set to case insensitive
+				// facet.prefix - Restricts the possible constraints to only
+				// indexed values with a specified prefix
+				// cannot be set to case insensitive
 				if (queryOptions.get(PREFIX_FACET) != null) {
 					List<String> prefix = (List<String>) queryOptions.get(PREFIX_FACET);
 					for (String fprefix : prefix) {
@@ -275,56 +334,36 @@ public class SolrIndexEngine {
 					}
 				}
 			}
-	
-			// minCount - specifies minimum number that are necessary for the facet field to be visible
-			//no maxCount
+
+			// minCount - specifies minimum number that are necessary for the
+			// facet field to be visible
+			// no maxCount
 			if (queryOptions.get(MIN_COUNT) != null) {
 				int numRows = (int) queryOptions.get(MIN_COUNT);
 				Q.setFacetMinCount(numRows);
 			}
-	
+
 			// FacetLimit - limits the number of facets that are shows.
 			if (queryOptions.get(FACET_LIMIT) != null) {
 				int numLimit = (int) queryOptions.get(FACET_LIMIT);
 				Q.setFacetLimit(numLimit);
 			}
-	
-	
+
 			System.out.println("query is ::: " + Q.getQuery());
-	
+
 			// report number of results found from query
-			QueryResponse res = server.query(Q);
-			results = res.getResults();
-			long numFound = results.getNumFound();
-			System.out.println("num hits: " + numFound);
-			System.out.println(Q);
-	
-			//		for (int i = 0; i < results.size(); ++i) {
-			//			SolrDocument getDoc = results.get(i);
-			//			for (Iterator<Entry<String, Object>> fieldIterator = getDoc.iterator(); fieldIterator.hasNext();) {
-			//				Entry<String, Object> entry = fieldIterator.next();
-			//				System.out.println(entry.getKey() + ": " + entry.getValue());
-			//
-			//			} System.out.println();
-			//		}
-			//
-			//
-			//		List<FacetField> facetFieldList = res.getFacetFields();
-			//		for (int i = 0; i < facetFieldList.size(); i++) {
-			//			FacetField facetField = facetFieldList.get(i);
-			//			List<Count> facetInfo = facetField.getValues();
-			//			for (FacetField.Count facetInstance : facetInfo) {
-			//				System.out.println(facetInstance.getName() + " : " + facetInstance.getCount());
-			//			}
-			//		}
+			res = server.query(Q);
 		}
-		return results;
+		return res;
 	}
 
 	public void deleteAllSolrData() throws IOException {
-		if(serverActive()) {
+		if (serverActive()) {
 			try {
+				LOGGER.info("PREPARING TO DELETE ALL SOLR DATA");
 				server.deleteByQuery("*:*");
+				LOGGER.info("ALL SOLR DATA DELETED");
+				server.commit();
 			} catch (SolrServerException ex) {
 				throw new IOException("Failed to delete data in Solr. " + ex.getMessage(), ex);
 			} catch (IOException ex) {
@@ -333,10 +372,15 @@ public class SolrIndexEngine {
 		}
 	}
 
-	public void deleteEngine(String engineName){
-		if(serverActive()) {
+	public void deleteEngine(String engineName) {
+		if (serverActive()) {
 			try {
-				server.deleteByQuery("core_engine:" + engineName);
+				LOGGER.info("DELETING ENGINE FROM SOLR " + engineName);
+				String query = CORE_ENGINE + ":" + engineName;
+				LOGGER.info("deleted query is " + query);
+				server.deleteByQuery(query);
+				server.commit();
+				LOGGER.info("successfully removed from solr" + engineName);
 			} catch (SolrServerException e1) {
 				e1.printStackTrace();
 			} catch (IOException e1) {
@@ -344,12 +388,12 @@ public class SolrIndexEngine {
 			}
 		}
 	}
-	
+
 	public boolean containsEngine(String engineName) {
 		// check if db currently exists
 		Map<String, Object> querySolr = new HashMap<String, Object>();
 		querySolr.put(SolrIndexEngine.SET_DEFAULT, engineName);
-		querySolr.put(SolrIndexEngine.SEARCH_FIELD, SolrIndexEngine.ENGINES);
+		querySolr.put(SolrIndexEngine.SEARCH_FIELD, SolrIndexEngine.CORE_ENGINE);
 		querySolr.put(SolrIndexEngine.SET_ROWS, 1);
 		SolrDocumentList queryRet = null;
 		try {
@@ -361,19 +405,18 @@ public class SolrIndexEngine {
 		}
 		return (queryRet.size() != 0);
 	}
-	
+
 	public static DateFormat getDateFormat() {
 		return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 	}
-	
+
 	public boolean serverActive() {
 		boolean isActive = true;
 		try {
 			server.ping();
-		} catch(Exception e) {
+		} catch (Exception e) {
 			isActive = false;
 		}
-		
 		return isActive;
 	}
 }
