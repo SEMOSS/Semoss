@@ -27,8 +27,11 @@
  *******************************************************************************/
 package prerna.util;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.KeyManagementException;
@@ -44,6 +47,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.h2.jdbc.JdbcClob;
 import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
@@ -74,6 +79,8 @@ import prerna.solr.SolrIndexEngine;
  */
 public class SMSSWebWatcher extends AbstractFileWatcher {
 
+	static final Logger logger = LogManager.getLogger(SMSSWebWatcher.class.getName());
+
 	/**
 	 * Processes SMSS files.
 	 * @param	Name of the file.
@@ -86,22 +93,23 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	/**
 	 * Returns an array of strings naming the files in the directory. Goes through list and loads an existing database.
 	 */
-	public void loadExistingDB(String fileName, boolean isLocal) {
-		loadNewDB(fileName, isLocal);
+	public String loadExistingDB(String fileName, boolean isLocal) {
+		return loadNewDB(fileName, isLocal);
 	}
 
 	/**
 	 * Loads a new database by setting a specific engine with associated properties.
 	 * @param 	Specifies properties to load 
 	 */
-	public void loadNewDB(String newFile, boolean isLocal) {
+	public String  loadNewDB(String newFile, boolean isLocal) {
 		String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
 		FileInputStream fileIn = null;
+		String engineName = null;
 		try{
 			Properties prop = new Properties();
 			fileIn = new FileInputStream(folderToWatch + "/"  +  newFile);
 			prop.load(fileIn);
-			String engineName = prop.getProperty(Constants.ENGINE);
+			engineName = prop.getProperty(Constants.ENGINE);
 			if(engines.startsWith(engineName) || engines.contains(";"+engineName)) {
 				logger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
 			} else {
@@ -110,7 +118,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				boolean hidden = (prop.getProperty(Constants.HIDDEN_DATABASE) != null && Boolean.parseBoolean(prop.getProperty(Constants.HIDDEN_DATABASE)));
 				if(!isLocal && !hidden) {
 					addToLocalMaster(engineLoaded);
-					addToSolr(engineLoaded);
+					addToSolr(engineLoaded, fileName);
 				} else if(!isLocal){ // never add local master to itself...
 					DeleteFromMasterDB deleter = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 					deleter.deleteEngine(engineName);
@@ -127,19 +135,30 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				e.printStackTrace();
 			}
 		}
+
+		return engineName;
 	}
 
-	private void addToSolr(IEngine engineToAdd) {
+	private void addToSolr(IEngine engineToAdd, String path) {
 		SolrIndexEngine solrE = null;
 		SolrDocumentExportWriter writer = null;
 		try {
+			logger.info("Checking if we need to add " + engineToAdd.getEngineName());
 			solrE = SolrIndexEngine.getInstance();
 			if(solrE.serverActive()) {
-				String engineName = engineToAdd.getEngineName();
+				String smssPropString = engineToAdd.getProperty(Constants.SOLR_RELOAD);
+				boolean smssProp = false;
+				if(smssPropString != null) {
+					smssProp = Boolean.parseBoolean(smssPropString);
+				}
+				logger.info(engineToAdd.getEngineName() + " has smss force reload value of "+ smssProp);
 
-				// check if should always recreate and check if db currently exists
-				if(AbstractEngine.RECREATE_SOLR || !solrE.containsEngine(engineName)) {
-				
+				String engineName = engineToAdd.getEngineName();
+				// check if should always recreate and check if db currently exists and check if db is updated
+				if(AbstractEngine.RECREATE_SOLR || !solrE.containsEngine(engineName) || smssProp) {
+					logger.info(engineToAdd.getEngineName() + " is reloading solr");
+
+					//reloads in Solr				
 					String folderPath = DIHelper.getInstance().getProperty("BaseFolder");
 					folderPath = folderPath + "\\db\\" + engineName + "\\";
 					String fileName = engineName + "_Solr.txt";
@@ -151,21 +170,21 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 							e.printStackTrace();
 						}
 					}
-	
+
 					try {
 						writer = new SolrDocumentExportWriter(file);
 					} catch (IOException e1) {
 						e1.printStackTrace();
 					}
-	
+
 					DateFormat dateFormat = SolrIndexEngine.getDateFormat();
 					Date date = new Date();
 					String currDate = dateFormat.format(date);
 					String userID = "default";
 					String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, QUESTION_MAKEUP FROM QUESTION_ID";
-	
-					solrE.deleteEngine(engineName);
-	
+
+					//	solrE.deleteEngine(engineName);
+
 					// query the current insights in this db
 					ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engineToAdd.getInsightDatabase(), query);
 					while(wrapper.hasNext()){
@@ -173,7 +192,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 						int id = (int) ss.getVar("ID");
 						String name = (String) ss.getVar("QUESTION_NAME");
 						String layout = (String) ss.getVar("QUESTION_LAYOUT");
-	
+
 						JdbcClob obj = (JdbcClob) ss.getVar("QUESTION_MAKEUP"); 
 						InputStream makeup = null;
 						try {
@@ -181,8 +200,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 						} catch (SQLException e) {
 							e.printStackTrace();
 						}
-	
-						//load the makeup inputstream into a rc
+
+						//load the makeup input stream into a rc
 						RepositoryConnection rc = null;
 						try {
 							Repository myRepository = new SailRepository(new ForwardChainingRDFSInferencer(new MemoryStore()));
@@ -201,7 +220,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 						// set the rc in the in-memory engine
 						InMemorySesameEngine myEng = new InMemorySesameEngine();
 						myEng.setRepositoryConnection(rc);
-	
+
 						List<String> engineList = new ArrayList<String>();
 						//Query the engine
 						String engineQuery = "SELECT DISTINCT ?EngineName WHERE {{?Engine a <http://semoss.org/ontologies/Concept/Engine>}{?Engine <http://semoss.org/ontologies/Relation/Contains/Name> ?EngineName} }";
@@ -210,7 +229,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 							ISelectStatement engineSS = engineWrapper.next();
 							engineList.add(engineSS.getVar("EngineName") + "");
 						}
-	
+
 						List<String> paramList = new ArrayList<String>();
 						List<SEMOSSParam> params = engineToAdd.getParams(id + "");
 						if(params != null && !params.isEmpty()) {
@@ -218,7 +237,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 								paramList.add(p.getName());
 							}
 						}
-	
+
 						// as you get each result, add the insight as a document in the solr index engine
 						Map<String, Object>  queryResults = new  HashMap<> ();
 						queryResults.put(SolrIndexEngine.NAME, name);
@@ -230,13 +249,17 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 						queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
 						queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
 						queryResults.put(SolrIndexEngine.LAYOUT, layout);
-	
+
 						try {
 							solrE.addDocument(engineName + "_" + id, queryResults);
 							writer.writeSolrDocument(file, engineName + "_" + id, queryResults);
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
+					}
+					if(smssProp){
+						logger.info(engineToAdd.getEngineName() + " is changing boolean on smss");
+						changeBoolean(path);
 					}
 				}
 			}
@@ -250,6 +273,53 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			//close writer
 			if(writer != null) {
 				writer.closeExport();
+			}
+		}
+	}
+
+	//force solr to load once 
+	//once engine is loaded, set boolean to false
+	public void changeBoolean(String path) {
+		FileOutputStream fileOut = null;
+		File file = new File(path);
+		List<String> content = new ArrayList<String>();
+
+		BufferedReader reader = null;
+		FileReader fr = null;
+		try{
+			fr = new FileReader(file);
+			reader = new BufferedReader(fr);
+			String line;
+			while((line = reader.readLine()) != null){
+				content.add(line);
+			}
+
+			fileOut = new FileOutputStream(file);
+			byte[] lineBreak = "\n".getBytes();
+			for(int i=0; i<content.size(); i++){
+				if(content.get(i).contains(Constants.SOLR_RELOAD)){
+					String falseBool = Constants.SOLR_RELOAD + "\tfalse";
+					fileOut.write(falseBool.getBytes());
+				}
+				else {
+					byte[] contentInBytes = content.get(i).getBytes();
+					fileOut.write(contentInBytes);
+				}
+				fileOut.write(lineBreak);
+			}
+		} catch(IOException e){
+			e.printStackTrace();
+		} finally{
+			try{
+				reader.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			try{
+				fileOut.close();
+			} catch (IOException e){
+				e.printStackTrace();
 			}
 		}
 	}
@@ -350,6 +420,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	public void loadFirst() {
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
+		String[] engineNames = new String[fileNames.length];
 		String localMasterDBName = Constants.LOCAL_MASTER_DB_NAME + ".smss";
 		int localMasterIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, localMasterDBName);
 		if(localMasterIndex != -1) {
@@ -366,7 +437,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				isLocal = false;
 			}
 			try {
-				loadExistingDB(fileNames[fileIdx], isLocal);
+				String loadedEngineName = loadExistingDB(fileNames[fileIdx], isLocal);
+				engineNames[fileIdx] = loadedEngineName;
 			} catch (RuntimeException ex) {
 				ex.printStackTrace();
 				logger.fatal("Engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
@@ -379,9 +451,9 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			List<String> engines = MasterDBHelper.getAllEngines(localMaster);
 			DeleteFromMasterDB remover = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 			for(String engine : engines) {
-				if(!ArrayUtilityMethods.arrayContainsValue(fileNames, engine + ".smss")) {
-					remover.deleteEngine(engine);
+				if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
 					deleteFromSolr(engine);
+					remover.deleteEngine(engine);
 				}
 			}
 		}

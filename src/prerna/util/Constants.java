@@ -411,6 +411,7 @@ public class Constants {
 	public static final String XML = "XML";
 	public static final String INSIGHTS = "INSIGHTS";
 	public static final String RDBMS_INSIGHTS = "RDBMS_INSIGHTS";
+	public static final String SOLR_RELOAD = "SOLR_RELOAD";
 	
 	// question modification
 	public static final String LABEL_QUESTION_SELECT_PERSPECTIVE = "lblQuestionSelectPerspective";
