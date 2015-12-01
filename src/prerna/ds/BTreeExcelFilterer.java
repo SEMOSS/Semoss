@@ -939,4 +939,16 @@ public class BTreeExcelFilterer implements IBtreeFilterer {
 		//for all columns, change all nodes to unfiltered
 		//make all nodes left children
 	}
+	
+	public Map<String, Object[]> getFilterTransformationsValues() {
+		String[] columnHeaders = table.getColumnHeaders();
+		Map<String, Object[]> retMap = new HashMap<String, Object[]>(columnHeaders.length);
+		for(String column : columnHeaders) {
+			Object[] filteredValues = table.getFilteredUniqueRawValues(column);
+			if(filteredValues.length > 0) {
+				retMap.put(column, table.getUniqueRawValues(column));
+			}
+		}
+		return retMap;
+	}
 }
