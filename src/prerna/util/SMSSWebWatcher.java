@@ -46,9 +46,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.solr.client.solrj.SolrServerException;
 import org.h2.jdbc.JdbcClob;
 import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
@@ -452,11 +454,33 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			DeleteFromMasterDB remover = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 			for(String engine : engines) {
 				if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
-					deleteFromSolr(engine);
 					remover.deleteEngine(engine);
 				}
 			}
 		}
+		
+		Map<String, Object> queryOptions = new HashMap<String, Object>();
+		queryOptions.put(SolrIndexEngine.FACET_FIELD, SolrIndexEngine.CORE_ENGINE);
+		try {
+			Map<String, Long> solrEngines = SolrIndexEngine.getInstance().facetDocument(queryOptions);
+			if(solrEngines != null) {
+				Set<String> engineSet = solrEngines.keySet();
+				for(String engine : engineSet) {
+					if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
+						deleteFromSolr(engine);
+					}
+				}
+			}
+		} catch (KeyManagementException e) {
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		} catch (KeyStoreException e) {
+			e.printStackTrace();
+		} catch (SolrServerException e) {
+			e.printStackTrace();
+		}
+		
 	}
 
 	private void deleteFromSolr(String engineName) {
