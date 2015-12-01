@@ -58,6 +58,8 @@ public class SimpleTreeNode {
 	//int fanout = 4;
 	
 	//boolean root = true;
+	boolean hardFiltered;
+	int transitivelyFiltered;
 	
 	public SimpleTreeNode(ITreeKeyEvaluatable leaf)
 	{
@@ -1422,5 +1424,34 @@ public class SimpleTreeNode {
 //		System.out.println("Numbers >>  " + numberList);
 //
 //	}
+	
+	protected void incrementTransitiveFilter() {
+		transitivelyFiltered++;
+	}
+	
+	protected void decrementTransitiveFilter() {
+		if(transitivelyFiltered > 0) {
+			transitivelyFiltered--;
+		}
+	}
+	
+	protected void hardFilter() {
+		if(hardFiltered) {
+			incrementTransitiveFilter();
+		} else {
+			this.hardFiltered = true;
+		}
+	}
+	
+	protected void removeHardFilter() {
+		if(this.hardFiltered) {
+			this.hardFiltered = false;
+		}
+	}
+	
+	protected void resetFilters() {
+		this.transitivelyFiltered = 0;
+		this.hardFiltered = false;
+	}
 }
 
