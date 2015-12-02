@@ -33,7 +33,7 @@ import java.util.List;
 public abstract class SQLQueryUtil {
 
 	// Added SQL Server as enum DB_TYPE
-	public enum DB_TYPE {H2_DB,MARIA_DB,SQL_SERVER,MySQL,Oracle}
+	public enum DB_TYPE {H2_DB,MARIA_DB,SQL_Server,MySQL,Oracle}
 
 	public static final String USE_OUTER_JOINS_FALSE = "false";
 	public static final String USE_OUTER_JOINS_TRUE = "true";
@@ -88,7 +88,7 @@ public abstract class SQLQueryUtil {
 	public static SQLQueryUtil initialize(SQLQueryUtil.DB_TYPE dbtype) {
 		if(dbtype == SQLQueryUtil.DB_TYPE.MARIA_DB){
 			return new MariaDbQueryUtil();
-		} else if(dbtype == SQLQueryUtil.DB_TYPE.SQL_SERVER){
+		} else if(dbtype == SQLQueryUtil.DB_TYPE.SQL_Server){
 			return new SQLServerQueryUtil();
 		} else if(dbtype == SQLQueryUtil.DB_TYPE.MySQL) {
 			return new MySQLQueryUtil();
@@ -100,7 +100,7 @@ public abstract class SQLQueryUtil {
 	}
 	
 	public static SQLQueryUtil initialize(SQLQueryUtil.DB_TYPE dbtype, String hostname, String port, String schema, String username, String password) {
-		if(dbtype == SQLQueryUtil.DB_TYPE.SQL_SERVER){
+		if(dbtype == SQLQueryUtil.DB_TYPE.SQL_Server){
 			return new SQLServerQueryUtil(hostname, port, schema, username, password);
 		} else if(dbtype == SQLQueryUtil.DB_TYPE.MySQL) {
 			return new MySQLQueryUtil(hostname, port, schema, username, password);
@@ -112,7 +112,7 @@ public abstract class SQLQueryUtil {
 	}
 	
 	public static SQLQueryUtil initialize(SQLQueryUtil.DB_TYPE dbtype, String connectionURL, String username, String password) {
-		if(dbtype == SQLQueryUtil.DB_TYPE.SQL_SERVER){
+		if(dbtype == SQLQueryUtil.DB_TYPE.SQL_Server){
 			return new SQLServerQueryUtil(connectionURL, username, password);
 		} else if(dbtype == SQLQueryUtil.DB_TYPE.MySQL) {
 			return new MySQLQueryUtil(connectionURL, username, password);
@@ -286,7 +286,7 @@ public abstract class SQLQueryUtil {
 		String subQuery = "";
 		//For SQL Server CTAS doesn't work, using select * into newTable from oldTable
 		//Also LTRIM(RTRIM(tableName)) works instead of TRIM(tableName)
-		if(this.getDatabaseType().equals(SQLQueryUtil.DB_TYPE.SQL_SERVER)){
+		if(this.getDatabaseType().equals(SQLQueryUtil.DB_TYPE.SQL_Server)){
 			createTable ="SELECT DISTINCT " + fullColumnNameList 
 					+ " INTO " + tableName + "_TEMP " 
 					+ " FROM " + tableName + " WHERE " + tableName 
