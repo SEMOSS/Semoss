@@ -66,7 +66,7 @@ public class ImportRDBMSProcessor {
 	private final String MYSQL_DRIVER = "com.mysql.jdbc.Driver";
 	private final String ORACLE = "Oracle";
 	private final String ORACLE_DRIVER = "oracle.jdbc.driver.OracleDriver";
-	private final String SQLSERVER = "MS SQL Server";
+	private final String SQLSERVER = "SQL_Server";
 	private final String SQLSERVER_DRIVER = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
 	private final String ASTER = "Aster Database";
 	private final String ASTER_DRIVER = "com.asterdata.ncluster.jdbc.core.NClusterJDBCDriver";
