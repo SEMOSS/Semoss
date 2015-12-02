@@ -34,6 +34,7 @@ import com.google.gson.internal.StringMap;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.rdf.query.util.SQLConstants;
@@ -369,7 +370,14 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 					} else {
 						currentFilters += " , " ;
 					}
-					currentFilters +=  "'" + instance + "'" ;
+					
+					if(((RDBMSNativeEngine) this.engine).getDbType().equals(SQLQueryUtil.DB_TYPE.H2_DB)) {
+						//H2 requires WHERE clauses to use single apostrophe - we are cleaning out single apostrophes on upload so this works
+						currentFilters +=  "'" + instance + "'" ;
+					} else {
+						//Other RDBMS types take in quotation marks in WHERE clauses so we don't need to use apostrophes or scrub the data of them
+						currentFilters +=  "\"" + instance + "\"" ;
+					}
 				}
 				if(currentFilters.length() > 0){
 					currentFilters+=")";// close your last in clause
