@@ -448,37 +448,91 @@ public class BTreeExcelFilterer implements IBtreeFilterer {
 					unfilterTreeNode(n, true);
 					adjustRightChildren(n);
 
-					
-					//if n is root and is not filtered
-					if(n.parent == null && !isFiltered(n)) {
-						moveToLeftChild(n);
+					//n is root
+					if(n.parent == null) {
+						
+						//if n is filtered move to right
+						if(isFiltered(n)) {
+							moveToLeftChild(n);
+						} 
+						
+						//if ne is not filtered move to left
+						else {
+							moveToRightChild(n);
+						}
+						
 						adjustLeftChildren(n);
+					} 
+					
+					//n is not root
+					else {
+						
+						//if n and n's parent are both unfiltered, move to left
+						if(!isFiltered(n.parent) && !isFiltered(n)) {
+							moveToLeftChild(n);
+							adjustLeftChildren(n);
+						}
+						
+						//if n's parent is not filtered and n is filtered move to right
+						else if(!isFiltered(n.parent) && isFiltered(n)) {
+							moveToRightChild(n);
+							adjustLeftChildren(n);
+						}
+						
+						//if n's parent is filtered
+						else if(isFiltered(n.parent)) {
+							
+							if(!isFiltered(n)) {
+								moveToLeftChild(n);
+							} else {
+								moveToRightChild(n);
+							}
+							adjustLeftChildren(n);
+							adjustRightChildren(n.parent);
+							unfilterTreeNodeParents(n);
+							adjustLeftChildren(n.parent);
+						}
 					}
+//					//if n is root and is not filtered
+//					//move to left and adjust left children
+//					if(n.parent == null && !isFiltered(n)) {
+//						moveToLeftChild(n);
+//						adjustLeftChildren(n);
+//					} 
+//					
+//					//if n is root and is filtered
+//					//move to right and adjust left children
+//					else if(n.parent == null && isFiltered(n)) {
+//						moveToRightChild(n);
+//						adjustLeftChildren(n);
+//					}
+					
+					
 					
 					//if n is not root and parent is filtered move to Left
-					else if(n.parent != null && isFiltered(n.parent)) {
-						moveToLeftChild(n);
-						adjustLeftChildren(n);
-					}
-					
-					//if n is not root and parent is not filtered and this is not filtered
-					else if(n.parent != null && !isFiltered(n.parent) && !isFiltered(n)) {
-						moveToLeftChild(n);
-						adjustLeftChildren(n);
-					}
-					
-//					if(parentCheck) {
-//						parentCheck = n.parent.leftChild != null;
+//					else if(n.parent != null && isFiltered(n.parent)) {
+//						moveToLeftChild(n);
+//						adjustLeftChildren(n);
 //					}
-					//filter parents if need be
-//					if(parentCheck) {
-//						if(n.parent.leaf.getValue().toString().equalsIgnoreCase("Summit")) {
-//							System.out.println("");
-//						}
+//					
+//					//if n is not root and parent is not filtered and this is not filtered
+//					else if(n.parent != null && !isFiltered(n.parent) && !isFiltered(n)) {
+//						moveToLeftChild(n);
+//						adjustLeftChildren(n);
+//					}
+//					
+////					if(parentCheck) {
+////						parentCheck = n.parent.leftChild != null;
+////					}
+//					//filter parents if need be
+////					if(parentCheck) {
+////						if(n.parent.leaf.getValue().toString().equalsIgnoreCase("Summit")) {
+////							System.out.println("");
+////						}
+////						adjustLeftChildren(n.parent);
+//						adjustRightChildren(n.parent);
+//						unfilterTreeNodeParents(n);
 //						adjustLeftChildren(n.parent);
-						adjustRightChildren(n.parent);
-						unfilterTreeNodeParents(n);
-						adjustLeftChildren(n.parent);
 //					}
 				}
 			}
@@ -815,17 +869,20 @@ public class BTreeExcelFilterer implements IBtreeFilterer {
 	private void unfilterTreeNodeParents(SimpleTreeNode instance) {
 		SimpleTreeNode parentNode = instance.parent;
 		if(parentNode != null) {
-			if(parentNode.leftChild == null) return;
+			if(parentNode.leftChild == null && parentNode.hardFiltered == false) return;
 		
-			SimpleTreeNode leftChild = parentNode.leftChild;
-			while(leftChild != null) {
-				if(!isFiltered(parentNode.leftChild)) {
-					unfilterTreeNode(parentNode);
-					unfilterTreeNodeParents(parentNode);
-					break;
-				}
-				leftChild = leftChild.rightSibling;
-			}
+//			SimpleTreeNode leftChild = parentNode.leftChild;
+//			while(leftChild != null) {
+//				if(!isFiltered(parentNode.leftChild)) {
+//					unfilterTreeNode(parentNode);
+//					unfilterTreeNodeParents(parentNode);
+//					break;
+//				}
+//				leftChild = leftChild.rightSibling;
+//			}
+			
+			unfilterTreeNode(parentNode);
+			unfilterTreeNodeParents(parentNode);
 		}
 	}
 	
@@ -836,14 +893,16 @@ public class BTreeExcelFilterer implements IBtreeFilterer {
 	 */
 	public boolean isFiltered(SimpleTreeNode node) {
 		//find the node in the index tree
-		TreeNode tnode = builder.getNode(((ISEMOSSNode)node.leaf));
+//		TreeNode tnode = builder.getNode(((ISEMOSSNode)node.leaf));
+//		
+//		//Value does not exist
+//		if(tnode == null) {
+//			throw new IllegalArgumentException("Node with value "+node.leaf.getValue()+" does not exist");
+//		}
+//		
+//		return tnode.isFiltered(node);
 		
-		//Value does not exist
-		if(tnode == null) {
-			throw new IllegalArgumentException("Node with value "+node.leaf.getValue()+" does not exist");
-		}
-		
-		return tnode.isFiltered(node);
+		return node.transitivelyFiltered > 0 || node.hardFiltered;
 	}
 	
 	@Override
