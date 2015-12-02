@@ -160,7 +160,7 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 			{
 				String tableName = rsmd.getTableName(colIndex);
 				String columnLabel = rsmd.getColumnLabel(colIndex);
-				if(tableName.isEmpty() && dbType == SQLQueryUtil.DB_TYPE.SQL_SERVER){
+				if(tableName.isEmpty() && dbType == SQLQueryUtil.DB_TYPE.SQL_Server){
 					tableName = deriveTableName(tableName, columnLabel);
 				}
 				
