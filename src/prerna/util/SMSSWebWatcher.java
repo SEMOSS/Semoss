@@ -27,21 +27,14 @@
  *******************************************************************************/
 package prerna.util;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.sql.SQLException;
 import java.text.DateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,29 +44,18 @@ import java.util.Set;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.h2.jdbc.JdbcClob;
-import org.openrdf.repository.Repository;
-import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
-import org.openrdf.repository.sail.SailRepository;
-import org.openrdf.rio.RDFFormat;
 import org.openrdf.rio.RDFHandlerException;
-import org.openrdf.rio.RDFParseException;
-import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
-import org.openrdf.sail.memory.MemoryStore;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
-import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.MasterDBHelper;
-import prerna.om.SEMOSSParam;
 import prerna.poi.main.BaseDatabaseCreator;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.solr.SolrDocumentExportWriter;
 import prerna.solr.SolrIndexEngine;
 
 /**
@@ -116,15 +98,14 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				logger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
 			} else {
 				String fileName = folderToWatch + "/" + newFile;
-				IEngine engineLoaded = Utility.loadEngine(fileName, prop);
+				IEngine engineLoaded = Utility.loadWebEngine(fileName, prop);
 				boolean hidden = (prop.getProperty(Constants.HIDDEN_DATABASE) != null && Boolean.parseBoolean(prop.getProperty(Constants.HIDDEN_DATABASE)));
 				if(!isLocal && !hidden) {
 					addToLocalMaster(engineLoaded);
-					addToSolr(engineLoaded, fileName);
 				} else if(!isLocal){ // never add local master to itself...
 					DeleteFromMasterDB deleter = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 					deleter.deleteEngine(engineName);
-					deleteFromSolr(engineName);
+					Utility.deleteFromSolr(engineName);
 				}
 			}
 		}catch(IOException e){
@@ -139,191 +120,6 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		}
 
 		return engineName;
-	}
-
-	private void addToSolr(IEngine engineToAdd, String path) {
-		SolrIndexEngine solrE = null;
-		SolrDocumentExportWriter writer = null;
-		try {
-			logger.info("Checking if we need to add " + engineToAdd.getEngineName());
-			solrE = SolrIndexEngine.getInstance();
-			if(solrE.serverActive()) {
-				String smssPropString = engineToAdd.getProperty(Constants.SOLR_RELOAD);
-				boolean smssProp = false;
-				if(smssPropString != null) {
-					smssProp = Boolean.parseBoolean(smssPropString);
-				}
-				logger.info(engineToAdd.getEngineName() + " has smss force reload value of "+ smssProp);
-
-				String engineName = engineToAdd.getEngineName();
-				// check if should always recreate and check if db currently exists and check if db is updated
-				if(AbstractEngine.RECREATE_SOLR || !solrE.containsEngine(engineName) || smssProp) {
-					logger.info(engineToAdd.getEngineName() + " is reloading solr");
-
-					//reloads in Solr				
-					String folderPath = DIHelper.getInstance().getProperty("BaseFolder");
-					folderPath = folderPath + "\\db\\" + engineName + "\\";
-					String fileName = engineName + "_Solr.txt";
-					File file = new File(folderPath + fileName);
-					if (!file.exists()) {
-						try {
-							file.createNewFile();
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-					}
-
-					try {
-						writer = new SolrDocumentExportWriter(file);
-					} catch (IOException e1) {
-						e1.printStackTrace();
-					}
-
-					DateFormat dateFormat = SolrIndexEngine.getDateFormat();
-					Date date = new Date();
-					String currDate = dateFormat.format(date);
-					String userID = "default";
-					String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, QUESTION_MAKEUP FROM QUESTION_ID";
-
-					//	solrE.deleteEngine(engineName);
-
-					// query the current insights in this db
-					ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engineToAdd.getInsightDatabase(), query);
-					while(wrapper.hasNext()){
-						ISelectStatement ss = wrapper.next();
-						int id = (int) ss.getVar("ID");
-						String name = (String) ss.getVar("QUESTION_NAME");
-						String layout = (String) ss.getVar("QUESTION_LAYOUT");
-
-						JdbcClob obj = (JdbcClob) ss.getVar("QUESTION_MAKEUP"); 
-						InputStream makeup = null;
-						try {
-							makeup = obj.getAsciiStream();
-						} catch (SQLException e) {
-							e.printStackTrace();
-						}
-
-						//load the makeup input stream into a rc
-						RepositoryConnection rc = null;
-						try {
-							Repository myRepository = new SailRepository(new ForwardChainingRDFSInferencer(new MemoryStore()));
-							myRepository.initialize();
-							rc = myRepository.getConnection();
-							rc.add(makeup, "semoss.org", RDFFormat.NTRIPLES);
-						} catch (RuntimeException ignored) {
-							ignored.printStackTrace();
-						} catch (RDFParseException e) {
-							e.printStackTrace();
-						} catch (RepositoryException e) {
-							e.printStackTrace();
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-						// set the rc in the in-memory engine
-						InMemorySesameEngine myEng = new InMemorySesameEngine();
-						myEng.setRepositoryConnection(rc);
-
-						List<String> engineList = new ArrayList<String>();
-						//Query the engine
-						String engineQuery = "SELECT DISTINCT ?EngineName WHERE {{?Engine a <http://semoss.org/ontologies/Concept/Engine>}{?Engine <http://semoss.org/ontologies/Relation/Contains/Name> ?EngineName} }";
-						ISelectWrapper engineWrapper = WrapperManager.getInstance().getSWrapper(myEng, engineQuery);
-						while(engineWrapper.hasNext()) {
-							ISelectStatement engineSS = engineWrapper.next();
-							engineList.add(engineSS.getVar("EngineName") + "");
-						}
-
-						List<String> paramList = new ArrayList<String>();
-						List<SEMOSSParam> params = engineToAdd.getParams(id + "");
-						if(params != null && !params.isEmpty()) {
-							for(SEMOSSParam p : params) {
-								paramList.add(p.getName());
-							}
-						}
-
-						// as you get each result, add the insight as a document in the solr index engine
-						Map<String, Object>  queryResults = new  HashMap<> ();
-						queryResults.put(SolrIndexEngine.NAME, name);
-						queryResults.put(SolrIndexEngine.CREATED_ON, currDate);
-						queryResults.put(SolrIndexEngine.MODIFIED_ON, currDate);
-						queryResults.put(SolrIndexEngine.USER_ID, userID);
-						queryResults.put(SolrIndexEngine.ENGINES, engineList);
-						queryResults.put(SolrIndexEngine.PARAMS, paramList);
-						queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
-						queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
-						queryResults.put(SolrIndexEngine.LAYOUT, layout);
-
-						try {
-							solrE.addDocument(engineName + "_" + id, queryResults);
-							writer.writeSolrDocument(file, engineName + "_" + id, queryResults);
-						} catch (Exception e) {
-							e.printStackTrace();
-						}
-					}
-					if(smssProp){
-						logger.info(engineToAdd.getEngineName() + " is changing boolean on smss");
-						changeBoolean(path);
-					}
-				}
-			}
-		} catch (KeyManagementException e) {
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		} catch (KeyStoreException e) {
-			e.printStackTrace();
-		} finally {
-			//close writer
-			if(writer != null) {
-				writer.closeExport();
-			}
-		}
-	}
-
-	//force solr to load once 
-	//once engine is loaded, set boolean to false
-	public void changeBoolean(String path) {
-		FileOutputStream fileOut = null;
-		File file = new File(path);
-		List<String> content = new ArrayList<String>();
-
-		BufferedReader reader = null;
-		FileReader fr = null;
-		try{
-			fr = new FileReader(file);
-			reader = new BufferedReader(fr);
-			String line;
-			while((line = reader.readLine()) != null){
-				content.add(line);
-			}
-
-			fileOut = new FileOutputStream(file);
-			byte[] lineBreak = "\n".getBytes();
-			for(int i=0; i<content.size(); i++){
-				if(content.get(i).contains(Constants.SOLR_RELOAD)){
-					String falseBool = Constants.SOLR_RELOAD + "\tfalse";
-					fileOut.write(falseBool.getBytes());
-				}
-				else {
-					byte[] contentInBytes = content.get(i).getBytes();
-					fileOut.write(contentInBytes);
-				}
-				fileOut.write(lineBreak);
-			}
-		} catch(IOException e){
-			e.printStackTrace();
-		} finally{
-			try{
-				reader.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-
-			try{
-				fileOut.close();
-			} catch (IOException e){
-				e.printStackTrace();
-			}
-		}
 	}
 
 	//	private void clearLocalDB() {
@@ -467,7 +263,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				Set<String> engineSet = solrEngines.keySet();
 				for(String engine : engineSet) {
 					if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
-						deleteFromSolr(engine);
+						Utility.deleteFromSolr(engine);
 					}
 				}
 			}
@@ -481,18 +277,6 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			e.printStackTrace();
 		}
 		
-	}
-
-	private void deleteFromSolr(String engineName) {
-		try {
-			SolrIndexEngine.getInstance().deleteEngine(engineName);
-		} catch (KeyManagementException e) {
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		} catch (KeyStoreException e) {
-			e.printStackTrace();
-		}
 	}
 
 	/**
