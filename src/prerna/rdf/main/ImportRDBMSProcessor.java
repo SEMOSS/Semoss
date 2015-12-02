@@ -195,7 +195,7 @@ public class ImportRDBMSProcessor {
 			} else if(type.equals(this.ORACLE)) {
 				query = "SELECT TABLE_NAME, COLUMN_NAME FROM USER_TAB_COLS ORDER BY TABLE_NAME";
 			} else if(type.equals(this.SQLSERVER)) {
-				query = "SELECT x AS TABLE_NAME, y AS COLUMN_NAME FROM USER_TAB_COLS";
+				query = "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS";
 			} else {
 				return null;
 			}
