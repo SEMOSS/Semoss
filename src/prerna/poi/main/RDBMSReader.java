@@ -1360,7 +1360,7 @@ public class RDBMSReader {
 		//if(tableKey.contains("+"))
 		//	tableKey = processAutoConcat(tableKey);
 		String SQLALTER = "";
-		if(queryUtil.getDatabaseType().equals(SQLQueryUtil.DB_TYPE.SQL_SERVER))			
+		if(queryUtil.getDatabaseType().equals(SQLQueryUtil.DB_TYPE.SQL_Server))			
 			SQLALTER = "ALTER TABLE " + realClean(tableKey) + " ADD ";//For SQL Server, no "(", i.e. 'ALTER TABLE table_name ADD column_name datatype'
 		else
 			SQLALTER = "ALTER TABLE " + realClean(tableKey) + " ADD (";

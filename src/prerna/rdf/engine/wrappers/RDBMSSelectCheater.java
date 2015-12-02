@@ -222,7 +222,7 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 				String columnLabel = rsmd.getColumnLabel(colIndex);
 				String columnOnlyLabel = columnLabel;
 				String columnLabelURI = "";
-				if(tableName.isEmpty() && dbType == SQLQueryUtil.DB_TYPE.SQL_SERVER){
+				if(tableName.isEmpty() && dbType == SQLQueryUtil.DB_TYPE.SQL_Server){
 					tableName = deriveTableName(tableName, columnLabel);
 				}
 				
