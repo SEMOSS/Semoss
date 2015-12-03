@@ -331,6 +331,14 @@ public class Insight {
 	}
 	
 	/**
+	 * Gets the makeup engine that contains the insight makeup
+	 * @return
+	 */
+	public IEngine getMakeupEngine() {
+		return this.makeupEngine;
+	}
+	
+	/**
 	 * Append the parameter filters to the correct component
 	 * Each parameter stores the component and filter number that it is affecting
 	 */
@@ -411,7 +419,7 @@ public class Insight {
 	 * @param makeupEng
 	 * @return
 	 */
-	private List<DataMakerComponent> digestNTriples(IEngine makeupEng){
+	public List<DataMakerComponent> digestNTriples(IEngine makeupEng){
 		System.out.println("Creating data component array from makeup engine");
 		List<DataMakerComponent> dmCompVec = new Vector<DataMakerComponent>();
 		String countQuery = "SELECT (COUNT(DISTINCT(?Component)) AS ?Count) WHERE {?Component a <http://semoss.org/ontologies/Concept/Component>. BIND('x' AS ?x) } GROUP BY ?x";
