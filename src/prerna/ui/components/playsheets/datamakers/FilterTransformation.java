@@ -129,10 +129,10 @@ public class FilterTransformation extends AbstractTransformation {
 	
 	public static void filterColumn(IDataMaker dm, String concept, List<Object> filterValuesArr) throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		
+		List<Object> values = new ArrayList<Object>(filterValuesArr.size());
 		//if column is numeric convert to double
 		Method isNumericMethod = dm.getClass().getMethod("isNumeric", String.class);
 		if((boolean) isNumericMethod.invoke(dm, concept)) {
-			List<Object> values = new ArrayList<Object>(filterValuesArr.size());
 			for(Object o: filterValuesArr) {
 				try {
 					values.add(Double.parseDouble(o.toString()));
@@ -140,38 +140,18 @@ public class FilterTransformation extends AbstractTransformation {
 					values.add(o);
 				}
 			}
-			filterValuesArr = values;
+		}
+		else { // all filter methods on the btree are set up to work without uris. Need to strip uris
+			for(Object o: filterValuesArr) {
+				values.add(Utility.getInstanceName(o+""));
+			}
 		}
 		
 		//get filter and unfilter methods from data maker
 		Method filterMethod = dm.getClass().getMethod(METHOD_NAME, String.class, List.class);
-		Method unfilterMethod = dm.getClass().getMethod(UNDO_METHOD_NAME, String.class, List.class);
-		
-		if(filterValuesArr.isEmpty()) {
-			filterMethod.invoke(dm, concept, filterValuesArr);
-			return;
-		}
+		filterMethod.invoke(dm, concept, values);
 
-		//determine which values to filter and which to unfilter
-		Method getUniqueValues = dm.getClass().getMethod("getUniqueValues", String.class);
-		Object[] visibleValues = (Object[]) getUniqueValues.invoke(dm, concept);
-		Set<Object> valuesToUnfilter = new HashSet<Object>(filterValuesArr);
-		Set<Object> valuesToFilter = new HashSet<Object>(Arrays.asList(visibleValues));
-		
-		for(Object o : visibleValues) {
-			valuesToUnfilter.remove(o);
-		}
-		
-		for(Object o : filterValuesArr) {
-			valuesToFilter.remove(o);
-		}
-		
-		filterMethod.invoke(dm, concept, new ArrayList<Object>(valuesToFilter));
-		unfilterMethod.invoke(dm, concept, new ArrayList<Object>(valuesToUnfilter));
-		
-		if(valuesToFilter.size() + valuesToUnfilter.size() > 0) {
-			LOGGER.info("Filtered column: "+concept);
-		}
+		LOGGER.info("Filtered column: "+concept);
 	}
 
 	@Override

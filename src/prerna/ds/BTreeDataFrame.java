@@ -798,7 +798,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		IndexTreeIterator it = new IndexTreeIterator(typeRoot);
 		while(it.hasNext()) {
 			TreeNode t = it.next();
-			if(t.getInstances().size() == 0) {
+			if(t.getHardFilteredInstances().size() > 0) {
 				uniqueValues.add(t.leaf.getRawValue());
 			}
 		}
