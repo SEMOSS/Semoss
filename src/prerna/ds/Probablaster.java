@@ -1,5 +1,10 @@
 package prerna.ds;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
@@ -59,9 +64,23 @@ public class Probablaster {
 	SimpleTreeNode selectedNode = null;
 	
 	
+	public void testURL()
+	{
+		String key = "1.%201d83819b-10b0-406a-81d0-51ed4cbd56d2";
+
+		System.out.println(key);
+		key = URLEncoder.encode(key);
+		System.out.println(key);
+		key = URLDecoder.decode(key);
+		System.out.println(key);
+	}
+	
 	public void setDataFrame(BTreeDataFrame df)
 	{
 		this.df = df;
+		// bin all the numeric columns
+		df.binAllNumericColumns();
+		// get the column names based on the binning
 		columns = df.levelNames;
 		composeColumns();
 	}
@@ -136,8 +155,42 @@ public class Probablaster {
 		System.out.println("Count..  " + count);
 	}
 	
-	public void runBIC()
+	public void tryPattern()
 	{
+		String pattern = "";
+		System.out.println("Levels are...  " + df.simpleTree.findLevels());
+		try {
+			do
+			{
+				System.err.println("Enter a new pattern : ");
+				BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+				pattern = reader.readLine();
+
+				int level = 0;
+				comboBuilder = new SimpleTreeBuilder("L" + level);
+				new StringClass(pattern, "L0");
+				System.out.println("Level " + level + " >>> " + level);
+
+				level++;
+				comboBuilder.addNode(new StringClass(pattern, "L0"), new StringClass(pattern, "L1"));
+
+				selectedNode = comboBuilder.getRoot();
+
+				play();
+				
+			} while(!pattern.equalsIgnoreCase("done"));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}		
+	}
+	
+	public String runBIC()
+	{
+		//oscillate();
+		
+		//tryPattern();
+		//String retString = null;
 		String pattern = createNewPattern();
 		//bs.genAllCombos(pattern);
 		
@@ -145,33 +198,152 @@ public class Probablaster {
 		//df.simpleTree.getPath("X3", "X1", ";X3;X2;");
 		//pattern = "0-1:1-2";
 		genAllCombos(pattern);
+		SimpleTreeNode finalNode = null;
+		
+		double finalBIC = -9999.9999;
 		
 		selectedNode = comboBuilder.getRoot();
+		boolean run = true;
+		int totalRun = 0;
+		while(run)
+		{
+			run = play();
+			if(!run && baseBIC == -9999.9999)
+			{
+				// shit failed
+				// need to create a new pattern
+				pattern = createNewPattern();
+			}
+			else if(run)
+				pattern = selectedNode.leaf.getKey();
+
+			System.out.println(" Trying pattern...  " + pattern);
+				
+			if(run)
+			{
+				genAllCombos(pattern);
+				//firstTime = true;
+			}
+			
+			if(!run && totalRun < 6)
+			{
+				run = true;
+				if(finalNode == null || finalBIC < baseBIC)
+				{
+					finalNode = selectedNode;
+					finalBIC = baseBIC;
+				}
+				pattern = createNewPattern();
+				genAllCombos(pattern);				
+				selectedNode = comboBuilder.getRoot();
+				totalRun++;
+			}
+		}
+		System.out.println("And.. the winner is......  " + finalNode.leaf.getKey() + "    with a BIC of.. " + baseBIC);
+
+		String retString = finalNode.leaf.getKey().replace("-", "-->") + " <<>> " + baseBIC;
+		retString = retString + "\n" + translateToCol(finalNode.leaf.getKey());
+		
+		return retString;
+	}
+	
+	public void oscillate()
+	{
+		// first generate the pattern for everything disconnected
+		int numEdges = 0;
+		
+		int n = (columns.length * (columns.length-1))/2;
+
+		double newBic = -9999.9999;
+		String parentPattern = "";
+		String newPattern = "";
+		
+		System.out.println("N is .. " + n);
+		//numEdges = 6;
+		
+		do
+		{
+			String pattern = createNewPattern(numEdges);
+			System.out.println("Trying pattern " + pattern);
+			makeNewTree(pattern);
+			play();
+			numEdges++;
+			if(baseBIC > newBic || newBic == -9999.9999)
+			{
+				parentPattern = newPattern;
+				newPattern = pattern;
+				newBic = baseBIC;
+			}
+			//else if(newBic != -9999.9999)
+			//{
+				//parentPattern = newPattern;
+			//	break;
+			//}	
+		}while(numEdges < n);
+		
+		System.out.println("Seems to stabilize at " + newPattern);
+		
+		genAllCombos(parentPattern);
+		
+		selectedNode = comboBuilder.getRoot();
+
+		System.out.println("Travelling side ways.... ");
+		
 		boolean run = true;
 		while(run)
 		{
 			run = play();
+			if(!run && baseBIC == -9999.9999)
+			{
+				// shit failed
+				// need to create a new pattern
+				newPattern = createNewPattern();
+			}
+			else if(run)
+				newPattern = selectedNode.leaf.getKey();
+
+			System.out.println(" Trying pattern...  " + newPattern);
+				
 			if(run)
 			{
-				pattern = selectedNode.leaf.getKey();
-				genAllCombos(pattern);
-				firstTime = true;
+				genAllCombos(newPattern);
+				//firstTime = true;
 			}
+			
 		}
-		System.out.println("And.. the winner is......  " + selectedNode.leaf.getKey() + "    with a BIC of.. " + baseBIC);
 		
+		System.out.println("winner is...  " + selectedNode.leaf.getKey());
+	}
+	
+	public void makeNewTree(String pattern)
+	{
+		int level = 0;
+		comboBuilder = new SimpleTreeBuilder("L" + level);
+		new StringClass(pattern, "L0");
+		System.out.println("Level " + level + " >>> " + level);
+
+		level++;
+		comboBuilder.addNode(new StringClass(pattern, "L0"), new StringClass(pattern, "L1"));
+
+		selectedNode = comboBuilder.getRoot();
+
 	}
 	
 	
 	
 	public static void main(String [] args)
 	{
-		patternTest();
+		//patternTest();
 		Probablaster bs = new Probablaster();
+		bs.makeData();
+		bs.oscillate();
+		/*
+		//bs.testURL();
 		
 		//System.out.println(bs.translateToCol("0-1:0-2"));
 		
 		String pattern = bs.createNewPattern();
+		pattern = "0:1:2";
 		bs.genAllCombos(pattern);
 		
 		bs.makeData();
@@ -283,15 +455,21 @@ public class Probablaster {
 		System.out.println("Done");		
 	}
 	
-	
 	public String createNewPattern()
+	{
+		int n = (columns.length * (columns.length-1))/2;
+		int noOfEdges = rand.nextInt(n);
+		return createNewPattern(noOfEdges);
+	}
+	
+	public String createNewPattern(int noOfEdges)
 	{
 		Vector<SimpleTreeNode> retNode = null;
 		
 		//Random rand = new Random();
 		int n = (columns.length * (columns.length-1))/2;
 		
-		int noOfEdges = rand.nextInt(n);
+		//int noOfEdges = rand.nextInt(n);
 		Hashtable <String, String> edgeHash = new Hashtable();
 		
 		int numberOfSkips = n - noOfEdges;
@@ -303,7 +481,7 @@ public class Probablaster {
 		boolean straight = false;
 		int holder = 0;
 		Vector <Integer> addedNodes = new Vector<Integer>();
-		while(edgeCount < columns.length && edgeCount < noOfEdges) // first add everything
+		while(edgeCount + 1 < columns.length && edgeCount < noOfEdges) // first add everything
 		{
 			if(firstPattern.length() == 0)
 				firstPattern = edgeCount + "-" + (edgeCount+1);
@@ -317,7 +495,7 @@ public class Probablaster {
 			if(!addedNodes.contains(edgeCount))
 				addedNodes.addElement(edgeCount);
 		}
-		edgeCount++;
+		//edgeCount++;
 			
 		while(edgeCount < noOfEdges)
 		{
@@ -326,9 +504,9 @@ public class Probablaster {
 			for(int colIndex = holder+2;colIndex < columns.length && edgeCount < noOfEdges;colIndex++)
 			{
 				firstPattern = firstPattern + ":" + holder + "-" + colIndex;
+				edgeCount++;
 			}
 			holder++;
-			edgeCount++;
 		}
 		
 		String remaining = getRemainingNew(addedNodes);
@@ -539,9 +717,10 @@ public class Probablaster {
 			{
 				System.out.println("Back into sole searching mode.. but ");
 				selectedNode = comboBuilder.getRoot().parent;
-			}
-			
 				
+				// should be more to do with siblings
+				genAllCombos(selectedNode.leaf.getKey());
+			}
 			//ISEMOSSNode curRootNode = (ISEMOSSNode)comboBuilder.getRoot().leaf.getKey();
 		}
 		
@@ -617,20 +796,74 @@ public class Probablaster {
 							// add it to the tree
 							comboBuilder.addNode(parentNode, targetNode);
 						}
-						
-					}					
+					}
 				}
 			}
 			starter++;
 		}		
+		// try with flips
+		if(nextRound.size() == 0)
+		{
+			// I need to create flips here
+			//nextRound = flipAll(input, tokens);
+		}
+
 		if(nextRound.size() > 0)
 			System.out.println(" Level  "+ level + " >>> " + nextRound);
 		return nextRound;
 	}
 	
+	public Vector<String> flipAll(String core, String [] input)
+	{
+		Vector <String> retVector = new Vector<String>();
+		
+		int start = 0;
+		while(start < input.length)
+		{
+			String starter = input[start];
+			starter = flipIt(starter); // flip the first one first
+			
+			int numToFlip = 1; // need to find how to flip 2 etc etc.. 
+			
+			for(int colIndex = 0;colIndex < input.length;colIndex++)
+			{
+				if(colIndex != start)
+				{
+					String thisNode = input[colIndex];
+					thisNode = flipIt(thisNode);
+					String remains = getRemaining(input, start, colIndex);
+					String finalStr = starter + ":" + thisNode + ":" + remains;
+					retVector.add(finalStr);
+					ISEMOSSNode parentNode = null;
+					if(keyTreeHash.containsKey(input))
+						parentNode = keyTreeHash.get(input);
+					else
+						parentNode = new StringClass(core, "L" + 0);
+					ISEMOSSNode targetNode = new StringClass(finalStr, "L" + 1);
+					keyTreeHash.put(core, parentNode);
+					keyTreeHash.put(finalStr, targetNode);
+					
+					
+					// add it to the tree
+					comboBuilder.addNode(parentNode, targetNode);
+
+				}
+			}
+			start++;
+		}
+		return retVector;
+	}
+	
+	public String flipIt(String input)
+	{
+		String parent = input.substring(0,input.indexOf("-"));
+		String child = input.substring(input.indexOf("-")+1);
+		return child + "-" + parent;
+		
+	}
+	
 	public Vector<String> genCompositeCombos(String start, String fullString, String [] remaining, int startIndex, int level, Vector <String> nextRound)
 	{
-		
 		StringTokenizer startTokens = new StringTokenizer(start,"-");
 		String [] tokens = new String[startTokens.countTokens()]; // created these tokens
 		// convert it to array
@@ -671,7 +904,6 @@ public class Probablaster {
 							// add it to the tree
 							comboBuilder.addNode(parentNode, targetNode);
 						}
-						
 					}
 				}
 			}
@@ -842,6 +1074,9 @@ public class Probablaster {
 		boolean continueToNext = false;
 		
 		// assimilate the nearest nodes
+		// I cannot always put the parent first
+		// I need to find which direction it is going and then flip to other direction
+		
 		Vector <SimpleTreeNode> otherNodes = new Vector<SimpleTreeNode>();
 		otherNodes.add(selectedNode);
 		if(selectedNode.parent != null)
@@ -867,78 +1102,114 @@ public class Probablaster {
 			// and then compare and contrast
 			String colConfig = otherNodes.get(nodeIndex).leaf.getKey();
 			colConfig = translateToCol(colConfig);
-			
-			// three possibilities here
-			// it has a -
-			StringTokenizer config = new StringTokenizer(colConfig, ":");
-			// convert to a vector for easier processing
-			Vector <String> configVector = new Vector<String>();
-			for(;config.hasMoreTokens();configVector.add(config.nextToken()));
+
 			double totalBIC = 0.0;
-			double totalD = 0.0;
-			while(configVector.size() > 0)
+
+			if(!BICIHash.containsKey(otherNodes.get(nodeIndex).leaf.getKey()))
 			{
-				String configElement = configVector.remove(0);
-				String parent = configElement;
-				String child = parent;
-				
-				// this element might be a composite // need to work this through
-				double BIC = 0;
-				if(configElement.indexOf("-") > 0)
+				try
 				{
-					// I need to process each one of these things but for now
-					// I need to find the last key 
-					// right now handling only the case of 2
-					// could be more than 2 etc. 
-					String [] parents = findParents(configElement, configVector);
-					child = configElement.substring(configElement.indexOf("-") + 1);
-					BIC = findBIC(parents[0], child, parents[1]);
-					
-					//totalBIC = totalBIC + BIC;
-					
-					//double parentD = 0.0; //findD(parent, null);
-					double childD = findD(parents[0], child); // add the parent piece to it
-					
-					totalBIC = totalBIC + BIC ;
-					totalD = totalD + childD; // removing the child d	
-				}
-				else
+					// three possibilities here
+					// it has a -
+					StringTokenizer config = new StringTokenizer(colConfig, ":");
+					// convert to a vector for easier processing
+					Vector <String> configVector = new Vector<String>();
+					for(;config.hasMoreTokens();configVector.add(config.nextToken()));
+					double totalD = 0.0;
+						while(configVector.size() > 0)
+						{
+							String configElement = configVector.remove(0);
+							String parent = configElement;
+							String child = parent;
+							
+							// this element might be a composite // need to work this through
+							double BIC = 0;
+							if(configElement.indexOf("-") > 0)
+							{
+								// I need to process each one of these things but for now
+								// I need to find the last key 
+								// right now handling only the case of 2
+								// could be more than 2 etc. 
+								String [] parents = findParents(configElement, configVector);
+								child = configElement.substring(configElement.indexOf("-") + 1);
+								
+								//System.out.println("Finding the path for... " + parents[0] + "   Through... " + parents[1] + "  to...  " + child);
+								BIC = findBIC(parents[0], child, parents[1]);
+								
+								//totalBIC = totalBIC + BIC;
+								
+								//double parentD = 0.0; //findD(parent, null);
+								double childD = findD(parents[0], child); // add the parent piece to it
+								
+								totalBIC = totalBIC + BIC ;
+								totalD = totalD + childD; // removing the child d	
+							}
+							else
+							{
+								BIC = findBICI(parent); // add the parent as well
+								double parentD = findD(parent, null);
+								totalD = totalD + parentD;
+								totalBIC = totalBIC + BIC;
+							}
+						} // completes a config right here
+					// add the final penalty for this config
+					double penalty = getLogN(columns[0], columns[1]) * (totalD/2);
+					totalBIC = totalBIC - penalty;
+					System.out.println("BIC for the pattern " + otherNodes.get(nodeIndex).leaf.getKey() + " >> " + totalBIC + "  Penalty..  " + penalty + "  D... " + totalD);
+					BICIHash.put(otherNodes.get(nodeIndex).leaf.getKey(), totalBIC);
+					// compare the BICs if this configuration is better.. then discard everything else and proceed for the next set of combos 
+					// the next time when it comes in
+					// there needs to be some kind of way to restart the process
+					if(firstTime) // turn this into first one
+					{
+						baseBIC = totalBIC;
+						curSelectedNode = otherNodes.get(nodeIndex);
+						selectedNode = curSelectedNode; // I have no idea why I need it.. but.. 
+						firstTime = false;
+						continueToNext = true;
+					}
+					else if((totalBIC > baseBIC))
+					{
+						continueToNext = true;
+						baseBIC = totalBIC;
+						curSelectedNode = otherNodes.get(nodeIndex);
+						selectedNode = curSelectedNode; // I have no idea why I need it.. but.. 
+						System.err.println("Existing pattern.. new BIC " + selectedNode.leaf.getKey() + baseBIC);
+						System.out.println("Pattern selected " + selectedNode.leaf.getKey());
+						// set the selected node if this is not continue to next
+						/*if(continueToNext)
+						{
+							selectedNode = curSelectedNode;
+							break;
+						}*/
+					}
+					/*
+					 * this is closing it too prematurely.. I dont want to stop until we get another one
+					else if(!skip)
+					{
+						// we have the winner 
+						// stop
+						System.out.println("Got here");
+						break;
+					}*/
+				}catch(Exception ex)
 				{
-					BIC = findBICI(parent); // add the parent as well
-					double parentD = findD(parent, null);
-					totalD = totalD + parentD;
-					totalBIC = totalBIC + BIC;
+					System.err.println("Ok.. it did not work for this pattern.. " + otherNodes.get(nodeIndex).leaf.getKey());
+					ex.printStackTrace();
 				}
-			} // completes a config right here
-			// add the final penalty for this config
-			double penalty = getLogN(columns[0], columns[1]) * (totalD/2);
-			totalBIC = totalBIC - penalty;
-			System.out.println("BIC for the pattern " + colConfig + " >> " + totalBIC + "  Penalty..  " + penalty + "  D... " + totalD);
-			
-			// compare the BICs if this configuration is better.. then discard everything else and proceed for the next set of combos 
-			// the next time when it comes in
-			// there needs to be some kind of way to restart the process
-			if(totalBIC > baseBIC || firstTime)
-			{
-				if(!firstTime)
-					continueToNext = true;
-				baseBIC = totalBIC;
-				curSelectedNode = otherNodes.get(nodeIndex);
-				System.out.println("Pattern selected " + selectedNode.leaf.getKey());
-				// set the selected node if this is not continue to next
-				if(continueToNext)
-				{
-					selectedNode = curSelectedNode;
-					break;
-				}
-				firstTime = false;
-			}
+			}// ends the if something is already done piece
 			else
 			{
-				// we have the winner 
-				// stop
-				System.out.println("Got here");
-				break;
+				//System.err.println("Ok.. we already have this.. " + otherNodes.get(nodeIndex).leaf.getKey());
+				// if the bic is valid take it
+				double thisBIC = BICIHash.get(otherNodes.get(nodeIndex).leaf.getKey());
+				
+				if(thisBIC >= baseBIC)
+				{
+					//System.out.println("This bic is higher.. so I am going change to this.. ");
+					this.selectedNode = otherNodes.get(nodeIndex); // set this as the new one
+					baseBIC = thisBIC;
+				}				
 			}
 		}
 		// do one last check to see if the input 
