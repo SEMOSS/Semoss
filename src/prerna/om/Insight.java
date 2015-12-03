@@ -92,13 +92,13 @@ public class Insight {
 	private transient IEngine mainEngine;										// the main engine where the insight is stored
 	private transient IEngine makeupEngine;										// the in-memory engine created to store the data maker components and transformations for the insight
 	private transient IPlaySheet playSheet;										// the playsheet for the insight
-	private Map<String, String> dataTableAlign;									// the data table align for the insight corresponding to the playsheet
-	private Gson gson = new Gson();
+	private transient Map<String, String> dataTableAlign;									// the data table align for the insight corresponding to the playsheet
+	private transient Gson gson = new Gson();
 	
-	private Boolean append = false;												// currently used to distinguish when performing overlay in gdm data maker 
+	private transient  Boolean append = false;												// currently used to distinguish when performing overlay in gdm data maker 
 	
 	private transient IDataMaker dataMaker;										// defines how to make the data for the insight
-	private String dataMakerName;												// the name of the data maker
+	private transient String dataMakerName;												// the name of the data maker
 	private transient List<DataMakerComponent> dmComponents;					// the list of data maker components in order for creation of insight
 	private transient List<DataMakerComponent> optimalComponents;
 	private transient Map<String, List<Object>> paramHash;						// the parameters selected by user for filtering on insights
