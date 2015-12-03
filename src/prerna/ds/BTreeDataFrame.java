@@ -1370,7 +1370,7 @@ public class BTreeDataFrame implements ITableDataFrame {
 		columnHeader = this.getColumnName(columnHeader);
 
 
-		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
+		TreeNode typeRoot = simpleTree.nodeIndexHash.get(levelNames[levelNames.length - 1]);
 		if(typeRoot == null){ // TODO this null check shouldn't be needed. When we join, we need to add empty nodes--need to call balance at somepoint or something like that
 			LOGGER.info("Table is empty............................");
 			return new Object[0];
