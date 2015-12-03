@@ -2049,8 +2049,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 	@Override
 	public void binAllNumericColumns() {
 		boolean[] isNumeric = isNumeric();
-		for(int i = 0; i < filteredLevelNames.length; i++) {
-			if(isNumeric[i]) {
+		int curLevelCount = filteredLevelNames.length;
+		for(int i = 0; i < curLevelCount; i++) {
+			if(isNumeric[i] && !binMap.containsKey(filteredLevelNames[i])) {
 				binNumericColumn(filteredLevelNames[i]);
 			}
 		}

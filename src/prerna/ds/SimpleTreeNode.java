@@ -1077,20 +1077,26 @@ public class SimpleTreeNode {
 				int count = 0;
 				String parentKey = targetNode.parent.leaf.getKey();
 				String parentType = ((ISEMOSSNode)targetNode.parent.leaf).getType();
+				
+				//System.out.println("Parent.. " + parentKey);
 
 				if(first)
 					count = targetNode.parent.childCount.get(targetNode.leaf.getKey()); // get it from the parent
 				else
-					count = results.get(targetNode.leaf.getKey());
+					count = results.get(curType+targetNode.leaf.getKey());
 				
 				if(results.containsKey(parentKey))
 					count = count + results.get(parentKey);
 				
 				// now set the parent in the next count hash
-				results.put(parentKey, count);
+				if(parentType.equalsIgnoreCase(type))
+					results.put(parentKey, count);
+				else
+					results.put(parentType + parentKey, count);
 				
 				// remove this key
-				results.remove(targetNode.leaf.getKey());
+				// it fails when you have a 0.0
+				results.remove(curType + targetNode.leaf.getKey());
 				
 				if(!parentType.equalsIgnoreCase(type))
 					nextRound.add(targetNode.parent);
@@ -1151,7 +1157,7 @@ public class SimpleTreeNode {
 				// and then find which node is this parent a part of
 				SimpleTreeNode parent = targetNode.parent;
 				
-				if(parent == null)
+				if(immediateKnownParentHash.size() == 0 || parent == null) // ok this is the first time // making a wrong assumption.. what if the dude wants to start from somewhere in the middle ? - this needs to be somehting else to indicate it is the first time
 				{
 					// this is the first time... so I am going to record this at this point
 					if(parentTypes.contains(";" + thisType + ";"))
@@ -1160,14 +1166,16 @@ public class SimpleTreeNode {
 						mainParentKey = thisKey;
 					}
 				}
-				else
+				else if(parent != null)
 				{
 					//String parentKey = parent.leaf.getKey();
 					// ah interesting.. I need to break this out
 					// now I do not know why I have the stuff as a vector
 					// ok made it into a string
-					mainParentKey = immediateKnownParentHash.get(parent.leaf.getKey());
-					if(results.containsKey(mainParentKey)) // the program gets a sigh of relief here.. phew.. !!
+					//mainParentKey = thisKey;
+					if(immediateKnownParentHash.containsKey(parent.leaf.getKey()))
+						mainParentKey = immediateKnownParentHash.get(parent.leaf.getKey());
+					if(mainParentKey != null && results.containsKey(mainParentKey)) // the program gets a sigh of relief here.. phew.. !!
 					{
 						// get this hashtable
 						Hashtable <String, Integer> valueHash = new Hashtable<String, Integer>();
@@ -1181,7 +1189,6 @@ public class SimpleTreeNode {
 							results.put(mainParentKey, valueHash);
 						}
 					}
-					
 				}				
 				// now do the logic of adding the child to the next nodes
 				// and also do the setting up in terms of the immediateparent Hash

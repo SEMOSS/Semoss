@@ -2338,6 +2338,7 @@ public class SimpleTreeBuilder
 	// 			   | to Type Key 2 <> Occurences
 	public Hashtable<String, Hashtable<String, Integer>> getPath(String fromType, String toType, String paths)
 	{
+		//System.out.println("paths is" + paths);
 		Vector <String> levels = findLevels();
 		boolean flip = false;
 		if(levels.indexOf(fromType) > levels.indexOf(toType))
@@ -2356,6 +2357,7 @@ public class SimpleTreeBuilder
 			
 			Vector <SimpleTreeNode> instanceVector = new Vector<SimpleTreeNode>();
 			SimpleTreeNode fromNode = allInstanceVector.elementAt(instanceIndex);
+			//System.out.println("Processing... " + fromNode.leaf.getKey());
 			instanceVector.addElement(fromNode);
 			String key = fromNode.leaf.getKey();
 			//SimpleTreeNode instanceNode = typeRoot.getInstances().elementAt(0);
