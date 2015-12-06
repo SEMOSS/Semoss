@@ -21,6 +21,8 @@ import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SPARQLConstants;
 import prerna.rdf.query.util.TriplePart;
 import prerna.rdf.query.util.TriplePartConstant;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
 public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 
@@ -249,12 +251,16 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 //					SEMOSSQueryHelper.addBindPhrase(bindValue, triplePartC, s, q);
 //				}
 //			}
+			//Resetting the base URI to match the joining DB's
+			s = totalVarList.get(0);
+			bindValue = Constants.CONCEPT_URI + s + "/" + Utility.getInstanceName(bindValue.toString());
 			SEMOSSQueryHelper.addBindPhrase(bindValue, triplePartC, s, semossQuery);
 		}
-	
+		
 		for(String s : bindingsDataHash.keySet())
 		{
 			List<Object> bindingValues = bindingsDataHash.get(s);
+			List<Object> newBindingValues = new ArrayList<Object>();
 			String bindValue = bindingValues.get(0).toString();
 			// if value is empty, loop through until we find a value that is not empty to determine the type
 			if(bindValue.isEmpty()) {
@@ -264,6 +270,13 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 					if(!bindValue.isEmpty()) {
 						break;
 					}
+				}
+			} else {
+				//Resetting the base URI to match the joining DB's
+				s = totalVarList.get(0);
+				for(Object o : bindingValues) {
+					bindValue = Constants.CONCEPT_URI + s + "/" + Utility.getInstanceName(o.toString());
+					newBindingValues.add(bindValue);
 				}
 			}
 			// TODO: find better logic to determine if dealing with URI or Literal
@@ -280,7 +293,7 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 //					SEMOSSQueryHelper.addBindingsToQuery(bindingsDataHash.get(s), triplePartC, s.toString(), q);
 //				}
 //			}
-			SEMOSSQueryHelper.addBindingsToQuery(bindingValues, triplePartC, s.toString(), this.semossQuery);
+			SEMOSSQueryHelper.addBindingsToQuery(newBindingValues, triplePartC, s.toString(), this.semossQuery);
 		}
 		
 		for(String s : filterDataHash.keySet())
