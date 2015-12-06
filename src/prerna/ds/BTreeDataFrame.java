@@ -314,12 +314,15 @@ public class BTreeDataFrame implements ITableDataFrame {
 			return;
 		}
 		//TODO: improve logic.. add error handling
-		if(!ArrayUtilityMethods.arrayContainsValue(this.levelNames, colNameInTable)) {
-			colNameInTable = colNameInTable.toUpperCase();
-		}
-		if(!ArrayUtilityMethods.arrayContainsValue(table.getColumnHeaders(), colNameInJoiningTable)) {
-			colNameInJoiningTable = colNameInJoiningTable.toUpperCase();
-		}
+//		if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(this.levelNames, colNameInTable)) {
+//			colNameInTable = colNameInTable.toUpperCase();
+//		}
+//		if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(table.getColumnHeaders(), colNameInJoiningTable)) {
+//			colNameInJoiningTable = colNameInJoiningTable.toUpperCase();
+//		}
+		colNameInTable = this.getColumnName(this.levelNames, colNameInTable);
+		colNameInJoiningTable = this.getColumnName(table.getColumnHeaders(), colNameInJoiningTable);
+		
 		// fill the options needed for the routine
 		List<SEMOSSParam> params = routine.getOptions();
 		Map<String, Object> selectedOptions = new HashMap<String, Object>();
@@ -1635,7 +1638,17 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 		throw new IllegalArgumentException("Could not find match for "+columnHeader+" in level names: "+ Arrays.toString(levelNames));
 	}
+	
+	private String getColumnName(String[] columnHeaders, String columnHeader) {		
+		for(String level : columnHeaders) {
+			if(level.equalsIgnoreCase(columnHeader)) {
+				return level;
+			}
+		}
+		throw new IllegalArgumentException("Could not find match for "+columnHeader+" in level names: "+ Arrays.toString(levelNames));
+	}
 
+	
 	public static void main(String[] args) {
 
 
