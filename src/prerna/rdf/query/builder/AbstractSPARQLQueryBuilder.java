@@ -251,11 +251,11 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 //					SEMOSSQueryHelper.addBindPhrase(bindValue, triplePartC, s, q);
 //				}
 //			}
-			if(s.contains("__")) {
-				//Resetting the base URI to match the joining DB's
-				s = totalVarList.get(0);
-				bindValue = Constants.CONCEPT_URI + s + "/" + Utility.getInstanceName(bindValue.toString());
-			}
+//			if(s.contains("__")) {
+//				//Resetting the base URI to match the joining DB's
+//				s = totalVarList.get(0);
+//				bindValue = Constants.CONCEPT_URI + s + "/" + Utility.getInstanceName(bindValue.toString());
+//			}
 			SEMOSSQueryHelper.addBindPhrase(bindValue, triplePartC, s, semossQuery);
 		}
 		
@@ -275,11 +275,11 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 				}
 			} else if(s.contains("__")){ //TODO: Get rid of this block once Explore/OWL checking changes are in
 				//Resetting the base URI to match the joining DB's
-				s = totalVarList.get(0);
-				for(Object o : bindingValues) {
-					bindValue = Constants.CONCEPT_URI + s + "/" + Utility.getInstanceName(o.toString());
-					newBindingValues.add(bindValue);
-				}
+//				s = totalVarList.get(0);
+//				for(Object o : bindingValues) {
+//					bindValue = Constants.CONCEPT_URI + s + "/" + Utility.getInstanceName(o.toString());
+//					newBindingValues.add(bindValue);
+//				}
 			}
 			// TODO: find better logic to determine if dealing with URI or Literal
 			TriplePartConstant triplePartC;
