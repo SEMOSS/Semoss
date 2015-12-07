@@ -187,7 +187,8 @@ public class QueryBuilderHelper {
 				totalVarList.add(propURIFullDisplayName); //EYI TBD
 				//store node prop info
 				Hashtable<String, String> elementHash = new Hashtable<String, String>();
-				elementHash.put("SubjectVar", displayVarName); //Utility.toCamelCase(varName))
+				String nodeFQName = Utility.getFQNodeName(coreEngine, varURI);
+				elementHash.put("SubjectVar", nodeFQName); //Utility.toCamelCase(varName))
 				elementHash.put(varKey, propURIFullDisplayName);//was propName
 				// do I need the URI key ?
 				propURIDisplayURI = propURIDisplayURI.replace(Utility.getInstanceName(propURIDisplayURI), propURIDisplayName);
