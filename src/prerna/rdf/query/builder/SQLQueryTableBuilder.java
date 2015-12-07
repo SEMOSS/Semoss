@@ -489,9 +489,9 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 				ArrayList <String> propList = new ArrayList<String>();
 				if(tableHash.containsKey(key))
 					propList = tableHash.get(key);
-				propList.add(key + "__" + prop);
-				tableHash.put(key + "__" + prop, propList);
-				addToVariableSequence(key + "__" + prop);
+				propList.add(key.split("__")[0] + "__" + prop);
+				tableHash.put(key.split("__")[0] + "__" + prop, propList);
+				addToVariableSequence(key.split("__")[0] + "__" + prop);
 			}
 		}
 		// now that I am done with the properties
