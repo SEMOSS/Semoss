@@ -251,9 +251,11 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 //					SEMOSSQueryHelper.addBindPhrase(bindValue, triplePartC, s, q);
 //				}
 //			}
-			//Resetting the base URI to match the joining DB's
-			s = totalVarList.get(0);
-			bindValue = Constants.CONCEPT_URI + s + "/" + Utility.getInstanceName(bindValue.toString());
+			if(s.contains("__")) {
+				//Resetting the base URI to match the joining DB's
+				s = totalVarList.get(0);
+				bindValue = Constants.CONCEPT_URI + s + "/" + Utility.getInstanceName(bindValue.toString());
+			}
 			SEMOSSQueryHelper.addBindPhrase(bindValue, triplePartC, s, semossQuery);
 		}
 		
@@ -271,7 +273,7 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 						break;
 					}
 				}
-			} else {
+			} else if(s.contains("__")){ //TODO: Get rid of this block once Explore/OWL checking changes are in
 				//Resetting the base URI to match the joining DB's
 				s = totalVarList.get(0);
 				for(Object o : bindingValues) {
@@ -286,13 +288,9 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 			} else {
 				triplePartC = TriplePart.LITERAL;
 			}
-//			// for every filter query, add the bind as long as it is not the variable in question
-//			for(String varName : this.headerFilterHash.keySet()){
-//				if(!s.equals(varName)){
-//					SEMOSSQuery q = this.headerFilterHash.get(varName);
-//					SEMOSSQueryHelper.addBindingsToQuery(bindingsDataHash.get(s), triplePartC, s.toString(), q);
-//				}
-//			}
+			if(newBindingValues.isEmpty()) {
+				newBindingValues = bindingValues;
+			}
 			SEMOSSQueryHelper.addBindingsToQuery(newBindingValues, triplePartC, s.toString(), this.semossQuery);
 		}
 		
