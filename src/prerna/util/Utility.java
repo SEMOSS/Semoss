@@ -281,7 +281,7 @@ public class Utility {
 	
 	public static String getFQNodeName(IEngine engine, String URI) {
 		if(engine.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
-			return getPrimaryKeyFromURI(URI) + "__" + getInstanceName(URI);
+			return getInstanceName(URI) + "__" + getPrimaryKeyFromURI(URI);
 		} else {
 			return getInstanceName(URI);
 		}
