@@ -278,6 +278,14 @@ public class Utility {
 			return uri;
 		}
 	}
+	
+	public static String getFQNodeName(IEngine engine, String URI) {
+		if(engine.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
+			return getPrimaryKeyFromURI(URI) + "__" + getInstanceName(URI);
+		} else {
+			return getInstanceName(URI);
+		}
+	}
 
 	/**
 	 * Splits up a URI into tokens based on "/" character and uses logic to return the base URI
