@@ -20,6 +20,5 @@ public abstract class AbstractTransformation implements ISEMOSSTransformation{
 	@Override
 	public void setProperties(Map<String, Object> props) {
 		this.props = props;
-	}
-	
+	}	
 }
