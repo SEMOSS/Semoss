@@ -242,14 +242,18 @@ public class RDBMSNativeEngine extends AbstractEngine {
         String column; // column of table in RDBMS
         String query;
 
-        if(type.contains(":")) {
+        if(type.contains("http://semoss.org/ontologies/Concept")){
+        	// we are dealing with the physical uri which is in the form ...Concept/Column/Table
+        	query = "SELECT DISTINCT " + Utility.getClassName(type) + " FROM " + Utility.getInstanceName(type);
+        }
+        else if(type.contains(":")) {
             int tableStartIndex = type.indexOf("-") + 1;
             int columnStartIndex = type.indexOf(":") + 1;
             table = type.substring(tableStartIndex, columnStartIndex - 1);
             column = type.substring(columnStartIndex);
                query = "SELECT DISTINCT " + column + " FROM " + table;
         } else {
-               query = "SELECT DISTINCT " + type + " FROM " + type;
+        	query = "SELECT DISTINCT " + type + " FROM " + type;
         }
 		Connection conn = null;
         ResultSet rs = null;
