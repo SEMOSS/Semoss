@@ -411,7 +411,6 @@ public class Constants {
 	public static final String XML = "XML";
 	public static final String INSIGHTS = "INSIGHTS";
 	public static final String RDBMS_INSIGHTS = "RDBMS_INSIGHTS";
-	public static final String SOLR_RELOAD = "SOLR_RELOAD";
 	
 	// question modification
 	public static final String LABEL_QUESTION_SELECT_PERSPECTIVE = "lblQuestionSelectPerspective";
@@ -490,5 +489,8 @@ public class Constants {
 	public static final String USE_CONNECTION_POOLING = "USE_CONNECTION_POOLING";
 	
 	//SOLR specific
+	public static final String SOLR_RELOAD = "SOLR_RELOAD";
 	public static final String SOLR_URL = "SOLR_BASE_URL";
+	public static final String SOLR_SYSTEM_VAR_KEY = "solr.solr.home";
+	public static final String SOLR_HOME_DIR = "Solr";
 }
