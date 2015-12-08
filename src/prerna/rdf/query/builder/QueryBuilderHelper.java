@@ -430,14 +430,17 @@ public class QueryBuilderHelper {
 						for(int filterIndex = 0;filterIndex < filterValues.size();filterIndex++)
 						{
 							String instanceFullDisplayPath = filterValues.get(filterIndex).toString();
-							instanceBaseUri = instanceFullDisplayPath.substring(0,instanceFullDisplayPath.lastIndexOf("/"));
-							instanceBaseUri = engine.getTransformedNodeName(instanceBaseUri, false);
-							String instance = Utility.getInstanceName(instanceFullDisplayPath);
-							if(instanceBaseUri.length() > 0 && !instanceBaseUri.endsWith("/"))
-								instanceBaseUri+="/";
-							String instanceFullPath = instanceBaseUri + instance;
-							if(!instanceBaseUri.equals(instanceFullDisplayPath.substring(0,instanceFullDisplayPath.lastIndexOf("/")))){
-								filterValues.set(filterIndex, instanceFullPath);
+							int slashIdx = instanceFullDisplayPath.lastIndexOf("/");
+							if(slashIdx!=-1){
+								instanceBaseUri = instanceFullDisplayPath.substring(0,slashIdx);
+								instanceBaseUri = engine.getTransformedNodeName(instanceBaseUri, false);
+								String instance = instanceFullDisplayPath.substring(slashIdx+1);
+								if(instanceBaseUri.length() > 0 && !instanceBaseUri.endsWith("/"))
+									instanceBaseUri+="/";
+								String instanceFullPath = instanceBaseUri + instance;
+								if(!instanceBaseUri.equals(instanceFullDisplayPath.substring(0,slashIdx))){
+									filterValues.set(filterIndex, instanceFullPath);
+								}
 							}
 						}
 //						colValue = Utility.getInstanceName(instanceBaseUri); //use instanceBaseUri since it should have been the same for all of the values you translated...
