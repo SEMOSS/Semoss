@@ -45,7 +45,7 @@ public class Cluster {
 					if(values[i]==null || values[i].equals(EMPTY)){
 						addToCategoricalCluster(names[i], EMPTY, factor);
 					} else {
-						addToCategoricalCluster(names[i], (String)values[i], factor);
+						addToCategoricalCluster(names[i], values[i] + "", factor);
 					}
 				}
 			}
@@ -90,7 +90,7 @@ public class Cluster {
 					if(values[i]==null || values[i].equals(EMPTY)){
 						addToCategoricalCluster(names[i], EMPTY);
 					} else {
-						addToCategoricalCluster(names[i], (String)values[i]);
+						addToCategoricalCluster(names[i], values[i] + "");
 					}
 				}
 			}
@@ -120,7 +120,7 @@ public class Cluster {
 				if(values[i]==null || values[i].equals(EMPTY)){
 					addToCategoricalCluster(names[i], EMPTY);
 				} else {
-					addToCategoricalCluster(names[i], (String)values[i]);
+					addToCategoricalCluster(names[i], values[i] + "");
 				}
 			}
 		}
@@ -149,7 +149,7 @@ public class Cluster {
 						numVals[i] += (double) values[i];
 					}
 				} else {
-					removeFromCategoricalCluster(names[i], (String)values[i], factor);
+					removeFromCategoricalCluster(names[i], values[i] + "", factor);
 				}
 			}
 		}
@@ -189,7 +189,7 @@ public class Cluster {
 						numVals[i] += (double) values[i];
 					}
 				} else {
-					removeFromCategoricalCluster(names[i], (String)values[i]);
+					removeFromCategoricalCluster(names[i], values[i] + "");
 				}
 			}
 		}
@@ -215,7 +215,7 @@ public class Cluster {
 					removeFromNumericalCluster(names[i], (Double)values[i]);
 				}
 			} else {
-				removeFromCategoricalCluster(names[i], (String)values[i]);
+				removeFromCategoricalCluster(names[i], values[i] + "");
 			}
 		}
 	}
@@ -324,11 +324,11 @@ public class Cluster {
 		for(; i < size; i++) {
 			if(isNumeric[i]) {
 				numericalValues.add((Double) instanceValues[i]);
-				numericalValueNames.add((String) attributeNames[i]);
+				numericalValueNames.add(attributeNames[i] + "");
 				if(i==indexToSkip) indexToSkip = numericalValueNames.size()-1;
 			} else {
-				categoricalValues.add((String) instanceValues[i]);
-				categoricalValueNames.add((String) attributeNames[i]);
+				categoricalValues.add(instanceValues[i] + "");
+				categoricalValueNames.add(attributeNames[i] + "");
 				if(i==indexToSkip) indexToSkip = categoricalValueNames.size()-1;
 			}
 		}
