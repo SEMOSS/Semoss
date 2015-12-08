@@ -37,7 +37,7 @@ public class JoinTransformation extends AbstractTransformation {
 
 	IMatcher matcher;
 	
-	boolean preTransformation = true;
+	boolean preTransformation = false;
 	
 	@Override
 	public void setProperties(Map<String, Object> props) {
@@ -171,12 +171,11 @@ public class JoinTransformation extends AbstractTransformation {
 	
 	@Override
 	public JoinTransformation copy() {
-		// TODO Auto-generated method stub
 		JoinTransformation joinCopy = new JoinTransformation();
 		joinCopy.setDataMakerComponent(dmc);
 		joinCopy.setDataMakers(dm, nextDm);
 		joinCopy.setId(id);
-		
+		joinCopy.setTransformationType(preTransformation);
 		if(props != null) {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
 			String propCopy = gson.toJson(props);
