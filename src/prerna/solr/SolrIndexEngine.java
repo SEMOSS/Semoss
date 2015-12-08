@@ -1,5 +1,6 @@
 package prerna.solr;
 
+import java.io.File;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -114,19 +115,24 @@ public class SolrIndexEngine {
 		System.out.println(x);
 	}
 
-	public static SolrIndexEngine getInstance() throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+	public static SolrIndexEngine getInstance() throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, IOException {
 		if (singleton == null) {
 			singleton = new SolrIndexEngine();
 		}
 		return singleton;
 	}
 
-	private SolrIndexEngine() throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+	private SolrIndexEngine() throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException {
+		String solrHome = System.getProperty(Constants.SOLR_SYSTEM_VAR_KEY);
+		if(solrHome == null || solrHome.isEmpty() || !(new File(solrHome)).exists()) {
+			throw new IOException("Solr home system var (" + Constants.SOLR_SYSTEM_VAR_KEY + ") not set properly: " + solrHome);
+		}
+		
 		SSLContextBuilder builder = new SSLContextBuilder();
 		builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
 		SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(builder.build());
 		CloseableHttpClient httpclient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
-
+		
 		if (SolrIndexEngine.url == null) {
 			SolrIndexEngine.url = DIHelper.getInstance().getProperty(Constants.SOLR_URL);
 		}
