@@ -33,8 +33,11 @@ import java.util.Map;
 import prerna.ds.TreeNode;
 import prerna.om.SEMOSSParam;
 
-
 public interface IMatcher {
+	
+	enum MATCHER_ACTION {BIND, REGEX}
+	
+	MATCHER_ACTION getType();
 	
 	/**
 	 * Get the name of the algorithm

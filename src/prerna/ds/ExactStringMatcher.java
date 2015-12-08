@@ -206,4 +206,9 @@ public class ExactStringMatcher implements IMatcher {
 	public String getResultDescription() {
 		return "This routine matches matches objects by calling .toString and then comparing using .equals method";
 	}
+
+	@Override
+	public MATCHER_ACTION getType() {
+		return MATCHER_ACTION.BIND;
+	}
 }
