@@ -371,7 +371,8 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 						currentFilters += " , " ;
 					}
 					
-					if(((RDBMSNativeEngine) this.engine).getDbType().equals(SQLQueryUtil.DB_TYPE.H2_DB)) {
+					SQLQueryUtil.DB_TYPE type = ((RDBMSNativeEngine) this.engine).getDbType();
+					if(type.equals(SQLQueryUtil.DB_TYPE.H2_DB) || type.equals(SQLQueryUtil.DB_TYPE.SQL_Server)) {
 						//H2 requires WHERE clauses to use single apostrophe - we are cleaning out single apostrophes on upload so this works
 						currentFilters +=  "'" + instance + "'" ;
 					} else {
