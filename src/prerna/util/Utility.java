@@ -757,6 +757,8 @@ public class Utility {
 			e.printStackTrace();
 		} catch (KeyStoreException e) {
 			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
 		} finally {
 			//close writer
 			if(writer != null) {
@@ -820,6 +822,8 @@ public class Utility {
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		} catch (KeyStoreException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}

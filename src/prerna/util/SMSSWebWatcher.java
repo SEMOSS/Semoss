@@ -275,6 +275,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			e.printStackTrace();
 		} catch (SolrServerException e) {
 			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 		
 	}
