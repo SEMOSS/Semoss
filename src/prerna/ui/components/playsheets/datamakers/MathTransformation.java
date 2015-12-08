@@ -11,6 +11,10 @@ import java.util.Set;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.ITableStatCounter;
 import prerna.ds.MultiColumnTableStatCounter;
@@ -62,13 +66,16 @@ public class MathTransformation extends AbstractTransformation {
 		Map<String, Object> functionMap =  (Map<String, Object>) this.props.get(MATH_MAP);
 		
 
+		//determine whether to do a single column group by or multi column group by
+		//if groupByCols.length is 1 or length is 2 and those two columns are equal do single column
 		boolean singleColumn = groupByCols.length == 1 || (groupByCols.length == 2 && groupByCols[0].equals(groupByCols[1]));
 
+		//create the names for the new columns that will be added to the data maker
 		if(singleColumn) {
 			functionMap = createColumnNamesForColumnGrouping(groupByCols[0], functionMap);
 		} else {
 			functionMap = createColumnNamesForColumnGrouping(groupByCols, functionMap);
-		}
+		}		
 		
 		String[] columnHeaders = dm.getColumnHeaders();
 		Set<String> columnSet = new HashSet<String>();
@@ -78,6 +85,7 @@ public class MathTransformation extends AbstractTransformation {
 			columnSet.add(name);
 		}
 		
+		//delete any columns with the same name of the new columnheaders
 		for(String name : columnSet) {
 			if(ArrayUtilityMethods.arrayContainsValue(columnHeaders, name)) {
 				dm.removeColumn(name);
@@ -167,6 +175,30 @@ public class MathTransformation extends AbstractTransformation {
 		} catch (InvocationTargetException e) {
 			e.printStackTrace();
 		}
+	}
+
+	@Override
+	/**
+	 * copy method for saving tranformation
+	 * 
+	 * This transformation is required to be modified for after processing
+	 */
+	public MathTransformation copy() {
+		return this;
+//		
+//		MathTransformation copy = new MathTransformation();
+//		
+//		copy.setDataMakers(this.dm);
+//		copy.setId(this.id);
+//
+//		if(this.props != null) {
+//			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
+//			String propCopy = gson.toJson(this.props);
+//			Map<String, Object> newProps = gson.fromJson(propCopy, new TypeToken<Map<String, Object>>() {}.getType());
+//			copy.setProperties(newProps);
+//		}
+//		
+//		return copy;
 	}
 	
 }

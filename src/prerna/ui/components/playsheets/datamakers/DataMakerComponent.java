@@ -7,6 +7,10 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.query.builder.IQueryBuilder;
@@ -232,6 +236,36 @@ public class DataMakerComponent {
 	 */
 	public String getId() {
 		return this.id;
+	}
+	
+	/**
+	 * Return a copy of this DataMakerComponent that can be saved by the insight
+	 * @return
+	 */
+	public DataMakerComponent copy() {
+		DataMakerComponent copy = new DataMakerComponent(engine, query);
+		
+		//use gson to make a copy of metamodel data
+		if(metamodelData != null) {
+			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
+			String metamodelCopy = gson.toJson(metamodelData);
+			Map<String, Object> newMetaModel = gson.fromJson(metamodelCopy, new TypeToken<Map<String, Object>>() {}.getType());
+			copy.setMetamodelData(newMetaModel);
+		}
+		
+		for(ISEMOSSTransformation preTrans : this.preTrans) {
+			copy.preTrans.add(preTrans.copy());
+		}
+		
+		for(ISEMOSSTransformation postTrans : this.postTrans) {
+			copy.postTrans.add(postTrans.copy());
+		}
+		
+		for(ISEMOSSAction action : this.actions) {
+			copy.actions.add(action.copy());
+		}
+		
+		return copy;
 	}
 	
 }

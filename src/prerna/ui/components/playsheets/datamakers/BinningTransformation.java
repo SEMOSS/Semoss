@@ -9,6 +9,10 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
 import prerna.algorithm.api.ITableDataFrame;
 
 public class BinningTransformation extends AbstractTransformation {
@@ -95,6 +99,25 @@ public class BinningTransformation extends AbstractTransformation {
 		} catch (InvocationTargetException e) {
 			e.printStackTrace();
 		}
+	}
+
+	@Override
+	public BinningTransformation copy() {
+
+		BinningTransformation copy = new BinningTransformation();
+		
+		copy.setDataMakerComponent(this.dmc);
+		copy.setDataMakers(this.dm);
+		copy.setId(this.id);
+
+		if(this.props != null) {
+			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
+			String propCopy = gson.toJson(this.props);
+			Map<String, Object> newProps = gson.fromJson(propCopy, new TypeToken<Map<String, Object>>() {}.getType());
+			copy.setProperties(newProps);
+		}
+		
+		return copy;
 	}
 
 }
