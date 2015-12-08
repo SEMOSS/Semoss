@@ -128,7 +128,7 @@ public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 			throw new IllegalArgumentException(errorMessage1 + ".\n" + errorMessage2);
 		}
 		
-		if(startVal > endVal) {
+		if(startVal >= endVal) {
 			if(startVal > bestVal) {
 				bestVal = startVal;
 				bestResults = startClusterResult;
