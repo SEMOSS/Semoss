@@ -49,5 +49,11 @@ public interface ISEMOSSAction {
 	 * Setter for the data maker component of the action
 	 * @param dmc
 	 */
-	void setDataMakerComponent(DataMakerComponent dmc);	
+	void setDataMakerComponent(DataMakerComponent dmc);
+	
+	/**
+	 * Returns a copy of this objet that is sufficient for saving
+	 * @return
+	 */
+	ISEMOSSAction copy();
 }

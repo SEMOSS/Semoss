@@ -3,11 +3,16 @@ package prerna.ui.components.playsheets.datamakers;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.ITableDataFrame;
@@ -129,6 +134,24 @@ public class JoinTransformation extends AbstractTransformation {
 		} catch (InvocationTargetException e) {
 			e.printStackTrace();
 		}
+	}
+
+	@Override
+	public JoinTransformation copy() {
+		// TODO Auto-generated method stub
+		JoinTransformation joinCopy = new JoinTransformation();
+		joinCopy.setDataMakerComponent(dmc);
+		joinCopy.setDataMakers(dm, nextDm);
+		joinCopy.setId(id);
+		
+		if(props != null) {
+			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
+			String propCopy = gson.toJson(props);
+			Map<String, Object> newProps = gson.fromJson(propCopy, new TypeToken<Map<String, Object>>() {}.getType());
+			joinCopy.setProperties(newProps);
+		}
+
+		return joinCopy;
 	}
 	
 }

@@ -9,11 +9,15 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.internal.StringMap;
+import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.rdf.query.builder.AbstractQueryBuilder;
@@ -26,6 +30,7 @@ public class FilterTransformation extends AbstractTransformation {
 	public static final String UNDO_METHOD_NAME = "unfilter";				// name of the method in all data makers to perform undo filtering
 	public static final String COLUMN_HEADER_KEY = "colHeader";				// key in properties map for the type to apply the filter for
 	public static final String VALUES_KEY = "values";						// key in properties map for the list of values to filter
+	public static final String VISIBLE_VALUES_KEY = "valueSet";				// key in properties map for the list of values to display in drop down
 
 	private DataMakerComponent dmc;
 	private Boolean preTrans;
@@ -49,7 +54,7 @@ public class FilterTransformation extends AbstractTransformation {
 	@Override
 	public void runMethod() {
 		String colHeader = this.props.get(COLUMN_HEADER_KEY) +"";
-		List<Object> values = (List<Object>) this.props.get(VALUES_KEY);
+		List<Object> values = ((List<Object>) this.props.get(VALUES_KEY));
 		
 		if(values == null){
 			LOGGER.info("VALUES FOR THIS FILTER HAS NOT BEEN SET.... THIS IS MOST LIKELY A FILTER PAIRED WITH A JOIN.... GRABBING VALUES FROM DATAMAKER");
@@ -63,7 +68,7 @@ public class FilterTransformation extends AbstractTransformation {
 			// if there is metamodel data, add this as a filter and let query builder do its thing
 			Map<String, Object> metamodelData = this.dmc.getMetamodelData();
 			if(metamodelData != null) {
-				addFilterToComponentData(colHeader, values, metamodelData);
+				addFilterToComponentData(colHeader, new ArrayList<>(values), metamodelData);
 			} else {
 				// there is no metamodel data
 				// need to fill the query with the selected value
@@ -71,7 +76,7 @@ public class FilterTransformation extends AbstractTransformation {
 				String query = this.dmc.getQuery();
 				query = Utility.normalizeParam(query);
 				Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
-				paramHash.put(colHeader, values);
+				paramHash.put(colHeader, new ArrayList<>(values));
 				query = Utility.fillParam(query, paramHash);
 				this.dmc.setQuery(query);
 			}
@@ -79,7 +84,7 @@ public class FilterTransformation extends AbstractTransformation {
 		// if it is post trans
 		// we need to call filter by reflection on the data maker
 		else{
-			runFilterMethod(colHeader, values);
+			runFilterMethod(colHeader, new ArrayList<>(values));
 		}
 	}
 	
@@ -107,7 +112,6 @@ public class FilterTransformation extends AbstractTransformation {
 	 * @param values					The list of values to filter
 	 */
 	private void runFilterMethod(String colHeader, List<Object> values){
-		Method method = null;
 		try {
 //			method = dm.getClass().getMethod(METHOD_NAME, String.class, List.class);
 //			LOGGER.info("Successfully got method : " + METHOD_NAME);
@@ -163,14 +167,14 @@ public class FilterTransformation extends AbstractTransformation {
 	@Override
 	public void undoTransformation() {
 		String colHeader = this.props.get(COLUMN_HEADER_KEY) +"";
-		List<Object> values = (List<Object>) this.props.get(VALUES_KEY);
+//		Set<Object> values = ((Stack<Set<Object>>) this.props.get(VISIBLE_VALUES_KEY)).firstElement();
 		
 		Method method = null;
 		try {
-			method = dm.getClass().getMethod(UNDO_METHOD_NAME, String.class, List.class);
+			method = dm.getClass().getMethod(UNDO_METHOD_NAME, String.class);
 			LOGGER.info("Successfully got method : " + UNDO_METHOD_NAME);
 			
-			method.invoke(dm, colHeader, values);
+			method.invoke(dm, colHeader);
 			LOGGER.info("Successfully invoked method : " + UNDO_METHOD_NAME);
 
 		} catch (NoSuchMethodException | SecurityException e) {
@@ -184,5 +188,27 @@ public class FilterTransformation extends AbstractTransformation {
 		}
 		return;
 	}
-	
+
+	@Override
+	/**
+	 * make a copy that can be saved in the insight
+	 */
+	public FilterTransformation copy() {
+		
+		FilterTransformation copy = new FilterTransformation();
+		copy.setDataMakerComponent(dmc);
+		copy.setDataMakers(dm);
+		copy.setId(id);
+		
+		if(props != null) {
+			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
+			String propCopy = gson.toJson(props);
+			Map<String, Object> newProps = gson.fromJson(propCopy, new TypeToken<Map<String, Object>>() {}.getType());
+			copy.setProperties(newProps);
+		}
+		
+		copy.setTransformationType(preTrans);
+		
+		return copy;
+	}	
 }

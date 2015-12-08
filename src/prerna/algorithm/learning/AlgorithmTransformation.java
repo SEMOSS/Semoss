@@ -2,11 +2,16 @@ package prerna.algorithm.learning;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.ITableDataFrame;
@@ -19,6 +24,7 @@ import prerna.algorithm.learning.unsupervised.som.SOMRoutine;
 import prerna.ui.components.playsheets.datamakers.AbstractTransformation;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 
 public class AlgorithmTransformation extends AbstractTransformation {
 
@@ -150,5 +156,31 @@ public class AlgorithmTransformation extends AbstractTransformation {
 	
 	public List<String> getAddedColumns() {
 		return this.addedColumns;
+	}
+
+	@Override
+	public AlgorithmTransformation copy() {
+		AlgorithmTransformation copy = new AlgorithmTransformation();
+
+		copy.setDataMakerComponent(this.dmc);
+		copy.setDataMakers(this.dm);
+		copy.setId(this.id);
+
+		if(this.props != null) {
+			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
+			String propCopy = gson.toJson(this.props);
+			Map<String, Object> newProps = gson.fromJson(propCopy, new TypeToken<Map<String, Object>>() {}.getType());
+			copy.setProperties(newProps);
+		}
+		
+		if(this.addedColumns != null) {
+			List<String> columnCopy = new ArrayList<String>(addedColumns.size());
+			for(String column : this.addedColumns) {
+				columnCopy.add(column);
+			}
+			copy.addedColumns = columnCopy;
+		}
+		
+		return copy;
 	}
 }

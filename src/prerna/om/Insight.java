@@ -730,7 +730,8 @@ public class Insight {
 		for(int i = 0; i < actions.size(); i++) {
 			actions.get(i).setId(compId + ":" + ACTION + i);
 		}
-		getDataMaker().processDataMakerComponent(component);
+		DataMakerComponent componentCopy = component.copy();
+		getDataMaker().processDataMakerComponent(componentCopy);
 		getDataMakerComponents().add(component);
 	}
 	
@@ -741,7 +742,12 @@ public class Insight {
 	 */
 	public void processPostTransformation(List<ISEMOSSTransformation> postTrans, IDataMaker... dataMaker) {
 		DataMakerComponent dmc = getDataMakerComponents().get(this.dmComponents.size() - 1);
-		getDataMaker().processPostTransformations(dmc, postTrans, dataMaker);
+		
+		List<ISEMOSSTransformation> postTransCopy = new Vector<ISEMOSSTransformation>(postTrans.size());
+		for(ISEMOSSTransformation trans : postTrans) {
+			postTransCopy.add(trans.copy());
+		}
+		getDataMaker().processPostTransformations(dmc, postTransCopy, dataMaker);
 		//TODO: extrapolate in datamakercomponent to take in a list
 		int lastPostTrans = dmc.getPostTrans().size() - 1;
 		for(int i = 0; i < postTrans.size(); i++) {
@@ -757,7 +763,13 @@ public class Insight {
 	 */
 	public List<Object> processActions(List<ISEMOSSAction> actions, IDataMaker... dataMaker) {
 		DataMakerComponent dmc = getDataMakerComponents().get(this.dmComponents.size() - 1);
-		List<Object> actionResults = getDataMaker().processActions(dmc, actions, dataMaker);
+		
+		List<ISEMOSSAction> actionsCopy = new Vector<ISEMOSSAction>(actions.size());
+		for(ISEMOSSAction action : actions) {
+			actionsCopy.add(action.copy());
+		}
+		
+		List<Object> actionResults = getDataMaker().processActions(dmc, actionsCopy, dataMaker);
 		//TODO: extrapolate in datamakercomponent to take in a list
 		int lastAction = dmc.getActions().size() - 1;
 		for(int i = 0; i < actions.size(); i++) {

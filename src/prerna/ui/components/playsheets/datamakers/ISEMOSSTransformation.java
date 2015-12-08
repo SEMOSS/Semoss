@@ -61,4 +61,10 @@ public interface ISEMOSSTransformation {
 	 * Method to undo the transformation
 	 */
 	void undoTransformation();
+	
+	/**
+	 * Create a copy of this transformation for storage
+	 * @return
+	 */
+	ISEMOSSTransformation copy();
 }

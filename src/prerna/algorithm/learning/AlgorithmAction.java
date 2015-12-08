@@ -7,6 +7,10 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
 import prerna.algorithm.api.IAnalyticActionRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.moa.HoeffdingTreeAlgorithm;
@@ -120,5 +124,23 @@ public class AlgorithmAction implements ISEMOSSAction {
 	@Override
 	public String getId() {
 		return this.id;
+	}
+
+	@Override
+	public AlgorithmAction copy() {
+		
+		AlgorithmAction copy = new AlgorithmAction();
+		copy.setDataMakerComponent(dmc);
+		copy.setDataMakers(dm);
+		copy.setId(id);
+		
+		if(props != null) {
+			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
+			String propCopy = gson.toJson(props);
+			Map<String, Object> newProps = gson.fromJson(propCopy, new TypeToken<Map<String, Object>>() {}.getType());
+			copy.setProperties(newProps);
+		}
+		
+		return copy;
 	}
 }
