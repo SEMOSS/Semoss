@@ -303,7 +303,7 @@ public class Cluster {
 			similarityValue += getSimilarityForInstance(values, attributeNames, isNumeric, indexToSkip);
 		}
 		
-		return similarityValue;
+		return similarityValue / instanceValues.size();
 	}
 
 	/**
@@ -313,7 +313,7 @@ public class Cluster {
 	 * @param isNumeric					The boolean representing if value of i in the array is numeric
 	 * @return
 	 */
-	public double getSimilarityForInstance(Object[] instanceValues, String[] attributeNames, boolean[] isNumeric, int indexToSkip) {
+	public double getSimilarityForInstance(Object[] instanceValues, String[] attributeNames, boolean[] isNumeric, int instanceIndex) {
 		List<String> categoricalValues = new Vector<String>();
 		List<String> categoricalValueNames = new Vector<String>();
 		List<Double> numericalValues = new Vector<Double>();
@@ -321,21 +321,22 @@ public class Cluster {
 		
 		int i = 0;
 		int size = isNumeric.length;
+		int indexToSkip = -1;
 		for(; i < size; i++) {
 			if(isNumeric[i]) {
 				numericalValues.add((Double) instanceValues[i]);
 				numericalValueNames.add(attributeNames[i] + "");
-				if(i==indexToSkip) indexToSkip = numericalValueNames.size()-1;
+				if(i==instanceIndex) indexToSkip = numericalValueNames.size()-1;
 			} else {
 				categoricalValues.add(instanceValues[i] + "");
 				categoricalValueNames.add(attributeNames[i] + "");
-				if(i==indexToSkip) indexToSkip = categoricalValueNames.size()-1;
+				if(i==instanceIndex) indexToSkip = categoricalValueNames.size()-1;
 			}
 		}
 		
 		double categoricalSimVal = 0;
 		if(!categoricalValues.isEmpty()) {
-			if(isNumeric[indexToSkip]) {
+			if(isNumeric[instanceIndex]) {
 				categoricalSimVal = ((double) categoricalValues.size()/attributeNames.length) * getSimilarityFromCategoricalValues(categoricalValues, categoricalValueNames, -1);
 			} else {
 				categoricalSimVal = ((double) categoricalValues.size()/attributeNames.length) * getSimilarityFromCategoricalValues(categoricalValues, categoricalValueNames, indexToSkip);
@@ -344,7 +345,7 @@ public class Cluster {
 		
 		double numericalSimVal = 0;
 		if(!numericalValues.isEmpty()) {
-			if(isNumeric[indexToSkip]) {
+			if(isNumeric[instanceIndex]) {
 				numericalSimVal = ((double) numericalValues.size()/attributeNames.length) * getSimilarityFromNumericalValues(numericalValues, numericalValueNames, indexToSkip);
 			} else {
 				numericalSimVal = ((double) numericalValues.size()/attributeNames.length) * getSimilarityFromNumericalValues(numericalValues, numericalValueNames, -1);
