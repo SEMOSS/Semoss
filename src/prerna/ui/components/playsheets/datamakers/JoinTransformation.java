@@ -37,7 +37,7 @@ public class JoinTransformation extends AbstractTransformation {
 
 	IMatcher matcher;
 	
-	boolean performPost = false;
+	boolean preTransformation = true;
 	
 	@Override
 	public void setProperties(Map<String, Object> props) {
@@ -47,7 +47,7 @@ public class JoinTransformation extends AbstractTransformation {
 
 	@Override
 	public void setDataMakers(IDataMaker... dm){
-		if(!performPost) {
+		if(preTransformation) {
 			this.dm = (ITableDataFrame) dm[0];
 		} else {
 			this.dm = (ITableDataFrame) dm[0];
@@ -62,16 +62,14 @@ public class JoinTransformation extends AbstractTransformation {
 	
 	@Override
 	public void setTransformationType(Boolean preTransformation){
-		if(preTransformation){
-			LOGGER.error("Cannot run join as pretransformation");
-		}
+		this.preTransformation = preTransformation;
 	}
 
 	@Override
 	public void runMethod() {
 		//the run method will either append to the component to limit the construction of the new component
 		//otherwise, it will perform the actual joining between two components
-		if(performPost) {
+		if(!preTransformation) {
 			Method method = null;
 			try {
 				method = dm.getClass().getMethod(METHOD_NAME, ITableDataFrame.class, String.class, String.class, double.class, IMatcher.class);
@@ -129,7 +127,7 @@ public class JoinTransformation extends AbstractTransformation {
 	        
 			// add the join as a post transformation
 			dmc.getPostTrans().add(0, this);
-			performPost = true;
+			preTransformation = false;
 		}
 	}
 
