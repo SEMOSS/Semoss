@@ -42,7 +42,7 @@ public class AlgorithmTransformation extends AbstractTransformation {
 	public static final String SELF_ORGANIZING_MAP = "som";
 	public static final String SIMILARITY = "similarity";
 
-	private List<String> addedColumns;
+	private List<String> addedColumns = new ArrayList<String>();;
 	private DataMakerComponent dmc;
 	private ITableDataFrame dm;
 
@@ -80,7 +80,7 @@ public class AlgorithmTransformation extends AbstractTransformation {
 			routine.setSelectedOptions(props);
 			method.invoke(dm, routine);
 			LOGGER.info("Successfully invoked method : " + METHOD_NAME);
-			this.addedColumns = routine.getChangedColumns();
+			this.addedColumns.addAll(routine.getChangedColumns());
 			
 		} catch (NoSuchMethodException | SecurityException e) {
 			e.printStackTrace();
@@ -165,6 +165,7 @@ public class AlgorithmTransformation extends AbstractTransformation {
 		copy.setDataMakerComponent(this.dmc);
 		copy.setDataMakers(this.dm);
 		copy.setId(this.id);
+		copy.addedColumns = this.addedColumns;
 
 		if(this.props != null) {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
@@ -172,15 +173,6 @@ public class AlgorithmTransformation extends AbstractTransformation {
 			Map<String, Object> newProps = gson.fromJson(propCopy, new TypeToken<Map<String, Object>>() {}.getType());
 			copy.setProperties(newProps);
 		}
-		
-		if(this.addedColumns != null) {
-			List<String> columnCopy = new ArrayList<String>(addedColumns.size());
-			for(String column : this.addedColumns) {
-				columnCopy.add(column);
-			}
-			copy.addedColumns = columnCopy;
-		}
-		
 		return copy;
 	}
 }
