@@ -104,7 +104,8 @@ public class InsightCreateRunner implements Runnable{
 		insight.appendParamsToDataMakerComponents();
 		for(DataMakerComponent dmComp : dmComps){
 			// NOTE: this runs the data maker components directly onto the dm, not through the insight
-			dm.processDataMakerComponent(dmComp);
+			DataMakerComponent copyDmc = dmComp.copy();
+			dm.processDataMakerComponent(copyDmc);
 		}
 		return dm;
 	}

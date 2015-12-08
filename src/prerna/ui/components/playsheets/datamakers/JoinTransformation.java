@@ -3,7 +3,7 @@ package prerna.ui.components.playsheets.datamakers;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Hashtable;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -12,6 +12,7 @@ import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.internal.StringMap;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.IMatcher;
@@ -19,6 +20,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.ExactStringMatcher;
 import prerna.ds.ExactStringOuterJoinMatcher;
 import prerna.ds.ExactStringPartialOuterJoinMatcher;
+import prerna.rdf.query.builder.AbstractQueryBuilder;
 
 public class JoinTransformation extends AbstractTransformation {
 
@@ -30,10 +32,13 @@ public class JoinTransformation extends AbstractTransformation {
 	public static final String JOIN_TYPE = "joinType";
 
 	DataMakerComponent dmc;
-
 	ITableDataFrame dm;
 	ITableDataFrame nextDm;
 
+	IMatcher matcher;
+	
+	boolean performPost = false;
+	
 	@Override
 	public void setProperties(Map<String, Object> props) {
 		//TODO: validate hash and set values
@@ -42,8 +47,12 @@ public class JoinTransformation extends AbstractTransformation {
 
 	@Override
 	public void setDataMakers(IDataMaker... dm){
-		this.dm = (ITableDataFrame) dm[0];
-		this.nextDm = (ITableDataFrame) dm[1];
+		if(!performPost) {
+			this.dm = (ITableDataFrame) dm[0];
+		} else {
+			this.dm = (ITableDataFrame) dm[0];
+			this.nextDm = (ITableDataFrame) dm[1];
+		}
 	}
 	
 	@Override
@@ -60,42 +69,68 @@ public class JoinTransformation extends AbstractTransformation {
 
 	@Override
 	public void runMethod() {
-		Method method = null;
-		try {
-			method = dm.getClass().getMethod(METHOD_NAME, ITableDataFrame.class, String.class, String.class, double.class, IMatcher.class);
-			LOGGER.info("Successfully got method : " + METHOD_NAME);
-			
-			String t1Col = this.props.get(COLUMN_ONE_KEY) +"";
-			String t2Col = this.props.get(COLUMN_TWO_KEY) +"";
-			Double match = 1.0; // this should be in properties as well
+		//the run method will either append to the component to limit the construction of the new component
+		//otherwise, it will perform the actual joining between two components
+		if(performPost) {
+			Method method = null;
+			try {
+				method = dm.getClass().getMethod(METHOD_NAME, ITableDataFrame.class, String.class, String.class, double.class, IMatcher.class);
+				LOGGER.info("Successfully got method : " + METHOD_NAME);
+				
+				String t1Col = this.props.get(COLUMN_ONE_KEY) +"";
+				String t2Col = this.props.get(COLUMN_TWO_KEY) +"";
+				Double match = 1.0; // this should be in properties as well
+				
+				method.invoke(dm, this.nextDm, t1Col, t2Col, match, this.matcher);
+				LOGGER.info("Successfully invoked method : " + METHOD_NAME);
+	
+			} catch (NoSuchMethodException | SecurityException e) {
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+			} catch (IllegalArgumentException e) {
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				e.printStackTrace();
+			}
+		} else {
 			String joinType = (String) this.props.get(JOIN_TYPE);
 			if(joinType == null) {
 				joinType = "inner";
 			}
-			
-			IMatcher matcher = null;
 			switch(joinType) {
-				case "inner" : matcher = new ExactStringMatcher(); 
+				case "inner" : this.matcher = new ExactStringMatcher(); 
 					break;
-				case "partial" : matcher = new ExactStringPartialOuterJoinMatcher(); 
+				case "partial" : this.matcher = new ExactStringPartialOuterJoinMatcher(); 
 					break;
-				case "outer" : matcher = new ExactStringOuterJoinMatcher();
+				case "outer" : this.matcher = new ExactStringOuterJoinMatcher();
 					break;
-				default : matcher = new ExactStringMatcher(); 
+				default : this.matcher = new ExactStringMatcher(); 
 			}
-			method.invoke(dm, this.nextDm, t1Col, t2Col, match, matcher);
-			LOGGER.info("Successfully invoked method : " + METHOD_NAME);
-
-		} catch (NoSuchMethodException | SecurityException e) {
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-		} catch (IllegalArgumentException e) {
-			e.printStackTrace();
-		} catch (InvocationTargetException e) {
-			e.printStackTrace();
+			
+			Map<String, Object> metamodelData = this.dmc.getMetamodelData();
+			StringMap<List<Object>> stringMap;
+	        if(((StringMap) metamodelData.get("QueryData")).containsKey(AbstractQueryBuilder.filterKey)) {
+	               stringMap = (StringMap<List<Object>>) ((StringMap) metamodelData.get("QueryData")).get(AbstractQueryBuilder.filterKey);
+	        } else {
+	               stringMap = new StringMap<List<Object>>();
+	        }
+	        //if stringmap already contains the filters, then it is a hard filter
+	        //otherwise, add based on what is currently in the tree
+	        if(!stringMap.containsKey(props.get(COLUMN_ONE_KEY) + "")) {
+	        	//but actually, also need to consider the type of matcher
+	        	if(this.matcher.getType().equals(IMatcher.MATCHER_ACTION.BIND)) {
+		        	stringMap.put(props.get(COLUMN_ONE_KEY) + "", Arrays.asList(dm.getUniqueRawValues(props.get(COLUMN_ONE_KEY) + "")) );
+			        ((StringMap) metamodelData.get("QueryData")).put(AbstractQueryBuilder.filterKey, stringMap);
+	        	} else {
+	        		LOGGER.error("Matcher type " + this.matcher.getType() + " is not supported in join method.");
+	        	}
+	        }
+	        
+			// add the join as a post transformation
+			dmc.getPostTrans().add(0, this);
+			performPost = true;
 		}
-		return;
 	}
 
 	@Override
@@ -135,7 +170,7 @@ public class JoinTransformation extends AbstractTransformation {
 			e.printStackTrace();
 		}
 	}
-
+	
 	@Override
 	public JoinTransformation copy() {
 		// TODO Auto-generated method stub
