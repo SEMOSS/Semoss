@@ -38,7 +38,6 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Properties;
-import java.util.StringTokenizer;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -46,12 +45,10 @@ import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
-import org.openrdf.sail.SailException;
 
 import com.hp.hpl.jena.vocabulary.OWL;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.util.Constants;
@@ -301,18 +298,18 @@ public abstract class AbstractFileReader {
 	}
 	
 	protected String[] prepareReader(String fileNames, String customBase, String owlFile, String bdPropFile){
-		String[] files = fileNames.split(";");
+		String[] files = fileNames.trim().split(";");
 		//make location of the owl file in the dbname folder
 		this.owlFile = owlFile; 
 		// location of bdPropFile
 		this.bdPropFile = bdPropFile;
 		semossURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
 		if(!customBase.equals("")) {
-			customBaseURI = customBase;
+			customBaseURI = customBase.trim();
 		}
 
 		return files;
-	}
+	} 
 
 	protected void openEngineWithoutConnection(String dbName) {
 		createNewEngine(dbName);
@@ -331,7 +328,6 @@ public abstract class AbstractFileReader {
 	}
 
 	public String getBaseURI(String nodeType) {
-		nodeType = Utility.cleanString(nodeType, true);
 		// Generate URI for subject node at the instance and base level
 		String semossBaseURI = baseConceptURIHash.get(nodeType);
 		// check to see if user specified URI in custom map file
@@ -461,6 +457,7 @@ public abstract class AbstractFileReader {
 	public void addNodeProperties(String nodeType, String instanceName, Hashtable<String, Object> propHash) {
 		//create the node in case its not in a relationship
 		instanceName = Utility.cleanString(instanceName, true);
+		nodeType = Utility.cleanString(nodeType, true); 
 		String semossBaseURI = getBaseURI(nodeType);
 		String instanceBaseURI = getInstanceURI(nodeType);
 		String subjectNodeURI = instanceBaseURI + "/" + instanceName;
