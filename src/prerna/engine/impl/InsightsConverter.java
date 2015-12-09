@@ -166,9 +166,15 @@ public class InsightsConverter {
 				+ "PARAMETER_MULTI_SELECT BOOLEAN, "
 				+ "PARAMETER_COMPONENT_FILTER_ID VARCHAR(255), "
 				+ "PARAMETER_VIEW_TYPE VARCHAR(255), "
-				+ "QUESTION_ID_FK VARCHAR(225))";
+				+ "QUESTION_ID_FK INT)";
 
 		eng.insertData(parameterTableCreate);
+		
+		String feTableCreate = "CREATE TABLE UI ("
+				+ "QUESTION_ID_FK INT, "
+				+ "UI_DATA CLOB)";
+		
+		eng.insertData(feTableCreate);
 	}
 
 	public void loadQuestionsFromXML(String xmlFileLocation) {
