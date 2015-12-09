@@ -1,13 +1,11 @@
 package prerna.solr;
 
-import java.io.File;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -28,10 +26,18 @@ import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.HttpSolrServer;
 import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.FacetField.Count;
+import org.apache.solr.client.solrj.response.Group;
+import org.apache.solr.client.solrj.response.GroupCommand;
+import org.apache.solr.client.solrj.response.GroupResponse;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.common.params.CommonParams;
+import org.apache.solr.common.params.FacetParams;
+import org.apache.solr.common.params.GroupParams;
+import org.apache.solr.common.params.MoreLikeThisParams;
+import org.apache.solr.common.util.NamedList;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -42,24 +48,38 @@ public class SolrIndexEngine {
 	private static String url;
 	private HttpSolrServer server;
 
-	public static final String SET_DEFAULT = "setDefault"; // setQuery
-	public static final String SEARCH_FIELD = "df";
-	public static final String ADD_FIELD = "addField";
-	public static final String SET_START = "setStart";
-	public static final String SET_ROWS = "setRows";
-	public static final String FACET_FIELD = "facetField"; // addFacetField
-	public static final String FITLER_QUERY = "filterQuery"; // addFilterQuery
-	public static final String REMOVE_FACET = "removeFacet"; // removeFacetField
-	public static final String STATS_FACETS = "statsFieldFacets"; // addStatsFieldFacets
-	public static final String NUMERIC_FACET = "numericRangeFacet"; // addNumericRangeFacet
-	public static final String PREFIX_FACET = "prefixFacet"; // setFacetPrefix
-	public static final String FACET_QUERY = "facetQuery"; // addFacetQuery
-	public static final String FACET_LIMIT = "facetLimit"; // setFacetLimit
-	public static final String MIN_COUNT = "facetMinCount"; // setFacetMinCount
-	public static final String FACET_MISSING = "facetMissing"; // setFacetMissing
-	public static final String FIELD_SORT = "facetSort"; // setFacetSort
+	// Common Search
+	public static final String QUERY = CommonParams.Q;
+	public static final String SEARCH_FIELD = CommonParams.DF;
+	public static final String ADD_FIELD = CommonParams.FL;
+	public static final String SET_START = CommonParams.START;
+	public static final String SET_ROWS = CommonParams.ROWS;
+	public static final String FITLER_QUERY = CommonParams.FQ;
+	public static final String FIELD_SORT = CommonParams.SORT;
 
-	// schema field names
+	// Facet
+	public static final String FACET = FacetParams.FACET;
+	public static final String FACET_FIELD = FacetParams.FACET_FIELD;
+	public static final String FACET_QUERY = FacetParams.FACET_QUERY;
+	public static final String MIN_COUNT = FacetParams.FACET_MINCOUNT;
+
+	// GroupBy
+	public static final String GROUPBY = GroupParams.GROUP;
+	public static final String GROUP_FIELD = GroupParams.GROUP_FIELD;
+	public static final String GROUP_LIMIT = GroupParams.GROUP_LIMIT;
+	public static final String GROUP_OFFSET = GroupParams.GROUP_OFFSET;
+
+	// MoreLikeThis
+	public static final String MLT = MoreLikeThisParams.MLT;
+	public static final String MLT_FIELD = MoreLikeThisParams.SIMILARITY_FIELDS;
+	public static final String MLT_MINDF = MoreLikeThisParams.MIN_DOC_FREQ; // Minimum DocumentFrequency
+	public static final String MLT_MINTF = MoreLikeThisParams.MIN_TERM_FREQ; // Minimum Term Frequency
+	public static final String MLT_WORD_LENGHT = MoreLikeThisParams.MIN_WORD_LEN; // Minimum Word Length
+	public static final String MLT_QUERY_TERM = MoreLikeThisParams.MAX_QUERY_TERMS; // Max Query Terms
+	public static final String MLT_COUNT = MoreLikeThisParams.DOC_COUNT;
+	public static final String MLT_BOOST = MoreLikeThisParams.BOOST;
+
+	// Schema Field Names
 	public static final String ID = "id";
 	public static final String NAME = "name";
 	public static final String CREATED_ON = "created_on";
@@ -85,54 +105,53 @@ public class SolrIndexEngine {
 		SolrIndexEngine.url = url;
 	}
 
-	public static void main(String[] args) throws SolrServerException, IOException, KeyManagementException,
-			NoSuchAlgorithmException, KeyStoreException {
-		// try {
-		// logger.info("deleting all of solr");
-		// SolrIndexEngine.setUrl("http://localhost:8080/solr");
-		// SolrIndexEngine e = SolrIndexEngine.getInstance();
-		// e.deleteAllSolrData();
-		// logger.info("done deleting all of solr");
-		// } catch (KeyManagementException e) {
-		// e.printStackTrace();
-		// } catch (NoSuchAlgorithmException e) {
-		// e.printStackTrace();
-		// } catch (KeyStoreException e) {
-		// e.printStackTrace();
-		// } catch (IOException e) {
-		// e.printStackTrace();
-		// }
-
-		SolrIndexEngine.setUrl("http://localhost:8080/solr");
-		SolrIndexEngine e = SolrIndexEngine.getInstance();
-		Map<String, Object> queryEngine = new HashMap<>();
-		List<String> facetField = new ArrayList<>();
-		facetField.add(CORE_ENGINE);
-		queryEngine.put(FACET_FIELD, facetField);
-
-		// add all query requests to engine
-		Map<String, Long> x = e.facetDocument(queryEngine);
-		System.out.println(x);
+	
+	public static void main(String[] args) throws SolrServerException, IOException, KeyManagementException,	NoSuchAlgorithmException, KeyStoreException {
+//
+//		SolrIndexEngine.setUrl("http://localhost:8080/solr");
+//		SolrIndexEngine e = SolrIndexEngine.getInstance();
+//		Map<String, Object> queryEngine = new HashMap<>();
+//
+//		queryEngine.put(QUERY, "Show the matrix regression scatter plot to estimate Domestic Revenue");
+//		queryEngine.put(SEARCH_FIELD, "all_text");
+//		queryEngine.put(MLT, "true");
+//		queryEngine.put(SET_ROWS, 2);
+//		List<String> mltField = new ArrayList<>();
+//		mltField.add("all_text");
+//		queryEngine.put(MLT_FIELD, mltField);
+//		queryEngine.put(MLT_MINDF, 1);
+//		queryEngine.put(MLT_MINTF, 1);
+//		queryEngine.put(MLT_COUNT, 2);
+//
+//		SolrDocumentList results = new SolrDocumentList();
+//		QueryResponse x = e.getQueryResponse(queryEngine);
+//
+//		NamedList mlt = (NamedList) x.getResponse().get("moreLikeThis");
+//		for (int i = 0; i < mlt.size(); i++) {
+//			String name = mlt.getName(i);
+//			System.out.println("Name: " + name);
+//			SolrDocumentList val = (SolrDocumentList) mlt.getVal(i);
+//			Iterator<SolrDocument> valIter = val.iterator();
+//			while (valIter.hasNext()) {
+//				System.out.println(valIter.next());
+//			}
+//		}
 	}
 
-	public static SolrIndexEngine getInstance() throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, IOException {
+	public static SolrIndexEngine getInstance()
+			throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
 		if (singleton == null) {
 			singleton = new SolrIndexEngine();
 		}
 		return singleton;
 	}
 
-	private SolrIndexEngine() throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException {
-		String solrHome = System.getProperty(Constants.SOLR_SYSTEM_VAR_KEY);
-		if(solrHome == null || solrHome.isEmpty() || !(new File(solrHome)).exists()) {
-			throw new IOException("Solr home system var (" + Constants.SOLR_SYSTEM_VAR_KEY + ") not set properly: " + solrHome);
-		}
-		
+	private SolrIndexEngine() throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
 		SSLContextBuilder builder = new SSLContextBuilder();
 		builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
 		SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(builder.build());
 		CloseableHttpClient httpclient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
-		
+
 		if (SolrIndexEngine.url == null) {
 			SolrIndexEngine.url = DIHelper.getInstance().getProperty(Constants.SOLR_URL);
 		}
@@ -167,7 +186,7 @@ public class SolrIndexEngine {
 			throws SolrServerException, IOException {
 		if (serverActive()) {
 			Map<String, Object> queryMap = new HashMap<String, Object>();
-			queryMap.put(SET_DEFAULT, ID + ":" + uniqueID);
+			queryMap.put(QUERY, ID + ":" + uniqueID);
 			SolrDocument origDoc = queryDocument(queryMap).get(0);
 			Iterator<Entry<String, Object>> iterator = origDoc.iterator();
 			SolrInputDocument doc = new SolrInputDocument();
@@ -210,25 +229,71 @@ public class SolrIndexEngine {
 		return results;
 	}
 
-	public Map<String, Long> facetDocument(Map<String, Object> queryOptions) throws SolrServerException {
-		Map<String, Long> facetFieldMap = null;
+	@SuppressWarnings("null")
+	public Map<String, Map<String, Long>> facetDocument(Map<String, Object> queryOptions) throws SolrServerException {
+		Map<String, Long> innerMap = null;
+		Map<String, Map<String, Long>> facetFieldMap = null;
 		if (serverActive()) {
 			// report number of results found from query
 			QueryResponse res = getQueryResponse(queryOptions);
 			List<FacetField> facetFieldList = res.getFacetFields();
 			if (facetFieldList != null && facetFieldList.size() > 0) {
-				facetFieldMap = new HashMap<String, Long>();
+				innerMap = new HashMap<String, Long>();
 				for (FacetField field : facetFieldList) {
+					String fieldName = field.getName();
 					List<Count> facetInfo = field.getValues();
 					if (facetInfo != null) {
 						for (FacetField.Count facetInstance : facetInfo) {
-							facetFieldMap.put(facetInstance.getName(), facetInstance.getCount());
+							innerMap.put(facetInstance.getName(), facetInstance.getCount());
 						}
 					}
+					facetFieldMap.put(fieldName, innerMap);
 				}
 			}
 		}
+		// returning: field name string (ie.core_engine), MAP[ instance of th
+		// field name (ie. movie_db), count of instance of field name (ie. 79)]
 		return facetFieldMap;
+	}
+
+	@SuppressWarnings("null")
+	public Map<String, Map<String, SolrDocumentList>> groupDocument(Map<String, Object> queryOptions)
+			throws SolrServerException, IOException {
+		Map<String, SolrDocumentList> innerMap = null;
+		Map<String, Map<String, SolrDocumentList>> groupFieldMap = null;
+		QueryResponse x = getQueryResponse(queryOptions);
+		GroupResponse z = x.getGroupResponse();
+		for (GroupCommand gc : z.getValues()) {
+			String groupBy = gc.getName();
+			List<Group> Y = gc.getValues();
+			if (Y != null) {
+				for (Group g : Y) {
+					SolrDocumentList solrDocs = g.getResult();
+					innerMap.put(g.getGroupValue(), solrDocs);
+				}
+			}
+			groupFieldMap.put(groupBy, innerMap);
+		}
+		return groupFieldMap;
+	}
+
+	@SuppressWarnings("rawtypes")
+	public Map<String, Object> mltDocument(Map<String, Object> queryOptions) throws SolrServerException {
+		// returning instance of field, solrdoc list of mlt
+		Map<String, Object> mltMap = new HashMap<>();
+		SolrDocument results = null;
+		QueryResponse x = getQueryResponse(queryOptions);
+		NamedList mlt = (NamedList) x.getResponse().get("moreLikeThis");
+		for (int i = 0; i < mlt.size(); i++) {
+			String name = mlt.getName(i);
+			SolrDocumentList val = (SolrDocumentList) mlt.getVal(i);
+			Iterator<SolrDocument> valIter = val.iterator();
+			while (valIter.hasNext()) {
+				results = valIter.next();
+			}
+			mltMap.put(name, results);
+		}
+		return mltMap;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -239,20 +304,19 @@ public class SolrIndexEngine {
 			SolrQuery Q = new SolrQuery();
 			// Default
 			Q.setQuery("*:*");
-			Q.setFacet(true);
 
 			// COMMON FILTERS
 			// q & df- If query is specified, match based on relevance will be
 			// returned
 			// Default will be set to search for everything
-			if (queryOptions.get(SET_DEFAULT) != null) {
-				String f = (String) queryOptions.get(SET_DEFAULT);
-				Q.set("q", f);
+			if (queryOptions.get(QUERY) != null) {
+				String f = (String) queryOptions.get(QUERY);
+				Q.set(QUERY, f);
 				if (queryOptions.get(SEARCH_FIELD) != null) {
 					String s = (String) queryOptions.get(SEARCH_FIELD);
-					Q.set("df", s);
+					Q.set(SEARCH_FIELD, s);
 				} else {
-					Q.set("df", "all_text");
+					Q.set(SEARCH_FIELD, "all_text");
 				}
 			}
 
@@ -311,25 +375,20 @@ public class SolrIndexEngine {
 				}
 			}
 
-			if (queryOptions.get(FACET_QUERY) != null) {
-				Map<String, String> query = (Map<String, String>) queryOptions.get(FACET_QUERY);
-				for (String fQuery : query.keySet()) {
-					Q.addFacetQuery(fQuery + ":" + query.get(fQuery));
-				}
-			}
+			//////// FACET FILTERS
 
-			// facet.field - calculates count of total insights
-			if (queryOptions.get(FACET_FIELD) != null) {
-				String facetField = (String) queryOptions.get(FACET_FIELD);
-				Q.addFacetField(facetField);
-				// facet.prefix - Restricts the possible constraints to only
-				// indexed values with a specified prefix
-				// cannot be set to case insensitive
-				if (queryOptions.get(PREFIX_FACET) != null) {
-					List<String> prefix = (List<String>) queryOptions.get(PREFIX_FACET);
-					for (String fprefix : prefix) {
-						Q.setFacetPrefix(fprefix);
+			// group - set group to true
+			if (queryOptions.get(FACET) != null) {
+				Q.setFacet(true);
+				// facet.field - calculates count of total insights
+				if (queryOptions.get(FACET_FIELD) != null) {
+					List<String> fieldList = (List<String>) queryOptions.get(FACET_FIELD);
+					for (String field : fieldList) {
+						Q.set(FACET_FIELD + "=" + field);
 					}
+
+				} else if (queryOptions.get(FACET_FIELD) == null) {
+					LOGGER.error("MUST CONTAIN FACET_FIELD");
 				}
 			}
 
@@ -341,10 +400,84 @@ public class SolrIndexEngine {
 				Q.setFacetMinCount(numRows);
 			}
 
-			// FacetLimit - limits the number of facets that are shows.
-			if (queryOptions.get(FACET_LIMIT) != null) {
-				int numLimit = (int) queryOptions.get(FACET_LIMIT);
-				Q.setFacetLimit(numLimit);
+			//////// GROUPBY
+
+			// group - sets group to true
+			if (queryOptions.get(GROUPBY) != null) {
+				Q.set(GROUPBY, "true");
+
+				// groupField - specifies the field(s) to group by
+				if (queryOptions.get(GROUP_FIELD) != null) {
+					List<String> fieldList = (List<String>) queryOptions.get(GROUP_FIELD);
+					for (String field : fieldList) {
+						Q.set(GROUP_FIELD, field);
+					}
+				}
+			}
+
+			// groupLimit - specifies the # of results to return
+			if (queryOptions.get(GROUP_LIMIT) != null) {
+				int numGroupLimit = (int) queryOptions.get(GROUP_LIMIT);
+				Q.set(GROUP_LIMIT, numGroupLimit);
+
+			}
+
+			// groupOffset - specifies the starting return result
+			if (queryOptions.get(GROUP_OFFSET) != null) {
+				int numOffSet = (int) queryOptions.get(GROUP_OFFSET);
+				Q.set(GROUP_OFFSET, numOffSet);
+			}
+
+			//////// MORELIKETHIS
+			// MLT - enable MoreLikeThis results
+			if (queryOptions.get(MLT) != null) {
+				Q.set(MLT, "true");
+				// fields to use for similarity
+				if (queryOptions.get(MLT_FIELD) != null) {
+					List<String> fieldList = (List<String>) queryOptions.get(MLT_FIELD);
+					for (String field : fieldList) {
+						Q.set(MLT_FIELD, field);
+					}
+					// frequency words will be ignored if not included in set
+					// number of documents
+					if (queryOptions.get(MLT_MINDF) != null) {
+						int ignoreTerms = (int) queryOptions.get(MLT_MINDF);
+						Q.set(MLT_MINDF, ignoreTerms);
+					}
+					// the frequency below which terms will be ignored in the
+					// source doc
+					if (queryOptions.get(MLT_MINTF) != null) {
+						int ignoreTerms = (int) queryOptions.get(MLT_MINTF);
+						Q.set(MLT_MINTF, ignoreTerms);
+					}
+				} else if (queryOptions.get(MLT_FIELD) == null || queryOptions.get(MLT_MINDF) == null
+						|| queryOptions.get(MLT_MINTF) == null) {
+					LOGGER.error("MUST CONTAIN FL, MINDF, and MINTF QUERIES");
+				}
+			}
+
+			// sets the min word length requirement to be returned
+			if (queryOptions.get(MLT_WORD_LENGHT) != null) {
+				int ignoreTerms = (int) queryOptions.get(MLT_WORD_LENGHT);
+				Q.set(MLT_WORD_LENGHT, ignoreTerms);
+			}
+
+			// sets max number of MLT terms that will be included in any
+			// generated query
+			if (queryOptions.get(MLT_QUERY_TERM) != null) {
+				int ignoreTerms = (int) queryOptions.get(MLT_QUERY_TERM);
+				Q.set(MLT_QUERY_TERM, ignoreTerms);
+			}
+
+			// sets the number of documents that will be returned
+			if (queryOptions.get(MLT_COUNT) != null) {
+				int ignoreTerms = (int) queryOptions.get(MLT_COUNT);
+				Q.set(MLT_COUNT, ignoreTerms);
+			}
+
+			// sets whether to boost terms in query based on 'score' or not
+			if (queryOptions.get(MLT_BOOST) != null) {
+				Q.set(MLT_BOOST, "true");
 			}
 
 			System.out.println("query is ::: " + Q.getQuery());
@@ -353,6 +486,7 @@ public class SolrIndexEngine {
 			res = server.query(Q);
 		}
 		return res;
+
 	}
 
 	public void deleteAllSolrData() throws IOException {
@@ -389,8 +523,9 @@ public class SolrIndexEngine {
 
 	public boolean containsEngine(String engineName) {
 		// check if db currently exists
+		LOGGER.info(engineName + " is being added ");
 		Map<String, Object> querySolr = new HashMap<String, Object>();
-		querySolr.put(SolrIndexEngine.SET_DEFAULT, engineName);
+		querySolr.put(SolrIndexEngine.QUERY, engineName);
 		querySolr.put(SolrIndexEngine.SEARCH_FIELD, SolrIndexEngine.CORE_ENGINE);
 		querySolr.put(SolrIndexEngine.SET_ROWS, 1);
 		SolrDocumentList queryRet = null;
@@ -400,6 +535,11 @@ public class SolrIndexEngine {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
+		}
+		if (queryRet.size() != 0) {
+			LOGGER.info("queryRet.size() = " + (queryRet.size() != 0));
+		} else {
+			LOGGER.info("queryRet.size() = " + (queryRet.size() != 0) + "...so add engine");
 		}
 		return (queryRet.size() != 0);
 	}
