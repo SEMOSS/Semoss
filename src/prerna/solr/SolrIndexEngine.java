@@ -237,6 +237,7 @@ public class SolrIndexEngine {
 			QueryResponse res = getQueryResponse(queryOptions);
 			List<FacetField> facetFieldList = res.getFacetFields();
 			if (facetFieldList != null && facetFieldList.size() > 0) {
+				facetFieldMap = new HashMap<String, Map<String, Long>>();
 				innerMap = new HashMap<String, Long>();
 				for (FacetField field : facetFieldList) {
 					String fieldName = field.getName();
@@ -377,15 +378,12 @@ public class SolrIndexEngine {
 			//////// FACET FILTERS
 
 			// group - set group to true
-			if (queryOptions.get(FACET) != null) {
+			if (queryOptions.get(FACET) != null || queryOptions.get(FACET_FIELD) != null) {
 				Q.setFacet(true);
 				// facet.field - calculates count of total insights
 				if (queryOptions.get(FACET_FIELD) != null) {
 					List<String> fieldList = (List<String>) queryOptions.get(FACET_FIELD);
-					for (String field : fieldList) {
-						Q.set(FACET_FIELD + "=" + field);
-					}
-
+					Q.addFacetField(fieldList.toArray(new String[]{}));
 				} else if (queryOptions.get(FACET_FIELD) == null) {
 					LOGGER.error("MUST CONTAIN FACET_FIELD");
 				}
@@ -429,7 +427,7 @@ public class SolrIndexEngine {
 
 			//////// MORELIKETHIS
 			// MLT - enable MoreLikeThis results
-			if (queryOptions.get(MLT) != null) {
+			if (queryOptions.get(MLT) != null || queryOptions.get(MLT_FIELD) != null) {
 				Q.set(MLT, "true");
 				// fields to use for similarity
 				if (queryOptions.get(MLT_FIELD) != null) {
