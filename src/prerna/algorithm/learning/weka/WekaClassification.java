@@ -70,7 +70,7 @@ public class WekaClassification implements IAnalyticActionRoutine {
 	private Map<String, Map> treeMap = new HashMap<String, Map>();
 	int index; 
 	
-	private double bestAccuracy; // currently using model with best accuracy
+	private double bestAccuracy = -1.0; // currently using model with best accuracy
 	private double avgAccuracy;
 	private double avgPrecision;
 	private List<Double> accuracyArr = new ArrayList<Double>();
