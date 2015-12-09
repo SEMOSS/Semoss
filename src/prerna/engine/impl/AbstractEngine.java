@@ -187,10 +187,20 @@ public abstract class AbstractEngine implements IEngine {
 					insightRDBMS.setProperties(prop);
 					insightRDBMS.openDB(null);
 					// Update existing dbs to not include QUESTION_ID column if it is there. Can remove this once everyone has updated their dbs
-					ITableDataFrame f = WrapperManager.getInstance().getSWrapper(insightRDBMS, "select count(*) from information_schema.columns where table_name = 'QUESTION_ID' and column_name = 'QUESTION_ID'").getTableDataFrame();
-					if((Double)f.getData().get(0)[0] != 0 ){
-						insightRDBMS.removeData("UPDATE PARAMETER_ID p SET QUESTION_ID_FK = (SELECT ID FROM QUESTION_ID q WHERE q.QUESTION_ID = p.QUESTION_ID_FK)");
-						insightRDBMS.removeData("ALTER TABLE QUESTION_ID DROP COLUMN IF EXISTS QUESTION_ID");
+//					ITableDataFrame f = WrapperManager.getInstance().getSWrapper(insightRDBMS, "select count(*) from information_schema.columns where table_name = 'QUESTION_ID' and column_name = 'QUESTION_ID'").getTableDataFrame();
+//					if((Double)f.getData().get(0)[0] != 0 ){
+//						insightRDBMS.insertData("UPDATE PARAMETER_ID p SET QUESTION_ID_FK = (SELECT ID FROM QUESTION_ID q WHERE q.QUESTION_ID = p.QUESTION_ID_FK)");
+//						insightRDBMS.insertData("ALTER TABLE QUESTION_ID DROP COLUMN IF EXISTS QUESTION_ID");
+//					}
+					// Update existing dbs that do not have the UI table and have Question_ID_FK as a varchar
+					ITableDataFrame f = WrapperManager.getInstance().getSWrapper(insightRDBMS, "select count(*) from information_schema.tables where table_name = 'UI'").getTableDataFrame(); 
+					if((Double)f.getData().get(0)[0] == 0 ) {
+						//this is so we do not modify the form builder engine db -- make sure that it has the parameter id table
+						ITableDataFrame f2 = WrapperManager.getInstance().getSWrapper(insightRDBMS, "select count(*) from information_schema.tables where table_name = 'PARAMETER_ID'").getTableDataFrame(); 
+						if((Double)f2.getData().get(0)[0] != 0 ) {
+							insightRDBMS.insertData("CREATE TABLE UI (QUESTION_ID_FK INT, UI_DATA CLOB)");
+							insightRDBMS.insertData("ALTER TABLE PARAMETER_ID ALTER COLUMN QUESTION_ID_FK INT");
+						}
 					}
 				} 
 				else { // RDBMS Question engine has not been made. Must do conversion
