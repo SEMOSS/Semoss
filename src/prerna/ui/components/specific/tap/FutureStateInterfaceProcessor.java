@@ -110,12 +110,14 @@ public class FutureStateInterfaceProcessor {
 				if (downstreamSysType.equals(HPNI_KEY) || downstreamSysType.equals(HPI_KEY)) {
 					comment = comment.concat(" Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements).");
 					decommission = true;
-				} else {
+				} else if(!isSelfReported){
+					comment = comment.concat(" System " + upstreamSysName + " currently gets data object, " + data + ", from system " + downstreamSysName + ". "
+							+ "DHMSM is also projected to be a source of record for this data object, therefore, we recommend reviewing the proposed DHMSM interface.");
 					decommission = false;
 				}
 
 				// update results and return
-				results.put(FutureStateInterfaceResult.COMMENT, comment);
+				results.put(FutureStateInterfaceResult.COMMENT, comment.trim());
 				if(directCost) {
 					results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.DIRECT );
 				} else {
@@ -144,22 +146,34 @@ public class FutureStateInterfaceProcessor {
 			// }
 			else if (downstreamSysType.equals(LPI_KEY)) { // upstream system is not LPI and downstream system is LPI
 				if (!selfReportedSystems.contains(downstreamSysName)) {
-					comment = comment.concat("Need to add interface DHMSM->").concat(downstreamSysName).concat(".").concat(
-							" Recommend review of removing interface ").concat(upstreamSysName).concat("->").concat(downstreamSysName).concat(
-									". ");
+//					comment = comment.concat("Need to add interface DHMSM->").concat(downstreamSysName).concat(".").concat(
+//							" Recommend review of removing interface ").concat(upstreamSysName).concat("->").concat(downstreamSysName).concat(
+//									". ");
+					comment = comment.concat("Need to add interface DHMSM->").concat(downstreamSysName).concat(".");
 					// direct cost if system is downstream
 					if (sysName.equals(downstreamSysName)) {
 						directCost = true;
 					} else {
 						directCost = false;
 					}
+					if (upstreamSysType.equals(HPNI_KEY) || upstreamSysType.equals(HPI_KEY)) {
+						comment = comment.concat(" Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements).");
+						decommission = true;
+					} else {
+						decommission = false;
+					}
+					
+					results.put(FutureStateInterfaceResult.COMMENT, comment.trim());
 					if(directCost) {
 						results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.DIRECT );
 					} else {
 						results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.INDIRECT );
 					}
-					results.put(FutureStateInterfaceResult.COMMENT, comment);
-					results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.DOWNSTREAM_CONSUMER_FROM_DHMSM_AND_DECOMMISSION);
+					if(decommission) {
+						results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.DOWNSTREAM_CONSUMER_FROM_DHMSM_AND_DECOMMISSION);
+					} else {
+						results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.DOWNSTREAM_CONSUMER_FROM_DHMSM);
+					}
 					if(consumeSet.contains("DHMSM+++" + downstreamSysName + "+++" + data)) {
 						results.setCostTakenIntoConsideration(true);
 					} else {
@@ -170,7 +184,7 @@ public class FutureStateInterfaceProcessor {
 					if (upstreamSysType.equals(HPNI_KEY) || upstreamSysType.equals(HPI_KEY)) {
 						comment = comment.concat(" Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements).");
 						results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.DECOMMISSIONED);
-						results.put(FutureStateInterfaceResult.COMMENT, comment);
+						results.put(FutureStateInterfaceResult.COMMENT, comment.trim());
 						results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.NO_COST );
 					}
 				}
@@ -179,12 +193,12 @@ public class FutureStateInterfaceProcessor {
 						|| downstreamSysType.equals(HPNI_KEY)) { // if either system is HP
 					comment = "Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements).";
 					results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.NO_COST );
-					results.put(FutureStateInterfaceResult.COMMENT, comment);
+					results.put(FutureStateInterfaceResult.COMMENT, comment.trim());
 					results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.DECOMMISSIONED);
 				} else {
 					comment = "Stay as-is beyond FOC.";
 					results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.NO_COST );
-					results.put(FutureStateInterfaceResult.COMMENT, comment);
+					results.put(FutureStateInterfaceResult.COMMENT, comment.trim());
 					results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.STAY_AS_IS);
 				}
 			}
@@ -205,7 +219,7 @@ public class FutureStateInterfaceProcessor {
 					} else {
 						results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.INDIRECT );
 					}
-					results.put(FutureStateInterfaceResult.COMMENT, comment);
+					results.put(FutureStateInterfaceResult.COMMENT, comment.trim());
 					results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.UPSTREAM_PROVIDER_TO_DHMSM);
 					if(provideSet.contains(upstreamSysName + "+++DHMSM+++" + data)) {
 						results.setCostTakenIntoConsideration(true);
@@ -227,7 +241,7 @@ public class FutureStateInterfaceProcessor {
 					} else {
 						results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.INDIRECT );
 					}
-					results.put(FutureStateInterfaceResult.COMMENT, comment);
+					results.put(FutureStateInterfaceResult.COMMENT, comment.trim());
 					results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.DOWNSTREAM_PROVIDER_TO_DHMSM);
 					if(provideSet.contains(downstreamSysName + "+++DHMSM+++" + data)) {
 						results.setCostTakenIntoConsideration(true);
@@ -240,7 +254,7 @@ public class FutureStateInterfaceProcessor {
 			if (upstreamSysType.equals(HPI_KEY) || upstreamSysType.equals(HPNI_KEY) || downstreamSysType.equals(HPI_KEY)
 					|| downstreamSysType.equals(HPNI_KEY)) { // if either system is HP
 				comment = comment.concat("Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements).");
-				results.put(FutureStateInterfaceResult.COMMENT, comment);
+				results.put(FutureStateInterfaceResult.COMMENT, comment.trim());
 				results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.NO_COST );
 				if(results.containsKey(FutureStateInterfaceResult.RECOMMENDATION)) {
 					if(results.get(FutureStateInterfaceResult.RECOMMENDATION) == FutureStateInterfaceResult.INTERFACE_TYPES.DOWNSTREAM_PROVIDER_TO_DHMSM) {
@@ -256,7 +270,7 @@ public class FutureStateInterfaceProcessor {
 			} else if(otherwise) {
 				comment = "Stay as-is beyond FOC.";
 				results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.NO_COST );
-				results.put(FutureStateInterfaceResult.COMMENT, comment);
+				results.put(FutureStateInterfaceResult.COMMENT, comment.trim());
 				results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.STAY_AS_IS);
 			}
 		} else { // other cases DHMSM doesn't touch data object
@@ -264,12 +278,12 @@ public class FutureStateInterfaceProcessor {
 					|| downstreamSysType.equals(HPNI_KEY)) { // if either system is HP
 				comment = "Stay as-is until all deployment sites for HP system field DHMSM (and any additional legal requirements).";
 				results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.NO_COST );
-				results.put(FutureStateInterfaceResult.COMMENT, comment);
+				results.put(FutureStateInterfaceResult.COMMENT, comment.trim());
 				results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.DECOMMISSIONED);
 			} else {
 				comment = "Stay as-is beyond FOC.";
 				results.put(FutureStateInterfaceResult.COST_TYPE, FutureStateInterfaceResult.COST_TYPES.NO_COST );
-				results.put(FutureStateInterfaceResult.COMMENT, comment);
+				results.put(FutureStateInterfaceResult.COMMENT, comment.trim());
 				results.put(FutureStateInterfaceResult.RECOMMENDATION, FutureStateInterfaceResult.INTERFACE_TYPES.STAY_AS_IS);
 			} 
 		}
