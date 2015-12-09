@@ -41,6 +41,7 @@ import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.openrdf.model.Literal;
 import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
@@ -58,7 +59,6 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.AbstractPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
@@ -876,5 +876,52 @@ public class Insight {
 			retHash.putAll(getDataMaker().getDataMakerOutput());
 		}
 		return retHash;
+	}
+	
+	/**
+	 * Get the number of components in the query
+	 * @return
+	 */
+	public int getNumComponents() {
+		int numComps = 0;
+		if(this.dmComponents != null) {
+			numComps = this.dmComponents.size();
+		} else if(this.makeupEngine != null) {
+			String countQuery = "SELECT (COUNT(DISTINCT(?Component)) AS ?Count) WHERE {?Component a <http://semoss.org/ontologies/Concept/Component>. BIND('x' AS ?x) } GROUP BY ?x";
+			ISelectWrapper countss = WrapperManager.getInstance().getSWrapper(this.makeupEngine, countQuery);
+			while(countss.hasNext()){
+				ISelectStatement countst = countss.next();
+				numComps = (int) Double.parseDouble(countst.getVar("Count")+"");
+			}
+		}
+		
+		return numComps;
+	}
+	
+	/**
+	 * Get the full N-Triples makeup for the insight
+	 * @return
+	 */
+	public String getNTriples() {
+		StringBuilder returnStrBuilder = new StringBuilder();
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(this.makeupEngine, "SELECT ?S ?P ?O WHERE {?S ?P ?O}");
+		String[] names = wrapper.getVariables();
+		while(wrapper.hasNext()) {
+			ISelectStatement ss = wrapper.next();
+			if(ss.getRawVar(names[2]) instanceof Literal) {
+				String val = ss.getVar(names[2]).toString();
+				// need to escape single quotes for reloading
+				if(val.contains("\"")) {
+					val = "\"" + val.replaceAll("\"", "\\\\\"") + "\"";
+				} else {
+					val = ss.getRawVar(names[2]).toString();
+				}
+				returnStrBuilder.append("<" + ss.getRawVar(names[0]) + "> <" + ss.getRawVar(names[1]) + "> " + val + " .\n");
+			} else {
+				returnStrBuilder.append("<" + ss.getRawVar(names[0]) + "> <" + ss.getRawVar(names[1]) + "> <" + ss.getRawVar(names[2]) + "> .\n");
+			}
+		}
+		
+		return returnStrBuilder.toString();
 	}
 }
