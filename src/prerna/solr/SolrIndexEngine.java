@@ -138,8 +138,7 @@ public class SolrIndexEngine {
 //		}
 	}
 
-	public static SolrIndexEngine getInstance()
-			throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+	public static SolrIndexEngine getInstance() throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
 		if (singleton == null) {
 			singleton = new SolrIndexEngine();
 		}
