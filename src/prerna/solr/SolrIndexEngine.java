@@ -181,8 +181,7 @@ public class SolrIndexEngine {
 		}
 	}
 
-	public void modifyFields(String uniqueID, Map<String, Object> fieldsToModify)
-			throws SolrServerException, IOException {
+	public void modifyFields(String uniqueID, Map<String, Object> fieldsToModify) throws SolrServerException, IOException {
 		if (serverActive()) {
 			Map<String, Object> queryMap = new HashMap<String, Object>();
 			queryMap.put(QUERY, ID + ":" + uniqueID);
@@ -228,7 +227,6 @@ public class SolrIndexEngine {
 		return results;
 	}
 
-	@SuppressWarnings("null")
 	public Map<String, Map<String, Long>> facetDocument(Map<String, Object> queryOptions) throws SolrServerException {
 		Map<String, Long> innerMap = null;
 		Map<String, Map<String, Long>> facetFieldMap = null;
@@ -238,8 +236,8 @@ public class SolrIndexEngine {
 			List<FacetField> facetFieldList = res.getFacetFields();
 			if (facetFieldList != null && facetFieldList.size() > 0) {
 				facetFieldMap = new HashMap<String, Map<String, Long>>();
-				innerMap = new HashMap<String, Long>();
 				for (FacetField field : facetFieldList) {
+					innerMap = new HashMap<String, Long>();
 					String fieldName = field.getName();
 					List<Count> facetInfo = field.getValues();
 					if (facetInfo != null) {
@@ -256,47 +254,51 @@ public class SolrIndexEngine {
 		return facetFieldMap;
 	}
 
-	@SuppressWarnings("null")
-	public Map<String, Map<String, SolrDocumentList>> groupDocument(Map<String, Object> queryOptions)
-			throws SolrServerException, IOException {
+	public Map<String, Map<String, SolrDocumentList>> groupDocument(Map<String, Object> queryOptions) 	throws SolrServerException, IOException {
 		Map<String, SolrDocumentList> innerMap = null;
 		Map<String, Map<String, SolrDocumentList>> groupFieldMap = null;
-		QueryResponse x = getQueryResponse(queryOptions);
-		GroupResponse z = x.getGroupResponse();
-		for (GroupCommand gc : z.getValues()) {
-			String groupBy = gc.getName();
-			List<Group> Y = gc.getValues();
-			if (Y != null) {
-				for (Group g : Y) {
-					SolrDocumentList solrDocs = g.getResult();
-					innerMap.put(g.getGroupValue(), solrDocs);
+		
+		if (serverActive()) {
+			QueryResponse response = getQueryResponse(queryOptions);
+			GroupResponse groupResponse = response.getGroupResponse();
+			
+			if(groupResponse != null) {
+				groupFieldMap = new HashMap<String, Map<String, SolrDocumentList>>();
+				for (GroupCommand gc : groupResponse.getValues()) {
+					innerMap = new HashMap<String, SolrDocumentList>();
+					String groupBy = gc.getName();
+					List<Group> groups = gc.getValues();
+					if (groups != null) {
+						for (Group g : groups) {
+							SolrDocumentList solrDocs = g.getResult();
+							innerMap.put(g.getGroupValue(), solrDocs);
+						}
+					}
+					groupFieldMap.put(groupBy, innerMap);
 				}
 			}
-			groupFieldMap.put(groupBy, innerMap);
 		}
 		return groupFieldMap;
 	}
 
-	@SuppressWarnings("rawtypes")
-	public Map<String, Object> mltDocument(Map<String, Object> queryOptions) throws SolrServerException {
+	public Map<String, SolrDocumentList> mltDocument(Map<String, Object> queryOptions) throws SolrServerException {
 		// returning instance of field, solrdoc list of mlt
-		Map<String, Object> mltMap = new HashMap<>();
-		SolrDocument results = null;
-		QueryResponse x = getQueryResponse(queryOptions);
-		NamedList mlt = (NamedList) x.getResponse().get("moreLikeThis");
-		for (int i = 0; i < mlt.size(); i++) {
-			String name = mlt.getName(i);
-			SolrDocumentList val = (SolrDocumentList) mlt.getVal(i);
-			Iterator<SolrDocument> valIter = val.iterator();
-			while (valIter.hasNext()) {
-				results = valIter.next();
+		Map<String, SolrDocumentList> mltMap = null;
+		if(serverActive()) {
+			QueryResponse x = getQueryResponse(queryOptions);
+			NamedList mlt = (NamedList) x.getResponse().get("moreLikeThis");
+			if(mlt != null && mlt.size() > 0) {
+				mltMap = new HashMap<String, SolrDocumentList>();
+				for (int i = 0; i < mlt.size(); i++) {
+					String name = mlt.getName(i);
+					SolrDocumentList val = (SolrDocumentList) mlt.getVal(i);
+					mltMap.put(name, val);
+				}
 			}
-			mltMap.put(name, results);
 		}
 		return mltMap;
 	}
 
-	@SuppressWarnings("unchecked")
 	private QueryResponse getQueryResponse(Map<String, Object> queryOptions) throws SolrServerException {
 		QueryResponse res = null;
 		if (serverActive()) {
