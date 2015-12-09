@@ -257,13 +257,19 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		
 		Map<String, Object> queryOptions = new HashMap<String, Object>();
 		queryOptions.put(SolrIndexEngine.FACET_FIELD, SolrIndexEngine.CORE_ENGINE);
+	
 		try {
-			Map<String, Long> solrEngines = SolrIndexEngine.getInstance().facetDocument(queryOptions);
-			if(solrEngines != null) {
-				Set<String> engineSet = solrEngines.keySet();
-				for(String engine : engineSet) {
-					if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
-						Utility.deleteFromSolr(engine);
+			if(SolrIndexEngine.getInstance().serverActive()) {
+				Map<String, Map<String, Long>> facetReturn = SolrIndexEngine.getInstance().facetDocument(queryOptions);
+				if(facetReturn != null && facetReturn.isEmpty()) {
+					Map<String, Long> solrEngines = facetReturn.get(SolrIndexEngine.CORE_ENGINE);
+					if(solrEngines != null) {
+						Set<String> engineSet = solrEngines.keySet();
+						for(String engine : engineSet) {
+							if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
+								Utility.deleteFromSolr(engine);
+							}
+						}
 					}
 				}
 			}
@@ -275,10 +281,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			e.printStackTrace();
 		} catch (SolrServerException e) {
 			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
 		}
-		
 	}
 
 	/**
