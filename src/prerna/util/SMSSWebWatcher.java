@@ -34,6 +34,7 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
@@ -255,11 +256,12 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			}
 		}
 		
-		Map<String, Object> queryOptions = new HashMap<String, Object>();
-		queryOptions.put(SolrIndexEngine.FACET_FIELD, SolrIndexEngine.CORE_ENGINE);
-	
 		try {
 			if(SolrIndexEngine.getInstance().serverActive()) {
+				Map<String, Object> queryOptions = new HashMap<String, Object>();
+				List<String> facetList = new ArrayList<String>();
+				facetList.add(SolrIndexEngine.CORE_ENGINE);
+				queryOptions.put(SolrIndexEngine.FACET_FIELD, facetList);
 				Map<String, Map<String, Long>> facetReturn = SolrIndexEngine.getInstance().facetDocument(queryOptions);
 				if(facetReturn != null && facetReturn.isEmpty()) {
 					Map<String, Long> solrEngines = facetReturn.get(SolrIndexEngine.CORE_ENGINE);
