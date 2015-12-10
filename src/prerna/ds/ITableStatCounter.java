@@ -12,6 +12,10 @@ import prerna.algorithm.learning.util.DuplicationReconciliation;
 //TODO: change the name
 public class ITableStatCounter {
 
+	/*
+	 * why is this organized this way? -jason 
+	 * 
+	 */
 	private static final String AVG = "average";
 	private static final String MAX = "max";
 	private static final String MIN = "min";
@@ -50,10 +54,15 @@ public class ITableStatCounter {
 
 	}
 	
+	/**
+	 * what does this do?
+	 * 
+	 * -jason
+	 */
 	private DuplicationReconciliation[] getDuplicationReconciliation() {
 		
 //		DuplicationReconciliation[] array = new DuplicationReconciliation[functionMap.keySet().size()+1];
-		List<DuplicationReconciliation> array = new ArrayList<DuplicationReconciliation>();
+		List<DuplicationReconciliation> DRarray = new ArrayList<DuplicationReconciliation>();
 		
 		Map<String, DuplicationReconciliation> duprecMap = new HashMap<>(origColHeaders.length);
 		
@@ -87,18 +96,18 @@ public class ITableStatCounter {
 		for(String c : origColHeaders) {
 //			String c = origColHeaders[i];
 			if(c.equals(columnHeader)) {
-				array.add(null);
+				DRarray.add(null);
 			} else {
 				DuplicationReconciliation dr = duprecMap.get(c);
 				if(dr != null) {
-					array.add(duprecMap.get(c));
+					DRarray.add(duprecMap.get(c));
 				}
 			}
 		}
-		return array.toArray(new DuplicationReconciliation[array.size()]);
+		return DRarray.toArray(new DuplicationReconciliation[DRarray.size()]);
 	}
 	
-	//creates new BTreeDataFrame with the join columns and new columns
+	// creates new BTreeDataFrame with the join columns and new columns
 	private BTreeDataFrame createNewBTree(Map<String, String> columnHeaderMap, DuplicationReconciliation[] mathModes) {
 		String[] newColHeaders = new String[columnHeaderMap.keySet().size()];
 		List<String> tempColHeaders = new ArrayList<String>(newColHeaders.length);
