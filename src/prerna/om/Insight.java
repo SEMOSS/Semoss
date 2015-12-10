@@ -842,7 +842,9 @@ public class Insight {
 		// remove from largest to smallest as it is most efficient way to remove from BTreeDataFrame
 		for(int i = 0; i < indicesToRemove.size(); i++) {
 			Integer indexToRemove = indicesToRemove.get(i);
-			trans.get(indexToRemove).undoTransformation();
+			ISEMOSSTransformation transToUndo = trans.get(indexToRemove);
+			transToUndo.setDataMakers(this.dataMaker);
+			transToUndo.undoTransformation();
 			trans.remove(indexToRemove);
 		}
 	}
