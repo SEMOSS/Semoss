@@ -989,14 +989,17 @@ public class BTreeDataFrame implements ITableDataFrame {
 			return Double.NaN;
 		}
 		
-		TreeNode typeRoot = simpleTree.nodeIndexHash.get(columnHeader);
-		typeRoot = typeRoot.getRight(typeRoot);
-		while(typeRoot.rightChild != null) {
-			typeRoot = typeRoot.rightChild;
-			typeRoot = typeRoot.getRight(typeRoot);
+		//first value returned by iterator is the 'least' value
+		TreeNode root = this.simpleTree.nodeIndexHash.get(columnHeader);
+		Iterator<TreeNode> iterator = new ReverseIndexTreeIterator(root);
+		if(iterator.hasNext()) {
+			TreeNode node = iterator.next();
+			if(node.leaf.getValue() instanceof Number) {
+				return ((Number) node.leaf.getValue()).doubleValue();
+			}
 		}
-		return ((Number) typeRoot.leaf.getValue()).doubleValue();
 		
+		return Double.NaN;
 	}
 
 	@Override
@@ -1020,7 +1023,9 @@ public class BTreeDataFrame implements ITableDataFrame {
 		Iterator<Object> iterator = this.uniqueValueIterator(columnHeader, false, false);
 		if(iterator.hasNext()) {
 			Object value = this.uniqueValueIterator(columnHeader, false, false).next();
-			return ((Number) value).doubleValue();
+			if(value instanceof Number) {
+				return ((Number) value).doubleValue();
+			}
 		}
 		
 		return Double.NaN;
@@ -1526,8 +1531,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 //			this.filterer.filterTree(this.createNodeObject(o, o, columnHeader));
 //		}
 		
-		
 		this.filterer.filter(columnHeader, filterValues);
+		this.isNumericalMap.clear();
 	}
 	
 	public void unfilter() {
