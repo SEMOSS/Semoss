@@ -2177,6 +2177,7 @@ public class RDBMSReader {
 		tablesVec.addAll(allTablesModified);
 		Hashtable <String, String> tableInfo = new Hashtable();
 		for(String singleTable: tablesVec){
+			singleTable = processAutoConcat(singleTable);
 			String tableCountQuery = queryUtil.getDialectSelectRowCountFrom(Utility.cleanString(singleTable, true),"");
 			ISelectWrapper tableCount = WrapperManager.getInstance().getSWrapper(engine, tableCountQuery);
 			while(tableCount.hasNext()){
