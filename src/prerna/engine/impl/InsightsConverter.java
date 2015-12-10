@@ -201,29 +201,29 @@ public class InsightsConverter {
 //			String NEW_INSIGHT_KEY = engineName + "_" + counter;
 			List<DataMakerComponent> comps = generateQueryComponents(this.engine, QUERY);
 			//need to add parameters as preTransformationFilters
-			appendParamsAsTransformations(comps, parameters);
+//			appendParamsAsTransformations(comps, parameters); // THIS IS NOW TAKEN CARE OF BY QUESTION ADMINISTRATOR (because of the addViaText additions)
 			
 			this.questionAdmin.addQuestion(INSIGHT_NAME, PERSPECTIVE, comps, LAYOUT, ORDER, dataMaker, true, null, parameters);
 		}
 	}
 	
-	private void appendParamsAsTransformations(List<DataMakerComponent> comps, List<SEMOSSParam> parameters) {
-		if(parameters != null && !parameters.isEmpty()) {
-			// assume only one component
-			DataMakerComponent dmc = comps.get(0);
-			List<ISEMOSSTransformation> preTransList = new ArrayList<ISEMOSSTransformation>();
-			for(int i = 0; i < parameters.size(); i++) {
-				SEMOSSParam p = parameters.get(i);
-				ISEMOSSTransformation preTrans = new FilterTransformation();
-				Map<String, Object> props = new HashMap<String, Object>();
-				props.put(FilterTransformation.COLUMN_HEADER_KEY, p.getName());
-				preTrans.setProperties(props);
-				preTransList.add(preTrans);
-				p.setComponentFilterId(Insight.COMP + "0:" + Insight.PRE_TRANS + i);
-			}
-			dmc.setPreTrans(preTransList);
-		}
-	}
+//	private void appendParamsAsTransformations(List<DataMakerComponent> comps, List<SEMOSSParam> parameters) {
+//		if(parameters != null && !parameters.isEmpty()) {
+//			// assume only one component
+//			DataMakerComponent dmc = comps.get(0);
+//			List<ISEMOSSTransformation> preTransList = new ArrayList<ISEMOSSTransformation>();
+//			for(int i = 0; i < parameters.size(); i++) {
+//				SEMOSSParam p = parameters.get(i);
+//				ISEMOSSTransformation preTrans = new FilterTransformation();
+//				Map<String, Object> props = new HashMap<String, Object>();
+//				props.put(FilterTransformation.COLUMN_HEADER_KEY, p.getName());
+//				preTrans.setProperties(props);
+//				preTransList.add(preTrans);
+//				p.setComponentFilterId(Insight.COMP + "0:" + Insight.PRE_TRANS + i);
+//			}
+//			dmc.setPreTrans(preTransList);
+//		}
+//	}
 
 	private String getPSname(String layout){
 		String psName = getLayoutFromPlaySheet(layout);
@@ -503,7 +503,7 @@ public class InsightsConverter {
 					String layout = getPSname(layoutName);
 					String dataMaker = getDataMaker(layoutName, allSheets);
 					List<SEMOSSParam> parameters = getPropFileParameters(paramHash, dependMap, queryMap, optionMap);
-					appendParamsAsTransformations(comps, parameters);
+//					appendParamsAsTransformations(comps, parameters); // THIS IS NOW TAKEN CARE OF BY QUESTION ADMINISTRATOR (because of the addViaText additions)
 					questionAdmin.addQuestion(qsDescr, perspective, comps, layout, qsOrder, dataMaker, isDbQuery, null, parameters);
 					count++;
 				}
