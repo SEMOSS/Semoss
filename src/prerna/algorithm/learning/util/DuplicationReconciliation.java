@@ -29,18 +29,18 @@ public class DuplicationReconciliation {
 	public Double getReconciliatedValue() {
 		if(recValue == null) {
 			switch(mode) {
-				case MEAN: recValue = getMean(values.toArray(), ignoreEmpty);
+				case MEAN:   recValue = getMean(values.toArray(), ignoreEmpty);
 				break;
 				case MEDIAN: recValue = getMedian(values.toArray(), ignoreEmpty);
 				break;
-				case MODE: recValue = getMode(values.toArray(), ignoreEmpty);
+				case MODE:   recValue = getMode(values.toArray(), ignoreEmpty);
 				break;
-				case MAX: recValue = getMax(values.toArray(), ignoreEmpty);
+				case MAX:    recValue = getMax(values.toArray(), ignoreEmpty);
 				break;
-				case MIN: recValue = getMin(values.toArray(), ignoreEmpty);
+				case MIN:    recValue = getMin(values.toArray(), ignoreEmpty);
 				break;
 				case COUNT: break;
-				default: recValue = getMean(values.toArray(), ignoreEmpty);
+				default:     recValue = getMean(values.toArray(), ignoreEmpty);
 			}
 		}
 		return recValue;
@@ -54,6 +54,11 @@ public class DuplicationReconciliation {
 		ignoreEmpty = true;
 	}
 	
+	/**
+	 * This appends a value to a list, like list.add()
+	 * 
+	 * @param o		add object o to array called values.
+	 */
 	public void addValue(Object o) {
 		if(mode == ReconciliationMode.COUNT) {
 			recValue += 1.0;

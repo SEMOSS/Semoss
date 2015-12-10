@@ -750,6 +750,7 @@ public class Insight {
 		getDataMaker().processPostTransformations(dmc, postTransCopy, dataMaker);
 		//TODO: extrapolate in datamakercomponent to take in a list
 		int lastPostTrans = dmc.getPostTrans().size() - 1;
+		// what does this do? -jason
 		for(int i = 0; i < postTrans.size(); i++) {
 			postTrans.get(i).setId(dmc.getId() + ":" + POST_TRANS + (++lastPostTrans));
 			dmc.addPostTrans(postTrans.get(i));
