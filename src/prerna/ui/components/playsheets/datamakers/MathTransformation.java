@@ -54,6 +54,8 @@ public class MathTransformation extends AbstractTransformation {
 
 	@Override
 	public void runMethod() {
+		
+		// get the items from MathTransformation object
 		Object list = this.props.get(GROUPBY_COLUMNS);
 
 		String[] groupByCols = null;
@@ -65,7 +67,7 @@ public class MathTransformation extends AbstractTransformation {
 		}
 		Map<String, Object> functionMap =  (Map<String, Object>) this.props.get(MATH_MAP);
 		
-
+		// determines if its a singlecolumn, or if columns are the same
 		//determine whether to do a single column group by or multi column group by
 		//if groupByCols.length is 1 or length is 2 and those two columns are equal do single column
 		boolean singleColumn = groupByCols.length == 1 || (groupByCols.length == 2 && groupByCols[0].equals(groupByCols[1]));
@@ -75,10 +77,11 @@ public class MathTransformation extends AbstractTransformation {
 			functionMap = createColumnNamesForColumnGrouping(groupByCols[0], functionMap);
 		} else {
 			functionMap = createColumnNamesForColumnGrouping(groupByCols, functionMap);
-		}		
+		}
 		
 		String[] columnHeaders = dm.getColumnHeaders();
 		Set<String> columnSet = new HashSet<String>();
+		// this makes sure the new column created doesn't already exist. it if does, remove it.
 		for(String key : functionMap.keySet()) {
 			Map<String, String> map = (Map)functionMap.get(key);
 			String name = map.get("calcName");
@@ -109,7 +112,16 @@ public class MathTransformation extends AbstractTransformation {
 		return this.props;
 	}
 
-	
+	/**
+	 * This method creates a new column name by combining the function name with the column header 
+	 * its operated on.
+	 * 
+	 * TODO: add a new function that can take in a custom name for the new column
+	 * 
+	 * @param functionMap		a hashtable that describes what this function will do
+	 * @param columnHeader		a string which describes the relevant column to look at 	
+	 * @return					
+	 */
 	public static Map<String, Object> createColumnNamesForColumnGrouping(String columnHeader, Map<String, Object> functionMap) {
 		
 		for(String key : functionMap.keySet()) {
@@ -176,7 +188,7 @@ public class MathTransformation extends AbstractTransformation {
 			e.printStackTrace();
 		}
 	}
-
+	
 	@Override
 	/**
 	 * copy method for saving tranformation
@@ -199,6 +211,6 @@ public class MathTransformation extends AbstractTransformation {
 //		}
 //		
 //		return copy;
-	}
+}
 	
 }
