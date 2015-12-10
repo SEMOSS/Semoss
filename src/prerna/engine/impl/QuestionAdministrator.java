@@ -445,6 +445,7 @@ public class QuestionAdministrator {
 				builder.append("<http://semoss.org/ontologies/Concept/Component/" + i + "> <http://semoss.org/ontologies/Relation/Contains/Metamodel> \"" + jsonMetamodel + "\" .\n");
 			} else {
 				LOGGER.info("Component " + i + " has query::: " + query);
+				involvedParams = getInvolvedParamsFromQuery(query, parameters, paramsAccountedFor);
 				query = escapeForNTripleAndSQLStatement(query);
 				builder.append("<http://semoss.org/ontologies/Concept/Component/" + i + "> <http://semoss.org/ontologies/Relation/Contains/Query> \"" + query + "\" .\n");
 			}
@@ -551,13 +552,15 @@ public class QuestionAdministrator {
 		builder.append("<http://semoss.org/ontologies/Concept/Component/" + i + "> <Comp:PreTrans> <http://semoss.org/ontologies/Concept/PreTransformation/" + (j+numPreTransformations) + "> .\n");
 		
 		// add parameters for transformation
-		Map<String, Object> paramMap =  (Map<String, Object>) preTrans.getProperties();
+		Map<String, Object> paramMap =  new HashMap<String,Object>();
+		paramMap.putAll((Map<String, Object>) preTrans.getProperties());
 		if(involvedParamsPre != null && !involvedParamsPre.isEmpty() && preTrans instanceof FilterTransformation){
 			String preTransType = (String) preTrans.getProperties().get(FilterTransformation.COLUMN_HEADER_KEY);
 			//   If a pre trans with the param already exists
 			//    Wipe the list because it needs to be empty when we fill the param.
-			for(SEMOSSParam p: involvedParamsPre){
-				if(Utility.getInstanceName(p.getType()).equals(preTransType)){
+			for(SEMOSSParam p: involvedParamsPre){//
+//				if(Utility.getInstanceName(p.getType()).equals(preTransType)){ // cannot use this logic any more as rdbms p.getType is the physical uri for the column (..Concept/Column/Table) which wont match logical name (Table__Column)
+				if(p.getName().equalsIgnoreCase(preTransType)){
 					paramMap = new HashMap<String, Object> (paramMap);
 					paramMap.remove(FilterTransformation.VALUES_KEY);
 					involvedParamsPre.remove(p);
@@ -693,5 +696,32 @@ public class QuestionAdministrator {
 		paramsAccountedFor.addAll(involvedParams);
 		return involvedParams;
 	}
-	
+
+	private List<SEMOSSParam> getInvolvedParamsFromQuery(String query, List<SEMOSSParam> params, List<SEMOSSParam> paramsAccountedFor) {
+		List<SEMOSSParam> involvedParams = new Vector<SEMOSSParam>();
+		PARAMS_FOR : for(SEMOSSParam param : params) {
+			if(!paramsAccountedFor.contains(param)){
+				String paramURI = param.getType(); // this will either be the physical uri if coming from actions (e.g. ..Concept/Column/Table) or custom defined (e.g. Table:Column)
+				LOGGER.info("is my param : " + paramURI + " involved in query " + query );
+				Map<String, String> paramsInQuery = Utility.getParams(query);
+				for(String paramInQuery : paramsInQuery.keySet()){
+					LOGGER.info("checking param in query : " + paramInQuery);
+					String[] split = paramInQuery.split("-"); // this will be label-type where type is custom defined (e.g. Table:Column)
+					if(paramURI.equals(split[1])){
+						LOGGER.info("this param is involved");
+						involvedParams.add(param);
+						continue PARAMS_FOR;
+					}
+					String rebuiltParamUri = Utility.getInstanceName(paramURI) + ":"+ Utility.getClassName(paramURI);
+					if(rebuiltParamUri.equals(split[1])){
+						LOGGER.info("this param is involved");
+						involvedParams.add(param);
+						continue PARAMS_FOR;
+					}
+				}
+			}
+		}
+		paramsAccountedFor.addAll(involvedParams);
+		return involvedParams;
+	}
 }
