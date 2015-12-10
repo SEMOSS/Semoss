@@ -67,6 +67,7 @@ public class JoinTransformation extends AbstractTransformation {
 
 	@Override
 	public void runMethod() {
+		getMatcher();
 		//the run method will either append to the component to limit the construction of the new component
 		//otherwise, it will perform the actual joining between two components
 		if(!preTransformation) {
@@ -78,6 +79,10 @@ public class JoinTransformation extends AbstractTransformation {
 				String t1Col = this.props.get(COLUMN_ONE_KEY) +"";
 				String t2Col = this.props.get(COLUMN_TWO_KEY) +"";
 				Double match = 1.0; // this should be in properties as well
+				
+				if(this.matcher == null) {
+					
+				}
 				
 				method.invoke(dm, this.nextDm, t1Col, t2Col, match, this.matcher);
 				LOGGER.info("Successfully invoked method : " + METHOD_NAME);
@@ -92,20 +97,6 @@ public class JoinTransformation extends AbstractTransformation {
 				e.printStackTrace();
 			}
 		} else {
-			String joinType = (String) this.props.get(JOIN_TYPE);
-			if(joinType == null) {
-				joinType = "inner";
-			}
-			switch(joinType) {
-				case "inner" : this.matcher = new ExactStringMatcher(); 
-					break;
-				case "partial" : this.matcher = new ExactStringPartialOuterJoinMatcher(); 
-					break;
-				case "outer" : this.matcher = new ExactStringOuterJoinMatcher();
-					break;
-				default : this.matcher = new ExactStringMatcher(); 
-			}
-			
 			Map<String, Object> metamodelData = this.dmc.getMetamodelData();
 			StringMap<List<Object>> stringMap;
 	        if(((StringMap) metamodelData.get("QueryData")).containsKey(AbstractQueryBuilder.filterKey)) {
@@ -184,6 +175,24 @@ public class JoinTransformation extends AbstractTransformation {
 		}
 
 		return joinCopy;
+	}
+	
+	private void getMatcher() {
+		if(this.matcher == null) {
+			String joinType = (String) this.props.get(JOIN_TYPE);
+			if(joinType == null) {
+				joinType = "inner";
+			}
+			switch(joinType) {
+				case "inner" : this.matcher = new ExactStringMatcher(); 
+					break;
+				case "partial" : this.matcher = new ExactStringPartialOuterJoinMatcher(); 
+					break;
+				case "outer" : this.matcher = new ExactStringOuterJoinMatcher();
+					break;
+				default : this.matcher = new ExactStringMatcher(); 
+			}
+		}
 	}
 	
 }
