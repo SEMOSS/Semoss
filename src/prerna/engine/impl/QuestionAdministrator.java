@@ -445,7 +445,7 @@ public class QuestionAdministrator {
 				builder.append("<http://semoss.org/ontologies/Concept/Component/" + i + "> <http://semoss.org/ontologies/Relation/Contains/Metamodel> \"" + jsonMetamodel + "\" .\n");
 			} else {
 				LOGGER.info("Component " + i + " has query::: " + query);
-				involvedParams = getInvolvedParamsFromQuery(query, parameters, paramsAccountedFor);
+				involvedParams = getInvolvedParamsFromQuery(query, parameters, paramsAccountedFor);//
 				query = escapeForNTripleAndSQLStatement(query);
 				builder.append("<http://semoss.org/ontologies/Concept/Component/" + i + "> <http://semoss.org/ontologies/Relation/Contains/Query> \"" + query + "\" .\n");
 			}
@@ -702,6 +702,13 @@ public class QuestionAdministrator {
 		PARAMS_FOR : for(SEMOSSParam param : params) {
 			if(!paramsAccountedFor.contains(param)){
 				String paramURI = param.getType(); // this will either be the physical uri if coming from actions (e.g. ..Concept/Column/Table) or custom defined (e.g. Table:Column)
+				
+				if(paramURI==null){ // if paramURI is null this means it is a param with custom query or static options. in this case, it must be associated with the first component, so immediately add it
+					LOGGER.info("this param type is null. adding to first component! :)");
+					involvedParams.add(param);
+					continue PARAMS_FOR;
+				}
+				
 				LOGGER.info("is my param : " + paramURI + " involved in query " + query );
 				Map<String, String> paramsInQuery = Utility.getParams(query);
 				for(String paramInQuery : paramsInQuery.keySet()){
