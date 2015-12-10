@@ -169,9 +169,10 @@ public class ActiveSystemUpdater {
 			// perform so next() method works
 			wrapperAllSystems.getVariables();
 		*/
+			String[] names = wrapperAllSystems.getVariables();
 			while(wrapperAllSystems.hasNext()){
 				ISelectStatement sjss = wrapperAllSystems.next();
-				systemList.add(sjss.getRawVar("system").toString());
+				systemList.add(sjss.getRawVar(names[0]).toString());
 			}
 		}
 		else{
