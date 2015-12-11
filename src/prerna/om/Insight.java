@@ -63,6 +63,7 @@ import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
+import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.util.Utility;
 
 public class Insight {
@@ -792,9 +793,10 @@ public class Insight {
 			DataMakerComponent dmc = dmComponents.get(i);
 			List<ISEMOSSAction> actions = dmc.getActions();
 			undoActions(actions, processes);
-			List<ISEMOSSTransformation> postTrans = dmc.getPostTrans();
-			undoTransformations(postTrans, processes);
-			if(postTrans.isEmpty()) {
+			List<ISEMOSSTransformation> trans = dmc.getPostTrans();
+			trans.addAll(dmc.getPreTrans());
+			boolean joinUndone = undoTransformations(trans, processes);
+			if(trans.isEmpty() || joinUndone) {
 				// assumption that when no transformations exist, to remove the component from the list
 				// this assumption is currently valid as first post transformation is a join
 				dmcListToRemove.add(i);
@@ -827,9 +829,11 @@ public class Insight {
 	/**
 	 * Undo a set of transformations on the data maker
 	 * @param actions				The list of transformations on a specific data maker component
-	 * @param processes				The master list of processes to udno
+	 * @param processes				The master list of processes to undo
+	 * @return						true if a JoinTransformation was removed, false otherwise. Used to signal whether the component still should be kept or not
 	 */
-	private void undoTransformations(List<ISEMOSSTransformation> trans, List<String> processes) {
+	private boolean undoTransformations(List<ISEMOSSTransformation> trans, List<String> processes) {
+		LOGGER.info("Undoing transformations :  " + processes);
 		List<Integer> indicesToRemove = new ArrayList<Integer>();
 		// loop through and get the indices corresponding to the trans list to undo
 		for(int i = trans.size()-1; i >= 0; i--) {
@@ -839,6 +843,7 @@ public class Insight {
 			}
 		}
 		
+		boolean removedJoin = false;
 		// note indicesToRemove is sorted from largest to smallest
 		// remove from largest to smallest as it is most efficient way to remove from BTreeDataFrame
 		for(int i = 0; i < indicesToRemove.size(); i++) {
@@ -847,7 +852,12 @@ public class Insight {
 			transToUndo.setDataMakers(this.dataMaker);
 			transToUndo.undoTransformation();
 			trans.remove(indexToRemove);
+			if(transToUndo instanceof JoinTransformation){
+				removedJoin = true;
+			}
 		}
+		LOGGER.info("Undo transformations complete. Join transformation undone : " + removedJoin);
+		return removedJoin;
 	}
 	
 	/**
