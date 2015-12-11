@@ -583,8 +583,8 @@ public class SEMOSSQuery {
 					if(var instanceof TriplePart){
 						varName = ((TriplePart) var).getValue() + "";
 					}
-					System.out.println("does " + varName + " end with  " + orderedV);
-					if(varName.toUpperCase().endsWith(orderedV.toUpperCase())){
+					System.out.println("does " + varName + " equal  " + orderedV);
+					if(varName.equalsIgnoreCase(orderedV)){
 						System.out.println("yes");
 						System.out.println("adding in position " + or);
 						orderedVars[or] = var;
