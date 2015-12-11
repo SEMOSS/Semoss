@@ -34,7 +34,7 @@ public class JoinTransformation extends AbstractTransformation {
 	DataMakerComponent dmc;
 	ITableDataFrame dm;
 	ITableDataFrame nextDm;
-	List<String> addedColumns = new ArrayList<>(0);
+	List<String> addedColumns = new ArrayList<>();
 
 	IMatcher matcher;
 	
@@ -57,7 +57,6 @@ public class JoinTransformation extends AbstractTransformation {
 			//Store the new columns that will be added to dm
 			if(nextDm != null) {
 				String[] allCols = nextDm.getColumnHeaders();
-				addedColumns = new ArrayList<String>(allCols.length-1);
 				for(int i = 0; i < allCols.length; i++) {
 					String val = allCols[i];
 					if(val.equals(props.get(COLUMN_TWO_KEY) + "")) {
