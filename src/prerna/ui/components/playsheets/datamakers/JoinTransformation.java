@@ -53,18 +53,6 @@ public class JoinTransformation extends AbstractTransformation {
 		} else {
 			this.dm = (ITableDataFrame) dm[0];
 			this.nextDm = (ITableDataFrame) dm[1];
-			
-			//Store the new columns that will be added to dm
-			if(nextDm != null) {
-				String[] allCols = nextDm.getColumnHeaders();
-				for(int i = 0; i < allCols.length; i++) {
-					String val = allCols[i];
-					if(val.equals(props.get(COLUMN_TWO_KEY) + "")) {
-						continue;
-					}
-					addedColumns.add(val);
-				}
-			}
 		}
 	}
 	
@@ -81,6 +69,19 @@ public class JoinTransformation extends AbstractTransformation {
 	@Override
 	public void runMethod() {
 		getMatcher();
+		
+		//Store the new columns that will be added to dm
+		if(nextDm != null) {
+			String[] allCols = nextDm.getColumnHeaders();
+			for(int i = 0; i < allCols.length; i++) {
+				String val = allCols[i];
+				if(val.equals(props.get(COLUMN_TWO_KEY) + "")) {
+					continue;
+				}
+				addedColumns.add(val);
+			}
+		}
+		
 		//the run method will either append to the component to limit the construction of the new component
 		//otherwise, it will perform the actual joining between two components
 		if(!preTransformation) {
