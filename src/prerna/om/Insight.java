@@ -732,8 +732,8 @@ public class Insight {
 			actions.get(i).setId(compId + ":" + ACTION + i);
 		}
 		DataMakerComponent componentCopy = component.copy();
-		getDataMaker().processDataMakerComponent(componentCopy);
-		getDataMakerComponents().add(component);
+		getDataMaker().processDataMakerComponent(component);
+		getDataMakerComponents().add(componentCopy);
 	}
 	
 	/**
@@ -744,18 +744,14 @@ public class Insight {
 	public void processPostTransformation(List<ISEMOSSTransformation> postTrans, IDataMaker... dataMaker) {
 		DataMakerComponent dmc = getDataMakerComponents().get(this.dmComponents.size() - 1);
 		
-		List<ISEMOSSTransformation> postTransCopy = new Vector<ISEMOSSTransformation>(postTrans.size());
-		for(ISEMOSSTransformation trans : postTrans) {
-			postTransCopy.add(trans.copy());
-		}
-		getDataMaker().processPostTransformations(dmc, postTransCopy, dataMaker);
-		//TODO: extrapolate in datamakercomponent to take in a list
 		int lastPostTrans = dmc.getPostTrans().size() - 1;
-		// what does this do? -jason
 		for(int i = 0; i < postTrans.size(); i++) {
-			postTrans.get(i).setId(dmc.getId() + ":" + POST_TRANS + (++lastPostTrans));
-			dmc.addPostTrans(postTrans.get(i));
+			ISEMOSSTransformation transformation = postTrans.get(i);
+			transformation.setId(dmc.getId() + ":" + POST_TRANS + (++lastPostTrans));
+			dmc.addPostTrans(transformation.copy());
 		}
+		
+		getDataMaker().processPostTransformations(dmc, postTrans, dataMaker);
 	}
 	
 	/**
@@ -766,18 +762,15 @@ public class Insight {
 	public List<Object> processActions(List<ISEMOSSAction> actions, IDataMaker... dataMaker) {
 		DataMakerComponent dmc = getDataMakerComponents().get(this.dmComponents.size() - 1);
 		
-		List<ISEMOSSAction> actionsCopy = new Vector<ISEMOSSAction>(actions.size());
-		for(ISEMOSSAction action : actions) {
-			actionsCopy.add(action.copy());
-		}
-		
-		List<Object> actionResults = getDataMaker().processActions(dmc, actionsCopy, dataMaker);
 		//TODO: extrapolate in datamakercomponent to take in a list
 		int lastAction = dmc.getActions().size() - 1;
 		for(int i = 0; i < actions.size(); i++) {
-			actions.get(i).setId(dmc.getId() + ":" + ACTION + (++lastAction));
-			getDataMakerComponents().get(this.dmComponents.size() - 1).addAction(actions.get(i));
+			ISEMOSSAction action = actions.get(i);
+			action.setId(dmc.getId() + ":" + ACTION + (++lastAction));
+			getDataMakerComponents().get(this.dmComponents.size() - 1).addAction(action.copy());
 		}
+		
+		List<Object> actionResults = getDataMaker().processActions(dmc, actions, dataMaker);
 		
 		return actionResults;
 	}

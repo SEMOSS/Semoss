@@ -34,6 +34,7 @@ public class JoinTransformation extends AbstractTransformation {
 	DataMakerComponent dmc;
 	ITableDataFrame dm;
 	ITableDataFrame nextDm;
+	List<String> addedColumns = new ArrayList<>(0);
 
 	IMatcher matcher;
 	
@@ -52,6 +53,19 @@ public class JoinTransformation extends AbstractTransformation {
 		} else {
 			this.dm = (ITableDataFrame) dm[0];
 			this.nextDm = (ITableDataFrame) dm[1];
+			
+			//Store the new columns that will be added to dm
+			if(nextDm != null) {
+				String[] allCols = nextDm.getColumnHeaders();
+				addedColumns = new ArrayList<String>(allCols.length-1);
+				for(int i = 0; i < allCols.length; i++) {
+					String val = allCols[i];
+					if(val.equals(props.get(COLUMN_TWO_KEY) + "")) {
+						continue;
+					}
+					addedColumns.add(val);
+				}
+			}
 		}
 	}
 	
@@ -130,23 +144,23 @@ public class JoinTransformation extends AbstractTransformation {
 
 	@Override
 	public void undoTransformation() {
-		String[] allCols = nextDm.getColumnHeaders();
-		List<String> addedCols = new ArrayList<String>();
-		for(int i = 0; i < allCols.length; i++) {
-			String val = allCols[i];
-			if(val.equals(props.get(COLUMN_TWO_KEY) + "")) {
-				continue;
-			}
-			addedCols.add(val);
-		}
+//		String[] allCols = nextDm.getColumnHeaders();
+//		List<String> addedCols = new ArrayList<String>();
+//		for(int i = 0; i < allCols.length; i++) {
+//			String val = allCols[i];
+//			if(val.equals(props.get(COLUMN_TWO_KEY) + "")) {
+//				continue;
+//			}
+//			addedCols.add(val);
+//		}
 		Method method = null;
 		try {
 			method = dm.getClass().getMethod(UNDO_METHOD_NAME, String.class);
 			LOGGER.info("Successfully got method : " + UNDO_METHOD_NAME);
 			
-			// iterate from root to top for efficiency in removing connections
-			for(int i = addedCols.size()-1; i >= 0; i--) {
-				method.invoke(dm, addedCols.get(i));
+			// iterate from leaf to root for efficiency in removing connections
+			for(int i = addedColumns.size()-1; i >= 0; i--) {
+				method.invoke(dm, addedColumns.get(i));
 				LOGGER.info("Successfully invoked method : " + UNDO_METHOD_NAME);
 			}
 		} catch (NoSuchMethodException | SecurityException e) {
@@ -167,6 +181,8 @@ public class JoinTransformation extends AbstractTransformation {
 		joinCopy.setDataMakers(dm, nextDm);
 		joinCopy.setId(id);
 		joinCopy.setTransformationType(preTransformation);
+		joinCopy.addedColumns = this.addedColumns;
+		
 		if(props != null) {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
 			String propCopy = gson.toJson(props);
