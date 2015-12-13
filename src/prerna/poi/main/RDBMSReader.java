@@ -1967,6 +1967,7 @@ public class RDBMSReader {
 		sqlHash.put("TEXT", "VARCHAR(2000)"); // 8000 was chosen because this is the max for SQL Server; needs more permanent fix
 		sqlHash.put("DATE", "TIME");
 		sqlHash.put("SIMPLEDATE", "DATE");
+		sqlHash.put("TIMESTAMP", "TIMESTAMP");
 		// currently only add in numbers as doubles
 		sqlHash.put("NUMBER", "FLOAT");
 		sqlHash.put("INTEGER", "FLOAT");
