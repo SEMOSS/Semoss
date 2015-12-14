@@ -33,9 +33,13 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
 
+import org.openrdf.model.Literal;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.sail.SailException;
 
+import com.bigdata.rdf.model.BigdataLiteralImpl;
+
+import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.util.Utility;
@@ -66,6 +70,9 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 			//delete all engine - keyword relationships
 			deleteEngineKeywords(engineName);
 
+			//delete all engine - relationship relationships
+			deleteEngineRelationships(engineName);
+			
 			//delete the insights
 //			deleteEngineInsights(engineName);
 
@@ -82,6 +89,7 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 			deleteKeywordsWithoutEngines();
 			success = true;
 		} catch (Exception e) {
+			e.printStackTrace();
 			success = false;
 		}
 
@@ -108,6 +116,9 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 				//delete all engine - keyword relationships
 				deleteEngineKeywords(engineName);
 
+				//delete all engine - relationship relationships
+				deleteEngineRelationships(engineName);
+				
 				//delete the insights
 //				deleteEngineInsights(engineName);
 
@@ -154,6 +165,9 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 				//delete engine URL
 				deleteEngineAPI(engineName);
 
+				//delete all engine - relationship relationships
+				deleteEngineRelationships(engineName);
+				
 				//delete insights
 //				deleteEngineInsights(engineName);
 
@@ -188,8 +202,9 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 		{
 			//grab query results
 			ISelectStatement sjss = wrapper.next();
-			String keyword = (String)sjss.getVar(names[0]);
-			MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + engineName + ":" +keyword);
+			String keywordURI = sjss.getRawVar(names[0]) + "";
+			String keyword = sjss.getVar(names[0]) + "";
+			MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, keywordURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + engineName + ":" +keyword);
 		}
 	}
 
@@ -266,9 +281,9 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 		{
 			//grab query results
 			ISelectStatement sjss = wrapper.next();
-			String keyword = (String)sjss.getVar(names[0]);
-			keywordsWithoutEnginesList.add(keyword);
-			bindingsStr = bindingsStr.concat("(<").concat(MasterDatabaseURIs.KEYWORD_BASE_URI).concat("/").concat(keyword).concat(">)");
+			String keywordURI = sjss.getRawVar(names[0]) + "";
+			keywordsWithoutEnginesList.add(keywordURI);
+			bindingsStr = bindingsStr.concat("(<").concat(keywordURI).concat(">)");
 		}
 		
 		if(!bindingsStr.isEmpty()) {
@@ -279,9 +294,10 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 			while(wrapper2.hasNext())
 			{
 				ISelectStatement sjss = wrapper2.next();
-				String keyword = (String)sjss.getVar(names2[0]);
+				String keywordURI = sjss.getRawVar(names2[0]) + "";
+				String keyword = sjss.getVar(names2[0]) + "";
 				String typeURI = sjss.getRawVar(names2[1]).toString();
-				MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, typeURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + keyword + ":" + keyword);
+				MasterDBHelper.removeRelationship(masterEngine, keywordURI, typeURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + keyword + ":" + keyword);
 				masterEngine.removeStatement(new Object[]{typeURI, RDF.TYPE.stringValue(), MasterDatabaseURIs.RESOURCE_URI, true});
 			}
 			
@@ -293,9 +309,11 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 			{
 				//grab query results
 				ISelectStatement sjss = wrapper3.next();
-				String mc = (String)sjss.getVar(names3[0]);
-				String keyword = (String)sjss.getVar(names3[1]);
-				MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, MasterDatabaseURIs.MC_BASE_URI + "/" + mc, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/ComposedOf/" + keyword + ":" +mc);
+				String mcURI = sjss.getRawVar(names3[0]) + "";
+				String mc = sjss.getVar(names3[0]) + "";
+				String keywordURI = sjss.getRawVar(names2[0]) + "";
+				String keyword = sjss.getVar(names3[1]) + "";
+				MasterDBHelper.removeRelationship(masterEngine, keywordURI, mcURI, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/ComposedOf/" + keyword + ":" +mc);
 			}
 			
 			//delete the keywords
@@ -360,6 +378,69 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 		while(mcItr.hasNext()) {
 			String mc = mcItr.next();
 			MasterDBHelper.removeNode(masterEngine, MasterDatabaseURIs.MC_BASE_URI + "/" + mc);
+		}
+	}
+	
+	private void deleteEngineRelationships(String engineName) {
+		Set<String> engineRels = new HashSet<String>();
+		//create a binding string for queries
+		String bindingsStr = "";
+		ISelectWrapper wrapper = Utility.processQuery(masterEngine, MasterDatabaseQueries.ENGINE_RELATIONS.replace("@ENGINE@", engineName));
+		String[] names = wrapper.getVariables();
+		while(wrapper.hasNext())
+		{
+			//grab query results
+			ISelectStatement sjss = wrapper.next();
+			String engineURI = sjss.getRawVar(names[0]) + "";
+			String hasURI = sjss.getRawVar(names[1]) + "";
+			String engineRelURI = sjss.getRawVar(names[2]) + "";
+			engineRels.add(engineRelURI);
+			
+			MasterDBHelper.removeRelationship(masterEngine, engineURI, engineRelURI, hasURI);
+			bindingsStr = bindingsStr.concat("(<").concat(engineRelURI).concat(">)");
+		}
+		
+		if(!bindingsStr.isEmpty()) {
+			String q1 = "SELECT DISTINCT ?s ?p ?o WHERE { {?s ?p ?o} {?s a <http://semoss.org/ontologies/Concept/EngineRelation>} {?p <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consumes> } } BINDINGS ?s {@BINDINGS@}";
+			String q2 = "SELECT DISTINCT ?s ?p ?o WHERE { {?s ?p ?o} {?o a <http://semoss.org/ontologies/Concept/EngineRelation>} {?p <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provides> } } BINDINGS ?o {@BINDINGS@}";
+			q1 = q1.replace("@BINDINGS@", bindingsStr);
+			q2 = q2.replace("@BINDINGS@", bindingsStr);
+			
+			wrapper = Utility.processQuery(masterEngine, q1);
+			removeTriples(wrapper);
+			wrapper = Utility.processQuery(masterEngine, q2);
+			removeTriples(wrapper);
+			
+			for(String engineRelURI : engineRels) {
+				MasterDBHelper.removeNode(masterEngine, engineRelURI);
+			}
+		}
+	}
+	
+	private void removeTriples(ISelectWrapper wrapper) {
+		String[] names = wrapper.getVariables();
+		while(wrapper.hasNext()) {
+			//grab query results
+			ISelectStatement sjss = wrapper.next();
+			String s = sjss.getRawVar(names[0]) + "";
+			String p = sjss.getRawVar(names[1]) + "";
+			Object o = sjss.getRawVar(names[2]);
+			
+			boolean isConcept = true;
+			if(o instanceof Literal) {
+				isConcept = false;
+			}
+			
+			if (o instanceof BigdataLiteralImpl && ((BigdataLiteralImpl) o).getDatatype() != null) {
+				try {
+					o = ((BigdataLiteralImpl)o).doubleValue();
+				} catch(NumberFormatException ex) {
+					o = ((BigdataLiteralImpl) o).getLabel();
+				}
+			} else if(o instanceof Literal){
+				o = ((Literal)o).getLabel();
+			}
+			masterEngine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{s, p, o, isConcept});
 		}
 	}
 
