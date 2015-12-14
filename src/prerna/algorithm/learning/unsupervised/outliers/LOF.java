@@ -115,6 +115,10 @@ public class LOF implements IAnalyticTransformationRoutine {
 		this.dataFrame = data[0];
 		this.attributeNames = dataFrame.getColumnHeaders();
 		this.numInstances = dataFrame.getUniqueInstanceCount(attributeNames[instanceIndex]); 
+		
+		if(k > numInstances) {
+			throw new IllegalArgumentException("Number of unqiue instances: " + numInstances + ", is less than the selected K value: " + k + ".");
+		}
 		if(skipAttributes == null) {
 			skipAttributes = new ArrayList<String>();
 		}
@@ -131,16 +135,10 @@ public class LOF implements IAnalyticTransformationRoutine {
 				break;
 			}
 		}
-		
 		dataFrame.setColumnsToSkip(skipAttributes);
 		this.dimensions = dataFrame.getNumCols() - 1;
 		this.attributeNames = dataFrame.getColumnHeaders();
 		
-		int uniqueCount = dataFrame.getUniqueInstanceCount(attributeNames[instanceIndex]);
-		if(k > uniqueCount) {
-			throw new IllegalArgumentException("Number of unqiue instances: " + uniqueCount + ", is less than the selected K value: " + k + ".");
-		}
-
 		// double check that all info is numerical
 		boolean[] isNumeric = dataFrame.isNumeric();
 		for(int i = 0; i < isNumeric.length; i++) {
