@@ -46,8 +46,6 @@ import org.openrdf.model.Literal;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
 import org.openrdf.model.ValueFactory;
-import org.openrdf.model.impl.LiteralImpl;
-import org.openrdf.model.impl.NumericLiteralImpl;
 import org.openrdf.query.BooleanQuery;
 import org.openrdf.query.GraphQuery;
 import org.openrdf.query.GraphQueryResult;
@@ -313,10 +311,8 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		try {
 			URI newSub = null;
 			URI newPred = null;
-			Value newObj = null;
 			String subString = null;
 			String predString = null;
-			String objString = null;
 			String sub = subject.trim();
 			String pred = predicate.trim();
 			
@@ -355,8 +351,10 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 					sc.addStatement(newSub, newPred, vf.createLiteral(cleanValue));
 				} 
 			}
-			else
-				sc.addStatement(newSub, newPred, vf.createURI(object+""));
+			else {
+				URI newObj = vf.createURI(Utility.cleanString((object + "").trim(), false));
+				sc.addStatement(newSub, newPred, newObj);
+			}
 			rc.commit();
 		} catch (SailException e) {
 			e.printStackTrace();
