@@ -121,8 +121,9 @@ public class LOF implements IAnalyticTransformationRoutine {
 		
 		// need to adjust the instance index based on the skipping of other columns
 		this.attributeNames = dataFrame.getColumnHeaders();
+		int origIndex = instanceIndex;
 		for(int i = 0; i < attributeNames.length; i++) {
-			if(i < instanceIndex) {
+			if(i < origIndex) {
 				if(skipAttributes.contains(attributeNames[i])) {
 					instanceIndex--;
 				}
@@ -135,8 +136,9 @@ public class LOF implements IAnalyticTransformationRoutine {
 		this.dimensions = dataFrame.getNumCols() - 1;
 		this.attributeNames = dataFrame.getColumnHeaders();
 		
-		if(k > dataFrame.getUniqueInstanceCount(attributeNames[instanceIndex])) {
-			throw new IllegalArgumentException("Number of instances is less than the selected K value.");
+		int uniqueCount = dataFrame.getUniqueInstanceCount(attributeNames[instanceIndex]);
+		if(k > uniqueCount) {
+			throw new IllegalArgumentException("Number of unqiue instances: " + uniqueCount + ", is less than the selected K value: " + k + ".");
 		}
 
 		// double check that all info is numerical
