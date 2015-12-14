@@ -365,8 +365,10 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 					sc.addStatement(newSub, newPred, vf.createLiteral(cleanValue));
 				} 
 			}
-			else
-				sc.addStatement(newSub, newPred, vf.createURI(object+""));
+			else {
+				URI newObj = vf.createURI(Utility.cleanString((object + "").trim(), false));
+				sc.addStatement(newSub, newPred, newObj);
+			}
 
 		} catch (SailException e) {
 			e.printStackTrace();
