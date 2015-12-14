@@ -98,7 +98,28 @@ public class DHMSMDeploymentStrategyProcessor {
 			distanceInQuarters = Math.abs(beginQuarter - endQuarter);
 		}
 		
-		waveStartEndHash.put("IOC", waveStartEndDate.get("IOC"));
+		//get the new IOC date based on new start and end
+		String[] iocDate = new String[2];
+		int iocStartQuarter, iocStartYearCheck = 0;
+		int iocEndQuarter, iocEndYearCheck = 0;
+		//scale the IOC start quarter 3 quarters in the past from beginQuarter
+		if (beginQuarter > 3) {
+			iocStartQuarter = 1;
+		} else {
+			iocStartQuarter = beginQuarter + 1;
+			iocStartYearCheck = -1;
+		}
+		//scale the IOC end quarter 1 quarter in the past from beginQuarter
+		if (beginQuarter > 1) {
+			iocEndQuarter = beginQuarter - 1;
+		} else {
+			iocEndQuarter = beginQuarter + 3;
+			iocEndYearCheck = -1;
+		}
+			
+		iocDate[0] = "Q" + ((int) Math.ceil(iocStartQuarter)) + "FY20" + (beginYear + iocStartYearCheck);
+		iocDate[1] = "Q" + ((int) Math.ceil(iocEndQuarter)) + "FY20" + (beginYear + iocEndYearCheck);
+		waveStartEndHash.put("IOC", iocDate);
 		
 		double numQuartersPerWave = (double) distanceInQuarters / (waveOrder.size()-1);
 		
