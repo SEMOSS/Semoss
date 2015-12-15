@@ -781,7 +781,7 @@ public class Insight {
 	 */
 	public void undoProcesses(List<String> processes){
 		// traverse backwards and undo everything in the list
-		List<Integer> dmcListToRemove = new ArrayList<Integer>();
+		List<DataMakerComponent> dmcListToRemove = new ArrayList<DataMakerComponent>();
 		for(int i = dmComponents.size()-1; i >= 0; i--) {
 			DataMakerComponent dmc = dmComponents.get(i);
 			List<ISEMOSSAction> actions = dmc.getActions();
@@ -789,10 +789,10 @@ public class Insight {
 			List<ISEMOSSTransformation> trans = dmc.getPostTrans();
 			trans.addAll(dmc.getPreTrans());
 			boolean joinUndone = undoTransformations(trans, processes);
-			if(trans.isEmpty() || joinUndone) {
+			if(joinUndone) {
 				// assumption that when no transformations exist, to remove the component from the list
 				// this assumption is currently valid as first post transformation is a join
-				dmcListToRemove.add(i);
+				dmcListToRemove.add(dmc);
 			}
 		}
 		
