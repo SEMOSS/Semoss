@@ -331,7 +331,7 @@ public class QuestionModButtonListener implements IChakraListener {
 				
 				List<SEMOSSParam> params = generateSEMOSSParamObjects(parameterDependListVector, parameterQueryListVector, parameterOptionListVector, paramHash);
 
-				questionAdmin.addQuestion(question, perspective, dmcs, layout, order, "", true, null, params);
+				questionAdmin.addQuestion(question, perspective, dmcs, layout, order, "", true, null, params, null);
 
 				emptyFields(questionPerspectiveField, questionField, questionLayoutField, questionSparql, parameterDependTextPane, parameterQueryTextPane, parameterDependList, parameterQueryList, parameterOptionList);
 
@@ -388,7 +388,7 @@ public class QuestionModButtonListener implements IChakraListener {
 							
 							List<SEMOSSParam> params = generateSEMOSSParamObjects(parameterDependListVector, parameterQueryListVector, parameterOptionListVector, paramHash);
 
-							questionAdmin.modifyQuestion(currentQuestionKey, question, perspective, comps, layout, order, "", true, null, params);
+							questionAdmin.modifyQuestion(currentQuestionKey, question, perspective, comps, layout, order, "", true, null, params, null);
 
 							// Refresh the questions by selecting the db again
 							// and populating all of the perspectives/questions
@@ -409,7 +409,7 @@ public class QuestionModButtonListener implements IChakraListener {
 						
 						List<SEMOSSParam> params = generateSEMOSSParamObjects(parameterDependListVector, parameterQueryListVector, parameterOptionListVector, paramHash);
 
-						questionAdmin.modifyQuestion(currentQuestionKey, question, perspective, comps, layout, order, "", true, null, params);
+						questionAdmin.modifyQuestion(currentQuestionKey, question, perspective, comps, layout, order, "", true, null, params, null);
 
 						// Refresh the questions by selecting the db again and
 						// populating all of the perspectives/questions based on
