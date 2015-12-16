@@ -6,9 +6,11 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -30,6 +32,9 @@ import org.apache.solr.client.solrj.response.Group;
 import org.apache.solr.client.solrj.response.GroupCommand;
 import org.apache.solr.client.solrj.response.GroupResponse;
 import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.client.solrj.response.SpellCheckResponse;
+import org.apache.solr.client.solrj.response.SpellCheckResponse.Collation;
+import org.apache.solr.client.solrj.response.SpellCheckResponse.Correction;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrInputDocument;
@@ -37,6 +42,7 @@ import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.FacetParams;
 import org.apache.solr.common.params.GroupParams;
 import org.apache.solr.common.params.MoreLikeThisParams;
+import org.apache.solr.common.params.SpellingParams;
 import org.apache.solr.common.util.NamedList;
 
 import prerna.util.Constants;
@@ -48,7 +54,11 @@ public class SolrIndexEngine {
 	private static String url;
 	private HttpSolrServer server;
 
+	private static final String QUERY_RESPONSE = "queryResponse";
+	private static final String SPELLCHECK_RESPONSE = "spellcheckResponse";
+	
 	// Common Search
+	public static final String REQUEST_HANDLER = CommonParams.QT;
 	public static final String QUERY = CommonParams.Q;
 	public static final String SEARCH_FIELD = CommonParams.DF;
 	public static final String ADD_FIELD = CommonParams.FL;
@@ -61,8 +71,9 @@ public class SolrIndexEngine {
 	public static final String FACET = FacetParams.FACET;
 	public static final String FACET_FIELD = FacetParams.FACET_FIELD;
 	public static final String FACET_QUERY = FacetParams.FACET_QUERY;
-	public static final String MIN_COUNT = FacetParams.FACET_MINCOUNT;
-
+	public static final String FACET_MIN_COUNT = FacetParams.FACET_MINCOUNT;
+	public static final String FACET_SORT_COUNT = FacetParams.FACET_SORT_COUNT;
+	
 	// GroupBy
 	public static final String GROUPBY = GroupParams.GROUP;
 	public static final String GROUP_FIELD = GroupParams.GROUP_FIELD;
@@ -72,12 +83,17 @@ public class SolrIndexEngine {
 	// MoreLikeThis
 	public static final String MLT = MoreLikeThisParams.MLT;
 	public static final String MLT_FIELD = MoreLikeThisParams.SIMILARITY_FIELDS;
-	public static final String MLT_MINDF = MoreLikeThisParams.MIN_DOC_FREQ; // Minimum DocumentFrequency
-	public static final String MLT_MINTF = MoreLikeThisParams.MIN_TERM_FREQ; // Minimum Term Frequency
-	public static final String MLT_WORD_LENGHT = MoreLikeThisParams.MIN_WORD_LEN; // Minimum Word Length
-	public static final String MLT_QUERY_TERM = MoreLikeThisParams.MAX_QUERY_TERMS; // Max Query Terms
+	public static final String MLT_MINDF = MoreLikeThisParams.MIN_DOC_FREQ; // MinimumDocumentFrequency
+	public static final String MLT_MINTF = MoreLikeThisParams.MIN_TERM_FREQ; // MinimumTermFrequency
+	public static final String MLT_WORD_LENGHT = MoreLikeThisParams.MIN_WORD_LEN; // MinimumWordLength
+	public static final String MLT_QUERY_TERM = MoreLikeThisParams.MAX_QUERY_TERMS; // MaxQueryTerms
 	public static final String MLT_COUNT = MoreLikeThisParams.DOC_COUNT;
 	public static final String MLT_BOOST = MoreLikeThisParams.BOOST;
+
+	// SpellCheck
+	public static final String SPELL_CHECK = SpellingParams.SPELLCHECK_PREFIX;
+	public static final String COLLATE = SpellingParams.SPELLCHECK_COLLATE;
+	public static final String EXTENDED_COLLATE = SpellingParams.SPELLCHECK_COLLATE_EXTENDED_RESULTS;
 
 	// Schema Field Names
 	public static final String ID = "id";
@@ -103,50 +119,35 @@ public class SolrIndexEngine {
 
 	/**
 	 * Sets a constant url for Solr
+	 * 
 	 * @param url - string of Solr's url
 	 */
 	public static void setUrl(String url) {
 		SolrIndexEngine.url = url;
 	}
 
+	public static void main(String[] args) throws SolrServerException, IOException, KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+		SolrIndexEngine.setUrl("http://localhost:8080/solr");
+		SolrIndexEngine e = SolrIndexEngine.getInstance();
+		System.out.println("solrindexengine: " + e);
+		Map<String, Object> queryEngine = new HashMap<>();
 
-	public static void main(String[] args) throws SolrServerException, IOException, KeyManagementException,	NoSuchAlgorithmException, KeyStoreException {
-		//
-		//		SolrIndexEngine.setUrl("http://localhost:8080/solr");
-		//		SolrIndexEngine e = SolrIndexEngine.getInstance();
-		//		Map<String, Object> queryEngine = new HashMap<>();
-		//
-		//		queryEngine.put(QUERY, "Show the matrix regression scatter plot to estimate Domestic Revenue");
-		//		queryEngine.put(SEARCH_FIELD, "all_text");
-		//		queryEngine.put(MLT, "true");
-		//		queryEngine.put(SET_ROWS, 2);
-		//		List<String> mltField = new ArrayList<>();
-		//		mltField.add("all_text");
-		//		queryEngine.put(MLT_FIELD, mltField);
-		//		queryEngine.put(MLT_MINDF, 1);
-		//		queryEngine.put(MLT_MINTF, 1);
-		//		queryEngine.put(MLT_COUNT, 2);
-		//
-		//		SolrDocumentList results = new SolrDocumentList();
-		//		QueryResponse x = e.getQueryResponse(queryEngine);
-		//
-		//		NamedList mlt = (NamedList) x.getResponse().get("moreLikeThis");
-		//		for (int i = 0; i < mlt.size(); i++) {
-		//			String name = mlt.getName(i);
-		//			System.out.println("Name: " + name);
-		//			SolrDocumentList val = (SolrDocumentList) mlt.getVal(i);
-		//			Iterator<SolrDocument> valIter = val.iterator();
-		//			while (valIter.hasNext()) {
-		//				System.out.println(valIter.next());
-		//			}
-		//		}
+		queryEngine.put(QUERY, "matr");
+		queryEngine.put(SEARCH_FIELD, "all_text");
+		queryEngine.put(SPELL_CHECK, "on");
+
+		QueryResponse x = singleton.getQueryResponse(queryEngine);
+		Map<String, List<String>> y = getSpellCheckResponse(x);
+		System.out.println(y);
 	}
 
 	/**
 	 * Creates one instance of the Solr engine.
+	 * 
 	 * @return an instance of the SolrIndexEngine
 	 */
-	public static SolrIndexEngine getInstance() throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+	public static SolrIndexEngine getInstance()
+			throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
 		if (singleton == null) {
 			singleton = new SolrIndexEngine();
 		}
@@ -154,7 +155,8 @@ public class SolrIndexEngine {
 	}
 
 	/**
-	 * Singleton wrapper class around the HttpSolrServer object for adding/editing/querying documents in Solr
+	 * Singleton wrapper class around the HttpSolrServer object for
+	 * adding/editing/querying documents in Solr
 	 */
 	private SolrIndexEngine() throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
 		SSLContextBuilder builder = new SSLContextBuilder();
@@ -171,8 +173,11 @@ public class SolrIndexEngine {
 
 	/**
 	 * Uses the passed in params to add a new Document into Solr
-	 * @param uniqueID - new ID to be added
-	 * @param fieldData - fields to be added to the new Doc
+	 * 
+	 * @param uniqueID
+	 *            - new ID to be added
+	 * @param fieldData
+	 *            - fields to be added to the new Doc
 	 */
 	public void addDocument(String uniqueID, Map<String, Object> fieldData) throws SolrServerException, IOException {
 		if (serverActive()) {
@@ -193,7 +198,9 @@ public class SolrIndexEngine {
 
 	/**
 	 * Deletes the specified document based on its Unique ID
-	 * @param uniqueID - ID to be deleted
+	 * 
+	 * @param uniqueID
+	 *            - ID to be deleted
 	 */
 	public void removeDocument(List<String> uniqueID) throws SolrServerException, IOException {
 		if (serverActive()) {
@@ -207,10 +214,12 @@ public class SolrIndexEngine {
 
 	/**
 	 * Modifies the specified document based on its Unique ID
+	 * 
 	 * @param uniqueID - ID to be modified
 	 * @param fieldsToModify - specific fields to modify
 	 */
-	public void modifyFields(String uniqueID, Map<String, Object> fieldsToModify) throws SolrServerException, IOException {
+	public void modifyFields(String uniqueID, Map<String, Object> fieldsToModify)
+			throws SolrServerException, IOException {
 		if (serverActive()) {
 			Map<String, Object> queryMap = new HashMap<String, Object>();
 			queryMap.put(QUERY, ID + ":" + uniqueID);
@@ -250,7 +259,10 @@ public class SolrIndexEngine {
 
 	/**
 	 * Refines the list of Documents in the search based on the query
-	 * @param queryOptions -  options that determine how the SolrDocumentList can be queried/filtered on
+	 * 
+	 * @param queryOptions
+	 *            - options that determine how the SolrDocumentList can be
+	 *            queried/filtered on
 	 * @return filtered SolrDocumentList based on the results of the query
 	 */
 	public SolrDocumentList queryDocument(Map<String, Object> queryOptions) throws SolrServerException, IOException {
@@ -265,9 +277,28 @@ public class SolrIndexEngine {
 		return results;
 	}
 
+	public Map<String, Object> executeQuery(Map<String, Object> queryOptions) throws SolrServerException, IOException {
+		Map<String, Object> searchResultMap = new HashMap<String, Object>();
+		if (serverActive()) {
+			// report number of results found from query
+			LOGGER.info("Reporting number of results found from query");
+			QueryResponse res = getQueryResponse(queryOptions);
+			SolrDocumentList results = res.getResults();
+			searchResultMap.put(QUERY_RESPONSE, results);
+			Map<String, List<String>> spellCheckResponse = getSpellCheckResponse(res);
+			if(spellCheckResponse != null && spellCheckResponse.isEmpty()) {
+				searchResultMap.put(SPELLCHECK_RESPONSE, spellCheckResponse);
+			}
+		}
+		LOGGER.info("Returning results of search");
+		return searchResultMap;
+	}
+
 	/**
 	 * Gets the facet/count for each instance of the specified fields
-	 * @param queryOptions -  options that determine which fields to facet by
+	 * 
+	 * @param queryOptions
+	 *            - options that determine which fields to facet by
 	 * @return faceted instances of fields
 	 */
 	public Map<String, Map<String, Long>> facetDocument(Map<String, Object> queryOptions) throws SolrServerException {
@@ -278,9 +309,9 @@ public class SolrIndexEngine {
 			QueryResponse res = getQueryResponse(queryOptions);
 			List<FacetField> facetFieldList = res.getFacetFields();
 			if (facetFieldList != null && facetFieldList.size() > 0) {
-				facetFieldMap = new HashMap<String, Map<String, Long>>();
+				facetFieldMap = new LinkedHashMap<String, Map<String, Long>>();
 				for (FacetField field : facetFieldList) {
-					innerMap = new HashMap<String, Long>();
+					innerMap = new LinkedHashMap<String, Long>();
 					String fieldName = field.getName();
 					List<Count> facetInfo = field.getValues();
 					if (facetInfo != null) {
@@ -300,11 +331,13 @@ public class SolrIndexEngine {
 	}
 
 	/**
-	 * Gets the grouped SolrDocument based on the results of the selected fields to group by
-	 * @param queryOptions - options that determine how the SolrDocumentList will be grouped and viewed
+	 * Gets the grouped SolrDocument based on the results of the selected fields
+	 * to group by
+	 * 
+	 * @param queryOptions- options that determine how the SolrDocumentList will be grouped and viewed
 	 * @return grouped SolrDocumentList
 	 */
-	public Map<String, Map<String, SolrDocumentList>> groupDocument(Map<String, Object> queryOptions) 	throws SolrServerException, IOException {
+	public Map<String, Map<String, SolrDocumentList>> groupDocument(Map<String, Object> queryOptions) throws SolrServerException, IOException {
 		Map<String, SolrDocumentList> innerMap = null;
 		Map<String, Map<String, SolrDocumentList>> groupFieldMap = null;
 
@@ -312,7 +345,7 @@ public class SolrIndexEngine {
 			QueryResponse response = getQueryResponse(queryOptions);
 			GroupResponse groupResponse = response.getGroupResponse();
 
-			if(groupResponse != null) {
+			if (groupResponse != null) {
 				groupFieldMap = new HashMap<String, Map<String, SolrDocumentList>>();
 				for (GroupCommand gc : groupResponse.getValues()) {
 					innerMap = new HashMap<String, SolrDocumentList>();
@@ -334,18 +367,22 @@ public class SolrIndexEngine {
 	}
 
 	/**
-	 * Gets the 'Most Like This' SolrDocuments based on document's similarity to the specified query
-	 * @param queryOptions - options that determine, amongst other things, how a similar SolrDocumentList to a specified query
-	 * and what fields to compare similarity on 
-	 * @return list of SolrDocumentList that are similar to the specified query 
+	 * Gets the 'Most Like This' SolrDocuments based on document's similarity to
+	 * the specified query
+	 * 
+	 * @param queryOptions
+	 *            - options that determine, amongst other things, how similar a
+	 *            SolrDocumentList is to a specified query and what fields to
+	 *            compare similarity on
+	 * @return list of SolrDocumentList that are similar to the specified query
 	 */
 	public Map<String, SolrDocumentList> mltDocument(Map<String, Object> queryOptions) throws SolrServerException {
 		// returning instance of field, solrdoc list of mlt
 		Map<String, SolrDocumentList> mltMap = null;
-		if(serverActive()) {
+		if (serverActive()) {
 			QueryResponse x = getQueryResponse(queryOptions);
 			NamedList mlt = (NamedList) x.getResponse().get("moreLikeThis");
-			if(mlt != null && mlt.size() > 0) {
+			if (mlt != null && mlt.size() > 0) {
 				mltMap = new HashMap<String, SolrDocumentList>();
 				for (int i = 0; i < mlt.size(); i++) {
 					String name = mlt.getName(i);
@@ -357,11 +394,39 @@ public class SolrIndexEngine {
 		LOGGER.info("Returning SolrDocumentList for More Like This search");
 		return mltMap;
 	}
+	
+	private static Map<String, List<String>> getSpellCheckResponse(QueryResponse res) {
+		Map<String, List<String>> spellCheckRet = new HashMap<String, List<String>>();
+		SpellCheckResponse scr = res.getSpellCheckResponse();
+		if (scr != null) {
+			List<Collation> collations = scr.getCollatedResults();
+			if (collations != null) {
+				for (Collation c : collations) {
+					for (Correction correction : c.getMisspellingsAndCorrections()) {
+						String orig = correction.getOriginal();
+						String corr = correction.getCorrection();
+						if(spellCheckRet.containsKey(orig)) {
+							List<String> suggestions = spellCheckRet.get(orig);
+							suggestions.add(corr);
+						} else {
+							List<String> suggestions = new ArrayList<String>();
+							suggestions.add(corr);
+							spellCheckRet.put(orig, suggestions);
+						}
+					}
+				}
+			}
+		}
+		
+		return spellCheckRet;
+	}
 
 	/**
-	 * Provides options for how a search can be queried, filtered, faceted, grouped by, and to find MLT 
-	 * to narrow down the results of the return 
-	 * @param queryOptions - specification to query by 
+	 * Provides options for how a search can be queried, filtered, faceted,
+	 * grouped by, and to find MLT to narrow down the results of the return
+	 * 
+	 * @param queryOptions
+	 *            - specification to query by
 	 * @return result of the query
 	 */
 	private QueryResponse getQueryResponse(Map<String, Object> queryOptions) throws SolrServerException {
@@ -397,7 +462,7 @@ public class SolrIndexEngine {
 				Map<String, String> query = (Map<String, String>) queryOptions.get(FITLER_QUERY);
 				for (String fQuery : query.keySet()) {
 					Q.addFilterQuery(fQuery + ":" + query.get(fQuery));
-					LOGGER.info("Filter query search based on an exact match of query: " +  query.get(fQuery));
+					LOGGER.info("Filter query search based on an exact match of query: " + query.get(fQuery));
 				}
 			}
 
@@ -428,11 +493,12 @@ public class SolrIndexEngine {
 				}
 			}
 
-			//			// start - returns list of insights starting from the specified int
-			//			if (queryOptions.get(SET_START) != null) {
-			//				int numStart = (int) queryOptions.get(SET_START);
-			//				Q.setStart(numStart);
-			//			}
+			// // start - returns list of insights starting from the specified
+			// int
+			// if (queryOptions.get(SET_START) != null) {
+			// int numStart = (int) queryOptions.get(SET_START);
+			// Q.setStart(numStart);
+			// }
 
 			// rows - returns specified int of insights
 			if (queryOptions.get(SET_ROWS) != null) {
@@ -457,26 +523,33 @@ public class SolrIndexEngine {
 			//////// FACET FILTERS
 
 			// group - set group to true
-			if (queryOptions.get(FACET) != null || queryOptions.get(FACET_FIELD) != null) {
+			if ( queryOptions.get(FACET) != null && (boolean) queryOptions.get(FACET) || queryOptions.get(FACET_FIELD) != null) {
 				Q.setFacet(true);
 				LOGGER.info("Facet set to true");
 				// facet.field - calculates count of total insights
 				if (queryOptions.get(FACET_FIELD) != null) {
 					List<String> fieldList = (List<String>) queryOptions.get(FACET_FIELD);
-					Q.addFacetField(fieldList.toArray(new String[]{}));
+					Q.addFacetField(fieldList.toArray(new String[] {}));
 					LOGGER.info("For the list of doc that will be returned, the field: " + fieldList + " will be returned");
 				} else if (queryOptions.get(FACET_FIELD) == null) {
 					LOGGER.error("MUST CONTAIN FACET_FIELD");
 				}
+				
+				if(queryOptions.get(FACET_MIN_COUNT) != null) {
+					Q.setFacetMinCount( (int) queryOptions.get(FACET_MIN_COUNT));
+				}
+				if(queryOptions.get(FACET_SORT_COUNT) != null && (boolean) queryOptions.get(FACET_SORT_COUNT) ) {
+					Q.set(FACET_SORT_COUNT, true);
+				}
 			}
 
-			//			// minCount - specifies minimum number that are necessary for the
-			//			// facet field to be visible
-			//			// no maxCount
-			//			if (queryOptions.get(MIN_COUNT) != null) {
-			//				int numRows = (int) queryOptions.get(MIN_COUNT);
-			//				Q.setFacetMinCount(numRows);
-			//			}
+			// // minCount - specifies minimum number that are necessary for the
+			// // facet field to be visible
+			// // no maxCount
+			// if (queryOptions.get(MIN_COUNT) != null) {
+			// int numRows = (int) queryOptions.get(MIN_COUNT);
+			// Q.setFacetMinCount(numRows);
+			// }
 
 			//////// GROUPBY
 
@@ -486,11 +559,9 @@ public class SolrIndexEngine {
 				LOGGER.info("GroupBy set to true");
 				// groupField - specifies the field(s) to group by
 				if (queryOptions.get(GROUP_FIELD) != null) {
-					List<String> fieldList = (List<String>) queryOptions.get(GROUP_FIELD);
-					for (String field : fieldList) {
-						Q.set(GROUP_FIELD, field);
-						LOGGER.info("Group doc by field: " + field);
-					}
+					List<String> groupByList = (List<String>) queryOptions.get(GROUP_FIELD);
+					Q.set(GROUP_FIELD, groupByList.toArray(new String[] {}));
+					LOGGER.info("Group doc by field: " + groupByList);
 				}
 			}
 
@@ -516,22 +587,25 @@ public class SolrIndexEngine {
 				LOGGER.info("MLT set to true");
 				// fields to use for similarity
 				if (queryOptions.get(MLT_FIELD) != null) {
-					List<String> fieldList = (List<String>) queryOptions.get(MLT_FIELD);
-					for (String field : fieldList) {
-						Q.set(MLT_FIELD, field);
-						LOGGER.info("MLT field to use for similarities is for MLT: " + field);
-					}
-					// frequency words will be ignored if not included in set number of documents
+					List<String> mltList = (List<String>) queryOptions.get(MLT_FIELD);
+					Q.set(MLT_FIELD, mltList.toArray(new String[] {}));
+					LOGGER.info("MLT field to use for similarities is for MLT: " + mltList);
+					// frequency words will be ignored if not included in set
+					// number of documents
 					if (queryOptions.get(MLT_MINDF) != null) {
 						int ignoreDoc = (int) queryOptions.get(MLT_MINDF);
 						Q.set(MLT_MINDF, ignoreDoc);
-						LOGGER.info("number frequency words will be ignored if not included in set number of documents for MLT: " + ignoreDoc);
+						LOGGER.info(
+								"number frequency words will be ignored if not included in set number of documents for MLT: "
+										+ ignoreDoc);
 					}
-					// the frequency below which terms will be ignored in the source doc
+					// the frequency below which terms will be ignored in the
+					// source doc
 					if (queryOptions.get(MLT_MINTF) != null) {
 						int ignoreTerms = (int) queryOptions.get(MLT_MINTF);
 						Q.set(MLT_MINTF, ignoreTerms);
-						LOGGER.info("the frequency below which terms will be ignored in the source doc for MLT: " + ignoreTerms);
+						LOGGER.info("the frequency below which terms will be ignored in the source doc for MLT: "
+								+ ignoreTerms);
 					}
 				} else if (queryOptions.get(MLT_FIELD) == null || queryOptions.get(MLT_MINDF) == null
 						|| queryOptions.get(MLT_MINTF) == null) {
@@ -546,11 +620,13 @@ public class SolrIndexEngine {
 				LOGGER.info("the min word length requirement to be returned is for MLT: " + minLength);
 			}
 
-			// sets max number of MLT terms that will be included in any generated query
+			// sets max number of MLT terms that will be included in any
+			// generated query
 			if (queryOptions.get(MLT_QUERY_TERM) != null) {
 				int maxTerms = (int) queryOptions.get(MLT_QUERY_TERM);
 				Q.set(MLT_QUERY_TERM, maxTerms);
-				LOGGER.info("max number of MLT terms that will be included in any generated query for MLT: " + maxTerms);
+				LOGGER.info(
+						"max number of MLT terms that will be included in any generated query for MLT: " + maxTerms);
 			}
 
 			// sets the number of documents that will be returned
@@ -560,10 +636,15 @@ public class SolrIndexEngine {
 				LOGGER.info("number of document that will be returned for MLT: " + mltCount);
 			}
 
-			//			// sets whether to boost terms in query based on 'score' or not
-			//			if (queryOptions.get(MLT_BOOST) != null) {
-			//				Q.set(MLT_BOOST, "true");
-			//			}
+			//////// SPELLCHECK
+			if (queryOptions.get(SPELL_CHECK) != null) {
+				Q.set(SPELL_CHECK, "on");
+				Q.set(REQUEST_HANDLER, "/spell");
+				Q.set(COLLATE, "true");
+				Q.set(EXTENDED_COLLATE, "true");
+
+				LOGGER.info("SPELL_CHECK set to true");
+			}
 
 			System.out.println("query is ::: " + Q.getQuery());
 
@@ -571,7 +652,6 @@ public class SolrIndexEngine {
 			res = server.query(Q);
 		}
 		return res;
-
 	}
 
 	/**
@@ -594,7 +674,9 @@ public class SolrIndexEngine {
 
 	/**
 	 * Deletes all insights related to a specified engine
-	 * @param engineName - engine name to delete
+	 * 
+	 * @param engineName
+	 *            - engine name to delete
 	 */
 	public void deleteEngine(String engineName) {
 		if (serverActive()) {
@@ -614,10 +696,12 @@ public class SolrIndexEngine {
 	}
 
 	/**
-	 * Used to verify if specified engine is already contained within Solr
-	 * If the method returns a false then the engine needs to be added to Solr
-	 * @param engineName - name of the engine to verify existence 
-	 * @return true if the engine already exists 
+	 * Used to verify if specified engine is already contained within Solr If
+	 * the method returns a false then the engine needs to be added to Solr
+	 * 
+	 * @param engineName
+	 *            - name of the engine to verify existence
+	 * @return true if the engine already exists
 	 */
 	public boolean containsEngine(String engineName) {
 		// check if db currently exists
@@ -644,7 +728,8 @@ public class SolrIndexEngine {
 
 	/**
 	 * Used to provide a uniform and Solr-friendly format for date/time
-	 * @return Date format 
+	 * 
+	 * @return Date format
 	 */
 	public static DateFormat getDateFormat() {
 		return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
@@ -652,6 +737,7 @@ public class SolrIndexEngine {
 
 	/**
 	 * Used to determine if the server is active or not
+	 * 
 	 * @return true if the server is active
 	 */
 	public boolean serverActive() {
