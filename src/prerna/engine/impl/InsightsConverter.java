@@ -203,7 +203,7 @@ public class InsightsConverter {
 			//need to add parameters as preTransformationFilters
 //			appendParamsAsTransformations(comps, parameters); // THIS IS NOW TAKEN CARE OF BY QUESTION ADMINISTRATOR (because of the addViaText additions)
 			
-			this.questionAdmin.addQuestion(INSIGHT_NAME, PERSPECTIVE, comps, LAYOUT, ORDER, dataMaker, true, null, parameters);
+			this.questionAdmin.addQuestion(INSIGHT_NAME, PERSPECTIVE, comps, LAYOUT, ORDER, dataMaker, true, null, parameters, null);
 		}
 	}
 	
@@ -504,7 +504,7 @@ public class InsightsConverter {
 					String dataMaker = getDataMaker(layoutName, allSheets);
 					List<SEMOSSParam> parameters = getPropFileParameters(paramHash, dependMap, queryMap, optionMap);
 //					appendParamsAsTransformations(comps, parameters); // THIS IS NOW TAKEN CARE OF BY QUESTION ADMINISTRATOR (because of the addViaText additions)
-					questionAdmin.addQuestion(qsDescr, perspective, comps, layout, qsOrder, dataMaker, isDbQuery, null, parameters);
+					questionAdmin.addQuestion(qsDescr, perspective, comps, layout, qsOrder, dataMaker, isDbQuery, null, parameters, null);
 					count++;
 				}
 				LOGGER.debug("Loaded Perspective " + key);
