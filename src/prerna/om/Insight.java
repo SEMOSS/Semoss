@@ -29,6 +29,7 @@ package prerna.om;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,8 +40,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.h2.jdbc.JdbcClob;
 import org.openrdf.model.Literal;
 import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
@@ -881,6 +884,10 @@ public class Insight {
 		} else {
 			retHash.putAll(getDataMaker().getDataMakerOutput());
 		}
+		String uiOptions = getUiOptions();
+		if(!uiOptions.isEmpty()) {
+			retHash.put("uiOptions", uiOptions);
+		}
 		return retHash;
 	}
 	
@@ -929,5 +936,35 @@ public class Insight {
 		}
 		
 		return returnStrBuilder.toString();
+	}
+	
+	public String getUiOptions() {
+		String uiOptions = "";
+		
+		String query = "SELECT UI_DATA FROM UI WHERE QUESTION_ID_FK='" + getRdbmsId() + "'";
+		IEngine insightDb = this.mainEngine.getInsightDatabase();
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(insightDb, query);
+		String[] names = wrapper.getVariables();
+		while(wrapper.hasNext()) {
+			ISelectStatement ss = wrapper.next();
+			ss.getVar(names[0]);
+			JdbcClob obj = (JdbcClob) ss.getRawVar(names[2]);
+			
+			InputStream insightDefinition = null;
+			try {
+				insightDefinition = obj.getAsciiStream();
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			 try {
+				uiOptions = IOUtils.toString(insightDefinition);
+			} catch (IOException e) {
+				e.printStackTrace();
+			} 
+		}
+		
+		return uiOptions;
 	}
 }
