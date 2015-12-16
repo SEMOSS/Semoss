@@ -249,6 +249,15 @@ public final class ListUtilityMethods {
 		}
 		return retList;
 	}
+	
+	public static boolean containsIgnoreCase(List<String> arr, String value) {
+		for(String s : arr) {
+			if(s.equalsIgnoreCase(value)) {
+				return true;
+			}
+		}
+		return false;
+	}
 
 
 }

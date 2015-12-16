@@ -76,7 +76,8 @@ public class QuestionAdministrator {
 			boolean isDbQuery,
 			Map<String, String> dataTableAlign,
 //			boolean multiInsightQuery,
-			List<SEMOSSParam> parameters
+			List<SEMOSSParam> parameters,
+			String uiOptions
 			) 
 	{
 		LOGGER.info("Adding new question with name :::: " + insightName);
@@ -139,6 +140,8 @@ public class QuestionAdministrator {
 		LOGGER.info("Done adding main part of question... now parameters");
 		//now add in parameters
 		addParameters(parameters, lastIDNum);
+		//now add in ui options
+		addUiOptions(uiOptions, lastIDNum);
 		
 		insightEngine.commit();
 
@@ -186,7 +189,8 @@ public class QuestionAdministrator {
 			String dataMaker,
 			boolean isDbQuery,
 			Map<String, String> dataTableAlign,
-			List<SEMOSSParam> parameters
+			List<SEMOSSParam> parameters,
+			String uiOptions
 			) 
 	{
 		Gson gson = new Gson();
@@ -252,6 +256,10 @@ public class QuestionAdministrator {
 		deleteParameter(insightID);
 		addParameters(parameters, insightID);
 		
+		//TODO: need to figure out a better way than to just delete the parameters and readd
+		deleteUiOptions(insightID);
+		addUiOptions(uiOptions, insightID);
+
 		insightEngine.commit();
 	}
 	
@@ -259,7 +267,7 @@ public class QuestionAdministrator {
 	public void removeQuestion(String... insightIDs) {		
 		deleteInsight(insightIDs);
 		deleteParameter(insightIDs);
-		
+		deleteUiOptions(insightIDs);
 		insightEngine.commit();
 	}
 	
@@ -299,9 +307,26 @@ public class QuestionAdministrator {
 		insightEngine.removeData(parameterQuery);
 	}
 	
+	private void deleteUiOptions(String... insightIDs) {
+		String idsString = createString(insightIDs);
+		String parameterQuery = "DELETE FROM UI WHERE QUESTION_ID_FK IN " + idsString ;
+		LOGGER.info("running remove query :::: " + parameterQuery);
+		insightEngine.removeData(parameterQuery);
+	}
+	
 //	private String removeTrailingZeros(String s) {
 //		return s.replaceAll("\\.0*$", "");
 //	}
+	
+	private void addUiOptions(String uiOptions, String questionID) {
+		if(uiOptions != null && !uiOptions.isEmpty()) {
+			StringBuilder insertQueryBuilder = new StringBuilder();
+			insertQueryBuilder.append("INSERT INTO UI (QUESTION_ID_FK, UI_DATA) VALUES(");
+			insertQueryBuilder.append(questionID).append(", '");
+			insertQueryBuilder.append(escapeForSQLStatement(uiOptions)).append("'");
+			insightEngine.insertData(insertQueryBuilder.toString());
+		}
+	}
 	
 	private void addParameters(List<SEMOSSParam> parameters, String insightID) {
 		if(parameters != null) {

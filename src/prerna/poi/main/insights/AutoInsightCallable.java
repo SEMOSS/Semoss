@@ -92,7 +92,7 @@ public class AutoInsightCallable implements Callable<List<Object[]>> {
 			DataMakerComponent dmc = new DataMakerComponent(engine, sparql);
 			dmcList.add(dmc);
 			
-			qa.addQuestion(filledQuestion, perspective, dmcList, ruleOutput, null, "BTreeDataFrame", true, null, null);
+			qa.addQuestion(filledQuestion, perspective, dmcList, ruleOutput, null, "BTreeDataFrame", true, null, null, null);
 		}
 	}
 
