@@ -105,15 +105,9 @@
 		<!-- <field name="insight_definition" type="string" indexed="false" stored="true" required="true" multiValued="true" /> -->
 		
 		<!-- this is meant to hold all the text a user has surrounding an insights -->
-		<field name="all_text" type="text_en" indexed="true" stored="false" required="true" multiValued="true" termVectors="true"/> 
+		<field name="all_text" type="text_en" indexed="true" stored="true" required="true" multiValued="true" termVectors="true" termPositions="true" termOffsets="true"/> 
 		<!-- copy the text fields into the field "all text" -->
-		<copyField source="name" dest="all_text"/>
-		<copyField source="tags" dest="all_text"/>
-		<copyField source="query_projections" dest="all_text"/>
-		<copyField source="comment" dest="all_text"/>
-		<copyField source="annotation" dest="all_text"/>
-		<copyField source="params" dest="all_text"/>
-		<copyField source="algorithms" dest="all_text"/>
+		<copyField source="*" dest="all_text"/>
 	
 	</fields>
 	<!-- Field to use to determine and enforce document uniqueness. 
