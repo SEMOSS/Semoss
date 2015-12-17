@@ -739,7 +739,7 @@ public class Utility {
 						queryResults.put(SolrIndexEngine.LAYOUT, layout);
 
 						try {
-							solrE.addDocument(engineName + "_" + id, queryResults);
+							solrE.addInsight(engineName + "_" + id, queryResults);
 							writer.writeSolrDocument(file, engineName + "_" + id, queryResults);
 						} catch (Exception e) {
 							e.printStackTrace();

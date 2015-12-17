@@ -22,19 +22,11 @@ public abstract class AbstractNameServer implements INameServer {
 	protected WordnetComparison wnComp;
 	protected RiWordNet wordnet;
 	
-	/**
-	 * Constructor for the class, using master database as defined in hosting
-	 */
-	public AbstractNameServer() {
-		this.masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
-	}
 	
 	/**
 	 * Constructor for the class, using defined master database
-	 * Defines the wordnet library
-	 * Defines the stanford nlp library
 	 */
-	public AbstractNameServer(String wordNetDir, String lpDir) {
+	public AbstractNameServer() {
 		this.masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 		
 		// set up the wordnet and stanford nlp packages for 

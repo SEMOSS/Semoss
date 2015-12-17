@@ -249,7 +249,7 @@ public final class SolrImportUtility {
 			}
 						
 			// add to solr engine
-			solrE.addDocument(id, queryResults);
+			solrE.addInsight(id, queryResults);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}

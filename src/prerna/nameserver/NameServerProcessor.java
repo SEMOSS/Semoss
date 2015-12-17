@@ -4,16 +4,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.api.ISelectStatement;
-import prerna.engine.api.ISelectWrapper;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 public class NameServerProcessor extends AbstractNameServer {
 
@@ -22,15 +17,6 @@ public class NameServerProcessor extends AbstractNameServer {
 	 */
 	public NameServerProcessor() {
 		super();
-	}
-	
-	/**
-	 * Constructor for the class, using defined master database
-	 * Defines the wordnet library
-	 * Defines the stanford nlp library
-	 */
-	public NameServerProcessor(String wordNetDir, String lpDir) {
-		super(wordNetDir, lpDir);
 	}
 	
 	/**
