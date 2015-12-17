@@ -226,12 +226,14 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 					SQLQueryParser p = new SQLQueryParser(query);
 					Hashtable<String, Hashtable<String, String>> h = p.getReturnVarsFromQuery(query);
 					
-					for(String tab : h.keySet()) {
-						if(tab.equalsIgnoreCase(tableName)) {
-							for(String col : h.get(tab).keySet()) {
-								if(h.get(tab).get(col).equalsIgnoreCase(colName)) {
-									logName = col;
-									break;
+					if(h != null && !h.isEmpty()) {
+						for(String tab : h.keySet()) {
+							if(tab.equalsIgnoreCase(tableName)) {
+								for(String col : h.get(tab).keySet()) {
+									if(h.get(tab).get(col).equalsIgnoreCase(colName)) {
+										logName = col;
+										break;
+									}
 								}
 							}
 						}
