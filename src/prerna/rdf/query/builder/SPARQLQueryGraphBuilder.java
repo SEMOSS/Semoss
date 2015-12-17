@@ -36,7 +36,7 @@ public class SPARQLQueryGraphBuilder extends AbstractSPARQLQueryBuilder {
 	{
 		semossQuery.setQueryType(SPARQLConstants.CONSTRUCT);
 		semossQuery.setDisctinct(false);
-		semossQuery.setReturnTripleArray((List<List<String>>) allJSONHash.get(QueryBuilderHelper.relArrayKey));
+		semossQuery.setReturnTripleArray(builderData.getRelTriples());
 		parsePath();
 		// we are assuming properties are passed in now based on user selection
 //		parsePropertiesFromPath(); 

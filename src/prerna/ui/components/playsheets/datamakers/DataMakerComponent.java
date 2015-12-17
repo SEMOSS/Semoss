@@ -7,22 +7,23 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.query.builder.IQueryBuilder;
+import prerna.rdf.query.builder.QueryBuilderData;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 public class DataMakerComponent {
 
 	private static final Logger LOGGER = LogManager.getLogger(DataMakerComponent.class.getName());
 	private String id;
 	private String query;
-	private Map<String, Object> metamodelData; // this should be made into a formal object... its gone on too long pasing around that random hashtable
+	private QueryBuilderData builderData; // this is now a formal object! :)
 	private IEngine engine;
 	private List<ISEMOSSTransformation> preTrans = new ArrayList<ISEMOSSTransformation>();
 	private List<ISEMOSSTransformation> postTrans = new ArrayList<ISEMOSSTransformation>();
@@ -54,10 +55,10 @@ public class DataMakerComponent {
 	 * @param engine					The name of the engine
 	 * @param metamodelData				The map to build the query based on the OWL
 	 */
-	public DataMakerComponent(String engine, Map<String, Object> metamodelData){
+	public DataMakerComponent(String engine, QueryBuilderData builderData){
 		IEngine theEngine = (IEngine) DIHelper.getInstance().getLocalProp(engine);
 		this.engine = theEngine;
-		this.metamodelData = metamodelData;
+		this.builderData = builderData;
 	}
 	
 	/**
@@ -65,9 +66,9 @@ public class DataMakerComponent {
 	 * @param engine					The engine object
 	 * @param metamodelData				The map to build the query based on the OWL
 	 */
-	public DataMakerComponent(IEngine engine, Map<String, Object> metamodelData){
+	public DataMakerComponent(IEngine engine, QueryBuilderData builderData){
 		this.engine = engine;
-		this.metamodelData = metamodelData;
+		this.builderData = builderData;
 	}
 	
 	/**
@@ -88,18 +89,18 @@ public class DataMakerComponent {
 	
 	/**
 	 * Setter for the metamodel data of the component
-	 * @param metamodelData
+	 * @param builderData The query builder data needed to build the query for this component
 	 */
-	public void setMetamodelData(Map<String, Object> metamodelData){
-		this.metamodelData = metamodelData;
+	public void setBuilderData(QueryBuilderData builderData){
+		this.builderData = builderData;
 	}
 
 	/**
 	 * Getter for the metamodel data of the component
 	 * @return
 	 */
-	public Map<String, Object> getMetamodelData() {
-		return metamodelData;
+	public QueryBuilderData getBuilderData() {
+		return builderData;
 	}
 	
 	/**
@@ -217,7 +218,7 @@ public class DataMakerComponent {
 	 */
 	private String buildQuery() {
 		IQueryBuilder builder = engine.getQueryBuilder();
-		builder.setJSONDataHash(this.metamodelData);
+		builder.setBuilderData(builderData);;
 		builder.buildQuery();
 		return builder.getQuery();
 	}
@@ -246,11 +247,11 @@ public class DataMakerComponent {
 		DataMakerComponent copy = new DataMakerComponent(engine, query);
 		
 		//use gson to make a copy of metamodel data
-		if(metamodelData != null) {
+		if(builderData != null) {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
-			String metamodelCopy = gson.toJson(metamodelData);
-			Map<String, Object> newMetaModel = gson.fromJson(metamodelCopy, new TypeToken<Map<String, Object>>() {}.getType());
-			copy.setMetamodelData(newMetaModel);
+			String metamodelCopy = gson.toJson(builderData);
+			QueryBuilderData newMetaModel = gson.fromJson(metamodelCopy, QueryBuilderData.class);
+			copy.setBuilderData(newMetaModel);
 		}
 		
 		for(ISEMOSSTransformation preTrans : this.preTrans) {
