@@ -61,6 +61,7 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.rdf.query.builder.QueryBuilderData;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -463,7 +464,7 @@ public class Insight {
 					dmCompVec.add(dmc);
 				}
 				else if (!metamodelString.isEmpty()){
-					Map<String, Object> metamodelData = gson.fromJson(metamodelString, Map.class);
+					QueryBuilderData metamodelData = gson.fromJson(metamodelString, QueryBuilderData.class);
 					dmc = new DataMakerComponent(engine, metamodelData); 
 					dmCompVec.add(dmc);
 				}

@@ -48,6 +48,7 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.ConnectionUtils;
 import prerna.rdf.query.builder.SQLQueryTableBuilder;
+import prerna.rdf.util.SQLQueryParser;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
@@ -159,45 +160,37 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 			for(int colIndex = 1;colIndex <= numColumns;colIndex++)
 			{
 				String tableName = rsmd.getTableName(colIndex);
-				String columnLabel = rsmd.getColumnLabel(colIndex);
-				if(tableName.isEmpty() && dbType == SQLQueryUtil.DB_TYPE.SQL_Server){
-					tableName = deriveTableName(tableName, columnLabel);
-				}
+				String colName = rsmd.getColumnName(colIndex);
+				String logName = colName;
 				
-				String displayTableName = tableName;
-				String displayColumnLabel = columnLabel;
-				String columnLabelURI = "";
-				String tableNameURI = Constants.CONCEPT_URI;
-				var[colIndex-1] = columnLabel;
-				boolean columnIsProperty = false;
-				if(displayTableName.equalsIgnoreCase(displayColumnLabel)){
-					columnLabelURI = Constants.CONCEPT_URI;
-				} else {
-					columnLabelURI = Constants.RELATION_URI;
-					if(displayColumnLabel.contains("__")){
-						columnIsProperty = true;
-						String[] splitColAndTable = displayColumnLabel.split("__");
-						displayColumnLabel = splitColAndTable[1];
+				if(query.startsWith("SELECT")) {
+					SQLQueryParser p = new SQLQueryParser(query);
+					Hashtable<String, Hashtable<String, String>> h = p.getReturnVarsFromQuery(query);
+					
+					for(String tab : h.keySet()) {
+						if(tab.equalsIgnoreCase(tableName)) {
+							for(String col : h.get(tab).keySet()) {
+								if(h.get(tab).get(col).equalsIgnoreCase(colName)) {
+									logName = col;
+									break;
+								}
+							}
+						}
 					}
 				}
-				tableNameURI += displayTableName + "/" + displayTableName;
-				columnLabelURI += displayColumnLabel + "/" + displayColumnLabel;
-				//now get the display name 
-				tableNameURI = engine.getTransformedNodeName(tableNameURI, true);
-				columnLabelURI = engine.getTransformedNodeName(columnLabelURI, true);
-				displayTableName = Utility.getInstanceName(tableNameURI);
-				displayColumnLabel = Utility.getInstanceName(columnLabelURI);
-				if(columnIsProperty){
-					displayColumnLabel = displayTableName + "__" + displayColumnLabel;
-				}
-				displayVar[colIndex-1] = displayColumnLabel;
+//				if(columnLabel.isEmpty() && dbType == SQLQueryUtil.DB_TYPE.SQL_Server){
+//					columnLabel = deriveTableName(columnLabel, columnLabel);
+//				}
+				
+				var[colIndex-1] = logName;
+				displayVar[colIndex-1] = logName;
 				
 				int type = rsmd.getColumnType(colIndex);
 				columnTypes.put(displayVar[colIndex-1], type);
 				
-				if(tableName != null && tableName.length() != 0) // will use this to find what is the type to strap it together
+				if(logName != null && logName.length() != 0) // will use this to find what is the type to strap it together
 				{
-					columnTables.put(displayVar[colIndex-1], tableName);
+					columnTables.put(displayVar[colIndex-1], logName);
 				}
 			}
 		} catch (SQLException e) {

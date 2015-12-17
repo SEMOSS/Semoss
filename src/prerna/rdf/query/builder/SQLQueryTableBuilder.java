@@ -53,7 +53,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	List<String> totalVarList = new ArrayList<String>();
 	List<Hashtable<String,String>> nodeV = new ArrayList<Hashtable<String,String>>();
 	List<Hashtable<String,String>> predV = new ArrayList<Hashtable<String,String>>();
-	List<Hashtable<String,String>> nodePropV = new ArrayList<Hashtable<String,String>>();
+	List<Map<String,String>> nodePropV = new ArrayList<Map<String,String>>();
 	String variableSequence = "";
 	List<String> returnVarOrder;
 	
@@ -139,51 +139,29 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	
 	
 	protected void parsePath(){
-		Hashtable<String, List> parsedPath = QueryBuilderHelper.parsePath(allJSONHash, engine);
+		Hashtable<String, List> parsedPath = QueryBuilderHelper.parsePath(this.builderData, engine);
 		totalVarList = parsedPath.get(QueryBuilderHelper.totalVarListKey);
 		nodeV = parsedPath.get(QueryBuilderHelper.nodeVKey);
 		predV = parsedPath.get(QueryBuilderHelper.predVKey);
 	}
 	
 	@Override
-	public void setJSONDataHash(Map<String, Object> allJSONHash) {
-		QueryBuilderHelper.cleanJSONHash(engine, allJSONHash);
-		Gson gson = new Gson();
-		this.allJSONHash = new Hashtable<String, Object>();
-		this.allJSONHash.putAll((StringMap) allJSONHash.get("QueryData"));
-		ArrayList<StringMap> list = (ArrayList<StringMap>) allJSONHash.get("SelectedNodeProps") ;
-		this.nodePropV = new ArrayList<Hashtable<String, String>>();
-		if(allJSONHash.containsKey("returnOrder")){
-			System.out.println("setting return order in semoss query " );
-			this.returnVarOrder = (List) allJSONHash.get("returnOrder");
-			this.semossQuery.setReturnVarOrder(this.returnVarOrder);
-		}
-		for(StringMap map : list){
-			Hashtable hash = new Hashtable();
-			hash.putAll(map);
-			nodePropV.add(hash);
-		}
+	public void setBuilderData(QueryBuilderData queryBuilderData) {
+//		QueryBuilderHelper.cleanBuilderData(engine, queryBuilderData);
+		this.builderData = queryBuilderData;
+		this.returnVarOrder = queryBuilderData.getVarReturnOrder();
+		this.semossQuery.setReturnVarOrder(this.returnVarOrder);
+		this.nodePropV = queryBuilderData.getNodeProps();
 	}
 
 	protected void configureQuery()
 	{
-		/*
-		 * 					predInfoHash.put("Subject", subjectURI);
-					predInfoHash.put("SubjectVar", subjectName);
-					predInfoHash.put("Pred", predURI);
-					predInfoHash.put("Object", objectURI);
-					predInfoHash.put("ObjectVar", objectName);
-					predInfoHash.put(uriKey, predURI);
-					predInfoHash.put(varKey, predName);
-
-		 */
 		// I need to pull each predicate
 		// from the predicate identify what are the tables the user is querying
 		// use alias for each one of these 
 		// for each table I need to also get the column names in this table
 		// for which I need to execute a query to get it
 		// and then jam it completely in
-		// 
 		
 		assimilateNodes();
 		assimilateProperties();
@@ -206,16 +184,10 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			String toTable = items[2];
 			String toColumn = items[3];
 			
-			//addSelfProp(fromTable);
-			//addSelfProp(toTable);
-			
-			if(!tableProcessed.containsKey(fromTable))
-			{
+			if(!tableProcessed.containsKey(fromTable)) {
 				tableProcessed.put(fromTable, fromTable);
 			}
-			if(!tableProcessed.containsKey(toTable))
-			{
-				// create columns for this table
+			if(!tableProcessed.containsKey(toTable)) {
 				tableProcessed.put(toTable, toTable);
 			}
 			
@@ -226,86 +198,16 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 				joins = joins + " AND " + join;
 			else 
 				joins = join;
-			
-			
-			//joins += " ORDER BY 1 ";
 		}		
 		
-		// finalie the filters
-		searchFilterData();
+		// finalize the filters
 		filterData();
-		clearFilterData();
-		addParameters();
-	}
-	
-	private void addParameters() {
-		Map<String, String> params = (Map<String, String>) allJSONHash.get("Parameters");
-		if(params != null) {
-			System.out.println(params);
-			int size = params.size();
-			int counter = 0;
-			for(String pName : params.keySet()) {
-				String[] paramSplit = params.get(pName).split(":");
-				if(counter == (size - 1)) {
-					parameters += " " + getAlias(paramSplit[0]) + "." + pName + " = '@" + pName + "-" + params.get(pName) + "@'";
-				} else {
-					parameters += " " + getAlias(paramSplit[0]) + "." + pName + " = '@" + pName + "-" + params.get(pName) + "@' AND";
-				}
-			}
-		}
-	}
-
-	//search filter logic 
-	private void searchFilterData()
-	{
-		StringMap<String> searchFilterResults = (StringMap<String>) allJSONHash.get(searchFilterKey);
-		if(searchFilterResults != null){
-			Iterator <String> keys = searchFilterResults.keySet().iterator();
-			for(int colIndex = 0;keys.hasNext();colIndex++) // process one column at a time. At this point my key is title on the above
-			{
-				String currentFilters = "";
-				String columnValue = keys.next(); // this gets me title above
-				String asColumnValue = columnValue;
-				String simpleColumnValue = columnValue;
-				// need to split when there are underscores
-				// for now keeping it simple
-				
-				String tableValue = columnValue;
-				//if the value passed into this method still has the tablename__column name syntax, need to pull out JUST the table name
-				if(columnValue.contains("__")){
-					String[] splitColAndTable = tableValue.split("__");
-					tableValue = splitColAndTable[0];
-					simpleColumnValue = splitColAndTable[1];
-				}
-				
-				String alias = getAlias(tableValue);
-				// get the list
-				String filterValues = searchFilterResults.get(columnValue);
-				if(filterValues.length()>0 ){
-
-					//transform the column value
-					columnValue = alias + "." + simpleColumnValue;
-	
-					String instance = Utility.getInstanceName(filterValues);
-					
-					instance.replaceAll("'", "''");		
-					String filterSyntax = getFilterSyntax(columnValue,instance);
-					searchFilter.put(asColumnValue.toUpperCase(),filterSyntax);
-				}
-
-			}
-		
-		}
-	}
-	
-	private static String getFilterSyntax(String column, String value){
-		return " LOWER(" + column + ") LIKE LOWER('%" + value + "%') ";
 	}
 	
 	private void filterData()
 	{
-		StringMap<ArrayList<Object>> filterResults = (StringMap<ArrayList<Object>>) allJSONHash.get(filterKey);
-		ArrayList<ArrayList<Object>> relTriples = (ArrayList<ArrayList<Object>>) allJSONHash.get("relTriples");
+		Map<String, List<Object>> filterResults = this.builderData.getFilterData();
+		List<List<String>> relTriples = this.builderData.getRelTriples();
 		
 		/**
 		 * {TITLE=[http://semoss.org/ontologies/concept/TITLE/127_Hours, http://semoss.org/ontologies/concept/TITLE/12_Years_a_Slave, http://semoss.org/ontologies/concept/TITLE/16_Blocks, http://semoss.org/ontologies/concept/TITLE/17_Again]}
@@ -316,36 +218,26 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		if(filterResults != null)
 		{
 		
-			Iterator <String> keys = filterResults.keySet().iterator();
-			for(int colIndex = 0;keys.hasNext();colIndex++) // process one column at a time. At this point my key is title on the above
+			Iterator<String> keys = filterResults.keySet().iterator();
+			while(keys.hasNext()) // Process one column at a time
 			{
 				String currentFilters = "";
-				String columnValue = keys.next(); // this gets me title above
+				String logName = keys.next(); // This gets me the Logical Name
+				String columnValue = engine.getTransformedNodeName(Constants.DISPLAY_URI + logName, false);
 				
-				for(ArrayList<Object> rel : relTriples) {
-					if(columnValue.equals(Utility.getInstanceName(rel.get(0).toString()))) {
-						columnValue = rel.get(0).toString();
-					}
-				}
-				
-				String simpleColumnValue = Utility.getPrimaryKeyFromURI(columnValue);
+				String abc = "";
 				String tableValue = Utility.getInstanceName(columnValue);
-//				String simpleColumnValue = columnValue;
-//				String tableValue = columnValue;
+				String simpleColumnValue = Utility.getPrimaryKeyFromURI(columnValue);
+				
 				//we should skip adding a column to the filter if the column is not part of the selector
-				if(!columnProcessed.containsKey(columnValue.toUpperCase()) || !columnProcessed.containsKey(Utility.getPrimaryKeyFromURI(columnValue).toUpperCase())){
+//				if(!columnProcessed.containsKey(columnValue.toUpperCase()) || !columnProcessed.containsKey(Utility.getPrimaryKeyFromURI(columnValue).toUpperCase())){
+				if(!columnProcessed.containsKey(logName)) { // Should always keep the log name aside once we process a col
 					continue;
 				}
 				
-				//if the value passed into this method still has the tablename__column name syntax, need to pull out JUST the table name
-				if(columnValue.contains("__")){
-					String[] splitColAndTable = tableValue.split("__");
-					tableValue = splitColAndTable[0];
-					simpleColumnValue = splitColAndTable[1];
-				}
 				String alias = getAlias(tableValue);
 				// get the list
-				List<Object> filterValues = (List<Object>)filterResults.get(Utility.getInstanceName(columnValue));
+				List<Object> filterValues = (List<Object>)filterResults.get(Utility.getInstanceName(logName));
 				
 				//transform the column value
 				columnValue = alias + "." + simpleColumnValue;
@@ -390,86 +282,32 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 
 		}
 		semossQuery.setSQLFilter(filters);
-		
-	}
-	
-	//clear filter logic 
-	private void clearFilterData()
-	{
-		StringMap<String> clearFilterResults = (StringMap<String>) allJSONHash.get(clearFilterKey);
-		if(clearFilterResults != null){
-			Iterator <String> keys = clearFilterResults.keySet().iterator();
-			for(int colIndex = 0;keys.hasNext();colIndex++) // process one column at a time. At this point my key is title on the above
-			{
-				String currentFilters = "";
-				String columnValue = keys.next(); // this gets me title above
-				String asColumnValue = columnValue; // this really the alias of the column 
-				String simpleColumnValue = columnValue;
-				// need to split when there are underscores
-				// for now keeping it simple
-				
-				String tableValue = columnValue;
-				//if the value passed into this method still has the tablename__column name syntax, need to pull out JUST the table name
-				if(columnValue.contains("__")){
-					String[] splitColAndTable = tableValue.split("__");
-					tableValue = splitColAndTable[0];
-					simpleColumnValue = splitColAndTable[1];
-				}
-				
-				String alias = getAlias(tableValue);
-				// get the list
-				String clearValues = clearFilterResults.get(columnValue);
-				if(clearValues.length()>0 ){
-
-					//transform the column value
-					columnValue = alias + "." + simpleColumnValue;
-	
-					String instance = Utility.getInstanceName(clearValues);
-					
-					instance.replaceAll("'", "''");
-					Boolean clearFilterValue = Boolean.valueOf(instance);
-					clearFilter.put(asColumnValue.toUpperCase(),clearFilterValue);
-				}
-
-			}
-		
-		}
-	}
-	
-	private void addSelfProp(String tableName)
-	{
-		ArrayList <String> propList = new ArrayList<String>();
-		if(tableHash.containsKey(tableName))
-			propList = tableHash.get(tableName);
-		propList.add(tableName);
-		tableHash.put(tableName, propList);
 	}
 	
 	private void assimilateNodes()
 	{
-		if(nodeV != null)
-		{
-			for(int listIndex = 0;listIndex < nodeV.size();listIndex++)
-			{
+		if(nodeV != null) {
+			for(int listIndex = 0;listIndex < nodeV.size();listIndex++) {
 				Hashtable <String,String> node = nodeV.get(listIndex);
-				String prop = (String) node.get("varKey");
+				String logicalNodeName = (String) node.get("varKey");
+				
 				ArrayList <String> propList = new ArrayList<String>();
-				if(tableHash.containsKey(prop))
-					propList = tableHash.get(prop);
-				propList.add(prop);
-				tableHash.put(prop, propList);
-				addToVariableSequence(prop);
+				if(tableHash.containsKey(logicalNodeName)) {
+					propList = tableHash.get(logicalNodeName);
+				}
+				propList.add(logicalNodeName);
+				tableHash.put(logicalNodeName, propList);
+				addToVariableSequence(logicalNodeName);
 			}
-			
 		}
 	}
 	
 	private void addToVariableSequence(String asName)
 	{
 		if(variableSequence.length() > 0)
-			variableSequence = variableSequence + ";" + asName.toUpperCase();
+			variableSequence = variableSequence + ";" + asName;
 		else
-			variableSequence = asName.toUpperCase();
+			variableSequence = asName;
 	}
 	
 	private void assimilateProperties()
@@ -478,30 +316,27 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		// nodePropV is the list
 		/**
 		 * This is of this format
-		 * SelectedNodeProps=[{SubjectVar=Title, uriKey=TITLE, varKey=Title__TITLE}]
+		 * SelectedNodeProps=[{SubjectVar=Title, uriKey=http://semoss.org/ontologies/Relation/Contains/MovieBudget, varKey=TITLELOGICALNAME}]
 		 */
 		if(nodePropV != null)
 		{
 			for(int listIndex = 0;listIndex < nodePropV.size();listIndex++)
 			{
-				String key = (String) nodePropV.get(listIndex).get("SubjectVar");
-				String prop = (String) nodePropV.get(listIndex).get("uriKey");
-				prop = Utility.getInstanceName(prop); //TODO: need to make sure FE always passes this back as URI, different from comment above
+				String logicalTableName = (String) nodePropV.get(listIndex).get("SubjectVar");
+				String logicalPropName = (String) nodePropV.get(listIndex).get("varKey");
+//				prop = Utility.getInstanceName(prop); //TODO: need to make sure FE always passes this back as URI, different from comment above
 				ArrayList <String> propList = new ArrayList<String>();
-				if(tableHash.containsKey(key))
-					propList = tableHash.get(key);
-				propList.add(key.split("__")[0] + "__" + prop);
-				tableHash.put(key.split("__")[0] + "__" + prop, propList);
-				addToVariableSequence(key.split("__")[0] + "__" + prop);
+				if(tableHash.containsKey(logicalTableName))
+					propList = tableHash.get(logicalTableName);
+				propList.add(logicalPropName);
+				tableHash.put(logicalTableName, propList);
+				addToVariableSequence(logicalPropName);
 			}
 		}
-		// now that I am done with the properties
-
 	}
 	
 	private void createSelectors()
 	{
-		String columnSubString = "";
 		String singleSelector = "";
 		String nullSingleSelector = "";
 		//ArrayList <String> tColumns = getColumnsFromTable(tableName);
@@ -515,26 +350,27 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		for(int colIndex = 0;colIndex < columns.length;colIndex++)
 		{
 			String tableName = null;
-			String colName = columns[colIndex];
-			tableName = colName;
-			
-			if(colName.contains("__"))
-			{
-				tableName = colName.substring(0, colName.indexOf("__"));
-				colName = colName.substring(colName.indexOf("__") + 2);
+			String varURI = null;
+			String asName = columns[colIndex];
+			varURI = this.engine.getTransformedNodeName(Constants.DISPLAY_URI + asName, false);
+			if(!varURI.startsWith(Constants.CONCEPT_URI)) { //Means we are working with a property now
+				asName = Utility.getInstanceName(varURI);
+				for(Map<String, String> s : this.nodePropV) {
+					if(asName.equals(s.get("varKey"))) {
+						tableName = Utility.getInstanceName(this.engine.getTransformedNodeName(Constants.DISPLAY_URI + s.get("SubjectVar"), false));
+						varURI = Constants.CONCEPT_URI + asName + "/" + tableName;
+						break;
+					}
+				}
 			}
 			
+			String colName = Utility.getPrimaryKeyFromURI(varURI);
+			tableName = Utility.getInstanceName(varURI);
 			String alias = getAlias(tableName);
-			String asName = tableName + "__" + colName;
-
-			if(!tableName.equalsIgnoreCase(colName)) // this is a self reference dont worry about it something like title.title
-				asName = tableName + "__" + colName;
 			
-			if(!columnProcessed.containsKey(asName.toUpperCase()))
+			if(!columnProcessed.containsKey(asName))
 			{
 				// the as query needs to reflect how I am sending eventually on the var headers
-				// the variable name is really
-				// tableName__columnName <-- yes that is a double underscore
 				singleSelector = alias + "." + colName + " AS " + asName;
 				nullSingleSelector = " NULL AS " + asName;
 				
@@ -547,7 +383,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 				}
 				
 				semossQuery.addSingleReturnVariable(singleSelector);
-				columnProcessed.put(asName.toUpperCase(), asName.toUpperCase());					
+				columnProcessed.put(asName, asName);					
 			}
 			addFrom(tableName, alias);
 		}
@@ -555,9 +391,9 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	
 	private void addFrom(String tableName, String alias)
 	{
-		if(!tableProcessed.containsKey(tableName.toUpperCase()))
+		if(!tableProcessed.containsKey(tableName))
 		{
-			tableProcessed.put(tableName.toUpperCase(),"true");
+			tableProcessed.put(tableName,"true");
 			String fromText =  tableName + "  " + alias;
 			if(froms.length() > 0){
 				froms = froms + " , " + fromText;
@@ -588,8 +424,6 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	
 	public static String getAlias(String tableName)
 	{
-		tableName = tableName.toUpperCase();
-		
 		String response = null;
 		if(aliases.containsKey(tableName))
 			response = aliases.get(tableName);
@@ -603,7 +437,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 				if(tryAlias.length()>0){
 					tryAlias+="_";//prevent an error where you may create an alias that is a reserved word (ie, we did this with "as")
 				}
-				tryAlias = tryAlias + tableName.charAt(count);
+				tryAlias = (tryAlias + tableName.charAt(count)).toUpperCase();
 				aliasComplete = !aliases.containsValue(tryAlias);
 				count++;
 			}
@@ -613,13 +447,13 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		return response;
 	}
 	
-	public ArrayList<Hashtable<String,String>> getHeaderArray(){
+	public ArrayList<Map<String,String>> getHeaderArray(){
 		
-		ArrayList<Hashtable<String,String>> retArray = new ArrayList<Hashtable<String,String>>();
+		ArrayList<Map<String,String>> retArray = new ArrayList<Map<String,String>>();
 		retArray.addAll(nodeV);
 		retArray.addAll(nodePropV);
 		
-		Hashtable <String,Hashtable<String,String>> sequencer = new Hashtable <String, Hashtable<String,String>>();
+		Hashtable <String, Map<String,String>> sequencer = new Hashtable <String, Map<String,String>>();
 		// add the filter queries
 		// each list looks like this
 		// Prop looks like this SelectedNodeProps=[{SubjectVar=Title, uriKey=TITLE, varKey=Title__TITLE}
@@ -629,32 +463,32 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		//we need to encode the equals signs, for when json sends the qry back over
 		//tempjoins = tempjoins.replaceAll("=", "%3D"); //&#61;
 		
-		for(Hashtable<String, String> headerHash : retArray){
-
-			String varName = headerHash.get(QueryBuilderHelper.varKey); // title__rottenTomatoes
-			String colName = varName; 
-			String key = varName;
+		for(Map<String, String> headerHash : retArray){
+			String logicalPropName = headerHash.get(QueryBuilderHelper.varKey); // title__rottenTomatoes
+			String key = logicalPropName;
 			// the var key needs to match the capitalization
-			headerHash.put(QueryBuilderHelper.varKey, varName.toUpperCase());
-			String tableName = (String) headerHash.get("uriKey"); //semoss.org/title.. 
-			tableName = Utility.getInstanceName(tableName);
+			headerHash.put(QueryBuilderHelper.varKey, logicalPropName);
+			String propPhysicalURI = (String) headerHash.get("uriKey"); // Get the prop physical URI
+			String tableName = Utility.getInstanceName(propPhysicalURI);
+			String colName = Utility.getPrimaryKeyFromURI(propPhysicalURI);
+			
 			String filterQuery = "";
 			// need to modify the filter if there is an underscore to skip only to the last one
-			if(varName.contains("__"))
-			{
-				tableName = varName.substring(0,varName.indexOf("__"));
-				colName = varName.substring(varName.indexOf("__") + 2);
-			}
+//			if(varName.contains("__"))
+//			{
+//				tableName = varName.substring(0,varName.indexOf("__"));
+//				colName = varName.substring(varName.indexOf("__") + 2);
+//			}
 			String tableAlias = getAlias(tableName);
-			String singleSelector = tableAlias + "." + colName + " AS " + varName;
+			String singleSelector = tableAlias + "." + colName + " AS " + logicalPropName;
 			String columnForFilter = tableAlias + "." + colName ;
 			String tempSearchFilter = "";
 			boolean clearFilterResults = false;
-			if(searchFilter.size()>0 && searchFilter.containsKey(varName.toUpperCase())){
-				tempSearchFilter = searchFilter.get(varName.toUpperCase()).replaceAll("%", "%25");//encode percent..
+			if(searchFilter.size()>0 && searchFilter.containsKey(logicalPropName)){
+				tempSearchFilter = searchFilter.get(logicalPropName).replaceAll("%", "%25");//encode percent..
 			}
-			if(clearFilter.size()>0 && clearFilter.containsKey(varName.toUpperCase())){
-				if(clearFilter.get(varName.toUpperCase())){
+			if(clearFilter.size()>0 && clearFilter.containsKey(logicalPropName)){
+				if(clearFilter.get(logicalPropName)){
 					tempSearchFilter = "";//overwrite the searchfilter logic (if it was set..), both shouldnt be coming in anyway.
 					clearFilterResults = true;
 				}
@@ -678,16 +512,13 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			filterQuery += " ORDER BY 1 LIMIT " +  limitFilter;
 			//System.out.println("DEBUG " + filterQuery);
 			headerHash.put(QueryBuilderHelper.queryKey, filterQuery);
-			sequencer.put(key.toUpperCase(), headerHash);
-			
-			
-			
+			sequencer.put(key, headerHash);
 		}
 		
-		retArray = new ArrayList<Hashtable<String,String>>();
+		retArray = new ArrayList<Map<String,String>>();
 		String [] vars = variableSequence.split(";");
 		for(int varIndex = 0;varIndex < vars.length;varIndex++)
-			retArray.add(sequencer.get(vars[varIndex].toUpperCase()));
+			retArray.add(sequencer.get(vars[varIndex]));
 		
 		return retArray;
 	}
@@ -701,7 +532,6 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		{
 			ISelectStatement stmt = sWrapper.next();
 			String colName = stmt.getVar(queryUtil.getAllColumnsResultColumnName())+"";
-			colName = colName.toUpperCase();
 			columns.add(colName);
 		}
 		return columns;
@@ -722,7 +552,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		{
 			String propName = properties.elementAt(propIndex);
 			String asName = propertiesAsName.elementAt(propIndex);
-			String asString = tableAlias + "." + propName + "  AS " + tableAlias + "__" + asName;
+			String asString = tableAlias + "." + propName + "  AS " + asName;
 
 			if(selectString.length() == 0)
 				selectString = asString;
@@ -817,7 +647,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		return this.predV;
 	}
 	
-	public List<Hashtable<String, String>> getNodePropV(){
+	public List<Map<String, String>> getNodePropV(){
 		return this.nodePropV;
 	}
 	
