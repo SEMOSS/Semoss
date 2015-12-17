@@ -43,7 +43,6 @@ import java.util.Set;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.rdf.RemoteSemossSesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.DIHelper;

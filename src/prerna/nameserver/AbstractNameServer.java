@@ -3,6 +3,7 @@ package prerna.nameserver;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.nlp.NLPSingletons;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.util.DIHelper;
@@ -37,14 +38,10 @@ public abstract class AbstractNameServer implements INameServer {
 		this.masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 		
 		// set up the wordnet and stanford nlp packages for 
-		lp = LexicalizedParser.loadModel(lpDir);
-		lp.setOptionFlags(new String[]{"-maxLength", "80", "-retainTmpSubcategories"});
-		wordnet = new RiWordNet(wordNetDir, false, true); // params: wordnetInstallDir, ignoreCompoundWords, ignoreUppercaseWords
-		
+		lp = NLPSingletons.getInstance().getLp();
+		wordnet = NLPSingletons.getInstance().getWordnet();
 		// creates the comparison class to determine similarity between concepts
 		wnComp = new WordnetComparison();
-		wnComp.setLp(lp);
-		wnComp.setWordnet(wordnet);
 	}
 	
 	/**
@@ -68,14 +65,10 @@ public abstract class AbstractNameServer implements INameServer {
 		this.masterEngine = masterEngine;
 		
 		// set up the wordnet and stanford nlp packages for 
-		lp = LexicalizedParser.loadModel(lpDir);
-		lp.setOptionFlags(new String[]{"-maxLength", "80", "-retainTmpSubcategories"});
-		wordnet = new RiWordNet(wordNetDir, false, true); // params: wordnetInstallDir, ignoreCompoundWords, ignoreUppercaseWords
-		
+		lp = NLPSingletons.getInstance().getLp();
+		wordnet = NLPSingletons.getInstance().getWordnet();
 		// creates the comparison class to determine similarity between concepts
 		wnComp = new WordnetComparison();
-		wnComp.setLp(lp);
-		wnComp.setWordnet(wordnet);
 	}
 	
 	public String getMasterDBName() {

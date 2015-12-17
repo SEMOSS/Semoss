@@ -33,6 +33,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
 
+import prerna.algorithm.nlp.NLPSingletons;
 import prerna.algorithm.nlp.NaturalLanguageProcessingHelper;
 import prerna.algorithm.nlp.TextHelper;
 import prerna.util.Utility;
@@ -48,15 +49,8 @@ public class WordnetComparison {
 	private LexicalizedParser lp;
 
 	public WordnetComparison() {
-		
-	}
-	
-	public void setWordnet(RiWordNet wordnet) {
-		this.wordnet = wordnet;
-	}
-	
-	public void setLp(LexicalizedParser lp) {
-		this.lp = lp;
+		this.wordnet = NLPSingletons.getInstance().getWordnet();
+		this.lp = NLPSingletons.getInstance().getLp();
 	}
 	
 	/**
