@@ -217,6 +217,13 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 */
 	@Override
 	public void loadFirst() {
+//		try {
+//			SolrIndexEngine.getInstance().deleteAllSolrData();
+//		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | IOException e1) {
+//			// TODO Auto-generated catch block
+//			e1.printStackTrace();
+//		}
+		
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
 		String[] engineNames = new String[fileNames.length];
@@ -263,7 +270,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				facetList.add(SolrIndexEngine.CORE_ENGINE);
 				queryOptions.put(SolrIndexEngine.FACET_FIELD, facetList);
 				Map<String, Map<String, Long>> facetReturn = SolrIndexEngine.getInstance().facetDocument(queryOptions);
-				if(facetReturn != null && facetReturn.isEmpty()) {
+				if(facetReturn != null && !facetReturn.isEmpty()) {
 					Map<String, Long> solrEngines = facetReturn.get(SolrIndexEngine.CORE_ENGINE);
 					if(solrEngines != null) {
 						Set<String> engineSet = solrEngines.keySet();
