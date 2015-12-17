@@ -57,7 +57,6 @@ import prerna.util.Utility;
 
 public class AddToMasterDB extends ModifyMasterDB {
 
-	private String wordnetPath;
 	private HypernymListGenerator hypernymGenerator;
 
 	public AddToMasterDB(String localMasterDbName) {
@@ -79,11 +78,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 			ISelectStatement sjss = wrapper.next();
 			parentChildMapping.put(sjss.getVar(names[0]).toString(), sjss.getVar(names[1]).toString());
 		}
-		if(wordnetPath != null) {
-			hypernymGenerator = new HypernymListGenerator(wordnetPath);
-		} else {
-			hypernymGenerator = new HypernymListGenerator();
-		}
+		hypernymGenerator = new HypernymListGenerator();
 		hypernymGenerator.addMappings(parentChildMapping);
 
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
@@ -120,11 +115,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 			parentChildMapping.put(sjss.getVar(names[0]).toString(), sjss.getVar(names[1]).toString());
 		}
 
-		if(wordnetPath != null) {
-			hypernymGenerator = new HypernymListGenerator(wordnetPath);
-		} else {
-			hypernymGenerator = new HypernymListGenerator();
-		}
+		hypernymGenerator = new HypernymListGenerator();
 		hypernymGenerator.addMappings(parentChildMapping);
 
 		String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
@@ -158,11 +149,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 			parentChildMapping.put(sjss.getVar(names[0]).toString(), sjss.getVar(names[1]).toString());
 		}
 
-		if(wordnetPath != null) {
-			hypernymGenerator = new HypernymListGenerator(wordnetPath);
-		} else {
-			hypernymGenerator = new HypernymListGenerator();
-		}
+		hypernymGenerator = new HypernymListGenerator();
 		hypernymGenerator.addMappings(parentChildMapping);
 
 		for(String engineName : dbArray) {
@@ -205,11 +192,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 			parentChildMapping.put(sjss.getVar(names[0]).toString(), sjss.getVar(names[1]).toString());
 		}
 
-		if(wordnetPath != null) {
-			hypernymGenerator = new HypernymListGenerator(wordnetPath);
-		} else {
-			hypernymGenerator = new HypernymListGenerator();
-		}
+		hypernymGenerator = new HypernymListGenerator();
 		hypernymGenerator.addMappings(parentChildMapping);
 
 		Gson gson = new Gson();
@@ -449,14 +432,6 @@ public class AddToMasterDB extends ModifyMasterDB {
 //		return true;
 //	}
 
-	public String getWordnetPath() {
-		return wordnetPath;
-	}
-
-	public void setWordnetPath(String wordnetPath) {
-		this.wordnetPath = wordnetPath;
-	}
-	
 	public static String removeConceptUri(String s) {
 		return s.replaceAll(".*/Concept/", "");
 	}
