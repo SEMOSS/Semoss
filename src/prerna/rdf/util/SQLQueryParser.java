@@ -234,7 +234,9 @@ public class SQLQueryParser extends AbstractQueryParser {
 		try {
 			Select selectStatement = (Select) parserManager.parse(new StringReader(query));
 			parseTablesAndAlias(selectStatement);
-			parseReturnVariables(selectStatement);
+			if(!aliasTableMap.isEmpty()) {
+				parseReturnVariables(selectStatement);
+			}
 		} catch (JSQLParserException e) {
 			e.printStackTrace();
 		}
@@ -253,10 +255,10 @@ public class SQLQueryParser extends AbstractQueryParser {
 		String tableAliasText = tableName; //so if there is no table alias, use the table name by default
 		if(tableAlias!=null){ 
 			tableAliasText = tableAlias.getName();
+			aliasTableMap.put(tableAliasText, tableName); //the alias is the key because you can join the same table several times in a query
 		}
 
 		types.put(tableName, conceptUri + tableName);
-		aliasTableMap.put(tableAliasText, tableName); //the alias is the key because you can join the same table several times in a query
 	}
 	
 	private void parseReturnVariables(Statement statement) throws JSQLParserException {
@@ -268,13 +270,15 @@ public class SQLQueryParser extends AbstractQueryParser {
 		if(plainSelectList!=null && plainSelectList.size()>0){
 			for(PlainSelect ps: plainSelectList){
 				List<SelectItem> selectList = ps.getSelectItems();
-				for(int i =0; i<selectList.size(); i++ ){
+				for(int i =0; i<selectList.size(); i++) {
 					SelectItem selectedItem = selectList.get(i);
 					SelectExpressionItem se = (SelectExpressionItem) selectedItem;
 					Alias alias = se.getAlias();
 					String expressionAlias = ""; 
 					if(alias!=null){
 						expressionAlias = alias.getName(); //heres the alias for the select clause expression you are working with, unused at the moment
+					} else {
+						expressionAlias = se.toString();
 					}
 					Expression expression = se.getExpression();
 					String expressionValue = expression.toString();
@@ -284,13 +288,14 @@ public class SQLQueryParser extends AbstractQueryParser {
 					}
 					if(expression instanceof Column){
 						Column returnColumn = (Column) expression;
+						System.out.println(returnColumn.getColumnName());
 						String tableAliasName = returnColumn.getTable().getName();
 						//String fullyQualifiedName = returnColumn.getFullyQualifiedName();
 						String columnName = returnColumn.getColumnName();
 						String tableName = aliasTableMap.get(tableAliasName);
 						//only add the property if the column is not the same as the table name.
-							addToVariablesMap(typePropVariables, tableName, expressionAlias, columnName);
-							addToVariablesMap(typeReturnVariables, tableName, expressionAlias, columnName);
+						addToVariablesMap(typePropVariables, tableName, expressionAlias, columnName);
+						addToVariablesMap(typeReturnVariables, tableName, expressionAlias, columnName);
 					}
 					//expression returned MAY contain the table name/table alias prior to the expression value.  Keeping this for now
 					
