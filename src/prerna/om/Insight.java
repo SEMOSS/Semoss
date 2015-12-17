@@ -947,8 +947,7 @@ public class Insight {
 		String[] names = wrapper.getVariables();
 		while(wrapper.hasNext()) {
 			ISelectStatement ss = wrapper.next();
-			ss.getVar(names[0]);
-			JdbcClob obj = (JdbcClob) ss.getRawVar(names[2]);
+			JdbcClob obj = (JdbcClob) ss.getRawVar(names[0]);
 			
 			InputStream insightDefinition = null;
 			try {
