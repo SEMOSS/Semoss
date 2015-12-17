@@ -323,7 +323,7 @@ public class QuestionAdministrator {
 			StringBuilder insertQueryBuilder = new StringBuilder();
 			insertQueryBuilder.append("INSERT INTO UI (QUESTION_ID_FK, UI_DATA) VALUES(");
 			insertQueryBuilder.append(questionID).append(", '");
-			insertQueryBuilder.append(escapeForSQLStatement(uiOptions)).append("'");
+			insertQueryBuilder.append(escapeForSQLStatement(uiOptions)).append("')");
 			insightEngine.insertData(insertQueryBuilder.toString());
 		}
 	}
