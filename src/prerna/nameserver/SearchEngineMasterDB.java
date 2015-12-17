@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import prerna.algorithm.nlp.NLPSingletons;
 import prerna.algorithm.nlp.NaturalLanguageProcessingHelper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
@@ -38,14 +39,11 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 	 * Defines the wordnet library
 	 * Defines the nlp lib
 	 */
-	public SearchEngineMasterDB(String wordNetDir, String lpDir) {
+	public SearchEngineMasterDB() {
 		super();
-		lp = LexicalizedParser.loadModel(lpDir);
-		lp.setOptionFlags(new String[]{"-maxLength", "80", "-retainTmpSubcategories"});
-		wordnet = new RiWordNet(wordNetDir, false, true); // params: wordnetInstallDir, ignoreCompoundWords, ignoreUppercaseWords
+		lp = NLPSingletons.getInstance().getLp();
+		wordnet = NLPSingletons.getInstance().getWordnet();
 		wnComp = new WordnetComparison();
-		wnComp.setLp(lp);
-		wnComp.setWordnet(wordnet);
 	}
 	
 	/**
@@ -54,14 +52,11 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 	 * Defines the wordnet library
 	 * Defines the nlp lib
 	 */
-	public SearchEngineMasterDB(String localMasterDbName, String wordNetDir, String lpDir) {
+	public SearchEngineMasterDB(String localMasterDbName) {
 		super(localMasterDbName);
-		lp = LexicalizedParser.loadModel(lpDir);
-		lp.setOptionFlags(new String[]{"-maxLength", "80", "-retainTmpSubcategories"});
-		wordnet = new RiWordNet(wordNetDir, false, true); // params: wordnetInstallDir, ignoreCompoundWords, ignoreUppercaseWords
+		lp = NLPSingletons.getInstance().getLp();
+		wordnet = NLPSingletons.getInstance().getWordnet();
 		wnComp = new WordnetComparison();
-		wnComp.setLp(lp);
-		wnComp.setWordnet(wordnet);
 	}
 
 	public List<Hashtable<String, Object>> getWebInsightsFromSearchString(String searchString) {

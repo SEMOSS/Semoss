@@ -54,8 +54,8 @@ import edu.stanford.nlp.trees.GrammaticalRelation;
 import edu.stanford.nlp.trees.TreeGraphNode;
 import edu.stanford.nlp.trees.TypedDependency;
 import edu.stanford.nlp.util.CoreMap;
+import prerna.algorithm.nlp.NLPSingletons;
 import prerna.algorithm.nlp.NaturalLanguageProcessingHelper;
-import prerna.util.DIHelper;
 
 public class ProcessNLP {
 
@@ -65,8 +65,7 @@ public class ProcessNLP {
 	private static final Logger LOGGER = LogManager.getLogger(ProcessNLP.class.getName());
 
 	public ProcessNLP(){
-		lp = LexicalizedParser.loadModel(DIHelper.getInstance().getProperty("BaseFolder")+"\\NLPartifacts\\englishPCFG.ser");
-		lp.setOptionFlags(new String[]{"-maxLength", "80", "-retainTmpSubcategories"});
+		lp = NLPSingletons.getInstance().getLp();
 	}
 
 	public List<TripleWrapper> generateTriples(String[] files) throws IOException {

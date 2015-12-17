@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import prerna.algorithm.nlp.NLPSingletons;
 import prerna.algorithm.nlp.NaturalLanguageProcessingHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -52,17 +53,7 @@ public class HypernymListGenerator {
 	 * Defines the wordnet library
 	 */
 	public HypernymListGenerator() {
-		String wordNetDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + System.getProperty("file.separator") + "WordNet-3.1";
-		wordnet = new RiWordNet(wordNetDir, false, true); // params: wordnetInstallDir, ignoreCompoundWords, ignoreUppercaseWords
-		mappings = new HashMap<String, String>();
-	}
-	
-	/**
-	 * Constructor for the class
-	 * Defines the wordnet library
-	 */
-	public HypernymListGenerator(String wordNetDir) {
-		wordnet = new RiWordNet(wordNetDir, false, true); // params: wordnetInstallDir, ignoreCompoundWords, ignoreUppercaseWords
+		wordnet = NLPSingletons.getInstance().getWordnet();
 		mappings = new HashMap<String, String>();
 	}
 	
