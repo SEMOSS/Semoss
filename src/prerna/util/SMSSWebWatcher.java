@@ -265,11 +265,9 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		
 		try {
 			if(SolrIndexEngine.getInstance().serverActive()) {
-				Map<String, Object> queryOptions = new HashMap<String, Object>();
 				List<String> facetList = new ArrayList<String>();
 				facetList.add(SolrIndexEngine.CORE_ENGINE);
-				queryOptions.put(SolrIndexEngine.FACET_FIELD, facetList);
-				Map<String, Map<String, Long>> facetReturn = SolrIndexEngine.getInstance().facetDocument(queryOptions);
+				Map<String, Map<String, Long>> facetReturn = SolrIndexEngine.getInstance().executeQueryFacetResults(null, facetList);
 				if(facetReturn != null && !facetReturn.isEmpty()) {
 					Map<String, Long> solrEngines = facetReturn.get(SolrIndexEngine.CORE_ENGINE);
 					if(solrEngines != null) {
