@@ -538,12 +538,24 @@ public abstract class AbstractEngine implements IEngine {
 		return Utility.getVectorOfReturn(query, baseDataEngine, true);
 	}
 
-	public Vector<String> getProperties4Concept(String concept) {
+	public Vector<String> getProperties4Concept(String concept, Boolean logicalNames) {
 		String query = "SELECT ?property WHERE { {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
 				+ "{?concept  <http://www.w3.org/2002/07/owl#DatatypeProperty> ?property}"
 				+ "{?property a <" + CONTAINS_BASE_URI + ">}}"
 				+ "BINDINGS ?concept {(<"+concept+">)}";
-		return Utility.getVectorOfReturn(query, baseDataEngine, true);
+		Vector<String> uriProps = Utility.getVectorOfReturn(query, baseDataEngine, true);
+		if(!logicalNames){
+			return uriProps;
+		}
+		else{
+			// need to go through each one and translate
+			Vector<String> propNames = new Vector<String>();
+			for(String uriProp : uriProps){
+				String logicalName = this.getTransformedNodeName(uriProp, true);
+				propNames.add(logicalName);
+			}
+			return propNames;
+		}
 	}
 	
 	/**
@@ -632,7 +644,13 @@ public abstract class AbstractEngine implements IEngine {
 					}
 				}
 			}
-		} 
+		} else if (nodeURI.startsWith(Constants.DISPLAY_URI)) {
+			for(String displayName: this.transformedNodeNames.keySet()){
+				if(Utility.getInstanceName(displayName).equalsIgnoreCase(Utility.getInstanceName(nodeURI))){
+					return this.transformedNodeNames.get(displayName);
+				}
+			}
+		}
 		return nodeURI;
 	}
 	
@@ -767,11 +785,11 @@ public abstract class AbstractEngine implements IEngine {
 
 	public static void main(String [] args) throws Exception
 	{
-		DIHelper.getInstance().loadCoreProp("C:\\Users\\bisutton\\workspace\\SEMOSSDev\\RDF_Map.prop");
+		DIHelper.getInstance().loadCoreProp("C:\\workspace\\SEMOSSDev\\RDF_Map.prop");
 		FileInputStream fileIn = null;
 		try{
 			Properties prop = new Properties();
-			String fileName = "C:\\Users\\bisutton\\workspace\\SEMOSSDev\\db\\Movie_Test.smss";
+			String fileName = "C:\\workspace\\SEMOSSDev\\db\\Movie_Test.smss";
 			fileIn = new FileInputStream(fileName);
 			prop.load(fileIn);
 			System.err.println("Loading DB " + fileName);
@@ -787,7 +805,7 @@ public abstract class AbstractEngine implements IEngine {
 			}
 		}
 		IEngine eng = (IEngine) DIHelper.getInstance().getLocalProp("Movie_Test");
-		Vector<String> props = eng.getProperties4Concept("http://semoss.org/ontologies/Concept/Title");
+		Vector<String> props = eng.getProperties4Concept("http://semoss.org/ontologies/Concept/Title", false);
 		while(!props.isEmpty()){
 			System.out.println(props.remove(0));
 		}

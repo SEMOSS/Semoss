@@ -4,6 +4,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
@@ -21,6 +22,7 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.rdf.query.builder.AbstractQueryBuilder;
+import prerna.rdf.query.builder.QueryBuilderData;
 import prerna.util.Utility;
 
 public class FilterTransformation extends AbstractTransformation {
@@ -66,9 +68,9 @@ public class FilterTransformation extends AbstractTransformation {
 		// if this is a pre-transformation
 		if(preTrans){
 			// if there is metamodel data, add this as a filter and let query builder do its thing
-			Map<String, Object> metamodelData = this.dmc.getMetamodelData();
-			if(metamodelData != null) {
-				addFilterToComponentData(colHeader, new ArrayList<>(values), metamodelData);
+			QueryBuilderData builderData = this.dmc.getBuilderData();
+			if(builderData != null) {
+				addFilterToComponentData(colHeader, new ArrayList<>(values), builderData);
 			} else {
 				// there is no metamodel data
 				// need to fill the query with the selected value
@@ -95,15 +97,15 @@ public class FilterTransformation extends AbstractTransformation {
 	 * @param values						The list of values for the filter
 	 * @param metamodelData					The metamodel data
 	 */
-	private void addFilterToComponentData(String colHeader, List<Object> values, Map<String, Object> metamodelData){
-        StringMap<List<Object>> stringMap;
-        if(((StringMap) metamodelData.get("QueryData")).containsKey(AbstractQueryBuilder.filterKey)) {
-               stringMap = (StringMap<List<Object>>) ((StringMap) metamodelData.get("QueryData")).get(AbstractQueryBuilder.filterKey);
+	private void addFilterToComponentData(String colHeader, List<Object> values, QueryBuilderData builderData){
+        Map<String, List<Object>> stringMap;
+        if(builderData.getFilterData() != null && !builderData.getFilterData().isEmpty()) {
+               stringMap = builderData.getFilterData();
         } else {
-               stringMap = new StringMap<List<Object>>();
+               stringMap = new HashMap<String, List<Object>>();
         }
         stringMap.put(colHeader, values);
-        ((StringMap) metamodelData.get("QueryData")).put(AbstractQueryBuilder.filterKey, stringMap);
+        builderData.setFilterData(stringMap);
 	}
 		
 	/**

@@ -21,9 +21,9 @@ import java.util.Map;
 
 public interface IQueryBuilder {
 	
-	public void setJSONDataHash(Map<String,Object> allJSONHash);
+	public void setBuilderData(QueryBuilderData builderData);
 	
-	public Hashtable<String, Object> getJSONDataHash();
+	public QueryBuilderData getBuilderData();
 	
 	public String getQuery();
 	
@@ -35,7 +35,7 @@ public interface IQueryBuilder {
 	
 	public List<Hashtable<String, String>> getPredV();
 	
-	public List<Hashtable<String, String>> getNodePropV();
+	public List<Map<String, String>> getNodePropV();
 	
-	public List<Hashtable<String, String>> getHeaderArray();
+	public List<Map<String, String>> getHeaderArray();
 }

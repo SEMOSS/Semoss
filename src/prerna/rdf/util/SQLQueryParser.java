@@ -120,29 +120,31 @@ public class SQLQueryParser extends AbstractQueryParser {
 				setTableAndAlias(initialTable);
 				
 				List<Join> psJoins = ps.getJoins();
-				for(Join psJoin: psJoins){
-					//System.out.println("join INFO " + psJoin.toString());
-					EqualsTo joinExp = (EqualsTo) psJoin.getOnExpression();
-					
-					if(joinExp!=null){
-						//left part of the join
-						Expression leftExpression = joinExp.getLeftExpression();
-						Column leftJoinColumn = (Column) leftExpression;
-						//right part of the join
-						Expression rightExpression = joinExp.getRightExpression();
-						Column rightJoinColumn = (Column) rightExpression;
+				if(psJoins != null) {
+					for(Join psJoin: psJoins){
+						//System.out.println("join INFO " + psJoin.toString());
+						EqualsTo joinExp = (EqualsTo) psJoin.getOnExpression();
 						
-						// since this is a map full of Column objects, you may get duplicates being added 
-						// (if you are doing the SEMOSS outerjoin syntax, then you'll have a union
-						// of two tables with the same joins, just left join vs right join
-						// we'll filter the duplicates out later when we create tripleMappings.
-						joinColumnsMap.put(leftJoinColumn, rightJoinColumn);
-					}
-					//so get the table name from the join
-					FromItem psJoinTable = psJoin.getRightItem();
-					if(psJoinTable!=null){
-						Table joinsTable = (Table) psJoinTable;
-						setTableAndAlias(joinsTable);
+						if(joinExp!=null){
+							//left part of the join
+							Expression leftExpression = joinExp.getLeftExpression();
+							Column leftJoinColumn = (Column) leftExpression;
+							//right part of the join
+							Expression rightExpression = joinExp.getRightExpression();
+							Column rightJoinColumn = (Column) rightExpression;
+							
+							// since this is a map full of Column objects, you may get duplicates being added 
+							// (if you are doing the SEMOSS outerjoin syntax, then you'll have a union
+							// of two tables with the same joins, just left join vs right join
+							// we'll filter the duplicates out later when we create tripleMappings.
+							joinColumnsMap.put(leftJoinColumn, rightJoinColumn);
+						}
+						//so get the table name from the join
+						FromItem psJoinTable = psJoin.getRightItem();
+						if(psJoinTable!=null){
+							Table joinsTable = (Table) psJoinTable;
+							setTableAndAlias(joinsTable);
+						}
 					}
 				}
 			}
@@ -227,6 +229,19 @@ public class SQLQueryParser extends AbstractQueryParser {
 		parseReturnVariables(statement);
 	}
 	
+	public Hashtable<String, Hashtable<String, String>> getReturnVarsFromQuery(String query) {
+		CCJSqlParserManager parserManager = new CCJSqlParserManager();
+		try {
+			Select selectStatement = (Select) parserManager.parse(new StringReader(query));
+			parseTablesAndAlias(selectStatement);
+			parseReturnVariables(selectStatement);
+		} catch (JSQLParserException e) {
+			e.printStackTrace();
+		}
+		
+		return getReturnVariables();
+	}
+	
 	
 	/**
 	 * Take in the Table object and parse out the table name and alias
@@ -274,10 +289,8 @@ public class SQLQueryParser extends AbstractQueryParser {
 						String columnName = returnColumn.getColumnName();
 						String tableName = aliasTableMap.get(tableAliasName);
 						//only add the property if the column is not the same as the table name.
-						if(!tableName.equalsIgnoreCase(columnName)){
 							addToVariablesMap(typePropVariables, tableName, expressionAlias, columnName);
 							addToVariablesMap(typeReturnVariables, tableName, expressionAlias, columnName);
-						}
 					}
 					//expression returned MAY contain the table name/table alias prior to the expression value.  Keeping this for now
 					
