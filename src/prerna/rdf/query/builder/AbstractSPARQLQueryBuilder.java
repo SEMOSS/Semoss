@@ -12,17 +12,14 @@ import java.util.Set;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.internal.StringMap;
-
 import prerna.engine.api.IEngine;
 import prerna.rdf.query.util.SEMOSSQuery;
 import prerna.rdf.query.util.SEMOSSQueryHelper;
 import prerna.rdf.query.util.SPARQLConstants;
 import prerna.rdf.query.util.TriplePart;
 import prerna.rdf.query.util.TriplePartConstant;
-import prerna.util.Constants;
-import prerna.util.Utility;
+
+import com.google.gson.internal.StringMap;
 
 public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 
@@ -31,7 +28,7 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 	List<String> totalVarList = new ArrayList<String>();
 	List<Hashtable<String,String>> nodeV = new ArrayList<Hashtable<String,String>>();
 	List<Hashtable<String,String>> predV = new ArrayList<Hashtable<String,String>>();
-	List<Hashtable<String,String>> nodePropV = new ArrayList<Hashtable<String,String>>();
+	List<Map<String,String>> nodePropV = new ArrayList<Map<String,String>>();
 	Hashtable<String, List<Object>> filterDataHash = new Hashtable<String, List<Object>>();
 	Hashtable<String, List<Object>> bindingsDataHash = new Hashtable<String, List<Object>>();
 	Hashtable<String, Object> bindDataHash = new Hashtable<String, Object>();
@@ -46,33 +43,22 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 	}
 	
 	protected void parsePath(){
-		Hashtable<String, List> parsedPath = QueryBuilderHelper.parsePath(allJSONHash, engine);
+		Hashtable<String, List> parsedPath = QueryBuilderHelper.parsePath(builderData, engine);
 		totalVarList = parsedPath.get(QueryBuilderHelper.totalVarListKey);
 		nodeV = parsedPath.get(QueryBuilderHelper.nodeVKey);
 		predV = parsedPath.get(QueryBuilderHelper.predVKey);
 	}
 	
 	@Override
-	public void setJSONDataHash(Map<String, Object> allJSONHash) {
-		QueryBuilderHelper.cleanJSONHash(engine, allJSONHash);
-		Gson gson = new Gson();
-		this.allJSONHash = new Hashtable<String, Object>();
-		this.allJSONHash.putAll((StringMap) allJSONHash.get("QueryData"));
-		ArrayList<StringMap> list = (ArrayList<StringMap>) allJSONHash.get("SelectedNodeProps") ;
-		this.nodePropV = new ArrayList<Hashtable<String, String>>();
-		if(allJSONHash.containsKey("returnOrder")){
-			System.out.println("setting return order in semoss query " );
-			this.semossQuery.setReturnVarOrder((List) allJSONHash.get("returnOrder"));
-		}
-		for(StringMap map : list){
-			Hashtable hash = new Hashtable();
-			hash.putAll(map);
-			nodePropV.add(hash);
-		}
+	public void setBuilderData(QueryBuilderData queryBuilderData) {
+//		QueryBuilderHelper.cleanBuilderData(engine, queryBuilderData);
+		this.builderData = queryBuilderData;
+		this.semossQuery.setReturnVarOrder(queryBuilderData.getVarReturnOrder());
+		nodePropV = queryBuilderData.getNodeProps();
 	}
 	
 	protected void addNodesToQuery (List<Hashtable<String,String>> nodeV) {
-		for(Hashtable<String, String> nodeHash : nodeV){
+		for(Map<String, String> nodeHash : nodeV){
 			String nodeName = nodeHash.get(QueryBuilderHelper.varKey);
 			String nodeURI = nodeHash.get(QueryBuilderHelper.uriKey);
 			SEMOSSQuery headerQuery = createDefaultFilterQuery(nodeName);
@@ -84,10 +70,10 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 		}
 	}
 	
-	protected void addPropsToQuery (List<Hashtable<String,String>> nodePropV) {
-		List<Hashtable<String, String>> propV = new ArrayList<Hashtable<String, String>>();
+	protected void addPropsToQuery (List<Map<String,String>> nodePropV) {
+		List<Map<String, String>> propV = new ArrayList<Map<String, String>>();
 		propV.addAll(nodePropV);
-		for(Hashtable<String, String> propHash : propV) {
+		for(Map<String, String> propHash : propV) {
 			String propName = propHash.get(QueryBuilderHelper.varKey);
 			String propURI = propHash.get(QueryBuilderHelper.uriKey);
 			SEMOSSQueryHelper.addGenericTriple(propHash.get("SubjectVar"), TriplePart.VARIABLE, propURI, TriplePart.URI, propName, TriplePart.VARIABLE, semossQuery);
@@ -96,13 +82,7 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 	}
 	
 	protected void configureQuery(){ 
-		// TODO Auto-generated method stub
-
-		searchFilterData();
-
 		buildFilter();
-		
-		clearFilterData();
 		
 		// use nodeV, predV, and propV (as determined from parsing path and properties) to add necessary pieces to query
 		// the rule is that all path variables must be included (otherwise we have a disconnected query) but properties are optional
@@ -116,18 +96,7 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 		addPropsToQuery(nodePropV);
 		
 		addFilter();
-		
-		addParameters();
 	};
-	
-	private void addParameters() {
-		Map<String, String> params = (Map<String, String>) allJSONHash.get("Parameters");
-		if(params != null && !params.isEmpty()) {
-			List<Map<String, String>> parameters = new ArrayList<Map<String, String>>();
-			parameters.add(params);
-			SEMOSSQueryHelper.addParametersToQuery(parameters, semossQuery, "Main");
-		}
-	}
 
 	abstract protected void addRelationshipTriples(List<Hashtable<String, String>> predV2);
 
@@ -141,51 +110,10 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 		SEMOSSQueryHelper.addSingleReturnVarToQuery(varName, q);
 		return q;
 	}
-
-	protected void searchFilterData(){
-		StringMap<String> searchFilterResults = (StringMap<String>) allJSONHash.get(searchFilterKey);
-		if(searchFilterResults != null){
-			Iterator <String> keys = searchFilterResults.keySet().iterator();
-			for(int colIndex = 0;keys.hasNext();colIndex++) // process one column at a time. At this point my key is title on the above
-			{
-				String varName = keys.next(); // this gets me title above
-			
-				String filterValue = searchFilterResults.get(varName);
-				ArrayList<Object> filterValueArr = new ArrayList();
-				filterValueArr.add(filterValue);
-				if(filterValue.length()>0 ){
-					searchFilter.put(varName,filterValueArr);
-				}
-
-			}
-		
-		}
-	}
-	protected void clearFilterData(){
-		StringMap<String> clearFilterResults = (StringMap<String>) allJSONHash.get(clearFilterKey);
-		if(clearFilterResults != null){
-			Iterator <String> keys = clearFilterResults.keySet().iterator();
-			for(int colIndex = 0;keys.hasNext();colIndex++) // process one column at a time. At this point my key is title on the above
-			{
-				String varName = keys.next(); // this gets me title above
-				// need to split when there are underscores
-				// for now keeping it simple
-
-				// get the list
-				String clearValues = clearFilterResults.get(varName);
-				if(clearValues.length()>0 ){
-					Boolean clearFilterValue = Boolean.valueOf(clearValues);
-					clearFilter.put(varName,clearFilterValue);
-				}
-
-			}
-		
-		}
-	}
 	
 	protected void buildFilter()
 	{
-		StringMap<List<Object>> filterResults = (StringMap<List<Object>>) allJSONHash.get(filterKey);
+		Map<String, List<Object>> filterResults = builderData.getFilterData();
 		if(filterResults != null)
 		{
 			for(String varName : filterResults.keySet())
@@ -333,18 +261,18 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 		}
 	}
 
-	public void setPropV(ArrayList<Hashtable<String,String>> selectedNodePropsList)
+	public void setPropV(ArrayList<Map<String,String>> selectedNodePropsList)
 	{
 		this.nodePropV = selectedNodePropsList;
 	}
 			
-	public ArrayList<Hashtable<String,String>> getHeaderArray(){
-		ArrayList<Hashtable<String,String>> retArray = new ArrayList<Hashtable<String,String>>();
+	public ArrayList<Map<String,String>> getHeaderArray(){
+		ArrayList<Map<String,String>> retArray = new ArrayList<Map<String,String>>();
 		retArray.addAll(nodeV);
 		retArray.addAll(nodePropV);
 		// add the filter queries
 		String defaultQueryPattern = this.semossQuery.getQueryPattern();
-		for(Hashtable<String, String> headerHash : retArray){
+		for(Map<String, String> headerHash : retArray){
 			String varName = headerHash.get(QueryBuilderHelper.varKey);
 			String filterQuery = "";
 			
@@ -376,7 +304,7 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 		return this.predV;
 	}
 	
-	public List<Hashtable<String, String>> getNodePropV(){
+	public List<Map<String, String>> getNodePropV(){
 		return this.nodePropV;
 	}
 	

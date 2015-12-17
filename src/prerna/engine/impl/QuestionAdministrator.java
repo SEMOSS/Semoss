@@ -44,6 +44,7 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.rdf.query.builder.QueryBuilderData;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.FilterTransformation;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
@@ -463,8 +464,7 @@ public class QuestionAdministrator {
 			
 			if(query == null) {
 				involvedParams = getInvolvedParams(dmc, parameters, paramsAccountedFor);
-				Map<String, Object> metamodel = dmc.getMetamodelData();
-				String jsonMetamodel = gson.toJson(metamodel);
+				String jsonMetamodel = gson.toJson(dmc.getBuilderData());
 				LOGGER.info("Component " + i + " does NOT have query... instead saving metamodel::: " + jsonMetamodel);
 				jsonMetamodel = escapeForNTripleAndSQLStatement(jsonMetamodel);
 				builder.append("<http://semoss.org/ontologies/Concept/Component/" + i + "> <http://semoss.org/ontologies/Relation/Contains/Metamodel> \"" + jsonMetamodel + "\" .\n");
@@ -600,16 +600,15 @@ public class QuestionAdministrator {
 	}
 	
 	private boolean compInvolvesParam(DataMakerComponent dmc, List<SEMOSSParam> parameters) {
-		Map<String, Object> metamodel = dmc.getMetamodelData();
-		if(metamodel != null && !metamodel.isEmpty()){
-			Map<String, Object> queryData = (Map<String, Object>) metamodel.get("QueryData");
-			List<List<Object>> relTriples = (List<List<Object>>) queryData.get("relTriples");
-			List<Map<String, List<String>>> filters = (List<Map<String, List<String>>>) queryData.get("filter");
-			List<Map<String, Object>> nodeProps = (List<Map<String, Object>>) metamodel.get("SelectedNodeProps");
+		QueryBuilderData metamodel = dmc.getBuilderData();
+		if(metamodel != null){
+			List<List<String>> relTriples = metamodel.getRelTriples();
+			Map<String, List<Object>> filters = metamodel.getFilterData();
+			List<Map<String, String>> nodeProps = metamodel.getNodeProps();
 			if(relTriples != null) {
 				for(int j = 0; j < relTriples.size(); j++) {
-					List<Object> triple = relTriples.get(j);
-					for(Object uri : triple) {
+					List<String> triple = relTriples.get(j);
+					for(String uri : triple) {
 						for(SEMOSSParam param : parameters){
 							if(uri.equals(param.getType())) {
 								return true;
@@ -691,28 +690,30 @@ public class QuestionAdministrator {
 		PARAMS_FOR : for(SEMOSSParam param : params) {
 			if(!paramsAccountedFor.contains(param)){
 				String paramURI = param.getType();
-				Map<String, Object> metamodel = dmc.getMetamodelData();
-				Map<String, Object> queryData = (Map<String, Object>) metamodel.get("QueryData");
-				List<List<Object>> relTriples = (List<List<Object>>) queryData.get("relTriples");
-				List<Map<String, Object>> nodeProps = (List<Map<String, Object>>) metamodel.get("SelectedNodeProps");
-				boolean containsParam =  false;
-				if(relTriples != null) {
-					for(int j = 0; j < relTriples.size(); j++) {
-						List<Object> triple = relTriples.get(j);
-						for(Object uri : triple) {
-							if(uri.equals(paramURI)) {
-								involvedParams.add(param);
-								continue PARAMS_FOR;
+				QueryBuilderData builderData = dmc.getBuilderData();
+				if(builderData != null) {
+					List<List<String>> relTriples = builderData.getRelTriples();
+					List<Map<String, String>> nodeProps = builderData.getNodeProps();
+					boolean containsParam =  false;
+					if(relTriples != null) {
+						for(int j = 0; j < relTriples.size(); j++) {
+							List<String> triple = relTriples.get(j);
+							for(String uri : triple) {
+								if(uri.equals(paramURI)) {
+									involvedParams.add(param);
+									continue PARAMS_FOR;
+								}
 							}
 						}
 					}
-				}
-				if(nodeProps != null && !containsParam) {
-					for(int j = 0; j < nodeProps.size(); j++) {
-						Object uri = nodeProps.get(j).get("uriKey");
-						if(uri != null && uri.equals(paramURI)) {
-							involvedParams.add(param);
-							continue PARAMS_FOR;
+					
+					if(nodeProps != null && !containsParam) {
+						for(int j = 0; j < nodeProps.size(); j++) {
+							Object uri = nodeProps.get(j).get("uriKey");
+							if(uri != null && uri.equals(paramURI)) {
+								involvedParams.add(param);
+								continue PARAMS_FOR;
+							}
 						}
 					}
 				}
