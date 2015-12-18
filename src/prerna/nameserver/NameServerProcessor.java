@@ -29,16 +29,6 @@ public class NameServerProcessor extends AbstractNameServer {
 		super(masterEngine);
 	}
 	
-	/**
-	 * Constructor for the class, using input database as master database
-	 * Defines the engine for the name server
-	 * Defines the wordnet library
-	 * Defines the stanford nlp library
-	 */
-	public NameServerProcessor(IEngine masterEngine, String wordNetDir, String lpDir) {
-		super(masterEngine, wordNetDir, lpDir);
-	}
-	
 	@Override
 	public boolean indexQuestion(String questionURL, List<String> paramURLs, List<String> tags, Map<String, Object> filterOptions) {
 		// TODO Auto-generated method stub
