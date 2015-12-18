@@ -3278,3 +3278,891 @@ core_engine_id : 2
 params : Concept
 params : Instance
 </SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-15T10:36:47Z
+core_engine : form_builder_engine
+created_on : 2015-12-15T10:36:47Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-15T10:36:47Z
+core_engine : form_builder_engine
+created_on : 2015-12-15T10:36:47Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-15T10:45:55Z
+core_engine : form_builder_engine
+created_on : 2015-12-15T10:45:55Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-15T10:45:55Z
+core_engine : form_builder_engine
+created_on : 2015-12-15T10:45:55Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-15T12:28:57Z
+core_engine : form_builder_engine
+created_on : 2015-12-15T12:28:57Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-15T12:28:57Z
+core_engine : form_builder_engine
+created_on : 2015-12-15T12:28:57Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-15T12:31:28Z
+core_engine : form_builder_engine
+created_on : 2015-12-15T12:31:28Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-15T12:31:28Z
+core_engine : form_builder_engine
+created_on : 2015-12-15T12:31:28Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-15T15:45:49Z
+core_engine : form_builder_engine
+created_on : 2015-12-15T15:45:49Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-15T15:45:49Z
+core_engine : form_builder_engine
+created_on : 2015-12-15T15:45:49Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-15T15:48:22Z
+core_engine : form_builder_engine
+created_on : 2015-12-15T15:48:22Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-15T15:48:22Z
+core_engine : form_builder_engine
+created_on : 2015-12-15T15:48:22Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-15T15:49:06Z
+core_engine : form_builder_engine
+created_on : 2015-12-15T15:49:06Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-15T15:49:06Z
+core_engine : form_builder_engine
+created_on : 2015-12-15T15:49:06Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-15T15:56:56Z
+core_engine : form_builder_engine
+created_on : 2015-12-15T15:56:56Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-15T15:56:56Z
+core_engine : form_builder_engine
+created_on : 2015-12-15T15:56:56Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-16T14:13:50Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T14:13:50Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-16T14:13:50Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T14:13:50Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-16T14:31:09Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T14:31:09Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-16T14:31:09Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T14:31:09Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-16T14:39:58Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T14:39:58Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-16T14:39:58Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T14:39:58Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-16T14:43:45Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T14:43:45Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-16T14:43:45Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T14:43:45Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-16T14:56:38Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T14:56:38Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-16T14:56:38Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T14:56:38Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-16T15:23:54Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T15:23:54Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-16T15:23:54Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T15:23:54Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-16T15:33:14Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T15:33:14Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-16T15:33:14Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T15:33:14Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-16T16:12:21Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T16:12:21Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-16T16:12:21Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T16:12:21Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-16T16:13:00Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T16:13:00Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-16T16:13:00Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T16:13:00Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-16T16:19:45Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T16:19:45Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-16T16:19:45Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T16:19:45Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-16T16:21:06Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T16:21:06Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-16T16:21:06Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T16:21:06Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-16T17:16:40Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T17:16:40Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-16T17:16:40Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T17:16:40Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-16T17:33:51Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T17:33:51Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-16T17:33:51Z
+core_engine : form_builder_engine
+created_on : 2015-12-16T17:33:51Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-17T09:26:12Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T09:26:12Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-17T09:26:12Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T09:26:12Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-17T09:34:02Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T09:34:02Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-17T09:34:02Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T09:34:02Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-17T09:49:10Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T09:49:10Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-17T09:49:10Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T09:49:10Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-17T09:54:16Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T09:54:16Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-17T09:54:16Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T09:54:16Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-17T10:17:29Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T10:17:29Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-17T10:17:29Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T10:17:29Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-17T10:19:46Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T10:19:46Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-17T10:19:46Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T10:19:46Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-17T10:20:36Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T10:20:36Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-17T10:20:36Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T10:20:36Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-17T10:21:39Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T10:21:39Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-17T10:21:39Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T10:21:39Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-17T10:28:41Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T10:28:41Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-17T10:28:41Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T10:28:41Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-17T11:21:34Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T11:21:34Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-17T11:21:34Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T11:21:34Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-17T11:31:53Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T11:31:53Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-17T11:31:53Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T11:31:53Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-17T13:10:38Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T13:10:38Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-17T13:10:38Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T13:10:38Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-17T13:38:48Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T13:38:48Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-17T13:38:48Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T13:38:48Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-17T13:46:34Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T13:46:34Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-17T13:46:34Z
+core_engine : form_builder_engine
+created_on : 2015-12-17T13:46:34Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-18T08:27:54Z
+core_engine : form_builder_engine
+created_on : 2015-12-18T08:27:54Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-18T08:27:54Z
+core_engine : form_builder_engine
+created_on : 2015-12-18T08:27:54Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_1
+modified_on : 2015-12-18T11:12:11Z
+core_engine : form_builder_engine
+created_on : 2015-12-18T11:12:11Z
+layout : Grid
+engines : form_builder_engine
+name : Show all from Title
+user_id : default
+core_engine_id : 1
+</SolrInputDocument>
+<SolrInputDocument>
+id : form_builder_engine_2
+modified_on : 2015-12-18T11:12:11Z
+core_engine : form_builder_engine
+created_on : 2015-12-18T11:12:11Z
+layout : Graph
+engines : form_builder_engine
+name : Explore a concept from the database
+user_id : default
+core_engine_id : 2
+params : Concept
+params : Instance
+</SolrInputDocument>
