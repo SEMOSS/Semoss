@@ -36,6 +36,7 @@ public class JoinTransformation extends AbstractTransformation {
 	DataMakerComponent dmc;
 	ITableDataFrame dm;
 	ITableDataFrame nextDm;
+	List<String> addedColumns = new ArrayList<>();
 
 	IMatcher matcher;
 	
@@ -70,6 +71,19 @@ public class JoinTransformation extends AbstractTransformation {
 	@Override
 	public void runMethod() {
 		getMatcher();
+		
+		//Store the new columns that will be added to dm
+		if(nextDm != null) {
+			String[] allCols = nextDm.getColumnHeaders();
+			for(int i = 0; i < allCols.length; i++) {
+				String val = allCols[i];
+				if(val.equals(props.get(COLUMN_TWO_KEY) + "")) {
+					continue;
+				}
+				addedColumns.add(val);
+			}
+		}
+		
 		//the run method will either append to the component to limit the construction of the new component
 		//otherwise, it will perform the actual joining between two components
 		if(!preTransformation) {
@@ -132,7 +146,7 @@ public class JoinTransformation extends AbstractTransformation {
 
 	@Override
 	public void undoTransformation() {
-		String[] allCols = nextDm.getColumnHeaders();
+		/*String[] allCols = nextDm.getColumnHeaders();
 		List<String> addedCols = new ArrayList<String>();
 		for(int i = 0; i < allCols.length; i++) {
 			String val = allCols[i];
@@ -140,15 +154,15 @@ public class JoinTransformation extends AbstractTransformation {
 				continue;
 			}
 			addedCols.add(val);
-		}
+		}*/
 		Method method = null;
 		try {
 			method = dm.getClass().getMethod(UNDO_METHOD_NAME, String.class);
 			LOGGER.info("Successfully got method : " + UNDO_METHOD_NAME);
 			
-			// iterate from root to top for efficiency in removing connections
-			for(int i = addedCols.size()-1; i >= 0; i--) {
-				method.invoke(dm, addedCols.get(i));
+			// iterate from leaf to root for efficiency in removing connections
+			for(int i = addedColumns.size()-1; i >= 0; i--) {
+				method.invoke(dm, addedColumns.get(i));
 				LOGGER.info("Successfully invoked method : " + UNDO_METHOD_NAME);
 			}
 		} catch (NoSuchMethodException | SecurityException e) {
@@ -169,6 +183,8 @@ public class JoinTransformation extends AbstractTransformation {
 		joinCopy.setDataMakers(dm, nextDm);
 		joinCopy.setId(id);
 		joinCopy.setTransformationType(preTransformation);
+		joinCopy.addedColumns = this.addedColumns;
+		
 		if(props != null) {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
 			String propCopy = gson.toJson(props);
