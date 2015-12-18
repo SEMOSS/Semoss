@@ -38,22 +38,11 @@ public abstract class AbstractNameServer implements INameServer {
 	
 	/**
 	 * Constructor for the class, using input database as master database
-	 * Sometimes we do not need to use wordnet or stanford nlp library so avoid long loading time
-	 * Modifies the name to match the input name for the master database
-	 * @param masterEngine
-	 */
-	public AbstractNameServer(IEngine masterEngine) {
-		this.masterEngine = masterEngine;
-		this.masterDBName = masterEngine.getEngineName();
-	}
-	
-	/**
-	 * Constructor for the class, using input database as master database
 	 * Defines the engine for the name server
 	 * Defines the wordnet library
 	 * Defines the stanford nlp library
 	 */
-	public AbstractNameServer(IEngine masterEngine, String wordNetDir, String lpDir) {
+	public AbstractNameServer(IEngine masterEngine) {
 		this.masterEngine = masterEngine;
 		
 		// set up the wordnet and stanford nlp packages for 
