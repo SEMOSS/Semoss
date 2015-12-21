@@ -91,9 +91,6 @@ import org.openrdf.rio.RDFParseException;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
-import com.ibm.icu.math.BigDecimal;
-import com.ibm.icu.text.DecimalFormat;
-
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -107,6 +104,9 @@ import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
+
+import com.ibm.icu.math.BigDecimal;
+import com.ibm.icu.text.DecimalFormat;
 
 /**
  * The Utility class contains a variety of miscellaneous functions implemented extensively throughout SEMOSS.
@@ -907,7 +907,7 @@ public class Utility {
 
 	 * @return 	Cleaned string */
 	public static String cleanString(String original, boolean replaceForwardSlash){
-		return cleanString(original,replaceForwardSlash,true);
+		return cleanString(original,replaceForwardSlash,true, false);
 	}
 	
 	/**
@@ -917,7 +917,7 @@ public class Utility {
 	 * @param	replaceForRDF If true, replace double quote with single quote and replace space with underscore.  For RDBMS this should be false
 
 	 * @return 	Cleaned string */
-	public static String cleanString(String original, boolean replaceForwardSlash, boolean replaceForRDF){
+	public static String cleanString(String original, boolean replaceForwardSlash, boolean replaceForRDF, boolean property){
 		String retString = original;
 		
 		retString = retString.trim();
@@ -927,15 +927,18 @@ public class Utility {
 		}
 		retString = retString.replaceAll("\\{", "(");
 		retString = retString.replaceAll("\\}", ")");
-		retString = retString.replaceAll("\\\\", "-");//replace backslashes with dashes
 		retString = retString.replaceAll("'", "");//remove apostrophe
 		if(replaceForRDF){
 			retString = retString.replaceAll("\"", "'");//replace double quotes with single quotes
 		}
 		retString = retString.replaceAll(" ", "_");//replace spaces with underscores
-		if(replaceForwardSlash) {
-			retString = retString.replaceAll("/", "-");//replace forward slashes with dashes
+		if(!property) {
+			if(replaceForwardSlash) {
+				retString = retString.replaceAll("/", "-");//replace forward slashes with dashes
+			}
+			retString = retString.replaceAll("\\\\", "-");//replace backslashes with dashes
 		}
+
 		retString = retString.replaceAll("\\|", "-");//replace vertical lines with dashes
 		retString = retString.replaceAll("\n", " ");
 		retString = retString.replaceAll("<", "(");
