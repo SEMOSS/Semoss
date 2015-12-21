@@ -46,19 +46,10 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.ValueFactory;
 import org.openrdf.model.vocabulary.RDF;
-import org.openrdf.model.vocabulary.RDFS;
-import org.openrdf.repository.Repository;
-import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
-import org.openrdf.repository.RepositoryResult;
-import org.openrdf.repository.sail.SailRepository;
-import org.openrdf.repository.sail.SailRepositoryConnection;
-import org.openrdf.rio.RDFHandlerException;
-import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 import org.openrdf.sail.Sail;
 import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
-import org.openrdf.sail.memory.MemoryStore;
 import org.supercsv.cellprocessor.Optional;
 import org.supercsv.cellprocessor.ParseBool;
 import org.supercsv.cellprocessor.ParseDate;
@@ -70,8 +61,6 @@ import org.supercsv.io.CsvMapReader;
 import org.supercsv.io.ICsvMapReader;
 import org.supercsv.prefs.CsvPreference;
 
-import com.hp.hpl.jena.vocabulary.OWL;
-
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -79,13 +68,14 @@ import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.QuestionAdministrator;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.poi.main.DisplayNamesProcessor;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
+
+import com.hp.hpl.jena.vocabulary.OWL;
 
 /**
  * Loading data into SEMOSS using comma separated value (CSV) files
@@ -1132,7 +1122,7 @@ public class RDBMSReader {
 	{
 		inputString = inputString.replaceAll("\\+", "_");
 		// now clean it up
-		inputString = Utility.cleanString(inputString,true,true);//should the last param (replacequotes) be true or false?
+		inputString = Utility.cleanString(inputString,true,true, false);//should the last param (replacequotes) be true or false?
 		// finally finish it up with the replacing -
 		inputString = inputString.replaceAll("-", "_");
 
@@ -2168,7 +2158,7 @@ public class RDBMSReader {
 			}
 		}
 		//if (!property) {
-		retString = Utility.cleanString(retString, true, false); // clean string
+		retString = Utility.cleanString(retString, true, false, property); // clean string
 		//} //to do, if it is a property, do we want to re add or remove undersores?  if we choose to remove, we do run into errors
 		return retString;
 	}

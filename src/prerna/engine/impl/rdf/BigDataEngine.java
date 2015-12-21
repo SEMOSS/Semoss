@@ -44,7 +44,6 @@ import org.openrdf.model.Literal;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
 import org.openrdf.model.ValueFactory;
-import org.openrdf.model.impl.NumericLiteralImpl;
 import org.openrdf.query.BooleanQuery;
 import org.openrdf.query.GraphQuery;
 import org.openrdf.query.GraphQueryResult;
@@ -61,17 +60,17 @@ import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
 
-import com.bigdata.rdf.model.BigdataLiteralImpl;
-import com.bigdata.rdf.rules.InferenceEngine;
-import com.bigdata.rdf.sail.BigdataSail;
-import com.bigdata.rdf.sail.BigdataSailRepository;
-import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
-
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+
+import com.bigdata.rdf.model.BigdataLiteralImpl;
+import com.bigdata.rdf.rules.InferenceEngine;
+import com.bigdata.rdf.sail.BigdataSail;
+import com.bigdata.rdf.sail.BigdataSailRepository;
+import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
 
 /**
  * Big data engine serves to connect the .jnl files, which contain the RDF database, to the java engine.
@@ -361,8 +360,8 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 					logger.debug("Found String " + object);
 					String value = object + "";
 					// try to see if it already has properties then add to it
-					String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
-					sc.addStatement(newSub, newPred, vf.createLiteral(cleanValue));
+//					String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
+					sc.addStatement(newSub, newPred, vf.createLiteral(value));
 				} 
 			}
 			else {

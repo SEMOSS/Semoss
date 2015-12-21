@@ -46,14 +46,14 @@ import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 
-import com.hp.hpl.jena.vocabulary.OWL;
-
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+
+import com.hp.hpl.jena.vocabulary.OWL;
 
 public abstract class AbstractFileReader {
 
@@ -521,7 +521,7 @@ public abstract class AbstractFileReader {
 					// logger.info("Processing Current User Property");
 					insertCurrentUser(propURI, basePropURI, instanceURI);
 				} else {
-					String cleanValue = Utility.cleanString(value, true);
+					String cleanValue = Utility.cleanString(value, true, false, true);
 					// logger.info("Processing String value " + cleanValue);
 					engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceURI, propURI, cleanValue, false });
 				}
