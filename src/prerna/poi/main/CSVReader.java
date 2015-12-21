@@ -444,7 +444,7 @@ public class CSVReader extends AbstractFileReader {
 								property = prop;
 							}
 						}
-						String propValue = createInstanceValue(prop, jcrMap);
+						String propValue = createLiteralValue(prop, jcrMap);
 						if (subjectValue.isEmpty() || propValue.isEmpty())
 						{
 							continue;
@@ -921,6 +921,50 @@ public class CSVReader extends AbstractFileReader {
 			{
 				String value = jcrMap.get(subject) + "";
 				value = Utility.cleanString(value, true);
+				retString = value;
+			}
+		}
+		return retString;
+	}
+	
+	/**
+	 * Constructs the property literal
+	 * @param subject 		String containing the node type name
+	 * @param jcrMap 		Map containing the data in the CSV file
+	 * @return retString 	String containing the instance level name
+	 */
+	public String createLiteralValue(String subject, Map <String, Object> jcrMap)
+	{
+		String retString ="";
+		// if node is a concatenation
+		if(subject.contains("+")) 
+		{
+			String elements[] = subject.split("\\+");
+			for (int i = 0; i<elements.length; i++)
+			{
+				String subjectElement = elements[i];
+				if(jcrMap.containsKey(subjectElement) && jcrMap.get(subjectElement)!= null)
+				{
+					String value = jcrMap.get(subjectElement) + "";
+					value = Utility.cleanString(value, true, false, true);
+
+					retString = retString  + value + "-";
+				}
+				else
+				{
+					retString = retString  + "null-";
+				}
+			}
+			// a - will show up at the end of this and we need to get rid of that
+			if(!retString.equals(""))
+				retString = retString.substring(0,retString.length()-1);
+		}
+		else
+		{
+			if(jcrMap.containsKey(subject) && jcrMap.get(subject)!= null)
+			{
+				String value = jcrMap.get(subject) + "";
+				value = Utility.cleanString(value, true, false, true);
 				retString = value;
 			}
 		}

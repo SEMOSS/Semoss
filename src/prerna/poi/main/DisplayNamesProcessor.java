@@ -82,21 +82,21 @@ public class DisplayNamesProcessor{
 				String subject = strSplit[0];
 				String node = subject;
 				String property = subject;
-				String displayName = Utility.cleanString(strSplit[1], false, false); //if we want to support special chars, then dont clean this:  strSplit[1];
+				String displayName = Utility.cleanString(strSplit[1], false, false, false); //if we want to support special chars, then dont clean this:  strSplit[1];
 				if(isRDBMS){
 					displayName = displayName.replaceAll("-", "_");
 				}
 				if(subject.contains("%")){
 					String[] splitSubject = subject.split("%");
-					node = Utility.cleanString(splitSubject[0], false, false);//Utility.cleanVariableString(splitSubject[0]);
-					property = Utility.cleanString(splitSubject[1], false, false);//Utility.cleanVariableString(splitSubject[1]);
+					node = Utility.cleanString(splitSubject[0], false, false, false);//Utility.cleanVariableString(splitSubject[0]);
+					property = Utility.cleanString(splitSubject[1], false, false, false);//Utility.cleanVariableString(splitSubject[1]);
 					if(isRDBMS){
 						node = node.replaceAll("-", "_");
 						property = property.replaceAll("-", "_");
 					}
 					subject = node+"%"+property;
 				} else {
-					subject = Utility.cleanString(subject, false, false);
+					subject = Utility.cleanString(subject, false, false, false);
 					if(isRDBMS){
 						subject = subject.replaceAll("-", "_");
 					}
