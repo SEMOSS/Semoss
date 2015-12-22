@@ -131,8 +131,9 @@ public class HealthGridSheet extends BrowserPlaySheet{
 		allHash.put("dataSeries", allData);
 		allHash.put("title", "Health Grid");
 		allHash.put("xAxisTitle", xName);
-		allHash.put("yAxisTitle",  "Technical Maturity");
-		allHash.put("zAxisTitle",zName);
+		allHash.put("yAxisTitle", "Technical Maturity");
+		allHash.put("zAxisTitle", zName);
+		allHash.put("series", "System Status");
 		
 		if(highlight)
 		{
