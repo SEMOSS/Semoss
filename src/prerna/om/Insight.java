@@ -790,7 +790,9 @@ public class Insight {
 			DataMakerComponent dmc = dmComponents.get(i);
 			List<ISEMOSSAction> actions = dmc.getActions();
 			undoActions(actions, processes);
-			List<ISEMOSSTransformation> trans = dmc.getPostTrans();
+			
+			List<ISEMOSSTransformation> trans = new ArrayList<>();
+			trans.addAll(dmc.getPostTrans());
 			trans.addAll(dmc.getPreTrans());
 			boolean joinUndone = undoTransformations(trans, processes);
 			if(joinUndone) {
