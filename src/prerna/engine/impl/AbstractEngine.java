@@ -475,9 +475,10 @@ public abstract class AbstractEngine implements IEngine {
 	// gets the from neighborhood for a given node
 	public Vector<String> getFromNeighbors(String nodeType, int neighborHood) {
 		// this is where this node is the from node
+		String physicalNodeType = getTransformedNodeName(Constants.DISPLAY_URI + Utility.getInstanceName(nodeType), false);
 		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
 		List<Object> nodeArr = new Vector<Object>();
-		nodeArr.add(nodeType);
+		nodeArr.add(physicalNodeType);
 		paramHash.put("nodeType", nodeArr);
 		return Utility.getVectorOfReturn(Utility.fillParam(FROM_SPARQL, paramHash), baseDataEngine, true);
 	}
@@ -485,9 +486,10 @@ public abstract class AbstractEngine implements IEngine {
 	// gets the to nodes
 	public Vector<String> getToNeighbors(String nodeType, int neighborHood) {
 		// this is where this node is the to node
+		String physicalNodeType = getTransformedNodeName(Constants.DISPLAY_URI + Utility.getInstanceName(nodeType), false);
 		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
 		List<Object> nodeArr = new Vector<Object>();
-		nodeArr.add(nodeType);
+		nodeArr.add(physicalNodeType);
 		paramHash.put("nodeType", nodeArr);
 		return Utility.getVectorOfReturn(Utility.fillParam(TO_SPARQL, paramHash), baseDataEngine, true);
 	}

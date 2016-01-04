@@ -109,8 +109,6 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 		IConstructStatement stmt = null; // I know I need to run the magic of doing multiple indexes, but this is how we run it for now i.e. assumes 3 only
 		try {
 			if(rs.next()){
-				String subjectUri = Constants.CONCEPT_URI;
-				String objectUri = Constants.CONCEPT_URI;
 				stmt = new ConstructStatement();
 				subject = rs.getObject(var[0]) + "" ;
 				predicate = "" ;
@@ -123,13 +121,15 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 				}
 				if(rs.getObject(var[0]) != null && columnTables.contains(var[0].toUpperCase()))
 				{
-					subject = subjectUri + var[0] + "/"  + subject + ""; 
-					subjectParent = Utility.getQualifiedClassName(subject);
+					String displayName = displayVar[0];
+					subjectParent = engine.getTransformedNodeName(Constants.DISPLAY_URI + displayName, false);
+					subject = Constants.CONCEPT_URI + displayName + "/"  + subject + ""; 
 				}
 				if(rs.getObject(var[2]) != null && columnTables.contains(var[2].toUpperCase()))
 				{
-					object = objectUri + var[2] + "/"  + rs.getObject(var[2]) + "";
-					objectParent = Utility.getQualifiedClassName(object);
+					String displayName = displayVar[2];
+					objectParent = engine.getTransformedNodeName(Constants.DISPLAY_URI + displayName, false);
+					object = Constants.CONCEPT_URI + displayName + "/"  + object + ""; 
 				}
 				if(rs.getObject(var[1]) != null)
 				{
@@ -242,6 +242,13 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 //				if(columnLabel.isEmpty() && dbType == SQLQueryUtil.DB_TYPE.SQL_Server){
 //					columnLabel = deriveTableName(columnLabel, columnLabel);
 //				}
+				
+				// weird thing that happens when we have T.Title -> rs.getObject expects Title, not T.Title
+				if(logName.contains(".") && !logName.contains("http://semoss.org/ontologies") && !logName.contains(RDF.TYPE + "")
+						&& !logName.contains(RDFS.SUBCLASSOF + "") && !logName.contains(RDFS.SUBPROPERTYOF + "")) {
+					String[] logSplit = logName.split("\\.");
+					logName = logSplit[1].toUpperCase();
+				}
 				
 				var[colIndex-1] = logName;
 				displayVar[colIndex-1] = logName;
