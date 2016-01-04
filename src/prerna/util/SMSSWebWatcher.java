@@ -36,7 +36,6 @@ import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -267,7 +266,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			if(SolrIndexEngine.getInstance().serverActive()) {
 				List<String> facetList = new ArrayList<String>();
 				facetList.add(SolrIndexEngine.CORE_ENGINE);
-				Map<String, Map<String, Long>> facetReturn = SolrIndexEngine.getInstance().executeQueryFacetResults(null, facetList);
+				Map<String, Map<String, Long>> facetReturn = SolrIndexEngine.getInstance().executeQueryFacetResults(null, null, facetList);
 				if(facetReturn != null && !facetReturn.isEmpty()) {
 					Map<String, Long> solrEngines = facetReturn.get(SolrIndexEngine.CORE_ENGINE);
 					if(solrEngines != null) {

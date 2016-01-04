@@ -14,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
@@ -41,6 +42,7 @@ import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.FacetParams;
 import org.apache.solr.common.params.GroupParams;
+import org.apache.solr.common.params.HighlightParams;
 import org.apache.solr.common.params.MoreLikeThisParams;
 import org.apache.solr.common.params.SpellingParams;
 import org.apache.solr.common.util.NamedList;
@@ -81,6 +83,9 @@ public class SolrIndexEngine {
 	public static final String QUERY_PROJECTIONS = "query_projections";
 	public static final String PARAMS = "params";
 	public static final String ALGORITHMS = "algorithms";
+	public static final String CONCEPT = "concept";
+	public static final String INSTANCES = "instances";
+
 
 	/**
 	 * Sets a constant url for Solr
@@ -141,23 +146,55 @@ public class SolrIndexEngine {
 			// create new Document
 			SolrInputDocument doc = new SolrInputDocument();
 			// set document ID to uniqueID
-			doc.setField("id", uniqueID);
+			doc.setField(ID, uniqueID);
 			// add field names and data to new Document
 			for (String fieldname : fieldData.keySet()) {
 				doc.setField(fieldname, fieldData.get(fieldname));
 			}
-			LOGGER.info("Adding document with unique ID:  " + uniqueID);
+			LOGGER.info("Adding INSIGHTS with unique ID:  " + uniqueID);
 			insightServer.add(doc);
 			insightServer.commit();
-			LOGGER.info("UniqueID " + uniqueID + "'s doc has been added");
+			LOGGER.info("UniqueID " + uniqueID + "'s INSIGHTS has been added");
+		}
+	}
+
+	//make another method to add core_engine, concept, and instances
+	public void addInstance(String uniqueID, Map<String, Object> fieldData) throws SolrServerException, IOException {
+		if (serverActive()) {
+			// create new Document
+			SolrInputDocument doc = new SolrInputDocument();
+			// set document ID to uniqueID
+			doc.setField(ID, uniqueID);
+			// add field names and data to new Document
+			for (String fieldName : fieldData.keySet()) {
+				doc.setField(fieldName, fieldData.get(fieldName));
+			}
+			LOGGER.info("Adding instances with unique ID:  " + uniqueID);
+			instanceServer.add(doc);
+			instanceServer.commit();
+			LOGGER.info("UniqueID " + uniqueID + "'s instances has been added");
+		}
+	}
+
+	public void queryInstance (String uniqueID, Map<String, Object> fieldData){
+		SolrDocumentList solrE = null;
+		Map<String, Object> query = new HashMap<>();
+		List<String> queryFields = new ArrayList<>();
+		for(String fieldName: fieldData.keySet()){
+			queryFields.add(fieldName);
+		}
+		queryFields.add(ID);
+		query.put(CommonParams.FL, queryFields);
+		try {
+			solrE = queryDocument(query);
+		} catch (SolrServerException | IOException e) {
+			e.printStackTrace();
 		}
 	}
 
 	/**
 	 * Deletes the specified document based on its Unique ID
-	 * 
-	 * @param uniqueID
-	 *            - ID to be deleted
+	 * @param uniqueID - ID to be deleted
 	 */
 	public void removeInsight(List<String> uniqueID) throws SolrServerException, IOException {
 		if (serverActive()) {
@@ -171,7 +208,6 @@ public class SolrIndexEngine {
 
 	/**
 	 * Modifies the specified document based on its Unique ID
-	 * 
 	 * @param uniqueID - ID to be modified
 	 * @param fieldsToModify - specific fields to modify
 	 */
@@ -304,37 +340,22 @@ public class SolrIndexEngine {
 
 			// sorts - orders list asc/desc or by relevance
 			if (queryOptions.get(CommonParams.SORT) != null) {
-				Map<String, List<String>> sort = (Map<String, List<String>>) queryOptions.get(CommonParams.SORT);
-				for (String fsort : sort.keySet()) {
-					List<String> sortField = sort.get(fsort);
-					String desc = "Descending";
-					String asc = "Ascending";
-					String relevance = "Relevance";
-					if (fsort.equals(desc)) {
-						for (String fields : sortField) {
-							Q.setSort(fields, SolrQuery.ORDER.desc);
-							LOGGER.info("Sorting list of documents in descending order");
-						}
-					} else if (fsort.equals(asc)) {
-						for (String fields : sortField) {
-							Q.setSort(fields, SolrQuery.ORDER.asc);
-							LOGGER.info("Sorting list of documents in ascending order");
-						}
-					} else if (fsort.equals(relevance)) {
-						for (String fields : sortField) {
-							Q.removeSort(fields);
-							LOGGER.info("Sorting list of documents in order of relevance");
-						}
-					}
+				String sort = (String) queryOptions.get(CommonParams.SORT);
+				String desc = "desc";
+				String asc = "asc";
+				String relevance = "relevance";
+				if (sort.equals(desc)) {
+					Q.setSort(NAME, SolrQuery.ORDER.desc);
+					LOGGER.info("Sorting list of documents in descending order");
+				} else if (sort.equals(asc)) {
+					Q.setSort(NAME, SolrQuery.ORDER.asc);
+					LOGGER.info("Sorting list of documents in ascending order");
+				} else if (sort.equals(relevance)) {
+					Q.removeSort(NAME);
+					LOGGER.info("Sorting list of documents in order of relevance");
 				}
-			}
 
-			// // start - returns list of insights starting from the specified
-			// int
-			// if (queryOptions.get(CommonParams.START) != null) {
-			// int numStart = (int) queryOptions.get(CommonParams.START);
-			// Q.setStart(numStart);
-			// }
+			}
 
 			// rows - returns specified int of insights
 			if (queryOptions.get(CommonParams.ROWS) != null) {
@@ -352,8 +373,8 @@ public class SolrIndexEngine {
 				List<String> fields = (List<String>) queryOptions.get(CommonParams.FL);
 				for (String f : fields) {
 					Q.addField(f);
-					LOGGER.info("For the list of doc that will be returned, the field: " + f + " will be returned");
 				}
+				LOGGER.info("For the list of doc that will be returned, the field: " + fields + " will be returned");
 			}
 
 			//////// FacetParams.FACET FILTERS
@@ -379,13 +400,6 @@ public class SolrIndexEngine {
 				}
 			}
 
-			// // minCount - specifies minimum number that are necessary for the
-			// // facet field to be visible
-			// // no maxCount
-			// if (queryOptions.get(MIN_COUNT) != null) {
-			// int numRows = (int) queryOptions.get(MIN_COUNT);
-			// Q.setFacetMinCount(numRows);
-			// }
 
 			//////// GroupParams.GROUP
 
@@ -478,8 +492,16 @@ public class SolrIndexEngine {
 				Q.set(CommonParams.QT, "/spell");
 				Q.set(SpellingParams.SPELLCHECK_COLLATE, "true");
 				Q.set(SpellingParams.SPELLCHECK_COLLATE_EXTENDED_RESULTS, "true");
+				Q.set(SpellingParams.SPELLCHECK_ONLY_MORE_POPULAR, "true"); //suggestions will be returned by popularity
+				Q.set(SpellingParams.SPELLCHECK_COUNT, "4"); //# of suggestions to return
 
 				LOGGER.info("SpellingParams.SPELLCHECK_PREFIX set to true");
+			}
+
+			//////// HIGHLIGHTING
+			if(queryOptions.get(HighlightParams.HIGHLIGHT) != null){
+				Q.set(HighlightParams.HIGHLIGHT, "true");
+				Q.set(HighlightParams.FIELDS, "*");
 			}
 
 			System.out.println("query is ::: " + Q.getQuery());
@@ -513,8 +535,7 @@ public class SolrIndexEngine {
 	/**
 	 * Deletes all insights related to a specified engine
 	 * 
-	 * @param engineName
-	 *            - engine name to delete
+	 * @param engineName- engine name to delete
 	 */
 	public void deleteEngine(String engineName) {
 		if (serverActive()) {
@@ -608,6 +629,7 @@ public class SolrIndexEngine {
 		Map<String, Object> queryData = new HashMap<String, Object>();
 		if(searchString != null && !searchString.isEmpty()) {
 			queryData.put(CommonParams.Q, searchString);
+			queryData.put(HighlightParams.HIGHLIGHT, true); 
 		}
 		if(searchField != null && !searchField.isEmpty()) {
 			queryData.put(CommonParams.DF, searchField);
@@ -615,6 +637,16 @@ public class SolrIndexEngine {
 		if(sortString != null && !sortString.isEmpty()) {
 			queryData.put(CommonParams.SORT, sortString);
 		}
+
+		List<String> retFields = new ArrayList<String>();
+		retFields.add(CORE_ENGINE);
+		retFields.add(CORE_ENGINE_ID);
+		retFields.add(LAYOUT);
+		retFields.add(NAME);
+		retFields.add(CREATED_ON);
+		retFields.add(USER_ID);
+		retFields.add(TAGS);
+		queryData.put(CommonParams.FL, retFields);
 
 		Map<String, String> filterMap = new HashMap<String, String>();
 		if (filterData != null) {
@@ -671,11 +703,16 @@ public class SolrIndexEngine {
 	 * @throws KeyStoreException
 	 * @throws SolrServerException
 	 */
-	public Map<String, Map<String, Long>> executeQueryFacetResults(String searchString, List<String> facetList) 
+	public Map<String, Map<String, Long>> executeQueryFacetResults(String searchString, String searchField, List<String> facetList) 
 			throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, SolrServerException {
+
 		Map<String, Object> queryData = new HashMap<String, Object>();
+
 		if(searchString != null && !searchString.isEmpty()) {
 			queryData.put(CommonParams.Q, searchString);
+		}
+		if(searchField != null && !searchField.isEmpty()){
+			queryData.put(CommonParams.DF, searchField);
 		}
 		queryData.put(FacetParams.FACET_FIELD, facetList);
 		queryData.put(FacetParams.FACET, true);
@@ -705,15 +742,27 @@ public class SolrIndexEngine {
 					List<Count> facetInfo = field.getValues();
 					if (facetInfo != null) {
 						for (FacetField.Count facetInstance : facetInfo) {
-							innerMap.put(facetInstance.getName(), facetInstance.getCount());
+							String local = "LocalMasterDatabase";
+							String facetName = facetInstance.getName();
+							if (!Objects.equals(facetName, local)){
+								//String prerna = "prerna.ui.components.playsheets.";
+								String prerna = ".";
+								if(facetName.contains(prerna)){
+									int endIndex = ((String) facetName).lastIndexOf(prerna) + 1;
+									if (endIndex != -1) {
+										String newString = ((String) facetName).substring(endIndex, ((String) facetName).length());
+										innerMap.put(newString, facetInstance.getCount());									
+									}
+								} else{
+									innerMap.put(facetName, facetInstance.getCount());
+								}
+							}
 						}
 					}
 					facetFieldMap.put(fieldName, innerMap);
 				}
 			}
 		}
-		// returning: field name string (ie.core_engine), MAP[ instance of th
-		// field name (ie. movie_db), count of instance of field name (ie. 79)]
 		LOGGER.info("Returning facetDocument's field name string, instance of field name string, and long count for the field name");
 		return facetFieldMap;
 	}
@@ -757,6 +806,16 @@ public class SolrIndexEngine {
 		groupList.add(groupByField);
 		queryData.put(GroupParams.GROUP_FIELD, groupList);
 
+		List<String> retFields = new ArrayList<String>();
+		retFields.add(CORE_ENGINE);
+		retFields.add(CORE_ENGINE_ID);
+		retFields.add(LAYOUT);
+		retFields.add(NAME);
+		retFields.add(CREATED_ON);
+		retFields.add(USER_ID);
+		retFields.add(TAGS);
+		queryData.put(CommonParams.FL, retFields);
+		
 		return SolrIndexEngine.getInstance().groupDocument(queryData);
 	}
 
@@ -831,6 +890,17 @@ public class SolrIndexEngine {
 			queryData.put(MoreLikeThisParams.MIN_TERM_FREQ, 1);
 		}
 		//NEED TO ADD LIMIT AND OFFSET FOR THIS... WHAT IS THE PARAM NAME FOR THIS
+
+		
+		List<String> retFields = new ArrayList<String>();
+		retFields.add(CORE_ENGINE);
+		retFields.add(CORE_ENGINE_ID);
+		retFields.add(LAYOUT);
+		retFields.add(NAME);
+		retFields.add(CREATED_ON);
+		retFields.add(USER_ID);
+		retFields.add(TAGS);
+		queryData.put(CommonParams.FL, retFields);
 		
 		List<String> mltList = new ArrayList<String>();
 		mltList.add(mltField);
@@ -838,7 +908,7 @@ public class SolrIndexEngine {
 
 		return SolrIndexEngine.getInstance().mltDocument(queryData);	
 	}
-	
+
 	/**
 	 * Gets the 'Most Like This' SolrDocuments based on document's similarity to the specified query
 	 * @param queryOptions 					options that determine, amongst other things, how similar a
