@@ -79,6 +79,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.log4j.Logger;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.solr.client.solrj.SolrServerException;
 import org.h2.jdbc.JdbcClob;
 import org.openrdf.model.Value;
 import org.openrdf.query.Binding;
@@ -90,6 +91,9 @@ import org.openrdf.rio.RDFFormat;
 import org.openrdf.rio.RDFParseException;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
+
+import com.ibm.icu.math.BigDecimal;
+import com.ibm.icu.text.DecimalFormat;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
@@ -104,9 +108,6 @@ import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
-
-import com.ibm.icu.math.BigDecimal;
-import com.ibm.icu.text.DecimalFormat;
 
 /**
  * The Utility class contains a variety of miscellaneous functions implemented extensively throughout SEMOSS.
@@ -631,7 +632,8 @@ public class Utility {
 		SolrIndexEngine solrE = null;
 		SolrDocumentExportWriter writer = null;
 		try {
-			LOGGER.info("Checking if we need to add " + engineToAdd.getEngineName());
+			String engineName = engineToAdd.getEngineName();
+			LOGGER.info("Checking if we need to add " + engineName);
 			solrE = SolrIndexEngine.getInstance();
 			if(solrE.serverActive()) {
 				String smssPropString = engineToAdd.getProperty(Constants.SOLR_RELOAD);
@@ -641,7 +643,6 @@ public class Utility {
 				}
 				LOGGER.info(engineToAdd.getEngineName() + " has smss force reload value of "+ smssProp);
 
-				String engineName = engineToAdd.getEngineName();
 				// check if should always recreate and check if db currently exists and check if db is updated
 				if(AbstractEngine.RECREATE_SOLR || !solrE.containsEngine(engineName) || smssProp) {
 					LOGGER.info(engineToAdd.getEngineName() + " is reloading solr");
@@ -745,6 +746,48 @@ public class Utility {
 							e.printStackTrace();
 						}
 					}
+					
+					// grab all concepts and their instances from the db
+					List<String> conceptList = engineToAdd.getConcepts();
+					Map<String, Object> fieldData = new HashMap<>();
+					for(String concept : conceptList) {
+						if(concept.equals("http://semoss.org/ontologies/Concept")) {
+							continue;
+						}
+						List<Object> instances = null;
+						if(engineToAdd.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
+							instances = engineToAdd.getEntityOfType(Utility.getInstanceName(concept));
+						} else {
+							instances = engineToAdd.getEntityOfType(concept);
+						}
+						String newId = engineName + "_" + concept;
+						//use the method that you just made
+						fieldData.put(SolrIndexEngine.CORE_ENGINE, engineName);
+						fieldData.put(SolrIndexEngine.CONCEPT, concept);
+						List<Object> instancesList= new ArrayList<Object>();
+						for (Object instance : instances) {
+							if(instance instanceof String) {
+								instancesList.add(Utility.getInstanceName(instance + ""));
+							} else {
+								instancesList.add(instance);
+							}
+						}
+						fieldData.put(SolrIndexEngine.INSTANCES, instancesList);
+						
+						// case when dumb data is loaded
+						if(instancesList.isEmpty()) {
+							continue;
+						}
+						
+						try {
+							solrE.addInstance(newId, fieldData);
+							solrE.queryInstance(newId, fieldData);
+						} catch (SolrServerException | IOException e) {
+							e.printStackTrace();
+						}
+					}
+					
+					// lastly, change the prop file if necessary
 					if(smssProp){
 						LOGGER.info(engineToAdd.getEngineName() + " is changing boolean on smss");
 						changeSolrBoolean(path);
@@ -754,7 +797,7 @@ public class Utility {
 		} catch (KeyManagementException e) {
 			e.printStackTrace();
 		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
+			e.printStackTrace(); 
 		} catch (KeyStoreException e) {
 			e.printStackTrace();
 		} finally {
