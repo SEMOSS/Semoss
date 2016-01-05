@@ -956,7 +956,7 @@ public class Insight {
 	public String getUiOptions() {
 		String uiOptions = "";
 		String rdbmsId = getRdbmsId();
-		if(rdbmsId != null && rdbmsId.isEmpty()) {
+		if(rdbmsId != null && !rdbmsId.isEmpty()) {
 			String query = "SELECT UI_DATA FROM UI WHERE QUESTION_ID_FK='" + rdbmsId + "'";
 			IEngine insightDb = this.mainEngine.getInsightDatabase();
 			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(insightDb, query);
