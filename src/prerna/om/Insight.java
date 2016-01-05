@@ -955,28 +955,30 @@ public class Insight {
 	
 	public String getUiOptions() {
 		String uiOptions = "";
-		
-		String query = "SELECT UI_DATA FROM UI WHERE QUESTION_ID_FK='" + getRdbmsId() + "'";
-		IEngine insightDb = this.mainEngine.getInsightDatabase();
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(insightDb, query);
-		String[] names = wrapper.getVariables();
-		while(wrapper.hasNext()) {
-			ISelectStatement ss = wrapper.next();
-			JdbcClob obj = (JdbcClob) ss.getRawVar(names[0]);
-			
-			InputStream insightDefinition = null;
-			try {
-				insightDefinition = obj.getAsciiStream();
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+		String rdbmsId = getRdbmsId();
+		if(rdbmsId != null && rdbmsId.isEmpty()) {
+			String query = "SELECT UI_DATA FROM UI WHERE QUESTION_ID_FK='" + rdbmsId + "'";
+			IEngine insightDb = this.mainEngine.getInsightDatabase();
+			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(insightDb, query);
+			String[] names = wrapper.getVariables();
+			while(wrapper.hasNext()) {
+				ISelectStatement ss = wrapper.next();
+				JdbcClob obj = (JdbcClob) ss.getRawVar(names[0]);
+				
+				InputStream insightDefinition = null;
+				try {
+					insightDefinition = obj.getAsciiStream();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				 try {
+					uiOptions = IOUtils.toString(insightDefinition);
+				} catch (IOException e) {
+					e.printStackTrace();
+				} 
 			}
-			
-			 try {
-				uiOptions = IOUtils.toString(insightDefinition);
-			} catch (IOException e) {
-				e.printStackTrace();
-			} 
 		}
 		
 		return uiOptions;
