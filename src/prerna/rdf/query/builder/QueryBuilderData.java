@@ -27,10 +27,10 @@
  *******************************************************************************/
 package prerna.rdf.query.builder;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -41,15 +41,17 @@ public class QueryBuilderData {
 	
 	static final Logger LOGGER = LogManager.getLogger(QueryBuilderData.class.getName());
 	
+	Map<String, String> returnMapping;					// Logical name --> Physical Name
 	List<List<String>> relTriples;						// List of physical name triples
 	List<Map<String, String>> nodeProps;				// List of selected property objects. Each object contains SubjectVar-->Logical Name of node, uriKey-->Physical uri for property, varKey-->logical name of property
 	Map<String, List<Object>> filterData;				// For each var to filter, has Logical name-->List of values to include
-	List<String> varReturnOrder;						// Sets the return order for the variables
+	List<String> returnVars;							// Specifies what variables to return and in what order
+	Boolean limitReturnToVarsList = false;				// If you want to only return the vars specified in the returnVars list, set this to true. Otherwise all node and prop vars will return. THESE ARE LOGICAL NAMES
 	
-	private final String QUERY_DATA_KEY = "QueryData";
-	private final String REL_TRIPLES_KEY = "relTriples";
-	private final String FILTERS_KEY = "filter";
-	private final String NODE_PROPS_KEY = "SelectedNodeProps";
+	transient private final String QUERY_DATA_KEY = "QueryData";
+	transient private final String REL_TRIPLES_KEY = "relTriples";
+	transient private final String FILTERS_KEY = "filter";
+	transient private final String NODE_PROPS_KEY = "SelectedNodeProps";
 	
 	public QueryBuilderData(Map json){
 		LOGGER.info("Instantiating QueryBuilderData with json " + json);
@@ -69,13 +71,34 @@ public class QueryBuilderData {
 		}
  	}
 	
-	public void setVarReturnOrder(List<String> ordered){
-		LOGGER.info("setting var return order to " + ordered.toString());
-		this.varReturnOrder = ordered;
+	public void setLimitReturnToVarsList(Boolean limitReturnToVarsList){
+		LOGGER.info("Setting to limit return var list :: " + limitReturnToVarsList);
+		this.limitReturnToVarsList = limitReturnToVarsList;
 	}
 	
-	protected List<String> getVarReturnOrder(){
-		return this.varReturnOrder;
+	public Boolean getLimitReturnToVarsList(){
+		return this.limitReturnToVarsList;
+	}
+	
+	public void setVarReturnOrder(String var, int location){
+		LOGGER.info("setting var " + var + " return order to " + location);
+		if(returnVars == null){
+			returnVars = new Vector<String>();
+		}
+		int varIdx = returnVars.indexOf(var);
+		LOGGER.info(var + " is currently in position " + varIdx);
+		if(varIdx != -1){
+			returnVars.remove(var);
+			returnVars.add(location, var);
+		}
+		else if (location == 0){
+			returnVars.add(location, var);
+		}
+		LOGGER.info(var + " is now in position " + returnVars.indexOf(var));
+	}
+	
+	protected List<String> getReturnVars(){
+		return this.returnVars;
 	}
 	
 	public Map<String, List<Object>> getFilterData() {
@@ -86,6 +109,14 @@ public class QueryBuilderData {
 		this.filterData = filterData;
 	}
 
+	protected Map<String, String> getReturnMapping() {
+		return returnMapping;
+	}
+	
+//	private void setReturnMapping(Map<String, String> returnMapping) {
+//		this.returnMapping = returnMapping;
+//	}
+	
 	public List<List<String>> getRelTriples() {
 		return relTriples;
 	}
@@ -100,5 +131,20 @@ public class QueryBuilderData {
 	
 	private void setNodeProps(List<Map<String, String>> nodeProps) {
 		this.nodeProps = nodeProps;
+	}
+	
+	protected String getLogicalNameFromPhysicalURI(String physURI) {
+		String logicalName = "";
+		if(returnMapping != null && !returnMapping.isEmpty()) {
+			for(Entry<String, String> e : returnMapping.entrySet()) {
+				if(e.getValue().equals(Utility.getInstanceName(physURI))) {
+					logicalName = e.getKey();
+				}
+			}
+		} else {
+			logicalName = Utility.getInstanceName(physURI);
+		}
+
+		return logicalName;
 	}
 }

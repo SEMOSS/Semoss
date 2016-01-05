@@ -210,6 +210,9 @@ public abstract class AbstractFileReader {
 		obj = Constants.DEFAULT_PROPERTY_URI;
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, pred, obj, true});
 		storeBaseStatement(sub, pred, obj);
+		// add custom base uri.
+		logger.info("adding custom node base uri to the owl :::: " + customBaseURI+"/"+Constants.DEFAULT_NODE_CLASS+"/");
+		storeBaseStatement("SEMOSS:ENGINE_METADATA", "CONTAINS:BASE_URI", customBaseURI+"/"+Constants.DEFAULT_NODE_CLASS+"/");
 
 		if(basePropURI.equals("")){
 			basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;

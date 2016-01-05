@@ -599,37 +599,36 @@ public class QuestionAdministrator {
 		builder.append("<http://semoss.org/ontologies/Concept/PreTransformation/" + (j+numPreTransformations) + "> <http://semoss.org/ontologies/Relation/Contains/propMap> \"" + paramStringify + "\" .\n");
 	}
 	
-	private boolean compInvolvesParam(DataMakerComponent dmc, List<SEMOSSParam> parameters) {
-		QueryBuilderData metamodel = dmc.getBuilderData();
-		if(metamodel != null){
-			List<List<String>> relTriples = metamodel.getRelTriples();
-			Map<String, List<Object>> filters = metamodel.getFilterData();
-			List<Map<String, String>> nodeProps = metamodel.getNodeProps();
-			if(relTriples != null) {
-				for(int j = 0; j < relTriples.size(); j++) {
-					List<String> triple = relTriples.get(j);
-					for(String uri : triple) {
-						for(SEMOSSParam param : parameters){
-							if(uri.equals(param.getType())) {
-								return true;
-							}
-						}
-					}
-				}
-			}
-			if(nodeProps != null) {
-				for(int j = 0; j < nodeProps.size(); j++) {
-					Object uri = nodeProps.get(j).get("uriKey");
-					for(SEMOSSParam param : parameters){
-						if(uri.equals(param.getType())) {
-							return true;
-						}
-					}
-				}
-			}
-		}
-		return false;
-	}
+//	private boolean compInvolvesParam(DataMakerComponent dmc, List<SEMOSSParam> parameters) {
+//		QueryBuilderData builderData = dmc.getBuilderData();
+//		if(builderData != null) {
+//			List<List<String>> relTriples = builderData.getRelTriples();
+//			List<Map<String, String>> nodeProps = builderData.getNodeProps();
+//			if(relTriples != null) {
+//				for(int j = 0; j < relTriples.size(); j++) {
+//					List<String> triple = relTriples.get(j);
+//					for(String uri : triple) {
+//						for(SEMOSSParam param : parameters){
+//							if(uri.equals(param.getType())) {
+//								return true;
+//							}
+//						}
+//					}
+//				}
+//			}
+//			if(nodeProps != null) {
+//				for(int j = 0; j < nodeProps.size(); j++) {
+//					Object uri = nodeProps.get(j).get("uriKey");
+//					for(SEMOSSParam param : parameters){
+//						if(uri.equals(param.getType())) {
+//							return true;
+//						}
+//					}
+//				}
+//			}
+//		}
+//		return false;
+//	}
 
 	private void setInsightOrder(int order, String insightId){
 		StringBuilder updateQueryBuilder = new StringBuilder();
@@ -706,10 +705,9 @@ public class QuestionAdministrator {
 							}
 						}
 					}
-					
 					if(nodeProps != null && !containsParam) {
 						for(int j = 0; j < nodeProps.size(); j++) {
-							Object uri = nodeProps.get(j).get("uriKey");
+							String uri = nodeProps.get(j).get("uriKey");
 							if(uri != null && uri.equals(paramURI)) {
 								involvedParams.add(param);
 								continue PARAMS_FOR;

@@ -98,7 +98,7 @@ public interface IExplorable {
 	Vector<String> getConcepts();
 	
 	// gets all of the properties for a given concept
-	Vector<String> getProperties4Concept(String concept, Boolean logicalNames);
+	List<String> getProperties4Concept(String concept, Boolean logicalNames);
 	
 	// executes a query on the ontology engine
 	Object execOntoSelectQuery(String query);
@@ -124,4 +124,6 @@ public interface IExplorable {
 	void loadTransformedNodeNames();
 
 	Vector<String> executeInsightQuery(String sparqlQuery, boolean isDbQuery);
+	
+	String getNodeBaseUri();
 }

@@ -3,7 +3,7 @@ package prerna.ui.components.playsheets.datamakers;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,18 +11,17 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.internal.StringMap;
-import com.google.gson.reflect.TypeToken;
-
 import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.ExactStringMatcher;
-import prerna.ds.ExactStringOuterJoinMatcher;
-import prerna.ds.ExactStringPartialOuterJoinMatcher;
-import prerna.rdf.query.builder.AbstractQueryBuilder;
+import prerna.ds.InstanceMatcher;
+import prerna.ds.InstanceOuterJoinMatcher;
+import prerna.ds.InstancePartialOuterJoinMatcher;
+import prerna.engine.api.IEngine;
 import prerna.rdf.query.builder.QueryBuilderData;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 public class JoinTransformation extends AbstractTransformation {
 
@@ -36,7 +35,6 @@ public class JoinTransformation extends AbstractTransformation {
 	DataMakerComponent dmc;
 	ITableDataFrame dm;
 	ITableDataFrame nextDm;
-	List<String> addedColumns = new ArrayList<>();
 
 	IMatcher matcher;
 	
@@ -71,19 +69,6 @@ public class JoinTransformation extends AbstractTransformation {
 	@Override
 	public void runMethod() {
 		getMatcher();
-		
-		//Store the new columns that will be added to dm
-		if(nextDm != null) {
-			String[] allCols = nextDm.getColumnHeaders();
-			for(int i = 0; i < allCols.length; i++) {
-				String val = allCols[i];
-				if(val.equals(props.get(COLUMN_TWO_KEY) + "")) {
-					continue;
-				}
-				addedColumns.add(val);
-			}
-		}
-		
 		//the run method will either append to the component to limit the construction of the new component
 		//otherwise, it will perform the actual joining between two components
 		if(!preTransformation) {
@@ -114,6 +99,7 @@ public class JoinTransformation extends AbstractTransformation {
 			}
 		} else {
 			QueryBuilderData builderData = dmc.getBuilderData();
+			IEngine engine = dmc.getEngine();
 			Map<String, List<Object>> stringMap;
 			if(builderData.getFilterData() != null && !builderData.getFilterData().isEmpty()) {
 	               stringMap = builderData.getFilterData();
@@ -122,13 +108,14 @@ public class JoinTransformation extends AbstractTransformation {
 	        }
 	        //if stringmap already contains the filters, then it is a hard filter
 	        //otherwise, add based on what is currently in the tree
-	        if(!stringMap.containsKey(props.get(COLUMN_ONE_KEY) + "")) {
+	        if(!stringMap.containsKey(props.get(COLUMN_TWO_KEY) + "")) {
 	        	//but actually, also need to consider the type of matcher
-	        	if(this.matcher.getType().equals(IMatcher.MATCHER_ACTION.BIND)) {
-		        	stringMap.put(props.get(COLUMN_ONE_KEY) + "", Arrays.asList(dm.getUniqueRawValues(props.get(COLUMN_ONE_KEY) + "")) );
+	        	if(this.matcher.getQueryModType().equals(IMatcher.MATCHER_ACTION.BIND)) {
+	        		List<Object> queryModList = this.matcher.getQueryModList(dm, props.get(COLUMN_ONE_KEY) + "", engine, props.get(COLUMN_TWO_KEY) + "");
+		        	stringMap.put(props.get(COLUMN_TWO_KEY) + "", queryModList );
 			        builderData.setFilterData(stringMap);
 	        	} else {
-	        		LOGGER.error("Matcher type " + this.matcher.getType() + " is not supported in join method.");
+	        		LOGGER.error("Matcher type " + this.matcher.getQueryModType() + " is not supported in join method.");
 	        	}
 	        }
 	        
@@ -146,7 +133,7 @@ public class JoinTransformation extends AbstractTransformation {
 
 	@Override
 	public void undoTransformation() {
-		/*String[] allCols = nextDm.getColumnHeaders();
+		String[] allCols = nextDm.getColumnHeaders();
 		List<String> addedCols = new ArrayList<String>();
 		for(int i = 0; i < allCols.length; i++) {
 			String val = allCols[i];
@@ -154,15 +141,15 @@ public class JoinTransformation extends AbstractTransformation {
 				continue;
 			}
 			addedCols.add(val);
-		}*/
+		}
 		Method method = null;
 		try {
 			method = dm.getClass().getMethod(UNDO_METHOD_NAME, String.class);
 			LOGGER.info("Successfully got method : " + UNDO_METHOD_NAME);
 			
-			// iterate from leaf to root for efficiency in removing connections
-			for(int i = addedColumns.size()-1; i >= 0; i--) {
-				method.invoke(dm, addedColumns.get(i));
+			// iterate from root to top for efficiency in removing connections
+			for(int i = addedCols.size()-1; i >= 0; i--) {
+				method.invoke(dm, addedCols.get(i));
 				LOGGER.info("Successfully invoked method : " + UNDO_METHOD_NAME);
 			}
 		} catch (NoSuchMethodException | SecurityException e) {
@@ -183,8 +170,6 @@ public class JoinTransformation extends AbstractTransformation {
 		joinCopy.setDataMakers(dm, nextDm);
 		joinCopy.setId(id);
 		joinCopy.setTransformationType(preTransformation);
-		joinCopy.addedColumns = this.addedColumns;
-		
 		if(props != null) {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
 			String propCopy = gson.toJson(props);
@@ -202,13 +187,13 @@ public class JoinTransformation extends AbstractTransformation {
 				joinType = "inner";
 			}
 			switch(joinType) {
-				case "inner" : this.matcher = new ExactStringMatcher(); 
+				case "inner" : this.matcher = new InstanceMatcher(); 
 					break;
-				case "partial" : this.matcher = new ExactStringPartialOuterJoinMatcher(); 
+				case "partial" : this.matcher = new InstancePartialOuterJoinMatcher(); 
 					break;
-				case "outer" : this.matcher = new ExactStringOuterJoinMatcher();
+				case "outer" : this.matcher = new InstanceOuterJoinMatcher();
 					break;
-				default : this.matcher = new ExactStringMatcher(); 
+				default : this.matcher = new InstanceMatcher(); 
 			}
 		}
 	}

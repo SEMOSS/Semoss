@@ -454,7 +454,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		Vector <String> neighBors = getNeighbors(fromType, 0);
 		
 		// get the properties for the tables	
-		Vector <String> properties = new Vector<String>();
+		List <String> properties = new Vector<String>();
 		if(isProperties)
 			properties = getProperties4Concept(toType, new Boolean(false));
 		
