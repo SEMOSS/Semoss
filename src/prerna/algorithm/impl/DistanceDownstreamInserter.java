@@ -28,6 +28,7 @@
 package prerna.algorithm.impl;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -39,14 +40,12 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.URI;
 
-import edu.uci.ics.jung.graph.DelegateForest;
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
-import prerna.om.SEMOSSEdge;
-import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.UpdateProcessor;
+import prerna.ui.components.specific.tap.QueryProcessor;
 import prerna.ui.helpers.EntityFiller;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -56,7 +55,7 @@ import prerna.util.Utility;
  * This class collects the information that is used in DistanceDownstreamProcessor.
  */
 public class DistanceDownstreamInserter {
-
+	String unfilledQuery = "SELECT DISTINCT ?System2 ?System3 WHERE { BIND( <@Data-Data@> AS ?Data1). { {?System1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?provide <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?System1 ?provide ?Data1 ;} {?provide <http://semoss.org/ontologies/Relation/Contains/SOR> 'Yes' ;} BIND(?Data1 AS ?System2) BIND(?System1 AS ?System3) } UNION { BIND(URI(CONCAT('http://health.mil/ontologies/Relation/', SUBSTR(STR(?System2), 45), ':', SUBSTR(STR(?System3), 45))) AS ?passes). {?System2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?System3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>;} {?carries <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Payload>;} {?icd1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInterface>;} {?upstream1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Provide>;} {?downstream1 <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Consume>;} {?System2 ?upstream1 ?icd1 ;} {?icd1 ?downstream1 ?System3;} {?icd1 ?carries ?Data1;} } }";
 	Hashtable masterHash = new Hashtable();
 	static final Logger logger = LogManager.getLogger(DistanceDownstreamInserter.class.getName());
 	String RELATION_URI = null;
@@ -64,12 +63,6 @@ public class DistanceDownstreamInserter {
 	IEngine engine;
 	double depreciationRate;
 	double appreciationRate;
-	// references to main vertstore
-	Hashtable<String, SEMOSSVertex> vertStore = new Hashtable();
-	// references to the main edgeStore
-	Hashtable<String, SEMOSSEdge> edgeStore = new Hashtable();
-	Hashtable networkValueHash = new Hashtable();
-	Hashtable soaValueHash = new Hashtable();
 
 	/**
 	 * Uses the engine to get all data objects in the selected database.
@@ -82,107 +75,83 @@ public class DistanceDownstreamInserter {
 		//dataObjectsArray.add("Patient_Procedures");
 
 		Hashtable distanceDownstreamHash = new Hashtable();
-		int count = 0;
+		Hashtable soaValueHash = new Hashtable();
+		Hashtable networkValueHash = new Hashtable();
+		
 		//this will add distance downstream for all systems connected to creators
 		for(String dataObjectString: dataObjectsArray){
-			count++;
-			//if (count>15) break;
-			double maxCreditValue = 0.0;
-			//Create the forest for this data object
-			String unfilledQuery = (String) DIHelper.getInstance().getProperty(Constants.DISTANCE_DOWNSTREAM_QUERY);
-			Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
+			
+			//Construct Query
+			Map<String, List<Object>> paramHash = new HashMap<String, List<Object>>();
 			List<Object> dataObjList = new ArrayList<Object>();
 			dataObjList.add(dataObjectString);
 			paramHash.put("Data-Data", dataObjList);
 			String query = Utility.fillParam(unfilledQuery, paramHash);
-			DelegateForest<SEMOSSVertex, SEMOSSEdge> dataForest = new DelegateForest<SEMOSSVertex, SEMOSSEdge>();
-			dataForest = createForest(query);
-
-			DistanceDownstreamProcessor processor = new DistanceDownstreamProcessor();
-			//now set everything in DistanceDownstreamProcessor and let that buddy run
-			processor.setForest(dataForest);
-			processor.setRootNodesAsSelected();
-
-			System.out.println("SET SELECTED ::::::::::::::::::::::::::::::::::::::::: " + processor.addSelectedNode(dataObjectString, 0));	//need to make sure that creators first have the chance to go from data object directly
-
-			processor.execute();
-		
-			//now add everything but the data object to fullSystemHash
-			//format of fullSystemHash will be key:data object, object: sysHash with key: system and object: distance and system_network: network weight
-			Hashtable sysHash = new Hashtable();
-			Iterator keyIt = processor.masterHash.keySet().iterator();
-			while (keyIt.hasNext()){
+			
+			//Run Query
+			HashMap<String,ArrayList<String>> interfaceMap = QueryProcessor.getStringListMap(query,"TAP_Core_Data");
+			//printMap(interfaceMap);
+			
+			if( interfaceMap.keySet().size() > 0 )
+			{
+				//System.out.println(Utility.getInstanceName(dataObjectString));
+				//Contruct Graph from query results.
+				Graph g = new Graph(Utility.getInstanceName(dataObjectString),interfaceMap);
+				//g.printGraph();
+				g.processDownstream();
+				g.processWeight(appreciationRate);
+				g.processNetworkWeight(depreciationRate);
+				//g.printGraphValues();
 				
-				SEMOSSVertex sysVertex = (SEMOSSVertex) keyIt.next();
-				String system = sysVertex.getProperty(Constants.VERTEX_NAME) +"";
-				String sysURI = sysVertex.getProperty(Constants.URI) +"";
-				
-				//the processor masterHash will have the dataObject as a key.  Need to make sure I don't take that
-				if (sysURI.equals(dataObjectString)){
-					//do nothing
-				}
-				else {
-					Hashtable vertHash = (Hashtable) processor.masterHash.get(sysVertex);
-					ArrayList<SEMOSSVertex> path = (ArrayList<SEMOSSVertex>) vertHash.get(processor.pathString);
-					//if the path starts with the data object, need to subtract 1 from distance
-					int distance = (Integer) vertHash.get(processor.distanceString);
-					String doString = (path.get(0)).getProperty(Constants.URI).toString();
-					if(doString.equals(dataObjectString))
-						distance = distance - 1;
-					sysHash.put(system, distance);
-					
-					//this will fill networkValueHash and soaValueHash with raw numbers
-					//normalizeNetworkWeights will then update the values in networkValueHash by normalizing it
-					maxCreditValue = calculateWeights(vertHash, system, dataObjectString, distance, processor.pathString, maxCreditValue);
-				}
-				
+				distanceDownstreamHash.put(dataObjectString, g.getDownstream());
+				soaValueHash.put(dataObjectString, g.getWeight());
+				networkValueHash.put(dataObjectString, g.getNetworkWeight());
 			}
-			distanceDownstreamHash.put(dataObjectString, sysHash);
-			normalizeNetworkWeights(maxCreditValue, dataObjectString);
 		}
-				
-		//now all of the information should be contained within fullSystemHash.
-		//Just need to prepare insert query and run insert
 		
 		String insertQuery = prepareInsert(distanceDownstreamHash, "DistanceDownstream", "integer");
 		UpdateProcessor updatePro = new UpdateProcessor();
 		updatePro.setQuery(insertQuery);
 		logger.info("Update Query 1 " + insertQuery);
+		System.out.println(insertQuery);
 		updatePro.processQuery();
 		
 		String insertSOAweightQuery = prepareInsert(soaValueHash, "weight", "double");
 		updatePro.setQuery(insertSOAweightQuery);
 		logger.info("Update Query 2 " + insertSOAweightQuery);
 		updatePro.processQuery();
+		System.out.println(insertSOAweightQuery);
 
 		String insertNetworkWeightQuery = prepareInsert(networkValueHash, "NetworkWeight", "double");
 		updatePro.setQuery(insertNetworkWeightQuery);
 		logger.info("Update Query 3 " + insertNetworkWeightQuery);
 		updatePro.processQuery();
+		System.out.println(insertNetworkWeightQuery);
 	}
 	
 	/**
-	 * Gets network value from a hashtable given the data object key
-	 * Iterates through the datahash and normalizes the network weights by dividing by the max credit value
-	 * Replaces normalized values from the data hash into the network value hash, which has the data object strings as keys
-	 * 
-	 * @param maxCreditValue Double			Maximum credit value
-	 * @param dataObjectString String		Data object name as a string
+	 * Verbose print out of HashMap. This is the same type of map that is created in the query from 
+	 *  QueryProcessor.getStringListMap(String, String). Used for testing of query results before
+	 *  before construction of any objects.
+	 *  
+	 *  @param inMap HashMap<String,ArrayList<String>>	Map to be printed.
 	 */
-	public void normalizeNetworkWeights(Double maxCreditValue, String dataObjectString){
-		Hashtable dataHash = (Hashtable) networkValueHash.get(dataObjectString);
-		if(dataHash!=null){
-			Iterator dataIt = dataHash.keySet().iterator();
-			while(dataIt.hasNext()){
-				String sysName = (String) dataIt.next();
-				Double rawNetworkValue = (Double) dataHash.get(sysName);
-				Double networkValue = rawNetworkValue/maxCreditValue;
-				dataHash.put(sysName, networkValue);
+	private void printMap(HashMap<String,ArrayList<String>> inMap)
+	{
+		System.out.println("Size of Map:" +inMap.keySet().size());
+		for(String key: inMap.keySet())
+		{
+			ArrayList<String> list = inMap.get(key);
+			System.out.print(key + ":\t");
+			for( String s : list )
+			{
+				System.out.print(s + ", \t");
 			}
-			networkValueHash.put(dataObjectString, dataHash);
+			System.out.println();
 		}
 	}
-	
+			
+		
 	/**
 	 * Sets the engine.
 	 * @param e IEngine		Engine to be set.
@@ -200,57 +169,6 @@ public class DistanceDownstreamInserter {
 	public void setAppAndDep(Double appreciation, Double depreciation){
 		appreciationRate = appreciation;
 		depreciationRate = depreciation;
-	}
-	
-	/**
-	 * Uses the vert hash to calculate the SOA weight and network weight.
-	 * 
-	 * @param vertHash Hashtable			Contains distance and path with the key being the actual vertex.
-	 * @param systemName String				System name.
-	 * @param dataName String				Name of data, used in SOA Transition Planning.
-	 * @param distance int					Distance of path.
-	 * @param pathString String				Path of the vertex.
-	 * @param maxCreditValue double			Maximum credit value.
-	
-	 * @return double */
-	private double calculateWeights(Hashtable vertHash, String systemName, String dataName, int distance, String pathString, double maxCreditValue){
-		double newMax = maxCreditValue;
-		//first the SOA part.  just need to put the calculation on the distance
-		double soaWeight = Math.pow(depreciationRate, distance);
-		Hashtable dataSOAHash = new Hashtable();
-		if(soaValueHash.containsKey(dataName)) dataSOAHash = (Hashtable) soaValueHash.get(dataName);
-		dataSOAHash.put(systemName, soaWeight);
-		soaValueHash.put(dataName, dataSOAHash);
-		
-		//if its not a root node, take the edge above its weight and add its network value everywhere
-		ArrayList<SEMOSSVertex> pathArray = (ArrayList<SEMOSSVertex>) vertHash.get(pathString);
-		if(distance>0){
-			Hashtable dataNetHash = new Hashtable();
-			if(networkValueHash.containsKey(dataName)) dataNetHash = (Hashtable) networkValueHash.get(dataName);
-			int pathLength = pathArray.size();
-			double difference = Math.pow(depreciationRate, distance-1)- Math.pow(depreciationRate, distance);
-			double prevValue = 0.0;
-			for(int i= 0; i<distance; i++){
-				int thisNodeIdx = pathLength-1-i;
-				SEMOSSVertex thisVert = pathArray.get(thisNodeIdx);
-				SEMOSSVertex vertAbove = pathArray.get(thisNodeIdx-1);
-
-				double addedValue;
-				if(i == 0) addedValue = difference*appreciationRate;
-				else addedValue= prevValue*(1-appreciationRate);
-				double oldValue =0.0;
-				if(dataNetHash.containsKey(vertAbove.getProperty(Constants.VERTEX_NAME))){
-					oldValue = (Double) dataNetHash.get(vertAbove.getProperty(Constants.VERTEX_NAME));
-				}
-				double newValue = oldValue+addedValue;
-				//if newValue > max, max becomes new
-				if(newValue>newMax) newMax = newValue;
-				dataNetHash.put(vertAbove.getProperty(Constants.VERTEX_NAME), newValue);
-				networkValueHash.put(dataName, dataNetHash);
-				prevValue = addedValue;
-			}
-		}
-		return newMax;
 	}
 
 	/**
@@ -287,7 +205,6 @@ public class DistanceDownstreamInserter {
 				String relationUri = "<http://health.mil/ontologies/Relation/Provide/"+sysName +
 						Constants.RELATION_URI_CONCATENATOR+dataInstance+">";
 				
-				
 				Object value = sysHash.get(sysName);
 				
 				String objUri = "\"" + value + "\"" + "^^<http://www.w3.org/2001/XMLSchema#"+type+">";
@@ -302,81 +219,6 @@ public class DistanceDownstreamInserter {
 	}
 	
 	
-	/**
-	 * Creates the forest.
-	 * @param query String								Query needed to create the forest
-	
-	 * @return DelegateForest<SEMOSSVertex, SEMOSSEdge>		Forest, comprised of vertices and edges. */
-	public DelegateForest<SEMOSSVertex, SEMOSSEdge> createForest(String query) {
-		//run query
-		IConstructWrapper sjw = WrapperManager.getInstance().getCWrapper(engine, query);
-
-		/*SesameJenaConstructWrapper sjw = new SesameJenaConstructWrapper();
-		sjw.setQuery(query);
-		sjw.setEngine(engine);
-		sjw.execute();
-		*/
-		
-		//this is pretty much directly from GraphPlaySheet CreateForest().  I removed Jena Model and Control Data though
-		logger.info("Creating Forest >>>>>");
-
-		DelegateForest<SEMOSSVertex, SEMOSSEdge> forest = new DelegateForest<SEMOSSVertex, SEMOSSEdge>();
-		Properties rdfMap = DIHelper.getInstance().getRdfMap();
-
-		createBaseURIs();
-		// iterate through the graph query result and set everything up
-		// this is also the place where the vertex filter data needs to be created
-		
-		logger.debug(" Adding graph to forest " );
-		int count = 0;
-		while(sjw.hasNext()) {
-			//logger.warn("Iterating " + count);
-			count++;
-
-			IConstructStatement sct = sjw.next();
-			String predicateName = sct.getPredicate();
-
-			// get the subject, predicate and object
-			// look for the appropriate vertices etc and paint it
-			SEMOSSVertex vert1 = vertStore.get(sct.getSubject()+"");
-			if(vert1 == null) {
-				vert1 = new SEMOSSVertex(sct.getSubject());
-				vertStore.put(sct.getSubject()+"", vert1);
-			}
-			SEMOSSVertex vert2 = vertStore.get(sct.getObject()+"");
-			if(vert2 == null )//|| forest.getInEdges(vert2).size()>=1)
-			{
-				if(sct.getObject() instanceof URI)
-					vert2 = new SEMOSSVertex(sct.getObject()+"");
-				else // ok this is a literal
-					vert2 = new SEMOSSVertex(sct.getPredicate(), sct.getObject());
-				vertStore.put(sct.getObject()+"", vert2);
-			}
-			// create the edge now
-			SEMOSSEdge edge = edgeStore.get(sct.getPredicate()+"");
-			// check to see if this is another type of edge
-			if(sct.getPredicate().indexOf(vert1.getProperty(Constants.VERTEX_NAME)+"") < 0 && sct.getPredicate().indexOf(vert2.getProperty(Constants.VERTEX_NAME)+"") < 0)
-				predicateName = sct.getPredicate() + "/" + vert1.getProperty(Constants.VERTEX_NAME) + ":" + vert2.getProperty(Constants.VERTEX_NAME);
-			if(edge == null)
-				edge = edgeStore.get(predicateName);
-			if(edge == null) {
-				// need to create the predicate at runtime I think
-				/*edge = new DBCMEdge(vert1, vert2, sct.getPredicate());
-				System.err.println("Predicate plugged is " + predicateName);
-				edgeStore.put(sct.getPredicate()+"", edge);*/
-
-				// the logic works only when the predicates dont have the vertices on it.. 
-				edge = new SEMOSSEdge(vert1, vert2, predicateName);
-				edgeStore.put(predicateName, edge);
-			}
-			
-			// add the edge now if the edge does not exist
-			// need to handle the duplicate issue again
-			forest.addEdge(edge, vertStore.get(sct.getSubject()+""), vertStore.get(sct.getObject()+""));
-		}
-		logger.info("Creating Forest Complete >>>>>> ");
-		return forest;
-	}
 	
 	/**
 	 * Creates base URIs.
@@ -405,5 +247,593 @@ public class DistanceDownstreamInserter {
 		return dataObjectArray;
 		
 	}
+	
+	
+	/**
+	 * This class creates a graph to store Nodes where the Nodes can be identified by their Value.
+	 *  Only one node with the same value should be in the graph at any one time. The graph is constructed
+	 *  by from a String, which identifies the root node, and a HashMap<String, ArrayList<String>> which 
+	 *  identifies the parent-child relationships of the nodes to each other.
+	 *  
+	 *  This is used in the distance downstream class to hold the data object as the root node and the systems
+	 *  and their interfaces as the all the other nodes of the graph. Distance from the root node, weight due
+	 *  to distance and Network Weight due to passing data from one system to another are all calculated using
+	 *  recursive algorithms.
+	 *  
+	 * @author jvidalis
+	 *
+	 */
+	public class Graph {
 
+		public ArrayList<Node> nodes= new ArrayList<Node>();
+		Node root;
+		public Graph()	{	}
+		public Graph(Node root)	{this.root = root; nodes.add(root);}
+		
+		/**
+		 * Constructs a graph where the keys of the HashMap are the parent and the values in the arraylist
+		 *  are the children to the parent key. Nodes are created for all Strings in the keys and values of
+		 *  the HashMap. The root node is also set based on input.
+		 * @param inRoot String Value of the Node to be set to root
+		 * @param hash HashMap<String, ArrayList<String>> Parent - Children relationships 
+		 */
+		public Graph(String inRoot, HashMap<String, ArrayList<String>> hash){	
+			
+			for( String parent : hash.keySet())
+			{
+				ArrayList<String> relations = hash.get(parent);
+				for(String child : relations)
+				{
+					//System.out.println(parent + "->" + child);
+					this.addRelation(parent, child);
+				}
+			}
+			this.setRoot(inRoot);
+		}
+		/**
+		 * Sets the root node with the value of the input string. Will no set the node as root
+		 *  if the node does not all ready exist in the string.
+		 * @param inRoot
+		 */
+		public void setRoot(String inRoot)
+		{
+			for( Node n : nodes)
+			{
+				if( n.equals(inRoot))
+				{
+					root = n;
+				}
+			}
+		}
+		/**
+		 * Prints the Graph to console for debugging.
+		 */
+		public void printGraph()
+		{
+			System.out.println("The graph has "+nodes.size() + " nodes.");
+			System.out.println("Root Node is: "+root.value);
+			for( Node n : nodes )
+			{
+				n.printNode();
+			}		
+		}
+		/**
+		 * Prints the values of each of the values of each node to the console for debugging.
+		 */
+		public void printGraphValues()
+		{
+			System.out.println("The graph has "+nodes.size() + " nodes.");
+			System.out.println("Root Node is: "+root.value);
+			for( Node n : nodes )
+			{
+				n.printNodeValues();
+			}		
+		}
+		
+		/**
+		 * Adds a relationship to the graph based on an input parent string and and input child string.
+		 *  This will creat a node if the node does not already exist for the values provided.
+		 *  
+		 * @param parent String 	Value of the parent Node
+		 * @param child String		Value of the child Node
+		 */
+		public void addRelation(String parent, String child)
+		{
+			Node p = new Node(parent);
+			Node c = new Node(child,p);
+			
+			ArrayList<Node> newRelation = new ArrayList<Node>();
+			newRelation.add(p);
+			newRelation.add(c);
+			this.addGraphArrayList(newRelation);
+		}
+		
+		/**
+		 * Adds an arraylist of nodes to the graph 
+		 * 
+		 * @param inGraph ArrayList<Node> 	List of Nodes to be added to the Graph
+		 */
+		public void addGraphArrayList(ArrayList<Node> inGraph)
+		{
+			for(Node n : inGraph)
+			{
+				this.addNode(n);
+				//this.printGraph();
+			}
+		}
+		
+		/**
+		 * Adds a node to the graph. If a node exists with the same value as the input node, the
+		 *  relationships of the two nodes will be combine such that only one node exists with
+		 *  all of the relationships.
+		 *  
+		 * @param n Node 	Node to be added.
+		 */
+		public void addNode( Node n)
+		{
+			int index = this.indexOf(n);
+			if( index >= 0 )
+			{
+				for(Node p : n.parents)
+				{
+					p.addChild(nodes.get(index));
+					nodes.get(index).addParent(p);
+				}
+				for(Node c : n.children)
+				{
+					c.addParent(nodes.get(index));
+					nodes.get(index).addChild(c);
+				}
+			}
+			else
+			{
+				nodes.add(n);
+			}
+		}
+		
+		/**
+		 * Determines if the Node with the same value is contained in the graph.
+		 * 
+		 * @param n Node	Node with value of interest.
+		 * @return boolean 	Returns TRUE if there is a node with the same value as the input node.
+		 */
+		public boolean contains( Node n)
+		{
+			for( Node x : nodes)
+			{
+				if( x.equals(n))
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+		
+		/**
+		 * Determines the index of the Node with the same value in the nodes ArrayList<Node> of the Graph
+		 * 
+		 * @param n Node	Node with value of interest.
+		 * @return int 	The index of the Node with the same value of as the input node.
+		 */
+		public int indexOf( Node n)
+		{
+			for( int i = 0; i < nodes.size(); i++)
+			{
+				if( nodes.get(i).equals(n))
+				{
+					return i;
+				}
+			}
+			return -1;
+		}
+		
+		/**
+		 * Processes the downstream values of the nodes in the graph. The distance variable in the node is the
+		 *  the distance the node is from the root. Nodes directly connected to the root have a distance value
+		 *  of 0. Those connected to a node with a value of 0 distance and not connected to the root will have
+		 *  a distance of 1, and so on. Uses a recursive calls.
+		 */
+		public void processDownstream()
+		{
+			//root.downstream = 0;
+			processDownstream(root);
+		}
+		private void processDownstream(Node n)
+		{
+			
+			for( Node child : n.children)
+			{
+				if( child.downstream < 0 || child.downstream > n.downstream + 1)
+				{
+					//System.out.println(n.value + " Downstream:" + n.downstream);
+					child.setDownstream(n.downstream + 1);
+					//System.out.println(child.value +" Downstream:" + child.downstream);
+					processDownstream(child);
+				}
+			}
+		}
+		
+		/**
+		 * Processes the Weight values of the nodes in the graph. The weight variable in the node is equal to
+		 *  r^(distance) of the node.
+		 *  
+		 *  @param r double 	Value to determine how weight is calculated.
+		 */
+		public void processWeight(double r)
+		{
+			for( Node n : nodes)
+			{
+				n.setWeight(r);
+			}
+		}
+		
+		/**
+		 * Processes the Network Weight values of the nodes in the graph. The Network Weight is passed up to parents,
+		 *  grandparents, and those further upstream. The parents receive the value of the node's weight * r. All Nodes
+		 *  Further upstream than the parent receive the value their child received * (1-r). Nodes with multiple parents
+		 *  have their propagated weight split among 'true' parents; where true parents have a lower distance than the node.
+		 *  Finally Network is normalized by the max network weight in the graph (Not including the root).
+		 *  
+		 *  @param r double 	Value to determine how network weight is calculated.
+		 */
+		public void processNetworkWeight(double r)
+		{
+			for( Node n : nodes)
+			{
+				n.setNetworkWeight(r);
+			}
+			double max = maxNetworkWeight();
+			for( Node n : nodes)
+			{
+				n.networkWeight = n.networkWeight/max;
+			}
+		}
+		
+		/**
+		 * Returns the Max value of the network weights in the graph excluding the root.
+		 * 
+		 * @return double 	Max value of the network weights in the graph excluding the root.
+		 */
+		public double maxNetworkWeight()
+		{
+			double max = 0;
+			for( Node n: nodes)
+			{
+				if( n.networkWeight > max && n != root)
+				{
+					max = n.networkWeight;
+				}
+			}
+			return max;
+		}
+		/**
+		 * Returns a hashtable where the key is the value of the nodes and the values are the distance property
+		 *  of the nodes.
+		 *  
+		 * @return HashTable<String, Integer> 	
+		 */
+		public Hashtable<String, Integer> getDownstream()
+		{
+			Hashtable<String, Integer> table = new Hashtable<String, Integer>();
+			for( Node n : nodes )
+			{
+				if( n != root )
+				{
+					table.put(n.value, n.downstream);
+				}
+			}
+			return table;
+		}
+		/**
+		 * Returns a hashtable where the key is the value of the nodes and the values are the weight property
+		 *  of the nodes.
+		 *  
+		 * @return HashTable<String, Double> 	
+		 */
+		public Hashtable<String, Double> getWeight()
+		{
+			Hashtable<String, Double> table = new Hashtable<String, Double>();
+			for( Node n : nodes )
+			{
+				if( n != root )
+				{
+					table.put(n.value, n.weight);
+				}
+			}
+			return table;
+		}
+		/**
+		 * Returns a hashtable where the key is the value of the nodes and the values are the networkWeight
+		 *  property of the nodes.
+		 *  
+		 * @return HashTable<String, Double> 	
+		 */
+		public Hashtable<String, Double> getNetworkWeight()
+		{
+			Hashtable<String, Double> table = new Hashtable<String, Double>();
+			for( Node n : nodes )
+			{
+				if( n != root )
+				{
+					table.put(n.value, n.networkWeight);
+				}
+			}
+			return table;
+		}
+		/**
+		 * Returns the size of the graph including the root node.
+		 * 
+		 * @return int	Size of graph
+		 */
+		public int size(){return nodes.size();}
+		
+		/**
+		 * Class which comprises a value with several properties. Nodes can be connected to each other using
+		 *  a parent child relationship. Used as the primary components of the graph.
+		 * @author jvidalis
+		 *
+		 */
+		public class Node{	
+			public String value  = "";
+			public int downstream=-1;
+			public double weight=0;
+			public double networkWeight=0;
+			public int rand = (int)Math.round(Math.random()*100);
+			public ArrayList<Node> children= new ArrayList<Node>();
+			public ArrayList<Node> parents= new ArrayList<Node>();
+			/**
+			 * Generic Constructor
+			 */
+			public Node(){}
+			/**
+			 * Constructor. Sets value to the input string.
+			 * 
+			 * @param inValue
+			 */
+			public Node(String inValue){value = inValue;}
+			/**
+			 * Constructor. Sets value to the input string. Sets the Node input to be a parent of the node.
+			 * @param inValue
+			 * @param parent
+			 */
+			public Node(String inValue, Node parent)
+			{
+				value = inValue;
+				this.addParent(parent);
+				parent.addChild(this);
+			}
+			/**
+			 * Adds a parent to the Node.
+			 * @param inParent
+			 */
+			public void addParent(Node inParent)
+			{
+				int index = this.indexOfParent(inParent);
+				if( index >= 0)
+				{
+					//System.out.println("Removing Parent: " + parents.get(index) + " from " + this );
+					parents.remove(index);
+				}
+				//System.out.println("Adding Parent: " + inParent + " to " + this );
+				parents.add(inParent);
+			}
+			/**
+			 * Determines if there is a parent of the node with the same value as the input node.
+			 * 
+			 * @param n
+			 * @return
+			 */
+			public boolean containsParent( Node n)
+			{
+				for( Node x : parents)
+				{
+					if( x.value == n.value)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+			/**
+			 * Determines the index of the parent in the parents ArrayList<Node> with the same value
+			 *  as the input node. Returns -1 if no node is found.
+			 *
+			 * @param n
+			 * @return
+			 */
+			public int indexOfParent( Node n)
+			{
+				for( int i = 0; i < parents.size(); i++)
+				{
+					if( parents.get(i).equals(n))
+					{
+						return i;
+					}
+				}
+				return -1;
+			}
+			/**
+			 * Adds the input node as a child to the node.
+			 * 
+			 * @param inChild
+			 */
+			public void addChild(Node inChild)
+			{
+				int index = this.indexOfChild(inChild);
+				if( index >= 0)
+				{
+					//System.out.println("Removing Child: " + children.get(index) + " from " + this );
+					children.remove(index);
+				}
+				//System.out.println("Adding Child: " + inChild + " to " + this );
+				children.add(inChild);
+			}
+			/**
+			 * Determines if there is a parent of the node with the same value as the input node.
+			 * 
+			 * @param n
+			 * @return
+			 */
+			public boolean containsChild( Node n)
+			{
+				
+				for( Node x : children)
+				{
+					if( x.value == n.value)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+			/**
+			 * Determines the index of the parent in the parents ArrayList<Node> with the same value
+			 *  as the input node. Returns -1 if no node is found.
+			 *  
+			 * @param n
+			 * @return
+			 */
+			public int indexOfChild( Node n)
+			{
+				
+				for( int i = 0; i < children.size(); i++)
+				{
+					if( children.get(i).equals(n))
+					{
+						return i;
+					}
+				}
+				return -1;
+			}
+			/**
+			 * Sets the value of the node to the input value.
+			 * 
+			 * @param inValue
+			 */
+			public void setValue( String inValue){value = inValue;}
+			/**
+			 * Sets the values of the nodes back to their defaults.
+			 */
+			public void clearValues()
+			{
+				downstream = -1;
+				weight = 0;
+				networkWeight = 0;
+			}
+			/**
+			 * Determines if the input node has the same value as this node.
+			 * 
+			 * @param in
+			 * @return
+			 */
+			public boolean equals(Node in)
+			{
+				
+				if(this.value.equals(in.value))
+				{
+					return true;
+				}
+				return false;
+			}
+			/**
+			 * Determines if the input string is equal to the value of the node.
+			 * @param in
+			 * @return
+			 */
+			public boolean equals(String in)
+			{
+				
+				if(this.value.equals(in))
+				{
+					return true;
+				}
+				return false;
+			}
+			/**
+			 * Prints a verbose representation of the node to the console.
+			 */
+			public void printNode()
+			{
+				System.out.println("Node:" + this);
+				System.out.println("Node Downstream:" + downstream);
+				System.out.println("Node weight:" + weight);
+				System.out.println("Node networkWeight:" + this.networkWeight);
+				for(Node s : children)
+				{
+					System.out.println("\tChild:" + s);
+				}
+				for(Node s : parents)
+				{
+					System.out.println("\tParent:" + s);
+				}
+			}
+			/**
+			 * Prints a verbose representation of the node's values to the console.
+			 */
+			public void printNodeValues()
+			{
+				System.out.print(this);
+				System.out.print("\t" + downstream);
+				System.out.print("\t" + weight);
+				System.out.println("\t" + networkWeight);
+			}
+			/**
+			 * Returns the value of the node.
+			 */
+			public String toString()
+			{
+				return value;
+				
+			}
+			/**
+			 * Sets the downstream value of the node to the input.
+			 * 
+			 * @param in int 	New Downstream Valule.
+			 */
+			public void setDownstream(int in){this.downstream = in;}
+			/**
+			 * Calculates the weight property of the node from the distance downstream.
+			 * 	weight = r^(distance)
+			 * @param r
+			 */
+			public void setWeight(double r){this.weight = Math.pow(r, (double)this.downstream);}
+			/**
+			 * Uses a series of recursive network values to pass the weight from this node as network weight
+			 *  to its upstream providers. This is done through 3 function calls.
+			 * @param r
+			 */
+			public void setNetworkWeight(double r)
+			{
+				//Starting at the base
+				
+				ArrayList<Node> realParents = new ArrayList<Node>();
+				for(Node p : parents ){	if( p.downstream < this.downstream)	{realParents.add(p);} }
+				for(Node p : realParents)
+				{
+					p.propagateFirstNetworkWeight( this.weight / realParents.size(), r );
+				}
+				
+			}
+			private void propagateFirstNetworkWeight( double nw, double r )
+			{
+				this.networkWeight = this.networkWeight + nw * r;
+				ArrayList<Node> realParents = new ArrayList<Node>();
+				for(Node p : parents ){	if( p.downstream < this.downstream)	{realParents.add(p);} }
+				for(Node p : realParents)
+				{
+					p.propagateSecondNetworkWeight( nw * r / realParents.size(), r );
+				}
+			}
+			private void propagateSecondNetworkWeight( double nw, double r )
+			{
+				this.networkWeight = this.networkWeight + nw * (1-r);
+				ArrayList<Node> realParents = new ArrayList<Node>();
+				for(Node p : parents ){	if( p.downstream < this.downstream)	{realParents.add(p);} }
+				for(Node p : realParents)
+				{
+					p.propagateSecondNetworkWeight( nw * (1-r) / realParents.size(), r );
+				}
+			}
+		}
+	}
 }

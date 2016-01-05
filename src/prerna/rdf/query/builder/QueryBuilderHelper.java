@@ -255,6 +255,7 @@ public class QueryBuilderHelper {
 			{
 				String predURI = thisTripleArray.get(predIdx);
 				String objectURI = thisTripleArray.get(objIdx);
+				objectURI = engine.getTransformedNodeName(objectURI, false);
 				String objectName = Utility.getInstanceName(engine.getTransformedNodeName(objectURI, true));
 				String predName = subjectName + "_" +Utility.getInstanceName(predURI) + "_" + objectName;
 				if (!totalVarList.contains(predName))

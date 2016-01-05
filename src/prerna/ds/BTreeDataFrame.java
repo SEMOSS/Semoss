@@ -1950,9 +1950,12 @@ public class BTreeDataFrame implements ITableDataFrame {
 
 	@Override
 	public void processDataMakerComponent(DataMakerComponent component) {
-		
+
+		long start = System.currentTimeMillis();
+		System.err.println("start : " + start);
 		processPreTransformations(component, component.getPreTrans());
-		
+
+		System.err.println("finished pre comps : " + (System.currentTimeMillis() - start));
 		IEngine engine = component.getEngine();
 		// automatically created the query if stored as metamodel
 		// fills the query with selected params if required
@@ -1960,6 +1963,8 @@ public class BTreeDataFrame implements ITableDataFrame {
 		String query = component.fillQuery();
 		
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		System.err.println("finished query running : " + (System.currentTimeMillis() - start));
 		String[] displayNames = wrapper.getDisplayVariables(); // pulled this outside of the if/else block on purpose. 
 		ITableDataFrame newDataFrame = null;
 		if(this.levelNames == null){
@@ -1971,10 +1976,12 @@ public class BTreeDataFrame implements ITableDataFrame {
 		else {
 			newDataFrame = wrapper.getTableDataFrame();
 		}
+		System.err.println("finished component processing : " + (System.currentTimeMillis() - start));
 
 		processPostTransformations(component, component.getPostTrans(), newDataFrame);
 		
 		processActions(component, component.getActions());
+		System.err.println("finished post : " + (System.currentTimeMillis() - start));
 	}
 	
 	public void processPreTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms){

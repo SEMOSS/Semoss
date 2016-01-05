@@ -31,13 +31,22 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.ds.TreeNode;
+import prerna.engine.api.IEngine;
 import prerna.om.SEMOSSParam;
 
 public interface IMatcher {
 	
-	enum MATCHER_ACTION {BIND, REGEX}
+	enum MATCHER_ACTION {BIND, REGEX, NONE}
 	
-	MATCHER_ACTION getType();
+	/**
+	 * This method determines how the query that ultimately feeds the join using the matcher gets modified
+	 * For example, my exact string matcher will always use BIND because the matcher needs an exact match anyway
+	 * A wordnet matcher, however, will use NONE because the query cannot subselect what will match--the matcher will have to do all the work
+	 * @return	How to add the list to the query to prefilter future results
+	 */
+	MATCHER_ACTION getQueryModType();
+	
+	List<Object> getQueryModList(ITableDataFrame dm, String columnNameInDM, IEngine engine, String columnNameInNewEngine);
 	
 	/**
 	 * Get the name of the algorithm

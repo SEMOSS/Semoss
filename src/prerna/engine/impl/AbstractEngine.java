@@ -91,7 +91,6 @@ public abstract class AbstractEngine implements IEngine {
 	private String propFile = null;
 
 	protected Properties prop = null;
-	private Properties dreamerProp = null;
 	private Properties generalEngineProp = null;
 	private Properties ontoProp = null;
 
@@ -112,6 +111,7 @@ public abstract class AbstractEngine implements IEngine {
 	private Hashtable<String,String> transformedNodeNames = new Hashtable<String,String>();
 
 	private static final String SEMOSS_URI = "http://semoss.org/ontologies/";
+	private String baseUri;
 
 	private static final String CONTAINS_BASE_URI = SEMOSS_URI + Constants.DEFAULT_RELATION_CLASS + "/Contains";
 	private static final String GET_ALL_INSIGHTS_QUERY = "SELECT DISTINCT ID, QUESTION_ORDER FROM QUESTION_ID ORDER BY ID";
@@ -147,6 +147,9 @@ public abstract class AbstractEngine implements IEngine {
 			+ "{<@nodeType@> <http://www.w3.org/2000/01/rdf-schema#subClassOf>* ?x}"
 			+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf>* ?y}"
 			+ "}";
+	
+	private static final String GET_BASE_URI_FROM_OWL = "SELECT DISTINCT ?entity WHERE {"
+			+ "{ <SEMOSS:ENGINE_METADATA> <CONTAINS:BASE_URI> ?entity } } LIMIT 1";
 
 	/**
 	 * Opens a database as defined by its properties file. What is included in
@@ -540,18 +543,18 @@ public abstract class AbstractEngine implements IEngine {
 		return Utility.getVectorOfReturn(query, baseDataEngine, true);
 	}
 
-	public Vector<String> getProperties4Concept(String concept, Boolean logicalNames) {
+	public List<String> getProperties4Concept(String concept, Boolean logicalNames) {
 		String query = "SELECT ?property WHERE { {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
 				+ "{?concept  <http://www.w3.org/2002/07/owl#DatatypeProperty> ?property}"
 				+ "{?property a <" + CONTAINS_BASE_URI + ">}}"
 				+ "BINDINGS ?concept {(<"+ this.getTransformedNodeName(concept, false) +">)}";
-		Vector<String> uriProps = Utility.getVectorOfReturn(query, baseDataEngine, true);
+		List<String> uriProps = Utility.getVectorOfReturn(query, baseDataEngine, true);
 		if(!logicalNames){
 			return uriProps;
 		}
 		else{
 			// need to go through each one and translate
-			Vector<String> propNames = new Vector<String>();
+			List<String> propNames = new Vector<String>();
 			for(String uriProp : uriProps){
 				String logicalName = this.getTransformedNodeName(uriProp, true);
 				propNames.add(logicalName);
@@ -653,6 +656,7 @@ public abstract class AbstractEngine implements IEngine {
 				}
 			}
 		}
+		
 		return nodeURI;
 	}
 	
@@ -807,7 +811,7 @@ public abstract class AbstractEngine implements IEngine {
 			}
 		}
 		IEngine eng = (IEngine) DIHelper.getInstance().getLocalProp("Movie_Test");
-		Vector<String> props = eng.getProperties4Concept("http://semoss.org/ontologies/Concept/Title", false);
+		List<String> props = eng.getProperties4Concept("http://semoss.org/ontologies/Concept/Title", false);
 		while(!props.isEmpty()){
 			System.out.println(props.remove(0));
 		}
@@ -1137,5 +1141,24 @@ public abstract class AbstractEngine implements IEngine {
 		}
 //		this.insightRDBMS.execQuery("SCRIPT TO 'C:\\Users\\bisutton\\workspace\\script.txt'");
 		return stringBuilder.toString();
+	}
+	
+	@Override
+	public String getNodeBaseUri(){
+		if(baseUri == null) {
+			ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(this.baseDataEngine, GET_BASE_URI_FROM_OWL);
+			if(wrap.hasNext()) {
+				ISelectStatement ss = wrap.next();
+				baseUri = ss.getRawVar("entity") + "";
+				logger.info("Got base uri from owl " + baseUri + " for engine " + getEngineName());
+			}
+			if(baseUri == null){
+				baseUri = Constants.CONCEPT_URI;
+				logger.info("couldn't get base uri from owl... defaulting to " + baseUri + " for engine " + getEngineName());
+				
+			}
+		}
+		
+		return baseUri;
 	}
 }
