@@ -670,7 +670,7 @@ public class Utility {
 					Date date = new Date();
 					String currDate = dateFormat.format(date);
 					String userID = "default";
-					String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, QUESTION_MAKEUP FROM QUESTION_ID";
+					String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, QUESTION_MAKEUP, QUESTION_PERSPECTIVE  FROM QUESTION_ID";
 
 					//	solrE.deleteEngine(engineName);
 
@@ -681,7 +681,8 @@ public class Utility {
 						int id = (int) ss.getVar("ID");
 						String name = (String) ss.getVar("QUESTION_NAME");
 						String layout = (String) ss.getVar("QUESTION_LAYOUT");
-
+						String perspective = (String) ss.getVar("QUESTION_PERSPECTIVE");
+						
 						JdbcClob obj = (JdbcClob) ss.getVar("QUESTION_MAKEUP"); 
 						InputStream makeup = null;
 						try {
@@ -738,6 +739,7 @@ public class Utility {
 						queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
 						queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
 						queryResults.put(SolrIndexEngine.LAYOUT, layout);
+						queryResults.put(SolrIndexEngine.TAGS, perspective);
 
 						try {
 							solrE.addInsight(engineName + "_" + id, queryResults);
