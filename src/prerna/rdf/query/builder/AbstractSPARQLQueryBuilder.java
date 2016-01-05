@@ -53,7 +53,7 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 	public void setBuilderData(QueryBuilderData queryBuilderData) {
 //		QueryBuilderHelper.cleanBuilderData(engine, queryBuilderData);
 		this.builderData = queryBuilderData;
-		this.semossQuery.setReturnVarOrder(queryBuilderData.getVarReturnOrder());
+		this.semossQuery.setReturnVarOrder(queryBuilderData.getReturnVars());
 		nodePropV = queryBuilderData.getNodeProps();
 	}
 	
@@ -61,12 +61,30 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 		for(Map<String, String> nodeHash : nodeV){
 			String nodeName = nodeHash.get(QueryBuilderHelper.varKey);
 			String nodeURI = nodeHash.get(QueryBuilderHelper.uriKey);
-			SEMOSSQuery headerQuery = createDefaultFilterQuery(nodeName);
-			this.headerFilterHash.put(nodeName, headerQuery);
-			SEMOSSQueryHelper.addConceptTypeTripleToQuery(nodeName, nodeURI, headerQuery);
+//			SEMOSSQuery headerQuery = createDefaultFilterQuery(nodeName);
+//			this.headerFilterHash.put(nodeName, headerQuery);
+//			SEMOSSQueryHelper.addConceptTypeTripleToQuery(nodeName, nodeURI, headerQuery);
 			
 			SEMOSSQueryHelper.addConceptTypeTripleToQuery(nodeName, nodeURI, semossQuery);
-			SEMOSSQueryHelper.addSingleReturnVarToQuery(nodeName, semossQuery);
+			addReturnVar(nodeName, semossQuery);
+		}
+	}
+	
+	private void addReturnVar(String varName, SEMOSSQuery query){
+		if(this.builderData.getLimitReturnToVarsList()) // if the query returns should be limited to only those in the vars list, we need to check to make sure this one is valid
+		{
+			List<String> listedReturnVars = this.builderData.getReturnVars();
+			if(listedReturnVars.contains(varName)){
+				SEMOSSQueryHelper.addSingleReturnVarToQuery(varName, semossQuery);
+				logger.info(varName + " is contained in " + listedReturnVars.toString());
+			}
+			else {
+				logger.info(varName + " is NOT contained in " + listedReturnVars.toString());
+			}
+		}
+		else {
+			logger.info("return vars are not constrained. adding " + varName);
+			SEMOSSQueryHelper.addSingleReturnVarToQuery(varName, semossQuery);
 		}
 	}
 	
@@ -77,7 +95,7 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 			String propName = propHash.get(QueryBuilderHelper.varKey);
 			String propURI = propHash.get(QueryBuilderHelper.uriKey);
 			SEMOSSQueryHelper.addGenericTriple(propHash.get("SubjectVar"), TriplePart.VARIABLE, propURI, TriplePart.URI, propName, TriplePart.VARIABLE, semossQuery);
-			SEMOSSQueryHelper.addSingleReturnVarToQuery(propName, semossQuery);
+			addReturnVar(propName, semossQuery);
 		}
 	}
 	
@@ -103,13 +121,13 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 	abstract protected void addReturnVariables(List<Hashtable<String, String>> predV2);
 
 	
-	private SEMOSSQuery createDefaultFilterQuery(String varName){
-		SEMOSSQuery q = new SEMOSSQuery();
-		q.setQueryType(SPARQLConstants.SELECT);
-		q.setDisctinct(true);
-		SEMOSSQueryHelper.addSingleReturnVarToQuery(varName, q);
-		return q;
-	}
+//	private SEMOSSQuery createDefaultFilterQuery(String varName){
+//		SEMOSSQuery q = new SEMOSSQuery();
+//		q.setQueryType(SPARQLConstants.SELECT);
+//		q.setDisctinct(true);
+//		SEMOSSQueryHelper.addSingleReturnVarToQuery(varName, q);
+//		return q;
+//	}
 	
 	protected void buildFilter()
 	{
@@ -266,35 +284,35 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 		this.nodePropV = selectedNodePropsList;
 	}
 			
-	public ArrayList<Map<String,String>> getHeaderArray(){
-		ArrayList<Map<String,String>> retArray = new ArrayList<Map<String,String>>();
-		retArray.addAll(nodeV);
-		retArray.addAll(nodePropV);
-		// add the filter queries
-		String defaultQueryPattern = this.semossQuery.getQueryPattern();
-		for(Map<String, String> headerHash : retArray){
-			String varName = headerHash.get(QueryBuilderHelper.varKey);
-			String filterQuery = "";
-			
-			boolean clearFilterResults = false;
-			if(clearFilter.size()>0 && clearFilter.containsKey(varName)){
-				if(clearFilter.get(varName)){
-					clearFilterResults = true;
-				}
-			}
-			
-			if(clearFilterResults && this.headerFilterHash.containsKey(varName)){
-				SEMOSSQuery q = headerFilterHash.get(varName);
-				q.createQuery();
-				filterQuery = q.getQuery();
-			}
-			else{
-				filterQuery = "SELECT DISTINCT ?" + varName + " " + defaultQueryPattern ;
-			}
-			headerHash.put(QueryBuilderHelper.queryKey, filterQuery);
-		}
-		return retArray;
-	}
+//	public ArrayList<Map<String,String>> getHeaderArray(){
+//		ArrayList<Map<String,String>> retArray = new ArrayList<Map<String,String>>();
+//		retArray.addAll(nodeV);
+//		retArray.addAll(nodePropV);
+//		// add the filter queries
+//		String defaultQueryPattern = this.semossQuery.getQueryPattern();
+//		for(Map<String, String> headerHash : retArray){
+//			String varName = headerHash.get(QueryBuilderHelper.varKey);
+//			String filterQuery = "";
+//			
+//			boolean clearFilterResults = false;
+//			if(clearFilter.size()>0 && clearFilter.containsKey(varName)){
+//				if(clearFilter.get(varName)){
+//					clearFilterResults = true;
+//				}
+//			}
+//			
+//			if(clearFilterResults && this.headerFilterHash.containsKey(varName)){
+//				SEMOSSQuery q = headerFilterHash.get(varName);
+//				q.createQuery();
+//				filterQuery = q.getQuery();
+//			}
+//			else{
+//				filterQuery = "SELECT DISTINCT ?" + varName + " " + defaultQueryPattern ;
+//			}
+//			headerHash.put(QueryBuilderHelper.queryKey, filterQuery);
+//		}
+//		return retArray;
+//	}
 	
 	public List<Hashtable<String, String>> getNodeV(){
 		return this.nodeV;

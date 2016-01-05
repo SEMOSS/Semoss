@@ -427,7 +427,7 @@ public abstract class SEMOSSQueryHelper {
 		{
 			Object value = subjectList.get(bindIdx);
 			// SPARQL bindings will break if adding a empty string as a URI since it is invalid
-			if(bindSubjectType.equals(TriplePart.URI) && !value.toString().isEmpty()) {
+			if((bindSubjectType.equals(TriplePart.URI) || bindSubjectType.equals(TriplePart.LITERAL)) && !value.toString().isEmpty()) {
 				TriplePart bind = new TriplePart(value, bindSubjectType);
 				bindList.add(bind);
 			}
