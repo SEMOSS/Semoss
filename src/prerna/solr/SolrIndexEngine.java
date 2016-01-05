@@ -615,6 +615,8 @@ public class SolrIndexEngine {
 	 * @param searchString						Search string for the query
 	 * @param searchField						The field to apply for the search
 	 * @param sortString						The field to sort the query return
+	 * @param limitInt 							The limit of insights to return
+	 * @param offsetInt 						The start document for the insight return
 	 * @param filterData						The filter field values (must be exact match)
 	 * @return									Map<String, Object> where the keys are QUERY_RESPONSE and SPELLCHECK_RESPONSE to get query return
 	 * 											and spell check values respectively
@@ -624,7 +626,7 @@ public class SolrIndexEngine {
 	 * @throws SolrServerException
 	 * @throws IOException
 	 */
-	public Map<String, Object> executeSearchQuery(String searchString, String searchField, String sortString, Map<String, List<String>> filterData) 
+	public Map<String, Object> executeSearchQuery(String searchString, String searchField, String sortString, Integer offsetInt, Integer limitInt, Map<String, List<String>> filterData) 
 			throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, SolrServerException, IOException {
 		Map<String, Object> queryData = new HashMap<String, Object>();
 		if(searchString != null && !searchString.isEmpty()) {
@@ -637,6 +639,12 @@ public class SolrIndexEngine {
 		if(sortString != null && !sortString.isEmpty()) {
 			queryData.put(CommonParams.SORT, sortString);
 		}
+		if(offsetInt != null) {
+			queryData.put(CommonParams.START, offsetInt);
+		}
+		if(limitInt != null) {
+			queryData.put(CommonParams.ROWS, limitInt);
+		}
 
 		List<String> retFields = new ArrayList<String>();
 		retFields.add(CORE_ENGINE);
@@ -648,22 +656,7 @@ public class SolrIndexEngine {
 		retFields.add(TAGS);
 		queryData.put(CommonParams.FL, retFields);
 
-		Map<String, String> filterMap = new HashMap<String, String>();
-		if (filterData != null) {
-			for (String fieldName : filterData.keySet()) {
-				List<String> filterValuesList = filterData.get(fieldName);
-				StringBuilder filterStr = new StringBuilder();
-				for (int i = 0; i < filterValuesList.size(); i++) {
-					if (i == filterValuesList.size() - 1) {
-						filterStr.append(filterValuesList.get(i));
-					} else {
-						filterStr.append(filterValuesList.get(i) + " OR ");
-					}
-				}
-				filterMap.put(fieldName, "(" + filterStr.toString() + ")");
-			}
-		}
-		queryData.put(CommonParams.FQ, filterMap);
+		addFilterResultsToQueryMap(queryData, filterData);
 
 		return SolrIndexEngine.getInstance().executeSearchQuery(queryData);
 	}
@@ -680,7 +673,9 @@ public class SolrIndexEngine {
 		Map<String, Object> searchResultMap = new HashMap<String, Object>();
 		if (serverActive()) {
 			// report number of results found from query
-			LOGGER.info("Reporting number of results found from query");
+			LOGGER.info("Running search query now...");
+			// adding return for spell checks
+			queryOptions.put(SpellingParams.SPELLCHECK_PREFIX, true);
 			QueryResponse res = getQueryResponse(queryOptions);
 			SolrDocumentList results = res.getResults();
 			searchResultMap.put(QUERY_RESPONSE, results);
@@ -775,6 +770,7 @@ public class SolrIndexEngine {
 	 * @param groupOffset						The offset for the group return
 	 * @param groupLimit						The limit for the group return
 	 * @param groupByField						The field to group by
+	 * @param filterData 
 	 * @return
 	 * @throws KeyManagementException
 	 * @throws NoSuchAlgorithmException
@@ -782,7 +778,7 @@ public class SolrIndexEngine {
 	 * @throws SolrServerException
 	 * @throws IOException
 	 */
-	public Map<String, Map<String, SolrDocumentList>> executeQueryGroupBy(String searchString, String searchField, Integer groupOffset, Integer groupLimit, String groupByField)
+	public Map<String, Object> executeQueryGroupBy(String searchString, String searchField, Integer groupOffset, Integer groupLimit, String groupByField, Map<String, List<String>> filterData)
 			throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, SolrServerException, IOException {
 		Map<String, Object> queryData = new HashMap<>();
 		if(searchString != null && !searchString.isEmpty()) {
@@ -816,6 +812,8 @@ public class SolrIndexEngine {
 		retFields.add(TAGS);
 		queryData.put(CommonParams.FL, retFields);
 		
+		addFilterResultsToQueryMap(queryData, filterData);
+
 		return SolrIndexEngine.getInstance().groupDocument(queryData);
 	}
 
@@ -825,14 +823,18 @@ public class SolrIndexEngine {
 	 * @param queryOptions- options that determine how the SolrDocumentList will be grouped and viewed
 	 * @return grouped SolrDocumentList
 	 */
-	private Map<String, Map<String, SolrDocumentList>> groupDocument(Map<String, Object> queryOptions) throws SolrServerException, IOException {
-		Map<String, SolrDocumentList> innerMap = null;
-		Map<String, Map<String, SolrDocumentList>> groupFieldMap = null;
+	private Map<String, Object> groupDocument(Map<String, Object> queryOptions) throws SolrServerException, IOException {
+		Map<String, Object> groupByResponse = new HashMap<String, Object>();
 
 		if (serverActive()) {
+			LOGGER.info("Reporting group by query now...");
+			// adding return for spell checks
+			queryOptions.put(SpellingParams.SPELLCHECK_PREFIX, true);
 			QueryResponse response = getQueryResponse(queryOptions);
-			GroupResponse groupResponse = response.getGroupResponse();
 
+			Map<String, Map<String, SolrDocumentList>> groupFieldMap = null;
+			GroupResponse groupResponse = response.getGroupResponse();
+			Map<String, SolrDocumentList> innerMap = null;
 			if (groupResponse != null) {
 				groupFieldMap = new HashMap<String, Map<String, SolrDocumentList>>();
 				for (GroupCommand gc : groupResponse.getValues()) {
@@ -847,11 +849,17 @@ public class SolrIndexEngine {
 					}
 					groupFieldMap.put(groupBy, innerMap);
 				}
+				groupByResponse.put(QUERY_RESPONSE, groupFieldMap);
+			}
+			
+			Map<String, List<String>> spellCheckResponse = getSpellCheckResponse(response);
+			if(spellCheckResponse != null && !spellCheckResponse.isEmpty()) {
+				groupByResponse.put(SPELLCHECK_RESPONSE, spellCheckResponse);
 			}
 		}
 
 		LOGGER.info("Returning SolrDocumentList for Group Search");
-		return groupFieldMap;
+		return groupByResponse;
 	}
 
 	/**
@@ -933,6 +941,25 @@ public class SolrIndexEngine {
 		}
 		LOGGER.info("Returning SolrDocumentList for More Like This search");
 		return mltMap;
+	}
+	
+	private void addFilterResultsToQueryMap(Map<String, Object> queryData, Map<String, List<String>> filterData) {
+		Map<String, String> filterMap = new HashMap<String, String>();
+		if (filterData != null) {
+			for (String fieldName : filterData.keySet()) {
+				List<String> filterValuesList = filterData.get(fieldName);
+				StringBuilder filterStr = new StringBuilder();
+				for (int i = 0; i < filterValuesList.size(); i++) {
+					if (i == filterValuesList.size() - 1) {
+						filterStr.append(filterValuesList.get(i));
+					} else {
+						filterStr.append(filterValuesList.get(i) + " OR ");
+					}
+				}
+				filterMap.put(fieldName, "(" + filterStr.toString() + ")");
+			}
+		}
+		queryData.put(CommonParams.FQ, filterMap);
 	}
 
 }
