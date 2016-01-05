@@ -1,29 +1,39 @@
 package prerna.ds;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.IMatcher.MATCHER_ACTION;
+import prerna.algorithm.api.ITableDataFrame;
 
-public class ExactStringOuterJoinMatcher extends ExactStringMatcher {
+public class InstancePartialOuterJoinMatcher extends InstanceMatcher {
 
-	private static final Logger LOGGER = LogManager.getLogger(ExactStringOuterJoinMatcher.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(InstancePartialOuterJoinMatcher.class.getName());
 
-	public ExactStringOuterJoinMatcher() {
+	/**
+	 * Assumes the partial outer join is keeping all values in table1Col for performMatch method
+	 */
+	public InstancePartialOuterJoinMatcher() {
 		super();
 	}
+
 	
 	protected List<TreeNode[]> performMatch(IndexTreeIterator it1, IndexTreeIterator it2) {
 		
 		List<TreeNode[]> results = new ArrayList<TreeNode[]>();
 		
 		boolean thereAreNext = it1.hasNext() && it2.hasNext();
+		TreeNode nextNode1 = null;
+		TreeNode nextNode2 = null;
 		//get initial value 1
-		TreeNode nextNode1 = it1.next();
-		TreeNode nextNode2 = it2.next();
+		if(thereAreNext) {
+			nextNode1 = it1.next();
+			nextNode2 = it2.next();
+		}
 		
 		while(thereAreNext){
 			
@@ -33,25 +43,21 @@ public class ExactStringOuterJoinMatcher extends ExactStringMatcher {
 			// 0 means they match
 			// 1 means key 2 is ahead
 			
-			// if key1 is ahead, get next for key2//
+			// if key1 is ahead, get next for key2
 			// if no next for key2, we are done
 			if(comp == -1){
-				LOGGER.info("comp is -1..... adding blank to second col and advancing second column");
-				// add row with empty
-				TreeNode[] row = new TreeNode[2];
-				row[0] = new TreeNode(new StringClass(SimpleTreeNode.EMPTY));
-				row[1] = nextNode2;
-				results.add(row);
-				
+				// because its matching to the right, we do not add a row in this case
 				if(it2.hasNext()){
 					nextNode2 = it2.next();
 //					key2 = nextNode2.leaf.getValue().toString();
 					continue;
 				}
+				else {
+					thereAreNext = false;
+				}
 			}
 			// same logic for key2 ahead
 			else if(comp == 1){
-				LOGGER.info("comp is 1..... adding first col to blank and advancing first column");
 				// add row with empty
 				TreeNode[] row = new TreeNode[2];
 				row[0] = nextNode1;
@@ -89,17 +95,13 @@ public class ExactStringOuterJoinMatcher extends ExactStringMatcher {
 				continue;
 			}
 			else { // we are truly out of next
-				break;
+				thereAreNext = false;
+				continue;
 			}
 		}
 		
 		return results;
 	}
 
-	@Override
-	public MATCHER_ACTION getQueryModType() {
-		LOGGER.info("Getting query mod type");
-		return MATCHER_ACTION.NONE;
-	}
 }
 

@@ -55,6 +55,7 @@ import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
@@ -437,7 +438,7 @@ public class Insight {
 			System.out.println(" THERE ARE " + total + " COMPONENTS IN THIS INSIGHT  ");
 		}
 		//TODO: need to make sure preTrans, postTrans, and actions are all ordered
-		String theQuery = "SELECT ?Component ?Engine ?Query ?Metamodel ?DataMakerType ?PreTrans ?PostTrans ?Actions WHERE { {?Component a <http://semoss.org/ontologies/Concept/Component>} {?Engine a <http://semoss.org/ontologies/Concept/Engine>} {?Component <Comp:Eng> ?Engine} OPTIONAL {?Component <http://semoss.org/ontologies/Relation/Contains/Query> ?Query} OPTIONAL {?Component <http://semoss.org/ontologies/Relation/Contains/Metamodel> ?Metamodel} {?Component <http://semoss.org/ontologies/Relation/Contains/Order> ?Order} OPTIONAL {?Component <Comp:PreTrans> ?PreTrans} OPTIONAL {?Component <Comp:PostTrans> ?PostTrans} OPTIONAL {?Component <Comp:Action> ?Actions} } ORDER BY ?Order";
+		String theQuery = "SELECT ?Component ?Engine ?Query ?Metamodel ?DataMakerType ?PreTrans ?PostTrans ?Actions WHERE { {?Component a <http://semoss.org/ontologies/Concept/Component>} {?EngineURI a <http://semoss.org/ontologies/Concept/Engine>} {?EngineURI <http://semoss.org/ontologies/Relation/Contains/Name> ?Engine } {?Component <Comp:Eng> ?EngineURI} OPTIONAL {?Component <http://semoss.org/ontologies/Relation/Contains/Query> ?Query} OPTIONAL {?Component <http://semoss.org/ontologies/Relation/Contains/Metamodel> ?Metamodel} {?Component <http://semoss.org/ontologies/Relation/Contains/Order> ?Order} OPTIONAL {?Component <Comp:PreTrans> ?PreTrans} OPTIONAL {?Component <Comp:PostTrans> ?PostTrans} OPTIONAL {?Component <Comp:Action> ?Actions} } ORDER BY ?Order";
 		
 		int idx = -1;
 		ISelectWrapper ss = WrapperManager.getInstance().getSWrapper(makeupEng, theQuery);
@@ -464,7 +465,13 @@ public class Insight {
 					dmCompVec.add(dmc);
 				}
 				else if (!metamodelString.isEmpty()){
+					LOGGER.info("trying to get QueryBuilderData object");
 					QueryBuilderData metamodelData = gson.fromJson(metamodelString, QueryBuilderData.class);
+					if(metamodelData.getRelTriples() == null){
+						LOGGER.info("failed to get QueryBuilderData.... this must be a legacy insight with metamodel data. Setting metamodel data into QueryBuilderData");
+						Hashtable<String, Object> dataHash = gson.fromJson(metamodelString, new TypeToken<Hashtable<String, Object>>() {}.getType());
+						metamodelData = new QueryBuilderData(dataHash);
+					}
 					dmc = new DataMakerComponent(engine, metamodelData); 
 					dmCompVec.add(dmc);
 				}
@@ -736,8 +743,8 @@ public class Insight {
 			actions.get(i).setId(compId + ":" + ACTION + i);
 		}
 		DataMakerComponent componentCopy = component.copy();
-		getDataMaker().processDataMakerComponent(component);
-		getDataMakerComponents().add(componentCopy);
+		getDataMaker().processDataMakerComponent(componentCopy);
+		getDataMakerComponents().add(component);
 	}
 	
 	/**
@@ -748,14 +755,18 @@ public class Insight {
 	public void processPostTransformation(List<ISEMOSSTransformation> postTrans, IDataMaker... dataMaker) {
 		DataMakerComponent dmc = getDataMakerComponents().get(this.dmComponents.size() - 1);
 		
-		int lastPostTrans = dmc.getPostTrans().size() - 1;
-		for(int i = 0; i < postTrans.size(); i++) {
-			ISEMOSSTransformation transformation = postTrans.get(i);
-			transformation.setId(dmc.getId() + ":" + POST_TRANS + (++lastPostTrans));
-			dmc.addPostTrans(transformation.copy());
+		List<ISEMOSSTransformation> postTransCopy = new Vector<ISEMOSSTransformation>(postTrans.size());
+		for(ISEMOSSTransformation trans : postTrans) {
+			postTransCopy.add(trans.copy());
 		}
-		
-		getDataMaker().processPostTransformations(dmc, postTrans, dataMaker);
+		getDataMaker().processPostTransformations(dmc, postTransCopy, dataMaker);
+		//TODO: extrapolate in datamakercomponent to take in a list
+		int lastPostTrans = dmc.getPostTrans().size() - 1;
+		// what does this do? -jason
+		for(int i = 0; i < postTrans.size(); i++) {
+			postTrans.get(i).setId(dmc.getId() + ":" + POST_TRANS + (++lastPostTrans));
+			dmc.addPostTrans(postTrans.get(i));
+		}
 	}
 	
 	/**
@@ -766,15 +777,18 @@ public class Insight {
 	public List<Object> processActions(List<ISEMOSSAction> actions, IDataMaker... dataMaker) {
 		DataMakerComponent dmc = getDataMakerComponents().get(this.dmComponents.size() - 1);
 		
+		List<ISEMOSSAction> actionsCopy = new Vector<ISEMOSSAction>(actions.size());
+		for(ISEMOSSAction action : actions) {
+			actionsCopy.add(action.copy());
+		}
+		
+		List<Object> actionResults = getDataMaker().processActions(dmc, actionsCopy, dataMaker);
 		//TODO: extrapolate in datamakercomponent to take in a list
 		int lastAction = dmc.getActions().size() - 1;
 		for(int i = 0; i < actions.size(); i++) {
-			ISEMOSSAction action = actions.get(i);
-			action.setId(dmc.getId() + ":" + ACTION + (++lastAction));
-			getDataMakerComponents().get(this.dmComponents.size() - 1).addAction(action.copy());
+			actions.get(i).setId(dmc.getId() + ":" + ACTION + (++lastAction));
+			getDataMakerComponents().get(this.dmComponents.size() - 1).addAction(actions.get(i));
 		}
-		
-		List<Object> actionResults = getDataMaker().processActions(dmc, actions, dataMaker);
 		
 		return actionResults;
 	}
@@ -790,9 +804,7 @@ public class Insight {
 			DataMakerComponent dmc = dmComponents.get(i);
 			List<ISEMOSSAction> actions = dmc.getActions();
 			undoActions(actions, processes);
-			
-			List<ISEMOSSTransformation> trans = new ArrayList<>();
-			trans.addAll(dmc.getPostTrans());
+			List<ISEMOSSTransformation> trans = dmc.getPostTrans();
 			trans.addAll(dmc.getPreTrans());
 			boolean joinUndone = undoTransformations(trans, processes);
 			if(joinUndone) {

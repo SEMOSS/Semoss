@@ -1957,7 +1957,6 @@ public class RDBMSReader {
 		sqlHash.put("TEXT", "VARCHAR(2000)"); // 8000 was chosen because this is the max for SQL Server; needs more permanent fix
 		sqlHash.put("DATE", "TIME");
 		sqlHash.put("SIMPLEDATE", "DATE");
-		sqlHash.put("TIMESTAMP", "TIMESTAMP");
 		// currently only add in numbers as doubles
 		sqlHash.put("NUMBER", "FLOAT");
 		sqlHash.put("INTEGER", "FLOAT");
@@ -2302,6 +2301,10 @@ public class RDBMSReader {
 		// create base relations for concepts
 
 		storeBaseStatement(sub, pred, obj);
+
+		// add custom base uri
+		logger.info("adding custom base uri to the owl :::: " + customBaseURI+"/"+Constants.DEFAULT_NODE_CLASS+"/");
+		storeBaseStatement("SEMOSS:ENGINE_METADATA", "CONTAINS:BASE_URI", customBaseURI+"/"+Constants.DEFAULT_NODE_CLASS+"/");
 
 		// necessary triple saying Relation is a type of Property
 		sub =  semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;

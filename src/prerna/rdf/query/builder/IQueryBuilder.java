@@ -37,5 +37,5 @@ public interface IQueryBuilder {
 	
 	public List<Map<String, String>> getNodePropV();
 	
-	public List<Map<String, String>> getHeaderArray();
+//	public List<Map<String, String>> getHeaderArray();
 }

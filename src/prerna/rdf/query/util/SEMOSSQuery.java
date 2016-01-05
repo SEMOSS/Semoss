@@ -568,14 +568,14 @@ public class SEMOSSQuery {
 	public void setUseOuterJoins(boolean useOuterJoins) {
 		this.useOuterJoins = useOuterJoins;
 	}
-	public static List orderVars(List vars, List<String> returnVarOrder){
-		if(returnVarOrder == null){
+	public static List orderVars(List vars, List<String> orderedReturnVars){
+		if(orderedReturnVars == null){
 			return vars;
 		}
 		Object[] orderedVars = new Object[vars.size()];
 		List<Integer> used = new ArrayList<Integer>();
-		for(int or = 0; or < returnVarOrder.size(); or++){
-			String orderedV  = returnVarOrder.get(or);
+		for(int or = 0; or < orderedReturnVars.size(); or++){
+			String orderedV  = orderedReturnVars.get(or);
 			if(orderedV != null){
 				for(int x = 0; x < vars.size(); x ++ ){
 					Object var = vars.get(x);
@@ -583,8 +583,8 @@ public class SEMOSSQuery {
 					if(var instanceof TriplePart){
 						varName = ((TriplePart) var).getValue() + "";
 					}
-					System.out.println("does " + varName + " equal  " + orderedV);
-					if(varName.equalsIgnoreCase(orderedV)){
+					System.out.println("does " + varName + " end with  " + orderedV);
+					if(varName.toUpperCase().equals(orderedV.toUpperCase())){
 						System.out.println("yes");
 						System.out.println("adding in position " + or);
 						orderedVars[or] = var;
@@ -607,7 +607,7 @@ public class SEMOSSQuery {
 		}
 		
 		
-		System.err.println("ORDERED SPARQL RETURN VARS::: " +orderedVars);
+		System.err.println("ORDERED SPARQL RETURN VARS ::: " +orderedVars);
 		return Arrays.asList(orderedVars);
 	}
 

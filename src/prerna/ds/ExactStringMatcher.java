@@ -1,6 +1,7 @@
 package prerna.ds;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.engine.api.IEngine;
 import prerna.om.SEMOSSParam;
 
 public class ExactStringMatcher implements IMatcher {
@@ -208,7 +210,15 @@ public class ExactStringMatcher implements IMatcher {
 	}
 
 	@Override
-	public MATCHER_ACTION getType() {
+	public MATCHER_ACTION getQueryModType() {
+		LOGGER.info("Getting query mod type");
 		return MATCHER_ACTION.BIND;
+	}
+
+	@Override
+	public List<Object> getQueryModList(ITableDataFrame dm, String columnNameInDM, IEngine engine, String columnNameInNewEngine) {
+		LOGGER.info("Getting unique raw values for query mod");
+		List<Object> retList = Arrays.asList(dm.getUniqueRawValues(columnNameInDM));
+		return retList;
 	}
 }

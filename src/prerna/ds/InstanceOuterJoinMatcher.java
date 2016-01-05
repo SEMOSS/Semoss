@@ -8,11 +8,11 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.IMatcher.MATCHER_ACTION;
 
-public class ExactStringOuterJoinMatcher extends ExactStringMatcher {
+public class InstanceOuterJoinMatcher extends InstanceMatcher {
 
-	private static final Logger LOGGER = LogManager.getLogger(ExactStringOuterJoinMatcher.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(InstanceOuterJoinMatcher.class.getName());
 
-	public ExactStringOuterJoinMatcher() {
+	public InstanceOuterJoinMatcher() {
 		super();
 	}
 	

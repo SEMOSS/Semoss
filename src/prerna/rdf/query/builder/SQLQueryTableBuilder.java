@@ -149,7 +149,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 	public void setBuilderData(QueryBuilderData queryBuilderData) {
 //		QueryBuilderHelper.cleanBuilderData(engine, queryBuilderData);
 		this.builderData = queryBuilderData;
-		this.returnVarOrder = queryBuilderData.getVarReturnOrder();
+		this.returnVarOrder = queryBuilderData.getReturnVars();
 		this.semossQuery.setReturnVarOrder(this.returnVarOrder);
 		this.nodePropV = queryBuilderData.getNodeProps();
 	}
@@ -353,7 +353,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			String varURI = null;
 			String asName = columns[colIndex];
 			varURI = this.engine.getTransformedNodeName(Constants.DISPLAY_URI + asName, false);
-			if(!varURI.startsWith(Constants.CONCEPT_URI)) { //Means we are working with a property now
+			if(!varURI.startsWith(Constants.CONCEPT_URI)) { //Means we are working with a property nows
 				asName = Utility.getInstanceName(varURI);
 				for(Map<String, String> s : this.nodePropV) {
 					if(asName.equals(s.get("varKey"))) {
@@ -542,7 +542,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		return this.semossQuery;
 	}
 	// adds the table
-	public void addTable(String tableName, Vector <String> properties, Vector <String> propertiesAsName)
+	public void addTable(String tableName, List<String> properties, List<String> properties2)
 	{
 		
 		// first add the selectors
@@ -550,8 +550,8 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 		String tableAlias = getAlias(tableName);
 		for(int propIndex = 0;propIndex < properties.size();propIndex++)
 		{
-			String propName = properties.elementAt(propIndex);
-			String asName = propertiesAsName.elementAt(propIndex);
+			String propName = properties.get(propIndex);
+			String asName = properties2.get(propIndex);
 			String asString = tableAlias + "." + propName + "  AS " + asName;
 
 			if(selectString.length() == 0)
