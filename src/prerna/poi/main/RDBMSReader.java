@@ -2384,6 +2384,7 @@ public class RDBMSReader {
 		for(String relArray : basePropRelations.keySet()){
 			String propertyKey = relArray;
 			String parent = basePropRelations.get(propertyKey);
+			parent = processAutoConcat(parent);
 			String parentURI = baseConceptURIHash.get(parent);
 			String propertyURI = basePropURIHash.get(propertyKey);
 			storeBaseStatement(parentURI, OWL.DatatypeProperty+"", propertyURI);
