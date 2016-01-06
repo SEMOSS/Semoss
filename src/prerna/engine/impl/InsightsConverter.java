@@ -203,7 +203,7 @@ public class InsightsConverter {
 			//need to add parameters as preTransformationFilters
 //			appendParamsAsTransformations(comps, parameters); // THIS IS NOW TAKEN CARE OF BY QUESTION ADMINISTRATOR (because of the addViaText additions)
 			
-			this.questionAdmin.addQuestion(INSIGHT_NAME, PERSPECTIVE, comps, LAYOUT, ORDER, dataMaker, true, null, parameters);
+			this.questionAdmin.addQuestion(INSIGHT_NAME, PERSPECTIVE, comps, LAYOUT, ORDER, dataMaker, true, null, parameters, null);
 		}
 	}
 	
@@ -232,7 +232,7 @@ public class InsightsConverter {
 	
 	public static String getDataMaker(String layout, List<String> allSheets){
 		String dataMaker = "";
-		if((allSheets.contains(layout) || layout.equals("prerna.ui.components.specific.tap.InterfaceGraphPlaySheet") )
+		if((allSheets.contains(layout) || layout.equals("prerna.ui.components.specific.tap.InterfaceGraphPlaySheet") || layout.equals("prerna.ui.components.playsheets.GridScatterSheet") )
 				&& !layout.equals("prerna.ui.components.specific.ousd.RoadmapTimelineComboChartPlaySheet")
 				&& !layout.equals("prerna.ui.components.specific.tap.SysSimHeatMapSheet")) {
 			if(layout.equals("prerna.ui.components.playsheets.GraphPlaySheet") || layout.equals("prerna.ui.components.specific.tap.InterfaceGraphPlaySheet") || layout.equals("Graph")) {
@@ -242,7 +242,6 @@ public class InsightsConverter {
 			}
 		} else if (layout.equals("prerna.ui.components.specific.ousd.RoadmapTimelineComboChartPlaySheet")
 				|| layout.equals("prerna.ui.components.specific.tap.SysSimHeatMapSheet")
-				|| layout.equals("prerna.ui.components.specific.tap.PeoEisSysSimHeatMapSheet")
 				|| layout.equals("prerna.ui.components.specific.ousd.EnduringSysSimHeatMapSheet")
 				|| layout.equals("prerna.ui.components.specific.ousd.OUSDSysSimHeatMapSheet")){
 			dataMaker = layout;
@@ -505,7 +504,7 @@ public class InsightsConverter {
 					String dataMaker = getDataMaker(layoutName, allSheets);
 					List<SEMOSSParam> parameters = getPropFileParameters(paramHash, dependMap, queryMap, optionMap);
 //					appendParamsAsTransformations(comps, parameters); // THIS IS NOW TAKEN CARE OF BY QUESTION ADMINISTRATOR (because of the addViaText additions)
-					questionAdmin.addQuestion(qsDescr, perspective, comps, layout, qsOrder, dataMaker, isDbQuery, null, parameters);
+					questionAdmin.addQuestion(qsDescr, perspective, comps, layout, qsOrder, dataMaker, isDbQuery, null, parameters, null);
 					count++;
 				}
 				LOGGER.debug("Loaded Perspective " + key);
