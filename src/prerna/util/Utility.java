@@ -783,7 +783,6 @@ public class Utility {
 						
 						try {
 							solrE.addInstance(newId, fieldData);
-							solrE.queryInstance(newId, fieldData);
 						} catch (SolrServerException | IOException e) {
 							e.printStackTrace();
 						}
