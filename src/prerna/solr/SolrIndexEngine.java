@@ -795,7 +795,7 @@ public class SolrIndexEngine {
 			queryData.put(CommonParams.Q, searchString);
 		}
 		if(searchField != null && !searchField.isEmpty()) {
-			queryData.put(CommonParams.DF, searchString);
+			queryData.put(CommonParams.DF, searchField);
 		}
 
 		if(groupLimit != null) {
