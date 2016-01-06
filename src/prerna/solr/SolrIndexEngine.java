@@ -25,6 +25,7 @@ import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.SolrQuery.SortClause;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.HttpSolrServer;
 import org.apache.solr.client.solrj.response.FacetField;
@@ -46,6 +47,7 @@ import org.apache.solr.common.params.HighlightParams;
 import org.apache.solr.common.params.MoreLikeThisParams;
 import org.apache.solr.common.params.SpellingParams;
 import org.apache.solr.common.util.NamedList;
+import org.h2.result.SortOrder;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -354,7 +356,6 @@ public class SolrIndexEngine {
 					Q.removeSort(NAME);
 					LOGGER.info("Sorting list of documents in order of relevance");
 				}
-
 			}
 
 			// rows - returns specified int of insights
@@ -439,7 +440,27 @@ public class SolrIndexEngine {
 				Q.set(GroupParams.GROUP_OFFSET, numOffSet);
 				LOGGER.info("Starting number for doc return is: " + numOffSet);
 			}
-
+			
+			// groupSort - specifies if sort should be ascending or descending
+			if (queryOptions.get(GroupParams.GROUP_SORT) != null) {
+				String sort = (String) queryOptions.get(GroupParams.GROUP_SORT);
+				String desc = "desc";
+				String asc = "asc";
+				String relevance = "relevance";
+				if (sort.equals(desc)) {
+					Q.add("group.sort.field", NAME);
+					Q.add(GroupParams.GROUP_SORT, NAME + " " + desc);
+					LOGGER.info("Sorting list of documents in descending order");
+				} else if (sort.equals(asc)) {
+					Q.add("group.sort.field", NAME);
+					Q.set(GroupParams.GROUP_SORT, NAME + " " + asc);
+					LOGGER.info("Sorting list of documents in ascending order");
+				} else if (sort.equals(relevance)) {
+					Q.remove(GroupParams.GROUP_SORT);
+					LOGGER.info("Sorting list of documents in order of relevance");
+				}
+			}
+			
 			//////// MORELIKETHIS
 			// MoreLikeThisParams.MLT - enable MoreLikeThis results
 			if (queryOptions.get(MoreLikeThisParams.MLT) != null || queryOptions.get(MoreLikeThisParams.SIMILARITY_FIELDS) != null) {
@@ -455,17 +476,14 @@ public class SolrIndexEngine {
 					if (queryOptions.get(MoreLikeThisParams.MIN_DOC_FREQ) != null) {
 						int ignoreDoc = (int) queryOptions.get(MoreLikeThisParams.MIN_DOC_FREQ);
 						Q.set(MoreLikeThisParams.MIN_DOC_FREQ, ignoreDoc);
-						LOGGER.info(
-								"number frequency words will be ignored if not included in set number of documents for MoreLikeThisParams.MLT: "
-										+ ignoreDoc);
+						LOGGER.info("number frequency words will be ignored if not included in set number of documents for MoreLikeThisParams.MLT: " + ignoreDoc);
 					}
 					// the frequency below which terms will be ignored in the
 					// source doc
 					if (queryOptions.get(MoreLikeThisParams.MIN_TERM_FREQ) != null) {
 						int ignoreTerms = (int) queryOptions.get(MoreLikeThisParams.MIN_TERM_FREQ);
 						Q.set(MoreLikeThisParams.MIN_TERM_FREQ, ignoreTerms);
-						LOGGER.info("the frequency below which terms will be ignored in the source doc for MoreLikeThisParams.MLT: "
-								+ ignoreTerms);
+						LOGGER.info("the frequency below which terms will be ignored in the source doc for MoreLikeThisParams.MLT: " + ignoreTerms);
 					}
 				} else if (queryOptions.get(MoreLikeThisParams.SIMILARITY_FIELDS) == null || queryOptions.get(MoreLikeThisParams.MIN_DOC_FREQ) == null
 						|| queryOptions.get(MoreLikeThisParams.MIN_TERM_FREQ) == null) {
@@ -485,8 +503,7 @@ public class SolrIndexEngine {
 			if (queryOptions.get(MoreLikeThisParams.MAX_QUERY_TERMS) != null) {
 				int maxTerms = (int) queryOptions.get(MoreLikeThisParams.MAX_QUERY_TERMS);
 				Q.set(MoreLikeThisParams.MAX_QUERY_TERMS, maxTerms);
-				LOGGER.info(
-						"max number of MoreLikeThisParams.MLT terms that will be included in any generated query for MoreLikeThisParams.MLT: " + maxTerms);
+				LOGGER.info("max number of MoreLikeThisParams.MLT terms that will be included in any generated query for MoreLikeThisParams.MLT: " + maxTerms);
 			}
 
 			// sets the number of documents that will be returned
@@ -788,7 +805,7 @@ public class SolrIndexEngine {
 	 * @throws SolrServerException
 	 * @throws IOException
 	 */
-	public Map<String, Object> executeQueryGroupBy(String searchString, String searchField, Integer groupOffset, Integer groupLimit, String groupByField, Map<String, List<String>> filterData)
+	public Map<String, Object> executeQueryGroupBy(String searchString, String searchField, Integer groupOffset, Integer groupLimit, String groupByField, String groupSort, Map<String, List<String>> filterData)
 			throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, SolrServerException, IOException {
 		Map<String, Object> queryData = new HashMap<>();
 		if(searchString != null && !searchString.isEmpty()) {
@@ -808,6 +825,10 @@ public class SolrIndexEngine {
 		} else {
 			queryData.put(GroupParams.GROUP_OFFSET, 0);
 		}
+		if(groupSort != null && !groupSort.isEmpty()) {
+			queryData.put(GroupParams.GROUP_SORT, groupSort);
+		}
+		
 		List<String> groupList = new ArrayList<String>();
 		groupList.add(groupByField);
 		queryData.put(GroupParams.GROUP_FIELD, groupList);
