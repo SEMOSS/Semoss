@@ -366,6 +366,16 @@ public class SolrIndexEngine {
 				Q.setRows(200);
 				LOGGER.info("Default number of row returns is set to 200");
 			}
+			
+			// start - determins the offset for the insights
+			if (queryOptions.get(CommonParams.START) != null) {
+				int offset = (int) queryOptions.get(CommonParams.START);
+				Q.setStart(offset);
+				LOGGER.info("Specified offset for returned list is: " + offset);
+			} else {
+				Q.setStart(0);
+				LOGGER.info("Default offset for returned list is set to 0");
+			}
 
 			// fl - this is determining which fields in the schema will be
 			// returned
@@ -658,7 +668,7 @@ public class SolrIndexEngine {
 
 		addFilterResultsToQueryMap(queryData, filterData);
 
-		return SolrIndexEngine.getInstance().executeSearchQuery(queryData);
+		return executeSearchQuery(queryData);
 	}
 
 	/**
@@ -714,7 +724,7 @@ public class SolrIndexEngine {
 		queryData.put(FacetParams.FACET_MINCOUNT, 1);
 		queryData.put(FacetParams.FACET_SORT_COUNT, true);
 
-		return SolrIndexEngine.getInstance().facetDocument(queryData);
+		return facetDocument(queryData);
 	}
 
 	/**
@@ -814,7 +824,7 @@ public class SolrIndexEngine {
 		
 		addFilterResultsToQueryMap(queryData, filterData);
 
-		return SolrIndexEngine.getInstance().groupDocument(queryData);
+		return groupDocument(queryData);
 	}
 
 	/**
@@ -914,7 +924,7 @@ public class SolrIndexEngine {
 		mltList.add(mltField);
 		queryData.put(MoreLikeThisParams.SIMILARITY_FIELDS, mltList);
 
-		return SolrIndexEngine.getInstance().mltDocument(queryData);	
+		return mltDocument(queryData);	
 	}
 
 	/**
