@@ -242,6 +242,7 @@ public class InsightsConverter {
 			}
 		} else if (layout.equals("prerna.ui.components.specific.ousd.RoadmapTimelineComboChartPlaySheet")
 				|| layout.equals("prerna.ui.components.specific.tap.SysSimHeatMapSheet")
+				|| layout.equals("prerna.ui.components.specific.tap.PeoEisSysSimHeatMapSheet")
 				|| layout.equals("prerna.ui.components.specific.ousd.EnduringSysSimHeatMapSheet")
 				|| layout.equals("prerna.ui.components.specific.ousd.OUSDSysSimHeatMapSheet")){
 			dataMaker = layout;
