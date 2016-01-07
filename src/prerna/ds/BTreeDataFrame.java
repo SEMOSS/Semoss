@@ -241,8 +241,19 @@ public class BTreeDataFrame implements ITableDataFrame {
 			LOGGER.error("value must be either double or string");
 		}
 		
-		return (foundNode==null) ? null: new UniqueBTreeIterator(foundNode, false, columnsToSkip).next();
-	}
+		UniqueBTreeIterator iterator = new UniqueBTreeIterator(foundNode, false, columnsToSkip);
+		int index = ArrayUtilityMethods.arrayContainsValueAtIndex(filteredLevelNames, columnHeader);
+		while(iterator.hasNext()) {
+		List<Object[]> returnData = iterator.next();
+		Object[] returnRow = returnData.get(0);
+			if(returnRow[index].toString().equalsIgnoreCase(value.toString())) {
+				return returnData;
+			}
+		}
+		
+//		return (foundNode==null) ? null: new UniqueBTreeIterator(foundNode, false, columnsToSkip).next();
+		return null;
+	} 
 	
 	public List<Object[]> getScaledData() {
 		List<Object[]> retData = new ArrayList<Object[]>();
