@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.sql.SQLException;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 //import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -61,6 +62,8 @@ import org.supercsv.io.CsvMapReader;
 import org.supercsv.io.ICsvMapReader;
 import org.supercsv.prefs.CsvPreference;
 
+import com.hp.hpl.jena.vocabulary.OWL;
+
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -75,8 +78,6 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
 
-import com.hp.hpl.jena.vocabulary.OWL;
-
 /**
  * Loading data into SEMOSS using comma separated value (CSV) files
  */
@@ -84,7 +85,8 @@ public class RDBMSReader {
 
 	private static final String GENERIC_PERSPECTIVE = "Generic-Perspective";
 	private static final Logger logger = LogManager.getLogger(RDBMSReader.class.getName());
-
+	private static final DateFormat DATE_DF = new SimpleDateFormat("yyy-MM-dd");
+	private static final DateFormat GENERIC_DF = new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy");
 	private String propFile; // the file that serves as the property file
 	private FileReader readCSVFile;
 	private ICsvMapReader mapReader;
@@ -2119,8 +2121,8 @@ public class RDBMSReader {
 					String value = jcrMap.get(subjectElement) + "";
 					if (type != null && type.contains("DATE")) {
 						try {
-							Date date = new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy").parse(value);
-							value = new SimpleDateFormat("yyyy/MM/dd").format(date);
+							Date dateValue = GENERIC_DF.parse(value);
+							value = DATE_DF.format(dateValue);
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
@@ -2146,8 +2148,8 @@ public class RDBMSReader {
 				String value = jcrMap.get(subject) + "";
 				if (type != null && type.contains("DATE")) {
 					try {
-						Date date = new SimpleDateFormat("E MMM dd HH:mm:ss Z yyyy").parse(value);
-						value = new SimpleDateFormat("yyyy/MM/dd").format(date);
+						Date dateValue = GENERIC_DF.parse(value);
+						value = DATE_DF.format(dateValue);
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
