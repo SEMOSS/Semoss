@@ -116,34 +116,36 @@ public class SQLQueryParser extends AbstractQueryParser {
 		if(plainSelectList!=null && plainSelectList.size()>0){
 			for(PlainSelect ps: plainSelectList){
 				//get the first table in the from clause 
-				Table initialTable = (Table) ps.getFromItem();
-				setTableAndAlias(initialTable);
-				
-				List<Join> psJoins = ps.getJoins();
-				if(psJoins != null) {
-					for(Join psJoin: psJoins){
-						//System.out.println("join INFO " + psJoin.toString());
-						EqualsTo joinExp = (EqualsTo) psJoin.getOnExpression();
-						
-						if(joinExp!=null){
-							//left part of the join
-							Expression leftExpression = joinExp.getLeftExpression();
-							Column leftJoinColumn = (Column) leftExpression;
-							//right part of the join
-							Expression rightExpression = joinExp.getRightExpression();
-							Column rightJoinColumn = (Column) rightExpression;
+				FromItem initialTable = ps.getFromItem();
+                if(initialTable instanceof Table) {
+					setTableAndAlias((Table) initialTable);
+
+					List<Join> psJoins = ps.getJoins();
+					if(psJoins != null) {
+						for(Join psJoin: psJoins){
+							//System.out.println("join INFO " + psJoin.toString());
+							EqualsTo joinExp = (EqualsTo) psJoin.getOnExpression();
 							
-							// since this is a map full of Column objects, you may get duplicates being added 
-							// (if you are doing the SEMOSS outerjoin syntax, then you'll have a union
-							// of two tables with the same joins, just left join vs right join
-							// we'll filter the duplicates out later when we create tripleMappings.
-							joinColumnsMap.put(leftJoinColumn, rightJoinColumn);
-						}
-						//so get the table name from the join
-						FromItem psJoinTable = psJoin.getRightItem();
-						if(psJoinTable!=null){
-							Table joinsTable = (Table) psJoinTable;
-							setTableAndAlias(joinsTable);
+							if(joinExp!=null){
+								//left part of the join
+								Expression leftExpression = joinExp.getLeftExpression();
+								Column leftJoinColumn = (Column) leftExpression;
+								//right part of the join
+								Expression rightExpression = joinExp.getRightExpression();
+								Column rightJoinColumn = (Column) rightExpression;
+								
+								// since this is a map full of Column objects, you may get duplicates being added 
+								// (if you are doing the SEMOSS outerjoin syntax, then you'll have a union
+								// of two tables with the same joins, just left join vs right join
+								// we'll filter the duplicates out later when we create tripleMappings.
+								joinColumnsMap.put(leftJoinColumn, rightJoinColumn);
+							}
+							//so get the table name from the join
+							FromItem psJoinTable = psJoin.getRightItem();
+							if(psJoinTable!=null){
+								Table joinsTable = (Table) psJoinTable;
+								setTableAndAlias(joinsTable);
+							}
 						}
 					}
 				}
