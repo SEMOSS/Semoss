@@ -83,7 +83,7 @@ public class DatasetSimilarity implements IAnalyticTransformationRoutine {
 	
 	@Override
 	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
-		this.instanceIndex = (int) options.get(0).getSelected();
+		this.instanceIndex = ((Number) options.get(0).getSelected()).intValue();
 		this.distanceMeasure = (Map<String, DistanceMeasure>) options.get(1).getSelected();
 		this.skipAttributes = (List<String>) options.get(2).getSelected();
 		if(skipAttributes == null) {
