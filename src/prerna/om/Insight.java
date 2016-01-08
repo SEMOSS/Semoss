@@ -804,9 +804,10 @@ public class Insight {
 			DataMakerComponent dmc = dmComponents.get(i);
 			List<ISEMOSSAction> actions = dmc.getActions();
 			undoActions(actions, processes);
-			List<ISEMOSSTransformation> trans = dmc.getPostTrans();
-			trans.addAll(dmc.getPreTrans());
-			boolean joinUndone = undoTransformations(trans, processes);
+			List<ISEMOSSTransformation> transList = new ArrayList<ISEMOSSTransformation>();
+			transList.addAll(dmc.getPostTrans());
+			transList.addAll(dmc.getPreTrans());
+			boolean joinUndone = undoTransformations(transList, processes);
 			if(joinUndone) {
 				// assumption that when no transformations exist, to remove the component from the list
 				// this assumption is currently valid as first post transformation is a join
