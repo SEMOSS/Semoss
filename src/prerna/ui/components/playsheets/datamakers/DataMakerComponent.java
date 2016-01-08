@@ -7,16 +7,15 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.query.builder.IQueryBuilder;
 import prerna.rdf.query.builder.QueryBuilderData;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
 
 public class DataMakerComponent {
 
