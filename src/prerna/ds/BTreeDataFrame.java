@@ -1652,12 +1652,32 @@ public class BTreeDataFrame implements ITableDataFrame {
 				return level;
 			}
 		}
+		//TODO: this is an annoying hack since the query parser returns do not match
+		//		the owl concepts since variable names cannot contain some characters
+		//		that URIs concept types can
+		//		Hack is also in other overloaded getColumnName method
+		String cleanColHeader = Utility.cleanVariableString(columnHeader);
+		for(String level : levelNames) {
+			if(level.equalsIgnoreCase(cleanColHeader)) {
+				return level;
+			}
+		}
 		throw new IllegalArgumentException("Could not find match for "+columnHeader+" in level names: "+ Arrays.toString(levelNames));
 	}
 	
 	private String getColumnName(String[] columnHeaders, String columnHeader) {		
 		for(String level : columnHeaders) {
 			if(level.equalsIgnoreCase(columnHeader)) {
+				return level;
+			}
+		}
+		//TODO: this is an annoying hack since the query parser returns do not match
+		//		the owl concepts since variable names cannot contain some characters
+		//		that URIs concept types can
+		//		Hack is also in other overloaded getColumnName method
+		String cleanColHeader = Utility.cleanVariableString(columnHeader);
+		for(String level : columnHeaders) {
+			if(level.equalsIgnoreCase(cleanColHeader)) {
 				return level;
 			}
 		}
