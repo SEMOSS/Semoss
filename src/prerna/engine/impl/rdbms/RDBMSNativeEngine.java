@@ -108,7 +108,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				}
 			}
 			String connectionURL = prop.getProperty(Constants.CONNECTION_URL);
-			String tempEngineName = "";
+			String tempEngineName = prop.getProperty(Constants.ENGINE);
 			String tempConnectionURL = prop.getProperty(Constants.TEMP_CONNECTION_URL);
 			String userName = prop.getProperty(Constants.USERNAME);
 			String password = "";
@@ -117,13 +117,6 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			dbType = SQLQueryUtil.DB_TYPE.H2_DB;
 			if (dbTypeString != null) {
 				dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
-			}
-			if(!dbType.equals(SQLQueryUtil.DB_TYPE.H2_DB)){
-				if(prop.getProperty(Constants.ENGINE) != null && !prop.getProperty(Constants.ENGINE).isEmpty()) {
-					tempEngineName = prop.getProperty(Constants.ENGINE);
-				} else {
-					tempEngineName = SQLQueryUtil.initialize(dbType).getEngineNameFromConnectionURL(connectionURL);
-				}
 			}
 			if(prop.containsKey(Constants.PASSWORD))
 				password = prop.getProperty(Constants.PASSWORD);

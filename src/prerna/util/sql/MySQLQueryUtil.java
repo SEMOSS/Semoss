@@ -34,7 +34,7 @@ public class MySQLQueryUtil extends SQLQueryUtil {
 	}
 	
 	private void setDialect() {
-		super.setDialectAllTables(" SELECT * FROM INFORMATION_SCHEMA.TABLES ");
+		super.setDialectAllTables(" SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES ");
 		super.setDialectAllColumns(" SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ");
 		super.setResultAllTablesTableName("TABLE_NAME");//
 		super.setResultAllColumnsColumnName("COLUMN_NAME");
@@ -58,12 +58,7 @@ public class MySQLQueryUtil extends SQLQueryUtil {
 	//jdbc:mysql://<hostname>[:port]/<DBname>?user=username&password=pw
 	@Override
 	public String getConnectionURL(String baseFolder, String dbname){
-		if(this.connectionURL != null && !this.connectionURL.isEmpty()) {
-			return this.connectionURL;
-		} else {
-			return connectionBase + "/" + dbname;
-//			return connectionBase + "/" + dbname + "?user=" + super.getDefaultDBUserName() + "&password=" + super.getDefaultDBPassword();
-		}
+		return connectionBase + "/" + dbname;
 	}
 	
 	@Override

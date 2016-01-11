@@ -5,7 +5,7 @@ import java.util.List;
 
 public class OracleQueryUtil extends SQLQueryUtil {
 	public static final String DATABASE_DRIVER = "oracle.jdbc.driver.OracleDriver";
-	private String connectionBase = "jdbc:oracle:thin:@HOST:PORT:SERVICE";
+	private String connectionBase = "jdbc:oracle:thin:@HOST:PORT/SERVICE";
 
 	public OracleQueryUtil(){
 		setDialect();
@@ -33,7 +33,7 @@ public class OracleQueryUtil extends SQLQueryUtil {
 	}
 	
 	private void setDialect() {
-		super.setDialectAllTables(" SELECT * FROM INFORMATION_SCHEMA.TABLES ");
+		super.setDialectAllTables(" SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES ");
 		super.setDialectAllColumns(" SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ");
 		super.setResultAllTablesTableName("TABLE_NAME");//
 		super.setResultAllColumnsColumnName("COLUMN_NAME");
@@ -46,18 +46,20 @@ public class OracleQueryUtil extends SQLQueryUtil {
 	public SQLQueryUtil.DB_TYPE getDatabaseType(){
 		return SQLQueryUtil.DB_TYPE.Oracle;
 	}
+	
 	public String getDialectAllColumns(String tableName){
 		return super.getDialectAllColumns() + "'" + tableName + "'" ;
 	}
+	
 	@Override
 	public String getDialectAllIndexesInDB(String schema){
 		return super.getDialectAllIndexesInDB();
 	}
 	
-	//jdbc:sqlserver://localhost:1433;databaseName=dbname;user=username;Password=password;selectMethod=cursor
+	//jdbc:oracle:thin:@<hostname>[:port]/<service or sid>[-schema name]
 	@Override
 	public String getConnectionURL(String baseFolder,String dbname){
-		return connectionBase + ";databaseName=" + dbname + ";user=" + super.getDefaultDBUserName() + ";Password=" + super.getDefaultDBPassword() + ";selectMethod=cursor";
+		return connectionBase + "-" + dbname;
 	}
 	
 	@Override
