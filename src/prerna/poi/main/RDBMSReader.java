@@ -205,12 +205,13 @@ public class RDBMSReader {
 		if(dbBaseFolder == null || dbBaseFolder.isEmpty()) {
 			getBaseFolder();
 		}
-//		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,engineName));
-		if(queryUtil.getTempConnectionURL() == null || queryUtil.getTempConnectionURL().isEmpty()) {
-			prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,engineName));
-		} else {
-			prop.put(Constants.CONNECTION_URL, queryUtil.getTempConnectionURL());
-		}
+		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,engineName));
+//		if(queryUtil.getTempConnectionURL() == null || queryUtil.getTempConnectionURL().isEmpty()) {
+//			prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,engineName));
+//		} else {
+//			prop.put(Constants.CONNECTION_URL, queryUtil.getTempConnectionURL());
+//		}
+		prop.put(Constants.ENGINE, engineName);
 		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
 		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
 		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
@@ -494,18 +495,18 @@ public class RDBMSReader {
 	private void findTables(String engineName){
 		// this gets all the existing tables
 		String query = queryUtil.getDialectAllTables();
+		if(queryUtil.getDatabaseType() == SQLQueryUtil.DB_TYPE.MARIA_DB) {
+			query = query.replace("DB_NAME", engineName);
+		}
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 		while(wrapper.hasNext())
 		{
 			ISelectStatement stmt = wrapper.next();
 			String tableNameVar = queryUtil.getResultAllTablesTableName();
-			if(queryUtil.getDatabaseType() == SQLQueryUtil.DB_TYPE.MARIA_DB)
-				tableNameVar += engineName.toLowerCase(); //Maria db wants a lower case table name, but the first letter is capital
-
-			//tableNameVar = Utility.toCamelCase(tableNameVar);
+			
 			String tableName = stmt.getVar(tableNameVar) + "";
-			//tableName = Utility.toCamelCase(tableName);
 			findColumns(tableName);
+			
 			String tableCountQuery = queryUtil.getDialectSelectRowCountFrom(tableName,"");
 			ISelectWrapper tableCount = WrapperManager.getInstance().getSWrapper(engine, tableCountQuery);
 			while(tableCount.hasNext()){
