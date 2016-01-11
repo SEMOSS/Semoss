@@ -46,7 +46,7 @@ public abstract class SQLQueryUtil {
 	// generic db info
 	private String dialectAllTables = "";
 	private String resultAllTablesTableName = "";
-	private String dialectAllColumns = " SHOW COLUMNS FROM ";
+	protected String dialectAllColumns = " SHOW COLUMNS FROM ";
 	private String resultAllColumnsColumnName = "COLUMN_NAME";
 	private String resultAllColumnsColumnType = "TYPE";
 
