@@ -40,8 +40,10 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 
 	
 	public MariaDbQueryUtil(){
-		super.setDialectAllTables(" SHOW TABLES ");
-		super.setResultAllTablesTableName("Tables_in_");
+		super.setDialectAllTables("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='DB_NAME'");
+		super.setResultAllTablesTableName("TABLE_NAME");
+		super.setDialectAllColumns("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME=");
+		super.setResultAllColumnsColumnName("COLUMN_NAME");
 		super.setResultAllColumnsColumnName("Field");
 		super.setResultAllColumnsColumnType("Type");
 		super.setDialectAllIndexesInDB("SELECT DISTINCT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = ");
@@ -177,4 +179,8 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 		return "CREATE DATABASE " + engineName +  " CHARACTER SET = 'utf8' COLLATE = 'utf8_bin'";  //allow case sensitive search, binary fastest for sort/ordering, ordering will sort upper case then lower case
 	}
 	
+	@Override
+	public String getDialectAllColumns(String tableName){
+		return dialectAllColumns + "'" + tableName + "'";
+	}
 }
