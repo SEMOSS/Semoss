@@ -94,6 +94,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	private int[] localSystemIsTheaterArr, localSystemIsGarrisonArr;
 	private Integer[] localSystemIsModArr, localSystemIsDecomArr;
 	private double[] localSystemMaintenanceCostArr, localSystemSiteMaintenaceCostArr, localSystemSiteDeploymentCostArr, localSystemSiteInterfaceCostArr, localSystemSiteUserTrainingCostArr;
+	private double[] localSystemNumSitesArr;
 	private double[][] localSystemSiteMatrix;
 	
 	//central systems
@@ -383,38 +384,36 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		localSystemIsGarrisonArr = resFunc.systemGarrison;
 
 		double[] systemSustainmentBudget = resFunc.systemCostOfMaintenance;
-		double[] systemNumOfSites = resFunc.systemNumOfSites;
+		localSystemNumSitesArr = resFunc.systemNumOfSites;
 
 		int i;
 		int sysLength = localSysList.size();
 		localSystemMaintenanceCostArr = new double[sysLength];
 		localSystemSiteMaintenaceCostArr = new double[sysLength];
+		localSystemSiteInterfaceCostArr = new double[sysLength];
 		localSystemSiteDeploymentCostArr = new double[sysLength];
 		localSystemSiteUserTrainingCostArr = new double[sysLength];
 		currentSustainmentCost = 0.0;
 		for(i=0; i<sysLength; i++) {
 			
-			double sysBudget = systemSustainmentBudget[i];
-			double siteMaintenance;
-			
-			if(systemNumOfSites[i]==0) {
-				localSystemMaintenanceCostArr[i] = sysBudget;
-				siteMaintenance = (1 - centralPercOfBudget) * sysBudget;
-				localSystemSiteUserTrainingCostArr[i] = sysBudget * deploymentFactor * trainingPerc;
-			}else {
-				localSystemMaintenanceCostArr[i] = centralPercOfBudget * sysBudget;
-				siteMaintenance = (1 - centralPercOfBudget) * sysBudget / systemNumOfSites[i];
-				localSystemSiteUserTrainingCostArr[i] = sysBudget * deploymentFactor * trainingPerc / systemNumOfSites[i];
+			//assume it is deployed at LEAST one place
+			if(localSystemNumSitesArr[i]==0) {
+				printMessage(localSysList.get(i)+" has no sites ");
+				localSystemMaintenanceCostArr[i] = centralPercOfBudget * systemSustainmentBudget[i];
+				localSystemSiteMaintenaceCostArr[i] = (1 - centralPercOfBudget) * systemSustainmentBudget[i];
+				localSystemSiteDeploymentCostArr[i] = localSystemSiteMaintenaceCostArr[i] * deploymentFactor;
+				localSystemSiteInterfaceCostArr[i] = localSystemSiteDeploymentCostArr[i] * interfacePercOfDeployment;
+				localSystemSiteUserTrainingCostArr[i] = systemSustainmentBudget[i] * deploymentFactor * trainingPerc;
+			} else {
+				localSystemMaintenanceCostArr[i] = centralPercOfBudget * systemSustainmentBudget[i];
+				localSystemSiteMaintenaceCostArr[i] = (1 - centralPercOfBudget) * systemSustainmentBudget[i] / localSystemNumSitesArr[i];
+				localSystemSiteDeploymentCostArr[i] = localSystemSiteMaintenaceCostArr[i] * deploymentFactor;
+				localSystemSiteInterfaceCostArr[i] = localSystemSiteDeploymentCostArr[i] * interfacePercOfDeployment;
+				localSystemSiteUserTrainingCostArr[i] = systemSustainmentBudget[i] * deploymentFactor * trainingPerc / localSystemNumSitesArr[i];
 			}
 
-			localSystemSiteMaintenaceCostArr[i] = siteMaintenance;
-			localSystemSiteDeploymentCostArr[i] = siteMaintenance * deploymentFactor;
-
-			currentSustainmentCost+=sysBudget;
+			currentSustainmentCost+=systemSustainmentBudget[i];
 		}
-		
-		
-		localSystemSiteInterfaceCostArr = resFunc.systemCostOfDataConsumeArr;
 		
 		resFunc.setSysSiteLists(centralSysList,dataList,bluList,siteList);
 		resFunc.fillSysSiteOptDataStores(false);
@@ -428,28 +427,17 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		centralSystemIsGarrisonArr = resFunc.systemGarrison;
 
 		centralSystemMaintenanceCostArr = resFunc.systemCostOfMaintenance;
+		centralSystemInterfaceCostArr = new double[sysLength];
+		centralSystemUserTrainingCostArr = new double[sysLength];
 		
 		sysLength = centralSysList.size();
 		for(i=0; i<sysLength; i++) {
+			centralSystemInterfaceCostArr[i] = centralSystemMaintenanceCostArr[i] * deploymentFactor * interfacePercOfDeployment;
+			centralSystemUserTrainingCostArr[i] = centralSystemMaintenanceCostArr[i] * deploymentFactor * trainingPerc;
+
 			currentSustainmentCost += centralSystemMaintenanceCostArr[i];
 		}
-		centralSystemUserTrainingCostArr = new double[sysLength];
-		for(i=0; i<sysLength; i++) {
-			centralSystemUserTrainingCostArr[i] = centralSystemMaintenanceCostArr[i] * deploymentFactor * trainingPerc;
-		}
-		
-		centralSystemInterfaceCostArr = resFunc.systemCostOfDataConsumeArr;
-		
-		sysLength = localSysList.size();
-		for(i=0; i<sysLength; i++)
-			if(localSystemSiteInterfaceCostArr[i] != 0)
-				localSystemSiteInterfaceCostArr[i] = interfacePercOfDeployment*localSystemSiteDeploymentCostArr[i];
-		
-		sysLength = centralSysList.size();
-		for(i=0; i<sysLength; i++) 
-			if(centralSystemInterfaceCostArr[i] != 0)
-				centralSystemInterfaceCostArr[i] = centralSystemMaintenanceCostArr[i] * deploymentFactor * interfacePercOfDeployment;
-		
+	
 		resFunc.fillSiteLatLon();
 		siteLat = resFunc.siteLat;
 		siteLon = resFunc.siteLon;
@@ -628,10 +616,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			createSiteGrid(localSystemSiteMatrix, localSysList, siteList,"Current NonCentral Systems at Sites");
 			createSiteGrid(localSystemSiteResultMatrix, localSysList, siteList,"Future NonCentral Systems at Sites");
 			createSiteGrid(localSystemSiteRecMatrix, localSysList, siteList,"Changes for NonCentral Systems at Sites");
-			
-			createOverallGrid(centralSysKeptArr, centralSysList, "Central System", "Future Central Systems (Was central system sustained or consolidated?)");
-			createOverallGrid(localSysKeptArr, localSysList, "NonCentral Systems", "Future NonCentral Systems (Was noncentral system sustained or consolidated?)");
-			
+
 			createCostGrid();
 			createCentralCostGrid();
 		}
@@ -642,14 +627,17 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	 */
 	private void createCostGrid() {
 		
-		String[] headers = new String[7];
+		String[] headers = new String[10];
 		headers[0] = "System";
-		headers[1] = "Sustain Cost";
-		headers[2] = "Interface Cost";
-		headers[3] = "Site Maintain Cost";
-		headers[4] = "Site Deploy Cost";
-		headers[5] = "Site User Training Cost";
-		headers[6] = RECOMMENDED_SUSTAIN + " or " + RECOMMENDED_CONSOLIDATION;
+		headers[1] = "# of Current Sites";
+		headers[2] = "# of New Site Deployments";
+		headers[3] = "# of Consolidated Sites";
+		headers[4] = "Central Sustainment Cost";
+		headers[5] = "Current Sites Sustainment Cost";
+		headers[6] = "Interface Development Cost";
+		headers[7] = "New Sites Deployment Cost";
+		headers[8] = "User Training Costs";
+		headers[9] = RECOMMENDED_SUSTAIN + " or " + RECOMMENDED_CONSOLIDATION;
 		
 		ArrayList<Object []> list = new ArrayList<Object []>();
 		
@@ -657,17 +645,39 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		int rowLength = localSysList.size();
 		
 		for(i = 0; i<rowLength; i++) {
-			Object[] row = new Object[7];
+			Object[] row = new Object[10];
 			row[0] = localSysList.get(i);
-			row[1] = localSystemMaintenanceCostArr[i];
-			row[2] = localSystemSiteInterfaceCostArr[i];
-			row[3] = localSystemSiteMaintenaceCostArr[i];
-			row[4] = localSystemSiteDeploymentCostArr[i];
-			row[5] = localSystemSiteUserTrainingCostArr[i];
-			if(localSysKeptArr[i] == 1)
-				row[6] = RECOMMENDED_SUSTAIN;
-			else 
-				row[6] = RECOMMENDED_CONSOLIDATION;
+			row[1] = localSystemNumSitesArr[i];
+			if(localSysKeptArr[i] == 1) {
+				int numSites = siteList.size();
+				int numAdditionalDeployments = 0;
+				int numDecommissioned = 0;
+				for(int j=0; j<numSites; j++) {
+					if(localSystemSiteMatrix[i][j] == 0 && localSystemSiteResultMatrix[i][j] == 1) {
+						numAdditionalDeployments ++;
+					}
+					if(localSystemSiteMatrix[i][j] == 1 && localSystemSiteResultMatrix[i][j] == 0) {
+						numDecommissioned ++;
+					}
+				}
+				row[2] = numAdditionalDeployments;
+				row[3] = numDecommissioned;
+				row[4] = localSystemMaintenanceCostArr[i];
+				row[5] = localSystemSiteMaintenaceCostArr[i] * (localSystemNumSitesArr[i] + numAdditionalDeployments - numDecommissioned);
+				row[6] = localSystemSiteInterfaceCostArr[i] * (1+trainingPerc) * (localSystemNumSitesArr[i] + numAdditionalDeployments - numDecommissioned);
+				row[7] = localSystemSiteDeploymentCostArr[i] * numAdditionalDeployments;
+				row[8] = 0;
+				row[9] = RECOMMENDED_SUSTAIN;
+			} else {
+				row[2] = 0;
+				row[3] = localSystemNumSitesArr[i];
+				row[4] = 0;
+				row[5] = 0;
+				row[6] = 0;
+				row[7] = 0;
+				row[8] = localSystemSiteUserTrainingCostArr[i] * localSystemNumSitesArr[i];
+				row[9] = RECOMMENDED_CONSOLIDATION;
+			}
 			list.add(row);
 		}
 		createTabAndDisplayList(headers,list,"NonCentral System Costs",false);
@@ -680,7 +690,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		
 		String[] headers = new String[5];
 		headers[0] = "Central System";
-		headers[1] = "Sustain Cost";
+		headers[1] = "Sustainment Cost";
 		headers[2] = "Interface Cost";
 		headers[3] = "User Training Cost";
 		headers[4] = RECOMMENDED_SUSTAIN + " or " + RECOMMENDED_CONSOLIDATION;
@@ -693,44 +703,21 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		for(i = 0; i<rowLength; i++) {
 			Object[] row = new Object[5];
 			row[0] = centralSysList.get(i);
-			row[1] = centralSystemMaintenanceCostArr[i];
-			row[2] = centralSystemInterfaceCostArr[i];
-			row[3] = centralSystemUserTrainingCostArr[i];
-			if(centralSysKeptArr[i] == 1)
+			if(centralSysKeptArr[i] == 1) {
+				row[1] = centralSystemMaintenanceCostArr[i];
+				row[2] = centralSystemInterfaceCostArr[i] * (1+trainingPerc);
+				row[3] = 0;
 				row[4] = RECOMMENDED_SUSTAIN;
-			else 
+				
+			} else {
+				row[1] = 0;
+				row[2] = 0;
+				row[3] = centralSystemUserTrainingCostArr[i];
 				row[4] = RECOMMENDED_CONSOLIDATION;
+			}
 			list.add(row);
 		}
 		createTabAndDisplayList(headers,list,"Central System Costs",false);
-	}
-	
-	/*
-	 * Part of desktop display
-	 */
-	private void createOverallGrid(double[] matrix, ArrayList<String> rowLabels, String systemType, String title) {
-		int i;
-
-		int rowLength = rowLabels.size();
-		
-		String[] headers = new String[2];
-		headers[0] = systemType;
-		headers[1] = RECOMMENDED_SUSTAIN + " or " + RECOMMENDED_CONSOLIDATION;
-		
-		ArrayList<Object []> list = new ArrayList<Object []>();
-		
-		for(i=0; i<rowLength; i++) {
-
-			Object[] row = new Object[2];
-			row[0] = rowLabels.get(i);
-			if(matrix[i] == 1)
-				row[1] = RECOMMENDED_SUSTAIN;
-			else
-				row[1] = RECOMMENDED_CONSOLIDATION;
-			list.add(row);
-		}
-
-		createTabAndDisplayList(headers,list,title,false);
 	}
 	
 	/*
