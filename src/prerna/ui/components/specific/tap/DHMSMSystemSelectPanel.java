@@ -49,7 +49,7 @@ public class DHMSMSystemSelectPanel extends JPanel {
 	private Boolean includeMHSEHR = false;
 	private String header = "Select Systems:";
 	
-	private JCheckBox intDHMSMSysCheckBox, notIntDHMSMSysCheckBox, lowProbCheckBox, highProbCheckBox, theaterSysCheckBox, garrisonSysCheckBox, mhsSpecificCheckBox, ehrCoreCheckBox;
+	private JCheckBox intDHMSMSysCheckBox, notIntDHMSMSysCheckBox, lowProbCheckBox, highProbCheckBox, theaterSysCheckBox, garrisonSysCheckBox, faaCheckBox, notFAACheckBox, mhsSpecificCheckBox, ehrCoreCheckBox;
 	private SelectScrollList sysSelectDropDown;
 	private SystemCheckBoxSelectorListener sysCheckBoxListener;
 	
@@ -173,6 +173,22 @@ public class DHMSMSystemSelectPanel extends JPanel {
 		gbc_garrisonSysButton.gridy = 2;
 		this.add(garrisonSysCheckBox, gbc_garrisonSysButton);
 		
+		faaCheckBox = new JCheckBox("FAA");
+		faaCheckBox.setName("faaCheckBox");
+		GridBagConstraints gbc_faaCheckBox = new GridBagConstraints();
+		gbc_faaCheckBox.anchor = GridBagConstraints.WEST;
+		gbc_faaCheckBox.gridx = 3;
+		gbc_faaCheckBox.gridy = 1;
+		this.add(faaCheckBox, gbc_faaCheckBox);
+		
+		notFAACheckBox = new JCheckBox("Not FAA");
+		notFAACheckBox.setName("notFAACheckBox");
+		GridBagConstraints gbc_notFAACheckBox = new GridBagConstraints();
+		gbc_notFAACheckBox.anchor = GridBagConstraints.WEST;
+		gbc_notFAACheckBox.gridx = 3;
+		gbc_notFAACheckBox.gridy = 2;
+		this.add(notFAACheckBox, gbc_notFAACheckBox);
+		
 		if(includeMHSEHR) {
 			mhsSpecificCheckBox = new JCheckBox("MHS Specific");
 			mhsSpecificCheckBox.setName("mhsSpecificCheckBox");
@@ -194,13 +210,15 @@ public class DHMSMSystemSelectPanel extends JPanel {
 	}
 	
 	private void addListeners(SysOptCheckboxListUpdater checkboxListUpdater) {
-		sysCheckBoxListener = new SystemCheckBoxSelectorListener(checkboxListUpdater, sysSelectDropDown, intDHMSMSysCheckBox,notIntDHMSMSysCheckBox,theaterSysCheckBox,garrisonSysCheckBox,lowProbCheckBox, highProbCheckBox,mhsSpecificCheckBox,ehrCoreCheckBox);
+		sysCheckBoxListener = new SystemCheckBoxSelectorListener(checkboxListUpdater, sysSelectDropDown, intDHMSMSysCheckBox,notIntDHMSMSysCheckBox,theaterSysCheckBox,garrisonSysCheckBox,lowProbCheckBox, highProbCheckBox,faaCheckBox, notFAACheckBox, mhsSpecificCheckBox,ehrCoreCheckBox);
 		intDHMSMSysCheckBox.addActionListener(sysCheckBoxListener);
 		notIntDHMSMSysCheckBox.addActionListener(sysCheckBoxListener);
 		theaterSysCheckBox.addActionListener(sysCheckBoxListener);
 		garrisonSysCheckBox.addActionListener(sysCheckBoxListener);
 		lowProbCheckBox.addActionListener(sysCheckBoxListener);
 		highProbCheckBox.addActionListener(sysCheckBoxListener);
+		faaCheckBox.addActionListener(sysCheckBoxListener);
+		notFAACheckBox.addActionListener(sysCheckBoxListener);
 		if(includeMHSEHR) {
 			mhsSpecificCheckBox.addActionListener(sysCheckBoxListener);
 			ehrCoreCheckBox.addActionListener(sysCheckBoxListener);
@@ -214,6 +232,8 @@ public class DHMSMSystemSelectPanel extends JPanel {
 		garrisonSysCheckBox.removeActionListener(sysCheckBoxListener);
 		lowProbCheckBox.removeActionListener(sysCheckBoxListener);
 		highProbCheckBox.removeActionListener(sysCheckBoxListener);
+		faaCheckBox.removeActionListener(sysCheckBoxListener);
+		notFAACheckBox.removeActionListener(sysCheckBoxListener);
 		if(includeMHSEHR) {
 			mhsSpecificCheckBox.removeActionListener(sysCheckBoxListener);
 			ehrCoreCheckBox.removeActionListener(sysCheckBoxListener);
@@ -228,6 +248,8 @@ public class DHMSMSystemSelectPanel extends JPanel {
 		highProbCheckBox.setSelected(false);
 		theaterSysCheckBox.setSelected(false);
 		garrisonSysCheckBox.setSelected(false);
+		faaCheckBox.setSelected(false);
+		notFAACheckBox.setSelected(false);
 		if(includeMHSEHR) {
 			mhsSpecificCheckBox.setSelected(false);
 			ehrCoreCheckBox.setSelected(false);

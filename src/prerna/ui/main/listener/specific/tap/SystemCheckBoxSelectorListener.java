@@ -41,10 +41,10 @@ public class SystemCheckBoxSelectorListener implements ActionListener {
 	private SysOptCheckboxListUpdater checkboxListUpdater;
 	private SelectScrollList scrollList;
 	
-	private JCheckBox intDHMSMSysCheckBox, notIntDHMSMSysCheckBox,theaterSysCheckBox, garrisonSysCheckBox,lowProbCheckBox, highProbCheckBox, mhsSpecificCheckBox, ehrCoreCheckBox;
+	private JCheckBox intDHMSMSysCheckBox, notIntDHMSMSysCheckBox,theaterSysCheckBox, garrisonSysCheckBox,lowProbCheckBox, highProbCheckBox, faaCheckBox, notFAACheckBox, mhsSpecificCheckBox, ehrCoreCheckBox;
 
 
-	public SystemCheckBoxSelectorListener(SysOptCheckboxListUpdater checkboxListUpdater, SelectScrollList scrollList,JCheckBox intDHMSMSysCheckBox,JCheckBox notIntDHMSMSysCheckBox,JCheckBox theaterSysCheckBox,JCheckBox  garrisonSysCheckBox,JCheckBox lowProbCheckBox,JCheckBox highProbCheckBox,JCheckBox mhsSpecificCheckBox,JCheckBox ehrCoreCheckBox) {
+	public SystemCheckBoxSelectorListener(SysOptCheckboxListUpdater checkboxListUpdater, SelectScrollList scrollList,JCheckBox intDHMSMSysCheckBox,JCheckBox notIntDHMSMSysCheckBox,JCheckBox theaterSysCheckBox,JCheckBox  garrisonSysCheckBox,JCheckBox lowProbCheckBox,JCheckBox highProbCheckBox, JCheckBox faaCheckBox, JCheckBox notFAACheckBox, JCheckBox mhsSpecificCheckBox,JCheckBox ehrCoreCheckBox) {
 		
 		this.checkboxListUpdater = checkboxListUpdater;
 		this.scrollList = scrollList;
@@ -54,6 +54,8 @@ public class SystemCheckBoxSelectorListener implements ActionListener {
 		this.garrisonSysCheckBox = garrisonSysCheckBox;
 		this.lowProbCheckBox = lowProbCheckBox;
 		this.highProbCheckBox = highProbCheckBox;
+		this.faaCheckBox = faaCheckBox;
+		this.notFAACheckBox = notFAACheckBox;
 		this.mhsSpecificCheckBox = mhsSpecificCheckBox;
 		this.ehrCoreCheckBox = ehrCoreCheckBox;
 	}
@@ -72,7 +74,7 @@ public class SystemCheckBoxSelectorListener implements ActionListener {
 		else
 			ehrCore = ehrCoreCheckBox.isSelected();
 		
-		List<String> systemsToSelect = checkboxListUpdater.getSelectedSystemList(intDHMSMSysCheckBox.isSelected(), notIntDHMSMSysCheckBox.isSelected(), theaterSysCheckBox.isSelected(), garrisonSysCheckBox.isSelected(), lowProbCheckBox.isSelected(), highProbCheckBox.isSelected(), mhsSpecific, ehrCore);
+		List<String> systemsToSelect = checkboxListUpdater.getSelectedSystemList(intDHMSMSysCheckBox.isSelected(), notIntDHMSMSysCheckBox.isSelected(), theaterSysCheckBox.isSelected(), garrisonSysCheckBox.isSelected(), lowProbCheckBox.isSelected(), highProbCheckBox.isSelected(),  faaCheckBox.isSelected(), notFAACheckBox.isSelected(), mhsSpecific, ehrCore);
 		scrollList.setSelectedValues(systemsToSelect);
 	}
 }

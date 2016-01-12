@@ -50,7 +50,7 @@ public class SysSiteLPSolver extends LPOptimizer{
 	private int[][] localSystemDataMatrix, localSystemBLUMatrix;
 	private int[] localSystemIsTheaterArr, localSystemIsGarrisonArr;
 	private Integer[] localSystemIsModArr, localSystemIsDecomArr;
-	private double[] localSystemMaintenanceCostArr, localSystemSiteMaintenaceCostArr, localSystemSiteDeploymentCostArr, localSystemSiteInterfaceCostArr;
+	private double[] localSystemMaintenanceCostArr, localSystemSiteMaintenaceCostArr, localSystemSiteDeploymentCostArr, localSystemSiteInterfaceCostArr, localSystemSiteUserTrainingCostArr;
 	
 	private int siteLength;
 	private double[][] localSystemSiteMatrix;	
@@ -60,7 +60,7 @@ public class SysSiteLPSolver extends LPOptimizer{
 	private int[][] centralSystemDataMatrix, centralSystemBLUMatrix;
 	private int[] centralSystemIsTheaterArr, centralSystemIsGarrisonArr;
 	private Integer[] centralSystemIsModArr, centralSystemIsDecomArr;
-	private double[] centralSystemMaintenanceCostArr, centralSystemInterfaceCostArr;
+	private double[] centralSystemMaintenanceCostArr, centralSystemInterfaceCostArr, centralSystemUserTrainingCostArr;
 	
 	//input
 	private double trainingPerc, currentSustainmentCost;
@@ -83,7 +83,7 @@ public class SysSiteLPSolver extends LPOptimizer{
 	/**
 	 * Sets/updates the variables required to run the LP module
 	 */
-	public void setVariables(int[][] localSystemDataMatrix, int[][] localSystemBLUMatrix, int[] localSystemIsTheaterArr, int[] localSystemIsGarrisonArr, Integer[] localSystemIsModArr, Integer[] localSystemIsDecomArr, double[] localSystemMaintenanceCostArr, double[] localSystemSiteMaintenaceCostArr, double[] localSystemSiteDeploymentCostArr, double[] localSystemSiteInterfaceCostArr, double[][] localSystemSiteMatrix, int[][] centralSystemDataMatrix, int[][] centralSystemBLUMatrix, int[] centralSystemIsTheaterArr, int[] centralSystemIsGarrisonArr, Integer[] centralSystemIsModArr, Integer[] centralSystemIsDecomArr, double[] centralSystemMaintenanceCostArr, double[] centralSystemInterfaceCostArr, double trainingPerc, double currentSustainmentCost) {
+	public void setVariables(int[][] localSystemDataMatrix, int[][] localSystemBLUMatrix, int[] localSystemIsTheaterArr, int[] localSystemIsGarrisonArr, Integer[] localSystemIsModArr, Integer[] localSystemIsDecomArr, double[] localSystemMaintenanceCostArr, double[] localSystemSiteMaintenaceCostArr, double[] localSystemSiteDeploymentCostArr, double[] localSystemSiteInterfaceCostArr, double[] localSystemSiteUserTrainingCostArr, double[][] localSystemSiteMatrix, int[][] centralSystemDataMatrix, int[][] centralSystemBLUMatrix, int[] centralSystemIsTheaterArr, int[] centralSystemIsGarrisonArr, Integer[] centralSystemIsModArr, Integer[] centralSystemIsDecomArr, double[] centralSystemMaintenanceCostArr, double[] centralSystemInterfaceCostArr, double[] centralSystemUserTrainingCostArr, double trainingPerc, double currentSustainmentCost) {
 	
 		this.localSystemDataMatrix = localSystemDataMatrix;
 		this.localSystemBLUMatrix = localSystemBLUMatrix;
@@ -98,6 +98,7 @@ public class SysSiteLPSolver extends LPOptimizer{
 		this.localSystemSiteMaintenaceCostArr = localSystemSiteMaintenaceCostArr;
 		this.localSystemSiteDeploymentCostArr = localSystemSiteDeploymentCostArr;
 		this.localSystemSiteInterfaceCostArr = localSystemSiteInterfaceCostArr;
+		this.localSystemSiteUserTrainingCostArr = localSystemSiteUserTrainingCostArr;
 
 		this.siteLength = localSystemSiteMatrix[0].length;
 		this.localSystemSiteMatrix = localSystemSiteMatrix;
@@ -113,7 +114,8 @@ public class SysSiteLPSolver extends LPOptimizer{
 		
 		this.centralSystemMaintenanceCostArr = centralSystemMaintenanceCostArr;
 		this.centralSystemInterfaceCostArr = centralSystemInterfaceCostArr;
-
+		this.centralSystemUserTrainingCostArr = centralSystemUserTrainingCostArr;
+		
 		this.trainingPerc = trainingPerc;
 		this.currentSustainmentCost = currentSustainmentCost;
 		
@@ -409,20 +411,27 @@ public class SysSiteLPSolver extends LPOptimizer{
 		int[] colno = new int[numLocalSystems * siteLength + numCentralSystems];
         double[] row = new double[numLocalSystems * siteLength + numCentralSystems];
 
+        double cumTrainingCostToSubtract = 0.0;
+        double trainingCostToSubtract = 0.0;
         for(i=0; i<numLocalSystems; i++) {
 			for(j=0; j<siteLength; j++) {
+				trainingCostToSubtract = localSystemSiteMatrix[i][j] * localSystemSiteUserTrainingCostArr[i];
 				colno[index] = i * siteLength + j +1;
-				row[index] = (1 - localSystemSiteMatrix[i][j]) * localSystemSiteDeploymentCostArr[i] + (1+trainingPerc) * localSystemSiteInterfaceCostArr[i];
+				//if system is not currently at the site, but will be there in the future... add the deployment costs, the interface deployment costs and user training costs for consuming new data AND the user training costs for using a new system
+				row[index] = (1 - localSystemSiteMatrix[i][j]) * localSystemSiteDeploymentCostArr[i] + (1+trainingPerc) * localSystemSiteInterfaceCostArr[i] - trainingCostToSubtract;
+				cumTrainingCostToSubtract += trainingCostToSubtract;
 				index++;
 			}
         }
- 
+
         for(i=0; i<numCentralSystems; i++) {
  			colno[index] = numLocalSystems * (siteLength + 1) + i + 1;
- 			row[index] = (1+trainingPerc) * centralSystemInterfaceCostArr[i];
+ 			//add the interface deployment costs and user training costs for consuming new data AND the user training costs for using a new system
+ 			row[index] = (1+trainingPerc) * centralSystemInterfaceCostArr[i] - centralSystemUserTrainingCostArr[i];
+        	cumTrainingCostToSubtract += centralSystemUserTrainingCostArr[i];
  			index++;
         }
-        solver.addConstraintex(numLocalSystems * siteLength + numCentralSystems, row, colno, LpSolve.LE, maxBudget);
+        solver.addConstraintex(numLocalSystems * siteLength + numCentralSystems, row, colno, LpSolve.LE, maxBudget - cumTrainingCostToSubtract);
     	budgetRow = solver.getNrows();
 
 	}
@@ -561,12 +570,12 @@ public class SysSiteLPSolver extends LPOptimizer{
 				totalDeploymentCost = 0.0;
 		        for(i=0; i<numLocalSystems; i++) {
 					for(j=0; j<siteLength; j++) {
-						totalDeploymentCost += ((1 - localSystemSiteMatrix[i][j]) * localSystemSiteDeploymentCostArr[i] + (1+trainingPerc) * localSystemSiteInterfaceCostArr[i]) * localSystemSiteResultMatrix[i][j];
+						totalDeploymentCost += ((1 - localSystemSiteMatrix[i][j]) * localSystemSiteDeploymentCostArr[i] + (1+trainingPerc) * localSystemSiteInterfaceCostArr[i]) * localSystemSiteResultMatrix[i][j] + localSystemSiteMatrix[i][j] * localSystemSiteUserTrainingCostArr[i] * (1 - localSystemSiteResultMatrix[i][j]) ;
 					}
 		        }
 		 
 		        for(i=0; i<numCentralSystems; i++) {
-		        	totalDeploymentCost += (1+trainingPerc) * centralSystemInterfaceCostArr[i] * centralSysKeptArr[i];
+		        	totalDeploymentCost += ((1+trainingPerc) * centralSystemInterfaceCostArr[i]) * centralSysKeptArr[i] + centralSystemUserTrainingCostArr[i] * (1 - centralSysKeptArr[i]);
 		 			index++;
 		        }
 		        
