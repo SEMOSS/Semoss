@@ -44,7 +44,8 @@ public class SysOptCheckboxListUpdater {
 	IEngine engine;
 	
 	//lists corresponding to system checkboxes
-	private Vector<String> recdSysList, intDHMSMSysList,notIntDHMSMSysList, theaterSysList, garrisonSysList, lowProbSysList, highProbSysList, mhsSpecificSysList, ehrCoreSysList;
+	private Vector<String> recdSysList, intDHMSMSysList,notIntDHMSMSysList, theaterSysList, garrisonSysList, lowProbSysList, highProbSysList, faaSysList, notFAASysList, mhsSpecificSysList, ehrCoreSysList;
+	private Vector<String> bpList;
 	//lists corresponding to capability checkboxes
 	private Vector<String> allCapList, dhmsmCapList, hsdCapList, hssCapList, fhpCapList;
 	//lists corresponding to data checkboxes
@@ -75,8 +76,10 @@ public class SysOptCheckboxListUpdater {
 		this.engine = engine;
 		if(runSystem)
 			createSystemCheckBoxLists(costGreaterThanZero);
-		if(runCap)
+		if(runCap) {
 			createCapabilityCheckBoxLists();
+			createBPCheckBoxLists();
+		}
 		if(runDataBLU)
 			createDataAndBLUCheckBoxLists();
 	}
@@ -94,8 +97,15 @@ public class SysOptCheckboxListUpdater {
 		garrisonSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> ?GT}FILTER( !regex(str(?GT),'Theater'))"+ costGreaterThanZeroTriples + "}");
 		lowProbSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob}"+ costGreaterThanZeroTriples + "}BINDINGS ?Prob {('Low')('Medium')('Medium-High')}");
 		highProbSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/Device_InterfaceYN> 'N'}{?entity <http://semoss.org/ontologies/Relation/Contains/Probability_of_Included_BoS_Enterprise_EHRS> ?Prob}"+ costGreaterThanZeroTriples + "}BINDINGS ?Prob {('High')('Question')}");
+		faaSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE { {?FAASystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/FAASystem> ;}{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?FAASystem <http://semoss.org/ontologies/Relation/has> ?entity}"+ costGreaterThanZeroTriples + "}");
+		notFAASysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}MINUS{{?FAASystem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/FAASystem> ;}{?FAASystem <http://semoss.org/ontologies/Relation/has> ?entity}}"+ costGreaterThanZeroTriples + "}");
 		mhsSpecificSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/MHS_Specific> 'Y'}"+ costGreaterThanZeroTriples + "}");
 		ehrCoreSysList = SysOptUtilityMethods.getList(engine,"ActiveSystem","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/ActiveSystem> ;}{?entity <http://semoss.org/ontologies/Relation/Contains/EHR_Core> 'Y'}"+ costGreaterThanZeroTriples + "}");
+	}
+	
+	private void createBPCheckBoxLists() {
+		//TODO should not go through task anymore? should be tagged by entity?
+		bpList = SysOptUtilityMethods.getList(engine,"BusinessProcess","SELECT DISTINCT ?entity WHERE {{?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <http://semoss.org/ontologies/Concept/BusinessProcess> ;}}");
 	}
 	
 	private void createCapabilityCheckBoxLists() {
@@ -128,7 +138,7 @@ public class SysOptCheckboxListUpdater {
 	}
 	
 	public List<String> getSelectedSystemListForCapability(String capabilityURI, Boolean intDHMSM, Boolean notIntDHMSM, Boolean theater, Boolean garrison, Boolean low, Boolean high, Boolean mhsSpecific, Boolean ehrCore) {
-		List<String> checkboxSysList = getSelectedSystemList(intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore);
+		List<String> checkboxSysList = getSelectedSystemList(intDHMSM, notIntDHMSM, theater, garrison, low, high, false, false, mhsSpecific, ehrCore);
 		if(checkboxSysList == null || checkboxSysList.isEmpty())
 			checkboxSysList = recdSysList;
 		
@@ -137,7 +147,17 @@ public class SysOptCheckboxListUpdater {
 		return ListUtilityMethods.createAndUnion(checkboxSysList, capabilitySysList);
 	}
 	
-	public List<String> getSelectedSystemList(Boolean intDHMSM, Boolean notIntDHMSM, Boolean theater, Boolean garrison, Boolean low, Boolean high, Boolean mhsSpecific, Boolean ehrCore) {
+	public List<String> getSelectedSystemListForBP(String bpURI, Boolean intDHMSM, Boolean notIntDHMSM, Boolean theater, Boolean garrison, Boolean low, Boolean high, Boolean mhsSpecific, Boolean ehrCore) {
+		List<String> checkboxSysList = getSelectedSystemList(intDHMSM, notIntDHMSM, theater, garrison, low, high, false, false, mhsSpecific, ehrCore);
+		if(checkboxSysList == null || checkboxSysList.isEmpty())
+			checkboxSysList = recdSysList;
+		
+		List<String> bpSysList = SysOptUtilityMethods.getList(engine,"BusinessProcess","SELECT DISTINCT ?entity WHERE { BIND("+bpURI+" AS ?BusinessProcess){?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem>}{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess>;}{?entity <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess}}");	
+		
+		return ListUtilityMethods.createAndUnion(checkboxSysList, bpSysList);
+	}
+	
+	public List<String> getSelectedSystemList(Boolean intDHMSM, Boolean notIntDHMSM, Boolean theater, Boolean garrison, Boolean low, Boolean high, Boolean faa, Boolean notFAA, Boolean mhsSpecific, Boolean ehrCore) {
 		List<String> interfaced = new Vector<String>();
 		if(intDHMSM)
 			interfaced = intDHMSMSysList;
@@ -156,10 +176,17 @@ public class SysOptCheckboxListUpdater {
 		if(high)
 			lowHigh = ListUtilityMethods.createOrUnion(lowHigh,highProbSysList);
 		
+		List<String> faaSys = new Vector<String>();
+		if(faa)
+			faaSys = faaSysList;
+		if(notFAA)
+			faaSys = ListUtilityMethods.createOrUnion(lowHigh,notFAASysList);
+		
 		List<String> systemsToSelect = new Vector<String>();
 		systemsToSelect=ListUtilityMethods.createAndUnionIfBothFilled(interfaced,systemsToSelect);
 		systemsToSelect=ListUtilityMethods.createAndUnionIfBothFilled(theatGarr,systemsToSelect);
 		systemsToSelect=ListUtilityMethods.createAndUnionIfBothFilled(lowHigh,systemsToSelect);
+		systemsToSelect=ListUtilityMethods.createAndUnionIfBothFilled(faaSys,systemsToSelect);
 
 		if(mhsSpecific)
 			systemsToSelect=ListUtilityMethods.createOrUnion(mhsSpecificSysList,systemsToSelect);

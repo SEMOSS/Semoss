@@ -72,7 +72,7 @@ import com.google.gson.reflect.TypeToken;
 public class SysSiteOptPlaySheet extends OptPlaySheet{
 
 	private Boolean defaultSettings;
-	private String capabilityURI;
+	private String capOrBPURI;
 	
 	private JPanel systemSelectPanel, systemModDecomSelectPanel;	
 	public DHMSMSystemSelectPanel sysSelectPanel, systemModernizePanel, systemDecomissionPanel;
@@ -133,9 +133,14 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 			ehrCore = gson.fromJson(gson.toJson(webDataHash.get("ehrcore")), Boolean.class);
 
 		ArrayList<String> sysList;
-		if(capabilityURI == null || capabilityURI.isEmpty()) {sysList = new ArrayList<String>(sysUpdater.getSelectedSystemList(intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore));
-		}else {
-			sysList = new ArrayList<String>(sysUpdater.getSelectedSystemListForCapability(capabilityURI,intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore));
+		if(capOrBPURI != null && !capOrBPURI.isEmpty()) {
+			if(capOrBPURI.contains("Capability")) {
+				sysList = new ArrayList<String>(sysUpdater.getSelectedSystemListForCapability(capOrBPURI,intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore));
+			}else {
+				sysList = new ArrayList<String>(sysUpdater.getSelectedSystemListForBP(capOrBPURI,intDHMSM, notIntDHMSM, theater, garrison, low, high, mhsSpecific, ehrCore));						
+			}
+		} else {
+			sysList = new ArrayList<String>(sysUpdater.getSelectedSystemList(intDHMSM, notIntDHMSM, theater, garrison, low, high, false, false, mhsSpecific, ehrCore));
 		}
 		
 		dataHash.put("systems",sysList);
@@ -145,14 +150,14 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		return returnHash;
 	}
 	
-	public void setUpOpt(IEngine costEngine, IEngine siteEngine, double yearBudget, int years, double infl, double disc, double trainingRate, int hourlyRate, int numPts, boolean useDHMSMCap, String optType, String capabilityURI) {
+	public void setUpOpt(IEngine costEngine, IEngine siteEngine, double yearBudget, int years, double infl, double disc, double trainingRate, int hourlyRate, int numPts, boolean useDHMSMCap, String optType, String capOrBPURI) {
 		opt = new SysSiteOptimizer();
 		opt.setEngines(engine, costEngine, siteEngine); //likely TAP Core Data and tap site
 		opt.setVariables(yearBudget,years, infl/100, disc/100, 0.80, trainingRate, hourlyRate, numPts, 0.05, 0.20); //budget per year and the number of years
 		opt.setUseDHMSMFunctionality(useDHMSMCap); //whether the data objects will come from the list of systems or the dhmsm provided capabilities
 		opt.setOptimizationType(optType); //eventually will be savings, roi, or irr
 		opt.setIsOptimizeBudget(false); //true means that we are looking for optimal budget. false means that we are running LPSolve just for the single budget input
-		opt.setCapabilityURI(capabilityURI);
+		opt.setCapOrBPURI(capOrBPURI);
 	}
 	
 	public ArrayList<Hashtable<String,String>> runDefaultOpt(Hashtable<String, Object> webDataHash) {
@@ -164,22 +169,26 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 			//TODO error here
 			return new ArrayList<Hashtable<String,String>>();
 		}
-
+		
 		ArrayList<String> sysList;
-		if(capabilityURI == null || capabilityURI.isEmpty()) {
-			sysList= new ArrayList<String>(sysUpdater.getSelectedSystemList(false, false, true, true, false, false, false, false));
+		if(capOrBPURI != null && !capOrBPURI.isEmpty()) {
+			if(capOrBPURI.contains("Capability")) {
+				sysList= new ArrayList<String>(sysUpdater.getSelectedSystemListForCapability(capOrBPURI,false, false, true, true, false, false, false, false));
+			} else {
+				sysList = new ArrayList<String>(sysUpdater.getSelectedSystemListForBP(capOrBPURI,false, false, true, true, false, false, false, false));						
+			}
 		}else {
-			sysList= new ArrayList<String>(sysUpdater.getSelectedSystemListForCapability(capabilityURI,false, false, true, true, false, false, false, false));
+			sysList= new ArrayList<String>(sysUpdater.getSelectedSystemList(false, false, true, true, false, false, false, false, false, false));
 		}
 		if(sysList.isEmpty()) {
 			System.out.println("There are no systems that fit requirements.");
 			return null;
 		}
 		
-		ArrayList<String> modList= new ArrayList<String>(sysUpdater.getSelectedSystemList(true, false, false, false, true, false, false, false));
-		ArrayList<String> decomList= new ArrayList<String>(sysUpdater.getSelectedSystemList(false, false, false, false, false, false, false, true));
+		ArrayList<String> modList= new ArrayList<String>(sysUpdater.getSelectedSystemList(true, false, false, false, true, false, false, false, false, false));
+		ArrayList<String> decomList= new ArrayList<String>(sysUpdater.getSelectedSystemList(false, false, false, false, false, false, false, false, false, true));
 		
-		setUpOpt(costEngine, siteEngine, 1000000000, 10, 1.5/100, 2.5/100, 15/100.0, 150, 1, false, "Savings", capabilityURI);
+		setUpOpt(costEngine, siteEngine, 1000000000, 10, 1.5/100, 2.5/100, 15/100.0, 150, 1, false, "Savings", capOrBPURI);
 		opt.setSysList(sysList,modList,decomList);
 		opt.executeWeb();
 		return opt.getSysResultList();
@@ -211,7 +220,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		int hourlyRate = gson.fromJson(gson.toJson(webDataHash.get("hbc")), Integer.class);
 		double trainingRate = gson.fromJson(gson.toJson(webDataHash.get("training")), Double.class);
 		
-		setUpOpt(costEngine, siteEngine, yearBudget, years, infl/100.0, disc/100.0, trainingRate/100.0, hourlyRate, numPts, useDHMSMCap, optType, capabilityURI);
+		setUpOpt(costEngine, siteEngine, yearBudget, years, infl/100.0, disc/100.0, trainingRate/100.0, hourlyRate, numPts, useDHMSMCap, optType, capOrBPURI);
 		opt.setSysHashList(sysHashList);
 		opt.executeWeb();
 		return opt.getSysResultList();
@@ -822,9 +831,9 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		this.query = query;
 		String[] querySplit = query.split("\\+\\+\\+");
 		if(querySplit[0].toLowerCase().equals("null")) {
-			this.capabilityURI = "";
+			this.capOrBPURI = "";
 		}else {
-			this.capabilityURI = querySplit[0];
+			this.capOrBPURI = querySplit[0];
 		}
 		if(querySplit[1].toLowerCase().contains("default")) {
 			this.defaultSettings = true;
@@ -851,8 +860,8 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
         }
         if (type.equals("map")) {
         	retHash.put("Savings", opt.getOverviewSiteSavingsMapData());
-        	if(capabilityURI!=null && !capabilityURI.isEmpty()) {
-        		retHash.put("CapCoverage", opt.getOverviewCapCoverageMapData());
+        	if(capOrBPURI!=null && !capOrBPURI.isEmpty()) {
+        		retHash.put("CapCoverage", opt.getOverviewCapBPCoverageMapData());
         	}
         }
         if (type.equals("healthGrid")) {

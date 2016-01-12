@@ -73,7 +73,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	
 	private ArrayList<String> localSysList, centralSysList, dataList, bluList, siteList;
 	
-	private String capabilityURI;
+	private String capOrBPURI;
 	
 	//user must select these
 	private double budgetForYear;
@@ -93,14 +93,14 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	private int[][] localSystemDataMatrix, localSystemBLUMatrix;
 	private int[] localSystemIsTheaterArr, localSystemIsGarrisonArr;
 	private Integer[] localSystemIsModArr, localSystemIsDecomArr;
-	private double[] localSystemMaintenanceCostArr, localSystemSiteMaintenaceCostArr, localSystemSiteDeploymentCostArr, localSystemSiteInterfaceCostArr;
+	private double[] localSystemMaintenanceCostArr, localSystemSiteMaintenaceCostArr, localSystemSiteDeploymentCostArr, localSystemSiteInterfaceCostArr, localSystemSiteUserTrainingCostArr;
 	private double[][] localSystemSiteMatrix;
 	
 	//central systems
 	private int[][] centralSystemDataMatrix, centralSystemBLUMatrix;
 	private int[] centralSystemIsTheaterArr, centralSystemIsGarrisonArr;
 	private Integer[] centralSystemIsModArr, centralSystemIsDecomArr;
-	private double[] centralSystemMaintenanceCostArr, centralSystemInterfaceCostArr;
+	private double[] centralSystemMaintenanceCostArr, centralSystemInterfaceCostArr, centralSystemUserTrainingCostArr;
 	private double[] centralSystemNumSiteArr;
 	private double[][] centralSystemSiteMatrix;
 	
@@ -330,8 +330,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		this.isOptimizeBudget = isOptimizeBudget;
 	}
 	
-	public void setCapabilityURI(String capabilityURI) {
-		this.capabilityURI = capabilityURI;
+	public void setCapOrBPURI(String capOrBPURI) {
+		this.capOrBPURI = capOrBPURI;
 	}
 	
 	private void createSiteDataBLULists() {
@@ -342,9 +342,14 @@ public class SysSiteOptimizer extends UnivariateOpt {
 
 		//any data and any blu is being selected
 		String dataQuery, bluQuery;
-		if(capabilityURI != null && !capabilityURI.isEmpty()) {
-			dataQuery = "SELECT DISTINCT ?Data WHERE {BIND(" + capabilityURI + " as ?Capability){?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}{ ?Capability <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess.}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?Data.}}";
-			bluQuery = "SELECT DISTINCT ?BLU WHERE {BIND(" + capabilityURI + " as ?Capability){?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;}{ ?Capability <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess.}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?BLU.}}";
+		if(capOrBPURI != null && !capOrBPURI.isEmpty()) { 
+			if(capOrBPURI.contains("Capability")){
+				dataQuery = "SELECT DISTINCT ?Data WHERE {BIND(" + capOrBPURI + " as ?Capability){?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}{ ?Capability <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess.}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?Data.}}";
+				bluQuery = "SELECT DISTINCT ?BLU WHERE {BIND(" + capOrBPURI + " as ?Capability){?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;}{ ?Capability <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess.}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?BLU.}}";
+			}else {
+				dataQuery = "SELECT DISTINCT ?Data WHERE {BIND(" + capOrBPURI + " as ?BusinessProcess){?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?Data.}}";
+				bluQuery = "SELECT DISTINCT ?BLU WHERE {BIND(" + capOrBPURI + " as ?BusinessProcess){?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?BLU.}}";
+			}
 		}else if(useDHMSMFunctionality) {
 			dataQuery = "SELECT DISTINCT ?Data WHERE {BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> as ?DHMSM){?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> ;}{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject> ;}{?DHMSM <http://semoss.org/ontologies/Relation/TaggedBy> ?Capability}{ ?Capability <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess.}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?Data.}}";
 			bluQuery = "SELECT DISTINCT ?BLU WHERE {BIND(<http://health.mil/ontologies/Concept/DHMSM/DHMSM> as ?DHMSM){?Capability <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Capability> ;}{?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit> ;}{?DHMSM <http://semoss.org/ontologies/Relation/TaggedBy> ?Capability}{ ?Capability <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess.}{?BusinessProcess <http://semoss.org/ontologies/Relation/Consists> ?Activity.}{?Activity <http://semoss.org/ontologies/Relation/Needs> ?BLU.}}";
@@ -385,6 +390,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		localSystemMaintenanceCostArr = new double[sysLength];
 		localSystemSiteMaintenaceCostArr = new double[sysLength];
 		localSystemSiteDeploymentCostArr = new double[sysLength];
+		localSystemSiteUserTrainingCostArr = new double[sysLength];
 		currentSustainmentCost = 0.0;
 		for(i=0; i<sysLength; i++) {
 			
@@ -394,11 +400,13 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			if(systemNumOfSites[i]==0) {
 				localSystemMaintenanceCostArr[i] = sysBudget;
 				siteMaintenance = (1 - centralPercOfBudget) * sysBudget;
+				localSystemSiteUserTrainingCostArr[i] = sysBudget * deploymentFactor * trainingPerc;
 			}else {
 				localSystemMaintenanceCostArr[i] = centralPercOfBudget * sysBudget;
 				siteMaintenance = (1 - centralPercOfBudget) * sysBudget / systemNumOfSites[i];
+				localSystemSiteUserTrainingCostArr[i] = sysBudget * deploymentFactor * trainingPerc / systemNumOfSites[i];
 			}
-			
+
 			localSystemSiteMaintenaceCostArr[i] = siteMaintenance;
 			localSystemSiteDeploymentCostArr[i] = siteMaintenance * deploymentFactor;
 
@@ -425,9 +433,13 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		for(i=0; i<sysLength; i++) {
 			currentSustainmentCost += centralSystemMaintenanceCostArr[i];
 		}
+		centralSystemUserTrainingCostArr = new double[sysLength];
+		for(i=0; i<sysLength; i++) {
+			centralSystemUserTrainingCostArr[i] = centralSystemMaintenanceCostArr[i] * deploymentFactor * trainingPerc;
+		}
 		
 		centralSystemInterfaceCostArr = resFunc.systemCostOfDataConsumeArr;
-
+		
 		sysLength = localSysList.size();
 		for(i=0; i<sysLength; i++)
 			if(localSystemSiteInterfaceCostArr[i] != 0)
@@ -458,7 +470,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			return;
 		}
 		optFunc.setPlaySheet(playSheet);
-		optFunc.setVariables(localSystemDataMatrix, localSystemBLUMatrix, localSystemIsTheaterArr, localSystemIsGarrisonArr, localSystemIsModArr, localSystemIsDecomArr, localSystemMaintenanceCostArr, localSystemSiteMaintenaceCostArr, localSystemSiteDeploymentCostArr, localSystemSiteInterfaceCostArr, localSystemSiteMatrix, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemIsTheaterArr, centralSystemIsGarrisonArr, centralSystemIsModArr, centralSystemIsDecomArr, centralSystemMaintenanceCostArr, centralSystemInterfaceCostArr, trainingPerc, currentSustainmentCost, budgetForYear, years, infRate, disRate);
+		optFunc.setVariables(localSystemDataMatrix, localSystemBLUMatrix, localSystemIsTheaterArr, localSystemIsGarrisonArr, localSystemIsModArr, localSystemIsDecomArr, localSystemMaintenanceCostArr, localSystemSiteMaintenaceCostArr, localSystemSiteDeploymentCostArr, localSystemSiteInterfaceCostArr, localSystemSiteUserTrainingCostArr, localSystemSiteMatrix, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemIsTheaterArr, centralSystemIsGarrisonArr, centralSystemIsModArr, centralSystemIsDecomArr, centralSystemMaintenanceCostArr, centralSystemInterfaceCostArr, centralSystemUserTrainingCostArr, trainingPerc, currentSustainmentCost, budgetForYear, years, infRate, disRate);
 
 		optFunc.value(budgetForYear * years);
 		futureSustainmentCost = optFunc.getFutureSustainmentCost();
@@ -476,7 +488,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 				UnivariatePointValuePair pair = multiOpt.optimize(data);
 				optFunc = new SysSiteIRROptFunction();
 				optFunc.setPlaySheet(playSheet);
-				optFunc.setVariables(localSystemDataMatrix, localSystemBLUMatrix, localSystemIsTheaterArr, localSystemIsGarrisonArr, localSystemIsModArr, localSystemIsDecomArr, localSystemMaintenanceCostArr, localSystemSiteMaintenaceCostArr, localSystemSiteDeploymentCostArr, localSystemSiteInterfaceCostArr, localSystemSiteMatrix, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemIsTheaterArr, centralSystemIsGarrisonArr, centralSystemIsModArr, centralSystemIsDecomArr, centralSystemMaintenanceCostArr, centralSystemInterfaceCostArr, trainingPerc, currentSustainmentCost, budgetForYear, years, infRate, disRate);
+				optFunc.setVariables(localSystemDataMatrix, localSystemBLUMatrix, localSystemIsTheaterArr, localSystemIsGarrisonArr, localSystemIsModArr, localSystemIsDecomArr, localSystemMaintenanceCostArr, localSystemSiteMaintenaceCostArr, localSystemSiteDeploymentCostArr, localSystemSiteInterfaceCostArr, localSystemSiteUserTrainingCostArr, localSystemSiteMatrix, centralSystemDataMatrix, centralSystemBLUMatrix, centralSystemIsTheaterArr, centralSystemIsGarrisonArr, centralSystemIsModArr, centralSystemIsDecomArr, centralSystemMaintenanceCostArr, centralSystemInterfaceCostArr, centralSystemUserTrainingCostArr, trainingPerc, currentSustainmentCost, budgetForYear, years, infRate, disRate);
 				optFunc.value(pair.getPoint());
 				
 			} catch (TooManyEvaluationsException fee) {
@@ -630,13 +642,14 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	 */
 	private void createCostGrid() {
 		
-		String[] headers = new String[6];
+		String[] headers = new String[7];
 		headers[0] = "System";
 		headers[1] = "Sustain Cost";
 		headers[2] = "Interface Cost";
 		headers[3] = "Site Maintain Cost";
 		headers[4] = "Site Deploy Cost";
-		headers[5] = RECOMMENDED_SUSTAIN + " or " + RECOMMENDED_CONSOLIDATION;
+		headers[5] = "Site User Training Cost";
+		headers[6] = RECOMMENDED_SUSTAIN + " or " + RECOMMENDED_CONSOLIDATION;
 		
 		ArrayList<Object []> list = new ArrayList<Object []>();
 		
@@ -644,16 +657,17 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		int rowLength = localSysList.size();
 		
 		for(i = 0; i<rowLength; i++) {
-			Object[] row = new Object[6];
+			Object[] row = new Object[7];
 			row[0] = localSysList.get(i);
 			row[1] = localSystemMaintenanceCostArr[i];
 			row[2] = localSystemSiteInterfaceCostArr[i];
 			row[3] = localSystemSiteMaintenaceCostArr[i];
 			row[4] = localSystemSiteDeploymentCostArr[i];
+			row[5] = localSystemSiteUserTrainingCostArr[i];
 			if(localSysKeptArr[i] == 1)
-				row[5] = RECOMMENDED_SUSTAIN;
+				row[6] = RECOMMENDED_SUSTAIN;
 			else 
-				row[5] = RECOMMENDED_CONSOLIDATION;
+				row[6] = RECOMMENDED_CONSOLIDATION;
 			list.add(row);
 		}
 		createTabAndDisplayList(headers,list,"NonCentral System Costs",false);
@@ -664,11 +678,12 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	 */
 	private void createCentralCostGrid() {
 		
-		String[] headers = new String[4];
+		String[] headers = new String[5];
 		headers[0] = "Central System";
 		headers[1] = "Sustain Cost";
 		headers[2] = "Interface Cost";
-		headers[3] = RECOMMENDED_SUSTAIN + " or " + RECOMMENDED_CONSOLIDATION;
+		headers[3] = "User Training Cost";
+		headers[4] = RECOMMENDED_SUSTAIN + " or " + RECOMMENDED_CONSOLIDATION;
 		
 		ArrayList<Object []> list = new ArrayList<Object []>();
 		
@@ -676,14 +691,15 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		int rowLength = centralSysList.size();
 		
 		for(i = 0; i<rowLength; i++) {
-			Object[] row = new Object[4];
+			Object[] row = new Object[5];
 			row[0] = centralSysList.get(i);
 			row[1] = centralSystemMaintenanceCostArr[i];
 			row[2] = centralSystemInterfaceCostArr[i];
+			row[3] = centralSystemUserTrainingCostArr[i];
 			if(centralSysKeptArr[i] == 1)
-				row[3] = RECOMMENDED_SUSTAIN;
+				row[4] = RECOMMENDED_SUSTAIN;
 			else 
-				row[3] = RECOMMENDED_CONSOLIDATION;
+				row[4] = RECOMMENDED_CONSOLIDATION;
 			list.add(row);
 		}
 		createTabAndDisplayList(headers,list,"Central System Costs",false);
@@ -892,7 +908,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		return retMap;
 	}
 	
-	public Hashtable<String,Object> getOverviewCapCoverageMapData() {
+	public Hashtable<String,Object> getOverviewCapBPCoverageMapData() {
 		
 		//all the data and blu for each of the kept systems
 		Hashtable<Integer,Set<String>> doBLUForKeptLocalSystemsHash = new Hashtable<Integer, Set<String>>();
@@ -1000,9 +1016,10 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			hosting = "Local";
 			
 			sysCurrSustainCost = localSystemMaintenanceCostArr[sysIndex] / centralPercOfBudget;
+
+			int i;
+			int numSites = siteList.size();
 			if(isModernized) {
-				int i;
-				int numSites = siteList.size();
 				int numSustainSites = 0;
 				for(i=0; i<numSites; i++) {
 					if(localSystemSiteMatrix[sysIndex][i] == 1 && localSystemSiteResultMatrix[sysIndex][i] == 1)
@@ -1013,15 +1030,18 @@ public class SysSiteOptimizer extends UnivariateOpt {
 				int numAllFutureSites = (int)SysOptUtilityMethods.sumRow(localSystemSiteResultMatrix[sysIndex]);
 				sysFutureSustainCost = localSystemMaintenanceCostArr[sysIndex] + numAllFutureSites * localSystemSiteMaintenaceCostArr[sysIndex];
 				sysDeployCost = 0.0;
-
+				
 				for(i=0; i<numSites; i++) {
-					sysDeployCost += localSystemSiteResultMatrix[sysIndex][i] * ((1 - localSystemSiteMatrix[sysIndex][i]) * localSystemSiteDeploymentCostArr[sysIndex] + (1+trainingPerc) * localSystemSiteInterfaceCostArr[sysIndex]);
+					sysDeployCost += ((1 - localSystemSiteMatrix[sysIndex][i]) * localSystemSiteDeploymentCostArr[sysIndex] + (1+trainingPerc) * localSystemSiteInterfaceCostArr[sysIndex]) * localSystemSiteResultMatrix[sysIndex][i];
 				}
 			}else {
 				int numConsolidatedSites = (int)SysOptUtilityMethods.sumRow(localSystemSiteMatrix[sysIndex]);
 				recommendation = "Recommend consolidation of " + numConsolidatedSites + " accessible site(s)";
 				sysFutureSustainCost = 0;
-				sysDeployCost = 0;
+				sysDeployCost = 0.0;
+				for(i=0; i<numSites; i++) {
+					sysDeployCost += localSystemSiteMatrix[sysIndex][i] * localSystemSiteUserTrainingCostArr[sysIndex] * (1 - localSystemSiteResultMatrix[sysIndex][i]);
+				}
 			}
 			
 		}else {//if central system
@@ -1040,17 +1060,18 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			}else {
 				hosting = "TBD";
 			}
-			
+	        
 			sysCurrSustainCost = centralSystemMaintenanceCostArr[sysIndex];
 
 			if(isModernized) {
 				recommendation = "Recommend sustainment of " + numHostedSites + " host sites(s) and " + numAccessibleSites + " accessible site(s)";
 				sysFutureSustainCost = sysCurrSustainCost;
 				sysDeployCost = (1+trainingPerc)*centralSystemInterfaceCostArr[sysIndex];
+
 			}else {
 				recommendation = "Recommend consolidation of " + numHostedSites + " host sites(s) and " + numAccessibleSites + " accessible site(s)";
 				sysFutureSustainCost = 0;
-				sysDeployCost = 0;
+				sysDeployCost = centralSystemUserTrainingCostArr[sysIndex] * (1 - centralSysKeptArr[sysIndex]);
 			}
 		}
 		
