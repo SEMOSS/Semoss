@@ -82,7 +82,7 @@ public class RoadmapTimelineComboChartPlaySheet extends RoadmapTimelineStatsPlay
 	@Override
 	public void createView(){
 		processThickQueryData();
-		String playSheetClassName = PlaySheetRDFMapBasedEnum.getClassFromName("Column Chart");
+		String playSheetClassName = PlaySheetRDFMapBasedEnum.getClassFromName("Column");
 		BrowserPlaySheet playSheet = null;
 		try {
 			playSheet = (BrowserPlaySheet) Class.forName(playSheetClassName).getConstructor(null).newInstance(null);
