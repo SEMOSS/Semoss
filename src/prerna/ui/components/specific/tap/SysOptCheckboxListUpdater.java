@@ -180,7 +180,7 @@ public class SysOptCheckboxListUpdater {
 		if(faa)
 			faaSys = faaSysList;
 		if(notFAA)
-			faaSys = ListUtilityMethods.createOrUnion(lowHigh,notFAASysList);
+			faaSys = ListUtilityMethods.createOrUnion(faaSys,notFAASysList);
 		
 		List<String> systemsToSelect = new Vector<String>();
 		systemsToSelect=ListUtilityMethods.createAndUnionIfBothFilled(interfaced,systemsToSelect);
