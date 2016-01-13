@@ -403,13 +403,13 @@ public class SysSiteOptimizer extends UnivariateOpt {
 				localSystemSiteMaintenaceCostArr[i] = (1 - centralPercOfBudget) * systemSustainmentBudget[i];
 				localSystemSiteDeploymentCostArr[i] = localSystemSiteMaintenaceCostArr[i] * deploymentFactor;
 				localSystemSiteInterfaceCostArr[i] = localSystemSiteDeploymentCostArr[i] * interfacePercOfDeployment;
-				localSystemSiteUserTrainingCostArr[i] = systemSustainmentBudget[i] * deploymentFactor * trainingPerc;
+				localSystemSiteUserTrainingCostArr[i] = (1 - centralPercOfBudget) * systemSustainmentBudget[i] * deploymentFactor * trainingPerc;
 			} else {
 				localSystemMaintenanceCostArr[i] = centralPercOfBudget * systemSustainmentBudget[i];
 				localSystemSiteMaintenaceCostArr[i] = (1 - centralPercOfBudget) * systemSustainmentBudget[i] / localSystemNumSitesArr[i];
 				localSystemSiteDeploymentCostArr[i] = localSystemSiteMaintenaceCostArr[i] * deploymentFactor;
 				localSystemSiteInterfaceCostArr[i] = localSystemSiteDeploymentCostArr[i] * interfacePercOfDeployment;
-				localSystemSiteUserTrainingCostArr[i] = systemSustainmentBudget[i] * deploymentFactor * trainingPerc / localSystemNumSitesArr[i];
+				localSystemSiteUserTrainingCostArr[i] = (1 - centralPercOfBudget) * systemSustainmentBudget[i] * deploymentFactor * trainingPerc / localSystemNumSitesArr[i];
 			}
 
 			currentSustainmentCost+=systemSustainmentBudget[i];
@@ -433,8 +433,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		sysLength = centralSysList.size();
 		for(i=0; i<sysLength; i++) {
 			centralSystemInterfaceCostArr[i] = centralSystemMaintenanceCostArr[i] * deploymentFactor * interfacePercOfDeployment;
-			centralSystemUserTrainingCostArr[i] = centralSystemMaintenanceCostArr[i] * deploymentFactor * trainingPerc;
-
+			centralSystemUserTrainingCostArr[i] = (1 - centralPercOfBudget) * centralSystemMaintenanceCostArr[i] * deploymentFactor * trainingPerc;
+			
 			currentSustainmentCost += centralSystemMaintenanceCostArr[i];
 		}
 	
