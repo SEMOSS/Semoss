@@ -260,6 +260,7 @@ public class OntologyFileWriter {
 			iterator = relBaseURIvalues.keySet().iterator();
 			while(iterator.hasNext()){
 				name = iterator.next();
+				name += Constants.CLASS;
 				uri = relBaseURIvalues.get(name);
 				pw.write(name + " " + uri + "\n");
 				logger.info(name + " " + uri);
