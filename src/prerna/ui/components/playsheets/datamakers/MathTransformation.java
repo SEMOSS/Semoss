@@ -16,7 +16,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.ITableStatCounter;
+import prerna.ds.TableStatCounter;
 import prerna.ds.MultiColumnTableStatCounter;
 import prerna.util.ArrayUtilityMethods;
 
@@ -97,7 +97,7 @@ public class MathTransformation extends AbstractTransformation {
 		
 		//only one group by or two of the same
 		if(singleColumn) {
-			ITableStatCounter counter = new ITableStatCounter();
+			TableStatCounter counter = new TableStatCounter();
 			counter.addStatsToDataFrame(dm, groupByCols[0], functionMap);
 		} else {
 			MultiColumnTableStatCounter multiCounter = new MultiColumnTableStatCounter();

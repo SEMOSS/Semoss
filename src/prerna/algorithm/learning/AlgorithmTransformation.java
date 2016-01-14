@@ -42,7 +42,7 @@ public class AlgorithmTransformation extends AbstractTransformation {
 	public static final String SELF_ORGANIZING_MAP = "som";
 	public static final String SIMILARITY = "similarity";
 
-	private List<String> addedColumns = new ArrayList<String>();;
+	private List<String> addedColumns = new ArrayList<String>();
 	private DataMakerComponent dmc;
 	private ITableDataFrame dm;
 
