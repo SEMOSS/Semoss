@@ -196,15 +196,15 @@ public abstract class AbstractEngine implements IEngine {
 //						insightRDBMS.insertData("ALTER TABLE QUESTION_ID DROP COLUMN IF EXISTS QUESTION_ID");
 //					}
 					// Update existing dbs that do not have the UI table and have Question_ID_FK as a varchar
-					ITableDataFrame f = WrapperManager.getInstance().getSWrapper(insightRDBMS, "select count(*) from information_schema.tables where table_name = 'UI'").getTableDataFrame(); 
-					if((Double)f.getData().get(0)[0] == 0 ) {
-						//this is so we do not modify the form builder engine db -- make sure that it has the parameter id table
-						ITableDataFrame f2 = WrapperManager.getInstance().getSWrapper(insightRDBMS, "select count(*) from information_schema.tables where table_name = 'PARAMETER_ID'").getTableDataFrame(); 
-						if((Double)f2.getData().get(0)[0] != 0 ) {
-							insightRDBMS.insertData("CREATE TABLE UI (QUESTION_ID_FK INT, UI_DATA CLOB)");
-							insightRDBMS.insertData("ALTER TABLE PARAMETER_ID ALTER COLUMN QUESTION_ID_FK INT");
-						}
-					}
+//					ITableDataFrame f = WrapperManager.getInstance().getSWrapper(insightRDBMS, "select count(*) from information_schema.tables where table_name = 'UI'").getTableDataFrame(); 
+//					if((Double)f.getData().get(0)[0] == 0 ) {
+//						//this is so we do not modify the form builder engine db -- make sure that it has the parameter id table
+//						ITableDataFrame f2 = WrapperManager.getInstance().getSWrapper(insightRDBMS, "select count(*) from information_schema.tables where table_name = 'PARAMETER_ID'").getTableDataFrame(); 
+//						if((Double)f2.getData().get(0)[0] != 0 ) {
+//							insightRDBMS.insertData("CREATE TABLE UI (QUESTION_ID_FK INT, UI_DATA CLOB)");
+//							insightRDBMS.insertData("ALTER TABLE PARAMETER_ID ALTER COLUMN QUESTION_ID_FK INT");
+//						}
+//					}
 				} 
 				else { // RDBMS Question engine has not been made. Must do conversion
 					// set the necessary fun stuff
@@ -622,7 +622,11 @@ public abstract class AbstractEngine implements IEngine {
 			if(transformedNode.size()!=0){
 				transformedNodeNames.clear();
 				for(String[] node: transformedNode){
-					this.transformedNodeNames.put(node[1], node[0]); //map contains display name : physical name
+					String logicalName = node[1];
+					String instance = logicalName.substring(logicalName.lastIndexOf("/"), logicalName.length());
+					instance = Utility.cleanVariableString(instance);
+					logicalName = Constants.DISPLAY_URI + instance;
+					this.transformedNodeNames.put(logicalName, node[0]); //map contains display name : physical name
 				}
 				this.baseDataEngine.setTransformedNodeNames(this.transformedNodeNames);
 			}

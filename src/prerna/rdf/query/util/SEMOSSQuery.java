@@ -592,26 +592,6 @@ public class SEMOSSQuery {
 						break;
 					}
 				}
-				//TODO: this is an annoying hack since the query parser returns do not match
-				//		the owl concepts since variable names cannot contain some characters
-				//		that URIs concept types can
-				System.out.println("Try comparing to the clean version of the concept name..");
-				for(int x = 0; x < vars.size(); x ++ ){
-					Object var = vars.get(x);
-					String varName = var + "";
-					if(var instanceof TriplePart){
-						varName = ((TriplePart) var).getValue() + "";
-					}
-					String cleanOrderedV = Utility.cleanVariableString(orderedV);
-					System.out.println("does " + varName + " equal  " + cleanOrderedV);
-					if(varName.toUpperCase().equals(cleanOrderedV.toUpperCase())){
-						System.out.println("yes");
-						System.out.println("adding in position " + or);
-						orderedVars[or] = var;
-						used.add(x);
-						break;
-					}
-				}
 			}
 		}
 		int masterIdx = 0;
