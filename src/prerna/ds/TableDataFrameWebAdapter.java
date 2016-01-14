@@ -26,31 +26,56 @@ public class TableDataFrameWebAdapter {
 	 * @return  - formatted data in an optimal form for the Front End
 	 */
 	public static List<HashMap<String, Object>> getData(ITableDataFrame table) {
-		
-		//Cast to Btree
-		BTreeDataFrame btable = (BTreeDataFrame)table;
-		
-		//get the root of the index tree for the last column
-		String[] columnHeaders = btable.getColumnHeaders();
-		String lastColumn = columnHeaders[columnHeaders.length - 1];
-		TreeNode root = btable.getBuilder().nodeIndexHash.get(lastColumn);
-		
-		//figure out which columns to skip
-		String[] skipColumns = btable.getFilteredColumns();
-		List<String> skipCols = new ArrayList<String>();
-		for(String s : skipColumns) {
-			skipCols.add(s);
+
+		//TODO: remove bifurcation in logic once tinker reigns supreme
+		// Cast to B-tree, table from which data is being extracted
+		if(table instanceof BTreeDataFrame) {
+			//Cast to Btree
+			BTreeDataFrame btable = (BTreeDataFrame)table;
+			
+			//get the root of the index tree for the last column
+			String[] columnHeaders = btable.getColumnHeaders();
+			String lastColumn = columnHeaders[columnHeaders.length - 1];
+			TreeNode root = btable.getBuilder().nodeIndexHash.get(lastColumn);
+			
+			//figure out which columns to skip
+			String[] skipColumns = btable.getFilteredColumns();
+			List<String> skipCols = new ArrayList<String>();
+			for(String s : skipColumns) {
+				skipCols.add(s);
+			}
+			
+			//use the iterator specific for returning data for the front end
+			WebBTreeIterator iterator = new WebBTreeIterator(root,"", true, skipCols);
+			
+			//List of Hashmaps is optimal for front end to reduce looping 
+			List<HashMap<String, Object>> retData = new ArrayList<HashMap<String, Object>>();
+			while(iterator.hasNext()) {
+				retData.addAll(iterator.next());
+			}
+			return retData;
+		} else if(table instanceof TinkerFrame){
+			TinkerFrame ttable = (TinkerFrame) table; 
+            
+            List<Object[]> rawData = ttable.getRawData();
+            
+            String[] headers = ttable.getColumnHeaders();
+            int length = headers.length;
+            List<HashMap<String, Object>> nextData = new ArrayList<HashMap<String, Object>>();
+            
+            for(int i = 0; i < rawData.size(); i++) {
+                   Object[] row = rawData.get(i);
+                   HashMap<String, Object> newRow = new HashMap<String, Object>(length);
+                   for(int j = 0; j < length; j++) {
+                          newRow.put(headers[j], row[j]);
+                   }
+                   nextData.add(newRow);
+            }
+            
+            return nextData;
+		} else {
+			throw new IllegalArgumentException("DataFrame is not Btree or Tinker...");
 		}
-		
-		//use the iterator specific for returning data for the front end
-		WebBTreeIterator iterator = new WebBTreeIterator(root,"", true, skipCols);
-		
-		//List of Hashmaps is optimal for front end to reduce looping 
-		List<HashMap<String, Object>> retData = new ArrayList<HashMap<String, Object>>();
-		while(iterator.hasNext()) {
-			retData.addAll(iterator.next());
-		}
-		return retData;
 	}
 	
 	public static List<HashMap<String, Object>> getData(ITableDataFrame tableData, String concept, String sortType, int startRow, int endRow) {
