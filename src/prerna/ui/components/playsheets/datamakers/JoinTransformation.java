@@ -17,9 +17,10 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.ExactStringMatcher;
-import prerna.ds.ExactStringOuterJoinMatcher;
-import prerna.ds.ExactStringPartialOuterJoinMatcher;
+import prerna.ds.BTreeDataFrame;
+import prerna.ds.InstanceMatcher;
+import prerna.ds.InstanceOuterJoinMatcher;
+import prerna.ds.InstancePartialOuterJoinMatcher;
 import prerna.rdf.query.builder.QueryBuilderData;
 
 public class JoinTransformation extends AbstractTransformation {
@@ -37,9 +38,9 @@ public class JoinTransformation extends AbstractTransformation {
 	List<String> addedColumns = new ArrayList<String>();
 
 	IMatcher matcher;
-	
+
 	boolean preTransformation = false;
-	
+
 	@Override
 	public void setProperties(Map<String, Object> props) {
 		//TODO: validate hash and set values
@@ -55,12 +56,12 @@ public class JoinTransformation extends AbstractTransformation {
 			this.nextDm = (ITableDataFrame) dm[1];
 		}
 	}
-	
+
 	@Override
 	public void setDataMakerComponent(DataMakerComponent dmc){
 		this.dmc = dmc;
 	}
-	
+
 	@Override
 	public void setTransformationType(Boolean preTransformation){
 		this.preTransformation = preTransformation;
@@ -68,8 +69,10 @@ public class JoinTransformation extends AbstractTransformation {
 
 	@Override
 	public void runMethod() {
-		getMatcher();
-		
+		if(dm instanceof BTreeDataFrame) {
+			getMatcher();
+		}
+
 		//Store the new columns that will be added to dm
 		if(nextDm != null) {
 			String[] allCols = nextDm.getColumnHeaders();
@@ -81,55 +84,60 @@ public class JoinTransformation extends AbstractTransformation {
 				addedColumns.add(val);
 			}
 		}
-		
+
 		//the run method will either append to the component to limit the construction of the new component
 		//otherwise, it will perform the actual joining between two components
 		if(!preTransformation) {
-			Method method = null;
-			try {
-				method = dm.getClass().getMethod(METHOD_NAME, ITableDataFrame.class, String.class, String.class, double.class, IMatcher.class);
-				LOGGER.info("Successfully got method : " + METHOD_NAME);
-				
-				String t1Col = this.props.get(COLUMN_ONE_KEY) +"";
-				String t2Col = this.props.get(COLUMN_TWO_KEY) +"";
-				Double match = 1.0; // this should be in properties as well
-				
-				if(this.matcher == null) {
-					
+			// We are no longer using this as the new data is added directly to the main frame
+			if(dm instanceof BTreeDataFrame) {
+				Method method = null;
+				try {
+					method = dm.getClass().getMethod(METHOD_NAME, ITableDataFrame.class, String.class, String.class, double.class, IMatcher.class);
+					LOGGER.info("Successfully got method : " + METHOD_NAME);
+
+					String t1Col = this.props.get(COLUMN_ONE_KEY) +"";
+					String t2Col = this.props.get(COLUMN_TWO_KEY) +"";
+					Double match = 1.0; // this should be in properties as well
+
+					method.invoke(dm, this.nextDm, t1Col, t2Col, match, matcher);
+					LOGGER.info("Successfully invoked method : " + METHOD_NAME);
+
+				} catch (NoSuchMethodException | SecurityException e) {
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+					e.printStackTrace();
+				} catch (IllegalArgumentException e) {
+					e.printStackTrace();
+				} catch (InvocationTargetException e) {
+					e.printStackTrace();
 				}
-				
-				method.invoke(dm, this.nextDm, t1Col, t2Col, match, this.matcher);
-				LOGGER.info("Successfully invoked method : " + METHOD_NAME);
-	
-			} catch (NoSuchMethodException | SecurityException e) {
-				e.printStackTrace();
-			} catch (IllegalAccessException e) {
-				e.printStackTrace();
-			} catch (IllegalArgumentException e) {
-				e.printStackTrace();
-			} catch (InvocationTargetException e) {
-				e.printStackTrace();
 			}
 		} else {
 			QueryBuilderData builderData = dmc.getBuilderData();
 			Map<String, List<Object>> stringMap;
 			if(builderData.getFilterData() != null && !builderData.getFilterData().isEmpty()) {
-	               stringMap = builderData.getFilterData();
-	        } else {
-	               stringMap = new HashMap<String, List<Object>>();
-	        }
-	        //if stringmap already contains the filters, then it is a hard filter
-	        //otherwise, add based on what is currently in the tree
-	        if(!stringMap.containsKey(props.get(COLUMN_ONE_KEY) + "")) {
-	        	//but actually, also need to consider the type of matcher
-	        	if(this.matcher.getQueryModType().equals(IMatcher.MATCHER_ACTION.BIND)) {
-		        	stringMap.put(props.get(COLUMN_ONE_KEY) + "", Arrays.asList(dm.getUniqueRawValues(props.get(COLUMN_ONE_KEY) + "")) );
-			        builderData.setFilterData(stringMap);
-	        	} else {
-	        		LOGGER.error("Matcher type " + this.matcher.getQueryModType() + " is not supported in join method.");
-	        	}
-	        }
-	        
+				stringMap = builderData.getFilterData();
+			} else {
+				stringMap = new HashMap<String, List<Object>>();
+			}
+			//if stringmap already contains the filters, then it is a hard filter
+			//otherwise, add based on what is currently in the tree
+			if(!stringMap.containsKey(props.get(COLUMN_TWO_KEY) + "")) {
+				if(dm instanceof BTreeDataFrame) {
+					//but actually, also need to consider the type of matcher
+					if(this.matcher.getQueryModType().equals(IMatcher.MATCHER_ACTION.BIND)) {
+						List<Object> queryModList = this.matcher.getQueryModList(dm, props.get(COLUMN_ONE_KEY) + "", dmc.getEngine(), props.get(COLUMN_TWO_KEY) + "");
+						stringMap.put(props.get(COLUMN_TWO_KEY) + "", queryModList );
+						builderData.setFilterData(stringMap);
+					} else {
+						LOGGER.error("Matcher type " + this.matcher.getQueryModType() + " is not supported in join method.");
+					}
+				} else {
+					stringMap.put(props.get(COLUMN_TWO_KEY) + "", Arrays.asList(dm.getUniqueRawValues(props.get(COLUMN_ONE_KEY) + "")) );
+					builderData.setFilterData(stringMap);
+				}
+			} 
+
 			// add the join as a post transformation
 			dmc.getPostTrans().add(0, this);
 			preTransformation = false;
@@ -148,7 +156,7 @@ public class JoinTransformation extends AbstractTransformation {
 		try {
 			method = dm.getClass().getMethod(UNDO_METHOD_NAME, String.class);
 			LOGGER.info("Successfully got method : " + UNDO_METHOD_NAME);
-			
+
 			// iterate from leaf to root for efficiency in removing connections
 			for(int i = addedColumns.size()-1; i >= 0; i--) {
 				method.invoke(dm, addedColumns.get(i));
@@ -164,7 +172,7 @@ public class JoinTransformation extends AbstractTransformation {
 			e.printStackTrace();
 		}
 	}
-	
+
 	@Override
 	public JoinTransformation copy() {
 		JoinTransformation joinCopy = new JoinTransformation();
@@ -173,6 +181,8 @@ public class JoinTransformation extends AbstractTransformation {
 		joinCopy.setId(id);
 		joinCopy.setTransformationType(preTransformation);
 		joinCopy.addedColumns = this.addedColumns;
+		//need this in copy for btree join method
+		joinCopy.matcher = this.matcher;
 		
 		if(props != null) {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
@@ -183,7 +193,7 @@ public class JoinTransformation extends AbstractTransformation {
 
 		return joinCopy;
 	}
-	
+
 	private void getMatcher() {
 		if(this.matcher == null) {
 			String joinType = (String) this.props.get(JOIN_TYPE);
@@ -191,15 +201,15 @@ public class JoinTransformation extends AbstractTransformation {
 				joinType = "inner";
 			}
 			switch(joinType) {
-				case "inner" : this.matcher = new ExactStringMatcher(); 
-					break;
-				case "partial" : this.matcher = new ExactStringPartialOuterJoinMatcher(); 
-					break;
-				case "outer" : this.matcher = new ExactStringOuterJoinMatcher();
-					break;
-				default : this.matcher = new ExactStringMatcher(); 
+			case "inner" : this.matcher = new InstanceMatcher(); 
+			break;
+			case "partial" : this.matcher = new InstancePartialOuterJoinMatcher(); 
+			break;
+			case "outer" : this.matcher = new InstanceOuterJoinMatcher();
+			break;
+			default : this.matcher = new InstanceMatcher(); 
 			}
 		}
 	}
-	
+
 }

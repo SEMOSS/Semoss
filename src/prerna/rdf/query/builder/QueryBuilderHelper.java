@@ -37,6 +37,8 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.internal.StringMap;
+
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -46,9 +48,6 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
-
-import com.google.gson.Gson;
-import com.google.gson.internal.StringMap;
 
 public class QueryBuilderHelper {
 
@@ -287,6 +286,13 @@ public class QueryBuilderHelper {
 		parsedPath.put(totalVarListKey, totalVarList);
 		parsedPath.put(nodeVKey, nodeV);
 		parsedPath.put(predVKey, predV);
+
+		List<Map<String, String>> props = builderData.getNodeProps();
+		for(Map<String, String> prop: props){
+			String subjectURI = prop.get(uriKey);
+			subjectURI = engine.getTransformedNodeName(subjectURI, false);
+			prop.put(uriKey, subjectURI);
+		}
 		
 		return parsedPath;
 	}

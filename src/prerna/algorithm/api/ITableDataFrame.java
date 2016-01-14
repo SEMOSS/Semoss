@@ -3,6 +3,7 @@ package prerna.algorithm.api;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import prerna.engine.api.ISelectStatement;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -372,7 +373,7 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	void unfilter(String columnHeader);
 
-	void unfilter(String columnHeader, List<Object> unfilterValues);
+//	void unfilter(String columnHeader, List<Object> unfilterValues);
 	/**
 	 * Unfilter all columns for the data frame
 	 */
@@ -487,6 +488,9 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	public void setColumnsToSkip(List<String> columnHeaders);
 
+	public void setEdgeHash(Map<String, Set<String>> edgeHash);
+	
+	public Map<String, Set<String>> getEdgeHash();
 	//temporary hack for build...delete later
 	public Object[] getFilteredUniqueRawValues(String columnHeader);
 }
