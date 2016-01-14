@@ -27,9 +27,12 @@
  *******************************************************************************/
 package prerna.rdf.query.builder;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -147,4 +150,61 @@ public class QueryBuilderData {
 
 		return logicalName;
 	}
+	
+    /*
+    * This method returns how the returned results are related to one another
+    * This is needed for correctly building the results graph in TinkerFrame
+    * The structure of the return hash is returnVar -> {downstreamReturnVar, downstreamReturnVar...}
+    */
+    public Map<String, Set<String>> getReturnConnectionsHash()
+    {
+           Map<String, Set<String>> edgeHash = new HashMap<String, Set<String>>();
+           // First need to iterate through properties
+           // These are the easiest to capture
+           // Need to make sure valid return value
+           
+           if(this.nodeProps != null){
+                  for(Map<String, String> nodeProp: this.nodeProps){
+                        String propVarName = nodeProp.get("varKey");
+                        LOGGER.info("checking if we need to add property to edgeHash::: " + propVarName);
+                        if(!limitReturnToVarsList || this.returnVars.contains(propVarName)){
+                               String nodeVarName = nodeProp.get("SubjectVar");
+                               LOGGER.info("yes, adding now. " + propVarName + " is downstream of " + nodeVarName); // TODO: What if nodeVarName is not part of query return... ? what do we connect this property to?
+                               Set<String> downNodeTypes = edgeHash.get(nodeVarName);
+                               if(downNodeTypes == null){
+                                      downNodeTypes = new HashSet<String>();
+                                      edgeHash.put(nodeVarName, downNodeTypes);
+                               }
+                               downNodeTypes.add(propVarName);
+                        }
+                  }
+           }
+           if(this.relTriples != null){
+                  for(List<String> relTriple : this.relTriples){
+
+                        if(relTriple.size() > 1){ // if this is a full triple... rather than just a single node
+                        	String physObj = relTriple.get(2);
+                               String logicalObj = getLogicalNameFromPhysicalURI(physObj);
+
+                               LOGGER.info("checking if need need to add node to edgeHash:::: " + logicalObj);
+                               if(!limitReturnToVarsList || this.returnVars.contains(logicalObj)){
+                                      // yes it seems valid. need to get subject logical name
+                                      String physSub = relTriple.get(0);
+                                      String logicalSub = getLogicalNameFromPhysicalURI(physSub);
+                                      LOGGER.info("yes, adding now. " + logicalObj + " is downstream of " + logicalSub); // TODO: What if subject is not part of query return... ? what do we connect this property to?
+                                      Set<String> downNodeTypes = edgeHash.get(logicalSub);
+                                      if(downNodeTypes == null){
+                                             downNodeTypes = new HashSet<String>();
+                                             edgeHash.put(logicalSub, downNodeTypes);
+                                      }
+                                      downNodeTypes.add(logicalObj);
+                               }
+                        }
+
+                  }
+           }
+           
+           return edgeHash;
+    }
+
 }

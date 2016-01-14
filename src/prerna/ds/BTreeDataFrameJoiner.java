@@ -2,15 +2,8 @@ package prerna.ds;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
-
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.util.ArrayUtilityMethods;
 
 public class BTreeDataFrameJoiner {
 	
@@ -91,9 +84,7 @@ public class BTreeDataFrameJoiner {
 			if(bucketMap.containsKey(key)) {
 				ArrayList<SimpleTreeNode> instanceList = bucketMap.get(key);
 				
-				Vector<SimpleTreeNode> vec = new Vector<SimpleTreeNode>();
-				vec.add(nextNode.leftChild);
-				String serialized = SimpleTreeNode.serializeTree("", vec, true, 0);
+				String serialized = SimpleTreeNode.serializeTree(nextNode.leftChild);
 				
 				for(SimpleTreeNode instance : instanceList) {
 					SimpleTreeNode hookUp = SimpleTreeNode.deserializeTree(serialized);
@@ -151,9 +142,7 @@ public class BTreeDataFrameJoiner {
 			if(bucketMap.containsKey(key)) {
 				ArrayList<SimpleTreeNode> instanceList = bucketMap.get(key);
 				
-				Vector<SimpleTreeNode> vec = new Vector<SimpleTreeNode>();
-				vec.add(nextNode.leftChild);
-				String serialized = SimpleTreeNode.serializeTree("", vec, true, 0);
+				String serialized = SimpleTreeNode.serializeTree(nextNode.leftChild);
 				
 				//hookup new branch
 				for(SimpleTreeNode instance : instanceList) {
