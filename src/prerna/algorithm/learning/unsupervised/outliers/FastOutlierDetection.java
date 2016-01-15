@@ -20,6 +20,8 @@ package prerna.algorithm.learning.unsupervised.outliers;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -32,8 +34,10 @@ import prerna.algorithm.learning.util.DuplicationReconciliation;
 import prerna.algorithm.learning.util.DuplicationReconciliation.ReconciliationMode;
 import prerna.algorithm.learning.util.InstanceSimilarity;
 import prerna.ds.BTreeDataFrame;
+import prerna.ds.TinkerFrame;
 import prerna.om.SEMOSSParam;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Utility;
 
 public class FastOutlierDetection implements IAnalyticTransformationRoutine {
 
@@ -177,15 +181,41 @@ public class FastOutlierDetection implements IAnalyticTransformationRoutine {
 			counter++;
 			this.changedColumn = attributeName + "_FastOutlier_" + counter;
 		}
-		ITableDataFrame returnTable = new BTreeDataFrame(new String[]{attributeName, changedColumn});
-		for(Object instance : results.keySet()) {
-			Map<String, Object> row = new HashMap<String, Object>();
-			row.put(attributeName, instance);
-			row.put(changedColumn, (numRuns-results.get(instance))/numRuns); // reformat to a value between 0 and 1
-			returnTable.addRow(row, row);
+		
+		if(this.dataFrame instanceof BTreeDataFrame) {
+			ITableDataFrame returnTable = new BTreeDataFrame(new String[]{attributeName, changedColumn});
+			for(Object instance : results.keySet()) {
+				Map<String, Object> row = new HashMap<String, Object>();
+				row.put(attributeName, instance);
+				row.put(changedColumn, results.get(instance));
+				returnTable.addRow(row, row);
+			}
+			
+			return returnTable;
+		} else {
+			Hashtable<String, Set<String>> edgeHash = new Hashtable<String, Set<String>>();
+			Set<String> edge = new HashSet<String>();
+			edge.add(changedColumn);
+			edgeHash.put(attributeName, edge);
+			TinkerFrame returnTable = new TinkerFrame(new String[]{attributeName, changedColumn}, edgeHash);
+			for(Object instance : results.keySet()) {
+				Double val = (numRuns-results.get(instance))/numRuns;
+				
+				Map<String, Object> raw = new HashMap<String, Object>();
+				raw.put(attributeName, instance);
+				raw.put(changedColumn, val);
+				
+				Map<String, Object> clean = new HashMap<String, Object>();
+				if(instance.toString().startsWith("http://semoss.org/ontologies/Concept/")) {
+					instance = Utility.getInstanceName(instance.toString());
+				}
+				clean.put(attributeName, instance);
+				clean.put(changedColumn, val);
+				
+				returnTable.addRelationship(clean, raw);
+			}
+			return returnTable;
 		}
-
-		return returnTable;
 	}
 
 	public HashMap<Object, Double> getResults() {
