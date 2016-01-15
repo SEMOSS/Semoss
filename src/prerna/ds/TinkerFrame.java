@@ -621,7 +621,7 @@ public class TinkerFrame implements ITableDataFrame {
 		
 		this.headerNames = headerNames;
 		g = TinkerGraph.open();
-		g.createIndex(Constants.ID, Vertex.class);
+		g.createIndex(Constants.TYPE, Vertex.class);
 		g.variables().set(Constants.HEADER_NAMES, headerNames);
 	}
 	
@@ -1705,7 +1705,7 @@ public class TinkerFrame implements ITableDataFrame {
 		// if not inserts the vertex and then returns that vertex
 		Vertex retVertex = null;
 		// try to find the vertex
-		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.ID, type + ":" + data);
+		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, type).has(Constants.ID, type + ":" + data);
 		if(gt.hasNext())
 			retVertex = gt.next();
 		else
