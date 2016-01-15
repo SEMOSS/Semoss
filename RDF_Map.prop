@@ -455,6 +455,7 @@ SEMOSS_URI	http://semoss.org/ontologies
 GraphDataModel	prerna.om.GraphDataModel
 BTreeDataFrame	prerna.ds.BTreeDataFrame
 TinkerFrame	prerna.ds.TinkerFrame
+PrimaryKeyTinkerFrame	prerna.ds.PrimaryKeyTinkerFrame
 
 ##PLAYSHEETS DEFINED
 PLAYSHEETS_DEFINED	Grid;Graph;HeatMap;Line;Combo;Dendrogram;ParallelCoordinates;ParallelSets;Scatter;Column;Pie;3dBarchart;CirclePack;Clustering;Gantt;Sankey;ScatterplotMatrix;SingleAxisCluster;SystemSimilarity;USHeatMap;USMap;WorldHeatMap;WorldMap;Mashup
