@@ -35,6 +35,8 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.math.BarChart;
+import prerna.math.StatisticsUtilityMethods;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.GremlinBuilder;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -43,6 +45,7 @@ import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class TinkerFrame implements ITableDataFrame {
 	
@@ -53,19 +56,19 @@ public class TinkerFrame implements ITableDataFrame {
 	protected List<String> columnsToSkip = new Vector<String>(); //make a set?
 	
 	//keeps the values that are filtered from the table
-	Map <String, List<Object>> filterHash = new Hashtable<String, List<Object>>();
+	protected Hashtable <String, List<Object>> filterHash = new Hashtable<String, List<Object>>();
 	
 	//keeps the cache of whether a column is numerical or not
-	Map<String, Boolean> isNumericalMap = new HashMap<String, Boolean>();
+	protected Map<String, Boolean> isNumericalMap = new HashMap<String, Boolean>();
 	
 	//keeps the cache of edges within the tree
-	Map <String, Set<String>> edgeHash = new Hashtable<String, Set<String>>();
+	protected Map <String, Set<String>> edgeHash = new Hashtable<String, Set<String>>();
 	
 //	Graph metamodel = null;
 	
 	protected List<Object> algorithmOutput = new Vector<Object>();
-	GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
-	TinkerGraph g = null;
+	protected GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
+	protected TinkerGraph g = null;
 	int startRange = -1;
 	int endRange = -1;
 
@@ -235,7 +238,7 @@ public class TinkerFrame implements ITableDataFrame {
 		getRawData();
 	}
 
-	protected void tryBuilder()
+	private void tryBuilder()
 	{
 		
 		
@@ -585,7 +588,7 @@ public class TinkerFrame implements ITableDataFrame {
     }
     
     // adds all the childs and leaves it in the same state as before
-    protected String addChilds(Vector <String> inputVector, Vector <String> outputVector, Hashtable <String, Vector<String>> allHash, String inputString, String inputType)
+    private String addChilds(Vector <String> inputVector, Vector <String> outputVector, Hashtable <String, Vector<String>> allHash, String inputString, String inputType)
     {
            for(int childIndex = 0;childIndex < inputVector.size();childIndex++)
            {
@@ -741,7 +744,7 @@ public class TinkerFrame implements ITableDataFrame {
 			transform.runMethod();
 		}
 	}
-
+	
 	@Override
 	public void processPostTransformations(DataMakerComponent dmc,
 			List<ISEMOSSTransformation> transforms, IDataMaker... dataFrame) {
@@ -837,7 +840,7 @@ public class TinkerFrame implements ITableDataFrame {
 		// dont believe me just watch
 		for(int index = 0; index < headerNames.length; index++) {
 			if(rowCleanData[index] != null){
-				Vertex fromVertex = upsertVertex(headerNames[index], rowCleanData[index]+"", rowRawData[index]); // need to discuss if we need specialized vertices too
+				Vertex fromVertex = upsertVertex(headerNames[index], rowCleanData[index], rowRawData[index]); // need to discuss if we need specialized vertices too
 				int parentInc = 1;
 				boolean added = false;
 				while(index + parentInc < headerNames.length && !added)
@@ -846,7 +849,7 @@ public class TinkerFrame implements ITableDataFrame {
 						parentInc ++;
 						continue;
 					}
-					Vertex toVertex = upsertVertex(headerNames[index+parentInc], rowCleanData[index+parentInc]+"", rowRawData[index+parentInc]);
+					Vertex toVertex = upsertVertex(headerNames[index+parentInc], rowCleanData[index+parentInc], rowRawData[index+parentInc]);
 					upsertEdge(fromVertex, toVertex);
 					added = true;
 				}
@@ -858,7 +861,10 @@ public class TinkerFrame implements ITableDataFrame {
 	public void addRelationship(ISelectStatement rowData) {
 		Map<String, Object> rowCleanData = rowData.getPropHash();
 		Map<String, Object> rowRawData = rowData.getRPropHash();
-		
+		addRelationship(rowCleanData, rowRawData);
+	}
+	
+	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData) {
 		boolean hasRel = false;
 		for(String startNode : rowCleanData.keySet()) {
 			Set<String> set = this.edgeHash.get(startNode);
@@ -870,12 +876,12 @@ public class TinkerFrame implements ITableDataFrame {
 					//get from vertex
 					Object startNodeValue = getParsedValue(rowCleanData.get(startNode));
 					String rawStartNodeValue = rowRawData.get(startNode).toString();
-					Vertex fromVertex = upsertVertex(startNode, startNodeValue+"", rawStartNodeValue);
+					Vertex fromVertex = upsertVertex(startNode, startNodeValue, rawStartNodeValue);
 					//get to vertex
 							
 					Object endNodeValue = getParsedValue(rowCleanData.get(endNode));
 					String rawEndNodeValue = rowRawData.get(endNode).toString();
-					Vertex toVertex = upsertVertex(endNode, endNodeValue+"", rawEndNodeValue);
+					Vertex toVertex = upsertVertex(endNode, endNodeValue, rawEndNodeValue);
 					
 					upsertEdge(fromVertex, toVertex);
 				}
@@ -888,7 +894,7 @@ public class TinkerFrame implements ITableDataFrame {
 			String singleColName = rowCleanData.keySet().iterator().next();
 			Object startNodeValue = getParsedValue(rowCleanData.get(singleColName));
 			String rawStartNodeValue = rowRawData.get(singleColName).toString();
-			upsertVertex(singleColName, startNodeValue+"", rawStartNodeValue);
+			upsertVertex(singleColName, startNodeValue, rawStartNodeValue);
 		}
 		
 //		Object [] rowRawArr = new Object[headerNames.length];
@@ -954,7 +960,7 @@ public class TinkerFrame implements ITableDataFrame {
 			{
 				// see if this exists
 				// now just add everthing
-				Vertex newVertex = upsertVertex(joiningTableHeaders[colIndex], row[colIndex]+"", row[colIndex]);
+				Vertex newVertex = upsertVertex(joiningTableHeaders[colIndex], row[colIndex], row[colIndex]);
 				upsertEdge(v2Add, newVertex);
 			}
 		}
@@ -996,8 +1002,8 @@ public class TinkerFrame implements ITableDataFrame {
 	/****************************** END AGGREGATION METHODS *********************************/
 	@Override
 	public void performAnalyticTransformation(IAnalyticTransformationRoutine routine) {
-		// TODO Auto-generated method stub
-		
+		ITableDataFrame newTable = routine.runAlgorithm(this);
+		this.join(newTable, newTable.getColumnHeaders()[0], newTable.getColumnHeaders()[0], 1, new ExactStringMatcher());
 	}
 
 	@Override
@@ -1007,8 +1013,7 @@ public class TinkerFrame implements ITableDataFrame {
 	
 	@Override
 	public void performAnalyticAction(IAnalyticActionRoutine routine) {
-		// TODO Auto-generated method stub
-		
+		routine.runAlgorithm(this);
 	}
 
 	@Override
@@ -1031,8 +1036,59 @@ public class TinkerFrame implements ITableDataFrame {
 
 	@Override
 	public Double getEntropyDensity(String columnHeader) {
-		// TODO Auto-generated method stub
-		return null;
+		double entropyDensity = 0;
+		
+		if(isNumeric(columnHeader)) {
+			//TODO: need to make barchart class better
+			Double[] dataRow = getColumnAsNumeric(columnHeader);
+			int numRows = dataRow.length;
+			Hashtable<String, Object>[] bins = null;
+			BarChart chart = new BarChart(dataRow);
+			
+			if(chart.isUseCategoricalForNumericInput()) {
+				chart.calculateCategoricalBins("NaN", true, true);
+				chart.generateJSONHashtableCategorical();
+				bins = chart.getRetHashForJSON();
+			} else {
+				chart.generateJSONHashtableNumerical();
+				bins = chart.getRetHashForJSON();
+			}
+			
+			double entropy = 0;
+			int i = 0;
+			int uniqueValues = bins.length;
+			for(; i < uniqueValues; i++) {
+				int count = (int) bins[i].get("y");
+				if(count != 0) {
+					double prob = (double) count / numRows;
+					entropy += prob * StatisticsUtilityMethods.logBase2(prob);
+				}
+			}
+			entropyDensity = (double) entropy / uniqueValues;
+			
+		} else {
+			Map<String, Integer> uniqueValuesAndCount = getUniqueValuesAndCount(columnHeader);
+			Integer[] counts = uniqueValuesAndCount.values().toArray(new Integer[]{});
+			
+			// if only one value, then entropy is 0
+			if(counts.length == 1) {
+				return entropyDensity;
+			}
+			
+			double entropy = 0;
+			double sum = StatisticsUtilityMethods.getSum(counts);
+			int index;
+			for(index = 0; index < counts.length; index++) {
+				double val = counts[index];
+				if(val != 0) {
+					double prob = val / sum;
+					entropy += prob * StatisticsUtilityMethods.logBase2(prob);
+				}
+			}
+			entropyDensity = entropy / uniqueValuesAndCount.keySet().size();
+		}
+		
+		return -1.0 * entropyDensity;
 	}
 
 	@Override
@@ -1079,16 +1135,27 @@ public class TinkerFrame implements ITableDataFrame {
 
 	@Override
 	public Double[] getMax() {
-		GraphTraversal<Vertex, Map<Object, Object>> gt2 =  g.traversal().V().group().by(Constants.TYPE).by(__.values(Constants.VALUE).max());
-		Double [] instanceCount = null;
-		if(gt2.hasNext())
-		{
-			Map<Object, Object> output = gt2.next();
-			instanceCount = new Double[headerNames.length];
-			for(int levelIndex = 0;levelIndex < headerNames.length;levelIndex++)
-				instanceCount[levelIndex] = ((Number)output.get(headerNames[levelIndex])).doubleValue();
+		// unsure who wrote this, but it gives a class cast exception :/
+//		GraphTraversal<Vertex, Map<Object, Object>> gt2 =  g.traversal().V().group().by(Constants.TYPE).by(__.values(Constants.VALUE).max());
+//		Double [] instanceCount = null;
+//		if(gt2.hasNext())
+//		{
+//			Map<Object, Object> output = gt2.next();
+//			instanceCount = new Double[headerNames.length];
+//			for(int levelIndex = 0;levelIndex < headerNames.length;levelIndex++)
+//				instanceCount[levelIndex] = ((Number)output.get(headerNames[levelIndex])).doubleValue();
+//		}
+//		return instanceCount;
+
+		int size = headerNames.length;
+		Double[] max = new Double[size];
+		for(int i = 0; i < size; i++) {
+			if(isNumeric(headerNames[i])) {
+				max[i] = getMax(headerNames[i]);
+			}
 		}
-		return instanceCount;
+		
+		return max;
 	}
 
 	@Override
@@ -1104,17 +1171,26 @@ public class TinkerFrame implements ITableDataFrame {
 	@Override
 	public Double[] getMin() {
 
-		GraphTraversal<Vertex, Map<Object, Object>> gt2 =  g.traversal().V().group().by(Constants.TYPE).by(__.values(Constants.VALUE).min());
-		Double [] instanceCount = null;
-		if(gt2.hasNext())
-		{
-			Map<Object, Object> output = gt2.next();
-			instanceCount = new Double[headerNames.length];
-			for(int levelIndex = 0;levelIndex < headerNames.length;levelIndex++)
-				instanceCount[levelIndex] = ((Number)output.get(headerNames[levelIndex])).doubleValue();
-		}
+//		GraphTraversal<Vertex, Map<Object, Object>> gt2 =  g.traversal().V().group().by(Constants.TYPE).by(__.values(Constants.VALUE).min());
+//		Double [] instanceCount = null;
+//		if(gt2.hasNext())
+//		{
+//			Map<Object, Object> output = gt2.next();
+//			instanceCount = new Double[headerNames.length];
+//			for(int levelIndex = 0;levelIndex < headerNames.length;levelIndex++)
+//				instanceCount[levelIndex] = ((Number)output.get(headerNames[levelIndex])).doubleValue();
+//		}
+//		return instanceCount;
 
-		return instanceCount;
+		int size = headerNames.length;
+		Double[] min = new Double[size];
+		for(int i = 0; i < size; i++) {
+			if(isNumeric(headerNames[i])) {
+				min[i] = getMin(headerNames[i]);
+			}
+		}
+		
+		return min;
 	}
 
 	@Override
@@ -1218,7 +1294,12 @@ public class TinkerFrame implements ITableDataFrame {
 
 	@Override
 	public boolean[] isNumeric() {
-		return null;
+		int size = headerNames.length;
+		boolean[] isNumeric = new boolean[size];
+		for(int i = 0; i < size; i++) {
+			isNumeric[i] = isNumeric(headerNames[i]);
+		}
+		return isNumeric;
 	}
 
 	@Override
@@ -1268,7 +1349,8 @@ public class TinkerFrame implements ITableDataFrame {
 
 	@Override
 	public Iterator<Object[]> iterator(boolean getRawData) {
-		return new TinkerFrameIterator(headerNames, edgeHash, columnsToSkip, filterHash, g);
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override
@@ -1291,15 +1373,13 @@ public class TinkerFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public Iterator<List<Object[]>> standardizedUniqueIterator(
-			String columnHeader, boolean getRawData) {
-		// TODO Auto-generated method stub
+	public Iterator<List<Object[]>> standardizedUniqueIterator(String columnHeader, boolean getRawData) {
 		return null;
 	}
 
 	@Override
 	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData) {
-		return null;
+		return new UniqueScaledTinkerFrameIterator(columnHeader, this.headerNames, edgeHash, columnsToSkip, filterHash, g, getMax(), getMin());
 	}
 
 	@Override
@@ -1309,7 +1389,7 @@ public class TinkerFrame implements ITableDataFrame {
 		return getGraphTraversal(columnHeader);
 	}
 
-	protected GraphTraversal<Vertex, Object> getGraphTraversal(String columnHeader) {
+	private GraphTraversal<Vertex, Object> getGraphTraversal(String columnHeader) {
 		GraphTraversal<Vertex, Object> gt = g.traversal().V().has(Constants.TYPE, columnHeader).values(Constants.VALUE);
 		return gt;
 	}
@@ -1320,6 +1400,24 @@ public class TinkerFrame implements ITableDataFrame {
 
 	@Override
 	public Double[] getColumnAsNumeric(String columnHeader) {
+		if(isNumeric(columnHeader)) {
+			List<String> columnsToSkip = new Vector<String>();
+			for(String header : headerNames) {
+				if(!header.equals(columnHeader)) {
+					columnsToSkip.add(header);
+				}
+			}
+			
+			List<Double> numericCol = new Vector<Double>();
+			TinkerFrameIterator it = new TinkerFrameIterator(this.headerNames, this.edgeHash, columnsToSkip, this.filterHash, this.g);
+			while(it.hasNext()) {
+				Object[] row = it.next();
+				numericCol.add( ((Number) row[0]).doubleValue() );
+			}
+			
+			return numericCol.toArray(new Double[]{});
+		}
+		
 		return null;
 	}
 
@@ -1354,14 +1452,35 @@ public class TinkerFrame implements ITableDataFrame {
 
 	@Override
 	public Map<String, Integer> getUniqueValuesAndCount(String columnHeader) {
-		// TODO Auto-generated method stub
-		return null;
+		Map<String, Integer> counts = new Hashtable<String, Integer>();
+		List<String> columnsToSkip = new Vector<String>();
+		for(String header : headerNames) {
+			if(!header.equals(columnHeader)) {
+				columnsToSkip.add(header);
+			}
+		}
+		
+		TinkerFrameIterator it = new TinkerFrameIterator(this.headerNames, this.edgeHash, columnsToSkip, this.filterHash, this.g);
+		while(it.hasNext()) {
+			Object[] row = it.next();
+			if(counts.containsKey(row[0] + "")) {
+				int newCount = counts.get(row[0] + "") + 1;
+				counts.put(row[0] + "", newCount);
+			} else {
+				counts.put(row[0] + "", 1);
+			}
+		}
+		
+		return counts;
 	}
 
 	@Override
 	public Map<String, Map<String, Integer>> getUniqueColumnValuesAndCount() {
-		// TODO Auto-generated method stub
-		return null;
+		Map<String, Map<String, Integer>> counts = new Hashtable<String, Map<String, Integer>>();
+		for(String header : headerNames) {
+			counts.put(header, getUniqueValuesAndCount(header));
+		}
+		return counts;
 	}
 
 	@Override
@@ -1639,6 +1758,7 @@ public class TinkerFrame implements ITableDataFrame {
 		
 		List<Object> itemToKeep = new ArrayList<>(1);
 		itemToKeep.add(value);
+		
 		builder.addRestriction(columnHeader, itemToKeep);
 		
 		
@@ -1688,7 +1808,8 @@ public class TinkerFrame implements ITableDataFrame {
 
 	@Override
 	public void setColumnsToSkip(List<String> columnHeaders) {
-		this.columnsToSkip.addAll(columnHeaders);
+		if(columnHeaders != null)
+			this.columnsToSkip.addAll(columnHeaders);
 	}
 
 	@Override
@@ -1697,7 +1818,7 @@ public class TinkerFrame implements ITableDataFrame {
 	}
 	
 	// create or add vertex
-	protected Vertex upsertVertex(String type, String data, Object value)
+	protected Vertex upsertVertex(String type, Object data, Object value)
 	{
 		// checks to see if the vertex is there already
 		// if so retrieves the vertex
@@ -1705,11 +1826,17 @@ public class TinkerFrame implements ITableDataFrame {
 		Vertex retVertex = null;
 		// try to find the vertex
 		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, type).has(Constants.ID, type + ":" + data);
-		if(gt.hasNext())
+		if(gt.hasNext()) {
 			retVertex = gt.next();
-		else
-			retVertex = g.addVertex(Constants.ID, type + ":" + data, Constants.VALUE, value, Constants.TYPE, type, Constants.NAME, data);// push the actual value as well who knows when you would need it
+		} else {
 			//retVertex = g.addVertex(Constants.ID, type + ":" + data, Constants.VALUE, value, Constants.TYPE, type, Constants.NAME, data, Constants.FILTER, false); //should we add a filter flag to each vertex?
+			if(data instanceof Number) {
+				// need to keep values as they are, not with XMLSchema tag
+				retVertex = g.addVertex(Constants.ID, type + ":" + data, Constants.VALUE, data, Constants.TYPE, type, Constants.NAME, data);// push the actual value as well who knows when you would need it
+			} else {
+				retVertex = g.addVertex(Constants.ID, type + ":" + data, Constants.VALUE, value, Constants.TYPE, type, Constants.NAME, data);// push the actual value as well who knows when you would need it
+			}
+		}
 		return retVertex;
 	}
 	
