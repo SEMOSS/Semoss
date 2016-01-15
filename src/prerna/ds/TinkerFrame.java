@@ -53,7 +53,7 @@ public class TinkerFrame implements ITableDataFrame {
 	private List<String> columnsToSkip = new Vector<String>(); //make a set?
 	
 	//keeps the values that are filtered from the table
-	Hashtable <String, List<Object>> filterHash = new Hashtable<String, List<Object>>();
+	Map <String, List<Object>> filterHash = new Hashtable<String, List<Object>>();
 	
 	//keeps the cache of whether a column is numerical or not
 	Map<String, Boolean> isNumericalMap = new HashMap<String, Boolean>();
@@ -1268,8 +1268,7 @@ public class TinkerFrame implements ITableDataFrame {
 
 	@Override
 	public Iterator<Object[]> iterator(boolean getRawData) {
-		// TODO Auto-generated method stub
-		return null;
+		return new TinkerFrameIterator(headerNames, edgeHash, columnsToSkip, filterHash, g);
 	}
 
 	@Override
