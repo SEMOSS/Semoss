@@ -49,8 +49,8 @@ public class TinkerFrame implements ITableDataFrame {
 	private static final Logger LOGGER = LogManager.getLogger(TinkerFrame.class.getName());
 	
 	//Column Names of the table
-	private String [] headerNames = null;
-	private List<String> columnsToSkip = new Vector<String>(); //make a set?
+	protected String [] headerNames = null;
+	protected List<String> columnsToSkip = new Vector<String>(); //make a set?
 	
 	//keeps the values that are filtered from the table
 	Map <String, List<Object>> filterHash = new Hashtable<String, List<Object>>();
@@ -235,7 +235,7 @@ public class TinkerFrame implements ITableDataFrame {
 		getRawData();
 	}
 
-	private void tryBuilder()
+	protected void tryBuilder()
 	{
 		
 		
@@ -585,7 +585,7 @@ public class TinkerFrame implements ITableDataFrame {
     }
     
     // adds all the childs and leaves it in the same state as before
-    private String addChilds(Vector <String> inputVector, Vector <String> outputVector, Hashtable <String, Vector<String>> allHash, String inputString, String inputType)
+    protected String addChilds(Vector <String> inputVector, Vector <String> outputVector, Hashtable <String, Vector<String>> allHash, String inputString, String inputType)
     {
            for(int childIndex = 0;childIndex < inputVector.size();childIndex++)
            {
@@ -903,7 +903,7 @@ public class TinkerFrame implements ITableDataFrame {
 //		addRow(rowCleanArr, rowRawArr);
 	}
 
-	private Object getParsedValue(Object value) {
+	protected Object getParsedValue(Object value) {
 		Object node = null;
 
 		if(value == null) {
@@ -964,7 +964,7 @@ public class TinkerFrame implements ITableDataFrame {
 		mergeEdgeHash(table.getEdgeHash()); //need more information but can assume exact string matching for now
 	}
 	
-	private void mergeEdgeHash(Map<String, Set<String>> newEdgeHash) {
+	protected void mergeEdgeHash(Map<String, Set<String>> newEdgeHash) {
 		for(String newNode : newEdgeHash.keySet()) {
 			Set<String> edges = newEdgeHash.get(newNode);
 			if(this.edgeHash.get(newNode) == null) {
@@ -1226,7 +1226,7 @@ public class TinkerFrame implements ITableDataFrame {
 		return getHeaders();
 	}
 	
-	private String[] getHeaders()
+	protected String[] getHeaders()
 	{
 		if(this.headerNames == null)
 			headerNames =  (String[])(g.variables().get(Constants.HEADER_NAMES).get());
@@ -1309,7 +1309,7 @@ public class TinkerFrame implements ITableDataFrame {
 		return getGraphTraversal(columnHeader);
 	}
 
-	private GraphTraversal<Vertex, Object> getGraphTraversal(String columnHeader) {
+	protected GraphTraversal<Vertex, Object> getGraphTraversal(String columnHeader) {
 		GraphTraversal<Vertex, Object> gt = g.traversal().V().has(Constants.TYPE, columnHeader).values(Constants.VALUE);
 		return gt;
 	}
@@ -1697,7 +1697,7 @@ public class TinkerFrame implements ITableDataFrame {
 	}
 	
 	// create or add vertex
-	private Vertex upsertVertex(String type, String data, Object value)
+	protected Vertex upsertVertex(String type, String data, Object value)
 	{
 		// checks to see if the vertex is there already
 		// if so retrieves the vertex
@@ -1713,7 +1713,7 @@ public class TinkerFrame implements ITableDataFrame {
 		return retVertex;
 	}
 	
-	private Edge upsertEdge(Vertex fromVertex, Vertex toVertex)
+	protected Edge upsertEdge(Vertex fromVertex, Vertex toVertex)
 	{
 		Edge retEdge = null;
 //		String edgeID = fromVertex.property(Constants.ID).value() + "" + toVertex.properties(Constants.ID);
@@ -1736,7 +1736,7 @@ public class TinkerFrame implements ITableDataFrame {
 		return retEdge;
 	}
 	
-	private void redoLevels(String [] newLevels)
+	protected void redoLevels(String [] newLevels)
 	{
 		if(this.headerNames == null){
 			this.headerNames = newLevels;
