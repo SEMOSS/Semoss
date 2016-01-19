@@ -236,9 +236,10 @@ public class QueryBuilderHelper {
 		for (int tripleIdx = 0; tripleIdx<tripleArray.size(); tripleIdx++)
 		{
 			List<String> thisTripleArray = tripleArray.get(tripleIdx);
-			String subjectURI = thisTripleArray.get(subIdx);
+			String subjectURI = thisTripleArray.remove(subIdx);
 			String subjectName = Utility.getInstanceName(engine.getTransformedNodeName(subjectURI, true));
 			subjectURI = engine.getTransformedNodeName(subjectURI, false);
+			thisTripleArray.add(subIdx, subjectURI);
 			// store node/rel info
 			if (!totalVarList.contains(subjectName))
 			{
@@ -253,8 +254,9 @@ public class QueryBuilderHelper {
 			if(thisTripleArray.size()>1)
 			{
 				String predURI = thisTripleArray.get(predIdx);
-				String objectURI = thisTripleArray.get(objIdx);
+				String objectURI = thisTripleArray.remove(objIdx);
 				objectURI = engine.getTransformedNodeName(objectURI, false);
+				thisTripleArray.add(objIdx, objectURI);
 				String objectName = Utility.getInstanceName(engine.getTransformedNodeName(objectURI, true));
 				String predName = subjectName + "_" +Utility.getInstanceName(predURI) + "_" + objectName;
 				if (!totalVarList.contains(predName))

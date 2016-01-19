@@ -1,6 +1,8 @@
 package prerna.ds;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -9,6 +11,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+
+import javax.script.ScriptContext;
+import javax.script.ScriptException;
 
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.commons.configuration.Configuration;
@@ -32,6 +37,8 @@ import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.engine.api.IConstructStatement;
+import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -1323,10 +1330,74 @@ public class TinkerFrame implements ITableDataFrame {
 	public int getNumCols() {
 		return this.getColumnHeaders().length;
 	}
+	
+	private GremlinBuilder prepareGenericBuilder(){
+		// get all the levels
+		getHeaders();
+		Vector <String> finalColumns = new Vector<String>();
+		GremlinBuilder builder = new GremlinBuilder(g);
+
+		//add edges if edges exist
+		if(this.headerNames.length > 1) {
+			//					for(String node : edgeHash.keySet()) {
+			//						Set<String> edges = edgeHash.get(node);
+			//						for(String endNode : edges) {
+			//							builder.addEdge(node, endNode);
+			HashMap<String, Set<String>> edgeMapCopy = new HashMap<String, Set<String>>();
+			edgeMapCopy.putAll(this.edgeHash);
+			//							builder.addNodeEdge(headerNames[0], edgeMapCopy);
+			builder.addNodeEdge(edgeMapCopy);
+			//						}
+			//					}
+		} else {
+			//no edges exist, add single node to builder
+			builder.addNode(headerNames[0]);
+		}
+
+		// add everything that you need
+		for(int colIndex = 0;colIndex < headerNames.length;colIndex++) // add everything you want first
+		{
+			//					if(colIndex + 1 < headerNames.length)
+			//						builder.addEdge(headerNames[colIndex], headerNames[colIndex+1]);
+			//					else if(headerNames.length == 1)
+			//					{
+			//						builder.addNode(headerNames[0]);
+			//					}
+			//					
+			if(!columnsToSkip.contains(headerNames[colIndex])) {
+				finalColumns.add(headerNames[colIndex]);
+			}
+		}
+
+		// now add the projections
+		builder.addSelector(finalColumns);
+
+		// add the filters next
+		for(int colIndex = 0;colIndex < headerNames.length;colIndex++)
+		{
+			if(filterHash.containsKey(headerNames[colIndex]))
+				builder.addFilter(headerNames[colIndex], filterHash.get(headerNames[colIndex]));
+		}
+		return builder;
+	}
 
 	@Override
 	public int getNumRows() {
-		return 0;
+		long startTime = System.currentTimeMillis();
+		LOGGER.info("beginning row count processing....");
+		GremlinBuilder builder = prepareGenericBuilder();
+		Iterator gt = builder.executeScript(g);
+		int count = 0;
+		while(gt.hasNext()){
+			gt.next();
+			count++;
+		}
+//		gt = gt.count();
+//		long countL = (long) gt.next();
+//		int count = Math.toIntExact(countL);
+		long time1 = System.currentTimeMillis();
+		LOGGER.info("finished row count processing in " + (time1 - startTime)+" ms");
+		return count;
 	}
 
 	@Override
@@ -1349,8 +1420,7 @@ public class TinkerFrame implements ITableDataFrame {
 
 	@Override
 	public Iterator<Object[]> iterator(boolean getRawData) {
-		// TODO Auto-generated method stub
-		return null;
+		return new TinkerFrameIterator(headerNames, edgeHash, columnsToSkip, filterHash, g);
 	}
 
 	@Override
@@ -1555,39 +1625,10 @@ public class TinkerFrame implements ITableDataFrame {
 	@Override
 	public List<Object[]> getData() {
 		Vector retVector = null;
-		
-		// get all the levels
-		getHeaders();
-		Vector <String> finalColumns = new Vector<String>();
-		GremlinBuilder builder = new GremlinBuilder(g);
+
+		GremlinBuilder builder = prepareGenericBuilder();
 		builder.setRange(startRange, endRange);
-		
-		
-		// add everything that you need
-		for(int colIndex = 0;colIndex < headerNames.length;colIndex++) // add everything you want first
-		{
-			if(colIndex + 1 < headerNames.length)
-				builder.addEdge(headerNames[colIndex], headerNames[colIndex+1]);
-			else if(headerNames.length == 1)
-			{
-				builder.addNode(headerNames[0]);			
-							
-				
-			}
-			if(!columnsToSkip.contains(headerNames[colIndex])) {
-				finalColumns.add(headerNames[colIndex]);
-			}
-		}
-		
-		// now add the projections
-		builder.addSelector(finalColumns);
-		
-		// add the filters next
-		for(int colIndex = 0;colIndex < headerNames.length;colIndex++)
-		{
-			if(filterHash.containsKey(headerNames[colIndex]))
-				builder.addFilter(headerNames[colIndex], filterHash.get(headerNames[colIndex]));
-		}
+		int finalColSize = this.headerNames.length - this.columnsToSkip.size();
 		
 		//finally execute it to get the executor
 		GraphTraversal <Vertex, Map<String, Object>> gt = (GraphTraversal <Vertex, Map<String, Object>>)builder.executeScript(g);
@@ -1598,13 +1639,13 @@ public class TinkerFrame implements ITableDataFrame {
 		while(gt.hasNext())
 		{
 			Object data = gt.next();
-			Object [] retObject = new Object[finalColumns.size()];
+			Object [] retObject = new Object[finalColSize];
 			
 			//data will be a map for multi columns
 			if(data instanceof Map) {
-				for(int colIndex = 0;colIndex < finalColumns.size();colIndex++) {
+				for(int colIndex = 0;colIndex < finalColSize;colIndex++) {
 					Map<String, Object> mapData = (Map<String, Object>)data; //cast to map
-					retObject[colIndex] = ((Vertex)mapData.get(finalColumns.get(colIndex))).property(Constants.NAME).value();
+					retObject[colIndex] = ((Vertex)mapData.get(builder.selector.get(colIndex))).property(Constants.NAME).value();
 				}
 			} else {
 				retObject[0] = ((Vertex)data).property(Constants.NAME).value();
@@ -1636,65 +1677,71 @@ public class TinkerFrame implements ITableDataFrame {
 	public List<Object[]> getScaledData(List<String> exceptionColumns) {
 		return null;
 	}
+	
+    /**
+     * Method printAllRelationship.
+     */
+    public void openCommandLine()
+    {
+          LOGGER.warn("<<<<");
+          String end = "";
+          
+                while(!end.equalsIgnoreCase("end"))
+                {
+                      try {
+	                      BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+	                      LOGGER.info("Enter Gremlin");
+	                      String query2 = reader.readLine();   
+	                      if(query2!=null){
+		                      end = query2;
+		                      LOGGER.info("Gremlin is " + query2);
+		                      GraphTraversal gt = null;
+		                      try {
+		                    	  GremlinGroovyScriptEngine mengine = new GremlinGroovyScriptEngine();
+		                    	  mengine.getBindings(ScriptContext.ENGINE_SCOPE).put("g", g);
+
+		                    	  gt = (GraphTraversal)mengine.eval(end);
+		                      } catch (ScriptException e) {
+		                    	  e.printStackTrace();
+		                      }
+		                      while(gt.hasNext())
+		                      {
+		                            Object st = gt.next();
+		                            LOGGER.warn(st);
+		                      }
+	                      }
+                      } catch (RuntimeException e) {
+                            e.printStackTrace();
+                      } catch (IOException e) {
+						e.printStackTrace();
+					}
+	                      
+                }
+    }
 
 	@Override
 	public List<Object[]> getRawData() {
-		// the only important piece here is columns to skip
-		// and then I am not sure if I need to worry about the filtered columns
-		// create the return vector
-		Vector retVector = null;
-				
-		// get all the levels
-		getHeaders();
-		Vector <String> finalColumns = new Vector<String>();
-		GremlinBuilder builder = new GremlinBuilder(g);
-		builder.setRange(startRange, endRange);
 		
-		//add edges if edges exist
-		if(this.headerNames.length > 1) {
-//			for(String node : edgeHash.keySet()) {
-//				Set<String> edges = edgeHash.get(node);
-//				for(String endNode : edges) {
-//					builder.addEdge(node, endNode);
-					HashMap<String, Set<String>> edgeMapCopy = new HashMap<String, Set<String>>();
-					edgeMapCopy.putAll(this.edgeHash);
-//					builder.addNodeEdge(headerNames[0], edgeMapCopy);
-					builder.addNodeEdge(edgeMapCopy);
-//				}
-//			}
-		} else {
-			//no edges exist, add single node to builder
-			builder.addNode(headerNames[0]);
-		}
-		
-		// add everything that you need
-		for(int colIndex = 0;colIndex < headerNames.length;colIndex++) // add everything you want first
-		{
-//			if(colIndex + 1 < headerNames.length)
-//				builder.addEdge(headerNames[colIndex], headerNames[colIndex+1]);
-//			else if(headerNames.length == 1)
+		// first execute all the predicate selectors
+		// Backdoor entry
+//		Thread thread = new Thread(){
+//			public void run()
 //			{
-//				builder.addNode(headerNames[0]);
+//				openCommandLine();				
 //			}
-//			
-			if(!columnsToSkip.contains(headerNames[colIndex])) {
-				finalColumns.add(headerNames[colIndex]);
-			}
-		}
+//		};
+//		thread.start();
+//		return new Vector();
 		
-		// now add the projections
-		builder.addSelector(finalColumns);
 		
-		// add the filters next
-		for(int colIndex = 0;colIndex < headerNames.length;colIndex++)
-		{
-			if(filterHash.containsKey(headerNames[colIndex]))
-				builder.addFilter(headerNames[colIndex], filterHash.get(headerNames[colIndex]));
-		}
-		
+		GremlinBuilder builder = prepareGenericBuilder();
+		builder.setRange(startRange, endRange);
+		int finalColSize = this.headerNames.length - this.columnsToSkip.size();
+
 		//finally execute it to get the executor
 		GraphTraversal <Vertex, Map<String, Object>> gt = (GraphTraversal <Vertex, Map<String, Object>>)builder.executeScript(g);
-		
+
+		Vector retVector = null;
 		if(gt.hasNext())
 			retVector = new Vector();
 		
@@ -1702,13 +1749,13 @@ public class TinkerFrame implements ITableDataFrame {
 		{
 //			Map<String, Object> data = gt.next();
 			Object data = gt.next();
-			Object [] retObject = new Object[finalColumns.size()];
+			Object [] retObject = new Object[finalColSize];
 			
 			//data will be a map for multi columns
 			if(data instanceof Map) {
-				for(int colIndex = 0;colIndex < finalColumns.size();colIndex++) {
+				for(int colIndex = 0;colIndex < finalColSize;colIndex++) {
 					Map<String, Object> mapData = (Map<String, Object>)data; //cast to map
-					retObject[colIndex] = ((Vertex)mapData.get(finalColumns.get(colIndex))).property(Constants.VALUE).value();
+					retObject[colIndex] = ((Vertex)mapData.get(builder.selector.get(colIndex))).property(Constants.VALUE).value();
 				}
 			} else {
 				retObject[0] = ((Vertex)data).property(Constants.VALUE).value();
