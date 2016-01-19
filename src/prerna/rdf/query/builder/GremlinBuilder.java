@@ -30,7 +30,7 @@ public class GremlinBuilder {
 	Graph g;
     GraphTraversal gt;
 
-	List <String> selector = new Vector<String>();
+	public List <String> selector = new Vector<String>();
 	String where = "";
 	
 	GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
@@ -214,7 +214,6 @@ public class GremlinBuilder {
 	
 	private void appendSelectors()
     {
-//         String selectorStr = "";
            if(selector.size() == 1){
                   gt = gt.select(selector.get(0));
            }
@@ -228,15 +227,6 @@ public class GremlinBuilder {
                }
                gt = gt.select(selector.get(0), selector.get(1), selectorArr);
            }
-//         for(int selIndex = 0;selIndex < selector.size();selIndex++)
-//         {
-//                if(selIndex == 0)
-//                      selectorStr = "'" + selector.get(selIndex) + "'";
-//                else
-//                      selectorStr = selectorStr + ", '" + selector.get(selIndex) + "'";
-//         }
-//         script = script + ".select(" + selectorStr + ")"; 
-//         gt.select(selectorStr);
     }
 
 	

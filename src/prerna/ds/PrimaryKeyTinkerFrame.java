@@ -26,33 +26,7 @@ public class PrimaryKeyTinkerFrame extends TinkerFrame implements ITableDataFram
 	//variables for primary keys
 	final protected String PRIM_KEY = "PRIM_KEY";
 	protected Long nextPrimKey = new Long(0);
-	
-	
-	/***********************************  CONSTRUCTORS  **********************************/
-	
-	public PrimaryKeyTinkerFrame(String[] headerNames) {
-		//should we define header names in constructor
-		//do we need a filtered columns array?
-		//do we need to keep track of URIs?
-		
-		this.headerNames = headerNames;
-		g = TinkerGraph.open();
-		g.createIndex(Constants.ID, Vertex.class);
-		g.variables().set(Constants.HEADER_NAMES, headerNames);
-	}
-	
-	public PrimaryKeyTinkerFrame(String[] headerNames, Hashtable<String, Set<String>> edgeHash) {
-		this.headerNames = headerNames;
-		this.edgeHash = edgeHash;
-		g = TinkerGraph.open();
-		g.createIndex(Constants.ID, Vertex.class);
-		g.variables().set(Constants.HEADER_NAMES, headerNames);
-	}			 
 
-	public PrimaryKeyTinkerFrame() {
-		g = TinkerGraph.open();
-		g.createIndex(Constants.ID, Vertex.class);
-	}
 
 	/*********************************  END CONSTRUCTORS  ********************************/
 	
