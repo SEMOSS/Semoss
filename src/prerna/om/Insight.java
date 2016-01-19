@@ -63,6 +63,7 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.QueryBuilderData;
+import prerna.rdf.query.builder.QueryBuilderHelper;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -742,6 +743,7 @@ public class Insight {
 		for(int i = 0; i < actions.size(); i++) {
 			actions.get(i).setId(compId + ":" + ACTION + i);
 		}
+		QueryBuilderHelper.parsePath(component.getBuilderData(), component.getEngine()); // this really should just be a clean path call.. but for now we'll just parse it
 		DataMakerComponent componentCopy = component.copy();
 		getDataMaker().processDataMakerComponent(componentCopy);
 		getDataMakerComponents().add(component);
