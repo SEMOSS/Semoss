@@ -25,6 +25,12 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 	private static final String PRIMARY_SELECTOR = "primary_selector";
 	private static final String SECONDARY_SELECTOR = "secondary_selector";
 	
+	private static final String COUNT = "COUNT";
+	private static final String AVERAGE = "AVERAGE";
+	private static final String MIN = "MIN";
+	private static final String MAX = "MAX";
+	private static final String SUM = "SUM";
+	
 	private Map<String, Object> functionMap;
 	private String newColumn;
 	
@@ -107,23 +113,23 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 		
 		statIterator = statIterator.group().by(__.select(columnHeader).values(Constants.NAME)).as(PRIMARY_SELECTOR);
 		switch(mathType.toUpperCase()) {
-			case "AVERAGE" : {
-				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).mean()).as(SECONDARY_SELECTOR).select(PRIMARY_SELECTOR, SECONDARY_SELECTOR); break;
+			case AVERAGE : {
+				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).mean()).as(SECONDARY_SELECTOR).select(PRIMARY_SELECTOR); break;
 			}
-			case "MIN" : {
-				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).min()).as(SECONDARY_SELECTOR).select(PRIMARY_SELECTOR, SECONDARY_SELECTOR); break;
+			case MIN : {
+				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).min()).as(SECONDARY_SELECTOR).select(PRIMARY_SELECTOR); break;
 			}
-			case "MAX" : {
-				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).max()).as(SECONDARY_SELECTOR).select(PRIMARY_SELECTOR, SECONDARY_SELECTOR); break;
+			case MAX : {
+				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).max()).as(SECONDARY_SELECTOR).select(PRIMARY_SELECTOR); break;
 			}
-			case "SUM" : {
-				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).sum()).as(SECONDARY_SELECTOR).select(PRIMARY_SELECTOR, SECONDARY_SELECTOR); break;
+			case SUM : {
+				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).sum()).as(SECONDARY_SELECTOR).select(PRIMARY_SELECTOR); break;
 			}
-			case "COUNT" : {
-//				statIterator = statIterator.group().by(__.select('Studio').values('VALUE')).by(__.select('Number').values('VALUE').mean()).as("MEAN"); break;
+			case COUNT : {
+				statIterator = statIterator.by(__.count()); break;
 			}
 			default : {
-				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).mean()).as(SECONDARY_SELECTOR).select(PRIMARY_SELECTOR, SECONDARY_SELECTOR); break;
+				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).mean()).as(SECONDARY_SELECTOR).select(PRIMARY_SELECTOR); break;
 			}
 		}
 		
@@ -131,8 +137,16 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 		if(statIterator.hasNext()) {
 			
 			//the result of the graph traversal
-			Map<String, Map<Object, Object>> resultMap = (Map<String, Map<Object, Object>>)statIterator.next();
-			Map<Object, Object> groupByMap = resultMap.get(PRIMARY_SELECTOR);
+			Map<String, Map<Object, Object>> resultMap;
+			Map<Object, Object> groupByMap;
+			
+			//Count is a special case
+			if(mathType.toUpperCase().equals(COUNT)) {
+				groupByMap = (Map<Object, Object>)statIterator.next();
+			} else {
+				resultMap = (Map<String, Map<Object, Object>>)statIterator.next();
+				groupByMap = resultMap.get(PRIMARY_SELECTOR);
+			}
 			
 			//create the edgehash associated with the new result map
 			Map<String, Set<String>> newEdgeHash = new HashMap<String, Set<String>>(1);
