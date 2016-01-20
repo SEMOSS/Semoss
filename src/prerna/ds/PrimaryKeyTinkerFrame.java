@@ -1,9 +1,12 @@
 package prerna.ds;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
@@ -17,6 +20,7 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
+import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 
 public class PrimaryKeyTinkerFrame extends TinkerFrame implements ITableDataFrame {
@@ -26,6 +30,12 @@ public class PrimaryKeyTinkerFrame extends TinkerFrame implements ITableDataFram
 	//variables for primary keys
 	final protected String PRIM_KEY = "PRIM_KEY";
 	protected Long nextPrimKey = new Long(0);
+
+
+	public PrimaryKeyTinkerFrame(String[] array) {
+		// TODO Auto-generated constructor stub
+		super(array);
+	}
 
 
 	/*********************************  END CONSTRUCTORS  ********************************/
@@ -88,7 +98,7 @@ public class PrimaryKeyTinkerFrame extends TinkerFrame implements ITableDataFram
 		Vertex primVertex = upsertVertex(this.PRIM_KEY, nextPrimKey.toString(), nextPrimKey.toString());
 		
 		for(int index = 0; index < headerNames.length; index++) {
-			Vertex toVertex = upsertVertex(headerNames[index], rowCleanData[index]+"", rowRawData[index]); // need to discuss if we need specialized vertices too		
+			Vertex toVertex = upsertVertex(headerNames[index], rowCleanData[index], rowRawData[index]); // need to discuss if we need specialized vertices too		
 			this.upsertEdge(primVertex, toVertex, this.PRIM_KEY);
 		}
 		
@@ -113,13 +123,13 @@ public class PrimaryKeyTinkerFrame extends TinkerFrame implements ITableDataFram
 						//get from vertex
 						Object startNodeValue = getParsedValue(rowCleanData.get(startNode));
 						String rawStartNodeValue = rowRawData.get(startNode).toString();
-						Vertex fromVertex = upsertVertex(startNode, startNodeValue+"", rawStartNodeValue);
+						Vertex fromVertex = upsertVertex(startNode, startNodeValue, rawStartNodeValue);
 						
 						
 						//get to vertex	
 						Object endNodeValue = getParsedValue(rowCleanData.get(endNode));
 						String rawEndNodeValue = rowRawData.get(endNode).toString();
-						Vertex toVertex = upsertVertex(endNode, endNodeValue+"", rawEndNodeValue);
+						Vertex toVertex = upsertVertex(endNode, endNodeValue, rawEndNodeValue);
 						
 						upsertEdge(fromVertex, toVertex);
 						
@@ -143,8 +153,14 @@ public class PrimaryKeyTinkerFrame extends TinkerFrame implements ITableDataFram
 			String singleColName = rowCleanData.keySet().iterator().next();
 			Object startNodeValue = getParsedValue(rowCleanData.get(singleColName));
 			String rawStartNodeValue = rowRawData.get(singleColName).toString();
-			upsertVertex(singleColName, startNodeValue+"", rawStartNodeValue);
+			upsertVertex(singleColName, startNodeValue, rawStartNodeValue);
 		}
+	}
+	
+	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData) {
+		//do any of the keys exist within the table?
+			//if yes add the other keys that do not exist on to the same prim keys
+			//if no business as usual
 	}
 	
 	protected void createPrimKeyEdgeHash() {
@@ -154,6 +170,42 @@ public class PrimaryKeyTinkerFrame extends TinkerFrame implements ITableDataFram
 		}
 		this.edgeHash.put(PRIM_KEY, primKeyEdges);
 	}
+	
+	@Override
+	/**
+	 * this.edgeHash is always in the form: 
+	 * 		{PRIM_KEY -> <col1, col2, col3, ...>}
+	 * 
+	 * Parameter newEdgeHash is in the form: 
+	 * 		{Key -> <newCol1, newCol2, ... >}
+	 * 
+	 * This method will produce a resulting edgeHash saved in this.edgeHash in the form:
+	 * 		{PRIM_KEY -> <col1, col2, col3, Key, newCol1, newCol2, ...>}
+	 * 		--Note that duplicates will not stored within this.edgeHash
+	 */
+	protected void mergeEdgeHash(Map <String, Set<String>> newEdgeHash) {
+		
+		Set<String> primKeyEdges = this.edgeHash.get(PRIM_KEY);
+		List<String> newHeaders = new ArrayList<String>();
+		
+		for(String key : edgeHash.keySet()) {
+			primKeyEdges.addAll(edgeHash.get(key));
+			primKeyEdges.add(key);
+			
+			if(ArrayUtilityMethods.arrayContainsValue(this.headerNames, key)) {
+				newHeaders.add(key);
+			}
+			
+			for(String s : primKeyEdges) {
+				if(ArrayUtilityMethods.arrayContainsValue(this.headerNames, s)) {
+					newHeaders.add(s);
+				}
+			}
+		}
+		
+		this.redoLevels(newHeaders.toArray(new String[newHeaders.size()]));
+	}
+	
 	
 	protected Edge upsertEdge(Vertex fromVertex, Vertex toVertex, String label) {
 		Edge retEdge = null;

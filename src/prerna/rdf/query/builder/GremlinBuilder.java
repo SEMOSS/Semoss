@@ -89,8 +89,6 @@ public class GremlinBuilder {
 	 * @param edgeHash
 	 */
 	public void addNodeEdge(Map<String, Set<String>> edgeHash) {
-//		String output = "";
-//		output = output + "g.traversal().V()";
 		List<String> travelledEdges = new Vector<String>();
 		
 		String startNode;
@@ -101,8 +99,6 @@ public class GremlinBuilder {
 			start.add(startNode);
 			Set<String> vertsToVisit = edgeHash.remove(startNode);
 			
-//			output = output + ".has('" + "TYPE" + "','" + startNode + "')";
-//			output = output + ".as('" + startNode + "')";
 			
 			gt = gt.has(Constants.TYPE, startNode);
 			gt = gt.as(startNode);
@@ -117,17 +113,12 @@ public class GremlinBuilder {
 			Iterator<String> downIt = downVertsToVisit.iterator();
 			for(int i = 0; i < downVertsToVisit.size(); i++, recursionCount++) {
 				String node = downIt.next();
-				if(!travelledEdges.contains(node)){
+				if(!travelledEdges.contains(node)) {
 					System.out.println("travelling down to " + node);
-//					String s = ".out().has('" + "TYPE" + "','" + node + "').as('" + node + "')";
-//					query = query + s;
 					gt1 = gt1.out().has(Constants.TYPE, node).as(node);
 					travelledEdges.add(node);
 					gt1 = visitNode(node, edgeHash.remove(node), getUpstreamVerts(node, edgeHash), edgeHash, gt1, travelledEdges, recursionCount);
 					System.out.println("returning home to " + orig);
-//					String s2 = ".in().has('" + "TYPE" + "','" + orig + "').as('" + orig + i + "')";
-//					s2 = s2 + ".where('" + orig + "', org.apache.tinkerpop.gremlin.process.traversal.P.eq('" + orig + i + "'))";
-//					query = query + s2;
 					gt1 = gt1.in().has(Constants.TYPE, orig).as(orig + (i + recursionCount));
 					gt1 = gt1.where(orig, org.apache.tinkerpop.gremlin.process.traversal.P.eq(orig + (i + recursionCount)));
 				}
@@ -140,15 +131,11 @@ public class GremlinBuilder {
 				String node = upIt.next();
 				if(!travelledEdges.contains(node)){
 					System.out.println("travelling up to " + node);
-//					String s = ".in().has('" + "TYPE" + "','" + node + "').as('" + node + "')";
-//					query = query + s;
 					gt1 = gt1.in().has(Constants.TYPE, node).as(node);
 					travelledEdges.add(node);
 					gt1 = visitNode(node, edgeHash.remove(node), getUpstreamVerts(node, edgeHash), edgeHash, gt1, travelledEdges, recursionCount);
+					
 					System.out.println("returning home to " + orig);
-//					String s2 = ".out().has('" + "TYPE" + "','" + orig + "').as('" + orig + i + "')";
-//					s2 = s2 + ".where('" + orig + "', org.apache.tinkerpop.gremlin.process.traversal.P.eq('" + orig + i + "'))";
-//					query = query + s2;
 					gt1 = gt1.out().has(Constants.TYPE, orig).as(orig + (i + recursionCount));
 					gt1 = gt1.where(orig, org.apache.tinkerpop.gremlin.process.traversal.P.eq(orig + (i + recursionCount)));
 				}
@@ -158,6 +145,9 @@ public class GremlinBuilder {
 		return gt1;
 	}
 	
+	/**
+	 * 
+	 */
 	private Set<String> getUpstreamVerts(String nodeType, Map<String, Set<String>> edgeHash){
 		Set<String> retSet = new HashSet<String>();
 		
@@ -188,7 +178,6 @@ public class GremlinBuilder {
 	public void addFilter(String alias, List itemsToFilter)
 	{
 		engine.getBindings(ScriptContext.ENGINE_SCOPE).put(alias + Constants.FILTERS, itemsToFilter.toArray()); // set it into the context
-//		script = script + ".where(__.as('" + alias + "').has('" + Constants.NAME + "', org.apache.tinkerpop.gremlin.process.traversal.P.without('" + alias + Constants.FILTERS + "')))";
 		gt = gt.where(__.as(alias)).has(Constants.NAME, org.apache.tinkerpop.gremlin.process.traversal.P.without(alias + Constants.FILTERS ));
 	}
 	
@@ -241,6 +230,7 @@ public class GremlinBuilder {
 		this.endRange = endRange;
 	}
 	
+	
 	/**
 	 * 
 	 * @param g - the graph on which the script will be executed
@@ -259,7 +249,7 @@ public class GremlinBuilder {
 		if(selector.size() > 0) // add the projections
 			appendSelectors();
 		
-		LOGGER.info("Script being executed...  " + gt);
+//		LOGGER.info("Script being executed...  " + gt);
 		GraphTraversal gtR = this.gt;
 //		try {
 //			engine.getBindings(ScriptContext.ENGINE_SCOPE).put("g", g);
@@ -269,7 +259,7 @@ public class GremlinBuilder {
 //			e.printStackTrace();
 //		}
 		
-		LOGGER.info("Script executed: "+(System.currentTimeMillis() - startTime)+" ms");
+//		LOGGER.info("Script executed: "+(System.currentTimeMillis() - startTime)+" ms");
 		return gtR;
 	}	
 }
