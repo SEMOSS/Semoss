@@ -18,6 +18,7 @@ import com.google.gson.reflect.TypeToken;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TableStatCounter;
 import prerna.ds.MultiColumnTableStatCounter;
+import prerna.ds.TinkerFrameStatRoutine;
 import prerna.util.ArrayUtilityMethods;
 
 public class MathTransformation extends AbstractTransformation {
@@ -25,7 +26,7 @@ public class MathTransformation extends AbstractTransformation {
 	private static final Logger LOGGER = LogManager.getLogger(MathTransformation.class.getName());
 	public static final String METHOD_NAME = "math";
 	public static final String UNDO_METHOD_NAME = "removeColumn";
-	public static final String GROUPBY_COLUMNS = "groupByColumns";
+	public static final String GROUPBY_COLUMNS = "groupByColumns"; //TODO : change this to be join columns
 	public static final String MATH_MAP = "mathMap";
 
 	private ITableDataFrame dm;
@@ -56,15 +57,12 @@ public class MathTransformation extends AbstractTransformation {
 	public void runMethod() {
 		
 		// get the items from MathTransformation object
-		Object list = this.props.get(GROUPBY_COLUMNS);
-
-		String[] groupByCols = null;
-		if(list instanceof List){
-			groupByCols = ((List<String>)list).toArray(new String[((List<String>)list).size()]);
-		}	
-		else{
-			groupByCols = (String[]) list;
-		}
+		String[] groupByCols = (String[])this.props.get(GROUPBY_COLUMNS);		
+		
+		//function map contains
+		//	1.	function to perform (math, min, etc.) but should eventually contain the groovy script?
+		//	2.  the columnHeader(s) to operate on
+		//	3.  the name of the new column (after creating, should be sent from the front end)
 		Map<String, Object> functionMap =  (Map<String, Object>) this.props.get(MATH_MAP);
 		
 		// determines if its a singlecolumn, or if columns are the same
@@ -73,37 +71,19 @@ public class MathTransformation extends AbstractTransformation {
 		boolean singleColumn = groupByCols.length == 1 || (groupByCols.length == 2 && groupByCols[0].equals(groupByCols[1]));
 
 		//create the names for the new columns that will be added to the data maker
-		if(singleColumn) {
-			functionMap = createColumnNamesForColumnGrouping(groupByCols[0], functionMap);
-		} else {
-			functionMap = createColumnNamesForColumnGrouping(groupByCols, functionMap);
-		}
+		functionMap = createColumnNamesForColumnGrouping(groupByCols, functionMap, dm.getColumnHeaders());
 		
-		String[] columnHeaders = dm.getColumnHeaders();
-		Set<String> columnSet = new HashSet<String>();
-		// this makes sure the new column created doesn't already exist. it if does, remove it.
-		for(String key : functionMap.keySet()) {
-			Map<String, String> map = (Map)functionMap.get(key);
-			String name = map.get("calcName");
-			columnSet.add(name);
-		}
 		
-		//delete any columns with the same name of the new columnheaders
-		for(String name : columnSet) {
-			if(ArrayUtilityMethods.arrayContainsValue(columnHeaders, name)) {
-				dm.removeColumn(name);
-			}
-		}
+		//create a routine which will do the group by and add the values to the tinker graph
+		TinkerFrameStatRoutine routine = new TinkerFrameStatRoutine();
+		Map<String, Object> map = null;
+		for(String key : functionMap.keySet())
+			map = (Map<String, Object>)functionMap.get(key);
 		
-		//only one group by or two of the same
-		if(singleColumn) {
-			TableStatCounter counter = new TableStatCounter();
-			counter.addStatsToDataFrame(dm, groupByCols[0], functionMap);
-		} else {
-			MultiColumnTableStatCounter multiCounter = new MultiColumnTableStatCounter();
-			multiCounter.addStatsToDataFrame(dm, groupByCols, functionMap);
-		}
-		return;
+		map.put("GroupBy", groupByCols);
+		routine.setSelectedOptions(map);
+		
+		dm.performAnalyticTransformation(routine);
 	}
 
 	@Override
@@ -116,29 +96,12 @@ public class MathTransformation extends AbstractTransformation {
 	 * This method creates a new column name by combining the function name with the column header 
 	 * its operated on.
 	 * 
-	 * TODO: add a new function that can take in a custom name for the new column
 	 * 
 	 * @param functionMap		a hashtable that describes what this function will do
 	 * @param columnHeader		a string which describes the relevant column to look at 	
 	 * @return					
 	 */
-	public static Map<String, Object> createColumnNamesForColumnGrouping(String columnHeader, Map<String, Object> functionMap) {
-		
-		for(String key : functionMap.keySet()) {
-			
-			Map<String, String> map = (Map<String, String>)functionMap.get(key);
-			String name = map.get("name");
-			String function = map.get("math");
-			if(!name.equals(columnHeader)) {
-				String newName = name+"_"+function+"_on_"+columnHeader;
-				map.put("calcName", newName);
-			}
-		}
-		
-		return functionMap;
-	}
-	
-	public static Map<String, Object>  createColumnNamesForColumnGrouping(String[] columnHeaders, Map<String, Object> functionMap) {
+	public static Map<String, Object>  createColumnNamesForColumnGrouping(String[] columnHeaders, Map<String, Object> functionMap, String[] tableHeaders) {
 		String columnHeader = "";
 		for(String c : columnHeaders) {
 			columnHeader = columnHeader + c +"_and_";
@@ -153,6 +116,19 @@ public class MathTransformation extends AbstractTransformation {
 			String function = map.get("math");
 			
 			String newName = name+"_"+function+"_on_"+columnHeader;
+			String origNewName = newName;
+			
+			//Check if name exists already within the table, if so append a counter for uniqueness
+			boolean nameExists = true;
+			int counter = 1;
+			while(nameExists) {
+				if(ArrayUtilityMethods.arrayContainsValue(tableHeaders, newName)) {
+					newName = origNewName+counter;
+				} else {
+					nameExists = false;
+				}
+			}
+			
 			map.put("calcName", newName);
 		}
 		
