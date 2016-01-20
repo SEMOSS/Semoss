@@ -1,12 +1,17 @@
 package prerna.ds;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,6 +24,9 @@ import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.apache.tinkerpop.gremlin.process.traversal.Path;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
@@ -70,9 +78,7 @@ public class TinkerFrame implements ITableDataFrame {
 	
 	//keeps the cache of edges within the tree
 	protected Map <String, Set<String>> edgeHash = new Hashtable<String, Set<String>>();
-	
-//	Graph metamodel = null;
-	
+		
 	protected List<Object> algorithmOutput = new Vector<Object>();
 	protected GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
 	protected TinkerGraph g = null;
@@ -84,12 +90,16 @@ public class TinkerFrame implements ITableDataFrame {
 	public static void main(String [] args) throws Exception
 	{
 		
-		TinkerFrame t3 = new TinkerFrame();
+//		TinkerFrame t3 = new TinkerFrame();
+//		String fileName = "C:\\Users\\rluthar\\Documents\\Movie Results.xlsx";
+//		TinkerFrame t = load2Graph4Testing(fileName);
+//		t.openSandbox();
+		testGroupBy();
 		//t3.writeToFile();
 		//t3.readFromFile();
 		//t3.doTest();
 //		t3.tryCustomGraph();
-		t3.tryFraph();
+//		t3.tryFraph();
 		/*
 		Configuration config = new BaseConfiguration();
 		config.setProperty("gremlin.tinkergraph.graphLocation", "C:\\Users\\pkapaleeswaran\\workspacej3\\Exp\\tinker.persist");
@@ -127,6 +137,21 @@ public class TinkerFrame implements ITableDataFrame {
 		
 	}
 
+	public static void testGroupBy() {
+		String fileName = "C:\\Users\\rluthar\\Documents\\Movie Results.xlsx";
+		TinkerFrame tinker = load2Graph4Testing(fileName);
+		
+		TinkerFrameStatRoutine tfsr = new TinkerFrameStatRoutine();
+		Map<String, Object> functionMap = new HashMap<String, Object>();
+		functionMap.put("math", "count");
+		functionMap.put("name", "Studio");
+		functionMap.put("calcName", "NewCol");
+		functionMap.put("joinColumns", "Studio");
+		
+		tfsr.setSelectedOptions(functionMap);
+		tfsr.runAlgorithm(tinker);
+	}
+	
 	public void tryCustomGraph()
 	{
 		g = TinkerGraph.open();
@@ -192,6 +217,7 @@ public class TinkerFrame implements ITableDataFrame {
 		
 		System.out.println("Trying group by on the custom graph");
 		GraphTraversal<Vertex, Map<Object, Object>> gt = g.traversal().V().group().by("TYPE").by(__.count());
+//		GraphTraversal<Vertex, Map<Object, Object>> gt = g.traversal().V().group().by("TYPE").by(__.);
 		if(gt.hasNext())
 			System.out.println(gt.next());
 		System.out.println("Completed group by");
@@ -250,6 +276,17 @@ public class TinkerFrame implements ITableDataFrame {
 		
 		
 		
+	}
+	
+	public void openSandbox() {
+		Thread thread = new Thread(){
+			public void run()
+			{
+				openCommandLine();				
+			}
+		};
+	
+		thread.start();
 	}
 	
 	public void writeToFile()
@@ -619,6 +656,61 @@ public class TinkerFrame implements ITableDataFrame {
 		return gt8;
 	}
 	
+	private static TinkerFrame load2Graph4Testing(String fileName){
+		XSSFWorkbook workbook = null;
+		FileInputStream poiReader = null;
+		try {
+			poiReader = new FileInputStream(fileName);
+			workbook = new XSSFWorkbook(poiReader);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+//		String sheetName = fileName.substring(0, fileName.length() - 5);
+//		sheetName = fileName.substring(74);
+		XSSFSheet lSheet = workbook.getSheet("Sheet1");
+		
+		int lastRow = lSheet.getLastRowNum();
+		XSSFRow headerRow = lSheet.getRow(0);
+		List<String> headerList = new ArrayList<String>();
+		int totalCols = 0;
+		while(headerRow.getCell(totalCols)!=null && !headerRow.getCell(totalCols).getStringCellValue().isEmpty()){
+			headerList.add(headerRow.getCell(totalCols).getStringCellValue());
+			totalCols++;
+		}
+		Map rowMap = new HashMap();
+		PrimaryKeyTinkerFrame tester = new PrimaryKeyTinkerFrame(headerList.toArray(new String[headerList.size()]));
+		for (int rIndex = 1; rIndex <= lastRow; rIndex++) {
+			XSSFRow row = lSheet.getRow(rIndex);
+			Object[] nextRow = new Object[totalCols];
+			for(int cIndex = 0; cIndex<totalCols ; cIndex++)
+			{
+				//String v1 = row.getCell(cIndex).getStringCellValue();
+//				double v1 = row.getCell(cIndex).getNumericCellValue();
+//				Object v1;
+				if(cIndex == totalCols - 1) {
+					 Double v1 = row.getCell(cIndex).getNumericCellValue();
+					 nextRow[cIndex] = v1;
+				} else {			
+					 String v1 = row.getCell(cIndex).toString();
+					 nextRow[cIndex] = v1;
+				}
+//				nextRow[cIndex] = v1;
+//				rowMap.put(headerList.get(cIndex), v1);
+			}
+//			tester.addRow(rowMap, rowMap);
+			tester.addRow(nextRow, nextRow);
+			System.out.println("added row " + rIndex);
+			System.out.println(rowMap.toString());
+		}
+		System.out.println("loaded file " + fileName);
+		
+		tester.createPrimKeyEdgeHash();
+		return tester;
+	}
+	
 	/**********************   END TESTING PLAYGROUND  **************************************/
 	
 	
@@ -873,6 +965,7 @@ public class TinkerFrame implements ITableDataFrame {
 	
 	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData) {
 		boolean hasRel = false;
+		
 		for(String startNode : rowCleanData.keySet()) {
 			Set<String> set = this.edgeHash.get(startNode);
 			if(set==null) continue;
@@ -903,17 +996,6 @@ public class TinkerFrame implements ITableDataFrame {
 			String rawStartNodeValue = rowRawData.get(singleColName).toString();
 			upsertVertex(singleColName, startNodeValue, rawStartNodeValue);
 		}
-		
-//		Object [] rowRawArr = new Object[headerNames.length];
-//		Object [] rowCleanArr = new Object[headerNames.length];
-//		for(int index = 0; index < headerNames.length; index++) {
-//			if(rowRawData.containsKey(headerNames[index])){
-//				rowRawArr[index] = rowRawData.get(headerNames[index]).toString();
-//				rowCleanArr[index] = getParsedValue(rowCleanData.get(headerNames[index]));
-//			}
-//		}
-		// not handling empty at this point
-//		addRow(rowCleanArr, rowRawArr);
 	}
 
 	protected Object getParsedValue(Object value) {
@@ -978,14 +1060,18 @@ public class TinkerFrame implements ITableDataFrame {
 	}
 	
 	protected void mergeEdgeHash(Map<String, Set<String>> newEdgeHash) {
+		Set<String> newLevels = new LinkedHashSet<String>();
 		for(String newNode : newEdgeHash.keySet()) {
 			Set<String> edges = newEdgeHash.get(newNode);
+			newLevels.add(newNode);
+			newLevels.addAll(edges);
 			if(this.edgeHash.get(newNode) == null) {
 				this.edgeHash.put(newNode, edges);
 			} else {
 				this.edgeHash.get(newNode).addAll(edges);
 			}
 		}
+		redoLevels(newLevels.toArray(new String[newLevels.size()]));
 	}
 
 	@Override
@@ -1010,7 +1096,9 @@ public class TinkerFrame implements ITableDataFrame {
 	@Override
 	public void performAnalyticTransformation(IAnalyticTransformationRoutine routine) {
 		ITableDataFrame newTable = routine.runAlgorithm(this);
-		this.join(newTable, newTable.getColumnHeaders()[0], newTable.getColumnHeaders()[0], 1, new ExactStringMatcher());
+		if(newTable != null) {
+			this.join(newTable, newTable.getColumnHeaders()[0], newTable.getColumnHeaders()[0], 1, new ExactStringMatcher());
+		}
 	}
 
 	@Override
@@ -1331,7 +1419,7 @@ public class TinkerFrame implements ITableDataFrame {
 		return this.getColumnHeaders().length;
 	}
 	
-	private GremlinBuilder prepareGenericBuilder(){
+	public GremlinBuilder prepareGenericBuilder(){
 		// get all the levels
 		getHeaders();
 		Vector <String> finalColumns = new Vector<String>();
@@ -1339,16 +1427,9 @@ public class TinkerFrame implements ITableDataFrame {
 
 		//add edges if edges exist
 		if(this.headerNames.length > 1) {
-			//					for(String node : edgeHash.keySet()) {
-			//						Set<String> edges = edgeHash.get(node);
-			//						for(String endNode : edges) {
-			//							builder.addEdge(node, endNode);
 			HashMap<String, Set<String>> edgeMapCopy = new HashMap<String, Set<String>>();
 			edgeMapCopy.putAll(this.edgeHash);
-			//							builder.addNodeEdge(headerNames[0], edgeMapCopy);
 			builder.addNodeEdge(edgeMapCopy);
-			//						}
-			//					}
 		} else {
 			//no edges exist, add single node to builder
 			builder.addNode(headerNames[0]);
@@ -1357,13 +1438,6 @@ public class TinkerFrame implements ITableDataFrame {
 		// add everything that you need
 		for(int colIndex = 0;colIndex < headerNames.length;colIndex++) // add everything you want first
 		{
-			//					if(colIndex + 1 < headerNames.length)
-			//						builder.addEdge(headerNames[colIndex], headerNames[colIndex+1]);
-			//					else if(headerNames.length == 1)
-			//					{
-			//						builder.addNode(headerNames[0]);
-			//					}
-			//					
 			if(!columnsToSkip.contains(headerNames[colIndex])) {
 				finalColumns.add(headerNames[colIndex]);
 			}
@@ -1463,6 +1537,8 @@ public class TinkerFrame implements ITableDataFrame {
 		GraphTraversal<Vertex, Object> gt = g.traversal().V().has(Constants.TYPE, columnHeader).values(Constants.VALUE);
 		return gt;
 	}
+	
+
 	@Override
 	public Object[] getColumn(String columnHeader) {
 		return null;
@@ -1689,35 +1765,55 @@ public class TinkerFrame implements ITableDataFrame {
                 while(!end.equalsIgnoreCase("end"))
                 {
                       try {
-	                      BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-	                      LOGGER.info("Enter Gremlin");
-	                      String query2 = reader.readLine();   
-	                      if(query2!=null){
-		                      end = query2;
-		                      LOGGER.info("Gremlin is " + query2);
-		                      GraphTraversal gt = null;
-		                      try {
-		                    	  GremlinGroovyScriptEngine mengine = new GremlinGroovyScriptEngine();
-		                    	  mengine.getBindings(ScriptContext.ENGINE_SCOPE).put("g", g);
+                             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+                             LOGGER.info("Enter Gremlin");
+                             String query2 = reader.readLine();   
+                             if(query2!=null){
+                                    end = query2;
+                                    LOGGER.info("Gremlin is " + query2);
+                                    GraphTraversal gt = null;
+                                    try {
+                                    GremlinGroovyScriptEngine mengine = new GremlinGroovyScriptEngine();
+                                    mengine.getBindings(ScriptContext.ENGINE_SCOPE).put("g", g);
 
-		                    	  gt = (GraphTraversal)mengine.eval(end);
-		                      } catch (ScriptException e) {
-		                    	  e.printStackTrace();
-		                      }
-		                      while(gt.hasNext())
-		                      {
-		                            Object st = gt.next();
-		                            LOGGER.warn(st);
-		                      }
-	                      }
+                                    gt = (GraphTraversal)mengine.eval(end);
+                                    } catch (ScriptException e) {
+                                    e.printStackTrace();
+                                    }
+                                    while(gt.hasNext())
+                                    {
+                                                Object data = gt.next();
+
+                                                String node = "";
+                                         if(data instanceof Map) {
+                                                for(Object key : ((Map)data).keySet()) {
+                                                       Map<String, Object> mapData = (Map<String, Object>)data; //cast to map
+                                                       Vertex v = (Vertex)mapData.get(key);
+                                                             Iterator it = v.properties();
+                                                             while (it.hasNext()){
+                                                                    node = node + it.next();
+                                                             }
+                                                             node = node + "       ::::::::::::           ";
+                                                }
+                                         } else {
+                                                       Iterator it = ((Vertex) data).properties();
+                                                       while (it.hasNext()){
+                                                              node = node + it.next();
+                                                       }
+                                         }
+                                         
+                                      LOGGER.warn(node);
+                                    }
+                             }
                       } catch (RuntimeException e) {
                             e.printStackTrace();
                       } catch (IOException e) {
-						e.printStackTrace();
-					}
-	                      
+                                         e.printStackTrace();
+                                  }
+                             
                 }
     }
+
 
 	@Override
 	public List<Object[]> getRawData() {
@@ -1916,10 +2012,12 @@ public class TinkerFrame implements ITableDataFrame {
 			this.headerNames = newLevels;
 			return;
 		}
-		// obviously miss the first one since that is not required
-		String [] newLevelNames = new String[headerNames.length + newLevels.length - 1]; // minus one to remove the common piece
-		System.arraycopy(headerNames, 0, newLevelNames, 0, headerNames.length); // copy previous array
-		System.arraycopy(newLevels,1,newLevelNames,headerNames.length, newLevels.length - 1); // copied the new array
+		
+		// put it in a set to get unique values
+		Set<String> myset = new LinkedHashSet<String>(Arrays.asList(headerNames));
+		myset.addAll(Arrays.asList(newLevels));
+		
+		String [] newLevelNames = myset.toArray(new String[myset.size()]);
 
 		g.variables().set(Constants.HEADER_NAMES, newLevelNames); // I dont know if i even need this moving forward.. but for now I will assume it is	
 		
