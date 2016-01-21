@@ -43,7 +43,7 @@ public class MathTransformation extends AbstractTransformation {
 	
 	@Override
 	public void setDataMakerComponent(DataMakerComponent dmc){
-		LOGGER.error("Math is indpendent of data maker components");
+		LOGGER.info("Math is indpendent of data maker components");
 	}
 	
 	@Override
@@ -57,7 +57,7 @@ public class MathTransformation extends AbstractTransformation {
 	public void runMethod() {
 		
 		// get the items from MathTransformation object
-		String[] groupByCols = (String[])this.props.get(GROUPBY_COLUMNS);		
+		List<String> groupByCols = (List<String>)this.props.get(GROUPBY_COLUMNS);		
 		
 		//function map contains
 		//	1.	function to perform (math, min, etc.) but should eventually contain the groovy script?
@@ -68,22 +68,23 @@ public class MathTransformation extends AbstractTransformation {
 		// determines if its a singlecolumn, or if columns are the same
 		//determine whether to do a single column group by or multi column group by
 		//if groupByCols.length is 1 or length is 2 and those two columns are equal do single column
-		boolean singleColumn = groupByCols.length == 1 || (groupByCols.length == 2 && groupByCols[0].equals(groupByCols[1]));
+//		boolean singleColumn = groupByCols.size() == 1 || (groupByCols.size() == 2 && groupByCols.get(0).equals(groupByCols.get(1)));
 
 		//create the names for the new columns that will be added to the data maker
 		functionMap = createColumnNamesForColumnGrouping(groupByCols, functionMap, dm.getColumnHeaders());
 		
 		
 		//create a routine which will do the group by and add the values to the tinker graph
-		TinkerFrameStatRoutine routine = new TinkerFrameStatRoutine();
 		Map<String, Object> map = null;
-		for(String key : functionMap.keySet())
+		for(String key : functionMap.keySet()){
+			TinkerFrameStatRoutine routine = new TinkerFrameStatRoutine();
 			map = (Map<String, Object>)functionMap.get(key);
 		
-		map.put("GroupBy", groupByCols);
-		routine.setSelectedOptions(map);
-		
-		dm.performAnalyticTransformation(routine);
+			map.put("GroupBy", groupByCols);
+			routine.setSelectedOptions(map);
+			
+			dm.performAnalyticTransformation(routine);
+		}
 	}
 
 	@Override
@@ -101,7 +102,7 @@ public class MathTransformation extends AbstractTransformation {
 	 * @param columnHeader		a string which describes the relevant column to look at 	
 	 * @return					
 	 */
-	public static Map<String, Object>  createColumnNamesForColumnGrouping(String[] columnHeaders, Map<String, Object> functionMap, String[] tableHeaders) {
+	public static Map<String, Object>  createColumnNamesForColumnGrouping(List<String> columnHeaders, Map<String, Object> functionMap, String[] tableHeaders) {
 		String columnHeader = "";
 		for(String c : columnHeaders) {
 			columnHeader = columnHeader + c +"_and_";

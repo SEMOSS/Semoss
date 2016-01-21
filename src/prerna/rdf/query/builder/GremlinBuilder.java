@@ -249,7 +249,7 @@ public class GremlinBuilder {
 		if(selector.size() > 0) // add the projections
 			appendSelectors();
 		
-//		LOGGER.info("Script being executed...  " + gt);
+		LOGGER.info("Script being executed...  " + gt);
 		GraphTraversal gtR = this.gt;
 //		try {
 //			engine.getBindings(ScriptContext.ENGINE_SCOPE).put("g", g);

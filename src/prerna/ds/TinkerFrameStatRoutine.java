@@ -86,7 +86,7 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 			String valueColumn = this.functionMap.get("name").toString();
 			String mathType = this.functionMap.get("math").toString();
 			String newColumnHeader = this.functionMap.get("calcName").toString();
-			String columnHeader = ((String[])this.functionMap.get("GroupBy"))[0];
+			String columnHeader = ((List<String>)this.functionMap.get("GroupBy")).get(0);
 			
 			//calculate group by and add to tinker
 			addStatColumnToTinker(tinkerGraph, columnHeader, mathType, newColumnHeader, valueColumn);
@@ -141,12 +141,12 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 			Map<Object, Object> groupByMap;
 			
 			//Count is a special case
-			if(mathType.toUpperCase().equals(COUNT)) {
+//			if(mathType.toUpperCase().equals(COUNT)) {
+//				groupByMap = (Map<Object, Object>)statIterator.next();
+//			} else {
 				groupByMap = (Map<Object, Object>)statIterator.next();
-			} else {
-				resultMap = (Map<String, Map<Object, Object>>)statIterator.next();
-				groupByMap = resultMap.get(PRIMARY_SELECTOR);
-			}
+//				groupByMap = resultMap.get(PRIMARY_SELECTOR);
+//			}
 			
 			//create the edgehash associated with the new result map
 			Map<String, Set<String>> newEdgeHash = new HashMap<String, Set<String>>(1);
