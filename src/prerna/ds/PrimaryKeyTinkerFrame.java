@@ -35,8 +35,11 @@ public class PrimaryKeyTinkerFrame extends TinkerFrame implements ITableDataFram
 
 
 	public PrimaryKeyTinkerFrame(String[] array) {
-		// TODO Auto-generated constructor stub
 		super(array);
+	}
+	
+	public PrimaryKeyTinkerFrame() {
+		super();
 	}
 
 
@@ -124,10 +127,10 @@ public class PrimaryKeyTinkerFrame extends TinkerFrame implements ITableDataFram
 		String firstColumn = operatingColumns[0];
 		String secondColumn = operatingColumns[1];
 		
-		Vertex vertex = upsertVertex(firstColumn, rowRawData.get(firstColumn), rowCleanData.get(firstColumn));
+		Vertex vertex = upsertVertex(firstColumn, rowCleanData.get(firstColumn), rowRawData.get(firstColumn).toString());
 		Iterator<Vertex> it = vertex.vertices(Direction.IN);
 		
-		Vertex toVertex = upsertVertex(secondColumn, rowRawData.get(secondColumn), rowCleanData.get(secondColumn));
+		Vertex toVertex = upsertVertex(secondColumn, rowCleanData.get(secondColumn), rowRawData.get(secondColumn).toString());
 		while(it.hasNext()) {
 			Vertex primKey = it.next();
 			upsertEdge(primKey, toVertex, PRIM_KEY);

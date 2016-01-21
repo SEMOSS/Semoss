@@ -724,6 +724,7 @@ public class TinkerFrame implements ITableDataFrame {
 		this.headerNames = headerNames;
 		g = TinkerGraph.open();
 		g.createIndex(Constants.TYPE, Vertex.class);
+		g.createIndex(Constants.ID, Edge.class);
 		g.variables().set(Constants.HEADER_NAMES, headerNames);
 	}
 	
@@ -732,12 +733,14 @@ public class TinkerFrame implements ITableDataFrame {
 		this.edgeHash = edgeHash;
 		g = TinkerGraph.open();
 		g.createIndex(Constants.ID, Vertex.class);
+		g.createIndex(Constants.ID, Edge.class);
 		g.variables().set(Constants.HEADER_NAMES, headerNames);
 	}			 
 
 	public TinkerFrame() {
 		g = TinkerGraph.open();
 		g.createIndex(Constants.ID, Vertex.class);
+		g.createIndex(Constants.ID, Edge.class);
 	}
 
 	/*********************************  END CONSTRUCTORS  ********************************/
@@ -1754,6 +1757,18 @@ public class TinkerFrame implements ITableDataFrame {
 		return null;
 	}
 	
+
+	// Backdoor entry
+	public void openBackDoor(){
+		Thread thread = new Thread(){
+			public void run()
+			{
+				openCommandLine();				
+			}
+		};
+		thread.start();
+	}
+	
     /**
      * Method printAllRelationship.
      */
@@ -1765,46 +1780,57 @@ public class TinkerFrame implements ITableDataFrame {
                 while(!end.equalsIgnoreCase("end"))
                 {
                       try {
-                             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-                             LOGGER.info("Enter Gremlin");
-                             String query2 = reader.readLine();   
-                             if(query2!=null){
-                                    end = query2;
-                                    LOGGER.info("Gremlin is " + query2);
-                                    GraphTraversal gt = null;
-                                    try {
-                                    GremlinGroovyScriptEngine mengine = new GremlinGroovyScriptEngine();
-                                    mengine.getBindings(ScriptContext.ENGINE_SCOPE).put("g", g);
+	                      BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+	                      LOGGER.info("Enter Gremlin");
+	                      String query2 = reader.readLine();   
+	                      if(query2!=null){
+	                    	  long start = System.currentTimeMillis();
+		                      end = query2;
+		                      LOGGER.info("Gremlin is " + query2);
+		                      GraphTraversal gt = null;
+		                      try {
+		                    	  GremlinGroovyScriptEngine mengine = new GremlinGroovyScriptEngine();
+		                    	  mengine.getBindings(ScriptContext.ENGINE_SCOPE).put("g", g);
 
-                                    gt = (GraphTraversal)mengine.eval(end);
-                                    } catch (ScriptException e) {
-                                    e.printStackTrace();
-                                    }
-                                    while(gt.hasNext())
-                                    {
-                                                Object data = gt.next();
+		                    	  gt = (GraphTraversal)mengine.eval(end);
+		                      } catch (ScriptException e) {
+		                    	  e.printStackTrace();
+		                      }
+		                      while(gt.hasNext())
+		                      {
+		              			Object data = gt.next();
 
-                                                String node = "";
-                                         if(data instanceof Map) {
-                                                for(Object key : ((Map)data).keySet()) {
-                                                       Map<String, Object> mapData = (Map<String, Object>)data; //cast to map
-                                                       Vertex v = (Vertex)mapData.get(key);
-                                                             Iterator it = v.properties();
-                                                             while (it.hasNext()){
-                                                                    node = node + it.next();
-                                                             }
-                                                             node = node + "       ::::::::::::           ";
-                                                }
-                                         } else {
-                                                       Iterator it = ((Vertex) data).properties();
-                                                       while (it.hasNext()){
-                                                              node = node + it.next();
-                                                       }
-                                         }
-                                         
-                                      LOGGER.warn(node);
-                                    }
-                             }
+		              			String node = "";
+		            			if(data instanceof Map) {
+		            				for(Object key : ((Map)data).keySet()) {
+		            					Map<String, Object> mapData = (Map<String, Object>)data; //cast to map
+		            					if(mapData.get(key) instanceof Vertex){
+					              			Iterator it = ((Vertex)mapData.get(key)).properties();
+					              			while (it.hasNext()){
+					              				node = node + it.next();
+					              			}
+		            					} else {
+		            						node = node + mapData.get(key);
+		            					}
+				              			node = node + "       ::::::::::::           ";
+		            				}
+		            			} else {
+	            					if(data instanceof Vertex){
+				              			Iterator it = ((Vertex)data).properties();
+				              			while (it.hasNext()){
+				              				node = node + it.next();
+				              			}
+	            					} else {
+	            						node = node + data;
+	            					}
+		            			}
+		            			
+		                        LOGGER.warn(node);
+		                      }
+
+		                      long time2 = System.currentTimeMillis();
+		                      LOGGER.warn("time to execute : " + (time2 - start )+ " ms");
+	                      }
                       } catch (RuntimeException e) {
                             e.printStackTrace();
                       } catch (IOException e) {
@@ -1817,18 +1843,6 @@ public class TinkerFrame implements ITableDataFrame {
 
 	@Override
 	public List<Object[]> getRawData() {
-		
-		// first execute all the predicate selectors
-		// Backdoor entry
-//		Thread thread = new Thread(){
-//			public void run()
-//			{
-//				openCommandLine();				
-//			}
-//		};
-//		thread.start();
-//		return new Vector();
-		
 		
 		GremlinBuilder builder = prepareGenericBuilder();
 		builder.setRange(startRange, endRange);
