@@ -3,6 +3,7 @@ package prerna.ds;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -10,6 +11,7 @@ import java.util.Set;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
@@ -105,62 +107,31 @@ public class PrimaryKeyTinkerFrame extends TinkerFrame implements ITableDataFram
 		this.nextPrimKey++;
 	}
 	
-	public void addRelationship(ISelectStatement rowData) {
-		Map<String, Object> rowCleanData = rowData.getPropHash();
-		Map<String, Object> rowRawData = rowData.getRPropHash();
-		
-		boolean hasRel = false;
-		for(String startNode : rowCleanData.keySet()) {
-			
-			Set<String> set = this.edgeHash.get(startNode);
-			if(set != null) {
-				
-				for(String endNode : set) {
-					
-					if(rowCleanData.keySet().contains(endNode)) {
-						hasRel = true;
-						
-						//get from vertex
-						Object startNodeValue = getParsedValue(rowCleanData.get(startNode));
-						String rawStartNodeValue = rowRawData.get(startNode).toString();
-						Vertex fromVertex = upsertVertex(startNode, startNodeValue, rawStartNodeValue);
-						
-						
-						//get to vertex	
-						Object endNodeValue = getParsedValue(rowCleanData.get(endNode));
-						String rawEndNodeValue = rowRawData.get(endNode).toString();
-						Vertex toVertex = upsertVertex(endNode, endNodeValue, rawEndNodeValue);
-						
-						upsertEdge(fromVertex, toVertex);
-						
-						//establish edges from primary key
-//						Iterator<Edge> edgeIterator = fromVertex.edges(Direction.IN, PRIM_KEY);
-//						while(edgeIterator.hasNext()) {
-//							Edge nextEdge = edgeIterator.next();
-//							Vertex primFromVertex = nextEdge.outVertex();
-//							
-//							//need to figure out which node to attach to
-//							upsertEdge(primFromVertex, toVertex, PRIM_KEY);
-//						}
-					}
-				}
+	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData) {
+		 
+		//only handling two right now, everything more is an error
+		//order the columns so that the newer column is the second column
+		Set<String> columns = rowCleanData.keySet();
+		int i = 0;
+		String[] operatingColumns = new String[2];
+		for(String column : this.headerNames) {
+			if(columns.contains(column)) {
+				operatingColumns[i] = column;
+				i++;
 			}
 		}
 		
-		// this is to replace the addRow method which needs to be called on the first iteration
-		// since edges do not exist yet
-		if(!hasRel) {
-			String singleColName = rowCleanData.keySet().iterator().next();
-			Object startNodeValue = getParsedValue(rowCleanData.get(singleColName));
-			String rawStartNodeValue = rowRawData.get(singleColName).toString();
-			upsertVertex(singleColName, startNodeValue, rawStartNodeValue);
+		String firstColumn = operatingColumns[0];
+		String secondColumn = operatingColumns[1];
+		
+		Vertex vertex = upsertVertex(firstColumn, rowRawData.get(firstColumn), rowCleanData.get(firstColumn));
+		Iterator<Vertex> it = vertex.vertices(Direction.IN);
+		
+		Vertex toVertex = upsertVertex(secondColumn, rowRawData.get(secondColumn), rowCleanData.get(secondColumn));
+		while(it.hasNext()) {
+			Vertex primKey = it.next();
+			upsertEdge(primKey, toVertex, PRIM_KEY);
 		}
-	}
-	
-	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData) {
-		//do any of the keys exist within the table?
-			//if yes add the other keys that do not exist on to the same prim keys
-			//if no business as usual
 	}
 	
 	protected void createPrimKeyEdgeHash() {
@@ -188,16 +159,18 @@ public class PrimaryKeyTinkerFrame extends TinkerFrame implements ITableDataFram
 		Set<String> primKeyEdges = this.edgeHash.get(PRIM_KEY);
 		List<String> newHeaders = new ArrayList<String>();
 		
-		for(String key : edgeHash.keySet()) {
-			primKeyEdges.addAll(edgeHash.get(key));
+		for(String key : newEdgeHash.keySet()) {
+			//update the edge hash
+			primKeyEdges.addAll(newEdgeHash.get(key));
 			primKeyEdges.add(key);
 			
-			if(ArrayUtilityMethods.arrayContainsValue(this.headerNames, key)) {
+			//update the headers
+			if(!ArrayUtilityMethods.arrayContainsValue(this.headerNames, key)) {
 				newHeaders.add(key);
 			}
 			
-			for(String s : primKeyEdges) {
-				if(ArrayUtilityMethods.arrayContainsValue(this.headerNames, s)) {
+			for(String s : newEdgeHash.get(key)) {
+				if(!ArrayUtilityMethods.arrayContainsValue(this.headerNames, s)) {
 					newHeaders.add(s);
 				}
 			}
