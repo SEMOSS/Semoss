@@ -108,7 +108,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					Utility.deleteFromSolr(engineName);
 				}
 			}
-		}catch(IOException e){
+		}catch(IOException | KeyManagementException | NoSuchAlgorithmException | KeyStoreException e){
 			e.printStackTrace();
 		}finally{
 			try{
@@ -216,12 +216,15 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 */
 	@Override
 	public void loadFirst() {
-//		try {
-//			SolrIndexEngine.getInstance().deleteAllSolrData();
-//		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | IOException e1) {
-//			// TODO Auto-generated catch block
-//			e1.printStackTrace();
-//		}
+
+//		//		UNCOMMENT CODE TO DELETE ALL DATA IN SOLR!!!!
+		
+		try {
+			SolrIndexEngine.getInstance().deleteAllSolrData();
+		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
