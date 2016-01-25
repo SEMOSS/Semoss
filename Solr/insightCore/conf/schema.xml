@@ -65,8 +65,10 @@
 		 this will hold a unique id for each insight 
 		-->
 		<field name="id" type="string" indexed="true" stored="true" required="true" multiValued="false" /> 
-		<!-- this will hold the insight name assigned to the insight -->
-		<field name="name" type="text_en_splitting" indexed="true" stored="true" required="true" multiValued="false" /> 
+		<!-- this will hold the insight name for storage and alphabetical sorting-->
+		<field name="name" type="string" indexed="true" stored="true" required="true" multiValued="false" /> 
+		<!-- this will hold the insight name for indexing -->
+		<field name="index_name" type="text_en_splitting" indexed="true" stored="false" required="true" multiValued="false" /> 
 		<!-- this will hold hte date the insight was created -->
 		<field name="created_on" type="date" indexed="true" stored="true" required="true" multiValued="false" /> 
 		<!-- this will hold the last modified date of the insight -->
@@ -79,7 +81,7 @@
 		<!-- this will hold the number of views of this insight -->
 		<field name="view_count" type="long" indexed="true" stored="true" required="false" multiValued="false" /> 
 		<!-- this will hold multiple string valued tags assigned to categorize the insight -->
-		<field name="tags" type="text_en_splitting" indexed="true" stored="true" required="false" multiValued="true" /> 
+		<field name="tags" type="text_querying" indexed="true" stored="true" required="false" multiValued="true" /> 
 		<!-- this will hold general annotations users have made to the insight -->
 		<field name="annotation" type="text_en_splitting" indexed="true" stored="true" required="false" multiValued="false" /> 
 		<!-- this will hold comments various users have regarding an insight -->
@@ -105,9 +107,9 @@
 		<!-- <field name="insight_definition" type="string" indexed="false" stored="true" required="true" multiValued="true" /> -->
 		
 		<!-- this is meant to hold all the text a user has surrounding an insights -->
-		<field name="all_text" type="text_en" indexed="true" stored="true" required="true" multiValued="true" termVectors="true" termPositions="true" termOffsets="true"/> 
+		<field name="all_text" type="text_en" indexed="true" stored="false" required="true" multiValued="true" termVectors="true" termPositions="true" termOffsets="true"/> 
 		<!-- copy the text fields into the field "all text" -->
-		<copyField source="name" dest="all_text"/>
+		<copyField source="index_name" dest="all_text"/>
 		<copyField source="user_id" dest="all_text"/>
 		<copyField source="tags" dest="all_text"/>
 		<copyField source="annotation" dest="all_text"/>
@@ -140,6 +142,7 @@
 		 Improves performance since queries will be viewed multiple times
 		 and do not want to update the index each time.
 		-->
+		
 		<fieldType name="view_count" keyField="id" defVal="0" stored="true" indexed="true" class="solr.ExternalFileField" valType="pfloat"/>
 		<fieldType name="favorites_count" keyField="id" defVal="0" stored="true" indexed="true" class="solr.ExternalFileField" valType="pfloat"/>
 
@@ -207,6 +210,23 @@
 		  </analyzer>
 		</fieldType>
 		
+		
+		<fieldType name="text_querying" class="solr.TextField" positionIncrementGap="100" autoGeneratePhraseQueries="true">
+		  <analyzer type="index">
+			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
+			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="1" catenateNumbers="1" catenateAll="0" splitOnCaseChange="1"/>
+			<filter class="solr.LowerCaseFilterFactory"/>
+		  </analyzer>
+		  <analyzer type="query">
+			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
+			<filter class="solr.SynonymFilterFactory" synonyms="synonyms.txt" ignoreCase="true" expand="false"/>
+			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
+			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="0" catenateNumbers="0" catenateAll="0" splitOnCaseChange="1"/>
+			<filter class="solr.LowerCaseFilterFactory"/>
+			<filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
+		  </analyzer>
+		</fieldType>
+				
 			<!-- A text field that only splits on whitespace for exact matching of words -->
 		<fieldType name="text_ws" class="solr.TextField" positionIncrementGap="100">
 		  <analyzer>

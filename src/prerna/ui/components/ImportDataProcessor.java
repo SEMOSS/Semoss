@@ -100,6 +100,7 @@ public class ImportDataProcessor {
 
 
 	// need to add a dbtype here
+	//setup solr when a person adds to existing DB
 	public void processAddToExisting(IMPORT_TYPE importType, String customBaseURI, String fileNames, String dbName, DB_TYPE dbType, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) 
 			throws IOException, RepositoryException, SailException, Exception {
 		//get the engine information
@@ -118,9 +119,7 @@ public class ImportDataProcessor {
 			}
 			//run the ontology augmentor
 			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-			ontologyWriter.runAugment(mapPath, reader.conceptURIHash, reader.baseConceptURIHash, 
-					reader.relationURIHash,  reader.baseRelationURIHash, 
-					reader.basePropURI);
+			ontologyWriter.runAugment(mapPath, reader.conceptURIHash, reader.baseConceptURIHash, reader.relationURIHash,  reader.baseRelationURIHash, reader.basePropURI);
 		}
 
 		else if (importType == IMPORT_TYPE.EXCEL && dbType == DB_TYPE.RDF)
@@ -130,7 +129,7 @@ public class ImportDataProcessor {
 			//If propHash has been set, we are coming from monolith and are pulling propHash from the metamodel builder
 			if(propHashArr != null) {
 				excelReader.setRdfMapArr(propHashArr);
-			}
+			} 
 			//run the reader
 			try {
 				excelReader.importFileWithConnection(dbName, fileNames, customBaseURI, owlPath);
@@ -139,9 +138,7 @@ public class ImportDataProcessor {
 			}
 			//run the ontology augmentor
 			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-			ontologyWriter.runAugment(mapPath, excelReader.conceptURIHash, excelReader.baseConceptURIHash, 
-					excelReader.relationURIHash,  excelReader.baseRelationURIHash, 
-					excelReader.basePropURI);
+			ontologyWriter.runAugment(mapPath, excelReader.conceptURIHash, excelReader.baseConceptURIHash, excelReader.relationURIHash,  excelReader.baseRelationURIHash, excelReader.basePropURI);
 		}
 
 		else if (importType == IMPORT_TYPE.CSV && dbType == DB_TYPE.RDF)
@@ -156,9 +153,7 @@ public class ImportDataProcessor {
 			csvReader.importFileWithConnection(dbName, fileNames, customBaseURI, owlPath);
 			//run the ontology augmentor
 			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-			ontologyWriter.runAugment(mapPath, csvReader.conceptURIHash, csvReader.baseConceptURIHash, 
-					csvReader.relationURIHash,  csvReader.baseRelationURIHash, 
-					csvReader.basePropURI);
+			ontologyWriter.runAugment(mapPath, csvReader.conceptURIHash, csvReader.baseConceptURIHash, csvReader.relationURIHash,  csvReader.baseRelationURIHash, csvReader.basePropURI);
 		}
 		
 		else if(importType == IMPORT_TYPE.NLP && dbType == DB_TYPE.RDF){
@@ -166,9 +161,7 @@ public class ImportDataProcessor {
 			reader.importFileWithConnection(dbName, fileNames, customBaseURI, owlPath);
 			//run the ontology augmentor
 			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-			ontologyWriter.runAugment(mapPath, reader.conceptURIHash, reader.baseConceptURIHash, 
-					reader.relationURIHash,  reader.baseRelationURIHash, 
-					reader.basePropURI);
+			ontologyWriter.runAugment(mapPath, reader.conceptURIHash, reader.baseConceptURIHash, reader.relationURIHash,  reader.baseRelationURIHash, reader.basePropURI);
 		}
 		
 		/* Code to be uncommented for RDBMS */
@@ -184,11 +177,12 @@ public class ImportDataProcessor {
 			csvReader.importFileWithConnection(dbName, fileNames, customBaseURI, owlPath, dbDriverType, allowDuplicates);
 			//run the ontology augmentor
 			OntologyFileWriter ontologyWriter = new OntologyFileWriter();
-			ontologyWriter.runAugment(mapPath, csvReader.conceptURIHash, csvReader.baseConceptURIHash, 
-					csvReader.relationURIHash,  csvReader.baseRelationURIHash, 
-					csvReader.basePropURI);
+			ontologyWriter.runAugment(mapPath, csvReader.conceptURIHash, csvReader.baseConceptURIHash, csvReader.relationURIHash,  csvReader.baseRelationURIHash, csvReader.basePropURI);
 		} //*/
 
+		//addNewInstances to solr
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(dbName); 
+		Utility.addtoInstance(engine);
 	}
 
 	public void processCreateNew(IMPORT_TYPE importType, String customBaseURI, String fileNames, String dbName, String mapFile, String dbPropFile, String questionFile, DB_TYPE dbType, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) 
