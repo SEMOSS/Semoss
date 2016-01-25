@@ -94,6 +94,7 @@ import org.openrdf.sail.memory.MemoryStore;
 
 import com.ibm.icu.math.BigDecimal;
 import com.ibm.icu.text.DecimalFormat;
+import com.sun.syndication.io.SyndFeedOutput;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
@@ -621,33 +622,165 @@ public class Utility {
 		return retString;
 	}
 
-	public static IEngine loadWebEngine(String fileName, Properties prop) {
-		IEngine engine = loadEngine(fileName, prop);
+	public static IEngine loadWebEngine(String fileName, Properties prop)
+			throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+		SolrIndexEngine solrE = null;
+		IEngine engineToAdd = loadEngine(fileName, prop);
 		String path = DIHelper.getInstance().getProperty(Constants.ENGINE_WEB_WATCHER + "_DIR") + "\\" + fileName;
-		addToSolr(engine, path);
-		return engine;
+		String engineName = engineToAdd.getEngineName();
+
+		solrE = SolrIndexEngine.getInstance();
+		if (solrE.serverActive()) {
+			String smssPropString = engineToAdd.getProperty(Constants.SOLR_RELOAD);
+			boolean smssProp = false;
+			if (smssPropString != null) {
+				smssProp = Boolean.parseBoolean(smssPropString);
+			}
+			LOGGER.info(engineToAdd.getEngineName() + " has smss force reload value of " + smssProp);
+
+			// check if should always recreate and check if db currently exists and check if db is updated
+			if (AbstractEngine.RECREATE_SOLR || !solrE.containsEngine(engineName) || smssProp) {
+				LOGGER.info(engineToAdd.getEngineName() + " is reloading solr");
+
+				try {
+					addtoInstance(engineToAdd);
+				} catch (ParseException e) {
+					e.printStackTrace();
+				}
+				addToInsight(engineToAdd, path);
+			}
+			if(smssProp){
+				LOGGER.info(engineToAdd.getEngineName() + " is changing boolean on smss");
+				changeSolrBoolean(path);
+			}
+		
+		}
+		return engineToAdd;
 	}
 	
-	public static void addToSolr(IEngine engineToAdd, String path) {
+//	public static void main(String[] args) {
+//		String date = "qweqweqw";
+//		System.out.println(isStringDate(date));
+//	}
+
+	public static boolean isStringDate(String inDate) {
+		List<SimpleDateFormat> dateFormatList = new ArrayList<SimpleDateFormat>();
+
+		dateFormatList.add(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.sss'Z'"));
+		dateFormatList.add(new SimpleDateFormat("MM-dd-yyyy__HH:mm:ss_a"));
+		
+		for(SimpleDateFormat format : dateFormatList){
+			try {
+				format.setLenient(false);
+				format.parse(inDate);
+				return true;
+			} catch (ParseException e) {
+				
+			}
+		}
+		return false;
+	}
+		
+		
+	public static void addtoInstance(IEngine engineToAdd) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, ParseException{
+		SolrIndexEngine solrE = null;
+
+		String engineName = engineToAdd.getEngineName();
+		solrE = SolrIndexEngine.getInstance();
+		if (solrE.serverActive()) {
+			// grab all concepts and their instances from the db
+			List<String> conceptList = engineToAdd.getConcepts();
+			Map<String, Object> fieldData = new HashMap<>();
+			for(String concept : conceptList) {
+				if(concept.equals("http://semoss.org/ontologies/Concept")) {
+					continue;
+				}
+				List<Object> instances = null;
+				
+				String newId = null;
+				String properties = "";
+				if(engineToAdd.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
+					instances = engineToAdd.getEntityOfType(Utility.getInstanceName(concept));
+					newId = engineName + "_" + concept;
+				} else {
+					instances = engineToAdd.getEntityOfType(concept);
+					List<String> propName = engineToAdd.getProperties4Concept(concept, false);
+					Object property = null;
+					
+					for (String prop : propName) {
+						String propQuery = "SELECT DISTINCT ?property WHERE { {?x <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + concept + "> } { ?x <" + prop + "> ?property} }";
+
+						ISelectWrapper propWrapper = WrapperManager.getInstance().getSWrapper(engineToAdd, propQuery);
+						List<Object> propertiesList = new ArrayList<Object>();
+						while (propWrapper.hasNext()) {
+							ISelectStatement propSS = propWrapper.next();
+							property = propSS.getVar("property");
+							//SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+							//Date date = dateFormat.parse((String) property);
+							if(property instanceof String){
+								if (!isStringDate((String)property)){
+									propertiesList.add(property);
+								}
+							}
+						}
+						System.out.println(propertiesList);
+						fieldData.put(SolrIndexEngine.PROPERTIES, propertiesList);
+						prop = getInstanceName(prop);
+						properties += "_" + prop;
+						
+					}
+					newId = engineName + "_" + concept + properties;
+//					for (String prop : propName) {
+//						String propQuery = "SELECT DISTINCT ?property WHERE { {?x <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + concept + "> } { ?x <" + prop + "> ?property} }";
+//
+//						ISelectWrapper propWrapper = WrapperManager.getInstance().getSWrapper(engineToAdd, propQuery);
+//						while (propWrapper.hasNext()) {
+//							ISelectStatement propSS = propWrapper.next();
+//							property = (String) propSS.getVar("property").toString();
+//							System.out.println("Property =  " + property);
+//						}
+//					}
+					//newId = engineName + "_" + concept + "_" + property;
+				}
+				
+				//use the method that you just made
+				fieldData.put(SolrIndexEngine.CORE_ENGINE, engineName);
+				fieldData.put(SolrIndexEngine.CONCEPT, concept);
+				List<Object> instancesList= new ArrayList<Object>();
+				for (Object instance : instances) {
+					if(instance instanceof String) {
+						instancesList.add(Utility.getInstanceName(instance + ""));
+								
+					} else {
+						instancesList.add(instance);
+					}
+				}
+				fieldData.put(SolrIndexEngine.INSTANCES, instancesList);
+				
+				
+				// case when dumb data is loaded
+				if(instancesList.isEmpty()) {
+					continue;
+				}
+				
+				try {
+					System.out.println(newId);
+					solrE.addInstance(newId, fieldData);
+				} catch (SolrServerException | IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	public static void addToInsight(IEngine engineToAdd, String path) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
 		SolrIndexEngine solrE = null;
 		SolrDocumentExportWriter writer = null;
-		try {
 			String engineName = engineToAdd.getEngineName();
 			LOGGER.info("Checking if we need to add " + engineName);
 			solrE = SolrIndexEngine.getInstance();
 			if(solrE.serverActive()) {
-				String smssPropString = engineToAdd.getProperty(Constants.SOLR_RELOAD);
-				boolean smssProp = false;
-				if(smssPropString != null) {
-					smssProp = Boolean.parseBoolean(smssPropString);
-				}
-				LOGGER.info(engineToAdd.getEngineName() + " has smss force reload value of "+ smssProp);
-
-				// check if should always recreate and check if db currently exists and check if db is updated
-				if(AbstractEngine.RECREATE_SOLR || !solrE.containsEngine(engineName) || smssProp) {
-					LOGGER.info(engineToAdd.getEngineName() + " is reloading solr");
-
-					//reloads in Solr				
+				
 					String folderPath = DIHelper.getInstance().getProperty("BaseFolder");
 					folderPath = folderPath + "\\db\\" + engineName + "\\";
 					String fileName = engineName + "_Solr.txt";
@@ -672,7 +805,7 @@ public class Utility {
 					String userID = "default";
 					String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, QUESTION_MAKEUP, QUESTION_PERSPECTIVE  FROM QUESTION_ID";
 
-					//	solrE.deleteEngine(engineName);
+						solrE.deleteEngine(engineName);
 
 					// query the current insights in this db
 					ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engineToAdd.getInsightDatabase(), query);
@@ -681,7 +814,24 @@ public class Utility {
 						int id = (int) ss.getVar("ID");
 						String name = (String) ss.getVar("QUESTION_NAME");
 						String layout = (String) ss.getVar("QUESTION_LAYOUT");
+						
+						String prerna = ".";
+						if (layout.contains(prerna)) {
+							int endIndex = ((String) layout).lastIndexOf(prerna) + 1;
+							if (endIndex != -1) {
+								layout = ((String) layout).substring(endIndex,((String) layout).length());
+								//innerMap.put(newString, facetInstance.getCount());
+							}
+						}
 						String perspective = (String) ss.getVar("QUESTION_PERSPECTIVE");
+						String perspString ="-Perspective";
+						String titleString=" Perspective";
+						if (perspective.contains(perspString)) {
+							perspective = perspective.replace(perspString, "");
+						}
+						if(perspective.contains(titleString)){
+							perspective = perspective.replace(perspString, "");
+						}
 						
 						JdbcClob obj = (JdbcClob) ss.getVar("QUESTION_MAKEUP"); 
 						InputStream makeup = null;
@@ -721,16 +871,33 @@ public class Utility {
 						}
 
 						List<String> paramList = new ArrayList<String>();
+						List<String> paramTypeList = new ArrayList<String>();
 						List<SEMOSSParam> params = engineToAdd.getParams(id + "");
+						
 						if(params != null && !params.isEmpty()) {
 							for(SEMOSSParam p : params) {
+								paramTypeList.add(p.getType());
 								paramList.add(p.getName());
 							}
 						}
-
+						
+						//don't grab localMaster DB data
+						if(engineName.contains("LocalMasterDatabase")){
+							continue;
+						}
+						
+						//check to see if TAP DB has params 
+						if (engineName.contains("TAP_")) {
+							if (paramTypeList.isEmpty() || paramTypeList==null){
+								LOGGER.info("Not adding Tap DB's that dont contain params");
+								continue;
+							}
+						}
+					
 						// as you get each result, add the insight as a document in the solr index engine
 						Map<String, Object>  queryResults = new  HashMap<> ();
-						queryResults.put(SolrIndexEngine.NAME, name);
+						queryResults.put(SolrIndexEngine.STORAGE_NAME, name);
+						queryResults.put(SolrIndexEngine.INDEX_NAME, name);
 						queryResults.put(SolrIndexEngine.CREATED_ON, currDate);
 						queryResults.put(SolrIndexEngine.MODIFIED_ON, currDate);
 						queryResults.put(SolrIndexEngine.USER_ID, userID);
@@ -749,65 +916,12 @@ public class Utility {
 						}
 					}
 					
-					// grab all concepts and their instances from the db
-					List<String> conceptList = engineToAdd.getConcepts();
-					Map<String, Object> fieldData = new HashMap<>();
-					for(String concept : conceptList) {
-						if(concept.equals("http://semoss.org/ontologies/Concept")) {
-							continue;
-						}
-						List<Object> instances = null;
-						if(engineToAdd.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
-							instances = engineToAdd.getEntityOfType(Utility.getInstanceName(concept));
-						} else {
-							instances = engineToAdd.getEntityOfType(concept);
-						}
-						String newId = engineName + "_" + concept;
-						//use the method that you just made
-						fieldData.put(SolrIndexEngine.CORE_ENGINE, engineName);
-						fieldData.put(SolrIndexEngine.CONCEPT, concept);
-						List<Object> instancesList= new ArrayList<Object>();
-						for (Object instance : instances) {
-							if(instance instanceof String) {
-								instancesList.add(Utility.getInstanceName(instance + ""));
-							} else {
-								instancesList.add(instance);
-							}
-						}
-						fieldData.put(SolrIndexEngine.INSTANCES, instancesList);
-						
-						// case when dumb data is loaded
-						if(instancesList.isEmpty()) {
-							continue;
-						}
-						
-						try {
-							solrE.addInstance(newId, fieldData);
-						} catch (SolrServerException | IOException e) {
-							e.printStackTrace();
-						}
-					}
-					
-					// lastly, change the prop file if necessary
-					if(smssProp){
-						LOGGER.info(engineToAdd.getEngineName() + " is changing boolean on smss");
-						changeSolrBoolean(path);
-					}
-				}
-			}
-		} catch (KeyManagementException e) {
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace(); 
-		} catch (KeyStoreException e) {
-			e.printStackTrace();
-		} finally {
 			//close writer
 			if(writer != null) {
 				writer.closeExport();
 			}
 		}
-	}
+		}
 	
 	//force solr to load once 
 	//once engine is loaded, set boolean to false
