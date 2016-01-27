@@ -20,6 +20,8 @@ public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>>
 	private GraphTraversal gt;
 	private int columnNameIndex;
 	private String[] headerNames;
+	private String[] finalColumns;
+	
 	private Double[] maxArr;
 	private Double[] minArr;
 	
@@ -34,7 +36,6 @@ public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>>
 			String columnName,
 			String[] headers, 
 			List<String> columnsToSkip, 
-			Map<String, List<Object>> filterHash, 
 			Graph g, 
 			Double[] maxArr, 
 			Double[] minArr) {
@@ -42,20 +43,12 @@ public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>>
 		this.columnNameIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(headerNames, columnName);
 		this.maxArr = maxArr;
 		this.minArr = minArr;
-		this.gt = openTraversal(headers, columnsToSkip, filterHash, g);
+		this.gt = openTraversal(headers, columnsToSkip, g);
 	}
 	
-	private GraphTraversal openTraversal(String[] headers, List<String> columnsToSkip, Map<String, List<Object>> filterHash, Graph g){
+	private GraphTraversal openTraversal(String[] headers, List<String> columnsToSkip, Graph g){
 		Vector <String> finalColumns = new Vector<String>();
-		GremlinBuilder builder = new GremlinBuilder(g);
-
-		//add edges if edges exist
-		if(headerNames.length > 1) {
-			builder.addNodeEdge();
-		} else {
-			//no edges exist, add single node to builder
-			builder.addNode(headerNames[0]);
-		}
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(headers, columnsToSkip, g);
 
 		// add everything that you need
 		for(int colIndex = 0;colIndex < headerNames.length;colIndex++) // add everything you want first
@@ -64,16 +57,8 @@ public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>>
 				finalColumns.add(headerNames[colIndex]);
 			}
 		}
-
-		// now add the projections
-		builder.addSelector(finalColumns);
-
-		// add the filters next
-		for(int colIndex = 0;colIndex < headerNames.length;colIndex++)
-		{
-			if(filterHash.containsKey(headerNames[colIndex]))
-				builder.addFilter(headerNames[colIndex], filterHash.get(headerNames[colIndex]));
-		}
+		
+		this.finalColumns = finalColumns.toArray(new String[0]);
 
 		//finally execute it to get the executor
 		GraphTraversal <Vertex, Map<String, Object>> gt = (GraphTraversal <Vertex, Map<String, Object>>)builder.executeScript(g);
@@ -120,11 +105,11 @@ public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>>
 	}
 	
 	private Object[] getRowFromTraversal(Object data) {
-		Object[] row = new Object[headerNames.length];
+		Object[] row = new Object[finalColumns.length];
 		if(data instanceof Map) {
-			for(int colIndex = 0; colIndex < headerNames.length; colIndex++) {
+			for(int colIndex = 0; colIndex < finalColumns.length; colIndex++) {
 				Map<String, Object> mapData = (Map<String, Object>) data; //cast to map
-				Object value = ((Vertex)mapData.get(headerNames[colIndex])).property(Constants.VALUE).value();
+				Object value = ((Vertex)mapData.get(finalColumns[colIndex])).property(Constants.VALUE).value();
 				if(maxArr[colIndex] != null && minArr[colIndex] != null && value instanceof Number) {
 					if(value instanceof Number) {
 						row[colIndex] = ( ((Number)value).doubleValue() - minArr[colIndex])/(maxArr[colIndex] - minArr[colIndex]);

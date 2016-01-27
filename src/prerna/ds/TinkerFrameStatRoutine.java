@@ -103,7 +103,7 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 	 */
 	private void addStatColumnToTinker(TinkerFrame tinker, String columnHeader, String mathType, String newColumnName, String valueColumn) {
 				
-		GremlinBuilder builder = tinker.prepareGenericBuilder();
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(tinker.getColumnHeaders(), tinker.columnsToSkip, tinker.g);
 		GraphTraversal statIterator = (GraphTraversal)builder.executeScript(tinker.g);
 		
 		statIterator = statIterator.group().by(__.select(columnHeader).values(Constants.NAME)).as(PRIMARY_SELECTOR);
@@ -161,7 +161,7 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 				
 				tinker.addRelationship(newRow, newRow);
 			}			
-		}		
+		}
 	}
 
 	@Override
