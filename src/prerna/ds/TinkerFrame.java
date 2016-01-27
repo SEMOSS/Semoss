@@ -966,8 +966,7 @@ public class TinkerFrame implements ITableDataFrame {
 		Hashtable retHash = new Hashtable();
 		retHash.put("data", this.getRawData());
 		retHash.put("headers", this.headerNames);
-		return retHash;//
-//		return createVertStores();
+		return retHash;
 	}
 	
 	private Map createVertStores(){
@@ -2216,6 +2215,10 @@ public class TinkerFrame implements ITableDataFrame {
 
 	public String[] getFilteredColumns() {
 		return new String[0];
+	}
+
+	public Map<? extends String, ? extends Object> getGraphOutput() {
+		return createVertStores();
 	}
 	
 	/*
