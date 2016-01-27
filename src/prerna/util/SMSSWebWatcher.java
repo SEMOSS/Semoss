@@ -216,15 +216,16 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 */
 	@Override
 	public void loadFirst() {
-
-//		//		UNCOMMENT CODE TO DELETE ALL DATA IN SOLR!!!!
-		
-		try {
-			SolrIndexEngine.getInstance().deleteAllSolrData();
-		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+//		WHEN COMMITTING YOUR CODE, PLEASE MAKE SURE THIS IS COMMENTED!!!!
+//		WHEN COMMITTING YOUR CODE, PLEASE MAKE SURE THIS IS COMMENTED!!!!
+//		WHEN COMMITTING YOUR CODE, PLEASE MAKE SURE THIS IS COMMENTED!!!!
+//		WHEN COMMITTING YOUR CODE, PLEASE MAKE SURE THIS IS COMMENTED!!!!
+//		try {
+//			SolrIndexEngine.getInstance().deleteAllSolrData();
+//		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | IOException e1) {
+//			// TODO Auto-generated catch block
+//			e1.printStackTrace();
+//		}
 		
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
