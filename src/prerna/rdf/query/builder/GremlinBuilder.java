@@ -117,10 +117,14 @@ public class GremlinBuilder {
 			String edgeKey = origName + ":::" + node;
 			if(!travelledEdges.contains(edgeKey)) {
 				System.out.println("travelling down to " + node);
-				gt1 = gt1.out().has(Constants.TYPE, node).as(node);
+//				gt1 = gt1.out().has(Constants.TYPE, node).as(node);
 //				gt1 = gt1.out().has(Constants.TYPE, node).as(node).choose(__.as(node).in().has(Constants.TYPE, Constants.FILTER), //.out().has("TYPE", "Business Process"), // if this is true
 //						__.as(node).in().has(Constants.TYPE, "DUMMY"), //.out().has("TYPE", "Business Prcess"), // then do this
 //						__.as(node));  
+				
+//				gt1 = gt1.out().has(Constants.TYPE, node).as(node).where(__.in().has(Constants.TYPE, Constants.FILTER).count().is(0));
+				
+				gt1 = gt1.out().has(Constants.TYPE, node).as(node).where(__.not(__.in().has(Constants.TYPE, Constants.FILTER)));
 
 				travelledEdges.add(edgeKey);
 				gt1 = visitNode(nodeV, gt1, travelledEdges, recursionCount);

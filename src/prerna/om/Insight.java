@@ -57,6 +57,7 @@ import org.openrdf.sail.memory.MemoryStore;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.ds.TinkerFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -743,7 +744,9 @@ public class Insight {
 		for(int i = 0; i < actions.size(); i++) {
 			actions.get(i).setId(compId + ":" + ACTION + i);
 		}
-		QueryBuilderHelper.parsePath(component.getBuilderData(), component.getEngine()); // this really should just be a clean path call.. but for now we'll just parse it
+		if(component.getBuilderData() != null){
+			QueryBuilderHelper.parsePath(component.getBuilderData(), component.getEngine()); // this really should just be a clean path call.. but for now we'll just parse it
+		}
 		DataMakerComponent componentCopy = component.copy();
 		getDataMaker().processDataMakerComponent(componentCopy);
 		getDataMakerComponents().add(component);
@@ -899,6 +902,8 @@ public class Insight {
 		// currently all actions return a map
 		if(getDataMaker().getActionOutput() != null && !getDataMaker().getActionOutput().isEmpty()) {
 			retHash.putAll( (Map) getDataMaker().getActionOutput().get(0));
+		} else if (getOutput().equals("Graph") && getDataMaker() instanceof TinkerFrame){
+			retHash.putAll(((TinkerFrame)getDataMaker()).getGraphOutput());
 		} else {
 			retHash.putAll(getDataMaker().getDataMakerOutput());
 		}
