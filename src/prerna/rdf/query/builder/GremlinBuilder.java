@@ -16,7 +16,9 @@ import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import prerna.ds.TinkerFrame;
 import prerna.util.Constants;
 
 /**
@@ -88,60 +90,59 @@ public class GremlinBuilder {
 	 * @param startNode
 	 * @param edgeHash
 	 */
-	public void addNodeEdge(Map<String, Set<String>> edgeHash) {
+	public void addNodeEdge() {
 		List<String> travelledEdges = new Vector<String>();
 		
-		String startNode;
-		Set<String> set = edgeHash.keySet();
-		if(set.size() > 0) {
-			startNode = set.iterator().next();
-			List<String> start = new Vector<String>();
-			start.add(startNode);
-			Set<String> vertsToVisit = edgeHash.remove(startNode);
+		Vertex startNode;
+		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META);
+		if(metaT.hasNext()) {
+			startNode = metaT.next();
+			String startType = startNode.property(Constants.NAME).value()+"";
 			
-			
-			gt = gt.has(Constants.TYPE, startNode);
-			gt = gt.as(startNode);
-			travelledEdges.add(startNode);
-			gt = visitNode(startNode, vertsToVisit, getUpstreamVerts(startNode, edgeHash), edgeHash, gt, travelledEdges, new Integer(0));
+			gt = gt.has(Constants.TYPE, startType);
+			gt = gt.as(startType);
+//			travelledEdges.add(startType);
+			gt = visitNode(startNode, gt, travelledEdges, new Integer(0));
 		}
 	}
 	
-	private GraphTraversal visitNode(String orig, Set<String> downVertsToVisit, Set<String> upVertsToVisit, Map<String, Set<String>> edgeHash, GraphTraversal gt1, List<String> travelledEdges, Integer recursionCount) {
+	private GraphTraversal visitNode(Vertex orig, GraphTraversal gt1, List<String> travelledEdges, Integer recursionCount) {
 		recursionCount++;
-		if(downVertsToVisit!=null && !downVertsToVisit.isEmpty()){
-			Iterator<String> downIt = downVertsToVisit.iterator();
-			for(int i = 0; i < downVertsToVisit.size(); i++, recursionCount++) {
-				String node = downIt.next();
-				if(!travelledEdges.contains(node)) {
-					System.out.println("travelling down to " + node);
-					gt1 = gt1.out().has(Constants.TYPE, node).as(node);
-					travelledEdges.add(node);
-					gt1 = visitNode(node, edgeHash.remove(node), getUpstreamVerts(node, edgeHash), edgeHash, gt1, travelledEdges, recursionCount);
-					System.out.println("returning home to " + orig);
-					gt1 = gt1.in().has(Constants.TYPE, orig).as(orig + (i + recursionCount));
-					gt1 = gt1.where(orig, org.apache.tinkerpop.gremlin.process.traversal.P.eq(orig + (i + recursionCount)));
-				}
+		String origName = orig.property(Constants.NAME).value()+"";
+		GraphTraversal<Vertex, Vertex> downstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).out(TinkerFrame.META);
+		while (downstreamIt.hasNext()){
+			Vertex nodeV = downstreamIt.next();
+			String node = nodeV.property(Constants.NAME).value()+"";
+			String edgeKey = origName + ":::" + node;
+			if(!travelledEdges.contains(edgeKey)) {
+				System.out.println("travelling down to " + node);
+				gt1 = gt1.out().has(Constants.TYPE, node).as(node);
+				travelledEdges.add(edgeKey);
+				gt1 = visitNode(nodeV, gt1, travelledEdges, recursionCount);
+				System.out.println("returning home to " + origName);
+				gt1 = gt1.in().has(Constants.TYPE, origName).as(origName + (recursionCount));
+				gt1 = gt1.where(origName, org.apache.tinkerpop.gremlin.process.traversal.P.eq(origName + (recursionCount)));
+				recursionCount++;
 			}
 		}
-
-		if(upVertsToVisit!=null && !upVertsToVisit.isEmpty()){
-			Iterator<String> upIt = upVertsToVisit.iterator();
-			for(int i = 0; i < upVertsToVisit.size(); i++, recursionCount++) {
-				String node = upIt.next();
-				if(!travelledEdges.contains(node)){
-					System.out.println("travelling up to " + node);
-					gt1 = gt1.in().has(Constants.TYPE, node).as(node);
-					travelledEdges.add(node);
-					gt1 = visitNode(node, edgeHash.remove(node), getUpstreamVerts(node, edgeHash), edgeHash, gt1, travelledEdges, recursionCount);
-					
-					System.out.println("returning home to " + orig);
-					gt1 = gt1.out().has(Constants.TYPE, orig).as(orig + (i + recursionCount));
-					gt1 = gt1.where(orig, org.apache.tinkerpop.gremlin.process.traversal.P.eq(orig + (i + recursionCount)));
-				}
+		
+		GraphTraversal<Vertex, Vertex> upstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).in(TinkerFrame.META);
+		while(upstreamIt.hasNext()){
+			Vertex nodeV = upstreamIt.next();
+			String node = nodeV.property(Constants.NAME).value()+"";
+			String edgeKey = node + ":::" + origName;
+			if(!travelledEdges.contains(edgeKey)){
+				System.out.println("travelling up to " + node);
+				gt1 = gt1.in().has(Constants.TYPE, node).as(node);
+				travelledEdges.add(edgeKey);
+				gt1 = visitNode(nodeV, gt1, travelledEdges, recursionCount);
+				
+				System.out.println("returning home to " + origName);
+				gt1 = gt1.out().has(Constants.TYPE, origName).as(origName + (recursionCount));
+				gt1 = gt1.where(origName, org.apache.tinkerpop.gremlin.process.traversal.P.eq(origName + (recursionCount)));
+				recursionCount++;
 			}
 		}
-
 		return gt1;
 	}
 	

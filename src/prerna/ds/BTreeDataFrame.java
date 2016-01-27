@@ -2175,15 +2175,4 @@ public class BTreeDataFrame implements ITableDataFrame {
 		}
 	}
 
-	@Override
-	public void setEdgeHash(Map<String, Set<String>> edgeHash) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public Map<String, Set<String>> getEdgeHash() {
-		// TODO Auto-generated method stub
-		return null;
-	}
 }
