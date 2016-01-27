@@ -18,45 +18,28 @@ import prerna.util.Constants;
 
 public class TinkerFrameIterator implements Iterator<Object[]> {
 
-	private boolean useRawData;
+//	private boolean useRawData;
+	private String dataType;
 	private GraphTraversal gt;
 	String[] headerNames;
-	
-	/**
-	 * Constructor for the BTreeIterator
-	 * Uses the leaves in the tree to traverse up and get the data corresponding to a row if the tree was flattened
-	 * @param typeRoot			A list of nodes corresponding to the leaves in the tree
-	 */
-//	public TinkerFrameIterator(TreeNode typeRoot) {
-//		this(typeRoot, false, null);
-//	}
-//	
-//	public TinkerFrameIterator(TreeNode typeRoot, boolean getRawData) {
-//		this(typeRoot, getRawData, null);
-//	}
-//	
-//	public TinkerFrameIterator(TreeNode typeRoot, boolean getRawData, List<String> columns2skip) {
-//		iterator = new ValueTreeColumnIterator(typeRoot);
-//		useRawData = getRawData;
-//		this.columns2skip = columns2skip == null ? new HashSet<String>(0) : new HashSet<String>(columns2skip);
-//	}
-	
-	public TinkerFrameIterator(String[] headers, List<String> columnsToSkip, Map<String, List<Object>> filterHash, Graph g) {
+	Vector<String> finalColumns;
+		
+	public TinkerFrameIterator(String[] headers, List<String> columnsToSkip, Graph g) {
 		this.headerNames = headers;
-		this.gt = openTraversal(headers, columnsToSkip, filterHash, g);
+		this.gt = openTraversal(columnsToSkip, g);
+		dataType = Constants.VALUE;
 	}
 	
-	private GraphTraversal openTraversal(String[] headers, List<String> columnsToSkip, Map<String, List<Object>> filterHash, Graph g){
+	//creating a separate constructor to take in raw data boolean because to ease the transition out of using getRawData 
+	public TinkerFrameIterator(String[] headers, List<String> columnsToSkip, Graph g, boolean useRawData) {
+		this.headerNames = headers;
+		this.gt = openTraversal(columnsToSkip, g);
+		dataType = useRawData ? Constants.VALUE : Constants.NAME;
+	}
+	
+	private GraphTraversal openTraversal(List<String> columnsToSkip, Graph g) {
 		Vector <String> finalColumns = new Vector<String>();
-		GremlinBuilder builder = new GremlinBuilder(g);
-
-		//add edges if edges exist
-		if(headerNames.length > 1) {
-			builder.addNodeEdge();
-		} else {
-			//no edges exist, add single node to builder
-			builder.addNode(headerNames[0]);
-		}
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(headerNames, columnsToSkip, g);
 
 		// add everything that you need
 		for(int colIndex = 0;colIndex < headerNames.length;colIndex++) // add everything you want first
@@ -67,25 +50,13 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 		}
 
 		// now add the projections
-		builder.addSelector(finalColumns);
-
-		// add the filters next
-		for(int colIndex = 0;colIndex < headerNames.length;colIndex++)
-		{
-			if(filterHash.containsKey(headerNames[colIndex]))
-				builder.addFilter(headerNames[colIndex], filterHash.get(headerNames[colIndex]));
-		}
-
+		this.finalColumns = finalColumns;
+		
 		//finally execute it to get the executor
 		GraphTraversal <Vertex, Map<String, Object>> gt = (GraphTraversal <Vertex, Map<String, Object>>)builder.executeScript(g);
 		return gt;
 	}
 	
-	/**
-	 * Perform a non-recursive depth-first-search (DFS)
-	 * Must also take into consideration the number of instances associated with each node
-	 * Must also take into consideration the fan-out of the btree for siblings of node
-	 */
 	@Override
 	public boolean hasNext() {
 		return gt.hasNext();
@@ -93,17 +64,26 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 	
 	@Override
 	public Object[] next() {
+		
 		Object data = gt.next();
-		Object [] retObject = new Object[headerNames.length];
+		Object [] retObject = new Object[finalColumns.size()];
 
 		//data will be a map for multi columns
 		if(data instanceof Map) {
-			for(int colIndex = 0;colIndex < headerNames.length;colIndex++) {
+			for(int colIndex = 0;colIndex < finalColumns.size();colIndex++) {
 				Map<String, Object> mapData = (Map<String, Object>)data; //cast to map
-				retObject[colIndex] = ((Vertex)mapData.get(headerNames[colIndex])).property(Constants.VALUE).value();
+				retObject[colIndex] = ((Vertex)mapData.get(finalColumns.get(colIndex))).property(dataType).value();
+				
+//				Object o = mapData.get(finalColumns.get(colIndex));
+////				if(o instanceof List) {
+////					List l = (List)o;
+////					retObject[colIndex] = ((Vertex)l.get(0)).property(dataType).value();
+////				} else {
+//					retObject[colIndex] = ((Vertex)mapData.get(finalColumns.get(colIndex))).property(dataType).value();
+////				}
 			}
 		} else {
-			retObject[0] = ((Vertex)data).property(Constants.VALUE).value();
+			retObject[0] = ((Vertex)data).property(dataType).value();
 		}
 
 		return retObject;

@@ -60,6 +60,7 @@ public class GremlinBuilder {
 		{
 //			script = script + ".has('" + Constants.TYPE + "', '" + type +"')";
 			gt = gt.has(Constants.TYPE, type);
+			
 			String selector = type;
 			if(alias.length > 0)
 				selector = alias[0];
@@ -117,6 +118,10 @@ public class GremlinBuilder {
 			if(!travelledEdges.contains(edgeKey)) {
 				System.out.println("travelling down to " + node);
 				gt1 = gt1.out().has(Constants.TYPE, node).as(node);
+//				gt1 = gt1.out().has(Constants.TYPE, node).as(node).choose(__.as(node).in().has(Constants.TYPE, Constants.FILTER), //.out().has("TYPE", "Business Process"), // if this is true
+//						__.as(node).in().has(Constants.TYPE, "DUMMY"), //.out().has("TYPE", "Business Prcess"), // then do this
+//						__.as(node));  
+
 				travelledEdges.add(edgeKey);
 				gt1 = visitNode(nodeV, gt1, travelledEdges, recursionCount);
 				System.out.println("returning home to " + origName);
@@ -180,6 +185,18 @@ public class GremlinBuilder {
 	{
 		engine.getBindings(ScriptContext.ENGINE_SCOPE).put(alias + Constants.FILTERS, itemsToFilter.toArray()); // set it into the context
 		gt = gt.where(__.as(alias)).has(Constants.NAME, org.apache.tinkerpop.gremlin.process.traversal.P.without(alias + Constants.FILTERS ));
+	}
+	
+	public void addFilter(String alias)
+	{
+//		engine.getBindings(ScriptContext.ENGINE_SCOPE).put(alias + Constants.FILTERS, "filterNode"); // set it into the context
+//		gt = gt.filter(__.as(alias)).in().has(Constants.TYPE, org.apache.tinkerpop.gremlin.process.traversal.P.without(alias + Constants.FILTERS));
+//		gt = gt.filter(__.as(alias).in().has(Constants.TYPE, org.apache.tinkerpop.gremlin.process.traversal.P.eq(alias + Constants.FILTERS)));
+//		gt = gt.filter(__.as(alias).inE().has(Constants.ID, "filterNode"));
+//		gt = gt.filter(g.traversal().V().in().has(Constants.TYPE, "filterNode"));
+//		gt = gt.choose(__.as(alias).in().has(Constants.TYPE, Constants.FILTER), //.out().has("TYPE", "Business Process"), // if this is true
+//					__.as(alias).in().has(Constants.TYPE, "DUMMY"), //.out().has("TYPE", "Business Prcess"), // then do this
+//					__.as(alias));  
 	}
 	
 	/**
@@ -263,4 +280,37 @@ public class GremlinBuilder {
 //		LOGGER.info("Script executed: "+(System.currentTimeMillis() - startTime)+" ms");
 		return gtR;
 	}	
+	
+	public static GremlinBuilder prepareGenericBuilder(String[] headerNames, List<String> columnsToSkip, Graph g){
+		// get all the levels
+		Vector <String> finalColumns = new Vector<String>();
+		GremlinBuilder builder = new GremlinBuilder(g);
+
+		//add edges if edges exist
+		if(headerNames.length > 1) {
+			builder.addNodeEdge();
+		} else {
+			//no edges exist, add single node to builder
+			builder.addNode(headerNames[0]);
+		}
+
+		// add everything that you need
+		for(int colIndex = 0;colIndex < headerNames.length;colIndex++) // add everything you want first
+		{
+			if(!columnsToSkip.contains(headerNames[colIndex])) {
+				finalColumns.add(headerNames[colIndex]);
+			}
+		}
+
+		// now add the projections
+		builder.addSelector(finalColumns);
+
+		// add the filters next
+//		for(int colIndex = 0;colIndex < headerNames.length;colIndex++)
+//		{
+//			if(filterHash.containsKey(headerNames[colIndex]))
+//				builder.addFilter(headerNames[colIndex], filterHash.get(headerNames[colIndex]));
+//		}
+		return builder;
+	}
 }
