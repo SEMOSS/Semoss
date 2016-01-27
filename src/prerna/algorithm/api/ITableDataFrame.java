@@ -487,10 +487,7 @@ public interface ITableDataFrame extends IDataMaker {
 	 * @param columnHeaders
 	 */
 	public void setColumnsToSkip(List<String> columnHeaders);
-
-	public void setEdgeHash(Map<String, Set<String>> edgeHash);
 	
-	public Map<String, Set<String>> getEdgeHash();
 	//temporary hack for build...delete later
 	public Object[] getFilteredUniqueRawValues(String columnHeader);
 }

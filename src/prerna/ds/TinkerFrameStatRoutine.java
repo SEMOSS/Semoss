@@ -75,12 +75,7 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 		ITableDataFrame table = data[0];
 		if(table instanceof TinkerFrame) {
 			
-			TinkerFrame tinkerGraph;
-			if(table instanceof PrimaryKeyTinkerFrame) {
-				tinkerGraph = (PrimaryKeyTinkerFrame)table;
-			} else {
-				tinkerGraph = (TinkerFrame)table;
-			}
+			TinkerFrame tinkerGraph = (TinkerFrame)table;
 			
 			//gather the necessary parameters
 			String valueColumn = this.functionMap.get("name").toString();

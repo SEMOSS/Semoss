@@ -33,6 +33,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.SubgraphStrategy;
+import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -45,13 +46,13 @@ import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IConstructStatement;
-import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
+import prerna.om.SEMOSSEdge;
+import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.GremlinBuilder;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -60,7 +61,6 @@ import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
 public class TinkerFrame implements ITableDataFrame {
 	
@@ -76,14 +76,18 @@ public class TinkerFrame implements ITableDataFrame {
 	//keeps the cache of whether a column is numerical or not
 	protected Map<String, Boolean> isNumericalMap = new HashMap<String, Boolean>();
 	
-	//keeps the cache of edges within the tree
-	protected Map <String, Set<String>> edgeHash = new Hashtable<String, Set<String>>();
+//	//keeps the cache of edges within the tree
+//	protected Map <String, Set<String>> edgeHash = new Hashtable<String, Set<String>>();
 		
 	protected List<Object> algorithmOutput = new Vector<Object>();
 	protected GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
 	protected TinkerGraph g = null;
 	int startRange = -1;
 	int endRange = -1;
+
+	protected Long nextPrimKey = new Long(0);
+	final protected String PRIM_KEY = "PRIM_KEY";
+	final public static String META = "META";
 
 	/**********************    TESTING PLAYGROUND  ******************************************/
 	
@@ -681,7 +685,7 @@ public class TinkerFrame implements ITableDataFrame {
 			totalCols++;
 		}
 		Map rowMap = new HashMap();
-		PrimaryKeyTinkerFrame tester = new PrimaryKeyTinkerFrame(headerList.toArray(new String[headerList.size()]));
+		TinkerFrame tester = new TinkerFrame(headerList.toArray(new String[headerList.size()]));
 		for (int rIndex = 1; rIndex <= lastRow; rIndex++) {
 			XSSFRow row = lSheet.getRow(rIndex);
 			Object[] nextRow = new Object[totalCols];
@@ -707,7 +711,7 @@ public class TinkerFrame implements ITableDataFrame {
 		}
 		System.out.println("loaded file " + fileName);
 		
-		tester.createPrimKeyEdgeHash();
+		tester.createPrimKeyEdgeHash(headerList.toArray(new String[headerList.size()]));
 		return tester;
 	}
 	
@@ -730,7 +734,7 @@ public class TinkerFrame implements ITableDataFrame {
 	
 	public TinkerFrame(String[] headerNames, Hashtable<String, Set<String>> edgeHash) {
 		this.headerNames = headerNames;
-		this.edgeHash = edgeHash;
+		mergeEdgeHash(edgeHash);
 		g = TinkerGraph.open();
 		g.createIndex(Constants.ID, Vertex.class);
 		g.createIndex(Constants.ID, Edge.class);
@@ -767,17 +771,22 @@ public class TinkerFrame implements ITableDataFrame {
 //         if(getHeaders() == null){
 //         if(this.headerNames == null) {
            
-           // set this edge hash from component
-           this.mergeEdgeHash(component.getBuilderData().getReturnConnectionsHash());
-           
+           boolean hasMetaModel = component.getBuilderData() != null;
            g.variables().set(Constants.HEADER_NAMES, displayNames); // I dont know if i even need this moving forward.. but for now I will assume it is
            redoLevels(displayNames);
 
            long time2 = System.currentTimeMillis();
            LOGGER.info("processing of component.................................. iterating through wrapper. time : " +(time2 - time1)+" ms");
-           while(wrapper.hasNext()){
-//                this.addRow(wrapper.next());
-                  this.addRelationship(wrapper.next());
+           if(hasMetaModel) {
+        	   this.mergeEdgeHash(component.getBuilderData().getReturnConnectionsHash());
+        	   while(wrapper.hasNext()){
+        		   this.addRelationship(wrapper.next());
+        	   }
+           } else {
+        	   this.mergeEdgeHash(this.createPrimKeyEdgeHash(displayNames));
+        	   while(wrapper.hasNext()){
+        		   this.addRow(wrapper.next());
+        	   }
            }
            long time3 = System.currentTimeMillis();
            LOGGER.info("processing of component.................................. done iterating through wrapper. time : " +(time3 - time2)+" ms");
@@ -797,7 +806,16 @@ public class TinkerFrame implements ITableDataFrame {
            long time4 = System.currentTimeMillis();
            LOGGER.info("done processing of component................................... time : " +(time4 - time3)+" ms");
     }
-
+	
+	protected Map<String, Set<String>> createPrimKeyEdgeHash(String[] headers) {
+		Set<String> primKeyEdges = new HashSet<>();
+		for(String header : headers) {
+			primKeyEdges.add(header);
+		}
+		Map<String, Set<String>> edges = new HashMap<String, Set<String>>();
+		edges.put(PRIM_KEY, primKeyEdges);
+		return edges;
+	}
 
 /* OLD WAY	
 	@Override
@@ -875,6 +893,38 @@ public class TinkerFrame implements ITableDataFrame {
 		Hashtable retHash = new Hashtable();
 		retHash.put("data", this.getRawData());
 		retHash.put("headers", this.headerNames);
+		return retHash;//
+//		return createVertStores();
+	}
+	
+	private Map createVertStores(){
+		Map<String, SEMOSSVertex> vertStore = new HashMap<String, SEMOSSVertex>();
+		Map<String, SEMOSSEdge> edgeStore = new HashMap<String, SEMOSSEdge>();
+		
+		GraphTraversal<Edge, Edge> edgesIt = g.traversal().E();
+		while(edgesIt.hasNext()){
+			Edge e = edgesIt.next();
+			Vertex outV = e.outVertex();
+			Vertex inV = e.inVertex();
+			String outURI = outV.property(Constants.TYPE).value() + "/" + outV.property(Constants.NAME).value();
+			SEMOSSVertex outVert = vertStore.get(outURI);
+			if(outVert == null){
+				outVert = new SEMOSSVertex(outURI);
+				vertStore.put(outURI, outVert);
+			}
+			String inURI = inV.property(Constants.TYPE).value() + "/" + inV.property(Constants.NAME).value();
+			SEMOSSVertex inVert = vertStore.get(inURI);
+			if(inVert == null){
+				inVert = new SEMOSSVertex(inURI);
+				vertStore.put(inURI, inVert);
+			}
+			
+			edgeStore.put("https://semoss.org/"+e.property(Constants.ID).value() + "", new SEMOSSEdge(outVert, inVert, "https://semoss.org/"+e.property(Constants.ID).value() + ""));
+		}
+		
+		Map retHash = new HashMap();
+		retHash.put("nodes", vertStore);
+		retHash.put("edges", edgeStore.values());
 		return retHash;
 	}
 
@@ -939,26 +989,67 @@ public class TinkerFrame implements ITableDataFrame {
 			throw new IllegalArgumentException("Input row must have same dimensions as levels in dataframe."); // when the HELL would this ever happen ?
 		}
 		
-		// dont believe me just watch
+		Vertex primVertex = upsertVertex(this.PRIM_KEY, nextPrimKey.toString(), nextPrimKey.toString());
+		
 		for(int index = 0; index < headerNames.length; index++) {
-			if(rowCleanData[index] != null){
-				Vertex fromVertex = upsertVertex(headerNames[index], rowCleanData[index], rowRawData[index]); // need to discuss if we need specialized vertices too
-				int parentInc = 1;
-				boolean added = false;
-				while(index + parentInc < headerNames.length && !added)
-				{
-					if(rowCleanData[index+parentInc] == null){
-						parentInc ++;
-						continue;
-					}
-					Vertex toVertex = upsertVertex(headerNames[index+parentInc], rowCleanData[index+parentInc], rowRawData[index+parentInc]);
-					upsertEdge(fromVertex, toVertex);
-					added = true;
-				}
-			}
+			Vertex toVertex = upsertVertex(headerNames[index], rowCleanData[index], rowRawData[index]); // need to discuss if we need specialized vertices too		
+			this.upsertEdge(primVertex, toVertex, this.PRIM_KEY);
 		}
-		// and tada.. it is gone !!
+		
+		this.nextPrimKey++;
 	}
+	
+	protected Edge upsertEdge(Vertex fromVertex, Vertex toVertex, String label) {
+		Edge retEdge = null;
+		String edgeID = fromVertex.property(Constants.ID).value() + "" + toVertex.property(Constants.ID).value();
+		// try to find the vertex
+		GraphTraversal<Edge, Edge> gt = g.traversal().E().has(Constants.ID, edgeID);
+		if(gt.hasNext()) {
+			retEdge = gt.next();
+			Integer count = (Integer)retEdge.property(Constants.COUNT).value();
+			count++;
+			retEdge.property(Constants.COUNT, count);
+		}
+		else {
+			retEdge = fromVertex.addEdge(label, toVertex, Constants.ID, edgeID, Constants.COUNT, 1);
+		}
+
+		return retEdge;
+	}
+
+//	@Override
+//	public void addRow(Object[] rowCleanData, Object[] rowRawData) {
+//		
+//		getHeaders(); // why take chances.. 
+//		if(rowCleanData.length != headerNames.length && rowRawData.length != headerNames.length) {
+//			throw new IllegalArgumentException("Input row must have same dimensions as levels in dataframe."); // when the HELL would this ever happen ?
+//		}
+//		
+//		// add row will depend on whether its a prim key add row or if we have metamodel data
+//		// get prim key columns to check against
+//		Set<String> primKeyCols = this.edgeHash.get(PRIM_KEY);
+//		
+//		// dont believe me just watch
+//		for(int index = 0; index < headerNames.length; index++) {
+//			if(primKeyCols)
+//			if(rowCleanData[index] != null){
+//				Vertex fromVertex = upsertVertex(headerNames[index], rowCleanData[index], rowRawData[index]); // need to discuss if we need specialized vertices too
+//				int parentInc = 1;
+//				boolean added = false;
+//				while(index + parentInc < headerNames.length && !added)
+//				{
+//					if(rowCleanData[index+parentInc] == null){
+//						parentInc ++;
+//						continue;
+//					}
+//					Vertex toVertex = upsertVertex(headerNames[index+parentInc], rowCleanData[index+parentInc], rowRawData[index+parentInc]);
+//					upsertEdge(fromVertex, toVertex);
+//					added = true;
+//				}
+//			}
+//		}
+//		// and tada.. it is gone !!
+//	}
 	
 	public void addRelationship(ISelectStatement rowData) {
 		Map<String, Object> rowCleanData = rowData.getPropHash();
@@ -970,10 +1061,10 @@ public class TinkerFrame implements ITableDataFrame {
 		boolean hasRel = false;
 		
 		for(String startNode : rowCleanData.keySet()) {
-			Set<String> set = this.edgeHash.get(startNode);
-			if(set==null) continue;
-//			String endNode = rowCleanData.get(key).toString();
-			for(String endNode : set) {
+			GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, META).has(Constants.NAME, startNode).out(META);
+			while(metaT.hasNext()){
+				Vertex conn = metaT.next();
+				String endNode = conn.property(Constants.NAME).value()+"";
 				if(rowCleanData.keySet().contains(endNode)) {
 					hasRel = true;
 					//get from vertex
@@ -1059,21 +1150,44 @@ public class TinkerFrame implements ITableDataFrame {
 		
 		// add the new set of levels
 		redoLevels(joiningTableHeaders);
-		mergeEdgeHash(table.getEdgeHash()); //need more information but can assume exact string matching for now
+		mergeEdgeHash(((TinkerFrame)table).getEdgeHash()); //need more information but can assume exact string matching for now
 	}
 	
+	private Map<String, Set<String>> getEdgeHash() {
+		// Very simple -- for each meta node, get its downstream nodes and put in a set
+		Map<String, Set<String>> retMap = new HashMap<String, Set<String>>();
+		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META);
+		while(metaT.hasNext()) {
+			Vertex startNode = metaT.next();
+			String startType = startNode.property(Constants.NAME).value()+"";
+			Iterator<Vertex> downNodes = startNode.vertices(Direction.OUT);
+			Set<String> downSet = new HashSet<String>();
+			while(downNodes.hasNext()){
+				Vertex downNode = downNodes.next();
+				String downType = downNode.property(Constants.NAME).value()+"";
+				downSet.add(downType);
+			}
+			retMap.put(startType, downSet);
+		}
+		return retMap;
+	}
+
 	protected void mergeEdgeHash(Map<String, Set<String>> newEdgeHash) {
 		Set<String> newLevels = new LinkedHashSet<String>();
 		for(String newNode : newEdgeHash.keySet()) {
 			Set<String> edges = newEdgeHash.get(newNode);
 			newLevels.add(newNode);
-			newLevels.addAll(edges);
-			if(this.edgeHash.get(newNode) == null) {
-				this.edgeHash.put(newNode, edges);
-			} else {
-				this.edgeHash.get(newNode).addAll(edges);
+			Vertex outVert = upsertVertex(META, newNode, newNode);
+			for(String inVertString : edges){
+				newLevels.add(inVertString);
+				
+				// now to insert the meta edge
+				Vertex inVert = upsertVertex(META, inVertString, inVertString);
+				upsertEdge(outVert, inVert, META);
 			}
 		}
+		// need to make sure prim key is not added as header
+		newLevels.remove(PRIM_KEY);
 		redoLevels(newLevels.toArray(new String[newLevels.size()]));
 	}
 
@@ -1430,9 +1544,7 @@ public class TinkerFrame implements ITableDataFrame {
 
 		//add edges if edges exist
 		if(this.headerNames.length > 1) {
-			HashMap<String, Set<String>> edgeMapCopy = new HashMap<String, Set<String>>();
-			edgeMapCopy.putAll(this.edgeHash);
-			builder.addNodeEdge(edgeMapCopy);
+			builder.addNodeEdge();
 		} else {
 			//no edges exist, add single node to builder
 			builder.addNode(headerNames[0]);
@@ -1497,7 +1609,7 @@ public class TinkerFrame implements ITableDataFrame {
 
 	@Override
 	public Iterator<Object[]> iterator(boolean getRawData) {
-		return new TinkerFrameIterator(headerNames, edgeHash, columnsToSkip, filterHash, g);
+		return new TinkerFrameIterator(headerNames, columnsToSkip, filterHash, g);
 	}
 
 	@Override
@@ -1526,7 +1638,7 @@ public class TinkerFrame implements ITableDataFrame {
 
 	@Override
 	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData) {
-		return new UniqueScaledTinkerFrameIterator(columnHeader, this.headerNames, edgeHash, columnsToSkip, filterHash, g, getMax(), getMin());
+		return new UniqueScaledTinkerFrameIterator(columnHeader, this.headerNames, columnsToSkip, filterHash, g, getMax(), getMin());
 	}
 
 	@Override
@@ -1558,7 +1670,7 @@ public class TinkerFrame implements ITableDataFrame {
 			}
 			
 			List<Double> numericCol = new Vector<Double>();
-			TinkerFrameIterator it = new TinkerFrameIterator(this.headerNames, this.edgeHash, columnsToSkip, this.filterHash, this.g);
+			TinkerFrameIterator it = new TinkerFrameIterator(this.headerNames, columnsToSkip, this.filterHash, this.g);
 			while(it.hasNext()) {
 				Object[] row = it.next();
 				numericCol.add( ((Number) row[0]).doubleValue() );
@@ -1609,7 +1721,7 @@ public class TinkerFrame implements ITableDataFrame {
 			}
 		}
 		
-		TinkerFrameIterator it = new TinkerFrameIterator(this.headerNames, this.edgeHash, columnsToSkip, this.filterHash, this.g);
+		TinkerFrameIterator it = new TinkerFrameIterator(this.headerNames, columnsToSkip, this.filterHash, this.g);
 		while(it.hasNext()) {
 			Object[] row = it.next();
 			if(counts.containsKey(row[0] + "")) {
@@ -1991,6 +2103,7 @@ public class TinkerFrame implements ITableDataFrame {
 				// need to keep values as they are, not with XMLSchema tag
 				retVertex = g.addVertex(Constants.ID, type + ":" + data, Constants.VALUE, data, Constants.TYPE, type, Constants.NAME, data);// push the actual value as well who knows when you would need it
 			} else {
+				LOGGER.debug(" adding vertex ::: " + Constants.ID + " = " + type + ":" + data+ " & " + Constants.VALUE+ " = " + value+ " & " + Constants.TYPE+ " = " + type+ " & " + Constants.NAME+ " = " + data);
 				retVertex = g.addVertex(Constants.ID, type + ":" + data, Constants.VALUE, value, Constants.TYPE, type, Constants.NAME, data);// push the actual value as well who knows when you would need it
 			}
 		}
@@ -2063,13 +2176,6 @@ public class TinkerFrame implements ITableDataFrame {
 		return new String[0];
 	}
 	
-	public Map<String, Set<String>> getEdgeHash() {
-		return this.edgeHash;
-	}
-	
-	public void setEdgeHash(Map<String, Set<String>> createEdgeHash) {
-		this.edgeHash = createEdgeHash;
-	}
 	/*
 	 * a. Adding Data - nodes / relationships
 	 * b. Doing some analytical routine on top of the data
