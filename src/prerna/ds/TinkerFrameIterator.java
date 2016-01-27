@@ -41,20 +41,18 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 //		this.columns2skip = columns2skip == null ? new HashSet<String>(0) : new HashSet<String>(columns2skip);
 //	}
 	
-	public TinkerFrameIterator(String[] headers, Map<String, Set<String>> edgeHash, List<String> columnsToSkip, Map<String, List<Object>> filterHash, Graph g) {
+	public TinkerFrameIterator(String[] headers, List<String> columnsToSkip, Map<String, List<Object>> filterHash, Graph g) {
 		this.headerNames = headers;
-		this.gt = openTraversal(headers, edgeHash, columnsToSkip, filterHash, g);
+		this.gt = openTraversal(headers, columnsToSkip, filterHash, g);
 	}
 	
-	private GraphTraversal openTraversal(String[] headers, Map<String, Set<String>> edgeHash, List<String> columnsToSkip, Map<String, List<Object>> filterHash, Graph g){
+	private GraphTraversal openTraversal(String[] headers, List<String> columnsToSkip, Map<String, List<Object>> filterHash, Graph g){
 		Vector <String> finalColumns = new Vector<String>();
 		GremlinBuilder builder = new GremlinBuilder(g);
 
 		//add edges if edges exist
 		if(headerNames.length > 1) {
-			HashMap<String, Set<String>> edgeMapCopy = new HashMap<String, Set<String>>();
-			edgeMapCopy.putAll(edgeHash);
-			builder.addNodeEdge(edgeMapCopy);
+			builder.addNodeEdge();
 		} else {
 			//no edges exist, add single node to builder
 			builder.addNode(headerNames[0]);
