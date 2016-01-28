@@ -1790,31 +1790,44 @@ public class TinkerFrame implements ITableDataFrame {
 	public void unfilter(String columnHeader) {
 		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, Constants.FILTER);
 		Vertex filterVertex;
-		while(gt.hasNext()) {
+		if(gt.hasNext()) {
 			filterVertex = gt.next();
-			filterVertex.remove();
+			Iterator<Edge> edges = filterVertex.edges(Direction.OUT);
+			while(edges.hasNext()) {
+				Edge nextEdge = edges.next();
+				Vertex outVertex = nextEdge.outVertex();
+				String type = outVertex.property(Constants.TYPE).value().toString();
+				if(type.equals(columnHeader)) {
+					nextEdge.remove();
+				}
+			}
 		}
-		
-//		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, Constants.FILTER).out();
-//		while(gt.hasNext()) {
-//			Vertex value = gt.next();
-//			String type = value.property(Constants.TYPE).value().toString();
-//			List fvalues = filteredValues.get(type);
-//			fvalues.add(value.property(Constants.VALUE).value());
-//		}
 	}
 
+	//TODO : remove the override and put it in ITableDataFrame if we need this method
 //	@Override
-//	public void unfilter(String columnHeader, List<Object> unfilterValues) {
-//		// TODO Auto-generated method stub
-//		List curValues = unfilterValues;
-//		if(filterHash.containsKey(columnHeader))
-//		{
-//			curValues = filterHash.get(columnHeader);
-//			curValues.removeAll(unfilterValues);
-//		}
-//		filterHash.put(columnHeader, curValues);		
-//	}
+	public void unfilter(String columnHeader, List<Object> unfilterValues) {
+		
+		HashSet<Object> uValues = new HashSet<>(unfilterValues);
+		
+		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, Constants.FILTER);
+		Vertex filterVertex;
+		if(gt.hasNext()) {
+			filterVertex = gt.next();
+			Iterator<Edge> edges = filterVertex.edges(Direction.OUT);
+			while(edges.hasNext()) {
+				Edge nextEdge = edges.next();
+				Vertex outVertex = nextEdge.outVertex();
+				String type = outVertex.property(Constants.TYPE).value().toString();
+				if(type.equals(columnHeader)) {
+					Object value = outVertex.property(Constants.NAME).value();
+					if(uValues.contains(value)) {
+						nextEdge.remove();
+					}
+				}
+			}
+		}		
+	}
 
 	@Override
 	public void unfilter() {
