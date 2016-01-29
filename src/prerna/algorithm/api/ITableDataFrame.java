@@ -488,6 +488,14 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	public void setColumnsToSkip(List<String> columnHeaders);
 	
+	/**
+	 * 
+	 * @param 
+	 * @return the filter model associated with this table used for excel style filtering on the table
+	 */
+	Object[] getFilterModel();
+	
 	//temporary hack for build...delete later
 	public Object[] getFilteredUniqueRawValues(String columnHeader);
+
 }
