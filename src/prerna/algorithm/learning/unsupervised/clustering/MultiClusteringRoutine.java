@@ -8,9 +8,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerVertexProperty;
+
 import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.util.Cluster;
+import prerna.ds.BTreeDataFrame;
+import prerna.ds.TinkerFrame;
 import prerna.om.SEMOSSParam;
 
 public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
@@ -205,7 +209,21 @@ public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 			List<Object[]> instance = it.next();
 			Object instanceName = instance.get(0)[instanceIndex];
 			List<Object[]> instanceResult = results.getData(instanceType, instanceName);
-			int clusterIndex = (int) instanceResult.get(0)[1];
+			int clusterIndex = -1;
+			if(results instanceof TinkerFrame) {
+				clusterIndex = (int) ((TinkerVertexProperty) instanceResult.get(0)[1]).value();
+				
+				for(int i = 0; i < instanceResult.size(); i++) {
+					TinkerVertexProperty x = (TinkerVertexProperty) (instanceResult.get(i)[0]);
+					String a = x.value() + "";
+					System.out.println(a);
+					if(a.equals(instanceName.toString())) {
+						System.out.println("here");
+					}
+				}
+			} else if(results instanceof BTreeDataFrame) {
+				clusterIndex = (int) instanceResult.get(0)[1];
+			}
 			double simVal = clusters.get(clusterIndex).getSimilarityForInstance(instance, attributeNames, isNumeric, instanceIndex);
 			innerClusterSimilairty += simVal / clusters.get(clusterIndex).getNumInstances();
 		}
