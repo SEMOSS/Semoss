@@ -312,7 +312,6 @@ public class GremlinBuilder {
 
 		//add edges if edges exist
 		if(selectors.size() > 1) {
-//			builder.setFilters(filterSet);
 			builder.addNodeEdge();
 		} else {
 			//no edges exist, add single node to builder
