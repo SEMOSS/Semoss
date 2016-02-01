@@ -1,0 +1,161 @@
+Package prerna.sablecc;
+
+Helpers
+ alpha = [['a' .. 'z'] + ['A' .. 'Z']];
+ letter_s = ['a' .. 'z'];
+ letter_b = ['A' .. 'Z'];
+ digit = ['0' .. '9'];
+ underscore = '_';
+ 
+
+Tokens
+ number = ['0' .. '9']+;
+ id = (letter_s|letter_b|digit | underscore)*;
+ semicolon = ';';
+ plus = '+';
+ minus = '-';
+ mult = '*';
+ comma = ',';
+ div = '/';
+ col = 'col';
+ comparator = ('>' | '<' | '<=' | '>=' | '==' | '!=');
+ coladd = 'col.add';
+ //('addColumn:'|'ac:'|'a:'|'add:' | 'col');
+ api = ('api:'|'call:');
+ math = ('math.' | 'm.');
+ coljoin = 'col.join';
+ //('joinColumn:' | 'jc:' | 'j:' | 'join:' | 'col.join');
+ colprefix = 'c:';
+ valprefix = 'v:';
+ colremove = 'col.remove';
+ colfilter = 'col.filter';
+ //('removeColumn:' | 'rm:' | 'del:' | 'rem:');
+ colset = 'col.set';
+ //('setColumn:' | 'sc:' | 'set:');
+ colpivot = 'col.pivot';
+ colfocus = 'col.focus';
+ //('pivotColumn:' | 'pivot:' | 'pc:');
+ collink = 'link:';
+ show_hide = ('on' | 'off');
+ mod = '%';
+ l_par = '(';
+ dot = '.';
+ r_par = ')';
+ blank = (' ' | 13 | 10)+;
+ equal = '=';
+ newline = '\r'? '\n';
+ codeblock = '{' [0 .. 0xFFFF]* '}';
+ java = 'code:';
+ proc = 'm:'; // | 'average');
+ this = 'this';
+ null = 'null';
+ 
+ 
+
+ 
+Ignored Tokens
+ blank;
+
+Productions
+configuration = script*;
+
+script = {colop} colop  semicolon // column operations
+		 | {varop} varop semicolon// row operations or setting up data
+		 //| rOp semicolon// call to CRAN
+		 | {j_op} j_op semicolon// java operation
+		 | {expr} expr semicolon
+		 //| statop
+		 | newline
+		 ;
+
+colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn / setColumn
+		{add_column} add_column 
+		| {joincol} join_column
+		| {remcol} rem_column 
+		| {setcol} set_column
+		| {pivotcol} pivot_column
+		| {filtercol} filter_column
+		| {focuscol} focus_column
+		| {unfocus} unfocus
+		;
+
+		
+add_column = // follows the pattern of addColumn(columnName and optionally the expression) addColumn(c:NewCol, 'expression');
+		coladd l_par [newcol]:col_def expr_group? r_par 
+		;
+
+join_column = // follows the pattern of addColumn(columnName and optionally the expression) joinColumn(c:colToJoin, otherCols);
+		coljoin l_par [newcol]:col_def [joincol]:col_group+ r_par 
+		;
+
+rem_column = // follows the pattern of addColumn(columnName and optionally the expression) removeColumn(c:colToRemove);
+		colremove l_par [newcol]:col_def col_group* r_par 
+		;
+
+set_column = // follows the pattern of addColumn(columnName and optionally the expression) addColumn(c:NewCol, 'expression');
+		colset l_par [newcol]:col_def comma [expr]:expr r_par 
+		;
+
+pivot_column = // grouping based on multiple columns
+		colpivot l_par [firstcol]:col_def col_group+ r_par;
+
+filter_column = // filter column using an expression
+		colfilter l_par [firstcol]:col_def col_group+ comma if_block r_par;
+
+focus_column = // takes all the other columns and focuses on only these columns
+		colfocus l_par col_def col_group* show_hide r_par
+		;
+		
+unfocus = // you will specify it as col.focus('off');
+		colfocus l_par show_hide r_par
+		;
+		
+		
+expr_group = [comma]:comma [expr]:expr;		
+
+api_block = api [engine_name]:id dot [insight]:id l_par [input]:col_def [other_input]:col_group* r_par; // the insight can also be the method
+
+if_block = l_par comparator comma term r_par;
+
+col_group = comma col_def;
+
+//col_or_expr = expr_group | col_group;
+
+col_def = colprefix [colname]:id;
+
+var_def = valprefix [valname]:id;
+
+varop = // variable operation usually takes the form of a given variable taking ID = some stuff
+		 [name]:var_def equal [expr]:expr 
+		;
+
+j_op = // this of the pattern j:{hola, hello etc.. }
+	java codeblock;
+		
+ expr =
+  {factor} factor |
+  {plus} [left]:expr plus [right]:factor |
+  {minus} [left]:expr minus [right]:factor 
+  |{math_fun} math_fun // I need to still resolve other mathematical functions
+  ;
+ //  assign ;
+
+ //  assign = alpha+ equal l_par expr r_par;
+ 
+ math_fun = proc id l_par [expr]:expr r_par;
+    
+ factor =
+  {term} term |
+  {mult} [left]:factor mult [right]:term |
+  {div} [left]:factor div [right]:term |
+  {mod} [left]:factor mod [right]:term;
+
+
+ term =
+  {number} number |
+  {expr} l_par expr r_par 
+  | {var} valprefix [var]:id
+  | {col} [col]:col_def
+  | {api} api_block
+  | null
+  ;
