@@ -43,6 +43,9 @@ import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import prerna.algorithm.api.IAnalyticActionRoutine;
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.IAnalyticTransformationRoutine;
@@ -2400,4 +2403,27 @@ public class TinkerFrame implements ITableDataFrame {
 	 * Given this.. can we see why we need so many methods ?
 	 * 
 	 */
+	
+	
+	/**
+	 * Method to generate a Tinker Frame from a JSON string
+	 * Assumes all the records are unique so it assigned a unique key to each row
+	 * @param jsonString				The JSON string which contains the data
+	 * @return							The TinkerFrame object
+	 */
+	public static TinkerFrame generateTinkerFrameFromJson(String jsonString) {
+		Gson gson = new Gson();
+		
+		List<Map<String, Object>> data = gson.fromJson(jsonString, new TypeToken<List<Map<String, Object>>>() {}.getType());
+		Set<String> headers = data.get(0).keySet();
+		TinkerFrame dataFrame = new TinkerFrame(headers.toArray(new String[]{}));
+		
+		int i = 0;
+		int numRows = data.size();
+		for(; i < numRows; i++) {
+			dataFrame.addRow(data.get(i), data.get(i));
+		}
+		
+		return dataFrame;
+	}
 }
