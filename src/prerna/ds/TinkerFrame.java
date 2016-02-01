@@ -2141,7 +2141,7 @@ public class TinkerFrame implements ITableDataFrame {
 		// get all the levels
 		getHeaders();
 		Vector <String> finalColumns = new Vector<String>();
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(this.headerNames, this.columnsToSkip, g);
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(getSelectors(), g);
 		
 		List<Object> itemToKeep = new ArrayList<>(1);
 		itemToKeep.add(value);
