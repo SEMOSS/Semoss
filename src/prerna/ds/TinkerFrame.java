@@ -779,11 +779,11 @@ public class TinkerFrame implements ITableDataFrame {
 	
 	public TinkerFrame(String[] headerNames, Hashtable<String, Set<String>> edgeHash) {
 		this.headerNames = headerNames;
-		mergeEdgeHash(edgeHash);
 		g = TinkerGraph.open();
 		g.createIndex(Constants.ID, Vertex.class);
 		g.createIndex(Constants.ID, Edge.class);
 		g.variables().set(Constants.HEADER_NAMES, headerNames);
+		mergeEdgeHash(edgeHash);
 	}			 
 
 	public TinkerFrame() {
