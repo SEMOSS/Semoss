@@ -182,7 +182,7 @@ public class ImportDataProcessor {
 
 		//addNewInstances to solr
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(dbName); 
-		Utility.addtoInstance(engine);
+		Utility.addToSolrInstanceCore(engine);
 	}
 
 	public void processCreateNew(IMPORT_TYPE importType, String customBaseURI, String fileNames, String dbName, String mapFile, String dbPropFile, String questionFile, DB_TYPE dbType, SQLQueryUtil.DB_TYPE dbDriverType, boolean allowDuplicates) 

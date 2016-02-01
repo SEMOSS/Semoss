@@ -1574,8 +1574,15 @@ public class TinkerFrame implements ITableDataFrame {
 	
 	protected String[] getHeaders()
 	{
-		if(this.headerNames == null)
+		if(this.headerNames == null) {
 			headerNames =  (String[])(g.variables().get(Constants.HEADER_NAMES).get());
+		}
+		if(columnsToSkip != null && !columnsToSkip.isEmpty()) {
+			List<String> headers = new ArrayList<String>();
+			headers.addAll(Arrays.asList(headerNames));
+			headers.removeAll(columnsToSkip);
+			return headers.toArray(new String[]{});
+		}
 		return headerNames;
 	}
 
@@ -2083,7 +2090,7 @@ public class TinkerFrame implements ITableDataFrame {
 	@Override
 	public void setColumnsToSkip(List<String> columnHeaders) {
 		if(columnHeaders != null)
-			this.columnsToSkip.addAll(columnHeaders);
+			this.columnsToSkip = columnHeaders;
 	}
 
 	@Override
@@ -2181,7 +2188,6 @@ public class TinkerFrame implements ITableDataFrame {
 	}
 
 	public Object[] getFilterModel() {
-		
 		Iterator<Object[]> iterator = this.iterator(true);
 		
 		int length = this.headerNames.length;
