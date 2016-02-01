@@ -65,7 +65,15 @@ public final class MatrixRegressionHelper{
 			for(j = variableStartCol; j< listNumCols; j++) {
 				if(j != bIndex) {
 					if(oldRow[j] != null && !oldRow[j].toString().trim().isEmpty()) {
-						A[i][outIndex] = ((Number)oldRow[j]).doubleValue();
+						try {
+							A[i][outIndex] = ((Number)oldRow[j]).doubleValue();
+						} catch(ClassCastException ex1) {
+							try {
+								A[i][outIndex] = Double.parseDouble(oldRow[j].toString());
+							} catch(NumberFormatException ex2) {
+								throw new IllegalArgumentException("Value " + oldRow[j].toString() + " is not a valid number");
+							}
+						}
 					} else {
 						A[i][outIndex] = 0.0;
 					}

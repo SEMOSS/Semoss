@@ -643,11 +643,11 @@ public class Utility {
 				LOGGER.info(engineToAdd.getEngineName() + " is reloading solr");
 
 				try {
-					addtoInstance(engineToAdd);
+					addToSolrInstanceCore(engineToAdd);
 				} catch (ParseException e) {
 					e.printStackTrace();
 				}
-				addToInsight(engineToAdd, path);
+				addToSolrInsightCore(engineToAdd, path);
 			}
 			if(smssProp){
 				LOGGER.info(engineToAdd.getEngineName() + " is changing boolean on smss");
@@ -682,7 +682,7 @@ public class Utility {
 	}
 		
 		
-	public static void addtoInstance(IEngine engineToAdd) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, ParseException{
+	public static void addToSolrInstanceCore(IEngine engineToAdd) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, ParseException{
 		SolrIndexEngine solrE = null;
 
 		String engineName = engineToAdd.getEngineName();
@@ -757,14 +757,12 @@ public class Utility {
 				}
 				fieldData.put(SolrIndexEngine.INSTANCES, instancesList);
 				
-				
 				// case when dumb data is loaded
 				if(instancesList.isEmpty()) {
 					continue;
 				}
 				
 				try {
-					System.out.println(newId);
 					solrE.addInstance(newId, fieldData);
 				} catch (SolrServerException | IOException e) {
 					e.printStackTrace();
@@ -773,7 +771,7 @@ public class Utility {
 		}
 	}
 
-	public static void addToInsight(IEngine engineToAdd, String path) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+	public static void addToSolrInsightCore(IEngine engineToAdd, String path) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
 		SolrIndexEngine solrE = null;
 		SolrDocumentExportWriter writer = null;
 			String engineName = engineToAdd.getEngineName();
