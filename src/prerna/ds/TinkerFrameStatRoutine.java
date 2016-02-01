@@ -103,7 +103,7 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 	 */
 	private void addStatColumnToTinker(TinkerFrame tinker, String columnHeader, String mathType, String newColumnName, String valueColumn) {
 				
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(tinker.getColumnHeaders(), tinker.columnsToSkip, tinker.g);
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(tinker.getSelectors(), tinker.g);
 		GraphTraversal statIterator = (GraphTraversal)builder.executeScript(tinker.g);
 		
 		statIterator = statIterator.group().by(__.select(columnHeader).values(Constants.NAME)).as(PRIMARY_SELECTOR);
@@ -129,39 +129,39 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 		}
 		
 		
-		if(statIterator.hasNext()) {
-			
-			//the result of the graph traversal
-			Map<String, Map<Object, Object>> resultMap;
-			Map<Object, Object> groupByMap;
-			
-			//Count is a special case
-//			if(mathType.toUpperCase().equals(COUNT)) {
+//		if(statIterator.hasNext()) {
+//			
+//			//the result of the graph traversal
+//			Map<String, Map<Object, Object>> resultMap;
+//			Map<Object, Object> groupByMap;
+//			
+//			//Count is a special case
+////			if(mathType.toUpperCase().equals(COUNT)) {
+////				groupByMap = (Map<Object, Object>)statIterator.next();
+////			} else {
 //				groupByMap = (Map<Object, Object>)statIterator.next();
-//			} else {
-				groupByMap = (Map<Object, Object>)statIterator.next();
-//				groupByMap = resultMap.get(PRIMARY_SELECTOR);
-//			}
-			
-			//create the edgehash associated with the new result map
-			Map<String, Set<String>> newEdgeHash = new HashMap<String, Set<String>>(1);
-			Set<String> edgeSet = new HashSet<String>(1);
-			edgeSet.add(newColumnName);
-			
-			//merge the new edge hash with the existing one in tinker
-			newEdgeHash.put(columnHeader, edgeSet);			
-			tinker.mergeEdgeHash(newEdgeHash);
-			
-			//add that relationship to the tinker graph
-			for(Object key : groupByMap.keySet()) {
-			
-				Map<String, Object> newRow = new HashMap<String, Object>(2);
-				newRow.put(columnHeader, key);
-				newRow.put(newColumnName, groupByMap.get(key));
-				
-				tinker.addRelationship(newRow, newRow);
-			}			
-		}
+////				groupByMap = resultMap.get(PRIMARY_SELECTOR);
+////			}
+//			
+//			//create the edgehash associated with the new result map
+//			Map<String, Set<String>> newEdgeHash = new HashMap<String, Set<String>>(1);
+//			Set<String> edgeSet = new HashSet<String>(1);
+//			edgeSet.add(newColumnName);
+//			
+//			//merge the new edge hash with the existing one in tinker
+//			newEdgeHash.put(columnHeader, edgeSet);			
+//			tinker.mergeEdgeHash(newEdgeHash);
+//			
+//			//add that relationship to the tinker graph
+//			for(Object key : groupByMap.keySet()) {
+//			
+//				Map<String, Object> newRow = new HashMap<String, Object>(2);
+//				newRow.put(columnHeader, key);
+//				newRow.put(newColumnName, groupByMap.get(key));
+//				
+//				tinker.addRelationship(newRow, newRow);
+//			}			
+//		}
 	}
 
 	@Override

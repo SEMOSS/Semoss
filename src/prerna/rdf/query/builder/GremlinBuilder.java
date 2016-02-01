@@ -15,6 +15,7 @@ import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
+import org.apache.tinkerpop.gremlin.process.traversal.step.util.Tree;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
@@ -29,14 +30,12 @@ public class GremlinBuilder {
 	private static final Logger LOGGER = LogManager.getLogger(GremlinBuilder.class.getName());
 	
 //	String script = "g.traversal().V()";
-	Graph g;
-    GraphTraversal gt;
-
-	public List <String> selector = new Vector<String>();
-	String where = "";
-	
-	GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
+	public Graph g;
+    public GraphTraversal gt;
+	public List <String> selector = new Vector<String>();	
+	private GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
 	Hashtable nodeHash = new Hashtable();
+//	private Set<String> filterSet;
 	
 	//the range of the graph to execute on
 	int startRange = -1;
@@ -100,8 +99,11 @@ public class GremlinBuilder {
 			startNode = metaT.next();
 			String startType = startNode.property(Constants.NAME).value()+"";
 			
-			gt = gt.has(Constants.TYPE, startType);
-			gt = gt.as(startType);
+			gt = gt.has(Constants.TYPE, startType).as(startType);
+			Object filtered = startNode.value(Constants.FILTER);
+			if((Boolean)filtered == true) {
+				gt = gt.not(__.in().has(Constants.TYPE, Constants.FILTER));
+			}
 //			travelledEdges.add(startType);
 			gt = visitNode(startNode, gt, travelledEdges, new Integer(0));
 		}
@@ -124,7 +126,12 @@ public class GremlinBuilder {
 				
 //				gt1 = gt1.out().has(Constants.TYPE, node).as(node).where(__.in().has(Constants.TYPE, Constants.FILTER).count().is(0));
 				
-				gt1 = gt1.out().has(Constants.TYPE, node).as(node).where(__.not(__.in().has(Constants.TYPE, Constants.FILTER)));
+				gt1 = gt1.out().has(Constants.TYPE, node).as(node);//.where(__.not(__.in().has(Constants.TYPE, Constants.FILTER)));
+				
+				Object filtered = nodeV.value(Constants.FILTER);
+				if((Boolean)filtered == true) {
+					gt1 = gt1.not(__.in().has(Constants.TYPE, Constants.FILTER));
+				}
 
 				travelledEdges.add(edgeKey);
 				gt1 = visitNode(nodeV, gt1, travelledEdges, recursionCount);
@@ -136,13 +143,19 @@ public class GremlinBuilder {
 		}
 		
 		GraphTraversal<Vertex, Vertex> upstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).in(TinkerFrame.META);
-		while(upstreamIt.hasNext()){
+		while(upstreamIt.hasNext()) {
 			Vertex nodeV = upstreamIt.next();
 			String node = nodeV.property(Constants.NAME).value()+"";
 			String edgeKey = node + ":::" + origName;
 			if(!travelledEdges.contains(edgeKey)){
 				System.out.println("travelling up to " + node);
 				gt1 = gt1.in().has(Constants.TYPE, node).as(node);
+				
+				Object filtered = nodeV.value(Constants.FILTER);
+				if((Boolean)filtered == true) {
+					gt1 = gt1.not(__.in().has(Constants.TYPE, Constants.FILTER));
+				}
+				
 				travelledEdges.add(edgeKey);
 				gt1 = visitNode(nodeV, gt1, travelledEdges, recursionCount);
 				
@@ -225,19 +238,19 @@ public class GremlinBuilder {
 	
 	private void appendSelectors()
     {
-           if(selector.size() == 1){
-                  gt = gt.select(selector.get(0));
+       if(selector.size() == 1){
+              gt = gt.select(selector.get(0));
+       }
+       else if(selector.size() == 2){
+              gt = gt.select(selector.get(0), selector.get(1));
+       }
+       else if(selector.size() >= 3) {
+    	   String[] selectorArr = new String[selector.size() - 2];
+           for(int i = 2; i < selector.size(); i++) {
+        	   selectorArr[i-2] = selector.get(i);
            }
-           else if(selector.size() == 2){
-                  gt = gt.select(selector.get(0), selector.get(1));
-           }
-           else if(selector.size() >= 3) {
-        	   String[] selectorArr = new String[selector.size() - 2];
-               for(int i = 2; i < selector.size(); i++) {
-            	   selectorArr[i-2] = selector.get(i);
-               }
-               gt = gt.select(selector.get(0), selector.get(1), selectorArr);
-           }
+           gt = gt.select(selector.get(0), selector.get(1), selectorArr);
+       }
     }
 
 	
@@ -285,36 +298,30 @@ public class GremlinBuilder {
 		return gtR;
 	}	
 	
-	public static GremlinBuilder prepareGenericBuilder(String[] headerNames, List<String> columnsToSkip, Graph g){
+	/**
+	 * 
+	 * @param headerNames
+	 * @param columnsToSkip
+	 * @param g
+	 * @param filterSet
+	 * @return
+	 */
+	public static GremlinBuilder prepareGenericBuilder(List<String> selectors, Graph g){
 		// get all the levels
-		Vector <String> finalColumns = new Vector<String>();
 		GremlinBuilder builder = new GremlinBuilder(g);
 
 		//add edges if edges exist
-		if(headerNames.length > 1) {
+		if(selectors.size() > 1) {
+//			builder.setFilters(filterSet);
 			builder.addNodeEdge();
 		} else {
 			//no edges exist, add single node to builder
-			builder.addNode(headerNames[0]);
-		}
-
-		// add everything that you need
-		for(int colIndex = 0;colIndex < headerNames.length;colIndex++) // add everything you want first
-		{
-			if(!columnsToSkip.contains(headerNames[colIndex])) {
-				finalColumns.add(headerNames[colIndex]);
-			}
+			builder.addNode(selectors.get(0));
 		}
 
 		// now add the projections
-		builder.addSelector(finalColumns);
+		builder.addSelector(selectors);
 
-		// add the filters next
-//		for(int colIndex = 0;colIndex < headerNames.length;colIndex++)
-//		{
-//			if(filterHash.containsKey(headerNames[colIndex]))
-//				builder.addFilter(headerNames[colIndex], filterHash.get(headerNames[colIndex]));
-//		}
 		return builder;
 	}
 }
