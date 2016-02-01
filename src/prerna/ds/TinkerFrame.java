@@ -96,17 +96,17 @@ public class TinkerFrame implements ITableDataFrame {
 	public static void main(String [] args) throws Exception
 	{
 		
-//		TinkerFrame t3 = new TinkerFrame();
+		TinkerFrame t3 = new TinkerFrame();
 //		String fileName = "C:\\Users\\rluthar\\Documents\\Movie Results.xlsx";
 //		TinkerFrame t = load2Graph4Testing(fileName);
 //		t.openSandbox();
 //		testGroupBy();
-		testFilter();
+		//testFilter();
 //		new TinkerFrame().doTest();
 		//t3.writeToFile();
 		//t3.readFromFile();
 		//t3.doTest();
-//		t3.tryCustomGraph();
+		t3.tryCustomGraph();
 //		t3.tryFraph();
 		/*
 		Configuration config = new BaseConfiguration();
@@ -238,6 +238,11 @@ public class TinkerFrame implements ITableDataFrame {
 						upsertEdge(parVertex, childVertex);	
 					}
 				}
+				Map <String, Set<String>> edges = new Hashtable <String, Set<String>>();
+				Set set = new HashSet();
+				set.add(childTypeName);
+				edges.put(parentTypeName, set);
+				mergeEdgeHash(edges);
 			}
 			
 			else {
@@ -316,7 +321,15 @@ public class TinkerFrame implements ITableDataFrame {
 		
 		headerNames = types;
 
-		getRawData();
+		Vector <String> cols = new Vector<String>();
+		cols.add("Capability"); 
+		cols.add("Business Process");
+		//, "Activity", "DO", "System"};
+
+		//getRawData();
+		Iterator out = getIterator(cols);
+		if(out.hasNext())
+			System.out.println("Output is..  " + out.next());
 	}
 
 	private void tryBuilder()
@@ -1635,6 +1648,7 @@ public class TinkerFrame implements ITableDataFrame {
 	public Iterator<Object[]> iterator(boolean getRawData) {
 		return new TinkerFrameIterator(headerNames, columnsToSkip, g, getRawData);
 	}
+	
 
 	@Override
 	public Iterator<List<Object[]>> uniqueIterator(String columnHeader,
@@ -2238,6 +2252,22 @@ public class TinkerFrame implements ITableDataFrame {
 
 	public Map<? extends String, ? extends Object> getGraphOutput() {
 		return createVertStores();
+	}
+	
+	public Iterator getIterator(Vector <String> columns)
+	{
+		Vector <String> columnsToSkip = new Vector<String>();
+		for(int colIndex = 0;colIndex < headerNames.length;colIndex++)
+		{
+			if(!columns.contains(headerNames[colIndex]))
+				columnsToSkip.add(headerNames[colIndex]);
+		}
+		
+		// the columns here are the columns we want to keep
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(headerNames, columnsToSkip, g);
+		
+		return builder.executeScript(g);
+		
 	}
 	
 	/*
