@@ -34,31 +34,19 @@ public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>>
 	 */
 	public UniqueScaledTinkerFrameIterator(
 			String columnName,
-			String[] headers, 
-			List<String> columnsToSkip, 
+			List<String> selectors, 
 			Graph g, 
 			Double[] maxArr, 
 			Double[] minArr) {
-		this.headerNames = headers;
 		this.columnNameIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(headerNames, columnName);
 		this.maxArr = maxArr;
 		this.minArr = minArr;
-		this.gt = openTraversal(headers, columnsToSkip, g);
+		this.gt = openTraversal(selectors, g);
 	}
 	
-	private GraphTraversal openTraversal(String[] headers, List<String> columnsToSkip, Graph g){
-		Vector <String> finalColumns = new Vector<String>();
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(headers, columnsToSkip, g);
-
-		// add everything that you need
-		for(int colIndex = 0;colIndex < headerNames.length;colIndex++) // add everything you want first
-		{
-			if(!columnsToSkip.contains(headerNames[colIndex])) {
-				finalColumns.add(headerNames[colIndex]);
-			}
-		}
-		
-		this.finalColumns = finalColumns.toArray(new String[0]);
+	private GraphTraversal openTraversal(List<String> selectors, Graph g){
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(selectors, g);		
+		this.finalColumns = selectors.toArray(new String[0]);//finalColumns.toArray(new String[0]);
 
 		//finally execute it to get the executor
 		GraphTraversal <Vertex, Map<String, Object>> gt = (GraphTraversal <Vertex, Map<String, Object>>)builder.executeScript(g);
