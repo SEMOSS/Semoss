@@ -14,7 +14,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Set;
 
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
@@ -72,7 +71,6 @@ public class SolrIndexEngine {
 
 	// Schema Field Names
 	public static final String ID = "id";
-//	public static final String STORAGE_NAME = "storage_name";
 	public static final String STORAGE_NAME = "name";
 	public static final String INDEX_NAME = "index_name";
 	public static final String CREATED_ON = "created_on";
@@ -548,12 +546,6 @@ public class SolrIndexEngine {
 				LOGGER.info("SpellingParams.SPELLCHECK_PREFIX set to true");
 			}
 			
-			//////// AUTO-COMPLETE
-//			if (queryOptions.get(SpellingParams.) != null && (boolean) queryOptions.get()){
-//				
-//			}
-			
-
 			//////// HIGHLIGHTING  
 			if (queryOptions.get(HighlightParams.HIGHLIGHT) != null) {
 				Q.set(HighlightParams.HIGHLIGHT, "true");
@@ -726,11 +718,6 @@ public class SolrIndexEngine {
 		
 		LOGGER.info("Suggestions include::: " + suggestions);
 		return suggestions;
-	}
-	
-	private Map<String, Object> autoCompleteDocument(Map<String, Object> queryData){
-		
-		return null;
 	}
 	
 	/**
