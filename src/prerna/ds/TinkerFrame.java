@@ -1792,7 +1792,6 @@ public class TinkerFrame implements ITableDataFrame {
 	public void filter(String columnHeader, List<Object> filterValues) {
 		filterSet.add(columnHeader);
 		
-		
 		Vertex filterVertex = upsertVertex(Constants.FILTER, Constants.FILTER, Constants.FILTER);
 		
 		for(int i = 0 ; i < filterValues.size(); i++) {
@@ -2026,40 +2025,15 @@ public class TinkerFrame implements ITableDataFrame {
 		// get all the levels
 		getHeaders();
 		Vector <String> finalColumns = new Vector<String>();
-		GremlinBuilder builder = new GremlinBuilder(g);
-		builder.setRange(startRange, endRange);
-		
-		
-		// add everything that you need
-		for(int colIndex = 0;colIndex < headerNames.length;colIndex++) // add everything you want first
-		{
-			if(colIndex + 1 < headerNames.length)
-				builder.addEdge(headerNames[colIndex], headerNames[colIndex+1]);
-			else if(headerNames.length == 1)
-				builder.addNode(headerNames[0]);			
-			if(!columnsToSkip.contains(headerNames[colIndex]))
-				finalColumns.add(headerNames[colIndex]);
-		}
-		
-		// now add the projections
-		builder.addSelector(finalColumns);
-		
-		// add the filters next
-//		for(int colIndex = 0;colIndex < headerNames.length;colIndex++)
-//		{
-//			if(filterHash.containsKey(headerNames[colIndex]))
-//				builder.addFilter(headerNames[colIndex], filterHash.get(headerNames[colIndex]));
-//		}
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(this.headerNames, this.columnsToSkip, g);
 		
 		List<Object> itemToKeep = new ArrayList<>(1);
 		itemToKeep.add(value);
 		
 		builder.addRestriction(columnHeader, itemToKeep);
 		
-		
 		//finally execute it to get the executor
 		GraphTraversal <Vertex, Map<String, Object>> gt = (GraphTraversal <Vertex, Map<String, Object>>)builder.executeScript(g);
-		
 		
 		if(gt.hasNext())
 			retVector = new Vector();
