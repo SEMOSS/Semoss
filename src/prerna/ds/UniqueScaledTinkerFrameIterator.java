@@ -1,10 +1,8 @@
 package prerna.ds;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
@@ -12,14 +10,13 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.rdf.query.builder.GremlinBuilder;
-import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 
 public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>> {
 
 	private GraphTraversal gt;
 	private int columnNameIndex;
-	private String[] headerNames;
+	private List<String> selectors;
 	private String[] finalColumns;
 	
 	private Double[] maxArr;
@@ -38,7 +35,8 @@ public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>>
 			Graph g, 
 			Double[] maxArr, 
 			Double[] minArr) {
-		this.columnNameIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(headerNames, columnName);
+		this.selectors = selectors;
+		this.columnNameIndex = selectors.indexOf(columnName);
 		this.maxArr = maxArr;
 		this.minArr = minArr;
 		this.gt = openTraversal(selectors, g);
