@@ -1,13 +1,10 @@
 package prerna.ds;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -65,7 +62,6 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 			for(int colIndex = 0;colIndex < selectors.size();colIndex++) {
 				Map<String, Object> mapData = (Map<String, Object>)data; //cast to map
 				retObject[colIndex] = ((Vertex)mapData.get(selectors.get(colIndex))).property(dataType).value();
-
 			}
 		} else {
 			retObject[0] = ((Vertex)data).property(dataType).value();
