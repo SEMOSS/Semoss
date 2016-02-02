@@ -1,14 +1,17 @@
 package prerna.algorithm.learning.unsupervised.clustering;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerVertexProperty;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.ITableDataFrame;
@@ -16,6 +19,8 @@ import prerna.algorithm.learning.util.Cluster;
 import prerna.ds.BTreeDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.om.SEMOSSParam;
+import prerna.rdf.query.builder.GremlinBuilder;
+import prerna.util.Constants;
 
 public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 
@@ -204,28 +209,37 @@ public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 		
 		// calculate inner-cluster similarity
 		double innerClusterSimilairty = 0;
-		Iterator<List<Object[]>> it = data.scaledUniqueIterator(instanceType, false);
-		while(it.hasNext()) {
-			List<Object[]> instance = it.next();
-			Object instanceName = instance.get(0)[instanceIndex];
-			List<Object[]> instanceResult = results.getData(instanceType, instanceName);
-			int clusterIndex = -1;
-			if(results instanceof TinkerFrame) {
-				clusterIndex = (int) ((TinkerVertexProperty) instanceResult.get(0)[1]).value();
-				
-				for(int i = 0; i < instanceResult.size(); i++) {
-					TinkerVertexProperty x = (TinkerVertexProperty) (instanceResult.get(i)[0]);
-					String a = x.value() + "";
-					System.out.println(a);
-					if(a.equals(instanceName.toString())) {
-						System.out.println("here");
-					}
-				}
-			} else if(results instanceof BTreeDataFrame) {
-				clusterIndex = (int) instanceResult.get(0)[1];
+		if(results instanceof BTreeDataFrame) {
+			Iterator<List<Object[]>> it = data.scaledUniqueIterator(instanceType, false);
+			while(it.hasNext()) {
+				List<Object[]> instance = it.next();
+				Object instanceName = instance.get(0)[instanceIndex];
+				List<Object[]> instanceResult = results.getData(instanceType, instanceName);
+				int clusterIndex = (int) instanceResult.get(0)[1];
+				double simVal = clusters.get(clusterIndex).getSimilarityForInstance(instance, attributeNames, isNumeric, instanceIndex);
+				innerClusterSimilairty += simVal / clusters.get(clusterIndex).getNumInstances();
 			}
-			double simVal = clusters.get(clusterIndex).getSimilarityForInstance(instance, attributeNames, isNumeric, instanceIndex);
-			innerClusterSimilairty += simVal / clusters.get(clusterIndex).getNumInstances();
+		} else if(results instanceof TinkerFrame){
+			String[] headers = results.getColumnHeaders();
+			GremlinBuilder builder = ((TinkerFrame) results).getGremlinBuilder(Arrays.asList(results.getColumnHeaders()));
+			builder.setGroupBySelector(instanceType);
+			GraphTraversal gt = ((TinkerFrame) results).executeGremlinBuilder(builder);
+			Map<Object, Object> groupByMap = null;
+			if(gt.hasNext()) {
+				groupByMap = (Map<Object, Object>) gt.next();
+			}
+			
+			Iterator<List<Object[]>> it = data.scaledUniqueIterator(instanceType, false);
+			while(it.hasNext()) {
+				List<Object[]> instance = it.next();
+				Object instanceName = instance.get(0)[instanceIndex];
+				List<Object[]> instanceResult = getRowsForInstance(groupByMap, instanceName, headers);
+				int clusterIndex = (int) instanceResult.get(0)[1];
+				double simVal = clusters.get(clusterIndex).getSimilarityForInstance(instance, attributeNames, isNumeric, instanceIndex);
+				innerClusterSimilairty += simVal / clusters.get(clusterIndex).getNumInstances();
+			}
+		} else {
+			throw new IllegalArgumentException("Unknown data frame");
 		}
 
 		// calculate cluster-cluster similarity
@@ -240,6 +254,23 @@ public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 		}
 		
 		return innerClusterSimilairty/numClusters + clusterToClusterSimilarity / ( (double) (numClusters * (numClusters-1) /2));
+	}
+	
+	private List<Object[]> getRowsForInstance(Map<Object, Object> groupByMap, Object instanceName, String[] headers) {
+		List<Map> instanceArrayMap = (List<Map>) groupByMap.get(instanceName);
+		
+		int size = instanceArrayMap.size();
+		List<Object[]> retVector = new Vector<Object[]>(size);
+		for(int i = 0; i < size; i++) {
+			Map rowMap = instanceArrayMap.get(i);
+			Object[] row = new Object[headers.length];
+			for(int j = 0; j < headers.length; j++) {
+				row[j] = ((Vertex) rowMap.get(headers[j])).value(Constants.NAME);
+			}
+			retVector.add(row);
+		}
+		
+		return retVector;
 	}
 	
 	private ITableDataFrame runClusteringRoutine(ITableDataFrame data, int numClusters, List<Cluster> clusters, Map<Integer, Double> previousResults) {
