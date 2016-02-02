@@ -14,6 +14,7 @@ import prerna.util.Constants;
 
 public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>> {
 
+	private String dataType;
 	private GraphTraversal gt;
 	private int columnNameIndex;
 	private List<String> selectors;
@@ -27,15 +28,18 @@ public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>>
 	/**
 	 * Constructor for the BTreeIterator
 	 * Uses the leaves in the tree to traverse up and get the data corresponding to a row if the tree was flattened
+	 * @param getRawData 
 	 * @param typeRoot			A list of nodes corresponding to the leaves in the tree
 	 */
 	public UniqueScaledTinkerFrameIterator(
 			String columnName,
+			boolean getRawData, 
 			List<String> selectors, 
 			Graph g, 
 			Double[] maxArr, 
 			Double[] minArr) {
 		this.selectors = selectors;
+		this.dataType = getRawData ? Constants.VALUE : Constants.NAME;
 		this.columnNameIndex = selectors.indexOf(columnName);
 		this.maxArr = maxArr;
 		this.minArr = minArr;
@@ -95,7 +99,7 @@ public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>>
 		if(data instanceof Map) {
 			for(int colIndex = 0; colIndex < finalColumns.length; colIndex++) {
 				Map<String, Object> mapData = (Map<String, Object>) data; //cast to map
-				Object value = ((Vertex)mapData.get(finalColumns[colIndex])).property(Constants.VALUE).value();
+				Object value = ((Vertex)mapData.get(finalColumns[colIndex])).property(dataType).value();
 				if(maxArr[colIndex] != null && minArr[colIndex] != null && value instanceof Number) {
 					if(value instanceof Number) {
 						row[colIndex] = ( ((Number)value).doubleValue() - minArr[colIndex])/(maxArr[colIndex] - minArr[colIndex]);
@@ -108,7 +112,7 @@ public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>>
 				}
 			}
 		} else {
-			row[0] = ((Vertex)data).property(Constants.VALUE).value();
+			row[0] = ((Vertex)data).property(dataType).value();
 		}
 		
 		return row;
