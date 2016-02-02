@@ -35,6 +35,7 @@ public class JoinTransformation extends AbstractTransformation {
 	DataMakerComponent dmc;
 	ITableDataFrame dm;
 	ITableDataFrame nextDm;
+	List<String> prevHeaders = null;
 	List<String> addedColumns = new ArrayList<String>();
 
 	IMatcher matcher;
@@ -48,12 +49,15 @@ public class JoinTransformation extends AbstractTransformation {
 	}
 
 	@Override
-	public void setDataMakers(IDataMaker... dm){
+	public void setDataMakers(IDataMaker... dms){
 		if(preTransformation) {
-			this.dm = (ITableDataFrame) dm[0];
+			this.dm = (ITableDataFrame) dms[0];
+			this.prevHeaders = Arrays.asList(dm.getColumnHeaders());
 		} else {
-			this.dm = (ITableDataFrame) dm[0];
-			this.nextDm = (ITableDataFrame) dm[1];
+			this.dm = (ITableDataFrame) dms[0];
+			if(dms.length>1){
+				this.nextDm = (ITableDataFrame) dms[1];
+			}
 		}
 	}
 
@@ -74,7 +78,7 @@ public class JoinTransformation extends AbstractTransformation {
 		}
 
 		//Store the new columns that will be added to dm
-		if(nextDm != null) {
+		if(nextDm != null) { // this will only be the case for BTREE
 			String[] allCols = nextDm.getColumnHeaders();
 			for(int i = 0; i < allCols.length; i++) {
 				String val = allCols[i];
@@ -111,6 +115,17 @@ public class JoinTransformation extends AbstractTransformation {
 				} catch (InvocationTargetException e) {
 					e.printStackTrace();
 				}
+			}
+			else { // instance of Tinker
+				// need to get the added columns
+				String[] allCols = dm.getColumnHeaders();
+				for(int i = 0; i < allCols.length; i++) {
+					String val = allCols[i];
+					if(!this.prevHeaders.contains(val)) {
+						addedColumns.add(val);
+					}
+				}
+				//((TinkerFrame)dm).removeExtraneousNodes();
 			}
 		} else {
 			QueryBuilderData builderData = dmc.getBuilderData();
@@ -183,7 +198,7 @@ public class JoinTransformation extends AbstractTransformation {
 		joinCopy.addedColumns = this.addedColumns;
 		//need this in copy for btree join method
 		joinCopy.matcher = this.matcher;
-		
+
 		if(props != null) {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
 			String propCopy = gson.toJson(props);
