@@ -1977,8 +1977,40 @@ public class TinkerFrame implements ITableDataFrame {
 
 	@Override
 	public void removeColumn(String columnHeader) {
-		//this will be tricky depending on how we want to maintain the edgehash
+		// A couple of thoughts from Bill Sutton
+		// there are quite a few interesting scenarios here
+		// the first question is: do we want to maintain duplicate rows after a column is removed? I could see yes and no depending on the scenario
+		// If yes, primary keys of some sort will have to be used. if the tinker already has PKs, we are good to go. Otherwise, we are probably best off just removing the column from the selectors since it will need PKs anyway
+		// If no, primary keys cause a big issue--would have to remove the nodes of interest and then clean up extra PKs
+		// If no and no primary keys we again have a couple scenarios. If the node is on the fringe of the tinker, good to go--just remove it. If the node is in the middle... not sure exactly what we can do--kind of similar to issue above (no and pks)
+
+		// For now, the most common use for this will be through explore when clicking through the metamodel. This scenario will also be don't keep duplicates, no pk, node is on the fringe. I am handling that here:
+		// Remove the actual nodes from tinker
+		LOGGER.info("REMOVING COLUMN :::: " + columnHeader);
+		GraphTraversal<Vertex, Vertex> instanceIt = g.traversal().V().has(Constants.TYPE, columnHeader);
+		while(instanceIt.hasNext()){
+			LOGGER.info("removing an instance");
+			instanceIt.next().remove();
+		}
+		// Remove the node from meta
+		GraphTraversal<Vertex, Vertex> metaIt = g.traversal().V().has(Constants.TYPE, META).has(Constants.NAME, columnHeader);
+		while(metaIt.hasNext()){
+			LOGGER.info("removing a meta... this should only happen once");
+			metaIt.next().remove();
+		}
+		// Remove the column from header names
+		String[] newHeaders = new String[this.headerNames.length-1];
+		int newHeaderIdx = 0;
+		for(int i = 0; i < this.headerNames.length; i++){
+			String name = this.headerNames[i];
+			if(!name.equals(columnHeader)){
+				newHeaders[newHeaderIdx] = name;
+				newHeaderIdx ++;
+			}
+		}
+		this.headerNames = newHeaders;
 	}
+
 
 	@Override
 	public void removeDuplicateRows() {
