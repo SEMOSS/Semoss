@@ -1785,7 +1785,7 @@ public class TinkerFrame implements ITableDataFrame {
 
 	@Override
 	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, boolean getRawData) {
-		return new UniqueScaledTinkerFrameIterator(columnHeader, getSelectors(), g, getMax(), getMin());
+		return new UniqueScaledTinkerFrameIterator(columnHeader, getRawData, getSelectors(), g, getMax(), getMin());
 	}
 
 	@Override
@@ -1809,15 +1809,11 @@ public class TinkerFrame implements ITableDataFrame {
 	@Override
 	public Double[] getColumnAsNumeric(String columnHeader) {
 		if(isNumeric(columnHeader)) {
-			List<String> columnsToSkip = new Vector<String>();
-			for(String header : headerNames) {
-				if(!header.equals(columnHeader)) {
-					columnsToSkip.add(header);
-				}
-			}
+			List<String> selectors = new Vector<String>();
+			selectors.add(columnHeader);
 			
 			List<Double> numericCol = new Vector<Double>();
-			TinkerFrameIterator it = new TinkerFrameIterator(getSelectors(), this.g);
+			TinkerFrameIterator it = new TinkerFrameIterator(selectors, this.g);
 			while(it.hasNext()) {
 				Object[] row = it.next();
 				numericCol.add( ((Number) row[0]).doubleValue() );
@@ -2142,37 +2138,31 @@ public class TinkerFrame implements ITableDataFrame {
 		Vector<Object[]> retVector = null;
 				
 		// get all the levels
-		getHeaders();
-		Vector <String> finalColumns = new Vector<String>();
+		String[] headers = getHeaders();
 		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(getSelectors(), g);
-		
-		List<Object> itemToKeep = new ArrayList<>(1);
-		itemToKeep.add(value);
-		
-		builder.addRestriction(columnHeader, itemToKeep);
-		
+		builder.setGroupBySelector(columnHeader);
 		//finally execute it to get the executor
-		GraphTraversal <Vertex, Map<String, Object>> gt = (GraphTraversal <Vertex, Map<String, Object>>)builder.executeScript(g);
+		GraphTraversal gt = (GraphTraversal) builder.executeScript(g);
 		
-		if(gt.hasNext())
-			retVector = new Vector();
-		
-		while(gt.hasNext())
-		{
-			Map<String, Object> data = gt.next();
-			Object [] retObject = new Object[finalColumns.size()];
-			for(int colIndex = 0;colIndex < finalColumns.size();colIndex++)
-			{
-				retObject[colIndex] = ((Vertex)data.get(finalColumns.get(colIndex))).property(Constants.VALUE);
+		if(gt.hasNext()) {
+			Map<Object, Object> groupByMap = (Map<Object, Object>) gt.next();
+			List<Map> instanceArrayMap = (List<Map>) groupByMap.get(value);
+			
+			int size = instanceArrayMap.size();
+			retVector = new Vector(size);
+			for(int i = 0; i < size; i++) {
+				Map rowMap = instanceArrayMap.get(i);
+				Object[] row = new Object[headers.length];
+				for(int j = 0; j < headers.length; j++) {
+					row[j] = ((Vertex) rowMap.get(headers[j])).value(Constants.NAME);
+				}
+				retVector.add(row);
 			}
-			retVector.add(retObject);
 		}
-		
 
 		return retVector;
-		
 	}
-
+	
 	@Override
 	public boolean isEmpty() {
 		return g.traversal().V().hasNext();
@@ -2426,4 +2416,13 @@ public class TinkerFrame implements ITableDataFrame {
 		
 		return dataFrame;
 	}
+	
+	public GremlinBuilder getGremlinBuilder(List<String> selectors) {
+		return GremlinBuilder.prepareGenericBuilder(selectors, g);
+	}
+
+	public GraphTraversal executeGremlinBuilder(GremlinBuilder builder) {
+		return (GraphTraversal) builder.executeScript(g);
+	}
+	
 }

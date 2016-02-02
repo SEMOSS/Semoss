@@ -1,21 +1,15 @@
 package prerna.rdf.query.builder;
 
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
-
-import javax.script.ScriptContext;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
-import org.apache.tinkerpop.gremlin.process.traversal.step.util.Tree;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
@@ -29,86 +23,81 @@ public class GremlinBuilder {
 
 	private static final Logger LOGGER = LogManager.getLogger(GremlinBuilder.class.getName());
 	
-//	String script = "g.traversal().V()";
 	public Graph g;
     public GraphTraversal gt;
-	public List <String> selector = new Vector<String>();	
+	public List<String> selector = new Vector<String>();	
 	private GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
-	Hashtable nodeHash = new Hashtable();
-//	private Set<String> filterSet;
-	
+	private Hashtable nodeHash = new Hashtable();
 	//the range of the graph to execute on
 	int startRange = -1;
 	int endRange = -1;
+	public String groupBySelector;
 	
+	
+	/**
+	 * Constructor for the GremlinBuilder class
+	 * @param g					The graph for the gremlin script to be executed on
+	 */
 	public GremlinBuilder(Graph g){
 		this.g = g;
 		this.gt = g.traversal().V();
 	}
 	
 	/**
-	 * 
-	 * @param type
-	 * @param alias
+	 * Adds the node for the gremlin traversal and assigns it an alias
+	 * @param type					The type becomes the alias for the node if an alias is not provided
+	 * @param alias					The varags parameter is only used for the first index if present
 	 */
 	public void addNode(String type, String...alias)
 	{
-		
-		
 		if(!nodeHash.containsKey(type))
 		{
-//			script = script + ".has('" + Constants.TYPE + "', '" + type +"')";
+			// adds a node as 
 			gt = gt.has(Constants.TYPE, type);
-			
 			String selector = type;
-			if(alias.length > 0)
+			if(alias.length > 0) {
 				selector = alias[0];
-			
-//			script = script + ".as('" + selector + "')";
+			}
 			gt = gt.as(selector);
 			
-			//nodeHash = type --> type?
 			nodeHash.put(type,  type);
 		}
 	}
 	
 	/**
-	 * 
-	 * @param fromType
-	 * @param toType
-	 */
-	public void addEdge(String fromType, String toType)
-	{
-		addNode(fromType);
-//		script = script + ".out()";
-		gt = gt.out();
-		addNode(toType);
-	}
-
-	/**
-	 * 
-	 * @param startNode
-	 * @param edgeHash
+	 * Adds the path for the gremlin builder based on the metamodel data in the graph
 	 */
 	public void addNodeEdge() {
 		List<String> travelledEdges = new Vector<String>();
 		
 		Vertex startNode;
+		// get the metamodel information from the graph
 		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META);
-		if(metaT.hasNext()) {
+		if(metaT.hasNext()) { //note: this is an if statement, not a while loop
+			// the purpose of this is to just get the start node for the traversal
 			startNode = metaT.next();
 			String startType = startNode.property(Constants.NAME).value()+"";
-			
 			gt = gt.has(Constants.TYPE, startType).as(startType);
+			
+			// there is a boolean at the metamodel level if this type has any filters
 			Object filtered = startNode.value(Constants.FILTER);
 			if((Boolean)filtered == true) {
+				// filtered edges have a type of filter
 				gt = gt.not(__.in().has(Constants.TYPE, Constants.FILTER));
 			}
-//			travelledEdges.add(startType);
+			// add the logic to traverse
 			gt = visitNode(startNode, gt, travelledEdges, new Integer(0));
 		}
 	}
 	
+	/**
+	 * Recursive method to go through and generate the path based on the metamodel data
+	 * @param orig						The start vertex for the path
+	 * @param gt1						The iterator for the graph traversal to get the results
+	 * @param travelledEdges			A list of the traveled edges
+	 * @param recursionCount			An integer to ensure every alias assigned is unique
+	 * @return							The iterator for the graph traversal based on the path
+	 */
 	private GraphTraversal visitNode(Vertex orig, GraphTraversal gt1, List<String> travelledEdges, Integer recursionCount) {
 		recursionCount++;
 		String origName = orig.property(Constants.NAME).value()+"";
@@ -118,15 +107,8 @@ public class GremlinBuilder {
 			String node = nodeV.property(Constants.NAME).value()+"";
 			String edgeKey = origName + ":::" + node;
 			if(!travelledEdges.contains(edgeKey)) {
-				System.out.println("travelling down to " + node);
-//				gt1 = gt1.out().has(Constants.TYPE, node).as(node);
-//				gt1 = gt1.out().has(Constants.TYPE, node).as(node).choose(__.as(node).in().has(Constants.TYPE, Constants.FILTER), //.out().has("TYPE", "Business Process"), // if this is true
-//						__.as(node).in().has(Constants.TYPE, "DUMMY"), //.out().has("TYPE", "Business Prcess"), // then do this
-//						__.as(node));  
-				
-//				gt1 = gt1.out().has(Constants.TYPE, node).as(node).where(__.in().has(Constants.TYPE, Constants.FILTER).count().is(0));
-				
-				gt1 = gt1.out().has(Constants.TYPE, node).as(node);//.where(__.not(__.in().has(Constants.TYPE, Constants.FILTER)));
+				LOGGER.debug("travelling down to " + node);
+				gt1 = gt1.out().has(Constants.TYPE, node).as(node);
 				
 				Object filtered = nodeV.value(Constants.FILTER);
 				if((Boolean)filtered == true) {
@@ -135,7 +117,8 @@ public class GremlinBuilder {
 
 				travelledEdges.add(edgeKey);
 				gt1 = visitNode(nodeV, gt1, travelledEdges, recursionCount);
-				System.out.println("returning home to " + origName);
+				
+				LOGGER.debug("returning home to " + origName);
 				gt1 = gt1.in().has(Constants.TYPE, origName).as(origName + (recursionCount));
 				gt1 = gt1.where(origName, org.apache.tinkerpop.gremlin.process.traversal.P.eq(origName + (recursionCount)));
 				recursionCount++;
@@ -148,7 +131,7 @@ public class GremlinBuilder {
 			String node = nodeV.property(Constants.NAME).value()+"";
 			String edgeKey = node + ":::" + origName;
 			if(!travelledEdges.contains(edgeKey)){
-				System.out.println("travelling up to " + node);
+				LOGGER.debug("travelling up to " + node);
 				gt1 = gt1.in().has(Constants.TYPE, node).as(node);
 				
 				Object filtered = nodeV.value(Constants.FILTER);
@@ -159,7 +142,7 @@ public class GremlinBuilder {
 				travelledEdges.add(edgeKey);
 				gt1 = visitNode(nodeV, gt1, travelledEdges, recursionCount);
 				
-				System.out.println("returning home to " + origName);
+				LOGGER.debug("returning home to " + origName);
 				gt1 = gt1.out().has(Constants.TYPE, origName).as(origName + (recursionCount));
 				gt1 = gt1.where(origName, org.apache.tinkerpop.gremlin.process.traversal.P.eq(origName + (recursionCount)));
 				recursionCount++;
@@ -169,73 +152,28 @@ public class GremlinBuilder {
 	}
 	
 	/**
-	 * 
-	 */
-	private Set<String> getUpstreamVerts(String nodeType, Map<String, Set<String>> edgeHash){
-		Set<String> retSet = new HashSet<String>();
-		
-		for(String key: edgeHash.keySet()){
-			Set<String> value = edgeHash.get(key);
-			if(value.contains(nodeType)){
-				retSet.add(key);
-			}
-		}
-		
-		return retSet;
-	}
-	
-	/**
-	 * 
+	 * Adds the selectors to be returned from the script
 	 * @param selectors
 	 */
 	public void addSelector(List selectors)
 	{
-		this.selector.addAll(selectors);
+		if(selectors != null) {
+			this.selector.addAll(selectors);
+		}
 	}
 	
 	/**
-	 * 
-	 * @param alias
-	 * @param itemsToFilter
+	 * Get the script that the graph traversal is executing
+	 * @return					The gremlin script for the traversal
 	 */
-	public void addFilter(String alias, List itemsToFilter)
-	{
-		engine.getBindings(ScriptContext.ENGINE_SCOPE).put(alias + Constants.FILTERS, itemsToFilter.toArray()); // set it into the context
-		gt = gt.where(__.as(alias)).has(Constants.NAME, org.apache.tinkerpop.gremlin.process.traversal.P.without(alias + Constants.FILTERS ));
-	}
-	
-	public void addFilter(String alias)
-	{
-//		engine.getBindings(ScriptContext.ENGINE_SCOPE).put(alias + Constants.FILTERS, "filterNode"); // set it into the context
-//		gt = gt.filter(__.as(alias)).in().has(Constants.TYPE, org.apache.tinkerpop.gremlin.process.traversal.P.without(alias + Constants.FILTERS));
-//		gt = gt.filter(__.as(alias).in().has(Constants.TYPE, org.apache.tinkerpop.gremlin.process.traversal.P.eq(alias + Constants.FILTERS)));
-//		gt = gt.filter(__.as(alias).inE().has(Constants.ID, "filterNode"));
-//		gt = gt.filter(g.traversal().V().in().has(Constants.TYPE, "filterNode"));
-//		gt = gt.choose(__.as(alias).in().has(Constants.TYPE, Constants.FILTER), //.out().has("TYPE", "Business Process"), // if this is true
-//					__.as(alias).in().has(Constants.TYPE, "DUMMY"), //.out().has("TYPE", "Business Prcess"), // then do this
-//					__.as(alias));  
-	}
-	
-	/**
-	 * 
-	 * @param alias
-	 * @param itemsToKeep
-	 * 
-	 * This adds to the script the values on which to traverse, i.e. traverse only when value is contained in itemsToKeep
-	 */
-	//TODO : give better name or integrate with addFilter method
-	public void addRestriction(String alias, List itemsToKeep) {
-		engine.getBindings(ScriptContext.ENGINE_SCOPE).put(alias + Constants.FILTERS, itemsToKeep.toArray()); // set it into the context
-		//need to change Constants.FILTERS
-//		script = script + ".where(__.as('" + alias + "').has('" + Constants.NAME + "', org.apache.tinkerpop.gremlin.process.traversal.P.within('" + alias + Constants.FILTERS + "')))";
-		gt = gt.where(__.as(alias)).has(Constants.NAME, org.apache.tinkerpop.gremlin.process.traversal.P.within(alias + Constants.FILTERS ));
-	}
-	
 	public String getScript()
 	{
 		return gt.toString();
 	}
 	
+	/**
+	 * Appends the selectors onto the graph traversal
+	 */
 	private void appendSelectors()
     {
        if(selector.size() == 1){
@@ -253,12 +191,20 @@ public class GremlinBuilder {
        }
     }
 
-	
+	/**
+	 * Generates the limit for the iterator with the offset being 0
+	 * @param endRange
+	 */
 	public void setRange(int endRange)
 	{
 		setRange(0, endRange);
 	}
 	
+	/**
+	 * Determine the offset and limit for the iterator
+	 * @param startRange				The offset for the iterator
+	 * @param endRange					The limit for the iterator
+	 */
 	public void setRange(int startRange, int endRange)
 	{
 		this.startRange = startRange;
@@ -268,42 +214,45 @@ public class GremlinBuilder {
 	
 	/**
 	 * 
-	 * @param g - the graph on which the script will be executed
-	 * @return
-	 * 
-	 * returns the graph traversal that is the result of executing the script on g
+	 * @param g					The graph on which the script is to be executed
+	 * @return					The graph traversal that is the result of executing the script on g
 	 */
 	public Iterator executeScript(Graph g)
 	{
-		long startTime = System.currentTimeMillis();
-		
-		if(startRange != -1) // add the range
-//			script = script +".range(" + startRange + "," + endRange + ")";
+		// add the range
+		if(startRange != -1) {
 			gt = gt.range(startRange, endRange);
+		}
 		
-		if(selector.size() > 0) // add the projections
+		// add the projections
+		if(selector.size() > 0) { 
 			appendSelectors();
+		}
 		
-		LOGGER.info("Script being executed...  " + gt);
-		GraphTraversal gtR = this.gt;
-//		try {
-//			engine.getBindings(ScriptContext.ENGINE_SCOPE).put("g", g);
-//			
-//			gt = (GraphTraversal)engine.eval(gt);
-//		} catch (ScriptException e) {
-//			e.printStackTrace();
-//		}
+		addGroupBy();
 		
-//		LOGGER.info("Script executed: "+(System.currentTimeMillis() - startTime)+" ms");
-		return gtR;
+		LOGGER.debug("Returning the graph traversal");
+		return this.gt;
 	}	
 	
+	public void addGroupBy() {
+		if(groupBySelector != null) {
+			gt.group().by(__.select(groupBySelector).values(Constants.NAME)).as("GROUP_BY");
+		}
+	}
+	
+	public String getGroupBySelector() {
+		return groupBySelector;
+	}
+
+	public void setGroupBySelector(String groupBySelector) {
+		this.groupBySelector = groupBySelector;
+	}
+
 	/**
 	 * 
-	 * @param headerNames
-	 * @param columnsToSkip
+	 * @param selectors
 	 * @param g
-	 * @param filterSet
 	 * @return
 	 */
 	public static GremlinBuilder prepareGenericBuilder(List<String> selectors, Graph g){
