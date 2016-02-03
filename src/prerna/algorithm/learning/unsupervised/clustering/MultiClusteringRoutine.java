@@ -223,7 +223,7 @@ public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 			String[] headers = results.getColumnHeaders();
 			GremlinBuilder builder = ((TinkerFrame) results).getGremlinBuilder(Arrays.asList(results.getColumnHeaders()));
 			builder.setGroupBySelector(instanceType);
-			GraphTraversal gt = ((TinkerFrame) results).executeGremlinBuilder(builder);
+			GraphTraversal gt = builder.executeScript();
 			Map<Object, Object> groupByMap = null;
 			if(gt.hasNext()) {
 				groupByMap = (Map<Object, Object>) gt.next();
