@@ -1,8 +1,12 @@
 package prerna.rdf.query.builder;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -90,19 +94,39 @@ public class GremlinBuilder {
 		}
 	}
 	
+//	public GraphTraversal addNodeEdge2() {
+//		List<String> travelledEdges = new Vector<String>();
+//		GraphTraversal graphtraversal = null;
+//		Vertex startNode;
+//		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META);
+//		if(metaT.hasNext()) {
+//			startNode = metaT.next();
+//			String startType = startNode.property(Constants.NAME).value()+"";
+//			
+//			graphtraversal = __.has(Constants.TYPE, startType).as(startType);
+//			Object filtered = startNode.value(Constants.FILTER);
+//			if((Boolean)filtered == true) {
+//				graphtraversal = graphtraversal.not(__.in().has(Constants.TYPE, Constants.FILTER));
+//			}
+//
+//			graphtraversal = visitNode(startNode, graphtraversal, travelledEdges, new Integer(0));
+//		}
+//		return graphtraversal;
+//	}
+	
 	/**
-	 * Recursive method to go through and generate the path based on the metamodel data
-	 * @param orig						The start vertex for the path
-	 * @param gt1						The iterator for the graph traversal to get the results
-	 * @param travelledEdges			A list of the traveled edges
-	 * @param recursionCount			An integer to ensure every alias assigned is unique
-	 * @return							The iterator for the graph traversal based on the path
+	 * 
+	 * @param orig
+	 * @param gt1
+	 * @param travelledEdges
+	 * @param recursionCount
+	 * @return
 	 */
 	private GraphTraversal visitNode(Vertex orig, GraphTraversal gt1, List<String> travelledEdges, Integer recursionCount) {
 		recursionCount++;
 		String origName = orig.property(Constants.NAME).value()+"";
 		GraphTraversal<Vertex, Vertex> downstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).out(TinkerFrame.META);
-		while (downstreamIt.hasNext()){
+		while (downstreamIt.hasNext()) {
 			Vertex nodeV = downstreamIt.next();
 			String node = nodeV.property(Constants.NAME).value()+"";
 			String edgeKey = origName + ":::" + node;
@@ -152,7 +176,52 @@ public class GremlinBuilder {
 	}
 	
 	/**
-	 * Adds the selectors to be returned from the script
+	 * 
+	 */
+	public void addIncompleteVertices() {
+		Vertex startNode;
+		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META);
+		if(metaT.hasNext()) {
+			startNode = metaT.next();
+			List<GraphTraversal> orTraversals = new ArrayList<>();
+			orTraversals = getIncompleteVertices(orTraversals, startNode);
+			gt = gt.or(orTraversals.toArray(new GraphTraversal[0])).as("deleteVerts");
+		}
+	}
+	
+	/**
+	 * 
+	 * @param orTraversals
+	 * @param orig
+	 * @return
+	 */
+	private List<GraphTraversal> getIncompleteVertices(List<GraphTraversal> orTraversals, Vertex orig) {
+		
+		GraphTraversal<Vertex, Vertex> downstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).out(TinkerFrame.META);
+		String origName = orig.property(Constants.NAME).value()+"";
+		while(downstreamIt.hasNext()) {
+			Vertex nodeV = downstreamIt.next();
+			String node = nodeV.property(Constants.NAME).value()+"";
+				
+			GraphTraversal g = __.has(Constants.TYPE, origName).out().not(__.has(Constants.TYPE, node));
+			orTraversals.add(g);
+			getIncompleteVertices(orTraversals, nodeV);
+		}
+		
+		GraphTraversal<Vertex, Vertex> upstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).in(TinkerFrame.META);
+		while(upstreamIt.hasNext()) {
+			Vertex nodeV = upstreamIt.next();
+			String node = nodeV.property(Constants.NAME).value()+"";
+			
+			GraphTraversal g = __.has(Constants.TYPE, origName).in().not(__.has(Constants.TYPE, node));
+			orTraversals.add(g);
+			getIncompleteVertices(orTraversals, nodeV);
+		}
+		return orTraversals;
+	}
+	 
+	/**
+	 * 
 	 * @param selectors
 	 */
 	public void addSelector(List selectors)
@@ -217,7 +286,7 @@ public class GremlinBuilder {
 	 * @param g					The graph on which the script is to be executed
 	 * @return					The graph traversal that is the result of executing the script on g
 	 */
-	public Iterator executeScript(Graph g)
+	public GraphTraversal executeScript()
 	{
 		// add the range
 		if(startRange != -1) {
@@ -272,4 +341,22 @@ public class GremlinBuilder {
 
 		return builder;
 	}
+	
+//	public static GraphTraversal getIncompleteVertices(List<String> selectors, Graph g) {
+//		GremlinBuilder builder = new GremlinBuilder(g);
+//		GraphTraversal gt = builder.addNodeEdge2();
+//		GraphTraversal gt2 = __.where(gt).path().V();
+////		selectors.remove("Role");
+////		builder.addSelector(selectors);
+////		builder.appendSelectors(gt);
+//		
+//		builder.gt = builder.gt.not(gt2).V().as("deleteVertices").select("deleteVertices");
+////		builder.appendSelectors();
+//		LOGGER.info("Script being executed...  " + builder.gt);
+//		return builder.gt;
+//	}
+	
+	
+	
+	
 }

@@ -42,7 +42,7 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(selectors, g);
 		
 		//finally execute it to get the executor
-		GraphTraversal <Vertex, Map<String, Object>> gt = (GraphTraversal <Vertex, Map<String, Object>>)builder.executeScript(g);
+		GraphTraversal <Vertex, Map<String, Object>> gt = (GraphTraversal <Vertex, Map<String, Object>>)builder.executeScript();
 		return gt;
 	}
 	
