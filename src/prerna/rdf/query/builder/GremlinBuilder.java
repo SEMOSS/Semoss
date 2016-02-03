@@ -1,17 +1,14 @@
 package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
+import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -165,7 +162,7 @@ public class GremlinBuilder {
 				// when we can go no further, we must return home to original meta node
 				LOGGER.info("returning home to " + origName);
 				gt1 = gt1.in().has(Constants.TYPE, origName).as(origName + (recursionCount));
-				gt1 = gt1.where(origName, org.apache.tinkerpop.gremlin.process.traversal.P.eq(origName + (recursionCount)));
+				gt1 = gt1.where(origName, P.eq(origName + (recursionCount)));
 				recursionCount++;
 			}
 		}
@@ -191,7 +188,7 @@ public class GremlinBuilder {
 				
 				LOGGER.debug("returning home to " + origName);
 				gt1 = gt1.out().has(Constants.TYPE, origName).as(origName + (recursionCount));
-				gt1 = gt1.where(origName, org.apache.tinkerpop.gremlin.process.traversal.P.eq(origName + (recursionCount)));
+				gt1 = gt1.where(origName, P.eq(origName + (recursionCount)));
 				recursionCount++;
 			}
 		}
@@ -429,7 +426,7 @@ public class GremlinBuilder {
 				// when we can't go any further downstream, need to return home
 				System.out.println("returning home to " + origName);
 				gt1 = gt1.in().has(Constants.TYPE, origName).as(origName + (recursionCount));
-				gt1 = gt1.where(origName, org.apache.tinkerpop.gremlin.process.traversal.P.eq(origName + (recursionCount)));
+				gt1 = gt1.where(origName, P.eq(origName + (recursionCount)));
 				recursionCount++;
 			}
 		}
@@ -458,7 +455,7 @@ public class GremlinBuilder {
 				
 				System.out.println("returning home to " + origName);
 				gt1 = gt1.out().has(Constants.TYPE, origName).as(origName + (recursionCount));
-				gt1 = gt1.where(origName, org.apache.tinkerpop.gremlin.process.traversal.P.eq(origName + (recursionCount)));
+				gt1 = gt1.where(origName, P.eq(origName + (recursionCount)));
 				recursionCount++;
 			}
 		}
