@@ -104,7 +104,7 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 	private void addStatColumnToTinker(TinkerFrame tinker, String columnHeader, String mathType, String newColumnName, String valueColumn) {
 				
 		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(tinker.getSelectors(), tinker.g);
-		GraphTraversal statIterator = (GraphTraversal)builder.executeScript(tinker.g);
+		GraphTraversal statIterator = (GraphTraversal)builder.executeScript();
 		
 		statIterator = statIterator.group().by(__.select(columnHeader).values(Constants.NAME)).as(PRIMARY_SELECTOR);
 		switch(mathType.toUpperCase()) {
