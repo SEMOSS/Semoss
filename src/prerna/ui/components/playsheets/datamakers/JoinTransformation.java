@@ -21,6 +21,7 @@ import prerna.ds.BTreeDataFrame;
 import prerna.ds.InstanceMatcher;
 import prerna.ds.InstanceOuterJoinMatcher;
 import prerna.ds.InstancePartialOuterJoinMatcher;
+import prerna.ds.TinkerFrame;
 import prerna.rdf.query.builder.QueryBuilderData;
 
 public class JoinTransformation extends AbstractTransformation {
@@ -76,7 +77,7 @@ public class JoinTransformation extends AbstractTransformation {
 		if(dm instanceof BTreeDataFrame) {
 			getMatcher();
 		}
-
+		
 		//Store the new columns that will be added to dm
 		if(nextDm != null) { // this will only be the case for BTREE
 			String[] allCols = nextDm.getColumnHeaders();
@@ -125,7 +126,7 @@ public class JoinTransformation extends AbstractTransformation {
 						addedColumns.add(val);
 					}
 				}
-				//((TinkerFrame)dm).removeExtraneousNodes();
+				((TinkerFrame)dm).removeExtraneousNodes();
 			}
 		} else {
 			QueryBuilderData builderData = dmc.getBuilderData();

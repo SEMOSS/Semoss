@@ -908,7 +908,7 @@ public class TinkerFrame implements ITableDataFrame {
 //                // set new data frame edge hash from component
 //         }
 
-           processPostTransformations(component, component.getPostTrans(), this);
+           processPostTransformations(component, component.getPostTrans());
            
            processActions(component, component.getActions());
 
@@ -2525,9 +2525,29 @@ public class TinkerFrame implements ITableDataFrame {
 	public GremlinBuilder getGremlinBuilder(List<String> selectors) {
 		return GremlinBuilder.prepareGenericBuilder(selectors, g);
 	}
-
-	public GraphTraversal executeGremlinBuilder(GremlinBuilder builder) {
-		return (GraphTraversal) builder.executeScript();
-	}
 	
+
+	/*
+	 * This method will remove all nodes that are not META and are not part of the main query return
+	 * This is to keep the graph as small as possible as we are making joins
+	 * Blank nodes must be used to keep nodes in the tinker that do not connect to every type
+	 */
+	public void removeExtraneousNodes() {
+		LOGGER.info("removing extraneous nodes");
+		GremlinBuilder builder = new GremlinBuilder(g);
+		List<String> selectors = builder.generateFullEdgeTraversal();
+		builder.addSelector(selectors);
+		GraphTraversal gt = builder.executeScript();
+		if(selectors.size()>1){
+			gt = gt.mapValues();
+		}
+		GraphTraversal metaT = g.traversal().V().has(Constants.TYPE, META).outE();
+		while(metaT.hasNext()){
+			gt = gt.inject(metaT.next());
+		}
+		
+		TinkerGraph newG = (TinkerGraph) gt.subgraph("subGraph").cap("subGraph").next();
+		this.g = newG;
+		LOGGER.info("extraneous nodes removed");
+	}
 }
