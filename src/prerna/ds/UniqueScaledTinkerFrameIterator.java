@@ -51,7 +51,7 @@ public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>>
 		this.finalColumns = selectors.toArray(new String[0]);//finalColumns.toArray(new String[0]);
 
 		//finally execute it to get the executor
-		GraphTraversal <Vertex, Map<String, Object>> gt = (GraphTraversal <Vertex, Map<String, Object>>)builder.executeScript(g);
+		GraphTraversal <Vertex, Map<String, Object>> gt = (GraphTraversal <Vertex, Map<String, Object>>)builder.executeScript();
 		return gt;
 	}
 	
