@@ -2060,17 +2060,11 @@ public class TinkerFrame implements ITableDataFrame {
 		// For now, the most common use for this will be through explore when clicking through the metamodel. This scenario will also be don't keep duplicates, no pk, node is on the fringe. I am handling that here:
 		// Remove the actual nodes from tinker
 		LOGGER.info("REMOVING COLUMN :::: " + columnHeader);
-		GraphTraversal<Vertex, Vertex> instanceIt = g.traversal().V().has(Constants.TYPE, columnHeader);
-		while(instanceIt.hasNext()){
-			LOGGER.info("removing an instance");
-			instanceIt.next().remove();
-		}
-		// Remove the node from meta
-		GraphTraversal<Vertex, Vertex> metaIt = g.traversal().V().has(Constants.TYPE, META).has(Constants.NAME, columnHeader);
-		while(metaIt.hasNext()){
-			LOGGER.info("removing a meta... this should only happen once");
-			metaIt.next().remove();
-		}
+		// delete from the instances
+		g.traversal().V().has(Constants.TYPE, columnHeader).drop().iterate();
+		// remove the node from meta
+		g.traversal().V().has(Constants.TYPE, META).has(Constants.NAME, columnHeader).drop().iterate();
+		
 		// Remove the column from header names
 		String[] newHeaders = new String[this.headerNames.length-1];
 		int newHeaderIdx = 0;
@@ -2246,6 +2240,7 @@ public class TinkerFrame implements ITableDataFrame {
 		String[] headers = getHeaders();
 		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(getSelectors(), g);
 		builder.setGroupBySelector(columnHeader);
+		
 		//finally execute it to get the executor
 		GraphTraversal gt = (GraphTraversal) builder.executeScript();
 		
