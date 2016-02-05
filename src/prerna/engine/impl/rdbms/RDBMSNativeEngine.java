@@ -239,6 +239,21 @@ public class RDBMSNativeEngine extends AbstractEngine {
         	// we are dealing with the physical uri which is in the form ...Concept/Column/Table
         	query = "SELECT DISTINCT " + Utility.getClassName(type) + " FROM " + Utility.getInstanceName(type);
         }
+        else if(type.contains("http://semoss.org/ontologies/Relation/Contains")){// this is such a mess... 
+        	String xmlQuery = "SELECT ?concept WHERE { ?concept rdfs:subClassOf <http://semoss.org/ontologies/Concept>. ?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> <"+type+">}";
+        	TupleQueryResult ret = (TupleQueryResult) this.execOntoSelectQuery(xmlQuery);
+			String conceptURI = null;
+        	try {
+				if(ret.hasNext()){
+					BindingSet row = ret.next();
+					conceptURI = row.getBinding("concept").getValue().toString();
+				}
+			} catch (QueryEvaluationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        	query = "SELECT DISTINCT " + Utility.getInstanceName(type) + " FROM " + Utility.getClassName(conceptURI);
+        }
         else if(type.contains(":")) {
             int tableStartIndex = type.indexOf("-") + 1;
             int columnStartIndex = type.indexOf(":") + 1;

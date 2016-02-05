@@ -27,6 +27,9 @@ import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.openrdf.query.BindingSet;
+import org.openrdf.query.QueryEvaluationException;
+import org.openrdf.query.TupleQueryResult;
 
 import com.google.gson.Gson;
 import com.google.gson.internal.StringMap;
@@ -224,10 +227,27 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 				String currentFilters = "";
 				String logName = keys.next(); // This gets me the Logical Name
 				String columnValue = engine.getTransformedNodeName(Constants.DISPLAY_URI + logName, false);
-				
-				String abc = "";
+
+
 				String tableValue = Utility.getInstanceName(columnValue);
 				String simpleColumnValue = Utility.getPrimaryKeyFromURI(columnValue);
+				
+		        if(columnValue.contains("http://semoss.org/ontologies/Relation/Contains")){// this is such a mess... if this is a physical property name, we need to query the owl to figure out its table name :(
+		        	String xmlQuery = "SELECT ?concept WHERE { ?concept rdfs:subClassOf <http://semoss.org/ontologies/Concept>. ?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> <"+columnValue+">}";
+		        	TupleQueryResult ret = (TupleQueryResult) engine.execOntoSelectQuery(xmlQuery);
+					String conceptURI = null;
+		        	try {
+						if(ret.hasNext()){
+							BindingSet row = ret.next();
+							conceptURI = row.getBinding("concept").getValue().toString();
+						}
+					} catch (QueryEvaluationException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+		        	simpleColumnValue = Utility.getInstanceName(columnValue);
+		        	tableValue = Utility.getClassName(conceptURI);
+		        }
 				
 				//we should skip adding a column to the filter if the column is not part of the selector
 //				if(!columnProcessed.containsKey(columnValue.toUpperCase()) || !columnProcessed.containsKey(Utility.getPrimaryKeyFromURI(columnValue).toUpperCase())){
@@ -354,11 +374,10 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 			String asName = columns[colIndex];
 			varURI = this.engine.getTransformedNodeName(Constants.DISPLAY_URI + asName, false);
 			if(!varURI.startsWith(Constants.CONCEPT_URI)) { //Means we are working with a property nows
-				asName = Utility.getInstanceName(varURI);
 				for(Map<String, String> s : this.nodePropV) {
 					if(asName.equals(s.get("varKey"))) {
 						tableName = Utility.getInstanceName(this.engine.getTransformedNodeName(Constants.DISPLAY_URI + s.get("SubjectVar"), false));
-						varURI = Constants.CONCEPT_URI + asName + "/" + tableName;
+						varURI = Constants.CONCEPT_URI + Utility.getInstanceName(varURI) + "/" + tableName;
 						break;
 					}
 				}
