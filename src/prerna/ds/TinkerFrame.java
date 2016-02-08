@@ -72,13 +72,9 @@ public class TinkerFrame implements ITableDataFrame {
 	private static final Logger LOGGER = LogManager.getLogger(TinkerFrame.class.getName());
 	
 	//Column Names of the table
-	protected String [] headerNames = null;
+	protected String[] headerNames = null;
 	protected List<String> columnsToSkip = new Vector<String>(); //make a set?
 //	protected List<String> selectors = new Vector<String>();
-	
-	//keeps the values that are filtered from the table
-//	protected Hashtable <String, List<Object>> filterHash = new Hashtable<String, List<Object>>();
-//	protected Set<String> filterSet = new HashSet<String>(); //store on meta
 	
 	//keeps the cache of whether a column is numerical or not, can this be stored on the meta model?
 	protected Map<String, Boolean> isNumericalMap = new HashMap<String, Boolean>(); //store on meta
@@ -90,9 +86,9 @@ public class TinkerFrame implements ITableDataFrame {
 	int startRange = -1;
 	int endRange = -1;
 
-//	protected Long nextPrimKey = new Long(0);
-	final protected String PRIM_KEY = "PRIM_KEY";
+	final protected static String PRIM_KEY = "PRIM_KEY";
 	final public static String META = "META";
+	final public static String EMPTY = "_";
 
 	/**********************    TESTING PLAYGROUND  ******************************************/
 	
@@ -827,9 +823,6 @@ public class TinkerFrame implements ITableDataFrame {
 	/***********************************  CONSTRUCTORS  **********************************/
 	
 	public TinkerFrame(String[] headerNames) {
-		//should we define header names in constructor
-		//do we need a filtered columns array?
-		//do we need to keep track of URIs?
 		
 		this.headerNames = headerNames;
 		g = TinkerGraph.open();
@@ -1264,12 +1257,13 @@ public class TinkerFrame implements ITableDataFrame {
 				String endNode = conn.property(Constants.NAME).value()+"";
 				if(rowCleanData.keySet().contains(endNode)) {
 					hasRel = true;
+					
 					//get from vertex
 					Object startNodeValue = getParsedValue(rowCleanData.get(startNode));
 					String rawStartNodeValue = rowRawData.get(startNode).toString();
 					Vertex fromVertex = upsertVertex(startNode, startNodeValue, rawStartNodeValue);
-					//get to vertex
-							
+					
+					//get to vertex		
 					Object endNodeValue = getParsedValue(rowCleanData.get(endNode));
 					String rawEndNodeValue = rowRawData.get(endNode).toString();
 					Vertex toVertex = upsertVertex(endNode, endNodeValue, rawEndNodeValue);
@@ -1794,7 +1788,6 @@ public class TinkerFrame implements ITableDataFrame {
 	@Override
 	public int getNumRows() {
 		long startTime = System.currentTimeMillis();
-		LOGGER.info("beginning row count processing....");
 		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(getSelectors(), this.g);
 		Iterator gt = builder.executeScript();		
 		int count = 0;
@@ -1804,7 +1797,7 @@ public class TinkerFrame implements ITableDataFrame {
 		}
 
 		long time1 = System.currentTimeMillis();
-		LOGGER.info("finished row count processing in " + (time1 - startTime)+" ms");
+		LOGGER.info("Counted Number of Rows: " + (time1 - startTime)+" ms");
 		return count;
 	}
 
@@ -2358,8 +2351,10 @@ public class TinkerFrame implements ITableDataFrame {
 
 		g.variables().set(Constants.HEADER_NAMES, newLevelNames); // I dont know if i even need this moving forward.. but for now I will assume it is	
 		
-		headerNames = newLevelNames;
+		String[] testHeaders = (String[])(g.variables().get(Constants.HEADER_NAMES).get());
+		System.out.println(Arrays.toString(testHeaders));
 		
+		headerNames = newLevelNames;	
 	}
 	
 	public void setRange(int startRange, int endRange)
@@ -2432,7 +2427,7 @@ public class TinkerFrame implements ITableDataFrame {
 		return new Object[]{visibleValues, filteredValues};
 	}
 
-	//TODO: is this even used?
+
 	public Map<String, Object[]> getFilterTransformationValues() {
 		// TODO Auto-generated method stub
 //		Map<String, Object[]> ftv = new HashMap<String, Object[]>();
@@ -2440,7 +2435,8 @@ public class TinkerFrame implements ITableDataFrame {
 //			ftv.put(key, filterHash.get(key).toArray());
 //		}
 //		return ftv;
-		return null;
+		Map<String, Object[]> retMap = new HashMap<String, Object[]>();
+		return retMap;
 	}
 
 	public String[] getFilteredColumns() {
@@ -2522,7 +2518,7 @@ public class TinkerFrame implements ITableDataFrame {
 	}
 	
 
-	/*
+	/**
 	 * This method will remove all nodes that are not META and are not part of the main query return
 	 * This is to keep the graph as small as possible as we are making joins
 	 * Blank nodes must be used to keep nodes in the tinker that do not connect to every type
@@ -2544,5 +2540,64 @@ public class TinkerFrame implements ITableDataFrame {
 		TinkerGraph newG = (TinkerGraph) gt.subgraph("subGraph").cap("subGraph").next();
 		this.g = newG;
 		LOGGER.info("extraneous nodes removed");
+	}
+	
+	/**
+	 * 
+	 * @param fileName
+	 * 
+	 * serialize tinker to file
+	 */
+	public void save(String fileName) {
+		try {
+			long startTime = System.currentTimeMillis();
+			
+			this.g.io(IoCore.gryo()).writeGraph(fileName);
+			
+			long endTime = System.currentTimeMillis();
+			LOGGER.info("Successfully saved TinkerFrame to file: "+fileName+ "("+(endTime - startTime)+" ms)");
+		
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * 
+	 * @param fileName
+	 * @return
+	 * 
+	 * load tinker from file
+	 */
+	public static TinkerFrame open(String fileName) {
+		TinkerGraph g = TinkerGraph.open();
+		try {
+			long startTime = System.currentTimeMillis();
+			
+			g.io(IoCore.gryo()).readGraph(fileName);
+			
+			long endTime = System.currentTimeMillis();
+			LOGGER.info("Successfully loaded TinkerFrame from file: "+fileName+ "("+(endTime - startTime)+" ms)");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		//create new tinker frame and set its tinkergraph
+		TinkerFrame tf = new TinkerFrame();
+		g.createIndex(Constants.TYPE, Vertex.class);
+		g.createIndex(Constants.ID, Edge.class);
+		tf.g = g;
+		
+		List<String> headersList = new Vector<String>();
+		GraphTraversal<Vertex, String> hTraversal = tf.g.traversal().V().has(Constants.TYPE, META).values(Constants.NAME);
+		while(hTraversal.hasNext()) {
+			headersList.add(hTraversal.next());
+		}
+		
+		//gather header names
+		tf.headerNames = headersList.toArray(new String[]{});
+		g.variables().set(Constants.HEADER_NAMES, tf.headerNames);
+		
+		return tf;
 	}
 }
