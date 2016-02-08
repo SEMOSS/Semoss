@@ -11,6 +11,7 @@ import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
@@ -110,26 +111,6 @@ public class GremlinBuilder {
 		}
 	}
 	
-//	public GraphTraversal addNodeEdge2() {
-//		List<String> travelledEdges = new Vector<String>();
-//		GraphTraversal graphtraversal = null;
-//		Vertex startNode;
-//		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META);
-//		if(metaT.hasNext()) {
-//			startNode = metaT.next();
-//			String startType = startNode.property(Constants.NAME).value()+"";
-//			
-//			graphtraversal = __.has(Constants.TYPE, startType).as(startType);
-//			Object filtered = startNode.value(Constants.FILTER);
-//			if((Boolean)filtered == true) {
-//				graphtraversal = graphtraversal.not(__.in().has(Constants.TYPE, Constants.FILTER));
-//			}
-//
-//			graphtraversal = visitNode(startNode, graphtraversal, travelledEdges, new Integer(0));
-//		}
-//		return graphtraversal;
-//	}
-	
 	/**
 	 * 
 	 * @param orig
@@ -196,16 +177,28 @@ public class GremlinBuilder {
 	}
 	
 	/**
+	 * Use this to gather the vertices that do not have an edge to a vertex but is expected to have one based on the metamodel
 	 * 
+	 * Example:
+	 * 		Metamodel: a -> b, b -> c, a -> d
+	 * 		Method will return all a's without b's, all b's without a's, all b's without c's, and so forth
 	 */
 	public void addIncompleteVertices() {
 		Vertex startNode;
+		
+		//get a random start node
 		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META);
 		if(metaT.hasNext()) {
 			startNode = metaT.next();
+			
+			//the list of the orTraversals (all a's without b, or all b's without a, ...)
 			List<GraphTraversal> orTraversals = new ArrayList<>();
-			orTraversals = getIncompleteVertices(orTraversals, startNode);
-			gt = gt.or(orTraversals.toArray(new GraphTraversal[0])).as("deleteVerts");
+			
+			//keep track of which edges have already been checked
+			List<String> travelledEdges = new ArrayList<>();
+			
+			orTraversals = getIncompleteVertices(orTraversals, startNode, travelledEdges);
+			gt = this.g.traversal().V().or(orTraversals.toArray(new GraphTraversal[0])).as("extraVerts").select("extraVerts");
 		}
 	}
 	
@@ -215,17 +208,21 @@ public class GremlinBuilder {
 	 * @param orig
 	 * @return
 	 */
-	private List<GraphTraversal> getIncompleteVertices(List<GraphTraversal> orTraversals, Vertex orig) {
+	private List<GraphTraversal> getIncompleteVertices(List<GraphTraversal> orTraversals, Vertex orig, List<String> travelledEdges) {
 		
 		GraphTraversal<Vertex, Vertex> downstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).out(TinkerFrame.META);
 		String origName = orig.property(Constants.NAME).value()+"";
 		while(downstreamIt.hasNext()) {
 			Vertex nodeV = downstreamIt.next();
 			String node = nodeV.property(Constants.NAME).value()+"";
-				
-			GraphTraversal g = __.has(Constants.TYPE, origName).out().not(__.has(Constants.TYPE, node));
-			orTraversals.add(g);
-			getIncompleteVertices(orTraversals, nodeV);
+			
+			String edgeKey = origName + ":::" + node;
+			if(!travelledEdges.contains(edgeKey)) {
+				GraphTraversal g = __.has(Constants.TYPE, origName).not(__.out().has(Constants.TYPE, node));
+				orTraversals.add(g);
+				travelledEdges.add(edgeKey);
+				getIncompleteVertices(orTraversals, nodeV, travelledEdges);
+			}
 		}
 		
 		GraphTraversal<Vertex, Vertex> upstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).in(TinkerFrame.META);
@@ -233,9 +230,13 @@ public class GremlinBuilder {
 			Vertex nodeV = upstreamIt.next();
 			String node = nodeV.property(Constants.NAME).value()+"";
 			
-			GraphTraversal g = __.has(Constants.TYPE, origName).in().not(__.has(Constants.TYPE, node));
-			orTraversals.add(g);
-			getIncompleteVertices(orTraversals, nodeV);
+			String edgeKey = origName + ":::" + node;
+			if(!travelledEdges.contains(edgeKey)) {
+				GraphTraversal g = __.has(Constants.TYPE, origName).not(__.in().has(Constants.TYPE, node));
+				orTraversals.add(g);
+				travelledEdges.add(edgeKey);
+				getIncompleteVertices(orTraversals, nodeV, travelledEdges);
+			}
 		}
 		return orTraversals;
 	}
@@ -344,6 +345,12 @@ public class GremlinBuilder {
 	 * @param selectors
 	 * @param g
 	 * @return
+	 * 
+	 * Method to traverse the graph based on the metamodel and return rows in a table format
+	 * 
+	 * Example:
+	 * 		Metamodel: a -> b, a -> c, b -> d
+	 * 		return traversal which returns {a -> a1, b -> b1, c -> c1, d -> d1} for each row in the table represented by graph g
 	 */
 	public static GremlinBuilder prepareGenericBuilder(List<String> selectors, Graph g){
 		// get all the levels
@@ -475,6 +482,23 @@ public class GremlinBuilder {
 //		LOGGER.info("Script being executed...  " + builder.gt);
 //		return builder.gt;
 //	}
+	/**
+	 * 
+	 * @param selectors
+	 * @param g
+	 * @return
+	 * 
+	 * Use this method to gather all the vertices in graph g such that each vertex has a missing edge based on the metamodel
+	 * 
+	 * Example:
+	 * 		Metamodel: a -> b, a -> c, b -> d
+	 * 		return traversal that returns all a's without b's, all b's without a's, all a's without out c's, etc.
+	 */
+	public static GraphTraversal getIncompleteVertices(Graph g) {
+		GremlinBuilder builder = new GremlinBuilder(g);
+		builder.addIncompleteVertices();
+		return builder.gt;
+	}
 	
 	
 	
