@@ -7339,7 +7339,7 @@ cladding, facing
 cladode, cladophyll, phylloclad, phylloclade
 cladophyll, cladode, phylloclad, phylloclade
 claforan, cefotaxime
-claim, arrogate, call, exact, take
+claim, arrogate, call, exact, take, title
 clairvoyance, esp
 clairvoyant, precognitive
 clam, buck, dollar
@@ -14992,7 +14992,7 @@ filler, makeweight
 fillet, filet, lemniscus, stopping, taenia, tenia
 filling, fill, pick, weft, woof
 fillip, bonus
-film, celluloid, cinema, flick, movie, shoot,
+film, celluloid, cinema, flick, movie, pic, picture, shoot, take
 filming, cinematography
 filmy, cobwebby, diaphanous, gauzy, gossamer, sheer, transparent, vaporous
 filter, dribble, filtrate, percolate, permeate, strain, trickle
@@ -25497,7 +25497,7 @@ move, act, actuate, affect, displace, go, impress, incite, locomote, motility, m
 moveable, movable, transferable, transferrable, transportable
 movement, bm, campaign, cause, crusade, drift, drive, effort, front, motility, motion, move, trend
 mover, proposer
-movie, film, flick
+movie, film, flick, pic, picture
 mow, hayloft, mop, pout
 mown, cut
 moxie, backbone, grit, gumption, guts, sand
@@ -33442,7 +33442,7 @@ rubicund, ruddy, sanguine
 rubidium, rb
 ruble, rouble
 rubor, inflammation, redness
-rubric, gloss, title
+rubric, gloss
 rubricate, miniate
 ruby, carmine, cerise, cherry, crimson, red, reddish, ruddy, scarlet
 ruck, herd, pucker
@@ -39476,7 +39476,7 @@ titillation, tickle, tickling
 titivate, spruce, tittivate
 titivation, tittivation
 titlark, lark, pipit
-title, championship, deed, entitle, rubric
+title, championship, claim, deed, entitle
 titled, coroneted, highborn
 titmouse, tit
 titre, titer
