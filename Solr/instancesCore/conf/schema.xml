@@ -67,10 +67,13 @@
 		<field name="id" type="string" indexed="true" stored="true" required="true" multiValued="false" />
 		<field name="core_engine" type="string" indexed="true" stored="true" required="true" multiValued="false" />
 		<field name="concept" type="string" indexed="true" stored="true" required="true" multiValued="false" /> 
-		<field name="instances" type="text_en_splitting" indexed="true" stored="false" required="false" multiValued="true" /> 
-		<field name="properties" type="text_en_splitting" indexed="true" stored="false" required="false" multiValued="true" /> 
+		<field name="instances" type="text_en" indexed="true" stored="false" required="false" multiValued="true" /> 
+		<field name="properties" type="text_en" indexed="true" stored="false" required="false" multiValued="true" /> 
 		<field name="all_text" type="text_en" indexed="true" stored="false" required="true" multiValued="true" /> 
-		<copyField source="*" dest="all_text"/>
+		<copyField source="core_engine" dest="all_text"/>
+		<copyField source="concept" dest="all_text"/>
+		<copyField source="instances" dest="all_text"/>
+		<copyField source="properties" dest="all_text"/>
 	
 	</fields>
 	<!-- Field to use to determine and enforce document uniqueness. 
@@ -145,6 +148,7 @@
 			 also applies synonyms from synonyms.txt. -->
 		<fieldType name="text_en" class="solr.TextField" positionIncrementGap="100">
 		  <analyzer type="index">
+			<charFilter class="solr.PatternReplaceCharFilterFactory" pattern="_" replacement=" "/>
 			<tokenizer class="solr.StandardTokenizerFactory"/>
 			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
 			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="1" catenateNumbers="1" catenateAll="0" splitOnCaseChange="1"/>
