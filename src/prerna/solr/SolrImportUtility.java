@@ -44,7 +44,7 @@ public final class SolrImportUtility {
 	
 	// search field values in Instance schema
 	private static final String INSTANCE_ID_FINDER = SolrIndexEngine.ID + "_" + SolrIndexEngine.CORE_ENGINE +" : ";
-	private static final String CONCEPT_FINDER = SolrIndexEngine.CONCEPT + " : ";
+	private static final String CONCEPT_FINDER = SolrIndexEngine.VALUE + " : ";
 	private static final String INSTANCES_FINDER = SolrIndexEngine.INSTANCES + " : ";
 	
 	private SolrImportUtility() {
@@ -293,7 +293,7 @@ public final class SolrImportUtility {
 			if(concept == null || concept.isEmpty()) {
 				throw new IOException("SolrInputDocument does not contain an concept or concept is empty...");
 			} else {
-				instanceQueryResults.put(SolrIndexEngine.CONCEPT, concept);
+				instanceQueryResults.put(SolrIndexEngine.VALUE, concept);
 			}
 			
 			if(instance == null || instance.isEmpty()) {
