@@ -690,64 +690,90 @@ public class Utility {
 		if (solrE.serverActive()) {
 			// grab all concepts and their instances from the db
 			List<String> conceptList = engineToAdd.getConcepts();
-			Map<String, Object> fieldData = new HashMap<>();
 			for(String concept : conceptList) {
 				if(concept.equals("http://semoss.org/ontologies/Concept")) {
 					continue;
 				}
+				Map<String, Object> fieldData = new HashMap<String, Object>();
 				List<Object> instances = null;
-				
-				String newId = null;
-				String properties = "";
+				String newId = engineName + "_" + concept;
 				if(engineToAdd.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
-					instances = engineToAdd.getEntityOfType(Utility.getInstanceName(concept));
-					newId = engineName + "_" + concept;
+					String conceptName = Utility.getInstanceName(concept);
+					instances = engineToAdd.getEntityOfType(conceptName);
+					if(instances.isEmpty()) {
+						continue;
+					}
+					List<String> propName = engineToAdd.getProperties4Concept(concept, false);
+					for(String prop : propName) {
+						Vector<Object> propertiesList = engineToAdd.getEntityOfType(prop);
+						boolean isNumeric = false;
+						Iterator<Object> it = propertiesList.iterator();
+						while(it.hasNext()) {
+							Object o = it.next();
+							if(o == null || o.toString().isEmpty()) {
+								it.remove();
+							}
+							if(o instanceof Number) {
+								isNumeric = true;
+								break;
+							} else if(isStringDate(o + "")) {
+								isNumeric = true;
+								break;
+							}
+						}
+						if(!isNumeric && !propertiesList.isEmpty()) {
+							String propId = newId + "_" + prop; // in case there are properties for the same engine, tie it to the concept
+							Map<String, Object> propFieldData = new HashMap<String, Object>();
+							propFieldData.put(SolrIndexEngine.CORE_ENGINE, engineName);
+							propFieldData.put(SolrIndexEngine.VALUE, prop);
+							propFieldData.put(SolrIndexEngine.INSTANCES, propertiesList);
+							try {
+								solrE.addInstance(propId, propFieldData);
+							} catch (SolrServerException | IOException e) {
+								e.printStackTrace();
+							}
+						}
+					}
 				} else {
 					instances = engineToAdd.getEntityOfType(concept);
+					// case when dumb data is loaded
+					if(instances.isEmpty()) {
+						continue;
+					}
 					List<String> propName = engineToAdd.getProperties4Concept(concept, false);
-					Object property = null;
-					
-					for (String prop : propName) {
+					for(String prop : propName) {
 						String propQuery = "SELECT DISTINCT ?property WHERE { {?x <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + concept + "> } { ?x <" + prop + "> ?property} }";
-
 						ISelectWrapper propWrapper = WrapperManager.getInstance().getSWrapper(engineToAdd, propQuery);
 						List<Object> propertiesList = new ArrayList<Object>();
 						while (propWrapper.hasNext()) {
 							ISelectStatement propSS = propWrapper.next();
-							property = propSS.getVar("property");
-							//SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-							//Date date = dateFormat.parse((String) property);
-							if(property instanceof String){
-								if (!isStringDate((String)property)){
-									propertiesList.add(property);
-								}
+							Object property = propSS.getVar("property");
+							if(property instanceof String && !isStringDate((String)property)){
+								propertiesList.add(property);
 							}
 						}
-						System.out.println(propertiesList);
-						fieldData.put(SolrIndexEngine.PROPERTIES, propertiesList);
-						prop = getInstanceName(prop);
-						properties += "_" + prop;
 						
+						// add properties as fields
+						if(!propertiesList.isEmpty()) {
+							String propId = newId + "_" + prop; // in case there are properties for the same engine, tie it to the concept
+							Map<String, Object> propFieldData = new HashMap<String, Object>();
+							propFieldData.put(SolrIndexEngine.CORE_ENGINE, engineName);
+							propFieldData.put(SolrIndexEngine.VALUE, prop);
+							propFieldData.put(SolrIndexEngine.INSTANCES, propertiesList);
+							try {
+								solrE.addInstance(propId, propFieldData);
+							} catch (SolrServerException | IOException e) {
+								e.printStackTrace();
+							}
+						}
 					}
-					newId = engineName + "_" + concept + properties;
-//					for (String prop : propName) {
-//						String propQuery = "SELECT DISTINCT ?property WHERE { {?x <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + concept + "> } { ?x <" + prop + "> ?property} }";
-//
-//						ISelectWrapper propWrapper = WrapperManager.getInstance().getSWrapper(engineToAdd, propQuery);
-//						while (propWrapper.hasNext()) {
-//							ISelectStatement propSS = propWrapper.next();
-//							property = (String) propSS.getVar("property").toString();
-//							System.out.println("Property =  " + property);
-//						}
-//					}
-					//newId = engineName + "_" + concept + "_" + property;
 				}
 				
-				//use the method that you just made
+				//use the method that you just made to save the concept
 				fieldData.put(SolrIndexEngine.CORE_ENGINE, engineName);
-				fieldData.put(SolrIndexEngine.CONCEPT, concept);
+				fieldData.put(SolrIndexEngine.VALUE, concept);
 				List<Object> instancesList= new ArrayList<Object>();
-				for (Object instance : instances) {
+				for(Object instance : instances) {
 					if(instance instanceof String) {
 						instancesList.add(Utility.getInstanceName(instance + ""));
 								
@@ -756,11 +782,6 @@ public class Utility {
 					}
 				}
 				fieldData.put(SolrIndexEngine.INSTANCES, instancesList);
-				
-				// case when dumb data is loaded
-				if(instancesList.isEmpty()) {
-					continue;
-				}
 				
 				try {
 					solrE.addInstance(newId, fieldData);
