@@ -69,6 +69,8 @@ public class SolrIndexEngine {
 	private static final String SOLR_INSIGHTS_PATH_NAME = "/insightCore";
 	private static final String SOLR_INSTANCES_PATH_NAME = "/instancesCore";
 
+	public static final String QUERYALL = "*:*";
+	
 	// Schema Field Names
 	public static final String ID = "id";
 	public static final String STORAGE_NAME = "name";
@@ -91,10 +93,11 @@ public class SolrIndexEngine {
 	public static final String PARAMS = "params";
 	public static final String ALGORITHMS = "algorithms";
 	public static final String ALL_TEXT = "all_text";
-	public static final String CONCEPT = "concept";
+	
+	// Instance specific schema fields
+	public static final String VALUE = "value";
 	public static final String INSTANCES = "instances";
-	public static final String QUERYALL = "*:*";
-
+	
 	/**
 	 * Sets a constant url for Solr
 	 * 
@@ -352,7 +355,7 @@ public class SolrIndexEngine {
 				if (path.equals(SOLR_PATHS.SOLR_INSIGHTS_PATH)) {
 					sortField = STORAGE_NAME;
 				} else if (path.equals(SOLR_PATHS.SOLR_INSTANCES_PATH)) {
-					sortField = CONCEPT;
+					sortField = VALUE;
 				}
 				if (sort.equals(desc)) {
 					Q.setSort(sortField, SolrQuery.ORDER.desc);
@@ -460,7 +463,7 @@ public class SolrIndexEngine {
 				if (path.equals(SOLR_PATHS.SOLR_INSIGHTS_PATH)) {
 					sortField = STORAGE_NAME;
 				} else if (path.equals(SOLR_PATHS.SOLR_INSTANCES_PATH)) {
-					sortField = CONCEPT;
+					sortField = VALUE;
 				}
 				if (sort.equals(desc)) {
 					Q.add("group.sort.field", sortField);
@@ -575,7 +578,7 @@ public class SolrIndexEngine {
 		for (SolrDocument solrDoc : results) {
 			for (Entry<String, Object> solrDocFields : solrDoc) {
 				String fieldName = solrDocFields.getKey();
-				if (fieldName.equals(CONCEPT)) {
+				if (fieldName.equals(VALUE)) {
 					String concept = (String) solrDocFields.getValue();
 					noDuplication.add(Utility.getInstanceName(concept));
 				}
@@ -691,7 +694,9 @@ public class SolrIndexEngine {
 		if (serverActive()) {
 			// search for instances
 			queryOptions.put(CommonParams.Q, querySearch);
+			queryOptions.put(CommonParams.DF, INSTANCES);
 			queryOptions.put(SpellingParams.SPELLCHECK_PREFIX, true);
+
 			QueryResponse res = getQueryResponse(queryOptions, SOLR_PATHS.SOLR_INSTANCES_PATH);
 			String appendQuery = getUniqueConceptsForInstances(res);
 			//append systems to the search
@@ -799,15 +804,18 @@ public class SolrIndexEngine {
 			QueryResponse res= new QueryResponse();
 			if (queryOptions.get(CommonParams.Q) != null) {
 				String querySearch = (String) queryOptions.get(CommonParams.Q);
-				//Query within the instanceCore
-				if (querySearch != null && !querySearch.equals(QUERYALL) && !querySearch.isEmpty()) {
-					 Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
-					 appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
-					 queryOptions.put(CommonParams.Q, appendedQuerySearch);
-					 Map<String, List<String>> instanceSpellCheck = (Map<String, List<String>>) queryResults.get(SPELLCHECK_RESPONSE);
-					 searchResultMap.put(SPELLCHECK_RESPONSE, instanceSpellCheck);
-				}
 				res = getQueryResponse(queryOptions, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+//				if(res.getResults().size() < 100) {
+					// Query within the instanceCore only when the normal query returns no results
+					if (querySearch != null && !querySearch.equals(QUERYALL) && !querySearch.isEmpty()) {
+						 Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
+						 appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
+						 queryOptions.put(CommonParams.Q, appendedQuerySearch);
+						 Map<String, List<String>> instanceSpellCheck = (Map<String, List<String>>) queryResults.get(SPELLCHECK_RESPONSE);
+						 searchResultMap.put(SPELLCHECK_RESPONSE, instanceSpellCheck);
+					}
+					res = getQueryResponse(queryOptions, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+//				}
 			}
 			
 			SolrDocumentList results = res.getResults();
@@ -873,13 +881,16 @@ public class SolrIndexEngine {
 			QueryResponse res= new QueryResponse();
 			if (queryOptions.get(CommonParams.Q) != null) {
 				String querySearch = (String) queryOptions.get(CommonParams.Q);
-				//Query within the instanceCore
-				if (querySearch != null && !querySearch.equals(QUERYALL) && !querySearch.isEmpty()) {
-					Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
-					 appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
-					 queryOptions.put(CommonParams.Q, appendedQuerySearch);
-				}
 				res = getQueryResponse(queryOptions, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+//				if(res.getResults().size() == 0) {
+					//Query within the instanceCore
+					if (querySearch != null && !querySearch.equals(QUERYALL) && !querySearch.isEmpty()) {
+						Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
+						 appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
+						 queryOptions.put(CommonParams.Q, appendedQuerySearch);
+					}
+					res = getQueryResponse(queryOptions, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+//				}
 			}
 			List<FacetField> facetFieldList = res.getFacetFields();
 			if (facetFieldList != null && facetFieldList.size() > 0) {
