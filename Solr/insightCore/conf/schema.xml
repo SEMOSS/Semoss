@@ -68,7 +68,7 @@
 		<!-- this will hold the insight name for storage and alphabetical sorting-->
 		<field name="name" type="string" indexed="true" stored="true" required="true" multiValued="false" /> 
 		<!-- this will hold the insight name for indexing -->
-		<field name="index_name" type="text_en_splitting" indexed="true" stored="false" required="true" multiValued="false" /> 
+		<field name="index_name" type="text_en_splitting" indexed="false" stored="true" required="true" multiValued="false" /> 
 		<!-- this will hold hte date the insight was created -->
 		<field name="created_on" type="date" indexed="true" stored="true" required="true" multiValued="false" /> 
 		<!-- this will hold the last modified date of the insight -->
@@ -107,7 +107,7 @@
 		<!-- <field name="insight_definition" type="string" indexed="false" stored="true" required="true" multiValued="true" /> -->
 		
 		<!-- this is meant to hold all the text a user has surrounding an insights -->
-		<field name="all_text" type="text_en" indexed="true" stored="false" required="true" multiValued="true" termVectors="true" termPositions="true" termOffsets="true"/> 
+		<field name="all_text" type="text_en_splitting" indexed="true" stored="false" required="true" multiValued="true" termVectors="true" termPositions="true" termOffsets="true"/> 
 		<!-- copy the text fields into the field "all text" -->
 		<copyField source="index_name" dest="all_text"/>
 		<copyField source="user_id" dest="all_text"/>
@@ -192,16 +192,17 @@
 			-->
 		<fieldType name="text_en_splitting" class="solr.TextField" positionIncrementGap="100" autoGeneratePhraseQueries="true">
 		  <analyzer type="index">
-			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
-			<filter class="solr.SynonymFilterFactory" synonyms="synonyms.txt" ignoreCase="true" expand="false"/>
+			<charFilter class="solr.PatternReplaceCharFilterFactory" pattern="_" replacement=" "/>
+			<tokenizer class="solr.StandardTokenizerFactory"/>
 			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
 			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="1" catenateNumbers="1" catenateAll="0" splitOnCaseChange="1"/>
+			<filter class="solr.SynonymFilterFactory" synonyms="synonyms.txt" ignoreCase="true" expand="false"/>
 			<filter class="solr.LowerCaseFilterFactory"/>
 			<filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
 			<filter class="solr.PorterStemFilterFactory"/>
 		  </analyzer>
 		  <analyzer type="query">
-			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
+			<tokenizer class="solr.StandardTokenizerFactory"/>
 			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
 			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="0" catenateNumbers="0" catenateAll="0" splitOnCaseChange="1"/>
 			<filter class="solr.LowerCaseFilterFactory"/>
