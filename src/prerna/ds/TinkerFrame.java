@@ -176,6 +176,7 @@ public class TinkerFrame implements ITableDataFrame {
 		}
 		System.out.println(count);
 	}
+	
 	public static void testFilter() {
 		String fileName = "C:\\Users\\rluthar\\Documents\\Movie Results.xlsx";
 		TinkerFrame tinker = load2Graph4Testing(fileName);
@@ -834,7 +835,7 @@ public class TinkerFrame implements ITableDataFrame {
 	public TinkerFrame(String[] headerNames, Hashtable<String, Set<String>> edgeHash) {
 		this.headerNames = headerNames;
 		g = TinkerGraph.open();
-		g.createIndex(Constants.ID, Vertex.class);
+		g.createIndex(Constants.TYPE, Vertex.class);
 		g.createIndex(Constants.ID, Edge.class);
 		g.variables().set(Constants.HEADER_NAMES, headerNames);
 		mergeEdgeHash(edgeHash);
@@ -842,7 +843,7 @@ public class TinkerFrame implements ITableDataFrame {
 
 	public TinkerFrame() {
 		g = TinkerGraph.open();
-		g.createIndex(Constants.ID, Vertex.class);
+		g.createIndex(Constants.TYPE, Vertex.class);
 		g.createIndex(Constants.ID, Edge.class);
 	}
 
@@ -1174,71 +1175,6 @@ public class TinkerFrame implements ITableDataFrame {
 //			}
 //			this.headerNames = headers.toArray(new String[headers.size()]);
 //		}
-	}
-	
-	private void addRelationship(ISelectWrapper wrapper) {
-	
-		GraphTraversal AllVertices = g.traversal().V();
-		Set<Vertex> deleteVertices = new HashSet<Vertex>();
-		
-		while(AllVertices.hasNext()) {
-			deleteVertices.add((Vertex)AllVertices.next());
-		}
-		
-		boolean hasRel = false;
-		while(wrapper.hasNext()) {
-			ISelectStatement rowData = wrapper.next();
-			Map<String, Object> rowCleanData = rowData.getPropHash();
-			Map<String, Object> rowRawData = rowData.getRPropHash();
-			
-//			boolean hasRel = false;
-			
-			for(String startNode : rowCleanData.keySet()) {
-				GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, META).has(Constants.NAME, startNode).out(META);
-				while(metaT.hasNext()){
-					Vertex conn = metaT.next();
-					String endNode = conn.property(Constants.NAME).value()+"";
-					if(rowCleanData.keySet().contains(endNode)) {
-						hasRel = true;
-						//get from vertex
-						Object startNodeValue = getParsedValue(rowCleanData.get(startNode));
-						String rawStartNodeValue = rowRawData.get(startNode).toString();
-						Vertex fromVertex = upsertVertex(startNode, startNodeValue, rawStartNodeValue);
-						deleteVertices.remove(fromVertex);
-						//get to vertex
-								
-						Object endNodeValue = getParsedValue(rowCleanData.get(endNode));
-						String rawEndNodeValue = rowRawData.get(endNode).toString();
-						Vertex toVertex = upsertVertex(endNode, endNodeValue, rawEndNodeValue);
-						
-						upsertEdge(fromVertex, toVertex);
-					}
-				}
-			}
-			
-			// this is to replace the addRow method which needs to be called on the first iteration
-			// since edges do not exist yet
-			if(!hasRel) {
-				String singleColName = rowCleanData.keySet().iterator().next();
-				Object startNodeValue = getParsedValue(rowCleanData.get(singleColName));
-				String rawStartNodeValue = rowRawData.get(singleColName).toString();
-				upsertVertex(singleColName, startNodeValue, rawStartNodeValue);
-			}
-		}
-		
-		if(hasRel) {
-			for(Vertex vertex : deleteVertices) {
-				vertex.remove();
-			}
-		}
-		
-		GraphTraversal gt = g.traversal().V();
-		int count = 0;
-		while(gt.hasNext()) {
-			count++;
-			gt.next();
-		}
-		System.out.println("TOTAL VERTICES IN GRAPH: "+count);
 	}
 	
 	public void addRelationship(ISelectStatement rowData) {
