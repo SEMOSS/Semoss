@@ -94,7 +94,6 @@ import org.openrdf.sail.memory.MemoryStore;
 
 import com.ibm.icu.math.BigDecimal;
 import com.ibm.icu.text.DecimalFormat;
-import com.sun.syndication.io.SyndFeedOutput;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
@@ -795,152 +794,143 @@ public class Utility {
 	public static void addToSolrInsightCore(IEngine engineToAdd, String path) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
 		SolrIndexEngine solrE = null;
 		SolrDocumentExportWriter writer = null;
-			String engineName = engineToAdd.getEngineName();
-			LOGGER.info("Checking if we need to add " + engineName);
-			solrE = SolrIndexEngine.getInstance();
-			if(solrE.serverActive()) {
-				
-					String folderPath = DIHelper.getInstance().getProperty("BaseFolder");
-					folderPath = folderPath + "\\db\\" + engineName + "\\";
-					String fileName = engineName + "_Solr.txt";
-					File file = new File(folderPath + fileName);
-					if (!file.exists()) {
-						try {
-							file.createNewFile();
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
+		String engineName = engineToAdd.getEngineName();
+		//don't grab localMaster DB data
+		if(engineName.equals(Constants.LOCAL_MASTER_DB_NAME)){
+			return;
+		}
+		LOGGER.info("Checking if we need to add " + engineName);
+		solrE = SolrIndexEngine.getInstance();
+		if(solrE.serverActive()) {
+
+			String folderPath = DIHelper.getInstance().getProperty("BaseFolder");
+			folderPath = folderPath + "\\db\\" + engineName + "\\";
+			String fileName = engineName + "_Solr.txt";
+			File file = new File(folderPath + fileName);
+			if (!file.exists()) {
+				try {
+					file.createNewFile();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+
+			try {
+				writer = new SolrDocumentExportWriter(file);
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+
+			DateFormat dateFormat = SolrIndexEngine.getDateFormat();
+			Date date = new Date();
+			String currDate = dateFormat.format(date);
+			String userID = "default";
+			String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, QUESTION_MAKEUP, QUESTION_PERSPECTIVE  FROM QUESTION_ID";
+
+			solrE.deleteEngine(engineName);
+
+			// query the current insights in this db
+			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engineToAdd.getInsightDatabase(), query);
+			while(wrapper.hasNext()){
+				ISelectStatement ss = wrapper.next();
+				int id = (int) ss.getVar("ID");
+				String name = (String) ss.getVar("QUESTION_NAME");
+				String layout = (String) ss.getVar("QUESTION_LAYOUT");
+
+				String prerna = ".";
+				if (layout.contains(prerna)) {
+					int endIndex = ((String) layout).lastIndexOf(prerna) + 1;
+					if (endIndex != -1) {
+						layout = ((String) layout).substring(endIndex,((String) layout).length());
+						//innerMap.put(newString, facetInstance.getCount());
 					}
+				}
+				String perspective = (String) ss.getVar("QUESTION_PERSPECTIVE");
+				String perspString ="-Perspective";
+				String titleString=" Perspective";
+				if (perspective.contains(perspString)) {
+					perspective = perspective.replace(perspString, "");
+				}
+				if(perspective.contains(titleString)){
+					perspective = perspective.replace(perspString, "");
+				}
 
-					try {
-						writer = new SolrDocumentExportWriter(file);
-					} catch (IOException e1) {
-						e1.printStackTrace();
+				JdbcClob obj = (JdbcClob) ss.getVar("QUESTION_MAKEUP"); 
+				InputStream makeup = null;
+				try {
+					makeup = obj.getAsciiStream();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+
+				//load the makeup input stream into a rc
+				RepositoryConnection rc = null;
+				try {
+					Repository myRepository = new SailRepository(new ForwardChainingRDFSInferencer(new MemoryStore()));
+					myRepository.initialize();
+					rc = myRepository.getConnection();
+					rc.add(makeup, "semoss.org", RDFFormat.NTRIPLES);
+				} catch (RuntimeException ignored) {
+					ignored.printStackTrace();
+				} catch (RDFParseException e) {
+					e.printStackTrace();
+				} catch (RepositoryException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				// set the rc in the in-memory engine
+				InMemorySesameEngine myEng = new InMemorySesameEngine();
+				myEng.setRepositoryConnection(rc);
+
+				List<String> engineList = new ArrayList<String>();
+				//Query the engine
+				String engineQuery = "SELECT DISTINCT ?EngineName WHERE {{?Engine a <http://semoss.org/ontologies/Concept/Engine>}{?Engine <http://semoss.org/ontologies/Relation/Contains/Name> ?EngineName} }";
+				ISelectWrapper engineWrapper = WrapperManager.getInstance().getSWrapper(myEng, engineQuery);
+				while(engineWrapper.hasNext()) {
+					ISelectStatement engineSS = engineWrapper.next();
+					engineList.add(engineSS.getVar("EngineName") + "");
+				}
+
+				List<String> paramList = new ArrayList<String>();
+				List<String> paramTypeList = new ArrayList<String>();
+				List<SEMOSSParam> params = engineToAdd.getParams(id + "");
+
+				if(params != null && !params.isEmpty()) {
+					for(SEMOSSParam p : params) {
+						paramTypeList.add(p.getType());
+						paramList.add(p.getName());
 					}
+				}
 
-					DateFormat dateFormat = SolrIndexEngine.getDateFormat();
-					Date date = new Date();
-					String currDate = dateFormat.format(date);
-					String userID = "default";
-					String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, QUESTION_MAKEUP, QUESTION_PERSPECTIVE  FROM QUESTION_ID";
+				// as you get each result, add the insight as a document in the solr index engine
+				Map<String, Object>  queryResults = new  HashMap<> ();
+				queryResults.put(SolrIndexEngine.STORAGE_NAME, name);
+				queryResults.put(SolrIndexEngine.INDEX_NAME, name);
+				queryResults.put(SolrIndexEngine.CREATED_ON, currDate);
+				queryResults.put(SolrIndexEngine.MODIFIED_ON, currDate);
+				queryResults.put(SolrIndexEngine.USER_ID, userID);
+				queryResults.put(SolrIndexEngine.ENGINES, engineList);
+				queryResults.put(SolrIndexEngine.PARAMS, paramList);
+				queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
+				queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
+				queryResults.put(SolrIndexEngine.LAYOUT, layout);
+				queryResults.put(SolrIndexEngine.TAGS, perspective);
 
-						solrE.deleteEngine(engineName);
+				try {
+					solrE.addInsight(engineName + "_" + id, queryResults);
+					writer.writeSolrDocument(file, engineName + "_" + id, queryResults);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
 
-					// query the current insights in this db
-					ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engineToAdd.getInsightDatabase(), query);
-					while(wrapper.hasNext()){
-						ISelectStatement ss = wrapper.next();
-						int id = (int) ss.getVar("ID");
-						String name = (String) ss.getVar("QUESTION_NAME");
-						String layout = (String) ss.getVar("QUESTION_LAYOUT");
-						
-						String prerna = ".";
-						if (layout.contains(prerna)) {
-							int endIndex = ((String) layout).lastIndexOf(prerna) + 1;
-							if (endIndex != -1) {
-								layout = ((String) layout).substring(endIndex,((String) layout).length());
-								//innerMap.put(newString, facetInstance.getCount());
-							}
-						}
-						String perspective = (String) ss.getVar("QUESTION_PERSPECTIVE");
-						String perspString ="-Perspective";
-						String titleString=" Perspective";
-						if (perspective.contains(perspString)) {
-							perspective = perspective.replace(perspString, "");
-						}
-						if(perspective.contains(titleString)){
-							perspective = perspective.replace(perspString, "");
-						}
-						
-						JdbcClob obj = (JdbcClob) ss.getVar("QUESTION_MAKEUP"); 
-						InputStream makeup = null;
-						try {
-							makeup = obj.getAsciiStream();
-						} catch (SQLException e) {
-							e.printStackTrace();
-						}
-
-						//load the makeup input stream into a rc
-						RepositoryConnection rc = null;
-						try {
-							Repository myRepository = new SailRepository(new ForwardChainingRDFSInferencer(new MemoryStore()));
-							myRepository.initialize();
-							rc = myRepository.getConnection();
-							rc.add(makeup, "semoss.org", RDFFormat.NTRIPLES);
-						} catch (RuntimeException ignored) {
-							ignored.printStackTrace();
-						} catch (RDFParseException e) {
-							e.printStackTrace();
-						} catch (RepositoryException e) {
-							e.printStackTrace();
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-						// set the rc in the in-memory engine
-						InMemorySesameEngine myEng = new InMemorySesameEngine();
-						myEng.setRepositoryConnection(rc);
-
-						List<String> engineList = new ArrayList<String>();
-						//Query the engine
-						String engineQuery = "SELECT DISTINCT ?EngineName WHERE {{?Engine a <http://semoss.org/ontologies/Concept/Engine>}{?Engine <http://semoss.org/ontologies/Relation/Contains/Name> ?EngineName} }";
-						ISelectWrapper engineWrapper = WrapperManager.getInstance().getSWrapper(myEng, engineQuery);
-						while(engineWrapper.hasNext()) {
-							ISelectStatement engineSS = engineWrapper.next();
-							engineList.add(engineSS.getVar("EngineName") + "");
-						}
-
-						List<String> paramList = new ArrayList<String>();
-						List<String> paramTypeList = new ArrayList<String>();
-						List<SEMOSSParam> params = engineToAdd.getParams(id + "");
-						
-						if(params != null && !params.isEmpty()) {
-							for(SEMOSSParam p : params) {
-								paramTypeList.add(p.getType());
-								paramList.add(p.getName());
-							}
-						}
-						
-						//don't grab localMaster DB data
-						if(engineName.contains("LocalMasterDatabase")){
-							continue;
-						}
-						
-						//check to see if TAP DB has params 
-						if (engineName.contains("TAP_")) {
-							if (paramTypeList.isEmpty() || paramTypeList==null){
-								LOGGER.info("Not adding Tap DB's that dont contain params");
-								continue;
-							}
-						}
-					
-						// as you get each result, add the insight as a document in the solr index engine
-						Map<String, Object>  queryResults = new  HashMap<> ();
-						queryResults.put(SolrIndexEngine.STORAGE_NAME, name);
-						queryResults.put(SolrIndexEngine.INDEX_NAME, name);
-						queryResults.put(SolrIndexEngine.CREATED_ON, currDate);
-						queryResults.put(SolrIndexEngine.MODIFIED_ON, currDate);
-						queryResults.put(SolrIndexEngine.USER_ID, userID);
-						queryResults.put(SolrIndexEngine.ENGINES, engineList);
-						queryResults.put(SolrIndexEngine.PARAMS, paramList);
-						queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
-						queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
-						queryResults.put(SolrIndexEngine.LAYOUT, layout);
-						queryResults.put(SolrIndexEngine.TAGS, perspective);
-
-						try {
-							solrE.addInsight(engineName + "_" + id, queryResults);
-							writer.writeSolrDocument(file, engineName + "_" + id, queryResults);
-						} catch (Exception e) {
-							e.printStackTrace();
-						}
-					}
-					
 			//close writer
 			if(writer != null) {
 				writer.closeExport();
 			}
 		}
-		}
+	}
 	
 	//force solr to load once 
 	//once engine is loaded, set boolean to false
