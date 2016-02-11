@@ -356,13 +356,16 @@ public class GremlinBuilder {
 		// get all the levels
 		GremlinBuilder builder = new GremlinBuilder(g);
 
+		
 		//add edges if edges exist
-		if(selectors.size() > 1) {
-			builder.addNodeEdge();
-		} else {
-			//no edges exist, add single node to builder
-			builder.addNode(selectors.get(0));
-		}
+		//if(selectors.size() > 1) {
+		builder.addNodeEdge();
+		//} 
+		
+//		else {
+//			//no edges exist, add single node to builder
+//			builder.addNode(selectors.get(0));
+//		}
 
 		// now add the projections
 		builder.addSelector(selectors);
