@@ -243,7 +243,7 @@ public class Insight {
 	public String getOutput() {
 		return (String) this.propHash.get(OUTPUT_KEY);
 	}
-
+	
 //	/**
 //	 * Getter for the N-Triples string for the insight makeup
 //	 * @return
@@ -612,6 +612,14 @@ public class Insight {
 			}
 		}
 		return this.dataMaker;
+	}
+	
+	/**
+	 * Setter for the data maker
+	 * @param dataMaker
+	 */
+	public void setDataMaker(IDataMaker dataMaker) {
+		this.dataMaker = dataMaker;
 	}
 
 	/**
