@@ -25,9 +25,15 @@ public class Compiler
   // new InputStreamReader(new StringBufferInputStream(" 1 + 2 * (3 + 5); ")), 1024)));
    //new InputStreamReader(new StringBufferInputStream("j:{a b c d };")), 1024)));
     new InputStreamReader(new StringBufferInputStream(""
+    												//+ "(3.0 + 4);"
+    												//+ "(3 + 4, [c:bp, c:ab]);"
+    												+ "col.import([c:col1,c:col2], ([c:col1, inner.join, c:col2])) . [[\"a\",\"b\"][2,3]];"
+    												//+ ";" //; , [[2,1.0][\"a hello world would work absolutely fine too __ ab\",\"b\"]]);"
     												//+ "col.add(c:newCol, (2 + (4 - c:y)) * 3); "
-    												//+ "col.add(c:newCol, api:amazon.product(c:Title_title)); "
-    												+ "3 + (m:Sum((2 * 3) * (c:Capability * c:Activity) + c:Activity));"
+    												//+ "col.add(c:newCol, api:amazon.product([c:Title_title, c:Title_movie_budget, C:Studio_Studio], (c:Title =[\"a\",\"b\"]), ([c:Title,  inner.join , c:Studio]) )); "
+    												//+ "3 + (m:Sum([(2 * 3) * (c:Capability * c:Activity) + c:Activity], [c:bp, c:ab]));"
+    												// m:Sum(X) >= m:Sum(Capability)
+    												//+ "[a,b,c,d,e,f,e];"
     												// can I use the calculation once again in something else ?
     												// I almost need to break everytime I see a math function
     												// but how do I tell groovy not to use it anymore ?
@@ -39,7 +45,7 @@ public class Compiler
     												
     												
     												
-    												+"(12 + (4 - 8)) * (15 / 5) + 5;"
+    												//+"(12 + (4 - 8)) * (15 / 5) + 5;"
    													//+ "v:abc = (c:col2 * (2 *4)); "
     												/*+ "set:(c:newCol, (2 * 3) + 4); "
    													+ "code:{System.out.println('yo');};"

@@ -10,7 +10,9 @@ public final class AMathFun extends PMathFun
     private TProc _proc_;
     private TId _id_;
     private TLPar _lPar_;
-    private PExpr _expr_;
+    private PExprRow _expr_;
+    private TComma _comma_;
+    private PColCsv _group_;
     private TRPar _rPar_;
 
     public AMathFun()
@@ -22,7 +24,9 @@ public final class AMathFun extends PMathFun
         @SuppressWarnings("hiding") TProc _proc_,
         @SuppressWarnings("hiding") TId _id_,
         @SuppressWarnings("hiding") TLPar _lPar_,
-        @SuppressWarnings("hiding") PExpr _expr_,
+        @SuppressWarnings("hiding") PExprRow _expr_,
+        @SuppressWarnings("hiding") TComma _comma_,
+        @SuppressWarnings("hiding") PColCsv _group_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
@@ -33,6 +37,10 @@ public final class AMathFun extends PMathFun
         setLPar(_lPar_);
 
         setExpr(_expr_);
+
+        setComma(_comma_);
+
+        setGroup(_group_);
 
         setRPar(_rPar_);
 
@@ -46,6 +54,8 @@ public final class AMathFun extends PMathFun
             cloneNode(this._id_),
             cloneNode(this._lPar_),
             cloneNode(this._expr_),
+            cloneNode(this._comma_),
+            cloneNode(this._group_),
             cloneNode(this._rPar_));
     }
 
@@ -130,12 +140,12 @@ public final class AMathFun extends PMathFun
         this._lPar_ = node;
     }
 
-    public PExpr getExpr()
+    public PExprRow getExpr()
     {
         return this._expr_;
     }
 
-    public void setExpr(PExpr node)
+    public void setExpr(PExprRow node)
     {
         if(this._expr_ != null)
         {
@@ -153,6 +163,56 @@ public final class AMathFun extends PMathFun
         }
 
         this._expr_ = node;
+    }
+
+    public TComma getComma()
+    {
+        return this._comma_;
+    }
+
+    public void setComma(TComma node)
+    {
+        if(this._comma_ != null)
+        {
+            this._comma_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._comma_ = node;
+    }
+
+    public PColCsv getGroup()
+    {
+        return this._group_;
+    }
+
+    public void setGroup(PColCsv node)
+    {
+        if(this._group_ != null)
+        {
+            this._group_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._group_ = node;
     }
 
     public TRPar getRPar()
@@ -188,6 +248,8 @@ public final class AMathFun extends PMathFun
             + toString(this._id_)
             + toString(this._lPar_)
             + toString(this._expr_)
+            + toString(this._comma_)
+            + toString(this._group_)
             + toString(this._rPar_);
     }
 
@@ -216,6 +278,18 @@ public final class AMathFun extends PMathFun
         if(this._expr_ == child)
         {
             this._expr_ = null;
+            return;
+        }
+
+        if(this._comma_ == child)
+        {
+            this._comma_ = null;
+            return;
+        }
+
+        if(this._group_ == child)
+        {
+            this._group_ = null;
             return;
         }
 
@@ -252,7 +326,19 @@ public final class AMathFun extends PMathFun
 
         if(this._expr_ == oldChild)
         {
-            setExpr((PExpr) newChild);
+            setExpr((PExprRow) newChild);
+            return;
+        }
+
+        if(this._comma_ == oldChild)
+        {
+            setComma((TComma) newChild);
+            return;
+        }
+
+        if(this._group_ == oldChild)
+        {
+            setGroup((PColCsv) newChild);
             return;
         }
 

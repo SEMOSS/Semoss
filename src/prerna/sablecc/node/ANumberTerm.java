@@ -7,7 +7,7 @@ import prerna.sablecc.analysis.*;
 @SuppressWarnings("nls")
 public final class ANumberTerm extends PTerm
 {
-    private TNumber _number_;
+    private PDecimal _decimal_;
 
     public ANumberTerm()
     {
@@ -15,10 +15,10 @@ public final class ANumberTerm extends PTerm
     }
 
     public ANumberTerm(
-        @SuppressWarnings("hiding") TNumber _number_)
+        @SuppressWarnings("hiding") PDecimal _decimal_)
     {
         // Constructor
-        setNumber(_number_);
+        setDecimal(_decimal_);
 
     }
 
@@ -26,7 +26,7 @@ public final class ANumberTerm extends PTerm
     public Object clone()
     {
         return new ANumberTerm(
-            cloneNode(this._number_));
+            cloneNode(this._decimal_));
     }
 
     @Override
@@ -35,16 +35,16 @@ public final class ANumberTerm extends PTerm
         ((Analysis) sw).caseANumberTerm(this);
     }
 
-    public TNumber getNumber()
+    public PDecimal getDecimal()
     {
-        return this._number_;
+        return this._decimal_;
     }
 
-    public void setNumber(TNumber node)
+    public void setDecimal(PDecimal node)
     {
-        if(this._number_ != null)
+        if(this._decimal_ != null)
         {
-            this._number_.parent(null);
+            this._decimal_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class ANumberTerm extends PTerm
             node.parent(this);
         }
 
-        this._number_ = node;
+        this._decimal_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._number_);
+            + toString(this._decimal_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._number_ == child)
+        if(this._decimal_ == child)
         {
-            this._number_ = null;
+            this._decimal_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class ANumberTerm extends PTerm
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._number_ == oldChild)
+        if(this._decimal_ == oldChild)
         {
-            setNumber((TNumber) newChild);
+            setDecimal((PDecimal) newChild);
             return;
         }
 

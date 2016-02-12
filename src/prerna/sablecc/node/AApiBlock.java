@@ -2,7 +2,6 @@
 
 package prerna.sablecc.node;
 
-import java.util.*;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
@@ -13,8 +12,9 @@ public final class AApiBlock extends PApiBlock
     private TDot _dot_;
     private TId _insight_;
     private TLPar _lPar_;
-    private PColDef _input_;
-    private final LinkedList<PColGroup> _otherInput_ = new LinkedList<PColGroup>();
+    private PColCsv _selectors_;
+    private PWhereClause _where_;
+    private PRelationClause _relations_;
     private TRPar _rPar_;
 
     public AApiBlock()
@@ -28,8 +28,9 @@ public final class AApiBlock extends PApiBlock
         @SuppressWarnings("hiding") TDot _dot_,
         @SuppressWarnings("hiding") TId _insight_,
         @SuppressWarnings("hiding") TLPar _lPar_,
-        @SuppressWarnings("hiding") PColDef _input_,
-        @SuppressWarnings("hiding") List<?> _otherInput_,
+        @SuppressWarnings("hiding") PColCsv _selectors_,
+        @SuppressWarnings("hiding") PWhereClause _where_,
+        @SuppressWarnings("hiding") PRelationClause _relations_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
@@ -43,9 +44,11 @@ public final class AApiBlock extends PApiBlock
 
         setLPar(_lPar_);
 
-        setInput(_input_);
+        setSelectors(_selectors_);
 
-        setOtherInput(_otherInput_);
+        setWhere(_where_);
+
+        setRelations(_relations_);
 
         setRPar(_rPar_);
 
@@ -60,8 +63,9 @@ public final class AApiBlock extends PApiBlock
             cloneNode(this._dot_),
             cloneNode(this._insight_),
             cloneNode(this._lPar_),
-            cloneNode(this._input_),
-            cloneList(this._otherInput_),
+            cloneNode(this._selectors_),
+            cloneNode(this._where_),
+            cloneNode(this._relations_),
             cloneNode(this._rPar_));
     }
 
@@ -196,16 +200,16 @@ public final class AApiBlock extends PApiBlock
         this._lPar_ = node;
     }
 
-    public PColDef getInput()
+    public PColCsv getSelectors()
     {
-        return this._input_;
+        return this._selectors_;
     }
 
-    public void setInput(PColDef node)
+    public void setSelectors(PColCsv node)
     {
-        if(this._input_ != null)
+        if(this._selectors_ != null)
         {
-            this._input_.parent(null);
+            this._selectors_.parent(null);
         }
 
         if(node != null)
@@ -218,33 +222,57 @@ public final class AApiBlock extends PApiBlock
             node.parent(this);
         }
 
-        this._input_ = node;
+        this._selectors_ = node;
     }
 
-    public LinkedList<PColGroup> getOtherInput()
+    public PWhereClause getWhere()
     {
-        return this._otherInput_;
+        return this._where_;
     }
 
-    public void setOtherInput(List<?> list)
+    public void setWhere(PWhereClause node)
     {
-        for(PColGroup e : this._otherInput_)
+        if(this._where_ != null)
         {
-            e.parent(null);
+            this._where_.parent(null);
         }
-        this._otherInput_.clear();
 
-        for(Object obj_e : list)
+        if(node != null)
         {
-            PColGroup e = (PColGroup) obj_e;
-            if(e.parent() != null)
+            if(node.parent() != null)
             {
-                e.parent().removeChild(e);
+                node.parent().removeChild(node);
             }
 
-            e.parent(this);
-            this._otherInput_.add(e);
+            node.parent(this);
         }
+
+        this._where_ = node;
+    }
+
+    public PRelationClause getRelations()
+    {
+        return this._relations_;
+    }
+
+    public void setRelations(PRelationClause node)
+    {
+        if(this._relations_ != null)
+        {
+            this._relations_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._relations_ = node;
     }
 
     public TRPar getRPar()
@@ -281,8 +309,9 @@ public final class AApiBlock extends PApiBlock
             + toString(this._dot_)
             + toString(this._insight_)
             + toString(this._lPar_)
-            + toString(this._input_)
-            + toString(this._otherInput_)
+            + toString(this._selectors_)
+            + toString(this._where_)
+            + toString(this._relations_)
             + toString(this._rPar_);
     }
 
@@ -320,14 +349,21 @@ public final class AApiBlock extends PApiBlock
             return;
         }
 
-        if(this._input_ == child)
+        if(this._selectors_ == child)
         {
-            this._input_ = null;
+            this._selectors_ = null;
             return;
         }
 
-        if(this._otherInput_.remove(child))
+        if(this._where_ == child)
         {
+            this._where_ = null;
+            return;
+        }
+
+        if(this._relations_ == child)
+        {
+            this._relations_ = null;
             return;
         }
 
@@ -374,28 +410,22 @@ public final class AApiBlock extends PApiBlock
             return;
         }
 
-        if(this._input_ == oldChild)
+        if(this._selectors_ == oldChild)
         {
-            setInput((PColDef) newChild);
+            setSelectors((PColCsv) newChild);
             return;
         }
 
-        for(ListIterator<PColGroup> i = this._otherInput_.listIterator(); i.hasNext();)
+        if(this._where_ == oldChild)
         {
-            if(i.next() == oldChild)
-            {
-                if(newChild != null)
-                {
-                    i.set((PColGroup) newChild);
-                    newChild.parent(this);
-                    oldChild.parent(null);
-                    return;
-                }
+            setWhere((PWhereClause) newChild);
+            return;
+        }
 
-                i.remove();
-                oldChild.parent(null);
-                return;
-            }
+        if(this._relations_ == oldChild)
+        {
+            setRelations((PRelationClause) newChild);
+            return;
         }
 
         if(this._rPar_ == oldChild)
