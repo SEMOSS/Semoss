@@ -144,6 +144,7 @@ public class TinkerFrame implements ITableDataFrame {
 		
 		
 		
+		
 	}
 
 	public static void testGroupBy() {
@@ -1370,6 +1371,40 @@ public class TinkerFrame implements ITableDataFrame {
 		newLevels.remove(PRIM_KEY);
 		redoLevels(newLevels.toArray(new String[newLevels.size()]));
 	}
+	
+	/**
+	 * 
+	 * @param outType
+	 * @param inType
+	 * 
+	 * Create a connection from outType to inType in the metagraph
+	 */
+	public void connectTypes(String outType, String inType) {
+		
+		Vertex outVert = upsertVertex(META, outType, outType);
+		outVert.property(Constants.FILTER, false);
+		
+		Vertex inVert = upsertVertex(META, inType, inType);
+		inVert.property(Constants.FILTER, false);
+		
+		upsertEdge(outVert, inVert, META);
+		
+		String[] newLevels = new String[]{outType, inType};
+		redoLevels(newLevels);
+	}
+	
+//	public void removeConnection(String outType, String inType) {
+//		g.traversal().V().has(Constants.TYPE, META).has(Constants.VALUE, outType).outE();
+//		
+//		Iterator<Edge> it = g.traversal().V().has(Constants.TYPE, META).has(Constants.VALUE, outType).outE();
+//		while(it.hasNext()) {
+//			Edge e = it.next();
+//			if(e.inVertex().value(Constants.VALUE).equals(inType)) {
+//				e.remove();
+//				return;
+//			}
+//		}
+//	}
 
 	@Override
 	public void undoJoin() {
@@ -2247,6 +2282,7 @@ public class TinkerFrame implements ITableDataFrame {
 		// put it in a set to get unique values
 		Set<String> myset = new LinkedHashSet<String>(Arrays.asList(headerNames));
 		myset.addAll(Arrays.asList(newLevels));
+		myset.remove(PRIM_KEY);
 		
 		String [] newLevelNames = myset.toArray(new String[myset.size()]);
 
