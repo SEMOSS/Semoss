@@ -1144,13 +1144,12 @@ public class SimpleTreeBuilder
 	protected void removeFromIndexTree(SimpleTreeNode n) {
 		TreeNode foundNode = this.getNode((ISEMOSSNode)n.leaf);
 		
-		if(foundNode!=null) {
-			if(!foundNode.getInstances().remove(n)) {
-				if(!foundNode.filteredInstanceNode.remove(n)) {
-					foundNode.transFilteredInstanceNode.remove(n);
-				}
-			}
-		}
+		foundNode.remove(n);
+//		if(foundNode!=null) {
+//			if(!foundNode.getInstances().remove(n)) {
+//				foundNode.filteredInstanceNode.remove(n);
+//			}
+//		}
 	}
 	
 	/**

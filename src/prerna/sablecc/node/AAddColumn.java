@@ -2,6 +2,7 @@
 
 package prerna.sablecc.node;
 
+import java.util.*;
 import prerna.sablecc.analysis.*;
 
 @SuppressWarnings("nls")
@@ -11,6 +12,7 @@ public final class AAddColumn extends PAddColumn
     private TLPar _lPar_;
     private PColDef _newcol_;
     private PExprGroup _exprGroup_;
+    private final LinkedList<PColCsv> _colCsv_ = new LinkedList<PColCsv>();
     private TRPar _rPar_;
 
     public AAddColumn()
@@ -23,6 +25,7 @@ public final class AAddColumn extends PAddColumn
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") PColDef _newcol_,
         @SuppressWarnings("hiding") PExprGroup _exprGroup_,
+        @SuppressWarnings("hiding") List<?> _colCsv_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
@@ -33,6 +36,8 @@ public final class AAddColumn extends PAddColumn
         setNewcol(_newcol_);
 
         setExprGroup(_exprGroup_);
+
+        setColCsv(_colCsv_);
 
         setRPar(_rPar_);
 
@@ -46,6 +51,7 @@ public final class AAddColumn extends PAddColumn
             cloneNode(this._lPar_),
             cloneNode(this._newcol_),
             cloneNode(this._exprGroup_),
+            cloneList(this._colCsv_),
             cloneNode(this._rPar_));
     }
 
@@ -155,6 +161,32 @@ public final class AAddColumn extends PAddColumn
         this._exprGroup_ = node;
     }
 
+    public LinkedList<PColCsv> getColCsv()
+    {
+        return this._colCsv_;
+    }
+
+    public void setColCsv(List<?> list)
+    {
+        for(PColCsv e : this._colCsv_)
+        {
+            e.parent(null);
+        }
+        this._colCsv_.clear();
+
+        for(Object obj_e : list)
+        {
+            PColCsv e = (PColCsv) obj_e;
+            if(e.parent() != null)
+            {
+                e.parent().removeChild(e);
+            }
+
+            e.parent(this);
+            this._colCsv_.add(e);
+        }
+    }
+
     public TRPar getRPar()
     {
         return this._rPar_;
@@ -188,6 +220,7 @@ public final class AAddColumn extends PAddColumn
             + toString(this._lPar_)
             + toString(this._newcol_)
             + toString(this._exprGroup_)
+            + toString(this._colCsv_)
             + toString(this._rPar_);
     }
 
@@ -216,6 +249,11 @@ public final class AAddColumn extends PAddColumn
         if(this._exprGroup_ == child)
         {
             this._exprGroup_ = null;
+            return;
+        }
+
+        if(this._colCsv_.remove(child))
+        {
             return;
         }
 
@@ -254,6 +292,24 @@ public final class AAddColumn extends PAddColumn
         {
             setExprGroup((PExprGroup) newChild);
             return;
+        }
+
+        for(ListIterator<PColCsv> i = this._colCsv_.listIterator(); i.hasNext();)
+        {
+            if(i.next() == oldChild)
+            {
+                if(newChild != null)
+                {
+                    i.set((PColCsv) newChild);
+                    newChild.parent(this);
+                    oldChild.parent(null);
+                    return;
+                }
+
+                i.remove();
+                oldChild.parent(null);
+                return;
+            }
         }
 
         if(this._rPar_ == oldChild)

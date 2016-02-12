@@ -117,12 +117,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAJoincolColop(AJoincolColop node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseARemcolColop(ARemcolColop node)
     {
         defaultCase(node);
@@ -159,13 +153,13 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAAddColumn(AAddColumn node)
+    public void caseAImportColop(AImportColop node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseAJoinColumn(AJoinColumn node)
+    public void caseAAddColumn(AAddColumn node)
     {
         defaultCase(node);
     }
@@ -207,6 +201,18 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAImportColumn(AImportColumn node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADecimal(ADecimal node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAExprGroup(AExprGroup node)
     {
         defaultCase(node);
@@ -214,6 +220,60 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAApiBlock(AApiBlock node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseASelector(ASelector node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAColWhere(AColWhere node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAColDefColDefOrCsvRow(AColDefColDefOrCsvRow node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseACsvColDefOrCsvRow(ACsvColDefOrCsvRow node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAColWhereGroup(AColWhereGroup node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAWhereClause(AWhereClause node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseARelationDef(ARelationDef node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseARelationGroup(ARelationGroup node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseARelationClause(ARelationClause node)
     {
         defaultCase(node);
     }
@@ -231,7 +291,19 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAGroupBy(AGroupBy node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAColDef(AColDef node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseATableDef(ATableDef node)
     {
         defaultCase(node);
     }
@@ -244,6 +316,90 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAVarop(AVarop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseACsvRow(ACsvRow node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAEasyRow(AEasyRow node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAEasyGroup(AEasyGroup node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseACsvTable(ACsvTable node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAColCsv(AColCsv node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseANumWordOrNum(ANumWordOrNum node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAAlphaWordOrNum(AAlphaWordOrNum node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAExprWordOrNum(AExprWordOrNum node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAWord(AWord node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAIdWordOrBlank(AIdWordOrBlank node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseABlankWordOrBlank(ABlankWordOrBlank node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAFormula(AFormula node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseACsvGroup(ACsvGroup node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAExprRow(AExprRow node)
     {
         defaultCase(node);
     }
@@ -279,7 +435,19 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAEExprExpr(AEExprExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAMathFun(AMathFun node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAExtendedExpr(AExtendedExpr node)
     {
         defaultCase(node);
     }
@@ -339,6 +507,18 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseATabTerm(ATabTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAWcsvTerm(AWcsvTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseATerm(ATerm node)
     {
         defaultCase(node);
@@ -382,6 +562,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTComma(TComma node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTQuote(TQuote node)
     {
         defaultCase(node);
     }
@@ -435,6 +621,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseTTablePrefix(TTablePrefix node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseTValprefix(TValprefix node)
     {
         defaultCase(node);
@@ -448,6 +640,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTColfilter(TColfilter node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTColimport(TColimport node)
     {
         defaultCase(node);
     }
@@ -507,7 +705,31 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseTLBracket(TLBracket node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTRBracket(TRBracket node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTGroup(TGroup node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseTBlank(TBlank node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTSpace(TSpace node)
     {
         defaultCase(node);
     }
@@ -550,6 +772,18 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTNull(TNull node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTImportType(TImportType node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTRelType(TRelType node)
     {
         defaultCase(node);
     }
