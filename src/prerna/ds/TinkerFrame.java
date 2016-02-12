@@ -29,11 +29,11 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
+import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.Path;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
-import org.apache.tinkerpop.gremlin.process.traversal.step.util.Tree;
 import org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.SubgraphStrategy;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -610,9 +610,9 @@ public class TinkerFrame implements ITableDataFrame {
 		
 		System.out.println("Testing partition"); // useful when I want to roll back and move forward // can also be used for filtering..
 		SubgraphStrategy stratA = SubgraphStrategy.build().vertexCriterion(__.hasId(1)).create(); // putting id 1 into a separate subgraph
-		//GraphTraversal<Vertex, Vertex> gt11 = g.traversal().V().has("name", P.not(org.apache.tinkerpop.gremlin.process.traversal.P.within("marko", "ripple")));
+		//GraphTraversal<Vertex, Vertex> gt11 = g.traversal().V().has("name", P.not(P.within("marko", "ripple")));
 		String [] names = {"marko", "ripple"};
-		GraphTraversal<Vertex, Vertex> gt11 = g.traversal().V().has("name", org.apache.tinkerpop.gremlin.process.traversal.P.without(names));
+		GraphTraversal<Vertex, Vertex> gt11 = g.traversal().V().has("name", P.without(names));
 		
 		while(gt11.hasNext())
 		{
@@ -620,7 +620,7 @@ public class TinkerFrame implements ITableDataFrame {
 		}
 		System.out.println("Now printing from partition");
 		GraphTraversalSource newGraph = GraphTraversalSource.build().with(stratA).create(g);
-		gt11 = newGraph.V().has("name", org.apache.tinkerpop.gremlin.process.traversal.P.within("marko"));
+		gt11 = newGraph.V().has("name", P.within("marko"));
 		//gt11 = newGraph.V();
 		
 		while(gt11.hasNext())
@@ -1897,81 +1897,46 @@ public class TinkerFrame implements ITableDataFrame {
 
 	@Override
 	public void filter(String columnHeader, List<Object> filterValues) {
+		//TODO: how is this supposed to work without unfiltering the entire column first?
+		//TODO: note that unfilter with a list of values method is never invoked in process flow
+		unfilter(columnHeader);
 		Vertex metaVertex = upsertVertex(META, columnHeader, columnHeader);
 		metaVertex.property(Constants.FILTER, true);
-		
+
 		Vertex filterVertex = upsertVertex(Constants.FILTER, Constants.FILTER, Constants.FILTER);
-		
+
 		for(int i = 0 ; i < filterValues.size(); i++) {
 			String id = columnHeader +":"+ filterValues.get(i);
-			
+
 			GraphTraversal<Vertex, Vertex> fgt = g.traversal().V().has(Constants.ID, id);
 			Vertex nextVertex = null;
 			if(fgt.hasNext()) {
 				nextVertex = fgt.next();
-				upsertEdge(filterVertex, nextVertex);
+				upsertEdge(filterVertex, nextVertex, Constants.FILTER);
 			}
 		}
 	}
 
 	@Override
 	public void unfilter(String columnHeader) {
-		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, Constants.FILTER);
-		Vertex filterVertex;
-		if(gt.hasNext()) {
-			filterVertex = gt.next();
-			Iterator<Edge> edges = filterVertex.edges(Direction.OUT);
-			while(edges.hasNext()) {
-				Edge nextEdge = edges.next();
-				Vertex outVertex = nextEdge.outVertex();
-				String type = outVertex.property(Constants.TYPE).value().toString();
-				if(type.equals(columnHeader)) {
-					nextEdge.remove();
-				}
-			}
-		}
-		
+		g.traversal().V().has(Constants.TYPE, Constants.FILTER).out().has(Constants.TYPE, columnHeader).inE(Constants.FILTER).drop().iterate();
 		Vertex metaVertex = this.upsertVertex(META, columnHeader, columnHeader);
 		metaVertex.property(Constants.FILTER, false);
 	}
 
 	//TODO : remove the override and put it in ITableDataFrame if we need this method
-//	@Override
+	//	@Override
 	public void unfilter(String columnHeader, List<Object> unfilterValues) {
-		
-		HashSet<Object> uValues = new HashSet<>(unfilterValues);
-		
-		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, Constants.FILTER);
-		Vertex filterVertex;
-		if(gt.hasNext()) {
-			filterVertex = gt.next();
-			Iterator<Edge> edges = filterVertex.edges(Direction.OUT);
-			while(edges.hasNext()) {
-				Edge nextEdge = edges.next();
-				Vertex outVertex = nextEdge.outVertex();
-				String type = outVertex.property(Constants.TYPE).value().toString();
-				if(type.equals(columnHeader)) {
-					Object value = outVertex.property(Constants.NAME).value();
-					if(uValues.contains(value)) {
-						nextEdge.remove();
-					}
-				}
-			}
-		}		
+		final String BIND_VAR = "bindVar";
+		g.traversal().V().has(Constants.TYPE, Constants.FILTER).out().has(Constants.TYPE, columnHeader).properties(Constants.NAME).value().as(BIND_VAR)
+				.where(BIND_VAR, P.within(unfilterValues.toArray(new String[]{}))).inE(Constants.FILTER);
 	}
 
 	@Override
 	public void unfilter() {
-		
-		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, Constants.FILTER);
-		Vertex filterVertex;
+		g.traversal().V().has(Constants.TYPE, Constants.FILTER).out().inE(Constants.FILTER).drop().iterate();
+		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, META);
 		while(gt.hasNext()) {
-			filterVertex = gt.next();
-			filterVertex.remove();
-		}
-		
-		GraphTraversal<Vertex, Vertex> gt2 = g.traversal().V().has(Constants.TYPE, META);
-		while(gt2.hasNext()) {
 			Vertex metaVertex = gt.next();
 			metaVertex.property(Constants.FILTER, false);
 		}
