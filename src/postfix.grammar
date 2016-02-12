@@ -11,14 +11,16 @@ Helpers
 Tokens
  number = ['0' .. '9']+;
  id = (letter_s|letter_b|digit | underscore)*;
+
  semicolon = ';';
  plus = '+';
  minus = '-';
  mult = '*';
  comma = ',';
+ quote = '"';
  div = '/';
  col = 'col';
- comparator = ('>' | '<' | '<=' | '>=' | '==' | '!=');
+ comparator = ('>' | '<' | '<=' | '>=' | '=' | '!=' | 'like');
  coladd = 'col.add';
  //('addColumn:'|'ac:'|'a:'|'add:' | 'col');
  api = ('api:'|'call:');
@@ -26,9 +28,11 @@ Tokens
  coljoin = 'col.join';
  //('joinColumn:' | 'jc:' | 'j:' | 'join:' | 'col.join');
  colprefix = 'c:';
+ table_prefix = 't:';
  valprefix = 'v:';
  colremove = 'col.remove';
  colfilter = 'col.filter';
+ colimport = 'col.import';
  //('removeColumn:' | 'rm:' | 'del:' | 'rem:');
  colset = 'col.set';
  //('setColumn:' | 'sc:' | 'set:');
@@ -41,7 +45,11 @@ Tokens
  l_par = '(';
  dot = '.';
  r_par = ')';
+ l_bracket = '[';
+ r_bracket = ']';
+ group = 'group:';
  blank = (' ' | 13 | 10)+;
+ space = (' ' | 13)+;
  equal = '=';
  newline = '\r'? '\n';
  codeblock = '{' [0 .. 0xFFFF]* '}';
@@ -49,9 +57,9 @@ Tokens
  proc = 'm:'; // | 'average');
  this = 'this';
  null = 'null';
+ import_type = ('flat' | 'tree');
+ rel_type = ('inner.join' | 'outer.join' | 'right.outer.join' | 'left.outer.join' | 'cross.join' | 'self.join'); 
  
- 
-
  
 Ignored Tokens
  blank;
@@ -70,22 +78,18 @@ script = {colop} colop  semicolon // column operations
 
 colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn / setColumn
 		{add_column} add_column 
-		| {joincol} join_column
 		| {remcol} rem_column 
 		| {setcol} set_column
 		| {pivotcol} pivot_column
 		| {filtercol} filter_column
 		| {focuscol} focus_column
 		| {unfocus} unfocus
+		| {import} import_column
 		;
 
 		
-add_column = // follows the pattern of addColumn(columnName and optionally the expression) addColumn(c:NewCol, 'expression');
-		coladd l_par [newcol]:col_def expr_group? r_par 
-		;
-
-join_column = // follows the pattern of addColumn(columnName and optionally the expression) joinColumn(c:colToJoin, otherCols);
-		coljoin l_par [newcol]:col_def [joincol]:col_group+ r_par 
+add_column = // follows the pattern of addColumn(columnName and optionally the expression) addColumn(c:NewCol, 'expression', [c:col1, c:col2]);
+		coladd l_par [newcol]:col_def expr_group? col_csv* r_par 
 		;
 
 rem_column = // follows the pattern of addColumn(columnName and optionally the expression) removeColumn(c:colToRemove);
@@ -109,26 +113,83 @@ focus_column = // takes all the other columns and focuses on only these columns
 unfocus = // you will specify it as col.focus('off');
 		colfocus l_par show_hide r_par
 		;
+
+import_column = // importing data - col.import(tree | flat, [c:col1, c:col2, c:col3], [ [1,2,3] [a,b,c] ] - this is a flat
+		colimport [lp1]:l_par [cols]:col_csv [relations]:relation_clause? [rp2]:r_par dot [data]:csv_table 
+		;
 		
+decimal = [whole]:number dot? [fraction]:number?;		
 		
 expr_group = [comma]:comma [expr]:expr;		
 
-api_block = api [engine_name]:id dot [insight]:id l_par [input]:col_def [other_input]:col_group* r_par; // the insight can also be the method
+api_block = api [engine_name]:id dot [insight]:id l_par [selectors]:col_csv [where]:where_clause? [relations]:relation_clause? r_par; // the insight can also be the method
+
+// query format
+// api:Tap_Core.Query:([Selectors], [Filters], [relations])
+// relations
+// selector sibling selector comes from the same table
+// selector comparator selector
+// 
+selector = l_bracket col_csv r_bracket;
+
+// where column clause
+col_where = col_def comparator col_def_or_csv_row;
+
+col_def_or_csv_row = {col_def} col_def | {csv} csv_row;
+
+col_where_group = comma col_where;
+
+where_clause = comma l_par col_where col_where_group* r_par; // , (
+
+// relations
+relation_def = l_bracket [from]:col_def [com1]:comma rel_type [com2]:comma [to]:col_def r_bracket;
+
+relation_group = comma relation_def;
+
+relation_clause = comma l_par relation_def relation_group* r_par;
 
 if_block = l_par comparator comma term r_par;
 
 col_group = comma col_def;
 
-//col_or_expr = expr_group | col_group;
+group_by = l_par col_def col_group* r_par; // this is to be included in various math calculations (Studion, Genre) - this is equivalent of saving pivot on this
 
 col_def = colprefix [colname]:id;
+
+table_def = table_prefix [cardinality]:number; // if you want to add runtime formulas as you take the table in - instead of waiting
 
 var_def = valprefix [valname]:id;
 
 varop = // variable operation usually takes the form of a given variable taking ID = some stuff
 		 [name]:var_def equal [expr]:expr 
 		;
+		
+//num_csv = l_bracket decimal num_csv_group+ r_bracket; 		
 
+csv_row = l_bracket word_or_num csv_group+ r_bracket; 		// [1,3]
+
+easy_row = word_or_num easy_group+ newline;
+
+easy_group = comma word_or_num;
+
+csv_table = l_bracket csv_row+ r_bracket; //[[1,3][2,4][5,6]]
+
+col_csv = l_bracket col_def col_group* r_bracket; // this is typically of the form [c:col1, c:col2, c:col3]
+
+word_or_num = {num} decimal | {alpha} word | {expr} [formula]:formula ; // I need some way putting an expression here
+
+word = [l]:quote word_or_blank+ [r]:quote;
+
+word_or_blank = {id} id | {blank} space;
+
+formula = l_par expr r_par;
+		
+csv_group = comma [csv]:word_or_num; // , 3
+
+
+expr_row = l_bracket [expr]:expr expr_group* r_bracket;
+
+		
 j_op = // this of the pattern j:{hola, hello etc.. }
 	java codeblock;
 		
@@ -137,13 +198,13 @@ j_op = // this of the pattern j:{hola, hello etc.. }
   {plus} [left]:expr plus [right]:factor |
   {minus} [left]:expr minus [right]:factor 
   |{math_fun} math_fun // I need to still resolve other mathematical functions
+  | {e_expr} extended_expr
   ;
- //  assign ;
-
- //  assign = alpha+ equal l_par expr r_par;
  
- math_fun = proc id l_par [expr]:expr r_par;
-    
+ math_fun = proc id l_par [expr]:expr_row comma? [group]:col_csv? r_par; // m.Sum([1 + c:Activity], /*groupBy*/(c:studio, c:genre));
+ 
+ extended_expr = l_par [expr]:expr comma? [group]:col_csv r_par; // I have no idea why I need this.. but !!
+ 
  factor =
   {term} term |
   {mult} [left]:factor mult [right]:term |
@@ -152,10 +213,12 @@ j_op = // this of the pattern j:{hola, hello etc.. }
 
 
  term =
-  {number} number |
+  {number} decimal |
   {expr} l_par expr r_par 
   | {var} valprefix [var]:id
   | {col} [col]:col_def
   | {api} api_block
+  | {tab} [tab]:table_def
+  | {wcsv} csv_row
   | null
   ;

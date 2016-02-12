@@ -37,7 +37,7 @@ import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.poi.hssf.record.CFRuleRecord.ComparisonOperator;
+import org.apache.poi.hssf.record.CFRuleBase.ComparisonOperator;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.IndexedColors;
