@@ -49,11 +49,14 @@ public abstract class BaseReducer implements ExpressionReducer {
 		Object daObject = inputIterator.next();
 		Map <Object, Object> row = null;
 		Vertex vert = null;
+		Double doubleValue = null;
 		
 		if(daObject instanceof Map)
 			row = (Map<Object, Object>)daObject;
-		else
+		else if(daObject instanceof Vertex)
 			vert = (Vertex) daObject;
+		else if(daObject instanceof Double)
+			doubleValue = (Double)daObject;
 		if(daObject != null && !errored)
 		{
 			// put things into the bindings first
@@ -67,9 +70,15 @@ public abstract class BaseReducer implements ExpressionReducer {
 					otherBindings.put(ids[colIndex], val);
 				}
 			}
-			else
+			else if(vert != null)
 			{
 				Object val = vert.value(propToGet);
+				System.out.println("Values is " + val);
+				otherBindings.put(ids[0], val);
+			}
+			else if(doubleValue != null)
+			{
+				Object val = doubleValue.doubleValue();
 				System.out.println("Values is " + val);
 				otherBindings.put(ids[0], val);
 			}
@@ -90,6 +99,7 @@ public abstract class BaseReducer implements ExpressionReducer {
 		
 		try {
 			retObject = cs.eval();
+			System.out.println("Returning value.. " + retObject);
 			long now = System.nanoTime();
 			
 			System.out.println("Time Difference..  " + ((now - nanoTime)/1000000));

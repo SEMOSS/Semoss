@@ -203,27 +203,6 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAAddColumnColop(node);
     }
 
-    public void inAJoincolColop(AJoincolColop node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAJoincolColop(AJoincolColop node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAJoincolColop(AJoincolColop node)
-    {
-        inAJoincolColop(node);
-        if(node.getJoinColumn() != null)
-        {
-            node.getJoinColumn().apply(this);
-        }
-        outAJoincolColop(node);
-    }
-
     public void inARemcolColop(ARemcolColop node)
     {
         defaultIn(node);
@@ -350,6 +329,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAUnfocusColop(node);
     }
 
+    public void inAImportColop(AImportColop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAImportColop(AImportColop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAImportColop(AImportColop node)
+    {
+        inAImportColop(node);
+        if(node.getImportColumn() != null)
+        {
+            node.getImportColumn().apply(this);
+        }
+        outAImportColop(node);
+    }
+
     public void inAAddColumn(AAddColumn node)
     {
         defaultIn(node);
@@ -368,6 +368,14 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getRPar().apply(this);
         }
+        {
+            List<PColCsv> copy = new ArrayList<PColCsv>(node.getColCsv());
+            Collections.reverse(copy);
+            for(PColCsv e : copy)
+            {
+                e.apply(this);
+            }
+        }
         if(node.getExprGroup() != null)
         {
             node.getExprGroup().apply(this);
@@ -385,47 +393,6 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getColadd().apply(this);
         }
         outAAddColumn(node);
-    }
-
-    public void inAJoinColumn(AJoinColumn node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAJoinColumn(AJoinColumn node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAJoinColumn(AJoinColumn node)
-    {
-        inAJoinColumn(node);
-        if(node.getRPar() != null)
-        {
-            node.getRPar().apply(this);
-        }
-        {
-            List<PColGroup> copy = new ArrayList<PColGroup>(node.getJoincol());
-            Collections.reverse(copy);
-            for(PColGroup e : copy)
-            {
-                e.apply(this);
-            }
-        }
-        if(node.getNewcol() != null)
-        {
-            node.getNewcol().apply(this);
-        }
-        if(node.getLPar() != null)
-        {
-            node.getLPar().apply(this);
-        }
-        if(node.getColjoin() != null)
-        {
-            node.getColjoin().apply(this);
-        }
-        outAJoinColumn(node);
     }
 
     public void inARemColumn(ARemColumn node)
@@ -678,6 +645,80 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAUnfocus(node);
     }
 
+    public void inAImportColumn(AImportColumn node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAImportColumn(AImportColumn node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAImportColumn(AImportColumn node)
+    {
+        inAImportColumn(node);
+        if(node.getData() != null)
+        {
+            node.getData().apply(this);
+        }
+        if(node.getDot() != null)
+        {
+            node.getDot().apply(this);
+        }
+        if(node.getRp2() != null)
+        {
+            node.getRp2().apply(this);
+        }
+        if(node.getRelations() != null)
+        {
+            node.getRelations().apply(this);
+        }
+        if(node.getCols() != null)
+        {
+            node.getCols().apply(this);
+        }
+        if(node.getLp1() != null)
+        {
+            node.getLp1().apply(this);
+        }
+        if(node.getColimport() != null)
+        {
+            node.getColimport().apply(this);
+        }
+        outAImportColumn(node);
+    }
+
+    public void inADecimal(ADecimal node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADecimal(ADecimal node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADecimal(ADecimal node)
+    {
+        inADecimal(node);
+        if(node.getFraction() != null)
+        {
+            node.getFraction().apply(this);
+        }
+        if(node.getDot() != null)
+        {
+            node.getDot().apply(this);
+        }
+        if(node.getWhole() != null)
+        {
+            node.getWhole().apply(this);
+        }
+        outADecimal(node);
+    }
+
     public void inAExprGroup(AExprGroup node)
     {
         defaultIn(node);
@@ -721,17 +762,17 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getRPar().apply(this);
         }
+        if(node.getRelations() != null)
         {
-            List<PColGroup> copy = new ArrayList<PColGroup>(node.getOtherInput());
-            Collections.reverse(copy);
-            for(PColGroup e : copy)
-            {
-                e.apply(this);
-            }
+            node.getRelations().apply(this);
         }
-        if(node.getInput() != null)
+        if(node.getWhere() != null)
         {
-            node.getInput().apply(this);
+            node.getWhere().apply(this);
+        }
+        if(node.getSelectors() != null)
+        {
+            node.getSelectors().apply(this);
         }
         if(node.getLPar() != null)
         {
@@ -754,6 +795,283 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getApi().apply(this);
         }
         outAApiBlock(node);
+    }
+
+    public void inASelector(ASelector node)
+    {
+        defaultIn(node);
+    }
+
+    public void outASelector(ASelector node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseASelector(ASelector node)
+    {
+        inASelector(node);
+        if(node.getRBracket() != null)
+        {
+            node.getRBracket().apply(this);
+        }
+        if(node.getColCsv() != null)
+        {
+            node.getColCsv().apply(this);
+        }
+        if(node.getLBracket() != null)
+        {
+            node.getLBracket().apply(this);
+        }
+        outASelector(node);
+    }
+
+    public void inAColWhere(AColWhere node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAColWhere(AColWhere node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAColWhere(AColWhere node)
+    {
+        inAColWhere(node);
+        if(node.getColDefOrCsvRow() != null)
+        {
+            node.getColDefOrCsvRow().apply(this);
+        }
+        if(node.getComparator() != null)
+        {
+            node.getComparator().apply(this);
+        }
+        if(node.getColDef() != null)
+        {
+            node.getColDef().apply(this);
+        }
+        outAColWhere(node);
+    }
+
+    public void inAColDefColDefOrCsvRow(AColDefColDefOrCsvRow node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAColDefColDefOrCsvRow(AColDefColDefOrCsvRow node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAColDefColDefOrCsvRow(AColDefColDefOrCsvRow node)
+    {
+        inAColDefColDefOrCsvRow(node);
+        if(node.getColDef() != null)
+        {
+            node.getColDef().apply(this);
+        }
+        outAColDefColDefOrCsvRow(node);
+    }
+
+    public void inACsvColDefOrCsvRow(ACsvColDefOrCsvRow node)
+    {
+        defaultIn(node);
+    }
+
+    public void outACsvColDefOrCsvRow(ACsvColDefOrCsvRow node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseACsvColDefOrCsvRow(ACsvColDefOrCsvRow node)
+    {
+        inACsvColDefOrCsvRow(node);
+        if(node.getCsvRow() != null)
+        {
+            node.getCsvRow().apply(this);
+        }
+        outACsvColDefOrCsvRow(node);
+    }
+
+    public void inAColWhereGroup(AColWhereGroup node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAColWhereGroup(AColWhereGroup node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAColWhereGroup(AColWhereGroup node)
+    {
+        inAColWhereGroup(node);
+        if(node.getColWhere() != null)
+        {
+            node.getColWhere().apply(this);
+        }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        outAColWhereGroup(node);
+    }
+
+    public void inAWhereClause(AWhereClause node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAWhereClause(AWhereClause node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAWhereClause(AWhereClause node)
+    {
+        inAWhereClause(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        {
+            List<PColWhereGroup> copy = new ArrayList<PColWhereGroup>(node.getColWhereGroup());
+            Collections.reverse(copy);
+            for(PColWhereGroup e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getColWhere() != null)
+        {
+            node.getColWhere().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        outAWhereClause(node);
+    }
+
+    public void inARelationDef(ARelationDef node)
+    {
+        defaultIn(node);
+    }
+
+    public void outARelationDef(ARelationDef node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseARelationDef(ARelationDef node)
+    {
+        inARelationDef(node);
+        if(node.getRBracket() != null)
+        {
+            node.getRBracket().apply(this);
+        }
+        if(node.getTo() != null)
+        {
+            node.getTo().apply(this);
+        }
+        if(node.getCom2() != null)
+        {
+            node.getCom2().apply(this);
+        }
+        if(node.getRelType() != null)
+        {
+            node.getRelType().apply(this);
+        }
+        if(node.getCom1() != null)
+        {
+            node.getCom1().apply(this);
+        }
+        if(node.getFrom() != null)
+        {
+            node.getFrom().apply(this);
+        }
+        if(node.getLBracket() != null)
+        {
+            node.getLBracket().apply(this);
+        }
+        outARelationDef(node);
+    }
+
+    public void inARelationGroup(ARelationGroup node)
+    {
+        defaultIn(node);
+    }
+
+    public void outARelationGroup(ARelationGroup node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseARelationGroup(ARelationGroup node)
+    {
+        inARelationGroup(node);
+        if(node.getRelationDef() != null)
+        {
+            node.getRelationDef().apply(this);
+        }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        outARelationGroup(node);
+    }
+
+    public void inARelationClause(ARelationClause node)
+    {
+        defaultIn(node);
+    }
+
+    public void outARelationClause(ARelationClause node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseARelationClause(ARelationClause node)
+    {
+        inARelationClause(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        {
+            List<PRelationGroup> copy = new ArrayList<PRelationGroup>(node.getRelationGroup());
+            Collections.reverse(copy);
+            for(PRelationGroup e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getRelationDef() != null)
+        {
+            node.getRelationDef().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        outARelationClause(node);
     }
 
     public void inAIfBlock(AIfBlock node)
@@ -818,6 +1136,43 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAColGroup(node);
     }
 
+    public void inAGroupBy(AGroupBy node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAGroupBy(AGroupBy node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAGroupBy(AGroupBy node)
+    {
+        inAGroupBy(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        {
+            List<PColGroup> copy = new ArrayList<PColGroup>(node.getColGroup());
+            Collections.reverse(copy);
+            for(PColGroup e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getColDef() != null)
+        {
+            node.getColDef().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        outAGroupBy(node);
+    }
+
     public void inAColDef(AColDef node)
     {
         defaultIn(node);
@@ -841,6 +1196,31 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getColprefix().apply(this);
         }
         outAColDef(node);
+    }
+
+    public void inATableDef(ATableDef node)
+    {
+        defaultIn(node);
+    }
+
+    public void outATableDef(ATableDef node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseATableDef(ATableDef node)
+    {
+        inATableDef(node);
+        if(node.getCardinality() != null)
+        {
+            node.getCardinality().apply(this);
+        }
+        if(node.getTablePrefix() != null)
+        {
+            node.getTablePrefix().apply(this);
+        }
+        outATableDef(node);
     }
 
     public void inAVarDef(AVarDef node)
@@ -895,6 +1275,400 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getName().apply(this);
         }
         outAVarop(node);
+    }
+
+    public void inACsvRow(ACsvRow node)
+    {
+        defaultIn(node);
+    }
+
+    public void outACsvRow(ACsvRow node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseACsvRow(ACsvRow node)
+    {
+        inACsvRow(node);
+        if(node.getRBracket() != null)
+        {
+            node.getRBracket().apply(this);
+        }
+        {
+            List<PCsvGroup> copy = new ArrayList<PCsvGroup>(node.getCsvGroup());
+            Collections.reverse(copy);
+            for(PCsvGroup e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getWordOrNum() != null)
+        {
+            node.getWordOrNum().apply(this);
+        }
+        if(node.getLBracket() != null)
+        {
+            node.getLBracket().apply(this);
+        }
+        outACsvRow(node);
+    }
+
+    public void inAEasyRow(AEasyRow node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAEasyRow(AEasyRow node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAEasyRow(AEasyRow node)
+    {
+        inAEasyRow(node);
+        if(node.getNewline() != null)
+        {
+            node.getNewline().apply(this);
+        }
+        {
+            List<PEasyGroup> copy = new ArrayList<PEasyGroup>(node.getEasyGroup());
+            Collections.reverse(copy);
+            for(PEasyGroup e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getWordOrNum() != null)
+        {
+            node.getWordOrNum().apply(this);
+        }
+        outAEasyRow(node);
+    }
+
+    public void inAEasyGroup(AEasyGroup node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAEasyGroup(AEasyGroup node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAEasyGroup(AEasyGroup node)
+    {
+        inAEasyGroup(node);
+        if(node.getWordOrNum() != null)
+        {
+            node.getWordOrNum().apply(this);
+        }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        outAEasyGroup(node);
+    }
+
+    public void inACsvTable(ACsvTable node)
+    {
+        defaultIn(node);
+    }
+
+    public void outACsvTable(ACsvTable node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseACsvTable(ACsvTable node)
+    {
+        inACsvTable(node);
+        if(node.getRBracket() != null)
+        {
+            node.getRBracket().apply(this);
+        }
+        {
+            List<PCsvRow> copy = new ArrayList<PCsvRow>(node.getCsvRow());
+            Collections.reverse(copy);
+            for(PCsvRow e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getLBracket() != null)
+        {
+            node.getLBracket().apply(this);
+        }
+        outACsvTable(node);
+    }
+
+    public void inAColCsv(AColCsv node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAColCsv(AColCsv node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAColCsv(AColCsv node)
+    {
+        inAColCsv(node);
+        if(node.getRBracket() != null)
+        {
+            node.getRBracket().apply(this);
+        }
+        {
+            List<PColGroup> copy = new ArrayList<PColGroup>(node.getColGroup());
+            Collections.reverse(copy);
+            for(PColGroup e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getColDef() != null)
+        {
+            node.getColDef().apply(this);
+        }
+        if(node.getLBracket() != null)
+        {
+            node.getLBracket().apply(this);
+        }
+        outAColCsv(node);
+    }
+
+    public void inANumWordOrNum(ANumWordOrNum node)
+    {
+        defaultIn(node);
+    }
+
+    public void outANumWordOrNum(ANumWordOrNum node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseANumWordOrNum(ANumWordOrNum node)
+    {
+        inANumWordOrNum(node);
+        if(node.getDecimal() != null)
+        {
+            node.getDecimal().apply(this);
+        }
+        outANumWordOrNum(node);
+    }
+
+    public void inAAlphaWordOrNum(AAlphaWordOrNum node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAAlphaWordOrNum(AAlphaWordOrNum node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAAlphaWordOrNum(AAlphaWordOrNum node)
+    {
+        inAAlphaWordOrNum(node);
+        if(node.getWord() != null)
+        {
+            node.getWord().apply(this);
+        }
+        outAAlphaWordOrNum(node);
+    }
+
+    public void inAExprWordOrNum(AExprWordOrNum node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAExprWordOrNum(AExprWordOrNum node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAExprWordOrNum(AExprWordOrNum node)
+    {
+        inAExprWordOrNum(node);
+        if(node.getFormula() != null)
+        {
+            node.getFormula().apply(this);
+        }
+        outAExprWordOrNum(node);
+    }
+
+    public void inAWord(AWord node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAWord(AWord node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAWord(AWord node)
+    {
+        inAWord(node);
+        if(node.getR() != null)
+        {
+            node.getR().apply(this);
+        }
+        {
+            List<PWordOrBlank> copy = new ArrayList<PWordOrBlank>(node.getWordOrBlank());
+            Collections.reverse(copy);
+            for(PWordOrBlank e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getL() != null)
+        {
+            node.getL().apply(this);
+        }
+        outAWord(node);
+    }
+
+    public void inAIdWordOrBlank(AIdWordOrBlank node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAIdWordOrBlank(AIdWordOrBlank node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAIdWordOrBlank(AIdWordOrBlank node)
+    {
+        inAIdWordOrBlank(node);
+        if(node.getId() != null)
+        {
+            node.getId().apply(this);
+        }
+        outAIdWordOrBlank(node);
+    }
+
+    public void inABlankWordOrBlank(ABlankWordOrBlank node)
+    {
+        defaultIn(node);
+    }
+
+    public void outABlankWordOrBlank(ABlankWordOrBlank node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseABlankWordOrBlank(ABlankWordOrBlank node)
+    {
+        inABlankWordOrBlank(node);
+        if(node.getSpace() != null)
+        {
+            node.getSpace().apply(this);
+        }
+        outABlankWordOrBlank(node);
+    }
+
+    public void inAFormula(AFormula node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAFormula(AFormula node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAFormula(AFormula node)
+    {
+        inAFormula(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getExpr() != null)
+        {
+            node.getExpr().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        outAFormula(node);
+    }
+
+    public void inACsvGroup(ACsvGroup node)
+    {
+        defaultIn(node);
+    }
+
+    public void outACsvGroup(ACsvGroup node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseACsvGroup(ACsvGroup node)
+    {
+        inACsvGroup(node);
+        if(node.getCsv() != null)
+        {
+            node.getCsv().apply(this);
+        }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        outACsvGroup(node);
+    }
+
+    public void inAExprRow(AExprRow node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAExprRow(AExprRow node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAExprRow(AExprRow node)
+    {
+        inAExprRow(node);
+        if(node.getRBracket() != null)
+        {
+            node.getRBracket().apply(this);
+        }
+        {
+            List<PExprGroup> copy = new ArrayList<PExprGroup>(node.getExprGroup());
+            Collections.reverse(copy);
+            for(PExprGroup e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getExpr() != null)
+        {
+            node.getExpr().apply(this);
+        }
+        if(node.getLBracket() != null)
+        {
+            node.getLBracket().apply(this);
+        }
+        outAExprRow(node);
     }
 
     public void inAJOp(AJOp node)
@@ -1022,6 +1796,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAMathFunExpr(node);
     }
 
+    public void inAEExprExpr(AEExprExpr node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAEExprExpr(AEExprExpr node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAEExprExpr(AEExprExpr node)
+    {
+        inAEExprExpr(node);
+        if(node.getExtendedExpr() != null)
+        {
+            node.getExtendedExpr().apply(this);
+        }
+        outAEExprExpr(node);
+    }
+
     public void inAMathFun(AMathFun node)
     {
         defaultIn(node);
@@ -1040,6 +1835,14 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getRPar().apply(this);
         }
+        if(node.getGroup() != null)
+        {
+            node.getGroup().apply(this);
+        }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
         if(node.getExpr() != null)
         {
             node.getExpr().apply(this);
@@ -1057,6 +1860,43 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getProc().apply(this);
         }
         outAMathFun(node);
+    }
+
+    public void inAExtendedExpr(AExtendedExpr node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAExtendedExpr(AExtendedExpr node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAExtendedExpr(AExtendedExpr node)
+    {
+        inAExtendedExpr(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getGroup() != null)
+        {
+            node.getGroup().apply(this);
+        }
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        if(node.getExpr() != null)
+        {
+            node.getExpr().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        outAExtendedExpr(node);
     }
 
     public void inATermFactor(ATermFactor node)
@@ -1181,9 +2021,9 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
     public void caseANumberTerm(ANumberTerm node)
     {
         inANumberTerm(node);
-        if(node.getNumber() != null)
+        if(node.getDecimal() != null)
         {
-            node.getNumber().apply(this);
+            node.getDecimal().apply(this);
         }
         outANumberTerm(node);
     }
@@ -1282,6 +2122,48 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getApiBlock().apply(this);
         }
         outAApiTerm(node);
+    }
+
+    public void inATabTerm(ATabTerm node)
+    {
+        defaultIn(node);
+    }
+
+    public void outATabTerm(ATabTerm node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseATabTerm(ATabTerm node)
+    {
+        inATabTerm(node);
+        if(node.getTab() != null)
+        {
+            node.getTab().apply(this);
+        }
+        outATabTerm(node);
+    }
+
+    public void inAWcsvTerm(AWcsvTerm node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAWcsvTerm(AWcsvTerm node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAWcsvTerm(AWcsvTerm node)
+    {
+        inAWcsvTerm(node);
+        if(node.getCsvRow() != null)
+        {
+            node.getCsvRow().apply(this);
+        }
+        outAWcsvTerm(node);
     }
 
     public void inATerm(ATerm node)
