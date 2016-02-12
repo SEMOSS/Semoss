@@ -88,6 +88,7 @@ import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.rio.RDFFormat;
+import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFParseException;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
@@ -100,7 +101,10 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
+import prerna.nameserver.AddToMasterDB;
+import prerna.nameserver.DeleteFromMasterDB;
 import prerna.om.SEMOSSParam;
+import prerna.poi.main.BaseDatabaseCreator;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.solr.SolrDocumentExportWriter;
 import prerna.solr.SolrIndexEngine;
@@ -999,7 +1003,6 @@ public class Utility {
 	 * @return 	Loaded engine. */
 	public static IEngine loadEngine(String fileName, Properties prop) {
 		IEngine engine = null;
-
 		try {
 			String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
 //			boolean closeDB = false;
@@ -1055,6 +1058,18 @@ public class Utility {
 			engines = engines + ";" + engineName;
 			DIHelper.getInstance().setLocalProperty(engineName, engine);
 			DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engines);
+			
+			// now add or remove based on if it is hidden to local master
+			boolean hidden = (prop.getProperty(Constants.HIDDEN_DATABASE) != null && Boolean.parseBoolean(prop.getProperty(Constants.HIDDEN_DATABASE)));
+			boolean isLocal = engineName.equals(Constants.LOCAL_MASTER_DB_NAME);
+			if(!hidden && !isLocal) {
+				addToLocalMaster(engine);
+			} else if(!isLocal){ // never add local master to itself...
+				DeleteFromMasterDB deleter = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+				deleter.deleteEngine(engineName);
+				Utility.deleteFromSolr(engineName);
+			}
+			
 //			if(closeDB)
 //				engine.closeDB();
 		} catch (InstantiationException e) {
@@ -1065,6 +1080,74 @@ public class Utility {
 			e.printStackTrace();
 		}
 		return engine;
+	}
+	
+	public static void addToLocalMaster(IEngine engineToAdd) {
+		IEngine localMaster = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
+		if(localMaster == null) {
+			throw new NullPointerException("Unable to find local master database in DIHelper.");
+		}
+		if(engineToAdd == null) {
+			throw new NullPointerException("Unable to load engine ");
+		}
+
+		String engineName = engineToAdd.getEngineName();
+		String engineURL = "http://semoss.org/ontologies/Concept/Engine/" + Utility.cleanString(engineName, true);
+		String localDbQuery = "SELECT DISTINCT ?TIMESTAMP WHERE {<" + engineURL + "> <" + BaseDatabaseCreator.TIME_KEY + "> ?TIMESTAMP}";
+		String engineQuery = "SELECT DISTINCT ?TIMESTAMP WHERE {<" + BaseDatabaseCreator.TIME_URL + "> <" + BaseDatabaseCreator.TIME_KEY + "> ?TIMESTAMP}";
+
+		String localDbTimeForEngine = null;
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(localMaster, localDbQuery);
+		String[] names = wrapper.getVariables();
+		while(wrapper.hasNext()) {
+			ISelectStatement ss = wrapper.next();
+			localDbTimeForEngine = ss.getVar(names[0]) + "";
+		}
+
+		String engineDbTime = null;
+		ISelectWrapper wrapper2 = WrapperManager.getInstance().getSWrapper( ((AbstractEngine)engineToAdd).getBaseDataEngine(), engineQuery);
+		String[] names2 = wrapper2.getVariables();
+		while(wrapper2.hasNext()) {
+			ISelectStatement ss = wrapper2.next();
+			engineDbTime = ss.getVar(names2[0]) + "";
+		}
+
+		if(engineDbTime == null) {
+			DateFormat dateFormat = BaseDatabaseCreator.getFormatter();
+			Calendar cal = Calendar.getInstance();
+			engineDbTime = dateFormat.format(cal.getTime());
+			((AbstractEngine)engineToAdd).getBaseDataEngine().doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{BaseDatabaseCreator.TIME_URL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
+			((AbstractEngine)engineToAdd).getBaseDataEngine().commit();
+			try {
+				((AbstractEngine)engineToAdd).getBaseDataEngine().exportDB();
+			} catch (RepositoryException e) {
+				e.printStackTrace();
+			} catch (RDFHandlerException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		if(localDbTimeForEngine == null) {
+			localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
+
+			AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+			adder.registerEngineLocal(engineToAdd);
+			localMaster.commit();
+		} else if(!localDbTimeForEngine.equals(engineDbTime)) {
+			localMaster.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, localDbTimeForEngine, false});
+			localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
+
+			//if it has a time stamp, it means it was previously in local master
+			//need to delete current information and read
+			DeleteFromMasterDB remover = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+			remover.deleteEngine(engineName);
+
+			AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+			adder.registerEngineLocal(engineToAdd);
+			localMaster.commit();
+		}
 	}
 
 	/**
