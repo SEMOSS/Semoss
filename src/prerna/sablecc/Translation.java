@@ -9,6 +9,7 @@ import prerna.algorithm.impl.ImportAction;
 import prerna.ds.ExpressionReducer;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
+import prerna.rdf.query.builder.SQLInterpreter;
 import prerna.sablecc.analysis.DepthFirstAdapter;
 import prerna.sablecc.node.AAddColumn;
 import prerna.sablecc.node.AApiBlock;
