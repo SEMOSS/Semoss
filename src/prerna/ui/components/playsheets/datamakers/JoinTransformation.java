@@ -126,7 +126,7 @@ public class JoinTransformation extends AbstractTransformation {
 						addedColumns.add(val);
 					}
 				}
-				((TinkerFrame)dm).removeExtraneousNodes();
+//				((TinkerFrame)dm).removeExtraneousNodes(); though this call makes sense in terms of keeping the tinker free of unnecessary nodes, it is quite slow. Going to try to call this only when necessary (serializing)
 			}
 		} else {
 			QueryBuilderData builderData = dmc.getBuilderData();
