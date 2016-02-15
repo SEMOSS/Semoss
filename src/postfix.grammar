@@ -6,12 +6,13 @@ Helpers
  letter_b = ['A' .. 'Z'];
  digit = ['0' .. '9'];
  underscore = '_';
+ hdot = '.';
  
 
 Tokens
  number = ['0' .. '9']+;
  id = (letter_s|letter_b|digit | underscore)*;
-
+dot = '.';
  semicolon = ';';
  plus = '+';
  minus = '-';
@@ -26,7 +27,6 @@ Tokens
  api = ('api:'|'call:');
  math = ('math.' | 'm.');
  coljoin = 'col.join';
- //('joinColumn:' | 'jc:' | 'j:' | 'join:' | 'col.join');
  colprefix = 'c:';
  table_prefix = 't:';
  valprefix = 'v:';
@@ -43,7 +43,6 @@ Tokens
  show_hide = ('on' | 'off');
  mod = '%';
  l_par = '(';
- dot = '.';
  r_par = ')';
  l_bracket = '[';
  r_bracket = ']';
@@ -58,7 +57,7 @@ Tokens
  this = 'this';
  null = 'null';
  import_type = ('flat' | 'tree');
- rel_type = ('inner.join' | 'outer.join' | 'right.outer.join' | 'left.outer.join' | 'cross.join' | 'self.join'); 
+ rel_type = ('inner.join' | 'outer.join' | 'right.outer.join' | 'left.outer.join' | 'cross.join' | 'self.join' ); 
  
  
 Ignored Tokens
@@ -180,7 +179,7 @@ word_or_num = {num} decimal | {alpha} word | {expr} [formula]:formula ; // I nee
 
 word = [l]:quote word_or_blank+ [r]:quote;
 
-word_or_blank = {id} id | {blank} space;
+word_or_blank = {id} id | {blank} space ;
 
 formula = l_par expr r_par;
 		

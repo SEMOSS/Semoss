@@ -90,6 +90,7 @@ public interface Analysis extends Switch
 
     void caseTNumber(TNumber node);
     void caseTId(TId node);
+    void caseTDot(TDot node);
     void caseTSemicolon(TSemicolon node);
     void caseTPlus(TPlus node);
     void caseTMinus(TMinus node);
@@ -116,7 +117,6 @@ public interface Analysis extends Switch
     void caseTShowHide(TShowHide node);
     void caseTMod(TMod node);
     void caseTLPar(TLPar node);
-    void caseTDot(TDot node);
     void caseTRPar(TRPar node);
     void caseTLBracket(TLBracket node);
     void caseTRBracket(TRBracket node);

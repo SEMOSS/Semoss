@@ -31,6 +31,10 @@ public class ImportAction implements IAction {
 		// now get the headers
 		Object [] vals = convertVectorToArrayO((Vector)data);
 		System.err.println("Will insert now.. " + cols + vals);
+		
+		thisFrame.addRow(vals, vals, cols);
+		
+		
 	}
 
 	@Override

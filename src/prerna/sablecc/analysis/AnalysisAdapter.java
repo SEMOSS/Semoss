@@ -537,6 +537,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseTDot(TDot node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseTSemicolon(TSemicolon node)
     {
         defaultCase(node);
@@ -688,12 +694,6 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTLPar(TLPar node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTDot(TDot node)
     {
         defaultCase(node);
     }
