@@ -27,10 +27,10 @@ public class Compiler
     new InputStreamReader(new StringBufferInputStream(""
     												//+ "(3.0 + 4);"
     												//+ "(3 + 4, [c:bp, c:ab]);"
-    												+ "col.import([c:col1,c:col2], ([c:col1, inner.join, c:col2])) . [[\"a\",\"b\"][2,3]];"
+    												//+ "col.import([c:col1,c:col2], ([c:col1, inner.join, c:col2])) . [[\"a\",\"b\"][2,3]];"
     												//+ ";" //; , [[2,1.0][\"a hello world would work absolutely fine too __ ab\",\"b\"]]);"
     												//+ "col.add(c:newCol, (2 + (4 - c:y)) * 3); "
-    												//+ "col.add(c:newCol, api:amazon.product([c:Title_title, c:Title_movie_budget, C:Studio_Studio], (c:Title =[\"a\",\"b\"]), ([c:Title,  inner.join , c:Studio]) )); "
+    												+ "col.add(c:newCol, api:TAP_CORE.query([c:Title__title, c:Title__movie_budget], (c:Title__Title =[\"a\",\"b\"], c:Title__Title = [\"c\", \"d\"]), ([c:Title__Title,  inner.join , c:Studio__Studio] ,[c:Title__Title,  outer.join , c:Studio__Studio_FK]) )); "
     												//+ "3 + (m:Sum([(2 * 3) * (c:Capability * c:Activity) + c:Activity], [c:bp, c:ab]));"
     												// m:Sum(X) >= m:Sum(Capability)
     												//+ "[a,b,c,d,e,f,e];"
