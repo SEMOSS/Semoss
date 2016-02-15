@@ -1,6 +1,5 @@
 package prerna.algorithm.impl;
 
-import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -13,6 +12,7 @@ import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.ds.ExpressionReducer;
+import prerna.util.Constants;
 
 public abstract class BaseReducer implements ExpressionReducer {
 	

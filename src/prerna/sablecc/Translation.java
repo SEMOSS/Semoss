@@ -9,6 +9,7 @@ import prerna.algorithm.impl.ImportAction;
 import prerna.ds.ExpressionReducer;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
+import prerna.rdf.query.builder.SQLInterpreter;
 import prerna.sablecc.analysis.DepthFirstAdapter;
 import prerna.sablecc.node.AAddColumn;
 import prerna.sablecc.node.AApiBlock;
@@ -104,8 +105,8 @@ class Translation extends DepthFirstAdapter {
 
 		if(whatICallThisInMyWorld != null &&  whatICallThisInMyWorld.containsKey("API_BLOCK"))
 		{
-			System.out.println("API...  " + node); // defaultIn(node);
-			System.out.println(node.getEngineName() + " <> " + node.getInsight());
+			//System.out.println("API...  " + node); // defaultIn(node);
+			//System.out.println(node.getEngineName() + " <> " + node.getInsight());
 	
 			// I am tracking for this guy foor now
 			//currentMathFunction.addElement((node + "").trim());
@@ -116,6 +117,7 @@ class Translation extends DepthFirstAdapter {
 			whatICallThisInMyWorld.put("COL_CSV_1", "SELECTOR");
 			whatICallThisInMyWorld.put("COL_WHERE", "FILTERS");
 			whatICallThisInMyWorld.put("RELATIONS", "JOINS");
+			whatICallThisInMyWorld.put("RELATIONS_1", "JOINS");
 			whatICallThisInMyWorld.put("API_BLOCK", "API_BLOCK");
 	
 			reinit();
@@ -126,7 +128,7 @@ class Translation extends DepthFirstAdapter {
 	{
 		if(whatICallThisInMyWorld != null &&  whatICallThisInMyWorld.containsKey("API_BLOCK"))
 		{
-			System.out.println("Will pull the data on this one and then make the calls to add to other things");
+			//System.out.println("Will pull the data on this one and then make the calls to add to other things");
 			myStore.put("ENGINE", node.getEngineName() + "");
 			myStore.put("INSIGHT", node.getInsight() + "");
 			
@@ -135,6 +137,8 @@ class Translation extends DepthFirstAdapter {
 			
 			saveData("API_BLOCK", thisStore);
 			
+			Vector <Hashtable> filtersToBeElaborated = new Vector<Hashtable>();
+			Vector <String> tinkerSelectors = new Vector<String>();
 			
 			String engine = (String)thisStore.get("ENGINE");
 			String insight = (String)thisStore.get("INSIGHT");
@@ -146,12 +150,12 @@ class Translation extends DepthFirstAdapter {
 				for(int selectIndex = 0;selectIndex < selectors.size();selectIndex++)
 				{
 					String thisSelector = selectors.get(selectIndex);
-					String concept = thisSelector.substring(0, thisSelector.indexOf("__")-1);
+					String concept = thisSelector.substring(0, thisSelector.indexOf("__"));
 					String property = thisSelector.substring(thisSelector.indexOf("__")+2);
 					qs.addSelector(concept, property);
 				}
 			}
-			if(thisStore.containsKey("FILTER") && ((Vector)thisStore.get("FILTER")).size() > 0)
+			if(thisStore.containsKey("FILTERS") && ((Vector)thisStore.get("FILTERS")).size() > 0)
 			{
 				Vector filters = (Vector)thisStore.get("FILTERS");
 				for(int filterIndex = 0;filterIndex < filters.size();filterIndex++)
@@ -163,17 +167,20 @@ class Translation extends DepthFirstAdapter {
 					if(thisFilter.containsKey("TO_COL"))
 					{
 						toCol = (String)thisFilter.get("TO_COL");
+						filtersToBeElaborated.add(thisFilter);
+						tinkerSelectors.add(toCol);
 						// need to pull this from tinker frame and do the due
+						// interestingly this could be join
 					}
 					else
 					{
 						// this is a vector do some processing here					
 						filterData = (Vector)thisFilter.get("TO_DATA");
+						String comparator = (String)thisFilter.get("COMPARATOR");
+						String concept = fromCol.substring(0, fromCol.indexOf("__"));
+						String property = fromCol.substring(fromCol.indexOf("__")+2);
+						qs.addFilter(fromCol, comparator, filterData);
 					}
-					String comparator = (String)thisFilter.get("COMPARATOR");
-					String concept = fromCol.substring(0, fromCol.indexOf("__")-1);
-					String property = fromCol.substring(fromCol.indexOf("__")+2);
-					qs.addFilter(concept, property, comparator, filterData);
 				}
 			}
 			if(thisStore.containsKey("JOINS") && ((Vector)thisStore.get("JOINS")).size() > 0)
@@ -187,23 +194,31 @@ class Translation extends DepthFirstAdapter {
 					String fromCol = (String)thisJoin.get("FROM_COL");
 					String toCol = (String)thisJoin.get("TO_COL");
 					
-					
-					
+					String relation = (String)thisJoin.get("REL_TYPE");	
+					qs.addRelation(fromCol, toCol, relation);
 				}
 				
 			}
-
+			
+			// I need to run through here tot find which ones are things to be elaborated
+			// and then add it back to the query struct
+			
+			//System.out.println(">>>Set everything on query struct.. now I need to pull the API and run it<<<");
+			///qs.print();
+			
+			SQLInterpreter in = new SQLInterpreter(qs);
+			in.composeQuery();
 			
 		}
 	}
 
 	public void caseTNumber(TNumber node) {// When we see a number, we print it.
-		System.out.print(node);
+		//System.out.print(node);
 
 	}
 
 	public void inAExprScript(AExprScript node) {
-		System.out.println("In a script expr");
+		//System.out.println("In a script expr");
 		defaultIn(node);
 	}
 
@@ -213,9 +228,8 @@ class Translation extends DepthFirstAdapter {
 
 		// this is the last portion of everything
 
-		System.out.println("out of scroipt expr [" + node + "]");
-		System.out.println(" Found it in data keeper ?"
-				+ dataKeeper.get(nodeStr));
+		//System.out.println("out of scroipt expr [" + node + "]");
+		//System.out.println(" Found it in data keeper ?"+ dataKeeper.get(nodeStr));
 		if (!dataKeeper.containsKey((node + "").trim())) {
 			dataKeeper.put((node + "").trim(), dataKeeper.get(nodeStr));
 		}
@@ -224,13 +238,13 @@ class Translation extends DepthFirstAdapter {
 
 	public void outAPlusExpr(APlusExpr node) {// out of alternative {plus} in
 												// Expr, we print the plus.
-		System.out.print("Plus expression..  " + node.getPlus());
+		//System.out.print("Plus expression..  " + node.getPlus());
 		String leftKeyName = node.getLeft() + "";
 		String rightKeyName = node.getRight() + "";
 
 		Object leftObj = dataKeeper.get(leftKeyName.trim());
 		Object rightObj = dataKeeper.get(rightKeyName.trim());
-		System.out.println(node.getLeft() + " [][] " + node.getRight());
+		//System.out.println(node.getLeft() + " [][] " + node.getRight());
 		Object result = null;
 		if (rightObj instanceof Double && leftObj instanceof Double)
 			result = (Double)(leftObj)
@@ -242,22 +256,22 @@ class Translation extends DepthFirstAdapter {
 			// stupidity for now
 			result = leftObj + "" + rightObj;
 		}
-		System.out.println("result is add " + result);
+		//System.out.println("result is add " + result);
 
-		System.out.println("node itself looks like.. APlus [" + node + "]");
+		//System.out.println("node itself looks like.. APlus [" + node + "]");
 		dataKeeper.put((node + "").trim(), result);
 	}
 	
 
 
 	public void inAMinusExpr(AMinusExpr node) {
-		System.out.println("MINUS... " + node);
+		//System.out.println("MINUS... " + node);
 	}
 
 	public void outAMinusExpr(AMinusExpr node) {// out of alternative {plus} in
 												// Expr, we print the plus.
 
-		System.out.println("MINUS again in out.. ");
+		//System.out.println("MINUS again in out.. ");
 		String leftKeyName = node.getLeft() + "";
 		String rightKeyName = node.getRight() + "";
 
@@ -275,32 +289,30 @@ class Translation extends DepthFirstAdapter {
 			result = leftObj + "" + rightObj;
 		}
 
-		System.out.println("result is" + result);
+		//System.out.println("result is" + result);
 
-		System.out.println(node.getLeft() + " [][] " + node.getRight());
+		//System.out.println(node.getLeft() + " [][] " + node.getRight());
 
-		System.out.println("node itself looks like.. minus[" + node + "]");
+		//System.out.println("node itself looks like.. minus[" + node + "]");
 		dataKeeper.put((node + "").trim(), result);
 	}
 
 	public void inATermFactor(ATermFactor node) {
 		// defaultIn(node);
-		System.out.println("In a term Factor");
-		System.out.println(">>> " +node.getTerm());
+		//System.out.println("In a term Factor");
+		//System.out.println(">>> " +node.getTerm());
 
 	}
 
 	public void inAExprTerm(AExprTerm node) {
-		System.out.println("Printing expr term PAR " + node.getExpr());
+		//System.out.println("Printing expr term PAR " + node.getExpr());
 		//currentMathFunction.add((node + "").trim());
 
 		// this is the one that has paranthesis
 	}
 
 	public void outAExprTerm(AExprTerm node) {
-		System.out.println("Successful in retrieving the data for expr term ? "
-				+ node.getExpr() + " "
-				+ dataKeeper.containsKey((node.getExpr() + "").trim()));
+		//System.out.println("Successful in retrieving the data for expr term ?+ node.getExpr() + 	+ dataKeeper.containsKey((node.getExpr() + "").trim()));
 		// get the value of it
 		Object value = dataKeeper.get((node.getExpr() + "").trim());
 		
@@ -318,9 +330,9 @@ class Translation extends DepthFirstAdapter {
 			// I need to only do this if the current Math function > 1
 			if(true) //currentMathFunction.size() > 0)
 			{
-				System.out.println(".. I need to do something here.. ");
-				System.out.println(funCol);
-				System.out.println(tempStrings);
+				//System.out.println(".. I need to do something here.. ");
+				//System.out.println(funCol);
+				//System.out.println(tempStrings);
 				remasterCol((node + "").trim(), currentMathFunction.get(currentMathFunction.size() -1), funCol);
 				remasterCol((node + "").trim(), currentMathFunction.get(currentMathFunction.size() -1), tempStrings);
 				// nothing much else to do here
@@ -353,7 +365,7 @@ class Translation extends DepthFirstAdapter {
 		}
 		//if(value != null)
 			dataKeeper.put((node + "").trim(), value);
-		System.out.println("Value so far..  " + value);*/
+		//System.out.println("Value so far..  " + value);*/
 	}
 	
 	private void remasterCol(String curNode, String parNode, Hashtable <String, Vector<String>> funCol)
@@ -372,8 +384,8 @@ class Translation extends DepthFirstAdapter {
 	public void outAMultFactor(AMultFactor node) {// out of alternative {mult}
 													// in Factor, we print the
 													// mult.
-													// System.out.print(node.getMult());
-													// System.out.print(node.getPlus());
+													// //System.out.print(node.getMult());
+													// //System.out.print(node.getPlus());
 		String leftKeyName = node.getLeft() + "";
 		String rightKeyName = node.getRight() + "";
 
@@ -392,7 +404,7 @@ class Translation extends DepthFirstAdapter {
 			result = leftObj + "" + rightObj;
 		}
 
-		System.out.println("result is" + result);
+		//System.out.println("result is" + result);
 		dataKeeper.put((node + "").trim(), result);
 	}
 
@@ -416,18 +428,18 @@ class Translation extends DepthFirstAdapter {
 			result = leftObj + "" + rightObj;
 		}
 
-		System.out.println("result is Div" + result);
+		//System.out.println("result is Div" + result);
 		dataKeeper.put((node + "").trim(), result);
 	}
 
 	public void inAColDef(AColDef node) {
-		System.out.println("Inside col def.. ");
+		//System.out.println("Inside col def.. ");
 		String colName = node.getColname() + "";
 
 		// I will create the iterator here and put it but for now..
 		// dataKeeper.put((node+"").trim(), dataKeeper.keys());
-		System.out.println(colName);
-		System.out.println("Full name is " + node);
+		//System.out.println(colName);
+		//System.out.println("Full name is " + node);
 
 		Vector<String> colVector = new Vector<String>();
 		
@@ -472,13 +484,13 @@ class Translation extends DepthFirstAdapter {
 
 	public void outAModFactor(AModFactor node) {// out of alternative {mod} in
 												// Factor, we print the mod.
-		System.out.print(node.getMod());
+		//System.out.print(node.getMod());
 	}
 
 	public void outAAddColumn(AAddColumn node) {
 		
 		// this is where the majority of the work would be done
-		System.out.println("In the final Add Column.. give me everything on API" + myStore);
+		//System.out.println("In the final Add Column.. give me everything on API" + myStore);
 		
 		// get the name of Engine
 //		Hashtable apiHash = (Hashtable)myStore.get("API");
@@ -486,28 +498,27 @@ class Translation extends DepthFirstAdapter {
 		
 		
 		
-		/*System.out.println("Adding the column.. " + node);
+		/*//System.out.println("Adding the column.. " + node);
 		String colName = getCol(node.getNewcol() + "");
-		System.out.println("New Column is.. [" + colName + "]");
-		System.out.println("Column expression is [" + node.getExprGroup());
-		System.out.println("And the value is present as.. "
+		//System.out.println("New Column is.. [" + colName + "]");
+		//System.out.println("Column expression is [" + node.getExprGroup());
+		//System.out.println("And the value is present as.. "
 				+ dataKeeper.get(node.getExprGroup()));*/
 	}
 
 	public void outAExprGroup(AExprGroup node) {
-		System.out.println("Node in expr group" + node);
-		System.out.println(dataKeeper);
-		System.out.println("Data keeper has expr.. [" + node.getExpr() + "]"
-				+ dataKeeper.containsKey((node.getExpr() + "").trim()));
+		//System.out.println("Node in expr group" + node);
+		//System.out.println(dataKeeper);
+		//System.out.println("Data keeper has expr.. [" + node.getExpr() + "]"+ dataKeeper.containsKey((node.getExpr() + "").trim()));
 		if( dataKeeper.containsKey((node.getExpr() + "").trim()))
 			dataKeeper.put(node + "", dataKeeper.get((node.getExpr() + "").trim()));
 	}
 
 	public void inAAddColumn(AAddColumn node) {
 		// need to do the same process here as the add
-		System.out.println("IN Adding the column.. " + node);
+		//System.out.println("IN Adding the column.. " + node);
 		String colName = getCol(node.getNewcol() + "");
-		System.out.println("New Column is.. [" + colName + "]");
+		//System.out.println("New Column is.. [" + colName + "]");
 		
 		whatICallThisInMyWorld = new Hashtable<String, String>();
 		whatICallThisInMyWorld.put("API_BLOCK", "API");
@@ -518,25 +529,25 @@ class Translation extends DepthFirstAdapter {
 	}
 
 	public void outASetColumn(ASetColumn node) {
-		System.out.println("Set.. [" + (node.getExpr() + "").trim() + "]");
+		//System.out.println("Set.. [" + (node.getExpr() + "").trim() + "]");
 	}
 
 	public void outAVarop(AVarop node) {
 		String varName = getCol(node.getName() + "");
 		String expr = getCol(node.getExpr() + "");
-		System.out.println("Variable declaration " + varName + " =  " + expr);
+		//System.out.println("Variable declaration " + varName + " =  " + expr);
 		// defaultOut(node);
 	}
 
 	public void inANumberTerm(ANumberTerm node) {
-		System.out.println("Number term.. >>> " + node.getDecimal());
+		//System.out.println("Number term.. >>> " + node.getDecimal());
 		String number = node.getDecimal() + "";
 		//dataKeeper.put(number.trim(), Double.parseDouble(number));
 	}
 	
     public void inADecimal(ADecimal node)
     {
-		System.out.println("DECIMAL VALUE.. >>> " + node);
+		//System.out.println("DECIMAL VALUE.. >>> " + node);
 		String fraction = node.getFraction() +"";
 		String number = (node.getWhole() + "").trim();
 		if(node.getFraction() != null)
@@ -547,15 +558,15 @@ class Translation extends DepthFirstAdapter {
 
     public void outAWord(AWord node)
     {
-        System.out.println("In a word.. " + node); // need to find a way to clean up information puts a space after the quote
+        //System.out.println("In a word.. " + node); // need to find a way to clean up information puts a space after the quote
         saveData("WORD_OR_NUM", (node + "").trim());
         //thisRow.addElement((node + "").trim());        
     }
 
     public void outANumWordOrNum(ANumWordOrNum node)
     {
-        System.out.println("In a Num.. " + node);
-        System.out.println("Data Keeper is.. " + dataKeeper.get((node + "").trim()));
+        //System.out.println("In a Num.. " + node);
+        //System.out.println("Data Keeper is.. " + dataKeeper.get((node + "").trim()));
         //thisRow.addElement(dataKeeper.get((node + "").trim()));
         saveData("WORD_OR_NUM", (node + "").trim());
     }
@@ -584,13 +595,13 @@ class Translation extends DepthFirstAdapter {
 
 
 	public void inAMathFunExpr(AMathFunExpr node) {
-		System.out.println("Math Fun expression is ..  " + node);
+		//System.out.println("Math Fun expression is ..  " + node);
 		// currentMathFunction = node.getMathFun() + "";
 	}
 
 	public void inAMathFun(AMathFun node) {
-		System.out.println("Math function is expr " + node.getExpr());
-		System.out.println("Math function is " + node.getId());
+		//System.out.println("Math function is expr " + node.getExpr());
+		//System.out.println("Math function is " + node.getId());
 
 		// this will do some stuff and then set the value back
 		//dataKeeper.put((node + "").trim(), "Final Value of this function");
@@ -626,12 +637,12 @@ class Translation extends DepthFirstAdapter {
 			// I need to find all the different columns for this function
 			// this is sitting in the funCol
 			
-			System.out.println("Math Fun is.. " + node);
+			//System.out.println("Math Fun is.. " + node);
 			
 			// I need to accomodate group by next
-			System.out.println("COL SCSV Group in the function is ..  " + arrayValues);
+			//System.out.println("COL SCSV Group in the function is ..  " + arrayValues);
 			
-			System.out.println("OUT MATH FUN...  " + myStore);
+			//System.out.println("OUT MATH FUN...  " + myStore);
 			
 			Vector <String> columns = (Vector <String>)myStore.get("SELECTORS");
 
@@ -641,16 +652,16 @@ class Translation extends DepthFirstAdapter {
 			
 			String expression = (node.getExpr() + "").trim().replaceAll("c:", "");
 
-			System.out.println("Temp Strings.. " + tempStrings);
-			System.out.println("Columns... " + funCol);
-			System.out.println("New expression.. " + expression);
+			//System.out.println("Temp Strings.. " + tempStrings);
+			//System.out.println("Columns... " + funCol);
+			//System.out.println("New expression.. " + expression);
 			
 			
 			// set it into the algorithm and then let it rip
 			
 			red.set(iterator, convertVectorToArray(columns), expression);
 			double [] finalValue = (double [])red.reduce();
-			System.out.println("When this works.. the value is " + finalValue[0]);
+			//System.out.println("When this works.. the value is " + finalValue[0]);
 			
 
 			// now I need to set this value back
@@ -689,9 +700,9 @@ class Translation extends DepthFirstAdapter {
 	}
 
 	public void outAMathFunExpr(AMathFunExpr node) {
-		System.out.println("OUT ... Math Fun expression is ..  ");
+		//System.out.println("OUT ... Math Fun expression is ..  ");
 		// do some processing for sum here
-		System.out.println("Math fun..  " + node.getMathFun());
+		//System.out.println("Math fun..  " + node.getMathFun());
 
 		// I need to see if I can replace anything here
 		// I need to see if there are temp strings I can replace here
@@ -700,13 +711,14 @@ class Translation extends DepthFirstAdapter {
 	
     public void inAImportColumn(AImportColumn node)
     {
-        System.out.println("In the import col operation");
-        System.out.println("DATA ..... " + node.getData());
-        System.out.println("DATA ..... " + node.getCols());
+        //System.out.println("In the import col operation");
+        //System.out.println("DATA ..... " + node.getData());
+        //System.out.println("DATA ..... " + node.getCols());
         
         whatICallThisInMyWorld = new Hashtable<String, String>();
         whatICallThisInMyWorld.put("COL_CSV", "HEADERS");
         whatICallThisInMyWorld.put("CSV_ROW", "Data");
+        whatICallThisInMyWorld.put("RELATIONS", "RELATIONS");
 
         reinit();
         IAction thisAction = new ImportAction();
@@ -717,13 +729,13 @@ class Translation extends DepthFirstAdapter {
     
     public void outAImportColumn(AImportColumn node)
     {
-    	System.out.println("Import Column Done.. ");
+    	//System.out.println("Import Column Done.. ");
     	deInit();
     }
     
     public void inASelector(ASelector node)
     {
-    	System.out.println("In a Selector Node");
+    	//System.out.println("In a Selector Node");
     	//currentMathFunction.add((node + "").trim()); 
     }
     
@@ -738,7 +750,7 @@ class Translation extends DepthFirstAdapter {
     	funCol.remove(selector);
     	currentMathFunction.remove(selector);
     	
-    	System.out.println("$$ Got them selectors as " + selectors);
+    	//System.out.println("$$ Got them selectors as " + selectors);
     }    
     
     public void inAWhereClause(AWhereClause node)
@@ -753,7 +765,7 @@ class Translation extends DepthFirstAdapter {
     
     public void inAColWhere(AColWhere node)
     {
-        System.out.println("COL WHERE " + node);
+        //System.out.println("COL WHERE " + node);
         if(whatICallThisInMyWorld.containsKey("COL_WHERE"))
         {
 			whatICallThisInMyWorld = new Hashtable<String, String>();
@@ -761,10 +773,11 @@ class Translation extends DepthFirstAdapter {
 			whatICallThisInMyWorld.put("COL_DEF_1", "FROM_COL"); // at some point I need to turn this shit into constants
 			whatICallThisInMyWorld.put("COL_DEF_2", "TO_COL"); // at some point I need to turn this shit into constants
 			whatICallThisInMyWorld.put("CSV_ROW", "TO_DATA");
+			whatICallThisInMyWorld.put("CSV_ROW_1", "TO_DATA");
 			whatICallThisInMyWorld.put("COL_WHERE", "COL_WHERE");
 			
 			reinit();
-			myStore.put("COMPARATOR", node.getComparator());
+			myStore.put("COMPARATOR", (node.getComparator()+"").trim());
         }
 		// this is of the form
         // some column comparator some value
@@ -773,7 +786,7 @@ class Translation extends DepthFirstAdapter {
 
     public void outAColWhere(AColWhere node)
     {
-        System.out.println("COL WHERE DATAKEEPER " + myStore);
+        //System.out.println("COL WHERE DATAKEEPER " + myStore);
         // I need to do some kind of action and pop out the last one on everything
         // Action is here
         if(whatICallThisInMyWorld.containsKey("COL_WHERE"))
@@ -791,6 +804,7 @@ class Translation extends DepthFirstAdapter {
 	    	whatICallThisInMyWorld = new Hashtable<String, String>();
 	    	whatICallThisInMyWorld.put("REL_DEF", "JOINS");
 	    	whatICallThisInMyWorld.put("RELATIONS", "RELATIONS");
+	    	//whatICallThisInMyWorld.put("RELATIONS_1", "RELATIONS");
     	
 	    	reinit();
     	}
@@ -801,7 +815,7 @@ class Translation extends DepthFirstAdapter {
     {
     	if(whatICallThisInMyWorld.containsKey("RELATIONS"))
     	{
-    		System.out.println("Got all the relationships.. " + myStore);
+    		//System.out.println("Got all the relationships.. " + myStore);
     		String joinName = whatICallThisInMyWorld.get("REL_DEF"); // what the join is called
     		
     		Hashtable thisStore = myStore;
@@ -826,14 +840,14 @@ class Translation extends DepthFirstAdapter {
 
 			reinit();
 		
-			myStore.put("REL_TYPE", node.getRelType());
+			myStore.put("REL_TYPE", (node.getRelType()+"").trim());
     	}
     }
 
     public void outARelationDef(ARelationDef node)
     {
        // defaultOut(node);
-    	System.out.println("RELATION DEF OUT");
+    	//System.out.println("RELATION DEF OUT");
     	if(whatICallThisInMyWorld.containsKey("REL_DEF"))
     	{
         	Hashtable thisStore = myStore;
@@ -847,7 +861,7 @@ class Translation extends DepthFirstAdapter {
     
     public void inAColCsv(AColCsv node)
     {
-    	System.out.println("COL CSV is " + node);
+    	//System.out.println("COL CSV is " + node);
     	//currentMathFunction.addElement((node + "").trim());
     	if(whatICallThisInMyWorld.containsKey("COL_CSV")) // ok col csv is being tracked
     	{
@@ -867,7 +881,7 @@ class Translation extends DepthFirstAdapter {
     public void outAColCsv(AColCsv node)
     {
     	String thisNode = (node + "").trim();
-    	System.out.println("COL CSV is " + node);
+    	//System.out.println("COL CSV is " + node);
     	currentMathFunction.remove(thisNode);
     	// get it from the funcol and set it into the groupBy
     	/*if(funCol.containsKey(thisNode))
@@ -896,7 +910,7 @@ class Translation extends DepthFirstAdapter {
 
     public void inACsvRow(ACsvRow node)
     {
-        System.out.println("The Row is " + node);
+        //System.out.println("The Row is " + node);
         // need to tell it I am assimilating a vector here
        // thisRow = new Vector<Object>();
         if(whatICallThisInMyWorld.containsKey("CSV_ROW"))
@@ -914,7 +928,7 @@ class Translation extends DepthFirstAdapter {
     	// I need to do an action here
     	// get the action
     	// call to say this has happened and then reset it to null;
-    	System.out.println("This row so far..  " + thisRow);
+    	//System.out.println("This row so far..  " + thisRow);
     	if(currentListener.size() > 0)
     	{
     		currentListener.get(currentListener.size() -1).processRow("CSV", myStore.get("WORD_OR_NUM"));
@@ -936,7 +950,7 @@ class Translation extends DepthFirstAdapter {
 		Iterator iterator = frame.getIterator(columns);
 		if(iterator.hasNext())
 		{
-			System.out.println(iterator.next());
+			//System.out.println(iterator.next());
 		}
 		return iterator;
 	}
@@ -1010,7 +1024,7 @@ class Translation extends DepthFirstAdapter {
 		whatICallThisInMyWorldHistory.removeElement(whatICallThisInMyWorldHistory.lastElement());
 		myStoreHistory.removeElement(myStoreHistory.lastElement());
 		
-		System.out.println("My STORE.. " + myStore);
+		//System.out.println("My STORE.. " + myStore);
 		
 		if(myStoreHistory.size() > 0)
 			myStore = myStoreHistory.lastElement();

@@ -15,7 +15,7 @@ public class QueryStruct {
 	// 3. How you want to join
 	// Title.Title Inner_Join Studio.Title_Fk
 		
-	Hashtable <String, Vector<String>> selectors = new Hashtable<String, Vector<String>>();
+	public Hashtable <String, Vector<String>> selectors = new Hashtable<String, Vector<String>>();
 	
 	// there could be multiple comparators for the same thing
 	// for instance I could say
@@ -23,12 +23,15 @@ public class QueryStruct {
 	// so it would go as
 	// | Movie Budget |  > | Vector(200) | // or this could be a whole object / vector
 	//				  |  < | Vector(300) |
-	Hashtable <String, Hashtable<String, Vector>> andfilters = new Hashtable<String, Hashtable<String, Vector>>();
+	public Hashtable <String, Hashtable<String, Vector>> andfilters = new Hashtable<String, Hashtable<String, Vector>>();
 
 	//Hashtable <String, Hashtable<String, Vector>> orfilters = new Hashtable<String, Hashtable<String, Vector>>();
 	// relations are of the form
 	// item = <relation vector>
-	Hashtable <String, Vector<String>> relations = new Hashtable<String, Vector<String>>();
+	// concept = type of join toCol
+	// Movie	 InnerJoin Studio, Genre
+	//			 OuterJoin Nominated
+	public Hashtable <String, Hashtable<String, Vector>> relations = new Hashtable<String, Hashtable<String, Vector>>();
 		
 	public void addCompoundSelector(String selector)
 	{
@@ -45,7 +48,7 @@ public class QueryStruct {
 	}
 	
 	
-	public void addFilter(String concept, String property, String comparator, Vector filterData)
+	public void addFilter(String fromCol, String comparator, Vector filterData)
 	{
 		// the filter data is typically of the format
 		// there could be more than one comparator
@@ -53,8 +56,8 @@ public class QueryStruct {
 		// find if this property is there
 		// ok if the logical name stops being unique this will have some weird results
 		Hashtable <String, Vector> compHash = new Hashtable<String, Vector>();
-		if(andfilters.containsKey(property))
-			compHash = andfilters.get(property);
+		if(andfilters.containsKey(fromCol))
+			compHash = andfilters.get(fromCol);
 		
 		Vector curData = new Vector();
 		// next piece is to see if we have the comparator
@@ -67,14 +70,33 @@ public class QueryStruct {
 		compHash.put(comparator, curData);	
 		
 		// put it back
-		andfilters.put(property, compHash);
+		andfilters.put(fromCol, compHash);
 	}
 	
 	public void addRelation(String fromConcept, String toConcept, String comparator)
 	{
 		// I need pick the keys from the table based on relationship and then add that to the relation
 		// need to figure out type of 
-		addToHash(fromConcept, toConcept, relations);
+		// find if this property is there
+		// ok if the logical name stops being unique this will have some weird results
+		
+		
+		Hashtable <String, Vector> compHash = new Hashtable<String, Vector>();
+		if(relations.containsKey(fromConcept))
+			compHash = relations.get(fromConcept);
+		
+		Vector curData = new Vector();
+		// next piece is to see if we have the comparator
+		if(compHash.containsKey(comparator))
+			curData = compHash.get(comparator);
+		
+		curData.add(toConcept);
+		
+		// put it back
+		compHash.put(comparator, curData);	
+		
+		// put it back
+		relations.put(fromConcept, compHash);
 	}
 	
 	private void addToHash(String concept, String property, Hashtable <String, Vector<String>> hash)
@@ -88,6 +110,12 @@ public class QueryStruct {
 		propList.add(property);
 		
 		hash.put(concept, propList);
+	}
 
+	public void print() {
+		// TODO Auto-generated method stub
+		System.out.println("SELECTORS " + selectors);
+		System.out.println("FILTERS.. " + andfilters);
+		System.out.println("RELATIONS.. " + relations);
 	}
 }
