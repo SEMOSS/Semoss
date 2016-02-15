@@ -9,7 +9,6 @@ import prerna.algorithm.impl.ImportAction;
 import prerna.ds.ExpressionReducer;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
-import prerna.rdf.query.builder.SQLInterpreter;
 import prerna.sablecc.analysis.DepthFirstAdapter;
 import prerna.sablecc.node.AAddColumn;
 import prerna.sablecc.node.AApiBlock;
@@ -43,7 +42,7 @@ import prerna.sablecc.node.AWhereClause;
 import prerna.sablecc.node.AWord;
 import prerna.sablecc.node.TNumber;
 
-class Translation extends DepthFirstAdapter {
+public class Translation extends DepthFirstAdapter {
 
 	Hashtable<String, Object> dataKeeper = new Hashtable<String, Object>();
 	Hashtable<String, Vector<String>> funCol = new Hashtable<String, Vector<String>>();// all
@@ -99,6 +98,11 @@ class Translation extends DepthFirstAdapter {
 
 	}
 	
+	public Translation(TinkerFrame frame)
+	{
+		// now get the data from tinker
+		this.frame = frame;
+	}
 	
 
 	public void inAApiBlock(AApiBlock node) {
