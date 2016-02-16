@@ -3,40 +3,42 @@ package prerna.algorithm.impl;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-public class SumAlgorithm extends BaseReducer {
-
-	int max = 10;
+public class AverageAlgorithm extends BaseReducer {
 
 	public void set(Iterator inputIterator, String[] ids, String script) {
-		super.set(inputIterator, ids,script, null);
+		super.set(inputIterator, ids, script, null);
 	}
 
 	public void set(Iterator inputIterator, String[] ids, String script, String prop) {
-		super.set(inputIterator, ids,script, prop);
+		super.set(inputIterator, ids, script, prop);
 	}
 
 	@Override
 	public Object reduce() {
-		// TODO Auto-generated method stub
 		double [] output = null;
-		int count = 0;
-		while(inputIterator.hasNext() && !errored)// && count < max)
+		int[] counts = null;
+		while(inputIterator.hasNext() && !errored)
 		{
-//			Object nextValue = getNextValue();
-//			System.out.println("Next value .. " + nextValue.getClass());
 			ArrayList dec = (ArrayList)getNextValue();
-			//double thisOut = (double)getNextValue();
-			if(output == null)
+			if(output == null) {
 				output = new double[dec.size()];
+			}
+			if(counts == null) {
+				counts = new int[dec.size()];
+			}
 			for(int outIndex = 0;outIndex < dec.size();outIndex++)
 			{	
-				if(dec.get(outIndex) instanceof Number)
+				if(dec.get(outIndex) instanceof Number) {
 					output[outIndex] += ((Number)dec.get(outIndex)).doubleValue();
+					counts[outIndex]++;
+				}
 			}
-			count++;
+		}
+		for (int i = 0; i < output.length; i++) {
+			output[i] = output[i]/counts[i];
 		}
 		System.out.println(output[0]);
 		return output;
 	}
-
+	
 }
