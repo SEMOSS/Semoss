@@ -37,10 +37,10 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.IAlgorithm;
-import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.transformer.ArrowDrawPaintTransformer;
 import prerna.ui.transformer.EdgeArrowStrokeTransformer;
@@ -54,8 +54,8 @@ import prerna.util.Constants;
  */
 public class DataLatencyPerformer implements IAlgorithm{
 
-	GraphPlaySheet ps = null;
-	protected GraphDataModel gdm = new GraphDataModel();
+	AbstractGraphPlaySheet ps = null;
+//	protected GraphDataModel gdm = new GraphDataModel();
 	public SEMOSSVertex [] pickedVertex = null;
 	static final Logger logger = LogManager.getLogger(DataLatencyPerformer.class.getName());
 	double value;
@@ -79,12 +79,12 @@ public class DataLatencyPerformer implements IAlgorithm{
 	 * @param p GraphPlaySheet
 	 * @param vect DBCMVertex[]
 	 */
-	public DataLatencyPerformer(GraphPlaySheet p, SEMOSSVertex[] vect){
+	public DataLatencyPerformer(AbstractGraphPlaySheet p, SEMOSSVertex[] vect){
 		ps = p;
 		pickedVertex = vect;
-		gdm = ps.gdm;
-		Collection<SEMOSSEdge> edges = gdm.getEdgeStore().values();
-		Collection<SEMOSSVertex> v = gdm.getVertStore().values();
+//		gdm = ps.gdm;
+		Collection<SEMOSSEdge> edges = ps.getEdges();
+		Collection<SEMOSSVertex> v = ps.getVerts();
 		masterEdgeVector.addAll(edges);
 		masterVertexVector.addAll(v);
 	}
@@ -165,7 +165,7 @@ public class DataLatencyPerformer implements IAlgorithm{
 		}
 		else{
 			selectedNodes = "All";
-			Collection<SEMOSSVertex> forestRootsCollection = gdm.getVertStore().values();
+			Collection<SEMOSSVertex> forestRootsCollection = ps.getVerts();
 			for(SEMOSSVertex v : forestRootsCollection) {
 				forestRoots.add(v);
 				validVerts.put((String) v.getProperty(Constants.URI), (String) v.getProperty(Constants.URI));

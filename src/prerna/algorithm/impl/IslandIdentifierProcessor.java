@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.IAlgorithm;
@@ -39,6 +40,7 @@ import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.transformer.ArrowDrawPaintTransformer;
 import prerna.ui.transformer.EdgeArrowStrokeTransformer;
@@ -55,7 +57,7 @@ public class IslandIdentifierProcessor implements IAlgorithm{
 	protected GraphDataModel gdm = new GraphDataModel();
 	ArrayList<SEMOSSVertex> selectedVerts = new ArrayList<SEMOSSVertex>();
 	GridFilterData gfd = new GridFilterData();
-	GraphPlaySheet playSheet;
+	AbstractGraphPlaySheet playSheet;
 	public Hashtable masterHash = new Hashtable();//this will have key: node, object: hashtable with verts.  Also key: node + edgeHashKey and object: hastable with edges
 	String selectedNodes="";
 	Vector<SEMOSSEdge> masterEdgeVector = new Vector();//keeps track of everything accounted for in the forest
@@ -295,14 +297,10 @@ public class IslandIdentifierProcessor implements IAlgorithm{
 		}
 	}
 	
-	/**
-	 * Sets the forest.
-	 * @param f GraphDataModel		Forest to be set.
-	 */
-	public void setGraphDataModel(GraphDataModel g){
-		gdm = g;
-		Collection<SEMOSSEdge> edges = g.getEdgeStore().values();
-		Collection<SEMOSSVertex> v = g.getVertStore().values();
+	public void setGraphData(Collection<SEMOSSVertex> v, Collection<SEMOSSEdge> edges) {
+//		gdm = g;
+//		Collection<SEMOSSEdge> edges = edgeStore.values();
+//		Collection<SEMOSSVertex> v = vertStore.values();
 		masterEdgeVector.addAll(edges);
 		masterVertexVector.addAll(v);
 	}
@@ -322,7 +320,7 @@ public class IslandIdentifierProcessor implements IAlgorithm{
 	 * @param ps IPlaySheet		Playsheet to be cast.
 	 */
 	public void setPlaySheet(IPlaySheet ps){
-		playSheet = (GraphPlaySheet) ps;
+		playSheet = (AbstractGraphPlaySheet) ps;
 	}
 
 
@@ -343,6 +341,11 @@ public class IslandIdentifierProcessor implements IAlgorithm{
 	@Override
 	public String getAlgoName() {
 		return "Island Identifier";
+	}
+
+	public void setGraphData(Map<String, SEMOSSVertex> vertStore, Map<String, SEMOSSEdge> edgeStore) {
+		// TODO Auto-generated method stub
+		
 	}
 
 

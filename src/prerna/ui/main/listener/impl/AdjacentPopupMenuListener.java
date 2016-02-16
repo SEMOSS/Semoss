@@ -40,18 +40,18 @@ import javax.swing.JMenuItem;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import edu.uci.ics.jung.visualization.picking.PickedState;
 import prerna.algorithm.impl.DistanceDownstreamProcessor;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.GraphPlaySheet;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.transformer.ArrowDrawPaintTransformer;
 import prerna.ui.transformer.EdgeArrowStrokeTransformer;
 import prerna.ui.transformer.EdgeStrokeTransformer;
 import prerna.ui.transformer.VertexLabelFontTransformer;
 import prerna.ui.transformer.VertexPaintTransformer;
 import prerna.util.Constants;
-import edu.uci.ics.jung.visualization.picking.PickedState;
 
 /**
  * Controls what to do when the pop up menu is selected on a graph.
@@ -88,7 +88,7 @@ public class AdjacentPopupMenuListener implements ActionListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		GraphPlaySheet ps2 = (GraphPlaySheet)ps;
+		AbstractGraphPlaySheet ps2 = (AbstractGraphPlaySheet)ps;
 		//Get the button name to understand whether to add upstream or downstream or both
 		JMenuItem button = (JMenuItem) e.getSource();
 		String buttonName = button.getName();

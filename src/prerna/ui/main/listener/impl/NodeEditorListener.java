@@ -37,6 +37,7 @@ import prerna.engine.api.IEngine;
 import prerna.om.InsightStore;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.BrowserTabSheetFullAddress;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -51,7 +52,7 @@ public class NodeEditorListener implements ActionListener {
 	String htmlFileName= "/html/MHS-RDFNodeEditor/app/index.html#/rdfnode/";
 	String dbType;
 	IEngine engine;
-	GraphPlaySheet gps;
+	AbstractGraphPlaySheet gps;
 
 	/**
 	 * Method actionPerformed.  Dictates what actions to take when an Action Event is performed.
@@ -129,7 +130,7 @@ public class NodeEditorListener implements ActionListener {
 	 * Method setGps.  Sets the graph play sheet that the listener will access.
 	 * @param gps GraphPlaySheet
 	 */
-	public void setGps(GraphPlaySheet gps){
+	public void setGps(AbstractGraphPlaySheet gps){
 		this.gps = gps;
 	}
 }

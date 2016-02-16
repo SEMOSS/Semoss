@@ -39,7 +39,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.DataLatencyPerformer;
 import prerna.om.SEMOSSVertex;
-import prerna.ui.components.playsheets.GraphPlaySheet;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.util.Constants;
 
 
@@ -47,7 +47,7 @@ import prerna.util.Constants;
  */
 public class DataLatencySliderListener implements ChangeListener{
 
-	GraphPlaySheet ps = null;
+	AbstractGraphPlaySheet ps = null;
 	SEMOSSVertex [] pickedVertex = null;
 	static final Logger logger = LogManager.getLogger(DataLatencySliderListener.class.getName());
 	DataLatencyPerformer latePerf;
@@ -60,7 +60,7 @@ public class DataLatencySliderListener implements ChangeListener{
 	 * @param gps GraphPlaySheet
 	 * @param vertVect DBCMVertex[]
 	 */
-	public DataLatencySliderListener(GraphPlaySheet gps, SEMOSSVertex[] vertVect){
+	public DataLatencySliderListener(AbstractGraphPlaySheet gps, SEMOSSVertex[] vertVect){
 		ps = gps;
 		pickedVertex = vertVect;
 		latePerf = new DataLatencyPerformer(ps, pickedVertex);

@@ -40,7 +40,7 @@ import org.apache.log4j.Logger;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdf.RemoteSparqlEngine;
 import prerna.om.SEMOSSVertex;
-import prerna.ui.components.playsheets.GraphPlaySheet;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.main.listener.impl.AdjacentPopupMenuListener;
 import prerna.ui.main.listener.impl.ChartListener;
 import prerna.ui.main.listener.impl.DistanceDownstreamListener;
@@ -69,7 +69,7 @@ import prerna.util.Utility;
 public class GraphNodePopup extends JPopupMenu {
 	
 	// sets the visualization viewer
-	GraphPlaySheet ps = null;
+	AbstractGraphPlaySheet ps = null;
 	// sets the picked node list
 	SEMOSSVertex [] pickedVertex = null;
 	static final Logger logger = LogManager.getLogger(GraphNodePopup.class.getName());
@@ -87,7 +87,7 @@ public class GraphNodePopup extends JPopupMenu {
 	 * @param x 			X coordinate for popup.
 	 * @param y 			Y coordinate for popup.
 	 */
-	public GraphNodePopup(GraphPlaySheet ps, SEMOSSVertex [] pickedVertex, Component comp, int x, int y)
+	public GraphNodePopup(AbstractGraphPlaySheet ps, SEMOSSVertex [] pickedVertex, Component comp, int x, int y)
 	{
 		super();
 		// need to get this to read from popup menu
@@ -214,7 +214,7 @@ public class GraphNodePopup extends JPopupMenu {
 		String fromNode = "";
 		if(this.pickedVertex.length > 0)
 			fromNode = "All " + Utility.getClassName(pickedVertex[0].getURI()) + "(s) ";
-		TFRelationPopup popup6 = new TFRelationPopup("Traverse Freely: " + fromNode, ps,this.pickedVertex);
+		TFRelationQueryBuilderPopup popup6 = new TFRelationQueryBuilderPopup("Traverse Freely: " + fromNode, ps,this.pickedVertex);
 		item = add(popup6);
 		item.setEnabled(pickedVertex.length > 0);
 		
@@ -223,7 +223,7 @@ public class GraphNodePopup extends JPopupMenu {
 		fromNode = "";
 		if(this.pickedVertex.length > 0)
 			fromNode = Utility.getInstanceName(pickedVertex[0].getURI());
-		TFInstanceRelationPopup popup13 = new TFInstanceRelationPopup("Traverse Freely: " + fromNode, ps,this.pickedVertex);
+		TFInstanceRelationQueryBuilderPopup popup13 = new TFInstanceRelationQueryBuilderPopup("Traverse Freely: " + fromNode, ps,this.pickedVertex);
 		item = add(popup13);
 		item.setEnabled(pickedVertex.length > 0);
 		

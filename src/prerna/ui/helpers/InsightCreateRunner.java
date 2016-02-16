@@ -150,7 +150,7 @@ public class InsightCreateRunner implements Runnable{
 				for(int i = 0; i < value.size(); i++) {
 					Object val = value.get(i);
 					if(val instanceof String || val instanceof Double ) {
-						playSheetTitle = playSheetTitle + Utility.getInstanceName(value+"") + " - ";
+						playSheetTitle = playSheetTitle + Utility.getInstanceName(val+"") + " - ";
 					}
 				}
 			}

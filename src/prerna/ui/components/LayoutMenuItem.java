@@ -35,6 +35,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -66,30 +67,29 @@ public class LayoutMenuItem extends JMenuItem{
 	 */
 	public void paintLayout()
 	{
-		String oldLayout = ((GraphPlaySheet)ps).getLayoutName();
-		((GraphPlaySheet)ps).setLayout(layout);
-		boolean success = ((GraphPlaySheet)ps).createLayout();
-		if (success) ((GraphPlaySheet)ps).refreshView();
+		String oldLayout = ((AbstractGraphPlaySheet)ps).getLayoutName();
+		((AbstractGraphPlaySheet)ps).setLayout(layout);
+		boolean success = ((AbstractGraphPlaySheet)ps).createLayout();
+		if (success) ((AbstractGraphPlaySheet)ps).refreshView();
 		else {
 			if(layout.equals(Constants.RADIAL_TREE_LAYOUT) || layout.equals(Constants.BALLOON_LAYOUT) || layout.equals(Constants.TREE_LAYOUT)){
 				int response = showOptionPopup();
 				if (response ==1)
 				{
-					((GraphPlaySheet)ps).searchPanel.treeButton.doClick();
+					((AbstractGraphPlaySheet)ps).searchPanel.treeButton.doClick();
 				}
 				else{
-					((GraphPlaySheet)ps).setLayout(oldLayout);
+					((AbstractGraphPlaySheet)ps).setLayout(oldLayout);
 				}
 			}
 			else{
 				Utility.showError("This layout cannot be used with the current graph");
-				((GraphPlaySheet)ps).setLayout(oldLayout);
+				((AbstractGraphPlaySheet)ps).setLayout(oldLayout);
 			}
 		}
 	}
 	/**
 	 * This displays options to the user in a popup menu about what type of layout they want to display.
-	
 	 * @return int 	User response. */
 	private int showOptionPopup(){
 		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);

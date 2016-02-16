@@ -33,10 +33,10 @@ import java.awt.event.ActionListener;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.GraphPlaySheet;
 import edu.uci.ics.jung.visualization.control.ModalGraphMouse;
 import edu.uci.ics.jung.visualization.control.ModalGraphMouse.Mode;
+import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 
 /**
  * Changes the mouse based on what is selected.
@@ -60,7 +60,7 @@ public class MousePickingPopupMenuListener implements ActionListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		GraphPlaySheet ps2 = (GraphPlaySheet)ps;
+		AbstractGraphPlaySheet ps2 = (AbstractGraphPlaySheet)ps;
 		((ModalGraphMouse)ps2.getView().getGraphMouse()).setMode(Mode.PICKING);
 	}
 	

@@ -33,11 +33,11 @@ import java.util.Iterator;
 import java.util.Vector;
 
 import prerna.algorithm.api.IAlgorithm;
-import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.transformer.ArrowDrawPaintTransformer;
 import prerna.ui.transformer.EdgeArrowStrokeTransformer;
@@ -51,9 +51,9 @@ import prerna.util.Constants;
  */
 public class LoopIdentifierProcessor implements IAlgorithm{
 
-	protected GraphDataModel gdm = new GraphDataModel();
+//	protected GraphDataModel gdm = new GraphDataModel();
 	GridFilterData gfd = new GridFilterData();
-	GraphPlaySheet playSheet;
+	AbstractGraphPlaySheet playSheet;
 	Hashtable<String, SEMOSSEdge> nonLoopEdges = new Hashtable<String, SEMOSSEdge>();
 	Hashtable<String, SEMOSSEdge> loopEdges = new Hashtable<String, SEMOSSEdge>();
 	Hashtable<String, SEMOSSVertex> nonLoopVerts = new Hashtable<String, SEMOSSVertex>();
@@ -85,7 +85,7 @@ public class LoopIdentifierProcessor implements IAlgorithm{
 		//therefore, remove the vertex and all edges associated with it from the forest
 		//once there are no edges getting removed, its time to stop
 		//Then I run depth search first to validate the edges left
-		Collection<SEMOSSVertex> allVerts = gdm.getVertStore().values();
+		Collection<SEMOSSVertex> allVerts = new Vector(masterVertexVector);
 		Vector<SEMOSSVertex> currentVertices = new Vector<SEMOSSVertex>();
 		Vector<SEMOSSVertex> nextVertices = new Vector<SEMOSSVertex>();
 		currentVertices.addAll(allVerts);
@@ -310,14 +310,10 @@ public class LoopIdentifierProcessor implements IAlgorithm{
 		return hash;
 	}
 	
-	/**
-	 * Sets the forest.
-	 * @param f DelegateForest	Forest to be set.
-	 */
-	public void setGraphDataModel(GraphDataModel g){
-		gdm = g;
-		Collection<SEMOSSEdge> edges = g.getEdgeStore().values();
-		Collection<SEMOSSVertex> v = g.getVertStore().values();
+	public void setGraphData(Collection<SEMOSSVertex> v, Collection<SEMOSSEdge> edges){
+//		gdm = g;
+//		Collection<SEMOSSEdge> edges = edgeStore.values();
+//		Collection<SEMOSSVertex> v = vertStore.values();
 		masterEdgeVector.addAll(edges);
 		masterVertexVector.addAll(v);
 	}
@@ -327,7 +323,7 @@ public class LoopIdentifierProcessor implements IAlgorithm{
 	 * @param ps IPlaySheet		Playsheet to be cast.
 	 */
 	public void setPlaySheet(IPlaySheet ps){
-		playSheet = (GraphPlaySheet) ps;
+		playSheet = (AbstractGraphPlaySheet) ps;
 	}
 
 	/**

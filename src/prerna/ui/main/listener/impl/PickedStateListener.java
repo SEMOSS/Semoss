@@ -44,6 +44,7 @@ import edu.uci.ics.jung.visualization.picking.PickedState;
 import prerna.om.InsightStore;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.VertexPropertyTableModel;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.transformer.VertexLabelFontTransformer;
 import prerna.ui.transformer.VertexPaintTransformer;
@@ -77,7 +78,7 @@ public class PickedStateListener implements ItemListener {
 		logger.info(e.getSource());
 		PickedState pickedState = (PickedState) e.getSource();	
 		
-		GraphPlaySheet ps3 = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
+		AbstractGraphPlaySheet ps3 = (AbstractGraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
 
 		
 		JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.PROP_TABLE);
@@ -98,7 +99,7 @@ public class PickedStateListener implements ItemListener {
 		//so that we can add to them
 		Hashtable vertHash = new Hashtable();
 		VertexLabelFontTransformer vlft = null;
-		if(((GraphPlaySheet)ps3).searchPanel.btnHighlight.isSelected()) {
+		if(((AbstractGraphPlaySheet)ps3).searchPanel.btnHighlight.isSelected()) {
 			vlft = (VertexLabelFontTransformer) viewer.getRenderContext().getVertexFontTransformer();
 			vertHash=vlft.getVertHash();
 		}

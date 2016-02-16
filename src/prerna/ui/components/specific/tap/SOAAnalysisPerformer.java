@@ -51,6 +51,7 @@ import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.VertexFilterData;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -62,9 +63,9 @@ import prerna.util.Utility;
 public class SOAAnalysisPerformer implements Runnable {
 	//IPlaySheet playSheet = null;
 	static final Logger logger = LogManager.getLogger(SOAAnalysisPerformer.class.getName());
-	GraphPlaySheet newPlaySheet;
+	AbstractGraphPlaySheet newPlaySheet;
 	Hashtable retValues = new Hashtable();
-	GraphPlaySheet oldPlaySheet = null;
+	AbstractGraphPlaySheet oldPlaySheet = null;
 	String sysName="";
 	ArrayList <Object[]> totalList = new ArrayList<Object[]>();
 	SOATransitionCalculator soaCalc = new SOATransitionCalculator();
@@ -80,7 +81,7 @@ public class SOAAnalysisPerformer implements Runnable {
 	 * Constructor for SOAAnalysisPerformer.
 	 * @param playSheet GraphPlaySheet
 	 */
-	public SOAAnalysisPerformer (GraphPlaySheet playSheet)
+	public SOAAnalysisPerformer (AbstractGraphPlaySheet playSheet)
 	{
 		this.oldPlaySheet = playSheet;
 	}
@@ -402,7 +403,7 @@ public class SOAAnalysisPerformer implements Runnable {
 		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
 		String query = DIHelper.getInstance().getProperty(Constants.SOA_TRANSITION_ALL_GENERIC_DATA_QUERY);
 	    String valueFill="";
-	    GraphPlaySheet newSheet = (GraphPlaySheet) newPlaySheet;
+	    AbstractGraphPlaySheet newSheet = (AbstractGraphPlaySheet) newPlaySheet;
 		Vector<SEMOSSVertex> serV = (Vector<SEMOSSVertex>) newSheet.filterData.getNodes("Service");
 		for (int i=0; i<serV.size();i++)
 		{

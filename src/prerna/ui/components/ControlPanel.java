@@ -53,8 +53,13 @@ import javax.swing.border.BevelBorder;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import edu.uci.ics.jung.algorithms.layout.BalloonLayout;
+import edu.uci.ics.jung.algorithms.layout.Layout;
+import edu.uci.ics.jung.algorithms.layout.RadialTreeLayout;
+import edu.uci.ics.jung.visualization.VisualizationViewer;
+import edu.uci.ics.jung.visualization.picking.PickedState;
 import prerna.search.SearchController;
-import prerna.ui.components.playsheets.GraphPlaySheet;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.main.listener.impl.GraphImageExportListener;
 import prerna.ui.main.listener.impl.GraphTextSizeListener;
 import prerna.ui.main.listener.impl.GraphTransformerResetListener;
@@ -69,11 +74,6 @@ import prerna.ui.transformer.VertexLabelFontTransformer;
 import prerna.ui.transformer.VertexShapeTransformer;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import edu.uci.ics.jung.algorithms.layout.BalloonLayout;
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.algorithms.layout.RadialTreeLayout;
-import edu.uci.ics.jung.visualization.VisualizationViewer;
-import edu.uci.ics.jung.visualization.picking.PickedState;
 
 
 /**
@@ -92,7 +92,7 @@ public class ControlPanel extends JPanel {
 	public JToggleButton treeButton;
 	RingsButtonListener rings;
 	TreeConverterListener treeListener;
-	GraphPlaySheet gps;
+	AbstractGraphPlaySheet gps;
 	public JButton btnGraphImageExport;
 	public WeightDropDownButton weightButton;
 	GraphImageExportListener imageExportListener;
@@ -508,7 +508,7 @@ public class ControlPanel extends JPanel {
 	 * Sets the playsheet for all necessary listeners.
 	 * @param gps GraphPlaySheet
 	 */
-	public void setPlaySheet(GraphPlaySheet gps){
+	public void setPlaySheet(AbstractGraphPlaySheet gps){
 
 		this.gps = gps;
 		treeListener.setPlaySheet(gps);

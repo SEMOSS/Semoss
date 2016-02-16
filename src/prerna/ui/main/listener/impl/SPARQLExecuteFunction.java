@@ -30,21 +30,21 @@ package prerna.ui.main.listener.impl;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import com.google.gson.Gson;
+import com.teamdev.jxbrowser.chromium.JSValue;
+
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.SesameJenaUpdateWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.ui.components.playsheets.GraphPlaySheet;
-
-import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.JSValue;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 
 /**
  */
 public class SPARQLExecuteFunction extends AbstractBrowserSPARQLFunction {
 	
-	GraphPlaySheet gps;
+	AbstractGraphPlaySheet gps;
 	
 	/**
 	 * Method invoke.
@@ -70,8 +70,9 @@ public class SPARQLExecuteFunction extends AbstractBrowserSPARQLFunction {
 				success = processUpdate(query, engine);
 				
 				// if a playsheet has been set to this function, run this update against the playsheet so that we can refresh the graph
-				if(gps!=null)
-					gps.getDataMaker().updateAllModels(query);
+				// not sure how to handle this with graphtinkerplaysheet... don't think this is used any more though
+//				if(gps!=null)
+//					gps.getDataMaker().updateAllModels(query);
 			}
 
 			else if(query.startsWith("SELECT") ){
@@ -152,7 +153,7 @@ public class SPARQLExecuteFunction extends AbstractBrowserSPARQLFunction {
 	 * Method setGps.
 	 * @param gps GraphPlaySheet
 	 */
-	public void setGps(GraphPlaySheet gps){
+	public void setGps(AbstractGraphPlaySheet gps){
 		this.gps = gps;
 	}
 }

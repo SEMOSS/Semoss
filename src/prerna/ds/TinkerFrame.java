@@ -38,6 +38,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.Subgra
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
@@ -51,6 +52,8 @@ import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.engine.api.IConstructStatement;
+import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -58,6 +61,7 @@ import prerna.math.BarChart;
 import prerna.math.StatisticsUtilityMethods;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
+import prerna.om.TinkerGraphDataModel;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.GremlinBuilder;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -66,6 +70,7 @@ import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class TinkerFrame implements ITableDataFrame {
 	
@@ -321,7 +326,7 @@ public class TinkerFrame implements ITableDataFrame {
 		System.out.println("Completed group by");
 		
 		System.out.println("Trying max");
-		GraphTraversal<Vertex, Number> gt2 = g.traversal().V().has("TYPE", "Activity").values("DATA").max();
+		GraphTraversal<Vertex, Number> gt2 = g.traversal().V().has("TYPE", "Activity").values(Constants.NAME).max();
 		if(gt2.hasNext())
 			System.out.println(gt2.next());
 		System.out.println("Trying max - complete");
@@ -829,7 +834,7 @@ public class TinkerFrame implements ITableDataFrame {
 		this.headerNames = headerNames;
 		g = TinkerGraph.open();
 		g.createIndex(Constants.TYPE, Vertex.class);
-		g.createIndex(Constants.ID, Edge.class);
+//		g.createIndex(Constants.ID, Edge.class);
 		g.variables().set(Constants.HEADER_NAMES, headerNames);
 	}
 	
@@ -866,42 +871,40 @@ public class TinkerFrame implements ITableDataFrame {
            // params set in insightcreatrunner
            String query = component.fillQuery();
            
-           ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-           String[] displayNames = wrapper.getDisplayVariables(); // pulled this outside of the if/else block on purpose. 
-           
-           boolean hasMetaModel = component.getBuilderData() != null;
-           g.variables().set(Constants.HEADER_NAMES, displayNames); // I dont know if i even need this moving forward.. but for now I will assume it is
-           redoLevels(displayNames);
+           String[] displayNames = null;
+           if(query.trim().toUpperCase().startsWith("CONSTRUCT")){
+        	   TinkerGraphDataModel tgdm = new TinkerGraphDataModel();
+        	   tgdm.fillModel(query, engine, this);
+           }
+           else{
+        	   ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+               //if component has data from which we can construct a meta model then construct it and merge it
+               boolean hasMetaModel = component.getBuilderData() != null;
+               if(hasMetaModel) {
+            	   this.mergeEdgeHash(component.getBuilderData().getReturnConnectionsHash());
+            	   while(wrapper.hasNext()){
+            		   this.addRelationship(wrapper.next());
+            	   }
+               } 
+               
+               //else default to primary key tinker graph
+               else {
+                   displayNames = wrapper.getDisplayVariables();
+            	   this.mergeEdgeHash(this.createPrimKeyEdgeHash(displayNames));
+            	   while(wrapper.hasNext()){
+            		   this.addRow(wrapper.next());
+            	   }
+               }
+           }
+           g.variables().set(Constants.HEADER_NAMES, this.headerNames); // I dont know if i even need this moving forward.. but for now I will assume it is
+           redoLevels(this.headerNames);
 
            long time2 = System.currentTimeMillis();
            LOGGER.info("processing of component.................................. iterating through wrapper. time : " +(time2 - time1)+" ms");
            
-           //if component has data from which we can construct a meta model then construct it and merge it
-           if(hasMetaModel) {
-        	   this.mergeEdgeHash(component.getBuilderData().getReturnConnectionsHash());
-        	   while(wrapper.hasNext()){
-        		   this.addRelationship(wrapper.next());
-        	   }
-           } 
-           
-           //else default to primary key tinker graph
-           else {
-        	   this.mergeEdgeHash(this.createPrimKeyEdgeHash(displayNames));
-        	   while(wrapper.hasNext()){
-        		   this.addRow(wrapper.next());
-        	   }
-           }
            
            long time3 = System.currentTimeMillis();
            LOGGER.info("processing of component.................................. done iterating through wrapper. time : " +(time3 - time2)+" ms");
-
-//         }
-//         else {
-//                newDataFrame = wrapper.getTableDataFrame();
-//
-//                newDataFrame.setEdgeHash(component.getBuilderData().getReturnConnectionsHash());
-//                // set new data frame edge hash from component
-//         }
 
            processPostTransformations(component, component.getPostTrans());
            
@@ -1032,25 +1035,33 @@ public class TinkerFrame implements ITableDataFrame {
 		Map<String, SEMOSSVertex> vertStore = new HashMap<String, SEMOSSVertex>();
 		Map<String, SEMOSSEdge> edgeStore = new HashMap<String, SEMOSSEdge>();
 		
-		GraphTraversal<Edge, Edge> edgesIt = g.traversal().E();
+		GraphTraversal<Edge, Edge> edgesIt = g.traversal().E().not(__.has(T.label, META));
 		while(edgesIt.hasNext()){
 			Edge e = edgesIt.next();
 			Vertex outV = e.outVertex();
 			Vertex inV = e.inVertex();
-			String outURI = outV.property(Constants.TYPE).value() + "/" + outV.property(Constants.NAME).value();
+			String outURI = outV.property(Constants.VALUE).value() + "";
 			SEMOSSVertex outVert = vertStore.get(outURI);
 			if(outVert == null){
 				outVert = new SEMOSSVertex(outURI);
 				vertStore.put(outURI, outVert);
 			}
-			String inURI = inV.property(Constants.TYPE).value() + "/" + inV.property(Constants.NAME).value();
+			String inURI = inV.property(Constants.VALUE).value()+ "";
 			SEMOSSVertex inVert = vertStore.get(inURI);
 			if(inVert == null){
 				inVert = new SEMOSSVertex(inURI);
 				vertStore.put(inURI, inVert);
 			}
 			
-			edgeStore.put("https://semoss.org/"+e.property(Constants.ID).value() + "", new SEMOSSEdge(outVert, inVert, "https://semoss.org/"+e.property(Constants.ID).value() + ""));
+			edgeStore.put("https://semoss.org/Relation/"+e.property(Constants.ID).value() + "", new SEMOSSEdge(outVert, inVert, "https://semoss.org/Relation/"+e.property(Constants.ID).value() + ""));
+		}
+		// now i just need to get the verts with no edges
+		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.both()).not(__.has(Constants.TYPE, META));
+		while(vertIt.hasNext()){
+			Vertex outV = vertIt.next();
+			String outURI = outV.property(Constants.VALUE).value() + "";
+			SEMOSSVertex outVert = new SEMOSSVertex(outURI);
+			vertStore.put(outURI, outVert);
 		}
 		
 		Map retHash = new HashMap();
@@ -1182,6 +1193,59 @@ public class TinkerFrame implements ITableDataFrame {
 		Map<String, Object> rowCleanData = rowData.getPropHash();
 		Map<String, Object> rowRawData = rowData.getRPropHash();
 		addRelationship(rowCleanData, rowRawData);
+	}
+	
+	/**
+	 * Each triple as defined by the construct statement will be inserted as an edge
+	 * Need to make sure the meta relationship is there and then add the instance relationship
+	 * ONE CAVEAT :::: if the triple consists of all the same thing (explore an instance) its assumed to be a single node and not a relationship
+	 * @param rowData
+	 */
+	public void addRelationship(IConstructStatement rowData) {
+		String sub = rowData.getSubject();
+		String subType = Utility.getClassName(sub);
+		Object subInst = Utility.getInstanceName(sub);
+		String pred = rowData.getPredicate();
+		Object obj = rowData.getObject();
+		
+		// if the construct statement doesn't hold all the same thing, this means it is not the explore an instance query
+		if(obj!=null && !obj.equals(sub) && ! sub.equals(pred)){
+			String objType = Utility.getClassName(obj + "");
+			Object objInst = Utility.getInstanceName(obj + "");
+			if(objType == null || objType.isEmpty()){ // this means it is a literal
+				objType = Utility.getInstanceName(pred);
+				objInst = obj;
+			}
+			// check if meta edge has already been created for this rel
+			GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, META).has(Constants.NAME, subType).out(META).has(Constants.TYPE, META).has(Constants.NAME, objType);
+			if(!metaT.hasNext()){ // if it hasn't we need to add it
+				Map<String, Set<String>> relMap = new HashMap<String, Set<String>>();
+				Set<String> downList = new HashSet<String>();
+				downList.add(objType);
+				relMap.put(subType, downList);
+				this.mergeEdgeHash(relMap);
+			}
+	
+			//get from vertex
+			Vertex fromVertex = upsertVertex(subType, subInst, sub);
+			
+			//get to vertex		
+			Vertex toVertex = upsertVertex(objType, objInst, obj);
+			
+			upsertEdge(fromVertex, toVertex);
+		}
+		else {
+			//check if the one meta node has been added
+			GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, META).has(Constants.NAME, subType);
+			if(!metaT.hasNext()){ // if it hasn't we need to add it
+				Map<String, Set<String>> relMap = new HashMap<String, Set<String>>();
+				Set<String> downList = new HashSet<String>();
+				relMap.put(subType, downList); // add an empty set to add just the one node to meta
+				this.mergeEdgeHash(relMap);
+			}
+			//get from vertex
+			upsertVertex(subType, subInst, sub);
+		}
 	}
 	
 	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData) {
@@ -1330,6 +1394,7 @@ public class TinkerFrame implements ITableDataFrame {
 		return retMap;
 	}
 
+
 	/**
 	 * 
 	 * @param newEdgeHash
@@ -1380,17 +1445,21 @@ public class TinkerFrame implements ITableDataFrame {
 	 * Create a connection from outType to inType in the metagraph
 	 */
 	public void connectTypes(String outType, String inType) {
-		
+
+		Set<String> newLevels = new LinkedHashSet<String>();
 		Vertex outVert = upsertVertex(META, outType, outType);
 		outVert.property(Constants.FILTER, false);
+		newLevels.add(outType);
 		
-		Vertex inVert = upsertVertex(META, inType, inType);
-		inVert.property(Constants.FILTER, false);
+		if(inType!=null){
+			Vertex inVert = upsertVertex(META, inType, inType);
+			inVert.property(Constants.FILTER, false);
+			upsertEdge(outVert, inVert, META);
+			newLevels.add(inType);
+		}
 		
-		upsertEdge(outVert, inVert, META);
-		
-		String[] newLevels = new String[]{outType, inType};
-		redoLevels(newLevels);
+		newLevels.remove(PRIM_KEY);
+		redoLevels(new String[newLevels.size()]);
 	}
 	
 //	public void removeConnection(String outType, String inType) {
@@ -2194,7 +2263,7 @@ public class TinkerFrame implements ITableDataFrame {
 	
 	@Override
 	public boolean isEmpty() {
-		return g.traversal().V().hasNext();
+		return !g.traversal().V().hasNext();
 		//correct?
 	}
 
@@ -2256,7 +2325,7 @@ public class TinkerFrame implements ITableDataFrame {
 	
 	protected Edge upsertEdge(Vertex fromVertex, Vertex toVertex, String label) {
 		Edge retEdge = null;
-		String edgeID = fromVertex.property(Constants.ID).value() + "" + toVertex.property(Constants.ID).value();
+		String edgeID = fromVertex.property(Constants.NAME).value() + "" + toVertex.property(Constants.NAME).value();
 		// try to find the vertex
 		GraphTraversal<Edge, Edge> gt = g.traversal().E().has(Constants.ID, edgeID);
 		if(gt.hasNext()) {
