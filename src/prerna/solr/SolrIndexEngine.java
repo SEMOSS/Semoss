@@ -1187,7 +1187,8 @@ public class SolrIndexEngine {
 		s = s.replace("*", "\\*");
 		s = s.replace("?", "\\?");
 		s = s.replace(":", "\\:");
-		
+		s = s.replace("\"", "\\\"");
+
 		return s;
 	}
 
