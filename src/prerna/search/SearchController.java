@@ -35,8 +35,11 @@ import java.awt.event.FocusListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Map;
 
 import javax.swing.JPopupMenu;
 import javax.swing.JTextField;
@@ -52,14 +55,6 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.store.LockObtainFailedException;
 import org.apache.lucene.store.RAMDirectory;
 
-import prerna.om.SEMOSSVertex;
-import prerna.ui.components.playsheets.GraphPlaySheet;
-import prerna.ui.transformer.ArrowFillPaintTransformer;
-import prerna.ui.transformer.EdgeStrokeTransformer;
-import prerna.ui.transformer.VertexLabelFontTransformer;
-import prerna.ui.transformer.VertexPaintTransformer;
-import prerna.util.Constants;
-
 import com.hp.hpl.jena.query.QueryExecution;
 import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QueryFactory;
@@ -70,6 +65,13 @@ import com.hp.hpl.jena.rdf.model.Model;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.picking.MultiPickedState;
 import edu.uci.ics.jung.visualization.picking.PickedState;
+import prerna.om.SEMOSSVertex;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.transformer.ArrowFillPaintTransformer;
+import prerna.ui.transformer.EdgeStrokeTransformer;
+import prerna.ui.transformer.VertexLabelFontTransformer;
+import prerna.ui.transformer.VertexPaintTransformer;
+import prerna.util.Constants;
 
 /**
  */
@@ -94,7 +96,7 @@ public class SearchController implements KeyListener, FocusListener, ActionListe
 	VertexLabelFontTransformer oldVLF = null;
 	PickedState liveState;
 	PickedState tempState = new MultiPickedState();
-	GraphPlaySheet gps;
+	AbstractGraphPlaySheet gps;
 	JToggleButton btnHighlight;
 
 	/**
@@ -128,7 +130,13 @@ public class SearchController implements KeyListener, FocusListener, ActionListe
 			oldVLF.setVertHash(resHash);
 			target.repaint();
 			//if the search vertex state has been cleared, we need to refill it with what is in the res hash
-			Hashtable<String, SEMOSSVertex> vertStore = gps.getDataMaker().getVertStore();
+			Collection<SEMOSSVertex> verts = gps.getVerts();
+			Map<String, SEMOSSVertex> vertStore = new HashMap<String, SEMOSSVertex>();
+			Iterator<SEMOSSVertex> vertIt = verts.iterator();
+			while(vertIt.hasNext()){
+				SEMOSSVertex v = vertIt.next();
+				vertStore.put(v.uri, v);
+			}
 			if(tempState.getPicked().size()==0 && !resHash.isEmpty()){
 				Iterator resIt = resHash.keySet().iterator();
 				while(resIt.hasNext())
@@ -184,7 +192,13 @@ public class SearchController implements KeyListener, FocusListener, ActionListe
 		tempState.clear();
 		menu.setSize(new Dimension(410, 60));
 		menu.add("Results to be highlighted......");
-		Hashtable<String, SEMOSSVertex> vertStore = gps.getDataMaker().getVertStore();
+		Collection<SEMOSSVertex> verts = gps.getVerts();
+		Map<String, SEMOSSVertex> vertStore = new HashMap<String, SEMOSSVertex>();
+		Iterator<SEMOSSVertex> vertIt = verts.iterator();
+		while(vertIt.hasNext()){
+			SEMOSSVertex v = vertIt.next();
+			vertStore.put(v.uri, v);
+		}
 		synchronized(menu)
 		{
 			while(rs.hasNext())
@@ -406,7 +420,7 @@ public class SearchController implements KeyListener, FocusListener, ActionListe
 	 * Method setGPS.
 	 * @param ps GraphPlaySheet
 	 */
-	public void setGPS(GraphPlaySheet ps){
+	public void setGPS(AbstractGraphPlaySheet ps){
 		this.gps = ps;
 	}
 

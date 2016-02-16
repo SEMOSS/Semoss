@@ -36,6 +36,7 @@ import javax.swing.JTable;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridTableModel;
 import prerna.ui.components.NewScrollBarUI;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 
 /**
@@ -43,13 +44,13 @@ import prerna.ui.components.playsheets.GraphPlaySheet;
  */
 public class PlaysheetRemoveRunner implements Runnable{
 
-	GraphPlaySheet playSheet = null;
+	AbstractGraphPlaySheet playSheet = null;
 	
 	/**
 	 * Constructor for PlaysheetRemoveRunner.
 	 * @param playSheet GraphPlaySheet
 	 */
-	public PlaysheetRemoveRunner(GraphPlaySheet playSheet)
+	public PlaysheetRemoveRunner(AbstractGraphPlaySheet playSheet)
 	{
 		this.playSheet = playSheet;
 	}

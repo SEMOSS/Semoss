@@ -43,6 +43,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Vector;
@@ -68,9 +69,6 @@ import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.graph.DelegateForest;
 import edu.uci.ics.jung.visualization.GraphZoomScrollPane;
@@ -79,7 +77,7 @@ import edu.uci.ics.jung.visualization.control.ModalGraphMouse;
 import edu.uci.ics.jung.visualization.picking.PickedState;
 import edu.uci.ics.jung.visualization.renderers.BasicRenderer;
 import edu.uci.ics.jung.visualization.renderers.Renderer;
-import prerna.algorithm.impl.DistanceDownstreamProcessor;
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
@@ -126,7 +124,7 @@ import prerna.util.Utility;
 
 /**
  */
-public class GraphPlaySheet extends AbstractPlaySheet {
+public class GraphPlaySheet extends AbstractGraphPlaySheet {
 
 	/*
 	 * this will have references to the following a. Internal Frame that needs to be displayed b. The panel of
@@ -135,34 +133,6 @@ public class GraphPlaySheet extends AbstractPlaySheet {
 	 */
 	private static final Logger logger = LogManager.getLogger(GraphPlaySheet.class.getName());
 	public GraphDataModel gdm;
-	public DelegateForest forest = null;
-	public VisualizationViewer <SEMOSSVertex, SEMOSSEdge> view = null;
-	protected String layoutName = Constants.FR;
-	Layout layout2Use = null;
-	public LegendPanel2 legendPanel = null;
-	public JPanel cheaterPanel = new JPanel();
-	public JTabbedPane jTab = new JTabbedPane();
-//	public Vector edgeVector = new Vector();
-	public JInternalFrame dataLatencyPopUp = null;
-	public DataLatencyPlayPopup dataLatencyPlayPopUp = null;
-	public ControlData controlData = new ControlData();
-	public PropertySpecData predData = new PropertySpecData();
-	protected SimpleGraph <SEMOSSVertex, SEMOSSEdge> graph = new SimpleGraph<SEMOSSVertex, SEMOSSEdge>(SEMOSSEdge.class);
-
-	public VertexColorShapeData colorShapeData = new VertexColorShapeData();
-	public VertexFilterData filterData = new VertexFilterData();
-	
-//	boolean sudowl, search, prop;
-	
-	//So that it doesn't get reset on extend and overlay etc. it must be stored
-	VertexLabelFontTransformer vlft;
-	EdgeLabelFontTransformer elft;
-	VertexShapeTransformer vsht;
-	
-
-	public ControlPanel searchPanel;
-	
-	public JSplitPane graphSplitPane;
 
 	/**
 	 * Constructor for GraphPlaySheet.
@@ -176,11 +146,8 @@ public class GraphPlaySheet extends AbstractPlaySheet {
 	 * Method setAppend.
 	 * @param append boolean
 	 */
-	@Override
 	public void setAppend(boolean append) {
 		logger.debug("Append set to " + append);
-		//writeStatus("Append set to  : " + append);
-//		this.overlay = append;
 		gdm.setOverlay(append);
 	}
 	
@@ -248,31 +215,6 @@ public class GraphPlaySheet extends AbstractPlaySheet {
 	}
 	
 	/**
-	 * Method processView.
-	 */
-	public void processView()
-	{
-		
-		createVisualizer();
-		updateProgressBar("80%...Creating Visualization", 80);
-		
-		addPanel();
-		try {
-			this.setSelected(false);
-			this.setSelected(true);
-			printConnectedNodes();
-			printSpanningTree();
-			//logger.debug("model size: " +rc.size());
-		} catch (RuntimeException e) {
-			// TODO: Specify exception
-			e.printStackTrace();
-		} catch (PropertyVetoException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-	
-	/**
 	 * Method undoView.
 	 */
 	public void undoView()
@@ -294,8 +236,8 @@ public class GraphPlaySheet extends AbstractPlaySheet {
 			}
 			this.setSelected(false);
 			this.setSelected(true);
-			printConnectedNodes();
-			printSpanningTree();
+//			printConnectedNodes();
+//			printSpanningTree();
 
 			genAllData();
 		} catch (RepositoryException e) {
@@ -322,8 +264,8 @@ public class GraphPlaySheet extends AbstractPlaySheet {
                }
                this.setSelected(false);
                this.setSelected(true);
-               printConnectedNodes();
-               printSpanningTree();
+//               printConnectedNodes();
+//               printSpanningTree();
         }catch (PropertyVetoException e) {
         	e.printStackTrace();
         }
@@ -408,337 +350,6 @@ public class GraphPlaySheet extends AbstractPlaySheet {
 		}
 	}
 	
-
-	/**
-	 * Method refreshView.
-	 */
-	public void refreshView(){
-		createVisualizer();
-		// add the panel
-		addPanel();
-		try {
-			this.setSelected(false);
-			this.setSelected(true);
-		} catch (PropertyVetoException e) {
-			e.printStackTrace();
-		}
-		
-		//showAll();
-	}
-
-	/**
-	 * Method addInitialPanel.
-	 */
-	public void addInitialPanel()
-	{
-		setWindow();
-		// create the listener and add the frame
-		// JInternalFrame frame = new JInternalFrame(title, true, true, true, true);
-		// frame.setPreferredSize(new Dimension(400,600));
-		// if there is a view remove it
-		// get
-		GraphPlaySheetListener gpListener = new GraphPlaySheetListener();
-		PlaySheetControlListener gpControlListener = new PlaySheetControlListener();
-		PlaySheetOWLListener gpOWLListener = new PlaySheetOWLListener();
-		PlaySheetColorShapeListener gpColorShapeListener = new PlaySheetColorShapeListener();
-		
-		this.addInternalFrameListener(gpListener);
-		this.addInternalFrameListener(gpControlListener);
-		this.addInternalFrameListener(gpOWLListener);
-		this.addInternalFrameListener(gpColorShapeListener);
-
-		
-		GridBagLayout gridBagLayout = new GridBagLayout();
-		gridBagLayout.columnWidths = new int[]{728, 0};
-		gridBagLayout.rowHeights = new int[]{557, 70, 0};
-		gridBagLayout.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gridBagLayout.rowWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
-		getContentPane().setLayout(gridBagLayout);
-
-	
-		cheaterPanel.setPreferredSize(new Dimension(800, 70));
-		GridBagLayout gbl_cheaterPanel = new GridBagLayout();
-		gbl_cheaterPanel.columnWidths = new int[]{0, 0};
-		gbl_cheaterPanel.rowHeights = new int[]{60, 0};
-		gbl_cheaterPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gbl_cheaterPanel.rowWeights = new double[]{1.0, Double.MIN_VALUE};
-		cheaterPanel.setLayout(gbl_cheaterPanel);
-
-		legendPanel = new LegendPanel2();
-		legendPanel.setPreferredSize(new Dimension(800,50));
-		GridBagConstraints gbc_legendPanel = new GridBagConstraints();
-		gbc_legendPanel.fill = GridBagConstraints.BOTH;
-		gbc_legendPanel.gridx = 0;
-		gbc_legendPanel.gridy = 0;
-		cheaterPanel.add(legendPanel, gbc_legendPanel);
-		
-		jBar.setStringPainted(true);
-		jBar.setString("0%...Preprocessing");
-		jBar.setValue(0);
-		resetProgressBar();
-       
-       // SwingUtilities.updateComponentTreeUI(jBar);
-		GridBagConstraints gbc_jBar = new GridBagConstraints();
-		gbc_jBar.anchor = GridBagConstraints.NORTH;
-		gbc_jBar.fill = GridBagConstraints.HORIZONTAL;
-		gbc_jBar.gridx = 0;
-		gbc_jBar.gridy = 1;
-		cheaterPanel.add(jBar, gbc_jBar);
-		GridBagConstraints gbc_cheaterPanel = new GridBagConstraints();
-		gbc_cheaterPanel.anchor = GridBagConstraints.NORTH;
-		gbc_cheaterPanel.fill = GridBagConstraints.HORIZONTAL;
-		gbc_cheaterPanel.gridx = 0;
-		gbc_cheaterPanel.gridy = 1;
-		this.getContentPane().add(cheaterPanel, gbc_cheaterPanel);
-		
-		GridBagConstraints gbc_jTab = new GridBagConstraints();
-		gbc_jTab.anchor = GridBagConstraints.NORTH;
-		gbc_jTab.fill = GridBagConstraints.BOTH;
-		gbc_jTab.gridx = 0;
-		gbc_jTab.gridy = 0;
-		this.getContentPane().add(jTab, gbc_jTab);
-		graphSplitPane = new JSplitPane();
-
-		graphSplitPane.setEnabled(false);
-		graphSplitPane.setOneTouchExpandable(true);
-		graphSplitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);
-		searchPanel.setPlaySheet(this);
-
-		
-
-	}
-	
-	/**
-	 * Method addPanel.
-	 */
-	protected void addPanel() {
-		try
-		{
-			// add the model to search panel
-			if (gdm.getSearch())
-			{
-				searchPanel.searchCon.indexStatements(gdm.getJenaModel());
-			}
-			//graphSplitPane.removeAll();
-			//graphPanel.setLayout(new BorderLayout());
-			GraphZoomScrollPane gzPane = new GraphZoomScrollPane(view);
-			gzPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
-			gzPane.getHorizontalScrollBar().setUI(new NewHoriScrollBarUI());
-//			GridBagLayout gbl_graphPanel = new GridBagLayout();
-//			gbl_graphPanel.columnWidths = new int[]{0, 0};
-//			gbl_graphPanel.rowHeights = new int[]{0, 0, 0};
-//			gbl_graphPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-//			gbl_graphPanel.rowWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
-//			graphPanel.setLayout(gbl_graphPanel);
-//			
-//			GridBagConstraints gbc_search = new GridBagConstraints();
-//			gbc_search.insets = new Insets(0, 0, 5, 0);
-//			gbc_search.fill = GridBagConstraints.BOTH;
-//			gbc_search.gridx = 0;
-//			gbc_search.gridy = 0;
-			graphSplitPane.setLeftComponent(searchPanel);
-			
-//			GridBagConstraints gbc_panel_2 = new GridBagConstraints();
-//			gbc_panel_2.fill = GridBagConstraints.BOTH;
-//			gbc_panel_2.gridx = 0;
-//			gbc_panel_2.gridy = 1;
-			graphSplitPane.setRightComponent(gzPane);	
-			
-			this.addComponentListener(
-					new ComponentAdapter(){
-						public void componentResized(ComponentEvent e){
-							logger.info(((JInternalFrame)e.getComponent()).isMaximum());
-							GraphPlaySheet gps = (GraphPlaySheet) e.getSource();
-							if(!layoutName.equals(Constants.TREE_LAYOUT))
-								layout2Use.setSize(view.getSize());
-							logger.info("Size: " + gps.view.getSize());
-							
-						}
-					});
-	
-			legendPanel.data = filterData;
-			legendPanel.drawLegend();
-			logger.info("Adding graph tab");
-			boolean setSelected = jTab.getSelectedIndex()==0;
-			jTab.insertTab("Graph", null, graphSplitPane, null, 0);
-			if(setSelected) jTab.setSelectedIndex(0);
-			logger.info("Add Panel Complete >>>>>");
-		}catch(RuntimeException ex)
-		{
-			logger.debug(ex);
-		}
-	}
-
-	/**
-	 * Method addToMainPane.
-	 * @param pane JComponent
-	 */
-	protected void addToMainPane(JComponent pane) {
-
-		pane.add((Component)this);
-
-		logger.info("Adding Main Panel Complete");
-	}
-
-	/**
-	 * Method showAll.
-	 */
-	public void showAll() {
-		this.pack();
-		this.setVisible(true);
-		//JFrame frame2 = (JFrame) DIHelper.getInstance().getLocalProp(
-	//			Constants.MAIN_FRAME);
-		//frame2.repaint();
-
-	}
-
-	/**
-	 * Method createVisualizer.
-	 */
-	protected void createVisualizer() {
-		//tree layout cannot set size
-		if(!layoutName.equals(Constants.TREE_LAYOUT))
-			this.layout2Use.setSize(new Dimension(this.getContentPane().getWidth()-15, this.getContentPane().getHeight()-cheaterPanel.getHeight()-(int)searchPanel.getPreferredSize().getHeight()-50));
-		view = new VisualizationViewer(this.layout2Use);
-		view.setPreferredSize(this.layout2Use.getSize());
-		view.setBounds(10000000, 10000000, 10000000, 100000000);
-
-		Renderer r = new BasicRenderer();
-		
-		view.setRenderer(r);
-		//view.getRenderer().setVertexRenderer(new MyRenderer());
-
-		GraphNodeListener gl = new GraphNodeListener();
-		view.setGraphMouse(new GraphNodeListener());
-		// DefaultModalGraphMouse gm = new DefaultModalGraphMouse();
-		gl.setMode(ModalGraphMouse.Mode.PICKING);
-		view.setGraphMouse(gl);
-		VertexLabelTransformer vlt = new VertexLabelTransformer(controlData);
-		VertexPaintTransformer vpt = new VertexPaintTransformer();
-		VertexTooltipTransformer vtt = new VertexTooltipTransformer(controlData);
-		EdgeLabelTransformer elt = new EdgeLabelTransformer(controlData);
-		EdgeTooltipTransformer ett = new EdgeTooltipTransformer(controlData);
-		EdgeStrokeTransformer est = new EdgeStrokeTransformer();
-		VertexStrokeTransformer vst = new VertexStrokeTransformer();
-		ArrowDrawPaintTransformer adpt = new ArrowDrawPaintTransformer();
-		EdgeArrowStrokeTransformer east = new EdgeArrowStrokeTransformer();
-		ArrowFillPaintTransformer aft = new ArrowFillPaintTransformer();
-		PickedStateListener psl = new PickedStateListener(view);
-		//keep the stored one if possible
-		if(vlft==null)
-			vlft = new VertexLabelFontTransformer();
-		if(elft==null)
-			elft = new EdgeLabelFontTransformer();
-		if(vsht==null)
-			vsht = new VertexShapeTransformer();
-		else vsht.emptySelected();
-		VertexIconTransformer vit = new VertexIconTransformer();
-		
-		//view.getRenderContext().getGraphicsContext().setStroke(s);
-
-		Color color = view.getBackground();
-		view.setBackground(Color.WHITE);
-		color = view.getBackground();
-		
-		//view.setGraphMouse(mc);
-		view.getRenderContext().setVertexLabelTransformer(
-							vlt);
-		view.getRenderContext().setEdgeLabelTransformer(
-				elt);
-		view.getRenderContext().setVertexStrokeTransformer(vst);
-		view.getRenderContext().setVertexShapeTransformer(vsht);
-		view.getRenderContext().setVertexFillPaintTransformer(
-				vpt);
-		view.getRenderContext().setEdgeStrokeTransformer(est);
-		view.getRenderContext().setArrowDrawPaintTransformer(adpt);
-		view.getRenderContext().setEdgeArrowStrokeTransformer(east);
-		view.getRenderContext().setArrowFillPaintTransformer(aft);
-		view.getRenderContext().setVertexFontTransformer(vlft);
-		view.getRenderContext().setEdgeFontTransformer(elft);
-		view.getRenderer().getVertexLabelRenderer().setPosition(Renderer.VertexLabel.Position.CNTR);
-		view.getRenderContext().setLabelOffset(0);
-		//view.getRenderContext().set;
-		// view.getRenderContext().setVertexIconTransformer(new DBCMVertexIconTransformer());
-		view.setVertexToolTipTransformer(vtt);
-		view.setEdgeToolTipTransformer(ett);
-		//view.getRenderContext().setVertexIconTransformer(vit);
-		PickedState ps = view.getPickedVertexState();
-		ps.addItemListener(psl);
-		controlData.setViewer(view);
-
-		searchPanel.setViewer(view);
-		logger.info("Completed Visualization >>>> ");
-	}
-
-	/**
-	 * Method createLayout.
-	 * @return boolean
-	 */
-	public boolean createLayout() {
-		int fail = 0;
-		// creates the layout
-		// Constructor cons = Class.forName(layoutName).getConstructor(this.forest.class);
-		// layout2Use = (Layout)cons.newInstance(forest);
-		logger.info("Create layout >>>>>> ");
-		Class layoutClass = (Class)DIHelper.getInstance().getLocalProp(layoutName);
-		//layoutClass.getConstructors()
-		Constructor constructor=null;
-		try{
-			constructor = layoutClass.getConstructor(edu.uci.ics.jung.graph.Forest.class);
-			layout2Use  = (Layout)constructor.newInstance(forest);
-		} catch (NoSuchMethodException e) {
-			fail++;
-			logger.info(e);
-		} catch (InstantiationException e) {
-			fail++;
-			logger.info(e);
-		} catch (IllegalAccessException e) {
-			fail++;
-			logger.info(e);
-		} catch (IllegalArgumentException e) {
-			fail++;
-			logger.info(e);
-		} catch (InvocationTargetException e) {
-			fail++;
-			logger.info(e);
-		}
-		try{
-			constructor = layoutClass.getConstructor(edu.uci.ics.jung.graph.Graph.class);
-			layout2Use  = (Layout)constructor.newInstance(forest);
-		} catch (NoSuchMethodException e) {
-			fail++;
-			logger.info(e);
-		} catch (InstantiationException e) {
-			fail++;
-			logger.info(e);
-		} catch (IllegalAccessException e) {
-			fail++;
-			logger.info(e);
-		} catch (IllegalArgumentException e) {
-			fail++;
-			logger.info(e);
-		} catch (InvocationTargetException e) {
-			fail++;
-			logger.info(e);
-		}
-		searchPanel.setGraphLayout(layout2Use);
-		//= (Layout) new FRLayout((forest));
-		logger.info("Create layout Complete >>>>>> ");
-		if(fail==2) {
-			return false;
-		}
-		else return true;
-	}
-	
-	/**
-	 * Method getLayoutName.
-	 * @return String
-	 */
-	public String getLayoutName(){
-		return layoutName;
-	}
-	
-	
 	/**
 	 * Method createForest.
 	 */
@@ -821,14 +432,14 @@ public class GraphPlaySheet extends AbstractPlaySheet {
 		genAllData();
 		
 		// first execute all the predicate selectors
-		// Backdoor entry
-		Thread thread = new Thread(){
-			public void run()
-			{
-				printAllRelationship();				
-			}
-		};
-		thread.start();
+//		// Backdoor entry
+//		Thread thread = new Thread(){
+//			public void run()
+//			{
+//				printAllRelationship();				
+//			}
+//		};
+//		thread.start();
 //		modelCounter++;
 //shouldn't this be in create data?
 		logger.info("Creating Forest Complete >>>>>> ");										
@@ -852,83 +463,83 @@ public class GraphPlaySheet extends AbstractPlaySheet {
 			e.printStackTrace();
 		}
 	}	
-    /**
-     * Method printAllRelationship.
-     */
-    public void printAllRelationship()
-    {
-          String conceptHierarchyForSubject = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE " +
-          "{" +
-          "{?Subject ?Predicate ?Object}" + 
-          "}";
-          logger.debug(conceptHierarchyForSubject);
-          
-          IEngine jenaEngine = new InMemorySesameEngine();
-          ((InMemorySesameEngine)jenaEngine).setRepositoryConnection(gdm.rc);
-          
-          if(gdm.getQuery() == null) {
-        	  logger.debug("Query not set for current GraphPlaySheet");
-        	  return;
-          }
-          
-          //SesameJenaConstructWrapper sjsc;
-          IConstructWrapper sjsc = null;
-          
-          /*if(query.toUpperCase().contains("CONSTRUCT"))
-                sjsc = 	WrapperManager.getInstance().getCWrapper(jenaEngine, propertyQuery);
-          else
-                sjsc = new SesameJenaSelectCheater();
-			*/
-          
-          // = new SesameJenaSelectCheater();
-          //sjsc.setEngine(jenaEngine);
-          logger.warn("<<<<");
-          String end = "";
-          
-                while(!end.equalsIgnoreCase("end"))
-                {
-                      try {
-	                      BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-	                      logger.debug("Enter Query");
-	                      String query2 = reader.readLine();   
-	                      if(query2!=null){
-		                      end = query2;
-		                      logger.debug("Query is " + query2);
-		                      if(query2.toUpperCase().contains("CONSTRUCT"))
-		                            sjsc = WrapperManager.getInstance().getCWrapper(jenaEngine, query2);
-		                      else
-		                            sjsc = 	WrapperManager.getInstance().getChWrapper(jenaEngine, query2);
-
-		
-		                      // = new SesameJenaSelectCheater();
-		                      /*
-		                      sjsc.setEngine(jenaEngine);
-		                      sjsc.setQuery(query);//conceptHierarchyForSubject);
-		                      sjsc.setQuery(query2);
-		                      sjsc.execute();*/
-		                      while(sjsc.hasNext())
-		                      {
-		                            // read the subject predicate object
-		                            // add it to the in memory jena model
-		                            // get the properties
-		                            // add it to the in memory jena model
-		                            IConstructStatement st = sjsc.next();
-		                            logger.warn(st.getSubject() + "<<>>" + st.getPredicate() + "<<>>" + st.getObject());
-		                            //addToJenaModel(st);
-		                      }
-	                      }
-                      } catch (RuntimeException e) {
-                            // TODO: Specify exception
-                            e.printStackTrace();
-                      } catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-	                      
-                }
-
-          
-    }
+//    /**
+//     * Method printAllRelationship.
+//     */
+//    public void printAllRelationship()
+//    {
+//          String conceptHierarchyForSubject = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE " +
+//          "{" +
+//          "{?Subject ?Predicate ?Object}" + 
+//          "}";
+//          logger.debug(conceptHierarchyForSubject);
+//          
+//          IEngine jenaEngine = new InMemorySesameEngine();
+//          ((InMemorySesameEngine)jenaEngine).setRepositoryConnection(gdm.rc);
+//          
+//          if(gdm.getQuery() == null) {
+//        	  logger.debug("Query not set for current GraphPlaySheet");
+//        	  return;
+//          }
+//          
+//          //SesameJenaConstructWrapper sjsc;
+//          IConstructWrapper sjsc = null;
+//          
+//          /*if(query.toUpperCase().contains("CONSTRUCT"))
+//                sjsc = 	WrapperManager.getInstance().getCWrapper(jenaEngine, propertyQuery);
+//          else
+//                sjsc = new SesameJenaSelectCheater();
+//			*/
+//          
+//          // = new SesameJenaSelectCheater();
+//          //sjsc.setEngine(jenaEngine);
+//          logger.warn("<<<<");
+//          String end = "";
+//          
+//                while(!end.equalsIgnoreCase("end"))
+//                {
+//                      try {
+//	                      BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+//	                      logger.debug("Enter Query");
+//	                      String query2 = reader.readLine();   
+//	                      if(query2!=null){
+//		                      end = query2;
+//		                      logger.debug("Query is " + query2);
+//		                      if(query2.toUpperCase().contains("CONSTRUCT"))
+//		                            sjsc = WrapperManager.getInstance().getCWrapper(jenaEngine, query2);
+//		                      else
+//		                            sjsc = 	WrapperManager.getInstance().getChWrapper(jenaEngine, query2);
+//
+//		
+//		                      // = new SesameJenaSelectCheater();
+//		                      /*
+//		                      sjsc.setEngine(jenaEngine);
+//		                      sjsc.setQuery(query);//conceptHierarchyForSubject);
+//		                      sjsc.setQuery(query2);
+//		                      sjsc.execute();*/
+//		                      while(sjsc.hasNext())
+//		                      {
+//		                            // read the subject predicate object
+//		                            // add it to the in memory jena model
+//		                            // get the properties
+//		                            // add it to the in memory jena model
+//		                            IConstructStatement st = sjsc.next();
+//		                            logger.warn(st.getSubject() + "<<>>" + st.getPredicate() + "<<>>" + st.getObject());
+//		                            //addToJenaModel(st);
+//		                      }
+//	                      }
+//                      } catch (RuntimeException e) {
+//                            // TODO: Specify exception
+//                            e.printStackTrace();
+//                      } catch (IOException e) {
+//						// TODO Auto-generated catch block
+//						e.printStackTrace();
+//					}
+//	                      
+//                }
+//
+//          
+//    }
 
 	
 	/**
@@ -954,136 +565,49 @@ public class GraphPlaySheet extends AbstractPlaySheet {
 		}
 	}
 	
-	/**
-	 * Method setDataLatencyPopUp.
-	 * @param dataLate JInternalFrame
-	 */
-	public void setDataLatencyPopUp(JInternalFrame dataLate){
-		dataLatencyPopUp = dataLate;
-	}
-
-	/**
-	 * Method setDataLatencyPlayPopUp.
-	 * @param dataLate DataLatencyPlayPopup
-	 */
-	public void setDataLatencyPlayPopUp(DataLatencyPlayPopup dataLate){
-		dataLatencyPlayPopUp = dataLate;
-	}
+//	/**
+//	 * Method printConnectedNodes.
+//	 */
+//	protected void printConnectedNodes()
+//	{
+//		logger.info("In print connected Nodes routine " );
+//		ConnectivityInspector ins = new ConnectivityInspector(graph);
+//		logger.info("Number of vertices " + graph.vertexSet().size() + "<>" + graph.edgeSet().size());
+//		logger.info(" Graph Connected ? " + ins.isGraphConnected());
+//		//writeStatus("Graph Connected ? " + ins.isGraphConnected());
+//		logger.info("Number of connected sets are " + ins.connectedSets().size());
+//		Iterator <Set<SEMOSSVertex>> csIterator = ins.connectedSets().iterator();
+//		while(csIterator.hasNext())
+//		{
+//			Set <SEMOSSVertex> vertSet = csIterator.next();
+//			Iterator <SEMOSSVertex> si = vertSet.iterator();
+//			while(si.hasNext())
+//			{
+//				SEMOSSVertex vert = si.next();
+//				//logger.info("Set " + count + ">>>> " + vert.getProperty(Constants.VERTEX_NAME));
+//			}
+//		}	
+//	}	
 	
-	/**
-	 * Method getFilterData.
-	 * @return VertexFilterData
-	 */
-	public VertexFilterData getFilterData() {
-		return filterData;
-	}
-
-	/**
-	 * Method getColorShapeData.
-	 * @return VertexColorShapeData
-	 */
-	public VertexColorShapeData getColorShapeData() {
-		return colorShapeData;
-	}
-
-	/**
-	 * Method getControlData.
-	 * @return ControlData
-	 */
-	public ControlData getControlData() {
-		return controlData;
-	}
-
-	
-
-	/**
-	 * Method getForest.
-	 * @return DelegateForest
-	 */
-	public DelegateForest getForest() {
-		forest = new DelegateForest();
-//		semossGraph.graph = new SimpleGraph<SEMOSSVertex, SEMOSSEdge>(SEMOSSEdge.class);
-		return forest;
-	}
-
-	/**
-	 * Method setForest.
-	 * @param forest DelegateForest
-	 */
-	public void setForest(DelegateForest forest) {
-		this.forest = forest;
-	}
-	
-
-	/**
-	 * Method setLayout.
-	 * @param layout String
-	 */
-	public void setLayout(String layout) {
-		this.layoutName = layout;
-	}
-
-	/**
-	 * Method getGraph.
-	 * @return Graph
-	 */
-	public Graph getGraph()
-	{
-		return graph;
-	}
-	
-	/**
-	 * Method getView.
-	 * @return VisualizationViewer
-	 */
-	public VisualizationViewer getView()
-	{
-		return view;
-	}
-	
-	/**
-	 * Method printConnectedNodes.
-	 */
-	protected void printConnectedNodes()
-	{
-		logger.info("In print connected Nodes routine " );
-		ConnectivityInspector ins = new ConnectivityInspector(graph);
-		logger.info("Number of vertices " + graph.vertexSet().size() + "<>" + graph.edgeSet().size());
-		logger.info(" Graph Connected ? " + ins.isGraphConnected());
-		//writeStatus("Graph Connected ? " + ins.isGraphConnected());
-		logger.info("Number of connected sets are " + ins.connectedSets().size());
-		Iterator <Set<SEMOSSVertex>> csIterator = ins.connectedSets().iterator();
-		while(csIterator.hasNext())
-		{
-			Set <SEMOSSVertex> vertSet = csIterator.next();
-			Iterator <SEMOSSVertex> si = vertSet.iterator();
-			while(si.hasNext())
-			{
-				SEMOSSVertex vert = si.next();
-				//logger.info("Set " + count + ">>>> " + vert.getProperty(Constants.VERTEX_NAME));
-			}
-		}	
-	}	
-	
-	/**
-	 * Method printSpanningTree.
-	 */
-	protected void printSpanningTree()
-	{
-		logger.info("In Spanning Tree " );
-		KruskalMinimumSpanningTree<SEMOSSVertex, SEMOSSEdge> ins = new KruskalMinimumSpanningTree<SEMOSSVertex, SEMOSSEdge>(graph);
-		
-		logger.info("Number of vertices " + graph.vertexSet().size());
-		logger.info(" Edges  " + ins.getEdgeSet().size());
-		Iterator <SEMOSSEdge> csIterator = ins.getEdgeSet().iterator();
-		int count = 0;
-		while(csIterator.hasNext())
-		{
-				SEMOSSEdge vert = csIterator.next();
-				logger.info("Set " + count + ">>>> " + vert.getProperty(Constants.EDGE_NAME));
-		}
-//		count++;
-	}	
+//	/**
+//	 * Method printSpanningTree.
+//	 */
+//	protected void printSpanningTree()
+//	{
+//		logger.info("In Spanning Tree " );
+//		KruskalMinimumSpanningTree<SEMOSSVertex, SEMOSSEdge> ins = new KruskalMinimumSpanningTree<SEMOSSVertex, SEMOSSEdge>(graph);
+//		
+//		logger.info("Number of vertices " + graph.vertexSet().size());
+//		logger.info(" Edges  " + ins.getEdgeSet().size());
+//		Iterator <SEMOSSEdge> csIterator = ins.getEdgeSet().iterator();
+//		int count = 0;
+//		while(csIterator.hasNext())
+//		{
+//				SEMOSSEdge vert = csIterator.next();
+//				logger.info("Set " + count + ">>>> " + vert.getProperty(Constants.EDGE_NAME));
+//		}
+////		count++;
+//	}	
 	
 	/**
 	 * Method setRC.
@@ -1101,52 +625,6 @@ public class GraphPlaySheet extends AbstractPlaySheet {
 	public RepositoryConnection getRC()
 	{
 		return gdm.rc;
-	}
-	
-	/**
-	 * Method getEdgeLabelFontTransformer.
-	 * @return EdgeLabelFontTransformer
-	 */
-	public EdgeLabelFontTransformer getEdgeLabelFontTransformer(){
-		return elft;
-	}
-
-	/**
-	 * Method getVertexLabelFontTransformer.
-	 * @return VertexLabelFontTransformer
-	 */
-	public VertexLabelFontTransformer getVertexLabelFontTransformer(){
-		return vlft;
-	}
-	
-	/**
-	 * Method resetTransformers.
-	 */
-	public void resetTransformers(){
-
-		EdgeStrokeTransformer tx = (EdgeStrokeTransformer)view.getRenderContext().getEdgeStrokeTransformer();
-		tx.setEdges(null);
-		ArrowDrawPaintTransformer atx = (ArrowDrawPaintTransformer)view.getRenderContext().getArrowDrawPaintTransformer();
-		atx.setEdges(null);
-		EdgeArrowStrokeTransformer east = (EdgeArrowStrokeTransformer)view.getRenderContext().getEdgeArrowStrokeTransformer();
-		east.setEdges(null);
-		VertexShapeTransformer vst = (VertexShapeTransformer)view.getRenderContext().getVertexShapeTransformer();
-		vst.setVertexSizeHash(new Hashtable());
-		
-		if(searchPanel.btnHighlight.isSelected()){
-			VertexPaintTransformer ptx = (VertexPaintTransformer)view.getRenderContext().getVertexFillPaintTransformer();
-			Hashtable searchVertices = new Hashtable();
-			searchVertices.putAll(searchPanel.searchCon.cleanResHash);
-			ptx.setVertHash(searchVertices);
-			VertexLabelFontTransformer vfl = (VertexLabelFontTransformer)view.getRenderContext().getVertexFontTransformer();
-			vfl.setVertHash(searchVertices);
-		}
-		else{
-			VertexPaintTransformer ptx = (VertexPaintTransformer)view.getRenderContext().getVertexFillPaintTransformer();
-			ptx.setVertHash(null);
-			VertexLabelFontTransformer vfl = (VertexLabelFontTransformer)view.getRenderContext().getVertexFontTransformer();
-			vfl.setVertHash(null);
-		}
 	}
 	
 	// removes existing concepts 
@@ -1221,78 +699,9 @@ public class GraphPlaySheet extends AbstractPlaySheet {
 		return listOfChilds;
 	}
 
-//	@Override
-//	public Object getData() {
-//		Hashtable returnHash = (Hashtable) super.getData();
-//		if(gdm.getOverlay()){
-//			returnHash.put("nodes", gdm.getIncrementalVertStore());
-//			returnHash.put("nodeProperties", gdm.getIncrementalVertPropStore());
-//			returnHash.put("edges", gdm.getIncrementalEdgeStore().values());
-//		}
-//		else {
-//			returnHash.put("nodes", gdm.getVertStore());
-//			returnHash.put("edges", gdm.getEdgeStore().values());
-//		}
-//		
-//		return returnHash;
-//		return this.gdm.getDataMakerOutput();
-//	}
-
-	/**
-	 * Method genAllData.
-	 */
-	public void genAllData()
-	{
-		filterData.fillRows();
-		filterData.fillEdgeRows();
-		controlData.generateAllRows();
-		if(gdm.getSudowl())
-			gdm.predData.genPredList();
-		colorShapeData.setTypeHash(filterData.typeHash);
-		colorShapeData.setCount(filterData.count);
-		colorShapeData.fillRows();
-	}
-
-	@Override
-	public void runAnalytics() {
-		// TODO Auto-generated method stub
-		
-	}
-	
-	protected void processControlData(SEMOSSEdge edge){
-		String edgeType = edge.getProperty(Constants.EDGE_TYPE).toString();
-		for(String prop : edge.getPropertyKeys()){
-			controlData.addProperty(edgeType, prop);
-		}
-	}
-	
-	protected void processControlData(SEMOSSVertex vert){
-		String vertType = vert.getProperty(Constants.VERTEX_TYPE).toString();
-		for(String prop : vert.getPropertyKeys()){
-			controlData.addProperty(vertType, prop);
-		}
-	}
-
-	@Override
-	public void createData() {
-		
-	}
-	
 	public void clearStores(){
 		gdm.getVertStore().clear();
 		gdm.getEdgeStore().clear();
-	}
-
-	@Override
-	public Hashtable<String, String> getDataTableAlign() {
-		// Need to figure out how graph will align to table....
-		return null;
-	}
-
-	@Override
-	public void setQuery(String query) {
-		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
@@ -1305,13 +714,7 @@ public class GraphPlaySheet extends AbstractPlaySheet {
 			logger.error("Failed setting " + data.getClass() + " when only ITableDataFrames are allowed");
 		}
 	}
-
-	@Override
-	public void processQueryData() {
-		// TODO Auto-generated method stub
-		
-	}
-
+	
 	@Override
 	public GraphDataModel getDataMaker() {
 		return this.gdm;

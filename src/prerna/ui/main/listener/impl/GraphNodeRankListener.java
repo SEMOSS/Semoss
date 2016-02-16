@@ -44,6 +44,7 @@ import prerna.om.InsightStore;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridScrollPane;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 
 /**
@@ -51,7 +52,7 @@ import prerna.ui.components.playsheets.GraphPlaySheet;
  */
 public class GraphNodeRankListener implements ActionListener {
 
-	GraphPlaySheet ps = null;
+	AbstractGraphPlaySheet ps = null;
 	SEMOSSVertex [] vertices = null;
 	
 	static final Logger logger = LogManager.getLogger(GraphNodeRankListener.class.getName());
@@ -59,7 +60,7 @@ public class GraphNodeRankListener implements ActionListener {
 	 * Method setPlaysheet.  Sets the playsheet that the listener will access.
 	 * @param ps GraphPlaySheet
 	 */
-	public void setPlaysheet(GraphPlaySheet ps)
+	public void setPlaysheet(AbstractGraphPlaySheet ps)
 	{
 		this.ps = ps;
 	}

@@ -49,7 +49,7 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.GraphPlaySheet;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.main.listener.impl.NeighborMenuListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -57,6 +57,7 @@ import prerna.util.Utility;
 
 /**
  */
+@Deprecated
 public class TFRelationPopup extends JMenu implements MouseListener{
 
 	// need a way to cache this for later
@@ -163,7 +164,7 @@ public class TFRelationPopup extends JMenu implements MouseListener{
 			
 			// get the filter values
 			String fileName = "";
-			Vector <SEMOSSVertex> vertVector = ((GraphPlaySheet)ps).filterData.getNodes(type); // in reality this should work now
+			Vector <SEMOSSVertex> vertVector = ((AbstractGraphPlaySheet)ps).filterData.getNodes(type); // in reality this should work now
 			//Vector <SEMOSSVertex> vertVector = new Vector<SEMOSSVertex>();
 			logger.info("Vert vector size is " + vertVector.size());
 			

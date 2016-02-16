@@ -34,18 +34,19 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JToggleButton;
 
+import edu.uci.ics.jung.graph.DelegateForest;
 import prerna.ui.components.GraphToTreeConverter;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import edu.uci.ics.jung.graph.DelegateForest;
 
 /**
  * Controls converting the graph to a tree layout.
  */
 public class TreeConverterListener implements ActionListener{
 
-	GraphPlaySheet playSheet;
+	AbstractGraphPlaySheet playSheet;
 	GraphToTreeConverter converter;
 	public DelegateForest networkForest;
 	
@@ -60,7 +61,7 @@ public class TreeConverterListener implements ActionListener{
 	 * Method setPlaySheet.  Sets the play sheet that the listener will access.
 	 * @param ps GraphPlaySheet
 	 */
-	public void setPlaySheet(GraphPlaySheet ps){
+	public void setPlaySheet(AbstractGraphPlaySheet ps){
 		this.playSheet = ps;
 		networkForest = ps.forest;
 	}

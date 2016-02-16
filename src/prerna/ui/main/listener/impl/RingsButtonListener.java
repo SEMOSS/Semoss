@@ -32,14 +32,14 @@ import java.awt.event.ActionListener;
 
 import javax.swing.JToggleButton;
 
-import prerna.ui.components.playsheets.GraphPlaySheet;
-import prerna.ui.transformer.BalloonLayoutRings;
-import prerna.ui.transformer.RadialTreeLayoutRings;
 import edu.uci.ics.jung.algorithms.layout.BalloonLayout;
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.algorithms.layout.RadialTreeLayout;
 import edu.uci.ics.jung.graph.Forest;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.transformer.BalloonLayoutRings;
+import prerna.ui.transformer.RadialTreeLayoutRings;
 
 /**
  * Controls the rendering of rings on a graph if the layout is a balloon or a radial tree.
@@ -47,7 +47,7 @@ import edu.uci.ics.jung.visualization.VisualizationViewer;
 public class RingsButtonListener implements ActionListener {
 	
 	VisualizationViewer view;
-	GraphPlaySheet ps;
+//	AbstractGraphPlaySheet ps;
 	BalloonLayoutRings rings=new BalloonLayoutRings();
 	RadialTreeLayoutRings treeRings = new RadialTreeLayoutRings();
 	Layout lay;

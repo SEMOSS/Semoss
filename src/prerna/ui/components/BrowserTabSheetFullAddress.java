@@ -35,12 +35,12 @@ import javax.swing.JInternalFrame;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ui.components.playsheets.GraphPlaySheet;
-
 import com.teamdev.jxbrowser.chromium.Browser;
 import com.teamdev.jxbrowser.chromium.LoggerProvider;
 import com.teamdev.jxbrowser.chromium.events.LoadListener;
 import com.teamdev.jxbrowser.chromium.swing.BrowserView;
+
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 
 
 
@@ -52,7 +52,7 @@ public class BrowserTabSheetFullAddress extends JInternalFrame implements Runnab
 
 	protected static final String LS = System.getProperty("line.separator");
 	LoadListener navListener = null;
-	GraphPlaySheet ps = null;
+	AbstractGraphPlaySheet ps = null;
 	static final Logger logger = LogManager.getLogger(BrowserTabSheetFullAddress.class.getName());
 	public Browser browser;
 	public BrowserView browserView;
@@ -94,7 +94,7 @@ public class BrowserTabSheetFullAddress extends JInternalFrame implements Runnab
 	 * Sets the appropriate playsheet.
 	 * @param ps 	Graph playsheet.
 	 */
-	public void setPlaySheet(GraphPlaySheet ps)
+	public void setPlaySheet(AbstractGraphPlaySheet ps)
 	{
 		this.ps = ps;
 	}

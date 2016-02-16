@@ -42,7 +42,9 @@ import org.apache.log4j.Logger;
 
 import prerna.ui.components.ShapeColorTableModel;
 import prerna.ui.components.VertexColorShapeData;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
+import prerna.ui.components.playsheets.GraphTinkerPlaySheet;
 import prerna.ui.helpers.TypeColorShapeTable;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -63,9 +65,9 @@ public class PlaySheetColorShapeListener implements InternalFrameListener {
 		// get the playsheet that is being activated
 		logger.info("Internal Frame Activated OWL Manipulator>>>> ");
 		JInternalFrame jf = e.getInternalFrame();
-		GraphPlaySheet ps = (GraphPlaySheet)jf;
-
-		VertexColorShapeData vcsd = ps.getColorShapeData();
+		VertexColorShapeData vcsd = null;
+		AbstractGraphPlaySheet ps = (AbstractGraphPlaySheet)jf;
+		vcsd = ps.getColorShapeData();
 		
 		ShapeColorTableModel model = new ShapeColorTableModel(vcsd);
 	

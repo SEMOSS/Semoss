@@ -35,6 +35,7 @@ import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.om.InsightStore;
+import prerna.rdf.query.builder.QueryBuilderData;
 import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.SQLGraphPlaysheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -46,13 +47,12 @@ import prerna.util.DIHelper;
 /**
  * This class is used to create a menu item for the neighborhood.
  */
-public class NeighborMenuItem extends JMenuItem{
-	String query; 
+public class NeighborQueryBuilderMenuItem extends JMenuItem{
+	QueryBuilderData data; 
 	IEngine engine = null;
-	String predicateURI = null;
 	String name = null;
 	
-	static final Logger logger = LogManager.getLogger(NeighborMenuItem.class.getName());
+	static final Logger logger = LogManager.getLogger(NeighborQueryBuilderMenuItem.class.getName());
 
 	/**
 	 * Constructor for NeighborMenuItem.
@@ -60,11 +60,11 @@ public class NeighborMenuItem extends JMenuItem{
 	 * @param query String
 	 * @param engine IEngine
 	 */
-	public NeighborMenuItem(String name, String query, IEngine engine)
+	public NeighborQueryBuilderMenuItem(String name, QueryBuilderData data, IEngine engine)
 	{
 		super(name);
 		this.name = name;
-		this.query = query;
+		this.data = data;
 		this.engine = engine;
 	}
 	
@@ -92,7 +92,7 @@ public class NeighborMenuItem extends JMenuItem{
 	
 			for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
 			{
-				DataMakerComponent dmc = new DataMakerComponent(repos[repoIndex]+"", query);
+				DataMakerComponent dmc = new DataMakerComponent(repos[repoIndex]+"", data);
 //				IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
 //				playSheet.setRDFEngine(engine);
 //				playSheet.setQuery(query);
@@ -103,16 +103,6 @@ public class NeighborMenuItem extends JMenuItem{
 				Thread playThread = new Thread(playRunner);
 				playThread.start();
 			}
-		}
-		// else is where we implement our logic
-//		else if(QuestionPlaySheetStore.getInstance().getActiveSheet() instanceof SQLGraphPlaysheet)
-		else if(InsightStore.getInstance().getActiveInsight().getPlaySheet() instanceof SQLGraphPlaysheet)
-		{
-			// this is the sql playsheet
-//			SQLGraphPlaysheet playSheet = (SQLGraphPlaysheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
-			SQLGraphPlaysheet playSheet = (SQLGraphPlaysheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
-			playSheet.addMore(engine, query);
-			logger.debug("Extending ");
 		}
 	}
 	

@@ -37,14 +37,14 @@ import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.GraphToTreeConverter;
 import prerna.ui.components.WeightDropDownButton;
-import prerna.ui.components.playsheets.GraphPlaySheet;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 
 /**
  * 
  */
 public class WeightConvertButtonListener implements ActionListener{
 
-	GraphPlaySheet playSheet;
+	AbstractGraphPlaySheet playSheet;
 	GraphToTreeConverter converter;
 
 	/**
@@ -58,7 +58,7 @@ public class WeightConvertButtonListener implements ActionListener{
 	 * Method setPlaySheet.  Sets the play sheet that the listener will access.
 	 * @param ps
 	 */
-	public void setPlaySheet(GraphPlaySheet ps){
+	public void setPlaySheet(AbstractGraphPlaySheet ps){
 		this.playSheet = ps;
 	}
 

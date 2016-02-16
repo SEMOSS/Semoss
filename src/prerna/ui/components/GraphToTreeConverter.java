@@ -36,13 +36,14 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.impl.DistanceDownstreamProcessor;
-import prerna.om.SEMOSSEdge;
-import prerna.om.SEMOSSVertex;
-import prerna.ui.components.playsheets.GraphPlaySheet;
 import edu.uci.ics.jung.graph.DelegateForest;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.picking.PickedState;
+import prerna.algorithm.impl.DistanceDownstreamProcessor;
+import prerna.om.SEMOSSEdge;
+import prerna.om.SEMOSSVertex;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 
 /**
  * This class extends downstream processing in order to convert the graph into the tree format.
@@ -66,7 +67,7 @@ public class GraphToTreeConverter extends DistanceDownstreamProcessor{
 	 * Constructor for GraphToTreeConverter.
 	 * @param p 	Graph playsheet to be set.
 	 */
-	public GraphToTreeConverter(GraphPlaySheet p){
+	public GraphToTreeConverter(AbstractGraphPlaySheet p){
 		super();
 		this.playSheet=p;
 	}

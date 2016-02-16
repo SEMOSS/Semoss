@@ -33,11 +33,6 @@ import java.util.Hashtable;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.engine.api.IEngine;
-import prerna.om.SEMOSSVertex;
-import prerna.ui.components.playsheets.GraphPlaySheet;
-import prerna.util.Constants;
-
 import com.google.gson.Gson;
 import com.teamdev.jxbrowser.chromium.Browser;
 import com.teamdev.jxbrowser.chromium.JSValue;
@@ -49,6 +44,11 @@ import com.teamdev.jxbrowser.chromium.events.LoadListener;
 import com.teamdev.jxbrowser.chromium.events.ProvisionalLoadingEvent;
 import com.teamdev.jxbrowser.chromium.events.StartLoadingEvent;
 
+import prerna.engine.api.IEngine;
+import prerna.om.SEMOSSVertex;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.util.Constants;
+
 /**
  */
 public class NodeEditorNavigationListener implements LoadListener{
@@ -58,7 +58,7 @@ public class NodeEditorNavigationListener implements LoadListener{
 	SEMOSSVertex node = null;
 	Browser browser = null;
 	Hashtable filterHash;
-	GraphPlaySheet gps;
+	AbstractGraphPlaySheet gps;
 	IEngine engine;
 	
 	
@@ -66,7 +66,7 @@ public class NodeEditorNavigationListener implements LoadListener{
 	 * Method setGps.  Sets the graph play sheet that the listener will access.
 	 * @param gps GraphPlaySheet
 	 */
-	public void setGps(GraphPlaySheet gps) {
+	public void setGps(AbstractGraphPlaySheet gps) {
 		this.gps = gps;
 	}
 

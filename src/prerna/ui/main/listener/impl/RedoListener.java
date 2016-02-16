@@ -32,7 +32,7 @@ import java.awt.event.ActionListener;
 
 import javax.swing.AbstractAction;
 
-import prerna.ui.components.playsheets.GraphPlaySheet;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.helpers.PlaysheetRedoRunner;
 
 /**
@@ -40,7 +40,7 @@ import prerna.ui.helpers.PlaysheetRedoRunner;
  */
 public class RedoListener extends AbstractAction implements ActionListener {
 		
-	GraphPlaySheet gps = null;
+	AbstractGraphPlaySheet gps = null;
 	
 	/**
 	 * Method actionPerformed.  Dictates what actions to take when an Action Event is performed.
@@ -59,7 +59,7 @@ public class RedoListener extends AbstractAction implements ActionListener {
 	 * Method setPlaySheet.  Sets the play sheet that the listener will access.
 	 * @param gps GraphPlaySheet
 	 */
-	public void setPlaySheet(GraphPlaySheet gps)
+	public void setPlaySheet(AbstractGraphPlaySheet gps)
 	{
 		this.gps = gps;
 	}

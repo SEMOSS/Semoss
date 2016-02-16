@@ -29,14 +29,14 @@ package prerna.algorithm.impl;
 
 import prerna.algorithm.api.IAlgorithm;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.GraphPlaySheet;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 
 /**
  * Allows algorithms to be performed on different types of playsheets.
  */
 public class ConnectedInspectorAlgo implements IAlgorithm {
 
-	GraphPlaySheet gps = null;
+	AbstractGraphPlaySheet gps = null;
 	
 	/**
 	 * Casts the IPlaySheet into a GraphPlaySheet.
@@ -44,7 +44,7 @@ public class ConnectedInspectorAlgo implements IAlgorithm {
 	 */
 	@Override
 	public void setPlaySheet(IPlaySheet graphPlaySheet) {
-		gps = (GraphPlaySheet)graphPlaySheet;
+		gps = (AbstractGraphPlaySheet)graphPlaySheet;
 	}
 
 	/**

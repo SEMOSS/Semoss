@@ -29,24 +29,24 @@ package prerna.ui.main.listener.impl;
 
 import java.util.Hashtable;
 
-import prerna.ui.components.playsheets.GraphPlaySheet;
-
 import com.google.gson.Gson;
 import com.teamdev.jxbrowser.chromium.BrowserFunction;
 import com.teamdev.jxbrowser.chromium.JSValue;
+
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 
 /**
  * Refreshes the view of the graph play sheet.
  */
 public class RefreshPlaysheetFunction implements BrowserFunction {
 	
-	GraphPlaySheet gps;
+	AbstractGraphPlaySheet gps;
 	
 	/**
 	 * Method setGps.  Sets the graph play sheet that the listener will access.
 	 * @param gps GraphPlaySheet
 	 */
-	public void setGps(GraphPlaySheet gps) {
+	public void setGps(AbstractGraphPlaySheet gps) {
 		this.gps = gps;
 	}
 

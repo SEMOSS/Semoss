@@ -35,7 +35,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
-import prerna.ui.components.playsheets.GraphPlaySheet;
+import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.specific.tap.DataLatencyPlayPopup;
 
 /**
@@ -43,7 +43,7 @@ import prerna.ui.components.specific.tap.DataLatencyPlayPopup;
  */
 public class DataLatencyPlayListener implements ActionListener{
 
-	GraphPlaySheet ps = null;
+	AbstractGraphPlaySheet ps = null;
 	SEMOSSVertex [] pickedVertex = null;
 	static final Logger logger = LogManager.getLogger(DataLatencyPlayListener.class.getName());
 	
@@ -52,7 +52,7 @@ public class DataLatencyPlayListener implements ActionListener{
 	 * @param p 		GraphPlaySheet
 	 * @param pickedV 	DBCMVertex[]
 	 */
-	public DataLatencyPlayListener(GraphPlaySheet p, SEMOSSVertex[] pickedV){
+	public DataLatencyPlayListener(AbstractGraphPlaySheet p, SEMOSSVertex[] pickedV){
 		ps = p;
 		pickedVertex = pickedV;
 	}

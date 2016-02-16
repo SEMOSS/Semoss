@@ -67,7 +67,6 @@ import prerna.util.Constants;
  */
 public class RDFEngineHelper {
 
-	private static final Resource RDFXML = null;
 	static final Logger logger = LogManager.getLogger(RDFEngineHelper.class.getName());
 	// responsible for handling various engine related stuff
 	// loads the concepts from the engine into the specified sesame

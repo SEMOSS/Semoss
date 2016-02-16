@@ -34,6 +34,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.NeighborMenuItem;
+import prerna.ui.components.NeighborQueryBuilderMenuItem;
 
 /**
  * Controls the painting of the neighbor menu items.
@@ -70,7 +71,7 @@ public class NeighborMenuListener implements ActionListener {
 		// get the engine
 		// execute the neighbor hood 
 		// paint it
-		NeighborMenuItem item = (NeighborMenuItem)e.getSource();
+		NeighborQueryBuilderMenuItem item = (NeighborQueryBuilderMenuItem)e.getSource();
 		item.paintNeighborhood();
 	}
 }
