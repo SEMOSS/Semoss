@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.rdf.query.builder;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -72,6 +73,17 @@ public class QueryBuilderData {
 		} else if(json.containsKey(REL_TRIPLES_KEY)) {
 			setRelTriples((List) json.get(REL_TRIPLES_KEY));
 		}
+	}
+	
+	public QueryBuilderData(){
+		LOGGER.info("opening empty query builder data");
+	}
+	
+	public void addRelTriple(List<String> trip){
+		if(this.relTriples == null){
+			this.relTriples = new ArrayList<List<String>>();
+		}
+		this.relTriples.add(trip);
 	}
 
 	public void setLimitReturnToVarsList(Boolean limitReturnToVarsList){

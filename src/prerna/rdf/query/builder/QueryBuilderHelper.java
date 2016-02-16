@@ -290,10 +290,12 @@ public class QueryBuilderHelper {
 		parsedPath.put(predVKey, predV);
 
 		List<Map<String, String>> props = builderData.getNodeProps();
-		for(Map<String, String> prop: props){
-			String subjectURI = prop.get(uriKey);
-			subjectURI = engine.getTransformedNodeName(subjectURI, false);
-			prop.put(uriKey, subjectURI);
+		if(props!=null){
+			for(Map<String, String> prop: props){
+				String subjectURI = prop.get(uriKey);
+				subjectURI = engine.getTransformedNodeName(subjectURI, false);
+				prop.put(uriKey, subjectURI);
+			}
 		}
 		
 		return parsedPath;
