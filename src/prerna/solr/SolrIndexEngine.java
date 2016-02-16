@@ -324,6 +324,7 @@ public class SolrIndexEngine {
 			if (queryOptions.get(CommonParams.Q) != null) {
 				LOGGER.info("Changing the default query search");
 				String querySearch = (String) queryOptions.get(CommonParams.Q);
+				querySearch = escapeSpecialCharacters(querySearch);
 				Q.set(CommonParams.Q, querySearch);
 				LOGGER.info("Query search specified to: " + querySearch);
 				if (queryOptions.get(CommonParams.DF) != null) {
@@ -1161,6 +1162,33 @@ public class SolrIndexEngine {
 			}
 		}
 		queryData.put(CommonParams.FQ, filterMap);
+	}
+	
+	private String escapeSpecialCharacters(String s) {
+		if(s.equals(QUERYALL)) {
+			return s;
+		}
+		
+		s = s.replace("\\", "\\\\");
+		s = s.replace("/", "\\/");
+		s = s.replace("+", "\\+");
+		s = s.replace("-", "\\-");
+		s = s.replace("&&", "\\&&");
+		s = s.replace("||", "\\||");
+		s = s.replace("!", "\\!");
+		s = s.replace("(", "\\(");
+		s = s.replace(")", "\\)");
+		s = s.replace("{", "\\{");
+		s = s.replace("}", "\\}");
+		s = s.replace("[", "\\[");
+		s = s.replace("]", "\\]");
+		s = s.replace("^", "\\^");
+		s = s.replace("~", "\\~");
+		s = s.replace("*", "\\*");
+		s = s.replace("?", "\\?");
+		s = s.replace(":", "\\:");
+		
+		return s;
 	}
 
 }
