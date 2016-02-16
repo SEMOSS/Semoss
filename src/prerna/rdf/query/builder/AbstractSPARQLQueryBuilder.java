@@ -90,7 +90,9 @@ public abstract class AbstractSPARQLQueryBuilder extends AbstractQueryBuilder{
 	
 	protected void addPropsToQuery (List<Map<String,String>> nodePropV) {
 		List<Map<String, String>> propV = new ArrayList<Map<String, String>>();
-		propV.addAll(nodePropV);
+		if(nodePropV!=null){
+			propV.addAll(nodePropV);
+		}
 		for(Map<String, String> propHash : propV) {
 			String propName = propHash.get(QueryBuilderHelper.varKey);
 			String propURI = propHash.get(QueryBuilderHelper.uriKey);
