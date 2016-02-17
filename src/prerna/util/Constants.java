@@ -480,6 +480,7 @@ public class Constants {
 	public static final String MHS_FUNCTIONS = "prerna.semoss.web.services.specific.tap.";
 	
 	// Security
+	public static final String SECURITY_DB = "security";
 	public static final String SECURITY_ENABLED = "security-enabled";
 	public static final String SESSION_USER = "user";
 	public static final String ANONYMOUS_USER_ID = "-1";
