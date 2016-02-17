@@ -411,15 +411,15 @@ public class TinkerGraphDataModel {
 						storeVert(predicateName, sct.getObject(), tf);
 						vert2 = predicateName+"";
 					}
-				}
-				// check to see if this is another type of edge			
-				if(!predicateName.contains(vert1Name + ":" + Utility.getInstanceName(vert2))) {
-					// need to not add this check when we make concepts into edges like data network
-					if(!predicateName.contains("/ontologies/Concept/")) {
-						predicateName = predicateName + "/" + vert1Name + ":" + Utility.getInstanceName(vert2);
+					// check to see if this is another type of edge			
+					if(!predicateName.contains(vert1Name + ":" + Utility.getInstanceName(vert2))) {
+						// need to not add this check when we make concepts into edges like data network
+						if(!predicateName.contains("/ontologies/Concept/")) {
+							predicateName = predicateName + "/" + vert1Name + ":" + Utility.getInstanceName(vert2);
+						}
 					}
+					storeEdge(subjectName, vert2, predicateName, tf);
 				}
-				storeEdge(subjectName, vert2, predicateName, tf);
 			}
 		} catch (RuntimeException e) {
 			e.printStackTrace();
