@@ -79,11 +79,12 @@ public class MathTransformation extends AbstractTransformation {
 		for(String key : functionMap.keySet()){
 			TinkerFrameStatRoutine routine = new TinkerFrameStatRoutine();
 			map = (Map<String, Object>)functionMap.get(key);
-		
-			map.put("GroupBy", groupByCols);
-			routine.setSelectedOptions(map);
-			
-			dm.performAnalyticTransformation(routine);
+			if(!map.containsKey("exists")){
+				map.put("GroupBy", groupByCols);
+				routine.setSelectedOptions(map);
+				
+				dm.performAnalyticTransformation(routine);
+			}
 		}
 	}
 
@@ -122,13 +123,15 @@ public class MathTransformation extends AbstractTransformation {
 			//Check if name exists already within the table, if so append a counter for uniqueness
 			boolean nameExists = true;
 			int counter = 1;
-			while(nameExists) {
+//			while(nameExists) {
 				if(ArrayUtilityMethods.arrayContainsValue(tableHeaders, newName)) {
-					newName = origNewName+counter;
-				} else {
-					nameExists = false;
+//					newName = origNewName+counter;//
+					map.put("exists", "exists");
 				}
-			}
+//				} else {
+//					nameExists = false;
+//				}
+//			}
 			
 			map.put("calcName", newName);
 		}
