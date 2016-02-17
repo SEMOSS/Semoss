@@ -379,10 +379,11 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			while(rs.next())
 			{
 				ArrayList list = new ArrayList();
-				String output = null;
+				Object output = null;
 				for(int colIndex = 1;colIndex <= columns;colIndex++)
 				{					
-					output = rs.getString(colIndex);
+//					output = rs.getString(colIndex);
+					output = rs.getObject(colIndex);
 					System.out.print(rs.getObject(colIndex));
 					list.add(output);
 				}

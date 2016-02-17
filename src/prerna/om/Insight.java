@@ -999,4 +999,8 @@ public class Insight {
 		
 		return uiOptions;
 	}
+
+	public String getEngineName() {
+		return this.mainEngine.getEngineName();
+	}
 }
