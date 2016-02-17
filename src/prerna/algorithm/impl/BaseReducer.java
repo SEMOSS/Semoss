@@ -16,15 +16,15 @@ import prerna.util.Constants;
 
 public abstract class BaseReducer implements ExpressionReducer {
 	
-	Iterator inputIterator = null;
-	String [] ids = null;
-	String script = null;
-	CompiledScript cs = null;
-	GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
-	boolean errored = false;
-	java.lang.Object baseException = null;
-	Bindings otherBindings = engine.getBindings(ScriptContext.ENGINE_SCOPE);
-	String propToGet = Constants.NAME;
+	protected Iterator inputIterator = null;
+	protected String [] ids = null;
+	protected String script = null;
+	protected CompiledScript cs = null;
+	protected GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
+	protected boolean errored = false;
+	protected java.lang.Object baseException = null;
+	protected Bindings otherBindings = engine.getBindings(ScriptContext.ENGINE_SCOPE);
+	protected String propToGet = Constants.NAME;
 
 
 	public void set(Iterator inputIterator, String[] ids, String script, String prop ) {
