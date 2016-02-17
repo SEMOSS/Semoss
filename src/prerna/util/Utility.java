@@ -639,10 +639,15 @@ public class Utility {
 			if (smssPropString != null) {
 				smssProp = Boolean.parseBoolean(smssPropString);
 			}
+			String hiddenString = engineToAdd.getProperty(Constants.HIDDEN_DATABASE);
+			boolean hidden = false;
+			if (hiddenString != null) {
+				hidden = Boolean.parseBoolean(hiddenString);
+			}
 			LOGGER.info(engineToAdd.getEngineName() + " has smss force reload value of " + smssProp);
 
 			// check if should always recreate and check if db currently exists and check if db is updated
-			if (AbstractEngine.RECREATE_SOLR || !solrE.containsEngine(engineName) || smssProp) {
+			if (!hidden && (AbstractEngine.RECREATE_SOLR || !solrE.containsEngine(engineName) || smssProp)) {
 				LOGGER.info(engineToAdd.getEngineName() + " is reloading solr");
 
 				try {
