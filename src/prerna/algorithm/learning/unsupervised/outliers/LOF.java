@@ -122,7 +122,7 @@ public class LOF implements IAnalyticTransformationRoutine {
 		if(k > numInstances) {
 			throw new IllegalArgumentException("Number of unqiue instances: " + numInstances + ", is less than the selected K value: " + k + ".");
 		}
-		if(skipAttributes == null) {
+		if(this.skipAttributes == null) {
 			skipAttributes = new ArrayList<String>();
 		}
 		

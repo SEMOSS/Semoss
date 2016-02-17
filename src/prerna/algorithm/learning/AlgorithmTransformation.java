@@ -97,6 +97,7 @@ public class AlgorithmTransformation extends AbstractTransformation {
 			} else {
 				message = e.getTargetException().getMessage();
 			}
+			dm.setColumnsToSkip(new ArrayList<String>());
 			throw new IllegalArgumentException(message);
 		}
 		return;
