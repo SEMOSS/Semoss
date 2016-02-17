@@ -1459,7 +1459,7 @@ public class TinkerFrame implements ITableDataFrame {
 		}
 		
 		newLevels.remove(PRIM_KEY);
-		redoLevels(new String[newLevels.size()]);
+		redoLevels(newLevels.toArray(new String[newLevels.size()]));
 	}
 	
 //	public void removeConnection(String outType, String inType) {
