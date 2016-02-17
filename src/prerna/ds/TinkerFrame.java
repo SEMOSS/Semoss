@@ -2318,13 +2318,13 @@ public class TinkerFrame implements ITableDataFrame {
 	
 	protected Edge upsertEdge(Vertex fromVertex, Vertex toVertex)
 	{
-		String edgeID = fromVertex.property(Constants.ID).value() + "" + toVertex.property(Constants.ID).value();
-		return upsertEdge(fromVertex, toVertex, edgeID);
+		String label = fromVertex.property(Constants.ID).value() + "" + toVertex.property(Constants.ID).value();
+		return upsertEdge(fromVertex, toVertex, label);
 	}
 	
 	protected Edge upsertEdge(Vertex fromVertex, Vertex toVertex, String label) {
 		Edge retEdge = null;
-		String edgeID = fromVertex.property(Constants.NAME).value() + "" + toVertex.property(Constants.NAME).value();
+		String edgeID = fromVertex.property(Constants.TYPE).value() + ":" + toVertex.property(Constants.TYPE).value() + "/" + fromVertex.property(Constants.NAME).value() + ":" + toVertex.property(Constants.NAME).value();
 		// try to find the vertex
 		GraphTraversal<Edge, Edge> gt = g.traversal().E().has(Constants.ID, edgeID);
 		if(gt.hasNext()) {
