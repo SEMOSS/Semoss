@@ -212,7 +212,12 @@ public class SolrIndexEngine {
 			throws SolrServerException, IOException {
 		if (serverActive()) {
 			Map<String, Object> queryMap = new HashMap<String, Object>();
-			queryMap.put(CommonParams.Q, ID + ":" + uniqueID);
+			queryMap.put(CommonParams.Q, QUERYALL);
+			Map<String, List<String>> filterForId = new HashMap<String, List<String>>();
+			List<String> idList = new ArrayList<String>();
+			idList.add(uniqueID);
+			filterForId.put(ID, idList);
+			addFilterResultsToQueryMap(queryMap, filterForId);
 			SolrDocument origDoc = queryDocument(queryMap).get(0);
 			Iterator<Entry<String, Object>> iterator = origDoc.iterator();
 			SolrInputDocument doc = new SolrInputDocument();
