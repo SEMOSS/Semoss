@@ -69,7 +69,13 @@ public class SPARQLQueryParser extends AbstractQueryParser {
 		
 		final String regex = "\\(\\?([^(\\s|\\)|,)]*)|\\?([^(\\s|\\)|,)]*)\\)";
 		final Pattern pattern = Pattern.compile(regex);
-		final Matcher matcher = pattern.matcher(query.substring(query.indexOf("SELECT"), query.indexOf("WHERE")));
+		Matcher matcher = null;
+		if(query.toLowerCase().contains("select")){
+			matcher = pattern.matcher(query.substring(query.indexOf("SELECT"), query.indexOf("WHERE")));
+		}
+		else {
+			matcher = pattern.matcher(query.substring(query.indexOf("CONSTRUCT"), query.indexOf("WHERE")));
+		}
 		while(matcher.find()) {
 			String orig = matcher.group();
 			orig = processString(orig);
