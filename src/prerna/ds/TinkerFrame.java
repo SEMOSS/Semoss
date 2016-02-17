@@ -2435,13 +2435,20 @@ public class TinkerFrame implements ITableDataFrame {
 
 
 	public Map<String, Object[]> getFilterTransformationValues() {
-		// TODO Auto-generated method stub
-//		Map<String, Object[]> ftv = new HashMap<String, Object[]>();
-//		for(String key : this.filterHash.keySet()) {
-//			ftv.put(key, filterHash.get(key).toArray());
-//		}
-//		return ftv;
 		Map<String, Object[]> retMap = new HashMap<String, Object[]>();
+		// get meta nodes that are tagged as filtered
+		GraphTraversal<Vertex, Vertex> metaGt = g.traversal().V().has(Constants.TYPE, META).has(Constants.FILTER, true);
+		while(metaGt.hasNext()){
+			Vertex metaV = metaGt.next();
+			String vertType = metaV.property(Constants.NAME).value().toString();
+			GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, Constants.FILTER).out().has(Constants.TYPE, vertType);
+			List<String> vertsList = new Vector<String>();
+			while(gt.hasNext()){
+				vertsList.add(gt.next().property(Constants.VALUE).value().toString());
+			}
+			retMap.put(vertType, vertsList.toArray());
+		}
+		
 		return retMap;
 	}
 
