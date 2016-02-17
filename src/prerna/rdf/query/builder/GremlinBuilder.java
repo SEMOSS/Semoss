@@ -11,7 +11,6 @@ import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
-import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
@@ -129,7 +128,7 @@ public class GremlinBuilder {
 			String node = nodeV.property(Constants.NAME).value()+"";
 			String edgeKey = origName + ":::" + node;
 			if(!travelledEdges.contains(edgeKey)) {
-				LOGGER.info("travelling down to " + node);
+				LOGGER.debug("travelling down to " + node);
 				gt1 = gt1.out().has(Constants.TYPE, node).as(node);
 				
 				Object filtered = nodeV.value(Constants.FILTER);
@@ -141,7 +140,7 @@ public class GremlinBuilder {
 				// travel as far downstream as possible
 				gt1 = visitNode(nodeV, gt1, travelledEdges, recursionCount);
 				// when we can go no further, we must return home to original meta node
-				LOGGER.info("returning home to " + origName);
+				LOGGER.debug("returning home to " + origName);
 				gt1 = gt1.in().has(Constants.TYPE, origName).as(origName + (recursionCount));
 				gt1 = gt1.where(origName, P.eq(origName + (recursionCount)));
 				recursionCount++;
@@ -322,7 +321,7 @@ public class GremlinBuilder {
 		addGroupBy();
 		
 		LOGGER.debug("Returning the graph traversal");
-		LOGGER.info("Script being executed...  " + gt);
+		LOGGER.debug("Script being executed...  " + gt);
 		return gt;
 	}	
 	
@@ -416,7 +415,7 @@ public class GremlinBuilder {
 			String edgeKey = origName + ":::" + node;
 			// if we have never travelled that edge before
 			if(!travelledEdges.contains(edgeKey)) {
-				System.out.println("travelling down to " + node);
+				LOGGER.debug("travelling down to " + node);
 				
 				String edgeSelector = "Edge"+recursionCount;
 				edgeSelectors.add(edgeSelector);
@@ -434,7 +433,7 @@ public class GremlinBuilder {
 				gt1 = visitNodeForEdgeTraversal(nodeV, gt1, travelledEdges, recursionCount, edgeSelectors);
 				
 				// when we can't go any further downstream, need to return home
-				System.out.println("returning home to " + origName);
+				LOGGER.debug("returning home to " + origName);
 				gt1 = gt1.in().has(Constants.TYPE, origName).as(origName + (recursionCount));
 				gt1 = gt1.where(origName, P.eq(origName + (recursionCount)));
 				recursionCount++;
@@ -448,7 +447,7 @@ public class GremlinBuilder {
 			String node = nodeV.property(Constants.NAME).value()+"";
 			String edgeKey = node + ":::" + origName;
 			if(!travelledEdges.contains(edgeKey)){
-				System.out.println("travelling up to " + node);
+				LOGGER.debug("travelling up to " + node);
 
 				String edgeSelector = "Edge"+recursionCount;
 				edgeSelectors.add(edgeSelector);
@@ -463,7 +462,7 @@ public class GremlinBuilder {
 				travelledEdges.add(edgeKey);
 				gt1 = visitNodeForEdgeTraversal(nodeV, gt1, travelledEdges, recursionCount, edgeSelectors);
 				
-				System.out.println("returning home to " + origName);
+				LOGGER.debug("returning home to " + origName);
 				gt1 = gt1.out().has(Constants.TYPE, origName).as(origName + (recursionCount));
 				gt1 = gt1.where(origName, P.eq(origName + (recursionCount)));
 				recursionCount++;
@@ -482,7 +481,7 @@ public class GremlinBuilder {
 //		
 //		builder.gt = builder.gt.not(gt2).V().as("deleteVertices").select("deleteVertices");
 ////		builder.appendSelectors();
-//		LOGGER.info("Script being executed...  " + builder.gt);
+//		LOGGER.debug("Script being executed...  " + builder.gt);
 //		return builder.gt;
 //	}
 	/**
