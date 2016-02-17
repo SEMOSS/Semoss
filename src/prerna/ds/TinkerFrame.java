@@ -2564,7 +2564,7 @@ public class TinkerFrame implements ITableDataFrame {
 	public void save(String fileName) {
 		try {
 			long startTime = System.currentTimeMillis();
-			
+			fileName = fileName.replaceAll("[^a-zA-Z0-9-_\\.]", "_");
 			this.g.io(IoCore.gryo()).writeGraph(fileName);
 			
 			long endTime = System.currentTimeMillis();
