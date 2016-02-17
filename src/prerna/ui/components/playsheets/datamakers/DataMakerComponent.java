@@ -22,6 +22,7 @@ public class DataMakerComponent {
 	private static final Logger LOGGER = LogManager.getLogger(DataMakerComponent.class.getName());
 	private String id;
 	private String query;
+	private String dataFrameLocation;
 	private QueryBuilderData builderData; // this is now a formal object! :)
 	private IEngine engine;
 	private List<ISEMOSSTransformation> preTrans = new ArrayList<ISEMOSSTransformation>();
@@ -71,6 +72,14 @@ public class DataMakerComponent {
 	}
 	
 	/**
+	 * Constructor for the data maker component object
+	 * @param dataFrameLocation			The string location for the serialized data frame
+	 */
+	public DataMakerComponent(String dataFrameLocation) {
+		this.dataFrameLocation = dataFrameLocation;
+	}
+	
+	/**
 	 * Setter for the query on the component
 	 * @param query
 	 */
@@ -108,6 +117,10 @@ public class DataMakerComponent {
 	 */
 	public IEngine getEngine() {
 		return engine;
+	}
+	
+	public String getDataFrameLocation() {
+		return dataFrameLocation;
 	}
 	
 	/**

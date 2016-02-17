@@ -53,7 +53,6 @@ import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.IMatcher;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IConstructStatement;
-import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -2514,8 +2513,10 @@ public class TinkerFrame implements ITableDataFrame {
 		Gson gson = new Gson();
 		
 		List<Map<String, Object>> data = gson.fromJson(jsonString, new TypeToken<List<Map<String, Object>>>() {}.getType());
-		Set<String> headers = data.get(0).keySet();
-		TinkerFrame dataFrame = new TinkerFrame(headers.toArray(new String[]{}));
+		String[] headers = data.get(0).keySet().toArray(new String[]{});
+		TinkerFrame dataFrame = new TinkerFrame(headers);
+		Map<String, Set<String>> primKeyEdgeHash = dataFrame.createPrimKeyEdgeHash(headers);
+		dataFrame.mergeEdgeHash(primKeyEdgeHash); 
 		
 		int i = 0;
 		int numRows = data.size();
