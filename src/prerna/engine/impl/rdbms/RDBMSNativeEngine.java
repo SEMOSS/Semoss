@@ -330,7 +330,27 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 		return null;
 	}
-
+	
+	public Statement execUpdateAndRetrieveStatement(String query, boolean autoCloseStatement) {
+		Connection conn = null;
+		Statement stmt = null;
+		
+		try {
+			conn = getConnection();
+			stmt = conn.createStatement();
+			stmt.executeUpdate(query);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			if(autoCloseStatement) {
+				closeConnections(conn,null,stmt);
+			} else {
+				closeConnections(conn,null,null);
+			}
+		}
+		
+		return stmt;
+	}
 	
 	@Override
 	public boolean isConnected()

@@ -27,26 +27,33 @@
  *******************************************************************************/
 package prerna.auth;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.nameserver.MasterDBHelper;
 import prerna.nameserver.MasterDatabaseQueries;
 import prerna.nameserver.MasterDatabaseURIs;
 import prerna.nameserver.ModifyMasterDB;
+import prerna.rdf.engine.wrappers.RDBMSSelectCheater;
+import prerna.rdf.engine.wrappers.RDBMSSelectWrapper;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class UserPermissionsMasterDB extends ModifyMasterDB {
-
-	public UserPermissionsMasterDB(String localMasterDbName) {
-		super(localMasterDbName);
-	}
+public class UserPermissionsMasterDB {
+	private RDBMSNativeEngine securityDB;
+	
 	public UserPermissionsMasterDB() {
-		super();
+		securityDB = (RDBMSNativeEngine) DIHelper.getInstance().getLocalProp(Constants.SECURITY_DB);
 	}
 	
 	/**
@@ -54,17 +61,15 @@ public class UserPermissionsMasterDB extends ModifyMasterDB {
 	 * 
 	 * @param userName	String representing the name of the user to add
 	 */
-	public void addUser(User newUser) {
-		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
-		ISelectWrapper sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_USER_QUERY.replace("@USER_ID@", newUser.getId()));
-		if(!sjsw.hasNext()) {
-			MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.USER_BASE_URI + "/" + newUser.getId());
-			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USER_BASE_URI + "/" + newUser.getId(), MasterDatabaseURIs.USER_NAME_PROP_URI, newUser.getName(), false);
-			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.USER_BASE_URI + "/" + newUser.getId(), MasterDatabaseURIs.USER_EMAIL_PROP_URI, newUser.getEmail(), false);
+	public Boolean addUser(User newUser) {
+		ISelectWrapper sjsw = Utility.processQuery(securityDB, "SELECT NAME FROM USER WHERE ID='" + newUser.getId() + "';");
+		if(!sjsw.hasNext()) {			
+			String query = "INSERT INTO User (id, name, email, type) VALUES ('" + newUser.getId() + "', '"+ newUser.getName() + "', '" + newUser.getEmail() + "', '" + newUser.getLoginType() + "');";
+			securityDB.insertData(query);
+			securityDB.commit();
 		}
 		
-		masterEngine.commit();
-		masterEngine.infer();
+		return true;
 	}
 	
 	/**
@@ -74,99 +79,81 @@ public class UserPermissionsMasterDB extends ModifyMasterDB {
 	 * @param userId		ID of user being made owner
 	 * @return				true or false for successful addition
 	 */
-	public Boolean addEngineOwner(String engineName, String userId) {
-		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
-		
-		MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName);
-		MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.ENGINEROLEGROUP_URI + "/" + engineName + "-Owner");
-		MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.ROLE_URI + "/" + "OwnerRole");
-		for(EnginePermission ep : EnginePermission.values()) {
-			MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.ROLE_URI + "/OwnerRole", MasterDatabaseURIs.PROP_URI + "/" + ep.getPropertyName(), "true", false);
+	public Boolean addEngineAndOwner(String engineName, String userId) {
+		//Add the engine to the ENGINE table
+		String query = "INSERT INTO Engine VALUES (NULL, '" + engineName + "');";
+		Statement stmt = securityDB.execUpdateAndRetrieveStatement(query, false);
+		int id = -1;
+		try {
+			ResultSet rs = stmt.getGeneratedKeys();
+			while (rs.next()) 
+			{
+			   id = rs.getInt(1);
+			   if(id < 1) {
+				   return false;
+			   }
+			}
+		} catch(SQLException e) {
+			e.printStackTrace();
+			return false;
 		}
-		MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.USERGROUP_URI + "/" + userId + "-OwnerGroup");
 		
-		MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.ENGINEROLEGROUP_URI + "/" + engineName + "-Owner", MasterDatabaseURIs.ENGINE_ROLEGROUP_REL_URI + "/" + engineName + ":" + engineName+"-Owner");
-		MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.ENGINEROLEGROUP_URI + "/" + engineName + "-Owner", MasterDatabaseURIs.ROLE_URI + "/" + "OwnerRole", MasterDatabaseURIs.ENGINEROLEGROUP_ROLE_REL_URI + "/" + engineName + "-Owner" + ":" + "OwnerRole");
-		MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.ENGINEROLEGROUP_URI + "/" + engineName + "-Owner", MasterDatabaseURIs.USERGROUP_URI + "/" + userId + "-OwnerGroup", MasterDatabaseURIs.ROLEGROUP_USERGROUP_REL_URI + "/" + engineName + "-Owner" + ":" + "OwnerGroup");
-		MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.USERGROUP_URI + "/" + userId + "-OwnerGroup", MasterDatabaseURIs.USER_BASE_URI + "/" + userId, MasterDatabaseURIs.USERGROUP_USER_REL_URI + "/" + userId + "-OwnerGroup" + ":" + userId);
-
-		masterEngine.commit();
-		masterEngine.infer();
-		return true;
+		//Add the user to the permissions table as the owner for the engine
+		query = "INSERT INTO EnginePermission VALUES (NULL, " + id + ", '" + userId + "', " + EnginePermission.OWNER.getId() + ");";
+		Statement stmt2 = securityDB.execUpdateAndRetrieveStatement(query, true);
+		if(stmt2 != null) {
+			securityDB.commit();
+			return true;
+		}
+		
+		return false;
 	}
 	
 	public boolean addEngineAccessRequest(String engineName, String userRequestedBy) {
-		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
-		
-		MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.ENGINE_ACCESSREQUEST_URI + "/" + userRequestedBy + "-" + engineName);
-		ArrayList<String> engineOwners = getEngineOwner(engineName);
-		for(String s : engineOwners) {
-			MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.USER_BASE_URI + "/" + s, MasterDatabaseURIs.ENGINE_ACCESSREQUEST_URI + "/" + userRequestedBy + "-" + engineName, MasterDatabaseURIs.USER_ENGINE_ACCESSREQUEST_REL_URI + "/" + s + ":" + userRequestedBy + "-" + engineName);
+		//Get the owner for a given DB and create the access request
+		ArrayList<String[]> ret = getEngineIdAndOwner(engineName);
+		if(ret != null && !ret.isEmpty()) {
+			String engineId = ret.get(0)[0];
+			String ownerUserId = ret.get(0)[1];
+			String query = "INSERT INTO AccessRequest VALUES (NULL, '" + userRequestedBy + "', '" + ownerUserId + "', " + engineId + ", " + EnginePermission.READ_ONLY.getId() + ");";
+			Statement stmt = securityDB.execUpdateAndRetrieveStatement(query, true);
+			if(stmt != null) {
+				securityDB.commit();
+				return true;
+			}
 		}
-		
-		MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.ENGINE_ACCESSREQUEST_URI + "/" + userRequestedBy + "-" + engineName, MasterDatabaseURIs.ENGINE_NAME_REQUESTED_PROP_URI, engineName, false);
-		MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.ENGINE_ACCESSREQUEST_URI + "/" + userRequestedBy + "-" + engineName, MasterDatabaseURIs.ENGINE_ACCESS_REQUESTOR_PROP_URI, userRequestedBy, false);
-		
-		masterEngine.commit();
-		masterEngine.infer();
-		return true;
+		return false;
 	}
 	
 	public ArrayList<EngineAccessRequest> getEngineAccessRequestsForUser(String userId) {
-		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
 		ArrayList<EngineAccessRequest> requests = new ArrayList<EngineAccessRequest>();
-										
-		ISelectWrapper sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.ENGINE_ACCESSREQUESTS_FOR_USER.replace("@USER_ID@", userId));
-		String[] names = sjsw.getVariables();
-		while(sjsw.hasNext()) {
-			ISelectStatement sjss = sjsw.next();
-			String user = sjss.getVar(names[0]).toString();
-			String engine = sjss.getVar(names[1]).toString();
-			String engineAccessRequest = sjss.getVar(names[2]).toString();
-			
-			requests.add(new EngineAccessRequest(engineAccessRequest, user, engine));
+		
+		String query = "SELECT ID, SUBMITTEDTO, ENGINE FROM AccessRequest WHERE SUBMITTEDTO='" + userId + "';";
+		ArrayList<String[]> ret = runQuery(query);
+		for(String[] row : ret) {
+			requests.add(new EngineAccessRequest(row[0], row[1], row[2]));
 		}
 		
 		return requests;
 	}
 	
 	public Boolean processEngineAccessRequest(String requestId, String approvingUserId, String[] permissions) {
-		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
-		
 		String userId = "", engine = "";
-		ISelectWrapper sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_ENGINE_ACCESSREQUEST_USER.replace("@USER_ID@", approvingUserId).replace("@REQUEST_ID@", requestId));
-		String[] names = sjsw.getVariables();
-		while(sjsw.hasNext()) {
-			ISelectStatement sjss = sjsw.next();
-			userId = sjss.getVar(names[0]).toString();
-			engine = sjss.getVar(names[1]).toString();
-		}
+		String query = "SELECT ENGINE, SUBMITTEDBY, PERMISSION FROM AccessRequest WHERE SUBMITTEDTO='" + approvingUserId + "' AND ID=" + requestId + ";";
+		ArrayList<String[]> ret = runQuery(query);
 		
-		if(permissions.length != 0) {
-			MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.ENGINEROLEGROUP_URI + "/" + engine + "-" + userId + "-EngineRoleGroup");
-			MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.ROLE_URI + "/" + engine + "-" + userId + "-Role");
-			for(String ep : permissions) {
-				MasterDBHelper.addProperty(masterEngine, MasterDatabaseURIs.ROLE_URI + "/" + engine + "-" + userId + "-Role", MasterDatabaseURIs.PROP_URI + "/" + EnginePermission.getPropertyNameByPermissionName(ep), "true", false);
+		//Add the permission(s) and delete the access request
+		if(permissions.length > 0) {
+			for(String[] row : ret) {
+				query = "INSERT INTO EnginePermission VALUES (NULL, " + row[0] + ", " + row[1] + ", " + row[2] + ");";
+				securityDB.execUpdateAndRetrieveStatement(query, true);
 			}
-			MasterDBHelper.addNode(masterEngine, MasterDatabaseURIs.USERGROUP_URI + "/" + engine + "-" + userId + "-UserGroup");
-			
-			MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engine, MasterDatabaseURIs.ENGINEROLEGROUP_URI + "/" + engine + "-" + userId + "-EngineRoleGroup", MasterDatabaseURIs.ENGINE_ROLEGROUP_REL_URI + "/" + engine + ":" + engine + "-" + userId + "-EngineRoleGroup");
-			MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.ENGINEROLEGROUP_URI + "/" + engine + "-" + userId + "-EngineRoleGroup", MasterDatabaseURIs.ROLE_URI + "/" + engine + "-" + userId + "-Role", MasterDatabaseURIs.ENGINEROLEGROUP_ROLE_REL_URI + "/" + engine + "-" + userId + "-EngineRoleGroup" + ":" + engine + "-" + userId + "-Role");
-			MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.ENGINEROLEGROUP_URI + "/" + engine + "-" + userId + "-EngineRoleGroup", MasterDatabaseURIs.USERGROUP_URI + "/" + engine + "-" + userId + "-UserGroup", MasterDatabaseURIs.ROLEGROUP_USERGROUP_REL_URI + "/" + engine + "-" + userId + "-EngineRoleGroup" + ":" + engine + "-" + userId + "-UserGroup");
-			MasterDBHelper.addRelationship(masterEngine, MasterDatabaseURIs.USERGROUP_URI + "/" + engine + "-" + userId + "-UserGroup", MasterDatabaseURIs.USER_BASE_URI + "/" + userId, MasterDatabaseURIs.USERGROUP_USER_REL_URI + "/" + engine + "-" + userId + "-UserGroup" + ":" + userId);
 		}
 		
-		MasterDBHelper.removeNode(masterEngine, MasterDatabaseURIs.ENGINE_ACCESSREQUEST_URI + "/" + userId + "-" + engine);
-		ArrayList<String> engineOwners = getEngineOwner(engine);
-		for(String s : engineOwners) {
-			MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.USER_BASE_URI + "/" + s, MasterDatabaseURIs.ENGINE_ACCESSREQUEST_URI + "/" + userId + "-" + engine, MasterDatabaseURIs.USER_ENGINE_ACCESSREQUEST_REL_URI + "/" + s + ":" + userId + "-" + engine);
-		}
+		query = "DELETE FROM AccessRequest WHERE ID=" + requestId + ";";
+		securityDB.execUpdateAndRetrieveStatement(query, true);
+		securityDB.commit();
 		
-		MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.ENGINE_ACCESSREQUEST_URI + "/" + userId + "-" + engine, MasterDatabaseURIs.ENGINE_NAME_REQUESTED_PROP_URI, engine, false);
-		MasterDBHelper.removeProperty(masterEngine, MasterDatabaseURIs.ENGINE_ACCESSREQUEST_URI + "/" + userId + "-" + engine, MasterDatabaseURIs.ENGINE_ACCESS_REQUESTOR_PROP_URI, userId, false);
-		
-		masterEngine.commit();
-		masterEngine.infer();
 		return true;
 	}
 	
@@ -177,7 +164,14 @@ public class UserPermissionsMasterDB extends ModifyMasterDB {
 	 * @return			List of engine names
 	 */
 	public ArrayList<String> getUserOwnedEngines(String userId) {
-		return runQueryForSingleColumn(MasterDatabaseQueries.GET_USER_ENGINES_QUERY.replace("@USER_ID@", userId));
+		ArrayList<String> engines = new ArrayList<String>();
+		
+		ArrayList<String[]> ret = runQuery("SELECT e.NAME FROM Engine e, EnginePermission ep, Permission p WHERE ep.USER='" + userId + "' AND p.ID=" + EnginePermission.OWNER.getId() + " AND ep.PERMISSION=p.ID AND e.ID=ep.ENGINE");
+		for(String[] row : ret) {
+			engines.add(row[0]);
+		}
+		
+		return engines;
 	}
 	
 	/**
@@ -187,30 +181,36 @@ public class UserPermissionsMasterDB extends ModifyMasterDB {
 	 * @return			List of engine names
 	 */
 	public ArrayList<String> getUserAccessibleEngines(String userId) {
-		return runQueryForSingleColumn(MasterDatabaseQueries.GET_ACCESSIBLE_ENGINES_QUERY.replace("@USER_ID@", userId));
-	}
-	
-	/**
-	 * Returns list of permissions that a given user has for a given engine.
-	 * 
-	 * @param engine	Engine for which user has permissions
-	 * @param userId	ID of the user
-	 * @return			Table of Permission->true/false for that specific permission
-	 */
-	public Hashtable<String, Boolean> getUserPermissionsForEngine(String engine, String userId) {
-		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
-		ISelectWrapper sjsw = Utility.processQuery(masterEngine, MasterDatabaseQueries.GET_PERMISSIONS_FOR_ENGINE_QUERY.replace("@ENGINE_NAME@", engine).replace("@USER_ID@", userId));
-		String[] names = sjsw.getVariables();
-		Hashtable<String, Boolean> permissions = new Hashtable<String, Boolean>();
-		while(sjsw.hasNext()) {
-			ISelectStatement sjss = sjsw.next();
-			for(int i = 0; i < names.length; i++) {
-				permissions.put(names[i], Boolean.parseBoolean(sjss.getVar(names[i]).toString()));
-			}
+		ArrayList<String> engines = new ArrayList<String>();
+		
+		ArrayList<String[]> ret = runQuery("SELECT Engine.name FROM Engine, EnginePermission WHERE EnginePermission.USER='" + userId + "' AND Engine.ID=EnginePermission.ENGINE;");
+		for(String[] row : ret) {
+			engines.add(row[0]);
 		}
 		
-		return permissions;
+		return engines;
 	}
+	
+//	/**
+//	 * Returns list of permissions that a given user has for a given engine.
+//	 * 
+//	 * @param engine	Engine for which user has permissions
+//	 * @param userId	ID of the user
+//	 * @return			Table of Permission->true/false for that specific permission
+//	 */
+//	public Hashtable<String, Boolean> getUserPermissionsForEngine(String engine, String userId) {
+//		ISelectWrapper sjsw = Utility.processQuery(securityDB, MasterDatabaseQueries.GET_PERMISSIONS_FOR_ENGINE_QUERY.replace("@ENGINE_NAME@", engine).replace("@USER_ID@", userId));
+//		String[] names = sjsw.getVariables();
+//		Hashtable<String, Boolean> permissions = new Hashtable<String, Boolean>();
+//		while(sjsw.hasNext()) {
+//			ISelectStatement sjss = sjsw.next();
+//			for(int i = 0; i < names.length; i++) {
+//				permissions.put(names[i], Boolean.parseBoolean(sjss.getVar(names[i]).toString()));
+//			}
+//		}
+//		
+//		return permissions;
+//	}
 	
 	/**
 	 * Returns all engines for which a given user has a given set of permissions.
@@ -220,14 +220,24 @@ public class UserPermissionsMasterDB extends ModifyMasterDB {
 	 * @return				List of engine names
 	 */
 	public ArrayList<String> getEnginesForUserAndPermissions(String user, EnginePermission[] permissions) {
-		String rolePermissionTriple = "{ ?role <" + MasterDatabaseURIs.PROP_URI + "/@PERMISSION-NAME@> 'true' } ";
-		String permissionTriples = "";
+		ArrayList<String> engines = new ArrayList<String>();
+		String query = "SELECT e.NAME FROM Engine e, EnginePermission ep, Permission p WHERE ep.USER='" + user + "' AND e.ID=ep.ENGINE AND ep.PERMISSION=p.ID AND (p.NAME='";
 		
-		for(EnginePermission ep : permissions) {
-			permissionTriples = permissionTriples.concat(rolePermissionTriple.replace("@PERMISSION-NAME@", ep.getPropertyName()));
+		if(permissions.length > 0) {
+			query = query + permissions[0].getPermission();
+		}
+		for(int i = 1; i < permissions.length; i++) {
+			query = query.concat("' OR p.NAME='" + permissions[i].getPermission());
 		}
 		
-		return runQueryForSingleColumn(MasterDatabaseQueries.GET_ENGINES_BY_PERMISSIONS_QUERY.replace("@USER_ID@", user).replace("@PERMISSIONS@", permissionTriples));
+		query = query + "');";
+		
+		ArrayList<String[]> ret = runQuery(query);
+		for(String[] row : ret) {
+			engines.add(row[0]);
+		}
+		
+		return engines;
 	}
 	
 	/**
@@ -236,8 +246,8 @@ public class UserPermissionsMasterDB extends ModifyMasterDB {
 	 * @param engineName	Name of engine being queried
 	 * @return				List of user IDs noted as engine owners
 	 */
-	public ArrayList<String> getEngineOwner(String engineName) {
-		return runQueryForSingleColumn(MasterDatabaseQueries.GET_ENGINE_OWNER_QUERY.replace("@ENGINE_NAME@", engineName));
+	public ArrayList<String[]> getEngineIdAndOwner(String engineName) {
+		return runQuery("SELECT ep.ENGINE AS EngineID, ep.USER AS UserID FROM Engine e, EnginePermission ep, Permission p WHERE e.NAME='" + engineName + "' AND e.ID=ep.ENGINE AND ep.ID=" + EnginePermission.OWNER.getId());
 	}
 	
 	/**
@@ -248,35 +258,34 @@ public class UserPermissionsMasterDB extends ModifyMasterDB {
 	 * @return				true/false for successful deletion
 	 */
 	public Boolean deleteEngine(String user, String engineName) {
-		MasterDBHelper.removeNode(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName);
-		MasterDBHelper.removeNode(masterEngine, MasterDatabaseURIs.ENGINEROLEGROUP_URI + "/" + engineName + "-Owner");
-		MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + engineName, MasterDatabaseURIs.ENGINEROLEGROUP_URI + "/" + engineName + "-Owner", MasterDatabaseURIs.ENGINE_ROLEGROUP_REL_URI + "/" + engineName + ":" + engineName+"-Owner");
-		MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.ENGINEROLEGROUP_URI + "/" + engineName + "-Owner", MasterDatabaseURIs.ROLE_URI + "/" + "OwnerRole", MasterDatabaseURIs.ENGINEROLEGROUP_ROLE_REL_URI + "/" + engineName + "-Owner" + ":" + "OwnerRole");
-		MasterDBHelper.removeRelationship(masterEngine, MasterDatabaseURIs.ENGINEROLEGROUP_URI + "/" + engineName + "-Owner", MasterDatabaseURIs.USERGROUP_URI + "/" + user + "-OwnerGroup", MasterDatabaseURIs.ROLEGROUP_USERGROUP_REL_URI + "/" + engineName + "-Owner" + ":" + "OwnerGroup");
+		String query = "DELETE Engine, EnginePermission FROM Engine INNER JOIN EnginePermission ON Engine.ID=EnginePermission.ENGINE WHERE Engine.NAME='" + engineName 
+				+ "' AND EnginePermission.USER='" + user + "' AND EnginePermission.PERMISSION=" + EnginePermission.OWNER.getId() + ";";
+		
+		securityDB.execUpdateAndRetrieveStatement(query, true);
+		securityDB.commit();
 		
 		return true;
 	}
 	
 	/**
-	 * Returns a list of values given a SPARQL query with one column/variable.
+	 * Returns a list of values given a query with one column/variable.
 	 * 
 	 * @param query		Query to be executed to retrieve engine names
 	 * @return			List of engine names
 	 */
-	private ArrayList<String> runQueryForSingleColumn(String query) {
-		masterEngine = (BigDataEngine) DIHelper.getInstance().getLocalProp(masterDBName);
-		ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
+	private ArrayList<String[]> runQuery(String query) {
+		ISelectWrapper sjsw = Utility.processQuery(securityDB, query);
 		String[] names = sjsw.getVariables();
-		ArrayList<String> userEngines = new ArrayList<String>();
+		ArrayList<String[]> ret = new ArrayList<String[]>();
 		while(sjsw.hasNext()) {
 			ISelectStatement sjss = sjsw.next();
-			String eng = sjss.getVar(names[0]).toString();
-
-			if(eng != null && !eng.isEmpty()) {
-				userEngines.add(eng);
+			String[] rowValues = new String[names.length];
+			for(int i = 0; i < names.length; i++) {
+				 rowValues[i] = sjss.getVar(names[i]).toString();
 			}
+			ret.add(rowValues);
 		}
 		
-		return userEngines;
+		return ret;
 	}
 }
