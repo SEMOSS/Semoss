@@ -236,7 +236,7 @@ public class InsightsConverter {
 				&& !layout.equals("prerna.ui.components.specific.ousd.RoadmapTimelineComboChartPlaySheet")
 				&& !layout.equals("prerna.ui.components.specific.tap.SysSimHeatMapSheet")) {
 			if(layout.equals("prerna.ui.components.playsheets.GraphPlaySheet") || layout.equals("prerna.ui.components.specific.tap.InterfaceGraphPlaySheet") || layout.equals("Graph")) {
-				dataMaker = "GraphDataModel";
+				dataMaker = "TinkerFrame";
 			} else if(!layout.equals("prerna.ui.components.playsheets.DualEngineGenericPlaySheet")) {
 				dataMaker = "BTreeDataFrame";
 			}
