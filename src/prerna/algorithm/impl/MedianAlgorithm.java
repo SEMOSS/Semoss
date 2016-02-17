@@ -28,7 +28,7 @@ public class MedianAlgorithm extends BaseReducer {
 		double [] output = null;
 		ArrayList<ArrayList<Double>> values = new ArrayList<ArrayList<Double>>();
 		int count = 0;
-		while(inputIterator.hasNext() && !errored && count < max)
+		while(inputIterator.hasNext() && !errored)// && count < max)
 		{
 			//Object nextValue = getNextValue();
 			//System.out.println("Next value .. " + nextValue.getClass());
