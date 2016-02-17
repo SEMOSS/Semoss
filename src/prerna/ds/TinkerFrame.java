@@ -1787,10 +1787,11 @@ public class TinkerFrame implements ITableDataFrame {
 
 	@Override
 	public boolean[] isNumeric() {
-		int size = headerNames.length;
+		String[] headers = getHeaders();
+		int size = headers.length;
 		boolean[] isNumeric = new boolean[size];
 		for(int i = 0; i < size; i++) {
-			isNumeric[i] = isNumeric(headerNames[i]);
+			isNumeric[i] = isNumeric(headers[i]);
 		}
 		return isNumeric;
 	}
