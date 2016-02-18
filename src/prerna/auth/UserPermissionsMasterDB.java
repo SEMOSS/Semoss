@@ -128,7 +128,7 @@ public class UserPermissionsMasterDB {
 	public ArrayList<EngineAccessRequest> getEngineAccessRequestsForUser(String userId) {
 		ArrayList<EngineAccessRequest> requests = new ArrayList<EngineAccessRequest>();
 		
-		String query = "SELECT ID, SUBMITTEDTO, ENGINE FROM AccessRequest WHERE SUBMITTEDTO='" + userId + "';";
+		String query = "SELECT AccessRequest.ID AS ID, User.NAME AS USERNAME, Engine.NAME AS ENGINENAME FROM AccessRequest, User, Engine WHERE AccessRequest.SUBMITTEDTO='" + userId + "' AND AccessRequest.SUBMITTEDBY=User.ID AND AccessRequest.ENGINE=Engine.ID;";
 		ArrayList<String[]> ret = runQuery(query);
 		for(String[] row : ret) {
 			requests.add(new EngineAccessRequest(row[0], row[1], row[2]));
@@ -247,7 +247,7 @@ public class UserPermissionsMasterDB {
 	 * @return				List of user IDs noted as engine owners
 	 */
 	public ArrayList<String[]> getEngineIdAndOwner(String engineName) {
-		return runQuery("SELECT ep.ENGINE AS EngineID, ep.USER AS UserID FROM Engine e, EnginePermission ep, Permission p WHERE e.NAME='" + engineName + "' AND e.ID=ep.ENGINE AND ep.ID=" + EnginePermission.OWNER.getId());
+		return runQuery("SELECT DISTINCT EnginePermission.ENGINE, EnginePermission.USER FROM Engine, EnginePermission, Permission WHERE Engine.NAME='" + engineName + "' AND Engine.ID=EnginePermission.ENGINE AND EnginePermission.PERMISSION=" + EnginePermission.OWNER.getId());
 	}
 	
 	/**
@@ -275,7 +275,7 @@ public class UserPermissionsMasterDB {
 	 */
 	private ArrayList<String[]> runQuery(String query) {
 		ISelectWrapper sjsw = Utility.processQuery(securityDB, query);
-		String[] names = sjsw.getVariables();
+		String[] names = sjsw.getDisplayVariables();
 		ArrayList<String[]> ret = new ArrayList<String[]>();
 		while(sjsw.hasNext()) {
 			ISelectStatement sjss = sjsw.next();
