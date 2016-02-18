@@ -35,6 +35,8 @@ import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 
+import com.hp.hpl.jena.vocabulary.RDFS;
+
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
 
@@ -47,10 +49,20 @@ public class SesameSelectCheater extends AbstractWrapper implements IConstructWr
 	transient int triples;
 	transient int tqrCount=0;
 	String queryVar[];
+	String nextPred;
 	
 	@Override
 	public IConstructStatement next() {
 		IConstructStatement thisSt = new ConstructStatement();
+		
+		if(nextPred != null){
+			// need to create triple saying pred is a sub prop of relationship
+			thisSt.setSubject(nextPred);
+			thisSt.setPredicate(RDFS.subPropertyOf +"");
+			thisSt.setObject("http://semoss.org/ontologies/Relation");
+			this.nextPred = null;
+			return thisSt;
+		}
 		
 		try {
 			if(count==0)
@@ -74,7 +86,14 @@ public class SesameSelectCheater extends AbstractWrapper implements IConstructWr
 				}
 				sub = bs.getValue(queryVar[count*3].substring(1));
 				pred = bs.getValue(queryVar[count*3+1].substring(1));
-				obj = bs.getValue(queryVar[count*3+2].substring(1));
+				if(bs.size()>2){
+					obj = bs.getValue(queryVar[count*3+2].substring(1));
+				}
+				else {
+					obj = pred;
+					pred = sub + ":" + obj;
+					nextPred = pred + "";
+				}
 				count++;
 			}
 			thisSt.setSubject(sub+"");
@@ -147,6 +166,9 @@ public class SesameSelectCheater extends AbstractWrapper implements IConstructWr
 
 	@Override
 	public boolean hasNext() {
+		if(this.nextPred != null){
+			return true;
+		}
 		boolean retBool = false;
 		try {
 			retBool = tqr.hasNext();

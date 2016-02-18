@@ -153,7 +153,7 @@ public class GremlinBuilder {
 			String node = nodeV.property(Constants.NAME).value()+"";
 			String edgeKey = node + ":::" + origName;
 			if(!travelledEdges.contains(edgeKey)){
-				LOGGER.debug("travelling up to " + node);
+				LOGGER.info("travelling up to " + node);
 
 				gt1 = gt1.in().has(Constants.TYPE, node).as(node);
 				
@@ -166,7 +166,7 @@ public class GremlinBuilder {
 				travelledEdges.add(edgeKey);
 				gt1 = visitNode(nodeV, gt1, travelledEdges, recursionCount);
 				
-				LOGGER.debug("returning home to " + origName);
+				LOGGER.info("returning home to " + origName);
 				gt1 = gt1.out().has(Constants.TYPE, origName).as(origName + (recursionCount));
 				gt1 = gt1.where(origName, P.eq(origName + (recursionCount)));
 				recursionCount++;
@@ -320,8 +320,8 @@ public class GremlinBuilder {
 		
 		addGroupBy();
 		
-		LOGGER.debug("Returning the graph traversal");
-		LOGGER.debug("Script being executed...  " + gt);
+		LOGGER.info("Returning the graph traversal");
+		LOGGER.info("Script being executed...  " + gt);
 		return gt;
 	}	
 	
