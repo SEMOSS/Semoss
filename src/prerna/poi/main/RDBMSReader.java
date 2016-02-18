@@ -592,8 +592,8 @@ public class RDBMSReader {
 			genericQueries = genericQueries + ";" + "GQ" + tableIndex;
 			prop.put("GQ" + tableIndex, "Explore a concept from the database");
 			prop.put("GQ" + tableIndex + "_LAYOUT", "prerna.ui.components.playsheets.GraphPlaySheet");
-			prop.put("GQ" + tableIndex +"_QUERY", "SELECT @Concept-Concept:Concept@, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://semoss.org/ontologies/Concept' "
-					+ "From @Concept-Concept:Concept@ WHERE @Concept-Concept:Concept@='@Instance-Instance:Instance@'");
+			prop.put("GQ" + tableIndex +"_QUERY", "SELECT X.@Concept-Concept:Concept@ AS @Concept-Concept:Concept@ "
+					+ "From @Concept-Concept:Concept@ X WHERE X.@Concept-Concept:Concept@='@Instance-Instance:Instance@'");
 			prop.put("GQ" + tableIndex + "_Instance_DEPEND", "Concept");
 			prop.put("GQ" + tableIndex + "_Concept_QUERY", "SELECT DISTINCT (COALESCE(?DisplayName, ?PhysicalName) AS ?entity) WHERE "
 					+ " { {?PhysicalName <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
