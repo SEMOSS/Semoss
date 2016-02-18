@@ -846,14 +846,15 @@ public class Utility {
 				String name = (String) ss.getVar("QUESTION_NAME");
 				String layout = (String) ss.getVar("QUESTION_LAYOUT");
 
-				String prerna = ".";
-				if (layout.contains(prerna)) {
-					int endIndex = ((String) layout).lastIndexOf(prerna) + 1;
-					if (endIndex != -1) {
-						layout = ((String) layout).substring(endIndex,((String) layout).length());
-						//innerMap.put(newString, facetInstance.getCount());
-					}
-				}
+//				String prerna = ".";
+//				if (layout.contains(prerna)) {
+//					int endIndex = ((String) layout).lastIndexOf(prerna) + 1;
+//					if (endIndex != -1) {
+//						layout = ((String) layout).substring(endIndex,((String) layout).length());
+//						//innerMap.put(newString, facetInstance.getCount());
+//					}
+//				}
+				
 				String perspective = (String) ss.getVar("QUESTION_PERSPECTIVE");
 				String perspString ="-Perspective";
 				String titleString=" Perspective";
