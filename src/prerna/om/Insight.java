@@ -614,6 +614,10 @@ public class Insight {
 		return this.dataMaker;
 	}
 	
+	public boolean hasInstantiatedDataMaker() {
+		return this.dataMaker != null;
+	}
+	
 	/**
 	 * Setter for the data maker
 	 * @param dataMaker
