@@ -480,4 +480,14 @@ public class GraphTinkerPlaySheet extends AbstractGraphPlaySheet {
 		// TODO Auto-generated method stub
 		
 	}
+
+	@Override
+	public Collection<SEMOSSVertex> getVerts() {
+		if(this.forest!=null){
+			return this.forest.getVertices();
+		}
+		else {
+			return ((Map)((TinkerFrame)this.dataFrame).getGraphOutput().get("nodes")).values();
+		}
+	}
 }
