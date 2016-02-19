@@ -149,9 +149,7 @@ public abstract class AbstractGraphPlaySheet extends AbstractPlaySheet {
 	abstract public void redoView();
 	abstract public void undoView();
 	
-	public Collection<SEMOSSVertex> getVerts(){
-		return this.forest.getVertices();
-	}
+	abstract public Collection<SEMOSSVertex> getVerts();
 	
 	public Collection<SEMOSSEdge> getEdges(){
 		return this.forest.getEdges();
