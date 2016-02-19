@@ -189,8 +189,9 @@ public abstract class AbstractEngine implements IEngine {
 					prop.put(Constants.USERNAME, insightUsername);
 					insightRDBMS.setProperties(prop);
 					insightRDBMS.openDB(null);
-					//insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_DATA_MAKER = REPLACE(QUESTION_DATA_MAKER, 'GraphDataModel', 'TinkerFrame')");
-					//insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_DATA_MAKER = REPLACE(QUESTION_DATA_MAKER, 'PrimaryKeyTinkerFrame', 'TinkerFrame')");
+//					insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_LAYOUT = 'GDMGraph' WHERE p.QUESTION_DATA_MAKER = 'GraphDataModel'");
+					insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_DATA_MAKER = REPLACE(QUESTION_DATA_MAKER, 'BTreeDataFrame', 'TinkerFrame')");
+					insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_DATA_MAKER = REPLACE(QUESTION_DATA_MAKER, 'PrimaryKeyTinkerFrame', 'TinkerFrame')");
 					// Update existing dbs to not include QUESTION_ID column if it is there. Can remove this once everyone has updated their dbs
 //					ITableDataFrame f = WrapperManager.getInstance().getSWrapper(insightRDBMS, "select count(*) from information_schema.columns where table_name = 'QUESTION_ID' and column_name = 'QUESTION_ID'").getTableDataFrame();
 //					if((Double)f.getData().get(0)[0] != 0 ){
