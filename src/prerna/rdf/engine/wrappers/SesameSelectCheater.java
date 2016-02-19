@@ -39,6 +39,7 @@ import com.hp.hpl.jena.vocabulary.RDFS;
 
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
+import prerna.util.Utility;
 
 public class SesameSelectCheater extends AbstractWrapper implements IConstructWrapper {
 
@@ -91,8 +92,8 @@ public class SesameSelectCheater extends AbstractWrapper implements IConstructWr
 				}
 				else {
 					obj = pred;
-					pred = sub + ":" + obj;
-					nextPred = pred + "";
+					pred = "http://semoss.org/Relation/" + Utility.getInstanceName(sub + "") + ":" + Utility.getInstanceName(obj + "");
+					nextPred =  pred + "";
 				}
 				count++;
 			}
