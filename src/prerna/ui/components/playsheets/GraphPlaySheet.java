@@ -725,4 +725,9 @@ public class GraphPlaySheet extends AbstractGraphPlaySheet {
 		return new GraphDataModel();
 	}
 
+	@Override
+	public Collection<SEMOSSVertex> getVerts() {
+		return this.gdm.getVertStore().values();
+	}
+
 }

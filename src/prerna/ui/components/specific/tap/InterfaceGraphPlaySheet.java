@@ -38,9 +38,9 @@ import prerna.algorithm.impl.DataLatencyPerformer;
 import prerna.algorithm.impl.IslandIdentifierProcessor;
 import prerna.algorithm.impl.LoopIdentifierProcessor;
 import prerna.om.SEMOSSVertex;
-import prerna.ui.components.playsheets.GraphTinkerPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 
-public class InterfaceGraphPlaySheet extends GraphTinkerPlaySheet {	
+public class InterfaceGraphPlaySheet extends GraphPlaySheet {	
 
 	public Hashtable runLoopIdentifer(Hashtable webDataHash) {
         Hashtable retHash = new Hashtable();
