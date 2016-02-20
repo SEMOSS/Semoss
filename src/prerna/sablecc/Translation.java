@@ -5,7 +5,9 @@ import java.util.Iterator;
 import java.util.Vector;
 
 import prerna.algorithm.api.IAction;
+import prerna.algorithm.impl.AddColumnOperator;
 import prerna.algorithm.impl.ImportAction;
+import prerna.ds.ExpressionIterator;
 import prerna.ds.ExpressionReducer;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
@@ -310,6 +312,15 @@ public class Translation extends DepthFirstAdapter {
 	}
 
 	public void inAExprTerm(AExprTerm node) {
+		if(whatICallThisInMyWorld.containsKey("EXPR_TERM"))
+		{
+			whatICallThisInMyWorld = new Hashtable<String, String>();
+			whatICallThisInMyWorld.put("EXPR_TERM", "EXPR_TERM");
+			whatICallThisInMyWorld.put("COL_DEF", "COL_DEF");		
+			whatICallThisInMyWorld.put("REPLACE", "REPLACE");
+			
+			reinit();
+		}
 		//System.out.println("Printing expr term PAR " + node.getExpr());
 		//currentMathFunction.add((node + "").trim());
 
@@ -327,7 +338,30 @@ public class Translation extends DepthFirstAdapter {
 		if(value instanceof Double)
 		{
 			dataKeeper.put((node + "").trim(), value);
+		} else  if(whatICallThisInMyWorld.containsKey("EXPR_TERM")) {
+			// 2 possibilities either it is a straight up so no col def
+			if(myStore.containsKey("COL_DEF"))
+			{
+				Vector allCols = (Vector) myStore.get("COL_DEF");
+				// get the iterator and then set it for API
+				// I will assume I create the iterator through tinker here
+				// I will call it a string for now
+				Iterator iterator = frame.getIterator(allCols);
+				String expression = node.getExpr().toString();
+				expression = getModExpression(expression);
+				ExpressionIterator it = new ExpressionIterator(iterator, convertVectorToArray(allCols), expression);
+				System.out.println("The expression was  " + node);
+				System.out.println("The columns were..  " + allCols);
+				
+				deInit();
+				
+				saveData("EXPR_TERM", it);
+				myStore.put("COLUMNS_USED", allCols); // TODO: is there a better way to keep track of columns used in expression?
+				
+			}
+			
 		}
+        
 		/*
 		else
 		{
@@ -438,8 +472,22 @@ public class Translation extends DepthFirstAdapter {
 	}
 
 	public void inAColDef(AColDef node) {
+		String colName = node.getColname().toString().trim();
+
+		if(whatICallThisInMyWorld.containsKey("REPLACE") && whatICallThisInMyWorld.get("REPLACE").equalsIgnoreCase("REPLACE")) {
+    		Vector<String> replacements = new Vector<String>();
+    		if(!myStore.containsKey("REPLACE")) {
+    			myStore.put("REPLACE", replacements);
+    		}
+    		if (myStore.containsKey("REPLACE")) {
+    			replacements = (Vector)myStore.get("REPLACE");
+    			String uncleanName = "c: " + colName;
+    			replacements.addElement(uncleanName);
+    			myStore.put(uncleanName, colName);
+    			myStore.put("REPLACE", replacements);
+    		}
+    	}
 		//System.out.println("Inside col def.. ");
-		String colName = node.getColname() + "";
 
 		// I will create the iterator here and put it but for now..
 		// dataKeeper.put((node+"").trim(), dataKeeper.keys());
@@ -447,8 +495,6 @@ public class Translation extends DepthFirstAdapter {
 		//System.out.println("Full name is " + node);
 
 		Vector<String> colVector = new Vector<String>();
-		
-
 		
 		// add this to the existing columns this function is using
 		if (currentMathFunction.size() > 0)
@@ -482,7 +528,7 @@ public class Translation extends DepthFirstAdapter {
 		}
 		else 
 		{
-			saveData("COL_DEF", (node.getColname() + "" ).trim());
+			saveData("COL_DEF", colName);
 			dataKeeper.put((node + "").trim(), dataKeeper.keys());			
 		}
 	}
@@ -494,21 +540,15 @@ public class Translation extends DepthFirstAdapter {
 
 	public void outAAddColumn(AAddColumn node) {
 		
-		// this is where the majority of the work would be done
-		//System.out.println("In the final Add Column.. give me everything on API" + myStore);
+		Vector <String> columns = (Vector <String>)myStore.get("COLUMNS_USED");
+		String[] columnArray = convertVectorToArray(columns);
+		String newCol = ((Vector)myStore.get("NEWCOL")).get(0).toString();
 		
-		// get the name of Engine
-//		Hashtable apiHash = (Hashtable)myStore.get("API");
+		Iterator it = (Iterator)((Vector)myStore.get("API")).get(0);
+
+		AddColumnOperator addCol = new AddColumnOperator(frame, it, newCol, columnArray);
+		addCol.apply();
 		
-		
-		
-		
-		/*//System.out.println("Adding the column.. " + node);
-		String colName = getCol(node.getNewcol() + "");
-		//System.out.println("New Column is.. [" + colName + "]");
-		//System.out.println("Column expression is [" + node.getExprGroup());
-		//System.out.println("And the value is present as.. "
-				+ dataKeeper.get(node.getExprGroup()));*/
 	}
 
 	public void outAExprGroup(AExprGroup node) {
@@ -527,9 +567,10 @@ public class Translation extends DepthFirstAdapter {
 		
 		whatICallThisInMyWorld = new Hashtable<String, String>();
 		whatICallThisInMyWorld.put("API_BLOCK", "API");
+		whatICallThisInMyWorld.put("EXPR_TERM", "API");
+        whatICallThisInMyWorld.put("COL_DEF", "NEWCOL");
 		
 		reinit();
-		
 		
 	}
 
@@ -553,11 +594,25 @@ public class Translation extends DepthFirstAdapter {
     public void inADecimal(ADecimal node)
     {
 		//System.out.println("DECIMAL VALUE.. >>> " + node);
-		String fraction = node.getFraction() +"";
-		String number = (node.getWhole() + "").trim();
-		if(node.getFraction() != null)
-			number = number + "." + (node.getFraction() + "").trim();
-		dataKeeper.put((node + "").trim(), Double.parseDouble(number));		
+    	if(whatICallThisInMyWorld.containsKey("REPLACE") && whatICallThisInMyWorld.get("REPLACE").equalsIgnoreCase("REPLACE")) {
+    		Vector<String> replacements = new Vector<String>();
+    		if(!myStore.containsKey("REPLACE")) {
+    			myStore.put("REPLACE", replacements);
+    		}
+    		if (myStore.containsKey("REPLACE")) {
+    			replacements = (Vector)myStore.get("REPLACE");
+    			String valueString = node.toString().trim();
+    			String fraction = node.getFraction() +"";
+    			String number = (node.getWhole() + "").trim();
+    			if(node.getFraction() != null)
+    				number = number + "." + (node.getFraction() + "").trim();
+    			replacements.addElement(valueString);
+    			myStore.put(valueString, number);
+    			myStore.put("REPLACE", replacements);
+    		}
+    	}
+//		
+//		dataKeeper.put((node + "").trim(), Double.parseDouble(number));		
 	}
     
 
@@ -707,7 +762,7 @@ public class Translation extends DepthFirstAdapter {
 	public void outAMathFunExpr(AMathFunExpr node) {
 		//System.out.println("OUT ... Math Fun expression is ..  ");
 		// do some processing for sum here
-		//System.out.println("Math fun..  " + node.getMathFun());
+//		System.out.println("Math fun..  " + node.getMathFun());
 
 		// I need to see if I can replace anything here
 		// I need to see if there are temp strings I can replace here
@@ -962,16 +1017,22 @@ public class Translation extends DepthFirstAdapter {
 	
 	private String getModExpression(String inExpression)
 	{
-		// routine to replace it with value
-		String outExpression = inExpression;
-		Vector<String> ripStrings = tempStrings.get(currentMathFunction
-				.get(currentMathFunction.size() - 1));
-		for (int ripIndex = ripStrings.size() - 1; ripIndex >= 0; ripIndex--) {
-			String ripString = ripStrings.remove(ripIndex);
-			outExpression = outExpression.replace(ripString,
-					dataKeeper.get(ripString) + "");
+		if (myStore.get("REPLACE") != null) {
+			for (String unmod : (Vector<String>)myStore.get("REPLACE")) {
+				inExpression = inExpression.replaceAll(unmod, myStore.get(unmod).toString());
+			}
 		}
-		return outExpression;
+		return inExpression;
+		// routine to replace it with value
+//		String outExpression = inExpression;
+//		Vector<String> ripStrings = tempStrings.get(currentMathFunction
+//				.get(currentMathFunction.size() - 1));
+//		for (int ripIndex = ripStrings.size() - 1; ripIndex >= 0; ripIndex--) {
+//			String ripString = ripStrings.remove(ripIndex);
+//			outExpression = outExpression.replace(ripString,
+//					dataKeeper.get(ripString) + "");
+//		}
+//		return outExpression;
 	}
 	
 	// move to utility
@@ -1012,6 +1073,9 @@ public class Translation extends DepthFirstAdapter {
 
 	}
 	
+	/**
+	 * Goes down a level (i.e. AddColumn to ExprTerm)
+	 */
 	private void reinit()
 	{
 		howManyTimesHaveIVisited = new Hashtable<String, Integer>();
@@ -1023,6 +1087,9 @@ public class Translation extends DepthFirstAdapter {
 		myStoreHistory.add(myStore);
 	}
 	
+	/**
+	 * Goes up a level
+	 */
 	private void deInit()
 	{
 		howManyTimesHaveIVisitedHistory.removeElement(howManyTimesHaveIVisitedHistory.lastElement());
