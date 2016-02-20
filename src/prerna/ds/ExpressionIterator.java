@@ -2,7 +2,6 @@ package prerna.ds;
 
 import java.util.Iterator;
 import java.util.Map;
-import java.lang.Object;
 
 import javax.script.Bindings;
 import javax.script.CompiledScript;
@@ -10,8 +9,9 @@ import javax.script.ScriptContext;
 import javax.script.ScriptException;
 
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+
+import prerna.util.Constants;
 
 public class ExpressionIterator <Object> implements ExpressionMapper, Iterator {
 	
@@ -23,6 +23,7 @@ public class ExpressionIterator <Object> implements ExpressionMapper, Iterator {
 	java.lang.Object baseException = null;
 	Bindings otherBindings = engine.getBindings(ScriptContext.ENGINE_SCOPE);
 	CompiledScript cs = null;
+	String propToGet = Constants.NAME;
 	
 	public ExpressionIterator(Iterator results, String [] columnsUsed, String script)
 	{
@@ -49,11 +50,47 @@ public class ExpressionIterator <Object> implements ExpressionMapper, Iterator {
 		
 		if(results != null && !errored)
 		{
-			Map <java.lang.Object, java.lang.Object> row = (Map<java.lang.Object, java.lang.Object>) results.next();
+			java.lang.Object daObject = results.next();
+			Map <Object, Object> row = null;
+			Vertex vert = null;
+			Double doubleValue = null;
+			if(daObject instanceof Map)
+				row = (Map<Object, Object>)daObject;
+			else if(daObject instanceof Vertex)
+				vert = (Vertex) daObject;
+			else if(daObject instanceof Double)
+				doubleValue = (Double)daObject;
 			// put things into the bindings first
 			
-			for(int colIndex = 0;colIndex < columnsUsed.length;colIndex++)
-				otherBindings.put(columnsUsed[colIndex], row.get(columnsUsed[colIndex]));
+			if(daObject != null && !errored)
+			{
+				// put things into the bindings first
+				if(row != null)
+				{
+					for(int colIndex = 0;colIndex < columnsUsed.length;colIndex++)
+					{
+						Vertex v = (Vertex)row.get(columnsUsed[colIndex]);
+						Object val = v.value(propToGet);
+						System.out.println("Values is " + val);
+						otherBindings.put(columnsUsed[colIndex], val);
+					}
+				}
+				else if(vert != null)
+				{
+					Object val = vert.value(propToGet);
+					System.out.println("Values is " + val);
+					otherBindings.put(columnsUsed[0], val);
+				}
+				else if(doubleValue != null)
+				{
+					Object val = (Object)new Double(doubleValue.doubleValue());
+					System.out.println("Values is " + val);
+					otherBindings.put(columnsUsed[0], val);
+				}
+			}		
+			
+//			for(int colIndex = 0;colIndex < columnsUsed.length;colIndex++)
+//				otherBindings.put(columnsUsed[colIndex], row.get(columnsUsed[colIndex]));
 			
 			long nanoTime = System.nanoTime();
 			
@@ -79,7 +116,7 @@ public class ExpressionIterator <Object> implements ExpressionMapper, Iterator {
 	}
 
 	@Override
-	public void setData(Iterator results, String[] ids, String script) {
+	public void setData(Iterator results, String[] columnsUsed, String script) {
 		// TODO Auto-generated method stub
 		this.results = results;
 		this.columnsUsed = columnsUsed;
@@ -91,6 +128,9 @@ public class ExpressionIterator <Object> implements ExpressionMapper, Iterator {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+	}
+	
+	public Bindings getOtherBindings() {
+		return this.otherBindings;
 	}
 }

@@ -368,17 +368,13 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getRPar().apply(this);
         }
+        if(node.getExpr() != null)
         {
-            List<PColCsv> copy = new ArrayList<PColCsv>(node.getColCsv());
-            Collections.reverse(copy);
-            for(PColCsv e : copy)
-            {
-                e.apply(this);
-            }
+            node.getExpr().apply(this);
         }
-        if(node.getExprGroup() != null)
+        if(node.getComma() != null)
         {
-            node.getExprGroup().apply(this);
+            node.getComma().apply(this);
         }
         if(node.getNewcol() != null)
         {
