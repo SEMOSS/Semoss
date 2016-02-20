@@ -375,16 +375,13 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getNewcol().apply(this);
         }
-        if(node.getExprGroup() != null)
+        if(node.getComma() != null)
         {
-            node.getExprGroup().apply(this);
+            node.getComma().apply(this);
         }
+        if(node.getExpr() != null)
         {
-            List<PColCsv> copy = new ArrayList<PColCsv>(node.getColCsv());
-            for(PColCsv e : copy)
-            {
-                e.apply(this);
-            }
+            node.getExpr().apply(this);
         }
         if(node.getRPar() != null)
         {

@@ -88,7 +88,7 @@ colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn
 
 		
 add_column = // follows the pattern of addColumn(columnName and optionally the expression) addColumn(c:NewCol, 'expression', [c:col1, c:col2]);
-		coladd l_par [newcol]:col_def expr_group? col_csv* r_par 
+		coladd l_par [newcol]:col_def comma [expr]:expr r_par 
 		;
 
 rem_column = // follows the pattern of addColumn(columnName and optionally the expression) removeColumn(c:colToRemove);
