@@ -27,46 +27,48 @@
  *******************************************************************************/
 package prerna.ui.helpers;
 
-import java.util.Arrays;
-import java.util.List;
-
 import prerna.om.Insight;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
-import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 /**
- * This class helps with running the undo view method for a playsheet.
+ * This class helps with running the overlay view method for a playsheet.
  */
-public class PlaysheetUndoRunner implements Runnable{
+public class InsightOverlayRunner implements Runnable{
 
 	Insight insight = null;
+	DataMakerComponent[] dmComponents;
+	
 	
 	/**
-	 * Constructor for PlaysheetUndoRunner.
-	 * @param playSheet GraphPlaySheet
+	 * Constructor for PlaysheetOverlayRunner.
+	 * @param playSheet IPlaySheet
 	 */
-	public PlaysheetUndoRunner(Insight insight)
+	public InsightOverlayRunner(Insight insight, DataMakerComponent[] dmComponents)
 	{
 		this.insight = insight;
+		this.dmComponents = dmComponents;
 	}
+
 	
 	/**
-	 * Method run. Calls the undo view method on the local play sheet.
+	 * Method run. Calls the overlay view method on the local play sheet.
 	 */
 	@Override
 	public void run() {
-		DataMakerComponent lastComp = insight.getDataMakerComponents().get(insight.getNumComponents()-1);
-		String id = null;
-		List<ISEMOSSTransformation> postTrans = lastComp.getPostTrans();
-		if(postTrans!=null && !postTrans.isEmpty()){
-			ISEMOSSTransformation lastTrans = postTrans.get(postTrans.size()-1);
-			id = lastTrans.getId();
+//		if(playSheet instanceof AbstractPlaySheet)
+//			((AbstractPlaySheet)playSheet).setAppend(true);
+//		playSheet.createData();
+//		playSheet.runAnalytics();
+//		playSheet.overlayView();
+		
+//		IDataMaker dm = playSheet.getDataMaker();
+		for(DataMakerComponent dmc : this.dmComponents){
+			insight.processDataMakerComponent(dmc);
 		}
-		if(id == null){
-			id = lastComp.getPreTrans().get(lastComp.getPreTrans().size() - 1).getId();
-		}
-		insight.undoProcesses(Arrays.asList(new String[]{id}));
-		((AbstractGraphPlaySheet)insight.getPlaySheet()).undoView();
+		insight.getPlaySheet().runAnalytics();
+		insight.getPlaySheet().overlayView();
 	}
+
 }

@@ -56,6 +56,8 @@ import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.QueryBuilderData;
 import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
+import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.ui.main.listener.impl.NeighborMenuListener;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -121,10 +123,11 @@ public class TFInstanceRelationQueryBuilderPopup extends JMenu implements MouseL
 			SEMOSSVertex thisVert = pickedVertex[pi];
 			String uri = thisVert.getURI();
 			uri = Utility.getTransformedNodeName(engine, uri, false);
+			String type = Utility.getClassName(uri);
 
 			IEngine masterDB = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
 			INameServer ns = new NameServerProcessor(masterDB);
-			ConnectedConcepts results = ns.searchConnectedConcepts(Utility.getClassName(uri));
+			ConnectedConcepts results = ns.searchConnectedConcepts(type);
 			
 			logger.debug("Found the engine for repository   " + repo);
 			
@@ -154,7 +157,9 @@ public class TFInstanceRelationQueryBuilderPopup extends JMenu implements MouseL
 						QueryBuilderData data = new QueryBuilderData();
 						data.addRelTriple(relTrip);
 						data.setFilterData(filterData);
-						NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(instance, data, engine);
+						DataMakerComponent dmc = new DataMakerComponent(engine, data);
+						addJoinTransformation(dmc, type, equivUri);
+						NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(instance, dmc, engine);
 						nItem.addActionListener(NeighborMenuListener.getInstance());
 						add(nItem);
 					}
@@ -178,7 +183,9 @@ public class TFInstanceRelationQueryBuilderPopup extends JMenu implements MouseL
 						QueryBuilderData data = new QueryBuilderData();
 						data.addRelTriple(relTrip);
 						data.setFilterData(filterData);
-						NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(instance, data, engine);
+						DataMakerComponent dmc = new DataMakerComponent(engine, data);
+						addJoinTransformation(dmc, type, equivUri);
+						NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(instance, dmc, engine);
 						nItem.addActionListener(NeighborMenuListener.getInstance());
 						add(nItem);
 					}
@@ -187,6 +194,18 @@ public class TFInstanceRelationQueryBuilderPopup extends JMenu implements MouseL
 		}
 		populated = true;
 		repaint();
+	}
+	
+	private void addJoinTransformation(DataMakerComponent dmc, String type, String equivUri){
+		// 2. b. Add join transformation since we know a tree already exists and we will have to join to it
+		JoinTransformation joinTrans = new JoinTransformation();
+		Map<String, Object> selectedOptions = new HashMap<String, Object>();
+		selectedOptions.put(JoinTransformation.COLUMN_ONE_KEY, Utility.getInstanceName(type));
+		selectedOptions.put(JoinTransformation.COLUMN_TWO_KEY, Utility.getInstanceName(equivUri));
+		selectedOptions.put(JoinTransformation.JOIN_TYPE, "inner");
+		joinTrans.setProperties(selectedOptions);
+//		dmc.addPostTrans(joinTrans);
+		dmc.addPreTrans(joinTrans);
 	}
 
 	/**
