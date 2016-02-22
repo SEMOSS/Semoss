@@ -5,6 +5,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PushbackReader;
+import java.io.StringBufferInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -44,9 +46,6 @@ import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
 import prerna.algorithm.api.IAnalyticActionRoutine;
 import prerna.algorithm.api.IAnalyticRoutine;
 import prerna.algorithm.api.IAnalyticTransformationRoutine;
@@ -63,6 +62,12 @@ import prerna.om.SEMOSSVertex;
 import prerna.om.TinkerGraphDataModel;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.GremlinBuilder;
+import prerna.sablecc.Translation;
+import prerna.sablecc.lexer.Lexer;
+import prerna.sablecc.lexer.LexerException;
+import prerna.sablecc.node.Start;
+import prerna.sablecc.parser.Parser;
+import prerna.sablecc.parser.ParserException;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
@@ -70,6 +75,9 @@ import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.Utility;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 public class TinkerFrame implements ITableDataFrame {
 	
@@ -93,6 +101,8 @@ public class TinkerFrame implements ITableDataFrame {
 	final protected static String PRIM_KEY = "PRIM_KEY";
 	final public static String META = "META";
 	final public static String EMPTY = "_";
+	
+	private Object tempExpressionResult = "FAIL";
 
 	/**********************    TESTING PLAYGROUND  ******************************************/
 	
@@ -818,6 +828,7 @@ public class TinkerFrame implements ITableDataFrame {
 		}
 		System.out.println("loaded file " + fileName);
 		
+		// 2 lines are used to create primary key table metagraph
 		Map<String, Set<String>> primKeyEdgeHash = tester.createPrimKeyEdgeHash(headerList.toArray(new String[headerList.size()]));
 		tester.mergeEdgeHash(primKeyEdgeHash);
 		return tester;
@@ -2611,5 +2622,36 @@ public class TinkerFrame implements ITableDataFrame {
 		g.variables().set(Constants.HEADER_NAMES, tf.headerNames);
 		
 		return tf;
+	}
+	
+	public Object runPKQL(String expression) {
+		Parser p =
+			    new Parser(
+			    new Lexer(
+			    new PushbackReader(
+			    new InputStreamReader(new StringBufferInputStream(expression)), 1024)));
+			// new InputStreamReader(System.in), 1024)));
+
+			   // Parse the input.
+			   Start tree;
+			try {
+				tree = p.parse();
+				   // Apply the translation.
+				   tree.apply(new Translation(this));
+			} catch (ParserException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (LexerException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return this.tempExpressionResult;
+	}
+	
+	public void setTempExpressionResult(Object result) {
+		this.tempExpressionResult = result;
 	}
 }
