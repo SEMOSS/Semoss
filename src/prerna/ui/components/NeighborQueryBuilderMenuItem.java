@@ -27,6 +27,9 @@
  *******************************************************************************/
 package prerna.ui.components;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.swing.JList;
 import javax.swing.JMenuItem;
 
@@ -34,12 +37,13 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
+import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.rdf.query.builder.QueryBuilderData;
 import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
-import prerna.ui.components.playsheets.SQLGraphPlaysheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
-import prerna.ui.helpers.PlaysheetOverlayRunner;
+import prerna.ui.components.playsheets.datamakers.JoinTransformation;
+import prerna.ui.helpers.InsightOverlayRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -48,7 +52,7 @@ import prerna.util.DIHelper;
  * This class is used to create a menu item for the neighborhood.
  */
 public class NeighborQueryBuilderMenuItem extends JMenuItem{
-	QueryBuilderData data; 
+	DataMakerComponent data; 
 	IEngine engine = null;
 	String name = null;
 	
@@ -60,7 +64,7 @@ public class NeighborQueryBuilderMenuItem extends JMenuItem{
 	 * @param query String
 	 * @param engine IEngine
 	 */
-	public NeighborQueryBuilderMenuItem(String name, QueryBuilderData data, IEngine engine)
+	public NeighborQueryBuilderMenuItem(String name, DataMakerComponent data, IEngine engine)
 	{
 		super(name);
 		this.name = name;
@@ -77,7 +81,7 @@ public class NeighborQueryBuilderMenuItem extends JMenuItem{
 		if(InsightStore.getInstance().getActiveInsight().getPlaySheet() instanceof AbstractGraphPlaySheet)
 		{
 //			GraphPlaySheet playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
-			AbstractGraphPlaySheet playSheet = (AbstractGraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
+			Insight insight = InsightStore.getInstance().getActiveInsight();
 			logger.debug("Extending ");
 			Runnable playRunner = null;
 			// Here I need to get the active sheet
@@ -92,13 +96,13 @@ public class NeighborQueryBuilderMenuItem extends JMenuItem{
 	
 			for(int repoIndex = 0;repoIndex < repos.length;repoIndex++)
 			{
-				DataMakerComponent dmc = new DataMakerComponent(repos[repoIndex]+"", data);
+				
 //				IEngine engine = (IEngine)DIHelper.getInstance().getLocalProp(repos[repoIndex]+"");
 //				playSheet.setRDFEngine(engine);
 //				playSheet.setQuery(query);
 			
 
-				playRunner = new PlaysheetOverlayRunner(playSheet, new DataMakerComponent[]{dmc});
+				playRunner = new InsightOverlayRunner(insight, new DataMakerComponent[]{data});
 				// thread
 				Thread playThread = new Thread(playRunner);
 				playThread.start();

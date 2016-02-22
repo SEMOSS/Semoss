@@ -34,11 +34,12 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
+import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.SQLGraphPlaysheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
-import prerna.ui.helpers.PlaysheetOverlayRunner;
+import prerna.ui.helpers.InsightOverlayRunner;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -77,7 +78,7 @@ public class NeighborMenuItem extends JMenuItem{
 		if(InsightStore.getInstance().getActiveInsight().getPlaySheet() instanceof AbstractGraphPlaySheet)
 		{
 //			GraphPlaySheet playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
-			AbstractGraphPlaySheet playSheet = (AbstractGraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
+			Insight insight = InsightStore.getInstance().getActiveInsight();
 			logger.debug("Extending ");
 			Runnable playRunner = null;
 			// Here I need to get the active sheet
@@ -98,7 +99,7 @@ public class NeighborMenuItem extends JMenuItem{
 //				playSheet.setQuery(query);
 			
 
-				playRunner = new PlaysheetOverlayRunner(playSheet, new DataMakerComponent[]{dmc});
+				playRunner = new InsightOverlayRunner(insight, new DataMakerComponent[]{dmc});
 				// thread
 				Thread playThread = new Thread(playRunner);
 				playThread.start();

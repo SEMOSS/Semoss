@@ -27,41 +27,21 @@
  *******************************************************************************/
 package prerna.ui.components.playsheets;
 
-import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
 import java.beans.PropertyVetoException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import javax.swing.JButton;
-import javax.swing.JComponent;
-import javax.swing.JInternalFrame;
-import javax.swing.JPanel;
-import javax.swing.JSplitPane;
-import javax.swing.JTabbedPane;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.jgrapht.graph.SimpleGraph;
+import org.openrdf.repository.RepositoryException;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.graph.DelegateForest;
-import edu.uci.ics.jung.visualization.GraphZoomScrollPane;
-import edu.uci.ics.jung.visualization.VisualizationViewer;
-import edu.uci.ics.jung.visualization.control.ModalGraphMouse;
-import edu.uci.ics.jung.visualization.picking.PickedState;
-import edu.uci.ics.jung.visualization.renderers.BasicRenderer;
-import edu.uci.ics.jung.visualization.renderers.Renderer;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.om.InsightStore;
@@ -69,34 +49,10 @@ import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.ControlData;
 import prerna.ui.components.ControlPanel;
-import prerna.ui.components.LegendPanel2;
-import prerna.ui.components.NewHoriScrollBarUI;
-import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.components.PropertySpecData;
-import prerna.ui.components.VertexColorShapeData;
 import prerna.ui.components.VertexFilterData;
+import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
-import prerna.ui.components.specific.tap.DataLatencyPlayPopup;
-import prerna.ui.main.listener.impl.GraphNodeListener;
-import prerna.ui.main.listener.impl.GraphPlaySheetListener;
-import prerna.ui.main.listener.impl.PickedStateListener;
-import prerna.ui.main.listener.impl.PlaySheetColorShapeListener;
-import prerna.ui.main.listener.impl.PlaySheetControlListener;
-import prerna.ui.main.listener.impl.PlaySheetOWLListener;
-import prerna.ui.transformer.ArrowDrawPaintTransformer;
-import prerna.ui.transformer.ArrowFillPaintTransformer;
-import prerna.ui.transformer.EdgeArrowStrokeTransformer;
-import prerna.ui.transformer.EdgeLabelFontTransformer;
-import prerna.ui.transformer.EdgeLabelTransformer;
-import prerna.ui.transformer.EdgeStrokeTransformer;
-import prerna.ui.transformer.EdgeTooltipTransformer;
-import prerna.ui.transformer.VertexIconTransformer;
-import prerna.ui.transformer.VertexLabelFontTransformer;
-import prerna.ui.transformer.VertexLabelTransformer;
-import prerna.ui.transformer.VertexPaintTransformer;
-import prerna.ui.transformer.VertexShapeTransformer;
-import prerna.ui.transformer.VertexStrokeTransformer;
-import prerna.ui.transformer.VertexTooltipTransformer;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -171,36 +127,31 @@ public class GraphTinkerPlaySheet extends AbstractGraphPlaySheet {
 	/**
 	 * Method undoView.
 	 */
-//	public void undoView()
-//	{
-//		// get the latest and undo it
-//		// Need to find a way to keep the base relationships
-//		try {
+	public void undoView()
+	{
+		// get the latest and undo it
+		// Need to find a way to keep the base relationships
+		try {
 //			if(gdm.modelCounter > 1)
 //			{
-//				updateProgressBar("30%...Getting Previous Model", 30);
+				updateProgressBar("30%...Getting Previous Model", 30);
 //				gdm.undoData();
-//				filterData = new VertexFilterData();
-//				controlData = new ControlData();
-//				gdm.predData = new PropertySpecData();
-//				updateProgressBar("50%...Graph Undo in Progress", 50);
-//				
-//				refineView();
-//				logger.info("model size: " + gdm.rc.size());
+				filterData = new VertexFilterData();
+				controlData = new ControlData();
+				predData = new PropertySpecData();
+				updateProgressBar("50%...Graph Undo in Progress", 50);
+				
+				refineView();
 //			}
-//			this.setSelected(false);
-//			this.setSelected(true);
-//			printConnectedNodes();
-//			printSpanningTree();
-//
-//			genAllData();
-//		} catch (RepositoryException e) {
-//			e.printStackTrace();
-//		} catch (PropertyVetoException e) {
-//			e.printStackTrace();
-//		}
-//		updateProgressBar("100%...Graph Undo Complete", 100);
-//	}
+			this.setSelected(false);
+			this.setSelected(true);
+
+			genAllData();
+		} catch (PropertyVetoException e) {
+			e.printStackTrace();
+		}
+		updateProgressBar("100%...Graph Undo Complete", 100);
+	}
 
 	
     /**
@@ -276,33 +227,31 @@ public class GraphTinkerPlaySheet extends AbstractGraphPlaySheet {
 	/**
 	 * Method refineView.
 	 */
-//	public void refineView()
-//	{
-//		try {
-//			getForest();
-//			gdm.fillStoresFromModel(gdm.getEngine());
-//			createForest();
-//			logger.info("Refining Forest Complete >>>>>");
-//			
-//			// create the specified layout
-//			createLayout();
-//			// identify the layout specified for this perspective
-//			// now create the visualization viewer and we are done
-//			createVisualizer();
-//			
-//			// add the panel
-//			addPanel();
-//			// addpane
-//			// addpane
-//			legendPanel.drawLegend();
-//			//showAll();
-//			//progressBarUpdate("100%...Graph Refine Complete", 100);
-//			setUndoRedoBtn();
-//		} catch (RuntimeException e) {
-//			// TODO: Specify exception
-//			e.printStackTrace();
-//		}
-//	}
+	public void refineView()
+	{
+		try {
+			createForest();
+			logger.info("Refining Forest Complete >>>>>");
+			
+			// create the specified layout
+			createLayout();
+			// identify the layout specified for this perspective
+			// now create the visualization viewer and we are done
+			createVisualizer();
+			
+			// add the panel
+			addPanel();
+			// addpane
+			// addpane
+			legendPanel.drawLegend();
+			//showAll();
+			//progressBarUpdate("100%...Graph Refine Complete", 100);
+			setUndoRedoBtn();
+		} catch (RuntimeException e) {
+			// TODO: Specify exception
+			e.printStackTrace();
+		}
+	}
 	
 	/**
 	 * Method createForest.
@@ -370,29 +319,6 @@ public class GraphTinkerPlaySheet extends AbstractGraphPlaySheet {
 		logger.info("Creating Forest Complete >>>>>> ");										
 	}
 	
-//	/**
-//	 * Method setUndoRedoBtn.
-//	 */
-//	private void setUndoRedoBtn()
-//	{
-//		if(gdm.modelCounter>1)
-//		{
-//			searchPanel.undoBtn.setEnabled(true);
-//		}
-//		else
-//		{
-//			searchPanel.undoBtn.setEnabled(false);
-//		}
-//		if(gdm.rcStore.size()>=gdm.modelCounter)
-//		{
-//			searchPanel.redoBtn.setEnabled(true);
-//		}
-//		else
-//		{
-//			searchPanel.redoBtn.setEnabled(false);
-//		}
-//	}
-	
 	@Override
 	public void setDataMaker(IDataMaker data) {
 		if(data instanceof TinkerFrame){
@@ -445,14 +371,15 @@ public class GraphTinkerPlaySheet extends AbstractGraphPlaySheet {
 	 */
 	private void setUndoRedoBtn()
 	{
-//		if(gdm.modelCounter>1)
-//		{
-//			searchPanel.undoBtn.setEnabled(true);
-//		}
-//		else
-//		{
-//			searchPanel.undoBtn.setEnabled(false);
-//		}
+		List<DataMakerComponent> dmcList = InsightStore.getInstance().get(this.questionNum).getDataMakerComponents();
+		if(dmcList.size()>1)
+		{
+			searchPanel.undoBtn.setEnabled(true);
+		}
+		else
+		{
+			searchPanel.undoBtn.setEnabled(false);
+		}
 //		if(gdm.rcStore.size()>=gdm.modelCounter)
 //		{
 //			searchPanel.redoBtn.setEnabled(true);
@@ -476,12 +403,6 @@ public class GraphTinkerPlaySheet extends AbstractGraphPlaySheet {
 	}
 
 	@Override
-	public void undoView() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
 	public Collection<SEMOSSVertex> getVerts() {
 		if(this.forest!=null){
 			return this.forest.getVertices();
@@ -490,4 +411,5 @@ public class GraphTinkerPlaySheet extends AbstractGraphPlaySheet {
 			return ((Map)((TinkerFrame)this.dataFrame).getGraphOutput().get("nodes")).values();
 		}
 	}
+	
 }

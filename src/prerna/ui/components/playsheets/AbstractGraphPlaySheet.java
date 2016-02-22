@@ -38,14 +38,8 @@ import java.beans.PropertyVetoException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
-import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JInternalFrame;
 import javax.swing.JPanel;
@@ -55,8 +49,6 @@ import javax.swing.JTabbedPane;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.jgrapht.Graph;
-import org.jgrapht.alg.ConnectivityInspector;
-import org.jgrapht.alg.KruskalMinimumSpanningTree;
 import org.jgrapht.graph.SimpleGraph;
 
 import edu.uci.ics.jung.algorithms.layout.Layout;
@@ -67,9 +59,7 @@ import edu.uci.ics.jung.visualization.control.ModalGraphMouse;
 import edu.uci.ics.jung.visualization.picking.PickedState;
 import edu.uci.ics.jung.visualization.renderers.BasicRenderer;
 import edu.uci.ics.jung.visualization.renderers.Renderer;
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
-import prerna.om.InsightStore;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.ControlData;
@@ -104,7 +94,6 @@ import prerna.ui.transformer.VertexStrokeTransformer;
 import prerna.ui.transformer.VertexTooltipTransformer;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 /**
  */
@@ -678,12 +667,6 @@ public abstract class AbstractGraphPlaySheet extends AbstractPlaySheet {
 	@Override
 	public IDataMaker getDefaultDataMaker() {
 		return new TinkerFrame();
-	}
-
-	@Override
-	public void refineView() {
-		// TODO Auto-generated method stub
-		
 	}
 	
 	/**
