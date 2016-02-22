@@ -53,6 +53,7 @@ import prerna.ui.main.listener.impl.BrowserPlaySheetListener;
 import prerna.ui.main.listener.impl.BrowserZoomKeyListener;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.teamdev.jxbrowser.chromium.Browser;
 import com.teamdev.jxbrowser.chromium.JSValue;
 import com.teamdev.jxbrowser.chromium.LoggerProvider;
@@ -91,7 +92,7 @@ public class BrowserPlaySheet extends TablePlaySheet {
 	 */
 	public void callIt(Hashtable table) {
 		output = table;
-		Gson gson = new Gson();
+		Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().create();
 		logger.info("Converted " + gson.toJson(table));
 		logger.info("Converted gson");
 		System.out.println(">>>>>>>>>>>>>>> " + gson.toJson(table));
