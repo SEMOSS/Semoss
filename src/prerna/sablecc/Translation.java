@@ -190,21 +190,26 @@ public class Translation extends DepthFirstAdapter {
 
 	public void inAExprScript(AExprScript node) {
 		//System.out.println("In a script expr");
-		defaultIn(node);
+		// defaultIn(node);
+		whatICallThisInMyWorld = new Hashtable<String, String>();		
+		whatICallThisInMyWorld.put("EXPR_TERM", "VALUE");
+		whatICallThisInMyWorld.put("PARENT", "EXPR_SCRIPT");
+		
+		reinit();
+		
 	}
 
 	public void outAExprScript(AExprScript node) {
 		String nodeStr = node.getExpr() + "";
 		nodeStr = nodeStr.trim();
 
+		Object value = myStore.get("VALUE");
+		
+		System.out.println("Final Value is " + ((Vector)value).elementAt(0));
 		// this is the last portion of everything
 
 		//System.out.println("out of scroipt expr [" + node + "]");
 		//System.out.println(" Found it in data keeper ?"+ dataKeeper.get(nodeStr));
-		if (!dataKeeper.containsKey((node + "").trim())) {
-			dataKeeper.put((node + "").trim(), dataKeeper.get(nodeStr));
-		}
-
 	}
 
 	public void outAPlusExpr(APlusExpr node) {// out of alternative {plus} in
@@ -213,15 +218,19 @@ public class Translation extends DepthFirstAdapter {
 		String leftKeyName = node.getLeft() + "";
 		String rightKeyName = node.getRight() + "";
 
-		Object leftObj = dataKeeper.get(leftKeyName.trim());
-		Object rightObj = dataKeeper.get(rightKeyName.trim());
+		Object leftObj = myStore.get(leftKeyName.trim());
+		Object rightObj = myStore.get(rightKeyName.trim());
 		//System.out.println(node.getLeft() + " [][] " + node.getRight());
 		Object result = null;
 		if (rightObj instanceof Double && leftObj instanceof Double)
+		{
 			result = (Double)(leftObj)
 					+ (Double)(rightObj);
-
-		else {
+			saveData("PLUSOP", result);
+			saveReplace("PLUSOP", (node + "").trim(), result);
+			//saveReplace("PLUSOP", (node + "").trim(), result+"");
+		}
+		else { // useless cause
 			// one of these is an iterator
 			// pick it up and do the magic
 			// stupidity for now
@@ -229,8 +238,8 @@ public class Translation extends DepthFirstAdapter {
 		}
 		//System.out.println("result is add " + result);
 
-		//System.out.println("node itself looks like.. APlus [" + node + "]");
-		dataKeeper.put((node + "").trim(), result);
+		//System.out.println("node itself looks like.. APlus [" + node + "]");		
+		//dataKeeper.put((node + "").trim(), result);
 	}
 	
 
@@ -246,13 +255,18 @@ public class Translation extends DepthFirstAdapter {
 		String leftKeyName = node.getLeft() + "";
 		String rightKeyName = node.getRight() + "";
 
-		Object leftObj = dataKeeper.get(leftKeyName.trim());
-		Object rightObj = dataKeeper.get(rightKeyName.trim());
+		Object leftObj = myStore.get(leftKeyName.trim());
+		Object rightObj = myStore.get(rightKeyName.trim());
 		Object result = null;
 		if (rightObj instanceof Double && leftObj instanceof Double)
+		{
 			result = (Double)(leftObj)
 					- (Double)(rightObj);
+			
+			saveData("MINUSOP", result);
+			saveReplace("MINUSOP", (node + "").trim(), result);
 
+		}
 		else {
 			// one of these is an iterator
 			// pick it up and do the magic
@@ -287,14 +301,23 @@ public class Translation extends DepthFirstAdapter {
 		if(whatICallThisInMyWorld.containsKey("EXPR_TERM"))
 		{
 			whatICallThisInMyWorld = new Hashtable<String, String>();
+			
 			whatICallThisInMyWorld.put("EXPR_TERM", "EXPR_TERM");
 			whatICallThisInMyWorld.put("COL_DEF", "COL_DEF");
+			whatICallThisInMyWorld.put("PLUSOP", "VALUE");
+			whatICallThisInMyWorld.put("MINUSOP", "VALUE");
+			whatICallThisInMyWorld.put("MULTOP", "VALUE");
+			whatICallThisInMyWorld.put("DIVOP", "VALUE");
 			whatICallThisInMyWorld.put("PARENT", "EXPR_TERM");
 			
 			// I also need to make provision for replacers
 			// what aare the equations we want to replace
 			addReplacer("COL_DEF");
 			addReplacer("DECIMAL");
+			addReplacer("PLUSOP");
+			addReplacer("MINUSOP");
+			addReplacer("DIVOP");
+			addReplacer("MULTOP");
 			
 			addSynchronizer("COL_DEF");
 			//whatICallThisInMyWorld.put("REPLACE", "REPLACE");
@@ -309,14 +332,24 @@ public class Translation extends DepthFirstAdapter {
 	public void outAExprTerm(AExprTerm node) {
 		//System.out.println("Successful in retrieving the data for expr term ?+ node.getExpr() + 	+ dataKeeper.containsKey((node.getExpr() + "").trim()));
 		// get the value of it
-		Object value = dataKeeper.get((node.getExpr() + "").trim());
+		
+		Object value = null;
+		
+		if(myStore.containsKey("VALUE"))
+			value = myStore.get("VALUE");
 		
 		// remove it from the function
 		currentMathFunction.remove((node + "").trim());
 
-		if(value instanceof Double)
+		if(value != null)
 		{
-			dataKeeper.put((node + "").trim(), value);
+			//dataKeeper.put((node + "").trim(), value);
+			// replace my portion of the value
+			System.out.println("VALUE IS " + ((Vector)value).elementAt(0));
+			deInit();
+			saveData("EXPR_TERM", ((Vector)value).elementAt(0));
+			
+			
 		}
 		else  if(whatICallThisInMyWorld.containsKey("EXPR_TERM"))  // I need to check here if this has parent as expr_term if so let it be
 		{
@@ -425,14 +458,17 @@ public class Translation extends DepthFirstAdapter {
 		String leftKeyName = node.getLeft() + "";
 		String rightKeyName = node.getRight() + "";
 
-		Object leftObj = dataKeeper.get(leftKeyName.trim());
-		Object rightObj = dataKeeper.get(rightKeyName.trim());
+		Object leftObj = myStore.get(leftKeyName.trim());
+		Object rightObj = myStore.get(rightKeyName.trim());
 
 		Object result = null;
 		if (rightObj instanceof Double && leftObj instanceof Double)
+		{
 			result = (Double)(leftObj)
 					* (Double)(rightObj);
-
+			saveData("MULTOP", result);
+			saveReplace("MULTOP", (node + "").trim(), result);
+		}
 		else {
 			// one of these is an iterator
 			// pick it up and do the magic
@@ -441,7 +477,7 @@ public class Translation extends DepthFirstAdapter {
 		}
 
 		//System.out.println("result is" + result);
-		dataKeeper.put((node + "").trim(), result);
+		//dataKeeper.put((node + "").trim(), result);
 	}
 
 	public void outADivFactor(ADivFactor node) {// out of alternative {div} in
@@ -449,13 +485,18 @@ public class Translation extends DepthFirstAdapter {
 		String leftKeyName = node.getLeft() + "";
 		String rightKeyName = node.getRight() + "";
 
-		Object leftObj = dataKeeper.get(leftKeyName.trim());
-		Object rightObj = dataKeeper.get(rightKeyName.trim());
+		Object leftObj = myStore.get(leftKeyName.trim());
+		Object rightObj = myStore.get(rightKeyName.trim());
 
 		Object result = null;
 		if (rightObj instanceof Double && leftObj instanceof Double)
+		{
 			result = (Double)(leftObj)
 					/ (Double)(rightObj);
+			saveData("DIVOP", result);
+			saveReplace("DIVOP", (node + "").trim(), result);
+
+		}
 
 		else {
 			// one of these is an iterator
@@ -575,8 +616,6 @@ public class Translation extends DepthFirstAdapter {
         whatICallThisInMyWorld.put("PARENT", "COL_ADD");
 		
 		// whatICallThisInMyWorl.put(" THIS IS WHAT I WANT", " BUT THIS IS WHAT I CALL IT")
-		
-		
 		reinit();
 		
 	}
@@ -605,7 +644,7 @@ public class Translation extends DepthFirstAdapter {
 		String number = (node.getWhole() + "").trim();
 		if(node.getFraction() != null)
 			number = number + "." + (node.getFraction() + "").trim();
-    	saveReplace("DECIMAL", node.toString().trim(), number); // all of this is now sitting in add replacement
+    	saveReplace("DECIMAL", node.toString().trim(), Double.parseDouble(number)); // all of this is now sitting in add replacement
     	
     	/*if(whatICallThisInMyWorld.containsKey("REPLACE") && whatICallThisInMyWorld.get("REPLACE").equalsIgnoreCase("REPLACE")) {
     		Vector<String> replacements = new Vector<String>();
@@ -1121,7 +1160,7 @@ public class Translation extends DepthFirstAdapter {
 		whatICallThisInMyWorld.put("REPLACERS", replacers);
 	}
 
-	private void saveReplace(String metaKey, String key, String value)
+	private void saveReplace(String metaKey, String key, Object value)
 	{
 		// adds the replacement
 		if(whatICallThisInMyWorld.containsKey("REPLACERS"))
