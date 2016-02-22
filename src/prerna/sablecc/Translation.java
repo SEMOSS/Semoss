@@ -11,6 +11,8 @@ import prerna.ds.ExpressionIterator;
 import prerna.ds.ExpressionReducer;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
+import prerna.engine.api.IApi;
+import prerna.engine.impl.rdbms.RDBMSQueryAPI;
 import prerna.rdf.query.builder.SQLInterpreter;
 import prerna.sablecc.analysis.DepthFirstAdapter;
 import prerna.sablecc.node.AAddColumn;
@@ -21,6 +23,7 @@ import prerna.sablecc.node.AColWhere;
 import prerna.sablecc.node.ACsvRow;
 import prerna.sablecc.node.ADecimal;
 import prerna.sablecc.node.ADivFactor;
+import prerna.sablecc.node.AEExprExpr;
 import prerna.sablecc.node.AExprGroup;
 import prerna.sablecc.node.AExprRow;
 import prerna.sablecc.node.AExprScript;
@@ -78,6 +81,14 @@ public class Translation extends DepthFirstAdapter {
 	// so I need something that registers the events
 	// COL_CSV_1 = Selector
 	// something like that
+	/*
+	 * Working the whatICallThisInMyWorld
+	 * 
+	 * This hashtable is a way for the various levels of trees to communicate. When the parent wants a particular piece of child etc etc. There could be 1 child, or many childs for the parent
+	 * 
+	 * 
+	 */
+	
 	Hashtable <String, String> whatICallThisInMyWorld = new Hashtable <String, String>(); 
 	
 	Vector <Hashtable <String, String>> whatICallThisInMyWorldHistory = new Vector<Hashtable <String, String>>();
@@ -97,7 +108,7 @@ public class Translation extends DepthFirstAdapter {
 	{
 		// now get the data from tinker
 		frame = new TinkerFrame();
-		frame.tryCustomGraph();
+		//frame.tryCustomGraph();
 
 	}
 	
@@ -150,72 +161,26 @@ public class Translation extends DepthFirstAdapter {
 			String engine = (String)thisStore.get("ENGINE");
 			String insight = (String)thisStore.get("INSIGHT");
 			
-			QueryStruct qs = new QueryStruct();
-			if(thisStore.containsKey("SELECTOR") && ((Vector)thisStore.get("SELECTOR")).size() > 0)
-			{
-				Vector <String> selectors = (Vector <String>)thisStore.get("SELECTOR");
-				for(int selectIndex = 0;selectIndex < selectors.size();selectIndex++)
-				{
-					String thisSelector = selectors.get(selectIndex);
-					String concept = thisSelector.substring(0, thisSelector.indexOf("__"));
-					String property = thisSelector.substring(thisSelector.indexOf("__")+2);
-					qs.addSelector(concept, property);
-				}
-			}
-			if(thisStore.containsKey("FILTERS") && ((Vector)thisStore.get("FILTERS")).size() > 0)
-			{
-				Vector filters = (Vector)thisStore.get("FILTERS");
-				for(int filterIndex = 0;filterIndex < filters.size();filterIndex++)
-				{
-					Hashtable thisFilter = (Hashtable)filters.get(filterIndex);
-					String fromCol = (String)thisFilter.get("FROM_COL");
-					String toCol = null;
-					Vector filterData = new Vector();
-					if(thisFilter.containsKey("TO_COL"))
-					{
-						toCol = (String)thisFilter.get("TO_COL");
-						filtersToBeElaborated.add(thisFilter);
-						tinkerSelectors.add(toCol);
-						// need to pull this from tinker frame and do the due
-						// interestingly this could be join
-					}
-					else
-					{
-						// this is a vector do some processing here					
-						filterData = (Vector)thisFilter.get("TO_DATA");
-						String comparator = (String)thisFilter.get("COMPARATOR");
-						String concept = fromCol.substring(0, fromCol.indexOf("__"));
-						String property = fromCol.substring(fromCol.indexOf("__")+2);
-						qs.addFilter(fromCol, comparator, filterData);
-					}
-				}
-			}
-			if(thisStore.containsKey("JOINS") && ((Vector)thisStore.get("JOINS")).size() > 0)
-			{
-				Vector joinVector = (Vector)thisStore.get("JOINS");
-				
-				for(int joinIndex = 0;joinIndex < joinVector.size();joinIndex++)
-				{
-					Hashtable thisJoin = (Hashtable)joinVector.get(joinIndex);
-					
-					String fromCol = (String)thisJoin.get("FROM_COL");
-					String toCol = (String)thisJoin.get("TO_COL");
-					
-					String relation = (String)thisJoin.get("REL_TYPE");	
-					qs.addRelation(fromCol, toCol, relation);
-				}
-				
-			}
+			// I need to instantiate the engine here
+			// for now hard coding it
+			IApi qapi = new RDBMSQueryAPI();
+			qapi.set("ENGINE", engine);
 			
+			QueryStruct qs = new QueryStruct();
+			
+			if(thisStore.containsKey("SELECTOR") && ((Vector)thisStore.get("SELECTOR")).size() > 0)
+				qapi.set("SELECTORS", thisStore.get("SELECTOR"));
+			if(thisStore.containsKey("FILTERS") && ((Vector)thisStore.get("FILTERS")).size() > 0)
+				qapi.set("FILTERS", thisStore.get("FILTERS"));
+			if(thisStore.containsKey("JOINS") && ((Vector)thisStore.get("JOINS")).size() > 0)
+				qapi.set("JOINS",thisStore.get("JOINS"));
+			
+			qapi.process();
 			// I need to run through here tot find which ones are things to be elaborated
 			// and then add it back to the query struct
 			
 			//System.out.println(">>>Set everything on query struct.. now I need to pull the API and run it<<<");
-			///qs.print();
-			
-			SQLInterpreter in = new SQLInterpreter(qs);
-			in.composeQuery();
-			
+			///qs.print();			
 		}
 	}
 
@@ -312,18 +277,33 @@ public class Translation extends DepthFirstAdapter {
 	}
 
 	public void inAExprTerm(AExprTerm node) {
+		
+		// I need to find if there is a parent to this
+		// which is also an expr term
+		// I need some way to see if the parent is the same
+		// then I should just assimilate
+		// instead of trying to redo it
+		// I need some way to figure out
+		// && whatICallThisInMyWorld.containsKey("PARENT") && whatICallThisInMyWorld.get("PARENT").equalsIgnoreCase("EXPR_TERM")		
 		if(whatICallThisInMyWorld.containsKey("EXPR_TERM"))
 		{
 			whatICallThisInMyWorld = new Hashtable<String, String>();
 			whatICallThisInMyWorld.put("EXPR_TERM", "EXPR_TERM");
-			whatICallThisInMyWorld.put("COL_DEF", "COL_DEF");		
-			whatICallThisInMyWorld.put("REPLACE", "REPLACE");
+			whatICallThisInMyWorld.put("COL_DEF", "COL_DEF");
+			whatICallThisInMyWorld.put("PARENT", "EXPR_TERM");
+			
+			// I also need to make provision for replacers
+			// what aare the equations we want to replace
+			addReplacer("COL_DEF");
+			addReplacer("DECIMAL");
+			
+			addSynchronizer("COL_DEF");
+			//whatICallThisInMyWorld.put("REPLACE", "REPLACE");
 			
 			reinit();
 		}
-		//System.out.println("Printing expr term PAR " + node.getExpr());
-		//currentMathFunction.add((node + "").trim());
 
+		System.out.println("Came into exprt term" + node);
 		// this is the one that has paranthesis
 	}
 
@@ -338,28 +318,40 @@ public class Translation extends DepthFirstAdapter {
 		if(value instanceof Double)
 		{
 			dataKeeper.put((node + "").trim(), value);
-		} else  if(whatICallThisInMyWorld.containsKey("EXPR_TERM")) {
+		}
+		else  if(whatICallThisInMyWorld.containsKey("EXPR_TERM"))  // I need to check here if this has parent as expr_term if so let it be
+		{
 			// 2 possibilities either it is a straight up so no col def
-			if(myStore.containsKey("COL_DEF"))
-			{
-				Vector allCols = (Vector) myStore.get("COL_DEF");
-				// get the iterator and then set it for API
-				// I will assume I create the iterator through tinker here
-				// I will call it a string for now
-				Iterator iterator = frame.getIterator(allCols);
-				String expression = node.getExpr().toString();
-				expression = getModExpression(expression);
-				ExpressionIterator it = new ExpressionIterator(iterator, convertVectorToArray(allCols), expression);
-				System.out.println("The expression was  " + node);
-				System.out.println("The columns were..  " + allCols);
-				
-				deInit();
-				
-				saveData("EXPR_TERM", it);
-				myStore.put("COLUMNS_USED", allCols); // TODO: is there a better way to keep track of columns used in expression?
-				
-			}
+			Hashtable <String, String> curWhatICallThisInMyWorld = whatICallThisInMyWorld;
+			Hashtable curMyStore = myStore;
 			
+			deInit();
+			
+			if(whatICallThisInMyWorld.containsKey("PARENT") && whatICallThisInMyWorld.get("PARENT").equalsIgnoreCase("EXPR_TERM"))
+			{
+				// synchornize the replacers
+				// and the values and let it go
+				synchronize(curMyStore, curWhatICallThisInMyWorld.get("SYNCHRONIZERS"));
+			}
+			else // I have reached the final destination
+			{
+				if(curMyStore.containsKey("COL_DEF"))
+				{
+					Vector allCols = (Vector) curMyStore.get("COL_DEF");
+					// get the iterator and then set it for API
+					// I will assume I create the iterator through tinker here
+					// I will call it a string for now
+					Iterator iterator = frame.getIterator(allCols);
+					String expression = node.getExpr().toString();
+					expression = getModExpression(expression);
+					ExpressionIterator it = new ExpressionIterator(iterator, convertVectorToArray(allCols), expression);
+					System.out.println("The expression was  " + node);
+					System.out.println("The columns were..  " + allCols);
+										
+					saveData("EXPR_TERM", it);
+					myStore.put("COLUMNS_USED", allCols); // TODO: is there a better way to keep track of columns used in expression?
+				}
+			}
 		}
         
 		/*
@@ -406,6 +398,12 @@ public class Translation extends DepthFirstAdapter {
 			dataKeeper.put((node + "").trim(), value);
 		//System.out.println("Value so far..  " + value);*/
 	}
+	
+    public void inAEExprExpr(AEExprExpr node)
+    {
+        System.out.println("In The EXPRESSION .. " + node);
+    }
+
 	
 	private void remasterCol(String curNode, String parNode, Hashtable <String, Vector<String>> funCol)
 	{
@@ -474,7 +472,7 @@ public class Translation extends DepthFirstAdapter {
 	public void inAColDef(AColDef node) {
 		String colName = node.getColname().toString().trim();
 
-		if(whatICallThisInMyWorld.containsKey("REPLACE") && whatICallThisInMyWorld.get("REPLACE").equalsIgnoreCase("REPLACE")) {
+		/*if(whatICallThisInMyWorld.containsKey("REPLACE") && whatICallThisInMyWorld.get("REPLACE").equalsIgnoreCase("REPLACE")) {
     		Vector<String> replacements = new Vector<String>();
     		if(!myStore.containsKey("REPLACE")) {
     			myStore.put("REPLACE", replacements);
@@ -486,7 +484,7 @@ public class Translation extends DepthFirstAdapter {
     			myStore.put(uncleanName, colName);
     			myStore.put("REPLACE", replacements);
     		}
-    	}
+    	}*/
 		//System.out.println("Inside col def.. ");
 
 		// I will create the iterator here and put it but for now..
@@ -526,9 +524,10 @@ public class Translation extends DepthFirstAdapter {
 			// put some dummy data into the data keeper for now
 			dataKeeper.put((node + "").trim(), node.getColname());
 		}
-		else 
+		//else 
 		{
 			saveData("COL_DEF", colName);
+			saveReplace("COL_DEF", (node + "").trim(), node.getColname()+"");
 			dataKeeper.put((node + "").trim(), dataKeeper.keys());			
 		}
 	}
@@ -548,6 +547,11 @@ public class Translation extends DepthFirstAdapter {
 
 		AddColumnOperator addCol = new AddColumnOperator(frame, it, newCol, columnArray);
 		addCol.apply();
+		
+		
+		// if everything is right.. this would print me tinkerIterator
+		System.out.println("Iterator to mess with " + myStore.get("API"));
+		System.out.println("The new column name.. prints as a vector " + myStore.get("NEWCOL"));
 		
 	}
 
@@ -569,6 +573,10 @@ public class Translation extends DepthFirstAdapter {
 		whatICallThisInMyWorld.put("API_BLOCK", "API");
 		whatICallThisInMyWorld.put("EXPR_TERM", "API");
         whatICallThisInMyWorld.put("COL_DEF", "NEWCOL");
+        whatICallThisInMyWorld.put("PARENT", "COL_ADD");
+		
+		// whatICallThisInMyWorl.put(" THIS IS WHAT I WANT", " BUT THIS IS WHAT I CALL IT")
+		
 		
 		reinit();
 		
@@ -594,23 +602,23 @@ public class Translation extends DepthFirstAdapter {
     public void inADecimal(ADecimal node)
     {
 		//System.out.println("DECIMAL VALUE.. >>> " + node);
-    	if(whatICallThisInMyWorld.containsKey("REPLACE") && whatICallThisInMyWorld.get("REPLACE").equalsIgnoreCase("REPLACE")) {
+		String fraction = node.getFraction() +"";
+		String number = (node.getWhole() + "").trim();
+		if(node.getFraction() != null)
+			number = number + "." + (node.getFraction() + "").trim();
+    	saveReplace("DECIMAL", node.toString().trim(), number); // all of this is now sitting in add replacement
+    	
+    	/*if(whatICallThisInMyWorld.containsKey("REPLACE") && whatICallThisInMyWorld.get("REPLACE").equalsIgnoreCase("REPLACE")) {
     		Vector<String> replacements = new Vector<String>();
-    		if(!myStore.containsKey("REPLACE")) {
-    			myStore.put("REPLACE", replacements);
-    		}
-    		if (myStore.containsKey("REPLACE")) {
-    			replacements = (Vector)myStore.get("REPLACE");
-    			String valueString = node.toString().trim();
-    			String fraction = node.getFraction() +"";
-    			String number = (node.getWhole() + "").trim();
-    			if(node.getFraction() != null)
-    				number = number + "." + (node.getFraction() + "").trim();
-    			replacements.addElement(valueString);
-    			myStore.put(valueString, number);
-    			myStore.put("REPLACE", replacements);
-    		}
-    	}
+    		if(myStore.containsKey("REPLACE")) 
+    			replacements = (Vector<String>)myStore.get("REPLACE"); //, replacements);
+
+    		String valueString = node.toString().trim();
+			
+			replacements.addElement(valueString);
+			myStore.put(valueString, number);
+			myStore.put("REPLACE", replacements);
+    	}*/
 //		
 //		dataKeeper.put((node + "").trim(), Double.parseDouble(number));		
 	}
@@ -1057,7 +1065,7 @@ public class Translation extends DepthFirstAdapter {
 				myStore.put(whatICallThisInMyWorld.get(key  + "_" + count), data);
 			//else if(count != 1)
 			//	dataKeeper.put("COL_DEF_" + count, node.getColname());
-			else if(whatICallThisInMyWorld.containsKey(key))
+			else if(whatICallThisInMyWorld.containsKey(key)) // stack everything into a vector
 			{
 				Vector valVector = new Vector();
 				if(myStore.containsKey(whatICallThisInMyWorld.get(key)))
@@ -1104,6 +1112,84 @@ public class Translation extends DepthFirstAdapter {
 			howManyTimesHaveIVisited = howManyTimesHaveIVisitedHistory.lastElement();
 		if(whatICallThisInMyWorldHistory.size() > 0)
 			whatICallThisInMyWorld = whatICallThisInMyWorldHistory.lastElement();
+	}
+	
+	private void addReplacer(String replacerPattern)
+	{
+		String replacers = replacerPattern;
+		if(whatICallThisInMyWorld.containsKey("REPLACERS"))
+			replacers = whatICallThisInMyWorld.get("REPLACERS")+";" + replacers;
+		whatICallThisInMyWorld.put("REPLACERS", replacers);
+	}
+
+	private void saveReplace(String metaKey, String key, String value)
+	{
+		// adds the replacement
+		if(whatICallThisInMyWorld.containsKey("REPLACERS"))
+		{
+			String replacers = 	whatICallThisInMyWorld.get("REPLACERS");
+			if(replacers.indexOf(metaKey) >= 0 )
+			{
+				myStore.put(key, value);
+				Vector <String> replacerKeys = new Vector <String>();
+				
+				// add this to the list of replacers
+				if(myStore.containsKey("REPLACERS"))
+					replacerKeys = (Vector <String>)myStore.get("REPLACERS");
+				
+				replacerKeys.add(key);
+				myStore.put("REPLACERS", replacerKeys);
+			}
+		}
+	}
+	
+	private void addSynchronizer(String syncPattern)
+	{
+		String synchronizers = syncPattern;
+		if(whatICallThisInMyWorld.containsKey("SYNCHRONIZERS"))
+			synchronizers = whatICallThisInMyWorld.get("SYNCHRONIZERS")+";" + syncPattern;
+		whatICallThisInMyWorld.put("SYNCHRONIZERS", syncPattern);
+	}
+
+	
+	private void synchronize(Hashtable thisStore, String synchronizers)
+	{
+		// I need to get the replacers from the curWorld
+		if(thisStore.containsKey("REPLACERS"))
+		{
+			Vector <String> replacerKeys = (Vector <String>)thisStore.get("REPLACERS");
+			
+			// organize all the data
+			for(int replaceIndex = 0;replaceIndex < replacerKeys.size();replaceIndex++)
+			{
+				String key = replacerKeys.elementAt(replaceIndex);
+				Object value = thisStore.get(key);
+				myStore.put(key, value);
+			}
+			
+			// add these to the existing replacers if one exists
+			if(myStore.containsKey("REPLACERS"))
+				replacerKeys.addAll((Vector<String>)myStore.get("REPLACERS"));
+			
+			// put this guy back
+			myStore.put("REPLACERS", replacerKeys);
+		}		
+		// I should do the same for synchronizers as well here
+		if(synchronizers != null && synchronizers.length() >= 0)
+		{
+			String [] keys = synchronizers.split(";");
+			for(int keyIndex = 0;keyIndex < keys.length;keyIndex++)
+			{
+				Vector <String> curV = null;
+				if(thisStore.containsKey(keys[keyIndex]))
+					curV = (Vector<String>)thisStore.get(keys[keyIndex]);
+				if(myStore.containsKey(keys[keyIndex]))
+					curV.addAll((Vector<String>)myStore.get(keys[keyIndex]));
+				
+				myStore.put(keys[keyIndex], curV);
+			}
+		}
+		
 	}
 		
 }
