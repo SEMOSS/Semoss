@@ -159,6 +159,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAAliasColop(AAliasColop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAAddColumn(AAddColumn node)
     {
         defaultCase(node);
@@ -202,6 +208,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAImportColumn(AImportColumn node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAAliasColumn(AAliasColumn node)
     {
         defaultCase(node);
     }
@@ -670,6 +682,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTColfocus(TColfocus node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTColalias(TColalias node)
     {
         defaultCase(node);
     }
