@@ -253,7 +253,7 @@ public class QuestionModButtonListener implements IChakraListener {
 	}
 
 	public void populateParamVectors() {
-		Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine) engine).getParams(currentQuestion);
+		Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine) engine).getParams(currentQuestionKey);
 
 		// if there are params, get any related data (queries/dependencies)
 		// and store them
