@@ -349,6 +349,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAImportColop(node);
     }
 
+    public void inAAliasColop(AAliasColop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAAliasColop(AAliasColop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAAliasColop(AAliasColop node)
+    {
+        inAAliasColop(node);
+        if(node.getAliasColumn() != null)
+        {
+            node.getAliasColumn().apply(this);
+        }
+        outAAliasColop(node);
+    }
+
     public void inAAddColumn(AAddColumn node)
     {
         defaultIn(node);
@@ -679,6 +700,43 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getData().apply(this);
         }
         outAImportColumn(node);
+    }
+
+    public void inAAliasColumn(AAliasColumn node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAAliasColumn(AAliasColumn node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAAliasColumn(AAliasColumn node)
+    {
+        inAAliasColumn(node);
+        if(node.getColalias() != null)
+        {
+            node.getColalias().apply(this);
+        }
+        if(node.getLp1() != null)
+        {
+            node.getLp1().apply(this);
+        }
+        if(node.getCols() != null)
+        {
+            node.getCols().apply(this);
+        }
+        if(node.getWhere() != null)
+        {
+            node.getWhere().apply(this);
+        }
+        if(node.getRp2() != null)
+        {
+            node.getRp2().apply(this);
+        }
+        outAAliasColumn(node);
     }
 
     public void inADecimal(ADecimal node)

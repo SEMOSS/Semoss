@@ -26,6 +26,7 @@ public interface Analysis extends Switch
     void caseAFocuscolColop(AFocuscolColop node);
     void caseAUnfocusColop(AUnfocusColop node);
     void caseAImportColop(AImportColop node);
+    void caseAAliasColop(AAliasColop node);
     void caseAAddColumn(AAddColumn node);
     void caseARemColumn(ARemColumn node);
     void caseASetColumn(ASetColumn node);
@@ -34,6 +35,7 @@ public interface Analysis extends Switch
     void caseAFocusColumn(AFocusColumn node);
     void caseAUnfocus(AUnfocus node);
     void caseAImportColumn(AImportColumn node);
+    void caseAAliasColumn(AAliasColumn node);
     void caseADecimal(ADecimal node);
     void caseAExprGroup(AExprGroup node);
     void caseAApiBlock(AApiBlock node);
@@ -113,6 +115,7 @@ public interface Analysis extends Switch
     void caseTColset(TColset node);
     void caseTColpivot(TColpivot node);
     void caseTColfocus(TColfocus node);
+    void caseTColalias(TColalias node);
     void caseTCollink(TCollink node);
     void caseTShowHide(TShowHide node);
     void caseTMod(TMod node);
