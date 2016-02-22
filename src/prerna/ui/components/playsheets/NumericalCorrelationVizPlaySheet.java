@@ -74,8 +74,10 @@ public class NumericalCorrelationVizPlaySheet extends BrowserPlaySheet{
 
 	@Override
 	public void createData() {
-		if(dataFrame == null || dataFrame.isEmpty())
+		if(dataFrame == null || dataFrame.isEmpty()) {
 			super.createData();
+		}
+		this.columnHeaders = getNames();
 	}
 
 	@Override
