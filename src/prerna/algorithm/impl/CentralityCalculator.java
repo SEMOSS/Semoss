@@ -33,8 +33,7 @@ import java.util.Hashtable;
 import java.util.Set;
 import java.util.Vector;
 
-import org.openrdf.repository.RepositoryConnection;
-
+import edu.uci.ics.jung.graph.DelegateForest;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -45,7 +44,6 @@ import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
 import prerna.util.Utility;
-import edu.uci.ics.jung.graph.DelegateForest;
 
 public final class CentralityCalculator {
 	
@@ -321,7 +319,7 @@ public final class CentralityCalculator {
 	 * @return GraphPlaySheet that displays the metamodel
 	 */
 	public static GraphPlaySheet createMetamodel(IEngine coreEngine, String query, boolean physicalMetamodel){
-		String playSheetName = "Graph";
+		String playSheetName = "GDMGraph";
 		String dataMakerName = "GraphDataModel";
 		String title = "Metamodel";
 		String id = coreEngine.getEngineName() + "-Metamodel";

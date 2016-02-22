@@ -652,7 +652,7 @@ public class RDBMSReader {
 				List<DataMakerComponent> dmcList = new ArrayList<DataMakerComponent>();
 				DataMakerComponent dmc = new DataMakerComponent(engine, sql);
 				dmcList.add(dmc);
-				questionAdmin.addQuestion(question, GENERIC_PERSPECTIVE, dmcList, layout, order, "BTreeDataFrame", true, null, null, null);
+				questionAdmin.addQuestion(question, GENERIC_PERSPECTIVE, dmcList, layout, order, "TinkerFrame", true, null, null, null);
 			}
 		} catch(RuntimeException e) {
 			System.out.println("caught exception while adding question.................");
