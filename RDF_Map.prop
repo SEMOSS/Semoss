@@ -324,7 +324,7 @@ settingsPanel
 loadSheetExportPanel
 
 #Shape maps
-InterfaceControlDocument_SHAPE	CIRCLE
+SystemInterface_SHAPE	CIRCLE
 System_SHAPE	SQUARE
 Requirement_SHAPE	HEXAGON
 BusinessProcess_SHAPE	CIRCLE
@@ -367,7 +367,7 @@ SBASubArea_SHAPE	SQUARE
 SBA_SHAPE	STAR
 
 #Shape Colors
-InterfaceControlDocument_COLOR	GREEN
+SystemInterface_COLOR	GREEN
 System_COLOR	BLUE
 Requirement_COLOR	BROWN
 BusinessProcess_COLOR	YELLOW
@@ -455,17 +455,19 @@ SEMOSS_URI	http://semoss.org/ontologies
 GraphDataModel	prerna.om.GraphDataModel
 BTreeDataFrame	prerna.ds.BTreeDataFrame
 TinkerFrame	prerna.ds.TinkerFrame
-PrimaryKeyTinkerFrame	prerna.ds.PrimaryKeyTinkerFrame
+PrimaryKeyTinkerFrame	prerna.ds.TinkerFrame
 
 ##PLAYSHEETS DEFINED
-PLAYSHEETS_DEFINED	Grid;Graph;HeatMap;Line;Combo;Dendrogram;ParallelCoordinates;ParallelSets;Scatter;Column;Pie;3dBarchart;CirclePack;Clustering;Gantt;Sankey;ScatterplotMatrix;SingleAxisCluster;SystemSimilarity;USHeatMap;USMap;WorldHeatMap;WorldMap;Mashup
+PLAYSHEETS_DEFINED	Grid;Graph;HeatMap;Line;Combo;Dendrogram;ParallelCoordinates;ParallelSets;Scatter;Column;Pie;3dBarchart;CirclePack;Clustering;Gantt;Sankey;ScatterplotMatrix;SingleAxisCluster;SystemSimilarity;USHeatMap;USMap;WorldHeatMap;WorldMap;Mashup;RawGrid;GDMGraph
 CirclePack	prerna.ui.components.playsheets.CirclePackPlaySheet
 Clustering	prerna.ui.components.playsheets.ClusteringVizPlaySheet
 Column	prerna.ui.components.playsheets.ColumnChartPlaySheet
 Combo	prerna.ui.components.specific.ousd.RoadmapTimelineComboChartPlaySheet
 Dendrogram	prerna.ui.components.playsheets.DendrogramPlaySheet
-Graph	prerna.ui.components.playsheets.GraphPlaySheet
+Graph	prerna.ui.components.playsheets.GraphTinkerPlaySheet
+GDMGraph	prerna.ui.components.playsheets.GraphPlaySheet
 Grid	prerna.ui.components.playsheets.GridPlaySheet
+RawGrid	prerna.ui.components.playsheets.GridRAWPlaySheet
 HeatMap	prerna.ui.components.playsheets.HeatMapPlaySheet
 Line	prerna.ui.components.playsheets.LineChartPlaySheet
 ParallelSets	prerna.ui.components.playsheets.ParallelSetsPlaySheet
@@ -503,6 +505,7 @@ Combo_CUSTOM	FALSE
 Gantt_CUSTOM	FALSE
 SystemSimilarity_CUSTOM	FALSE
 Mashup_CUSTOM	FALSE
+GDMGraph_CUSTOM	FALSE
 
 
 ##TRANSFORMATIONS DEFINED
