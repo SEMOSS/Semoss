@@ -21,9 +21,10 @@ public class AddColumnOperator implements IColumnOperator {
 	}
 	
 	public void apply() {
-		for (int i = 0; i < headersUsed.length; i++) {
-			frame.connectTypes(headersUsed[i], newCol);
-		}
+//		for (int i = 0; i < headersUsed.length; i++) {
+//			frame.connectTypes(headersUsed, newCol);
+//		}
+		
 		
 		while(it.hasNext()) {
 			HashMap<String, Object> row = new HashMap<String, Object>();
@@ -35,6 +36,7 @@ public class AddColumnOperator implements IColumnOperator {
 			}
 			frame.addRelationship(row, row);
 		}
+		frame.setTempExpressionResult("SUCCESS");
 	}
 	
 }
