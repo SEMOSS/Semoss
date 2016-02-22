@@ -22,7 +22,7 @@ public class AddColumnOperator implements IColumnOperator {
 	
 	public void apply() {
 //		for (int i = 0; i < headersUsed.length; i++) {
-//			frame.connectTypes(headersUsed, newCol);
+			frame.connectTypes(headersUsed[0], newCol);
 //		}
 		
 		
