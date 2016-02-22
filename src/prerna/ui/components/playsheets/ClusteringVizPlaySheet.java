@@ -115,11 +115,12 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 		fileName = "file://" + workingDir + "/html/MHS-RDFSemossCharts/app/cluster.html";
 	}
 	
-//	@Override
-//	public void createData() {
-//		if(dataFrame == null || dataFrame.isEmpty())
-//			super.createData();
-//	}
+	@Deprecated
+	@Override
+	public void createData() {
+		if(dataFrame == null || dataFrame.isEmpty())
+			super.createData();
+	}
 
 	@Override
 	public void runAnalytics() {

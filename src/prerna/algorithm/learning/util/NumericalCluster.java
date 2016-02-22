@@ -34,7 +34,7 @@ public class NumericalCluster {
 			String attribute = attributeName.get(i);
 			Double v = value.get(i);
 			Double weight = weights.get(attribute);
-			if(v==null) {
+			if(v==null || v.isNaN()) {
 				v = distanceMeasureForAttribute.get(attribute).getNullRatio();
 				similarity = similarity + v*weight;
 				continue;
@@ -119,16 +119,16 @@ public class NumericalCluster {
 
 			Double thisCenterValue = this.getCenterValueForAttribute(attributeName);
 			Double centerValue = c2.getCenterValueForAttribute(attributeName);
-			if(thisCenterValue == null || centerValue == null) {
+			if(thisCenterValue == null || thisCenterValue.isNaN() || centerValue == null || centerValue.isNaN()) {
 				double thisNumNull = this.getCenterNumNullsForAttribute(attributeName);
 				double thisNumVals = this.getCenterNumInstancesForAttribute(attributeName);
 				double numNull = c2.getCenterNumNullsForAttribute(attributeName);
 				double numVals = c2.getCenterNumInstancesForAttribute(attributeName);
 				similarity = similarity + (thisNumNull + numNull) / (thisNumVals + numVals + thisNumNull + numNull) * weight;
+			} else {
+				//using euclidean distance
+				similarity = similarity + (Math.pow(thisCenterValue - centerValue, 2))*weight;
 			}
-
-			//using euclidean distance
-			similarity = similarity + (Math.pow(thisCenterValue - centerValue, 2))*weight;
 		}
 		
 		similarity = (1 - Math.sqrt(similarity));

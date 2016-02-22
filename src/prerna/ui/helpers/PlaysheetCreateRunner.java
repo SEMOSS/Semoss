@@ -51,6 +51,7 @@ public class PlaysheetCreateRunner implements Runnable{
 	@Override
 	public void run() {
 		runWeb();
+		playSheet.processQueryData();
 		playSheet.createView();
 	}
 	
