@@ -181,9 +181,9 @@ public class ClusteringVizPlaySheet extends BrowserPlaySheet {
 		}
 
 		Hashtable<String, Hashtable<String, Object>>[] barData = new Hashtable[this.numClusters];
-		Hashtable<String, Hashtable<String, Object>> clusterDataHash = new Hashtable<String, Hashtable<String, Object>>();
 		Iterator<List<Object[]>> it = dataFrame.uniqueIterator(clusterIDCol, false);
 		while(it.hasNext()) {
+			Hashtable<String, Hashtable<String, Object>> clusterDataHash = new Hashtable<String, Hashtable<String, Object>>();
 			List<Object[]> clusterData = it.next();
 			int numInstancesInCluster = clusterData.size();
 			int clusterNumber = (int) clusterData.get(0)[clusterIDIndex];
