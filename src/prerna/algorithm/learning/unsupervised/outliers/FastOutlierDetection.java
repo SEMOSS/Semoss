@@ -185,9 +185,10 @@ public class FastOutlierDetection implements IAnalyticTransformationRoutine {
 		if(this.dataFrame instanceof BTreeDataFrame) {
 			ITableDataFrame returnTable = new BTreeDataFrame(new String[]{attributeName, changedColumn});
 			for(Object instance : results.keySet()) {
+				Double val = (numRuns-results.get(instance))/numRuns;
 				Map<String, Object> row = new HashMap<String, Object>();
 				row.put(attributeName, instance);
-				row.put(changedColumn, results.get(instance));
+				row.put(changedColumn, val);
 				returnTable.addRow(row, row);
 			}
 			
