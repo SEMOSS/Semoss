@@ -27,9 +27,11 @@
  *******************************************************************************/
 package prerna.engine.api;
 
+import java.util.Iterator;
+
 import prerna.algorithm.api.ITableDataFrame;
 
-public interface ISelectWrapper extends IEngineWrapper {
+public interface ISelectWrapper extends IEngineWrapper, Iterator {
 
 	public ISelectStatement next();
 	
