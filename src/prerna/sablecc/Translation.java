@@ -13,7 +13,6 @@ import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IApi;
 import prerna.engine.impl.rdbms.RDBMSQueryAPI;
-import prerna.rdf.query.builder.SQLInterpreter;
 import prerna.sablecc.analysis.DepthFirstAdapter;
 import prerna.sablecc.node.AAddColumn;
 import prerna.sablecc.node.AApiBlock;
@@ -735,9 +734,9 @@ public class Translation extends DepthFirstAdapter {
 			// now I need to set this value back
 			// adding a dumy value for now say 999
 			if(finalValue.length == 1)	
-				dataKeeper.put((node + "").trim(), finalValue[0]);
+				frame.setTempExpressionResult(finalValue[0]);
 			else
-				dataKeeper.put((node + "").trim(), finalValue);
+				frame.setTempExpressionResult(finalValue);
 				
 			
 			// the job here is done.. now add it to tempStrings
