@@ -1120,14 +1120,6 @@ public class GraphDataModel implements IDataMaker {
 
 	}
 
-	/**
-	 * Method getPredicateData.
-	 * @return PropertySpecData
-	 */
-	public PropertySpecData getPredicateData() {
-		return predData;
-	}
-
 	public void loadBaseData(IEngine engine){
 		// now add the base relationships to the metamodel
 		// this links the hierarchy that tool needs to the metamodel being queried
@@ -1188,6 +1180,14 @@ public class GraphDataModel implements IDataMaker {
 		return this.coreEngine;
 	}
 
+	/**
+	 * Method getPredicateData.
+	 * @return PropertySpecData
+	 */
+	public PropertySpecData getPredicateData() {
+		return predData;
+	}
+
 	public String getQuery(){
 		return this.coreQuery;
 	}
@@ -1227,17 +1227,17 @@ public class GraphDataModel implements IDataMaker {
 	@Override
 	public Map getDataMakerOutput() {
 		Hashtable retHash = new Hashtable();
-		if(this.getOverlay()){
-			Map<String, SEMOSSVertex> props = this.getIncrementalVertPropStore();
-			Map<String, SEMOSSVertex> nodes = this.getIncrementalVertStore();
-			props.keySet().removeAll(nodes.keySet());
-			retHash .put("nodes", nodes);
-			retHash.put("nodeProperties", props);
-			retHash.put("edges", this.getIncrementalEdgeStore().values());
-		} else {
+//		if(this.getOverlay()){ // removing this for now to keep aligned with tinker frame
+//			Map<String, SEMOSSVertex> props = this.getIncrementalVertPropStore();
+//			Map<String, SEMOSSVertex> nodes = this.getIncrementalVertStore();
+//			props.keySet().removeAll(nodes.keySet());
+//			retHash .put("nodes", nodes);
+//			retHash.put("nodeProperties", props);
+//			retHash.put("edges", this.getIncrementalEdgeStore().values());
+//		} else {
 			retHash.put("nodes", this.getVertStore());
 			retHash.put("edges", this.getEdgeStore().values());
-		}
+//		}
 		return retHash;
 	}
 }
