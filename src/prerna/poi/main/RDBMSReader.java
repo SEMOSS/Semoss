@@ -591,7 +591,7 @@ public class RDBMSReader {
 		if(!addtoExisting){ 
 			genericQueries = genericQueries + ";" + "GQ" + tableIndex;
 			prop.put("GQ" + tableIndex, "Explore a concept from the database");
-			prop.put("GQ" + tableIndex + "_LAYOUT", "prerna.ui.components.playsheets.GraphPlaySheet");
+			prop.put("GQ" + tableIndex + "_LAYOUT", "Graph");
 			prop.put("GQ" + tableIndex +"_QUERY", "SELECT X.@Concept-Concept:Concept@ AS @Concept-Concept:Concept@ "
 					+ "From @Concept-Concept:Concept@ X WHERE X.@Concept-Concept:Concept@='@Instance-Instance:Instance@'");
 			prop.put("GQ" + tableIndex + "_Instance_DEPEND", "Concept");
