@@ -51,7 +51,7 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default:Generic-Perspective:GQ1">
 	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?instance ?instance ?instance} WHERE { BIND(&lt;@Concept-http://semoss.org/ontologies/Concept@&gt; AS ?entity) BIND(&lt;@Instance-http://semoss.org/ontologies/Concept/Instance@&gt; AS ?instance) {?instance &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt; ?entity ;} }</SPARQL>
-	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GraphPlaySheet</Layout>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">Graph</Layout>
 	<PARAM xmlns="INSIGHT:" rdf:resource="http://semoss.org/ontologies/Concept/Param/Default:Generic-Perspective:GQ1:Concept"/>
 </rdf:Description>
 
@@ -109,7 +109,7 @@
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default:Generic-Perspective:GQ2">
 	<SPARQL xmlns="http://semoss.org/ontologies/Relation/Contains/">CONSTRUCT {?subject ?predicate ?object} WHERE {{?subject ?predicate ?object.}}</SPARQL>
-	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">prerna.ui.components.playsheets.GraphPlaySheet</Layout>
+	<Layout xmlns="http://semoss.org/ontologies/Relation/Contains/">Graph</Layout>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/Insight/Default:Generic-Perspective:GQ3">
