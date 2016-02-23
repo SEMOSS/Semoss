@@ -40,7 +40,6 @@ import org.apache.log4j.Logger;
 import prerna.ui.components.ControlData;
 import prerna.ui.components.LabelTableModel;
 import prerna.ui.components.TooltipTableModel;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -64,7 +63,7 @@ public class PlaySheetControlListener implements InternalFrameListener {
 		JInternalFrame jf = e.getInternalFrame();
 		// get the filter data
 		ControlData vfd = null;
-		AbstractGraphPlaySheet ps = (AbstractGraphPlaySheet)jf;
+		GraphPlaySheet ps = (GraphPlaySheet)jf;
 		vfd = ps.getControlData();
 		
 		LabelTableModel model = new LabelTableModel(vfd);	

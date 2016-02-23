@@ -41,7 +41,6 @@ import com.teamdev.jxbrowser.chromium.Browser;
 import com.teamdev.jxbrowser.chromium.LoggerProvider;
 import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.main.listener.impl.ChartPullDataListener;
 import prerna.util.Constants;
@@ -56,7 +55,7 @@ public class BrowserTabSheet3 extends JInternalFrame implements Runnable{
 	protected static final String LS = System.getProperty("line.separator");
 
 	ChartPullDataListener cp = null;
-	AbstractGraphPlaySheet ps = null;
+	GraphPlaySheet ps = null;
 	static final Logger logger = LogManager.getLogger(BrowserTabSheet3.class.getName());
 	public Browser browser = new Browser();
 	public BrowserView browserView;
@@ -67,7 +66,7 @@ public class BrowserTabSheet3 extends JInternalFrame implements Runnable{
 	 * @param fileName 	File name to be navigated to in the browser.
 	 * @param ps			Playsheet being called.
 	 */
-	public BrowserTabSheet3(String fileName, AbstractGraphPlaySheet ps) {
+	public BrowserTabSheet3(String fileName, GraphPlaySheet ps) {
 		super("Charts", true, true, true, true);
 		browserView = new BrowserView(browser);
 		this.ps = ps;
@@ -108,7 +107,7 @@ public class BrowserTabSheet3 extends JInternalFrame implements Runnable{
 	 * Sets the playsheet.
 	 * @param ps 	Graph playsheet.
 	 */
-	public void setPlaySheet(AbstractGraphPlaySheet ps)
+	public void setPlaySheet(GraphPlaySheet ps)
 	{
 		this.ps = ps;
 	}

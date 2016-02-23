@@ -37,7 +37,6 @@ import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.transformer.ArrowDrawPaintTransformer;
 import prerna.ui.transformer.EdgeArrowStrokeTransformer;
@@ -53,7 +52,7 @@ public class LoopIdentifierProcessor implements IAlgorithm{
 
 //	protected GraphDataModel gdm = new GraphDataModel();
 	GridFilterData gfd = new GridFilterData();
-	AbstractGraphPlaySheet playSheet;
+	GraphPlaySheet playSheet;
 	Hashtable<String, SEMOSSEdge> nonLoopEdges = new Hashtable<String, SEMOSSEdge>();
 	Hashtable<String, SEMOSSEdge> loopEdges = new Hashtable<String, SEMOSSEdge>();
 	Hashtable<String, SEMOSSVertex> nonLoopVerts = new Hashtable<String, SEMOSSVertex>();
@@ -323,7 +322,7 @@ public class LoopIdentifierProcessor implements IAlgorithm{
 	 * @param ps IPlaySheet		Playsheet to be cast.
 	 */
 	public void setPlaySheet(IPlaySheet ps){
-		playSheet = (AbstractGraphPlaySheet) ps;
+		playSheet = (GraphPlaySheet) ps;
 	}
 
 	/**

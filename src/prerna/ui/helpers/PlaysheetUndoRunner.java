@@ -31,7 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import prerna.om.Insight;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 
@@ -67,6 +67,6 @@ public class PlaysheetUndoRunner implements Runnable{
 			id = lastComp.getPreTrans().get(lastComp.getPreTrans().size() - 1).getId();
 		}
 		insight.undoProcesses(Arrays.asList(new String[]{id}));
-		((AbstractGraphPlaySheet)insight.getPlaySheet()).undoView();
+		((GraphPlaySheet)insight.getPlaySheet()).undoView();
 	}
 }

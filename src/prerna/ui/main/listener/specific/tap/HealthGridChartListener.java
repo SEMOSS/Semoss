@@ -35,7 +35,7 @@ import org.apache.log4j.Logger;
 
 import prerna.om.InsightStore;
 import prerna.ui.components.BrowserTabSheet3;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 
 /**
  * Loads the health grid chart playsheet when user selects the "Create Health Grid" option in JMenuItem in GraphNodePopup.java
@@ -51,7 +51,7 @@ public class HealthGridChartListener implements ActionListener {
 	@Override
 	public void actionPerformed(ActionEvent e) {
 //		GraphPlaySheet playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
-		AbstractGraphPlaySheet playSheet = (AbstractGraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
+		GraphPlaySheet playSheet = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
 
 		logger.info("Engaged the health grid chart component successfully");
 		// get to the vertexfilter data

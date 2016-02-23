@@ -36,7 +36,7 @@ import org.apache.log4j.Logger;
 import edu.uci.ics.jung.visualization.control.ModalGraphMouse;
 import edu.uci.ics.jung.visualization.control.ModalGraphMouse.Mode;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 
 /**
  * Changes mouse based on what is selected.
@@ -60,7 +60,7 @@ public class MouseTransformPopupMenuListener implements ActionListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {	
-		AbstractGraphPlaySheet ps2 = (AbstractGraphPlaySheet)ps;
+		GraphPlaySheet ps2 = (GraphPlaySheet)ps;
 		((ModalGraphMouse)ps2.getView().getGraphMouse()).setMode(Mode.TRANSFORMING);
 	}
 	

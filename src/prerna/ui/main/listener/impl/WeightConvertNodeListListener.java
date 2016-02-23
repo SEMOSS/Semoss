@@ -39,7 +39,7 @@ import javax.swing.event.ListSelectionListener;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.GraphToTreeConverter;
 import prerna.ui.components.WeightDropDownButton;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.transformer.VertexShapeTransformer;
 
 /**
@@ -47,7 +47,7 @@ import prerna.ui.transformer.VertexShapeTransformer;
  */
 public class WeightConvertNodeListListener implements ListSelectionListener{
 
-	AbstractGraphPlaySheet playSheet;
+	GraphPlaySheet playSheet;
 	GraphToTreeConverter converter;
 	WeightDropDownButton btnMenu;
 	double minimumValue =.5;
@@ -64,7 +64,7 @@ public class WeightConvertNodeListListener implements ListSelectionListener{
 	 * Method setPlaySheet.  Sets the play sheet that the listener will access.
 	 * @param ps
 	 */
-	public void setPlaySheet(AbstractGraphPlaySheet ps){
+	public void setPlaySheet(GraphPlaySheet ps){
 		this.playSheet = ps;
 	}
 	

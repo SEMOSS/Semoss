@@ -51,7 +51,7 @@ import prerna.nameserver.NameServerProcessor;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.query.builder.QueryBuilderData;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.ui.main.listener.impl.NeighborMenuListener;
@@ -113,7 +113,7 @@ public class TFRelationQueryBuilderPopup extends JMenu implements MouseListener{
 			
 			// get the filter values
 			List<Object> filterList = new ArrayList<Object>();
-			Vector <SEMOSSVertex> vertVector = ((AbstractGraphPlaySheet)ps).filterData.getNodes(type); // in reality this should work now
+			Vector <SEMOSSVertex> vertVector = ((GraphPlaySheet)ps).filterData.getNodes(type); // in reality this should work now
 			//Vector <SEMOSSVertex> vertVector = new Vector<SEMOSSVertex>();
 			logger.info("Vert vector size is " + vertVector.size());
 			for(int vertIndex = 0;vertIndex < vertVector.size();vertIndex++)

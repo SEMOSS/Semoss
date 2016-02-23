@@ -44,7 +44,6 @@ import prerna.om.GraphDataModel;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -59,7 +58,7 @@ public class GraphPlaySheetExportListener  extends AbstractListener{
 
 	public static GraphPlaySheetExportListener listener = null;
 	static final Logger logger = LogManager.getLogger(GraphPlaySheetExportListener.class.getName());
-	AbstractGraphPlaySheet playSheet;
+	GraphPlaySheet playSheet;
 
 	/**
 	 * Method getInstance.  Retrieves the instance of the graph play sheet export listener.
@@ -101,7 +100,7 @@ public class GraphPlaySheetExportListener  extends AbstractListener{
 //		IEngine engine = playSheet.getRDFEngine();
 		
 		InMemoryJenaEngine jenaEng = new InMemoryJenaEngine();
-		Model jenaModel = playSheet.getDataMaker().getJenaModel();
+		Model jenaModel = ((GraphDataModel)playSheet.getDataMaker()).getJenaModel();
 		jenaEng.setModel(jenaModel);
 		
 		
@@ -197,7 +196,7 @@ public class GraphPlaySheetExportListener  extends AbstractListener{
 	 * @param ps IPlaySheet
 	 */
 	public void setPlaysheet(IPlaySheet ps) {
-		playSheet = (AbstractGraphPlaySheet) ps;
+		playSheet = (GraphPlaySheet) ps;
 		
 	}
 

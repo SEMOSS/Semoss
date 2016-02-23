@@ -35,6 +35,7 @@ import java.util.Hashtable;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.playsheets.GraphPlaySheet;
@@ -64,8 +65,8 @@ public class LifeCycleNodeGraphPlaySheet extends GraphPlaySheet {
 	@Override
 	public void createForest() {
 
-		Hashtable<String, SEMOSSVertex> myVertStore = gdm.getVertStore();
-		Hashtable<String, SEMOSSEdge> myEdgeStore = gdm.getEdgeStore();
+		Hashtable<String, SEMOSSVertex> myVertStore = this.getVertStore();
+		Hashtable<String, SEMOSSEdge> myEdgeStore = this.getEdgeStore();
 		
 		
 		Enumeration<String> keyList = myVertStore.keys();

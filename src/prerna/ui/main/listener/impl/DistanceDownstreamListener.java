@@ -37,14 +37,14 @@ import org.apache.log4j.Logger;
 import edu.uci.ics.jung.graph.DelegateForest;
 import prerna.algorithm.impl.DistanceDownstreamProcessor;
 import prerna.om.SEMOSSVertex;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 
 /**
  * When the distance downstream algorithm is selected, calls the algorithm processor to run the algorithm.
  */
 public class DistanceDownstreamListener implements ActionListener {
 
-	AbstractGraphPlaySheet ps = null;
+	GraphPlaySheet ps = null;
 	SEMOSSVertex [] pickedVertex = null;
 	Hashtable nodeTable = new Hashtable();
 	Hashtable edgeTable = new Hashtable();
@@ -55,7 +55,7 @@ public class DistanceDownstreamListener implements ActionListener {
 	 * @param p GraphPlaySheet
 	 * @param pickedV DBCMVertex[]
 	 */
-	public DistanceDownstreamListener(AbstractGraphPlaySheet p, SEMOSSVertex[] pickedV){
+	public DistanceDownstreamListener(GraphPlaySheet p, SEMOSSVertex[] pickedV){
 		ps = p;
 		pickedVertex = pickedV;
 	}

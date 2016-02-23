@@ -46,7 +46,7 @@ import com.teamdev.jxbrowser.chromium.events.StartLoadingEvent;
 
 import prerna.engine.api.IEngine;
 import prerna.om.SEMOSSVertex;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 
 /**
@@ -58,7 +58,7 @@ public class NodeEditorNavigationListener implements LoadListener{
 	SEMOSSVertex node = null;
 	Browser browser = null;
 	Hashtable filterHash;
-	AbstractGraphPlaySheet gps;
+	GraphPlaySheet gps;
 	IEngine engine;
 	
 	
@@ -66,7 +66,7 @@ public class NodeEditorNavigationListener implements LoadListener{
 	 * Method setGps.  Sets the graph play sheet that the listener will access.
 	 * @param gps GraphPlaySheet
 	 */
-	public void setGps(AbstractGraphPlaySheet gps) {
+	public void setGps(GraphPlaySheet gps) {
 		this.gps = gps;
 	}
 

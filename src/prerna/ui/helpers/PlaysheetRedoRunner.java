@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.ui.helpers;
 
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 
 /**
@@ -35,13 +34,13 @@ import prerna.ui.components.playsheets.GraphPlaySheet;
  */
 public class PlaysheetRedoRunner implements Runnable{
 
-	AbstractGraphPlaySheet playSheet = null;
+	GraphPlaySheet playSheet = null;
 	
 	/**
 	 * Constructor for PlaysheetRedoRunner.
 	 * @param playSheet GraphPlaySheet
 	 */
-	public PlaysheetRedoRunner(AbstractGraphPlaySheet playSheet)
+	public PlaysheetRedoRunner(GraphPlaySheet playSheet)
 	{
 		this.playSheet = playSheet;
 	}

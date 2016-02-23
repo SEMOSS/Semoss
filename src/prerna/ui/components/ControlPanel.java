@@ -59,7 +59,7 @@ import edu.uci.ics.jung.algorithms.layout.RadialTreeLayout;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.picking.PickedState;
 import prerna.search.SearchController;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.main.listener.impl.GraphImageExportListener;
 import prerna.ui.main.listener.impl.GraphTextSizeListener;
 import prerna.ui.main.listener.impl.GraphTransformerResetListener;
@@ -92,7 +92,7 @@ public class ControlPanel extends JPanel {
 	public JToggleButton treeButton;
 	RingsButtonListener rings;
 	TreeConverterListener treeListener;
-	AbstractGraphPlaySheet gps;
+	GraphPlaySheet gps;
 	public JButton btnGraphImageExport;
 	public WeightDropDownButton weightButton;
 	GraphImageExportListener imageExportListener;
@@ -508,7 +508,7 @@ public class ControlPanel extends JPanel {
 	 * Sets the playsheet for all necessary listeners.
 	 * @param gps GraphPlaySheet
 	 */
-	public void setPlaySheet(AbstractGraphPlaySheet gps){
+	public void setPlaySheet(GraphPlaySheet gps){
 
 		this.gps = gps;
 		treeListener.setPlaySheet(gps);

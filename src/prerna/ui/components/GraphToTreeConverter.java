@@ -42,7 +42,6 @@ import edu.uci.ics.jung.visualization.picking.PickedState;
 import prerna.algorithm.impl.DistanceDownstreamProcessor;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 
 /**
@@ -67,7 +66,7 @@ public class GraphToTreeConverter extends DistanceDownstreamProcessor{
 	 * Constructor for GraphToTreeConverter.
 	 * @param p 	Graph playsheet to be set.
 	 */
-	public GraphToTreeConverter(AbstractGraphPlaySheet p){
+	public GraphToTreeConverter(GraphPlaySheet p){
 		super();
 		this.playSheet=p;
 	}

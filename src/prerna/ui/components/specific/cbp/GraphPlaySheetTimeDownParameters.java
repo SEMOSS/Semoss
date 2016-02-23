@@ -72,8 +72,8 @@ public class GraphPlaySheetTimeDownParameters extends GraphPlaySheet {
 //		Hashtable<String, SEMOSSVertex> myVertStore = this.getGraphData().getVertStore();
 //		Hashtable<String, SEMOSSEdge> myEdgeStore = this.getGraphData().getEdgeStore();
 
-		Hashtable<String, SEMOSSVertex> myVertStore = gdm.getVertStore();
-		Hashtable<String, SEMOSSEdge> myEdgeStore = gdm.getEdgeStore();
+		Hashtable<String, SEMOSSVertex> myVertStore = this.getVertStore();
+		Hashtable<String, SEMOSSEdge> myEdgeStore = this.getEdgeStore();
 		
 		Enumeration keyList = myVertStore.keys();
 		if(myEdgeStore.keys().hasMoreElements())

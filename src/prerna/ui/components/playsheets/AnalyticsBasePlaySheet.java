@@ -43,6 +43,7 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSVertex;
 import prerna.util.Utility;
 
@@ -98,8 +99,8 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		LOGGER.info("Generating metamodel graph for centrality measures...");
 		GraphPlaySheet graphPS = CentralityCalculator.createMetamodel(engine, eccentricityQuery,true);
 		LOGGER.info("Extending metamodel graph for subclassed concepts...");
-		Hashtable<String, SEMOSSVertex> vertStore  = graphPS.getDataMaker().getVertStore();
-		subclassGen.updateVertAndEdgeStoreForSubclassing(vertStore, graphPS.getDataMaker().getEdgeStore());
+		Hashtable<String, SEMOSSVertex> vertStore  = ((GraphDataModel)graphPS.getDataMaker()).getVertStore();
+		subclassGen.updateVertAndEdgeStoreForSubclassing(vertStore, ((GraphDataModel)graphPS.getDataMaker()).getEdgeStore());
 		vertStore = subclassGen.getVertStore();
 		
 		LOGGER.info("Calculating centrality values for each concepts...");

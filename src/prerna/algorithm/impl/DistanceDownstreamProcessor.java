@@ -44,7 +44,6 @@ import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridTableModel;
 import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 
@@ -56,7 +55,7 @@ public class DistanceDownstreamProcessor implements IAlgorithm {
 	protected DelegateForest forest = null;
 	protected ArrayList<SEMOSSVertex> selectedVerts = new ArrayList<SEMOSSVertex>();
 	GridFilterData gfd = new GridFilterData();
-	protected AbstractGraphPlaySheet playSheet;
+	protected GraphPlaySheet playSheet;
 	public Hashtable masterHash = new Hashtable();
 	public String distanceString = "Distance";
 	public String pathString = "vertexPath";
@@ -240,7 +239,7 @@ public class DistanceDownstreamProcessor implements IAlgorithm {
 	 */
 	@Override
 	public void setPlaySheet(IPlaySheet ps){
-		playSheet = (AbstractGraphPlaySheet) ps;
+		playSheet = (GraphPlaySheet) ps;
 	}
 
 	/**

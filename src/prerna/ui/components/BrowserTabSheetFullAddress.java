@@ -40,7 +40,7 @@ import com.teamdev.jxbrowser.chromium.LoggerProvider;
 import com.teamdev.jxbrowser.chromium.events.LoadListener;
 import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 
 
 
@@ -52,7 +52,7 @@ public class BrowserTabSheetFullAddress extends JInternalFrame implements Runnab
 
 	protected static final String LS = System.getProperty("line.separator");
 	LoadListener navListener = null;
-	AbstractGraphPlaySheet ps = null;
+	GraphPlaySheet ps = null;
 	static final Logger logger = LogManager.getLogger(BrowserTabSheetFullAddress.class.getName());
 	public Browser browser;
 	public BrowserView browserView;
@@ -94,7 +94,7 @@ public class BrowserTabSheetFullAddress extends JInternalFrame implements Runnab
 	 * Sets the appropriate playsheet.
 	 * @param ps 	Graph playsheet.
 	 */
-	public void setPlaySheet(AbstractGraphPlaySheet ps)
+	public void setPlaySheet(GraphPlaySheet ps)
 	{
 		this.ps = ps;
 	}

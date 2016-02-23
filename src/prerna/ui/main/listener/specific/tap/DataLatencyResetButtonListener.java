@@ -33,14 +33,14 @@ import java.awt.event.ActionListener;
 import javax.swing.JButton;
 
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.specific.tap.DataLatencyPlayPopup;
 
 /**
  */
 public class DataLatencyResetButtonListener implements ActionListener {
 
-	AbstractGraphPlaySheet ps;
+	GraphPlaySheet ps;
 	DataLatencyPlayPopup pop;
 	JButton pausePlayButton;
 	
@@ -51,7 +51,7 @@ public class DataLatencyResetButtonListener implements ActionListener {
 	 * @param pausePlay JButton
 	 */
 	public DataLatencyResetButtonListener(IPlaySheet p, DataLatencyPlayPopup popup, JButton pausePlay){
-		ps = (AbstractGraphPlaySheet) p;
+		ps = (GraphPlaySheet) p;
 		pop = popup;
 		pausePlayButton = pausePlay;
 	}

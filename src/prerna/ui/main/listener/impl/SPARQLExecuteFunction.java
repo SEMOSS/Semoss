@@ -38,13 +38,13 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.SesameJenaUpdateWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 
 /**
  */
 public class SPARQLExecuteFunction extends AbstractBrowserSPARQLFunction {
 	
-	AbstractGraphPlaySheet gps;
+	GraphPlaySheet gps;
 	
 	/**
 	 * Method invoke.
@@ -153,7 +153,7 @@ public class SPARQLExecuteFunction extends AbstractBrowserSPARQLFunction {
 	 * Method setGps.
 	 * @param gps GraphPlaySheet
 	 */
-	public void setGps(AbstractGraphPlaySheet gps){
+	public void setGps(GraphPlaySheet gps){
 		this.gps = gps;
 	}
 }

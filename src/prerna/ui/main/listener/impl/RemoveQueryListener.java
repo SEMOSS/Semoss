@@ -51,7 +51,6 @@ import prerna.engine.api.IEngine;
 import prerna.om.InsightStore;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.SparqlArea;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.helpers.PlaysheetRemoveRunner;
 import prerna.util.Constants;
@@ -158,7 +157,7 @@ public class RemoveQueryListener extends SparqlAreaListener {
 				// see if the append is on
 				logger.debug("Toggle is selected");
 
-				AbstractGraphPlaySheet playSheet = null;
+				GraphPlaySheet playSheet = null;
 				logger.debug("Appending ");
 //				playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
 				playSheet = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();

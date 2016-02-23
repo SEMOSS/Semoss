@@ -37,14 +37,14 @@ import org.apache.log4j.Logger;
 import com.google.gson.Gson;
 import com.teamdev.jxbrowser.chromium.Browser;
 
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 
 
 /**
  * Controls pulling data from the in-memory hashtable to use in the browser/chart functionality.
  */
 public class ChartPullDataListener implements ActionListener {
-	AbstractGraphPlaySheet ps = null;
+	GraphPlaySheet ps = null;
 	static final Logger logger = LogManager.getLogger(ChartPullDataListener.class.getName());
 	Browser browser = null;
 	
@@ -71,7 +71,7 @@ public class ChartPullDataListener implements ActionListener {
      * Method setPlaySheet.  Sets the playsheet that the listener will access.
      * @param ps GraphPlaySheet
      */
-    public void setPlaySheet(AbstractGraphPlaySheet ps)
+    public void setPlaySheet(GraphPlaySheet ps)
     {
 	    this.ps = ps;
     }

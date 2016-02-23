@@ -35,13 +35,13 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.LoopIdentifierProcessor;
 import prerna.om.GraphDataModel;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 
 /**
  * Controls running of the loop identifier algorithm.
  */
 public class LoopIdentifierListener implements ActionListener{
-	AbstractGraphPlaySheet ps = null;
+	GraphPlaySheet ps = null;
 	static final Logger logger = LogManager.getLogger(LoopIdentifierListener.class.getName());
 	
 	/**
@@ -49,7 +49,7 @@ public class LoopIdentifierListener implements ActionListener{
 	 * @param p GraphPlaySheet
 	 * @param pickedV DBCMVertex[]
 	 */
-	public LoopIdentifierListener(AbstractGraphPlaySheet p){
+	public LoopIdentifierListener(GraphPlaySheet p){
 		ps = p;
 	}
 		

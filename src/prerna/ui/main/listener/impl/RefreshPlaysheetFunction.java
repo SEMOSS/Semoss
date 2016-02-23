@@ -33,20 +33,20 @@ import com.google.gson.Gson;
 import com.teamdev.jxbrowser.chromium.BrowserFunction;
 import com.teamdev.jxbrowser.chromium.JSValue;
 
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 
 /**
  * Refreshes the view of the graph play sheet.
  */
 public class RefreshPlaysheetFunction implements BrowserFunction {
 	
-	AbstractGraphPlaySheet gps;
+	GraphPlaySheet gps;
 	
 	/**
 	 * Method setGps.  Sets the graph play sheet that the listener will access.
 	 * @param gps GraphPlaySheet
 	 */
-	public void setGps(AbstractGraphPlaySheet gps) {
+	public void setGps(GraphPlaySheet gps) {
 		this.gps = gps;
 	}
 

@@ -51,7 +51,7 @@ import prerna.om.SEMOSSVertex;
 import prerna.ui.components.EdgePropertyTableModel;
 import prerna.ui.components.GraphNodePopup;
 import prerna.ui.components.api.IChakraListener;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.transformer.VertexLabelFontTransformer;
 import prerna.ui.transformer.VertexPaintTransformer;
 import prerna.util.Constants;
@@ -99,7 +99,7 @@ public class GraphNodeListener extends ModalLensGraphMouse implements IChakraLis
     	}
 		
 //    	GraphPlaySheet ps3 = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
-    	AbstractGraphPlaySheet ps3 = (AbstractGraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
+    	GraphPlaySheet ps3 = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
 
 		JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.PROP_TABLE);
 		TableModel tm = new DefaultTableModel();

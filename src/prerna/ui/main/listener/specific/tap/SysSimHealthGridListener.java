@@ -35,7 +35,7 @@ import com.teamdev.jxbrowser.chromium.JSValue;
 import prerna.engine.api.IEngine;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.specific.tap.HealthGridSheet;
 import prerna.ui.helpers.PlaysheetCreateRunner;
 import prerna.ui.main.listener.impl.AbstractBrowserSPARQLFunction;
