@@ -36,7 +36,7 @@ import org.apache.log4j.Logger;
 import prerna.engine.api.IEngine;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.playsheets.SQLGraphPlaysheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.helpers.InsightOverlayRunner;
@@ -75,7 +75,7 @@ public class NeighborMenuItem extends JMenuItem{
 	public void paintNeighborhood()
 	{
 //		if(QuestionPlaySheetStore.getInstance().getActiveSheet() instanceof GraphPlaySheet)
-		if(InsightStore.getInstance().getActiveInsight().getPlaySheet() instanceof AbstractGraphPlaySheet)
+		if(InsightStore.getInstance().getActiveInsight().getPlaySheet() instanceof GraphPlaySheet)
 		{
 //			GraphPlaySheet playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
 			Insight insight = InsightStore.getInstance().getActiveInsight();

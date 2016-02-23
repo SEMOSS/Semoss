@@ -32,19 +32,19 @@ import java.awt.event.ActionListener;
 
 import javax.swing.AbstractAction;
 
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 
 /**
  * Controls the resetting of the transformers for the graph play sheet.
  */
 public class GraphTransformerResetListener extends AbstractAction implements ActionListener{
-	AbstractGraphPlaySheet playSheet;
+	GraphPlaySheet playSheet;
 	
 	/**
 	 * Method setPlaySheet.  Sets the play sheet that the listener will access.
 	 * @param ps GraphPlaySheet
 	 */
-	public void setPlaySheet(AbstractGraphPlaySheet ps){
+	public void setPlaySheet(GraphPlaySheet ps){
 		this.playSheet = ps;
 	}
 	

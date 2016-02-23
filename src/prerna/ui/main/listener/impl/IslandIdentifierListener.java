@@ -35,14 +35,14 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.IslandIdentifierProcessor;
 import prerna.om.SEMOSSVertex;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 
 /**
  * Controls running the island identifier algorithm.
  */
 public class IslandIdentifierListener implements ActionListener{
 
-	AbstractGraphPlaySheet ps = null;
+	GraphPlaySheet ps = null;
 	SEMOSSVertex [] pickedVertex = null;
 	static final Logger logger = LogManager.getLogger(IslandIdentifierListener.class.getName());
 	
@@ -51,7 +51,7 @@ public class IslandIdentifierListener implements ActionListener{
 	 * @param p GraphPlaySheet
 	 * @param pickedV DBCMVertex[]
 	 */
-	public IslandIdentifierListener(AbstractGraphPlaySheet p, SEMOSSVertex[] pickedV){
+	public IslandIdentifierListener(GraphPlaySheet p, SEMOSSVertex[] pickedV){
 		ps = p;
 		pickedVertex = pickedV;
 	}

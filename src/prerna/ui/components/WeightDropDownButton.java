@@ -50,7 +50,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.main.listener.impl.WeightConvertEdgeListListener;
 import prerna.ui.main.listener.impl.WeightConvertNodeListListener;
 
@@ -66,7 +66,7 @@ public class WeightDropDownButton  extends JButton {
 	public JScrollPane nodePane = new JScrollPane();
 	DefaultListModel nodeListModel= new DefaultListModel();
 	DefaultListModel edgeListModel= new DefaultListModel();
-	AbstractGraphPlaySheet playSheet;
+	GraphPlaySheet playSheet;
 	/** 
 	 * @param args 
 	 */  
@@ -91,7 +91,7 @@ public class WeightDropDownButton  extends JButton {
 		edgePropList.setSelectionMode(mode);
 		nodePropList.setSelectionMode(mode);
 	}
-	public void setPlaySheet(AbstractGraphPlaySheet gps)
+	public void setPlaySheet(GraphPlaySheet gps)
 	{
 		this.playSheet = gps;
 	}

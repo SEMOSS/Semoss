@@ -34,7 +34,6 @@ import javax.swing.JDesktopPane;
 
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.NodeInfoPopup;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -43,7 +42,7 @@ import prerna.util.DIHelper;
  * Controls showing the node info pop up.
  */
 public class NodeInfoPopupListener implements ActionListener{
-	AbstractGraphPlaySheet ps = null;
+	GraphPlaySheet ps = null;
 	SEMOSSVertex[] selectedNodes = null;
 	
 	/**
@@ -51,7 +50,7 @@ public class NodeInfoPopupListener implements ActionListener{
 	 * @param p GraphPlaySheet
 	 * @param pickedV DBCMVertex[]
 	 */
-	public NodeInfoPopupListener(AbstractGraphPlaySheet p, SEMOSSVertex[] pickedV){
+	public NodeInfoPopupListener(GraphPlaySheet p, SEMOSSVertex[] pickedV){
 		ps = p;
 		selectedNodes = pickedV;
 	}

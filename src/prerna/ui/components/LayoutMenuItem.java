@@ -35,7 +35,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -67,24 +66,24 @@ public class LayoutMenuItem extends JMenuItem{
 	 */
 	public void paintLayout()
 	{
-		String oldLayout = ((AbstractGraphPlaySheet)ps).getLayoutName();
-		((AbstractGraphPlaySheet)ps).setLayout(layout);
-		boolean success = ((AbstractGraphPlaySheet)ps).createLayout();
-		if (success) ((AbstractGraphPlaySheet)ps).refreshView();
+		String oldLayout = ((GraphPlaySheet)ps).getLayoutName();
+		((GraphPlaySheet)ps).setLayout(layout);
+		boolean success = ((GraphPlaySheet)ps).createLayout();
+		if (success) ((GraphPlaySheet)ps).refreshView();
 		else {
 			if(layout.equals(Constants.RADIAL_TREE_LAYOUT) || layout.equals(Constants.BALLOON_LAYOUT) || layout.equals(Constants.TREE_LAYOUT)){
 				int response = showOptionPopup();
 				if (response ==1)
 				{
-					((AbstractGraphPlaySheet)ps).searchPanel.treeButton.doClick();
+					((GraphPlaySheet)ps).searchPanel.treeButton.doClick();
 				}
 				else{
-					((AbstractGraphPlaySheet)ps).setLayout(oldLayout);
+					((GraphPlaySheet)ps).setLayout(oldLayout);
 				}
 			}
 			else{
 				Utility.showError("This layout cannot be used with the current graph");
-				((AbstractGraphPlaySheet)ps).setLayout(oldLayout);
+				((GraphPlaySheet)ps).setLayout(oldLayout);
 			}
 		}
 	}

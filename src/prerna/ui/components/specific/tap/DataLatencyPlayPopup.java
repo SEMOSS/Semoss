@@ -46,7 +46,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.DataLatencyPerformer;
 import prerna.om.SEMOSSVertex;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.main.listener.specific.tap.DataLatencyPausePlayButtonListener;
 import prerna.ui.main.listener.specific.tap.DataLatencyPlayInternalFrameListener;
 import prerna.ui.main.listener.specific.tap.DataLatencyResetButtonListener;
@@ -60,7 +60,7 @@ import prerna.util.DIHelper;
 public class DataLatencyPlayPopup extends JInternalFrame implements Runnable {
 
 	public double hoursValue;
-	public AbstractGraphPlaySheet ps = null;
+	public GraphPlaySheet ps = null;
 	SEMOSSVertex [] pickedVertex = null;
 	static final Logger logger = LogManager.getLogger(DataLatencyPlayPopup.class.getName());
 	DataLatencyPerformer latePerf;
@@ -77,7 +77,7 @@ public class DataLatencyPlayPopup extends JInternalFrame implements Runnable {
 	 * @param p GraphPlaySheet
 	 * @param picked DBCMVertex[]
 	 */
-	public DataLatencyPlayPopup(Double hours, AbstractGraphPlaySheet p, SEMOSSVertex[] picked){
+	public DataLatencyPlayPopup(Double hours, GraphPlaySheet p, SEMOSSVertex[] picked){
 		hoursValue = hours;
 		ps = p;
 		pickedVertex = picked;

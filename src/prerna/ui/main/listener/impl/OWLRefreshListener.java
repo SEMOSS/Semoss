@@ -83,7 +83,7 @@ public class OWLRefreshListener implements IChakraListener {
 		// run through each one of them
 		// if you dont see it in the prop Hash - remove it from the jenaModel
 		// aggregate all the new concepts
-		PropertySpecData data = ps.getDataMaker().getPredicateData();
+		PropertySpecData data = ps.getPredicateData();
 				
 		// finish the subjects first
 		logger.warn("Removing Subjects " + data.subject2bRemoved);

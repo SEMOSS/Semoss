@@ -40,7 +40,6 @@ import prerna.algorithm.api.IAlgorithm;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.transformer.ArrowDrawPaintTransformer;
 import prerna.ui.transformer.EdgeArrowStrokeTransformer;
@@ -54,7 +53,7 @@ import prerna.util.Constants;
  */
 public class DataLatencyPerformer implements IAlgorithm{
 
-	AbstractGraphPlaySheet ps = null;
+	GraphPlaySheet ps = null;
 //	protected GraphDataModel gdm = new GraphDataModel();
 	public SEMOSSVertex [] pickedVertex = null;
 	static final Logger logger = LogManager.getLogger(DataLatencyPerformer.class.getName());
@@ -79,7 +78,7 @@ public class DataLatencyPerformer implements IAlgorithm{
 	 * @param p GraphPlaySheet
 	 * @param vect DBCMVertex[]
 	 */
-	public DataLatencyPerformer(AbstractGraphPlaySheet p, SEMOSSVertex[] vect){
+	public DataLatencyPerformer(GraphPlaySheet p, SEMOSSVertex[] vect){
 		ps = p;
 		pickedVertex = vect;
 //		gdm = ps.gdm;

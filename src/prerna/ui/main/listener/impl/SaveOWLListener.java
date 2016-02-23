@@ -53,8 +53,6 @@ public class SaveOWLListener implements IChakraListener {
 	@Override
 	public void actionPerformed(ActionEvent actionevent) {
 		System.err.println("Saving the OWL");
-//		GraphPlaySheet ps = (GraphPlaySheet)QuestionPlaySheetStore.getInstance().getActiveSheet();
-		GraphPlaySheet ps = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
 		saveIt();		
 	}
 	

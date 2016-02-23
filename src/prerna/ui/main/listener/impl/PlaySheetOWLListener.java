@@ -41,9 +41,7 @@ import prerna.om.GraphDataModel;
 import prerna.ui.components.OPropertyTableModel;
 import prerna.ui.components.PropertySpecData;
 import prerna.ui.components.PropertyTableModel;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
-import prerna.ui.components.playsheets.GraphTinkerPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -64,13 +62,13 @@ public class PlaySheetOWLListener implements InternalFrameListener {
 	
 		logger.info("Internal Frame Activated OWL Manipulator>>>> ");
 		JInternalFrame jf = e.getInternalFrame();
-		AbstractGraphPlaySheet ps = (AbstractGraphPlaySheet)jf;
+		GraphPlaySheet ps = (GraphPlaySheet)jf;
 		if(!ps.getSudowl())
 		{
 			return;
 		}
 		// get the filter data
-		PropertySpecData psd = ((GraphDataModel)ps.getDataMaker()).getPredicateData();
+		PropertySpecData psd = ps.getPredicateData();
 		OPropertyTableModel model = new OPropertyTableModel(psd);
 	
 		logger.info("Lable count is " + model.getRowCount());

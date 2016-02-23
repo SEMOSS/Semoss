@@ -35,7 +35,7 @@ import org.apache.log4j.Logger;
 
 import prerna.om.InsightStore;
 import prerna.ui.components.BrowserTabSheet3;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 
 /**
  * This listener implements the minimum spanning tree.
@@ -51,7 +51,7 @@ public class ChartListener implements ActionListener {
 	@Override
 	public void actionPerformed(ActionEvent e) {
 //		GraphPlaySheet playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
-		AbstractGraphPlaySheet playSheet = (AbstractGraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
+		GraphPlaySheet playSheet = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
 		logger.info("Engaged the chart component successfully");
 		// get to the vertexfilter data
 		

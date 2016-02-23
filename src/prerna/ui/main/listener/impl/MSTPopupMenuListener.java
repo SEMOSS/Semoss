@@ -40,7 +40,7 @@ import org.jgrapht.alg.KruskalMinimumSpanningTree;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.transformer.EdgeStrokeTransformer;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -80,7 +80,7 @@ public class MSTPopupMenuListener implements ActionListener {
 		// repaints it
 		// I cannot add this to the interface because not all of them will be forced to have it
 		// yes, which means the menu cannot be generic too - I understand
-		AbstractGraphPlaySheet ps2 = (AbstractGraphPlaySheet)ps;
+		GraphPlaySheet ps2 = (GraphPlaySheet)ps;
 		logger.debug("Getting the base graph");
 		Graph graph = ps2.getGraph();
 		KruskalMinimumSpanningTree<SEMOSSVertex, SEMOSSEdge> kmst = new KruskalMinimumSpanningTree<SEMOSSVertex, SEMOSSEdge>(graph);

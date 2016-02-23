@@ -38,6 +38,7 @@ import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.engine.impl.rdf.SesameJenaConstructStatement;
 import prerna.engine.impl.rdf.SesameJenaConstructWrapper;
 import prerna.engine.impl.rdf.SesameJenaSelectCheater;
+import prerna.om.GraphDataModel;
 
 /**
  */
@@ -243,8 +244,8 @@ public class SimpleGraphPlaySheet extends GraphPlaySheet{
 
 						// get the subject, predicate and object
 						// look for the appropriate vertices etc and paint it
-						gdm.predData.addConceptAvailable(sct.getSubject());
-						gdm.predData.addConceptAvailable(sct.getObject()+"");
+						((GraphDataModel)this.dataFrame).predData.addConceptAvailable(sct.getSubject());
+						((GraphDataModel)this.dataFrame).predData.addConceptAvailable(sct.getObject()+"");
 //						SEMOSSVertex vert1 = vertStore.get(sct.getSubject()+"");
 //						if(vert1 == null)
 //						{

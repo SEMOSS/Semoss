@@ -34,10 +34,10 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
+import prerna.om.GraphDataModel;
 import prerna.om.InsightStore;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.BrowserTabSheetFullAddress;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -52,7 +52,7 @@ public class NodeEditorListener implements ActionListener {
 	String htmlFileName= "/html/MHS-RDFNodeEditor/app/index.html#/rdfnode/";
 	String dbType;
 	IEngine engine;
-	AbstractGraphPlaySheet gps;
+	GraphPlaySheet gps;
 
 	/**
 	 * Method actionPerformed.  Dictates what actions to take when an Action Event is performed.
@@ -73,7 +73,7 @@ public class NodeEditorListener implements ActionListener {
 		tabS.setFileName(fullAddress);
 		NodeEditorNavigationListener navListener = new NodeEditorNavigationListener();
 		navListener.setNode(node);
-		navListener.setFilterHash(playSheet.getDataMaker().baseFilterHash);
+		navListener.setFilterHash(((GraphDataModel)playSheet.getDataMaker()).baseFilterHash);
 		navListener.setBrowser(tabS.browser);
 		navListener.setEngine(engine);
 		navListener.setGps(gps);
@@ -87,11 +87,11 @@ public class NodeEditorListener implements ActionListener {
 	    sparqlFunction.setGps(gps);
 	    tabS.browser.registerFunction("SPARQLExecute", sparqlFunction);
 	    SPARQLExecuteFilterNoBaseFunction filterFunction = new SPARQLExecuteFilterNoBaseFunction();
-	    filterFunction.setFilterHash(playSheet.getDataMaker().baseFilterHash);
+	    filterFunction.setFilterHash(((GraphDataModel)playSheet.getDataMaker()).baseFilterHash);
 	    filterFunction.setEngine(engine);
 	    tabS.browser.registerFunction("SPARQLExecuteFilterNoBase", filterFunction);
 	    SPARQLExecuteFilterBaseFunction filterBaseFunction = new SPARQLExecuteFilterBaseFunction();
-	    filterBaseFunction.setFilterHash(playSheet.getDataMaker().baseFilterHash);
+	    filterBaseFunction.setFilterHash(((GraphDataModel)playSheet.getDataMaker()).baseFilterHash);
 	    filterBaseFunction.setEngine(engine);
 	    tabS.browser.registerFunction("SPARQLExecuteFilterBase", filterBaseFunction);
 	    InferEngineFunction inferFunction = new InferEngineFunction();
@@ -130,7 +130,7 @@ public class NodeEditorListener implements ActionListener {
 	 * Method setGps.  Sets the graph play sheet that the listener will access.
 	 * @param gps GraphPlaySheet
 	 */
-	public void setGps(AbstractGraphPlaySheet gps){
+	public void setGps(GraphPlaySheet gps){
 		this.gps = gps;
 	}
 }

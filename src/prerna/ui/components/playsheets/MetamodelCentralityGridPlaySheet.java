@@ -39,6 +39,7 @@ import prerna.algorithm.impl.CentralityCalculator;
 import prerna.algorithm.impl.PageRankCalculator;
 import prerna.algorithm.impl.SubclassingMapGenerator;
 import prerna.ds.BTreeDataFrame;
+import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.util.Constants;
@@ -52,8 +53,8 @@ public class MetamodelCentralityGridPlaySheet extends GridPlaySheet {
 	public void createData() {
 		GraphPlaySheet graphPS = CentralityCalculator.createMetamodel(engine, query, true);
 
-		Hashtable<String, SEMOSSVertex> vertStore  = graphPS.getDataMaker().getVertStore();
-		Hashtable<String, SEMOSSEdge> edgeStore = graphPS.getDataMaker().getEdgeStore();
+		Hashtable<String, SEMOSSVertex> vertStore  = ((GraphDataModel)graphPS.getDataMaker()).getVertStore();
+		Hashtable<String, SEMOSSEdge> edgeStore = ((GraphDataModel)graphPS.getDataMaker()).getEdgeStore();
 
 		SubclassingMapGenerator subclassGen = new SubclassingMapGenerator();
 		subclassGen.processSubclassing(engine);

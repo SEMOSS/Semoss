@@ -36,7 +36,7 @@ import org.apache.log4j.Logger;
 
 import prerna.om.InsightStore;
 import prerna.ui.components.api.IChakraListener;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 
 /**
  * Repaints the active sheet when refresh is pressed.
@@ -53,7 +53,7 @@ public class ColorShapeRefreshListener implements IChakraListener {
 	public void actionPerformed(ActionEvent actionevent) {
 		logger.info("Calling action performed - refine view");		
 //		GraphPlaySheet playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
-		AbstractGraphPlaySheet playSheet = (AbstractGraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
+		GraphPlaySheet playSheet = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
 		playSheet.repaint();
 	}
 

@@ -40,7 +40,6 @@ import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.transformer.ArrowDrawPaintTransformer;
 import prerna.ui.transformer.EdgeArrowStrokeTransformer;
@@ -57,7 +56,7 @@ public class IslandIdentifierProcessor implements IAlgorithm{
 	protected GraphDataModel gdm = new GraphDataModel();
 	ArrayList<SEMOSSVertex> selectedVerts = new ArrayList<SEMOSSVertex>();
 	GridFilterData gfd = new GridFilterData();
-	AbstractGraphPlaySheet playSheet;
+	GraphPlaySheet playSheet;
 	public Hashtable masterHash = new Hashtable();//this will have key: node, object: hashtable with verts.  Also key: node + edgeHashKey and object: hastable with edges
 	String selectedNodes="";
 	Vector<SEMOSSEdge> masterEdgeVector = new Vector();//keeps track of everything accounted for in the forest
@@ -320,7 +319,7 @@ public class IslandIdentifierProcessor implements IAlgorithm{
 	 * @param ps IPlaySheet		Playsheet to be cast.
 	 */
 	public void setPlaySheet(IPlaySheet ps){
-		playSheet = (AbstractGraphPlaySheet) ps;
+		playSheet = (GraphPlaySheet) ps;
 	}
 
 

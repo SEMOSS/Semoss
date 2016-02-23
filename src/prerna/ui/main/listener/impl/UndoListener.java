@@ -34,7 +34,7 @@ import javax.swing.AbstractAction;
 
 import prerna.om.Insight;
 import prerna.om.InsightStore;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.helpers.PlaysheetUndoRunner;
 
 /**
@@ -43,7 +43,7 @@ import prerna.ui.helpers.PlaysheetUndoRunner;
 public class UndoListener extends AbstractAction implements ActionListener {
 	
 	
-	AbstractGraphPlaySheet gps = null;
+	GraphPlaySheet gps = null;
 	
 	/**
 	 * Method actionPerformed.  Dictates what actions to take when an Action Event is performed.
@@ -62,7 +62,7 @@ public class UndoListener extends AbstractAction implements ActionListener {
 	 * Method setPlaySheet.  Sets the play sheet that the listener will access.
 	 * @param gps GraphPlaySheet
 	 */
-	public void setPlaySheet(AbstractGraphPlaySheet gps)
+	public void setPlaySheet(GraphPlaySheet gps)
 	{
 		this.gps = gps;
 	}

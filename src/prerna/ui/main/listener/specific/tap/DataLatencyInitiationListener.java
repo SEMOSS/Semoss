@@ -48,7 +48,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -57,7 +57,7 @@ import prerna.util.DIHelper;
  */
 public class DataLatencyInitiationListener implements ActionListener{
 
-	AbstractGraphPlaySheet ps = null;
+	GraphPlaySheet ps = null;
 	SEMOSSVertex [] pickedVertex = null;
 	static final Logger logger = LogManager.getLogger(DataLatencyInitiationListener.class.getName());
 	private JTextField dataLatencyHoursTextField;
@@ -69,7 +69,7 @@ public class DataLatencyInitiationListener implements ActionListener{
 	 * @param p 		GraphPlaySheet
 	 * @param pickedV	DBCMVertex[]
 	 */
-	public DataLatencyInitiationListener(AbstractGraphPlaySheet p, SEMOSSVertex[] pickedV){
+	public DataLatencyInitiationListener(GraphPlaySheet p, SEMOSSVertex[] pickedV){
 		ps = p;
 		pickedVertex = pickedV;
 	}

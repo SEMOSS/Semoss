@@ -34,14 +34,14 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 
 /**
  * Controls hiding the pop up menu for nodes on the graph play sheet.
  */
 public class HideVertexPopupMenuListener implements ActionListener {
 
-	AbstractGraphPlaySheet ps = null;
+	GraphPlaySheet ps = null;
 	SEMOSSVertex [] vertices = null;
 	
 	static final Logger logger = LogManager.getLogger(HideVertexPopupMenuListener.class.getName());
@@ -50,7 +50,7 @@ public class HideVertexPopupMenuListener implements ActionListener {
 	 * Method setPlaysheet.  Sets the play sheet that the listener will access.
 	 * @param ps GraphPlaySheet
 	 */
-	public void setPlaysheet(AbstractGraphPlaySheet ps)
+	public void setPlaysheet(GraphPlaySheet ps)
 	{
 		this.ps = ps;
 	}

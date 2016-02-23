@@ -46,7 +46,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.SEMOSSVertex;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.util.Constants;
 
@@ -55,7 +54,7 @@ import prerna.util.Constants;
  */
 public class NodeInfoPopup extends JInternalFrame{
 
-	AbstractGraphPlaySheet ps = null;
+	GraphPlaySheet ps = null;
 	SEMOSSVertex [] pickedVertex = null;
 	static final Logger logger = LogManager.getLogger(NodeInfoPopup.class.getName());
 	GridFilterData gfd = new GridFilterData();
@@ -67,7 +66,7 @@ public class NodeInfoPopup extends JInternalFrame{
 	 * @param p 		Graph playsheet.
 	 * @param picked	Picked DBCM vertex.
 	 */
-	public NodeInfoPopup(AbstractGraphPlaySheet p, SEMOSSVertex[] picked){
+	public NodeInfoPopup(GraphPlaySheet p, SEMOSSVertex[] picked){
 		ps = p;
 		pickedVertex = picked;
 	}

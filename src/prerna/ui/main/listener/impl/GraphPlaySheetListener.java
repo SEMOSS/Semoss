@@ -37,9 +37,8 @@ import javax.swing.table.TableModel;
 import prerna.ui.components.EdgeFilterTableModel;
 import prerna.ui.components.VertexFilterData;
 import prerna.ui.components.VertexFilterTableModel;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
-import prerna.ui.components.playsheets.GraphTinkerPlaySheet;
+import prerna.ui.components.playsheets.GraphTinkerPlaySheetHelper;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -62,7 +61,7 @@ public class GraphPlaySheetListener extends PlaySheetListener {
 		//now graphPlaySheet Specific Items
 		JInternalFrame jf = e.getInternalFrame();
 		VertexFilterData vfd = null;
-		AbstractGraphPlaySheet ps = (AbstractGraphPlaySheet)jf;
+		GraphPlaySheet ps = (GraphPlaySheet)jf;
 		vfd = ps.getFilterData();
 		// get the filter data
 		VertexFilterTableModel model = new VertexFilterTableModel(vfd);	
@@ -102,7 +101,7 @@ public class GraphPlaySheetListener extends PlaySheetListener {
 		
 		//now graphplaysheet specific things
 		JInternalFrame jf = e.getInternalFrame();
-		AbstractGraphPlaySheet ps = (AbstractGraphPlaySheet)jf;
+		GraphPlaySheet ps = (GraphPlaySheet)jf;
 		// get the table
 		TableModel model = new DefaultTableModel();
 		JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.FILTER_TABLE);

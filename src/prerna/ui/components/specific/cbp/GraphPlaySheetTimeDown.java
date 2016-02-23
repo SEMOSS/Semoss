@@ -63,8 +63,8 @@ public class GraphPlaySheetTimeDown extends GraphPlaySheet {
 	public void createForest() {
 
 		super.createForest();
-		Hashtable<String, SEMOSSVertex> myVertStore = this.getDataMaker().getVertStore();
-		Hashtable<String, SEMOSSEdge> myEdgeStore = this.getDataMaker().getEdgeStore();
+		Hashtable<String, SEMOSSVertex> myVertStore = this.getVertStore();
+		Hashtable<String, SEMOSSEdge> myEdgeStore = this.getEdgeStore();
 		Enumeration keyList = myVertStore.keys();
 		if(myEdgeStore.keys().hasMoreElements())
 		{
