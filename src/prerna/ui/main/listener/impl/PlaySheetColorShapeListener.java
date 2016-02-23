@@ -44,7 +44,6 @@ import prerna.ui.components.ShapeColorTableModel;
 import prerna.ui.components.VertexColorShapeData;
 import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
-import prerna.ui.components.playsheets.GraphTinkerPlaySheet;
 import prerna.ui.helpers.TypeColorShapeTable;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -98,7 +97,7 @@ public class PlaySheetColorShapeListener implements InternalFrameListener {
 		// remove from the question playsheet store
 		logger.info("Begin");
 		JInternalFrame jf = e.getInternalFrame();
-		GraphPlaySheet ps = (GraphPlaySheet)jf;
+		AbstractGraphPlaySheet ps = (AbstractGraphPlaySheet)jf;
 		// get the table
 		TableModel model = new DefaultTableModel();
 		JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.COLOR_SHAPE_TABLE);
