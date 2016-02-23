@@ -41,8 +41,9 @@ import javax.swing.JComboBox;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-
-import com.google.gson.reflect.TypeToken;
+import org.openrdf.query.BindingSet;
+import org.openrdf.query.QueryEvaluationException;
+import org.openrdf.query.TupleQueryResult;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
@@ -131,7 +132,39 @@ public class EntityFiller implements Runnable {
 					Map<String, List<Object>> paramTable = new Hashtable<String, List<Object>>();
 					if(type != null) {
 						type = Utility.getTransformedNodeName(engine, type, false);
-						sparqlQuery = DIHelper.getInstance().getProperty("TYPE" + "_" + Constants.QUERY);
+						//TODO: to many effects for making this work well for rdbms params
+						if(engine.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
+					        if(type.contains("http://semoss.org/ontologies/Concept")){
+					        	// we are dealing with the physical uri which is in the form ...Concept/Column/Table
+					        	sparqlQuery = "SELECT DISTINCT " + Utility.getClassName(type) + " FROM " + Utility.getInstanceName(type);
+					        }
+					        else if(type.contains("http://semoss.org/ontologies/Relation/Contains")){// this is such a mess... 
+					        	String xmlQuery = "SELECT ?concept WHERE { ?concept rdfs:subClassOf <http://semoss.org/ontologies/Concept>. ?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> <"+type+">}";
+					        	TupleQueryResult ret = (TupleQueryResult) engine.execOntoSelectQuery(xmlQuery);
+								String conceptURI = null;
+					        	try {
+									if(ret.hasNext()){
+										BindingSet row = ret.next();
+										conceptURI = row.getBinding("concept").getValue().toString();
+									}
+								} catch (QueryEvaluationException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
+					        	sparqlQuery = "SELECT DISTINCT " + Utility.getInstanceName(type) + " FROM " + Utility.getClassName(conceptURI);
+					        }
+					        else if(type.contains(":")) {
+					            int tableStartIndex = type.indexOf("-") + 1;
+					            int columnStartIndex = type.indexOf(":") + 1;
+					            String table = type.substring(tableStartIndex, columnStartIndex - 1);
+					            String column = type.substring(columnStartIndex);
+					            sparqlQuery = "SELECT DISTINCT " + column + " FROM " + table;
+					        } else {
+					        	sparqlQuery = "SELECT DISTINCT " + type + " FROM " + type;
+					        }
+						} else {
+							sparqlQuery = DIHelper.getInstance().getProperty("TYPE" + "_" + Constants.QUERY);
+						}
 						List<Object> typeList = new ArrayList<Object>();
 						typeList.add(type);
 						paramTable.put(Constants.ENTITY, typeList);
