@@ -205,7 +205,7 @@ public class Translation extends DepthFirstAdapter {
 
 		Object value = myStore.get("VALUE");
 		
-		System.out.println("Final Value is " + ((Vector)value).elementAt(0));
+//		System.out.println("Final Value is " + ((Vector)value).elementAt(0));
 		// this is the last portion of everything
 
 		//System.out.println("out of scroipt expr [" + node + "]");
