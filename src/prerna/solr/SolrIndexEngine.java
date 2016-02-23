@@ -891,7 +891,7 @@ public class SolrIndexEngine {
 				String querySearch = (String) queryOptions.get(CommonParams.Q);
 				res = getQueryResponse(queryOptions, SOLR_PATHS.SOLR_INSIGHTS_PATH);
 				facetFieldList = res.getFacetFields();
-				if (facetFieldList != null && facetFieldList.size() == 0) {
+				if (facetFieldList != null && facetFieldList.get(0).getValueCount() == 0) {
 					//Query within the instanceCore
 					if (querySearch != null && !querySearch.equals(QUERYALL) && !querySearch.isEmpty()) {
 						Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
@@ -1015,7 +1015,7 @@ public class SolrIndexEngine {
 				String querySearch = (String) queryOptions.get(CommonParams.Q);
 				res = getQueryResponse(queryOptions, SOLR_PATHS.SOLR_INSIGHTS_PATH);
 				groupResponse = res.getGroupResponse();
-				if(groupResponse != null && groupResponse.getValues().size() == 0) {
+				if(groupResponse != null && groupResponse.getValues().get(0).getValues().size() == 0) {
 					//Query within the instanceCore
 					if (querySearch != null && !querySearch.equals(QUERYALL) && !querySearch.isEmpty()) {
 						Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
