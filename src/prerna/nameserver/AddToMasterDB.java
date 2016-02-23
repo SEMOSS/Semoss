@@ -84,8 +84,8 @@ public class AddToMasterDB extends ModifyMasterDB {
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 		String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
 		GraphPlaySheet gps = CentralityCalculator.createMetamodel(engine, sparql, true);
-		Hashtable<String, SEMOSSVertex> vertStore  = gps.getDataMaker().getVertStore();
-		Hashtable<String, SEMOSSEdge> edgeStore = gps.getDataMaker().getEdgeStore();
+		Hashtable<String, SEMOSSVertex> vertStore  = gps.getVertStore();
+		Hashtable<String, SEMOSSEdge> edgeStore = gps.getEdgeStore();
 
 		addNewDBConcepts(engineName, vertStore, edgeStore, parentChildMapping);
 //		RepositoryConnection rc = engine.getInsightDB();
@@ -120,8 +120,8 @@ public class AddToMasterDB extends ModifyMasterDB {
 
 		String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
 		GraphPlaySheet gps = CentralityCalculator.createMetamodel(engine, sparql, true);
-		Hashtable<String, SEMOSSVertex> vertStore  = gps.getDataMaker().getVertStore();
-		Hashtable<String, SEMOSSEdge> edgeStore = gps.getDataMaker().getEdgeStore();
+		Hashtable<String, SEMOSSVertex> vertStore  = gps.getVertStore();
+		Hashtable<String, SEMOSSEdge> edgeStore = gps.getEdgeStore();
 
 		addNewDBConcepts(engineName, vertStore, edgeStore, parentChildMapping);
 //		RepositoryConnection rc = engine.getInsightDB();
@@ -156,8 +156,8 @@ public class AddToMasterDB extends ModifyMasterDB {
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName + "");
 			String sparql = "SELECT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 1";
 			GraphPlaySheet gps = CentralityCalculator.createMetamodel(engine, sparql, true);
-			Hashtable<String, SEMOSSVertex> vertStore  = gps.getDataMaker().getVertStore();
-			Hashtable<String, SEMOSSEdge> edgeStore = gps.getDataMaker().getEdgeStore();
+			Hashtable<String, SEMOSSVertex> vertStore  = gps.getVertStore();
+			Hashtable<String, SEMOSSEdge> edgeStore = gps.getEdgeStore();
 
 			addNewDBConcepts(engineName, vertStore, edgeStore, parentChildMapping);
 //			RepositoryConnection rc = engine.getInsightDB();

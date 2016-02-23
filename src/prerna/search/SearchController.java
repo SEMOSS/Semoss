@@ -66,7 +66,7 @@ import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.picking.MultiPickedState;
 import edu.uci.ics.jung.visualization.picking.PickedState;
 import prerna.om.SEMOSSVertex;
-import prerna.ui.components.playsheets.AbstractGraphPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.transformer.ArrowFillPaintTransformer;
 import prerna.ui.transformer.EdgeStrokeTransformer;
 import prerna.ui.transformer.VertexLabelFontTransformer;
@@ -96,7 +96,7 @@ public class SearchController implements KeyListener, FocusListener, ActionListe
 	VertexLabelFontTransformer oldVLF = null;
 	PickedState liveState;
 	PickedState tempState = new MultiPickedState();
-	AbstractGraphPlaySheet gps;
+	GraphPlaySheet gps;
 	JToggleButton btnHighlight;
 
 	/**
@@ -420,7 +420,7 @@ public class SearchController implements KeyListener, FocusListener, ActionListe
 	 * Method setGPS.
 	 * @param ps GraphPlaySheet
 	 */
-	public void setGPS(AbstractGraphPlaySheet ps){
+	public void setGPS(GraphPlaySheet ps){
 		this.gps = ps;
 	}
 
