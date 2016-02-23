@@ -369,6 +369,9 @@ public class Translation extends DepthFirstAdapter {
 			{
 				if(curMyStore.containsKey("COL_DEF"))
 				{
+					reinit();
+					whatICallThisInMyWorld = curWhatICallThisInMyWorld;
+					myStore = curMyStore;
 					Vector allCols = (Vector) curMyStore.get("COL_DEF");
 					// get the iterator and then set it for API
 					// I will assume I create the iterator through tinker here
@@ -379,6 +382,8 @@ public class Translation extends DepthFirstAdapter {
 					ExpressionIterator it = new ExpressionIterator(iterator, convertVectorToArray(allCols), expression);
 					System.out.println("The expression was  " + node);
 					System.out.println("The columns were..  " + allCols);
+					
+					deInit();
 										
 					saveData("EXPR_TERM", it);
 					myStore.put("COLUMNS_USED", allCols); // TODO: is there a better way to keep track of columns used in expression?
@@ -1063,8 +1068,8 @@ public class Translation extends DepthFirstAdapter {
 	
 	private String getModExpression(String inExpression)
 	{
-		if (myStore.get("REPLACE") != null) {
-			for (String unmod : (Vector<String>)myStore.get("REPLACE")) {
+		if (myStore.get("REPLACERS") != null) {
+			for (String unmod : (Vector<String>)myStore.get("REPLACERS")) {
 				inExpression = inExpression.replaceAll(unmod, myStore.get(unmod).toString());
 			}
 		}
