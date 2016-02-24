@@ -1041,37 +1041,42 @@ public class TinkerFrame implements ITableDataFrame {
 		return retHash;
 	}
 	
+	private SEMOSSVertex getSEMOSSVertex(Map<String, SEMOSSVertex> vertStore, Vertex tinkerVert){
+		Object value = tinkerVert.property(Constants.VALUE).value();
+		Object type = tinkerVert.property(Constants.TYPE).value();
+		// if this vertex is a literal, need to build the uri
+		// otherwise the semoss vertex will not be able to get the type of the node (it parses the uri to get type)
+		String uri = value + "";
+		if(!(value instanceof String) || !(value instanceof String) || !((String)value).contains(((String)type))){
+			uri = type + "/" + value;
+		}
+		SEMOSSVertex semossVert = vertStore.get(uri);
+		if(semossVert == null){
+			semossVert = new SEMOSSVertex(uri);
+			vertStore.put(uri, semossVert);
+		}
+		return semossVert;
+	}
+	
 	private Map createVertStores(){
 		Map<String, SEMOSSVertex> vertStore = new HashMap<String, SEMOSSVertex>();
 		Map<String, SEMOSSEdge> edgeStore = new HashMap<String, SEMOSSEdge>();
 		
-		GraphTraversal<Edge, Edge> edgesIt = g.traversal().E().not(__.has(T.label, META));
+		GraphTraversal<Edge, Edge> edgesIt = g.traversal().E().not(__.has(T.label, META)).not(__.bothV().in().has(Constants.TYPE, Constants.FILTER));
 		while(edgesIt.hasNext()){
 			Edge e = edgesIt.next();
 			Vertex outV = e.outVertex();
 			Vertex inV = e.inVertex();
-			String outURI = outV.property(Constants.VALUE).value() + "";
-			SEMOSSVertex outVert = vertStore.get(outURI);
-			if(outVert == null){
-				outVert = new SEMOSSVertex(outURI);
-				vertStore.put(outURI, outVert);
-			}
-			String inURI = inV.property(Constants.VALUE).value()+ "";
-			SEMOSSVertex inVert = vertStore.get(inURI);
-			if(inVert == null){
-				inVert = new SEMOSSVertex(inURI);
-				vertStore.put(inURI, inVert);
-			}
+			SEMOSSVertex outVert = getSEMOSSVertex(vertStore, outV);
+			SEMOSSVertex inVert = getSEMOSSVertex(vertStore, inV);
 			
 			edgeStore.put("https://semoss.org/Relation/"+e.property(Constants.ID).value() + "", new SEMOSSEdge(outVert, inVert, "https://semoss.org/Relation/"+e.property(Constants.ID).value() + ""));
 		}
 		// now i just need to get the verts with no edges
-		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.both()).not(__.has(Constants.TYPE, META));
+		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.both()).not(__.has(Constants.TYPE, META)).not(__.in().has(Constants.TYPE, Constants.FILTER));
 		while(vertIt.hasNext()){
 			Vertex outV = vertIt.next();
-			String outURI = outV.property(Constants.VALUE).value() + "";
-			SEMOSSVertex outVert = new SEMOSSVertex(outURI);
-			vertStore.put(outURI, outVert);
+			getSEMOSSVertex(vertStore, outV);
 		}
 		
 		Map retHash = new HashMap();
