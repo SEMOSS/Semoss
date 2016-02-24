@@ -40,6 +40,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.Subgra
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.Graph.Variables;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
@@ -906,6 +907,7 @@ public class TinkerFrame implements ITableDataFrame {
             	   }
                }
            }
+           this.setVariable(Constants.HEADER_NAMES, this.headerNames);
            g.variables().set(Constants.HEADER_NAMES, this.headerNames); // I dont know if i even need this moving forward.. but for now I will assume it is
            redoLevels(this.headerNames);
 
@@ -1062,7 +1064,7 @@ public class TinkerFrame implements ITableDataFrame {
 		Map<String, SEMOSSVertex> vertStore = new HashMap<String, SEMOSSVertex>();
 		Map<String, SEMOSSEdge> edgeStore = new HashMap<String, SEMOSSEdge>();
 		
-		GraphTraversal<Edge, Edge> edgesIt = g.traversal().E().not(__.has(T.label, META)).not(__.bothV().in().has(Constants.TYPE, Constants.FILTER));
+		GraphTraversal<Edge, Edge> edgesIt = g.traversal().E().not(__.or(__.has(T.label, META), __.has(Constants.TYPE, Constants.FILTER), __.bothV().in().has(Constants.TYPE, Constants.FILTER)));
 		while(edgesIt.hasNext()){
 			Edge e = edgesIt.next();
 			Vertex outV = e.outVertex();
@@ -1073,7 +1075,7 @@ public class TinkerFrame implements ITableDataFrame {
 			edgeStore.put("https://semoss.org/Relation/"+e.property(Constants.ID).value() + "", new SEMOSSEdge(outVert, inVert, "https://semoss.org/Relation/"+e.property(Constants.ID).value() + ""));
 		}
 		// now i just need to get the verts with no edges
-		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.both()).not(__.has(Constants.TYPE, META)).not(__.in().has(Constants.TYPE, Constants.FILTER));
+		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.or(__.both(),__.has(Constants.TYPE, META),__.has(Constants.TYPE, Constants.FILTER),__.in().has(Constants.TYPE, Constants.FILTER)));
 		while(vertIt.hasNext()){
 			Vertex outV = vertIt.next();
 			getSEMOSSVertex(vertStore, outV);
@@ -2658,5 +2660,13 @@ public class TinkerFrame implements ITableDataFrame {
 	
 	public void setTempExpressionResult(Object result) {
 		this.tempExpressionResult = result;
+	}
+	
+	public void setVariable(String key, Object val){
+		g.variables().set(key, val);
+	}
+	
+	public Map<String, Object> getVariables(){
+		return g.variables().asMap();
 	}
 }
