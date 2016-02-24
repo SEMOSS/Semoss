@@ -141,22 +141,25 @@ public class TFRelationQueryBuilderPopup extends JMenu implements MouseListener{
 					addLabel("From:");
 					Collection<String> upstreamRels = upstream.keySet();
 					for(String upstreamRel: upstreamRels){
-						List<String> relTrip = new ArrayList<String>();
-						relTrip.add(0, (String) ((Set) ((Map<String, Object>) upstream).get(upstreamRel)).iterator().next());
-						relTrip.add(1, upstreamRel);
-						relTrip.add(typeUri);
-						Map<String, List<Object>> filterData = new HashMap<String, List<Object>>();
-						filterData.put(Utility.getInstanceName(typeUri), filterList);
-						
-						String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, relTrip.get(0), true));
-						QueryBuilderData data = new QueryBuilderData();
-						data.addRelTriple(relTrip);
-						data.setFilterData(filterData);
-						DataMakerComponent dmc = new DataMakerComponent(engine, data);
-						addJoinTransformation(dmc, type, typeUri);
-						NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(instance, dmc, engine);
-						nItem.addActionListener(NeighborMenuListener.getInstance());
-						add(nItem);
+						Set<String> specificNodes = (Set) ((Map<String, Object>) upstream).get(upstreamRel);
+						for(String node : specificNodes){
+							List<String> relTrip = new ArrayList<String>();
+							relTrip.add(0, node);
+							relTrip.add(1, upstreamRel);
+							relTrip.add(typeUri);
+							Map<String, List<Object>> filterData = new HashMap<String, List<Object>>();
+							filterData.put(Utility.getInstanceName(typeUri), filterList);
+							
+							String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, relTrip.get(0), true));
+							QueryBuilderData data = new QueryBuilderData();
+							data.addRelTriple(relTrip);
+							data.setFilterData(filterData);
+							DataMakerComponent dmc = new DataMakerComponent(engine, data);
+							addJoinTransformation(dmc, type, typeUri);
+							NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(instance, dmc, engine);
+							nItem.addActionListener(NeighborMenuListener.getInstance());
+							add(nItem);
+						}
 					}
 				}
 
@@ -165,22 +168,25 @@ public class TFRelationQueryBuilderPopup extends JMenu implements MouseListener{
 					addLabel("To:");
 					Collection<String> downstreamRels = downstream.keySet();
 					for(String downstreamRel: downstreamRels){
-						List<String> relTrip = new ArrayList<String>();
-						relTrip.add(0, typeUri);
-						relTrip.add(1, downstreamRel);
-						relTrip.add(2, (String) ((Set) ((Map<String, Object>) downstream).get(downstreamRel)).iterator().next());
-						Map<String, List<Object>> filterData = new HashMap<String, List<Object>>();
-						filterData.put(Utility.getInstanceName(typeUri), filterList);
-						
-						String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, relTrip.get(2), true));
-						QueryBuilderData data = new QueryBuilderData();
-						data.addRelTriple(relTrip);
-						data.setFilterData(filterData);
-						DataMakerComponent dmc = new DataMakerComponent(engine, data);
-						addJoinTransformation(dmc, type, typeUri);
-						NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(instance, dmc, engine);
-						nItem.addActionListener(NeighborMenuListener.getInstance());
-						add(nItem);
+						Set<String> specificNodes = (Set) ((Map<String, Object>) downstream).get(downstreamRel);
+						for(String node : specificNodes){
+							List<String> relTrip = new ArrayList<String>();
+							relTrip.add(0, typeUri);
+							relTrip.add(1, downstreamRel);
+							relTrip.add(2, node);
+							Map<String, List<Object>> filterData = new HashMap<String, List<Object>>();
+							filterData.put(Utility.getInstanceName(typeUri), filterList);
+							
+							String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, relTrip.get(2), true));
+							QueryBuilderData data = new QueryBuilderData();
+							data.addRelTriple(relTrip);
+							data.setFilterData(filterData);
+							DataMakerComponent dmc = new DataMakerComponent(engine, data);
+							addJoinTransformation(dmc, type, typeUri);
+							NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(instance, dmc, engine);
+							nItem.addActionListener(NeighborMenuListener.getInstance());
+							add(nItem);
+						}
 					}
 				}
 			}
