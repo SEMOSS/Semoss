@@ -28,9 +28,8 @@
 package prerna.ui.helpers;
 
 import prerna.om.Insight;
-import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 /**
  * This class helps with running the overlay view method for a playsheet.
@@ -64,6 +63,7 @@ public class InsightOverlayRunner implements Runnable{
 //		playSheet.overlayView();
 		
 //		IDataMaker dm = playSheet.getDataMaker();
+		((GraphPlaySheet)insight.getPlaySheet()).updateProgressBar("Processing new data maker component", 25);
 		for(DataMakerComponent dmc : this.dmComponents){
 			insight.processDataMakerComponent(dmc);
 		}
