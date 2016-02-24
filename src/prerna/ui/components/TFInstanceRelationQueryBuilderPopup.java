@@ -125,6 +125,7 @@ public class TFInstanceRelationQueryBuilderPopup extends JMenu implements MouseL
 			uri = Utility.getTransformedNodeName(engine, uri, false);
 			String type = Utility.getClassName(uri);
 
+			String typeUri = Constants.DISPLAY_URI + type;
 			IEngine masterDB = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
 			INameServer ns = new NameServerProcessor(masterDB);
 			ConnectedConcepts results = ns.searchConnectedConcepts(type);
@@ -138,8 +139,8 @@ public class TFInstanceRelationQueryBuilderPopup extends JMenu implements MouseL
 			
 			Collection<Object> equivUris = myDb.values();
 			for(Object equivUriHash : equivUris){
-				String equivUri = ((Map<String, Object>) equivUriHash).keySet().iterator().next();
-				Map<String, Object> upstream = (Map<String, Object>) ((Map<String, Object>) ((Map<String, Object>)equivUriHash).get(equivUri)).get("upstream");
+//				String equivUri = ((Map<String, Object>) equivUriHash).keySet().iterator().next();
+				Map<String, Object> upstream = (Map<String, Object>) ((Map<String, Object>) ((Map<String, Object>)equivUriHash).get(typeUri)).get("upstream");
 				if(upstream!=null){
 					addLabel("From:");
 					Collection<String> upstreamRels = upstream.keySet();
@@ -147,44 +148,44 @@ public class TFInstanceRelationQueryBuilderPopup extends JMenu implements MouseL
 						List<String> relTrip = new ArrayList<String>();
 						relTrip.add(0, (String) ((Set) ((Map<String, Object>) upstream).get(upstreamRel)).iterator().next());
 						relTrip.add(1, upstreamRel);
-						relTrip.add(equivUri);
+						relTrip.add(typeUri);
 						Map<String, List<Object>> filterData = new HashMap<String, List<Object>>();
 						List<Object> filterList = new ArrayList<Object>();
 						filterList.add(uri);
-						filterData.put(Utility.getInstanceName(equivUri), filterList);
+						filterData.put(Utility.getInstanceName(typeUri), filterList);
 						
 						String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, relTrip.get(0), true));
 						QueryBuilderData data = new QueryBuilderData();
 						data.addRelTriple(relTrip);
 						data.setFilterData(filterData);
 						DataMakerComponent dmc = new DataMakerComponent(engine, data);
-						addJoinTransformation(dmc, type, equivUri);
+						addJoinTransformation(dmc, type, typeUri);
 						NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(instance, dmc, engine);
 						nItem.addActionListener(NeighborMenuListener.getInstance());
 						add(nItem);
 					}
 				}
 
-				Map<String, Object> downstream = (Map<String, Object>) ((Map<String, Object>) ((Map<String, Object>)equivUriHash).get(equivUri)).get("downstream");
+				Map<String, Object> downstream = (Map<String, Object>) ((Map<String, Object>) ((Map<String, Object>)equivUriHash).get(typeUri)).get("downstream");
 				if(downstream!=null){
 					addLabel("To:");
 					Collection<String> downstreamRels = downstream.keySet();
 					for(String downstreamRel: downstreamRels){
 						List<String> relTrip = new ArrayList<String>();
-						relTrip.add(0, equivUri);
+						relTrip.add(0, typeUri);
 						relTrip.add(1, downstreamRel);
 						relTrip.add(2, (String) ((Set) ((Map<String, Object>) downstream).get(downstreamRel)).iterator().next());
 						Map<String, List<Object>> filterData = new HashMap<String, List<Object>>();
 						List<Object> filterList = new ArrayList<Object>();
 						filterList.add(uri);
-						filterData.put(Utility.getInstanceName(equivUri), filterList);
+						filterData.put(Utility.getInstanceName(typeUri), filterList);
 						
 						String instance = Utility.getInstanceName(Utility.getTransformedNodeName(engine, relTrip.get(2), true));
 						QueryBuilderData data = new QueryBuilderData();
 						data.addRelTriple(relTrip);
 						data.setFilterData(filterData);
 						DataMakerComponent dmc = new DataMakerComponent(engine, data);
-						addJoinTransformation(dmc, type, equivUri);
+						addJoinTransformation(dmc, type, typeUri);
 						NeighborQueryBuilderMenuItem nItem = new NeighborQueryBuilderMenuItem(instance, dmc, engine);
 						nItem.addActionListener(NeighborMenuListener.getInstance());
 						add(nItem);
