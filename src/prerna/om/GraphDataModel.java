@@ -375,48 +375,51 @@ public class GraphDataModel implements IDataMaker {
 			logger.debug("Subjects >>> " + subjects);
 			logger.debug("Predicatss >>>> " + predicates);
 
-			loadBaseData(engine); // this method will work fine too.. although I have no use for it for later
-			// load the concept linkages
-			// the concept linkages are a combination of the base relationships and what is on the file
-			boolean isRDF = (engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.JENA || 
-					engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE);
-			boolean loadHierarchy = !(subjects.length()==0 && predicates.length()==0 && objects.length()==0) && isRDF; // Load Hierarchy if and only if this is a RDF Engine - else dont worry about it
-			if(loadHierarchy) {
-				try {
-					RDFEngineHelper.loadConceptHierarchy(engine, subjects.toString(), objects.toString(), this);
-					logger.debug("Loaded Concept");
-					RDFEngineHelper.loadRelationHierarchy(engine, predicates.toString(), this);
-					logger.debug("Loaded Relation");
-				} catch(RuntimeException ex) {
-					ex.printStackTrace();
+			if(rc!=null){ // if rc is null here, that means our original query didn't return anything. 
+					
+				loadBaseData(engine); // this method will work fine too.. although I have no use for it for later
+				// load the concept linkages
+				// the concept linkages are a combination of the base relationships and what is on the file
+				boolean isRDF = (engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.JENA || 
+						engine.getEngineType() == IEngine.ENGINE_TYPE.SEMOSS_SESAME_REMOTE);
+				boolean loadHierarchy = !(subjects.length()==0 && predicates.length()==0 && objects.length()==0) && isRDF; // Load Hierarchy if and only if this is a RDF Engine - else dont worry about it
+				if(loadHierarchy) {
+					try {
+						RDFEngineHelper.loadConceptHierarchy(engine, subjects.toString(), objects.toString(), this);
+						logger.debug("Loaded Concept");
+						RDFEngineHelper.loadRelationHierarchy(engine, predicates.toString(), this);
+						logger.debug("Loaded Relation");
+					} catch(RuntimeException ex) {
+						ex.printStackTrace();
+					}
 				}
-			}
-			containsRelation = findContainsRelation();
-			if(containsRelation == null)
-				containsRelation = "<http://semoss.org/ontologies/Relation/Contains>";
-
-			if(sudowl && isRDF) { // I wont worry about this for now
-				logger.info("Starting to load SUDOWL");
-				GraphOWLHelper.loadConceptHierarchy(rc, subjects.toString(), objects.toString(), this);
-				GraphOWLHelper.loadRelationHierarchy(rc, predicates.toString(), this);
-				GraphOWLHelper.loadPropertyHierarchy(rc,predicates.toString(), containsRelation, this);
-				logger.info("Finished loading SUDOWL");
-			}
-			if(prop && isRDF) { // hmm this is something i need wor worry about but I will work it with an RDF plug right now
-				logger.info("Starting to load properties");
-				// load local property hierarchy
-				try
-				{
-					//loadPropertyHierarchy(predicates, containsRelation);
-					RDFEngineHelper.loadPropertyHierarchy(engine,predicates.toString(), containsRelation, this);
-					// now that this is done, we can query for concepts						
-					//genPropertiesRemote(propertyQuery + "BINDINGS ?Subject { " + subjects + " " + predicates + " " + objects+ " } ");
-					RDFEngineHelper.genPropertiesRemote(engine, subjects.toString(), objects.toString(), predicates.toString(), containsRelation, this);
-					logger.info("Loaded Properties");
-				} catch(RuntimeException ex) {
-					ex.printStackTrace();
+				containsRelation = findContainsRelation();
+				if(containsRelation == null)
+					containsRelation = "<http://semoss.org/ontologies/Relation/Contains>";
+	
+				if(sudowl && isRDF) { // I wont worry about this for now
+					logger.info("Starting to load SUDOWL");
+					GraphOWLHelper.loadConceptHierarchy(rc, subjects.toString(), objects.toString(), this);
+					GraphOWLHelper.loadRelationHierarchy(rc, predicates.toString(), this);
+					GraphOWLHelper.loadPropertyHierarchy(rc,predicates.toString(), containsRelation, this);
+					logger.info("Finished loading SUDOWL");
 				}
-				//genProperties(propertyQuery + predicates + " } ");
+				if(prop && isRDF) { // hmm this is something i need wor worry about but I will work it with an RDF plug right now
+					logger.info("Starting to load properties");
+					// load local property hierarchy
+					try
+					{
+						//loadPropertyHierarchy(predicates, containsRelation);
+						RDFEngineHelper.loadPropertyHierarchy(engine,predicates.toString(), containsRelation, this);
+						// now that this is done, we can query for concepts						
+						//genPropertiesRemote(propertyQuery + "BINDINGS ?Subject { " + subjects + " " + predicates + " " + objects+ " } ");
+						RDFEngineHelper.genPropertiesRemote(engine, subjects.toString(), objects.toString(), predicates.toString(), containsRelation, this);
+						logger.info("Loaded Properties");
+					} catch(RuntimeException ex) {
+						ex.printStackTrace();
+					}
+					//genProperties(propertyQuery + predicates + " } ");
+				}
 			}
 		} catch (RuntimeException e) {
 			e.printStackTrace();
