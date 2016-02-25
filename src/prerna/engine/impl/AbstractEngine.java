@@ -553,7 +553,7 @@ public abstract class AbstractEngine implements IEngine {
 		String query = "SELECT ?property WHERE { {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
 				+ "{?concept  <http://www.w3.org/2002/07/owl#DatatypeProperty> ?property}"
 				+ "{?property a <" + CONTAINS_BASE_URI + ">}}"
-				+ "BINDINGS ?concept {(<"+ this.getTransformedNodeName(concept, false) +">)}";
+				+ "BINDINGS ?concept {(<"+ this.getTransformedNodeName(uri, false) +">)}";
 		List<String> uriProps = Utility.getVectorOfReturn(query, baseDataEngine, true);
 		if(!logicalNames){
 			return uriProps;
