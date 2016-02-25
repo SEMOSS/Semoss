@@ -5,8 +5,10 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -129,7 +131,12 @@ public class JoinTransformation extends AbstractTransformation {
 						LOGGER.error("Matcher type " + this.matcher.getQueryModType() + " is not supported in join method.");
 					}
 				} else {
-					stringMap.put(props.get(COLUMN_TWO_KEY) + "", Arrays.asList(((ITableDataFrame) dm).getUniqueRawValues(props.get(COLUMN_ONE_KEY) + "")) );
+					Iterator<Object> rowIt = ((ITableDataFrame) dm).uniqueValueIterator((String) props.get(COLUMN_ONE_KEY), false, false);
+					List<Object> uris = new Vector<Object>();
+					while(rowIt.hasNext()){
+						uris.add(dmc.getEngine().getNodeBaseUri() + props.get(COLUMN_TWO_KEY) +"/"+rowIt.next());
+					}
+					stringMap.put(props.get(COLUMN_TWO_KEY) + "", uris );
 					builderData.setFilterData(stringMap);
 				}
 			} 

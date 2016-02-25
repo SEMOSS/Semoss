@@ -1392,7 +1392,7 @@ public class TinkerFrame implements ITableDataFrame {
 		mergeEdgeHash(((TinkerFrame)table).getEdgeHash()); //need more information but can assume exact string matching for now
 	}
 	
-	private Map<String, Set<String>> getEdgeHash() {
+	public Map<String, Set<String>> getEdgeHash() {
 		// Very simple -- for each meta node, get its downstream nodes and put in a set
 		Map<String, Set<String>> retMap = new HashMap<String, Set<String>>();
 		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META);
@@ -1916,7 +1916,11 @@ public class TinkerFrame implements ITableDataFrame {
 	public Iterator<Object> uniqueValueIterator(String columnHeader, boolean getRawData, boolean iterateAll) {
 //		GraphTraversal<Vertex, Object> gt = g.traversal().V().has(Constants.TYPE, columnHeader).values(Constants.VALUE);
 //		return gt;
-		return getGraphTraversal(columnHeader);
+		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, columnHeader);
+		if(!iterateAll){
+			gt = gt.not(__.in().has(Constants.TYPE, Constants.FILTER)); //TODO: this isn't exactly right.. doesnt' handle transitive filters..
+		}
+		return gt.values(Constants.NAME);//
 	}
 
 	private GraphTraversal<Vertex, Object> getGraphTraversal(String columnHeader) {
@@ -2662,11 +2666,4 @@ public class TinkerFrame implements ITableDataFrame {
 		this.tempExpressionResult = result;
 	}
 	
-	public void setVariable(String key, Object val){
-		g.variables().set(key, val);
-	}
-	
-	public Map<String, Object> getVariables(){
-		return g.variables().asMap();
-	}
 }
