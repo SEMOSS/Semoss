@@ -274,24 +274,22 @@ public class SolrIndexEngine {
 	public SolrDocumentList queryDocument(Map<String, Object> queryOptions) throws SolrServerException, IOException {
 		SolrDocumentList results = null;
 		if (serverActive()) {
-			// report number of results found from query
-			LOGGER.info("Reporting number of results found from query");
 			String appendedQuerySearch = "";
+			QueryResponse res= new QueryResponse();
 			if (queryOptions.get(CommonParams.Q) != null) {
 				String querySearch = (String) queryOptions.get(CommonParams.Q);
-				// Query within the instanceCore
-				if (querySearch != null && !querySearch.equals(QUERYALL) && !querySearch.isEmpty()) {
-					Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
-					 appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
-					 queryOptions.put(CommonParams.Q, appendedQuerySearch);
-					if (queryOptions.get(CommonParams.FQ) != null) {
-						Map<String, List<String>> exactFilterSearch = (Map<String, List<String>>) queryOptions.get(CommonParams.FQ);
-						addFilterResultsToQueryMap(queryOptions, exactFilterSearch);
+				res = getQueryResponse(queryOptions, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+				if(res.getResults().size() == 0) {
+					// Query within the instanceCore only when the normal query returns no results
+					if (querySearch != null && !querySearch.equals(QUERYALL) && !querySearch.isEmpty()) {
+						Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
+						appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
+						queryOptions.put(CommonParams.Q, appendedQuerySearch);
 					}
+					res = getQueryResponse(queryOptions, SOLR_PATHS.SOLR_INSIGHTS_PATH);
 				}
-				QueryResponse res = getQueryResponse(queryOptions, SOLR_PATHS.SOLR_INSIGHTS_PATH);
-				results = res.getResults();
 			}
+			results = res.getResults();
 		}
 		LOGGER.info("Returning results of search");
 		return results;
