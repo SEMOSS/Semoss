@@ -100,6 +100,7 @@ public class Insight {
 	private static final String DESCRIPTION_KEY = "description";				// description of question
 	private static final String ORDER_KEY = "order";							// order of the question
 	private static final String PERSPECTIVE_KEY = "perspective"; 				// the perspective for the insight
+	private static final String IS_NON_DB_KEY = "isNonDbInsight";			// is the insight from a db or copy/paste 
 	private static final String RDBMS_ID = "rdbmsId"; 							// the original idea of insight in the rdbms engine
 	private static final String IS_DB_QUERY = "isDbQuery";						// is the query should be run on the owl or database
 
@@ -335,6 +336,14 @@ public class Insight {
 	 */
 	public String getOrder() {
 		return (String) this.propHash.get(ORDER_KEY);
+	}
+	
+	public void setIsNonDbInsight(boolean isCsvInsight) {
+		this.propHash.put(IS_NON_DB_KEY, isCsvInsight);
+	}
+	
+	public boolean isNonDbInsight() {
+		return (Boolean) this.propHash.get(IS_NON_DB_KEY);
 	}
 	
 	/**
@@ -1018,7 +1027,11 @@ public class Insight {
 	}
 
 	public String getEngineName() {
-		return this.mainEngine.getEngineName();
+		if(this.mainEngine != null) {
+			return this.mainEngine.getEngineName();
+		} else {
+			return null;
+		}
 	}
 	
 	public Map<String, Object> getInsightMetadata() {
@@ -1206,4 +1219,5 @@ public class Insight {
 
 		return returnHash;
 	}
+
 }
