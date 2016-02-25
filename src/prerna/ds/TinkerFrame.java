@@ -2686,5 +2686,39 @@ public class TinkerFrame implements ITableDataFrame {
 	public void setTempExpressionResult(Object result) {
 		this.tempExpressionResult = result;
 	}
+
+	public void insertBlanks(String colName, List<String> addedColumns) {
+		// for each node in colName
+		// if it does not have a relationship to any node in any of the addedColumns
+		// add that node to a blank
+		LOGGER.info("PERFORMING inserting of blanks.......");
+		for(String addedType : addedColumns){
+			Vertex emptyV = null;
+			GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, META).has(Constants.VALUE, colName).out().has(Constants.TYPE, META).has(Constants.VALUE, addedType);
+			boolean forward = false;
+			GraphTraversal<Vertex, Vertex> gt = null;
+			if(metaT.hasNext()){
+				forward = true;
+				gt = g.traversal().V().has(Constants.TYPE, colName).not(__.out().has(Constants.TYPE, addedType));
+			}
+			else {
+				gt = g.traversal().V().has(Constants.TYPE, colName).not(__.in().has(Constants.TYPE, addedType));
+			}
+			while(gt.hasNext()){ // these are the dudes that need an empty
+				if(emptyV == null){
+					emptyV = this.upsertVertex(addedType, EMPTY, EMPTY);
+				}
+				
+				Vertex existingVert = gt.next();
+				if(forward){
+					this.upsertEdge(existingVert, emptyV);
+				}
+				else {
+					this.upsertEdge(emptyV, existingVert);
+				}
+			}
+		}
+		LOGGER.info("DONE inserting of blanks.......");
+	}
 	
 }

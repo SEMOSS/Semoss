@@ -23,6 +23,7 @@ import prerna.ds.BTreeDataFrame;
 import prerna.ds.InstanceMatcher;
 import prerna.ds.InstanceOuterJoinMatcher;
 import prerna.ds.InstancePartialOuterJoinMatcher;
+import prerna.ds.TinkerFrame;
 import prerna.om.GraphDataModel;
 import prerna.rdf.query.builder.QueryBuilderData;
 
@@ -153,6 +154,12 @@ public class JoinTransformation extends AbstractTransformation {
 			String val = allCols[i];
 			if(!this.prevHeaders.contains(val)) {
 				addedColumns.add(val);
+			}
+		}
+		if(this.props.get(JOIN_TYPE) != null && ((String) this.props.get(JOIN_TYPE)).equals("partial")){
+			String colName = this.props.get(COLUMN_ONE_KEY) +"";
+			if(dm instanceof TinkerFrame){
+				((TinkerFrame)dm).insertBlanks(colName, addedColumns);
 			}
 		}
 //		((TinkerFrame)dm).removeExtraneousNodes(); though this call makes sense in terms of keeping the tinker free of unnecessary nodes, it is quite slow. Going to try to call this only when necessary (serializing)
