@@ -2559,10 +2559,16 @@ public class TinkerFrame implements ITableDataFrame {
             Map<String, Object> cleanRow = new HashMap<String, Object>();
 			for(int j = 0; j < headers.length; j++) {
 				Object value = row.get(headers[j]);
-				if(!cleanIsSame[j]) {
+				Object cleanVal = null;
+				if(value instanceof String) {
+					cleanVal = headers[j] + "/" + value;
+					row.remove(headers[j]);
+					row.put(cleanHeaders[j], cleanVal);
+				} else if(!cleanIsSame[j]) {
 					row.remove(headers[j]);
 					row.put(cleanHeaders[j], value);
 				}
+				
                 cleanRow.put(cleanHeaders[j], Utility.cleanString(value + "", true, true, false));
 			}
             dataFrame.addRow(cleanRow, row);
