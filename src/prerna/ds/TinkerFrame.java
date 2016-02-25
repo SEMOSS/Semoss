@@ -2561,7 +2561,7 @@ public class TinkerFrame implements ITableDataFrame {
 				Object value = row.get(headers[j]);
 				Object cleanVal = null;
 				if(value instanceof String) {
-					cleanVal = headers[j] + "/" + value;
+					cleanVal = cleanHeaders[j] + "/" + value;
 					row.remove(headers[j]);
 					row.put(cleanHeaders[j], cleanVal);
 				} else if(!cleanIsSame[j]) {
