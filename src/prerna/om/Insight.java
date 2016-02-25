@@ -76,6 +76,7 @@ import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class Insight {
@@ -116,6 +117,7 @@ public class Insight {
 	private transient List<DataMakerComponent> optimalComponents;
 	private transient Map<String, List<Object>> paramHash;						// the parameters selected by user for filtering on insights
 	private transient Vector<SEMOSSParam> insightParameters;					// the SEMOSSParam objects for the insight
+	private String uiOptions;
 	
 	// database id where this insight is
 	// this may be a URL
@@ -686,7 +688,7 @@ public class Insight {
 
 	/**
 	 * Setter for the data table align used for the view
-	 * Primarily used when data table align is stored in insight makeup
+	 * Primarily used when data table align is coming from rdbms insight
 	 * @param dataTableAlignJSON
 	 */
 	public void setDataTableAlign(String dataTableAlignJSON) {
@@ -979,34 +981,40 @@ public class Insight {
 	}
 	
 	public String getUiOptions() {
-		String uiOptions = "";
-		String rdbmsId = getRdbmsId();
-		if(rdbmsId != null && !rdbmsId.isEmpty()) {
-			String query = "SELECT UI_DATA FROM UI WHERE QUESTION_ID_FK='" + rdbmsId + "'";
-			IEngine insightDb = this.mainEngine.getInsightDatabase();
-			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(insightDb, query);
-			String[] names = wrapper.getVariables();
-			while(wrapper.hasNext()) {
-				ISelectStatement ss = wrapper.next();
-				JdbcClob obj = (JdbcClob) ss.getRawVar(names[0]);
-				
-				InputStream insightDefinition = null;
-				try {
-					insightDefinition = obj.getAsciiStream();
-				} catch (SQLException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+		if(this.uiOptions == null){
+			this.uiOptions = "";
+			String rdbmsId = getRdbmsId();
+			if(rdbmsId != null && !rdbmsId.isEmpty()) {
+				String query = "SELECT UI_DATA FROM UI WHERE QUESTION_ID_FK='" + rdbmsId + "'";
+				IEngine insightDb = this.mainEngine.getInsightDatabase();
+				ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(insightDb, query);
+				String[] names = wrapper.getVariables();
+				while(wrapper.hasNext()) {
+					ISelectStatement ss = wrapper.next();
+					JdbcClob obj = (JdbcClob) ss.getRawVar(names[0]);
+					
+					InputStream insightDefinition = null;
+					try {
+						insightDefinition = obj.getAsciiStream();
+					} catch (SQLException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					
+					 try {
+						uiOptions = IOUtils.toString(insightDefinition);
+					} catch (IOException e) {
+						e.printStackTrace();
+					} 
 				}
-				
-				 try {
-					uiOptions = IOUtils.toString(insightDefinition);
-				} catch (IOException e) {
-					e.printStackTrace();
-				} 
 			}
 		}
 		
 		return uiOptions;
+	}
+	
+	public void setUiOptions(String uiOptions){
+		this.uiOptions = uiOptions;
 	}
 
 	public String getEngineName() {
@@ -1027,6 +1035,9 @@ public class Insight {
 			String query = comp.getQuery();
 			if(query == null){
 				QueryBuilderData data = comp.getBuilderData();
+				if(data == null){
+					continue;
+				}
 				IEngine compEng = comp.getEngine();
 				List<List<String>> rels = data.getRelTriples();
 				System.out.println(rels);
@@ -1034,13 +1045,13 @@ public class Insight {
 					if(rel.size()>1){
 						// store the triple
 						Map<String, String> nodeTriples = new Hashtable<String, String>();
-						nodeTriples.put("fromNode", rel.get(0));
+						nodeTriples.put("fromNode", compEng.getTransformedNodeName(rel.get(0), true));
 						nodeTriples.put("relationshipTriple", rel.get(1));
-						nodeTriples.put("toNode", rel.get(2));
+						nodeTriples.put("toNode", compEng.getTransformedNodeName(rel.get(2), true));
 						triplesHash.put(triplesHash.size()+"", nodeTriples);
 						
 						//store the object node
-						String node2 = rel.get(2);
+						String node2 = compEng.getTransformedNodeName(rel.get(2), true);
 						String node2Name = Utility.getInstanceName(node2);
 						if(!nodesHash.containsKey(node2Name)){
 							List<String> node2Props = new Vector<String>();
@@ -1053,7 +1064,7 @@ public class Insight {
 						}
 					}
 					//store the subject node
-					String node1 = rel.get(0);
+					String node1 = compEng.getTransformedNodeName(rel.get(0), true);
 					String nodeName = Utility.getInstanceName(node1);
 					if(!nodesHash.containsKey(nodeName)){
 						List<String> nodeProps = new Vector<String>();
@@ -1155,6 +1166,36 @@ public class Insight {
 	//				insightID = InsightStore.getInstance().put(existingInsight); // place btree into ITableDataFrameStore and generate a tableID so that user no longer uses insightID
 				}catch(Exception e){
 					e.printStackTrace();
+				}
+			}
+		}
+		
+		if(nodesHash.isEmpty()){
+			// This means it is an insight coming from a csv
+			// Need to get the meta data from the tinker frame since it has no components
+			if(this.getDataMaker() instanceof TinkerFrame){
+				TinkerFrame tink = (TinkerFrame) this.getDataMaker();
+				Map<String, Set<String>> edgeHash = tink.getEdgeHash();
+				for(String sub: edgeHash.keySet()){
+					Map<String, Object> nodeObj = new HashMap<String, Object>();
+					nodeObj.put("uri", sub);
+					nodeObj.put("engineName", Constants.LOCAL_MASTER_DB_NAME);
+					nodeObj.put("engineType", IEngine.ENGINE_TYPE.SESAME);
+					nodesHash.put(sub, nodeObj);
+					Set<String> objs = edgeHash.get(sub);
+					for(String obj : objs){
+						Map<String, Object> nodeObj2 = new HashMap<String, Object>();
+						nodeObj2.put("uri", obj);
+						nodeObj2.put("engineName", Constants.LOCAL_MASTER_DB_NAME);
+						nodeObj2.put("engineType", IEngine.ENGINE_TYPE.SESAME);
+						nodesHash.put(obj, nodeObj2);
+
+						Map<String, String> nodeTriples = new Hashtable<String, String>();
+						nodeTriples.put("fromNode", sub);
+						nodeTriples.put("relationshipTriple", "fake");
+						nodeTriples.put("toNode", obj);
+						triplesHash.put(triplesHash.size()+"", nodeTriples);
+					}
 				}
 			}
 		}
