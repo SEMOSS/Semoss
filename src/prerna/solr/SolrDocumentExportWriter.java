@@ -18,7 +18,7 @@ public class SolrDocumentExportWriter {
 		this.buffer = new BufferedWriter(writer);
 	}
 	
-	public void writeSolrDocument(File file, String id, Map<String, Object> fieldData) throws IOException {
+	public void writeSolrDocument(String id, Map<String, Object> fieldData) throws IOException {
 		buffer.write("<SolrInputDocument>");			
 		buffer.newLine();
 		buffer.write("id : " + id);

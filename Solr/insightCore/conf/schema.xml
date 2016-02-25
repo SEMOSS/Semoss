@@ -89,7 +89,7 @@
 		<!-- engines that are used in the insight defintion -->
 		<field name="core_engine" type="string" indexed="true" stored="true" required="true" multiValued="false" />
 		<!-- the id of the insight within the given engine -->
-		<field name="core_engine_id" type="int" indexed="true" stored="true" required="true" multiValued="false" /> 
+		<field name="core_engine_id" type="string" indexed="false" stored="true" required="true" multiValued="false" /> 
 		<!-- engines that are used in the insight defintion -->
 		<field name="engines" type="text_en_splitting" indexed="true" stored="true" required="true" multiValued="true" /> 
 		<!-- specified related insights by user -->
@@ -102,7 +102,10 @@
 		<field name="params" type="text_ws" indexed="true" stored="true" required="false" multiValued="true" /> 
 		<!-- this will hold a list of algorithms used in the query -->
 		<field name="algorithms" type="text_ws" indexed="true" stored="true" required="false" multiValued="true" /> 
-				
+		<!-- need to keep track if this insight exists from a db or is a cached tinkerframe -->
+		<field name="non_db_insight" type="boolean" indexed="false" stored="true" required="false" multiValued="false" />
+
+		
 		<!-- holds the actual insight definition that is used by BE to generate the insight, holds information regarding queries, joins, params, etc. -->
 		<!-- <field name="insight_definition" type="string" indexed="false" stored="true" required="true" multiValued="true" /> -->
 		
