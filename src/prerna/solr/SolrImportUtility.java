@@ -254,34 +254,35 @@ public final class SolrImportUtility {
 				insightQueryResults.put(SolrIndexEngine.INDEX_NAME, indexName);
 			}
 			
-			if(annotation != null && annotation.isEmpty()) {
+			if(annotation != null && !annotation.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.ANNOTATION, annotation);
 			}
-			if(favoriteCount != null && favoriteCount.isEmpty()) {
+			if(favoriteCount != null && !favoriteCount.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.FAVORITES_COUNT, favoriteCount);
 			}
-			if(viewCount != null && viewCount.isEmpty()) {
+			if(viewCount != null && !viewCount.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.VIEW_COUNT, viewCount);
 			}
-			if(tagsList != null && tagsList.isEmpty()) {
+			if(tagsList != null && !tagsList.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.TAGS, tagsList);
 			}
-			if(commentsList != null && commentsList.isEmpty()) {
+			if(commentsList != null && !commentsList.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.COMMENT, commentsList);
 			}
-			if(userSpecifiedList != null && userSpecifiedList.isEmpty()) {
+			if(userSpecifiedList != null && !userSpecifiedList.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.USER_SPECIFIED_RELATED, userSpecifiedList);
 			}
-			if(queryProjectionsList != null && queryProjectionsList.isEmpty()) {
+			if(queryProjectionsList != null && !queryProjectionsList.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.QUERY_PROJECTIONS, queryProjectionsList);
 			}
-			if(paramsList != null && paramsList.isEmpty()) {
+			if(paramsList != null && !paramsList.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.PARAMS, paramsList);
 			}
-			if(algorithmsList != null && algorithmsList.isEmpty()) {
+			if(algorithmsList != null && !algorithmsList.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.ALGORITHMS, algorithmsList);
-			} if(isNonDbInsight != null) {
-				insightQueryResults.put(SolrIndexEngine.ALGORITHMS, algorithmsList);
+			} 
+			if(isNonDbInsight != null) {
+				insightQueryResults.put(SolrIndexEngine.NON_DB_INSIGHT, isNonDbInsight);
 			}
 			
 			// add to solr engine
