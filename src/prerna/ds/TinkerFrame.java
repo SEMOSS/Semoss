@@ -40,12 +40,14 @@ import org.apache.tinkerpop.gremlin.process.traversal.strategy.decoration.Subgra
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.Graph.Variables;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.IAnalyticActionRoutine;
 import prerna.algorithm.api.IAnalyticRoutine;
@@ -76,9 +78,6 @@ import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.Utility;
-
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
 public class TinkerFrame implements ITableDataFrame {
 	
@@ -2536,14 +2535,37 @@ public class TinkerFrame implements ITableDataFrame {
 		
 		List<Map<String, Object>> data = gson.fromJson(jsonString, new TypeToken<List<Map<String, Object>>>() {}.getType());
 		String[] headers = data.get(0).keySet().toArray(new String[]{});
-		TinkerFrame dataFrame = new TinkerFrame(headers);
-		Map<String, Set<String>> primKeyEdgeHash = dataFrame.createPrimKeyEdgeHash(headers);
+		String[] cleanHeaders = new String[headers.length];
+		// keep boolean so dont need to compare strings with each iteration
+		boolean[] cleanIsSame = new boolean[headers.length];
+		// clean headers
+        for(int i = 0; i<headers.length; i++){
+              String orig = headers[i];
+              String cleaned = Utility.cleanVariableString(orig);
+              cleanHeaders[i] = cleaned;
+              if(orig.equals(cleaned)) {
+            	  cleanIsSame[i] = true;
+              }
+        }
+		
+		TinkerFrame dataFrame = new TinkerFrame(cleanHeaders);
+		Map<String, Set<String>> primKeyEdgeHash = dataFrame.createPrimKeyEdgeHash(cleanHeaders);
 		dataFrame.mergeEdgeHash(primKeyEdgeHash); 
 		
 		int i = 0;
 		int numRows = data.size();
 		for(; i < numRows; i++) {
-			dataFrame.addRow(data.get(i), data.get(i));
+			Map<String, Object> row = data.get(i);
+            Map<String, Object> cleanRow = new HashMap<String, Object>();
+			for(int j = 0; j < headers.length; j++) {
+				Object value = row.get(headers[j]);
+				if(!cleanIsSame[j]) {
+					row.remove(headers[j]);
+					row.put(cleanHeaders[j], value);
+				}
+                cleanRow.put(cleanHeaders[j], Utility.cleanString(value + "", true, true, false));
+			}
+            dataFrame.addRow(cleanRow, row);
 		}
 		
 		return dataFrame;
