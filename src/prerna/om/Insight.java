@@ -252,6 +252,10 @@ public class Insight {
 		return (String) this.propHash.get(OUTPUT_KEY);
 	}
 	
+	public void setOutput(String output) {
+		this.propHash.put(OUTPUT_KEY, output);
+	}
+	
 //	/**
 //	 * Getter for the N-Triples string for the insight makeup
 //	 * @return
