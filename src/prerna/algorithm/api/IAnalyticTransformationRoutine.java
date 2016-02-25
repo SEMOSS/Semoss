@@ -10,7 +10,7 @@ public interface IAnalyticTransformationRoutine extends IAnalyticRoutine{
 	 * @param data				An array of data-frame containing the input data for the analytical routine
 	 * @return					The resulting data-frame as a result of the analytical routine
 	 */
-	ITableDataFrame runAlgorithm(ITableDataFrame... data);
+	ITableDataFrame runAlgorithm(ITableDataFrame... data) throws RuntimeException;
 	
 	/**
 	 * Get the list of the columns that have been altered as a result of the algorithm

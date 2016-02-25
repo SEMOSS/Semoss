@@ -7,12 +7,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.ITableDataFrame;
@@ -69,7 +66,7 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 	}
 
 	@Override
-	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
+	public ITableDataFrame runAlgorithm(ITableDataFrame... data) throws RuntimeException {
 		// TODO Auto-generated method stub
 		//grab first, cast to tinker
 		ITableDataFrame table = data[0];
@@ -81,12 +78,17 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 			String valueColumn = this.functionMap.get("name").toString();
 			String mathType = this.functionMap.get("math").toString();
 			String newColumnHeader = this.functionMap.get("calcName").toString();
-			String columnHeader = ((List<String>)this.functionMap.get("GroupBy")).get(0);
+//			String columnHeader = ((List<String>)this.functionMap.get("GroupBy")).get(0);
+			String[] columnHeaders = ((List<String>)this.functionMap.get("GroupBy")).toArray(new String[0]);
 			
 			//calculate group by and add to tinker
-			addStatColumnToTinker(tinkerGraph, columnHeader, mathType, newColumnHeader, valueColumn);
-			
+			try {
+				addStatColumnToTinker(tinkerGraph, columnHeaders, mathType, newColumnHeader, valueColumn);
+			} catch(ClassCastException e) {
+				throw new ClassCastException("Error with computation. Please make sure aggregation values are non-empty and numerical.");
+			}
 			this.newColumn = newColumnHeader;
+			
 		} else {
 			throw new IllegalArgumentException("Cannot run stat routine on instance of"+table.getClass().getName());
 		}
@@ -160,6 +162,116 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 				
 				tinker.addRelationship(newRow, newRow);
 			}			
+		}
+	}
+	
+	/**
+	 * 
+	 * @param tinker
+	 * @param columnHeader - the column to join on
+	 * @param mathType - type of operation to do
+	 * @param newColumnName - name of the new column
+	 * @param valueColumn - the column to do calculations on
+	 */
+	private void addStatColumnToTinker(TinkerFrame tinker, String[] columnHeader, String mathType, String newColumnName, String valueColumn) throws ClassCastException{
+				
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(tinker.getSelectors(), tinker.g);
+		GraphTraversal statIterator = (GraphTraversal)builder.executeScript();
+		
+		boolean singleColumn = columnHeader.length == 1;
+		
+		if(singleColumn) {
+			statIterator = statIterator.group().by(__.select(columnHeader[0]).values(Constants.NAME)).as(PRIMARY_SELECTOR);
+		} else if(columnHeader.length == 2) {
+			statIterator = statIterator.group().by(__.select(columnHeader[0], columnHeader[1]).by(Constants.NAME)).as(PRIMARY_SELECTOR);
+		} else {
+			String[] restOfHeaders = Arrays.copyOfRange(columnHeader, 2, columnHeader.length-1);
+			statIterator = statIterator.group().by(__.select(columnHeader[0], columnHeader[1], restOfHeaders).by(Constants.NAME)).as(PRIMARY_SELECTOR);
+		}
+		
+		switch(mathType.toUpperCase()) {
+			case AVERAGE : {
+				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).mean()).as(SECONDARY_SELECTOR);break;
+			}
+			case MIN : {
+				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).min()).as(SECONDARY_SELECTOR);break;
+			}
+			case MAX : {
+				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).max()).as(SECONDARY_SELECTOR);break;
+			}
+			case SUM : {
+				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).sum()).as(SECONDARY_SELECTOR);break;
+			}
+			case COUNT : {
+				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).count()).as(SECONDARY_SELECTOR); break;
+			}
+			default : {
+				statIterator = statIterator.by(__.select(valueColumn).values(Constants.NAME).mean()).as(SECONDARY_SELECTOR);break;
+			}
+		}
+		
+		statIterator = statIterator.select(PRIMARY_SELECTOR);
+		
+		try {
+			if(statIterator.hasNext()) {
+				
+				//the result of the graph traversal
+				Map<String, Map<Object, Object>> resultMap;
+				Map<Object, Object> groupByMap;
+				
+				groupByMap = (Map<Object, Object>)statIterator.next();
+				
+				//create the edgehash associated with the new result map
+				Map<String, Set<String>> newEdgeHash = new HashMap<String, Set<String>>(1);
+				Set<String> edgeSet = new HashSet<String>(1);
+				edgeSet.add(newColumnName);
+				
+				if(singleColumn) {
+					
+					for(String column : columnHeader) {
+						newEdgeHash.put(column, edgeSet);			
+					}
+					tinker.mergeEdgeHash(newEdgeHash);
+					
+					String cHeader = columnHeader[0];
+					for(Object key : groupByMap.keySet()) {
+						
+						Map<String, Object> newRow = new HashMap<String, Object>(2);
+						newRow.put(cHeader, key);
+						newRow.put(newColumnName, groupByMap.get(key));
+						
+						tinker.addRelationship(newRow, newRow);
+					}
+				} else {
+					String primkey = "";
+					for(String column : columnHeader) {
+						primkey += column + ":::";
+					}
+					
+					for(String column : columnHeader) {
+						tinker.connectTypes(column, primkey);
+					}
+					tinker.connectTypes(primkey, newColumnName);
+					
+					for(Object key : groupByMap.keySet()) {
+						Map<String, Object> newRow = new HashMap<String, Object>(columnHeader.length+1);
+						Map<String, Object> mapKey = (Map<String, Object>)key;
+						
+						String primKeyInstance = "";
+						for(String column : columnHeader) {
+							String mk = mapKey.get(column).toString();
+							primKeyInstance += mk+":::";						
+							newRow.put(column, mapKey.get(column));
+						}
+						
+						newRow.put(newColumnName, groupByMap.get(key));
+						newRow.put(primkey, primKeyInstance);
+						tinker.addRelationship(newRow, newRow);
+					}
+				}		
+			}
+		} catch(ClassCastException e) {
+			throw new ClassCastException(e.getMessage());
 		}
 	}
 
