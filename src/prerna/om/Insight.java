@@ -135,10 +135,11 @@ public class Insight {
 	public Insight(IEngine mainEngine, String dataMakerName, String layout){
 		this.mainEngine = mainEngine;
 		this.dataMakerName = dataMakerName;
-		this.propHash.put(OUTPUT_KEY, layout);
+		setOutput(layout);
+		setIsNonDbInsight(false);
 		// assuming all insights are being run on the database itself as default
 		// this can be changed through the setter method
-		this.propHash.put(IS_DB_QUERY, true);
+		setDbQuery(true);
 	}
 	
 	/**
