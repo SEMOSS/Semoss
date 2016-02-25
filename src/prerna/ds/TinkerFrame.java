@@ -907,7 +907,6 @@ public class TinkerFrame implements ITableDataFrame {
             	   }
                }
            }
-           this.setVariable(Constants.HEADER_NAMES, this.headerNames);
            g.variables().set(Constants.HEADER_NAMES, this.headerNames); // I dont know if i even need this moving forward.. but for now I will assume it is
            redoLevels(this.headerNames);
 
