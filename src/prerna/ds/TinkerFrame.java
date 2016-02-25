@@ -1509,7 +1509,7 @@ public class TinkerFrame implements ITableDataFrame {
 
 	/****************************** END AGGREGATION METHODS *********************************/
 	@Override
-	public void performAnalyticTransformation(IAnalyticTransformationRoutine routine) {
+	public void performAnalyticTransformation(IAnalyticTransformationRoutine routine) throws RuntimeException {
 		ITableDataFrame newTable = routine.runAlgorithm(this);
 		if(newTable != null) {
 			this.join(newTable, newTable.getColumnHeaders()[0], newTable.getColumnHeaders()[0], 1, new ExactStringMatcher());
@@ -1522,7 +1522,7 @@ public class TinkerFrame implements ITableDataFrame {
 	}
 	
 	@Override
-	public void performAnalyticAction(IAnalyticActionRoutine routine) {
+	public void performAnalyticAction(IAnalyticActionRoutine routine) throws RuntimeException {
 		routine.runAlgorithm(this);
 	}
 

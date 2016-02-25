@@ -790,7 +790,7 @@ public class Insight {
 	 * @param postTrans					The list of post transformation to run
 	 * @param dataMaker					Additional dataMakers if required by the transformation
 	 */
-	public void processPostTransformation(List<ISEMOSSTransformation> postTrans, IDataMaker... dataMaker) {
+	public void processPostTransformation(List<ISEMOSSTransformation> postTrans, IDataMaker... dataMaker) throws RuntimeException {
 		DataMakerComponent dmc = getDataMakerComponents().get(this.dmComponents.size() - 1);
 		
 		List<ISEMOSSTransformation> postTransCopy = new Vector<ISEMOSSTransformation>(postTrans.size());
@@ -812,7 +812,7 @@ public class Insight {
 	 * @param postTrans					The list of actions to run
 	 * @param dataMaker					Additional dataMakers if required by the actions
 	 */
-	public List<Object> processActions(List<ISEMOSSAction> actions, IDataMaker... dataMaker) {
+	public List<Object> processActions(List<ISEMOSSAction> actions, IDataMaker... dataMaker) throws RuntimeException {
 		DataMakerComponent dmc = getDataMakerComponents().get(this.dmComponents.size() - 1);
 		
 		List<ISEMOSSAction> actionsCopy = new Vector<ISEMOSSAction>(actions.size());
