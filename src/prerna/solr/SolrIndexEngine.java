@@ -93,6 +93,7 @@ public class SolrIndexEngine {
 	public static final String PARAMS = "params";
 	public static final String ALGORITHMS = "algorithms";
 	public static final String ALL_TEXT = "all_text";
+	public static final String NON_DB_INSIGHT = "non_db_insight";
 	
 	// Instance specific schema fields
 	public static final String VALUE = "value";

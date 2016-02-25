@@ -645,7 +645,6 @@ public class Utility {
 				hidden = Boolean.parseBoolean(hiddenString);
 			}
 			LOGGER.info(engineToAdd.getEngineName() + " has smss force reload value of " + smssProp);
-
 			// check if should always recreate and check if db currently exists and check if db is updated
 			if (!hidden && (AbstractEngine.RECREATE_SOLR || !solrE.containsEngine(engineName) || smssProp)) {
 				LOGGER.info(engineToAdd.getEngineName() + " is reloading solr");
@@ -656,6 +655,9 @@ public class Utility {
 					e.printStackTrace();
 				}
 				addToSolrInsightCore(engineToAdd, path);
+			}
+			else if(hidden){
+				Utility.deleteFromSolr(engineName);
 			}
 			if(smssProp){
 				LOGGER.info(engineToAdd.getEngineName() + " is changing boolean on smss");
@@ -929,7 +931,7 @@ public class Utility {
 
 				try {
 					solrE.addInsight(engineName + "_" + id, queryResults);
-					writer.writeSolrDocument(file, engineName + "_" + id, queryResults);
+					writer.writeSolrDocument(engineName + "_" + id, queryResults);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}

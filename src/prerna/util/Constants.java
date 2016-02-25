@@ -407,7 +407,10 @@ public class Constants {
 	public static final String REDIS_HOST = "REDIS_HOST";
 	public static final String REDIS_PORT = "REDIS_PORT";
 	public static final Object URI_BASE = "URI_BASE";
-
+	
+	public static final String INSIGHT_CACHE_DIR = "INSIGHT_CACHE_DIR";
+	public static final String CSV_INSIGHT_CACHE_FOLDER = "CSV_INSIGHT_CACHE_FOLDER";
+	
 	public static final String XML = "XML";
 	public static final String INSIGHTS = "INSIGHTS";
 	public static final String RDBMS_INSIGHTS = "RDBMS_INSIGHTS";

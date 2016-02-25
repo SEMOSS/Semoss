@@ -30,7 +30,7 @@ public final class SolrImportUtility {
 	private static final String ENGINES_FINDER = SolrIndexEngine.ENGINES + " : ";
 	private static final String STORAGE_NAME_FINDER = SolrIndexEngine.STORAGE_NAME + " : ";
 	private static final String INDEX_NAME_FINDER = SolrIndexEngine.INDEX_NAME + " : ";
-	
+
 	private static final String ANNOTATION_FINDER = SolrIndexEngine.ANNOTATION + " : ";
 	private static final String FAVORITES_COUNT_FINDER = SolrIndexEngine.FAVORITES_COUNT + " : ";
 	private static final String VIEW_COUNT_FINDER = SolrIndexEngine.VIEW_COUNT + " : "; 
@@ -40,12 +40,13 @@ public final class SolrImportUtility {
 	private static final String QUERY_PROJECTIONS_FINDER = SolrIndexEngine.QUERY_PROJECTIONS + " : "; 
 	private static final String PARAMS_FINDER = SolrIndexEngine.PARAMS + " : ";
 	private static final String ALGORITHMS_FINDER = SolrIndexEngine.ALGORITHMS + " : "; 
-	
+	private static final String IS_NON_DB_INSIGHT_FINDER = SolrIndexEngine.NON_DB_INSIGHT + " : ";
+
 	
 	// search field values in Instance schema
-	private static final String INSTANCE_ID_FINDER = SolrIndexEngine.ID + "_" + SolrIndexEngine.CORE_ENGINE +" : ";
-	private static final String CONCEPT_FINDER = SolrIndexEngine.VALUE + " : ";
-	private static final String INSTANCES_FINDER = SolrIndexEngine.INSTANCES + " : ";
+//	private static final String INSTANCE_ID_FINDER = SolrIndexEngine.ID + "_" + SolrIndexEngine.CORE_ENGINE +" : ";
+//	private static final String CONCEPT_FINDER = SolrIndexEngine.VALUE + " : ";
+//	private static final String INSTANCES_FINDER = SolrIndexEngine.INSTANCES + " : ";
 	
 	private SolrImportUtility() {
 		
@@ -96,11 +97,12 @@ public final class SolrImportUtility {
 			String modifiedDate = null;
 			String layout = null;
 			String coreEngine = null;
-			Integer coreEngineId = null;
+			String coreEngineId = null;
 			String createdOnDate = null;
 			String userID = null;
 			String engineName = null;
-			String name = null;
+			String storageName = null;
+			String indexName = null;
 			String annotation = null;
 			String favoriteCount = null;
 			String viewCount = null;
@@ -110,9 +112,10 @@ public final class SolrImportUtility {
 			String queryProjections = null;
 			String params = null;
 			String algorithms = null;
-			String instanceID = null;
-			String concept = null;
-			String instance = null;
+			Boolean isNonDbInsight = null;
+//			String instanceID = null;
+//			String concept = null;
+//			String instance = null;
 			
 			List<String> enginesList = new ArrayList<String>();
 			List<String> tagsList = new ArrayList<String>();
@@ -121,8 +124,8 @@ public final class SolrImportUtility {
 			List<String> queryProjectionsList = new ArrayList<String>();
 			List<String> paramsList = new ArrayList<String>();
 			List<String> algorithmsList = new ArrayList<String>();
-			List<String> conceptList = new ArrayList<String>();
-			List<String> instanceList = new ArrayList<String>();
+//			List<String> conceptList = new ArrayList<String>();
+//			List<String> instanceList = new ArrayList<String>();
 			
 			
 			// split based on new line
@@ -141,7 +144,7 @@ public final class SolrImportUtility {
 				} else if (currentLine.startsWith(CORE_ENGINE_FINDER)) {
 					coreEngine = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				}  else if (currentLine.startsWith(CORE_ENGINE_ID_FINDER)) {
-					coreEngineId = Integer.parseInt(currentLine.substring(currentLine.indexOf(':') + 2).trim());
+					coreEngineId = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(CREATED_ON_FINDER)) {
 					createdOnDate = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(USERID_FINDER)) {
@@ -150,7 +153,9 @@ public final class SolrImportUtility {
 					engineName = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 					enginesList.add(engineName);
 				} else if (currentLine.startsWith(STORAGE_NAME_FINDER)) {
-					name = currentLine.substring(currentLine.indexOf(':') + 2).trim();
+					storageName = currentLine.substring(currentLine.indexOf(':') + 2).trim();
+				} else if (currentLine.startsWith(INDEX_NAME_FINDER)) {
+					indexName = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(ANNOTATION_FINDER)) {
 					annotation = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(FAVORITES_COUNT_FINDER)) {
@@ -175,17 +180,19 @@ public final class SolrImportUtility {
 				} else if (currentLine.startsWith(ALGORITHMS_FINDER)) {
 					algorithms = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 					algorithmsList.add(algorithms);
-				}	
+				} else if (currentLine.startsWith(IS_NON_DB_INSIGHT_FINDER)) {
+					isNonDbInsight = Boolean.parseBoolean(currentLine.substring(currentLine.indexOf(':') + 2).trim());
+				} 
 				
-				 else if (currentLine.startsWith(INSTANCE_ID_FINDER)) {
-					 	instanceID = currentLine.substring(currentLine.indexOf(':') + 2).trim();
-				} else if (currentLine.startsWith(CONCEPT_FINDER)) {
-						concept = currentLine.substring(currentLine.indexOf(':') + 2).trim();
-						conceptList.add(concept);
-				} else if (currentLine.startsWith(INSTANCES_FINDER)) {
-						instance = currentLine.substring(currentLine.indexOf(':') + 2).trim();
-						instanceList.add(instance);
-				}
+//				else if (currentLine.startsWith(INSTANCE_ID_FINDER)) {
+//					 	instanceID = currentLine.substring(currentLine.indexOf(':') + 2).trim();
+//				} else if (currentLine.startsWith(CONCEPT_FINDER)) {
+//						concept = currentLine.substring(currentLine.indexOf(':') + 2).trim();
+//						conceptList.add(concept);
+//				} else if (currentLine.startsWith(INSTANCES_FINDER)) {
+//						instance = currentLine.substring(currentLine.indexOf(':') + 2).trim();
+//						instanceList.add(instance);
+//				}
 			}
 			
 			// add to map
@@ -235,75 +242,77 @@ public final class SolrImportUtility {
 				insightQueryResults.put(SolrIndexEngine.ENGINES, enginesList);
 			}
 			
-			if(name == null || name.isEmpty()) {
-				throw new IOException("SolrInputDocument does not contain an name or name is empty...");
+			if(storageName == null || storageName.isEmpty()) {
+				throw new IOException("SolrInputDocument does not contain a storage name or storageName name is empty...");
 			} else {
-				insightQueryResults.put(SolrIndexEngine.STORAGE_NAME, name);
+				insightQueryResults.put(SolrIndexEngine.STORAGE_NAME, storageName);
 			}
 			
-			if(name == null || name.isEmpty()) {
-				throw new IOException("SolrInputDocument does not contain an name or name is empty...");
+			if(indexName == null || indexName.isEmpty()) {
+				throw new IOException("SolrInputDocument does not contain an index name or index name is empty...");
 			} else {
-				insightQueryResults.put(SolrIndexEngine.INDEX_NAME, name);
+				insightQueryResults.put(SolrIndexEngine.INDEX_NAME, indexName);
 			}
 			
-			if(annotation == null || annotation.isEmpty()) {
+			if(annotation != null && annotation.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.ANNOTATION, annotation);
 			}
-			if(favoriteCount == null || favoriteCount.isEmpty()) {
+			if(favoriteCount != null && favoriteCount.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.FAVORITES_COUNT, favoriteCount);
 			}
-			if(viewCount == null || viewCount.isEmpty()) {
+			if(viewCount != null && viewCount.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.VIEW_COUNT, viewCount);
 			}
-			if(tagsList == null || tagsList.isEmpty()) {
+			if(tagsList != null && tagsList.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.TAGS, tagsList);
 			}
-			if(commentsList == null || commentsList.isEmpty()) {
+			if(commentsList != null && commentsList.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.COMMENT, commentsList);
 			}
-			if(userSpecifiedList == null || userSpecifiedList.isEmpty()) {
+			if(userSpecifiedList != null && userSpecifiedList.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.USER_SPECIFIED_RELATED, userSpecifiedList);
 			}
-			if(queryProjectionsList == null || queryProjectionsList.isEmpty()) {
+			if(queryProjectionsList != null && queryProjectionsList.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.QUERY_PROJECTIONS, queryProjectionsList);
 			}
-			if(paramsList == null || paramsList.isEmpty()) {
+			if(paramsList != null && paramsList.isEmpty()) {
 				insightQueryResults.put(SolrIndexEngine.PARAMS, paramsList);
 			}
-			if(algorithmsList == null || algorithmsList.isEmpty()) {
+			if(algorithmsList != null && algorithmsList.isEmpty()) {
+				insightQueryResults.put(SolrIndexEngine.ALGORITHMS, algorithmsList);
+			} if(isNonDbInsight != null) {
 				insightQueryResults.put(SolrIndexEngine.ALGORITHMS, algorithmsList);
 			}
 			
-			
-			Map<String, Object> instanceQueryResults = new HashMap<String, Object> ();
-			
-			if(instanceID == null || instanceID.isEmpty()) {
-				throw new IOException("SolrInputDocument does not contain an instanceID or instanceID is empty...");
-			} else {
-				instanceQueryResults.put(SolrIndexEngine.ID, instanceID);
-			}
-			
-			if(coreEngine == null || coreEngine.isEmpty()) {
-				throw new IOException("SolrInputDocument does not contain an coreEngine or coreEngine is empty...");
-			} else {
-				instanceQueryResults.put(SolrIndexEngine.CORE_ENGINE, coreEngine);
-			}
-			
-			if(concept == null || concept.isEmpty()) {
-				throw new IOException("SolrInputDocument does not contain an concept or concept is empty...");
-			} else {
-				instanceQueryResults.put(SolrIndexEngine.VALUE, concept);
-			}
-			
-			if(instance == null || instance.isEmpty()) {
-				throw new IOException("SolrInputDocument does not contain an instance or instance is empty...");
-			} else {
-				instanceQueryResults.put(SolrIndexEngine.INSTANCES, instance);
-			}		
 			// add to solr engine
 			solrE.addInsight(id, insightQueryResults);
-			solrE.addInstance(id, instanceQueryResults);
+			
+//			Map<String, Object> instanceQueryResults = new HashMap<String, Object> ();
+//			if(instanceID == null || instanceID.isEmpty()) {
+//				throw new IOException("SolrInputDocument does not contain an instanceID or instanceID is empty...");
+//			} else {
+//				instanceQueryResults.put(SolrIndexEngine.ID, instanceID);
+//			}
+//			
+//			if(coreEngine == null || coreEngine.isEmpty()) {
+//				throw new IOException("SolrInputDocument does not contain an coreEngine or coreEngine is empty...");
+//			} else {
+//				instanceQueryResults.put(SolrIndexEngine.CORE_ENGINE, coreEngine);
+//			}
+//			
+//			if(concept == null || concept.isEmpty()) {
+//				throw new IOException("SolrInputDocument does not contain an concept or concept is empty...");
+//			} else {
+//				instanceQueryResults.put(SolrIndexEngine.VALUE, concept);
+//			}
+//			
+//			if(instance == null || instance.isEmpty()) {
+//				throw new IOException("SolrInputDocument does not contain an instance or instance is empty...");
+//			} else {
+//				instanceQueryResults.put(SolrIndexEngine.INSTANCES, instance);
+//			}		
+//			// add to solr engine
+//			solrE.addInstance(id, instanceQueryResults);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
