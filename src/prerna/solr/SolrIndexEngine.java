@@ -5,8 +5,10 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -209,8 +211,7 @@ public class SolrIndexEngine {
 	 * @param uniqueID              ID to be modified
 	 * @param fieldsToModify        specific fields to modify
 	 */
-	public void modifyInsight(String uniqueID, Map<String, Object> fieldsToModify)
-			throws SolrServerException, IOException {
+	public Map<String, Object> modifyInsight(String uniqueID, Map<String, Object> fieldsToModify) throws SolrServerException, IOException {
 		if (serverActive()) {
 			Map<String, Object> queryMap = new HashMap<String, Object>();
 			queryMap.put(CommonParams.Q, QUERYALL);
@@ -236,6 +237,17 @@ public class SolrIndexEngine {
 				} else {
 					// if not modified field, use existing value
 					doc.setField(fieldName, field.getValue());
+					// also update the map to return what all the values are
+					if(fieldName.equals(CREATED_ON) || fieldName.equals(MODIFIED_ON)) {
+						try {
+							Date d = getSolrDateFormat().parse(field.getValue() + "");
+							fieldsToModify.put(fieldName, getDateFormat().format(d));
+						} catch (ParseException e) {
+							e.printStackTrace();
+						}
+					} else {
+						fieldsToModify.put(fieldName, field.getValue());
+					}
 				}
 			}
 			// loop through if new fields are being added
@@ -250,6 +262,8 @@ public class SolrIndexEngine {
 			insightServer.commit();
 			LOGGER.info("UniqueID " + uniqueID + "'s doc has been modified");
 		}
+		
+		return fieldsToModify;
 	}
 
 	/**
@@ -677,6 +691,10 @@ public class SolrIndexEngine {
 	 */
 	public static DateFormat getDateFormat() {
 		return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+	}
+	
+	public static DateFormat getSolrDateFormat() {
+		return new SimpleDateFormat("EEE MMM dd HH:mm:ss ZZZ yyyy");
 	}
 
 	/**
