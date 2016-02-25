@@ -7,6 +7,9 @@ ENGINE_WEB_WATCHER	SMSSWebWatcher
 URI_BASE	https://localhost:443/Monolith/api/engine/s-
 SOLR_BASE_URL	https://localhost:443/solr
 
+INSIGHT_CACHE_DIR C:\\Users\\mahkhalil\\workspace\\Semoss\\InsightCache
+CSV_INSIGHT_CACHE_FOLDER CSV_Insights
+
 SMSSWatcher	prerna.util.SMSSFileWatcher
 SMSSWatcher_DIR	C:\\Users\\mahkhalil\\workspace\\Semoss\\db
 SMSSWatcher_EXT	.smss
@@ -14,6 +17,10 @@ SMSSWatcher_EXT	.smss
 SMSSWebWatcher	prerna.util.SMSSWebWatcher
 SMSSWebWatcher_DIR	C:\\Users\\mahkhalil\\workspace\\Semoss\\db
 SMSSWebWatcher_EXT	.smss
+
+CSVInsightsWebWatcher prerna.util.CSVInsightsWebWatcher
+CSVInsightsWebWatcher_DIR C:\\Users\\mahkhalil\\workspace\\Semoss\\InsightCache\\CSV_Insights
+CSVInsightsWebWatcher_EXT .tg
 
 LOG4J	C:\\Users\\mahkhalil\\workspace\\Semoss\\log4j.prop
 BaseFolder	C:\\Users\\mahkhalil\\workspace\\Semoss

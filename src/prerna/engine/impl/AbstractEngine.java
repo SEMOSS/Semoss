@@ -1061,49 +1061,58 @@ public abstract class AbstractEngine implements IEngine {
 		int numIDs = questionIDs.length;
 		for(int i = 0; i < numIDs; i++) {
 			String id = questionIDs[i];
-			idString = idString + "'" + id + "'";
-			if(i != numIDs - 1) {
-				idString = idString + ", ";
+			try {
+				Integer.parseInt(id);
+				idString = idString + "'" + id + "'";
+				if(i != numIDs - 1) {
+					idString = idString + ", ";
+				}
+			} catch(NumberFormatException e) {
+				//do nothing, just skip it
 			}
 		}
-		String query = GET_INSIGHT_INFO_QUERY.replace(QUESTION_PARAM_KEY, idString);
-		logger.info("Running insights query " + query);
 		
-		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRDBMS, query);
-		wrap.execute();
-		String[] names = wrap.getVariables();
-		while (wrap.hasNext()) {
-			ISelectStatement ss = wrap.next();
-			String insightID = ss.getVar(names[0]) + "";
-			String insightName = ss.getVar(names[1]) + "";
+		if(!idString.isEmpty()) {
+			String query = GET_INSIGHT_INFO_QUERY.replace(QUESTION_PARAM_KEY, idString);
+			logger.info("Running insights query " + query);
 			
-			JdbcClob obj = (JdbcClob) ss.getRawVar(names[2]);
-			
-			InputStream insightDefinition = null;
-			try {
-				insightDefinition = obj.getAsciiStream();
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRDBMS, query);
+			wrap.execute();
+			String[] names = wrap.getVariables();
+			while (wrap.hasNext()) {
+				ISelectStatement ss = wrap.next();
+				String insightID = ss.getVar(names[0]) + "";
+				String insightName = ss.getVar(names[1]) + "";
+				
+				JdbcClob obj = (JdbcClob) ss.getRawVar(names[2]);
+				
+				InputStream insightDefinition = null;
+				try {
+					insightDefinition = obj.getAsciiStream();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				String perspective = ss.getVar(names[3]) + "";
+				String layout = ss.getVar(names[4]) + "";
+				String order = ss.getVar(names[5]) + "";
+				String dataTableAlign = ss.getVar(names[6]) + "";
+				String dataMakerName = ss.getVar(names[7]) + "";
+	
+				Insight in = new Insight(this, dataMakerName, layout);
+				in.setInsightID(insightID);
+				in.setRdbmsId(insightID);
+				in.setInsightName(insightName);
+				in.setMakeup(insightDefinition);
+				in.setPerspective(perspective);
+				in.setOrder(order);
+				in.setDataTableAlign(dataTableAlign);
+				in.setIsNonDbInsight(false);
+				// adding semoss parameters to insight
+				in.setInsightParameters(getParams(insightID));
+				insightV.add(in);
+				logger.debug(in.toString());
 			}
-			String perspective = ss.getVar(names[3]) + "";
-			String layout = ss.getVar(names[4]) + "";
-			String order = ss.getVar(names[5]) + "";
-			String dataTableAlign = ss.getVar(names[6]) + "";
-			String dataMakerName = ss.getVar(names[7]) + "";
-
-			Insight in = new Insight(this, dataMakerName, layout);
-			in.setInsightID(insightID);
-			in.setRdbmsId(insightID);
-			in.setInsightName(insightName);
-			in.setMakeup(insightDefinition);
-			in.setPerspective(perspective);
-			in.setOrder(order);
-			in.setDataTableAlign(dataTableAlign);
-			// adding semoss parameters to insight
-			in.setInsightParameters(getParams(insightID));
-			insightV.add(in);
-			logger.debug(in.toString());
 		}
 		if(insightV.isEmpty()) {
 			System.err.println("FAILED TO GET ANY INSIGHT FOR ARRAY :::::: "+ questionIDs[0]);
@@ -1112,6 +1121,7 @@ public abstract class AbstractEngine implements IEngine {
 			in.setInsightID("DNE");
 			in.setRdbmsId("DNE");
 			in.setInsightName("DNE");
+			in.setIsNonDbInsight(true);
 //			in.setMakeup("This will not work");
 			insightV.add(in);
 			logger.debug("Using Label ID Hash ");
