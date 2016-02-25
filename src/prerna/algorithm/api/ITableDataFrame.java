@@ -3,7 +3,6 @@ package prerna.algorithm.api;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import prerna.engine.api.ISelectStatement;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -72,14 +71,14 @@ public interface ITableDataFrame extends IDataMaker {
 	 * alter/modify the existing data-frame
 	 * @param routine				The IAnalytics routine to perform onto the data-frame
 	 */
-	void performAnalyticTransformation(IAnalyticTransformationRoutine routine);
+	void performAnalyticTransformation(IAnalyticTransformationRoutine routine) throws RuntimeException;
 	
 	/**
 	 * Perform the inputed analytical routine onto the data frame. The routine does not necessarily have to 
 	 * alter/modify the existing data-frame
 	 * @param routine				The IAnalytics routine to perform onto the data-frame
 	 */
-	void performAnalyticAction(IAnalyticActionRoutine routine);
+	void performAnalyticAction(IAnalyticActionRoutine routine) throws RuntimeException;
 	
 	/**
 	 * Undo the most recent analytical routine performed on the data-frame
