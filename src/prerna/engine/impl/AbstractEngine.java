@@ -51,7 +51,6 @@ import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.RDFXMLWriter;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -1055,10 +1054,10 @@ public abstract class AbstractEngine implements IEngine {
 
 	@Override
 	public Vector<Insight> getInsight(String... questionIDs) {
-		Vector<Insight> insightV = new Vector<Insight>();
-		
 		String idString = "";
 		int numIDs = questionIDs.length;
+		Vector<Insight> insightV = new Vector<Insight>(numIDs);
+		List<Integer> counts = new Vector<Integer>(numIDs);
 		for(int i = 0; i < numIDs; i++) {
 			String id = questionIDs[i];
 			try {
@@ -1067,8 +1066,18 @@ public abstract class AbstractEngine implements IEngine {
 				if(i != numIDs - 1) {
 					idString = idString + ", ";
 				}
+				counts.add(i);
 			} catch(NumberFormatException e) {
-				//do nothing, just skip it
+				System.err.println("FAILED TO GET ANY INSIGHT FOR ARRAY :::::: "+ questionIDs[0]);
+				// in = labelIdHash.get(label);
+				Insight in = new Insight(this, "Unknown", "Unknown");
+				in.setInsightID(id);
+				in.setRdbmsId(id);
+				in.setInsightName("DNE");
+				in.setIsNonDbInsight(true);
+//				in.setMakeup("This will not work");
+				insightV.insertElementAt(in, i);
+				logger.debug("Using Label ID Hash ");
 			}
 		}
 		
@@ -1110,21 +1119,10 @@ public abstract class AbstractEngine implements IEngine {
 				in.setIsNonDbInsight(false);
 				// adding semoss parameters to insight
 				in.setInsightParameters(getParams(insightID));
-				insightV.add(in);
+				
+				insightV.insertElementAt(in, counts.remove(0));
 				logger.debug(in.toString());
 			}
-		}
-		if(insightV.isEmpty()) {
-			System.err.println("FAILED TO GET ANY INSIGHT FOR ARRAY :::::: "+ questionIDs[0]);
-			// in = labelIdHash.get(label);
-			Insight in = new Insight(this, "Unknown", "Unknown");
-			in.setInsightID("DNE");
-			in.setRdbmsId("DNE");
-			in.setInsightName("DNE");
-			in.setIsNonDbInsight(true);
-//			in.setMakeup("This will not work");
-			insightV.add(in);
-			logger.debug("Using Label ID Hash ");
 		}
 		return insightV;
 	}
