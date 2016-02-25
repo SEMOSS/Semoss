@@ -1,5 +1,6 @@
 package prerna.sablecc;
 
+import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Vector;
@@ -775,12 +776,18 @@ public class Translation extends DepthFirstAdapter {
 			//System.out.println("When this works.. the value is " + finalValue[0]);
 			
 
+			deInit();
 			// now I need to set this value back
 			// adding a dumy value for now say 999
-			if(finalValue.length == 1)	
+			if(finalValue.length == 1)	{
 				frame.setTempExpressionResult(finalValue[0]);
-			else
-				frame.setTempExpressionResult(finalValue);
+				this.saveReplace("DECIMAL", node.toString(), finalValue[0]);
+			}
+			else{
+				frame.setTempExpressionResult(finalValue);//
+				this.saveReplace("DECIMAL", node.toString(), finalValue);
+			}
+
 				
 			
 			// the job here is done.. now add it to tempStrings
@@ -1070,7 +1077,7 @@ public class Translation extends DepthFirstAdapter {
 	{
 		if (myStore.get("REPLACERS") != null) {
 			for (String unmod : (Vector<String>)myStore.get("REPLACERS")) {
-				inExpression = inExpression.replaceAll(unmod, myStore.get(unmod).toString());
+				inExpression = inExpression.replace(unmod, myStore.get(unmod).toString()); 
 			}
 		}
 		return inExpression;
@@ -1223,7 +1230,7 @@ public class Translation extends DepthFirstAdapter {
 			String [] keys = synchronizers.split(";");
 			for(int keyIndex = 0;keyIndex < keys.length;keyIndex++)
 			{
-				Vector <String> curV = null;
+				Vector <String> curV = new Vector<String>();
 				if(thisStore.containsKey(keys[keyIndex]))
 					curV = (Vector<String>)thisStore.get(keys[keyIndex]);
 				if(myStore.containsKey(keys[keyIndex]))
