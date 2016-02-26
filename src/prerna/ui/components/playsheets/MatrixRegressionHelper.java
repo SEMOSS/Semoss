@@ -34,6 +34,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.TinkerFrame;
 
 public final class MatrixRegressionHelper{
 
@@ -64,7 +65,7 @@ public final class MatrixRegressionHelper{
 			int outIndex = 0;
 			for(j = variableStartCol; j< listNumCols; j++) {
 				if(j != bIndex) {
-					if(oldRow[j] != null && !oldRow[j].toString().trim().isEmpty()) {
+					if(oldRow[j] != null && !oldRow[j].toString().trim().isEmpty()  && !oldRow[j].toString().trim().equals(TinkerFrame.EMPTY)) {
 						try {
 							A[i][outIndex] = ((Number)oldRow[j]).doubleValue();
 						} catch(ClassCastException ex1) {
@@ -100,7 +101,7 @@ public final class MatrixRegressionHelper{
 		int i = 0;
 		while(it.hasNext()) {
 			Object[] row = it.next();
-			if(row[bIndex] != null && !row[bIndex].toString().trim().isEmpty()) {
+			if(row[bIndex] != null && !row[bIndex].toString().trim().isEmpty() && !row[bIndex].toString().trim().equals(TinkerFrame.EMPTY)) {
 				b[i] = ((Number)row[bIndex]).doubleValue();
 			} else {
 				b[i] = 0;
@@ -157,7 +158,7 @@ public final class MatrixRegressionHelper{
 		int listNumRows = list.size();
 		double[] b = new double[listNumRows];
 		for(i=0;i<listNumRows;i++)
-			if(list.get(i)[bIndex] != null && !list.get(i)[bIndex].toString().trim().isEmpty()) {
+			if(list.get(i)[bIndex] != null && !list.get(i)[bIndex].toString().trim().isEmpty() && !list.get(i)[bIndex].toString().trim().equals(TinkerFrame.EMPTY)) {
 				b[i] = ((Number)list.get(i)[bIndex]).doubleValue();
 			} else {
 				b[i] = 0;
