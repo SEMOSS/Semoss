@@ -11,12 +11,14 @@ public class CSVInsightsWebWatcher extends AbstractFileWatcher{
 	public void loadFirst() {
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
-		for (int fileIdx = 0; fileIdx < fileNames.length; fileIdx++) {
-			try {
-				process(fileNames[fileIdx]);
-			} catch (RuntimeException ex) {
-				ex.printStackTrace();
-				logger.fatal("CSV Insight Failed " + folderToWatch + "/" + fileNames[fileIdx]);
+		if(fileNames != null) {
+			for (int fileIdx = 0; fileIdx < fileNames.length; fileIdx++) {
+				try {
+					process(fileNames[fileIdx]);
+				} catch (RuntimeException ex) {
+					ex.printStackTrace();
+					logger.fatal("CSV Insight Failed " + folderToWatch + "/" + fileNames[fileIdx]);
+				}
 			}
 		}
 	}
