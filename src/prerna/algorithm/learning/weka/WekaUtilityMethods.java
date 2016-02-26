@@ -38,6 +38,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.google.common.collect.Lists;
 
+import prerna.ds.TinkerFrame;
 import prerna.math.BarChart;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
@@ -249,7 +250,7 @@ public final class WekaUtilityMethods {
 					}
 				} else {
 					Object valAttr = dataRow[j];
-					if(!valAttr.toString().isEmpty() && !valAttr.toString().equals("?")) {
+					if(!valAttr.toString().isEmpty() && !valAttr.equals(TinkerFrame.EMPTY) && !valAttr.toString().equals("?")) {
 						if(isCategorical[j]) {
 							dataEntry.setValue(j, valAttr.toString());
 						} else {
