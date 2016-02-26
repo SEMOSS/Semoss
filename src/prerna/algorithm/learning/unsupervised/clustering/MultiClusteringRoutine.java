@@ -1,17 +1,12 @@
 package prerna.algorithm.learning.unsupervised.clustering;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
-
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.algorithm.api.IAnalyticTransformationRoutine;
 import prerna.algorithm.api.ITableDataFrame;
@@ -19,8 +14,8 @@ import prerna.algorithm.learning.util.Cluster;
 import prerna.ds.BTreeDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.om.SEMOSSParam;
-import prerna.rdf.query.builder.GremlinBuilder;
-import prerna.util.Constants;
+import prerna.util.ArrayUtilityMethods;
+import prerna.util.Utility;
 
 public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 
@@ -31,7 +26,7 @@ public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 	public static final String DISTANCE_MEASURE	= "distanceMeasure";
 	public static final String SKIP_ATTRIBUTES	= "skipAttributes";
 
-	protected String clusterColumnID = "";
+	protected String clusterColName = "";
 
 	protected Map<Integer, Double> clusterScores = new HashMap<Integer, Double>();
 	
@@ -68,6 +63,7 @@ public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 	
 	@Override
 	public ITableDataFrame runAlgorithm(ITableDataFrame... data) {
+		ITableDataFrame dataFrame = data[0];
 		// values defined in options
 		int start = ((Number) options.get(0).getSelected()).intValue();
 		int end = ((Number) options.get(1).getSelected()).intValue();
@@ -85,19 +81,59 @@ public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 			end = numInstances;
 		}
 		
-		ITableDataFrame results = null;
+		Map<Object, Integer> results = null;
 		if(start != end) {
 			results = runGoldenSelectionForNumberOfClusters(data[0], start, end);
 		} else { // usually occurs when there is too few data points
 			results = runClusteringRoutine(data[0], start, new ArrayList<Cluster>(), new HashMap<Integer, Double>());
 			this.optimalNumClusters = start;
 		}
-		this.clusterColumnID = results.getColumnHeaders()[1];
-		return results;
+		
+		String attributeName = attributeNames[instanceIndex];
+		// to avoid adding columns with same name
+		int counter = 0;
+		this.clusterColName = attributeName + "_CLUSTER_" + counter;
+		while(ArrayUtilityMethods.arrayContainsValue(attributeNames, clusterColName)) {
+			counter++;
+			this.clusterColName = attributeName + "_CLUSTER_" + counter;
+		}
+		
+		
+		if(dataFrame instanceof BTreeDataFrame) {
+			ITableDataFrame returnTable = new BTreeDataFrame(new String[]{attributeName, clusterColName});
+			for(Object instance : results.keySet()) {
+				Map<String, Object> row = new HashMap<String, Object>();
+				row.put(attributeName, instance);
+				row.put(clusterColName, results.get(instance));
+				returnTable.addRow(row, row);
+			}
+			
+			return returnTable;
+		} else {
+			TinkerFrame tf = (TinkerFrame) dataFrame;
+			tf.connectTypes(attributeName, clusterColName);
+			for(Object instance : results.keySet()) {
+				int val = results.get(instance);
+
+				Map<String, Object> raw = new HashMap<String, Object>();
+				raw.put(attributeName, instance);
+				raw.put(clusterColName, val);
+
+				Map<String, Object> clean = new HashMap<String, Object>();
+				if(instance.toString().startsWith("http://semoss.org/ontologies/Concept/")) {
+					instance = Utility.getInstanceName(instance.toString());
+				}
+				clean.put(attributeName, instance);
+				clean.put(clusterColName, val);
+
+				tf.addRelationship(clean, raw);
+			}
+		}
+		return null;
 	}
 	
-	private ITableDataFrame runGoldenSelectionForNumberOfClusters(ITableDataFrame data, int start, int end) {		
-		ITableDataFrame bestResults = null;
+	private Map<Object, Integer> runGoldenSelectionForNumberOfClusters(ITableDataFrame data, int start, int end) {		
+		Map<Object, Integer> bestResults = null;
 		int a = start;
 		int b = end;
 		double phi = (double) (1 + Math.sqrt(5)) / 2;
@@ -109,7 +145,7 @@ public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 		
 		List<Cluster> startClusterList = new ArrayList<Cluster>();
 		double startVal = 0;
-		ITableDataFrame startClusterResult = null;
+		Map<Object, Integer> startClusterResult = null;
 		String errorMessage1 = null;
 		try {
 			startClusterResult = runClusteringRoutine(data, x1, startClusterList, previousResults);
@@ -122,7 +158,7 @@ public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 		
 		List<Cluster> endClusterList = new ArrayList<Cluster>();
 		double endVal = 0;
-		ITableDataFrame endClusterResult = null;
+		Map<Object, Integer> endClusterResult = null;
 		String errorMessage2 = null;
 		try {
 			endClusterResult = runClusteringRoutine(data, x2, endClusterList, previousResults);
@@ -202,45 +238,45 @@ public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 		return bestResults;
 	}
 	
-	private double computeClusteringScore(ITableDataFrame data, ITableDataFrame results, List<Cluster> clusters, Map<Integer, Double> previousResults, int numClusters) {
+	private double computeClusteringScore(ITableDataFrame data, Map<Object, Integer> results, List<Cluster> clusters, Map<Integer, Double> previousResults, int numClusters) {
 		if(previousResults.containsKey(numClusters)) {
 			return previousResults.get(numClusters);
 		}
 		
 		// calculate inner-cluster similarity
 		double innerClusterSimilairty = 0;
-		if(results instanceof BTreeDataFrame) {
-			Iterator<List<Object[]>> it = data.scaledUniqueIterator(instanceType, false);
-			while(it.hasNext()) {
-				List<Object[]> instance = it.next();
-				Object instanceName = instance.get(0)[instanceIndex];
-				List<Object[]> instanceResult = results.getData(instanceType, instanceName);
-				int clusterIndex = (int) instanceResult.get(0)[1];
-				double simVal = clusters.get(clusterIndex).getSimilarityForInstance(instance, attributeNames, isNumeric, instanceIndex);
-				innerClusterSimilairty += simVal / clusters.get(clusterIndex).getNumInstances();
-			}
-		} else if(results instanceof TinkerFrame){
-			String[] headers = results.getColumnHeaders();
-			GremlinBuilder builder = ((TinkerFrame) results).getGremlinBuilder(Arrays.asList(results.getColumnHeaders()));
-			builder.setGroupBySelector(instanceType);
-			GraphTraversal gt = builder.executeScript();
-			Map<Object, Object> groupByMap = null;
-			if(gt.hasNext()) {
-				groupByMap = (Map<Object, Object>) gt.next();
-			}
+//		if(results instanceof BTreeDataFrame) {
+//			Iterator<List<Object[]>> it = data.scaledUniqueIterator(instanceType, false);
+//			while(it.hasNext()) {
+//				List<Object[]> instance = it.next();
+//				Object instanceName = instance.get(0)[instanceIndex];
+//				List<Object[]> instanceResult = results.getData(instanceType, instanceName);
+//				int clusterIndex = (int) instanceResult.get(0)[1];
+//				double simVal = clusters.get(clusterIndex).getSimilarityForInstance(instance, attributeNames, isNumeric, instanceIndex);
+//				innerClusterSimilairty += simVal / clusters.get(clusterIndex).getNumInstances();
+//			}
+//		} else if(data instanceof TinkerFrame){
+//			String[] headers = results.getColumnHeaders();
+//			GremlinBuilder builder = ((TinkerFrame) results).getGremlinBuilder(Arrays.asList(results.getColumnHeaders()));
+//			builder.setGroupBySelector(instanceType);
+//			GraphTraversal gt = builder.executeScript();
+//			Map<Object, Object> groupByMap = null;
+//			if(gt.hasNext()) {
+//				groupByMap = (Map<Object, Object>) gt.next();
+//			}
 			
 			Iterator<List<Object[]>> it = data.scaledUniqueIterator(instanceType, false);
 			while(it.hasNext()) {
 				List<Object[]> instance = it.next();
 				Object instanceName = instance.get(0)[instanceIndex];
-				List<Object[]> instanceResult = getRowsForInstance(groupByMap, instanceName, headers);
-				int clusterIndex = (int) instanceResult.get(0)[1];
+//				List<Object[]> instanceResult = getRowsForInstance(groupByMap, instanceName, headers);
+				int clusterIndex = results.get(instanceName);
 				double simVal = clusters.get(clusterIndex).getSimilarityForInstance(instance, attributeNames, isNumeric, instanceIndex);
 				innerClusterSimilairty += simVal / clusters.get(clusterIndex).getNumInstances();
 			}
-		} else {
-			throw new IllegalArgumentException("Unknown data frame");
-		}
+//		} else {
+//			throw new IllegalArgumentException("Unknown data frame");
+//		}
 
 		// calculate cluster-cluster similarity
 		double clusterToClusterSimilarity = 0;
@@ -256,30 +292,31 @@ public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 		return innerClusterSimilairty/numClusters + clusterToClusterSimilarity / ( (double) (numClusters * (numClusters-1) /2));
 	}
 	
-	private List<Object[]> getRowsForInstance(Map<Object, Object> groupByMap, Object instanceName, String[] headers) {
-		List<Map> instanceArrayMap = (List<Map>) groupByMap.get(instanceName);
-		
-		int size = instanceArrayMap.size();
-		List<Object[]> retVector = new Vector<Object[]>(size);
-		for(int i = 0; i < size; i++) {
-			Map rowMap = instanceArrayMap.get(i);
-			Object[] row = new Object[headers.length];
-			for(int j = 0; j < headers.length; j++) {
-				row[j] = ((Vertex) rowMap.get(headers[j])).value(Constants.NAME);
-			}
-			retVector.add(row);
-		}
-		
-		return retVector;
-	}
+//	private List<Object[]> getRowsForInstance(Map<Object, Object> groupByMap, Object instanceName, String[] headers) {
+//		List<Map> instanceArrayMap = (List<Map>) groupByMap.get(instanceName);
+//		
+//		int size = instanceArrayMap.size();
+//		List<Object[]> retVector = new Vector<Object[]>(size);
+//		for(int i = 0; i < size; i++) {
+//			Map rowMap = instanceArrayMap.get(i);
+//			Object[] row = new Object[headers.length];
+//			for(int j = 0; j < headers.length; j++) {
+//				row[j] = ((Vertex) rowMap.get(headers[j])).value(Constants.NAME);
+//			}
+//			retVector.add(row);
+//		}
+//		
+//		return retVector;
+//	}
 	
-	private ITableDataFrame runClusteringRoutine(ITableDataFrame data, int numClusters, List<Cluster> clusters, Map<Integer, Double> previousResults) {
+	private Map<Object, Integer> runClusteringRoutine(ITableDataFrame data, int numClusters, List<Cluster> clusters, Map<Integer, Double> previousResults) {
 		if(previousResults.containsKey(numClusters)) {
 			return null;
 		}
 		
 		System.out.println("Running clustering for " + numClusters + " number of clusters");
-		IClustering clustering = new ClusteringRoutine();
+		ClusteringRoutine clustering = new ClusteringRoutine();
+		clustering.setAppendOntoDataMaker(false);
 		List<SEMOSSParam> params = clustering.getOptions();
 		Map<String, Object> selectedOptions = new HashMap<String, Object>();
 		selectedOptions.put(params.get(0).getName(), numClusters);
@@ -288,10 +325,9 @@ public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 		selectedOptions.put(params.get(3).getName(), this.options.get(4).getSelected());
 
 		clustering.setSelectedOptions(selectedOptions);
-		ITableDataFrame results = clustering.runAlgorithm(data);
+		clustering.runAlgorithm(data);
 		clusters.addAll(clustering.getClusters());
-		
-		return results;
+		return clustering.getResults();
 	}
 	
 	@Override
@@ -330,13 +366,12 @@ public class MultiClusteringRoutine implements IAnalyticTransformationRoutine {
 	@Override
 	public List<String> getChangedColumns() {
 		List<String> changedCols = new ArrayList<String>();
-		changedCols.add(this.clusterColumnID);
+		changedCols.add(this.clusterColName);
 		return changedCols;
 	}
 
 	@Override
 	public Map<String, Object> getResultMetadata() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 

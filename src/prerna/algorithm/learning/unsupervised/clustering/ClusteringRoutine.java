@@ -1,12 +1,9 @@
 package prerna.algorithm.learning.unsupervised.clustering;
 
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.util.Cluster;
@@ -118,28 +115,27 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 			
 			return returnTable;
 		} else {
-			Hashtable<String, Set<String>> edgeHash = new Hashtable<String, Set<String>>();
-			Set<String> edge = new HashSet<String>();
-			edge.add(clusterColName);
-			edgeHash.put(attributeName, edge);
-			TinkerFrame returnTable = new TinkerFrame(new String[]{attributeName, clusterColName}, edgeHash);
-			for(Object instance : results.keySet()) {
-				Integer val = results.get(instance);
-				
-				Map<String, Object> raw = new HashMap<String, Object>();
-				raw.put(attributeName, instance);
-				raw.put(clusterColName, val);
-				
-				Map<String, Object> clean = new HashMap<String, Object>();
-				if(instance.toString().startsWith("http://semoss.org/ontologies/Concept/")) {
-					instance = Utility.getInstanceName(instance.toString());
+			if(appendOntoDataMaker) {
+				TinkerFrame tf = (TinkerFrame) this.dataFrame;
+				tf.connectTypes(attributeName, clusterColName);
+				for(Object instance : results.keySet()) {
+					int val = results.get(instance);
+	
+					Map<String, Object> raw = new HashMap<String, Object>();
+					raw.put(attributeName, instance);
+					raw.put(clusterColName, val);
+					
+					Map<String, Object> clean = new HashMap<String, Object>();
+					if(instance.toString().startsWith("http://semoss.org/ontologies/Concept/")) {
+						instance = Utility.getInstanceName(instance.toString());
+					}
+					clean.put(attributeName, instance);
+					clean.put(clusterColName, val);
+					
+					tf.addRelationship(clean, raw);
 				}
-				clean.put(attributeName, instance);
-				clean.put(clusterColName, val);
-				
-				returnTable.addRelationship(clean, raw);
 			}
-			return returnTable;
+			return null;
 		}
 	}
 
@@ -250,5 +246,10 @@ public class ClusteringRoutine extends AbstractClusteringRoutine {
 	@Override
 	public int getNumClusters() {
 		return this.numClusters;
+	}
+
+	@Override
+	public Map<Object, Integer> getResults() {
+		return results;
 	}
 }
