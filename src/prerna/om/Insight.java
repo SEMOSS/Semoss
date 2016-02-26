@@ -1258,6 +1258,7 @@ public class Insight {
 					transToRedo.add(trans);
 					String id = trans.getId();
 					this.undoProcesses(Arrays.asList(new String[]{id}));
+					postList.remove(trans);
 					if(id.equals(firstTransId)){
 						hitFirst = true;
 					}
@@ -1270,6 +1271,7 @@ public class Insight {
 					transToRedo.add(trans);
 					String id = trans.getId();
 					this.undoProcesses(Arrays.asList(new String[]{id}));
+					preList.remove(trans);
 					if(id.equals(firstTransId)){
 						hitFirst = true;
 					}
@@ -1278,10 +1280,10 @@ public class Insight {
 		}
 		
 		// now that i've undone everything, i just need to redo
-		for(int transIdx = transToRedo.size() - 1; transIdx >= 0; transIdx -- ){
+//		for(int transIdx = transToRedo.size() - 1; transIdx >= 0; transIdx -- ){
 //			ISEMOSSTransformation trans = transToRedo.get(transIdx);
 			this.processPostTransformation(transToRedo, dataMaker);
-		}
+//		}
 	}
 
 }

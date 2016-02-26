@@ -145,7 +145,9 @@ public class MathTransformation extends AbstractTransformation {
 		Map<String, Object> functionMap = ((Map<String, Object>) props.get(MATH_MAP));
 		for(String key : functionMap.keySet()) {
 			Map<String, String> map = (Map<String, String>)functionMap.get(key);
-			addedCols.add(map.get("calcName"));
+			if(!map.containsKey("exists")){
+				addedCols.add(map.get("calcName"));
+			}
 		}
 		
 		Method method = null;
