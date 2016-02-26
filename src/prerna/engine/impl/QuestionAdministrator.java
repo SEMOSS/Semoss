@@ -577,8 +577,12 @@ public class QuestionAdministrator {
 		builder.append("<http://semoss.org/ontologies/Concept/Component/" + i + "> <Comp:PreTrans> <http://semoss.org/ontologies/Concept/PreTransformation/" + (j+numPreTransformations) + "> .\n");
 		
 		// add parameters for transformation
+		if(involvedParamsPre != null && !involvedParamsPre.isEmpty() && preTrans instanceof JoinTransformation) {
+			makeInnerJoin((JoinTransformation) preTrans);
+		}
 		Map<String, Object> paramMap =  new HashMap<String,Object>();
 		paramMap.putAll((Map<String, Object>) preTrans.getProperties());
+
 		if(involvedParamsPre != null && !involvedParamsPre.isEmpty() && preTrans instanceof FilterTransformation){
 			String preTransType = (String) preTrans.getProperties().get(FilterTransformation.COLUMN_HEADER_KEY);
 			//   If a pre trans with the param already exists
