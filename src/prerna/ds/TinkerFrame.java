@@ -2561,15 +2561,22 @@ public class TinkerFrame implements ITableDataFrame {
 				Object value = row.get(headers[j]);
 				Object cleanVal = null;
 				if(value instanceof String) {
+					// if string need to clean string for clean values and need to append type for raw
+					// might as well add with clean headers as well
 					cleanVal = cleanHeaders[j] + "/" + value;
 					row.remove(headers[j]);
 					row.put(cleanHeaders[j], cleanVal);
+	                cleanRow.put(cleanHeaders[j], Utility.cleanString(value + "", true, true, false));
 				} else if(!cleanIsSame[j]) {
+					// if not the same, need to use the clean headers on raw
+					// need to add on teh value with its type
 					row.remove(headers[j]);
 					row.put(cleanHeaders[j], value);
+	                cleanRow.put(cleanHeaders[j], value);
+				} else {
+					// need to add on the raw the value with its type
+	                cleanRow.put(cleanHeaders[j], value);
 				}
-				
-                cleanRow.put(cleanHeaders[j], Utility.cleanString(value + "", true, true, false));
 			}
             dataFrame.addRow(cleanRow, row);
 		}
