@@ -98,7 +98,7 @@ public class TinkerFrame implements ITableDataFrame {
 	int startRange = -1;
 	int endRange = -1;
 
-	final protected static String PRIM_KEY = "PRIM_KEY";
+	final public static String PRIM_KEY = "PRIM_KEY";
 	final public static String META = "META";
 	final public static String EMPTY = "_";
 	
