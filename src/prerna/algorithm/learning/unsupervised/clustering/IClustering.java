@@ -51,4 +51,10 @@ public interface IClustering extends IAnalyticTransformationRoutine {
 	 */
 	List<Cluster> getClusters();
 	
+	/**
+	 * Return the instance to cluster number for the routine
+	 * @return
+	 */
+	Map<Object, Integer> getResults();
+	
 }
