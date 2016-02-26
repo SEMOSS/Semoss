@@ -82,18 +82,21 @@ public class WekaAprioriAlgorithm implements IAnalyticActionRoutine {
 	
 	@Override
 	public void runAlgorithm(ITableDataFrame... data) {
-		this.numRules = ((Number) options.get(0).getSelected()).intValue();
-		this.confPer = ((Number) options.get(1).getSelected()).doubleValue();
-		this.minSupport = ((Number) options.get(2).getSelected()).doubleValue();
-		this.maxSupport = ((Number) options.get(3).getSelected()).doubleValue();
-		this.skipAttributes = (List<String>) options.get(4).getSelected();
-
 		ITableDataFrame dataFrame = data[0];
 		dataFrame.setColumnsToSkip(skipAttributes);
 		LOGGER.info("Generating Weka Instances object...");
 		this.names = dataFrame.getColumnHeaders();
 		this.instancesData = WekaUtilityMethods.createInstancesFromQueryUsingBinNumerical("Apriori dataset", dataFrame.getData(), names);
 		LOGGER.info("Starting apriori algorithm using... ");
+		runAlgorithm(this.instancesData);
+	}
+	
+	public void runAlgorithm(Instances instances) {
+		this.numRules = ((Number) options.get(0).getSelected()).intValue();
+		this.confPer = ((Number) options.get(1).getSelected()).doubleValue();
+		this.minSupport = ((Number) options.get(2).getSelected()).doubleValue();
+		this.maxSupport = ((Number) options.get(3).getSelected()).doubleValue();
+		this.skipAttributes = (List<String>) options.get(4).getSelected();
 		
 		premises = new HashMap<Integer, Collection<Item>>();
 		consequences = new HashMap<Integer, Collection<Item>>();
@@ -108,7 +111,7 @@ public class WekaAprioriAlgorithm implements IAnalyticActionRoutine {
 		
 		LOGGER.info("Running Apriori Algorithm...");
 		try {
-			apriori.buildAssociations(instancesData);
+			apriori.buildAssociations(instances);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -117,6 +120,9 @@ public class WekaAprioriAlgorithm implements IAnalyticActionRoutine {
 		// get and store rules
 		AssociationRules rules = apriori.getAssociationRules();
 		List<AssociationRule> ruleList = rules.getRules();
+		if(ruleList.isEmpty()) {
+			throw new IllegalArgumentException("Assocation Learning Algorithn ran successfully, but no results were found.");
+		}
 		int numRule = 0;
 		for(AssociationRule rule : ruleList) {
 			premises.put(numRule, rule.getPremise());
