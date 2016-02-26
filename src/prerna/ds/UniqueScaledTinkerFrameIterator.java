@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
@@ -15,6 +16,7 @@ import prerna.util.Constants;
 public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>> {
 
 	private String dataType;
+	private String columnName;
 	private GraphTraversal gt;
 	private int columnNameIndex;
 	private List<String> selectors;
@@ -40,6 +42,7 @@ public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>>
 			Double[] minArr) {
 		this.selectors = selectors;
 		this.dataType = getRawData ? Constants.VALUE : Constants.NAME;
+		this.columnName = columnName;
 		this.columnNameIndex = selectors.indexOf(columnName);
 		this.maxArr = maxArr;
 		this.minArr = minArr;
@@ -47,11 +50,13 @@ public class UniqueScaledTinkerFrameIterator implements Iterator<List<Object[]>>
 	}
 	
 	private GraphTraversal openTraversal(List<String> selectors, Graph g){
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(selectors, g);		
+		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(selectors, g);
+		builder.orderBySelector = columnName;
 		this.finalColumns = selectors.toArray(new String[0]);//finalColumns.toArray(new String[0]);
-
 		//finally execute it to get the executor
 		GraphTraversal <Vertex, Map<String, Object>> gt = (GraphTraversal <Vertex, Map<String, Object>>)builder.executeScript();
+//		gt = gt.order();
+//		gt = gt.order().by(__.V().has(Constants.TYPE, columnName).values(Constants.NAME));
 		return gt;
 	}
 	
