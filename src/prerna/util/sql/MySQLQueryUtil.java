@@ -58,7 +58,7 @@ public class MySQLQueryUtil extends SQLQueryUtil {
 	//jdbc:mysql://<hostname>[:port]/<DBname>?user=username&password=pw
 	@Override
 	public String getConnectionURL(String baseFolder, String dbname){
-		return connectionBase + "/" + dbname;
+		return connectionBase;
 	}
 	
 	@Override
