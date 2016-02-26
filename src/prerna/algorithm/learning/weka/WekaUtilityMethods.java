@@ -29,10 +29,18 @@ package prerna.algorithm.learning.weka;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+
+import com.google.common.collect.Lists;
 
 import prerna.math.BarChart;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
@@ -87,11 +95,13 @@ public final class WekaUtilityMethods {
 				counter++;
 				int numBins = binRange.length;
 				int z;
-				List<String> nominalValuesInBin = new ArrayList<String>();
+				//TODO: sometimes the bins contain duplicates due to the scale and precision of the graph
+				//TODO: should try to resolve this... for now, just use a set
+				Set<String> nominalValuesInBin = new HashSet<String>();
 				for(z = 0; z < numBins; z++) {
 					nominalValuesInBin.add(binRange[z]);
 				}
-				attributeList.add(new Attribute(names[i], nominalValuesInBin));
+				attributeList.add(new Attribute(names[i], Lists.newArrayList(nominalValuesInBin)));
 			}
 		}
 		//create the Instances Object to contain all the instance information
@@ -125,11 +135,13 @@ public final class WekaUtilityMethods {
 				binForInstance = chart.getAssignmentForEachObject();
 				int numBins = binRange.length;
 				int z;
-				List<String> nominalValuesInBin = new ArrayList<String>();
+				//TODO: sometimes the bins contain duplicates due to the scale and precision of the graph
+				//TODO: should try to resolve this... for now, just use a set
+				Set<String> nominalValuesInBin = new HashSet<String>();
 				for(z = 0; z < numBins; z++) {
 					nominalValuesInBin.add(binRange[z]);
 				}
-				attributeList.add(new Attribute(names[i], nominalValuesInBin));
+				attributeList.add(new Attribute(names[i], Lists.newArrayList(nominalValuesInBin)));
 			} else if(isCategorical[i]) {
 				List<String> nominalValuesInFV = new ArrayList<String>();
 				HashSet<String> allPossibleValues = nominalValues[i];
@@ -252,11 +264,8 @@ public final class WekaUtilityMethods {
 	}
 	
 	public static Instance createInstance(Instances data, Object[] dataRow, boolean[] isCategorical, int numAttr) {
-		
 		Instance dataEntry = new DenseInstance(numAttr);
-
 		dataEntry.setDataset(data);
-		
 		for(int j = 0; j < numAttr; j++) {
 //			Object valAttr = dataRow[j + 1];
 			Object valAttr = dataRow[j];
@@ -273,7 +282,6 @@ public final class WekaUtilityMethods {
 				}
 			}
 		}
-		
 		return dataEntry;
 	}
 	
@@ -305,5 +313,36 @@ public final class WekaUtilityMethods {
 		}
 
 		return sumPerCorrect / size;
+	}
+
+	public static Instances createInstancesFromIterator(Iterator inputIterator, String[] names, int attributeIndex) {
+		List<Object[]> dataList = genListFromIterator(inputIterator, names);
+		return createInstancesFromQuery("", dataList, names, attributeIndex);
+	}
+	
+	public static Instances createInstancesFromIterator(Iterator inputIterator, String[] names) {
+		List<Object[]> dataList = genListFromIterator(inputIterator, names);
+		return createInstancesFromQuery("", dataList, names, -1);
+	}
+	
+	public static Instances createInstancesWithNumericBinsFromIterator(Iterator inputIterator, String[] names) {
+		List<Object[]> dataList = genListFromIterator(inputIterator, names);
+		return createInstancesFromQueryUsingBinNumerical("", dataList, names);
+	}
+	
+	private static List<Object[]> genListFromIterator(Iterator inputIterator, String[] names) {
+		List<Object[]> dataList = new ArrayList<Object[]>();
+		while(inputIterator.hasNext() ) {
+			Object data = inputIterator.next();
+			Object[] retObject = new Object[names.length];
+			if(data instanceof Map) {
+				for(int colIndex = 0;colIndex < names.length; colIndex++) {
+					Map<String, Object> mapData = (Map<String, Object>)data; //cast to map
+					retObject[colIndex] = ((Vertex)mapData.get(names[colIndex])).property(Constants.NAME).value();
+				}
+			}
+			dataList.add(retObject);
+		}
+		return dataList;
 	}
 }
