@@ -63,7 +63,7 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 	//jdbc:sqlserver://localhost:1433;databaseName=dbname;user=username;Password=password;selectMethod=cursor
 	@Override
 	public String getConnectionURL(String baseFolder,String dbname){
-		return connectionBase + ";databaseName=" + dbname + ";user=" + super.getDefaultDBUserName() + ";Password=" + super.getDefaultDBPassword() + ";selectMethod=cursor";
+		return connectionBase;
 	}
 	
 	@Override
