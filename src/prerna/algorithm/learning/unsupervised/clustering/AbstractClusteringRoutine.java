@@ -40,6 +40,7 @@ public abstract class AbstractClusteringRoutine implements IClustering {
 	protected Map<String, Double> categoricalWeights = new HashMap<String, Double>();
 	
 	protected String clusterColName;
+	protected boolean appendOntoDataMaker = true;
 	
 	// set distance mode
 	public AbstractClusteringRoutine() {
@@ -103,5 +104,13 @@ public abstract class AbstractClusteringRoutine implements IClustering {
 
 	public int getNumClusters() {
 		return (int) options.get(0).getSelected();
+	}
+	
+	public boolean isAppendOntoDataMaker() {
+		return appendOntoDataMaker;
+	}
+
+	public void setAppendOntoDataMaker(boolean appendOntoDataMaker) {
+		this.appendOntoDataMaker = appendOntoDataMaker;
 	}
 }
