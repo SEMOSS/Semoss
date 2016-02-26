@@ -194,14 +194,11 @@ public class FastOutlierDetection implements IAnalyticTransformationRoutine {
 			
 			return returnTable;
 		} else {
-			Hashtable<String, Set<String>> edgeHash = new Hashtable<String, Set<String>>();
-			Set<String> edge = new HashSet<String>();
-			edge.add(changedColumn);
-			edgeHash.put(attributeName, edge);
-			TinkerFrame returnTable = new TinkerFrame(new String[]{attributeName, changedColumn}, edgeHash);
+			TinkerFrame tf = (TinkerFrame) this.dataFrame;
+			tf.connectTypes(attributeName, changedColumn);
 			for(Object instance : results.keySet()) {
 				Double val = (numRuns-results.get(instance))/numRuns;
-				
+
 				Map<String, Object> raw = new HashMap<String, Object>();
 				raw.put(attributeName, instance);
 				raw.put(changedColumn, val);
@@ -213,9 +210,9 @@ public class FastOutlierDetection implements IAnalyticTransformationRoutine {
 				clean.put(attributeName, instance);
 				clean.put(changedColumn, val);
 				
-				returnTable.addRelationship(clean, raw);
+				tf.addRelationship(clean, raw);
 			}
-			return returnTable;
+			return null;
 		}
 	}
 
