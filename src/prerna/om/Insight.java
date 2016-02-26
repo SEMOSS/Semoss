@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -72,6 +73,7 @@ import prerna.rdf.query.builder.QueryBuilderHelper;
 import prerna.rdf.util.AbstractQueryParser;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
+import prerna.ui.components.playsheets.datamakers.FilterTransformation;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
@@ -1222,6 +1224,64 @@ public class Insight {
 		returnHash.put("insightID", this.insightID);
 
 		return returnHash;
+	}
+	
+	public void recalcDerivedColumns(){
+		// iterate from the first DMC to find where the first derived column is
+		List<DataMakerComponent> dmcList = getDataMakerComponents();
+		Iterator<DataMakerComponent> dmcIt = dmcList.iterator();
+		int firstComp = 0;
+		String firstTransId = null;
+		for (; firstComp < dmcList.size() && firstTransId == null; firstComp ++){
+			DataMakerComponent dmc = dmcIt.next();
+			for(ISEMOSSTransformation trans : dmc.getPostTrans()){
+				if(!(trans instanceof FilterTransformation) && !(trans instanceof JoinTransformation)){
+					firstTransId = trans.getId();
+					firstComp--;
+					break;
+				}
+			}
+		}
+		if(firstTransId == null){ // no derived columns were found! :)
+			return;
+		}
+		
+		// now that i've found where my first derived column is, i need to undo everything that comes after that in correct order
+		boolean hitFirst = false;
+		List<ISEMOSSTransformation> transToRedo = new Vector<ISEMOSSTransformation>();
+		for(int dmcIdx = dmcList.size() - 1; dmcIdx >= firstComp && !hitFirst; dmcIdx -- ){
+			DataMakerComponent dmc = dmcList.get(dmcIdx);
+			List<ISEMOSSTransformation> postList = dmc.getPostTrans();
+			for(int transIdx = postList.size() - 1; transIdx >= 0 && !hitFirst; transIdx -- ){
+				ISEMOSSTransformation trans = postList.get(transIdx);
+				if(!(trans instanceof JoinTransformation) && !(trans instanceof FilterTransformation)){
+					transToRedo.add(trans);
+					String id = trans.getId();
+					this.undoProcesses(Arrays.asList(new String[]{id}));
+					if(id.equals(firstTransId)){
+						hitFirst = true;
+					}
+				}
+			}
+			List<ISEMOSSTransformation> preList = dmc.getPreTrans();
+			for(int transIdx = preList.size() - 1; transIdx >= 0 && !hitFirst; transIdx -- ){
+				ISEMOSSTransformation trans = preList.get(transIdx);
+				if(!(trans instanceof JoinTransformation) && !(trans instanceof FilterTransformation)){
+					transToRedo.add(trans);
+					String id = trans.getId();
+					this.undoProcesses(Arrays.asList(new String[]{id}));
+					if(id.equals(firstTransId)){
+						hitFirst = true;
+					}
+				}
+			}
+		}
+		
+		// now that i've undone everything, i just need to redo
+		for(int transIdx = transToRedo.size() - 1; transIdx >= 0; transIdx -- ){
+//			ISEMOSSTransformation trans = transToRedo.get(transIdx);
+			this.processPostTransformation(transToRedo, dataMaker);
+		}
 	}
 
 }
