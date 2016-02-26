@@ -11,6 +11,7 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
+import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
@@ -36,7 +37,7 @@ public class GremlinBuilder {
 	int startRange = -1;
 	int endRange = -1;
 	public String groupBySelector;
-	
+	public String orderBySelector;
 	
 	/**
 	 * Constructor for the GremlinBuilder class
@@ -410,6 +411,10 @@ public class GremlinBuilder {
 			appendSelectors();
 		}
 		
+		if(orderBySelector != null) {
+			appendOrder();
+		}
+		
 		addGroupBy();
 		
 		LOGGER.info("Returning the graph traversal");
@@ -417,6 +422,12 @@ public class GremlinBuilder {
 		return gt;
 	}	
 	
+	private void appendOrder() {
+		if(orderBySelector != null) {
+			gt = gt.order().by(__.select(orderBySelector).values(Constants.NAME), Order.incr);
+		}
+	}
+
 	public void addGroupBy() {
 		if(groupBySelector != null) {
 			gt.group().by(__.select(groupBySelector).values(Constants.NAME)).as("GROUP_BY");
