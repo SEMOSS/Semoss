@@ -126,18 +126,6 @@ public class LOF implements IAnalyticTransformationRoutine {
 			skipAttributes = new ArrayList<String>();
 		}
 		
-		// need to adjust the instance index based on the skipping of other columns
-		this.attributeNames = dataFrame.getColumnHeaders();
-		int origIndex = instanceIndex;
-		for(int i = 0; i < attributeNames.length; i++) {
-			if(i < origIndex) {
-				if(skipAttributes.contains(attributeNames[i])) {
-					instanceIndex--;
-				}
-			} else {
-				break;
-			}
-		}
 		dataFrame.setColumnsToSkip(skipAttributes);
 		this.dimensions = dataFrame.getNumCols() - 1;
 		this.attributeNames = dataFrame.getColumnHeaders();
