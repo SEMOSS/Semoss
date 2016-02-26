@@ -1101,8 +1101,7 @@ public class TinkerFrame implements ITableDataFrame {
 	
 	@Override
 	public List<Object> getActionOutput() {
-		// TODO Auto-generated method stub
-		return null;
+		return this.algorithmOutput;
 	}
 
 	/******************************  END DATA MAKER METHODS ******************************/
