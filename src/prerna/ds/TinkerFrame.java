@@ -1607,30 +1607,45 @@ public class TinkerFrame implements ITableDataFrame {
 		return null;
 	}
 
-	@Override
-	public Integer getUniqueInstanceCount(String columnHeader) {
-		Integer retInt = null;
-		retInt = 0;
-		GraphTraversal <Vertex, Long> gt = g.traversal().V().has(Constants.TYPE, columnHeader).count();
-		if(gt.hasNext())
-			retInt = gt.next().intValue();
+    @Override
+    public Integer getUniqueInstanceCount(String columnHeader) {
+          // need to iterate through everything since we do not clean up vertices
+          Vector<String> selectors = new Vector<String>();
+          selectors.add(columnHeader);
+          Iterator it = this.getIterator(selectors);
+          Set<Object> columnSet = new HashSet<Object>();
+          while(it.hasNext()) {
+                columnSet.add(it.next());
+          }
+          
+          return columnSet.size();
+//        GraphTraversal <Vertex, Long> gt = g.traversal().V().has(Constants.TYPE, columnHeader).count();
+//        if(gt.hasNext())
+//              retInt = gt.next().intValue();
+//
+//        return retInt;
+    }
 
-		return retInt;
-	}
+    @Override
+    public Integer[] getUniqueInstanceCount() {
+          List<String> selectors = getSelectors();
+          Integer[] counts = new Integer[selectors.size()];
+          for(int i = 0; i < counts.length; i++) {
+                counts[i] = getUniqueInstanceCount(selectors.get(i));
+          }
+          return counts;
+//        GraphTraversal<Vertex, Map<Object, Object>> gt = g.traversal().V().group().by(Constants.TYPE).by(__.count());
+//        Integer [] instanceCount = null;
+//        if(gt.hasNext())
+//        {
+//              Map<Object, Object> output = gt.next();
+//              instanceCount = new Integer[headerNames.length];
+//              for(int levelIndex = 0;levelIndex < headerNames.length;levelIndex++)
+//                    instanceCount[levelIndex] = ((Long)output.get(headerNames[levelIndex])).intValue();
+//        }
+//        return instanceCount;
+    }
 
-	@Override
-	public Integer[] getUniqueInstanceCount() {
-		GraphTraversal<Vertex, Map<Object, Object>> gt = g.traversal().V().group().by(Constants.TYPE).by(__.count());
-		Integer [] instanceCount = null;
-		if(gt.hasNext())
-		{
-			Map<Object, Object> output = gt.next();
-			instanceCount = new Integer[headerNames.length];
-			for(int levelIndex = 0;levelIndex < headerNames.length;levelIndex++)
-				instanceCount[levelIndex] = ((Long)output.get(headerNames[levelIndex])).intValue();
-		}
-		return instanceCount;
-	}
 
 	@Override
 	public Double getMax(String columnHeader) {
