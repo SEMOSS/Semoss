@@ -93,22 +93,8 @@ public class DatasetSimilarity implements IAnalyticTransformationRoutine {
 		if(skipAttributes == null) {
 			skipAttributes = new ArrayList<String>();
 		}
-		
 		this.dataFrame = data[0];
 		
-		// need to adjust the instance index based on the skipping of other columns
-		this.attributeNames = dataFrame.getColumnHeaders();
-		int origIndex = instanceIndex;
-		for(int i = 0; i < attributeNames.length; i++) {
-			if(i < origIndex) {
-				if(skipAttributes.contains(attributeNames[i])) {
-					instanceIndex--;
-				}
-			} else {
-				break;
-			}
-		}
-				
 		dataFrame.setColumnsToSkip(skipAttributes);
 		this.attributeNames = dataFrame.getColumnHeaders();
 		this.isNumeric = dataFrame.isNumeric();
