@@ -2563,7 +2563,7 @@ public class TinkerFrame implements ITableDataFrame {
 				if(value instanceof String) {
 					// if string need to clean string for clean values and need to append type for raw
 					// might as well add with clean headers as well
-					cleanVal = cleanHeaders[j] + "/" + value;
+					cleanVal = "http://" + cleanHeaders[j] + "/" + value;
 					row.remove(headers[j]);
 					row.put(cleanHeaders[j], cleanVal);
 	                cleanRow.put(cleanHeaders[j], Utility.cleanString(value + "", true, true, false));
