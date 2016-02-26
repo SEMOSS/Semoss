@@ -61,7 +61,7 @@ public class WekaClassification implements IAnalyticActionRoutine {
 	private List<SEMOSSParam> options;
 
 	private String modelName = "J48"; // default to J48
-	private int classIndex;
+	private int classIndex = -1;
 	
 	private Classifier model;
 	private String treeAsString;
@@ -113,46 +113,54 @@ public class WekaClassification implements IAnalyticActionRoutine {
 
 	@Override
 	public void runAlgorithm(ITableDataFrame... data) {
-		if(options.get(0).getSelected() != null && ! ((String) options.get(0).getSelected()).isEmpty()) {
-			this.modelName = (String) options.get(0).getSelected();
-		}
-		String className = (String) options.get(1).getSelected();
 		this.skipAttributes = (List<String>) options.get(2).getSelected();
-		
 		ITableDataFrame dataFrame = data[0];
 		dataFrame.setColumnsToSkip(skipAttributes);
 		this.names = dataFrame.getColumnHeaders();
-		this.model = ClassificationFactory.createClassifier(modelName);
 
-		this.classIndex = names.length - 1;
-		while(classIndex > -1 && !names[classIndex].equals(className)) {
-			classIndex--;
-		}
-		
-		if(classIndex < 0){
-			LOGGER.error("Cannot match classifier selected in drop down to list of classifiers");
-			return;
-		}
-		
-		LOGGER.info("Starting classification algorithm using " + modelName + " to predict variable " + names[classIndex] + "...");
+		LOGGER.info("Starting classification algorithm using " + modelName);
 		LOGGER.info("Generating Weka Instances object...");
-		this.instancesData = WekaUtilityMethods.createInstancesFromQuery("Apriori dataset", dataFrame.getData(), names, classIndex);
-		instancesData.setClassIndex(classIndex);
+		calculateClassIndex();
+		
+		this.instancesData = WekaUtilityMethods.createInstancesFromQuery("Classification dataset", dataFrame.getData(), names, classIndex);
+		runAlgorithm(this.instancesData);
+	}
+	
+	public void runAlgorithm(Instances instances) {
+		if(this.instancesData == null) {
+			this.instancesData = instances;
+		}
+		if(this.names == null) {
+			int numAttr = instances.numAttributes();
+			this.names = new String[numAttr];
+			for(int i = 0; i < numAttr; i++) {
+				this.names[i] = instances.attribute(i).name();
+			}
+		}
+		if(options.get(0).getSelected() != null && ! ((String) options.get(0).getSelected()).isEmpty()) {
+			this.modelName = (String) options.get(0).getSelected();
+		}
+		this.model = ClassificationFactory.createClassifier(modelName);
+		if(classIndex == -1) {
+			calculateClassIndex();
+		}
+		LOGGER.info("Classifying to predict variable " + instancesData.attribute(classIndex).name() + "...");
+		this.instancesData.setClassIndex(classIndex);
 		
 		// cannot classify when only one value
-		if(instancesData.numDistinctValues(classIndex) == 1) {
+		if(this.instancesData.numDistinctValues(classIndex) == 1) {
 			LOGGER.info("There is only one distinct value for column " + names[classIndex]);
 			avgAccuracy = 100;
 			avgPrecision = 100;
 			return;
-		} else if(instancesData.numDistinctValues(classIndex) == instancesData.size()) {
+		} else if(this.instancesData.numDistinctValues(classIndex) == this.instancesData.size()) {
 			String errorString = "The column to predict, " + names[classIndex] + ", is a unique identifier in this table. Does not make sense to classify it.";
 			LOGGER.info(errorString);
 			throw new IllegalArgumentException(errorString);
 		}
 		
 		LOGGER.info("Performing 10-fold cross-validation split of data...");
-		Instances[][] split = WekaUtilityMethods.crossValidationSplit(instancesData, 10);
+		Instances[][] split = WekaUtilityMethods.crossValidationSplit(this.instancesData, 10);
 
 		// Separate split into training and testing arrays
 		Instances[] trainingSplits = split[0];
@@ -370,6 +378,17 @@ public class WekaClassification implements IAnalyticActionRoutine {
 				int newSubTreeIndex = treeStringArr[index].lastIndexOf("| ");
 				generateTreeEndingWithParenthesisAndBrackets(currTree, newKey, newSubTreeIndex);
 			}
+		}
+	}
+	
+	private void calculateClassIndex() {
+		String className = (String) options.get(1).getSelected();
+		this.classIndex = names.length - 1;
+		while(classIndex > -1 && !names[classIndex].equals(className)) {
+			classIndex--;
+		}
+		if(classIndex < 0){
+			LOGGER.error("Cannot match classifier selected in drop down to list of classifiers");
 		}
 	}
 
