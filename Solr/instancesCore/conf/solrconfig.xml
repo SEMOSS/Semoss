@@ -1274,7 +1274,7 @@
        
      -->
   
-   <!-- Spell Check
+  <!-- Spell Check
 
         The spell check component can return a list of alternative spelling
         suggestions.  
@@ -1282,19 +1282,15 @@
         http://wiki.apache.org/solr/SpellCheckComponent
      -->
   <searchComponent name="spellcheck" class="solr.SpellCheckComponent">
-
-    <str name="queryAnalyzerFieldType">text_general</str>
-
     <!-- Multiple "Spell Checkers" can be declared and used by this
          component
       -->
-
     <!-- a spellchecker built from a field of the main index -->
     <lst name="spellchecker">
       <str name="name">default</str>
       <str name="field">instances</str>
       <str name="classname">solr.DirectSolrSpellChecker</str>
-      <!-- the spellcheck distance measure used, the default is the internal levenshtein -->
+	  <!-- the spellcheck distance measure used, the default is the internal levenshtein -->
       <str name="distanceMeasure">internal</str>
       <!-- minimum accuracy needed to be considered a valid spellcheck suggestion -->
       <float name="accuracy">0.5</float>
@@ -1307,19 +1303,19 @@
       <!-- minimum length of a query term to be considered for correction -->
       <int name="minQueryLength">4</int>
       <!-- maximum threshold of documents a query term can appear to be considered for correction -->
-      <float name="maxQueryFrequency">0.01</float>
+      <float name="maxQueryFrequency">0.05</float>
       <!-- uncomment this to require suggestions to occur in 1% of the documents
       	<float name="thresholdTokenFrequency">.01</float>
       -->
     </lst>
     
-    <!-- a spellchecker that can break or combine words.  See "/spell" handler below for usage -->
+    <!-- a spellchecker that can break or combine words.  See "/spell" handler below for usage <str name="breakWords">true</str> -->
     <lst name="spellchecker">
       <str name="name">wordbreak</str>
       <str name="classname">solr.WordBreakSolrSpellChecker</str>      
       <str name="field">instances</str>
       <str name="combineWords">true</str>
-      <str name="breakWords">true</str>
+	  <str name="breakWords">true</str>
       <int name="maxChanges">10</int>
     </lst>
 
@@ -1375,50 +1371,57 @@
        See http://wiki.apache.org/solr/SpellCheckComponent for details
        on the request parameters.
     -->
-  <requestHandler name="/spell" class="solr.SearchHandler" startup="lazy">
+  <requestHandler name="/spell" class="solr.SearchHandler">
     <lst name="defaults">
       <str name="df">instances</str>
       <!-- Solr will use suggestions from both the 'default' spellchecker
            and from the 'wordbreak' spellchecker and combine them.
            collations (re-written queries) can include a combination of
            corrections from both spellcheckers -->
-      <str name="spellcheck.dictionary">default</str>
-      <str name="spellcheck.dictionary">wordbreak</str>
+		   
+		   
+		 <!-- Commented out for now! -->  
+      <str name="spellcheck.dictionary">default</str> 
       <str name="spellcheck">on</str>
-      <str name="spellcheck.extendedResults">true</str>       
-      <str name="spellcheck.count">10</str>
+      <str name="spellcheck.extendedResults">true</str>  
+	  <str name="spellcheck.onlyMorePopular">false</str>
+      <str name="spellcheck.count">5</str>
       <str name="spellcheck.alternativeTermCount">5</str>
-      <str name="spellcheck.maxResultsForSuggest">5</str>       
+      <str name="spellcheck.maxResultsForSuggest">10</str>       
       <str name="spellcheck.collate">true</str>
       <str name="spellcheck.collateExtendedResults">true</str>  
-      <str name="spellcheck.maxCollationTries">10</str>
-      <str name="spellcheck.maxCollations">5</str>         
+      <str name="spellcheck.maxCollationTries">5</str>
+      <str name="spellcheck.maxCollations">3</str>  
     </lst>
     <arr name="last-components">
       <str>spellcheck</str>
     </arr>
   </requestHandler>
 
-  <searchComponent name="suggest" class="solr.SuggestComponent">
-  	<lst name="suggester">
-      <str name="name">mySuggester</str>
-      <str name="lookupImpl">FuzzyLookupFactory</str>      <!-- org.apache.solr.spelling.suggest.fst -->
-      <str name="dictionaryImpl">DocumentDictionaryFactory</str>     <!-- org.apache.solr.spelling.suggest.HighFrequencyDictionaryFactory --> 
-      <str name="field">cat</str>
-      <str name="weightField">price</str>
-      <str name="suggestAnalyzerFieldType">string</str>
+  
+  <searchComponent name="suggest" class="solr.SpellCheckComponent">
+  	<lst name="spellchecker">
+      <str name="name">suggest</str>
+	  <str name="classname">org.apache.solr.spelling.suggest.Suggester</str>
+      <str name="lookupImpl">org.apache.solr.spelling.suggest.jaspell.JaspellLookupFactory</str>      
+      <str name="field">instances</str>
+	  <float name="threshold">0.005</float>
+	  <str name="buildOnCommit">false</str>
     </lst>
-  </searchComponent>
+  </searchComponent> -->
 
-  <requestHandler name="/suggest" class="solr.SearchHandler" startup="lazy">
+  <requestHandler name="/suggest" class="org.apache.solr.handler.component.SearchHandler">
     <lst name="defaults">
-      <str name="suggest">true</str>
-      <str name="suggest.count">10</str>
+	  <str name="spellcheck">true</str>
+	  <str name="spellcheck.dictionary">suggest</str>
+	  <str name="spellcheck.onlyMorePopular">true</str>
+	  <str name="spellcheck.count">10</str>
     </lst>
     <arr name="components">
       <str>suggest</str>
     </arr>
   </requestHandler>
+
   <!-- Term Vector Component
 
        http://wiki.apache.org/solr/TermVectorComponent
