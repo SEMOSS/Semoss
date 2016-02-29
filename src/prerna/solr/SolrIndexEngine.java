@@ -37,6 +37,7 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.SpellCheckResponse;
 import org.apache.solr.client.solrj.response.SpellCheckResponse.Collation;
 import org.apache.solr.client.solrj.response.SpellCheckResponse.Correction;
+import org.apache.solr.client.solrj.response.SpellCheckResponse.Suggestion;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrInputDocument;
@@ -48,6 +49,7 @@ import org.apache.solr.common.params.MoreLikeThisParams;
 import org.apache.solr.common.params.SpellingParams;
 import org.apache.solr.common.util.NamedList;
 
+import edu.stanford.nlp.util.ArraySet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -562,10 +564,21 @@ public class SolrIndexEngine {
 				Q.set(CommonParams.QT, "/spell");
 				Q.set(SpellingParams.SPELLCHECK_COLLATE, "true");
 				Q.set(SpellingParams.SPELLCHECK_COLLATE_EXTENDED_RESULTS, "true");
-				Q.set(SpellingParams.SPELLCHECK_ONLY_MORE_POPULAR, "true"); // suggestions will be returned by popularity
+//				Q.set(SpellingParams.SPELLCHECK_ONLY_MORE_POPULAR, "true"); // suggestions will be returned by popularity
 				Q.set(SpellingParams.SPELLCHECK_COUNT, "4"); // # of suggestions to return
 
 				LOGGER.info("SpellingParams.SPELLCHECK_PREFIX set to true");
+			}
+			
+			
+			
+			////////AUTOCOMPLETE
+			if (queryOptions.get(SpellingParams.SPELLCHECK_Q) != null) {
+				Q.set(CommonParams.QT, "/suggest");
+				String autoSuggest = (String) queryOptions.get(SpellingParams.SPELLCHECK_Q);
+				autoSuggest = escapeSpecialCharacters(autoSuggest);
+				
+				Q.set(SpellingParams.SPELLCHECK_Q, autoSuggest);
 			}
 			
 			//////// HIGHLIGHTING  
@@ -735,17 +748,36 @@ public class SolrIndexEngine {
 		return queryResults;
 	}
 
-	public Map<String, List<String>> executeAutoCompleteQuery(String completeTerm) throws SolrServerException, IOException {
+	public Set<String> executeAutoCompleteQuery(String completeTerm) throws SolrServerException, IOException {
 		Map<String, Object> queryData = new HashMap<String, Object>();
+		Set<String> suggestionList = new ArraySet<String>();
 		if (completeTerm != null && !completeTerm.isEmpty()) {
-			queryData.put(CommonParams.Q, completeTerm);
+			queryData.put(SpellingParams.SPELLCHECK_Q, completeTerm);
 		}
-		queryData.put(SpellingParams.SPELLCHECK_PREFIX, true);
-		Map<String, Object> searchResultMap = searchDocument(queryData);
-		Map<String, List<String>> suggestions = (Map<String, List<String>>) searchResultMap.get(SPELLCHECK_RESPONSE);
-		
-		LOGGER.info("Suggestions include::: " + suggestions);
-		return suggestions;
+		QueryResponse resInstance = getQueryResponse(queryData, SOLR_PATHS.SOLR_INSTANCES_PATH);
+		Set<String> instanceList = getAutoSuggestResponse(resInstance);
+
+		QueryResponse resInsight = getQueryResponse(queryData, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+		Set<String> insightLists = getAutoSuggestResponse(resInsight);
+
+		suggestionList.addAll(instanceList);
+		suggestionList.addAll(insightLists);
+		LOGGER.info("Suggestions include ::: " + suggestionList);
+		return suggestionList;
+	}
+
+	private static Set<String> getAutoSuggestResponse(QueryResponse res) {
+		Set<String> autoSuggestRet = new ArraySet<String>();
+		List<Suggestion> suggestions = res.getSpellCheckResponse().getSuggestions();
+		if (suggestions != null && !suggestions.isEmpty()) {
+			for (Suggestion suggestion : suggestions) {
+				List<String> alternativeList = suggestion.getAlternatives();
+				for (String alternative : alternativeList) {
+					autoSuggestRet.add(alternative);
+				}
+			}
+		}
+		return autoSuggestRet;
 	}
 	
 	/**
@@ -822,6 +854,7 @@ public class SolrIndexEngine {
 	private Map<String, Object> searchDocument(Map<String, Object> queryOptions)
 			throws SolrServerException, IOException {
 		Map<String, Object> searchResultMap = new HashMap<String, Object>();
+		Map<String, Object> queryResponseMap = new HashMap<String, Object>();
 		if (serverActive()) {
 			String appendedQuerySearch="";
 			QueryResponse res= new QueryResponse();
@@ -835,7 +868,8 @@ public class SolrIndexEngine {
 						 appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
 						 queryOptions.put(CommonParams.Q, appendedQuerySearch);
 						 Map<String, List<String>> instanceSpellCheck = (Map<String, List<String>>) queryResults.get(SPELLCHECK_RESPONSE);
-						 searchResultMap.put(SPELLCHECK_RESPONSE, instanceSpellCheck);
+						 queryResponseMap.put(SPELLCHECK_RESPONSE, instanceSpellCheck);
+						 searchResultMap.putAll(queryResponseMap);
 					}
 					res = getQueryResponse(queryOptions, SOLR_PATHS.SOLR_INSIGHTS_PATH);
 				}
@@ -845,12 +879,13 @@ public class SolrIndexEngine {
 			searchResultMap.put(QUERY_RESPONSE, results);
 			Map<String, List<String>> spellCheckResponse = getSpellCheckResponse(res);
 			if (spellCheckResponse != null && !spellCheckResponse.isEmpty()) {
-				searchResultMap.put(SPELLCHECK_RESPONSE, spellCheckResponse);
+				queryResponseMap.put(SPELLCHECK_RESPONSE, spellCheckResponse);
+				searchResultMap.putAll(queryResponseMap);
 			}
 			
 			Map<String, Map<String, List<String>>> hilighting = res.getHighlighting();
 			if (hilighting != null && !hilighting.isEmpty()) {
-				searchResultMap.put(HIGHLIGHTING_RESPONSE, hilighting);
+				queryResponseMap.put(HIGHLIGHTING_RESPONSE, hilighting);
 			}
 		}
 		LOGGER.info("Returning results of search");
