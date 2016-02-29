@@ -110,7 +110,8 @@
 		<!-- <field name="insight_definition" type="string" indexed="false" stored="true" required="true" multiValued="true" /> -->
 		
 		<!-- this is meant to hold all the text a user has surrounding an insights -->
-		<field name="all_text" type="text_en_splitting" indexed="true" stored="false" required="true" multiValued="true" termVectors="true" termPositions="true" termOffsets="true"/> 
+		<field name="all_text" type="text_en_splitting" indexed="true" stored="false" required="true" multiValued="true" termVectors="true" termPositions="true" termOffsets="true"/>
+		
 		<!-- copy the text fields into the field "all text" -->
 		<copyField source="index_name" dest="all_text"/>
 		<copyField source="user_id" dest="all_text"/>
@@ -122,6 +123,20 @@
 		<copyField source="layout" dest="all_text"/>
 		<copyField source="params" dest="all_text"/>
 		<copyField source="algorithms" dest="all_text"/>
+		
+		
+		<field name="suggest_text" type="text_suggest" indexed="true" stored="false" required="true" multiValued="true"/> 
+		<!-- copy the text fields into the field "suggest text" -->
+		<copyField source="index_name" dest="suggest_text"/>
+		<copyField source="user_id" dest="suggest_text"/>
+		<copyField source="tags" dest="suggest_text"/>
+		<copyField source="annotation" dest="suggest_text"/>
+		<copyField source="comment" dest="suggest_text"/>
+		<copyField source="engines" dest="suggest_text"/>
+		<copyField source="query_projections" dest="suggest_text"/>
+		<copyField source="layout" dest="suggest_text"/>
+		<copyField source="params" dest="suggest_text"/>
+		<copyField source="algorithms" dest="suggest_text"/>
 
 	</fields>
 	<!-- Field to use to determine and enforce document uniqueness. 
@@ -159,30 +174,21 @@
 		<fieldType name="long" class="solr.TrieLongField" precisionStep="0" positionIncrementGap="0"/>
 		<fieldType name="double" class="solr.TrieDoubleField" precisionStep="0" positionIncrementGap="0"/>
 		
-		 <!-- A text field with defaults appropriate for English: it
-			 tokenizes with StandardTokenizer, removes English stop words
-			 (lang/stopwords_en.txt), down cases, protects words from protwords.txt, and
-			 finally applies Porter's stemming.  The query time analyzer
-			 also applies synonyms from synonyms.txt. -->
-		<fieldType name="text_en" class="solr.TextField" positionIncrementGap="100">
-		  <analyzer type="index">
-			<tokenizer class="solr.StandardTokenizerFactory"/>
-			<filter class="solr.SynonymFilterFactory" synonyms="synonyms.txt" ignoreCase="true" expand="false"/>
-			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
-			<filter class="solr.LowerCaseFilterFactory"/>
-			<filter class="solr.EnglishPossessiveFilterFactory"/>
-			<filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
-			<filter class="solr.PorterStemFilterFactory"/>
-		  </analyzer>
-		  <analyzer type="query">
-			<tokenizer class="solr.StandardTokenizerFactory"/>
-			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
-			<filter class="solr.LowerCaseFilterFactory"/>
-			<filter class="solr.EnglishPossessiveFilterFactory"/>
-			<filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
-			<filter class="solr.PorterStemFilterFactory"/>
-		  </analyzer>
+		
+		<!-- creating a new field type for autosuggest that doesnt use 'term vectors'-->
+		<fieldType name="text_suggest" class="solr.TextField" positionIncrementGap="100">
+			<analyzer type="index">
+				<tokenizer class="solr.KeywordTokenizerFactory"/>
+				<filter class="solr.LowerCaseFilterFactory"/>
+				<filter class="solr.EnglishMinimalStemFilterFactory"/> 
+				<filter class="solr.PatternReplaceFilterFactory" pattern="([^\w\d\*Ã¦Ã¸Ã¥Ã†Ã˜Ã… ])" replacement="" replace="all"/>
+			</analyzer>
+			<analyzer type="query">
+				<tokenizer class="solr.KeywordTokenizerFactory"/>
+				<filter class="solr.EnglishMinimalStemFilterFactory"/> 
+			</analyzer>
 		</fieldType>
+
 		
 			<!-- A text field with defaults appropriate for English, plus
 		 aggressive word-splitting and autophrase features enabled.
