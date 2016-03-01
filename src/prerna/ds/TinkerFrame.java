@@ -1434,7 +1434,6 @@ public class TinkerFrame implements ITableDataFrame {
 			
 			//grab/create the meta vertex associated with newNode
 			Vertex outVert = upsertVertex(META, newNode, newNode);
-			outVert.property(Constants.FILTER, false);
 			
 			//for each edge in corresponding with newNode create the connection within the META graph
 			for(String inVertString : edges){
@@ -1442,7 +1441,6 @@ public class TinkerFrame implements ITableDataFrame {
 				
 				// now to insert the meta edge
 				Vertex inVert = upsertVertex(META, inVertString, inVertString);
-				inVert.property(Constants.FILTER, false);
 				upsertEdge(outVert, inVert, META);
 			}
 		}
@@ -1462,12 +1460,10 @@ public class TinkerFrame implements ITableDataFrame {
 
 		Set<String> newLevels = new LinkedHashSet<String>();
 		Vertex outVert = upsertVertex(META, outType, outType);
-		outVert.property(Constants.FILTER, false);
 		newLevels.add(outType);
 		
 		if(inType!=null){
 			Vertex inVert = upsertVertex(META, inType, inType);
-			inVert.property(Constants.FILTER, false);
 			upsertEdge(outVert, inVert, META);
 			newLevels.add(inType);
 		}
@@ -2347,6 +2343,8 @@ public class TinkerFrame implements ITableDataFrame {
 				LOGGER.debug(" adding vertex ::: " + Constants.ID + " = " + type + ":" + data+ " & " + Constants.VALUE+ " = " + value+ " & " + Constants.TYPE+ " = " + type+ " & " + Constants.NAME+ " = " + data);
 				retVertex = g.addVertex(Constants.ID, type + ":" + data, Constants.VALUE, value, Constants.TYPE, type, Constants.NAME, data);// push the actual value as well who knows when you would need it
 			}
+			
+			retVertex.property(Constants.FILTER, false);
 		}
 		return retVertex;
 	}
