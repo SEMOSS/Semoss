@@ -86,36 +86,12 @@ public final class MasterDBHelper {
 		return engines;
 	}
 	
-	public static void removeInsightStatementToMasterDBs(IEngine masterEngine, String selectedEngineName, String sub, String pred, String obj, Boolean concept) {
-//		masterEngine.removeStatement(sub, pred, obj, concept);
-		removeFromMaster(masterEngine, sub, pred, obj, concept);
-		if(pred.equals("PARAM:TYPE")) {
-			if(concept) {
-				String keyword = obj.substring(obj.lastIndexOf("/")+1);
-				removeRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, obj, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + keyword + ":" + keyword);
-				removeRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + selectedEngineName, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + selectedEngineName + ":" + keyword);
-			}
-		}
-	}
-	
 	private static void addToMaster(IEngine masterEngine, String sub, String pred, Object obj, boolean concept){
 		masterEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, pred, obj, concept});
 	}
 	
 	private static void removeFromMaster(IEngine masterEngine, String sub, String pred, Object obj, boolean concept){
 		masterEngine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{sub, pred, obj, concept});
-	}
-	
-	public static void addInsightStatementToMasterDBs(IEngine masterEngine, String selectedEngineName, String sub, String pred, String obj, Boolean concept) {
-
-		addToMaster(masterEngine, sub, pred, obj, concept);
-		if(pred.equals("PARAM:TYPE")) {
-			if(concept) {
-				String keyword = obj.substring(obj.lastIndexOf("/")+1);
-				addRelationship(masterEngine, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, obj, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + keyword + ":" + keyword);
-				addRelationship(masterEngine, MasterDatabaseURIs.ENGINE_BASE_URI + "/" + selectedEngineName, MasterDatabaseURIs.KEYWORD_BASE_URI + "/" + keyword, MasterDatabaseURIs.SEMOSS_RELATION_URI + "/Has/" + selectedEngineName + ":" + keyword);
-			}
-		}
 	}
 	
 	/**
@@ -459,4 +435,15 @@ public final class MasterDBHelper {
 		}
 	}
 	
+	public static Set<String> getExistingKeywords(IEngine masterEngine) {
+		Set<String> keywordURIs = new HashSet<String>();
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(masterEngine, MasterDatabaseQueries.GET_ALL_KEYWORDS);
+		String[] names = wrapper.getVariables();
+		while(wrapper.hasNext()) {
+			ISelectStatement sjss = wrapper.next();
+			keywordURIs.add(sjss.getRawVar(names[0]) + "");
+		}
+		
+		return keywordURIs;
+	}
 }

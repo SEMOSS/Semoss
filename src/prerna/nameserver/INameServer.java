@@ -9,23 +9,6 @@ import prerna.engine.api.IEngine;
 public interface INameServer {
 
 	/**
-	 * Add a question (insight) to the name server
-	 * @param questionURL					The unique URL for the question
-	 * @param paramURLs						URLs for the parameters
-	 * @param tags							List of tags for the question
-	 * @param filterOptions					Filtering options for the question
-	 * @return 								boolean if adding the question was a success
-	 */
-	boolean indexQuestion(String questionURL, List<String> paramURLs, List<String> tags, Map<String, Object> filterOptions);
-	
-	/**
-	 * Removes a question (insight) from the name server
-	 * @param questionURL					The unique URL for the question
-	 * @return								boolean if removing the question was a success
-	 */
-	boolean unIndexQuestion(String questionURL);
-	
-	/**
 	 * Indexes an engine and all of its concepts/relationships into the name server
 	 * @param engineName					The name of the engine
 	 * @param owlEngine						The engine containing the metamodel for the name server
@@ -95,4 +78,7 @@ public interface INameServer {
 	 * @return								A list of question URLs related to the search string
 	 */
 	List<String> searchQuestion(String searchString);
+	
+	String findMostSimilarKeyword(String word);
+	
 }
