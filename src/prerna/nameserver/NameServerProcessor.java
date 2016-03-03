@@ -9,6 +9,7 @@ import java.util.Set;
 import prerna.engine.api.IEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class NameServerProcessor extends AbstractNameServer {
 
@@ -29,18 +30,6 @@ public class NameServerProcessor extends AbstractNameServer {
 		super(masterEngine);
 	}
 	
-	@Override
-	public boolean indexQuestion(String questionURL, List<String> paramURLs, List<String> tags, Map<String, Object> filterOptions) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public boolean unIndexQuestion(String quesitonURL) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
 	@Override
 	public boolean indexEngine(String engineName, IEngine owlEngine) {
 		// TODO Auto-generated method stub
@@ -186,5 +175,30 @@ public class NameServerProcessor extends AbstractNameServer {
 	public HashMap<String, Object> getInsightDetails(String insight, String user) {
 		SearchMasterDB masterDB = new SearchMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 		return masterDB.getInsightDetails(insight, user);
+	}
+
+	@Override
+	public String findMostSimilarKeyword(String word) {
+		Set<String> keywordURIs = MasterDBHelper.getExistingKeywords(masterEngine);
+		for(String uri : keywordURIs) {
+			String instance = Utility.getInstanceName(uri);
+			if(instance.equalsIgnoreCase(word)) {
+				return uri;
+			}
+		}
+		
+		// no match, use wordnet comparison
+		String mostRelatedURI = null;
+		double mostSimVal = HypernymListGenerator.SIMILARITY_CUTOFF;
+		for(String uri : keywordURIs) {
+			String instance = Utility.getInstanceName(uri);
+			double simVal = wnComp.compareKeywords(instance, word);
+			if(simVal < mostSimVal) {
+				mostSimVal = simVal;
+				mostRelatedURI = uri;
+			}
+		}
+		
+		return mostRelatedURI;
 	}
 }
