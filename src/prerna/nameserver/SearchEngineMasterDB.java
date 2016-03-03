@@ -422,7 +422,7 @@ public class SearchEngineMasterDB extends ModifyMasterDB {
 			for(String mc : mcSet) {
 				bindingStr = bindingStr.concat("(<").concat(MasterDatabaseURIs.MC_BASE_URI).concat("/").concat(mc).concat(">)");
 			}
-			String query = MasterDatabaseQueries.GET_ALL_KEYWORDS_FROM_MC_List.replace("@BINDINGS@", bindingStr);
+			String query = MasterDatabaseQueries.GET_ALL_KEYWORDS_FROM_MC_LIST.replace("@BINDINGS@", bindingStr);
 			ISelectWrapper sjsw = Utility.processQuery(masterEngine, query);
 			String[] names = sjsw.getVariables();
 			while(sjsw.hasNext()) {

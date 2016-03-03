@@ -34,15 +34,13 @@ import java.util.Map;
 
 import prerna.algorithm.nlp.NLPSingletons;
 import prerna.algorithm.nlp.NaturalLanguageProcessingHelper;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import rita.RiWordNet;
 
 public class HypernymListGenerator {
 
 	private RiWordNet wordnet;
 	
-	private final double SIMILARITY_CUTOFF = 0.25;
+	public final static double SIMILARITY_CUTOFF = 0.25;
 	private final String NOUN = "n";
 	
 	// keep a list of all child -> parent relationships

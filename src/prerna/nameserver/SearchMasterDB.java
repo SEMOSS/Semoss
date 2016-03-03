@@ -58,12 +58,12 @@ public class SearchMasterDB extends ModifyMasterDB {
 	
 	public SearchMasterDB(String localMasterDbName, String wordnetDir, String lpDir) {
 		super(localMasterDbName);
-		wnComp = new WordnetComparison(wordnetDir, lpDir);
+		wnComp = new WordnetComparison();
 	}
 	
 	public SearchMasterDB(String wordnetDir, String lpDir) {
 		super();
-		wnComp = new WordnetComparison(wordnetDir, lpDir);
+		wnComp = new WordnetComparison();
 	}
 
 	public List<Hashtable<String,Object>> getRelatedInsights(List<String> instanceURIList) {
