@@ -54,17 +54,6 @@ public class WordnetComparison {
 	}
 	
 	/**
-	 * Constructor for the class
-	 * Defines the wordnet library
-	 */
-	public WordnetComparison(String wordNetDir, String lpDir) {
-		wordnet = new RiWordNet(wordNetDir, false, true); // params: wordnetInstallDir, ignoreCompoundWords, ignoreUppercaseWords
-		lp = LexicalizedParser.loadModel(lpDir);
-		lp.setOptionFlags(new String[]{"-maxLength", "80", "-retainTmpSubcategories"});
-	}
-
-	
-	/**
 	 * Determines if two words are similar based on their noun list
 	 * @param keyword1		The Set of nouns in the first word
 	 * @param keyword2	The Set of nouns in the second word
