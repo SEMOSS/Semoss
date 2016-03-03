@@ -67,7 +67,7 @@
 		<field name="id" type="string" indexed="true" stored="true" required="true" multiValued="false" />
 		<field name="core_engine" type="string" indexed="true" stored="true" required="true" multiValued="false" />
 		<field name="value" type="string" indexed="true" stored="true" required="true" multiValued="false" /> 
-		<field name="instances" type="text_suggest" indexed="true" stored="true" required="true" multiValued="true" /> 
+		<field name="instances" type="text_suggest" indexed="true" stored="false" required="true" multiValued="true" /> 
 
 	</fields>
 	<!-- Field to use to determine and enforce document uniqueness. 
