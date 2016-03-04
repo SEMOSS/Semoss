@@ -160,7 +160,11 @@ public class DIHelper {
 			Color purple = new Color(148, 103, 189);
 			Color aqua = new Color(23, 190, 207);
 			Color pink = new Color(241, 47, 158);
-			
+			Color black = new Color(3, 3, 3);
+			Color darkGray = new Color(105, 105, 105);
+			Color lightGray = new Color(209, 209, 209);
+			Color cyan = new Color(0, 255, 255);
+
 			helper.localProp.put(Constants.BLUE, blue);
 			helper.localProp.put(Constants.GREEN, green);
 			helper.localProp.put(Constants.RED, red);
@@ -170,6 +174,10 @@ public class DIHelper {
 			helper.localProp.put(Constants.ORANGE, orange);
 			helper.localProp.put(Constants.PURPLE, purple);
 			helper.localProp.put(Constants.AQUA, aqua);
+			helper.localProp.put(Constants.BLACK, black);
+			helper.localProp.put(Constants.DARK_GRAY, darkGray);
+			helper.localProp.put(Constants.LIGHT_GRAY, lightGray);
+			helper.localProp.put(Constants.CYAN, cyan);
 			
 			// put all the layouts as well
 			helper.localProp.put(Constants.FR, FRLayout.class);

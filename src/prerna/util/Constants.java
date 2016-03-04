@@ -175,6 +175,10 @@ public class Constants {
 	public static final String PURPLE = "PURPLE";
 	public static final String AQUA = "AQUA";
 	public static final String MAGENTA = "MAGENTA";
+	public static final String BLACK = "BLACK";
+	public static final String CYAN = "CYAN";
+	public static final String DARK_GRAY = "DARK_GRAY";
+	public static final String LIGHT_GRAY = "LIGHT_GRAY";
 
 	// shapes
 	public static final String SQUARE = "SQUARE";

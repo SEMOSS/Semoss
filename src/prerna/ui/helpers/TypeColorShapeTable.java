@@ -122,7 +122,7 @@ public class TypeColorShapeTable {
 	{
 		if(colors == null)
 		{
-			colors = new String[10];
+			colors = new String[13];
 			colors[0] = Constants.BLUE;
 			colors[1] = Constants.GREEN;
 			colors[2] = Constants.RED;
@@ -132,8 +132,10 @@ public class TypeColorShapeTable {
 			colors[6] = Constants.YELLOW;
 			colors[7] = Constants.AQUA;
 			colors[8] = Constants.PURPLE;
-			colors[9] = Constants.TRANSPARENT;
-			
+			colors[9] = Constants.BLACK;
+			colors[10] = Constants.DARK_GRAY;
+			colors[11] = Constants.LIGHT_GRAY;
+			colors[12] = Constants.CYAN;
 		}
 		return colors;
 	}
@@ -177,6 +179,10 @@ public class TypeColorShapeTable {
 			colorHash.put(type, thisColor);
 		}
 		colorStringHash.put(type, color);
+	}
+	
+	public void addColor(String type, Color color) {
+		colorHash.put(type, color);
 	}
 
 	/**
@@ -293,12 +299,17 @@ public class TypeColorShapeTable {
 				}
 			}
 			if (retColor == null){
-				//if all of the colors have already been used, just grab a random color
-		        Object[] keys = colorHash.keySet().toArray();
-		        Object key = keys[new Random().nextInt(keys.length)];
-		        retColor = colorHash.get(key);
-		        String colorString = colorStringHash.get(key);
-				addColor(type, colorString);
+//				//if all of the colors have already been used, just grab a random color
+//		        Object[] keys = colorHash.keySet().toArray();
+//		        Object key = keys[new Random().nextInt(keys.length)];
+//		        retColor = colorHash.get(key);
+//		        String colorString = colorStringHash.get(key);
+//				addColor(type, colorString);
+				
+				// just create a random color
+				Random rnd = new Random(); 
+				Color newColor = new Color(rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
+				addColor(type, newColor);
 			}
 		}
 		if(colorStringHash.containsKey(vertName) && colorStringHash.get(vertName).equalsIgnoreCase(Constants.TRANSPARENT))
