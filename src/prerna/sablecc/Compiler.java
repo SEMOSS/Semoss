@@ -25,12 +25,13 @@ public class Compiler
   // new InputStreamReader(new StringBufferInputStream(" 1 + 2 * (3 + 5); ")), 1024)));
    //new InputStreamReader(new StringBufferInputStream("j:{a b c d };")), 1024)));
     new InputStreamReader(new StringBufferInputStream(""
-    												//+ "(3.0 + 4);"
+    												//+ "(3.0 + 4) * c:t;"
     												//+ "(3 + 4, [c:bp, c:ab]);"
     												//+ "col.import([c:col1,c:col2], ([c:col1, inner.join, c:col2])) . [[\"a\",\"b\"][2,3]];"
     												//+ ";" //; , [[2,1.0][\"a hello world would work absolutely fine too __ ab\",\"b\"]]);"
-    												+ "col.add(c:newCol, ((4 - c:y) + c:t)); "
+    												+ "col.add(c:newCol, (4 - c:Capability) + c:Activity); "
     												//+ "col.add(c:newCol, api:TAP_CORE.query([c:Title__title, c:Title__movie_budget], (c:Title__Title =[\"a\",\"b\"], c:Title__Title > [\"c\", \"d\"]), ([c:Title__Title,  inner.join , c:Studio__Studio] ,[c:Title__Title,  outer.join , c:Studio__Studio_FK]) )); "
+    												//+ "api:TAP_CORE.query([c:Title__title, c:Title__movie_budget], (c:Title__Title =[\"a\",\"b\"], c:Title__Title > [\"c\", \"d\"]), ([c:Title__Title,  inner.join , c:Studio__Studio] ,[c:Title__Title,  outer.join , c:Studio__Studio_FK]) ); "    												//+ "(m:Sum([(2 * 3) * (c:Capability * c:Activity) + c:Activity], [c:bp, c:ab]));"
     												//+ "3 + (m:Sum([(2 * 3) * (c:Capability * c:Activity) + c:Activity], [c:bp, c:ab]));"
     												// m:Sum(X) >= m:Sum(Capability)
     												//+ "[a,b,c,d,e,f,e];"
@@ -45,7 +46,7 @@ public class Compiler
     												
     												
     												
-    												//+"(12 + (4 - 8)) * (15 / 5) + 5;"
+    												+"(12 + (4 - 8)) * (15 / 5) + 5;"
    													//+ "v:abc = (c:col2 * (2 *4)); "
     												/*+ "set:(c:newCol, (2 * 3) + 4); "
    													+ "code:{System.out.println('yo');};"
@@ -62,7 +63,7 @@ public class Compiler
 
 
    // Apply the translation.
-   tree.apply(new Translation());
+   tree.apply(new Translation2());
   }
   catch(Exception e)
   {
