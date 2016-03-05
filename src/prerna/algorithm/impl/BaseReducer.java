@@ -24,7 +24,7 @@ public abstract class BaseReducer implements ExpressionReducer {
 	protected boolean errored = false;
 	protected java.lang.Object baseException = null;
 	protected Bindings otherBindings = engine.getBindings(ScriptContext.ENGINE_SCOPE);
-	protected String propToGet = Constants.NAME;
+	protected String propToGet = Constants.VALUE;
 
 
 	public void set(Iterator inputIterator, String[] ids, String script, String prop ) {
@@ -107,6 +107,7 @@ public abstract class BaseReducer implements ExpressionReducer {
 		} catch (ScriptException e) {
 			// TODO Auto-generated catch block
 			retObject = e; // surprise !!
+			e.printStackTrace();
 			baseException = e;
 			errored = true;
 		}			
