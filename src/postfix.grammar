@@ -38,6 +38,7 @@ dot = '.';
  //('setColumn:' | 'sc:' | 'set:');
  colpivot = 'col.pivot';
  colfocus = 'col.focus';
+ colalias = 'col.alias';
  //('pivotColumn:' | 'pivot:' | 'pc:');
  collink = 'link:';
  show_hide = ('on' | 'off');
@@ -84,6 +85,7 @@ colop = // colOp is usually of the form of joinColumn / addColumn / removeColumn
 		| {focuscol} focus_column
 		| {unfocus} unfocus
 		| {import} import_column
+		| {alias} alias_column
 		;
 
 		
@@ -103,7 +105,7 @@ pivot_column = // grouping based on multiple columns
 		colpivot l_par [firstcol]:col_def col_group+ r_par;
 
 filter_column = // filter column using an expression
-		colfilter l_par [firstcol]:col_def col_group+ comma if_block r_par;
+		colfilter l_par [where]:where_clause comma if_block r_par;
 
 focus_column = // takes all the other columns and focuses on only these columns
 		colfocus l_par col_def col_group* show_hide r_par
@@ -116,6 +118,10 @@ unfocus = // you will specify it as col.focus('off');
 import_column = // importing data - col.import(tree | flat, [c:col1, c:col2, c:col3], [ [1,2,3] [a,b,c] ] - this is a flat
 		colimport [lp1]:l_par [cols]:col_csv [relations]:relation_clause? [rp2]:r_par dot [data]:csv_table 
 		;
+
+alias_column = // sets the column aliases
+		colalias [lp1]:l_par [cols]:col_csv [where]:where_clause [rp2]:r_par;
+
 		
 decimal = [whole]:number dot? [fraction]:number?;		
 		

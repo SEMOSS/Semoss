@@ -34,6 +34,7 @@ public class RDBMSQueryAPI implements IApi {
 		// compose
 		QueryStruct qs = new QueryStruct();
 		processQueryStruct(qs,selectors, filters, joins);
+		qs.print();
 		SQLInterpreter sqlI = new SQLInterpreter(qs);
 		String query = sqlI.composeQuery();
 		
@@ -52,7 +53,7 @@ public class RDBMSQueryAPI implements IApi {
 		return params;
 	}
 	
-	public void processQueryStruct(QueryStruct qs, Vector <String> selectors, Vector <Hashtable >filters, Vector <Hashtable> joins)
+	public void processQueryStruct(QueryStruct qs, Vector <String> selectors, Vector <Hashtable> filters, Vector <Hashtable> joins)
 	{
 		
 		for(int selectIndex = 0;selectIndex < selectors.size();selectIndex++)
@@ -64,6 +65,11 @@ public class RDBMSQueryAPI implements IApi {
 		}
 		for(int filterIndex = 0;filterIndex < filters.size();filterIndex++)
 		{
+			Object thisObject = filters.get(filterIndex);
+			System.out.println(thisObject.getClass());
+			if(thisObject instanceof Hashtable)
+				System.out.println("I just dont what is wrong.. ");
+			
 			Hashtable thisFilter = (Hashtable)filters.get(filterIndex);
 			String fromCol = (String)thisFilter.get("FROM_COL");
 			String toCol = null;
