@@ -45,6 +45,7 @@ import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.FacetParams;
 import org.apache.solr.common.params.GroupParams;
 import org.apache.solr.common.params.HighlightParams;
+import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.MoreLikeThisParams;
 import org.apache.solr.common.params.SpellingParams;
 import org.apache.solr.common.util.NamedList;
@@ -1264,5 +1265,19 @@ public class SolrIndexEngine {
 
 		return s;
 	}
-
+	
+	public void buildSuggester() {
+		if(serverActive()) {
+			ModifiableSolrParams params = new ModifiableSolrParams();
+			params.set("qt", "/suggest");
+			params.set("spellcheck.build", "true");
+			try {
+				insightServer.query(params);
+				instanceServer.query(params);
+			} catch (SolrServerException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
 }

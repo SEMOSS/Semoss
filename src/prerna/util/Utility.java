@@ -106,7 +106,6 @@ import prerna.nameserver.DeleteFromMasterDB;
 import prerna.om.SEMOSSParam;
 import prerna.poi.main.BaseDatabaseCreator;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.solr.SolrDocumentExportWriter;
 import prerna.solr.SolrIndexEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -629,7 +628,6 @@ public class Utility {
 			throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
 		SolrIndexEngine solrE = null;
 		IEngine engineToAdd = loadEngine(fileName, prop);
-		String path = DIHelper.getInstance().getProperty(Constants.ENGINE_WEB_WATCHER + "_DIR") + "\\" + fileName;
 		String engineName = engineToAdd.getEngineName();
 
 		solrE = SolrIndexEngine.getInstance();
@@ -648,20 +646,19 @@ public class Utility {
 			// check if should always recreate and check if db currently exists and check if db is updated
 			if (!hidden && (AbstractEngine.RECREATE_SOLR || !solrE.containsEngine(engineName) || smssProp)) {
 				LOGGER.info(engineToAdd.getEngineName() + " is reloading solr");
-
 				try {
 					addToSolrInstanceCore(engineToAdd);
+					addToSolrInsightCore(engineToAdd, fileName);
 				} catch (ParseException e) {
 					e.printStackTrace();
 				}
-				addToSolrInsightCore(engineToAdd, path);
 			}
 			else if(hidden){
 				Utility.deleteFromSolr(engineName);
 			}
 			if(smssProp){
 				LOGGER.info(engineToAdd.getEngineName() + " is changing boolean on smss");
-				changeSolrBoolean(path);
+				changeSolrBoolean(fileName);
 			}
 		
 		}
@@ -714,7 +711,7 @@ public class Utility {
 						continue;
 					}
 					List<String> propName = engineToAdd.getProperties4Concept(concept, false);
-					for(String prop : propName) {
+					NEXT_PROP : for(String prop : propName) {
 						Vector<Object> propertiesList = engineToAdd.getEntityOfType(prop);
 						boolean isNumeric = false;
 						Iterator<Object> it = propertiesList.iterator();
@@ -722,13 +719,11 @@ public class Utility {
 							Object o = it.next();
 							if(o == null || o.toString().isEmpty()) {
 								it.remove();
+								continue;
 							}
-							if(o instanceof Number) {
+							if(o instanceof Number || isStringDate(o + "")) {
 								isNumeric = true;
-								break;
-							} else if(isStringDate(o + "")) {
-								isNumeric = true;
-								break;
+								continue NEXT_PROP;
 							}
 						}
 						if(!isNumeric && !propertiesList.isEmpty()) {
@@ -736,6 +731,7 @@ public class Utility {
 							Map<String, Object> propFieldData = new HashMap<String, Object>();
 							propFieldData.put(SolrIndexEngine.CORE_ENGINE, engineName);
 							propFieldData.put(SolrIndexEngine.VALUE, prop);
+							propertiesList.add(Utility.getInstanceName(prop));
 							propFieldData.put(SolrIndexEngine.INSTANCES, propertiesList);
 							try {
 								solrE.addInstance(propId, propFieldData);
@@ -759,6 +755,8 @@ public class Utility {
 							ISelectStatement propSS = propWrapper.next();
 							Object property = propSS.getVar("property");
 							if(property instanceof String && !isStringDate((String)property)){
+								//replace property underscores with space
+								property = property.toString();
 								propertiesList.add(property);
 							}
 						}
@@ -769,6 +767,7 @@ public class Utility {
 							Map<String, Object> propFieldData = new HashMap<String, Object>();
 							propFieldData.put(SolrIndexEngine.CORE_ENGINE, engineName);
 							propFieldData.put(SolrIndexEngine.VALUE, prop);
+							propertiesList.add(Utility.getInstanceName(prop));
 							propFieldData.put(SolrIndexEngine.INSTANCES, propertiesList);
 							try {
 								solrE.addInstance(propId, propFieldData);
@@ -784,12 +783,10 @@ public class Utility {
 				fieldData.put(SolrIndexEngine.VALUE, concept);
 				List<Object> instancesList= new ArrayList<Object>();
 				for(Object instance : instances) {
-					if(instance instanceof String) {
-						instancesList.add(Utility.getInstanceName(instance + ""));
-								
-					} else {
-						instancesList.add(instance);
-					}
+					instancesList.add(Utility.getInstanceName(instance + ""));
+				}
+				if(!instancesList.isEmpty()) {
+					instancesList.add(Utility.getInstanceName(concept));
 				}
 				fieldData.put(SolrIndexEngine.INSTANCES, instancesList);
 				
@@ -804,7 +801,7 @@ public class Utility {
 
 	public static void addToSolrInsightCore(IEngine engineToAdd, String path) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
 		SolrIndexEngine solrE = null;
-		SolrDocumentExportWriter writer = null;
+//		SolrDocumentExportWriter writer = null;
 		String engineName = engineToAdd.getEngineName();
 		//don't grab localMaster DB data
 		if(engineName.equals(Constants.LOCAL_MASTER_DB_NAME)){
@@ -826,11 +823,11 @@ public class Utility {
 				}
 			}
 
-			try {
-				writer = new SolrDocumentExportWriter(file);
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
+//			try {
+//				writer = new SolrDocumentExportWriter(file);
+//			} catch (IOException e1) {
+//				e1.printStackTrace();
+//			}
 
 			DateFormat dateFormat = SolrIndexEngine.getDateFormat();
 			Date date = new Date();
@@ -931,16 +928,16 @@ public class Utility {
 
 				try {
 					solrE.addInsight(engineName + "_" + id, queryResults);
-					writer.writeSolrDocument(engineName + "_" + id, queryResults);
+//					writer.writeSolrDocument(engineName + "_" + id, queryResults);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
 			}
 
 			//close writer
-			if(writer != null) {
-				writer.closeExport();
-			}
+//			if(writer != null) {
+//				writer.closeExport();
+//			}
 		}
 	}
 	
