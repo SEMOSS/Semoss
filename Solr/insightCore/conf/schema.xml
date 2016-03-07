@@ -179,12 +179,13 @@
 		<fieldType name="text_suggest" class="solr.TextField" positionIncrementGap="100">
 			<analyzer type="index">
 				<tokenizer class="solr.KeywordTokenizerFactory"/>
-				<filter class="solr.LowerCaseFilterFactory"/>
+				<filter class="solr.PatternReplaceFilterFactory" pattern="_" replacement=" " replace="all" /> 
 				<filter class="solr.EnglishMinimalStemFilterFactory"/> 
 				<filter class="solr.PatternReplaceFilterFactory" pattern="([^\w\d\*Ã¦Ã¸Ã¥Ã†Ã˜Ã… ])" replacement="" replace="all"/>
 			</analyzer>
 			<analyzer type="query">
 				<tokenizer class="solr.KeywordTokenizerFactory"/>
+				<filter class="solr.LowerCaseFilterFactory"/>
 				<filter class="solr.EnglishMinimalStemFilterFactory"/> 
 			</analyzer>
 		</fieldType>

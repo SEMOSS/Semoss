@@ -62,6 +62,15 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	@Override
 	public void process(String fileName) {
 		loadNewDB(fileName);
+		try {
+			SolrIndexEngine.getInstance().buildSuggester();
+		} catch (KeyManagementException e) {
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		} catch (KeyStoreException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -75,7 +84,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 * Loads a new database by setting a specific engine with associated properties.
 	 * @param 	Specifies properties to load 
 	 */
-	public String  loadNewDB(String newFile) {
+	public String loadNewDB(String newFile) {
 		String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
 		FileInputStream fileIn = null;
 		String engineName = null;
@@ -134,12 +143,12 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 //		WHEN COMMITTING YOUR CODE, PLEASE MAKE SURE THIS IS COMMENTED!!!!
 //		WHEN COMMITTING YOUR CODE, PLEASE MAKE SURE THIS IS COMMENTED!!!!
 //		WHEN COMMITTING YOUR CODE, PLEASE MAKE SURE THIS IS COMMENTED!!!!
-//		try {
-//			SolrIndexEngine.getInstance().deleteAllSolrData();
-//		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | IOException e1) {
-//			// TODO Auto-generated catch block
-//			e1.printStackTrace();
-//		}
+		try {
+			SolrIndexEngine.getInstance().deleteAllSolrData();
+		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
@@ -175,7 +184,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		}
 		
 		try {
-			if(SolrIndexEngine.getInstance().serverActive()) {
+			SolrIndexEngine solrIndexEngine = SolrIndexEngine.getInstance();
+			if(solrIndexEngine.serverActive()) {
 				List<String> facetList = new ArrayList<String>();
 				facetList.add(SolrIndexEngine.CORE_ENGINE);
 				Map<String, Map<String, Long>> facetReturn = SolrIndexEngine.getInstance().executeQueryFacetResults(SolrIndexEngine.QUERYALL , null, facetList);
@@ -190,6 +200,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 						}
 					}
 				}
+				// need to build the suggester
+				solrIndexEngine.buildSuggester();
 			}
 		} catch (KeyManagementException e) {
 			e.printStackTrace();
