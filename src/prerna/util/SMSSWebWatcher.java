@@ -143,12 +143,12 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 //		WHEN COMMITTING YOUR CODE, PLEASE MAKE SURE THIS IS COMMENTED!!!!
 //		WHEN COMMITTING YOUR CODE, PLEASE MAKE SURE THIS IS COMMENTED!!!!
 //		WHEN COMMITTING YOUR CODE, PLEASE MAKE SURE THIS IS COMMENTED!!!!
-		try {
-			SolrIndexEngine.getInstance().deleteAllSolrData();
-		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+//		try {
+//			SolrIndexEngine.getInstance().deleteAllSolrData();
+//		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | IOException e1) {
+//			// TODO Auto-generated catch block
+//			e1.printStackTrace();
+//		}
 		
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
