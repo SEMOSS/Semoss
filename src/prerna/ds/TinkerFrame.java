@@ -847,6 +847,7 @@ public class TinkerFrame implements ITableDataFrame {
 		this.headerNames = headerNames;
 		g = TinkerGraph.open();
 		g.createIndex(Constants.TYPE, Vertex.class);
+		g.createIndex(Constants.ID, Vertex.class);
 		g.createIndex(Constants.ID, Edge.class);
 		g.variables().set(Constants.HEADER_NAMES, headerNames);
 	}
@@ -855,6 +856,7 @@ public class TinkerFrame implements ITableDataFrame {
 		this.headerNames = headerNames;
 		g = TinkerGraph.open();
 		g.createIndex(Constants.TYPE, Vertex.class);
+		g.createIndex(Constants.ID, Vertex.class);
 		g.createIndex(Constants.ID, Edge.class);
 		g.variables().set(Constants.HEADER_NAMES, headerNames);
 		mergeEdgeHash(edgeHash);
@@ -863,6 +865,7 @@ public class TinkerFrame implements ITableDataFrame {
 	public TinkerFrame() {
 		g = TinkerGraph.open();
 		g.createIndex(Constants.TYPE, Vertex.class);
+		g.createIndex(Constants.ID, Vertex.class);
 		g.createIndex(Constants.ID, Edge.class);
 	}
 
@@ -874,10 +877,11 @@ public class TinkerFrame implements ITableDataFrame {
     @Override
     public void processDataMakerComponent(DataMakerComponent component) {
            long startTime = System.currentTimeMillis();
-           LOGGER.info("beginning processing of component..................................");
+           LOGGER.info("Processing Component..................................");
            processPreTransformations(component, component.getPreTrans());
            long time1 = System.currentTimeMillis();
-           LOGGER.info("processing of component.................................. done with pre trans. time : " +(time1 - startTime)+" ms");
+           LOGGER.info("	Processed Pretransformations: " +(time1 - startTime)+" ms");
+           
            IEngine engine = component.getEngine();
            // automatically created the query if stored as metamodel
            // fills the query with selected params if required
@@ -894,7 +898,12 @@ public class TinkerFrame implements ITableDataFrame {
                //if component has data from which we can construct a meta model then construct it and merge it
                boolean hasMetaModel = component.getBuilderData() != null;
                if(hasMetaModel) {
-            	   this.mergeEdgeHash(component.getBuilderData().getReturnConnectionsHash());
+            	   
+            	   Map<String, Set<String>> edgeHash = component.getBuilderData().getReturnConnectionsHash();
+            	   this.mergeEdgeHash(edgeHash);
+            	   
+//            	   this.addRelationship(wrapper, edgeHash);
+            	   
             	   while(wrapper.hasNext()){
             		   this.addRelationship(wrapper.next());
             	   }
@@ -913,18 +922,18 @@ public class TinkerFrame implements ITableDataFrame {
            redoLevels(this.headerNames);
 
            long time2 = System.currentTimeMillis();
-           LOGGER.info("processing of component.................................. iterating through wrapper. time : " +(time2 - time1)+" ms");
+           LOGGER.info("	Processed Wrapper: " +(time2 - time1)+" ms");
            
            
-           long time3 = System.currentTimeMillis();
-           LOGGER.info("processing of component.................................. done iterating through wrapper. time : " +(time3 - time2)+" ms");
+//           long time3 = System.currentTimeMillis();
+//           LOGGER.info("processing of component.................................. done iterating through wrapper. time : " +(time3 - time2)+" ms");
 
            processPostTransformations(component, component.getPostTrans());
            
            processActions(component, component.getActions());
 
            long time4 = System.currentTimeMillis();
-           LOGGER.info("done processing of component................................... time : " +(time4 - time3)+" ms");
+           LOGGER.info("Component Processed: " +(time4 - startTime)+" ms");
     }
 
 	@Override
@@ -1213,7 +1222,8 @@ public class TinkerFrame implements ITableDataFrame {
 		// if not inserts the vertex and then returns that vertex
 		Vertex retVertex = null;
 		// try to find the vertex
-		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, type).has(Constants.ID, type + ":" + data);
+//		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, type).has(Constants.ID, type + ":" + data);
+		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.ID, type + ":" + data);
 		if(gt.hasNext()) {
 			retVertex = gt.next();
 		} else {
@@ -1405,6 +1415,47 @@ public class TinkerFrame implements ITableDataFrame {
 			upsertVertex(subType, subInst, sub);
 		}
 	}
+	
+//	public void addRelationship(ISelectWrapper wrapper, Map<String, Set<String>> edgeHash) {
+//		while(wrapper.hasNext()) {
+//			ISelectStatement rowData = wrapper.next();
+//			Map<String, Object> rowCleanData = rowData.getPropHash();
+//			Map<String, Object> rowRawData = rowData.getRPropHash();
+//			
+//			boolean hasRel = false;
+//			
+//			for(String startNode : rowCleanData.keySet()) {
+//				Set<String> set = edgeHash.get(startNode);
+//				if(set==null) continue;
+////				String endNode = rowCleanData.get(key).toString();
+//				for(String endNode : set) {
+//					if(rowCleanData.keySet().contains(endNode)) {
+//						hasRel = true;
+//						//get from vertex
+//						Object startNodeValue = getParsedValue(rowCleanData.get(startNode));
+//						String rawStartNodeValue = rowRawData.get(startNode).toString();
+//						Vertex fromVertex = upsertVertex(startNode, startNodeValue, rawStartNodeValue);
+//						//get to vertex
+//								
+//						Object endNodeValue = getParsedValue(rowCleanData.get(endNode));
+//						String rawEndNodeValue = rowRawData.get(endNode).toString();
+//						Vertex toVertex = upsertVertex(endNode, endNodeValue, rawEndNodeValue);
+//						
+//						upsertEdge(fromVertex, toVertex);
+//					}
+//				}
+//			}
+//			
+//			// this is to replace the addRow method which needs to be called on the first iteration
+//			// since edges do not exist yet
+//			if(!hasRel) {
+//				String singleColName = rowCleanData.keySet().iterator().next();
+//				Object startNodeValue = getParsedValue(rowCleanData.get(singleColName));
+//				String rawStartNodeValue = rowRawData.get(singleColName).toString();
+//				upsertVertex(singleColName, startNodeValue, rawStartNodeValue);
+//			}
+//		}
+//	}
 	
 	public void addRelationship(ISelectStatement rowData) {
 		Map<String, Object> rowCleanData = rowData.getPropHash();
@@ -1866,6 +1917,8 @@ public class TinkerFrame implements ITableDataFrame {
 	public void filter(String columnHeader, List<Object> filterValues) {
 		//TODO: how is this supposed to work without unfiltering the entire column first?
 		//TODO: note that unfilter with a list of values method is never invoked in process flow
+		long startTime = System.currentTimeMillis();
+		
 		unfilter(columnHeader);
 		Vertex metaVertex = upsertVertex(META, columnHeader, columnHeader);
 		metaVertex.property(Constants.FILTER, true);
@@ -1882,13 +1935,19 @@ public class TinkerFrame implements ITableDataFrame {
 				upsertEdge(filterVertex, nextVertex, Constants.FILTER);
 			}
 		}
+		
+		LOGGER.info("Filtered '"+columnHeader+"':"+(System.currentTimeMillis() - startTime)+" ms");
 	}
 
 	@Override
 	public void unfilter(String columnHeader) {
+		long startTime = System.currentTimeMillis();
+		
 		g.traversal().V().has(Constants.TYPE, Constants.FILTER).out().has(Constants.TYPE, columnHeader).inE(Constants.FILTER).drop().iterate();
 		Vertex metaVertex = this.upsertVertex(META, columnHeader, columnHeader);
 		metaVertex.property(Constants.FILTER, false);
+		
+		LOGGER.info("Unfiltered '"+columnHeader+"':"+(System.currentTimeMillis() - startTime)+" ms");
 	}
 
 	//TODO : remove the override and put it in ITableDataFrame if we need this method
@@ -1901,12 +1960,14 @@ public class TinkerFrame implements ITableDataFrame {
 
 	@Override
 	public void unfilter() {
+		long startTime = System.currentTimeMillis();
 		g.traversal().V().has(Constants.TYPE, Constants.FILTER).out().inE(Constants.FILTER).drop().iterate();
 		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, META);
 		while(gt.hasNext()) {
 			Vertex metaVertex = gt.next();
 			metaVertex.property(Constants.FILTER, false);
 		}
+		LOGGER.info("Unfiltered Table:"+(System.currentTimeMillis() - startTime)+" ms");
 	}
 	
 	@Override
@@ -2476,11 +2537,15 @@ public class TinkerFrame implements ITableDataFrame {
 	@Override
 	public List<Object[]> getRawData() {
 		
+		long startTime = System.currentTimeMillis();
+		
 		Vector<Object[]> retVector = new Vector<>();
 		Iterator<Object[]> iterator = this.iterator(true);
 		while(iterator.hasNext()) {
 			retVector.add(iterator.next());
 		}
+		
+		LOGGER.info("Collected Raw Data: "+(System.currentTimeMillis() - startTime));
 		return retVector;
 	}
 
