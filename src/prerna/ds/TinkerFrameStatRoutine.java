@@ -243,30 +243,28 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 						tinker.addRelationship(newRow, newRow);
 					}
 				} else {
-					String primkey = "";
-					for(String column : columnHeader) {
-						primkey += column + ":::";
-					}
 					
-					for(String column : columnHeader) {
-						tinker.connectTypes(column, primkey);
-					}
-					tinker.connectTypes(primkey, newColumnName);
+					tinker.connectTypes(columnHeader, newColumnName);
 					
 					for(Object key : groupByMap.keySet()) {
-						Map<String, Object> newRow = new HashMap<String, Object>(columnHeader.length+1);
+						Map<String, Object> cleanRow = new HashMap<String, Object>(columnHeader.length+1);
+						Map<String, Object> rawRow = new HashMap<String, Object>(columnHeader.length+1);
 						Map<String, Object> mapKey = (Map<String, Object>)key;
 						
-						String primKeyInstance = "";
-						for(String column : columnHeader) {
-							String mk = mapKey.get(column).toString();
-							primKeyInstance += mk+":::";						
-							newRow.put(column, mapKey.get(column));
+						String primKeyName = tinker.getPrimaryKey(columnHeader);
+						
+						Object[] values = new Object[columnHeader.length];
+						for(int i = 0; i < columnHeader.length; i++) {
+							values[i] = mapKey.get(columnHeader[i]);
+							cleanRow.put(columnHeader[i], values[i]);
 						}
 						
-						newRow.put(newColumnName, groupByMap.get(key));
-						newRow.put(primkey, primKeyInstance);
-						tinker.addRelationship(newRow, newRow);
+						cleanRow.put(newColumnName, groupByMap.get(key));
+						cleanRow.put(primKeyName, tinker.getPrimaryKey(values));
+						
+						rawRow.putAll(cleanRow);
+						rawRow.put(primKeyName, TinkerFrame.PRIM_KEY);
+						tinker.addRelationship(cleanRow, rawRow);
 					}
 				}		
 			}
