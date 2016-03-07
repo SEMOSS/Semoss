@@ -601,6 +601,9 @@ public class GraphDataModel implements IDataMaker {
 	}
 
 	private void storeVert(SEMOSSVertex vert){
+		if(((String) vert.getProperty(Constants.URI)).contains("Concept")){
+			int i = 0;
+		}
 		if(method == CREATION_METHOD.OVERLAY && incrementalVertStore != null){
 			if(!vertStore.containsKey(vert.getProperty(Constants.URI) + "")){
 				incrementalVertStore.put(vert.getProperty(Constants.URI) + "", vert);
@@ -634,14 +637,17 @@ public class GraphDataModel implements IDataMaker {
 
 		if(edge == null)
 		{
-			SEMOSSVertex vert1 = vertStore.get(outNode);
+
+			String displayNameSubject = this.getDisplayName(outNode);
+			SEMOSSVertex vert1 = vertStore.get(displayNameSubject);
 			if (vert1 == null) {
-				vert1 = new SEMOSSVertex(outNode);
+				vert1 = new SEMOSSVertex(displayNameSubject);
 				storeVert(vert1);
 			}
-			SEMOSSVertex vert2 = vertStore.get(inNode);
+			String displayNameObject = this.getDisplayName(inNode);
+			SEMOSSVertex vert2 = vertStore.get(displayNameObject);
 			if (vert2 == null) {
-				vert2 = new SEMOSSVertex(inNode + "");
+				vert2 = new SEMOSSVertex(displayNameObject + "");
 				storeVert(vert2);
 			}
 			edge = new SEMOSSEdge(vert1, vert2, edgeName);
