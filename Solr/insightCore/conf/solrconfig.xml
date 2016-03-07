@@ -1289,7 +1289,7 @@
     <!-- a spellchecker built from a field of the main index -->
     <lst name="spellchecker">
       <str name="name">default</str>
-      <str name="field">all_text</str>
+	  <str name="field">suggest_text</str>
       <str name="classname">solr.DirectSolrSpellChecker</str>
       <!-- the spellcheck distance measure used, the default is the internal levenshtein -->
       <str name="distanceMeasure">internal</str>
@@ -1304,7 +1304,7 @@
       <!-- minimum length of a query term to be considered for correction -->
       <int name="minQueryLength">4</int>
       <!-- maximum threshold of documents a query term can appear to be considered for correction -->
-      <float name="maxQueryFrequency">0.01</float>
+      <float name="maxQueryFrequency">0.05</float>
       <!-- uncomment this to require suggestions to occur in 1% of the documents
       	<float name="thresholdTokenFrequency">.01</float>
       -->
@@ -1314,7 +1314,7 @@
     <lst name="spellchecker">
       <str name="name">wordbreak</str>
       <str name="classname">solr.WordBreakSolrSpellChecker</str>      
-      <str name="field">all_text</str>
+	  <str name="field">suggest_text</str>
       <str name="combineWords">true</str>
       <str name="breakWords">true</str>
       <int name="maxChanges">10</int>
@@ -1372,34 +1372,37 @@
        See http://wiki.apache.org/solr/SpellCheckComponent for details
        on the request parameters.
     -->
-  <requestHandler name="/spell" class="solr.SearchHandler" startup="lazy">
+  <requestHandler name="/spell" class="solr.SearchHandler">
     <lst name="defaults">
-      <str name="df">all_text</str>
-      <str name="spellcheck.dictionary">default</str>
+	  <str name="df">suggest_text</str>
+      <str name="spellcheck.dictionary">default</str> 
       <str name="spellcheck">on</str>
-      <str name="spellcheck.extendedResults">true</str>       
-      <str name="spellcheck.count">10</str>
+      <str name="spellcheck.extendedResults">true</str>  
+	  <str name="spellcheck.onlyMorePopular">false</str>
+      <str name="spellcheck.count">5</str>
       <str name="spellcheck.alternativeTermCount">5</str>
-      <str name="spellcheck.maxResultsForSuggest">5</str>       
+      <str name="spellcheck.maxResultsForSuggest">10</str>       
       <str name="spellcheck.collate">true</str>
       <str name="spellcheck.collateExtendedResults">true</str>  
-      <str name="spellcheck.maxCollationTries">10</str>
-      <str name="spellcheck.maxCollations">5</str>      
-	  <str name="spellcheck.onlyMorePopular">true</str>
-      <str name="spellcheck.count">4</str>     	  
+      <str name="spellcheck.maxCollationTries">5</str>
+      <str name="spellcheck.maxCollations">3</str>  
     </lst>
     <arr name="last-components">
       <str>spellcheck</str>
     </arr>
   </requestHandler>
 
+  
+  
     <searchComponent name="suggest" class="solr.SpellCheckComponent">
   	<lst name="spellchecker">
       <str name="name">suggest</str>
+	  <str name="field">suggest_text</str>
 	  <str name="classname">org.apache.solr.spelling.suggest.Suggester</str>
-      <str name="lookupImpl">org.apache.solr.spelling.suggest.jaspell.JaspellLookupFactory</str>
-      <str name="field">suggest_text</str>
-	  <float name="threshold">0.005</float>
+       <str name="lookupImpl">org.apache.solr.spelling.suggest.fst.AnalyzingInfixLookupFactory</str>
+	  <str name="suggestAnalyzerFieldType">text_en_splitting</str>  
+      <str name="queryAnalyzerFieldType">text_suggest</str>   
+      <float name="threshold">0.005</float>
 	  <str name="buildOnCommit">false</str>
     </lst>
   </searchComponent> -->

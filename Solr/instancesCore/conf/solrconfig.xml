@@ -1288,7 +1288,7 @@
     <!-- a spellchecker built from a field of the main index -->
     <lst name="spellchecker">
       <str name="name">default</str>
-      <str name="field">instances</str>
+      <str name="field">instance_suggest</str>
       <str name="classname">solr.DirectSolrSpellChecker</str>
 	  <!-- the spellcheck distance measure used, the default is the internal levenshtein -->
       <str name="distanceMeasure">internal</str>
@@ -1313,7 +1313,7 @@
     <lst name="spellchecker">
       <str name="name">wordbreak</str>
       <str name="classname">solr.WordBreakSolrSpellChecker</str>      
-      <str name="field">instances</str>
+      <str name="field">instance_suggest</str>
       <str name="combineWords">true</str>
 	  <str name="breakWords">true</str>
       <int name="maxChanges">10</int>
@@ -1373,7 +1373,7 @@
     -->
   <requestHandler name="/spell" class="solr.SearchHandler">
     <lst name="defaults">
-      <str name="df">instances</str>
+      <str name="df">instance_suggest</str>
       <!-- Solr will use suggestions from both the 'default' spellchecker
            and from the 'wordbreak' spellchecker and combine them.
            collations (re-written queries) can include a combination of
@@ -1402,10 +1402,12 @@
   <searchComponent name="suggest" class="solr.SpellCheckComponent">
   	<lst name="spellchecker">
       <str name="name">suggest</str>
+	  <str name="field">instance_suggest</str>
 	  <str name="classname">org.apache.solr.spelling.suggest.Suggester</str>
-      <str name="lookupImpl">org.apache.solr.spelling.suggest.jaspell.JaspellLookupFactory</str>      
-      <str name="field">instances</str>
-	  <float name="threshold">0.005</float>
+	  <str name="lookupImpl">org.apache.solr.spelling.suggest.fst.AnalyzingInfixLookupFactory</str>
+	  <str name="suggestAnalyzerFieldType">text_en_splitting</str>  
+      <str name="queryAnalyzerFieldType">text_suggest</str>      	  
+      <float name="threshold">0.005</float>
 	  <str name="buildOnCommit">false</str>
     </lst>
   </searchComponent> -->
