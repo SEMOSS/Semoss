@@ -67,7 +67,9 @@
 		<field name="id" type="string" indexed="true" stored="true" required="true" multiValued="false" />
 		<field name="core_engine" type="string" indexed="true" stored="true" required="true" multiValued="false" />
 		<field name="value" type="string" indexed="true" stored="true" required="true" multiValued="false" /> 
-		<field name="instances" type="text_suggest" indexed="true" stored="false" required="true" multiValued="true" /> 
+		<field name="instances" type="text_en_splitting" indexed="true" stored="false" required="true" multiValued="true" /> 
+		<field name="instance_suggest" type="text_suggest" indexed="true" stored="false" required="true" multiValued="true" /> 
+		<copyField source="instances" dest="instance_suggest"/>
 
 	</fields>
 	<!-- Field to use to determine and enforce document uniqueness. 
@@ -134,12 +136,13 @@
 		<fieldType name="text_suggest" class="solr.TextField" positionIncrementGap="100">
 			<analyzer type="index">
 				<tokenizer class="solr.KeywordTokenizerFactory"/>
-				<filter class="solr.LowerCaseFilterFactory"/>
+				<filter class="solr.PatternReplaceFilterFactory" pattern="_" replacement=" " replace="all" /> 
 				<filter class="solr.EnglishMinimalStemFilterFactory"/> 
 				<filter class="solr.PatternReplaceFilterFactory" pattern="([^\w\d\*Ã¦Ã¸Ã¥Ã†Ã˜Ã… ])" replacement="" replace="all"/>
 			</analyzer>
 			<analyzer type="query">
 				<tokenizer class="solr.KeywordTokenizerFactory"/>
+				<filter class="solr.LowerCaseFilterFactory"/>
 				<filter class="solr.EnglishMinimalStemFilterFactory"/> 
 			</analyzer>
 		</fieldType>
@@ -156,8 +159,8 @@
 			-->
 		<fieldType name="text_en_splitting" class="solr.TextField" positionIncrementGap="100" autoGeneratePhraseQueries="true">
 		  <analyzer type="index">
-			<charFilter class="solr.PatternReplaceCharFilterFactory" pattern="_" replacement=" "/>
 			<tokenizer class="solr.StandardTokenizerFactory"/>
+			<filter class="solr.PatternReplaceFilterFactory" pattern="_" replacement=" " replace="all" /> 
 			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
 			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="1" catenateNumbers="1" catenateAll="0" splitOnCaseChange="1"/>
 			<filter class="solr.SynonymFilterFactory" synonyms="synonyms.txt" ignoreCase="true" expand="false"/>
