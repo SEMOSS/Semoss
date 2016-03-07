@@ -2801,6 +2801,7 @@ public class TinkerFrame implements ITableDataFrame {
 		//create new tinker frame and set its tinkergraph
 		TinkerFrame tf = new TinkerFrame();
 		g.createIndex(Constants.TYPE, Vertex.class);
+		g.createIndex(Constants.ID, Vertex.class);
 		g.createIndex(Constants.ID, Edge.class);
 		tf.g = g;
 		
