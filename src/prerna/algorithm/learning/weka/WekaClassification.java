@@ -230,7 +230,7 @@ public class WekaClassification implements IAnalyticActionRoutine {
 		if(treeAsString == null) {
 			if(instancesData.numDistinctValues(classIndex) == 1) {
 				treeMap = new HashMap<String, Map>();
-				treeMap.put(instancesData.get(0).attribute(classIndex).value(classIndex), new HashMap());
+				treeMap.put(instancesData.get(0).attribute(classIndex).value(0), new HashMap());
 				return;
 			}
 		}
