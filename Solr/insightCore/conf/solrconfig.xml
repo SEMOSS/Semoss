@@ -1394,18 +1394,19 @@
 
   
   
-    <searchComponent name="suggest" class="solr.SpellCheckComponent">
+  <searchComponent name="suggest" class="solr.SpellCheckComponent">
   	<lst name="spellchecker">
       <str name="name">suggest</str>
 	  <str name="field">suggest_text</str>
-	  <str name="classname">org.apache.solr.spelling.suggest.Suggester</str>
-       <str name="lookupImpl">org.apache.solr.spelling.suggest.fst.AnalyzingInfixLookupFactory</str>
+	  <str name="classname">Suggester</str>
+	  <str name="lookupImpl">AnalyzingInfixLookupFactory</str>
 	  <str name="suggestAnalyzerFieldType">text_en_splitting</str>  
       <str name="queryAnalyzerFieldType">text_suggest</str>   
       <float name="threshold">0.005</float>
 	  <str name="buildOnCommit">false</str>
+   	  <str name="highlight">false</str>
     </lst>
-  </searchComponent> -->
+  </searchComponent>
 
   <requestHandler name="/suggest" class="org.apache.solr.handler.component.SearchHandler">
     <lst name="defaults">
