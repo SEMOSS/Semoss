@@ -1377,10 +1377,7 @@
       <!-- Solr will use suggestions from both the 'default' spellchecker
            and from the 'wordbreak' spellchecker and combine them.
            collations (re-written queries) can include a combination of
-           corrections from both spellcheckers -->
-		   
-		   
-		 <!-- Commented out for now! -->  
+           corrections from both spellcheckers -->		   
       <str name="spellcheck.dictionary">default</str> 
       <str name="spellcheck">on</str>
       <str name="spellcheck.extendedResults">true</str>  
@@ -1403,14 +1400,15 @@
   	<lst name="spellchecker">
       <str name="name">suggest</str>
 	  <str name="field">instance_suggest</str>
-	  <str name="classname">org.apache.solr.spelling.suggest.Suggester</str>
-	  <str name="lookupImpl">org.apache.solr.spelling.suggest.fst.AnalyzingInfixLookupFactory</str>
+	  <str name="classname">Suggester</str>
+	  <str name="lookupImpl">AnalyzingInfixLookupFactory</str>
 	  <str name="suggestAnalyzerFieldType">text_en_splitting</str>  
       <str name="queryAnalyzerFieldType">text_suggest</str>      	  
       <float name="threshold">0.005</float>
 	  <str name="buildOnCommit">false</str>
+   	  <str name="highlight">false</str>
     </lst>
-  </searchComponent> -->
+  </searchComponent>
 
   <requestHandler name="/suggest" class="org.apache.solr.handler.component.SearchHandler">
     <lst name="defaults">
@@ -1418,7 +1416,7 @@
 	  <str name="spellcheck.dictionary">suggest</str>
 	  <str name="spellcheck.onlyMorePopular">true</str>
 	  <str name="spellcheck.count">10</str>
-    </lst>
+	</lst>
     <arr name="components">
       <str>suggest</str>
     </arr>

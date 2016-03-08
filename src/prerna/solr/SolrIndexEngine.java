@@ -357,6 +357,10 @@ public class SolrIndexEngine {
 					LOGGER.info("Search field has no specified...search all_text");
 				}
 			}
+			
+			if (queryOptions.get(CommonParams.QT) != null) {
+				Q.set(CommonParams.QT, (String) queryOptions.get(CommonParams.QT));
+			}
 
 			// fq - filters search based on exact match
 			if (queryOptions.get(CommonParams.FQ) != null) {
@@ -571,8 +575,6 @@ public class SolrIndexEngine {
 				LOGGER.info("SpellingParams.SPELLCHECK_PREFIX set to true");
 			}
 			
-			
-			
 			////////AUTOCOMPLETE
 			if (queryOptions.get(SpellingParams.SPELLCHECK_Q) != null) {
 				Q.set(CommonParams.QT, "/suggest");
@@ -586,6 +588,8 @@ public class SolrIndexEngine {
 			if (queryOptions.get(HighlightParams.HIGHLIGHT) != null) {
 				Q.set(HighlightParams.HIGHLIGHT, "true");
 				Q.set(HighlightParams.FIELDS, INDEX_NAME);
+			} else {
+				Q.set(HighlightParams.HIGHLIGHT, "false");
 			}
 
 			System.out.println("query is ::: " + Q.getQuery());
@@ -774,7 +778,7 @@ public class SolrIndexEngine {
 			for (Suggestion suggestion : suggestions) {
 				List<String> alternativeList = suggestion.getAlternatives();
 				for (String alternative : alternativeList) {
-					autoSuggestRet.add(alternative);
+					autoSuggestRet.add(alternative.replace("<b>", "").replace("</b>", ""));
 				}
 			}
 		}
