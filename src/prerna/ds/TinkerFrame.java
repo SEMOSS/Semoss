@@ -2914,22 +2914,22 @@ public class TinkerFrame implements ITableDataFrame {
 	 * Blank nodes must be used to keep nodes in the tinker that do not connect to every type
 	 */
 	public void removeExtraneousNodes() {
-		LOGGER.info("removing extraneous nodes");
-		GremlinBuilder builder = new GremlinBuilder(g);
-		List<String> selectors = builder.generateFullEdgeTraversal();
-		builder.addSelector(selectors);
-		GraphTraversal gt = builder.executeScript();
-		if(selectors.size()>1){
-			gt = gt.mapValues();
-		}
-		GraphTraversal metaT = g.traversal().V().has(Constants.TYPE, META).outE();
-		while(metaT.hasNext()){
-			gt = gt.inject(metaT.next());
-		}
-		
-		TinkerGraph newG = (TinkerGraph) gt.subgraph("subGraph").cap("subGraph").next();
-		this.g = newG;
-		LOGGER.info("extraneous nodes removed");
+//		LOGGER.info("removing extraneous nodes");
+//		GremlinBuilder builder = new GremlinBuilder(g);
+//		List<String> selectors = builder.generateFullEdgeTraversal();
+//		builder.addSelector(selectors);
+//		GraphTraversal gt = builder.executeScript();
+//		if(selectors.size()>1){
+//			gt = gt.mapValues();
+//		}
+//		GraphTraversal metaT = g.traversal().V().has(Constants.TYPE, META).outE();
+//		while(metaT.hasNext()){
+//			gt = gt.inject(metaT.next());
+//		}
+//		
+//		TinkerGraph newG = (TinkerGraph) gt.subgraph("subGraph").cap("subGraph").next();
+//		this.g = newG;
+//		LOGGER.info("extraneous nodes removed");
 	}
 	
 	/**
