@@ -35,7 +35,11 @@ public class JoinTransformation extends AbstractTransformation {
 	public static final String COLUMN_ONE_KEY = "table1Col";
 	public static final String COLUMN_TWO_KEY = "table2Col";
 	public static final String JOIN_TYPE = "joinType";
+	public static final String INNER = "inner";
+	public static final String PARTIAL = "partial";
+	public static final String OUTER = "outer";
 
+	
 	DataMakerComponent dmc;
 	IDataMaker dm;
 	IDataMaker nextDm;
@@ -247,14 +251,14 @@ public class JoinTransformation extends AbstractTransformation {
 		if(this.matcher == null) {
 			String joinType = (String) this.props.get(JOIN_TYPE);
 			if(joinType == null) {
-				joinType = "inner";
+				joinType = INNER;
 			}
 			switch(joinType) {
-			case "inner" : this.matcher = new InstanceMatcher(); 
+			case INNER : this.matcher = new InstanceMatcher(); 
 			break;
-			case "partial" : this.matcher = new InstancePartialOuterJoinMatcher(); 
+			case PARTIAL : this.matcher = new InstancePartialOuterJoinMatcher(); 
 			break;
-			case "outer" : this.matcher = new InstanceOuterJoinMatcher();
+			case OUTER : this.matcher = new InstanceOuterJoinMatcher();
 			break;
 			default : this.matcher = new InstanceMatcher(); 
 			}
