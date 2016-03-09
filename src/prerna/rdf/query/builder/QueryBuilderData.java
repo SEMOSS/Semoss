@@ -326,11 +326,14 @@ public class QueryBuilderData {
 	public Set<String> getUrisInBuilderData() {
 		Set<String> values = new HashSet<String>();
 		if(this.relTriples != null && !this.relTriples.isEmpty()) {
-			//TODO: assumption, will it always be sub, pred, obj
-			if(this.relTriples.size() == 3) {
-				// do not want to consider the predicate
-				values.addAll(this.relTriples.get(0));
-				values.addAll(this.relTriples.get(2));
+			for(int i = 0; i < relTriples.size(); i++) {
+				List<String> rel = relTriples.get(i);
+				//TODO: assumption, will it always be sub, pred, obj
+				if(rel.size() == 3) {
+					// do not want to consider the predicate
+					values.add(rel.get(0));
+					values.add(rel.get(2));
+				}
 			}
 		}
 		if(this.nodeProps != null && !this.nodeProps.isEmpty()) {
