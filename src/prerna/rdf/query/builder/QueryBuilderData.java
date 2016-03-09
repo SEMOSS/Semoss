@@ -310,7 +310,7 @@ public class QueryBuilderData {
 		Set<String> newValues = nextDmcBuilderData.getUrisInBuilderData();
 
 		// get what is being joinedOn
-		String joinCol = (String) joinProps.get(JoinTransformation.COLUMN_TWO_KEY);
+		String joinCol = (String) joinProps.get(JoinTransformation.COLUMN_ONE_KEY);
 		for(String uri : currValues) {
 			if(newValues.contains(uri)) {
 				// need to make sure it is not the join column since that is allowed to be the same
@@ -328,8 +328,14 @@ public class QueryBuilderData {
 		if(this.relTriples != null && !this.relTriples.isEmpty()) {
 			for(int i = 0; i < relTriples.size(); i++) {
 				List<String> rel = relTriples.get(i);
+				// has a size of one during first click
+				if(rel.size() == 1) 
+				{
+					values.add(rel.get(0));
+				} 
 				//TODO: assumption, will it always be sub, pred, obj
-				if(rel.size() == 3) {
+				else if(rel.size() == 3) 
+				{
 					// do not want to consider the predicate
 					values.add(rel.get(0));
 					values.add(rel.get(2));
