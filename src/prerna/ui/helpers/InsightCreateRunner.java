@@ -103,8 +103,14 @@ public class InsightCreateRunner implements Runnable{
 		// it fills in the values in a Filtering PreTransformation which appends the metamodel
 		insight.appendParamsToDataMakerComponents();
 		for(DataMakerComponent dmComp : dmComps){
-			// NOTE: this runs the data maker components directly onto the dm, not through the insight
+//			// NOTE: this runs the data maker components directly onto the dm, not through the insight
+			if(dmComp.isProcessed()) {
+				continue;
+			}
 			DataMakerComponent copyDmc = dmComp.copy();
+			if(copyDmc.getBuilderData() != null) {
+	    		copyDmc.optimizeDataMakerComponents(dmComps);
+	    	}
 			dm.processDataMakerComponent(copyDmc);
 		}
 		return dm;
