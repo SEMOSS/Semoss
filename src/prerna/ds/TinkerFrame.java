@@ -2822,6 +2822,7 @@ public class TinkerFrame implements ITableDataFrame {
 				rowMap.put(headers[j], cleanVal);
 				cleanMap.put(headers[j], Utility.cleanString(valStr + "", true, true, false));
 			}
+            dataFrame.addRow(cleanMap, rowMap);
 		}
 		
 		// in case the first 5 rows are empty
