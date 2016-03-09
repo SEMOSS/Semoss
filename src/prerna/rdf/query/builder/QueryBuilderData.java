@@ -112,7 +112,7 @@ public class QueryBuilderData {
 		LOGGER.info(var + " is now in position " + returnVars.indexOf(var));
 	}
 
-	protected List<String> getReturnVars(){
+	public List<String> getReturnVars(){
 		return this.returnVars;
 	}
 
@@ -124,19 +124,23 @@ public class QueryBuilderData {
 		this.filterData = filterData;
 	}
 
-	protected Map<String, String> getReturnMapping() {
+	public Map<String, String> getReturnMapping() {
 		return returnMapping;
 	}
+	
+	public void setReturnMapping(Map<String, String> returnMapping) {
+		this.returnMapping = returnMapping;
+	}
 
-	//	private void setReturnMapping(Map<String, String> returnMapping) {
-	//		this.returnMapping = returnMapping;
-	//	}
+	public void setReturnVars(List<String> returnVars) {
+		this.returnVars = returnVars;
+	}
 
 	public List<List<String>> getRelTriples() {
 		return relTriples;
 	}
 
-	private void setRelTriples(List<List<String>> relTriples) {
+	public void setRelTriples(List<List<String>> relTriples) {
 		this.relTriples = relTriples;
 	}
 
@@ -144,7 +148,7 @@ public class QueryBuilderData {
 		return nodeProps;
 	}
 
-	private void setNodeProps(List<Map<String, String>> nodeProps) {
+	public void setNodeProps(List<Map<String, String>> nodeProps) {
 		this.nodeProps = nodeProps;
 	}
 
@@ -224,5 +228,93 @@ public class QueryBuilderData {
 
 		return edgeHash;
 	}
+	
+	public void combineBuilderData(QueryBuilderData otherBuilderData) {
+		// because of annoying null checks :(
+		if(this.returnMapping != null) {
+			if(otherBuilderData.getReturnMapping() != null) {
+				this.getReturnMapping().putAll(otherBuilderData.getReturnMapping());
+			} 
+//			else {
+//				// do nothing
+//			}
+		} else if(otherBuilderData.getReturnMapping() != null) {
+			this.setReturnMapping(otherBuilderData.getReturnMapping());
+		}
+		
+		// because of annoying null checks :(
+		if(this.relTriples != null) {
+			if(otherBuilderData.getRelTriples() != null) {
+				this.getRelTriples().addAll(otherBuilderData.getRelTriples());
+			} 
+//			else {
+//				// do nothing
+//			}
+		} else if(otherBuilderData.getRelTriples() != null) {
+			this.setRelTriples(otherBuilderData.getRelTriples());
+		}
+		
+		// because of annoying null checks :(
+		if(this.nodeProps != null) {
+			if(otherBuilderData.getNodeProps() != null) {
+				this.getNodeProps().addAll(otherBuilderData.getNodeProps());
+			} 
+//			else {
+//				// do nothing
+//			}
+		} else if(otherBuilderData.getNodeProps() != null) {
+			this.setNodeProps(otherBuilderData.getNodeProps());
+		}
+		
+		// because of annoying null checks :(
+		if(this.filterData != null) {
+			if(otherBuilderData.getFilterData() != null) {
+				this.getFilterData().putAll(otherBuilderData.getFilterData());
+			} 
+//			else {
+//				// do nothing
+//			}
+		} else if(otherBuilderData.getFilterData() != null) {
+			this.setFilterData(otherBuilderData.getFilterData());
+		}
+		
+		// because of annoying null checks :(
+		if(this.returnVars != null) {
+			List<String> thisRetVars = this.getReturnVars();
+			if(otherBuilderData.getReturnVars() != null) {
+				List<String> otherRetVars = otherBuilderData.getReturnVars();
+				for(String var : otherRetVars) {
+					if(!thisRetVars.contains(var))
+						thisRetVars.add(var);
+				}
+			} 
+//			else {
+//				// do nothing
+//			}
+		} else if(otherBuilderData.getReturnVars() != null) {
+			this.setReturnVars(otherBuilderData.getReturnVars());
+		}
+	}
+	
+	public Set<String> getAllUrisInBuilderData() {
+		Set<String> values = new HashSet<String>();
+		if(this.relTriples != null && !this.relTriples.isEmpty()) {
+			for(int i = 0; i < this.relTriples.size(); i++) {
+				values.addAll(this.relTriples.get(i));
+			}
+		}
+		if(this.nodeProps != null && !this.nodeProps.isEmpty()) {
+			for(int i = 0; i < this.relTriples.size(); i++) {
+				Map<String, String> nodeMap = this.nodeProps.get(i);
+				for(String key : nodeMap.keySet()) {
+					values.add(key);
+					values.add(nodeMap.get(key));
+				}
+			}
+		}
+		
+		return values;
+	}
+
 
 }
