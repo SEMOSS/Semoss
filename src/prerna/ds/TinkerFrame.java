@@ -104,6 +104,7 @@ public class TinkerFrame implements ITableDataFrame {
 	final public static String META = "META";
 	final public static String EMPTY = "_";
 
+	public static final String edgeLabelDelimeter = "+++";
 	private static final String primKeyDelimeter = ":::";
 	
 	private Object tempExpressionResult = "FAIL";
@@ -181,19 +182,19 @@ public class TinkerFrame implements ITableDataFrame {
 	}
 	
 	public static void testPaths() {
-		String fileName = "C:\\Users\\rluthar\\Documents\\Movie Results.xlsx";
+		String fileName = "C:\\Users\\bisutton\\Desktop\\pregnancy.xlsx";
 		TinkerFrame tinker = load2Graph4Testing(fileName);
 		tinker.printTinker();
 		
-		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(Arrays.asList(tinker.getColumnHeaders()), tinker.g);
-		GraphTraversal paths = builder.executeScript().path();
-//		Object o = paths.next();
-		int count = 0;
-		while(paths.hasNext()){
-		System.out.println(paths.next());
-		count++;
-		}
-		System.out.println(count);
+//		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(Arrays.asList(tinker.getColumnHeaders()), tinker.g);
+//		GraphTraversal paths = builder.executeScript().path();
+////		Object o = paths.next();
+//		int count = 0;
+//		while(paths.hasNext()){
+//		System.out.println(paths.next());
+//		count++;
+//		}
+//		System.out.println(count);
 	}
 	
 	public static void testFilter() {
@@ -809,22 +810,29 @@ public class TinkerFrame implements ITableDataFrame {
 			Object[] nextRow = new Object[totalCols];
 			for(int cIndex = 0; cIndex<totalCols ; cIndex++)
 			{
-
-				int cellType = row.getCell(cIndex).getCellType();
 				Object v1;
-				
-				if(cellType == Cell.CELL_TYPE_NUMERIC) {
-					 v1 = row.getCell(cIndex).getNumericCellValue();
-					 nextRow[cIndex] = v1;
-				} else if(cellType == Cell.CELL_TYPE_BOOLEAN) {
-					v1 = row.getCell(cIndex).getBooleanCellValue();
+				if(row.getCell(cIndex)!=null){
+	
+					int cellType = row.getCell(cIndex).getCellType();
+					
+					if(cellType == Cell.CELL_TYPE_NUMERIC) {
+						 v1 = row.getCell(cIndex).getNumericCellValue();
+						 nextRow[cIndex] = v1;
+					} else if(cellType == Cell.CELL_TYPE_BOOLEAN) {
+						v1 = row.getCell(cIndex).getBooleanCellValue();
+						nextRow[cIndex] = v1;
+					} else {			
+						 v1 = row.getCell(cIndex).toString();
+						 nextRow[cIndex] = v1;
+					}
 					nextRow[cIndex] = v1;
-				} else {			
-					 v1 = row.getCell(cIndex).toString();
-					 nextRow[cIndex] = v1;
+					rowMap.put(headerList.get(cIndex), v1);
 				}
-				nextRow[cIndex] = v1;
-				rowMap.put(headerList.get(cIndex), v1);
+				else {
+					nextRow[cIndex] = EMPTY;
+					v1 = EMPTY;
+					rowMap.put(headerList.get(cIndex), v1);
+				}
 			}
 			tester.addRow(nextRow, nextRow, headerList.toArray(new String[headerList.size()]));
 			System.out.println("added row " + rIndex);
@@ -849,7 +857,7 @@ public class TinkerFrame implements ITableDataFrame {
 		g = TinkerGraph.open();
 		g.createIndex(Constants.TYPE, Vertex.class);
 		g.createIndex(Constants.ID, Vertex.class);
-		g.createIndex(Constants.ID, Edge.class);
+		g.createIndex(T.label.toString(), Edge.class);
 		g.variables().set(Constants.HEADER_NAMES, headerNames);
 	}
 	
@@ -858,7 +866,7 @@ public class TinkerFrame implements ITableDataFrame {
 		g = TinkerGraph.open();
 		g.createIndex(Constants.TYPE, Vertex.class);
 		g.createIndex(Constants.ID, Vertex.class);
-		g.createIndex(Constants.ID, Edge.class);
+		g.createIndex(T.label.toString(), Edge.class);
 		g.variables().set(Constants.HEADER_NAMES, headerNames);
 		mergeEdgeHash(edgeHash);
 	}			 
@@ -867,7 +875,7 @@ public class TinkerFrame implements ITableDataFrame {
 		g = TinkerGraph.open();
 		g.createIndex(Constants.TYPE, Vertex.class);
 		g.createIndex(Constants.ID, Vertex.class);
-		g.createIndex(Constants.ID, Edge.class);
+		g.createIndex(T.label.toString(), Edge.class);
 	}
 
 	/*********************************  END CONSTRUCTORS  ********************************/
@@ -998,7 +1006,7 @@ public class TinkerFrame implements ITableDataFrame {
 		Map<String, SEMOSSVertex> vertStore = new HashMap<String, SEMOSSVertex>();
 		Map<String, SEMOSSEdge> edgeStore = new HashMap<String, SEMOSSEdge>();
 		
-		GraphTraversal<Edge, Edge> edgesIt = g.traversal().E().not(__.or(__.has(T.label, META), __.has(Constants.TYPE, Constants.FILTER), __.bothV().in().has(Constants.TYPE, Constants.FILTER)));
+		GraphTraversal<Edge, Edge> edgesIt = g.traversal().E().not(__.or(__.has(T.label, META+edgeLabelDelimeter+META), __.has(Constants.TYPE, Constants.FILTER), __.bothV().in().has(Constants.TYPE, Constants.FILTER)));
 		while(edgesIt.hasNext()){
 			Edge e = edgesIt.next();
 			Vertex outV = e.outVertex();
@@ -1114,7 +1122,7 @@ public class TinkerFrame implements ITableDataFrame {
 				
 				// now to insert the meta edge
 				Vertex inVert = upsertVertex(META, inVertString, inVertString);
-				upsertEdge(outVert, inVert, META);
+				upsertEdge(outVert, inVert);
 			}
 		}
 		// need to make sure prim key is not added as header
@@ -1137,7 +1145,7 @@ public class TinkerFrame implements ITableDataFrame {
 		
 		if(inType!=null){
 			Vertex inVert = upsertVertex(META, inType, inType);
-			upsertEdge(outVert, inVert, META);
+			upsertEdge(outVert, inVert);
 			newLevels.add(inType);
 		}
 		
@@ -1163,11 +1171,11 @@ public class TinkerFrame implements ITableDataFrame {
 			Vertex primKey = upsertVertex(META, metaPrimKey, PRIM_KEY);
 			for(String column : outTypes) {
 				Vertex outVert = upsertVertex(META, column, column);
-				upsertEdge(outVert, primKey, META);
+				upsertEdge(outVert, primKey);
 			}
 			
 			Vertex inVert = upsertVertex(META, inType, inType);
-			upsertEdge(primKey, inVert, META);
+			upsertEdge(primKey, inVert);
 
 			newLevels.add(inType);
 			redoLevels(newLevels.toArray(new String[newLevels.size()]));
@@ -1242,15 +1250,11 @@ public class TinkerFrame implements ITableDataFrame {
 	
 	protected Edge upsertEdge(Vertex fromVertex, Vertex toVertex)
 	{
-		String label = fromVertex.property(Constants.ID).value() + "" + toVertex.property(Constants.ID).value();
-		return upsertEdge(fromVertex, toVertex, label);
-	}
-	
-	protected Edge upsertEdge(Vertex fromVertex, Vertex toVertex, String label) {
 		Edge retEdge = null;
-		String edgeID = fromVertex.property(Constants.TYPE).value() + ":" + toVertex.property(Constants.TYPE).value() + "/" + fromVertex.property(Constants.NAME).value() + ":" + toVertex.property(Constants.NAME).value();
+		String type = fromVertex.property(Constants.TYPE).value() + edgeLabelDelimeter + toVertex.property(Constants.TYPE).value();
+		String edgeID = type + "/" + fromVertex.property(Constants.NAME).value() + ":" + toVertex.property(Constants.NAME).value();
 		// try to find the vertex
-		GraphTraversal<Edge, Edge> gt = g.traversal().E().has(Constants.ID, edgeID);
+		GraphTraversal<Edge, Edge> gt = g.traversal().E(type).has(Constants.ID, edgeID);
 		if(gt.hasNext()) {
 			retEdge = gt.next();
 			Integer count = (Integer)retEdge.property(Constants.COUNT).value();
@@ -1258,7 +1262,7 @@ public class TinkerFrame implements ITableDataFrame {
 			retEdge.property(Constants.COUNT, count);
 		}
 		else {
-			retEdge = fromVertex.addEdge(label, toVertex, Constants.ID, edgeID, Constants.COUNT, 1);
+			retEdge = fromVertex.addEdge(type, toVertex, Constants.ID, edgeID, Constants.COUNT, 1);
 		}
 
 		return retEdge;
@@ -1316,7 +1320,7 @@ public class TinkerFrame implements ITableDataFrame {
 		Vertex primVertex = upsertVertex(this.PRIM_KEY, nextPrimKey, nextPrimKey);
 		
 		for(Vertex toVertex : toVertices) {
-			this.upsertEdge(primVertex, toVertex, this.PRIM_KEY);
+			this.upsertEdge(primVertex, toVertex);
 		}
 	}
 	
@@ -1339,7 +1343,7 @@ public class TinkerFrame implements ITableDataFrame {
 		Vertex primVertex = upsertVertex(this.PRIM_KEY, nextPrimKey, nextPrimKey);
 		
 		for(Vertex toVertex : toVertices) {
-			this.upsertEdge(primVertex, toVertex, this.PRIM_KEY);
+			this.upsertEdge(primVertex, toVertex);
 		}
 		
 		
@@ -1384,7 +1388,7 @@ public class TinkerFrame implements ITableDataFrame {
 				objInst = obj;
 			}
 			// check if meta edge has already been created for this rel
-			GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, META).has(Constants.NAME, subType).out(META).has(Constants.TYPE, META).has(Constants.NAME, objType);
+			GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, META).has(Constants.NAME, subType).out(META+edgeLabelDelimeter+META).has(Constants.TYPE, META).has(Constants.NAME, objType);
 			if(!metaT.hasNext()){ // if it hasn't we need to add it
 				Map<String, Set<String>> relMap = new HashMap<String, Set<String>>();
 				Set<String> downList = new HashSet<String>();
@@ -1466,7 +1470,7 @@ public class TinkerFrame implements ITableDataFrame {
 		boolean hasRel = false;
 		
 		for(String startNode : rowCleanData.keySet()) {
-			GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, META).has(Constants.NAME, startNode).out(META);
+			GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, META).has(Constants.NAME, startNode).out(META+edgeLabelDelimeter+META);
 			while(metaT.hasNext()){
 				Vertex conn = metaT.next();
 				String endNode = conn.property(Constants.NAME).value()+"";
@@ -1931,7 +1935,7 @@ public class TinkerFrame implements ITableDataFrame {
 			Vertex nextVertex = null;
 			if(fgt.hasNext()) {
 				nextVertex = fgt.next();
-				upsertEdge(filterVertex, nextVertex, Constants.FILTER);
+				upsertEdge(filterVertex, nextVertex);
 			}
 		}
 		
@@ -1942,25 +1946,17 @@ public class TinkerFrame implements ITableDataFrame {
 	public void unfilter(String columnHeader) {
 		long startTime = System.currentTimeMillis();
 		
-		g.traversal().V().has(Constants.TYPE, Constants.FILTER).out().has(Constants.TYPE, columnHeader).inE(Constants.FILTER).drop().iterate();
+		g.traversal().V().has(Constants.TYPE, Constants.FILTER).out(Constants.FILTER+edgeLabelDelimeter+columnHeader).has(Constants.TYPE, columnHeader).inE(Constants.FILTER+edgeLabelDelimeter+columnHeader).drop().iterate();
 		Vertex metaVertex = this.upsertVertex(META, columnHeader, columnHeader);
 		metaVertex.property(Constants.FILTER, false);
 		
 		LOGGER.info("Unfiltered '"+columnHeader+"':"+(System.currentTimeMillis() - startTime)+" ms");
 	}
 
-	//TODO : remove the override and put it in ITableDataFrame if we need this method
-	//	@Override
-	public void unfilter(String columnHeader, List<Object> unfilterValues) {
-		final String BIND_VAR = "bindVar";
-		g.traversal().V().has(Constants.TYPE, Constants.FILTER).out().has(Constants.TYPE, columnHeader).properties(Constants.NAME).value().as(BIND_VAR)
-				.where(BIND_VAR, P.within(unfilterValues.toArray(new String[]{}))).inE(Constants.FILTER);
-	}
-
 	@Override
 	public void unfilter() {
 		long startTime = System.currentTimeMillis();
-		g.traversal().V().has(Constants.TYPE, Constants.FILTER).out().inE(Constants.FILTER).drop().iterate();
+		g.traversal().V().has(Constants.TYPE, Constants.FILTER).outE().drop().iterate();
 		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, META);
 		while(gt.hasNext()) {
 			Vertex metaVertex = gt.next();
@@ -2040,7 +2036,7 @@ public class TinkerFrame implements ITableDataFrame {
 		while(metaGt.hasNext()){
 			Vertex metaV = metaGt.next();
 			String vertType = metaV.property(Constants.NAME).value().toString();
-			GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, Constants.FILTER).out().has(Constants.TYPE, vertType);
+			GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, Constants.FILTER).out(Constants.FILTER+edgeLabelDelimeter+vertType).has(Constants.TYPE, vertType);
 			List<String> vertsList = new Vector<String>();
 			while(gt.hasNext()){
 				vertsList.add(gt.next().property(Constants.VALUE).value().toString());
@@ -2338,7 +2334,7 @@ public class TinkerFrame implements ITableDataFrame {
 		//if columnHeader has incoming prim key with no other outgoing types, delete that prim key first, then delete the columnHeader
 		
 //		g.traversal().V().has(Constants.TYPE, PRIM_KEY).as("PrimKey").out().has(Constants.TYPE, columnHeader).in().has(Constants.TYPE, PRIM_KEY).as("PrimKey2").where("PrimKey", P.eq("PrimKey2")).not(__.out().has(Constants.TYPE, columnHeader));
-		GraphTraversal<Vertex, Vertex> primKeyTraversal = g.traversal().V().has(Constants.VALUE, PRIM_KEY).as("PrimKey").out().has(Constants.TYPE, columnHeader).in().has(Constants.VALUE, PRIM_KEY).as("PrimKey2").where("PrimKey", P.eq("PrimKey2"));
+		GraphTraversal<Vertex, Vertex> primKeyTraversal = g.traversal().V().has(Constants.VALUE, PRIM_KEY).as("PrimKey").out(PRIM_KEY+edgeLabelDelimeter+columnHeader).has(Constants.TYPE, columnHeader).in(PRIM_KEY+edgeLabelDelimeter+columnHeader).has(Constants.VALUE, PRIM_KEY).as("PrimKey2").where("PrimKey", P.eq("PrimKey2"));
 		while(primKeyTraversal.hasNext()) {
 			Vertex nextPrimKey = (Vertex)primKeyTraversal.next();
 			Iterator<Vertex> verts = nextPrimKey.vertices(Direction.OUT);
@@ -2356,7 +2352,7 @@ public class TinkerFrame implements ITableDataFrame {
 			}
 		}
 		
-		GraphTraversal<Vertex, Vertex> metaPrimKeyTraversal = g.traversal().V().has(Constants.TYPE, META).has(Constants.VALUE, PRIM_KEY).as("PrimKey").out().has(Constants.NAME, columnHeader).in().has(Constants.VALUE, PRIM_KEY).as("PrimKey2").where("PrimKey", P.eq("PrimKey2"));
+		GraphTraversal<Vertex, Vertex> metaPrimKeyTraversal = g.traversal().V().has(Constants.TYPE, META).has(Constants.VALUE, PRIM_KEY).as("PrimKey").out(PRIM_KEY+edgeLabelDelimeter+columnHeader).has(Constants.NAME, columnHeader).in(PRIM_KEY+edgeLabelDelimeter+columnHeader).has(Constants.VALUE, PRIM_KEY).as("PrimKey2").where("PrimKey", P.eq("PrimKey2"));
 //		GraphTraversal<Vertex, Vertex> primKeyTraversal = g.traversal().V().has(Constants.TYPE, META).as("PrimKey").out().has(Constants.TYPE, columnHeader).in().has(Constants.VALUE, PRIM_KEY).as("PrimKey2").where("PrimKey", P.eq("PrimKey2"));
 		while(metaPrimKeyTraversal.hasNext()) {
 			Vertex metaPrimKey = (Vertex)metaPrimKeyTraversal.next();
@@ -2485,6 +2481,7 @@ public class TinkerFrame implements ITableDataFrame {
 		                    	  mengine.getBindings(ScriptContext.ENGINE_SCOPE).put("g", g);
 
 		                    	  gt = (GraphTraversal)mengine.eval(end);
+		                    	  System.out.println("compiled gremlin :: " + gt);
 		                      } catch (ScriptException e) {
 		                    	  e.printStackTrace();
 		                      }
@@ -2540,8 +2537,10 @@ public class TinkerFrame implements ITableDataFrame {
 		
 		Vector<Object[]> retVector = new Vector<>();
 		Iterator<Object[]> iterator = this.iterator(true);
+//		int count = 0;
 		while(iterator.hasNext()) {
 			retVector.add(iterator.next());
+//			System.out.println("added row " + count++);
 		}
 		
 		LOGGER.info("Collected Raw Data: "+(System.currentTimeMillis() - startTime));
@@ -3026,15 +3025,15 @@ public class TinkerFrame implements ITableDataFrame {
 		LOGGER.info("PERFORMING inserting of blanks.......");
 		for(String addedType : addedColumns){
 			Vertex emptyV = null;
-			GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, META).has(Constants.VALUE, colName).out().has(Constants.TYPE, META).has(Constants.VALUE, addedType);
+			GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, META).has(Constants.VALUE, colName).out(META+edgeLabelDelimeter+META).has(Constants.TYPE, META).has(Constants.VALUE, addedType);
 			boolean forward = false;
 			GraphTraversal<Vertex, Vertex> gt = null;
 			if(metaT.hasNext()){
 				forward = true;
-				gt = g.traversal().V().has(Constants.TYPE, colName).not(__.out().has(Constants.TYPE, addedType));
+				gt = g.traversal().V().has(Constants.TYPE, colName).not(__.out(colName+edgeLabelDelimeter+addedType).has(Constants.TYPE, addedType));
 			}
 			else {
-				gt = g.traversal().V().has(Constants.TYPE, colName).not(__.in().has(Constants.TYPE, addedType));
+				gt = g.traversal().V().has(Constants.TYPE, colName).not(__.in(addedType+edgeLabelDelimeter+colName).has(Constants.TYPE, addedType));
 			}
 			while(gt.hasNext()){ // these are the dudes that need an empty
 				if(emptyV == null){

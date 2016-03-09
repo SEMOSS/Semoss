@@ -1,14 +1,8 @@
 package prerna.rdf.query.builder;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -18,7 +12,6 @@ import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
-import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
@@ -113,7 +106,7 @@ public class GremlinBuilder {
 			Object filtered = startNode.value(Constants.FILTER);
 			if((Boolean)filtered == true) {
 				// filtered edges have a type of filter
-				gt = gt.not(__.in().has(Constants.TYPE, Constants.FILTER));
+				gt = gt.not(__.in(Constants.FILTER+TinkerFrame.edgeLabelDelimeter+startNode).has(Constants.TYPE, Constants.FILTER));
 			}
 			// add the logic to traverse
 			traversals = visitNode(startNode, travelledEdges, traversals);
@@ -127,21 +120,22 @@ public class GremlinBuilder {
 
 	private List<GraphTraversal<Object, Vertex>> visitNode(Vertex orig, List<String> travelledEdges, List<GraphTraversal<Object, Vertex>> traversals) {
 		String origName = orig.value(Constants.NAME);
-		GraphTraversal<Vertex, Vertex> downstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).out(TinkerFrame.META);
+		GraphTraversal<Vertex, Vertex> downstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).out(TinkerFrame.META+TinkerFrame.edgeLabelDelimeter+TinkerFrame.META);
 		while (downstreamIt.hasNext()) {
 			// for each downstream node of this meta node
 			Vertex nodeV = downstreamIt.next();
 			String node = nodeV.value(Constants.NAME);
 			
-			String edgeKey = origName + ":::" + node;
+			String edgeKey = origName + TinkerFrame.edgeLabelDelimeter + node;
 			if(!travelledEdges.contains(edgeKey)) {
 				LOGGER.info("travelling down to " + node);
 				
-				GraphTraversal<Object, Vertex> twoStepT = __.as(origName).out().has(Constants.TYPE, node);
+//				String edgeType = origName + ":" + node;
+				GraphTraversal<Object, Vertex> twoStepT = __.as(origName).out(edgeKey).has(Constants.TYPE, node);
 						
 				Object filtered = nodeV.value(Constants.FILTER);
 				if((Boolean)filtered == true) {
-					twoStepT = twoStepT.not(__.in().has(Constants.TYPE, Constants.FILTER));
+					twoStepT = twoStepT.not(__.in(Constants.FILTER+TinkerFrame.edgeLabelDelimeter+node).has(Constants.TYPE, Constants.FILTER));
 				}
 
 				twoStepT = twoStepT.as(node);
@@ -153,20 +147,20 @@ public class GremlinBuilder {
 			}
 		}
 		// do the same thing for upstream
-		GraphTraversal<Vertex, Vertex> upstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).in(TinkerFrame.META);
+		GraphTraversal<Vertex, Vertex> upstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).in(TinkerFrame.META+TinkerFrame.edgeLabelDelimeter+TinkerFrame.META);
 		while(upstreamIt.hasNext()) {
 			Vertex nodeV = upstreamIt.next();
 			String node = nodeV.value(Constants.NAME);
 			
-			String edgeKey = node + ":::" + origName;
+			String edgeKey = node + TinkerFrame.edgeLabelDelimeter + origName;
 			if(!travelledEdges.contains(edgeKey)){
 				LOGGER.info("travelling up to " + node);
 				
-				GraphTraversal<Object, Vertex> twoStepT = __.as(origName).in().has(Constants.TYPE, node);
+				GraphTraversal<Object, Vertex> twoStepT = __.as(origName).in(edgeKey).has(Constants.TYPE, node);
 						
 				Object filtered = nodeV.value(Constants.FILTER);
 				if((Boolean)filtered == true) {
-					twoStepT = twoStepT.not(__.in().has(Constants.TYPE, Constants.FILTER));
+					twoStepT = twoStepT.not(__.in(Constants.FILTER+TinkerFrame.edgeLabelDelimeter+node).has(Constants.TYPE, Constants.FILTER));
 				}
 
 				twoStepT = twoStepT.as(node);
@@ -179,70 +173,72 @@ public class GremlinBuilder {
 		}
 		return traversals;
 	}
-	/**
-	 * Use this to gather the vertices that do not have an edge to a vertex but is expected to have one based on the metamodel
-	 * 
-	 * Example:
-	 * 		Metamodel: a -> b, b -> c, a -> d
-	 * 		Method will return all a's without b's, all b's without a's, all b's without c's, and so forth
-	 */
-	public void addIncompleteVertices() {
-		Vertex startNode;
-		
-		//get a random start node
-		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META);
-		if(metaT.hasNext()) {
-			startNode = metaT.next();
-			
-			//the list of the orTraversals (all a's without b, or all b's without a, ...)
-			List<GraphTraversal> orTraversals = new ArrayList<>();
-			
-			//keep track of which edges have already been checked
-			List<String> travelledEdges = new ArrayList<>();
-			
-			orTraversals = getIncompleteVertices(orTraversals, startNode, travelledEdges);
-			gt = this.g.traversal().V().or(orTraversals.toArray(new GraphTraversal[0])).as("extraVerts").select("extraVerts");
-		}
-	}
 	
-	/**
-	 * 
-	 * @param orTraversals
-	 * @param orig
-	 * @return
-	 */
-	private List<GraphTraversal> getIncompleteVertices(List<GraphTraversal> orTraversals, Vertex orig, List<String> travelledEdges) {
-		
-		GraphTraversal<Vertex, Vertex> downstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).out(TinkerFrame.META);
-		String origName = orig.property(Constants.NAME).value()+"";
-		while(downstreamIt.hasNext()) {
-			Vertex nodeV = downstreamIt.next();
-			String node = nodeV.property(Constants.NAME).value()+"";
-			
-			String edgeKey = origName + ":::" + node;
-			if(!travelledEdges.contains(edgeKey)) {
-				GraphTraversal g = __.has(Constants.TYPE, origName).not(__.out().has(Constants.TYPE, node));
-				orTraversals.add(g);
-				travelledEdges.add(edgeKey);
-				getIncompleteVertices(orTraversals, nodeV, travelledEdges);
-			}
-		}
-		
-		GraphTraversal<Vertex, Vertex> upstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).in(TinkerFrame.META);
-		while(upstreamIt.hasNext()) {
-			Vertex nodeV = upstreamIt.next();
-			String node = nodeV.property(Constants.NAME).value()+"";
-			
-			String edgeKey = origName + ":::" + node;
-			if(!travelledEdges.contains(edgeKey)) {
-				GraphTraversal g = __.has(Constants.TYPE, origName).not(__.in().has(Constants.TYPE, node));
-				orTraversals.add(g);
-				travelledEdges.add(edgeKey);
-				getIncompleteVertices(orTraversals, nodeV, travelledEdges);
-			}
-		}
-		return orTraversals;
-	}
+	// THIS NEEDS TO BE UPDATED WITH THE NEW EDGE LABELS
+//	/**
+//	 * Use this to gather the vertices that do not have an edge to a vertex but is expected to have one based on the metamodel
+//	 * 
+//	 * Example:
+//	 * 		Metamodel: a -> b, b -> c, a -> d
+//	 * 		Method will return all a's without b's, all b's without a's, all b's without c's, and so forth
+//	 */
+//	public void addIncompleteVertices() {
+//		Vertex startNode;
+//		
+//		//get a random start node
+//		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META);
+//		if(metaT.hasNext()) {
+//			startNode = metaT.next();
+//			
+//			//the list of the orTraversals (all a's without b, or all b's without a, ...)
+//			List<GraphTraversal> orTraversals = new ArrayList<>();
+//			
+//			//keep track of which edges have already been checked
+//			List<String> travelledEdges = new ArrayList<>();
+//			
+//			orTraversals = getIncompleteVertices(orTraversals, startNode, travelledEdges);
+//			gt = this.g.traversal().V().or(orTraversals.toArray(new GraphTraversal[0])).as("extraVerts").select("extraVerts");
+//		}
+//	}
+//	
+//	/**
+//	 * 
+//	 * @param orTraversals
+//	 * @param orig
+//	 * @return
+//	 */
+//	private List<GraphTraversal> getIncompleteVertices(List<GraphTraversal> orTraversals, Vertex orig, List<String> travelledEdges) {
+//		
+//		GraphTraversal<Vertex, Vertex> downstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).out(TinkerFrame.META);
+//		String origName = orig.property(Constants.NAME).value()+"";
+//		while(downstreamIt.hasNext()) {
+//			Vertex nodeV = downstreamIt.next();
+//			String node = nodeV.property(Constants.NAME).value()+"";
+//			
+//			String edgeKey = origName + ":::" + node;
+//			if(!travelledEdges.contains(edgeKey)) {
+//				GraphTraversal g = __.has(Constants.TYPE, origName).not(__.out().has(Constants.TYPE, node));
+//				orTraversals.add(g);
+//				travelledEdges.add(edgeKey);
+//				getIncompleteVertices(orTraversals, nodeV, travelledEdges);
+//			}
+//		}
+//		
+//		GraphTraversal<Vertex, Vertex> upstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).in(TinkerFrame.META);
+//		while(upstreamIt.hasNext()) {
+//			Vertex nodeV = upstreamIt.next();
+//			String node = nodeV.property(Constants.NAME).value()+"";
+//			
+//			String edgeKey = origName + ":::" + node;
+//			if(!travelledEdges.contains(edgeKey)) {
+//				GraphTraversal g = __.has(Constants.TYPE, origName).not(__.in().has(Constants.TYPE, node));
+//				orTraversals.add(g);
+//				travelledEdges.add(edgeKey);
+//				getIncompleteVertices(orTraversals, nodeV, travelledEdges);
+//			}
+//		}
+//		return orTraversals;
+//	}
 	 
 	/**
 	 * 
@@ -379,103 +375,103 @@ public class GremlinBuilder {
 	}
 	
 
-	/**
-	 * This method creates a traversal that names each edge that it traverses
-	 * The path that it traverses is the same as the generic builder but makes a stop at each edge to add as variable
-	 * The returned list of edge names can be used as selectors in the traversal to return the edges
-	 * 
-	 * @return Names of all of the edge variables that have been created
-	 */
-	public List<String> generateFullEdgeTraversal() {
-		List<String> travelledEdges = new Vector<String>();
-		List<String> edgeSelectors = new Vector<String>();
-		
-		Vertex startNode;
-		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META);
-		
-		// pick any meta node as a starting point
-		if(metaT.hasNext()) {
-			startNode = metaT.next();
-			String startType = startNode.property(Constants.NAME).value()+"";
-			
-			// add that to our traversal and check the filter
-			gt = gt.has(Constants.TYPE, startType).as(startType);
-			Object filtered = startNode.value(Constants.FILTER);
-			if((Boolean)filtered == true) {
-				gt = gt.not(__.in().has(Constants.TYPE, Constants.FILTER));
-			}
-			// begin recursion
-			gt = visitNodeForEdgeTraversal(startNode, gt, travelledEdges, new Integer(0), edgeSelectors);
-		}
-		return edgeSelectors;
-	}
+//	/**
+//	 * This method creates a traversal that names each edge that it traverses
+//	 * The path that it traverses is the same as the generic builder but makes a stop at each edge to add as variable
+//	 * The returned list of edge names can be used as selectors in the traversal to return the edges
+//	 * 
+//	 * @return Names of all of the edge variables that have been created
+//	 */
+//	public List<String> generateFullEdgeTraversal() {
+//		List<String> travelledEdges = new Vector<String>();
+//		List<String> edgeSelectors = new Vector<String>();
+//		
+//		Vertex startNode;
+//		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(Constants.TYPE, TinkerFrame.META);
+//		
+//		// pick any meta node as a starting point
+//		if(metaT.hasNext()) {
+//			startNode = metaT.next();
+//			String startType = startNode.property(Constants.NAME).value()+"";
+//			
+//			// add that to our traversal and check the filter
+//			gt = gt.has(Constants.TYPE, startType).as(startType);
+//			Object filtered = startNode.value(Constants.FILTER);
+//			if((Boolean)filtered == true) {
+//				gt = gt.not(__.in().has(Constants.TYPE, Constants.FILTER));
+//			}
+//			// begin recursion
+//			gt = visitNodeForEdgeTraversal(startNode, gt, travelledEdges, new Integer(0), edgeSelectors);
+//		}
+//		return edgeSelectors;
+//	}
 	
-	private GraphTraversal visitNodeForEdgeTraversal(Vertex orig, GraphTraversal gt1, List<String> travelledEdges, Integer recursionCount, List<String> edgeSelectors) {
-		recursionCount++;
-		String origName = orig.property(Constants.NAME).value()+"";
-		GraphTraversal<Vertex, Vertex> downstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).out(TinkerFrame.META);
-		// for each meta vertex downstream of this meta vertex
-		while (downstreamIt.hasNext()){
-			Vertex nodeV = downstreamIt.next();
-			String node = nodeV.property(Constants.NAME).value()+"";
-			String edgeKey = origName + ":::" + node;
-			// if we have never travelled that edge before
-			if(!travelledEdges.contains(edgeKey)) {
-				LOGGER.debug("travelling down to " + node);
-				
-				String edgeSelector = "Edge"+recursionCount;
-				edgeSelectors.add(edgeSelector);
-				// travel the edge in our graph traversal, adding our edge selector to keep track
-				gt1 = gt1.outE().as(edgeSelector).inV().has(Constants.TYPE, node).as(node);
-				
-				Object filtered = nodeV.value(Constants.FILTER);
-				if((Boolean)filtered == true) {
-					gt1 = gt1.not(__.in().has(Constants.TYPE, Constants.FILTER));
-				}
-
-				travelledEdges.add(edgeKey);
-				
-				// continue travelling downstream as far as we can
-				gt1 = visitNodeForEdgeTraversal(nodeV, gt1, travelledEdges, recursionCount, edgeSelectors);
-				
-				// when we can't go any further downstream, need to return home
-				LOGGER.debug("returning home to " + origName);
-				gt1 = gt1.in().has(Constants.TYPE, origName).as(origName + (recursionCount));
-				gt1 = gt1.where(origName, P.eq(origName + (recursionCount)));
-				recursionCount++;
-			}
-		}
-		
-		// do the same for upstream
-		GraphTraversal<Vertex, Vertex> upstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).in(TinkerFrame.META);
-		while(upstreamIt.hasNext()) {
-			Vertex nodeV = upstreamIt.next();
-			String node = nodeV.property(Constants.NAME).value()+"";
-			String edgeKey = node + ":::" + origName;
-			if(!travelledEdges.contains(edgeKey)){
-				LOGGER.debug("travelling up to " + node);
-
-				String edgeSelector = "Edge"+recursionCount;
-				edgeSelectors.add(edgeSelector);
-				gt1 = gt1.inE().as(edgeSelector).outV().has(Constants.TYPE, node).as(node);
-				
-				
-				Object filtered = nodeV.value(Constants.FILTER);
-				if((Boolean)filtered == true) {
-					gt1 = gt1.not(__.in().has(Constants.TYPE, Constants.FILTER));
-				}
-				
-				travelledEdges.add(edgeKey);
-				gt1 = visitNodeForEdgeTraversal(nodeV, gt1, travelledEdges, recursionCount, edgeSelectors);
-				
-				LOGGER.debug("returning home to " + origName);
-				gt1 = gt1.out().has(Constants.TYPE, origName).as(origName + (recursionCount));
-				gt1 = gt1.where(origName, P.eq(origName + (recursionCount)));
-				recursionCount++;
-			}
-		}
-		return gt1;
-	}
+//	private GraphTraversal visitNodeForEdgeTraversal(Vertex orig, GraphTraversal gt1, List<String> travelledEdges, Integer recursionCount, List<String> edgeSelectors) {
+//		recursionCount++;
+//		String origName = orig.property(Constants.NAME).value()+"";
+//		GraphTraversal<Vertex, Vertex> downstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).out(TinkerFrame.META);
+//		// for each meta vertex downstream of this meta vertex
+//		while (downstreamIt.hasNext()){
+//			Vertex nodeV = downstreamIt.next();
+//			String node = nodeV.property(Constants.NAME).value()+"";
+//			String edgeKey = origName + ":::" + node;
+//			// if we have never travelled that edge before
+//			if(!travelledEdges.contains(edgeKey)) {
+//				LOGGER.debug("travelling down to " + node);
+//				
+//				String edgeSelector = "Edge"+recursionCount;
+//				edgeSelectors.add(edgeSelector);
+//				// travel the edge in our graph traversal, adding our edge selector to keep track
+//				gt1 = gt1.outE().as(edgeSelector).inV().has(Constants.TYPE, node).as(node);
+//				
+//				Object filtered = nodeV.value(Constants.FILTER);
+//				if((Boolean)filtered == true) {
+//					gt1 = gt1.not(__.in().has(Constants.TYPE, Constants.FILTER));
+//				}
+//
+//				travelledEdges.add(edgeKey);
+//				
+//				// continue travelling downstream as far as we can
+//				gt1 = visitNodeForEdgeTraversal(nodeV, gt1, travelledEdges, recursionCount, edgeSelectors);
+//				
+//				// when we can't go any further downstream, need to return home
+//				LOGGER.debug("returning home to " + origName);
+//				gt1 = gt1.in().has(Constants.TYPE, origName).as(origName + (recursionCount));
+//				gt1 = gt1.where(origName, P.eq(origName + (recursionCount)));
+//				recursionCount++;
+//			}
+//		}
+//		
+//		// do the same for upstream
+//		GraphTraversal<Vertex, Vertex> upstreamIt = g.traversal().V().has(Constants.TYPE, TinkerFrame.META).has(Constants.ID, orig.property(Constants.ID).value()).in(TinkerFrame.META);
+//		while(upstreamIt.hasNext()) {
+//			Vertex nodeV = upstreamIt.next();
+//			String node = nodeV.property(Constants.NAME).value()+"";
+//			String edgeKey = node + ":::" + origName;
+//			if(!travelledEdges.contains(edgeKey)){
+//				LOGGER.debug("travelling up to " + node);
+//
+//				String edgeSelector = "Edge"+recursionCount;
+//				edgeSelectors.add(edgeSelector);
+//				gt1 = gt1.inE().as(edgeSelector).outV().has(Constants.TYPE, node).as(node);
+//				
+//				
+//				Object filtered = nodeV.value(Constants.FILTER);
+//				if((Boolean)filtered == true) {
+//					gt1 = gt1.not(__.in().has(Constants.TYPE, Constants.FILTER));
+//				}
+//				
+//				travelledEdges.add(edgeKey);
+//				gt1 = visitNodeForEdgeTraversal(nodeV, gt1, travelledEdges, recursionCount, edgeSelectors);
+//				
+//				LOGGER.debug("returning home to " + origName);
+//				gt1 = gt1.out().has(Constants.TYPE, origName).as(origName + (recursionCount));
+//				gt1 = gt1.where(origName, P.eq(origName + (recursionCount)));
+//				recursionCount++;
+//			}
+//		}
+//		return gt1;
+//	}
 	
 //	public static GraphTraversal getIncompleteVertices(List<String> selectors, Graph g) {
 //		GremlinBuilder builder = new GremlinBuilder(g);
@@ -490,23 +486,23 @@ public class GremlinBuilder {
 //		LOGGER.debug("Script being executed...  " + builder.gt);
 //		return builder.gt;
 //	}
-	/**
-	 * 
-	 * @param selectors
-	 * @param g
-	 * @return
-	 * 
-	 * Use this method to gather all the vertices in graph g such that each vertex has a missing edge based on the metamodel
-	 * 
-	 * Example:
-	 * 		Metamodel: a -> b, a -> c, b -> d
-	 * 		return traversal that returns all a's without b's, all b's without a's, all a's without out c's, etc.
-	 */
-	public static GraphTraversal getIncompleteVertices(Graph g) {
-		GremlinBuilder builder = new GremlinBuilder(g);
-		builder.addIncompleteVertices();
-		return builder.gt;
-	}
+//	/**
+//	 * 
+//	 * @param selectors
+//	 * @param g
+//	 * @return
+//	 * 
+//	 * Use this method to gather all the vertices in graph g such that each vertex has a missing edge based on the metamodel
+//	 * 
+//	 * Example:
+//	 * 		Metamodel: a -> b, a -> c, b -> d
+//	 * 		return traversal that returns all a's without b's, all b's without a's, all a's without out c's, etc.
+//	 */
+//	public static GraphTraversal getIncompleteVertices(Graph g) {
+//		GremlinBuilder builder = new GremlinBuilder(g);
+//		builder.addIncompleteVertices();
+//		return builder.gt;
+//	}
 	
 	
 	
