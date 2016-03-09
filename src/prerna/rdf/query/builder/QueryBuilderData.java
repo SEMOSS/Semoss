@@ -39,6 +39,7 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.util.Utility;
 
 public class QueryBuilderData {
@@ -296,11 +297,40 @@ public class QueryBuilderData {
 		}
 	}
 	
-	public Set<String> getAllUrisInBuilderData() {
+	public boolean determineEligibleForCombining(QueryBuilderData nextDmcBuilderData, Map<String, Object> joinProps) {
+		// not eligible if column being appended already exists
+		// example of this is during traversals
+		// going from Title to Nominated and binding on the first title node
+		// then going from Nominated to all Titles with this value
+		// the triples will be the same but first its bound on one title node and the second on nominated
+		
+		// get the current uris used
+		Set<String> currValues = getUrisInBuilderData();
+		// get the other uris used
+		Set<String> newValues = nextDmcBuilderData.getUrisInBuilderData();
+
+		// get what is being joinedOn
+		String joinCol = (String) joinProps.get(JoinTransformation.COLUMN_TWO_KEY);
+		for(String uri : currValues) {
+			if(newValues.contains(uri)) {
+				// need to make sure it is not the join column since that is allowed to be the same
+				if(!Utility.getInstanceName(uri).equalsIgnoreCase(joinCol)) {
+					return false;
+				}
+			}
+		}
+		
+		return true;
+	}
+	
+	public Set<String> getUrisInBuilderData() {
 		Set<String> values = new HashSet<String>();
 		if(this.relTriples != null && !this.relTriples.isEmpty()) {
-			for(int i = 0; i < this.relTriples.size(); i++) {
-				values.addAll(this.relTriples.get(i));
+			//TODO: assumption, will it always be sub, pred, obj
+			if(this.relTriples.size() == 3) {
+				// do not want to consider the predicate
+				values.addAll(this.relTriples.get(0));
+				values.addAll(this.relTriples.get(2));
 			}
 		}
 		if(this.nodeProps != null && !this.nodeProps.isEmpty()) {
