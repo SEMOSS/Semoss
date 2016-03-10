@@ -270,7 +270,7 @@ public class SQLQueryTableBuilder extends AbstractQueryBuilder{
 					if(instance == null){
 						instance = "";
 					}
-					instance.replaceAll("'", "''");
+					instance = instance.replaceAll("'", "''");
 
 					if(filterIndex%1000==0){
 						if(filterIndex == 0){
