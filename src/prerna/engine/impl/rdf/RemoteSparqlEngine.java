@@ -91,7 +91,6 @@ public class RemoteSparqlEngine extends AbstractEngine implements IEngine {
 	{
 		try
 		{
-			
 			super.openDB(propFile);
 			
 			String sparqlQEndpoint = prop.getProperty(Constants.SPARQL_QUERY_ENDPOINT);
@@ -103,7 +102,7 @@ public class RemoteSparqlEngine extends AbstractEngine implements IEngine {
 			Hashtable <String, String> myMap = new Hashtable<String,String>();
 			myMap.put("apikey","d0184dd3-fb6b-4228-9302-1c6e62b01465");
 			//repo.setAdditionalHttpHeaders(myMap);
-			rc = new SPARQLConnection(repo);//, sparqlQEndpoint, sparqlUEndpoint);
+			rc = new SPARQLConnection(repo, null);//, sparqlQEndpoint, sparqlUEndpoint);
 			//rc = new SPARQLConnection(repo, sparqlQEndpoint, sparqlUEndpoint);
 	
 			// new ForwardChainingRDFSInferencer(bdSail);
