@@ -29,6 +29,8 @@ package prerna.rdf.engine.wrappers;
 
 import java.util.List;
 
+import javax.xml.datatype.XMLGregorianCalendar;
+
 import org.openrdf.model.Literal;
 import org.openrdf.model.Value;
 import org.openrdf.query.BindingSet;
@@ -105,29 +107,49 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 	private Object getRealValue(Object val){
 		try
 		{
-			if(val != null && val instanceof Literal)
-			{
-				if(QueryEvaluationUtil.isStringLiteral((Value) val)){
+			if(val != null && val instanceof Literal) {
+				// use datatype if present to determine the type
+				if( ((Literal) val).getDatatype() != null) {
+					// if string, return string
+					if(QueryEvaluationUtil.isStringLiteral((Value) val)){
+						return ((Literal)val).getLabel();
+					}
+					// if date as string
+					else if((val.toString()).contains("http://www.w3.org/2001/XMLSchema#dateTime")){
+						return (val.toString()).substring((val.toString()).indexOf("\"")+1, (val.toString()).lastIndexOf("\""));
+					}
+					else{
+						logger.debug("This is a literal impl >>>>>> "  + ((Literal)val).doubleValue());
+						return new Double(((Literal)val).doubleValue());
+					}
+				} else {
+					// no datatype present need to try and see based on casting
+					try {
+						XMLGregorianCalendar calendar = ((Literal)val).calendarValue();
+						return calendar.toGregorianCalendar().getTime(); // return date object
+					} catch(IllegalArgumentException ex) {
+						// do nothing
+					}
+
+					try {
+						double dVal = ((Literal)val).doubleValue();
+						return dVal;
+					} catch(NumberFormatException ex) {
+						// do nothing
+					}
+					
 					return ((Literal)val).getLabel();
 				}
-				else if((val.toString()).contains("http://www.w3.org/2001/XMLSchema#dateTime")){
-					return (val.toString()).substring((val.toString()).indexOf("\"")+1, (val.toString()).lastIndexOf("\""));
-				}
-				else{
-					logger.debug("This is a literal impl >>>>>> "  + ((Literal)val).doubleValue());
-					return new Double(((Literal)val).doubleValue());
-				}
-			}else if(val != null && val instanceof com.hp.hpl.jena.rdf.model.Literal)
-			{
+			} else if(val != null && val instanceof com.hp.hpl.jena.rdf.model.Literal) {
 				logger.debug("Class is " + val.getClass());
 				return new Double(((Literal)val).doubleValue());
 			}
+			
 			if(val!=null){
 				String value = val+"";
 				return Utility.getInstanceName(value);
 			}
-		}catch(RuntimeException ex)
-		{
+		} catch(RuntimeException ex) {
 			logger.debug(ex);
 		}
 		return "";
