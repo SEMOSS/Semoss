@@ -3,11 +3,16 @@ package prerna.algorithm.impl;
 import java.util.HashMap;
 import java.util.Iterator;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.algorithm.api.IColumnOperator;
 import prerna.ds.ExpressionIterator;
 import prerna.ds.TinkerFrame;
 
 public class AddColumnOperator implements IColumnOperator {
+	
+	private static final Logger LOGGER = LogManager.getLogger(AddColumnOperator.class.getName());
 	Iterator it;
 	TinkerFrame frame;
 	String newCol;
@@ -21,6 +26,9 @@ public class AddColumnOperator implements IColumnOperator {
 	}
 	
 	public void apply() {
+		
+		long startTime = System.currentTimeMillis();
+		
 //		for (int i = 0; i < headersUsed.length; i++) {
 			frame.connectTypes(headersUsed[0], newCol);
 //		}
@@ -37,6 +45,8 @@ public class AddColumnOperator implements IColumnOperator {
 			frame.addRelationship(row, row);
 		}
 		frame.setTempExpressionResult("SUCCESS");
+		
+		LOGGER.info("Added column '"+newCol+"': "+(System.currentTimeMillis() - startTime)+" ms");
 	}
 	
 }
