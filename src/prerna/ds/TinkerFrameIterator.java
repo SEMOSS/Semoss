@@ -18,30 +18,31 @@ public class TinkerFrameIterator implements Iterator<Object[]> {
 	private String dataType; //the data property to be used from the table
 	private GraphTraversal gt; //the traversal on the graph
 	List<String> selectors; //the selectors on the table
-	Set<String> filterSet; //set of columns that are filtered
-	
 	
 	public TinkerFrameIterator(List<String> selectors, Graph g) {
 		this(selectors, g, false);
 	}
 	
 	public TinkerFrameIterator(List<String> selectors, Graph g, boolean useRawData) {
-		this(selectors, g, useRawData, new HashSet<String>(0));
-	}
-	
-	public TinkerFrameIterator(List<String> selectors, Graph g, boolean useRawData, Set<String> filterSet) {
 		this.selectors = selectors;
 		dataType = useRawData ? Constants.VALUE : Constants.NAME;
-		this.filterSet = filterSet;
-		this.gt = openTraversal(selectors, g);
+		this.gt = openTraversal(selectors, g, -1, -1);
 	}
-
-	private GraphTraversal openTraversal(List<String> selectors, Graph g) {
-		
+	
+	public TinkerFrameIterator(List<String> selectors, Graph g, boolean useRawData, int start, int end) {
+		this.selectors = selectors;
+		dataType = useRawData ? Constants.VALUE : Constants.NAME;
+		this.gt = openTraversal(selectors, g, start, end);
+	}
+	
+	private GraphTraversal openTraversal(List<String> selectors, Graph g, int start, int end) {
 		this.selectors = selectors;
 		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(selectors, g);
 		
 		//finally execute it to get the executor
+		if(start != -1) {
+			builder.setRange(start, end);
+		}
 		GraphTraversal <Vertex, Map<String, Object>> gt = (GraphTraversal <Vertex, Map<String, Object>>)builder.executeScript();
 		return gt;
 	}
