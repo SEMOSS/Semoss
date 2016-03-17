@@ -64,7 +64,6 @@ public class SolrIndexEngine {
 
 	private static final String QUERY_RESPONSE = "queryResponse";
 	private static final String SPELLCHECK_RESPONSE = "spellcheckResponse";
-	private static final String HIGHLIGHTING_RESPONSE = "highlightingResponse";
 	private static final String SOLR_INSIGHTS_PATH_NAME = "/insightCore";
 	private static final String SOLR_INSTANCES_PATH_NAME = "/instancesCore";
 
@@ -462,6 +461,9 @@ public class SolrIndexEngine {
 		if (sortString != null && !sortString.isEmpty()) {
 			queryBuilder.setSort(STORAGE_NAME, sortString.toLowerCase());
 		}
+		// always add sort by score desc
+		queryBuilder.setSort("score", "desc");
+		
 		if (offsetInt != null) {
 			queryBuilder.setOffset(offsetInt);
 		}
@@ -513,15 +515,24 @@ public class SolrIndexEngine {
 			String querySearch = query.get(CommonParams.Q);
 			res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
 			if(res != null && res.getResults().size() == 0) {
+				// need to remove sorts sinc they might not exist
+				List<SortClause> sorts = query.getSorts();
+				List<SortClause> sortsCopy = new ArrayList<SortClause>();
+				sortsCopy.addAll(sorts);
+				sorts.clear();
 				// Query within the instanceCore only when the normal query returns no results
 				Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
 				appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
 				query.set(CommonParams.Q, appendedQuerySearch);
-				
+				// readd sorts
+				for(SortClause sort : sortsCopy) {
+					query.addSort(sort);
+				}
+				// grab spell check values
 				Map<String, List<String>> instanceSpellCheck = (Map<String, List<String>>) queryResults.get(SPELLCHECK_RESPONSE);
 				queryResponseMap.put(SPELLCHECK_RESPONSE, instanceSpellCheck);
 				searchResultMap.putAll(queryResponseMap);
-				
+				// query the insight core
 				res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
 			}
 
@@ -531,11 +542,6 @@ public class SolrIndexEngine {
 			if (spellCheckResponse != null && !spellCheckResponse.isEmpty()) {
 				queryResponseMap.put(SPELLCHECK_RESPONSE, spellCheckResponse);
 				searchResultMap.putAll(queryResponseMap);
-			}
-
-			Map<String, Map<String, List<String>>> hilighting = res.getHighlighting();
-			if (hilighting != null && !hilighting.isEmpty()) {
-				queryResponseMap.put(HIGHLIGHTING_RESPONSE, hilighting);
 			}
 		}
 		LOGGER.info("Returning results of search");
@@ -591,12 +597,22 @@ public class SolrIndexEngine {
 			res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
 			facetFieldList = res.getFacetFields();
 			if (facetFieldList != null && facetFieldList.get(0).getValueCount() == 0) {
-				//Query within the instanceCore
-				if (querySearch != null && !querySearch.equals(QUERY_ALL) && !querySearch.isEmpty()) {
-					Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
-					appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
-					query.set(CommonParams.Q, appendedQuerySearch);
+				// need to remove sorts sinc they might not exist
+				List<SortClause> sorts = query.getSorts();
+				List<SortClause> sortsCopy = new ArrayList<SortClause>();
+				sortsCopy.addAll(sorts);
+				for(SortClause sort : sortsCopy) {
+					query.removeSort(sort);
 				}
+				//Query within the instanceCore
+				Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
+				appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
+				query.set(CommonParams.Q, appendedQuerySearch);
+				// readd sorts
+				for(SortClause sort : sortsCopy) {
+					query.addSort(sort);
+				}
+				// query the insight core
 				res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
 				facetFieldList = res.getFacetFields();
 			}
@@ -664,6 +680,8 @@ public class SolrIndexEngine {
 		if (groupSort != null && !groupSort.isEmpty()) {
 			queryBuilder.setSort(STORAGE_NAME, groupSort.toLowerCase());
 		}
+		// always add sort by score desc
+		queryBuilder.setSort("score", "desc");
 		
 		queryBuilder.setQueryType("/spell");
 		queryBuilder.setSpellCheck(true);
@@ -716,19 +734,20 @@ public class SolrIndexEngine {
 			if(groupResponse != null && groupResponse.getValues().get(0).getValues().size() == 0) {
 				// need to remove sorts sinc they might not exist
 				List<SortClause> sorts = query.getSorts();
-				for(SortClause sort : sorts) {
+				List<SortClause> sortsCopy = new ArrayList<SortClause>();
+				sortsCopy.addAll(sorts);
+				for(SortClause sort : sortsCopy) {
 					query.removeSort(sort);
 				}
 				//Query within the instanceCore
-				if (querySearch != null && !querySearch.equals(QUERY_ALL) && !querySearch.isEmpty()) {
-					Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
-					 appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
-					 query.set(CommonParams.Q, appendedQuerySearch);
-				}
+				Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
+				appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
+				query.set(CommonParams.Q, appendedQuerySearch);
 				// readd sorts
-				for(SortClause sort : sorts) {
+				for(SortClause sort : sortsCopy) {
 					query.addSort(sort);
 				}
+				// query the insight core
 				res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
 				groupResponse = res.getGroupResponse();
 			}
