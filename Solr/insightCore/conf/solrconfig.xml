@@ -1285,11 +1285,10 @@
     <!-- Multiple "Spell Checkers" can be declared and used by this
          component
       -->
-
-    <!-- a spellchecker built from a field of the main index -->
+	<!-- a spellchecker built from a field of the main index -->
     <lst name="spellchecker">
       <str name="name">default</str>
-	  <str name="field">suggest_text</str>
+	  <str name="field">all_text_spelling</str>
       <str name="classname">solr.DirectSolrSpellChecker</str>
       <!-- the spellcheck distance measure used, the default is the internal levenshtein -->
       <str name="distanceMeasure">internal</str>
@@ -1301,10 +1300,11 @@
       <int name="minPrefix">1</int>
       <!-- maximum number of inspections per result. -->
       <int name="maxInspections">5</int>
+	  <str name="queryAnalyzerFieldType">text_spelling</str>
       <!-- minimum length of a query term to be considered for correction -->
       <int name="minQueryLength">4</int>
       <!-- maximum threshold of documents a query term can appear to be considered for correction -->
-      <float name="maxQueryFrequency">0.05</float>
+      <float name="maxQueryFrequency">0.01</float>
       <!-- uncomment this to require suggestions to occur in 1% of the documents
       	<float name="thresholdTokenFrequency">.01</float>
       -->
@@ -1314,7 +1314,7 @@
     <lst name="spellchecker">
       <str name="name">wordbreak</str>
       <str name="classname">solr.WordBreakSolrSpellChecker</str>      
-	  <str name="field">suggest_text</str>
+	  <str name="field">all_text_suggest</str>
       <str name="combineWords">true</str>
       <str name="breakWords">true</str>
       <int name="maxChanges">10</int>
@@ -1360,21 +1360,13 @@
   </searchComponent>
   
   <!-- A request handler for demonstrating the spellcheck component.  
-
-       NOTE: This is purely as an example.  The whole purpose of the
-       SpellCheckComponent is to hook it into the request handler that
-       handles your normal user queries so that a separate request is
-       not needed to get suggestions.
-
-       IN OTHER WORDS, THERE IS REALLY GOOD CHANCE THE SETUP BELOW IS
-       NOT WHAT YOU WANT FOR YOUR PRODUCTION SYSTEM!
        
        See http://wiki.apache.org/solr/SpellCheckComponent for details
        on the request parameters.
     -->
-  <requestHandler name="/spell" class="solr.SearchHandler">
+  <requestHandler name="/spell" class="solr.SearchHandler" startup="lazy">
     <lst name="defaults">
-	  <str name="df">suggest_text</str>
+	  <str name="df">all_text_spelling</str>
       <str name="spellcheck.dictionary">default</str> 
       <str name="spellcheck">on</str>
       <str name="spellcheck.extendedResults">true</str>  
@@ -1397,14 +1389,14 @@
   <searchComponent name="suggest" class="solr.SpellCheckComponent">
   	<lst name="spellchecker">
       <str name="name">suggest</str>
-	  <str name="field">suggest_text</str>
+	  <str name="field">all_text_suggest</str>
 	  <str name="classname">Suggester</str>
-	  <str name="lookupImpl">AnalyzingInfixLookupFactory</str>
+	  <str name="lookupImpl">org.apache.solr.spelling.suggest.jaspell.JaspellLookupFactory</str>
 	  <str name="suggestAnalyzerFieldType">text_en_splitting</str>  
       <str name="queryAnalyzerFieldType">text_suggest</str>   
       <float name="threshold">0.005</float>
 	  <str name="buildOnCommit">false</str>
-   	  <str name="highlight">false</str>
+	  <bool name="exactMatchFirst">true</bool>
     </lst>
   </searchComponent>
 

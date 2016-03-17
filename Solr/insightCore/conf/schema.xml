@@ -68,7 +68,8 @@
 		<!-- this will hold the insight name for storage and alphabetical sorting-->
 		<field name="name" type="string" indexed="true" stored="true" required="true" multiValued="false" /> 
 		<!-- this will hold the insight name for indexing -->
-		<field name="index_name" type="text_en_splitting" indexed="false" stored="true" required="true" multiValued="false" /> 
+		<!-- <field name="index_name" type="text_en_splitting" indexed="false" stored="true" required="true" multiValued="false" /> -->
+		<field name="index_name" type="text_en_splitting" indexed="true" stored="false" required="true" multiValued="true" /> 
 		<!-- this will hold hte date the insight was created -->
 		<field name="created_on" type="date" indexed="true" stored="true" required="true" multiValued="false" /> 
 		<!-- this will hold the last modified date of the insight -->
@@ -81,7 +82,7 @@
 		<!-- this will hold the number of views of this insight -->
 		<field name="view_count" type="long" indexed="true" stored="true" required="false" multiValued="false" /> 
 		<!-- this will hold multiple string valued tags assigned to categorize the insight -->
-		<field name="tags" type="text_querying" indexed="true" stored="true" required="false" multiValued="true" /> 
+		<field name="tags" type="text_en_splitting" indexed="true" stored="true" required="false" multiValued="true" /> 
 		<!-- this will hold general annotations users have made to the insight -->
 		<field name="annotation" type="text_en_splitting" indexed="true" stored="true" required="false" multiValued="false" /> 
 		<!-- this will hold comments various users have regarding an insight -->
@@ -99,18 +100,18 @@
 		<!-- this will hold the final visual that the user will see when running the insight -->
 		<field name="layout" type="string" indexed="true" stored="true" required="true" multiValued="false" /> 
 		<!-- this will hold a list of parameters used in the query -->
-		<field name="params" type="text_ws" indexed="true" stored="true" required="false" multiValued="true" /> 
+		<field name="params" type="text_en_splitting" indexed="true" stored="true" required="false" multiValued="true" /> 
 		<!-- this will hold a list of algorithms used in the query -->
-		<field name="algorithms" type="text_ws" indexed="true" stored="true" required="false" multiValued="true" /> 
+		<field name="algorithms" type="text_en_splitting" indexed="true" stored="true" required="false" multiValued="true" /> 
 		<!-- need to keep track if this insight exists from a db or is a cached tinkerframe -->
 		<field name="non_db_insight" type="boolean" indexed="false" stored="true" required="false" multiValued="false" />
 
 		
 		<!-- holds the actual insight definition that is used by BE to generate the insight, holds information regarding queries, joins, params, etc. -->
 		<!-- <field name="insight_definition" type="string" indexed="false" stored="true" required="true" multiValued="true" /> -->
-		
+		<!-- termVectors="true" termPositions="true" termOffsets="true" -->
 		<!-- this is meant to hold all the text a user has surrounding an insights -->
-		<field name="all_text" type="text_en_splitting" indexed="true" stored="false" required="true" multiValued="true" termVectors="true" termPositions="true" termOffsets="true"/>
+		<field name="all_text" type="text_en_splitting" indexed="true" stored="false" required="true" multiValued="true" />
 		
 		<!-- copy the text fields into the field "all text" -->
 		<copyField source="index_name" dest="all_text"/>
@@ -124,19 +125,15 @@
 		<copyField source="params" dest="all_text"/>
 		<copyField source="algorithms" dest="all_text"/>
 		
+		<!-- field for autocomplete -->
+		<field name="all_text_suggest" type="text_suggest" indexed="true" stored="false" required="true" multiValued="true" termVectors="true" termPositions="true" termOffsets="true"/> 
+		<copyField source="index_name" dest="all_text_suggest"/>
+
 		
-		<field name="suggest_text" type="text_suggest" indexed="true" stored="false" required="true" multiValued="true"/> 
-		<!-- copy the text fields into the field "suggest text" -->
-		<copyField source="index_name" dest="suggest_text"/>
-		<copyField source="user_id" dest="suggest_text"/>
-		<copyField source="tags" dest="suggest_text"/>
-		<copyField source="annotation" dest="suggest_text"/>
-		<copyField source="comment" dest="suggest_text"/>
-		<copyField source="engines" dest="suggest_text"/>
-		<copyField source="query_projections" dest="suggest_text"/>
-		<copyField source="layout" dest="suggest_text"/>
-		<copyField source="params" dest="suggest_text"/>
-		<copyField source="algorithms" dest="suggest_text"/>
+		<!-- field for spellcheck -->
+		<field name="all_text_spelling" type="text_spelling" indexed="true" stored="false" required="true" multiValued="true" termVectors="true" termPositions="true" termOffsets="true"/> 
+		<copyField source="index_name" dest="all_text_spelling"/>
+		
 
 	</fields>
 	<!-- Field to use to determine and enforce document uniqueness. 
@@ -153,14 +150,6 @@
 		<!-- string type-->
 		<fieldType name="date" class="solr.DateField" sortMissingLast="true"/>
 			
-		<!-- external files must be located in $SOLR_HOME/data directory
-		 name of file should be external_<fieldName>.txt
-		 external files must be defined in solrconfig.xml in order to 
-		 reload external files with query listeners.
-		 Improves performance since queries will be viewed multiple times
-		 and do not want to update the index each time.
-		-->
-		
 		<fieldType name="view_count" keyField="id" defVal="0" stored="true" indexed="true" class="solr.ExternalFileField" valType="pfloat"/>
 		<fieldType name="favorites_count" keyField="id" defVal="0" stored="true" indexed="true" class="solr.ExternalFileField" valType="pfloat"/>
 
@@ -175,76 +164,62 @@
 		<fieldType name="double" class="solr.TrieDoubleField" precisionStep="0" positionIncrementGap="0"/>
 		
 		
-		<!-- creating a new field type for autosuggest that doesnt use 'term vectors'-->
+			<!-- creating a new field type for autosuggest that doesnt use 'term vectors'-->
 		<fieldType name="text_suggest" class="solr.TextField" positionIncrementGap="100">
 			<analyzer type="index">
 				<tokenizer class="solr.KeywordTokenizerFactory"/>
 				<filter class="solr.PatternReplaceFilterFactory" pattern="_" replacement=" " replace="all" /> 
 				<filter class="solr.EnglishMinimalStemFilterFactory"/> 
-				<filter class="solr.PatternReplaceFilterFactory" pattern="([^\w\d\*Ã¦Ã¸Ã¥Ã†Ã˜Ã… ])" replacement="" replace="all"/>
 			</analyzer>
 			<analyzer type="query">
 				<tokenizer class="solr.KeywordTokenizerFactory"/>
+				<filter class="solr.StopFilterFactory" words="stopwords.txt" ignoreCase="true"/>
 				<filter class="solr.LowerCaseFilterFactory"/>
-				<filter class="solr.EnglishMinimalStemFilterFactory"/> 
 			</analyzer>
 		</fieldType>
 
 		
-			<!-- A text field with defaults appropriate for English, plus
-		 aggressive word-splitting and autophrase features enabled.
-		 This field is just like text_en, except it adds
-		 WordDelimiterFilter to enable splitting and matching of
-		 words on case-change, alpha numeric boundaries, and
-		 non-alphanumeric chars.  This means certain compound word
-		 cases will work, for example query "wi fi" will match
-		 document "WiFi" or "wi-fi".
-			-->
+			<!-- Field type for spellcheck that uses whitespace tokenizer'-->
+		<fieldType name="text_spelling" class="solr.TextField" positionIncrementGap="100" autoGeneratePhraseQueries="true">
+		  <analyzer type="index">
+			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
+			<filter class="solr.PatternReplaceFilterFactory" pattern="_" replacement=" " replace="all" /> 
+			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
+			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="0" catenateWords="1" splitOnNumerics="0" catenateNumbers="1" catenateAll="0" splitOnCaseChange="1"/>
+			<filter class="solr.SynonymFilterFactory" synonyms="synonyms.txt" ignoreCase="true" expand="false"/>
+			<filter class="solr.LowerCaseFilterFactory"/>
+			<filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
+		  </analyzer>
+		  <analyzer type="query">
+			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
+			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
+			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="0" generateNumberParts="0"  stemEnglishPossessive="0" catenateWords="0" splitOnNumerics="0" catenateNumbers="0" catenateAll="0" splitOnCaseChange="1"/>
+			<filter class="solr.LowerCaseFilterFactory"/>
+			<filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
+		  </analyzer>
+		</fieldType>
+		
+			
+			<!-- Field type that uses KeyWord Tokenizer-->
 		<fieldType name="text_en_splitting" class="solr.TextField" positionIncrementGap="100" autoGeneratePhraseQueries="true">
 		  <analyzer type="index">
-			<charFilter class="solr.PatternReplaceCharFilterFactory" pattern="_" replacement=" "/>
-			<tokenizer class="solr.StandardTokenizerFactory"/>
+			<tokenizer class="solr.KeywordTokenizerFactory"/>
+			<filter class="solr.PatternReplaceFilterFactory" pattern="_" replacement=" " replace="all" /> 
 			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
-			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="1" catenateNumbers="1" catenateAll="0" splitOnCaseChange="1"/>
+			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="0" catenateWords="1" splitOnNumerics="0" catenateNumbers="1" catenateAll="0" splitOnCaseChange="1"/>
 			<filter class="solr.SynonymFilterFactory" synonyms="synonyms.txt" ignoreCase="true" expand="false"/>
 			<filter class="solr.LowerCaseFilterFactory"/>
 			<filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
-			<filter class="solr.PorterStemFilterFactory"/>
 		  </analyzer>
 		  <analyzer type="query">
-			<tokenizer class="solr.StandardTokenizerFactory"/>
+			<tokenizer class="solr.KeywordTokenizerFactory"/>
 			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
-			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="0" catenateNumbers="0" catenateAll="0" splitOnCaseChange="1"/>
-			<filter class="solr.LowerCaseFilterFactory"/>
-			<filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
-			<filter class="solr.PorterStemFilterFactory"/>
-		  </analyzer>
-		</fieldType>
-		
-		
-		<fieldType name="text_querying" class="solr.TextField" positionIncrementGap="100" autoGeneratePhraseQueries="true">
-		  <analyzer type="index">
-			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
-			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="1" catenateNumbers="1" catenateAll="0" splitOnCaseChange="1"/>
-			<filter class="solr.LowerCaseFilterFactory"/>
-		  </analyzer>
-		  <analyzer type="query">
-			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
-			<filter class="solr.SynonymFilterFactory" synonyms="synonyms.txt" ignoreCase="true" expand="false"/>
-			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
-			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="0" catenateNumbers="0" catenateAll="0" splitOnCaseChange="1"/>
+			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="0" generateNumberParts="0"  stemEnglishPossessive="0" catenateWords="0" splitOnNumerics="0" catenateNumbers="0" catenateAll="0" splitOnCaseChange="1"/>
 			<filter class="solr.LowerCaseFilterFactory"/>
 			<filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
 		  </analyzer>
-		</fieldType>
-				
-			<!-- A text field that only splits on whitespace for exact matching of words -->
-		<fieldType name="text_ws" class="solr.TextField" positionIncrementGap="100">
-		  <analyzer>
-			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
-		  </analyzer>
-		</fieldType>
-	
+		</fieldType>				
+
 	</types>
 	 
 </schema>

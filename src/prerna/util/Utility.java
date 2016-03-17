@@ -855,13 +855,13 @@ public class Utility {
 //				}
 				
 				String perspective = (String) ss.getVar("QUESTION_PERSPECTIVE");
-				String perspString ="-Perspective";
-				String titleString=" Perspective";
-				if (perspective.contains(perspString)) {
-					perspective = perspective.replace(perspString, "");
+				String perspString1 ="-Perspective";
+				String perspString2 =" Perspective";
+				if (perspective.contains(perspString1)) {
+					perspective = perspective.replace(perspString1, "");
 				}
-				if(perspective.contains(titleString)){
-					perspective = perspective.replace(perspString, "");
+				if(perspective.contains(perspString2)){
+					perspective = perspective.replace(perspString2, "");
 				}
 
 				JdbcClob obj = (JdbcClob) ss.getVar("QUESTION_MAKEUP"); 
@@ -1090,7 +1090,8 @@ public class Utility {
 	public static void addToLocalMaster(IEngine engineToAdd) {
 		IEngine localMaster = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
 		if(localMaster == null) {
-			throw new NullPointerException("Unable to find local master database in DIHelper.");
+			LOGGER.info(">>>>>>>> Unable to find local master database in DIHelper.");
+			return;
 		}
 		if(engineToAdd == null) {
 			throw new NullPointerException("Unable to load engine ");
