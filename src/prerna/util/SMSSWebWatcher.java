@@ -62,15 +62,6 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	@Override
 	public void process(String fileName) {
 		loadNewDB(fileName);
-		try {
-			SolrIndexEngine.getInstance().buildSuggester();
-		} catch (KeyManagementException e) {
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		} catch (KeyStoreException e) {
-			e.printStackTrace();
-		}
 	}
 
 	/**
@@ -153,7 +144,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
 		String[] engineNames = new String[fileNames.length];
-		String localMasterDBName = Constants.LOCAL_MASTER_DB_NAME + ".smss";
+		String localMasterDBName = Constants.LOCAL_MASTER_DB_NAME + this.extension;
 		int localMasterIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, localMasterDBName);
 		if(localMasterIndex != -1) {
 			String temp = fileNames[0];

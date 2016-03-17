@@ -67,10 +67,16 @@
 		<field name="id" type="string" indexed="true" stored="true" required="true" multiValued="false" />
 		<field name="core_engine" type="string" indexed="true" stored="true" required="true" multiValued="false" />
 		<field name="value" type="string" indexed="true" stored="true" required="true" multiValued="false" /> 
-		<field name="instances" type="text_en_splitting" indexed="true" stored="false" required="true" multiValued="true" /> 
-		<field name="instance_suggest" type="text_suggest" indexed="true" stored="false" required="true" multiValued="true" /> 
-		<copyField source="instances" dest="instance_suggest"/>
-
+		<field name="instances" type="text_en_splitting" indexed="true" stored="true" required="true" multiValued="true" /> 
+		
+		<!-- field for suggest -->
+		<field name="instances_suggest" type="text_suggest" indexed="true" stored="false" required="true" multiValued="true" /> 
+		<copyField source="instances" dest="instances_suggest"/>
+		
+		<!-- field for spellcheck -->
+		<field name="instance_spelling" type="text_spelling" indexed="true" stored="false" required="true" multiValued="true" termVectors="true" termPositions="true" termOffsets="true"/> 
+		<copyField source="instances" dest="instance_spelling"/>
+		
 	</fields>
 	<!-- Field to use to determine and enforce document uniqueness. 
 		Unless this field is marked with required="false", it will be a required field
@@ -85,14 +91,7 @@
 		<fieldType name="boolean" class="solr.BoolField" sortMissingLast="true"/>
 		<!-- string type-->
 		<fieldType name="date" class="solr.DateField" sortMissingLast="true"/>
-			
-		<!-- external files must be located in $SOLR_HOME/data directory
-		 name of file should be external_<fieldName>.txt
-		 external files must be defined in solrconfig.xml in order to 
-		 reload external files with query listeners.
-		 Improves performance since queries will be viewed multiple times
-		 and do not want to update the index each time.
-		-->
+
 		<fieldType name="view_count" keyField="id" defVal="0" stored="true" indexed="true" class="solr.ExternalFileField" valType="pfloat"/>
 		<fieldType name="favorites_count" keyField="id" defVal="0" stored="true" indexed="true" class="solr.ExternalFileField" valType="pfloat"/>
 
@@ -106,77 +105,64 @@
 		<fieldType name="long" class="solr.TrieLongField" precisionStep="0" positionIncrementGap="0"/>
 		<fieldType name="double" class="solr.TrieDoubleField" precisionStep="0" positionIncrementGap="0"/>
 			
-		 <!-- A text field with defaults appropriate for English: it
-			 tokenizes with StandardTokenizer, removes English stop words
-			 (lang/stopwords_en.txt), down cases, protects words from protwords.txt, and
-			 finally applies Porter's stemming.  The query time analyzer
-			 also applies synonyms from synonyms.txt. -->
-	
-		<fieldType name="text_en" class="solr.TextField" positionIncrementGap="100">
-		  <analyzer type="index">
-			<tokenizer class="solr.StandardTokenizerFactory"/>
-			<filter class="solr.SynonymFilterFactory" synonyms="synonyms.txt" ignoreCase="true" expand="false"/>
-			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
-			<filter class="solr.LowerCaseFilterFactory"/>
-			<filter class="solr.EnglishPossessiveFilterFactory"/>
-			<filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
-			<filter class="solr.PorterStemFilterFactory"/>
-		  </analyzer>
-		  <analyzer type="query">
-			<tokenizer class="solr.StandardTokenizerFactory"/>
-			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
-			<filter class="solr.LowerCaseFilterFactory"/>
-			<filter class="solr.EnglishPossessiveFilterFactory"/>
-			<filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
-			<filter class="solr.PorterStemFilterFactory"/>
-		  </analyzer>
-		</fieldType>
+
 		
-		<!-- creating a new field type for autosuggest that doesnt use 'term vectors'-->
+	<!-- creating a new field type for autosuggest that doesnt use 'term vectors'-->
 		<fieldType name="text_suggest" class="solr.TextField" positionIncrementGap="100">
 			<analyzer type="index">
 				<tokenizer class="solr.KeywordTokenizerFactory"/>
 				<filter class="solr.PatternReplaceFilterFactory" pattern="_" replacement=" " replace="all" /> 
 				<filter class="solr.EnglishMinimalStemFilterFactory"/> 
-				<filter class="solr.PatternReplaceFilterFactory" pattern="([^\w\d\*Ã¦Ã¸Ã¥Ã†Ã˜Ã… ])" replacement="" replace="all"/>
 			</analyzer>
 			<analyzer type="query">
 				<tokenizer class="solr.KeywordTokenizerFactory"/>
+				<filter class="solr.StopFilterFactory" words="stopwords.txt" ignoreCase="true"/>
 				<filter class="solr.LowerCaseFilterFactory"/>
-				<filter class="solr.EnglishMinimalStemFilterFactory"/> 
 			</analyzer>
 		</fieldType>
 
 		
-			<!-- A text field with defaults appropriate for English, plus
-		 aggressive word-splitting and autophrase features enabled.
-		 This field is just like text_en, except it adds
-		 WordDelimiterFilter to enable splitting and matching of
-		 words on case-change, alpha numeric boundaries, and
-		 non-alphanumeric chars.  This means certain compound word
-		 cases will work, for example query "wi fi" will match
-		 document "WiFi" or "wi-fi".
-			-->
-		<fieldType name="text_en_splitting" class="solr.TextField" positionIncrementGap="100" autoGeneratePhraseQueries="true">
+			<!-- Field type for spellcheck that uses whitespace tokenizer'-->
+		<fieldType name="text_spelling" class="solr.TextField" positionIncrementGap="100" autoGeneratePhraseQueries="true">
 		  <analyzer type="index">
-			<tokenizer class="solr.StandardTokenizerFactory"/>
+			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
 			<filter class="solr.PatternReplaceFilterFactory" pattern="_" replacement=" " replace="all" /> 
 			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
-			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="1" catenateNumbers="1" catenateAll="0" splitOnCaseChange="1"/>
+			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="0" catenateWords="1" splitOnNumerics="0" catenateNumbers="1" catenateAll="0" splitOnCaseChange="1"/>
 			<filter class="solr.SynonymFilterFactory" synonyms="synonyms.txt" ignoreCase="true" expand="false"/>
 			<filter class="solr.LowerCaseFilterFactory"/>
 			<filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
-			<!--<filter class="solr.PorterStemFilterFactory"/> -->
 		  </analyzer>
 		  <analyzer type="query">
-			<tokenizer class="solr.StandardTokenizerFactory"/>
+			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
 			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
-			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="0" catenateNumbers="0" catenateAll="0" splitOnCaseChange="1"/>
+			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="0" generateNumberParts="0"  stemEnglishPossessive="0" catenateWords="0" splitOnNumerics="0" catenateNumbers="0" catenateAll="0" splitOnCaseChange="1"/>
 			<filter class="solr.LowerCaseFilterFactory"/>
 			<filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
-			<!--<filter class="solr.PorterStemFilterFactory"/> -->
 		  </analyzer>
 		</fieldType>
+		
+			
+			<!-- Field type that uses KeyWord Tokenizer-->
+		<fieldType name="text_en_splitting" class="solr.TextField" positionIncrementGap="100" autoGeneratePhraseQueries="true">
+		  <analyzer type="index">
+			<tokenizer class="solr.KeywordTokenizerFactory"/>
+			<filter class="solr.PatternReplaceFilterFactory" pattern="_" replacement=" " replace="all" /> 
+			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
+			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="0" catenateWords="1" splitOnNumerics="0" catenateNumbers="1" catenateAll="0" splitOnCaseChange="1"/>
+			<filter class="solr.SynonymFilterFactory" synonyms="synonyms.txt" ignoreCase="true" expand="false"/>
+			<filter class="solr.LowerCaseFilterFactory"/>
+			<filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
+		  </analyzer>
+		  <analyzer type="query">
+			<tokenizer class="solr.KeywordTokenizerFactory"/>
+			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
+			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="0" generateNumberParts="0"  stemEnglishPossessive="0" catenateWords="0" splitOnNumerics="0" catenateNumbers="0" catenateAll="0" splitOnCaseChange="1"/>
+			<filter class="solr.LowerCaseFilterFactory"/>
+			<filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
+		  </analyzer>
+		</fieldType>					
+
 	</types>
 	 
 </schema>
