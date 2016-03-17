@@ -48,7 +48,6 @@ import org.apache.solr.common.params.HighlightParams;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.MoreLikeThisParams;
 import org.apache.solr.common.params.SpellingParams;
-import org.apache.solr.common.util.NamedList;
 
 import edu.stanford.nlp.util.ArraySet;
 import prerna.util.Constants;
@@ -74,7 +73,7 @@ public class SolrIndexEngine {
 	private static final String SOLR_INSIGHTS_PATH_NAME = "/insightCore";
 	private static final String SOLR_INSTANCES_PATH_NAME = "/instancesCore";
 
-	public static final String QUERYALL = "*:*";
+	public static final String QUERY_ALL = "*:*";
 	
 	// Schema Field Names
 	public static final String ID = "id";
@@ -217,7 +216,7 @@ public class SolrIndexEngine {
 	public Map<String, Object> modifyInsight(String uniqueID, Map<String, Object> fieldsToModify) throws SolrServerException, IOException {
 		if (serverActive()) {
 			Map<String, Object> queryMap = new HashMap<String, Object>();
-			queryMap.put(CommonParams.Q, QUERYALL);
+			queryMap.put(CommonParams.Q, QUERY_ALL);
 			Map<String, List<String>> filterForId = new HashMap<String, List<String>>();
 			List<String> idList = new ArrayList<String>();
 			idList.add(uniqueID);
@@ -284,7 +283,7 @@ public class SolrIndexEngine {
 				res = getQueryResponse(queryOptions, SOLR_PATHS.SOLR_INSIGHTS_PATH);
 				if(res.getResults().size() == 0) {
 					// Query within the instanceCore only when the normal query returns no results
-					if (querySearch != null && !querySearch.equals(QUERYALL) && !querySearch.isEmpty()) {
+					if (querySearch != null && !querySearch.equals(QUERY_ALL) && !querySearch.isEmpty()) {
 						Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
 						appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
 						queryOptions.put(CommonParams.Q, appendedQuerySearch);
@@ -329,14 +328,13 @@ public class SolrIndexEngine {
 	 * @param queryOptions               specification to query by
 	 * @return result of the query
 	 */
-	private QueryResponse getQueryResponse(Map<String, Object> queryOptions, SOLR_PATHS path)
-			throws SolrServerException {
+	private QueryResponse getQueryResponse(Map<String, Object> queryOptions, SOLR_PATHS path) throws SolrServerException {
 		QueryResponse res = null;
 		if (serverActive()) {
 
 			SolrQuery Q = new SolrQuery();
 			// Default
-			Q.setQuery(QUERYALL);
+			Q.setQuery(QUERY_ALL);
 			LOGGER.info("Docs will be queried by default query");
 
 			// COMMON FILTERS
@@ -636,8 +634,8 @@ public class SolrIndexEngine {
 		if (serverActive()) {
 			try {
 				LOGGER.info("PREPARING TO DELETE ALL SOLR DATA");
-				insightServer.deleteByQuery(QUERYALL);
-				instanceServer.deleteByQuery(QUERYALL);
+				insightServer.deleteByQuery(QUERY_ALL);
+				instanceServer.deleteByQuery(QUERY_ALL);
 				LOGGER.info("ALL SOLR DATA DELETED");
 				insightServer.commit();
 				instanceServer.commit();
@@ -848,11 +846,10 @@ public class SolrIndexEngine {
 	/**
 	 * Returns the query response and spell check based on input files
 	 * 
-	 * @param queryOptions
-	 *            A Map containing the query options
-	 * @return Map<String, Object> where the keys are QUERY_RESPONSE and
-	 *         SPELLCHECK_RESPONSE to get query return and spell check values
-	 *         respectively
+	 * @param queryOptions						A Map containing the query options
+	 * @return 									Map<String, Object> where the keys are QUERY_RESPONSE and
+	 *         									SPELLCHECK_RESPONSE to get query return and spell check values
+	 *         									respectively
 	 * @throws SolrServerException
 	 * @throws IOException
 	 */
@@ -868,7 +865,7 @@ public class SolrIndexEngine {
 				res = getQueryResponse(queryOptions, SOLR_PATHS.SOLR_INSIGHTS_PATH);
 				if(res.getResults().size() == 0) {
 					// Query within the instanceCore only when the normal query returns no results
-					if (querySearch != null && !querySearch.equals(QUERYALL) && !querySearch.isEmpty()) {
+					if (querySearch != null && !querySearch.equals(QUERY_ALL) && !querySearch.isEmpty()) {
 						 Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
 						 appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
 						 queryOptions.put(CommonParams.Q, appendedQuerySearch);
@@ -900,10 +897,8 @@ public class SolrIndexEngine {
 	/**
 	 * Gets the facet/count for each instance of the specified fields
 	 * 
-	 * @param searchString
-	 *            Search string for the query
-	 * @param facetList
-	 *            The list of fields to facet
+	 * @param searchString						Search string for the query
+	 * @param facetList							The list of fields to facet
 	 * @return
 	 * @throws KeyManagementException
 	 * @throws NoSuchAlgorithmException
@@ -932,8 +927,7 @@ public class SolrIndexEngine {
 	/**
 	 * Gets the facet/count for each instance of the specified fields
 	 * 
-	 * @param queryOptions
-	 *            options that determine which fields to facet by
+	 * @param queryOptions				Options that determine which fields to facet by
 	 * @return faceted values of fields
 	 */
 	private Map<String, Map<String, Long>> facetDocument(Map<String, Object> queryOptions) throws SolrServerException {
@@ -950,7 +944,7 @@ public class SolrIndexEngine {
 				facetFieldList = res.getFacetFields();
 				if (facetFieldList != null && facetFieldList.get(0).getValueCount() == 0) {
 					//Query within the instanceCore
-					if (querySearch != null && !querySearch.equals(QUERYALL) && !querySearch.isEmpty()) {
+					if (querySearch != null && !querySearch.equals(QUERY_ALL) && !querySearch.isEmpty()) {
 						Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
 						 appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
 						 queryOptions.put(CommonParams.Q, appendedQuerySearch);
@@ -985,16 +979,11 @@ public class SolrIndexEngine {
 	 * Gets the grouped SolrDocument based on the results of the selected fields
 	 * to group by
 	 * 
-	 * @param searchString
-	 *            Search string for the query
-	 * @param searchField
-	 *            The field to apply for the search
-	 * @param groupOffset
-	 *            The offset for the group return
-	 * @param groupLimit
-	 *            The limit for the group return
-	 * @param groupByField
-	 *            The field to group by
+	 * @param searchString					Search string for the query
+	 * @param searchField					The field to apply for the search
+	 * @param groupOffset					The offset for the group return
+	 * @param groupLimit					The limit for the group return
+	 * @param groupByField					The field to group by
 	 * @param filterData
 	 * @return
 	 * @throws KeyManagementException
@@ -1074,7 +1063,7 @@ public class SolrIndexEngine {
 				groupResponse = res.getGroupResponse();
 				if(groupResponse != null && groupResponse.getValues().get(0).getValues().size() == 0) {
 					//Query within the instanceCore
-					if (querySearch != null && !querySearch.equals(QUERYALL) && !querySearch.isEmpty()) {
+					if (querySearch != null && !querySearch.equals(QUERY_ALL) && !querySearch.isEmpty()) {
 						Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
 						 appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
 						 queryOptions.put(CommonParams.Q, appendedQuerySearch);
@@ -1111,117 +1100,109 @@ public class SolrIndexEngine {
 		return groupByResponse;
 	}
 
-	/**
-	 * Gets the 'Most Like This' SolrDocuments based on document's similarity to
-	 * the specified query
-	 * 
-	 * @param searchString
-	 *            Search string for the query
-	 * @param searchField
-	 *            The field to apply for the search
-	 * @param docFrequency
-	 *            The minimum doc frequency for each return doc
-	 * @param termFrequency
-	 *            The minimum term frequency for each return doc
-	 * @param mltOffset
-	 *            The offset for the response return
-	 * @param mltLimit
-	 *            The limit for the response return
-	 * @param mltField
-	 *            The field to execute mlt on
-	 * @return
-	 * @throws KeyManagementException
-	 * @throws NoSuchAlgorithmException
-	 * @throws KeyStoreException
-	 * @throws SolrServerException
-	 */
-	public Map<String, SolrDocumentList> executeQueryMLTResponse(String searchString, String searchField,
-			Integer docFrequency, Integer termFrequency, Integer mltOffset, Integer mltLimit, String mltField)
-					throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, SolrServerException {
-		Map<String, Object> queryData = new HashMap<>();
+//	/**
+//	 * Gets the 'Most Like This' SolrDocuments based on document's similarity to
+//	 * the specified query
+//	 * @param searchString			Search string for the query
+//	 * @param searchField			The field to apply for the search
+//	 * @param docFrequency			The minimum doc frequency for each return doc
+//	 * @param termFrequency			The minimum term frequency for each return doc
+//	 * @param mltOffset				The offset for the response return
+//	 * @param mltLimit				The limit for the response return
+//	 * @param mltField				The field to execute mlt on
+//	 * @return
+//	 * @throws KeyManagementException
+//	 * @throws NoSuchAlgorithmException
+//	 * @throws KeyStoreException
+//	 * @throws SolrServerException
+//	 */
+//	public Map<String, SolrDocumentList> executeQueryMLTResponse(String searchString, String searchField,
+//			Integer docFrequency, Integer termFrequency, Integer mltOffset, Integer mltLimit, String mltField)
+//					throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, SolrServerException {
+//		Map<String, Object> queryData = new HashMap<>();
+//
+//		if (searchString != null && !searchString.isEmpty()) {
+//			queryData.put(CommonParams.Q, searchString);
+//		}
+//		if (searchField != null && !searchField.isEmpty()) {
+//			queryData.put(CommonParams.DF, searchString);
+//		}
+//		if (docFrequency != null) {
+//			queryData.put(MoreLikeThisParams.MIN_DOC_FREQ, docFrequency);
+//		} else {
+//			queryData.put(MoreLikeThisParams.MIN_DOC_FREQ, 1);
+//		}
+//		if (termFrequency != null) {
+//			queryData.put(MoreLikeThisParams.MIN_TERM_FREQ, termFrequency);
+//		} else {
+//			queryData.put(MoreLikeThisParams.MIN_TERM_FREQ, 1);
+//		}
+//		// NEED TO ADD LIMIT AND OFFSET FOR THIS... WHAT IS THE PARAM NAME FOR
+//		// THIS
+//
+//		List<String> retFields = new ArrayList<String>();
+//		retFields.add(CORE_ENGINE);
+//		retFields.add(CORE_ENGINE_ID);
+//		retFields.add(LAYOUT);
+//		retFields.add(STORAGE_NAME);
+//		retFields.add(CREATED_ON);
+//		retFields.add(USER_ID);
+//		retFields.add(TAGS);
+//		queryData.put(CommonParams.FL, retFields);
+//
+//		List<String> mltList = new ArrayList<String>();
+//		mltList.add(mltField);
+//		queryData.put(MoreLikeThisParams.SIMILARITY_FIELDS, mltList);
+//
+//		return mltDocument(queryData);
+//	}
 
-		if (searchString != null && !searchString.isEmpty()) {
-			queryData.put(CommonParams.Q, searchString);
-		}
-		if (searchField != null && !searchField.isEmpty()) {
-			queryData.put(CommonParams.DF, searchString);
-		}
-		if (docFrequency != null) {
-			queryData.put(MoreLikeThisParams.MIN_DOC_FREQ, docFrequency);
-		} else {
-			queryData.put(MoreLikeThisParams.MIN_DOC_FREQ, 1);
-		}
-		if (termFrequency != null) {
-			queryData.put(MoreLikeThisParams.MIN_TERM_FREQ, termFrequency);
-		} else {
-			queryData.put(MoreLikeThisParams.MIN_TERM_FREQ, 1);
-		}
-		// NEED TO ADD LIMIT AND OFFSET FOR THIS... WHAT IS THE PARAM NAME FOR
-		// THIS
-
-		List<String> retFields = new ArrayList<String>();
-		retFields.add(CORE_ENGINE);
-		retFields.add(CORE_ENGINE_ID);
-		retFields.add(LAYOUT);
-		retFields.add(STORAGE_NAME);
-		retFields.add(CREATED_ON);
-		retFields.add(USER_ID);
-		retFields.add(TAGS);
-		queryData.put(CommonParams.FL, retFields);
-
-		List<String> mltList = new ArrayList<String>();
-		mltList.add(mltField);
-		queryData.put(MoreLikeThisParams.SIMILARITY_FIELDS, mltList);
-
-		return mltDocument(queryData);
-	}
-
-	/**
-	 * Gets the 'Most Like This' SolrDocuments based on document's similarity to
-	 * the specified query
-	 * 
-	 * @param queryOptions
-	 *            options that determine, amongst other things, how similar a
-	 *            SolrDocumentList is to a specified query and what fields to
-	 *            compare similarity on
-	 * @return list of SolrDocumentList that are similar to the specified query
-	 */
-	private Map<String, SolrDocumentList> mltDocument(Map<String, Object> queryOptions) throws SolrServerException {
-		// returning instance of field, solrdoc list of mlt
-		Map<String, SolrDocumentList> mltMap = null;
-		if (serverActive()) {
-			String appendedQuerySearch="";
-			QueryResponse res= new QueryResponse();
-			NamedList mlt = null;
-			
-			if (queryOptions.get(CommonParams.Q) != null) {
-				String querySearch = (String) queryOptions.get(CommonParams.Q);
-				res = getQueryResponse(queryOptions, SOLR_PATHS.SOLR_INSIGHTS_PATH);
-				mlt = (NamedList) res.getResponse().get("moreLikeThis");
-				if(mlt != null && mlt.size() > 0) {
-					//Query within the instanceCore
-					if (querySearch != null && !querySearch.equals(QUERYALL) && !querySearch.isEmpty()) {
-						Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
-						 appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
-						 queryOptions.put(CommonParams.Q, appendedQuerySearch);
-					}
-					res = getQueryResponse(queryOptions, SOLR_PATHS.SOLR_INSIGHTS_PATH);
-					mlt = (NamedList) res.getResponse().get("moreLikeThis");
-				}
-			}
-
-			if (mlt != null && mlt.size() > 0) {
-				mltMap = new HashMap<String, SolrDocumentList>();
-				for (int i = 0; i < mlt.size(); i++) {
-					String name = mlt.getName(i);
-					SolrDocumentList val = (SolrDocumentList) mlt.getVal(i);
-					mltMap.put(name, val);
-				}
-			}
-		}
-		LOGGER.info("Returning SolrDocumentList for More Like This search");
-		return mltMap;
-	}
+//	/**
+//	 * Gets the 'Most Like This' SolrDocuments based on document's similarity to
+//	 * the specified query
+//	 * 
+//	 * @param queryOptions
+//	 *            options that determine, amongst other things, how similar a
+//	 *            SolrDocumentList is to a specified query and what fields to
+//	 *            compare similarity on
+//	 * @return list of SolrDocumentList that are similar to the specified query
+//	 */
+//	private Map<String, SolrDocumentList> mltDocument(Map<String, Object> queryOptions) throws SolrServerException {
+//		// returning instance of field, solrdoc list of mlt
+//		Map<String, SolrDocumentList> mltMap = null;
+//		if (serverActive()) {
+//			String appendedQuerySearch="";
+//			QueryResponse res= new QueryResponse();
+//			NamedList mlt = null;
+//			
+//			if (queryOptions.get(CommonParams.Q) != null) {
+//				String querySearch = (String) queryOptions.get(CommonParams.Q);
+//				res = getQueryResponse(queryOptions, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+//				mlt = (NamedList) res.getResponse().get("moreLikeThis");
+//				if(mlt != null && mlt.size() > 0) {
+//					//Query within the instanceCore
+//					if (querySearch != null && !querySearch.equals(QUERYALL) && !querySearch.isEmpty()) {
+//						Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
+//						 appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
+//						 queryOptions.put(CommonParams.Q, appendedQuerySearch);
+//					}
+//					res = getQueryResponse(queryOptions, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+//					mlt = (NamedList) res.getResponse().get("moreLikeThis");
+//				}
+//			}
+//
+//			if (mlt != null && mlt.size() > 0) {
+//				mltMap = new HashMap<String, SolrDocumentList>();
+//				for (int i = 0; i < mlt.size(); i++) {
+//					String name = mlt.getName(i);
+//					SolrDocumentList val = (SolrDocumentList) mlt.getVal(i);
+//					mltMap.put(name, val);
+//				}
+//			}
+//		}
+//		LOGGER.info("Returning SolrDocumentList for More Like This search");
+//		return mltMap;
+//	}
 
 	private void addFilterResultsToQueryMap(Map<String, Object> queryData, Map<String, List<String>> filterData) {
 		Map<String, String> filterMap = new HashMap<String, String>();
@@ -1242,8 +1223,22 @@ public class SolrIndexEngine {
 		queryData.put(CommonParams.FQ, filterMap);
 	}
 	
-	private String escapeSpecialCharacters(String s) {
-		if(s.equals(QUERYALL)) {
+	public void buildSuggester() {
+		if(serverActive()) {
+			ModifiableSolrParams params = new ModifiableSolrParams();
+			params.set("qt", "/suggest");
+			params.set("spellcheck.build", "true");
+			try {
+				insightServer.query(params);
+				instanceServer.query(params);
+			} catch (SolrServerException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	public static String escapeSpecialCharacters(String s) {
+		if(s.equals(SolrIndexEngine.QUERY_ALL)) {
 			return s;
 		}
 		
@@ -1268,20 +1263,6 @@ public class SolrIndexEngine {
 		s = s.replace("\"", "\\\"");
 
 		return s;
-	}
-	
-	public void buildSuggester() {
-		if(serverActive()) {
-			ModifiableSolrParams params = new ModifiableSolrParams();
-			params.set("qt", "/suggest");
-			params.set("spellcheck.build", "true");
-			try {
-				insightServer.query(params);
-				instanceServer.query(params);
-			} catch (SolrServerException e) {
-				e.printStackTrace();
-			}
-		}
 	}
 	
 }
