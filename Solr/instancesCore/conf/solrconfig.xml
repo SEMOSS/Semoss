@@ -1401,7 +1401,7 @@
 	  <str name="lookupImpl">org.apache.solr.spelling.suggest.jaspell.JaspellLookupFactory</str>
 	  <str name="suggestAnalyzerFieldType">text_en_splitting</str>  
       <str name="queryAnalyzerFieldType">text_suggest</str>      	  
-      <float name="threshold">0.005</float>
+      <float name="threshold">0</float>
 	  <str name="buildOnCommit">false</str>
 	  <bool name="exactMatchFirst">true</bool>
    	</lst>
