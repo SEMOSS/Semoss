@@ -17,20 +17,22 @@ public class SolrIndexEngineQueryBuilder {
 	private static final Logger LOGGER = LogManager.getLogger(SolrIndexEngineQueryBuilder.class.getName());
 	private SolrQuery Q;
 	private String searchString;
-	private boolean fuzzySearch;
+	private boolean preFixSearch;
 	
-	public enum SORT_VALUES {DESC, ASC}
+	public static final String DESC = "desc";
+	public static final String ASC = "asc";
+	public static final String SCORE = "score";
 	
 	public SolrIndexEngineQueryBuilder() {
 		Q = new SolrQuery();
 	}
 	
 	public SolrQuery getSolrQuery() {
-		if(this.searchString == null) {
+		if(this.searchString == null || this.searchString.isEmpty()) {
 			this.Q.set(CommonParams.Q, SolrIndexEngine.QUERY_ALL);
 		} else {
-			if(fuzzySearch) {
-				this.Q.set(CommonParams.Q, "*" + this.searchString + "*");
+			if(preFixSearch) {
+				this.Q.set(CommonParams.Q, this.searchString + "*");
 			} else {
 				this.Q.set(CommonParams.Q, this.searchString);
 			}
@@ -44,11 +46,11 @@ public class SolrIndexEngineQueryBuilder {
 		return this.Q.toString();
 	}
 	
-	public void addSearchString(String searchString) {
+	public void setSearchString(String searchString) {
 		this.searchString = escapeSpecialCharacters(searchString);
 	}
 	
-	public void setDefaultSearch(String defaultField) {
+	public void setDefaultSearchField(String defaultField) {
 		this.Q.set(CommonParams.DF, defaultField);
 	}
 	
@@ -56,11 +58,14 @@ public class SolrIndexEngineQueryBuilder {
 		this.Q.set(CommonParams.QT, queryType);
 	}
 	
-	public void setSort(String sortField, SolrIndexEngineQueryBuilder.SORT_VALUES sort) {
+	public void setSort(String sortField, String sort) {
 		switch (sort) {
 			case ASC : this.Q.setSort(sortField, SolrQuery.ORDER.asc);
 			break;
 			case DESC : this.Q.setSort(sortField, SolrQuery.ORDER.desc);
+			break;
+			// note that the sort field is not used when the sort equals score
+			case SCORE : this.Q.setSort("score", SolrQuery.ORDER.desc);
 			break;
 		}
 	}
@@ -130,11 +135,14 @@ public class SolrIndexEngineQueryBuilder {
 		Q.set(GroupParams.GROUP_OFFSET, groupOffset);
 	}
 	
-	public void setGroupSort(String sortField, SolrIndexEngineQueryBuilder.SORT_VALUES sort) {
+	public void setGroupSort(String sortField, String sort) {
 		switch (sort) {
 			case ASC : this.Q.add(GroupParams.GROUP_SORT, sortField + " " + SolrQuery.ORDER.asc);
 			break;
 			case DESC : this.Q.add(GroupParams.GROUP_SORT, sortField + " " + SolrQuery.ORDER.desc);
+			break;
+			// note that the sort field is not used when the sort equals score
+			case SCORE : this.Q.setSort("score", SolrQuery.ORDER.desc);
 			break;
 		}
 	}
@@ -168,13 +176,13 @@ public class SolrIndexEngineQueryBuilder {
 	public void setMoreLikeThisDocCount(int docCount) {
 		this.Q.set(MoreLikeThisParams.DOC_COUNT, docCount);
 	}
+	
+	public void setSpellCheck(boolean spellCheck) {
+		this.Q.set(SpellingParams.SPELLCHECK_PREFIX, spellCheck);
+	}
 
-	public void setSpellCheckPrefix(boolean spellCheckPrefix) {
-		if(spellCheckPrefix) {
-			this.Q.set(SpellingParams.SPELLCHECK_PREFIX, "on");
-		} else {
-			this.Q.set(SpellingParams.SPELLCHECK_PREFIX, "off");
-		}
+	public void setSpellCheckBuild(boolean spellCheckBuild) {
+		this.Q.set(SpellingParams.SPELLCHECK_BUILD, spellCheckBuild);
 	}
 	
 	public void setSpellCheckCollate(boolean spellCheckCollate) {
@@ -198,11 +206,11 @@ public class SolrIndexEngineQueryBuilder {
 	}
 
 	public void setSpellCheckQuery(String spellCheckQuery) {
-		this.Q.set(SpellingParams.SPELLCHECK_Q, spellCheckQuery);
+		this.Q.set(SpellingParams.SPELLCHECK_Q, escapeSpecialCharacters(spellCheckQuery));
 	}
 	
-	public void setFuzzySearch(boolean fuzzySearch) {
-		this.fuzzySearch = fuzzySearch;
+	public void setPreFixSearch(boolean preFixSearch) {
+		this.preFixSearch = preFixSearch;
 	}
 	
 	public static String escapeSpecialCharacters(String s) {
@@ -211,7 +219,7 @@ public class SolrIndexEngineQueryBuilder {
 		}
 		
 		s = s.replace("\\", "\\\\");
-		s = s.replace("/", "\\/");
+//		s = s.replace("/", "\\/");
 		s = s.replace("+", "\\+");
 		s = s.replace("-", "\\-");
 		s = s.replace("&&", "\\&&");
