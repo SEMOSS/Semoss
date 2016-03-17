@@ -201,6 +201,10 @@ public class SolrIndexEngineQueryBuilder {
 		this.Q.set(SpellingParams.SPELLCHECK_Q, spellCheckQuery);
 	}
 	
+	public void setFuzzySearch(boolean fuzzySearch) {
+		this.fuzzySearch = fuzzySearch;
+	}
+	
 	public static String escapeSpecialCharacters(String s) {
 		if(s.equals(SolrIndexEngine.QUERY_ALL)) {
 			return s;
