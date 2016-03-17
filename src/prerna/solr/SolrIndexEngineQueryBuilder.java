@@ -206,7 +206,7 @@ public class SolrIndexEngineQueryBuilder {
 	}
 
 	public void setSpellCheckQuery(String spellCheckQuery) {
-		this.Q.set(SpellingParams.SPELLCHECK_Q, escapeSpecialCharacters(spellCheckQuery));
+		this.Q.set(SpellingParams.SPELLCHECK_Q, spellCheckQuery);
 	}
 	
 	public void setPreFixSearch(boolean preFixSearch) {
@@ -219,7 +219,6 @@ public class SolrIndexEngineQueryBuilder {
 		}
 		
 		s = s.replace("\\", "\\\\");
-//		s = s.replace("/", "\\/");
 		s = s.replace("+", "\\+");
 		s = s.replace("-", "\\-");
 		s = s.replace("&&", "\\&&");
