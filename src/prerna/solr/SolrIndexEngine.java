@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.Vector;
 
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
@@ -181,6 +182,7 @@ public class SolrIndexEngine {
 			insightServer.add(doc);
 			insightServer.commit();
 			LOGGER.info("UniqueID " + uniqueID + "'s INSIGHTS has been added");
+			rebuildSuggester();
 		}
 	}
 
@@ -213,6 +215,7 @@ public class SolrIndexEngine {
 			insightServer.deleteById(uniqueID);
 			insightServer.commit();
 			LOGGER.info("UniqueID " + uniqueID + "'s doc has been deleted");
+			rebuildSuggester();
 		}
 	}
 
@@ -272,6 +275,7 @@ public class SolrIndexEngine {
 			insightServer.add(doc);
 			insightServer.commit();
 			LOGGER.info("UniqueID " + uniqueID + "'s doc has been modified");
+			rebuildSuggester();
 		}
 		
 		return fieldsToModify;
@@ -872,6 +876,22 @@ public class SolrIndexEngine {
 		}
 	}
 	
+	/**
+	 * Builds the suggester options
+	 */
+	public void rebuildSuggester() {
+		if(serverActive()) {
+			ModifiableSolrParams params = new ModifiableSolrParams();
+			params.set("qt", "/suggest");
+			params.set("spellchecker.reload", "true");
+			try {
+				insightServer.query(params);
+				instanceServer.query(params);
+			} catch (SolrServerException e) {
+				e.printStackTrace();
+			}
+		}
+	}
 
 	/**
 	 * Used to provide a uniform and Solr-friendly format for date/time
@@ -883,5 +903,15 @@ public class SolrIndexEngine {
 	
 	public static DateFormat getSolrDateFormat() {
 		return new SimpleDateFormat("EEE MMM dd HH:mm:ss ZZZ yyyy");
+	}
+	
+	public static List<String> getSolrIdFromInsightEngineId(String engineName, List<String> engineIds) {
+		engineName = engineName + "_";
+		Vector<String> fixedQuestionIds = new Vector<String>();
+		for(String id : engineIds) {
+			fixedQuestionIds.add(engineName + id);
+		}
+		
+		return fixedQuestionIds;
 	}
 }
