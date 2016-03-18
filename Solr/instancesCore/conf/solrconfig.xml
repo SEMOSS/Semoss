@@ -1314,7 +1314,7 @@
     <lst name="spellchecker">
       <str name="name">wordbreak</str>
       <str name="classname">solr.WordBreakSolrSpellChecker</str>      
-      <str name="field">instances_suggest</str>
+      <str name="field">instance_spelling</str>
       <str name="combineWords">true</str>
 	  <str name="breakWords">true</str>
       <int name="maxChanges">10</int>
@@ -1396,7 +1396,7 @@
   <searchComponent name="suggest" class="solr.SpellCheckComponent">
   	<lst name="spellchecker">
       <str name="name">suggest</str>
-	  <str name="field">instances_suggest</str>
+	  <str name="field">instance_suggest</str>
 	  <str name="classname">Suggester</str>
 	  <str name="lookupImpl">org.apache.solr.spelling.suggest.jaspell.JaspellLookupFactory</str>
 	  <str name="suggestAnalyzerFieldType">text_en_splitting</str>  
