@@ -116,7 +116,6 @@
 			</analyzer>
 			<analyzer type="query">
 				<tokenizer class="solr.KeywordTokenizerFactory"/>
-				<filter class="solr.StopFilterFactory" words="stopwords.txt" ignoreCase="true"/>
 				<filter class="solr.LowerCaseFilterFactory"/>
 			</analyzer>
 		</fieldType>
@@ -127,7 +126,6 @@
 		  <analyzer type="index">
 			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
 			<filter class="solr.PatternReplaceFilterFactory" pattern="_" replacement=" " replace="all" /> 
-			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
 			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="0" catenateWords="1" splitOnNumerics="0" catenateNumbers="1" catenateAll="0" splitOnCaseChange="1"/>
 			<filter class="solr.SynonymFilterFactory" synonyms="synonyms.txt" ignoreCase="true" expand="false"/>
 			<filter class="solr.LowerCaseFilterFactory"/>
@@ -135,7 +133,6 @@
 		  </analyzer>
 		  <analyzer type="query">
 			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
-			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
 			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="0" generateNumberParts="0"  stemEnglishPossessive="0" catenateWords="0" splitOnNumerics="0" catenateNumbers="0" catenateAll="0" splitOnCaseChange="1"/>
 			<filter class="solr.LowerCaseFilterFactory"/>
 			<filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
@@ -148,7 +145,6 @@
 		  <analyzer type="index">
 			<tokenizer class="solr.StandardTokenizerFactory"/>
 			<filter class="solr.PatternReplaceFilterFactory" pattern="_" replacement=" " replace="all" /> 
-			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
 			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="0" catenateWords="1" splitOnNumerics="0" catenateNumbers="1" catenateAll="0" splitOnCaseChange="1"/>
 			<filter class="solr.SynonymFilterFactory" synonyms="synonyms.txt" ignoreCase="true" expand="false"/>
 			<filter class="solr.LowerCaseFilterFactory"/>
@@ -156,7 +152,6 @@
 		  </analyzer>
 		  <analyzer type="query">
 			<tokenizer class="solr.StandardTokenizerFactory"/>
-			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
 			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="0" generateNumberParts="0"  stemEnglishPossessive="0" catenateWords="0" splitOnNumerics="0" catenateNumbers="0" catenateAll="0" splitOnCaseChange="1"/>
 			<filter class="solr.LowerCaseFilterFactory"/>
 			<filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
