@@ -856,7 +856,7 @@ public class Utility {
 				
 				String perspective = (String) ss.getVar("QUESTION_PERSPECTIVE");
 				String perspString1 ="-Perspective";
-				String perspString2 =" Perspective";
+				String perspString2 ="Perspective";
 				if (perspective.contains(perspString1)) {
 					perspective = perspective.replace(perspString1, "");
 				}
