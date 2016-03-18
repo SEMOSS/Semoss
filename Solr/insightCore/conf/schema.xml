@@ -194,7 +194,6 @@
 		  </analyzer>
 		  <analyzer type="query">
 			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
-			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
 			<filter class="solr.WordDelimiterFilterFactory" 
 							generateWordParts="0" 
 							generateNumberParts="0"  
@@ -232,7 +231,6 @@
 		  </analyzer>
 		  <analyzer type="query">
 			<tokenizer class="solr.StandardTokenizerFactory"/>
-			<filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_en.txt" />
 			<filter class="solr.WordDelimiterFilterFactory" 
 							generateWordParts="0" 
 							generateNumberParts="0" 
