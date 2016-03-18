@@ -422,12 +422,15 @@ public class SolrIndexEngine {
 
 	private static List<String> getAutoSuggestResponse(QueryResponse res) {
 		List<String> autoSuggestRet = new ArrayList<String>();
-		List<Suggestion> suggestions = res.getSpellCheckResponse().getSuggestions();
-		if (suggestions != null && !suggestions.isEmpty()) {
-			for (Suggestion suggestion : suggestions) {
-				List<String> alternativeList = suggestion.getAlternatives();
-				for (String alternative : alternativeList) {
-					autoSuggestRet.add(alternative.replace("<b>", "").replace("</b>", ""));
+		SpellCheckResponse spellRes = res.getSpellCheckResponse();
+		if(spellRes != null) {
+			List<Suggestion> suggestions = res.getSpellCheckResponse().getSuggestions();
+			if (suggestions != null && !suggestions.isEmpty()) {
+				for (Suggestion suggestion : suggestions) {
+					List<String> alternativeList = suggestion.getAlternatives();
+					for (String alternative : alternativeList) {
+						autoSuggestRet.add(alternative.replace("<b>", "").replace("</b>", ""));
+					}
 				}
 			}
 		}
@@ -524,7 +527,9 @@ public class SolrIndexEngine {
 				List<SortClause> sorts = query.getSorts();
 				List<SortClause> sortsCopy = new ArrayList<SortClause>();
 				sortsCopy.addAll(sorts);
-				sorts.clear();
+				for(SortClause sort : sortsCopy) {
+					query.removeSort(sort);
+				}
 				// Query within the instanceCore only when the normal query returns no results
 				Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
 				appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
