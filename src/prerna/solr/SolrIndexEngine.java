@@ -182,7 +182,7 @@ public class SolrIndexEngine {
 			insightServer.add(doc);
 			insightServer.commit();
 			LOGGER.info("UniqueID " + uniqueID + "'s INSIGHTS has been added");
-			rebuildSuggester();
+			buildSuggester();
 		}
 	}
 
@@ -215,7 +215,7 @@ public class SolrIndexEngine {
 			insightServer.deleteById(uniqueID);
 			insightServer.commit();
 			LOGGER.info("UniqueID " + uniqueID + "'s doc has been deleted");
-			rebuildSuggester();
+			buildSuggester();
 		}
 	}
 
@@ -275,7 +275,7 @@ public class SolrIndexEngine {
 			insightServer.add(doc);
 			insightServer.commit();
 			LOGGER.info("UniqueID " + uniqueID + "'s doc has been modified");
-			rebuildSuggester();
+			buildSuggester();
 		}
 		
 		return fieldsToModify;
@@ -867,6 +867,8 @@ public class SolrIndexEngine {
 			ModifiableSolrParams params = new ModifiableSolrParams();
 			params.set("qt", "/suggest");
 			params.set("spellchecker.build", "true");
+			params.set("spellchecker.reload", "true");
+			params.set("suggest.reloadAll", "true");
 			try {
 				insightServer.query(params);
 				instanceServer.query(params);
@@ -876,23 +878,6 @@ public class SolrIndexEngine {
 		}
 	}
 	
-	/**
-	 * Builds the suggester options
-	 */
-	public void rebuildSuggester() {
-		if(serverActive()) {
-			ModifiableSolrParams params = new ModifiableSolrParams();
-			params.set("qt", "/suggest");
-			params.set("spellchecker.reload", "true");
-			try {
-				insightServer.query(params);
-				instanceServer.query(params);
-			} catch (SolrServerException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
 	/**
 	 * Used to provide a uniform and Solr-friendly format for date/time
 	 * @return Date format
