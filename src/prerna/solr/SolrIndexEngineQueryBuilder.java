@@ -206,6 +206,13 @@ public class SolrIndexEngineQueryBuilder {
 		this.Q.set(SpellingParams.SPELLCHECK_Q, spellCheckQuery);
 	}
 	
+	public void removeSpellCheckParams() {
+		this.Q.remove(SpellingParams.SPELLCHECK_PREFIX);
+		this.Q.remove(SpellingParams.SPELLCHECK_BUILD);
+		this.Q.remove(SpellingParams.SPELLCHECK_COLLATE);
+		this.Q.remove(SpellingParams.SPELLCHECK_COLLATE_EXTENDED_RESULTS);
+	}
+	
 	public void setPreFixSearch(boolean preFixSearch) {
 		this.preFixSearch = preFixSearch;
 	}
@@ -232,14 +239,8 @@ public class SolrIndexEngineQueryBuilder {
 		setDefType(DisMaxQParserPlugin.NAME);
 		addDisMax(SolrIndexEngine.INDEX_NAME, 3.5);
 		addDisMax(SolrIndexEngine.TAGS, 1.5);
-//		addDisMax(SolrIndexEngine.USER_ID, 1.0);
-//		addDisMax(SolrIndexEngine.ANNOTATION, 1.0);
-//		addDisMax(SolrIndexEngine.COMMENT, 1.0);
 		addDisMax(SolrIndexEngine.ENGINES, 1.0);
-//		addDisMax(SolrIndexEngine.QUERY_PROJECTIONS, 1.0);
-		addDisMax(SolrIndexEngine.LAYOUT, 1.0);
 		addDisMax(SolrIndexEngine.PARAMS, 1.0);
-//		addDisMax(SolrIndexEngine.ALGORITHMS, 1.0);
 		setPhraseBooster(SolrIndexEngine.INDEX_NAME);
 	}
 	
