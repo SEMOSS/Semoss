@@ -65,6 +65,7 @@ public class SolrIndexEngine {
 
 	private static final String QUERY_RESPONSE = "queryResponse";
 	private static final String SPELLCHECK_RESPONSE = "spellcheckResponse";
+	private static final String NUM_FOUND = "numFound";
 	private static final String SOLR_INSIGHTS_PATH_NAME = "/insightCore";
 	private static final String SOLR_INSTANCES_PATH_NAME = "/instancesCore";
 
@@ -550,6 +551,7 @@ public class SolrIndexEngine {
 
 			SolrDocumentList results = res.getResults();
 			searchResultMap.put(QUERY_RESPONSE, results);
+			searchResultMap.put(NUM_FOUND, results.size());
 			Map<String, List<String>> spellCheckResponse = getSpellCheckResponse(res);
 			if (spellCheckResponse != null && !spellCheckResponse.isEmpty()) {
 				queryResponseMap.put(SPELLCHECK_RESPONSE, spellCheckResponse);
@@ -734,41 +736,53 @@ public class SolrIndexEngine {
 	 */
 	private Map<String, Object> groupDocument(SolrIndexEngineQueryBuilder queryBuilder) throws SolrServerException, IOException {
 		Map<String, Object> groupByResponse = new HashMap<String, Object>();
-
+		
 		if (serverActive()) {
-			String appendedQuerySearch = "";
 			QueryResponse res = null;
 			
 			Map<String, Map<String, SolrDocumentList>> groupFieldMap = null;
 			GroupResponse groupResponse = null;
 			Map<String, SolrDocumentList> innerMap = null;
 			
+			//for spellcheck
+			Map<String, List<String>> insightSpellCheck = null;
+			Map<String, List<String>> instanceSpellCheck = null;
+			
 			SolrQuery query = queryBuilder.getSolrQuery();
 			String querySearch = query.get(CommonParams.Q);
 			res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+			//get insight spell check results
+			insightSpellCheck = getSpellCheckResponse(res);
+			
 			groupResponse = res.getGroupResponse();
 			if(groupResponse != null && groupResponse.getValues().get(0).getValues().size() == 0) {
-				// need to remove sorts sinc they might not exist
+				// need to remove sorts since they might not exist
 				List<SortClause> sorts = query.getSorts();
 				List<SortClause> sortsCopy = new ArrayList<SortClause>();
 				sortsCopy.addAll(sorts);
 				for(SortClause sort : sortsCopy) {
 					query.removeSort(sort);
 				}
+				
 				//Query within the instanceCore
 				Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
-				appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
-				query.set(CommonParams.Q, appendedQuerySearch);
+				instanceSpellCheck = (Map<String, List<String>>) queryResults.get(SPELLCHECK_RESPONSE);
+				
+				String appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
+				
+				queryBuilder.removeSpellCheckParams();
+				queryBuilder.setSearchString(appendedQuerySearch);
 				// readd sorts
 				for(SortClause sort : sortsCopy) {
 					query.addSort(sort);
 				}
+				
 				// query the insight core
 				res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
 				groupResponse = res.getGroupResponse();
 			}
 
-			if (groupResponse != null) {
+			if (groupResponse != null) { 
 				groupFieldMap = new HashMap<String, Map<String, SolrDocumentList>>();
 				for (GroupCommand gc : groupResponse.getValues()) {
 					innerMap = new HashMap<String, SolrDocumentList>();
@@ -784,15 +798,37 @@ public class SolrIndexEngine {
 				}
 				groupByResponse.put(QUERY_RESPONSE, groupFieldMap);
 			}
-
-			Map<String, List<String>> spellCheckResponse = getSpellCheckResponse(res);
-			if (spellCheckResponse != null && !spellCheckResponse.isEmpty()) {
-				groupByResponse.put(SPELLCHECK_RESPONSE, spellCheckResponse);
-			}
+			
+			groupByResponse.put(SPELLCHECK_RESPONSE, mergeCoreSuggestions(insightSpellCheck, instanceSpellCheck));
 		}
 
 		LOGGER.info("Returning SolrDocumentList for Group Search");
 		return groupByResponse;
+	}
+	
+	private Map<String, List<String>> mergeCoreSuggestions(Map<String, List<String>> insightCoreSpelling, Map<String, List<String>> instanceCoreSpelling) {
+		Map<String, List<String>> allResponse = new HashMap<String, List<String>>(); 
+		//add insight suggestions
+		if (insightCoreSpelling != null && !insightCoreSpelling.isEmpty()) {
+			allResponse.putAll(insightCoreSpelling);
+		}
+		//add instance suggestions
+		if (instanceCoreSpelling != null && !instanceCoreSpelling.isEmpty()) {
+			for (String searchString : instanceCoreSpelling.keySet()) {
+				if(allResponse.containsKey(searchString)) {
+					List<String> currSpellingCorrections = allResponse.get(searchString);
+					List<String> newSpellingCorrections = instanceCoreSpelling.get(searchString);
+					for(String newSpelling : newSpellingCorrections) {
+						if(currSpellingCorrections.contains(newSpelling)) {
+							currSpellingCorrections.add(newSpelling);
+						}
+					}
+				} else {
+					allResponse.put(searchString, instanceCoreSpelling.get(searchString));
+				}
+			}
+		}
+		return allResponse;
 	}
 	
 	/**
