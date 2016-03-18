@@ -518,15 +518,14 @@ public class SolrIndexEngine {
 	private Map<String, Object> searchDocument(SolrIndexEngineQueryBuilder queryBuilder) throws SolrServerException, IOException {
 		Map<String, Object> searchResultMap = new HashMap<String, Object>();
 		if (serverActive()) {
-			QueryResponse res = null;
-
 			// for spellcheck
 			Map<String, List<String>> insightSpellCheck = null;
 			Map<String, List<String>> instanceSpellCheck = null;
 
 			SolrQuery query = queryBuilder.getSolrQuery();
 			String querySearch = query.get(CommonParams.Q);
-			res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+			QueryResponse res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+			SolrDocumentList results = res.getResults();
 			// get insight spell check results
 			insightSpellCheck = getSpellCheckResponse(res);
 
@@ -554,9 +553,10 @@ public class SolrIndexEngine {
 
 				// query the insight core
 				res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
-
 			}
-
+			
+			searchResultMap.put(QUERY_RESPONSE, results);
+			searchResultMap.put(NUM_FOUND, results.size());
 			searchResultMap.put(SPELLCHECK_RESPONSE, mergeCoreSuggestions(insightSpellCheck, instanceSpellCheck));
 		}
 		LOGGER.info("Returning results of search");
@@ -742,7 +742,7 @@ public class SolrIndexEngine {
 		if (serverActive()) {
 			QueryResponse res = null;
 			
-			Map<String, Map<String, SolrDocumentList>> groupFieldMap = null;
+			Map<String, Map<String, SolrDocumentList>> groupFieldMap = new HashMap<String, Map<String, SolrDocumentList>>();
 			GroupResponse groupResponse = null;
 			Map<String, SolrDocumentList> innerMap = null;
 			
@@ -798,9 +798,9 @@ public class SolrIndexEngine {
 					}
 					groupFieldMap.put(groupBy, innerMap);
 				}
-				groupByResponse.put(QUERY_RESPONSE, groupFieldMap);
 			}
 			
+			groupByResponse.put(QUERY_RESPONSE, groupFieldMap);
 			groupByResponse.put(SPELLCHECK_RESPONSE, mergeCoreSuggestions(insightSpellCheck, instanceSpellCheck));
 		}
 
