@@ -224,6 +224,10 @@ public class SolrIndexEngineQueryBuilder {
 		this.Q.set(QueryParsing.DEFTYPE, type);
 	}
 	
+	public void setPhraseBooster(String field) {
+		this.Q.set(DisMaxParams.PF, field);
+	}
+	
 	public void setDefaultDisMaxWeighting() {
 		setDefType(DisMaxQParserPlugin.NAME);
 		addDisMax(SolrIndexEngine.INDEX_NAME, 3.5);
@@ -236,6 +240,7 @@ public class SolrIndexEngineQueryBuilder {
 		addDisMax(SolrIndexEngine.LAYOUT, 1.0);
 		addDisMax(SolrIndexEngine.PARAMS, 1.0);
 //		addDisMax(SolrIndexEngine.ALGORITHMS, 1.0);
+		setPhraseBooster(SolrIndexEngine.INDEX_NAME);
 	}
 	
 	public static String escapeSpecialCharacters(String s) {
