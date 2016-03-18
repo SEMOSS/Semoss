@@ -133,16 +133,7 @@ public class TinkerFrameStatRoutine implements IAnalyticTransformationRoutine {
 		if(statIterator.hasNext()) {
 			
 			//the result of the graph traversal
-			Map<String, Map<Object, Object>> resultMap;
-			Map<Object, Object> groupByMap;
-			
-			//Count is a special case
-//			if(mathType.toUpperCase().equals(COUNT)) {
-//				groupByMap = (Map<Object, Object>)statIterator.next();
-//			} else {
-				groupByMap = (Map<Object, Object>)statIterator.next();
-//				groupByMap = resultMap.get(PRIMARY_SELECTOR);
-//			}
+			Map<Object, Object> groupByMap = (Map<Object, Object>)statIterator.next();
 			
 			//create the edgehash associated with the new result map
 			Map<String, Set<String>> newEdgeHash = new HashMap<String, Set<String>>(1);
