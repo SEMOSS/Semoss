@@ -858,10 +858,10 @@ public class Utility {
 				String perspString1 ="-Perspective";
 				String perspString2 ="Perspective";
 				if (perspective.contains(perspString1)) {
-					perspective = perspective.replace(perspString1, "");
+					perspective = perspective.replace(perspString1, "").trim();
 				}
 				if(perspective.contains(perspString2)){
-					perspective = perspective.replace(perspString2, "");
+					perspective = perspective.replace(perspString2, "").trim();
 				}
 
 				JdbcClob obj = (JdbcClob) ss.getVar("QUESTION_MAKEUP"); 

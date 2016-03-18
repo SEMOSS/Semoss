@@ -90,7 +90,6 @@ public class SolrIndexEngine {
 	public static final String QUERY_PROJECTIONS = "query_projections";
 	public static final String PARAMS = "params";
 	public static final String ALGORITHMS = "algorithms";
-	public static final String ALL_TEXT = "all_text";
 	public static final String NON_DB_INSIGHT = "non_db_insight";
 	
 	// Instance specific schema fields
@@ -407,7 +406,7 @@ public class SolrIndexEngine {
 			queryBuilder.setSpellCheck(true);
 			queryBuilder.setSpellCheckBuild(true);
 			queryBuilder.setSpellCheckQuery(term);
-			queryBuilder.setSort(STORAGE_NAME, "desc");
+			queryBuilder.setSort(STORAGE_NAME, DESC);
 			SolrQuery query = queryBuilder.getSolrQuery();
 			QueryResponse resInsight = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
 			insightLists.addAll(getAutoSuggestResponse(resInsight));
@@ -432,8 +431,7 @@ public class SolrIndexEngine {
 	}
 	
 	/**
-	 * Returns the query response and spell check based on input files
-	 * y hands 
+	 * Returns the query response and spell check based on input files 
 	 * @param searchString					Search string for the query
 	 * @param searchField					The field to apply for the search
 	 * @param sortString					The field to sort the query return
@@ -449,20 +447,18 @@ public class SolrIndexEngine {
 	 * @throws SolrServerException
 	 * @throws IOException
 	 */
-	public Map<String, Object> executeSearchQuery(String searchString, String searchField, String sortString, Integer offsetInt, Integer limitInt, Map<String, List<String>> filterData) 
-			throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, SolrServerException, IOException {
+	public Map<String, Object> executeSearchQuery(String searchString, String sortString, Integer offsetInt, Integer limitInt, Map<String, List<String>> filterData) 
+			throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, SolrServerException, IOException 
+	{
 		SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
 		if (searchString != null && !searchString.isEmpty()) {
 			queryBuilder.setSearchString(searchString);
-		}
-		if (searchField != null && !searchField.isEmpty()) {
-			queryBuilder.setDefaultSearchField(searchField);
 		}
 		if (sortString != null && !sortString.isEmpty()) {
 			queryBuilder.setSort(STORAGE_NAME, sortString.toLowerCase());
 		}
 		// always add sort by score desc
-		queryBuilder.setSort("score", "desc");
+		queryBuilder.setSort(SCORE, DESC);
 		
 		if (offsetInt != null) {
 			queryBuilder.setOffset(offsetInt);
@@ -470,14 +466,9 @@ public class SolrIndexEngine {
 		if (limitInt != null) {
 			queryBuilder.setLimit(limitInt);
 		}
+		// sets the field weighting for relevant value
+		queryBuilder.setDefaultDisMaxWeighting();
 
-		queryBuilder.setQueryType("/spell");
-		queryBuilder.setSpellCheck(true);
-		queryBuilder.setSpellCheckBuild(true);
-		queryBuilder.setSpellCheckCollate(true);
-		queryBuilder.setSpellCheckCollateExtendedResults(true);
-		queryBuilder.setSpellCheckCount(4);
-		
 		List<String> retFields = new ArrayList<String>();
 		retFields.add(CORE_ENGINE);
 		retFields.add(CORE_ENGINE_ID);
@@ -486,17 +477,25 @@ public class SolrIndexEngine {
 		retFields.add(CREATED_ON);
 		retFields.add(USER_ID);
 		retFields.add(TAGS);
+		retFields.add(SCORE);
 		queryBuilder.setReturnFields(retFields);
 
 		if(filterData != null) {
 			queryBuilder.setFilterOptions(filterData);
 		}
+		
+		queryBuilder.setQueryType("/spell");
+		queryBuilder.setSpellCheck(true);
+		queryBuilder.setSpellCheckBuild(true);
+		queryBuilder.setSpellCheckCollate(true);
+		queryBuilder.setSpellCheckCollateExtendedResults(true);
+		queryBuilder.setSpellCheckCount(4);
+
 		return searchDocument(queryBuilder);
 	}
 
 	/**
 	 * Returns the query response and spell check based on input files
-	 * 
 	 * @param queryOptions						A Map containing the query options
 	 * @return 									Map<String, Object> where the keys are QUERY_RESPONSE and
 	 *         									SPELLCHECK_RESPONSE to get query return and spell check values
@@ -550,7 +549,6 @@ public class SolrIndexEngine {
 
 	/**
 	 * Gets the facet/count for each instance of the specified fields
-	 * 
 	 * @param searchString						Search string for the query
 	 * @param facetList							The list of fields to facet
 	 * @return
@@ -559,16 +557,18 @@ public class SolrIndexEngine {
 	 * @throws KeyStoreException
 	 * @throws SolrServerException
 	 */
-	public Map<String, Map<String, Long>> executeQueryFacetResults(String searchString, String searchField, List<String> facetList)
-					throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, SolrServerException {
-
+	public Map<String, Map<String, Long>> executeQueryFacetResults(String searchString, List<String> facetList)
+					throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, SolrServerException 
+	{
 		SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
 		if (searchString != null && !searchString.isEmpty()) {
 			queryBuilder.setSearchString(searchString);
 		}
-		if (searchField != null && !searchField.isEmpty()) {
-			queryBuilder.setDefaultSearchField(searchField);
-		}
+		
+		// sets the field weighting for relevant value
+		queryBuilder.setDefaultDisMaxWeighting();
+		// facet still requires a default field or it throws an error 
+		queryBuilder.setDefaultSearchField(INDEX_NAME);
 		queryBuilder.setFacet(true);
 		queryBuilder.setFacetField(facetList);
 		queryBuilder.setFacetMinCount(1);
@@ -579,7 +579,6 @@ public class SolrIndexEngine {
 
 	/**
 	 * Gets the facet/count for each instance of the specified fields
-	 * 
 	 * @param queryOptions				Options that determine which fields to facet by
 	 * @return faceted values of fields
 	 */
@@ -638,9 +637,7 @@ public class SolrIndexEngine {
 	}
 
 	/**
-	 * Gets the grouped SolrDocument based on the results of the selected fields
-	 * to group by
-	 * 
+	 * Gets the grouped SolrDocument based on the results of the selected fields to group by
 	 * @param searchString					Search string for the query
 	 * @param searchField					The field to apply for the search
 	 * @param groupOffset					The offset for the group return
@@ -654,19 +651,16 @@ public class SolrIndexEngine {
 	 * @throws SolrServerException
 	 * @throws IOException
 	 */
-	public Map<String, Object> executeQueryGroupBy(String searchString, String searchField, Integer groupOffset,
-			Integer groupLimit, String groupByField, String groupSort, Map<String, List<String>> filterData)
+	public Map<String, Object> executeQueryGroupBy(String searchString, Integer groupOffset, Integer groupLimit, 
+			String groupByField, String groupSort, Map<String, List<String>> filterData)
 			throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, SolrServerException, IOException 
 	{
-
 		SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
-		queryBuilder.setGroupBy(true);
 		if (searchString != null && !searchString.isEmpty()) {
 			queryBuilder.setSearchString(searchString);
 		}
-		if (searchField != null && !searchField.isEmpty()) {
-			queryBuilder.setDefaultSearchField(searchField);
-		}
+
+		queryBuilder.setGroupBy(true);
 		if (groupLimit != null) {
 			queryBuilder.setGroupLimit(groupLimit);
 		} else {
@@ -681,19 +675,15 @@ public class SolrIndexEngine {
 			queryBuilder.setSort(STORAGE_NAME, groupSort.toLowerCase());
 		}
 		// always add sort by score desc
-		queryBuilder.setSort("score", "desc");
+		queryBuilder.setGroupSort(SCORE, DESC);
 		
-		queryBuilder.setQueryType("/spell");
-		queryBuilder.setSpellCheck(true);
-		queryBuilder.setSpellCheckBuild(true);
-		queryBuilder.setSpellCheckCollate(true);
-		queryBuilder.setSpellCheckCollateExtendedResults(true);
-		queryBuilder.setSpellCheckCount(4);
-
 		List<String> groupList = new ArrayList<String>();
 		groupList.add(groupByField);
 		queryBuilder.setGroupFields(groupList);
-
+		
+		// sets the field weighting for relevant value
+		queryBuilder.setDefaultDisMaxWeighting();
+				
 		List<String> retFields = new ArrayList<String>();
 		retFields.add(CORE_ENGINE);
 		retFields.add(CORE_ENGINE_ID);
@@ -702,18 +692,27 @@ public class SolrIndexEngine {
 		retFields.add(CREATED_ON);
 		retFields.add(USER_ID);
 		retFields.add(TAGS);
+		retFields.add(SCORE);
 		queryBuilder.setReturnFields(retFields);
+
+		if(filterData != null) {
+			queryBuilder.setFilterOptions(filterData);
+		}
+		
+		queryBuilder.setQueryType("/spell");
+		queryBuilder.setSpellCheck(true);
+		queryBuilder.setSpellCheckBuild(true);
+		queryBuilder.setSpellCheckCollate(true);
+		queryBuilder.setSpellCheckCollateExtendedResults(true);
+		queryBuilder.setSpellCheckCount(4);
 
 		return groupDocument(queryBuilder);
 	}
 
 	/**
-	 * Gets the grouped SolrDocument based on the results of the selected fields
-	 * to group by
-	 * 
-	 * @param queryOptions-
-	 *            options that determine how the SolrDocumentList will be
-	 *            grouped and viewed
+	 * Gets the grouped SolrDocument based on the results of the selected fields to group by
+	 * @param queryOptions			options that determine how the SolrDocumentList will be
+	 *           					grouped and viewed
 	 * @return grouped SolrDocumentList
 	 */
 	private Map<String, Object> groupDocument(SolrIndexEngineQueryBuilder queryBuilder) throws SolrServerException, IOException {
@@ -721,7 +720,7 @@ public class SolrIndexEngine {
 
 		if (serverActive()) {
 			String appendedQuerySearch = "";
-			QueryResponse res= new QueryResponse();
+			QueryResponse res = null;
 			
 			Map<String, Map<String, SolrDocumentList>> groupFieldMap = null;
 			GroupResponse groupResponse = null;
