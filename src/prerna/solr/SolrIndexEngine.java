@@ -315,11 +315,12 @@ public class SolrIndexEngine {
 					for (Correction correction : c.getMisspellingsAndCorrections()) {
 						String orig = correction.getOriginal();
 						String corr = correction.getCorrection();
-						if (spellCheckRet.containsKey(orig)) {
-							List<String> suggestions = spellCheckRet.get(orig);
+						List<String> suggestions;
+						if(spellCheckRet.containsKey(orig)) {
+							suggestions = spellCheckRet.get(orig);
 							suggestions.add(corr);
 						} else {
-							List<String> suggestions = new ArrayList<String>();
+							suggestions = new ArrayList<String>();
 							suggestions.add(corr);
 							spellCheckRet.put(orig, suggestions);
 						}
@@ -379,6 +380,7 @@ public class SolrIndexEngine {
 			SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
 			queryBuilder.setSearchString(querySearch);
 			queryBuilder.setDefaultSearchField(INSTANCES);
+			queryBuilder.setQueryType("/spell");
 			queryBuilder.setSpellCheck(true);
 			queryBuilder.setSpellCheckBuild(true);
 			queryBuilder.setSpellCheckCollate(true);
