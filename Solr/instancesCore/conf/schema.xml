@@ -70,8 +70,8 @@
 		<field name="instances" type="text_en_splitting" indexed="true" stored="true" required="true" multiValued="true" /> 
 		
 		<!-- field for suggest -->
-		<field name="instances_suggest" type="text_suggest" indexed="true" stored="false" required="true" multiValued="true" /> 
-		<copyField source="instances" dest="instances_suggest"/>
+		<field name="instance_suggest" type="text_suggest" indexed="true" stored="false" required="true" multiValued="true" /> 
+		<copyField source="instances" dest="instance_suggest"/>
 		
 		<!-- field for spellcheck -->
 		<field name="instance_spelling" type="text_spelling" indexed="true" stored="false" required="true" multiValued="true" termVectors="true" termPositions="true" termOffsets="true"/> 
