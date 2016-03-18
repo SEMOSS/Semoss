@@ -911,10 +911,9 @@ public class TinkerFrame implements ITableDataFrame {
             	   Map<String, Set<String>> edgeHash = component.getBuilderData().getReturnConnectionsHash();
             	   this.mergeEdgeHash(edgeHash);
             	   
-//            	   this.addRelationship(wrapper, edgeHash);
-            	   
             	   while(wrapper.hasNext()){
-            		   this.addRelationship(wrapper.next());
+            		   ISelectStatement ss = wrapper.next();
+            		   this.addRelationship(ss.getPropHash(), ss.getRPropHash(), edgeHash);
             	   }
                } 
                
@@ -933,12 +932,7 @@ public class TinkerFrame implements ITableDataFrame {
            long time2 = System.currentTimeMillis();
            LOGGER.info("	Processed Wrapper: " +(time2 - time1)+" ms");
            
-           
-//           long time3 = System.currentTimeMillis();
-//           LOGGER.info("processing of component.................................. done iterating through wrapper. time : " +(time3 - time2)+" ms");
-
            processPostTransformations(component, component.getPostTrans());
-           
            processActions(component, component.getActions());
 
            long time4 = System.currentTimeMillis();
@@ -1222,6 +1216,8 @@ public class TinkerFrame implements ITableDataFrame {
 	// create or add vertex
 	protected Vertex upsertVertex(String type, Object data, Object value)
 	{
+		if(data == null) data = EMPTY;
+		if(value == null) value = EMPTY;
 		// checks to see if the vertex is there already
 		// if so retrieves the vertex
 		// if not inserts the vertex and then returns that vertex
@@ -1251,13 +1247,13 @@ public class TinkerFrame implements ITableDataFrame {
 	protected Edge upsertEdge(Vertex fromVertex, Vertex toVertex)
 	{
 		Edge retEdge = null;
-		String type = fromVertex.property(Constants.TYPE).value() + edgeLabelDelimeter + toVertex.property(Constants.TYPE).value();
-		String edgeID = type + "/" + fromVertex.property(Constants.NAME).value() + ":" + toVertex.property(Constants.NAME).value();
+		String type = fromVertex.value(Constants.TYPE) + edgeLabelDelimeter + toVertex.value(Constants.TYPE);
+		String edgeID = type + "/" + fromVertex.value(Constants.NAME) + ":" + toVertex.value(Constants.NAME);
 		// try to find the vertex
 		GraphTraversal<Edge, Edge> gt = g.traversal().E(type).has(Constants.ID, edgeID);
 		if(gt.hasNext()) {
 			retEdge = gt.next();
-			Integer count = (Integer)retEdge.property(Constants.COUNT).value();
+			Integer count = (Integer)retEdge.value(Constants.COUNT);
 			count++;
 			retEdge.property(Constants.COUNT, count);
 		}
@@ -1419,47 +1415,45 @@ public class TinkerFrame implements ITableDataFrame {
 		}
 	}
 	
-//	public void addRelationship(ISelectWrapper wrapper, Map<String, Set<String>> edgeHash) {
-//		while(wrapper.hasNext()) {
-//			ISelectStatement rowData = wrapper.next();
-//			Map<String, Object> rowCleanData = rowData.getPropHash();
-//			Map<String, Object> rowRawData = rowData.getRPropHash();
-//			
-//			boolean hasRel = false;
-//			
-//			for(String startNode : rowCleanData.keySet()) {
-//				Set<String> set = edgeHash.get(startNode);
-//				if(set==null) continue;
-////				String endNode = rowCleanData.get(key).toString();
-//				for(String endNode : set) {
-//					if(rowCleanData.keySet().contains(endNode)) {
-//						hasRel = true;
-//						//get from vertex
-//						Object startNodeValue = getParsedValue(rowCleanData.get(startNode));
-//						String rawStartNodeValue = rowRawData.get(startNode).toString();
-//						Vertex fromVertex = upsertVertex(startNode, startNodeValue, rawStartNodeValue);
-//						//get to vertex
-//								
-//						Object endNodeValue = getParsedValue(rowCleanData.get(endNode));
-//						String rawEndNodeValue = rowRawData.get(endNode).toString();
-//						Vertex toVertex = upsertVertex(endNode, endNodeValue, rawEndNodeValue);
-//						
-//						upsertEdge(fromVertex, toVertex);
-//					}
-//				}
-//			}
-//			
-//			// this is to replace the addRow method which needs to be called on the first iteration
-//			// since edges do not exist yet
-//			if(!hasRel) {
-//				String singleColName = rowCleanData.keySet().iterator().next();
-//				Object startNodeValue = getParsedValue(rowCleanData.get(singleColName));
-//				String rawStartNodeValue = rowRawData.get(singleColName).toString();
-//				upsertVertex(singleColName, startNodeValue, rawStartNodeValue);
-//			}
-//		}
-//	}
+	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Object> rowRawData, Map<String, Set<String>> edgeHash) {
+			
+		boolean hasRel = false;
+		
+		for(String startNode : rowCleanData.keySet()) {
+			Set<String> set = edgeHash.get(startNode);
+			if(set==null) continue;
+
+			for(String endNode : set) {
+				if(rowCleanData.keySet().contains(endNode)) {
+					hasRel = true;
+					
+					//get from vertex
+					Object startNodeValue = getParsedValue(rowCleanData.get(startNode));
+					String rawStartNodeValue = rowRawData.get(startNode).toString();
+					Vertex fromVertex = upsertVertex(startNode, startNodeValue, rawStartNodeValue);
+					
+					//get to vertex	
+					Object endNodeValue = getParsedValue(rowCleanData.get(endNode));
+					String rawEndNodeValue = rowRawData.get(endNode).toString();
+					Vertex toVertex = upsertVertex(endNode, endNodeValue, rawEndNodeValue);
+					
+					upsertEdge(fromVertex, toVertex);
+				}
+			}
+		}
+		
+		// this is to replace the addRow method which needs to be called on the first iteration
+		// since edges do not exist yet
+		if(!hasRel) {
+			String singleColName = rowCleanData.keySet().iterator().next();
+			Object startNodeValue = getParsedValue(rowCleanData.get(singleColName));
+			String rawStartNodeValue = rowRawData.get(singleColName).toString();
+			upsertVertex(singleColName, startNodeValue, rawStartNodeValue);
+		}
+		
+	}
 	
+	//TODO : this will no longer be necessary since processDataMakerComponent passes in edgeHash, don't see need for it outside
 	public void addRelationship(ISelectStatement rowData) {
 		Map<String, Object> rowCleanData = rowData.getPropHash();
 		Map<String, Object> rowRawData = rowData.getRPropHash();
@@ -2021,9 +2015,9 @@ public class TinkerFrame implements ITableDataFrame {
 		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, Constants.FILTER).out();
 		while(gt.hasNext()) {
 			Vertex value = gt.next();
-			String type = value.property(Constants.TYPE).value().toString();
+			String type = value.value(Constants.TYPE);
 			List fvalues = filteredValues.get(type);
-			fvalues.add(value.property(Constants.VALUE).value());
+			fvalues.add(value.value(Constants.VALUE));
 		}
 		
 		return new Object[]{visibleValues, filteredValues};
@@ -2035,11 +2029,11 @@ public class TinkerFrame implements ITableDataFrame {
 		GraphTraversal<Vertex, Vertex> metaGt = g.traversal().V().has(Constants.TYPE, META).has(Constants.FILTER, true);
 		while(metaGt.hasNext()){
 			Vertex metaV = metaGt.next();
-			String vertType = metaV.property(Constants.NAME).value().toString();
+			String vertType = metaV.value(Constants.NAME);
 			GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(Constants.TYPE, Constants.FILTER).out(Constants.FILTER+edgeLabelDelimeter+vertType).has(Constants.TYPE, vertType);
 			List<String> vertsList = new Vector<String>();
 			while(gt.hasNext()){
-				vertsList.add(gt.next().property(Constants.VALUE).value().toString());
+				vertsList.add(gt.next().value(Constants.VALUE));
 			}
 			retMap.put(vertType, vertsList.toArray());
 		}
@@ -2054,7 +2048,13 @@ public class TinkerFrame implements ITableDataFrame {
 	
 	@Override
 	public Iterator<Object[]> iterator(boolean getRawData) {
-		return new TinkerFrameIterator(getSelectors(), g, getRawData);
+		TinkerFrameIterator iterator;
+		if(startRange != -1) {
+			iterator =  new TinkerFrameIterator(getSelectors(), g, getRawData, this.startRange, this.endRange);
+		} else {
+			iterator =  new TinkerFrameIterator(getSelectors(), g, getRawData);
+		}
+		return iterator;
 	}
 
 	@Override
@@ -2094,7 +2094,8 @@ public class TinkerFrame implements ITableDataFrame {
 		Vector<String> column = new Vector<>();
 		column.add(columnHeader);
 		GremlinBuilder builder = GremlinBuilder.prepareGenericBuilder(column, g);
-		return builder.executeScript().values(Constants.NAME);	
+		String dataType = getRawData ? Constants.VALUE : Constants.NAME;
+		return builder.executeScript().values(dataType).dedup();	
 	}
 
 	private GraphTraversal<Vertex, Object> getGraphTraversal(String columnHeader) {
@@ -2237,7 +2238,7 @@ public class TinkerFrame implements ITableDataFrame {
 			selectors.add(columnHeader);
 			
 			List<Double> numericCol = new Vector<Double>();
-			TinkerFrameIterator it = new TinkerFrameIterator(selectors, this.g);
+			Iterator<Object[]> it = iterator(false);
 			while(it.hasNext()) {
 				Object[] row = it.next();
 				numericCol.add( ((Number) row[0]).doubleValue() );
@@ -2257,12 +2258,12 @@ public class TinkerFrame implements ITableDataFrame {
 	@Override
 	public Object[] getUniqueValues(String columnHeader) {
 
-//		Iterator<Object> uniqIterator = this.uniqueValueIterator(columnHeader, false, false);
-		GraphTraversal<Vertex, Object> gt = g.traversal().V().has(Constants.TYPE, columnHeader).values(Constants.VALUE);
+		Iterator<Object> uniqIterator = this.uniqueValueIterator(columnHeader, false, false);
+//		GraphTraversal<Vertex, Object> gt = g.traversal().V().has(Constants.TYPE, columnHeader).values(Constants.VALUE);
 		Vector <Object> uniV = new Vector<Object>();
-		while(gt.hasNext()) {
+		while(uniqIterator.hasNext()) {
 //			Vertex v = (Vertex)uniqIterator.next();
-			uniV.add(gt.next());
+			uniV.add(uniqIterator.next());
 		}
 
 		return uniV.toArray();
@@ -2270,10 +2271,11 @@ public class TinkerFrame implements ITableDataFrame {
 
 	@Override
 	public Object[] getUniqueRawValues(String columnHeader) {
-		GraphTraversal<Vertex, Object> gt = g.traversal().V().has(Constants.TYPE, columnHeader).values(Constants.VALUE);
+		Iterator<Object> uniqIterator = this.uniqueValueIterator(columnHeader, true, false);
+//		GraphTraversal<Vertex, Object> gt = g.traversal().V().has(Constants.TYPE, columnHeader).values(Constants.VALUE);
 		Vector <Object> uniV = new Vector<Object>();
-		while(gt.hasNext())
-			uniV.add(gt.next());
+		while(uniqIterator.hasNext())
+			uniV.add(uniqIterator.next());
 
 		return uniV.toArray();
 	}
@@ -2288,7 +2290,7 @@ public class TinkerFrame implements ITableDataFrame {
 			}
 		}
 		
-		TinkerFrameIterator it = new TinkerFrameIterator(getSelectors(), this.g, false);
+		Iterator<Object[]> it = iterator(false);
 		while(it.hasNext()) {
 			Object[] row = it.next();
 			if(counts.containsKey(row[0] + "")) {
@@ -2608,9 +2610,16 @@ public class TinkerFrame implements ITableDataFrame {
 			return;
 		}
 		
+		
+		
 		// put it in a set to get unique values
 		Set<String> myset = new LinkedHashSet<String>(Arrays.asList(headerNames));
-		myset.addAll(Arrays.asList(newLevels));
+		
+		for(String newLevel : newLevels) {
+			if(!newLevel.contains(primKeyDelimeter)) {
+				myset.add(newLevel);
+			}
+		}
 		myset.remove(PRIM_KEY);
 		
 		String [] newLevelNames = myset.toArray(new String[myset.size()]);
