@@ -112,8 +112,6 @@
 		<!-- termVectors="true" termPositions="true" termOffsets="true" -->
 		<!-- this is meant to hold all the text a user has surrounding an insights -->
 		<field name="all_text" type="text_en_splitting" indexed="true" stored="false" required="true" multiValued="true" />
-		
-		<!-- copy the text fields into the field "all text" -->
 		<copyField source="index_name" dest="all_text"/>
 		<copyField source="user_id" dest="all_text"/>
 		<copyField source="tags" dest="all_text"/>
@@ -126,13 +124,12 @@
 		<copyField source="algorithms" dest="all_text"/>
 		
 		<!-- field for autocomplete -->
-		<field name="all_text_suggest" type="text_suggest" indexed="true" stored="false" required="true" multiValued="true" termVectors="true" termPositions="true" termOffsets="true"/> 
-		<copyField source="index_name" dest="all_text_suggest"/>
+		<field name="insight_suggest" type="text_suggest" indexed="true" stored="false" required="true" multiValued="true" termVectors="true" termPositions="true" termOffsets="true"/> 
+		<copyField source="index_name" dest="insight_suggest"/>
 
-		
 		<!-- field for spellcheck -->
-		<field name="all_text_spelling" type="text_spelling" indexed="true" stored="false" required="true" multiValued="true" termVectors="true" termPositions="true" termOffsets="true"/> 
-		<copyField source="index_name" dest="all_text_spelling"/>
+		<field name="insight_spelling" type="text_spelling" indexed="true" stored="false" required="true" multiValued="true" termVectors="true" termPositions="true" termOffsets="true"/> 
+		<copyField source="index_name" dest="insight_spelling"/>
 		
 
 	</fields>
@@ -163,8 +160,7 @@
 		<fieldType name="long" class="solr.TrieLongField" precisionStep="0" positionIncrementGap="0"/>
 		<fieldType name="double" class="solr.TrieDoubleField" precisionStep="0" positionIncrementGap="0"/>
 		
-		
-			<!-- creating a new field type for autosuggest that doesnt use 'term vectors'-->
+		<!-- creating a new field type for autosuggest that doesnt use 'term vectors'-->
 		<fieldType name="text_suggest" class="solr.TextField" positionIncrementGap="100">
 			<analyzer type="index">
 				<tokenizer class="solr.KeywordTokenizerFactory"/>
@@ -179,7 +175,6 @@
 		</fieldType>
 
 		
-			<!-- Field type for spellcheck that uses whitespace tokenizer'-->
 		<fieldType name="text_spelling" class="solr.TextField" positionIncrementGap="100" autoGeneratePhraseQueries="true">
 		  <analyzer type="index">
 			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
@@ -200,7 +195,6 @@
 		</fieldType>
 		
 			
-			<!-- Field type that uses KeyWord Tokenizer-->
 		<fieldType name="text_en_splitting" class="solr.TextField" positionIncrementGap="100" autoGeneratePhraseQueries="true">
 		  <analyzer type="index">
 			<tokenizer class="solr.KeywordTokenizerFactory"/>

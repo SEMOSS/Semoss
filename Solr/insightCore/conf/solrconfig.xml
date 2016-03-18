@@ -1288,7 +1288,7 @@
 	<!-- a spellchecker built from a field of the main index -->
     <lst name="spellchecker">
       <str name="name">default</str>
-	  <str name="field">all_text_spelling</str>
+	  <str name="field">insight_spelling</str>
       <str name="classname">solr.DirectSolrSpellChecker</str>
       <!-- the spellcheck distance measure used, the default is the internal levenshtein -->
       <str name="distanceMeasure">internal</str>
@@ -1314,7 +1314,7 @@
     <lst name="spellchecker">
       <str name="name">wordbreak</str>
       <str name="classname">solr.WordBreakSolrSpellChecker</str>      
-	  <str name="field">all_text_suggest</str>
+	  <str name="field">insight_spelling</str>
       <str name="combineWords">true</str>
       <str name="breakWords">true</str>
       <int name="maxChanges">10</int>
@@ -1366,7 +1366,7 @@
     -->
   <requestHandler name="/spell" class="solr.SearchHandler" startup="lazy">
     <lst name="defaults">
-	  <str name="df">all_text_spelling</str>
+	  <str name="df">insight_spelling</str>
       <str name="spellcheck.dictionary">default</str> 
       <str name="spellcheck">on</str>
       <str name="spellcheck.extendedResults">true</str>  
@@ -1389,7 +1389,7 @@
   <searchComponent name="suggest" class="solr.SpellCheckComponent">
   	<lst name="spellchecker">
       <str name="name">suggest</str>
-	  <str name="field">all_text_suggest</str>
+	  <str name="field">insight_suggest</str>
 	  <str name="classname">Suggester</str>
 	  <str name="lookupImpl">org.apache.solr.spelling.suggest.jaspell.JaspellLookupFactory</str>
 	  <str name="suggestAnalyzerFieldType">text_en_splitting</str>  
