@@ -7,10 +7,13 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.common.params.CommonParams;
+import org.apache.solr.common.params.DisMaxParams;
 import org.apache.solr.common.params.FacetParams;
 import org.apache.solr.common.params.GroupParams;
 import org.apache.solr.common.params.MoreLikeThisParams;
 import org.apache.solr.common.params.SpellingParams;
+import org.apache.solr.search.DisMaxQParserPlugin;
+import org.apache.solr.search.QueryParsing;
 
 public class SolrIndexEngineQueryBuilder {
 
@@ -28,7 +31,7 @@ public class SolrIndexEngineQueryBuilder {
 	}
 	
 	public SolrQuery getSolrQuery() {
-		if(this.searchString == null || this.searchString.isEmpty()) {
+		if(this.searchString == null || this.searchString.trim().isEmpty()) {
 			this.Q.set(CommonParams.Q, SolrIndexEngine.QUERY_ALL);
 		} else {
 			if(preFixSearch) {
@@ -47,7 +50,7 @@ public class SolrIndexEngineQueryBuilder {
 	}
 	
 	public void setSearchString(String searchString) {
-		this.searchString = escapeSpecialCharacters(searchString);
+		this.searchString = escapeSpecialCharacters(searchString.trim());
 	}
 	
 	public void setDefaultSearchField(String defaultField) {
@@ -63,9 +66,6 @@ public class SolrIndexEngineQueryBuilder {
 			case ASC : this.Q.setSort(sortField, SolrQuery.ORDER.asc);
 			break;
 			case DESC : this.Q.setSort(sortField, SolrQuery.ORDER.desc);
-			break;
-			// note that the sort field is not used when the sort equals score
-			case SCORE : this.Q.setSort("score", SolrQuery.ORDER.desc);
 			break;
 		}
 	}
@@ -141,9 +141,6 @@ public class SolrIndexEngineQueryBuilder {
 			break;
 			case DESC : this.Q.add(GroupParams.GROUP_SORT, sortField + " " + SolrQuery.ORDER.desc);
 			break;
-			// note that the sort field is not used when the sort equals score
-			case SCORE : this.Q.setSort("score", SolrQuery.ORDER.desc);
-			break;
 		}
 	}
 	
@@ -213,6 +210,34 @@ public class SolrIndexEngineQueryBuilder {
 		this.preFixSearch = preFixSearch;
 	}
 	
+	public void addDisMax(String field, double power) {
+		String currDisMax = this.Q.get(DisMaxParams.QF);
+		if(currDisMax == null) {
+			this.Q.set(DisMaxParams.QF, field + "^" + power);
+		} else {
+			currDisMax += " " + field + "^" + power;
+			this.Q.set(DisMaxParams.QF, currDisMax);
+		}
+	}
+	
+	public void setDefType(String type) {
+		this.Q.set(QueryParsing.DEFTYPE, type);
+	}
+	
+	public void setDefaultDisMaxWeighting() {
+		setDefType(DisMaxQParserPlugin.NAME);
+		addDisMax(SolrIndexEngine.INDEX_NAME, 3.5);
+		addDisMax(SolrIndexEngine.TAGS, 1.5);
+//		addDisMax(SolrIndexEngine.USER_ID, 1.0);
+//		addDisMax(SolrIndexEngine.ANNOTATION, 1.0);
+//		addDisMax(SolrIndexEngine.COMMENT, 1.0);
+		addDisMax(SolrIndexEngine.ENGINES, 1.0);
+//		addDisMax(SolrIndexEngine.QUERY_PROJECTIONS, 1.0);
+		addDisMax(SolrIndexEngine.LAYOUT, 1.0);
+		addDisMax(SolrIndexEngine.PARAMS, 1.0);
+//		addDisMax(SolrIndexEngine.ALGORITHMS, 1.0);
+	}
+	
 	public static String escapeSpecialCharacters(String s) {
 		if(s.equals(SolrIndexEngine.QUERY_ALL)) {
 			return s;
@@ -239,4 +264,5 @@ public class SolrIndexEngineQueryBuilder {
 
 		return s;
 	}
+	
 }
