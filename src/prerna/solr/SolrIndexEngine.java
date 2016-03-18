@@ -515,52 +515,54 @@ public class SolrIndexEngine {
 	 * @throws SolrServerException
 	 * @throws IOException
 	 */
-	private Map<String, Object> searchDocument(SolrIndexEngineQueryBuilder queryBuilder)
-			throws SolrServerException, IOException {
+	private Map<String, Object> searchDocument(SolrIndexEngineQueryBuilder queryBuilder) throws SolrServerException, IOException {
 		Map<String, Object> searchResultMap = new HashMap<String, Object>();
-		Map<String, Object> queryResponseMap = new HashMap<String, Object>();
 		if (serverActive()) {
 			QueryResponse res = null;
+
+			// for spellcheck
+			Map<String, List<String>> insightSpellCheck = null;
+			Map<String, List<String>> instanceSpellCheck = null;
+
 			SolrQuery query = queryBuilder.getSolrQuery();
-			String appendedQuerySearch = "";
 			String querySearch = query.get(CommonParams.Q);
 			res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+			// get insight spell check results
+			insightSpellCheck = getSpellCheckResponse(res);
+
 			if(res != null && res.getResults().size() == 0) {
-				// need to remove sorts sinc they might not exist
+				// need to remove sorts since they might not exist
 				List<SortClause> sorts = query.getSorts();
 				List<SortClause> sortsCopy = new ArrayList<SortClause>();
 				sortsCopy.addAll(sorts);
 				for(SortClause sort : sortsCopy) {
 					query.removeSort(sort);
 				}
-				// Query within the instanceCore only when the normal query returns no results
+
+				// Query within the instanceCore
 				Map<String, Object> queryResults = executeInstanceCoreQuery(querySearch);
-				appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
-				query.set(CommonParams.Q, appendedQuerySearch);
-				// readd sorts
-				for(SortClause sort : sortsCopy) {
+				instanceSpellCheck = (Map<String, List<String>>) queryResults.get(SPELLCHECK_RESPONSE);
+
+				String appendedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
+
+				queryBuilder.removeSpellCheckParams();
+				queryBuilder.setSearchString(appendedQuerySearch);
+				// re-add sorts
+				for (SortClause sort : sortsCopy) {
 					query.addSort(sort);
 				}
-				// grab spell check values
-				Map<String, List<String>> instanceSpellCheck = (Map<String, List<String>>) queryResults.get(SPELLCHECK_RESPONSE);
-				queryResponseMap.put(SPELLCHECK_RESPONSE, instanceSpellCheck);
-				searchResultMap.putAll(queryResponseMap);
+
 				// query the insight core
 				res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+
 			}
 
-			SolrDocumentList results = res.getResults();
-			searchResultMap.put(QUERY_RESPONSE, results);
-			searchResultMap.put(NUM_FOUND, results.size());
-			Map<String, List<String>> spellCheckResponse = getSpellCheckResponse(res);
-			if (spellCheckResponse != null && !spellCheckResponse.isEmpty()) {
-				queryResponseMap.put(SPELLCHECK_RESPONSE, spellCheckResponse);
-				searchResultMap.putAll(queryResponseMap);
-			}
+			searchResultMap.put(SPELLCHECK_RESPONSE, mergeCoreSuggestions(insightSpellCheck, instanceSpellCheck));
 		}
 		LOGGER.info("Returning results of search");
 		return searchResultMap;
 	}
+
 
 	/**
 	 * Gets the facet/count for each instance of the specified fields
@@ -819,7 +821,7 @@ public class SolrIndexEngine {
 					List<String> currSpellingCorrections = allResponse.get(searchString);
 					List<String> newSpellingCorrections = instanceCoreSpelling.get(searchString);
 					for(String newSpelling : newSpellingCorrections) {
-						if(currSpellingCorrections.contains(newSpelling)) {
+						if(!currSpellingCorrections.contains(newSpelling)) {
 							currSpellingCorrections.add(newSpelling);
 						}
 					}
