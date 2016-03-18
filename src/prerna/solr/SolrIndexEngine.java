@@ -467,7 +467,9 @@ public class SolrIndexEngine {
 			queryBuilder.setLimit(limitInt);
 		}
 		// sets the field weighting for relevant value
-		queryBuilder.setDefaultDisMaxWeighting();
+		if(searchString != null && !searchString.isEmpty() && !searchString.equals(QUERY_ALL)) {
+			queryBuilder.setDefaultDisMaxWeighting();
+		}
 
 		List<String> retFields = new ArrayList<String>();
 		retFields.add(CORE_ENGINE);
@@ -480,7 +482,7 @@ public class SolrIndexEngine {
 		retFields.add(SCORE);
 		queryBuilder.setReturnFields(retFields);
 
-		if(filterData != null) {
+		if(filterData != null && !filterData.isEmpty()) {
 			queryBuilder.setFilterOptions(filterData);
 		}
 		
@@ -566,7 +568,9 @@ public class SolrIndexEngine {
 		}
 		
 		// sets the field weighting for relevant value
-		queryBuilder.setDefaultDisMaxWeighting();
+		if(searchString != null && !searchString.isEmpty() && !searchString.equals(QUERY_ALL)) {
+			queryBuilder.setDefaultDisMaxWeighting();
+		}
 		// facet still requires a default field or it throws an error 
 		queryBuilder.setDefaultSearchField(INDEX_NAME);
 		queryBuilder.setFacet(true);
@@ -682,7 +686,9 @@ public class SolrIndexEngine {
 		queryBuilder.setGroupFields(groupList);
 		
 		// sets the field weighting for relevant value
-		queryBuilder.setDefaultDisMaxWeighting();
+		if(searchString != null && !searchString.isEmpty() && !searchString.equals(QUERY_ALL)) {
+			queryBuilder.setDefaultDisMaxWeighting();
+		}
 				
 		List<String> retFields = new ArrayList<String>();
 		retFields.add(CORE_ENGINE);
@@ -695,7 +701,7 @@ public class SolrIndexEngine {
 		retFields.add(SCORE);
 		queryBuilder.setReturnFields(retFields);
 
-		if(filterData != null) {
+		if(filterData != null && !filterData.isEmpty()) {
 			queryBuilder.setFilterOptions(filterData);
 		}
 		
