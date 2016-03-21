@@ -80,6 +80,7 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.log4j.Logger;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.common.SolrInputDocument;
 import org.h2.jdbc.JdbcClob;
 import org.openrdf.model.Value;
 import org.openrdf.query.Binding;
@@ -690,11 +691,11 @@ public class Utility {
 		
 		
 	public static void addToSolrInstanceCore(IEngine engineToAdd) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, ParseException{
-		SolrIndexEngine solrE = null;
-
 		String engineName = engineToAdd.getEngineName();
-		solrE = SolrIndexEngine.getInstance();
+		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
 		if (solrE.serverActive()) {
+			List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
+
 			// grab all concepts and their instances from the db
 			List<String> conceptList = engineToAdd.getConcepts();
 			for(String concept : conceptList) {
@@ -733,11 +734,12 @@ public class Utility {
 							propFieldData.put(SolrIndexEngine.VALUE, prop);
 							propertiesList.add(Utility.getInstanceName(prop));
 							propFieldData.put(SolrIndexEngine.INSTANCES, propertiesList);
-							try {
-								solrE.addInstance(propId, propFieldData);
-							} catch (SolrServerException | IOException e) {
-								e.printStackTrace();
-							}
+//							try {
+								docs.add(solrE.createDocument(propId, propFieldData));
+//								solrE.addInstance(propId, propFieldData);
+//							} catch (SolrServerException | IOException e) {
+//								e.printStackTrace();
+//							}
 						}
 					}
 				} else {
@@ -769,11 +771,12 @@ public class Utility {
 							propFieldData.put(SolrIndexEngine.VALUE, prop);
 							propertiesList.add(Utility.getInstanceName(prop));
 							propFieldData.put(SolrIndexEngine.INSTANCES, propertiesList);
-							try {
-								solrE.addInstance(propId, propFieldData);
-							} catch (SolrServerException | IOException e) {
-								e.printStackTrace();
-							}
+//							try {
+								docs.add(solrE.createDocument(propId, propFieldData));
+//								solrE.addInstance(propId, propFieldData);
+//							} catch (SolrServerException | IOException e) {
+//								e.printStackTrace();
+//							}
 						}
 					}
 				}
@@ -790,17 +793,23 @@ public class Utility {
 				}
 				fieldData.put(SolrIndexEngine.INSTANCES, instancesList);
 				
-				try {
-					solrE.addInstance(newId, fieldData);
-				} catch (SolrServerException | IOException e) {
-					e.printStackTrace();
-				}
+//				try {
+					docs.add(solrE.createDocument(newId, fieldData));
+//					solrE.addInstance(newId, fieldData);
+//				} catch (SolrServerException | IOException e) {
+//					e.printStackTrace();
+//				}
+			}
+			
+			try {
+				solrE.addInstances(docs);
+			} catch (SolrServerException | IOException e) {
+				e.printStackTrace();
 			}
 		}
 	}
 
 	public static void addToSolrInsightCore(IEngine engineToAdd, String path) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
-		SolrIndexEngine solrE = null;
 //		SolrDocumentExportWriter writer = null;
 		String engineName = engineToAdd.getEngineName();
 		//don't grab localMaster DB data
@@ -808,7 +817,7 @@ public class Utility {
 			return;
 		}
 		LOGGER.info("Checking if we need to add " + engineName);
-		solrE = SolrIndexEngine.getInstance();
+		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
 		if(solrE.serverActive()) {
 
 			String folderPath = DIHelper.getInstance().getProperty("BaseFolder");
@@ -837,6 +846,7 @@ public class Utility {
 
 			solrE.deleteEngine(engineName);
 
+			List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
 			// query the current insights in this db
 			ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engineToAdd.getInsightDatabase(), query);
 			while(wrapper.hasNext()){
@@ -857,11 +867,15 @@ public class Utility {
 				String perspective = (String) ss.getVar("QUESTION_PERSPECTIVE");
 				String perspString1 ="-Perspective";
 				String perspString2 ="Perspective";
+				String perspString3 ="_Perspective";
 				if (perspective.contains(perspString1)) {
 					perspective = perspective.replace(perspString1, "").trim();
 				}
 				if(perspective.contains(perspString2)){
 					perspective = perspective.replace(perspString2, "").trim();
+				}
+				if(perspective.contains(perspString3)){
+					perspective = perspective.replace(perspString3, "").trim();
 				}
 
 				JdbcClob obj = (JdbcClob) ss.getVar("QUESTION_MAKEUP"); 
@@ -927,13 +941,19 @@ public class Utility {
 				queryResults.put(SolrIndexEngine.TAGS, perspective);
 
 				try {
-					solrE.addInsight(engineName + "_" + id, queryResults);
+					docs.add(solrE.createDocument(engineName + "_" + id, queryResults));
+//					solrE.addInsight(engineName + "_" + id, queryResults);
 //					writer.writeSolrDocument(engineName + "_" + id, queryResults);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
 			}
 
+			try {
+				solrE.addInsights(docs);
+			} catch (SolrServerException | IOException e) {
+				e.printStackTrace();
+			}
 			//close writer
 //			if(writer != null) {
 //				writer.closeExport();
