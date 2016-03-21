@@ -1250,7 +1250,7 @@ public class TinkerFrame implements ITableDataFrame {
 		String type = fromVertex.value(Constants.TYPE) + edgeLabelDelimeter + toVertex.value(Constants.TYPE);
 		String edgeID = type + "/" + fromVertex.value(Constants.NAME) + ":" + toVertex.value(Constants.NAME);
 		// try to find the vertex
-		GraphTraversal<Edge, Edge> gt = g.traversal().E(type).has(Constants.ID, edgeID);
+		GraphTraversal<Edge, Edge> gt = g.traversal().E().hasLabel(type).has(Constants.ID, edgeID);
 		if(gt.hasNext()) {
 			retEdge = gt.next();
 			Integer count = (Integer)retEdge.value(Constants.COUNT);
