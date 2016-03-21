@@ -264,8 +264,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 						}	
 					}
 					
-					System.out.println("Total Count " + count);
-						
+					logger.info("Found " + retVec.size() + " elements in result set");
 					return retVec;
 				}
 		} catch (RepositoryException e) {
