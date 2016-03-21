@@ -8,6 +8,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -172,13 +173,7 @@ public class SolrIndexEngine {
 	public void addInsight(String uniqueID, Map<String, Object> fieldData) throws SolrServerException, IOException {
 		if (serverActive()) {
 			// create new Document
-			SolrInputDocument doc = new SolrInputDocument();
-			// set document ID to uniqueID
-			doc.setField(ID, uniqueID);
-			// add field names and data to new Document
-			for (String fieldname : fieldData.keySet()) {
-				doc.setField(fieldname, fieldData.get(fieldname));
-			}
+			SolrInputDocument doc = createDocument(uniqueID, fieldData);
 			LOGGER.info("Adding INSIGHTS with unique ID:  " + uniqueID);
 			insightServer.add(doc);
 			insightServer.commit();
@@ -186,22 +181,50 @@ public class SolrIndexEngine {
 			buildSuggester();
 		}
 	}
+	
+	public SolrInputDocument createDocument(String uniqueID, Map<String, Object> fieldData) {
+		SolrInputDocument doc = new SolrInputDocument();
+		// set document ID to uniqueID
+		doc.setField(ID, uniqueID);
+		// add field names and data to new Document
+		for (String fieldname : fieldData.keySet()) {
+			doc.setField(fieldname, fieldData.get(fieldname));
+		}
+		
+		return doc;
+	}
+	
+	public void addInsights(Collection<SolrInputDocument> docs) throws SolrServerException, IOException {
+		if (serverActive()) {
+			if(docs != null && !docs.isEmpty()) {
+				LOGGER.info("Adding " + docs.size() + " documents into insight server...");
+				insightServer.add(docs);
+				insightServer.commit();
+				buildSuggester();
+			}
+		}
+	}
 
 	// make another method to add core_engine, concept, and instances
 	public void addInstance(String uniqueID, Map<String, Object> fieldData) throws SolrServerException, IOException {
 		if (serverActive()) {
 			// create new Document
-			SolrInputDocument doc = new SolrInputDocument();
-			// set document ID to uniqueID
-			doc.setField(ID, uniqueID);
-			// add field names and data to new Document
-			for (String fieldName : fieldData.keySet()) {
-				doc.setField(fieldName, fieldData.get(fieldName));
-			}
+			SolrInputDocument doc = createDocument(uniqueID, fieldData);
 			LOGGER.info("Adding instances with unique ID:  " + uniqueID);
 			instanceServer.add(doc);
 			instanceServer.commit();
 			LOGGER.info("UniqueID " + uniqueID + "'s instances has been added");
+		}
+	}
+	
+	public void addInstances(Collection<SolrInputDocument> docs) throws SolrServerException, IOException {
+		if (serverActive()) {
+			if(!docs.isEmpty()) {
+				LOGGER.info("Adding " + docs.size() + " documents into instance server...");
+				instanceServer.add(docs);
+				instanceServer.commit();
+				buildSuggester();
+			}
 		}
 	}
 
@@ -695,6 +718,9 @@ public class SolrIndexEngine {
 		}
 		// always add sort by score desc
 		queryBuilder.setGroupSort(SCORE, DESC);
+		//TODO: need to expose number of groups to return to UI
+		queryBuilder.setLimit(25);
+
 		
 		List<String> groupList = new ArrayList<String>();
 		groupList.add(groupByField);
