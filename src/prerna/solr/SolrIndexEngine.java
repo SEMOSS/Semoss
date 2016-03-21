@@ -581,10 +581,10 @@ public class SolrIndexEngine {
 			}
 			
 			searchResultMap.put(QUERY_RESPONSE, results);
-			searchResultMap.put(NUM_FOUND, results.size());
+			searchResultMap.put(NUM_FOUND, results.getNumFound());
 			searchResultMap.put(SPELLCHECK_RESPONSE, mergeCoreSuggestions(insightSpellCheck, instanceSpellCheck));
 		}
-		LOGGER.info("Returning results of search");
+		LOGGER.info("Done executing search query");
 		return searchResultMap;
 	}
 
@@ -676,7 +676,7 @@ public class SolrIndexEngine {
 				}
 			}
 		}
-		LOGGER.info("Returning facetDocument's field name string, instance of field name string, and long count for the field name");
+		LOGGER.info("Done executing facet query");
 		return facetFieldMap;
 	}
 
@@ -721,7 +721,7 @@ public class SolrIndexEngine {
 		// always add sort by score desc
 		queryBuilder.setGroupSort(SCORE, DESC);
 		//TODO: need to expose number of groups to return to UI
-		queryBuilder.setLimit(25);
+		queryBuilder.setLimit(50);
 
 		
 		List<String> groupList = new ArrayList<String>();
@@ -833,7 +833,7 @@ public class SolrIndexEngine {
 			groupByResponse.put(SPELLCHECK_RESPONSE, mergeCoreSuggestions(insightSpellCheck, instanceSpellCheck));
 		}
 
-		LOGGER.info("Returning SolrDocumentList for Group Search");
+		LOGGER.info("Done executing group by query");
 		return groupByResponse;
 	}
 	
