@@ -404,7 +404,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				{					
 //					output = rs.getString(colIndex);
 					output = rs.getObject(colIndex);
-					System.out.print(rs.getObject(colIndex));
+//					System.out.print(rs.getObject(colIndex));
 					list.add(output);
 				}
 				if(columns == 1)
@@ -416,6 +416,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		logger.info("Found " + retVector.size() + " elements in result set");
 		return retVector;
 	}
 	
