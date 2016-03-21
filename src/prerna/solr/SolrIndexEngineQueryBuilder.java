@@ -31,7 +31,7 @@ public class SolrIndexEngineQueryBuilder {
 	}
 	
 	public SolrQuery getSolrQuery() {
-		if(this.searchString == null || this.searchString.trim().isEmpty()) {
+		if(this.searchString == null || this.searchString.isEmpty() || this.searchString.equals(SolrIndexEngine.QUERY_ALL)) {
 			this.Q.set(CommonParams.Q, SolrIndexEngine.QUERY_ALL);
 		} else {
 			if(preFixSearch) {
@@ -39,6 +39,7 @@ public class SolrIndexEngineQueryBuilder {
 			} else {
 				this.Q.set(CommonParams.Q, this.searchString);
 			}
+//			this.Q.set(CommonParams.Q, "*" + this.searchString + "*");
 		}
 		
 		return Q;
