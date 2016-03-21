@@ -569,6 +569,7 @@ public class SolrIndexEngine {
 
 				queryBuilder.removeSpellCheckParams();
 				queryBuilder.setSearchString(appendedQuerySearch);
+				query = queryBuilder.getSolrQuery();
 				// re-add sorts
 				for (SortClause sort : sortsCopy) {
 					query.addSort(sort);
@@ -576,6 +577,7 @@ public class SolrIndexEngine {
 
 				// query the insight core
 				res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+				results = res.getResults();
 			}
 			
 			searchResultMap.put(QUERY_RESPONSE, results);
@@ -800,6 +802,7 @@ public class SolrIndexEngine {
 				
 				queryBuilder.removeSpellCheckParams();
 				queryBuilder.setSearchString(appendedQuerySearch);
+				query = queryBuilder.getSolrQuery();
 				// readd sorts
 				for(SortClause sort : sortsCopy) {
 					query.addSort(sort);
