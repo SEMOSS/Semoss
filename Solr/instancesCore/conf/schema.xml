@@ -74,7 +74,7 @@
 		<copyField source="instances" dest="instance_suggest"/>
 		
 		<!-- field for spellcheck -->
-		<field name="instance_spelling" type="text_spelling" indexed="true" stored="false" required="true" multiValued="true" termVectors="true" termPositions="true" termOffsets="true"/> 
+		<field name="instance_spelling" type="text_spelling" indexed="true" stored="false" required="true" multiValued="true" /> 
 		<copyField source="instances" dest="instance_spelling"/>
 		
 	</fields>
