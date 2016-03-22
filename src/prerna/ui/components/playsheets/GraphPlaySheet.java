@@ -139,7 +139,7 @@ public class GraphPlaySheet extends AbstractPlaySheet {
 	EdgeLabelFontTransformer elft;
 	VertexShapeTransformer vsht;
 	
-	protected Boolean ENABLE_SEARCH = false;//Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSearch));
+	protected Boolean ENABLE_SEARCH = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.GPSSearch));
 
 	public ControlPanel searchPanel;
 	
@@ -150,7 +150,7 @@ public class GraphPlaySheet extends AbstractPlaySheet {
 	 */
 	public GraphPlaySheet()
 	{
-		logger.info("Graph Tinker PlaySheet ");
+		logger.info("Graph PlaySheet ");
 	}
 	
 	/**
@@ -280,7 +280,7 @@ public class GraphPlaySheet extends AbstractPlaySheet {
 			// add the model to search panel
 			if (ENABLE_SEARCH)
 			{
-//				searchPanel.searchCon.indexStatements(gdm.getJenaModel());
+				searchPanel.searchCon.indexStatements(dataFrame);
 			}
 			GraphZoomScrollPane gzPane = new GraphZoomScrollPane(view);
 			gzPane.getVerticalScrollBar().setUI(new NewScrollBarUI());
@@ -679,7 +679,7 @@ public class GraphPlaySheet extends AbstractPlaySheet {
 	
 	@Override
 	public void refineView() {
-		this.helper.redoView();
+		this.helper.refineView();
 	}
 	
 	@Override
