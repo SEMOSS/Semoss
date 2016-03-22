@@ -1056,7 +1056,7 @@ public class TinkerFrame implements ITableDataFrame {
 	 * returns {PRIM_KEY -> col_1, col_2, ... col_N}
 	 */
 	protected Map<String, Set<String>> createPrimKeyEdgeHash(String[] headers) {
-		Set<String> primKeyEdges = new HashSet<>();
+		Set<String> primKeyEdges = new LinkedHashSet<>();
 		for(String header : headers) {
 			primKeyEdges.add(header);
 		}
