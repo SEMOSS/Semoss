@@ -331,6 +331,7 @@ public class GraphDataModel implements IDataMaker {
 			//	logger.info("Came into not having ANY data"); 
 			//	return;
 			//}			
+			logger.info("starting with processing main query");
 			while(sjw.hasNext())
 			{
 				// read the subject predicate object
@@ -371,13 +372,21 @@ public class GraphDataModel implements IDataMaker {
 				//addToJenaModel(st);
 				addToSesame(st, false, false); // and this will work fine because I am just giving out URIs
 				if (search) addToJenaModel3(st);
-			}						
+			}		
+			try {
+				logger.info("done with processing main query" + rc.size());
+			} catch (RepositoryException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 			logger.debug("Subjects >>> " + subjects);
 			logger.debug("Predicatss >>>> " + predicates);
 
 			if(rc!=null){ // if rc is null here, that means our original query didn't return anything. 
-					
+
+				logger.info("starting with processing base data");
 				loadBaseData(engine); // this method will work fine too.. although I have no use for it for later
+				logger.info("done with processing base data");
 				// load the concept linkages
 				// the concept linkages are a combination of the base relationships and what is on the file
 				boolean isRDF = (engine.getEngineType() == IEngine.ENGINE_TYPE.SESAME || engine.getEngineType() == IEngine.ENGINE_TYPE.JENA || 
@@ -385,14 +394,23 @@ public class GraphDataModel implements IDataMaker {
 				boolean loadHierarchy = !(subjects.length()==0 && predicates.length()==0 && objects.length()==0) && isRDF; // Load Hierarchy if and only if this is a RDF Engine - else dont worry about it
 				if(loadHierarchy) {
 					try {
+						logger.info("starting with processing hierarchy");
 						RDFEngineHelper.loadConceptHierarchy(engine, subjects.toString(), objects.toString(), this);
 						logger.debug("Loaded Concept");
 						RDFEngineHelper.loadRelationHierarchy(engine, predicates.toString(), this);
 						logger.debug("Loaded Relation");
+						try {
+							logger.info("done with processing hierarchy"+ rc.size());
+						} catch (RepositoryException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
 					} catch(RuntimeException ex) {
 						ex.printStackTrace();
 					}
 				}
+
+				logger.info("finding contains...");
 				containsRelation = findContainsRelation();
 				if(containsRelation == null)
 					containsRelation = "<http://semoss.org/ontologies/Relation/Contains>";
@@ -414,7 +432,12 @@ public class GraphDataModel implements IDataMaker {
 						// now that this is done, we can query for concepts						
 						//genPropertiesRemote(propertyQuery + "BINDINGS ?Subject { " + subjects + " " + predicates + " " + objects+ " } ");
 						RDFEngineHelper.genPropertiesRemote(engine, subjects.toString(), objects.toString(), predicates.toString(), containsRelation, this);
-						logger.info("Loaded Properties");
+						try {
+							logger.info("DONE:: Loaded Properties" + rc.size());
+						} catch (RepositoryException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
 					} catch(RuntimeException ex) {
 						ex.printStackTrace();
 					}
