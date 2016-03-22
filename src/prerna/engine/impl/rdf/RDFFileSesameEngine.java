@@ -30,6 +30,7 @@ package prerna.engine.impl.rdf;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -72,13 +73,13 @@ import org.openrdf.sail.SailException;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
-import com.bigdata.rdf.model.BigdataLiteralImpl;
-
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+
+import com.bigdata.rdf.model.BigdataLiteralImpl;
 
 /**
  * References the RDF source and uses the Sesame API to query a database stored in an RDF file (.jnl file).
@@ -105,11 +106,11 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 	@Override
 	public void openDB(String propFile)
 	{
-		super.openDB(propFile);
+		//super.openDB(propFile);
 		try
 		{
 			Repository myRepository;
-				super.openDB(propFile);
+				//super.openDB(propFile);
 				myRepository = new SailRepository(
 						new ForwardChainingRDFSInferencer(
 						new MemoryStore()));
@@ -487,7 +488,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		try{
 			System.err.println("Exporting database");
 			writer = new FileWriter(fileName);
-			rc.export(new RDFXMLPrettyWriter(writer));
+			exportDB(writer);
 		}catch(IOException e) {
 			e.printStackTrace();
 		} finally {
@@ -499,6 +500,31 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			}
 		}
 	}
+	
+	/**
+	 * Method exportDB.  Exports the repository connection to the RDF database.
+	 * @throws IOException 
+	 * @throws RDFHandlerException 
+	 * @throws RepositoryException 
+	 */
+	public void exportDB(Writer writer) throws RepositoryException, RDFHandlerException, IOException
+	{
+		try{
+			System.err.println("Exporting database");
+			//writer = new FileWriter(fileName);
+			rc.export(new RDFXMLPrettyWriter(writer));
+		}catch(Exception e) {
+			e.printStackTrace();
+		} finally {
+			try{
+				if(writer!=null)
+					writer.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
 	
 	/**
 	 * Method getRc.  Gets the repository connection.
