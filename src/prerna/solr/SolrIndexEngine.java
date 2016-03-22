@@ -200,7 +200,7 @@ public class SolrIndexEngine {
 				LOGGER.info("Adding " + docs.size() + " documents into insight server...");
 				insightServer.add(docs);
 				insightServer.commit();
-				buildSuggester();
+				LOGGER.info("Done adding documents in insight server.");
 			}
 		}
 	}
@@ -223,7 +223,7 @@ public class SolrIndexEngine {
 				LOGGER.info("Adding " + docs.size() + " documents into instance server...");
 				instanceServer.add(docs);
 				instanceServer.commit();
-				buildSuggester();
+				LOGGER.info("Done adding documents in instance server.");
 			}
 		}
 	}
@@ -945,7 +945,6 @@ public class SolrIndexEngine {
 			params.set("suggest.reloadAll", "true");
 			try {
 				insightServer.query(params);
-				instanceServer.query(params);
 			} catch (SolrServerException e) {
 				e.printStackTrace();
 			}
