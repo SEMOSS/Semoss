@@ -1392,7 +1392,7 @@
     </arr>
   </requestHandler>
 
-  
+  <!--
   <searchComponent name="suggest" class="solr.SpellCheckComponent">
   	<lst name="spellchecker">
       <str name="name">suggest</str>
@@ -1418,7 +1418,8 @@
       <str>suggest</str>
     </arr>
   </requestHandler>
-
+  -->
+  
   <!-- Term Vector Component
 
        http://wiki.apache.org/solr/TermVectorComponent

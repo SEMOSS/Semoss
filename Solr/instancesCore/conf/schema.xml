@@ -68,11 +68,7 @@
 		<field name="core_engine" type="string" indexed="true" stored="true" required="true" multiValued="false" />
 		<field name="value" type="string" indexed="true" stored="true" required="true" multiValued="false" /> 
 		<field name="instances" type="text_en_splitting" indexed="true" stored="true" required="true" multiValued="true" /> 
-		
-		<!-- field for suggest -->
-		<field name="instance_suggest" type="text_suggest" indexed="true" stored="false" required="true" multiValued="true" /> 
-		<copyField source="instances" dest="instance_suggest"/>
-		
+				
 		<!-- field for spellcheck -->
 		<field name="instance_spelling" type="text_spelling" indexed="true" stored="false" required="true" multiValued="true" /> 
 		<copyField source="instances" dest="instance_spelling"/>
@@ -140,23 +136,45 @@
 		</fieldType>
 		
 			
-			<!-- Field type that uses KeyWord Tokenizer-->
+		<!-- Field type that uses KeyWord Tokenizer-->
 		<fieldType name="text_en_splitting" class="solr.TextField" positionIncrementGap="100" autoGeneratePhraseQueries="true">
 		  <analyzer type="index">
 			<tokenizer class="solr.StandardTokenizerFactory"/>
 			<filter class="solr.PatternReplaceFilterFactory" pattern="_" replacement=" " replace="all" /> 
-			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="0" catenateWords="1" splitOnNumerics="0" catenateNumbers="1" catenateAll="0" splitOnCaseChange="1"/>
+			<filter class="solr.WordDelimiterFilterFactory" 
+							generateWordParts="1" 
+							generateNumberParts="0" 
+							catenateWords="1" 
+							splitOnNumerics="0" 
+							catenateNumbers="1" 
+							catenateAll="0" 
+							splitOnCaseChange="1"
+							preserveOriginal="1"
+							/>
 			<filter class="solr.SynonymFilterFactory" synonyms="synonyms.txt" ignoreCase="true" expand="false"/>
 			<filter class="solr.LowerCaseFilterFactory"/>
 			<filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
+			<filter class="solr.PorterStemFilterFactory"/>
+			<filter class="solr.RemoveDuplicatesTokenFilterFactory"/>
 		  </analyzer>
 		  <analyzer type="query">
 			<tokenizer class="solr.StandardTokenizerFactory"/>
-			<filter class="solr.WordDelimiterFilterFactory" generateWordParts="0" generateNumberParts="0"  stemEnglishPossessive="0" catenateWords="0" splitOnNumerics="0" catenateNumbers="0" catenateAll="0" splitOnCaseChange="1"/>
+			<filter class="solr.WordDelimiterFilterFactory" 
+							generateWordParts="0" 
+							generateNumberParts="0" 
+							stemEnglishPossessive="0" 
+							catenateWords="0" 
+							splitOnNumerics="0" 
+							catenateNumbers="0" 
+							catenateAll="0" 
+							splitOnCaseChange="1"
+							preserveOriginal="1"
+							/>
 			<filter class="solr.LowerCaseFilterFactory"/>
 			<filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
+			<filter class="solr.PorterStemFilterFactory"/>
 		  </analyzer>
-		</fieldType>					
+		</fieldType>				
 
 	</types>
 	 
