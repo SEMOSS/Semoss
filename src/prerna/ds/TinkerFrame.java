@@ -257,7 +257,7 @@ public class TinkerFrame implements ITableDataFrame {
 		System.out.println("Done");
 	}
 
-	private void printTinker() {
+	public void printTinker() {
 		Iterator<Object[]> iterator = this.iterator(false);
 		while(iterator.hasNext()) {
 			System.out.println(Arrays.toString(iterator.next()));
@@ -1910,6 +1910,10 @@ public class TinkerFrame implements ITableDataFrame {
 	
 	/****************************** FILTER METHODS **********************************************/
 	
+	/**
+	 * String columnHeader - the column on which to filter on
+	 * filterValues - the values that will remain in the 
+	 */
 	@Override
 	public void filter(String columnHeader, List<Object> filterValues) {
 		//TODO: how is this supposed to work without unfiltering the entire column first?
@@ -1917,13 +1921,24 @@ public class TinkerFrame implements ITableDataFrame {
 		long startTime = System.currentTimeMillis();
 		
 		unfilter(columnHeader);
+		
+		Set<Object> removeSet = new HashSet<Object>();
+		Iterator<Object> iterator = uniqueValueIterator(columnHeader, false, false);
+		while(iterator.hasNext()) {
+			removeSet.add(iterator.next());
+		}
+		
+		for(Object fv : filterValues) {
+			removeSet.remove(fv);
+		}
+		
 		Vertex metaVertex = upsertVertex(META, columnHeader, columnHeader);
 		metaVertex.property(Constants.FILTER, true);
 
 		Vertex filterVertex = upsertVertex(Constants.FILTER, Constants.FILTER, Constants.FILTER);
 
-		for(int i = 0 ; i < filterValues.size(); i++) {
-			String id = columnHeader +":"+ filterValues.get(i);
+		for(Object val : removeSet) {
+			String id = columnHeader +":"+ val;
 
 			GraphTraversal<Vertex, Vertex> fgt = g.traversal().V().has(Constants.ID, id);
 			Vertex nextVertex = null;
@@ -2586,8 +2601,7 @@ public class TinkerFrame implements ITableDataFrame {
 	
 	@Override
 	public boolean isEmpty() {
-		return !g.traversal().V().hasNext();
-		//correct?
+		return this.iterator(false).hasNext();
 	}
 
 
