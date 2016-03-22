@@ -65,8 +65,10 @@ import com.hp.hpl.jena.rdf.model.Model;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.picking.MultiPickedState;
 import edu.uci.ics.jung.visualization.picking.PickedState;
+import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.playsheets.GraphPlaySheet;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.transformer.ArrowFillPaintTransformer;
 import prerna.ui.transformer.EdgeStrokeTransformer;
 import prerna.ui.transformer.VertexLabelFontTransformer;
@@ -380,30 +382,35 @@ public class SearchController implements KeyListener, FocusListener, ActionListe
 	 * Method indexStatements.
 	 * @param jenaModel Model
 	 */
-	public void indexStatements(Model jenaModel)
+	public void indexStatements(IDataMaker dataFrame)
 	{
-		try
-		{
-			IndexWriter iw = IndexWriterFactory.create(new RAMDirectory());
-			//larqBuilder = new IndexBuilderSubject(iw);
-			larqBuilder = new SubjectIndexer(iw);
-			larqBuilder.indexStatements(jenaModel.listStatements());
-			larqBuilder.closeWriter();
-			IndexLARQ larq = larqBuilder.getIndex();
-			LARQ.setDefaultIndex(larq);
-			this.jenaModel = jenaModel;
-		}catch(RuntimeException ex)
-		{
-			ex.printStackTrace();
-		} catch (CorruptIndexException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (LockObtainFailedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		if(dataFrame instanceof GraphDataModel){
+			try
+			{
+				this.jenaModel = ((GraphDataModel)dataFrame).getJenaModel();
+				IndexWriter iw = IndexWriterFactory.create(new RAMDirectory());
+				//larqBuilder = new IndexBuilderSubject(iw);
+				larqBuilder = new SubjectIndexer(iw);
+				larqBuilder.indexStatements(jenaModel.listStatements());
+				larqBuilder.closeWriter();
+				IndexLARQ larq = larqBuilder.getIndex();
+				LARQ.setDefaultIndex(larq);
+			}catch(RuntimeException ex)
+			{
+				ex.printStackTrace();
+			} catch (CorruptIndexException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (LockObtainFailedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		else {
+			logger.info("cannot perform search since it is not graph data model.... it is " + dataFrame.getClass());
 		}
 	}
 
